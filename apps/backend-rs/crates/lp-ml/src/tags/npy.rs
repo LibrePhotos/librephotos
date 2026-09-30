@@ -46,11 +46,16 @@ pub fn parse_f32(bytes: &[u8]) -> anyhow::Result<(Vec<usize>, Vec<f32>)> {
         .filter(|s| !s.is_empty())
         .map(|s| s.parse::<usize>().context("bad .npy shape"))
         .collect::<anyhow::Result<_>>()?;
-    let count: usize = shape.iter().product();
+    // A corrupt header must not overflow or allocate before the size check.
+    let count = shape
+        .iter()
+        .try_fold(1usize, |n, &d| n.checked_mul(d))
+        .context("bad .npy shape")?;
     let body = &bytes[start + len..];
+    let fits = |width: usize| count.checked_mul(width).is_some_and(|n| n <= body.len());
     let data = match descr {
         "<f4" | "=f4" | "|f4" => {
-            if body.len() < count * 4 {
+            if !fits(4) {
                 bail!("truncated .npy data");
             }
             body[..count * 4]
@@ -59,7 +64,7 @@ pub fn parse_f32(bytes: &[u8]) -> anyhow::Result<(Vec<usize>, Vec<f32>)> {
                 .collect()
         }
         "<f8" | "=f8" => {
-            if body.len() < count * 8 {
+            if !fits(8) {
                 bail!("truncated .npy data");
             }
             body[..count * 8]
@@ -153,5 +158,25 @@ mod tests {
         b.extend_from_slice(&(-2.0f64).to_le_bytes());
         assert_eq!(parse_f32(&b).unwrap(), (vec![2], vec![1.5, -2.0]));
         assert!(parse_f32(b"nope").is_err());
+    }
+
+    #[test]
+    fn corrupt_shapes_are_errors() {
+        for shape in [
+            "(4611686018427387904, 8)",
+            "(18446744073709551615,)",
+            "(3, 2)",
+        ] {
+            let mut b = MAGIC.to_vec();
+            let h = format!(
+                "{{'descr': '<f4', 'fortran_order': False, 'shape': {shape}, }}
+"
+            );
+            b.extend_from_slice(&[1, 0]);
+            b.extend_from_slice(&(h.len() as u16).to_le_bytes());
+            b.extend_from_slice(h.as_bytes());
+            b.extend_from_slice(&[0; 16]);
+            assert!(parse_f32(&b).is_err(), "{shape}");
+        }
     }
 }

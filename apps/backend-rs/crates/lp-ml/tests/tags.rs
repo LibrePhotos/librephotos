@@ -350,6 +350,15 @@ async fn inprocess_service_answers_like_the_sidecar() {
         }
         other => panic!("unknown model: {other:?}"),
     }
+    // Only an empty name falls back to the default (`tagging_model or ...`).
+    match view
+        .tags()
+        .generate_tags(image, 0.4, " mobileclip_s2")
+        .await
+    {
+        Err(SidecarError::Status { status: 400, .. }) => {}
+        other => panic!("padded model name: {other:?}"),
+    }
     match view
         .tags()
         .generate_tags("/no/such/photo.webp", 0.4, "mobileclip_s2")
@@ -431,4 +440,232 @@ fn bench_tagger_latency_and_memory() {
             after - before,
         );
     }
+}
+
+/// A 1-pixel-high panorama thumbnail: MobileCLIP's shortest-edge resize
+/// would be 3,840,000 x 256 (about 3 GB) before the centre crop; only the
+/// crop is resampled, so this stays small and answers.
+#[test]
+fn panorama_thumbnail_is_tagged_without_a_huge_resize() {
+    if !has_runtime() {
+        return;
+    }
+    let Some(dir) = model_dir(Model::MobileClipS2) else {
+        return;
+    };
+    let tmp = tempfile::tempdir().unwrap();
+    let path = tmp.path().join("panorama.png");
+    image::RgbImage::from_fn(15_000, 1, |x, _| {
+        image::Rgb([(x % 256) as u8, 90, (255 - x % 256) as u8])
+    })
+    .save(&path)
+    .unwrap();
+    let mut t = Tagger::load(Model::MobileClipS2, &dir).expect("tagger loads");
+    let p = t
+        .predict(&path, Model::MobileClipS2.threshold(), MAX_TAGS)
+        .expect("tags");
+    assert_eq!(p.scores.len(), tagger::TAGS.len());
+    assert!(p.tags.len() <= MAX_TAGS);
+}
+
+/// Image modes and broken files (goldens from `tests/ml/golden_tags_edge.py`).
+/// On Pillow's pixels every case matches the Python tagger. The files as they
+/// are: PNG/GIF/BMP/TIFF/WebP decode to Pillow's exact pixels; JPEGs (grey,
+/// CMYK, progressive, EXIF-rotated, neither side applies the orientation) and
+/// 16-bit RGB PNGs differ by a few levels. Known differences: Pillow clips a
+/// 16-bit grey PNG to white where we scale it, and a truncated JPEG is a 500
+/// in Python but decodes partially here.
+#[test]
+fn edge_case_images_match_python() {
+    if !has_runtime() {
+        return;
+    }
+    let Some(g) = golden::load("tags", "edge") else {
+        return;
+    };
+    const INEXACT: [&str; 2] = ["rgb16.png", "gray16.png"];
+    for model in [Model::MobileClipS2, Model::Siglip2] {
+        let Some(dir) = model_dir(model) else {
+            continue;
+        };
+        let mut t = Tagger::load(model, &dir).expect("tagger loads");
+        let mut checked = 0;
+        for c in g.cases.iter().filter(|c| c.input["model"] == model.name()) {
+            let path = Path::new(c.input["image"].as_str().expect("image"));
+            if !path.exists() {
+                eprintln!("{} missing; skipping", path.display());
+                continue;
+            }
+            let name = path.file_name().unwrap().to_string_lossy().to_string();
+            let ours = t.predict(path, model.threshold(), MAX_TAGS);
+            if c.output.get("error").is_some() {
+                if name == "truncated.jpg" {
+                    continue;
+                }
+                assert!(ours.is_err(), "{name}: Python failed, Rust did not");
+                continue;
+            }
+            let ours = ours.unwrap_or_else(|e| panic!("{name}: {e:#}"));
+            let want_tags = strings(&c.output["tags"]["tags"]);
+            let want_scores = Array::from_json(&c.output["scores"]).f32();
+            let decoded = c.input["decoded"].as_str().expect("decoded copy");
+            let on_pixels = t
+                .predict(Path::new(decoded), model.threshold(), MAX_TAGS)
+                .unwrap_or_else(|e| panic!("{name}: {e:#}"));
+            assert_eq!(on_pixels.tags, want_tags, "{} {name}", model.name());
+            let diff = golden::max_abs_diff(&on_pixels.scores, &want_scores);
+            assert!(
+                diff <= 1e-4,
+                "{} {name}: scores differ by {diff}",
+                model.name()
+            );
+            let is_jpeg = name.ends_with(".jpg");
+            if !is_jpeg && !INEXACT.contains(&name.as_str()) {
+                let a = lp_ml::preprocess::load_rgb(path).expect("decode");
+                let b = lp_ml::preprocess::load_rgb(Path::new(decoded)).expect("decode");
+                assert_eq!(a.dimensions(), b.dimensions(), "{name}");
+                assert_eq!(
+                    golden::u8_diff(a.as_raw(), b.as_raw()).0,
+                    0,
+                    "{name}: pixels"
+                );
+                assert_eq!(ours.tags, want_tags, "{} {name}: file", model.name());
+            }
+            checked += 1;
+        }
+        eprintln!("{}: {checked} edge-case images match", model.name());
+        assert!(checked > 0);
+    }
+}
+
+/// The Rust text path against tag embeddings Python computed with the text
+/// tower in memory (`golden_tags_edge.py` `text_fresh`), not read back from
+/// the shared `tag_embeddings.npy`, for a sample of prompts including every
+/// non-ASCII tag. SigLIP 2 needs `LP_ML_SLOW_TESTS=1`.
+#[test]
+fn fresh_text_embeddings_match_python() {
+    if !has_runtime() {
+        return;
+    }
+    let Some(g) = golden::load("tags", "text_fresh") else {
+        return;
+    };
+    for c in &g.cases {
+        let model = model_of(&c.id);
+        if model == Model::Siglip2 && std::env::var_os("LP_ML_SLOW_TESTS").is_none() {
+            eprintln!("siglip2 text tower: set LP_ML_SLOW_TESTS=1 to run");
+            continue;
+        }
+        let Some(dir) = model_dir(model) else {
+            continue;
+        };
+        let tags: Vec<String> = c.input["indices"]
+            .as_array()
+            .expect("indices")
+            .iter()
+            .map(|i| tagger::TAGS[i.as_u64().expect("index") as usize].clone())
+            .collect();
+        assert!(
+            tags.iter().any(|t| !t.is_ascii()),
+            "sample has non-ASCII tags"
+        );
+        let want = Array::from_json(&c.output["embeddings"]);
+        let (dim, ours) = tagger::build_tag_embeddings(model, &dir, &tags).expect("build");
+        assert_eq!(dim, want.shape[1], "{}: dim", c.id);
+        let want = want.f32();
+        let mut worst = 1f64;
+        for (a, b) in ours.chunks(dim).zip(want.chunks(dim)) {
+            worst = worst.min(golden::cosine(a, b));
+        }
+        let diff = golden::max_abs_diff(&ours, &want);
+        eprintln!(
+            "{}: {} fresh prompt embeddings, min cosine {worst:.7}, max |diff| {diff:.2e}",
+            c.id,
+            tags.len()
+        );
+        assert!(worst > 0.99999, "{}: min cosine {worst}", c.id);
+        assert!(diff < 1e-4, "{}: max diff {diff}", c.id);
+    }
+}
+
+/// Concurrent calls (two loaded copies) give the goldens' answers, and the
+/// inference runs off the async runtime: a single-threaded runtime keeps
+/// ticking while photos are tagged.
+#[tokio::test(flavor = "current_thread")]
+async fn concurrent_calls_agree_and_do_not_block_the_runtime() {
+    if !has_runtime() {
+        return;
+    }
+    let Some(g) = golden::load("tags", "mobileclip_s2") else {
+        return;
+    };
+    if model_dir(Model::MobileClipS2).is_none() {
+        return;
+    }
+    let cases: Vec<_> = g
+        .cases
+        .iter()
+        .filter(|c| c.id.ends_with(".webp"))
+        .filter(|c| Path::new(c.input["image"].as_str().unwrap()).exists())
+        .take(6)
+        .collect();
+    if cases.is_empty() {
+        return;
+    }
+    let media_root = golden::ml_root().join("protected_media");
+    let mut cfg = MlConfig::from_env(media_root);
+    cfg.concurrency.insert(Service::Tags, 2);
+    cfg.modes.insert(Service::Tags, Mode::InProcess);
+    let ml = Ml::new(
+        cfg,
+        Arc::new(|| Selection {
+            tagging_model: "mobileclip_s2".into(),
+            face_recognition_model: "buffalo_sc".into(),
+            ocr_model: "ppocrv6_small".into(),
+            captioning_model: "lfm2_vl_450m".into(),
+        }),
+    );
+    ml.set_auto_download(false);
+    let sidecars = Sidecars::new(reqwest::Client::new(), "127.0.0.1");
+    let view = ml.view(&sidecars);
+
+    let done = std::sync::atomic::AtomicBool::new(false);
+    // Longest wait between two ticks: an inference on the runtime thread
+    // would stall it for a whole call (about a second here).
+    let ticker = async {
+        let mut last = std::time::Instant::now();
+        let mut worst = std::time::Duration::ZERO;
+        while !done.load(std::sync::atomic::Ordering::SeqCst) {
+            tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+            worst = worst.max(last.elapsed());
+            last = std::time::Instant::now();
+        }
+        worst
+    };
+    let work = async {
+        let calls = cases.iter().map(|c| {
+            view.tags()
+                .generate_tags(c.input["image"].as_str().unwrap(), 0.4, "mobileclip_s2")
+        });
+        let replies = futures::future::join_all(calls).await;
+        done.store(true, std::sync::atomic::Ordering::SeqCst);
+        replies
+    };
+    let started = std::time::Instant::now();
+    let (worst_gap, replies) = tokio::join!(ticker, work);
+    let elapsed = started.elapsed();
+    for (c, r) in cases.iter().zip(replies) {
+        let r = r.unwrap_or_else(|e| panic!("{}: {e}", c.id));
+        assert_eq!(r, serde_json::json!({"tags": c.output["tags"]}), "{}", c.id);
+    }
+    let copies = ml.loaded_models(Service::Tags);
+    assert_eq!(copies, vec![("tagger".to_string(), 2)], "two copies ran");
+    eprintln!(
+        "{} photos in {elapsed:?}, longest runtime stall {worst_gap:?}",
+        cases.len()
+    );
+    assert!(
+        worst_gap < std::time::Duration::from_millis(300),
+        "runtime stalled for {worst_gap:?}"
+    );
 }

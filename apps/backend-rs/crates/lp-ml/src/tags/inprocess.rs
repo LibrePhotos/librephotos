@@ -34,11 +34,10 @@ impl InProcess {
 
 /// `tagging_model or DEFAULT_TAGGING_MODEL`.
 fn model_name(tagging_model: &str) -> &str {
-    let m = tagging_model.trim();
-    if m.is_empty() {
+    if tagging_model.is_empty() {
         Model::DEFAULT.name()
     } else {
-        m
+        tagging_model
     }
 }
 

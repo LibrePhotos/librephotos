@@ -94,14 +94,27 @@ struct Coeffs {
 
 /// `precompute_coeffs` + `normalize_coeffs_8bpc`.
 fn precompute(in_size: usize, in0: f64, in1: f64, out_size: usize, filter: Filter) -> Coeffs {
+    precompute_range(in_size, in0, in1, out_size, filter, 0..out_size)
+}
+
+/// [`precompute`] for the output pixels in `range` only (each pixel's
+/// coefficients depend on its own position alone).
+fn precompute_range(
+    in_size: usize,
+    in0: f64,
+    in1: f64,
+    out_size: usize,
+    filter: Filter,
+    range: std::ops::Range<usize>,
+) -> Coeffs {
     let scale = (in1 - in0) / out_size as f64;
     let filterscale = scale.max(1.0);
     let support = filter.support() * filterscale;
     let ksize = support.ceil() as usize * 2 + 1;
-    let mut bounds = Vec::with_capacity(out_size);
-    let mut kk = vec![0i32; out_size * ksize];
+    let mut bounds = Vec::with_capacity(range.len());
+    let mut kk = vec![0i32; range.len() * ksize];
     let mut k = vec![0f64; ksize];
-    for xx in 0..out_size {
+    for (i, xx) in range.enumerate() {
         let center = in0 + (xx as f64 + 0.5) * scale;
         let ss = 1.0 / filterscale;
         // C's (int) cast truncates toward zero.
@@ -114,7 +127,7 @@ fn precompute(in_size: usize, in0: f64, in1: f64, out_size: usize, filter: Filte
             *kx = w;
             ww += w;
         }
-        let row = &mut kk[xx * ksize..(xx + 1) * ksize];
+        let row = &mut kk[i * ksize..(i + 1) * ksize];
         for x in 0..count {
             let w = if ww != 0.0 { k[x] / ww } else { k[x] };
             let f = w * (1u32 << PRECISION_BITS) as f64;
@@ -245,10 +258,91 @@ pub fn resize_shortest_edge_center_crop(
     let scale = size as f64 / w.min(h);
     let nw = (py_round(w * scale) as u32).max(size);
     let nh = (py_round(h * scale) as u32).max(size);
-    let resized = resize_rgb(img, nw, nh, filter);
     let left = (nw - size) / 2;
     let top = (nh - size) / 2;
-    crop_rgb(&resized, left, top, size, size)
+    // Only the crop is resampled: a 1-pixel-high panorama would otherwise
+    // resize to 256 x millions (gigabytes) before the crop.
+    let out = resize_crop(
+        img.as_raw(),
+        img.width() as usize,
+        img.height() as usize,
+        3,
+        (nw as usize, nh as usize),
+        (left as usize, top as usize, size as usize, size as usize),
+        filter,
+    );
+    image::RgbImage::from_raw(size, size, out).expect("resize output size")
+}
+
+/// `Image.resize(dst, filter).crop((x, y, x + cw, y + ch))` without
+/// resampling the pixels outside the crop; the same bits as resizing the
+/// whole image first.
+pub fn resize_crop(
+    src: &[u8],
+    w: usize,
+    h: usize,
+    channels: usize,
+    (dst_w, dst_h): (usize, usize),
+    (x0, y0, cw, ch): (usize, usize, usize, usize),
+    filter: Filter,
+) -> Vec<u8> {
+    assert_eq!(src.len(), w * h * channels, "image buffer size");
+    assert!(
+        x0 + cw <= dst_w && y0 + ch <= dst_h,
+        "crop inside the output"
+    );
+    if cw == 0 || ch == 0 {
+        return Vec::new();
+    }
+    let need_h = dst_w != w;
+    let need_v = dst_h != h;
+    let vert = need_v.then(|| precompute_range(h, 0.0, h as f64, dst_h, filter, y0..y0 + ch));
+    // Source rows the vertical pass reads (the crop rows themselves without one).
+    let (first, last) = match &vert {
+        Some(v) => (v.bounds[0].0, v.bounds[ch - 1].0 + v.bounds[ch - 1].1),
+        None => (y0, y0 + ch),
+    };
+    let rows = last - first;
+    let row_len = cw * channels;
+    let mut tmp = vec![0u8; rows * row_len];
+    if need_h {
+        let horiz = precompute_range(w, 0.0, w as f64, dst_w, filter, x0..x0 + cw);
+        for yy in 0..rows {
+            let line = &src[(yy + first) * w * channels..(yy + first + 1) * w * channels];
+            let out_line = &mut tmp[yy * row_len..(yy + 1) * row_len];
+            for (xx, &(xmin, count)) in horiz.bounds.iter().enumerate() {
+                let k = &horiz.kk[xx * horiz.ksize..xx * horiz.ksize + count];
+                for c in 0..channels {
+                    let mut ss = 1i32 << (PRECISION_BITS - 1);
+                    for (x, &kx) in k.iter().enumerate() {
+                        ss = ss.wrapping_add(line[(x + xmin) * channels + c] as i32 * kx);
+                    }
+                    out_line[xx * channels + c] = clip8(ss);
+                }
+            }
+        }
+    } else {
+        for yy in 0..rows {
+            let at = ((yy + first) * w + x0) * channels;
+            tmp[yy * row_len..(yy + 1) * row_len].copy_from_slice(&src[at..at + row_len]);
+        }
+    }
+    let Some(vert) = vert else {
+        return tmp;
+    };
+    let mut out = vec![0u8; ch * row_len];
+    for (yy, &(ymin, count)) in vert.bounds.iter().enumerate() {
+        let k = &vert.kk[yy * vert.ksize..yy * vert.ksize + count];
+        let out_line = &mut out[yy * row_len..(yy + 1) * row_len];
+        for (i, o) in out_line.iter_mut().enumerate() {
+            let mut ss = 1i32 << (PRECISION_BITS - 1);
+            for (y, &ky) in k.iter().enumerate() {
+                ss = ss.wrapping_add(tmp[(y + ymin - first) * row_len + i] as i32 * ky);
+            }
+            *o = clip8(ss);
+        }
+    }
+    out
 }
 
 /// Python's `round()` (half to even) for non-negative values.
@@ -258,5 +352,50 @@ pub fn py_round(x: f64) -> f64 {
         r - x.signum()
     } else {
         r
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn resize_crop_is_resize_then_crop() {
+        let mut seed = 7u32;
+        let mut noise = move || {
+            seed = seed.wrapping_mul(1_103_515_245).wrapping_add(12345);
+            (seed >> 16) as u8
+        };
+        // (w, h, dst_w, dst_h): down, up, one axis unchanged, both unchanged.
+        let cases = [
+            (37, 23, 16, 11),
+            (5, 9, 40, 72),
+            (30, 20, 30, 9),
+            (20, 30, 9, 30),
+            (12, 12, 12, 12),
+            (3, 1, 768, 256),
+        ];
+        for (w, h, dw, dh) in cases {
+            let src: Vec<u8> = (0..w * h * 3).map(|_| noise()).collect();
+            for filter in [Filter::Bilinear, Filter::Bicubic, Filter::Lanczos] {
+                let full = resize(&src, w, h, 3, dw, dh, filter);
+                for (x0, y0, cw, ch) in [(0, 0, dw, dh), (dw / 3, dh / 4, dw / 2, dh / 2)] {
+                    let got = resize_crop(&src, w, h, 3, (dw, dh), (x0, y0, cw, ch), filter);
+                    let want: Vec<u8> = (y0..y0 + ch)
+                        .flat_map(|y| full[(y * dw + x0) * 3..(y * dw + x0 + cw) * 3].to_vec())
+                        .collect();
+                    assert_eq!(got, want, "{w}x{h} -> {dw}x{dh} crop {x0},{y0} {filter:?}");
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn panorama_crop_stays_small() {
+        // 1 x 20000 would resize to 256 x 5_120_000 (3.9 GB) before cropping.
+        let img = image::RgbImage::from_pixel(1, 20_000, image::Rgb([10, 200, 30]));
+        let out = resize_shortest_edge_center_crop(&img, 256, Filter::Bilinear);
+        assert_eq!(out.dimensions(), (256, 256));
+        assert!(out.pixels().all(|p| p.0 == [10, 200, 30]));
     }
 }

@@ -65,8 +65,9 @@ impl<'a> Reader<'a> {
 
     fn take(&mut self, n: usize) -> anyhow::Result<&'a [u8]> {
         let s = self
-            .b
-            .get(self.at..self.at + n)
+            .at
+            .checked_add(n)
+            .and_then(|end| self.b.get(self.at..end))
             .context("truncated protobuf field")?;
         self.at += n;
         Ok(s)
@@ -377,5 +378,23 @@ impl SentencePiece {
             }
             _ => ids.push(self.unk_id),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn corrupt_models_are_errors() {
+        // Field 1, length-delimited, with a length far past the end.
+        let huge = [
+            0x0a, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x01,
+        ];
+        assert!(SentencePiece::parse(&huge).is_err());
+        assert!(SentencePiece::parse(&[0x0a, 0x05, 0x00]).is_err());
+        assert!(SentencePiece::parse(&[0x80]).is_err());
+        // Valid protobuf, but no BPE trainer spec.
+        assert!(SentencePiece::parse(&[]).is_err());
     }
 }

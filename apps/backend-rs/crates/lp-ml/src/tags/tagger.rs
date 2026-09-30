@@ -339,6 +339,22 @@ pub fn load_or_build_tag_embeddings(
     model: Model,
     model_dir: &Path,
 ) -> anyhow::Result<(usize, Vec<f32>)> {
+    load_or_build_with(model, model_dir, || {
+        build_tag_embeddings(model, model_dir, &TAGS)
+    })
+}
+
+/// [`load_or_build_tag_embeddings`] with the text-tower build injected.
+pub fn load_or_build_with(
+    model: Model,
+    model_dir: &Path,
+    build: impl FnOnce() -> anyhow::Result<(usize, Vec<f32>)>,
+) -> anyhow::Result<(usize, Vec<f32>)> {
+    // With LP_ML_TAGS_CONCURRENCY > 1 several instances load at once; only
+    // one may build (SigLIP 2's text tower alone is 1.1 GB), the others then
+    // read its cache.
+    static BUILD: std::sync::Mutex<()> = std::sync::Mutex::new(());
+    let _build = BUILD.lock().unwrap_or_else(|e| e.into_inner());
     let cache = model_dir.join(CACHE_FILE);
     if cache.exists() {
         match super::npy::read_f32(&cache) {
@@ -353,8 +369,11 @@ pub fn load_or_build_tag_embeddings(
             }
         }
     }
-    let (dim, data) = build_tag_embeddings(model, model_dir, &TAGS)?;
-    super::npy::write_f32(&cache, &[TAGS.len(), dim], &data)?;
+    let (dim, data) = build()?;
+    // A read-only model dir costs a rebuild per load, not the service.
+    if let Err(e) = super::npy::write_f32(&cache, &[TAGS.len(), dim], &data) {
+        tracing::warn!(model = model.name(), error = %format!("{e:#}"), "could not cache the tag embeddings");
+    }
     Ok((dim, data))
 }
 
@@ -512,6 +531,63 @@ mod tests {
         assert!(stale_cache_reason(Model::MobileClipS2, &[938, 64], 938).is_none());
         assert!(stale_cache_reason(Model::MobileClipS2, &[900, 512], 938).is_some());
         assert!(stale_cache_reason(Model::MobileClipS2, &[938], 938).is_some());
+    }
+
+    fn fake_build(dim: usize) -> anyhow::Result<(usize, Vec<f32>)> {
+        Ok((dim, (0..TAGS.len() * dim).map(|i| i as f32).collect()))
+    }
+
+    #[test]
+    fn cache_is_built_once_then_read() {
+        let dir = tempfile::tempdir().unwrap();
+        let m = Model::MobileClipS2;
+        let built = load_or_build_with(m, dir.path(), || fake_build(4)).unwrap();
+        assert!(dir.path().join(CACHE_FILE).exists());
+        let read = load_or_build_with(m, dir.path(), || panic!("cache ignored")).unwrap();
+        assert_eq!(read, built);
+        // A stale cache (other tag count) is rebuilt and replaced.
+        crate::tags::npy::write_f32(&dir.path().join(CACHE_FILE), &[2, 4], &[0.0; 8]).unwrap();
+        assert_eq!(
+            load_or_build_with(m, dir.path(), || fake_build(4)).unwrap(),
+            built
+        );
+        // SigLIP 2 also rejects a tiny dim left by a failed build.
+        assert_eq!(
+            load_or_build_with(Model::Siglip2, dir.path(), || fake_build(128))
+                .unwrap()
+                .0,
+            128
+        );
+    }
+
+    #[test]
+    fn unwritable_cache_still_serves_the_embeddings() {
+        let dir = tempfile::tempdir().unwrap();
+        // A directory where the file should be: unreadable and unwritable.
+        std::fs::create_dir(dir.path().join(CACHE_FILE)).unwrap();
+        let (dim, data) =
+            load_or_build_with(Model::MobileClipS2, dir.path(), || fake_build(3)).unwrap();
+        assert_eq!((dim, data.len()), (3, TAGS.len() * 3));
+    }
+
+    #[test]
+    fn concurrent_loads_build_once() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        let dir = tempfile::tempdir().unwrap();
+        let builds = AtomicUsize::new(0);
+        std::thread::scope(|s| {
+            for _ in 0..4 {
+                s.spawn(|| {
+                    load_or_build_with(Model::MobileClipS2, dir.path(), || {
+                        builds.fetch_add(1, Ordering::SeqCst);
+                        std::thread::sleep(std::time::Duration::from_millis(100));
+                        fake_build(2)
+                    })
+                    .unwrap()
+                });
+            }
+        });
+        assert_eq!(builds.load(Ordering::SeqCst), 1);
     }
 
     #[test]
