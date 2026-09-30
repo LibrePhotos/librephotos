@@ -5,7 +5,10 @@
 //! per face), `POST /train` [`TrainRequest`] -> `{predictions}`, `POST /pca
 //! {encodings}` -> `{coordinates}`. No model files.
 
+pub mod hdbscan;
 mod inprocess;
+pub mod mlp;
+pub mod pca;
 
 pub use inprocess::InProcess;
 

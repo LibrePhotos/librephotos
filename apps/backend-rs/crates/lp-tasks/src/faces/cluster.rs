@@ -1,6 +1,7 @@
 //! `faces.cluster` (`face_classify.cluster_all_faces` + `ClusterManager`) and
 //! `faces.train` (`face_classify.train_faces`). HDBSCAN and the MLP
-//! classifiers run in the face_cluster sidecar; every read and write is here.
+//! classifiers run in the face_cluster service (`lp_ml::face_cluster`,
+//! in-process or the sidecar); every read and write is here.
 
 use std::collections::{BTreeMap, HashMap};
 
@@ -169,6 +170,17 @@ fn decode(id: i32, encoding: &str) -> anyhow::Result<Vec<f64>> {
     FaceEncoding::decode(encoding).map_err(|e| anyhow::anyhow!("face {id}: {e}"))
 }
 
+/// CPU work inside an async job: on a multi-thread runtime the worker hands
+/// its other tasks off first.
+fn off_runtime<T>(f: impl FnOnce() -> T) -> T {
+    match tokio::runtime::Handle::try_current() {
+        Ok(h) if h.runtime_flavor() == tokio::runtime::RuntimeFlavor::MultiThread => {
+            tokio::task::block_in_place(f)
+        }
+        _ => f(),
+    }
+}
+
 /// `create_all_clusters`; returns the number of encodings clustered.
 async fn create_all_clusters(state: &AppState, user_id: i32) -> anyhow::Result<usize> {
     let mut tx = state.db.begin().await?;
@@ -197,12 +209,18 @@ async fn create_all_clusters(state: &AppState, user_id: i32) -> anyhow::Result<u
             }
             _ => {}
         }
-        decode(row.id, &row.encoding)?;
         faces.push(ClusterFace {
             id: row.id,
             encoding: row.encoding,
         });
     }
+    // Every encoding must decode (as numpy's would): hundreds of MB of hex for
+    // a big library, so not on a runtime worker.
+    off_runtime(|| {
+        faces
+            .iter()
+            .try_for_each(|f| decode(f.id, &f.encoding).map(drop))
+    })?;
     let target = faces.len();
     if target == 0 {
         tx.commit().await?;

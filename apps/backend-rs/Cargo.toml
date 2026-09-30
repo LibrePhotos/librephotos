@@ -169,6 +169,11 @@ opt-level = 3
 opt-level = 2
 [profile.dev.package.tokenizers]
 opt-level = 3
+# Face clustering trains MLPs on thousands of encodings (dgemm).
+[profile.dev.package.matrixmultiply]
+opt-level = 3
+[profile.dev.package.ndarray]
+opt-level = 3
 
 [profile.release]
 lto = "thin"
