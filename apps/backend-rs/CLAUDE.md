@@ -140,6 +140,9 @@ Shared files (`lp-api/src/lib.rs`, `lp-api/src/common/`, `lp-db/src/{scope,pig,u
 - `lp_jobs::enqueue(&state, "zip.build", json!({...}), EnqueueOptions::tracked(JobType::DownloadPhotos, user.id))`
   returns `Enqueued { id, lrj_id }` (`lrj_id` = the `api_longrunningjob.job_id` the UI polls).
   Inside a transaction: `enqueue_in(&mut tx, ..)` then `lp_jobs::wake(&state)` after commit.
+- Chains (Django `Chain`): `EnqueueOptions::tracked(..).after(other.id)` stores `depends_on`;
+  the row is claimable only once every dependency left queued/running (done, failed,
+  cancelled or deleted all release it), and the worker is woken when one finishes.
 - Handlers: `reg.register("zip.build", |ctx: JobCtx| async move { ... })` in your
   `register_jobs`; kinds are `<domain>.<verb>`; duplicates panic at startup.
   `ctx.state`, `ctx.job.payload`, `ctx.job.lrj_id`.
@@ -215,7 +218,9 @@ cargo run -p lp-server -- serve          # optional LP_DEV_FALLBACK=http://127.0
 
 Fresh empty DB instead: `createdb` + `librephotos-rs migrate`. Other env: `LP_DB_POOL`,
 `LP_EXIF_POOL`, `WORKER_CONCURRENCY`, `LOG_LEVEL`/`RUST_LOG`, `FEATURE_*`, `TRANSCODE_*`,
-`REFRESH_TOKEN_DAYS`, `MAP_*`, `ALLOW_UPLOAD` (see `lp_core::config`).
+`REFRESH_TOKEN_DAYS`, `MAP_*`, `ALLOW_UPLOAD` (see `lp_core::config`), `FRONTEND_BASE_URL`
+(public origin for the OIDC callback), `LP_OIDC_PROVIDERS` (JSON `[{id, name, client_id, secret,
+server_url, settings?}]`, OIDC providers for databases without allauth's `SocialApp` table).
 Logs go to stdout and to `BASE_LOGS/ownphotos.log` (Django's line layout, rotated at
 200 MB), which the admin log viewer reads.
 

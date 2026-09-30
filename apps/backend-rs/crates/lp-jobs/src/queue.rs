@@ -24,6 +24,9 @@ pub struct EnqueueOptions {
     pub lrj: Option<LrjSpec>,
     /// Reuse an existing LongRunningJob (e.g. fan-out children of a scan).
     pub lrj_id: Option<String>,
+    /// Queue ids that must finish first (any terminal state counts, as in a
+    /// django-q `Chain`); see [`claim_next`].
+    pub depends_on: Vec<i64>,
 }
 
 impl Default for EnqueueOptions {
@@ -34,6 +37,7 @@ impl Default for EnqueueOptions {
             group_id: None,
             lrj: None,
             lrj_id: None,
+            depends_on: Vec::new(),
         }
     }
 }
@@ -45,6 +49,12 @@ impl EnqueueOptions {
             lrj: Some(LrjSpec { job_type, user_id }),
             ..Default::default()
         }
+    }
+
+    /// Run only after the job `id` finished (`Chain.append`).
+    pub fn after(mut self, id: i64) -> Self {
+        self.depends_on.push(id);
+        self
     }
 }
 
@@ -92,8 +102,8 @@ pub async fn enqueue_in(
         (None, None) => None,
     };
     let id: i64 = sqlx::query_scalar(
-        "INSERT INTO job_queue (kind, payload, lrj_id, group_id, run_after, max_attempts) \
-         VALUES ($1, $2, $3, $4, COALESCE($5, now()), $6) RETURNING id",
+        "INSERT INTO job_queue (kind, payload, lrj_id, group_id, run_after, max_attempts, depends_on) \
+         VALUES ($1, $2, $3, $4, COALESCE($5, now()), $6, $7) RETURNING id",
     )
     .bind(kind)
     .bind(&payload)
@@ -101,6 +111,7 @@ pub async fn enqueue_in(
     .bind(&opts.group_id)
     .bind(opts.run_after)
     .bind(opts.max_attempts.max(1))
+    .bind(&opts.depends_on)
     .fetch_one(&mut *conn)
     .await?;
     sqlx::query("SELECT pg_notify($1, $2)")
@@ -157,6 +168,8 @@ pub fn wake(state: &AppState) {
 }
 
 /// Claim the next due job (`FOR UPDATE SKIP LOCKED`), marking it running.
+/// A job whose `depends_on` still has a queued or running row waits; a
+/// dependency that ended in any way (or was deleted) releases it.
 pub async fn claim_next(
     conn: &mut PgConnection,
     worker_id: &str,
@@ -165,14 +178,38 @@ pub async fn claim_next(
     sqlx::query_as::<_, QueuedJob>(&format!(
         "UPDATE job_queue SET status = 'running', locked_by = $1, heartbeat_at = now(), \
            started_at = COALESCE(started_at, now()), attempts = attempts + 1 \
-         WHERE id = (SELECT id FROM job_queue WHERE status = 'queued' AND run_after <= now() \
-                       AND kind = ANY($2) ORDER BY run_after, id FOR UPDATE SKIP LOCKED LIMIT 1) \
+         WHERE id = (SELECT j.id FROM job_queue j \
+                     WHERE j.status = 'queued' AND j.run_after <= now() AND j.kind = ANY($2) \
+                       AND (cardinality(j.depends_on) = 0 OR NOT EXISTS ( \
+                         SELECT 1 FROM job_queue d WHERE d.id = ANY(j.depends_on) \
+                           AND d.status IN ('queued', 'running'))) \
+                     ORDER BY j.run_after, j.id FOR UPDATE OF j SKIP LOCKED LIMIT 1) \
          RETURNING {JOB_COLUMNS}"
     ))
     .bind(worker_id)
     .bind(kinds)
     .fetch_optional(conn)
     .await
+}
+
+/// NOTIFY the workers when a queued job waits on `id`, which just finished.
+pub async fn notify_dependents(conn: &mut PgConnection, id: i64) -> sqlx::Result<bool> {
+    let kind: Option<String> = sqlx::query_scalar(
+        "SELECT kind FROM job_queue \
+         WHERE status = 'queued' AND depends_on @> ARRAY[$1::bigint] LIMIT 1",
+    )
+    .bind(id)
+    .fetch_optional(&mut *conn)
+    .await?;
+    let Some(kind) = kind else {
+        return Ok(false);
+    };
+    sqlx::query("SELECT pg_notify($1, $2)")
+        .bind(NOTIFY_CHANNEL)
+        .bind(kind)
+        .execute(&mut *conn)
+        .await?;
+    Ok(true)
 }
 
 pub async fn heartbeat(conn: &mut PgConnection, id: i64) -> sqlx::Result<()> {

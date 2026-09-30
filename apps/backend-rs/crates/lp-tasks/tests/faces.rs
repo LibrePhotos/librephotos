@@ -460,6 +460,7 @@ fn every_kind_is_registered_once() {
             "geo.locate",
             "media.classify",
             "models.download",
+            "nextcloud.scan",
             "ocr.generate",
             "similarity.build",
             "tags.generate",

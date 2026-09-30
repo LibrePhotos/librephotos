@@ -11,6 +11,7 @@ pub mod color;
 pub mod dates;
 pub mod db;
 pub mod exifmap;
+pub mod face_tags;
 pub mod fsutil;
 pub mod jobs;
 pub mod phash;
@@ -26,7 +27,7 @@ pub use pipeline::{Owner, Pipeline};
 
 use lp_jobs::HandlerRegistry;
 
-/// `scan.user`, `scan.file_group`, `thumbnails.rerender`, `metadata.write`,
+/// `scan.user`, `scan.file_group`, `thumbnails.rerender`, `metadata.write`, `metadata.face_tags`,
 /// `delete.missing_photos`, `repair.file_variants`, `upload.process`.
 pub fn register_jobs(reg: &mut HandlerRegistry) {
     jobs::register(reg);

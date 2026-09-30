@@ -250,6 +250,7 @@ pub fn register(reg: &mut HandlerRegistry) {
     reg.register("scan.file_group", scan_file_group);
     reg.register("thumbnails.rerender", thumbnails_rerender);
     reg.register("metadata.write", metadata_write);
+    reg.register(crate::face_tags::KIND, crate::face_tags::run);
     reg.register("delete.missing_photos", delete_missing_photos);
     reg.register("repair.file_variants", repair_file_variants);
     reg.register("upload.process", upload_process);

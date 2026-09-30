@@ -260,6 +260,9 @@ async fn run_job(
                 }
             }
         }
+        if queue::notify_dependents(&mut conn, id).await? {
+            state.job_wakeup.notify_one();
+        }
         Ok::<(), sqlx::Error>(())
     };
     if let Err(e) = record.await {
