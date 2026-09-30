@@ -23,11 +23,11 @@ import time
 import lpb
 from lpb import log
 
-PORTS = {"django-shipped": 8901, "django-tuned": 8902, "rust": 8903}
+PORTS = {"django-shipped": lpb.PORT_BASE, "django-tuned": lpb.PORT_BASE + 1, "rust": lpb.PORT_BASE + 2}
 
 
 def db_for(ds, name):
-    return f"lp_run_{ds}_{name.replace('-', '_')}"
+    return f"{lpb.RUN_PREFIX}{ds}_{name.replace('-', '_')}"
 
 
 def template_for(ds):

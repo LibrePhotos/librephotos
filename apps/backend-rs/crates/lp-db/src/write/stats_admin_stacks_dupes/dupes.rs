@@ -1,11 +1,13 @@
 //! `Duplicate` writes (`api/views/duplicates.py`, `api/models/duplicate.py`).
 //! Group membership is the `api_photo_duplicates` link table.
 
+use std::collections::HashSet;
+
 use sqlx::{PgConnection, PgPool};
 use uuid::Uuid;
 
 use super::refresh_tags_for_photos;
-use crate::stats_admin_stacks_dupes::dupes::best_photo;
+use crate::stats_admin_stacks_dupes::dupes::{EXACT_COPY, best_photo};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ResolveOutcome {
@@ -204,18 +206,56 @@ pub async fn calculate_potential_savings(
     Ok(savings)
 }
 
-/// Link `photos` to `group` unless already linked (M2M `add`).
+/// Link `photos` to `group` unless already linked (M2M `add`), in the
+/// given order: link order breaks ties in [`best_photo`].
 async fn add_photos(conn: &mut PgConnection, group: Uuid, photos: &[Uuid]) -> sqlx::Result<u64> {
+    let mut seen = HashSet::new();
+    let photos: Vec<Uuid> = photos.iter().copied().filter(|p| seen.insert(*p)).collect();
     Ok(sqlx::query(
         "INSERT INTO api_photo_duplicates (photo_id, duplicate_id) \
-         SELECT DISTINCT u.id, $1::uuid FROM unnest($2::uuid[]) AS u(id) \
-         WHERE NOT EXISTS (SELECT 1 FROM api_photo_duplicates x WHERE x.duplicate_id = $1 AND x.photo_id = u.id)",
+         SELECT u.id, $1::uuid FROM unnest($2::uuid[]) WITH ORDINALITY AS u(id, n) \
+         WHERE NOT EXISTS (SELECT 1 FROM api_photo_duplicates x WHERE x.duplicate_id = $1 AND x.photo_id = u.id) \
+         ORDER BY u.n",
     )
     .bind(group)
-    .bind(photos)
+    .bind(&photos)
     .execute(conn)
     .await?
     .rows_affected())
+}
+
+/// `photos` in the order Django's `Photo.objects.filter(id__in=photos)`
+/// yields them, which is the order `create_or_merge` links them in. The
+/// planner decides it (primary key order for a few ids, heap order from a
+/// bitmap scan for more), so the statement is shaped like Django's and
+/// planned with the actual ids (unnamed statement), as Django's inlined
+/// `IN (...)` list is.
+async fn django_order(conn: &mut PgConnection, photos: &[Uuid]) -> sqlx::Result<Vec<Uuid>> {
+    use sqlx::Row;
+    let rows = sqlx::query("SELECT p.id AS lp_order_id, p.* FROM api_photo p WHERE p.id = ANY($1)")
+        .bind(photos)
+        .persistent(false)
+        .fetch_all(conn)
+        .await?;
+    let mut ordered: Vec<Uuid> = rows.iter().map(|r| r.get(0)).collect();
+    // Photos without a row keep a place at the end (they link and fail the
+    // foreign key check at commit, as in Django).
+    let known: HashSet<Uuid> = ordered.iter().copied().collect();
+    ordered.extend(photos.iter().filter(|p| !known.contains(p)));
+    Ok(ordered)
+}
+
+/// Whether [`django_order`]'s statement for `photos` is an index scan
+/// (primary key order) rather than a bitmap or sequential scan (heap order).
+async fn in_list_is_index_scan(conn: &mut PgConnection, photos: &[Uuid]) -> sqlx::Result<bool> {
+    let plan: serde_json::Value = sqlx::query_scalar(
+        "EXPLAIN (FORMAT JSON) SELECT p.id AS lp_order_id, p.* FROM api_photo p WHERE p.id = ANY($1)",
+    )
+    .bind(photos)
+    .persistent(false)
+    .fetch_one(conn)
+    .await?;
+    Ok(plan[0]["Plan"]["Node Type"] == "Index Scan")
 }
 
 /// `Duplicate.create_or_merge` for 2+ photos: returns the group.
@@ -229,6 +269,7 @@ pub async fn create_or_merge(
     if photos.len() < 2 {
         return Ok(None);
     }
+    let photos = &django_order(conn, photos).await?;
     let existing: Vec<Uuid> = sqlx::query_scalar(
         "SELECT d.id FROM api_duplicate d WHERE d.owner_id = $1 AND d.duplicate_type = $2 \
          AND EXISTS (SELECT 1 FROM api_photo_duplicates x WHERE x.duplicate_id = d.id AND x.photo_id = ANY($3)) \
@@ -270,6 +311,191 @@ pub async fn create_or_merge(
     add_photos(conn, target, photos).await?;
     calculate_potential_savings(conn, target, duplicate_type).await?;
     Ok(Some(target))
+}
+
+/// [`create_or_merge`] over disjoint groups (union-find output) with the
+/// same result as calling it once per group in order, in a fixed number of
+/// statements: only groups sharing a photo with an existing group of this
+/// type take the one-by-one merge path; every other group is new and cannot
+/// meet another, so they are inserted and priced together. Returns how many
+/// groups were created or merged into.
+pub async fn create_or_merge_many(
+    conn: &mut PgConnection,
+    owner: i32,
+    duplicate_type: &str,
+    groups: &[Vec<Uuid>],
+) -> sqlx::Result<usize> {
+    let groups: Vec<&Vec<Uuid>> = groups.iter().filter(|g| g.len() >= 2).collect();
+    if groups.is_empty() {
+        return Ok(0);
+    }
+    let all: Vec<Uuid> = groups.iter().flat_map(|g| g.iter().copied()).collect();
+    let grouped: HashSet<Uuid> = sqlx::query_scalar::<_, Uuid>(
+        "SELECT DISTINCT x.photo_id FROM api_photo_duplicates x \
+         JOIN api_duplicate d ON d.id = x.duplicate_id \
+         WHERE d.owner_id = $1 AND d.duplicate_type = $2 AND x.photo_id = ANY($3)",
+    )
+    .bind(owner)
+    .bind(duplicate_type)
+    .bind(&all)
+    .fetch_all(&mut *conn)
+    .await?
+    .into_iter()
+    .collect();
+    let (merging, fresh): (Vec<&Vec<Uuid>>, Vec<&Vec<Uuid>>) = groups
+        .into_iter()
+        .partition(|g| g.iter().any(|p| grouped.contains(p)));
+    let mut done = 0;
+    for g in merging {
+        if create_or_merge(conn, owner, duplicate_type, g, None)
+            .await?
+            .is_some()
+        {
+            done += 1;
+        }
+    }
+    if fresh.is_empty() {
+        return Ok(done);
+    }
+    let ids: Vec<Uuid> = fresh.iter().map(|_| Uuid::new_v4()).collect();
+    // One microsecond apart, so the list (newest first) shows them in
+    // reverse creation order like Django's one-by-one creates.
+    sqlx::query(
+        "INSERT INTO api_duplicate (id, duplicate_type, review_status, created_at, updated_at, \
+           reviewed_at, similarity_score, potential_savings, trashed_count, note, kept_photo_id, owner_id) \
+         SELECT g.id, $2, 'pending', now() + g.n * interval '1 microsecond', \
+           now() + g.n * interval '1 microsecond', NULL, NULL, 0, 0, NULL, NULL, $3 \
+         FROM unnest($1::uuid[]) WITH ORDINALITY AS g(id, n) ORDER BY g.n",
+    )
+    .bind(&ids)
+    .bind(duplicate_type)
+    .bind(owner)
+    .execute(&mut *conn)
+    .await?;
+    let mut members: Vec<Vec<Uuid>> = fresh
+        .iter()
+        .map(|g| {
+            let mut m = g.to_vec();
+            m.sort_unstable();
+            m.dedup();
+            m
+        })
+        .collect();
+    // Link order only matters where several photos tie for the suggested
+    // one; those groups get Django's order (see `django_order`). Its plan
+    // depends on the number of ids alone: primary key order from an index
+    // scan, else heap order.
+    let tied = tied_groups(conn, duplicate_type, &members).await?;
+    let mut heap_order = Vec::new();
+    let mut plan_by_size: std::collections::HashMap<usize, bool> = Default::default();
+    for n in tied {
+        let k = members[n].len();
+        let index_order = match plan_by_size.get(&k) {
+            Some(&b) => b,
+            None => {
+                let b = in_list_is_index_scan(conn, &members[n]).await?;
+                plan_by_size.insert(k, b);
+                b
+            }
+        };
+        if !index_order {
+            heap_order.push(n);
+        }
+    }
+    if !heap_order.is_empty() {
+        let (pos, photo): (Vec<i32>, Vec<Uuid>) = heap_order
+            .iter()
+            .flat_map(|&n| members[n].iter().map(move |&p| (n as i32, p)))
+            .unzip();
+        let rows: Vec<(i32, Uuid)> = sqlx::query_as(
+            "SELECT l.n, p.id FROM unnest($1::int4[], $2::uuid[]) AS l(n, photo_id) \
+             JOIN api_photo p ON p.id = l.photo_id ORDER BY l.n, p.ctid",
+        )
+        .bind(&pos)
+        .bind(&photo)
+        .fetch_all(&mut *conn)
+        .await?;
+        for &n in &heap_order {
+            members[n].clear();
+        }
+        for (n, p) in rows {
+            members[n as usize].push(p);
+        }
+    }
+    let (link_dup, link_photo): (Vec<Uuid>, Vec<Uuid>) = members
+        .into_iter()
+        .zip(&ids)
+        .flat_map(|(m, &id)| m.into_iter().map(move |p| (id, p)))
+        .unzip();
+    sqlx::query(
+        "INSERT INTO api_photo_duplicates (photo_id, duplicate_id) \
+         SELECT l.photo_id, l.dup FROM unnest($1::uuid[], $2::uuid[]) WITH ORDINALITY AS l(dup, photo_id, n) \
+         ORDER BY l.n",
+    )
+    .bind(&link_dup)
+    .bind(&link_photo)
+    .execute(&mut *conn)
+    .await?;
+    let (best_join, best_key) = best_key(duplicate_type);
+    let best_order = format!("{best_key}, x.id");
+    sqlx::query(&format!(
+        "UPDATE api_duplicate d SET potential_savings = s.savings, updated_at = now() \
+         FROM (SELECT b.id, COALESCE((SELECT sum(p.size) FROM api_photo_duplicates x \
+                 JOIN api_photo p ON p.id = x.photo_id \
+                 WHERE x.duplicate_id = b.id AND p.id <> b.best), 0)::bigint AS savings \
+               FROM (SELECT g.id, (SELECT p.id FROM api_photo p \
+                       JOIN api_photo_duplicates x ON x.photo_id = p.id {best_join} \
+                       WHERE x.duplicate_id = g.id ORDER BY {best_order} LIMIT 1) AS best \
+                     FROM unnest($1::uuid[]) AS g(id)) b) s \
+         WHERE d.id = s.id"
+    ))
+    .bind(&ids)
+    .execute(&mut *conn)
+    .await?;
+    Ok(done + ids.len())
+}
+
+/// `(join, key)` of `auto_select_best_photo` for a group type, over the
+/// photo alias `p`: exact copies keep the shortest main file path, visual
+/// duplicates the largest resolution (DESC puts NULLs first, like Django's
+/// `.last()` of the ascending order).
+fn best_key(duplicate_type: &str) -> (&'static str, &'static str) {
+    if duplicate_type == EXACT_COPY {
+        (
+            "LEFT JOIN api_file mf ON mf.hash = p.main_file_id",
+            "length(mf.path) ASC",
+        )
+    } else {
+        (
+            "LEFT JOIN api_photometadata m ON m.photo_id = p.id",
+            "(m.width * m.height) DESC",
+        )
+    }
+}
+
+/// Positions of the groups where two or more photos share the best key.
+async fn tied_groups(
+    conn: &mut PgConnection,
+    duplicate_type: &str,
+    groups: &[Vec<Uuid>],
+) -> sqlx::Result<Vec<usize>> {
+    let (join, key) = best_key(duplicate_type);
+    let (pos, photo): (Vec<i32>, Vec<Uuid>) = groups
+        .iter()
+        .enumerate()
+        .flat_map(|(n, g)| g.iter().map(move |&p| (n as i32, p)))
+        .unzip();
+    let tied: Vec<i32> = sqlx::query_scalar(&format!(
+        "SELECT r.n FROM (SELECT l.n, rank() OVER (PARTITION BY l.n ORDER BY {key}) AS r \
+           FROM unnest($1::int4[], $2::uuid[]) AS l(n, photo_id) \
+           JOIN api_photo p ON p.id = l.photo_id {join}) r \
+         WHERE r.r = 1 GROUP BY r.n HAVING count(*) > 1 ORDER BY r.n"
+    ))
+    .bind(&pos)
+    .bind(&photo)
+    .fetch_all(&mut *conn)
+    .await?;
+    Ok(tied.into_iter().map(|n| n as usize).collect())
 }
 
 /// `clear_pending`: delete the user's pending groups.

@@ -134,17 +134,18 @@ pub async fn dup_members(
 
 /// `Duplicate.auto_select_best_photo`: exact copies keep the shortest main
 /// file path, visual duplicates the largest resolution (`order_by(w*h).last()`,
-/// i.e. DESC with NULLs first). Ties are left to Postgres, with the statement
-/// shaped like Django's so both pick the same photo.
+/// i.e. DESC with NULLs first). Ties go to the earliest link: Django's plan
+/// meets the links in insertion order and its top-1 sort keeps the first
+/// maximum; `create_or_merge` links photos in Django's order.
 pub async fn best_photo(
     conn: &mut PgConnection,
     dup_id: Uuid,
     duplicate_type: &str,
 ) -> sqlx::Result<Option<(Uuid, String)>> {
     let sql = if duplicate_type == EXACT_COPY {
-        "SELECT p.id, p.image_hash FROM api_photo p          INNER JOIN api_photo_duplicates x ON (p.id = x.photo_id)          LEFT OUTER JOIN api_file mf ON (p.main_file_id = mf.hash)          WHERE x.duplicate_id = $1 ORDER BY length(mf.path) ASC LIMIT 1"
+        "SELECT p.id, p.image_hash FROM api_photo p          INNER JOIN api_photo_duplicates x ON (p.id = x.photo_id)          LEFT OUTER JOIN api_file mf ON (p.main_file_id = mf.hash)          WHERE x.duplicate_id = $1 ORDER BY length(mf.path) ASC, x.id LIMIT 1"
     } else {
-        "SELECT p.id, p.image_hash FROM api_photo p          INNER JOIN api_photo_duplicates x ON (p.id = x.photo_id)          LEFT OUTER JOIN api_photometadata m ON (p.id = m.photo_id)          WHERE x.duplicate_id = $1 ORDER BY (m.width * m.height) DESC LIMIT 1"
+        "SELECT p.id, p.image_hash FROM api_photo p          INNER JOIN api_photo_duplicates x ON (p.id = x.photo_id)          LEFT OUTER JOIN api_photometadata m ON (p.id = m.photo_id)          WHERE x.duplicate_id = $1 ORDER BY (m.width * m.height) DESC, x.id LIMIT 1"
     };
     sqlx::query_as(sql).bind(dup_id).fetch_optional(conn).await
 }

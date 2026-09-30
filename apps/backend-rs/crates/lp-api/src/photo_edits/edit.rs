@@ -328,10 +328,11 @@ async fn apply_gps(state: &AppState, photo: &EditPhoto, lat: f64, lon: f64) -> a
         tx.commit().await?;
         old
     };
-    let Some(geo) = super::geocode::reverse_geocode(state, lat, lon).await else {
+    let geo = lp_tasks::geocode::reverse_geocode(state, lat, lon).await;
+    if geo.as_object().is_none_or(|o| o.is_empty()) {
         tracing::warn!("Reverse geocoding returned no result for provided coordinates");
         return Ok(());
-    };
+    }
     let mut tx = state.db.begin().await?;
     svc::apply_geocode(
         &mut tx,

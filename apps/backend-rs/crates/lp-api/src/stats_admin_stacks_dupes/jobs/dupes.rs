@@ -1,7 +1,8 @@
 //! `dupes.detect`: `batch_detect_duplicates`. Exact copies share an
 //! `image_hash` or a file MD5; visual duplicates are pHash neighbours within
-//! the threshold, found with one BK-tree per hash length instead of Django's
-//! O(n^2) cross-batch pass (same pairs, same groups). One transaction.
+//! the threshold, found with a 4-block multi-index over the 64-bit hashes
+//! (a BK-tree for other lengths) instead of Django's O(n^2) cross-batch pass
+//! (same pairs, same groups). New groups are written in bulk. One transaction.
 
 use std::collections::HashMap;
 use std::hash::Hash;
@@ -15,7 +16,7 @@ use lp_db::write::stats_admin_stacks_dupes::dupes as write;
 use serde_json::Value;
 use uuid::Uuid;
 
-use super::phash::{BkTree, MAX_DISTANCE, PHash};
+use super::phash::{BkTree, BlockIndex, MAX_DISTANCE, PHash};
 use super::{option_flag, progress};
 use crate::stats_admin_stacks_dupes::paging::json_int;
 
@@ -106,19 +107,69 @@ pub fn for_each_visual_pair(hashes: &[&str], threshold: i64, mut f: impl FnMut(u
         return;
     }
     let threshold = threshold as u32;
+    let parsed: Vec<Option<PHash>> = hashes.iter().map(|h| PHash::parse(h)).collect();
+    // 64-bit hashes (all of Django's) are searched in parallel; other
+    // lengths keep one BK-tree each.
+    let mut words: Vec<u64> = Vec::new();
+    let mut global = Vec::new();
     let mut trees: HashMap<usize, BkTree> = HashMap::new();
     let mut found = Vec::new();
-    for (i, h) in hashes.iter().enumerate() {
-        let Some(parsed) = PHash::parse(h) else {
+    for (i, p) in parsed.into_iter().enumerate() {
+        let Some(p) = p else {
             continue;
         };
-        let tree = trees.entry(h.len()).or_default();
+        if hashes[i].len() == 16 {
+            global.push(i);
+            words.push(p.word());
+            continue;
+        }
         found.clear();
-        tree.search(&parsed, threshold, &mut found);
+        let tree = trees.entry(hashes[i].len()).or_default();
+        tree.search(&p, threshold, &mut found);
+        found.sort_unstable();
         for &j in &found {
             f(i, j);
         }
-        tree.insert(parsed, i);
+        tree.insert(p, i);
+    }
+    for_each_earlier_neighbour(&words, threshold, |i, j| f(global[i], global[j]));
+}
+
+/// Every pair `(i, j)`, `j < i`, of 64-bit hashes within `threshold`, in
+/// order: through the block index at small radii, by popcount against every
+/// earlier hash otherwise. Items are searched in parallel, a slice at a time
+/// so that a radius pairing nearly everything cannot exhaust memory.
+fn for_each_earlier_neighbour(words: &[u64], threshold: u32, mut f: impl FnMut(usize, usize)) {
+    use rayon::prelude::*;
+    if words.is_empty() {
+        return;
+    }
+    let index = BlockIndex::supports(threshold).then(|| BlockIndex::new(words, threshold));
+    let variants = index.as_ref().map(BlockIndex::variants).unwrap_or_default();
+    let slice = ((1usize << 24) / words.len()).max(64);
+    for start in (0..words.len()).step_by(slice) {
+        let end = (start + slice).min(words.len());
+        let lists: Vec<Vec<u32>> = (start..end)
+            .into_par_iter()
+            .map(|i| match &index {
+                Some(index) => {
+                    let mut out = Vec::new();
+                    index.earlier_neighbours(words, i, threshold, &variants, &mut out);
+                    out
+                }
+                None => {
+                    let h = words[i];
+                    (0..i as u32)
+                        .filter(|&j| (h ^ words[j as usize]).count_ones() <= threshold)
+                        .collect()
+                }
+            })
+            .collect();
+        for (k, list) in lists.into_iter().enumerate() {
+            for j in list {
+                f(start + k, j as usize);
+            }
+        }
     }
 }
 
@@ -137,6 +188,7 @@ pub async fn detect(
         .get("visual_threshold")
         .and_then(json_int)
         .unwrap_or(10);
+    let mut lap = Laps::new();
     let mut tx = state.db.begin().await?;
     if option_flag(options, "clear_pending", false) {
         write::clear_pending(&mut tx, user_id).await?;
@@ -145,6 +197,7 @@ pub async fn detect(
     if detect_exact {
         let by_hash = detect::same_image_hash_groups(&mut tx, user_id).await?;
         let by_content = detect::same_content_groups(&mut tx, user_id).await?;
+        lap.mark("exact_inputs");
         let total = by_hash.len() + by_content.len();
         progress(state, lrj, "exact_copies", 0, total, 0).await;
         let mut uf = UnionFind::default();
@@ -153,18 +206,13 @@ pub async fn detect(
                 uf.union(&group[0], other);
             }
         }
-        for group in uf.groups() {
-            if write::create_or_merge(&mut tx, user_id, EXACT_COPY, &group, None)
-                .await?
-                .is_some()
-            {
-                found += 1;
-            }
-        }
+        found += write::create_or_merge_many(&mut tx, user_id, EXACT_COPY, &uf.groups()).await?;
+        lap.mark("exact_writes");
         progress(state, lrj, "exact_copies", total, total, found).await;
     }
     if detect_visual {
         let candidates = detect::visual_candidates(&mut tx, user_id).await?;
+        lap.mark("visual_inputs");
         let total = candidates.len();
         if total >= 2 {
             progress(state, lrj, "visual_duplicates", 0, total, 0).await;
@@ -181,27 +229,94 @@ pub async fn detect(
                 })
                 .await?;
             let (pair_count, groups): (usize, Vec<Vec<Uuid>>) = pairs;
-            let mut created = 0usize;
-            for group in groups {
-                if write::create_or_merge(&mut tx, user_id, VISUAL_DUPLICATE, &group, None)
-                    .await?
-                    .is_some()
-                {
-                    created += 1;
-                }
-            }
-            found += created;
+            lap.mark("visual_pairs");
+            tracing::info!(
+                user_id,
+                candidates = total,
+                pairs = pair_count,
+                groups = groups.len(),
+                "dupes.detect: visual pairs"
+            );
+            found +=
+                write::create_or_merge_many(&mut tx, user_id, VISUAL_DUPLICATE, &groups).await?;
+            lap.mark("visual_writes");
             progress(state, lrj, "visual_duplicates", total, total, pair_count).await;
         }
     }
     tx.commit().await?;
+    lap.mark("commit");
+    tracing::info!(user_id, found, stages = %lap, "dupes.detect: done");
     Ok(found)
+}
+
+/// Stage timings for the job log line (`stage=ms ...`).
+struct Laps {
+    last: std::time::Instant,
+    marks: Vec<(&'static str, u128)>,
+}
+
+impl Laps {
+    fn new() -> Self {
+        Laps {
+            last: std::time::Instant::now(),
+            marks: Vec::new(),
+        }
+    }
+
+    fn mark(&mut self, stage: &'static str) {
+        let now = std::time::Instant::now();
+        self.marks
+            .push((stage, now.duration_since(self.last).as_millis()));
+        self.last = now;
+    }
+}
+
+impl std::fmt::Display for Laps {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for (i, (stage, ms)) in self.marks.iter().enumerate() {
+            write!(f, "{}{stage}={ms}ms", if i == 0 { "" } else { " " })?;
+        }
+        Ok(())
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::stats_admin_stacks_dupes::jobs::phash::hamming;
+
+    /// `cargo test -p lp-api --lib --release pair_search_speed -- --ignored --nocapture`
+    #[test]
+    #[ignore]
+    fn pair_search_speed() {
+        let mut state = 0x9e37_79b9_7f4a_7c15u64;
+        let hashes: Vec<String> = (0..50_000)
+            .map(|_| {
+                state ^= state << 13;
+                state ^= state >> 7;
+                state ^= state << 17;
+                format!("{state:016x}")
+            })
+            .collect();
+        let refs: Vec<&str> = hashes.iter().map(String::as_str).collect();
+        for threshold in [10, 20] {
+            let t = std::time::Instant::now();
+            let mut n = 0usize;
+            for_each_visual_pair(&refs, threshold, |_, _| n += 1);
+            println!("threshold {threshold}: {n} pairs in {:?}", t.elapsed());
+        }
+        // The BK-tree this replaced, at the default radius.
+        let t = std::time::Instant::now();
+        let (mut tree, mut found, mut n) = (BkTree::default(), Vec::new(), 0usize);
+        for (i, h) in refs.iter().enumerate() {
+            let p = PHash::parse(h).unwrap();
+            found.clear();
+            tree.search(&p, 10, &mut found);
+            n += found.len();
+            tree.insert(p, i);
+        }
+        println!("bk-tree threshold 10: {n} pairs in {:?}", t.elapsed());
+    }
 
     #[test]
     fn union_find_groups() {
@@ -223,6 +338,9 @@ mod tests {
             state
         };
         let base = next();
+        let wide: Vec<String> = (0..3)
+            .map(|_| format!("{base:016x}{:016x}{base:016x}{:016x}", next(), next()))
+            .collect();
         let hashes: Vec<String> = (0..300)
             .map(|i| {
                 let flips = next() & next() & next();
@@ -230,9 +348,11 @@ mod tests {
                 format!("{v:016x}")
             })
             .chain(["bogus".to_string(), "ab".to_string()])
+            .chain((0..4).map(|i| format!("{:016x}", base ^ (0x3 << (i * 16)))))
+            .chain(wide)
             .collect();
         let refs: Vec<&str> = hashes.iter().map(String::as_str).collect();
-        for threshold in [0, 5, 10, 20] {
+        for threshold in [0, 3, 5, 10, 13, 15, 20] {
             let mut got: Vec<(usize, usize)> = visual_pairs(&refs, threshold)
                 .into_iter()
                 .map(|(a, b)| (a.max(b), a.min(b)))

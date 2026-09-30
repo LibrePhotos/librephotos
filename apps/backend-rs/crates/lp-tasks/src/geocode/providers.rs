@@ -6,6 +6,7 @@ use std::collections::HashMap;
 use std::sync::{LazyLock, RwLock};
 use std::time::Duration;
 
+use serde::Serialize;
 use serde_json::{Value, json};
 
 /// `GEOCODE_VERSION`: stored as `_v` in `geolocation_json`.
@@ -98,14 +99,16 @@ fn coord(v: f64) -> String {
     }
 }
 
-fn path_escape(s: &str) -> String {
-    percent_encoding::utf8_percent_encode(s, percent_encoding::NON_ALPHANUMERIC)
-        .to_string()
-        .replace("%2C", ",")
-        .replace("%2D", "-")
-        .replace("%2E", ".")
-        .replace("%5F", "_")
-        .replace("%7E", "~")
+/// `urllib.parse.quote` with its default `safe="/"`, as geopy quotes the
+/// query or point it puts in a URL path.
+fn py_quote(s: &str) -> String {
+    const QUOTE: &percent_encoding::AsciiSet = &percent_encoding::NON_ALPHANUMERIC
+        .remove(b'_')
+        .remove(b'.')
+        .remove(b'-')
+        .remove(b'~')
+        .remove(b'/');
+    percent_encoding::utf8_percent_encode(s, QUOTE).to_string()
 }
 
 async fn get_json(
@@ -162,7 +165,7 @@ pub async fn reverse(
             }
         }
         Provider::Mapbox | Provider::Maptiler => {
-            let point = path_escape(&format!("{},{}", coord(lon), coord(lat)));
+            let point = py_quote(&format!("{},{}", coord(lon), coord(lat)));
             let (url, key_param) = if provider == Provider::Mapbox {
                 (
                     format!("{base}/geocoding/v5/mapbox.places/{point}.json/"),
@@ -178,7 +181,7 @@ pub async fn reverse(
                 .cloned()
         }
         Provider::Tomtom => {
-            let point = path_escape(&format!("{},{}", coord(lat), coord(lon)));
+            let point = py_quote(&format!("{},{}", coord(lat), coord(lon)));
             let v = get_json(
                 http,
                 &format!("{base}/search/2/reverseGeocode/{point}.json"),
@@ -345,20 +348,40 @@ pub fn parse(provider: Provider, raw: &Value) -> Option<Value> {
     }
 }
 
-/// `Geocode(provider).search(query, limit)`: `[{display_name, lat, lon}]`.
+/// One `/api/geocode/search` result (geopy `Location`).
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct Place {
+    pub display_name: Option<String>,
+    pub lat: f64,
+    pub lon: f64,
+}
+
+/// `Geocode(provider).search(query, limit)` =
+/// `geocode(query, exactly_one=False, limit=limit)`. Errors are what geopy
+/// raises: Mapbox, MapTiler and OpenCage take no `limit` (a TypeError before
+/// any request), Nominatim refuses a limit below 1, and a result geopy
+/// cannot read fails the whole answer.
 pub async fn search(
     http: &reqwest::Client,
     provider: Provider,
     api_key: &str,
     query: &str,
-    limit: usize,
-) -> anyhow::Result<Vec<Value>> {
+    limit: i64,
+) -> anyhow::Result<Vec<Place>> {
     let base = base_url(provider);
-    let item = |name: Option<String>, lat: Option<f64>, lon: Option<f64>| -> Option<Value> {
-        Some(json!({"display_name": name?, "lat": lat?, "lon": lon?}))
-    };
-    let out: Vec<Value> = match provider {
+    let place =
+        |name: Option<String>, lat: Option<f64>, lon: Option<f64>| -> anyhow::Result<Place> {
+            Ok(Place {
+                display_name: name,
+                lat: lat.ok_or_else(|| anyhow::anyhow!("result without latitude"))?,
+                lon: lon.ok_or_else(|| anyhow::anyhow!("result without longitude"))?,
+            })
+        };
+    match provider {
         Provider::Nominatim => {
+            if limit < 1 {
+                anyhow::bail!("Limit cannot be less than 1");
+            }
             let v = get_json(
                 http,
                 &format!("{base}/search"),
@@ -369,100 +392,59 @@ pub async fn search(
                 ],
             )
             .await?;
-            v.as_array()
-                .into_iter()
-                .flatten()
-                .filter_map(|r| {
-                    item(
-                        r.get("display_name").and_then(text),
+            let items = match v {
+                Value::Array(a) => a,
+                Value::Object(o) if o.is_empty() || o.contains_key("error") => Vec::new(),
+                v @ Value::Object(_) => vec![v],
+                _ => Vec::new(),
+            };
+            items
+                .iter()
+                .map(|r| {
+                    place(
+                        r.get("display_name")
+                            .and_then(Value::as_str)
+                            .map(str::to_string),
                         number(r.get("lat")),
                         number(r.get("lon")),
                     )
                 })
                 .collect()
         }
-        Provider::Mapbox | Provider::Maptiler => {
-            let q = path_escape(query);
-            let (url, key_param) = if provider == Provider::Mapbox {
-                (
-                    format!("{base}/geocoding/v5/mapbox.places/{q}.json/"),
-                    "access_token",
-                )
-            } else {
-                (format!("{base}/geocoding/{q}.json"), "key")
-            };
-            let v = get_json(
-                http,
-                &url,
-                &[
-                    (key_param, api_key.to_string()),
-                    ("limit", limit.to_string()),
-                ],
-            )
-            .await?;
-            v.get("features")
-                .and_then(Value::as_array)
-                .into_iter()
-                .flatten()
-                .filter_map(|f| {
-                    let c = f.get("geometry")?.get("coordinates")?.as_array()?;
-                    item(
-                        f.get("place_name").and_then(text),
-                        number(c.get(1)),
-                        number(c.first()),
-                    )
-                })
-                .collect()
-        }
         Provider::Tomtom => {
-            let q = path_escape(query);
+            let mut params = vec![("key", api_key.to_string()), ("typeahead", "false".into())];
+            if limit != 0 {
+                params.push(("limit", limit.to_string()));
+            }
             let v = get_json(
                 http,
-                &format!("{base}/search/2/geocode/{q}.json"),
-                &[("key", api_key.to_string()), ("limit", limit.to_string())],
+                &format!("{base}/search/2/geocode/{}.json", py_quote(query)),
+                &params,
             )
             .await?;
             v.get("results")
                 .and_then(Value::as_array)
                 .into_iter()
                 .flatten()
-                .filter_map(|r| {
-                    let pos = r.get("position")?;
-                    item(
-                        r.get("address")?.get("freeformAddress").and_then(text),
-                        number(pos.get("lat")),
-                        number(pos.get("lon")),
+                .map(|r| {
+                    let pos = r.get("position");
+                    let name = r
+                        .get("address")
+                        .and_then(|a| a.get("freeformAddress"))
+                        .and_then(Value::as_str)
+                        .ok_or_else(|| anyhow::anyhow!("result without freeformAddress"))?;
+                    place(
+                        Some(name.to_string()),
+                        number(pos.and_then(|p| p.get("lat"))),
+                        number(pos.and_then(|p| p.get("lon"))),
                     )
                 })
                 .collect()
         }
-        Provider::Opencage => {
-            let v = get_json(
-                http,
-                &format!("{base}/geocode/v1/json"),
-                &[
-                    ("key", api_key.to_string()),
-                    ("q", query.to_string()),
-                    ("limit", limit.to_string()),
-                ],
-            )
-            .await?;
-            v.get("results")
-                .and_then(Value::as_array)
-                .into_iter()
-                .flatten()
-                .filter_map(|r| {
-                    let g = r.get("geometry")?;
-                    item(
-                        r.get("formatted").and_then(text),
-                        number(g.get("lat")),
-                        number(g.get("lng")),
-                    )
-                })
-                .collect()
+        Provider::Mapbox | Provider::Maptiler | Provider::Opencage => {
+            anyhow::bail!("geocode() got an unexpected keyword argument 'limit'")
         }
-    };
-    Ok(out)
+    }
 }
 
 #[cfg(test)]

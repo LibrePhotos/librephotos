@@ -5,13 +5,13 @@ use std::path::Path;
 
 use anyhow::anyhow;
 use lp_db::write::AfterCommit;
+use lp_db::write::photo_delete::hard_delete;
 use sqlx::PgConnection;
 use uuid::Uuid;
 
 use crate::db;
 use crate::fsutil::{IMAGE, RAW_FILE};
 use crate::pipeline::Pipeline;
-use crate::render::{BIG, SQUARE, SQUARE_SMALL};
 
 const JOB_DELETE_MISSING_PHOTOS: i32 = 5;
 const JOB_SCAN_MISSING_PHOTOS: i32 = 14;
@@ -159,7 +159,7 @@ pub async fn repair_file_variants(p: &Pipeline, user_id: i32, job_id: &str) -> a
                     db::add_photo_file(&mut tx, jpeg, &h).await?;
                 }
                 db::touch_photo(&mut tx, jpeg).await?;
-                delete_photos(&mut tx, &[photo], &p.state.config.media_root, &mut after).await?;
+                hard_delete(&mut tx, &[photo], &p.state.config.media_root, &mut after).await?;
                 merged += 1;
             }
             tx.commit().await?;
@@ -212,7 +212,7 @@ pub async fn delete_missing_photos(p: &Pipeline, user_id: i32, job_id: &str) -> 
                 .fetch_all(&mut *tx)
                 .await?,
             );
-            delete_photos(&mut tx, batch, &p.state.config.media_root, &mut after).await?;
+            hard_delete(&mut tx, batch, &p.state.config.media_root, &mut after).await?;
             done += batch.len() as i32;
             sqlx::query("UPDATE api_longrunningjob SET progress_current = $2, progress_target = $3 WHERE job_id = $1")
                 .bind(job_id)
@@ -306,71 +306,5 @@ pub async fn delete_files(tx: &mut PgConnection, hashes: &[String]) -> sqlx::Res
         .bind(hashes)
         .execute(&mut *tx)
         .await?;
-    Ok(())
-}
-
-/// `Photo.delete()` with Django's collector: rows without a database-level
-/// cascade are removed (or nulled) first; face crops and orphaned thumbnail
-/// files go after commit.
-pub async fn delete_photos(
-    tx: &mut PgConnection,
-    ids: &[Uuid],
-    media_root: &Path,
-    after: &mut AfterCommit,
-) -> sqlx::Result<()> {
-    if ids.is_empty() {
-        return Ok(());
-    }
-    let crops: Vec<Option<String>> =
-        sqlx::query_scalar("SELECT image FROM api_face WHERE photo_id = ANY($1)")
-            .bind(ids)
-            .fetch_all(&mut *tx)
-            .await?;
-    let hashes: Vec<String> =
-        sqlx::query_scalar("SELECT DISTINCT image_hash FROM api_photo WHERE id = ANY($1)")
-            .bind(ids)
-            .fetch_all(&mut *tx)
-            .await?;
-    for sql in [
-        "UPDATE api_person SET cover_face_id = NULL WHERE cover_face_id IN (SELECT id FROM api_face WHERE photo_id = ANY($1))",
-        "UPDATE api_person SET cover_photo_id = NULL WHERE cover_photo_id = ANY($1)",
-        "UPDATE api_albumuser SET cover_photo_id = NULL WHERE cover_photo_id = ANY($1)",
-        "UPDATE api_photostack SET primary_photo_id = NULL WHERE primary_photo_id = ANY($1)",
-        "UPDATE api_duplicate SET kept_photo_id = NULL WHERE kept_photo_id = ANY($1)",
-        "UPDATE api_stackreview SET kept_photo_id = NULL WHERE kept_photo_id = ANY($1)",
-        "DELETE FROM api_tag_photos WHERE photo_id = ANY($1)",
-        "DELETE FROM api_photo_stacks WHERE photo_id = ANY($1)",
-        "DELETE FROM api_photo_duplicates WHERE photo_id = ANY($1)",
-        "DELETE FROM api_metadataedit WHERE photo_id = ANY($1)",
-        "DELETE FROM api_metadatafile WHERE photo_id = ANY($1)",
-        "DELETE FROM api_photometadata WHERE photo_id = ANY($1)",
-        "DELETE FROM api_photo_ocr WHERE photo_id = ANY($1)",
-        "DELETE FROM api_photoshare WHERE photo_id = ANY($1)",
-        "DELETE FROM api_photo WHERE id = ANY($1)",
-    ] {
-        sqlx::query(sql).bind(ids).execute(&mut *tx).await?;
-    }
-    for c in crops.into_iter().flatten().filter(|s| !s.is_empty()) {
-        after.delete_file(media_root.join(c));
-    }
-    for h in hashes {
-        let still: bool =
-            sqlx::query_scalar("SELECT EXISTS (SELECT 1 FROM api_photo WHERE image_hash = $1)")
-                .bind(&h)
-                .fetch_one(&mut *tx)
-                .await?;
-        if still {
-            continue;
-        }
-        for (dir, ext) in [
-            (BIG, ".webp"),
-            (SQUARE, ".webp"),
-            (SQUARE_SMALL, ".webp"),
-            (SQUARE, ".mp4"),
-            (SQUARE_SMALL, ".mp4"),
-        ] {
-            after.delete_file(media_root.join(dir).join(format!("{h}{ext}")));
-        }
-    }
     Ok(())
 }
