@@ -9,6 +9,7 @@ import {
 import { MutationCache, QueryCache, QueryClient } from "@tanstack/react-query";
 import { Cookies } from "react-cookie";
 import { notification } from "../service/notifications";
+import { clearAuthCookies, setAuthCookie } from "./authCookies";
 
 const PUBLIC_URL = import.meta.env.VITE_PUBLIC_URL || import.meta.env.PUBLIC_URL || "";
 const API_BASE_URL = PUBLIC_URL + "/api";
@@ -38,15 +39,8 @@ export type RequestOptions = SharedRequestOptions;
 const cookieTokens: TokenSupplier = {
   getAccessToken: () => new Cookies().get("access") ?? null,
   getRefreshToken: () => new Cookies().get("refresh") ?? null,
-  setAccessToken: token => {
-    new Cookies().set("access", token);
-  },
-  clearTokens: () => {
-    const cookies = new Cookies();
-    cookies.remove("access");
-    cookies.remove("refresh");
-    cookies.remove("jwt");
-  },
+  setAccessToken: token => setAuthCookie("access", token),
+  clearTokens: clearAuthCookies,
 };
 
 /**
