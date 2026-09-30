@@ -72,3 +72,30 @@ also skip without `LP_ORT_LIB`.
 - HF `tokenizers` ids identical for every `tokenizer.json` (CLIP, MobileCLIP,
   LFM2). SigLIP 2 ships a sentencepiece `tokenizer.model`, which the
   `tokenizers` crate cannot read directly.
+
+## What the OCR goldens established
+
+`python golden_ocr.py` (geometry + `pipeline_tiny` + `pipeline_small`, and
+cv2's decode of every JPEG under `_decoded/ocr/`), then
+`cargo test -p lp-ml --test ocr -- --nocapture` (`--ignored` adds the ~7 min
+small tier). The reference is opencv-python 5.0.0 + pyclipper 1.4.0 (Clipper
+6.4.2), numpy 2:
+
+- The DB-postprocess and crop primitives are ported from the OpenCV 5 /
+  Clipper sources and are **bit-exact** on 340 seeded random cases:
+  `findContours` (60 bitmaps, points and contour order), `minAreaRect` +
+  `boxPoints` + PaddleOCR's point order (1113 boxes), `fillPoly` +
+  masked mean (80 scores), the round-join `unclip` (120 polygons, incl.
+  Clipper's union order), `getPerspectiveTransform` + `warpPerspective`
+  `INTER_CUBIC` (50 crops, OpenCV 5's table-free FMA kernel). The recognizer
+  tensor (`cv2.resize` upscale) is within one level.
+- On identical pixels (58 PNG/WebP files + cv2's decode of 38 JPEGs), both
+  tiers: every detected quad identical (tiny 305/305, small 199/199), every
+  crop identical, every recognized line identical (tiny 121/121, small
+  107/107), whole answers identical (tiny 95/96: one block's confidence off
+  by 0.018 through the resize, text the same; small 96/96). Probability maps
+  within 1.4e-3.
+- JPEG files through the default decoder (zune-jpeg, a few levels off
+  libjpeg-turbo): lines identical tiny 33/34, small 23/23. cv2, Pillow and
+  libvips decode all 33 fixture JPEGs identically, so a libvips/libjpeg-turbo
+  `preprocess::set_decoder` makes JPEGs exact too.
