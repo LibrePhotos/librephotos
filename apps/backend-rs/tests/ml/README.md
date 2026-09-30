@@ -208,11 +208,11 @@ Review round (`golden_tags_edge.py`, written independently of `golden_tags.py`):
   up to 5 levels (CMYK and grey by 1); 16-bit RGB PNG by 1 (rounding vs
   truncation). Neither side applies EXIF orientation (thumbnails are already
   upright).
-- Known differences: Pillow turns a 16-bit grey PNG (`I;16`) into solid white
-  where we scale it to 8 bits (the caption review's `preprocess::pillow_rgb`
-  removes this once merged); a truncated JPEG is a 500 in Python
-  ("image file is truncated") but decodes partially here. Empty and non-image
-  files fail on both sides.
+- Former differences, closed at integration: a 16-bit grey PNG (`I;16`)
+  now clips to white like Pillow (`preprocess::pillow_rgb8`), and a
+  truncated JPEG is refused ("image file is truncated", `open_pillow`, also
+  with the libvips decoder installed). Empty and non-image files fail on
+  both sides.
 - `text_fresh.json`: 35 prompts (all non-ASCII tags included) embedded by
   Python's text tower in memory, not read back from the shared cache: Rust
   matches at min cosine 1.0000000, max diff 2.1e-7 (MobileCLIP) and 2.4e-7
@@ -334,3 +334,24 @@ Beyond Django (deliberate): a RAW whose sensor data cannot be rendered at all
 ExifTool finds in it instead of no thumbnail; sensors above 250 MP are
 refused before allocation; and the candidate render of the "did the picture
 change" check is staged under the media root, which Django's service refuses.
+
+## Captions (`golden_caption.py`, `cargo test -p lp-ml --test caption`)
+
+64 cases (37 WebP big thumbnails, 10 generated images, 12 JPEG originals,
+5 with the `llm_settings` prompts): identical token sequences on 62/64,
+on every one of the 49 losslessly decoded inputs. The two JPEG misses
+diverge at near-ties (top-2 logit margin 0.005 and 0.0005) from the
+zune-jpeg vs libjpeg-turbo decode. The test runs 8 cases by default,
+`LP_CAPTION_GOLDEN_ALL=1` all. Throughput and RSS: `bench_caption.py` vs
+`cargo run -p lp-ml --example caption_bench` on the same images.
+
+Review round: fresh goldens on a disjoint set (`golden_caption.py --offset 8
+--limit 6 --edge`, 6 more WebP thumbnails, the 17 `golden_caption_edge.py`
+images, 5 prompt cases) matched 28/28 token sequences, including CMYK,
+greyscale and EXIF-rotated JPEGs. `golden_caption_edge.py` also writes
+`caption/prepare_edge.json` (no model needed): decoded RGB and the patch
+tensor for palette, LA, 1-bit, 16-bit grey and colour PNG, CMYK/grey/rotated
+JPEG, GIF, TIFF, BMP, alpha and lossless WebP, 512x512, 20x3000 and 3x2.
+All are bit-exact except the JPEGs (at most 3 levels); 16-bit PNGs needed
+`preprocess::pillow_rgb8` (Pillow keeps the high byte of 16-bit colour and
+clips `I;16` grey at 255, where `to_rgb8` scales).

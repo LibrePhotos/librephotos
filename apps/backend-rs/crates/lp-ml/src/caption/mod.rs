@@ -4,6 +4,7 @@
 //! {image_path, prompt?}` -> `{caption}`, or `{error}` with a failure status.
 
 mod inprocess;
+pub mod lfm2_vl;
 
 pub use inprocess::InProcess;
 
