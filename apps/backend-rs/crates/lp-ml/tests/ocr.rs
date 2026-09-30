@@ -662,10 +662,7 @@ fn cv2_resize_is_exact() {
 /// .webp .bmp .tif .tiff`): decoded like `cv2.imdecode(IMREAD_UNCHANGED)`
 /// (bit-exact unless JPEG-coded, then within a level on average; over 40 MP
 /// incl. the `INTER_AREA` cap) or refused where cv2 refuses them, and read
-/// the same text.
-///
-/// One known difference: cv2 refuses a truncated JPEG (the sidecar's 400),
-/// the image crate decodes what is there and reads it.
+/// the same text (a truncated JPEG is refused too, through `load_rgb`).
 #[test]
 fn edge_cases_match_python() {
     run_edge("tiny");
@@ -700,7 +697,6 @@ fn run_edge(tier: &str) {
         let ours = decode::read_image(path);
         if let Some(err) = c.output.get("error") {
             match ours {
-                Ok(_) if name == "truncated.jpg" => {}
                 Ok(img) => fails.push(format!(
                     "{}: decoded {}x{}, cv2 refused it ({err})",
                     c.id, img.w, img.h

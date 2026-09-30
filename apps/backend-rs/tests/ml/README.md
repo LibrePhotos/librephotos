@@ -149,10 +149,8 @@ and `cargo test -p lp-tasks --test faces_inprocess`:
   plus a 2000x2 sliver, truncated, empty, non-image and missing files): same
   faces and order everywhere, IoU 1.0, cosine >= 0.99926 (JPEGs and 16-bit
   RGB, which `load_rgb` rounds where Pillow truncates; 1.0 on the 8-bit
-  lossless ones); the refused inputs are 500s in both. Two known differences:
-  a truncated JPEG decodes (partly grey) instead of failing, and a 16-bit grey
-  PNG is scaled instead of clipped to white until `load_rgb` converts like
-  Pillow.
+  lossless ones); the refused inputs, a truncated JPEG included, are 500s
+  in both, and a 16-bit grey PNG clips to white (no faces) in both.
 - Tied detector scores are ordered by numpy 2's SIMD `argsort`, which is not
   stable and depends on the CPU (AVX2/AVX-512/NEON); the port breaks ties by
   descending index. No golden image is affected.
@@ -261,9 +259,9 @@ through libvips). The reference is opencv-python 5.0.0 + pyclipper 1.4.0 (Clippe
   16-bit RGBA and grey+alpha PNG, BMP 24/32/8-bit, GIF, 1x1, 4000x40,
   an 8000x5100 page past the 40 MP `INTER_AREA` cap, empty / text /
   garbage files): same pixels (lossless exact, JPEG-coded means within a
-  level) and text on 23/24 for tiny and medium. The difference: cv2
-  refuses a truncated JPEG (400); the port (image crate or libvips) reads
-  what is there.
+  level) and text on 24/24 for tiny and medium (a truncated JPEG is
+  refused like cv2 does since `load_rgb` follows Pillow, also through the
+  libvips decoder).
 
 ## CLIP and the similarity index (`golden_clip.py`, `golden_similarity.py`)
 

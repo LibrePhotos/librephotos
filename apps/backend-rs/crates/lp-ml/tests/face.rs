@@ -406,16 +406,6 @@ async fn odd_inputs_match_python() {
             .detect_faces(c.input["source"].as_str().unwrap(), "buffalo_sc")
             .await;
         let status = c.output["status"].as_i64().unwrap();
-        // Pillow turns 16-bit grey ("I;16") into RGB by clamping at 255: the
-        // sidecar sees a white picture and finds nothing. `load_rgb` scales
-        // here (the Pillow-style conversion lands with the captioning
-        // review), so faces may be found; either way it must not fail.
-        // Thumbnails are 8-bit, so no stored face differs. Pillow refuses a
-        // truncated JPEG; zune-jpeg decodes what is there and greys the rest.
-        if c.id.ends_with("gray16.png") || c.id.ends_with("truncated.jpg") {
-            assert!(got.is_ok(), "{}: {got:?}", c.id);
-            continue;
-        }
         if status != 200 {
             assert!(
                 matches!(got, Err(SidecarError::Status { status: 500, .. })),
