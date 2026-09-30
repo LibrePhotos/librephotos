@@ -296,7 +296,11 @@ starts a sidecar) and read by `lp_ml::golden`. See `tests/ml/README.md`.
   exists so `has_raw_variant` and `file_variants[]` have data.
 - No motion photo: none can be generated without a real device sample.
 - The `running` job row stays "running" forever; anything that reaps stuck
-  jobs (> 24 h) will eventually mark it failed in a long-lived clone.
+  jobs (> 24 h, the Rust worker at startup) marks it failed once the fixture
+  is a day old. `run_suite.sh` therefore moves every clone's job timestamps
+  forward by the same whole days; do the same on hand-made clones.
+- `run_suite.sh` runs Rust with `LP_ML_AUTO_DOWNLOAD=0`: only Rust has a
+  worker there, and a trigger's `models.download` would fetch real models.
 - Stored paths are Windows paths with backslashes (`C:\Users\...\fixture\data\alice\...`).
 - The shared Postgres build shipped without `share/postgresql/timezone`, so
   `SET TimeZone = 'UTC'` failed and Django 500'd on every request thread;

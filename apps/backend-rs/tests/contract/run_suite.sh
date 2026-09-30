@@ -40,6 +40,12 @@ V="$(dirname "$(dirname "$LP_DJANGO_PY")")/Lib/site-packages"
 export LP_CLONE_PREFIXES="lp_run_"
 mkdir -p "$OUT"
 
+# The fixture's "running" job must stay younger than the 24 h stuck-job
+# reaper the Rust worker runs at startup (Django has no qcluster here), so
+# every clone moves the jobs' timestamps forward by the same whole days.
+JOB_SHIFT_DAYS="$(lp_psql -d "$LP_FIXTURE_TEMPLATE" -Atc "SELECT greatest(0, floor(extract(epoch FROM now() - min(coalesce(started_at, queued_at))) / 86400))::int FROM api_longrunningjob WHERE NOT finished")"
+JOB_SHIFT_DAYS="${JOB_SHIFT_DAYS:-0}"
+
 READ_UNITS="examples harness albums_tags jobs_zip_services media media@direct people_faces photo_edits
 search_sharing_public stats_admin_stacks_dupes timeline_photos users_settings"
 
@@ -102,6 +108,7 @@ clone() {
     else
         rm -rf "$2"
         "$F/clone_db.sh" "$1" "$2" >/dev/null
+        lp_psql -d "$1" -c "UPDATE api_longrunningjob SET queued_at = queued_at + make_interval(days => $JOB_SHIFT_DAYS), started_at = started_at + make_interval(days => $JOB_SHIFT_DAYS), finished_at = finished_at + make_interval(days => $JOB_SHIFT_DAYS)" >/dev/null
     fi
 }
 
@@ -121,6 +128,9 @@ start_rust() {
         export PHOTOS="$BASE_DATA/data" SECRET_KEY="$LP_SECRET_KEY" DB_NAME="$db"
         export DB_USER="$LP_PG_USER" DB_PASS="$PGPASSWORD" DB_HOST="$LP_PG_HOST" DB_PORT="$LP_PG_PORT"
         export LP_BIND="127.0.0.1:$RS_PORT" LP_MEDIA_MODE="$mode"
+        # Only Rust has a worker here: a trigger's models.download would fetch
+        # gigabytes (and diff against a Django that never runs it).
+        export LP_ML_AUTO_DOWNLOAD=0
         export LP_EXIFTOOL="$V/exiftool_bin/exiftool.exe" LP_FFMPEG="$V/ffmpeg_bin/bin/ffmpeg.exe"
         export LP_FFPROBE="$V/ffmpeg_bin/bin/ffprobe.exe" LP_PYTHON="$(lp_win_path "$LP_DJANGO_PY")"
         export LP_VIPS_LIB="${LP_VIPS_LIB:-$(ls "$V"/libvips-42-*.dll | head -1)}"
