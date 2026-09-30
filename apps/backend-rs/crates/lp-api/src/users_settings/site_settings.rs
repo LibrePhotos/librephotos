@@ -96,6 +96,7 @@ pub async fn post(
     let changes = validate(&data)?;
     let refs: Vec<(&str, Value)> = changes.into_iter().collect();
     let fresh = lp_db::write::settings::save(&state, &refs).await?;
+    lp_tasks::models::queue_if_missing(&state, admin.id).await;
     let configured = super::email::email_is_configured(&state).await;
     Ok(Json(body(&fresh, admin.is_staff, configured)).into_response())
 }

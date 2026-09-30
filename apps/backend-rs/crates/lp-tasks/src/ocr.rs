@@ -113,7 +113,7 @@ pub async fn ocr_photo(state: &AppState, photo_id: Uuid) -> Result<(), OcrError>
         tracing::warn!(photo = %photo.image_hash, "no OCR image source");
         return Ok(());
     };
-    let data = match state.sidecars.ocr(&image_path, OCR_MIN_CONFIDENCE).await {
+    let data = match state.ml().ocr().ocr(&image_path, OCR_MIN_CONFIDENCE).await {
         Ok(d) => d,
         Err(SidecarError::Status { status, detail, .. }) => {
             return Err(OcrError::Status {

@@ -10,6 +10,7 @@ publish.workspace = true
 [dependencies]
 lp-exif.workspace = true
 lp-sidecars.workspace = true
+lp-ml.workspace = true
 axum.workspace = true
 axum-extra.workspace = true
 tokio.workspace = true

@@ -22,12 +22,13 @@ crates/
   lp-media     /media/*, /api/downloads/*, /api/public/photo/{slug}/media/*
   lp-ingest    scan pipeline          lp-tasks   sidecar-backed follow-ups
   lp-exif      ExifTool pool (leaf)   lp-sidecars typed sidecar clients (leaf)
+  lp-ml        in-process ML (ONNX Runtime), model store, sidecar/in-process switch
   lp-server    binary `librephotos-rs`: serve | worker | migrate | adopt | createadmin
   lp-testkit   test DBs, in-process app, users, tokens
 migrations/    0000_baseline.sql (Django api.0142 schema) + additive Rust migrations
 ```
 
-Dependency direction: exif/sidecars <- core <- db <- {jobs, auth} <- media <- ingest <- tasks <- api <- server <- testkit.
+Dependency direction: exif/sidecars <- ml <- core <- db <- {jobs, auth} <- media <- ingest <- tasks <- api <- server <- testkit.
 
 ## Where your code goes (no shared-file edits)
 
@@ -60,7 +61,8 @@ Shared files (`lp-api/src/lib.rs`, `lp-api/src/common/`, `lp-db/src/{scope,pig,u
 - Handlers take `State(state): State<AppState>` and return `ApiResult<impl IntoResponse>`.
 - `AppState` fields: `db: PgPool`, `config: Arc<Config>`, `settings: Arc<ArcSwap<SiteSettings>>`
   (read with `state.settings()`), `http: reqwest::Client`, `jwt: Arc<JwtKeys>`,
-  `exif: lp_exif::ExifPool`, `sidecars: lp_sidecars::Sidecars`, `cpu: Arc<Semaphore>`
+  `exif: lp_exif::ExifPool`, `sidecars: lp_sidecars::Sidecars`, `ml: lp_ml::Ml` (call through
+  `state.ml()`), `cpu: Arc<Semaphore>`
   (use `state.blocking(|| ...)` for CPU work), `job_wakeup: Arc<Notify>`, `started_at`.
 - Unmatched `/api` and `/media` requests are proxied to `LP_DEV_FALLBACK` (a running
   Django) when set, else 404 envelope.
@@ -146,6 +148,37 @@ Shared files (`lp-api/src/lib.rs`, `lp-api/src/common/`, `lp-db/src/{scope,pig,u
 - `serve` embeds the worker (`worker` runs it alone). It claims only registered kinds,
   runs the `maintenance.*` schedules, and fails a handler's LongRunningJob only after
   the last attempt; handlers finish their own LRJ.
+
+## ML (`lp-ml`)
+
+- Every ML capability is a trait in `lp_ml::<service>` with two impls, the HTTP
+  sidecar client (`lp_sidecars::Sidecars`) and `lp_ml::<service>::InProcess`:
+  `clip::ClipApi`, `similarity::SimilarityApi`, `tags::TagsApi`, `ocr::OcrApi`,
+  `face::FaceApi`, `caption::CaptionApi`, `face_cluster::FaceClusterApi`,
+  `raw_thumbnail::RawThumbnailApi`. Callers use `state.ml().clip().query_embedding(..)`
+  (never `state.sidecars.*` or raw sidecar URLs); blocking code takes `state.ml_handle()`.
+- Selection per call: `LP_ML_<SERVICE>=inprocess|sidecar|auto` (`CLIP`, `SIMILARITY`,
+  `TAGS`, `OCR`, `FACE`, `CAPTION`, `FACE_CLUSTER`, `RAW_THUMBNAIL`; default auto).
+  Auto = in-process when `InProcess::IMPLEMENTED`, the sidecar is not redirected
+  (`LP_SIDECAR_<NAME>_URL` / a test's `with_base` mock) and the model is on disk.
+  Tests override with `state.ml.set_mode(Service::Clip, Mode::Sidecar)`.
+- Errors stay `SidecarError`: `lp_ml::bad_input` (400), `failed`/`failed_from` (500),
+  `unavailable` (no model/runtime).
+- A port fills only `crates/lp-ml/src/<service>/inprocess.rs` (+ submodules): load
+  models through `ctx.slot::<T>(Service::X, "label")` (`ModelSlot::run(key, load, f)`:
+  lazy, per-model concurrency `LP_ML_<SERVICE>_CONCURRENCY`, idle unload after
+  `LP_ML_IDLE_UNLOAD_SECS`=120), sessions via `lp_ml::runtime::session(path)`
+  (`ONNX_PROVIDERS`, `ONNX_INTRA_OP_THREADS`), preprocessing from `lp_ml::preprocess`
+  (Pillow-exact `pil::resize`, `cv2::resize_linear/area`, `to_chw`, `load_rgb`) and
+  `lp_ml::tokenize`; flip `IMPLEMENTED` when its goldens pass.
+- ONNX Runtime is loaded at runtime (`ort` load-dynamic): `LP_ORT_LIB` (or
+  `ORT_DYLIB_PATH`) = `.../onnxruntime/capi/onnxruntime.dll` of the Django venv here.
+- Models: `lp_ml::models` (the `api/ml_models.py` catalog, sha256 pins, `.part` +
+  rename); job `models.download` (`lp_tasks::models`), queued by the triggers when
+  models are missing (`LP_ML_AUTO_DOWNLOAD`, off in `TestApp`); ML jobs wait for a
+  running download. CLI: `librephotos-rs models [--download NAME.. | --all]`.
+- Goldens: `tests/ml/README.md` (Python generators) + `lp_ml::golden` (Rust loader).
+  Shared test models: `<librephotos>/rust-pg/ml/protected_media/data_models`.
 
 ## Testing
 

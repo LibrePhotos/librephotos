@@ -459,6 +459,7 @@ fn every_kind_is_registered_once() {
             "faces.train",
             "geo.locate",
             "media.classify",
+            "models.download",
             "ocr.generate",
             "similarity.build",
             "tags.generate",

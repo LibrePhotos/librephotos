@@ -737,6 +737,7 @@ pub async fn update(
         w::apply_user_update(&state.db, target.id, &cols, false).await?;
     }
     if queue_clip {
+        lp_tasks::models::queue_if_missing(&state, target.id).await;
         lp_jobs::enqueue(
             &state,
             "clip.embed",

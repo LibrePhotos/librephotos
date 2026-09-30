@@ -28,6 +28,7 @@ pub async fn train_faces(State(state): State<AppState>, user: AuthUser) -> ApiRe
             "Face clustering is disabled",
         ));
     }
+    lp_tasks::models::queue_if_missing(&state, user.id).await;
     let queued = lp_jobs::enqueue(
         &state,
         "faces.cluster",
@@ -52,6 +53,7 @@ pub async fn scan_faces(State(state): State<AppState>, user: AuthUser) -> ApiRes
             "Face detection is disabled",
         ));
     }
+    lp_tasks::models::queue_if_missing(&state, user.id).await;
     let queued = lp_jobs::enqueue(
         &state,
         "faces.scan",

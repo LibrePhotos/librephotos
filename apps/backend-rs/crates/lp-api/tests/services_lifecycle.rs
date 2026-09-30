@@ -66,7 +66,7 @@ async fn admin_starts_and_stops_a_sidecar() {
     let res = app.get("/api/services/thumbnail/", Some(&at)).await;
     assert_eq!(
         res.json(),
-        json!({"service_name": "thumbnail", "healthy": true, "enabled": true, "feature_flag": null})
+        json!({"service_name": "thumbnail", "healthy": true, "enabled": true, "feature_flag": null, "mode": "sidecar"})
     );
 
     assert_eq!(app.post_json(stop, &json!({}), Some(&ut)).await.status, 403);

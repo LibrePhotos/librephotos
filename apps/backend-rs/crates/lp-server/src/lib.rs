@@ -254,3 +254,51 @@ pub async fn run_worker(config: Config) -> anyhow::Result<()> {
     });
     lp_jobs::Worker::new(state, registry()).run(shutdown).await
 }
+
+/// `librephotos-rs models`: the catalog with what is installed, or download.
+pub async fn models_cli(
+    config: &Config,
+    download: bool,
+    all: bool,
+    names: &[String],
+) -> anyhow::Result<()> {
+    use lp_ml::models;
+    let dir = config.data_models_dir();
+    let wanted: Vec<&models::ModelSpec> = if all || names.is_empty() {
+        models::CATALOG.iter().collect()
+    } else {
+        names
+            .iter()
+            .map(|n| models::by_name(n).ok_or_else(|| anyhow::anyhow!("unknown model {n}")))
+            .collect::<anyhow::Result<_>>()?
+    };
+    if download {
+        if !all && names.is_empty() {
+            anyhow::bail!("name the models to download, or pass --all");
+        }
+        let http = models::http_client()?;
+        for m in &wanted {
+            let started = std::time::Instant::now();
+            let outcome = models::download_model(&http, &dir, m, &models::selecting(m)).await?;
+            println!(
+                "{:<16} {:?} ({:.1} s)",
+                m.name,
+                outcome,
+                started.elapsed().as_secs_f64()
+            );
+        }
+    }
+    println!("{}", dir.display());
+    for m in wanted {
+        let present = models::target_exists(&dir, m);
+        let mb = models::size_on_disk(&dir, m) as f64 / 1_048_576.0;
+        println!(
+            "{:<16} {:<16} {:<8} {:>9.1} MB",
+            m.name,
+            format!("{:?}", m.ml_type),
+            if present { "present" } else { "missing" },
+            mb
+        );
+    }
+    Ok(())
+}

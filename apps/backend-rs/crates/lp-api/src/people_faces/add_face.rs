@@ -15,7 +15,6 @@ use lp_core::codecs::FaceEncoding;
 use lp_core::{ApiError, ApiJson, ApiResult, AppState};
 use lp_db::people_faces::{self as db, UNKNOWN_PERSON_NAME};
 use lp_db::write::people_faces::{self as write, NewManualFace};
-use lp_sidecars::Sidecar;
 use serde_json::{Value, json};
 
 use super::{media_url, status_message, stripped_str};
@@ -91,39 +90,26 @@ fn iou(a: [i64; 4], b: [i64; 4]) -> f64 {
 
 /// The face service's encoding of one box of an image, `None` when the
 /// service is down, errors or detects no face there (Django then keeps the
-/// face without an encoding). The one call to swap for an `lp-sidecars` client.
+/// face without an encoding).
 async fn face_encoding(
     state: &AppState,
     image_path: &Path,
     location: [i64; 4],
 ) -> Option<Vec<f64>> {
-    let body = json!({
-        "source": image_path.to_string_lossy(),
-        "face_locations": [location],
-        "model_name": state.settings().face_recognition_model,
-    });
-    let res = state
-        .sidecars
-        .http()
-        .post(state.sidecars.url(Sidecar::Face, "/face-encodings"))
-        .timeout(Sidecar::Face.timeout())
-        .json(&body)
-        .send()
+    let model = state.settings().face_recognition_model.clone();
+    let location = location.map(|v| v as i32);
+    match state
+        .ml()
+        .face()
+        .face_encodings(&image_path.to_string_lossy(), &[location], &model)
         .await
-        .map_err(
-            |e| tracing::warn!(error = %e, "face service unreachable; face kept without encoding"),
-        )
-        .ok()?
-        .error_for_status()
-        .ok()?;
-    let v: Value = res.json().await.ok()?;
-    v.get("encodings")?
-        .as_array()?
-        .first()?
-        .as_array()?
-        .iter()
-        .map(Value::as_f64)
-        .collect()
+    {
+        Ok(encodings) => encodings.into_iter().next().flatten(),
+        Err(e) => {
+            tracing::warn!(error = %e, "face service failed; face kept without encoding");
+            None
+        }
+    }
 }
 
 fn thumbnail_size(path: &Path) -> Option<(u32, u32)> {

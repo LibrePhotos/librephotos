@@ -717,7 +717,7 @@ async fn services_are_staff_only() {
     let res = app.get("/api/services/ocr/", Some(&admin)).await.json();
     assert_eq!(
         res,
-        json!({"service_name": "ocr", "healthy": false, "enabled": false, "feature_flag": null})
+        json!({"service_name": "ocr", "healthy": false, "enabled": false, "feature_flag": null, "mode": "sidecar"})
     );
     let res = app
         .post_json("/api/services/ocr/start/", &json!({}), Some(&admin))
@@ -733,9 +733,37 @@ async fn services_are_staff_only() {
         .json();
     assert_eq!(
         keys(&res),
-        ["service_name", "healthy", "enabled", "feature_flag"]
+        ["service_name", "healthy", "enabled", "feature_flag", "mode"]
     );
     assert_eq!(res["feature_flag"], "FEATURE_FACE_DETECTION");
+
+    // A service lp-ml serves in-process has no process: healthy when
+    // enabled, model state instead of a probe; stop unloads its models.
+    app.state
+        .ml
+        .set_mode(lp_ml::Service::Similarity, lp_ml::Mode::InProcess);
+    let res = app
+        .get("/api/services/image_similarity/", Some(&admin))
+        .await
+        .json();
+    assert_eq!(res["mode"], "inprocess");
+    assert_eq!(res["healthy"], true);
+    assert_eq!(res["model_loaded"], false);
+    assert_eq!(res["busy"], false);
+    assert_eq!(res["last_used"], Value::Null);
+    for action in ["start", "stop"] {
+        let res = app
+            .post_json(
+                &format!("/api/services/image_similarity/{action}/"),
+                &json!({}),
+                Some(&admin),
+            )
+            .await;
+        assert_eq!(res.status, 200, "{action}: {}", res.text());
+    }
+    app.state
+        .ml
+        .set_mode(lp_ml::Service::Similarity, lp_ml::Mode::Auto);
     // Nothing was started by this process, so there is nothing to stop.
     let res = app
         .post_json("/api/services/thumbnail/stop/", &json!({}), Some(&admin))
@@ -744,5 +772,54 @@ async fn services_are_staff_only() {
         (res.status.as_u16(), res.json()),
         (500, json!({"error": "Failed to stop service thumbnail"}))
     );
+    app.cleanup().await;
+}
+
+#[tokio::test]
+async fn missing_models_queue_one_download() {
+    let app = TestApp::new().await;
+    let (alice, at) = fixture_user(&app, "alice").await;
+    let downloads = async || -> Vec<(String, i32, bool)> {
+        sqlx::query_as(
+            "SELECT q.kind, j.job_type, j.finished FROM job_queue q              JOIN api_longrunningjob j ON j.job_id = q.lrj_id WHERE q.kind = 'models.download'",
+        )
+        .fetch_all(app.pool())
+        .await
+        .unwrap()
+    };
+    // Off in tests by default: nothing is queued.
+    assert_eq!(
+        app.post_json("/api/scanphotos/", &json!({}), Some(&at))
+            .await
+            .status,
+        200
+    );
+    assert!(downloads().await.is_empty());
+
+    app.state.ml.set_auto_download(true);
+    assert_eq!(
+        app.post_json("/api/scanphotos/", &json!({}), Some(&at))
+            .await
+            .status,
+        200
+    );
+    assert_eq!(
+        downloads().await,
+        [("models.download".to_string(), 10, false)]
+    );
+    // Already underway: not queued twice (start_model_download).
+    assert_eq!(
+        app.post_json("/api/scanfaces", &json!({}), Some(&at))
+            .await
+            .status,
+        200
+    );
+    assert_eq!(downloads().await.len(), 1);
+    let started_by: i32 =
+        sqlx::query_scalar("SELECT started_by_id FROM api_longrunningjob WHERE job_type = 10")
+            .fetch_one(app.pool())
+            .await
+            .unwrap();
+    assert_eq!(started_by, alice.id);
     app.cleanup().await;
 }

@@ -95,7 +95,7 @@ async fn store_batch(state: &AppState, model: &str, batch: &[Missing]) -> anyhow
         return Ok(());
     }
     let imgs: Vec<String> = valid.iter().map(|(_, p)| p.clone()).collect();
-    let reply = state.sidecars.clip_embeddings(&imgs, model).await?;
+    let reply = state.ml().clip().image_embeddings(&imgs, model).await?;
     let mut ids = Vec::new();
     let mut embeddings = Vec::new();
     let mut magnitudes = Vec::new();
@@ -165,8 +165,9 @@ pub async fn build_index(state: &AppState, user_id: i32) -> anyhow::Result<i64> 
             page + 1
         );
         let reply = state
-            .sidecars
-            .similarity_build(&lp_sidecars::SimilarityBuild {
+            .ml()
+            .similarity()
+            .build(&lp_sidecars::SimilarityBuild {
                 user_id,
                 image_hashes: &hashes[lo..hi],
                 image_embeddings: &embeddings[lo..hi],

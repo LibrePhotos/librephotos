@@ -37,6 +37,16 @@ enum Command {
         #[arg(short, long)]
         update: bool,
     },
+    /// List the ML model catalog under MEDIA_ROOT/data_models, or download
+    /// models (sha256-verified) without the database or site settings.
+    Models {
+        /// Download the named models (all of the catalog with `--all`).
+        #[arg(long)]
+        download: bool,
+        #[arg(long)]
+        all: bool,
+        names: Vec<String>,
+    },
 }
 
 fn main() -> anyhow::Result<()> {
@@ -75,6 +85,11 @@ async fn run(cli: Cli, config: Config) -> anyhow::Result<()> {
             );
             Ok(())
         }
+        Command::Models {
+            download,
+            all,
+            names,
+        } => lp_server::models_cli(&config, download, all, &names).await,
         Command::Createadmin {
             username,
             email,

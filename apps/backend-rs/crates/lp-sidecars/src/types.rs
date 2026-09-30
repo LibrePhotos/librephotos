@@ -316,6 +316,12 @@ impl Sidecars {
         n: Option<usize>,
         threshold: f64,
     ) -> Result<SimilaritySearchReply, SidecarError> {
+        // Integral thresholds go out as JSON integers, as Django sends them.
+        let threshold = if threshold.fract() == 0.0 && threshold.abs() < 1e15 {
+            Value::from(threshold as i64)
+        } else {
+            Value::from(threshold)
+        };
         let mut body = serde_json::json!({
             "user_id": user_id,
             "image_embedding": embedding,

@@ -95,7 +95,8 @@ pub async fn generate_im2txt(state: &AppState, photo_id: Uuid) -> anyhow::Result
     tracing::info!(%prompt, "caption prompt");
     let image_path = path_str(&thumb);
     let caption = match state
-        .sidecars
+        .ml()
+        .caption()
         .generate_caption(&image_path, Some(&prompt))
         .await
     {

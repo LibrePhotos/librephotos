@@ -174,7 +174,12 @@ pub async fn extract_faces(state: &AppState, photo: &TaskPhoto) -> Result<usize,
     }
     if found.is_empty() {
         let model = state.settings().face_recognition_model.clone();
-        match state.sidecars.detect_faces(&path_str(&big), &model).await {
+        match state
+            .ml()
+            .face()
+            .detect_faces(&path_str(&big), &model)
+            .await
+        {
             Ok(faces) => {
                 found = faces
                     .into_iter()
@@ -524,7 +529,8 @@ async fn encode_face(state: &AppState, face: &MissingEncoding, model: &str) -> a
         face.location_left,
     ];
     let encodings = state
-        .sidecars
+        .ml()
+        .face()
         .face_encodings(&path_str(&big), &[location], model)
         .await?;
     let encoding = match encodings.into_iter().next() {

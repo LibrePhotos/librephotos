@@ -281,6 +281,13 @@ Use `tests/<area>/...` paths the way the frontend writes them; when a case
 needs a user's scan directory, ask the server (`src/live.ts`), not the
 manifest: a media-copy clone points into the copy.
 
+## 6. ML goldens (`tests/ml/`)
+
+Reference outputs of the Python sidecar model code for the in-process ports in
+`crates/lp-ml`, written to `<librephotos>/rust-pg/ml-goldens/<service>/*.json`
+by `golden_<service>.py` (venv python, imports the model code directly, never
+starts a sidecar) and read by `lp_ml::golden`. See `tests/ml/README.md`.
+
 ## Caveats
 
 - Windows cannot store `?` in a file name, so the `%?#;` case is covered by

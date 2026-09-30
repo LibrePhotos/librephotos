@@ -31,7 +31,18 @@ pub fn supervisor_config(state: &AppState) -> SupervisorConfig {
         env,
         flags,
         ocr_model_selected: supervisor::model_selected(&state.settings().ocr_model),
+        in_process: in_process(state),
     }
+}
+
+/// The services `lp-ml` serves in-process right now (by sidecar name).
+pub fn in_process(state: &AppState) -> Vec<&'static str> {
+    let ml = state.ml();
+    lp_ml::Service::ALL
+        .into_iter()
+        .filter(|s| ml.is_inprocess(*s))
+        .map(|s| s.name())
+        .collect()
 }
 
 /// Whether this process supervises the sidecars (`LP_SUPERVISE_SIDECARS`).

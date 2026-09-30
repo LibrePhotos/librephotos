@@ -2,8 +2,6 @@
 //! only have `IsOwnerOrReadOnly`, so an anonymous caller gets the owner-scope
 //! 404 rather than a 401.
 
-use std::path::Path;
-
 use axum::Json;
 use axum::extract::State;
 use axum::http::StatusCode;
@@ -12,25 +10,12 @@ use lp_auth::OptionalUser;
 use lp_core::{ApiError, ApiJson, ApiResult, AppState};
 use lp_db::photo_edits as reads;
 use lp_db::write::photo_edits::caption as svc;
-use lp_sidecars::Sidecar;
 use serde_json::{Value, json};
 
 use super::bulk::object;
 use super::{py_str, required, status_message};
 
 const CAPTION_FAILED: &str = "Failed to generate caption. Check service logs for details.";
-
-/// Every file of the captioner (`ML_MODELS`, type captioning), relative to
-/// `data_models/`.
-const CAPTIONER_FILES: [&str; 7] = [
-    "lfm2_vl_450m/vision_encoder_q4.onnx",
-    "lfm2_vl_450m/vision_encoder_q4.onnx_data",
-    "lfm2_vl_450m/embed_tokens_q4.onnx",
-    "lfm2_vl_450m/embed_tokens_q4.onnx_data",
-    "lfm2_vl_450m/decoder_model_merged_q4.onnx",
-    "lfm2_vl_450m/decoder_model_merged_q4.onnx_data",
-    "lfm2_vl_450m/tokenizer.json",
-];
 
 pub(super) async fn save_caption(
     State(state): State<AppState>,
@@ -77,10 +62,6 @@ pub(super) async fn save_caption(
     Ok(Json(json!({"status": ok})).into_response())
 }
 
-fn captioning_model_exists(models_dir: &Path) -> bool {
-    CAPTIONER_FILES.iter().all(|f| models_dir.join(f).exists())
-}
-
 /// `_caption_prompt(_caption_context(llm_settings))`.
 fn caption_prompt(llm: &Value, person: Option<&str>, location: Option<&str>) -> String {
     let flag = |k: &str| llm.get(k).is_some_and(lp_core::extract::py_truthy);
@@ -108,31 +89,18 @@ fn caption_prompt(llm: &Value, person: Option<&str>, location: Option<&str>) -> 
     prompt
 }
 
-/// `api.image_captioning.generate_caption`: one synchronous sidecar call.
-async fn call_caption_sidecar(
+/// `api.image_captioning.generate_caption`: one synchronous call.
+async fn call_captioner(
     state: &AppState,
     image_path: &str,
     prompt: &str,
 ) -> anyhow::Result<String> {
-    let res = state
-        .sidecars
-        .http()
-        .post(state.sidecars.url(Sidecar::Caption, "/generate-caption"))
-        .json(&json!({"image_path": image_path, "prompt": prompt}))
-        .timeout(Sidecar::Caption.timeout())
-        .send()
-        .await?;
-    let status = res.status();
-    let body: Value = res.json().await.unwrap_or(Value::Null);
-    match body.get("caption") {
-        Some(c) if status.is_success() => Ok(py_str(c)),
-        _ => anyhow::bail!(
-            "captioning sidecar returned HTTP {status}: {}",
-            body.get("error")
-                .map(py_str)
-                .unwrap_or_else(|| "no caption in reply".into())
-        ),
-    }
+    state
+        .ml()
+        .caption()
+        .generate_caption(image_path, Some(prompt))
+        .await
+        .map_err(|e| anyhow::anyhow!("captioning failed: {}", e.detail()))
 }
 
 pub(super) async fn generate_im2txt(
@@ -156,9 +124,10 @@ pub(super) async fn generate_im2txt(
         return Ok(status_message(StatusCode::NOT_FOUND, "photo not found"));
     };
 
-    if !captioning_model_exists(&state.config.data_models_dir()) {
-        // The model download is not a job kind of the Rust queue yet; the
-        // answer is the one the frontend turns into its "downloading" notice.
+    if !lp_tasks::models::captioning_present(&state) {
+        // A fresh install (or a model switch) can be asked for a caption
+        // before the download ran: start it, the frontend shows a notice.
+        lp_tasks::models::start_download(&state, user.id).await;
         return Ok(Json(json!({
             "status": false,
             "reason": "model_downloading",
@@ -196,7 +165,7 @@ pub(super) async fn generate_im2txt(
         ctx.person_name.as_deref(),
         ctx.search_location.as_deref(),
     );
-    let caption = match call_caption_sidecar(&state, &image_path, &prompt).await {
+    let caption = match call_captioner(&state, &image_path, &prompt).await {
         Ok(c) => svc::clean_caption(&c),
         Err(e) => {
             tracing::warn!(error = %e, image_path, "could not generate caption");

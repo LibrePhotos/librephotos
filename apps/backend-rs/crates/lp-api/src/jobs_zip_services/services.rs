@@ -1,5 +1,10 @@
 //! `ServiceViewSet` (`/api/services/`, staff only): the sidecar list, a
 //! health probe per sidecar (polled every 15 s) and start/stop.
+//!
+//! A service `lp-ml` serves in-process has no process: it is healthy when
+//! enabled, its status adds `mode`, `model_loaded`, `busy`, `last_used`
+//! (unix seconds) and the loaded `models`; start is a no-op (models load on
+//! first use) and stop unloads its models. Sidecars report `mode: "sidecar"`.
 
 use axum::Json;
 use axum::extract::{Path, State};
@@ -44,6 +49,23 @@ pub async fn status(
         return Ok(not_found(&name));
     };
     let enabled = cfg.is_enabled(&name);
+    if cfg.is_in_process(&name)
+        && let Some(service) = lp_ml::Service::from_name(&name)
+    {
+        let st = state.ml().status(service);
+        return Ok(Json(json!({
+            "service_name": name,
+            "healthy": enabled,
+            "enabled": enabled,
+            "feature_flag": spec.feature_flag,
+            "mode": st.mode,
+            "model_loaded": st.model_loaded,
+            "busy": st.busy,
+            "last_used": st.last_used,
+            "models": st.models,
+        }))
+        .into_response());
+    }
     let healthy = enabled
         && supervisor::global()
             .is_healthy(&state.http, &cfg, &name)
@@ -53,6 +75,7 @@ pub async fn status(
         "healthy": healthy,
         "enabled": enabled,
         "feature_flag": spec.feature_flag,
+        "mode": "sidecar",
     }))
     .into_response())
 }
@@ -98,6 +121,15 @@ pub async fn stop(
     let cfg = supervisor_config(&state);
     if !known(&cfg, &name) {
         return Ok(not_found(&name));
+    }
+    if cfg.is_in_process(&name)
+        && let Some(service) = lp_ml::Service::from_name(&name)
+    {
+        state.ml.unload(service);
+        return Ok(reply(
+            StatusCode::OK,
+            json!({"message": format!("Service {name} stopped successfully")}),
+        ));
     }
     Ok(if supervisor::global().stop(&name).await {
         reply(

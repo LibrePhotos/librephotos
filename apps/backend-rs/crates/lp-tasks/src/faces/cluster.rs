@@ -227,8 +227,9 @@ async fn create_all_clusters(state: &AppState, user_id: i32) -> anyhow::Result<u
         cluster_selection_epsilon: settings.cluster_selection_epsilon,
     };
     let labels = state
-        .sidecars
-        .cluster_faces(&request)
+        .ml()
+        .face_cluster()
+        .cluster(&request)
         .await
         .map_err(sidecar_failure)?
         .labels;
@@ -522,8 +523,9 @@ async fn train(state: &AppState, user_id: i32, job_id: &str) -> anyhow::Result<(
         unknown,
     };
     let predictions = state
-        .sidecars
-        .train_faces(&request)
+        .ml()
+        .face_cluster()
+        .train(&request)
         .await
         .map_err(sidecar_failure)?
         .predictions;

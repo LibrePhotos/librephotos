@@ -74,6 +74,7 @@ async fn scan(state: &AppState, user: &User, full_scan: bool) -> Response {
     if let Some(refused) = validate_scan_directory(user).await {
         return refused;
     }
+    lp_tasks::models::queue_if_missing(state, user.id).await;
     start_job(
         state,
         "scan.user",

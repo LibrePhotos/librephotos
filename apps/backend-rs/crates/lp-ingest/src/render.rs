@@ -15,7 +15,6 @@ use std::sync::OnceLock;
 use std::time::Duration;
 
 use anyhow::{Context, anyhow, bail};
-use serde_json::json;
 
 use crate::fsutil::{self, media_name};
 use crate::vips::{self, Vips};
@@ -45,7 +44,8 @@ pub struct Renderer {
     pub python: PathBuf,
     pub ffmpeg: PathBuf,
     pub ffprobe: PathBuf,
-    pub thumbnail_sidecar: String,
+    /// RAW rendering (`raw_thumbnail`: in-process or the thumbnail sidecar).
+    pub ml: lp_ml::MlHandle,
     pub http: reqwest::Client,
 }
 
@@ -58,7 +58,7 @@ impl Renderer {
             python: b.python.clone(),
             ffmpeg: b.ffmpeg.clone(),
             ffprobe: b.ffprobe.clone(),
-            thumbnail_sidecar: state.sidecars.url(lp_sidecars::Sidecar::Thumbnail, "/"),
+            ml: state.ml_handle(),
             http: state.http.clone(),
         }
     }
@@ -212,7 +212,7 @@ with Image.open(sys.argv[1]) as image:\n    ImageOps.exif_transpose(image).conve
         Ok(tmp)
     }
 
-    /// `_request_raw_thumbnail`: the thumbnail sidecar renders the RAW.
+    /// `_request_raw_thumbnail`: the RAW renderer (thumbnail sidecar or in-process).
     fn raw_sidecar(
         &self,
         input: &Path,
@@ -220,24 +220,18 @@ with Image.open(sys.argv[1]) as image:\n    ImageOps.exif_transpose(image).conve
         out: &Path,
         local_orientation: i32,
     ) -> anyhow::Result<()> {
-        let body = json!({
-            "source": fsutil::path_str(input),
-            "destination": fsutil::path_str(out),
-            "height": height,
-        });
-        let url = self.thumbnail_sidecar.clone();
-        let http = self.http.clone();
+        let (source, destination) = (fsutil::path_str(input), fsutil::path_str(out));
+        let ml = self.ml.clone();
         let handle = tokio::runtime::Handle::try_current()
-            .map_err(|_| anyhow!("no runtime for the thumbnail sidecar"))?;
-        let resp = handle.block_on(async move {
-            http.post(url)
-                .json(&body)
-                .timeout(Duration::from_secs(120))
-                .send()
-                .await?
-                .error_for_status()
-        })?;
-        drop(resp);
+            .map_err(|_| anyhow!("no runtime for the RAW renderer"))?;
+        handle
+            .block_on(async move {
+                ml.view()
+                    .raw_thumbnail()
+                    .render_thumbnail(&source, &destination, height.max(0) as u32)
+                    .await
+            })
+            .map_err(|e| anyhow!("RAW render of {} failed: {}", input.display(), e.detail()))?;
         if local_orientation > 1
             && let Some(v) = self.vips()
         {

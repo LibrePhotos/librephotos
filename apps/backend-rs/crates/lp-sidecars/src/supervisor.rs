@@ -88,6 +88,9 @@ pub struct SupervisorConfig {
     pub flags: HashMap<&'static str, bool>,
     /// OCR is switched by the `OCR_MODEL` site setting, not a flag.
     pub ocr_model_selected: bool,
+    /// Services `lp-ml` serves in-process right now: never started or
+    /// restarted as a Python process.
+    pub in_process: Vec<&'static str>,
 }
 
 impl SupervisorConfig {
@@ -143,6 +146,10 @@ impl SupervisorConfig {
             Some(flag) if !self.flag_on(Some(flag)) => format!("{flag} is disabled"),
             _ => "no model is selected for it in the site settings".into(),
         }
+    }
+
+    pub fn is_in_process(&self, name: &str) -> bool {
+        self.in_process.contains(&name)
     }
 
     fn url(&self, spec: ServiceSpec, path: &str) -> String {
@@ -206,6 +213,10 @@ impl Supervisor {
                 "service not started"
             );
             return false;
+        }
+        if cfg.is_in_process(name) {
+            tracing::debug!(service = name, "served in-process; no sidecar started");
+            return true;
         }
         if self.is_running(name) {
             return true;
@@ -373,7 +384,7 @@ impl Supervisor {
     /// `check_services`: restart unhealthy enabled sidecars, unload idle ones.
     pub async fn check(&self, http: &reqwest::Client, cfg: &SupervisorConfig) {
         for spec in cfg.services() {
-            if !cfg.is_enabled(spec.name) {
+            if !cfg.is_enabled(spec.name) || cfg.is_in_process(spec.name) {
                 continue;
             }
             if !self.is_healthy(http, cfg, spec.name).await {
@@ -394,7 +405,7 @@ impl Supervisor {
     {
         let cfg = config();
         for spec in cfg.services() {
-            if cfg.is_enabled(spec.name) {
+            if cfg.is_enabled(spec.name) && !cfg.is_in_process(spec.name) {
                 self.start(&cfg, spec.name);
             }
         }

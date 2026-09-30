@@ -13,6 +13,7 @@ lp-db.workspace = true
 lp-jobs.workspace = true
 lp-exif.workspace = true
 lp-sidecars.workspace = true
+lp-ml.workspace = true
 lp-media.workspace = true
 lp-ingest.workspace = true
 axum.workspace = true

@@ -162,6 +162,12 @@ impl Sidecars {
             .unwrap_or_else(|| format!("http://{}:{}", self.host, sidecar.port()))
     }
 
+    /// Whether `sidecar`'s base was set explicitly (`LP_SIDECAR_<NAME>_URL`
+    /// or [`Sidecars::with_base`]); `lp-ml` then keeps calling the sidecar.
+    pub fn is_redirected(&self, sidecar: Sidecar) -> bool {
+        self.bases.contains_key(&sidecar)
+    }
+
     pub fn url(&self, sidecar: Sidecar, path: &str) -> String {
         format!("{}{}", self.base(sidecar), path)
     }

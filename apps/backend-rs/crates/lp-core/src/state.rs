@@ -40,6 +40,8 @@ pub struct AppState {
     pub jwt: Arc<JwtKeys>,
     pub exif: lp_exif::ExifPool,
     pub sidecars: lp_sidecars::Sidecars,
+    /// In-process ML services; call them through [`AppState::ml`].
+    pub ml: lp_ml::Ml,
     /// Bounds concurrent CPU-heavy work; use [`AppState::blocking`].
     pub cpu: Arc<Semaphore>,
     /// Poked by `lp_jobs::enqueue` so an in-process worker picks jobs up at once.
@@ -57,18 +59,47 @@ impl AppState {
             pool_size: config.exif_pool,
         });
         let sidecars = lp_sidecars::Sidecars::new(http.clone(), "127.0.0.1");
+        let settings = Arc::new(ArcSwap::from_pointee(settings));
+        let live = settings.clone();
+        let ml = lp_ml::Ml::new(
+            lp_ml::MlConfig::from_env(config.media_root.clone()),
+            Arc::new(move || {
+                let s = live.load();
+                lp_ml::Selection {
+                    tagging_model: s.tagging_model.clone(),
+                    face_recognition_model: s.face_recognition_model.clone(),
+                    ocr_model: s.ocr_model.clone(),
+                    captioning_model: s.captioning_model.clone(),
+                }
+            }),
+        );
         Ok(AppState {
             db,
             jwt: Arc::new(JwtKeys::from_secret(&config.secret_key)),
             cpu: Arc::new(Semaphore::new(config.cores.max(1))),
             config: Arc::new(config),
-            settings: Arc::new(ArcSwap::from_pointee(settings)),
+            settings,
             http,
             exif,
             sidecars,
+            ml,
             job_wakeup: Arc::new(Notify::new()),
             started_at: Utc::now(),
         })
+    }
+
+    /// The ML services (in-process or sidecar per `LP_ML_<SERVICE>`), e.g.
+    /// `state.ml().clip().query_embedding(..)`.
+    pub fn ml(&self) -> lp_ml::MlView<'_> {
+        self.ml.view(&self.sidecars)
+    }
+
+    /// Owned ML handle for blocking code that cannot borrow the state.
+    pub fn ml_handle(&self) -> lp_ml::MlHandle {
+        lp_ml::MlHandle {
+            ml: self.ml.clone(),
+            sidecars: self.sidecars.clone(),
+        }
     }
 
     /// Current site settings snapshot.

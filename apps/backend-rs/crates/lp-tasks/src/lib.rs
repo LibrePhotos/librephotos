@@ -13,14 +13,15 @@
 //! | `ocr.generate` | `{user_id, full_scan?}` | `generate_ocr` |
 //! | `media.classify` | `{user_id}` | `classify_media` |
 //! | `captions.generate` | `{photo_id}` | `generate_captions_im2txt` |
+//! | `models.download` | `{user_id}` | `download_models` |
 //!
 //! A job enqueued with `EnqueueOptions::tracked` reports on that
 //! LongRunningJob; one enqueued without gets its own, as Django's
 //! `get_or_create_job` does. Synchronous entry points for other areas:
 //! [`captions::generate_im2txt`] (`/photosedit/generateim2txt`),
-//! [`geocode::search_location`] (`/geocode/search`), and the sidecar
-//! clients on `state.sidecars` (`face_pca` for `/clusterfaces`,
-//! `similarity_search`, `query_embeddings`).
+//! [`geocode::search_location`] (`/geocode/search`), and the ML services
+//! on `state.ml()` (`face_cluster().pca` for `/clusterfaces`,
+//! `similarity().search`, `clip().query_embedding`), in-process or sidecar.
 
 #![allow(clippy::disallowed_methods)] // not a handler crate: SQL allowed here
 
@@ -31,6 +32,7 @@ pub mod exif;
 pub mod faces;
 pub mod fanout;
 pub mod geocode;
+pub mod models;
 pub mod ocr;
 pub mod photos;
 pub mod run;
@@ -78,7 +80,9 @@ where
 }
 
 pub fn register_jobs(reg: &mut HandlerRegistry) {
+    reg.register(models::KIND, models::download);
     reg.register("faces.scan", |ctx: JobCtx| async move {
+        models::wait_for_download(&ctx.state).await;
         let p = user_payload(&ctx)?;
         let full = p.full_scan.unwrap_or(false);
         let state = ctx.state.clone();
@@ -88,6 +92,7 @@ pub fn register_jobs(reg: &mut HandlerRegistry) {
         .await
     });
     reg.register("faces.cluster", |ctx: JobCtx| async move {
+        models::wait_for_download(&ctx.state).await;
         let p = user_payload(&ctx)?;
         faces::generate_face_embeddings(&ctx.state, p.user_id).await?;
         faces::cluster::cluster_all_faces(&ctx.state, p.user_id, ctx.job.lrj_id.as_deref()).await?;
@@ -99,6 +104,7 @@ pub fn register_jobs(reg: &mut HandlerRegistry) {
         Ok(())
     });
     reg.register("tags.generate", |ctx: JobCtx| async move {
+        models::wait_for_download(&ctx.state).await;
         let p = user_payload(&ctx)?;
         let full = p.full_scan.unwrap_or(false);
         let state = ctx.state.clone();
@@ -117,6 +123,7 @@ pub fn register_jobs(reg: &mut HandlerRegistry) {
         .await
     });
     reg.register("clip.embed", |ctx: JobCtx| async move {
+        models::wait_for_download(&ctx.state).await;
         let p = user_payload(&ctx)?;
         let db = &ctx.state.db;
         let job_id = run::begin(
@@ -148,6 +155,7 @@ pub fn register_jobs(reg: &mut HandlerRegistry) {
         }
     });
     reg.register("ocr.generate", |ctx: JobCtx| async move {
+        models::wait_for_download(&ctx.state).await;
         let p = user_payload(&ctx)?;
         let full = p.full_scan.unwrap_or(false);
         let state = ctx.state.clone();
@@ -165,6 +173,7 @@ pub fn register_jobs(reg: &mut HandlerRegistry) {
         .await
     });
     reg.register("captions.generate", |ctx: JobCtx| async move {
+        models::wait_for_download(&ctx.state).await;
         let p: PhotoPayload = serde_json::from_value(ctx.job.payload.clone())
             .map_err(|e| anyhow::anyhow!("captions.generate payload: {e}"))?;
         let outcome = captions::generate_im2txt(&ctx.state, p.photo_id).await?;

@@ -23,6 +23,7 @@ lp-sidecars = { path = "crates/lp-sidecars" }
 lp-tasks = { path = "crates/lp-tasks" }
 lp-server = { path = "crates/lp-server" }
 lp-testkit = { path = "crates/lp-testkit" }
+lp-ml = { path = "crates/lp-ml" }
 
 # HTTP stack
 axum = { version = "0.8", features = ["multipart", "macros"] }
@@ -114,6 +115,15 @@ rustdct = "0.7"
 libloading = "0.8"
 sysinfo = "0.33"
 
+# ML (lp-ml). ORT is loaded at runtime (load-dynamic) so Rust and the Python
+# sidecars can share one onnxruntime build; api-17 = works with ORT >= 1.17.
+ort = { version = "=2.0.0-rc.13", default-features = false, features = ["std", "load-dynamic", "ndarray", "tracing", "cuda"] }
+ndarray = "0.17"
+tokenizers = { version = "0.22", default-features = false, features = ["fancy-regex"] }
+async-trait = "0.1"
+flate2 = "1"
+tar = "0.4"
+
 # Dev / test
 insta = { version = "1", features = ["json"] }
 proptest = "1"
@@ -153,6 +163,11 @@ opt-level = 3
 [profile.dev.package.zune-jpeg]
 opt-level = 3
 [profile.dev.package.miniz_oxide]
+opt-level = 3
+# Tensor preprocessing and tokenizing run per image / query.
+[profile.dev.package.lp-ml]
+opt-level = 2
+[profile.dev.package.tokenizers]
 opt-level = 3
 
 [profile.release]

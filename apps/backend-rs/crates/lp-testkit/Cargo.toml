@@ -18,6 +18,7 @@ lp-ingest.workspace = true
 lp-tasks.workspace = true
 lp-exif.workspace = true
 lp-sidecars.workspace = true
+lp-ml.workspace = true
 lp-server.workspace = true
 axum.workspace = true
 axum-extra.workspace = true

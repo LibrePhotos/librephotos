@@ -456,6 +456,8 @@ impl TestApp {
             .await
             .expect("load settings");
         let state = AppState::new(db.pool.clone(), config, settings).expect("state");
+        // Never fetch models from a test (re-enable to test the triggers).
+        state.ml.set_auto_download(false);
         let app = lp_server::app(state.clone());
         TestApp {
             db,

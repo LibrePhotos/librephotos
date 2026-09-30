@@ -101,7 +101,8 @@ pub async fn tag_photo(state: &AppState, photo_id: Uuid) -> Result<(), TagError>
         .await?;
     let image_path = path_str(&thumb);
     let reply = match state
-        .sidecars
+        .ml()
+        .tags()
         .generate_tags(&image_path, user_confidence, &model)
         .await
     {

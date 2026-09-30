@@ -25,6 +25,7 @@ fn config(backend: &std::path::Path, python: PathBuf) -> SupervisorConfig {
         env: vec![("BASE_DATA".into(), backend.display().to_string())],
         flags: HashMap::from([("FEATURE_FACE_DETECTION", false)]),
         ocr_model_selected: false,
+        in_process: Vec::new(),
     }
 }
 
@@ -97,4 +98,17 @@ async fn starts_tracks_and_stops_only_its_own_children() {
     let mut bad = cfg.clone();
     bad.python = dir.path().join("no-such-python.exe");
     assert!(!sup.start(&bad, "clip_embeddings"));
+}
+
+#[tokio::test]
+async fn in_process_services_are_never_spawned() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut cfg = config(dir.path(), dir.path().join("no-such-python.exe"));
+    cfg.in_process = vec!["clip_embeddings"];
+    let sup = Supervisor::new();
+    assert!(cfg.is_in_process("clip_embeddings"));
+    // Reported as started although the interpreter does not exist.
+    assert!(sup.start(&cfg, "clip_embeddings"));
+    assert!(!sup.is_running("clip_embeddings"));
+    assert!(!sup.start(&cfg, "thumbnail"), "sidecars still spawn");
 }
