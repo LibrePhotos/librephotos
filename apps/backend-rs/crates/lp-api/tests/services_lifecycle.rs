@@ -33,6 +33,10 @@ async fn admin_starts_and_stops_a_sidecar() {
 
     let py = py.display().to_string();
     let app = TestApp::with_env(&[("LP_PYTHON", py.as_str())]).await;
+    // The thumbnail service runs in-process by default now; test its sidecar.
+    app.state
+        .ml
+        .set_mode(lp_ml::Service::RawThumbnail, lp_ml::Mode::Sidecar);
     let admin = app.create_user("svc_admin", "pw", true).await;
     let at = app.token_for(&admin);
     let user = app.create_user("svc_user", "pw", false).await;
