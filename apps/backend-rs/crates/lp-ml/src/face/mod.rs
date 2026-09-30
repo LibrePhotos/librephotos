@@ -7,9 +7,15 @@
 //! -> `{encodings}` (one slot per box: the detected face with IoU >= 0.3,
 //! else null). Boxes are `int(round())` of insightface's float bbox.
 
+pub mod align;
 mod inprocess;
+pub mod onnx_meta;
+pub mod scrfd;
 
-pub use inprocess::InProcess;
+pub use inprocess::{
+    ArcFace, Face, FacePack, InProcess, Want, best_face_matches, iou, normalize_model_name,
+    to_face_location,
+};
 
 use async_trait::async_trait;
 use lp_sidecars::{DetectedFace, FaceBox, SidecarError, Sidecars};

@@ -125,3 +125,32 @@ split a run to stay under 10 minutes), on a box shared with another build:
 A 50k-face train needs a few hundred epochs per classifier, so it runs for
 tens of minutes either way (not run to the end: benchmarks stay under 10
 minutes).
+
+## What the face goldens established
+
+`golden_face.py [packs...]` (and `--e2e` for the faces.scan thumbnails) drives
+the real sidecar routes through Flask's test client; `cargo test -p lp-ml --test face`
+and `cargo test -p lp-tasks --test faces_inprocess`:
+
+- All five packs (buffalo_sc/s/m/l, antelopev2), 132 faces on 20 images:
+  same faces in the same order, boxes IoU >= 0.998 (bit-identical float boxes
+  on PNG/WebP input; JPEG decoding moves them by < 0.15 px), embeddings
+  cosine >= 0.9995 overall and >= 0.999995 on PNG/WebP input. The recogniser
+  on Python's own aligned crop is bit-identical.
+- Aligned crops differ by at most 1 level on a few pixels: skimage estimates
+  the similarity with a float32 SVD, the port in closed form; the warp itself
+  is bit-exact to OpenCV 5's float `warpAffine` for a given matrix.
+- OpenCV 5.0 changed `warpAffine` (float coordinates, fma lerps); the older
+  fixed-point kernel differs by up to 5 levels.
+- `golden_face.py --edge` (t1.jpg as grey/LA/palette/transparent PNG, CMYK,
+  grey and progressive JPEG, EXIF-rotated, 16-bit RGB, TIFF, BMP, GIF, 4096 px,
+  plus a 2000x2 sliver, truncated, empty, non-image and missing files): same
+  faces and order everywhere, IoU 1.0, cosine >= 0.99926 (JPEGs and 16-bit
+  RGB, which `load_rgb` rounds where Pillow truncates; 1.0 on the 8-bit
+  lossless ones); the refused inputs are 500s in both. Two known differences:
+  a truncated JPEG decodes (partly grey) instead of failing, and a 16-bit grey
+  PNG is scaled instead of clipped to white until `load_rgb` converts like
+  Pillow.
+- Tied detector scores are ordered by numpy 2's SIMD `argsort`, which is not
+  stable and depends on the CPU (AVX2/AVX-512/NEON); the port breaks ties by
+  descending index. No golden image is affected.
