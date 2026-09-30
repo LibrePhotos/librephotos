@@ -72,3 +72,13 @@ also skip without `LP_ORT_LIB`.
 - HF `tokenizers` ids identical for every `tokenizer.json` (CLIP, MobileCLIP,
   LFM2). SigLIP 2 ships a sentencepiece `tokenizer.model`, which the
   `tokenizers` crate cannot read directly.
+
+## Captions (`golden_caption.py`, `cargo test -p lp-ml --test caption`)
+
+64 cases (37 WebP big thumbnails, 10 generated images, 12 JPEG originals,
+5 with the `llm_settings` prompts): identical token sequences on 62/64,
+on every one of the 49 losslessly decoded inputs. The two JPEG misses
+diverge at near-ties (top-2 logit margin 0.005 and 0.0005) from the
+zune-jpeg vs libjpeg-turbo decode. The test runs 8 cases by default,
+`LP_CAPTION_GOLDEN_ALL=1` all. Throughput and RSS: `bench_caption.py` vs
+`cargo run -p lp-ml --example caption_bench` on the same images.

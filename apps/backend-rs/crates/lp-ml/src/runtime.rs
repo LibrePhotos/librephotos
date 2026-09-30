@@ -172,9 +172,22 @@ fn load(cfg: &RuntimeConfig) -> Result<RuntimeInfo, String> {
     ))
 }
 
+/// ONNX Runtime's CPU memory arena, on by default as in Python (`ort`
+/// turns it off unless asked). Without it every decoding step of an
+/// autoregressive model allocates afresh: LFM2-VL captions took 2-3x as
+/// long. `LP_ORT_CPU_ARENA=0` trades that speed for a lower peak RSS.
+fn cpu_arena() -> bool {
+    std::env::var("LP_ORT_CPU_ARENA").map_or(true, |v| {
+        !matches!(
+            v.trim().to_ascii_lowercase().as_str(),
+            "0" | "false" | "no" | "off"
+        )
+    })
+}
+
 fn dispatch(name: &str) -> Option<ExecutionProviderDispatch> {
     match name {
-        CPU => Some(ep::CPU::default().build()),
+        CPU => Some(ep::CPU::default().with_arena_allocator(cpu_arena()).build()),
         CUDA => {
             let cuda = ep::CUDA::default();
             cuda.is_available().unwrap_or(false).then(|| cuda.build())
