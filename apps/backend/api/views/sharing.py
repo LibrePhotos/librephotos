@@ -31,6 +31,7 @@ class SharedToMePhotoSuperSimpleListViewSet(ListViewSet):
                 "owner",
                 "hidden",
                 "exif_timestamp",
+                "video_color_transfer",
             )
             .prefetch_related("owner")
             .order_by("exif_timestamp")

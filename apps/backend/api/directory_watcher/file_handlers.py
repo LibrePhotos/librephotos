@@ -16,7 +16,7 @@ from django.conf import settings
 from django.db import transaction
 from django.db.models import Q
 
-from api import transcode_cache
+from api import transcode_cache, video_color
 from api.directory_watcher.file_grouping import (
     FILE_TYPE_PRIORITY,
     find_matching_image_for_video,
@@ -758,6 +758,14 @@ def _process_photo(photo: Photo, path: str, job_id, start: datetime.datetime):
         start: Start time for elapsed time calculation
     """
     logger.info(f"job {job_id}: handling image {path}")
+
+    # Before the thumbnails, which read it: the poster frame and both animated
+    # thumbnails need to know whether to tonemap. Every time, not only when the
+    # fields are empty -- a rescanned video may be a new file under the old path.
+    if photo.video:
+        video_color.record(photo)
+        elapsed = (datetime.datetime.now() - start).total_seconds()
+        logger.info(f"job {job_id}: probe video: {path}, elapsed: {elapsed}")
 
     # Create or get thumbnail instance
     thumbnail, _ = Thumbnail.objects.get_or_create(photo=photo)

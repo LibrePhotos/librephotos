@@ -56,7 +56,7 @@ class FakeTranscoderProcess:
 class FakeVideoTranscoder:
     """Stand-in for api.views.media.VideoTranscoder (no real ffmpeg needed)."""
 
-    def __init__(self, path):
+    def __init__(self, path, transfer=None):
         self.path = path
         self.process = FakeTranscoderProcess()
 
