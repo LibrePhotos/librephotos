@@ -7,7 +7,7 @@
 //! never disagree; it is written to a temporary name and renamed into place.
 
 use std::cmp::Ordering;
-use std::io::{Read, Write};
+use std::io::{Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context, anyhow, bail};
@@ -43,6 +43,11 @@ impl FlatIndex {
 
     pub fn hashes(&self) -> &[String] {
         &self.hashes
+    }
+
+    /// The `i`-th stored vector.
+    pub fn vector(&self, i: usize) -> &[f32] {
+        &self.data[i * EMBEDDING_SIZE..(i + 1) * EMBEDDING_SIZE]
     }
 
     /// Append vectors; every one must have [`EMBEDDING_SIZE`] components.
@@ -84,9 +89,15 @@ impl FlatIndex {
     }
 
     /// `search_similar`: the `n` best inner products that reach `threshold`,
-    /// best first. As FAISS + the sidecar's `sorted(zip(dist, idx),
-    /// reverse=True)`: of equal scores the lower positions (hash order) make
-    /// the cut, and the result lists ties by descending position.
+    /// best first, ties listed by descending position as the sidecar's
+    /// `sorted(zip(dist, idx), reverse=True)` does. The threshold is compared
+    /// in f32, as numpy 2 compares `np.float32 >= float`.
+    ///
+    /// Of exactly equal scores straddling the `n` cut, the lower positions
+    /// (hash order) are kept. FAISS keeps whichever its heap (n < 100) or
+    /// reservoir (n >= 100) happens to hold, which depends on the scan order
+    /// of every other score; only such exact ties (duplicate embeddings)
+    /// can come out as different members of the same score group.
     pub fn search(&self, query: &[f32], n: usize, threshold: f64) -> anyhow::Result<Vec<String>> {
         if query.len() != EMBEDDING_SIZE {
             bail!(
@@ -97,11 +108,12 @@ impl FlatIndex {
         if n == 0 || self.is_empty() {
             return Ok(Vec::new());
         }
+        let threshold = threshold as f32;
         let scores = self.scores(query);
         let mut hits: Vec<(f32, usize)> = scores
             .into_iter()
             .enumerate()
-            .filter(|(_, s)| f64::from(*s) >= threshold)
+            .filter(|(_, s)| *s >= threshold)
             .map(|(i, s)| (s, i))
             .collect();
         let best_first = |a: &(f32, usize), b: &(f32, usize)| {
@@ -127,46 +139,71 @@ impl FlatIndex {
     // ---- persistence ---------------------------------------------------------
 
     pub fn to_bytes(&self) -> Vec<u8> {
-        let hashes = self.hashes.join("\n");
-        let mut out = Vec::with_capacity(HEADER + self.data.len() * 4 + hashes.len());
-        out.extend_from_slice(MAGIC);
-        out.extend_from_slice(&VERSION.to_le_bytes());
-        out.extend_from_slice(&(EMBEDDING_SIZE as u32).to_le_bytes());
-        out.extend_from_slice(&(self.len() as u64).to_le_bytes());
-        for v in &self.data {
-            out.extend_from_slice(&v.to_le_bytes());
-        }
-        out.extend_from_slice(hashes.as_bytes());
+        let mut out = Vec::with_capacity(HEADER + self.data.len() * 4 + self.hashes.len() * 34);
+        self.write_to(&mut out).expect("writing to a Vec");
         out
     }
 
+    fn write_to(&self, out: &mut impl Write) -> std::io::Result<()> {
+        out.write_all(MAGIC)?;
+        out.write_all(&VERSION.to_le_bytes())?;
+        out.write_all(&(EMBEDDING_SIZE as u32).to_le_bytes())?;
+        out.write_all(&(self.len() as u64).to_le_bytes())?;
+        let mut buf = Vec::with_capacity(EMBEDDING_SIZE * 4);
+        for v in self.data.chunks(EMBEDDING_SIZE) {
+            buf.clear();
+            for x in v {
+                buf.extend_from_slice(&x.to_le_bytes());
+            }
+            out.write_all(&buf)?;
+        }
+        for (i, h) in self.hashes.iter().enumerate() {
+            if i > 0 {
+                out.write_all(b"\n")?;
+            }
+            out.write_all(h.as_bytes())?;
+        }
+        Ok(())
+    }
+
     pub fn from_bytes(bytes: &[u8]) -> anyhow::Result<FlatIndex> {
-        let n = parse_header(bytes)? as usize;
-        let body = n
-            .checked_mul(EMBEDDING_SIZE * 4)
-            .ok_or_else(|| anyhow!("index size overflows"))?;
-        if bytes.len() < HEADER + body {
-            bail!("truncated: {} vectors need {} bytes", n, HEADER + body);
+        FlatIndex::read_from(&mut std::io::Cursor::new(bytes), bytes.len() as u64)
+    }
+
+    /// Parse an index of `file_len` bytes; the vectors are converted as they
+    /// are read, so loading takes the index's size in memory, not twice it.
+    fn read_from(r: &mut impl Read, file_len: u64) -> anyhow::Result<FlatIndex> {
+        let mut head = [0u8; HEADER];
+        r.read_exact(&mut head)
+            .map_err(|_| anyhow!("not a similarity index"))?;
+        let n =
+            usize::try_from(parse_header(&head)?).map_err(|_| anyhow!("index size overflows"))?;
+        let body = body_len(n as u64).ok_or_else(|| anyhow!("index size overflows"))?;
+        if file_len < HEADER as u64 + body {
+            bail!(
+                "truncated: {} vectors need {} bytes",
+                n,
+                HEADER as u64 + body
+            );
         }
-        let data: Vec<f32> = bytes[HEADER..HEADER + body]
-            .chunks_exact(4)
-            .map(|c| f32::from_le_bytes([c[0], c[1], c[2], c[3]]))
-            .collect();
-        let text = std::str::from_utf8(&bytes[HEADER + body..]).context("image hashes")?;
-        let hashes: Vec<String> = if n == 0 {
-            Vec::new()
-        } else {
-            text.split('\n').map(str::to_string).collect()
-        };
-        if hashes.len() != n {
-            bail!("{n} vectors for {} image hashes", hashes.len());
+        let mut data = vec![0f32; n * EMBEDDING_SIZE];
+        let mut buf = vec![0u8; EMBEDDING_SIZE * 4];
+        for v in data.chunks_mut(EMBEDDING_SIZE) {
+            r.read_exact(&mut buf)?;
+            for (x, c) in v.iter_mut().zip(buf.chunks_exact(4)) {
+                *x = f32::from_le_bytes([c[0], c[1], c[2], c[3]]);
+            }
         }
+        let mut text = String::new();
+        r.read_to_string(&mut text).context("image hashes")?;
+        let hashes = split_hashes(&text, n)?;
         Ok(FlatIndex { data, hashes })
     }
 
     pub fn read(path: &Path) -> anyhow::Result<FlatIndex> {
-        let bytes = std::fs::read(path).with_context(|| format!("reading {}", path.display()))?;
-        FlatIndex::from_bytes(&bytes)
+        let f = std::fs::File::open(path).with_context(|| format!("reading {}", path.display()))?;
+        let len = f.metadata()?.len();
+        FlatIndex::read_from(&mut std::io::BufReader::with_capacity(1 << 16, f), len)
             .with_context(|| format!("similarity index {}", path.display()))
     }
 
@@ -180,17 +217,35 @@ impl FlatIndex {
             ".{}.",
             path.file_stem().and_then(|s| s.to_str()).unwrap_or("index")
         );
-        let mut tmp = tempfile::Builder::new()
+        let tmp = tempfile::Builder::new()
             .prefix(&prefix)
             .suffix(".tmp")
             .tempfile_in(dir)
             .with_context(|| format!("creating a temporary file in {}", dir.display()))?;
-        tmp.write_all(&self.to_bytes())?;
+        let mut w = std::io::BufWriter::with_capacity(1 << 16, tmp);
+        self.write_to(&mut w)?;
+        let tmp = w.into_inner().map_err(|e| e.into_error())?;
         tmp.as_file().sync_all()?;
         tmp.persist(path)
             .map_err(|e| anyhow!("replacing {}: {}", path.display(), e.error))?;
         Ok(())
     }
+}
+
+fn body_len(n: u64) -> Option<u64> {
+    n.checked_mul((EMBEDDING_SIZE * 4) as u64)
+}
+
+fn split_hashes(text: &str, n: usize) -> anyhow::Result<Vec<String>> {
+    let hashes: Vec<String> = if n == 0 && text.is_empty() {
+        Vec::new()
+    } else {
+        text.split('\n').map(str::to_string).collect()
+    };
+    if hashes.len() != n {
+        bail!("{n} vectors for {} image hashes", hashes.len());
+    }
+    Ok(hashes)
 }
 
 fn parse_header(bytes: &[u8]) -> anyhow::Result<u64> {
@@ -212,12 +267,24 @@ fn parse_header(bytes: &[u8]) -> anyhow::Result<u64> {
     Ok(u64::from_le_bytes(n))
 }
 
-/// The vector count of a stored index, reading only its header.
+/// The vector count of a stored index, reading its header and hash list
+/// (not the vectors); `None` when the file is missing, not an index, too
+/// short for its vectors, or holds another number of hashes (a torn or
+/// damaged file the startup check should rebuild).
 pub fn stored_len(path: &Path) -> Option<u64> {
     let mut f = std::fs::File::open(path).ok()?;
     let mut head = [0u8; HEADER];
     f.read_exact(&mut head).ok()?;
-    parse_header(&head).ok()
+    let n = parse_header(&head).ok()?;
+    let vectors_end = (HEADER as u64).checked_add(body_len(n)?)?;
+    if f.metadata().ok()?.len() < vectors_end {
+        return None;
+    }
+    f.seek(SeekFrom::Start(vectors_end)).ok()?;
+    let mut text = String::new();
+    f.read_to_string(&mut text).ok()?;
+    split_hashes(&text, usize::try_from(n).ok()?).ok()?;
+    Some(n)
 }
 
 /// `<dir>/<user_id>.f32`.
@@ -276,6 +343,38 @@ mod tests {
         assert_eq!(idx.search(&embs[1], 1, f64::MIN).unwrap(), vec!["h1"]);
         assert!(idx.search(&embs[1], 10, 1e12).unwrap().is_empty());
         assert!(idx.search(&[0.0; 3], 10, 0.0).is_err());
+    }
+
+    #[test]
+    fn threshold_compares_in_f32() {
+        let mut idx = FlatIndex::new();
+        let mut e = vec![0f32; EMBEDDING_SIZE];
+        e[0] = 27.0;
+        idx.add(&["h".to_string()], &[e]).unwrap();
+        let mut q = vec![0f32; EMBEDDING_SIZE];
+        q[0] = 1.0;
+        // np.float32(27.0) >= 27.0000001 is True under numpy 2 (NEP 50).
+        assert_eq!(idx.search(&q, 10, 27.000_000_1).unwrap(), vec!["h"]);
+        assert!(idx.search(&q, 10, 27.01).unwrap().is_empty());
+    }
+
+    #[test]
+    fn stored_len_rejects_a_torn_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let p = path(dir.path(), 3);
+        let mut idx = FlatIndex::new();
+        idx.add(&["a".into(), "b".into()], &[v(1), v(2)]).unwrap();
+        idx.write(&p).unwrap();
+        assert_eq!(stored_len(&p), Some(2));
+        let bytes = std::fs::read(&p).unwrap();
+        assert_eq!(FlatIndex::read(&p).unwrap(), idx);
+        // The vectors whole but the hash list cut short.
+        std::fs::write(&p, &bytes[..bytes.len() - 2]).unwrap();
+        assert_eq!(stored_len(&p), None);
+        assert!(FlatIndex::read(&p).is_err());
+        std::fs::write(&p, &bytes[..HEADER + EMBEDDING_SIZE * 4]).unwrap();
+        assert_eq!(stored_len(&p), None);
+        assert!(FlatIndex::read(&p).is_err());
     }
 
     #[test]

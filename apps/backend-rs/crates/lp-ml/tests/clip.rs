@@ -32,9 +32,10 @@ fn setup() -> Option<(Ml, String)> {
     Some((ml, dir.display().to_string()))
 }
 
-#[tokio::test]
-async fn image_embeddings_match_python() {
-    let Some(g) = golden::load("clip", "images") else {
+/// Run one `image_embeddings` call over a golden set and compare: the same
+/// slots empty, cosine >= 0.998 elsewhere.
+async fn compare_images(name: &str) {
+    let Some(g) = golden::load("clip", name) else {
         return;
     };
     let Some((ml, model)) = setup() else { return };
@@ -48,27 +49,30 @@ async fn image_embeddings_match_python() {
     let started = Instant::now();
     let reply = view.clip().image_embeddings(&imgs, &model).await.unwrap();
     eprintln!(
-        "{} images (incl. model load) in {:.2}s",
+        "{name}: {} images (incl. model load) in {:.2}s",
         imgs.len(),
         started.elapsed().as_secs_f64()
     );
     assert_eq!(reply.imgs_emb.len(), imgs.len());
     let (mut worst, mut worst_id, mut mag_err) = (1.0f64, String::new(), 0f64);
     let mut by_kind: std::collections::BTreeMap<&str, (usize, f64)> = Default::default();
+    let (mut empty, mut failures) = (0, Vec::new());
     for (i, c) in g.cases.iter().enumerate() {
         let want = &c.output["embedding"];
         let got = reply.imgs_emb[i].as_ref();
         if want.is_null() {
-            assert!(got.is_none(), "{}: expected no embedding", c.id);
-            assert!(reply.magnitudes[i].is_none());
+            empty += 1;
+            if got.is_some() || reply.magnitudes[i].is_some() {
+                failures.push(format!("{}: expected no embedding", c.id));
+            }
             continue;
         }
         let want = Array::from_json(want).f32();
-        let got: Vec<f32> = got
-            .unwrap_or_else(|| panic!("{}: no embedding", c.id))
-            .iter()
-            .map(|v| *v as f32)
-            .collect();
+        let Some(got) = got else {
+            failures.push(format!("{}: no embedding", c.id));
+            continue;
+        };
+        let got: Vec<f32> = got.iter().map(|v| *v as f32).collect();
         let cos = golden::cosine(&got, &want);
         let kind = std::path::Path::new(&c.id)
             .extension()
@@ -83,10 +87,30 @@ async fn image_embeddings_match_python() {
         }
         let want_mag = c.output["magnitude"].as_f64().unwrap();
         mag_err = mag_err.max((reply.magnitudes[i].unwrap() - want_mag).abs() / want_mag);
-        golden::assert_cosine(&got, &want, 0.998, &c.id);
+        if cos < 0.998 {
+            failures.push(format!("{}: cosine {cos:.6} < 0.998", c.id));
+        } else if cos < 0.9999 {
+            eprintln!("{name}: {} cosine {cos:.6}", c.id);
+        }
     }
-    eprintln!("min cosine {worst:.6} ({worst_id}); max magnitude rel err {mag_err:.2e}");
-    eprintln!("min cosine by extension: {by_kind:?}");
+    eprintln!(
+        "{name}: {empty} unreadable as in Python; min cosine {worst:.6} ({worst_id}); \
+         max magnitude rel err {mag_err:.2e}"
+    );
+    eprintln!("{name}: min cosine by extension: {by_kind:?}");
+    assert!(failures.is_empty(), "{}", failures.join("\n"));
+}
+
+#[tokio::test]
+async fn image_embeddings_match_python() {
+    compare_images("images").await;
+}
+
+/// Damaged, 16-bit, CMYK, palette, rotated, animated, tiny and huge images:
+/// the same ones unreadable as for Pillow, the rest within the bar.
+#[tokio::test]
+async fn edge_image_embeddings_match_python() {
+    compare_images("edge").await;
 }
 
 #[tokio::test]

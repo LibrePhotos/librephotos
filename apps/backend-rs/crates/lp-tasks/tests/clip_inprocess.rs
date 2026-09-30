@@ -144,6 +144,50 @@ async fn inprocess_clip_embed_index_and_search() {
         Some(indexed as u64)
     );
 
+    // A rebuild in several pages (keyset paging, the last one partial or
+    // full) writes the same index as one page.
+    let index_file = media_root.join("similarity").join(format!("{alice}.f32"));
+    let one_page = std::fs::read(&index_file).unwrap();
+    // It holds the stored embeddings, as float32, in image_hash order.
+    let idx = lp_ml::similarity::FlatIndex::from_bytes(&one_page).unwrap();
+    let want: Vec<(String, Vec<f32>)> = sqlx::query_as::<_, (String, Value)>(
+        "SELECT image_hash, clip_embeddings FROM api_photo \
+         WHERE owner_id = $1 AND NOT hidden AND clip_embeddings IS NOT NULL ORDER BY image_hash",
+    )
+    .bind(alice)
+    .fetch_all(&db)
+    .await
+    .unwrap()
+    .into_iter()
+    .map(|(h, e)| {
+        let v = e
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|x| x.as_f64().unwrap() as f32)
+            .collect();
+        (h, v)
+    })
+    .collect();
+    assert_eq!(
+        idx.hashes(),
+        want.iter().map(|w| w.0.clone()).collect::<Vec<_>>()
+    );
+    for (i, (h, v)) in want.iter().enumerate() {
+        assert_eq!(idx.vector(i), v.as_slice(), "{h}");
+    }
+    for page_size in [7, indexed as usize / 3, 1] {
+        let size = lp_tasks::clip::build_index_paged(&t.state, alice, page_size)
+            .await
+            .unwrap();
+        assert_eq!(size, indexed);
+        assert_eq!(
+            std::fs::read(&index_file).unwrap(),
+            one_page,
+            "pages of {page_size}"
+        );
+    }
+
     // Semantic search and similar photos through the API.
     let user = lp_db::users::by_id(&db, alice).await.unwrap().unwrap();
     let token = t.app.token_for(&user);
