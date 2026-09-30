@@ -72,3 +72,20 @@ also skip without `LP_ORT_LIB`.
 - HF `tokenizers` ids identical for every `tokenizer.json` (CLIP, MobileCLIP,
   LFM2). SigLIP 2 ships a sentencepiece `tokenizer.model`, which the
   `tokenizers` crate cannot read directly.
+
+## What the face goldens established
+
+`golden_face.py [packs...]` (and `--e2e` for the faces.scan thumbnails) drives
+the real sidecar routes through Flask's test client; `cargo test -p lp-ml --test face`
+and `cargo test -p lp-tasks --test faces_inprocess`:
+
+- All five packs (buffalo_sc/s/m/l, antelopev2), 132 faces on 20 images:
+  same faces in the same order, boxes IoU >= 0.998 (bit-identical float boxes
+  on PNG/WebP input; JPEG decoding moves them by < 0.15 px), embeddings
+  cosine >= 0.9995 overall and >= 0.999995 on PNG/WebP input. The recogniser
+  on Python's own aligned crop is bit-identical.
+- Aligned crops differ by at most 1 level on a few pixels: skimage estimates
+  the similarity with a float32 SVD, the port in closed form; the warp itself
+  is bit-exact to OpenCV 5's float `warpAffine` for a given matrix.
+- OpenCV 5.0 changed `warpAffine` (float coordinates, fma lerps); the older
+  fixed-point kernel differs by up to 5 levels.
