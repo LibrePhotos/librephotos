@@ -313,7 +313,14 @@ impl FacePack {
         let mut files: Vec<PathBuf> = std::fs::read_dir(dir)
             .with_context(|| format!("reading {}", dir.display()))?
             .filter_map(|e| e.ok().map(|e| e.path()))
-            .filter(|p| p.extension().is_some_and(|e| e == "onnx") && p.is_file())
+            // glob("*.onnx") skips dotfiles (macOS `._*` copies on a NAS).
+            .filter(|p| {
+                p.extension().is_some_and(|e| e == "onnx")
+                    && !p
+                        .file_name()
+                        .is_some_and(|n| n.to_string_lossy().starts_with('.'))
+                    && p.is_file()
+            })
             .collect();
         files.sort();
         let mut detection = None;

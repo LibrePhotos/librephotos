@@ -5,7 +5,9 @@ Flask's test client, so /face-locations and /face-encodings answer exactly
 as the sidecar does, and records insightface's intermediate values (float
 boxes, landmarks, the aligned 112x112 crop) for the Rust port's tests.
 
-Writes face/<model>.json per face pack and face/encodings.json.
+Writes face/<model>.json per face pack and face/encodings.json; `--e2e`
+writes face/e2e.json (faces.scan thumbnails), `--edge` face/edge.json (odd
+modes, bit depths, containers and refused inputs).
 """
 
 import sys
@@ -113,10 +115,87 @@ def e2e(client):
     gc.write("face", "e2e", cases, meta={"model": "buffalo_sc"})
 
 
+def odd_inputs():
+    """t1.jpg re-encoded the ways a photo library meets it (modes, bit
+    depths, containers, EXIF rotation) plus inputs the sidecar refuses."""
+    import cv2
+
+    d = gc.GOLDENS / "_images" / "faces_edge"
+    d.mkdir(parents=True, exist_ok=True)
+    t1 = SITE / "insightface" / "data" / "images" / "t1.jpg"
+    rgb = Image.open(t1).convert("RGB")
+    arr16 = np.asarray(rgb).astype(np.uint16) * 257 + np.arange(3, dtype=np.uint16) * 50
+    specs = {
+        "gray.png": lambda p: rgb.convert("L").save(p),
+        "la.png": lambda p: rgb.convert("LA").save(p),
+        "palette.png": lambda p: rgb.quantize(256).save(p),
+        "rgba_transparent.png": lambda p: _transparent(rgb).save(p),
+        "cmyk.jpg": lambda p: rgb.convert("CMYK").save(p, quality=95),
+        "gray.jpg": lambda p: rgb.convert("L").save(p, quality=95),
+        "progressive.jpg": lambda p: rgb.save(p, quality=90, progressive=True),
+        "exif_rot6.jpg": lambda p: _with_orientation(rgb, 6).save(p, quality=95, exif=_orientation_exif(6)),
+        "rgb16.png": lambda p: cv2.imwrite(str(p), arr16[:, :, ::-1]),
+        "gray16.png": lambda p: cv2.imwrite(str(p), (np.asarray(rgb.convert("L")).astype(np.uint16) * 257)),
+        "tiff.tif": lambda p: rgb.save(p),
+        "bmp.bmp": lambda p: rgb.save(p),
+        "gif.gif": lambda p: rgb.save(p),
+        "big_4096.png": lambda p: rgb.resize((4096, round(4096 * rgb.height / rgb.width)), Image.BICUBIC).save(p),
+        "sliver_2000x2.png": lambda p: rgb.resize((2000, 2)).save(p),
+        "truncated.jpg": lambda p: p.write_bytes(t1.read_bytes()[: t1.stat().st_size // 2]),
+        "empty.jpg": lambda p: p.write_bytes(b""),
+        "text.jpg": lambda p: p.write_bytes(b"not an image\n"),
+    }
+    out = []
+    for name, make in specs.items():
+        p = d / name
+        if not p.exists():
+            make(p)
+        out.append(p)
+    out.append(d / "missing.jpg")
+    return out
+
+
+def _transparent(rgb):
+    img = rgb.convert("RGBA")
+    a = np.asarray(img).copy()
+    a[:, : a.shape[1] // 3, 3] = 0  # colour kept under zero alpha
+    return Image.fromarray(a, "RGBA")
+
+
+def _orientation_exif(value):
+    exif = Image.Exif()
+    exif[0x0112] = value
+    return exif
+
+
+def _with_orientation(rgb, value):
+    # Stored rotated, tagged so a viewer would turn it back. Neither Pillow's
+    # open() nor the sidecar applies the tag.
+    return rgb.transpose(Image.ROTATE_90) if value == 6 else rgb
+
+
+def edge(client):
+    cases = []
+    for path in odd_inputs():
+        status, reply = post(client, "/face-locations", {"source": str(path), "model_name": "buffalo_sc"})
+        out = {"status": status}
+        if status == 200:
+            out["face_locations"] = [list(loc) for loc in reply["face_locations"]]
+            out["encodings"] = [gc.arr(np.asarray(e, dtype=np.float32)) for e in reply["encodings"]]
+        else:
+            out["error"] = reply.get("error")
+        print(path.name, status, out.get("face_locations", out.get("error")))
+        cases.append(gc.case(f"edge/{path.name}", {"source": str(path)}, out))
+    gc.write("face", "edge", cases, meta={"model": "buffalo_sc"})
+
+
 def main():
     client = sidecar.app.test_client()
     if "--e2e" in sys.argv:
         e2e(client)
+        return
+    if "--edge" in sys.argv:
+        edge(client)
         return
     faces_imgs = source_images() + derived_images()
     all_imgs = faces_imgs + edge_images()

@@ -212,7 +212,9 @@ impl Reader {
     /// Reads a length prefix; returns the absolute end of the field.
     fn len_end(&mut self) -> anyhow::Result<u64> {
         let n = self.varint()?;
-        Ok(self.pos + n)
+        self.pos
+            .checked_add(n)
+            .context("bad field length in ONNX file")
     }
 
     fn string(&mut self) -> anyhow::Result<String> {
@@ -228,8 +230,13 @@ impl Reader {
         Ok(String::from_utf8_lossy(&buf).into_owned())
     }
 
+    /// Forward only: a corrupt length must not send the parser back over
+    /// what it has read (and round again).
     fn seek_to(&mut self, end: u64) -> anyhow::Result<()> {
-        let delta = end as i64 - self.pos as i64;
+        let delta = end
+            .checked_sub(self.pos)
+            .and_then(|d| i64::try_from(d).ok())
+            .context("bad field length in ONNX file")?;
         self.inner.seek_relative(delta)?;
         self.pos = end;
         Ok(())
@@ -240,14 +247,39 @@ impl Reader {
             0 => {
                 self.varint()?;
             }
-            1 => self.seek_to(self.pos + 8)?,
+            1 => self.seek_to(self.pos.saturating_add(8))?,
             2 => {
                 let e = self.len_end()?;
                 self.seek_to(e)?;
             }
-            5 => self.seek_to(self.pos + 4)?,
+            5 => self.seek_to(self.pos.saturating_add(4))?,
             w => bail!("unsupported protobuf wire type {w} in ONNX file"),
         }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn read_bytes(bytes: &[u8]) -> anyhow::Result<ModelInfo> {
+        let dir = tempfile::tempdir().unwrap();
+        let p = dir.path().join("m.onnx");
+        std::fs::write(&p, bytes).unwrap();
+        read(&p)
+    }
+
+    #[test]
+    fn corrupt_lengths_are_errors() {
+        // graph (7, LEN) with a length that overflows the position.
+        let mut b = vec![0x3a, 0x01, 0x3a];
+        b.extend([0xff; 9]);
+        b.push(0x01);
+        assert!(read_bytes(&b).is_err());
+        // An output (12, LEN) inside the graph running past the file end.
+        let r = read_bytes(&[0x3a, 0x03, 0x62, 0x7f, 0x00]).unwrap();
+        assert_eq!(r.outputs, 1);
+        assert!(read_bytes(&[0x3a, 0x02, 0x62]).is_err());
     }
 }

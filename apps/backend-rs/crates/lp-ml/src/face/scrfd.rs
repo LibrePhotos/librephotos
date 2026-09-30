@@ -153,7 +153,8 @@ impl Scrfd {
             }
             let s = stride as f32;
             for (i, &score) in scores.iter().enumerate().take(n) {
-                if score < DET_THRESH {
+                // numpy's `scores >= threshold` also drops NaN.
+                if score.is_nan() || score < DET_THRESH {
                     continue;
                 }
                 let cell = i / self.num_anchors;

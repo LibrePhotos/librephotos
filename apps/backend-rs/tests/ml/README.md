@@ -89,3 +89,15 @@ and `cargo test -p lp-tasks --test faces_inprocess`:
   is bit-exact to OpenCV 5's float `warpAffine` for a given matrix.
 - OpenCV 5.0 changed `warpAffine` (float coordinates, fma lerps); the older
   fixed-point kernel differs by up to 5 levels.
+- `golden_face.py --edge` (t1.jpg as grey/LA/palette/transparent PNG, CMYK,
+  grey and progressive JPEG, EXIF-rotated, 16-bit RGB, TIFF, BMP, GIF, 4096 px,
+  plus a 2000x2 sliver, truncated, empty, non-image and missing files): same
+  faces and order everywhere, IoU 1.0, cosine >= 0.99926 (JPEGs and 16-bit
+  RGB, which `load_rgb` rounds where Pillow truncates; 1.0 on the 8-bit
+  lossless ones); the refused inputs are 500s in both. Two known differences:
+  a truncated JPEG decodes (partly grey) instead of failing, and a 16-bit grey
+  PNG is scaled instead of clipped to white until `load_rgb` converts like
+  Pillow.
+- Tied detector scores are ordered by numpy 2's SIMD `argsort`, which is not
+  stable and depends on the CPU (AVX2/AVX-512/NEON); the port breaks ties by
+  descending index. No golden image is affected.

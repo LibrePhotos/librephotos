@@ -383,3 +383,195 @@ fn e2e_thumbnails_match_python() {
     eprintln!("e2e thumbnails: min cosine {min_cos}");
     assert!(min_cos >= 0.999);
 }
+
+/// t1.jpg in other modes, bit depths and containers, and the inputs the
+/// sidecar answers with a 500 (`golden_face.py --edge`).
+#[tokio::test]
+async fn odd_inputs_match_python() {
+    if !runtime() {
+        return;
+    }
+    let Some(g) = golden::load("face", "edge") else {
+        return;
+    };
+    if pack_dir("buffalo_sc").is_none() {
+        return;
+    }
+    let ml = ml();
+    let sidecars = Sidecars::new(reqwest::Client::new(), "127.0.0.1");
+    let api = ml.view(&sidecars).face();
+    let mut min_cos = 1.0f64;
+    for c in &g.cases {
+        let got = api
+            .detect_faces(c.input["source"].as_str().unwrap(), "buffalo_sc")
+            .await;
+        let status = c.output["status"].as_i64().unwrap();
+        // Pillow turns 16-bit grey ("I;16") into RGB by clamping at 255: the
+        // sidecar sees a white picture and finds nothing. `load_rgb` scales
+        // here (the Pillow-style conversion lands with the captioning
+        // review), so faces may be found; either way it must not fail.
+        // Thumbnails are 8-bit, so no stored face differs. Pillow refuses a
+        // truncated JPEG; zune-jpeg decodes what is there and greys the rest.
+        if c.id.ends_with("gray16.png") || c.id.ends_with("truncated.jpg") {
+            assert!(got.is_ok(), "{}: {got:?}", c.id);
+            continue;
+        }
+        if status != 200 {
+            assert!(
+                matches!(got, Err(SidecarError::Status { status: 500, .. })),
+                "{}: python {status}, rust {got:?}",
+                c.id
+            );
+            continue;
+        }
+        let got = got.unwrap_or_else(|e| panic!("{}: {e:?}", c.id));
+        let want: Vec<FaceBox> = c.output["face_locations"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(loc)
+            .collect();
+        assert_eq!(got.len(), want.len(), "{}: {got:?} vs {want:?}", c.id);
+        let (mut case_iou, mut case_cos) = (1.0f64, 1.0f64);
+        for (i, (f, w)) in got.iter().zip(&want).enumerate() {
+            let to = |b: &FaceBox| b.map(f64::from);
+            let iou = golden::iou_trbl(to(&f.location), to(w));
+            assert!(iou >= 0.95, "{} face {i}: IoU {iou}", c.id);
+            let e: Vec<f32> = f
+                .encoding
+                .as_ref()
+                .unwrap()
+                .iter()
+                .map(|v| *v as f32)
+                .collect();
+            let cos = golden::cosine(&e, &Array::from_json(&c.output["encodings"][i]).f32());
+            assert!(cos >= 0.99, "{} face {i}: cosine {cos}", c.id);
+            min_cos = min_cos.min(cos);
+            case_iou = case_iou.min(iou);
+            case_cos = case_cos.min(cos);
+        }
+        eprintln!(
+            "{}: {} faces, min IoU {case_iou:.4}, min cosine {case_cos:.6}",
+            c.id,
+            got.len()
+        );
+    }
+    eprintln!("odd inputs: {} cases, min cosine {min_cos}", g.cases.len());
+}
+
+/// Parallel calls through a two-copy pool answer exactly what one call does,
+/// keep at most two packs in memory, and unload cleanly afterwards.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn concurrent_calls_agree() {
+    if !runtime() {
+        return;
+    }
+    let Some(g) = golden::load("face", "encodings") else {
+        return;
+    };
+    if pack_dir("buffalo_sc").is_none() {
+        return;
+    }
+    let sources: Vec<String> = g
+        .cases
+        .iter()
+        .map(|c| c.input["source"].as_str().unwrap().to_string())
+        .filter(|s| s.ends_with("t1.jpg") || s.ends_with("t1_small_320.png"))
+        .collect();
+    assert!(!sources.is_empty());
+    let mut config = MlConfig::new(golden::ml_root().join("protected_media"));
+    config.concurrency.insert(Service::Face, 2);
+    let ml = Arc::new(Ml::new(
+        config,
+        Arc::new(|| Selection {
+            face_recognition_model: "buffalo_sc".into(),
+            ..Selection::default()
+        }),
+    ));
+    ml.set_mode(Service::Face, Mode::InProcess);
+    let sidecars = Arc::new(Sidecars::new(reqwest::Client::new(), "127.0.0.1"));
+    let mut want = Vec::new();
+    for s in &sources {
+        want.push(
+            ml.view(&sidecars)
+                .face()
+                .detect_faces(s, "buffalo_sc")
+                .await
+                .unwrap(),
+        );
+    }
+    let mut calls = tokio::task::JoinSet::new();
+    for round in 0..3 {
+        for (i, s) in sources.iter().enumerate() {
+            let (ml, sidecars, s) = (ml.clone(), sidecars.clone(), s.clone());
+            calls.spawn(async move {
+                let got = ml
+                    .view(&sidecars)
+                    .face()
+                    .detect_faces(&s, "buffalo_sc")
+                    .await;
+                (round, i, got)
+            });
+        }
+    }
+    while let Some(r) = calls.join_next().await {
+        let (round, i, got) = r.unwrap();
+        let got = got.unwrap();
+        assert_eq!(got.len(), want[i].len(), "round {round} {}", sources[i]);
+        for (a, b) in got.iter().zip(&want[i]) {
+            assert_eq!(a.location, b.location);
+            assert_eq!(a.encoding, b.encoding, "round {round} {}", sources[i]);
+        }
+    }
+    let loaded = ml.loaded_models(Service::Face);
+    assert!(
+        loaded.len() == 1 && (1..=2).contains(&loaded[0].1),
+        "{loaded:?}"
+    );
+    assert!(ml.unload(Service::Face));
+    assert!(ml.loaded_models(Service::Face).is_empty());
+}
+
+/// A half-copied or incomplete pack is an error, never a panic, and macOS
+/// `._*` resource-fork copies next to the models are ignored like
+/// insightface's `glob("*.onnx")` does.
+#[test]
+fn broken_packs_fail_cleanly() {
+    if !runtime() {
+        return;
+    }
+    let Some(src) = pack_dir("buffalo_sc") else {
+        return;
+    };
+    let det = std::fs::read(src.join("det_500m.onnx")).unwrap();
+    let rec = std::fs::read(src.join("w600k_mbf.onnx")).unwrap();
+    let load = |files: &[(&str, &[u8])]| {
+        let dir = tempfile::tempdir().unwrap();
+        for (name, bytes) in files {
+            std::fs::write(dir.path().join(name), bytes).unwrap();
+        }
+        FacePack::load(dir.path()).map(|_| ())
+    };
+
+    let err = load(&[("det_500m.onnx", &det)]).unwrap_err();
+    assert!(
+        format!("{err:#}").contains("no recognition model"),
+        "{err:#}"
+    );
+    assert!(
+        load(&[
+            ("det_500m.onnx", &det),
+            ("w600k_mbf.onnx", &rec[..rec.len() / 2])
+        ])
+        .is_err()
+    );
+    assert!(load(&[("det_500m.onnx", &det[..1000]), ("w600k_mbf.onnx", &rec)]).is_err());
+    assert!(load(&[("det_500m.onnx", b"not a model"), ("w600k_mbf.onnx", &rec)]).is_err());
+    // "._det_500m.onnx" sorts first and would be read (and fail) otherwise.
+    load(&[
+        ("._det_500m.onnx", b"\x00\x05\x16\x07 AppleDouble"),
+        ("det_500m.onnx", &det),
+        ("w600k_mbf.onnx", &rec),
+    ])
+    .unwrap();
+}
