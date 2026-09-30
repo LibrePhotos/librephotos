@@ -72,3 +72,22 @@ also skip without `LP_ORT_LIB`.
 - HF `tokenizers` ids identical for every `tokenizer.json` (CLIP, MobileCLIP,
   LFM2). SigLIP 2 ships a sentencepiece `tokenizer.model`, which the
   `tokenizers` crate cannot read directly.
+
+## CLIP and the similarity index (`golden_clip.py`, `golden_similarity.py`)
+
+`cargo test -p lp-ml --test clip --test similarity -- --nocapture`
+(`LP_ORT_LIB` set), and end to end `cargo test -p lp-tasks --test clip_inprocess`:
+
+- Text embeddings (9 queries incl. empty, non-Latin and > 77 tokens): token
+  ids identical, embeddings bit-identical (cosine 1.0, max abs diff 0).
+- Image embeddings over 82 images + a missing path (one `encode_images`
+  call, batches of 32, `None` slot kept): WebP and PNG bit-identical
+  (cosine 1.0); JPEG min cosine 0.99953 (zune-jpeg vs libjpeg-turbo, see
+  above). `clip.embed` reads the WebP big thumbnails, so stored embeddings
+  equal the sidecar's (31/31 on the fixture).
+- The index's inner product reproduces FAISS 1.15's AVX2
+  `fvec_inner_product` bit for bit (8 f32 lanes, mul then add, halving
+  reduction): 10,200 top-100 distances identical, and all 444 searches
+  (thresholds 0/20/27/90, n 3..100, exact-duplicate ties) return the same
+  hashes in the same order as `RetrievalIndex.search_similar`. A plain f32
+  or f64 dot product swaps near-equal neighbours (1 ulp apart).

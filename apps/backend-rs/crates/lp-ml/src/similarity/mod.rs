@@ -7,15 +7,23 @@
 //! threshold?}` -> `{status, result: [image_hash]}`. Indices persist under
 //! `MEDIA_ROOT/similarity`.
 
+pub mod index;
 mod inprocess;
 
-pub use inprocess::InProcess;
+pub use index::{EMBEDDING_SIZE, FlatIndex};
+pub use inprocess::{DEFAULT_N, InProcess};
 
 use async_trait::async_trait;
 use lp_sidecars::{
     SidecarError, Sidecars, SimilarityBuild, SimilarityBuildReply, SimilaritySearchReply,
 };
 use serde_json::Value;
+
+/// Vectors in the in-process index stored for `user_id` under `media_root`
+/// (`None` when there is none or it is unreadable); reads only the header.
+pub fn stored_len(media_root: &std::path::Path, user_id: i32) -> Option<u64> {
+    index::stored_len(&index::path(&media_root.join("similarity"), user_id))
+}
 
 #[async_trait]
 pub trait SimilarityApi: Send + Sync {

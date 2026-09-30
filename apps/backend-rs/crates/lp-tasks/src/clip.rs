@@ -192,3 +192,36 @@ pub async fn build_index(state: &AppState, user_id: i32) -> anyhow::Result<i64> 
     );
     Ok(size)
 }
+
+/// The startup `build_similarity_index` for the in-process index: rebuild
+/// every user's index that is missing (e.g. the first start after the
+/// Python sidecar, whose `.npz` files it does not read) or holds another
+/// number of photos than the database. Returns how many were rebuilt.
+pub async fn rebuild_stale_indices(state: &AppState) -> anyhow::Result<usize> {
+    if !state.ml().is_inprocess(lp_ml::Service::Similarity) {
+        return Ok(0);
+    }
+    let users: Vec<(i32, i64)> = sqlx::query_as(
+        "SELECT u.id, count(p.id) FROM api_user u \
+         LEFT JOIN api_photo p ON p.owner_id = u.id AND NOT p.hidden \
+           AND p.clip_embeddings IS NOT NULL \
+         GROUP BY u.id ORDER BY u.id",
+    )
+    .fetch_all(&state.db)
+    .await?;
+    let mut rebuilt = 0;
+    for (user_id, n) in users {
+        let stale = match lp_ml::similarity::stored_len(&state.config.media_root, user_id) {
+            None => n > 0,
+            Some(stored) => i64::try_from(stored).ok() != Some(n),
+        };
+        if !stale {
+            continue;
+        }
+        match build_index(state, user_id).await {
+            Ok(_) => rebuilt += 1,
+            Err(e) => tracing::error!(user_id, error = %e, "similarity index rebuild failed"),
+        }
+    }
+    Ok(rebuilt)
+}

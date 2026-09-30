@@ -222,6 +222,14 @@ pub async fn serve(config: Config, run_migrations: bool) -> anyhow::Result<()> {
     let shutdown = tokio_util::sync::CancellationToken::new();
     let worker = lp_jobs::Worker::new(state.clone(), registry());
     let worker_task = tokio::spawn(worker.run(shutdown.clone()));
+    let startup = state.clone();
+    tokio::spawn(async move {
+        match lp_tasks::clip::rebuild_stale_indices(&startup).await {
+            Ok(0) => {}
+            Ok(n) => tracing::info!(users = n, "rebuilt similarity indices at startup"),
+            Err(e) => tracing::error!(error = %e, "similarity index startup check failed"),
+        }
+    });
 
     let listener = tokio::net::TcpListener::bind(bind).await?;
     tracing::info!(%bind, "librephotos-rs listening");
