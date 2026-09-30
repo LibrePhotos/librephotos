@@ -81,14 +81,21 @@ function stubProbe(status: number, mediaError?: string) {
   return fetchMock;
 }
 
-async function renderPlayer() {
+async function renderPlayer(props: { url?: string; fallbackUrl?: string } = {}) {
   const container = document.createElement("div");
   document.body.appendChild(container);
   const root = createRoot(container);
   await act(async () => {
     root.render(
       <MantineProvider>
-        <VideoPlayer url="/media/photos/abc.mp4" height="80vh" controls playing={false} mediaHash="abc" />
+        <VideoPlayer
+          url={props.url ?? "/media/photos/abc.mp4"}
+          fallbackUrl={props.fallbackUrl}
+          height="80vh"
+          controls
+          playing={false}
+          mediaHash="abc"
+        />
       </MantineProvider>
     );
   });
@@ -396,6 +403,70 @@ describe("VideoPlayer error reporting", () => {
     await fail();
 
     expect(container.textContent).toContain("lightbox.videoerror.unknowntitle");
+    await unmount();
+  });
+});
+
+describe("VideoPlayer conversion fallback", () => {
+  const original = "/media/photos/abc.mp4";
+  const converted = "/media/photos/abc.mp4?transcode=1";
+
+  it("switches to the converted copy when the browser refuses a file that arrived", async () => {
+    stubProbe(200);
+    const { container, fail, unmount } = await renderPlayer({ fallbackUrl: converted });
+
+    await fail();
+
+    expect(container.querySelector("video")!.getAttribute("src")).toBe(converted);
+    expect(container.textContent).not.toContain("lightbox.videoerror.formattitle");
+    await unmount();
+  });
+
+  it("says the conversion failed too, instead of advising one, when it does", async () => {
+    const fetchMock = stubProbe(200);
+    const { container, fail, unmount } = await renderPlayer({ fallbackUrl: converted });
+
+    await fail();
+    await fail();
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenNthCalledWith(1, original, expect.anything());
+    expect(fetchMock).toHaveBeenNthCalledWith(2, converted, expect.anything());
+    expect(container.textContent).toContain("lightbox.videoerror.formattitle");
+    expect(container.textContent).toContain("lightbox.videoerror.formatconverted");
+    await unmount();
+  });
+
+  it("does not convert its way around a file that never arrived", async () => {
+    const fetchMock = stubProbe(404);
+    const { container, fail, unmount } = await renderPlayer({ fallbackUrl: converted });
+
+    await fail();
+
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(fetchMock).toHaveBeenCalledWith(original, expect.anything());
+    expect(container.textContent).toContain("lightbox.videoerror.missingtitle");
+    await unmount();
+  });
+
+  it("keeps the old advice where there is nothing to fall back to", async () => {
+    stubProbe(200);
+    const { container, fail, unmount } = await renderPlayer();
+
+    await fail();
+
+    expect(container.textContent).toContain("lightbox.videoerror.format");
+    expect(container.textContent).not.toContain("lightbox.videoerror.formatconverted");
+    await unmount();
+  });
+
+  it("does not advise a conversion for a video that was asked for converted", async () => {
+    stubProbe(200);
+    const { container, fail, unmount } = await renderPlayer({ url: converted });
+
+    await fail();
+
+    expect(container.textContent).toContain("lightbox.videoerror.formatconverted");
     await unmount();
   });
 });

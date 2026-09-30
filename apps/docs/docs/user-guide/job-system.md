@@ -68,6 +68,10 @@ Packs a multi-photo download into a zip file in the background. It starts when y
 
 Runs after each scan to fix RAW files that were scanned as their own photos. For each photo whose main file is a RAW file, it either merges it into the matching image photo (such as a JPEG or HEIC) in the same folder and removes the leftover RAW-only entry, or — if an image file is already attached — promotes that image to be the main file. It does not re-pair Live Photo videos that were scanned separately; those are only paired during a scan. See [Stacks & File Variants](./stacks-and-file-variants.md) for more details.
 
+### Probe Videos
+
+Checks the videos that were added to your library before LibrePhotos recorded each video's colour, codec and pixel format during the scan. It runs by itself after a scan, only while such videos are left, so most scans never show it. For every HDR video it finds, it also rebuilds the thumbnails, which an older version made washed out (see [HDR Videos](./viewing-photos.md#hdr-videos)). A video whose file cannot be read at the time — for example on a drive that is not mounted — is simply tried again after the next scan. Not in a release yet: it arrives in the release after 1.2.1.
+
 ### Detect Duplicate Photos
 
 Finds duplicate photos in your library using perceptual hashing. It detects both exact copies (via hash comparison) and visual duplicates (via a two-pass algorithm). Results are shown in the Organizing page, where you can review and manage them; the button that starts this job there is called **Detect Duplicates**. See [Duplicate Detection](./duplicate-detection.md) for more details.
