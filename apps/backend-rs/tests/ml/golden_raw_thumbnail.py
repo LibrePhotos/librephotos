@@ -32,6 +32,16 @@ HEIGHT = 1080
 RAW_DIR = gc.GOLDENS / "_raw"
 
 
+def rgb3(arr):
+    """Grey (1-band: a monochrome RAW) as RGB, for the PNGs the tests read."""
+    arr = np.asarray(arr)
+    if arr.ndim == 2:
+        arr = arr[..., None]
+    if arr.shape[2] == 1:
+        arr = np.repeat(arr, 3, axis=2)
+    return np.ascontiguousarray(arr[..., :3])
+
+
 def decoded(path):
     return np.asarray(Image.open(path).convert("RGB"))
 
@@ -45,7 +55,7 @@ def main():
             sizes = {"width": s.width, "height": s.height, "flip": s.flip}
             half = s.height // 2 >= HEIGHT
             rgb = raw.postprocess(use_camera_wb=True, half_size=half, output_bps=8)
-        Image.fromarray(rgb).save(RAW_DIR / f"{name}.rawpy.png")
+        Image.fromarray(rgb3(rgb)).save(RAW_DIR / f"{name}.rawpy.png")
 
         preview = image_decoding.raw_preview(str(path), HEIGHT)
         fd, tmp = tempfile.mkstemp(suffix=".webp")
@@ -68,7 +78,7 @@ def main():
         finally:
             os.remove(tmp)
         Image.fromarray(out).save(RAW_DIR / f"{name}.py.png")
-        Image.fromarray(np.ascontiguousarray(pre[..., :3])).save(RAW_DIR / f"{name}.pre.png")
+        Image.fromarray(rgb3(pre)).save(RAW_DIR / f"{name}.pre.png")
         cases.append(
             gc.case(
                 name,

@@ -164,6 +164,8 @@ opt-level = 3
 opt-level = 3
 [profile.dev.package.rawler]
 opt-level = 3
+[profile.dev.package.libwebp-sys]
+opt-level = 3
 [profile.dev.package.zune-jpeg]
 opt-level = 3
 [profile.dev.package.miniz_oxide]

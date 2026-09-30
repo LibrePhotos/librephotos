@@ -4,16 +4,15 @@
 //! Otherwise the caller renders the sensor data (`RawThumbnailApi`).
 //!
 //! LibRaw's `extract_thumb` hands Python the largest embedded image; rawler
-//! exposes a format's embedded images as full / preview / thumbnail, taken
-//! in that (largest first) order here.
+//! exposes a format's embedded images as preview / thumbnail, taken in that
+//! (largest first) order here.
 
 use std::path::Path;
 
 use image::RgbImage;
 use rawler::decoders::RawDecodeParams;
-use rawler::rawsource::RawSource;
 
-use super::develop::{libraw_flip, visible_area};
+use super::develop::{libraw_flip, open, visible_area};
 use super::resize::{rotate_exif, shrink_to_height, shrink_to_width};
 
 /// The preview, shrunk and turned upright (LibRaw's orientation), or None.
@@ -48,13 +47,50 @@ pub fn raw_preview(path: &Path, height: u32) -> Option<RgbImage> {
     if preview_height < (height as usize).min(render_height) {
         return None;
     }
-    // Shrink before rotating, so a sideways picture is boxed by its width.
-    let small = if sideways {
-        shrink_to_width(&image, height)
+    Some(upright(&image, orientation, height))
+}
+
+/// Shrink before rotating, so a sideways picture is boxed by its width.
+fn upright(image: &RgbImage, orientation: u8, height: u32) -> RgbImage {
+    let small = if matches!(orientation, 6 | 8) {
+        shrink_to_width(image, height)
     } else {
-        shrink_to_height(&image, height)
+        shrink_to_height(image, height)
     };
-    Some(rotate_exif(small, orientation))
+    rotate_exif(small, orientation)
+}
+
+/// Last resort when the sensor data cannot be rendered at all (a camera
+/// rawler does not know yet, which LibRaw may): the largest of `jpegs` (the
+/// file's embedded JPEGs, e.g. from ExifTool), shrunk and turned by the
+/// file's EXIF orientation like [`raw_preview`], without its shape checks
+/// (there is no sensor size to check against). Django fails the thumbnail.
+pub fn fallback_preview(jpegs: &[Vec<u8>], exif_orientation: i64, height: u32) -> Option<RgbImage> {
+    let size = |b: &[u8]| {
+        image::ImageReader::with_format(std::io::Cursor::new(b), image::ImageFormat::Jpeg)
+            .into_dimensions()
+            .ok()
+            .map(|(w, h)| w as u64 * h as u64)
+    };
+    let best = jpegs
+        .iter()
+        .filter_map(|b| Some((size(b)?, b)))
+        .max_by_key(|(n, _)| *n)?
+        .1;
+    let image = image::load_from_memory_with_format(best, image::ImageFormat::Jpeg)
+        .ok()?
+        .to_rgb8();
+    if image.width() == 0 || image.height() == 0 {
+        return None;
+    }
+    // EXIF 3, 6 and 8 are LibRaw's flips 3, 6 and 5 (`_FLIP_TO_ORIENTATION`).
+    let orientation = match exif_orientation {
+        3 => 3,
+        6 => 6,
+        8 => 8,
+        _ => 1,
+    };
+    Some(upright(&image, orientation, height))
 }
 
 struct Embedded {
@@ -65,19 +101,18 @@ struct Embedded {
 }
 
 fn embedded(path: &Path) -> Option<Embedded> {
-    let src = RawSource::new(path).ok()?;
-    let decoder = rawler::get_decoder(&src).ok()?;
-    let params = RawDecodeParams::default();
     // Sizes and orientation only: dummy mode skips the pixel decode.
-    let raw = decoder.raw_image(&src, &params, true).ok()?;
+    let (raw, decoder, src) = open(path, true).ok()?;
+    let params = RawDecodeParams::default();
     let (_, _, sensor_w, sensor_h) = visible_area(&raw);
-    let image = [
-        decoder.full_image(&src, &params),
-        decoder.preview_image(&src, &params),
-        decoder.thumbnail_image(&src, &params),
-    ]
-    .into_iter()
-    .find_map(|r| r.ok().flatten())?;
+    // Larger first; decoded lazily (a thumbnail is not decoded when the
+    // preview is there). No decoder implements `full_image` (the trait's
+    // default only logs a warning).
+    let image = decoder
+        .preview_image(&src, &params)
+        .ok()
+        .flatten()
+        .or_else(|| decoder.thumbnail_image(&src, &params).ok().flatten())?;
     Some(Embedded {
         image: image.to_rgb8(),
         sensor_w,

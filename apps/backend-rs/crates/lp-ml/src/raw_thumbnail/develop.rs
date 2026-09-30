@@ -19,7 +19,10 @@ use anyhow::{Context, anyhow, bail};
 use image::RgbImage;
 use rawler::RawImage;
 use rawler::RawImageData;
+use rawler::decoders::{Decoder, RawDecodeParams, WellKnownIFD};
 use rawler::rawimage::RawPhotometricInterpretation;
+use rawler::rawsource::RawSource;
+use rawler::tags::TiffCommonTag;
 use rayon::prelude::*;
 
 /// XYZ (D65) -> linear sRGB inverse used by dcraw (`xyz_rgb`).
@@ -42,13 +45,56 @@ pub struct Developed {
     pub half: bool,
 }
 
-/// `rawpy.imread(path)`: rawler's decoder (panics become errors).
+/// Largest sensor accepted, as Django caps decoded images
+/// (`Image.MAX_IMAGE_PIXELS`): a crafted header must not make the process
+/// allocate gigabytes (an allocation failure aborts, it does not unwind).
+pub const MAX_PIXELS: usize = 250_000_000;
+
+/// `rawpy.imread(path)`: rawler's decoder (panics become errors), refusing
+/// sensors above [`MAX_PIXELS`] before the pixels are allocated.
 pub fn decode(path: &Path) -> anyhow::Result<RawImage> {
     let p = path.to_path_buf();
-    match std::panic::catch_unwind(move || rawler::decode_file(&p)) {
-        Ok(Ok(raw)) => Ok(raw),
-        Ok(Err(e)) => Err(anyhow!("{e}")),
+    match std::panic::catch_unwind(move || open(&p, false)) {
+        Ok(r) => r.map(|(raw, _, _)| raw),
         Err(_) => bail!("the RAW decoder crashed"),
+    }
+}
+
+/// Decoder, source and raw image (`dummy`: sizes and metadata only). DNG
+/// dimensions are checked from the raw IFD first, since even rawler's
+/// dummy decode reserves the pixel buffer.
+pub(super) fn open(
+    path: &Path,
+    dummy: bool,
+) -> anyhow::Result<(RawImage, Box<dyn Decoder>, RawSource)> {
+    let src = RawSource::new(path).map_err(|e| anyhow!("{e}"))?;
+    let decoder = rawler::get_decoder(&src).map_err(|e| anyhow!("{e}"))?;
+    if let Ok(Some(ifd)) = decoder.ifd(WellKnownIFD::Raw) {
+        let dim = |t| ifd.get_entry(t).map_or(0, |e| e.force_usize(0));
+        let (w, h) = (
+            dim(TiffCommonTag::ImageWidth),
+            dim(TiffCommonTag::ImageLength),
+        );
+        check_size(w, h)?;
+    }
+    let params = RawDecodeParams::default();
+    if !dummy {
+        let probe = decoder
+            .raw_image(&src, &params, true)
+            .map_err(|e| anyhow!("{e}"))?;
+        check_size(probe.width, probe.height)?;
+    }
+    let raw = decoder
+        .raw_image(&src, &params, dummy)
+        .map_err(|e| anyhow!("{e}"))?;
+    check_size(raw.width, raw.height)?;
+    Ok((raw, decoder, src))
+}
+
+fn check_size(w: usize, h: usize) -> anyhow::Result<()> {
+    match w.checked_mul(h) {
+        Some(n) if n <= MAX_PIXELS => Ok(()),
+        _ => bail!("RAW sensor of {w}x{h} pixels is above the {MAX_PIXELS} pixel limit"),
     }
 }
 
@@ -70,16 +116,21 @@ pub fn libraw_flip(orientation: u16) -> u8 {
 /// covers `height`.
 pub fn develop_file(path: &Path, height: u32) -> anyhow::Result<Developed> {
     let raw = decode(path).with_context(|| format!("decoding {}", path.display()))?;
-    develop(&raw, height)
+    develop(raw, height)
 }
 
-pub fn develop(raw: &RawImage, height: u32) -> anyhow::Result<Developed> {
-    let (left, top, w, h) = visible_area(raw);
+/// Takes the image by value: its sample buffer is freed as soon as the
+/// visible area is copied out, which keeps the peak at about two sensor-sized
+/// buffers.
+pub fn develop(raw: RawImage, height: u32) -> anyhow::Result<Developed> {
+    let (left, top, w, h) = visible_area(&raw);
     if w == 0 || h == 0 || left + w > raw.width || top + h > raw.height {
         bail!("RAW has no image area");
     }
     let half = (h / 2) as u64 >= height as u64;
-    let src = Sensor::new(raw, left, top, w, h)?;
+    let flip = libraw_flip(raw.orientation.to_u16());
+    let mut src = Sensor::new(&raw, left, top, w, h)?;
+    drop(raw);
     let scaled = src.scale_colors();
     let (planes, iw, ih) = match (&src.layout, half) {
         (Layout::Cfa { .. }, true) if src.cfa_2x2() => scaled.half_2x2(&src),
@@ -89,12 +140,11 @@ pub fn develop(raw: &RawImage, height: u32) -> anyhow::Result<Developed> {
         }
         (Layout::Cfa { .. }, false) if src.cfa_2x2() && src.colors == 3 => scaled.ahd(&src),
         (Layout::Cfa { .. }, false) => scaled.demosaic(&src),
-        (Layout::Planar, true) => box_half(&scaled.values, src.w, src.h, src.colors),
-        (Layout::Planar, false) => (scaled.values.clone(), src.w, src.h),
+        // LibRaw ignores half_size for data that is not a mosaic.
+        (Layout::Planar, _) => (scaled.values, src.w, src.h),
     };
     let rgb = src.convert_to_rgb(&planes, iw * ih);
     let curve = gamma_curve(auto_white(&rgb.hist, iw * ih));
-    let flip = libraw_flip(raw.orientation.to_u16());
     Ok(Developed {
         image: output(&rgb.pixels, iw, ih, flip, &curve),
         half,
@@ -224,7 +274,11 @@ impl Sensor {
                 )
             }
             RawPhotometricInterpretation::LinearRaw if cpp >= 3 => (Layout::Planar, 3, cpp),
-            RawPhotometricInterpretation::BlackIsZero if cpp == 1 => (Layout::Planar, 1, 1),
+            RawPhotometricInterpretation::LinearRaw | RawPhotometricInterpretation::BlackIsZero
+                if cpp == 1 =>
+            {
+                (Layout::Planar, 1, 1)
+            }
             other => bail!("unsupported RAW layout {other:?} with {cpp} samples per pixel"),
         };
 
@@ -265,7 +319,9 @@ impl Sensor {
         };
         let wb = raw.wb_coeffs;
         let mut pre_mul = [1f64; 4];
-        let camera_wb = colors >= 3 && wb[..3].iter().all(|v| v.is_finite() && *v > 0.0);
+        // A monochrome sensor too: LibRaw scales its one channel by
+        // `cam_mul[0] / min(cam_mul)` and lets auto-brightness sort it out.
+        let camera_wb = wb[..3].iter().all(|v| v.is_finite() && *v > 0.0);
         if camera_wb {
             for c in 0..4 {
                 pre_mul[c] = wb[c] as f64;
@@ -278,9 +334,6 @@ impl Sensor {
         }
         if !pre_mul[3].is_finite() || pre_mul[3] <= 0.0 {
             pre_mul[3] = if colors < 4 { pre_mul[1] } else { 1.0 };
-        }
-        if colors == 1 {
-            pre_mul = [1.0; 4];
         }
         Ok(Sensor {
             w,
@@ -307,7 +360,7 @@ impl Sensor {
 
     /// `scale_colors` with highlight mode 0: every channel by
     /// `pre_mul[c] / min(pre_mul) * 65535 / maximum`, clipped.
-    fn scale_colors(&self) -> Scaled {
+    fn scale_colors(&mut self) -> Scaled {
         let dmin = self.pre_mul.iter().copied().fold(f64::INFINITY, f64::min);
         let mut scale = [1f32; 4];
         if dmin > 0.00001 {
@@ -319,7 +372,7 @@ impl Sensor {
         }
         let scale_of =
             |v: u16, c: usize| -> u16 { ((v as f32 * scale[c]) as i32).clamp(0, 65535) as u16 };
-        let mut values = self.values.clone();
+        let mut values = std::mem::take(&mut self.values);
         match &self.layout {
             Layout::Cfa { .. } => {
                 values
@@ -392,34 +445,34 @@ impl Sensor {
 
 impl Scaled {
     /// LibRaw `half_size`: one pixel per 2x2 cell, each sample into its
-    /// colour; a colour seen twice (the greens) is averaged (`mix_green`).
+    /// colour; the two greens are separate channels that `convert_to_rgb`
+    /// averages (`mix_green`). Cells cut by an odd edge keep LibRaw's
+    /// arithmetic: a missing colour is 0, a lone green is halved.
     fn half_2x2(&self, s: &Sensor) -> (Vec<u16>, usize, usize) {
         let (iw, ih) = (s.w.div_ceil(2), s.h.div_ceil(2));
         let colors = s.colors;
+        let mut per_cell = [0u32; 4];
+        for dy in 0..2 {
+            for dx in 0..2 {
+                per_cell[s.cfa_color(dy, dx)] += 1;
+            }
+        }
         let mut out = vec![0u16; iw * ih * colors];
         out.par_chunks_mut(iw * colors)
             .enumerate()
             .for_each(|(y, row)| {
                 for x in 0..iw {
                     let mut acc = [0u32; 4];
-                    let mut seen = [0u32; 4];
                     for dy in 0..2 {
                         for dx in 0..2 {
                             let (sy, sx) = (y * 2 + dy, x * 2 + dx);
-                            if sy >= s.h || sx >= s.w {
-                                continue;
+                            if sy < s.h && sx < s.w {
+                                acc[s.cfa_color(sy, sx)] += self.values[sy * s.w + sx] as u32;
                             }
-                            let c = s.cfa_color(sy, sx);
-                            acc[c] += self.values[sy * s.w + sx] as u32;
-                            seen[c] += 1;
                         }
                     }
                     for c in 0..colors {
-                        row[x * colors + c] = if seen[c] > 1 {
-                            (acc[c] >> 1) as u16
-                        } else {
-                            acc[c] as u16
-                        };
+                        row[x * colors + c] = (acc[c] / per_cell[c].max(1)) as u16;
                     }
                 }
             });

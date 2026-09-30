@@ -15,7 +15,7 @@ mod resize;
 
 pub use develop::{Developed, develop_file};
 pub use inprocess::InProcess;
-pub use preview::raw_preview;
+pub use preview::{fallback_preview, raw_preview};
 pub use resize::{rotate_exif, shrink_to_height, webp_save};
 
 use std::path::Path;

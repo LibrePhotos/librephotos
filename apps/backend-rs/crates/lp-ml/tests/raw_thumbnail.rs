@@ -89,9 +89,15 @@ fn same_choice_and_dimensions_as_python() {
                 let dev = raw_thumbnail::develop_file(&path, height).unwrap();
                 assert_eq!(dev.half, c.output["half"].as_bool().unwrap(), "{}", c.id);
                 let rawpy = load_png(&dir.join(format!("{}.rawpy.png", c.id)));
+                // rawpy hands a monochrome RAW back as one channel; ours is grey RGB.
                 let want: Vec<u64> =
                     serde_json::from_value(c.output["rawpy_shape"].clone()).unwrap();
-                assert_eq!(shape(&dev.image), want, "{}: postprocess size", c.id);
+                assert_eq!(
+                    shape(&dev.image)[..2],
+                    want[..2],
+                    "{}: postprocess size",
+                    c.id
+                );
                 if let Ok(d) = std::env::var("LP_RAW_DUMP") {
                     dev.image
                         .save(Path::new(&d).join(format!("{}.rust.png", c.id)))
@@ -110,8 +116,15 @@ fn same_choice_and_dimensions_as_python() {
                     if dev.half { "half size" } else { "demosaic" }
                 );
                 // Half size is LibRaw's arithmetic step for step; the full size
-                // AHD differs only where near-equal homogeneity counts tip.
-                let min = if dev.half { 70.0 } else { 55.0 };
+                // AHD differs only where near-equal homogeneity counts tip;
+                // LinearRaw (no mosaic, never halved) within 1 level.
+                let min = if c.input.get("linear").is_some() {
+                    65.0
+                } else if dev.half {
+                    70.0
+                } else {
+                    55.0
+                };
                 assert!(d.psnr > min, "{}: develop PSNR {:.1}", c.id, d.psnr);
                 worst_render = worst_render.min(d.psnr);
                 raw_thumbnail::shrink_to_height(&dev.image, height)
@@ -212,4 +225,62 @@ async fn inprocess_service_writes_webp_under_the_media_root_only() {
         "{err:?}"
     );
     assert!(raw_thumbnail::raw_preview(&bad, 1080).is_none());
+}
+
+/// Patches the LONG entry `tag` (little-endian, count 1) of a TIFF to `value`.
+fn patch_long(bytes: &mut [u8], tag: u16, value: u32) {
+    let mut entry = tag.to_le_bytes().to_vec();
+    entry.extend([4, 0, 1, 0, 0, 0]);
+    let at = bytes
+        .windows(entry.len())
+        .position(|w| w == entry.as_slice())
+        .unwrap_or_else(|| panic!("tag {tag}"));
+    bytes[at + 8..at + 12].copy_from_slice(&value.to_le_bytes());
+}
+
+#[test]
+fn a_huge_declared_sensor_is_refused_before_allocating() {
+    let Some((g, _)) = goldens() else { return };
+    let case = g.cases.iter().find(|c| c.id == "no_preview").unwrap();
+    let mut bytes = std::fs::read(case.input["path"].as_str().unwrap()).unwrap();
+    patch_long(&mut bytes, 256, 100_000);
+    patch_long(&mut bytes, 257, 100_000);
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("huge.dng");
+    std::fs::write(&path, &bytes).unwrap();
+    let err = raw_thumbnail::develop_file(&path, 1080)
+        .err()
+        .expect("refused");
+    assert!(format!("{err:#}").contains("pixel limit"), "{err:#}");
+    assert!(raw_thumbnail::raw_preview(&path, 1080).is_none());
+
+    // Truncated files are errors, not panics or garbage.
+    let whole = std::fs::read(case.input["path"].as_str().unwrap()).unwrap();
+    let cut = dir.path().join("cut.dng");
+    std::fs::write(&cut, &whole[..whole.len() / 3]).unwrap();
+    assert!(raw_thumbnail::develop_file(&cut, 1080).is_err());
+    std::fs::write(&cut, []).unwrap();
+    assert!(raw_thumbnail::develop_file(&cut, 1080).is_err());
+    assert!(raw_thumbnail::raw_preview(&cut, 1080).is_none());
+}
+
+#[test]
+fn fallback_preview_takes_the_largest_jpeg_upright() {
+    let jpeg = |w: u32, h: u32| {
+        let img = RgbImage::from_fn(w, h, |x, y| image::Rgb([x as u8, y as u8, 128]));
+        let mut out = std::io::Cursor::new(Vec::new());
+        img.write_to(&mut out, image::ImageFormat::Jpeg).unwrap();
+        out.into_inner()
+    };
+    let jpegs = vec![jpeg(160, 120), jpeg(3000, 2000), b"not a jpeg".to_vec()];
+    let img = raw_thumbnail::fallback_preview(&jpegs, 1, 1080).unwrap();
+    assert_eq!(img.dimensions(), (1620, 1080));
+    // Sideways: boxed by the width before turning.
+    let img = raw_thumbnail::fallback_preview(&jpegs, 6, 1080).unwrap();
+    assert_eq!(img.dimensions(), (720, 1080));
+    // Mirrored orientations stay unrotated, as Django's previews.
+    let img = raw_thumbnail::fallback_preview(&jpegs, 5, 1080).unwrap();
+    assert_eq!(img.dimensions(), (1620, 1080));
+    assert!(raw_thumbnail::fallback_preview(&[], 1, 1080).is_none());
+    assert!(raw_thumbnail::fallback_preview(&[b"junk".to_vec()], 1, 1080).is_none());
 }

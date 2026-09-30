@@ -77,20 +77,33 @@ also skip without `LP_ORT_LIB`.
 
 No camera RAWs are checked in, so `raw_samples.py` writes synthetic DNGs
 (14-bit RGGB/BGGR/GRBG/GBRG CFA, a D850-like ColorMatrix1, AsShotNeutral,
-per-channel black levels, ActiveArea, orientation 3/6/8, a JPEG preview in
-IFD0 or a SubIFD, a bitmap-only thumbnail, a letterboxed / too small preview,
-a 1500x1000 sensor) that LibRaw 0.22 reads; `golden_raw_thumbnail.py` runs
-Django's path on them (`image_decoding.raw_preview`, else the service's
-`render_raw`). `cargo test -p lp-ml --test raw_thumbnail -- --nocapture`:
+per-channel black levels, ActiveArea, orientations 2/3/5/6/7/8, a JPEG
+preview in IFD0 or a SubIFD, a bitmap-only thumbnail, a letterboxed / too
+small preview, odd (3001x2163) and tiny (64x48) sensors, a full 16-bit
+range, LinearRaw RGB and monochrome) that LibRaw 0.22 reads;
+`golden_raw_thumbnail.py` runs Django's path on them
+(`image_decoding.raw_preview`, else the service's `render_raw`).
+`cargo test -p lp-ml --test raw_thumbnail -- --nocapture` (23 files):
 
-- Same choice (embedded preview vs render) on all 11 files, same LibRaw
+- Same choice (embedded preview vs render) on all 23 files, same LibRaw
   sizes/flip, same output dimensions everywhere (thumbnails and rawpy's
-  `postprocess` output).
-- Half-size render (every sensor >= 2160 px high): `develop` vs rawpy
-  `postprocess` 99.8% of samples identical, max 1 level, 75 dB PSNR.
+  `postprocess` output; rawpy returns a monochrome RAW as one channel, ours
+  is grey RGB).
+- Half-size render (every sensor >= 2160 px high, incl. odd edges where
+  LibRaw leaves a colour at 0 and halves a lone green): `develop` vs rawpy
+  99.8% of samples identical, max 1 level, 75 dB PSNR.
 - Full-size render (small sensors): AHD ported from LibRaw, 99.3% identical,
-  61 dB (a few pixels where near-equal homogeneity counts tip the other way).
-- Resize (Lanczos3, libvips' `thumbnail` geometry) vs pyvips: 58-59 dB,
-  max 4 levels; 45 dB on the one 1500->1473 px case. Previews (full JPEG
-  decode vs libvips' shrink-on-load) 58-59 dB.
-- The WebP files themselves (both encoded at Q95): 43-51 dB.
+  61 dB (a few pixels where near-equal homogeneity counts tip the other way);
+  the 64x48 sensor 74 dB. LinearRaw RGB (LibRaw ignores half_size for it)
+  within 1 level, 69 dB; monochrome bit-identical.
+- Resize (Lanczos3, libvips' `thumbnail` geometry) vs pyvips: 56-74 dB, max
+  9 levels; 44.7 / 45.7 dB on the two near-1:1 shrinks (1500->1473,
+  1501->1498 px). Previews (full JPEG decode vs libvips' shrink-on-load)
+  56-59 dB.
+- The WebP files themselves (both encoded at Q95): 43-53 dB.
+
+Beyond Django (deliberate): a RAW whose sensor data cannot be rendered at all
+(a camera rawler does not know, which LibRaw may) gets the largest JPEG
+ExifTool finds in it instead of no thumbnail; sensors above 250 MP are
+refused before allocation; and the candidate render of the "did the picture
+change" check is staged under the media root, which Django's service refuses.

@@ -105,6 +105,22 @@ async fn scan_renders_raw_thumbnails_like_django() {
         let src = Path::new(c.input["path"].as_str().unwrap());
         std::fs::copy(src, dir.join(src.file_name().unwrap())).unwrap();
     }
+    // A RAW nothing here can render (its CFA pattern zeroed) whose only JPEG
+    // is letterboxed: Django fails the thumbnail; the ExifTool fallback
+    // uses that JPEG.
+    let letterbox = g
+        .cases
+        .iter()
+        .find(|c| c.id == "preview_letterbox")
+        .unwrap();
+    let mut bytes = std::fs::read(letterbox.input["path"].as_str().unwrap()).unwrap();
+    let cfa_pattern = [0x8e, 0x82, 0x01, 0x00, 0x04, 0x00, 0x00, 0x00];
+    let at = bytes
+        .windows(cfa_pattern.len())
+        .position(|w| w == cfa_pattern)
+        .expect("CFAPattern entry");
+    bytes[at + 8..at + 12].fill(0);
+    std::fs::write(dir.join("unrenderable.dng"), &bytes).unwrap();
 
     let job = Uuid::new_v4().to_string();
     let t = Instant::now();
@@ -135,7 +151,7 @@ async fn scan_renders_raw_thumbnails_like_django() {
     .fetch_all(app.pool())
     .await
     .unwrap();
-    assert_eq!(rows.len(), cases.len());
+    assert_eq!(rows.len(), cases.len() + 1);
     let media = &app.state.config.media_root;
     let images = PathBuf::from(g.meta["images"].as_str().unwrap());
     for c in &cases {
@@ -167,5 +183,36 @@ async fn scan_renders_raw_thumbnails_like_django() {
             assert!(media.join(d).join(format!("{hash}.webp")).exists(), "{d}");
         }
     }
+    let (hash, _, _) = rows
+        .iter()
+        .find(|r| r.1.ends_with("unrenderable.dng"))
+        .unwrap();
+    let big = image::open(media.join("thumbnails_big").join(format!("{hash}.webp"))).unwrap();
+    assert_eq!(
+        (big.width(), big.height()),
+        (1920, 1080),
+        "the embedded JPEG"
+    );
+
+    // The candidate render for the "did the picture change" check goes to a
+    // temporary directory outside the media root (legacy = the service for
+    // every RAW); it is staged under the media root and copied out.
+    let renderer = lp_ingest::render::Renderer::from_state(&app.state);
+    let source = PathBuf::from(cases[0].input["path"].as_str().unwrap());
+    let outside = tempfile::tempdir().unwrap();
+    let out = outside.path().join("candidate.webp");
+    let o = out.clone();
+    tokio::task::spawn_blocking(move || renderer.render_big_to(&source, &o, 1, true))
+        .await
+        .unwrap()
+        .unwrap();
+    let img = image::open(&out).unwrap();
+    assert_eq!((img.width(), img.height()), (1620, 1080));
+    let leftovers: Vec<_> = std::fs::read_dir(media)
+        .unwrap()
+        .flatten()
+        .filter(|e| e.file_name().to_string_lossy().starts_with(".raw-render-"))
+        .collect();
+    assert!(leftovers.is_empty(), "{leftovers:?}");
     app.cleanup().await;
 }

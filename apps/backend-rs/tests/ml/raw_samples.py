@@ -188,6 +188,26 @@ def _raw_ifd(cfa_u16, pattern, black, white, active_area=None):
     return ifd
 
 
+def _linear_ifd(rgb_u8, channels, black, white):
+    """A LinearRaw (already demosaiced) image: camera RGB, or one grey channel."""
+    lin = srgb_to_linear(rgb_u8)
+    if channels == 1:
+        cam = (lin @ np.array([0.2126, 0.7152, 0.0722]))[..., None]
+    else:
+        cam = lin @ (COLOR_MATRIX @ XYZ_RGB).T
+    rng = np.random.default_rng(5)
+    out = cam * 0.55 * (white - black) + black + rng.normal(0, 3.0, cam.shape)
+    out = np.clip(np.round(out), 0, white).astype(np.uint16)
+    h, w = out.shape[:2]
+    ifd = Ifd()
+    ifd.set(254, LONG, [0]).set(256, LONG, [w]).set(257, LONG, [h])
+    ifd.set(258, SHORT, [16] * channels).set(259, SHORT, [1]).set(262, SHORT, [34892])
+    ifd.set(277, SHORT, [channels]).set(278, LONG, [h]).set(284, SHORT, [1])
+    ifd.set(50713, SHORT, [1, 1]).set(50714, LONG, [black] * channels).set(50717, LONG, [white] * channels)
+    ifd.strip = out.astype("<u2").tobytes()
+    return ifd
+
+
 def _dng_tags(ifd, neutral, orientation):
     ifd.set(271, ASCII, "LibrePhotos").set(272, ASCII, "Synthetic DNG")
     ifd.set(274, SHORT, [orientation])
@@ -229,9 +249,16 @@ def write_dng(
     preview=None,  # None | ("ifd0" | "subifd", (w, h)) JPEG preview
     bitmap_thumb=None,  # (w, h) uncompressed IFD0 thumbnail
     active_area=None,  # (top, left, bottom, right); the scene fills the whole sensor
+    linear=None,  # 3 (LinearRaw RGB) or 1 (monochrome) instead of a CFA
 ):
-    cfa, neutral = mosaic(rgb_u8, pattern, black, white)
-    raw = _raw_ifd(cfa, pattern, black, white, active_area)
+    if linear:
+        neutral = (COLOR_MATRIX @ XYZ_RGB).sum(1)
+        neutral = neutral / neutral.max()
+        raw = _linear_ifd(rgb_u8, linear, black[0], white)
+        cfa = np.array([white])
+    else:
+        cfa, neutral = mosaic(rgb_u8, pattern, black, white)
+        raw = _raw_ifd(cfa, pattern, black, white, active_area)
     jpg = None
     if preview:
         where, size = preview
@@ -263,6 +290,21 @@ VARIANTS = [
     ("no_preview_rot3_grbg", (3000, 2200), dict(orientation=3, pattern="GRBG")),
     ("small_sensor", (1500, 1000), dict(pattern="GBRG")),
     ("active_area", (3280, 2192), dict(active_area=(8, 8, 2184, 3272))),
+    # Edge cases: mirrored orientations (LibRaw flips the render, Django leaves
+    # a preview unrotated), odd and tiny sensors, a full 16-bit range, and
+    # LinearRaw (demosaiced RGB and monochrome) DNGs.
+    ("preview_mirror5", (3264, 2176), dict(preview=("ifd0", (1632, 1088)), orientation=5)),
+    ("preview_rot8_tall", (3264, 2176), dict(preview=("subifd", (3264, 2176)), orientation=8)),
+    ("no_preview_mirror2", (3264, 2176), dict(orientation=2)),
+    ("no_preview_mirror7", (3264, 2176), dict(orientation=7, pattern="GBRG")),
+    ("odd_sensor", (3001, 2163), dict(pattern="GRBG")),
+    ("tiny_sensor", (64, 48), dict()),
+    ("full_16bit", (3264, 2176), dict(black=(0, 0, 0, 0), white=65535)),
+    ("linear_rgb", (3000, 2000), dict(linear=3)),
+    ("linear_rgb_small", (900, 600), dict(linear=3)),
+    ("mono_linear", (3000, 2000), dict(linear=1)),
+    ("linear_rgb_big", (3600, 2400), dict(linear=3)),
+    ("mono_linear_big", (3600, 2400), dict(linear=1)),
 ]
 
 
