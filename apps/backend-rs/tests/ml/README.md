@@ -62,13 +62,15 @@ also skip without `LP_ORT_LIB`.
 - `lp_ml::preprocess::pil::resize` (BICUBIC, BILINEAR, LANCZOS, and the CLIP /
   MobileCLIP shortest-edge + centre-crop helper) is **bit-identical** to
   Pillow 12 on all 28 images; the CLIP tensor (`to_chw`) is bit-identical too.
-- `preprocess::cv2::resize_linear` is identical to `cv2.resize` for downscales
-  (incl. the exact-2x `INTER_AREA` shortcut) and within 1 level on upscales;
-  `resize_area` within 1 level.
+- `preprocess::cv2::resize_linear` and `resize_area` are identical to
+  `cv2.resize` (`INTER_LINEAR` both directions incl. the exact-2x
+  `INTER_AREA` shortcut; `INTER_AREA` integer and fractional factors; also
+  160 seeded sizes in `ocr/resize.json`).
 - Decoding (`preprocess::load_rgb`): PNG and WebP identical to Pillow; JPEG
-  differs by up to 8 levels (zune-jpeg vs libjpeg-turbo). The big thumbnails
-  most models read are WebP. For exact JPEG, install a libjpeg-turbo decoder
-  with `preprocess::set_decoder` (e.g. through libvips).
+  differs by up to 8 levels with the Rust decoder (zune-jpeg vs
+  libjpeg-turbo). The server installs `lp_ingest::vips::install_ml_decoder`
+  (libvips, `LP_VIPS_LIB`), which decodes 8-bit grey/RGB JPEGs exactly like
+  Pillow and cv2; CMYK JPEGs and other formats stay on the Rust decoders.
 - HF `tokenizers` ids identical for every `tokenizer.json` (CLIP, MobileCLIP,
   LFM2). SigLIP 2 ships a sentencepiece `tokenizer.model`, which the
   `tokenizers` crate cannot read directly.
@@ -226,3 +228,39 @@ Review round (`golden_tags_edge.py`, written independently of `golden_tags.py`):
   `tag_embeddings.npy` or `tokenizer.model` header (huge shape or length) is
   an error instead of an overflow panic while loading. Only an empty model
   name means MobileCLIP, as `tagging_model or DEFAULT` (a padded name is a 400).
+
+## What the OCR goldens established
+
+`python golden_ocr.py` (resize, edge cases, geometry, `pipeline_tiny` +
+`pipeline_small`, and cv2's decode of every JPEG under `_decoded/ocr/`), then
+`cargo test -p lp-ml --test ocr -- --nocapture` (`--ignored` adds the small
+tier and the medium edge cases, about a minute), and with `LP_VIPS_LIB`
+`cargo test -p lp-ingest --test ml_decoder -- --nocapture` (JPEG files
+through libvips). The reference is opencv-python 5.0.0 + pyclipper 1.4.0 (Clipper
+6.4.2), numpy 2:
+
+- The DB-postprocess and crop primitives are ported from the OpenCV 5 /
+  Clipper sources and are **bit-exact** on 340 seeded random cases:
+  `findContours` (60 bitmaps, points and contour order), `minAreaRect` +
+  `boxPoints` + PaddleOCR's point order (1113 boxes), `fillPoly` +
+  masked mean (80 scores), the round-join `unclip` (120 polygons, incl.
+  Clipper's union order), `getPerspectiveTransform` + `warpPerspective`
+  `INTER_CUBIC` (50 crops, OpenCV 5's table-free FMA kernel), and the
+  recognizer tensors (30).
+- On identical pixels (58 PNG/WebP files + cv2's decode of 38 JPEGs), both
+  tiers: detection tensors and probability maps identical, every detected
+  quad identical (tiny 305/305, small 199/199), every crop identical, every
+  recognized line identical (tiny 121/121, small 107/107), whole answers
+  identical (96/96 both; recognition confidences equal on tiny, within
+  1e-6 on small).
+- JPEG files through libvips (what the server runs): all 38 decode
+  identically to cv2, tiny answers identical 38/38 (34/34 lines). Through
+  the Rust fallback decoder (no libvips): lines tiny 33/34, small 23/23.
+- Decode edge cases (`edge_<tier>.json`: CMYK / grey / progressive /
+  EXIF-rotated JPEG, TIFF LZW / JPEG / CMYK / G4 / multipage / 16-bit,
+  16-bit RGBA and grey+alpha PNG, BMP 24/32/8-bit, GIF, 1x1, 4000x40,
+  an 8000x5100 page past the 40 MP `INTER_AREA` cap, empty / text /
+  garbage files): same pixels (lossless exact, JPEG-coded means within a
+  level) and text on 23/24 for tiny and medium. The difference: cv2
+  refuses a truncated JPEG (400); the port (image crate or libvips) reads
+  what is there.

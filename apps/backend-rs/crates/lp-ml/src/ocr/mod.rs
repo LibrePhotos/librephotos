@@ -7,6 +7,7 @@
 //! (`ctx.selection().ocr_model`).
 
 mod inprocess;
+pub mod ppocr;
 
 pub use inprocess::InProcess;
 

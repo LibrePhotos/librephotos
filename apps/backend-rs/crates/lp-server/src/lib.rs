@@ -45,6 +45,7 @@ pub async fn build_state_migrating(config: Config, migrate: bool) -> anyhow::Res
         lp_db::migrate::run_checked(&db).await?;
     }
     let settings = lp_db::settings::load(&db, &config).await?;
+    lp_ingest::vips::install_ml_decoder(config.binaries.vips_lib.clone());
     AppState::new(db, config, settings)
 }
 

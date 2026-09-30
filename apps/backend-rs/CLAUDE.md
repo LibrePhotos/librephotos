@@ -169,8 +169,10 @@ Shared files (`lp-api/src/lib.rs`, `lp-api/src/common/`, `lp-db/src/{scope,pig,u
   lazy, per-model concurrency `LP_ML_<SERVICE>_CONCURRENCY`, idle unload after
   `LP_ML_IDLE_UNLOAD_SECS`=120), sessions via `lp_ml::runtime::session(path)`
   (`ONNX_PROVIDERS`, `ONNX_INTRA_OP_THREADS`), preprocessing from `lp_ml::preprocess`
-  (Pillow-exact `pil::resize`, `cv2::resize_linear/area`, `to_chw`, `load_rgb`) and
-  `lp_ml::tokenize`; flip `IMPLEMENTED` when its goldens pass.
+  (Pillow-exact `pil::resize`, cv2-exact `cv2::resize_linear/area`, `to_chw`, `load_rgb`) and
+  `lp_ml::tokenize`; flip `IMPLEMENTED` when its goldens pass. `build_state` installs
+  `lp_ingest::vips::install_ml_decoder`, so `load_rgb` decodes JPEG through libvips
+  (bit-exact with Pillow/cv2) when `LP_VIPS_LIB` is set.
 - ONNX Runtime is loaded at runtime (`ort` load-dynamic): `LP_ORT_LIB` (or
   `ORT_DYLIB_PATH`) = `.../onnxruntime/capi/onnxruntime.dll` of the Django venv here.
 - Models: `lp_ml::models` (the `api/ml_models.py` catalog, sha256 pins, `.part` +
