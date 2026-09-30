@@ -544,10 +544,7 @@ impl Engine {
             .iter()
             .map(|b| b.text.as_str())
             .collect::<Vec<_>>()
-            .join(
-                "
-",
-            );
+            .join("\n");
         pred.mean_confidence = mean_confidence(&blocks);
         pred.blocks = blocks;
         Ok(pred)

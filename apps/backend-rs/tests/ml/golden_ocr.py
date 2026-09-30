@@ -1,6 +1,7 @@
 """Goldens for the in-process PP-OCRv6 port (lp_ml::ocr).
 
-    python golden_ocr.py [tiny|small ...] [--no-geometry] [--decoded-only]
+    python golden_ocr.py [tiny|small ...] [--no-geometry] [--decoded-only] [--edge-only]
+                         [--resize-only]
 
 Imports service/ocr/ppocr directly (no sidecar) and writes, under
 ml-goldens/ocr/:
@@ -15,6 +16,10 @@ ml-goldens/ocr/:
                   resize_norm_img.
   _decoded/ocr/*.png  cv2's decode of each JPEG (lossless), for the Rust
                   pipeline check on identical pixels.
+  resize.json     cv2.resize INTER_LINEAR / INTER_AREA on 160 seeded sizes.
+  edge_<tiny|medium>.json  decode edge cases (CMYK/grey/progressive/truncated
+                  JPEG, TIFF variants, BMP, 16-bit, alpha, empty, over 40 MP)
+                  and the engine's answer; cv2's refusals as errors.
   pipeline_<tier>.json  per image: the decoded BGR checksum, the detection
                   input size, every detected quad, each crop's recognition
                   (text, confidence) and the engine's predict() / det_only
@@ -462,10 +467,189 @@ def pipeline(tier):
     )
 
 
+# --------------------------------------------------------------------------- #
+# Decode edge cases: formats and damage the ocr job can hand the sidecar
+# (originals .jpg/.png/.webp/.bmp/.tif/.tiff are sent as they are)
+# --------------------------------------------------------------------------- #
+EDGE_IMAGES = OCR_IMAGES / "edge"
+
+
+def make_edge_images():
+    EDGE_IMAGES.mkdir(parents=True, exist_ok=True)
+    rng = np.random.default_rng(424242)
+
+    def text_rgb(w=700, h=220, fg=(10, 10, 10), bg=(245, 245, 240)):
+        img = Image.new("RGB", (w, h), bg)
+        d = ImageDraw.Draw(img)
+        d.text((30, 50), "Edge case 1234", fill=fg, font=font("arial.ttf", 64))
+        return img
+
+    def save(name, fn):
+        p = EDGE_IMAGES / name
+        if not p.exists():
+            fn(p)
+        return p
+
+    def jpeg_bytes(img, **kw):
+        import io
+
+        b = io.BytesIO()
+        img.save(b, "JPEG", **kw)
+        return b.getvalue()
+
+    out = [
+        save("cmyk.jpg", lambda p: text_rgb().convert("CMYK").save(p, quality=92)),
+        save("gray.jpg", lambda p: text_rgb().convert("L").save(p, quality=92)),
+        save("progressive.jpg", lambda p: text_rgb().save(p, quality=90, progressive=True)),
+        save(
+            "exif_rotate6.jpg",
+            lambda p: text_rgb().save(p, quality=90, exif=_exif_orientation(6)),
+        ),
+        save("truncated.jpg", lambda p: p.write_bytes(jpeg_bytes(text_rgb(), quality=90)[:-2500])),
+        save(
+            "garbage.jpg",
+            lambda p: p.write_bytes(b"\xff\xd8\xff\xe0" + rng.integers(0, 256, 4000, dtype=np.uint8).tobytes()),
+        ),
+        save("empty.png", lambda p: p.write_bytes(b"")),
+        save("text.png", lambda p: p.write_bytes(b"not an image at all\n")),
+        save("pixel_1x1.png", lambda p: Image.new("RGB", (1, 1), (200, 10, 10)).save(p)),
+        save("wide_4000x40.png", lambda p: text_rgb(4000, 40).save(p)),
+        save("bilevel_g4.tif", lambda p: text_rgb().convert("1").save(p, compression="group4")),
+        save("bilevel.png", lambda p: text_rgb().convert("1").save(p)),
+        save("lzw.tif", lambda p: text_rgb().save(p, compression="tiff_lzw")),
+        save("jpeg.tif", lambda p: text_rgb().save(p, compression="jpeg")),
+        save("cmyk.tif", lambda p: text_rgb().convert("CMYK").save(p)),
+        save(
+            "multipage.tif",
+            lambda p: text_rgb().save(p, save_all=True, append_images=[text_rgb(fg=(200, 0, 0))]),
+        ),
+        save(
+            "rgb16.tif",
+            lambda p: cv2.imwrite(str(p), np.asarray(text_rgb())[:, :, ::-1].astype(np.uint16) * 257),
+        ),
+        save(
+            "rgba16.png",
+            lambda p: cv2.imwrite(
+                str(p),
+                np.dstack(
+                    [np.asarray(text_rgb())[:, :, ::-1], np.full((220, 700), 128, np.uint8)]
+                ).astype(np.uint16)
+                * 257,
+            ),
+        ),
+        save("gray_alpha.png", lambda p: text_rgb().convert("LA").save(p)),
+        save("bgr24.bmp", lambda p: text_rgb().save(p)),
+        save(
+            "bgra32.bmp",
+            lambda p: cv2.imwrite(
+                str(p), np.dstack([np.asarray(text_rgb())[:, :, ::-1], np.full((220, 700), 90, np.uint8)])
+            ),
+        ),
+        save("palette8.bmp", lambda p: text_rgb().convert("P", palette=Image.ADAPTIVE, colors=8).save(p)),
+        save("still.gif", lambda p: text_rgb().convert("P", palette=Image.ADAPTIVE, colors=16).save(p)),
+        # over MAX_INPUT_PIXELS: INTER_AREA down to 40 MP before detection
+        save("huge_8000x5100.png", lambda p: _huge().save(p)),
+    ]
+    return out
+
+
+def _huge():
+    img = Image.new("L", (8000, 5100), 250)
+    d = ImageDraw.Draw(img)
+    f = font("arial.ttf", 150)
+    for i, line in enumerate(PAGE[:8]):
+        d.text((300, 300 + i * 560), line, fill=15, font=f)
+    return img
+
+
+def _exif_orientation(value):
+    exif = Image.Exif()
+    exif[0x0112] = value
+    return exif.tobytes()
+
+
+def edge(tier="tiny"):
+    model_dir = gc.data_models() / "ocr" / f"ppocrv6_{tier}"
+    engine = PPOCREngine(str(model_dir))
+    engine.load()
+    cases = []
+    for path in make_edge_images():
+        try:
+            image = pdet.read_image(str(path))
+        except pdet.OCRDecodeError as e:
+            cases.append(gc.case(path, {"image": str(path)}, {"error": str(e), "status": 400}))
+            print(f"edge {path.name}: decode error")
+            continue
+        except Exception as e:  # cv2.error on an empty buffer: the sidecar's 500
+            cases.append(gc.case(path, {"image": str(path)}, {"error": str(e), "status": 500}))
+            print(f"edge {path.name}: {type(e).__name__}")
+            continue
+        out = {
+            "decoded": {
+                "shape": list(image.shape),
+                "sha256": sha(image),
+                "mean_bgr": image.reshape(-1, 3).mean(axis=0).tolist(),
+            },
+            "predict": engine.predict(str(path), min_confidence=0.6),
+        }
+        cases.append(gc.case(path, {"image": str(path)}, out))
+        print(f"edge {path.name}: {image.shape} text={out['predict']['text']!r:.60}")
+    gc.write("ocr", f"edge_{tier}", cases, meta={"model": f"ppocrv6_{tier}", "opencv": cv2.__version__})
+
+
+EDGE_TIERS = ("tiny", "medium")
+
+
+# --------------------------------------------------------------------------- #
+# cv2.resize as the pipeline calls it: INTER_LINEAR (detection input, the
+# recognizer's height-48 resize, both directions) and INTER_AREA (the 40 MP
+# cap), on seeded random sizes incl. exact integer factors
+# --------------------------------------------------------------------------- #
+def resize():
+    rng = np.random.default_rng(4848)
+    cases = []
+    for i in range(160):
+        h, w = int(rng.integers(1, 90)), int(rng.integers(1, 260))
+        if i % 4 == 3:
+            k = int(rng.integers(2, 7))
+            h, w = max(1, h // k) * k, max(1, w // k) * k
+            dh, dw = h // k, w // k
+        elif i % 2:
+            dh, dw = int(rng.integers(1, h + 1)), int(rng.integers(1, w + 1))
+        else:
+            dh, dw = 48, int(rng.integers(1, 400))
+        img = rng.integers(0, 256, (h, w, 3), dtype=np.uint8)
+        if i % 3 == 0:
+            img = cv2.GaussianBlur(img, (5, 5), 0)
+        interp = "area" if i % 2 else "linear"
+        if interp == "area" and (dh > h or dw > w):
+            interp = "linear"
+        flag = cv2.INTER_AREA if interp == "area" else cv2.INTER_LINEAR
+        out = cv2.resize(img, (dw, dh), interpolation=flag)
+        cases.append(
+            gc.case(
+                f"resize/{i}",
+                {"interp": interp, "image": gc.arr(img), "size": [dw, dh]},
+                {"image": gc.arr(out)},
+            )
+        )
+    gc.write("ocr", "resize", cases, meta={"opencv": cv2.__version__})
+
+
 if __name__ == "__main__":
+    if "--resize-only" in sys.argv:
+        resize()
+        sys.exit(0)
+    if "--edge-only" in sys.argv:
+        for t in EDGE_TIERS:
+            edge(t)
+        sys.exit(0)
     write_decoded()
     if "--decoded-only" in sys.argv:
         sys.exit(0)
+    resize()
+    for t in EDGE_TIERS:
+        edge(t)
     if "--no-geometry" not in sys.argv:
         geometry()
     for t in TIERS:

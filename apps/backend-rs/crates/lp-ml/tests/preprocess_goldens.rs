@@ -199,10 +199,9 @@ fn resizes_match_pillow_and_opencv() {
             v.cases
         );
     }
-    // OpenCV: within one level (the SIMD/scalar tail rounding differs).
     for (k, v) in &t {
         if k.starts_with("cv2") {
-            assert!(v.max_diff <= 1, "{k}: max diff {}", v.max_diff);
+            assert_eq!(v.max_diff, 0, "{k}: max diff {}", v.max_diff);
         }
     }
 }

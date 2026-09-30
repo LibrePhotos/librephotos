@@ -172,8 +172,7 @@ fn geometry_matches_opencv_and_pyclipper() {
                 let ours = ppocr::resize_norm_img(&img, [3, 48, 320]);
                 let want = Array::from_json(&c.output["tensor"]).f32();
                 let d = golden::max_abs_diff(&ours, &want);
-                // cv2 upscales within one level of lp_ml's resize_linear
-                if d > 2.0 / 127.5 + 1e-6 {
+                if d != 0.0 {
                     fails.push(format!("{}: rec tensor max diff {d}", c.id));
                 } else {
                     norms += 1;
@@ -617,4 +616,149 @@ async fn errors_follow_the_sidecar_contract() {
         assert!(ml.unload(Service::Ocr));
         assert!(ml.loaded_models(Service::Ocr).is_empty());
     }
+}
+
+/// `cv2.resize` INTER_LINEAR (both directions) and INTER_AREA (the 40 MP
+/// cap) on seeded random sizes: bit-exact.
+#[test]
+fn cv2_resize_is_exact() {
+    let Some(g) = golden::load("ocr", "resize") else {
+        return;
+    };
+    let mut fails = Vec::new();
+    for c in &g.cases {
+        let src = Array::from_json(&c.input["image"]);
+        let (h, w) = (src.shape[0], src.shape[1]);
+        let size = &c.input["size"];
+        let (dw, dh) = (
+            size[0].as_u64().unwrap() as usize,
+            size[1].as_u64().unwrap() as usize,
+        );
+        let ours = match c.input["interp"].as_str().unwrap() {
+            "area" => lp_ml::preprocess::cv2::resize_area(src.u8(), w, h, 3, dw, dh),
+            _ => lp_ml::preprocess::cv2::resize_linear(src.u8(), w, h, 3, dw, dh),
+        };
+        let want = Array::from_json(&c.output["image"]);
+        if ours != want.u8() {
+            let n = ours.iter().zip(want.u8()).filter(|(a, b)| a != b).count();
+            fails.push(format!(
+                "{}: {w}x{h} -> {dw}x{dh}: {n} samples differ",
+                c.id
+            ));
+        }
+    }
+    for f in &fails {
+        eprintln!("  {f}");
+    }
+    eprintln!(
+        "ocr cv2.resize: {}/{} exact",
+        g.cases.len() - fails.len(),
+        g.cases.len()
+    );
+    assert!(fails.is_empty());
+}
+
+/// Formats and damaged files the ocr job can send (originals `.jpg .png
+/// .webp .bmp .tif .tiff`): decoded like `cv2.imdecode(IMREAD_UNCHANGED)`
+/// (bit-exact unless JPEG-coded, then within a level on average; over 40 MP
+/// incl. the `INTER_AREA` cap) or refused where cv2 refuses them, and read
+/// the same text.
+///
+/// One known difference: cv2 refuses a truncated JPEG (the sidecar's 400),
+/// the image crate decodes what is there and reads it.
+#[test]
+fn edge_cases_match_python() {
+    run_edge("tiny");
+}
+
+/// The medium bundle (only `box_thresh` differs from small) on the same set.
+#[test]
+#[ignore]
+fn edge_cases_match_python_medium() {
+    run_edge("medium");
+}
+
+fn run_edge(tier: &str) {
+    if !ort_ready() {
+        return;
+    }
+    let Some(g) = golden::load("ocr", &format!("edge_{tier}")) else {
+        return;
+    };
+    let dir = golden::data_models().join(format!("ocr/ppocrv6_{tier}"));
+    if !dir.join("rec.onnx").exists() {
+        return;
+    }
+    lp_ml::runtime::init().expect("ONNX Runtime loads");
+    let mut engine = Engine::load(&dir).expect("bundle loads");
+    let mut fails = Vec::new();
+    let mut checked = 0;
+    for c in &g.cases {
+        let path = Path::new(c.input["image"].as_str().unwrap());
+        let name = path.file_name().unwrap().to_string_lossy();
+        let lossy = name.ends_with(".jpg") || name == "jpeg.tif";
+        let ours = decode::read_image(path);
+        if let Some(err) = c.output.get("error") {
+            match ours {
+                Ok(_) if name == "truncated.jpg" => {}
+                Ok(img) => fails.push(format!(
+                    "{}: decoded {}x{}, cv2 refused it ({err})",
+                    c.id, img.w, img.h
+                )),
+                Err(_) => checked += 1,
+            }
+            continue;
+        }
+        let img = match ours {
+            Ok(img) => img,
+            Err(e) => {
+                fails.push(format!("{}: {e}, cv2 decodes it", c.id));
+                continue;
+            }
+        };
+        let want = &c.output["decoded"];
+        let shape = want["shape"].as_array().unwrap();
+        if [img.h as u64, img.w as u64] != [shape[0].as_u64().unwrap(), shape[1].as_u64().unwrap()]
+        {
+            fails.push(format!("{}: size {}x{} vs {shape:?}", c.id, img.w, img.h));
+            continue;
+        }
+        let px = bgr(&img);
+        if lossy {
+            let n = (img.w * img.h) as f64;
+            for (ch, m) in want["mean_bgr"].as_array().unwrap().iter().enumerate() {
+                let ours = px
+                    .iter()
+                    .skip(ch)
+                    .step_by(3)
+                    .map(|&v| v as f64)
+                    .sum::<f64>()
+                    / n;
+                if (ours - m.as_f64().unwrap()).abs() > 1.0 {
+                    fails.push(format!("{}: channel {ch} mean {ours:.2} vs {m}", c.id));
+                }
+            }
+        } else if sha(&px) != want["sha256"].as_str().unwrap() {
+            fails.push(format!("{}: pixels differ from cv2", c.id));
+        }
+        let pred = engine
+            .predict_image(
+                &img,
+                Options {
+                    min_confidence: 0.6,
+                    ..Options::default()
+                },
+            )
+            .unwrap();
+        let want_text = c.output["predict"]["text"].as_str().unwrap();
+        if pred.text != want_text {
+            fails.push(format!("{}: text {:?} vs {want_text:?}", c.id, pred.text));
+        }
+        checked += 1;
+    }
+    for f in &fails {
+        eprintln!("  {f}");
+    }
+    eprintln!("ocr edge cases {tier}: {checked}/{} match", g.cases.len());
+    assert!(fails.is_empty(), "{} edge-case mismatches", fails.len());
 }

@@ -36,6 +36,10 @@ type FnErrorBuffer = unsafe extern "C" fn() -> *const c_char;
 type FnVoid = unsafe extern "C" fn();
 type FnSetInt = unsafe extern "C" fn(c_int);
 type FnUnref = unsafe extern "C" fn(*mut c_void);
+type FnGetData = unsafe extern "C" fn(*mut VipsImage) -> *const c_void;
+
+/// `VIPS_FORMAT_UCHAR`.
+const FORMAT_UCHAR: c_int = 0;
 
 pub struct Vips {
     _lib: Library,
@@ -52,6 +56,9 @@ pub struct Vips {
     error_buffer: FnErrorBuffer,
     error_clear: FnVoid,
     unref: FnUnref,
+    /// Pixel readout for [`Vips::decode_rgb8`]; optional so a libvips
+    /// without it still renders thumbnails.
+    pixels: Option<(FnGetInt, FnGetInt, FnGetData)>,
 }
 
 // libvips is thread-safe; the function pointers are plain code addresses.
@@ -114,6 +121,14 @@ impl Vips {
                 error_buffer: sym!(lib, "vips_error_buffer"),
                 error_clear: sym!(lib, "vips_error_clear"),
                 unref: sym!(lib, "g_object_unref"),
+                pixels: (|| -> Result<_, String> {
+                    Ok((
+                        sym!(lib, "vips_image_get_bands"),
+                        sym!(lib, "vips_image_get_format"),
+                        sym!(lib, "vips_image_get_data"),
+                    ))
+                })()
+                .ok(),
                 _lib: lib,
             }
         };
@@ -190,6 +205,64 @@ impl Vips {
         };
         self.wrap(p, "load_buffer")
     }
+}
+
+impl Vips {
+    /// Decode an encoded image to 8-bit RGB (`(width, height, pixels)`) as
+    /// libjpeg-turbo does for Pillow and cv2: no EXIF rotation, grey
+    /// replicated. `None` when the pixels cannot be read out or are not
+    /// 8-bit grey / RGB (CMYK, alpha, 16-bit): the caller decodes those.
+    #[allow(clippy::type_complexity)]
+    pub fn decode_rgb8(&'static self, data: &[u8]) -> Option<Result<(u32, u32, Vec<u8>), String>> {
+        let (get_bands, get_format, get_data) = self.pixels?;
+        let img = match self.load_buffer(data) {
+            Ok(i) => i,
+            Err(e) => return Some(Err(e)),
+        };
+        let (bands, format) = unsafe { (get_bands(img.ptr), get_format(img.ptr)) };
+        if format != FORMAT_UCHAR || !(bands == 1 || bands == 3) {
+            return None;
+        }
+        let mem = match img.copy_memory() {
+            Ok(m) => m,
+            Err(e) => return Some(Err(e)),
+        };
+        let (w, h) = (mem.width().max(0) as usize, mem.height().max(0) as usize);
+        let p = unsafe { get_data(mem.ptr) } as *const u8;
+        if p.is_null() {
+            return Some(Err(self.error("get_data")));
+        }
+        // SAFETY: a memory image of w x h uchar pixels with `bands` bands,
+        // alive (and unchanged) while `mem` is.
+        let px = unsafe { std::slice::from_raw_parts(p, w * h * bands as usize) };
+        let rgb = if bands == 3 {
+            px.to_vec()
+        } else {
+            px.iter().flat_map(|&v| [v, v, v]).collect()
+        };
+        Some(Ok((w as u32, h as u32, rgb)))
+    }
+}
+
+/// Make in-process ML decode JPEG through libvips (libjpeg-turbo, bit-exact
+/// with Pillow and cv2) instead of the Rust decoder, which is a few levels
+/// off. Other formats keep the Rust decoders (already exact). libvips is
+/// loaded on the first JPEG; without it the Rust decoder is used.
+pub fn install_ml_decoder(vips_lib: Option<std::path::PathBuf>) -> bool {
+    lp_ml::preprocess::set_decoder(Box::new(move |path| {
+        let mut magic = [0u8; 3];
+        std::io::Read::read_exact(&mut std::fs::File::open(path).ok()?, &mut magic).ok()?;
+        if magic != [0xFF, 0xD8, 0xFF] {
+            return None;
+        }
+        let v = get(vips_lib.as_deref())?;
+        let data = std::fs::read(path).ok()?;
+        let (w, h, rgb) = match v.decode_rgb8(&data)? {
+            Ok(d) => d,
+            Err(e) => return Some(Err(anyhow::anyhow!("decoding {}: {e}", path.display()))),
+        };
+        image::RgbImage::from_raw(w, h, rgb).map(Ok)
+    }))
 }
 
 /// An owned `VipsImage` reference.
