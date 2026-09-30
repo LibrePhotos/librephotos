@@ -20,7 +20,8 @@ use lp_jobs::{HandlerRegistry, JobCtx};
 use lp_testkit::TestApp;
 use serde_json::{Value, json};
 
-const PORT: u16 = 8572;
+/// The WebDAV mock's port, an ephemeral one picked when it starts.
+static PORT: std::sync::OnceLock<u16> = std::sync::OnceLock::new();
 const FIXTURE: &str = "C:/Users/Niaz/librephotos/rust-pg/fixture/data/alice";
 const DAV_ROOT: &str = "/nc/remote.php/webdav";
 
@@ -199,9 +200,11 @@ async fn start_dav() -> Shared {
             async move { serve(s, method, uri, headers).await }
         },
     );
-    let listener = tokio::net::TcpListener::bind(("127.0.0.1", PORT))
+    let listener = tokio::net::TcpListener::bind(("127.0.0.1", 0))
         .await
         .expect("bind the WebDAV mock port");
+    PORT.set(listener.local_addr().unwrap().port())
+        .expect("one WebDAV mock per test binary");
     tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
     state
 }
@@ -283,7 +286,7 @@ async fn nextcloud_scan_downloads_and_ingests_new_media() {
            nextcloud_app_password = $3, nextcloud_scan_directory = '/Photos' WHERE id = $1",
     )
     .bind(user.id)
-    .bind(format!("http://127.0.0.1:{PORT}/nc"))
+    .bind(format!("http://127.0.0.1:{}/nc", PORT.get().unwrap()))
     .bind(crypto.encrypt_str("ncpass"))
     .execute(app.pool())
     .await

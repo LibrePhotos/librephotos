@@ -26,7 +26,8 @@ use openidconnect::{
 };
 use serde_json::{Value, json};
 
-const PORT: u16 = 8571;
+/// The mock IdP's port, an ephemeral one picked when it starts.
+static PORT: std::sync::OnceLock<u16> = std::sync::OnceLock::new();
 const CLIENT_ID: &str = "lp-client";
 const CLIENT_SECRET: &str = "lp-s3cret";
 const PEM: &str = include_str!("fixtures/oidc_test_rsa.pem");
@@ -54,7 +55,10 @@ struct Idp {
 type Shared = Arc<Mutex<Idp>>;
 
 fn issuer() -> String {
-    format!("http://127.0.0.1:{PORT}")
+    format!(
+        "http://127.0.0.1:{}",
+        PORT.get().expect("the mock IdP runs")
+    )
 }
 
 fn key() -> CoreRsaPrivateSigningKey {
@@ -181,14 +185,22 @@ async fn start_idp() -> Shared {
     let idp: Shared = Arc::default();
     let app = Router::new()
         .route("/.well-known/openid-configuration", get(discovery))
+        .route(
+            "/moved/.well-known/openid-configuration",
+            get(|| async {
+                Redirect::permanent(&format!("{}/.well-known/openid-configuration", issuer()))
+            }),
+        )
         .route("/jwks", get(jwks))
         .route("/authorize", get(authorize))
         .route("/token", post(token))
         .route("/userinfo", get(userinfo))
         .with_state(idp.clone());
-    let listener = tokio::net::TcpListener::bind(("127.0.0.1", PORT))
+    let listener = tokio::net::TcpListener::bind(("127.0.0.1", 0))
         .await
         .expect("bind the mock IdP port");
+    PORT.set(listener.local_addr().unwrap().port())
+        .expect("one mock IdP per test binary");
     tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
     idp
 }
@@ -310,6 +322,22 @@ async fn oidc_login_follows_the_adapter_policy() {
         "/login?sso_error=public_url_not_configured"
     );
     unsafe { std::env::set_var("FRONTEND_BASE_URL", "https://photos.example.test") };
+
+    // A discovery document that moved is followed, like allauth's session.
+    let set_server_url = |url: String| {
+        sqlx::query("UPDATE socialaccount_socialapp SET settings = $2 WHERE id = $1")
+            .bind(app_id)
+            .bind(json!({ "server_url": url }))
+            .execute(db)
+    };
+    set_server_url(format!("{}/moved", issuer())).await.unwrap();
+    let moved = app.get("/api/accounts/oidc/mock/login/", None).await;
+    assert!(
+        location(&moved).starts_with(&format!("{}/authorize?", issuer())),
+        "{:?}",
+        moved.headers
+    );
+    set_server_url(issuer()).await.unwrap();
 
     // No account with that email and signup off.
     let stranger = Person {

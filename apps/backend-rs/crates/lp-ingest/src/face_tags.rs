@@ -55,7 +55,13 @@ pub async fn queue(state: &AppState, user: &lp_db::users::User, photo_ids: &[Uui
 pub async fn run(ctx: JobCtx) -> anyhow::Result<()> {
     let p: Payload = serde_json::from_value(ctx.job.payload.clone())
         .map_err(|e| anyhow!("bad {KIND} payload: {e}"))?;
+    // Two label requests in a row queue two jobs for the same photo; run
+    // concurrently, both ExifTool writes race on one file (and its temp
+    // file) and the stale one can win. One at a time, each reading the
+    // faces when it starts, the file ends with the latest labels.
+    static WRITES: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
     for id in p.photo_ids {
+        let _one_at_a_time = WRITES.lock().await;
         if let Err(e) = write_face_tags(&ctx.state, id).await {
             tracing::error!(photo = %id, error = %format!("{e:#}"), "Failed to write face tags");
         }

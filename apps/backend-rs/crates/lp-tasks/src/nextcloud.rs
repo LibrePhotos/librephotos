@@ -289,6 +289,7 @@ pub enum DavError {
     Unsafe(String),
     Status(u16),
     Unreachable,
+    TooDeep(String),
 }
 
 impl std::fmt::Display for DavError {
@@ -299,6 +300,7 @@ impl std::fmt::Display for DavError {
             DavError::Unreachable => {
                 f.write_str("Could not reach the nextcloud server. Check the server address.")
             }
+            DavError::TooDeep(dir) => write!(f, "Nextcloud folders nest too deeply at {dir}"),
         }
     }
 }
@@ -390,7 +392,9 @@ impl Dav {
     }
 
     /// Send `method` to `path`. Every hop, redirects included, is checked
-    /// and pinned before it is dialled.
+    /// and pinned before it is dialled. The app password goes only to the
+    /// origin it was set for: once a redirect leaves it, like `requests`
+    /// (which pyocclient runs on), later hops are sent without credentials.
     async fn request(
         &self,
         method: reqwest::Method,
@@ -399,11 +403,14 @@ impl Dav {
         timeout: Duration,
     ) -> Result<reqwest::Response, DavError> {
         let mut url = self.url_for(path);
+        let mut send_auth = true;
         for _ in 0..10 {
             let checked = check_address(&url).await.map_err(DavError::Unsafe)?;
-            let mut req = pinned_client(&checked, timeout)?
-                .request(method.clone(), checked.url.clone())
-                .basic_auth(&self.user, Some(&self.password));
+            let mut req =
+                pinned_client(&checked, timeout)?.request(method.clone(), checked.url.clone());
+            if send_auth {
+                req = req.basic_auth(&self.user, Some(&self.password));
+            }
             if let Some(d) = depth {
                 req = req.header("Depth", d);
             }
@@ -415,11 +422,11 @@ impl Dav {
                     .get(reqwest::header::LOCATION)
                     .and_then(|l| l.to_str().ok())
                     .ok_or(DavError::Status(status.as_u16()))?;
-                url = res
-                    .url()
-                    .join(loc)
-                    .map_err(|_| DavError::Unreachable)?
-                    .to_string();
+                let next = res.url().join(loc).map_err(|_| DavError::Unreachable)?;
+                if should_strip_auth(res.url(), &next) {
+                    send_auth = false;
+                }
+                url = next.to_string();
                 continue;
             }
             if status.as_u16() != 207 && !status.is_success() {
@@ -473,6 +480,23 @@ impl Dav {
         file.flush().await?;
         Ok(true)
     }
+}
+
+/// `requests.Session.should_strip_auth`: credentials survive a redirect only
+/// on the same host, scheme and port (http -> https on the default ports
+/// included).
+pub fn should_strip_auth(old: &reqwest::Url, new: &reqwest::Url) -> bool {
+    if old.host_str() != new.host_str() {
+        return true;
+    }
+    if old.scheme() == "http"
+        && matches!(old.port(), None | Some(80))
+        && new.scheme() == "https"
+        && matches!(new.port(), None | Some(443))
+    {
+        return false;
+    }
+    old.scheme() != new.scheme() || old.port_or_known_default() != new.port_or_known_default()
 }
 
 fn unescape_xml(s: &str) -> String {
@@ -554,17 +578,30 @@ pub fn is_valid_media(entry: &DavEntry) -> bool {
     false
 }
 
+/// Folder nesting the scan follows (Django's recursion gives up near 1000).
+const MAX_DEPTH: usize = 256;
+
 /// `collect_photos`: every media file below `path`, depth first.
 pub async fn collect_photos(dav: &Dav, path: &str) -> Result<Vec<String>, DavError> {
     let mut photos = Vec::new();
-    let mut stack = vec![path.to_string()];
-    while let Some(dir) = stack.pop() {
+    let mut stack = vec![(path.to_string(), 0usize)];
+    // A listing that names the directory itself (or an ancestor) again would
+    // otherwise be walked forever, and one that invents ever deeper folders
+    // too; Django dies of RecursionError on both.
+    let mut seen = std::collections::HashSet::new();
+    while let Some((dir, depth)) = stack.pop() {
+        if !seen.insert(dir.trim_end_matches('/').to_string()) {
+            continue;
+        }
+        if depth > MAX_DEPTH {
+            return Err(DavError::TooDeep(dir));
+        }
         let entries = dav.list(&dir).await?;
         // Depth first in listing order, like the recursive original.
         let mut subdirs = Vec::new();
         for e in entries {
             if e.is_dir {
-                subdirs.push(e.path);
+                subdirs.push((e.path, depth + 1));
             } else if is_valid_media(&e) {
                 photos.push(e.path);
             }
@@ -605,7 +642,11 @@ pub fn local_path_for(root: &Path, remote: &str) -> Option<PathBuf> {
                 }
             }
             p => {
-                if Path::new(p).is_absolute() || (cfg!(windows) && p.contains(':')) {
+                // Win32 drops trailing dots and spaces, so `.. ` or `...`
+                // would name the parent (or merge with a sibling) on disk.
+                if Path::new(p).is_absolute()
+                    || (cfg!(windows) && (p.contains(':') || p.ends_with(['.', ' '])))
+                {
                     return None;
                 }
                 candidate.push(p);
@@ -736,6 +777,8 @@ async fn fetch(state: &AppState, user: &lp_db::users::User) -> anyhow::Result<Ve
         paths.push(local);
     }
     paths.sort();
+    // Names differing only in case share one file on Windows and macOS.
+    paths.dedup();
     Ok(paths)
 }
 
@@ -872,6 +915,9 @@ mod tests {
         assert_eq!(local_path_for(&root, "/Photos/../../x.jpg"), None);
         if cfg!(windows) {
             assert_eq!(local_path_for(&root, "C:/Windows/x.jpg"), None);
+            // Win32 drops trailing dots and spaces: `.. ` and `...` climb too.
+            assert_eq!(local_path_for(&root, "/.. /.. /x.jpg"), None);
+            assert_eq!(local_path_for(&root, "/Photos/../.. ./x.jpg"), None);
         }
         assert!(user_media_root(dir.path(), "alice").is_ok());
         assert!(user_media_root(dir.path(), "..").is_err());

@@ -21,6 +21,9 @@ pub async fn table_exists<'e>(db: impl PgExecutor<'e>, table: &str) -> sqlx::Res
 pub struct SocialApp {
     /// `provider_id`, or the client id when it is blank (the id in the URL).
     pub id: String,
+    /// What allauth stores in `SocialAccount.provider` (`sub_id`): the
+    /// `provider_id`, or `openid_connect` when it is blank.
+    pub account_provider: String,
     pub name: String,
     pub client_id: String,
     pub secret: String,
@@ -41,8 +44,9 @@ pub async fn social_app(db: &PgPool, id: &str) -> sqlx::Result<Option<SocialApp>
         " AND $2 = $2"
     };
     sqlx::query_as::<_, SocialApp>(&format!(
-        "SELECT COALESCE(NULLIF(a.provider_id, ''), a.client_id) AS id, a.name, a.client_id, \
-           a.secret, a.settings FROM socialaccount_socialapp a \
+        "SELECT COALESCE(NULLIF(a.provider_id, ''), a.client_id) AS id, \
+           COALESCE(NULLIF(a.provider_id, ''), a.provider) AS account_provider, a.name, \
+           a.client_id, a.secret, a.settings FROM socialaccount_socialapp a \
          WHERE a.provider = 'openid_connect' \
            AND COALESCE(NULLIF(a.provider_id, ''), a.client_id) = $1{site_filter} \
          ORDER BY a.id LIMIT 1"

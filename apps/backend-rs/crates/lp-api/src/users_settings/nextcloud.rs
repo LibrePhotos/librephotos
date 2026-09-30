@@ -53,7 +53,9 @@ pub async fn listdir(
             tracing::warn!("Nextcloud responded with an error: {e}");
             return Ok(rejected(e.to_string()));
         }
-        Err(e @ DavError::Unreachable) => return Ok(rejected(e.to_string())),
+        Err(e @ (DavError::Unreachable | DavError::TooDeep(_))) => {
+            return Ok(rejected(e.to_string()));
+        }
     };
     let dirs: Vec<Value> = entries
         .into_iter()

@@ -54,6 +54,8 @@ const STATE_TTL_SECS: i64 = 600;
 #[derive(Debug, Clone)]
 pub struct Provider {
     pub id: String,
+    /// The `provider` of its identity links (allauth `SocialAccount`).
+    pub account_provider: String,
     pub name: String,
     pub client_id: String,
     pub secret: String,
@@ -66,6 +68,7 @@ impl From<SocialApp> for Provider {
     fn from(a: SocialApp) -> Self {
         Provider {
             id: a.id,
+            account_provider: a.account_provider,
             name: a.name,
             client_id: a.client_id,
             secret: a.secret,
@@ -104,6 +107,7 @@ fn env_providers() -> Vec<Provider> {
                     } else {
                         p.name
                     },
+                    account_provider: p.id.clone(),
                     id: p.id,
                     client_id: p.client_id,
                     secret: p.secret,
@@ -201,17 +205,26 @@ fn setting<'a>(p: &'a Provider, key: &str) -> Option<&'a Value> {
     p.settings.get(key).filter(|v| !v.is_null())
 }
 
-fn http_client() -> Result<reqwest::Client, String> {
+/// The token and userinfo requests never follow redirects (the code and
+/// the client secret must not travel elsewhere); discovery and the JWKS do,
+/// like allauth's `requests` session (an `http://` issuer URL that moved to
+/// `https://`, a proxy in front of the IdP).
+fn http_client_with(redirects: reqwest::redirect::Policy) -> Result<reqwest::Client, String> {
     reqwest::Client::builder()
-        .redirect(reqwest::redirect::Policy::none())
+        .redirect(redirects)
         .connect_timeout(Duration::from_secs(10))
         .timeout(Duration::from_secs(30))
         .build()
         .map_err(|e| e.to_string())
 }
 
+fn http_client() -> Result<reqwest::Client, String> {
+    http_client_with(reqwest::redirect::Policy::none())
+}
+
 /// Discovery document plus its JWKS.
-async fn metadata(http: &reqwest::Client, p: &Provider) -> Result<CoreProviderMetadata, String> {
+async fn metadata(p: &Provider) -> Result<CoreProviderMetadata, String> {
+    let http = http_client_with(reqwest::redirect::Policy::limited(5))?;
     let server_url = setting(p, "server_url")
         .and_then(Value::as_str)
         .ok_or("provider has no server_url")?;
@@ -226,7 +239,7 @@ async fn metadata(http: &reqwest::Client, p: &Provider) -> Result<CoreProviderMe
         .map_err(|e| format!("discovery: {e}"))?;
     let meta: CoreProviderMetadata =
         serde_json::from_value(doc).map_err(|e| format!("discovery document: {e}"))?;
-    let jwks = CoreJsonWebKeySet::fetch_async(meta.jwks_uri(), http)
+    let jwks = CoreJsonWebKeySet::fetch_async(meta.jwks_uri(), &http)
         .await
         .map_err(|e| format!("jwks: {e}"))?;
     Ok(meta.set_jwks(jwks))
@@ -349,8 +362,7 @@ pub async fn login(
         return Err(ApiError::not_found());
     };
     let started = async {
-        let http = http_client()?;
-        let meta = metadata(&http, &provider).await?;
+        let meta = metadata(&provider).await?;
         let redirect_url =
             RedirectUrl::new(callback_url(&base, &provider.id)).map_err(|e| e.to_string())?;
         let client = CoreClient::from_provider_metadata(
@@ -485,7 +497,7 @@ async fn exchange(
     flow: &FlowState,
 ) -> Result<Identity, String> {
     let http = http_client()?;
-    let meta = metadata(&http, p).await?;
+    let meta = metadata(p).await?;
     let auth = auth_type(p, &meta);
     let client = CoreClient::from_provider_metadata(
         meta,
@@ -509,7 +521,7 @@ async fn exchange(
         .ok_or("the token response has no id_token")?;
     let verifier = client
         .id_token_verifier()
-        .set_allowed_algs(ALLOWED_ALGS.iter().cloned());
+        .set_allowed_algs(allowed_algs(!p.secret.is_empty()));
     let nonce = Nonce::new(flow.n.clone());
     let claims = id_token
         .claims(&verifier, &nonce)
@@ -602,14 +614,25 @@ const ALLOWED_ALGS: &[Alg] = &[
     Alg::HmacSha512,
 ];
 
+/// The signing algorithms an ID token may use. The HMAC ones are keyed with
+/// the client secret, so a public client (no secret) must not accept them:
+/// anyone could sign such a token with the empty key.
+fn allowed_algs(has_secret: bool) -> Vec<Alg> {
+    ALLOWED_ALGS
+        .iter()
+        .filter(|a| has_secret || !matches!(a, Alg::HmacSha256 | Alg::HmacSha384 | Alg::HmacSha512))
+        .cloned()
+        .collect()
+}
+
 /// `pre_social_login` + `save_user` + `sso_finish`.
 async fn finish(state: &AppState, p: &Provider, ident: Identity) -> ApiResult<Response> {
     let identity = SsoIdentity {
-        provider: &p.id,
+        provider: &p.account_provider,
         uid: &ident.uid,
         extra_data: &ident.extra_data,
     };
-    let user_id = match sso::linked_user(&state.db, &p.id, &ident.uid).await? {
+    let user_id = match sso::linked_user(&state.db, &p.account_provider, &ident.uid).await? {
         Some(id) => id,
         None => {
             let email = ident.email.trim().to_lowercase();
@@ -802,6 +825,18 @@ mod tests {
             ..flow
         };
         assert!(verify_state("k1", &sign_state("k1", &expired)).is_none());
+    }
+
+    #[test]
+    fn public_clients_refuse_hmac_id_tokens() {
+        assert!(allowed_algs(true).contains(&Alg::HmacSha256));
+        let public = allowed_algs(false);
+        assert!(public.contains(&Alg::RsaSsaPkcs1V15Sha256));
+        assert!(
+            !public
+                .iter()
+                .any(|a| matches!(a, Alg::HmacSha256 | Alg::HmacSha384 | Alg::HmacSha512))
+        );
     }
 
     #[test]
