@@ -76,6 +76,7 @@ dashmap.workspace = true
 rayon.workspace = true
 reqwest.workspace = true
 lettre.workspace = true
+openidconnect.workspace = true
 regex.workspace = true
 fancy-regex.workspace = true
 infer.workspace = true

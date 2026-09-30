@@ -412,3 +412,87 @@ pub async fn record_throttle_hit(
     tx.commit().await?;
     Ok(())
 }
+
+/// An OIDC identity to record for a user (allauth `SocialAccount`).
+#[derive(Debug, Clone)]
+pub struct SsoIdentity<'a> {
+    pub provider: &'a str,
+    pub uid: &'a str,
+    pub extra_data: &'a Value,
+}
+
+/// A first-time SSO login provisioning an account (`SSOSocialAccountAdapter.save_user`):
+/// never staff or superuser, an unusable password, the IdP's email recorded
+/// as allauth's `EmailAddress` when that table exists. Returns the new id.
+pub async fn create_sso_user(
+    db: &PgPool,
+    crypto: &DjangoCrypto,
+    new: &NewUser<'_>,
+    email_verified: bool,
+    identity: &SsoIdentity<'_>,
+) -> sqlx::Result<i32> {
+    let mut tx = db.begin().await?;
+    let id = create_user(
+        &mut *tx,
+        crypto,
+        &NewUser {
+            is_superuser: false,
+            is_staff: false,
+            ..*new
+        },
+    )
+    .await?;
+    if !new.email.is_empty() && table_exists(&mut tx, "account_emailaddress").await? {
+        sqlx::query(
+            "INSERT INTO account_emailaddress (email, verified, \"primary\", user_id) \
+             VALUES ($1, $2, TRUE, $3) ON CONFLICT DO NOTHING",
+        )
+        .bind(new.email)
+        .bind(email_verified)
+        .bind(id)
+        .execute(&mut *tx)
+        .await?;
+    }
+    link_sso_identity(&mut tx, id, identity).await?;
+    tx.commit().await?;
+    Ok(id)
+}
+
+/// `sociallogin.connect` / a returning login: link (or refresh) the
+/// identity when allauth's table exists, and bump `last_login`.
+pub async fn record_sso_login(
+    db: &PgPool,
+    user_id: i32,
+    identity: &SsoIdentity<'_>,
+) -> sqlx::Result<()> {
+    let mut tx = db.begin().await?;
+    link_sso_identity(&mut tx, user_id, identity).await?;
+    sqlx::query("UPDATE api_user SET last_login = now() WHERE id = $1")
+        .bind(user_id)
+        .execute(&mut *tx)
+        .await?;
+    tx.commit().await
+}
+
+async fn link_sso_identity(
+    conn: &mut PgConnection,
+    user_id: i32,
+    identity: &SsoIdentity<'_>,
+) -> sqlx::Result<()> {
+    if !table_exists(conn, "socialaccount_socialaccount").await? {
+        return Ok(());
+    }
+    sqlx::query(
+        "INSERT INTO socialaccount_socialaccount (provider, uid, last_login, date_joined, \
+           extra_data, user_id) VALUES ($1, $2, now(), now(), $3, $4) \
+         ON CONFLICT (provider, uid) DO UPDATE SET last_login = now(), \
+           extra_data = EXCLUDED.extra_data",
+    )
+    .bind(identity.provider)
+    .bind(identity.uid)
+    .bind(identity.extra_data)
+    .bind(user_id)
+    .execute(&mut *conn)
+    .await?;
+    Ok(())
+}

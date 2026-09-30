@@ -1,8 +1,8 @@
 //! Area `users_settings`. User & settings (03 §5): GET/POST /user/, GET/PATCH /user/{id}/ (JSON or multipart avatar), PATCH /manage/user/{id}/, DELETE /delete/user/{id}/, GET/POST /sitesettings, email config x3, /timezones/ + /predefinedrules/ + /predefinedburstrules/ (JSON-encoded strings), /dirtree/, nextcloud x2; plus auth M5: /firsttimesetup/, /auth/sso/config/, /auth/password/reset/ + /confirm/.
 //!
-//! Not ported (left to `LP_DEV_FALLBACK`): the OIDC login/callback flow, and
+//! OIDC login/callback: `oidc`. Not ported (left to `LP_DEV_FALLBACK`):
 //! `PUT`/`DELETE /api/manage/user/{id}/`, which the frontend never calls.
-//! `/api/nextcloud/scanphotos/` answers 501 after Django's checks.
+//! `/api/nextcloud/scanphotos/` queues the `nextcloud.scan` job.
 
 use axum::Router;
 use axum::routing::{delete, get, post};
@@ -15,6 +15,7 @@ mod email;
 mod fields;
 mod input;
 mod nextcloud;
+mod oidc;
 pub mod password_reset;
 mod pypath;
 mod scan_dir;
@@ -65,6 +66,11 @@ pub fn routes() -> Router<AppState> {
             post(password_reset::confirm_reset),
         )
         .route("/api/auth/sso/config", get(sso::config))
+        .route("/api/accounts/oidc/{id}/login", get(oidc::login))
+        .route(
+            "/api/accounts/oidc/{id}/login/callback",
+            get(oidc::callback),
+        )
         .route("/api/nextcloud/listdir", get(nextcloud::listdir))
         .route(
             "/api/nextcloud/scanphotos",

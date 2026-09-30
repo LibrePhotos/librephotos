@@ -14,6 +14,7 @@
 //! | `media.classify` | `{user_id}` | `classify_media` |
 //! | `captions.generate` | `{photo_id}` | `generate_captions_im2txt` |
 //! | `models.download` | `{user_id}` | `download_models` |
+//! | `nextcloud.scan` | `{user_id}` | `nextcloud.directory_watcher.scan_photos` |
 //!
 //! A job enqueued with `EnqueueOptions::tracked` reports on that
 //! LongRunningJob; one enqueued without gets its own, as Django's
@@ -33,6 +34,7 @@ pub mod faces;
 pub mod fanout;
 pub mod geocode;
 pub mod models;
+pub mod nextcloud;
 pub mod ocr;
 pub mod photos;
 pub mod run;
@@ -81,6 +83,7 @@ where
 
 pub fn register_jobs(reg: &mut HandlerRegistry) {
     reg.register(models::KIND, models::download);
+    reg.register(nextcloud::KIND, nextcloud::job);
     reg.register("faces.scan", |ctx: JobCtx| async move {
         models::wait_for_download(&ctx.state).await;
         let p = user_payload(&ctx)?;

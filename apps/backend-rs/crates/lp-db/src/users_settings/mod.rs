@@ -5,6 +5,8 @@ use sqlx::{FromRow, PgExecutor, PgPool, Postgres, QueryBuilder};
 
 use crate::users::{USER_COLUMNS, User};
 
+pub mod sso;
+
 /// The per-user photo numbers `UserSerializer` / `PublicUserSerializer`
 /// compute with one query each (`photo_count`, `public_photo_count`,
 /// `public_photo_samples`).

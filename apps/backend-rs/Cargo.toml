@@ -95,6 +95,8 @@ rayon = "1"
 
 # HTTP client, mail
 reqwest = { version = "0.12", default-features = false, features = ["json", "multipart", "rustls-tls", "stream", "gzip"] }
+# OIDC single sign-on (lp-api). Same reqwest 0.12 as the rest.
+openidconnect = { version = "4", default-features = false, features = ["reqwest", "rustls-tls", "accept-string-booleans"] }
 lettre = { version = "0.11", default-features = false, features = ["builder", "smtp-transport", "tokio1", "tokio1-rustls-tls", "hostname"] }
 
 # Text

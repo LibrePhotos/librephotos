@@ -451,7 +451,7 @@ pub async fn queue_followups(
         )
         .await?;
     }
-    lp_jobs::enqueue(
+    let clip = lp_jobs::enqueue(
         state,
         "clip.embed",
         json!({"user_id": user_id}),
@@ -459,17 +459,12 @@ pub async fn queue_followups(
     )
     .await?;
     if f.face_detection {
-        // Django chains faces after CLIP; delay it so a free worker slot
-        // does not start it first.
-        let opts = EnqueueOptions {
-            run_after: Some(Utc::now() + chrono::Duration::seconds(5)),
-            ..EnqueueOptions::tracked(JobType::ScanFaces, user_id)
-        };
+        // Django's Chain: faces run once the CLIP job has finished.
         lp_jobs::enqueue(
             state,
             "faces.scan",
             json!({"user_id": user_id, "full_scan": full_scan}),
-            opts,
+            EnqueueOptions::tracked(JobType::ScanFaces, user_id).after(clip.id),
         )
         .await?;
     }

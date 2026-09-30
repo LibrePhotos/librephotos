@@ -258,6 +258,8 @@ pub async fn label(
     let tagging_model = state.settings().tagging_model.clone();
     let (person, faces) =
         write::label_faces(&state.db, user.id, &ids, target, &tagging_model).await?;
+    let photos: Vec<uuid::Uuid> = faces.iter().filter_map(|f| f.photo_id).collect();
+    lp_ingest::face_tags::queue(&state, &user, &photos).await;
     let updated: Vec<LabeledOut> = faces
         .into_iter()
         .map(|f| {

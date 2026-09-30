@@ -248,6 +248,7 @@ pub async fn add_face(
             return Err(e.into());
         }
     };
+    lp_ingest::face_tags::queue(&state, &user, &[photo.id]).await;
     Ok((
         StatusCode::CREATED,
         Json(json!({
