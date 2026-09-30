@@ -79,6 +79,10 @@ async fn semantic_search_through_the_sidecars() {
     // Sidecars down: no search term never calls them (flat list of everything),
     // a search term is a 500 like Django's unhandled ConnectionError.
     let mut state = app.state.clone();
+    // The sidecar path (auto would pick the in-process index).
+    for s in [lp_ml::Service::Clip, lp_ml::Service::Similarity] {
+        state.ml.set_mode(s, lp_ml::Mode::Sidecar);
+    }
     let (ip, clip_l, sim_l) = bind_pair().await;
     drop((clip_l, sim_l));
     state.sidecars = lp_sidecars::Sidecars::new(state.http.clone(), ip.to_string());
