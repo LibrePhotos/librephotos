@@ -33,7 +33,37 @@ pub fn load_rgb(path: &Path) -> anyhow::Result<RgbImage> {
     {
         return r;
     }
-    Ok(open(path)?.to_rgb8())
+    Ok(pillow_rgb(open(path)?))
+}
+
+/// `.convert("RGB")` of what Pillow opens. 16-bit colour (and grey + alpha)
+/// comes in as 8-bit keeping the high byte, where `to_rgb8` rounds; 16-bit
+/// grey is mode `I;16`, which converts by clipping to 255, not by scaling.
+pub fn pillow_rgb(img: DynamicImage) -> RgbImage {
+    let (w, h) = (img.width(), img.height());
+    let from = |px: Vec<u8>| RgbImage::from_raw(w, h, px).expect("w x h x 3 bytes");
+    match img {
+        DynamicImage::ImageLuma16(g) => from(
+            g.as_raw()
+                .iter()
+                .flat_map(|&v| [v.min(255) as u8; 3])
+                .collect(),
+        ),
+        DynamicImage::ImageLumaA16(g) => from(
+            g.as_raw()
+                .chunks_exact(2)
+                .flat_map(|p| [(p[0] >> 8) as u8; 3])
+                .collect(),
+        ),
+        DynamicImage::ImageRgb16(i) => from(i.as_raw().iter().map(|&v| (v >> 8) as u8).collect()),
+        DynamicImage::ImageRgba16(i) => from(
+            i.as_raw()
+                .chunks_exact(4)
+                .flat_map(|p| [(p[0] >> 8) as u8, (p[1] >> 8) as u8, (p[2] >> 8) as u8])
+                .collect(),
+        ),
+        other => other.to_rgb8(),
+    }
 }
 
 /// Decode any supported still image (JPEG, PNG, WebP, GIF, TIFF, BMP).

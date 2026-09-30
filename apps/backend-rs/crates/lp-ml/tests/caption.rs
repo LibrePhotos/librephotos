@@ -104,6 +104,62 @@ fn prepare_image_matches_python() {
     }
 }
 
+/// Image modes and containers the fixture lacks (`golden_caption_edge.py`):
+/// the decoded RGB and the patch tensor, each against Pillow + numpy.
+#[test]
+fn prepare_edge_cases_match_python() {
+    let Some(g) = golden::load("caption", "prepare_edge") else {
+        return;
+    };
+    let mut report = Vec::new();
+    for c in &g.cases {
+        let path = c.input["image"].as_str().unwrap();
+        let img = match lp_ml::preprocess::load_rgb(Path::new(path)) {
+            Ok(i) => i,
+            Err(e) => {
+                report.push(format!("{}: load failed: {e:#}", c.id));
+                continue;
+            }
+        };
+        let rgb = Array::from_json(&c.output["rgb"]);
+        let (h, w) = (rgb.shape[0] as u32, rgb.shape[1] as u32);
+        if (img.width(), img.height()) != (w, h) {
+            report.push(format!(
+                "{}: decoded {}x{}, Pillow {w}x{h}",
+                c.id,
+                img.width(),
+                img.height()
+            ));
+            continue;
+        }
+        let (dmax, dn) = golden::u8_diff(img.as_raw(), rgb.u8());
+        let p = lfm2_vl::prepare_image(&img);
+        let want = Array::from_json(&c.output["pixel_values"]).f32();
+        let pmax = if p.pixel_values.len() == want.len() {
+            golden::max_abs_diff(&p.pixel_values, &want)
+        } else {
+            f32::INFINITY
+        };
+        eprintln!(
+            "{} ({}): rgb max diff {dmax} ({dn} bytes), pixel_values max diff {pmax}",
+            c.id,
+            c.output["mode"].as_str().unwrap_or("?")
+        );
+        let lossy = is_jpeg(path);
+        if !lossy && (dn > 0 || pmax > 0.0) {
+            report.push(format!(
+                "{} ({}): rgb max diff {dmax} ({dn} bytes), pixel_values max diff {pmax}",
+                c.id,
+                c.output["mode"].as_str().unwrap_or("?")
+            ));
+        }
+        if lossy && dmax > 8 {
+            report.push(format!("{}: jpeg rgb max diff {dmax}", c.id));
+        }
+    }
+    assert!(report.is_empty(), "{}", report.join("\n"));
+}
+
 fn is_jpeg(path: &str) -> bool {
     let l = path.to_ascii_lowercase();
     l.ends_with(".jpg") || l.ends_with(".jpeg")
@@ -322,4 +378,49 @@ async fn missing_model_is_unavailable() {
         .await
         .unwrap_err();
     assert!(matches!(err, SidecarError::Unreachable { .. }), "{err:?}");
+}
+
+/// A model that is on disk but does not load (a truncated download, the
+/// q4f16 `FastGelu` kernel some CPU builds lack) is the sidecar's 500 and is
+/// not kept: the next call tries to load it again.
+#[tokio::test]
+async fn broken_model_is_a_500_and_not_kept() {
+    if std::env::var_os("LP_ORT_LIB").is_none() && std::env::var_os("ORT_DYLIB_PATH").is_none() {
+        return;
+    }
+    let dir = tempfile::tempdir().unwrap();
+    let model = dir.path().join("data_models").join(lfm2_vl::MODEL_NAME);
+    std::fs::create_dir_all(&model).unwrap();
+    for f in [
+        "vision_encoder_q4.onnx",
+        "vision_encoder_q4.onnx_data",
+        "embed_tokens_q4.onnx",
+        "embed_tokens_q4.onnx_data",
+        "decoder_model_merged_q4.onnx",
+        "decoder_model_merged_q4.onnx_data",
+        "tokenizer.json",
+    ] {
+        std::fs::write(model.join(f), b"not a model").unwrap();
+    }
+    let ml = ml(dir.path());
+    ml.set_mode(Service::Caption, Mode::InProcess);
+    let sidecars = Sidecars::new(reqwest::Client::new(), "127.0.0.1");
+    let view = ml.view(&sidecars);
+    for _ in 0..2 {
+        let err = view
+            .caption()
+            .generate_caption("x.webp", None)
+            .await
+            .unwrap_err();
+        match &err {
+            SidecarError::Status { status, .. } => assert_eq!(*status, 500),
+            other => panic!("expected the sidecar's 500, got {other:?}"),
+        }
+        assert!(
+            err.detail().contains("vision_encoder_q4.onnx"),
+            "{}",
+            err.detail()
+        );
+        assert!(ml.loaded_models(Service::Caption).is_empty());
+    }
 }

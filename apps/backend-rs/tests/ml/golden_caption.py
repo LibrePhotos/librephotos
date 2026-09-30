@@ -1,6 +1,6 @@
 """Goldens for lp_ml::caption (service/image_captioning/lfm2_vl.py).
 
-    python golden_caption.py [--limit N]
+    python golden_caption.py [--limit N] [--offset N] [--edge]
 
 Writes ml-goldens/caption/lfm2_vl.json: per image the smart-resize target,
 the prompt token ids, the generated token ids (greedy, max 64) and the
@@ -59,17 +59,26 @@ class Recorder:
         return out
 
 
-def images(limit):
+def images(limit, offset=0, edge=False):
     fixture = gc.fixture_images()
     thumbs = [p for p in fixture if "thumbnails_big" in p.parts]
     originals = [p for p in fixture if "thumbnails_big" not in p.parts]
     out = thumbs + gc.generated_images() + originals[:ORIGINALS]
-    return out[:limit] if limit else out
+    out = out[offset:]
+    out = out[:limit] if limit else out
+    if edge:
+        # Modes and containers the fixture lacks (golden_caption_edge.py).
+        from golden_caption_edge import edge_images
+
+        out += edge_images()
+    return out
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--limit", type=int, default=0)
+    ap.add_argument("--offset", type=int, default=0, help="skip the first N images")
+    ap.add_argument("--edge", action="store_true", help="add the edge-case images")
     args = ap.parse_args()
 
     cap = Lfm2VlCaptioner(str(gc.data_models() / "lfm2_vl_450m"))
@@ -79,7 +88,7 @@ def main():
     rec = Recorder(cap.sessions["decoder"])
     cap.sessions["decoder"] = rec
 
-    paths = images(args.limit)
+    paths = images(args.limit, args.offset, args.edge)
     jobs = [(p, None) for p in paths]
     jobs += [(p, PERSON_PROMPT) for p in paths[:3]]
     jobs += [(p, PLACE_PROMPT) for p in paths[3:5]]

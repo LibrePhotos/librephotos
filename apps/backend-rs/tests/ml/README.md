@@ -82,3 +82,14 @@ diverge at near-ties (top-2 logit margin 0.005 and 0.0005) from the
 zune-jpeg vs libjpeg-turbo decode. The test runs 8 cases by default,
 `LP_CAPTION_GOLDEN_ALL=1` all. Throughput and RSS: `bench_caption.py` vs
 `cargo run -p lp-ml --example caption_bench` on the same images.
+
+Review round: fresh goldens on a disjoint set (`golden_caption.py --offset 8
+--limit 6 --edge`, 6 more WebP thumbnails, the 17 `golden_caption_edge.py`
+images, 5 prompt cases) matched 28/28 token sequences, including CMYK,
+greyscale and EXIF-rotated JPEGs. `golden_caption_edge.py` also writes
+`caption/prepare_edge.json` (no model needed): decoded RGB and the patch
+tensor for palette, LA, 1-bit, 16-bit grey and colour PNG, CMYK/grey/rotated
+JPEG, GIF, TIFF, BMP, alpha and lossless WebP, 512x512, 20x3000 and 3x2.
+All are bit-exact except the JPEGs (at most 3 levels); 16-bit PNGs needed
+`preprocess::pillow_rgb` (Pillow keeps the high byte of 16-bit colour and
+clips `I;16` grey at 255, where `to_rgb8` scales).

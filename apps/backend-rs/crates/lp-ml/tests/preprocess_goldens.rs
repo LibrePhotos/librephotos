@@ -229,3 +229,31 @@ fn tokenizers_match_python() {
         assert_eq!(ids, want, "{}", c.id);
     }
 }
+
+/// Pillow opens 16-bit colour as 8-bit by its high byte and 16-bit grey as
+/// `I;16`, whose `.convert("RGB")` clips at 255 (Pillow 12.3).
+#[test]
+fn sixteen_bit_converts_like_pillow() {
+    use image::{DynamicImage, ImageBuffer, Luma, LumaA, Rgb, Rgba};
+    let grey = ImageBuffer::<Luma<u16>, _>::from_raw(3, 1, vec![100u16, 256, 65535]).unwrap();
+    assert_eq!(
+        preprocess::pillow_rgb(DynamicImage::ImageLuma16(grey)).into_raw(),
+        vec![100, 100, 100, 255, 255, 255, 255, 255, 255]
+    );
+    let la = ImageBuffer::<LumaA<u16>, _>::from_raw(1, 1, vec![0x01ffu16, 7]).unwrap();
+    assert_eq!(
+        preprocess::pillow_rgb(DynamicImage::ImageLumaA16(la)).into_raw(),
+        vec![1, 1, 1]
+    );
+    let rgb = ImageBuffer::<Rgb<u16>, _>::from_raw(1, 1, vec![0x01ffu16, 0x80ff, 0xff00]).unwrap();
+    assert_eq!(
+        preprocess::pillow_rgb(DynamicImage::ImageRgb16(rgb)).into_raw(),
+        vec![1, 0x80, 0xff]
+    );
+    let rgba =
+        ImageBuffer::<Rgba<u16>, _>::from_raw(1, 1, vec![0x01ffu16, 0x80ff, 0xff00, 9]).unwrap();
+    assert_eq!(
+        preprocess::pillow_rgb(DynamicImage::ImageRgba16(rgba)).into_raw(),
+        vec![1, 0x80, 0xff]
+    );
+}
