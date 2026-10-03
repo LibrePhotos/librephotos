@@ -6,7 +6,7 @@
     "@expo/vector-icons": "^15.0.2",
     "@shopify/flash-list": "2.0.2",
     "@tanstack/react-query": "^5.101.4",
-    "drizzle-orm": "^0.44.7",
+    "drizzle-orm": "^0.45.0",
     "expo": "~57.0.24",
     "expo-background-task": "~57.0.19",
     "expo-battery": "~57.0.3",
