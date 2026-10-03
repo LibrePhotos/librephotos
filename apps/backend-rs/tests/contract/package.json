@@ -1,0 +1,20 @@
+{
+  "name": "librephotos-rs-contract",
+  "private": true,
+  "description": "Contract, twin-diff and authz harness for the Rust backend, judged by the frontend's own zod schemas (plans/rust-backend/06-testing.md).",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.8",
+    "zod": "3.25.76"
+  }
+}

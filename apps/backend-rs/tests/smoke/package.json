@@ -1,0 +1,12 @@
+{
+  "name": "backend-rs-smoke",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "walk": "node walk.mjs",
+    "diff": "node diff.mjs"
+  },
+  "devDependencies": {
+    "playwright": "1.63.0"
+  }
+}
