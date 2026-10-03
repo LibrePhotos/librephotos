@@ -2,7 +2,9 @@
 
   python ml_footprint.py library                      # <root>/lib/{foot,tiny} as hard links
   python ml_footprint.py models --out models.json     # Rust: RSS idle / per model / all / after unload
+  python ml_footprint.py models --only clip|tags|faces|ocr|caption --out iso.json   # one model per process
   python ml_footprint.py scan rs|dj --concurrency N --out scan.json [--cap 540] [--captions 10]
+  global flags, before the mode: --no-arena (Rust with LP_ORT_CPU_ARENA=0), --keep (keep DB + BASE_DATA)
 
 Each run gets a fresh clone of lp_fixture (lp_run_foot_<side><N>) with user `foot`
 scanning <root>/lib/foot (or lib/tiny for `models`), and a BASE_DATA whose
@@ -59,6 +61,7 @@ SIDECARS = {
     "ocr": ["service/ocr/main.py"],
 }
 FLAGS = subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.DETACHED_PROCESS
+ARGS = argparse.Namespace(no_arena=False, keep=False)
 TINY = ["group_t1_orig.jpg", "portrait_hanks_orig.jpg", "portrait_astronaut_orig.jpg",
         "text_document_1240x1754.jpg", "text_receipt_720x1100.jpg", "scene_chelsea.jpg"]
 CAPTION_PICKS = ["group_t1_orig", "portrait_hanks_orig", "portrait_astronaut_orig", "scene_chelsea",
@@ -71,12 +74,16 @@ def log(*a):
 
 
 def psql(sql, db="postgres"):
-    r = subprocess.run([str(PG_BIN / "psql.exe"), "-h", "localhost", "-p", "5433", "-U", "postgres", "-X", "-q",
-                        "-At", "-v", "ON_ERROR_STOP=1", "-d", db, "-c", sql],
-                       capture_output=True, text=True, encoding="utf-8", env={**os.environ, "PGPASSWORD": "x"})
-    if r.returncode:
-        raise RuntimeError(f"psql {db}: {r.stderr.strip()}")
-    return r.stdout.strip()
+    """psql -c; a failure with an empty stderr (psql.exe dying under load) is retried."""
+    for attempt in range(4):
+        r = subprocess.run([str(PG_BIN / "psql.exe"), "-h", "localhost", "-p", "5433", "-U", "postgres", "-X", "-q",
+                            "-At", "-v", "ON_ERROR_STOP=1", "-d", db, "-c", sql],
+                           capture_output=True, text=True, encoding="utf-8", env={**os.environ, "PGPASSWORD": "x"})
+        if not r.returncode:
+            return r.stdout.strip()
+        if r.stderr.strip() or attempt == 3:
+            raise RuntimeError(f"psql {db} (exit {r.returncode}): {r.stderr.strip()}")
+        time.sleep(1)
 
 
 def pg_pids():
@@ -156,6 +163,14 @@ INSERT INTO site_settings (key, value) VALUES ('OCR_MODEL', '"ppocrv6_small"')
     return db, base
 
 
+def finish(db, base):
+    if ARGS.keep:
+        log(f"kept {db} and {base}")
+        return
+    psql(f'DROP DATABASE IF EXISTS "{db}" WITH (FORCE)')
+    cleanup(base)
+
+
 def cleanup(base):
     """Remove a run's BASE_DATA (its logs are kept under <root>/logs/<tag>); the
     data_models junction goes first (os.rmdir removes the link only), so the shared
@@ -176,7 +191,7 @@ def cleanup(base):
 
 def common_env(side, db, base, conc):
     env = {k: v for k, v in os.environ.items()
-           if not (k.startswith("LP_SIDECAR_") or k.startswith("LP_ML_") or k.startswith("FEATURE_"))}
+           if not (k.startswith(("LP_SIDECAR_", "LP_ML_", "FEATURE_")) or k == "LP_ORT_CPU_ARENA")}
     env.update(
         BASE_DATA=base.as_posix(), PHOTOS=(base / "data").as_posix(), BASE_LOGS=(base / "logs").as_posix(),
         SECRET_KEY="rust-bench-secret", DB_BACKEND="postgresql", DB_NAME=db, DB_USER="postgres", DB_PASS="x",
@@ -203,6 +218,8 @@ def spawn(label, argv, env, cwd, logdir):
 
 def start(side, db, base, conc, extra=None):
     env = common_env(side, db, base, conc)
+    if ARGS.no_arena:
+        env["LP_ORT_CPU_ARENA"] = "0"
     env.update(extra or {})
     logs = base / "logs"
     roots = {}
@@ -386,6 +403,11 @@ def counts(db, uid):
     }
 
 
+JOB_NAMES = {1: "scan", 4: "train faces", 6: "clip embeddings", 7: "scan faces", 8: "cluster faces",
+             12: "tags", 13: "face embeddings", 14: "scan missing", 15: "duplicates", 16: "repair variants",
+             17: "classify media", 18: "ocr", 19: "stacks"}
+
+
 def lrj_rows(db, uid):
     rows = psql("SELECT job_type, finished, failed, progress_current, progress_target, "
                 "extract(epoch from started_at), extract(epoch from finished_at) FROM api_longrunningjob "
@@ -393,7 +415,8 @@ def lrj_rows(db, uid):
     out = []
     for line in rows.splitlines():
         jt, fin, failed, cur, tgt, s, f = line.split("|")
-        out.append({"job_type": int(jt), "finished": fin == "t", "failed": failed == "t",
+        out.append({"job_type": int(jt), "job": JOB_NAMES.get(int(jt), jt), "finished": fin == "t",
+                    "failed": failed == "t",
                     "progress": f"{cur}/{tgt}", "seconds": round(float(f) - float(s), 1) if s and f else None})
     return out
 
@@ -424,7 +447,8 @@ def cmd_scan(args):
     pin_postgres(PG_CPUS)
     roots = start(side, db, base, conc)
     sampler = Sampler(roots)
-    result = {"side": side, "concurrency": conc, "db": db, "bin": str(RS_BIN) if side == "rs" else None}
+    result = {"side": side, "concurrency": conc, "db": db, "bin": str(RS_BIN) if side == "rs" else None,
+              "no_arena": ARGS.no_arena}
     try:
         api, ready_s = wait_ready(side, roots)
         sampler.start()
@@ -487,8 +511,7 @@ def cmd_scan(args):
         t0 = sampler.samples[0][0] if sampler.samples else 0
         result["samples"] = [(round(t - t0, 1), mb(r), mb(p)) for t, r, p in sampler.samples[::4]]
         Path(args.out).write_text(json.dumps(result, indent=1))
-        psql(f'DROP DATABASE IF EXISTS "{db}" WITH (FORCE)')
-        cleanup(base)
+        finish(db, base)
 
 
 ISOLATED = {
@@ -519,7 +542,7 @@ def cmd_isolated(args):
         extra["FEATURE_IMAGE_CAPTIONING"] = "1"
     roots = start(side, db, base, 1, extra)
     sampler = Sampler(roots, interval=0.25)
-    res = {"service": args.only, "steps": []}
+    res = {"service": args.only, "steps": [], "no_arena": ARGS.no_arena}
     try:
         api, res["ready_s"] = wait_ready(side, roots)
         sampler.start()
@@ -550,8 +573,7 @@ def cmd_isolated(args):
         time.sleep(2)
         pin_postgres(list(range(psutil.cpu_count())))
         Path(args.out).write_text(json.dumps(res, indent=1))
-        psql(f'DROP DATABASE IF EXISTS "{db}" WITH (FORCE)')
-        cleanup(base)
+        finish(db, base)
 
 
 def cmd_models(args):
@@ -565,11 +587,12 @@ def cmd_models(args):
     pin_postgres(PG_CPUS)
     roots = start(side, db, base, 1)
     sampler = Sampler(roots, interval=0.25)
-    res = {"steps": [], "bin": str(RS_BIN)}
+    res = {"steps": [], "bin": str(RS_BIN), "no_arena": ARGS.no_arena}
 
     def step(label, **extra):
         s = snapshot(sampler, label)
         s.update(extra)
+        s["loaded"] = sorted(k for k, v in services_status(api).items() if v["loaded"])
         res["steps"].append(s)
         return s
 
@@ -633,12 +656,13 @@ def cmd_models(args):
         t0 = sampler.samples[0][0] if sampler.samples else 0
         res["samples"] = [(round(t - t0, 2), mb(r), mb(p)) for t, r, p in sampler.samples]
         Path(args.out).write_text(json.dumps(res, indent=1))
-        psql(f'DROP DATABASE IF EXISTS "{db}" WITH (FORCE)')
-        cleanup(base)
+        finish(db, base)
 
 
 def main():
     ap = argparse.ArgumentParser()
+    ap.add_argument("--no-arena", action="store_true", help="LP_ORT_CPU_ARENA=0 for the Rust server")
+    ap.add_argument("--keep", action="store_true", help="keep the run's DB and BASE_DATA")
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("library")
     m = sub.add_parser("models")
@@ -651,6 +675,7 @@ def main():
     s.add_argument("--cap", type=int, default=540, help="seconds for all ML stages")
     s.add_argument("--captions", type=int, default=10)
     args = ap.parse_args()
+    ARGS.no_arena, ARGS.keep = args.no_arena, args.keep
     if args.cmd == "library":
         library()
     elif args.cmd == "models":
