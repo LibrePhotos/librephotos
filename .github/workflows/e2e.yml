@@ -34,7 +34,7 @@ jobs:
     env:
       COMPOSE_FILE: deploy/compose/docker-compose.e2e.yml
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
 
@@ -47,9 +47,9 @@ jobs:
         # step waits for the photos.
         run: docker compose up -d --wait --wait-timeout 600
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version: 24
           cache: yarn
           cache-dependency-path: apps/frontend/e2e/yarn.lock
 
@@ -74,7 +74,7 @@ jobs:
 
       - name: Upload report, traces and logs
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: e2e-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
