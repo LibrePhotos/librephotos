@@ -1,0 +1,38 @@
+{
+ "jpeg_small (<=2 MP)|ffmpeg_yuv": {
+  "images": 288,
+  "wall_s": 12.03,
+  "images_per_s": 23.94,
+  "mean_latency_ms": 143.6
+ },
+ "jpeg_12mp|ffmpeg_yuv": {
+  "images": 136,
+  "wall_s": 12.11,
+  "images_per_s": 11.23,
+  "mean_latency_ms": 336.1
+ },
+ "jpeg_24mp|ffmpeg_yuv": {
+  "images": 112,
+  "wall_s": 12.32,
+  "images_per_s": 9.09,
+  "mean_latency_ms": 429.7
+ },
+ "png_6mp|ffmpeg_yuv": {
+  "images": 88,
+  "wall_s": 13.19,
+  "images_per_s": 6.67,
+  "mean_latency_ms": 589.6
+ },
+ "heic_12mp_grid|ffmpeg_yuv": {
+  "images": 56,
+  "wall_s": 12.44,
+  "images_per_s": 4.5,
+  "mean_latency_ms": 871.4
+ },
+ "panorama_24mp|ffmpeg_yuv": {
+  "images": 56,
+  "wall_s": 13.29,
+  "images_per_s": 4.21,
+  "mean_latency_ms": 937.1
+ }
+}

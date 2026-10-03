@@ -1,0 +1,74 @@
+{
+ "python+pyvips baseline (ws, private) MiB": [
+  23.0,
+  14.9
+ ],
+ "jpeg_small (<=2 MP)": {
+  "vips_ws_mib": 6.7,
+  "vips_private_mib": 6.9,
+  "vips_process_ws_mib": 29.6,
+  "ffmpeg_ws_mib": 34.3,
+  "ffmpeg_private_mib": 36.4
+ },
+ "jpeg_12mp": {
+  "vips_ws_mib": 56.7,
+  "vips_private_mib": 54.6,
+  "vips_process_ws_mib": 79.7,
+  "ffmpeg_ws_mib": 126.0,
+  "ffmpeg_private_mib": 128.8
+ },
+ "jpeg_24mp": {
+  "vips_ws_mib": 94.6,
+  "vips_private_mib": 89.7,
+  "vips_process_ws_mib": 117.6,
+  "ffmpeg_ws_mib": 193.8,
+  "ffmpeg_private_mib": 196.8
+ },
+ "png_6mp": {
+  "vips_ws_mib": 36.4,
+  "vips_private_mib": 36.5,
+  "vips_process_ws_mib": 59.4,
+  "ffmpeg_ws_mib": 86.1,
+  "ffmpeg_private_mib": 89.9
+ },
+ "heic_12mp_grid": {
+  "vips_ws_mib": 183.6,
+  "vips_private_mib": 531.7,
+  "vips_process_ws_mib": 206.6,
+  "ffmpeg_ws_mib": 164.9,
+  "ffmpeg_private_mib": 173.4
+ },
+ "panorama_24mp": {
+  "vips_ws_mib": 152.7,
+  "vips_private_mib": 148.6,
+  "vips_process_ws_mib": 175.7,
+  "ffmpeg_ws_mib": 284.6,
+  "ffmpeg_private_mib": 287.6
+ },
+ "ffmpeg_yuv (ws, private) MiB": {
+  "jpeg_small (<=2 MP)": [
+   29.3,
+   31.0
+  ],
+  "jpeg_12mp": [
+   64.8,
+   67.1
+  ],
+  "jpeg_24mp": [
+   88.8,
+   90.9
+  ],
+  "png_6mp": [
+   71.6,
+   74.9
+  ],
+  "heic_12mp_grid": [
+   142.5,
+   155.0
+  ],
+  "panorama_24mp": [
+   127.8,
+   132.5
+  ]
+ }
+}
