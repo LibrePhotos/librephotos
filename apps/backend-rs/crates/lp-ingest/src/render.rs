@@ -34,7 +34,24 @@ pub fn height_of(dir: &str) -> i32 {
 }
 
 const WEBP_Q: i32 = 95;
+const SMALL_WEBP_Q: i32 = 80;
 const WEBP_EFFORT: i32 = 2;
+
+/// `LP_THUMB_SMALL_Q`: WebP quality of the 500 px and 250 px square
+/// thumbnails (1-100, default 80: -69% / -59% bytes, +38% req/s serving the
+/// 250 px one, SSIM vs lossless 0.952 / 0.950 instead of 0.973 / 0.964,
+/// OPTIMIZATIONS.md #10). The big thumbnail, which the lightbox shows and
+/// pHash, CLIP, tags and faces read, always stays at 95.
+pub fn small_q() -> i32 {
+    static Q: std::sync::OnceLock<i32> = std::sync::OnceLock::new();
+    *Q.get_or_init(|| {
+        std::env::var("LP_THUMB_SMALL_Q")
+            .ok()
+            .and_then(|v| v.trim().parse::<i32>().ok())
+            .filter(|q| (1..=100).contains(q))
+            .unwrap_or(SMALL_WEBP_Q)
+    })
+}
 const FFMPEG_TIMEOUT: Duration = Duration::from_secs(300);
 
 /// Everything rendering needs; cheap to clone into blocking tasks.
@@ -140,7 +157,7 @@ impl Renderer {
                 .thumbnail_image(height_of(dir))
                 .map_err(|e| anyhow!(e))?;
             small
-                .webpsave(&self.path(dir, hash, ".webp"), WEBP_Q, Some(WEBP_EFFORT))
+                .webpsave(&self.path(dir, hash, ".webp"), small_q(), Some(WEBP_EFFORT))
                 .map_err(|e| anyhow!(e))?;
         }
         Ok(())
@@ -382,7 +399,7 @@ with Image.open(sys.argv[1]) as image:\n    ImageOps.exif_transpose(image).conve
         };
         for dir in dirs.iter().filter(|d| **d != BIG) {
             let small = rust_resize(&big, height_of(dir))?;
-            rust_webp(&small, &self.path(dir, hash, ".webp"))?;
+            rust_webp_q(&small, &self.path(dir, hash, ".webp"), small_q())?;
         }
         Ok(())
     }
@@ -661,10 +678,14 @@ fn rust_resize(img: &image::DynamicImage, height: i32) -> anyhow::Result<image::
 }
 
 fn rust_webp(img: &image::DynamicImage, out: &Path) -> anyhow::Result<()> {
+    rust_webp_q(img, out, WEBP_Q)
+}
+
+fn rust_webp_q(img: &image::DynamicImage, out: &Path, quality: i32) -> anyhow::Result<()> {
     let rgb = img.to_rgb8();
     let enc = webp::Encoder::from_rgb(&rgb, rgb.width(), rgb.height());
     let mut cfg = webp::WebPConfig::new().map_err(|_| anyhow!("webp config"))?;
-    cfg.quality = WEBP_Q as f32;
+    cfg.quality = quality as f32;
     cfg.method = WEBP_EFFORT;
     let mem = enc
         .encode_advanced(&cfg)
