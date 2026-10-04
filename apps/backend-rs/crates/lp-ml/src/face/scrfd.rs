@@ -25,6 +25,8 @@ pub struct Scrfd {
     session: Session,
     /// `(width, height)`: fixed by the model, else `det_size`.
     input_size: (usize, usize),
+    /// The model takes any input size (`det_size` applies).
+    dynamic: bool,
     fmc: usize,
     strides: Vec<usize>,
     num_anchors: usize,
@@ -46,13 +48,14 @@ impl Scrfd {
             15 => (5, vec![8, 16, 32, 64, 128], 1, true),
             n => bail!("unsupported detector with {n} outputs"),
         };
-        let input_size = match (info.input_dim(2), info.input_dim(3)) {
-            (Some(h), Some(w)) if h > 0 && w > 0 => (w as usize, h as usize),
-            _ => det_size,
+        let (input_size, dynamic) = match (info.input_dim(2), info.input_dim(3)) {
+            (Some(h), Some(w)) if h > 0 && w > 0 => ((w as usize, h as usize), false),
+            _ => (det_size, true),
         };
         Ok(Scrfd {
             session,
             input_size,
+            dynamic,
             fmc,
             strides,
             num_anchors,
@@ -63,7 +66,32 @@ impl Scrfd {
     /// `detect(img, max_num=0)` on an RGB image (fed as-is into the BGR
     /// API, like the sidecar does).
     pub fn detect(&mut self, rgb: &[u8], w: usize, h: usize) -> anyhow::Result<Vec<Detection>> {
-        let (in_w, in_h) = self.input_size;
+        self.detect_at(rgb, w, h, None)
+    }
+
+    /// The input side a dynamic model runs at (`det_size`); a fixed-size
+    /// model ignores `side`.
+    pub fn input_side(&self) -> usize {
+        self.input_size.0
+    }
+
+    pub fn is_dynamic(&self) -> bool {
+        self.dynamic
+    }
+
+    /// [`detect`](Self::detect) at a square `side` instead of `det_size`
+    /// (dynamic models only; a fixed-size model keeps its own).
+    pub fn detect_at(
+        &mut self,
+        rgb: &[u8],
+        w: usize,
+        h: usize,
+        side: Option<usize>,
+    ) -> anyhow::Result<Vec<Detection>> {
+        let (in_w, in_h) = match side {
+            Some(s) if self.dynamic => (s, s),
+            _ => self.input_size,
+        };
         let im_ratio = h as f64 / w as f64;
         let model_ratio = in_h as f64 / in_w as f64;
         let (new_w, new_h) = if im_ratio > model_ratio {

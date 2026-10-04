@@ -33,6 +33,46 @@ pub const SUPPORTED_MODELS: [&str; 5] = [
     "buffalo_sc",
 ];
 pub const DET_SIZE: (usize, usize) = (640, 640);
+
+/// `LP_FACE_DET_SIZE`: the detector's input side. `640` (default,
+/// insightface's `det_size`, the sidecar), `480`, `320` (any multiple of
+/// 32), or `auto`: detect at 320 and redo the photo at 640 only when it
+/// found a face whose shorter side is under [`AUTO_SMALL_FACE`] pixels at
+/// 320. Opt-in speed modes (OPTIMIZATIONS.md #6): `auto` cuts the face job
+/// by 17% and finds every bench-corpus face, but misses 13 of the 139
+/// faces of the parity goldens (small faces in screenshots and group
+/// thumbnails where the 320 pass finds none at all); 480 and 320 likewise.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DetSize {
+    Fixed(usize),
+    Auto,
+}
+
+/// See [`DetSize::Auto`]: at 320 a face this small (shorter side, pixels of
+/// the 320 input) triggers the 640 pass.
+pub const AUTO_SMALL_FACE: f32 = 24.0;
+
+impl DetSize {
+    pub fn parse(v: &str) -> Option<DetSize> {
+        match v.trim() {
+            "" => Some(DetSize::Fixed(DET_SIZE.0)),
+            "auto" => Some(DetSize::Auto),
+            n => n
+                .parse::<usize>()
+                .ok()
+                .filter(|n| *n >= 160 && n % 32 == 0)
+                .map(DetSize::Fixed),
+        }
+    }
+
+    pub fn from_env() -> DetSize {
+        let v = std::env::var("LP_FACE_DET_SIZE").unwrap_or_default();
+        DetSize::parse(&v).unwrap_or_else(|| {
+            tracing::warn!(value = %v, "LP_FACE_DET_SIZE: expected 640, 480, 320 or auto; using 640");
+            DetSize::Fixed(DET_SIZE.0)
+        })
+    }
+}
 /// `MIN_FACE_MATCH_IOU`: how much a requested box must overlap a detected
 /// face to take its embedding.
 pub const MIN_FACE_MATCH_IOU: f64 = 0.3;
@@ -280,6 +320,7 @@ impl ArcFace {
 pub struct FacePack {
     pub detector: Scrfd,
     pub recognizer: ArcFace,
+    pub det_size: DetSize,
 }
 
 /// insightface's `ModelRouter` task of a model file, from its graph.
@@ -342,13 +383,14 @@ impl FacePack {
         Ok(FacePack {
             detector,
             recognizer,
+            det_size: DetSize::from_env(),
         })
     }
 
     /// `FaceAnalysis.get(img)`, embedding the faces `wanted` asks for.
     pub fn analyze(&mut self, image: &RgbImage, wanted: Want) -> anyhow::Result<Vec<Face>> {
         let (w, h) = (image.width() as usize, image.height() as usize);
-        let dets = self.detector.detect(image.as_raw(), w, h)?;
+        let dets = self.detect(image.as_raw(), w, h)?;
         let mut faces: Vec<Face> = dets
             .into_iter()
             .map(|d| Face {
@@ -375,6 +417,28 @@ impl FacePack {
             }
         }
         Ok(faces)
+    }
+
+    /// Detection at the configured [`DetSize`].
+    fn detect(&mut self, rgb: &[u8], w: usize, h: usize) -> anyhow::Result<Vec<Detection>> {
+        match self.det_size {
+            DetSize::Fixed(s) => self.detector.detect_at(rgb, w, h, Some(s)),
+            DetSize::Auto => {
+                let coarse = 320usize;
+                let dets = self.detector.detect_at(rgb, w, h, Some(coarse))?;
+                // Pixels of the 320 input per image pixel.
+                let scale = coarse as f32 / w.max(h) as f32;
+                let small = dets.iter().any(|d| {
+                    let side = (d.bbox[2] - d.bbox[0]).min(d.bbox[3] - d.bbox[1]);
+                    side * scale < AUTO_SMALL_FACE
+                });
+                if small && w.max(h) > coarse {
+                    self.detector.detect_at(rgb, w, h, Some(DET_SIZE.0))
+                } else {
+                    Ok(dets)
+                }
+            }
+        }
     }
 
     /// `face_align.norm_crop(img, landmark=face.kps, image_size)`.
@@ -419,6 +483,15 @@ mod tests {
             best_face_matches(&[[0, 31, 11, 21]], &detected),
             vec![Some(1)]
         );
+    }
+
+    #[test]
+    fn det_sizes() {
+        assert_eq!(DetSize::parse(""), Some(DetSize::Fixed(640)));
+        assert_eq!(DetSize::parse("auto"), Some(DetSize::Auto));
+        assert_eq!(DetSize::parse("480"), Some(DetSize::Fixed(480)));
+        assert_eq!(DetSize::parse("500"), None);
+        assert_eq!(DetSize::parse("96"), None);
     }
 
     #[test]

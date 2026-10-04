@@ -13,8 +13,8 @@ pub mod onnx_meta;
 pub mod scrfd;
 
 pub use inprocess::{
-    ArcFace, Face, FacePack, InProcess, Want, best_face_matches, iou, normalize_model_name,
-    to_face_location,
+    ArcFace, DetSize, Face, FacePack, InProcess, Want, best_face_matches, iou,
+    normalize_model_name, to_face_location,
 };
 
 use async_trait::async_trait;

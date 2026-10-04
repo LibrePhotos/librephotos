@@ -326,6 +326,25 @@ def mb(x):
     return round(x / 1048576, 1)
 
 
+def tree_cpu(roots):
+    """CPU seconds (user + system) of every live process of the trees (the
+    server dominates; exited ExifTool processes are not counted)."""
+    total = 0.0
+    for pid in roots.values():
+        try:
+            p = psutil.Process(pid)
+            procs = [p, *p.children(recursive=True)]
+        except psutil.Error:
+            continue
+        for q in procs:
+            try:
+                c = q.cpu_times()
+                total += c.user + c.system
+            except psutil.Error:
+                pass
+    return total
+
+
 def snapshot(sampler, label):
     s = sampler.snap()
     out = {"label": label, "rss_mb": mb(s["rss"]), "private_mb": mb(s["private"]), "procs": s["procs"],
@@ -470,17 +489,23 @@ def cmd_scan(args):
         t0 = time.time()
         deadline = t0 + args.cap
         stages = {}
+        cpu = {"start": tree_cpu(roots)}
         r = api.call("POST", "/api/scanphotos/", json={})
         log("  scan:", r.status_code, r.text[:120])
         stages["scan+tags+clip+faces"], done = wait_quiet(side, db, uid, deadline, "scan + tags/CLIP/faces")
+        cpu["scan"] = tree_cpu(roots)
         result["after_scan"] = snapshot(sampler, "after scan + followups")
         result["counts_after_scan"] = counts(db, uid)
+        if done and args.scan_only:
+            done = False
+            log("  --scan-only: stopping after the scan stage")
         if done:
             r = api.call("POST", "/api/trainfaces/", json={})
             stages["train_faces"], done = wait_quiet(side, db, uid, deadline, "face clustering + training")
         if done:
             r = api.call("POST", "/api/generateocr/", json={"full_scan": True})
             stages["ocr"], done = wait_quiet(side, db, uid, deadline, "OCR full scan")
+            cpu["ocr"] = tree_cpu(roots)
         if done and args.captions:
             hashes = dict(line.split("|") for line in psql(
                 "SELECT f.path, p.image_hash FROM api_photo p JOIN api_file f ON f.hash = p.main_file_id "
@@ -498,9 +523,13 @@ def cmd_scan(args):
             stages["captions"] = round(time.time() - tc, 1)
             result["caption_calls"] = lat
             log(f"  captions: {len(lat)} in {stages['captions']} s")
+        cpu["end"] = tree_cpu(roots)
+        marks = list(cpu.items())
+        result["cpu_s"] = {k: round(v - marks[i - 1][1], 1) for i, (k, v) in enumerate(marks) if i}
+        log("  cpu s per stage:", result["cpu_s"])
         result["stages_s"] = stages
         result["ml_wall_s"] = round(time.time() - t0, 1)
-        result["completed"] = done
+        result["completed"] = done or args.scan_only
         result["end"] = snapshot(sampler, "end of run")
         result["peak"] = {"rss_mb": mb(sampler.peak["rss"]), "private_mb": mb(sampler.peak["private"]),
                           "by_label_mb": {k: mb(v) for k, v in sorted(sampler.peak["by_label"].items())},
@@ -690,6 +719,8 @@ def main():
     s.add_argument("--out", required=True)
     s.add_argument("--cap", type=int, default=540, help="seconds for all ML stages")
     s.add_argument("--captions", type=int, default=10)
+    s.add_argument("--scan-only", action="store_true",
+                   help="stop after scan + tags/CLIP/faces (no face training, OCR, captions)")
     args = ap.parse_args()
     ARGS.no_arena, ARGS.keep = args.no_arena, args.keep
     ARGS.env = dict(kv.split("=", 1) for kv in args.env)
