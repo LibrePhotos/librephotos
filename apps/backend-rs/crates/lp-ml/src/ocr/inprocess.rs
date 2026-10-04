@@ -60,14 +60,46 @@ impl InProcess {
         let (model, dir) = self.bundle()?;
         let path = PathBuf::from(image_path);
         let key = dir.display().to_string();
-        let res = self
-            .slot
-            .run(
-                &key,
-                move || Engine::load(&dir),
-                move |engine| engine.predict(&path, opts),
-            )
-            .await;
+        let res = if crate::pipeline() {
+            // Decode on a blocking thread (originals can be 20+ MP): the slot
+            // only runs the models while the next photos decode.
+            let decoded =
+                tokio::task::spawn_blocking(move || super::ppocr::decode::read_image(&path))
+                    .await
+                    .map_err(|e| crate::failed(Service::Ocr, e.to_string()))?;
+            let prepass = prepass_side();
+            match decoded {
+                Err(e) => Err(anyhow::Error::from(e)),
+                Ok(img) => {
+                    self.slot
+                        .run(
+                            &key,
+                            move || Engine::load(&dir),
+                            move |engine| match prepass {
+                                Some(side) if !opts.det_only => {
+                                    let (boxes, _) = engine.detect(&img, side)?;
+                                    if boxes.is_empty() {
+                                        // No text at the coarse size: an empty result.
+                                        engine.finish(&img, &[], opts)
+                                    } else {
+                                        engine.predict_image(&img, opts)
+                                    }
+                                }
+                                _ => engine.predict_image(&img, opts),
+                            },
+                        )
+                        .await
+                }
+            }
+        } else {
+            self.slot
+                .run(
+                    &key,
+                    move || Engine::load(&dir),
+                    move |engine| engine.predict(&path, opts),
+                )
+                .await
+        };
         res.map_err(|e| {
             if e.downcast_ref::<DecodeError>().is_some() {
                 tracing::warn!(image = image_path, error = %e, "ocr: could not decode image");
@@ -78,6 +110,20 @@ impl InProcess {
             }
         })
     }
+}
+
+/// `LP_OCR_PREPASS`: detection side of a cheap text check before full OCR
+/// (pipelined path only). A photo whose detection at this side finds no
+/// text box gets an empty result without the full-size detection and the
+/// recognition. Unset or 0 = off (default).
+pub fn prepass_side() -> Option<usize> {
+    static SIDE: std::sync::OnceLock<Option<usize>> = std::sync::OnceLock::new();
+    *SIDE.get_or_init(|| {
+        std::env::var("LP_OCR_PREPASS")
+            .ok()
+            .and_then(|v| v.trim().parse::<usize>().ok())
+            .filter(|n| *n >= 64)
+    })
 }
 
 impl Backend for InProcess {

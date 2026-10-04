@@ -235,7 +235,8 @@ Fresh empty DB instead: `createdb` + `librephotos-rs migrate`. Other env: `LP_DB
 thumbnails carry no EXIF/GPS; `all`, `none`), `LP_THUMB_SMALL_Q` (80: WebP quality of the 500/250 px
 squares; big stays 95), `LP_SCAN_CONCURRENCY` (0 = max(workers, min(cores, 4))
 groups a scan renders at once), `LP_ML_PIPELINE` (on: ML jobs prepare photos outside the model slot,
-`0` = serial), `LP_FACE_DET_SIZE` (`640`; `480`/`320`/`auto` fast modes), `WORKER_CONCURRENCY`, `LOG_LEVEL`/`RUST_LOG`, `FEATURE_*`, `TRANSCODE_*`,
+`0` = serial), `LP_FACE_DET_SIZE` (`640`; `480`/`320`/`auto` fast modes), `LP_OCR_PREPASS` (off; e.g. `640`:
+skip full OCR when a coarse detection finds no text), `WORKER_CONCURRENCY`, `LOG_LEVEL`/`RUST_LOG`, `FEATURE_*`, `TRANSCODE_*`,
 `REFRESH_TOKEN_DAYS`, `MAP_*`, `ALLOW_UPLOAD` (see `lp_core::config`), `FRONTEND_BASE_URL`
 (public origin for the OIDC callback), `LP_OIDC_PROVIDERS` (JSON `[{id, name, client_id, secret,
 server_url, settings?}]`, OIDC providers for databases without allauth's `SocialApp` table).
