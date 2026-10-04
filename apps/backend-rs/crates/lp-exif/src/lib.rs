@@ -17,9 +17,9 @@ pub mod attribution;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
-use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::{Arc, Mutex};
-use std::time::{Duration, SystemTime};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::{Arc, Mutex, Weak};
+use std::time::{Duration, Instant, SystemTime};
 
 use serde_json::{Map, Value};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
@@ -31,6 +31,9 @@ pub struct ExifConfig {
     /// Absolute path on Windows (System32 is searched before PATH).
     pub exiftool: PathBuf,
     pub pool_size: usize,
+    /// Stop a process once it has been idle this long (None = keep it until
+    /// the pool goes); the next command starts a fresh one.
+    pub idle_timeout: Option<Duration>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -69,13 +72,17 @@ struct Inner {
     plain: Lane,
     structured: Lane,
     cache: Mutex<HashMap<CacheKey, CacheEntry>>,
+    /// Whether a task is stopping idle processes (`idle_timeout`).
+    reaping: AtomicBool,
 }
 
 #[derive(Debug)]
 struct Lane {
     common_args: &'static [&'static str],
     permits: Semaphore,
-    idle: Mutex<Vec<Proc>>,
+    /// Idle processes with the time each was last used; the most recently
+    /// used is taken first, so surplus processes age out after a burst.
+    idle: Mutex<Vec<(Proc, Instant)>>,
     seq: AtomicU64,
 }
 
@@ -107,6 +114,7 @@ impl ExifPool {
                 plain: Lane::new(&["-G", "-n"], size),
                 structured: Lane::new(&["-struct"], size.min(2)),
                 cache: Mutex::new(HashMap::new()),
+                reaping: AtomicBool::new(false),
                 config,
             }),
         }
@@ -138,7 +146,12 @@ impl ExifPool {
             .acquire()
             .await
             .map_err(|_| ExifError::Closed)?;
-        let popped = lane.idle.lock().expect("exif pool lock").pop();
+        let popped = lane
+            .idle
+            .lock()
+            .expect("exif pool lock")
+            .pop()
+            .map(|(p, _)| p);
         let mut proc = match popped {
             Some(p) => p,
             None => Proc::spawn(&self.inner.config.exiftool, lane.common_args)?,
@@ -146,7 +159,11 @@ impl ExifPool {
         let seq = lane.seq.fetch_add(1, Ordering::Relaxed) + 1;
         match tokio::time::timeout(COMMAND_TIMEOUT, proc.execute(args, seq)).await {
             Ok(Ok(out)) => {
-                lane.idle.lock().expect("exif pool lock").push(proc);
+                lane.idle
+                    .lock()
+                    .expect("exif pool lock")
+                    .push((proc, Instant::now()));
+                self.start_reaper();
                 Ok(out)
             }
             Ok(Err(e)) => {
@@ -432,11 +449,69 @@ impl ExifPool {
     /// Stop every idle process (they also die with the pool).
     pub async fn shutdown(&self) {
         for lane in [&self.inner.plain, &self.inner.structured] {
-            let procs: Vec<Proc> = std::mem::take(&mut *lane.idle.lock().expect("exif pool lock"));
-            for p in procs {
+            let procs = std::mem::take(&mut *lane.idle.lock().expect("exif pool lock"));
+            for (p, _) in procs {
                 p.stop().await;
             }
         }
+    }
+
+    /// Processes running now (idle ones; busy ones are out of the pool).
+    pub fn idle_processes(&self) -> usize {
+        [&self.inner.plain, &self.inner.structured]
+            .iter()
+            .map(|l| l.idle.lock().expect("exif pool lock").len())
+            .sum()
+    }
+
+    /// With `idle_timeout`, make sure a task stops processes idle that long.
+    /// It ends once no process is left and is started again by the next
+    /// command; it holds the pool weakly, so it never keeps it alive.
+    fn start_reaper(&self) {
+        let Some(timeout) = self.inner.config.idle_timeout else {
+            return;
+        };
+        if self.inner.reaping.swap(true, Ordering::AcqRel) {
+            return;
+        }
+        let Ok(rt) = tokio::runtime::Handle::try_current() else {
+            self.inner.reaping.store(false, Ordering::Release);
+            return;
+        };
+        let weak: Weak<Inner> = Arc::downgrade(&self.inner);
+        let tick = (timeout / 4).clamp(Duration::from_millis(250), Duration::from_secs(15));
+        rt.spawn(async move {
+            loop {
+                tokio::time::sleep(tick).await;
+                let Some(inner) = weak.upgrade() else { return };
+                let mut expired = Vec::new();
+                let mut left = 0;
+                for lane in [&inner.plain, &inner.structured] {
+                    let mut idle = lane.idle.lock().expect("exif pool lock");
+                    let (old, keep): (Vec<_>, Vec<_>) =
+                        idle.drain(..).partition(|(_, t)| t.elapsed() >= timeout);
+                    *idle = keep;
+                    left += idle.len();
+                    expired.extend(old.into_iter().map(|(p, _)| p));
+                }
+                if !expired.is_empty() {
+                    tracing::debug!(stopped = expired.len(), "stopping idle exiftool processes");
+                }
+                for p in expired {
+                    p.stop().await;
+                }
+                if left == 0 {
+                    inner.reaping.store(false, Ordering::Release);
+                    // A command may have returned a process meanwhile.
+                    let busy_again = [&inner.plain, &inner.structured]
+                        .iter()
+                        .any(|l| !l.idle.lock().expect("exif pool lock").is_empty());
+                    if !busy_again || inner.reaping.swap(true, Ordering::AcqRel) {
+                        return;
+                    }
+                }
+            }
+        });
     }
 }
 
@@ -636,11 +711,51 @@ mod tests {
         );
     }
 
+    /// ExifTool from `LP_EXIFTOOL`, else the Django venv's; None skips.
+    fn exiftool() -> Option<PathBuf> {
+        let p = std::env::var("LP_EXIFTOOL").map(PathBuf::from).unwrap_or_else(|_| {
+            PathBuf::from(
+                "C:/Users/Niaz/librephotos/wt-windev/apps/backend/.venv-win/Lib/site-packages/exiftool_bin/exiftool.exe",
+            )
+        });
+        p.exists().then_some(p)
+    }
+
+    #[tokio::test]
+    async fn idle_processes_are_stopped_and_restarted_on_demand() {
+        let Some(exiftool) = exiftool() else {
+            eprintln!("no exiftool; skipping");
+            return;
+        };
+        let pool = ExifPool::new(ExifConfig {
+            exiftool,
+            pool_size: 2,
+            idle_timeout: Some(Duration::from_millis(400)),
+        });
+        let ver = vec!["-ver".to_string()];
+        assert!(!pool.execute(false, &ver).await.unwrap().is_empty());
+        assert_eq!(pool.idle_processes(), 1);
+        let deadline = Instant::now() + Duration::from_secs(10);
+        while pool.idle_processes() > 0 && Instant::now() < deadline {
+            tokio::time::sleep(Duration::from_millis(100)).await;
+        }
+        assert_eq!(pool.idle_processes(), 0, "idle process not stopped");
+        // The next command starts a fresh process and a fresh reaper.
+        assert!(!pool.execute(false, &ver).await.unwrap().is_empty());
+        assert_eq!(pool.idle_processes(), 1);
+        let deadline = Instant::now() + Duration::from_secs(10);
+        while pool.idle_processes() > 0 && Instant::now() < deadline {
+            tokio::time::sleep(Duration::from_millis(100)).await;
+        }
+        assert_eq!(pool.idle_processes(), 0, "second idle process not stopped");
+    }
+
     #[tokio::test]
     async fn line_breaks_never_reach_the_argfile() {
         let pool = ExifPool::new(ExifConfig {
             exiftool: PathBuf::from("does-not-exist-exiftool"),
             pool_size: 1,
+            idle_timeout: None,
         });
         let args = vec!["/p/a.jpg\n-o\n/etc/x".to_string()];
         assert!(matches!(

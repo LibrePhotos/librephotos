@@ -28,8 +28,8 @@ use std::sync::OnceLock;
 
 use anyhow::{Context, anyhow};
 use ort::ep::{self, ExecutionProvider, ExecutionProviderDispatch};
-use ort::session::Session;
 use ort::session::builder::SessionBuilder;
+use ort::session::{RunOptions, Session, SessionInputs, SessionOutputs};
 
 pub const CPU: &str = "CPUExecutionProvider";
 pub const CUDA: &str = "CUDAExecutionProvider";
@@ -148,6 +148,11 @@ fn load(cfg: &RuntimeConfig) -> Result<RuntimeInfo, String> {
         match ort::init_from(&lib) {
             Ok(builder) => {
                 let _ = builder.with_name("librephotos").commit();
+                if arena_mode() == ArenaMode::Shared
+                    && let Err(e) = register_shared_arena()
+                {
+                    return Err(format!("shared CPU arena: {e}"));
+                }
                 let providers = resolve_providers(&cfg.providers);
                 let info = RuntimeInfo {
                     build_info: ort::info().to_string(),
@@ -172,17 +177,159 @@ fn load(cfg: &RuntimeConfig) -> Result<RuntimeInfo, String> {
     ))
 }
 
-/// ONNX Runtime's CPU memory arena, on by default as in Python (`ort`
-/// turns it off unless asked). Without it every decoding step of an
-/// autoregressive model allocates afresh: LFM2-VL captions took 2-3x as
-/// long. `LP_ORT_CPU_ARENA=0` trades that speed for a lower peak RSS.
-fn cpu_arena() -> bool {
-    std::env::var("LP_ORT_CPU_ARENA").map_or(true, |v| {
-        !matches!(
-            v.trim().to_ascii_lowercase().as_str(),
-            "0" | "false" | "no" | "off"
-        )
+/// What ONNX Runtime's CPU memory arena does (`LP_ORT_CPU_ARENA`).
+///
+/// A per-session arena keeps every buffer a run allocated for the next run
+/// instead of returning it, so it grows to the largest input that session
+/// has seen and never shrinks (OCR on a document page: ~400 MB for a 31 MB
+/// model). Without an arena every tensor comes from the system allocator.
+/// ML-on scan of 290 photos, 4 cores (`bench/OPTIMIZATIONS.md` #1): `on`
+/// 1.84 GB peak / 1.57 GB after captions, `shared` 1.34 / 0.59 GB with OCR
+/// +3% and everything else unchanged, `off` 1.32 / 0.52 GB with OCR +6%.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ArenaMode {
+    /// `1`/`on`: one arena per session, kept at its high-water mark (ORT's
+    /// and Python's default; the fastest by a few percent).
+    On,
+    /// `0`/`off`: no arena, every tensor from the system allocator.
+    Off,
+    /// `shrink`: one arena per session, whose free regions are handed back
+    /// after each run (`memory.enable_memory_arena_shrinkage`).
+    Shrink,
+    /// `shared` (default): one arena for every session, registered on the
+    /// environment, extended by exactly what is requested
+    /// (`kSameAsRequested`) and shrunk after each run.
+    Shared,
+}
+
+impl ArenaMode {
+    pub fn parse(v: &str) -> Option<ArenaMode> {
+        Some(match v.trim().to_ascii_lowercase().as_str() {
+            "1" | "true" | "yes" | "on" => ArenaMode::On,
+            "0" | "false" | "no" | "off" => ArenaMode::Off,
+            "shrink" => ArenaMode::Shrink,
+            "shared" => ArenaMode::Shared,
+            _ => return None,
+        })
+    }
+
+    fn shrinks(self) -> bool {
+        matches!(self, ArenaMode::Shrink | ArenaMode::Shared)
+    }
+}
+
+/// The default when `LP_ORT_CPU_ARENA` is unset.
+pub const DEFAULT_ARENA: ArenaMode = ArenaMode::Shared;
+
+pub fn arena_mode() -> ArenaMode {
+    static MODE: OnceLock<ArenaMode> = OnceLock::new();
+    *MODE.get_or_init(|| match std::env::var("LP_ORT_CPU_ARENA") {
+        Err(_) => DEFAULT_ARENA,
+        Ok(v) if v.trim().is_empty() => DEFAULT_ARENA,
+        Ok(v) => ArenaMode::parse(&v).unwrap_or_else(|| {
+            tracing::warn!(value = %v, "LP_ORT_CPU_ARENA: expected 1, 0, shrink or shared");
+            DEFAULT_ARENA
+        }),
     })
+}
+
+fn cpu_arena() -> bool {
+    arena_mode() != ArenaMode::Off
+}
+
+/// Run options that hand the CPU arena's free regions back after the run,
+/// when the arena mode shrinks.
+fn shrink_options() -> Option<&'static RunOptions> {
+    static OPTS: OnceLock<Option<RunOptions>> = OnceLock::new();
+    OPTS.get_or_init(|| {
+        if !arena_mode().shrinks() {
+            return None;
+        }
+        let mut o = RunOptions::new().ok()?;
+        match o.set("memory.enable_memory_arena_shrinkage", "cpu:0") {
+            Ok(()) => Some(o),
+            Err(e) => {
+                tracing::warn!(error = %e, "ONNX Runtime refused arena shrinkage");
+                None
+            }
+        }
+    })
+    .as_ref()
+}
+
+/// `session.run(inputs)`, shrinking the CPU arena afterwards when the arena
+/// mode asks for it. Every model call goes through here.
+pub fn run<'s, 'i, 'v: 'i, const N: usize>(
+    session: &'s mut Session,
+    inputs: impl Into<SessionInputs<'i, 'v, N>>,
+) -> ort::Result<SessionOutputs<'s>> {
+    match shrink_options() {
+        Some(o) => session.run_with_options(inputs, o),
+        None => session.run(inputs),
+    }
+}
+
+/// `session.run(inputs)` without shrinking, for the steps of a loop whose
+/// next step needs the same buffers again (autoregressive decoding).
+pub fn run_keep<'s, 'i, 'v: 'i, const N: usize>(
+    session: &'s mut Session,
+    inputs: impl Into<SessionInputs<'i, 'v, N>>,
+) -> ort::Result<SessionOutputs<'s>> {
+    session.run(inputs)
+}
+
+/// `ArenaMode::Shared`: register one CPU arena allocator
+/// (`kSameAsRequested`) on the environment for every session to use.
+fn register_shared_arena() -> Result<(), String> {
+    use ort::AsPointer;
+    use ort::sys::{OrtAllocatorType, OrtArenaCfg, OrtMemType, OrtMemoryInfo, OrtStatusPtr};
+    let api = ort::api();
+    let check = |st: OrtStatusPtr, what: &str| -> Result<(), String> {
+        if st.0.is_null() {
+            return Ok(());
+        }
+        // SAFETY: a non-null status from the C API, released once.
+        let msg = unsafe {
+            let m = std::ffi::CStr::from_ptr((api.GetErrorMessage)(st.0))
+                .to_string_lossy()
+                .into_owned();
+            (api.ReleaseStatus)(st.0);
+            m
+        };
+        Err(format!("{what}: {msg}"))
+    };
+    let env = ort::environment::Environment::current().map_err(|e| e.to_string())?;
+    let keys = [c"arena_extend_strategy".as_ptr()];
+    let values = [1usize]; // kSameAsRequested
+    let mut cfg: *mut OrtArenaCfg = std::ptr::null_mut();
+    let mut info: *mut OrtMemoryInfo = std::ptr::null_mut();
+    // SAFETY: plain C API calls with valid out-pointers; both objects are
+    // released after registering (the environment copies what it needs).
+    unsafe {
+        check(
+            (api.CreateArenaCfgV2)(keys.as_ptr(), values.as_ptr(), keys.len(), &mut cfg),
+            "CreateArenaCfgV2",
+        )?;
+        let r = check(
+            (api.CreateCpuMemoryInfo)(
+                OrtAllocatorType::OrtArenaAllocator,
+                OrtMemType::OrtMemTypeDefault,
+                &mut info,
+            ),
+            "CreateCpuMemoryInfo",
+        )
+        .and_then(|()| {
+            check(
+                (api.CreateAndRegisterAllocator)(env.ptr().cast_mut(), info, cfg),
+                "CreateAndRegisterAllocator",
+            )
+        });
+        if !info.is_null() {
+            (api.ReleaseMemoryInfo)(info);
+        }
+        (api.ReleaseArenaCfg)(cfg);
+        r
+    }
 }
 
 fn dispatch(name: &str) -> Option<ExecutionProviderDispatch> {
@@ -233,6 +380,11 @@ pub fn session_builder() -> anyhow::Result<SessionBuilder> {
     b = b
         .with_execution_providers(eps)
         .map_err(|e| anyhow!("execution providers: {e}"))?;
+    if arena_mode() == ArenaMode::Shared {
+        b = b
+            .with_env_allocators()
+            .map_err(|e| anyhow!("shared CPU arena: {e}"))?;
+    }
     Ok(b)
 }
 

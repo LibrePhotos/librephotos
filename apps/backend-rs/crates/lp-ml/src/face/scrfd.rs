@@ -115,7 +115,7 @@ impl Scrfd {
         in_h: usize,
     ) -> anyhow::Result<(Vec<f32>, Vec<[f32; 4]>, Vec<[[f32; 2]; 5]>)> {
         let input = Tensor::from_array(([1usize, 3, in_h, in_w], blob))?;
-        let outs = self.session.run(ort::inputs![input])?;
+        let outs = crate::runtime::run(&mut self.session, ort::inputs![input])?;
         let mut scores_all = Vec::new();
         let mut bboxes_all = Vec::new();
         let mut kpss_all = Vec::new();

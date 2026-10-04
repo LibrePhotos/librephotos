@@ -4,6 +4,11 @@ a no-change rescan, and duplicate detection.
   python w4.py scan  --out <dir> [--reps 3 --workers 6 --variants django-shipped,django-tuned,rust]
   python w4.py dupes --out <dir> [--ds 50k --reps 3]
 
+A/B of Rust settings in one binary: `--variants rust,rust@v --variant-env v:LP_X=1,LP_Y=2`
+(alternating order per rep). `--idle-wait 75` snapshots the tree's memory 75 s after
+the rescan; `--dump-phash` writes image_hash/pHash per run. Rust runs also record the
+tree's peak working set and private bytes per executable (psutil).
+
 Django runs as it ships (uvicorn web + `manage.py qcluster` with
 WORKER_CONCURRENCY=N, ORM broker, and the exif sidecar on its fixed port 8010);
 django-tuned only lifts qcluster's 50-task worker recycling. Rust runs
@@ -76,16 +81,18 @@ def queue_busy(db, kind):
 class Stack:
     """One contender for background work: web server (+ qcluster + exif sidecar for Django)."""
 
-    def __init__(self, variant, db, media, workers):
+    def __init__(self, variant, db, media, workers, env=None):
         self.variant, self.db, self.media, self.workers = variant, db, media, workers
-        self.kind = "rust" if variant == "rust" else "django"
+        # `rust@<name>`: the Rust server with the extra env of --variant-env <name>:...
+        self.kind = "rust" if variant.split("@")[0] == "rust" else "django"
+        self.env = env or {}
         self.helpers = []
         self.server = None
 
     def start(self):
         if self.kind == "rust":
             self.server = lpb.Server("rust", self.db, WEB_PORT, media=self.media,
-                                     extra_env={"WORKER_CONCURRENCY": str(self.workers)}).start()
+                                     extra_env={"WORKER_CONCURRENCY": str(self.workers), **self.env}).start()
         else:
             if lpb.listener_pid(EXIF_PORT) is not None:
                 raise RuntimeError(f"port {EXIF_PORT} (exif sidecar) is already taken")
@@ -190,18 +197,93 @@ def scan_outcome(db, uid, media):
         "SELECT count(*), count(*) FILTER (WHERE video), count(exif_timestamp), count(exif_gps_lat), "
         "count(t.photo_id), count(perceptual_hash), count(DISTINCT image_hash) "
         f"FROM api_photo p LEFT JOIN api_thumbnail t ON t.photo_id = p.id WHERE p.owner_id = {uid}").split("|")
-    files = sum(len(os.listdir(os.path.join(media, "protected_media", k)))
-                for k in ("thumbnails_big", "square_thumbnails", "square_thumbnails_small")
-                if os.path.isdir(os.path.join(media, "protected_media", k)))
+    files, sizes = 0, {}
+    for k in ("thumbnails_big", "square_thumbnails", "square_thumbnails_small"):
+        d = os.path.join(media, "protected_media", k)
+        if os.path.isdir(d):
+            names = os.listdir(d)
+            files += len(names)
+            sizes[k] = sum(os.path.getsize(os.path.join(d, n)) for n in names)
     keys = ["photos", "videos", "with_timestamp", "with_gps", "with_thumbnail_row", "with_phash", "distinct_hashes"]
     out = dict(zip(keys, map(int, row)))
     out["thumbnail_files"] = files
+    out["thumbnail_bytes"] = sizes
     out["date_albums"] = int(q(f"SELECT count(*) FROM api_albumdate WHERE owner_id = {uid}"))
+    return out
+
+
+class ExeSampler:
+    """psutil, every 0.5 s: working set and private bytes of the server's tree,
+    the total and per executable name (exiftool's perl next to the server)."""
+
+    def __init__(self, root_pid, period=0.5):
+        import threading
+        self.root, self.period = root_pid, period
+        self.peak = {"rss": 0, "private": 0, "by_exe_at_peak": {}}
+        self.peak_by_exe = {}
+        self.max_procs = {}
+        self._stop = threading.Event()
+        self._t = threading.Thread(target=self._run, daemon=True)
+        self._t.start()
+
+    @staticmethod
+    def snap(root_pid):
+        import psutil
+        try:
+            p = psutil.Process(root_pid)
+            procs = [p, *p.children(recursive=True)]
+        except psutil.Error:
+            return {"rss": 0, "private": 0, "by_exe": {}, "procs": {}}
+        rss = priv = 0
+        by, n = {}, {}
+        for q in procs:
+            try:
+                m, name = q.memory_info(), q.name().lower()
+            except psutil.Error:
+                continue
+            rss += m.rss
+            priv += m.private
+            e = by.setdefault(name, [0, 0])
+            e[0] += m.rss
+            e[1] += m.private
+            n[name] = n.get(name, 0) + 1
+        return {"rss": rss, "private": priv, "by_exe": by, "procs": n}
+
+    def _run(self):
+        while not self._stop.is_set():
+            s = self.snap(self.root)
+            if s["rss"] > self.peak["rss"]:
+                self.peak.update(rss=s["rss"], by_exe_at_peak=s["by_exe"])
+            self.peak["private"] = max(self.peak["private"], s["private"])
+            for k, (r, pv) in s["by_exe"].items():
+                cur = self.peak_by_exe.setdefault(k, [0, 0])
+                cur[0], cur[1] = max(cur[0], r), max(cur[1], pv)
+            for k, c in s["procs"].items():
+                self.max_procs[k] = max(self.max_procs.get(k, 0), c)
+            self._stop.wait(self.period)
+
+    def finish(self):
+        self._stop.set()
+        self._t.join()
+        mib = lambda b: round(b / 2**20, 1)  # noqa: E731
+        return {"peak_rss_mib": mib(self.peak["rss"]), "peak_private_mib": mib(self.peak["private"]),
+                "by_exe_at_peak_mib": {k: [mib(r), mib(p)] for k, (r, p) in self.peak["by_exe_at_peak"].items()},
+                "peak_by_exe_mib": {k: [mib(r), mib(p)] for k, (r, p) in self.peak_by_exe.items()},
+                "max_procs": self.max_procs}
+
+
+def variant_envs(specs):
+    """--variant-env name:K=V,K2=V2 (repeatable) -> {name: {K: V}}."""
+    out = {}
+    for spec in specs or []:
+        name, _, kv = spec.partition(":")
+        out[name] = dict(item.split("=", 1) for item in kv.split(",") if item)
     return out
 
 
 def stage_scan(args):
     scan_template()
+    envs = variant_envs(args.variant_env)
     path = os.path.join(args.out, "scan.jsonl")
     rows = lpb.read_jsonl(path) if args.resume else []
     if not args.resume and os.path.exists(path):
@@ -216,20 +298,27 @@ def stage_scan(args):
             for variant in order:
                 if (rep, variant) in done:
                     continue
-                db = f"lp_run_scan_{variant.replace('-', '_')}"
-                media = os.path.join(lpb.RUNS, "scan-media", variant)
+                slug = variant.replace("-", "_").replace("@", "_")
+                db = f"lp_run_scan_{slug}"
+                media = os.path.join(lpb.RUNS, "scan-media", slug)
                 shutil.rmtree(media, ignore_errors=True)
                 os.makedirs(os.path.join(media, "data"), exist_ok=True)
                 lpb.clone(SCAN_TEMPLATE, db)
                 uid = user_id(db, SCAN_USER)
-                stack = Stack(variant, db, media, args.workers).start()
+                env = envs.get(variant.partition("@")[2], {}) if "@" in variant else {}
+                stack = Stack(variant, db, media, args.workers, env).start()
                 try:
                     lpb.quiesce(stack.pids() + [pm], limit_s=60)
                     cpu0 = lpb.lpbench("procstat", "--pids", ",".join(map(str, stack.pids())))["cpu_s"]
                     sampler = lpb.TreeSampler(stack.pids(), period=0.5)
+                    exe = ExeSampler(stack.server.proc.pid) if stack.kind == "rust" else None
                     job_id, t0 = stack.trigger_scan(uid)
                     wall, j = wait_job(db, job_id, t0, args.timeout, "scan")
                     rss = sampler.finish()
+                    if exe:
+                        rss["exe"] = exe.finish()
+                        log(f"  tree peak {rss['exe']['peak_rss_mib']} MiB rss / {rss['exe']['peak_private_mib']} MiB "
+                            f"private; by exe at peak {rss['exe']['by_exe_at_peak_mib']}; procs {rss['exe']['max_procs']}")
                     cpu_tree = lpb.lpbench("procstat", "--pids", ",".join(map(str, stack.pids())))["cpu_s"] - cpu0
                     cpu = rss["cpu_s"]
                     outcome = scan_outcome(db, uid, media)
@@ -243,7 +332,21 @@ def stage_scan(args):
                     cpu2 = lpb.lpbench("procstat", "--pids", ",".join(map(str, stack.pids())))["cpu_s"] - cpu1
                     after = scan_outcome(db, uid, media)
                     log(f"rescan rep{rep} {variant:<15} {wall2:7.2f} s  target {j2['target']}  photos {after['photos']}")
+                    idle = {}
+                    if stack.kind == "rust":
+                        idle["after_rescan"] = ExeSampler.snap(stack.server.proc.pid)
+                        if args.idle_wait:
+                            time.sleep(args.idle_wait)
+                            idle[f"after_{args.idle_wait:g}s"] = ExeSampler.snap(stack.server.proc.pid)
+                        for k, s in idle.items():
+                            log(f"  idle {k}: rss {s['rss'] / 2**20:.1f} MiB private {s['private'] / 2**20:.1f} MiB "
+                                f"procs {s['procs']}")
+                    if args.dump_phash:
+                        with open(os.path.join(args.out, f"phash_{slug}_rep{rep}.tsv"), "w", encoding="utf-8") as f:
+                            f.write(lpb.psql("SELECT p.image_hash, p.perceptual_hash FROM api_photo p "
+                                             f"WHERE p.owner_id = {uid} ORDER BY 1", db) + "\n")
                     lpb.append_jsonl(path, {
+                        "idle": idle,
                         "rep": rep, "variant": variant, "workers": args.workers, "scan_s": wall,
                         "scan_db_s": j["db_seconds"], "files_per_s": outcome["photos"] / wall, "cpu_s": cpu,
                         "cpu_s_live_tree": cpu_tree,
@@ -320,6 +423,11 @@ def main():
     ap.add_argument("--variants", default="django-shipped,django-tuned,rust")
     ap.add_argument("--timeout", type=float, default=3600)
     ap.add_argument("--resume", action="store_true")
+    ap.add_argument("--variant-env", action="append",
+                    help="name:K=V,K2=V2 = extra env of variant rust@name (repeatable)")
+    ap.add_argument("--idle-wait", type=float, default=0,
+                    help="after the rescan, wait this long and snapshot the tree's memory again")
+    ap.add_argument("--dump-phash", action="store_true", help="write image_hash -> pHash per run")
     args = ap.parse_args()
     os.makedirs(args.out, exist_ok=True)
     {"scan": stage_scan, "dupes": stage_dupes}[args.stage](args)

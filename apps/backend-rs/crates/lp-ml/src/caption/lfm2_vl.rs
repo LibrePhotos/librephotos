@@ -270,11 +270,14 @@ impl Lfm2Vl {
             [1usize, 2],
             vec![patches.patches_h as i64, patches.patches_w as i64],
         ))?;
-        let out = self.vision.run(ort::inputs![
-            "pixel_values" => pixel_values,
-            "pixel_attention_mask" => mask,
-            "spatial_shapes" => spatial,
-        ])?;
+        let out = crate::runtime::run(
+            &mut self.vision,
+            ort::inputs![
+                "pixel_values" => pixel_values,
+                "pixel_attention_mask" => mask,
+                "spatial_shapes" => spatial,
+            ],
+        )?;
         to_f32(&out[0]).context("image_features")
     }
 
@@ -282,7 +285,7 @@ impl Lfm2Vl {
     fn embed_ids(&mut self, ids: Vec<i64>) -> anyhow::Result<(Vec<i64>, Vec<f32>)> {
         let n = ids.len();
         let input = Tensor::from_array(([1usize, n], ids))?;
-        let out = self.embed.run(ort::inputs!["input_ids" => input])?;
+        let out = crate::runtime::run_keep(&mut self.embed, ort::inputs!["input_ids" => input])?;
         to_f32(&out[0]).context("inputs_embeds")
     }
 
@@ -361,7 +364,13 @@ impl Lfm2Vl {
             for (name, value) in &cache {
                 feed.push((name.as_str().into(), value.into()));
             }
-            let outputs = self.decoder.run(feed)?;
+            // Shrink after the prefill (the large step) only: every later step
+            // needs the same buffers again.
+            let outputs = if step == 0 {
+                crate::runtime::run(&mut self.decoder, feed)?
+            } else {
+                crate::runtime::run_keep(&mut self.decoder, feed)?
+            };
             let mut next_cache = Vec::with_capacity(cache.len());
             let mut logits = None;
             for (name, value) in outputs {

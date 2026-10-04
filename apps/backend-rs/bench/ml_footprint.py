@@ -4,7 +4,8 @@
   python ml_footprint.py models --out models.json     # Rust: RSS idle / per model / all / after unload
   python ml_footprint.py models --only clip|tags|faces|ocr|caption --out iso.json   # one model per process
   python ml_footprint.py scan rs|dj --concurrency N --out scan.json [--cap 540] [--captions 10]
-  global flags, before the mode: --no-arena (Rust with LP_ORT_CPU_ARENA=0), --keep (keep DB + BASE_DATA)
+  global flags, before the mode: --no-arena (Rust with LP_ORT_CPU_ARENA=0), --keep (keep DB + BASE_DATA),
+  --env K=V (repeatable, extra backend env, e.g. --env LP_ORT_CPU_ARENA=shrink)
 
 Each run gets a fresh clone of lp_fixture (lp_run_foot_<side><N>) with user `foot`
 scanning <root>/lib/foot (or lib/tiny for `models`), and a BASE_DATA whose
@@ -61,7 +62,7 @@ SIDECARS = {
     "ocr": ["service/ocr/main.py"],
 }
 FLAGS = subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.DETACHED_PROCESS
-ARGS = argparse.Namespace(no_arena=False, keep=False)
+ARGS = argparse.Namespace(no_arena=False, keep=False, env={})
 TINY = ["group_t1_orig.jpg", "portrait_hanks_orig.jpg", "portrait_astronaut_orig.jpg",
         "text_document_1240x1754.jpg", "text_receipt_720x1100.jpg", "scene_chelsea.jpg"]
 CAPTION_PICKS = ["group_t1_orig", "portrait_hanks_orig", "portrait_astronaut_orig", "scene_chelsea",
@@ -221,6 +222,7 @@ def start(side, db, base, conc, extra=None):
     if ARGS.no_arena:
         env["LP_ORT_CPU_ARENA"] = "0"
     env.update(extra or {})
+    env.update(ARGS.env)
     logs = base / "logs"
     roots = {}
     if side == "rs":
@@ -276,7 +278,7 @@ class Sampler(threading.Thread):
         self.lock = threading.Lock()
 
     def snap(self):
-        by, total_r, total_p, nproc = {}, 0, 0, 0
+        by, by_exe, total_r, total_p, nproc = {}, {}, 0, 0, 0
         for label, pid in self.roots.items():
             try:
                 p = psutil.Process(pid)
@@ -286,15 +288,18 @@ class Sampler(threading.Thread):
             for q in procs:
                 try:
                     m = q.memory_info()
+                    name = q.name().lower()
                     if q.cpu_affinity() != SERVER_CPUS:
                         q.cpu_affinity(SERVER_CPUS)
                 except psutil.Error:
                     continue
                 by[label] = by.get(label, 0) + m.rss
+                by_exe[name] = by_exe.get(name, 0) + m.rss
                 total_r += m.rss
                 total_p += m.private
                 nproc += 1
-        return {"t": time.time(), "rss": total_r, "private": total_p, "procs": nproc, "by_label": by}
+        return {"t": time.time(), "rss": total_r, "private": total_p, "procs": nproc, "by_label": by,
+                "by_exe": by_exe}
 
     def run(self):
         while not self.stop_ev.is_set():
@@ -302,7 +307,8 @@ class Sampler(threading.Thread):
             with self.lock:
                 self.samples.append((s["t"], s["rss"], s["private"]))
                 if s["rss"] > self.peak["rss"]:
-                    self.peak.update(rss=s["rss"], t=s["t"], by_label=s["by_label"], procs=s["procs"])
+                    self.peak.update(rss=s["rss"], t=s["t"], by_label=s["by_label"], procs=s["procs"],
+                                     by_exe=s["by_exe"])
                 self.peak["private"] = max(self.peak["private"], s["private"])
             self.stop_ev.wait(self.interval)
 
@@ -319,7 +325,8 @@ def mb(x):
 def snapshot(sampler, label):
     s = sampler.snap()
     out = {"label": label, "rss_mb": mb(s["rss"]), "private_mb": mb(s["private"]), "procs": s["procs"],
-           "by_label_mb": {k: mb(v) for k, v in sorted(s["by_label"].items())}}
+           "by_label_mb": {k: mb(v) for k, v in sorted(s["by_label"].items())},
+           "by_exe_mb": {k: mb(v) for k, v in sorted(s["by_exe"].items())}}
     log(f"  {label:<34} rss {out['rss_mb']:8.1f} MB  private {out['private_mb']:8.1f} MB  ({s['procs']} procs)")
     return out
 
@@ -448,7 +455,7 @@ def cmd_scan(args):
     roots = start(side, db, base, conc)
     sampler = Sampler(roots)
     result = {"side": side, "concurrency": conc, "db": db, "bin": str(RS_BIN) if side == "rs" else None,
-              "no_arena": ARGS.no_arena}
+              "no_arena": ARGS.no_arena, "env": ARGS.env}
     try:
         api, ready_s = wait_ready(side, roots)
         sampler.start()
@@ -493,6 +500,7 @@ def cmd_scan(args):
         result["end"] = snapshot(sampler, "end of run")
         result["peak"] = {"rss_mb": mb(sampler.peak["rss"]), "private_mb": mb(sampler.peak["private"]),
                           "by_label_mb": {k: mb(v) for k, v in sorted(sampler.peak["by_label"].items())},
+                          "by_exe_mb": {k: mb(v) for k, v in sorted(sampler.peak.get("by_exe", {}).items())},
                           "procs": sampler.peak.get("procs")}
         result["counts"] = counts(db, uid)
         result["lrj"] = lrj_rows(db, uid)
@@ -542,7 +550,7 @@ def cmd_isolated(args):
         extra["FEATURE_IMAGE_CAPTIONING"] = "1"
     roots = start(side, db, base, 1, extra)
     sampler = Sampler(roots, interval=0.25)
-    res = {"service": args.only, "steps": [], "no_arena": ARGS.no_arena}
+    res = {"service": args.only, "steps": [], "no_arena": ARGS.no_arena, "env": ARGS.env}
     try:
         api, res["ready_s"] = wait_ready(side, roots)
         sampler.start()
@@ -587,7 +595,7 @@ def cmd_models(args):
     pin_postgres(PG_CPUS)
     roots = start(side, db, base, 1)
     sampler = Sampler(roots, interval=0.25)
-    res = {"steps": [], "bin": str(RS_BIN), "no_arena": ARGS.no_arena}
+    res = {"steps": [], "bin": str(RS_BIN), "no_arena": ARGS.no_arena, "env": ARGS.env}
 
     def step(label, **extra):
         s = snapshot(sampler, label)
@@ -663,6 +671,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--no-arena", action="store_true", help="LP_ORT_CPU_ARENA=0 for the Rust server")
     ap.add_argument("--keep", action="store_true", help="keep the run's DB and BASE_DATA")
+    ap.add_argument("--env", action="append", default=[], metavar="K=V",
+                    help="extra environment for the backend processes (repeatable), e.g. LP_ORT_CPU_ARENA=shrink")
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("library")
     m = sub.add_parser("models")
@@ -676,6 +686,7 @@ def main():
     s.add_argument("--captions", type=int, default=10)
     args = ap.parse_args()
     ARGS.no_arena, ARGS.keep = args.no_arena, args.keep
+    ARGS.env = dict(kv.split("=", 1) for kv in args.env)
     if args.cmd == "library":
         library()
     elif args.cmd == "models":

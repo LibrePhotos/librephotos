@@ -38,6 +38,38 @@ type FnSetInt = unsafe extern "C" fn(c_int);
 type FnUnref = unsafe extern "C" fn(*mut c_void);
 type FnGetData = unsafe extern "C" fn(*mut VipsImage) -> *const c_void;
 
+/// `VIPS_FOREIGN_KEEP_ICC`: the colour profile, without which a wide-gamut
+/// (Adobe RGB, Display P3) thumbnail would show washed out.
+pub const KEEP_ICC: c_int = 1 << 3;
+/// `VIPS_FOREIGN_KEEP_NONE`.
+pub const KEEP_NONE: c_int = 0;
+
+fn env_int(name: &str) -> Option<c_int> {
+    std::env::var(name).ok()?.trim().parse().ok()
+}
+
+/// `LP_THUMB_KEEP`: which metadata thumbnails carry over from the original:
+/// `icc` (default: the colour profile only), `all` (libvips' default: EXIF
+/// with GPS, XMP, IPTC, ICC; thumbnails are what shared and public views
+/// load, so that leaks the location) or `none` (wide-gamut photos then show
+/// washed out). Pixels and so pHash are the same either way.
+fn thumbnail_keep() -> Option<c_int> {
+    match std::env::var("LP_THUMB_KEEP")
+        .unwrap_or_default()
+        .trim()
+        .to_ascii_lowercase()
+        .as_str()
+    {
+        "all" => None,
+        "icc" | "" => Some(KEEP_ICC),
+        "none" => Some(KEEP_NONE),
+        other => {
+            tracing::warn!(value = other, "LP_THUMB_KEEP: expected icc, all or none");
+            Some(KEEP_ICC)
+        }
+    }
+}
+
 /// `VIPS_FORMAT_UCHAR`.
 const FORMAT_UCHAR: c_int = 0;
 
@@ -56,6 +88,9 @@ pub struct Vips {
     error_buffer: FnErrorBuffer,
     error_clear: FnVoid,
     unref: FnUnref,
+    /// `keep` for webpsave (`VipsForeignKeep` flags, `LP_THUMB_KEEP`); None =
+    /// libvips' default, every piece of metadata (EXIF with GPS, XMP, IPTC, ICC).
+    keep: Option<c_int>,
     /// Pixel readout for [`Vips::decode_rgb8`]; optional so a libvips
     /// without it still renders thumbnails.
     pixels: Option<(FnGetInt, FnGetInt, FnGetData)>,
@@ -105,8 +140,13 @@ impl Vips {
             // No operation cache: a cached load keeps the file open (Windows
             // then refuses to delete or rewrite it) and hands back stale
             // pixels for a file changed in place.
+            // (With nothing cached, `vips_cache_set_max_mem` has nothing to cap.)
             cache_max(0);
-            concurrency(2);
+            // Threads per libvips operation (`LP_VIPS_CONCURRENCY`, 0 = one
+            // per core). Scan workers already run side by side: 2 is as fast
+            // as 1 and 6% faster than one per core (`bench/OPTIMIZATIONS.md` #3).
+            let threads = env_int("LP_VIPS_CONCURRENCY").unwrap_or(2);
+            concurrency(threads.max(0));
             Vips {
                 thumbnail: sym!(lib, "vips_thumbnail"),
                 thumbnail_image: sym!(lib, "vips_thumbnail_image"),
@@ -121,6 +161,7 @@ impl Vips {
                 error_buffer: sym!(lib, "vips_error_buffer"),
                 error_clear: sym!(lib, "vips_error_clear"),
                 unref: sym!(lib, "g_object_unref"),
+                keep: thumbnail_keep(),
                 pixels: (|| -> Result<_, String> {
                     Ok((
                         sym!(lib, "vips_image_get_bands"),
@@ -341,24 +382,40 @@ impl Image {
     /// `effort` None leaves libwebp's default (the legacy render).
     pub fn webpsave(&self, path: &Path, q: i32, effort: Option<i32>) -> Result<(), String> {
         let c = CString::new(path.to_string_lossy().as_bytes()).map_err(|e| e.to_string())?;
+        let save = self.vips.webpsave;
+        let (p, out, q) = (self.ptr, c.as_ptr(), q as c_int);
         let rc = unsafe {
-            match effort {
-                Some(e) => (self.vips.webpsave)(
-                    self.ptr,
-                    c.as_ptr(),
+            match (effort, self.vips.keep) {
+                (Some(e), Some(k)) => save(
+                    p,
+                    out,
                     c"Q".as_ptr(),
-                    q as c_int,
+                    q,
+                    c"effort".as_ptr(),
+                    e as c_int,
+                    c"keep".as_ptr(),
+                    k,
+                    ptr::null::<c_char>(),
+                ),
+                (Some(e), None) => save(
+                    p,
+                    out,
+                    c"Q".as_ptr(),
+                    q,
                     c"effort".as_ptr(),
                     e as c_int,
                     ptr::null::<c_char>(),
                 ),
-                None => (self.vips.webpsave)(
-                    self.ptr,
-                    c.as_ptr(),
+                (None, Some(k)) => save(
+                    p,
+                    out,
                     c"Q".as_ptr(),
-                    q as c_int,
+                    q,
+                    c"keep".as_ptr(),
+                    k,
                     ptr::null::<c_char>(),
                 ),
+                (None, None) => save(p, out, c"Q".as_ptr(), q, ptr::null::<c_char>()),
             }
         };
         if rc != 0 {

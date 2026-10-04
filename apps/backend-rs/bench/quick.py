@@ -2,6 +2,7 @@
 
   python quick.py [--ds 50k] [--conc 32] [--duration 4] [--contenders django-tuned,rust]
                   [--endpoints date_list,photo_detail] [--label note]
+                  [--expect-bytes media_big=15210]  (a media file swapped on purpose)
 
 One cell per (endpoint, contender): 1 s warm-up + --duration s measured at one
 concurrency, checked against the endpoint plan of the full run. Prints a
@@ -35,12 +36,19 @@ def main():
     ap.add_argument("--contenders", default="django-tuned,rust")
     ap.add_argument("--endpoints", default="")
     ap.add_argument("--label", default="")
+    ap.add_argument("--expect-bytes", default="",
+                    help="endpoint=N,...: expected body size when a media file was swapped on purpose")
     args = ap.parse_args()
 
     plan = load_plan(args.ds)
     if args.endpoints:
         want = set(args.endpoints.split(","))
         plan = [e for e in plan if e["name"] in want]
+    for item in filter(None, args.expect_bytes.split(",")):
+        name, n = item.split("=")
+        for e in plan:
+            if e["name"] == name:
+                e["check"] = dict(e["check"], bytes=int(n))
     names = args.contenders.split(",")
     token = lpb.mint_token()
     t0 = time.perf_counter()

@@ -19,6 +19,18 @@ fn providers_parse() {
     assert!(lp_ml::runtime::parse_providers("").is_empty());
 }
 
+#[test]
+fn arena_modes_parse() {
+    use lp_ml::runtime::ArenaMode;
+    assert_eq!(ArenaMode::parse("1"), Some(ArenaMode::On));
+    assert_eq!(ArenaMode::parse(" OFF "), Some(ArenaMode::Off));
+    assert_eq!(ArenaMode::parse("0"), Some(ArenaMode::Off));
+    assert_eq!(ArenaMode::parse("shrink"), Some(ArenaMode::Shrink));
+    assert_eq!(ArenaMode::parse("Shared"), Some(ArenaMode::Shared));
+    assert_eq!(ArenaMode::parse("bogus"), None);
+    assert_eq!(lp_ml::runtime::DEFAULT_ARENA, ArenaMode::Shared);
+}
+
 fn detector() -> Option<PathBuf> {
     let lib = std::env::var_os("LP_ORT_LIB").or_else(|| std::env::var_os("ORT_DYLIB_PATH"));
     if lib.is_none() {
@@ -50,7 +62,7 @@ async fn a_model_runs_in_a_slot_and_unloads() {
             move || lp_ml::runtime::session(&path),
             |s| {
                 let input = Tensor::from_array(([1usize, 3, 640, 640], vec![0f32; 3 * 640 * 640]))?;
-                let out = s.run(ort::inputs![input])?;
+                let out = lp_ml::runtime::run(s, ort::inputs![input])?;
                 let mut shapes = Vec::new();
                 for (_, v) in out.iter() {
                     let (shape, _) = v.try_extract_tensor::<f32>()?;

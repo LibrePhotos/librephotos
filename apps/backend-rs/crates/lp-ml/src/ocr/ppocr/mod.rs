@@ -464,7 +464,7 @@ impl Engine {
             cfg.det_std,
         );
         let input = Tensor::from_array(([1usize, 3, nh, nw], x))?;
-        let out = self.det.run(ort::inputs![input])?;
+        let out = crate::runtime::run(&mut self.det, ort::inputs![input])?;
         let (shape, prob) = out[0].try_extract_tensor::<f32>()?;
         let (ph, pw) = match shape[..] {
             [_, _, h, w] => (h as usize, w as usize),
@@ -494,7 +494,7 @@ impl Engine {
                 .collect();
             let (dims, data) = preprocess::stack(&tensors, c, h, w);
             let input = Tensor::from_array((dims, data))?;
-            let out = self.rec.run(ort::inputs![input])?;
+            let out = crate::runtime::run(&mut self.rec, ort::inputs![input])?;
             let (oshape, probs) = out[0].try_extract_tensor::<f32>()?;
             let (t, classes) = match oshape[..] {
                 [_, t, c] => (t as usize, c as usize),

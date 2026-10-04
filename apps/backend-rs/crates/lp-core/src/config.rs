@@ -92,7 +92,12 @@ pub struct Config {
     pub log_level: String,
     pub media_mode: MediaMode,
     pub db_pool: u32,
+    /// `LP_EXIF_POOL`: ExifTool processes per lane (default min(2, cores);
+    /// the scan reads metadata in batches, so 2 keep up with 6 workers).
     pub exif_pool: usize,
+    /// `LP_EXIF_IDLE_SECS`: stop ExifTool processes idle this long (default
+    /// 60, like the ML idle unload; 0 = keep them).
+    pub exif_idle_secs: u64,
     /// `LP_DEV_FALLBACK`: unmatched /api and /media requests are proxied here.
     pub dev_fallback: Option<String>,
     pub bind: SocketAddr,
@@ -223,7 +228,8 @@ impl Config {
             log_level: get("LOG_LEVEL").unwrap_or_else(|| "info".into()),
             media_mode,
             db_pool: parse_num(get, "LP_DB_POOL", (2 * cores) as u32)?.max(1),
-            exif_pool: parse_num(get, "LP_EXIF_POOL", cores.min(4))?.max(1),
+            exif_pool: parse_num(get, "LP_EXIF_POOL", cores.min(2))?.max(1),
+            exif_idle_secs: parse_num(get, "LP_EXIF_IDLE_SECS", 60)?,
             dev_fallback: get("LP_DEV_FALLBACK")
                 .map(|s| s.trim().trim_end_matches('/').to_string())
                 .filter(|s| !s.is_empty()),

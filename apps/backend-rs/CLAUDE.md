@@ -181,6 +181,9 @@ Shared files (`lp-api/src/lib.rs`, `lp-api/src/common/`, `lp-db/src/{scope,pig,u
   (bit-exact with Pillow/cv2) when `LP_VIPS_LIB` is set.
 - ONNX Runtime is loaded at runtime (`ort` load-dynamic): `LP_ORT_LIB` (or
   `ORT_DYLIB_PATH`) = `.../onnxruntime/capi/onnxruntime.dll` of the Django venv here.
+  Every model call goes through `lp_ml::runtime::run(&mut session, inputs)` (it applies
+  the CPU arena mode: `LP_ORT_CPU_ARENA=shared` by default, one environment-wide arena
+  shrunk after each run); `run_keep` only for steps that reuse the buffers (decoder loops).
 - Models: `lp_ml::models` (the `api/ml_models.py` catalog, sha256 pins, `.part` +
   rename); job `models.download` (`lp_tasks::models`), queued by the triggers when
   models are missing (`LP_ML_AUTO_DOWNLOAD`, off in `TestApp`); ML jobs wait for a
@@ -222,7 +225,9 @@ cargo run -p lp-server -- serve          # optional LP_DEV_FALLBACK=http://127.0
 ```
 
 Fresh empty DB instead: `createdb` + `librephotos-rs migrate`. Other env: `LP_DB_POOL`,
-`LP_EXIF_POOL`, `WORKER_CONCURRENCY`, `LOG_LEVEL`/`RUST_LOG`, `FEATURE_*`, `TRANSCODE_*`,
+`LP_EXIF_POOL` (2) / `LP_EXIF_IDLE_SECS` (60, idle ExifTool processes stop), `LP_ORT_CPU_ARENA`
+(`shared` default, `1`/`0`/`shrink`), `LP_VIPS_CONCURRENCY` (2), `LP_THUMB_KEEP` (`icc` default:
+thumbnails carry no EXIF/GPS; `all`, `none`), `WORKER_CONCURRENCY`, `LOG_LEVEL`/`RUST_LOG`, `FEATURE_*`, `TRANSCODE_*`,
 `REFRESH_TOKEN_DAYS`, `MAP_*`, `ALLOW_UPLOAD` (see `lp_core::config`), `FRONTEND_BASE_URL`
 (public origin for the OIDC callback), `LP_OIDC_PROVIDERS` (JSON `[{id, name, client_id, secret,
 server_url, settings?}]`, OIDC providers for databases without allauth's `SocialApp` table).

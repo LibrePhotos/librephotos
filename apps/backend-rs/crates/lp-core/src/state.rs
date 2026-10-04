@@ -57,6 +57,8 @@ impl AppState {
         let exif = lp_exif::ExifPool::new(lp_exif::ExifConfig {
             exiftool: config.binaries.exiftool.clone(),
             pool_size: config.exif_pool,
+            idle_timeout: (config.exif_idle_secs > 0)
+                .then(|| Duration::from_secs(config.exif_idle_secs)),
         });
         let sidecars = lp_sidecars::Sidecars::new(http.clone(), "127.0.0.1");
         let settings = Arc::new(ArcSwap::from_pointee(settings));

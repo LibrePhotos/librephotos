@@ -63,7 +63,7 @@ impl Clip {
         for batch in pixels.chunks(IMAGE_BATCH_SIZE) {
             let (shape, data) = preprocess::stack(batch, 3, s, s);
             let input = Tensor::from_array((shape, data))?;
-            let outputs = self.vision.run(ort::inputs![input])?;
+            let outputs = crate::runtime::run(&mut self.vision, ort::inputs![input])?;
             let (shape, data) = outputs[0].try_extract_tensor::<f32>()?;
             let dim = embedding_dim(shape, batch.len())?;
             out.extend(data.chunks_exact(dim).map(<[f32]>::to_vec));
@@ -76,7 +76,7 @@ impl Clip {
         let ids = tokenize::encode_ids(&self.tokenizer, text, Some(CONTEXT_LENGTH))?;
         let n = ids.len();
         let input = Tensor::from_array(([1usize, n], ids))?;
-        let outputs = self.text.run(ort::inputs![input])?;
+        let outputs = crate::runtime::run(&mut self.text, ort::inputs![input])?;
         let (shape, data) = outputs[0].try_extract_tensor::<f32>()?;
         let dim = embedding_dim(shape, 1)?;
         Ok(data[..dim].to_vec())

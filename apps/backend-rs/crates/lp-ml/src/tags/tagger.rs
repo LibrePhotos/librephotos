@@ -160,7 +160,7 @@ fn run_outputs(
     session: &mut Session,
     inputs: Vec<(String, SessionInputValue<'_>)>,
 ) -> anyhow::Result<Vec<Matrix>> {
-    let outputs = session.run(inputs)?;
+    let outputs = crate::runtime::run(session, inputs)?;
     let mut mats = Vec::with_capacity(outputs.len());
     for i in 0..outputs.len() {
         let (shape, data) = outputs[i].try_extract_tensor::<f32>()?;

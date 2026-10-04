@@ -270,7 +270,7 @@ impl ArcFace {
     pub fn embed(&mut self, crop: &[u8]) -> anyhow::Result<Vec<f32>> {
         let blob = scrfd::blob_bgr_swapped(crop, self.size, self.size, self.mean, self.std);
         let input = Tensor::from_array(([1usize, 3, self.size, self.size], blob))?;
-        let outs = self.session.run(ort::inputs![input])?;
+        let outs = crate::runtime::run(&mut self.session, ort::inputs![input])?;
         let (_, data) = outs[0].try_extract_tensor::<f32>()?;
         Ok(data.to_vec())
     }
