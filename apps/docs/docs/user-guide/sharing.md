@@ -82,6 +82,8 @@ Each of these settings can be toggled independently per album. When left unset, 
 
 **All five are off by default** — both as the built-in fallback and as the initial value of your user-level defaults, following a privacy-first, opt-in approach. So on a brand-new public link, visitors don't see any of these per-photo details until you turn the relevant options on.
 
+These settings cover what the page shows. The images themselves carry no hidden metadata: thumbnails are stored without the photo's EXIF and XMP (GPS position, camera serial number, keywords), keeping only the colour profile. Thumbnails created by older releases may still contain it. Run `python manage.py strip_thumbnail_metadata` once after upgrading to clean them; see [Management Commands](library.md#management-commands). Videos are played from the original file, so a video keeps whatever its camera recorded, including the location.
+
 :::caution
 Changes to the slug, expiration and Photo Details settings are **not applied until you click "Save link settings"** at the bottom of the settings panel. That button stays disabled until you change something; the **Public sharing** toggle itself only saves the on/off state.
 :::
