@@ -251,6 +251,9 @@ pub struct Selection {
     pub face_recognition_model: String,
     pub ocr_model: String,
     pub captioning_model: String,
+    /// `SEMANTIC_SEARCH_MODEL`: the model behind CLIP search and similar
+    /// photos (`mobileclip_s2`, also when empty, or `clip_vit_b32`).
+    pub semantic_search_model: String,
 }
 
 /// A selection under which `m` counts as selected (explicit downloads).
@@ -260,6 +263,7 @@ pub fn selecting(m: &ModelSpec) -> Selection {
         face_recognition_model: m.name.into(),
         ocr_model: m.name.into(),
         captioning_model: m.name.into(),
+        semantic_search_model: m.name.into(),
     }
 }
 
@@ -274,10 +278,14 @@ pub fn is_selected(m: &ModelSpec, sel: &Selection) -> bool {
     match m.ml_type {
         // Always kept available: turning captioning on never waits for a download.
         MlType::Captioning => true,
-        MlType::Tagging => m.name == sel.tagging_model,
+        MlType::Tagging => {
+            m.name == sel.tagging_model
+                || m.name == crate::clip::SemanticModel::of(&sel.semantic_search_model).name()
+        }
         MlType::FaceRecognition => m.name == sel.face_recognition_model,
         MlType::Ocr => !not_selected(&sel.ocr_model) && m.name == sel.ocr_model,
-        MlType::Clip => true,
+        // The semantic-search model (CLIP ViT-B/32 unless MobileCLIP-S2 is chosen).
+        MlType::Clip => m.name == crate::clip::SemanticModel::of(&sel.semantic_search_model).name(),
     }
 }
 

@@ -529,6 +529,7 @@ fn ml_with(media_root: &Path, ocr_model: &str) -> lp_ml::Ml {
             face_recognition_model: "buffalo_sc".into(),
             ocr_model: model.clone(),
             captioning_model: "lfm2_vl_450m".into(),
+            semantic_search_model: String::new(),
         }),
     )
 }

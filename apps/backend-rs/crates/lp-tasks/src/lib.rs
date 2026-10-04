@@ -137,7 +137,7 @@ pub fn register_jobs(reg: &mut HandlerRegistry) {
         )
         .await?;
         // `embed` fails the job itself when only the index build failed.
-        clip::embed(&ctx.state, p.user_id, &job_id).await
+        clip::embed(&ctx.state, p.user_id, p.full_scan.unwrap_or(false), &job_id).await
     });
     reg.register("similarity.build", |ctx: JobCtx| async move {
         let p = user_payload(&ctx)?;

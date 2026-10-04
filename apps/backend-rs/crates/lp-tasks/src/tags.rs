@@ -100,12 +100,20 @@ pub async fn tag_photo(state: &AppState, photo_id: Uuid) -> Result<(), TagError>
         .fetch_one(&state.db)
         .await?;
     let image_path = path_str(&thumb);
-    let reply = match state
-        .ml()
-        .tags()
-        .generate_tags(&image_path, user_confidence, &model)
-        .await
-    {
+    let ml = state.ml();
+    // Semantic search on the tagging model: the same run gives the embedding.
+    let result = if ml.semantic_shares_tagger() {
+        ml.tags()
+            .generate_tags_with_embedding(&image_path, user_confidence, &model)
+            .await
+            .map(|(v, e)| (v, Some(e)))
+    } else {
+        ml.tags()
+            .generate_tags(&image_path, user_confidence, &model)
+            .await
+            .map(|v| (v, None))
+    };
+    let (reply, embedding) = match result {
         Ok(v) => v,
         Err(e @ (SidecarError::Status { .. } | SidecarError::Body { .. })) => {
             tracing::warn!(image = %image_path, error = %e, "tag service gave no tags");
@@ -133,6 +141,19 @@ pub async fn tag_photo(state: &AppState, photo_id: Uuid) -> Result<(), TagError>
         .unwrap_or_default();
 
     let mut tx = state.db.begin().await?;
+    if let Some(e) = embedding {
+        let magnitude = lp_ml::preprocess::l2_norm(&e);
+        let e: Vec<f64> = e.into_iter().map(f64::from).collect();
+        sqlx::query(
+            "UPDATE api_photo SET clip_embeddings = $2, clip_embeddings_magnitude = $3, \
+               last_modified = now() WHERE id = $1",
+        )
+        .bind(photo_id)
+        .bind(Value::from(e))
+        .bind(magnitude)
+        .execute(&mut *tx)
+        .await?;
+    }
     sqlx::query(
         "UPDATE api_photo_caption SET captions_json = jsonb_set( \
            CASE WHEN jsonb_typeof(captions_json) = 'object' THEN captions_json ELSE '{}'::jsonb END, \

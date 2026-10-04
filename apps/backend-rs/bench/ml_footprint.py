@@ -5,7 +5,8 @@
   python ml_footprint.py models --only clip|tags|faces|ocr|caption --out iso.json   # one model per process
   python ml_footprint.py scan rs|dj --concurrency N --out scan.json [--cap 540] [--captions 10]
   global flags, before the mode: --no-arena (Rust with LP_ORT_CPU_ARENA=0), --keep (keep DB + BASE_DATA),
-  --env K=V (repeatable, extra backend env, e.g. --env LP_ORT_CPU_ARENA=shrink)
+  --env K=V (repeatable, extra backend env, e.g. --env LP_ORT_CPU_ARENA=shrink),
+  --site KEY=VALUE (repeatable, site setting row, e.g. --site SEMANTIC_SEARCH_MODEL=mobileclip_s2)
 
 Each run gets a fresh clone of lp_fixture (lp_run_foot_<side><N>) with user `foot`
 scanning <root>/lib/foot (or lib/tiny for `models`), and a BASE_DATA whose
@@ -62,7 +63,7 @@ SIDECARS = {
     "ocr": ["service/ocr/main.py"],
 }
 FLAGS = subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.DETACHED_PROCESS
-ARGS = argparse.Namespace(no_arena=False, keep=False, env={})
+ARGS = argparse.Namespace(no_arena=False, keep=False, env={}, site={})
 TINY = ["group_t1_orig.jpg", "portrait_hanks_orig.jpg", "portrait_astronaut_orig.jpg",
         "text_document_1240x1754.jpg", "text_receipt_720x1100.jpg", "scene_chelsea.jpg"]
 CAPTION_PICKS = ["group_t1_orig", "portrait_hanks_orig", "portrait_astronaut_orig", "scene_chelsea",
@@ -160,6 +161,9 @@ def setup(side, tag, lib):
 DELETE FROM constance_constance WHERE key = 'OCR_MODEL';
 INSERT INTO constance_constance (key, value) VALUES ('OCR_MODEL', '{{"__type__": "default", "__value__": "ppocrv6_small"}}');
 INSERT INTO site_settings (key, value) VALUES ('OCR_MODEL', '"ppocrv6_small"')
+    ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;""", db)
+    for k, v in ARGS.site.items():
+        psql(f"""INSERT INTO site_settings (key, value) VALUES ('{k}', '{json.dumps(v)}')
     ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;""", db)
     return db, base
 
@@ -455,7 +459,7 @@ def cmd_scan(args):
     roots = start(side, db, base, conc)
     sampler = Sampler(roots)
     result = {"side": side, "concurrency": conc, "db": db, "bin": str(RS_BIN) if side == "rs" else None,
-              "no_arena": ARGS.no_arena, "env": ARGS.env}
+              "no_arena": ARGS.no_arena, "env": ARGS.env, "site": ARGS.site}
     try:
         api, ready_s = wait_ready(side, roots)
         sampler.start()
@@ -673,6 +677,8 @@ def main():
     ap.add_argument("--keep", action="store_true", help="keep the run's DB and BASE_DATA")
     ap.add_argument("--env", action="append", default=[], metavar="K=V",
                     help="extra environment for the backend processes (repeatable), e.g. LP_ORT_CPU_ARENA=shrink")
+    ap.add_argument("--site", action="append", default=[], metavar="KEY=VALUE",
+                    help="site setting (string value) for the run's DB (repeatable)")
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("library")
     m = sub.add_parser("models")
@@ -687,6 +693,7 @@ def main():
     args = ap.parse_args()
     ARGS.no_arena, ARGS.keep = args.no_arena, args.keep
     ARGS.env = dict(kv.split("=", 1) for kv in args.env)
+    ARGS.site = dict(kv.split("=", 1) for kv in args.site)
     if args.cmd == "library":
         library()
     elif args.cmd == "models":

@@ -433,15 +433,19 @@ pub async fn queue_followups(
     )
     .await?;
     let f = &state.config.features;
-    if f.scene_classification {
-        lp_jobs::enqueue(
-            state,
-            "tags.generate",
-            json!({"user_id": user_id, "full_scan": full_scan}),
-            EnqueueOptions::tracked(JobType::GenerateTags, user_id),
+    let tags = if f.scene_classification {
+        Some(
+            lp_jobs::enqueue(
+                state,
+                "tags.generate",
+                json!({"user_id": user_id, "full_scan": full_scan}),
+                EnqueueOptions::tracked(JobType::GenerateTags, user_id),
+            )
+            .await?,
         )
-        .await?;
-    }
+    } else {
+        None
+    };
     if f.reverse_geocoding {
         lp_jobs::enqueue(
             state,
@@ -451,13 +455,17 @@ pub async fn queue_followups(
         )
         .await?;
     }
-    let clip = lp_jobs::enqueue(
-        state,
-        "clip.embed",
-        json!({"user_id": user_id}),
-        EnqueueOptions::tracked(JobType::CalculateClipEmbeddings, user_id),
-    )
-    .await?;
+    let mut clip_opts = EnqueueOptions::tracked(JobType::CalculateClipEmbeddings, user_id);
+    if let Some(tags) = tags
+        .as_ref()
+        .filter(|_| state.ml().semantic_shares_tagger())
+    {
+        // tags.generate stores the embeddings; CLIP only fills the gaps
+        // and rebuilds the index once it is done.
+        clip_opts = clip_opts.after(tags.id);
+    }
+    let clip =
+        lp_jobs::enqueue(state, "clip.embed", json!({"user_id": user_id}), clip_opts).await?;
     if f.face_detection {
         // Django's Chain: faces run once the CLIP job has finished.
         lp_jobs::enqueue(

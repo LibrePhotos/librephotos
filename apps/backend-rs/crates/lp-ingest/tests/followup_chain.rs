@@ -44,7 +44,17 @@ async fn faces_scan_waits_for_clip_embed() {
     let clip = queued.iter().find(|r| r.1 == "clip.embed").unwrap();
     let faces = queued.iter().find(|r| r.1 == "faces.scan").unwrap();
     assert_eq!(faces.2, vec![clip.0], "faces.scan depends on clip.embed");
-    for r in queued.iter().filter(|r| r.1 != "faces.scan") {
+    // With MobileCLIP-S2 serving tags and search (the default), the tagger
+    // stores the embeddings and clip.embed only fills the gaps after it.
+    let unified = app.state.ml().semantic_shares_tagger();
+    let tags = queued.iter().find(|r| r.1 == "tags.generate").unwrap();
+    if unified {
+        assert_eq!(clip.2, vec![tags.0], "clip.embed depends on tags.generate");
+    }
+    for r in queued
+        .iter()
+        .filter(|r| r.1 != "faces.scan" && !(unified && r.1 == "clip.embed"))
+    {
         assert!(r.2.is_empty(), "{} has no dependency", r.1);
     }
 

@@ -225,6 +225,14 @@ pub async fn serve(config: Config, run_migrations: bool) -> anyhow::Result<()> {
     let worker_task = tokio::spawn(worker.run(shutdown.clone()));
     let startup = state.clone();
     tokio::spawn(async move {
+        match lp_tasks::clip::reembed_mismatched(&startup).await {
+            Ok(0) => {}
+            Ok(n) => tracing::info!(
+                users = n,
+                "queued re-embedding for the semantic-search model"
+            ),
+            Err(e) => tracing::error!(error = %e, "semantic-search model check failed"),
+        }
         match lp_tasks::clip::rebuild_stale_indices(&startup).await {
             Ok(0) => {}
             Ok(n) => tracing::info!(users = n, "rebuilt similarity indices at startup"),

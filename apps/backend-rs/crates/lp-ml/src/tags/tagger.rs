@@ -394,6 +394,8 @@ pub struct Prediction {
     pub scores: Vec<f32>,
     /// The L2-normalised image embedding.
     pub embedding: Vec<f32>,
+    /// The image tower's output as is (what CLIP search stores).
+    pub raw: Vec<f32>,
 }
 
 impl Tagger {
@@ -411,6 +413,13 @@ impl Tagger {
 
     /// `embed_image`: the L2-normalised image embedding.
     pub fn embed_image(&mut self, path: &Path) -> anyhow::Result<Vec<f32>> {
+        let mut emb = self.embed_image_raw(path)?;
+        l2_normalize(&mut emb);
+        Ok(emb)
+    }
+
+    /// The image tower's pooled output, not normalised.
+    pub fn embed_image_raw(&mut self, path: &Path) -> anyhow::Result<Vec<f32>> {
         let (size, pixels) = prepare_image(self.model, path)?;
         let name = input_names(&self.vision)
             .into_iter()
@@ -418,7 +427,7 @@ impl Tagger {
             .context("vision model has no inputs")?;
         let t = Tensor::from_array(([1usize, 3, size, size], pixels))?;
         let outputs = run_outputs(&mut self.vision, vec![(name, t.into())])?;
-        let mut emb = select_pooled(&outputs, 1, None)?;
+        let emb = select_pooled(&outputs, 1, None)?;
         if emb.len() != self.dim {
             bail!(
                 "image embedding has {} values, the tag embeddings {}",
@@ -426,7 +435,6 @@ impl Tagger {
                 self.dim
             );
         }
-        l2_normalize(&mut emb);
         Ok(emb)
     }
 
@@ -437,7 +445,9 @@ impl Tagger {
         threshold: f32,
         max_tags: usize,
     ) -> anyhow::Result<Prediction> {
-        let embedding = self.embed_image(path)?;
+        let raw = self.embed_image_raw(path)?;
+        let mut embedding = raw.clone();
+        l2_normalize(&mut embedding);
         let mut scores: Vec<f32> = self
             .embeddings
             .chunks_exact(self.dim)
@@ -454,6 +464,7 @@ impl Tagger {
             tags,
             scores,
             embedding,
+            raw,
         })
     }
 }

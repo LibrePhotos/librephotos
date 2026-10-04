@@ -22,6 +22,7 @@ Benchmarks used:
 | 2 | ExifTool pool: idle processes stop after `LP_EXIF_IDLE_SECS` (60, new default), default `LP_EXIF_POOL` min(4, cores) -> min(2, cores) | W4 scan: wall (s), CPU (s), tree peak working set / private (MiB), tree 75 s after the rescan (MiB) | pool 4, kept: 124.6 [132.7, 124.3, 124.6], 691, 1,194 [1,181, 1,205, 1,194] / 1,262, idle 309 [299, 314, 309] | idle 60 s: 127.9 [128.8, 125.2, 127.9], 696, 1,192 [1,280, 1,156, 1,192], idle **133** [133, 136, 133]; pool 2: 125.2 [129.2, 125.0, 125.2], 693, **1,094** [1,086, 1,094, 1,110] / 1,179, idle 222 [218, 224, 222] | idle -176 MiB (-57%); pool 2: peak -100 MiB (-8%); speed within noise for both | yes (both defaults) | round 1 (see git log) |
 | 3 | libvips threads per operation `LP_VIPS_CONCURRENCY` (default stays 2); operation cache was already off (`vips_cache_set_max(0)`, so `set_max_mem` has nothing to cap) | W4 scan: wall (s), CPU (s), server-process peak (MiB) | 2 threads: 124.6 [132.7, 124.3, 124.6], 691, 199 [199, 221, 197] | 1 thread: 123.2 [129.1, 123.1, 123.2], 685, 185 [185, 177, 188]; 0 (= 12, one per core): 130.9 [132.2, 129.7], 719, 232 [224, 239] | 1: -1% wall, -1% CPU, -14 MiB server (noise-level, tree peak unchanged); per-core: +5% wall, +4% CPU, +33 MiB | knob kept, default unchanged (2) | round 1 (see git log) |
 | 4 | Thumbnails keep only the ICC profile (`webpsave keep=icc`, `LP_THUMB_KEEP=icc` new default; `all` = old, `none`) | W4: thumbnail bytes per photo (big / square / small), total; pHash; scan (s). Serving req/s (c=32, 8 s/cell, 3 alternating runs). Colour (Adobe-RGB-tagged JPEG) | `all`: 225,024 / 37,226 / 7,767 B, 546.79 MB; scan 124.6 [132.7, 124.3, 124.6]; square_small 3,398 [2,887, 3,398, 3,404], big 3,807 [4,510, 1,975, 3,807] | `icc`: 224,626 / 36,828 / 7,369 B, 544.37 MB; scan 124.9 [126.3, 124.2, 124.9]; square_small 3,871 [3,871, 2,681, 4,135], big 3,935 [3,908, 2,995, 3,935] | -398 B per thumbnail (-0.2% / -1.1% / -5.1%), -0.44% total; pHash identical 2,025/2,025 (x3 runs); scan and serving within noise; **no EXIF/GPS in any thumbnail**, ICC kept, colour diff 0 (`none`: 22 levels off on Adobe RGB) | yes (default `icc`) | round 1 (see git log) |
+| 5 | Semantic search on MobileCLIP-S2 (`SEMANTIC_SEARCH_MODEL=mobileclip_s2`, new default; `clip_vit_b32` = old): with the tagger in-process, `tags.generate` stores the raw image embedding of its own MobileCLIP run as `clip_embeddings`, `clip.embed` waits for it and only fills gaps; queries use the MobileCLIP text tower; thresholds per model (search 27 -> 1.84, similar 90 -> 0.71) | ML-on scan (round 2 protocol, 2 alternating runs each): scan+tags+CLIP+faces (s), OCR (s), 10 captions (s), peak RSS / private (MB), RSS after the scan stage; search quality on 30 hand-labelled queries | ViT-B/32: 143.8 [138.8, 148.8] (2.02/s), OCR 157.9 [156.1, 159.6], captions 32.3 [32.5, 32.0], peak **1,314** [1,338, 1,290] / 1,271, after scan 891 [898, 885]; P@10 0.173 (ideal 0.200), R@20 0.899, MRR 0.840 | MobileCLIP: **118.7** [121.1, 116.3] (**2.44/s**), OCR 150.3 [158.1, 142.4], captions 31.8 [32.8, 30.7], peak **699** [699.2, 698.9] / 717, after scan 299 [276, 322]; P@10 0.193, R@20 0.959, MRR 0.872 | scan stage **-17.5%** (CLIP job 18.9 s -> 0.1 s), peak **-615 MB (-47%)**, OCR/captions within noise; search quality better on all three metrics | yes (default `mobileclip_s2`); existing ViT-B/32 embeddings are re-embedded once | see git log: `perf(backend-rs): round 2 #5 ...` |
 
 ## Notes
 
@@ -69,3 +70,45 @@ PR):** `api/thumbnails.py` writes every WebP with `WEBP = {"Q": 95, "effort": 2}
 libvips' default metadata, so Django thumbnails also carry the original's EXIF/GPS; add
 `"keep": pyvips.enums.ForeignKeep.ICC` (libvips >= 8.15; the image ships 8.18) to `WEBP`.
 Existing thumbnails keep their EXIF until they are re-rendered (both backends).
+
+## Round 2 (target: scan stage >= 4 photos/s with the whole run < 1,000 MB)
+
+Same ML-on scan as round 1 (`ml_footprint.py scan rs`, 290 photos, 4 pinned cores, 1 worker),
+now with `--site KEY=VALUE` (site setting rows of the run's DB) and CPU seconds per stage
+(`cpu_s`, from #6 on). Baseline of the round: 143.8 s (2.02 photos/s), peak 1,314 MB.
+
+**5. One vision model per photo.** Before, every photo went through two image towers:
+MobileCLIP-S2 (256 px, tags) and CLIP ViT-B/32 (224 px, search; vision + text towers = 690 MB
+resident, loaded for the whole scan). The ViT-B/32 slot stayed loaded through most of the
+OCR stage (120 s idle unload), which is where round 1's 1.34 GB peak sat (OCR arena + CLIP +
+tagger + faces). With `SEMANTIC_SEARCH_MODEL=mobileclip_s2` the tagger's run also yields the
+search embedding (the pooled image output before normalisation, magnitude ~1), stored in
+the same transaction as the tags; `clip.embed` is chained after `tags.generate` and only
+embeds photos the tagger skipped (through the tagger slot, so no second copy of the model)
+and rebuilds the index. Text queries load only the MobileCLIP text tower (254 MB, idle
+unload as before; the ViT text tower is 254 MB too, plus its 352 MB vision tower).
+
+- Quality (`quality.py`, scratch): stored embeddings of one kept run per model, 30 queries
+  hand-labelled on the corpus (16 skimage/astronaut/portrait/group scenes, masks, documents,
+  receipt, sign, poster, handwriting, the 26 synthetic shape images; variants of one source
+  count as relevant together), ranked by the raw inner product as the index does.
+  ViT-B/32: P@10 0.173, R@20 0.899, MRR 0.840; MobileCLIP-S2: P@10 0.193, R@20 0.959,
+  MRR 0.872 (ideal P@10 0.200: most queries have one relevant photo). Per query MobileCLIP is
+  better on "an astronaut" (R@20 0.2 -> 1.0: ViT's raw inner product favours its high-norm
+  images), "a printed document page" (0 -> 1.0), moon, microscope, receipt; worse only on
+  "a logo" (MRR 1.0 -> 0.06). The corpus is small and mostly synthetic; the result says
+  "comparable or better", not more.
+- Thresholds: raw scales differ (ViT image/text norms ~10.4/9.6, MobileCLIP 0.97/9.6), so the
+  cuts are calibrated to the same mean number of hits: search 27 -> 1.84 (10.1 vs 10.2 photos
+  per query; thresholded precision/recall 0.445/0.701 -> 0.528/0.938), similar photos
+  90 -> 0.71 (77.9 vs 77.8 per photo; the corpus is dominated by near-identical generated
+  gradients).
+- Switching: ViT-B/32 embeddings have magnitude ~9-12, MobileCLIP ~0.9-1.2, so
+  `lp_tasks::clip::reembed_mismatched` (startup + site settings POST) drops the embeddings
+  the selected model cannot have produced (magnitude split at 3) and queues `clip.embed` for
+  their owners: **an existing library re-embeds once** (one MobileCLIP image pass, ~0.15 s
+  per photo on 4 cores) and search is degraded until it finishes. `LP_ML_CLIP=sidecar` keeps
+  ViT-B/32 (the Python sidecar runs nothing else), and ViT-B/32 is no longer downloaded
+  unless selected. Django on the same database would still query with ViT-B/32 (Rust-only
+  setting).
+- Remaining scan stage (MobileCLIP): scan 51 s, tags 43.7 s, faces 24.5 s, all sequential.

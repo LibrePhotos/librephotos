@@ -14,6 +14,7 @@ fn ml(media_root: &std::path::Path) -> Ml {
             face_recognition_model: "buffalo_sc".into(),
             ocr_model: "ppocrv6_small".into(),
             captioning_model: "lfm2_vl_450m".into(),
+            semantic_search_model: String::new(),
         }),
     )
 }

@@ -14,12 +14,18 @@ fn sel(tagging: &str, face: &str, ocr: &str) -> Selection {
         face_recognition_model: face.into(),
         ocr_model: ocr.into(),
         captioning_model: "lfm2_vl_450m".into(),
+        semantic_search_model: String::new(),
     }
 }
 
 #[test]
 fn selection_follows_the_site_settings() {
     let s = sel("mobileclip_s2", "buffalo_sc", "none");
+    let names: Vec<&str> = models::required(&s).map(|m| m.name).collect();
+    // MobileCLIP-S2 serves tags and semantic search: no CLIP ViT-B/32.
+    assert_eq!(names, ["mobileclip_s2", "buffalo_sc", "lfm2_vl_450m"]);
+    let mut s = sel("mobileclip_s2", "buffalo_sc", "none");
+    s.semantic_search_model = "clip_vit_b32".into();
     let names: Vec<&str> = models::required(&s).map(|m| m.name).collect();
     assert_eq!(
         names,
@@ -30,7 +36,11 @@ fn selection_follows_the_site_settings() {
             "lfm2_vl_450m"
         ]
     );
-    let s = sel("siglip2", "antelopev2", "ppocrv6_medium");
+    let mut s = sel("siglip2", "antelopev2", "ppocrv6_medium");
+    let names: Vec<&str> = models::required(&s).map(|m| m.name).collect();
+    // Semantic search keeps MobileCLIP-S2 next to the SigLIP 2 tagger.
+    assert!(names.contains(&"siglip2") && names.contains(&"mobileclip_s2"));
+    s.semantic_search_model = "clip_vit_b32".into();
     let names: Vec<&str> = models::required(&s).map(|m| m.name).collect();
     assert!(names.contains(&"siglip2") && names.contains(&"ppocrv6_medium"));
     assert!(!names.contains(&"mobileclip_s2") && !names.contains(&"buffalo_sc"));

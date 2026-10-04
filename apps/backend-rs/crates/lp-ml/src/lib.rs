@@ -432,6 +432,34 @@ impl<'a> MlView<'a> {
         self.ml
     }
 
+    /// The semantic-search model in effect: the site setting's, except that
+    /// the Python CLIP sidecar only runs ViT-B/32, so `LP_ML_CLIP=sidecar`
+    /// (or a redirected sidecar) keeps ViT-B/32.
+    pub fn semantic_model(&self) -> clip::SemanticModel {
+        let selected =
+            clip::SemanticModel::of(&self.ml.inner.ctx.selection().semantic_search_model);
+        if selected == clip::SemanticModel::MobileClipS2 && !self.is_inprocess(Service::Clip) {
+            clip::SemanticModel::ClipVitB32
+        } else {
+            selected
+        }
+    }
+
+    /// Semantic search runs on the tagging model: MobileCLIP-S2 is both the
+    /// semantic-search and the tagging model and tags run in-process, so one
+    /// image-tower run per photo gives the tags and the stored embedding.
+    pub fn semantic_shares_tagger(&self) -> bool {
+        let sel = self.ml.inner.ctx.selection();
+        let semantic = self.semantic_model();
+        let tagging = match sel.tagging_model.trim() {
+            "" => tags::tagger::Model::DEFAULT.name(),
+            t => t,
+        };
+        semantic == clip::SemanticModel::MobileClipS2
+            && tagging == semantic.name()
+            && self.is_inprocess(Service::Tags)
+    }
+
     /// Whether calls for `s` go to the in-process implementation now.
     pub fn is_inprocess(&self, s: Service) -> bool {
         let b = self.ml.backend(s);

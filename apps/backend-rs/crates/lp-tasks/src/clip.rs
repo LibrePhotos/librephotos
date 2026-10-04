@@ -5,6 +5,7 @@ use std::path::Path;
 
 use lp_core::AppState;
 use lp_core::codecs::ClipEmbedding;
+use lp_ml::clip::SemanticModel;
 use serde_json::Value;
 use sqlx::FromRow;
 use uuid::Uuid;
@@ -19,7 +20,55 @@ pub const INDEX_PAGE_SIZE: usize = 5000;
 
 /// `settings.CLIP_ROOT`, the model directory the CLIP sidecar is told to use.
 pub fn clip_model_dir(media_root: &Path) -> String {
-    path_str(&media_root.join("data_models").join("clip_vit_b32"))
+    model_dir(media_root, SemanticModel::ClipVitB32)
+}
+
+/// The directory of a semantic-search model.
+pub fn model_dir(media_root: &Path, model: SemanticModel) -> String {
+    path_str(&media_root.join("data_models").join(model.name()))
+}
+
+/// The selected semantic-search model's directory.
+pub fn selected_model_dir(state: &AppState) -> String {
+    model_dir(&state.config.media_root, state.ml().semantic_model())
+}
+
+/// Drop the stored embeddings the selected semantic-search model cannot
+/// have produced (told apart by magnitude, see
+/// [`SemanticModel::fits_magnitude`]) and queue `clip.embed` for their
+/// owners, so two models never share an index. Runs at startup and after a
+/// site settings change; returns the number of users queued.
+pub async fn reembed_mismatched(state: &AppState) -> anyhow::Result<usize> {
+    let model = state.ml().semantic_model();
+    let users: Vec<i32> = sqlx::query_scalar(
+        "WITH stale AS ( \
+           UPDATE api_photo SET clip_embeddings = NULL, clip_embeddings_magnitude = NULL \
+           WHERE clip_embeddings IS NOT NULL AND CASE \
+             WHEN clip_embeddings_magnitude IS NULL THEN NOT $1 \
+             WHEN $1 THEN clip_embeddings_magnitude < $2 \
+             ELSE clip_embeddings_magnitude >= $2 END \
+           RETURNING owner_id) \
+         SELECT DISTINCT owner_id FROM stale ORDER BY owner_id",
+    )
+    .bind(model == SemanticModel::ClipVitB32)
+    .bind(lp_ml::clip::MAGNITUDE_SPLIT)
+    .fetch_all(&state.db)
+    .await?;
+    for &user_id in &users {
+        tracing::info!(
+            user_id,
+            model = model.name(),
+            "embeddings of another semantic-search model dropped; re-embedding"
+        );
+        lp_jobs::enqueue(
+            state,
+            "clip.embed",
+            serde_json::json!({"user_id": user_id}),
+            lp_jobs::EnqueueOptions::tracked(lp_jobs::JobType::CalculateClipEmbeddings, user_id),
+        )
+        .await?;
+    }
+    Ok(users.len())
 }
 
 #[derive(Debug, FromRow)]
@@ -29,7 +78,16 @@ struct Missing {
     thumbnail_big: Option<String>,
 }
 
-pub async fn embed(state: &AppState, user_id: i32, job_id: &str) -> anyhow::Result<()> {
+pub async fn embed(state: &AppState, user_id: i32, full: bool, job_id: &str) -> anyhow::Result<()> {
+    if full {
+        sqlx::query(
+            "UPDATE api_photo SET clip_embeddings = NULL, clip_embeddings_magnitude = NULL \
+             WHERE owner_id = $1 AND clip_embeddings IS NOT NULL",
+        )
+        .bind(user_id)
+        .execute(&state.db)
+        .await?;
+    }
     let count: i64 = sqlx::query_scalar(
         "SELECT count(*) FROM api_photo WHERE owner_id = $1 AND clip_embeddings IS NULL",
     )
@@ -38,7 +96,7 @@ pub async fn embed(state: &AppState, user_id: i32, job_id: &str) -> anyhow::Resu
     .await?;
     let count_i32 = i32::try_from(count).unwrap_or(i32::MAX);
     run::set_progress(&state.db, job_id, 0, count_i32).await?;
-    let model = clip_model_dir(&state.config.media_root);
+    let model = selected_model_dir(state);
 
     let mut done: i64 = 0;
     let mut last: Option<Uuid> = None;
@@ -95,7 +153,33 @@ async fn store_batch(state: &AppState, model: &str, batch: &[Missing]) -> anyhow
         return Ok(());
     }
     let imgs: Vec<String> = valid.iter().map(|(_, p)| p.clone()).collect();
-    let reply = state.ml().clip().image_embeddings(&imgs, model).await?;
+    let ml = state.ml();
+    let reply = if ml.semantic_shares_tagger() {
+        // The tagger's image tower (already loaded for tags.generate):
+        // no second copy of the model in the CLIP slot.
+        let tagging = state.settings().tagging_model.clone();
+        let mut imgs_emb = Vec::with_capacity(imgs.len());
+        let mut magnitudes = Vec::with_capacity(imgs.len());
+        for img in &imgs {
+            match ml.tags().image_embedding(img, &tagging).await {
+                Ok(e) => {
+                    magnitudes.push(Some(lp_ml::preprocess::l2_norm(&e)));
+                    imgs_emb.push(Some(e.into_iter().map(f64::from).collect()));
+                }
+                Err(e) => {
+                    tracing::warn!(path = %img, error = %e, "clip embeddings: skipping unreadable image");
+                    magnitudes.push(None);
+                    imgs_emb.push(None);
+                }
+            }
+        }
+        lp_sidecars::ClipEmbeddings {
+            imgs_emb,
+            magnitudes,
+        }
+    } else {
+        ml.clip().image_embeddings(&imgs, model).await?
+    };
     let mut ids = Vec::new();
     let mut embeddings = Vec::new();
     let mut magnitudes = Vec::new();

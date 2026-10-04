@@ -55,6 +55,13 @@ async fn inprocess_clip_embed_index_and_search() {
     assert!(link_model(&t.state.config.media_root));
     t.state.ml.set_mode(Service::Clip, Mode::InProcess);
     t.state.ml.set_mode(Service::Similarity, Mode::InProcess);
+    // This test covers CLIP ViT-B/32 (MobileCLIP-S2 is the default).
+    lp_db::write::settings::save(
+        &t.state,
+        &[("SEMANTIC_SEARCH_MODEL", json!("clip_vit_b32"))],
+    )
+    .await
+    .unwrap();
     let db = t.db().clone();
     let alice = user_id(&db, "alice").await;
     sqlx::query(

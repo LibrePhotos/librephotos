@@ -20,6 +20,7 @@ const FIELDS: &[(&str, &str, &str)] = &[
     ("tagging_model", "TAGGING_MODEL", "string"),
     ("ocr_model", "OCR_MODEL", "string"),
     ("face_recognition_model", "FACE_RECOGNITION_MODEL", "string"),
+    ("semantic_search_model", "SEMANTIC_SEARCH_MODEL", "string"),
     ("nextcloud_enabled", "NEXTCLOUD_ENABLED", "boolean"),
     (
         "auto_create_user_directory",
@@ -42,6 +43,7 @@ fn body(s: &SiteSettings, is_staff: bool, email_configured: bool) -> Value {
         "tagging_model": s.tagging_model,
         "ocr_model": s.ocr_model,
         "face_recognition_model": s.face_recognition_model,
+        "semantic_search_model": s.semantic_search_model,
         "nextcloud_enabled": s.nextcloud_enabled,
         "auto_create_user_directory": s.auto_create_user_directory,
         "email_configured": email_configured,
@@ -94,9 +96,19 @@ pub async fn post(
     ApiJson(data): ApiJson<Value>,
 ) -> ApiResult<Response> {
     let changes = validate(&data)?;
+    if let Some((_, v)) = changes.iter().find(|(k, _)| *k == "SEMANTIC_SEARCH_MODEL")
+        && lp_ml::clip::SemanticModel::from_name(v.as_str().unwrap_or("")).is_none()
+    {
+        return Err(ApiError::bad_request(
+            "semantic_search_model",
+            format!("{v} is not one of ['clip_vit_b32', 'mobileclip_s2']"),
+        ));
+    }
     let refs: Vec<(&str, Value)> = changes.into_iter().collect();
     let fresh = lp_db::write::settings::save(&state, &refs).await?;
     lp_tasks::models::queue_if_missing(&state, admin.id).await;
+    // Embeddings of two models must never share an index.
+    lp_tasks::clip::reembed_mismatched(&state).await?;
     let configured = super::email::email_is_configured(&state).await;
     Ok(Json(body(&fresh, admin.is_staff, configured)).into_response())
 }

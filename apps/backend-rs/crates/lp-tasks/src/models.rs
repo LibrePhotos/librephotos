@@ -18,9 +18,12 @@ use crate::run;
 
 pub const KIND: &str = "models.download";
 
-/// The live site-setting selection.
+/// The live site-setting selection, with the semantic-search model in
+/// effect (ViT-B/32 while CLIP runs as a sidecar).
 pub fn selection(state: &AppState) -> lp_ml::Selection {
-    state.ml.context().selection()
+    let mut sel = state.ml.context().selection();
+    sel.semantic_search_model = state.ml().semantic_model().name().to_string();
+    sel
 }
 
 /// `do_all_models_exist`.

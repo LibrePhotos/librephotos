@@ -188,6 +188,11 @@ Shared files (`lp-api/src/lib.rs`, `lp-api/src/common/`, `lp-db/src/{scope,pig,u
   rename); job `models.download` (`lp_tasks::models`), queued by the triggers when
   models are missing (`LP_ML_AUTO_DOWNLOAD`, off in `TestApp`); ML jobs wait for a
   running download. CLI: `librephotos-rs models [--download NAME.. | --all]`.
+- Semantic search model: site setting `SEMANTIC_SEARCH_MODEL` (`mobileclip_s2` default,
+  `clip_vit_b32`; `lp_ml::clip::SemanticModel`, `state.ml().semantic_model()`). With MobileCLIP
+  as tagger and search model (`semantic_shares_tagger()`), `tags.generate` stores the search
+  embedding from the tagger's run and `clip.embed` only fills gaps; embeddings of the other
+  model are recognised by magnitude and re-embedded (`lp_tasks::clip::reembed_mismatched`).
 - Goldens: `tests/ml/README.md` (Python generators) + `lp_ml::golden` (Rust loader).
   Shared test models: `<librephotos>/rust-pg/ml/protected_media/data_models`.
 

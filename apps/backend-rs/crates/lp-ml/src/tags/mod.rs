@@ -24,6 +24,28 @@ pub trait TagsApi: Send + Sync {
         confidence: f64,
         tagging_model: &str,
     ) -> Result<Value, SidecarError>;
+
+    /// [`generate_tags`](Self::generate_tags) plus the image tower's raw
+    /// embedding from the same run (semantic search on the tagging model).
+    /// In-process only.
+    async fn generate_tags_with_embedding(
+        &self,
+        _image_path: &str,
+        _confidence: f64,
+        _tagging_model: &str,
+    ) -> Result<(Value, Vec<f32>), SidecarError> {
+        Err(crate::not_implemented(crate::Service::Tags))
+    }
+
+    /// The raw image embedding of the tagging model's image tower, without
+    /// tags. In-process only.
+    async fn image_embedding(
+        &self,
+        _image_path: &str,
+        _tagging_model: &str,
+    ) -> Result<Vec<f32>, SidecarError> {
+        Err(crate::not_implemented(crate::Service::Tags))
+    }
 }
 
 #[async_trait]

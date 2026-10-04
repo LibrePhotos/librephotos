@@ -16,13 +16,14 @@ pub(super) async fn semantic_search_hashes(
     query: &str,
     topk: i32,
 ) -> ApiResult<Vec<String>> {
+    let ml = state.ml();
+    let semantic = ml.semantic_model();
     let model = state
         .config
         .data_models_dir()
-        .join("clip_vit_b32")
+        .join(semantic.name())
         .display()
         .to_string();
-    let ml = state.ml();
     let reply = ml
         .clip()
         .query_embedding(query, &model)
@@ -31,7 +32,12 @@ pub(super) async fn semantic_search_hashes(
     let emb: Vec<f32> = reply.emb.iter().map(|v| *v as f32).collect();
     match ml
         .similarity()
-        .search(user_id, &emb, Some(topk.max(0) as usize), 27.0)
+        .search(
+            user_id,
+            &emb,
+            Some(topk.max(0) as usize),
+            semantic.search_threshold(),
+        )
         .await
     {
         Ok(reply) => Ok(reply

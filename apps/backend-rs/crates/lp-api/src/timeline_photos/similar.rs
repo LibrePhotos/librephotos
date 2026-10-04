@@ -5,13 +5,15 @@ use lp_core::AppState;
 use lp_sidecars::SidecarError;
 
 /// Image hashes the owner's similarity index returns for `embedding`
-/// (threshold 90, as the detail serializer asks). Any failure, including a
+/// (threshold 90 for CLIP ViT-B/32, as the detail serializer asks; the
+/// semantic model's own cut otherwise). Any failure, including a
 /// sidecar that is not running, is an empty list.
 pub async fn similar_hashes(state: &AppState, owner_id: i32, embedding: &[f32]) -> Vec<String> {
-    match state
-        .ml()
+    let ml = state.ml();
+    let threshold = ml.semantic_model().similar_threshold();
+    match ml
         .similarity()
-        .search(owner_id, embedding, None, 90.0)
+        .search(owner_id, embedding, None, threshold)
         .await
     {
         Ok(reply) => reply

@@ -13,7 +13,7 @@ use ort::session::Session;
 use ort::value::Tensor;
 use rayon::prelude::*;
 
-use super::ClipApi;
+use super::{ClipApi, SemanticModel};
 use crate::preprocess::{self, CLIP_MEAN, CLIP_STD, Filter, Order, Scale, pil};
 use crate::slot::ModelSlot;
 use crate::tokenize::{self, Tokenizer};
@@ -40,30 +40,83 @@ pub fn prepare_image(path: &Path) -> anyhow::Result<Vec<f32>> {
     ))
 }
 
-/// The loaded model: both towers and the tokenizer.
+/// `prepare_image` of the model `kind`: CLIP's above, or MobileCLIP-S2's
+/// (shortest edge 256 BILINEAR, centre crop, 0..1), as the tagger does.
+pub fn prepare_for(kind: SemanticModel, path: &Path) -> anyhow::Result<Vec<f32>> {
+    match kind {
+        SemanticModel::ClipVitB32 => prepare_image(path),
+        SemanticModel::MobileClipS2 => Ok(crate::tags::tagger::prepare_image(
+            crate::tags::tagger::Model::MobileClipS2,
+            path,
+        )?
+        .1),
+    }
+}
+
+fn image_size(kind: SemanticModel) -> usize {
+    match kind {
+        SemanticModel::ClipVitB32 => IMAGE_SIZE as usize,
+        SemanticModel::MobileClipS2 => 256,
+    }
+}
+
+/// The loaded model: the towers and the tokenizer. ViT-B/32 loads both
+/// towers up front (as the sidecar does); MobileCLIP-S2 loads each on first
+/// use, because its image tower normally runs in the tags slot and only the
+/// text tower is needed here (queries).
 pub struct Clip {
-    vision: Session,
-    text: Session,
+    kind: SemanticModel,
+    dir: PathBuf,
+    vision: Option<Session>,
+    text: Option<Session>,
     tokenizer: Tokenizer,
 }
 
 impl Clip {
     pub fn load(model_dir: &Path) -> anyhow::Result<Clip> {
-        Ok(Clip {
-            vision: crate::runtime::session(&model_dir.join("vision_model.onnx"))?,
-            text: crate::runtime::session(&model_dir.join("text_model.onnx"))?,
+        let kind = SemanticModel::of_dir(model_dir);
+        let mut clip = Clip {
+            kind,
+            dir: model_dir.to_path_buf(),
+            vision: None,
+            text: None,
             tokenizer: tokenize::load(&model_dir.join("tokenizer.json"))?,
-        })
+        };
+        if kind == SemanticModel::ClipVitB32 {
+            clip.vision()?;
+            clip.text()?;
+        }
+        Ok(clip)
+    }
+
+    pub fn kind(&self) -> SemanticModel {
+        self.kind
+    }
+
+    fn vision(&mut self) -> anyhow::Result<&mut Session> {
+        if self.vision.is_none() {
+            self.vision = Some(crate::runtime::session(
+                &self.dir.join("vision_model.onnx"),
+            )?);
+        }
+        Ok(self.vision.as_mut().expect("just loaded"))
+    }
+
+    fn text(&mut self) -> anyhow::Result<&mut Session> {
+        if self.text.is_none() {
+            self.text = Some(crate::runtime::session(&self.dir.join("text_model.onnx"))?);
+        }
+        Ok(self.text.as_mut().expect("just loaded"))
     }
 
     /// One embedding per prepared image, in batches of 32.
     pub fn encode_pixels(&mut self, pixels: &[Vec<f32>]) -> anyhow::Result<Vec<Vec<f32>>> {
-        let s = IMAGE_SIZE as usize;
+        let s = image_size(self.kind);
         let mut out = Vec::with_capacity(pixels.len());
         for batch in pixels.chunks(IMAGE_BATCH_SIZE) {
             let (shape, data) = preprocess::stack(batch, 3, s, s);
             let input = Tensor::from_array((shape, data))?;
-            let outputs = crate::runtime::run(&mut self.vision, ort::inputs![input])?;
+            let outputs = crate::runtime::run(self.vision()?, ort::inputs![input])?;
             let (shape, data) = outputs[0].try_extract_tensor::<f32>()?;
             let dim = embedding_dim(shape, batch.len())?;
             out.extend(data.chunks_exact(dim).map(<[f32]>::to_vec));
@@ -71,12 +124,16 @@ impl Clip {
         Ok(out)
     }
 
-    /// `encode_text`: token ids truncated to 77, no padding.
+    /// `encode_text`: token ids truncated to 77; ViT-B/32 unpadded,
+    /// MobileCLIP-S2 padded with 0 to its fixed 77-token context.
     pub fn encode_text(&mut self, text: &str) -> anyhow::Result<Vec<f32>> {
-        let ids = tokenize::encode_ids(&self.tokenizer, text, Some(CONTEXT_LENGTH))?;
+        let mut ids = self.token_ids(text)?;
+        if self.kind == SemanticModel::MobileClipS2 {
+            ids.resize(CONTEXT_LENGTH, 0);
+        }
         let n = ids.len();
         let input = Tensor::from_array(([1usize, n], ids))?;
-        let outputs = crate::runtime::run(&mut self.text, ort::inputs![input])?;
+        let outputs = crate::runtime::run(self.text()?, ort::inputs![input])?;
         let (shape, data) = outputs[0].try_extract_tensor::<f32>()?;
         let dim = embedding_dim(shape, 1)?;
         Ok(data[..dim].to_vec())
@@ -133,9 +190,10 @@ impl InProcess {
     /// The directory the caller names (`settings.CLIP_ROOT`), else the catalog's.
     fn model_dir(&self, model: &str) -> PathBuf {
         if model.trim().is_empty() {
+            let name = SemanticModel::of(&self.ctx.selection().semantic_search_model).name();
             self.ctx
-                .model_dir("clip_vit_b32")
-                .unwrap_or_else(|| self.ctx.data_models().join("clip_vit_b32"))
+                .model_dir(name)
+                .unwrap_or_else(|| self.ctx.data_models().join(name))
         } else {
             PathBuf::from(model)
         }
@@ -148,7 +206,8 @@ impl Backend for InProcess {
     }
 
     fn ready(&self) -> bool {
-        self.ctx.model_present("clip_vit_b32")
+        self.ctx
+            .model_present(SemanticModel::of(&self.ctx.selection().semantic_search_model).name())
     }
 }
 
@@ -160,12 +219,13 @@ impl ClipApi for InProcess {
         model: &str,
     ) -> Result<ClipEmbeddings, SidecarError> {
         let paths: Vec<String> = imgs.to_vec();
+        let kind = SemanticModel::of_dir(&self.model_dir(model));
         // Decoding is the bulk of the work for big thumbnails: all cores,
         // outside the model slot.
         let prepared: Vec<Option<Vec<f32>>> = tokio::task::spawn_blocking(move || {
             paths
                 .par_iter()
-                .map(|p| match prepare_image(Path::new(p)) {
+                .map(|p| match prepare_for(kind, Path::new(p)) {
                     Ok(t) => Some(t),
                     Err(e) => {
                         tracing::warn!(path = %p, error = %format!("{e:#}"), "clip embeddings: skipping unreadable image");

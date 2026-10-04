@@ -53,14 +53,13 @@ impl Backend for InProcess {
     }
 }
 
-#[async_trait]
-impl TagsApi for InProcess {
-    async fn generate_tags(
+impl InProcess {
+    /// Run `f` on the loaded tagger of `tagging_model`.
+    async fn with_tagger<R: Send + 'static>(
         &self,
-        image_path: &str,
-        _confidence: f64,
         tagging_model: &str,
-    ) -> Result<Value, SidecarError> {
+        f: impl FnOnce(&mut Tagger, Model) -> anyhow::Result<R> + Send + 'static,
+    ) -> Result<R, SidecarError> {
         let name = model_name(tagging_model);
         let Some(model) = Model::from_name(name) else {
             return Err(crate::bad_input(
@@ -79,19 +78,66 @@ impl TagsApi for InProcess {
             .model_dir(name)
             .ok_or_else(|| crate::unavailable(Service::Tags, format!("unknown model {name}")))?;
         let key = dir.display().to_string();
-        let image = image_path.to_string();
-        let prediction = self
-            .slot
+        self.slot
             .run(
                 &key,
                 move || Tagger::load(model, &dir),
-                move |t| t.predict(Path::new(&image), model.threshold(), MAX_TAGS),
+                move |t| f(t, model),
             )
             .await
-            .map_err(|e| {
-                tracing::warn!(image = %image_path, error = %format!("{e:#}"), "tags: error processing image");
-                crate::failed(Service::Tags, format!("Failed to process image: {e:#}"))
-            })?;
+            .map_err(|e| crate::failed(Service::Tags, format!("Failed to process image: {e:#}")))
+    }
+
+    async fn predict(
+        &self,
+        image_path: &str,
+        tagging_model: &str,
+    ) -> Result<super::tagger::Prediction, SidecarError> {
+        let image = image_path.to_string();
+        self.with_tagger(tagging_model, move |t, model| {
+            t.predict(Path::new(&image), model.threshold(), MAX_TAGS)
+        })
+        .await
+        .inspect_err(|e| {
+            tracing::warn!(image = %image_path, error = %e, "tags: error processing image");
+        })
+    }
+}
+
+#[async_trait]
+impl TagsApi for InProcess {
+    async fn generate_tags(
+        &self,
+        image_path: &str,
+        _confidence: f64,
+        tagging_model: &str,
+    ) -> Result<Value, SidecarError> {
+        let prediction = self.predict(image_path, tagging_model).await?;
         Ok(json!({ "tags": { "tags": prediction.tags } }))
+    }
+
+    async fn generate_tags_with_embedding(
+        &self,
+        image_path: &str,
+        _confidence: f64,
+        tagging_model: &str,
+    ) -> Result<(Value, Vec<f32>), SidecarError> {
+        let prediction = self.predict(image_path, tagging_model).await?;
+        Ok((
+            json!({ "tags": { "tags": prediction.tags } }),
+            prediction.raw,
+        ))
+    }
+
+    async fn image_embedding(
+        &self,
+        image_path: &str,
+        tagging_model: &str,
+    ) -> Result<Vec<f32>, SidecarError> {
+        let image = image_path.to_string();
+        self.with_tagger(tagging_model, move |t, _| {
+            t.embed_image_raw(Path::new(&image))
+        })
+        .await
     }
 }

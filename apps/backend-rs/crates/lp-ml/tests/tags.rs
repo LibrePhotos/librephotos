@@ -290,6 +290,7 @@ fn ml(model: &'static str) -> Ml {
             face_recognition_model: "buffalo_sc".into(),
             ocr_model: "ppocrv6_small".into(),
             captioning_model: "lfm2_vl_450m".into(),
+            semantic_search_model: String::new(),
         }),
     );
     ml.set_auto_download(false);
@@ -623,6 +624,7 @@ async fn concurrent_calls_agree_and_do_not_block_the_runtime() {
             face_recognition_model: "buffalo_sc".into(),
             ocr_model: "ppocrv6_small".into(),
             captioning_model: "lfm2_vl_450m".into(),
+            semantic_search_model: String::new(),
         }),
     );
     ml.set_auto_download(false);

@@ -72,6 +72,7 @@ impl AppState {
                     face_recognition_model: s.face_recognition_model.clone(),
                     ocr_model: s.ocr_model.clone(),
                     captioning_model: s.captioning_model.clone(),
+                    semantic_search_model: s.semantic_search_model.clone(),
                 }
             }),
         );
