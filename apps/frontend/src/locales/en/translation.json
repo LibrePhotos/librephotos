@@ -965,7 +965,11 @@
     "update": "Update",
     "explanation3": "Choose a directory from below",
     "pathdoesnotexist": "Path does not exist",
-    "mustspecifypath": "You must specify a scan directory"
+    "mustspecifypath": "You must specify a scan directory",
+    "uploadlocation": "Photos uploaded through the web interface are stored in {{path}}",
+    "uploadfolder": "Upload folder",
+    "uploadfolderexplanation": "Optional. Where photos uploaded through the web interface are saved, in a subfolder per device. Leave empty to use the uploads folder inside the scan directory.",
+    "uploadfolderdefault": "Default: the uploads folder inside the scan directory"
   },
   "sitesettings": {
     "header": "Allow user registration",

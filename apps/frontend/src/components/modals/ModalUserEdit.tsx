@@ -12,6 +12,7 @@ import { reportUserSaveError } from "../../util/apiErrors";
 import { EMAIL_REGEX } from "../../util/util";
 import { PasswordEntry } from "../settings/PasswordEntry";
 import { DirectoryPicker } from "../setup/DirectoryPicker";
+import { uploadLocation } from "../setup/uploadLocation";
 
 type Props = Readonly<{
   isOpen: boolean;
@@ -35,6 +36,7 @@ export function ModalUserEdit(props: Props) {
   const { mutate: updateUser, isPending: isUpdating } = useManageUpdateUserMutation();
   const scanPhotos = useScanPhotosMutation();
   const [isPathValid, setIsPathValid] = useState(true);
+  const [isUploadPathValid, setIsUploadPathValid] = useState(true);
   const isSaving = createNew ? isSigningUp : isUpdating;
 
   const validateUsername = (username: string) => {
@@ -77,11 +79,13 @@ export function ModalUserEdit(props: Props) {
       last_name: "",
       password: "",
       scan_directory: "",
+      upload_directory: "",
     },
     validate: {
       email: value => validateEmail(value),
       username: value => validateUsername(value),
       scan_directory: value => validatePath(value),
+      upload_directory: value => (value && !isUploadPathValid ? t("modalscandirectoryedit.pathdoesnotexist") : null),
     },
   });
 
@@ -98,6 +102,7 @@ export function ModalUserEdit(props: Props) {
         first_name: userToEdit.first_name,
         last_name: userToEdit.last_name,
         scan_directory: userToEdit.scan_directory,
+        upload_directory: userToEdit.upload_directory ?? "",
         password: userPassword || "",
       });
     } else {
@@ -130,6 +135,8 @@ export function ModalUserEdit(props: Props) {
     if (!newUserData.scan_directory) {
       delete newUserData.scan_directory;
     }
+    // An empty upload folder is sent as "" so that it restores the default.
+    newUserData.upload_directory = form.values.upload_directory ?? "";
 
     if (createNew) {
       if (userPassword && username) {
@@ -253,6 +260,27 @@ export function ModalUserEdit(props: Props) {
                 </Text>
               }
               description={<Title order={6}>{t("modalscandirectoryedit.explanation3")}</Title>}
+              missingPathError={t("modalscandirectoryedit.pathdoesnotexist")}
+            />
+            {(form.values.upload_directory || form.values.scan_directory) && (
+              <Text size="sm" c="dimmed" mt="xs">
+                {t("modalscandirectoryedit.uploadlocation", {
+                  path: uploadLocation(form.values.scan_directory, form.values.upload_directory),
+                })}
+              </Text>
+            )}
+            <Space h="md" />
+            <DirectoryPicker
+              value={form.values.upload_directory}
+              onChange={next => form.setFieldValue("upload_directory", next)}
+              onValidityChange={setIsUploadPathValid}
+              placeholder={t("modalscandirectoryedit.uploadfolderdefault")}
+              label={
+                <Text fw="bold" span>
+                  {t("modalscandirectoryedit.uploadfolder")}
+                </Text>
+              }
+              description={<Text size="sm">{t("modalscandirectoryedit.uploadfolderexplanation")}</Text>}
               missingPathError={t("modalscandirectoryedit.pathdoesnotexist")}
             />
           </>

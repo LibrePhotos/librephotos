@@ -41,6 +41,7 @@ import {
   useUpdateUserScanDirectoryMutation,
 } from "../api_client/user/hooks";
 import { DirectoryPicker } from "../components/setup/DirectoryPicker";
+import { uploadLocation } from "../components/setup/uploadLocation";
 import { reportSignupError, reportUserSaveError } from "../util/apiErrors";
 import { ssoErrorMessageKey } from "../util/ssoErrors";
 import { isStringEmpty } from "../util/stringUtils";
@@ -490,6 +491,11 @@ function FirstTimeSetupPage({ onComplete }: FirstTimeSetupProps): JSX.Element {
                     description={<Title order={6}>{t("modalscandirectoryedit.explanation3")}</Title>}
                     missingPathError={t("modalscandirectoryedit.pathdoesnotexist")}
                   />
+                  {scanDirectory && (
+                    <Text size="sm" c="dimmed">
+                      {t("modalscandirectoryedit.uploadlocation", { path: uploadLocation(scanDirectory) })}
+                    </Text>
+                  )}
                   <Group justify="space-between">
                     <Button variant="default" onClick={() => navigate({ to: "/" })}>
                       {t("skip")}

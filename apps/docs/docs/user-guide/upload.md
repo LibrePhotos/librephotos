@@ -29,6 +29,7 @@ The upload behavior depends on whether the user has a scan directory configured:
 - Files are saved to: `{scan_directory}/uploads/web/{filename}`
 - This is the normal and expected behavior
 - Files are stored in the mounted host directory and are persistent
+- An admin can point a user's uploads at a different folder with the **Upload folder** field in the user edit dialog (see [Managing users](./managing-users.md#upload-folder)). Files then go to `{upload folder}/web/{filename}` instead.
 
 #### When scan directory is NOT configured:
 Uploads are blocked and nothing is written to disk.

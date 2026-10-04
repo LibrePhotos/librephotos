@@ -27,6 +27,18 @@ While the application saves metadata (e.g., tags, albums, facial recognition dat
 
 The separation will also not keep the photos "private" as the admin of the host system can see all the images.
 
+## Upload folder
+
+:::note
+The upload folder setting is not in a release yet. It ships with the next LibrePhotos version.
+:::
+
+Photos uploaded through the web interface are written to an `uploads` folder inside the user's scan directory, in a subfolder per device: `/data/user1/uploads/web/`. The user edit dialog in the Admin Area shows that location under the scan directory.
+
+To put a user's uploads somewhere else, pick a folder in the **Upload folder** field of the same dialog. It is checked like a scan directory: it must already exist under `/data`, and it must not be inside, above or the same as another user's scan directory. A folder inside the user's own scan directory is fine. Uploads then go to `<upload folder>/web/`. Clear the field to go back to the default.
+
+Uploaded photos always belong to the user who uploaded them. If the upload folder is outside the user's scan directory, the photos still show up in their library, but a scan of the scan directory does not look in that folder and the folder view does not list it.
+
 ## Giving each user their own folder automatically
 
 Admin Area → Site settings has a **Create a folder for each new user** switch, off by default. With it on, creating a user — from the admin panel, from self registration, or through single sign-on — also creates `/data/<username>` and assigns it as that user's scan directory, so you no longer have to make the folder on the host and assign it by hand for every account.

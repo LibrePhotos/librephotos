@@ -1,3 +1,5 @@
+import os
+
 import pytz
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser
@@ -56,6 +58,9 @@ class User(AbstractUser):
     scan_directory = models.CharField(
         max_length=512, db_index=True, blank=True, default=""
     )
+    # Where web uploads are written. Empty means the "uploads" folder inside
+    # scan_directory; use upload_root() rather than reading this directly.
+    upload_directory = models.CharField(max_length=512, blank=True, default="")
     confidence = models.FloatField(default=0.1, db_index=True)
     confidence_person = models.FloatField(default=0.9)
     image_scale = models.FloatField(default=1)
@@ -148,6 +153,12 @@ class User(AbstractUser):
     # a profile change (name/avatar) must reach clients that mirror this user
     # as a "shared_user" row.
     last_modified = models.DateTimeField(auto_now=True, db_index=True)
+
+    def upload_root(self):
+        """Folder that web uploads go to, one subfolder per uploading device."""
+        if self.upload_directory:
+            return self.upload_directory
+        return os.path.join(self.scan_directory, "uploads")
 
 
 def get_admin_user():
