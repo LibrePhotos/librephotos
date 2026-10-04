@@ -141,6 +141,9 @@ pub async fn scan(
             run::fail(&state.db, job_id, &e.to_string()).await?;
         }
     }
+    // XMP regions are read: stop the idle ExifTool processes now rather
+    // than after the idle timeout (the next stage, e.g. OCR, needs none).
+    state.exif.shutdown().await;
     generate_face_embeddings(state, user_id).await?;
     cluster::cluster_all_faces(state, user_id, None).await?;
     Ok(())

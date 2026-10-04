@@ -298,6 +298,9 @@ async fn scan_inner(
     db::lrj_progress(&state.db, job_id, done as i32, target as i32).await?;
     let won = db::lrj_finish(&state.db, job_id).await?;
     tracing::info!(files = photo_list.len(), dir = %scan_directory.display(), "scanned");
+    // The metadata batches are done: stop the idle ExifTool processes now
+    // rather than after the idle timeout, while the ML jobs run.
+    state.exif.shutdown().await;
 
     backfill_missing_aspect_ratios(p, user.id).await?;
 
