@@ -279,6 +279,15 @@ async fn similar_photos(
     row: &PhotoDetailRow,
     viewer: Option<i32>,
 ) -> ApiResult<Vec<SimilarPhoto>> {
+    // The index holds only the selected model's embeddings: a photo still
+    // waiting for its re-embedding has nothing comparable to search with.
+    if !state
+        .ml()
+        .semantic_model()
+        .produced(row.clip_embeddings_model.as_deref())
+    {
+        return Ok(Vec::new());
+    }
     let Some(embedding) = row
         .clip_embeddings
         .as_ref()

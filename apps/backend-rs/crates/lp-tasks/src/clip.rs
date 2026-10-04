@@ -33,33 +33,51 @@ pub fn selected_model_dir(state: &AppState) -> String {
     model_dir(&state.config.media_root, state.ml().semantic_model())
 }
 
-/// Drop the stored embeddings the selected semantic-search model cannot
-/// have produced (told apart by magnitude, see
-/// [`SemanticModel::fits_magnitude`]) and queue `clip.embed` for their
-/// owners, so two models never share an index. Runs at startup and after a
-/// site settings change; returns the number of users queued.
+/// The stored model of `api_photo.clip_embeddings` in SQL: the
+/// `clip_embeddings_model` column, NULL = Django's ViT-B/32
+/// ([`SemanticModel::stored`]). Compared with `SemanticModel::name()`.
+const STORED_MODEL_SQL: &str = "coalesce(clip_embeddings_model, 'clip_vit_b32')";
+
+/// Owners of embeddings that the selected semantic-search model did not
+/// produce. Nothing is changed: the similarity index skips those
+/// embeddings until `clip.embed` replaces them.
+pub async fn mismatched_owners(db: &sqlx::PgPool, model: SemanticModel) -> sqlx::Result<Vec<i32>> {
+    sqlx::query_scalar(&format!(
+        "SELECT DISTINCT owner_id FROM api_photo \
+         WHERE clip_embeddings IS NOT NULL AND {STORED_MODEL_SQL} <> $1 ORDER BY owner_id"
+    ))
+    .bind(model.name())
+    .fetch_all(db)
+    .await
+}
+
+/// Queue `clip.embed` for every owner of embeddings of another model than
+/// the selected one (unless one is already waiting for them), which
+/// re-embeds those photos in place. Nothing is deleted: until a photo is
+/// re-embedded the index just leaves it out, so search keeps working on the
+/// photos that are already converted. Runs at startup and after a site
+/// settings change; returns the number of users queued.
 pub async fn reembed_mismatched(state: &AppState) -> anyhow::Result<usize> {
     let model = state.ml().semantic_model();
-    let users: Vec<i32> = sqlx::query_scalar(
-        "WITH stale AS ( \
-           UPDATE api_photo SET clip_embeddings = NULL, clip_embeddings_magnitude = NULL \
-           WHERE clip_embeddings IS NOT NULL AND CASE \
-             WHEN clip_embeddings_magnitude IS NULL THEN NOT $1 \
-             WHEN $1 THEN clip_embeddings_magnitude < $2 \
-             ELSE clip_embeddings_magnitude >= $2 END \
-           RETURNING owner_id) \
-         SELECT DISTINCT owner_id FROM stale ORDER BY owner_id",
-    )
-    .bind(model == SemanticModel::ClipVitB32)
-    .bind(lp_ml::clip::MAGNITUDE_SPLIT)
-    .fetch_all(&state.db)
-    .await?;
+    let users = mismatched_owners(&state.db, model).await?;
+    let mut queued = 0;
     for &user_id in &users {
+        let waiting: bool = sqlx::query_scalar(
+            "SELECT EXISTS (SELECT 1 FROM job_queue WHERE status = 'queued' \
+               AND kind = 'clip.embed' AND payload->'user_id' = to_jsonb($1::int))",
+        )
+        .bind(user_id)
+        .fetch_one(&state.db)
+        .await?;
+        if waiting {
+            continue;
+        }
         tracing::info!(
             user_id,
             model = model.name(),
-            "embeddings of another semantic-search model dropped; re-embedding"
+            "embeddings of another semantic-search model found; re-embedding them in place"
         );
+        queued += 1;
         lp_jobs::enqueue(
             state,
             "clip.embed",
@@ -68,7 +86,7 @@ pub async fn reembed_mismatched(state: &AppState) -> anyhow::Result<usize> {
         )
         .await?;
     }
-    Ok(users.len())
+    Ok(queued)
 }
 
 #[derive(Debug, FromRow)]
@@ -78,37 +96,65 @@ struct Missing {
     thumbnail_big: Option<String>,
 }
 
+/// Index rebuilds while a long `clip.embed` runs: the first after this many
+/// photos, then each time as many photos were embedded as the index held at
+/// its previous rebuild (so the rebuilds of a run read ~2x the embeddings).
+pub const REINDEX_MIN: i64 = 2000;
+
+/// `clip.embed`: embed the user's photos without an embedding of the
+/// selected model (none yet, or another model's), or all of them with
+/// `full`. Each embedding is replaced in place, never NULLed first. When
+/// other-model embeddings are waiting, the index is rebuilt first (without
+/// them) and again as the conversion progresses, so search keeps working on
+/// every photo already converted.
 pub async fn embed(state: &AppState, user_id: i32, full: bool, job_id: &str) -> anyhow::Result<()> {
-    if full {
-        sqlx::query(
-            "UPDATE api_photo SET clip_embeddings = NULL, clip_embeddings_magnitude = NULL \
-             WHERE owner_id = $1 AND clip_embeddings IS NOT NULL",
-        )
-        .bind(user_id)
-        .execute(&state.db)
-        .await?;
-    }
-    let count: i64 = sqlx::query_scalar(
-        "SELECT count(*) FROM api_photo WHERE owner_id = $1 AND clip_embeddings IS NULL",
-    )
+    let ml = state.ml();
+    // One model for the whole run, even if the setting changes meanwhile:
+    // every row is tagged with the model that really produced it.
+    let model = ml.semantic_model();
+    let via_tagger = ml.semantic_shares_tagger();
+    let todo = format!(
+        "p.owner_id = $1 AND ($2 OR p.clip_embeddings IS NULL OR {STORED_MODEL_SQL} <> $3)"
+    );
+    let (count, other): (i64, i64) = sqlx::query_as(&format!(
+        "SELECT count(*), count(*) FILTER (WHERE clip_embeddings IS NOT NULL \
+           AND {STORED_MODEL_SQL} <> $3) FROM api_photo p WHERE {todo}"
+    ))
     .bind(user_id)
+    .bind(full)
+    .bind(model.name())
     .fetch_one(&state.db)
     .await?;
     let count_i32 = i32::try_from(count).unwrap_or(i32::MAX);
     run::set_progress(&state.db, job_id, 0, count_i32).await?;
-    let model = selected_model_dir(state);
+    if other > 0 {
+        // The index may still hold the other model's embeddings (built
+        // before the switch): from now on it holds only this model's.
+        tracing::info!(
+            user_id,
+            photos = other,
+            model = model.name(),
+            "re-embedding photos of another semantic-search model"
+        );
+        if let Err(e) = build_index(state, user_id).await {
+            tracing::error!(error = %e, "Error building the similarity index");
+        }
+    }
 
     let mut done: i64 = 0;
+    let mut built_at: i64 = 0;
+    let mut built_size: i64 = 0;
     let mut last: Option<Uuid> = None;
     while done < count {
-        let batch = sqlx::query_as::<_, Missing>(
+        let batch = sqlx::query_as::<_, Missing>(&format!(
             "SELECT p.id, p.image_hash, t.thumbnail_big FROM api_photo p \
              LEFT JOIN api_thumbnail t ON t.photo_id = p.id \
-             WHERE p.owner_id = $1 AND p.clip_embeddings IS NULL \
-               AND ($2::uuid IS NULL OR p.id > $2) \
-             ORDER BY p.id LIMIT $3",
-        )
+             WHERE {todo} AND ($4::uuid IS NULL OR p.id > $4) \
+             ORDER BY p.id LIMIT $5"
+        ))
         .bind(user_id)
+        .bind(full)
+        .bind(model.name())
         .bind(last)
         .bind(CLIP_BATCH)
         .fetch_all(&state.db)
@@ -118,7 +164,7 @@ pub async fn embed(state: &AppState, user_id: i32, full: bool, job_id: &str) -> 
         // embedding still matches the filter.
         last = Some(tail.id);
         done += batch.len() as i64;
-        if let Err(e) = store_batch(state, &model, &batch).await {
+        if let Err(e) = store_batch(state, model, via_tagger, &batch).await {
             tracing::error!(error = %e, "Error calculating clip embeddings");
         }
         run::set_progress(
@@ -128,6 +174,14 @@ pub async fn embed(state: &AppState, user_id: i32, full: bool, job_id: &str) -> 
             count_i32,
         )
         .await?;
+        if done < count && done - built_at >= built_size.max(REINDEX_MIN) {
+            // A long run: make the photos embedded so far searchable.
+            match build_index(state, user_id).await {
+                Ok(size) => built_size = size,
+                Err(e) => tracing::error!(error = %e, "Error building the similarity index"),
+            }
+            built_at = done;
+        }
     }
 
     if let Err(e) = build_index(state, user_id).await {
@@ -140,7 +194,12 @@ pub async fn embed(state: &AppState, user_id: i32, full: bool, job_id: &str) -> 
     Ok(())
 }
 
-async fn store_batch(state: &AppState, model: &str, batch: &[Missing]) -> anyhow::Result<()> {
+async fn store_batch(
+    state: &AppState,
+    model: SemanticModel,
+    via_tagger: bool,
+    batch: &[Missing],
+) -> anyhow::Result<()> {
     let valid: Vec<(&Missing, String)> = batch
         .iter()
         .filter_map(|m| {
@@ -154,14 +213,14 @@ async fn store_batch(state: &AppState, model: &str, batch: &[Missing]) -> anyhow
     }
     let imgs: Vec<String> = valid.iter().map(|(_, p)| p.clone()).collect();
     let ml = state.ml();
-    let reply = if ml.semantic_shares_tagger() {
-        // The tagger's image tower (already loaded for tags.generate):
-        // no second copy of the model in the CLIP slot.
-        let tagging = state.settings().tagging_model.clone();
+    let reply = if via_tagger {
+        // The tagger's image tower (already loaded for tags.generate): no
+        // second copy of the model in the CLIP slot. Sharing means the
+        // tagging model is `model`.
         let mut imgs_emb = Vec::with_capacity(imgs.len());
         let mut magnitudes = Vec::with_capacity(imgs.len());
         for img in &imgs {
-            match ml.tags().image_embedding(img, &tagging).await {
+            match ml.tags().image_embedding(img, model.name()).await {
                 Ok(e) => {
                     magnitudes.push(Some(lp_ml::preprocess::l2_norm(&e)));
                     imgs_emb.push(Some(e.into_iter().map(f64::from).collect()));
@@ -178,7 +237,8 @@ async fn store_batch(state: &AppState, model: &str, batch: &[Missing]) -> anyhow
             magnitudes,
         }
     } else {
-        ml.clip().image_embeddings(&imgs, model).await?
+        let dir = model_dir(&state.config.media_root, model);
+        ml.clip().image_embeddings(&imgs, &dir).await?
     };
     let mut ids = Vec::new();
     let mut embeddings = Vec::new();
@@ -197,12 +257,13 @@ async fn store_batch(state: &AppState, model: &str, batch: &[Missing]) -> anyhow
     }
     sqlx::query(
         "UPDATE api_photo p SET clip_embeddings = u.e, clip_embeddings_magnitude = u.m, \
-           last_modified = now() \
+           clip_embeddings_model = $4, last_modified = now() \
          FROM unnest($1::uuid[], $2::jsonb[], $3::float8[]) AS u(id, e, m) WHERE p.id = u.id",
     )
     .bind(&ids)
     .bind(&embeddings)
     .bind(&magnitudes)
+    .bind(model.name())
     .execute(&state.db)
     .await?;
     Ok(())
@@ -234,7 +295,9 @@ fn decode_embedding(text: &str) -> Option<Vec<f32>> {
 /// (the first carries `begin`, the last `commit`; a user without embeddings
 /// still sends one empty page so a stale index goes away). Each page is
 /// read from the database as it is sent, so memory stays at one page of
-/// embeddings rather than all of them. Returns the index size.
+/// embeddings rather than all of them. Only the selected semantic-search
+/// model's embeddings go in: another model's wait for `clip.embed` to
+/// replace them. Returns the index size.
 pub async fn build_index(state: &AppState, user_id: i32) -> anyhow::Result<i64> {
     build_index_paged(state, user_id, INDEX_PAGE_SIZE).await
 }
@@ -252,11 +315,14 @@ pub async fn build_index_paged(
         .bind(user_id)
         .fetch_one(&state.db)
         .await?;
-    let total: i64 = sqlx::query_scalar(
+    let model = state.ml().semantic_model();
+    let total: i64 = sqlx::query_scalar(&format!(
         "SELECT count(*) FROM api_photo \
-         WHERE owner_id = $1 AND NOT hidden AND clip_embeddings IS NOT NULL",
-    )
+         WHERE owner_id = $1 AND NOT hidden AND clip_embeddings IS NOT NULL \
+           AND {STORED_MODEL_SQL} = $2"
+    ))
     .bind(user_id)
+    .bind(model.name())
     .fetch_one(&state.db)
     .await?;
     let pages = usize::try_from(total)
@@ -266,16 +332,18 @@ pub async fn build_index_paged(
     let mut after: Option<(String, Uuid)> = None;
     let mut size = 0;
     for page in 0..pages {
-        let rows = sqlx::query_as::<_, Indexed>(
+        let rows = sqlx::query_as::<_, Indexed>(&format!(
             "SELECT id, image_hash, clip_embeddings::text AS clip_embeddings FROM api_photo \
              WHERE owner_id = $1 AND NOT hidden AND clip_embeddings IS NOT NULL \
+               AND {STORED_MODEL_SQL} = $5 \
                AND ($2::text IS NULL OR (image_hash, id) > ($2, $3)) \
-             ORDER BY image_hash, id LIMIT $4",
-        )
+             ORDER BY image_hash, id LIMIT $4"
+        ))
         .bind(user_id)
         .bind(after.as_ref().map(|a| a.0.as_str()))
         .bind(after.as_ref().map(|a| a.1))
         .bind(page_size as i64)
+        .bind(model.name())
         .fetch_all(&state.db)
         .await?;
         if let Some(last) = rows.last() {
@@ -316,6 +384,7 @@ pub async fn build_index_paged(
     }
     tracing::info!(
         size,
+        model = model.name(),
         secs = started.elapsed().as_secs_f64(),
         "built similarity index"
     );
@@ -325,17 +394,20 @@ pub async fn build_index_paged(
 /// The startup `build_similarity_index` for the in-process index: rebuild
 /// every user's index that is missing (e.g. the first start after the
 /// Python sidecar, whose `.npz` files it does not read) or holds another
-/// number of photos than the database. Returns how many were rebuilt.
+/// number of photos than the database has embeddings of the selected
+/// model. Returns how many were rebuilt.
 pub async fn rebuild_stale_indices(state: &AppState) -> anyhow::Result<usize> {
     if !state.ml().is_inprocess(lp_ml::Service::Similarity) {
         return Ok(0);
     }
-    let users: Vec<(i32, i64)> = sqlx::query_as(
+    let users: Vec<(i32, i64)> = sqlx::query_as(&format!(
         "SELECT u.id, count(p.id) FROM api_user u \
          LEFT JOIN api_photo p ON p.owner_id = u.id AND NOT p.hidden \
            AND p.clip_embeddings IS NOT NULL AND p.clip_embeddings <> '[]'::jsonb \
-         GROUP BY u.id ORDER BY u.id",
-    )
+           AND {STORED_MODEL_SQL} = $1 \
+         GROUP BY u.id ORDER BY u.id"
+    ))
+    .bind(state.ml().semantic_model().name())
     .fetch_all(&state.db)
     .await?;
     let mut rebuilt = 0;

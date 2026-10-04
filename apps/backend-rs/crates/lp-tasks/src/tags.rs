@@ -101,8 +101,11 @@ pub async fn tag_photo(state: &AppState, photo_id: Uuid) -> Result<(), TagError>
         .await?;
     let image_path = path_str(&thumb);
     let ml = state.ml();
-    // Semantic search on the tagging model: the same run gives the embedding.
-    let result = if ml.semantic_shares_tagger() {
+    // Semantic search on the tagging model: the same run gives the embedding,
+    // stored as that model's (the tagger `model` is the one that ran it).
+    let embedding_model =
+        Some(ml.semantic_model()).filter(|m| ml.semantic_shares_tagger() && m.name() == model);
+    let result = if embedding_model.is_some() {
         ml.tags()
             .generate_tags_with_embedding(&image_path, user_confidence, &model)
             .await
@@ -141,16 +144,17 @@ pub async fn tag_photo(state: &AppState, photo_id: Uuid) -> Result<(), TagError>
         .unwrap_or_default();
 
     let mut tx = state.db.begin().await?;
-    if let Some(e) = embedding {
+    if let (Some(e), Some(embedding_model)) = (embedding, embedding_model) {
         let magnitude = lp_ml::preprocess::l2_norm(&e);
         let e: Vec<f64> = e.into_iter().map(f64::from).collect();
         sqlx::query(
             "UPDATE api_photo SET clip_embeddings = $2, clip_embeddings_magnitude = $3, \
-               last_modified = now() WHERE id = $1",
+               clip_embeddings_model = $4, last_modified = now() WHERE id = $1",
         )
         .bind(photo_id)
         .bind(Value::from(e))
         .bind(magnitude)
+        .bind(embedding_model.name())
         .execute(&mut *tx)
         .await?;
     }

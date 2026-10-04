@@ -74,6 +74,8 @@ impl PgServer {
             .username(&self.user)
             .password(&self.pass)
             .database(db)
+            // As the server's pool: Rust writes set clip_embeddings_model.
+            .application_name(lp_db::pool::APPLICATION_NAME)
     }
 
     async fn admin(&self) -> PgConnection {

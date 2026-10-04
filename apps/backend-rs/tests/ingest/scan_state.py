@@ -70,7 +70,7 @@ def dump(args):
         t = {}
         for p in photos:
             k = key_of[p["id"]]
-            row = {c: v for c, v in p.items() if c not in ("id", "owner_id", "clip_embeddings")}
+            row = {c: v for c, v in p.items() if c not in ("id", "owner_id", "clip_embeddings", "clip_embeddings_model")}
             for c in ("added_on", "last_modified"):
                 row[c] = row[c] is not None
             row["files"] = sorted(files_of.get(k, []))

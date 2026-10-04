@@ -3,7 +3,7 @@
 //! (the tags sidecar's model code, `tests/ml/golden_tags.py`) gives for the
 //! same big thumbnails. Skipped without `LP_ORT_LIB`, the model or goldens.
 
-#![allow(clippy::disallowed_methods)]
+#![allow(clippy::disallowed_methods, clippy::type_complexity)]
 
 mod common;
 
@@ -208,16 +208,16 @@ async fn tags_generate_stores_the_semantic_embedding() {
     .await;
     res.unwrap();
 
-    let rows: Vec<(String, Option<String>, Option<f64>)> = sqlx::query_as(
-        "SELECT image_hash, clip_embeddings::text, clip_embeddings_magnitude FROM api_photo \
-         WHERE owner_id = $1",
+    let rows: Vec<(String, Option<String>, Option<f64>, Option<String>)> = sqlx::query_as(
+        "SELECT image_hash, clip_embeddings::text, clip_embeddings_magnitude, \
+           clip_embeddings_model FROM api_photo WHERE owner_id = $1",
     )
     .bind(alice)
     .fetch_all(&db)
     .await
     .unwrap();
     let mut compared = 0;
-    for (hash, emb, magnitude) in &rows {
+    for (hash, emb, magnitude, model) in &rows {
         let Some(expected) = want.get(&format!("{hash}.webp")) else {
             continue;
         };
@@ -225,25 +225,34 @@ async fn tags_generate_stores_the_semantic_embedding() {
             serde_json::from_str(emb.as_deref().expect("embedding stored")).unwrap();
         let magnitude = magnitude.expect("magnitude stored");
         assert_eq!(emb.len(), 512);
-        assert!(
-            lp_ml::clip::SemanticModel::MobileClipS2.fits_magnitude(Some(magnitude)),
-            "{hash}: magnitude {magnitude}"
-        );
+        assert_eq!(model.as_deref(), Some("mobileclip_s2"), "{hash}");
+        // Documentation only (never used to decide): MobileCLIP-S2's raw
+        // image embeddings have norms ~1, ViT-B/32's ~10.
+        assert!(magnitude < 3.0, "{hash}: magnitude {magnitude}");
         lp_ml::golden::assert_cosine(&emb, expected, 0.999, hash);
         compared += 1;
     }
     assert!(compared > 20, "only {compared} photos had goldens");
 
-    // A ViT-B/32 embedding left over is recognised and re-embedded.
+    // A ViT-B/32 embedding written by Django (no model recorded) is
+    // recognised and re-embedded in place, through the tagger.
     let vit: Vec<f64> = vec![0.5; 512];
-    sqlx::query(
-        "UPDATE api_photo SET clip_embeddings = $2, clip_embeddings_magnitude = 11.3 \
+    let stale: uuid::Uuid = sqlx::query_scalar(
+        "UPDATE api_photo SET clip_embeddings = $2, clip_embeddings_magnitude = 11.3, \
+           clip_embeddings_model = NULL \
          WHERE id = (SELECT id FROM api_photo WHERE owner_id = $1 \
-                     AND clip_embeddings IS NOT NULL ORDER BY id LIMIT 1)",
+                     AND clip_embeddings IS NOT NULL ORDER BY id LIMIT 1) RETURNING id",
     )
     .bind(alice)
     .bind(json!(vit))
-    .execute(&db)
+    .fetch_one(&db)
+    .await
+    .unwrap();
+    let embedded: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM api_photo WHERE owner_id = $1 AND clip_embeddings IS NOT NULL",
+    )
+    .bind(alice)
+    .fetch_one(&db)
     .await
     .unwrap();
     assert_eq!(lp_tasks::clip::reembed_mismatched(&state).await.unwrap(), 1);
@@ -255,14 +264,29 @@ async fn tags_generate_stores_the_semantic_embedding() {
     )
     .await;
     res.unwrap();
-    let stale: i64 = sqlx::query_scalar(
-        "SELECT count(*) FROM api_photo WHERE owner_id = $1 AND clip_embeddings_magnitude >= 3",
+    let (model, magnitude): (Option<String>, Option<f64>) = sqlx::query_as(
+        "SELECT clip_embeddings_model, clip_embeddings_magnitude FROM api_photo WHERE id = $1",
+    )
+    .bind(stale)
+    .fetch_one(&db)
+    .await
+    .unwrap();
+    assert_eq!(model.as_deref(), Some("mobileclip_s2"));
+    assert!(magnitude.is_some_and(|m| m < 3.0), "{magnitude:?}");
+    let after: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM api_photo WHERE owner_id = $1 AND clip_embeddings IS NOT NULL",
     )
     .bind(alice)
     .fetch_one(&db)
     .await
     .unwrap();
-    assert_eq!(stale, 0);
+    assert_eq!(after, embedded, "no embedding dropped");
+    assert!(
+        lp_tasks::clip::mismatched_owners(&db, lp_ml::clip::SemanticModel::MobileClipS2)
+            .await
+            .unwrap()
+            .is_empty()
+    );
     assert!(
         t.mock.calls_to("/clip-embeddings").is_empty(),
         "the CLIP sidecar was called"

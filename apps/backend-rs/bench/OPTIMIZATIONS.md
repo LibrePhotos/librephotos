@@ -32,6 +32,7 @@ Benchmarks used:
 | 12 | ONNX Runtime graph optimisation cached on disk (`with_optimized_model_path` once, then load the optimised copy with optimisation off), to speed up reloads after the 120 s idle unload | `examples/ort_load.rs`: session load time per model (3 loads each, ms), ORT 1.27, 4 intra-op threads | load as today: MobileCLIP vision 405 [418, 400, 396], MobileCLIP text 456, ViT-B/32 vision 601, SCRFD 26, ArcFace 34, OCR det 59, OCR rec 99 | pre-optimised (level all / extended): MobileCLIP vision 142 [142, 149, 134], text 333, ViT vision 426, SCRFD 13, ArcFace 18, OCR det 26-32, OCR rec 35; first optimise+save 1.2-2.2x a plain load; LFM2-VL (external-data files) not measurable this way | -0.26 s per MobileCLIP image-tower reload, ~-0.5 s for the whole default set; the scan loads each model once (<1% of the 66 s stage) | no (not worth a cache of hardware-specific model files next to the downloads) | see git log: `bench(backend-rs): round 2 #11/#12 ...` |
 | 13 | OCR only where there is text, plus decoding outside the OCR slot: under `LP_ML_PIPELINE` the original is decoded on a blocking thread (4 photos in flight) and the slot only runs the models; `LP_OCR_PREPASS=<side>` (new, off by default) first runs detection at that side and returns an empty result when it finds no box | ML-on scan, full (2 alternating runs each): OCR stage (s), OCR CPU-s, peak RSS (MB), OCR text vs the serial path (words, photos with text); `examples/ocr_prepass.rs` (297 corpus images, ppocrv6_small, 4 threads): ms per image | serial OCR (`LP_ML_PIPELINE=0`): **142.1** [142.0, 142.1], 457 CPU-s, peak 702 [703, 701]; 221 of 289 photos with text, 597 words | pipelined: **135.4** [135.9, 134.9], 470 CPU-s, peak 807 [816, 799] (see #14); prepass 640: 157.4 [158.0, 156.7], 551 CPU-s, peak 750 [703, 796]; both: 597/597 words, 221/221 photos. Offline: full pipeline 554 ms (text) / 202 ms (no text); 640 prepass 85 / 73 ms; 0 of 228 text photos missed | pipelined OCR **-4.7%**; prepass +16% on this corpus (76% of its photos carry text: every generated phone image is a poster), break-even at 60% photos with text; at 20% it would cut OCR by ~32% | pipelined decode: yes (default); prepass: knob, off by default | see git log: `perf(backend-rs): round 2 #13 ...` |
 | 14 | Stop idle ExifTool processes when the scan job and the face scan finish (`ExifPool::shutdown`), instead of waiting out the 15 s idle timeout | ML-on scan, full (2 alternating runs, previous binary vs this one): stages (s), peak RSS (MB), where the peak falls | previous: scan stage 65.9 [66.0, 65.8], OCR 134.6 [134.6, 134.5], captions 30.5, peak **853** [878, 828] (twice in the first 12 s of OCR: 4 decoded originals in flight plus the face scan's 2 ExifTool processes and console hosts, 85 MB) | this: 65.4 [65.9, 64.8], OCR 135.7 [135.5, 135.8], captions 30.6, peak **730** [734, 727] (librephotos-rs alone, mid-OCR or captions) | peak **-123 MB**, speed unchanged | yes | see git log: `perf(backend-rs): round 2 #14 ...` |
+| 15 | Correctness fix of #5: the producing model is recorded per embedding (`api_photo.clip_embeddings_model`, new nullable column, NULL = Django = ViT-B/32) instead of guessed from the magnitude; switching models never NULLs embeddings: the index and similar photos use only the selected model's, `clip.embed` replaces the others in place; a trigger resets the column when a non-`librephotos-rs` connection (Django) changes an embedding | ML-on scan, full (3 alternating runs, f470b0761 binary vs this one): scan stage (s, photos/s), OCR (s), 10 captions (s), scan CPU-s, peak RSS (MB); startup check on the 50k library (clone with a synthetic embedding on all 50,031 photos) | scan stage 67.3 [68.4, 66.2, 67.3] (4.31/s), OCR 135.0 [135.2, 135.0, 134.5], captions 30.5, 246.4 CPU-s, peak **754** [735, 754, 755] | scan stage 66.1 [66.1, 66.1, 66.1] (4.39/s), OCR 134.8 [135.9, 134.8, 134.4], captions 30.3, 245.5 CPU-s, peak **752** [755, 750, 752]; startup check 35-59 ms with nothing to convert (query 16 ms: seq scan of 3,527 heap pages, embeddings stay in TOAST), 78-96 ms with all 5 users to convert (query 20-22 ms) | neutral: scan -1.8% and peak -2 MB, both inside the baseline's spread; no index needed | yes (fix) | see git log: `fix(backend-rs): round 2 #15 ...` |
 
 ## Notes
 
@@ -112,7 +113,8 @@ unload as before; the ViT text tower is 254 MB too, plus its 352 MB vision tower
   per query; thresholded precision/recall 0.445/0.701 -> 0.528/0.938), similar photos
   90 -> 0.71 (77.9 vs 77.8 per photo; the corpus is dominated by near-identical generated
   gradients).
-- Switching: ViT-B/32 embeddings have magnitude ~9-12, MobileCLIP ~0.9-1.2, so
+- Switching (superseded by #15, which records the model instead of guessing it and never
+  drops embeddings): ViT-B/32 embeddings have magnitude ~9-12, MobileCLIP ~0.9-1.2, so
   `lp_tasks::clip::reembed_mismatched` (startup + site settings POST) drops the embeddings
   the selected model cannot have produced (magnitude split at 3) and queues `clip.embed` for
   their owners: **an existing library re-embeds once** (one MobileCLIP image pass, ~0.15 s
@@ -220,6 +222,28 @@ originals at a time (#13): the face scan's `-struct` processes from the last XMP
 alive in OCR's first seconds. Batch jobs now stop the idle processes as they finish (busy ones
 are unaffected; the next command respawns one, ~0.3 s). The remaining peak is the backend
 process itself (~730 MB: OCR's arena and decoded originals, or the caption model).
+
+**15. Recording the embedding's model.** #5 told the two models apart by magnitude (split
+at 3) and, at every start and settings change, NULLed the embeddings that did not fit and queued
+`clip.embed`. That guessed wrong on the contract fixture's synthetic embeddings (magnitude 1 under
+the ViT-B/32 sidecar: the `similar_photos` share twin failed), destroyed data on a guess, would
+fight a Django sharing the database (Django writes ViT-B/32, every Rust start dropped it again),
+and left search dark until the re-embedding finished. Now migration
+`202610041200_search_clip_embeddings_model` adds `api_photo.clip_embeddings_model` (`clip_vit_b32`,
+`mobileclip_s2`; NULL = written by Django, or by Rust before the column, = ViT-B/32) and every Rust
+write sets it (`clip.embed`, `tags.generate`'s shared embedding). The similarity index (build,
+stale-index check) and the photo detail's similar photos take only the selected model's
+embeddings, so the other model's rows are ignored, not dropped; `reembed_mismatched` only queues
+`clip.embed` for owners of mismatched rows (once: not while one is queued), and `clip.embed`
+replaces them in place, rebuilding the index first (without them), every max(2,000, index size)
+photos and at the end, so converted photos become searchable as the conversion runs. A `full`
+run also re-embeds in place now. Django saves whole rows without knowing the column, so a
+`BEFORE UPDATE OF clip_embeddings` trigger NULLs it when a connection whose `application_name` is
+not `librephotos-rs` (the pool's and the testkit's) changes the embedding: a stale Django save over
+a Rust re-embedding is then seen as ViT-B/32 again. Caveats: embeddings written by round-2 binaries
+before this column carry NULL and are re-embedded once (experiment databases only); a photo whose
+thumbnail is missing keeps its old-model embedding and makes every start queue a (short) job for
+its owner.
 
 ## Round 2 Pareto table
 

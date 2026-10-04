@@ -225,11 +225,12 @@ pub async fn serve(config: Config, run_migrations: bool) -> anyhow::Result<()> {
     let worker_task = tokio::spawn(worker.run(shutdown.clone()));
     let startup = state.clone();
     tokio::spawn(async move {
+        let check = std::time::Instant::now();
         match lp_tasks::clip::reembed_mismatched(&startup).await {
-            Ok(0) => {}
             Ok(n) => tracing::info!(
                 users = n,
-                "queued re-embedding for the semantic-search model"
+                secs = check.elapsed().as_secs_f64(),
+                "semantic-search model check: queued re-embedding for {n} users"
             ),
             Err(e) => tracing::error!(error = %e, "semantic-search model check failed"),
         }

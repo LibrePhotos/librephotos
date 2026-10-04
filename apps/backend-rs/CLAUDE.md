@@ -191,8 +191,11 @@ Shared files (`lp-api/src/lib.rs`, `lp-api/src/common/`, `lp-db/src/{scope,pig,u
 - Semantic search model: site setting `SEMANTIC_SEARCH_MODEL` (`mobileclip_s2` default,
   `clip_vit_b32`; `lp_ml::clip::SemanticModel`, `state.ml().semantic_model()`). With MobileCLIP
   as tagger and search model (`semantic_shares_tagger()`), `tags.generate` stores the search
-  embedding from the tagger's run and `clip.embed` only fills gaps; embeddings of the other
-  model are recognised by magnitude and re-embedded (`lp_tasks::clip::reembed_mismatched`).
+  embedding from the tagger's run and `clip.embed` only fills gaps. Every Rust write of
+  `clip_embeddings` also sets `clip_embeddings_model` (NULL = Django = `clip_vit_b32`,
+  `SemanticModel::stored`; a trigger resets it when a non-`librephotos-rs` connection changes the
+  embedding). The index and similar photos use only the selected model's embeddings; others are
+  re-embedded in place, never NULLed (`lp_tasks::clip::reembed_mismatched` queues `clip.embed`).
 - Goldens: `tests/ml/README.md` (Python generators) + `lp_ml::golden` (Rust loader).
   Shared test models: `<librephotos>/rust-pg/ml/protected_media/data_models`.
 

@@ -80,6 +80,9 @@ pub struct PhotoDetailRow {
     pub local_orientation: i32,
     pub main_file_id: Option<String>,
     pub clip_embeddings: Option<Value>,
+    /// The model of `clip_embeddings` (NULL = ViT-B/32, see
+    /// `lp_ml::clip::SemanticModel::stored`).
+    pub clip_embeddings_model: Option<String>,
     pub owner_id: i32,
     pub owner_username: String,
     pub owner_first_name: String,
@@ -123,7 +126,7 @@ pub struct PhotoDetailRow {
 
 const DETAIL_SELECT: &str = "SELECT p.id, p.exif_gps_lat, p.exif_gps_lon, p.exif_timestamp, p.geolocation_json, \
     p.image_hash, p.rating, p.hidden, p.public, p.removed, p.in_trashcan, p.video, p.size, \
-    p.local_orientation, p.main_file_id, p.clip_embeddings, \
+    p.local_orientation, p.main_file_id, p.clip_embeddings, p.clip_embeddings_model, \
     u.id AS owner_id, u.username AS owner_username, u.first_name AS owner_first_name, \
     u.last_name AS owner_last_name, \
     cap.captions_json, COALESCE(s.search_captions, '') AS search_captions, \
