@@ -230,7 +230,7 @@ cargo run -p lp-server -- serve          # optional LP_DEV_FALLBACK=http://127.0
 ```
 
 Fresh empty DB instead: `createdb` + `librephotos-rs migrate`. Other env: `LP_DB_POOL`,
-`LP_EXIF_POOL` (2) / `LP_EXIF_IDLE_SECS` (60, idle ExifTool processes stop), `LP_ORT_CPU_ARENA`
+`LP_EXIF_POOL` (2) / `LP_EXIF_IDLE_SECS` (15, idle ExifTool processes stop), `LP_ORT_CPU_ARENA`
 (`shared` default, `1`/`0`/`shrink`), `LP_VIPS_CONCURRENCY` (2), `LP_THUMB_KEEP` (`icc` default:
 thumbnails carry no EXIF/GPS; `all`, `none`), `LP_SCAN_CONCURRENCY` (0 = max(workers, min(cores, 4))
 groups a scan renders at once), `LP_ML_PIPELINE` (on: ML jobs prepare photos outside the model slot,

@@ -100,7 +100,7 @@ pub struct Config {
     /// the scan reads metadata in batches, so 2 keep up with 6 workers).
     pub exif_pool: usize,
     /// `LP_EXIF_IDLE_SECS`: stop ExifTool processes idle this long (default
-    /// 60, like the ML idle unload; 0 = keep them).
+    /// 15: a respawn is one perl start-up; 0 = keep them).
     pub exif_idle_secs: u64,
     /// `LP_DEV_FALLBACK`: unmatched /api and /media requests are proxied here.
     pub dev_fallback: Option<String>,
@@ -245,7 +245,7 @@ impl Config {
             media_mode,
             db_pool: parse_num(get, "LP_DB_POOL", (2 * cores) as u32)?.max(1),
             exif_pool: parse_num(get, "LP_EXIF_POOL", cores.min(2))?.max(1),
-            exif_idle_secs: parse_num(get, "LP_EXIF_IDLE_SECS", 60)?,
+            exif_idle_secs: parse_num(get, "LP_EXIF_IDLE_SECS", 15)?,
             dev_fallback: get("LP_DEV_FALLBACK")
                 .map(|s| s.trim().trim_end_matches('/').to_string())
                 .filter(|s| !s.is_empty()),
