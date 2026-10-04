@@ -32,7 +32,14 @@ where
         return Ok(false);
     }
     let mut counter = ItemCounter::new(state.db.clone(), job_id, ids.len());
-    let concurrency = concurrency.clamp(1, state.config.worker_concurrency.max(1));
+    // In-process models serialise inference in their slot; more photos in
+    // flight only overlap decoding and database work with it, so the
+    // pipelined path does not tie this to the worker count.
+    let concurrency = if lp_ml::pipeline() {
+        concurrency.max(1)
+    } else {
+        concurrency.clamp(1, state.config.worker_concurrency.max(1))
+    };
     let mut results = futures::stream::iter(ids)
         .map(&work)
         .buffer_unordered(concurrency);

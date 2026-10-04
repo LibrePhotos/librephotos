@@ -212,6 +212,21 @@ fn env(k: &str) -> Option<String> {
     std::env::var(k).ok().filter(|v| !v.trim().is_empty())
 }
 
+/// `LP_ML_PIPELINE` (default on): ML jobs keep the model busy by decoding
+/// and preprocessing the next photos outside the model slot (tags), and the
+/// face scan prepares a few photos ahead (XMP regions, detection) while
+/// storing in order, decoding the thumbnail for the crops only when a face
+/// was found. `0` = the previous strictly serial path.
+pub fn pipeline() -> bool {
+    static ON: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *ON.get_or_init(|| {
+        !matches!(
+            std::env::var("LP_ML_PIPELINE").as_deref().map(str::trim),
+            Ok("0" | "false" | "off" | "no")
+        )
+    })
+}
+
 /// Reads the live model selection (site settings) on demand.
 pub type Selector = Arc<dyn Fn() -> Selection + Send + Sync>;
 

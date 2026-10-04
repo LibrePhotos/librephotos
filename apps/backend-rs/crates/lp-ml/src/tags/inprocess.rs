@@ -14,7 +14,7 @@ use lp_sidecars::SidecarError;
 use serde_json::{Value, json};
 
 use super::TagsApi;
-use super::tagger::{MAX_TAGS, Model, Tagger};
+use super::tagger::{MAX_TAGS, Model, Tagger, prepare_image};
 use crate::{Backend, MlContext, ModelSlot, Service};
 
 pub struct InProcess {
@@ -94,6 +94,33 @@ impl InProcess {
         tagging_model: &str,
     ) -> Result<super::tagger::Prediction, SidecarError> {
         let image = image_path.to_string();
+        if crate::pipeline()
+            && let Some(model) = Model::from_name(model_name(tagging_model))
+        {
+            // Decode and resize on a blocking thread: the slot (and its ORT
+            // threads) only runs the model, while the next photos prepare.
+            let path = image.clone();
+            let prepared =
+                tokio::task::spawn_blocking(move || prepare_image(model, Path::new(&path)))
+                    .await
+                    .map_err(|e| crate::failed(Service::Tags, e.to_string()))?;
+            let (size, pixels) = match prepared {
+                Ok(p) => p,
+                Err(e) => {
+                    let e = crate::failed(Service::Tags, format!("Failed to process image: {e:#}"));
+                    tracing::warn!(image = %image_path, error = %e, "tags: error processing image");
+                    return Err(e);
+                }
+            };
+            return self
+                .with_tagger(tagging_model, move |t, model| {
+                    t.predict_pixels(size, pixels, model.threshold(), MAX_TAGS)
+                })
+                .await
+                .inspect_err(|e| {
+                    tracing::warn!(image = %image_path, error = %e, "tags: error processing image");
+                });
+        }
         self.with_tagger(tagging_model, move |t, model| {
             t.predict(Path::new(&image), model.threshold(), MAX_TAGS)
         })

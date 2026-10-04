@@ -8,6 +8,7 @@ pub mod xmp;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
+use futures::StreamExt;
 use image::RgbImage;
 use lp_core::AppState;
 use lp_core::codecs::FaceEncoding;
@@ -81,6 +82,42 @@ pub async fn scan(
                 return Ok(false);
             }
             let batch = photos::load(&state.db, chunk).await?;
+            if lp_ml::pipeline() {
+                // Prepare (XMP regions, detection) a few photos ahead; store
+                // strictly in order, as the serial loop does.
+                type Prep<'a> = (
+                    Option<&'a TaskPhoto>,
+                    Option<Result<Option<PreparedFaces>, FaceError>>,
+                );
+                let futs: Vec<futures::future::BoxFuture<'_, Prep<'_>>> = chunk
+                    .iter()
+                    .map(|id| {
+                        let photo = batch.get(id);
+                        Box::pin(async move {
+                            match photo {
+                                Some(p) => (photo, Some(prepare_faces(state, p).await)),
+                                None => (photo, None),
+                            }
+                        }) as futures::future::BoxFuture<'_, Prep<'_>>
+                    })
+                    .collect();
+                let mut prepared = futures::stream::iter(futs).buffered(FACE_PREFETCH);
+                while let Some((photo, prep)) = prepared.next().await {
+                    let error = match (photo, prep) {
+                        (Some(photo), Some(prep)) => {
+                            let r = match prep {
+                                Ok(Some(found)) => store_faces(state, photo, found).await,
+                                Ok(None) => Ok(0),
+                                Err(e) => Err(e),
+                            };
+                            r.err().map(|e| format!("Photo {}: {e}", photo.image_hash))
+                        }
+                        _ => None,
+                    };
+                    counter.done(error).await?;
+                }
+                continue;
+            }
             for id in chunk {
                 let error = match batch.get(id) {
                     Some(photo) => extract_faces(state, photo)
@@ -127,10 +164,126 @@ struct Found {
     encoding: Option<Vec<f64>>,
 }
 
+/// Photos the pipelined face scan prepares ahead of the one it stores.
+pub const FACE_PREFETCH: usize = 3;
+
 /// `extract_faces` for one photo: regions from the file's XMP, else the
 /// face sidecar; new faces (IoU < 0.3 with the photo's faces) are cropped
 /// to `faces/` and stored; a named XMP region names an unnamed face it overlaps.
 pub async fn extract_faces(state: &AppState, photo: &TaskPhoto) -> Result<usize, FaceError> {
+    if lp_ml::pipeline() {
+        return match prepare_faces(state, photo).await? {
+            Some(found) => store_faces(state, photo, found).await,
+            None => Ok(0),
+        };
+    }
+    extract_faces_serial(state, photo).await
+}
+
+/// The faces of a photo before anything is stored.
+pub struct PreparedFaces {
+    big: PathBuf,
+    found: Vec<Found>,
+}
+
+/// The read-only half of [`extract_faces`]: XMP regions (scaled with the
+/// thumbnail's header size, no decode), else detection. `None` when there
+/// is nothing to store.
+pub async fn prepare_faces(
+    state: &AppState,
+    photo: &TaskPhoto,
+) -> Result<Option<PreparedFaces>, FaceError> {
+    if !state.config.features.face_detection {
+        return Ok(None);
+    }
+    let big = photo
+        .thumbnail_path(&state.config.media_root)
+        .ok_or_else(|| {
+            FaceError::Message(
+                "The 'thumbnail_big' attribute has no file associated with it.".into(),
+            )
+        })?;
+    let (width, height) = {
+        let path = big.clone();
+        state
+            .blocking(move || image::image_dimensions(&path))
+            .await
+            .map_err(|e| FaceError::Message(e.to_string()))?
+            .map_err(|e| FaceError::Message(format!("{}: {e}", big.display())))?
+    };
+    let main = photo
+        .main_path
+        .clone()
+        .ok_or_else(|| FaceError::Message("'NoneType' object has no attribute 'path'".into()))?;
+    let found = find_faces(state, photo, &big, &main, width, height).await?;
+    Ok((!found.is_empty()).then_some(PreparedFaces { big, found }))
+}
+
+/// The writing half of [`extract_faces`]: decode the thumbnail for the crops
+/// and store the new faces.
+pub async fn store_faces(
+    state: &AppState,
+    photo: &TaskPhoto,
+    prepared: PreparedFaces,
+) -> Result<usize, FaceError> {
+    let PreparedFaces { big, found } = prepared;
+    let image = {
+        let path = big.clone();
+        state
+            .blocking(move || image::open(&path).map(|i| Arc::new(i.to_rgb8())))
+            .await
+            .map_err(|e| FaceError::Message(e.to_string()))?
+            .map_err(|e| FaceError::Message(format!("{}: {e}", big.display())))?
+    };
+    write_faces(state, photo, image, found).await
+}
+
+/// XMP regions of the original, else the face service on the thumbnail.
+async fn find_faces(
+    state: &AppState,
+    photo: &TaskPhoto,
+    big: &Path,
+    main: &str,
+    width: u32,
+    height: u32,
+) -> Result<Vec<Found>, FaceError> {
+    let mut found: Vec<Found> = Vec::new();
+    if let Some((Some(region), orientation)) = xmp::read_region_info(&state.exif, main).await?
+        && !is_falsy(&region)
+    {
+        found = xmp::faces_from_region_info(&region, orientation.as_ref(), width, height)
+            .into_iter()
+            .map(|r| Found {
+                location: r.location,
+                name: r.name,
+                encoding: None,
+            })
+            .collect();
+    }
+    if found.is_empty() {
+        let model = state.settings().face_recognition_model.clone();
+        match state.ml().face().detect_faces(&path_str(big), &model).await {
+            Ok(faces) => {
+                found = faces
+                    .into_iter()
+                    .map(|f| Found {
+                        location: f.location,
+                        name: None,
+                        encoding: f.encoding,
+                    })
+                    .collect();
+            }
+            Err(e) => {
+                tracing::error!(photo = %photo.image_hash, error = %e, "can't extract face information");
+            }
+        }
+    }
+    Ok(found)
+}
+
+/// The serial path (`LP_ML_PIPELINE=0`): decode first, then regions or
+/// detection, then store.
+async fn extract_faces_serial(state: &AppState, photo: &TaskPhoto) -> Result<usize, FaceError> {
     if !state.config.features.face_detection {
         return Ok(0);
     }
@@ -153,52 +306,20 @@ pub async fn extract_faces(state: &AppState, photo: &TaskPhoto) -> Result<usize,
         .main_path
         .clone()
         .ok_or_else(|| FaceError::Message("'NoneType' object has no attribute 'path'".into()))?;
-
-    let mut found: Vec<Found> = Vec::new();
-    if let Some((Some(region), orientation)) = xmp::read_region_info(&state.exif, &main).await?
-        && !is_falsy(&region)
-    {
-        found = xmp::faces_from_region_info(
-            &region,
-            orientation.as_ref(),
-            image.width(),
-            image.height(),
-        )
-        .into_iter()
-        .map(|r| Found {
-            location: r.location,
-            name: r.name,
-            encoding: None,
-        })
-        .collect();
-    }
-    if found.is_empty() {
-        let model = state.settings().face_recognition_model.clone();
-        match state
-            .ml()
-            .face()
-            .detect_faces(&path_str(&big), &model)
-            .await
-        {
-            Ok(faces) => {
-                found = faces
-                    .into_iter()
-                    .map(|f| Found {
-                        location: f.location,
-                        name: None,
-                        encoding: f.encoding,
-                    })
-                    .collect();
-            }
-            Err(e) => {
-                tracing::error!(photo = %photo.image_hash, error = %e, "can't extract face information");
-            }
-        }
-    }
+    let found = find_faces(state, photo, &big, &main, image.width(), image.height()).await?;
     if found.is_empty() {
         return Ok(0);
     }
+    write_faces(state, photo, image, found).await
+}
 
+/// Store the new faces of `found` (crops cut from `image`).
+async fn write_faces(
+    state: &AppState,
+    photo: &TaskPhoto,
+    image: Arc<RgbImage>,
+    found: Vec<Found>,
+) -> Result<usize, FaceError> {
     let mut tx = state.db.begin().await?;
     let unknown_cluster = unknown_cluster(&mut tx, photo.owner_id).await?;
     let mut existing: Vec<FaceBox> = sqlx::query_as::<_, (i32, i32, i32, i32)>(

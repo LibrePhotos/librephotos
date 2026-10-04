@@ -237,7 +237,7 @@ async fn scan_inner(
         errors: Errors::default(),
         last_flush: std::time::Instant::now(),
     }));
-    let concurrency = state.config.worker_concurrency.max(1);
+    let concurrency = state.config.scan_concurrency();
     let cancelled = Arc::new(std::sync::atomic::AtomicBool::new(false));
 
     let work = futures::stream::iter(to_process.into_iter().enumerate())

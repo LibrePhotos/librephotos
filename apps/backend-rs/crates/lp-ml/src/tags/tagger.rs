@@ -421,6 +421,11 @@ impl Tagger {
     /// The image tower's pooled output, not normalised.
     pub fn embed_image_raw(&mut self, path: &Path) -> anyhow::Result<Vec<f32>> {
         let (size, pixels) = prepare_image(self.model, path)?;
+        self.embed_pixels_raw(size, pixels)
+    }
+
+    /// [`embed_image_raw`](Self::embed_image_raw) of a [`prepare_image`] result.
+    pub fn embed_pixels_raw(&mut self, size: usize, pixels: Vec<f32>) -> anyhow::Result<Vec<f32>> {
         let name = input_names(&self.vision)
             .into_iter()
             .next()
@@ -445,7 +450,19 @@ impl Tagger {
         threshold: f32,
         max_tags: usize,
     ) -> anyhow::Result<Prediction> {
-        let raw = self.embed_image_raw(path)?;
+        let (size, pixels) = prepare_image(self.model, path)?;
+        self.predict_pixels(size, pixels, threshold, max_tags)
+    }
+
+    /// [`predict`](Self::predict) of a [`prepare_image`] result.
+    pub fn predict_pixels(
+        &mut self,
+        size: usize,
+        pixels: Vec<f32>,
+        threshold: f32,
+        max_tags: usize,
+    ) -> anyhow::Result<Prediction> {
+        let raw = self.embed_pixels_raw(size, pixels)?;
         let mut embedding = raw.clone();
         l2_normalize(&mut embedding);
         let mut scores: Vec<f32> = self

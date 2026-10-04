@@ -89,6 +89,10 @@ pub struct Config {
     pub env_mapbox_api_key: String,
     pub env_map_tile_provider: String,
     pub worker_concurrency: usize,
+    /// `LP_SCAN_CONCURRENCY`: file groups a scan job processes at once
+    /// (thumbnails, metadata, pHash); 0 (default) = the larger of
+    /// `WORKER_CONCURRENCY` and min(cores, 4), see [`Config::scan_concurrency`].
+    pub scan_concurrency: usize,
     pub log_level: String,
     pub media_mode: MediaMode,
     pub db_pool: u32,
@@ -111,6 +115,17 @@ pub struct Config {
 type Lookup<'a> = dyn Fn(&str) -> Option<String> + 'a;
 
 impl Config {
+    /// File groups a scan job processes at once: `LP_SCAN_CONCURRENCY`, else
+    /// the larger of `WORKER_CONCURRENCY` and min(cores, 4). A scan is one
+    /// job, so with a single worker it would otherwise render one photo at a
+    /// time on an otherwise idle box (OPTIMIZATIONS.md #8).
+    pub fn scan_concurrency(&self) -> usize {
+        match self.scan_concurrency {
+            0 => self.worker_concurrency.max(self.cores.min(4)).max(1),
+            n => n,
+        }
+    }
+
     pub fn from_env() -> anyhow::Result<Self> {
         Self::from_lookup(&|k| std::env::var(k).ok())
     }
@@ -225,6 +240,7 @@ impl Config {
             env_mapbox_api_key: get("MAPBOX_API_KEY").unwrap_or_default(),
             env_map_tile_provider: get("MAP_TILE_PROVIDER").unwrap_or_else(|| "photoprism".into()),
             worker_concurrency: parse_num(get, "WORKER_CONCURRENCY", cores)?.max(1),
+            scan_concurrency: parse_num(get, "LP_SCAN_CONCURRENCY", 0usize)?,
             log_level: get("LOG_LEVEL").unwrap_or_else(|| "info".into()),
             media_mode,
             db_pool: parse_num(get, "LP_DB_POOL", (2 * cores) as u32)?.max(1),

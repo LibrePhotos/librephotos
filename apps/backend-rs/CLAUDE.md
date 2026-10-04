@@ -232,7 +232,9 @@ cargo run -p lp-server -- serve          # optional LP_DEV_FALLBACK=http://127.0
 Fresh empty DB instead: `createdb` + `librephotos-rs migrate`. Other env: `LP_DB_POOL`,
 `LP_EXIF_POOL` (2) / `LP_EXIF_IDLE_SECS` (60, idle ExifTool processes stop), `LP_ORT_CPU_ARENA`
 (`shared` default, `1`/`0`/`shrink`), `LP_VIPS_CONCURRENCY` (2), `LP_THUMB_KEEP` (`icc` default:
-thumbnails carry no EXIF/GPS; `all`, `none`), `WORKER_CONCURRENCY`, `LOG_LEVEL`/`RUST_LOG`, `FEATURE_*`, `TRANSCODE_*`,
+thumbnails carry no EXIF/GPS; `all`, `none`), `LP_SCAN_CONCURRENCY` (0 = max(workers, min(cores, 4))
+groups a scan renders at once), `LP_ML_PIPELINE` (on: ML jobs prepare photos outside the model slot,
+`0` = serial), `LP_FACE_DET_SIZE` (`640`; `480`/`320`/`auto` fast modes), `WORKER_CONCURRENCY`, `LOG_LEVEL`/`RUST_LOG`, `FEATURE_*`, `TRANSCODE_*`,
 `REFRESH_TOKEN_DAYS`, `MAP_*`, `ALLOW_UPLOAD` (see `lp_core::config`), `FRONTEND_BASE_URL`
 (public origin for the OIDC callback), `LP_OIDC_PROVIDERS` (JSON `[{id, name, client_id, secret,
 server_url, settings?}]`, OIDC providers for databases without allauth's `SocialApp` table).
