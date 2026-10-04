@@ -220,3 +220,36 @@ originals at a time (#13): the face scan's `-struct` processes from the last XMP
 alive in OCR's first seconds. Batch jobs now stop the idle processes as they finish (busy ones
 are unaffected; the next command respawns one, ~0.3 s). The remaining peak is the backend
 process itself (~730 MB: OCR's arena and decoded originals, or the caption model).
+
+## Round 2 Pareto table
+
+ML-on scan (`ml_footprint.py scan rs`, 290 photos, 4 pinned cores, 1 worker), full runs: scan
+stage = scan + tags + CLIP + faces; peak = working set of the whole tree over the whole run
+(scan, face training, OCR, 10 captions). Medians [runs]. Rows 4-8: HEAD of round 2
+(`bdc72a912`), one binary, alternating, measured in one session; rows 1-3 from #5/#8 (same
+protocol, earlier binaries of the round).
+
+| setting | scan stage s (photos/s) | OCR s | 10 captions s | peak RSS MB | >= 4/s and < 1 GB? |
+|---|---:|---:|---:|---:|---|
+| 1. round 1 default: ViT-B/32 search + MobileCLIP tags, serial stage (#5 baseline) | 143.8 [138.8, 148.8] (2.02) | 157.9 | 32.3 | 1,314 [1,338, 1,290] | no |
+| 2. MobileCLIP-S2 for both (#5), serial stage | 118.7 [121.1, 116.3] (2.44) | 150.3 | 31.8 | 699 [699, 699] | no (speed) |
+| 3. HEAD with `LP_ML_PIPELINE=0 LP_SCAN_CONCURRENCY=1` | 114.3 [114.9, 113.7] (2.54) | 142.1 | 30.7 | 698 [696, 701] | no (speed) |
+| **4. HEAD default** (MobileCLIP-S2 both, scan concurrency 4, pipelined ML jobs, shared ORT arena, faces at 640, squares Q80) | **64.9** [65.0, 64.8] (**4.47**) | **135.4** | 30.5 | **753** [753, 753] | **yes** |
+| 5. HEAD + `LP_ORT_CPU_ARENA=0` | 65.5 [66.1, 64.8] (4.43) | 138.9 | 31.0 | **704** [712, 697] | yes (least RAM) |
+| 6. HEAD + `LP_ORT_CPU_ARENA=1` (per-session arenas) | 64.9 [65.0, 64.8] (4.47) | **132.0** | 30.9 | 1,480 [1,482, 1,479] | no (RAM) |
+| 7. HEAD + `LP_FACE_DET_SIZE=auto` | **62.1** [61.5, 62.7] (**4.67**) | 135.5 | 30.5 | 745 [734, 755] | yes (fastest; -9% face recall on the goldens, #6) |
+| 8. HEAD + `SEMANTIC_SEARCH_MODEL=clip_vit_b32` | 83.8 [83.8, 83.8] (3.46) | 136.1 | 31.0 | 1,327 [1,333, 1,321] | no |
+| (#11) mimalloc, at #10 | 66.0 (4.39) | 143.0 | 30.5 | 861 | yes, dominated |
+| (#13) HEAD + `LP_OCR_PREPASS=640` (at #13) | 65.0 (4.46) | 157.4 | 30.5 | 750 | yes; OCR slower on this text-heavy corpus |
+
+**Target met by the default: 4.47 photos/s (290 photos in 64.9 s) with a 753 MB whole-run peak**
+(other sessions of the same configuration: 4.40-4.48 photos/s, 725-816 MB). Pareto front on
+(scan speed, peak): `LP_ORT_CPU_ARENA=0` (704 MB, OCR +2.6%), the default, `LP_FACE_DET_SIZE=auto`
+(4.67/s) for speed when small faces matter less, `LP_ORT_CPU_ARENA=1` for the fastest OCR (-2.5%)
+at twice the RAM. The default keeps 640 face detection (recall) and the shared arena (OCR 2.6%
+faster than no arena for +50 MB). The stage uses 243 CPU-s on 4 cores (3.8 busy), so what is left
+is per-photo CPU work: MobileCLIP 37 s (110 ms/photo at 4 threads), scan 16.5 s, faces 11.5 s.
+Next candidates: an arm64 int8 check (dot-product kernels, #7), the OCR prepass on a real library
+(#13), tags + faces on 2 threads each in one merged pass (#8 note, ~+20% on ORT efficiency),
+and OCR on the big thumbnail instead of multi-megapixel originals (decode + det at 1080 instead
+of 1600 px; needs a recall check on small text).
