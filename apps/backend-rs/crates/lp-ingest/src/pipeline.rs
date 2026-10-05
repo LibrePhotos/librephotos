@@ -384,13 +384,19 @@ impl Pipeline {
 
         let hash = photo.image_hash.clone();
         let rendered = self.generate_thumbnails(&photo, &main_path).await;
-        let big_rgb = match rendered {
-            Ok(rgb) => rgb,
+        let (fresh, mut big_rgb) = match rendered {
+            Ok(r) => r,
             Err(e) => {
                 exif_task.abort();
                 return Err(e);
             }
         };
+        // Inline ML from the big WebP: the pHash's decode also feeds the
+        // models (the pixels the follow-up jobs would decode from the file).
+        let rgb_from_webp = fresh
+            && big_rgb.is_none()
+            && self.inline.is_some()
+            && crate::inline::source() == crate::inline::Source::Webp;
         let ext = if photo.video { ".mp4" } else { ".webp" };
         let big_path = self.renderer.path(BIG, &hash, ".webp");
         let small_path = self.renderer.path(SQUARE_SMALL, &hash, ext);
@@ -398,23 +404,28 @@ impl Pipeline {
         let (aspect, phash, dominant) = {
             let bp = big_path.clone();
             let sp = small_path.clone();
-            self.blocking(move || {
-                let aspect = render::image_size(&bp)
-                    .filter(|(w, h)| *w > 0 && *h > 0)
-                    .and_then(|(w, h)| lp_core::codecs::aspect_ratio(w, h));
-                let ph = if bp.exists() {
-                    phash::phash_webp_file(&bp)
-                } else {
-                    None
-                };
-                let dom = if want_color {
-                    color::dominant_webp_file(&sp)
-                } else {
-                    None
-                };
-                (aspect, ph, dom)
-            })
-            .await?
+            let (aspect, ph, dom, rgb) = self
+                .blocking(move || {
+                    let aspect = render::image_size(&bp)
+                        .filter(|(w, h)| *w > 0 && *h > 0)
+                        .and_then(|(w, h)| lp_core::codecs::aspect_ratio(w, h));
+                    let (ph, rgb) = if bp.exists() {
+                        phash::phash_webp_file_keep(&bp, rgb_from_webp)
+                    } else {
+                        (None, None)
+                    };
+                    let dom = if want_color {
+                        color::dominant_webp_file(&sp)
+                    } else {
+                        None
+                    };
+                    (aspect, ph, dom, rgb)
+                })
+                .await?;
+            if rgb.is_some() {
+                big_rgb = rgb;
+            }
+            (aspect, ph, dom)
         };
         {
             let mut tx = self.state.db.begin().await?;
@@ -502,7 +513,7 @@ impl Pipeline {
         &self,
         photo: &PhotoRow,
         main_path: &Path,
-    ) -> anyhow::Result<Option<image::RgbImage>> {
+    ) -> anyhow::Result<(bool, Option<image::RgbImage>)> {
         let hash = photo.image_hash.clone();
         let r = &self.renderer;
         if !photo.video {
@@ -515,10 +526,13 @@ impl Pipeline {
                 let rr = r.clone();
                 let input = main_path.to_path_buf();
                 let lo = photo.local_orientation;
-                let keep = self.inline.is_some();
+                let keep = self.inline.is_some()
+                    && crate::inline::source() == crate::inline::Source::Pixels;
+                let fresh = missing.contains(&BIG);
                 return self
                     .blocking(move || rr.static_thumbnails(&input, &hash, &missing, lo, keep))
                     .await?
+                    .map(|rgb| (fresh, rgb))
                     .with_context(|| {
                         format!(
                             "could not generate thumbnail for image {}",
@@ -526,7 +540,7 @@ impl Pipeline {
                         )
                     });
             }
-            return Ok(None);
+            return Ok((false, None));
         }
         if !r.path(BIG, &hash, ".webp").exists() {
             r.video_big(main_path, &hash).await?;
@@ -536,7 +550,7 @@ impl Pipeline {
                 r.video_animated(main_path, &hash, dir).await?;
             }
         }
-        Ok(None)
+        Ok((false, None))
     }
 
     /// `Thumbnail._regenerate_thumbnails`: delete, render, aspect ratio, pHash.

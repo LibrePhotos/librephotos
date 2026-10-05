@@ -204,15 +204,36 @@ pub fn phash_rgb(pixels: &[u8], channels: usize, w: usize, h: usize) -> String {
 
 /// Decode a WebP file (libwebp, as Pillow does) and hash it.
 pub fn phash_webp_file(path: &std::path::Path) -> Option<String> {
-    let data = std::fs::read(path).ok()?;
-    let img = webp::Decoder::new(&data).decode()?;
+    phash_webp_file_keep(path, false).0
+}
+
+/// [`phash_webp_file`], also returning the decoded RGB pixels when `keep`
+/// (inline ML from the big WebP: one decode for the hash and the models).
+pub fn phash_webp_file_keep(
+    path: &std::path::Path,
+    keep: bool,
+) -> (Option<String>, Option<image::RgbImage>) {
+    let Ok(data) = std::fs::read(path) else {
+        return (None, None);
+    };
+    let Some(img) = webp::Decoder::new(&data).decode() else {
+        return (None, None);
+    };
     let channels = if img.is_alpha() { 4 } else { 3 };
-    Some(phash_rgb(
-        &img,
-        channels,
-        img.width() as usize,
-        img.height() as usize,
-    ))
+    let (w, h) = (img.width(), img.height());
+    let hash = phash_rgb(&img, channels, w as usize, h as usize);
+    let rgb = if !keep {
+        None
+    } else if channels == 3 {
+        image::RgbImage::from_raw(w, h, img.to_vec())
+    } else {
+        let px: Vec<u8> = img
+            .chunks_exact(4)
+            .flat_map(|p| [p[0], p[1], p[2]])
+            .collect();
+        image::RgbImage::from_raw(w, h, px)
+    };
+    (Some(hash), rgb)
 }
 
 #[cfg(test)]

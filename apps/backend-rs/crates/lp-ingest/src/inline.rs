@@ -21,6 +21,38 @@ use tokio::sync::Semaphore;
 use tokio::task::JoinSet;
 use uuid::Uuid;
 
+/// Where the inline ML's pixels come from (`LP_SCAN_INLINE_ML_SOURCE`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Source {
+    /// The big WebP as written, decoded once (libwebp) for the pHash and the
+    /// models: the same pixels the `tags.generate` / `faces.scan` follow-ups
+    /// would read from the file (`webp`).
+    Webp,
+    /// libvips' RGB of the big thumbnail before the WebP encode (`pixels`):
+    /// no decode at all, but the models see the image without the Q95 loss.
+    Pixels,
+}
+
+/// `LP_SCAN_INLINE_ML_SOURCE`: `webp` (default) or `pixels`.
+pub fn source() -> Source {
+    static S: OnceLock<Source> = OnceLock::new();
+    *S.get_or_init(|| {
+        match std::env::var("LP_SCAN_INLINE_ML_SOURCE")
+            .unwrap_or_default()
+            .trim()
+            .to_ascii_lowercase()
+            .as_str()
+        {
+            "pixels" | "rgb" | "memory" => Source::Pixels,
+            "" | "webp" => Source::Webp,
+            other => {
+                tracing::warn!(value = %other, "LP_SCAN_INLINE_ML_SOURCE: expected webp or pixels");
+                Source::Webp
+            }
+        }
+    })
+}
+
 /// What the scan calls for every photo it rendered.
 pub trait PhotoMlHook: Send + Sync {
     /// Inline ML applies to scans right now (features on, in-process models,

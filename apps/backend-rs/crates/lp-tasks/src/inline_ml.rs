@@ -70,8 +70,10 @@ impl lp_ingest::inline::PhotoMlHook for Hook {
         match Setting::from_env() {
             Setting::On => true,
             Setting::Off => false,
-            // Not yet measured (round 3 #19): opt-in until then.
-            Setting::Auto => false,
+            // On the GPU the scan and the models overlap (round 3 #19: W4
+            // 8.6 -> 13.0 photos/s); on the CPU they would compete for the
+            // same cores (not measured), so the follow-up jobs stay.
+            Setting::Auto => lp_ml::runtime::gpu_provider().is_some(),
         }
     }
 

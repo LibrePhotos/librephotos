@@ -46,6 +46,7 @@ fn main() -> anyhow::Result<()> {
         }
     };
     let mut same_phash = 0;
+    let (mut same_decode, mut max_decode_diff) = (0usize, 0u8);
     for f in &files {
         let t = Instant::now();
         let data = std::fs::read(f)?;
@@ -78,6 +79,17 @@ fn main() -> anyhow::Result<()> {
         let wd = std::fs::read(&big_path)?;
         let img = webp::Decoder::new(&wd).decode().expect("webp");
         add("  of which webp decode", t);
+        let t = Instant::now();
+        let img2 = lp_ml::preprocess::load_rgb(&big_path)?;
+        add("  (alt) webp decode, image crate (ML jobs)", t);
+        let (mut maxd, mut ndiff) = (0u8, 0usize);
+        for (a, b) in img.iter().zip(img2.as_raw().iter()) {
+            let d = a.abs_diff(*b);
+            maxd = maxd.max(d);
+            ndiff += usize::from(d > 0);
+        }
+        same_decode += usize::from(ndiff == 0 && img.len() == img2.as_raw().len());
+        max_decode_diff = max_decode_diff.max(maxd);
         let _ = img;
         let t = Instant::now();
         let _ = color::dominant_webp_file(&tmp.join("sm.webp"));
@@ -115,6 +127,10 @@ fn main() -> anyhow::Result<()> {
     }
     println!(
         "  pHash from memory == from the WebP: {same_phash}/{}",
+        files.len()
+    );
+    println!(
+        "  libwebp decode == image crate decode: {same_decode}/{} (max diff {max_decode_diff})",
         files.len()
     );
     Ok(())
