@@ -328,6 +328,8 @@ GPU runtimes (scratch venvs under `rust-pg/gpu`, nothing system-wide): `onnxrunt
 | #21 scan concurrency 8, libvips 1 thread per operation | 16.21 [16.19, 16.23] (same session: 4 groups 11.71 [11.49, 11.93]) | 1,172 | 1,642-1,672 | 774 | the box is CPU-bound now: 97% busy (typeperf), of which the scan tree ~58%, the rest Postgres, Defender + Search indexer on the new thumbnails, the browser, the samplers |
 | #24 videos first (default; 8 groups) | 15.98 [15.94, 16.02] (same session: walk order 14.59 [14.21, 14.96]) | 1,341 | 370-675 | 745 | 99% system CPU; 12 groups slower again (14.59) |
 | #25 tag writer waits for a batch (500 ms) | 17.10 [17.10, 17.23, 14.66] (same session: no wait 15.47 [14.90, 16.88, 15.47]) | 1,370 | 467-878 | 730 (+ Postgres 43) | Postgres 93 -> 43 CPU-s per run |
+| **HEAD (#19-#25 defaults)**, final check | **16.43** [16.01, 16.85] | **1,318** [1,313, 1,323] | 469-528 | 740 (+ Postgres 45, ExifTool 41) | 290-photo corpus at these defaults: tags, embeddings, faces, pHash, colours and every thumbnail byte identical to the follow-up path of 6468b62d5 |
+| HEAD + `LP_THUMB_EFFORT=0` (fast mode, #22) | **17.60** [17.41, 17.79] | 1,282 [1,396, 1,169] | 471-475 | 676 | +7% photos/s, -9% CPU-s; +3% big-thumbnail bytes, pHash of ~half the new photos 1-4 bits off effort-2 thumbnails |
 
 ### Notes
 
@@ -448,3 +450,35 @@ ms** (SearchIndexer + ProtocolHost + FilterHost 59-72 CPU-s), plus kernel/System
 ~520 ms of CPU the box spends per photo, ~80-90 ms (16%) is Defender and the indexer, which a
 Linux server does not run (the desktop's browser, terminal and the benchmark's samplers took
 another ~100 CPU-s per run). Defender settings and exclusions were not touched.
+
+**Round 3b result.** W4 ML-on scan stage (DirectML, whole tree): **7.74 -> 16.4 photos/s
+(2.1x)**, peak RSS 852 -> 1,318 MB, VRAM ~0.5-1.7 GB, CPU-s 829 -> 740 (Postgres 93 -> 45).
+Kept: ML inside the scan on the GPU (#19, +50%), from the WebP the pHash decodes (#20, exact
+parity), 8 file groups + 1 libvips thread (#21, +38%), videos first (#24, +9.5%), batched tag
+writes inside the scan (#25, Postgres -54%). Knobs, off by default: WebP effort 0 (#22, 17.6/s),
+region probe (#23), `pixels` source (#20).
+
+**Pi profile re-check** (`ml_footprint.py scan rs`, 290 photos, 4 pinned cores, CPU provider,
+`LP_SCAN_CONCURRENCY=4` because the harness pins after start, so the process sees 12 hardware
+threads; a real 4-core box gets min(4, 8) = 4): HEAD **4.29/s** [4.36, 4.22] (scan stage 66.5 /
+68.7 s), peak **741 MB** [754, 727], OCR 147 / 145 s, captions 31 s; same session with libvips 2
+threads 4.36/s, 790 MB; with walk order and no tag-store wait (the round-3b scan changes that
+apply on the CPU) 4.09/s, 752 MB. Round 2: 4.47/s, 753 MB (other sessions 4.31-4.48). Inline ML
+stays off without a GPU, so on the CPU only #21's libvips default, #24 and #25 apply; none of them
+moves the Pi numbers beyond this session's spread, which ran ~4% slower overall (scan job 19.6-20.0
+s with or without them, OCR 142-147 s vs 135 s in round 2).
+
+**Why not 40 photos/s, and what it would take.** The box is CPU-bound (95-99% busy) at ~16/s.
+Per photo the whole box spends ~520 ms of CPU: ~365 ms in librephotos-rs, of which the image work
+alone is ~215 ms single-threaded (libvips decode + resize of a 12 MP JPEG 59 ms, big WebP Q95 68,
+squares 24, pHash incl. WebP decode 26, MD5 + motion scan 8, colour 3, ML tensors 13), Postgres
+~22 ms, ExifTool ~20 ms, and ~80-90 ms of Windows Defender and Search indexer reacting to the new
+files. Even the image work alone tops out at **29 photos/s on all 12 threads** (`scan_costs`
+`THREADS=12`, nothing else running). Reaching 40/s within 4 GB on this CPU would need roughly
+half the per-photo CPU: (1) a server without Defender/indexer (Linux: ~-16%), (2) WebP effort 0
+for the big thumbnail (-32% of its encode, #22) and cheaper squares, (3) JPEG decode off the CPU
+(nvJPEG / a hardware decoder, or decoding at 1/4 scale where 1080 px allows it: only for originals
+>= 4320 px high), and (4) fewer per-photo DB round trips (~20 today) - or simply more cores: the
+pipeline scales ~linearly to the core count (4 groups 11.7/s, 8 groups 16.2/s on 6 cores), so a
+12-16-core CPU with this code would land near 30-40/s. RAM is not the constraint (1.3 GB of 4).
+The GPU is 20-27% busy.
