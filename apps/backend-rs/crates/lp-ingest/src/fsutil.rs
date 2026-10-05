@@ -91,6 +91,39 @@ pub fn is_video(path: &Path) -> bool {
     sniffed_mime(path).is_some_and(|m| m.contains("video"))
 }
 
+/// `IMAGE_EXTENSIONS` (`api/models/file.py`), lowercase: image formats for
+/// files the scanner cannot load. RAW and XMP live in [`is_raw`] / [`is_metadata`].
+pub const IMAGE_EXTENSIONS: &[&str] = &[
+    ".avif", ".bmp", ".gif", ".heic", ".heif", ".hif", ".j2k", ".jfif", ".jp2", ".jpe", ".jpeg",
+    ".jpg", ".jxl", ".png", ".tif", ".tiff", ".webp",
+];
+
+/// `VIDEO_EXTENSIONS` (`api/models/file.py`), lowercase.
+pub const VIDEO_EXTENSIONS: &[&str] = &[
+    ".3g2", ".3gp", ".asf", ".avi", ".flv", ".m2ts", ".m4v", ".mkv", ".mov", ".mp4", ".mpeg",
+    ".mpg", ".mts", ".ogv", ".vob", ".webm", ".wmv",
+];
+
+/// `looks_like_media`: whether a path the scanner could not load is still
+/// worth reporting as a failure. True when its last extension (lowercased) is
+/// in [`IMAGE_EXTENSIONS`] / [`VIDEO_EXTENSIONS`], is RAW or `.xmp`, or when
+/// its content sniffs as `image/*` / `video/*` ([`sniffed_mime`]; an
+/// unreadable file sniffs as nothing). RawTherapee `.pp3` sidecars or `.txt`
+/// notes are not media, so a group of only those is skipped instead of
+/// failing the scan.
+pub fn looks_like_media(path: &Path) -> bool {
+    let s = path_str(path);
+    let ext = splitext(&s).1.to_lowercase();
+    if IMAGE_EXTENSIONS.contains(&ext.as_str())
+        || VIDEO_EXTENSIONS.contains(&ext.as_str())
+        || is_raw(&s)
+        || is_metadata(&s)
+    {
+        return true;
+    }
+    sniffed_mime(path).is_some_and(|m| m.starts_with("image/") || m.starts_with("video/"))
+}
+
 /// `detect_file_type`.
 pub fn detect_file_type(path: &Path) -> i32 {
     let s = path_str(path);

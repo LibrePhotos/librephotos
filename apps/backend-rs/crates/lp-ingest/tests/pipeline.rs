@@ -188,18 +188,22 @@ async fn scan_rescan_replace_and_cleanup() {
         copy(rel, &dir);
     }
     std::fs::write(dir.join("notes.txt"), "not media").unwrap();
+    // A RawTherapee sidecar groups on its own (`DSC_0001.dng` stem).
+    std::fs::write(dir.join("raw").join("DSC_0001.dng.pp3"), "[Version]\n").unwrap();
+    std::fs::write(dir.join("corrupt.jpg"), "not a jpeg").unwrap();
     std::fs::write(dir.join(".hidden.jpg"), "hidden").unwrap();
 
     let (_, current, target, result) = scan(&app, uid, false).await;
-    assert_eq!((current, target), (7, 7));
+    assert_eq!((current, target), (9, 9), "ignored groups still count");
     let result = result.unwrap();
+    // Only the corrupt .jpg is an error; notes.txt and the .pp3 are ignored.
     assert_eq!(result["error_count"], 1, "{result}");
+    let error = result["error"].as_str().unwrap();
     assert!(
-        result["error"]
-            .as_str()
-            .unwrap()
-            .starts_with("No valid files in group: ['")
+        error.starts_with("No valid files in group: ['") && error.contains("corrupt.jpg"),
+        "{error}"
     );
+    assert_eq!(result["errors"].as_array().unwrap().len(), 1, "{result}");
     assert_eq!(result["status"], "partial_failure");
 
     let rows = photos(&app, uid).await;
@@ -296,9 +300,9 @@ async fn scan_rescan_replace_and_cleanup() {
     assert!(queued.contains(&"clip.embed".to_string()), "{queued:?}");
 
     // Nothing changed: an incremental scan has nothing to do but the
-    // file that is not media.
+    // files that are not (valid) media.
     let (_, _, target, _) = scan(&app, uid, false).await;
-    assert_eq!(target, 1);
+    assert_eq!(target, 3);
 
     // Replace e2e_01 in place with another picture: re-keyed, same Photo.
     let e2e_path = dir.join("e2e").join("e2e_01.jpg");
@@ -451,4 +455,93 @@ async fn jobs_rerender_metadata_write_and_upload_processing() {
     assert_eq!(exif_ts, ts);
     assert_eq!(aspect, Some(1.33));
     app.cleanup().await;
+}
+
+/// A folder of RAWs with one RawTherapee sidecar each (`IMG_1.CR2.pp3`):
+/// every sidecar is its own group with nothing to import. Far beyond the
+/// max(10, 5%) error threshold, they must not fail the scan.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn non_media_groups_do_not_fail_the_scan() {
+    let Some(app) = app_with_tools().await else {
+        return;
+    };
+    let (uid, dir) = library_user(&app, "sidecars").await;
+    copy("e2e/e2e_03.jpg", &dir);
+    for i in 0..20 {
+        std::fs::write(dir.join(format!("IMG_{i}.CR2.pp3")), "[Version]\n").unwrap();
+    }
+    std::fs::write(dir.join("readme.txt"), "notes").unwrap();
+
+    let (job, current, target, result) = scan(&app, uid, false).await;
+    assert_eq!(
+        (current, target),
+        (22, 22),
+        "ignored groups reach the total"
+    );
+    let result = result.unwrap_or_else(|| json!({}));
+    assert!(result.get("error_count").is_none(), "{result}");
+    assert!(result.get("errors").is_none(), "{result}");
+    let failed: bool =
+        sqlx::query_scalar("SELECT failed FROM api_longrunningjob WHERE job_id = $1")
+            .bind(&job)
+            .fetch_one(app.pool())
+            .await
+            .unwrap();
+    assert!(!failed, "non-media files do not fail the scan");
+    let n: i64 = sqlx::query_scalar("SELECT count(*) FROM api_photo WHERE owner_id = $1")
+        .bind(uid)
+        .fetch_one(app.pool())
+        .await
+        .unwrap();
+    assert_eq!(n, 1);
+    app.cleanup().await;
+}
+
+#[test]
+fn looks_like_media_by_extension_or_content() {
+    use lp_ingest::fsutil::looks_like_media;
+    let dir = std::env::temp_dir().join(format!("lp-looks-like-media-{}", Uuid::new_v4()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let write = |name: &str, bytes: &[u8]| {
+        let p = dir.join(name);
+        std::fs::write(&p, bytes).unwrap();
+        p
+    };
+    // Unknown extension, text content: not media.
+    assert!(!looks_like_media(&write(
+        "IMG_3398.CR2.pp3",
+        b"[Version]\nAppVersion=5.9\n"
+    )));
+    assert!(!looks_like_media(&write("notes.txt", b"not media")));
+    assert!(!looks_like_media(&write("noext", b"plain text")));
+    // Not in Django's lists, even where a MIME table knows them.
+    for name in ["a.aae", "b.thm", "c.json", "Thumbs.db", "d.ico", "e.psd"] {
+        assert!(!looks_like_media(&write(name, b"garbage")), "{name}");
+    }
+    // Known extensions, whatever the content (a corrupt .jpg stays an error).
+    for name in [
+        "corrupt.jpg",
+        "x.JPG",
+        "a.HEIC",
+        "a.hif",
+        "a.jxl",
+        "b.CR2",
+        "c.dng",
+        "d.xmp",
+        "e.mp4",
+        "f.MOV",
+        "f.mts",
+        "f.m2ts",
+        "g.webp",
+    ] {
+        assert!(looks_like_media(&write(name, b"garbage")), "{name}");
+    }
+    // JPEG magic without an extension: media by content.
+    assert!(looks_like_media(&write(
+        "jpeg_magic",
+        &[
+            0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, b'J', b'F', b'I', b'F', 0x00
+        ]
+    )));
+    let _ = std::fs::remove_dir_all(&dir);
 }

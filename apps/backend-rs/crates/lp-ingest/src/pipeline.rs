@@ -219,7 +219,9 @@ impl Pipeline {
         Ok(db::file_create(db_conn, &path_str(path), &hash, probe.kind).await?)
     }
 
-    /// `handle_file_group`: Ok(()) or the error text recorded on the job.
+    /// `handle_file_group`: the photo, `Ok(None)` for a group of non-media
+    /// files that is skipped (still counted as processed), or the error text
+    /// recorded on the job.
     pub async fn handle_file_group(
         &self,
         owner: &Owner,
@@ -236,7 +238,18 @@ impl Pipeline {
                 }
             }
             if files.is_empty() {
-                return Ok::<_, anyhow::Error>(Err(format!(
+                // Only a group with something that looks like media is a
+                // failure (a corrupt .jpg); unrelated files (RawTherapee
+                // .pp3, notes) are skipped so they cannot fail the scan.
+                let ps = paths.to_vec();
+                let any_media = self
+                    .blocking(move || ps.iter().any(|p| fsutil::looks_like_media(p)))
+                    .await?;
+                if !any_media {
+                    tracing::info!("ignoring non-media files: {}", pyfmt::list_repr(&joined));
+                    return Ok::<_, anyhow::Error>(Ok(None));
+                }
+                return Ok(Err(format!(
                     "No valid files in group: {}",
                     pyfmt::list_repr(&joined)
                 )));
@@ -255,10 +268,10 @@ impl Pipeline {
             if photo.main_file_id.is_some() {
                 crate::timers::time("3 process photo", self.process_photo(owner, photo.id)).await?;
             }
-            Ok(Ok(photo.id))
+            Ok(Ok(Some(photo.id)))
         };
         match run.await {
-            Ok(Ok(id)) => Ok(Some(id)),
+            Ok(Ok(id)) => Ok(id),
             Ok(Err(msg)) => {
                 tracing::warn!("{msg}");
                 Err(msg)
