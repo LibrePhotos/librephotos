@@ -37,6 +37,7 @@ chrono.workspace = true
 uuid.workspace = true
 indexmap.workspace = true
 ort.workspace = true
+libloading.workspace = true
 ndarray.workspace = true
 tokenizers.workspace = true
 async-trait.workspace = true

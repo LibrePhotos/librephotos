@@ -7,6 +7,14 @@
   global flags, before the mode: --no-arena (Rust with LP_ORT_CPU_ARENA=0), --keep (keep DB + BASE_DATA),
   --env K=V (repeatable, extra backend env, e.g. --env LP_ORT_CPU_ARENA=shrink),
   --site KEY=VALUE (repeatable, site setting row, e.g. --site SEMANTIC_SEARCH_MODEL=mobileclip_s2)
+  --cpus pi|all (pi: the 4-pin below, default; all: nothing pinned, Postgres neither),
+  --threads N (ONNX_INTRA_OP_THREADS, default 4), --gpu-ort dml|cuda (LP_ORT_LIB = the GPU runtime
+  of rust-pg/gpu, ONNX_PROVIDERS = it + CPU; cuda puts the CUDA/cuDNN wheels' DLLs on PATH)
+  scan --lib w4: the W4 library (rust-pg/bench-scan/lib, 2,025 files incl. 5 videos) instead of lib/foot.
+Peak GPU memory = the server's dedicated GPU memory (Windows counter `GPU Process Memory`, 1 Hz;
+nvidia-smi has no per-process figure under WDDM); also nvidia-smi's memory.used minus its median
+before the server started (other GPU clients make that one noisy: +-250 MiB); GPU utilisation
+(nvidia-smi) is averaged over the scan stage.
 
 Each run gets a fresh clone of lp_fixture (lp_run_foot_<side><N>) with user `foot`
 scanning <root>/lib/foot (or lib/tiny for `models`), and a BASE_DATA whose
@@ -52,6 +60,16 @@ PORT = {"rs": 8761, "dj": 8760}
 USER, PW = "foot", "foot-pw"
 SERVER_CPUS = [0, 2, 4, 6]
 PG_CPUS = [8, 9, 10, 11]
+W4_LIB = LIBREPHOTOS / "rust-pg" / "bench-scan" / "lib"
+GPU_ROOT = LIBREPHOTOS / "rust-pg" / "gpu"
+GPU_ORT = {
+    "dml": (GPU_ROOT / "venv-dml" / "Lib" / "site-packages" / "onnxruntime" / "capi" / "onnxruntime.dll",
+            "DmlExecutionProvider,CPUExecutionProvider", []),
+    "cuda": (GPU_ROOT / "venv-cuda" / "Lib" / "site-packages" / "onnxruntime" / "capi" / "onnxruntime.dll",
+             "CUDAExecutionProvider,CPUExecutionProvider",
+             [GPU_ROOT / "venv-cuda" / "Lib" / "site-packages" / "nvidia" / "cu13" / "bin" / "x86_64",
+              GPU_ROOT / "cudnn913" / "nvidia" / "cudnn" / "bin"]),  # cuDNN 9.27 is ~30x slower on Turing (round 3 #16)
+}
 SIDECARS = {
     "exif": ["-m", "service.exif.main"],
     "image_similarity": ["image_similarity/main.py"],
@@ -63,7 +81,7 @@ SIDECARS = {
     "ocr": ["service/ocr/main.py"],
 }
 FLAGS = subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.DETACHED_PROCESS
-ARGS = argparse.Namespace(no_arena=False, keep=False, env={}, site={})
+ARGS = argparse.Namespace(no_arena=False, keep=False, env={}, site={}, cpus="pi", threads=4, gpu_ort=None)
 TINY = ["group_t1_orig.jpg", "portrait_hanks_orig.jpg", "portrait_astronaut_orig.jpg",
         "text_document_1240x1754.jpg", "text_receipt_720x1100.jpg", "scene_chelsea.jpg"]
 CAPTION_PICKS = ["group_t1_orig", "portrait_hanks_orig", "portrait_astronaut_orig", "scene_chelsea",
@@ -98,6 +116,8 @@ def pg_pids():
 
 
 def pin_postgres(cpus):
+    if ARGS.cpus == "all":
+        cpus = list(range(psutil.cpu_count()))
     for p in pg_pids():
         try:
             p.cpu_affinity(cpus)
@@ -203,11 +223,19 @@ def common_env(side, db, base, conc):
         DB_HOST="localhost", DB_PORT="5433", TZ="UTC",
         FEATURE_FACE_DETECTION="1", FEATURE_FACE_CLUSTER="1", FEATURE_IMAGE_CAPTIONING="1",
         FEATURE_SCENE_CLASSIFICATION="1", FEATURE_REVERSE_GEOCODING="0",
-        WORKER_CONCURRENCY=str(conc), ONNX_INTRA_OP_THREADS="4", ONNX_PROVIDERS="CPUExecutionProvider",
+        WORKER_CONCURRENCY=str(conc), ONNX_INTRA_OP_THREADS=str(ARGS.threads), ONNX_PROVIDERS="CPUExecutionProvider",
         LOG_LEVEL="INFO", PYTHONUTF8="1", PYTHONIOENCODING="utf-8",
     )
     env["PATH"] = os.pathsep.join([str(SP / "exiftool_bin"), str(SP / "ffmpeg_bin" / "bin"), env["PATH"]])
+    if ARGS.gpu_ort:
+        lib, providers, dll_dirs = GPU_ORT[ARGS.gpu_ort]
+        env["ONNX_PROVIDERS"] = providers
+        env["PATH"] = os.pathsep.join([*map(str, dll_dirs), env["PATH"]])
     return env
+
+
+def server_cpus():
+    return SERVER_CPUS if ARGS.cpus == "pi" else list(range(psutil.cpu_count()))
 
 
 def spawn(label, argv, env, cwd, logdir):
@@ -215,7 +243,7 @@ def spawn(label, argv, env, cwd, logdir):
     p = subprocess.Popen(argv, env=env, cwd=cwd, stdout=f, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL,
                          creationflags=FLAGS)
     try:
-        psutil.Process(p.pid).cpu_affinity(SERVER_CPUS)
+        psutil.Process(p.pid).cpu_affinity(server_cpus())
     except psutil.Error:
         pass
     return p.pid
@@ -226,7 +254,6 @@ def start(side, db, base, conc, extra=None):
     if ARGS.no_arena:
         env["LP_ORT_CPU_ARENA"] = "0"
     env.update(extra or {})
-    env.update(ARGS.env)
     logs = base / "logs"
     roots = {}
     if side == "rs":
@@ -237,8 +264,12 @@ def start(side, db, base, conc, extra=None):
                    LP_EXIFTOOL=str(SP / "exiftool_bin" / "exiftool.exe"),
                    LP_FFMPEG=str(SP / "ffmpeg_bin" / "bin" / "ffmpeg.exe"),
                    LP_FFPROBE=str(SP / "ffmpeg_bin" / "bin" / "ffprobe.exe"))
+        if ARGS.gpu_ort:
+            env["LP_ORT_LIB"] = str(GPU_ORT[ARGS.gpu_ort][0])
+        env.update(ARGS.env)
         roots["librephotos-rs"] = spawn("server", [str(RS_BIN), "serve"], env, RS_DIR, logs)
     else:
+        env.update(ARGS.env)
         env.update(DJANGO_SETTINGS_MODULE="lp_twin_settings", BACKEND_HOST="127.0.0.1", LP_DJANGO_DIRECT="1",
                    PYTHONPATH=os.pathsep.join([str(RS_DIR / "tests" / "fixture"), str(BACKEND)]),
                    MPLCONFIGDIR=str(base / "mpl"))
@@ -293,7 +324,7 @@ class Sampler(threading.Thread):
                 try:
                     m = q.memory_info()
                     name = q.name().lower()
-                    if q.cpu_affinity() != SERVER_CPUS:
+                    if ARGS.cpus == "pi" and q.cpu_affinity() != SERVER_CPUS:
                         q.cpu_affinity(SERVER_CPUS)
                 except psutil.Error:
                     continue
@@ -324,6 +355,70 @@ class Sampler(threading.Thread):
 
 def mb(x):
     return round(x / 1048576, 1)
+
+
+class GpuSampler(threading.Thread):
+    """nvidia-smi memory.used / utilization.gpu every 0.5 s (one streaming process)."""
+
+    def __init__(self):
+        super().__init__(daemon=True)
+        self.samples = []  # (t, used MiB, util %)
+        self.proc = None
+        self.pid_proc = None
+        self.pid_samples = []  # (t, dedicated MiB of the tracked process)
+
+    def track(self, pid):
+        """Dedicated GPU memory of `pid` from the Windows performance counter, 1 Hz."""
+        # Get-Counter fixes its instance list when it starts, and the server's instance only
+        # appears once it touches the GPU: restart it every 10 samples.
+        ps = ("while ($true) { Get-Counter -Counter '\\GPU Process Memory(*)\\Dedicated Usage' -SampleInterval 1 "
+              "-MaxSamples 10 | ForEach-Object { $s = ($_.CounterSamples | Where-Object { $_.InstanceName -like "
+              "'pid_%d_*' } | Measure-Object CookedValue -Sum).Sum; [Console]::WriteLine([string]$s) } }" % pid)
+        try:
+            self.pid_proc = subprocess.Popen(["powershell", "-NoProfile", "-Command", ps], stdout=subprocess.PIPE,
+                                             stderr=subprocess.DEVNULL, text=True)
+        except OSError:
+            return
+
+        def read():
+            for line in self.pid_proc.stdout:
+                try:
+                    self.pid_samples.append((time.time(), float(line.strip() or 0) / 1048576))
+                except ValueError:
+                    pass
+        threading.Thread(target=read, daemon=True).start()
+
+    def run(self):
+        try:
+            self.proc = subprocess.Popen(["nvidia-smi", "--query-gpu=memory.used,utilization.gpu",
+                                          "--format=csv,noheader,nounits", "-lms", "500"],
+                                         stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+        except OSError:
+            return
+        for line in self.proc.stdout:
+            try:
+                used, util = (float(x) for x in line.strip().split(","))
+            except ValueError:
+                continue
+            self.samples.append((time.time(), used, util))
+
+    def stop(self):
+        for p in (self.proc, self.pid_proc):
+            if p:
+                p.kill()
+
+    def baseline(self):
+        xs = sorted(s[1] for s in self.samples)
+        return xs[len(xs) // 2] if xs else None
+
+    def window(self, t0, t1, base):
+        xs = [s for s in self.samples if t0 <= s[0] <= t1]
+        if not xs or base is None:
+            return {}
+        ps = [v for t, v in self.pid_samples if t0 <= t <= t1]
+        return {"peak_mib": round(max(s[1] for s in xs) - base),
+                "mean_util": round(sum(s[2] for s in xs) / len(xs), 1),
+                "proc_peak_mib": round(max(ps)) if ps else None}
 
 
 def tree_cpu(roots):
@@ -472,13 +567,20 @@ def services_status(api):
 def cmd_scan(args):
     side, conc = args.side, args.concurrency
     tag = f"{side}{conc}"
-    db, base = setup(side, tag, ROOT / "lib" / "foot")
+    db, base = setup(side, tag, W4_LIB if args.lib == "w4" else ROOT / "lib" / "foot")
+    gpu = GpuSampler()
+    gpu.start()
+    time.sleep(3)
+    gpu_base = gpu.baseline()
     uid = int(psql(f"SELECT id FROM api_user WHERE username = '{USER}'", db))
     pin_postgres(PG_CPUS)
     roots = start(side, db, base, conc)
     sampler = Sampler(roots)
     result = {"side": side, "concurrency": conc, "db": db, "bin": str(RS_BIN) if side == "rs" else None,
-              "no_arena": ARGS.no_arena, "env": ARGS.env, "site": ARGS.site}
+              "no_arena": ARGS.no_arena, "env": ARGS.env, "site": ARGS.site, "lib": args.lib, "cpus": ARGS.cpus,
+              "threads": ARGS.threads, "gpu_ort": ARGS.gpu_ort, "gpu_baseline_mib": gpu_base}
+    if side == "rs":
+        gpu.track(roots["librephotos-rs"])
     try:
         api, ready_s = wait_ready(side, roots)
         sampler.start()
@@ -494,6 +596,8 @@ def cmd_scan(args):
         log("  scan:", r.status_code, r.text[:120])
         stages["scan+tags+clip+faces"], done = wait_quiet(side, db, uid, deadline, "scan + tags/CLIP/faces")
         cpu["scan"] = tree_cpu(roots)
+        result["gpu_scan"] = gpu.window(t0, time.time(), gpu_base)
+        result["scan_stage_peak"] = {k: mb(v) for k, v in sampler.window_peak(t0, time.time()).items()}
         result["after_scan"] = snapshot(sampler, "after scan + followups")
         result["counts_after_scan"] = counts(db, uid)
         if done and args.scan_only:
@@ -540,12 +644,14 @@ def cmd_scan(args):
         n = result["counts_after_scan"]["photos"]
         sc = stages["scan+tags+clip+faces"]
         result["files_per_s"] = round(n / sc, 3) if sc else None
+        result["gpu"] = gpu.window(t0 - 30, time.time(), gpu_base)
         if side == "rs":
             result["services"] = services_status(api)
         log(f"  peak rss {result['peak']['rss_mb']} MB, private {result['peak']['private_mb']} MB; "
-            f"{n} photos in {sc} s = {result['files_per_s']} files/s")
+            f"{n} photos in {sc} s = {result['files_per_s']} files/s; gpu {result['gpu']}")
     finally:
         sampler.stop_ev.set()
+        gpu.stop()
         stop(roots)
         time.sleep(2)
         pin_postgres(list(range(psutil.cpu_count())))
@@ -708,6 +814,10 @@ def main():
                     help="extra environment for the backend processes (repeatable), e.g. LP_ORT_CPU_ARENA=shrink")
     ap.add_argument("--site", action="append", default=[], metavar="KEY=VALUE",
                     help="site setting (string value) for the run's DB (repeatable)")
+    ap.add_argument("--cpus", choices=["pi", "all"], default="pi",
+                    help="pi: server on CPUs 0,2,4,6 and Postgres on 8-11; all: nothing pinned")
+    ap.add_argument("--threads", type=int, default=4, help="ONNX_INTRA_OP_THREADS")
+    ap.add_argument("--gpu-ort", choices=sorted(GPU_ORT), help="GPU ONNX Runtime of rust-pg/gpu")
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("library")
     m = sub.add_parser("models")
@@ -719,10 +829,12 @@ def main():
     s.add_argument("--out", required=True)
     s.add_argument("--cap", type=int, default=540, help="seconds for all ML stages")
     s.add_argument("--captions", type=int, default=10)
+    s.add_argument("--lib", choices=["foot", "w4"], default="foot")
     s.add_argument("--scan-only", action="store_true",
                    help="stop after scan + tags/CLIP/faces (no face training, OCR, captions)")
     args = ap.parse_args()
     ARGS.no_arena, ARGS.keep = args.no_arena, args.keep
+    ARGS.cpus, ARGS.threads, ARGS.gpu_ort = args.cpus, args.threads, args.gpu_ort
     ARGS.env = dict(kv.split("=", 1) for kv in args.env)
     ARGS.site = dict(kv.split("=", 1) for kv in args.site)
     if args.cmd == "library":

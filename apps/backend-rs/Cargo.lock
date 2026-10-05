@@ -3274,6 +3274,7 @@ dependencies = [
  "hex",
  "image",
  "indexmap 2.14.2",
+ "libloading 0.8.9",
  "lp-sidecars",
  "ndarray",
  "once_cell",

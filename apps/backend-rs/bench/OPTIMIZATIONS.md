@@ -33,6 +33,7 @@ Benchmarks used:
 | 13 | OCR only where there is text, plus decoding outside the OCR slot: under `LP_ML_PIPELINE` the original is decoded on a blocking thread (4 photos in flight) and the slot only runs the models; `LP_OCR_PREPASS=<side>` (new, off by default) first runs detection at that side and returns an empty result when it finds no box | ML-on scan, full (2 alternating runs each): OCR stage (s), OCR CPU-s, peak RSS (MB), OCR text vs the serial path (words, photos with text); `examples/ocr_prepass.rs` (297 corpus images, ppocrv6_small, 4 threads): ms per image | serial OCR (`LP_ML_PIPELINE=0`): **142.1** [142.0, 142.1], 457 CPU-s, peak 702 [703, 701]; 221 of 289 photos with text, 597 words | pipelined: **135.4** [135.9, 134.9], 470 CPU-s, peak 807 [816, 799] (see #14); prepass 640: 157.4 [158.0, 156.7], 551 CPU-s, peak 750 [703, 796]; both: 597/597 words, 221/221 photos. Offline: full pipeline 554 ms (text) / 202 ms (no text); 640 prepass 85 / 73 ms; 0 of 228 text photos missed | pipelined OCR **-4.7%**; prepass +16% on this corpus (76% of its photos carry text: every generated phone image is a poster), break-even at 60% photos with text; at 20% it would cut OCR by ~32% | pipelined decode: yes (default); prepass: knob, off by default | see git log: `perf(backend-rs): round 2 #13 ...` |
 | 14 | Stop idle ExifTool processes when the scan job and the face scan finish (`ExifPool::shutdown`), instead of waiting out the 15 s idle timeout | ML-on scan, full (2 alternating runs, previous binary vs this one): stages (s), peak RSS (MB), where the peak falls | previous: scan stage 65.9 [66.0, 65.8], OCR 134.6 [134.6, 134.5], captions 30.5, peak **853** [878, 828] (twice in the first 12 s of OCR: 4 decoded originals in flight plus the face scan's 2 ExifTool processes and console hosts, 85 MB) | this: 65.4 [65.9, 64.8], OCR 135.7 [135.5, 135.8], captions 30.6, peak **730** [734, 727] (librephotos-rs alone, mid-OCR or captions) | peak **-123 MB**, speed unchanged | yes | see git log: `perf(backend-rs): round 2 #14 ...` |
 | 15 | Correctness fix of #5: the producing model is recorded per embedding (`api_photo.clip_embeddings_model`, new nullable column, NULL = Django = ViT-B/32) instead of guessed from the magnitude; switching models never NULLs embeddings: the index and similar photos use only the selected model's, `clip.embed` replaces the others in place; a trigger resets the column when a non-`librephotos-rs` connection (Django) changes an embedding | ML-on scan, full (3 alternating runs, f470b0761 binary vs this one): scan stage (s, photos/s), OCR (s), 10 captions (s), scan CPU-s, peak RSS (MB); startup check on the 50k library (clone with a synthetic embedding on all 50,031 photos) | scan stage 67.3 [68.4, 66.2, 67.3] (4.31/s), OCR 135.0 [135.2, 135.0, 134.5], captions 30.5, 246.4 CPU-s, peak **754** [735, 754, 755] | scan stage 66.1 [66.1, 66.1, 66.1] (4.39/s), OCR 134.8 [135.9, 134.8, 134.4], captions 30.3, 245.5 CPU-s, peak **752** [755, 750, 752]; startup check 35-59 ms with nothing to convert (query 16 ms: seq scan of 3,527 heap pages, embeddings stay in TOAST), 78-96 ms with all 5 users to convert (query 20-22 ms) | neutral: scan -1.8% and peak -2 MB, both inside the baseline's spread; no index needed | yes (fix) | see git log: `fix(backend-rs): round 2 #15 ...` |
+| 16 | GPU execution provider (round 3, W4 benchmark below): `ONNX_PROVIDERS` takes `DmlExecutionProvider` (DirectML, new) next to CUDA and CPU, short names `dml`/`cuda`/`cpu`, unset = CUDA, DirectML, CPU (first one the loaded runtime offers; CPU always last); `DirectML.dll` next to `LP_ORT_LIB` is preloaded (System32 has an older one); DirectML sessions run without memory pattern, sequentially | W4 ML-on scan stage (2,025 files, unpinned, 6 intra-op threads, 1 worker): wall (s) and photos/s, jobs scan / tags / faces (s), CPU-s, peak RSS (MB), VRAM (MiB, nvidia-smi delta); parity goldens on the GPU | CPU (onnxruntime 1.27): **460.5** [460.5, >= 500 (cut in faces)] (**4.40** / <= 4.05 per s), scan 146 / 136, tags 252 / 328, faces 61 / cut, 2,576 / 2,490 CPU-s, peak 920 / 878; at 12 threads: cut at 480 s in tags (1,675 / 2,025, ~200 ms per photo vs ~125 at 6), 3,997 CPU-s | DirectML (onnxruntime-directml 1.24.4): **255.8** [250.0, 261.5] (**7.92/s**), scan 131 / 137, tags **71 / 75**, faces 48 / 49, **725 / 755 CPU-s**, peak **775** [735, 814], VRAM 267-329; CUDA (onnxruntime-gpu 1.27 + CUDA 13.4 + cuDNN 9.13, one run): 271.9 (7.45/s), tags 82, faces 51, 800 CPU-s, peak 1,049 (private 2,307), VRAM 837 | **+80% photos/s**, CPU-s **-71%**, peak RSS -150 MB (DirectML) / +130 MB (CUDA); tags job 3.5x faster, faces 1.25x (both now bound by decoding and the per-photo ExifTool / DB work, GPU 15-25% busy); parity: tags 82/82 identical sets, scores within 6.8e-6, embedding cosine 1.000000; faces 12/12 golden tests pass, same boxes, same-crop embedding cosine >= 0.999999998 | yes (default: GPU when the runtime offers one) | see git log: `perf(backend-rs): round 3 #16 ...` |
 
 ## Notes
 
@@ -277,3 +278,67 @@ Next candidates: an arm64 int8 check (dot-product kernels, #7), the OCR prepass 
 (#13), tags + faces on 2 threads each in one merged pass (#8 note, ~+20% on ORT efficiency),
 and OCR on the big thumbnail instead of multi-megapixel originals (decode + det at 1080 instead
 of 1600 px; needs a recall check on small text).
+
+## Round 3 (target: ML-on scan >= 40 photos/s, whole tree <= 4 GB RAM)
+
+Workflow: `rust-pg/workflows/opt_round3_scaling.md`. The Pi pin is lifted: Ryzen 5 2600X (6C/12T),
+32 GB, **GeForce GTX 1660 Ti 6 GB** (Turing, driver 591.86, WDDM).
+
+**Benchmark (W4 ML-on scan).** `ml_footprint.py --cpus all --threads N [--gpu-ort dml|cuda]
+scan rs --lib w4 --scan-only` (new flags): the W4 library (`rust-pg/bench-scan/lib`, 2,025 generated
+files: 2,000 phone JPEGs, mostly 12 MP, 20 PNGs, 5 videos; no faces), a fresh `lp_fixture` clone, ML
+on at the default models (MobileCLIP-S2 tags + search embedding, buffalo_sc faces at 640), nothing
+pinned, one worker. Metric = photos / wall seconds of scan + tags + CLIP + faces (the scan stage of
+`ml_footprint.py`), CPU-s of the tree over the stage, peak working set of the whole tree over the
+run, GPU memory (`--gpu-ort`: the server's dedicated GPU memory from the Windows `GPU Process
+Memory` counter from #17 on; nvidia-smi's total minus its pre-run median for #16, noisy by
++-250 MiB because the desktop shares the GPU) and GPU utilisation (nvidia-smi). Summaries:
+`round3_summary.py results/2026-10-05-round3/*.json`; raw files in `results/2026-10-05-round3/`.
+OCR and captions are separate jobs and reported separately.
+
+GPU runtimes (scratch venvs under `rust-pg/gpu`, nothing system-wide): `onnxruntime-directml`
+1.24.4 (wheel ~25 MB; installed `onnxruntime.dll` 21 MB + `DirectML.dll` 18.5 MB, 73 MB package);
+`onnxruntime-gpu` 1.27.0 (wheel 214 MB, 277 MB installed) + `nvidia-cuda-runtime` / `-nvrtc` 13.4,
+`nvidia-cublas` 13.8, `nvidia-cufft` 12.4, `nvidia-curand` 10.4 (923 MB installed together) +
+`nvidia-cudnn-cu13` (9.27: 599 MB; 9.13: 402 MB). ORT 1.27's CUDA build targets CUDA **13**
+(`nvidia-*-cu13`), not 12.
+
+### Scaling table
+
+| config | photos/s | peak RSS MB | peak VRAM MiB | CPU-s | notes |
+|---|---:|---:|---:|---:|---|
+| R2 default, 4 pinned cores (290-photo corpus, for reference) | 4.47 | 753 | - | 243 | round 2 Pareto row 4 |
+| B0: CPU, 12 intra-op threads, unpinned | <= 4.22 (cut at 480 s) | 1,039 | - | 3,997 | tags at ~200 ms/photo: 12 ORT threads oversubscribe the 6 cores next to the decoders |
+| B0': CPU, 6 intra-op threads | 4.40 [4.40, <= 4.05] | 920 | - | 2,576 | scan 146 s, tags 252 s, faces 61 s, strictly in sequence |
+| #16 DirectML | 7.92 [8.10, 7.74] | 775 | 267-329 | 725 | scan 131 s (14.6 photos/s on ~5 cores: 4 groups at once), tags 71 s, faces 48 s |
+| #16 CUDA (cuDNN 9.13) | 7.45 (1 run) | 1,049 | 837 | 800 | CUDA/cuDNN DLLs: +300 MB working set, 2.3 GB private |
+
+### Notes
+
+**16. GPU execution provider.** Offline first (`bench/gpu_micro.py`, random input, ms per
+image at batch 1 / 16 / 64): MobileCLIP-S2 image tower CPU (12 threads) 117 / 149 / 108, DirectML
+19.5 / 16.1 / 9.2, CUDA with cuDNN 9.27 **570** / 38 / 17.7, CUDA with cuDNN 9.13 19.9 / 9.1 / 8.7;
+SCRFD-500M at 640: CPU 18.3, DirectML 6.8, CUDA 8.1; ArcFace: CPU 17.8 / 12.6, DirectML 1.8, CUDA
+3.6 / 0.9 / 0.75. The cuDNN 9.27 number is a cuDNN regression on Turing: ORT's profiler puts 95% of
+a run in the four `convffn` depthwise convolutions of the last MCi2 stage (~160 ms each), with every
+`cudnn_conv_algo_search` setting; `prefer_nhwc` brings it to 141 ms; cuDNN 9.13.0 runs them
+normally. **A CUDA image must pin cuDNN (9.13 works on Turing; newer ones need a check per GPU
+generation).** In the scan, DirectML and CUDA land within noise of each other; DirectML is the one
+that needs nothing but the 40 MB runtime on Windows, CUDA is what a Linux/Docker GPU image would
+ship (+1.6 GB of libraries, +300 MB working set, ~2.3 GB committed by the CUDA context).
+
+With the models on the GPU the stage no longer waits for inference: tags went from 252 s to 71 s,
+but the GPU is only 15-25% busy. What is left is sequential CPU work: the scan job (131-137 s,
+14.6-15.5 photos/s, ~5 of 12 hardware threads busy because only 4 file groups render at once),
+then the tags job (decode the 1080 px WebP + Pillow-exact resize to 256 + one DB transaction per
+photo, 4 photos in flight), then the face job (an ExifTool XMP-region round trip + decode +
+detection per photo, 3 ahead). The three jobs run strictly one after another (the scan chains
+tags -> CLIP -> faces). 12 intra-op threads on the CPU provider are slower than 6 (oversubscription),
+so the CPU fallback keeps `ONNX_INTRA_OP_THREADS` at the physical core count.
+
+Parity on the GPU (DirectML, the Python CPU goldens, `cargo test -p lp-ml --test tags --test face`
+with `LP_ORT_LIB` = the DirectML runtime and `ONNX_PROVIDERS=dml`): MobileCLIP 82/82 identical tag
+sets and order on the same pixels, max score difference 6.8e-6 (CPU: 4.2e-6), image embedding cosine
+1.000000; faces: all 12 golden tests pass (5 packs, e2e thumbnails, encodings, odd inputs), the same
+faces and order, boxes as on CPU (min IoU 0.9984, max box diff 0.145 px, the JPEG decoder's share),
+embeddings of the same crop at cosine >= 0.999999998 (CPU: bit-identical).

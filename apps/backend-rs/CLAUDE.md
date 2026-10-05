@@ -181,6 +181,11 @@ Shared files (`lp-api/src/lib.rs`, `lp-api/src/common/`, `lp-db/src/{scope,pig,u
   (bit-exact with Pillow/cv2) when `LP_VIPS_LIB` is set.
 - ONNX Runtime is loaded at runtime (`ort` load-dynamic): `LP_ORT_LIB` (or
   `ORT_DYLIB_PATH`) = `.../onnxruntime/capi/onnxruntime.dll` of the Django venv here.
+  GPU: `ONNX_PROVIDERS` = `dml` (DirectML build, `onnxruntime-directml`: `onnxruntime.dll` +
+  `DirectML.dll`, preloaded from beside it) or `cuda` (`onnxruntime-gpu` 1.27 = CUDA 13 + cuDNN 9 on
+  `PATH`; cuDNN 9.27 is ~30x slower on Turing for MobileCLIP, 9.13 is fine); unset = CUDA, DirectML,
+  CPU, whichever the loaded runtime offers (bench: `ml_footprint.py --gpu-ort dml|cuda`, runtimes in
+  `rust-pg/gpu`).
   Every model call goes through `lp_ml::runtime::run(&mut session, inputs)` (it applies
   the CPU arena mode: `LP_ORT_CPU_ARENA=shared` by default, one environment-wide arena
   shrunk after each run); `run_keep` only for steps that reuse the buffers (decoder loops).

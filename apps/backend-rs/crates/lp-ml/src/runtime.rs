@@ -19,9 +19,18 @@
 //! libraries. Any ONNX Runtime >= 1.17 works (the `api-17` feature floor).
 //!
 //! `ONNX_PROVIDERS` (comma-separated, most preferred first; names this build
-//! does not offer are skipped; unset: CUDA when available, then CPU) and
-//! `ONNX_INTRA_OP_THREADS` (unset or 0: ORT's default, one per physical core)
-//! behave as in the sidecars.
+//! does not offer are skipped; unset: CUDA when available, then DirectML,
+//! then CPU) and `ONNX_INTRA_OP_THREADS` (unset or 0: ORT's default, one per
+//! physical core) behave as in the sidecars. Short names are accepted too:
+//! `cuda`, `dml`/`directml`, `cpu`.
+//!
+//! GPU runtimes: the DirectML build (`onnxruntime-directml` wheel:
+//! `onnxruntime.dll` + `DirectML.dll`, any DirectX 12 GPU on Windows) or the
+//! CUDA build (`onnxruntime-gpu` + the CUDA / cuDNN runtime libraries on
+//! `PATH` / `LD_LIBRARY_PATH`). A `DirectML.dll` next to the runtime library
+//! is loaded first, so the older copy in System32 never shadows it. A GPU
+//! provider that is requested but missing falls back to the next one, and to
+//! CPU in the end.
 
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
@@ -33,6 +42,7 @@ use ort::session::{RunOptions, Session, SessionInputs, SessionOutputs};
 
 pub const CPU: &str = "CPUExecutionProvider";
 pub const CUDA: &str = "CUDAExecutionProvider";
+pub const DML: &str = "DmlExecutionProvider";
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct RuntimeConfig {
@@ -64,8 +74,36 @@ pub fn parse_providers(value: &str) -> Vec<String> {
         .split(',')
         .map(str::trim)
         .filter(|s| !s.is_empty())
-        .map(str::to_string)
+        .map(|s| match s.to_ascii_lowercase().as_str() {
+            "cpu" => CPU.to_string(),
+            "cuda" | "gpu" => CUDA.to_string(),
+            "dml" | "directml" => DML.to_string(),
+            _ => s.to_string(),
+        })
         .collect()
+}
+
+/// Windows: load the `DirectML.dll` that ships next to the runtime library
+/// before the runtime itself, so the runtime binds to it and not to the
+/// (older) System32 copy the default DLL search order would find first.
+fn preload_beside(lib: &Path) {
+    if !cfg!(windows) {
+        return;
+    }
+    let Some(dir) = lib.parent() else {
+        return;
+    };
+    let dml = dir.join("DirectML.dll");
+    if dml.exists() {
+        // SAFETY: loading a system library without initialisation side
+        // effects; the handle is leaked on purpose (process lifetime).
+        match unsafe { libloading::Library::new(&dml) } {
+            Ok(l) => std::mem::forget(l),
+            Err(e) => {
+                tracing::warn!(path = %dml.display(), error = %e, "could not preload DirectML")
+            }
+        }
+    }
 }
 
 /// What got loaded.
@@ -145,6 +183,7 @@ fn load(cfg: &RuntimeConfig) -> Result<RuntimeInfo, String> {
     }
     let mut errors = Vec::new();
     for lib in candidates {
+        preload_beside(&lib);
         match ort::init_from(&lib) {
             Ok(builder) => {
                 let _ = builder.with_name("librephotos").commit();
@@ -339,6 +378,10 @@ fn dispatch(name: &str) -> Option<ExecutionProviderDispatch> {
             let cuda = ep::CUDA::default();
             cuda.is_available().unwrap_or(false).then(|| cuda.build())
         }
+        DML => {
+            let dml = ep::DirectML::default();
+            dml.is_available().unwrap_or(false).then(|| dml.build())
+        }
         _ => None,
     }
 }
@@ -347,23 +390,41 @@ fn dispatch(name: &str) -> Option<ExecutionProviderDispatch> {
 /// runtime offers, CPU when none is.
 fn resolve_providers(requested: &[String]) -> Vec<String> {
     let preferred: Vec<String> = if requested.is_empty() {
-        vec![CUDA.into(), CPU.into()]
+        vec![CUDA.into(), DML.into(), CPU.into()]
     } else {
         requested.to_vec()
     };
-    let mut out: Vec<String> = preferred
-        .into_iter()
-        .filter(|n| dispatch(n).is_some())
-        .collect();
-    if out.is_empty() {
+    let mut out: Vec<String> = Vec::new();
+    for n in preferred {
+        if out.contains(&n) {
+            continue;
+        }
+        if dispatch(&n).is_some() {
+            out.push(n);
+        } else if !requested.is_empty() {
+            tracing::warn!(provider = %n, "ONNX_PROVIDERS: not offered by this ONNX Runtime build, skipped");
+        }
+    }
+    // CPU always comes last: nodes a GPU provider cannot run fall back to it.
+    if !out.iter().any(|p| p == CPU) {
         out.push(CPU.into());
     }
     out
 }
 
-/// `uses_gpu()`.
+/// `uses_gpu()`: the preferred provider is a GPU one.
 pub fn uses_gpu() -> bool {
-    init().is_ok_and(|i| i.providers.iter().any(|p| p == CUDA))
+    init().is_ok_and(|i| i.providers.first().is_some_and(|p| p == CUDA || p == DML))
+}
+
+/// The GPU provider sessions run on, if any (`CUDA` / `DML`).
+pub fn gpu_provider() -> Option<&'static str> {
+    let info = init().ok()?;
+    match info.providers.first().map(String::as_str) {
+        Some(CUDA) => Some(CUDA),
+        Some(DML) => Some(DML),
+        _ => None,
+    }
 }
 
 /// A session builder with the configured providers and thread count.
@@ -377,6 +438,14 @@ pub fn session_builder() -> anyhow::Result<SessionBuilder> {
     }
     let eps: Vec<ExecutionProviderDispatch> =
         info.providers.iter().filter_map(|n| dispatch(n)).collect();
+    if info.providers.iter().any(|p| p == DML) {
+        // DirectML requires both (ORT's DirectML EP documentation).
+        b = b
+            .with_memory_pattern(false)
+            .map_err(|e| anyhow!("DirectML session options: {e}"))?
+            .with_parallel_execution(false)
+            .map_err(|e| anyhow!("DirectML session options: {e}"))?;
+    }
     b = b
         .with_execution_providers(eps)
         .map_err(|e| anyhow!("execution providers: {e}"))?;

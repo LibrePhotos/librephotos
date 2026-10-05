@@ -17,6 +17,15 @@ fn providers_parse() {
         vec!["CUDAExecutionProvider", "CPUExecutionProvider"]
     );
     assert!(lp_ml::runtime::parse_providers("").is_empty());
+    assert_eq!(
+        lp_ml::runtime::parse_providers("dml, CUDA,cpu,DirectML"),
+        vec![
+            lp_ml::runtime::DML,
+            lp_ml::runtime::CUDA,
+            lp_ml::runtime::CPU,
+            lp_ml::runtime::DML
+        ]
+    );
 }
 
 #[test]

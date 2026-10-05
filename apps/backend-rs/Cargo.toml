@@ -121,7 +121,7 @@ sysinfo = "0.33"
 
 # ML (lp-ml). ORT is loaded at runtime (load-dynamic) so Rust and the Python
 # sidecars can share one onnxruntime build; api-17 = works with ORT >= 1.17.
-ort = { version = "=2.0.0-rc.13", default-features = false, features = ["std", "load-dynamic", "ndarray", "tracing", "cuda"] }
+ort = { version = "=2.0.0-rc.13", default-features = false, features = ["std", "load-dynamic", "ndarray", "tracing", "cuda", "directml"] }
 ndarray = "0.17"
 tokenizers = { version = "0.22", default-features = false, features = ["fancy-regex"] }
 async-trait = "0.1"
