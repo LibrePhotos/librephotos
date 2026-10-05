@@ -8,6 +8,7 @@ license.workspace = true
 publish.workspace = true
 
 [dependencies]
+lp-proc.workspace = true
 lp-core.workspace = true
 lp-db.workspace = true
 lp-jobs.workspace = true

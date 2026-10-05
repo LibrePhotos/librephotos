@@ -5,6 +5,7 @@
 //! This spawns ExifTool itself because `lp_exif::ExifPool` has no read API
 //! yet; [`read_tags`] is the one call to swap for the pool.
 
+use lp_proc::NoWindow;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
@@ -88,6 +89,7 @@ async fn run_chunk(exiftool: &Path, files: &[String], tags: &[String]) -> HashMa
         return HashMap::new();
     }
     let out = tokio::process::Command::new(exiftool)
+        .no_window()
         .arg("-@")
         .arg(argfile.path())
         .stdin(std::process::Stdio::null())

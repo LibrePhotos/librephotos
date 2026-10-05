@@ -13,6 +13,7 @@ import time
 import urllib.error
 import urllib.request
 import uuid
+import no_console  # noqa: F401,E402  (no console windows on Windows)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 BACKEND_RS = os.path.dirname(HERE)

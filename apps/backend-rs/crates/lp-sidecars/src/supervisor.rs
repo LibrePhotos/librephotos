@@ -5,6 +5,7 @@
 //! Unlike Django, which stops every process whose command line looks like a
 //! sidecar, only processes this supervisor started are ever stopped.
 
+use lp_proc::NoWindow;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::{Mutex, OnceLock};
@@ -223,7 +224,8 @@ impl Supervisor {
         }
         let script = cfg.script(name);
         let mut cmd = Command::new(&cfg.python);
-        cmd.arg(&script)
+        cmd.no_window()
+            .arg(&script)
             .current_dir(&cfg.backend_dir)
             .stdin(std::process::Stdio::null())
             .kill_on_drop(false);

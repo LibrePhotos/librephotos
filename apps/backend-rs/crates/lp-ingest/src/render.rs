@@ -10,6 +10,7 @@
 //! Without libvips at all, a pure-Rust path (`image` +
 //! `fast_image_resize` + libwebp) does the same work.
 
+use lp_proc::NoWindow;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use std::sync::OnceLock;
@@ -254,6 +255,7 @@ with Image.open(sys.argv[1]) as image:\n    ImageOps.exif_transpose(image).conve
             .tempfile()?
             .into_temp_path();
         let out = std::process::Command::new(&self.python)
+            .no_window()
             .arg("-c")
             .arg(SCRIPT)
             .arg(input)
@@ -494,6 +496,7 @@ with Image.open(sys.argv[1]) as image:\n    ImageOps.exif_transpose(image).conve
 
     async fn run_ffmpeg(&self, args: &[String], output: &Path) -> anyhow::Result<()> {
         let child = tokio::process::Command::new(&self.ffmpeg)
+            .no_window()
             .args(args)
             .stdin(Stdio::null())
             .stdout(Stdio::piped())
@@ -547,6 +550,7 @@ with Image.open(sys.argv[1]) as image:\n    ImageOps.exif_transpose(image).conve
 
     async fn transfer_characteristics(&self, input: &Path) -> String {
         let run = tokio::process::Command::new(&self.ffprobe)
+            .no_window()
             .args([
                 "-v",
                 "error",
@@ -578,6 +582,7 @@ with Image.open(sys.argv[1]) as image:\n    ImageOps.exif_transpose(image).conve
             return *v;
         }
         let out = tokio::process::Command::new(&self.ffmpeg)
+            .no_window()
             .args(["-hide_banner", "-filters"])
             .stdin(Stdio::null())
             .stderr(Stdio::null())

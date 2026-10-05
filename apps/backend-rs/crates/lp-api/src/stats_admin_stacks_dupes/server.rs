@@ -1,6 +1,7 @@
 //! What the server says about itself (`api/views/server_info.py`,
 //! `ServerStatsView` / `ServerLogs*View` in `api/views/dataviz.py`).
 
+use lp_proc::NoWindow;
 use std::collections::HashMap;
 use std::io::{Read, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
@@ -121,6 +122,7 @@ async fn git_hash() -> &'static str {
 
 async fn rev_parse(dir: &Path) -> Option<String> {
     let run = tokio::process::Command::new("git")
+        .no_window()
         .arg("-c")
         .arg(format!("safe.directory={}", dir.display()))
         .args(["rev-parse", "--short", "HEAD"])
@@ -282,6 +284,7 @@ fn cpu_info() -> Value {
 /// `_get_gpu_info`: the first NVIDIA GPU's name and memory (MB), else `""`s.
 async fn gpu_info() -> (String, Value) {
     let run = tokio::process::Command::new("nvidia-smi")
+        .no_window()
         .args([
             "--query-gpu=name,memory.total",
             "--format=csv,noheader,nounits",

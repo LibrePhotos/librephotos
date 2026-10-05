@@ -8,6 +8,7 @@ license.workspace = true
 publish.workspace = true
 
 [dependencies]
+lp-proc.workspace = true
 axum.workspace = true
 axum-extra.workspace = true
 tokio.workspace = true

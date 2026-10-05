@@ -10,6 +10,7 @@ import json
 import subprocess
 import sys
 from pathlib import Path
+import no_console  # noqa: F401,E402  (no console windows on Windows)
 
 import numpy as np
 import onnxruntime as ort

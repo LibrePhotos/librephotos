@@ -12,6 +12,7 @@ import json
 import math
 import subprocess
 from pathlib import Path
+import no_console  # noqa: F401,E402  (no console windows on Windows)
 
 PG_BIN = Path(__file__).resolve().parents[4] / "rust-pg" / "pginstall" / "bin"
 

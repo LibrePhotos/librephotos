@@ -4,6 +4,7 @@
 //! CPU budget probes (`api/ffmpeg_budget.py`) and HDR tonemapping
 //! (`api/video_color.py`).
 
+use lp_proc::NoWindow;
 use std::collections::VecDeque;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
@@ -64,6 +65,7 @@ static PROBE: OnceCell<Probe> = OnceCell::const_new();
 
 async fn run_capture(bin: &Path, args: &[&str]) -> String {
     let fut = Command::new(bin)
+        .no_window()
         .args(args)
         .stdin(Stdio::null())
         .stderr(Stdio::null())
@@ -270,6 +272,7 @@ pub async fn live_response(config: Arc<Config>, source: Source, head: bool) -> R
 async fn spawn_live(config: Arc<Config>, source: Source) -> Option<Body> {
     let args = live_args(&config, &source.path).await;
     let mut child = match Command::new(&config.binaries.ffmpeg)
+        .no_window()
         .args(&args)
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
@@ -560,6 +563,7 @@ async fn run_transcode(
 ) -> bool {
     let root = cache_root(config);
     let mut child = match Command::new(&program)
+        .no_window()
         .args(&args)
         .stdin(Stdio::null())
         .stdout(Stdio::null())

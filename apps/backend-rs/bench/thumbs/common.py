@@ -10,6 +10,9 @@ LP_THUMBS_WORK points at a scratch directory (corpus + outputs, deleted afterwar
 
 import os
 from pathlib import Path
+import sys
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import no_console  # noqa: F401,E402  (no console windows on Windows)
 
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[3]  # wt-rust-backend

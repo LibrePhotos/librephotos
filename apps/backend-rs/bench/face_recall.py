@@ -1,6 +1,7 @@
 """python faces.py dump <db> <out.json> | compare <ref.json> <variant.json>...  (face recall + embedding drift)"""
 import json, subprocess, sys
 import numpy as np
+import no_console  # noqa: F401,E402  (no console windows on Windows)
 PSQL = r"C:\Users\Niaz\librephotos\rust-pg\pginstall\bin\psql.exe"
 
 def dump(db, out):

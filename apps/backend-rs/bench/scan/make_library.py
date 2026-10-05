@@ -15,6 +15,8 @@ import random
 import subprocess
 import sys
 from concurrent.futures import ProcessPoolExecutor
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import no_console  # noqa: F401,E402  (no console windows on Windows)
 
 from PIL import Image, ImageDraw
 

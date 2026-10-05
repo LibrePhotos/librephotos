@@ -19,6 +19,7 @@ lp-media = { path = "crates/lp-media" }
 lp-jobs = { path = "crates/lp-jobs" }
 lp-ingest = { path = "crates/lp-ingest" }
 lp-exif = { path = "crates/lp-exif" }
+lp-proc = { path = "crates/lp-proc" }
 lp-sidecars = { path = "crates/lp-sidecars" }
 lp-tasks = { path = "crates/lp-tasks" }
 lp-server = { path = "crates/lp-server" }

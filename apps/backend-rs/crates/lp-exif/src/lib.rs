@@ -14,6 +14,7 @@
 
 pub mod attribution;
 
+use lp_proc::NoWindow;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
@@ -529,7 +530,8 @@ impl Lane {
 impl Proc {
     fn spawn(exiftool: &Path, common_args: &[&str]) -> Result<Proc, ExifError> {
         let mut cmd = Command::new(exiftool);
-        cmd.args(["-stay_open", "True", "-@", "-", "-common_args"])
+        cmd.no_window()
+            .args(["-stay_open", "True", "-@", "-", "-common_args"])
             .args(common_args)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())

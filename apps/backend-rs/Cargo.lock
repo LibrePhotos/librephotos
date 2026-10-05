@@ -2624,6 +2624,7 @@ dependencies = [
  "lp-jobs",
  "lp-media",
  "lp-ml",
+ "lp-proc",
  "lp-sidecars",
  "lp-tasks",
  "lp-testkit",
@@ -2958,6 +2959,7 @@ dependencies = [
  "jwalk",
  "lettre",
  "libloading 0.8.9",
+ "lp-proc",
  "md-5",
  "memchr",
  "mime",
@@ -3044,6 +3046,7 @@ dependencies = [
  "lp-jobs",
  "lp-media",
  "lp-ml",
+ "lp-proc",
  "lp-sidecars",
  "lp-testkit",
  "md-5",
@@ -3216,6 +3219,7 @@ dependencies = [
  "lp-db",
  "lp-exif",
  "lp-jobs",
+ "lp-proc",
  "lp-sidecars",
  "lp-testkit",
  "md-5",
@@ -3297,6 +3301,13 @@ dependencies = [
  "uuid",
  "webp",
  "zip",
+]
+
+[[package]]
+name = "lp-proc"
+version = "0.1.0"
+dependencies = [
+ "tokio",
 ]
 
 [[package]]
@@ -3432,6 +3443,7 @@ dependencies = [
  "jwalk",
  "lettre",
  "libloading 0.8.9",
+ "lp-proc",
  "md-5",
  "memchr",
  "mime",

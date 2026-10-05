@@ -40,6 +40,7 @@ import sys
 import threading
 import time
 from pathlib import Path
+import no_console  # noqa: F401,E402  (no console windows on Windows)
 
 import psutil
 import requests

@@ -11,6 +11,8 @@ import os
 import subprocess
 import sys
 from pathlib import Path
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))), "bench"))
+import no_console  # noqa: F401,E402  (no console windows on Windows)
 
 HERE = Path(__file__).resolve().parent
 WT = HERE.parents[4]
