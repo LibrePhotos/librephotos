@@ -268,11 +268,14 @@ async fn scan_inner(
             }
         })
         .buffer_unordered(concurrency);
+    let t_groups = std::time::Instant::now();
     work.collect::<Vec<()>>().await;
+    tracing::info!(secs = t_groups.elapsed().as_secs_f64(), "file groups done");
     if let Some(inline) = &p.inline {
         inline.finish().await;
         tracing::info!(photos = inline.submitted(), "inline ML done");
     }
+    crate::timers::report(t_groups.elapsed());
 
     for path in &orphans {
         if cancelled.load(std::sync::atomic::Ordering::Relaxed) {

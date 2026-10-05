@@ -118,7 +118,14 @@ impl Pipeline {
         F: FnOnce() -> R + Send + 'static,
         R: Send + 'static,
     {
-        self.state.blocking(f).await.map_err(|e| anyhow!("{e}"))
+        let queued = std::time::Instant::now();
+        self.state
+            .blocking(move || {
+                crate::timers::add("w blocking: permit + spawn wait", queued);
+                f()
+            })
+            .await
+            .map_err(|e| anyhow!("{e}"))
     }
 
     fn probe(&self, path: PathBuf, user_id: i32, want_hash: bool) -> Probe {
@@ -170,7 +177,7 @@ impl Pipeline {
         owner: &Owner,
         path: &Path,
     ) -> anyhow::Result<Option<FileRow>> {
-        let probe = self.probe_file(path, owner.id).await?;
+        let probe = crate::timers::time("1a probe (md5)", self.probe_file(path, owner.id)).await?;
         if !probe.valid {
             tracing::info!(path = %path.display(), "not valid media");
             return Ok(None);
@@ -222,7 +229,9 @@ impl Pipeline {
         let run = async {
             let mut files = Vec::new();
             for p in paths {
-                if let Some(f) = self.create_file_record(owner, p).await? {
+                if let Some(f) =
+                    crate::timers::time("1 file record", self.create_file_record(owner, p)).await?
+                {
                     files.push(f);
                 }
             }
@@ -232,14 +241,19 @@ impl Pipeline {
                     pyfmt::list_repr(&joined)
                 )));
             }
-            let Some(photo) = self.group_files_into_photo(owner, &files).await? else {
+            let Some(photo) = crate::timers::time(
+                "2 group + motion",
+                self.group_files_into_photo(owner, &files),
+            )
+            .await?
+            else {
                 return Ok(Err(format!(
                     "Could not create photo for files: {}",
                     pyfmt::list_repr(&joined)
                 )));
             };
             if photo.main_file_id.is_some() {
-                self.process_photo(owner, photo.id).await?;
+                crate::timers::time("3 process photo", self.process_photo(owner, photo.id)).await?;
             }
             Ok(Ok(photo.id))
         };
@@ -304,7 +318,7 @@ impl Pipeline {
             db::add_photo_file(&mut tx, photo.id, &f.hash).await?;
         }
         tx.commit().await?;
-        self.attach_motion(owner, photo.id, main).await?;
+        crate::timers::time("2a motion", self.attach_motion(owner, photo.id, main)).await?;
         Ok(Some(photo))
     }
 
@@ -351,6 +365,7 @@ impl Pipeline {
 
     /// `_process_photo`.
     pub async fn process_photo(&self, owner: &Owner, photo_id: Uuid) -> anyhow::Result<()> {
+        let t_db = std::time::Instant::now();
         let mut conn = self.state.db.acquire().await?;
         let photo = db::photo_by_id(&mut conn, photo_id)
             .await?
@@ -363,6 +378,7 @@ impl Pipeline {
             .ok_or_else(|| anyhow!("main file {main_hash} vanished"))?;
         let thumb = db::ensure_thumbnail(&mut conn, photo.id).await?;
         drop(conn);
+        crate::timers::add("3a photo reads", t_db);
         let main_path = PathBuf::from(&main.path);
 
         // One ExifTool request per photo: every tag the metadata and the
@@ -373,17 +389,27 @@ impl Pipeline {
                 tags.push(t);
             }
         }
+        // Inline ML: whether the face step needs its own region read.
+        if self.inline.is_some() && crate::inline::region_probe() {
+            tags.push(crate::inline::REGION_PROBE_TAG.to_string());
+        }
         let exif_pool = self.state.exif.clone();
         let exif_path = main_path.clone();
         let exif_tags = tags.clone();
         let exif_task = tokio::spawn(async move {
-            exif_pool
-                .get_metadata(&exif_path, &exif_tags, true, false)
-                .await
+            crate::timers::time(
+                "x exif call (concurrent)",
+                exif_pool.get_metadata(&exif_path, &exif_tags, true, false),
+            )
+            .await
         });
 
         let hash = photo.image_hash.clone();
-        let rendered = self.generate_thumbnails(&photo, &main_path).await;
+        let rendered = crate::timers::time(
+            "3b render (decode, webp)",
+            self.generate_thumbnails(&photo, &main_path),
+        )
+        .await;
         let (fresh, mut big_rgb) = match rendered {
             Ok(r) => r,
             Err(e) => {
@@ -401,6 +427,7 @@ impl Pipeline {
         let big_path = self.renderer.path(BIG, &hash, ".webp");
         let small_path = self.renderer.path(SQUARE_SMALL, &hash, ext);
         let want_color = thumb.dominant_color.as_deref().is_none_or(str::is_empty) && !photo.video;
+        let t_ph = std::time::Instant::now();
         let (aspect, phash, dominant) = {
             let bp = big_path.clone();
             let sp = small_path.clone();
@@ -427,6 +454,8 @@ impl Pipeline {
             }
             (aspect, ph, dom)
         };
+        crate::timers::add("3c phash + colour (webp decode)", t_ph);
+        let t_tx = std::time::Instant::now();
         {
             let mut tx = self.state.db.begin().await?;
             db::write_thumbnail(
@@ -446,12 +475,21 @@ impl Pipeline {
             }
             tx.commit().await?;
         }
+        crate::timers::add("3d thumbnail tx", t_tx);
 
+        let t_ex = std::time::Instant::now();
         let values = exif_task
             .await
             .map_err(|e| anyhow!("exif task: {e}"))?
             .map_err(|e| anyhow!("{e}"))?;
+        crate::timers::add("3e exif wait", t_ex);
+        let t_meta = std::time::Instant::now();
         let by_tag: HashMap<String, Option<Value>> = tags.into_iter().zip(values).collect();
+        let hints = crate::inline::PhotoHints {
+            xmp_regions: by_tag
+                .get(crate::inline::REGION_PROBE_TAG)
+                .map(|v| v.as_ref().is_some_and(|v| !v.is_null())),
+        };
         let vals = exifmap::Values(&by_tag);
         let photo_update = exifmap::photo_update(&vals);
         let meta_update = exifmap::metadata_update(&vals);
@@ -499,9 +537,14 @@ impl Pipeline {
         }
         db::recreate_search(&mut tx, photo.id, &self.state.settings().tagging_model).await?;
         tx.commit().await?;
+        crate::timers::add("3f metadata tx", t_meta);
         // The photo's rows are written: tags and faces from the pixels in hand.
         if let (Some(inline), Some(rgb)) = (&self.inline, big_rgb) {
-            inline.submit(&self.state, photo.id, rgb).await;
+            crate::timers::time(
+                "3g inline submit (wait)",
+                inline.submit(&self.state, photo.id, rgb, hints),
+            )
+            .await;
         }
         Ok(())
     }

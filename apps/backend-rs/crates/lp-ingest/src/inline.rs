@@ -53,6 +53,41 @@ pub fn source() -> Source {
     })
 }
 
+/// What the scan already knows about a photo that saves the ML work a step.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct PhotoHints {
+    /// Whether the media file or its XMP sidecars carry MWG face regions
+    /// (`XMP:RegionAreaX`, read with the scan's metadata); `None` = unknown,
+    /// the face step reads the regions itself. `Some(false)` skips that
+    /// ExifTool round trip (round 3 #23).
+    pub xmp_regions: Option<bool>,
+}
+
+/// The tag whose presence in the scan's metadata read tells whether a photo
+/// has MWG face regions: every usable region has an area (`X`, `Y`, `W`,
+/// `H`), which ExifTool flattens to `RegionAreaX` & co.
+pub const REGION_PROBE_TAG: &str = "XMP:RegionAreaX";
+
+/// Default of [`region_probe`] (round 3 #23).
+const REGION_PROBE_DEFAULT: bool = false;
+
+/// `LP_SCAN_REGION_PROBE` (`1` / `0`): the scan's metadata read also asks for
+/// [`REGION_PROBE_TAG`], so the face step can skip its own region read for
+/// photos without regions.
+pub fn region_probe() -> bool {
+    static ON: OnceLock<bool> = OnceLock::new();
+    *ON.get_or_init(|| {
+        match std::env::var("LP_SCAN_REGION_PROBE")
+            .unwrap_or_default()
+            .trim()
+        {
+            "1" | "on" | "true" => true,
+            "0" | "off" | "false" => false,
+            _ => REGION_PROBE_DEFAULT,
+        }
+    })
+}
+
 /// What the scan calls for every photo it rendered.
 pub trait PhotoMlHook: Send + Sync {
     /// Inline ML applies to scans right now (features on, in-process models,
@@ -66,6 +101,7 @@ pub trait PhotoMlHook: Send + Sync {
         state: AppState,
         photo_id: Uuid,
         big: Arc<RgbImage>,
+        hints: PhotoHints,
     ) -> BoxFuture<'static, anyhow::Result<()>>;
 }
 
@@ -112,13 +148,13 @@ impl InlineMl {
     }
 
     /// Start the ML of one photo (waits while `in_flight` photos run).
-    pub async fn submit(&self, state: &AppState, photo_id: Uuid, big: RgbImage) {
+    pub async fn submit(&self, state: &AppState, photo_id: Uuid, big: RgbImage, hints: PhotoHints) {
         let Ok(permit) = self.permits.clone().acquire_owned().await else {
             return;
         };
         self.submitted
             .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-        let fut = self.hook.run(state.clone(), photo_id, Arc::new(big));
+        let fut = self.hook.run(state.clone(), photo_id, Arc::new(big), hints);
         let mut tasks = self.tasks.lock().expect("inline tasks");
         // Reap finished tasks so the set does not grow with the library.
         while tasks.try_join_next().is_some() {}

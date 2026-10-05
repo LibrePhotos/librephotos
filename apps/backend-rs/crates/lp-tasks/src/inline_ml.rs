@@ -89,8 +89,9 @@ impl lp_ingest::inline::PhotoMlHook for Hook {
         state: AppState,
         photo_id: Uuid,
         big: Arc<RgbImage>,
+        hints: lp_ingest::inline::PhotoHints,
     ) -> BoxFuture<'static, anyhow::Result<()>> {
-        Box::pin(async move { run(&state, photo_id, big).await })
+        Box::pin(async move { run(&state, photo_id, big, hints).await })
     }
 }
 
@@ -99,24 +100,37 @@ pub fn install() {
     lp_ingest::inline::install(Arc::new(Hook));
 }
 
-async fn run(state: &AppState, photo_id: Uuid, big: Arc<RgbImage>) -> anyhow::Result<()> {
-    let Some(photo) = photos::load_one(&state.db, photo_id).await? else {
+async fn run(
+    state: &AppState,
+    photo_id: Uuid,
+    big: Arc<RgbImage>,
+    hints: lp_ingest::inline::PhotoHints,
+) -> anyhow::Result<()> {
+    use lp_ingest::timers::time;
+    let Some(photo) = time("i load photo", photos::load_one(&state.db, photo_id)).await? else {
         return Ok(());
     };
     let f = &state.config.features;
     let tagging = async {
         if f.scene_classification {
-            tag_from_pixels(state, &photo, big.clone()).await
+            time(
+                "i tags (prep, batch, store)",
+                tag_from_pixels(state, &photo, big.clone()),
+            )
+            .await
         } else {
             Ok(())
         }
     };
     let detecting = async {
         if f.face_detection {
-            faces::extract_faces_from_pixels(state, &photo, big.clone())
-                .await
-                .map(|_| ())
-                .map_err(anyhow::Error::from)
+            time(
+                "i faces (xmp, detect, store)",
+                faces::extract_faces_from_pixels(state, &photo, big.clone(), hints.xmp_regions),
+            )
+            .await
+            .map(|_| ())
+            .map_err(anyhow::Error::from)
         } else {
             Ok(())
         }
@@ -148,16 +162,23 @@ async fn tag_from_pixels(
     {
         return Ok(());
     }
-    let (reply, embedding) = state.ml().tags().generate_tags_rgb(big, &model).await?;
+    let (reply, embedding) = lp_ingest::timers::time(
+        "i tags: model (prep + batch)",
+        state.ml().tags().generate_tags_rgb(big, &model),
+    )
+    .await?;
     let embedding_model = tags::embedding_model_for(state, &model);
-    tags::store_tags(
-        state,
-        photo.id,
-        photo.owner_id,
-        &model,
-        &reply,
-        Some(embedding),
-        embedding_model,
+    lp_ingest::timers::time(
+        "i tags: store",
+        tags::store_tags(
+            state,
+            photo.id,
+            photo.owner_id,
+            &model,
+            &reply,
+            Some(embedding),
+            embedding_model,
+        ),
     )
     .await?;
     Ok(())

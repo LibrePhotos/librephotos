@@ -21,6 +21,7 @@ pub mod pyfmt;
 pub mod render;
 pub mod repair;
 pub mod scan;
+pub mod timers;
 pub mod upload;
 pub mod vips;
 

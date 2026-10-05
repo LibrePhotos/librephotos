@@ -143,9 +143,10 @@ impl Vips {
             // (With nothing cached, `vips_cache_set_max_mem` has nothing to cap.)
             cache_max(0);
             // Threads per libvips operation (`LP_VIPS_CONCURRENCY`, 0 = one
-            // per core). Scan workers already run side by side: 2 is as fast
-            // as 1 and 6% faster than one per core (`bench/OPTIMIZATIONS.md` #3).
-            let threads = env_int("LP_VIPS_CONCURRENCY").unwrap_or(2);
+            // per core). Scan workers already run side by side: 1 is as fast
+            // as 2 with 4 file groups and 6% faster with 8, one per core is
+            // slower still (`bench/OPTIMIZATIONS.md` #3, #21).
+            let threads = env_int("LP_VIPS_CONCURRENCY").unwrap_or(1);
             concurrency(threads.max(0));
             Vips {
                 thumbnail: sym!(lib, "vips_thumbnail"),

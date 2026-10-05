@@ -91,7 +91,7 @@ pub struct Config {
     pub worker_concurrency: usize,
     /// `LP_SCAN_CONCURRENCY`: file groups a scan job processes at once
     /// (thumbnails, metadata, pHash); 0 (default) = the larger of
-    /// `WORKER_CONCURRENCY` and min(cores, 4), see [`Config::scan_concurrency`].
+    /// `WORKER_CONCURRENCY` and min(cores, 8), see [`Config::scan_concurrency`].
     pub scan_concurrency: usize,
     pub log_level: String,
     pub media_mode: MediaMode,
@@ -116,12 +116,14 @@ type Lookup<'a> = dyn Fn(&str) -> Option<String> + 'a;
 
 impl Config {
     /// File groups a scan job processes at once: `LP_SCAN_CONCURRENCY`, else
-    /// the larger of `WORKER_CONCURRENCY` and min(cores, 4). A scan is one
-    /// job, so with a single worker it would otherwise render one photo at a
-    /// time on an otherwise idle box (OPTIMIZATIONS.md #8).
+    /// the larger of `WORKER_CONCURRENCY` and min(cores, 8) (hardware
+    /// threads). A scan is one job, so with a single worker it would
+    /// otherwise render one photo at a time on an otherwise idle box
+    /// (OPTIMIZATIONS.md #8); 8 is the knee on 6 cores / 12 threads (#21:
+    /// 4 -> 8 = +35%, 12 and 16 no faster), a 4-core Pi stays at 4.
     pub fn scan_concurrency(&self) -> usize {
         match self.scan_concurrency {
-            0 => self.worker_concurrency.max(self.cores.min(4)).max(1),
+            0 => self.worker_concurrency.max(self.cores.min(8)).max(1),
             n => n,
         }
     }

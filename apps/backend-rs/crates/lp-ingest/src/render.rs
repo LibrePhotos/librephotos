@@ -52,6 +52,27 @@ pub fn small_q() -> i32 {
             .unwrap_or(SMALL_WEBP_Q)
     })
 }
+
+fn env_effort(key: &str) -> Option<i32> {
+    std::env::var(key)
+        .ok()
+        .and_then(|v| v.trim().parse::<i32>().ok())
+        .filter(|e| (0..=6).contains(e))
+}
+
+/// `LP_THUMB_EFFORT`: libwebp effort (`method`, 0-6) of the big thumbnail
+/// (default 2, as Django's `api/thumbnails.py`; round 3 #22).
+pub fn big_effort() -> i32 {
+    static E: std::sync::OnceLock<i32> = std::sync::OnceLock::new();
+    *E.get_or_init(|| env_effort("LP_THUMB_EFFORT").unwrap_or(WEBP_EFFORT))
+}
+
+/// `LP_THUMB_SMALL_EFFORT`: libwebp effort of the 500 px and 250 px squares
+/// (default 2; round 3 #22).
+pub fn small_effort() -> i32 {
+    static E: std::sync::OnceLock<i32> = std::sync::OnceLock::new();
+    *E.get_or_init(|| env_effort("LP_THUMB_SMALL_EFFORT").unwrap_or(WEBP_EFFORT))
+}
 const FFMPEG_TIMEOUT: Duration = Duration::from_secs(300);
 
 /// Everything rendering needs; cheap to clone into blocking tasks.
@@ -161,13 +182,19 @@ impl Renderer {
                     .map_err(|e| anyhow!(e))?
             }
         };
+        let t = std::time::Instant::now();
         let big = big.copy_memory().map_err(|e| anyhow!(e))?;
+        let _squares = Timed("r squares", t);
         for dir in smaller {
             let small = big
                 .thumbnail_image(height_of(dir))
                 .map_err(|e| anyhow!(e))?;
             small
-                .webpsave(&self.path(dir, hash, ".webp"), small_q(), Some(WEBP_EFFORT))
+                .webpsave(
+                    &self.path(dir, hash, ".webp"),
+                    small_q(),
+                    Some(small_effort()),
+                )
                 .map_err(|e| anyhow!(e))?;
         }
         Ok(rgb)
@@ -188,10 +215,14 @@ impl Renderer {
             self.raw_big(input, out, local_orientation, false)?;
             return Ok(None);
         }
+        let t = std::time::Instant::now();
         let img = self.decode(v, input, height)?;
         let img = orient(img, local_orientation)?;
-        img.webpsave(out, WEBP_Q, Some(WEBP_EFFORT))
+        crate::timers::add("r decode + resize", t);
+        let t = std::time::Instant::now();
+        img.webpsave(out, WEBP_Q, Some(big_effort()))
             .map_err(|e| anyhow!(e))?;
+        crate::timers::add("r webp big", t);
         Ok(Some(img))
     }
 
@@ -283,7 +314,7 @@ with Image.open(sys.argv[1]) as image:\n    ImageOps.exif_transpose(image).conve
                 let img = v.load_buffer(&data).map_err(|e| anyhow!(e))?;
                 let img = img.copy_memory().map_err(|e| anyhow!(e))?;
                 let img = orient(img, local_orientation)?;
-                img.webpsave(out, WEBP_Q, Some(WEBP_EFFORT))
+                img.webpsave(out, WEBP_Q, Some(big_effort()))
                     .map_err(|e| anyhow!(e))?;
             } else {
                 let img = rust_orient(image::open(out)?, local_orientation);
@@ -385,7 +416,7 @@ with Image.open(sys.argv[1]) as image:\n    ImageOps.exif_transpose(image).conve
             return rust_webp(&img, out);
         };
         let img = orient(self.decode(v, input, height_of(BIG))?, local_orientation)?;
-        img.webpsave(out, WEBP_Q, if legacy { None } else { Some(WEBP_EFFORT) })
+        img.webpsave(out, WEBP_Q, if legacy { None } else { Some(big_effort()) })
             .map_err(|e| anyhow!(e))
     }
 
@@ -707,4 +738,13 @@ fn rust_webp_q(img: &image::DynamicImage, out: &Path, quality: i32) -> anyhow::R
 /// Image size from the file header (Pillow's `Image.open(...).size`).
 pub fn image_size(path: &Path) -> Option<(u32, u32)> {
     image::image_dimensions(path).ok()
+}
+
+/// Adds its stage's time to the scan timers when dropped.
+struct Timed(&'static str, std::time::Instant);
+
+impl Drop for Timed {
+    fn drop(&mut self) {
+        crate::timers::add(self.0, self.1);
+    }
 }

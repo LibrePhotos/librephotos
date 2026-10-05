@@ -250,7 +250,7 @@ pub async fn prepare_faces(
         .main_path
         .clone()
         .ok_or_else(|| FaceError::Message("'NoneType' object has no attribute 'path'".into()))?;
-    let found = find_faces(state, photo, &big, &main, width, height, None).await?;
+    let found = find_faces(state, photo, &big, &main, width, height, None, None).await?;
     Ok((!found.is_empty()).then_some(PreparedFaces { big, found }))
 }
 
@@ -274,6 +274,7 @@ pub async fn store_faces(
 }
 
 /// XMP regions of the original, else the face service on the thumbnail.
+#[allow(clippy::too_many_arguments)]
 async fn find_faces(
     state: &AppState,
     photo: &TaskPhoto,
@@ -282,9 +283,17 @@ async fn find_faces(
     width: u32,
     height: u32,
     pixels: Option<Arc<RgbImage>>,
+    xmp_regions: Option<bool>,
 ) -> Result<Vec<Found>, FaceError> {
     let mut found: Vec<Found> = Vec::new();
-    if let Some((Some(region), orientation)) = xmp::read_region_info(&state.exif, main).await?
+    // `Some(false)`: the scan's metadata read found no region areas, so the
+    // structured read would find no usable region either.
+    if xmp_regions != Some(false)
+        && let Some((Some(region), orientation)) = lp_ingest::timers::time(
+            "f xmp region read",
+            xmp::read_region_info(&state.exif, main),
+        )
+        .await?
         && !is_falsy(&region)
     {
         found = xmp::faces_from_region_info(&region, orientation.as_ref(), width, height)
@@ -298,10 +307,12 @@ async fn find_faces(
     }
     if found.is_empty() {
         let model = state.settings().face_recognition_model.clone();
+        let t = std::time::Instant::now();
         let detected = match pixels {
             Some(image) => state.ml().face().detect_faces_rgb(image, &model).await,
             None => state.ml().face().detect_faces(&path_str(big), &model).await,
         };
+        lp_ingest::timers::add("f detect", t);
         match detected {
             Ok(faces) => {
                 found = faces
@@ -329,6 +340,7 @@ pub async fn extract_faces_from_pixels(
     state: &AppState,
     photo: &TaskPhoto,
     image: Arc<RgbImage>,
+    xmp_regions: Option<bool>,
 ) -> Result<usize, FaceError> {
     if !state.config.features.face_detection {
         return Ok(0);
@@ -345,7 +357,17 @@ pub async fn extract_faces_from_pixels(
         .clone()
         .ok_or_else(|| FaceError::Message("'NoneType' object has no attribute 'path'".into()))?;
     let (w, h) = (image.width(), image.height());
-    let found = find_faces(state, photo, &big, &main, w, h, Some(image.clone())).await?;
+    let found = find_faces(
+        state,
+        photo,
+        &big,
+        &main,
+        w,
+        h,
+        Some(image.clone()),
+        xmp_regions,
+    )
+    .await?;
     let n = if found.is_empty() {
         0
     } else {
@@ -394,6 +416,7 @@ async fn extract_faces_serial(state: &AppState, photo: &TaskPhoto) -> Result<usi
         &main,
         image.width(),
         image.height(),
+        None,
         None,
     )
     .await?;

@@ -95,9 +95,18 @@ fn main() -> anyhow::Result<()> {
             let (_, kept) = phash::phash_webp_file_keep(&big_path, true);
             let kept = kept.expect("kept rgb");
             let (_, b) = prepare_rgb(Model::MobileClipS2, &kept)?;
-            let d = a.iter().zip(&b).map(|(x, y)| (x - y).abs()).fold(0f32, f32::max);
+            let d = a
+                .iter()
+                .zip(&b)
+                .map(|(x, y)| (x - y).abs())
+                .fold(0f32, f32::max);
             if d > 0.0 || kept.dimensions() != img2.dimensions() {
-                println!("  tensor diff {d} dims {:?} vs {:?} for {}", kept.dimensions(), img2.dimensions(), f.display());
+                println!(
+                    "  tensor diff {d} dims {:?} vs {:?} for {}",
+                    kept.dimensions(),
+                    img2.dimensions(),
+                    f.display()
+                );
             }
         }
         max_decode_diff = max_decode_diff.max(maxd);
