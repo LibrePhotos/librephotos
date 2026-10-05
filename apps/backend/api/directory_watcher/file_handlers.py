@@ -36,6 +36,7 @@ from api.models.file import (
     is_raw,
     is_valid_media,
     is_video,
+    looks_like_media,
 )
 from api.models.photo_search import PhotoSearch
 from api.models.thumbnail import delete_thumbnail_files
@@ -717,6 +718,11 @@ def handle_file_group(user, file_paths: list[str], job_id):
 
         files = _collect_file_records(user, file_paths)
         if not files:
+            if not any(looks_like_media(path) for path in file_paths):
+                # A RawTherapee .pp3, an Apple .aae, a Takeout .json: nothing
+                # here is a photo, so there is nothing to report as failed.
+                logger.info(f"job {job_id}: ignoring non-media files: {file_paths}")
+                return
             error = f"No valid files in group: {file_paths}"
             logger.warning(f"job {job_id}: {error}")
             return

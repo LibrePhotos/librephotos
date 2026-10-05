@@ -240,6 +240,71 @@ def is_metadata(path):
     return fileextension.upper() in rawformats
 
 
+# Image and video extensions, for files the scanner cannot load. RAW and XMP
+# extensions live in is_raw / is_metadata. The image set covers the partial
+# lists elsewhere (file_grouping.JPEG_EXTENSIONS, thumbnails'
+# _EXIF_ORIENTED_EXTENSIONS, processing_jobs.CV2_DECODABLE_EXTENSIONS) plus the
+# formats image_decoding's libvips and Pillow plugins load.
+IMAGE_EXTENSIONS = frozenset(
+    {
+        ".avif",
+        ".bmp",
+        ".gif",
+        ".heic",
+        ".heif",
+        ".hif",
+        ".j2k",
+        ".jfif",
+        ".jp2",
+        ".jpe",
+        ".jpeg",
+        ".jpg",
+        ".jxl",
+        ".png",
+        ".tif",
+        ".tiff",
+        ".webp",
+    }
+)
+VIDEO_EXTENSIONS = frozenset(
+    {
+        ".3g2",
+        ".3gp",
+        ".asf",
+        ".avi",
+        ".flv",
+        ".m2ts",
+        ".m4v",
+        ".mkv",
+        ".mov",
+        ".mp4",
+        ".mpeg",
+        ".mpg",
+        ".mts",
+        ".ogv",
+        ".vob",
+        ".webm",
+        ".wmv",
+    }
+)
+
+
+def looks_like_media(path) -> bool:
+    """Whether ``path`` is meant to be a photo or video, loadable or not.
+
+    True when the extension is a known image, video, RAW or XMP one, or when
+    the content sniff says ``image/*`` or ``video/*``. A scan reports a file
+    that looks like media but does not load (a corrupt JPEG) as a failure, and
+    ignores everything else (``.pp3``, ``.aae``, ``.json``, ``Thumbs.db``).
+    """
+    extension = os.path.splitext(path)[1].lower()
+    if extension in IMAGE_EXTENSIONS or extension in VIDEO_EXTENSIONS:
+        return True
+    if is_raw(path) or is_metadata(path):
+        return True
+    return (sniffed_mime_type(path) or "").startswith(("image/", "video/"))
+
+
 def is_valid_media(path, user) -> bool:
     if is_video(path=path):
         if not settings.FEATURE_VIDEO:
