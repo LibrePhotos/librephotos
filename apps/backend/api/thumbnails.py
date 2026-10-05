@@ -52,7 +52,14 @@ def _apply_local_orientation(
 # WebP encoding is half of what a thumbnail costs. At Q95, effort 2 encodes in
 # half the time of libwebp's default 4 and gives files of the same size, about
 # 0.4 dB lower in PSNR at ~43 dB, which cannot be seen.
-WEBP = {"Q": 95, "effort": 2}
+#
+# ``keep`` drops every piece of the original's metadata except its colour
+# profile. libvips copies EXIF and XMP into the output by default, so a
+# thumbnail carried the photo's GPS position, camera serial number and
+# keywords, and a public photo link (which only serves the big thumbnail)
+# handed them out whatever the owner's share_location setting said. The ICC
+# profile stays, or a wide-gamut photo would render with the wrong colours.
+WEBP = {"Q": 95, "effort": 2, "keep": pyvips.enums.ForeignKeep.ICC}
 
 
 # Formats whose thumbnail follows an EXIF Orientation that exiftool writes into
@@ -220,7 +227,7 @@ def render_big_thumbnail_to(input_path, output_path, local_orientation=1, legacy
                 input_path, 1080, output_path, local_orientation
             )
         image = _decode_thumbnail(input_path, 1080, local_orientation)
-        image.write_to_file(output_path, Q=95)
+        image.write_to_file(output_path, Q=95, keep=WEBP["keep"])
         return output_path
     if is_raw(input_path):
         return _render_raw_thumbnail(input_path, 1080, output_path, local_orientation)
@@ -293,6 +300,11 @@ FFMPEG_TIMEOUT = 300
 FFMPEG_STDERR_TAIL = 2000
 
 
+# ffmpeg copies the source's global metadata into its output, and with it a
+# phone video's recorded location (the mp4 "location" tag). See ``WEBP``.
+NO_METADATA = ("-map_metadata", "-1", "-map_chapters", "-1")
+
+
 class VideoThumbnailError(RuntimeError):
     """ffmpeg failed, or never finished, making a video thumbnail."""
 
@@ -350,6 +362,7 @@ def create_animated_thumbnail(input_path, output_height, output_path, hash, file
             "-crf",
             "20",
             "-an",
+            *NO_METADATA,
             # Tonemapped when the source is HDR, or the gallery shows the same
             # washed-out picture the player does. See :mod:`api.video_color`.
             "-filter:v",
@@ -375,6 +388,7 @@ def create_thumbnail_for_video(input_path, output_path, hash, file_type):
             "00:00:00.000",
             "-vframes",
             "1",
+            *NO_METADATA,
         ]
         # No resizing here, so there is a filter only when the source is HDR and
         # the grabbed frame would otherwise be washed out.
