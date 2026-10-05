@@ -167,8 +167,9 @@ pub struct TagWrite {
     embedding: Option<(Vec<f32>, lp_ml::clip::SemanticModel)>,
 }
 
-/// `LP_TAG_STORE_BATCH`: photos per tag-store transaction (`1` = one
-/// transaction per photo, as before round 3 #18).
+/// `LP_TAG_STORE_BATCH`: photos per tag-store transaction (default 64;
+/// `1` = one transaction per photo, as before round 3 #18: tags job on the
+/// W4 library 79 -> 51 s).
 fn store_batch() -> usize {
     static N: std::sync::OnceLock<usize> = std::sync::OnceLock::new();
     *N.get_or_init(|| {
@@ -176,7 +177,7 @@ fn store_batch() -> usize {
             .ok()
             .and_then(|v| v.trim().parse::<usize>().ok())
             .filter(|n| *n > 0)
-            .unwrap_or(1)
+            .unwrap_or(64)
     })
 }
 
