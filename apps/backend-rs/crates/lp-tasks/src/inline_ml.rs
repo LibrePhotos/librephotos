@@ -1,9 +1,12 @@
 //! ML inside the scan (round 3 #19): the [`lp_ingest::inline::PhotoMlHook`]
 //! that tags a freshly rendered photo, stores its search embedding and finds
-//! its faces from the big thumbnail's pixels the scan still holds, instead of
-//! the `tags.generate` / `faces.scan` follow-ups decoding the WebP again once
-//! the scan is over. The follow-ups still run and pick up whatever this
-//! missed (videos, RAW previews, failures).
+//! its faces from the big thumbnail the scan holds in memory (by default the
+//! WebP decoded once for the pHash and the models, the same pixels the
+//! follow-ups would read; `LP_SCAN_INLINE_ML_SOURCE=pixels`: libvips' pixels
+//! before the encode, #20), instead of the `tags.generate` / `faces.scan`
+//! follow-ups decoding the WebP again once the scan is over. The follow-ups
+//! still run and pick up whatever this missed (videos, RAW previews,
+//! failures).
 //!
 //! `LP_SCAN_INLINE_ML`: `auto` (default: on when ONNX Runtime runs on a GPU,
 //! where the scan and the models then overlap), `1`/`on`, `0`/`off`. Needs

@@ -89,6 +89,17 @@ fn main() -> anyhow::Result<()> {
             ndiff += usize::from(d > 0);
         }
         same_decode += usize::from(ndiff == 0 && img.len() == img2.as_raw().len());
+        {
+            use lp_ml::tags::tagger::{Model, prepare_image, prepare_rgb};
+            let (_, a) = prepare_image(Model::MobileClipS2, &big_path)?;
+            let (_, kept) = phash::phash_webp_file_keep(&big_path, true);
+            let kept = kept.expect("kept rgb");
+            let (_, b) = prepare_rgb(Model::MobileClipS2, &kept)?;
+            let d = a.iter().zip(&b).map(|(x, y)| (x - y).abs()).fold(0f32, f32::max);
+            if d > 0.0 || kept.dimensions() != img2.dimensions() {
+                println!("  tensor diff {d} dims {:?} vs {:?} for {}", kept.dimensions(), img2.dimensions(), f.display());
+            }
+        }
         max_decode_diff = max_decode_diff.max(maxd);
         let _ = img;
         let t = Instant::now();
