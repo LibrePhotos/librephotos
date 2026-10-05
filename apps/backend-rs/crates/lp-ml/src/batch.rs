@@ -159,6 +159,11 @@ impl<I, O> BatchQueue<I, O> {
         q.drain(..n).collect()
     }
 
+    /// Inputs queued now.
+    pub fn len(&self) -> usize {
+        self.queue.lock().expect("batch queue").len()
+    }
+
     pub fn is_empty(&self) -> bool {
         self.queue.lock().expect("batch queue").is_empty()
     }

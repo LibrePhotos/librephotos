@@ -181,6 +181,22 @@ fn store_batch() -> usize {
     })
 }
 
+/// `LP_TAG_STORE_WAIT_MS`: how long the tag writer waits for a fuller batch
+/// before it writes fewer than [`store_batch`] photos (round 3 #25; default
+/// 500, `0` = write whatever is queued). Photos tagged inside the scan arrive
+/// one by one at the scan's pace, so without a wait each transaction stored
+/// 1-2 photos and recounted the same popular tag albums again and again (W4:
+/// 1,400-1,500 transactions -> 180, Postgres CPU -55%, scan +8%).
+fn store_wait() -> std::time::Duration {
+    static MS: std::sync::OnceLock<u64> = std::sync::OnceLock::new();
+    std::time::Duration::from_millis(*MS.get_or_init(|| {
+        std::env::var("LP_TAG_STORE_WAIT_MS")
+            .ok()
+            .and_then(|v| v.trim().parse::<u64>().ok())
+            .unwrap_or(500)
+    }))
+}
+
 type StoreQueue = lp_ml::batch::BatchQueue<TagWrite, ()>;
 
 /// The write queue of `state`'s database (one per database: a process may
@@ -246,9 +262,18 @@ pub async fn store_tags(
     let queue = store_queue(state);
     let q = &*queue;
     lp_ml::batch::submit(q, write, || async move {
+        let wait = store_wait();
+        if !wait.is_zero() {
+            let deadline = tokio::time::Instant::now() + wait;
+            while q.len() < store_batch() && tokio::time::Instant::now() < deadline {
+                tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+            }
+        }
         let pending = q.take(store_batch());
         let (writes, senders): (Vec<TagWrite>, Vec<_>) = pending.into_iter().unzip();
+        let t = std::time::Instant::now();
         let result = write_batch(state, &writes).await.map_err(|e| e.to_string());
+        lp_ingest::timers::add("t tag-store transactions", t);
         for tx in senders {
             let _ = tx.send(result.clone());
         }
