@@ -81,7 +81,7 @@
     "lodash": "^4.18.1",
     "lodash-es": "^4.18.1",
     "luxon": "3.7.2",
-    "maplibre-gl": "^4.7.1",
+    "maplibre-gl": "^6.0.0",
     "motion": "^12.38.0",
     "prop-types": "15.8.1",
     "react": "18.3.1",
