@@ -41,6 +41,7 @@ Benchmarks used:
 | 21 | Use the 12 threads on the CPU side: scan concurrency default min(cores, 4) -> **min(cores, 8)** file groups at once (`LP_SCAN_CONCURRENCY`; a 4-core box stays at 4), libvips threads per operation (`LP_VIPS_CONCURRENCY`) default 2 -> **1**; plus `LP_SCAN_TIMERS=1` (per-stage wall-clock totals of the scan, logged at its end) | W4 ML-on scan stage, DirectML, inline ML (#19/#20): sweep 4 / 8 / 12 / 16 groups (1 run each, CPU split per executable), then 4 vs 8 vs 8 + vips 1 round robin (2 runs each, one binary): photos/s, CPU-s, peak RSS (MB); system CPU busy (typeperf) | 4 groups, vips 2: **11.71/s** [11.49, 11.93] (sweep: 12.75), 788 CPU-s, peak 1,099 [1,074, 1,123] | 8 groups, vips 2: 15.21/s [15.76, 14.66] (sweep 15.33, timers run 15.01), 783 CPU-s, peak 1,203; **8 groups, vips 1: 16.21/s** [16.19, 16.23] (sweep 16.02), 774 CPU-s, peak **1,172** [1,136, 1,207]; 12 groups: 14.47 (vips 1: 14.94); 16 groups: 15.56 / 14.48 | **+38% photos/s** (11.7 -> 16.2), same CPU-s, peak +73 MB; 12-16 groups oversubscribe (render 347 -> 436-460 ms per photo, inline back-pressure 22 -> 173-261 ms) | yes (defaults 8 groups, vips 1) | see git log: `perf(backend-rs): round 3 #21 ...` |
 | 22 | WebP effort knobs: `LP_THUMB_EFFORT` (big thumbnail) and `LP_THUMB_SMALL_EFFORT` (squares), both default 2 as before (Django's `effort=2`) | `bench/thumb_effort.py` (one thread, 50 W4 + 74 corpus JPEGs, libvips as `render.rs`): KB, encode ms, SSIM / PSNR vs the uncompressed resize, pHash vs effort 2; W4 ML-on scan stage with `LP_THUMB_EFFORT=0` (round robin with #23, 2 runs each) | effort 2: big 210.6 KB / 66.0 ms / SSIM 0.9716 (corpus 174.5 KB / 56.0 ms / 0.9760); 500 px 5.6 KB / 6.2 ms, 250 px 1.8 KB / 2.3 ms; scan **15.62/s** [15.26, 15.98], 775 CPU-s [778, 772], peak 1,149 [1,097, 1,200] | big effort 0: 216.6 KB (+2.8%) / **45.0 ms (-32%)** / SSIM 0.9713 (corpus +3.5% / -31% / 0.9758); pHash equal on 28/50 and 40/74 photos, others 1-4 bits apart (max 4); squares effort 0: -35% encode time but +38-50% bytes; scan **15.76/s** [15.41, 16.11], **712 CPU-s [712, 711] (-8%)**, peak 1,147 [1,218, 1,076] | big effort 0: -8% CPU-s, speed within noise (the scan is not CPU-bound at 8 groups, see #24), +3% bytes, and the pHash of ~half the new photos moves by up to 4 bits against thumbnails rendered at effort 2 (Django, earlier scans: duplicate detection and the replaced-file check compare them) | no (knobs kept, default 2; effort 0 is a CPU-saving option) | see git log: `bench(backend-rs): round 3 #22/#23 ...` |
 | 23 | Region probe (`LP_SCAN_REGION_PROBE=1`, off by default): the scan's metadata read also asks for `XMP:RegionAreaX`; the inline face step skips its own structured ExifTool read (`XMP:RegionInfo`, one round trip per photo) when no file of the photo has a region area | W4 ML-on scan stage (round robin with #22, 2 runs each): photos/s, CPU-s; timers: region read 12-16 ms per photo | 15.62/s [15.26, 15.98], 775 CPU-s | **15.50/s** [15.41, 15.58], 769 CPU-s [767, 770] | within noise: the read overlaps detection (ExifTool CPU ~10 ms per photo, in its own process) | no (knob kept, off) | see git log: `bench(backend-rs): round 3 #22/#23 ...` |
+| 24 | Longest jobs first: the scan starts the file groups that contain a video before the photos (`LP_SCAN_VIDEOS_FIRST`, default on; `0` = walk order). The walk put `Videos/` last, so every scan ended with ffmpeg on a few videos (~25 s each) and idle cores | W4 ML-on scan stage (2 alternating runs each, one binary); `LP_SCAN_TIMERS` completion curve (seconds until 25/50/90/99/100% of the file groups were done) | walk order: **14.59/s** [14.21, 14.96], 786 CPU-s; curve (default run, s24_default_timers) p25 25.0, p50 49.5, p90 89.9, p99 **98.5**, p100 **124.7** s: the last 20 groups (5 videos, 24 s each) took 26 s | videos first: **15.98/s** [15.94, 16.02], 745 CPU-s, peak 1,341 [1,355, 1,326]; curve p25 45.7, p50 70.6, p90 115.9, p99 124.9, p100 125.3 s (the videos now overlap the photos; the box is 99% busy throughout) | **+9.5% photos/s**, -5% CPU-s; peak +100-200 MB (5 ffmpeg processes now run beside 8 photo groups instead of after them) | yes (default) | see git log: `perf(backend-rs): round 3 #24 ...` |
 
 ## Notes
 
@@ -324,6 +325,7 @@ GPU runtimes (scratch venvs under `rust-pg/gpu`, nothing system-wide): `onnxrunt
 | #19 + ML inside the scan (pixels) | 12.97 [12.93, 13.01] (same session: follow-ups 8.63 [8.52, 8.74]) | 1,236 | 1,650 | 766 | scan job 154 s holds everything; tags/faces follow-ups < 1 s; the scan job itself is now the whole stage |
 | #20 inline ML from the decoded WebP (default) | 12.14 [11.89, 12.14, 12.63] (same session: pixels 12.08 [13.23, 12.08, 11.93]) | 1,216 | 1,652-1,970 | 783 | exact ML parity with the follow-up jobs; this session ran ~7% slower than #19's (GPU clocks / disk, same binary) |
 | #21 scan concurrency 8, libvips 1 thread per operation | 16.21 [16.19, 16.23] (same session: 4 groups 11.71 [11.49, 11.93]) | 1,172 | 1,642-1,672 | 774 | the box is CPU-bound now: 97% busy (typeperf), of which the scan tree ~58%, the rest Postgres, Defender + Search indexer on the new thumbnails, the browser, the samplers |
+| #24 videos first (default; 8 groups) | 15.98 [15.94, 16.02] (same session: walk order 14.59 [14.21, 14.96]) | 1,341 | 370-675 | 745 | 99% system CPU; 12 groups slower again (14.59) |
 
 ### Notes
 
@@ -424,3 +426,23 @@ files), terminal/dwm/svchost ~85. Defender and the indexer are this desktop's co
 files (a Linux server has neither; excluding the folder is a system setting, not changed). So
 past 8 groups more concurrency only adds contention; what is left is doing less CPU work per
 photo (#22+).
+
+**22-24. Where the CPU goes, and what is Windows-specific.** Earlier sessions of the same
+configuration (#21: 16.2/s) and #22 (15.6/s) differ by the run-to-run spread of this desktop.
+#22's effort 0 cut 8% of the scan's CPU-s without a speed gain because the scan then still ended
+with the video tail (#24); with the tail gone the box is 99% busy. The image work alone
+(`scan_costs` with `THREADS=n`: MD5, motion scan, libvips thumbnail, big WebP to a new file,
+squares, pHash + RGB from the WebP, colour, ML tensors; no DB, ExifTool or models; 400 W4 photos)
+scales to **29.2 photos/s on 12 threads** (1: 4.62, 4: 15.8, 6: 20.5, 8: 25.8; 9.3 threads busy at
+12) and is the hard ceiling of this pipeline on this CPU. The full scan with ML off
+(`FEATURE_SCENE_CLASSIFICATION=0 FEATURE_FACE_DETECTION=0`, walk order) ran its scan job at 18.5/s
+with 8 and with 12 groups (the video tail again). CPU per photo in a default run (#24, typeperf
+per process and the per-executable split, 2,025 photos): librephotos-rs **~365 ms** (decode,
+WebP, pHash, the inline ML's tensors and GPU calls, DB client), Postgres **~48 ms** (24 s of its 97
+CPU-s without ML: the inline ML's per-photo rows and the tag-store batches, #25), ExifTool ~21 ms,
+ffmpeg ~5 ms; and outside the tree, caused by the scan writing 6,000 thumbnail files: **Windows
+Defender real-time scanning ~44 ms** (MsMpEng 89-96 CPU-s per run) and the **Search indexer ~30-36
+ms** (SearchIndexer + ProtocolHost + FilterHost 59-72 CPU-s), plus kernel/System ~14-20 ms. Of the
+~520 ms of CPU the box spends per photo, ~80-90 ms (16%) is Defender and the indexer, which a
+Linux server does not run (the desktop's browser, terminal and the benchmark's samplers took
+another ~100 CPU-s per run). Defender settings and exclusions were not touched.

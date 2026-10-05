@@ -37,6 +37,12 @@ fn main() -> anyhow::Result<()> {
     let files: Vec<PathBuf> = files.into_iter().step_by(nth).collect();
     let tmp = std::env::temp_dir().join("lp_scan_costs");
     std::fs::create_dir_all(&tmp)?;
+    if let Some(n) = std::env::var("THREADS")
+        .ok()
+        .and_then(|v| v.parse::<usize>().ok())
+    {
+        return parallel(v, &files, &tmp, n);
+    }
     let mut acc: Vec<(&str, f64)> = Vec::new();
     let mut add = |k: &'static str, t: Instant| {
         let ms = t.elapsed().as_secs_f64() * 1000.0;
@@ -161,4 +167,68 @@ fn md5_hex(data: &[u8]) -> String {
     let mut h = Md5::new();
     h.update(data);
     format!("{:x}", h.finalize())
+}
+
+/// `THREADS=n`: the scan's image work per photo (MD5, motion scan, libvips
+/// thumbnail, big WebP to a new file, squares, pHash + RGB from the WebP,
+/// dominant colour, ML tensors) on n threads pulling from one queue: photos/s
+/// of the image pipeline alone, without DB, ExifTool or models.
+fn parallel(v: &'static vips::Vips, files: &[PathBuf], tmp: &Path, n: usize) -> anyhow::Result<()> {
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    let next = AtomicUsize::new(0);
+    let t0 = Instant::now();
+    let mem = std::env::var("NOWRITE").is_ok();
+    std::thread::scope(|s| {
+        for t in 0..n {
+            let next = &next;
+            s.spawn(move || {
+                loop {
+                    let i = next.fetch_add(1, Ordering::Relaxed);
+                    let Some(f) = files.get(i) else { break };
+                    let data = std::fs::read(f).expect("read");
+                    let _ = md5_hex(&data);
+                    let _ = lp_ingest::pipeline::motion_video_offset(f);
+                    let big = v.thumbnail_file(f, 1080).expect("thumbnail");
+                    let bp = tmp.join(format!("{t}_{i}_big.webp"));
+                    big.webpsave(&bp, 95, Some(2)).expect("webp");
+                    let mem_img = big.copy_memory().expect("copy");
+                    for (h, name) in [(500, "sq"), (250, "sm")] {
+                        let sq = mem_img.thumbnail_image(h).expect("sq");
+                        sq.webpsave(&tmp.join(format!("{t}_{i}_{name}.webp")), 80, Some(2))
+                            .expect("webp");
+                    }
+                    let (_, rgb) = phash::phash_webp_file_keep(&bp, true);
+                    let _ = color::dominant_webp_file(&tmp.join(format!("{t}_{i}_sm.webp")));
+                    let rgb = rgb.expect("rgb");
+                    let _ = lp_ml::tags::tagger::prepare_rgb(
+                        lp_ml::tags::tagger::Model::MobileClipS2,
+                        &rgb,
+                    );
+                    let (w, h) = (rgb.width() as usize, rgb.height() as usize);
+                    let sc = 640.0 / w.max(h) as f64;
+                    let _ = lp_ml::preprocess::cv2::resize_linear(
+                        rgb.as_raw(),
+                        w,
+                        h,
+                        3,
+                        (w as f64 * sc) as usize,
+                        (h as f64 * sc) as usize,
+                    );
+                    if mem {
+                        for name in ["big", "sq", "sm"] {
+                            let _ = std::fs::remove_file(tmp.join(format!("{t}_{i}_{name}.webp")));
+                        }
+                    }
+                }
+            });
+        }
+    });
+    let secs = t0.elapsed().as_secs_f64();
+    println!(
+        "{} photos on {n} threads: {secs:.1} s = {:.2} photos/s",
+        files.len(),
+        files.len() as f64 / secs
+    );
+    let _ = std::fs::remove_dir_all(tmp);
+    Ok(())
 }

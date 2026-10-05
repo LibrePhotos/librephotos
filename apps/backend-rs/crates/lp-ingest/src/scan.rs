@@ -159,6 +159,19 @@ pub async fn scan_user(
     }
 }
 
+/// `LP_SCAN_VIDEOS_FIRST` (default on; `0` = walk order).
+fn videos_first() -> bool {
+    static ON: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *ON.get_or_init(|| {
+        !matches!(
+            std::env::var("LP_SCAN_VIDEOS_FIRST")
+                .unwrap_or_default()
+                .trim(),
+            "0" | "off" | "false"
+        )
+    })
+}
+
 async fn scan_inner(
     p: &Pipeline,
     user: &lp_db::users::User,
@@ -212,6 +225,13 @@ async fn scan_inner(
     } else {
         groups
     };
+    // Longest jobs first: a video's thumbnails take ffmpeg ~25 s while a
+    // photo takes ~0.4 s, and the walk puts `Videos/` last, so a scan ended
+    // with a tail of a few videos and idle cores (round 3 #22).
+    let mut to_process = to_process;
+    if videos_first() {
+        to_process.sort_by_key(|(_, ps)| !ps.iter().any(|p| fsutil::is_video(p)));
+    }
 
     let target = to_process.len() + orphans.len();
     let scan_missing =
@@ -264,6 +284,7 @@ async fn scan_inner(
                     return;
                 }
                 let outcome = p.handle_file_group(&owner, &paths).await;
+                crate::timers::mark_done();
                 tick(&p, &job_id, &progress, outcome.err()).await;
             }
         })

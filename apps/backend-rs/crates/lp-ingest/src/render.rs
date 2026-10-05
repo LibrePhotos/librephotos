@@ -184,7 +184,7 @@ impl Renderer {
         };
         let t = std::time::Instant::now();
         let big = big.copy_memory().map_err(|e| anyhow!(e))?;
-        let _squares = Timed("r squares", t);
+        let _squares = crate::timers::Timed("r squares", t);
         for dir in smaller {
             let small = big
                 .thumbnail_image(height_of(dir))
@@ -738,13 +738,4 @@ fn rust_webp_q(img: &image::DynamicImage, out: &Path, quality: i32) -> anyhow::R
 /// Image size from the file header (Pillow's `Image.open(...).size`).
 pub fn image_size(path: &Path) -> Option<(u32, u32)> {
     image::image_dimensions(path).ok()
-}
-
-/// Adds its stage's time to the scan timers when dropped.
-struct Timed(&'static str, std::time::Instant);
-
-impl Drop for Timed {
-    fn drop(&mut self) {
-        crate::timers::add(self.0, self.1);
-    }
 }

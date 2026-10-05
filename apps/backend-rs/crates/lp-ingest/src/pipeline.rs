@@ -585,6 +585,8 @@ impl Pipeline {
             }
             return Ok((false, None));
         }
+        let t_video = std::time::Instant::now();
+        let _video = crate::timers::Timed("v video thumbnails (ffmpeg)", t_video);
         if !r.path(BIG, &hash, ".webp").exists() {
             r.video_big(main_path, &hash).await?;
         }

@@ -246,7 +246,7 @@ groups a scan renders at once), `LP_ML_PIPELINE` (on: ML jobs prepare photos out
 `0` = serial), `LP_SCAN_INLINE_ML` (`auto`: on a GPU the scan runs tags/embedding/faces per photo
 as it renders; `1`/`0`), `LP_SCAN_INLINE_ML_SOURCE` (`webp` default = the decoded big WebP, exact
 parity with the follow-up jobs; `pixels` = libvips' pixels before the encode), `LP_ML_BATCH`,
-`LP_TAG_STORE_BATCH` (64), `LP_FACE_DET_SIZE` (`640`; `480`/`320`/`auto` fast modes), `LP_OCR_PREPASS` (off; e.g. `640`:
+`LP_TAG_STORE_BATCH` (64), `LP_SCAN_VIDEOS_FIRST` (on), `LP_SCAN_TIMERS` (off; per-stage scan timers in the log), `LP_THUMB_EFFORT` / `LP_THUMB_SMALL_EFFORT` (2), `LP_SCAN_REGION_PROBE` (off), `LP_FACE_DET_SIZE` (`640`; `480`/`320`/`auto` fast modes), `LP_OCR_PREPASS` (off; e.g. `640`:
 skip full OCR when a coarse detection finds no text), `WORKER_CONCURRENCY`, `LOG_LEVEL`/`RUST_LOG`, `FEATURE_*`, `TRANSCODE_*`,
 `REFRESH_TOKEN_DAYS`, `MAP_*`, `ALLOW_UPLOAD` (see `lp_core::config`), `FRONTEND_BASE_URL`
 (public origin for the OIDC callback), `LP_OIDC_PROVIDERS` (JSON `[{id, name, client_id, secret,
