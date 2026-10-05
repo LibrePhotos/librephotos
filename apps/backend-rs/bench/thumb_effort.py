@@ -8,6 +8,7 @@ scan stores) against effort 2 (equal / Hamming distance).
 """
 import argparse
 import io
+import os
 import statistics as st
 import time
 from pathlib import Path
@@ -17,6 +18,8 @@ import numpy as np
 import pyvips
 from PIL import Image
 from skimage.metrics import peak_signal_noise_ratio, structural_similarity
+
+os.environ.setdefault("VIPS_CONCURRENCY", "1")
 
 
 def to_np(img):
@@ -29,7 +32,6 @@ def main():
     ap.add_argument("--every", type=int, default=20)
     ap.add_argument("--efforts", default="0,1,2")
     a = ap.parse_args()
-    pyvips.concurrency_set(1)
     efforts = [int(e) for e in a.efforts.split(",")]
     files = sorted(p for p in Path(a.root).rglob("*") if p.suffix.lower() in (".jpg", ".jpeg"))[:: a.every]
     res = {}
@@ -66,7 +68,7 @@ def main():
               f"{min(r['ssim']):7.4f} {st.mean(r['psnr']):6.2f}")
     for e in efforts:
         d = ph_dist[e]
-        print(f"pHash effort {e} == effort 2: {ph_same[e]}/{len(d)}, Hamming mean {st.mean(d):.2f} max {max(d)}")
+        print(f"pHash effort {e} == effort 2: {ph_same[e]}/{len(d)}, Hamming mean {st.mean(map(float, d)):.2f} max {max(d)}")
 
 
 if __name__ == "__main__":
