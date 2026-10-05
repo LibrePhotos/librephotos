@@ -13,6 +13,7 @@ pub mod db;
 pub mod exifmap;
 pub mod face_tags;
 pub mod fsutil;
+pub mod inline;
 pub mod jobs;
 pub mod phash;
 pub mod pipeline;

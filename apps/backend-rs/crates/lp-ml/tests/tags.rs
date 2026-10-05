@@ -671,3 +671,55 @@ async fn concurrent_calls_agree_and_do_not_block_the_runtime() {
         "runtime stalled for {worst_gap:?}"
     );
 }
+
+/// A batched image-tower run (`predict_batch`, round 3 #17) gives each photo
+/// the tags and embedding of its single run. `--nocapture` prints the
+/// smallest cosine and the largest score difference.
+#[test]
+fn batched_predictions_match_single_runs() {
+    if !has_runtime() {
+        return;
+    }
+    let Some(g) = golden::load("tags", "mobileclip_s2") else {
+        return;
+    };
+    let model = Model::MobileClipS2;
+    let Some(dir) = model_dir(model) else { return };
+    let mut t = Tagger::load(model, &dir).expect("tagger loads");
+    let mut prepared = Vec::new();
+    for c in &g.cases {
+        let path = c.input["image"].as_str().expect("image path");
+        if c.output.get("error").is_some() || !Path::new(path).exists() {
+            continue;
+        }
+        if let Ok(p) = tagger::prepare_image(model, Path::new(path)) {
+            prepared.push(p);
+        }
+        if prepared.len() == 24 {
+            break;
+        }
+    }
+    assert!(prepared.len() >= 2, "too few images");
+    let size = prepared[0].0;
+    let images: Vec<Vec<f32>> = prepared.iter().map(|(_, p)| p.clone()).collect();
+    let batched = t
+        .predict_batch(size, &images, model.threshold(), MAX_TAGS)
+        .expect("batch runs");
+    let (mut min_cos, mut max_diff, mut same) = (1f64, 0f32, 0usize);
+    for (img, b) in images.into_iter().zip(&batched) {
+        let s = t
+            .predict_pixels(size, img, model.threshold(), MAX_TAGS)
+            .expect("single run");
+        min_cos = min_cos.min(golden::cosine(&s.raw, &b.raw));
+        for (x, y) in s.scores.iter().zip(&b.scores) {
+            max_diff = max_diff.max((x - y).abs());
+        }
+        same += usize::from(s.tags == b.tags);
+    }
+    eprintln!(
+        "batch of {}: {same} same tag lists, min cosine {min_cos:.7}, max score diff {max_diff:.2e}",
+        batched.len()
+    );
+    assert_eq!(same, batched.len());
+    assert!(min_cos > 0.99999, "cosine {min_cos}");
+}

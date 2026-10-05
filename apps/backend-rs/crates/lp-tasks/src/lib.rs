@@ -33,6 +33,7 @@ pub mod exif;
 pub mod faces;
 pub mod fanout;
 pub mod geocode;
+pub mod inline_ml;
 pub mod models;
 pub mod nextcloud;
 pub mod ocr;
@@ -51,6 +52,9 @@ struct UserPayload {
     user_id: i32,
     #[serde(default)]
     full_scan: Option<bool>,
+    /// faces.scan after a scan with inline ML: skip the photos it covered.
+    #[serde(default)]
+    skip_inline: bool,
 }
 
 #[derive(Debug, Deserialize)]
@@ -82,6 +86,7 @@ where
 }
 
 pub fn register_jobs(reg: &mut HandlerRegistry) {
+    inline_ml::install();
     reg.register(models::KIND, models::download);
     reg.register(nextcloud::KIND, nextcloud::job);
     reg.register("faces.scan", |ctx: JobCtx| async move {
@@ -90,7 +95,7 @@ pub fn register_jobs(reg: &mut HandlerRegistry) {
         let full = p.full_scan.unwrap_or(false);
         let state = ctx.state.clone();
         tracked(&ctx, JobType::ScanFaces, |job_id| async move {
-            faces::scan(&state, p.user_id, full, &job_id).await
+            faces::scan_with(&state, p.user_id, full, p.skip_inline, &job_id).await
         })
         .await
     });

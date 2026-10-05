@@ -183,10 +183,15 @@ fn input_names(session: &Session) -> Vec<String> {
 /// `prepare_image`: the photo as a `[1, 3, S, S]` tensor.
 pub fn prepare_image(model: Model, path: &Path) -> anyhow::Result<(usize, Vec<f32>)> {
     let img = preprocess::load_rgb(path)?;
+    prepare_rgb(model, &img)
+}
+
+/// [`prepare_image`] of pixels already in memory (the scan's big thumbnail).
+pub fn prepare_rgb(model: Model, img: &image::RgbImage) -> anyhow::Result<(usize, Vec<f32>)> {
     match model {
         Model::MobileClipS2 => {
             // Shortest edge 256 (BILINEAR), centre crop, 0..1, no mean/std.
-            let img = pil::resize_shortest_edge_center_crop(&img, 256, Filter::Bilinear);
+            let img = pil::resize_shortest_edge_center_crop(img, 256, Filter::Bilinear);
             Ok((
                 256,
                 preprocess::to_chw(
@@ -202,7 +207,7 @@ pub fn prepare_image(model: Model, path: &Path) -> anyhow::Result<(usize, Vec<f3
         }
         Model::Siglip2 => {
             // Straight 384x384 BICUBIC, mean = std = 0.5.
-            let img = pil::resize_rgb(&img, 384, 384, Filter::Bicubic);
+            let img = pil::resize_rgb(img, 384, 384, Filter::Bicubic);
             Ok((
                 384,
                 preprocess::to_chw(
@@ -463,6 +468,65 @@ impl Tagger {
         max_tags: usize,
     ) -> anyhow::Result<Prediction> {
         let raw = self.embed_pixels_raw(size, pixels)?;
+        Ok(self.score(raw, threshold, max_tags))
+    }
+
+    /// The image tower over `n` prepared photos of side `size` in one run
+    /// (`[n, 3, size, size]`): their raw embeddings, in order.
+    pub fn embed_batch_raw(
+        &mut self,
+        size: usize,
+        images: &[Vec<f32>],
+    ) -> anyhow::Result<Vec<Vec<f32>>> {
+        let n = images.len();
+        if n == 0 {
+            return Ok(Vec::new());
+        }
+        let name = input_names(&self.vision)
+            .into_iter()
+            .next()
+            .context("vision model has no inputs")?;
+        let mut data = Vec::with_capacity(n * 3 * size * size);
+        for img in images {
+            if img.len() != 3 * size * size {
+                bail!(
+                    "prepared image has {} values, expected {}",
+                    img.len(),
+                    3 * size * size
+                );
+            }
+            data.extend_from_slice(img);
+        }
+        let t = Tensor::from_array(([n, 3, size, size], data))?;
+        let outputs = run_outputs(&mut self.vision, vec![(name, t.into())])?;
+        let flat = select_pooled(&outputs, n, None)?;
+        if flat.len() != n * self.dim {
+            bail!(
+                "batch of {n} gave {} values, the tag embeddings have {} per image",
+                flat.len(),
+                self.dim
+            );
+        }
+        Ok(flat.chunks_exact(self.dim).map(<[f32]>::to_vec).collect())
+    }
+
+    /// [`predict_pixels`](Self::predict_pixels) of several photos in one model run.
+    pub fn predict_batch(
+        &mut self,
+        size: usize,
+        images: &[Vec<f32>],
+        threshold: f32,
+        max_tags: usize,
+    ) -> anyhow::Result<Vec<Prediction>> {
+        Ok(self
+            .embed_batch_raw(size, images)?
+            .into_iter()
+            .map(|raw| self.score(raw, threshold, max_tags))
+            .collect())
+    }
+
+    /// Tags of a raw image embedding.
+    fn score(&self, raw: Vec<f32>, threshold: f32, max_tags: usize) -> Prediction {
         let mut embedding = raw.clone();
         l2_normalize(&mut embedding);
         let mut scores: Vec<f32> = self
@@ -477,12 +541,12 @@ impl Tagger {
             .into_iter()
             .map(|i| TAGS[i].clone())
             .collect();
-        Ok(Prediction {
+        Prediction {
             tags,
             scores,
             embedding,
             raw,
-        })
+        }
     }
 }
 

@@ -76,6 +76,94 @@ pub async fn replace_thing_memberships(
     refresh_things(conn, &touched).await
 }
 
+/// [`replace_thing_memberships`] for several photos of one owner in one go
+/// (round 3 #18): the same memberships, inserted photo by photo in the given
+/// order, but every touched album is locked, recounted and given covers once
+/// for the whole batch instead of once per photo (a recount scans the
+/// album's memberships, so per photo it grew with the library and serialised
+/// concurrent photos on the popular tags' rows).
+pub async fn replace_thing_memberships_many(
+    conn: &mut PgConnection,
+    owner_id: i32,
+    thing_type: &str,
+    photos: &[(Uuid, Vec<String>)],
+) -> sqlx::Result<()> {
+    if photos.is_empty() {
+        return Ok(());
+    }
+    let ids: Vec<Uuid> = photos.iter().map(|(id, _)| *id).collect();
+    let (mut pair_ids, mut pair_titles, mut pair_order) = (Vec::new(), Vec::new(), Vec::new());
+    let mut all_titles: Vec<&str> = Vec::new();
+    for (i, (id, titles)) in photos.iter().enumerate() {
+        let mut t: Vec<&str> = titles.iter().map(String::as_str).collect();
+        t.sort_unstable();
+        t.dedup();
+        for title in t {
+            pair_ids.push(*id);
+            pair_titles.push(title.to_string());
+            pair_order.push(i as i32);
+            all_titles.push(title);
+        }
+    }
+    all_titles.sort_unstable();
+    all_titles.dedup();
+
+    sqlx::query(
+        "INSERT INTO api_albumthing (title, thing_type, favorited, owner_id, photo_count, last_modified) \
+         SELECT t, $2, FALSE, $3, 0, now() FROM unnest($1::text[]) AS t \
+         ON CONFLICT (title, thing_type, owner_id) DO NOTHING",
+    )
+    .bind(&all_titles)
+    .bind(thing_type)
+    .bind(owner_id)
+    .execute(&mut *conn)
+    .await?;
+
+    let touched: Vec<i32> = sqlx::query_scalar(
+        "SELECT a.id FROM api_albumthing a \
+         WHERE a.owner_id = $2 AND a.thing_type = $3 \
+           AND (a.title = ANY($4) OR EXISTS (SELECT 1 FROM api_albumthing_photos l \
+                  WHERE l.albumthing_id = a.id AND l.photo_id = ANY($1))) \
+         ORDER BY a.id FOR UPDATE",
+    )
+    .bind(&ids)
+    .bind(owner_id)
+    .bind(thing_type)
+    .bind(&all_titles)
+    .fetch_all(&mut *conn)
+    .await?;
+    if touched.is_empty() {
+        return Ok(());
+    }
+
+    sqlx::query(
+        "DELETE FROM api_albumthing_photos l USING api_albumthing a \
+         WHERE l.albumthing_id = a.id AND l.photo_id = ANY($1) AND a.owner_id = $2 AND a.thing_type = $3",
+    )
+    .bind(&ids)
+    .bind(owner_id)
+    .bind(thing_type)
+    .execute(&mut *conn)
+    .await?;
+
+    sqlx::query(
+        "INSERT INTO api_albumthing_photos (albumthing_id, photo_id) \
+         SELECT a.id, u.photo_id FROM unnest($1::uuid[], $2::text[], $3::int4[]) AS u(photo_id, title, ord) \
+         JOIN api_albumthing a ON a.owner_id = $4 AND a.thing_type = $5 AND a.title = u.title \
+         ORDER BY u.ord, a.id \
+         ON CONFLICT DO NOTHING",
+    )
+    .bind(&pair_ids)
+    .bind(&pair_titles)
+    .bind(&pair_order)
+    .bind(owner_id)
+    .bind(thing_type)
+    .execute(&mut *conn)
+    .await?;
+
+    refresh_things(conn, &touched).await
+}
+
 /// S1 for `album_ids`: `photo_count` = non-hidden photos, `last_modified`
 /// bumped (Django saves the album after each membership change), covers
 /// topped up to 4 from its non-hidden photos.

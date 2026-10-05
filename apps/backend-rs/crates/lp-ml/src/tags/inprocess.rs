@@ -14,12 +14,17 @@ use lp_sidecars::SidecarError;
 use serde_json::{Value, json};
 
 use super::TagsApi;
-use super::tagger::{MAX_TAGS, Model, Tagger, prepare_image};
+use super::tagger::{MAX_TAGS, Model, Prediction, Tagger, prepare_image};
+use crate::batch::{self, BatchQueue};
 use crate::{Backend, MlContext, ModelSlot, Service};
+
+/// A prepared photo waiting for a batched run: `(side, pixels)`.
+type Prepared = (usize, Vec<f32>);
 
 pub struct InProcess {
     ctx: Arc<MlContext>,
     slot: ModelSlot<Tagger>,
+    queue: Arc<BatchQueue<Prepared, Prediction>>,
 }
 
 impl InProcess {
@@ -28,7 +33,11 @@ impl InProcess {
 
     pub fn new(ctx: Arc<MlContext>) -> Self {
         let slot = ctx.slot(Service::Tags, "tagger");
-        InProcess { ctx, slot }
+        InProcess {
+            ctx,
+            slot,
+            queue: Arc::new(BatchQueue::default()),
+        }
     }
 }
 
@@ -100,10 +109,15 @@ impl InProcess {
             // Decode and resize on a blocking thread: the slot (and its ORT
             // threads) only runs the model, while the next photos prepare.
             let path = image.clone();
+            let permit = batch::prep_permits()
+                .acquire()
+                .await
+                .map_err(|e| crate::failed(Service::Tags, e.to_string()))?;
             let prepared =
                 tokio::task::spawn_blocking(move || prepare_image(model, Path::new(&path)))
                     .await
                     .map_err(|e| crate::failed(Service::Tags, e.to_string()))?;
+            drop(permit);
             let (size, pixels) = match prepared {
                 Ok(p) => p,
                 Err(e) => {
@@ -112,6 +126,15 @@ impl InProcess {
                     return Err(e);
                 }
             };
+            let policy = batch::policy();
+            if policy.enabled() {
+                return self
+                    .predict_batched(tagging_model, policy, (size, pixels))
+                    .await
+                    .inspect_err(|e| {
+                        tracing::warn!(image = %image_path, error = %e, "tags: error processing image");
+                    });
+            }
             return self
                 .with_tagger(tagging_model, move |t, model| {
                     t.predict_pixels(size, pixels, model.threshold(), MAX_TAGS)
@@ -128,6 +151,41 @@ impl InProcess {
         .inspect_err(|e| {
             tracing::warn!(image = %image_path, error = %e, "tags: error processing image");
         })
+    }
+}
+
+impl InProcess {
+    /// Queue a prepared photo and take the slot: whoever holds it runs
+    /// everything queued so far in batches ([`batch`]).
+    async fn predict_batched(
+        &self,
+        tagging_model: &str,
+        policy: batch::Policy,
+        prepared: Prepared,
+    ) -> Result<Prediction, SidecarError> {
+        let queue = self.queue.clone();
+        batch::submit(&self.queue, prepared, || {
+            let queue = queue.clone();
+            async move {
+                self.with_tagger(tagging_model, move |t, model| {
+                    let pending = queue.take(policy.max);
+                    let threshold = model.threshold();
+                    batch::run_planned(policy, pending, |items: Vec<Prepared>| {
+                        let size = items[0].0;
+                        if items.iter().any(|(s, _)| *s != size) {
+                            anyhow::bail!("mixed input sizes in one batch");
+                        }
+                        let images: Vec<Vec<f32>> = items.into_iter().map(|(_, p)| p).collect();
+                        t.predict_batch(size, &images, threshold, MAX_TAGS)
+                    });
+                    Ok(())
+                })
+                .await
+                .map_err(|e| e.to_string())
+            }
+        })
+        .await
+        .map_err(|e| crate::failed(Service::Tags, format!("Failed to process image: {e}")))
     }
 }
 
@@ -150,6 +208,46 @@ impl TagsApi for InProcess {
         tagging_model: &str,
     ) -> Result<(Value, Vec<f32>), SidecarError> {
         let prediction = self.predict(image_path, tagging_model).await?;
+        Ok((
+            json!({ "tags": { "tags": prediction.tags } }),
+            prediction.raw,
+        ))
+    }
+
+    async fn generate_tags_rgb(
+        &self,
+        image: Arc<image::RgbImage>,
+        tagging_model: &str,
+    ) -> Result<(Value, Vec<f32>), SidecarError> {
+        let Some(model) = Model::from_name(model_name(tagging_model)) else {
+            return Err(crate::bad_input(
+                Service::Tags,
+                format!("Unknown tagging model '{tagging_model}'"),
+            ));
+        };
+        let permit = batch::prep_permits()
+            .acquire()
+            .await
+            .map_err(|e| crate::failed(Service::Tags, e.to_string()))?;
+        let prepared =
+            tokio::task::spawn_blocking(move || super::tagger::prepare_rgb(model, &image))
+                .await
+                .map_err(|e| crate::failed(Service::Tags, e.to_string()))?
+                .map_err(|e| {
+                    crate::failed(Service::Tags, format!("Failed to process image: {e:#}"))
+                })?;
+        drop(permit);
+        let policy = batch::policy();
+        let prediction = if policy.enabled() {
+            self.predict_batched(tagging_model, policy, prepared)
+                .await?
+        } else {
+            let (size, pixels) = prepared;
+            self.with_tagger(tagging_model, move |t, model| {
+                t.predict_pixels(size, pixels, model.threshold(), MAX_TAGS)
+            })
+            .await?
+        };
         Ok((
             json!({ "tags": { "tags": prediction.tags } }),
             prediction.raw,

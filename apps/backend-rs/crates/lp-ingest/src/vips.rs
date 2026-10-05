@@ -340,6 +340,39 @@ impl Image {
         self.vips.wrap(p, "copy_memory")
     }
 
+    /// The pixels as 8-bit RGB, what Pillow's `convert("RGB")` gives for the
+    /// image's WebP: grey replicated, alpha dropped. `None` for other formats
+    /// (16-bit, CMYK, ...) or when libvips cannot read pixels out.
+    pub fn to_rgb8(&self) -> Option<image::RgbImage> {
+        let (get_bands, get_format, get_data) = self.vips.pixels?;
+        let (bands, format) = unsafe { (get_bands(self.ptr), get_format(self.ptr)) };
+        if format != FORMAT_UCHAR || !(1..=4).contains(&bands) {
+            return None;
+        }
+        let mem = self.copy_memory().ok()?;
+        let (w, h) = (mem.width().max(0) as usize, mem.height().max(0) as usize);
+        let p = unsafe { get_data(mem.ptr) } as *const u8;
+        if p.is_null() || w == 0 || h == 0 {
+            return None;
+        }
+        let b = bands as usize;
+        // SAFETY: a memory image of w x h uchar pixels with `b` bands,
+        // alive (and unchanged) while `mem` is.
+        let px = unsafe { std::slice::from_raw_parts(p, w * h * b) };
+        let rgb: Vec<u8> = match b {
+            3 => px.to_vec(),
+            4 => px
+                .chunks_exact(4)
+                .flat_map(|c| [c[0], c[1], c[2]])
+                .collect(),
+            _ => px
+                .chunks_exact(b)
+                .flat_map(|c| [c[0], c[0], c[0]])
+                .collect(),
+        };
+        image::RgbImage::from_raw(w as u32, h as u32, rgb)
+    }
+
     fn op_int(&self, f: FnImgOutInt, arg: c_int, what: &str) -> Result<Image, String> {
         let mut out: *mut VipsImage = ptr::null_mut();
         let rc = unsafe { f(self.ptr, &mut out, arg, ptr::null::<c_char>()) };

@@ -34,6 +34,16 @@ pub trait FaceApi: Send + Sync {
         locations: &[FaceBox],
         model_name: &str,
     ) -> Result<Vec<Option<Vec<f64>>>, SidecarError>;
+
+    /// [`detect_faces`](Self::detect_faces) on pixels already in memory (the
+    /// scan's big thumbnail). In-process only.
+    async fn detect_faces_rgb(
+        &self,
+        _image: std::sync::Arc<image::RgbImage>,
+        _model_name: &str,
+    ) -> Result<Vec<DetectedFace>, SidecarError> {
+        Err(crate::not_implemented(crate::Service::Face))
+    }
 }
 
 #[async_trait]

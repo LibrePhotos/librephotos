@@ -57,18 +57,37 @@ pub async fn scan(
     full_scan: bool,
     job_id: &str,
 ) -> anyhow::Result<()> {
+    scan_with(state, user_id, full_scan, false, job_id).await
+}
+
+/// [`scan`]; with `skip_inline` (the follow-up of a scan that ran ML inline,
+/// round 3 #19) photos whose faces that scan already found with the current
+/// pack are skipped.
+pub async fn scan_with(
+    state: &AppState,
+    user_id: i32,
+    full_scan: bool,
+    skip_inline: bool,
+    job_id: &str,
+) -> anyhow::Result<()> {
     let since = if full_scan {
         None
     } else {
         run::last_finished_start(&state.db, user_id, JobType::ScanFaces, false).await?
     };
+    let model = state.settings().face_recognition_model.clone();
     let ids: Vec<Uuid> = sqlx::query_scalar(
         "SELECT p.id FROM api_photo p JOIN api_thumbnail t ON t.photo_id = p.id \
-         WHERE p.owner_id = $1 AND ($2::boolean IS FALSE OR p.added_on > $3) ORDER BY p.id",
+         WHERE p.owner_id = $1 AND ($2::boolean IS FALSE OR p.added_on > $3) \
+           AND NOT ($4::boolean AND EXISTS (SELECT 1 FROM lp_photo_faces_scanned s \
+                WHERE s.photo_id = p.id AND s.model = $5)) \
+         ORDER BY p.id",
     )
     .bind(user_id)
     .bind(since.is_some())
     .bind(since.flatten())
+    .bind(skip_inline)
+    .bind(lp_ml::face::normalize_model_name(&model))
     .fetch_all(&state.db)
     .await?;
     if !run::start_items(&state.db, job_id, ids.len() as i64).await? {
@@ -101,7 +120,7 @@ pub async fn scan(
                         }) as futures::future::BoxFuture<'_, Prep<'_>>
                     })
                     .collect();
-                let mut prepared = futures::stream::iter(futs).buffered(FACE_PREFETCH);
+                let mut prepared = futures::stream::iter(futs).buffered(face_prefetch());
                 while let Some((photo, prep)) = prepared.next().await {
                     let error = match (photo, prep) {
                         (Some(photo), Some(prep)) => {
@@ -170,6 +189,19 @@ struct Found {
 /// Photos the pipelined face scan prepares ahead of the one it stores.
 pub const FACE_PREFETCH: usize = 3;
 
+/// `LP_FACE_PREFETCH` (default [`FACE_PREFETCH`]): photos the face scan
+/// prepares ahead (XMP region read, decode, detection).
+pub fn face_prefetch() -> usize {
+    static N: std::sync::OnceLock<usize> = std::sync::OnceLock::new();
+    *N.get_or_init(|| {
+        std::env::var("LP_FACE_PREFETCH")
+            .ok()
+            .and_then(|v| v.trim().parse::<usize>().ok())
+            .filter(|n| *n > 0)
+            .unwrap_or(FACE_PREFETCH)
+    })
+}
+
 /// `extract_faces` for one photo: regions from the file's XMP, else the
 /// face sidecar; new faces (IoU < 0.3 with the photo's faces) are cropped
 /// to `faces/` and stored; a named XMP region names an unnamed face it overlaps.
@@ -218,7 +250,7 @@ pub async fn prepare_faces(
         .main_path
         .clone()
         .ok_or_else(|| FaceError::Message("'NoneType' object has no attribute 'path'".into()))?;
-    let found = find_faces(state, photo, &big, &main, width, height).await?;
+    let found = find_faces(state, photo, &big, &main, width, height, None).await?;
     Ok((!found.is_empty()).then_some(PreparedFaces { big, found }))
 }
 
@@ -249,6 +281,7 @@ async fn find_faces(
     main: &str,
     width: u32,
     height: u32,
+    pixels: Option<Arc<RgbImage>>,
 ) -> Result<Vec<Found>, FaceError> {
     let mut found: Vec<Found> = Vec::new();
     if let Some((Some(region), orientation)) = xmp::read_region_info(&state.exif, main).await?
@@ -265,7 +298,11 @@ async fn find_faces(
     }
     if found.is_empty() {
         let model = state.settings().face_recognition_model.clone();
-        match state.ml().face().detect_faces(&path_str(big), &model).await {
+        let detected = match pixels {
+            Some(image) => state.ml().face().detect_faces_rgb(image, &model).await,
+            None => state.ml().face().detect_faces(&path_str(big), &model).await,
+        };
+        match detected {
             Ok(faces) => {
                 found = faces
                     .into_iter()
@@ -282,6 +319,47 @@ async fn find_faces(
         }
     }
     Ok(found)
+}
+
+/// Faces of a photo the scan just rendered (round 3 #19): XMP regions of the
+/// original, else detection on the big thumbnail's pixels in memory; the new
+/// faces are stored as [`extract_faces`] does, and the photo is marked
+/// (`lp_photo_faces_scanned`) so the scan's `faces.scan` follow-up skips it.
+pub async fn extract_faces_from_pixels(
+    state: &AppState,
+    photo: &TaskPhoto,
+    image: Arc<RgbImage>,
+) -> Result<usize, FaceError> {
+    if !state.config.features.face_detection {
+        return Ok(0);
+    }
+    let big = photo
+        .thumbnail_path(&state.config.media_root)
+        .ok_or_else(|| {
+            FaceError::Message(
+                "The 'thumbnail_big' attribute has no file associated with it.".into(),
+            )
+        })?;
+    let main = photo
+        .main_path
+        .clone()
+        .ok_or_else(|| FaceError::Message("'NoneType' object has no attribute 'path'".into()))?;
+    let (w, h) = (image.width(), image.height());
+    let found = find_faces(state, photo, &big, &main, w, h, Some(image.clone())).await?;
+    let n = if found.is_empty() {
+        0
+    } else {
+        write_faces(state, photo, image, found).await?
+    };
+    let model = state.settings().face_recognition_model.clone();
+    sqlx::query(
+        "INSERT INTO lp_photo_faces_scanned (photo_id, model, scanned_at) VALUES ($1, $2, now())          ON CONFLICT (photo_id) DO UPDATE SET model = EXCLUDED.model, scanned_at = now()",
+    )
+    .bind(photo.id)
+    .bind(lp_ml::face::normalize_model_name(&model))
+    .execute(&state.db)
+    .await?;
+    Ok(n)
 }
 
 /// The serial path (`LP_ML_PIPELINE=0`): decode first, then regions or
@@ -309,7 +387,16 @@ async fn extract_faces_serial(state: &AppState, photo: &TaskPhoto) -> Result<usi
         .main_path
         .clone()
         .ok_or_else(|| FaceError::Message("'NoneType' object has no attribute 'path'".into()))?;
-    let found = find_faces(state, photo, &big, &main, image.width(), image.height()).await?;
+    let found = find_faces(
+        state,
+        photo,
+        &big,
+        &main,
+        image.width(),
+        image.height(),
+        None,
+    )
+    .await?;
     if found.is_empty() {
         return Ok(0);
     }

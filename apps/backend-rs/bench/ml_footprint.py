@@ -81,7 +81,8 @@ SIDECARS = {
     "ocr": ["service/ocr/main.py"],
 }
 FLAGS = subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.DETACHED_PROCESS
-ARGS = argparse.Namespace(no_arena=False, keep=False, env={}, site={}, cpus="pi", threads=4, gpu_ort=None)
+ARGS = argparse.Namespace(no_arena=False, keep=False, env={}, site={}, cpus="pi", threads=4, gpu_ort=None,
+                          suffix="")
 TINY = ["group_t1_orig.jpg", "portrait_hanks_orig.jpg", "portrait_astronaut_orig.jpg",
         "text_document_1240x1754.jpg", "text_receipt_720x1100.jpg", "scene_chelsea.jpg"]
 CAPTION_PICKS = ["group_t1_orig", "portrait_hanks_orig", "portrait_astronaut_orig", "scene_chelsea",
@@ -566,7 +567,7 @@ def services_status(api):
 
 def cmd_scan(args):
     side, conc = args.side, args.concurrency
-    tag = f"{side}{conc}"
+    tag = f"{side}{conc}{ARGS.suffix}"
     db, base = setup(side, tag, W4_LIB if args.lib == "w4" else ROOT / "lib" / "foot")
     gpu = GpuSampler()
     gpu.start()
@@ -810,6 +811,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--no-arena", action="store_true", help="LP_ORT_CPU_ARENA=0 for the Rust server")
     ap.add_argument("--keep", action="store_true", help="keep the run's DB and BASE_DATA")
+    ap.add_argument("--suffix", default="", help="appended to the run's DB / BASE_DATA name (with --keep)")
     ap.add_argument("--env", action="append", default=[], metavar="K=V",
                     help="extra environment for the backend processes (repeatable), e.g. LP_ORT_CPU_ARENA=shrink")
     ap.add_argument("--site", action="append", default=[], metavar="KEY=VALUE",
@@ -835,6 +837,7 @@ def main():
     args = ap.parse_args()
     ARGS.no_arena, ARGS.keep = args.no_arena, args.keep
     ARGS.cpus, ARGS.threads, ARGS.gpu_ort = args.cpus, args.threads, args.gpu_ort
+    ARGS.suffix = args.suffix
     ARGS.env = dict(kv.split("=", 1) for kv in args.env)
     ARGS.site = dict(kv.split("=", 1) for kv in args.site)
     if args.cmd == "library":

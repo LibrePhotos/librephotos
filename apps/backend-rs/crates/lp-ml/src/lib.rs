@@ -20,6 +20,7 @@
 //! bad input is a 400 `Status`, a failed inference a 500 `Status` (what the
 //! sidecar would have answered), a missing model or runtime `Unreachable`.
 
+pub mod batch;
 pub mod golden;
 pub mod models;
 pub mod preprocess;

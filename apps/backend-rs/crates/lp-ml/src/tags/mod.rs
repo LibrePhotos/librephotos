@@ -37,6 +37,17 @@ pub trait TagsApi: Send + Sync {
         Err(crate::not_implemented(crate::Service::Tags))
     }
 
+    /// [`generate_tags_with_embedding`](Self::generate_tags_with_embedding) of
+    /// an image already in memory (the scan's big thumbnail before encoding).
+    /// In-process only.
+    async fn generate_tags_rgb(
+        &self,
+        _image: std::sync::Arc<image::RgbImage>,
+        _tagging_model: &str,
+    ) -> Result<(Value, Vec<f32>), SidecarError> {
+        Err(crate::not_implemented(crate::Service::Tags))
+    }
+
     /// The raw image embedding of the tagging model's image tower, without
     /// tags. In-process only.
     async fn image_embedding(

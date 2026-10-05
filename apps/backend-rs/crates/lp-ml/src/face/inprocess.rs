@@ -131,6 +131,16 @@ impl InProcess {
             .await
             .map_err(|e| crate::failed(Service::Face, e.to_string()))?
             .map_err(|e| crate::failed_from(Service::Face, e))?;
+        self.analyze_rgb(Arc::new(image), &model, dir, wanted).await
+    }
+
+    async fn analyze_rgb(
+        &self,
+        image: Arc<RgbImage>,
+        _model: &str,
+        dir: PathBuf,
+        wanted: Want,
+    ) -> Result<Vec<Face>, SidecarError> {
         let key = dir.display().to_string();
         self.slot
             .run(
@@ -164,6 +174,29 @@ impl FaceApi for InProcess {
         model_name: &str,
     ) -> Result<Vec<DetectedFace>, SidecarError> {
         let faces = self.analyze(source, model_name, Want::All).await?;
+        Ok(faces
+            .into_iter()
+            .map(|f| DetectedFace {
+                location: f.location,
+                encoding: f.embedding.map(to_f64),
+            })
+            .collect())
+    }
+
+    async fn detect_faces_rgb(
+        &self,
+        image: Arc<RgbImage>,
+        model_name: &str,
+    ) -> Result<Vec<DetectedFace>, SidecarError> {
+        let model = normalize_model_name(model_name).to_string();
+        let dir = self.pack_dir(&model)?;
+        if crate::runtime::init().is_err() {
+            return Err(crate::unavailable(
+                Service::Face,
+                "ONNX Runtime is not available (set LP_ORT_LIB)",
+            ));
+        }
+        let faces = self.analyze_rgb(image, &model, dir, Want::All).await?;
         Ok(faces
             .into_iter()
             .map(|f| DetectedFace {
@@ -314,6 +347,33 @@ impl ArcFace {
         let (_, data) = outs[0].try_extract_tensor::<f32>()?;
         Ok(data.to_vec())
     }
+
+    /// [`embed`](Self::embed) of several aligned crops in one run (the model's
+    /// batch axis is dynamic); one crop runs as before. DirectML rejects a
+    /// batch > 1 for buffalo_sc's recogniser (`Conv_0`: invalid parameter),
+    /// so it embeds one by one there.
+    pub fn embed_many(&mut self, crops: &[Vec<u8>]) -> anyhow::Result<Vec<Vec<f32>>> {
+        if crops.len() <= 1 || crate::runtime::gpu_provider() == Some(crate::runtime::DML) {
+            return crops.iter().map(|c| self.embed(c)).collect();
+        }
+        let n = crops.len();
+        let mut blob = Vec::with_capacity(n * 3 * self.size * self.size);
+        for c in crops {
+            blob.extend(scrfd::blob_bgr_swapped(
+                c, self.size, self.size, self.mean, self.std,
+            ));
+        }
+        let input = Tensor::from_array(([n, 3, self.size, self.size], blob))?;
+        let outs = crate::runtime::run(&mut self.session, ort::inputs![input])?;
+        let (_, data) = outs[0].try_extract_tensor::<f32>()?;
+        if data.len() % n != 0 {
+            bail!("recognition batch of {n} gave {} values", data.len());
+        }
+        Ok(data
+            .chunks_exact(data.len() / n)
+            .map(<[f32]>::to_vec)
+            .collect())
+    }
 }
 
 /// One face pack's models (what `FaceAnalysis` keeps).
@@ -410,11 +470,17 @@ impl FacePack {
                 e
             }
         };
-        for (face, needed) in faces.iter_mut().zip(embed) {
+        // One recognition run for every face of the photo.
+        let mut idx = Vec::new();
+        let mut crops = Vec::new();
+        for (i, (face, needed)) in faces.iter().zip(embed).enumerate() {
             if needed {
-                let crop = self.align(image, &face.detection)?;
-                face.embedding = Some(self.recognizer.embed(&crop)?);
+                crops.push(self.align(image, &face.detection)?);
+                idx.push(i);
             }
+        }
+        for (i, e) in idx.into_iter().zip(self.recognizer.embed_many(&crops)?) {
+            faces[i].embedding = Some(e);
         }
         Ok(faces)
     }

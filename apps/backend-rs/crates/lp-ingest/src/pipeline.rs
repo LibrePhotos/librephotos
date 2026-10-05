@@ -42,6 +42,8 @@ impl Owner {
 pub struct Pipeline {
     pub state: AppState,
     pub renderer: Renderer,
+    /// ML inside the scan ([`crate::inline`]), set per scan job.
+    pub inline: Option<std::sync::Arc<crate::inline::InlineMl>>,
 }
 
 /// A file probed off the event loop: validity, type and content hash.
@@ -104,7 +106,11 @@ pub fn has_embedded_motion_video(path: &Path) -> bool {
 impl Pipeline {
     pub fn new(state: AppState) -> Self {
         let renderer = Renderer::from_state(&state);
-        Pipeline { state, renderer }
+        Pipeline {
+            state,
+            renderer,
+            inline: None,
+        }
     }
 
     async fn blocking<F, R>(&self, f: F) -> anyhow::Result<R>
@@ -378,10 +384,13 @@ impl Pipeline {
 
         let hash = photo.image_hash.clone();
         let rendered = self.generate_thumbnails(&photo, &main_path).await;
-        if let Err(e) = rendered {
-            exif_task.abort();
-            return Err(e);
-        }
+        let big_rgb = match rendered {
+            Ok(rgb) => rgb,
+            Err(e) => {
+                exif_task.abort();
+                return Err(e);
+            }
+        };
         let ext = if photo.video { ".mp4" } else { ".webp" };
         let big_path = self.renderer.path(BIG, &hash, ".webp");
         let small_path = self.renderer.path(SQUARE_SMALL, &hash, ext);
@@ -479,11 +488,21 @@ impl Pipeline {
         }
         db::recreate_search(&mut tx, photo.id, &self.state.settings().tagging_model).await?;
         tx.commit().await?;
+        // The photo's rows are written: tags and faces from the pixels in hand.
+        if let (Some(inline), Some(rgb)) = (&self.inline, big_rgb) {
+            inline.submit(&self.state, photo.id, rgb).await;
+        }
         Ok(())
     }
 
-    /// `Thumbnail._generate_thumbnail`: only what is missing on disk.
-    async fn generate_thumbnails(&self, photo: &PhotoRow, main_path: &Path) -> anyhow::Result<()> {
+    /// `Thumbnail._generate_thumbnail`: only what is missing on disk. Returns
+    /// the big thumbnail's RGB pixels when it was rendered here and the scan
+    /// runs ML inline.
+    async fn generate_thumbnails(
+        &self,
+        photo: &PhotoRow,
+        main_path: &Path,
+    ) -> anyhow::Result<Option<image::RgbImage>> {
         let hash = photo.image_hash.clone();
         let r = &self.renderer;
         if !photo.video {
@@ -496,16 +515,18 @@ impl Pipeline {
                 let rr = r.clone();
                 let input = main_path.to_path_buf();
                 let lo = photo.local_orientation;
-                self.blocking(move || rr.static_thumbnails(&input, &hash, &missing, lo))
+                let keep = self.inline.is_some();
+                return self
+                    .blocking(move || rr.static_thumbnails(&input, &hash, &missing, lo, keep))
                     .await?
                     .with_context(|| {
                         format!(
                             "could not generate thumbnail for image {}",
                             main_path.display()
                         )
-                    })?;
+                    });
             }
-            return Ok(());
+            return Ok(None);
         }
         if !r.path(BIG, &hash, ".webp").exists() {
             r.video_big(main_path, &hash).await?;
@@ -515,7 +536,7 @@ impl Pipeline {
                 r.video_animated(main_path, &hash, dir).await?;
             }
         }
-        Ok(())
+        Ok(None)
     }
 
     /// `Thumbnail._regenerate_thumbnails`: delete, render, aspect ratio, pHash.

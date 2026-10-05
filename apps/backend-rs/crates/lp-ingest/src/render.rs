@@ -120,25 +120,35 @@ impl Renderer {
             || fsutil::sniffed_mime(path).is_some_and(|m| m.starts_with("image/"))
     }
 
-    /// `create_static_thumbnails` for the missing `dirs` (blocking).
+    /// `create_static_thumbnails` for the missing `dirs` (blocking). With
+    /// `keep_rgb`, also the big thumbnail's pixels as 8-bit RGB when they were
+    /// rendered here by libvips (for in-scan ML, round 3 #19), before WebP
+    /// encoding.
     pub fn static_thumbnails(
         &self,
         input: &Path,
         hash: &str,
         dirs: &[&str],
         local_orientation: i32,
-    ) -> anyhow::Result<()> {
+        keep_rgb: bool,
+    ) -> anyhow::Result<Option<image::RgbImage>> {
         let big_path = self.path(BIG, hash, ".webp");
         let Some(v) = self.vips() else {
-            return self.static_thumbnails_rust(input, hash, dirs, local_orientation);
+            self.static_thumbnails_rust(input, hash, dirs, local_orientation)?;
+            return Ok(None);
         };
         let mut big = None;
         if dirs.contains(&BIG) {
             big = self.render_big(v, input, &big_path, local_orientation)?;
         }
+        let rgb = if keep_rgb {
+            big.as_ref().and_then(vips::Image::to_rgb8)
+        } else {
+            None
+        };
         let smaller: Vec<&str> = dirs.iter().copied().filter(|d| *d != BIG).collect();
         if smaller.is_empty() {
-            return Ok(());
+            return Ok(rgb);
         }
         let big = match big {
             Some(b) => b,
@@ -160,7 +170,7 @@ impl Renderer {
                 .webpsave(&self.path(dir, hash, ".webp"), small_q(), Some(WEBP_EFFORT))
                 .map_err(|e| anyhow!(e))?;
         }
-        Ok(())
+        Ok(rgb)
     }
 
     /// `_render_big_thumbnail`: returns the image when rendered in-process.

@@ -165,6 +165,10 @@ async fn scan_inner(
     job_id: &str,
     opts: &ScanOptions,
 ) -> anyhow::Result<()> {
+    // Tags, embeddings and faces from the pixels the scan renders anyway.
+    let mut with_inline = p.clone();
+    with_inline.inline = crate::inline::InlineMl::for_scan(&p.state);
+    let p = &with_inline;
     let state = &p.state;
     let scan_directory = if opts.uploaded_only {
         Path::new(&user.scan_directory).join("uploads").join("web")
@@ -265,6 +269,10 @@ async fn scan_inner(
         })
         .buffer_unordered(concurrency);
     work.collect::<Vec<()>>().await;
+    if let Some(inline) = &p.inline {
+        inline.finish().await;
+        tracing::info!(photos = inline.submitted(), "inline ML done");
+    }
 
     for path in &orphans {
         if cancelled.load(std::sync::atomic::Ordering::Relaxed) {
@@ -470,11 +478,13 @@ pub async fn queue_followups(
     let clip =
         lp_jobs::enqueue(state, "clip.embed", json!({"user_id": user_id}), clip_opts).await?;
     if f.face_detection {
-        // Django's Chain: faces run once the CLIP job has finished.
+        // Django's Chain: faces run once the CLIP job has finished. Photos
+        // whose faces this scan already found inline are skipped.
+        let skip_inline = p.inline.as_ref().is_some_and(|i| i.submitted() > 0);
         lp_jobs::enqueue(
             state,
             "faces.scan",
-            json!({"user_id": user_id, "full_scan": full_scan}),
+            json!({"user_id": user_id, "full_scan": full_scan, "skip_inline": skip_inline}),
             EnqueueOptions::tracked(JobType::ScanFaces, user_id).after(clip.id),
         )
         .await?;
