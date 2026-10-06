@@ -26,7 +26,7 @@ crates/
   lp-server    binary `librephotos-rs`: serve | worker | migrate | adopt | the manage.py
                command ports (createadmin, createuser, scan, save_metadata, ...; CLI.md)
   lp-testkit   test DBs, in-process app, users, tokens
-migrations/    0000_baseline.sql (Django api.0142 schema) + additive Rust migrations
+migrations/    0000_baseline.sql (Django api.0142 schema; also api.0143/0144, SQLite-only) + additive Rust migrations
 ```
 
 Dependency direction: exif/sidecars <- ml <- core <- db <- {jobs, auth} <- media <- ingest <- tasks <- api <- server <- testkit.

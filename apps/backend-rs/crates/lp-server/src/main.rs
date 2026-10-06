@@ -23,7 +23,7 @@ enum Command {
     Worker,
     /// Apply pending migrations (fresh DB: baseline + Rust migrations).
     Migrate,
-    /// Take over a Django-migrated database (pinned at api.0142).
+    /// Take over a Django-migrated database (at api.0142; 0143/0144 are PostgreSQL no-ops).
     Adopt {
         /// Skip the django_migrations check.
         #[arg(long)]
