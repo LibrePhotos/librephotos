@@ -15,14 +15,19 @@
 //!
 //! Database source: `LP_TEST_TEMPLATE` (default `lp_fixture`) is cloned when
 //! it exists and brought up to date (adopted or migrated); otherwise an
-//! empty schema is cloned from a cached template built from `migrations/`.
+//! empty schema is cloned from a cached template built from `migrations/pg`.
 //! Server: `LP_TEST_PG_HOST` (localhost), `LP_TEST_PG_PORT` (5433),
 //! `LP_TEST_PG_USER` (postgres), `LP_TEST_PG_PASS` (x).
+//!
+//! `LP_TEST_BACKEND=sqlite` runs the same tests on SQLite files instead:
+//! copies of `LP_TEST_SQLITE_TEMPLATE` (default the SQLite fixture pack's
+//! `lp_fixture.sqlite3`, adopted once per process), else of the migrated
+//! `migrations/sqlite` baseline, under `<temp>/lp-testkit-sqlite/`.
 
 #![allow(clippy::disallowed_methods)] // not a handler crate: SQL allowed here
 
 use std::collections::HashMap;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::time::Duration;
 
@@ -31,7 +36,8 @@ use axum::http::{HeaderMap, Method, Request, StatusCode};
 use http_body_util::BodyExt;
 use lp_core::django_crypto::DjangoCrypto;
 use lp_core::{AppState, Config};
-use lp_db::db::Db;
+use lp_db::db::lite::LiteOptions;
+use lp_db::db::{Db, Dialect};
 use lp_db::users::User;
 use lp_db::write::users::NewUser;
 use sha2::{Digest, Sha256};
@@ -39,6 +45,7 @@ use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use sqlx::{Connection, PgConnection};
 use tower::ServiceExt;
 
+pub use lp_db::db::config::Backend;
 pub use lp_server::App;
 
 static COUNTER: AtomicU32 = AtomicU32::new(0);
@@ -212,11 +219,27 @@ async fn sweep_stale(server: &PgServer) {
     }
 }
 
+/// `LP_TEST_BACKEND`: `pg` (default; also `postgres`, `postgresql`) or
+/// `sqlite` (`sqlite3`). Selects what [`TestDb`] / [`TestApp`] create.
+pub fn test_backend() -> Backend {
+    match env_or("LP_TEST_BACKEND", "pg").to_ascii_lowercase().as_str() {
+        "sqlite" | "sqlite3" | "lite" => Backend::Sqlite,
+        _ => Backend::Postgres,
+    }
+}
+
 /// A throwaway database, dropped by [`TestDb::cleanup`] (or on drop).
+///
+/// On SQLite (`LP_TEST_BACKEND=sqlite`) it is a file in its own temp
+/// directory (`name` is the file path): a copy of `LP_TEST_SQLITE_TEMPLATE`
+/// (default the SQLite fixture pack's `lp_fixture.sqlite3`) adopted once per
+/// test process, or the migrated SQLite baseline when there is no template.
 pub struct TestDb {
     pub name: String,
     pub pool: Db,
     pub server: PgServer,
+    /// The SQLite file (None on Postgres).
+    pub sqlite_path: Option<PathBuf>,
     dropped: bool,
     /// The per-process shared database is never dropped by a test.
     shared: bool,
@@ -224,8 +247,8 @@ pub struct TestDb {
 
 impl TestDb {
     /// A private database for this test (safe for mutations). Creating one
-    /// costs several seconds on Windows; read-only tests should prefer
-    /// [`TestDb::shared`].
+    /// costs several seconds on Windows with Postgres (milliseconds on
+    /// SQLite); read-only tests should prefer [`TestDb::shared`].
     pub async fn new() -> TestDb {
         let name = format!(
             "lptest_{}_{}_{}",
@@ -244,49 +267,49 @@ impl TestDb {
         let name = NAME
             .get_or_init(|| async {
                 let name = format!("lptest_{}_shared", std::process::id());
-                let db = Self::create(name.clone(), true).await;
+                let db = Self::create(name, true).await;
                 db.pool.close().await;
-                name
+                db.name.clone()
             })
             .await
             .clone();
-        let server = PgServer::from_env();
-        let pool = Db::Pg(
-            PgPoolOptions::new()
-                .max_connections(5)
-                .connect_with(server.options(&name))
-                .await
-                .expect("connect shared test db"),
-        );
-        TestDb {
-            name,
-            pool,
-            server,
-            dropped: false,
-            shared: true,
-        }
+        Self::existing(&name).await
     }
 
-    /// Attach to an existing database (never dropped, not migrated).
+    /// Attach to an existing database (never dropped, not migrated): a
+    /// Postgres database name, or on SQLite the path of a file.
     pub async fn existing(name: &str) -> TestDb {
         let server = PgServer::from_env();
-        let pool = Db::Pg(
-            PgPoolOptions::new()
-                .max_connections(5)
-                .connect_with(server.options(name))
-                .await
-                .expect("connect existing db"),
-        );
+        let (pool, sqlite_path) = match test_backend() {
+            Backend::Postgres => (
+                Db::Pg(
+                    PgPoolOptions::new()
+                        .max_connections(5)
+                        .connect_with(server.options(name))
+                        .await
+                        .expect("connect existing db"),
+                ),
+                None,
+            ),
+            Backend::Sqlite => {
+                let path = PathBuf::from(name);
+                (open_sqlite(&path, false).await, Some(path))
+            }
+        };
         TestDb {
             name: name.to_string(),
             pool,
             server,
+            sqlite_path,
             dropped: false,
             shared: true,
         }
     }
 
     async fn create(name: String, shared: bool) -> TestDb {
+        if test_backend() == Backend::Sqlite {
+            return Self::create_sqlite(name, shared).await;
+        }
         let server = PgServer::from_env();
         sweep_stale(&server).await;
         let template = env_or("LP_TEST_TEMPLATE", "lp_fixture");
@@ -312,12 +335,10 @@ impl TestDb {
                 .expect("connect test db"),
         );
         if use_fixture {
-            let tracked: Option<String> =
-                lp_db::sql::query_scalar("SELECT to_regclass('public._sqlx_migrations')::text")
-                    .fetch_one(&pool)
-                    .await
-                    .expect("probe");
-            if tracked.is_none() {
+            let tracked = lp_db::migrate::table_exists(&pool, "_sqlx_migrations")
+                .await
+                .expect("probe");
+            if !tracked {
                 lp_db::adopt::adopt(&pool, true)
                     .await
                     .expect("adopt fixture");
@@ -329,14 +350,45 @@ impl TestDb {
             name,
             pool,
             server,
+            sqlite_path: None,
             dropped: false,
             shared,
+        }
+    }
+
+    async fn create_sqlite(name: String, shared: bool) -> TestDb {
+        sweep_stale_sqlite();
+        let template = sqlite_template().await;
+        let dir = sqlite_root().join(&name);
+        std::fs::create_dir_all(&dir).expect("create the test database directory");
+        let path = dir.join("db.sqlite3");
+        copy_sqlite(template, &path).expect("copy the SQLite test template");
+        let pool = open_sqlite(&path, false).await;
+        TestDb {
+            name: path.display().to_string(),
+            pool,
+            server: PgServer::from_env(),
+            sqlite_path: Some(path),
+            dropped: false,
+            shared,
+        }
+    }
+
+    pub fn backend(&self) -> Backend {
+        match self.pool.dialect() {
+            Dialect::Pg => Backend::Postgres,
+            Dialect::Sqlite => Backend::Sqlite,
         }
     }
 
     pub async fn cleanup(mut self) {
         self.pool.close().await;
         if self.shared {
+            self.dropped = true;
+            return;
+        }
+        if let Some(path) = &self.sqlite_path {
+            remove_sqlite_dir(path);
             self.dropped = true;
             return;
         }
@@ -354,6 +406,12 @@ impl TestDb {
 impl Drop for TestDb {
     fn drop(&mut self) {
         if self.dropped || self.shared {
+            return;
+        }
+        if let Some(path) = &self.sqlite_path {
+            // Pool connections may still be open (Windows keeps the file);
+            // the next run's sweep removes what is left.
+            remove_sqlite_dir(path);
             return;
         }
         let server = self.server.clone();
@@ -379,6 +437,116 @@ impl Drop for TestDb {
             }
         })
         .join();
+    }
+}
+
+// ------------------------------------------------------------------ SQLite
+
+/// Where SQLite test databases live: `<temp>/lp-testkit-sqlite/lptest_<pid>_..`.
+fn sqlite_root() -> PathBuf {
+    std::env::temp_dir().join("lp-testkit-sqlite")
+}
+
+/// `LP_TEST_SQLITE_TEMPLATE`, default the SQLite fixture pack
+/// (`tests/fixture/env.sh`: `rust-pg/fixture-sqlite/lp_fixture.sqlite3`).
+/// Only ever copied, never opened.
+fn sqlite_template_source() -> PathBuf {
+    PathBuf::from(env_or(
+        "LP_TEST_SQLITE_TEMPLATE",
+        "C:/Users/Niaz/librephotos/rust-pg/fixture-sqlite/lp_fixture.sqlite3",
+    ))
+}
+
+async fn open_sqlite(path: &Path, create: bool) -> Db {
+    let mut o = LiteOptions::new(path);
+    o.readers = 4;
+    o.create = create;
+    Db::open_sqlite(&o)
+        .await
+        .unwrap_or_else(|e| panic!("open SQLite test database {}: {e}", path.display()))
+}
+
+/// Copies a SQLite file plus a non-empty `-wal` (a killed writer leaves its
+/// commits there; the copy replays them when it is opened).
+fn copy_sqlite(src: &Path, dst: &Path) -> std::io::Result<()> {
+    std::fs::copy(src, dst)?;
+    let wal = |p: &Path| PathBuf::from(format!("{}-wal", p.display()));
+    if std::fs::metadata(wal(src)).is_ok_and(|m| m.len() > 0) {
+        std::fs::copy(wal(src), wal(dst))?;
+    }
+    Ok(())
+}
+
+/// The per-process template: the fixture copy adopted (or migrated), or the
+/// migrated baseline; checkpointed so that a plain file copy is complete.
+async fn sqlite_template() -> &'static Path {
+    static TEMPLATE: tokio::sync::OnceCell<PathBuf> = tokio::sync::OnceCell::const_new();
+    TEMPLATE
+        .get_or_init(|| async {
+            let dir = sqlite_root().join(format!("lptmpl_{}", std::process::id()));
+            let _ = std::fs::remove_dir_all(&dir);
+            std::fs::create_dir_all(&dir).expect("create the SQLite template directory");
+            let path = dir.join("db.sqlite3");
+            let source = sqlite_template_source();
+            let from_fixture = source.exists();
+            if from_fixture {
+                copy_sqlite(&source, &path).expect("copy LP_TEST_SQLITE_TEMPLATE");
+            }
+            let db = open_sqlite(&path, !from_fixture).await;
+            let tracked = lp_db::migrate::table_exists(&db, "_sqlx_migrations")
+                .await
+                .expect("probe");
+            if from_fixture && !tracked {
+                lp_db::adopt::adopt(&db, true)
+                    .await
+                    .expect("adopt the SQLite fixture");
+            } else {
+                lp_db::migrate::run(&db)
+                    .await
+                    .expect("migrate the SQLite template");
+            }
+            lp_db::sql::query("PRAGMA wal_checkpoint(TRUNCATE)")
+                .fetch_optional(&db)
+                .await
+                .expect("checkpoint the SQLite template");
+            db.close().await;
+            path
+        })
+        .await
+}
+
+fn remove_sqlite_dir(path: &Path) {
+    if let Some(dir) = path.parent()
+        && dir.starts_with(sqlite_root())
+    {
+        let _ = std::fs::remove_dir_all(dir);
+    }
+}
+
+/// Removes the `lptest_<pid>_*` / `lptmpl_<pid>` directories of test
+/// processes that no longer run. Once per process.
+fn sweep_stale_sqlite() {
+    static SWEPT: std::sync::OnceLock<()> = std::sync::OnceLock::new();
+    if SWEPT.set(()).is_err() {
+        return;
+    }
+    let Ok(entries) = std::fs::read_dir(sqlite_root()) else {
+        return;
+    };
+    let mut sys = sysinfo::System::new();
+    sys.refresh_processes(sysinfo::ProcessesToUpdate::All, true);
+    for e in entries.flatten() {
+        let name = e.file_name().to_string_lossy().into_owned();
+        let pid = name
+            .strip_prefix("lptest_")
+            .or_else(|| name.strip_prefix("lptmpl_"))
+            .and_then(|r| r.split('_').next())
+            .and_then(|p| p.parse::<u32>().ok());
+        let Some(pid) = pid else { continue };
+        if pid == std::process::id() || sys.process(sysinfo::Pid::from_u32(pid)).is_some() {
+            continue;
+        }
+        let _ = std::fs::remove_dir_all(e.path());
     }
 }
 
@@ -461,6 +629,10 @@ impl TestApp {
         set("DB_PASS", db.server.pass.clone());
         set("LP_DB_POOL", "5".into());
         set("LP_MEDIA_MODE", "direct".into());
+        if let Some(path) = &db.sqlite_path {
+            set("DB_BACKEND", "sqlite".into());
+            set("LP_SQLITE_PATH", path.display().to_string());
+        }
         for (k, v) in extra {
             set(k, v.to_string());
         }

@@ -71,6 +71,13 @@ where
     panic!("timed out waiting for {what}");
 }
 
+const DAY: i64 = 24 * 3600;
+
+/// `now() - secs` computed in Rust (portable; no SQL intervals).
+fn ago(secs: i64) -> chrono::DateTime<chrono::Utc> {
+    chrono::Utc::now() - chrono::Duration::seconds(secs)
+}
+
 fn unique(kind: &str) -> String {
     format!(
         "test.{kind}.{}",
@@ -380,16 +387,19 @@ async fn stale_rows_are_requeued_and_capped() {
         }
     });
     let insert = "INSERT INTO job_queue (kind, status, locked_by, heartbeat_at, started_at, attempts, max_attempts) \
-                  VALUES ($1, 'running', 'dead-worker', now() - interval '1 hour', now() - interval '1 hour', $2, 1) RETURNING id";
+                  VALUES ($1, 'running', 'dead-worker', $3, $3, $2, 1) RETURNING id";
+    let hour_ago = chrono::Utc::now() - chrono::Duration::hours(1);
     let lost: i64 = lp_db::sql::query_scalar(insert)
         .bind(&kind)
         .bind(1)
+        .bind(hour_ago)
         .fetch_one(app.pool())
         .await
         .unwrap();
     let hopeless: i64 = lp_db::sql::query_scalar(insert)
         .bind(&kind)
         .bind(3)
+        .bind(hour_ago)
         .fetch_one(app.pool())
         .await
         .unwrap();
@@ -402,11 +412,11 @@ async fn stale_rows_are_requeued_and_capped() {
     let tracked: i64 = lp_db::sql::query_scalar(
         "INSERT INTO job_queue (kind, status, locked_by, heartbeat_at, started_at, attempts, \
            max_attempts, lrj_id) \
-         VALUES ($1, 'running', 'dead-worker', now() - interval '1 hour', \
-           now() - interval '1 hour', 3, 1, $2) RETURNING id",
+         VALUES ($1, 'running', 'dead-worker', $3, $3, 3, 1, $2) RETURNING id",
     )
     .bind(&kind)
     .bind(&tracked_lrj)
+    .bind(hour_ago)
     .fetch_one(app.pool())
     .await
     .unwrap();
@@ -630,13 +640,12 @@ async fn schedules_fire_once_per_interval_and_run_through_the_worker() {
             .await
             .unwrap();
     assert!(next > chrono::Utc::now() + chrono::Duration::minutes(59));
-    lp_db::sql::query(
-        "UPDATE schedule_state SET next_run_at = now() - interval '1 second' WHERE name = $1",
-    )
-    .bind(name)
-    .execute(app.pool())
-    .await
-    .unwrap();
+    lp_db::sql::query("UPDATE schedule_state SET next_run_at = $2 WHERE name = $1")
+        .bind(name)
+        .bind(chrono::Utc::now() - chrono::Duration::seconds(1))
+        .execute(app.pool())
+        .await
+        .unwrap();
 
     let runs = Arc::new(AtomicUsize::new(0));
     let mut reg = HandlerRegistry::new();
@@ -680,32 +689,46 @@ async fn run_kind(app: &lp_testkit::TestApp, kind: &str) {
 
 #[tokio::test]
 async fn maintenance_cleans_jobs_tokens_zips_and_deleted_photos() {
+    if lp_testkit::test_backend() == lp_testkit::Backend::Sqlite {
+        // SQLITE(P3): the handlers live in lp_db::write::{jobs_zip_services, photo_delete,
+        // deletion_log} (areas F and B; intervals, ANY, explicit cascades).
+        eprintln!("skipped on SQLite until the jobs_zip_services and photo_delete ports");
+        return;
+    }
     let app = lp_testkit::TestApp::new().await;
     let db = app.pool().clone();
     let u = app.create_user("maint", "pw", false).await;
 
     // Stuck: started 25 h ago, or queued 25 h ago and never started.
-    let mk = |t: JobType, sql: &'static str| {
+    let mk = |t: JobType, sql: &'static str, at: chrono::DateTime<chrono::Utc>| {
         let db = db.clone();
         async move {
             let id = lrj::create(&db, t, u.id).await.unwrap();
-            lp_db::sql::query(sql).bind(&id).execute(&db).await.unwrap();
+            lp_db::sql::query(sql)
+                .bind(&id)
+                .bind(at)
+                .execute(&db)
+                .await
+                .unwrap();
             id
         }
     };
     let stuck_started = mk(
         JobType::ScanPhotos,
-        "UPDATE api_longrunningjob SET started_at = now() - interval '25 hours' WHERE job_id = $1",
+        "UPDATE api_longrunningjob SET started_at = $2 WHERE job_id = $1",
+        ago(25 * 3600),
     )
     .await;
     let stuck_queued = mk(
         JobType::ScanPhotos,
-        "UPDATE api_longrunningjob SET queued_at = now() - interval '25 hours' WHERE job_id = $1",
+        "UPDATE api_longrunningjob SET queued_at = $2 WHERE job_id = $1",
+        ago(25 * 3600),
     )
     .await;
     let fresh = mk(
         JobType::ScanPhotos,
-        "UPDATE api_longrunningjob SET started_at = now() WHERE job_id = $1",
+        "UPDATE api_longrunningjob SET started_at = $2 WHERE job_id = $1",
+        ago(0),
     )
     .await;
     run_kind(&app, "maintenance.cleanup_stuck_jobs").await;
@@ -720,17 +743,29 @@ async fn maintenance_cleans_jobs_tokens_zips_and_deleted_photos() {
     assert!(!lrj::get(&db, &fresh).await.unwrap().unwrap().finished);
 
     // Old: two finished 40+ days ago of one type; the newer is the baseline.
-    let old = mk(JobType::GenerateTags, "UPDATE api_longrunningjob SET finished = TRUE, finished_at = now() - interval '41 days' WHERE job_id = $1").await;
-    let baseline = mk(JobType::GenerateTags, "UPDATE api_longrunningjob SET finished = TRUE, finished_at = now() - interval '40 days' WHERE job_id = $1").await;
+    let old = mk(
+        JobType::GenerateTags,
+        "UPDATE api_longrunningjob SET finished = TRUE, finished_at = $2 WHERE job_id = $1",
+        ago(41 * DAY),
+    )
+    .await;
+    let baseline = mk(
+        JobType::GenerateTags,
+        "UPDATE api_longrunningjob SET finished = TRUE, finished_at = $2 WHERE job_id = $1",
+        ago(40 * DAY),
+    )
+    .await;
     run_kind(&app, "maintenance.cleanup_old_jobs").await;
     assert!(lrj::get(&db, &old).await.unwrap().is_none());
     assert!(lrj::get(&db, &baseline).await.unwrap().is_some());
 
     lp_db::sql::query(
         "INSERT INTO refresh_token (jti, user_id, expires_at) VALUES \
-         ('expired-jti', $1, now() - interval '1 day'), ('live-jti', $1, now() + interval '1 day')",
+         ('expired-jti', $1, $2), ('live-jti', $1, $3)",
     )
     .bind(u.id)
+    .bind(ago(DAY))
+    .bind(ago(-DAY))
     .execute(&db)
     .await
     .unwrap();
@@ -767,20 +802,20 @@ async fn maintenance_cleans_jobs_tokens_zips_and_deleted_photos() {
     .unwrap();
     assert!(!removed.is_empty(), "the fixture has a removed photo");
     let (gone, hash) = removed[0].clone();
-    lp_db::sql::query(
-        "UPDATE api_photo SET last_modified = now() - interval '31 days' WHERE id = $1",
-    )
-    .bind(gone)
-    .execute(&db)
-    .await
-    .unwrap();
+    lp_db::sql::query("UPDATE api_photo SET last_modified = $2 WHERE id = $1")
+        .bind(gone)
+        .bind(ago(31 * DAY))
+        .execute(&db)
+        .await
+        .unwrap();
     let thumbs = app.state.config.thumbnails_big_dir();
     std::fs::create_dir_all(&thumbs).unwrap();
     let thumb = thumbs.join(format!("{hash}.webp"));
     std::fs::write(&thumb, b"webp").unwrap();
     let recent_removed: i64 = lp_db::sql::query_scalar(
-        "SELECT count(*) FROM api_photo WHERE removed AND last_modified > now() - interval '30 days'",
+        "SELECT count(*) FROM api_photo WHERE removed AND last_modified > $1",
     )
+    .bind(ago(30 * DAY))
     .fetch_one(&db)
     .await
     .unwrap();
@@ -817,9 +852,11 @@ async fn maintenance_cleans_jobs_tokens_zips_and_deleted_photos() {
     // prune_deletion_log: only tombstones past the 90-day horizon go.
     lp_db::sql::query(
         "INSERT INTO api_deletionlog (entity, entity_id, owner_id, deleted_at) VALUES \
-         ('photo', 'old', $1, now() - interval '91 days'), ('photo', 'new', $1, now() - interval '89 days')",
+         ('photo', 'old', $1, $2), ('photo', 'new', $1, $3)",
     )
     .bind(u.id)
+    .bind(ago(91 * DAY))
+    .bind(ago(89 * DAY))
     .execute(&db)
     .await
     .unwrap();
