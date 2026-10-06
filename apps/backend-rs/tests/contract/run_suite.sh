@@ -17,6 +17,7 @@
 #   LP_SUITE_PORT    first of three ports: Django, Rust, the sidecar mock (default 8700)
 #   LP_SUITE_OUT     logs, dumps and diffs (default $LP_RUNS_ROOT/suite)
 #   KEEP=1           keep the clones and media copies
+#   LP_SUITE_DB_PREFIX  clone name prefix (default lp_run_)
 #   LP_DB_BACKEND    postgresql (default) or sqlite: the clones are copies of
 #                    the SQLite fixture (LP_FIXTURE_BACKEND=sqlite build_fixture.sh),
 #                    Django runs lp_twin_settings_sqlite, Rust gets
@@ -46,7 +47,10 @@ MOCK_PORT=$((PORT + 2))
 MOCK="http://127.0.0.1:$MOCK_PORT"
 BIN="${LP_RS_BIN:-$RS_ROOT/target/release/librephotos-rs.exe}"
 V="$(dirname "$(dirname "$LP_DJANGO_PY")")/Lib/site-packages"
-export LP_CLONE_PREFIXES="lp_run_"
+# Clone names start with LP_SUITE_DB_PREFIX (default lp_run_), so two suites
+# on one Postgres can run side by side.
+PFX="${LP_SUITE_DB_PREFIX:-lp_run_}"
+export LP_CLONE_PREFIXES="$PFX"
 SUT="${LP_SUITE_RS:-rust}"
 case "$SUT" in rust|django) ;; *) echo "LP_SUITE_RS must be rust or django" >&2; exit 2 ;; esac
 if [ "$LP_DB_BACKEND" = sqlite ]; then
@@ -213,7 +217,7 @@ start_django() {
 # Fail fast when the binary cannot adopt a SQLite clone (before the P2
 # plumbing lands, librephotos-rs ignores DB_BACKEND).
 if [ "$SUT" = rust ] && [ "$LP_DB_BACKEND" = sqlite ]; then
-    probe=lp_run_sqlite_probe
+    probe="${PFX}sqlite_probe"
     "$F/clone_db.sh" "$probe" >/dev/null
     mkdir -p "$OUT/probe"
     if ! (rust_db_env "$probe"; export BASE_DATA="$(lp_win_path "$OUT/probe")" BASE_LOGS="$(lp_win_path "$OUT/probe")" SECRET_KEY="$LP_SECRET_KEY"
@@ -268,7 +272,7 @@ note() {
 run_read() {
     local unit="$1" area="${1%@*}" mode=x-accel
     [ "$unit" != "$area" ] && mode="${unit#*@}"
-    local name="lp_run_${area}_${mode//-/}"
+    local name="${PFX}${area}_${mode//-/}"
     local dir="$OUT/${unit//@/-}" media="$OUT/${unit//@/-}/media"
     mkdir -p "$dir"
     clone "${name}_ref" "$media"
@@ -310,7 +314,7 @@ run_mut() {
     local flag paths opts
     IFS='|' read -r _ flag paths opts <<<"$spec"
     [[ "$flag" == *=* ]] || flag="$flag=1"
-    local name="lp_run_mut_${unit#mut:}" dir="$OUT/mut-${unit#mut:}"
+    local name="${PFX}mut_${unit#mut:}" dir="$OUT/mut-${unit#mut:}"
     local ref_media="$dir/ref" rs_media="$dir/rs" mode=x-accel mock="" solo=0 diff=0 presql=""
     for o in $opts; do
         case "$o" in
