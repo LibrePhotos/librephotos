@@ -9,6 +9,7 @@ and the upload timestamp fallback.
 import base64
 import datetime
 import uuid
+import weakref
 from unittest.mock import patch
 
 from django.test import TestCase
@@ -575,3 +576,56 @@ class DeviceTimestampFallbackTest(TestCase):
 
         photo.refresh_from_db()
         self.assertEqual(photo.exif_timestamp.year, 2022)
+
+
+class SyncSignalRegistrationTest(TestCase):
+    """The receivers must outlive ``register()``.
+
+    The ``_make_*`` factories return closures that nothing else references;
+    connected weakly, they are collected as soon as ``register()`` returns
+    (the test settings happened to keep them alive, production did not), and
+    the hard-delete tombstones and membership bumps never fire. With
+    ``DEBUG`` on, ``Signal.connect`` checks the receiver's signature through
+    an ``lru_cache`` that holds it strongly, which hid the bug in development
+    and tests; the cache is cleared here.
+    """
+
+    def test_every_sync_receiver_is_alive_after_gc(self):
+        import gc
+
+        from django.db.models.signals import m2m_changed, post_delete, pre_delete
+
+        from django.utils import inspect as django_inspect
+
+        django_inspect._get_func_parameters.cache_clear()
+        for signal in (m2m_changed, post_delete, pre_delete):
+            signal.sender_receivers_cache.clear()
+        gc.collect()
+        live = set()
+        for signal in (m2m_changed, post_delete, pre_delete):
+            for entry in signal.receivers:
+                key, ref = entry[0], entry[1]
+                target = ref() if isinstance(ref, weakref.ReferenceType) else ref
+                if target is not None and str(key[0]).startswith("sync_"):
+                    live.add(key[0])
+        expected = {
+            "sync_tombstone_photo",
+            "sync_tombstone_album_user",
+            "sync_tombstone_album_auto",
+            "sync_tombstone_album_thing",
+            "sync_tombstone_album_place",
+            "sync_tombstone_person",
+            "sync_tombstone_tag",
+            "sync_photos_bump_AlbumUser",
+            "sync_photos_bump_AlbumAuto",
+            "sync_photos_bump_AlbumThing",
+            "sync_photos_bump_AlbumPlace",
+            "sync_photos_bump_Tag",
+            "sync_album_thing_cover_bump",
+            "sync_share_album_user",
+            "sync_share_album_auto",
+            "sync_share_album_thing",
+            "sync_share_album_place",
+            "sync_photo_share",
+        }
+        self.assertEqual(expected - live, set())
