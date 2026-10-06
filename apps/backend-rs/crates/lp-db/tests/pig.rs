@@ -3,14 +3,15 @@
 
 #![allow(clippy::disallowed_methods)]
 
-use lp_db::{QueryBuilder, pig, scope};
+use lp_db::db::Qb;
+use lp_db::{pig, scope};
 use lp_testkit::TestApp;
 use uuid::Uuid;
 
 #[tokio::test]
 async fn summaries_keep_order_and_shape() {
     let app = TestApp::shared().await;
-    let ids: Vec<Uuid> = sqlx::query_scalar("SELECT id FROM api_photo ORDER BY id DESC")
+    let ids: Vec<Uuid> = lp_db::sql::query_scalar("SELECT id FROM api_photo ORDER BY id DESC")
         .fetch_all(app.pool())
         .await
         .unwrap();
@@ -32,7 +33,7 @@ async fn summaries_keep_order_and_shape() {
 
     // Same rows through the builder + a scope, one query.
     if let Some(first) = photos.first() {
-        let mut qb: QueryBuilder<'_, sqlx::Postgres> = pig::query();
+        let mut qb: Qb<'_> = pig::query();
         qb.push(" WHERE ");
         scope::owned_by(&mut qb, "p", first.owner.id);
         qb.push(" ORDER BY p.exif_timestamp DESC NULLS LAST, p.id");
@@ -55,7 +56,7 @@ async fn dump_for_django_diff() {
     let db = std::env::var("LP_PIG_DB").expect("LP_PIG_DB");
     let out = std::env::var("LP_PIG_OUT").expect("LP_PIG_OUT");
     let app = TestApp::attach(&db, &[]).await;
-    let ids: Vec<Uuid> = sqlx::query_scalar("SELECT id FROM api_photo ORDER BY id")
+    let ids: Vec<Uuid> = lp_db::sql::query_scalar("SELECT id FROM api_photo ORDER BY id")
         .fetch_all(app.pool())
         .await
         .unwrap();

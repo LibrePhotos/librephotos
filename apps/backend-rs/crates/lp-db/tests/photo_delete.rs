@@ -5,10 +5,10 @@
 
 use std::path::{Path, PathBuf};
 
+use lp_db::db::Db;
 use lp_db::write::AfterCommit;
 use lp_db::write::photo_delete::hard_delete;
 use lp_testkit::TestApp;
-use sqlx::PgPool;
 use uuid::Uuid;
 
 const DIRS: [(&str, &str); 5] = [
@@ -32,8 +32,8 @@ fn touch(files: &[PathBuf]) {
     }
 }
 
-async fn thumbed(pool: &PgPool) -> Vec<(Uuid, String)> {
-    sqlx::query_as(
+async fn thumbed(pool: &Db) -> Vec<(Uuid, String)> {
+    lp_db::sql::query_as(
         "SELECT p.id, p.image_hash FROM api_photo p JOIN api_thumbnail t ON t.photo_id = p.id \
          WHERE t.thumbnail_big <> '' ORDER BY p.id",
     )
@@ -59,13 +59,13 @@ async fn hard_delete_rows_and_files() {
 
     // `shared`'s hash is still carried by `other`; `keeper`'s thumbnail row
     // names `named`'s big thumbnail.
-    sqlx::query("UPDATE api_photo SET image_hash = $2 WHERE id = $1")
+    lp_db::sql::query("UPDATE api_photo SET image_hash = $2 WHERE id = $1")
         .bind(other)
         .bind(&shared_hash)
         .execute(&pool)
         .await
         .unwrap();
-    sqlx::query(
+    lp_db::sql::query(
         "UPDATE api_thumbnail SET thumbnail_big = (SELECT thumbnail_big FROM api_thumbnail WHERE photo_id = $2) \
          WHERE photo_id = $1",
     )
@@ -75,7 +75,7 @@ async fn hard_delete_rows_and_files() {
     .await
     .unwrap();
     // Covers pointing at the deleted photo are nulled, not cascaded.
-    sqlx::query(
+    lp_db::sql::query(
         "UPDATE api_person SET cover_photo_id = $1 WHERE id = (SELECT min(id) FROM api_person)",
     )
     .bind(gone)
@@ -83,7 +83,7 @@ async fn hard_delete_rows_and_files() {
     .await
     .unwrap();
     let crop = format!("faces/lp_delete_test_{}.jpg", Uuid::new_v4().simple());
-    let face: Option<i32> = sqlx::query_scalar(
+    let face: Option<i32> = lp_db::sql::query_scalar(
         "UPDATE api_face SET image = $2, photo_id = $1 WHERE id = (SELECT min(id) FROM api_face) \
          RETURNING 1",
     )
@@ -111,14 +111,14 @@ async fn hard_delete_rows_and_files() {
     tx.commit().await.unwrap();
     after.run().await;
 
-    let left: i64 = sqlx::query_scalar("SELECT count(*) FROM api_photo WHERE id = ANY($1)")
+    let left: i64 = lp_db::sql::query_scalar("SELECT count(*) FROM api_photo WHERE id = ANY($1)")
         .bind([gone, shared, named])
         .fetch_one(&pool)
         .await
         .unwrap();
     assert_eq!(left, 0);
     let covers: i64 =
-        sqlx::query_scalar("SELECT count(*) FROM api_person WHERE cover_photo_id = $1")
+        lp_db::sql::query_scalar("SELECT count(*) FROM api_person WHERE cover_photo_id = $1")
             .bind(gone)
             .fetch_one(&pool)
             .await

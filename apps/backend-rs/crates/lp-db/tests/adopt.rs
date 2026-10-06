@@ -8,7 +8,7 @@ use lp_db::adopt::{SCHEMA_NEUTRAL, check_django_migrations};
 use lp_testkit::TestDb;
 
 async fn record(db: &TestDb, app: &str, name: &str) {
-    sqlx::query("INSERT INTO django_migrations (app, name, applied) VALUES ($1, $2, now())")
+    lp_db::sql::query("INSERT INTO django_migrations (app, name, applied) VALUES ($1, $2, now())")
         .bind(app)
         .bind(name)
         .execute(&db.pool)
@@ -17,7 +17,7 @@ async fn record(db: &TestDb, app: &str, name: &str) {
 }
 
 async fn forget(db: &TestDb, app: &str, name: &str) {
-    sqlx::query("DELETE FROM django_migrations WHERE app = $1 AND name = $2")
+    lp_db::sql::query("DELETE FROM django_migrations WHERE app = $1 AND name = $2")
         .bind(app)
         .bind(name)
         .execute(&db.pool)
@@ -29,7 +29,7 @@ async fn forget(db: &TestDb, app: &str, name: &str) {
 async fn accepts_0142_0143_and_0144() {
     let db = TestDb::new().await;
     let has_table: Option<String> =
-        sqlx::query_scalar("SELECT to_regclass('public.django_migrations')::text")
+        lp_db::sql::query_scalar("SELECT to_regclass('public.django_migrations')::text")
             .fetch_one(&db.pool)
             .await
             .unwrap();

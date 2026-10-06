@@ -4,19 +4,16 @@
 
 #![allow(clippy::disallowed_methods)]
 
+use lp_db::db::Conn;
+use lp_db::db::DjList;
 use lp_db::stats_admin_stacks_dupes::dupes::{EXACT_COPY, VISUAL_DUPLICATE};
 use lp_db::write::stats_admin_stacks_dupes::dupes::{create_or_merge, create_or_merge_many};
 use lp_testkit::TestApp;
-use sqlx::PgConnection;
 use uuid::Uuid;
 
 /// The owner's groups of a type as (sorted members, savings, status), sorted.
-async fn snapshot(
-    conn: &mut PgConnection,
-    owner: i32,
-    kind: &str,
-) -> Vec<(Vec<Uuid>, i64, String)> {
-    let rows: Vec<(Vec<Uuid>, i64, String)> = sqlx::query_as(
+async fn snapshot(conn: &mut Conn, owner: i32, kind: &str) -> Vec<(Vec<Uuid>, i64, String)> {
+    let rows: Vec<(DjList<Uuid>, i64, String)> = lp_db::sql::query_as(
         "SELECT array_agg(x.photo_id ORDER BY x.photo_id), d.potential_savings, d.review_status \
          FROM api_duplicate d JOIN api_photo_duplicates x ON x.duplicate_id = d.id \
          WHERE d.owner_id = $1 AND d.duplicate_type = $2 GROUP BY d.id",
@@ -26,7 +23,8 @@ async fn snapshot(
     .fetch_all(&mut *conn)
     .await
     .unwrap();
-    let mut rows = rows;
+    let mut rows: Vec<(Vec<Uuid>, i64, String)> =
+        rows.into_iter().map(|(ids, s, r)| (ids.0, s, r)).collect();
     rows.sort();
     rows
 }
@@ -35,18 +33,19 @@ async fn snapshot(
 async fn bulk_matches_one_by_one() {
     let app = TestApp::new().await;
     let pool = app.pool().clone();
-    let owner: i32 = sqlx::query_scalar(
+    let owner: i32 = lp_db::sql::query_scalar(
         "SELECT owner_id FROM api_photo GROUP BY owner_id ORDER BY count(*) DESC, owner_id LIMIT 1",
     )
     .fetch_one(&pool)
     .await
     .unwrap();
-    let photos: Vec<Uuid> =
-        sqlx::query_scalar("SELECT id FROM api_photo WHERE owner_id = $1 ORDER BY id LIMIT 12")
-            .bind(owner)
-            .fetch_all(&pool)
-            .await
-            .unwrap();
+    let photos: Vec<Uuid> = lp_db::sql::query_scalar(
+        "SELECT id FROM api_photo WHERE owner_id = $1 ORDER BY id LIMIT 12",
+    )
+    .bind(owner)
+    .fetch_all(&pool)
+    .await
+    .unwrap();
     assert!(photos.len() >= 12, "fixture owner with 12 photos");
     let p = |i: usize| photos[i];
 
@@ -63,7 +62,7 @@ async fn bulk_matches_one_by_one() {
         let mut results = Vec::new();
         for bulk in [false, true] {
             let mut tx = pool.begin().await.unwrap();
-            sqlx::query(
+            lp_db::sql::query(
                 "DELETE FROM api_photo_duplicates WHERE duplicate_id IN \
                 (SELECT id FROM api_duplicate WHERE owner_id = $1)",
             )
@@ -71,7 +70,7 @@ async fn bulk_matches_one_by_one() {
             .execute(&mut *tx)
             .await
             .unwrap();
-            sqlx::query("DELETE FROM api_duplicate WHERE owner_id = $1")
+            lp_db::sql::query("DELETE FROM api_duplicate WHERE owner_id = $1")
                 .bind(owner)
                 .execute(&mut *tx)
                 .await
@@ -122,7 +121,7 @@ async fn bulk_speed_on_library() {
     let app = TestApp::attach(&db, &[]).await;
     let pool = app.pool().clone();
     let (owner, kind) = (2, VISUAL_DUPLICATE);
-    let groups: Vec<Vec<Uuid>> = sqlx::query_scalar(
+    let groups: Vec<Vec<Uuid>> = lp_db::sql::query_scalar(
         "SELECT array_agg(x.photo_id ORDER BY x.photo_id) FROM api_duplicate d \
          JOIN api_photo_duplicates x ON x.duplicate_id = d.id \
          WHERE d.owner_id = $1 AND d.duplicate_type = $2 GROUP BY d.id",
@@ -139,7 +138,7 @@ async fn bulk_speed_on_library() {
     let mut results = Vec::new();
     for bulk in [false, true] {
         let mut tx = pool.begin().await.unwrap();
-        sqlx::query(
+        lp_db::sql::query(
             "DELETE FROM api_photo_duplicates WHERE duplicate_id IN \
              (SELECT id FROM api_duplicate WHERE owner_id = $1 AND duplicate_type = $2)",
         )
@@ -148,7 +147,7 @@ async fn bulk_speed_on_library() {
         .execute(&mut *tx)
         .await
         .unwrap();
-        sqlx::query("DELETE FROM api_duplicate WHERE owner_id = $1 AND duplicate_type = $2")
+        lp_db::sql::query("DELETE FROM api_duplicate WHERE owner_id = $1 AND duplicate_type = $2")
             .bind(owner)
             .bind(kind)
             .execute(&mut *tx)
