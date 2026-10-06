@@ -17,6 +17,16 @@
 #   LP_SUITE_PORT    first of three ports: Django, Rust, the sidecar mock (default 8700)
 #   LP_SUITE_OUT     logs, dumps and diffs (default $LP_RUNS_ROOT/suite)
 #   KEEP=1           keep the clones and media copies
+#   LP_SUITE_DB_PREFIX  clone name prefix (default lp_run_)
+#   LP_DB_BACKEND    postgresql (default) or sqlite: the clones are copies of
+#                    the SQLite fixture (LP_FIXTURE_BACKEND=sqlite build_fixture.sh),
+#                    Django runs lp_twin_settings_sqlite, Rust gets
+#                    DB_BACKEND=sqlite LP_SQLITE_PATH=<clone> (needs the P2
+#                    SQLite plumbing; the suite stops up front when `adopt` fails),
+#                    presql files use their *.sqlite.sql twins.
+#   LP_SUITE_RS      rust (default) or django: the server "under test" is a
+#                    second Django on its own clone. Django vs Django proves the
+#                    harness itself (every twin and state diff must be empty).
 #
 # The Rust server runs its job worker in-process, Django has no qcluster:
 # jobs a case starts run on the Rust clone only.
@@ -37,13 +47,25 @@ MOCK_PORT=$((PORT + 2))
 MOCK="http://127.0.0.1:$MOCK_PORT"
 BIN="${LP_RS_BIN:-$RS_ROOT/target/release/librephotos-rs.exe}"
 V="$(dirname "$(dirname "$LP_DJANGO_PY")")/Lib/site-packages"
-export LP_CLONE_PREFIXES="lp_run_"
+# Clone names start with LP_SUITE_DB_PREFIX (default lp_run_), so two suites
+# on one Postgres can run side by side.
+PFX="${LP_SUITE_DB_PREFIX:-lp_run_}"
+export LP_CLONE_PREFIXES="$PFX"
+SUT="${LP_SUITE_RS:-rust}"
+case "$SUT" in rust|django) ;; *) echo "LP_SUITE_RS must be rust or django" >&2; exit 2 ;; esac
+if [ "$LP_DB_BACKEND" = sqlite ]; then
+    export LP_MANIFEST="${LP_MANIFEST:-$(lp_win_path "$LP_FIXTURE_ROOT/manifest.json")}"
+fi
 mkdir -p "$OUT"
 
 # The fixture's "running" job must stay younger than the 24 h stuck-job
 # reaper the Rust worker runs at startup (Django has no qcluster here), so
 # every clone moves the jobs' timestamps forward by the same whole days.
-JOB_SHIFT_DAYS="$(lp_psql -d "$LP_FIXTURE_TEMPLATE" -Atc "SELECT greatest(0, floor(extract(epoch FROM now() - min(coalesce(started_at, queued_at))) / 86400))::int FROM api_longrunningjob WHERE NOT finished")"
+if [ "$LP_DB_BACKEND" = sqlite ]; then
+    JOB_SHIFT_DAYS="$(lp_sql "$LP_SQLITE_TEMPLATE" -At -c "SELECT max(0, CAST(julianday('now') - julianday(min(coalesce(started_at, queued_at))) AS INTEGER)) FROM api_longrunningjob WHERE NOT finished")"
+else
+    JOB_SHIFT_DAYS="$(lp_psql -d "$LP_FIXTURE_TEMPLATE" -Atc "SELECT greatest(0, floor(extract(epoch FROM now() - min(coalesce(started_at, queued_at))) / 86400))::int FROM api_longrunningjob WHERE NOT finished")"
+fi
 JOB_SHIFT_DAYS="${JOB_SHIFT_DAYS:-0}"
 
 READ_UNITS="examples harness albums_tags jobs_zip_services media media@direct people_faces photo_edits
@@ -89,7 +111,9 @@ for p in "$REF_PORT" "$RS_PORT" "$MOCK_PORT"; do
         exit 2
     fi
 done
-[ -x "$BIN" ] || { echo "no binary at $BIN (cargo build --release -p lp-server)" >&2; exit 2; }
+if [ "$SUT" = rust ]; then
+    [ -x "$BIN" ] || { echo "no binary at $BIN (cargo build --release -p lp-server)" >&2; exit 2; }
+fi
 NODE22=/c/Users/Niaz/AppData/Roaming/fnm/node-versions/v22.23.3/installation
 [ -d "$NODE22" ] && export PATH="$NODE22:$PATH"
 
@@ -103,6 +127,19 @@ trap cleanup EXIT
 # clone <db> <media> [template]: a fixture clone with its own media copy, or
 # a copy of <template> (another clone) sharing that clone's media.
 clone() {
+    if [ "$LP_DB_BACKEND" = sqlite ]; then
+        local file
+        file="$(lp_sqlite_path "$1")"
+        rm -f "$file" "$file-wal" "$file-shm"
+        if [ -n "${3:-}" ]; then
+            cp "$(lp_sqlite_path "$3")" "$file"
+        else
+            rm -rf "$2"
+            "$F/clone_db.sh" "$1" "$2" >/dev/null
+            lp_sql "$1" -c "UPDATE api_longrunningjob SET queued_at = dj_add_days(queued_at, $JOB_SHIFT_DAYS), started_at = dj_add_days(started_at, $JOB_SHIFT_DAYS), finished_at = dj_add_days(finished_at, $JOB_SHIFT_DAYS)" >/dev/null
+        fi
+        return
+    fi
     lp_psql -d postgres -c "DROP DATABASE IF EXISTS \"$1\" WITH (FORCE)" >/dev/null 2>&1
     if [ -n "${3:-}" ]; then
         lp_psql -d postgres -c "CREATE DATABASE \"$1\" TEMPLATE \"$3\"" >/dev/null
@@ -120,14 +157,32 @@ drop() {
     return 0
 }
 
+# rust_db_env <db>: the database part of the Rust server's environment.
+rust_db_env() {
+    if [ "$LP_DB_BACKEND" = sqlite ]; then
+        export DB_BACKEND=sqlite LP_SQLITE_PATH="$(lp_sqlite_path "$1")"
+        # A binary without SQLite support must fail, not fall back to a
+        # Postgres database of the same name.
+        export DB_NAME=lp_sqlite_suite_no_such_db
+    else
+        export DB_BACKEND=postgresql DB_NAME="$1"
+    fi
+    export DB_USER="$LP_PG_USER" DB_PASS="$PGPASSWORD" DB_HOST="$LP_PG_HOST" DB_PORT="$LP_PG_PORT"
+}
+
 # start_rust <db> <media> <mode> <log dir> [mock]
+# (LP_SUITE_RS=django: a second Django on the Rust port instead.)
 start_rust() {
     local db="$1" media="$2" mode="$3" logs="$4" mock="${5:-}"
     mkdir -p "$logs"
+    if [ "$SUT" = django ]; then
+        start_django "$db" "$media" "$mode" "$mock" "$RS_PORT"
+        return
+    fi
     (
         export BASE_DATA="$(lp_win_path "$media")" BASE_LOGS="$(lp_win_path "$logs")"
-        export PHOTOS="$BASE_DATA/data" SECRET_KEY="$LP_SECRET_KEY" DB_NAME="$db"
-        export DB_USER="$LP_PG_USER" DB_PASS="$PGPASSWORD" DB_HOST="$LP_PG_HOST" DB_PORT="$LP_PG_PORT"
+        export PHOTOS="$BASE_DATA/data" SECRET_KEY="$LP_SECRET_KEY"
+        rust_db_env "$db"
         export LP_BIND="127.0.0.1:$RS_PORT" LP_MEDIA_MODE="$mode"
         # Only Rust has a worker here: a trigger's models.download would fetch
         # gigabytes (and diff against a Django that never runs it).
@@ -148,17 +203,33 @@ start_rust() {
     ) >"$logs/rust.log" 2>&1 &
 }
 
-# start_django <db> <media> <mode> [mock]
+# start_django <db> <media> <mode> [mock] [port]
 start_django() {
-    local db="$1" media="$2" mode="$3" mock="${4:-}"
+    local db="$1" media="$2" mode="$3" mock="${4:-}" port="${5:-$REF_PORT}"
     local direct=""
     [ "$mode" = direct ] && direct=direct
     (
         export LP_MEDIA_ROOT="$media"
         if [ -n "$mock" ]; then export LP_DJANGO_MOCK="$MOCK"; fi
-        exec "$F/run_django.sh" "$db" "$REF_PORT" $direct
+        exec "$F/run_django.sh" "$db" "$port" $direct
     ) >"$OUT/django-$db.log" 2>&1 &
 }
+
+# Fail fast when the binary cannot adopt a SQLite clone (before the P2
+# plumbing lands, librephotos-rs ignores DB_BACKEND).
+if [ "$SUT" = rust ] && [ "$LP_DB_BACKEND" = sqlite ]; then
+    probe="${PFX}sqlite_probe"
+    "$F/clone_db.sh" "$probe" >/dev/null
+    mkdir -p "$OUT/probe"
+    if ! (rust_db_env "$probe"; export BASE_DATA="$(lp_win_path "$OUT/probe")" BASE_LOGS="$(lp_win_path "$OUT/probe")" SECRET_KEY="$LP_SECRET_KEY"
+          "$BIN" adopt) >"$OUT/probe/adopt.log" 2>&1; then
+        echo "librephotos-rs could not adopt a SQLite clone (DB_BACKEND=sqlite needs the P2 plumbing);" >&2
+        echo "see $OUT/probe/adopt.log. LP_SUITE_RS=django runs the harness Django vs Django." >&2
+        "$F/drop_db.sh" "$probe" >/dev/null
+        exit 2
+    fi
+    "$F/drop_db.sh" "$probe" >/dev/null
+fi
 
 start_mock() {
     MOCK_MANIFEST="$(lp_win_path "${LP_MANIFEST:-$LP_FIXTURE_ROOT/manifest.json}")" \
@@ -202,7 +273,7 @@ note() {
 run_read() {
     local unit="$1" area="${1%@*}" mode=x-accel
     [ "$unit" != "$area" ] && mode="${unit#*@}"
-    local name="lp_run_${area}_${mode//-/}"
+    local name="${PFX}${area}_${mode//-/}"
     local dir="$OUT/${unit//@/-}" media="$OUT/${unit//@/-}/media"
     mkdir -p "$dir"
     clone "${name}_ref" "$media"
@@ -244,7 +315,7 @@ run_mut() {
     local flag paths opts
     IFS='|' read -r _ flag paths opts <<<"$spec"
     [[ "$flag" == *=* ]] || flag="$flag=1"
-    local name="lp_run_mut_${unit#mut:}" dir="$OUT/mut-${unit#mut:}"
+    local name="${PFX}mut_${unit#mut:}" dir="$OUT/mut-${unit#mut:}"
     local ref_media="$dir/ref" rs_media="$dir/rs" mode=x-accel mock="" solo=0 diff=0 presql=""
     for o in $opts; do
         case "$o" in
@@ -262,11 +333,18 @@ run_mut() {
     clone "${name}_ref" "$ref_media"
     clone "${name}_rs" "$rs_media"
     if [ -n "$presql" ]; then
+        local presql_sh="${presql%.sql}.sh"
+        [ "$LP_DB_BACKEND" = sqlite ] && presql="${presql%.sql}.sqlite.sql"
+        if [ ! -f "$HERE/tests/$area/$presql" ]; then note "$unit: no tests/$area/$presql"; FAILED=1; return; fi
         for side in ref rs; do
             local media="$ref_media"
             [ $side = rs ] && media="$rs_media"
-            sed "s|@MEDIA@|$(lp_win_path "$media")|g" "$HERE/tests/$area/$presql" | lp_psql -d "${name}_$side" >/dev/null
-            if [ -f "$HERE/tests/$area/${presql%.sql}.sh" ]; then bash "$HERE/tests/$area/${presql%.sql}.sh" "$media"; fi
+            if [ "$LP_DB_BACKEND" = sqlite ]; then
+                sed "s|@MEDIA@|$(lp_win_path "$media")|g" "$HERE/tests/$area/$presql" | lp_sql "${name}_$side" >/dev/null
+            else
+                sed "s|@MEDIA@|$(lp_win_path "$media")|g" "$HERE/tests/$area/$presql" | lp_psql -d "${name}_$side" >/dev/null
+            fi
+            if [ -f "$HERE/tests/$area/$presql_sh" ]; then bash "$HERE/tests/$area/$presql_sh" "$media"; fi
         done
     fi
     if [ -n "$mock" ]; then start_mock || { note "$unit: no mock"; FAILED=1; return; }; fi
@@ -297,8 +375,14 @@ run_mut() {
     stop_port "$MOCK_PORT"
     if [ $diff = 1 ]; then
         local py="$LP_DJANGO_PY" left_db left_files acc="$HERE/tests/$area/${unit#mut:}.accept"
-        "$py" "$F/dump_state.py" db "${name}_ref" --baseline "$LP_FIXTURE_TEMPLATE" --media-root "$(lp_win_path "$ref_media")" -o "$dir/ref.json"
-        "$py" "$F/dump_state.py" db "${name}_rs" --baseline "$LP_FIXTURE_TEMPLATE" --media-root "$(lp_win_path "$rs_media")" -o "$dir/rs.json"
+        local src_ref=("${name}_ref") src_rs=("${name}_rs") base="$LP_FIXTURE_TEMPLATE"
+        if [ "$LP_DB_BACKEND" = sqlite ]; then
+            src_ref=(--sqlite "$(lp_sqlite_path "${name}_ref")")
+            src_rs=(--sqlite "$(lp_sqlite_path "${name}_rs")")
+            base="$(lp_win_path "$LP_SQLITE_TEMPLATE")"
+        fi
+        "$py" "$F/dump_state.py" db "${src_ref[@]}" --baseline "$base" --media-root "$(lp_win_path "$ref_media")" -o "$dir/ref.json"
+        "$py" "$F/dump_state.py" db "${src_rs[@]}" --baseline "$base" --media-root "$(lp_win_path "$rs_media")" -o "$dir/rs.json"
         "$py" "$F/dump_state.py" diff "$dir/ref.json" "$dir/rs.json" >"$dir/db.diff"
         "$py" "$F/dump_state.py" files "$(lp_win_path "$ref_media")" --content --skip protected_media/thumbnails --skip protected_media/square_thumbnails -o "$dir/ref-files.json"
         "$py" "$F/dump_state.py" files "$(lp_win_path "$rs_media")" --content --skip protected_media/thumbnails --skip protected_media/square_thumbnails -o "$dir/rs-files.json"
@@ -327,7 +411,7 @@ for u in "${units[@]}"; do
     esac
 done
 echo
-echo "== summary"
+echo "== summary ($LP_DB_BACKEND, reference Django vs $SUT)"
 printf '%s\n' "${SUMMARY[@]}"
 exit $FAILED
 }

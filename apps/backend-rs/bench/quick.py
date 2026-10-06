@@ -8,6 +8,12 @@ One cell per (endpoint, contender): 1 s warm-up + --duration s measured at one
 concurrency, checked against the endpoint plan of the full run. Prints a
 requests/s table with the Rust speedup and appends it to results/quick.jsonl.
 Build the release binary first (cargo build --release -p lp-server).
+
+Contenders: django-shipped, django-tuned, rust (Postgres), django-sqlite and
+rust-sqlite (DB_BACKEND=sqlite on a copy of rust-pg/fixture-sqlite/lp_bench_<ds>.sqlite3,
+converted from the Postgres template by pg_to_sqlite.py on first use; rust-sqlite
+needs the P2 SQLite plumbing). The speedup column compares the first and last
+contender, e.g. --contenders django-sqlite,rust-sqlite.
 """
 
 import argparse
