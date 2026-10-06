@@ -39,7 +39,8 @@ pub async fn load(db: &Db, ids: &[Uuid]) -> sqlx::Result<HashMap<Uuid, TaskPhoto
         "SELECT {COLUMNS} FROM api_photo p \
          LEFT JOIN api_file f ON f.hash = p.main_file_id \
          LEFT JOIN api_thumbnail t ON t.photo_id = p.id \
-         WHERE p.id = ANY($1)"
+         WHERE {}",
+        lp_db::sql::any_sql(db.dialect(), "p.id", 1)
     ))
     .bind(ids)
     .fetch_all(db)

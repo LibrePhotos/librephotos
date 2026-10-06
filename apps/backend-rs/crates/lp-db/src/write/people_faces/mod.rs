@@ -10,7 +10,12 @@ use serde_json::Value;
 use sqlx::FromRow;
 use uuid::Uuid;
 
-use crate::db::{Conn, Db, DjListOpt, DjUuid, DjUuidOpt};
+use crate::db::{Conn, Db, Dialect, DjListOpt, DjUuid, DjUuidOpt, Qb, sql};
+
+pub mod tombstones;
+
+/// Rows per `api_photo_search` upsert (2 binds each).
+const SEARCH_UPSERT_CHUNK: usize = 1000;
 
 /// `instance.name = new_name; instance.save()` (`PersonSerializer.update`),
 /// plus S19: the photos the person is labelled on are found by the new name.
@@ -77,7 +82,7 @@ pub async fn set_person_cover(db: &Db, person_id: i32, photo_id: Uuid) -> sqlx::
 /// mobile-sync tombstone of a `USER` person.
 pub async fn delete_person(db: &Db, person_id: i32) -> sqlx::Result<()> {
     let mut tx = db.begin().await?;
-    super::deletion_log::persons_deleted(&mut tx, &[person_id]).await?;
+    tombstones::persons_deleted(&mut tx, &[person_id]).await?;
     crate::sql::query(
         "UPDATE api_face SET \
            person_id = CASE WHEN person_id = $1 THEN NULL ELSE person_id END, \
@@ -134,24 +139,30 @@ pub async fn recompute_persons(conn: &mut Conn, person_ids: &[i32]) -> sqlx::Res
     if person_ids.is_empty() {
         return Ok(());
     }
-    crate::sql::query(
-        "UPDATE api_person p SET face_count = ( \
+    let d = conn.dialect();
+    crate::sql::query(format!(
+        "UPDATE api_person AS p SET face_count = ( \
              SELECT COUNT(*) FROM api_face f JOIN api_photo ph ON ph.id = f.photo_id \
              WHERE f.person_id = p.id AND NOT ph.hidden AND NOT ph.in_trashcan \
                AND ph.owner_id = p.cluster_owner_id), \
            last_modified = now() \
-         WHERE p.id = ANY($1)",
-    )
+         WHERE {}",
+        sql::any_sql(d, "p.id", 1)
+    ))
     .bind(person_ids)
     .execute(&mut *conn)
     .await?;
-    crate::sql::query(
-        "UPDATE api_person p SET cover_photo_id = ff.photo_id, cover_face_id = ff.id, \
+    // Each person's first face (by id): `ROW_NUMBER() = 1` (was `DISTINCT ON`).
+    crate::sql::query(format!(
+        "UPDATE api_person AS p SET cover_photo_id = ff.photo_id, cover_face_id = ff.id, \
            last_modified = now() \
-         FROM (SELECT DISTINCT ON (f.person_id) f.person_id, f.id, f.photo_id FROM api_face f \
-               WHERE f.person_id = ANY($1) ORDER BY f.person_id, f.id) ff \
+         FROM (SELECT person_id, id, photo_id FROM ( \
+                 SELECT f.person_id, f.id, f.photo_id, \
+                   ROW_NUMBER() OVER (PARTITION BY f.person_id ORDER BY f.id) AS rn \
+                 FROM api_face f WHERE {}) r WHERE rn = 1) ff \
          WHERE p.id = ff.person_id AND p.cover_photo_id IS NULL",
-    )
+        sql::any_sql(d, "f.person_id", 1)
+    ))
     .bind(person_ids)
     .execute(&mut *conn)
     .await?;
@@ -273,40 +284,62 @@ pub async fn rebuild_search_captions(
     if photo_ids.is_empty() {
         return Ok(());
     }
-    let sources = crate::sql::query_as::<_, CaptionSource>(
+    // `array_agg` has no SQLite twin: `json_group_array(.. ORDER BY ..)`
+    // yields the list as JSON text; both decode as `DjListOpt`. The file
+    // order is that of Django's unordered `photo.files.all()` per backend:
+    // Postgres keeps the through rows' order, SQLite reads them from the
+    // through table's unique `(photo_id, file_id)` index (file hash order).
+    // `photo.faces.all()` walks the `photo_id` index (face id order) on both.
+    let d = conn.dialect();
+    let (file_paths, person_names) = match d {
+        Dialect::Pg => (
+            "(SELECT array_agg(fl.path ORDER BY pf.id) FROM api_photo_files pf \
+               JOIN api_file fl ON fl.hash = pf.file_id WHERE pf.photo_id = ph.id)",
+            "(SELECT array_agg(pe.name ORDER BY f.id) FROM api_face f \
+               JOIN api_person pe ON pe.id = f.person_id WHERE f.photo_id = ph.id)",
+        ),
+        Dialect::Sqlite => (
+            "(SELECT json_group_array(fl.path ORDER BY pf.file_id) FROM api_photo_files pf \
+               JOIN api_file fl ON fl.hash = pf.file_id WHERE pf.photo_id = ph.id)",
+            "(SELECT json_group_array(pe.name ORDER BY f.id) FROM api_face f \
+               JOIN api_person pe ON pe.id = f.person_id WHERE f.photo_id = ph.id)",
+        ),
+    };
+    let sources = crate::sql::query_as::<_, CaptionSource>(format!(
         "SELECT ph.id, ph.video, ph.is_screenshot, ph.is_document, c.captions_json, \
-           mf.path AS main_path, \
-           (SELECT array_agg(fl.path ORDER BY pf.id) FROM api_photo_files pf \
-              JOIN api_file fl ON fl.hash = pf.file_id WHERE pf.photo_id = ph.id) AS file_paths, \
-           (SELECT array_agg(pe.name ORDER BY f.id) FROM api_face f \
-              JOIN api_person pe ON pe.id = f.person_id WHERE f.photo_id = ph.id) AS person_names, \
+           mf.path AS main_path, {file_paths} AS file_paths, {person_names} AS person_names, \
            (m.photo_id IS NOT NULL) AS has_metadata, m.camera_make, m.camera_model, \
            m.lens_make, m.lens_model, m.keywords \
          FROM api_photo ph \
          LEFT JOIN api_photo_caption c ON c.photo_id = ph.id \
          LEFT JOIN api_file mf ON mf.hash = ph.main_file_id \
          LEFT JOIN api_photometadata m ON m.photo_id = ph.id \
-         WHERE ph.id = ANY($1)",
-    )
+         WHERE {}",
+        sql::any_sql(d, "ph.id", 1)
+    ))
     .bind(photo_ids)
     .fetch_all(&mut *conn)
     .await?;
-    let ids: Vec<Uuid> = sources.iter().map(|s| s.id).collect();
-    let captions: Vec<String> = sources
-        .iter()
-        .map(|s| search_captions(s, tagging_model))
-        .collect();
-    crate::sql::query(
-        "INSERT INTO api_photo_search (photo_id, search_captions, search_location, created_at, \
-           updated_at) \
-         SELECT u.id, u.captions, NULL, now(), now() FROM UNNEST($1::uuid[], $2::text[]) AS u(id, captions) \
-         ON CONFLICT (photo_id) DO UPDATE SET search_captions = EXCLUDED.search_captions, \
-           updated_at = now()",
-    )
-    .bind(&ids)
-    .bind(&captions)
-    .execute(&mut *conn)
-    .await?;
+    // One multi-row upsert per chunk (2 binds a row; was `UNNEST` of two
+    // arrays, which SQLite lacks).
+    for chunk in sources.chunks(SEARCH_UPSERT_CHUNK) {
+        let mut qb = Qb::new(
+            "INSERT INTO api_photo_search (photo_id, search_captions, search_location, \
+               created_at, updated_at) ",
+        );
+        qb.push_values(chunk, |mut b, s| {
+            b.push_bind(s.id)
+                .push_bind(search_captions(s, tagging_model))
+                .push("NULL")
+                .push("now()")
+                .push("now()");
+        });
+        qb.push(
+            " ON CONFLICT (photo_id) DO UPDATE SET search_captions = EXCLUDED.search_captions, \
+               updated_at = now()",
+        );
+        qb.build().execute(&mut *conn).await?;
+    }
     Ok(())
 }
 
@@ -344,12 +377,15 @@ pub async fn label_faces(
     let faces = if face_ids.is_empty() {
         Vec::new()
     } else {
-        crate::sql::query_as::<_, LabeledFace>(
+        let d = tx.dialect();
+        crate::sql::query_as::<_, LabeledFace>(format!(
             "SELECT f.id, f.image, f.photo_id, ph.exif_timestamp, f.cluster_probability, \
                f.person_id AS old_person_id \
              FROM api_face f JOIN api_photo ph ON ph.id = f.photo_id \
-             WHERE f.id = ANY($1) AND ph.owner_id = $2 ORDER BY f.id FOR UPDATE OF f",
-        )
+             WHERE {} AND ph.owner_id = $2 ORDER BY f.id{}",
+            sql::any_sql(d, "f.id", 1),
+            sql::for_update_of(d, "f")
+        ))
         .bind(face_ids)
         .bind(user_id)
         .fetch_all(&mut *tx)
@@ -357,17 +393,19 @@ pub async fn label_faces(
     };
     let ids: Vec<i32> = faces.iter().map(|f| f.id).collect();
     if !ids.is_empty() {
-        let sql = if person.is_some() {
-            "UPDATE api_face SET person_id = $2 WHERE id = ANY($1)"
+        let set = if person.is_some() {
+            "person_id = $2"
         } else {
-            "UPDATE api_face SET person_id = $2, cluster_person_id = NULL, \
-               classification_person_id = NULL WHERE id = ANY($1)"
+            "person_id = $2, cluster_person_id = NULL, classification_person_id = NULL"
         };
-        crate::sql::query(sql)
-            .bind(&ids)
-            .bind(person.as_ref().map(|p| p.0))
-            .execute(&mut *tx)
-            .await?;
+        crate::sql::query(format!(
+            "UPDATE api_face SET {set} WHERE {}",
+            sql::any_sql(tx.dialect(), "id", 1)
+        ))
+        .bind(&ids)
+        .bind(person.as_ref().map(|p| p.0))
+        .execute(&mut *tx)
+        .await?;
     }
     let mut affected: Vec<i32> = faces.iter().filter_map(|f| f.old_person_id).collect();
     affected.extend(person.as_ref().map(|p| p.0));
@@ -392,11 +430,12 @@ pub async fn delete_faces(
     if face_ids.is_empty() {
         return Ok(Vec::new());
     }
-    let mut rows: Vec<(i32, Option<String>)> = crate::sql::query_as(
-        "UPDATE api_face f SET deleted = TRUE FROM api_photo ph \
-         WHERE ph.id = f.photo_id AND ph.owner_id = $2 AND f.id = ANY($1) \
-         RETURNING f.id, f.image",
-    )
+    let mut rows: Vec<(i32, Option<String>)> = crate::sql::query_as(format!(
+        "UPDATE api_face SET deleted = TRUE \
+         WHERE {} AND photo_id IN (SELECT ph.id FROM api_photo ph WHERE ph.owner_id = $2) \
+         RETURNING id, image",
+        sql::any_sql(db.dialect(), "id", 1)
+    ))
     .bind(face_ids)
     .bind(user_id)
     .fetch_all(db)

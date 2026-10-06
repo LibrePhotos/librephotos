@@ -12,7 +12,7 @@ use futures::StreamExt;
 use image::RgbImage;
 use lp_core::AppState;
 use lp_core::codecs::FaceEncoding;
-use lp_db::db::Conn;
+use lp_db::db::{Conn, Qb};
 use lp_jobs::JobType;
 use lp_sidecars::FaceBox;
 use rand::Rng;
@@ -77,20 +77,26 @@ pub async fn scan_with(
         run::last_finished_start(&state.db, user_id, JobType::ScanFaces, false).await?
     };
     let model = state.settings().face_recognition_model.clone();
-    let ids: Vec<Uuid> = lp_db::sql::query_scalar(
+    let mut qb = Qb::new(
         "SELECT p.id FROM api_photo p JOIN api_thumbnail t ON t.photo_id = p.id \
-         WHERE p.owner_id = $1 AND ($2::boolean IS FALSE OR p.added_on > $3) \
-           AND NOT ($4::boolean AND EXISTS (SELECT 1 FROM lp_photo_faces_scanned s \
-                WHERE s.photo_id = p.id AND s.model = $5)) \
-         ORDER BY p.id",
-    )
-    .bind(user_id)
-    .bind(since.is_some())
-    .bind(since.flatten())
-    .bind(skip_inline)
-    .bind(lp_ml::face::normalize_model_name(&model))
-    .fetch_all(&state.db)
-    .await?;
+         WHERE p.owner_id = ",
+    );
+    qb.push_bind(user_id);
+    if let Some(since) = since {
+        // A NULL start (`Some(None)`) matches nothing, as `added_on > NULL`.
+        qb.push(" AND p.added_on > ");
+        qb.push_bind(since);
+    }
+    if skip_inline {
+        qb.push(
+            " AND NOT EXISTS (SELECT 1 FROM lp_photo_faces_scanned s \
+               WHERE s.photo_id = p.id AND s.model = ",
+        );
+        qb.push_bind(lp_ml::face::normalize_model_name(&model));
+        qb.push(")");
+    }
+    qb.push(" ORDER BY p.id");
+    let ids: Vec<Uuid> = qb.build_query_scalar().fetch_all(&state.db).await?;
     if !run::start_items(&state.db, job_id, ids.len() as i64).await? {
         return Ok(());
     }
@@ -434,36 +440,17 @@ async fn write_faces(
     image: Arc<RgbImage>,
     found: Vec<Found>,
 ) -> Result<usize, FaceError> {
-    // SQLITE(P3) (area E): this transaction holds the single SQLite writer
-    // across the JPEG crops (`state.blocking`) and the face file writes below;
-    // crop and write every face first, then open the transaction for the
-    // INSERTs only (design §3: no file/CPU work inside a write transaction).
-    let mut tx = state.db.begin().await?;
-    let unknown_cluster = unknown_cluster(&mut tx, photo.owner_id).await?;
-    let mut existing: Vec<FaceBox> = lp_db::sql::query_as::<_, (i32, i32, i32, i32)>(
-        "SELECT location_top, location_right, location_bottom, location_left FROM api_face \
-         WHERE photo_id = $1 ORDER BY id",
-    )
-    .bind(photo.id)
-    .fetch_all(&mut *tx)
-    .await?
-    .into_iter()
-    .map(|(t, r, b, l)| [t, r, b, l])
-    .collect();
-
+    // Design §3: no file or CPU work inside a write transaction (SQLite has
+    // one writer). The new faces are decided on the stored boxes, cropped
+    // and written first; the transaction only runs the INSERTs, re-checking
+    // the boxes in case another writer stored faces of this photo meanwhile.
+    let mut existing = face_boxes(&state.db, photo.id).await?;
+    let mut crops: Vec<Option<(String, PathBuf)>> = Vec::with_capacity(found.len());
     let mut written: Vec<PathBuf> = Vec::new();
-    let result: Result<usize, FaceError> = async {
-        let mut saved = 0;
+    let cropped: Result<(), FaceError> = async {
         for (idx, face) in found.iter().enumerate() {
-            let name = face.name.as_deref().filter(|n| !n.is_empty());
-            let person = match name {
-                Some(n) => Some(named_person(&mut tx, n, photo.owner_id).await?),
-                None => None,
-            };
             if overlaps(&existing, face.location) {
-                if let Some(person_id) = person {
-                    reconcile_name(&mut tx, photo.id, person_id, face.location).await?;
-                }
+                crops.push(None);
                 continue;
             }
             let jpeg = {
@@ -478,54 +465,123 @@ async fn write_faces(
             let (stored, path) = available_face_name(&state.config.faces_dir(), &file_name);
             tokio::fs::create_dir_all(state.config.faces_dir()).await?;
             tokio::fs::write(&path, &jpeg).await?;
-            written.push(path);
-            let encoding = face
-                .encoding
-                .as_deref()
-                .map(FaceEncoding::encode)
-                .unwrap_or_default();
-            let [top, right, bottom, left] = face.location;
-            lp_db::sql::query(
-                "INSERT INTO api_face (image, cluster_probability, location_top, location_bottom, \
-                   location_left, location_right, encoding, person_id, cluster_id, \
-                   classification_probability, deleted, classification_person_id, \
-                   cluster_person_id, photo_id) \
-                 VALUES ($1, 0, $2, $3, $4, $5, $6, $7, $8, 0, FALSE, NULL, NULL, $9)",
-            )
-            .bind(&stored)
-            .bind(top)
-            .bind(bottom)
-            .bind(left)
-            .bind(right)
-            .bind(&encoding)
-            .bind(person)
-            .bind(unknown_cluster)
-            .bind(photo.id)
-            .execute(&mut *tx)
-            .await?;
-            if let Some(person_id) = person {
-                refresh_person(&mut tx, person_id).await?;
-            }
+            written.push(path.clone());
+            crops.push(Some((stored, path)));
             existing.push(face.location);
-            saved += 1;
         }
-        Ok(saved)
+        Ok(())
     }
     .await;
+    if let Err(e) = cropped {
+        remove_files(&written).await;
+        return Err(e);
+    }
+
+    let mut unused: Vec<PathBuf> = Vec::new();
+    let result = store_found(state, photo, &found, &crops, &mut unused).await;
     match result {
         Ok(saved) => {
-            tx.commit().await?;
+            remove_files(&unused).await;
             tracing::info!(photo = %photo.image_hash, faces = found.len(), saved, "faces scanned");
             Ok(saved)
         }
         Err(e) => {
-            drop(tx);
-            for p in written {
-                let _ = tokio::fs::remove_file(p).await;
-            }
+            remove_files(&written).await;
             Err(e)
         }
     }
+}
+
+async fn remove_files(paths: &[PathBuf]) {
+    for p in paths {
+        let _ = tokio::fs::remove_file(p).await;
+    }
+}
+
+/// `(top, right, bottom, left)` of the photo's faces, by id.
+async fn face_boxes<'e>(
+    ex: impl lp_db::db::Exec<'e>,
+    photo_id: Uuid,
+) -> sqlx::Result<Vec<FaceBox>> {
+    Ok(lp_db::sql::query_as::<_, (i32, i32, i32, i32)>(
+        "SELECT location_top, location_right, location_bottom, location_left FROM api_face \
+         WHERE photo_id = $1 ORDER BY id",
+    )
+    .bind(photo_id)
+    .fetch_all(ex)
+    .await?
+    .into_iter()
+    .map(|(t, r, b, l)| [t, r, b, l])
+    .collect())
+}
+
+/// The write transaction of [`write_faces`]: `crops[i]` is the crop file
+/// prepared for `found[i]` (`None`: it overlapped a stored face). A crop
+/// whose face now overlaps a face stored meanwhile is not inserted; its file
+/// goes to `unused`.
+async fn store_found(
+    state: &AppState,
+    photo: &TaskPhoto,
+    found: &[Found],
+    crops: &[Option<(String, PathBuf)>],
+    unused: &mut Vec<PathBuf>,
+) -> Result<usize, FaceError> {
+    let mut tx = state.db.begin().await?;
+    let unknown_cluster = unknown_cluster(&mut tx, photo.owner_id).await?;
+    let mut existing = face_boxes(&mut *tx, photo.id).await?;
+    let mut saved = 0;
+    for (face, crop) in found.iter().zip(crops) {
+        let name = face.name.as_deref().filter(|n| !n.is_empty());
+        let person = match name {
+            Some(n) => Some(named_person(&mut tx, n, photo.owner_id).await?),
+            None => None,
+        };
+        if overlaps(&existing, face.location) {
+            if let Some(person_id) = person {
+                reconcile_name(&mut tx, photo.id, person_id, face.location).await?;
+            }
+            if let Some((_, path)) = crop {
+                unused.push(path.clone());
+            }
+            continue;
+        }
+        let Some((stored, _)) = crop else {
+            // Overlapped before, not any more (a face was deleted meanwhile):
+            // no crop was cut, so leave it to the next scan.
+            continue;
+        };
+        let encoding = face
+            .encoding
+            .as_deref()
+            .map(FaceEncoding::encode)
+            .unwrap_or_default();
+        let [top, right, bottom, left] = face.location;
+        lp_db::sql::query(
+            "INSERT INTO api_face (image, cluster_probability, location_top, location_bottom, \
+               location_left, location_right, encoding, person_id, cluster_id, \
+               classification_probability, deleted, classification_person_id, \
+               cluster_person_id, photo_id) \
+             VALUES ($1, 0.0, $2, $3, $4, $5, $6, $7, $8, 0.0, FALSE, NULL, NULL, $9)",
+        )
+        .bind(stored)
+        .bind(top)
+        .bind(bottom)
+        .bind(left)
+        .bind(right)
+        .bind(&encoding)
+        .bind(person)
+        .bind(unknown_cluster)
+        .bind(photo.id)
+        .execute(&mut *tx)
+        .await?;
+        if let Some(person_id) = person {
+            refresh_person(&mut tx, person_id).await?;
+        }
+        existing.push(face.location);
+        saved += 1;
+    }
+    tx.commit().await?;
+    Ok(saved)
 }
 
 fn is_falsy(v: &serde_json::Value) -> bool {
@@ -648,7 +704,7 @@ async fn named_person(conn: &mut Conn, name: &str, owner_id: i32) -> sqlx::Resul
 /// `_calculate_face_count` + `_set_default_cover_photo` (S19).
 pub async fn refresh_person(conn: &mut Conn, person_id: i32) -> sqlx::Result<()> {
     lp_db::sql::query(
-        "UPDATE api_person pe SET last_modified = now(), face_count = ( \
+        "UPDATE api_person AS pe SET last_modified = now(), face_count = ( \
            SELECT count(*) FROM api_face f JOIN api_photo p ON p.id = f.photo_id \
            WHERE f.person_id = pe.id AND NOT p.hidden AND NOT p.in_trashcan \
              AND p.owner_id = pe.cluster_owner_id) \
@@ -658,7 +714,7 @@ pub async fn refresh_person(conn: &mut Conn, person_id: i32) -> sqlx::Result<()>
     .execute(&mut *conn)
     .await?;
     lp_db::sql::query(
-        "UPDATE api_person pe SET cover_photo_id = f.photo_id, cover_face_id = f.id, \
+        "UPDATE api_person AS pe SET cover_photo_id = f.photo_id, cover_face_id = f.id, \
            last_modified = now() \
          FROM (SELECT id, photo_id FROM api_face WHERE person_id = $1 ORDER BY id LIMIT 1) f \
          WHERE pe.id = $1 AND pe.cover_photo_id IS NULL",
