@@ -35,6 +35,9 @@ const FEEDS: [string, z.ZodTypeAny][] = [
 const USERS: Role[] = ["admin", "alice", "bob", "carol", "dave"];
 // Everything but server_time (the wall clock of each server).
 const ENVELOPE = ["v", "items", "tombstones", "next_cursor", "total"];
+// Lists Django builds without an ORDER BY (its order follows the query plan):
+// compared as sets. Rust returns them in through-row order.
+const UNORDERED = ["items[].cover_hashes", "items[].photo_ids", "tombstones"];
 
 const b64 = (s: string) => Buffer.from(s, "utf8").toString("base64url");
 const cursorFor = (iso: string, pk: string) => Buffer.from(`${iso}|${pk}`, "utf8").toString("base64");
@@ -48,7 +51,7 @@ async function twinPull(role: Role, path: string, schema: z.ZodTypeAny, pageSize
   for (let page = 0; page < 200; page++) {
     const query: Record<string, string> = { page_size: String(pageSize) };
     if (cursor) query.cursor = cursor;
-    const { actual, ref } = await expectTwin(role, { path, query }, { project: ENVELOPE });
+    const { actual, ref } = await expectTwin(role, { path, query }, { project: ENVELOPE, unordered: UNORDERED });
     const body = expectSchema(schema, actual.body) as Envelope;
     expect(body.server_time).toMatch(/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d{6})?\+00:00$/);
     seen.push(...body.items.map(i => i.id));
@@ -62,7 +65,7 @@ describe.skipIf(!hasBase)("sync feeds (twin)", () => {
   for (const [path, schema] of FEEDS) {
     it(`${path}: seed + keyset pages match Django for every user`, async () => {
       for (const role of USERS) {
-        const seed = await expectTwin(role, { path }, { project: ENVELOPE });
+        const seed = await expectTwin(role, { path }, { project: ENVELOPE, unordered: UNORDERED });
         expectSchema(schema, seed.actual.body);
         // Small pages exercise the (last_modified, id) keyset and its tie-break.
         const ids = await twinPull(role, path, schema, 2);
@@ -99,7 +102,7 @@ describe.skipIf(!hasBase)("sync feeds (twin)", () => {
 
   it("page_size is parsed like int() and clamped to 1..1000", async () => {
     for (const size of ["0", "-5", "abc", "", "99999", " 3 ", "1_0", "+2", "2.5"]) {
-      await expectTwin("alice", { path: "/api/sync/photos/", query: { page_size: size } }, { project: ENVELOPE });
+      await expectTwin("alice", { path: "/api/sync/photos/", query: { page_size: size } }, { project: ENVELOPE, unordered: UNORDERED });
     }
   });
 

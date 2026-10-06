@@ -34,7 +34,12 @@ Dependency direction: exif/sidecars <- ml <- core <- db <- {jobs, auth} <- media
 
 Areas: `users_settings`, `timeline_photos`, `photo_edits`, `albums_tags`,
 `people_faces`, `search_sharing_public`, `stats_admin_stacks_dupes`,
-`jobs_zip_services`, `upload` (+ `auth`, done).
+`jobs_zip_services`, `upload`, `sync` (mobile `/api/sync/*`) (+ `auth`, done).
+
+Mobile sync: every hard delete of a photo, user/auto album, tag or `USER`
+person and every share removal goes through `lp_db::write::deletion_log`
+(tombstones, read back by `/api/sync/*`); a share added clears the stale one.
+New delete or un-share paths must call it, before the rows go.
 
 | What | Where |
 | --- | --- |

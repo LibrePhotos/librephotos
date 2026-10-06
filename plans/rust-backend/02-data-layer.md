@@ -128,9 +128,14 @@ keeps raw `INSERT/UPDATE/DELETE` helpers out of handlers.
 | S21 | email config saved | singleton row `pk=1` |
 | S22 | chunked upload deleted | delete the staged file |
 
-**Dropped:** S6–S13, the `DeletionLog` tombstones and sync `last_modified`
-bumps on M2M changes. They only exist for the mobile sync API, which is out of
-scope.
+**Mobile sync (added later):** the `/api/sync/*` port brought back the
+`DeletionLog` tombstones and the sync `last_modified` bumps of
+`api/sync_signals.py` (`lp_db::write::deletion_log`): hard deletes of photos,
+user/auto albums, tags and `USER` persons tombstone the owner and every
+recipient; removing a share tombstones that recipient; adding one clears the
+stale tombstone; tag link changes and thing-album cover top-ups bump
+`last_modified`. `maintenance.prune_deletion_log` drops tombstones after 90
+days. Still dropped: S6–S13.
 
 **Hard deletes** reproduce Django's collector as one ordered transaction.
 - Delete explicitly (no DB cascade): `api_photometadata`,
