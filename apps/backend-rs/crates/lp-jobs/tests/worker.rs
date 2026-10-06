@@ -720,13 +720,12 @@ async fn maintenance_cleans_jobs_tokens_zips_and_deleted_photos() {
             .unwrap();
     assert_eq!(thumb.exists(), hash_still_used);
     // The hard delete left a mobile-sync tombstone for the owner.
-    let tombstones: Vec<(String, i32)> = sqlx::query_as(
-        "SELECT d.entity, d.owner_id FROM api_deletionlog d WHERE d.entity_id = $1",
-    )
-    .bind(gone.to_string())
-    .fetch_all(&db)
-    .await
-    .unwrap();
+    let tombstones: Vec<(String, i32)> =
+        sqlx::query_as("SELECT d.entity, d.owner_id FROM api_deletionlog d WHERE d.entity_id = $1")
+            .bind(gone.to_string())
+            .fetch_all(&db)
+            .await
+            .unwrap();
     assert!(!tombstones.is_empty());
     assert!(tombstones.iter().all(|(e, _)| e == "photo"));
 

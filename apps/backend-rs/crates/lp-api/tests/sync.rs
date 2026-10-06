@@ -100,11 +100,13 @@ async fn feeds_cursors_tombstones_and_counts() {
     let ids: Vec<&str> = items.iter().map(|i| i["id"].as_str().unwrap()).collect();
     assert_eq!(ids.len() as i64, owned_or_shared);
     assert_eq!(ids.iter().collect::<HashSet<_>>().len(), ids.len());
-    sqlx::query("UPDATE api_photo SET last_modified = date_trunc('second', now()) WHERE owner_id = $1")
-        .bind(alice_id)
-        .execute(&db)
-        .await
-        .unwrap();
+    sqlx::query(
+        "UPDATE api_photo SET last_modified = date_trunc('second', now()) WHERE owner_id = $1",
+    )
+    .bind(alice_id)
+    .execute(&db)
+    .await
+    .unwrap();
     let (tied, _, _) = pull(&app, &alice, "/api/sync/photos/", None, 2).await;
     let tied: HashSet<&str> = tied.iter().map(|i| i["id"].as_str().unwrap()).collect();
     assert_eq!(tied, ids.iter().copied().collect::<HashSet<_>>());
@@ -131,8 +133,14 @@ async fn feeds_cursors_tombstones_and_counts() {
     let (_, tombs, bob_cursor) =
         pull(&app, &bob, "/api/sync/photos/", bob_cursor.as_deref(), 1000).await;
     assert_eq!(tombs, vec![e2e_06.to_string()]);
-    let (_, alice_tombs, _) =
-        pull(&app, &alice, "/api/sync/photos/", alice_cursor.as_deref(), 1000).await;
+    let (_, alice_tombs, _) = pull(
+        &app,
+        &alice,
+        "/api/sync/photos/",
+        alice_cursor.as_deref(),
+        1000,
+    )
+    .await;
     assert!(alice_tombs.is_empty());
 
     // Re-sharing cancels the stale tombstone.
@@ -180,8 +188,14 @@ async fn feeds_cursors_tombstones_and_counts() {
         .delete(&format!("/api/persons/{pid}/"), None, Some(&alice))
         .await;
     assert!(res.status.is_success(), "{}", res.text());
-    let (_, tombs, _) =
-        pull(&app, &alice, "/api/sync/persons/", persons_cursor.as_deref(), 1000).await;
+    let (_, tombs, _) = pull(
+        &app,
+        &alice,
+        "/api/sync/persons/",
+        persons_cursor.as_deref(),
+        1000,
+    )
+    .await;
     assert_eq!(tombs, vec![pid.to_string()]);
 
     let (_, _, tags_cursor) = pull(&app, &alice, "/api/sync/albums/tag/", None, 1000).await;
@@ -195,8 +209,14 @@ async fn feeds_cursors_tombstones_and_counts() {
         Some(&alice),
     )
     .await;
-    let (items, tombs, _) =
-        pull(&app, &alice, "/api/sync/albums/tag/", tags_cursor.as_deref(), 1000).await;
+    let (items, tombs, _) = pull(
+        &app,
+        &alice,
+        "/api/sync/albums/tag/",
+        tags_cursor.as_deref(),
+        1000,
+    )
+    .await;
     assert_eq!(tombs, vec![tag.to_string()]);
     // The link change bumped the tag across the cursor.
     assert!(items.iter().any(|i| i["id"] == json!(family)));
@@ -221,8 +241,14 @@ async fn feeds_cursors_tombstones_and_counts() {
     let (_, _, auto_cursor) = pull(&app, &alice, "/api/sync/albums/auto/", None, 1000).await;
     app.delete(&format!("/api/albums/auto/{auto}/"), None, Some(&alice))
         .await;
-    let (_, tombs, _) =
-        pull(&app, &alice, "/api/sync/albums/auto/", auto_cursor.as_deref(), 1000).await;
+    let (_, tombs, _) = pull(
+        &app,
+        &alice,
+        "/api/sync/albums/auto/",
+        auto_cursor.as_deref(),
+        1000,
+    )
+    .await;
     assert_eq!(tombs, vec![auto.to_string()]);
 
     // Cursor errors.
