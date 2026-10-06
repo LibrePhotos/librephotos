@@ -2,7 +2,8 @@
 # run_django.sh <db> <port> [direct]
 #
 # Start the Django reference server (uvicorn, 1 worker, no reload) on <db>, a
-# clone from clone_db.sh, bound to 127.0.0.1:<port>. Runs in the foreground;
+# clone from clone_db.sh (with LP_DB_BACKEND=sqlite: a SQLite clone name or
+# file, served with lp_twin_settings_sqlite), bound to 127.0.0.1:<port>. Runs in the foreground;
 # start it in the background and stop it by the PID you started.
 #
 #   direct       Django streams media itself (SERVE_FRONTEND) instead of an
@@ -20,7 +21,8 @@ db="${1:?usage: run_django.sh <db> <port> [direct]}"
 port="${2:?usage: run_django.sh <db> <port> [direct]}"
 mode="${3:-}"
 
-if [ "$db" = "$LP_FIXTURE_TEMPLATE" ]; then
+if [ "$db" = "$LP_FIXTURE_TEMPLATE" ] ||
+    { [ "$LP_DB_BACKEND" = sqlite ] && [ "$(lp_sqlite_path "$db")" = "$(lp_win_path "$LP_SQLITE_TEMPLATE")" ]; }; then
     echo "refusing to serve the template itself; clone it with clone_db.sh" >&2
     exit 1
 fi

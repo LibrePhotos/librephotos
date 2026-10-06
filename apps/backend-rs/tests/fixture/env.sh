@@ -16,7 +16,7 @@ LP_DJANGO_PY="${LP_DJANGO_PY:-/c/Users/Niaz/librephotos/wt-windev/apps/backend/.
 # Database backend of the fixture, the clones and the Django twin:
 # postgresql (default) or sqlite (Django's DB_BACKEND=sqlite, the file layout
 # of production_noproxy.py; see lp_twin_settings_sqlite.py).
-LP_DB_BACKEND="${LP_DB_BACKEND:-postgresql}"
+export LP_DB_BACKEND="${LP_DB_BACKEND:-postgresql}"
 
 # The fixture pack: media tree + manifest.json (+ lp_fixture.dump), and the
 # template database every test run clones. The SQLite pack has its own media
@@ -58,11 +58,14 @@ lp_sqlite_path() {
     esac
 }
 
-# lp_sql <sqlite file> [-c SQL | -f FILE | stdin] [-At]: the psql of the SQLite
-# harness (tests/fixture/lp_sql.py), with Django-format now(), dj_add_days(),
-# py_json() and uuid_hex() registered.
+# lp_sql <clone name|sqlite file> [-c SQL | -f FILE | stdin] [-At]: the psql of
+# the SQLite harness (tests/fixture/lp_sql.py), with Django-format now(),
+# dj_ts(), dj_add_days(), py_json() and uuid_hex() registered.
 lp_sql() {
-    "$LP_DJANGO_PY" "$(lp_win_path "$LP_FIXTURE_DIR/lp_sql.py")" "$@"
+    local db
+    db="$(lp_sqlite_path "${1:?usage: lp_sql <clone|file> [args]}")"
+    shift
+    "$LP_DJANGO_PY" "$(lp_win_path "$LP_FIXTURE_DIR/lp_sql.py")" "$db" "$@"
 }
 
 # Environment for a Django process on database $1 (a clone name, or a file
