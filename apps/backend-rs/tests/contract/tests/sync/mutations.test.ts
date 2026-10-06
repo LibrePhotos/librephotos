@@ -48,7 +48,9 @@ async function pull(role: Role, path: string, base: string, cursor: string | nul
       items.set(String(item.id), clean as Item);
     }
     tombstones.push(...body.tombstones);
-    if (!body.next_cursor) return { items, tombstones, cursor: durable };
+    // Every page repeats the tombstones newer than its own cursor; a client
+    // applies them as a set.
+    if (!body.next_cursor) return { items, tombstones: [...new Set(tombstones)], cursor: durable };
     durable = body.next_cursor;
   }
   throw new Error(`${path} as ${role} did not quiesce`);

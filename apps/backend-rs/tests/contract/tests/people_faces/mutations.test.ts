@@ -226,21 +226,22 @@ describe.skipIf(!enabled).sequential("people & faces mutations (two clones)", ()
     const res = await call("alice", { path: "/api/clusterfaces" });
     expect(res.status).toBe(200);
   });
-  it("delete carla: Django 500s and rolls back, Rust deletes (S3)", async () => {
-    // Django bug: PersonViewSet's queryset defers `kind` (.only()), and the
-    // sync tombstone post_delete signal reads it from the deleted row, so
-    // DoesNotExist aborts the delete transaction. Rust does what the view
-    // means to do; the resulting state was checked against
-    // `Person.objects.get(pk=...).delete()` run in a Django shell on the
-    // reference clone (dump_state diff, see the report).
+  it("delete carla: both delete her and unlabel her faces (S3)", async () => {
+    // PersonViewSet's queryset defers `kind` (.only()); Django's sync
+    // tombstone receiver used to read it after the delete and 500. It now
+    // captures it in pre_delete, so both servers delete and tombstone.
     expect(carla).toBeGreaterThan(0);
     const { ref, actual } = await twin("alice", { method: "DELETE", path: `/api/persons/${carla}/` }, {
       project: ["status"],
       ...once,
     });
-    expect(ref.status).toBe(500);
+    expect(ref.status).toBe(204);
     expect(actual.status).toBe(204);
-    const again = await call("alice", { method: "DELETE", path: `/api/persons/${carla}/` });
-    expect(again.status).toBe(404);
+    const again = await twin("alice", { method: "DELETE", path: `/api/persons/${carla}/` }, {
+      project: ["status"],
+      ...once,
+    });
+    expect(again.differences).toEqual([]);
+    expect(again.actual.status).toBe(404);
   });
 });
