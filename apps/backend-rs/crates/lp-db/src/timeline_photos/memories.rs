@@ -5,6 +5,7 @@ use chrono::NaiveDate;
 use sqlx::FromRow;
 use uuid::Uuid;
 
+use crate::db::sql::{self, JsonKind};
 use crate::db::{DjUuid, Exec, Qb};
 use crate::scope::{self, PhotoFilterParams};
 
@@ -47,29 +48,50 @@ pub async fn days<'e>(
     favorite_min_rating: i32,
     windows: &[(NaiveDate, NaiveDate)],
 ) -> sqlx::Result<Vec<MemoryDay>> {
-    let (starts, ends): (Vec<NaiveDate>, Vec<NaiveDate>) = windows.iter().copied().unzip();
-    let mut qb = Qb::new(
-        "SELECT d.date, CASE WHEN jsonb_typeof(d.location->'places'->0) = 'string' \
-           THEN d.location->'places'->>0 ELSE '' END AS place, \
-         (SELECT count(DISTINCT p.id) FROM api_photo p \
-            JOIN api_albumdate_photos cap ON cap.photo_id = p.id \
-            JOIN api_albumdate cad ON cad.id = cap.albumdate_id \
-          WHERE cad.date = d.date AND ",
+    let mut qb = Qb::new("SELECT d.date, CASE WHEN ");
+    qb.push_with(|d| {
+        format!(
+            "{} THEN d.location->'places'->>0 ELSE '' END AS place, ",
+            sql::json_type_is(d, "d.location->'places'->0", JsonKind::String)
+        )
+    });
+    qb.push(
+        "(SELECT count(DISTINCT p.id) FROM api_photo p \
+         JOIN api_albumdate_photos cap ON cap.photo_id = p.id \
+         JOIN api_albumdate cad ON cad.id = cap.albumdate_id \
+         WHERE cad.date = d.date AND ",
     );
     push_candidates(&mut qb, user_id, favorite_min_rating);
     qb.push(") AS total FROM api_albumdate d WHERE d.owner_id = ");
     qb.push_bind(user_id);
-    qb.push(" AND d.date IS NOT NULL AND EXISTS (SELECT 1 FROM unnest(");
-    qb.push_bind(starts);
-    qb.push("::date[], ");
-    qb.push_bind(ends);
-    qb.push("::date[]) AS w(s, e) WHERE d.date BETWEEN w.s AND w.e) ORDER BY d.date");
+    qb.push(" AND d.date IS NOT NULL AND ");
+    push_in_windows(&mut qb, "d.date", windows);
+    qb.push(" ORDER BY d.date");
     qb.build_query_as().fetch_all(db).await
+}
+
+/// `(col BETWEEN s1 AND e1 OR ..)` over the windows; `FALSE` for none.
+fn push_in_windows(qb: &mut Qb<'_>, col: &str, windows: &[(NaiveDate, NaiveDate)]) {
+    if windows.is_empty() {
+        qb.push("1 = 0");
+        return;
+    }
+    qb.push("(");
+    for (i, (s, e)) in windows.iter().enumerate() {
+        if i > 0 {
+            qb.push(" OR ");
+        }
+        qb.push(format!("{col} BETWEEN "));
+        qb.push_bind(*s);
+        qb.push(" AND ");
+        qb.push_bind(*e);
+    }
+    qb.push(")");
 }
 
 #[derive(Debug, Clone, FromRow)]
 struct WindowPhoto {
-    idx: i64,
+    idx: i32,
     #[sqlx(try_from = "DjUuid")]
     id: Uuid,
 }
@@ -88,26 +110,31 @@ pub async fn window_photo_ids<'e>(
     if windows.is_empty() {
         return Ok(out);
     }
-    let (starts, ends): (Vec<NaiveDate>, Vec<NaiveDate>) = windows.iter().copied().unzip();
-    let mut qb = Qb::new("SELECT w.idx AS idx, x.id FROM unnest(");
-    qb.push_bind(starts);
-    qb.push("::date[], ");
-    qb.push_bind(ends);
-    qb.push(
-        "::date[]) WITH ORDINALITY AS w(s, e, idx) CROSS JOIN LATERAL (\
-         SELECT p.id, p.exif_timestamp, p.image_hash FROM api_photo p WHERE ",
-    );
-    push_candidates(&mut qb, user_id, favorite_min_rating);
-    qb.push(
-        " AND EXISTS (SELECT 1 FROM api_albumdate_photos wap JOIN api_albumdate wad ON wad.id = wap.albumdate_id \
-           WHERE wap.photo_id = p.id AND wad.date BETWEEN w.s AND w.e) \
-         ORDER BY p.exif_timestamp, p.image_hash, p.id LIMIT ",
-    );
-    qb.push_bind(size);
-    qb.push(") x ORDER BY w.idx, x.exif_timestamp, x.image_hash, x.id");
+    // One LIMITed subquery per window, glued with UNION ALL (portable form
+    // of `unnest(..) WITH ORDINALITY CROSS JOIN LATERAL (.. LIMIT n)`).
+    let mut qb = Qb::new("SELECT u.idx, u.id FROM (");
+    for (i, w) in windows.iter().enumerate() {
+        if i > 0 {
+            qb.push(" UNION ALL ");
+        }
+        qb.push(format!(
+            "SELECT {i} AS idx, x.id, x.exif_timestamp, x.image_hash FROM ( \
+             SELECT p.id, p.exif_timestamp, p.image_hash FROM api_photo p WHERE "
+        ));
+        push_candidates(&mut qb, user_id, favorite_min_rating);
+        qb.push(
+            " AND EXISTS (SELECT 1 FROM api_albumdate_photos wap JOIN api_albumdate wad ON wad.id = wap.albumdate_id \
+             WHERE wap.photo_id = p.id AND ",
+        );
+        push_in_windows(&mut qb, "wad.date", std::slice::from_ref(w));
+        qb.push(") ORDER BY p.exif_timestamp, p.image_hash, p.id LIMIT ");
+        qb.push_bind(size);
+        qb.push(") x");
+    }
+    qb.push(") u ORDER BY u.idx, u.exif_timestamp, u.image_hash, u.id");
     let rows: Vec<WindowPhoto> = qb.build_query_as().fetch_all(db).await?;
     for r in rows {
-        if let Some(slot) = usize::try_from(r.idx - 1).ok().and_then(|i| out.get_mut(i)) {
+        if let Some(slot) = usize::try_from(r.idx).ok().and_then(|i| out.get_mut(i)) {
             slot.push(r.id);
         }
     }

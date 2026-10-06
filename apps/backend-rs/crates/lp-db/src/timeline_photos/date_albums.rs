@@ -7,8 +7,8 @@
 use chrono::NaiveDate;
 use sqlx::FromRow;
 
-use crate::db::{Db, Dialect, Exec, Qb};
-use crate::pig::{PIG_COLUMNS, PIG_JOINS, PigPhoto, PigRow};
+use crate::db::{Db, Dialect, Exec, IntoArg, Qb};
+use crate::pig::{self, PIG_JOINS, PigPhoto, PigRow};
 use crate::scope::{self, PhotoFilterParams};
 
 /// The query parameters both date-album views understand, resolved against
@@ -297,26 +297,22 @@ pub async fn page(
         qb.push(" AND ");
     }
     push_photo_conditions(&mut qb, "p", f);
-    qb.push("), c AS (SELECT count(*) AS total FROM m), pg AS (SELECT total, CASE WHEN ");
-    qb.push_bind(page);
-    qb.push("::bigint IS NULL THEN 1 WHEN ");
-    qb.push_bind(page);
-    qb.push("::bigint < 1 OR ");
-    qb.push_bind(page);
-    qb.push("::bigint > GREATEST(CEIL(total::numeric / ");
-    qb.push_bind(size);
-    qb.push(")::bigint, 1) THEN GREATEST(CEIL(total::numeric / ");
-    qb.push_bind(size);
-    qb.push(")::bigint, 1) ELSE ");
-    qb.push_bind(page);
-    qb.push("::bigint END AS page FROM c), sel AS (SELECT m.id, m.ts, m.mpath FROM m ORDER BY m.ts DESC, m.mpath, m.id LIMIT ");
-    qb.push_bind(size);
-    qb.push(" OFFSET (SELECT (pg.page - 1) * ");
-    qb.push_bind(size);
+    // Django's `Paginator`: the last page is ceil(total / size), at least 1
+    // (integer arithmetic, `(total - 1) / size + 1` cannot overflow); a
+    // missing page is 1, one out of range is the last.
+    let page_n = qb.bind_arg(page.into_arg());
+    let size_n = qb.bind_arg(size.into_arg());
     qb.push(format!(
-        " FROM pg)) SELECT alb.id AS album_id, alb.date AS album_date, alb.location AS album_location, \
-         pg.total, {PIG_COLUMNS} FROM sel JOIN api_photo p ON p.id = sel.id{PIG_JOINS} \
-         CROSS JOIN alb CROSS JOIN pg ORDER BY sel.ts DESC, sel.mpath, sel.id"
+        "), c AS (SELECT count(*) AS total FROM m), \
+         lp AS (SELECT total, CASE WHEN total < 1 THEN 1 ELSE (total - 1) / ${size_n} + 1 END AS last FROM c), \
+         pg AS (SELECT total, CASE WHEN ${page_n} IS NULL THEN 1 \
+           WHEN ${page_n} < 1 OR ${page_n} > last THEN last ELSE ${page_n} END AS page FROM lp), \
+         sel AS (SELECT m.id, m.ts, m.mpath FROM m ORDER BY m.ts DESC, m.mpath, m.id \
+           LIMIT ${size_n} OFFSET (SELECT (pg.page - 1) * ${size_n} FROM pg)) \
+         SELECT alb.id AS album_id, alb.date AS album_date, alb.location AS album_location, \
+         pg.total, {} FROM sel JOIN api_photo p ON p.id = sel.id{PIG_JOINS} \
+         CROSS JOIN alb CROSS JOIN pg ORDER BY sel.ts DESC, sel.mpath, sel.id",
+        pig::columns(db.dialect())
     ));
     let rows: Vec<DatePageRow> = qb.build_query_as().fetch_all(db).await?;
     if let Some(first) = rows.first() {

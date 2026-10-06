@@ -27,6 +27,10 @@ const PORTED: &[&str] = &[
     "lp-db/src/scope.rs",
     "lp-db/src/settings.rs",
     "lp-db/src/users.rs",
+    // P3 area B (timeline_photos)
+    "lp-db/src/timeline_photos/",
+    "lp-db/src/write/photo_delete.rs",
+    "lp-db/src/write/timeline_photos.rs",
 ];
 
 /// The lint list: (name, matcher). Matching is done on the literal's text.
