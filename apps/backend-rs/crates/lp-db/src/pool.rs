@@ -26,9 +26,10 @@ pub fn connect_options(config: &Config, db_name: &str) -> PgConnectOptions {
 
 /// The database selected by `DB_BACKEND`: a pool of `LP_DB_POOL`
 /// connections to Postgres `DB_NAME` (the default), or the SQLite file at
-/// `LP_SQLITE_PATH` (design `sqlite_design.md` §2).
+/// `LP_SQLITE_PATH` (design `sqlite_design.md` §2). Read from the config
+/// (`config.db.settings`), so `Config::from_map` selects it too.
 pub async fn connect(config: &Config) -> anyhow::Result<Db> {
-    connect_with(config, &DbSettings::from_env()?).await
+    connect_with(config, &config.db.settings).await
 }
 
 /// [`connect`] with explicit backend settings.
@@ -40,7 +41,7 @@ pub async fn connect_with(config: &Config, s: &DbSettings) -> anyhow::Result<Db>
 /// created. Every other command refuses a missing file, so a wrong
 /// `LP_SQLITE_PATH` never silently starts on an empty database.
 pub async fn connect_creating(config: &Config) -> anyhow::Result<Db> {
-    connect_opts(config, &DbSettings::from_env()?, true).await
+    connect_opts(config, &config.db.settings, true).await
 }
 
 async fn connect_opts(config: &Config, s: &DbSettings, create: bool) -> anyhow::Result<Db> {

@@ -234,12 +234,12 @@ async fn delete_expired_uploads_removes_rows_and_staged_files() {
         lp_db::sql::query(
             "INSERT INTO chunked_upload_chunkedupload (upload_id, file, filename, \"offset\", \
                created_on, status, user_id) \
-             VALUES ($1, $2, $3, 5, now() - make_interval(hours => $4), $5, $6)",
+             VALUES ($1, $2, $3, 5, $4, $5, $6)",
         )
         .bind(&id)
         .bind(&rel)
         .bind(name)
-        .bind(age_hours)
+        .bind(chrono::Utc::now() - chrono::Duration::hours(age_hours))
         .bind(status)
         .bind(user.id)
         .execute(app.pool())

@@ -30,7 +30,10 @@ const PORTED: &[&str] = &[
 ];
 
 /// The lint list: (name, matcher). Matching is done on the literal's text.
-fn constructs() -> Vec<(&'static str, fn(&str) -> usize)> {
+/// Counts the occurrences of one construct in a literal.
+type Matcher = fn(&str) -> usize;
+
+fn constructs() -> Vec<(&'static str, Matcher)> {
     vec![
         // design §2 core list
         ("::uuid", |s| count_ci(s, "::uuid")),
@@ -415,6 +418,15 @@ fn dialect_lint() {
     ));
     println!("{report}");
 
+    let regressed: Vec<&String> = per_file
+        .keys()
+        .filter(|f| PORTED.iter().any(|p| f.starts_with(p)))
+        .collect();
+    assert!(
+        regressed.is_empty(),
+        "Postgres-only SQL in ported files {regressed:?} (branch on the dialect or use \
+         the lp_db::sql helpers):\n{report}"
+    );
     if ENFORCE {
         assert!(
             per_file.is_empty(),

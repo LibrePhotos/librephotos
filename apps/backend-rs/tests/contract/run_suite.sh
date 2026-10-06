@@ -21,8 +21,8 @@
 #   LP_DB_BACKEND    postgresql (default) or sqlite: the clones are copies of
 #                    the SQLite fixture (LP_FIXTURE_BACKEND=sqlite build_fixture.sh),
 #                    Django runs lp_twin_settings_sqlite, Rust gets
-#                    DB_BACKEND=sqlite LP_SQLITE_PATH=<clone> (needs the P2
-#                    SQLite plumbing; the suite stops up front when `adopt` fails),
+#                    DB_BACKEND=sqlite LP_SQLITE_PATH=<clone> (the suite
+#                    stops up front when `adopt` fails on a probe clone),
 #                    presql files use their *.sqlite.sql twins.
 #   LP_SUITE_RS      rust (default) or django: the server "under test" is a
 #                    second Django on its own clone. Django vs Django proves the
@@ -215,8 +215,8 @@ start_django() {
     ) >"$OUT/django-$db.log" 2>&1 &
 }
 
-# Fail fast when the binary cannot adopt a SQLite clone (before the P2
-# plumbing lands, librephotos-rs ignores DB_BACKEND).
+# Fail fast when the binary cannot adopt a SQLite clone (an old binary
+# without the P2 SQLite plumbing ignores DB_BACKEND).
 if [ "$SUT" = rust ] && [ "$LP_DB_BACKEND" = sqlite ]; then
     probe="${PFX}sqlite_probe"
     "$F/clone_db.sh" "$probe" >/dev/null

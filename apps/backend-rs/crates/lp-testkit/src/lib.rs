@@ -222,7 +222,10 @@ async fn sweep_stale(server: &PgServer) {
 /// `LP_TEST_BACKEND`: `pg` (default; also `postgres`, `postgresql`) or
 /// `sqlite` (`sqlite3`). Selects what [`TestDb`] / [`TestApp`] create.
 pub fn test_backend() -> Backend {
-    match env_or("LP_TEST_BACKEND", "pg").to_ascii_lowercase().as_str() {
+    match env_or("LP_TEST_BACKEND", "pg")
+        .to_ascii_lowercase()
+        .as_str()
+    {
         "sqlite" | "sqlite3" | "lite" => Backend::Sqlite,
         _ => Backend::Postgres,
     }

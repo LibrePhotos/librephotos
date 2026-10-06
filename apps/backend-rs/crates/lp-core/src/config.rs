@@ -15,6 +15,9 @@ pub struct DbConfig {
     pub pass: String,
     pub host: String,
     pub port: u16,
+    /// `DB_BACKEND` and the SQLite settings (`LP_SQLITE_PATH`, `LP_SQLITE_BUSY_MS`,
+    /// `LP_DB_POOL`), from the same variables as the rest of the config.
+    pub settings: crate::db::DbSettings,
 }
 
 #[derive(Debug, Clone)]
@@ -207,6 +210,7 @@ impl Config {
             pass: get("DB_PASS").unwrap_or_else(|| "AaAa1234".into()),
             host: get("DB_HOST").unwrap_or_else(|| "db".into()),
             port: parse_num(get, "DB_PORT", 5432)?,
+            settings: crate::db::DbSettings::from_lookup(get)?,
         };
 
         let features = Features {

@@ -304,8 +304,8 @@ LP_DB_BACKEND=sqlite run_suite.sh ...                                       # Dj
   Postgres dump format (UTC timestamps, dashed UUIDs, parsed JSON, booleans).
   `--raw` dumps values without the baseline placeholders, for comparing two
   separately built databases.
-- Rust gets `DB_BACKEND=sqlite LP_SQLITE_PATH=<clone>`; the suite stops up
-  front while `adopt` cannot handle that. `LP_SUITE_RS=django` puts a second
+- Rust gets `DB_BACKEND=sqlite LP_SQLITE_PATH=<clone>` and `adopt`s it; the suite
+  stops up front when `adopt` fails on a probe clone. `LP_SUITE_RS=django` puts a second
   Django in the Rust slot, which proves the harness itself.
 - `LP_SUITE_DB_PREFIX` (default `lp_run_`) separates the clones of two suites.
 
