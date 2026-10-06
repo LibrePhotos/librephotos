@@ -12,10 +12,9 @@
 use std::collections::BTreeSet;
 use std::path::Path;
 
-use chrono::Utc;
 use uuid::Uuid;
 
-use crate::db::{Conn, Dialect, DjUuid, Qb};
+use crate::db::{Conn, Dialect};
 use crate::sql::any_sql;
 
 use super::AfterCommit;
@@ -98,46 +97,6 @@ const THUMBNAIL_FILES: [(&str, &str); 5] = [
     ("square_thumbnails_small", "mp4"),
 ];
 
-/// Rows per tombstone INSERT on SQLite (4 binds each, under its 32766 limit).
-const TOMBSTONE_CHUNK: usize = 1000;
-
-/// `post_delete` tombstones of the photos (owner and `shared_to` users that
-/// exist). Postgres: [`super::deletion_log::photos_deleted`]. SQLite: the
-/// same pairs, read first and inserted with Django's dashed `str(uuid)` and
-/// a Rust timestamp (`clock_timestamp()` has no SQLite twin; `now()` is fixed
-/// for the transaction, which would tie the tombstones with the bumps before
-/// them).
-async fn tombstones(conn: &mut Conn, ids: &[Uuid]) -> sqlx::Result<()> {
-    let d = conn.dialect();
-    if d == Dialect::Pg {
-        super::deletion_log::photos_deleted(conn, ids).await?;
-        return Ok(());
-    }
-    let pairs: Vec<(DjUuid, i32)> = crate::sql::query_as(format!(
-        "SELECT v.eid, v.uid FROM (SELECT p.id AS eid, p.owner_id AS uid FROM api_photo p WHERE {} \
-         UNION SELECT s.photo_id, s.user_id FROM api_photo_shared_to s WHERE {}) v \
-         WHERE EXISTS (SELECT 1 FROM api_user u WHERE u.id = v.uid) ORDER BY v.eid, v.uid",
-        any_sql(d, "p.id", 1),
-        any_sql(d, "s.photo_id", 1)
-    ))
-    .bind(ids)
-    .fetch_all(&mut *conn)
-    .await?;
-    for chunk in pairs.chunks(TOMBSTONE_CHUNK) {
-        let at = Utc::now();
-        let mut qb =
-            Qb::new("INSERT INTO api_deletionlog (entity, entity_id, owner_id, deleted_at) ");
-        qb.push_values(chunk, |mut b, (id, uid)| {
-            b.push_bind(super::deletion_log::entity::PHOTO)
-                .push_bind(id.0.hyphenated().to_string())
-                .push_bind(*uid)
-                .push_bind(at);
-        });
-        qb.build().execute(&mut *conn).await?;
-    }
-    Ok(())
-}
-
 /// Delete `ids` for good inside the caller's transaction. Face crops (S4)
 /// and orphaned thumbnail files (S5) are queued on `after`.
 pub async fn hard_delete(
@@ -150,7 +109,8 @@ pub async fn hard_delete(
         return Ok(());
     }
     let d = conn.dialect();
-    tombstones(conn, ids).await?;
+    // `post_delete` tombstones (owner and `shared_to` users), before the rows go.
+    super::deletion_log::photos_deleted(conn, ids).await?;
     let crops: Vec<String> = crate::sql::query_scalar(format!(
         "SELECT image FROM api_face WHERE {} AND image IS NOT NULL AND image <> ''",
         any_sql(d, "photo_id", 1)

@@ -100,13 +100,12 @@ async fn feeds_cursors_tombstones_and_counts() {
     let ids: Vec<&str> = items.iter().map(|i| i["id"].as_str().unwrap()).collect();
     assert_eq!(ids.len() as i64, owned_or_shared);
     assert_eq!(ids.iter().collect::<HashSet<_>>().len(), ids.len());
-    lp_db::sql::query(
-        "UPDATE api_photo SET last_modified = date_trunc('second', now()) WHERE owner_id = $1",
-    )
-    .bind(alice_id)
-    .execute(&db)
-    .await
-    .unwrap();
+    lp_db::sql::query("UPDATE api_photo SET last_modified = $2 WHERE owner_id = $1")
+        .bind(alice_id)
+        .bind(chrono::SubsecRound::trunc_subsecs(chrono::Utc::now(), 0))
+        .execute(&db)
+        .await
+        .unwrap();
     let (tied, _, _) = pull(&app, &alice, "/api/sync/photos/", None, 2).await;
     let tied: HashSet<&str> = tied.iter().map(|i| i["id"].as_str().unwrap()).collect();
     assert_eq!(tied, ids.iter().copied().collect::<HashSet<_>>());

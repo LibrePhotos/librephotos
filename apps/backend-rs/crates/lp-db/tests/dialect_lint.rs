@@ -33,6 +33,21 @@ const PORTED: &[&str] = &[
     "lp-db/src/timeline_photos/",
     "lp-db/src/write/photo_delete.rs",
     "lp-db/src/write/timeline_photos.rs",
+    // P3 areas F + sync + A (search/jobs/media, deletion_log, users/upload)
+    "lp-db/src/search_sharing_public/",
+    "lp-db/src/jobs_zip_services/",
+    "lp-db/src/media/",
+    "lp-db/src/sync/",
+    "lp-db/src/users_settings/",
+    "lp-db/src/upload/",
+    "lp-db/src/write/search_sharing_public.rs",
+    "lp-db/src/write/jobs_zip_services.rs",
+    "lp-db/src/write/deletion_log.rs",
+    "lp-db/src/write/users_settings.rs",
+    "lp-db/src/write/users.rs",
+    "lp-db/src/write/auth.rs",
+    "lp-db/src/write/upload.rs",
+    "lp-db/src/write/settings.rs",
 ];
 
 /// The lint list: (name, matcher). Matching is done on the literal's text.

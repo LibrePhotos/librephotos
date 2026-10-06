@@ -689,12 +689,6 @@ async fn run_kind(app: &lp_testkit::TestApp, kind: &str) {
 
 #[tokio::test]
 async fn maintenance_cleans_jobs_tokens_zips_and_deleted_photos() {
-    if lp_testkit::test_backend() == lp_testkit::Backend::Sqlite {
-        // SQLITE(P3): the handlers live in lp_db::write::{jobs_zip_services, photo_delete,
-        // deletion_log} (areas F and B; intervals, ANY, explicit cascades).
-        eprintln!("skipped on SQLite until the jobs_zip_services and photo_delete ports");
-        return;
-    }
     let app = lp_testkit::TestApp::new().await;
     let db = app.pool().clone();
     let u = app.create_user("maint", "pw", false).await;
