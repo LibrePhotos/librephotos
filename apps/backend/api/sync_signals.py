@@ -229,30 +229,47 @@ def _make_owned_tombstone(entity, owner_attr="owner_id", shared=False):
     return handler
 
 
+def _capture_person(sender, instance, **kwargs):
+    """Read ``kind`` / ``cluster_owner_id`` while the row still exists.
+
+    ``PersonViewSet`` loads persons with ``.only(...)``, which defers both
+    fields; touching a deferred field after the delete refetches the row and
+    raises ``DoesNotExist``, failing (and rolling back) the whole delete.
+    """
+    instance._sync_person = (instance.kind, instance.cluster_owner_id)
+
+
 def _person_tombstone(sender, instance, **kwargs):
     # Only USER-kind persons are mirrored (People album grid), so only they
     # need tombstones; cluster/unknown persons churn on every clustering run.
-    if instance.kind == Person.KIND_USER and instance.cluster_owner_id:
-        _write_tombstones(
-            DeletionLog.ENTITY_PERSON, instance.pk, [instance.cluster_owner_id]
-        )
+    kind, owner_id = getattr(instance, "_sync_person", (None, None))
+    if kind == Person.KIND_USER and owner_id:
+        _write_tombstones(DeletionLog.ENTITY_PERSON, instance.pk, [owner_id])
 
 
 # --------------------------------------------------------------------------- #
 # registration
 # --------------------------------------------------------------------------- #
 def register():
+    # Every receiver is connected with ``weak=False``: the handlers built by
+    # the ``_make_*`` factories are closures nothing else references, so a
+    # weak connection lets the garbage collector drop them right after
+    # ``register()`` returns and the photo / album / tag tombstones and the
+    # membership bumps silently never fire.
+
     # photos membership bumps
     for parent_model, through in _PHOTO_MEMBERSHIP_PARENTS.items():
         m2m_changed.connect(
             _make_photos_bump(parent_model),
             sender=through,
             dispatch_uid=f"sync_photos_bump_{parent_model.__name__}",
+            weak=False,
         )
     m2m_changed.connect(
         _album_thing_cover_bump,
         sender=AlbumThing.cover_photos.through,
         dispatch_uid="sync_album_thing_cover_bump",
+        weak=False,
     )
 
     # shared_to bumps + tombstones
@@ -261,6 +278,7 @@ def register():
             _make_share_handler(entity, parent_model),
             sender=through,
             dispatch_uid=f"sync_share_{entity}",
+            weak=False,
         )
 
     # Photo.shared_to
@@ -268,16 +286,21 @@ def register():
         _photo_share_handler,
         sender=Photo.shared_to.through,
         dispatch_uid="sync_photo_share",
+        weak=False,
     )
 
     # hard-delete tombstones
     pre_delete.connect(
-        _capture_viewers, sender=Photo, dispatch_uid="sync_capture_photo_viewers"
+        _capture_viewers,
+        sender=Photo,
+        dispatch_uid="sync_capture_photo_viewers",
+        weak=False,
     )
     post_delete.connect(
         _make_owned_tombstone(DeletionLog.ENTITY_PHOTO, shared=True),
         sender=Photo,
         dispatch_uid="sync_tombstone_photo",
+        weak=False,
     )
 
     for entity, (parent_model, _through) in _SHARE_PARENTS.items():
@@ -285,18 +308,30 @@ def register():
             _capture_viewers,
             sender=parent_model,
             dispatch_uid=f"sync_capture_viewers_{entity}",
+            weak=False,
         )
         post_delete.connect(
             _make_owned_tombstone(entity, shared=True),
             sender=parent_model,
             dispatch_uid=f"sync_tombstone_{entity}",
+            weak=False,
         )
 
+    pre_delete.connect(
+        _capture_person,
+        sender=Person,
+        dispatch_uid="sync_capture_person",
+        weak=False,
+    )
     post_delete.connect(
-        _person_tombstone, sender=Person, dispatch_uid="sync_tombstone_person"
+        _person_tombstone,
+        sender=Person,
+        dispatch_uid="sync_tombstone_person",
+        weak=False,
     )
     post_delete.connect(
         _make_owned_tombstone(DeletionLog.ENTITY_TAG),
         sender=Tag,
         dispatch_uid="sync_tombstone_tag",
+        weak=False,
     )

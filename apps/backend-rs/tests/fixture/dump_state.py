@@ -105,6 +105,13 @@ def plain(value):
     return value
 
 
+# Tables keyed by content instead of their serial id: rows a mutation inserts
+# in an order that is not part of the contract (one tombstone per photo of a
+# bulk delete). The key is the listed columns plus an occurrence number, so
+# duplicate rows still count.
+CONTENT_KEYED = {"api_deletionlog": ["owner_id", "entity", "entity_id"]}
+
+
 def read_tables(db, like):
     conn = connect(db)
     tables, pks = table_layout(conn, like)
@@ -112,14 +119,26 @@ def read_tables(db, like):
     with conn.cursor() as cur:
         for table, columns in tables.items():
             keys, is_through = key_columns(columns, pks.get(table))
-            names = [c for c, _ in columns if not (is_through and c == "id")]
+            content = CONTENT_KEYED.get(table)
+            names = [
+                c for c, _ in columns if not ((is_through or content) and c == "id")
+            ]
             cur.execute(
                 f'SELECT {", ".join(chr(34) + n + chr(34) for n in names)} FROM "{table}"'
             )
             rows = {}
+            seen = {}
             for record in cur.fetchall():
                 row = {n: plain(v) for n, v in zip(names, record)}
-                rows[json.dumps([row[k] for k in keys], default=str)] = row
+                if content:
+                    base = [row[k] for k in content]
+                    n = seen[json.dumps(base, default=str)] = (
+                        seen.get(json.dumps(base, default=str), 0) + 1
+                    )
+                    key = json.dumps([*base, n], default=str)
+                else:
+                    key = json.dumps([row[k] for k in keys], default=str)
+                rows[key] = row
             out[table] = {
                 "rows": rows,
                 "timestamps": [c for c, t in columns if t in TIMESTAMP_TYPES],
@@ -179,6 +198,9 @@ def dump_db(args):
                         canon[column] = (
                             "<unchanged>" if old.get(column) == value else "<bumped>"
                         )
+                elif table in CONTENT_KEYED and column in CONTENT_KEYED[table]:
+                    # Kept verbatim: it names the deleted row.
+                    canon[column] = value
                 elif (
                     isinstance(value, str)
                     and value in new_uuids
@@ -190,7 +212,10 @@ def dump_db(args):
                 else:
                     canon[column] = replace_root(value, roots)
             display_key = json.loads(key)
-            display_key = [("<new-uuid>" if k in new_uuids else k) for k in display_key]
+            if table not in CONTENT_KEYED:
+                display_key = [
+                    ("<new-uuid>" if k in new_uuids else k) for k in display_key
+                ]
             rows.append({"_key": replace_root(display_key, roots), **canon})
         rows.sort(key=lambda r: json.dumps(r, sort_keys=True, default=str))
         tables[table] = rows

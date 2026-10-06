@@ -236,7 +236,7 @@ pub async fn delete_missing_photos(p: &Pipeline, user_id: i32, job_id: &str) -> 
             .bind(thing)
             .execute(&mut *tx)
             .await?;
-            sqlx::query(
+            let added = sqlx::query(
                 "INSERT INTO api_albumthing_cover_photos (albumthing_id, photo_id) \
                  SELECT $1, p.id FROM api_albumthing_photos tp JOIN api_photo p ON p.id = tp.photo_id \
                  WHERE tp.albumthing_id = $1 AND NOT p.hidden AND p.id NOT IN \
@@ -246,6 +246,14 @@ pub async fn delete_missing_photos(p: &Pipeline, user_id: i32, job_id: &str) -> 
             .bind(thing)
             .execute(&mut *tx)
             .await?;
+            // `cover_photos.add(...)` with photos fires the mobile-sync bump
+            // (`_album_thing_cover_bump`); `photo_count` alone does not.
+            if added.rows_affected() > 0 {
+                sqlx::query("UPDATE api_albumthing SET last_modified = now() WHERE id = $1")
+                    .bind(thing)
+                    .execute(&mut *tx)
+                    .await?;
+            }
         }
         if !tags.is_empty() {
             sqlx::query(

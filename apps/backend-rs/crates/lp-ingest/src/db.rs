@@ -502,10 +502,12 @@ pub async fn link_tags(
         .bind(photo)
         .execute(&mut *db)
         .await?;
+        // `tag.photos.add(photo)`: recount, and the mobile-sync bump even
+        // when the link already existed.
         sqlx::query(
             "UPDATE api_tag SET photo_count = (SELECT count(*) FROM api_tag_photos tp \
                JOIN api_photo p ON p.id = tp.photo_id WHERE tp.tag_id = $1 AND NOT p.hidden \
-               AND NOT p.in_trashcan AND NOT p.removed) WHERE id = $1",
+               AND NOT p.in_trashcan AND NOT p.removed), last_modified = now() WHERE id = $1",
         )
         .bind(tag_id)
         .execute(&mut *db)

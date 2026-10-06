@@ -19,6 +19,7 @@ use std::path::PathBuf;
 
 pub mod albums_tags;
 pub mod auth;
+pub mod deletion_log;
 pub mod jobs_zip_services;
 pub mod people_faces;
 pub mod photo_delete;

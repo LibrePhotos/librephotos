@@ -719,6 +719,39 @@ async fn maintenance_cleans_jobs_tokens_zips_and_deleted_photos() {
             .await
             .unwrap();
     assert_eq!(thumb.exists(), hash_still_used);
+    // The hard delete left a mobile-sync tombstone for the owner.
+    let tombstones: Vec<(String, i32)> =
+        sqlx::query_as("SELECT d.entity, d.owner_id FROM api_deletionlog d WHERE d.entity_id = $1")
+            .bind(gone.to_string())
+            .fetch_all(&db)
+            .await
+            .unwrap();
+    assert!(!tombstones.is_empty());
+    assert!(tombstones.iter().all(|(e, _)| e == "photo"));
+
+    // prune_deletion_log: only tombstones past the 90-day horizon go.
+    sqlx::query(
+        "INSERT INTO api_deletionlog (entity, entity_id, owner_id, deleted_at) VALUES \
+         ('photo', 'old', $1, now() - interval '91 days'), ('photo', 'new', $1, now() - interval '89 days')",
+    )
+    .bind(u.id)
+    .execute(&db)
+    .await
+    .unwrap();
+    run_kind(&app, "maintenance.prune_deletion_log").await;
+    let left: Vec<String> = sqlx::query_scalar(
+        "SELECT entity_id FROM api_deletionlog WHERE owner_id = $1 ORDER BY entity_id",
+    )
+    .bind(u.id)
+    .fetch_all(&db)
+    .await
+    .unwrap();
+    assert_eq!(left, vec!["new".to_string()]);
+    assert!(
+        lp_jobs::schedules::SCHEDULES
+            .iter()
+            .any(|s| s.name == "prune_deletion_log" && s.kind == "maintenance.prune_deletion_log")
+    );
     app.cleanup().await;
 }
 

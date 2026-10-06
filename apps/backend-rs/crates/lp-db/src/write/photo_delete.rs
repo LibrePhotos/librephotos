@@ -1,8 +1,8 @@
 //! `Photo.delete()` for many photos, as Django's collector does it (02 §5
 //! "Hard deletes"). The one write service behind every hard delete: the
 //! `cleanup_deleted_photos` schedule, `delete_missing_photos` and the RAW
-//! variant repair. The mobile-sync `DeletionLog` tombstones are not written
-//! (02 §5).
+//! variant repair. Each deleted photo leaves a mobile-sync `DeletionLog`
+//! tombstone for its owner and every `shared_to` user (`post_delete`).
 
 use std::collections::BTreeSet;
 use std::path::Path;
@@ -57,6 +57,7 @@ pub async fn hard_delete(
     if ids.is_empty() {
         return Ok(());
     }
+    super::deletion_log::photos_deleted(conn, ids).await?;
     let crops: Vec<String> = sqlx::query_scalar(
         "SELECT image FROM api_face WHERE photo_id = ANY($1) AND image IS NOT NULL AND image <> ''",
     )

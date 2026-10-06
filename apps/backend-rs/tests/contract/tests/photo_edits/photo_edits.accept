@@ -1,9 +1,6 @@
 # Accepted differences for run_suite.sh mut:photo_edits (grep -E patterns
 # over dump_state.py diff lines).
 #
-# DeletionLog tombstones feed only the mobile sync API, which the port drops
-# (02 §5); Django writes one per deleted photo, Rust none.
-^- api_deletionlog \[[0-9]+\]:
 # savecaption changes e2e_05's caption from "Lake day #summer #lake" to
 # "Lake day #summer". Rust rebuilds search_captions from the saved caption
 # (02 §5 S19); Django rebuilds it from the row as it was before the save, so

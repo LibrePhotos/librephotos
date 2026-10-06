@@ -15,6 +15,7 @@ pub mod people_faces;
 pub mod photo_edits;
 pub mod search_sharing_public;
 pub mod stats_admin_stacks_dupes;
+pub mod sync;
 pub mod timeline_photos;
 pub mod upload;
 pub mod users_settings;
@@ -30,6 +31,7 @@ pub fn routes() -> Router<AppState> {
         .merge(people_faces::routes())
         .merge(search_sharing_public::routes())
         .merge(stats_admin_stacks_dupes::routes())
+        .merge(sync::routes())
         .merge(jobs_zip_services::routes())
         .merge(upload::routes())
 }
@@ -42,6 +44,7 @@ pub fn register_jobs(reg: &mut HandlerRegistry) {
     people_faces::register_jobs(reg);
     search_sharing_public::register_jobs(reg);
     stats_admin_stacks_dupes::register_jobs(reg);
+    sync::register_jobs(reg);
     jobs_zip_services::register_jobs(reg);
     upload::register_jobs(reg);
 }

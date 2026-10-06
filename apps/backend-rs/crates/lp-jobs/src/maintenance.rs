@@ -49,6 +49,11 @@ pub fn register(reg: &mut HandlerRegistry) {
             Ok(())
         },
     );
+    reg.register("maintenance.prune_deletion_log", |ctx: JobCtx| async move {
+        let n = lp_db::write::deletion_log::prune(&ctx.state.db).await?;
+        tracing::info!(deleted = n, "prune_deletion_log");
+        Ok(())
+    });
     reg.register("maintenance.zip_expiry", |ctx: JobCtx| async move {
         let dir = ctx.state.config.zip_dir();
         let n = tokio::task::spawn_blocking(move || expire_zips(&dir, ZIP_TTL)).await??;

@@ -27,6 +27,7 @@ pub mod people_faces;
 pub mod photo_edits;
 pub mod search_sharing_public;
 pub mod stats_admin_stacks_dupes;
+pub mod sync;
 pub mod timeline_photos;
 pub mod upload;
 pub mod users_settings;

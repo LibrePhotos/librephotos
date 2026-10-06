@@ -6,6 +6,7 @@ use sqlx::{PgConnection, PgPool, QueryBuilder};
 use uuid::Uuid;
 
 use super::PhotoSelection;
+use crate::write::deletion_log::{self as dl, AlbumKind, entity};
 
 /// What an edit request changes (`AlbumUserEditSerializer.update`), in the
 /// order Django applies it.
@@ -139,8 +140,11 @@ pub async fn rename(db: &PgPool, album_id: i32, title: Option<&str>) -> sqlx::Re
 }
 
 /// Django's collector for `AlbumUser.delete()`: links, share, the row.
+/// Tombstones for the owner and every recipient (`post_delete`) first,
+/// while the recipients are still linked.
 pub async fn delete(db: &PgPool, album_id: i32) -> sqlx::Result<()> {
     let mut tx = db.begin().await?;
+    dl::albums_deleted(&mut tx, AlbumKind::User, &[album_id]).await?;
     for sql in [
         "DELETE FROM api_albumuser_photos WHERE albumuser_id = $1",
         "DELETE FROM api_albumuser_shared_to WHERE albumuser_id = $1",
@@ -160,16 +164,29 @@ pub async fn set_shared(
     shared: bool,
 ) -> sqlx::Result<()> {
     let mut tx = db.begin().await?;
-    let sql = if shared {
-        "INSERT INTO api_albumuser_shared_to (albumuser_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING"
-    } else {
-        "DELETE FROM api_albumuser_shared_to WHERE albumuser_id = $1 AND user_id = $2"
-    };
-    sqlx::query(sql)
+    let album = [album_id.to_string()];
+    if shared {
+        // `shared_to.add`: a newly added recipient's stale tombstone goes.
+        let added = sqlx::query(
+            "INSERT INTO api_albumuser_shared_to (albumuser_id, user_id) VALUES ($1, $2)              ON CONFLICT DO NOTHING",
+        )
         .bind(album_id)
         .bind(user_id)
         .execute(&mut *tx)
-        .await?;
+        .await?
+        .rows_affected();
+        if added > 0 {
+            dl::clear(&mut tx, entity::ALBUM_USER, &album, &[user_id]).await?;
+        }
+    } else {
+        // `shared_to.remove`: a tombstone for the recipient, shared or not.
+        sqlx::query("DELETE FROM api_albumuser_shared_to WHERE albumuser_id = $1 AND user_id = $2")
+            .bind(album_id)
+            .bind(user_id)
+            .execute(&mut *tx)
+            .await?;
+        dl::unshared(&mut tx, entity::ALBUM_USER, &album, &[user_id]).await?;
+    }
     sqlx::query("UPDATE api_albumuser SET created_on = now(), last_modified = now() WHERE id = $1")
         .bind(album_id)
         .execute(&mut *tx)

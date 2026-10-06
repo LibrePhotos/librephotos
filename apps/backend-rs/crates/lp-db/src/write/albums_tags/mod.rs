@@ -6,12 +6,14 @@
 //! * S2 [`refresh_tag_photo_counts`] / the tag services: `Tag.photo_count`
 //!   over visible photos.
 //! * S14: `last_modified` (and `AlbumUser.created_on`, which is `auto_now`)
-//!   bumped wherever Django saves the row. Django's M2M sync bumps never
-//!   fire (`api/sync_signals.py` connects closures by weak reference), so
-//!   link changes alone bump nothing, here as there.
+//!   bumped wherever Django saves the row, and on every photo-link change
+//!   (`api/sync_signals.py` `m2m_changed`): user / auto / thing / place
+//!   albums save after their link changes anyway; tags bump in
+//!   `tags::after_link_change`.
 //! * S17: album share slugs (12 hex, `-N` on a clash).
-//!
-//! The mobile-sync `DeletionLog` tombstones are dropped (02 §5).
+//! * Mobile sync (`write::deletion_log`): album and tag deletes leave
+//!   `DeletionLog` tombstones (owner + recipients), removing a recipient
+//!   leaves one for that user, adding one clears its stale tombstone.
 
 use sqlx::{PgConnection, Postgres, QueryBuilder};
 use uuid::Uuid;

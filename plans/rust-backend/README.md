@@ -34,7 +34,6 @@ benchmark report are the deliverable.
 - **The frontend is the spec.** The React app's requests and its zod schemas
   define the contract. Anything the frontend doesn't call or read is out:
   - Django admin, allauth account pages, and the DRF browsable API
-  - mobile sync and its tombstones
   - HTTP Basic auth and unused viewset writes
   - SQLite and the Windows standalone build
 - **ML stays Python, behind HTTP.** The face, CLIP, tags, OCR, captioning and

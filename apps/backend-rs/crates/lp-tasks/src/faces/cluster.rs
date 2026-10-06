@@ -102,11 +102,13 @@ async fn deleted_user_id(conn: &mut PgConnection) -> sqlx::Result<Option<i32>> {
 
 /// Delete persons the way Django's collector + `reset_person` do: faces
 /// lose them as `person` (S3), `classification_person`, `cluster_person`,
-/// clusters as `person`.
+/// clusters as `person`. `USER` persons with an owner leave a mobile-sync
+/// tombstone (`_person_tombstone`).
 async fn delete_persons(conn: &mut PgConnection, ids: &[i32]) -> sqlx::Result<()> {
     if ids.is_empty() {
         return Ok(());
     }
+    lp_db::write::deletion_log::persons_deleted(conn, ids).await?;
     for sql in [
         "UPDATE api_face SET person_id = NULL WHERE person_id = ANY($1)",
         "UPDATE api_face SET classification_person_id = NULL WHERE classification_person_id = ANY($1)",

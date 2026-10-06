@@ -45,6 +45,13 @@ pub const SCHEDULES: &[Schedule] = &[
         kind: "maintenance.prune_refresh_tokens",
         every: DAY,
     },
+    // `start_cleaning_service`: mobile-sync tombstones past the 90-day
+    // horizon (`api.services.prune_deletion_log`, daily).
+    Schedule {
+        name: "prune_deletion_log",
+        kind: "maintenance.prune_deletion_log",
+        every: DAY,
+    },
 ];
 
 /// Enqueue every schedule that is due, claiming it in `schedule_state` in

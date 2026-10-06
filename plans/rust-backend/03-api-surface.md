@@ -213,7 +213,7 @@ them.
 - **Dead-code calls:** `/generateeventalbums/titles/`,
   `/photosedit/duplicate/delete/`, metadata history/revert ×3, metadata bulk
   GET/PATCH, `/stacks/{id}/add/`.
-- **Backend-only surface:** mobile `/api/sync/*`, Django admin, allauth
+- **Backend-only surface:** Django admin, allauth
   account pages, DRF schema/swagger/browsable API, silk, HTTP Basic, unused
   `ModelViewSet` writes, `/api/photos/{h}/file/{fh}`.
 - **Frontend bugs, listed for separate fixes** (the experiment doesn't

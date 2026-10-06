@@ -1,12 +1,15 @@
-//! `Tag` writes. Every photo-link change runs Django's live `m2m_changed`
-//! receiver: the recount (S2). Django's sync bump of `last_modified` never
-//! fires (`api/sync_signals.py` connects closures with weak references, so
-//! they are collected at once), and the sync bumps are dropped anyway (02 §5).
+//! `Tag` writes. Every photo-link change (`tag.photos.add/remove`, forward,
+//! with at least one photo) runs Django's `m2m_changed` receivers: the
+//! recount (S2) and the mobile-sync bump of the tag's `last_modified`
+//! (`api/sync_signals.py`, live since its receivers are connected with
+//! strong references). A deleted tag leaves a `DeletionLog` tombstone for
+//! its owner.
 
 use sqlx::{PgConnection, PgPool, QueryBuilder};
 
 use super::PhotoSelection;
 use crate::albums_tags::tags::TagRow;
+use crate::write::deletion_log;
 
 pub async fn create(db: &PgPool, owner_id: i32, name: &str) -> sqlx::Result<TagRow> {
     sqlx::query_as(
@@ -31,6 +34,7 @@ pub async fn rename(db: &PgPool, tag_id: i32, name: Option<&str>) -> sqlx::Resul
 }
 
 async fn delete_in(conn: &mut PgConnection, tag_id: i32) -> sqlx::Result<()> {
+    deletion_log::tags_deleted(conn, &[tag_id]).await?;
     sqlx::query("DELETE FROM api_tag_photos WHERE tag_id = $1")
         .bind(tag_id)
         .execute(&mut *conn)
@@ -48,13 +52,15 @@ pub async fn delete(db: &PgPool, tag_id: i32) -> sqlx::Result<()> {
     tx.commit().await
 }
 
-/// The `post_add` / `post_remove` receiver: visible-photo count
-/// (`save(update_fields=["photo_count"])`, no `last_modified` bump).
+/// The `post_add` / `post_remove` receivers: visible-photo count
+/// (`save(update_fields=["photo_count"])`) and the sync bump
+/// (`save(update_fields=["last_modified"])`).
 async fn after_link_change(conn: &mut PgConnection, tag_id: i32) -> sqlx::Result<TagRow> {
     sqlx::query_as(
         "UPDATE api_tag t SET photo_count = (SELECT count(*) FROM api_tag_photos tp \
            JOIN api_photo p ON p.id = tp.photo_id \
-           WHERE tp.tag_id = t.id AND NOT p.hidden AND NOT p.in_trashcan AND NOT p.removed) \
+           WHERE tp.tag_id = t.id AND NOT p.hidden AND NOT p.in_trashcan AND NOT p.removed), \
+           last_modified = now() \
          WHERE t.id = $1 RETURNING id, name, photo_count",
     )
     .bind(tag_id)
