@@ -12,7 +12,8 @@ required field breaks the UI.
 ```
 crates/
   lp-core      Config (Django env vars), AppState, ApiError envelope, extractors,
-               codecs, Python/DRF time formats, django_crypto, SiteSettings
+               codecs, Python/DRF time formats, django_crypto, SiteSettings,
+               db/ (the dual-dialect DB layer, used as lp_db::db / lp_db::sql)
   lp-db        pool, migrations, adopt, users, scope (authz), pig (photo summary),
                settings, write/ (all mutations), one module per area
   lp-auth      JWT (simplejwt-compatible), Django password hashers, extractors,
@@ -65,7 +66,7 @@ Shared files (`lp-api/src/lib.rs`, `lp-api/src/common/`, `lp-db/src/{scope,pig,u
 - axum 0.8 path syntax: `/api/albums/date/{id}`. Two areas registering the same
   path+method panic at startup (the `lp-server` tests build the app).
 - Handlers take `State(state): State<AppState>` and return `ApiResult<impl IntoResponse>`.
-- `AppState` fields: `db: PgPool`, `config: Arc<Config>`, `settings: Arc<ArcSwap<SiteSettings>>`
+- `AppState` fields: `db: lp_db::Db`, `config: Arc<Config>`, `settings: Arc<ArcSwap<SiteSettings>>`
   (read with `state.settings()`), `http: reqwest::Client`, `jwt: Arc<JwtKeys>`,
   `exif: lp_exif::ExifPool`, `sidecars: lp_sidecars::Sidecars`, `ml: lp_ml::Ml` (call through
   `state.ml()`), `cpu: Arc<Semaphore>`
@@ -114,9 +115,14 @@ Shared files (`lp-api/src/lib.rs`, `lp-api/src/common/`, `lp-db/src/{scope,pig,u
 
 ## Database
 
-- Runtime-checked sqlx only: `sqlx::query_as::<_, Row>(SQL)` + `#[derive(FromRow)]`,
-  `QueryBuilder` for dynamic SQL. No `query!` macros, no `.sqlx/`, no DATABASE_URL at build time.
-- `clippy.toml` forbids `sqlx::query*` / `QueryBuilder::new` in lp-api, lp-media and
+- One SQL, two drivers (Postgres now, Django's SQLite file next; `rust-pg/workflows/sqlite_design.md`):
+  `lp_db::sql::query_as::<_, Row>(SQL)` + `#[derive(FromRow)]`, `lp_db::Qb` for dynamic SQL,
+  handles `&Db` / `&mut Conn` (`&mut *tx`) / `impl Exec<'e>`, `db.begin()` -> `Tx`. `Uuid` row
+  fields need `#[sqlx(try_from = "DjUuid")]` (`DjUuidOpt`, `DjList<T>`, `DjListOpt<T>`), tuples
+  use `DjUuid`. Rules, portable SQL subset and dialect branches: `crates/lp-core/src/db/README.md`;
+  `cargo test -p lp-db --test dialect_lint -- --nocapture` counts what is still Postgres-only.
+  Runtime-checked only: no `query!` macros, no `.sqlx/`, no DATABASE_URL at build time.
+- `clippy.toml` forbids `lp_db::sql::query*` / `Qb::new` (and `sqlx::query*`) in lp-api, lp-media and
   lp-auth: SQL lives in lp-db (and lp-jobs/ingest/tasks). Integration tests that need
   raw SQL add `#![allow(clippy::disallowed_methods)]`.
 - Authorization (`lp_db::scope`, never inline these): `owned_by`, `visible_to`
