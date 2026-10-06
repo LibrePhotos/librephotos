@@ -1,5 +1,6 @@
 //! The embedded worker (`serve`) / standalone worker (`worker`), 04 §1:
-//! `LISTEN job_queue` plus a 1 s poll, `WORKER_CONCURRENCY` slots,
+//! `LISTEN job_queue` (Postgres) or a `PRAGMA data_version` poll (SQLite) plus a
+//! 1 s poll, `WORKER_CONCURRENCY` slots,
 //! heartbeats, stale requeue, retries with backoff, schedules, graceful
 //! shutdown.
 
@@ -9,7 +10,10 @@ use std::time::Duration;
 
 use chrono::Utc;
 use lp_core::AppState;
+use lp_db::db::Db;
+use sqlx::Connection;
 use sqlx::postgres::PgListener;
+use sqlx::sqlite::{SqliteConnectOptions, SqliteConnection};
 use tokio::sync::{Notify, OwnedSemaphorePermit, Semaphore};
 use tokio::task::JoinSet;
 use tokio_util::sync::CancellationToken;
@@ -318,16 +322,25 @@ impl<T> Drop for AbortOnDrop<T> {
     }
 }
 
+/// Bumps `heartbeat_at` every `every`. On SQLite the UPDATE needs the single
+/// writer, so it queues behind other write transactions (keep those short:
+/// a writer held past `stale_after` gets the job requeued). Stopping does not
+/// wait for a queued beat.
 async fn heartbeat(state: AppState, id: i64, every: Duration, stop: CancellationToken) {
     loop {
         tokio::select! {
             _ = stop.cancelled() => return,
             _ = tokio::time::sleep(every) => {}
         }
-        if let Ok(mut conn) = state.db.acquire().await
-            && let Err(e) = queue::heartbeat(&mut conn, id).await
-        {
-            tracing::warn!(job = id, error = %e, "heartbeat failed");
+        let beat = async {
+            let mut conn = state.db.acquire().await?;
+            queue::heartbeat(&mut conn, id).await
+        };
+        tokio::select! {
+            _ = stop.cancelled() => return,
+            r = beat => if let Err(e) = r {
+                tracing::warn!(job = id, error = %e, "heartbeat failed");
+            }
         }
     }
 }
@@ -343,16 +356,20 @@ fn panic_message(e: tokio::task::JoinError) -> String {
     }
 }
 
-/// `LISTEN job_queue`: every NOTIFY pokes the claim loop. Reconnects on error.
+/// Wakes the claim loop when jobs may have arrived from another process
+/// (in-process enqueues use `AppState::job_wakeup`). Postgres: `LISTEN
+/// job_queue`, every NOTIFY pokes the claim loop. SQLite: [`listen_sqlite`].
+/// Reconnects on error.
 async fn listen(state: AppState, wake: Arc<Notify>, stop: CancellationToken) {
+    let pool = match &state.db {
+        Db::Pg(pool) => pool.clone(),
+        Db::Lite(lite) => {
+            let opts = (*lite.read_pool().connect_options()).clone();
+            return listen_sqlite(opts, SQLITE_POLL, wake, stop).await;
+        }
+    };
     loop {
-        let Some(pool) = state.db.as_pg() else {
-            // SQLITE(P2): poll `PRAGMA data_version` instead of LISTEN (design §3);
-            // until then the claim loop's own polling picks jobs up.
-            stop.cancelled().await;
-            return;
-        };
-        let mut listener = match PgListener::connect_with(pool).await {
+        let mut listener = match PgListener::connect_with(&pool).await {
             Ok(l) => l,
             Err(e) => {
                 tracing::warn!(error = %e, "LISTEN connect failed; polling only");
@@ -378,6 +395,57 @@ async fn listen(state: AppState, wake: Arc<Notify>, stop: CancellationToken) {
                         tracing::warn!(error = %e, "LISTEN connection lost");
                         break;
                     }
+                }
+            }
+        }
+    }
+}
+
+/// How often the SQLite listener polls `PRAGMA data_version` (design §3).
+pub const SQLITE_POLL: Duration = Duration::from_millis(250);
+
+/// SQLite has no NOTIFY. `PRAGMA data_version` on a dedicated connection
+/// changes whenever another connection commits (this process's writer, a
+/// separate `worker` process, Django), so a change pokes the claim loop.
+async fn listen_sqlite(
+    opts: SqliteConnectOptions,
+    every: Duration,
+    wake: Arc<Notify>,
+    stop: CancellationToken,
+) {
+    loop {
+        let mut conn = match SqliteConnection::connect_with(&opts).await {
+            Ok(c) => c,
+            Err(e) => {
+                tracing::warn!(error = %e, "data_version listener connect failed; polling only");
+                tokio::select! {
+                    _ = stop.cancelled() => return,
+                    _ = tokio::time::sleep(Duration::from_secs(5)) => continue,
+                }
+            }
+        };
+        let mut last: Option<i64> = None;
+        loop {
+            tokio::select! {
+                _ = stop.cancelled() => {
+                    let _ = conn.close().await;
+                    return;
+                }
+                _ = tokio::time::sleep(every) => {}
+            }
+            match lp_db::sql::query_scalar::<_, i64>("PRAGMA data_version")
+                .fetch_one(&mut conn)
+                .await
+            {
+                Ok(v) => {
+                    if last.is_some_and(|l| l != v) {
+                        wake.notify_one();
+                    }
+                    last = Some(v);
+                }
+                Err(e) => {
+                    tracing::warn!(error = %e, "data_version listener lost its connection");
+                    break;
                 }
             }
         }

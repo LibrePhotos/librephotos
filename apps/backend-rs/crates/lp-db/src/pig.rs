@@ -19,15 +19,21 @@ use sqlx::FromRow;
 use sqlx::types::Json;
 use uuid::Uuid;
 
-use crate::db::{DjUuid, Exec, Qb};
+use crate::db::{Dialect, DjUuid, Exec, Qb};
 use crate::users::SimpleUser;
 
 /// Stack types the frontend's `StackTypeEnum` accepts. Legacy `raw_jpeg` /
 /// `live_photo` stacks are never emitted (03 §1.5).
 pub const VALID_STACK_TYPES_SQL: &str = "('burst', 'bracket', 'manual')";
 
-/// Columns selected for a summary; the photo table must be aliased `p`.
-pub const PIG_COLUMNS: &str = "p.id, p.image_hash, p.exif_timestamp, p.rating, p.video, \
+/// The summary columns of dialect `d` (photo alias `p`, joins [`PIG_JOINS`]).
+/// SQLite builds the stacks with `json_group_array(json_object(..))` (an empty
+/// group is `'[]'`, which [`PigPhoto`] treats like NULL); `is_primary` is a
+/// JSON boolean, not SQLite's 0/1.
+pub const fn columns(d: Dialect) -> &'static str {
+    match d {
+        Dialect::Pg => {
+            "p.id, p.image_hash, p.exif_timestamp, p.rating, p.video, \
     p.video_length, p.exif_gps_lat, p.exif_gps_lon, p.removed, p.in_trashcan, p.local_orientation, \
     pig_t.aspect_ratio, pig_t.dominant_color, pig_s.search_location, \
     pig_u.id AS owner_id, pig_u.username AS owner_username, \
@@ -41,7 +47,33 @@ pub const PIG_COLUMNS: &str = "p.id, p.image_hash, p.exif_timestamp, p.rating, p
             'is_primary', COALESCE(pig_st.primary_photo_id = p.id, FALSE)) \
         ORDER BY pig_st.created_at DESC, pig_st.id) \
       FROM api_photo_stacks pig_ps JOIN api_photostack pig_st ON pig_st.id = pig_ps.photostack_id \
-      WHERE pig_ps.photo_id = p.id AND pig_st.stack_type IN ('burst', 'bracket', 'manual')) AS stacks";
+      WHERE pig_ps.photo_id = p.id AND pig_st.stack_type IN ('burst', 'bracket', 'manual')) AS stacks"
+        }
+        Dialect::Sqlite => {
+            "p.id, p.image_hash, p.exif_timestamp, p.rating, p.video, \
+    p.video_length, p.exif_gps_lat, p.exif_gps_lon, p.removed, p.in_trashcan, p.local_orientation, \
+    pig_t.aspect_ratio, pig_t.dominant_color, pig_s.search_location, \
+    pig_u.id AS owner_id, pig_u.username AS owner_username, \
+    pig_u.first_name AS owner_first_name, pig_u.last_name AS owner_last_name, \
+    (p.main_file_id IS NOT NULL AND EXISTS (SELECT 1 FROM api_file_embedded_media pig_em \
+        WHERE pig_em.from_file_id = p.main_file_id)) AS has_embedded_media, \
+    EXISTS (SELECT 1 FROM api_photo_files pig_pf JOIN api_file pig_f ON pig_f.hash = pig_pf.file_id \
+        WHERE pig_pf.photo_id = p.id AND pig_f.type = 4) AS has_raw_variant, \
+    (SELECT json_group_array(json_object('id', pig_st.id, 'type', pig_st.stack_type, \
+            'photo_count', (SELECT count(*) FROM api_photo_stacks pig_c WHERE pig_c.photostack_id = pig_st.id), \
+            'is_primary', json(CASE WHEN pig_st.primary_photo_id = p.id THEN 'true' ELSE 'false' END)) \
+        ORDER BY pig_st.created_at DESC, pig_st.id) \
+      FROM api_photo_stacks pig_ps JOIN api_photostack pig_st ON pig_st.id = pig_ps.photostack_id \
+      WHERE pig_ps.photo_id = p.id AND pig_st.stack_type IN ('burst', 'bracket', 'manual')) AS stacks"
+        }
+    }
+}
+
+/// [`columns`] of Postgres; the photo table must be aliased `p`.
+pub const PIG_COLUMNS: &str = columns(Dialect::Pg);
+
+/// [`columns`] of SQLite.
+pub const PIG_COLUMNS_SQLITE: &str = columns(Dialect::Sqlite);
 
 /// Joins required by [`PIG_COLUMNS`], to append after `FROM api_photo p`.
 pub const PIG_JOINS: &str = " LEFT JOIN api_thumbnail pig_t ON pig_t.photo_id = p.id \
@@ -175,7 +207,10 @@ impl From<PigRow> for PigPhoto {
 /// `SELECT <pig columns> FROM api_photo p <joins>`; push `" WHERE ..."`,
 /// ordering and limits yourself (alias `p`), then call [`fetch`].
 pub fn query<'a>() -> Qb<'a> {
-    Qb::new(format!("SELECT {PIG_COLUMNS} FROM api_photo p{PIG_JOINS}"))
+    let mut qb = Qb::new("SELECT ");
+    qb.push_dialect(PIG_COLUMNS, PIG_COLUMNS_SQLITE);
+    qb.push(format!(" FROM api_photo p{PIG_JOINS}"));
+    qb
 }
 
 pub async fn fetch<'e>(qb: &mut Qb<'_>, db: impl Exec<'e>) -> sqlx::Result<Vec<PigPhoto>> {
@@ -189,9 +224,15 @@ pub async fn by_ids<'e>(db: impl Exec<'e>, ids: &[Uuid]) -> sqlx::Result<Vec<Pig
     if ids.is_empty() {
         return Ok(Vec::new());
     }
+    let d = db.dialect();
+    let sel = match d {
+        Dialect::Pg => "unnest($1::uuid[]) WITH ORDINALITY AS pig_sel(id, ord)",
+        Dialect::Sqlite => "(SELECT value AS id, key AS ord FROM json_each($1)) AS pig_sel",
+    };
     let rows: Vec<PigRow> = crate::sql::query_as(format!(
-        "SELECT {PIG_COLUMNS} FROM unnest($1::uuid[]) WITH ORDINALITY AS pig_sel(id, ord) \
-         JOIN api_photo p ON p.id = pig_sel.id{PIG_JOINS} ORDER BY pig_sel.ord"
+        "SELECT {} FROM {sel} \
+         JOIN api_photo p ON p.id = pig_sel.id{PIG_JOINS} ORDER BY pig_sel.ord",
+        columns(d)
     ))
     .bind(ids)
     .fetch_all(db)

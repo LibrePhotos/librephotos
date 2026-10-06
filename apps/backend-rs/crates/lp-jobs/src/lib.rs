@@ -1,4 +1,4 @@
-//! Postgres job queue, LongRunningJob helpers and the worker (04).
+//! Job queue (Postgres or SQLite), LongRunningJob helpers and the worker (04).
 //!
 //! Enqueue: `lp_jobs::enqueue(&state, "zip.build", json!({...}), EnqueueOptions::tracked(JobType::DownloadPhotos, user.id))`.
 //! Handle: in your crate's `register_jobs`, `reg.register("zip.build", my_handler)`.

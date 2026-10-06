@@ -2,7 +2,7 @@
 
 use chrono::{DateTime, Utc};
 use lp_core::AppState;
-use lp_db::db::Conn;
+use lp_db::db::{Conn, Dialect};
 use serde_json::Value;
 use sqlx::FromRow;
 
@@ -125,15 +125,23 @@ pub async fn enqueue_many_in(conn: &mut Conn, kind: &str, payloads: &[Value]) ->
     if payloads.is_empty() {
         return Ok(0);
     }
-    let n = lp_db::sql::query(
-        "INSERT INTO job_queue (kind, payload, run_after, max_attempts) \
-         SELECT $1, p, now(), 1 FROM unnest($2::jsonb[]) AS p",
-    )
-    .bind(kind)
-    .bind(payloads)
-    .execute(&mut *conn)
-    .await?
-    .rows_affected();
+    let sql = match conn.dialect() {
+        Dialect::Pg => {
+            "INSERT INTO job_queue (kind, payload, run_after, max_attempts) \
+             SELECT $1, p, now(), 1 FROM unnest($2::jsonb[]) AS p"
+        }
+        // Each element comes out of json_each as (minified) JSON text.
+        Dialect::Sqlite => {
+            "INSERT INTO job_queue (kind, payload, run_after, max_attempts) \
+             SELECT $1, p.value, now(), 1 FROM json_each($2) AS p ORDER BY p.key"
+        }
+    };
+    let n = lp_db::sql::query(sql)
+        .bind(kind)
+        .bind(payloads)
+        .execute(&mut *conn)
+        .await?
+        .rows_affected();
     notify(&mut *conn, kind).await?;
     Ok(n)
 }
@@ -157,9 +165,9 @@ pub fn wake(state: &AppState) {
 }
 
 /// `NOTIFY job_queue, kind`: wakes the `LISTEN`ing workers once the
-/// transaction commits.
+/// transaction commits. Nothing on SQLite: workers poll
+/// `PRAGMA data_version` there (`worker::listen`, design §3).
 async fn notify(conn: &mut Conn, kind: &str) -> sqlx::Result<()> {
-    // SQLITE(P2): no NOTIFY there; workers poll `PRAGMA data_version` (design §3).
     if conn.dialect().is_pg() {
         lp_db::sql::query("SELECT pg_notify($1, $2)")
             .bind(NOTIFY_CHANNEL)
@@ -170,23 +178,41 @@ async fn notify(conn: &mut Conn, kind: &str) -> sqlx::Result<()> {
     Ok(())
 }
 
-/// Claim the next due job (`FOR UPDATE SKIP LOCKED`), marking it running.
-/// A job whose `depends_on` still has a queued or running row waits; a
-/// dependency that ended in any way (or was deleted) releases it.
+/// Claim the next due job, marking it running. A job whose `depends_on`
+/// still has a queued or running row waits; a dependency that ended in any
+/// way (or was deleted) releases it.
+///
+/// Postgres skips rows other workers locked (`FOR UPDATE SKIP LOCKED`). On
+/// SQLite the one statement runs under the database write lock, which makes
+/// it atomic across connections and processes; `depends_on` is a JSON array.
 pub async fn claim_next(
     conn: &mut Conn,
     worker_id: &str,
     kinds: &[String],
 ) -> sqlx::Result<Option<QueuedJob>> {
+    let (kind_in, deps_free, lock) = match conn.dialect() {
+        Dialect::Pg => (
+            "j.kind = ANY($2)",
+            "(cardinality(j.depends_on) = 0 OR NOT EXISTS ( \
+               SELECT 1 FROM job_queue d WHERE d.id = ANY(j.depends_on) \
+                 AND d.status IN ('queued', 'running')))",
+            " FOR UPDATE OF j SKIP LOCKED",
+        ),
+        Dialect::Sqlite => (
+            "j.kind IN (SELECT value FROM json_each($2))",
+            "(json_array_length(j.depends_on) = 0 OR NOT EXISTS ( \
+               SELECT 1 FROM json_each(j.depends_on) x JOIN job_queue d ON d.id = x.value \
+               WHERE d.status IN ('queued', 'running')))",
+            "",
+        ),
+    };
     lp_db::sql::query_as::<_, QueuedJob>(&format!(
         "UPDATE job_queue SET status = 'running', locked_by = $1, heartbeat_at = now(), \
            started_at = COALESCE(started_at, now()), attempts = attempts + 1 \
          WHERE id = (SELECT j.id FROM job_queue j \
-                     WHERE j.status = 'queued' AND j.run_after <= now() AND j.kind = ANY($2) \
-                       AND (cardinality(j.depends_on) = 0 OR NOT EXISTS ( \
-                         SELECT 1 FROM job_queue d WHERE d.id = ANY(j.depends_on) \
-                           AND d.status IN ('queued', 'running'))) \
-                     ORDER BY j.run_after, j.id FOR UPDATE OF j SKIP LOCKED LIMIT 1) \
+                     WHERE j.status = 'queued' AND j.run_after <= now() AND {kind_in} \
+                       AND {deps_free} \
+                     ORDER BY j.run_after, j.id{lock} LIMIT 1) \
          RETURNING {JOB_COLUMNS}"
     ))
     .bind(worker_id)
@@ -197,13 +223,20 @@ pub async fn claim_next(
 
 /// NOTIFY the workers when a queued job waits on `id`, which just finished.
 pub async fn notify_dependents(conn: &mut Conn, id: i64) -> sqlx::Result<bool> {
-    let kind: Option<String> = lp_db::sql::query_scalar(
-        "SELECT kind FROM job_queue \
-         WHERE status = 'queued' AND depends_on @> ARRAY[$1::bigint] LIMIT 1",
-    )
-    .bind(id)
-    .fetch_optional(&mut *conn)
-    .await?;
+    let sql = match conn.dialect() {
+        Dialect::Pg => {
+            "SELECT kind FROM job_queue \
+             WHERE status = 'queued' AND depends_on @> ARRAY[$1::bigint] LIMIT 1"
+        }
+        Dialect::Sqlite => {
+            "SELECT kind FROM job_queue WHERE status = 'queued' \
+               AND EXISTS (SELECT 1 FROM json_each(depends_on) WHERE value = $1) LIMIT 1"
+        }
+    };
+    let kind: Option<String> = lp_db::sql::query_scalar(sql)
+        .bind(id)
+        .fetch_optional(&mut *conn)
+        .await?;
     let Some(kind) = kind else {
         return Ok(false);
     };
@@ -279,7 +312,10 @@ pub const STALE_EXTRA_ATTEMPTS: i32 = 2;
 pub async fn requeue_stale(conn: &mut Conn, stale_secs: i64) -> sqlx::Result<(u64, u64)> {
     // Like a final failed attempt, a lost job fails its LongRunningJob
     // (except fan-out children), or the UI would show it running for 24 h.
-    let failed: i64 = lp_db::sql::query_scalar(
+    match conn.dialect() {
+        Dialect::Sqlite => requeue_stale_sqlite(conn, stale_secs).await,
+        Dialect::Pg => {
+            let failed: i64 = lp_db::sql::query_scalar(
         "WITH lost AS ( \
            UPDATE job_queue SET status = 'failed', finished_at = now(), locked_by = NULL, \
              last_error = 'worker lost (stale heartbeat)' \
@@ -298,26 +334,71 @@ pub async fn requeue_stale(conn: &mut Conn, stale_secs: i64) -> sqlx::Result<(u6
     .bind(STALE_EXTRA_ATTEMPTS)
     .fetch_one(&mut *conn)
     .await?;
-    let failed = failed as u64;
+            let failed = failed as u64;
+            let requeued = lp_db::sql::query(
+                "UPDATE job_queue SET status = 'queued', locked_by = NULL \
+         WHERE status = 'running' AND heartbeat_at < now() - make_interval(secs => $1)",
+            )
+            .bind(stale_secs as f64)
+            .execute(&mut *conn)
+            .await?
+            .rows_affected();
+            Ok((requeued, failed))
+        }
+    }
+}
+
+/// [`requeue_stale`] on SQLite: no DML in CTEs there, so the lost rows are
+/// failed first (`RETURNING` their LongRunningJobs), then those jobs, then
+/// the rest is requeued. The cutoff is computed here (no intervals).
+async fn requeue_stale_sqlite(conn: &mut Conn, stale_secs: i64) -> sqlx::Result<(u64, u64)> {
+    let cutoff = Utc::now() - chrono::Duration::seconds(stale_secs);
+    let lost: Vec<(Option<String>, Option<String>)> = lp_db::sql::query_as(
+        "UPDATE job_queue SET status = 'failed', finished_at = now(), locked_by = NULL, \
+           last_error = 'worker lost (stale heartbeat)' \
+         WHERE status = 'running' AND heartbeat_at < $1 AND attempts >= max_attempts + $2 \
+         RETURNING lrj_id, group_id",
+    )
+    .bind(cutoff)
+    .bind(STALE_EXTRA_ATTEMPTS)
+    .fetch_all(&mut *conn)
+    .await?;
+    let lrjs: Vec<String> = lost
+        .iter()
+        .filter(|(_, group)| group.is_none())
+        .filter_map(|(lrj, _)| lrj.clone())
+        .collect();
+    if !lrjs.is_empty() {
+        lp_db::sql::query(
+            "UPDATE api_longrunningjob SET failed = TRUE, finished = TRUE, finished_at = now(), \
+               result = $2 \
+             WHERE NOT finished AND job_id IN (SELECT value FROM json_each($1))",
+        )
+        .bind(&lrjs)
+        .bind(serde_json::json!({"status": "failed", "error": "worker lost (stale heartbeat)"}))
+        .execute(&mut *conn)
+        .await?;
+    }
     let requeued = lp_db::sql::query(
         "UPDATE job_queue SET status = 'queued', locked_by = NULL \
-         WHERE status = 'running' AND heartbeat_at < now() - make_interval(secs => $1)",
+         WHERE status = 'running' AND heartbeat_at < $1",
     )
-    .bind(stale_secs as f64)
+    .bind(cutoff)
     .execute(&mut *conn)
     .await?
     .rows_affected();
-    Ok((requeued, failed))
+    Ok((requeued, lost.len() as u64))
 }
 
 /// Graceful shutdown: hand unfinished rows back to the queue without
 /// counting the interrupted attempt.
 pub async fn release(conn: &mut Conn, ids: &[i64]) -> sqlx::Result<u64> {
-    Ok(lp_db::sql::query(
+    let id_in = lp_db::sql::any_sql(conn.dialect(), "id", 1);
+    Ok(lp_db::sql::query(format!(
         "UPDATE job_queue SET status = 'queued', locked_by = NULL, \
-           attempts = GREATEST(attempts - 1, 0) \
-         WHERE id = ANY($1) AND status = 'running'",
-    )
+           attempts = CASE WHEN attempts > 0 THEN attempts - 1 ELSE 0 END \
+         WHERE {id_in} AND status = 'running'"
+    ))
     .bind(ids)
     .execute(conn)
     .await?

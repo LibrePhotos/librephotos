@@ -3,6 +3,7 @@
 
 use std::time::Duration;
 
+use chrono::{DateTime, Utc};
 use lp_db::db::Db;
 
 use crate::queue::{EnqueueOptions, enqueue_in};
@@ -60,17 +61,32 @@ pub const SCHEDULES: &[Schedule] = &[
 pub async fn run_due(db: &Db, schedules: &[Schedule]) -> sqlx::Result<Vec<&'static str>> {
     let mut fired = Vec::new();
     for s in schedules {
+        // A due check that reads first: on SQLite `begin()` takes the single
+        // writer, so a schedule that is not due should not ask for it.
+        let next: Option<Option<DateTime<Utc>>> =
+            lp_db::sql::query_scalar("SELECT next_run_at FROM schedule_state WHERE name = $1")
+                .bind(s.name)
+                .fetch_optional(db)
+                .await?;
+        if let Some(Some(at)) = next
+            && at > Utc::now()
+        {
+            continue;
+        }
+        let now = Utc::now();
+        let every = chrono::Duration::from_std(s.every).unwrap_or(chrono::Duration::days(1));
         let mut tx = db.begin().await?;
         let won: Option<String> = lp_db::sql::query_scalar(
             "INSERT INTO schedule_state (name, last_run_at, next_run_at) \
-             VALUES ($1, now(), now() + make_interval(secs => $2)) \
+             VALUES ($1, $2, $3) \
              ON CONFLICT (name) DO UPDATE \
                SET last_run_at = EXCLUDED.last_run_at, next_run_at = EXCLUDED.next_run_at \
-               WHERE schedule_state.next_run_at IS NULL OR schedule_state.next_run_at <= now() \
+               WHERE schedule_state.next_run_at IS NULL OR schedule_state.next_run_at <= $2 \
              RETURNING name",
         )
         .bind(s.name)
-        .bind(s.every.as_secs_f64())
+        .bind(now)
+        .bind(now + every)
         .fetch_optional(&mut *tx)
         .await?;
         if won.is_some() {

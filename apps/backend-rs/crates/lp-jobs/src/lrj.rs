@@ -234,7 +234,7 @@ pub async fn fail<'e>(db: impl Exec<'e>, job_id: &str, error: &str) -> sqlx::Res
 pub async fn cancel<'e>(db: impl Exec<'e>, job_id: &str) -> sqlx::Result<bool> {
     let n = lp_db::sql::query(
         "UPDATE api_longrunningjob SET cancelled = TRUE, finished = TRUE, finished_at = now(), \
-           result = '{\"status\": \"cancelled\"}'::jsonb WHERE job_id = $1 AND NOT finished",
+           result = '{\"status\": \"cancelled\"}' WHERE job_id = $1 AND NOT finished",
     )
     .bind(job_id)
     .execute(db)

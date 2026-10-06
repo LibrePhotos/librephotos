@@ -18,7 +18,7 @@ use serde_json::Value;
 use sqlx::FromRow;
 use uuid::Uuid;
 
-use crate::db::{Exec, Qb};
+use crate::db::{Exec, IntoArg, Qb};
 
 /// `PhotoQuerySet.owned_by(user)`: `owner_id = user`.
 pub fn owned_by(qb: &mut Qb<'_>, p: &str, user_id: i32) {
@@ -115,8 +115,11 @@ pub fn folder(qb: &mut Qb<'_>, p: &str, folder: &str) {
         if i > 0 {
             qb.push(" OR ");
         }
-        qb.push("fx.path LIKE ");
-        qb.push_bind(format!("{}%", like_escape(&prefix)));
+        // SQLite has no default LIKE escape character (Postgres: backslash).
+        // Both are case-sensitive here except SQLite's ASCII folding, which
+        // Django's `startswith` on SQLite shares.
+        let n = qb.bind_arg(format!("{}%", like_escape(&prefix)).into_arg());
+        qb.push(format!("fx.path LIKE ${n} ESCAPE '\\'"));
     }
     qb.push("))");
 }
@@ -137,7 +140,8 @@ pub fn folder_path_prefixes(folder_path: &str) -> Vec<String> {
     }
 }
 
-/// Django's `prep_for_like_query`: escape `\`, `%`, `_` for `LIKE` (default escape `\`).
+/// Django's `prep_for_like_query`: escape `\`, `%`, `_` for `LIKE`. Always
+/// write `LIKE .. ESCAPE '\'` (or `sql::like`): SQLite has no default escape.
 pub fn like_escape(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
     for c in s.chars() {
@@ -314,9 +318,9 @@ impl PhotoGrants {
 pub fn photo_grants_select(p: &str, user: &str) -> String {
     format!(
         "COALESCE({p}.owner_id = {user}, FALSE) AS is_owner, \
-         ({user}::int IS NOT NULL AND EXISTS (SELECT 1 FROM api_photo_shared_to st \
+         ({user} IS NOT NULL AND EXISTS (SELECT 1 FROM api_photo_shared_to st \
             WHERE st.photo_id = {p}.id AND st.user_id = {user})) AS shared_directly, \
-         ({user}::int IS NOT NULL AND EXISTS (SELECT 1 FROM api_albumuser_photos ap \
+         ({user} IS NOT NULL AND EXISTS (SELECT 1 FROM api_albumuser_photos ap \
             JOIN api_albumuser a ON a.id = ap.albumuser_id \
             JOIN api_albumuser_shared_to ast ON ast.albumuser_id = a.id \
             WHERE ap.photo_id = {p}.id AND a.owner_id = {p}.owner_id AND ast.user_id = {user})) AS album_shared_to_user, \
@@ -385,7 +389,7 @@ mod tests {
         assert!(sql.contains("p.owner_id = $1"));
         assert!(sql.contains("p.rating >= $2"));
         assert!(sql.contains("fx.person_id = $4"));
-        assert!(sql.contains("fx.path LIKE $5"));
+        assert!(sql.contains("fx.path LIKE $5 ESCAPE '\\'"));
         assert!(sql.contains("NOT p.in_trashcan"));
     }
 

@@ -148,6 +148,39 @@ pub fn json_type_is(d: Dialect, expr: &str, kind: JsonKind) -> String {
     }
 }
 
+/// The model Django's embeddings come from (`SemanticModel::stored` of NULL).
+pub const CLIP_MODEL_DJANGO: &str = "clip_vit_b32";
+
+/// The model that produced `{p}.clip_embeddings`, NULL when Django (or Rust
+/// before the column existed) wrote it: the `clip_embeddings_model` column on
+/// Postgres, the `lp_photo_clip_model` side table on SQLite (design §4: a
+/// Django rebuild of `api_photo` would drop an added column). `p` is the
+/// `api_photo` alias.
+pub fn clip_model(d: Dialect, p: &str) -> String {
+    match d {
+        Dialect::Pg => format!("{p}.clip_embeddings_model"),
+        Dialect::Sqlite => {
+            format!(
+                "(SELECT lp_cm.model FROM lp_photo_clip_model lp_cm WHERE lp_cm.photo_id = {p}.id)"
+            )
+        }
+    }
+}
+
+/// [`clip_model`] with NULL read as [`CLIP_MODEL_DJANGO`]
+/// (`coalesce(clip_embeddings_model, 'clip_vit_b32')`).
+pub fn stored_clip_model(d: Dialect, p: &str) -> String {
+    format!("coalesce({}, '{CLIP_MODEL_DJANGO}')", clip_model(d, p))
+}
+
+/// SQLite only: records the model of an embedding Rust just wrote. Run it
+/// in the same transaction, AFTER the `UPDATE api_photo SET clip_embeddings`
+/// (whose `lp_clip_embeddings_model_reset` trigger deletes the row).
+/// Binds `$1` = photo id, `$2` = model name. On Postgres the UPDATE sets the
+/// `clip_embeddings_model` column itself.
+pub const SQLITE_SET_CLIP_MODEL: &str = "INSERT INTO lp_photo_clip_model (photo_id, model) \
+     VALUES ($1, $2) ON CONFLICT (photo_id) DO UPDATE SET model = excluded.model";
+
 /// The current time. `now()` on both: SQLite connections of this layer
 /// register a `now()` function returning Django's datetime text (stable
 /// within a transaction). Other SQLite clients (DDL defaults) should use
