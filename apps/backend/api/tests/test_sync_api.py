@@ -217,6 +217,20 @@ class SyncTombstoneTest(TestCase):
         _items2, tombs2, _c = sync_pull(self.client, url, cursor=cursor)
         self.assertIn(pid, tombs2)
 
+    def test_person_delete_through_the_api_emits_tombstone(self):
+        """``PersonViewSet`` defers ``kind``: the receiver must not refetch it
+        after the row is gone (that 500ed and rolled the delete back)."""
+        person = Person.objects.create(
+            name="Bea", kind=Person.KIND_USER, cluster_owner=self.user
+        )
+        url = "/api/sync/persons/"
+        _items, _tomb, cursor = sync_pull(self.client, url)
+        resp = self.client.delete(f"/api/persons/{person.id}/")
+        self.assertEqual(resp.status_code, 204)
+        self.assertFalse(Person.objects.filter(pk=person.pk).exists())
+        _items2, tombs2, _c = sync_pull(self.client, url, cursor=cursor)
+        self.assertIn(str(person.id), tombs2)
+
     def test_tag_delete_emits_tombstone(self):
         tag = Tag.objects.create(name="beach", owner=self.user)
         url = "/api/sync/albums/tag/"
@@ -627,5 +641,6 @@ class SyncSignalRegistrationTest(TestCase):
             "sync_share_album_thing",
             "sync_share_album_place",
             "sync_photo_share",
+            "sync_capture_person",
         }
         self.assertEqual(expected - live, set())

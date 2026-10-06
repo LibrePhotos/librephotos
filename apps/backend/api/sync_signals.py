@@ -229,13 +229,22 @@ def _make_owned_tombstone(entity, owner_attr="owner_id", shared=False):
     return handler
 
 
+def _capture_person(sender, instance, **kwargs):
+    """Read ``kind`` / ``cluster_owner_id`` while the row still exists.
+
+    ``PersonViewSet`` loads persons with ``.only(...)``, which defers both
+    fields; touching a deferred field after the delete refetches the row and
+    raises ``DoesNotExist``, failing (and rolling back) the whole delete.
+    """
+    instance._sync_person = (instance.kind, instance.cluster_owner_id)
+
+
 def _person_tombstone(sender, instance, **kwargs):
     # Only USER-kind persons are mirrored (People album grid), so only they
     # need tombstones; cluster/unknown persons churn on every clustering run.
-    if instance.kind == Person.KIND_USER and instance.cluster_owner_id:
-        _write_tombstones(
-            DeletionLog.ENTITY_PERSON, instance.pk, [instance.cluster_owner_id]
-        )
+    kind, owner_id = getattr(instance, "_sync_person", (None, None))
+    if kind == Person.KIND_USER and owner_id:
+        _write_tombstones(DeletionLog.ENTITY_PERSON, instance.pk, [owner_id])
 
 
 # --------------------------------------------------------------------------- #
@@ -308,6 +317,12 @@ def register():
             weak=False,
         )
 
+    pre_delete.connect(
+        _capture_person,
+        sender=Person,
+        dispatch_uid="sync_capture_person",
+        weak=False,
+    )
     post_delete.connect(
         _person_tombstone,
         sender=Person,
