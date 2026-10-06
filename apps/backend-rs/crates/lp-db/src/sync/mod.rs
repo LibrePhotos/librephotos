@@ -9,14 +9,16 @@
 //! side of a share with the viewer.
 //!
 //! Relations that Django reads without an `ORDER BY` (album membership, thing
-//! covers) come back in through-row id order here, which is the insertion
-//! order Django sees on a table that has not had rows deleted.
+//! covers) come back in Django's scan order: through-row id order on
+//! Postgres (the heap order of a table that has not had rows deleted), and
+//! `(album, photo_id)` on SQLite, where Django's `album_id IN (..)` reads
+//! the covering unique `(album_id, photo_id)` index ([`through_order`]).
 
 use chrono::{DateTime, Utc};
 use sqlx::FromRow;
 use uuid::Uuid;
 
-use crate::db::{Db, DjUuid, DjUuidOpt, Qb, sql};
+use crate::db::{Db, Dialect, DjUuid, DjUuidOpt, Qb, sql};
 use crate::scope::owned_or_shared;
 use crate::write::deletion_log::AlbumKind;
 
@@ -313,8 +315,18 @@ pub async fn tags_total(db: &Db, user_id: i32) -> sqlx::Result<i64> {
         .await
 }
 
+/// Django's scan order of an M2M through table read with `fk IN (..)` and
+/// no `ORDER BY`: row id (heap) order on Postgres, the covering unique
+/// `(fk, photo_id)` index on SQLite. `t` is the table alias prefix (`"c."`).
+fn through_order(d: Dialect, t: &str, fk: &str) -> String {
+    match d {
+        Dialect::Pg => format!("{t}id"),
+        Dialect::Sqlite => format!("{t}{fk}, {t}photo_id"),
+    }
+}
+
 /// `(album_id, photo_id)` membership rows of `album_ids` (user or auto
-/// albums), in through-row order.
+/// albums), in Django's scan order ([`through_order`]).
 pub async fn album_members(
     db: &Db,
     kind: AlbumKind,
@@ -330,8 +342,9 @@ pub async fn album_members(
         return Ok(Vec::new());
     }
     let rows: Vec<(i32, DjUuidOpt)> = crate::sql::query_as(format!(
-        "SELECT {fk}, photo_id FROM {table} WHERE {} ORDER BY id",
-        sql::any_sql(db.dialect(), fk, 1)
+        "SELECT {fk}, photo_id FROM {table} WHERE {} ORDER BY {}",
+        sql::any_sql(db.dialect(), fk, 1),
+        through_order(db.dialect(), "", fk)
     ))
     .bind(album_ids)
     .fetch_all(db)
@@ -369,7 +382,7 @@ pub async fn photo_hashes(db: &Db, ids: &[Uuid]) -> sqlx::Result<Vec<(Uuid, Stri
 }
 
 /// `(album_id, image_hash)` of the thing albums' cover photos, non-empty
-/// hashes only, in through-row order.
+/// hashes only, in Django's scan order ([`through_order`]).
 pub async fn thing_covers(db: &Db, album_ids: &[i32]) -> sqlx::Result<Vec<(i32, String)>> {
     if album_ids.is_empty() {
         return Ok(Vec::new());
@@ -377,8 +390,9 @@ pub async fn thing_covers(db: &Db, album_ids: &[i32]) -> sqlx::Result<Vec<(i32, 
     crate::sql::query_as(format!(
         "SELECT c.albumthing_id, p.image_hash FROM api_albumthing_cover_photos c \
          JOIN api_photo p ON p.id = c.photo_id \
-         WHERE {} AND p.image_hash <> '' ORDER BY c.id",
-        sql::any_sql(db.dialect(), "c.albumthing_id", 1)
+         WHERE {} AND p.image_hash <> '' ORDER BY {}",
+        sql::any_sql(db.dialect(), "c.albumthing_id", 1),
+        through_order(db.dialect(), "c.", "albumthing_id")
     ))
     .bind(album_ids)
     .fetch_all(db)
