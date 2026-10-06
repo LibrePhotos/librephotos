@@ -152,6 +152,13 @@ Shared files (`lp-api/src/lib.rs`, `lp-api/src/common/`, `lp-db/src/{scope,pig,u
 - `serve` embeds the worker (`worker` runs it alone). It claims only registered kinds,
   runs the `maintenance.*` schedules, and fails a handler's LongRunningJob only after
   the last attempt; handlers finish their own LRJ.
+- Shutdown (Ctrl-C, SIGTERM; Ctrl-Break / console close on Windows): the listener stops,
+  the worker claims nothing new and gives running jobs `LP_SHUTDOWN_GRACE_SECS` (8) to stop.
+  Long handlers check `lp_jobs::shutting_down()` at safe points and return
+  `lp_jobs::interrupted()` (cleaning partial output first); the row goes back to the queue
+  (attempt not counted, LRJ left running). Handlers still running after the grace are
+  aborted and handed back the same way, so keep partial files behind drop guards
+  (zip `.part`, ffmpeg output). Scan and zip have safe points.
 
 ## ML (`lp-ml`)
 

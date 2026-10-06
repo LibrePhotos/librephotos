@@ -38,3 +38,43 @@ async fn registry_builds_without_duplicate_kinds() {
     dedup.dedup();
     assert_eq!(kinds, dedup);
 }
+
+/// `serve_until`: the shutdown token (what SIGTERM / Ctrl-C / Ctrl-Break
+/// cancel) stops the listener, then the embedded worker, and returns.
+#[tokio::test]
+async fn serve_stops_on_the_shutdown_signal() {
+    let app = TestApp::new().await;
+    let mut config = (*app.state.config).clone();
+    let probe = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    config.bind = probe.local_addr().unwrap();
+    drop(probe);
+    let bind = config.bind;
+    let stop = tokio_util::sync::CancellationToken::new();
+    let server = tokio::spawn(lp_server::serve_until(config, false, stop.clone()));
+    let url = format!("http://{bind}/api/healthz");
+    let client = reqwest::Client::new();
+    let mut up = false;
+    for _ in 0..100 {
+        if client
+            .get(&url)
+            .send()
+            .await
+            .is_ok_and(|r| r.status() == 200)
+        {
+            up = true;
+            break;
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+    }
+    assert!(up, "server came up");
+    let t = std::time::Instant::now();
+    stop.cancel();
+    tokio::time::timeout(std::time::Duration::from_secs(20), server)
+        .await
+        .expect("serve returns after the signal")
+        .unwrap()
+        .unwrap();
+    assert!(t.elapsed() < std::time::Duration::from_secs(15));
+    assert!(client.get(&url).send().await.is_err(), "listener closed");
+    app.cleanup().await;
+}

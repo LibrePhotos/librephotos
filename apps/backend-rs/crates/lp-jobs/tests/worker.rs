@@ -475,6 +475,87 @@ async fn notify_wakes_the_worker_and_slots_bound_concurrency() {
     app.cleanup().await;
 }
 
+/// A handler that checks `shutting_down()` stops at its safe point within
+/// the grace period, cleans up its partial output and is handed back (not
+/// failed, attempt not counted), its LongRunningJob left running.
+#[tokio::test]
+async fn shutdown_stops_handlers_at_a_safe_point() {
+    let app = lp_testkit::TestApp::shared().await;
+    let kind = unique("safe");
+    let dir = tempfile::tempdir().unwrap();
+    let part = dir.path().join("out.part");
+    let steps = Arc::new(AtomicUsize::new(0));
+    let mut reg = HandlerRegistry::new();
+    let (p, s) = (part.clone(), steps.clone());
+    reg.register(&kind, move |_ctx: JobCtx| {
+        let (p, s) = (p.clone(), s.clone());
+        async move {
+            std::fs::write(&p, b"half")?;
+            loop {
+                if lp_jobs::shutting_down() {
+                    std::fs::remove_file(&p)?;
+                    return Err(lp_jobs::interrupted());
+                }
+                s.fetch_add(1, Ordering::SeqCst);
+                tokio::time::sleep(Duration::from_millis(20)).await;
+            }
+        }
+    });
+    let timing = WorkerTiming {
+        shutdown_grace: Duration::from_secs(5),
+        ..fast()
+    };
+    let w = start(&app.state, reg, 1, timing);
+    let user = app
+        .create_user(&unique("u").replace('.', "_"), "pw", false)
+        .await;
+    let e = lp_jobs::enqueue(
+        &app.state,
+        &kind,
+        json!({}),
+        EnqueueOptions::tracked(JobType::ScanPhotos, user.id),
+    )
+    .await
+    .unwrap();
+    wait_status(app.pool(), e.id, "running").await;
+    wait_for("a few steps", Duration::from_secs(5), || {
+        let s = steps.clone();
+        async move { s.load(Ordering::SeqCst) > 2 }
+    })
+    .await;
+    assert!(part.exists());
+    let t = Instant::now();
+    w.shutdown().await;
+    assert!(
+        t.elapsed() < Duration::from_secs(2),
+        "stopped at the safe point, not after the grace period"
+    );
+    assert!(!part.exists(), "partial output removed");
+    let (status, attempts, locked, last_error): (String, i32, Option<String>, Option<String>) =
+        sqlx::query_as(
+            "SELECT status, attempts, locked_by, last_error FROM job_queue WHERE id = $1",
+        )
+        .bind(e.id)
+        .fetch_one(app.pool())
+        .await
+        .unwrap();
+    assert_eq!(
+        (status.as_str(), attempts, locked, last_error),
+        ("queued", 0, None, None)
+    );
+    let job = lrj::get(app.pool(), e.lrj_id.as_deref().unwrap())
+        .await
+        .unwrap()
+        .unwrap();
+    assert!(!job.failed && !job.finished, "the UI job is not failed");
+    sqlx::query("DELETE FROM job_queue WHERE id = $1")
+        .bind(e.id)
+        .execute(app.pool())
+        .await
+        .unwrap();
+    app.cleanup().await;
+}
+
 #[tokio::test]
 async fn shutdown_hands_running_jobs_back() {
     let app = lp_testkit::TestApp::shared().await;

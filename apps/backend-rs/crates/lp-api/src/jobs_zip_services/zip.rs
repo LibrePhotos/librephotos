@@ -363,11 +363,15 @@ pub async fn build(ctx: JobCtx) -> anyhow::Result<()> {
     tokio::fs::create_dir_all(&dir).await?;
     let final_path = dir.join(&name);
     let part = dir.join(format!("{name}.part"));
+    // Removes the `.part` if this future is dropped half way (the worker
+    // aborts jobs still running when the shutdown grace ends).
+    let guard = PartGuard(Some(part.clone()));
 
     let result = write_archive(&ctx, &p, &lrj_id, &part).await;
     match result {
         Ok(true) => {
             tokio::fs::rename(&part, &final_path).await?;
+            guard.disarm();
             lrj::finish(&db, &lrj_id, None).await?;
             Ok(())
         }
@@ -382,7 +386,25 @@ pub async fn build(ctx: JobCtx) -> anyhow::Result<()> {
     }
 }
 
-/// Writes every photo's files; false when the job was cancelled.
+struct PartGuard(Option<std::path::PathBuf>);
+
+impl PartGuard {
+    fn disarm(mut self) {
+        self.0 = None;
+    }
+}
+
+impl Drop for PartGuard {
+    fn drop(&mut self) {
+        if let Some(p) = self.0.take() {
+            let _ = std::fs::remove_file(p);
+        }
+    }
+}
+
+/// Writes every photo's files; false when the job was cancelled, the
+/// `Interrupted` error when the worker is shutting down (the job is handed
+/// back and starts over).
 async fn write_archive(
     ctx: &JobCtx,
     p: &ZipPayload,
@@ -412,6 +434,10 @@ async fn write_archive(
         if i > 0 && i % CANCEL_CHECK_EVERY == 0 && ctx.is_cancelled().await {
             progress.flush().await?;
             return Ok(false);
+        }
+        if lp_jobs::shutting_down() {
+            progress.flush().await?;
+            return Err(lp_jobs::interrupted());
         }
         let mut a = archive.take().expect("archive present");
         a = state

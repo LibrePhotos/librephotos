@@ -42,10 +42,20 @@ impl Default for WorkerTiming {
             heartbeat: Duration::from_secs(10),
             stale_after: Duration::from_secs(120),
             maintenance: Duration::from_secs(30),
-            shutdown_grace: Duration::from_secs(8),
+            shutdown_grace: shutdown_grace(),
             retry_base: Duration::from_secs(5),
         }
     }
+}
+
+/// `LP_SHUTDOWN_GRACE_SECS` (default 8, under Docker's 10 s stop timeout):
+/// how long running jobs get to reach a safe point after a shutdown signal.
+pub fn shutdown_grace() -> Duration {
+    let secs = std::env::var("LP_SHUTDOWN_GRACE_SECS")
+        .ok()
+        .and_then(|v| v.trim().parse::<u64>().ok())
+        .unwrap_or(8);
+    Duration::from_secs(secs)
 }
 
 pub struct Worker {
@@ -130,6 +140,7 @@ impl Worker {
                             self.timing.clone(),
                             in_flight.clone(),
                             permit,
+                            shutdown.clone(),
                         ));
                         continue;
                     }
@@ -147,6 +158,13 @@ impl Worker {
         }
 
         bg.cancel();
+        if !tasks.is_empty() {
+            tracing::info!(
+                running = tasks.len(),
+                grace_secs = self.timing.shutdown_grace.as_secs_f64(),
+                "shutting down: no new jobs; waiting for running ones to reach a safe point"
+            );
+        }
         let drained = tokio::time::timeout(self.timing.shutdown_grace, async {
             while tasks.join_next().await.is_some() {}
         })
@@ -192,6 +210,13 @@ pub fn backoff(attempts: i32, base: Duration) -> Duration {
     (base * (1u32 << exp)).min(Duration::from_secs(600))
 }
 
+enum Outcome {
+    Done,
+    Failed(String),
+    /// Stopped at a safe point for shutdown ([`crate::shutdown`]).
+    Interrupted,
+}
+
 async fn run_job(
     state: AppState,
     registry: Arc<HandlerRegistry>,
@@ -199,6 +224,7 @@ async fn run_job(
     timing: WorkerTiming,
     in_flight: Arc<Mutex<HashSet<i64>>>,
     _permit: OwnedSemaphorePermit,
+    shutdown: CancellationToken,
 ) {
     let id = job.id;
     let kind = job.kind.clone();
@@ -212,8 +238,8 @@ async fn run_job(
         hb_stop.clone(),
     )));
 
-    let outcome: Result<(), String> = match handler {
-        None => Err(format!("no handler for job kind {kind:?}")),
+    let outcome = match handler {
+        None => Outcome::Failed(format!("no handler for job kind {kind:?}")),
         Some(h) => {
             let ctx = JobCtx {
                 state: state.clone(),
@@ -221,12 +247,15 @@ async fn run_job(
             };
             // Aborting run_job (shutdown past its grace) must stop the handler
             // too: its row is handed back and would otherwise run twice.
-            let mut handle = AbortOnDrop(tokio::spawn(h(ctx)));
+            let mut handle = AbortOnDrop(tokio::spawn(crate::shutdown::scope(shutdown, h(ctx))));
             match (&mut handle.0).await {
-                Ok(Ok(())) => Ok(()),
-                Ok(Err(e)) => Err(format!("{e:#}")),
-                Err(e) if e.is_panic() => Err(format!("job panicked: {}", panic_message(e))),
-                Err(e) => Err(format!("job aborted: {e}")),
+                Ok(Ok(())) => Outcome::Done,
+                Ok(Err(e)) if crate::shutdown::is_interrupted(&e) => Outcome::Interrupted,
+                Ok(Err(e)) => Outcome::Failed(format!("{e:#}")),
+                Err(e) if e.is_panic() => {
+                    Outcome::Failed(format!("job panicked: {}", panic_message(e)))
+                }
+                Err(e) => Outcome::Failed(format!("job aborted: {e}")),
             }
         }
     };
@@ -236,7 +265,16 @@ async fn run_job(
     let record = async {
         let mut conn = state.db.acquire().await?;
         match &outcome {
-            Ok(()) => {
+            Outcome::Interrupted => {
+                queue::release(&mut conn, &[id]).await?;
+                tracing::info!(
+                    job = id,
+                    kind,
+                    "job stopped at a safe point; handed back to the queue"
+                );
+                return Ok(());
+            }
+            Outcome::Done => {
                 queue::mark_done(&mut conn, id).await?;
                 tracing::info!(
                     job = id,
@@ -245,7 +283,7 @@ async fn run_job(
                     "job done"
                 );
             }
-            Err(msg) => {
+            Outcome::Failed(msg) => {
                 let retry_at = Utc::now()
                     + chrono::Duration::from_std(backoff(job.attempts, timing.retry_base))
                         .unwrap_or_default();

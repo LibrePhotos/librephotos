@@ -504,6 +504,9 @@ with Image.open(sys.argv[1]) as image:\n    ImageOps.exif_transpose(image).conve
     }
 
     async fn run_ffmpeg(&self, args: &[String], output: &Path) -> anyhow::Result<()> {
+        // Dropping this future (a job aborted at shutdown) kills ffmpeg
+        // (`kill_on_drop`); the guard then removes the half-written output.
+        let guard = PartialOutput(Some(output.to_path_buf()));
         let child = tokio::process::Command::new(&self.ffmpeg)
             .no_window()
             .args(args)
@@ -514,7 +517,10 @@ with Image.open(sys.argv[1]) as image:\n    ImageOps.exif_transpose(image).conve
             .spawn()
             .with_context(|| format!("starting {}", self.ffmpeg.display()))?;
         match tokio::time::timeout(FFMPEG_TIMEOUT, child.wait_with_output()).await {
-            Ok(Ok(out)) if out.status.success() => Ok(()),
+            Ok(Ok(out)) if out.status.success() => {
+                guard.keep();
+                Ok(())
+            }
             Ok(Ok(out)) => {
                 let _ = std::fs::remove_file(output);
                 bail!(
@@ -752,4 +758,21 @@ fn rust_webp_q(img: &image::DynamicImage, out: &Path, quality: i32) -> anyhow::R
 /// Image size from the file header (Pillow's `Image.open(...).size`).
 pub fn image_size(path: &Path) -> Option<(u32, u32)> {
     image::image_dimensions(path).ok()
+}
+
+/// Removes a file on drop unless [`PartialOutput::keep`] was called.
+pub struct PartialOutput(pub Option<PathBuf>);
+
+impl PartialOutput {
+    pub fn keep(mut self) {
+        self.0 = None;
+    }
+}
+
+impl Drop for PartialOutput {
+    fn drop(&mut self) {
+        if let Some(p) = self.0.take() {
+            let _ = std::fs::remove_file(p);
+        }
+    }
 }

@@ -6,6 +6,7 @@
 
 #![allow(clippy::disallowed_methods)] // not a handler crate: SQL allowed here
 
+use std::future::IntoFuture;
 use std::sync::OnceLock;
 use std::time::Duration;
 
@@ -217,11 +218,33 @@ pub fn init_tracing(config: &Config) {
     });
 }
 
-/// `librephotos-rs serve`: API + embedded worker until Ctrl-C.
+/// How long open HTTP connections (a download, a long poll) get to finish
+/// after a shutdown signal before the server stops anyway.
+pub const HTTP_DRAIN: Duration = Duration::from_secs(10);
+
+/// `librephotos-rs serve`: API + embedded worker until Ctrl-C / SIGTERM
+/// (Ctrl-Break or console close on Windows).
 pub async fn serve(config: Config, run_migrations: bool) -> anyhow::Result<()> {
+    let shutdown = tokio_util::sync::CancellationToken::new();
+    let token = shutdown.clone();
+    tokio::spawn(async move {
+        lp_jobs::shutdown::signal().await;
+        token.cancel();
+    });
+    serve_until(config, run_migrations, shutdown).await
+}
+
+/// [`serve`] until `shutdown` is cancelled: the listener stops accepting,
+/// the worker stops claiming and gives running jobs its grace period
+/// (`LP_SHUTDOWN_GRACE_SECS`) to reach a safe point before handing them
+/// back to the queue, open connections get [`HTTP_DRAIN`].
+pub async fn serve_until(
+    config: Config,
+    run_migrations: bool,
+    shutdown: tokio_util::sync::CancellationToken,
+) -> anyhow::Result<()> {
     let bind = config.bind;
     let state = build_state_migrating(config, run_migrations).await?;
-    let shutdown = tokio_util::sync::CancellationToken::new();
     let worker = lp_jobs::Worker::new(state.clone(), registry());
     let worker_task = tokio::spawn(worker.run(shutdown.clone()));
     let startup = state.clone();
@@ -246,19 +269,30 @@ pub async fn serve(config: Config, run_migrations: bool) -> anyhow::Result<()> {
     tracing::info!(%bind, "librephotos-rs listening");
     let service = app(state);
     let token = shutdown.clone();
-    axum::serve(
+    let server = axum::serve(
         listener,
         axum::ServiceExt::<Request>::into_make_service_with_connect_info::<std::net::SocketAddr>(
             service,
         ),
     )
-    .with_graceful_shutdown(async move {
-        let _ = tokio::signal::ctrl_c().await;
-        token.cancel();
-    })
-    .await?;
+    .with_graceful_shutdown(async move { token.cancelled().await })
+    .into_future();
+    let drain_deadline = async {
+        shutdown.cancelled().await;
+        tokio::time::sleep(HTTP_DRAIN).await;
+    };
+    tokio::select! {
+        r = server => r?,
+        _ = drain_deadline => tracing::warn!("connections still open after the drain period; closing them"),
+    }
     shutdown.cancel();
-    let _ = tokio::time::timeout(Duration::from_secs(10), worker_task).await;
+    let grace = lp_jobs::worker::shutdown_grace() + Duration::from_secs(10);
+    match tokio::time::timeout(grace, worker_task).await {
+        Ok(Ok(Err(e))) => tracing::error!(error = %e, "job worker stopped with an error"),
+        Err(_) => tracing::warn!("job worker did not stop in time"),
+        _ => {}
+    }
+    tracing::info!("librephotos-rs stopped");
     Ok(())
 }
 
@@ -268,7 +302,7 @@ pub async fn run_worker(config: Config) -> anyhow::Result<()> {
     let shutdown = tokio_util::sync::CancellationToken::new();
     let token = shutdown.clone();
     tokio::spawn(async move {
-        let _ = tokio::signal::ctrl_c().await;
+        lp_jobs::shutdown::signal().await;
         token.cancel();
     });
     lp_jobs::Worker::new(state, registry()).run(shutdown).await
