@@ -11,7 +11,7 @@ use sqlx::types::Json;
 use uuid::Uuid;
 
 use super::PhotoLookup;
-use crate::db::{DjUuid, Exec, Qb};
+use crate::db::{Dialect, DjUuid, Exec, Qb};
 use crate::pig::VALID_STACK_TYPES_SQL;
 use crate::scope;
 
@@ -126,56 +126,187 @@ pub struct PhotoDetailRow {
     pub stacks: Option<Json<Vec<StackJson>>>,
 }
 
-const DETAIL_SELECT: &str = "SELECT p.id, p.exif_gps_lat, p.exif_gps_lon, p.exif_timestamp, p.geolocation_json, \
-    p.image_hash, p.rating, p.hidden, p.public, p.removed, p.in_trashcan, p.video, p.size, \
-    p.local_orientation, p.main_file_id, p.clip_embeddings, p.clip_embeddings_model, \
-    u.id AS owner_id, u.username AS owner_username, u.first_name AS owner_first_name, \
-    u.last_name AS owner_last_name, \
-    cap.captions_json, COALESCE(s.search_captions, '') AS search_captions, \
-    COALESCE(s.search_location, '') AS search_location, \
-    t.thumbnail_big, t.square_thumbnail, t.square_thumbnail_small, \
-    (md.id IS NOT NULL) AS has_metadata, md.width AS md_width, md.height AS md_height, \
-    md.focal_length AS md_focal_length, md.aperture AS md_aperture, md.iso AS md_iso, \
-    md.shutter_speed AS md_shutter_speed, md.camera_make AS md_camera_make, \
-    md.camera_model AS md_camera_model, md.lens_make AS md_lens_make, md.lens_model AS md_lens_model, \
-    md.focal_length_35mm AS md_focal_length_35mm, md.date_taken AS md_date_taken, \
-    md.gps_latitude AS md_gps_latitude, md.gps_longitude AS md_gps_longitude, md.rating AS md_rating, \
-    md.source AS md_source, md.version AS md_version, \
-    EXISTS (SELECT 1 FROM api_metadataedit me WHERE me.photo_id = p.id) AS has_edits, \
-    (o.photo_id IS NOT NULL) AS has_ocr, o.text AS ocr_text, o.blocks AS ocr_blocks, \
-    o.source_width AS ocr_source_width, o.source_height AS ocr_source_height, \
-    (SELECT json_agg(json_build_object('id', f.id, 'image', f.image, \
-        'person', CASE WHEN f.person_id IS NOT NULL THEN COALESCE(fp.name, '') END, \
-        'cluster_person', CASE WHEN f.cluster_person_id IS NOT NULL THEN COALESCE(fc.name, '') END, \
-        'classification_person', CASE WHEN f.classification_person_id IS NOT NULL THEN COALESCE(fl.name, '') END, \
-        'cluster_probability', f.cluster_probability, \
-        'classification_probability', f.classification_probability, \
-        'top', f.location_top, 'bottom', f.location_bottom, 'left', f.location_left, \
-        'right', f.location_right) ORDER BY f.id) \
-      FROM api_face f LEFT JOIN api_person fp ON fp.id = f.person_id \
-      LEFT JOIN api_person fc ON fc.id = f.cluster_person_id \
-      LEFT JOIN api_person fl ON fl.id = f.classification_person_id \
-      WHERE f.photo_id = p.id AND NOT f.deleted) AS people, \
-    (SELECT json_agg(json_build_object('hash', fi.hash, 'path', fi.path, 'type', fi.type) ORDER BY pf.id) \
-      FROM api_photo_files pf JOIN api_file fi ON fi.hash = pf.file_id WHERE pf.photo_id = p.id) AS files, \
-    (SELECT json_agg(st.user_id ORDER BY st.id) FROM api_photo_shared_to st WHERE st.photo_id = p.id) AS shared_to, \
-    (SELECT json_agg(json_build_object('hash', ef.hash, 'type', ef.type) ORDER BY em.id) \
-      FROM api_file_embedded_media em JOIN api_file ef ON ef.hash = em.to_file_id \
-      WHERE em.from_file_id = p.main_file_id AND ef.type IN (1, 2)) AS embedded, ";
+/// JSON builders of the two dialects, so the aggregates below are written
+/// once. Postgres: `json_build_object` / `json_agg`. SQLite: `json_object` /
+/// `json_group_array`, where an empty group (`'[]'`) is turned into NULL like
+/// `json_agg` over no rows, booleans (0/1 there) become JSON booleans,
+/// datetimes (Django's `YYYY-MM-DD HH:MM:SS[.f]` text) become RFC 3339, and a
+/// nested subquery is wrapped in `json()` so it embeds as JSON, not as a string.
+struct J(Dialect);
 
-fn stacks_sql() -> String {
+impl J {
+    fn obj(&self, pairs: &[(&str, String)]) -> String {
+        let f = match self.0 {
+            Dialect::Pg => "json_build_object",
+            Dialect::Sqlite => "json_object",
+        };
+        let body: Vec<String> = pairs.iter().map(|(k, v)| format!("'{k}', {v}")).collect();
+        format!("{f}({})", body.join(", "))
+    }
+
+    fn agg(&self, expr: &str, order: &str) -> String {
+        match self.0 {
+            Dialect::Pg => format!("json_agg({expr} ORDER BY {order})"),
+            Dialect::Sqlite => format!("NULLIF(json_group_array({expr} ORDER BY {order}), '[]')"),
+        }
+    }
+
+    /// A boolean SQL expression (NULL stays null).
+    fn bool(&self, expr: &str) -> String {
+        match self.0 {
+            Dialect::Pg => format!("({expr})"),
+            Dialect::Sqlite => format!(
+                "json(CASE WHEN ({expr}) IS NULL THEN 'null' WHEN ({expr}) THEN 'true' ELSE 'false' END)"
+            ),
+        }
+    }
+
+    /// A datetime column (NULL stays null).
+    fn ts(&self, col: &str) -> String {
+        match self.0 {
+            Dialect::Pg => col.to_string(),
+            Dialect::Sqlite => format!("(replace({col}, ' ', 'T') || 'Z')"),
+        }
+    }
+
+    /// A scalar subquery producing JSON, nested in another builder.
+    fn sub(&self, subquery: &str) -> String {
+        match self.0 {
+            Dialect::Pg => format!("({subquery})"),
+            Dialect::Sqlite => format!("json(({subquery}))"),
+        }
+    }
+}
+
+/// The order Django's unordered many-to-many reads (`photo.files.all()`,
+/// `photo.shared_to.all()`, `main_file.embedded_media.all()`, an album's
+/// `shared_to`) come back in. Postgres: insertion order of the through rows.
+/// SQLite answers them from the through table's unique `(owner, target)`
+/// covering index, so they come back sorted by the target key.
+struct M2mOrder {
+    files: &'static str,
+    shared_to: &'static str,
+    embedded: &'static str,
+    album_shared_to: &'static str,
+}
+
+fn m2m_order(d: Dialect) -> M2mOrder {
+    match d {
+        Dialect::Pg => M2mOrder {
+            files: "pf.id",
+            shared_to: "st.id",
+            embedded: "em.id",
+            album_shared_to: "sst.id",
+        },
+        Dialect::Sqlite => M2mOrder {
+            files: "pf.file_id",
+            shared_to: "st.user_id",
+            embedded: "em.to_file_id",
+            album_shared_to: "sst.user_id",
+        },
+    }
+}
+
+fn detail_select(d: Dialect) -> String {
+    let j = J(d);
+    let m2m = m2m_order(d);
+    let face = j.obj(&[
+        ("id", "f.id".into()),
+        ("image", "f.image".into()),
+        (
+            "person",
+            "CASE WHEN f.person_id IS NOT NULL THEN COALESCE(fp.name, '') END".into(),
+        ),
+        (
+            "cluster_person",
+            "CASE WHEN f.cluster_person_id IS NOT NULL THEN COALESCE(fc.name, '') END".into(),
+        ),
+        (
+            "classification_person",
+            "CASE WHEN f.classification_person_id IS NOT NULL THEN COALESCE(fl.name, '') END"
+                .into(),
+        ),
+        ("cluster_probability", "f.cluster_probability".into()),
+        (
+            "classification_probability",
+            "f.classification_probability".into(),
+        ),
+        ("top", "f.location_top".into()),
+        ("bottom", "f.location_bottom".into()),
+        ("left", "f.location_left".into()),
+        ("right", "f.location_right".into()),
+    ]);
+    let file = j.obj(&[
+        ("hash", "fi.hash".into()),
+        ("path", "fi.path".into()),
+        ("type", "fi.type".into()),
+    ]);
+    let embedded = j.obj(&[("hash", "ef.hash".into()), ("type", "ef.type".into())]);
+    let stack_photo = j.obj(&[
+        ("id", "sp.id".into()),
+        ("image_hash", "sp.image_hash".into()),
+        (
+            "has_thumbnail",
+            j.bool("COALESCE(sth.square_thumbnail_small, '') <> ''"),
+        ),
+        ("size", "sp.size".into()),
+        ("width", "COALESCE(smd.width, 0)".into()),
+        ("height", "COALESCE(smd.height, 0)".into()),
+    ]);
+    let stack = j.obj(&[
+        ("id", "sk.id".into()),
+        ("stack_type", "sk.stack_type".into()),
+        ("primary_photo_id", "sk.primary_photo_id".into()),
+        (
+            "photos",
+            j.sub(&format!(
+                "SELECT {} FROM api_photo_stacks sps JOIN api_photo sp ON sp.id = sps.photo_id \
+                 LEFT JOIN api_thumbnail sth ON sth.photo_id = sp.id \
+                 LEFT JOIN api_photometadata smd ON smd.photo_id = sp.id \
+                 WHERE sps.photostack_id = sk.id",
+                j.agg(&stack_photo, "sps.id")
+            )),
+        ),
+    ]);
     format!(
-        "(SELECT json_agg(json_build_object('id', sk.id, 'stack_type', sk.stack_type, \
-            'primary_photo_id', sk.primary_photo_id, \
-            'photos', (SELECT json_agg(json_build_object('id', sp.id, 'image_hash', sp.image_hash, \
-                  'has_thumbnail', COALESCE(sth.square_thumbnail_small, '') <> '', 'size', sp.size, \
-                  'width', COALESCE(smd.width, 0), 'height', COALESCE(smd.height, 0)) ORDER BY sps.id) \
-                FROM api_photo_stacks sps JOIN api_photo sp ON sp.id = sps.photo_id \
-                LEFT JOIN api_thumbnail sth ON sth.photo_id = sp.id \
-                LEFT JOIN api_photometadata smd ON smd.photo_id = sp.id \
-                WHERE sps.photostack_id = sk.id)) ORDER BY sk.created_at DESC, sk.id) \
-          FROM api_photo_stacks ps JOIN api_photostack sk ON sk.id = ps.photostack_id \
-          WHERE ps.photo_id = p.id AND sk.stack_type IN {VALID_STACK_TYPES_SQL}) AS stacks"
+        "SELECT p.id, p.exif_gps_lat, p.exif_gps_lon, p.exif_timestamp, p.geolocation_json, \
+         p.image_hash, p.rating, p.hidden, p.public, p.removed, p.in_trashcan, p.video, p.size, \
+         p.local_orientation, p.main_file_id, p.clip_embeddings, {clip_model} AS clip_embeddings_model, \
+         u.id AS owner_id, u.username AS owner_username, u.first_name AS owner_first_name, \
+         u.last_name AS owner_last_name, \
+         cap.captions_json, COALESCE(s.search_captions, '') AS search_captions, \
+         COALESCE(s.search_location, '') AS search_location, \
+         t.thumbnail_big, t.square_thumbnail, t.square_thumbnail_small, \
+         (md.id IS NOT NULL) AS has_metadata, md.width AS md_width, md.height AS md_height, \
+         md.focal_length AS md_focal_length, md.aperture AS md_aperture, md.iso AS md_iso, \
+         md.shutter_speed AS md_shutter_speed, md.camera_make AS md_camera_make, \
+         md.camera_model AS md_camera_model, md.lens_make AS md_lens_make, md.lens_model AS md_lens_model, \
+         md.focal_length_35mm AS md_focal_length_35mm, md.date_taken AS md_date_taken, \
+         md.gps_latitude AS md_gps_latitude, md.gps_longitude AS md_gps_longitude, md.rating AS md_rating, \
+         md.source AS md_source, md.version AS md_version, \
+         EXISTS (SELECT 1 FROM api_metadataedit me WHERE me.photo_id = p.id) AS has_edits, \
+         (o.photo_id IS NOT NULL) AS has_ocr, o.text AS ocr_text, o.blocks AS ocr_blocks, \
+         o.source_width AS ocr_source_width, o.source_height AS ocr_source_height, \
+         (SELECT {faces} \
+         FROM api_face f LEFT JOIN api_person fp ON fp.id = f.person_id \
+         LEFT JOIN api_person fc ON fc.id = f.cluster_person_id \
+         LEFT JOIN api_person fl ON fl.id = f.classification_person_id \
+         WHERE f.photo_id = p.id AND NOT f.deleted) AS people, \
+         (SELECT {files} \
+         FROM api_photo_files pf JOIN api_file fi ON fi.hash = pf.file_id WHERE pf.photo_id = p.id) AS files, \
+         (SELECT {shared} FROM api_photo_shared_to st WHERE st.photo_id = p.id) AS shared_to, \
+         (SELECT {embedded} \
+         FROM api_file_embedded_media em JOIN api_file ef ON ef.hash = em.to_file_id \
+         WHERE em.from_file_id = p.main_file_id AND ef.type IN (1, 2)) AS embedded, \
+         (SELECT {stacks} \
+         FROM api_photo_stacks ps JOIN api_photostack sk ON sk.id = ps.photostack_id \
+         WHERE ps.photo_id = p.id AND sk.stack_type IN {VALID_STACK_TYPES_SQL}) AS stacks",
+        clip_model = crate::sql::clip_model(d, "p"),
+        faces = j.agg(&face, "f.id"),
+        files = j.agg(&file, m2m.files),
+        shared = j.agg("st.user_id", m2m.shared_to),
+        embedded = j.agg(&embedded, m2m.embedded),
+        stacks = j.agg(&stack, "sk.created_at DESC, sk.id"),
     )
 }
 
@@ -186,8 +317,7 @@ pub async fn photo_detail<'e>(
     lookup: &PhotoLookup,
     viewer: Option<i32>,
 ) -> sqlx::Result<Option<PhotoDetailRow>> {
-    let mut qb: Qb<'_> = Qb::new(DETAIL_SELECT);
-    qb.push(stacks_sql());
+    let mut qb: Qb<'_> = Qb::new(detail_select(db.dialect()));
     qb.push(
         " FROM api_photo p JOIN api_user u ON u.id = p.owner_id \
          JOIN api_thumbnail t ON t.photo_id = p.id \
@@ -222,9 +352,9 @@ pub async fn visible_owner_photos_by_hash<'e>(
     scope::owned_by(&mut qb, "p", owner_id);
     qb.push(" AND ");
     scope::visible_to(&mut qb, "p", viewer);
-    qb.push(" AND p.image_hash = ANY(");
-    qb.push_bind(hashes.to_vec());
-    qb.push(") ORDER BY p.exif_timestamp DESC, p.id");
+    qb.push(" AND ");
+    crate::sql::any(&mut qb, "p.image_hash", hashes.to_vec());
+    qb.push(" ORDER BY p.exif_timestamp DESC, p.id");
     qb.build_query_as().fetch_all(db).await
 }
 
@@ -276,10 +406,77 @@ struct PhotoAlbumsRow {
     albums: Option<Json<Vec<PhotoAlbumJson>>>,
 }
 
-fn user_json(alias: &str) -> String {
+fn user_json(j: &J, alias: &str) -> String {
+    j.obj(&[
+        ("id", format!("{alias}.id")),
+        ("username", format!("{alias}.username")),
+        ("first_name", format!("{alias}.first_name")),
+        ("last_name", format!("{alias}.last_name")),
+    ])
+}
+
+/// The JSON array of [`PhotoAlbumJson`] for the albums `mine` selects
+/// (alias `a`) that hold photo `ph.id`.
+fn albums_json(d: Dialect, mine: &str) -> String {
+    let j = J(d);
+    let cover = j.obj(&[
+        ("image_hash", "cp.image_hash".into()),
+        ("rating", "cp.rating".into()),
+        ("hidden", j.bool("cp.hidden")),
+        ("exif_timestamp", j.ts("cp.exif_timestamp")),
+        ("public", j.bool("cp.public")),
+        ("video", j.bool("cp.video")),
+    ]);
+    let share = j.obj(&[
+        ("enabled", j.bool("sh.enabled")),
+        ("slug", "sh.slug".into()),
+        ("expires_at", j.ts("sh.expires_at")),
+        ("share_location", j.bool("sh.share_location")),
+        ("share_camera_info", j.bool("sh.share_camera_info")),
+        ("share_timestamps", j.bool("sh.share_timestamps")),
+        ("share_captions", j.bool("sh.share_captions")),
+        ("share_faces", j.bool("sh.share_faces")),
+    ]);
+    let album = j.obj(&[
+        ("id", "a.id".into()),
+        ("title", "a.title".into()),
+        ("created_on", j.ts("a.created_on")),
+        ("favorited", j.bool("a.favorited")),
+        (
+            "cover",
+            j.sub(&format!(
+                "SELECT {cover} FROM api_photo cp WHERE cp.id = COALESCE(a.cover_photo_id, \
+                 (SELECT fap.photo_id FROM api_albumuser_photos fap WHERE fap.albumuser_id = a.id \
+                 AND fap.photo_id IS NOT NULL ORDER BY fap.photo_id LIMIT 1))"
+            )),
+        ),
+        ("owner", user_json(&j, "au")),
+        (
+            "shared_to",
+            j.sub(&format!(
+                "SELECT {} FROM api_albumuser_shared_to sst \
+                 JOIN api_user su ON su.id = sst.user_id WHERE sst.albumuser_id = a.id",
+                j.agg(&user_json(&j, "su"), m2m_order(d).album_shared_to)
+            )),
+        ),
+        (
+            "photo_count",
+            "(SELECT count(*) FROM api_albumuser_photos cnt JOIN api_photo cph ON cph.id = cnt.photo_id \
+             WHERE cnt.albumuser_id = a.id)"
+                .into(),
+        ),
+        (
+            "share",
+            j.sub(&format!(
+                "SELECT {share} FROM api_albumusershare sh WHERE sh.album_id = a.id"
+            )),
+        ),
+    ]);
     format!(
-        "json_build_object('id', {alias}.id, 'username', {alias}.username, \
-         'first_name', {alias}.first_name, 'last_name', {alias}.last_name)"
+        "(SELECT {} FROM api_albumuser a JOIN api_user au ON au.id = a.owner_id \
+         WHERE {mine} AND EXISTS (SELECT 1 FROM api_albumuser_photos aap \
+         WHERE aap.albumuser_id = a.id AND aap.photo_id = ph.id))",
+        j.agg(&album, "a.id")
     )
 }
 
@@ -311,33 +508,10 @@ pub async fn photo_albums<'e>(
     }
     qb.push(") ORDER BY p.id LIMIT 1) SELECT ");
     if viewer.is_some() {
-        qb.push(format!(
-            "(SELECT json_agg(json_build_object('id', a.id, 'title', a.title, 'created_on', a.created_on, \
-                'favorited', a.favorited, \
-                'cover', (SELECT json_build_object('image_hash', cp.image_hash, 'rating', cp.rating, \
-                    'hidden', cp.hidden, 'exif_timestamp', cp.exif_timestamp, 'public', cp.public, \
-                    'video', cp.video) FROM api_photo cp WHERE cp.id = COALESCE(a.cover_photo_id, \
-                    (SELECT fap.photo_id FROM api_albumuser_photos fap WHERE fap.albumuser_id = a.id \
-                     AND fap.photo_id IS NOT NULL ORDER BY fap.photo_id LIMIT 1))), \
-                'owner', {owner}, \
-                'shared_to', (SELECT json_agg({shared} ORDER BY sst.id) FROM api_albumuser_shared_to sst \
-                    JOIN api_user su ON su.id = sst.user_id WHERE sst.albumuser_id = a.id), \
-                'photo_count', (SELECT count(*) FROM api_albumuser_photos cnt JOIN api_photo cph ON cph.id = cnt.photo_id \
-                    WHERE cnt.albumuser_id = a.id), \
-                'share', (SELECT json_build_object('enabled', sh.enabled, 'slug', sh.slug, \
-                    'expires_at', sh.expires_at, 'share_location', sh.share_location, \
-                    'share_camera_info', sh.share_camera_info, 'share_timestamps', sh.share_timestamps, \
-                    'share_captions', sh.share_captions, 'share_faces', sh.share_faces) \
-                    FROM api_albumusershare sh WHERE sh.album_id = a.id)) ORDER BY a.id) \
-              FROM api_albumuser a JOIN api_user au ON au.id = a.owner_id \
-              WHERE {mine} AND EXISTS (SELECT 1 FROM api_albumuser_photos aap \
-                WHERE aap.albumuser_id = a.id AND aap.photo_id = ph.id))",
-            owner = user_json("au"),
-            shared = user_json("su"),
-            mine = in_user_album("a"),
-        ));
+        let mine = in_user_album("a");
+        qb.push_with(|d| albums_json(d, &mine));
     } else {
-        qb.push("NULL::json");
+        qb.push("CAST(NULL AS json)");
     }
     qb.push(" AS albums FROM ph");
     let row: Option<PhotoAlbumsRow> = qb.build_query_as().fetch_optional(db).await?;

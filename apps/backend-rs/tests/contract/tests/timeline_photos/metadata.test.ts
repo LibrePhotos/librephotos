@@ -107,10 +107,14 @@ describe.skipIf(!hasBase)("timeline_photos: PATCH /api/photos/{id}/metadata", ()
       { keywords: ["twin-kw-2"], title: "Twin title" },
       { rating: "3.0", creator: null },
     ]) {
+      // The edits of one PATCH share Django's `created_at` (Python's clock
+      // ticks every 15.6 ms on Windows), and `MetadataEdit.Meta.ordering`
+      // breaks that tie by `-id`, a random uuid4: their order within one
+      // request is arbitrary on Django, so compare the history as a set.
       const { actual } = await expectTwin(
         "alice",
         { method: "PATCH", path, body },
-        { project: METADATA, refStable: false },
+        { project: METADATA, unordered: ["edit_history"], refStable: false },
       );
       expectSchema(PhotoMetadata, actual.body);
     }

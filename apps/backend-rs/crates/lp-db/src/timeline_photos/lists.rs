@@ -3,8 +3,8 @@
 use chrono::{DateTime, Utc};
 use sqlx::FromRow;
 
-use crate::db::{Exec, Qb};
-use crate::pig::{PIG_COLUMNS, PIG_JOINS, PigPhoto, PigRow};
+use crate::db::{Exec, Qb, sql};
+use crate::pig::{self, PIG_JOINS, PigPhoto, PigRow};
 use crate::scope;
 
 #[derive(Debug, FromRow)]
@@ -29,14 +29,20 @@ pub async fn recently_added<'e>(
 ) -> sqlx::Result<(Option<DateTime<Utc>>, Vec<PigPhoto>)> {
     let mut qb = Qb::new("WITH latest AS (SELECT max(p.added_on) AS at FROM api_photo p WHERE ");
     push_visible_own(&mut qb, user_id);
-    qb.push(format!(
-        ") SELECT latest.at AS latest_at, {PIG_COLUMNS} FROM api_photo p{PIG_JOINS} CROSS JOIN latest WHERE "
-    ));
+    qb.push_with(|d| {
+        format!(
+            ") SELECT latest.at AS latest_at, {} FROM api_photo p{PIG_JOINS} CROSS JOIN latest WHERE ",
+            pig::columns(d)
+        )
+    });
     push_visible_own(&mut qb, user_id);
-    qb.push(
-        " AND (p.added_on AT TIME ZONE 'UTC')::date = (latest.at AT TIME ZONE 'UTC')::date \
-         ORDER BY p.added_on DESC, p.id",
-    );
+    qb.push_with(|d| {
+        format!(
+            " AND {} = {} ORDER BY p.added_on DESC, p.id",
+            sql::date_of(d, "p.added_on"),
+            sql::date_of(d, "latest.at")
+        )
+    });
     let rows: Vec<RecentRow> = qb.build_query_as().fetch_all(db).await?;
     let latest = rows.first().map(|r| r.latest_at);
     Ok((latest, rows.into_iter().map(|r| r.pig.into()).collect()))
@@ -78,10 +84,13 @@ pub async fn no_timestamp_page<'e>(
     qb.push_bind(limit);
     qb.push(" OFFSET ");
     qb.push_bind(offset);
-    qb.push(format!(
-        ") SELECT sel.total, {PIG_COLUMNS} FROM sel JOIN api_photo p ON p.id = sel.id{PIG_JOINS} \
-         ORDER BY sel.added_on, sel.id"
-    ));
+    qb.push_with(|d| {
+        format!(
+            ") SELECT sel.total, {} FROM sel JOIN api_photo p ON p.id = sel.id{PIG_JOINS} \
+             ORDER BY sel.added_on, sel.id",
+            pig::columns(d)
+        )
+    });
     let rows: Vec<CountedRow> = qb.build_query_as().fetch_all(db).await?;
     let total = rows.first().map(|r| r.total).unwrap_or(0);
     Ok((total, rows.into_iter().map(|r| r.pig.into()).collect()))

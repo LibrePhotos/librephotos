@@ -23,13 +23,14 @@ async fn token(app: &TestApp, name: &str) -> String {
 
 /// `(id, image_hash)` of the first photo matching `cond` (SQL over alias p).
 async fn photo_where(app: &TestApp, cond: &str) -> (Uuid, String) {
-    lp_db::sql::query_as(format!(
+    let (id, hash): (DjUuid, String) = lp_db::sql::query_as(format!(
         "SELECT p.id, p.image_hash FROM api_photo p JOIN api_user u ON u.id = p.owner_id \
          WHERE {cond} ORDER BY p.image_hash LIMIT 1"
     ))
     .fetch_one(app.pool())
     .await
-    .unwrap_or_else(|e| panic!("no photo where {cond}: {e}"))
+    .unwrap_or_else(|e| panic!("no photo where {cond}: {e}"));
+    (id.0, hash)
 }
 
 const VISIBLE: &str = "NOT p.hidden AND NOT p.in_trashcan AND NOT p.removed AND EXISTS \

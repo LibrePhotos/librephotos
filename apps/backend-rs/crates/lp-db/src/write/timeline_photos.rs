@@ -212,11 +212,12 @@ async fn sync_tags_from_keywords(
         .collect();
     let mut touched: Vec<i32> = Vec::new();
     if !dropped.is_empty() {
-        let removed: Vec<i32> = crate::sql::query_scalar(
-            "DELETE FROM api_tag_photos tp USING api_tag t \
-             WHERE t.id = tp.tag_id AND tp.photo_id = $1 AND t.owner_id = $2 AND t.name = ANY($3) \
-             RETURNING tp.tag_id",
-        )
+        let d = conn.dialect();
+        let removed: Vec<i32> = crate::sql::query_scalar(format!(
+            "DELETE FROM api_tag_photos WHERE photo_id = $1 AND tag_id IN \
+             (SELECT t.id FROM api_tag t WHERE t.owner_id = $2 AND {}) RETURNING tag_id",
+            crate::sql::any_sql(d, "t.name", 3)
+        ))
         .bind(photo_id)
         .bind(owner_id)
         .bind(&dropped)
@@ -258,13 +259,14 @@ async fn sync_tags_from_keywords(
     // the tag's `last_modified` (mobile-sync `m2m_changed`), linked before
     // or not.
     if !touched.is_empty() {
-        crate::sql::query(
-            "UPDATE api_tag t SET photo_count = (SELECT count(*) FROM api_tag_photos tp \
+        crate::sql::query(format!(
+            "UPDATE api_tag SET photo_count = (SELECT count(*) FROM api_tag_photos tp \
                JOIN api_photo p ON p.id = tp.photo_id \
-               WHERE tp.tag_id = t.id AND NOT p.hidden AND NOT p.in_trashcan AND NOT p.removed), \
+               WHERE tp.tag_id = api_tag.id AND NOT p.hidden AND NOT p.in_trashcan AND NOT p.removed), \
                last_modified = now() \
-             WHERE t.id = ANY($1)",
-        )
+             WHERE {}",
+            crate::sql::any_sql(conn.dialect(), "api_tag.id", 1)
+        ))
         .bind(&touched)
         .execute(&mut *conn)
         .await?;
