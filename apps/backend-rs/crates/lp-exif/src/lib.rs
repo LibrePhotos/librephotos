@@ -632,20 +632,24 @@ fn py_str(v: &Value) -> String {
     }
 }
 
-/// `get_sidecar_files_in_priority_order`: `IMG.xmp`, `IMG.XMP`, `IMG.jpg.xmp`, `IMG.jpg.XMP`.
 /// Whether `tag` is a plain `[Group:]Name` ExifTool can only read. Tag names
 /// come from users' datetime and burst rules; anything else (`=`, spaces, a
 /// leading `-`) would inject options into the argfile, e.g. `FileName=...`
-/// renames files and `-if` evaluates Perl.
+/// renames files and `-if` evaluates Perl. Exactly Django's
+/// `service/exif/tag_validation.py` (`^[A-Za-z0-9_][A-Za-z0-9_:*?#-]{0,127}$`),
+/// except that a trailing line break, which Python's `$` lets through, is
+/// refused here too.
 pub fn is_safe_tag(tag: &str) -> bool {
-    !tag.is_empty()
-        && tag.len() <= 128
-        && !tag.starts_with(['-', ':'])
-        && tag
-            .chars()
+    let mut chars = tag.chars();
+    tag.len() <= 128
+        && chars
+            .next()
+            .is_some_and(|c| c.is_ascii_alphanumeric() || c == '_')
+        && chars
             .all(|c| c.is_ascii_alphanumeric() || matches!(c, '_' | '-' | ':' | '*' | '?' | '#'))
 }
 
+/// `get_sidecar_files_in_priority_order`: `IMG.xmp`, `IMG.XMP`, `IMG.jpg.xmp`, `IMG.jpg.XMP`.
 pub fn sidecar_files_in_priority_order(media_file: &Path) -> Vec<PathBuf> {
     let s = media_file.to_string_lossy();
     let base = splitext(&s).0;

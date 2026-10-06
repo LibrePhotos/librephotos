@@ -613,6 +613,16 @@ fn split_rest(rest: &str) -> (&str, &str) {
     }
 }
 
+/// Django's `_url_segment_traverses` (#2122): a backslash or a `..`
+/// component in either URL segment is always an attempt to leave the media
+/// directory, refused with a 404 before anything is looked up. The joins
+/// below are confined on their own (`safe_dir`, `protected`, `confined`);
+/// this keeps the answers identical to Django's, e.g. for
+/// `<hash>_%5C..%5Cx`, which would otherwise serve the photo by its hash.
+fn traverses(segment: &str) -> bool {
+    segment.contains('\\') || segment.split('/').any(|part| part == "..")
+}
+
 /// `GET|HEAD /media/{*rest}`.
 pub async fn media(
     State(state): State<AppState>,
@@ -623,6 +633,9 @@ pub async fn media(
 ) -> Response {
     let ctx = Ctx::new(&state, &method, &headers);
     let (path, fname) = split_rest(&rest);
+    if traverses(path) || traverses(fname) {
+        return empty(StatusCode::NOT_FOUND);
+    }
     let user = user.as_ref();
     match path.to_lowercase().as_str() {
         "zip" => return serve_zip(&ctx, user, path, fname).await,
@@ -672,6 +685,11 @@ mod tests {
         assert!(!safe_name(".."));
         assert!(!safe_name("..\\secret"));
         assert!(!safe_name(""));
+        assert!(traverses("abc_\\..\\x"));
+        assert!(traverses("faces/../x"));
+        assert!(traverses(".."));
+        assert!(!traverses("faces"));
+        assert!(!traverses("abc_0..jpg"));
     }
 
     #[test]

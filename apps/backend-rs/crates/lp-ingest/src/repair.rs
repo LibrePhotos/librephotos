@@ -20,8 +20,10 @@ const PAGE: i64 = 5000;
 const DELETE_BATCH: usize = 1000;
 
 /// `scan_missing_photos`: per page of 5000 photos, unlink files gone from
-/// disk and flag them missing (`detach_missing_files`, whose `photo.save()`
-/// bumps every photo's `last_modified`).
+/// disk and flag them missing (`detach_missing_files`). Only a photo that
+/// actually lost a file gets its `last_modified` bumped (Django #2124: bumping
+/// every row kept removed photos from ever ageing into
+/// `cleanup_deleted_photos` and showed the whole library as changed to sync).
 pub async fn scan_missing_photos(p: &Pipeline, user_id: i32, job_id: &str) -> anyhow::Result<()> {
     let db = &p.state.db;
     db::lrj_get_or_create(db, job_id, JOB_SCAN_MISSING_PHOTOS, user_id).await?;
@@ -71,10 +73,15 @@ pub async fn scan_missing_photos(p: &Pipeline, user_id: i32, job_id: &str) -> an
                     .execute(&mut *tx)
                     .await?;
             }
-            sqlx::query("UPDATE api_photo SET last_modified = now() WHERE id = ANY($1)")
-                .bind(&ids)
-                .execute(&mut *tx)
-                .await?;
+            let mut touched: Vec<Uuid> = gone.iter().map(|(photo, _)| *photo).collect();
+            touched.sort_unstable();
+            touched.dedup();
+            if !touched.is_empty() {
+                sqlx::query("UPDATE api_photo SET last_modified = now() WHERE id = ANY($1)")
+                    .bind(&touched)
+                    .execute(&mut *tx)
+                    .await?;
+            }
             sqlx::query("UPDATE api_longrunningjob SET progress_current = progress_current + 1 WHERE job_id = $1")
                 .bind(job_id)
                 .execute(&mut *tx)

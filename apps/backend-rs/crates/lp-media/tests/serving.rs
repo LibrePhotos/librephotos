@@ -514,6 +514,78 @@ async fn traversal_is_never_served() {
     a.cleanup().await;
 }
 
+fn copy_dir(from: &std::path::Path, to: &std::path::Path) {
+    for entry in walkdir::WalkDir::new(from) {
+        let entry = entry.unwrap();
+        let target = to.join(entry.path().strip_prefix(from).unwrap());
+        if entry.file_type().is_dir() {
+            std::fs::create_dir_all(&target).unwrap();
+        } else {
+            std::fs::copy(entry.path(), &target).unwrap();
+        }
+    }
+}
+
+/// Django #2122 (`test_direct_mode_path_traversal.py`): the free-form tail
+/// of the name after `<hash>_`, or the path, carrying `\` / `..` never
+/// reaches a file outside MEDIA_ROOT, and like Django it is a 404 before
+/// anything is served (also where Rust would otherwise serve the photo by
+/// its hash, or answer 403 for the zip/avatar routes).
+#[tokio::test]
+async fn backslash_or_dotdot_in_either_segment_is_a_404() {
+    const SECRET: &str = "TOP-SECRET-SENTINEL";
+    let db = TestDb::shared().await;
+    let m = manifest();
+    let p = photo(&m, "alice/e2e_01");
+    let base = tempfile::tempdir().unwrap();
+    copy_dir(
+        &fixture_root().join("protected_media"),
+        &base.path().join("protected_media"),
+    );
+    std::fs::write(base.path().join("sentinel.key"), SECRET).unwrap();
+    let faces = base.path().join("protected_media").join("faces");
+    std::fs::create_dir_all(&faces).unwrap();
+    std::fs::write(faces.join(format!("{}_1.jpg", p.hash)), b"face crop").unwrap();
+    let base_str = base.path().to_string_lossy().into_owned();
+    for mode in ["direct", "x-accel"] {
+        let app = app_on(&db.name, mode, Some(&base_str)).await;
+        let alice = token(&app, "alice").await;
+        for path in [
+            format!("/media/faces/{}_%5C..%5C..%5Csentinel.key", p.hash),
+            format!("/media/faces/{}_%5C..%5C..%5C..%5Csentinel.key", p.hash),
+            format!("/media/faces/{}_%2F..%2F..%2Fsentinel.key", p.hash),
+            format!("/media/faces%2F..%2F../{}", p.hash),
+            format!("/media/thumbnails_big/{}_%5C..%5Cx", p.hash),
+            format!("/media/square_thumbnails/{}_%5C..", p.hash),
+            format!("/media/photos/{}_%5C..", p.hash),
+            "/media/zip/..%5Csentinel.key".to_string(),
+            "/media/avatars/..%5C..%5Csentinel.key".to_string(),
+        ] {
+            for who in [Some(alice.as_str()), None] {
+                let res = app.get(&path, who).await;
+                assert_eq!(
+                    res.status,
+                    StatusCode::NOT_FOUND,
+                    "{mode} {path} as {who:?}"
+                );
+                assert!(!res.text().contains(SECRET), "{mode} {path}");
+                assert!(res.header("x-accel-redirect").is_none(), "{mode} {path}");
+            }
+        }
+        // Ordinary in-root serving is unchanged.
+        let res = app
+            .get(&format!("/media/faces/{}_1.jpg", p.hash), Some(&alice))
+            .await;
+        assert_eq!(res.status, StatusCode::OK, "{mode} face crop");
+        let res = app
+            .get(&format!("/media/thumbnails_big/{}", p.hash), Some(&alice))
+            .await;
+        assert_eq!(res.status, StatusCode::OK, "{mode} thumbnail");
+        app.cleanup().await;
+    }
+    db.cleanup().await;
+}
+
 #[tokio::test]
 async fn photo_share_media() {
     let a = apps().await;
