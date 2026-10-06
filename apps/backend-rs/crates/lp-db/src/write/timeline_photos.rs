@@ -254,11 +254,15 @@ async fn sync_tags_from_keywords(
         .await?;
         touched.push(tag_id);
     }
+    // Each `tag.photos.remove(photo)` / `tag.photos.add(photo)` also bumps
+    // the tag's `last_modified` (mobile-sync `m2m_changed`), linked before
+    // or not.
     if !touched.is_empty() {
         sqlx::query(
             "UPDATE api_tag t SET photo_count = (SELECT count(*) FROM api_tag_photos tp \
                JOIN api_photo p ON p.id = tp.photo_id \
-               WHERE tp.tag_id = t.id AND NOT p.hidden AND NOT p.in_trashcan AND NOT p.removed) \
+               WHERE tp.tag_id = t.id AND NOT p.hidden AND NOT p.in_trashcan AND NOT p.removed), \
+               last_modified = now() \
              WHERE t.id = ANY($1)",
         )
         .bind(&touched)

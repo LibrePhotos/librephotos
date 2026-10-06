@@ -8,6 +8,7 @@ use uuid::Uuid;
 
 use super::bulk::{Selection, push_select_all};
 use crate::photo_edits::ShareRow;
+use crate::write::deletion_log;
 
 /// `SetPhotosShared`: add or remove `target_user_id` on the requester's
 /// photos. Returns the count Django reports (rows created / deleted).
@@ -57,6 +58,15 @@ pub async fn set_shared(
         .fetch_all(&mut *conn)
         .await?;
         bump(conn, &created).await?;
+        // A re-shared photo must not be shadowed by the recipient's stale
+        // tombstone on the next pull.
+        deletion_log::clear(
+            conn,
+            deletion_log::entity::PHOTO,
+            &deletion_log::uuid_ids(&created),
+            &[target_user_id],
+        )
+        .await?;
         Ok(created.len() as u64)
     } else {
         let n = sqlx::query(
@@ -68,6 +78,9 @@ pub async fn set_shared(
         .await?
         .rows_affected();
         bump(conn, &ids).await?;
+        // Visibility loss: one tombstone per selected photo for the
+        // recipient, shared or not (Django's `bulk_create`).
+        deletion_log::photos_unshared_bulk(conn, &ids, target_user_id).await?;
         Ok(n)
     }
 }

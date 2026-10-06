@@ -71,9 +71,11 @@ pub async fn set_person_cover(db: &PgPool, person_id: i32, photo_id: Uuid) -> sq
 }
 
 /// `Person.delete()`: the collector's SET_NULLs (inferred faces, clusters)
-/// plus the `reset_person` signal (S3: labelled faces detached).
+/// plus the `reset_person` signal (S3: labelled faces detached) and the
+/// mobile-sync tombstone of a `USER` person.
 pub async fn delete_person(db: &PgPool, person_id: i32) -> sqlx::Result<()> {
     let mut tx = db.begin().await?;
+    super::deletion_log::persons_deleted(&mut tx, &[person_id]).await?;
     sqlx::query(
         "UPDATE api_face SET \
            person_id = CASE WHEN person_id = $1 THEN NULL ELSE person_id END, \

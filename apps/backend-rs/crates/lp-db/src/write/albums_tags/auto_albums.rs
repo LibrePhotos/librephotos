@@ -8,7 +8,12 @@ use chrono::{DateTime, Datelike, Duration, Timelike, Utc};
 use sqlx::{FromRow, PgConnection, PgPool};
 use uuid::Uuid;
 
+use crate::write::deletion_log::{self as dl, AlbumKind, entity};
+
+/// Delete albums `ids` as Django's collector does, with the `post_delete`
+/// tombstones (owner + recipients) written while the recipients are linked.
 async fn delete_ids(conn: &mut PgConnection, ids: &[i32]) -> sqlx::Result<()> {
+    dl::albums_deleted(conn, AlbumKind::Auto, ids).await?;
     for sql in [
         "DELETE FROM api_albumauto_photos WHERE albumauto_id = ANY($1)",
         "DELETE FROM api_albumauto_shared_to WHERE albumauto_id = ANY($1)",
@@ -147,15 +152,18 @@ async fn process_group(
             .execute(&mut *conn)
             .await?;
             favorited = favorited || dup.favorited;
-            sqlx::query(
+            // `album.shared_to.add(*dup.shared_to.all())`: recipients new to
+            // the surviving album lose any stale tombstone of it.
+            let added: Vec<i32> = sqlx::query_scalar(
                 "INSERT INTO api_albumauto_shared_to (albumauto_id, user_id) \
                  SELECT $1, user_id FROM api_albumauto_shared_to WHERE albumauto_id = $2 \
-                 ON CONFLICT DO NOTHING",
+                 ON CONFLICT DO NOTHING RETURNING user_id",
             )
             .bind(album.id)
             .bind(dup.id)
-            .execute(&mut *conn)
+            .fetch_all(&mut *conn)
             .await?;
+            dl::clear(conn, entity::ALBUM_AUTO, &[album.id.to_string()], &added).await?;
             sqlx::query(
                 "UPDATE api_albumauto SET favorited = $2, last_modified = now() WHERE id = $1",
             )

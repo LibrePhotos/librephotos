@@ -45,6 +45,26 @@ pub fn visible_to(qb: &mut QueryBuilder<'_, Postgres>, p: &str, user_id: Option<
     }
 }
 
+/// `Q(owner=user) | Q(shared_to=user)` (`.distinct()`) over any model with an
+/// `owner` and a `shared_to` M2M: the mobile sync scope of photos and albums.
+/// `through` / `fk` name the `shared_to` table and its column pointing at
+/// alias `a`. Unlike [`visible_to`], public rows are not included.
+pub fn owned_or_shared(
+    qb: &mut QueryBuilder<'_, Postgres>,
+    a: &str,
+    through: &str,
+    fk: &str,
+    user_id: i32,
+) {
+    qb.push(format!("({a}.owner_id = "));
+    qb.push_bind(user_id);
+    qb.push(format!(
+        " OR EXISTS (SELECT 1 FROM {through} sx WHERE sx.{fk} = {a}.id AND sx.user_id = "
+    ));
+    qb.push_bind(user_id);
+    qb.push("))");
+}
+
 /// `Photo.visible` manager: not hidden/trashed/removed and a thumbnail with
 /// an aspect ratio (i.e. processed).
 pub fn visible_manager(qb: &mut QueryBuilder<'_, Postgres>, p: &str) {
