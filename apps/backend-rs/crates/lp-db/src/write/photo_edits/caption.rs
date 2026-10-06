@@ -145,7 +145,11 @@ pub async fn rebuild_search_captions(
     tagging_model: &str,
 ) -> sqlx::Result<()> {
     // `array_agg` has no SQLite twin: `json_group_array(.. ORDER BY ..)`
-    // (SQLite 3.44+) yields the same list as JSON text; both decode as `DjList`.
+    // (SQLite 3.44+) yields the list as JSON text; both decode as `DjList`.
+    // The order is that of Django's unordered `photo.files.all()` per
+    // backend: Postgres keeps the through rows' order, SQLite reads them from
+    // the through table's unique `(photo_id, file_id)` index (file hash order).
+    // `photo.faces.all()` walks the `photo_id` index, i.e. face id order, on both.
     let (face_names, file_paths) = match conn.dialect() {
         Dialect::Pg => (
             "ARRAY(SELECT pe.name FROM api_face f JOIN api_person pe ON pe.id = f.person_id \
@@ -156,7 +160,7 @@ pub async fn rebuild_search_captions(
         Dialect::Sqlite => (
             "(SELECT json_group_array(pe.name ORDER BY f.id) FROM api_face f \
                    JOIN api_person pe ON pe.id = f.person_id WHERE f.photo_id = p.id)",
-            "(SELECT json_group_array(fl.path ORDER BY pf.id) FROM api_photo_files pf \
+            "(SELECT json_group_array(fl.path ORDER BY pf.file_id) FROM api_photo_files pf \
                    JOIN api_file fl ON fl.hash = pf.file_id WHERE pf.photo_id = p.id)",
         ),
     };
