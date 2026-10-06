@@ -35,6 +35,7 @@ percent-encoding.workspace = true
 urlencoding.workspace = true
 serde_urlencoded.workspace = true
 sqlx.workspace = true
+libsqlite3-sys.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 uuid.workspace = true
