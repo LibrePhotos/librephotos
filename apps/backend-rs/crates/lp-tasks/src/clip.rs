@@ -5,7 +5,7 @@ use std::path::Path;
 
 use lp_core::AppState;
 use lp_core::codecs::ClipEmbedding;
-use lp_db::db::{Db, DjUuid};
+use lp_db::db::{Db, Dialect, DjUuid};
 use lp_ml::clip::SemanticModel;
 use serde_json::Value;
 use sqlx::FromRow;
@@ -44,8 +44,9 @@ const STORED_MODEL_SQL: &str = "coalesce(clip_embeddings_model, 'clip_vit_b32')"
 /// embeddings until `clip.embed` replaces them.
 pub async fn mismatched_owners(db: &Db, model: SemanticModel) -> sqlx::Result<Vec<i32>> {
     lp_db::sql::query_scalar(format!(
-        "SELECT DISTINCT owner_id FROM api_photo \
-         WHERE clip_embeddings IS NOT NULL AND {STORED_MODEL_SQL} <> $1 ORDER BY owner_id"
+        "SELECT DISTINCT p.owner_id FROM api_photo p \
+         WHERE p.clip_embeddings IS NOT NULL AND {} <> $1 ORDER BY p.owner_id",
+        lp_db::sql::stored_clip_model(db.dialect(), "p")
     ))
     .bind(model.name())
     .fetch_all(db)
@@ -63,10 +64,14 @@ pub async fn reembed_mismatched(state: &AppState) -> anyhow::Result<usize> {
     let users = mismatched_owners(&state.db, model).await?;
     let mut queued = 0;
     for &user_id in &users {
-        let waiting: bool = lp_db::sql::query_scalar(
+        let payload_user = match state.db.dialect() {
+            Dialect::Pg => "payload->'user_id' = to_jsonb($1::int)",
+            Dialect::Sqlite => "json_extract(payload, '$.user_id') = $1",
+        };
+        let waiting: bool = lp_db::sql::query_scalar(format!(
             "SELECT EXISTS (SELECT 1 FROM job_queue WHERE status = 'queued' \
-               AND kind = 'clip.embed' AND payload->'user_id' = to_jsonb($1::int))",
-        )
+               AND kind = 'clip.embed' AND {payload_user})"
+        ))
         .bind(user_id)
         .fetch_one(&state.db)
         .await?;
@@ -403,12 +408,18 @@ pub async fn rebuild_stale_indices(state: &AppState) -> anyhow::Result<usize> {
     if !state.ml().is_inprocess(lp_ml::Service::Similarity) {
         return Ok(0);
     }
+    let d = state.db.dialect();
+    let not_empty = match d {
+        Dialect::Pg => "p.clip_embeddings <> '[]'::jsonb",
+        Dialect::Sqlite => "json(p.clip_embeddings) <> '[]'",
+    };
     let users: Vec<(i32, i64)> = lp_db::sql::query_as(format!(
         "SELECT u.id, count(p.id) FROM api_user u \
          LEFT JOIN api_photo p ON p.owner_id = u.id AND NOT p.hidden \
-           AND p.clip_embeddings IS NOT NULL AND p.clip_embeddings <> '[]'::jsonb \
-           AND {STORED_MODEL_SQL} = $1 \
-         GROUP BY u.id ORDER BY u.id"
+           AND p.clip_embeddings IS NOT NULL AND {not_empty} \
+           AND {} = $1 \
+         GROUP BY u.id ORDER BY u.id",
+        lp_db::sql::stored_clip_model(d, "p")
     ))
     .bind(state.ml().semantic_model().name())
     .fetch_all(&state.db)
