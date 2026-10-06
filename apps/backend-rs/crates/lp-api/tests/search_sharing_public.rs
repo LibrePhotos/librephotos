@@ -555,8 +555,16 @@ async fn public_pages_with_sharing_options_and_search_semantics() {
         .unwrap();
     for name in ["qqalpha", "qqbeta"] {
         lp_db::sql::query(
-            "WITH t AS (INSERT INTO api_tag (name, owner_id, photo_count, last_modified) VALUES ($1, $2, 1, now()) RETURNING id) \
-             INSERT INTO api_tag_photos (tag_id, photo_id) SELECT id, $3 FROM t",
+            "INSERT INTO api_tag (name, owner_id, photo_count, last_modified) VALUES ($1, $2, 1, now())",
+        )
+        .bind(name)
+        .bind(owner)
+        .execute(db)
+        .await
+        .unwrap();
+        lp_db::sql::query(
+            "INSERT INTO api_tag_photos (tag_id, photo_id) \
+             SELECT id, $3 FROM api_tag WHERE name = $1 AND owner_id = $2",
         )
         .bind(name)
         .bind(owner)

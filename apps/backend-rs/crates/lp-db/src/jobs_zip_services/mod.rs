@@ -5,7 +5,7 @@ use serde_json::Value;
 use sqlx::FromRow;
 use uuid::Uuid;
 
-use crate::db::{Db, DjUuid, Exec, Qb, sql};
+use crate::db::{Db, Dialect, DjUuid, Exec, Qb, sql};
 use crate::scope::{self, PhotoFilterParams};
 
 /// `api_longrunningjob` + its `started_by` user (`LongRunningJobSerializer`).
@@ -181,7 +181,7 @@ pub async fn download_photos(
     qb.build_query_as::<DownloadPhoto>().fetch_all(db).await
 }
 
-/// One file to put in a zip: its photo's position in the job and the path.
+/// One file to put in a zip: its photo's 1-based position in the job and the path.
 #[derive(Debug, Clone, FromRow)]
 pub struct ZipFileRow {
     pub ord: i64,
@@ -192,10 +192,16 @@ pub struct ZipFileRow {
 /// file, the photo's files, files of legacy RAW+JPEG / live-photo stack
 /// mates, then the embedded media of all of those. Owner-scoped.
 pub async fn zip_files(db: &Db, user_id: i32, photo_ids: &[Uuid]) -> sqlx::Result<Vec<ZipFileRow>> {
-    let sel = sql::list_rows(db.dialect(), 1, "t");
+    let d = db.dialect();
+    let sel = sql::list_rows(d, 1, "t");
+    // `list_rows` ordinals are 1-based on Postgres, 0-based on SQLite.
+    let ord = match d {
+        Dialect::Pg => "t.ord",
+        Dialect::Sqlite => "t.ord + 1",
+    };
     crate::sql::query_as::<_, ZipFileRow>(format!(
         "WITH ph AS ( \
-           SELECT p.id, t.ord FROM {sel} \
+           SELECT p.id, {ord} AS ord FROM {sel} \
            JOIN api_photo p ON p.id = t.value AND p.owner_id = $2), \
          mates AS ( \
            SELECT DISTINCT ph.ord, ps2.photo_id AS id FROM ph \

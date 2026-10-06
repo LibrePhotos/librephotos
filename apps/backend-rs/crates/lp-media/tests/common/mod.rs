@@ -29,6 +29,8 @@ pub fn manifest() -> Value {
 
 pub struct Photo {
     pub id: String,
+    /// `id` parsed, for binds (a dashed string never matches SQLite's char(32)).
+    pub uuid: uuid::Uuid,
     pub hash: String,
     pub path: String,
 }
@@ -38,6 +40,7 @@ pub fn photo(m: &Value, key: &str) -> Photo {
     assert!(p.is_object(), "manifest has no photo {key}");
     Photo {
         id: p["id"].as_str().unwrap().to_string(),
+        uuid: p["id"].as_str().unwrap().parse().unwrap(),
         hash: p["image_hash"].as_str().unwrap().to_string(),
         path: p["path"].as_str().unwrap().to_string(),
     }
