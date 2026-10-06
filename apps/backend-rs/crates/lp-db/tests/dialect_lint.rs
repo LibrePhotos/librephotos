@@ -20,6 +20,7 @@ const ENFORCE: bool = false;
 const PORTED: &[&str] = &[
     "lp-jobs/src/",
     "lp-db/src/adopt/",
+    "lp-db/src/albums_tags/",
     "lp-db/src/health.rs",
     "lp-db/src/migrate.rs",
     "lp-db/src/pig.rs",
@@ -27,6 +28,7 @@ const PORTED: &[&str] = &[
     "lp-db/src/scope.rs",
     "lp-db/src/settings.rs",
     "lp-db/src/users.rs",
+    "lp-db/src/write/albums_tags/",
 ];
 
 /// The lint list: (name, matcher). Matching is done on the literal's text.

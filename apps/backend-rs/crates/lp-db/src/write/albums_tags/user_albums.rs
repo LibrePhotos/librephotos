@@ -5,7 +5,7 @@ use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
 use super::PhotoSelection;
-use crate::db::{Conn, Db, Qb};
+use crate::db::{Conn, Db, Qb, sql};
 use crate::write::deletion_log::{self as dl, AlbumKind, entity};
 
 /// What an edit request changes (`AlbumUserEditSerializer.update`), in the
@@ -26,17 +26,20 @@ async fn add_photos(conn: &mut Conn, album_id: i32, sel: &PhotoSelection) -> sql
     qb.push_bind(album_id);
     qb.push(", s.id FROM (");
     sel.push_ids_query(&mut qb);
-    qb.push(") s ON CONFLICT DO NOTHING");
+    // `WHERE true`: SQLite would read `ON` as a join constraint.
+    qb.push(") s WHERE true ON CONFLICT DO NOTHING");
     qb.build().execute(conn).await?;
     Ok(())
 }
 
 async fn apply(conn: &mut Conn, album_id: i32, edit: &AlbumEdit) -> sqlx::Result<()> {
     if let Some(hashes) = &edit.removed_hashes {
-        crate::sql::query(
-            "DELETE FROM api_albumuser_photos l USING api_photo p \
-             WHERE l.albumuser_id = $1 AND p.id = l.photo_id AND p.image_hash = ANY($2)",
-        )
+        let d = conn.dialect();
+        crate::sql::query(format!(
+            "DELETE FROM api_albumuser_photos WHERE albumuser_id = $1 \
+               AND photo_id IN (SELECT p.id FROM api_photo p WHERE {})",
+            sql::any_sql(d, "p.image_hash", 2)
+        ))
         .bind(album_id)
         .bind(hashes)
         .execute(&mut *conn)
@@ -222,10 +225,11 @@ struct ShareRow {
 /// `AlbumUserShare.get_or_create` + field updates + `save()` (S17 slug).
 pub async fn set_public(db: &Db, album_id: i32, edit: &PublicShareEdit) -> sqlx::Result<()> {
     let mut tx = db.begin().await?;
-    let existing: Option<ShareRow> = crate::sql::query_as(
+    let existing: Option<ShareRow> = crate::sql::query_as(format!(
         "SELECT id, slug, expires_at, share_location, share_camera_info, share_timestamps, \
-           share_captions, share_faces FROM api_albumusershare WHERE album_id = $1 FOR UPDATE",
-    )
+           share_captions, share_faces FROM api_albumusershare WHERE album_id = $1{}",
+        sql::for_update(tx.dialect())
+    ))
     .bind(album_id)
     .fetch_optional(&mut *tx)
     .await?;

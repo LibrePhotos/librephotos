@@ -6,8 +6,8 @@ use sqlx::types::Json;
 use uuid::Uuid;
 
 use super::things_places::{HasTotal, fetch_paged};
-use super::{Paged, photo_hash_json};
-use crate::db::{DjUuid, Exec, Qb};
+use super::{Paged, photo_hash_json, push_ilike, unordered_faces, unordered_members};
+use crate::db::{Dialect, DjUuid, Exec, Qb};
 use crate::scope;
 
 /// `AlbumAutoListSerializer` row.
@@ -40,8 +40,10 @@ where
     E: Exec<'e> + Copy,
 {
     let build = |limit: i64, offset: i64| {
-        let mut qb = Qb::new(format!(
-            "SELECT *, count(*) OVER () AS total_count FROM ( \
+        let mut qb = Qb::new("");
+        qb.push_with(|d| {
+            format!(
+                "SELECT *, count(*) OVER () AS total_count FROM ( \
                SELECT a.id, a.title, a.timestamp, a.favorited, \
                  (SELECT count(DISTINCT p.id) FROM api_albumauto_photos l \
                     JOIN api_photo p ON p.id = l.photo_id \
@@ -49,8 +51,9 @@ where
                  (SELECT {ph} FROM api_albumauto_photos l JOIN api_photo cp ON cp.id = l.photo_id \
                     WHERE l.albumauto_id = a.id AND NOT cp.hidden ORDER BY l.id LIMIT 1) AS cover \
                FROM api_albumauto a WHERE a.owner_id = ",
-            ph = photo_hash_json("cp"),
-        ));
+                ph = photo_hash_json(d, "cp"),
+            )
+        });
         qb.push_bind(owner_id);
         // `photos__search_instance__search_captions/location`, `photos__faces__person__name`.
         for term in search {
@@ -58,16 +61,16 @@ where
             qb.push(
                 " AND EXISTS (SELECT 1 FROM api_albumauto_photos sl \
                        LEFT JOIN api_photo_search ss ON ss.photo_id = sl.photo_id \
-                       WHERE sl.albumauto_id = a.id AND (ss.search_captions ILIKE ",
+                       WHERE sl.albumauto_id = a.id AND (",
             );
-            qb.push_bind(pattern.clone());
-            qb.push(" OR ss.search_location ILIKE ");
-            qb.push_bind(pattern.clone());
+            push_ilike(&mut qb, "ss.search_captions", pattern.clone());
+            qb.push(" OR ");
+            push_ilike(&mut qb, "ss.search_location", pattern.clone());
             qb.push(
                 " OR EXISTS (SELECT 1 FROM api_face sf JOIN api_person sp ON sp.id = sf.person_id \
-                       WHERE sf.photo_id = sl.photo_id AND sp.name ILIKE ",
+                       WHERE sf.photo_id = sl.photo_id AND ",
             );
-            qb.push_bind(pattern);
+            push_ilike(&mut qb, "sp.name", pattern);
             qb.push(")))");
         }
         qb.push(") x WHERE x.photo_count > 0 ORDER BY x.timestamp DESC, x.id LIMIT ");
@@ -167,10 +170,11 @@ pub struct AlbumPersonRow {
 }
 
 pub async fn people<'e>(db: impl Exec<'e>, album_id: i32) -> sqlx::Result<Vec<AlbumPersonRow>> {
+    let d = db.dialect();
     crate::sql::query_as(format!(
         "WITH seen AS ( \
            SELECT o.person_id, min(o.rn) AS ord FROM ( \
-             SELECT f.person_id, row_number() OVER (ORDER BY p.ctid, f.ctid) AS rn \
+             SELECT f.person_id, row_number() OVER (ORDER BY {order}) AS rn \
            FROM api_albumauto_photos l JOIN api_photo p ON p.id = l.photo_id \
            JOIN api_face f ON f.photo_id = p.id \
            WHERE l.albumauto_id = $1 AND {vis} AND NOT f.deleted AND f.person_id IS NOT NULL) o \
@@ -184,15 +188,22 @@ pub async fn people<'e>(db: impl Exec<'e>, album_id: i32) -> sqlx::Result<Vec<Al
          FROM seen JOIN api_person pe ON pe.id = seen.person_id \
          LEFT JOIN api_face cf ON cf.id = pe.cover_face_id \
          LEFT JOIN api_photo cph ON cph.id = pe.cover_photo_id \
-         LEFT JOIN LATERAL (SELECT f2.id, f2.image, f2.photo_id FROM api_face f2 \
-           WHERE f2.person_id = pe.id ORDER BY f2.id LIMIT 1) ff ON TRUE \
+         LEFT JOIN api_face ff ON ff.id = (SELECT min(f2.id) FROM api_face f2 \
+           WHERE f2.person_id = pe.id) \
          LEFT JOIN api_photo ffp ON ffp.id = ff.photo_id \
          ORDER BY seen.ord",
-        vis = visible_manager_sql()
+        vis = visible_manager_sql(),
+        order = unordered_photo_faces(d, "p", "f"),
     ))
     .bind(album_id)
     .fetch_all(db)
     .await
+}
+
+/// The order Django's unordered "members, then each member's faces" walk
+/// sees (`album.photos.all()` + `photo.faces.all()`, prefetched or not).
+fn unordered_photo_faces(d: Dialect, p: &str, f: &str) -> String {
+    format!("{}, {}", unordered_members(d, p), unordered_faces(d, f))
 }
 
 /// Owner's auto album ids holding at least one photo (what DELETE may hit).

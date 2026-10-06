@@ -2,26 +2,43 @@
 
 use uuid::Uuid;
 
-use crate::db::{Exec, Qb};
+use crate::db::{Dialect, Exec, IntoArg, Qb, sql};
 use crate::scope::{folder_path_prefixes, like_escape};
 
 /// `(text, center)` of every object feature in `geolocation_json.features`
 /// of the owner's photos, photo by photo in table order and features in list
 /// order (the first occurrence of a place wins). Only these two keys leave
-/// the database, not the whole geolocation document.
+/// the database, not the whole geolocation document. On SQLite "table order"
+/// is the rowid: Django's query walks the `owner_id` index.
 pub async fn geolocation_features<'e>(
     db: impl Exec<'e>,
     owner_id: i32,
 ) -> sqlx::Result<Vec<(Option<serde_json::Value>, Option<serde_json::Value>)>> {
-    crate::sql::query_as(
-        "SELECT f.value -> 'text', f.value -> 'center'          FROM api_photo p CROSS JOIN LATERAL jsonb_array_elements(            CASE WHEN jsonb_typeof(p.geolocation_json) = 'object'                  AND jsonb_typeof(p.geolocation_json -> 'features') = 'array'                 THEN p.geolocation_json -> 'features' ELSE '[]'::jsonb END) WITH ORDINALITY AS f(value, ord)          WHERE p.owner_id = $1 AND p.geolocation_json IS NOT NULL AND jsonb_typeof(f.value) = 'object'",
-    )
-    .bind(owner_id)
-    .fetch_all(db)
-    .await
+    let q = match db.dialect() {
+        Dialect::Pg => {
+            "SELECT f.value -> 'text', f.value -> 'center' \
+             FROM api_photo p CROSS JOIN LATERAL jsonb_array_elements( \
+               CASE WHEN jsonb_typeof(p.geolocation_json) = 'object' \
+                 AND jsonb_typeof(p.geolocation_json -> 'features') = 'array' \
+               THEN p.geolocation_json -> 'features' ELSE '[]'::jsonb END) WITH ORDINALITY AS f(value, ord) \
+             WHERE p.owner_id = $1 AND p.geolocation_json IS NOT NULL AND jsonb_typeof(f.value) = 'object'"
+        }
+        Dialect::Sqlite => {
+            "SELECT f.value -> 'text', f.value -> 'center' \
+             FROM api_photo p, json_each( \
+               CASE WHEN json_type(p.geolocation_json) = 'object' \
+                 AND json_type(p.geolocation_json, '$.features') = 'array' \
+               THEN p.geolocation_json -> '$.features' ELSE '[]' END) AS f \
+             WHERE p.owner_id = $1 AND p.geolocation_json IS NOT NULL AND f.type = 'object' \
+             ORDER BY p.rowid, f.key"
+        }
+    };
+    crate::sql::query_as(q).bind(owner_id).fetch_all(db).await
 }
 
 /// Number of the owner's photos with a file inside each folder, one query.
+/// `startswith` per backend: case-sensitive on Postgres, ASCII
+/// case-insensitive `LIKE` on SQLite (both as Django).
 pub async fn folder_photo_counts<'e>(
     db: impl Exec<'e>,
     owner_id: i32,
@@ -30,6 +47,7 @@ pub async fn folder_photo_counts<'e>(
     if folders.is_empty() {
         return Ok(Vec::new());
     }
+    let d = db.dialect();
     let mut qb = Qb::new("SELECT ");
     for (i, folder) in folders.iter().enumerate() {
         if i > 0 {
@@ -40,8 +58,8 @@ pub async fn folder_photo_counts<'e>(
             if j > 0 {
                 qb.push(" OR ");
             }
-            qb.push("f.path LIKE ");
-            qb.push_bind(format!("{}%", like_escape(&prefix)));
+            let n = qb.bind_arg(format!("{}%", like_escape(&prefix)).into_arg());
+            qb.push(sql::like(d, "f.path", &format!("${n}")));
         }
         qb.push(format!(") AS c{i}"));
     }
@@ -62,9 +80,13 @@ pub async fn owned_photo_ids<'e>(
     owner_id: i32,
     ids: &[Uuid],
 ) -> sqlx::Result<Vec<Uuid>> {
-    crate::sql::query_scalar("SELECT id FROM api_photo WHERE owner_id = $1 AND id = ANY($2)")
-        .bind(owner_id)
-        .bind(ids)
-        .fetch_all(db)
-        .await
+    let d = db.dialect();
+    crate::sql::query_scalar(format!(
+        "SELECT id FROM api_photo WHERE owner_id = $1 AND {}",
+        sql::any_sql(d, "id", 2)
+    ))
+    .bind(owner_id)
+    .bind(ids)
+    .fetch_all(db)
+    .await
 }

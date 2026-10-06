@@ -6,10 +6,10 @@ use sqlx::FromRow;
 use sqlx::types::Json;
 use uuid::Uuid;
 
-use crate::db::{DjList, DjUuid, DjUuidOpt, Exec, Qb};
+use crate::db::{Dialect, DjList, DjUuid, DjUuidOpt, Exec, Qb, sql};
 
 use super::things_places::{HasTotal, fetch_paged};
-use super::{Paged, push_search, simple_user_json};
+use super::{Paged, json_list, push_search, simple_user_json, unordered_members};
 
 /// One `AlbumUserListSerializer` row.
 #[derive(Debug, Clone, FromRow)]
@@ -66,10 +66,10 @@ fn select(qb: &mut Qb<'_>, nonhidden_count: bool, with_total: bool) {
     } else {
         ""
     };
-    qb.push(format!(
-        "SELECT a.id, a.created_on, a.favorited, a.title,            (SELECT COALESCE(json_agg({st} ORDER BY st_l.id), '[]'::json)               FROM api_albumuser_shared_to st_l JOIN api_user st ON st.id = st_l.user_id               WHERE st_l.albumuser_id = a.id) AS shared_to,            {ow} AS owner,            (SELECT count(DISTINCT cp_p.id) FROM api_albumuser_photos cp_l               JOIN api_photo cp_p ON cp_p.id = cp_l.photo_id               WHERE cp_l.albumuser_id = a.id{hidden}) AS photo_count,            c.image_hash AS cover_image_hash, c.rating AS cover_rating, c.hidden AS cover_hidden,            c.exif_timestamp AS cover_exif_timestamp, c.public AS cover_public, c.video AS cover_video,            s.id AS share_id, s.enabled AS share_enabled, s.slug AS share_slug,            s.expires_at AS share_expires_at, s.share_location, s.share_camera_info,            s.share_timestamps, s.share_captions, s.share_faces{total}          FROM api_albumuser a          JOIN api_user ow ON ow.id = a.owner_id          LEFT JOIN api_albumusershare s ON s.album_id = a.id          LEFT JOIN api_photo c ON c.id = COALESCE(a.cover_photo_id,            (SELECT fl.photo_id FROM api_albumuser_photos fl              WHERE fl.albumuser_id = a.id AND fl.photo_id IS NOT NULL              ORDER BY fl.photo_id LIMIT 1))",
-        st = simple_user_json("st"),
-        ow = simple_user_json("ow"),
+    qb.push_with(|d| format!(
+        "SELECT a.id, a.created_on, a.favorited, a.title,            (SELECT {shared}               FROM api_albumuser_shared_to st_l JOIN api_user st ON st.id = st_l.user_id               WHERE st_l.albumuser_id = a.id) AS shared_to,            {ow} AS owner,            (SELECT count(DISTINCT cp_p.id) FROM api_albumuser_photos cp_l               JOIN api_photo cp_p ON cp_p.id = cp_l.photo_id               WHERE cp_l.albumuser_id = a.id{hidden}) AS photo_count,            c.image_hash AS cover_image_hash, c.rating AS cover_rating, c.hidden AS cover_hidden,            c.exif_timestamp AS cover_exif_timestamp, c.public AS cover_public, c.video AS cover_video,            s.id AS share_id, s.enabled AS share_enabled, s.slug AS share_slug,            s.expires_at AS share_expires_at, s.share_location, s.share_camera_info,            s.share_timestamps, s.share_captions, s.share_faces{total}          FROM api_albumuser a          JOIN api_user ow ON ow.id = a.owner_id          LEFT JOIN api_albumusershare s ON s.album_id = a.id          LEFT JOIN api_photo c ON c.id = COALESCE(a.cover_photo_id,            (SELECT fl.photo_id FROM api_albumuser_photos fl              WHERE fl.albumuser_id = a.id AND fl.photo_id IS NOT NULL              ORDER BY fl.photo_id LIMIT 1))",
+        shared = json_list(d, &simple_user_json(d, "st"), "st_l.id"),
+        ow = simple_user_json(d, "ow"),
     ));
 }
 
@@ -185,28 +185,31 @@ pub enum DetailScope<'a> {
 
 /// `SELECT` of [`UserAlbumDetailRow`] up to `WHERE `.
 fn detail_select<'a>() -> Qb<'a> {
-    Qb::new(format!(
+    let mut qb = Qb::new("");
+    qb.push_with(|d| format!(
         "SELECT a.id, a.title, a.owner_id, {ow} AS owner, ow.public_sharing_defaults AS owner_sharing_defaults, \
-           (SELECT COALESCE(json_agg({st} ORDER BY st_l.id), '[]'::json) \
+           (SELECT {shared} \
               FROM api_albumuser_shared_to st_l JOIN api_user st ON st.id = st_l.user_id \
               WHERE st_l.albumuser_id = a.id) AS shared_to, \
            s.id AS share_id, s.enabled AS share_enabled, s.slug AS share_slug, \
            s.expires_at AS share_expires_at, s.share_location, s.share_camera_info, \
            s.share_timestamps, s.share_captions, s.share_faces, \
            (SELECT p.exif_timestamp FROM api_albumuser_photos l JOIN api_photo p ON p.id = l.photo_id \
-              WHERE l.albumuser_id = a.id AND p.exif_timestamp IS NOT NULL ORDER BY p.ctid LIMIT 1) AS first_timestamp, \
+              WHERE l.albumuser_id = a.id AND p.exif_timestamp IS NOT NULL ORDER BY {member_order} LIMIT 1) AS first_timestamp, \
            (SELECT ps.search_location FROM api_albumuser_photos l JOIN api_photo p ON p.id = l.photo_id \
               JOIN api_photo_search ps ON ps.photo_id = p.id \
               WHERE l.albumuser_id = a.id AND ps.search_location IS NOT NULL AND ps.search_location <> '' \
-              ORDER BY p.ctid LIMIT 1) AS first_location, \
+              ORDER BY {member_order} LIMIT 1) AS first_location, \
            count(*) OVER () AS total_count \
          FROM api_albumuser a \
          JOIN api_user ow ON ow.id = a.owner_id \
          LEFT JOIN api_albumusershare s ON s.album_id = a.id \
          WHERE ",
-        ow = simple_user_json("ow"),
-        st = simple_user_json("st"),
-    ))
+        ow = simple_user_json(d, "ow"),
+        shared = json_list(d, &simple_user_json(d, "st"), "st_l.id"),
+        member_order = unordered_members(d, "p"),
+    ));
+    qb
 }
 
 /// ` AND <scope>` over album `a`, share `s` and owner `ow`.
@@ -294,9 +297,13 @@ where
     E: Exec<'e> + Copy,
 {
     let build = |limit: i64, offset: i64| {
-        let mut qb = Qb::new(format!(
-            "{EDIT_SELECT}, count(*) OVER () AS total_count FROM api_albumuser a WHERE a.owner_id = "
-        ));
+        let mut qb = Qb::new("");
+        qb.push_with(|d| {
+            format!(
+                "{}, count(*) OVER () AS total_count FROM api_albumuser a WHERE a.owner_id = ",
+                edit_select(d)
+            )
+        });
         qb.push_bind(owner_id);
         qb.push(" ORDER BY a.title, a.id LIMIT ");
         qb.push_bind(limit);
@@ -309,10 +316,12 @@ where
 
 /// `(album id, photo id)` memberships of `album_ids`.
 pub async fn members<'e>(db: impl Exec<'e>, album_ids: &[i32]) -> sqlx::Result<Vec<(i32, Uuid)>> {
-    let rows: Vec<(i32, DjUuid)> = crate::sql::query_as(
+    let d = db.dialect();
+    let rows: Vec<(i32, DjUuid)> = crate::sql::query_as(format!(
         "SELECT albumuser_id, photo_id FROM api_albumuser_photos \
-         WHERE albumuser_id = ANY($1) AND photo_id IS NOT NULL",
-    )
+         WHERE {} AND photo_id IS NOT NULL",
+        sql::any_sql(d, "albumuser_id", 1)
+    ))
     .bind(album_ids)
     .fetch_all(db)
     .await?;
@@ -334,14 +343,28 @@ pub struct UserAlbumEditRow {
     pub total_count: Option<i64>,
 }
 
-const EDIT_SELECT: &str = "SELECT a.id, a.title, \
-    ARRAY(SELECT l.photo_id FROM api_albumuser_photos l \
-      WHERE l.albumuser_id = a.id AND l.photo_id IS NOT NULL ORDER BY l.id) AS photos, \
-    a.created_on, a.favorited, a.cover_photo_id";
+/// `SELECT` of [`UserAlbumEditRow`] over album `a`. `photos` is the
+/// unordered `obj.photos.all()` of the serializer: link order on Postgres,
+/// photo id order on SQLite (Django walks the `(album, photo_id)` index).
+fn edit_select(d: Dialect) -> String {
+    let photos = match d {
+        Dialect::Pg => {
+            "ARRAY(SELECT l.photo_id FROM api_albumuser_photos l \
+               WHERE l.albumuser_id = a.id AND l.photo_id IS NOT NULL ORDER BY l.id)"
+        }
+        Dialect::Sqlite => {
+            "(SELECT json_group_array(l.photo_id ORDER BY l.photo_id) FROM api_albumuser_photos l \
+               WHERE l.albumuser_id = a.id AND l.photo_id IS NOT NULL)"
+        }
+    };
+    format!("SELECT a.id, a.title, {photos} AS photos, a.created_on, a.favorited, a.cover_photo_id")
+}
 
 pub async fn edit_row<'e>(db: impl Exec<'e>, id: i32) -> sqlx::Result<UserAlbumEditRow> {
+    let d = db.dialect();
     crate::sql::query_as(format!(
-        "{EDIT_SELECT} FROM api_albumuser a WHERE a.id = $1"
+        "{} FROM api_albumuser a WHERE a.id = $1",
+        edit_select(d)
     ))
     .bind(id)
     .fetch_one(db)

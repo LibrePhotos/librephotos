@@ -8,19 +8,27 @@ use chrono::{DateTime, Datelike, Duration, Timelike, Utc};
 use sqlx::FromRow;
 use uuid::Uuid;
 
-use crate::db::{Conn, Db, DjUuid};
+use crate::albums_tags::{unordered_faces, unordered_members};
+use crate::db::{Conn, Db, DjUuid, sql};
 use crate::write::deletion_log::{self as dl, AlbumKind, entity};
 
 /// Delete albums `ids` as Django's collector does, with the `post_delete`
 /// tombstones (owner + recipients) written while the recipients are linked.
 async fn delete_ids(conn: &mut Conn, ids: &[i32]) -> sqlx::Result<()> {
     dl::albums_deleted(conn, AlbumKind::Auto, ids).await?;
-    for sql in [
-        "DELETE FROM api_albumauto_photos WHERE albumauto_id = ANY($1)",
-        "DELETE FROM api_albumauto_shared_to WHERE albumauto_id = ANY($1)",
-        "DELETE FROM api_albumauto WHERE id = ANY($1)",
+    let d = conn.dialect();
+    for (table, col) in [
+        ("api_albumauto_photos", "albumauto_id"),
+        ("api_albumauto_shared_to", "albumauto_id"),
+        ("api_albumauto", "id"),
     ] {
-        crate::sql::query(sql).bind(ids).execute(&mut *conn).await?;
+        crate::sql::query(format!(
+            "DELETE FROM {table} WHERE {}",
+            sql::any_sql(d, col, 1)
+        ))
+        .bind(ids)
+        .execute(&mut *conn)
+        .await?;
     }
     Ok(())
 }
@@ -185,10 +193,11 @@ async fn process_group(conn: &mut Conn, owner_id: i32, group: &[EventPhoto]) -> 
     };
 
     let ids: Vec<Uuid> = group.iter().map(|p| p.id).collect();
-    let added = crate::sql::query(
+    let added = crate::sql::query(format!(
         "INSERT INTO api_albumauto_photos (albumauto_id, photo_id) \
-         SELECT $1, id FROM unnest($2::uuid[]) AS s(id) ON CONFLICT DO NOTHING",
-    )
+         SELECT $1, s.value FROM {} WHERE true ORDER BY s.ord ON CONFLICT DO NOTHING",
+        sql::list_rows(conn.dialect(), 2, "s")
+    ))
     .bind(album_id)
     .bind(&ids)
     .execute(&mut *conn)
@@ -268,25 +277,32 @@ struct TitlePhoto {
 /// What `_generate_title` reads about an album: every member and the names
 /// of its non-deleted, labelled faces. Django iterates both unordered, and
 /// ties in the place/people counts go to the first seen, so rows come in
-/// heap order (`ctid`), which is what Postgres hands Django's unordered
-/// queries.
+/// the order Django's unordered queries see: heap order (`ctid`) on
+/// Postgres; on SQLite photos by id (the M2M `(album, photo_id)` index) and
+/// each photo's faces by id (the `api_face.photo_id` index). That is why
+/// SQLite titles can name the same people in another order ("with Anna
+/// Müller and Ben" vs "with Ben and Anna Müller").
 async fn generate_title(
     conn: &mut Conn,
     album_id: i32,
     timestamp: DateTime<Utc>,
 ) -> sqlx::Result<String> {
-    let photos: Vec<TitlePhoto> = crate::sql::query_as(
+    let d = conn.dialect();
+    let photos: Vec<TitlePhoto> = crate::sql::query_as(format!(
         "SELECT p.id, p.exif_timestamp, p.geolocation_json FROM api_albumauto_photos l \
-         JOIN api_photo p ON p.id = l.photo_id WHERE l.albumauto_id = $1 ORDER BY p.ctid",
-    )
+         JOIN api_photo p ON p.id = l.photo_id WHERE l.albumauto_id = $1 ORDER BY {}",
+        unordered_members(d, "p")
+    ))
     .bind(album_id)
     .fetch_all(&mut *conn)
     .await?;
     let ids: Vec<Uuid> = photos.iter().map(|p| p.id).collect();
-    let faces: Vec<(DjUuid, String)> = crate::sql::query_as(
+    let faces: Vec<(DjUuid, String)> = crate::sql::query_as(format!(
         "SELECT f.photo_id, pe.name FROM api_face f JOIN api_person pe ON pe.id = f.person_id \
-         WHERE f.photo_id = ANY($1) AND NOT f.deleted ORDER BY f.ctid",
-    )
+         WHERE {} AND NOT f.deleted ORDER BY {}",
+        sql::any_sql(d, "f.photo_id", 1),
+        unordered_faces(d, "f")
+    ))
     .bind(&ids)
     .fetch_all(&mut *conn)
     .await?;

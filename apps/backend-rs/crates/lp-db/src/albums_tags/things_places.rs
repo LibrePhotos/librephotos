@@ -4,8 +4,8 @@
 use sqlx::FromRow;
 use sqlx::types::Json;
 
-use super::{Paged, photo_hash_json, push_search};
-use crate::db::{Exec, FromDbRow, Qb};
+use super::{Paged, json_list, photo_hash_json, push_search};
+use crate::db::{Dialect, Exec, FromDbRow, Qb, sql};
 use crate::pig::{self, PigPhoto};
 use crate::scope;
 
@@ -90,11 +90,9 @@ pub async fn user_albums_photos<'e>(
         return Ok(Vec::new());
     }
     let mut qb = pig::query();
-    qb.push(
-        " WHERE p.id IN (SELECT l.photo_id FROM api_albumuser_photos l WHERE l.albumuser_id = ANY(",
-    );
-    qb.push_bind(album_ids.to_vec());
-    qb.push("))");
+    qb.push(" WHERE p.id IN (SELECT l.photo_id FROM api_albumuser_photos l WHERE ");
+    sql::any(&mut qb, "l.albumuser_id", album_ids.to_vec());
+    qb.push(")");
     if public {
         qb.push(" AND NOT p.hidden AND NOT p.in_trashcan");
     }
@@ -137,20 +135,38 @@ where
     E: Exec<'e> + Copy,
 {
     let build = |limit: i64, offset: i64| {
-        let mut qb = Qb::new(format!(
-            "SELECT t.id, t.title, t.photo_count::bigint AS photo_count, t.thing_type, \
-               NULL::int AS geolocation_level, \
-               (SELECT COALESCE(json_agg({ph} ORDER BY cp.ctid), '[]'::json) \
-                  FROM api_albumthing_cover_photos cl JOIN api_photo cp ON cp.id = cl.photo_id \
-                  WHERE cl.albumthing_id = t.id) AS cover_photos, \
-               count(*) OVER () AS total_count \
-             FROM api_albumthing t WHERE t.owner_id = ",
-            ph = photo_hash_json("cp"),
-        ));
+        let mut qb = Qb::new("");
+        // Covers in the order of Django's unordered prefetch: heap order on
+        // Postgres, the link table's `(album, photo_id)` index on SQLite.
+        qb.push_dialect(
+            format!(
+                "SELECT t.id, t.title, t.photo_count::bigint AS photo_count, t.thing_type, \
+                   NULL::int AS geolocation_level, \
+                   (SELECT {list} \
+                      FROM api_albumthing_cover_photos cl JOIN api_photo cp ON cp.id = cl.photo_id \
+                      WHERE cl.albumthing_id = t.id) AS cover_photos, \
+                   count(*) OVER () AS total_count \
+                 FROM api_albumthing t WHERE t.owner_id = ",
+                list = json_list(Dialect::Pg, &photo_hash_json(Dialect::Pg, "cp"), "cp.ctid"),
+            ),
+            format!(
+                "SELECT t.id, t.title, t.photo_count, t.thing_type, \
+                   NULL AS geolocation_level, \
+                   (SELECT {list} \
+                      FROM api_albumthing_cover_photos cl JOIN api_photo cp ON cp.id = cl.photo_id \
+                      WHERE cl.albumthing_id = t.id) AS cover_photos, \
+                   count(*) OVER () AS total_count \
+                 FROM api_albumthing t WHERE t.owner_id = ",
+                list = json_list(
+                    Dialect::Sqlite,
+                    &photo_hash_json(Dialect::Sqlite, "cp"),
+                    "cl.photo_id"
+                ),
+            ),
+        );
         qb.push_bind(owner_id);
-        qb.push(" AND t.photo_count > 0 AND t.thing_type = ANY(");
-        qb.push_bind(thing_types.to_vec());
-        qb.push(")");
+        qb.push(" AND t.photo_count > 0 AND ");
+        sql::any(&mut qb, "t.thing_type", thing_types.to_vec());
         push_search(&mut qb, &["t.title"], search);
         qb.push(" ORDER BY t.title DESC, t.id LIMIT ");
         qb.push_bind(limit);
@@ -174,20 +190,35 @@ where
     let build = |limit: i64, offset: i64| {
         // One pass over the owner's place links: per-album correlated subqueries
         // made the planner hash-join all of api_photo once per album.
-        let mut qb = Qb::new(format!(
-            "SELECT pl.id, pl.title, a.photo_count, NULL::varchar AS thing_type, pl.geolocation_level, \
-               COALESCE(array_to_json(a.covers), '[]'::json) AS cover_photos, \
-               count(*) OVER () AS total_count \
-             FROM api_albumplace pl \
-             JOIN (SELECT r.albumplace_id, max(r.n) AS photo_count, \
-                     array_agg(r.j ORDER BY r.lid) FILTER (WHERE r.rn <= 4) AS covers \
-                   FROM (SELECT cl.albumplace_id, cl.id AS lid, {ph} AS j, \
-                           row_number() OVER (PARTITION BY cl.albumplace_id ORDER BY cl.id) AS rn, \
-                           count(*) OVER (PARTITION BY cl.albumplace_id) AS n \
-                         FROM api_albumplace_photos cl \
-                         JOIN api_albumplace p2 ON p2.id = cl.albumplace_id AND p2.owner_id = ",
-            ph = photo_hash_json("cp"),
-        ));
+        let mut qb = Qb::new("");
+        qb.push_with(|d| {
+            let (thing_type, cover_photos, covers) = match d {
+                Dialect::Pg => (
+                    "NULL::varchar",
+                    "COALESCE(array_to_json(a.covers), '[]'::json)",
+                    "array_agg(r.j ORDER BY r.lid) FILTER (WHERE r.rn <= 4)",
+                ),
+                Dialect::Sqlite => (
+                    "NULL",
+                    "a.covers",
+                    "json_group_array(json(r.j) ORDER BY r.lid) FILTER (WHERE r.rn <= 4)",
+                ),
+            };
+            format!(
+                "SELECT pl.id, pl.title, a.photo_count, {thing_type} AS thing_type, pl.geolocation_level, \
+                   {cover_photos} AS cover_photos, \
+                   count(*) OVER () AS total_count \
+                 FROM api_albumplace pl \
+                 JOIN (SELECT r.albumplace_id, max(r.n) AS photo_count, \
+                         {covers} AS covers \
+                       FROM (SELECT cl.albumplace_id, cl.id AS lid, {ph} AS j, \
+                               row_number() OVER (PARTITION BY cl.albumplace_id ORDER BY cl.id) AS rn, \
+                               count(*) OVER (PARTITION BY cl.albumplace_id) AS n \
+                             FROM api_albumplace_photos cl \
+                             JOIN api_albumplace p2 ON p2.id = cl.albumplace_id AND p2.owner_id = ",
+                ph = photo_hash_json(d, "cp"),
+            )
+        });
         qb.push_bind(owner_id);
         qb.push(
             " JOIN api_photo cp ON cp.id = cl.photo_id AND NOT cp.hidden) r \
@@ -246,10 +277,12 @@ pub async fn thing_header<'e>(
     owner_id: i32,
     thing_types: &[String],
 ) -> sqlx::Result<Option<(i32, String)>> {
-    crate::sql::query_as(
+    let d = db.dialect();
+    crate::sql::query_as(format!(
         "SELECT id, title FROM api_albumthing \
-         WHERE id = $1 AND owner_id = $2 AND photo_count > 0 AND thing_type = ANY($3)",
-    )
+         WHERE id = $1 AND owner_id = $2 AND photo_count > 0 AND {}",
+        sql::any_sql(d, "thing_type", 3)
+    ))
     .bind(id)
     .bind(owner_id)
     .bind(thing_types)
