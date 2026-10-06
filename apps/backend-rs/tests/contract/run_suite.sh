@@ -47,7 +47,7 @@ JOB_SHIFT_DAYS="$(lp_psql -d "$LP_FIXTURE_TEMPLATE" -Atc "SELECT greatest(0, flo
 JOB_SHIFT_DAYS="${JOB_SHIFT_DAYS:-0}"
 
 READ_UNITS="examples harness albums_tags jobs_zip_services media media@direct people_faces photo_edits
-search_sharing_public stats_admin_stacks_dupes timeline_photos users_settings"
+search_sharing_public stats_admin_stacks_dupes sync timeline_photos users_settings"
 
 # name|env flag|test paths|options
 #   diff      dump and diff both states afterwards
@@ -68,6 +68,7 @@ metadata|LP_MUTATION|tests/timeline_photos/metadata.test.ts|diff
 users_settings|LP_MUTATION|tests/users_settings/mutations.test.ts|diff
 jobs|LP_MUTATION|tests/jobs_zip_services/mutations.test.ts|diff
 upload|LP_MUTATION|tests/upload|
+sync|LP_MUTATION|tests/sync/mutations.test.ts|diff
 transcode|LP_TRANSCODE_TWIN|tests/media/transcode.test.ts|direct presql=transcode.sql
 sidecars|LP_SIDECAR_MOCK|tests/sidecars|mock presql=sidecars.sql
 "
