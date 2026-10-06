@@ -178,8 +178,38 @@ impl J {
     }
 }
 
+/// The order Django's unordered many-to-many reads (`photo.files.all()`,
+/// `photo.shared_to.all()`, `main_file.embedded_media.all()`, an album's
+/// `shared_to`) come back in. Postgres: insertion order of the through rows.
+/// SQLite answers them from the through table's unique `(owner, target)`
+/// covering index, so they come back sorted by the target key.
+struct M2mOrder {
+    files: &'static str,
+    shared_to: &'static str,
+    embedded: &'static str,
+    album_shared_to: &'static str,
+}
+
+fn m2m_order(d: Dialect) -> M2mOrder {
+    match d {
+        Dialect::Pg => M2mOrder {
+            files: "pf.id",
+            shared_to: "st.id",
+            embedded: "em.id",
+            album_shared_to: "sst.id",
+        },
+        Dialect::Sqlite => M2mOrder {
+            files: "pf.file_id",
+            shared_to: "st.user_id",
+            embedded: "em.to_file_id",
+            album_shared_to: "sst.user_id",
+        },
+    }
+}
+
 fn detail_select(d: Dialect) -> String {
     let j = J(d);
+    let m2m = m2m_order(d);
     let face = j.obj(&[
         ("id", "f.id".into()),
         ("image", "f.image".into()),
@@ -273,9 +303,9 @@ fn detail_select(d: Dialect) -> String {
          WHERE ps.photo_id = p.id AND sk.stack_type IN {VALID_STACK_TYPES_SQL}) AS stacks",
         clip_model = crate::sql::clip_model(d, "p"),
         faces = j.agg(&face, "f.id"),
-        files = j.agg(&file, "pf.id"),
-        shared = j.agg("st.user_id", "st.id"),
-        embedded = j.agg(&embedded, "em.id"),
+        files = j.agg(&file, m2m.files),
+        shared = j.agg("st.user_id", m2m.shared_to),
+        embedded = j.agg(&embedded, m2m.embedded),
         stacks = j.agg(&stack, "sk.created_at DESC, sk.id"),
     )
 }
@@ -426,7 +456,7 @@ fn albums_json(d: Dialect, mine: &str) -> String {
             j.sub(&format!(
                 "SELECT {} FROM api_albumuser_shared_to sst \
                  JOIN api_user su ON su.id = sst.user_id WHERE sst.albumuser_id = a.id",
-                j.agg(&user_json(&j, "su"), "sst.id")
+                j.agg(&user_json(&j, "su"), m2m_order(d).album_shared_to)
             )),
         ),
         (
