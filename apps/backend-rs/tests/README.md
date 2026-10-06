@@ -14,6 +14,9 @@ tests/
 │   ├── run_django.sh         <db> <port> [direct]  Django reference server
 │   ├── wait_http.sh          <url> [timeout]       wait for /api/healthz
 │   ├── lp_twin_settings.py   Django settings used by the scripts
+│   ├── lp_twin_settings_sqlite.py  the same on Django's SQLite backend (LP_DB_BACKEND=sqlite)
+│   ├── lp_sql.py             psql for SQLite files, with Django-format SQL functions
+│   ├── sqlite_baseline.py    cuts migrations/sqlite/0000_baseline.sql from sqlite_master
 │   └── dump_state.py         canonical DB / media dumps + diff for mutation cases
 └── contract/                 TypeScript harness (vitest + zod, Node 22)
     ├── src/                  client, manifest, schema, twin, authz, projection
@@ -280,6 +283,31 @@ prints a summary line per unit (exit 1 if any failed):
 Use `tests/<area>/...` paths the way the frontend writes them; when a case
 needs a user's scan directory, ask the server (`src/live.ts`), not the
 manifest: a media-copy clone points into the copy.
+
+### On SQLite (`LP_DB_BACKEND=sqlite`)
+
+```bash
+LP_FIXTURE_BACKEND=sqlite apps/backend-rs/tests/fixture/build_fixture.sh   # ~40 s
+LP_DB_BACKEND=sqlite LP_SUITE_RS=django run_suite.sh examples mut:metadata  # Django vs Django
+LP_DB_BACKEND=sqlite run_suite.sh ...                                       # Django vs Rust (after P2)
+```
+
+- The SQLite pack lives in `rust-pg/fixture-sqlite/` with its own media tree:
+  `lp_fixture.sqlite3` (the template), `lp_django.sqlite3` (empty, api.0144),
+  `manifest.json`. Same seed, same UUIDs and row counts as `lp_fixture`.
+- Every fixture script reads `LP_DB_BACKEND`: a clone is a file copy under
+  `rust-pg/fixture-runs/sqlite/<name>.sqlite3`, Django runs
+  `lp_twin_settings_sqlite` (the `production_noproxy.py` SQLite settings),
+  `lp_sql <clone> -c ...` replaces `psql`, and presql files have
+  `*.sqlite.sql` twins.
+- `dump_state.py db --sqlite <file> --baseline <template file>` writes the
+  Postgres dump format (UTC timestamps, dashed UUIDs, parsed JSON, booleans).
+  `--raw` dumps values without the baseline placeholders, for comparing two
+  separately built databases.
+- Rust gets `DB_BACKEND=sqlite LP_SQLITE_PATH=<clone>`; the suite stops up
+  front while `adopt` cannot handle that. `LP_SUITE_RS=django` puts a second
+  Django in the Rust slot, which proves the harness itself.
+- `LP_SUITE_DB_PREFIX` (default `lp_run_`) separates the clones of two suites.
 
 ## 6. ML goldens (`tests/ml/`)
 
