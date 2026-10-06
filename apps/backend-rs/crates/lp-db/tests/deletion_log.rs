@@ -102,7 +102,7 @@ async fn photo_tombstones_follow_the_bumps_with_dashed_ids() {
 
     // A re-share clears the viewer's tombstone only.
     let n = dl::clear(
-        &mut *db.acquire().await.unwrap(),
+        &mut db.acquire().await.unwrap(),
         entity::PHOTO,
         &dl::uuid_ids(&[photo]),
         &[viewer],
