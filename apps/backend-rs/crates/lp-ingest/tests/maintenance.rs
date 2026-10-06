@@ -260,6 +260,14 @@ async fn scan_missing_photos_touches_only_photos_that_lost_a_file() {
     )
     .await
     .unwrap();
-    assert_eq!(deleted, 1, "the removed photo ages into the cleanup");
+    // Other fixture photos may age into the cleanup too once the fixture is
+    // older than the retention window, so check this photo, not the count.
+    assert!(deleted >= 1, "the removed photo ages into the cleanup");
+    let gone: Option<i32> = lp_db::sql::query_scalar("SELECT 1 FROM api_photo WHERE id = $1")
+        .bind(removed.0)
+        .fetch_optional(app.pool())
+        .await
+        .unwrap();
+    assert!(gone.is_none(), "the removed photo is deleted");
     app.cleanup().await;
 }
