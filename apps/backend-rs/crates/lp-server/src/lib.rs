@@ -25,6 +25,7 @@ use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 
 pub mod admin;
+pub mod commands;
 pub mod dev_proxy;
 pub mod logfile;
 

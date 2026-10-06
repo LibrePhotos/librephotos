@@ -26,6 +26,10 @@ pub const SQUARE: &str = "square_thumbnails";
 pub const SQUARE_SMALL: &str = "square_thumbnails_small";
 pub const STATIC_DIRS: [&str; 3] = [BIG, SQUARE, SQUARE_SMALL];
 
+/// ffmpeg copies the source's global metadata into its output, and with it
+/// a phone video's recorded location (the mp4 `location` tag); Django #2140.
+pub const NO_METADATA: [&str; 4] = ["-map_metadata", "-1", "-map_chapters", "-1"];
+
 pub fn height_of(dir: &str) -> i32 {
     match dir {
         BIG => 1080,
@@ -461,6 +465,7 @@ with Image.open(sys.argv[1]) as image:\n    ImageOps.exif_transpose(image).conve
             "-vframes".into(),
             "1".into(),
         ];
+        cmd.extend(NO_METADATA.iter().map(|a| a.to_string()));
         if let Some(f) = self.video_filter(input, None).await {
             cmd.push("-filter:v".into());
             cmd.push(f);
@@ -487,6 +492,10 @@ with Image.open(sys.argv[1]) as image:\n    ImageOps.exif_transpose(image).conve
             "-crf".into(),
             "20".into(),
             "-an".into(),
+            NO_METADATA[0].into(),
+            NO_METADATA[1].into(),
+            NO_METADATA[2].into(),
+            NO_METADATA[3].into(),
             "-filter:v".into(),
             filter,
             fsutil::path_str(&output),

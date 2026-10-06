@@ -23,7 +23,8 @@ crates/
   lp-ingest    scan pipeline          lp-tasks   sidecar-backed follow-ups
   lp-exif      ExifTool pool (leaf)   lp-sidecars typed sidecar clients (leaf)
   lp-ml        in-process ML (ONNX Runtime), model store, sidecar/in-process switch
-  lp-server    binary `librephotos-rs`: serve | worker | migrate | adopt | createadmin
+  lp-server    binary `librephotos-rs`: serve | worker | migrate | adopt | the manage.py
+               command ports (createadmin, createuser, scan, save_metadata, ...; CLI.md)
   lp-testkit   test DBs, in-process app, users, tokens
 migrations/    0000_baseline.sql (Django api.0142 schema) + additive Rust migrations
 ```
