@@ -7,9 +7,8 @@
 
 use super::arg::IntoArg;
 use super::exec::Dialect;
-use super::qb::Qb;
 
-pub use super::qb::Qb as QueryBuilder;
+pub use super::qb::{Qb, Separated};
 pub use super::query::{FromDbRow, query, query_as, query_scalar};
 
 /// `expr = ANY($n)` (Postgres array) / `expr IN (SELECT value FROM
