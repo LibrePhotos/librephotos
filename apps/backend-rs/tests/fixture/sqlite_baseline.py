@@ -19,9 +19,7 @@ EXCLUDE = {"api_user_groups", "api_user_user_permissions"}
 
 
 def application_table(name):
-    return (
-        name.startswith("api_") or name.startswith("chunked_upload_")
-    ) and name not in EXCLUDE
+    return (name.startswith(("api_", "chunked_upload_"))) and name not in EXCLUDE
 
 
 def django_api_migration(conn):

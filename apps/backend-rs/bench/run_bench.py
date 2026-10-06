@@ -23,7 +23,8 @@ import time
 import lpb
 from lpb import log
 
-PORTS = {"django-shipped": lpb.PORT_BASE, "django-tuned": lpb.PORT_BASE + 1, "rust": lpb.PORT_BASE + 2}
+PORTS = {"django-shipped": lpb.PORT_BASE, "django-tuned": lpb.PORT_BASE + 1, "rust": lpb.PORT_BASE + 2,
+         "django-sqlite": lpb.PORT_BASE + 3, "rust-sqlite": lpb.PORT_BASE + 4}
 
 
 def db_for(ds, name):
@@ -44,11 +45,42 @@ def template_for(ds):
     return t
 
 
+def sqlite_template_for(ds, rust=False):
+    """rust-pg/fixture-sqlite/lp_bench_<ds>.sqlite3, converted from the Postgres
+    template once (pg_to_sqlite.py, ~30 s for 50k); for Rust, a copy adopted
+    once (lp_bench_<ds>.rust.sqlite3)."""
+    import shutil
+
+    import pg_to_sqlite
+
+    base = os.path.join(lpb.SQLITE_ROOT, f"lp_bench_{ds}.sqlite3")
+    if not os.path.exists(base):
+        log(f"converting {template_for(ds)} to {base}")
+        pg_to_sqlite.convert(template_for(ds), base, os.path.join(lpb.SQLITE_ROOT, "lp_django.sqlite3"))
+    if not rust:
+        return base
+    adopted = os.path.join(lpb.SQLITE_ROOT, f"lp_bench_{ds}.rust.sqlite3")
+    if not os.path.exists(adopted) or os.path.getmtime(adopted) < os.path.getmtime(base):
+        part = adopted + ".part"
+        shutil.copyfile(base, part)
+        env = lpb.rust_env("unused", 8998, extra=lpb.sqlite_env(part))
+        r = subprocess.run([lpb.RS_BIN, "adopt"], env=env, capture_output=True, text=True, check=False)
+        if r.returncode != 0:
+            os.remove(part)
+            raise RuntimeError(f"librephotos-rs adopt failed on SQLite (needs the P2 plumbing): {r.stderr.strip()[-500:]}")
+        os.replace(part, adopted)
+    return adopted
+
+
 def start_all(ds, names=lpb.ORDER):
     servers = {}
     for name in names:
         db = db_for(ds, name)
-        lpb.clone(template_for(ds), db)
+        cfg = lpb.CONTENDERS.get(name, {})
+        if cfg.get("backend") == "sqlite":
+            db = lpb.sqlite_clone(sqlite_template_for(ds, rust=cfg["kind"] == "rust"), db)
+        else:
+            lpb.clone(template_for(ds), db)
         servers[name] = lpb.Server(name, db, PORTS[name]).start()
         log(f"{name} up on {db} in {servers[name].cold_start_s:.1f}s (pid {servers[name].proc.pid})")
     return servers

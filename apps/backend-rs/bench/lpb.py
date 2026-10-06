@@ -34,6 +34,10 @@ VENV_SP = os.path.join(VENV, "Lib", "site-packages")
 FIXTURE_ROOT = r"C:\Users\Niaz\librephotos\rust-pg\fixture"
 MEDIA = r"C:\Users\Niaz\librephotos\rust-pg\bench-media"
 RUNS = r"C:\Users\Niaz\librephotos\rust-pg\bench-runs"
+# SQLite templates (pg_to_sqlite.py: lp_bench_<ds>.sqlite3, plus the adopted
+# lp_bench_<ds>.rust.sqlite3) and the per-run copies.
+SQLITE_ROOT = r"C:\Users\Niaz\librephotos\rust-pg\fixture-sqlite"
+SQLITE_RUNS = os.path.join(RUNS, "sqlite")
 SECRET = "rust-bench-secret"
 ALICE = 2
 
@@ -48,6 +52,12 @@ CONTENDERS = {
     "django-shipped": {"kind": "django", "workers": 1, "threads": 16},
     "django-tuned": {"kind": "django", "workers": SERVER_CPUS, "threads": 4},
     "rust": {"kind": "rust", "pool": 2 * SERVER_CPUS},
+    # Django's DB_BACKEND=sqlite (lp_twin_settings_sqlite) on a copy of the
+    # converted template, tuned like django-tuned.
+    "django-sqlite": {"kind": "django", "backend": "sqlite", "workers": SERVER_CPUS, "threads": 4},
+    # librephotos-rs with DB_BACKEND=sqlite (needs the P2 SQLite plumbing);
+    # LP_DB_POOL = SQLite reader connections.
+    "rust-sqlite": {"kind": "rust", "backend": "sqlite", "pool": 2 * SERVER_CPUS},
 }
 ORDER = ["django-shipped", "django-tuned", "rust"]
 
@@ -95,8 +105,51 @@ def clone(template, db):
 
 
 def drop(db):
+    if is_sqlite(db):
+        return drop_sqlite(db)
     assert db.startswith(("lp_run_", "lp_t_")) and db.startswith(RUN_PREFIX), db
     psql(f'DROP DATABASE IF EXISTS "{db}" WITH (FORCE)')
+
+
+def is_sqlite(db):
+    return db.endswith(".sqlite3")
+
+
+def django_ts(dt):
+    """Django's SQLite datetime text: naive UTC, str(datetime)."""
+    import datetime
+    return str(dt.astimezone(datetime.timezone.utc).replace(tzinfo=None))
+
+
+def sqlite_clone(template, name):
+    """A run copy of a SQLite template: <SQLITE_RUNS>/<name>.sqlite3. Like clone(),
+    Rust's maintenance schedules are marked as not due when the file has them."""
+    import datetime
+    import shutil
+    import sqlite3
+    assert name.startswith(("lp_run_", "lp_t_")) and name.startswith(RUN_PREFIX), name
+    os.makedirs(SQLITE_RUNS, exist_ok=True)
+    path = os.path.join(SQLITE_RUNS, f"{name}.sqlite3")
+    drop_sqlite(path)
+    shutil.copyfile(template, path)
+    conn = sqlite3.connect(path)
+    if conn.execute("SELECT 1 FROM sqlite_master WHERE name = 'schedule_state'").fetchone():
+        now = datetime.datetime.now(datetime.timezone.utc)
+        conn.executemany(
+            "INSERT INTO schedule_state (name, last_run_at, next_run_at) VALUES (?, ?, ?) "
+            "ON CONFLICT (name) DO UPDATE SET next_run_at = excluded.next_run_at",
+            [(s, django_ts(now), django_ts(now + datetime.timedelta(days=365))) for s in SCHEDULES],
+        )
+        conn.commit()
+    conn.close()
+    return path
+
+
+def drop_sqlite(path):
+    assert os.path.dirname(os.path.abspath(path)) == os.path.abspath(SQLITE_RUNS), path
+    for p in (path, path + "-wal", path + "-shm", path + "-journal"):
+        if os.path.exists(p):
+            os.remove(p)
 
 
 def b64(d):
@@ -172,6 +225,12 @@ def rust_env(db, port, media=MEDIA, logs=None, extra=None):
     return env
 
 
+def sqlite_env(path):
+    """librephotos-rs on a SQLite file. DB_NAME names no database, so a binary
+    without SQLite support fails instead of serving a Postgres one."""
+    return {"DB_BACKEND": "sqlite", "LP_SQLITE_PATH": path, "DB_NAME": "lp_sqlite_bench_no_such_db"}
+
+
 class Server:
     """One contender on its own database. Django goes through tests/fixture/run_django.sh
     (production settings, SERVE_FRONTEND direct media, no access log)."""
@@ -194,15 +253,20 @@ class Server:
             raise RuntimeError(f"port {self.port} busy")
         logdir = os.path.join(RUNS, "logs")
         os.makedirs(logdir, exist_ok=True)
-        self.logfile = open(os.path.join(logdir, f"{self.name}-{self.db}-{self.port}.log"), "ab")
+        db_label = os.path.splitext(os.path.basename(self.db))[0]
+        self.logfile = open(os.path.join(logdir, f"{self.name}-{db_label}-{self.port}.log"), "ab")
+        sqlite = self.cfg.get("backend") == "sqlite"
         if self.kind == "django":
             env = dict(os.environ)
             env.update({"TZ": "UTC", "LP_WORKERS": str(self.cfg.get("workers", 1)), "WEB_THREADS": str(self.cfg.get("threads", 16)),
-                        "LP_MEDIA_ROOT": self.media, "LP_RUNS_ROOT": os.path.join(RUNS, "django")})
+                        "LP_MEDIA_ROOT": self.media, "LP_RUNS_ROOT": os.path.join(RUNS, "django"),
+                        "LP_DB_BACKEND": "sqlite" if sqlite else "postgresql"})
             env.update(self.extra_env)
             cmd = [BASH, os.path.join(FIXTURE_DIR, "run_django.sh"), self.db, str(self.port), "direct"]
         else:
             env = rust_env(self.db, self.port, self.media, extra={"LP_DB_POOL": str(self.cfg.get("pool", 12)), **self.extra_env})
+            if sqlite:
+                env.update(sqlite_env(self.db))
             cmd = [RS_BIN, *self.rust_cmd]
         t0 = time.perf_counter()
         self.proc = subprocess.Popen(cmd, env=env, stdout=self.logfile, stderr=subprocess.STDOUT,
