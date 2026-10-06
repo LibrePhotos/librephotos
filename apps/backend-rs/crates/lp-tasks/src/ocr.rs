@@ -5,6 +5,7 @@ use std::collections::HashMap;
 
 use futures::TryStreamExt;
 use lp_core::AppState;
+use lp_db::db::DjUuid;
 use lp_jobs::JobType;
 use lp_sidecars::SidecarError;
 use serde_json::Value;
@@ -45,7 +46,7 @@ pub async fn generate(
         return Ok(());
     }
     let last = run::last_finished_start(&state.db, user_id, JobType::GenerateOcr, true).await?;
-    let ids: Vec<Uuid> = sqlx::query_scalar(
+    let ids: Vec<Uuid> = lp_db::sql::query_scalar(
         "SELECT p.id FROM api_photo p LEFT JOIN api_photo_ocr o ON o.photo_id = p.id \
          WHERE p.owner_id = $1 AND NOT p.video \
            AND ($2 OR ( \
@@ -143,7 +144,7 @@ pub async fn ocr_photo(state: &AppState, photo_id: Uuid) -> Result<(), OcrError>
     };
 
     let mut tx = state.db.begin().await?;
-    sqlx::query(
+    lp_db::sql::query(
         "INSERT INTO api_photo_ocr (photo_id, text, blocks, engine, mean_confidence, \
            text_area_fraction, created_at, updated_at, source_width, source_height) \
          VALUES ($1, $2, $3, $4, $5, $6, now(), now(), $7, $8) \
@@ -169,7 +170,7 @@ pub async fn ocr_photo(state: &AppState, photo_id: Uuid) -> Result<(), OcrError>
     let is_document = detect::classify_document(Some(&text), data.text_area_fraction, &labels);
     // `_derive_is_document`: never over a manual correction; Django saves
     // with update_fields, so last_modified stays as it is.
-    sqlx::query(
+    lp_db::sql::query(
         "UPDATE api_photo SET is_document = $2 \
          WHERE id = $1 AND category_source <> 'user' AND is_document <> $2",
     )
@@ -195,6 +196,7 @@ fn is_falsy(v: &Value) -> bool {
 
 #[derive(Debug, FromRow)]
 struct ClassifyRow {
+    #[sqlx(try_from = "DjUuid")]
     id: Uuid,
     is_screenshot: bool,
     is_document: bool,
@@ -219,7 +221,7 @@ struct ClassifyRow {
 /// `bulk_update`).
 pub async fn classify_media(state: &AppState, user_id: i32, job_id: &str) -> anyhow::Result<()> {
     const BATCH: usize = 200;
-    let target: i64 = sqlx::query_scalar(
+    let target: i64 = lp_db::sql::query_scalar(
         "SELECT count(*) FROM api_photo WHERE owner_id = $1 AND category_source <> 'user'",
     )
     .bind(user_id)
@@ -229,8 +231,10 @@ pub async fn classify_media(state: &AppState, user_id: i32, job_id: &str) -> any
         return Ok(());
     }
     let mut counter = ItemCounter::new(state.db.clone(), job_id, target as usize);
-    let mut conn = state.db.acquire().await?;
-    let mut rows = sqlx::query_as::<_, ClassifyRow>(
+    // A reader: `write_classified` writes meanwhile, which on SQLite needs the
+    // single writer connection.
+    let mut conn = state.db.acquire_read().await?;
+    let mut rows = lp_db::sql::query_as::<_, ClassifyRow>(
         "SELECT p.id, p.is_screenshot, p.is_document, p.exif_gps_lat, p.exif_gps_lon, \
            f.path AS main_path, (m.id IS NOT NULL) AS has_metadata, m.camera_model, m.aperture, \
            m.iso, m.focal_length, m.gps_latitude, m.gps_longitude, \
@@ -281,7 +285,7 @@ async fn write_classified(
     let labels: HashMap<Uuid, Vec<String>> = if with_ocr.is_empty() {
         HashMap::new()
     } else {
-        let mut conn = state.db.acquire().await?;
+        let mut conn = state.db.acquire_read().await?;
         things::siglip_labels(&mut conn, &with_ocr).await?
     };
     let mut screenshot_ids = Vec::new();
@@ -318,7 +322,7 @@ async fn write_classified(
     }
     let mut tx = state.db.begin().await?;
     if !screenshot_ids.is_empty() {
-        sqlx::query(
+        lp_db::sql::query(
             "UPDATE api_photo p SET is_screenshot = u.v \
              FROM unnest($1::uuid[], $2::bool[]) AS u(id, v) WHERE p.id = u.id",
         )
@@ -328,7 +332,7 @@ async fn write_classified(
         .await?;
     }
     if !document_ids.is_empty() {
-        sqlx::query(
+        lp_db::sql::query(
             "UPDATE api_photo p SET is_document = u.v \
              FROM unnest($1::uuid[], $2::bool[]) AS u(id, v) WHERE p.id = u.id",
         )

@@ -55,7 +55,7 @@ async fn captions_generate_in_process_matches_python() {
     let db = t.db().clone();
     let alice = user_id(&db, "alice").await;
     // llm_settings off: the default prompt, the one the goldens used.
-    sqlx::query("UPDATE api_user SET llm_settings = $2 WHERE id = $1")
+    lp_db::sql::query("UPDATE api_user SET llm_settings = $2 WHERE id = $1")
         .bind(alice)
         .bind(json!({"enabled": false}))
         .execute(&db)
@@ -108,7 +108,7 @@ async fn captions_generate_in_process_matches_python() {
             started.elapsed().as_secs_f64(),
             case.output["seconds"].as_f64().unwrap_or(0.0)
         );
-        let (cj, search): (Value, String) = sqlx::query_as(
+        let (cj, search): (Value, String) = lp_db::sql::query_as(
             "SELECT c.captions_json, s.search_captions FROM api_photo_caption c \
              JOIN api_photo_search s ON s.photo_id = c.photo_id WHERE c.photo_id = $1",
         )

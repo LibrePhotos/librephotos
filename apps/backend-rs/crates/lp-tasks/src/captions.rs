@@ -73,7 +73,7 @@ pub async fn generate_im2txt(state: &AppState, photo_id: Uuid) -> anyhow::Result
     let Some(photo) = photos::load_one(&state.db, photo_id).await? else {
         return Ok(CaptionOutcome::Skipped("photo not found"));
     };
-    sqlx::query(
+    lp_db::sql::query(
         "INSERT INTO api_photo_caption (photo_id, captions_json, created_at, updated_at) \
          VALUES ($1, NULL, now(), now()) ON CONFLICT (photo_id) DO NOTHING",
     )
@@ -112,7 +112,7 @@ pub async fn generate_im2txt(state: &AppState, photo_id: Uuid) -> anyhow::Result
     };
 
     let mut tx = state.db.begin().await?;
-    sqlx::query(
+    lp_db::sql::query(
         "UPDATE api_photo_caption SET captions_json = jsonb_set( \
            CASE WHEN jsonb_typeof(captions_json) = 'object' THEN captions_json ELSE '{}'::jsonb END, \
            '{im2txt}', to_jsonb($2::text)), updated_at = now() \
@@ -134,15 +134,16 @@ async fn caption_context(
     photo_id: Uuid,
     owner_id: i32,
 ) -> sqlx::Result<Option<CaptionContext>> {
-    let settings: Value = sqlx::query_scalar("SELECT llm_settings FROM api_user WHERE id = $1")
-        .bind(owner_id)
-        .fetch_one(&state.db)
-        .await?;
+    let settings: Value =
+        lp_db::sql::query_scalar("SELECT llm_settings FROM api_user WHERE id = $1")
+            .bind(owner_id)
+            .fetch_one(&state.db)
+            .await?;
     if !flag(&settings, "enabled") {
         return Ok(None);
     }
     let person_name = if flag(&settings, "add_person") {
-        sqlx::query_scalar::<_, String>(
+        lp_db::sql::query_scalar::<_, String>(
             "SELECT pe.name FROM api_face f JOIN api_person pe ON pe.id = f.person_id \
              WHERE f.photo_id = $1 ORDER BY f.id LIMIT 1",
         )
@@ -153,7 +154,7 @@ async fn caption_context(
         None
     };
     let location = if flag(&settings, "add_location") {
-        sqlx::query_scalar::<_, Option<String>>(
+        lp_db::sql::query_scalar::<_, Option<String>>(
             "SELECT search_location FROM api_photo_search WHERE photo_id = $1",
         )
         .bind(photo_id)

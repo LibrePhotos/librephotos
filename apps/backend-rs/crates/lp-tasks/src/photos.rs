@@ -3,11 +3,14 @@
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
-use sqlx::{FromRow, PgPool};
+use lp_db::db::{Db, DjUuid};
+
+use sqlx::FromRow;
 use uuid::Uuid;
 
 #[derive(Debug, Clone, FromRow)]
 pub struct TaskPhoto {
+    #[sqlx(try_from = "DjUuid")]
     pub id: Uuid,
     pub image_hash: String,
     pub owner_id: i32,
@@ -31,8 +34,8 @@ impl TaskPhoto {
 const COLUMNS: &str = "p.id, p.image_hash, p.owner_id, p.video, f.path AS main_path, \
     t.thumbnail_big";
 
-pub async fn load(db: &PgPool, ids: &[Uuid]) -> sqlx::Result<HashMap<Uuid, TaskPhoto>> {
-    let rows = sqlx::query_as::<_, TaskPhoto>(&format!(
+pub async fn load(db: &Db, ids: &[Uuid]) -> sqlx::Result<HashMap<Uuid, TaskPhoto>> {
+    let rows = lp_db::sql::query_as::<_, TaskPhoto>(&format!(
         "SELECT {COLUMNS} FROM api_photo p \
          LEFT JOIN api_file f ON f.hash = p.main_file_id \
          LEFT JOIN api_thumbnail t ON t.photo_id = p.id \
@@ -44,7 +47,7 @@ pub async fn load(db: &PgPool, ids: &[Uuid]) -> sqlx::Result<HashMap<Uuid, TaskP
     Ok(rows.into_iter().map(|r| (r.id, r)).collect())
 }
 
-pub async fn load_one(db: &PgPool, id: Uuid) -> sqlx::Result<Option<TaskPhoto>> {
+pub async fn load_one(db: &Db, id: Uuid) -> sqlx::Result<Option<TaskPhoto>> {
     Ok(load(db, &[id]).await?.remove(&id))
 }
 

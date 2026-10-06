@@ -12,10 +12,11 @@ use futures::StreamExt;
 use image::RgbImage;
 use lp_core::AppState;
 use lp_core::codecs::FaceEncoding;
+use lp_db::db::Conn;
 use lp_jobs::JobType;
 use lp_sidecars::FaceBox;
 use rand::Rng;
-use sqlx::{FromRow, PgConnection};
+use sqlx::FromRow;
 use uuid::Uuid;
 
 use crate::photos::{self, TaskPhoto, path_str};
@@ -76,7 +77,7 @@ pub async fn scan_with(
         run::last_finished_start(&state.db, user_id, JobType::ScanFaces, false).await?
     };
     let model = state.settings().face_recognition_model.clone();
-    let ids: Vec<Uuid> = sqlx::query_scalar(
+    let ids: Vec<Uuid> = lp_db::sql::query_scalar(
         "SELECT p.id FROM api_photo p JOIN api_thumbnail t ON t.photo_id = p.id \
          WHERE p.owner_id = $1 AND ($2::boolean IS FALSE OR p.added_on > $3) \
            AND NOT ($4::boolean AND EXISTS (SELECT 1 FROM lp_photo_faces_scanned s \
@@ -374,7 +375,7 @@ pub async fn extract_faces_from_pixels(
         write_faces(state, photo, image, found).await?
     };
     let model = state.settings().face_recognition_model.clone();
-    sqlx::query(
+    lp_db::sql::query(
         "INSERT INTO lp_photo_faces_scanned (photo_id, model, scanned_at) VALUES ($1, $2, now())          ON CONFLICT (photo_id) DO UPDATE SET model = EXCLUDED.model, scanned_at = now()",
     )
     .bind(photo.id)
@@ -435,7 +436,7 @@ async fn write_faces(
 ) -> Result<usize, FaceError> {
     let mut tx = state.db.begin().await?;
     let unknown_cluster = unknown_cluster(&mut tx, photo.owner_id).await?;
-    let mut existing: Vec<FaceBox> = sqlx::query_as::<_, (i32, i32, i32, i32)>(
+    let mut existing: Vec<FaceBox> = lp_db::sql::query_as::<_, (i32, i32, i32, i32)>(
         "SELECT location_top, location_right, location_bottom, location_left FROM api_face \
          WHERE photo_id = $1 ORDER BY id",
     )
@@ -480,7 +481,7 @@ async fn write_faces(
                 .map(FaceEncoding::encode)
                 .unwrap_or_default();
             let [top, right, bottom, left] = face.location;
-            sqlx::query(
+            lp_db::sql::query(
                 "INSERT INTO api_face (image, cluster_probability, location_top, location_bottom, \
                    location_left, location_right, encoding, person_id, cluster_id, \
                    classification_probability, deleted, classification_person_id, \
@@ -587,8 +588,8 @@ fn available_face_name(dir: &Path, file_name: &str) -> (String, PathBuf) {
 
 /// `get_unknown_cluster`: the user's `cluster_id = -1` cluster, created as
 /// needed, with no person.
-pub async fn unknown_cluster(conn: &mut PgConnection, owner_id: i32) -> sqlx::Result<i32> {
-    let row: Option<(i32, Option<i32>)> = sqlx::query_as(
+pub async fn unknown_cluster(conn: &mut Conn, owner_id: i32) -> sqlx::Result<i32> {
+    let row: Option<(i32, Option<i32>)> = lp_db::sql::query_as(
         "SELECT id, person_id FROM api_cluster WHERE owner_id = $1 AND cluster_id = -1 \
          ORDER BY id LIMIT 1",
     )
@@ -598,7 +599,7 @@ pub async fn unknown_cluster(conn: &mut PgConnection, owner_id: i32) -> sqlx::Re
     match row {
         Some((id, None)) => Ok(id),
         Some((id, Some(_))) => {
-            sqlx::query(
+            lp_db::sql::query(
                 "UPDATE api_cluster SET person_id = NULL, name = 'Other Unknown Cluster' WHERE id = $1",
             )
             .bind(id)
@@ -606,7 +607,7 @@ pub async fn unknown_cluster(conn: &mut PgConnection, owner_id: i32) -> sqlx::Re
             .await?;
             Ok(id)
         }
-        None => sqlx::query_scalar(
+        None => lp_db::sql::query_scalar(
             "INSERT INTO api_cluster (mean_face_encoding, cluster_id, name, person_id, owner_id) \
                  VALUES ('', -1, NULL, NULL, $1) RETURNING id",
         )
@@ -617,8 +618,8 @@ pub async fn unknown_cluster(conn: &mut PgConnection, owner_id: i32) -> sqlx::Re
 }
 
 /// `get_or_create_person(name, owner, KIND_USER)` + `save()`.
-async fn named_person(conn: &mut PgConnection, name: &str, owner_id: i32) -> sqlx::Result<i32> {
-    let existing: Option<i32> = sqlx::query_scalar(
+async fn named_person(conn: &mut Conn, name: &str, owner_id: i32) -> sqlx::Result<i32> {
+    let existing: Option<i32> = lp_db::sql::query_scalar(
         "UPDATE api_person SET last_modified = now() WHERE id = ( \
            SELECT id FROM api_person WHERE name = $1 AND cluster_owner_id = $2 AND kind = 'USER' \
            ORDER BY id LIMIT 1) RETURNING id",
@@ -630,7 +631,7 @@ async fn named_person(conn: &mut PgConnection, name: &str, owner_id: i32) -> sql
     if let Some(id) = existing {
         return Ok(id);
     }
-    sqlx::query_scalar(
+    lp_db::sql::query_scalar(
         "INSERT INTO api_person (name, kind, cluster_owner_id, face_count, cover_face_id, \
            cover_photo_id, last_modified) VALUES ($1, 'USER', $2, 0, NULL, NULL, now()) RETURNING id",
     )
@@ -641,8 +642,8 @@ async fn named_person(conn: &mut PgConnection, name: &str, owner_id: i32) -> sql
 }
 
 /// `_calculate_face_count` + `_set_default_cover_photo` (S19).
-pub async fn refresh_person(conn: &mut PgConnection, person_id: i32) -> sqlx::Result<()> {
-    sqlx::query(
+pub async fn refresh_person(conn: &mut Conn, person_id: i32) -> sqlx::Result<()> {
+    lp_db::sql::query(
         "UPDATE api_person pe SET last_modified = now(), face_count = ( \
            SELECT count(*) FROM api_face f JOIN api_photo p ON p.id = f.photo_id \
            WHERE f.person_id = pe.id AND NOT p.hidden AND NOT p.in_trashcan \
@@ -652,7 +653,7 @@ pub async fn refresh_person(conn: &mut PgConnection, person_id: i32) -> sqlx::Re
     .bind(person_id)
     .execute(&mut *conn)
     .await?;
-    sqlx::query(
+    lp_db::sql::query(
         "UPDATE api_person pe SET cover_photo_id = f.photo_id, cover_face_id = f.id, \
            last_modified = now() \
          FROM (SELECT id, photo_id FROM api_face WHERE person_id = $1 ORDER BY id LIMIT 1) f \
@@ -667,12 +668,12 @@ pub async fn refresh_person(conn: &mut PgConnection, person_id: i32) -> sqlx::Re
 /// `_reconcile_xmp_face_name`: the first existing face the region overlaps
 /// takes the name when it has none.
 async fn reconcile_name(
-    conn: &mut PgConnection,
+    conn: &mut Conn,
     photo_id: Uuid,
     person_id: i32,
     location: FaceBox,
 ) -> sqlx::Result<()> {
-    let faces: Vec<(i32, Option<i32>, i32, i32, i32, i32)> = sqlx::query_as(
+    let faces: Vec<(i32, Option<i32>, i32, i32, i32, i32)> = lp_db::sql::query_as(
         "SELECT id, person_id, location_top, location_right, location_bottom, location_left \
          FROM api_face WHERE photo_id = $1 ORDER BY id",
     )
@@ -684,7 +685,7 @@ async fn reconcile_name(
             continue;
         }
         if current.is_none() {
-            sqlx::query("UPDATE api_face SET person_id = $2 WHERE id = $1")
+            lp_db::sql::query("UPDATE api_face SET person_id = $2 WHERE id = $1")
                 .bind(id)
                 .bind(person_id)
                 .execute(&mut *conn)
@@ -714,7 +715,7 @@ struct MissingEncoding {
 /// `generate_face_embeddings`: encodings for the user's faces stored
 /// without one (XMP regions), as its own job; no job when there are none.
 pub async fn generate_face_embeddings(state: &AppState, user_id: i32) -> anyhow::Result<()> {
-    let faces = sqlx::query_as::<_, MissingEncoding>(
+    let faces = lp_db::sql::query_as::<_, MissingEncoding>(
         "SELECT f.id, f.location_top, f.location_right, f.location_bottom, f.location_left, \
            t.thumbnail_big \
          FROM api_face f JOIN api_photo p ON p.id = f.photo_id \
@@ -772,7 +773,7 @@ async fn encode_face(state: &AppState, face: &MissingEncoding, model: &str) -> a
         Some(None) => anyhow::bail!("The face service detected no face in face {}", face.id),
         Some(Some(e)) => e,
     };
-    sqlx::query("UPDATE api_face SET encoding = $2 WHERE id = $1")
+    lp_db::sql::query("UPDATE api_face SET encoding = $2 WHERE id = $1")
         .bind(face.id)
         .bind(FaceEncoding::encode(&encoding))
         .execute(&state.db)

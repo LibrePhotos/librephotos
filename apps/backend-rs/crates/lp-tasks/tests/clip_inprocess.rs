@@ -7,6 +7,7 @@
 
 mod common;
 
+use lp_db::db::DjUuid;
 use std::path::Path;
 use std::time::Instant;
 
@@ -15,7 +16,6 @@ use lp_jobs::{EnqueueOptions, JobType};
 use lp_ml::golden::{self, Array};
 use lp_ml::{Mode, Service};
 use serde_json::{Value, json};
-use uuid::Uuid;
 
 /// Hard links (same volume, no copy) of the shared CLIP model into `media_root`.
 fn link_model(media_root: &Path) -> bool {
@@ -64,7 +64,7 @@ async fn inprocess_clip_embed_index_and_search() {
     .unwrap();
     let db = t.db().clone();
     let alice = user_id(&db, "alice").await;
-    sqlx::query(
+    lp_db::sql::query(
         "UPDATE api_photo SET clip_embeddings = NULL, clip_embeddings_magnitude = NULL WHERE owner_id = $1",
     )
     .bind(alice)
@@ -94,7 +94,7 @@ async fn inprocess_clip_embed_index_and_search() {
     assert!(t.mock.calls_to("/build/").is_empty(), "no sidecar call");
 
     // Every stored embedding is the Python sidecar's for that thumbnail.
-    let rows: Vec<(Uuid, String, Option<Value>, Option<f64>, Option<String>)> = sqlx::query_as(
+    let rows: Vec<(DjUuid, String, Option<Value>, Option<f64>, Option<String>)> = lp_db::sql::query_as(
         "SELECT p.id, p.image_hash, p.clip_embeddings, p.clip_embeddings_magnitude, t.thumbnail_big \
          FROM api_photo p LEFT JOIN api_thumbnail t ON t.photo_id = p.id WHERE p.owner_id = $1",
     )
@@ -138,7 +138,7 @@ async fn inprocess_clip_embed_index_and_search() {
     assert!(compared > 0);
 
     let media_root = t.state.config.media_root.clone();
-    let indexed: i64 = sqlx::query_scalar(
+    let indexed: i64 = lp_db::sql::query_scalar(
         "SELECT count(*) FROM api_photo WHERE owner_id = $1 AND NOT hidden AND clip_embeddings IS NOT NULL",
     )
     .bind(alice)
@@ -157,7 +157,7 @@ async fn inprocess_clip_embed_index_and_search() {
     let one_page = std::fs::read(&index_file).unwrap();
     // It holds the stored embeddings, as float32, in image_hash order.
     let idx = lp_ml::similarity::FlatIndex::from_bytes(&one_page).unwrap();
-    let want: Vec<(String, Vec<f32>)> = sqlx::query_as::<_, (String, Value)>(
+    let want: Vec<(String, Vec<f32>)> = lp_db::sql::query_as::<_, (String, Value)>(
         "SELECT image_hash, clip_embeddings FROM api_photo \
          WHERE owner_id = $1 AND NOT hidden AND clip_embeddings IS NOT NULL ORDER BY image_hash",
     )

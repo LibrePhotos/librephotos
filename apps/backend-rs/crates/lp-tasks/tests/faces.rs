@@ -7,6 +7,8 @@ mod common;
 
 use common::*;
 use lp_core::codecs::FaceEncoding;
+use lp_db::db::Db;
+use lp_db::db::DjUuidOpt;
 use lp_jobs::{EnqueueOptions, JobType};
 use serde_json::json;
 use uuid::Uuid;
@@ -24,8 +26,8 @@ struct FaceRow {
     encoding: String,
 }
 
-async fn faces_of(db: &sqlx::PgPool, owner: i32) -> Vec<FaceRow> {
-    sqlx::query_as::<_, FaceRow>(
+async fn faces_of(db: &Db, owner: i32) -> Vec<FaceRow> {
+    lp_db::sql::query_as::<_, FaceRow>(
         "SELECT f.id, f.person_id, f.cluster_id, f.cluster_person_id, f.classification_person_id, \
            f.cluster_probability, f.classification_probability, f.image, f.encoding \
          FROM api_face f JOIN api_photo p ON p.id = f.photo_id WHERE p.owner_id = $1 ORDER BY f.id",
@@ -36,8 +38,8 @@ async fn faces_of(db: &sqlx::PgPool, owner: i32) -> Vec<FaceRow> {
     .unwrap()
 }
 
-async fn latest_job(db: &sqlx::PgPool, job_type: i32) -> Option<String> {
-    sqlx::query_scalar(
+async fn latest_job(db: &Db, job_type: i32) -> Option<String> {
+    lp_db::sql::query_scalar(
         "SELECT job_id FROM api_longrunningjob WHERE job_type = $1 ORDER BY id DESC LIMIT 1",
     )
     .bind(job_type)
@@ -63,7 +65,7 @@ async fn scan_detects_crops_encodes_clusters_and_trains() {
     .await;
     res.unwrap();
     let j = job(&db, lrj.as_deref().unwrap()).await;
-    let with_thumb: i64 = sqlx::query_scalar(
+    let with_thumb: i64 = lp_db::sql::query_scalar(
         "SELECT count(*) FROM api_photo p JOIN api_thumbnail t ON t.photo_id = p.id WHERE p.owner_id = $1",
     )
     .bind(alice)
@@ -148,20 +150,20 @@ async fn xmp_regions_name_faces() {
     let copy = dir.join("region.jpg");
     std::fs::copy(main, &copy).unwrap();
     std::fs::write(dir.join("region.xmp"), include_str!("region.xmp")).unwrap();
-    sqlx::query("UPDATE api_file SET path = $2 WHERE hash = (SELECT main_file_id FROM api_photo WHERE id = $1)")
+    lp_db::sql::query("UPDATE api_file SET path = $2 WHERE hash = (SELECT main_file_id FROM api_photo WHERE id = $1)")
         .bind(photo)
         .bind(path_of(&copy))
         .execute(&db)
         .await
         .unwrap();
-    sqlx::query(
+    lp_db::sql::query(
         "UPDATE api_person SET cover_face_id = NULL WHERE cover_face_id IN (SELECT id FROM api_face WHERE photo_id = $1)",
     )
     .bind(photo)
     .execute(&db)
     .await
     .unwrap();
-    sqlx::query("DELETE FROM api_face WHERE photo_id = $1")
+    lp_db::sql::query("DELETE FROM api_face WHERE photo_id = $1")
         .bind(photo)
         .execute(&db)
         .await
@@ -177,17 +179,17 @@ async fn xmp_regions_name_faces() {
         t.mock.calls_to("/face-locations").is_empty(),
         "XMP regions win over the sidecar"
     );
-    let (person, kind, owner, face_count, cover): (i32, String, i32, i32, Option<Uuid>) = sqlx::query_as(
+    let (person, kind, owner, face_count, cover): (i32, String, i32, i32, DjUuidOpt) = lp_db::sql::query_as(
         "SELECT id, kind, cluster_owner_id, face_count, cover_photo_id FROM api_person WHERE name = 'Carla Xmp'",
     )
     .fetch_one(&db)
     .await
     .unwrap();
     assert_eq!(
-        (kind.as_str(), owner, face_count, cover),
+        (kind.as_str(), owner, face_count, cover.0),
         ("USER", alice, 1, Some(photo))
     );
-    let (face_person, encoding, top, left): (Option<i32>, String, i32, i32) = sqlx::query_as(
+    let (face_person, encoding, top, left): (Option<i32>, String, i32, i32) = lp_db::sql::query_as(
         "SELECT person_id, encoding, location_top, location_left FROM api_face WHERE photo_id = $1",
     )
     .bind(photo)
@@ -205,11 +207,12 @@ async fn xmp_regions_name_faces() {
     lp_tasks::faces::generate_face_embeddings(&t.state, alice)
         .await
         .unwrap();
-    let encoding: String = sqlx::query_scalar("SELECT encoding FROM api_face WHERE photo_id = $1")
-        .bind(photo)
-        .fetch_one(&db)
-        .await
-        .unwrap();
+    let encoding: String =
+        lp_db::sql::query_scalar("SELECT encoding FROM api_face WHERE photo_id = $1")
+            .bind(photo)
+            .fetch_one(&db)
+            .await
+            .unwrap();
     assert_eq!(FaceEncoding::decode(&encoding).unwrap().len(), 512);
 
     // Again: the region overlaps the face it made, nothing new.
@@ -273,13 +276,13 @@ async fn cluster_and_train_follow_face_classify() {
     assert_eq!(sent["faces"].as_array().unwrap().len(), faces.len());
 
     // The old CLUSTER person is gone; a new one per unlabelled group.
-    let gone: i64 = sqlx::query_scalar("SELECT count(*) FROM api_person WHERE id = $1")
+    let gone: i64 = lp_db::sql::query_scalar("SELECT count(*) FROM api_person WHERE id = $1")
         .bind(old_cluster_person)
         .fetch_one(&db)
         .await
         .unwrap();
     assert_eq!(gone, 0);
-    let (unknown3, kind): (i32, String) = sqlx::query_as(
+    let (unknown3, kind): (i32, String) = lp_db::sql::query_as(
         "SELECT id, kind FROM api_person WHERE name = 'Unknown 3' AND cluster_owner_id = $1",
     )
     .bind(alice)
@@ -288,7 +291,7 @@ async fn cluster_and_train_follow_face_classify() {
     .unwrap();
     assert_eq!(kind, "CLUSTER");
 
-    let clusters: Vec<(i32, Option<i32>, Option<String>, Option<i32>, String)> = sqlx::query_as(
+    let clusters: Vec<(i32, Option<i32>, Option<String>, Option<i32>, String)> = lp_db::sql::query_as(
         "SELECT id, cluster_id, name, person_id, mean_face_encoding FROM api_cluster WHERE owner_id = $1 ORDER BY id",
     )
     .bind(alice)

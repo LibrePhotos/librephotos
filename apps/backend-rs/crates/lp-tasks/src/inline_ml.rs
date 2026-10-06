@@ -146,7 +146,7 @@ async fn tag_from_pixels(
     big: Arc<RgbImage>,
 ) -> anyhow::Result<()> {
     let model = state.settings().tagging_model.clone();
-    let existing: Option<Value> = sqlx::query_scalar(
+    let existing: Option<Value> = lp_db::sql::query_scalar(
         "WITH ins AS (INSERT INTO api_photo_caption (photo_id, captions_json, created_at, updated_at) \
            VALUES ($1, NULL, now(), now()) ON CONFLICT (photo_id) DO NOTHING RETURNING captions_json) \
          SELECT captions_json FROM ins UNION ALL \

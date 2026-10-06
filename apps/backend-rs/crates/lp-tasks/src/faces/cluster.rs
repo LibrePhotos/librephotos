@@ -7,9 +7,10 @@ use std::collections::{BTreeMap, HashMap};
 
 use lp_core::AppState;
 use lp_core::codecs::FaceEncoding;
+use lp_db::db::Conn;
 use lp_jobs::{EnqueueOptions, JobType};
 use lp_sidecars::{ClusterFace, ClusterRequest, LabelledEncoding, SidecarError, TrainRequest};
-use sqlx::{FromRow, PgConnection};
+use sqlx::FromRow;
 
 use super::unknown_cluster;
 use crate::run;
@@ -94,17 +95,19 @@ pub async fn cluster_all_faces(
     }
 }
 
-async fn deleted_user_id(conn: &mut PgConnection) -> sqlx::Result<Option<i32>> {
-    sqlx::query_scalar("SELECT id FROM api_user WHERE username = 'deleted' ORDER BY id LIMIT 1")
-        .fetch_optional(conn)
-        .await
+async fn deleted_user_id(conn: &mut Conn) -> sqlx::Result<Option<i32>> {
+    lp_db::sql::query_scalar(
+        "SELECT id FROM api_user WHERE username = 'deleted' ORDER BY id LIMIT 1",
+    )
+    .fetch_optional(conn)
+    .await
 }
 
 /// Delete persons the way Django's collector + `reset_person` do: faces
 /// lose them as `person` (S3), `classification_person`, `cluster_person`,
 /// clusters as `person`. `USER` persons with an owner leave a mobile-sync
 /// tombstone (`_person_tombstone`).
-async fn delete_persons(conn: &mut PgConnection, ids: &[i32]) -> sqlx::Result<()> {
+async fn delete_persons(conn: &mut Conn, ids: &[i32]) -> sqlx::Result<()> {
     if ids.is_empty() {
         return Ok(());
     }
@@ -116,15 +119,15 @@ async fn delete_persons(conn: &mut PgConnection, ids: &[i32]) -> sqlx::Result<()
         "UPDATE api_cluster SET person_id = NULL WHERE person_id = ANY($1)",
         "DELETE FROM api_person WHERE id = ANY($1)",
     ] {
-        sqlx::query(sql).bind(ids).execute(&mut *conn).await?;
+        lp_db::sql::query(sql).bind(ids).execute(&mut *conn).await?;
     }
     Ok(())
 }
 
 /// `delete_clustered_people`, `delete_clusters`, `delete_persons_without_faces`.
-async fn reset_clusters(conn: &mut PgConnection, user_id: i32) -> sqlx::Result<()> {
+async fn reset_clusters(conn: &mut Conn, user_id: i32) -> sqlx::Result<()> {
     let deleted = deleted_user_id(conn).await?;
-    let people: Vec<i32> = sqlx::query_scalar(
+    let people: Vec<i32> = lp_db::sql::query_scalar(
         "SELECT id FROM api_person WHERE (kind IN ('CLUSTER', 'UNKNOWN') AND cluster_owner_id = $1) \
            OR cluster_owner_id IS NULL OR cluster_owner_id = $2",
     )
@@ -134,7 +137,7 @@ async fn reset_clusters(conn: &mut PgConnection, user_id: i32) -> sqlx::Result<(
     .await?;
     delete_persons(conn, &people).await?;
 
-    let clusters: Vec<i32> = sqlx::query_scalar(
+    let clusters: Vec<i32> = lp_db::sql::query_scalar(
         "SELECT id FROM api_cluster WHERE owner_id = $1 OR owner_id IS NULL OR owner_id = $2",
     )
     .bind(user_id)
@@ -142,17 +145,17 @@ async fn reset_clusters(conn: &mut PgConnection, user_id: i32) -> sqlx::Result<(
     .fetch_all(&mut *conn)
     .await?;
     if !clusters.is_empty() {
-        sqlx::query("UPDATE api_face SET cluster_id = NULL WHERE cluster_id = ANY($1)")
+        lp_db::sql::query("UPDATE api_face SET cluster_id = NULL WHERE cluster_id = ANY($1)")
             .bind(&clusters)
             .execute(&mut *conn)
             .await?;
-        sqlx::query("DELETE FROM api_cluster WHERE id = ANY($1)")
+        lp_db::sql::query("DELETE FROM api_cluster WHERE id = ANY($1)")
             .bind(&clusters)
             .execute(&mut *conn)
             .await?;
     }
 
-    let faceless: Vec<i32> = sqlx::query_scalar(
+    let faceless: Vec<i32> = lp_db::sql::query_scalar(
         "SELECT pe.id FROM api_person pe WHERE pe.kind = 'USER' \
            AND NOT EXISTS (SELECT 1 FROM api_face f WHERE f.person_id = pe.id)",
     )
@@ -189,7 +192,7 @@ async fn create_all_clusters(state: &AppState, user_id: i32) -> anyhow::Result<u
     reset_clusters(&mut tx, user_id).await?;
 
     // `collect_face_encodings`: deleted faces take part in the fit.
-    let rows = sqlx::query_as::<_, FaceRow>(
+    let rows = lp_db::sql::query_as::<_, FaceRow>(
         "SELECT f.id, f.person_id, f.encoding FROM api_face f JOIN api_photo p ON p.id = f.photo_id \
          WHERE p.owner_id = $1 AND f.encoding IS NOT NULL AND f.encoding <> '' ORDER BY f.id",
     )
@@ -229,7 +232,7 @@ async fn create_all_clusters(state: &AppState, user_id: i32) -> anyhow::Result<u
         return Ok(0);
     }
 
-    let settings = sqlx::query_as::<_, UserClusterSettings>(
+    let settings = lp_db::sql::query_as::<_, UserClusterSettings>(
         "SELECT min_cluster_size, min_samples, cluster_selection_epsilon FROM api_user WHERE id = $1",
     )
     .bind(user_id)
@@ -272,7 +275,7 @@ async fn create_all_clusters(state: &AppState, user_id: i32) -> anyhow::Result<u
             cluster_count += 1;
             cluster_count
         };
-        let members = sqlx::query_as::<_, FaceRow>(
+        let members = lp_db::sql::query_as::<_, FaceRow>(
             "SELECT id, person_id, encoding FROM api_face \
              WHERE id = ANY($1) AND encoding IS NOT NULL AND NOT deleted ORDER BY id",
         )
@@ -291,7 +294,7 @@ type PersonCluster = (i32, i32, Vec<i32>, Vec<Vec<f64>>);
 
 /// `ClusterManager.try_add_cluster`; returns the number of clusters made.
 async fn add_cluster(
-    conn: &mut PgConnection,
+    conn: &mut Conn,
     user_id: i32,
     unknown: i32,
     cluster_id: i64,
@@ -303,7 +306,7 @@ async fn add_cluster(
 
     if cluster_id == UNKNOWN_CLUSTER_ID {
         let ids: Vec<i32> = unknown_faces.iter().map(|f| f.id).collect();
-        sqlx::query(
+        lp_db::sql::query(
             "UPDATE api_face SET cluster_id = $2, cluster_person_id = NULL WHERE id = ANY($1)",
         )
         .bind(&ids)
@@ -311,7 +314,7 @@ async fn add_cluster(
         .execute(&mut *conn)
         .await?;
         let ids: Vec<i32> = known.iter().map(|f| f.id).collect();
-        sqlx::query("UPDATE api_face SET cluster_id = $2 WHERE id = ANY($1)")
+        lp_db::sql::query("UPDATE api_face SET cluster_id = $2 WHERE id = ANY($1)")
             .bind(&ids)
             .bind(unknown)
             .execute(&mut *conn)
@@ -340,12 +343,12 @@ async fn add_cluster(
             per_person[slot].3.push(decode(face.id, &face.encoding)?);
         }
         for (person, id, face_ids, encodings) in &per_person {
-            sqlx::query("UPDATE api_face SET cluster_id = $2 WHERE id = ANY($1)")
+            lp_db::sql::query("UPDATE api_face SET cluster_id = $2 WHERE id = ANY($1)")
                 .bind(face_ids)
                 .bind(id)
                 .execute(&mut *conn)
                 .await?;
-            sqlx::query(
+            lp_db::sql::query(
                 "UPDATE api_cluster SET cluster_id = $2, person_id = $3, mean_face_encoding = $4 \
                  WHERE id = $1",
             )
@@ -364,17 +367,19 @@ async fn add_cluster(
     let person = cluster_person(conn, user_id, &name).await?;
     let id = cluster_by_id(conn, user_id, cluster_id as i32).await?;
     let ids: Vec<i32> = unknown_faces.iter().map(|f| f.id).collect();
-    sqlx::query("UPDATE api_face SET cluster_id = $2, cluster_person_id = $3 WHERE id = ANY($1)")
-        .bind(&ids)
-        .bind(id)
-        .bind(person)
-        .execute(&mut *conn)
-        .await?;
+    lp_db::sql::query(
+        "UPDATE api_face SET cluster_id = $2, cluster_person_id = $3 WHERE id = ANY($1)",
+    )
+    .bind(&ids)
+    .bind(id)
+    .bind(person)
+    .execute(&mut *conn)
+    .await?;
     let encodings = unknown_faces
         .iter()
         .map(|f| decode(f.id, &f.encoding))
         .collect::<anyhow::Result<Vec<_>>>()?;
-    sqlx::query(
+    lp_db::sql::query(
         "UPDATE api_cluster SET name = $2, person_id = $3, mean_face_encoding = $4 WHERE id = $1",
     )
     .bind(id)
@@ -387,8 +392,8 @@ async fn add_cluster(
 }
 
 /// `Cluster.get_or_create_cluster_by_name`.
-async fn cluster_by_name(conn: &mut PgConnection, user_id: i32, name: &str) -> sqlx::Result<i32> {
-    if let Some(id) = sqlx::query_scalar(
+async fn cluster_by_name(conn: &mut Conn, user_id: i32, name: &str) -> sqlx::Result<i32> {
+    if let Some(id) = lp_db::sql::query_scalar(
         "SELECT id FROM api_cluster WHERE owner_id = $1 AND name = $2 ORDER BY id LIMIT 1",
     )
     .bind(user_id)
@@ -398,7 +403,7 @@ async fn cluster_by_name(conn: &mut PgConnection, user_id: i32, name: &str) -> s
     {
         return Ok(id);
     }
-    sqlx::query_scalar(
+    lp_db::sql::query_scalar(
         "INSERT INTO api_cluster (mean_face_encoding, cluster_id, name, person_id, owner_id) \
          VALUES ('', NULL, $2, NULL, $1) RETURNING id",
     )
@@ -409,12 +414,8 @@ async fn cluster_by_name(conn: &mut PgConnection, user_id: i32, name: &str) -> s
 }
 
 /// `Cluster.get_or_create_cluster_by_id`.
-async fn cluster_by_id(
-    conn: &mut PgConnection,
-    user_id: i32,
-    cluster_id: i32,
-) -> sqlx::Result<i32> {
-    if let Some(id) = sqlx::query_scalar(
+async fn cluster_by_id(conn: &mut Conn, user_id: i32, cluster_id: i32) -> sqlx::Result<i32> {
+    if let Some(id) = lp_db::sql::query_scalar(
         "SELECT id FROM api_cluster WHERE owner_id = $1 AND cluster_id = $2 ORDER BY id LIMIT 1",
     )
     .bind(user_id)
@@ -424,7 +425,7 @@ async fn cluster_by_id(
     {
         return Ok(id);
     }
-    sqlx::query_scalar(
+    lp_db::sql::query_scalar(
         "INSERT INTO api_cluster (mean_face_encoding, cluster_id, name, person_id, owner_id) \
          VALUES ('', $2, NULL, NULL, $1) RETURNING id",
     )
@@ -435,8 +436,8 @@ async fn cluster_by_id(
 }
 
 /// `get_or_create_person(name, owner, KIND_CLUSTER)` + `cluster_owner` + `save()`.
-async fn cluster_person(conn: &mut PgConnection, user_id: i32, name: &str) -> sqlx::Result<i32> {
-    if let Some(id) = sqlx::query_scalar(
+async fn cluster_person(conn: &mut Conn, user_id: i32, name: &str) -> sqlx::Result<i32> {
+    if let Some(id) = lp_db::sql::query_scalar(
         "UPDATE api_person SET last_modified = now() WHERE id = ( \
            SELECT id FROM api_person WHERE name = $1 AND cluster_owner_id = $2 AND kind = 'CLUSTER' \
            ORDER BY id LIMIT 1) RETURNING id",
@@ -448,7 +449,7 @@ async fn cluster_person(conn: &mut PgConnection, user_id: i32, name: &str) -> sq
     {
         return Ok(id);
     }
-    sqlx::query_scalar(
+    lp_db::sql::query_scalar(
         "INSERT INTO api_person (name, kind, cluster_owner_id, face_count, cover_face_id, \
            cover_photo_id, last_modified) VALUES ($1, 'CLUSTER', $2, 0, NULL, NULL, now()) RETURNING id",
     )
@@ -495,7 +496,7 @@ pub async fn train_faces(
 }
 
 async fn train(state: &AppState, user_id: i32, job_id: &str) -> anyhow::Result<()> {
-    let faces = sqlx::query_as::<_, TrainFace>(
+    let faces = lp_db::sql::query_as::<_, TrainFace>(
         "SELECT f.id, f.person_id, f.encoding, f.cluster_id FROM api_face f \
          JOIN api_photo p ON p.id = f.photo_id \
          WHERE p.owner_id = $1 AND f.encoding IS NOT NULL AND f.encoding <> '' AND NOT f.deleted \
@@ -504,7 +505,7 @@ async fn train(state: &AppState, user_id: i32, job_id: &str) -> anyhow::Result<(
     .bind(user_id)
     .fetch_all(&state.db)
     .await?;
-    let clusters: Vec<(i32, String)> = sqlx::query_as(
+    let clusters: Vec<(i32, String)> = lp_db::sql::query_as(
         "SELECT c.person_id, c.mean_face_encoding FROM api_cluster c \
          JOIN api_person pe ON pe.id = c.person_id \
          WHERE c.owner_id = $1 AND pe.kind = 'CLUSTER' ORDER BY c.id",
@@ -581,7 +582,7 @@ async fn train(state: &AppState, user_id: i32, job_id: &str) -> anyhow::Result<(
             0.0
         });
     }
-    sqlx::query(
+    lp_db::sql::query(
         "UPDATE api_face f SET \
            cluster_person_id = CASE WHEN u.apply THEN u.cluster_person ELSE f.cluster_person_id END, \
            cluster_probability = u.cluster_probability, \

@@ -2,14 +2,15 @@
 //! `photo_count` over non-hidden photos, covers topped up to 4) and
 //! `AlbumPlace`s from reverse geocoding.
 
-use sqlx::PgConnection;
 use uuid::Uuid;
+
+use lp_db::db::{Conn, DjUuid};
 
 /// `PhotoCaption._update_tag_album_things`: the photo leaves every
 /// `thing_type` album of its owner, then joins one per title (created as
 /// needed). Counts and covers of every touched album are recomputed.
 pub async fn replace_thing_memberships(
-    conn: &mut PgConnection,
+    conn: &mut Conn,
     photo_id: Uuid,
     owner_id: i32,
     thing_type: &str,
@@ -19,7 +20,7 @@ pub async fn replace_thing_memberships(
     titles.sort_unstable();
     titles.dedup();
 
-    sqlx::query(
+    lp_db::sql::query(
         "INSERT INTO api_albumthing (title, thing_type, favorited, owner_id, photo_count, last_modified) \
          SELECT t, $2, FALSE, $3, 0, now() FROM unnest($1::text[]) AS t \
          ON CONFLICT (title, thing_type, owner_id) DO NOTHING",
@@ -32,7 +33,7 @@ pub async fn replace_thing_memberships(
 
     // Lock every album this change touches, in id order, so concurrent
     // photos recount after each other instead of over stale snapshots.
-    let touched: Vec<i32> = sqlx::query_scalar(
+    let touched: Vec<i32> = lp_db::sql::query_scalar(
         "SELECT a.id FROM api_albumthing a \
          WHERE a.owner_id = $2 AND a.thing_type = $3 \
            AND (a.title = ANY($4) OR EXISTS (SELECT 1 FROM api_albumthing_photos l \
@@ -49,7 +50,7 @@ pub async fn replace_thing_memberships(
         return Ok(());
     }
 
-    sqlx::query(
+    lp_db::sql::query(
         "DELETE FROM api_albumthing_photos l USING api_albumthing a \
          WHERE l.albumthing_id = a.id AND l.photo_id = $1 AND a.owner_id = $2 AND a.thing_type = $3",
     )
@@ -59,7 +60,7 @@ pub async fn replace_thing_memberships(
     .execute(&mut *conn)
     .await?;
 
-    sqlx::query(
+    lp_db::sql::query(
         "INSERT INTO api_albumthing_photos (albumthing_id, photo_id) \
          SELECT a.id, $1 FROM api_albumthing a \
          WHERE a.owner_id = $2 AND a.thing_type = $3 AND a.title = ANY($4) \
@@ -83,7 +84,7 @@ pub async fn replace_thing_memberships(
 /// album's memberships, so per photo it grew with the library and serialised
 /// concurrent photos on the popular tags' rows).
 pub async fn replace_thing_memberships_many(
-    conn: &mut PgConnection,
+    conn: &mut Conn,
     owner_id: i32,
     thing_type: &str,
     photos: &[(Uuid, Vec<String>)],
@@ -108,7 +109,7 @@ pub async fn replace_thing_memberships_many(
     all_titles.sort_unstable();
     all_titles.dedup();
 
-    sqlx::query(
+    lp_db::sql::query(
         "INSERT INTO api_albumthing (title, thing_type, favorited, owner_id, photo_count, last_modified) \
          SELECT t, $2, FALSE, $3, 0, now() FROM unnest($1::text[]) AS t \
          ON CONFLICT (title, thing_type, owner_id) DO NOTHING",
@@ -119,7 +120,7 @@ pub async fn replace_thing_memberships_many(
     .execute(&mut *conn)
     .await?;
 
-    let touched: Vec<i32> = sqlx::query_scalar(
+    let touched: Vec<i32> = lp_db::sql::query_scalar(
         "SELECT a.id FROM api_albumthing a \
          WHERE a.owner_id = $2 AND a.thing_type = $3 \
            AND (a.title = ANY($4) OR EXISTS (SELECT 1 FROM api_albumthing_photos l \
@@ -136,7 +137,7 @@ pub async fn replace_thing_memberships_many(
         return Ok(());
     }
 
-    sqlx::query(
+    lp_db::sql::query(
         "DELETE FROM api_albumthing_photos l USING api_albumthing a \
          WHERE l.albumthing_id = a.id AND l.photo_id = ANY($1) AND a.owner_id = $2 AND a.thing_type = $3",
     )
@@ -146,7 +147,7 @@ pub async fn replace_thing_memberships_many(
     .execute(&mut *conn)
     .await?;
 
-    sqlx::query(
+    lp_db::sql::query(
         "INSERT INTO api_albumthing_photos (albumthing_id, photo_id) \
          SELECT a.id, u.photo_id FROM unnest($1::uuid[], $2::text[], $3::int4[]) AS u(photo_id, title, ord) \
          JOIN api_albumthing a ON a.owner_id = $4 AND a.thing_type = $5 AND a.title = u.title \
@@ -167,8 +168,8 @@ pub async fn replace_thing_memberships_many(
 /// S1 for `album_ids`: `photo_count` = non-hidden photos, `last_modified`
 /// bumped (Django saves the album after each membership change), covers
 /// topped up to 4 from its non-hidden photos.
-pub async fn refresh_things(conn: &mut PgConnection, album_ids: &[i32]) -> sqlx::Result<()> {
-    sqlx::query(
+pub async fn refresh_things(conn: &mut Conn, album_ids: &[i32]) -> sqlx::Result<()> {
+    lp_db::sql::query(
         "UPDATE api_albumthing a SET last_modified = now(), photo_count = ( \
            SELECT count(*) FROM api_albumthing_photos l JOIN api_photo p ON p.id = l.photo_id \
            WHERE l.albumthing_id = a.id AND NOT p.hidden) \
@@ -177,7 +178,7 @@ pub async fn refresh_things(conn: &mut PgConnection, album_ids: &[i32]) -> sqlx:
     .bind(album_ids)
     .execute(&mut *conn)
     .await?;
-    sqlx::query(
+    lp_db::sql::query(
         "INSERT INTO api_albumthing_cover_photos (albumthing_id, photo_id) \
          SELECT s.albumthing_id, s.photo_id FROM ( \
            SELECT l.albumthing_id, l.photo_id, \
@@ -199,10 +200,10 @@ pub async fn refresh_things(conn: &mut PgConnection, album_ids: &[i32]) -> sqlx:
 
 /// Lower-cased `siglip2_tag` album titles per photo (document detection).
 pub async fn siglip_labels(
-    conn: &mut PgConnection,
+    conn: &mut Conn,
     photo_ids: &[Uuid],
 ) -> sqlx::Result<std::collections::HashMap<Uuid, Vec<String>>> {
-    let rows: Vec<(Uuid, String)> = sqlx::query_as(
+    let rows: Vec<(DjUuid, String)> = lp_db::sql::query_as(
         "SELECT l.photo_id, a.title FROM api_albumthing_photos l \
          JOIN api_albumthing a ON a.id = l.albumthing_id \
          WHERE l.photo_id = ANY($1) AND a.thing_type = 'siglip2_tag' AND a.title <> ''",
@@ -212,7 +213,7 @@ pub async fn siglip_labels(
     .await?;
     let mut out: std::collections::HashMap<Uuid, Vec<String>> = Default::default();
     for (id, title) in rows {
-        out.entry(id).or_default().push(title.to_lowercase());
+        out.entry(id.0).or_default().push(title.to_lowercase());
     }
     Ok(out)
 }

@@ -12,6 +12,7 @@ use axum::body::Bytes;
 use axum::http::{Method, StatusCode, Uri};
 use axum::response::{IntoResponse, Response};
 use lp_core::AppState;
+use lp_db::db::Db;
 use lp_jobs::{EnqueueOptions, HandlerRegistry, JobCtx};
 use lp_sidecars::Sidecar;
 use lp_testkit::TestApp;
@@ -406,7 +407,7 @@ impl TasksApp {
         }
     }
 
-    pub fn db(&self) -> &sqlx::PgPool {
+    pub fn db(&self) -> &Db {
         &self.state.db
     }
 
@@ -479,8 +480,8 @@ pub struct JobRow {
     pub result: Option<Value>,
 }
 
-pub async fn job(db: &sqlx::PgPool, job_id: &str) -> JobRow {
-    sqlx::query_as::<_, JobRow>(
+pub async fn job(db: &Db, job_id: &str) -> JobRow {
+    lp_db::sql::query_as::<_, JobRow>(
         "SELECT job_type, finished, failed, cancelled, started_at, progress_current, progress_target, \
            result FROM api_longrunningjob WHERE job_id = $1",
     )
@@ -490,8 +491,8 @@ pub async fn job(db: &sqlx::PgPool, job_id: &str) -> JobRow {
     .expect("job row")
 }
 
-pub async fn user_id(db: &sqlx::PgPool, name: &str) -> i32 {
-    sqlx::query_scalar("SELECT id FROM api_user WHERE username = $1")
+pub async fn user_id(db: &Db, name: &str) -> i32 {
+    lp_db::sql::query_scalar("SELECT id FROM api_user WHERE username = $1")
         .bind(name)
         .fetch_one(db)
         .await

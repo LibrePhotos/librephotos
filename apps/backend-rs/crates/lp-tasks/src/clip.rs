@@ -5,6 +5,7 @@ use std::path::Path;
 
 use lp_core::AppState;
 use lp_core::codecs::ClipEmbedding;
+use lp_db::db::{Db, DjUuid};
 use lp_ml::clip::SemanticModel;
 use serde_json::Value;
 use sqlx::FromRow;
@@ -41,8 +42,8 @@ const STORED_MODEL_SQL: &str = "coalesce(clip_embeddings_model, 'clip_vit_b32')"
 /// Owners of embeddings that the selected semantic-search model did not
 /// produce. Nothing is changed: the similarity index skips those
 /// embeddings until `clip.embed` replaces them.
-pub async fn mismatched_owners(db: &sqlx::PgPool, model: SemanticModel) -> sqlx::Result<Vec<i32>> {
-    sqlx::query_scalar(&format!(
+pub async fn mismatched_owners(db: &Db, model: SemanticModel) -> sqlx::Result<Vec<i32>> {
+    lp_db::sql::query_scalar(format!(
         "SELECT DISTINCT owner_id FROM api_photo \
          WHERE clip_embeddings IS NOT NULL AND {STORED_MODEL_SQL} <> $1 ORDER BY owner_id"
     ))
@@ -62,7 +63,7 @@ pub async fn reembed_mismatched(state: &AppState) -> anyhow::Result<usize> {
     let users = mismatched_owners(&state.db, model).await?;
     let mut queued = 0;
     for &user_id in &users {
-        let waiting: bool = sqlx::query_scalar(
+        let waiting: bool = lp_db::sql::query_scalar(
             "SELECT EXISTS (SELECT 1 FROM job_queue WHERE status = 'queued' \
                AND kind = 'clip.embed' AND payload->'user_id' = to_jsonb($1::int))",
         )
@@ -91,6 +92,7 @@ pub async fn reembed_mismatched(state: &AppState) -> anyhow::Result<usize> {
 
 #[derive(Debug, FromRow)]
 struct Missing {
+    #[sqlx(try_from = "DjUuid")]
     id: Uuid,
     image_hash: String,
     thumbnail_big: Option<String>,
@@ -116,7 +118,7 @@ pub async fn embed(state: &AppState, user_id: i32, full: bool, job_id: &str) -> 
     let todo = format!(
         "p.owner_id = $1 AND ($2 OR p.clip_embeddings IS NULL OR {STORED_MODEL_SQL} <> $3)"
     );
-    let (count, other): (i64, i64) = sqlx::query_as(&format!(
+    let (count, other): (i64, i64) = lp_db::sql::query_as(format!(
         "SELECT count(*), count(*) FILTER (WHERE clip_embeddings IS NOT NULL \
            AND {STORED_MODEL_SQL} <> $3) FROM api_photo p WHERE {todo}"
     ))
@@ -146,7 +148,7 @@ pub async fn embed(state: &AppState, user_id: i32, full: bool, job_id: &str) -> 
     let mut built_size: i64 = 0;
     let mut last: Option<Uuid> = None;
     while done < count {
-        let batch = sqlx::query_as::<_, Missing>(&format!(
+        let batch = lp_db::sql::query_as::<_, Missing>(&format!(
             "SELECT p.id, p.image_hash, t.thumbnail_big FROM api_photo p \
              LEFT JOIN api_thumbnail t ON t.photo_id = p.id \
              WHERE {todo} AND ($4::uuid IS NULL OR p.id > $4) \
@@ -255,7 +257,7 @@ async fn store_batch(
     if ids.is_empty() {
         return Ok(());
     }
-    sqlx::query(
+    lp_db::sql::query(
         "UPDATE api_photo p SET clip_embeddings = u.e, clip_embeddings_magnitude = u.m, \
            clip_embeddings_model = $4, last_modified = now() \
          FROM unnest($1::uuid[], $2::jsonb[], $3::float8[]) AS u(id, e, m) WHERE p.id = u.id",
@@ -271,6 +273,7 @@ async fn store_batch(
 
 #[derive(Debug, FromRow)]
 struct Indexed {
+    #[sqlx(try_from = "DjUuid")]
     id: Uuid,
     image_hash: String,
     clip_embeddings: String,
@@ -311,12 +314,12 @@ pub async fn build_index_paged(
     let page_size = page_size.max(1);
     let _one_at_a_time = BUILD_LOCK.lock().await;
     let started = std::time::Instant::now();
-    let username: String = sqlx::query_scalar("SELECT username FROM api_user WHERE id = $1")
+    let username: String = lp_db::sql::query_scalar("SELECT username FROM api_user WHERE id = $1")
         .bind(user_id)
         .fetch_one(&state.db)
         .await?;
     let model = state.ml().semantic_model();
-    let total: i64 = sqlx::query_scalar(&format!(
+    let total: i64 = lp_db::sql::query_scalar(format!(
         "SELECT count(*) FROM api_photo \
          WHERE owner_id = $1 AND NOT hidden AND clip_embeddings IS NOT NULL \
            AND {STORED_MODEL_SQL} = $2"
@@ -332,7 +335,7 @@ pub async fn build_index_paged(
     let mut after: Option<(String, Uuid)> = None;
     let mut size = 0;
     for page in 0..pages {
-        let rows = sqlx::query_as::<_, Indexed>(&format!(
+        let rows = lp_db::sql::query_as::<_, Indexed>(&format!(
             "SELECT id, image_hash, clip_embeddings::text AS clip_embeddings FROM api_photo \
              WHERE owner_id = $1 AND NOT hidden AND clip_embeddings IS NOT NULL \
                AND {STORED_MODEL_SQL} = $5 \
@@ -400,7 +403,7 @@ pub async fn rebuild_stale_indices(state: &AppState) -> anyhow::Result<usize> {
     if !state.ml().is_inprocess(lp_ml::Service::Similarity) {
         return Ok(0);
     }
-    let users: Vec<(i32, i64)> = sqlx::query_as(&format!(
+    let users: Vec<(i32, i64)> = lp_db::sql::query_as(format!(
         "SELECT u.id, count(p.id) FROM api_user u \
          LEFT JOIN api_photo p ON p.owner_id = u.id AND NOT p.hidden \
            AND p.clip_embeddings IS NOT NULL AND p.clip_embeddings <> '[]'::jsonb \

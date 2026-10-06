@@ -6,11 +6,13 @@
 mod common;
 
 use common::*;
+use lp_db::db::Db;
+use lp_db::db::DjUuid;
 use lp_jobs::{EnqueueOptions, JobType};
 use serde_json::{Value, json};
 use uuid::Uuid;
 
-async fn photo_id(_db: &sqlx::PgPool, key: &str) -> Uuid {
+async fn photo_id(_db: &Db, key: &str) -> Uuid {
     let m = manifest();
     m["photos"][key]["id"].as_str().unwrap().parse().unwrap()
 }
@@ -23,13 +25,13 @@ async fn tags_generate_files_tags_under_thing_albums() {
     let alice = user_id(&db, "alice").await;
     let model = t.state.settings().tagging_model.clone();
     // Start from no tags of the active model.
-    sqlx::query("UPDATE api_photo_caption SET captions_json = captions_json - $1")
+    lp_db::sql::query("UPDATE api_photo_caption SET captions_json = captions_json - $1")
         .bind(&model)
         .execute(&db)
         .await
         .unwrap();
 
-    let untagged: i64 = sqlx::query_scalar(
+    let untagged: i64 = lp_db::sql::query_scalar(
         "SELECT count(*) FROM api_photo p LEFT JOIN api_photo_caption c ON c.photo_id = p.id \
          WHERE p.owner_id = $1 AND (c.photo_id IS NULL OR c.captions_json IS NULL OR NOT (c.captions_json ? $2))",
     )
@@ -63,7 +65,7 @@ async fn tags_generate_files_tags_under_thing_albums() {
         .unwrap()
         .to_string();
     let cj: Value =
-        sqlx::query_scalar("SELECT captions_json FROM api_photo_caption WHERE photo_id = $1")
+        lp_db::sql::query_scalar("SELECT captions_json FROM api_photo_caption WHERE photo_id = $1")
             .bind(e2e01)
             .fetch_one(&db)
             .await
@@ -78,7 +80,7 @@ async fn tags_generate_files_tags_under_thing_albums() {
 
     // S1: thing albums hold the photo, counts over non-hidden photos, covers.
     let thing_type = format!("{model}_tag");
-    let rows: Vec<(String, i32, i64, i64)> = sqlx::query_as(
+    let rows: Vec<(String, i32, i64, i64)> = lp_db::sql::query_as(
         "SELECT a.title, a.photo_count, \
            (SELECT count(*) FROM api_albumthing_photos l JOIN api_photo p ON p.id = l.photo_id \
              WHERE l.albumthing_id = a.id AND NOT p.hidden), \
@@ -96,7 +98,7 @@ async fn tags_generate_files_tags_under_thing_albums() {
         assert_eq!(*count as i64, *real, "{title}");
         assert_eq!(*covers, (*real).min(4), "{title}");
     }
-    let member: bool = sqlx::query_scalar(
+    let member: bool = lp_db::sql::query_scalar(
         "SELECT EXISTS (SELECT 1 FROM api_albumthing_photos l JOIN api_albumthing a ON a.id = l.albumthing_id \
          WHERE l.photo_id = $1 AND a.title = $2 AND a.thing_type = $3)",
     )
@@ -109,18 +111,19 @@ async fn tags_generate_files_tags_under_thing_albums() {
     assert!(member);
 
     // S19: the new tags are searchable right away.
-    let search: String =
-        sqlx::query_scalar("SELECT search_captions FROM api_photo_search WHERE photo_id = $1")
-            .bind(e2e01)
-            .fetch_one(&db)
-            .await
-            .unwrap();
+    let search: String = lp_db::sql::query_scalar(
+        "SELECT search_captions FROM api_photo_search WHERE photo_id = $1",
+    )
+    .bind(e2e01)
+    .fetch_one(&db)
+    .await
+    .unwrap();
     assert!(search.starts_with(&expected.join(" ")), "{search}");
 
     // The photo without a thumbnail gets an empty caption row and no tags.
     let no_thumb = photo_id(&db, "alice/no_thumbnail").await;
     let cj: Option<Value> =
-        sqlx::query_scalar("SELECT captions_json FROM api_photo_caption WHERE photo_id = $1")
+        lp_db::sql::query_scalar("SELECT captions_json FROM api_photo_caption WHERE photo_id = $1")
             .bind(no_thumb)
             .fetch_optional(&db)
             .await
@@ -150,7 +153,7 @@ async fn tags_errors_follow_django() {
     t.copy_thumbnails();
     let db = t.db().clone();
     let bob = user_id(&db, "bob").await;
-    sqlx::query("DELETE FROM api_photo_caption WHERE photo_id IN (SELECT id FROM api_photo WHERE owner_id = $1)")
+    lp_db::sql::query("DELETE FROM api_photo_caption WHERE photo_id IN (SELECT id FROM api_photo WHERE owner_id = $1)")
         .bind(bob)
         .execute(&db)
         .await
@@ -224,11 +227,13 @@ async fn ocr_generate_stores_text_and_derives_documents() {
         .unwrap();
     // A user-corrected photo keeps its category.
     let pinned = photo_id(&db, "alice/e2e_02").await;
-    sqlx::query("UPDATE api_photo SET category_source = 'user', is_document = FALSE WHERE id = $1")
-        .bind(pinned)
-        .execute(&db)
-        .await
-        .unwrap();
+    lp_db::sql::query(
+        "UPDATE api_photo SET category_source = 'user', is_document = FALSE WHERE id = $1",
+    )
+    .bind(pinned)
+    .execute(&db)
+    .await
+    .unwrap();
 
     let (res, lrj) = run_job(
         &t.state,
@@ -239,16 +244,17 @@ async fn ocr_generate_stores_text_and_derives_documents() {
     .await;
     res.unwrap();
     let j = job(&db, lrj.as_deref().unwrap()).await;
-    let photos: i64 =
-        sqlx::query_scalar("SELECT count(*) FROM api_photo WHERE owner_id = $1 AND NOT video")
-            .bind(alice)
-            .fetch_one(&db)
-            .await
-            .unwrap();
+    let photos: i64 = lp_db::sql::query_scalar(
+        "SELECT count(*) FROM api_photo WHERE owner_id = $1 AND NOT video",
+    )
+    .bind(alice)
+    .fetch_one(&db)
+    .await
+    .unwrap();
     assert_eq!(j.progress_target as i64, photos);
     assert!(j.finished, "{j:?}");
 
-    let rows: Vec<(Uuid, String, String, Option<i32>, bool, String, String)> = sqlx::query_as(
+    let rows: Vec<(DjUuid, String, String, Option<i32>, bool, String, String)> = lp_db::sql::query_as(
         "SELECT p.id, p.image_hash, o.engine, o.source_width, p.is_document, p.category_source, \
            COALESCE(o.text, '') FROM api_photo_ocr o JOIN api_photo p ON p.id = o.photo_id \
          WHERE p.owner_id = $1",
@@ -266,7 +272,7 @@ async fn ocr_generate_stores_text_and_derives_documents() {
     for (id, _hash, engine, width, is_document, source, text) in &rows {
         assert_eq!(engine, "pp_ocrv5_mobile");
         assert_eq!(*width, Some(640));
-        if *id == pinned {
+        if id.0 == pinned {
             assert!(!is_document);
             assert_eq!(source, "user");
         } else if text.contains("TOTAL") {
@@ -302,7 +308,7 @@ async fn ocr_generate_stores_text_and_derives_documents() {
     )];
     let target = photo_id(&db, "alice/e2e_03").await;
     lp_tasks::ocr::ocr_photo(&t.state, target).await.unwrap();
-    let (len, nblocks): (i32, i32) = sqlx::query_as(
+    let (len, nblocks): (i32, i32) = lp_db::sql::query_as(
         "SELECT length(text), jsonb_array_length(blocks) FROM api_photo_ocr WHERE photo_id = $1",
     )
     .bind(target)
@@ -331,7 +337,7 @@ async fn classify_media_restores_categories() {
     let shot = photo_id(&db, "alice/screenshot").await;
     let png = photo_id(&db, "alice/png").await;
     let e2e = photo_id(&db, "alice/e2e_01").await;
-    let before: Vec<(Uuid, bool, bool, chrono::DateTime<chrono::Utc>)> = sqlx::query_as(
+    let before: Vec<(DjUuid, bool, bool, chrono::DateTime<chrono::Utc>)> = lp_db::sql::query_as(
         "SELECT id, is_screenshot, is_document, last_modified FROM api_photo WHERE owner_id = $1 ORDER BY id",
     )
     .bind(alice)
@@ -339,12 +345,12 @@ async fn classify_media_restores_categories() {
     .await
     .unwrap();
     // Scramble, and pin one photo as a manual correction.
-    sqlx::query("UPDATE api_photo SET is_screenshot = NOT is_screenshot WHERE id = ANY($1)")
+    lp_db::sql::query("UPDATE api_photo SET is_screenshot = NOT is_screenshot WHERE id = ANY($1)")
         .bind(vec![shot, e2e])
         .execute(&db)
         .await
         .unwrap();
-    sqlx::query(
+    lp_db::sql::query(
         "UPDATE api_photo SET category_source = 'user', is_screenshot = TRUE WHERE id = $1",
     )
     .bind(png)
@@ -366,11 +372,11 @@ async fn classify_media_restores_categories() {
     assert_eq!(j.progress_current, j.progress_target);
     assert_eq!(j.progress_target as usize, before.len() - 1);
 
-    let with_ocr: Vec<Uuid> = sqlx::query_scalar("SELECT photo_id FROM api_photo_ocr")
+    let with_ocr: Vec<Uuid> = lp_db::sql::query_scalar("SELECT photo_id FROM api_photo_ocr")
         .fetch_all(&db)
         .await
         .unwrap();
-    let after: Vec<(Uuid, bool, bool, chrono::DateTime<chrono::Utc>)> = sqlx::query_as(
+    let after: Vec<(DjUuid, bool, bool, chrono::DateTime<chrono::Utc>)> = lp_db::sql::query_as(
         "SELECT id, is_screenshot, is_document, last_modified FROM api_photo WHERE owner_id = $1 ORDER BY id",
     )
     .bind(alice)
@@ -378,13 +384,13 @@ async fn classify_media_restores_categories() {
     .await
     .unwrap();
     for (b, a) in before.iter().zip(&after) {
-        if a.0 == png {
+        if a.0.0 == png {
             assert!(a.1, "manual correction kept");
             continue;
         }
-        assert_eq!(b.1, a.1, "is_screenshot of {}", a.0);
-        if !with_ocr.contains(&a.0) {
-            assert_eq!(b.2, a.2, "is_document of {} (no OCR row)", a.0);
+        assert_eq!(b.1, a.1, "is_screenshot of {}", a.0.0);
+        if !with_ocr.contains(&a.0.0) {
+            assert_eq!(b.2, a.2, "is_document of {} (no OCR row)", a.0.0);
         }
         // bulk_update: last_modified untouched
         assert_eq!(b.3, a.3);
@@ -399,7 +405,7 @@ async fn captions_generate_uses_context_and_indexes() {
     let db = t.db().clone();
     // e2e_01 carries Anna's face; give it a place to be taken at.
     let photo = photo_id(&db, "alice/e2e_01").await;
-    sqlx::query(
+    lp_db::sql::query(
         "UPDATE api_photo_search SET search_location = 'Berlin, Deutschland' WHERE photo_id = $1",
     )
     .bind(photo)
@@ -435,7 +441,7 @@ async fn captions_generate_uses_context_and_indexes() {
             .ends_with(&format!("{hash}.webp"))
     );
 
-    let (cj, search): (Value, String) = sqlx::query_as(
+    let (cj, search): (Value, String) = lp_db::sql::query_as(
         "SELECT c.captions_json, s.search_captions FROM api_photo_caption c \
          JOIN api_photo_search s ON s.photo_id = c.photo_id WHERE c.photo_id = $1",
     )
@@ -464,7 +470,7 @@ async fn captions_generate_uses_context_and_indexes() {
     let j = job(&db, lrj.as_deref().unwrap()).await;
     assert!(j.failed);
     let cj: Value =
-        sqlx::query_scalar("SELECT captions_json FROM api_photo_caption WHERE photo_id = $1")
+        lp_db::sql::query_scalar("SELECT captions_json FROM api_photo_caption WHERE photo_id = $1")
             .bind(photo)
             .fetch_one(&db)
             .await
@@ -485,7 +491,7 @@ async fn captions_respect_feature_flag_and_model() {
     assert!(!outcome.ok());
     assert!(t.mock.calls_to("/generate-caption").is_empty());
     let rows: i64 =
-        sqlx::query_scalar("SELECT count(*) FROM api_photo_caption WHERE photo_id = $1")
+        lp_db::sql::query_scalar("SELECT count(*) FROM api_photo_caption WHERE photo_id = $1")
             .bind(photo)
             .fetch_one(&db)
             .await
@@ -501,7 +507,7 @@ async fn a_cancelled_job_stops_and_stays_cancelled() {
     let db = t.db().clone();
     let alice = user_id(&db, "alice").await;
     let model = t.state.settings().tagging_model.clone();
-    sqlx::query("UPDATE api_photo_caption SET captions_json = captions_json - $1")
+    lp_db::sql::query("UPDATE api_photo_caption SET captions_json = captions_json - $1")
         .bind(&model)
         .execute(&db)
         .await

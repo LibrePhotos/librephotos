@@ -8,6 +8,7 @@
 
 mod common;
 
+use lp_db::db::DjUuid;
 use std::sync::Arc;
 
 use common::*;
@@ -17,7 +18,6 @@ use lp_ml::golden::{self, Array};
 use lp_ml::{Mode, Service};
 use lp_sidecars::FaceBox;
 use serde_json::json;
-use uuid::Uuid;
 
 #[tokio::test]
 async fn scan_with_inprocess_faces_matches_the_sidecar() {
@@ -53,7 +53,7 @@ async fn scan_with_inprocess_faces_matches_the_sidecar() {
     let db = t.db().clone();
     let alice = user_id(&db, "alice").await;
 
-    sqlx::query(
+    lp_db::sql::query(
         "UPDATE api_person SET cover_face_id = NULL WHERE cover_face_id IN \
          (SELECT f.id FROM api_face f JOIN api_photo p ON p.id = f.photo_id WHERE p.owner_id = $1)",
     )
@@ -61,7 +61,7 @@ async fn scan_with_inprocess_faces_matches_the_sidecar() {
     .execute(&db)
     .await
     .unwrap();
-    sqlx::query(
+    lp_db::sql::query(
         "DELETE FROM api_face f USING api_photo p WHERE p.id = f.photo_id AND p.owner_id = $1",
     )
     .bind(alice)
@@ -70,7 +70,7 @@ async fn scan_with_inprocess_faces_matches_the_sidecar() {
     .unwrap();
     // Photos with a main file (extract_faces refuses the others) and no XMP
     // face regions (those are used instead of detection).
-    let photos: Vec<(Uuid, String)> = sqlx::query_as(
+    let photos: Vec<(DjUuid, String)> = lp_db::sql::query_as(
         "SELECT p.id, t.thumbnail_big FROM api_photo p JOIN api_thumbnail t ON t.photo_id = p.id \
          JOIN api_file f ON f.hash = p.main_file_id \
          WHERE p.owner_id = $1 AND t.thumbnail_big <> '' AND f.path NOT LIKE '%sidecar%' \
@@ -109,7 +109,7 @@ async fn scan_with_inprocess_faces_matches_the_sidecar() {
     let mut min_iou = 1.0f64;
     let mut min_cos = 1.0f64;
     for ((photo, _), c) in photos.iter().zip(&g.cases) {
-        let rows: Vec<(i32, i32, i32, i32, String)> = sqlx::query_as(
+        let rows: Vec<(i32, i32, i32, i32, String)> = lp_db::sql::query_as(
             "SELECT location_top, location_right, location_bottom, location_left, encoding \
              FROM api_face WHERE photo_id = $1 ORDER BY id",
         )

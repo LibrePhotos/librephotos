@@ -9,6 +9,7 @@
 mod common;
 
 use common::*;
+use lp_db::db::Db;
 use lp_jobs::{EnqueueOptions, JobType};
 use lp_ml::{Mode, Service};
 use lp_sidecars::Sidecar;
@@ -31,8 +32,8 @@ struct Snapshot {
     jobs: Vec<(i32, bool, bool)>,
 }
 
-async fn snapshot(db: &sqlx::PgPool, owner: i32) -> Snapshot {
-    let faces = sqlx::query_as(
+async fn snapshot(db: &Db, owner: i32) -> Snapshot {
+    let faces = lp_db::sql::query_as(
         "SELECT f.id, c.name, cp.name, clp.name, f.person_id, \
            to_char(f.cluster_probability, 'FM0.000000'), \
            to_char(f.classification_probability, 'FM0.000000') \
@@ -46,7 +47,7 @@ async fn snapshot(db: &sqlx::PgPool, owner: i32) -> Snapshot {
     .fetch_all(db)
     .await
     .unwrap();
-    let clusters = sqlx::query_as(
+    let clusters = lp_db::sql::query_as(
         "SELECT c.name, c.cluster_id, pe.name, md5(c.mean_face_encoding) FROM api_cluster c \
          LEFT JOIN api_person pe ON pe.id = c.person_id WHERE c.owner_id = $1 \
          ORDER BY c.cluster_id, c.name",
@@ -55,14 +56,14 @@ async fn snapshot(db: &sqlx::PgPool, owner: i32) -> Snapshot {
     .fetch_all(db)
     .await
     .unwrap();
-    let persons = sqlx::query_as(
+    let persons = lp_db::sql::query_as(
         "SELECT name, kind FROM api_person WHERE cluster_owner_id = $1 OR kind = 'USER' ORDER BY name, kind",
     )
     .bind(owner)
     .fetch_all(db)
     .await
     .unwrap();
-    let jobs = sqlx::query_as(
+    let jobs = lp_db::sql::query_as(
         "SELECT job_type, finished, failed FROM api_longrunningjob \
          WHERE job_type IN (4, 8) ORDER BY id",
     )
@@ -78,8 +79,8 @@ async fn snapshot(db: &sqlx::PgPool, owner: i32) -> Snapshot {
 }
 
 /// The faces the user put on a person (a `USER` person): face id -> person.
-async fn labelled(db: &sqlx::PgPool, owner: i32) -> Vec<(i32, i32)> {
-    sqlx::query_as(
+async fn labelled(db: &Db, owner: i32) -> Vec<(i32, i32)> {
+    lp_db::sql::query_as(
         "SELECT f.id, f.person_id FROM api_face f JOIN api_photo p ON p.id = f.photo_id \
          JOIN api_person pe ON pe.id = f.person_id \
          WHERE p.owner_id = $1 AND pe.kind = 'USER' ORDER BY f.id",

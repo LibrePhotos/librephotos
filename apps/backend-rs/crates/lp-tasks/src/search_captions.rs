@@ -7,18 +7,23 @@
 //! change first (same transaction) and the rebuild sees it.
 
 use serde_json::Value;
-use sqlx::{FromRow, PgConnection};
+use sqlx::FromRow;
 use uuid::Uuid;
+
+use lp_db::db::{Conn, DjListOpt, DjUuid};
 
 #[derive(Debug, FromRow)]
 struct Source {
+    #[sqlx(try_from = "DjUuid")]
     id: Uuid,
     video: bool,
     is_screenshot: bool,
     is_document: bool,
     captions_json: Option<Value>,
     main_path: Option<String>,
+    #[sqlx(try_from = "DjListOpt<String>")]
     person_names: Option<Vec<String>>,
+    #[sqlx(try_from = "DjListOpt<String>")]
     file_paths: Option<Vec<String>>,
     camera_make: Option<String>,
     camera_model: Option<String>,
@@ -29,15 +34,11 @@ struct Source {
 
 /// Recompute and store `api_photo_search.search_captions` for `photo_ids`,
 /// creating missing rows (`get_or_create`).
-pub async fn rebuild(
-    conn: &mut PgConnection,
-    photo_ids: &[Uuid],
-    tagging_model: &str,
-) -> sqlx::Result<()> {
+pub async fn rebuild(conn: &mut Conn, photo_ids: &[Uuid], tagging_model: &str) -> sqlx::Result<()> {
     if photo_ids.is_empty() {
         return Ok(());
     }
-    let rows = sqlx::query_as::<_, Source>(
+    let rows = lp_db::sql::query_as::<_, Source>(
         "SELECT p.id, p.video, p.is_screenshot, p.is_document, pc.captions_json, \
            mf.path AS main_path, \
            (SELECT array_agg(pe.name ORDER BY f.id) FROM api_face f \
@@ -61,7 +62,7 @@ pub async fn rebuild(
         captions.push(compose(&row, tagging_model));
         ids.push(row.id);
     }
-    sqlx::query(
+    lp_db::sql::query(
         "INSERT INTO api_photo_search (photo_id, search_captions, search_location, created_at, updated_at) \
          SELECT u.id, u.captions, NULL, now(), now() FROM unnest($1::uuid[], $2::text[]) AS u(id, captions) \
          ON CONFLICT (photo_id) DO UPDATE SET search_captions = EXCLUDED.search_captions, \

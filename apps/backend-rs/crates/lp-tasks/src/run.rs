@@ -4,8 +4,8 @@
 
 use std::time::{Duration, Instant};
 
+use lp_db::db::Db;
 use lp_jobs::{JobErrors, JobType, lrj};
-use sqlx::PgPool;
 use uuid::Uuid;
 
 /// `CANCELLATION_CHECK_INTERVAL`: items between two cancellation polls.
@@ -14,7 +14,7 @@ pub const CANCEL_CHECK_EVERY: usize = 100;
 /// `LongRunningJob.get_or_create_job`: the queued row the enqueuer made (if
 /// any), marked started; otherwise a new, started row. Returns its `job_id`.
 pub async fn begin(
-    db: &PgPool,
+    db: &Db,
     lrj_id: Option<&str>,
     job_type: JobType,
     user_id: i32,
@@ -31,20 +31,15 @@ pub async fn begin(
             id
         }
     };
-    sqlx::query("UPDATE api_longrunningjob SET started_at = now() WHERE job_id = $1")
+    lp_db::sql::query("UPDATE api_longrunningjob SET started_at = now() WHERE job_id = $1")
         .bind(&job_id)
         .execute(db)
         .await?;
     Ok(job_id)
 }
 
-async fn create_with_id(
-    db: &PgPool,
-    id: &str,
-    job_type: JobType,
-    user_id: i32,
-) -> sqlx::Result<()> {
-    sqlx::query(
+async fn create_with_id(db: &Db, id: &str, job_type: JobType, user_id: i32) -> sqlx::Result<()> {
+    lp_db::sql::query(
         "INSERT INTO api_longrunningjob (job_type, finished, failed, cancelled, job_id, queued_at, \
            started_at, started_by_id, progress_current, progress_target) \
          VALUES ($1, FALSE, FALSE, FALSE, $2, now(), now(), $3, 0, 0)",
@@ -58,13 +53,8 @@ async fn create_with_id(
 }
 
 /// `lrj.update_progress(current, target)`.
-pub async fn set_progress(
-    db: &PgPool,
-    job_id: &str,
-    current: i32,
-    target: i32,
-) -> sqlx::Result<()> {
-    sqlx::query(
+pub async fn set_progress(db: &Db, job_id: &str, current: i32, target: i32) -> sqlx::Result<()> {
+    lp_db::sql::query(
         "UPDATE api_longrunningjob SET progress_current = $2, progress_target = $3 WHERE job_id = $1",
     )
     .bind(job_id)
@@ -76,8 +66,8 @@ pub async fn set_progress(
 }
 
 /// `lrj.complete()`: finished now, result untouched.
-pub async fn complete(db: &PgPool, job_id: &str) -> sqlx::Result<()> {
-    sqlx::query(
+pub async fn complete(db: &Db, job_id: &str) -> sqlx::Result<()> {
+    lp_db::sql::query(
         "UPDATE api_longrunningjob SET finished = TRUE, finished_at = now() WHERE job_id = $1",
     )
     .bind(job_id)
@@ -87,8 +77,8 @@ pub async fn complete(db: &PgPool, job_id: &str) -> sqlx::Result<()> {
 }
 
 /// `lrj.fail(error)`: `{"status": "failed", "error": ...}`.
-pub async fn fail(db: &PgPool, job_id: &str, error: &str) -> sqlx::Result<()> {
-    sqlx::query(
+pub async fn fail(db: &Db, job_id: &str, error: &str) -> sqlx::Result<()> {
+    lp_db::sql::query(
         "UPDATE api_longrunningjob SET failed = TRUE, finished = TRUE, finished_at = now(), \
            result = $2 WHERE job_id = $1",
     )
@@ -99,13 +89,13 @@ pub async fn fail(db: &PgPool, job_id: &str, error: &str) -> sqlx::Result<()> {
     Ok(())
 }
 
-pub async fn is_cancelled(db: &PgPool, job_id: &str) -> sqlx::Result<bool> {
+pub async fn is_cancelled(db: &Db, job_id: &str) -> sqlx::Result<bool> {
     lrj::is_cancelled(db, job_id).await
 }
 
 /// `lrj.update_progress(0, target)`; with nothing to do the job completes
 /// at once (`_begin_photo_scan`). Returns whether there is work.
-pub async fn start_items(db: &PgPool, job_id: &str, target: i64) -> sqlx::Result<bool> {
+pub async fn start_items(db: &Db, job_id: &str, target: i64) -> sqlx::Result<bool> {
     let target = i32::try_from(target).unwrap_or(i32::MAX);
     set_progress(db, job_id, 0, target).await?;
     if target == 0 {
@@ -120,7 +110,7 @@ pub async fn start_items(db: &PgPool, job_id: &str, target: i64) -> sqlx::Result
 /// and finishes the job once the counter reaches the target, exactly once
 /// and never after a cancel.
 pub struct ItemCounter {
-    db: PgPool,
+    db: Db,
     job_id: String,
     target: usize,
     pending: i32,
@@ -130,7 +120,7 @@ pub struct ItemCounter {
 }
 
 impl ItemCounter {
-    pub fn new(db: PgPool, job_id: impl Into<String>, target: usize) -> Self {
+    pub fn new(db: Db, job_id: impl Into<String>, target: usize) -> Self {
         ItemCounter {
             db,
             job_id: job_id.into(),
@@ -172,7 +162,7 @@ impl ItemCounter {
         } else {
             None
         };
-        sqlx::query(
+        lp_db::sql::query(
             "UPDATE api_longrunningjob SET progress_current = progress_current + $2, \
                result = COALESCE($3, result), failed = failed OR $4 \
              WHERE job_id = $1 AND NOT cancelled",
@@ -197,8 +187,8 @@ impl ItemCounter {
 }
 
 /// `finish_job_if_complete`: the guarded transition, once.
-pub async fn finish_if_complete(db: &PgPool, job_id: &str) -> sqlx::Result<bool> {
-    let n = sqlx::query(
+pub async fn finish_if_complete(db: &Db, job_id: &str) -> sqlx::Result<bool> {
+    let n = lp_db::sql::query(
         "UPDATE api_longrunningjob SET finished = TRUE, finished_at = now() \
          WHERE job_id = $1 AND NOT finished AND NOT cancelled \
            AND progress_current >= progress_target",
@@ -216,7 +206,7 @@ pub async fn finish_if_complete(db: &PgPool, job_id: &str) -> sqlx::Result<bool>
 /// `Some(None)` means such a job exists but never started, which Django
 /// turns into `added_on > NULL`: nothing.
 pub async fn last_finished_start(
-    db: &PgPool,
+    db: &Db,
     user_id: i32,
     job_type: JobType,
     exclude_zero_target: bool,
@@ -231,7 +221,7 @@ pub async fn last_finished_start(
             ""
         }
     );
-    sqlx::query_scalar::<_, Option<chrono::DateTime<chrono::Utc>>>(&sql)
+    lp_db::sql::query_scalar::<_, Option<chrono::DateTime<chrono::Utc>>>(&sql)
         .bind(job_type.as_i32())
         .bind(user_id)
         .fetch_optional(db)

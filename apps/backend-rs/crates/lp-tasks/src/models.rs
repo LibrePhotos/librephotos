@@ -38,7 +38,7 @@ pub fn captioning_present(state: &AppState) -> bool {
 
 /// Whether a Download Models job is queued or running.
 pub async fn download_running(state: &AppState) -> sqlx::Result<bool> {
-    sqlx::query_scalar(
+    lp_db::sql::query_scalar(
         "SELECT EXISTS (SELECT 1 FROM api_longrunningjob WHERE job_type = $1 AND NOT finished)",
     )
     .bind(JobType::DownloadModels.as_i32())

@@ -7,6 +7,7 @@
 
 mod common;
 
+use lp_db::db::DjUuid;
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -14,7 +15,6 @@ use common::*;
 use lp_jobs::{EnqueueOptions, JobType};
 use lp_ml::{Ml, MlConfig, Mode, Selection, Service};
 use serde_json::{Value, json};
-use uuid::Uuid;
 
 #[tokio::test]
 async fn tags_generate_in_process_matches_the_python_tagger() {
@@ -69,10 +69,12 @@ async fn tags_generate_in_process_matches_the_python_tagger() {
 
     let db = t.db().clone();
     let alice = user_id(&db, "alice").await;
-    sqlx::query("UPDATE api_photo_caption SET captions_json = captions_json - 'mobileclip_s2'")
-        .execute(&db)
-        .await
-        .unwrap();
+    lp_db::sql::query(
+        "UPDATE api_photo_caption SET captions_json = captions_json - 'mobileclip_s2'",
+    )
+    .execute(&db)
+    .await
+    .unwrap();
 
     let started = std::time::Instant::now();
     let (res, lrj) = run_job(
@@ -91,7 +93,7 @@ async fn tags_generate_in_process_matches_the_python_tagger() {
         "the sidecar was called"
     );
 
-    let rows: Vec<(Uuid, String, Option<Value>)> = sqlx::query_as(
+    let rows: Vec<(DjUuid, String, Option<Value>)> = lp_db::sql::query_as(
         "SELECT p.id, p.image_hash, c.captions_json FROM api_photo p \
          LEFT JOIN api_photo_caption c ON c.photo_id = p.id WHERE p.owner_id = $1",
     )
@@ -120,7 +122,7 @@ async fn tags_generate_in_process_matches_the_python_tagger() {
     assert_eq!(same, compared);
 
     // Thing albums were filed from the in-process tags.
-    let things: i64 = sqlx::query_scalar(
+    let things: i64 = lp_db::sql::query_scalar(
         "SELECT count(*) FROM api_albumthing WHERE owner_id = $1 AND thing_type = 'mobileclip_s2_tag'",
     )
     .bind(alice)
@@ -187,7 +189,7 @@ async fn tags_generate_stores_the_semantic_embedding() {
 
     let db = t.db().clone();
     let alice = user_id(&db, "alice").await;
-    sqlx::query(
+    lp_db::sql::query(
         "UPDATE api_photo SET clip_embeddings = NULL, clip_embeddings_magnitude = NULL \
          WHERE owner_id = $1",
     )
@@ -195,10 +197,12 @@ async fn tags_generate_stores_the_semantic_embedding() {
     .execute(&db)
     .await
     .unwrap();
-    sqlx::query("UPDATE api_photo_caption SET captions_json = captions_json - 'mobileclip_s2'")
-        .execute(&db)
-        .await
-        .unwrap();
+    lp_db::sql::query(
+        "UPDATE api_photo_caption SET captions_json = captions_json - 'mobileclip_s2'",
+    )
+    .execute(&db)
+    .await
+    .unwrap();
     let (res, _) = run_job(
         &state,
         "tags.generate",
@@ -208,7 +212,7 @@ async fn tags_generate_stores_the_semantic_embedding() {
     .await;
     res.unwrap();
 
-    let rows: Vec<(String, Option<String>, Option<f64>, Option<String>)> = sqlx::query_as(
+    let rows: Vec<(String, Option<String>, Option<f64>, Option<String>)> = lp_db::sql::query_as(
         "SELECT image_hash, clip_embeddings::text, clip_embeddings_magnitude, \
            clip_embeddings_model FROM api_photo WHERE owner_id = $1",
     )
@@ -237,7 +241,7 @@ async fn tags_generate_stores_the_semantic_embedding() {
     // A ViT-B/32 embedding written by Django (no model recorded) is
     // recognised and re-embedded in place, through the tagger.
     let vit: Vec<f64> = vec![0.5; 512];
-    let stale: uuid::Uuid = sqlx::query_scalar(
+    let stale: uuid::Uuid = lp_db::sql::query_scalar(
         "UPDATE api_photo SET clip_embeddings = $2, clip_embeddings_magnitude = 11.3, \
            clip_embeddings_model = NULL \
          WHERE id = (SELECT id FROM api_photo WHERE owner_id = $1 \
@@ -248,7 +252,7 @@ async fn tags_generate_stores_the_semantic_embedding() {
     .fetch_one(&db)
     .await
     .unwrap();
-    let embedded: i64 = sqlx::query_scalar(
+    let embedded: i64 = lp_db::sql::query_scalar(
         "SELECT count(*) FROM api_photo WHERE owner_id = $1 AND clip_embeddings IS NOT NULL",
     )
     .bind(alice)
@@ -264,7 +268,7 @@ async fn tags_generate_stores_the_semantic_embedding() {
     )
     .await;
     res.unwrap();
-    let (model, magnitude): (Option<String>, Option<f64>) = sqlx::query_as(
+    let (model, magnitude): (Option<String>, Option<f64>) = lp_db::sql::query_as(
         "SELECT clip_embeddings_model, clip_embeddings_magnitude FROM api_photo WHERE id = $1",
     )
     .bind(stale)
@@ -273,7 +277,7 @@ async fn tags_generate_stores_the_semantic_embedding() {
     .unwrap();
     assert_eq!(model.as_deref(), Some("mobileclip_s2"));
     assert!(magnitude.is_some_and(|m| m < 3.0), "{magnitude:?}");
-    let after: i64 = sqlx::query_scalar(
+    let after: i64 = lp_db::sql::query_scalar(
         "SELECT count(*) FROM api_photo WHERE owner_id = $1 AND clip_embeddings IS NOT NULL",
     )
     .bind(alice)

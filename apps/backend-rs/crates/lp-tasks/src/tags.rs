@@ -30,7 +30,7 @@ pub async fn generate(
     } else {
         run::last_finished_start(&state.db, user_id, JobType::GenerateTags, false).await?
     };
-    let ids: Vec<Uuid> = sqlx::query_scalar(
+    let ids: Vec<Uuid> = lp_db::sql::query_scalar(
         "SELECT p.id FROM api_photo p LEFT JOIN api_photo_caption pc ON pc.photo_id = p.id \
          WHERE p.owner_id = $1 \
            AND (pc.photo_id IS NULL OR pc.captions_json IS NULL OR NOT (pc.captions_json ? $2)) \
@@ -78,7 +78,7 @@ pub async fn tag_photo(state: &AppState, photo_id: Uuid) -> Result<(), TagError>
         return Ok(());
     };
     let model = state.settings().tagging_model.clone();
-    let existing: Option<Value> = sqlx::query_scalar(
+    let existing: Option<Value> = lp_db::sql::query_scalar(
         "WITH ins AS (INSERT INTO api_photo_caption (photo_id, captions_json, created_at, updated_at) \
            VALUES ($1, NULL, now(), now()) ON CONFLICT (photo_id) DO NOTHING RETURNING captions_json) \
          SELECT captions_json FROM ins UNION ALL \
@@ -100,10 +100,11 @@ pub async fn tag_photo(state: &AppState, photo_id: Uuid) -> Result<(), TagError>
     {
         return Ok(());
     }
-    let user_confidence: f64 = sqlx::query_scalar("SELECT confidence FROM api_user WHERE id = $1")
-        .bind(photo.owner_id)
-        .fetch_one(&state.db)
-        .await?;
+    let user_confidence: f64 =
+        lp_db::sql::query_scalar("SELECT confidence FROM api_user WHERE id = $1")
+            .bind(photo.owner_id)
+            .fetch_one(&state.db)
+            .await?;
     let image_path = path_str(&thumb);
     let ml = state.ml();
     // Semantic search on the tagging model: the same run gives the embedding,
@@ -205,13 +206,7 @@ fn store_queue(state: &AppState) -> std::sync::Arc<StoreQueue> {
     static QUEUES: std::sync::OnceLock<
         std::sync::Mutex<std::collections::HashMap<String, std::sync::Arc<StoreQueue>>>,
     > = std::sync::OnceLock::new();
-    let opts = state.db.connect_options();
-    let key = format!(
-        "{}:{}/{}",
-        opts.get_host(),
-        opts.get_port(),
-        opts.get_database().unwrap_or_default()
-    );
+    let key = state.db.key();
     QUEUES
         .get_or_init(Default::default)
         .lock()
@@ -302,7 +297,7 @@ async fn write_batch(state: &AppState, writes: &[TagWrite]) -> sqlx::Result<()> 
         }
     }
     if !ids.is_empty() {
-        sqlx::query(
+        lp_db::sql::query(
             "UPDATE api_photo p SET clip_embeddings = u.e, clip_embeddings_magnitude = u.m,                clip_embeddings_model = u.model, last_modified = now()              FROM unnest($1::uuid[], $2::jsonb[], $3::float8[], $4::text[]) AS u(id, e, m, model)              WHERE p.id = u.id",
         )
         .bind(&ids)
@@ -325,7 +320,7 @@ async fn write_batch(state: &AppState, writes: &[TagWrite]) -> sqlx::Result<()> 
         sorted.sort_by_key(|w| w.photo_id);
         let ids: Vec<Uuid> = sorted.iter().map(|w| w.photo_id).collect();
         let tags: Vec<Value> = sorted.iter().map(|w| w.tags.clone()).collect();
-        sqlx::query(
+        lp_db::sql::query(
             "UPDATE api_photo_caption c SET captions_json = jsonb_set(                CASE WHEN jsonb_typeof(c.captions_json) = 'object' THEN c.captions_json ELSE '{}'::jsonb END,                ARRAY[$3], u.tags), updated_at = now()              FROM unnest($1::uuid[], $2::jsonb[]) AS u(id, tags) WHERE c.photo_id = u.id",
         )
         .bind(&ids)

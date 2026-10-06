@@ -9,13 +9,14 @@
 mod common;
 
 use common::*;
+use lp_db::db::Db;
 use lp_jobs::{EnqueueOptions, JobType};
 use lp_ml::clip::SemanticModel;
 use serde_json::{Value, json};
 use sqlx::Connection;
 
-async fn embedded(db: &sqlx::PgPool, owner: i32) -> i64 {
-    sqlx::query_scalar(
+async fn embedded(db: &Db, owner: i32) -> i64 {
+    lp_db::sql::query_scalar(
         "SELECT count(*) FROM api_photo WHERE owner_id = $1 AND clip_embeddings IS NOT NULL",
     )
     .bind(owner)
@@ -24,8 +25,8 @@ async fn embedded(db: &sqlx::PgPool, owner: i32) -> i64 {
     .unwrap()
 }
 
-async fn queued_embeds(db: &sqlx::PgPool, owner: i32) -> i64 {
-    sqlx::query_scalar(
+async fn queued_embeds(db: &Db, owner: i32) -> i64 {
+    lp_db::sql::query_scalar(
         "SELECT count(*) FROM job_queue WHERE kind = 'clip.embed' AND status = 'queued' \
            AND payload->'user_id' = to_jsonb($1::int)",
     )
@@ -47,8 +48,8 @@ fn last_build(t: &TasksApp) -> Vec<String> {
         .collect()
 }
 
-async fn hashes(db: &sqlx::PgPool, sql: &str, owner: i32) -> Vec<String> {
-    sqlx::query_scalar(sql)
+async fn hashes(db: &Db, sql: &str, owner: i32) -> Vec<String> {
+    lp_db::sql::query_scalar(sql)
         .bind(owner)
         .fetch_all(db)
         .await
@@ -71,7 +72,7 @@ async fn embeddings_are_told_apart_by_their_recorded_model() {
     // A Django-written library: no model recorded (NULL = ViT-B/32), and a
     // magnitude of 1 that the old heuristic took for MobileCLIP and dropped
     // (the contract fixture's synthetic embeddings look like this).
-    sqlx::query(
+    lp_db::sql::query(
         "UPDATE api_photo SET clip_embeddings_magnitude = 1, clip_embeddings_model = NULL, \
            clip_embeddings = (SELECT jsonb_agg(round(((i * 37) % 200) / 100.0 - 1, 2)) \
                               FROM generate_series(1, 512) i) \
@@ -107,7 +108,7 @@ async fn embeddings_are_told_apart_by_their_recorded_model() {
 
     // Five photos (with thumbnails) carry MobileCLIP embeddings, e.g. from a
     // Rust run with the other setting: mismatched for ViT-B/32 only.
-    sqlx::query(
+    lp_db::sql::query(
         "UPDATE api_photo SET clip_embeddings_model = 'mobileclip_s2' WHERE id IN ( \
            SELECT p.id FROM api_photo p JOIN api_thumbnail th ON th.photo_id = p.id \
            WHERE p.owner_id = $1 AND NOT p.hidden AND th.thumbnail_big <> '' \
@@ -186,7 +187,7 @@ async fn embeddings_are_told_apart_by_their_recorded_model() {
 
     assert_eq!(embedded(&db, alice).await, total, "nothing dropped");
     assert!(hashes(&db, mc_sql, alice).await.is_empty());
-    let rows: Vec<(String, Value, Option<String>)> = sqlx::query_as(
+    let rows: Vec<(String, Value, Option<String>)> = lp_db::sql::query_as(
         "SELECT image_hash, clip_embeddings, clip_embeddings_model FROM api_photo \
          WHERE owner_id = $1 AND image_hash = ANY($2)",
     )
@@ -230,14 +231,15 @@ async fn a_foreign_writer_changing_an_embedding_resets_its_model() {
     let t = TasksApp::new().await;
     let db = t.db().clone();
     let alice = user_id(&db, "alice").await;
-    let id: uuid::Uuid =
-        sqlx::query_scalar("SELECT id FROM api_photo WHERE owner_id = $1 ORDER BY id LIMIT 1")
-            .bind(alice)
-            .fetch_one(&db)
-            .await
-            .unwrap();
-    let model = |db: sqlx::PgPool| async move {
-        sqlx::query_scalar::<_, Option<String>>(
+    let id: uuid::Uuid = lp_db::sql::query_scalar(
+        "SELECT id FROM api_photo WHERE owner_id = $1 ORDER BY id LIMIT 1",
+    )
+    .bind(alice)
+    .fetch_one(&db)
+    .await
+    .unwrap();
+    let model = |db: Db| async move {
+        lp_db::sql::query_scalar::<_, Option<String>>(
             "SELECT clip_embeddings_model FROM api_photo WHERE id = $1",
         )
         .bind(id)
@@ -248,7 +250,7 @@ async fn a_foreign_writer_changing_an_embedding_resets_its_model() {
     let set = "UPDATE api_photo SET clip_embeddings = $2 WHERE id = $1";
 
     // librephotos-rs connections set the column themselves.
-    sqlx::query(
+    lp_db::sql::query(
         "UPDATE api_photo SET clip_embeddings = $2, clip_embeddings_model = 'mobileclip_s2' \
          WHERE id = $1",
     )
@@ -257,7 +259,7 @@ async fn a_foreign_writer_changing_an_embedding_resets_its_model() {
     .execute(&db)
     .await
     .unwrap();
-    sqlx::query(set)
+    lp_db::sql::query(set)
         .bind(id)
         .bind(json!([0.5, 0.25]))
         .execute(&db)
@@ -274,20 +276,20 @@ async fn a_foreign_writer_changing_an_embedding_resets_its_model() {
         .application_name("django");
     let mut django = sqlx::PgConnection::connect_with(&opts).await.unwrap();
     // A save that leaves the embedding as it was keeps the model ...
-    sqlx::query(set)
+    lp_db::sql::query(set)
         .bind(id)
         .bind(json!([0.5, 0.25]))
         .execute(&mut django)
         .await
         .unwrap();
-    sqlx::query("UPDATE api_photo SET rating = rating WHERE id = $1")
+    lp_db::sql::query("UPDATE api_photo SET rating = rating WHERE id = $1")
         .bind(id)
         .execute(&mut django)
         .await
         .unwrap();
     assert_eq!(model(db.clone()).await.as_deref(), Some("mobileclip_s2"));
     // ... one that writes another embedding (its ViT-B/32) clears it.
-    sqlx::query(set)
+    lp_db::sql::query(set)
         .bind(id)
         .bind(json!([1.5, 2.5]))
         .execute(&mut django)

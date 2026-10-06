@@ -227,15 +227,17 @@ async fn run_queued(app: &TestApp, kind: &str) -> anyhow::Result<()> {
 }
 
 async fn lrj(app: &TestApp, job_id: &str) -> (bool, bool, Option<Value>) {
-    sqlx::query_as("SELECT finished, failed, result FROM api_longrunningjob WHERE job_id = $1")
-        .bind(job_id)
-        .fetch_one(app.pool())
-        .await
-        .unwrap()
+    lp_db::sql::query_as(
+        "SELECT finished, failed, result FROM api_longrunningjob WHERE job_id = $1",
+    )
+    .bind(job_id)
+    .fetch_one(app.pool())
+    .await
+    .unwrap()
 }
 
 async fn photo_paths(app: &TestApp, user: i32) -> Vec<String> {
-    sqlx::query_scalar(
+    lp_db::sql::query_scalar(
         "SELECT f.path FROM api_photo p JOIN api_file f ON f.hash = p.main_file_id \
          WHERE p.owner_id = $1 ORDER BY f.path",
     )
@@ -281,7 +283,7 @@ async fn nextcloud_scan_downloads_and_ingests_new_media() {
     let user = app.create_user("nc_alice", "pw", false).await;
     let token = app.token_for(&user);
     let crypto = DjangoCrypto::new(&app.state.config.secret_key);
-    sqlx::query(
+    lp_db::sql::query(
         "UPDATE api_user SET nextcloud_server_address = $2, nextcloud_username = 'ncuser', \
            nextcloud_app_password = $3, nextcloud_scan_directory = '/Photos' WHERE id = $1",
     )
@@ -359,7 +361,7 @@ async fn nextcloud_scan_downloads_and_ingests_new_media() {
     assert_eq!(photo_paths(&app, user.id).await, want);
 
     // A rejected app password fails the job instead of leaving it running.
-    sqlx::query("UPDATE api_user SET nextcloud_app_password = $2 WHERE id = $1")
+    lp_db::sql::query("UPDATE api_user SET nextcloud_app_password = $2 WHERE id = $1")
         .bind(user.id)
         .bind(crypto.encrypt_str("wrong"))
         .execute(app.pool())

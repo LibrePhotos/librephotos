@@ -17,18 +17,19 @@ async fn clip_embed_stores_embeddings_and_builds_the_index() {
     t.copy_thumbnails();
     let db = t.db().clone();
     let alice = user_id(&db, "alice").await;
-    sqlx::query(
+    lp_db::sql::query(
         "UPDATE api_photo SET clip_embeddings = NULL, clip_embeddings_magnitude = NULL WHERE owner_id = $1",
     )
     .bind(alice)
     .execute(&db)
     .await
     .unwrap();
-    let missing: i64 = sqlx::query_scalar("SELECT count(*) FROM api_photo WHERE owner_id = $1")
-        .bind(alice)
-        .fetch_one(&db)
-        .await
-        .unwrap();
+    let missing: i64 =
+        lp_db::sql::query_scalar("SELECT count(*) FROM api_photo WHERE owner_id = $1")
+            .bind(alice)
+            .fetch_one(&db)
+            .await
+            .unwrap();
     t.mock.knobs.lock().unwrap().clip_null_every = Some(10);
 
     let (res, lrj) = run_job(
@@ -69,7 +70,7 @@ async fn clip_embed_stores_embeddings_and_builds_the_index() {
             .unwrap()
             .ends_with("clip_vit_b32")
     );
-    let rows: Vec<(String, Option<Value>, Option<f64>, Option<String>)> = sqlx::query_as(
+    let rows: Vec<(String, Option<Value>, Option<f64>, Option<String>)> = lp_db::sql::query_as(
         "SELECT p.image_hash, p.clip_embeddings, p.clip_embeddings_magnitude, t.thumbnail_big \
          FROM api_photo p LEFT JOIN api_thumbnail t ON t.photo_id = p.id WHERE p.owner_id = $1",
     )
@@ -119,7 +120,7 @@ async fn clip_embed_stores_embeddings_and_builds_the_index() {
     let mut sorted = hashes.clone();
     sorted.sort();
     assert_eq!(hashes, sorted);
-    let expected: Vec<String> = sqlx::query_scalar(
+    let expected: Vec<String> = lp_db::sql::query_scalar(
         "SELECT image_hash FROM api_photo WHERE owner_id = $1 AND NOT hidden AND clip_embeddings IS NOT NULL ORDER BY image_hash",
     )
     .bind(alice)
@@ -154,7 +155,7 @@ async fn clip_embed_stores_embeddings_and_builds_the_index() {
     t.mock.knobs.lock().unwrap().build_refuse = false;
     t.mock.clear();
     let dave = user_id(&db, "dave").await;
-    sqlx::query("UPDATE api_photo SET clip_embeddings = NULL WHERE owner_id = $1")
+    lp_db::sql::query("UPDATE api_photo SET clip_embeddings = NULL WHERE owner_id = $1")
         .bind(dave)
         .execute(&db)
         .await
@@ -198,12 +199,12 @@ async fn geo_locate_reverse_geocodes_into_places() {
         .parse()
         .unwrap();
     // Forget what the fixture geocoded.
-    sqlx::query("UPDATE api_photo SET geolocation_json = NULL, exif_gps_lat = NULL, exif_gps_lon = NULL WHERE owner_id = $1")
+    lp_db::sql::query("UPDATE api_photo SET geolocation_json = NULL, exif_gps_lat = NULL, exif_gps_lon = NULL WHERE owner_id = $1")
         .bind(alice)
         .execute(&db)
         .await
         .unwrap();
-    sqlx::query("DELETE FROM api_albumplace_photos WHERE photo_id IN (SELECT id FROM api_photo WHERE owner_id = $1)")
+    lp_db::sql::query("DELETE FROM api_albumplace_photos WHERE photo_id IN (SELECT id FROM api_photo WHERE owner_id = $1)")
         .bind(alice)
         .execute(&db)
         .await
@@ -227,7 +228,7 @@ async fn geo_locate_reverse_geocodes_into_places() {
         (Some("json"), Some("1"))
     );
 
-    let (geo, lat, lon): (Value, f64, f64) = sqlx::query_as(
+    let (geo, lat, lon): (Value, f64, f64) = lp_db::sql::query_as(
         "SELECT geolocation_json, exif_gps_lat, exif_gps_lon FROM api_photo WHERE id = $1",
     )
     .bind(berlin)
@@ -242,16 +243,17 @@ async fn geo_locate_reverse_geocodes_into_places() {
     assert_eq!(geo["center"], json!([52.5163, 13.3777]));
     assert_eq!(geo["_v"], "1");
     assert_eq!(geo["address"], "Mock Street 1, Berlin, Deutschland");
-    let search: String =
-        sqlx::query_scalar("SELECT search_location FROM api_photo_search WHERE photo_id = $1")
-            .bind(berlin)
-            .fetch_one(&db)
-            .await
-            .unwrap();
+    let search: String = lp_db::sql::query_scalar(
+        "SELECT search_location FROM api_photo_search WHERE photo_id = $1",
+    )
+    .bind(berlin)
+    .fetch_one(&db)
+    .await
+    .unwrap();
     assert_eq!(search, "Mock Street 1, Berlin, Deutschland");
 
     // Places albums: no numeric titles, level = distance from the end.
-    let places: Vec<(String, Option<i32>)> = sqlx::query_as(
+    let places: Vec<(String, Option<i32>)> = lp_db::sql::query_as(
         "SELECT a.title, a.geolocation_level FROM api_albumplace a \
          JOIN api_albumplace_photos l ON l.albumplace_id = a.id WHERE l.photo_id = $1 ORDER BY a.title",
     )
@@ -262,7 +264,7 @@ async fn geo_locate_reverse_geocodes_into_places() {
     let titles: Vec<&str> = places.iter().map(|p| p.0.as_str()).collect();
     assert_eq!(titles, vec!["Berlin", "Deutschland", "Mock Street"]);
     let tokyo_places: i64 =
-        sqlx::query_scalar("SELECT count(*) FROM api_albumplace_photos WHERE photo_id = $1")
+        lp_db::sql::query_scalar("SELECT count(*) FROM api_albumplace_photos WHERE photo_id = $1")
             .bind(tokyo)
             .fetch_one(&db)
             .await
@@ -270,7 +272,7 @@ async fn geo_locate_reverse_geocodes_into_places() {
     assert_eq!(tokyo_places, 3);
 
     // The day album learned the city.
-    let loc: Option<Value> = sqlx::query_scalar(
+    let loc: Option<Value> = lp_db::sql::query_scalar(
         "SELECT a.location FROM api_albumdate a JOIN api_albumdate_photos l ON l.albumdate_id = a.id \
          WHERE l.photo_id = $1",
     )
@@ -287,7 +289,7 @@ async fn geo_locate_reverse_geocodes_into_places() {
 
     // Up to date: a second run calls nobody, but (as Django's
     // geolocation_job) still files the stored city under the day album.
-    sqlx::query(
+    lp_db::sql::query(
         "UPDATE api_albumdate SET location = NULL WHERE id IN (            SELECT albumdate_id FROM api_albumdate_photos WHERE photo_id = $1)",
     )
     .bind(berlin)
@@ -304,7 +306,7 @@ async fn geo_locate_reverse_geocodes_into_places() {
     .await;
     res.unwrap();
     assert!(t.mock.calls_to("/reverse").is_empty());
-    let loc: Option<Value> = sqlx::query_scalar(
+    let loc: Option<Value> = lp_db::sql::query_scalar(
         "SELECT a.location FROM api_albumdate a JOIN api_albumdate_photos l ON l.albumdate_id = a.id          WHERE l.photo_id = $1",
     )
     .bind(berlin)

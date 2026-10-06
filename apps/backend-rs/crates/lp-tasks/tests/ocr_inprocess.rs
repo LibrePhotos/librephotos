@@ -86,7 +86,7 @@ async fn ocr_generate_in_process_matches_the_python_engine() {
         Option<f64>,
         Option<f64>,
         Option<i32>,
-    )> = sqlx::query_as(
+    )> = lp_db::sql::query_as(
         "SELECT f.path, o.engine, o.text, o.blocks, o.mean_confidence, o.text_area_fraction, \
                o.source_width FROM api_photo_ocr o JOIN api_photo p ON p.id = o.photo_id \
              JOIN api_file f ON f.hash = p.main_file_id WHERE p.owner_id = $1",
