@@ -90,6 +90,26 @@ impl Db {
         }
     }
 
+    /// Identifies the database (Postgres `host:port/name`, SQLite
+    /// `sqlite:<file>`), e.g. to key per-database caches.
+    pub fn key(&self) -> String {
+        match self {
+            Db::Pg(p) => {
+                let o = p.connect_options();
+                format!(
+                    "{}:{}/{}",
+                    o.get_host(),
+                    o.get_port(),
+                    o.get_database().unwrap_or_default()
+                )
+            }
+            Db::Lite(l) => format!(
+                "sqlite:{}",
+                l.write.connect_options().get_filename().display()
+            ),
+        }
+    }
+
     /// Starts a transaction. On SQLite it takes the single writer connection
     /// and runs `BEGIN IMMEDIATE` (the write lock is taken up front, as
     /// Django's `transaction_mode=IMMEDIATE` does).

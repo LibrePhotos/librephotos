@@ -13,7 +13,7 @@ use sqlx::sqlite::{
 };
 
 use super::codec::DjDateTime;
-use super::config::{Backend, DbSettings};
+use super::config::DbSettings;
 use super::exec::{Db, Lite};
 
 /// How to open a SQLite database.
@@ -84,21 +84,6 @@ pub async fn open(o: &LiteOptions) -> sqlx::Result<Lite> {
 }
 
 impl Db {
-    /// The database selected by `DB_BACKEND`: the Postgres pool from
-    /// `lp_core::Config` (`DB_*`, `LP_DB_POOL`) or the SQLite file at
-    /// `LP_SQLITE_PATH`.
-    pub async fn connect(config: &lp_core::Config) -> anyhow::Result<Db> {
-        let settings = DbSettings::from_env()?;
-        Db::connect_with(config, &settings).await
-    }
-
-    pub async fn connect_with(config: &lp_core::Config, s: &DbSettings) -> anyhow::Result<Db> {
-        Ok(match s.backend {
-            Backend::Postgres => Db::Pg(crate::pool::connect(config).await?),
-            Backend::Sqlite => Db::Lite(open(&LiteOptions::from_settings(s)).await?),
-        })
-    }
-
     /// Opens a SQLite database directly.
     pub async fn open_sqlite(o: &LiteOptions) -> sqlx::Result<Db> {
         Ok(Db::Lite(open(o).await?))

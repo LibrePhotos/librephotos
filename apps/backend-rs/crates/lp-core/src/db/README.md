@@ -1,5 +1,9 @@
 # `lp_db::db`: one SQL, two drivers
 
+The module lives in `lp-core` (`lp_core::db`) because `AppState.db` is a
+[`Db`]; lp-db re-exports it as `lp_db::db`, with `lp_db::sql` and
+`lp_db::{Conn, Db, Dialect, Exec, Qb, Tx}`.
+
 The same query runs on Postgres and on the SQLite file Django's SQLite mode
 writes (`DB_BACKEND=sqlite`). Design: `rust-pg/workflows/sqlite_design.md`
 (§2 architecture, §3 concurrency, §9 P0 results).
@@ -105,7 +109,7 @@ search, `to_regclass` (`sqlite_master`), `pg_notify` / `LISTEN`,
 
 ## Lint list (design §2)
 
-`tests/dialect_lint.rs` (P2) rejects these in SQL literals outside a
+`lp-db/tests/dialect_lint.rs` (report-only since P1a; later phases make it fail) rejects these in SQL literals outside a
 `Dialect::Pg` arm: `::uuid`, `ANY(`, `ILIKE`, `jsonb`, `LATERAL`,
 `DISTINCT ON`, `make_interval`, `FOR UPDATE`, `unnest`. Worth adding:
 `::` casts in general, `interval '`, `GREATEST(`, `LEAST(`, `ON CONSTRAINT`,

@@ -2793,6 +2793,7 @@ dependencies = [
  "jwalk",
  "lettre",
  "libloading 0.8.9",
+ "libsqlite3-sys",
  "lp-exif",
  "lp-ml",
  "lp-sidecars",

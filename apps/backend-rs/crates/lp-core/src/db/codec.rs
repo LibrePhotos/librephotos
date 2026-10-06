@@ -20,7 +20,7 @@ use sqlx::sqlite::{SqliteArgumentValue, SqliteTypeInfo, SqliteValueRef};
 use sqlx::{Decode, Encode, Postgres, Sqlite, Type, TypeInfo, ValueRef};
 use uuid::Uuid;
 
-use super::arg::ListElem;
+use super::arg::ListItem;
 
 // ---------------------------------------------------------------- DjUuid
 
@@ -38,6 +38,13 @@ impl From<DjUuid> for Uuid {
 impl From<Uuid> for DjUuid {
     fn from(v: Uuid) -> DjUuid {
         DjUuid(v)
+    }
+}
+
+/// Same as `Uuid`'s (dashed, lowercase).
+impl fmt::Display for DjUuid {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(&self.0, f)
     }
 }
 
@@ -282,7 +289,7 @@ impl<T> From<DjList<T>> for Vec<T> {
 
 impl<T> Type<Postgres> for DjList<T>
 where
-    T: ListElem + PgHasArrayType,
+    T: ListItem + PgHasArrayType,
 {
     fn type_info() -> PgTypeInfo {
         T::array_type_info()
@@ -294,14 +301,14 @@ where
 
 impl<'r, T> Decode<'r, Postgres> for DjList<T>
 where
-    T: ListElem + PgHasArrayType + for<'a> Decode<'a, Postgres> + Type<Postgres>,
+    T: ListItem + PgHasArrayType + for<'a> Decode<'a, Postgres> + Type<Postgres>,
 {
     fn decode(value: PgValueRef<'r>) -> Result<Self, BoxDynError> {
         Ok(DjList(<Vec<T> as Decode<Postgres>>::decode(value)?))
     }
 }
 
-impl<T: ListElem> Type<Sqlite> for DjList<T> {
+impl<T: ListItem> Type<Sqlite> for DjList<T> {
     fn type_info() -> SqliteTypeInfo {
         <String as Type<Sqlite>>::type_info()
     }
@@ -310,12 +317,72 @@ impl<T: ListElem> Type<Sqlite> for DjList<T> {
     }
 }
 
-impl<'r, T: ListElem> Decode<'r, Sqlite> for DjList<T> {
+impl<'r, T: ListItem> Decode<'r, Sqlite> for DjList<T> {
     fn decode(value: SqliteValueRef<'r>) -> Result<Self, BoxDynError> {
         let s = <&str as Decode<Sqlite>>::decode(value)?;
         let items: Vec<Value> = serde_json::from_str(s)?;
         Ok(DjList(
             items.iter().map(T::from_json).collect::<Result<_, _>>()?,
         ))
+    }
+}
+
+// ------------------------------------------------------------- DjListOpt
+
+/// A nullable list column (`Option<Vec<T>>`): `array_agg` over no rows is
+/// NULL on Postgres. `#[sqlx(try_from = "DjListOpt<String>")] x: Option<Vec<String>>`
+/// (`Option<DjList<T>>` cannot convert under the orphan rule).
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct DjListOpt<T>(pub Option<Vec<T>>);
+
+impl<T> From<DjListOpt<T>> for Option<Vec<T>> {
+    fn from(v: DjListOpt<T>) -> Option<Vec<T>> {
+        v.0
+    }
+}
+
+impl<T> Type<Postgres> for DjListOpt<T>
+where
+    T: ListItem + PgHasArrayType,
+{
+    fn type_info() -> PgTypeInfo {
+        <DjList<T> as Type<Postgres>>::type_info()
+    }
+    fn compatible(ty: &PgTypeInfo) -> bool {
+        <DjList<T> as Type<Postgres>>::compatible(ty)
+    }
+}
+
+impl<'r, T> Decode<'r, Postgres> for DjListOpt<T>
+where
+    T: ListItem + PgHasArrayType + for<'a> Decode<'a, Postgres> + Type<Postgres>,
+{
+    fn decode(value: PgValueRef<'r>) -> Result<Self, BoxDynError> {
+        if value.is_null() {
+            return Ok(DjListOpt(None));
+        }
+        Ok(DjListOpt(Some(
+            <DjList<T> as Decode<Postgres>>::decode(value)?.0,
+        )))
+    }
+}
+
+impl<T: ListItem> Type<Sqlite> for DjListOpt<T> {
+    fn type_info() -> SqliteTypeInfo {
+        <DjList<T> as Type<Sqlite>>::type_info()
+    }
+    fn compatible(ty: &SqliteTypeInfo) -> bool {
+        <DjList<T> as Type<Sqlite>>::compatible(ty)
+    }
+}
+
+impl<'r, T: ListItem> Decode<'r, Sqlite> for DjListOpt<T> {
+    fn decode(value: SqliteValueRef<'r>) -> Result<Self, BoxDynError> {
+        if value.is_null() {
+            return Ok(DjListOpt(None));
+        }
+        Ok(DjListOpt(Some(
+            <DjList<T> as Decode<Sqlite>>::decode(value)?.0,
+        )))
     }
 }

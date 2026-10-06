@@ -24,8 +24,8 @@ mod qb;
 mod query;
 pub mod sql;
 
-pub use arg::{Arg, IntoArg, Kind, ListArg, ListElem};
-pub use codec::{DjDateTime, DjList, DjUuid, DjUuidOpt};
+pub use arg::{Arg, IntoArg, Kind, ListArg, ListElem, ListItem, ListKind};
+pub use codec::{DjDateTime, DjList, DjListOpt, DjUuid, DjUuidOpt};
 pub use config::{Backend, DbSettings};
 pub use exec::{Conn, Db, Dialect, Exec, Lite, PoolConn, ReadOnly, Target, Tx};
 pub use lite::LiteOptions;

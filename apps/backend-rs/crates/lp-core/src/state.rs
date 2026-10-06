@@ -7,10 +7,10 @@ use arc_swap::ArcSwap;
 use axum::extract::FromRef;
 use chrono::{DateTime, Utc};
 use jsonwebtoken::{DecodingKey, EncodingKey};
-use sqlx::PgPool;
 use tokio::sync::{Notify, Semaphore};
 
 use crate::config::Config;
+use crate::db::Db;
 use crate::error::ApiError;
 use crate::settings::SiteSettings;
 
@@ -31,7 +31,7 @@ impl JwtKeys {
 
 #[derive(Clone)]
 pub struct AppState {
-    pub db: PgPool,
+    pub db: Db,
     pub config: Arc<Config>,
     /// Live site settings; replace via `lp_db::settings::save`, read with [`AppState::settings`].
     pub settings: Arc<ArcSwap<SiteSettings>>,
@@ -50,7 +50,7 @@ pub struct AppState {
 }
 
 impl AppState {
-    pub fn new(db: PgPool, config: Config, settings: SiteSettings) -> anyhow::Result<Self> {
+    pub fn new(db: Db, config: Config, settings: SiteSettings) -> anyhow::Result<Self> {
         let http = reqwest::Client::builder()
             .connect_timeout(Duration::from_secs(10))
             .build()?;
@@ -126,8 +126,8 @@ impl AppState {
     }
 }
 
-impl FromRef<AppState> for PgPool {
-    fn from_ref(s: &AppState) -> PgPool {
+impl FromRef<AppState> for Db {
+    fn from_ref(s: &AppState) -> Db {
         s.db.clone()
     }
 }

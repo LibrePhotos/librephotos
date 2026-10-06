@@ -56,7 +56,15 @@ pub enum ListKind {
     Text,
     Uuid,
     Ts,
+    Date,
     Json,
+    OptBool,
+    OptI32,
+    OptI64,
+    OptF64,
+    OptText,
+    OptUuid,
+    OptTs,
 }
 
 /// One bound parameter.
@@ -94,7 +102,16 @@ pub enum ListArg {
     Text(Vec<String>),
     Uuid(Vec<Uuid>),
     Ts(Vec<DateTime<Utc>>),
+    Date(Vec<NaiveDate>),
     Json(Vec<Value>),
+    // Lists with NULL elements (e.g. `unnest($3::float8[])` of optional values).
+    OptBool(Vec<Option<bool>>),
+    OptI32(Vec<Option<i32>>),
+    OptI64(Vec<Option<i64>>),
+    OptF64(Vec<Option<f64>>),
+    OptText(Vec<Option<String>>),
+    OptUuid(Vec<Option<Uuid>>),
+    OptTs(Vec<Option<DateTime<Utc>>>),
 }
 
 impl ListArg {
@@ -109,7 +126,15 @@ impl ListArg {
             ListArg::Text(v) => v.len(),
             ListArg::Uuid(v) => v.len(),
             ListArg::Ts(v) => v.len(),
+            ListArg::Date(v) => v.len(),
             ListArg::Json(v) => v.len(),
+            ListArg::OptBool(v) => v.len(),
+            ListArg::OptI32(v) => v.len(),
+            ListArg::OptI64(v) => v.len(),
+            ListArg::OptF64(v) => v.len(),
+            ListArg::OptText(v) => v.len(),
+            ListArg::OptUuid(v) => v.len(),
+            ListArg::OptTs(v) => v.len(),
         }
     }
 
@@ -151,7 +176,42 @@ impl ListArg {
             ListArg::Text(v) => join(v, |s| quoted(s)),
             ListArg::Uuid(v) => join(v, |u| format!("\"{}\"", u.simple())),
             ListArg::Ts(v) => join(v, |t| format!("\"{}\"", DjDateTime(*t))),
+            ListArg::Date(v) => join(v, |d| format!("\"{}\"", d.format("%Y-%m-%d"))),
             ListArg::Json(v) => join(v, py_json_dumps),
+            ListArg::OptBool(v) => join(v, |o| match o {
+                Some(b) => {
+                    if *b {
+                        "1".into()
+                    } else {
+                        "0".into()
+                    }
+                }
+                None => "null".into(),
+            }),
+            ListArg::OptI32(v) => join(v, |o| match o {
+                Some(x) => x.to_string(),
+                None => "null".into(),
+            }),
+            ListArg::OptI64(v) => join(v, |o| match o {
+                Some(x) => x.to_string(),
+                None => "null".into(),
+            }),
+            ListArg::OptF64(v) => join(v, |o| match o {
+                Some(x) => float(*x),
+                None => "null".into(),
+            }),
+            ListArg::OptText(v) => join(v, |o| match o {
+                Some(x) => quoted(x),
+                None => "null".into(),
+            }),
+            ListArg::OptUuid(v) => join(v, |o| match o {
+                Some(x) => format!("\"{}\"", x.simple()),
+                None => "null".into(),
+            }),
+            ListArg::OptTs(v) => join(v, |o| match o {
+                Some(x) => format!("\"{}\"", DjDateTime(*x)),
+                None => "null".into(),
+            }),
         }
     }
 
@@ -166,7 +226,15 @@ impl ListArg {
             ListArg::Text(_) => ListKind::Text,
             ListArg::Uuid(_) => ListKind::Uuid,
             ListArg::Ts(_) => ListKind::Ts,
+            ListArg::Date(_) => ListKind::Date,
             ListArg::Json(_) => ListKind::Json,
+            ListArg::OptBool(_) => ListKind::OptBool,
+            ListArg::OptI32(_) => ListKind::OptI32,
+            ListArg::OptI64(_) => ListKind::OptI64,
+            ListArg::OptF64(_) => ListKind::OptF64,
+            ListArg::OptText(_) => ListKind::OptText,
+            ListArg::OptUuid(_) => ListKind::OptUuid,
+            ListArg::OptTs(_) => ListKind::OptTs,
         }
     }
 }
@@ -224,7 +292,15 @@ impl Arg {
                 ListArg::Text(v) => a.add(v),
                 ListArg::Uuid(v) => a.add(v),
                 ListArg::Ts(v) => a.add(v),
+                ListArg::Date(v) => a.add(v),
                 ListArg::Json(v) => a.add(v),
+                ListArg::OptBool(v) => a.add(v),
+                ListArg::OptI32(v) => a.add(v),
+                ListArg::OptI64(v) => a.add(v),
+                ListArg::OptF64(v) => a.add(v),
+                ListArg::OptText(v) => a.add(v),
+                ListArg::OptUuid(v) => a.add(v),
+                ListArg::OptTs(v) => a.add(v),
             },
             Arg::Invalid(e) => Err(e.into()),
         }
@@ -283,7 +359,15 @@ fn add_pg_null(a: &mut PgArguments, k: Kind) -> Result<(), BoxDynError> {
             ListKind::Text => n::<Vec<String>>(a),
             ListKind::Uuid => n::<Vec<Uuid>>(a),
             ListKind::Ts => n::<Vec<DateTime<Utc>>>(a),
+            ListKind::Date => n::<Vec<NaiveDate>>(a),
             ListKind::Json => n::<Vec<Value>>(a),
+            ListKind::OptBool => n::<Vec<Option<bool>>>(a),
+            ListKind::OptI32 => n::<Vec<Option<i32>>>(a),
+            ListKind::OptI64 => n::<Vec<Option<i64>>>(a),
+            ListKind::OptF64 => n::<Vec<Option<f64>>>(a),
+            ListKind::OptText => n::<Vec<Option<String>>>(a),
+            ListKind::OptUuid => n::<Vec<Option<Uuid>>>(a),
+            ListKind::OptTs => n::<Vec<Option<DateTime<Utc>>>>(a),
         },
     }
 }
@@ -407,12 +491,27 @@ impl IntoArg for DjDateTime {
     }
 }
 
-/// Element types of list parameters and of [`DjList`](super::DjList) columns.
-pub trait ListElem: Sized + Clone + Send + Unpin + 'static {
+/// Element types of list parameters (and of [`DjList`](super::DjList) columns).
+pub trait ListElem: ListItem + Clone {
     const KIND: ListKind;
     fn list(items: Vec<Self>) -> ListArg;
+}
+
+/// Element types of decoded list columns ([`DjList`](super::DjList),
+/// [`DjListOpt`](super::DjListOpt)): every [`ListElem`], and `Option<T>` of
+/// one for lists with NULL elements (`array_agg` over a nullable column).
+pub trait ListItem: Sized + Send + Unpin + 'static {
     /// One element of a SQLite JSON array (`json_group_array`).
     fn from_json(v: &Value) -> Result<Self, BoxDynError>;
+}
+
+impl<T: ListItem> ListItem for Option<T> {
+    fn from_json(v: &Value) -> Result<Self, BoxDynError> {
+        match v {
+            Value::Null => Ok(None),
+            v => T::from_json(v).map(Some),
+        }
+    }
 }
 
 fn bad(v: &Value, what: &str) -> BoxDynError {
@@ -426,6 +525,8 @@ macro_rules! list_elem {
             fn list(items: Vec<Self>) -> ListArg {
                 ListArg::$v(items)
             }
+        }
+        impl ListItem for $t {
             fn from_json($j: &Value) -> Result<Self, BoxDynError> {
                 $from
             }
@@ -464,7 +565,60 @@ list_elem!(DateTime<Utc>, Ts, |v| {
     let s = v.as_str().ok_or_else(|| bad(v, "datetime"))?;
     DjDateTime::parse(s).map(|d| d.0)
 });
+list_elem!(NaiveDate, Date, |v| {
+    let s = v.as_str().ok_or_else(|| bad(v, "date"))?;
+    Ok(NaiveDate::parse_from_str(s, "%Y-%m-%d")?)
+});
 list_elem!(Value, Json, |v| Ok(v.clone()));
+
+impl ListElem for Option<bool> {
+    const KIND: ListKind = ListKind::OptBool;
+    fn list(items: Vec<Self>) -> ListArg {
+        ListArg::OptBool(items)
+    }
+}
+
+impl ListElem for Option<i32> {
+    const KIND: ListKind = ListKind::OptI32;
+    fn list(items: Vec<Self>) -> ListArg {
+        ListArg::OptI32(items)
+    }
+}
+
+impl ListElem for Option<i64> {
+    const KIND: ListKind = ListKind::OptI64;
+    fn list(items: Vec<Self>) -> ListArg {
+        ListArg::OptI64(items)
+    }
+}
+
+impl ListElem for Option<f64> {
+    const KIND: ListKind = ListKind::OptF64;
+    fn list(items: Vec<Self>) -> ListArg {
+        ListArg::OptF64(items)
+    }
+}
+
+impl ListElem for Option<String> {
+    const KIND: ListKind = ListKind::OptText;
+    fn list(items: Vec<Self>) -> ListArg {
+        ListArg::OptText(items)
+    }
+}
+
+impl ListElem for Option<Uuid> {
+    const KIND: ListKind = ListKind::OptUuid;
+    fn list(items: Vec<Self>) -> ListArg {
+        ListArg::OptUuid(items)
+    }
+}
+
+impl ListElem for Option<DateTime<Utc>> {
+    const KIND: ListKind = ListKind::OptTs;
+    fn list(items: Vec<Self>) -> ListArg {
+        ListArg::OptTs(items)
+    }
+}
 
 impl<T: ListElem> IntoArg for Vec<T> {
     fn into_arg(self) -> Arg {

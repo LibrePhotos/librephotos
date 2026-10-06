@@ -5,6 +5,7 @@
 
 pub mod codecs;
 pub mod config;
+pub mod db;
 pub mod django_crypto;
 pub mod error;
 pub mod extract;

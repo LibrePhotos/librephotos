@@ -18,8 +18,8 @@ use sqlx::{
 };
 use uuid::Uuid;
 
-use super::arg::{Arg, IntoArg, ListElem};
-use super::codec::{DjDateTime, DjList, DjUuid, DjUuidOpt};
+use super::arg::{Arg, IntoArg, ListItem};
+use super::codec::{DjDateTime, DjList, DjListOpt, DjUuid, DjUuidOpt};
 use super::exec::{Dialect, Exec, Lite, Target};
 use super::sql::is_read_only;
 
@@ -198,7 +198,19 @@ impl<T: DeserializeOwned + Send + Unpin> Scalar for Json<T> {
 
 impl<T> Scalar for DjList<T>
 where
-    T: ListElem + PgHasArrayType + for<'a> Decode<'a, Postgres> + Type<Postgres>,
+    T: ListItem + PgHasArrayType + for<'a> Decode<'a, Postgres> + Type<Postgres>,
+{
+    fn from_pg<I: RowIndex>(row: &PgRow, index: I) -> sqlx::Result<Self> {
+        row.try_get(index)
+    }
+    fn from_lite<I: RowIndex>(row: &SqliteRow, index: I) -> sqlx::Result<Self> {
+        row.try_get(index)
+    }
+}
+
+impl<T> Scalar for DjListOpt<T>
+where
+    T: ListItem + PgHasArrayType + for<'a> Decode<'a, Postgres> + Type<Postgres>,
 {
     fn from_pg<I: RowIndex>(row: &PgRow, index: I) -> sqlx::Result<Self> {
         row.try_get(index)
@@ -210,7 +222,7 @@ where
 
 impl<T> Scalar for Vec<T>
 where
-    T: ListElem + PgHasArrayType + for<'a> Decode<'a, Postgres> + Type<Postgres>,
+    T: ListItem + PgHasArrayType + for<'a> Decode<'a, Postgres> + Type<Postgres>,
 {
     fn from_pg<I: RowIndex>(row: &PgRow, index: I) -> sqlx::Result<Self> {
         row.try_get::<DjList<T>, _>(index).map(|l| l.0)
