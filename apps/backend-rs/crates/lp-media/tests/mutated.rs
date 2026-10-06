@@ -24,9 +24,9 @@ async fn shared_hash_and_revoked_shares() {
     let bob_p = photo(&m, "bob/e2e_01");
 
     // Two users scanned the same file: bob's row inherits alice's hash.
-    lp_db::sql::query("UPDATE api_photo SET image_hash = $1 WHERE id = $2::uuid")
+    lp_db::sql::query("UPDATE api_photo SET image_hash = $1 WHERE id = $2")
         .bind(&alice_p.hash)
-        .bind(&bob_p.id)
+        .bind(bob_p.uuid)
         .execute(&pool)
         .await
         .unwrap();
@@ -59,8 +59,8 @@ async fn shared_hash_and_revoked_shares() {
     assert_eq!(direct.get(&orig, None).await.status, StatusCode::FORBIDDEN);
 
     // A public twin is what anonymous and strangers resolve to.
-    lp_db::sql::query("UPDATE api_photo SET public = TRUE WHERE id = $1::uuid")
-        .bind(&bob_p.id)
+    lp_db::sql::query("UPDATE api_photo SET public = TRUE WHERE id = $1")
+        .bind(bob_p.uuid)
         .execute(&pool)
         .await
         .unwrap();
@@ -96,14 +96,14 @@ async fn shared_hash_and_revoked_shares() {
     let shared = photo(&m, m["shares"]["photo_share"]["photo"].as_str().unwrap());
     let url = format!("/api/public/photo/{slug}/media/thumbnail/");
     assert_eq!(direct.get(&url, None).await.status, StatusCode::OK);
-    lp_db::sql::query("UPDATE api_photo SET hidden = TRUE WHERE id = $1::uuid")
-        .bind(&shared.id)
+    lp_db::sql::query("UPDATE api_photo SET hidden = TRUE WHERE id = $1")
+        .bind(shared.uuid)
         .execute(&pool)
         .await
         .unwrap();
     assert_eq!(direct.get(&url, None).await.status, StatusCode::NOT_FOUND);
-    lp_db::sql::query("UPDATE api_photo SET hidden = FALSE WHERE id = $1::uuid")
-        .bind(&shared.id)
+    lp_db::sql::query("UPDATE api_photo SET hidden = FALSE WHERE id = $1")
+        .bind(shared.uuid)
         .execute(&pool)
         .await
         .unwrap();
@@ -118,8 +118,8 @@ async fn shared_hash_and_revoked_shares() {
     let public = photo(&m, "alice/e2e_05");
     let p_thumb = format!("/media/thumbnails_big/{}", public.hash);
     assert_eq!(direct.get(&p_thumb, None).await.status, StatusCode::OK);
-    lp_db::sql::query("UPDATE api_photo SET in_trashcan = TRUE WHERE id = $1::uuid")
-        .bind(&public.id)
+    lp_db::sql::query("UPDATE api_photo SET in_trashcan = TRUE WHERE id = $1")
+        .bind(public.uuid)
         .execute(&pool)
         .await
         .unwrap();
@@ -155,8 +155,8 @@ async fn files_under_a_writable_media_root() {
         .join(format!("{}_motion.mp4", p.hash));
     std::fs::write(&embedded, b"\0\0\0\x18ftypmp42motion").unwrap();
     let main_file: String =
-        lp_db::sql::query_scalar("SELECT main_file_id FROM api_photo WHERE id = $1::uuid")
-            .bind(&p.id)
+        lp_db::sql::query_scalar("SELECT main_file_id FROM api_photo WHERE id = $1")
+            .bind(p.uuid)
             .fetch_one(&pool)
             .await
             .unwrap();
@@ -209,17 +209,17 @@ async fn files_under_a_writable_media_root() {
     // photo API's sense (Django checks the bare `public` flag here, so a
     // trashed or hidden public photo kept serving its motion video).
     let embedded_url = format!("/media/embedded_media/{}", p.hash);
-    lp_db::sql::query("UPDATE api_photo SET public = TRUE WHERE id = $1::uuid")
-        .bind(&p.id)
+    lp_db::sql::query("UPDATE api_photo SET public = TRUE WHERE id = $1")
+        .bind(p.uuid)
         .execute(&pool)
         .await
         .unwrap();
     assert_eq!(direct.get(&embedded_url, None).await.status, StatusCode::OK);
     for column in ["in_trashcan", "hidden", "removed"] {
         lp_db::sql::query(format!(
-            "UPDATE api_photo SET {column} = TRUE WHERE id = $1::uuid"
+            "UPDATE api_photo SET {column} = TRUE WHERE id = $1"
         ))
-        .bind(&p.id)
+        .bind(p.uuid)
         .execute(&pool)
         .await
         .unwrap();
@@ -234,15 +234,15 @@ async fn files_under_a_writable_media_root() {
             "the owner still gets it ({column})"
         );
         lp_db::sql::query(format!(
-            "UPDATE api_photo SET {column} = FALSE WHERE id = $1::uuid"
+            "UPDATE api_photo SET {column} = FALSE WHERE id = $1"
         ))
-        .bind(&p.id)
+        .bind(p.uuid)
         .execute(&pool)
         .await
         .unwrap();
     }
-    lp_db::sql::query("UPDATE api_photo SET public = FALSE WHERE id = $1::uuid")
-        .bind(&p.id)
+    lp_db::sql::query("UPDATE api_photo SET public = FALSE WHERE id = $1")
+        .bind(p.uuid)
         .execute(&pool)
         .await
         .unwrap();
@@ -253,12 +253,12 @@ async fn files_under_a_writable_media_root() {
     std::fs::write(&big, b"\xFF\xD8\xFFjpeg-bytes").unwrap();
     lp_db::sql::query(
         "UPDATE api_thumbnail SET thumbnail_big = $1, square_thumbnail = $2, square_thumbnail_small = $3 \
-         WHERE photo_id = $4::uuid",
+         WHERE photo_id = $4",
     )
     .bind(format!("thumbnails_big/{}.jpg", p.hash))
     .bind(format!("square_thumbnails/{}.jpg", p.hash))
     .bind(format!("square_thumbnails_small/{}.jpg", p.hash))
-    .bind(&p.id)
+    .bind(p.uuid)
     .execute(&pool)
     .await
     .unwrap();
@@ -507,10 +507,10 @@ async fn linked_folders_are_served_in_direct_mode() {
         .await
         .unwrap();
     lp_db::sql::query(
-        "UPDATE api_file SET path = $1 WHERE hash = (SELECT main_file_id FROM api_photo WHERE id = $2::uuid)",
+        "UPDATE api_file SET path = $1 WHERE hash = (SELECT main_file_id FROM api_photo WHERE id = $2)",
     )
     .bind(scan.join("linked").join("e2e_01.jpg").to_string_lossy().to_string())
-    .bind(&p.id)
+    .bind(p.uuid)
     .execute(&pool)
     .await
     .unwrap();
@@ -533,7 +533,7 @@ async fn linked_folders_are_served_in_direct_mode() {
 
     // `..` behind a link still resolves physically, never as text.
     lp_db::sql::query(
-        "UPDATE api_file SET path = $1 WHERE hash = (SELECT main_file_id FROM api_photo WHERE id = $2::uuid)",
+        "UPDATE api_file SET path = $1 WHERE hash = (SELECT main_file_id FROM api_photo WHERE id = $2)",
     )
     .bind(
         scan.join("linked")
@@ -543,7 +543,7 @@ async fn linked_folders_are_served_in_direct_mode() {
             .to_string_lossy()
             .to_string(),
     )
-    .bind(&p.id)
+    .bind(p.uuid)
     .execute(&pool)
     .await
     .unwrap();

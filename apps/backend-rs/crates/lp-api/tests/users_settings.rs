@@ -457,7 +457,7 @@ async fn profile_updates() {
     let clip_jobs = scalar_i64(
         &app,
         &format!(
-            "SELECT count(*) FROM job_queue WHERE kind = 'clip.embed' AND payload->>'user_id' = '{}'",
+            "SELECT count(*) FROM job_queue WHERE kind = 'clip.embed' AND CAST(payload->>'user_id' AS integer) = {}",
             alice.id
         ),
     )

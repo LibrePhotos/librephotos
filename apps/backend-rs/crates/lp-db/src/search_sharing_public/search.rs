@@ -2,7 +2,7 @@
 //! (DRF `SearchFilter` over `search_captions`, `search_location`, `tags__name`,
 //! `exif_timestamp`, plus the OCR full-text match and semantic hits).
 
-use crate::db::{Exec, Qb};
+use crate::db::{Dialect, Exec, IntoArg, Qb, sql};
 use crate::pig::{self, PigPhoto};
 use crate::scope::{self, like_escape};
 
@@ -52,6 +52,7 @@ pub async fn photos<'e>(db: impl Exec<'e>, q: &SearchQuery<'_>) -> sqlx::Result<
 }
 
 /// Django filters all terms in ONE `filter()` call, so the `tags` join is
+/// Django filters all terms in ONE `filter()` call, so the `tags` join is
 /// shared: a photo matches when a single tag row (or, without tags, the
 /// NULL row of the LEFT JOIN) satisfies every term. Equivalent form:
 /// every term matches without tags, OR some tag makes every term match.
@@ -74,9 +75,9 @@ fn push_terms(qb: &mut Qb<'_>, terms: &[String], semantic: Option<&[String]>) {
     for term in terms {
         qb.push(" AND (");
         push_term_without_tags(qb, term, semantic, "sp", "sps");
-        qb.push(" OR UPPER(stg.name::text) LIKE UPPER(");
-        qb.push_bind(pattern(term));
-        qb.push("))");
+        qb.push(" OR ");
+        push_icontains(qb, "stg.name", term);
+        qb.push(")");
     }
     qb.push("))");
 }
@@ -85,9 +86,24 @@ fn pattern(term: &str) -> String {
     format!("%{}%", like_escape(term))
 }
 
-/// `icontains` on the PhotoSearch fields and the timestamp text (Django's
-/// `exif_timestamp::text` on a UTC session), the OCR full-text match (the
-/// expression of the GIN index `api_photo_ocr_text_fts`), and semantic hits.
+/// Django `icontains` of `term` on `col` (`sql::ilike`): `UPPER(col::text)
+/// LIKE UPPER(pat)` on Postgres, `col LIKE pat ESCAPE '\'` on SQLite (ASCII
+/// case folding only, as Django on SQLite).
+fn push_icontains(qb: &mut Qb<'_>, col: &str, term: &str) {
+    let n = qb.bind_arg(pattern(term).into_arg());
+    let pat = format!("${n}");
+    qb.push_with(|d| sql::ilike(d, col, &pat));
+}
+
+/// `icontains` on the PhotoSearch fields and the timestamp text, the OCR
+/// match, and semantic hits.
+///
+/// - `exif_timestamp`: Django's `exif_timestamp::text` on a UTC session on
+///   Postgres (`YYYY-MM-DD HH:MM:SS[.ffffff]+00`); the stored text on SQLite
+///   (`YYYY-MM-DD HH:MM:SS[.ffffff]`, no offset).
+/// - OCR: the full-text match on Postgres (the expression of the GIN index
+///   `api_photo_ocr_text_fts`); `ocr__text__icontains` on SQLite
+///   (`build_ocr_search_q`'s non-Postgres branch).
 fn push_term_without_tags(
     qb: &mut Qb<'_>,
     term: &str,
@@ -95,25 +111,36 @@ fn push_term_without_tags(
     p: &str,
     s: &str,
 ) {
-    let pat = pattern(term);
-    qb.push(format!("(UPPER({s}.search_captions::text) LIKE UPPER("));
-    qb.push_bind(pat.clone());
-    qb.push(format!(") OR UPPER({s}.search_location::text) LIKE UPPER("));
-    qb.push_bind(pat.clone());
+    qb.push("(");
+    push_icontains(qb, &format!("{s}.search_captions"), term);
+    qb.push(" OR ");
+    push_icontains(qb, &format!("{s}.search_location"), term);
+    qb.push(" OR ");
+    let n = qb.bind_arg(pattern(term).into_arg());
+    qb.push_dialect(
+        format!("UPPER(({p}.exif_timestamp AT TIME ZONE 'UTC')::text || '+00') LIKE UPPER(${n})"),
+        sql::like(
+            Dialect::Sqlite,
+            &format!("{p}.exif_timestamp"),
+            &format!("${n}"),
+        ),
+    );
     qb.push(format!(
-        ") OR UPPER(({p}.exif_timestamp AT TIME ZONE 'UTC')::text || '+00') LIKE UPPER("
+        " OR {p}.id IN (SELECT so.photo_id FROM api_photo_ocr so WHERE "
     ));
-    qb.push_bind(pat);
-    qb.push(format!(
-        ") OR {p}.id IN (SELECT so.photo_id FROM api_photo_ocr so \
-         WHERE to_tsvector('simple'::regconfig, COALESCE(so.text, '')) @@ plainto_tsquery('simple'::regconfig, "
-    ));
-    qb.push_bind(term.to_string());
-    qb.push("))");
+    let n = qb.bind_arg(term.to_string().into_arg());
+    let m = qb.bind_arg(pattern(term).into_arg());
+    qb.push_dialect(
+        format!(
+            "to_tsvector('simple'::regconfig, COALESCE(so.text, '')) \
+             @@ plainto_tsquery('simple'::regconfig, ${n})"
+        ),
+        sql::like(Dialect::Sqlite, "so.text", &format!("${m}")),
+    );
+    qb.push(")");
     if let Some(hashes) = semantic {
-        qb.push(format!(" OR {p}.image_hash = ANY("));
-        qb.push_bind(hashes.to_vec());
-        qb.push(")");
+        qb.push(" OR ");
+        sql::any(qb, &format!("{p}.image_hash"), hashes.to_vec());
     }
     qb.push(")");
 }

@@ -36,14 +36,22 @@ async fn photo_by_sibling(
         candidates.push(format!("{base}{e}"));
         candidates.push(format!("{base}{}", e.to_uppercase()));
     }
-    Ok(lp_db::sql::query_scalar(
-        "SELECT p.id FROM api_photo p JOIN api_file f ON f.hash = p.main_file_id \
-         WHERE p.owner_id = $1 AND f.path = ANY($2) ORDER BY array_position($2, f.path), p.id LIMIT 1",
-    )
-    .bind(user_id)
-    .bind(&candidates)
-    .fetch_optional(&p.state.db)
-    .await?)
+    let sql = match p.state.db.dialect() {
+        lp_db::Dialect::Pg => {
+            "SELECT p.id FROM api_photo p JOIN api_file f ON f.hash = p.main_file_id \
+             WHERE p.owner_id = $1 AND f.path = ANY($2) ORDER BY array_position($2, f.path), p.id LIMIT 1"
+        }
+        lp_db::Dialect::Sqlite => {
+            "SELECT p.id FROM (SELECT value, key AS ord FROM json_each($2)) c \
+             JOIN api_file f ON f.path = c.value JOIN api_photo p ON p.main_file_id = f.hash \
+             WHERE p.owner_id = $1 ORDER BY c.ord, p.id LIMIT 1"
+        }
+    };
+    Ok(lp_db::sql::query_scalar(sql)
+        .bind(user_id)
+        .bind(&candidates)
+        .fetch_optional(&p.state.db)
+        .await?)
 }
 
 /// `create_new_image`: the Photo for an uploaded file (None when the file
@@ -196,10 +204,15 @@ async fn enqueue_unless_queued(
             .execute(&mut *tx)
             .await?;
     }
-    let queued: bool = lp_db::sql::query_scalar(
+    // `->>` gives text on Postgres, the JSON number as an integer on SQLite.
+    let user_match = match tx.dialect() {
+        lp_db::Dialect::Pg => "payload->>'user_id' = $2::text",
+        lp_db::Dialect::Sqlite => "payload->>'user_id' = $2",
+    };
+    let queued: bool = lp_db::sql::query_scalar(format!(
         "SELECT EXISTS (SELECT 1 FROM job_queue WHERE status = 'queued' AND kind = $1 \
-         AND payload->>'user_id' = $2::text)",
-    )
+         AND {user_match})"
+    ))
     .bind(kind)
     .bind(user_id)
     .fetch_one(&mut *tx)

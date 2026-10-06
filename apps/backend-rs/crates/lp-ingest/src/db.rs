@@ -75,10 +75,11 @@ pub async fn file_by_path(db: &mut Conn, path: &str) -> sqlx::Result<Option<File
 
 /// Paths among `paths` that some photo holds as a variant (`_known_paths`).
 pub async fn known_paths(db: &Db, paths: &[String]) -> sqlx::Result<HashSet<String>> {
-    let rows: Vec<(String,)> = lp_db::sql::query_as(
+    let rows: Vec<(String,)> = lp_db::sql::query_as(format!(
         "SELECT f.path FROM api_file f JOIN api_photo_files pf ON pf.file_id = f.hash \
-         JOIN api_photo p ON p.id = pf.photo_id WHERE f.path = ANY($1)",
-    )
+         JOIN api_photo p ON p.id = pf.photo_id WHERE {}",
+        lp_db::sql::any_sql(db.dialect(), "f.path", 1)
+    ))
     .bind(paths)
     .fetch_all(db)
     .await?;
@@ -180,8 +181,10 @@ pub async fn find_photo_with_files(
 ) -> sqlx::Result<Option<PhotoRow>> {
     lp_db::sql::query_as::<_, PhotoRow>(&format!(
         "SELECT {PHOTO_COLS} FROM api_photo p WHERE p.owner_id = $1 AND ( \
-           EXISTS (SELECT 1 FROM api_photo_files pf WHERE pf.photo_id = p.id AND pf.file_id = ANY($2)) \
-           OR p.main_file_id = ANY($2)) ORDER BY p.id LIMIT 1"
+           EXISTS (SELECT 1 FROM api_photo_files pf WHERE pf.photo_id = p.id AND {}) \
+           OR {}) ORDER BY p.id LIMIT 1",
+        lp_db::sql::any_sql(db.dialect(), "pf.file_id", 2),
+        lp_db::sql::any_sql(db.dialect(), "p.main_file_id", 2)
     ))
     .bind(user_id)
     .bind(hashes)
@@ -231,7 +234,7 @@ pub async fn insert_photo(
         "INSERT INTO api_photo (id, image_hash, added_on, geolocation_json, hidden, public, \
            owner_id, video, rating, in_trashcan, size, main_file_id, last_modified, removed, \
            local_orientation, is_screenshot, is_document, category_source) \
-         VALUES ($1, $2, now(), '{}'::jsonb, FALSE, FALSE, $3, $4, 0, FALSE, 0, $5, now(), FALSE, \
+         VALUES ($1, $2, now(), '{}', FALSE, FALSE, $3, $4, 0, FALSE, 0, $5, now(), FALSE, \
            1, FALSE, FALSE, 'auto')",
     )
     .bind(id)
@@ -476,7 +479,7 @@ pub async fn link_tags(
     for name in names {
         lp_db::sql::query(
             "INSERT INTO api_tag (name, owner_id, photo_count, last_modified) VALUES ($1, $2, 0, now()) \
-             ON CONFLICT ON CONSTRAINT \"unique Tag\" DO NOTHING",
+             ON CONFLICT (name, owner_id) DO NOTHING",
         )
         .bind(&name)
         .bind(owner)
@@ -581,7 +584,7 @@ async fn sync_hashtags(
         lp_db::sql::query(
             "INSERT INTO api_albumthing (title, thing_type, favorited, owner_id, photo_count, last_modified) \
              VALUES ($1, 'hashtag_attribute', FALSE, $2, 0, now()) \
-             ON CONFLICT ON CONSTRAINT \"unique AlbumThing\" DO NOTHING",
+             ON CONFLICT (title, thing_type, owner_id) DO NOTHING",
         )
         .bind(tag)
         .bind(owner)
@@ -623,7 +626,8 @@ async fn sync_hashtags(
              SELECT $1, p.id FROM api_albumthing_photos tp JOIN api_photo p ON p.id = tp.photo_id \
              WHERE tp.albumthing_id = $1 AND NOT p.hidden AND p.id NOT IN \
                (SELECT photo_id FROM api_albumthing_cover_photos WHERE albumthing_id = $1 AND photo_id IS NOT NULL) \
-             LIMIT GREATEST(0, 4 - (SELECT count(*) FROM api_albumthing_cover_photos WHERE albumthing_id = $1))",
+             LIMIT (SELECT CASE WHEN k.n < 4 THEN 4 - k.n ELSE 0 END FROM \
+               (SELECT count(*) AS n FROM api_albumthing_cover_photos WHERE albumthing_id = $1) k)",
         )
         .bind(thing)
         .execute(&mut *db)

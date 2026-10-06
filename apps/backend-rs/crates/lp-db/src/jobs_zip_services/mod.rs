@@ -1,11 +1,11 @@
 //! Read queries and row types for the `jobs_zip_services` area (owned by that area).
 
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Duration, Utc};
 use serde_json::Value;
 use sqlx::FromRow;
 use uuid::Uuid;
 
-use crate::db::{Db, DjUuid, Exec, Qb};
+use crate::db::{Db, Dialect, DjUuid, Exec, Qb, sql};
 use crate::scope::{self, PhotoFilterParams};
 
 /// `api_longrunningjob` + its `started_by` user (`LongRunningJobSerializer`).
@@ -35,8 +35,9 @@ const JOB_SELECT: &str = "SELECT j.id, j.job_type, j.finished, j.failed, j.cance
     j.progress_step, j.result, u.id AS user_id, u.username, u.first_name, u.last_name \
     FROM api_longrunningjob j JOIN api_user u ON u.id = j.started_by_id";
 
-/// `/api/jobs/` page, newest `started_at` first (NULLs first, as Postgres
-/// sorts `-started_at`); ties in insertion order, like Django's plain scan.
+/// `/api/jobs/` page, newest `started_at` first; NULLs sort as each backend
+/// sorts Django's `-started_at` (first on Postgres, last on SQLite); ties in
+/// insertion order, like Django's plain scan.
 /// `owner` = None is the staff-wide view.
 pub async fn list_jobs(
     db: &Db,
@@ -45,8 +46,8 @@ pub async fn list_jobs(
     offset: i64,
 ) -> sqlx::Result<Vec<JobRow>> {
     crate::sql::query_as::<_, JobRow>(&format!(
-        "{JOB_SELECT} WHERE ($1::int IS NULL OR j.started_by_id = $1) \
-         ORDER BY j.started_at DESC NULLS FIRST, j.id LIMIT $2 OFFSET $3"
+        "{JOB_SELECT} WHERE ($1 IS NULL OR j.started_by_id = $1) \
+         ORDER BY j.started_at DESC, j.id LIMIT $2 OFFSET $3"
     ))
     .bind(owner)
     .bind(limit)
@@ -57,7 +58,7 @@ pub async fn list_jobs(
 
 pub async fn count_jobs(db: &Db, owner: Option<i32>) -> sqlx::Result<i64> {
     crate::sql::query_scalar(
-        "SELECT count(*) FROM api_longrunningjob WHERE ($1::int IS NULL OR started_by_id = $1)",
+        "SELECT count(*) FROM api_longrunningjob WHERE ($1 IS NULL OR started_by_id = $1)",
     )
     .bind(owner)
     .fetch_one(db)
@@ -71,7 +72,7 @@ pub async fn job_by_pk<'e>(
     owner: Option<i32>,
 ) -> sqlx::Result<Option<JobRow>> {
     crate::sql::query_as::<_, JobRow>(&format!(
-        "{JOB_SELECT} WHERE j.id = $1 AND ($2::int IS NULL OR j.started_by_id = $2)"
+        "{JOB_SELECT} WHERE j.id = $1 AND ($2 IS NULL OR j.started_by_id = $2)"
     ))
     .bind(id)
     .bind(owner)
@@ -80,15 +81,16 @@ pub async fn job_by_pk<'e>(
 }
 
 /// `QueueAvailabilityView`: the unfinished job that blocks the queue,
-/// ignoring rows older than `stuck_hours` (Django: `.order_by("-started_at").last()`).
+/// ignoring rows older than `stuck_hours` (Django: `.order_by("-started_at").last()`,
+/// i.e. `started_at ASC` with the backend's NULL placement: last on
+/// Postgres, first on SQLite).
 pub async fn blocking_job(db: &Db, stuck_hours: i32) -> sqlx::Result<Option<JobRow>> {
     crate::sql::query_as::<_, JobRow>(&format!(
         "{JOB_SELECT} WHERE NOT j.finished AND ( \
-           j.started_at >= now() - make_interval(hours => $1) \
-           OR (j.started_at IS NULL AND j.queued_at >= now() - make_interval(hours => $1))) \
-         ORDER BY j.started_at ASC NULLS LAST, j.id ASC LIMIT 1"
+           j.started_at >= $1 OR (j.started_at IS NULL AND j.queued_at >= $1)) \
+         ORDER BY j.started_at ASC, j.id ASC LIMIT 1"
     ))
-    .bind(stuck_hours)
+    .bind(Utc::now() - Duration::hours(stuck_hours.into()))
     .fetch_optional(db)
     .await
 }
@@ -147,9 +149,8 @@ pub async fn download_photos(
     match selection {
         DownloadSelection::Hashes(hashes) => {
             scope::owned_by(&mut qb, "p", user_id);
-            qb.push(" AND p.image_hash = ANY(");
-            qb.push_bind(hashes.to_vec());
-            qb.push(")");
+            qb.push(" AND ");
+            sql::any(&mut qb, "p.image_hash", hashes.to_vec());
         }
         DownloadSelection::Query {
             params,
@@ -158,9 +159,9 @@ pub async fn download_photos(
         } => {
             scope::photo_filters(&mut qb, "p", user_id, *favorite_min_rating, params);
             if !excluded.is_empty() {
-                qb.push(" AND NOT (p.image_hash = ANY(");
-                qb.push_bind(excluded.to_vec());
-                qb.push("))");
+                qb.push(" AND NOT (");
+                sql::any(&mut qb, "p.image_hash", excluded.to_vec());
+                qb.push(")");
             }
         }
     }
@@ -180,7 +181,7 @@ pub async fn download_photos(
     qb.build_query_as::<DownloadPhoto>().fetch_all(db).await
 }
 
-/// One file to put in a zip: its photo's position in the job and the path.
+/// One file to put in a zip: its photo's 1-based position in the job and the path.
 #[derive(Debug, Clone, FromRow)]
 pub struct ZipFileRow {
     pub ord: i64,
@@ -191,10 +192,17 @@ pub struct ZipFileRow {
 /// file, the photo's files, files of legacy RAW+JPEG / live-photo stack
 /// mates, then the embedded media of all of those. Owner-scoped.
 pub async fn zip_files(db: &Db, user_id: i32, photo_ids: &[Uuid]) -> sqlx::Result<Vec<ZipFileRow>> {
-    crate::sql::query_as::<_, ZipFileRow>(
+    let d = db.dialect();
+    let sel = sql::list_rows(d, 1, "t");
+    // `list_rows` ordinals are 1-based on Postgres, 0-based on SQLite.
+    let ord = match d {
+        Dialect::Pg => "t.ord",
+        Dialect::Sqlite => "t.ord + 1",
+    };
+    crate::sql::query_as::<_, ZipFileRow>(format!(
         "WITH ph AS ( \
-           SELECT p.id, t.ord FROM unnest($1::uuid[]) WITH ORDINALITY AS t(id, ord) \
-           JOIN api_photo p ON p.id = t.id AND p.owner_id = $2), \
+           SELECT p.id, {ord} AS ord FROM {sel} \
+           JOIN api_photo p ON p.id = t.value AND p.owner_id = $2), \
          mates AS ( \
            SELECT DISTINCT ph.ord, ps2.photo_id AS id FROM ph \
            JOIN api_photo_stacks ps ON ps.photo_id = ph.id \
@@ -202,7 +210,7 @@ pub async fn zip_files(db: &Db, user_id: i32, photo_ids: &[Uuid]) -> sqlx::Resul
              AND st.stack_type IN ('raw_jpeg', 'live_photo') \
            JOIN api_photo_stacks ps2 ON ps2.photostack_id = st.id), \
          own AS ( \
-           SELECT ph.ord, 0 AS g, 0::bigint AS s, f.hash, f.path FROM ph \
+           SELECT ph.ord, 0 AS g, 0 AS s, f.hash, f.path FROM ph \
              JOIN api_photo p ON p.id = ph.id JOIN api_file f ON f.hash = p.main_file_id \
            UNION ALL \
            SELECT ph.ord, 1, pf.id, f.hash, f.path FROM ph \
@@ -214,12 +222,12 @@ pub async fn zip_files(db: &Db, user_id: i32, photo_ids: &[Uuid]) -> sqlx::Resul
            SELECT m.ord, 3, pf.id, f.hash, f.path FROM mates m \
              JOIN api_photo_files pf ON pf.photo_id = m.id JOIN api_file f ON f.hash = pf.file_id), \
          emb AS ( \
-           SELECT own.ord, 4 AS g, em.id::bigint AS s, f.hash, f.path FROM own \
+           SELECT own.ord, 4 AS g, em.id AS s, f.hash, f.path FROM own \
              JOIN api_file_embedded_media em ON em.from_file_id = own.hash \
              JOIN api_file f ON f.hash = em.to_file_id) \
          SELECT ord, path FROM (SELECT * FROM own UNION ALL SELECT * FROM emb) x \
-         ORDER BY ord, g, s",
-    )
+         ORDER BY ord, g, s"
+    ))
     .bind(photo_ids)
     .bind(user_id)
     .fetch_all(db)

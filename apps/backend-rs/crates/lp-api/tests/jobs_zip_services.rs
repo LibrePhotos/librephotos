@@ -186,13 +186,12 @@ async fn rqavailable_shows_the_job_only_to_its_starter_and_staff() {
         assert_eq!(keys(&res["job_detail"]), JOB_FIELDS);
     }
     // A row stuck for more than 24 h no longer blocks the queue.
-    lp_db::sql::query(
-        "UPDATE api_longrunningjob SET started_at = now() - interval '25 hours' WHERE job_id = $1",
-    )
-    .bind(&job_id)
-    .execute(app.pool())
-    .await
-    .unwrap();
+    lp_db::sql::query("UPDATE api_longrunningjob SET started_at = $2 WHERE job_id = $1")
+        .bind(&job_id)
+        .bind(chrono::Utc::now() - chrono::Duration::hours(25))
+        .execute(app.pool())
+        .await
+        .unwrap();
     let res = app.get("/api/rqavailable/", Some(&at)).await.json();
     assert_eq!(res["queue_can_accept_job"], true);
     assert_eq!(app.get("/api/rqavailable/", None).await.status, 401);
@@ -500,10 +499,10 @@ async fn zip_download_end_to_end() {
         .zip_dir()
         .join(format!("{file_uuid}{}.zip", alice.id));
     let names = zip_names(&zip_path);
-    let expected: BTreeSet<String> = lp_db::sql::query_scalar::<_, String>(
-        "SELECT f.path FROM api_photo p JOIN api_file f ON f.hash = p.main_file_id \
-         WHERE p.image_hash = ANY($1)",
-    )
+    let expected: BTreeSet<String> = lp_db::sql::query_scalar::<_, String>(format!(
+        "SELECT f.path FROM api_photo p JOIN api_file f ON f.hash = p.main_file_id WHERE {}",
+        lp_db::sql::any_sql(app.pool().dialect(), "p.image_hash", 1)
+    ))
     .bind(hashes)
     .fetch_all(app.pool())
     .await
@@ -675,9 +674,10 @@ async fn zip_selection_rules() {
         .await
         .json();
     let (_, payload, _, owner) = queued(&app, res["job_id"].as_str().unwrap()).await;
-    let owners: Vec<i32> = lp_db::sql::query_scalar(
-        "SELECT DISTINCT owner_id FROM api_photo WHERE id = ANY($1::uuid[])",
-    )
+    let owners: Vec<i32> = lp_db::sql::query_scalar(format!(
+        "SELECT DISTINCT owner_id FROM api_photo WHERE {}",
+        lp_db::sql::any_sql(app.pool().dialect(), "id", 1)
+    ))
     .bind(
         payload["photo_ids"]
             .as_array()

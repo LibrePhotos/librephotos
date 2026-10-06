@@ -1,20 +1,29 @@
 //! Write services for the `jobs_zip_services` area. Conventions: see `lp_db::write`.
+//!
+//! Interval cutoffs are computed in Rust and bound (portable; SQLite has no
+//! `make_interval`).
 
 use std::path::Path;
 
-use crate::db::Db;
-
+use chrono::{DateTime, Duration, Utc};
+use serde_json::json;
 use uuid::Uuid;
 
+use crate::db::{Db, sql};
+
 use super::AfterCommit;
+
+fn ago(d: Duration) -> DateTime<Utc> {
+    Utc::now() - d
+}
 
 /// `DELETE /api/jobs/{id}/`: the row goes; queue rows still waiting for it
 /// are cancelled so a deleted job never starts. Returns false when no row
 /// matched.
 pub async fn delete_job(db: &Db, id: i32, scope_user: Option<i32>) -> sqlx::Result<bool> {
     let mut tx = db.begin().await?;
-    let job_id: Option<String> = crate::sql::query_scalar(
-        "DELETE FROM api_longrunningjob WHERE id = $1 AND ($2::int IS NULL OR started_by_id = $2) \
+    let job_id: Option<String> = sql::query_scalar(
+        "DELETE FROM api_longrunningjob WHERE id = $1 AND ($2 IS NULL OR started_by_id = $2) \
          RETURNING job_id",
     )
     .bind(id)
@@ -24,7 +33,7 @@ pub async fn delete_job(db: &Db, id: i32, scope_user: Option<i32>) -> sqlx::Resu
     let Some(job_id) = job_id else {
         return Ok(false);
     };
-    crate::sql::query(
+    sql::query(
         "UPDATE job_queue SET status = 'cancelled', finished_at = now(), locked_by = NULL \
          WHERE lrj_id = $1 AND status = 'queued'",
     )
@@ -38,14 +47,13 @@ pub async fn delete_job(db: &Db, id: i32, scope_user: Option<i32>) -> sqlx::Resu
 /// `api.services.cleanup_deleted_photos`: photos `removed` for more than
 /// `days` days are deleted for good. Returns how many.
 pub async fn cleanup_deleted_photos(db: &Db, media_root: &Path, days: i32) -> sqlx::Result<usize> {
+    let cutoff = ago(Duration::days(days.into()));
     let mut tx = db.begin().await?;
-    let ids: Vec<Uuid> = crate::sql::query_scalar(
-        "SELECT id FROM api_photo WHERE removed \
-           AND last_modified <= now() - make_interval(days => $1)",
-    )
-    .bind(days)
-    .fetch_all(&mut *tx)
-    .await?;
+    let ids: Vec<Uuid> =
+        sql::query_scalar("SELECT id FROM api_photo WHERE removed AND last_modified <= $1")
+            .bind(cutoff)
+            .fetch_all(&mut *tx)
+            .await?;
     let mut after = AfterCommit::new();
     super::photo_delete::hard_delete(&mut tx, &ids, media_root, &mut after).await?;
     tx.commit().await?;
@@ -57,24 +65,28 @@ pub async fn cleanup_deleted_photos(db: &Db, media_root: &Path, days: i32) -> sq
 /// (by `started_at`, or `queued_at` if never started) are failed; their
 /// queue rows that never started are cancelled.
 pub async fn cleanup_stuck_jobs(db: &Db, hours: i32) -> sqlx::Result<u64> {
+    let cutoff = ago(Duration::hours(hours.into()));
+    let result = json!({"status": "failed", "error": format!("Job timed out after {hours} hours")});
     let mut tx = db.begin().await?;
-    let ids: Vec<String> = crate::sql::query_scalar(
+    let ids: Vec<String> = sql::query_scalar(
         "UPDATE api_longrunningjob SET failed = TRUE, finished = TRUE, finished_at = now(), \
-           result = jsonb_build_object('status', 'failed', 'error', \
-                      format('Job timed out after %s hours', $1::int)) \
+           result = $2 \
          WHERE NOT finished AND ( \
-           (started_at IS NOT NULL AND started_at < now() - make_interval(hours => $1)) \
-           OR (started_at IS NULL AND queued_at < now() - make_interval(hours => $1))) \
+           (started_at IS NOT NULL AND started_at < $1) \
+           OR (started_at IS NULL AND queued_at < $1)) \
          RETURNING job_id",
     )
-    .bind(hours)
+    .bind(cutoff)
+    .bind(result)
     .fetch_all(&mut *tx)
     .await?;
     if !ids.is_empty() {
-        crate::sql::query(
+        let d = tx.dialect();
+        sql::query(format!(
             "UPDATE job_queue SET status = 'cancelled', finished_at = now() \
-             WHERE lrj_id = ANY($1) AND status = 'queued'",
-        )
+             WHERE {} AND status = 'queued'",
+            sql::any_sql(d, "lrj_id", 1)
+        ))
         .bind(&ids)
         .execute(&mut *tx)
         .await?;
@@ -87,23 +99,24 @@ pub async fn cleanup_stuck_jobs(db: &Db, hours: i32) -> sqlx::Result<u64> {
 /// except the latest finished one per (user, job type), which is the
 /// incremental-scan baseline. Finished `job_queue` rows of that age go too.
 pub async fn cleanup_old_jobs(db: &Db, days: i32) -> sqlx::Result<u64> {
-    let deleted = crate::sql::query(
-        "DELETE FROM api_longrunningjob WHERE finished \
-           AND finished_at < now() - make_interval(days => $1) \
+    let cutoff = ago(Duration::days(days.into()));
+    let deleted = sql::query(
+        "DELETE FROM api_longrunningjob WHERE finished AND finished_at < $1 \
            AND id NOT IN ( \
-             SELECT DISTINCT ON (started_by_id, job_type) id FROM api_longrunningjob \
-             WHERE finished AND finished_at IS NOT NULL \
-             ORDER BY started_by_id, job_type, finished_at DESC, id DESC)",
+             SELECT id FROM (SELECT id, ROW_NUMBER() OVER ( \
+                 PARTITION BY started_by_id, job_type ORDER BY finished_at DESC, id DESC) AS rn \
+               FROM api_longrunningjob WHERE finished AND finished_at IS NOT NULL) latest \
+             WHERE rn = 1)",
     )
-    .bind(days)
+    .bind(cutoff)
     .execute(db)
     .await?
     .rows_affected();
-    crate::sql::query(
+    sql::query(
         "DELETE FROM job_queue WHERE status IN ('done', 'failed', 'cancelled') \
-           AND COALESCE(finished_at, created_at) < now() - make_interval(days => $1)",
+           AND COALESCE(finished_at, created_at) < $1",
     )
-    .bind(days)
+    .bind(cutoff)
     .execute(db)
     .await?;
     Ok(deleted)
@@ -112,7 +125,8 @@ pub async fn cleanup_old_jobs(db: &Db, days: i32) -> sqlx::Result<u64> {
 /// Expired rows of the Rust refresh-token store.
 pub async fn prune_refresh_tokens(db: &Db) -> sqlx::Result<u64> {
     Ok(
-        crate::sql::query("DELETE FROM refresh_token WHERE expires_at < now()")
+        sql::query("DELETE FROM refresh_token WHERE expires_at < $1")
+            .bind(Utc::now())
             .execute(db)
             .await?
             .rows_affected(),

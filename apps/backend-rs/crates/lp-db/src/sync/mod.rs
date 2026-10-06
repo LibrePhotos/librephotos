@@ -9,14 +9,16 @@
 //! side of a share with the viewer.
 //!
 //! Relations that Django reads without an `ORDER BY` (album membership, thing
-//! covers) come back in through-row id order here, which is the insertion
-//! order Django sees on a table that has not had rows deleted.
+//! covers) come back in Django's scan order: through-row id order on
+//! Postgres (the heap order of a table that has not had rows deleted), and
+//! `(album, photo_id)` on SQLite, where Django's `album_id IN (..)` reads
+//! the covering unique `(album_id, photo_id)` index ([`through_order`]).
 
 use chrono::{DateTime, Utc};
 use sqlx::FromRow;
 use uuid::Uuid;
 
-use crate::db::{Db, DjUuid, DjUuidOpt, Qb};
+use crate::db::{Db, Dialect, DjUuid, DjUuidOpt, Qb, sql};
 use crate::scope::owned_or_shared;
 use crate::write::deletion_log::AlbumKind;
 
@@ -244,8 +246,8 @@ pub async fn thing_albums_page(
     limit: i64,
 ) -> sqlx::Result<Vec<NamedAlbumRow>> {
     let mut qb = Qb::new(
-        "SELECT a.id, a.title, a.photo_count::bigint AS photo_count, \
-         NULL::int AS geolocation_level, a.last_modified FROM api_albumthing a WHERE ",
+        "SELECT a.id, a.title, CAST(a.photo_count AS bigint) AS photo_count, \
+         CAST(NULL AS integer) AS geolocation_level, a.last_modified FROM api_albumthing a WHERE ",
     );
     owned_or_shared(
         &mut qb,
@@ -290,8 +292,8 @@ pub async fn tags_page(
     limit: i64,
 ) -> sqlx::Result<Vec<NamedAlbumRow>> {
     let mut qb = Qb::new(
-        "SELECT t.id, t.name AS title, t.photo_count::bigint AS photo_count, \
-         NULL::int AS geolocation_level, t.last_modified FROM api_tag t WHERE t.owner_id = ",
+        "SELECT t.id, t.name AS title, CAST(t.photo_count AS bigint) AS photo_count, \
+         CAST(NULL AS integer) AS geolocation_level, t.last_modified FROM api_tag t WHERE t.owner_id = ",
     );
     qb.push_bind(user_id);
     push_keyset(&mut qb, "t", keyset);
@@ -313,8 +315,18 @@ pub async fn tags_total(db: &Db, user_id: i32) -> sqlx::Result<i64> {
         .await
 }
 
+/// Django's scan order of an M2M through table read with `fk IN (..)` and
+/// no `ORDER BY`: row id (heap) order on Postgres, the covering unique
+/// `(fk, photo_id)` index on SQLite. `t` is the table alias prefix (`"c."`).
+fn through_order(d: Dialect, t: &str, fk: &str) -> String {
+    match d {
+        Dialect::Pg => format!("{t}id"),
+        Dialect::Sqlite => format!("{t}{fk}, {t}photo_id"),
+    }
+}
+
 /// `(album_id, photo_id)` membership rows of `album_ids` (user or auto
-/// albums), in through-row order.
+/// albums), in Django's scan order ([`through_order`]).
 pub async fn album_members(
     db: &Db,
     kind: AlbumKind,
@@ -330,7 +342,9 @@ pub async fn album_members(
         return Ok(Vec::new());
     }
     let rows: Vec<(i32, DjUuidOpt)> = crate::sql::query_as(format!(
-        "SELECT {fk}, photo_id FROM {table} WHERE {fk} = ANY($1) ORDER BY id"
+        "SELECT {fk}, photo_id FROM {table} WHERE {} ORDER BY {}",
+        sql::any_sql(db.dialect(), fk, 1),
+        through_order(db.dialect(), "", fk)
     ))
     .bind(album_ids)
     .fetch_all(db)
@@ -343,9 +357,10 @@ pub async fn user_albums_shared(db: &Db, album_ids: &[i32]) -> sqlx::Result<Vec<
     if album_ids.is_empty() {
         return Ok(Vec::new());
     }
-    crate::sql::query_scalar(
-        "SELECT DISTINCT albumuser_id FROM api_albumuser_shared_to WHERE albumuser_id = ANY($1)",
-    )
+    crate::sql::query_scalar(format!(
+        "SELECT DISTINCT albumuser_id FROM api_albumuser_shared_to WHERE {}",
+        sql::any_sql(db.dialect(), "albumuser_id", 1)
+    ))
     .bind(album_ids)
     .fetch_all(db)
     .await
@@ -356,25 +371,29 @@ pub async fn photo_hashes(db: &Db, ids: &[Uuid]) -> sqlx::Result<Vec<(Uuid, Stri
     if ids.is_empty() {
         return Ok(Vec::new());
     }
-    let rows: Vec<(DjUuid, String)> =
-        crate::sql::query_as("SELECT id, image_hash FROM api_photo WHERE id = ANY($1)")
-            .bind(ids)
-            .fetch_all(db)
-            .await?;
+    let rows: Vec<(DjUuid, String)> = crate::sql::query_as(format!(
+        "SELECT id, image_hash FROM api_photo WHERE {}",
+        sql::any_sql(db.dialect(), "id", 1)
+    ))
+    .bind(ids)
+    .fetch_all(db)
+    .await?;
     Ok(rows.into_iter().map(|(id, h)| (id.0, h)).collect())
 }
 
 /// `(album_id, image_hash)` of the thing albums' cover photos, non-empty
-/// hashes only, in through-row order.
+/// hashes only, in Django's scan order ([`through_order`]).
 pub async fn thing_covers(db: &Db, album_ids: &[i32]) -> sqlx::Result<Vec<(i32, String)>> {
     if album_ids.is_empty() {
         return Ok(Vec::new());
     }
-    crate::sql::query_as(
+    crate::sql::query_as(format!(
         "SELECT c.albumthing_id, p.image_hash FROM api_albumthing_cover_photos c \
          JOIN api_photo p ON p.id = c.photo_id \
-         WHERE c.albumthing_id = ANY($1) AND p.image_hash <> '' ORDER BY c.id",
-    )
+         WHERE {} AND p.image_hash <> '' ORDER BY {}",
+        sql::any_sql(db.dialect(), "c.albumthing_id", 1),
+        through_order(db.dialect(), "c.", "albumthing_id")
+    ))
     .bind(album_ids)
     .fetch_all(db)
     .await
