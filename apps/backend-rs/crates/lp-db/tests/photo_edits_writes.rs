@@ -42,12 +42,20 @@ async fn adopt_written_orientation_rechecks_local() {
 
     // Another rotation landed in between: nothing is adopted.
     let mut tx = db.begin().await.unwrap();
-    assert!(!edit::adopt_written_orientation(&mut tx, id, 3, 8).await.unwrap());
+    assert!(
+        !edit::adopt_written_orientation(&mut tx, id, 3, 8)
+            .await
+            .unwrap()
+    );
     tx.commit().await.unwrap();
     assert_eq!(orientation().await, (6, md_before));
 
     let mut tx = db.begin().await.unwrap();
-    assert!(edit::adopt_written_orientation(&mut tx, id, 6, 8).await.unwrap());
+    assert!(
+        edit::adopt_written_orientation(&mut tx, id, 6, 8)
+            .await
+            .unwrap()
+    );
     tx.commit().await.unwrap();
     assert_eq!(orientation().await, (1, Some(8)));
 
