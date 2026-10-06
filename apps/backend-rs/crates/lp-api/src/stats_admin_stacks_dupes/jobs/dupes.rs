@@ -190,9 +190,11 @@ pub async fn detect(
         .unwrap_or(10);
     let mut lap = Laps::new();
     let mut tx = state.db.begin().await?;
-    // Progress goes through the pool while `tx` is open. SQLITE(P2): there `tx`
-    // holds the single writer, so a pool write would wait for it; report
-    // progress only after the commit (or batch the transaction) on SQLite.
+    // Progress goes through the pool while `tx` is open. SQLITE(P3) (area G):
+    // there `tx` holds the single writer for the whole detection, CPU work
+    // (union-find, pHash comparisons) included, so a pool write would wait for
+    // it and Django times out after 5 s; read the inputs first, compute outside,
+    // then write in short batches.
     let live_progress = tx.dialect().is_pg();
     if option_flag(options, "clear_pending", false) {
         write::clear_pending(&mut tx, user_id).await?;

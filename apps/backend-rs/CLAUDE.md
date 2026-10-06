@@ -27,7 +27,8 @@ crates/
   lp-server    binary `librephotos-rs`: serve | worker | migrate | adopt | the manage.py
                command ports (createadmin, createuser, scan, save_metadata, ...; CLI.md)
   lp-testkit   test DBs, in-process app, users, tokens
-migrations/    0000_baseline.sql (Django api.0142 schema; also api.0143/0144, SQLite-only) + additive Rust migrations
+migrations/    pg/ (0000_baseline.sql = Django api.0142, also fine at 0143/0144) and sqlite/ (0000_baseline.sql =
+               Django's SQLite schema at api.0144) + the same additive Rust migrations in both
 ```
 
 Dependency direction: exif/sidecars <- ml <- core <- db <- {jobs, auth} <- media <- ingest <- tasks <- api <- server <- testkit.
@@ -51,7 +52,7 @@ New delete or un-share paths must call it, before the rows go.
 | Writes (INSERT/UPDATE/DELETE) | `crates/lp-db/src/write/<area>.rs` (turn into `write/<area>/mod.rs` if it grows) |
 | Job handlers | `<area>::register_jobs(reg)` (api areas), `lp_ingest::register_jobs`, `lp_tasks::register_jobs`, `lp_media::register_jobs` |
 | Media routes | `lp_media::routes()` |
-| New migration | `migrations/<YYYYMMDDHHMM>_<area>_<what>.sql` (timestamp version, unique across agents; additive only) |
+| New migration | `migrations/{pg,sqlite}/<YYYYMMDDHHMM>_<area>_<what>.sql`, both files (timestamp version, unique across agents; additive only; SQLite: no ALTER of Django tables, see `lp-core/src/db/README.md`) |
 
 Do not edit `Cargo.toml` files: every dependency is already declared in every
 crate (see `[workspace.dependencies]`). If something is truly missing, add it to
@@ -228,6 +229,8 @@ Shared files (`lp-api/src/lib.rs`, `lp-api/src/common/`, `lp-db/src/{scope,pig,u
 
 - `cargo test` (debug; one target dir per worktree). Tests need the dev Postgres
   (`LP_TEST_PG_HOST/PORT/USER/PASS`, default `localhost:5433 postgres/x`).
+  `LP_TEST_BACKEND=sqlite` runs them on SQLite files instead (copies of `LP_TEST_SQLITE_TEMPLATE`,
+  default `rust-pg/fixture-sqlite/lp_fixture.sqlite3`, adopted once per process).
 - `lp_testkit::TestApp::new()` = private DB (mutations OK; ~10 s to create on this Windows box),
   `TestApp::shared()` = one DB per test binary (read-only or unique-named rows; fast),
   `TestApp::attach(db, env)` = existing DB. DBs come from `LP_TEST_TEMPLATE`
@@ -257,6 +260,9 @@ cargo run -p lp-server -- createadmin admin admin@example.com   # ADMIN_PASSWORD
 cargo run -p lp-server -- serve          # optional LP_DEV_FALLBACK=http://127.0.0.1:<django port>
 ```
 
+SQLite (Django's `DB_BACKEND=sqlite` file): `DB_BACKEND=sqlite LP_SQLITE_PATH=<file>` (default
+`$BASE_DATA/db/librephotos.sqlite3`) with `adopt` / `migrate` / `serve` as above; `migrate` creates a missing
+file, every other command refuses one. `LP_SQLITE_BUSY_MS` (10000), `LP_DB_POOL` = SQLite readers.
 Fresh empty DB instead: `createdb` + `librephotos-rs migrate`. Other env: `LP_DB_POOL`,
 `LP_EXIF_POOL` (2) / `LP_EXIF_IDLE_SECS` (15, idle ExifTool processes stop), `LP_ORT_CPU_ARENA`
 (`shared` default, `1`/`0`/`shrink`), `LP_VIPS_CONCURRENCY` (1), `LP_THUMB_KEEP` (`icc` default:

@@ -7,7 +7,7 @@
 use chrono::NaiveDate;
 use sqlx::FromRow;
 
-use crate::db::{Db, Exec, Qb};
+use crate::db::{Db, Dialect, Exec, Qb};
 use crate::pig::{PIG_COLUMNS, PIG_JOINS, PigPhoto, PigRow};
 use crate::scope::{self, PhotoFilterParams};
 
@@ -123,26 +123,61 @@ fn push_photo_conditions(qb: &mut Qb<'_>, p: &str, f: &TimelineFilter) {
 /// `jsonb_array_length` (a query error that took down the whole public
 /// timeline) nor be skipped, since Python indexes a string like a list.
 /// Only `CASE` fixes the evaluation order, so every guard is one.
-fn location_sql(a: &str, public: bool) -> String {
-    if public {
-        let places = "lp.geolocation_json->'places'";
-        format!(
-            "COALESCE((SELECT CASE jsonb_typeof({places}) \
-                 WHEN 'array' THEN {places}->>(jsonb_array_length({places}) - 2) \
-                 ELSE substr({places} #>> '{{}}', length({places} #>> '{{}}') - 1, 1) END \
-               FROM api_albumdate_photos lap JOIN api_photo lp ON lp.id = lap.photo_id \
-               WHERE lap.albumdate_id = {a}.id AND lp.public AND NOT lp.hidden AND NOT lp.in_trashcan \
-                 AND NOT lp.removed AND CASE jsonb_typeof({places}) \
-                   WHEN 'array' THEN jsonb_array_length({places}) >= 2 \
-                   WHEN 'string' THEN length({places} #>> '{{}}') >= 2 ELSE false END \
-               ORDER BY lp.exif_timestamp, lp.id LIMIT 1), '')"
-        )
-    } else {
-        let places = format!("{a}.location->'places'");
-        format!(
-            "COALESCE(CASE jsonb_typeof({places}) WHEN 'string' THEN substr({places} #>> '{{}}', 1, 1) \
-             ELSE {places}->>0 END, '')"
-        )
+/// SQLite: `json_type` / `json_extract` with JSON paths (`[#-2]` = the
+/// second-to-last element); text results are cast so numbers decode as text.
+fn location_sql(d: Dialect, a: &str, public: bool) -> String {
+    match d {
+        Dialect::Sqlite => sqlite_location_sql(a, public),
+        Dialect::Pg => match public {
+            true => {
+                let places = "lp.geolocation_json->'places'";
+                format!(
+                    "COALESCE((SELECT CASE jsonb_typeof({places}) \
+                     WHEN 'array' THEN {places}->>(jsonb_array_length({places}) - 2) \
+                     ELSE substr({places} #>> '{{}}', length({places} #>> '{{}}') - 1, 1) END \
+                   FROM api_albumdate_photos lap JOIN api_photo lp ON lp.id = lap.photo_id \
+                   WHERE lap.albumdate_id = {a}.id AND lp.public AND NOT lp.hidden AND NOT lp.in_trashcan \
+                     AND NOT lp.removed AND CASE jsonb_typeof({places}) \
+                       WHEN 'array' THEN jsonb_array_length({places}) >= 2 \
+                       WHEN 'string' THEN length({places} #>> '{{}}') >= 2 ELSE false END \
+                   ORDER BY lp.exif_timestamp, lp.id LIMIT 1), '')"
+                )
+            }
+            false => {
+                let places = format!("{a}.location->'places'");
+                format!(
+                    "COALESCE(CASE jsonb_typeof({places}) WHEN 'string' THEN substr({places} #>> '{{}}', 1, 1) \
+                 ELSE {places}->>0 END, '')"
+                )
+            }
+        },
+    }
+}
+
+fn sqlite_location_sql(a: &str, public: bool) -> String {
+    match public {
+        true => {
+            let j = "lp.geolocation_json";
+            format!(
+                "COALESCE((SELECT CASE json_type({j}, '$.places') \
+                     WHEN 'array' THEN CAST(json_extract({j}, '$.places[#-2]') AS TEXT) \
+                     ELSE substr(json_extract({j}, '$.places'), length(json_extract({j}, '$.places')) - 1, 1) END \
+                   FROM api_albumdate_photos lap JOIN api_photo lp ON lp.id = lap.photo_id \
+                   WHERE lap.albumdate_id = {a}.id AND lp.public AND NOT lp.hidden AND NOT lp.in_trashcan \
+                     AND NOT lp.removed AND CASE json_type({j}, '$.places') \
+                       WHEN 'array' THEN json_array_length({j}, '$.places') >= 2 \
+                       WHEN 'text' THEN length(json_extract({j}, '$.places')) >= 2 ELSE 0 END \
+                   ORDER BY lp.exif_timestamp, lp.id LIMIT 1), '')"
+            )
+        }
+        false => {
+            let j = format!("{a}.location");
+            format!(
+                "COALESCE(CASE json_type({j}, '$.places') \
+                   WHEN 'text' THEN substr(json_extract({j}, '$.places'), 1, 1) \
+                   WHEN 'array' THEN CAST(json_extract({j}, '$.places[0]') AS TEXT) END, '')"
+            )
+        }
     }
 }
 
@@ -162,7 +197,7 @@ pub async fn list<'e>(db: impl Exec<'e>, f: &TimelineFilter) -> sqlx::Result<Vec
         "SELECT a.id, a.date, {} AS location, c.n AS photo_count \
          FROM (SELECT ap.albumdate_id AS id, count(*) AS n FROM api_albumdate_photos ap \
            JOIN api_photo p ON p.id = ap.photo_id WHERE ",
-        location_sql("a", f.public)
+        location_sql(db.dialect(), "a", f.public)
     ));
     let owner = f.owner_scoped();
     if let Some(uid) = owner {
@@ -242,7 +277,7 @@ pub async fn page(
 ) -> sqlx::Result<Option<DatePage>> {
     let mut qb = Qb::new(format!(
         "WITH alb AS (SELECT a.id, a.date, {} AS location FROM api_albumdate a WHERE ",
-        location_sql("a", f.public)
+        location_sql(db.dialect(), "a", f.public)
     ));
     push_album_auth(&mut qb, "a", album_id, f);
     qb.push(
@@ -301,7 +336,7 @@ pub async fn page(
     // No rows: either the day is not visible or no photo matches (total 0).
     let mut qb = Qb::new(format!(
         "SELECT a.id, a.date, {} AS location FROM api_albumdate a WHERE ",
-        location_sql("a", f.public)
+        location_sql(db.dialect(), "a", f.public)
     ));
     push_album_auth(&mut qb, "a", album_id, f);
     let header: Option<DateHeaderRow> = qb.build_query_as().fetch_optional(db).await?;

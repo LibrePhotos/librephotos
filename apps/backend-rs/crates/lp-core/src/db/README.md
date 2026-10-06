@@ -107,11 +107,49 @@ search, `to_regclass` (`sqlite_master`), `pg_notify` / `LISTEN`,
   autocommit. Other SQLite clients (DDL defaults, triggers) use
   `sql::NOW_SQLITE_BUILTIN`.
 
+## SQLite plumbing (P2): what area ports build on
+
+- **Migrations**: `migrations/pg/` and `migrations/sqlite/`, one file per
+  version in each (same name; `lp-db/tests/migrations_parity.rs`). A new
+  Rust migration needs both files. On SQLite never `ALTER TABLE` a Django
+  table: Django rebuilds tables (`new__x`, copy, drop, rename) and drops what
+  its models do not know. Rust columns go in side tables; indexes and
+  triggers on Django tables also go into `migrate::SQLITE_OBJECTS`, which
+  `ensure_sqlite_objects()` re-creates at every `serve` / `worker` / command
+  start.
+- **Table probes**: `lp_db::migrate::table_exists(ex, "name")` (never
+  `to_regclass`).
+- **CLIP model**: `api_photo.clip_embeddings_model` exists on Postgres only.
+  Read it with `sql::clip_model(d, "p")` (NULL = Django) or
+  `sql::stored_clip_model(d, "p")` (`coalesce(.., 'clip_vit_b32')`). Writes:
+  Postgres sets the column in the `UPDATE`; SQLite runs
+  `sql::SQLITE_SET_CLIP_MODEL` (`$1` photo id, `$2` model) after the `UPDATE`
+  in the same transaction (the `lp_clip_embeddings_model_reset` trigger
+  deletes the side-table row on every embedding change). Write embeddings in
+  `json.dumps` format (`PyJson`), or a Django save of the same values fires
+  the trigger.
+- **Photo summary**: `pig::columns(d)` instead of `pig::PIG_COLUMNS` in
+  `format!`-built SQL (`pig::query()` and `pig::by_ids` already branch).
+- **Jobs**: `depends_on` is a JSON array on SQLite; enqueue/claim/heartbeat
+  are portable, and `listen()` polls `PRAGMA data_version` every 250 ms.
+  Heartbeats and every queue write need the single writer: a handler that
+  holds `db.begin()` for long stalls them (stale after 120 s) and makes
+  Django time out after 5 s.
+- **Tests**: `LP_TEST_BACKEND=sqlite cargo test -p <crate>` runs `TestApp` /
+  `TestDb` on a copy of the SQLite fixture pack (`LP_TEST_SQLITE_TEMPLATE`)
+  adopted once per process. `TestDb.sqlite_path` is set there; SQL in tests
+  binds Rust-computed times instead of `now() - interval '..'`.
+- **No `ON DELETE CASCADE`** on Django's SQLite tables (0144 rebuilt them
+  from the models): delete dependent rows explicitly. Rust's own tables
+  (`refresh_token`, `lp_photo_clip_model`, `lp_photo_faces_scanned`) do
+  cascade.
+
 ## Lint list (design §2)
 
-`lp-db/tests/dialect_lint.rs` (report-only since P1a; later phases make it fail) rejects these in SQL literals outside a
+`lp-db/tests/dialect_lint.rs` rejects these in SQL literals outside a
 `Dialect::Pg` arm: `::uuid`, `ANY(`, `ILIKE`, `jsonb`, `LATERAL`,
-`DISTINCT ON`, `make_interval`, `FOR UPDATE`, `unnest`. Worth adding:
-`::` casts in general, `interval '`, `GREATEST(`, `LEAST(`, `ON CONSTRAINT`,
-`USING (` after `DELETE`, `pg_`, `to_regclass`, `AT TIME ZONE`, and a `LIKE`
-without `ESCAPE`.
+`DISTINCT ON`, `make_interval`, `FOR UPDATE`, `unnest`, other `::` casts,
+`interval '`, `GREATEST(` / `LEAST(`, `ON CONSTRAINT`, `DELETE .. USING`,
+`pg_`, `to_regclass`, `AT TIME ZONE`, and a `LIKE` without `ESCAPE`. It is
+report-only except for the files listed in its `PORTED` array, which must
+stay clean: add your area's directory there when you port it.

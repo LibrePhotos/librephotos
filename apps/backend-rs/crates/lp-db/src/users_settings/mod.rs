@@ -3,7 +3,7 @@
 use chrono::{DateTime, Utc};
 use sqlx::FromRow;
 
-use crate::db::{Db, Exec, Qb};
+use crate::db::{Db, Dialect, Exec, Qb};
 use crate::users::{USER_COLUMNS, User};
 
 pub mod sso;
@@ -56,15 +56,19 @@ pub async fn photo_stats(
     if user_ids.is_empty() {
         return Ok(out);
     }
+    let owners = match db.dialect() {
+        Dialect::Pg => "unnest($1::int[]) AS o(id)",
+        Dialect::Sqlite => "(SELECT value AS id FROM json_each($1)) AS o",
+    };
     let (counts, samples) = tokio::try_join!(
-        crate::sql::query_as::<_, CountRow>(
+        crate::sql::query_as::<_, CountRow>(format!(
             // Two scalar counts per owner can each use an index; one FILTER
             // aggregate forces a sequential scan of the owner's photos.
             "SELECT o.id AS owner_id, \
                     (SELECT count(*) FROM api_photo WHERE owner_id = o.id) AS photo_count, \
                     (SELECT count(*) FROM api_photo WHERE owner_id = o.id AND public) AS public_photo_count \
-             FROM unnest($1::int[]) AS o(id)",
-        )
+             FROM {owners}"
+        ))
         .bind(user_ids)
         .fetch_all(db),
         public_samples(db, user_ids),
@@ -88,13 +92,14 @@ async fn public_samples<'e>(
     db: impl Exec<'e>,
     user_ids: &[i32],
 ) -> sqlx::Result<Vec<PublicPhotoSample>> {
-    crate::sql::query_as::<_, PublicPhotoSample>(
+    let owner_in = crate::sql::any_sql(db.dialect(), "p.owner_id", 1);
+    crate::sql::query_as::<_, PublicPhotoSample>(format!(
         "SELECT owner_id, image_hash, rating, hidden, exif_timestamp, public, video FROM ( \
             SELECT p.owner_id, p.image_hash, p.rating, p.hidden, p.exif_timestamp, p.public, \
                    p.video, row_number() OVER (PARTITION BY p.owner_id) AS rn \
-            FROM api_photo p WHERE p.owner_id = ANY($1) AND p.public) s \
-         WHERE rn <= 10",
-    )
+            FROM api_photo p WHERE {owner_in} AND p.public) s \
+         WHERE rn <= 10"
+    ))
     .bind(user_ids)
     .fetch_all(db)
     .await
@@ -193,7 +198,7 @@ pub async fn username_taken_by_other<'e>(
 ) -> sqlx::Result<bool> {
     crate::sql::query_scalar(
         "SELECT EXISTS (SELECT 1 FROM api_user WHERE username = $1 \
-         AND ($2::int IS NULL OR id <> $2))",
+         AND ($2 IS NULL OR id <> $2))",
     )
     .bind(username)
     .bind(exclude_id)
@@ -215,7 +220,7 @@ pub async fn other_scan_directories<'e>(
 ) -> sqlx::Result<Vec<ScanDirectoryOwner>> {
     crate::sql::query_as::<_, ScanDirectoryOwner>(
         "SELECT id, username, scan_directory FROM api_user \
-         WHERE scan_directory <> '' AND ($1::int IS NULL OR id <> $1) ORDER BY id",
+         WHERE scan_directory <> '' AND ($1 IS NULL OR id <> $1) ORDER BY id",
     )
     .bind(exclude_id)
     .fetch_all(db)

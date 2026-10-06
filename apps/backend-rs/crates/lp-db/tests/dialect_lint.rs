@@ -4,15 +4,30 @@
 //! arm, an `if ..is_pg() { .. }` block and the first argument of a
 //! `push_dialect(..)` are Postgres-only by construction and are skipped.
 //!
-//! **Report-only** for now (P1a): it prints the counts per file and per
-//! construct and passes. The SQLite phases flip [`ENFORCE`] once their areas
-//! are ported (`cargo test -p lp-db --test dialect_lint -- --nocapture`).
+//! It prints the counts per file and per construct. Files under a prefix in
+//! [`PORTED`] must stay clean (each SQLite phase adds the areas it ported);
+//! the rest is report-only until [`ENFORCE`] flips
+//! (`cargo test -p lp-db --test dialect_lint -- --nocapture`).
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 /// `true` = fail on any hit (later phases); `false` = report only.
 const ENFORCE: bool = false;
+
+/// Ported to SQLite: any hit under these prefixes fails the test (P2 plumbing;
+/// P3 area agents append their directories).
+const PORTED: &[&str] = &[
+    "lp-jobs/src/",
+    "lp-db/src/adopt/",
+    "lp-db/src/health.rs",
+    "lp-db/src/migrate.rs",
+    "lp-db/src/pig.rs",
+    "lp-db/src/pool.rs",
+    "lp-db/src/scope.rs",
+    "lp-db/src/settings.rs",
+    "lp-db/src/users.rs",
+];
 
 /// The lint list: (name, matcher). Matching is done on the literal's text.
 fn constructs() -> Vec<(&'static str, fn(&str) -> usize)> {

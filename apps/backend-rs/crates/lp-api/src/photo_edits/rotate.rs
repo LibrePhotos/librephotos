@@ -219,6 +219,10 @@ pub(super) async fn rotate(
     let (orientation, last_modified) = if angle == 0 && !flip {
         (photo.local_orientation, photo.last_modified)
     } else {
+        // SQLITE(P3) (area D): the ExifTool write below runs inside this
+        // transaction, holding the single SQLite writer for the whole file
+        // write (Django gives up after 5 s). Write the file outside (e.g. re-check
+        // the orientation in a second short transaction).
         let mut tx = state.db.begin().await?;
         let current = svc::lock_local_orientation(&mut tx, photo.id).await?;
         let orientation = compose_orientation(current, angle, flip);

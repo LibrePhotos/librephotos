@@ -188,7 +188,7 @@ async fn enqueue_unless_queued(
     job_type: JobType,
 ) -> anyhow::Result<bool> {
     let mut tx = p.state.db.begin().await?;
-    // SQLITE(P2): no-op there, the IMMEDIATE transaction already serializes writers.
+    // SQLite: a no-op, the IMMEDIATE transaction already serializes writers.
     if tx.dialect().is_pg() {
         lp_db::sql::query("SELECT pg_advisory_xact_lock(7340033, hashtext($1 || ':' || $2::text))")
             .bind(kind)

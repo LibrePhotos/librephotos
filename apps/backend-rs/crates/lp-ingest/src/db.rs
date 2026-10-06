@@ -636,7 +636,7 @@ async fn sync_hashtags(
 /// conflict on the unique constraint).
 async fn lock_null_album(db: &mut Conn, owner: i32) -> sqlx::Result<()> {
     if db.dialect().is_sqlite() {
-        // SQLITE(P2): no-op, the IMMEDIATE transaction already serializes writers.
+        // SQLite: a no-op, the IMMEDIATE transaction already serializes writers.
         return Ok(());
     }
     lp_db::sql::query("SELECT pg_advisory_xact_lock(7340031, $1)")

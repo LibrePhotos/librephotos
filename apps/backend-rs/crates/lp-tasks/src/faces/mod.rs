@@ -434,6 +434,10 @@ async fn write_faces(
     image: Arc<RgbImage>,
     found: Vec<Found>,
 ) -> Result<usize, FaceError> {
+    // SQLITE(P3) (area E): this transaction holds the single SQLite writer
+    // across the JPEG crops (`state.blocking`) and the face file writes below;
+    // crop and write every face first, then open the transaction for the
+    // INSERTs only (design §3: no file/CPU work inside a write transaction).
     let mut tx = state.db.begin().await?;
     let unknown_cluster = unknown_cluster(&mut tx, photo.owner_id).await?;
     let mut existing: Vec<FaceBox> = lp_db::sql::query_as::<_, (i32, i32, i32, i32)>(
