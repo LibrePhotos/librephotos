@@ -54,3 +54,16 @@ pub async fn chunked_upload<'e>(
     .fetch_optional(db)
     .await
 }
+
+/// Every upload created before `cutoff` (`created_on__lt`), any user.
+pub async fn created_before<'e>(
+    db: impl PgExecutor<'e>,
+    cutoff: DateTime<Utc>,
+) -> sqlx::Result<Vec<ChunkedUpload>> {
+    sqlx::query_as::<_, ChunkedUpload>(&format!(
+        "SELECT {CHUNKED_COLUMNS} FROM chunked_upload_chunkedupload WHERE created_on < $1 ORDER BY id"
+    ))
+    .bind(cutoff)
+    .fetch_all(db)
+    .await
+}

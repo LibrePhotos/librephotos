@@ -22,6 +22,9 @@ pub struct ScanUser {
     pub scan_missing: bool,
     #[serde(default)]
     pub uploaded_only: bool,
+    /// Explicit files instead of a walk (`manage.py scan -s`).
+    #[serde(default)]
+    pub files: Vec<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -78,7 +81,7 @@ pub async fn scan_user(ctx: JobCtx) -> anyhow::Result<()> {
             full_scan: p.full_scan,
             scan_missing: p.scan_missing,
             uploaded_only: p.uploaded_only,
-            files: Vec::new(),
+            files: p.files.iter().map(PathBuf::from).collect(),
             skip_followups: false,
         },
     )

@@ -12,6 +12,7 @@ pub mod queue;
 pub mod registry;
 pub mod schedules;
 pub mod services;
+pub mod shutdown;
 pub mod worker;
 
 pub use lrj::{JobErrors, JobType, LongRunningJob, Progress};
@@ -19,4 +20,5 @@ pub use queue::{
     EnqueueOptions, Enqueued, LrjSpec, QueuedJob, enqueue, enqueue_in, enqueue_many_in, wake,
 };
 pub use registry::{HandlerRegistry, JobCtx};
+pub use shutdown::{interrupted, is_interrupted, shutting_down};
 pub use worker::{Worker, WorkerTiming};

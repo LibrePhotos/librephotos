@@ -97,8 +97,33 @@ pub struct Region {
     pub h: f64,
 }
 
+/// What [`region_tags`] found for one photo: its main file and the tags.
+pub struct RegionTags {
+    pub image_hash: String,
+    pub path: String,
+    pub save_metadata_to_disk: String,
+    pub tags: Vec<(String, Value)>,
+}
+
 /// Write the photo's face regions; false when there was nothing to write.
 pub async fn write_face_tags(state: &AppState, photo_id: Uuid) -> anyhow::Result<bool> {
+    let Some(found) = region_tags(state, photo_id).await? else {
+        return Ok(false);
+    };
+    let use_sidecar = found.save_metadata_to_disk == "SIDECAR_FILE";
+    tracing::info!(photo = %found.image_hash, sidecar = use_sidecar, "writing face regions");
+    state
+        .exif
+        .write_metadata(Path::new(&found.path), &found.tags, use_sidecar)
+        .await
+        .map_err(|e| anyhow!("{e}"))?;
+    Ok(true)
+}
+
+/// `get_face_region_tags`: the RegionInfo (+ `XMP:Subject`) tags of the
+/// photo's non-deleted faces; None when it has no main file, no faces or no
+/// readable thumbnail (Django's `{}`).
+pub async fn region_tags(state: &AppState, photo_id: Uuid) -> anyhow::Result<Option<RegionTags>> {
     let photo: Option<PhotoRow> = sqlx::query_as(
         "SELECT p.image_hash, f.path, t.thumbnail_big, u.save_metadata_to_disk \
          FROM api_photo p JOIN api_user u ON u.id = p.owner_id \
@@ -109,10 +134,10 @@ pub async fn write_face_tags(state: &AppState, photo_id: Uuid) -> anyhow::Result
     .fetch_optional(&state.db)
     .await?;
     let Some(photo) = photo else {
-        return Ok(false);
+        return Ok(None);
     };
     let Some(path) = photo.path.filter(|p| !p.is_empty()) else {
-        return Ok(false);
+        return Ok(None);
     };
     let faces: Vec<FaceRow> = sqlx::query_as(
         "SELECT f.location_top, f.location_right, f.location_bottom, f.location_left, \
@@ -124,7 +149,7 @@ pub async fn write_face_tags(state: &AppState, photo_id: Uuid) -> anyhow::Result
     .fetch_all(&state.db)
     .await?;
     if faces.is_empty() {
-        return Ok(false);
+        return Ok(None);
     }
     let thumb = photo
         .thumbnail_big
@@ -135,7 +160,7 @@ pub async fn write_face_tags(state: &AppState, photo_id: Uuid) -> anyhow::Result
             "Cannot open thumbnail for photo {}, skipping face tags",
             photo.image_hash
         );
-        return Ok(false);
+        return Ok(None);
     };
     let media = Path::new(&path);
     let orientation = state
@@ -181,14 +206,12 @@ pub async fn write_face_tags(state: &AppState, photo_id: Uuid) -> anyhow::Result
         dims.first().cloned().flatten(),
         dims.get(1).cloned().flatten(),
     );
-    let use_sidecar = photo.save_metadata_to_disk == "SIDECAR_FILE";
-    tracing::info!(photo = %photo.image_hash, sidecar = use_sidecar, "writing face regions");
-    state
-        .exif
-        .write_metadata(media, &tags, use_sidecar)
-        .await
-        .map_err(|e| anyhow!("{e}"))?;
-    Ok(true)
+    Ok(Some(RegionTags {
+        image_hash: photo.image_hash,
+        path,
+        save_metadata_to_disk: photo.save_metadata_to_disk,
+        tags,
+    }))
 }
 
 /// `thumbnail_coords_to_normalized`.

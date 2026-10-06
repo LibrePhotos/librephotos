@@ -900,3 +900,100 @@ async fn manage_reads() {
     }
     app.cleanup().await;
 }
+
+/// Django #2123 (`test_rules_exif_tag_injection.py`): ExifTool tag names in
+/// the rules a user PATCHes onto their profile must be plain tags; anything
+/// that would become an ExifTool write or option is a 400 and not stored.
+#[tokio::test]
+async fn rule_tag_names_are_validated_at_save_time() {
+    let app = TestApp::new().await;
+    let alice = fixture_user(&app, "alice").await;
+    let ta = app.token_for(&alice);
+    let path = format!("/api/user/{}/", alice.id);
+    let stored = |app: &TestApp| {
+        let pool = app.pool().clone();
+        let id = alice.id;
+        async move {
+            sqlx::query_as::<_, (Value, Value)>(
+                "SELECT datetime_rules, burst_detection_rules FROM api_user WHERE id = $1",
+            )
+            .bind(id)
+            .fetch_one(&pool)
+            .await
+            .unwrap()
+        }
+    };
+    let before = stored(&app).await;
+    let rule = |cond: &str| {
+        json!([{"id": 1, "name": "x", "enabled": true, "category": "hard",
+                "rule_type": "exif_burst_mode", "condition_exif": cond}])
+    };
+    let res = app
+        .patch_json(
+            &path,
+            &json!({"burst_detection_rules": rule("EXIF:Model=1//x")}),
+            Some(&ta),
+        )
+        .await;
+    assert_eq!(res.status, StatusCode::BAD_REQUEST, "{}", res.text());
+    assert_eq!(
+        res.json(),
+        json!({"errors": [{"field": "burst_detection_rules", "message":
+            "burst_detection_rules contains an invalid ExifTool tag name: 'EXIF:Model=1'. \
+             A tag name may only contain letters, digits and the characters _ : * ? # -, \
+             and must not start with '-' or ':'."}]})
+    );
+    // A JSON-string datetime_rules with an injected option line.
+    let injected = json!([{"id": 1, "rule_type": "exif", "exif_tag": "EXIF:DateTimeOriginal",
+                           "condition_exif": "EXIF:Model\n-if\n1//x"}])
+    .to_string();
+    let res = app
+        .patch_json(&path, &json!({"datetime_rules": injected}), Some(&ta))
+        .await;
+    assert_eq!(res.status, StatusCode::BAD_REQUEST);
+    let msg = res.json()["errors"][0]["message"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    assert_eq!(res.json()["errors"][0]["field"], "datetime_rules");
+    assert!(msg.contains(r"'EXIF:Model\n-if\n1'"), "{msg}");
+    for bad_tag in ["FileName=../evil.jpg", "-execute", "*Foo"] {
+        let rules = json!([{"id": 1, "rule_type": "exif", "exif_tag": bad_tag}]).to_string();
+        let res = app
+            .patch_json(&path, &json!({"datetime_rules": rules}), Some(&ta))
+            .await;
+        assert_eq!(res.status, StatusCode::BAD_REQUEST, "{bad_tag}");
+    }
+    let res = app
+        .patch_json(&path, &json!({"datetime_rules": "not json"}), Some(&ta))
+        .await;
+    assert_eq!(res.status, StatusCode::BAD_REQUEST);
+    assert_eq!(
+        res.json()["errors"][0]["message"],
+        "datetime_rules is not valid JSON."
+    );
+    assert_eq!(stored(&app).await, before, "nothing was stored");
+
+    // The shipped defaults and ordinary tags still save.
+    let res = app
+        .patch_json(
+            &path,
+            &json!({
+                "datetime_rules": lp_db::write::users::default_datetime_rules(),
+                "burst_detection_rules": rule("EXIF:Model//FooBar"),
+            }),
+            Some(&ta),
+        )
+        .await;
+    assert_eq!(res.status, StatusCode::OK, "{}", res.text());
+    assert_eq!(stored(&app).await.1, rule("EXIF:Model//FooBar"));
+    let res = app
+        .patch_json(
+            &path,
+            &json!({"burst_detection_rules": lp_db::write::users::default_burst_detection_rules()}),
+            Some(&ta),
+        )
+        .await;
+    assert_eq!(res.status, StatusCode::OK, "{}", res.text());
+    app.cleanup().await;
+}

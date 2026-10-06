@@ -157,6 +157,51 @@ impl Validated {
     }
 }
 
+/// `validate_rule_exif_tag_names` (Django #2123): the ExifTool tag names in
+/// `datetime_rules` / `burst_detection_rules` (each rule's `condition_exif`
+/// before the first `//`, and a datetime rule's `exif_tag`) must be plain
+/// tags; they become `-<tag>` arguments of ExifTool. The value may be the
+/// list or the JSON string encoding it; anything else is left alone.
+pub fn validate_rule_tags(field: &str, value: &Value) -> Result<(), String> {
+    let decoded;
+    let rules = match value {
+        Value::String(s) => {
+            decoded = serde_json::from_str::<Value>(s)
+                .map_err(|_| format!("{field} is not valid JSON."))?;
+            &decoded
+        }
+        v => v,
+    };
+    let Some(rules) = rules.as_array() else {
+        return Ok(());
+    };
+    for rule in rules.iter().filter_map(Value::as_object) {
+        let mut names = Vec::new();
+        if let Some(c) = rule
+            .get("condition_exif")
+            .and_then(Value::as_str)
+            .filter(|s| !s.is_empty())
+        {
+            names.push(c.split("//").next().unwrap_or(""));
+        }
+        if let Some(t) = rule
+            .get("exif_tag")
+            .and_then(Value::as_str)
+            .filter(|s| !s.is_empty())
+        {
+            names.push(t);
+        }
+        if let Some(bad) = names.into_iter().find(|t| !lp_exif::is_safe_tag(t)) {
+            return Err(format!(
+                "{field} contains an invalid ExifTool tag name: {}. A tag name may only contain \
+                 letters, digits and the characters _ : * ? # -, and must not start with '-' or ':'.",
+                lp_ingest::pyfmt::str_repr(bad)
+            ));
+        }
+    }
+    Ok(())
+}
+
 /// DRF `Serializer.is_valid()` over `specs`. `instance` is the user being
 /// updated (partial) or None for a create (every `required` field must be sent).
 async fn validate(
@@ -228,6 +273,13 @@ async fn validate(
                 errors.add(name, vec![m]);
                 continue;
             }
+        }
+        if matches!(*name, "datetime_rules" | "burst_detection_rules")
+            && let Parsed::Json(v) = &parsed
+            && let Err(m) = validate_rule_tags(name, v)
+        {
+            errors.add(name, vec![m]);
+            continue;
         }
         out.values.insert(name, parsed);
     }

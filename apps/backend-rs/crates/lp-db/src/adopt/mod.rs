@@ -2,7 +2,9 @@
 //!
 //! 1. `django_migrations` must hold the pinned set (`django_migrations.txt`,
 //!    taken from a fresh Django DB at api.0142). Individually recorded api
-//!    migrations 0001..0100 (pre-squash installs) are tolerated.
+//!    migrations 0001..0100 (pre-squash installs) are tolerated, and so are
+//!    the later migrations in [`SCHEMA_NEUTRAL`], which leave a PostgreSQL
+//!    schema exactly as 0142 did (a DB at 0142, 0143 or 0144 adopts).
 //! 2. The baseline is recorded as applied without running it.
 //! 3. The Rust migrations run.
 //! 4. constance values are imported into `site_settings` (existing rows win).
@@ -32,6 +34,20 @@ pub fn pinned_set() -> BTreeSet<(String, String)> {
         .collect()
 }
 
+/// Django migrations after the pin that do nothing on PostgreSQL: both are
+/// `RunPython` gated on `connection.vendor == "sqlite"` (verified: a
+/// `pg_dump --schema-only` of a 0142 DB is byte-identical after
+/// `manage.py migrate` applied them), so the baseline still describes a
+/// database that has them.
+pub const SCHEMA_NEUTRAL: &[(&str, &str)] = &[
+    ("api", "0143_sqlite_photo_ids_hex"),
+    ("api", "0144_sqlite_restore_foreign_keys"),
+];
+
+fn schema_neutral(app: &str, name: &str) -> bool {
+    SCHEMA_NEUTRAL.iter().any(|(a, n)| *a == app && *n == name)
+}
+
 /// A pre-squash install also records the migrations the squash replaced.
 fn replaced_by_squash(app: &str, name: &str) -> bool {
     app == "api"
@@ -58,7 +74,7 @@ pub async fn check_django_migrations(pool: &PgPool) -> anyhow::Result<()> {
     let missing: Vec<_> = pinned.difference(&have).collect();
     let extra: Vec<_> = have
         .difference(&pinned)
-        .filter(|(a, n)| !replaced_by_squash(a, n))
+        .filter(|(a, n)| !replaced_by_squash(a, n) && !schema_neutral(a, n))
         .collect();
     if !missing.is_empty() {
         anyhow::bail!(
@@ -68,7 +84,7 @@ pub async fn check_django_migrations(pool: &PgPool) -> anyhow::Result<()> {
     }
     if !extra.is_empty() {
         anyhow::bail!(
-            "database has Django migrations newer than the pinned set (api.0142); re-pin the baseline. Unknown: {}",
+            "database has Django migrations newer than the pinned set (api.0142, plus the PostgreSQL no-ops up to api.0144); re-pin the baseline. Unknown: {}",
             fmt_list(&extra)
         );
     }
@@ -177,5 +193,11 @@ mod tests {
         assert!(replaced_by_squash("api", "0042_foo"));
         assert!(!replaced_by_squash("api", "0101_foo"));
         assert!(!replaced_by_squash("auth", "0001_initial"));
+        assert!(schema_neutral("api", "0143_sqlite_photo_ids_hex"));
+        assert!(schema_neutral("api", "0144_sqlite_restore_foreign_keys"));
+        assert!(!schema_neutral("api", "0145_anything"));
+        for (app, name) in SCHEMA_NEUTRAL {
+            assert!(!p.contains(&(app.to_string(), name.to_string())));
+        }
     }
 }

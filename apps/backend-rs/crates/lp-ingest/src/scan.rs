@@ -151,6 +151,12 @@ pub async fn scan_user(
     db::lrj_get_or_create(&state.db, job_id, JobType::ScanPhotos.as_i32(), user_id).await?;
     match scan_inner(p, &user, job_id, &opts).await {
         Ok(()) => Ok(()),
+        // Stopped between file groups for shutdown: the worker hands the job
+        // back and the next start rescans (finished groups are known files).
+        Err(e) if lp_jobs::is_interrupted(&e) => {
+            tracing::info!(job_id, "scan interrupted by shutdown");
+            Err(e)
+        }
         Err(e) => {
             tracing::error!(error = %format!("{e:#}"), "scan failed");
             lp_jobs::lrj::fail(&state.db, job_id, &format!("{e:#}")).await?;
@@ -263,6 +269,7 @@ async fn scan_inner(
     }));
     let concurrency = state.config.scan_concurrency();
     let cancelled = Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let interrupted = Arc::new(std::sync::atomic::AtomicBool::new(false));
 
     let work = futures::stream::iter(to_process.into_iter().enumerate())
         .map(|(i, (_, paths))| {
@@ -270,9 +277,16 @@ async fn scan_inner(
             let owner = owner.clone();
             let progress = progress.clone();
             let cancelled = cancelled.clone();
+            let interrupted = interrupted.clone();
             let job_id = job_id.to_string();
             async move {
                 if cancelled.load(std::sync::atomic::Ordering::Relaxed) {
+                    return;
+                }
+                // Safe point: groups already rendering finish, no new ones start.
+                if lp_jobs::shutting_down() {
+                    interrupted.store(true, std::sync::atomic::Ordering::Relaxed);
+                    cancelled.store(true, std::sync::atomic::Ordering::Relaxed);
                     return;
                 }
                 if i % CANCEL_CHECK_EVERY == 0
@@ -299,7 +313,12 @@ async fn scan_inner(
     crate::timers::report(t_groups.elapsed());
 
     for path in &orphans {
-        if cancelled.load(std::sync::atomic::Ordering::Relaxed) {
+        if lp_jobs::shutting_down() {
+            interrupted.store(true, std::sync::atomic::Ordering::Relaxed);
+        }
+        if cancelled.load(std::sync::atomic::Ordering::Relaxed)
+            || interrupted.load(std::sync::atomic::Ordering::Relaxed)
+        {
             break;
         }
         let needs = !db::path_is_known(&state.db, &path_str(path)).await?
@@ -314,6 +333,11 @@ async fn scan_inner(
         tick(p, job_id, &progress, err).await;
     }
 
+    if interrupted.load(std::sync::atomic::Ordering::Relaxed) {
+        let pg = progress.lock().await;
+        db::lrj_progress(&state.db, job_id, pg.done as i32, pg.target as i32).await?;
+        return Err(lp_jobs::interrupted());
+    }
     if cancelled.load(std::sync::atomic::Ordering::Relaxed) {
         tracing::info!(job_id, "scan cancelled");
         return Ok(());

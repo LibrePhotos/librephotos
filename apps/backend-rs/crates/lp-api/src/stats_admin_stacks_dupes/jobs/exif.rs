@@ -205,6 +205,10 @@ mod tests {
             "-execute",
             "EXIF:Model -o",
             "@",
+            "*Foo",
+            "?x",
+            "#x",
+            ":EXIF",
         ] {
             assert!(!is_safe_tag(bad), "{bad:?}");
         }

@@ -192,3 +192,72 @@ async fn the_last_file_group_queues_the_follow_ups_the_scan_stored() {
     assert_eq!(full, Some(true));
     app.cleanup().await;
 }
+
+/// Django #2124: the missing-file check bumps `last_modified` only on a
+/// photo that lost a file, so removed photos still age into
+/// `cleanup_deleted_photos` (and sync does not see the whole library change).
+#[tokio::test]
+async fn scan_missing_photos_touches_only_photos_that_lost_a_file() {
+    let app = TestApp::new().await;
+    let bob: (i32,) = sqlx::query_as("SELECT id FROM api_user WHERE username = 'bob'")
+        .fetch_one(app.pool())
+        .await
+        .unwrap();
+    let photos: Vec<(Uuid, String)> = sqlx::query_as(
+        "SELECT p.id, p.main_file_id FROM api_photo p WHERE p.owner_id = $1 ORDER BY p.id",
+    )
+    .bind(bob.0)
+    .fetch_all(app.pool())
+    .await
+    .unwrap();
+    assert!(photos.len() >= 3, "fixture bob has three photos");
+    let (lost, intact, removed) = (&photos[0], &photos[1], &photos[2]);
+    sqlx::query("UPDATE api_file SET path = 'C:/definitely/gone/x.jpg' WHERE hash = $1")
+        .bind(&lost.1)
+        .execute(app.pool())
+        .await
+        .unwrap();
+    sqlx::query("UPDATE api_photo SET removed = (id = $2), last_modified = now() - interval '30 days' WHERE owner_id = $1")
+        .bind(bob.0)
+        .bind(removed.0)
+        .execute(app.pool())
+        .await
+        .unwrap();
+    let p = Pipeline::new(app.state.clone());
+    lp_ingest::repair::scan_missing_photos(&p, bob.0, &Uuid::new_v4().to_string())
+        .await
+        .unwrap();
+    let recent = |id: Uuid| {
+        let pool = app.pool().clone();
+        async move {
+            sqlx::query_scalar::<_, bool>(
+                "SELECT last_modified > now() - interval '1 hour' FROM api_photo WHERE id = $1",
+            )
+            .bind(id)
+            .fetch_one(&pool)
+            .await
+            .unwrap()
+        }
+    };
+    assert!(
+        recent(lost.0).await,
+        "the photo that lost its file is touched"
+    );
+    assert!(!recent(intact.0).await, "an intact photo is not");
+    assert!(!recent(removed.0).await, "nor a removed one");
+    let missing: bool = sqlx::query_scalar("SELECT missing FROM api_file WHERE hash = $1")
+        .bind(&lost.1)
+        .fetch_one(app.pool())
+        .await
+        .unwrap();
+    assert!(missing);
+    let deleted = lp_db::write::jobs_zip_services::cleanup_deleted_photos(
+        app.pool(),
+        &app.state.config.media_root,
+        7,
+    )
+    .await
+    .unwrap();
+    assert_eq!(deleted, 1, "the removed photo ages into the cleanup");
+    app.cleanup().await;
+}

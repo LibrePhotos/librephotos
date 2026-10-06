@@ -12,6 +12,7 @@ mod edit;
 mod exif;
 mod photo_share;
 mod rotate;
+mod save_metadata;
 
 use axum::Json;
 use axum::Router;
@@ -48,6 +49,7 @@ pub fn routes() -> Router<AppState> {
             axum::routing::get(photo_share::list),
         )
         .route("/api/photo/share", post(photo_share::set_share))
+        .route("/api/savemetadata", post(save_metadata::save_metadata))
 }
 
 pub fn register_jobs(_reg: &mut HandlerRegistry) {}
