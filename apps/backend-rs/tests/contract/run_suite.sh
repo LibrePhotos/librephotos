@@ -332,6 +332,7 @@ run_mut() {
     clone "${name}_ref" "$ref_media"
     clone "${name}_rs" "$rs_media"
     if [ -n "$presql" ]; then
+        local presql_sh="${presql%.sql}.sh"
         [ "$LP_DB_BACKEND" = sqlite ] && presql="${presql%.sql}.sqlite.sql"
         if [ ! -f "$HERE/tests/$area/$presql" ]; then note "$unit: no tests/$area/$presql"; FAILED=1; return; fi
         for side in ref rs; do
@@ -342,7 +343,7 @@ run_mut() {
             else
                 sed "s|@MEDIA@|$(lp_win_path "$media")|g" "$HERE/tests/$area/$presql" | lp_psql -d "${name}_$side" >/dev/null
             fi
-            if [ -f "$HERE/tests/$area/${presql%.sql}.sh" ]; then bash "$HERE/tests/$area/${presql%.sql}.sh" "$media"; fi
+            if [ -f "$HERE/tests/$area/$presql_sh" ]; then bash "$HERE/tests/$area/$presql_sh" "$media"; fi
         done
     fi
     if [ -n "$mock" ]; then start_mock || { note "$unit: no mock"; FAILED=1; return; }; fi
