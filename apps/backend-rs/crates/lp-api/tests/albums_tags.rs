@@ -4,17 +4,19 @@
 #![allow(clippy::disallowed_methods)]
 
 use axum::http::StatusCode;
+use lp_db::db::Db;
 use lp_testkit::{TestApp, TestResponse};
 use serde_json::{Value, json};
-use sqlx::PgPool;
 use uuid::Uuid;
 
 /// Skip quietly when the template has no fixture (empty schema).
 async fn fixture(app: &TestApp) -> bool {
-    sqlx::query_scalar::<_, bool>("SELECT EXISTS (SELECT 1 FROM api_user WHERE username = 'alice')")
-        .fetch_one(app.pool())
-        .await
-        .unwrap()
+    lp_db::sql::query_scalar::<_, bool>(
+        "SELECT EXISTS (SELECT 1 FROM api_user WHERE username = 'alice')",
+    )
+    .fetch_one(app.pool())
+    .await
+    .unwrap()
 }
 
 async fn token(app: &TestApp, username: &str) -> String {
@@ -25,16 +27,16 @@ async fn token(app: &TestApp, username: &str) -> String {
     app.token_for(&user)
 }
 
-async fn album_id(db: &PgPool, title: &str) -> i32 {
-    sqlx::query_scalar("SELECT id FROM api_albumuser WHERE title = $1")
+async fn album_id(db: &Db, title: &str) -> i32 {
+    lp_db::sql::query_scalar("SELECT id FROM api_albumuser WHERE title = $1")
         .bind(title)
         .fetch_one(db)
         .await
         .unwrap()
 }
 
-async fn photo_ids(db: &PgPool, owner: &str, n: i64) -> Vec<Uuid> {
-    sqlx::query_scalar(
+async fn photo_ids(db: &Db, owner: &str, n: i64) -> Vec<Uuid> {
+    lp_db::sql::query_scalar(
         "SELECT p.id FROM api_photo p JOIN api_user u ON u.id = p.owner_id \
          WHERE u.username = $1 AND NOT p.hidden AND NOT p.in_trashcan ORDER BY p.exif_timestamp NULLS LAST, p.id LIMIT $2",
     )
@@ -45,8 +47,8 @@ async fn photo_ids(db: &PgPool, owner: &str, n: i64) -> Vec<Uuid> {
     .unwrap()
 }
 
-async fn hash_of(db: &PgPool, id: Uuid) -> String {
-    sqlx::query_scalar("SELECT image_hash FROM api_photo WHERE id = $1")
+async fn hash_of(db: &Db, id: Uuid) -> String {
+    lp_db::sql::query_scalar("SELECT image_hash FROM api_photo WHERE id = $1")
         .bind(id)
         .fetch_one(db)
         .await
@@ -410,7 +412,7 @@ async fn tag_reads_and_folders() {
         assert_eq!(body["parent_path"], Value::Null);
         assert_eq!(body["pagination"]["page_size"], 100);
         let bob_dir: String =
-            sqlx::query_scalar("SELECT scan_directory FROM api_user WHERE username = 'bob'")
+            lp_db::sql::query_scalar("SELECT scan_directory FROM api_user WHERE username = 'bob'")
                 .fetch_one(app.pool())
                 .await
                 .unwrap();
@@ -525,7 +527,7 @@ async fn user_album_edits_and_sharing() {
         )
         .await;
     assert_eq!(res.status, StatusCode::OK);
-    let videos: i64 = sqlx::query_scalar(
+    let videos: i64 = lp_db::sql::query_scalar(
         "SELECT count(*) FROM api_albumuser_photos l JOIN api_photo p ON p.id = l.photo_id \
          WHERE l.albumuser_id = $1 AND p.video",
     )
@@ -572,7 +574,7 @@ async fn user_album_edits_and_sharing() {
     assert_eq!(first_message(&res), "This field may not be blank.");
 
     // Share to bob, then he sees it (read-only).
-    let bob_id: i32 = sqlx::query_scalar("SELECT id FROM api_user WHERE username = 'bob'")
+    let bob_id: i32 = lp_db::sql::query_scalar("SELECT id FROM api_user WHERE username = 'bob'")
         .fetch_one(&db)
         .await
         .unwrap();
@@ -585,12 +587,13 @@ async fn user_album_edits_and_sharing() {
         .await;
     assert_eq!(res.status, StatusCode::OK);
     assert_eq!(res.json()["shared_to"][0]["username"], "bob");
-    let members: i64 =
-        sqlx::query_scalar("SELECT count(*) FROM api_albumuser_photos WHERE albumuser_id = $1")
-            .bind(id as i32)
-            .fetch_one(&db)
-            .await
-            .unwrap();
+    let members: i64 = lp_db::sql::query_scalar(
+        "SELECT count(*) FROM api_albumuser_photos WHERE albumuser_id = $1",
+    )
+    .bind(id as i32)
+    .fetch_one(&db)
+    .await
+    .unwrap();
     assert_eq!(res.json()["photo_count"], members);
     assert_eq!(
         app.get(&format!("/api/albums/user/{id}/"), Some(&bob))
@@ -700,7 +703,7 @@ async fn user_album_edits_and_sharing() {
             .status,
         StatusCode::NO_CONTENT
     );
-    let left: i64 = sqlx::query_scalar(
+    let left: i64 = lp_db::sql::query_scalar(
         "SELECT (SELECT count(*) FROM api_albumuser_photos WHERE albumuser_id = $1) \
               + (SELECT count(*) FROM api_albumuser_shared_to WHERE albumuser_id = $1) \
               + (SELECT count(*) FROM api_albumusershare WHERE album_id = $1)",
@@ -811,7 +814,7 @@ async fn tag_mutations() {
     assert!(res.json()["photo_count"].as_i64().unwrap() >= 2);
 
     // Merge "family" into ours; the source goes away.
-    let family: i32 = sqlx::query_scalar("SELECT id FROM api_tag WHERE name = 'family'")
+    let family: i32 = lp_db::sql::query_scalar("SELECT id FROM api_tag WHERE name = 'family'")
         .fetch_one(&db)
         .await
         .unwrap();
@@ -823,11 +826,12 @@ async fn tag_mutations() {
         )
         .await;
     assert_eq!(res.status, StatusCode::OK);
-    let gone: bool = sqlx::query_scalar("SELECT NOT EXISTS (SELECT 1 FROM api_tag WHERE id = $1)")
-        .bind(family)
-        .fetch_one(&db)
-        .await
-        .unwrap();
+    let gone: bool =
+        lp_db::sql::query_scalar("SELECT NOT EXISTS (SELECT 1 FROM api_tag WHERE id = $1)")
+            .bind(family)
+            .fetch_one(&db)
+            .await
+            .unwrap();
     assert!(gone);
     let res = app
         .post_json(
@@ -855,11 +859,12 @@ async fn tag_mutations() {
             .status,
         StatusCode::NO_CONTENT
     );
-    let links: i64 = sqlx::query_scalar("SELECT count(*) FROM api_tag_photos WHERE tag_id = $1")
-        .bind(id as i32)
-        .fetch_one(&db)
-        .await
-        .unwrap();
+    let links: i64 =
+        lp_db::sql::query_scalar("SELECT count(*) FROM api_tag_photos WHERE tag_id = $1")
+            .bind(id as i32)
+            .fetch_one(&db)
+            .await
+            .unwrap();
     assert_eq!(links, 0);
     app.cleanup().await;
 }
@@ -873,12 +878,13 @@ async fn auto_album_mutations_and_jobs() {
     let db = app.pool().clone();
     let alice = token(&app, "alice").await;
     let bob = token(&app, "bob").await;
-    let alice_id: i32 = sqlx::query_scalar("SELECT id FROM api_user WHERE username = 'alice'")
-        .fetch_one(&db)
-        .await
-        .unwrap();
+    let alice_id: i32 =
+        lp_db::sql::query_scalar("SELECT id FROM api_user WHERE username = 'alice'")
+            .fetch_one(&db)
+            .await
+            .unwrap();
     let ids: Vec<i32> =
-        sqlx::query_scalar("SELECT id FROM api_albumauto WHERE owner_id = $1 ORDER BY id")
+        lp_db::sql::query_scalar("SELECT id FROM api_albumauto WHERE owner_id = $1 ORDER BY id")
             .bind(alice_id)
             .fetch_all(&db)
             .await
@@ -900,11 +906,12 @@ async fn auto_album_mutations_and_jobs() {
         .post_json("/api/albums/auto/delete_all/", &json!({}), Some(&alice))
         .await;
     assert_eq!((res.status, res.json()), (StatusCode::OK, json!("success")));
-    let left: i64 = sqlx::query_scalar("SELECT count(*) FROM api_albumauto WHERE owner_id = $1")
-        .bind(alice_id)
-        .fetch_one(&db)
-        .await
-        .unwrap();
+    let left: i64 =
+        lp_db::sql::query_scalar("SELECT count(*) FROM api_albumauto WHERE owner_id = $1")
+            .bind(alice_id)
+            .fetch_one(&db)
+            .await
+            .unwrap();
     assert_eq!(left, 0);
 
     // Generation is queued as a tracked job...
@@ -914,7 +921,7 @@ async fn auto_album_mutations_and_jobs() {
     assert_eq!(res.status, StatusCode::OK);
     assert_eq!(res.json()["status"], true);
     let job_id = res.json()["job_id"].as_str().unwrap().to_string();
-    let job: lp_jobs::QueuedJob = sqlx::query_as(
+    let job: lp_jobs::QueuedJob = lp_db::sql::query_as(
         "SELECT id, kind, payload, status, lrj_id, group_id, run_after, attempts, max_attempts, locked_by, \
            heartbeat_at, last_error, created_at, started_at, finished_at FROM job_queue WHERE lrj_id = $1",
     )
@@ -947,7 +954,7 @@ async fn auto_album_mutations_and_jobs() {
         .post_json("/api/autoalbumtitlegen/", &json!({}), Some(&alice))
         .await;
     let job_id = res.json()["job_id"].as_str().unwrap().to_string();
-    let job: lp_jobs::QueuedJob = sqlx::query_as(
+    let job: lp_jobs::QueuedJob = lp_db::sql::query_as(
         "SELECT id, kind, payload, status, lrj_id, group_id, run_after, attempts, max_attempts, locked_by, \
            heartbeat_at, last_error, created_at, started_at, finished_at FROM job_queue WHERE lrj_id = $1",
     )

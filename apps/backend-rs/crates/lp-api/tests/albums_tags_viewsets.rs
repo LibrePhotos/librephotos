@@ -6,16 +6,18 @@
 #![allow(clippy::disallowed_methods)]
 
 use axum::http::{Method, StatusCode};
+use lp_db::db::Db;
 use lp_testkit::{TestApp, TestResponse};
 use serde_json::{Value, json};
-use sqlx::PgPool;
 use uuid::Uuid;
 
 async fn fixture(app: &TestApp) -> bool {
-    sqlx::query_scalar::<_, bool>("SELECT EXISTS (SELECT 1 FROM api_user WHERE username = 'alice')")
-        .fetch_one(app.pool())
-        .await
-        .unwrap()
+    lp_db::sql::query_scalar::<_, bool>(
+        "SELECT EXISTS (SELECT 1 FROM api_user WHERE username = 'alice')",
+    )
+    .fetch_one(app.pool())
+    .await
+    .unwrap()
 }
 
 async fn token(app: &TestApp, username: &str) -> String {
@@ -26,8 +28,8 @@ async fn token(app: &TestApp, username: &str) -> String {
     app.token_for(&user)
 }
 
-async fn album_id(db: &PgPool, title: &str) -> i32 {
-    sqlx::query_scalar("SELECT id FROM api_albumuser WHERE title = $1")
+async fn album_id(db: &Db, title: &str) -> i32 {
+    lp_db::sql::query_scalar("SELECT id FROM api_albumuser WHERE title = $1")
         .bind(title)
         .fetch_one(db)
         .await
@@ -212,7 +214,7 @@ async fn put_create_delete_and_expiry() {
     let carol = token(&app, "carol").await;
     let shared = album_id(&db, "Shared with Carol").await;
     let vacation = album_id(&db, "Vacation 2024").await;
-    let tag: i32 = sqlx::query_scalar("SELECT id FROM api_tag WHERE name = 'trips'")
+    let tag: i32 = lp_db::sql::query_scalar("SELECT id FROM api_tag WHERE name = 'trips'")
         .fetch_one(&db)
         .await
         .unwrap();
@@ -322,7 +324,7 @@ async fn put_create_delete_and_expiry() {
     assert_eq!(res.status, StatusCode::BAD_REQUEST);
     assert_eq!(res.json()["errors"][0]["field"], "photos");
     let fresh_id: i32 = fresh["id"].as_str().unwrap().parse().unwrap();
-    let photo: Uuid = sqlx::query_scalar(
+    let photo: Uuid = lp_db::sql::query_scalar(
         "SELECT l.photo_id FROM api_albumuser_photos l WHERE l.albumuser_id = $1 LIMIT 1",
     )
     .bind(vacation)
@@ -355,17 +357,18 @@ async fn put_create_delete_and_expiry() {
         )
         .await;
     assert_eq!(res.status, StatusCode::NO_CONTENT);
-    let left: i64 =
-        sqlx::query_scalar("SELECT count(*) FROM api_albumuser_photos WHERE albumuser_id = $1")
-            .bind(fresh_id)
-            .fetch_one(&db)
-            .await
-            .unwrap();
+    let left: i64 = lp_db::sql::query_scalar(
+        "SELECT count(*) FROM api_albumuser_photos WHERE albumuser_id = $1",
+    )
+    .bind(fresh_id)
+    .fetch_one(&db)
+    .await
+    .unwrap();
     assert_eq!(left, 0);
 
     // expires_at: unreadable text clears it, an impossible date keeps it.
-    let expiry = |db: PgPool| async move {
-        sqlx::query_scalar::<_, Option<chrono::DateTime<chrono::Utc>>>(
+    let expiry = |db: Db| async move {
+        lp_db::sql::query_scalar::<_, Option<chrono::DateTime<chrono::Utc>>>(
             "SELECT expires_at FROM api_albumusershare WHERE album_id = $1",
         )
         .bind(vacation)

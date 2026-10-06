@@ -446,7 +446,7 @@ async fn public_pages_with_sharing_options_and_search_semantics() {
         .parse()
         .unwrap();
 
-    sqlx::query(
+    lp_db::sql::query(
         "INSERT INTO api_albumuser_photos (albumuser_id, photo_id) VALUES ($1, $2), ($1, $3)",
     )
     .bind(trip_id)
@@ -455,7 +455,7 @@ async fn public_pages_with_sharing_options_and_search_semantics() {
     .execute(db)
     .await
     .unwrap();
-    sqlx::query(
+    lp_db::sql::query(
         "UPDATE api_albumusershare SET share_location = true, share_timestamps = true, \
          share_captions = true, share_faces = true, share_camera_info = true WHERE album_id = $1",
     )
@@ -512,7 +512,7 @@ async fn public_pages_with_sharing_options_and_search_semantics() {
     }
 
     // The owner's defaults drive the photo link; faces become bare names.
-    sqlx::query(
+    lp_db::sql::query(
         "UPDATE api_user SET public_sharing_defaults = '{\"share_faces\": true, \"share_timestamps\": true}' \
          WHERE username = 'alice'",
     )
@@ -529,7 +529,7 @@ async fn public_pages_with_sharing_options_and_search_semantics() {
         assert_eq!(p.as_object().unwrap().keys().collect::<Vec<_>>(), ["name"]);
     }
     // Revoked, or the photo trashed: 404.
-    sqlx::query("UPDATE api_photo SET in_trashcan = true WHERE id = (SELECT photo_id FROM api_photoshare WHERE slug = $1)")
+    lp_db::sql::query("UPDATE api_photo SET in_trashcan = true WHERE id = (SELECT photo_id FROM api_photoshare WHERE slug = $1)")
         .bind(pslug)
         .execute(db)
         .await
@@ -544,7 +544,7 @@ async fn public_pages_with_sharing_options_and_search_semantics() {
     // One tag row must satisfy every term (Django filters in one `filter()`
     // call, so the tags join is shared): two separate tags do not match two
     // terms, one tag holding both does.
-    let owner: i32 = sqlx::query_scalar("SELECT id FROM api_user WHERE username = 'alice'")
+    let owner: i32 = lp_db::sql::query_scalar("SELECT id FROM api_user WHERE username = 'alice'")
         .fetch_one(db)
         .await
         .unwrap();
@@ -554,7 +554,7 @@ async fn public_pages_with_sharing_options_and_search_semantics() {
         .parse()
         .unwrap();
     for name in ["qqalpha", "qqbeta"] {
-        sqlx::query(
+        lp_db::sql::query(
             "WITH t AS (INSERT INTO api_tag (name, owner_id, photo_count, last_modified) VALUES ($1, $2, 1, now()) RETURNING id) \
              INSERT INTO api_tag_photos (tag_id, photo_id) SELECT id, $3 FROM t",
         )
@@ -585,14 +585,14 @@ async fn public_pages_with_sharing_options_and_search_semantics() {
     assert!(hits("qqalpha%20qqbeta").await.is_empty());
     // A caption match for one term plus a tag for the other does match.
     assert_eq!(hits("qqalpha%20berlin").await, vec![berlin_hash.clone()]);
-    sqlx::query(
+    lp_db::sql::query(
         "INSERT INTO api_tag (name, owner_id, photo_count, last_modified) VALUES ('qqalpha qqbeta', $1, 1, now())",
     )
     .bind(owner)
     .execute(db)
     .await
     .unwrap();
-    sqlx::query(
+    lp_db::sql::query(
         "INSERT INTO api_tag_photos (tag_id, photo_id) SELECT id, $1 FROM api_tag WHERE name = 'qqalpha qqbeta'",
     )
     .bind(berlin_id)

@@ -127,7 +127,7 @@ async fn job_detail_is_owner_or_staff_only() {
     let (_, at) = fixture_user(&app, "alice").await;
     let (_, bt) = fixture_user(&app, "bob").await;
     let (_, admin) = fixture_user(&app, "admin").await;
-    let id: i32 = sqlx::query_scalar(
+    let id: i32 = lp_db::sql::query_scalar(
         "SELECT j.id FROM api_longrunningjob j JOIN api_user u ON u.id = j.started_by_id \
          WHERE u.username = 'alice' ORDER BY j.id LIMIT 1",
     )
@@ -159,7 +159,7 @@ async fn rqavailable_shows_the_job_only_to_its_starter_and_staff() {
     let (_, bt) = fixture_user(&app, "bob").await;
     let (_, admin) = fixture_user(&app, "admin").await;
     // Only one unfinished, recent job: alice's, started now.
-    sqlx::query("UPDATE api_longrunningjob SET finished = TRUE WHERE NOT finished")
+    lp_db::sql::query("UPDATE api_longrunningjob SET finished = TRUE WHERE NOT finished")
         .execute(app.pool())
         .await
         .unwrap();
@@ -186,7 +186,7 @@ async fn rqavailable_shows_the_job_only_to_its_starter_and_staff() {
         assert_eq!(keys(&res["job_detail"]), JOB_FIELDS);
     }
     // A row stuck for more than 24 h no longer blocks the queue.
-    sqlx::query(
+    lp_db::sql::query(
         "UPDATE api_longrunningjob SET started_at = now() - interval '25 hours' WHERE job_id = $1",
     )
     .bind(&job_id)
@@ -213,7 +213,7 @@ async fn cancel_and_delete_jobs() {
     .await
     .unwrap();
     let lrj_id = e.lrj_id.unwrap();
-    let pk: i32 = sqlx::query_scalar("SELECT id FROM api_longrunningjob WHERE job_id = $1")
+    let pk: i32 = lp_db::sql::query_scalar("SELECT id FROM api_longrunningjob WHERE job_id = $1")
         .bind(&lrj_id)
         .fetch_one(app.pool())
         .await
@@ -229,7 +229,7 @@ async fn cancel_and_delete_jobs() {
     assert_eq!(body["job"]["cancelled"], true);
     assert_eq!(body["job"]["finished"], true);
     assert_eq!(body["job"]["result"], json!({"status": "cancelled"}));
-    let status: String = sqlx::query_scalar("SELECT status FROM job_queue WHERE id = $1")
+    let status: String = lp_db::sql::query_scalar("SELECT status FROM job_queue WHERE id = $1")
         .bind(e.id)
         .fetch_one(app.pool())
         .await
@@ -260,7 +260,7 @@ async fn cancel_and_delete_jobs() {
     )
     .await
     .unwrap();
-    let pk: i32 = sqlx::query_scalar("SELECT id FROM api_longrunningjob WHERE job_id = $1")
+    let pk: i32 = lp_db::sql::query_scalar("SELECT id FROM api_longrunningjob WHERE job_id = $1")
         .bind(e.lrj_id.as_ref().unwrap())
         .fetch_one(app.pool())
         .await
@@ -271,7 +271,7 @@ async fn cancel_and_delete_jobs() {
             .status,
         204
     );
-    let status: String = sqlx::query_scalar("SELECT status FROM job_queue WHERE id = $1")
+    let status: String = lp_db::sql::query_scalar("SELECT status FROM job_queue WHERE id = $1")
         .bind(e.id)
         .fetch_one(app.pool())
         .await
@@ -281,7 +281,7 @@ async fn cancel_and_delete_jobs() {
 }
 
 async fn queued(app: &TestApp, lrj_id: &str) -> (String, Value, i32, i32) {
-    sqlx::query_as(
+    lp_db::sql::query_as(
         "SELECT q.kind, q.payload, j.job_type, j.started_by_id FROM job_queue q \
          JOIN api_longrunningjob j ON j.job_id = q.lrj_id WHERE q.lrj_id = $1",
     )
@@ -360,7 +360,7 @@ async fn trigger_buttons_enqueue_contract_jobs() {
         res.json(),
         json!({"status": false, "message": "Scan failed: No scan directory configured. Please contact your administrator to set up a scan directory for your account."})
     );
-    sqlx::query("UPDATE api_user SET scan_directory = 'C:/does/not/exist' WHERE id = $1")
+    lp_db::sql::query("UPDATE api_user SET scan_directory = 'C:/does/not/exist' WHERE id = $1")
         .bind(nodir.id)
         .execute(app.pool())
         .await
@@ -373,12 +373,13 @@ async fn trigger_buttons_enqueue_contract_jobs() {
         res.json()["message"],
         "Scan failed: Scan directory 'C:/does/not/exist' does not exist. Please contact your administrator."
     );
-    let n: i64 =
-        sqlx::query_scalar("SELECT count(*) FROM api_longrunningjob WHERE started_by_id = $1")
-            .bind(nodir.id)
-            .fetch_one(app.pool())
-            .await
-            .unwrap();
+    let n: i64 = lp_db::sql::query_scalar(
+        "SELECT count(*) FROM api_longrunningjob WHERE started_by_id = $1",
+    )
+    .bind(nodir.id)
+    .fetch_one(app.pool())
+    .await
+    .unwrap();
     assert_eq!(n, 0);
     app.cleanup().await;
 }
@@ -424,7 +425,10 @@ fn zip_names(path: &std::path::Path) -> BTreeSet<String> {
 }
 
 async fn photo_hashes(app: &TestApp, sql: &str) -> Vec<String> {
-    sqlx::query_scalar(sql).fetch_all(app.pool()).await.unwrap()
+    lp_db::sql::query_scalar(sql)
+        .fetch_all(app.pool())
+        .await
+        .unwrap()
 }
 
 #[tokio::test]
@@ -496,7 +500,7 @@ async fn zip_download_end_to_end() {
         .zip_dir()
         .join(format!("{file_uuid}{}.zip", alice.id));
     let names = zip_names(&zip_path);
-    let expected: BTreeSet<String> = sqlx::query_scalar::<_, String>(
+    let expected: BTreeSet<String> = lp_db::sql::query_scalar::<_, String>(
         "SELECT f.path FROM api_photo p JOIN api_file f ON f.hash = p.main_file_id \
          WHERE p.image_hash = ANY($1)",
     )
@@ -671,19 +675,20 @@ async fn zip_selection_rules() {
         .await
         .json();
     let (_, payload, _, owner) = queued(&app, res["job_id"].as_str().unwrap()).await;
-    let owners: Vec<i32> =
-        sqlx::query_scalar("SELECT DISTINCT owner_id FROM api_photo WHERE id = ANY($1::uuid[])")
-            .bind(
-                payload["photo_ids"]
-                    .as_array()
-                    .unwrap()
-                    .iter()
-                    .map(|v| v.as_str().unwrap().parse::<uuid::Uuid>().unwrap())
-                    .collect::<Vec<_>>(),
-            )
-            .fetch_all(app.pool())
-            .await
-            .unwrap();
+    let owners: Vec<i32> = lp_db::sql::query_scalar(
+        "SELECT DISTINCT owner_id FROM api_photo WHERE id = ANY($1::uuid[])",
+    )
+    .bind(
+        payload["photo_ids"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|v| v.as_str().unwrap().parse::<uuid::Uuid>().unwrap())
+            .collect::<Vec<_>>(),
+    )
+    .fetch_all(app.pool())
+    .await
+    .unwrap();
     assert_eq!(owners, vec![owner]);
     app.cleanup().await;
 }
@@ -814,7 +819,7 @@ async fn missing_models_queue_one_download() {
     let app = TestApp::new().await;
     let (alice, at) = fixture_user(&app, "alice").await;
     let downloads = async || -> Vec<(String, i32, bool)> {
-        sqlx::query_as(
+        lp_db::sql::query_as(
             "SELECT q.kind, j.job_type, j.finished FROM job_queue q              JOIN api_longrunningjob j ON j.job_id = q.lrj_id WHERE q.kind = 'models.download'",
         )
         .fetch_all(app.pool())
@@ -849,11 +854,12 @@ async fn missing_models_queue_one_download() {
         200
     );
     assert_eq!(downloads().await.len(), 1);
-    let started_by: i32 =
-        sqlx::query_scalar("SELECT started_by_id FROM api_longrunningjob WHERE job_type = 10")
-            .fetch_one(app.pool())
-            .await
-            .unwrap();
+    let started_by: i32 = lp_db::sql::query_scalar(
+        "SELECT started_by_id FROM api_longrunningjob WHERE job_type = 10",
+    )
+    .fetch_one(app.pool())
+    .await
+    .unwrap();
     assert_eq!(started_by, alice.id);
     app.cleanup().await;
 }

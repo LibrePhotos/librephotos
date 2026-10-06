@@ -93,7 +93,7 @@ async fn run_queued(app: &TestApp, kind: &str) -> bool {
 }
 
 async fn photo_of(app: &TestApp, path: &Path) -> (Uuid, String) {
-    sqlx::query_as(
+    lp_db::sql::query_as(
         "SELECT p.id, t.thumbnail_big FROM api_photo p JOIN api_file f ON f.hash = p.main_file_id \
          JOIN api_thumbnail t ON t.photo_id = p.id WHERE f.path = $1",
     )
@@ -145,7 +145,7 @@ async fn face_regions_are_written_back_and_read_onto_the_same_face() {
         .write_metadata(&rotated, &[("EXIF:Orientation".into(), json!(6))], false)
         .await
         .unwrap();
-    sqlx::query("UPDATE api_user SET scan_directory = $2 WHERE id = $1")
+    lp_db::sql::query("UPDATE api_user SET scan_directory = $2 WHERE id = $1")
         .bind(user.id)
         .bind(dir.to_string_lossy().to_string())
         .execute(app.pool())
@@ -184,7 +184,7 @@ async fn face_regions_are_written_back_and_read_onto_the_same_face() {
         .await;
     assert_eq!(res.status, 200, "{}", res.text());
 
-    sqlx::query(
+    lp_db::sql::query(
         "UPDATE api_user SET save_face_tags_to_disk = TRUE, save_metadata_to_disk = 'SIDECAR_FILE' \
          WHERE id = $1",
     )
@@ -240,7 +240,7 @@ async fn face_regions_are_written_back_and_read_onto_the_same_face() {
     assert_eq!(subject, json!(["Eve"]));
 
     // Media-file mode, a photo shot in portrait (EXIF 6).
-    sqlx::query("UPDATE api_user SET save_metadata_to_disk = 'MEDIA_FILE' WHERE id = $1")
+    lp_db::sql::query("UPDATE api_user SET save_metadata_to_disk = 'MEDIA_FILE' WHERE id = $1")
         .bind(user.id)
         .execute(app.pool())
         .await

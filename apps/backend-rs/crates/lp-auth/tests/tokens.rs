@@ -330,7 +330,7 @@ async fn basic_auth_like_drf() {
         assert_eq!(status, StatusCode::UNAUTHORIZED, "{auth}");
     }
     // An inactive user is refused like a wrong password (ModelBackend).
-    sqlx::query("UPDATE api_user SET is_active = FALSE WHERE id = $1")
+    lp_db::sql::query("UPDATE api_user SET is_active = FALSE WHERE id = $1")
         .bind(user.id)
         .execute(app.pool())
         .await

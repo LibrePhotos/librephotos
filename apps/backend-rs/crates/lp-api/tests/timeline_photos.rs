@@ -4,6 +4,7 @@
 #![allow(clippy::disallowed_methods)]
 
 use axum::http::StatusCode;
+use lp_db::db::DjUuid;
 use lp_testkit::TestApp;
 use serde_json::{Value, json};
 use uuid::Uuid;
@@ -22,7 +23,7 @@ async fn token(app: &TestApp, name: &str) -> String {
 
 /// `(id, image_hash)` of the first photo matching `cond` (SQL over alias p).
 async fn photo_where(app: &TestApp, cond: &str) -> (Uuid, String) {
-    sqlx::query_as(&format!(
+    lp_db::sql::query_as(format!(
         "SELECT p.id, p.image_hash FROM api_photo p JOIN api_user u ON u.id = p.owner_id \
          WHERE {cond} ORDER BY p.image_hash LIMIT 1"
     ))
@@ -123,7 +124,7 @@ async fn date_page_paging_and_authz() {
     let app = TestApp::shared().await;
     let alice = token(&app, "alice").await;
     let bob = token(&app, "bob").await;
-    let (biggest, n): (i32, i64) = sqlx::query_as(
+    let (biggest, n): (i32, i64) = lp_db::sql::query_as(
         "SELECT a.id, count(*) FROM api_albumdate a JOIN api_albumdate_photos ap ON ap.albumdate_id = a.id \
          JOIN api_user u ON u.id = a.owner_id WHERE u.username = 'alice' GROUP BY a.id \
          ORDER BY count(*) DESC, a.id LIMIT 1",
@@ -180,7 +181,7 @@ async fn date_page_paging_and_authz() {
     assert_eq!(res.status, StatusCode::UNAUTHORIZED);
 
     // Public view: only days holding a public photo, only public photos.
-    let (public_day,): (i32,) = sqlx::query_as(
+    let (public_day,): (i32,) = lp_db::sql::query_as(
         "SELECT a.id FROM api_albumdate a JOIN api_albumdate_photos ap ON ap.albumdate_id = a.id \
          JOIN api_photo p ON p.id = ap.photo_id WHERE p.public ORDER BY a.id LIMIT 1",
     )
@@ -206,7 +207,7 @@ async fn date_page_paging_and_authz() {
 #[tokio::test]
 async fn public_place_tolerates_scalar_places() {
     let app = TestApp::new().await;
-    let (day, photo): (i32, Uuid) = sqlx::query_as(
+    let (day, photo): (i32, DjUuid) = lp_db::sql::query_as(
         "SELECT ap.albumdate_id, p.id FROM api_albumdate_photos ap JOIN api_photo p ON p.id = ap.photo_id \
          WHERE p.public AND NOT p.hidden AND NOT p.in_trashcan ORDER BY p.id LIMIT 1",
     )
@@ -214,7 +215,7 @@ async fn public_place_tolerates_scalar_places() {
     .await
     .unwrap();
     // Leave this photo the only geotagged public one of its day.
-    sqlx::query(
+    lp_db::sql::query(
         "UPDATE api_photo SET geolocation_json = '{}' WHERE id IN \
          (SELECT photo_id FROM api_albumdate_photos WHERE albumdate_id = $1)",
     )
@@ -222,12 +223,14 @@ async fn public_place_tolerates_scalar_places() {
     .execute(app.pool())
     .await
     .unwrap();
-    sqlx::query(r#"UPDATE api_photo SET geolocation_json = '{"places": "ab"}' WHERE id = $1"#)
-        .bind(photo)
-        .execute(app.pool())
-        .await
-        .unwrap();
-    sqlx::query(r#"UPDATE api_albumdate SET location = '{"places": "Xyz"}' WHERE id = $1"#)
+    lp_db::sql::query(
+        r#"UPDATE api_photo SET geolocation_json = '{"places": "ab"}' WHERE id = $1"#,
+    )
+    .bind(photo)
+    .execute(app.pool())
+    .await
+    .unwrap();
+    lp_db::sql::query(r#"UPDATE api_albumdate SET location = '{"places": "Xyz"}' WHERE id = $1"#)
         .bind(day)
         .execute(app.pool())
         .await
@@ -249,7 +252,7 @@ async fn public_place_tolerates_scalar_places() {
     assert_eq!(res.status, StatusCode::OK);
     assert_eq!(res.json()["results"]["location"], "a");
 
-    let owner = sqlx::query_scalar::<_, String>(
+    let owner = lp_db::sql::query_scalar::<_, String>(
         "SELECT u.username FROM api_albumdate a JOIN api_user u ON u.id = a.owner_id WHERE a.id = $1",
     )
     .bind(day)
@@ -279,7 +282,7 @@ async fn recently_added_and_no_timestamp() {
         StatusCode::UNAUTHORIZED
     );
 
-    let (expected,): (i64,) = sqlx::query_as(&format!(
+    let (expected,): (i64,) = lp_db::sql::query_as(format!(
         "SELECT count(*) FROM api_photo p JOIN api_user u ON u.id = p.owner_id \
          WHERE u.username = 'alice' AND p.exif_timestamp IS NULL AND {VISIBLE}"
     ))
@@ -342,7 +345,7 @@ async fn memories_around_an_anniversary() {
         StatusCode::UNAUTHORIZED
     );
     // A day of alice's two years before the reference date.
-    let (day,): (chrono::NaiveDate,) = sqlx::query_as(
+    let (day,): (chrono::NaiveDate,) = lp_db::sql::query_as(
         "SELECT a.date FROM api_albumdate a JOIN api_user u ON u.id = a.owner_id \
          JOIN api_albumdate_photos ap ON ap.albumdate_id = a.id \
          JOIN api_photo p ON p.id = ap.photo_id \
@@ -650,7 +653,7 @@ async fn metadata_patch_tracks_edits_and_tags() {
     );
     assert_eq!(m["edit_history"][0]["user_name"], "alice");
 
-    let tags: Vec<(String, i32)> = sqlx::query_as(
+    let tags: Vec<(String, i32)> = lp_db::sql::query_as(
         "SELECT t.name, t.photo_count FROM api_tag t JOIN api_tag_photos tp ON tp.tag_id = t.id \
          WHERE tp.photo_id = $1 AND t.name LIKE 'tl-kw-%' ORDER BY t.name",
     )
@@ -673,7 +676,7 @@ async fn metadata_patch_tracks_edits_and_tags() {
     assert_eq!(m["edit_history"][0]["field_name"], "keywords");
     assert_eq!(m["edit_history"][1]["field_name"], "rating");
     let (a_count,): (i32,) =
-        sqlx::query_as("SELECT photo_count FROM api_tag WHERE name = 'tl-kw-a'")
+        lp_db::sql::query_as("SELECT photo_count FROM api_tag WHERE name = 'tl-kw-a'")
             .fetch_one(app.pool())
             .await
             .unwrap();

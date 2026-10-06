@@ -190,6 +190,10 @@ pub async fn detect(
         .unwrap_or(10);
     let mut lap = Laps::new();
     let mut tx = state.db.begin().await?;
+    // Progress goes through the pool while `tx` is open. SQLITE(P2): there `tx`
+    // holds the single writer, so a pool write would wait for it; report
+    // progress only after the commit (or batch the transaction) on SQLite.
+    let live_progress = tx.dialect().is_pg();
     if option_flag(options, "clear_pending", false) {
         write::clear_pending(&mut tx, user_id).await?;
     }
@@ -199,7 +203,9 @@ pub async fn detect(
         let by_content = detect::same_content_groups(&mut tx, user_id).await?;
         lap.mark("exact_inputs");
         let total = by_hash.len() + by_content.len();
-        progress(state, lrj, "exact_copies", 0, total, 0).await;
+        if live_progress {
+            progress(state, lrj, "exact_copies", 0, total, 0).await;
+        }
         let mut uf = UnionFind::default();
         for group in by_hash.iter().chain(&by_content) {
             for other in &group[1..] {
@@ -208,14 +214,18 @@ pub async fn detect(
         }
         found += write::create_or_merge_many(&mut tx, user_id, EXACT_COPY, &uf.groups()).await?;
         lap.mark("exact_writes");
-        progress(state, lrj, "exact_copies", total, total, found).await;
+        if live_progress {
+            progress(state, lrj, "exact_copies", total, total, found).await;
+        }
     }
     if detect_visual {
         let candidates = detect::visual_candidates(&mut tx, user_id).await?;
         lap.mark("visual_inputs");
         let total = candidates.len();
         if total >= 2 {
-            progress(state, lrj, "visual_duplicates", 0, total, 0).await;
+            if live_progress {
+                progress(state, lrj, "visual_duplicates", 0, total, 0).await;
+            }
             let pairs = state
                 .blocking(move || {
                     let hashes: Vec<&str> = candidates.iter().map(|(_, h)| h.as_str()).collect();
@@ -240,7 +250,9 @@ pub async fn detect(
             found +=
                 write::create_or_merge_many(&mut tx, user_id, VISUAL_DUPLICATE, &groups).await?;
             lap.mark("visual_writes");
-            progress(state, lrj, "visual_duplicates", total, total, pair_count).await;
+            if live_progress {
+                progress(state, lrj, "visual_duplicates", total, total, pair_count).await;
+            }
         }
     }
     tx.commit().await?;

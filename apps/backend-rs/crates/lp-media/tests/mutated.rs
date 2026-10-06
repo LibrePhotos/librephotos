@@ -24,7 +24,7 @@ async fn shared_hash_and_revoked_shares() {
     let bob_p = photo(&m, "bob/e2e_01");
 
     // Two users scanned the same file: bob's row inherits alice's hash.
-    sqlx::query("UPDATE api_photo SET image_hash = $1 WHERE id = $2::uuid")
+    lp_db::sql::query("UPDATE api_photo SET image_hash = $1 WHERE id = $2::uuid")
         .bind(&alice_p.hash)
         .bind(&bob_p.id)
         .execute(&pool)
@@ -59,7 +59,7 @@ async fn shared_hash_and_revoked_shares() {
     assert_eq!(direct.get(&orig, None).await.status, StatusCode::FORBIDDEN);
 
     // A public twin is what anonymous and strangers resolve to.
-    sqlx::query("UPDATE api_photo SET public = TRUE WHERE id = $1::uuid")
+    lp_db::sql::query("UPDATE api_photo SET public = TRUE WHERE id = $1::uuid")
         .bind(&bob_p.id)
         .execute(&pool)
         .await
@@ -80,7 +80,7 @@ async fn shared_hash_and_revoked_shares() {
     let berlin = photo(&m, "alice/berlin_02");
     let thumb = format!("/media/thumbnails_big/{}", berlin.hash);
     assert_eq!(direct.get(&thumb, None).await.status, StatusCode::OK);
-    sqlx::query("UPDATE api_albumusershare SET enabled = FALSE WHERE album_id = $1")
+    lp_db::sql::query("UPDATE api_albumusershare SET enabled = FALSE WHERE album_id = $1")
         .bind(m["shares"]["public_album"]["album_id"].as_i64().unwrap() as i32)
         .execute(&pool)
         .await
@@ -96,18 +96,18 @@ async fn shared_hash_and_revoked_shares() {
     let shared = photo(&m, m["shares"]["photo_share"]["photo"].as_str().unwrap());
     let url = format!("/api/public/photo/{slug}/media/thumbnail/");
     assert_eq!(direct.get(&url, None).await.status, StatusCode::OK);
-    sqlx::query("UPDATE api_photo SET hidden = TRUE WHERE id = $1::uuid")
+    lp_db::sql::query("UPDATE api_photo SET hidden = TRUE WHERE id = $1::uuid")
         .bind(&shared.id)
         .execute(&pool)
         .await
         .unwrap();
     assert_eq!(direct.get(&url, None).await.status, StatusCode::NOT_FOUND);
-    sqlx::query("UPDATE api_photo SET hidden = FALSE WHERE id = $1::uuid")
+    lp_db::sql::query("UPDATE api_photo SET hidden = FALSE WHERE id = $1::uuid")
         .bind(&shared.id)
         .execute(&pool)
         .await
         .unwrap();
-    sqlx::query("UPDATE api_photoshare SET enabled = FALSE WHERE slug = $1")
+    lp_db::sql::query("UPDATE api_photoshare SET enabled = FALSE WHERE slug = $1")
         .bind(slug)
         .execute(&pool)
         .await
@@ -118,7 +118,7 @@ async fn shared_hash_and_revoked_shares() {
     let public = photo(&m, "alice/e2e_05");
     let p_thumb = format!("/media/thumbnails_big/{}", public.hash);
     assert_eq!(direct.get(&p_thumb, None).await.status, StatusCode::OK);
-    sqlx::query("UPDATE api_photo SET in_trashcan = TRUE WHERE id = $1::uuid")
+    lp_db::sql::query("UPDATE api_photo SET in_trashcan = TRUE WHERE id = $1::uuid")
         .bind(&public.id)
         .execute(&pool)
         .await
@@ -155,19 +155,19 @@ async fn files_under_a_writable_media_root() {
         .join(format!("{}_motion.mp4", p.hash));
     std::fs::write(&embedded, b"\0\0\0\x18ftypmp42motion").unwrap();
     let main_file: String =
-        sqlx::query_scalar("SELECT main_file_id FROM api_photo WHERE id = $1::uuid")
+        lp_db::sql::query_scalar("SELECT main_file_id FROM api_photo WHERE id = $1::uuid")
             .bind(&p.id)
             .fetch_one(&pool)
             .await
             .unwrap();
-    sqlx::query(
+    lp_db::sql::query(
         "INSERT INTO api_file (hash, path, type, missing) VALUES ('embedded-test-1', $1, 6, FALSE)",
     )
     .bind(embedded.to_string_lossy().to_string())
     .execute(&pool)
     .await
     .unwrap();
-    sqlx::query("INSERT INTO api_file_embedded_media (from_file_id, to_file_id) VALUES ($1, 'embedded-test-1')")
+    lp_db::sql::query("INSERT INTO api_file_embedded_media (from_file_id, to_file_id) VALUES ($1, 'embedded-test-1')")
         .bind(&main_file)
         .execute(&pool)
         .await
@@ -209,14 +209,14 @@ async fn files_under_a_writable_media_root() {
     // photo API's sense (Django checks the bare `public` flag here, so a
     // trashed or hidden public photo kept serving its motion video).
     let embedded_url = format!("/media/embedded_media/{}", p.hash);
-    sqlx::query("UPDATE api_photo SET public = TRUE WHERE id = $1::uuid")
+    lp_db::sql::query("UPDATE api_photo SET public = TRUE WHERE id = $1::uuid")
         .bind(&p.id)
         .execute(&pool)
         .await
         .unwrap();
     assert_eq!(direct.get(&embedded_url, None).await.status, StatusCode::OK);
     for column in ["in_trashcan", "hidden", "removed"] {
-        sqlx::query(&format!(
+        lp_db::sql::query(format!(
             "UPDATE api_photo SET {column} = TRUE WHERE id = $1::uuid"
         ))
         .bind(&p.id)
@@ -233,7 +233,7 @@ async fn files_under_a_writable_media_root() {
             StatusCode::OK,
             "the owner still gets it ({column})"
         );
-        sqlx::query(&format!(
+        lp_db::sql::query(format!(
             "UPDATE api_photo SET {column} = FALSE WHERE id = $1::uuid"
         ))
         .bind(&p.id)
@@ -241,7 +241,7 @@ async fn files_under_a_writable_media_root() {
         .await
         .unwrap();
     }
-    sqlx::query("UPDATE api_photo SET public = FALSE WHERE id = $1::uuid")
+    lp_db::sql::query("UPDATE api_photo SET public = FALSE WHERE id = $1::uuid")
         .bind(&p.id)
         .execute(&pool)
         .await
@@ -251,7 +251,7 @@ async fn files_under_a_writable_media_root() {
     std::fs::create_dir_all(media.join("thumbnails_big")).unwrap();
     let big = media.join("thumbnails_big").join(format!("{}.jpg", p.hash));
     std::fs::write(&big, b"\xFF\xD8\xFFjpeg-bytes").unwrap();
-    sqlx::query(
+    lp_db::sql::query(
         "UPDATE api_thumbnail SET thumbnail_big = $1, square_thumbnail = $2, square_thumbnail_small = $3 \
          WHERE photo_id = $4::uuid",
     )
@@ -361,7 +361,7 @@ async fn transcoding_streams_live_then_serves_the_cached_copy() {
     let direct = app_on(&db.name, "direct", Some(&base)).await;
     let accel = app_on(&db.name, "x-accel", Some(&base)).await;
     let pool = direct.pool().clone();
-    sqlx::query("UPDATE api_user SET transcode_videos = TRUE WHERE username = 'alice'")
+    lp_db::sql::query("UPDATE api_user SET transcode_videos = TRUE WHERE username = 'alice'")
         .execute(&pool)
         .await
         .unwrap();
@@ -501,12 +501,12 @@ async fn linked_folders_are_served_in_direct_mode() {
     let base_s = base.to_string_lossy().replace('\\', "/");
     let direct = app_on(&db.name, "direct", Some(&base_s)).await;
     let pool = direct.pool().clone();
-    sqlx::query("UPDATE api_user SET scan_directory = $1 WHERE username = 'alice'")
+    lp_db::sql::query("UPDATE api_user SET scan_directory = $1 WHERE username = 'alice'")
         .bind(scan.to_string_lossy().to_string())
         .execute(&pool)
         .await
         .unwrap();
-    sqlx::query(
+    lp_db::sql::query(
         "UPDATE api_file SET path = $1 WHERE hash = (SELECT main_file_id FROM api_photo WHERE id = $2::uuid)",
     )
     .bind(scan.join("linked").join("e2e_01.jpg").to_string_lossy().to_string())
@@ -532,7 +532,7 @@ async fn linked_folders_are_served_in_direct_mode() {
     assert_eq!(res.body.as_ref(), original.as_slice());
 
     // `..` behind a link still resolves physically, never as text.
-    sqlx::query(
+    lp_db::sql::query(
         "UPDATE api_file SET path = $1 WHERE hash = (SELECT main_file_id FROM api_photo WHERE id = $2::uuid)",
     )
     .bind(

@@ -1,6 +1,7 @@
 //! What the server says about itself (`api/views/server_info.py`,
 //! `ServerStatsView` / `ServerLogs*View` in `api/views/dataviz.py`).
 
+use lp_db::db::Db;
 use lp_proc::NoWindow;
 use std::collections::HashMap;
 use std::io::{Read, Seek, SeekFrom};
@@ -201,7 +202,7 @@ fn person_group_stats(groups: &[(i64, i64)]) -> Value {
 }
 
 /// `_get_user_stats` for every real user.
-async fn user_stats(db_pool: &sqlx::PgPool) -> ApiResult<Vec<Value>> {
+async fn user_stats(db_pool: &Db) -> ApiResult<Vec<Value>> {
     let (users, totals, groups, clusters) = tokio::try_join!(
         db::real_users(db_pool),
         db::photo_totals(db_pool),

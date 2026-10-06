@@ -366,7 +366,7 @@ async fn face_jobs() {
         assert_eq!(body["status"], true);
         let job_id = body["job_id"].as_str().unwrap().to_string();
         let (k, payload): (String, Value) =
-            sqlx::query_as("SELECT kind, payload FROM job_queue WHERE lrj_id = $1")
+            lp_db::sql::query_as("SELECT kind, payload FROM job_queue WHERE lrj_id = $1")
                 .bind(&job_id)
                 .fetch_one(app.pool())
                 .await
@@ -374,7 +374,7 @@ async fn face_jobs() {
         assert_eq!(k, kind);
         assert_eq!(&payload, want);
         let jt: i32 =
-            sqlx::query_scalar("SELECT job_type FROM api_longrunningjob WHERE job_id = $1")
+            lp_db::sql::query_scalar("SELECT job_type FROM api_longrunningjob WHERE job_id = $1")
                 .bind(&job_id)
                 .fetch_one(app.pool())
                 .await
@@ -389,7 +389,7 @@ async fn face_jobs() {
 }
 
 async fn face_row(app: &TestApp, id: i64) -> (Option<i32>, Option<i32>, Option<i32>, bool) {
-    sqlx::query_as(
+    lp_db::sql::query_as(
         "SELECT person_id, cluster_person_id, classification_person_id, deleted FROM api_face WHERE id = $1",
     )
     .bind(id as i32)
@@ -399,7 +399,7 @@ async fn face_row(app: &TestApp, id: i64) -> (Option<i32>, Option<i32>, Option<i
 }
 
 async fn person_row(app: &TestApp, id: i64) -> (String, i32, Option<i32>, Option<uuid::Uuid>) {
-    sqlx::query_as(
+    lp_db::sql::query_as(
         "SELECT name, face_count, cover_face_id, cover_photo_id FROM api_person WHERE id = $1",
     )
     .bind(id as i32)
@@ -409,11 +409,13 @@ async fn person_row(app: &TestApp, id: i64) -> (String, i32, Option<i32>, Option
 }
 
 async fn captions(app: &TestApp, photo: &str) -> String {
-    sqlx::query_scalar("SELECT search_captions FROM api_photo_search WHERE photo_id = $1::uuid")
-        .bind(photo)
-        .fetch_one(app.pool())
-        .await
-        .unwrap()
+    lp_db::sql::query_scalar(
+        "SELECT search_captions FROM api_photo_search WHERE photo_id = $1::uuid",
+    )
+    .bind(photo)
+    .fetch_one(app.pool())
+    .await
+    .unwrap()
 }
 
 #[tokio::test]
@@ -640,7 +642,7 @@ async fn person_patch_and_delete() {
     );
     let res = app.delete(&path, None, Some(&alice)).await;
     assert_eq!(res.status, StatusCode::NO_CONTENT);
-    let left: i64 = sqlx::query_scalar(
+    let left: i64 = lp_db::sql::query_scalar(
         "SELECT COUNT(*) FROM api_face WHERE person_id = $1 OR cluster_person_id = $1 OR classification_person_id = $1",
     )
     .bind(ben as i32)
@@ -724,7 +726,7 @@ async fn add_face_draws_a_labelled_face() {
     assert_eq!((crop.width(), crop.height()), (160, 180));
 
     let (person, cluster, deleted, encoding): (Option<i32>, Option<i32>, bool, String) =
-        sqlx::query_as(
+        lp_db::sql::query_as(
             "SELECT person_id, cluster_id, deleted, encoding FROM api_face WHERE id = $1",
         )
         .bind(face["face_id"].as_i64().unwrap() as i32)
@@ -784,7 +786,7 @@ async fn person_create_put_and_rename_captions() {
     assert_eq!(res.status, StatusCode::NOT_FOUND);
 
     // Rename rebuilds the search captions of the photos Ben is labelled on (S19).
-    let ben_photo: uuid::Uuid = sqlx::query_scalar(
+    let ben_photo: uuid::Uuid = lp_db::sql::query_scalar(
         "SELECT photo_id FROM api_face WHERE person_id = $1 ORDER BY id LIMIT 1",
     )
     .bind(ben as i32)

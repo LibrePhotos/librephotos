@@ -544,7 +544,7 @@ async fn stack_mutations() {
         app.get("/api/stacks/stats/", Some(&alice)).await.json()["total_stacks"],
         0
     );
-    let left: i64 = sqlx::query_scalar("SELECT count(*) FROM api_photo_stacks")
+    let left: i64 = lp_db::sql::query_scalar("SELECT count(*) FROM api_photo_stacks")
         .fetch_one(app.pool())
         .await
         .unwrap();
@@ -556,7 +556,7 @@ async fn stack_mutations() {
         .await;
     assert_eq!(r.status, 202);
     assert_eq!(r.json()["options"], json!({"detect_bursts": true}));
-    let (kind, job_type): (String, i32) = sqlx::query_as(
+    let (kind, job_type): (String, i32) = lp_db::sql::query_as(
         "SELECT q.kind, l.job_type FROM job_queue q JOIN api_longrunningjob l ON l.job_id = q.lrj_id ORDER BY q.id DESC LIMIT 1",
     )
     .fetch_one(app.pool())
@@ -581,11 +581,13 @@ async fn duplicate_mutations() {
     let trashed = |h: String| {
         let pool = app.pool().clone();
         async move {
-            sqlx::query_scalar::<_, bool>("SELECT in_trashcan FROM api_photo WHERE image_hash = $1")
-                .bind(h)
-                .fetch_one(&pool)
-                .await
-                .unwrap()
+            lp_db::sql::query_scalar::<_, bool>(
+                "SELECT in_trashcan FROM api_photo WHERE image_hash = $1",
+            )
+            .bind(h)
+            .fetch_one(&pool)
+            .await
+            .unwrap()
         }
     };
 
@@ -732,7 +734,7 @@ async fn detection_jobs_rebuild_the_fixture_groups() {
         .await
         .unwrap();
     assert!(n >= 1);
-    let members: Vec<String> = sqlx::query_scalar(
+    let members: Vec<String> = lp_db::sql::query_scalar(
         "SELECT p.image_hash FROM api_photostack s JOIN api_photo_stacks x ON x.photostack_id = s.id \
          JOIN api_photo p ON p.id = x.photo_id WHERE s.owner_id = $1 AND s.stack_type = 'burst' ORDER BY 1",
     )
@@ -746,15 +748,16 @@ async fn detection_jobs_rebuild_the_fixture_groups() {
     want.sort();
     assert!(want.iter().all(|h| members.contains(h)), "{members:?}");
     let seeded = m["stacks"]["burst"]["id"].as_str().unwrap();
-    let gone: bool =
-        sqlx::query_scalar("SELECT NOT EXISTS (SELECT 1 FROM api_photostack WHERE id = $1::uuid)")
-            .bind(seeded)
-            .fetch_one(app.pool())
-            .await
-            .unwrap();
+    let gone: bool = lp_db::sql::query_scalar(
+        "SELECT NOT EXISTS (SELECT 1 FROM api_photostack WHERE id = $1::uuid)",
+    )
+    .bind(seeded)
+    .fetch_one(app.pool())
+    .await
+    .unwrap();
     assert!(gone);
     let (start, end): (Option<chrono::DateTime<chrono::Utc>>, Option<chrono::DateTime<chrono::Utc>>) =
-        sqlx::query_as("SELECT sequence_start, sequence_end FROM api_photostack WHERE owner_id = $1 AND stack_type = 'burst' LIMIT 1")
+        lp_db::sql::query_as("SELECT sequence_start, sequence_end FROM api_photostack WHERE owner_id = $1 AND stack_type = 'burst' LIMIT 1")
             .bind(alice)
             .fetch_one(app.pool())
             .await
@@ -764,12 +767,12 @@ async fn detection_jobs_rebuild_the_fixture_groups() {
     // Duplicate detection: after clearing the pending group, the visual pair
     // comes back.
     let dup = m["duplicates"]["visual"]["id"].as_str().unwrap();
-    sqlx::query("DELETE FROM api_photo_duplicates WHERE duplicate_id = $1::uuid")
+    lp_db::sql::query("DELETE FROM api_photo_duplicates WHERE duplicate_id = $1::uuid")
         .bind(dup)
         .execute(app.pool())
         .await
         .unwrap();
-    sqlx::query("DELETE FROM api_duplicate WHERE id = $1::uuid")
+    lp_db::sql::query("DELETE FROM api_duplicate WHERE id = $1::uuid")
         .bind(dup)
         .execute(app.pool())
         .await
@@ -778,7 +781,7 @@ async fn detection_jobs_rebuild_the_fixture_groups() {
         .await
         .unwrap();
     assert!(n >= 1);
-    let groups: Vec<(String, i64, i64)> = sqlx::query_as(
+    let groups: Vec<(String, i64, i64)> = lp_db::sql::query_as(
         "SELECT d.duplicate_type, count(x.id), d.potential_savings FROM api_duplicate d \
          JOIN api_photo_duplicates x ON x.duplicate_id = d.id WHERE d.owner_id = $1 GROUP BY d.id",
     )
@@ -802,11 +805,12 @@ async fn detection_jobs_rebuild_the_fixture_groups() {
     )
     .await
     .unwrap();
-    let after: i64 = sqlx::query_scalar("SELECT count(*) FROM api_duplicate WHERE owner_id = $1")
-        .bind(alice)
-        .fetch_one(app.pool())
-        .await
-        .unwrap();
+    let after: i64 =
+        lp_db::sql::query_scalar("SELECT count(*) FROM api_duplicate WHERE owner_id = $1")
+            .bind(alice)
+            .fetch_one(app.pool())
+            .await
+            .unwrap();
     assert_eq!(after as usize, before);
     app.cleanup().await;
 }

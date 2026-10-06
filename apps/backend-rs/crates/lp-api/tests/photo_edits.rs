@@ -6,7 +6,6 @@
 use axum::http::StatusCode;
 use lp_testkit::TestApp;
 use serde_json::{Value, json};
-use sqlx::Row;
 use uuid::Uuid;
 
 fn manifest() -> Value {
@@ -56,14 +55,14 @@ async fn setup() -> Ctx {
 async fn isolate_media(app: &TestApp) -> std::path::PathBuf {
     let dir = app.base_path().join("files");
     std::fs::create_dir_all(&dir).unwrap();
-    let hashes: Vec<String> = sqlx::query_scalar("SELECT hash FROM api_file")
+    let hashes: Vec<String> = lp_db::sql::query_scalar("SELECT hash FROM api_file")
         .fetch_all(app.pool())
         .await
         .unwrap();
     for h in &hashes {
         std::fs::write(dir.join(format!("{h}.jpg")), b"x").unwrap();
     }
-    sqlx::query("UPDATE api_file SET path = $1 || hash || '.jpg'")
+    lp_db::sql::query("UPDATE api_file SET path = $1 || hash || '.jpg'")
         .bind(format!("{}{}", dir.display(), std::path::MAIN_SEPARATOR))
         .execute(app.pool())
         .await
@@ -71,11 +70,8 @@ async fn isolate_media(app: &TestApp) -> std::path::PathBuf {
     dir
 }
 
-async fn col<T>(app: &TestApp, sql: &str, id: Uuid) -> T
-where
-    T: for<'r> sqlx::Decode<'r, sqlx::Postgres> + sqlx::Type<sqlx::Postgres> + Send + Unpin,
-{
-    sqlx::query_scalar::<_, T>(sql)
+async fn col<T: lp_db::db::Scalar>(app: &TestApp, sql: &str, id: Uuid) -> T {
+    lp_db::sql::query_scalar::<_, T>(sql)
         .bind(id)
         .fetch_one(app.pool())
         .await
@@ -137,14 +133,15 @@ async fn bulk_flags_hashes_and_select_all() {
         )
         .await;
     assert_eq!(res.json()["count"], 1);
-    let family: i32 = sqlx::query_scalar("SELECT photo_count FROM api_tag WHERE name = 'family'")
-        .fetch_one(app.pool())
-        .await
-        .unwrap();
+    let family: i32 =
+        lp_db::sql::query_scalar("SELECT photo_count FROM api_tag WHERE name = 'family'")
+            .fetch_one(app.pool())
+            .await
+            .unwrap();
     assert_eq!(family, 2);
 
     // select_all favorite=false over the favorites query: only changed photos count.
-    let before: i64 = sqlx::query_scalar(
+    let before: i64 = lp_db::sql::query_scalar(
         "SELECT COUNT(*) FROM api_photo p WHERE owner_id = 2 AND rating >= 4 AND NOT hidden AND NOT in_trashcan",
     )
     .fetch_one(app.pool())
@@ -184,7 +181,7 @@ async fn bulk_flags_hashes_and_select_all() {
         .unwrap()
         .parse()
         .unwrap();
-    sqlx::query(
+    lp_db::sql::query(
         "INSERT INTO api_stackreview (decision, trashed_count, created_at, reviewer_id, stack_id, uuid) \
          VALUES ('resolved', 0, now(), 2, $1, gen_random_uuid())",
     )
@@ -203,7 +200,7 @@ async fn bulk_flags_hashes_and_select_all() {
         assert_eq!(res.json()["count"], 1);
     }
     let decision: String =
-        sqlx::query_scalar("SELECT decision FROM api_stackreview WHERE stack_id = $1")
+        lp_db::sql::query_scalar("SELECT decision FROM api_stackreview WHERE stack_id = $1")
             .bind(stack)
             .fetch_one(app.pool())
             .await
@@ -226,7 +223,7 @@ async fn bulk_flags_hashes_and_select_all() {
 async fn favorite_queues_rating_write_when_metadata_goes_to_disk() {
     let Ctx { app, m, alice, .. } = setup().await;
     let e04 = photo(&m, "alice/e2e_04");
-    sqlx::query(
+    lp_db::sql::query(
         "UPDATE api_user SET save_metadata_to_disk = 'SIDECAR_FILE' WHERE username = 'alice'",
     )
     .execute(app.pool())
@@ -241,7 +238,7 @@ async fn favorite_queues_rating_write_when_metadata_goes_to_disk() {
         .await;
     assert_eq!(res.json()["count"], 1);
     let payloads: Vec<Value> =
-        sqlx::query_scalar("SELECT payload FROM job_queue WHERE kind = 'metadata.write'")
+        lp_db::sql::query_scalar("SELECT payload FROM job_queue WHERE kind = 'metadata.write'")
             .fetch_all(app.pool())
             .await
             .unwrap();
@@ -267,7 +264,7 @@ async fn share_to_user() {
         )
         .await;
     assert_eq!(res.json(), json!({"status": true, "count": 1}));
-    let n: i64 = sqlx::query_scalar(
+    let n: i64 = lp_db::sql::query_scalar(
         "SELECT COUNT(*) FROM api_photo_shared_to WHERE user_id = $1 AND photo_id = ANY($2)",
     )
     .bind(bob_id as i32)
@@ -370,7 +367,7 @@ async fn patch_edit() {
             "category_source"
         ]
     );
-    let dates: Vec<Option<chrono::NaiveDate>> = sqlx::query_scalar(
+    let dates: Vec<Option<chrono::NaiveDate>> = lp_db::sql::query_scalar(
         "SELECT a.date FROM api_albumdate a JOIN api_albumdate_photos ap ON ap.albumdate_id = a.id \
          WHERE ap.photo_id = $1",
     )
@@ -457,7 +454,7 @@ async fn captions() {
     )
     .await;
     assert!(search.starts_with("Beach day #summer #sea "), "{search}");
-    let things: Vec<(String, i32)> = sqlx::query(
+    let things: Vec<(String, i32)> = lp_db::sql::query(
         "SELECT a.title, a.photo_count FROM api_albumthing a JOIN api_albumthing_photos ap ON ap.albumthing_id = a.id \
          WHERE ap.photo_id = $1 AND a.thing_type = 'hashtag_attribute' ORDER BY a.title",
     )
@@ -480,7 +477,7 @@ async fn captions() {
         .await;
     assert_eq!(res.json(), json!({"status": true}));
     let sea: i32 =
-        sqlx::query_scalar("SELECT photo_count FROM api_albumthing WHERE title = '#sea'")
+        lp_db::sql::query_scalar("SELECT photo_count FROM api_albumthing WHERE title = '#sea'")
             .fetch_one(app.pool())
             .await
             .unwrap();
@@ -653,7 +650,7 @@ async fn rotate() {
     let res = post(json!({"image_hash": e02.hash}), Some(alice.clone())).await;
     assert_eq!(res.json()["local_orientation"], 4);
 
-    let jobs: Vec<Value> = sqlx::query_scalar(
+    let jobs: Vec<Value> = lp_db::sql::query_scalar(
         "SELECT payload FROM job_queue WHERE kind = 'thumbnails.rerender' ORDER BY id",
     )
     .fetch_all(app.pool())
@@ -714,14 +711,14 @@ async fn delete_trashed_photos() {
         res.json(),
         json!({"status": true, "results": [trashed.hash], "not_deleted": [e07.hash], "deleted": [trashed.hash]})
     );
-    let row = sqlx::query("SELECT removed, main_file_id FROM api_photo WHERE id = $1")
+    let row = lp_db::sql::query("SELECT removed, main_file_id FROM api_photo WHERE id = $1")
         .bind(trashed.id)
         .fetch_one(app.pool())
         .await
         .unwrap();
     assert!(row.get::<bool, _>(0));
     assert!(row.get::<Option<String>, _>(1).is_none());
-    let files: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM api_file WHERE hash = $1")
+    let files: i64 = lp_db::sql::query_scalar("SELECT COUNT(*) FROM api_file WHERE hash = $1")
         .bind(&file)
         .fetch_one(app.pool())
         .await
@@ -752,7 +749,7 @@ async fn delete_trashed_photos() {
         res.json(),
         json!({"status": true, "count": 1, "failed_count": 0})
     );
-    let groups: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM api_duplicate WHERE id = $1")
+    let groups: i64 = lp_db::sql::query_scalar("SELECT COUNT(*) FROM api_duplicate WHERE id = $1")
         .bind(dup_group)
         .fetch_one(app.pool())
         .await

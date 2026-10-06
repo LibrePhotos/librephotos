@@ -9,10 +9,10 @@ use anyhow::Context;
 use chrono::{DateTime, Utc};
 use indexmap::IndexMap;
 use lp_core::AppState;
+use lp_db::db::Conn;
 use lp_db::stats_admin_stacks_dupes::detect::{self, BurstCandidate};
 use lp_db::write::stats_admin_stacks_dupes::stacks::{self as write, BURST};
 use serde_json::Value;
-use sqlx::PgConnection;
 use uuid::Uuid;
 
 use super::burst::{self, ExifTags, Rule};
@@ -22,7 +22,7 @@ const STAGE: &str = "burst_sequences";
 
 /// Stacks created (`_create_burst_stack` returning a stack).
 struct Stacker<'a> {
-    conn: &'a mut PgConnection,
+    conn: &'a mut Conn,
     owner: i32,
     stacked: HashSet<Uuid>,
     created: usize,

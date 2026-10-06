@@ -77,7 +77,7 @@ async fn feeds_cursors_tombstones_and_counts() {
 
     // Seed envelope: version, total, no tombstones; a cursored page has no total.
     let seed = app.get("/api/sync/photos/", Some(&alice)).await.json();
-    let owned_or_shared: i64 = sqlx::query_scalar(
+    let owned_or_shared: i64 = lp_db::sql::query_scalar(
         "SELECT count(*) FROM api_photo p WHERE p.owner_id = $1 \
          OR EXISTS (SELECT 1 FROM api_photo_shared_to s WHERE s.photo_id = p.id AND s.user_id = $1)",
     )
@@ -100,7 +100,7 @@ async fn feeds_cursors_tombstones_and_counts() {
     let ids: Vec<&str> = items.iter().map(|i| i["id"].as_str().unwrap()).collect();
     assert_eq!(ids.len() as i64, owned_or_shared);
     assert_eq!(ids.iter().collect::<HashSet<_>>().len(), ids.len());
-    sqlx::query(
+    lp_db::sql::query(
         "UPDATE api_photo SET last_modified = date_trunc('second', now()) WHERE owner_id = $1",
     )
     .bind(alice_id)
@@ -148,7 +148,7 @@ async fn feeds_cursors_tombstones_and_counts() {
                          "val_shared": true, "target_user_id": bob_id});
     app.post_json("/api/photosedit/share/", &reshare, Some(&alice))
         .await;
-    let left: i64 = sqlx::query_scalar(
+    let left: i64 = lp_db::sql::query_scalar(
         "SELECT count(*) FROM api_deletionlog WHERE entity = 'photo' AND entity_id = $1 AND owner_id = $2",
     )
     .bind(e2e_06.to_string())
@@ -166,7 +166,7 @@ async fn feeds_cursors_tombstones_and_counts() {
         .unwrap();
     tx.commit().await.unwrap();
     drop(after);
-    let owners: Vec<i32> = sqlx::query_scalar(
+    let owners: Vec<i32> = lp_db::sql::query_scalar(
         "SELECT owner_id FROM api_deletionlog WHERE entity = 'photo' AND entity_id = $1 ORDER BY owner_id",
     )
     .bind(e2e_07.to_string())
@@ -271,7 +271,7 @@ async fn feeds_cursors_tombstones_and_counts() {
 
     // Counts.
     let counts = app.get("/api/sync/counts/", Some(&alice)).await.json();
-    let tags: i64 = sqlx::query_scalar("SELECT count(*) FROM api_tag WHERE owner_id = $1")
+    let tags: i64 = lp_db::sql::query_scalar("SELECT count(*) FROM api_tag WHERE owner_id = $1")
         .bind(alice_id)
         .fetch_one(&db)
         .await

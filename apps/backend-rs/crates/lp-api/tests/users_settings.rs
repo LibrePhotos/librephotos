@@ -28,7 +28,7 @@ fn unique(prefix: &str) -> String {
 }
 
 async fn scalar_i64(app: &TestApp, sql: &str) -> i64 {
-    sqlx::query_scalar::<_, i64>(sql)
+    lp_db::sql::query_scalar::<_, i64>(sql)
         .fetch_one(app.pool())
         .await
         .unwrap()
@@ -270,7 +270,7 @@ async fn site_settings_writes() {
         app.get("/api/sitesettings", Some(&ta)).await.json()["map_api_key"],
         json!("")
     );
-    let stored: String = sqlx::query_scalar(
+    let stored: String = lp_db::sql::query_scalar(
         "SELECT value FROM constance_constance WHERE key = 'ALLOW_REGISTRATION'",
     )
     .fetch_one(app.pool())
@@ -379,7 +379,7 @@ async fn signup_and_admin_create() {
     );
 
     // First-time setup: with no superuser left, the next sign-up becomes admin.
-    sqlx::query("UPDATE api_user SET is_superuser = FALSE")
+    lp_db::sql::query("UPDATE api_user SET is_superuser = FALSE")
         .execute(app.pool())
         .await
         .unwrap();
@@ -613,7 +613,7 @@ async fn manage_and_delete_users() {
         StatusCode::FORBIDDEN
     );
     let staff = app.create_user(&unique("staff"), "pw", false).await;
-    sqlx::query("UPDATE api_user SET is_staff = TRUE WHERE id = $1")
+    lp_db::sql::query("UPDATE api_user SET is_staff = TRUE WHERE id = $1")
         .bind(staff.id)
         .execute(app.pool())
         .await
@@ -647,10 +647,11 @@ async fn manage_and_delete_users() {
     )
     .await;
     assert!(bob_photos > 0);
-    let deleted_id: i32 = sqlx::query_scalar("SELECT id FROM api_user WHERE username = 'deleted'")
-        .fetch_one(app.pool())
-        .await
-        .unwrap();
+    let deleted_id: i32 =
+        lp_db::sql::query_scalar("SELECT id FROM api_user WHERE username = 'deleted'")
+            .fetch_one(app.pool())
+            .await
+            .unwrap();
     let before_deleted = scalar_i64(
         &app,
         &format!("SELECT count(*) FROM api_photo WHERE owner_id = {deleted_id}"),
@@ -717,10 +718,11 @@ async fn email_config_and_password_reset() {
         json!(true),
         "the preset supplies the host"
     );
-    let stored: Vec<u8> = sqlx::query_scalar("SELECT secret FROM api_emailconfig WHERE id = 1")
-        .fetch_one(app.pool())
-        .await
-        .unwrap();
+    let stored: Vec<u8> =
+        lp_db::sql::query_scalar("SELECT secret FROM api_emailconfig WHERE id = 1")
+            .fetch_one(app.pool())
+            .await
+            .unwrap();
     let crypto = lp_core::django_crypto::DjangoCrypto::new(&app.state.config.secret_key);
     assert_eq!(crypto.decrypt_str(&stored).unwrap(), "s3cret");
     assert_eq!(
@@ -914,7 +916,7 @@ async fn rule_tag_names_are_validated_at_save_time() {
         let pool = app.pool().clone();
         let id = alice.id;
         async move {
-            sqlx::query_as::<_, (Value, Value)>(
+            lp_db::sql::query_as::<_, (Value, Value)>(
                 "SELECT datetime_rules, burst_detection_rules FROM api_user WHERE id = $1",
             )
             .bind(id)

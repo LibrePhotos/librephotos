@@ -12,6 +12,7 @@ use lp_auth::AuthUser;
 use lp_core::extract::py_truthy;
 use lp_core::time::py_isoformat;
 use lp_core::{ApiJson, ApiResult, AppState};
+use lp_db::db::Conn;
 use lp_db::photo_edits as reads;
 use lp_db::write::photo_edits::edit as svc;
 use lp_jobs::EnqueueOptions;
@@ -95,7 +96,7 @@ fn renders_exif_orientation(path: &str) -> bool {
 /// (nothing written), else the `local_orientation` to report.
 async fn fold_rotation_into_file(
     state: &AppState,
-    conn: &mut sqlx::PgConnection,
+    conn: &mut Conn,
     photo_id: uuid::Uuid,
     path: &str,
     local: i32,
@@ -127,7 +128,7 @@ async fn fold_rotation_into_file(
 /// Returns the `local_orientation` the photo ends up with.
 async fn write_orientation_to_disk(
     state: &AppState,
-    conn: &mut sqlx::PgConnection,
+    conn: &mut Conn,
     user: &lp_db::users::User,
     photo: &reads::OwnedPhoto,
     angle: i32,

@@ -262,7 +262,7 @@ fn user_of(app: &TestApp, res: &lp_testkit::TestResponse) -> i32 {
 }
 
 async fn count(app: &TestApp, sql: &str, id: i32) -> i64 {
-    sqlx::query_scalar(sql)
+    lp_db::sql::query_scalar(sql)
         .bind(id)
         .fetch_one(app.pool())
         .await
@@ -279,7 +279,7 @@ async fn oidc_login_follows_the_adapter_policy() {
     let idp = start_idp().await;
     let app = TestApp::new().await;
     let db = app.pool();
-    let app_id: i32 = sqlx::query_scalar(
+    let app_id: i32 = lp_db::sql::query_scalar(
         "INSERT INTO socialaccount_socialapp (provider, name, client_id, secret, key, provider_id, settings) \
          VALUES ('openid_connect', 'Mock IdP', $1, $2, '', 'mock', $3) RETURNING id",
     )
@@ -299,11 +299,13 @@ async fn oidc_login_follows_the_adapter_policy() {
     // An app not attached to SITE_ID 1 is invisible to allauth.
     let unattached = app.get("/api/accounts/oidc/mock/login/", None).await;
     assert_eq!(unattached.status, StatusCode::NOT_FOUND);
-    sqlx::query("INSERT INTO socialaccount_socialapp_sites (socialapp_id, site_id) VALUES ($1, 1)")
-        .bind(app_id)
-        .execute(db)
-        .await
-        .unwrap();
+    lp_db::sql::query(
+        "INSERT INTO socialaccount_socialapp_sites (socialapp_id, site_id) VALUES ($1, 1)",
+    )
+    .bind(app_id)
+    .execute(db)
+    .await
+    .unwrap();
     let unknown = app.get("/api/accounts/oidc/nope/login/", None).await;
     assert_eq!(unknown.status, StatusCode::NOT_FOUND);
 
@@ -325,7 +327,7 @@ async fn oidc_login_follows_the_adapter_policy() {
 
     // A discovery document that moved is followed, like allauth's session.
     let set_server_url = |url: String| {
-        sqlx::query("UPDATE socialaccount_socialapp SET settings = $2 WHERE id = $1")
+        lp_db::sql::query("UPDATE socialaccount_socialapp SET settings = $2 WHERE id = $1")
             .bind(app_id)
             .bind(json!({ "server_url": url }))
             .execute(db)
@@ -357,7 +359,7 @@ async fn oidc_login_follows_the_adapter_policy() {
 
     // An existing account is linked by a verified email only.
     let alice = app.create_user("alice_sso", "pw", true).await;
-    sqlx::query("UPDATE api_user SET email = 'Alice@Example.test' WHERE id = $1")
+    lp_db::sql::query("UPDATE api_user SET email = 'Alice@Example.test' WHERE id = $1")
         .bind(alice.id)
         .execute(db)
         .await
@@ -436,7 +438,7 @@ async fn oidc_login_follows_the_adapter_policy() {
         .unwrap();
     let res = sso(&app, &idp, &stranger).await;
     assert_eq!(location(&res), "/login?sso_error=signup_disabled");
-    sqlx::query(
+    lp_db::sql::query(
         "INSERT INTO api_emailconfig (id, provider, from_email, host, port, use_tls, use_ssl, \
            username, secret) VALUES (1, 'custom', 'lp@example.test', 'smtp.example.test', 587, \
            TRUE, FALSE, '', '') \
@@ -456,7 +458,7 @@ async fn oidc_login_follows_the_adapter_policy() {
     app.create_user("stranger", "pw", false).await;
     let res = sso(&app, &idp, &stranger).await;
     let new_id = user_of(&app, &res);
-    let row: (String, String, bool, bool, String) = sqlx::query_as(
+    let row: (String, String, bool, bool, String) = lp_db::sql::query_as(
         "SELECT username, email, is_staff, is_superuser, password FROM api_user WHERE id = $1",
     )
     .bind(new_id)
@@ -486,7 +488,7 @@ async fn oidc_login_follows_the_adapter_policy() {
     // An email two accounts share is never linked or provisioned.
     for name in ["twin_a", "twin_b"] {
         let u = app.create_user(name, "pw", false).await;
-        sqlx::query("UPDATE api_user SET email = 'twin@example.test' WHERE id = $1")
+        lp_db::sql::query("UPDATE api_user SET email = 'twin@example.test' WHERE id = $1")
             .bind(u.id)
             .execute(db)
             .await
@@ -502,7 +504,7 @@ async fn oidc_login_follows_the_adapter_policy() {
     assert_eq!(location(&res), "/login?sso_error=ambiguous_email");
 
     // Inactive accounts do not get tokens.
-    sqlx::query("UPDATE api_user SET is_active = FALSE WHERE id = $1")
+    lp_db::sql::query("UPDATE api_user SET is_active = FALSE WHERE id = $1")
         .bind(alice.id)
         .execute(db)
         .await

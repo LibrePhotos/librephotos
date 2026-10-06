@@ -62,7 +62,7 @@ async fn semantic_search_through_the_sidecars() {
             .unwrap(),
         )
         .unwrap();
-    sqlx::query("UPDATE api_user SET semantic_search_topk = 3 WHERE username = 'alice'")
+    lp_db::sql::query("UPDATE api_user SET semantic_search_topk = 3 WHERE username = 'alice'")
         .execute(app.pool())
         .await
         .unwrap();

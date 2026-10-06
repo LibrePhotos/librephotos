@@ -68,7 +68,7 @@ async fn user_with_scan_dir(app: &TestApp, name: &str) -> (lp_db::users::User, s
     let user = app.create_user(name, "pw", false).await;
     let dir = app.base_path().join("data").join(name);
     std::fs::create_dir_all(&dir).unwrap();
-    sqlx::query("UPDATE api_user SET scan_directory = $2 WHERE id = $1")
+    lp_db::sql::query("UPDATE api_user SET scan_directory = $2 WHERE id = $1")
         .bind(user.id)
         .bind(dir.to_string_lossy().to_string())
         .execute(app.pool())
@@ -84,13 +84,13 @@ async fn user_with_scan_dir(app: &TestApp, name: &str) -> (lp_db::users::User, s
 #[tokio::test]
 async fn exists_is_scoped_to_the_requester() {
     let app = TestApp::new().await;
-    let (alice, bob): (i32, i32) = sqlx::query_as(
+    let (alice, bob): (i32, i32) = lp_db::sql::query_as(
         "SELECT (SELECT id FROM api_user WHERE username = 'alice'), (SELECT id FROM api_user WHERE username = 'bob')",
     )
     .fetch_one(app.pool())
     .await
     .unwrap();
-    let hash: String = sqlx::query_scalar(
+    let hash: String = lp_db::sql::query_scalar(
         "SELECT image_hash FROM api_photo WHERE owner_id = $1 ORDER BY id LIMIT 1",
     )
     .bind(alice)
@@ -303,7 +303,7 @@ async fn chunked_upload_protocol() {
     assert_eq!(std::fs::read(&target).unwrap(), data);
 
     let hash = format!("{md5}{}", user.id);
-    let (photos, queued): (i64, i64) = sqlx::query_as(
+    let (photos, queued): (i64, i64) = lp_db::sql::query_as(
         "SELECT (SELECT count(*) FROM api_photo WHERE owner_id = $1 AND image_hash = $2), \
                 (SELECT count(*) FROM job_queue WHERE kind = 'upload.process')",
     )
@@ -313,7 +313,7 @@ async fn chunked_upload_protocol() {
     .await
     .unwrap();
     assert_eq!((photos, queued), (1, 1));
-    let rows: i64 = sqlx::query_scalar(
+    let rows: i64 = lp_db::sql::query_scalar(
         "SELECT count(*) FROM chunked_upload_chunkedupload WHERE upload_id = $1",
     )
     .bind(&upload_id)
@@ -389,7 +389,7 @@ async fn upload_refusals() {
     .await;
     assert_eq!(r.status, StatusCode::BAD_REQUEST);
     assert_eq!(r.json(), json!({"detail": "File type not allowed"}));
-    let rows: i64 = sqlx::query_scalar(
+    let rows: i64 = lp_db::sql::query_scalar(
         "SELECT count(*) FROM chunked_upload_chunkedupload WHERE upload_id = $1",
     )
     .bind(&id)
@@ -409,7 +409,7 @@ async fn upload_refusals() {
     )
     .await;
     let id = r.json()["upload_id"].as_str().unwrap().to_string();
-    sqlx::query("UPDATE api_user SET scan_directory = '' WHERE id = $1")
+    lp_db::sql::query("UPDATE api_user SET scan_directory = '' WHERE id = $1")
         .bind(user.id)
         .execute(app.pool())
         .await
@@ -436,12 +436,13 @@ async fn upload_refusals() {
             .unwrap()
             .starts_with("Upload failed: No scan directory configured")
     );
-    let status: i16 =
-        sqlx::query_scalar("SELECT status FROM chunked_upload_chunkedupload WHERE upload_id = $1")
-            .bind(&id)
-            .fetch_one(app.pool())
-            .await
-            .unwrap();
+    let status: i16 = lp_db::sql::query_scalar(
+        "SELECT status FROM chunked_upload_chunkedupload WHERE upload_id = $1",
+    )
+    .bind(&id)
+    .fetch_one(app.pool())
+    .await
+    .unwrap();
     assert_eq!(status, 1, "back to UPLOADING");
 
     // Uploads switched off site-wide.
