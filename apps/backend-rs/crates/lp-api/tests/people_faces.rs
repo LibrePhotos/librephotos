@@ -399,23 +399,23 @@ async fn face_row(app: &TestApp, id: i64) -> (Option<i32>, Option<i32>, Option<i
 }
 
 async fn person_row(app: &TestApp, id: i64) -> (String, i32, Option<i32>, Option<uuid::Uuid>) {
-    lp_db::sql::query_as(
-        "SELECT name, face_count, cover_face_id, cover_photo_id FROM api_person WHERE id = $1",
-    )
-    .bind(id as i32)
-    .fetch_one(app.pool())
-    .await
-    .unwrap()
+    let (name, count, cover_face, cover_photo): (String, i32, Option<i32>, lp_db::db::DjUuidOpt) =
+        lp_db::sql::query_as(
+            "SELECT name, face_count, cover_face_id, cover_photo_id FROM api_person WHERE id = $1",
+        )
+        .bind(id as i32)
+        .fetch_one(app.pool())
+        .await
+        .unwrap();
+    (name, count, cover_face, cover_photo.0)
 }
 
 async fn captions(app: &TestApp, photo: &str) -> String {
-    lp_db::sql::query_scalar(
-        "SELECT search_captions FROM api_photo_search WHERE photo_id = $1::uuid",
-    )
-    .bind(photo)
-    .fetch_one(app.pool())
-    .await
-    .unwrap()
+    lp_db::sql::query_scalar("SELECT search_captions FROM api_photo_search WHERE photo_id = $1")
+        .bind(photo.parse::<uuid::Uuid>().unwrap())
+        .fetch_one(app.pool())
+        .await
+        .unwrap()
 }
 
 #[tokio::test]
