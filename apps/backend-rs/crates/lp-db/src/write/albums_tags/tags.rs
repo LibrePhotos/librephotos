@@ -56,7 +56,7 @@ pub async fn delete(db: &Db, tag_id: i32) -> sqlx::Result<()> {
 /// (`save(update_fields=["last_modified"])`).
 async fn after_link_change(conn: &mut Conn, tag_id: i32) -> sqlx::Result<TagRow> {
     crate::sql::query_as(
-        "UPDATE api_tag t SET photo_count = (SELECT count(*) FROM api_tag_photos tp \
+        "UPDATE api_tag AS t SET photo_count = (SELECT count(*) FROM api_tag_photos tp \
            JOIN api_photo p ON p.id = tp.photo_id \
            WHERE tp.tag_id = t.id AND NOT p.hidden AND NOT p.in_trashcan AND NOT p.removed), \
            last_modified = now() \

@@ -49,9 +49,10 @@ where
                     JOIN api_photo p ON p.id = l.photo_id \
                     WHERE l.albumauto_id = a.id AND NOT p.hidden) AS photo_count, \
                  (SELECT {ph} FROM api_albumauto_photos l JOIN api_photo cp ON cp.id = l.photo_id \
-                    WHERE l.albumauto_id = a.id AND NOT cp.hidden ORDER BY l.id LIMIT 1) AS cover \
+                    WHERE l.albumauto_id = a.id AND NOT cp.hidden ORDER BY {first} LIMIT 1) AS cover \
                FROM api_albumauto a WHERE a.owner_id = ",
                 ph = photo_hash_json(d, "cp"),
+                first = cover_order(d),
             )
         });
         qb.push_bind(owner_id);
@@ -80,6 +81,17 @@ where
         qb
     };
     fetch_paged(db, build, limit, offset).await
+}
+
+/// Which member is the list cover: Django's sliced prefetch
+/// (`ROW_NUMBER() OVER (PARTITION BY album)` with no order) takes the first
+/// row its join yields. Link order on Postgres; on SQLite the
+/// `(album, photo_id)` covering index yields the smallest photo id.
+fn cover_order(d: Dialect) -> &'static str {
+    match d {
+        Dialect::Pg => "l.id",
+        Dialect::Sqlite => "l.photo_id",
+    }
 }
 
 /// `AlbumAutoSerializer` header.
