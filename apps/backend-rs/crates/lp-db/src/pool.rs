@@ -33,9 +33,39 @@ pub async fn connect(config: &Config) -> anyhow::Result<Db> {
 
 /// [`connect`] with explicit backend settings.
 pub async fn connect_with(config: &Config, s: &DbSettings) -> anyhow::Result<Db> {
+    connect_opts(config, s, false).await
+}
+
+/// [`connect`] for `migrate`: a missing SQLite file (and its directory) is
+/// created. Every other command refuses a missing file, so a wrong
+/// `LP_SQLITE_PATH` never silently starts on an empty database.
+pub async fn connect_creating(config: &Config) -> anyhow::Result<Db> {
+    connect_opts(config, &DbSettings::from_env()?, true).await
+}
+
+async fn connect_opts(config: &Config, s: &DbSettings, create: bool) -> anyhow::Result<Db> {
     Ok(match s.backend {
         Backend::Postgres => Db::Pg(connect_pg(config).await?),
-        Backend::Sqlite => Db::Lite(open(&LiteOptions::from_settings(s)).await?),
+        Backend::Sqlite => {
+            let mut o = LiteOptions::from_settings(s);
+            if create {
+                if let Some(dir) = o.path.parent().filter(|d| !d.as_os_str().is_empty()) {
+                    std::fs::create_dir_all(dir)?;
+                }
+            } else if !o.path.exists() {
+                anyhow::bail!(
+                    "SQLite database {} does not exist (DB_BACKEND=sqlite; set LP_SQLITE_PATH, \
+                     or create it with `librephotos-rs migrate`)",
+                    o.path.display()
+                );
+            }
+            o.create = create;
+            Db::Lite(
+                open(&o)
+                    .await
+                    .map_err(|e| anyhow::anyhow!("opening {}: {e}", o.path.display()))?,
+            )
+        }
     })
 }
 

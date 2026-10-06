@@ -11,11 +11,7 @@ use crate::db::{Db, Exec};
 pub const SITE_ID: i32 = 1;
 
 pub async fn table_exists<'e>(db: impl Exec<'e>, table: &str) -> sqlx::Result<bool> {
-    let found: Option<String> = crate::sql::query_scalar("SELECT to_regclass($1)::text")
-        .bind(format!("public.{table}"))
-        .fetch_one(db)
-        .await?;
-    Ok(found.is_some())
+    crate::migrate::table_exists(db, table).await
 }
 
 /// An `openid_connect` SocialApp.

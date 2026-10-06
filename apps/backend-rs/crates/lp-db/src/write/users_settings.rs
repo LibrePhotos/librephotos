@@ -237,11 +237,7 @@ const DELETE_WITH_USER: &[(&str, &str)] = &[
 ];
 
 async fn table_exists(conn: &mut Conn, table: &str) -> sqlx::Result<bool> {
-    let found: Option<String> = crate::sql::query_scalar("SELECT to_regclass($1)::text")
-        .bind(format!("public.{table}"))
-        .fetch_one(&mut *conn)
-        .await?;
-    Ok(found.is_some())
+    crate::migrate::table_exists(&mut *conn, table).await
 }
 
 /// `get_deleted_user()`: the inactive `deleted` sentinel, created if missing.

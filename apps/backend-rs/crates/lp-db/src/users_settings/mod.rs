@@ -262,11 +262,7 @@ pub async fn email_config<'e>(db: impl Exec<'e>) -> sqlx::Result<Option<EmailCon
 /// `openid_connect`): `(provider_id or client_id, name)`. Empty when the
 /// allauth tables do not exist (a Rust-only database).
 pub async fn oidc_providers(db: &Db) -> sqlx::Result<Vec<(String, String)>> {
-    let exists: Option<String> =
-        crate::sql::query_scalar("SELECT to_regclass('public.socialaccount_socialapp')::text")
-            .fetch_one(db)
-            .await?;
-    if exists.is_none() {
+    if !crate::migrate::table_exists(db, "socialaccount_socialapp").await? {
         return Ok(Vec::new());
     }
     crate::sql::query_as::<_, (String, String)>(

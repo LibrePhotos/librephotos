@@ -45,6 +45,10 @@ pub async fn build_state_migrating(config: Config, migrate: bool) -> anyhow::Res
     let db = lp_db::connect(&config).await?;
     if migrate {
         lp_db::migrate::run_checked(&db).await?;
+    } else {
+        // SQLite: a Django table rebuild drops Rust's indexes and trigger
+        // (design §4); `run` above already restores them.
+        lp_db::migrate::ensure_sqlite_objects(&db).await?;
     }
     let settings = lp_db::settings::load(&db, &config).await?;
     lp_ingest::vips::install_ml_decoder(config.binaries.vips_lib.clone());

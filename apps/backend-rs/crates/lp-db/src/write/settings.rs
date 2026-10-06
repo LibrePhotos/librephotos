@@ -20,10 +20,7 @@ pub async fn save(
         }
     }
     let mut tx = state.db.begin().await?;
-    let has_constance: Option<String> =
-        crate::sql::query_scalar("SELECT to_regclass('public.constance_constance')::text")
-            .fetch_one(&mut *tx)
-            .await?;
+    let has_constance = crate::migrate::table_exists(&mut *tx, "constance_constance").await?;
     for (key, value) in changes {
         crate::sql::query(
             "INSERT INTO site_settings (key, value, updated_at) VALUES ($1, $2, now()) \
@@ -33,7 +30,7 @@ pub async fn save(
         .bind(value)
         .execute(&mut *tx)
         .await?;
-        if has_constance.is_some() {
+        if has_constance {
             crate::sql::query(
                 "INSERT INTO constance_constance (key, value) VALUES ($1, $2) \
                  ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value",

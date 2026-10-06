@@ -1,21 +1,26 @@
-//! `librephotos-rs adopt`: take over a database Django migrated (02 §1).
+//! `librephotos-rs adopt`: take over a database Django migrated (02 §1), on
+//! Postgres or on Django's SQLite file (design `sqlite_design.md` §4).
 //!
 //! 1. `django_migrations` must hold the pinned set (`django_migrations.txt`,
 //!    taken from a fresh Django DB at api.0142). Individually recorded api
 //!    migrations 0001..0100 (pre-squash installs) are tolerated, and so are
-//!    the later migrations in [`SCHEMA_NEUTRAL`], which leave a PostgreSQL
-//!    schema exactly as 0142 did (a DB at 0142, 0143 or 0144 adopts).
-//! 2. The baseline is recorded as applied without running it.
-//! 3. The Rust migrations run.
-//! 4. constance values are imported into `site_settings` (existing rows win).
+//!    the later migrations in [`SCHEMA_NEUTRAL`] (a DB at 0142, 0143 or 0144
+//!    adopts).
+//! 2. On SQLite the data repairs of those two SQLite-only migrations must be
+//!    in: every `api_photo.id` is 32-char hex (api.0143) and
+//!    `PRAGMA foreign_key_check` is clean (api.0144). The file is set to WAL.
+//! 3. The baseline of the database's dialect is recorded as applied without
+//!    running it.
+//! 4. The Rust migrations of that dialect run.
+//! 5. constance values are imported into `site_settings` (existing rows win).
 
 use std::collections::BTreeSet;
 
 use lp_core::settings::{KEYS, constance_decode};
 use sqlx::migrate::Migrate;
 
-use crate::db::Db;
-use crate::migrate::{BASELINE_VERSION, migrator};
+use crate::db::{Db, Dialect};
+use crate::migrate::{BASELINE_VERSION, ensure_sqlite_objects, migrator_for, table_exists};
 
 const PINNED: &str = include_str!("django_migrations.txt");
 
@@ -38,7 +43,9 @@ pub fn pinned_set() -> BTreeSet<(String, String)> {
 /// `RunPython` gated on `connection.vendor == "sqlite"` (verified: a
 /// `pg_dump --schema-only` of a 0142 DB is byte-identical after
 /// `manage.py migrate` applied them), so the baseline still describes a
-/// database that has them.
+/// database that has them. On SQLite they are the data repairs that
+/// [`check_sqlite_repairs`] verifies (`migrations/sqlite/0000_baseline.sql`
+/// is cut at api.0144).
 pub const SCHEMA_NEUTRAL: &[(&str, &str)] = &[
     ("api", "0143_sqlite_photo_ids_hex"),
     ("api", "0144_sqlite_restore_foreign_keys"),
@@ -59,11 +66,7 @@ fn replaced_by_squash(app: &str, name: &str) -> bool {
 }
 
 pub async fn check_django_migrations(pool: &Db) -> anyhow::Result<()> {
-    let exists: Option<String> =
-        crate::sql::query_scalar("SELECT to_regclass('public.django_migrations')::text")
-            .fetch_one(pool)
-            .await?;
-    if exists.is_none() {
+    if !table_exists(pool, "django_migrations").await? {
         anyhow::bail!("no django_migrations table: this is not a Django-migrated database");
     }
     let rows: Vec<(String, String)> =
@@ -104,33 +107,78 @@ fn fmt_list(items: &[&(String, String)]) -> String {
     s.join(", ")
 }
 
+/// SQLite: refuse a file whose data predates Django's repairs api.0143
+/// (dashed photo ids) and api.0144 (foreign keys dropped by old rebuilds).
+/// Runs even with `skip_check`: adopting such a file corrupts nothing at
+/// once, but every Rust lookup by id would miss.
+pub async fn check_sqlite_repairs(pool: &Db) -> anyhow::Result<()> {
+    let dashed: i64 =
+        crate::sql::query_scalar("SELECT count(*) FROM api_photo WHERE length(id) <> 32")
+            .fetch_one(pool)
+            .await?;
+    if dashed > 0 {
+        anyhow::bail!(
+            "{dashed} api_photo ids are not 32-character hex UUIDs: run Django's \
+             `manage.py migrate` (api.0143_sqlite_photo_ids_hex) first"
+        );
+    }
+    let broken: Vec<(String, Option<i64>, String)> =
+        crate::sql::query_as("SELECT \"table\", rowid, parent FROM pragma_foreign_key_check")
+            .fetch_all(pool)
+            .await?;
+    if !broken.is_empty() {
+        let sample: Vec<String> = broken
+            .iter()
+            .take(5)
+            .map(|(t, rowid, parent)| {
+                format!("{t} rowid {} -> {parent}", rowid.unwrap_or_default())
+            })
+            .collect();
+        anyhow::bail!(
+            "PRAGMA foreign_key_check reports {} broken references ({}): run Django's \
+             `manage.py migrate` (api.0144_sqlite_restore_foreign_keys) first",
+            broken.len(),
+            sample.join(", ")
+        );
+    }
+    Ok(())
+}
+
 pub async fn adopt(pool: &Db, skip_check: bool) -> anyhow::Result<AdoptReport> {
     if !skip_check {
         check_django_migrations(pool).await?;
     }
-    let has_photo: Option<String> =
-        crate::sql::query_scalar("SELECT to_regclass('public.api_photo')::text")
-            .fetch_one(pool)
-            .await?;
-    if has_photo.is_none() {
+    if !table_exists(pool, "api_photo").await? {
         anyhow::bail!("api_photo is missing: not a LibrePhotos database");
+    }
+    let dialect = pool.dialect();
+    if dialect.is_sqlite() {
+        check_sqlite_repairs(pool).await?;
+        // Persistent in the file (Django's init_command sets it as well).
+        crate::sql::query("PRAGMA journal_mode = WAL")
+            .fetch_optional(pool)
+            .await?;
     }
 
     let mut report = AdoptReport::default();
-    let m = migrator();
+    let m = migrator_for(dialect);
     let baseline = m
         .migrations
         .iter()
         .find(|mig| mig.version == BASELINE_VERSION)
         .ok_or_else(|| anyhow::anyhow!("baseline migration missing from the binary"))?;
 
-    // SQLITE(P2): adopt on SQLite checks sqlite_master, 0143/0144 and uses
-    // the SQLite migrator (design §4).
-    let pg = pool
-        .as_pg()
-        .ok_or_else(|| anyhow::anyhow!("adopt is not implemented on SQLite yet"))?;
-    let mut conn = pg.acquire().await?;
-    conn.ensure_migrations_table().await?;
+    let mut conn = pool.acquire().await?;
+    match dialect {
+        Dialect::Pg => {
+            let c = conn.as_pg().expect("a Postgres connection");
+            c.ensure_migrations_table().await?;
+        }
+        Dialect::Sqlite => {
+            let c = conn.as_lite().expect("a SQLite connection");
+            c.ensure_migrations_table().await?;
+        }
+    }
     let done: Option<i64> =
         crate::sql::query_scalar("SELECT version FROM _sqlx_migrations WHERE version = $1")
             .bind(BASELINE_VERSION)
@@ -150,13 +198,15 @@ pub async fn adopt(pool: &Db, skip_check: bool) -> anyhow::Result<AdoptReport> {
     }
     drop(conn);
 
-    m.run(pg).await?;
+    match pool {
+        Db::Pg(pg) => m.run(pg).await?,
+        Db::Lite(l) => {
+            m.run(l.write_pool()).await?;
+            ensure_sqlite_objects(pool).await?;
+        }
+    }
 
-    let has_constance: Option<String> =
-        crate::sql::query_scalar("SELECT to_regclass('public.constance_constance')::text")
-            .fetch_one(pool)
-            .await?;
-    if has_constance.is_some() {
+    if table_exists(pool, "constance_constance").await? {
         let rows: Vec<(String, Option<String>)> =
             crate::sql::query_as("SELECT key, value FROM constance_constance ORDER BY id")
                 .fetch_all(pool)

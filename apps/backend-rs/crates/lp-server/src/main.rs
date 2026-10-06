@@ -21,9 +21,10 @@ enum Command {
     },
     /// Job worker only.
     Worker,
-    /// Apply pending migrations (fresh DB: baseline + Rust migrations).
+    /// Apply pending migrations (fresh DB: baseline + Rust migrations; with
+    /// DB_BACKEND=sqlite a missing file is created).
     Migrate,
-    /// Take over a Django-migrated database (at api.0142; 0143/0144 are PostgreSQL no-ops).
+    /// Take over a Django-migrated database (Postgres at api.0142..0144, SQLite at api.0144).
     Adopt {
         /// Skip the django_migrations check.
         #[arg(long)]
@@ -135,7 +136,7 @@ async fn run(cli: Cli, config: Config) -> anyhow::Result<()> {
         Command::Serve { no_migrate } => lp_server::serve(config, !no_migrate).await,
         Command::Worker => lp_server::run_worker(config).await,
         Command::Migrate => {
-            let pool = lp_db::connect(&config).await?;
+            let pool = lp_db::pool::connect_creating(&config).await?;
             lp_db::migrate::run_checked(&pool).await?;
             println!("migrations applied");
             Ok(())
