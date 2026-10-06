@@ -23,7 +23,7 @@ impl JobCtx {
     /// Cooperative cancellation (04 §2): true once the cancel endpoint marked
     /// this queue row or its LongRunningJob. Check it every ~100 items.
     pub async fn is_cancelled(&self) -> bool {
-        sqlx::query_scalar::<_, bool>(
+        lp_db::sql::query_scalar::<_, bool>(
             "SELECT COALESCE((SELECT status = 'cancelled' FROM job_queue WHERE id = $1), FALSE) \
                OR COALESCE((SELECT cancelled FROM api_longrunningjob WHERE job_id = $2), FALSE)",
         )

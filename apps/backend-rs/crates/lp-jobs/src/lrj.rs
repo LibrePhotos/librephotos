@@ -4,9 +4,11 @@
 use std::collections::BTreeSet;
 use std::time::{Duration, Instant};
 
+use lp_db::db::{Db, Exec};
+
 use chrono::{DateTime, Utc};
 use serde_json::{Value, json};
-use sqlx::{FromRow, PgExecutor, PgPool};
+use sqlx::FromRow;
 use uuid::Uuid;
 
 /// `LongRunningJob.JOB_*` (same integers as Django).
@@ -116,12 +118,12 @@ pub const LRJ_COLUMNS: &str = "id, job_type, finished, failed, cancelled, job_id
 
 /// `LongRunningJob.create_job`: a queued row; returns its `job_id`.
 pub async fn create<'e>(
-    db: impl PgExecutor<'e>,
+    db: impl Exec<'e>,
     job_type: JobType,
     user_id: i32,
 ) -> sqlx::Result<String> {
     let job_id = Uuid::new_v4().to_string();
-    sqlx::query(
+    lp_db::sql::query(
         "INSERT INTO api_longrunningjob (job_type, finished, failed, cancelled, job_id, queued_at, \
            started_by_id, progress_current, progress_target) \
          VALUES ($1, FALSE, FALSE, FALSE, $2, now(), $3, 0, 0)",
@@ -134,11 +136,8 @@ pub async fn create<'e>(
     Ok(job_id)
 }
 
-pub async fn get<'e>(
-    db: impl PgExecutor<'e>,
-    job_id: &str,
-) -> sqlx::Result<Option<LongRunningJob>> {
-    sqlx::query_as::<_, LongRunningJob>(&format!(
+pub async fn get<'e>(db: impl Exec<'e>, job_id: &str) -> sqlx::Result<Option<LongRunningJob>> {
+    lp_db::sql::query_as::<_, LongRunningJob>(&format!(
         "SELECT {LRJ_COLUMNS} FROM api_longrunningjob WHERE job_id = $1"
     ))
     .bind(job_id)
@@ -147,12 +146,8 @@ pub async fn get<'e>(
 }
 
 /// Start: `started_at`, then `progress_target` when known.
-pub async fn start<'e>(
-    db: impl PgExecutor<'e>,
-    job_id: &str,
-    target: Option<i32>,
-) -> sqlx::Result<()> {
-    sqlx::query(
+pub async fn start<'e>(db: impl Exec<'e>, job_id: &str, target: Option<i32>) -> sqlx::Result<()> {
+    lp_db::sql::query(
         "UPDATE api_longrunningjob SET started_at = COALESCE(started_at, now()), \
            progress_target = COALESCE($2, progress_target) WHERE job_id = $1",
     )
@@ -163,12 +158,8 @@ pub async fn start<'e>(
     Ok(())
 }
 
-pub async fn set_target<'e>(
-    db: impl PgExecutor<'e>,
-    job_id: &str,
-    target: i32,
-) -> sqlx::Result<()> {
-    sqlx::query("UPDATE api_longrunningjob SET progress_target = $2 WHERE job_id = $1")
+pub async fn set_target<'e>(db: impl Exec<'e>, job_id: &str, target: i32) -> sqlx::Result<()> {
+    lp_db::sql::query("UPDATE api_longrunningjob SET progress_target = $2 WHERE job_id = $1")
         .bind(job_id)
         .bind(target.max(0))
         .execute(db)
@@ -176,9 +167,9 @@ pub async fn set_target<'e>(
     Ok(())
 }
 
-pub async fn set_step<'e>(db: impl PgExecutor<'e>, job_id: &str, step: &str) -> sqlx::Result<()> {
+pub async fn set_step<'e>(db: impl Exec<'e>, job_id: &str, step: &str) -> sqlx::Result<()> {
     let step: String = step.chars().take(100).collect();
-    sqlx::query("UPDATE api_longrunningjob SET progress_step = $2 WHERE job_id = $1")
+    lp_db::sql::query("UPDATE api_longrunningjob SET progress_step = $2 WHERE job_id = $1")
         .bind(job_id)
         .bind(step)
         .execute(db)
@@ -186,12 +177,8 @@ pub async fn set_step<'e>(db: impl PgExecutor<'e>, job_id: &str, step: &str) -> 
     Ok(())
 }
 
-pub async fn set_result<'e>(
-    db: impl PgExecutor<'e>,
-    job_id: &str,
-    result: &Value,
-) -> sqlx::Result<()> {
-    sqlx::query("UPDATE api_longrunningjob SET result = $2 WHERE job_id = $1")
+pub async fn set_result<'e>(db: impl Exec<'e>, job_id: &str, result: &Value) -> sqlx::Result<()> {
+    lp_db::sql::query("UPDATE api_longrunningjob SET result = $2 WHERE job_id = $1")
         .bind(job_id)
         .bind(result)
         .execute(db)
@@ -199,12 +186,8 @@ pub async fn set_result<'e>(
     Ok(())
 }
 
-pub async fn add_progress<'e>(
-    db: impl PgExecutor<'e>,
-    job_id: &str,
-    delta: i32,
-) -> sqlx::Result<()> {
-    sqlx::query(
+pub async fn add_progress<'e>(db: impl Exec<'e>, job_id: &str, delta: i32) -> sqlx::Result<()> {
+    lp_db::sql::query(
         "UPDATE api_longrunningjob SET progress_current = progress_current + $2 WHERE job_id = $1",
     )
     .bind(job_id)
@@ -217,11 +200,11 @@ pub async fn add_progress<'e>(
 /// Finish exactly once (guarded UPDATE). Returns true for the caller that
 /// won; for scans, the winner runs the follow-ups.
 pub async fn finish<'e>(
-    db: impl PgExecutor<'e>,
+    db: impl Exec<'e>,
     job_id: &str,
     result: Option<&Value>,
 ) -> sqlx::Result<bool> {
-    let n = sqlx::query(
+    let n = lp_db::sql::query(
         "UPDATE api_longrunningjob SET finished = TRUE, finished_at = now(), \
            result = COALESCE($2, result) WHERE job_id = $1 AND NOT finished",
     )
@@ -234,8 +217,8 @@ pub async fn finish<'e>(
 }
 
 /// `LongRunningJob.fail`: failed + finished, `result = {"status":"failed","error":...}`.
-pub async fn fail<'e>(db: impl PgExecutor<'e>, job_id: &str, error: &str) -> sqlx::Result<bool> {
-    let n = sqlx::query(
+pub async fn fail<'e>(db: impl Exec<'e>, job_id: &str, error: &str) -> sqlx::Result<bool> {
+    let n = lp_db::sql::query(
         "UPDATE api_longrunningjob SET failed = TRUE, finished = TRUE, finished_at = now(), \
            result = $2 WHERE job_id = $1 AND NOT finished",
     )
@@ -248,8 +231,8 @@ pub async fn fail<'e>(db: impl PgExecutor<'e>, job_id: &str, error: &str) -> sql
 }
 
 /// `LongRunningJob.cancel` (cooperative: workers poll [`is_cancelled`]).
-pub async fn cancel<'e>(db: impl PgExecutor<'e>, job_id: &str) -> sqlx::Result<bool> {
-    let n = sqlx::query(
+pub async fn cancel<'e>(db: impl Exec<'e>, job_id: &str) -> sqlx::Result<bool> {
+    let n = lp_db::sql::query(
         "UPDATE api_longrunningjob SET cancelled = TRUE, finished = TRUE, finished_at = now(), \
            result = '{\"status\": \"cancelled\"}'::jsonb WHERE job_id = $1 AND NOT finished",
     )
@@ -262,7 +245,7 @@ pub async fn cancel<'e>(db: impl PgExecutor<'e>, job_id: &str) -> sqlx::Result<b
 
 /// The cancel endpoint: cancel the LongRunningJob and its queued/running
 /// `job_queue` rows in one transaction. False when it had already finished.
-pub async fn cancel_with_queue(db: &PgPool, job_id: &str) -> sqlx::Result<bool> {
+pub async fn cancel_with_queue(db: &Db, job_id: &str) -> sqlx::Result<bool> {
     let mut tx = db.begin().await?;
     let won = cancel(&mut *tx, job_id).await?;
     crate::queue::cancel_for_lrj(&mut tx, job_id).await?;
@@ -270,20 +253,20 @@ pub async fn cancel_with_queue(db: &PgPool, job_id: &str) -> sqlx::Result<bool> 
     Ok(won)
 }
 
-pub async fn is_cancelled<'e>(db: impl PgExecutor<'e>, job_id: &str) -> sqlx::Result<bool> {
-    Ok(
-        sqlx::query_scalar::<_, bool>("SELECT cancelled FROM api_longrunningjob WHERE job_id = $1")
-            .bind(job_id)
-            .fetch_optional(db)
-            .await?
-            .unwrap_or(false),
+pub async fn is_cancelled<'e>(db: impl Exec<'e>, job_id: &str) -> sqlx::Result<bool> {
+    Ok(lp_db::sql::query_scalar::<_, bool>(
+        "SELECT cancelled FROM api_longrunningjob WHERE job_id = $1",
     )
+    .bind(job_id)
+    .fetch_optional(db)
+    .await?
+    .unwrap_or(false))
 }
 
 /// Progress counter with increments batched and flushed at most every
 /// 250 ms (instead of one UPDATE per file). Call [`Progress::flush`] at the end.
 pub struct Progress {
-    db: PgPool,
+    db: Db,
     job_id: String,
     pending: i32,
     last_flush: Instant,
@@ -291,7 +274,7 @@ pub struct Progress {
 }
 
 impl Progress {
-    pub fn new(db: PgPool, job_id: impl Into<String>) -> Self {
+    pub fn new(db: Db, job_id: impl Into<String>) -> Self {
         Progress {
             db,
             job_id: job_id.into(),

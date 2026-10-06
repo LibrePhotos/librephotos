@@ -4,16 +4,17 @@
 
 #![allow(clippy::disallowed_methods)]
 
+use lp_db::db::DjUuid;
 use std::future::Future;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::{Duration, Instant};
 
 use lp_core::AppState;
+use lp_db::db::Db;
 use lp_jobs::schedules::{self, Schedule};
 use lp_jobs::{EnqueueOptions, HandlerRegistry, JobCtx, JobType, Worker, WorkerTiming, lrj};
 use serde_json::{Value, json};
-use sqlx::PgPool;
 use tokio::task::JoinHandle;
 use tokio_util::sync::CancellationToken;
 
@@ -77,15 +78,15 @@ fn unique(kind: &str) -> String {
     )
 }
 
-async fn queue_status(db: &PgPool, id: i64) -> String {
-    sqlx::query_scalar("SELECT status FROM job_queue WHERE id = $1")
+async fn queue_status(db: &Db, id: i64) -> String {
+    lp_db::sql::query_scalar("SELECT status FROM job_queue WHERE id = $1")
         .bind(id)
         .fetch_one(db)
         .await
         .unwrap()
 }
 
-async fn wait_status(db: &PgPool, id: i64, status: &str) {
+async fn wait_status(db: &Db, id: i64, status: &str) {
     let db = db.clone();
     wait_for(
         &format!("job {id} -> {status}"),
@@ -143,7 +144,7 @@ async fn lifecycle_follows_the_long_running_job_contract() {
     let (started, finished) = (done.started_at.unwrap(), done.finished_at.unwrap());
     assert!(done.queued_at <= started && started <= finished);
     let row: (i32, Option<String>, Option<String>) =
-        sqlx::query_as("SELECT attempts, locked_by, last_error FROM job_queue WHERE id = $1")
+        lp_db::sql::query_as("SELECT attempts, locked_by, last_error FROM job_queue WHERE id = $1")
             .bind(e.id)
             .fetch_one(app.pool())
             .await
@@ -218,7 +219,7 @@ async fn retries_then_fails_the_long_running_job() {
     wait_status(app.pool(), c.id, "failed").await;
 
     let (attempts, err): (i32, String) =
-        sqlx::query_as("SELECT attempts, last_error FROM job_queue WHERE id = $1")
+        lp_db::sql::query_as("SELECT attempts, last_error FROM job_queue WHERE id = $1")
             .bind(b.id)
             .fetch_one(app.pool())
             .await
@@ -380,13 +381,13 @@ async fn stale_rows_are_requeued_and_capped() {
     });
     let insert = "INSERT INTO job_queue (kind, status, locked_by, heartbeat_at, started_at, attempts, max_attempts) \
                   VALUES ($1, 'running', 'dead-worker', now() - interval '1 hour', now() - interval '1 hour', $2, 1) RETURNING id";
-    let lost: i64 = sqlx::query_scalar(insert)
+    let lost: i64 = lp_db::sql::query_scalar(insert)
         .bind(&kind)
         .bind(1)
         .fetch_one(app.pool())
         .await
         .unwrap();
-    let hopeless: i64 = sqlx::query_scalar(insert)
+    let hopeless: i64 = lp_db::sql::query_scalar(insert)
         .bind(&kind)
         .bind(3)
         .fetch_one(app.pool())
@@ -398,7 +399,7 @@ async fn stale_rows_are_requeued_and_capped() {
     let tracked_lrj = lrj::create(app.pool(), JobType::ScanPhotos, owner.id)
         .await
         .unwrap();
-    let tracked: i64 = sqlx::query_scalar(
+    let tracked: i64 = lp_db::sql::query_scalar(
         "INSERT INTO job_queue (kind, status, locked_by, heartbeat_at, started_at, attempts, \
            max_attempts, lrj_id) \
          VALUES ($1, 'running', 'dead-worker', now() - interval '1 hour', \
@@ -420,7 +421,7 @@ async fn stale_rows_are_requeued_and_capped() {
         "lost job's LongRunningJob is failed"
     );
     assert_eq!(job.result.as_ref().unwrap()["status"], "failed");
-    let err: String = sqlx::query_scalar("SELECT last_error FROM job_queue WHERE id = $1")
+    let err: String = lp_db::sql::query_scalar("SELECT last_error FROM job_queue WHERE id = $1")
         .bind(hopeless)
         .fetch_one(app.pool())
         .await
@@ -532,7 +533,7 @@ async fn shutdown_stops_handlers_at_a_safe_point() {
     );
     assert!(!part.exists(), "partial output removed");
     let (status, attempts, locked, last_error): (String, i32, Option<String>, Option<String>) =
-        sqlx::query_as(
+        lp_db::sql::query_as(
             "SELECT status, attempts, locked_by, last_error FROM job_queue WHERE id = $1",
         )
         .bind(e.id)
@@ -548,7 +549,7 @@ async fn shutdown_stops_handlers_at_a_safe_point() {
         .unwrap()
         .unwrap();
     assert!(!job.failed && !job.finished, "the UI job is not failed");
-    sqlx::query("DELETE FROM job_queue WHERE id = $1")
+    lp_db::sql::query("DELETE FROM job_queue WHERE id = $1")
         .bind(e.id)
         .execute(app.pool())
         .await
@@ -580,7 +581,7 @@ async fn shutdown_hands_running_jobs_back() {
     w.shutdown().await;
     assert!(t.elapsed() < Duration::from_secs(5));
     let (status, attempts, locked): (String, i32, Option<String>) =
-        sqlx::query_as("SELECT status, attempts, locked_by FROM job_queue WHERE id = $1")
+        lp_db::sql::query_as("SELECT status, attempts, locked_by FROM job_queue WHERE id = $1")
             .bind(e.id)
             .fetch_one(app.pool())
             .await
@@ -594,7 +595,7 @@ async fn shutdown_hands_running_jobs_back() {
         0,
         "aborted handler kept running"
     );
-    sqlx::query("DELETE FROM job_queue WHERE id = $1")
+    lp_db::sql::query("DELETE FROM job_queue WHERE id = $1")
         .bind(e.id)
         .execute(app.pool())
         .await
@@ -623,13 +624,13 @@ async fn schedules_fire_once_per_interval_and_run_through_the_worker() {
             .is_empty()
     );
     let next: chrono::DateTime<chrono::Utc> =
-        sqlx::query_scalar("SELECT next_run_at FROM schedule_state WHERE name = $1")
+        lp_db::sql::query_scalar("SELECT next_run_at FROM schedule_state WHERE name = $1")
             .bind(name)
             .fetch_one(app.pool())
             .await
             .unwrap();
     assert!(next > chrono::Utc::now() + chrono::Duration::minutes(59));
-    sqlx::query(
+    lp_db::sql::query(
         "UPDATE schedule_state SET next_run_at = now() - interval '1 second' WHERE name = $1",
     )
     .bind(name)
@@ -688,7 +689,7 @@ async fn maintenance_cleans_jobs_tokens_zips_and_deleted_photos() {
         let db = db.clone();
         async move {
             let id = lrj::create(&db, t, u.id).await.unwrap();
-            sqlx::query(sql).bind(&id).execute(&db).await.unwrap();
+            lp_db::sql::query(sql).bind(&id).execute(&db).await.unwrap();
             id
         }
     };
@@ -725,7 +726,7 @@ async fn maintenance_cleans_jobs_tokens_zips_and_deleted_photos() {
     assert!(lrj::get(&db, &old).await.unwrap().is_none());
     assert!(lrj::get(&db, &baseline).await.unwrap().is_some());
 
-    sqlx::query(
+    lp_db::sql::query(
         "INSERT INTO refresh_token (jti, user_id, expires_at) VALUES \
          ('expired-jti', $1, now() - interval '1 day'), ('live-jti', $1, now() + interval '1 day')",
     )
@@ -735,7 +736,7 @@ async fn maintenance_cleans_jobs_tokens_zips_and_deleted_photos() {
     .unwrap();
     run_kind(&app, "maintenance.prune_refresh_tokens").await;
     let left: Vec<String> =
-        sqlx::query_scalar("SELECT jti FROM refresh_token WHERE user_id = $1 ORDER BY jti")
+        lp_db::sql::query_scalar("SELECT jti FROM refresh_token WHERE user_id = $1 ORDER BY jti")
             .bind(u.id)
             .fetch_all(&db)
             .await
@@ -758,7 +759,7 @@ async fn maintenance_cleans_jobs_tokens_zips_and_deleted_photos() {
     assert!(!stale.exists() && recent.exists());
 
     // Removed photos: one past the 30-day window goes, with its relations.
-    let removed: Vec<(uuid::Uuid, String)> = sqlx::query_as(
+    let removed: Vec<(DjUuid, String)> = lp_db::sql::query_as(
         "SELECT id, image_hash FROM api_photo WHERE removed ORDER BY image_hash LIMIT 1",
     )
     .fetch_all(&db)
@@ -766,52 +767,55 @@ async fn maintenance_cleans_jobs_tokens_zips_and_deleted_photos() {
     .unwrap();
     assert!(!removed.is_empty(), "the fixture has a removed photo");
     let (gone, hash) = removed[0].clone();
-    sqlx::query("UPDATE api_photo SET last_modified = now() - interval '31 days' WHERE id = $1")
-        .bind(gone)
-        .execute(&db)
-        .await
-        .unwrap();
+    lp_db::sql::query(
+        "UPDATE api_photo SET last_modified = now() - interval '31 days' WHERE id = $1",
+    )
+    .bind(gone)
+    .execute(&db)
+    .await
+    .unwrap();
     let thumbs = app.state.config.thumbnails_big_dir();
     std::fs::create_dir_all(&thumbs).unwrap();
     let thumb = thumbs.join(format!("{hash}.webp"));
     std::fs::write(&thumb, b"webp").unwrap();
-    let recent_removed: i64 = sqlx::query_scalar(
+    let recent_removed: i64 = lp_db::sql::query_scalar(
         "SELECT count(*) FROM api_photo WHERE removed AND last_modified > now() - interval '30 days'",
     )
     .fetch_one(&db)
     .await
     .unwrap();
     run_kind(&app, "maintenance.cleanup_deleted_photos").await;
-    let left: i64 = sqlx::query_scalar("SELECT count(*) FROM api_photo WHERE id = $1")
+    let left: i64 = lp_db::sql::query_scalar("SELECT count(*) FROM api_photo WHERE id = $1")
         .bind(gone)
         .fetch_one(&db)
         .await
         .unwrap();
     assert_eq!(left, 0);
-    let still: i64 = sqlx::query_scalar("SELECT count(*) FROM api_photo WHERE removed")
+    let still: i64 = lp_db::sql::query_scalar("SELECT count(*) FROM api_photo WHERE removed")
         .fetch_one(&db)
         .await
         .unwrap();
     assert_eq!(still, recent_removed);
     let hash_still_used: bool =
-        sqlx::query_scalar("SELECT EXISTS (SELECT 1 FROM api_photo WHERE image_hash = $1)")
+        lp_db::sql::query_scalar("SELECT EXISTS (SELECT 1 FROM api_photo WHERE image_hash = $1)")
             .bind(&hash)
             .fetch_one(&db)
             .await
             .unwrap();
     assert_eq!(thumb.exists(), hash_still_used);
     // The hard delete left a mobile-sync tombstone for the owner.
-    let tombstones: Vec<(String, i32)> =
-        sqlx::query_as("SELECT d.entity, d.owner_id FROM api_deletionlog d WHERE d.entity_id = $1")
-            .bind(gone.to_string())
-            .fetch_all(&db)
-            .await
-            .unwrap();
+    let tombstones: Vec<(String, i32)> = lp_db::sql::query_as(
+        "SELECT d.entity, d.owner_id FROM api_deletionlog d WHERE d.entity_id = $1",
+    )
+    .bind(gone.to_string())
+    .fetch_all(&db)
+    .await
+    .unwrap();
     assert!(!tombstones.is_empty());
     assert!(tombstones.iter().all(|(e, _)| e == "photo"));
 
     // prune_deletion_log: only tombstones past the 90-day horizon go.
-    sqlx::query(
+    lp_db::sql::query(
         "INSERT INTO api_deletionlog (entity, entity_id, owner_id, deleted_at) VALUES \
          ('photo', 'old', $1, now() - interval '91 days'), ('photo', 'new', $1, now() - interval '89 days')",
     )
@@ -820,7 +824,7 @@ async fn maintenance_cleans_jobs_tokens_zips_and_deleted_photos() {
     .await
     .unwrap();
     run_kind(&app, "maintenance.prune_deletion_log").await;
-    let left: Vec<String> = sqlx::query_scalar(
+    let left: Vec<String> = lp_db::sql::query_scalar(
         "SELECT entity_id FROM api_deletionlog WHERE owner_id = $1 ORDER BY entity_id",
     )
     .bind(u.id)

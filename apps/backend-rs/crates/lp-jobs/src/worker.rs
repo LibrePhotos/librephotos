@@ -346,7 +346,13 @@ fn panic_message(e: tokio::task::JoinError) -> String {
 /// `LISTEN job_queue`: every NOTIFY pokes the claim loop. Reconnects on error.
 async fn listen(state: AppState, wake: Arc<Notify>, stop: CancellationToken) {
     loop {
-        let mut listener = match PgListener::connect_with(&state.db).await {
+        let Some(pool) = state.db.as_pg() else {
+            // SQLITE(P2): poll `PRAGMA data_version` instead of LISTEN (design §3);
+            // until then the claim loop's own polling picks jobs up.
+            stop.cancelled().await;
+            return;
+        };
+        let mut listener = match PgListener::connect_with(pool).await {
             Ok(l) => l,
             Err(e) => {
                 tracing::warn!(error = %e, "LISTEN connect failed; polling only");

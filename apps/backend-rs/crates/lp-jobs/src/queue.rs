@@ -2,8 +2,9 @@
 
 use chrono::{DateTime, Utc};
 use lp_core::AppState;
+use lp_db::db::Conn;
 use serde_json::Value;
-use sqlx::{FromRow, PgConnection};
+use sqlx::FromRow;
 
 use crate::lrj::{self, JobType};
 
@@ -91,7 +92,7 @@ const JOB_COLUMNS: &str = "id, kind, payload, status, lrj_id, group_id, run_afte
 /// commit (the NOTIFY is transactional too); call [`wake`] after commit to
 /// poke an in-process worker.
 pub async fn enqueue_in(
-    conn: &mut PgConnection,
+    conn: &mut Conn,
     kind: &str,
     payload: Value,
     opts: &EnqueueOptions,
@@ -101,7 +102,7 @@ pub async fn enqueue_in(
         (None, Some(spec)) => Some(lrj::create(&mut *conn, spec.job_type, spec.user_id).await?),
         (None, None) => None,
     };
-    let id: i64 = sqlx::query_scalar(
+    let id: i64 = lp_db::sql::query_scalar(
         "INSERT INTO job_queue (kind, payload, lrj_id, group_id, run_after, max_attempts, depends_on) \
          VALUES ($1, $2, $3, $4, COALESCE($5, now()), $6, $7) RETURNING id",
     )
@@ -114,25 +115,17 @@ pub async fn enqueue_in(
     .bind(&opts.depends_on)
     .fetch_one(&mut *conn)
     .await?;
-    sqlx::query("SELECT pg_notify($1, $2)")
-        .bind(NOTIFY_CHANNEL)
-        .bind(kind)
-        .execute(&mut *conn)
-        .await?;
+    notify(&mut *conn, kind).await?;
     Ok(Enqueued { id, lrj_id })
 }
 
 /// Enqueue one untracked job of `kind` per payload in a single INSERT (and
 /// one NOTIFY), inside the caller's transaction. Returns the number queued.
-pub async fn enqueue_many_in(
-    conn: &mut PgConnection,
-    kind: &str,
-    payloads: &[Value],
-) -> sqlx::Result<u64> {
+pub async fn enqueue_many_in(conn: &mut Conn, kind: &str, payloads: &[Value]) -> sqlx::Result<u64> {
     if payloads.is_empty() {
         return Ok(0);
     }
-    let n = sqlx::query(
+    let n = lp_db::sql::query(
         "INSERT INTO job_queue (kind, payload, run_after, max_attempts) \
          SELECT $1, p, now(), 1 FROM unnest($2::jsonb[]) AS p",
     )
@@ -141,11 +134,7 @@ pub async fn enqueue_many_in(
     .execute(&mut *conn)
     .await?
     .rows_affected();
-    sqlx::query("SELECT pg_notify($1, $2)")
-        .bind(NOTIFY_CHANNEL)
-        .bind(kind)
-        .execute(&mut *conn)
-        .await?;
+    notify(&mut *conn, kind).await?;
     Ok(n)
 }
 
@@ -167,15 +156,29 @@ pub fn wake(state: &AppState) {
     state.job_wakeup.notify_one();
 }
 
+/// `NOTIFY job_queue, kind`: wakes the `LISTEN`ing workers once the
+/// transaction commits.
+async fn notify(conn: &mut Conn, kind: &str) -> sqlx::Result<()> {
+    // SQLITE(P2): no NOTIFY there; workers poll `PRAGMA data_version` (design §3).
+    if conn.dialect().is_pg() {
+        lp_db::sql::query("SELECT pg_notify($1, $2)")
+            .bind(NOTIFY_CHANNEL)
+            .bind(kind)
+            .execute(conn)
+            .await?;
+    }
+    Ok(())
+}
+
 /// Claim the next due job (`FOR UPDATE SKIP LOCKED`), marking it running.
 /// A job whose `depends_on` still has a queued or running row waits; a
 /// dependency that ended in any way (or was deleted) releases it.
 pub async fn claim_next(
-    conn: &mut PgConnection,
+    conn: &mut Conn,
     worker_id: &str,
     kinds: &[String],
 ) -> sqlx::Result<Option<QueuedJob>> {
-    sqlx::query_as::<_, QueuedJob>(&format!(
+    lp_db::sql::query_as::<_, QueuedJob>(&format!(
         "UPDATE job_queue SET status = 'running', locked_by = $1, heartbeat_at = now(), \
            started_at = COALESCE(started_at, now()), attempts = attempts + 1 \
          WHERE id = (SELECT j.id FROM job_queue j \
@@ -193,8 +196,8 @@ pub async fn claim_next(
 }
 
 /// NOTIFY the workers when a queued job waits on `id`, which just finished.
-pub async fn notify_dependents(conn: &mut PgConnection, id: i64) -> sqlx::Result<bool> {
-    let kind: Option<String> = sqlx::query_scalar(
+pub async fn notify_dependents(conn: &mut Conn, id: i64) -> sqlx::Result<bool> {
+    let kind: Option<String> = lp_db::sql::query_scalar(
         "SELECT kind FROM job_queue \
          WHERE status = 'queued' AND depends_on @> ARRAY[$1::bigint] LIMIT 1",
     )
@@ -204,25 +207,23 @@ pub async fn notify_dependents(conn: &mut PgConnection, id: i64) -> sqlx::Result
     let Some(kind) = kind else {
         return Ok(false);
     };
-    sqlx::query("SELECT pg_notify($1, $2)")
-        .bind(NOTIFY_CHANNEL)
-        .bind(kind)
-        .execute(&mut *conn)
-        .await?;
+    notify(&mut *conn, &kind).await?;
     Ok(true)
 }
 
-pub async fn heartbeat(conn: &mut PgConnection, id: i64) -> sqlx::Result<()> {
-    sqlx::query("UPDATE job_queue SET heartbeat_at = now() WHERE id = $1 AND status = 'running'")
-        .bind(id)
-        .execute(conn)
-        .await?;
+pub async fn heartbeat(conn: &mut Conn, id: i64) -> sqlx::Result<()> {
+    lp_db::sql::query(
+        "UPDATE job_queue SET heartbeat_at = now() WHERE id = $1 AND status = 'running'",
+    )
+    .bind(id)
+    .execute(conn)
+    .await?;
     Ok(())
 }
 
 /// Only a row still `running` moves, so a cancelled row stays cancelled.
-pub async fn mark_done(conn: &mut PgConnection, id: i64) -> sqlx::Result<()> {
-    sqlx::query(
+pub async fn mark_done(conn: &mut Conn, id: i64) -> sqlx::Result<()> {
+    lp_db::sql::query(
         "UPDATE job_queue SET status = 'done', finished_at = now(), locked_by = NULL \
          WHERE id = $1 AND status = 'running'",
     )
@@ -235,12 +236,12 @@ pub async fn mark_done(conn: &mut PgConnection, id: i64) -> sqlx::Result<()> {
 /// Record a failure: re-queue with `retry_after` if attempts remain, else
 /// `failed`. Returns true when the row is now finally `failed`.
 pub async fn mark_failed(
-    conn: &mut PgConnection,
+    conn: &mut Conn,
     id: i64,
     error: &str,
     retry_after: Option<DateTime<Utc>>,
 ) -> sqlx::Result<bool> {
-    let status: Option<String> = sqlx::query_scalar(
+    let status: Option<String> = lp_db::sql::query_scalar(
         "UPDATE job_queue SET \
            status = CASE WHEN attempts < max_attempts THEN 'queued' ELSE 'failed' END, \
            run_after = CASE WHEN attempts < max_attempts THEN COALESCE($3, now()) ELSE run_after END, \
@@ -257,8 +258,8 @@ pub async fn mark_failed(
 }
 
 /// Cancel queued/running rows of a LongRunningJob (the cancel endpoint).
-pub async fn cancel_for_lrj(conn: &mut PgConnection, lrj_id: &str) -> sqlx::Result<u64> {
-    Ok(sqlx::query(
+pub async fn cancel_for_lrj(conn: &mut Conn, lrj_id: &str) -> sqlx::Result<u64> {
+    Ok(lp_db::sql::query(
         "UPDATE job_queue SET status = 'cancelled', finished_at = now(), locked_by = NULL \
          WHERE lrj_id = $1 AND status IN ('queued', 'running')",
     )
@@ -275,10 +276,10 @@ pub const STALE_EXTRA_ATTEMPTS: i32 = 2;
 /// go back to queued. A row that already lost its worker
 /// `max_attempts + STALE_EXTRA_ATTEMPTS` times is failed instead, so a job
 /// that kills its worker cannot loop forever. Returns `(requeued, failed)`.
-pub async fn requeue_stale(conn: &mut PgConnection, stale_secs: i64) -> sqlx::Result<(u64, u64)> {
+pub async fn requeue_stale(conn: &mut Conn, stale_secs: i64) -> sqlx::Result<(u64, u64)> {
     // Like a final failed attempt, a lost job fails its LongRunningJob
     // (except fan-out children), or the UI would show it running for 24 h.
-    let failed: i64 = sqlx::query_scalar(
+    let failed: i64 = lp_db::sql::query_scalar(
         "WITH lost AS ( \
            UPDATE job_queue SET status = 'failed', finished_at = now(), locked_by = NULL, \
              last_error = 'worker lost (stale heartbeat)' \
@@ -298,7 +299,7 @@ pub async fn requeue_stale(conn: &mut PgConnection, stale_secs: i64) -> sqlx::Re
     .fetch_one(&mut *conn)
     .await?;
     let failed = failed as u64;
-    let requeued = sqlx::query(
+    let requeued = lp_db::sql::query(
         "UPDATE job_queue SET status = 'queued', locked_by = NULL \
          WHERE status = 'running' AND heartbeat_at < now() - make_interval(secs => $1)",
     )
@@ -311,8 +312,8 @@ pub async fn requeue_stale(conn: &mut PgConnection, stale_secs: i64) -> sqlx::Re
 
 /// Graceful shutdown: hand unfinished rows back to the queue without
 /// counting the interrupted attempt.
-pub async fn release(conn: &mut PgConnection, ids: &[i64]) -> sqlx::Result<u64> {
-    Ok(sqlx::query(
+pub async fn release(conn: &mut Conn, ids: &[i64]) -> sqlx::Result<u64> {
+    Ok(lp_db::sql::query(
         "UPDATE job_queue SET status = 'queued', locked_by = NULL, \
            attempts = GREATEST(attempts - 1, 0) \
          WHERE id = ANY($1) AND status = 'running'",
@@ -323,8 +324,8 @@ pub async fn release(conn: &mut PgConnection, ids: &[i64]) -> sqlx::Result<u64> 
     .rows_affected())
 }
 
-pub async fn get(conn: &mut PgConnection, id: i64) -> sqlx::Result<Option<QueuedJob>> {
-    sqlx::query_as::<_, QueuedJob>(&format!(
+pub async fn get(conn: &mut Conn, id: i64) -> sqlx::Result<Option<QueuedJob>> {
+    lp_db::sql::query_as::<_, QueuedJob>(&format!(
         "SELECT {JOB_COLUMNS} FROM job_queue WHERE id = $1"
     ))
     .bind(id)

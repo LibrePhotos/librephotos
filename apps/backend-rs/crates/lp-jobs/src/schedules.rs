@@ -3,7 +3,7 @@
 
 use std::time::Duration;
 
-use sqlx::PgPool;
+use lp_db::db::Db;
 
 use crate::queue::{EnqueueOptions, enqueue_in};
 
@@ -57,11 +57,11 @@ pub const SCHEDULES: &[Schedule] = &[
 /// Enqueue every schedule that is due, claiming it in `schedule_state` in
 /// the same transaction. A schedule without a row is due at once. Returns
 /// the names that were enqueued.
-pub async fn run_due(db: &PgPool, schedules: &[Schedule]) -> sqlx::Result<Vec<&'static str>> {
+pub async fn run_due(db: &Db, schedules: &[Schedule]) -> sqlx::Result<Vec<&'static str>> {
     let mut fired = Vec::new();
     for s in schedules {
         let mut tx = db.begin().await?;
-        let won: Option<String> = sqlx::query_scalar(
+        let won: Option<String> = lp_db::sql::query_scalar(
             "INSERT INTO schedule_state (name, last_run_at, next_run_at) \
              VALUES ($1, now(), now() + make_interval(secs => $2)) \
              ON CONFLICT (name) DO UPDATE \

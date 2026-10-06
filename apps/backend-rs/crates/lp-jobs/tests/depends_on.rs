@@ -7,9 +7,9 @@
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
+use lp_db::db::Db;
 use lp_jobs::{EnqueueOptions, HandlerRegistry, JobCtx, Worker, WorkerTiming};
 use serde_json::json;
-use sqlx::PgPool;
 use tokio_util::sync::CancellationToken;
 
 fn unique(kind: &str) -> String {
@@ -19,15 +19,15 @@ fn unique(kind: &str) -> String {
     )
 }
 
-async fn status(db: &PgPool, id: i64) -> String {
-    sqlx::query_scalar("SELECT status FROM job_queue WHERE id = $1")
+async fn status(db: &Db, id: i64) -> String {
+    lp_db::sql::query_scalar("SELECT status FROM job_queue WHERE id = $1")
         .bind(id)
         .fetch_one(db)
         .await
         .unwrap()
 }
 
-async fn wait_status(db: &PgPool, id: i64, want: &str) {
+async fn wait_status(db: &Db, id: i64, want: &str) {
     let t = Instant::now();
     while t.elapsed() < Duration::from_secs(15) {
         if status(db, id).await == want {
@@ -161,7 +161,7 @@ async fn cancelled_dependency_releases_and_claim_skips_waiting_rows() {
             .is_none(),
         "b is claimable while a runs"
     );
-    sqlx::query("UPDATE job_queue SET status = 'cancelled' WHERE id = $1")
+    lp_db::sql::query("UPDATE job_queue SET status = 'cancelled' WHERE id = $1")
         .bind(ja.id)
         .execute(&mut *conn)
         .await
@@ -171,7 +171,7 @@ async fn cancelled_dependency_releases_and_claim_skips_waiting_rows() {
         .unwrap()
         .unwrap();
     assert_eq!(next.id, jb.id);
-    let deps: Vec<i64> = sqlx::query_scalar("SELECT depends_on FROM job_queue WHERE id = $1")
+    let deps: Vec<i64> = lp_db::sql::query_scalar("SELECT depends_on FROM job_queue WHERE id = $1")
         .bind(jb.id)
         .fetch_one(&mut *conn)
         .await
