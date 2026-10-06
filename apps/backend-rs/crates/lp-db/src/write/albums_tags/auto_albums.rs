@@ -8,9 +8,10 @@ use chrono::{DateTime, Datelike, Duration, Timelike, Utc};
 use sqlx::FromRow;
 use uuid::Uuid;
 
+use super::tombstones as dl;
 use crate::albums_tags::{unordered_faces, unordered_members};
 use crate::db::{Conn, Db, DjUuid, sql};
-use crate::write::deletion_log::{self as dl, AlbumKind, entity};
+use crate::write::deletion_log::{AlbumKind, entity};
 
 /// Delete albums `ids` as Django's collector does, with the `post_delete`
 /// tombstones (owner + recipients) written while the recipients are linked.

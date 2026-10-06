@@ -5,8 +5,9 @@ use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
 use super::PhotoSelection;
+use super::tombstones as dl;
 use crate::db::{Conn, Db, Qb, sql};
-use crate::write::deletion_log::{self as dl, AlbumKind, entity};
+use crate::write::deletion_log::{AlbumKind, entity};
 
 /// What an edit request changes (`AlbumUserEditSerializer.update`), in the
 /// order Django applies it.

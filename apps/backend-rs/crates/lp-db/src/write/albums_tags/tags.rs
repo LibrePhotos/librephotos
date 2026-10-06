@@ -6,9 +6,9 @@
 //! its owner.
 
 use super::PhotoSelection;
+use super::tombstones;
 use crate::albums_tags::tags::TagRow;
 use crate::db::{Conn, Db, Qb};
-use crate::write::deletion_log;
 
 pub async fn create(db: &Db, owner_id: i32, name: &str) -> sqlx::Result<TagRow> {
     crate::sql::query_as(
@@ -33,7 +33,7 @@ pub async fn rename(db: &Db, tag_id: i32, name: Option<&str>) -> sqlx::Result<Ta
 }
 
 async fn delete_in(conn: &mut Conn, tag_id: i32) -> sqlx::Result<()> {
-    deletion_log::tags_deleted(conn, &[tag_id]).await?;
+    tombstones::tags_deleted(conn, &[tag_id]).await?;
     crate::sql::query("DELETE FROM api_tag_photos WHERE tag_id = $1")
         .bind(tag_id)
         .execute(&mut *conn)

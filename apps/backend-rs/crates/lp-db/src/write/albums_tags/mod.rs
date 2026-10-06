@@ -22,6 +22,7 @@ use crate::scope::{self, PhotoFilterParams};
 
 pub mod auto_albums;
 pub mod tags;
+pub mod tombstones;
 pub mod user_albums;
 
 /// Photos a bulk request names: explicit (already owner-validated) ids, or
