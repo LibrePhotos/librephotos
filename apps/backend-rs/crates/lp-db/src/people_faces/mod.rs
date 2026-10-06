@@ -8,7 +8,7 @@ use chrono::{DateTime, Utc};
 use sqlx::FromRow;
 use uuid::Uuid;
 
-use crate::db::{DjUuid, DjUuidOpt, Exec, IntoArg, Qb, sql};
+use crate::db::{Dialect, DjUuid, DjUuidOpt, Exec, IntoArg, Qb, sql};
 use crate::scope;
 
 pub const UNKNOWN_PERSON_NAME: &str = "Unknown - Other";
@@ -35,26 +35,38 @@ pub struct PersonRow {
 }
 
 fn person_select(qb: &mut Qb<'_>, user_id: i32, user_kind_only: bool) {
-    // The first face on the requester's photos: a correlated subquery picks
-    // its id (portable; was a `LEFT JOIN LATERAL`), then plain key joins.
     qb.push(
         "SELECT p.id, p.name, p.face_count, p.cover_face_id, cf.image AS cover_face_image, \
            cp.image_hash AS cover_photo_hash, cp.video AS cover_photo_video, \
-           ff.image AS first_face_image, ffp.image_hash AS first_face_photo_hash, \
-           ffp.video AS first_face_photo_video, COUNT(*) OVER () AS total \
+           ff.image AS first_face_image, ",
+    );
+    // `ff`: the person's first face on the requester's photos. SQLite has
+    // no LATERAL: a correlated subquery picks the face id, then key joins.
+    // Postgres keeps the LATERAL join, which it runs as a per-person index
+    // probe (the correlated form becomes a hash join over every face, ~5x
+    // slower on the 50k library).
+    qb.push_dialect(
+        "ff.image_hash AS first_face_photo_hash, ff.video AS first_face_photo_video",
+        "ffp.image_hash AS first_face_photo_hash, ffp.video AS first_face_photo_video",
+    );
+    qb.push(
+        ", COUNT(*) OVER () AS total \
          FROM api_person p \
          LEFT JOIN api_face cf ON cf.id = p.cover_face_id \
-         LEFT JOIN api_photo cp ON cp.id = p.cover_photo_id \
-         LEFT JOIN api_face ff ON ff.id = (SELECT f.id FROM api_face f \
-             JOIN api_photo ph ON ph.id = f.photo_id \
-             WHERE f.person_id = p.id AND ",
+         LEFT JOIN api_photo cp ON cp.id = p.cover_photo_id ",
+    );
+    qb.push_dialect(
+        "LEFT JOIN LATERAL (SELECT f.image, ph.image_hash, ph.video FROM api_face f \
+           JOIN api_photo ph ON ph.id = f.photo_id WHERE f.person_id = p.id AND ",
+        "LEFT JOIN api_face ff ON ff.id = (SELECT f.id FROM api_face f \
+           JOIN api_photo ph ON ph.id = f.photo_id WHERE f.person_id = p.id AND ",
     );
     scope::owned_by(qb, "ph", user_id);
-    qb.push(
-        " ORDER BY f.id LIMIT 1) \
-         LEFT JOIN api_photo ffp ON ffp.id = ff.photo_id \
-         WHERE p.cluster_owner_id = ",
+    qb.push_dialect(
+        " ORDER BY f.id LIMIT 1) ff ON TRUE",
+        " ORDER BY f.id LIMIT 1) LEFT JOIN api_photo ffp ON ffp.id = ff.photo_id",
     );
+    qb.push(" WHERE p.cluster_owner_id = ");
     qb.push_bind(user_id);
     if user_kind_only {
         qb.push(" AND p.kind = 'USER'");
@@ -384,12 +396,21 @@ pub struct VizFace {
 /// an encoding. Same statement shape (and so the same row order) as the
 /// unordered queryset Django pages through. Not prepared: a cached generic
 /// plan joins the other way round and so returns the rows in another order.
+///
+/// SQLite: Django's statement walks `api_photo`'s `owner_id` index (photo
+/// rowid order) and then each photo's faces by the `photo_id` index (face id
+/// order). That order is spelled out, since Rust's own indexes on
+/// `api_photo` (`lp_photo_owner_visible_idx`) would otherwise change the plan.
 pub async fn viz_faces<'e>(db: impl Exec<'e>, user_id: i32) -> sqlx::Result<Vec<VizFace>> {
-    crate::sql::query_as::<_, VizFace>(
+    let order = match db.dialect() {
+        Dialect::Pg => "",
+        Dialect::Sqlite => " ORDER BY api_photo.rowid, api_face.id",
+    };
+    crate::sql::query_as::<_, VizFace>(format!(
         "SELECT api_face.id, api_face.image, api_face.encoding, api_face.person_id FROM api_face \
          INNER JOIN api_photo ON (api_face.photo_id = api_photo.id) \
-         WHERE (api_photo.owner_id = $1 AND NOT api_face.deleted)",
-    )
+         WHERE (api_photo.owner_id = $1 AND NOT api_face.deleted){order}"
+    ))
     .persistent(false)
     .bind(user_id)
     .fetch_all(db)
