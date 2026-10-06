@@ -61,6 +61,7 @@ describe.skipIf(!hasBase)("GET /api/persons/?page_size=1000", () => {
       ["PATCH", anna, { name: null, face_count: "abc", newPersonName: "", cover_photo: null }],
       ["PATCH", anna, { face_count: 3.5 }],
       ["PATCH", anna, { face_count: 99999999999 }],
+      ["PATCH", anna, { face_count: "99999999999999999999" }],
       ["PATCH", anna, { name: "x".repeat(129) }],
       ["PUT", anna, {}],
       ["PUT", anna, { name: "", face_count: "z" }],
@@ -69,7 +70,10 @@ describe.skipIf(!hasBase)("GET /api/persons/?page_size=1000", () => {
       ["POST", "/api/persons/", []],
     ] as const) {
       const { actual } = await expectTwin("alice", { method, path, body }, { project: ["*"] });
-      expect(actual.status).toBe(400);
+      // Django's SQLite backend validates IntegerField against the 64-bit
+      // range (connection.ops.integer_field_range), Postgres against int4.
+      const fitsInt64Only = (body as { face_count?: unknown }).face_count === 99999999999;
+      expect(actual.status).toBe(fitsInt64Only && process.env.LP_DB_BACKEND === "sqlite" ? 200 : 400);
     }
   });
 

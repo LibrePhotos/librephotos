@@ -8,7 +8,7 @@ use chrono::{DateTime, Utc};
 use sqlx::FromRow;
 use uuid::Uuid;
 
-use crate::db::{DjUuid, DjUuidOpt, Exec, Qb};
+use crate::db::{Dialect, DjUuid, DjUuidOpt, Exec, IntoArg, Qb, sql};
 use crate::scope;
 
 pub const UNKNOWN_PERSON_NAME: &str = "Unknown - Other";
@@ -38,29 +38,49 @@ fn person_select(qb: &mut Qb<'_>, user_id: i32, user_kind_only: bool) {
     qb.push(
         "SELECT p.id, p.name, p.face_count, p.cover_face_id, cf.image AS cover_face_image, \
            cp.image_hash AS cover_photo_hash, cp.video AS cover_photo_video, \
-           ff.image AS first_face_image, ff.image_hash AS first_face_photo_hash, \
-           ff.video AS first_face_photo_video, COUNT(*) OVER () AS total \
+           ff.image AS first_face_image, ",
+    );
+    // `ff`: the person's first face on the requester's photos. SQLite has
+    // no LATERAL: a correlated subquery picks the face id, then key joins.
+    // Postgres keeps the LATERAL join, which it runs as a per-person index
+    // probe (the correlated form becomes a hash join over every face, ~5x
+    // slower on the 50k library).
+    qb.push_dialect(
+        "ff.image_hash AS first_face_photo_hash, ff.video AS first_face_photo_video",
+        "ffp.image_hash AS first_face_photo_hash, ffp.video AS first_face_photo_video",
+    );
+    qb.push(
+        ", COUNT(*) OVER () AS total \
          FROM api_person p \
          LEFT JOIN api_face cf ON cf.id = p.cover_face_id \
-         LEFT JOIN api_photo cp ON cp.id = p.cover_photo_id \
-         LEFT JOIN LATERAL (SELECT f.image, ph.image_hash, ph.video FROM api_face f \
-             JOIN api_photo ph ON ph.id = f.photo_id \
-             WHERE f.person_id = p.id AND ",
+         LEFT JOIN api_photo cp ON cp.id = p.cover_photo_id ",
+    );
+    qb.push_dialect(
+        "LEFT JOIN LATERAL (SELECT f.image, ph.image_hash, ph.video FROM api_face f \
+           JOIN api_photo ph ON ph.id = f.photo_id WHERE f.person_id = p.id AND ",
+        "LEFT JOIN api_face ff ON ff.id = (SELECT f.id FROM api_face f \
+           JOIN api_photo ph ON ph.id = f.photo_id WHERE f.person_id = p.id AND ",
     );
     scope::owned_by(qb, "ph", user_id);
-    qb.push(" ORDER BY f.id LIMIT 1) ff ON TRUE WHERE p.cluster_owner_id = ");
+    qb.push_dialect(
+        " ORDER BY f.id LIMIT 1) ff ON TRUE",
+        " ORDER BY f.id LIMIT 1) LEFT JOIN api_photo ffp ON ffp.id = ff.photo_id",
+    );
+    qb.push(" WHERE p.cluster_owner_id = ");
     qb.push_bind(user_id);
     if user_kind_only {
         qb.push(" AND p.kind = 'USER'");
     }
 }
 
-/// DRF `SearchFilter` on `name`: every term must be contained, any case.
+/// DRF `SearchFilter` on `name` (`icontains`): every term must be
+/// contained, any case on Postgres, ASCII case only on SQLite (as Django's
+/// SQLite backend).
 fn push_search(qb: &mut Qb<'_>, terms: &[String]) {
     for term in terms {
-        qb.push(" AND UPPER(p.name::text) LIKE UPPER(");
-        qb.push_bind(format!("%{}%", scope::like_escape(term)));
-        qb.push(")");
+        let n = qb.bind_arg(format!("%{}%", scope::like_escape(term)).into_arg());
+        qb.push(" AND ");
+        qb.push_with(|d| sql::ilike(d, "p.name", &format!("${n}")));
     }
 }
 
@@ -134,10 +154,13 @@ pub async fn owned_photo_by_hash_or_id<'e>(
 ) -> sqlx::Result<Option<Uuid>> {
     let as_uuid = Uuid::parse_str(photo_ref).ok();
     crate::sql::query_scalar::<_, Uuid>(
+        // SQLite takes no parenthesized compound members: the hash branch's
+        // `ORDER BY .. LIMIT` sits in a derived table instead.
         "SELECT id FROM ( \
-           (SELECT 0 AS k, id FROM api_photo WHERE owner_id = $1 AND image_hash = $2 ORDER BY id LIMIT 1) \
+           SELECT 0 AS k, h.id FROM (SELECT id FROM api_photo \
+             WHERE owner_id = $1 AND image_hash = $2 ORDER BY id LIMIT 1) h \
            UNION ALL \
-           (SELECT 1 AS k, id FROM api_photo WHERE owner_id = $1 AND id = $3) \
+           SELECT 1 AS k, id FROM api_photo WHERE owner_id = $1 AND id = $3 \
          ) x ORDER BY k LIMIT 1",
     )
     .bind(user_id)
@@ -373,12 +396,21 @@ pub struct VizFace {
 /// an encoding. Same statement shape (and so the same row order) as the
 /// unordered queryset Django pages through. Not prepared: a cached generic
 /// plan joins the other way round and so returns the rows in another order.
+///
+/// SQLite: Django's statement walks `api_photo`'s `owner_id` index (photo
+/// rowid order) and then each photo's faces by the `photo_id` index (face id
+/// order). That order is spelled out, since Rust's own indexes on
+/// `api_photo` (`lp_photo_owner_visible_idx`) would otherwise change the plan.
 pub async fn viz_faces<'e>(db: impl Exec<'e>, user_id: i32) -> sqlx::Result<Vec<VizFace>> {
-    crate::sql::query_as::<_, VizFace>(
+    let order = match db.dialect() {
+        Dialect::Pg => "",
+        Dialect::Sqlite => " ORDER BY api_photo.rowid, api_face.id",
+    };
+    crate::sql::query_as::<_, VizFace>(format!(
         "SELECT api_face.id, api_face.image, api_face.encoding, api_face.person_id FROM api_face \
          INNER JOIN api_photo ON (api_face.photo_id = api_photo.id) \
-         WHERE (api_photo.owner_id = $1 AND NOT api_face.deleted)",
-    )
+         WHERE (api_photo.owner_id = $1 AND NOT api_face.deleted){order}"
+    ))
     .persistent(false)
     .bind(user_id)
     .fetch_all(db)
@@ -460,13 +492,17 @@ pub async fn add_face_photo<'e>(
     } else {
         None
     };
-    let mut qb = Qb::new(
-        "SELECT p.id, p.image_hash, t.thumbnail_big, \
-           COALESCE((SELECT jsonb_agg(jsonb_build_array(f.location_top, f.location_right, \
-               f.location_bottom, f.location_left) ORDER BY f.id) \
-             FROM api_face f WHERE f.photo_id = p.id AND NOT f.deleted), '[]'::jsonb) AS boxes \
-         FROM api_photo p LEFT JOIN api_thumbnail t ON t.photo_id = p.id WHERE ",
+    let mut qb = Qb::new("SELECT p.id, p.image_hash, t.thumbnail_big, ");
+    // `json_group_array` over no rows is already `'[]'`.
+    qb.push_dialect(
+        "COALESCE((SELECT jsonb_agg(jsonb_build_array(f.location_top, f.location_right, \
+           f.location_bottom, f.location_left) ORDER BY f.id) \
+         FROM api_face f WHERE f.photo_id = p.id AND NOT f.deleted), '[]'::jsonb)",
+        "(SELECT json_group_array(json_array(f.location_top, f.location_right, \
+           f.location_bottom, f.location_left) ORDER BY f.id) \
+         FROM api_face f WHERE f.photo_id = p.id AND NOT f.deleted)",
     );
+    qb.push(" AS boxes FROM api_photo p LEFT JOIN api_thumbnail t ON t.photo_id = p.id WHERE ");
     scope::owned_by(&mut qb, "p", user_id);
     match as_uuid {
         Some(id) => {

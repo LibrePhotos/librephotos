@@ -3,11 +3,11 @@
 //! classifiers run in the face_cluster service (`lp_ml::face_cluster`,
 //! in-process or the sidecar); every read and write is here.
 
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, HashMap, HashSet};
 
 use lp_core::AppState;
 use lp_core::codecs::FaceEncoding;
-use lp_db::db::Conn;
+use lp_db::db::{Conn, Dialect, Exec, Qb, sql};
 use lp_jobs::{EnqueueOptions, JobType};
 use lp_sidecars::{ClusterFace, ClusterRequest, LabelledEncoding, SidecarError, TrainRequest};
 use sqlx::FromRow;
@@ -16,6 +16,9 @@ use super::unknown_cluster;
 use crate::run;
 
 pub const UNKNOWN_CLUSTER_ID: i64 = -1;
+
+/// Faces per `faces.train` UPDATE on SQLite (6 binds each, under 32766).
+const TRAIN_UPDATE_CHUNK: usize = 1000;
 
 /// `resolve_min_cluster_size`: the user's setting when valid, else doubled
 /// for every 10x more faces.
@@ -103,6 +106,19 @@ async fn deleted_user_id(conn: &mut Conn) -> sqlx::Result<Option<i32>> {
     .await
 }
 
+/// The persons `delete_clustered_people` deletes: the user's cluster
+/// persons and every person without an owner or owned by `deleted`.
+async fn doomed_persons<'e>(ex: impl Exec<'e>, user_id: i32) -> sqlx::Result<Vec<i32>> {
+    lp_db::sql::query_scalar(
+        "SELECT id FROM api_person WHERE (kind IN ('CLUSTER', 'UNKNOWN') AND cluster_owner_id = $1) \
+           OR cluster_owner_id IS NULL OR cluster_owner_id = \
+             (SELECT id FROM api_user WHERE username = 'deleted' ORDER BY id LIMIT 1)",
+    )
+    .bind(user_id)
+    .fetch_all(ex)
+    .await
+}
+
 /// Delete persons the way Django's collector + `reset_person` do: faces
 /// lose them as `person` (S3), `classification_person`, `cluster_person`,
 /// clusters as `person`. `USER` persons with an owner leave a mobile-sync
@@ -111,15 +127,25 @@ async fn delete_persons(conn: &mut Conn, ids: &[i32]) -> sqlx::Result<()> {
     if ids.is_empty() {
         return Ok(());
     }
-    lp_db::write::deletion_log::persons_deleted(conn, ids).await?;
-    for sql in [
-        "UPDATE api_face SET person_id = NULL WHERE person_id = ANY($1)",
-        "UPDATE api_face SET classification_person_id = NULL WHERE classification_person_id = ANY($1)",
-        "UPDATE api_face SET cluster_person_id = NULL WHERE cluster_person_id = ANY($1)",
-        "UPDATE api_cluster SET person_id = NULL WHERE person_id = ANY($1)",
-        "DELETE FROM api_person WHERE id = ANY($1)",
+    lp_db::write::people_faces::tombstones::persons_deleted(conn, ids).await?;
+    let d = conn.dialect();
+    for (head, col) in [
+        ("UPDATE api_face SET person_id = NULL", "person_id"),
+        (
+            "UPDATE api_face SET classification_person_id = NULL",
+            "classification_person_id",
+        ),
+        (
+            "UPDATE api_face SET cluster_person_id = NULL",
+            "cluster_person_id",
+        ),
+        ("UPDATE api_cluster SET person_id = NULL", "person_id"),
+        ("DELETE FROM api_person", "id"),
     ] {
-        lp_db::sql::query(sql).bind(ids).execute(&mut *conn).await?;
+        lp_db::sql::query(format!("{head} WHERE {}", sql::any_sql(d, col, 1)))
+            .bind(ids)
+            .execute(&mut *conn)
+            .await?;
     }
     Ok(())
 }
@@ -127,14 +153,7 @@ async fn delete_persons(conn: &mut Conn, ids: &[i32]) -> sqlx::Result<()> {
 /// `delete_clustered_people`, `delete_clusters`, `delete_persons_without_faces`.
 async fn reset_clusters(conn: &mut Conn, user_id: i32) -> sqlx::Result<()> {
     let deleted = deleted_user_id(conn).await?;
-    let people: Vec<i32> = lp_db::sql::query_scalar(
-        "SELECT id FROM api_person WHERE (kind IN ('CLUSTER', 'UNKNOWN') AND cluster_owner_id = $1) \
-           OR cluster_owner_id IS NULL OR cluster_owner_id = $2",
-    )
-    .bind(user_id)
-    .bind(deleted)
-    .fetch_all(&mut *conn)
-    .await?;
+    let people = doomed_persons(&mut *conn, user_id).await?;
     delete_persons(conn, &people).await?;
 
     let clusters: Vec<i32> = lp_db::sql::query_scalar(
@@ -145,14 +164,21 @@ async fn reset_clusters(conn: &mut Conn, user_id: i32) -> sqlx::Result<()> {
     .fetch_all(&mut *conn)
     .await?;
     if !clusters.is_empty() {
-        lp_db::sql::query("UPDATE api_face SET cluster_id = NULL WHERE cluster_id = ANY($1)")
-            .bind(&clusters)
-            .execute(&mut *conn)
-            .await?;
-        lp_db::sql::query("DELETE FROM api_cluster WHERE id = ANY($1)")
-            .bind(&clusters)
-            .execute(&mut *conn)
-            .await?;
+        let d = conn.dialect();
+        lp_db::sql::query(format!(
+            "UPDATE api_face SET cluster_id = NULL WHERE {}",
+            sql::any_sql(d, "cluster_id", 1)
+        ))
+        .bind(&clusters)
+        .execute(&mut *conn)
+        .await?;
+        lp_db::sql::query(format!(
+            "DELETE FROM api_cluster WHERE {}",
+            sql::any_sql(d, "id", 1)
+        ))
+        .bind(&clusters)
+        .execute(&mut *conn)
+        .await?;
     }
 
     let faceless: Vec<i32> = lp_db::sql::query_scalar(
@@ -187,17 +213,20 @@ fn off_runtime<T>(f: impl FnOnce() -> T) -> T {
 }
 
 /// `create_all_clusters`; returns the number of encodings clustered.
+///
+/// Design §3 (SQLite has one writer): the reads, the fit and the cluster
+/// plan (decoding, means) run outside any write transaction; one short
+/// transaction then resets the old clusters and writes the new ones, so a
+/// failed fit leaves the old clusters in place.
 async fn create_all_clusters(state: &AppState, user_id: i32) -> anyhow::Result<usize> {
-    let mut tx = state.db.begin().await?;
-    reset_clusters(&mut tx, user_id).await?;
-
     // `collect_face_encodings`: deleted faces take part in the fit.
     let rows = lp_db::sql::query_as::<_, FaceRow>(
-        "SELECT f.id, f.person_id, f.encoding FROM api_face f JOIN api_photo p ON p.id = f.photo_id \
+        "SELECT f.id, f.person_id, f.encoding FROM api_face f \
+         JOIN api_photo p ON p.id = f.photo_id \
          WHERE p.owner_id = $1 AND f.encoding IS NOT NULL AND f.encoding <> '' ORDER BY f.id",
     )
     .bind(user_id)
-    .fetch_all(&mut *tx)
+    .fetch_all(&state.db)
     .await?;
     let mut faces: Vec<ClusterFace> = Vec::with_capacity(rows.len());
     let mut expected_len = None;
@@ -228,6 +257,8 @@ async fn create_all_clusters(state: &AppState, user_id: i32) -> anyhow::Result<u
     })?;
     let target = faces.len();
     if target == 0 {
+        let mut tx = state.db.begin().await?;
+        reset_clusters(&mut tx, user_id).await?;
         tx.commit().await?;
         return Ok(0);
     }
@@ -236,7 +267,7 @@ async fn create_all_clusters(state: &AppState, user_id: i32) -> anyhow::Result<u
         "SELECT min_cluster_size, min_samples, cluster_selection_epsilon FROM api_user WHERE id = $1",
     )
     .bind(user_id)
-    .fetch_one(&mut *tx)
+    .fetch_one(&state.db)
     .await?;
     let ids: Vec<i32> = faces.iter().map(|f| f.id).collect();
     let request = ClusterRequest {
@@ -256,6 +287,7 @@ async fn create_all_clusters(state: &AppState, user_id: i32) -> anyhow::Result<u
         .await
         .map_err(sidecar_failure)?
         .labels;
+    drop(request);
 
     let mut groups: BTreeMap<i64, Vec<i32>> = BTreeMap::new();
     for (id, label) in ids.iter().zip(&labels) {
@@ -265,130 +297,233 @@ async fn create_all_clusters(state: &AppState, user_id: i32) -> anyhow::Result<u
     let mut order: Vec<(i64, Vec<i32>)> = groups.into_iter().collect();
     order.sort_by_key(|g| std::cmp::Reverse(g.1.len()));
 
+    // The members as they are after the fit (`encoding IS NOT NULL AND NOT
+    // deleted`), with the labels the reset is about to drop already dropped.
+    let doomed: HashSet<i32> = doomed_persons(&state.db, user_id)
+        .await?
+        .into_iter()
+        .collect();
+    let mut current: HashMap<i32, FaceRow> = lp_db::sql::query_as::<_, FaceRow>(
+        "SELECT f.id, f.person_id, f.encoding FROM api_face f \
+         JOIN api_photo p ON p.id = f.photo_id \
+         WHERE p.owner_id = $1 AND f.encoding IS NOT NULL AND NOT f.deleted",
+    )
+    .bind(user_id)
+    .fetch_all(&state.db)
+    .await?
+    .into_iter()
+    .map(|mut f| {
+        if f.person_id.is_some_and(|p| doomed.contains(&p)) {
+            f.person_id = None;
+        }
+        (f.id, f)
+    })
+    .collect();
+    let plans = off_runtime(|| {
+        order
+            .into_iter()
+            .map(|(label, face_ids)| {
+                let mut members: Vec<FaceRow> = face_ids
+                    .iter()
+                    .filter_map(|id| current.remove(id))
+                    .collect();
+                members.sort_by_key(|f| f.id);
+                (label, members)
+            })
+            .scan(0i64, |count, (label, members)| {
+                let cluster_id = if label == UNKNOWN_CLUSTER_ID {
+                    UNKNOWN_CLUSTER_ID
+                } else {
+                    *count += 1;
+                    *count
+                };
+                Some(plan_cluster(cluster_id, &members, pad))
+            })
+            .collect::<anyhow::Result<Vec<ClusterPlan>>>()
+    })?;
+
+    let mut tx = state.db.begin().await?;
+    reset_clusters(&mut tx, user_id).await?;
     let unknown = unknown_cluster(&mut tx, user_id).await?;
-    let mut cluster_count = 0i64;
     let mut created = 0usize;
-    for (label, face_ids) in order {
-        let cluster_id = if label == UNKNOWN_CLUSTER_ID {
-            UNKNOWN_CLUSTER_ID
-        } else {
-            cluster_count += 1;
-            cluster_count
-        };
-        let members = lp_db::sql::query_as::<_, FaceRow>(
-            "SELECT id, person_id, encoding FROM api_face \
-             WHERE id = ANY($1) AND encoding IS NOT NULL AND NOT deleted ORDER BY id",
-        )
-        .bind(&face_ids)
-        .fetch_all(&mut *tx)
-        .await?;
-        created += add_cluster(&mut tx, user_id, unknown, cluster_id, &members, pad).await?;
+    for plan in &plans {
+        created += apply_cluster(&mut tx, user_id, unknown, plan).await?;
     }
     tx.commit().await?;
     tracing::info!(clusters = created, faces = target, "created face clusters");
     Ok(target)
 }
 
-/// (person, cluster row, face ids, their encodings) of `_split_by_person`.
-type PersonCluster = (i32, i32, Vec<i32>, Vec<Vec<f64>>);
+/// What `ClusterManager.try_add_cluster` writes for one group, computed
+/// before the write transaction.
+enum ClusterPlan {
+    /// The noise group: every member joins the unknown cluster; unlabelled
+    /// ones lose their cluster person.
+    Unknown {
+        unlabelled: Vec<i32>,
+        labelled: Vec<i32>,
+    },
+    /// `_split_by_person`: one cluster per labelled person (in order of
+    /// first appearance), `(person, cluster name, face ids, mean encoding)`;
+    /// the unlabelled faces of the group keep no cluster.
+    Split {
+        cluster_id: i64,
+        persons: Vec<(i32, String, Vec<i32>, String)>,
+    },
+    /// `_create_cluster_person`: a new cluster person for the unlabelled faces.
+    Person {
+        cluster_id: i64,
+        name: String,
+        faces: Vec<i32>,
+        mean: String,
+    },
+}
 
-/// `ClusterManager.try_add_cluster`; returns the number of clusters made.
-async fn add_cluster(
-    conn: &mut Conn,
-    user_id: i32,
-    unknown: i32,
-    cluster_id: i64,
-    faces: &[FaceRow],
-    pad: usize,
-) -> anyhow::Result<usize> {
+/// The plan of `ClusterManager.try_add_cluster` for `faces` (sorted by id).
+fn plan_cluster(cluster_id: i64, faces: &[FaceRow], pad: usize) -> anyhow::Result<ClusterPlan> {
     let known: Vec<&FaceRow> = faces.iter().filter(|f| f.person_id.is_some()).collect();
     let unknown_faces: Vec<&FaceRow> = faces.iter().filter(|f| f.person_id.is_none()).collect();
 
     if cluster_id == UNKNOWN_CLUSTER_ID {
-        let ids: Vec<i32> = unknown_faces.iter().map(|f| f.id).collect();
-        lp_db::sql::query(
-            "UPDATE api_face SET cluster_id = $2, cluster_person_id = NULL WHERE id = ANY($1)",
-        )
-        .bind(&ids)
-        .bind(unknown)
-        .execute(&mut *conn)
-        .await?;
-        let ids: Vec<i32> = known.iter().map(|f| f.id).collect();
-        lp_db::sql::query("UPDATE api_face SET cluster_id = $2 WHERE id = ANY($1)")
-            .bind(&ids)
-            .bind(unknown)
-            .execute(&mut *conn)
-            .await?;
-        return Ok(0);
+        return Ok(ClusterPlan::Unknown {
+            unlabelled: unknown_faces.iter().map(|f| f.id).collect(),
+            labelled: known.iter().map(|f| f.id).collect(),
+        });
     }
 
     if !known.is_empty() {
-        // `_split_by_person`: one cluster per labelled person; the unlabelled
-        // faces of this group keep no cluster.
         let mut per_person: Vec<PersonCluster> = Vec::new();
         let mut index: HashMap<i32, usize> = HashMap::new();
         for face in &known {
             let person = face.person_id.expect("known face");
-            let slot = match index.get(&person) {
-                Some(i) => *i,
-                None => {
-                    let name = format!("Cluster {cluster_id}-{}", per_person.len() + 1);
-                    let id = cluster_by_name(conn, user_id, &name).await?;
-                    per_person.push((person, id, Vec::new(), Vec::new()));
-                    index.insert(person, per_person.len() - 1);
-                    per_person.len() - 1
-                }
-            };
-            per_person[slot].2.push(face.id);
-            per_person[slot].3.push(decode(face.id, &face.encoding)?);
+            let slot = *index.entry(person).or_insert_with(|| {
+                per_person.push((person, Vec::new(), Vec::new()));
+                per_person.len() - 1
+            });
+            per_person[slot].1.push(face.id);
+            per_person[slot].2.push(decode(face.id, &face.encoding)?);
         }
-        for (person, id, face_ids, encodings) in &per_person {
-            lp_db::sql::query("UPDATE api_face SET cluster_id = $2 WHERE id = ANY($1)")
-                .bind(face_ids)
-                .bind(id)
-                .execute(&mut *conn)
-                .await?;
-            lp_db::sql::query(
-                "UPDATE api_cluster SET cluster_id = $2, person_id = $3, mean_face_encoding = $4 \
-                 WHERE id = $1",
-            )
-            .bind(id)
-            .bind(cluster_id as i32)
-            .bind(person)
-            .bind(FaceEncoding::encode(&mean_encoding(encodings)))
-            .execute(&mut *conn)
-            .await?;
-        }
-        return Ok(per_person.len());
+        let persons = per_person
+            .into_iter()
+            .enumerate()
+            .map(|(i, (person, ids, encodings))| {
+                (
+                    person,
+                    format!("Cluster {cluster_id}-{}", i + 1),
+                    ids,
+                    FaceEncoding::encode(&mean_encoding(&encodings)),
+                )
+            })
+            .collect();
+        return Ok(ClusterPlan::Split {
+            cluster_id,
+            persons,
+        });
     }
 
-    // `_create_cluster_person`.
-    let name = format!("Unknown {:0>pad$}", cluster_id);
-    let person = cluster_person(conn, user_id, &name).await?;
-    let id = cluster_by_id(conn, user_id, cluster_id as i32).await?;
-    let ids: Vec<i32> = unknown_faces.iter().map(|f| f.id).collect();
-    lp_db::sql::query(
-        "UPDATE api_face SET cluster_id = $2, cluster_person_id = $3 WHERE id = ANY($1)",
-    )
-    .bind(&ids)
-    .bind(id)
-    .bind(person)
-    .execute(&mut *conn)
-    .await?;
     let encodings = unknown_faces
         .iter()
         .map(|f| decode(f.id, &f.encoding))
         .collect::<anyhow::Result<Vec<_>>>()?;
-    lp_db::sql::query(
-        "UPDATE api_cluster SET name = $2, person_id = $3, mean_face_encoding = $4 WHERE id = $1",
-    )
-    .bind(id)
-    .bind(format!("Cluster {cluster_id}"))
-    .bind(person)
-    .bind(FaceEncoding::encode(&mean_encoding(&encodings)))
-    .execute(&mut *conn)
-    .await?;
-    Ok(1)
+    Ok(ClusterPlan::Person {
+        cluster_id,
+        name: format!("Unknown {:0>pad$}", cluster_id),
+        faces: unknown_faces.iter().map(|f| f.id).collect(),
+        mean: FaceEncoding::encode(&mean_encoding(&encodings)),
+    })
+}
+
+/// (person, face ids, their encodings) of `_split_by_person`.
+type PersonCluster = (i32, Vec<i32>, Vec<Vec<f64>>);
+
+/// Writes one [`ClusterPlan`]; returns the number of clusters made.
+async fn apply_cluster(
+    conn: &mut Conn,
+    user_id: i32,
+    unknown: i32,
+    plan: &ClusterPlan,
+) -> anyhow::Result<usize> {
+    let d = conn.dialect();
+    let ids_in = sql::any_sql(d, "id", 1);
+    match plan {
+        ClusterPlan::Unknown {
+            unlabelled,
+            labelled,
+        } => {
+            lp_db::sql::query(format!(
+                "UPDATE api_face SET cluster_id = $2, cluster_person_id = NULL WHERE {ids_in}"
+            ))
+            .bind(unlabelled)
+            .bind(unknown)
+            .execute(&mut *conn)
+            .await?;
+            lp_db::sql::query(format!(
+                "UPDATE api_face SET cluster_id = $2 WHERE {ids_in}"
+            ))
+            .bind(labelled)
+            .bind(unknown)
+            .execute(&mut *conn)
+            .await?;
+            Ok(0)
+        }
+        ClusterPlan::Split {
+            cluster_id,
+            persons,
+        } => {
+            let mut rows = Vec::with_capacity(persons.len());
+            for (_, name, _, _) in persons {
+                rows.push(cluster_by_name(conn, user_id, name).await?);
+            }
+            for (id, (person, _, face_ids, mean)) in rows.iter().zip(persons) {
+                lp_db::sql::query(format!(
+                    "UPDATE api_face SET cluster_id = $2 WHERE {ids_in}"
+                ))
+                .bind(face_ids)
+                .bind(id)
+                .execute(&mut *conn)
+                .await?;
+                lp_db::sql::query(
+                    "UPDATE api_cluster SET cluster_id = $2, person_id = $3, \
+                       mean_face_encoding = $4 WHERE id = $1",
+                )
+                .bind(id)
+                .bind(*cluster_id as i32)
+                .bind(person)
+                .bind(mean)
+                .execute(&mut *conn)
+                .await?;
+            }
+            Ok(persons.len())
+        }
+        ClusterPlan::Person {
+            cluster_id,
+            name,
+            faces,
+            mean,
+        } => {
+            let person = cluster_person(conn, user_id, name).await?;
+            let id = cluster_by_id(conn, user_id, *cluster_id as i32).await?;
+            lp_db::sql::query(format!(
+                "UPDATE api_face SET cluster_id = $2, cluster_person_id = $3 WHERE {ids_in}"
+            ))
+            .bind(faces)
+            .bind(id)
+            .bind(person)
+            .execute(&mut *conn)
+            .await?;
+            lp_db::sql::query(
+                "UPDATE api_cluster SET name = $2, person_id = $3, mean_face_encoding = $4 \
+                 WHERE id = $1",
+            )
+            .bind(id)
+            .bind(format!("Cluster {cluster_id}"))
+            .bind(person)
+            .bind(mean)
+            .execute(&mut *conn)
+            .await?;
+            Ok(1)
+        }
+    }
 }
 
 /// `Cluster.get_or_create_cluster_by_name`.
@@ -582,25 +717,51 @@ async fn train(state: &AppState, user_id: i32, job_id: &str) -> anyhow::Result<(
             0.0
         });
     }
-    lp_db::sql::query(
-        "UPDATE api_face f SET \
+    const SET: &str = "UPDATE api_face AS f SET \
            cluster_person_id = CASE WHEN u.apply THEN u.cluster_person ELSE f.cluster_person_id END, \
            cluster_probability = u.cluster_probability, \
            classification_person_id = COALESCE(u.classification_person, f.classification_person_id), \
-           classification_probability = u.classification_probability \
-         FROM unnest($1::int[], $2::bool[], $3::int[], $4::float8[], $5::int[], $6::float8[]) \
-           AS u(id, apply, cluster_person, cluster_probability, classification_person, \
-                classification_probability) \
-         WHERE f.id = u.id",
-    )
-    .bind(&ids)
-    .bind(&apply_cluster)
-    .bind(&cluster_person)
-    .bind(&cluster_probability)
-    .bind(&classification_person)
-    .bind(&classification_probability)
-    .execute(&mut *tx)
-    .await?;
+           classification_probability = u.classification_probability FROM ";
+    match tx.dialect() {
+        Dialect::Pg => {
+            lp_db::sql::query(format!(
+                "{SET}unnest($1::int[], $2::bool[], $3::int[], $4::float8[], $5::int[], \
+                   $6::float8[]) \
+                 AS u(id, apply, cluster_person, cluster_probability, classification_person, \
+                   classification_probability) \
+                 WHERE f.id = u.id"
+            ))
+            .bind(&ids)
+            .bind(&apply_cluster)
+            .bind(&cluster_person)
+            .bind(&cluster_probability)
+            .bind(&classification_person)
+            .bind(&classification_probability)
+            .execute(&mut *tx)
+            .await?;
+        }
+        Dialect::Sqlite => {
+            // No multi-array `unnest`: chunked `VALUES` rows (6 binds each).
+            for start in (0..target).step_by(TRAIN_UPDATE_CHUNK) {
+                let end = (start + TRAIN_UPDATE_CHUNK).min(target);
+                let mut qb = Qb::new(format!(
+                    "{SET}(SELECT column1 AS id, column2 AS apply, column3 AS cluster_person, \
+                       column4 AS cluster_probability, column5 AS classification_person, \
+                       column6 AS classification_probability FROM ("
+                ));
+                qb.push_values(start..end, |mut b, i| {
+                    b.push_bind(ids[i])
+                        .push_bind(apply_cluster[i])
+                        .push_bind(cluster_person[i])
+                        .push_bind(cluster_probability[i])
+                        .push_bind(classification_person[i])
+                        .push_bind(classification_probability[i]);
+                });
+                qb.push(")) AS u WHERE f.id = u.id");
+                qb.build().execute(&mut *tx).await?;
+            }
+        }
+    }
     tx.commit().await?;
     let target = i32::try_from(target).unwrap_or(i32::MAX);
     run::set_progress(&state.db, job_id, target, target).await?;

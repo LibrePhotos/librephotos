@@ -93,14 +93,15 @@ async fn run_queued(app: &TestApp, kind: &str) -> bool {
 }
 
 async fn photo_of(app: &TestApp, path: &Path) -> (Uuid, String) {
-    lp_db::sql::query_as(
+    let (id, thumb): (lp_db::db::DjUuid, String) = lp_db::sql::query_as(
         "SELECT p.id, t.thumbnail_big FROM api_photo p JOIN api_file f ON f.hash = p.main_file_id \
          JOIN api_thumbnail t ON t.photo_id = p.id WHERE f.path = $1",
     )
     .bind(path.to_string_lossy().to_string())
     .fetch_one(app.pool())
     .await
-    .unwrap()
+    .unwrap();
+    (id.0, thumb)
 }
 
 async fn read_regions(app: &TestApp, file: &Path, try_sidecar: bool) -> (Value, Value) {

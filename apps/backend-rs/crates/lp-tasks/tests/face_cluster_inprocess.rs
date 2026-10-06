@@ -33,29 +33,62 @@ struct Snapshot {
 }
 
 async fn snapshot(db: &Db, owner: i32) -> Snapshot {
-    let faces = lp_db::sql::query_as(
+    // Probabilities to 6 places and a digest of the means, computed here so
+    // the query runs on both dialects.
+    let faces: Vec<(
+        i32,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+        Option<i32>,
+        f64,
+        f64,
+    )> = lp_db::sql::query_as(
         "SELECT f.id, c.name, cp.name, clp.name, f.person_id, \
-           to_char(f.cluster_probability, 'FM0.000000'), \
-           to_char(f.classification_probability, 'FM0.000000') \
-         FROM api_face f JOIN api_photo p ON p.id = f.photo_id \
-         LEFT JOIN api_cluster c ON c.id = f.cluster_id \
-         LEFT JOIN api_person cp ON cp.id = f.cluster_person_id \
-         LEFT JOIN api_person clp ON clp.id = f.classification_person_id \
-         WHERE p.owner_id = $1 ORDER BY f.id",
+               f.cluster_probability, f.classification_probability \
+             FROM api_face f JOIN api_photo p ON p.id = f.photo_id \
+             LEFT JOIN api_cluster c ON c.id = f.cluster_id \
+             LEFT JOIN api_person cp ON cp.id = f.cluster_person_id \
+             LEFT JOIN api_person clp ON clp.id = f.classification_person_id \
+             WHERE p.owner_id = $1 ORDER BY f.id",
     )
     .bind(owner)
     .fetch_all(db)
     .await
     .unwrap();
-    let clusters = lp_db::sql::query_as(
-        "SELECT c.name, c.cluster_id, pe.name, md5(c.mean_face_encoding) FROM api_cluster c \
-         LEFT JOIN api_person pe ON pe.id = c.person_id WHERE c.owner_id = $1 \
-         ORDER BY c.cluster_id, c.name",
-    )
-    .bind(owner)
-    .fetch_all(db)
-    .await
-    .unwrap();
+    let faces = faces
+        .into_iter()
+        .map(|(id, c, cp, clp, person, cprob, clprob)| {
+            (
+                id,
+                c,
+                cp,
+                clp,
+                person,
+                format!("{cprob:.6}"),
+                format!("{clprob:.6}"),
+            )
+        })
+        .collect();
+    let clusters: Vec<(Option<String>, Option<i32>, Option<String>, String)> =
+        lp_db::sql::query_as(
+            "SELECT c.name, c.cluster_id, pe.name, c.mean_face_encoding FROM api_cluster c \
+             LEFT JOIN api_person pe ON pe.id = c.person_id WHERE c.owner_id = $1 \
+             ORDER BY c.cluster_id, c.name",
+        )
+        .bind(owner)
+        .fetch_all(db)
+        .await
+        .unwrap();
+    let clusters = clusters
+        .into_iter()
+        .map(|(name, cid, person, mean)| {
+            use std::hash::{Hash, Hasher};
+            let mut h = std::collections::hash_map::DefaultHasher::new();
+            mean.hash(&mut h);
+            (name, cid, person, format!("{:016x}", h.finish()))
+        })
+        .collect();
     let persons = lp_db::sql::query_as(
         "SELECT name, kind FROM api_person WHERE cluster_owner_id = $1 OR kind = 'USER' ORDER BY name, kind",
     )

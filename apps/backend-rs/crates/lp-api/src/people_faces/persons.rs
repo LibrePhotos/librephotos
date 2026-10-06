@@ -190,8 +190,18 @@ fn drf_char(value: &Value, max_length: usize) -> Result<String, String> {
     Ok(text)
 }
 
-/// DRF `IntegerField` built from the model's `IntegerField` (int4 range).
-fn drf_int(value: &Value) -> Result<i64, String> {
+/// `connection.ops.integer_field_range("IntegerField")`: int4 on Postgres;
+/// Django's SQLite backend allows the full 64-bit range.
+fn int_field_range(d: lp_db::Dialect) -> (i128, i128) {
+    match d {
+        lp_db::Dialect::Pg => (i32::MIN.into(), i32::MAX.into()),
+        lp_db::Dialect::Sqlite => (i64::MIN.into(), i64::MAX.into()),
+    }
+}
+
+/// DRF `IntegerField` built from the model's `IntegerField`, with the
+/// database backend's range validators.
+fn drf_int(value: &Value, (min, max): (i128, i128)) -> Result<i128, String> {
     const INVALID: &str = "A valid integer is required.";
     let text = match value {
         Value::Null => return Err("This field may not be null.".into()),
@@ -206,21 +216,31 @@ fn drf_int(value: &Value) -> Result<i64, String> {
         Some(dot) if text[dot + 1..].bytes().all(|b| b == b'0') => &text[..dot],
         _ => text,
     };
-    let n: i64 = text
-        .trim()
-        .replace('_', "")
-        .parse()
-        .map_err(|_| INVALID.to_string())?;
-    if n > i64::from(i32::MAX) {
-        return Err(format!(
-            "Ensure this value is less than or equal to {}.",
-            i32::MAX
-        ));
+    let digits = text.trim().replace('_', "");
+    let n: i128 = match digits.parse() {
+        Ok(n) => n,
+        // Python's `int` has no bound: an integer beyond i128 still only
+        // fails the range validators.
+        Err(_)
+            if {
+                let d = digits.strip_prefix(['-', '+']).unwrap_or(&digits);
+                !d.is_empty() && d.bytes().all(|b| b.is_ascii_digit())
+            } =>
+        {
+            if digits.starts_with('-') {
+                i128::MIN
+            } else {
+                i128::MAX
+            }
+        }
+        Err(_) => return Err(INVALID.to_string()),
+    };
+    if n > max {
+        return Err(format!("Ensure this value is less than or equal to {max}."));
     }
-    if n < i64::from(i32::MIN) {
+    if n < min {
         return Err(format!(
-            "Ensure this value is greater than or equal to {}.",
-            i32::MIN
+            "Ensure this value is greater than or equal to {min}."
         ));
     }
     Ok(n)
@@ -248,7 +268,7 @@ struct PersonInput {
 
 /// `serializer.is_valid()`, errors in the serializer's field order. Without
 /// `partial` (PUT, POST) `name` is required.
-fn validate(body: &Value, partial: bool) -> ApiResult<PersonInput> {
+fn validate(body: &Value, partial: bool, ints: (i128, i128)) -> ApiResult<PersonInput> {
     let Some(fields) = body.as_object() else {
         return Err(ApiError::validation(format!(
             "Invalid data. Expected a dictionary, but got {}.",
@@ -275,7 +295,7 @@ fn validate(body: &Value, partial: bool) -> ApiResult<PersonInput> {
         "face_count",
         fields
             .get("face_count")
-            .map(|v| drf_int(v).map(|n| n.to_string())),
+            .map(|v| drf_int(v, ints).map(|n| n.to_string())),
     );
     let new_name = check(
         "newPersonName",
@@ -330,7 +350,7 @@ async fn save(
     partial: bool,
 ) -> ApiResult<Json<PersonOut>> {
     let person = load(state, user_id, id, q).await?;
-    let input = validate(body, partial)?;
+    let input = validate(body, partial, int_field_range(state.db.dialect()))?;
     if let Some(name) = input.new_name {
         let tagging_model = state.settings().tagging_model.clone();
         write::rename_person(&state.db, person.id, &name, &tagging_model).await?;
@@ -354,7 +374,9 @@ pub async fn create(
     user: AuthUser,
     ApiJson(body): ApiJson<Value>,
 ) -> ApiResult<Response> {
-    let name = validate(&body, false)?.name.unwrap_or_default();
+    let name = validate(&body, false, int_field_range(state.db.dialect()))?
+        .name
+        .unwrap_or_default();
     let person_id = write::create_person(&state.db, user.id, &name).await?;
     let person = db::owned_person_any_kind(&state.db, user.id, person_id)
         .await?
@@ -388,14 +410,26 @@ mod tests {
 
     #[test]
     fn int_field() {
-        assert_eq!(drf_int(&Value::from(5)).unwrap(), 5);
-        assert_eq!(drf_int(&Value::from(" 7 ")).unwrap(), 7);
-        assert_eq!(drf_int(&Value::from("7.00")).unwrap(), 7);
-        assert_eq!(drf_int(&Value::from(3.0)).unwrap(), 3);
-        assert!(drf_int(&Value::from(3.5)).is_err());
-        assert!(drf_int(&Value::from("abc")).is_err());
-        assert!(drf_int(&Value::Bool(true)).is_err());
-        assert!(drf_int(&Value::from(1i64 << 40)).is_err());
+        let pg = int_field_range(lp_db::Dialect::Pg);
+        let lite = int_field_range(lp_db::Dialect::Sqlite);
+        assert_eq!(drf_int(&Value::from(5), pg).unwrap(), 5);
+        assert_eq!(drf_int(&Value::from(" 7 "), pg).unwrap(), 7);
+        assert_eq!(drf_int(&Value::from("7.00"), pg).unwrap(), 7);
+        assert_eq!(drf_int(&Value::from(3.0), pg).unwrap(), 3);
+        assert!(drf_int(&Value::from(3.5), pg).is_err());
+        assert!(drf_int(&Value::from("abc"), pg).is_err());
+        assert!(drf_int(&Value::Bool(true), pg).is_err());
+        assert!(drf_int(&Value::from(1i64 << 40), pg).is_err());
+        // Django's SQLite backend: the 64-bit range.
+        assert_eq!(drf_int(&Value::from(1i64 << 40), lite).unwrap(), 1 << 40);
+        assert_eq!(
+            drf_int(
+                &Value::from("99999999999999999999999999999999999999999"),
+                lite
+            )
+            .unwrap_err(),
+            "Ensure this value is less than or equal to 9223372036854775807."
+        );
     }
 
     #[test]
