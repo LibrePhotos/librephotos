@@ -6,6 +6,7 @@ use serde_json::Value;
 use uuid::Uuid;
 
 use crate::db::Conn;
+use crate::sql;
 
 /// `_apply_category_override`: `save(update_fields=[..., "category_source"])`,
 /// which leaves `last_modified` alone.
@@ -207,17 +208,22 @@ pub async fn apply_geocode(
     .await?;
 
     if !old_places.is_empty() {
-        crate::sql::query(
-            "DELETE FROM api_albumplace_photos WHERE photo_id = $1 AND albumplace_id = ANY($2)",
-        )
+        let d = conn.dialect();
+        crate::sql::query(format!(
+            "DELETE FROM api_albumplace_photos WHERE photo_id = $1 AND {}",
+            sql::any_sql(d, "albumplace_id", 2)
+        ))
         .bind(photo_id)
         .bind(old_places)
         .execute(&mut *conn)
         .await?;
-        crate::sql::query("UPDATE api_albumplace SET last_modified = now() WHERE id = ANY($1)")
-            .bind(old_places)
-            .execute(&mut *conn)
-            .await?;
+        crate::sql::query(format!(
+            "UPDATE api_albumplace SET last_modified = now() WHERE {}",
+            sql::any_sql(d, "id", 1)
+        ))
+        .bind(old_places)
+        .execute(&mut *conn)
+        .await?;
     }
 
     if let Some(Value::Array(features)) = geo.get("features") {
@@ -294,21 +300,35 @@ pub async fn apply_geocode(
 }
 
 /// The current `local_orientation`, row-locked so concurrent rotations
-/// compose instead of overwriting each other.
+/// compose instead of overwriting each other (on SQLite the IMMEDIATE
+/// transaction already holds the write lock).
 pub async fn lock_local_orientation(conn: &mut Conn, photo_id: Uuid) -> sqlx::Result<i32> {
-    crate::sql::query_scalar("SELECT local_orientation FROM api_photo WHERE id = $1 FOR UPDATE")
-        .bind(photo_id)
-        .fetch_one(&mut *conn)
-        .await
+    let d = conn.dialect();
+    crate::sql::query_scalar(format!(
+        "SELECT local_orientation FROM api_photo WHERE id = $1{}",
+        sql::for_update(d)
+    ))
+    .bind(photo_id)
+    .fetch_one(&mut *conn)
+    .await
 }
 
 /// `_adopt_written_orientation`: the file now carries the whole rotation.
 /// Both saves use `update_fields`, so no `last_modified`/`updated_at` bump.
+///
+/// Runs in its own short transaction after the file write (no ExifTool work
+/// inside a write transaction): `expected_local` is the `local_orientation`
+/// the file write was computed from. When another rotation changed it in the
+/// meantime nothing is adopted and `false` comes back.
 pub async fn adopt_written_orientation(
     conn: &mut Conn,
     photo_id: Uuid,
+    expected_local: i32,
     combined: i32,
-) -> sqlx::Result<()> {
+) -> sqlx::Result<bool> {
+    if lock_local_orientation(conn, photo_id).await? != expected_local {
+        return Ok(false);
+    }
     crate::sql::query(
         "UPDATE api_photo SET local_orientation = 1 WHERE id = $1 AND local_orientation <> 1",
     )
@@ -323,7 +343,7 @@ pub async fn adopt_written_orientation(
     .bind(combined)
     .execute(&mut *conn)
     .await?;
-    Ok(())
+    Ok(true)
 }
 
 /// `Photo.rotate`'s DB part; returns the new `last_modified`.

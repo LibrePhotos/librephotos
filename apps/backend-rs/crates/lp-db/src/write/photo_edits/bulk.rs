@@ -10,6 +10,7 @@ use uuid::Uuid;
 use super::{refresh_tag_photo_counts, tag_ids_for_photos};
 use crate::db::{Conn, DjUuid, Qb};
 use crate::scope::{self, PhotoFilterParams};
+use crate::sql;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Flag {
@@ -120,9 +121,8 @@ pub fn push_select_all(
 ) {
     scope::photo_filters(qb, "p", user_id, favorite_min_rating, params);
     if !excluded_hashes.is_empty() {
-        qb.push(" AND NOT (p.image_hash = ANY(");
-        qb.push_bind(excluded_hashes.to_vec());
-        qb.push("))");
+        qb.push(" AND ");
+        sql::not_any(qb, "p.image_hash", excluded_hashes.to_vec());
     }
 }
 
@@ -164,9 +164,8 @@ pub async fn apply(
             flag.push_differs(&mut qb, value, favorite_min_rating);
             qb.push(" AS changing FROM api_photo p WHERE ");
             scope::owned_by(&mut qb, "p", user_id);
-            qb.push(" AND p.image_hash = ANY(");
-            qb.push_bind(requested.clone());
-            qb.push(")");
+            qb.push(" AND ");
+            sql::any(&mut qb, "p.image_hash", requested.clone());
             let rows: Vec<HashRow> = qb.build_query_as().fetch_all(&mut *conn).await?;
 
             let found: HashSet<&str> = rows.iter().map(|r| r.image_hash.as_str()).collect();
@@ -225,19 +224,20 @@ async fn update(
     };
     if flag == Flag::Deleted && !value {
         // A restored photo re-enters its stacks: their reviews go back to pending.
-        crate::sql::query(
+        let d = conn.dialect();
+        crate::sql::query(format!(
             "UPDATE api_stackreview SET decision = 'pending' WHERE decision = 'resolved' \
-             AND stack_id IN (SELECT photostack_id FROM api_photo_stacks WHERE photo_id = ANY($1))",
-        )
+             AND stack_id IN (SELECT photostack_id FROM api_photo_stacks WHERE {})",
+            sql::any_sql(d, "photo_id", 1)
+        ))
         .bind(ids)
         .execute(&mut *conn)
         .await?;
     }
     let mut qb = Qb::new("UPDATE api_photo SET ");
     flag.push_set(&mut qb, value, favorite_min_rating);
-    qb.push(", last_modified = now() WHERE id = ANY(");
-    qb.push_bind(ids.to_vec());
-    qb.push(")");
+    qb.push(", last_modified = now() WHERE ");
+    sql::any(&mut qb, "id", ids.to_vec());
     let n = qb.build().execute(&mut *conn).await?.rows_affected();
     refresh_tag_photo_counts(conn, &tag_ids).await?;
     Ok(n)

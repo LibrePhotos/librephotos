@@ -8,8 +8,10 @@ pub mod caption;
 pub mod delete;
 pub mod edit;
 pub mod sharing;
+pub mod tombstones;
 
 use crate::db::Conn;
+use crate::sql;
 
 /// `refresh_tag_photo_counts`: recount `photo_count` of `tag_ids` over the
 /// photos a tag shows (not hidden, trashed or removed). No `last_modified`
@@ -18,12 +20,14 @@ pub async fn refresh_tag_photo_counts(conn: &mut Conn, tag_ids: &[i32]) -> sqlx:
     if tag_ids.is_empty() {
         return Ok(());
     }
-    crate::sql::query(
-        "UPDATE api_tag t SET photo_count = COALESCE((\
+    let d = conn.dialect();
+    crate::sql::query(format!(
+        "UPDATE api_tag AS t SET photo_count = COALESCE((\
             SELECT COUNT(tp.id) FROM api_tag_photos tp JOIN api_photo p ON p.id = tp.photo_id \
             WHERE tp.tag_id = t.id AND NOT p.hidden AND NOT p.in_trashcan AND NOT p.removed), 0) \
-         WHERE t.id = ANY($1)",
-    )
+         WHERE {}",
+        sql::any_sql(d, "t.id", 1)
+    ))
     .bind(tag_ids)
     .execute(&mut *conn)
     .await?;
@@ -35,9 +39,11 @@ pub async fn tag_ids_for_photos(
     conn: &mut Conn,
     photo_ids: &[uuid::Uuid],
 ) -> sqlx::Result<Vec<i32>> {
-    crate::sql::query_scalar::<_, i32>(
-        "SELECT DISTINCT tag_id FROM api_tag_photos WHERE photo_id = ANY($1)",
-    )
+    let d = conn.dialect();
+    crate::sql::query_scalar::<_, i32>(format!(
+        "SELECT DISTINCT tag_id FROM api_tag_photos WHERE {}",
+        sql::any_sql(d, "photo_id", 1)
+    ))
     .bind(photo_ids)
     .fetch_all(&mut *conn)
     .await
@@ -45,10 +51,11 @@ pub async fn tag_ids_for_photos(
 
 /// The `AlbumThing.photos` m2m receiver after an add or remove: recount the
 /// non-hidden photos, top the covers up to 4, and bump `last_modified` (the
-/// sync bump plus the `save()` Django does right after).
+/// sync bump plus the `save()` Django does right after). The LIMIT is
+/// clamped by `CASE` (no `GREATEST`; a negative LIMIT is "no limit" on SQLite).
 pub(crate) async fn album_thing_changed(conn: &mut Conn, album_id: i32) -> sqlx::Result<()> {
     crate::sql::query(
-        "UPDATE api_albumthing a SET photo_count = (\
+        "UPDATE api_albumthing AS a SET photo_count = (\
             SELECT COUNT(*) FROM api_albumthing_photos ap JOIN api_photo p ON p.id = ap.photo_id \
             WHERE ap.albumthing_id = a.id AND NOT p.hidden), last_modified = now() \
          WHERE a.id = $1",
@@ -65,8 +72,8 @@ pub(crate) async fn album_thing_changed(conn: &mut Conn, album_id: i32) -> sqlx:
                 SELECT c.photo_id FROM api_albumthing_cover_photos c \
                 WHERE c.albumthing_id = $1 AND c.photo_id IS NOT NULL) \
             GROUP BY ap.photo_id ORDER BY ord \
-            LIMIT GREATEST(0, 4 - (SELECT COUNT(*) FROM api_albumthing_cover_photos c \
-                                   WHERE c.albumthing_id = $1))) x",
+            LIMIT (SELECT CASE WHEN COUNT(*) < 4 THEN 4 - COUNT(*) ELSE 0 END \
+                   FROM api_albumthing_cover_photos c WHERE c.albumthing_id = $1)) x",
     )
     .bind(album_id)
     .execute(&mut *conn)

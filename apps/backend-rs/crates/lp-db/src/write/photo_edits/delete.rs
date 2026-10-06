@@ -3,13 +3,15 @@
 //! `removed`, loses its files (a file row and its bytes go only when no
 //! other photo uses them), its cached transcode, and its stack/duplicate
 //! memberships; stacks and duplicate groups left with one live photo or none
-//! are dissolved.
+//! are dissolved. Every dependent row is deleted explicitly (Django's SQLite
+//! tables have no `ON DELETE`).
 
 use std::path::Path;
 
 use uuid::Uuid;
 
 use crate::db::{Conn, DjUuid};
+use crate::sql;
 use crate::write::AfterCommit;
 
 /// Photos of `user_id` in the trash carrying one of `hashes` (the
@@ -19,10 +21,12 @@ pub async fn trashed_by_hashes(
     user_id: i32,
     hashes: &[String],
 ) -> sqlx::Result<Vec<(Uuid, String)>> {
-    let rows: Vec<(DjUuid, String)> = crate::sql::query_as(
+    let d = conn.dialect();
+    let rows: Vec<(DjUuid, String)> = crate::sql::query_as(format!(
         "SELECT id, image_hash FROM api_photo \
-         WHERE owner_id = $1 AND in_trashcan AND image_hash = ANY($2) ORDER BY id",
-    )
+         WHERE owner_id = $1 AND in_trashcan AND {} ORDER BY id",
+        sql::any_sql(d, "image_hash", 2)
+    ))
     .bind(user_id)
     .bind(hashes)
     .fetch_all(&mut *conn)
@@ -40,117 +44,160 @@ pub async fn remove_photos(
     if ids.is_empty() {
         return Ok(after);
     }
-    let hashes: Vec<String> =
-        crate::sql::query_scalar("SELECT image_hash FROM api_photo WHERE id = ANY($1)")
-            .bind(ids)
-            .fetch_all(&mut *conn)
-            .await?;
-    let stacks: Vec<Uuid> = crate::sql::query_scalar(
-        "SELECT DISTINCT photostack_id FROM api_photo_stacks WHERE photo_id = ANY($1)",
-    )
+    let d = conn.dialect();
+    let any = |expr: &str, n: usize| sql::any_sql(d, expr, n);
+    let not_any = |expr: &str, n: usize| sql::not_any_sql(d, expr, n);
+
+    let hashes: Vec<String> = crate::sql::query_scalar(format!(
+        "SELECT image_hash FROM api_photo WHERE {}",
+        any("id", 1)
+    ))
     .bind(ids)
     .fetch_all(&mut *conn)
     .await?;
-    let duplicates: Vec<Uuid> = crate::sql::query_scalar(
-        "SELECT DISTINCT duplicate_id FROM api_photo_duplicates WHERE photo_id = ANY($1)",
-    )
+    let stacks: Vec<Uuid> = crate::sql::query_scalar(format!(
+        "SELECT DISTINCT photostack_id FROM api_photo_stacks WHERE {}",
+        any("photo_id", 1)
+    ))
+    .bind(ids)
+    .fetch_all(&mut *conn)
+    .await?;
+    let duplicates: Vec<Uuid> = crate::sql::query_scalar(format!(
+        "SELECT DISTINCT duplicate_id FROM api_photo_duplicates WHERE {}",
+        any("photo_id", 1)
+    ))
     .bind(ids)
     .fetch_all(&mut *conn)
     .await?;
 
     // Files only the removed photos use (via `files` or as a main file).
-    let doomed: Vec<(String, String)> = crate::sql::query_as(
+    let doomed: Vec<(String, String)> = crate::sql::query_as(format!(
         "SELECT f.hash, f.path FROM api_file f \
-         WHERE f.hash IN (SELECT file_id FROM api_photo_files WHERE photo_id = ANY($1)) \
+         WHERE f.hash IN (SELECT file_id FROM api_photo_files WHERE {}) \
          AND NOT EXISTS (SELECT 1 FROM api_photo_files o JOIN api_photo op ON op.id = o.photo_id \
-                         WHERE o.file_id = f.hash AND NOT (o.photo_id = ANY($1))) \
+                         WHERE o.file_id = f.hash AND {}) \
          AND NOT EXISTS (SELECT 1 FROM api_photo op WHERE op.main_file_id = f.hash \
-                         AND NOT (op.id = ANY($1)))",
-    )
+                         AND {})",
+        any("photo_id", 1),
+        not_any("o.photo_id", 1),
+        not_any("op.id", 1)
+    ))
     .bind(ids)
     .fetch_all(&mut *conn)
     .await?;
     let doomed_hashes: Vec<String> = doomed.iter().map(|(h, _)| h.clone()).collect();
 
-    crate::sql::query("DELETE FROM api_photo_files WHERE photo_id = ANY($1) OR file_id = ANY($2)")
-        .bind(ids)
-        .bind(&doomed_hashes)
-        .execute(&mut *conn)
-        .await?;
+    crate::sql::query(format!(
+        "DELETE FROM api_photo_files WHERE {} OR {}",
+        any("photo_id", 1),
+        any("file_id", 2)
+    ))
+    .bind(ids)
+    .bind(&doomed_hashes)
+    .execute(&mut *conn)
+    .await?;
     if !doomed_hashes.is_empty() {
-        crate::sql::query(
-            "DELETE FROM api_file_embedded_media WHERE from_file_id = ANY($1) OR to_file_id = ANY($1)",
-        )
+        crate::sql::query(format!(
+            "DELETE FROM api_file_embedded_media WHERE {} OR {}",
+            any("from_file_id", 1),
+            any("to_file_id", 1)
+        ))
         .bind(&doomed_hashes)
         .execute(&mut *conn)
         .await?;
-        crate::sql::query("DELETE FROM api_metadatafile WHERE file_id = ANY($1)")
-            .bind(&doomed_hashes)
-            .execute(&mut *conn)
-            .await?;
-        crate::sql::query("UPDATE api_photo SET main_file_id = NULL WHERE main_file_id = ANY($1)")
-            .bind(&doomed_hashes)
-            .execute(&mut *conn)
-            .await?;
-        crate::sql::query("DELETE FROM api_file WHERE hash = ANY($1)")
+        crate::sql::query(format!(
+            "DELETE FROM api_metadatafile WHERE {}",
+            any("file_id", 1)
+        ))
+        .bind(&doomed_hashes)
+        .execute(&mut *conn)
+        .await?;
+        crate::sql::query(format!(
+            "UPDATE api_photo SET main_file_id = NULL WHERE {}",
+            any("main_file_id", 1)
+        ))
+        .bind(&doomed_hashes)
+        .execute(&mut *conn)
+        .await?;
+        crate::sql::query(format!("DELETE FROM api_file WHERE {}", any("hash", 1)))
             .bind(&doomed_hashes)
             .execute(&mut *conn)
             .await?;
     }
 
-    crate::sql::query(
+    crate::sql::query(format!(
         "UPDATE api_photo SET main_file_id = NULL, removed = TRUE, last_modified = now() \
-         WHERE id = ANY($1)",
-    )
+         WHERE {}",
+        any("id", 1)
+    ))
     .bind(ids)
     .execute(&mut *conn)
     .await?;
-    crate::sql::query("DELETE FROM api_photo_stacks WHERE photo_id = ANY($1)")
-        .bind(ids)
-        .execute(&mut *conn)
-        .await?;
-    crate::sql::query("DELETE FROM api_photo_duplicates WHERE photo_id = ANY($1)")
-        .bind(ids)
-        .execute(&mut *conn)
-        .await?;
+    crate::sql::query(format!(
+        "DELETE FROM api_photo_stacks WHERE {}",
+        any("photo_id", 1)
+    ))
+    .bind(ids)
+    .execute(&mut *conn)
+    .await?;
+    crate::sql::query(format!(
+        "DELETE FROM api_photo_duplicates WHERE {}",
+        any("photo_id", 1)
+    ))
+    .bind(ids)
+    .execute(&mut *conn)
+    .await?;
 
     if !stacks.is_empty() {
-        let dead: Vec<Uuid> = crate::sql::query_scalar(
-            "SELECT s FROM unnest($1::uuid[]) s WHERE (SELECT COUNT(*) FROM api_photo_stacks ps \
-             JOIN api_photo p ON p.id = ps.photo_id WHERE ps.photostack_id = s AND NOT p.removed) <= 1",
-        )
+        let dead: Vec<Uuid> = crate::sql::query_scalar(format!(
+            "SELECT s.value FROM {} WHERE (SELECT COUNT(*) FROM api_photo_stacks ps \
+             JOIN api_photo p ON p.id = ps.photo_id WHERE ps.photostack_id = s.value \
+             AND NOT p.removed) <= 1",
+            sql::list_rows(d, 1, "s")
+        ))
         .bind(&stacks)
         .fetch_all(&mut *conn)
         .await?;
         if !dead.is_empty() {
-            crate::sql::query("DELETE FROM api_photo_stacks WHERE photostack_id = ANY($1)")
-                .bind(&dead)
-                .execute(&mut *conn)
-                .await?;
-            crate::sql::query("DELETE FROM api_stackreview WHERE stack_id = ANY($1)")
-                .bind(&dead)
-                .execute(&mut *conn)
-                .await?;
-            crate::sql::query("DELETE FROM api_photostack WHERE id = ANY($1)")
+            crate::sql::query(format!(
+                "DELETE FROM api_photo_stacks WHERE {}",
+                any("photostack_id", 1)
+            ))
+            .bind(&dead)
+            .execute(&mut *conn)
+            .await?;
+            crate::sql::query(format!(
+                "DELETE FROM api_stackreview WHERE {}",
+                any("stack_id", 1)
+            ))
+            .bind(&dead)
+            .execute(&mut *conn)
+            .await?;
+            crate::sql::query(format!("DELETE FROM api_photostack WHERE {}", any("id", 1)))
                 .bind(&dead)
                 .execute(&mut *conn)
                 .await?;
         }
     }
     if !duplicates.is_empty() {
-        let dead: Vec<Uuid> = crate::sql::query_scalar(
-            "SELECT d FROM unnest($1::uuid[]) d WHERE (SELECT COUNT(*) FROM api_photo_duplicates pd \
-             JOIN api_photo p ON p.id = pd.photo_id WHERE pd.duplicate_id = d AND NOT p.removed) <= 1",
-        )
+        let dead: Vec<Uuid> = crate::sql::query_scalar(format!(
+            "SELECT d.value FROM {} WHERE (SELECT COUNT(*) FROM api_photo_duplicates pd \
+             JOIN api_photo p ON p.id = pd.photo_id WHERE pd.duplicate_id = d.value \
+             AND NOT p.removed) <= 1",
+            sql::list_rows(d, 1, "d")
+        ))
         .bind(&duplicates)
         .fetch_all(&mut *conn)
         .await?;
         if !dead.is_empty() {
-            crate::sql::query("DELETE FROM api_photo_duplicates WHERE duplicate_id = ANY($1)")
-                .bind(&dead)
-                .execute(&mut *conn)
-                .await?;
-            crate::sql::query("DELETE FROM api_duplicate WHERE id = ANY($1)")
+            crate::sql::query(format!(
+                "DELETE FROM api_photo_duplicates WHERE {}",
+                any("duplicate_id", 1)
+            ))
+            .bind(&dead)
+            .execute(&mut *conn)
+            .await?;
+            crate::sql::query(format!("DELETE FROM api_duplicate WHERE {}", any("id", 1)))
                 .bind(&dead)
                 .execute(&mut *conn)
                 .await?;
