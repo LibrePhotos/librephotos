@@ -94,6 +94,16 @@ pub struct Config {
     /// `WORKER_CONCURRENCY` and min(cores, 8), see [`Config::scan_concurrency`].
     pub scan_concurrency: usize,
     pub log_level: String,
+    /// `LOG_LEVELS`: per-target overrides, `target=LEVEL,...` (Django's
+    /// per-logger list; Rust targets are module paths, `.` read as `::`).
+    pub log_levels: String,
+    /// `LOG_TO_CONSOLE` (default on): mirror the log file to stdout.
+    pub log_to_console: bool,
+    /// Django's `ALLOWED_HOSTS` (`["localhost", BACKEND_HOST]`), checked
+    /// against the Host header when `BACKEND_HOST` is set, or exactly
+    /// `LP_ALLOWED_HOSTS` (comma-separated, `*` = any) when that is; None =
+    /// no check (the binary is also run without a proxy in front).
+    pub allowed_hosts: Option<Vec<String>>,
     pub media_mode: MediaMode,
     pub db_pool: u32,
     /// `LP_EXIF_POOL`: ExifTool processes per lane (default min(2, cores);
@@ -113,6 +123,44 @@ pub struct Config {
 }
 
 type Lookup<'a> = dyn Fn(&str) -> Option<String> + 'a;
+
+/// Django's `split_domain_port` + `validate_host`: the Host header's
+/// domain (port and a trailing dot dropped, lower-cased) matches one of
+/// `patterns`: `*`, an exact name, or `.example.com` for the domain and its
+/// subdomains.
+pub fn host_allowed(host: &str, patterns: &[String]) -> bool {
+    let host = host.trim().to_lowercase();
+    let domain = if host.starts_with('[') {
+        match host.find(']') {
+            Some(i) => &host[..=i],
+            None => return false,
+        }
+    } else {
+        host.rsplit_once(':').map_or(host.as_str(), |(d, _)| d)
+    };
+    let domain = domain.strip_suffix('.').unwrap_or(domain);
+    if domain.is_empty() {
+        return false;
+    }
+    patterns.iter().any(|p| {
+        p == "*"
+            || p == domain
+            || (p.starts_with('.') && (domain.ends_with(p.as_str()) || domain == &p[1..]))
+    })
+}
+
+fn allowed_hosts(get: &Lookup) -> Option<Vec<String>> {
+    if let Some(list) = get("LP_ALLOWED_HOSTS") {
+        return Some(
+            list.split(',')
+                .map(|h| h.trim().to_lowercase())
+                .filter(|h| !h.is_empty())
+                .collect(),
+        );
+    }
+    let backend = get("BACKEND_HOST").filter(|h| !h.trim().is_empty())?;
+    Some(vec!["localhost".into(), backend.trim().to_lowercase()])
+}
 
 impl Config {
     /// File groups a scan job processes at once: `LP_SCAN_CONCURRENCY`, else
@@ -244,6 +292,14 @@ impl Config {
             worker_concurrency: parse_num(get, "WORKER_CONCURRENCY", cores)?.max(1),
             scan_concurrency: parse_num(get, "LP_SCAN_CONCURRENCY", 0usize)?,
             log_level: get("LOG_LEVEL").unwrap_or_else(|| "info".into()),
+            log_levels: get("LOG_LEVELS").unwrap_or_default(),
+            log_to_console: get("LOG_TO_CONSOLE").is_none_or(|v| {
+                matches!(
+                    v.trim().to_lowercase().as_str(),
+                    "true" | "1" | "yes" | "on"
+                )
+            }),
+            allowed_hosts: allowed_hosts(get),
             media_mode,
             db_pool: parse_num(get, "LP_DB_POOL", (2 * cores) as u32)?.max(1),
             exif_pool: parse_num(get, "LP_EXIF_POOL", cores.min(2))?.max(1),
@@ -377,6 +433,46 @@ mod tests {
         assert!(c.env_allow_upload);
         assert_eq!(c.refresh_token_days, 7);
         assert_eq!(c.media_mode, MediaMode::XAccel);
+    }
+
+    #[test]
+    fn allowed_hosts_like_django() {
+        let hosts = |pairs: &[(&str, &str)]| cfg(pairs).allowed_hosts;
+        assert_eq!(hosts(&[]), None);
+        assert_eq!(
+            hosts(&[("BACKEND_HOST", "Backend")]),
+            Some(vec!["localhost".to_string(), "backend".to_string()])
+        );
+        assert_eq!(
+            hosts(&[("BACKEND_HOST", "backend"), ("LP_ALLOWED_HOSTS", "*, a.b")]),
+            Some(vec!["*".to_string(), "a.b".to_string()])
+        );
+        let p: Vec<String> = ["localhost", ".example.com", "10.0.0.5"]
+            .iter()
+            .map(|s| s.to_string())
+            .collect();
+        for ok in [
+            "localhost",
+            "LOCALHOST:3000",
+            "localhost.",
+            "example.com",
+            "photos.example.com:443",
+            "10.0.0.5:8001",
+        ] {
+            assert!(host_allowed(ok, &p), "{ok}");
+        }
+        for bad in [
+            "evil.com",
+            "example.com.evil.com",
+            "",
+            ":80",
+            "[::1]:8000",
+            "notexample.com",
+        ] {
+            assert!(!host_allowed(bad, &p), "{bad}");
+        }
+        assert!(host_allowed("[::1]:8000", &["[::1]".to_string()]));
+        assert!(host_allowed("anything", &["*".to_string()]));
     }
 
     #[test]

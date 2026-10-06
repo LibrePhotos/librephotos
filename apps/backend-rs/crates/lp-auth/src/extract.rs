@@ -11,6 +11,10 @@
 //!   the `jwt` cookie; an unusable cookie (expired, refresh token, inactive
 //!   user) authenticates nobody instead of failing the request.
 //! * The token's user must exist and be active.
+//! * Both also take DRF's `BasicAuthentication` (second in Django's
+//!   `DEFAULT_AUTHENTICATION_CLASSES` and in the media view's classes):
+//!   `Authorization: Basic base64(username:password)` when no JWT
+//!   authenticated the request; bad credentials are a 401.
 
 use axum::extract::FromRequestParts;
 use axum::http::header::{AUTHORIZATION, COOKIE};
@@ -121,6 +125,59 @@ async fn user_for_token(state: &AppState, token: &str) -> Result<User, ApiError>
     Ok(user)
 }
 
+/// DRF `BasicAuthentication.authenticate`: `Ok(None)` without a `Basic`
+/// header, the user for valid credentials, a 401 with DRF's message otherwise.
+async fn basic_user(parts: &Parts, state: &AppState) -> Result<Option<User>, ApiError> {
+    let Some(value) = parts.headers.get(AUTHORIZATION) else {
+        return Ok(None);
+    };
+    let pieces: Vec<&[u8]> = value
+        .as_bytes()
+        .split(|b| b.is_ascii_whitespace())
+        .filter(|p| !p.is_empty())
+        .collect();
+    match pieces.first() {
+        Some(scheme) if scheme.eq_ignore_ascii_case(b"basic") => {}
+        _ => return Ok(None),
+    }
+    if pieces.len() == 1 {
+        return Err(ApiError::unauthorized(
+            "Invalid basic header. No credentials provided.",
+        ));
+    }
+    if pieces.len() > 2 {
+        return Err(ApiError::unauthorized(
+            "Invalid basic header. Credentials string should not contain spaces.",
+        ));
+    }
+    let bad_encoding = || {
+        ApiError::unauthorized("Invalid basic header. Credentials not correctly base64 encoded.")
+    };
+    use base64::Engine;
+    let raw = base64::engine::general_purpose::STANDARD
+        .decode(pieces[1])
+        .map_err(|_| bad_encoding())?;
+    // Python: utf-8, falling back to latin-1.
+    let decoded = match String::from_utf8(raw) {
+        Ok(s) => s,
+        Err(e) => e.into_bytes().iter().map(|b| *b as char).collect(),
+    };
+    let (username, password) = decoded.split_once(':').ok_or_else(bad_encoding)?;
+    let invalid = || ApiError::unauthorized("Invalid username/password.");
+    let Some(user) = users::by_username(&state.db, username).await? else {
+        return Err(invalid());
+    };
+    let (pw, encoded) = (password.to_string(), user.password.clone());
+    let ok = state
+        .blocking(move || crate::password::verify(&pw, &encoded))
+        .await?;
+    // ModelBackend refuses inactive users, so DRF reports them as invalid.
+    if !ok || !user.is_active {
+        return Err(invalid());
+    }
+    Ok(Some(user))
+}
+
 #[derive(Clone)]
 struct HeaderResolved(Option<User>);
 
@@ -134,7 +191,7 @@ async fn resolve(parts: &mut Parts, state: &AppState) -> Result<Option<User>, Ap
     }
     let resolved = match header_token(parts, false)? {
         Some(token) => Some(user_for_token(state, &token).await?),
-        None => None,
+        None => basic_user(parts, state).await?,
     };
     parts.extensions.insert(HeaderResolved(resolved.clone()));
     Ok(resolved)
@@ -150,14 +207,19 @@ async fn resolve_with_cookie(
     }
     let resolved = if let Some(token) = header_token(parts, true)? {
         Some(user_for_token(state, &token).await?)
-    } else if let Some(token) = cookie_token(parts) {
-        match user_for_token(state, &token).await {
-            Ok(u) => Some(u),
-            Err(e) if e.status == StatusCode::UNAUTHORIZED => None,
-            Err(e) => return Err(e),
-        }
     } else {
-        None
+        let by_cookie = match cookie_token(parts) {
+            Some(token) => match user_for_token(state, &token).await {
+                Ok(u) => Some(u),
+                Err(e) if e.status == StatusCode::UNAUTHORIZED => None,
+                Err(e) => return Err(e),
+            },
+            None => None,
+        };
+        match by_cookie {
+            Some(u) => Some(u),
+            None => basic_user(parts, state).await?,
+        }
     };
     parts.extensions.insert(CookieResolved(resolved.clone()));
     Ok(resolved)

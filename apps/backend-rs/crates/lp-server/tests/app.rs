@@ -78,3 +78,47 @@ async fn serve_stops_on_the_shutdown_signal() {
     assert!(client.get(&url).send().await.is_err(), "listener closed");
     app.cleanup().await;
 }
+
+/// Django's `ALLOWED_HOSTS = ["localhost", BACKEND_HOST]`: another Host is
+/// a 400 before routing; without BACKEND_HOST / LP_ALLOWED_HOSTS no check.
+#[tokio::test]
+async fn host_header_is_checked_like_allowed_hosts() {
+    let get = |host: &str| {
+        axum::http::Request::builder()
+            .uri("/api/healthz")
+            .header("host", host)
+            .body(axum::body::Body::empty())
+            .unwrap()
+    };
+    let app = TestApp::with_env(&[("BACKEND_HOST", "backend")]).await;
+    for ok in ["backend", "backend:8001", "localhost:3000", "LOCALHOST"] {
+        assert_eq!(app.request(get(ok)).await.status, StatusCode::OK, "{ok}");
+    }
+    for bad in ["evil.example", "backend.evil.example", "127.0.0.1:8001"] {
+        let res = app.request(get(bad)).await;
+        assert_eq!(res.status, StatusCode::BAD_REQUEST, "{bad}");
+        assert!(res.text().contains("Bad Request (400)"));
+    }
+    app.cleanup().await;
+    let open = TestApp::shared().await;
+    assert_eq!(
+        open.request(get("anything.example")).await.status,
+        StatusCode::OK
+    );
+    open.cleanup().await;
+}
+
+#[test]
+fn log_levels_parse_like_django() {
+    assert_eq!(
+        lp_server::log_level_overrides(
+            "lp_ingest.scan=DEBUG, lp_tasks=warning,bad,x=LOUD,=INFO,sqlx=CRITICAL"
+        ),
+        vec![
+            ("lp_ingest::scan".to_string(), "debug"),
+            ("lp_tasks".to_string(), "warn"),
+            ("sqlx".to_string(), "error"),
+        ]
+    );
+    assert!(lp_server::log_level_overrides("").is_empty());
+}

@@ -71,6 +71,10 @@ pub fn router(state: AppState) -> Router {
         .merge(lp_api::routes())
         .merge(lp_media::routes())
         .fallback(fallback)
+        .layer(axum::middleware::from_fn_with_state(
+            state.clone(),
+            allowed_host,
+        ))
         .layer(cors())
         .layer(TraceLayer::new_for_http())
         .with_state(state)
@@ -133,6 +137,39 @@ fn cors() -> CorsLayer {
         .expose_headers([HeaderName::from_static("x-media-error")])
 }
 
+/// Django's `ALLOWED_HOSTS` check (`Config::allowed_hosts`): a request whose
+/// Host names another site is a 400 before any view runs (DNS rebinding).
+async fn allowed_host(
+    State(state): State<AppState>,
+    req: Request,
+    next: axum::middleware::Next,
+) -> Response {
+    if let Some(patterns) = &state.config.allowed_hosts {
+        let host = req
+            .headers()
+            .get(header::HOST)
+            .and_then(|h| h.to_str().ok())
+            .map(str::to_string)
+            .or_else(|| req.uri().authority().map(|a| a.to_string()));
+        if let Some(host) = host
+            && !lp_core::config::host_allowed(&host, patterns)
+        {
+            tracing::warn!(
+                host,
+                "Invalid HTTP_HOST header: {host:?}. You may need to add it to ALLOWED_HOSTS \
+                 (BACKEND_HOST / LP_ALLOWED_HOSTS)."
+            );
+            return (
+                StatusCode::BAD_REQUEST,
+                [(header::CONTENT_TYPE, "text/html")],
+                "<h1>Bad Request (400)</h1>",
+            )
+                .into_response();
+        }
+    }
+    next.run(req).await
+}
+
 async fn fallback(State(state): State<AppState>, req: Request) -> Response {
     let path = req.uri().path();
     let proxied = path.starts_with("/api") || path.starts_with("/media");
@@ -183,7 +220,41 @@ async fn healthz_ready(State(state): State<AppState>) -> Response {
     (status_of(ok), axum::Json(body)).into_response()
 }
 
-/// `LOG_LEVEL` (Django names accepted) unless `RUST_LOG` is set.
+/// `LOG_LEVELS` (`resolve_logger_levels`): `target=LEVEL` pairs, comma
+/// separated, Django level names; a dotted name is read as a Rust module
+/// path (`lp_ingest.scan` = `lp_ingest::scan`). Malformed entries are
+/// skipped with a warning on stderr.
+pub fn log_level_overrides(raw: &str) -> Vec<(String, &'static str)> {
+    let mut out = Vec::new();
+    for entry in raw.split(',').map(str::trim).filter(|e| !e.is_empty()) {
+        let level = entry.split_once('=').and_then(|(name, level)| {
+            let name = name.trim();
+            let level = match level.trim().to_uppercase().as_str() {
+                "CRITICAL" | "ERROR" => "error",
+                "WARNING" => "warn",
+                "INFO" => "info",
+                "DEBUG" => "debug",
+                _ => return None,
+            };
+            (!name.is_empty()
+                && name
+                    .chars()
+                    .all(|c| c.is_ascii_alphanumeric() || matches!(c, '_' | '.' | ':' | '-')))
+            .then(|| (name.replace('.', "::").replace('-', "_"), level))
+        });
+        match level {
+            Some(pair) => out.push(pair),
+            None => eprintln!(
+                "ignoring LOG_LEVELS entry {entry:?}; expected logger=LEVEL with LEVEL one of \
+                 DEBUG, INFO, WARNING, ERROR, CRITICAL"
+            ),
+        }
+    }
+    out
+}
+
+/// `LOG_LEVEL` (Django names accepted) and `LOG_LEVELS` unless `RUST_LOG`
+/// is set; stdout only with `LOG_TO_CONSOLE` (default on).
 pub fn init_tracing(config: &Config) {
     static ONCE: OnceLock<()> = OnceLock::new();
     ONCE.get_or_init(|| {
@@ -195,7 +266,11 @@ pub fn init_tracing(config: &Config) {
             _ => "info",
         };
         let filter = tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
-            tracing_subscriber::EnvFilter::new(format!("{level},sqlx=warn,tower_http=info"))
+            let mut directives = format!("{level},sqlx=warn,tower_http=info");
+            for (target, level) in log_level_overrides(&config.log_levels) {
+                directives.push_str(&format!(",{target}={level}"));
+            }
+            tracing_subscriber::EnvFilter::new(directives)
         });
         let path = config.base_logs.join(logfile::LOG_FILENAME);
         let file = match logfile::RotatingFile::open(&path, logfile::MAX_BYTES, logfile::BACKUPS) {
@@ -210,9 +285,10 @@ pub fn init_tracing(config: &Config) {
                 None
             }
         };
+        let console = config.log_to_console.then(tracing_subscriber::fmt::layer);
         let _ = tracing_subscriber::registry()
             .with(filter)
-            .with(tracing_subscriber::fmt::layer())
+            .with(console)
             .with(file)
             .try_init();
     });

@@ -78,7 +78,8 @@ Shared files (`lp-api/src/lib.rs`, `lp-api/src/common/`, `lp-db/src/{scope,pig,u
   (Django's `JWTCookieAuthentication`, for media and downloads only) also accept
   any-case `bearer` and fall back to the `jwt` cookie. A bad header token is a 401
   even on anonymous endpoints; a bad cookie is just anonymous. The JWT `is_admin`
-  claim is `is_superuser`.
+  claim is `is_superuser`. Both families also take DRF's `BasicAuthentication`
+  (`Authorization: Basic base64(user:pw)`) when no JWT authenticated the request.
 - Tokens are interchangeable with Django (same `SECRET_KEY`, simplejwt claim layout,
   `user_id` as a string). Verified both directions against a running Django.
 - Passwords: `lp_auth::password::{verify, hash}` (Django argon2 / pbkdf2_sha256 / sha1);
@@ -256,7 +257,10 @@ as it renders; `1`/`0`), `LP_SCAN_INLINE_ML_SOURCE` (`webp` default = the decode
 parity with the follow-up jobs; `pixels` = libvips' pixels before the encode), `LP_ML_BATCH`,
 `LP_TAG_STORE_BATCH` (64), `LP_TAG_STORE_WAIT_MS` (500: the tag writer waits this long for a fuller batch), `LP_SCAN_VIDEOS_FIRST` (on), `LP_SCAN_TIMERS` (off; per-stage scan timers in the log), `LP_THUMB_EFFORT` / `LP_THUMB_SMALL_EFFORT` (2), `LP_SCAN_REGION_PROBE` (off), `LP_FACE_DET_SIZE` (`640`; `480`/`320`/`auto` fast modes), `LP_OCR_PREPASS` (off; e.g. `640`:
 skip full OCR when a coarse detection finds no text), `WORKER_CONCURRENCY`, `LOG_LEVEL`/`RUST_LOG`, `FEATURE_*`, `TRANSCODE_*`,
-`REFRESH_TOKEN_DAYS`, `MAP_*`, `ALLOW_UPLOAD` (see `lp_core::config`), `FRONTEND_BASE_URL`
+`REFRESH_TOKEN_DAYS`, `MAP_*`, `ALLOW_UPLOAD` (see `lp_core::config`), `BACKEND_HOST` (Django's
+`ALLOWED_HOSTS = ["localhost", BACKEND_HOST]`: any other Host header is a 400; unset = no check) or
+`LP_ALLOWED_HOSTS` (the exact list, `*` = any), `LOG_LEVELS` (`target=LEVEL,...`, Rust module paths,
+dots allowed), `LOG_TO_CONSOLE` (default on), `LP_SHUTDOWN_GRACE_SECS` (8), `FRONTEND_BASE_URL`
 (public origin for the OIDC callback), `LP_OIDC_PROVIDERS` (JSON `[{id, name, client_id, secret,
 server_url, settings?}]`, OIDC providers for databases without allauth's `SocialApp` table).
 Logs go to stdout and to `BASE_LOGS/ownphotos.log` (Django's line layout, rotated at

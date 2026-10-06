@@ -251,3 +251,92 @@ async fn extractors_header_cookie_admin() {
     );
     app.cleanup().await;
 }
+
+/// DRF `BasicAuthentication` (second default class, and the media view's):
+/// `Basic base64(user:password)` when no JWT authenticated the request.
+#[tokio::test]
+#[allow(clippy::disallowed_methods)] // raw SQL to deactivate the user
+async fn basic_auth_like_drf() {
+    use base64::Engine;
+    let app = TestApp::shared().await;
+    let name = unique("basic");
+    let user = app.create_user(&name, "pw:with colon", false).await;
+    let router: Router = Router::new()
+        .route(
+            "/me",
+            get(|AuthUser(u): AuthUser| async move { u.username }),
+        )
+        .route(
+            "/cookie-maybe",
+            get(|CookieOptionalUser(u): CookieOptionalUser| async move {
+                u.map(|u| u.username).unwrap_or_else(|| "anon".into())
+            }),
+        )
+        .with_state(app.state.clone());
+    let basic = |creds: &str| {
+        format!(
+            "Basic {}",
+            base64::engine::general_purpose::STANDARD.encode(creds)
+        )
+    };
+    let req = |path: &str, auth: &str| {
+        Request::builder()
+            .uri(path)
+            .header("authorization", auth)
+            .body(Body::empty())
+            .unwrap()
+    };
+    let good = basic(&format!("{name}:pw:with colon"));
+    assert_eq!(
+        call(&router, req("/me", &good)).await,
+        (StatusCode::OK, user.username.clone())
+    );
+    assert_eq!(
+        call(
+            &router,
+            req("/cookie-maybe", &good.replace("Basic", "basic"))
+        )
+        .await,
+        (StatusCode::OK, user.username.clone())
+    );
+    for (auth, message) in [
+        (
+            basic(&format!("{name}:wrong")),
+            "Invalid username/password.",
+        ),
+        (basic("nobody:pw"), "Invalid username/password."),
+        (
+            "Basic".to_string(),
+            "Invalid basic header. No credentials provided.",
+        ),
+        (
+            "Basic a b".to_string(),
+            "Invalid basic header. Credentials string should not contain spaces.",
+        ),
+        (
+            "Basic !!!".to_string(),
+            "Invalid basic header. Credentials not correctly base64 encoded.",
+        ),
+        (
+            basic("no-colon"),
+            "Invalid basic header. Credentials not correctly base64 encoded.",
+        ),
+    ] {
+        let (status, body) = call(&router, req("/me", &auth)).await;
+        assert_eq!(status, StatusCode::UNAUTHORIZED, "{auth}");
+        assert!(body.contains(message), "{auth}: {body}");
+        // Bad Basic credentials fail media requests too (DRF raises).
+        let (status, _) = call(&router, req("/cookie-maybe", &auth)).await;
+        assert_eq!(status, StatusCode::UNAUTHORIZED, "{auth}");
+    }
+    // An inactive user is refused like a wrong password (ModelBackend).
+    sqlx::query("UPDATE api_user SET is_active = FALSE WHERE id = $1")
+        .bind(user.id)
+        .execute(app.pool())
+        .await
+        .unwrap();
+    let (status, body) = call(&router, req("/me", &good)).await;
+    assert_eq!(status, StatusCode::UNAUTHORIZED);
+    assert!(body.contains("Invalid username/password."));
+    app.cleanup().await;
+}
