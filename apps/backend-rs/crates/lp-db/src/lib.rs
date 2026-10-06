@@ -10,6 +10,7 @@
 #![allow(clippy::disallowed_methods)] // not a handler crate: SQL allowed here
 
 pub mod adopt;
+pub mod db;
 pub mod health;
 pub mod migrate;
 pub mod pig;

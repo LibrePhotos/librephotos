@@ -52,7 +52,10 @@ urlencoding = "2"
 serde_urlencoded = "0.7"
 
 # Database
-sqlx = { version = "0.8", default-features = false, features = ["postgres", "runtime-tokio", "tls-rustls", "uuid", "chrono", "json", "macros", "migrate"] }
+sqlx = { version = "0.8", default-features = false, features = ["postgres", "sqlite", "runtime-tokio", "tls-rustls", "uuid", "chrono", "json", "macros", "migrate"] }
+# Raw FFI for the SQLite `now()` function (lp-db `db::lite`); pinned to the
+# libsqlite3-sys that sqlx-sqlite 0.8.6 links (only one `links = "sqlite3"` crate may exist).
+libsqlite3-sys = { version = "=0.30.1", default-features = false }
 
 # Serialization / types
 serde = { version = "1", features = ["derive"] }
