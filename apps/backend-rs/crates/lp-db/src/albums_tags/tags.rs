@@ -1,11 +1,12 @@
 //! `Tag` reads.
 
+use sqlx::FromRow;
 use sqlx::types::Json;
-use sqlx::{FromRow, PgExecutor, Postgres, QueryBuilder};
 use uuid::Uuid;
 
 use super::things_places::{HasTotal, fetch_paged};
 use super::{Paged, photo_hash_json, push_search};
+use crate::db::{DjUuid, Exec, Qb};
 use crate::scope;
 
 /// `TagSerializer`: `{id, name, photo_count}`.
@@ -61,10 +62,10 @@ pub async fn list<'e, E>(
     offset: i64,
 ) -> sqlx::Result<Paged<TagListRow>>
 where
-    E: PgExecutor<'e> + Copy,
+    E: Exec<'e> + Copy,
 {
     let build = |limit: i64, offset: i64| {
-        let mut qb = QueryBuilder::<Postgres>::new(format!(
+        let mut qb = Qb::new(format!(
             "SELECT t.id, t.name, t.photo_count, \
                (SELECT COALESCE(json_agg(c.j ORDER BY c.lid), '[]'::json) FROM ( \
                   SELECT {ph} AS j, cl.id AS lid FROM api_tag_photos cl \
@@ -105,38 +106,38 @@ where
 }
 
 /// The owner's tag `id` (another account's id behaves like a missing one).
-pub async fn owned<'e>(
-    db: impl PgExecutor<'e>,
-    id: i32,
-    owner_id: i32,
-) -> sqlx::Result<Option<TagRow>> {
-    sqlx::query_as("SELECT id, name, photo_count FROM api_tag WHERE id = $1 AND owner_id = $2")
-        .bind(id)
-        .bind(owner_id)
-        .fetch_optional(db)
-        .await
+pub async fn owned<'e>(db: impl Exec<'e>, id: i32, owner_id: i32) -> sqlx::Result<Option<TagRow>> {
+    crate::sql::query_as(
+        "SELECT id, name, photo_count FROM api_tag WHERE id = $1 AND owner_id = $2",
+    )
+    .bind(id)
+    .bind(owner_id)
+    .fetch_optional(db)
+    .await
 }
 
 pub async fn by_name<'e>(
-    db: impl PgExecutor<'e>,
+    db: impl Exec<'e>,
     name: &str,
     owner_id: i32,
 ) -> sqlx::Result<Option<TagRow>> {
-    sqlx::query_as("SELECT id, name, photo_count FROM api_tag WHERE name = $1 AND owner_id = $2")
-        .bind(name)
-        .bind(owner_id)
-        .fetch_optional(db)
-        .await
+    crate::sql::query_as(
+        "SELECT id, name, photo_count FROM api_tag WHERE name = $1 AND owner_id = $2",
+    )
+    .bind(name)
+    .bind(owner_id)
+    .fetch_optional(db)
+    .await
 }
 
 /// Whether another of the owner's tags already uses `name`.
 pub async fn name_taken<'e>(
-    db: impl PgExecutor<'e>,
+    db: impl Exec<'e>,
     name: &str,
     owner_id: i32,
     except: Option<i32>,
 ) -> sqlx::Result<bool> {
-    sqlx::query_scalar(
+    crate::sql::query_scalar(
         "SELECT EXISTS (SELECT 1 FROM api_tag WHERE name = $1 AND owner_id = $2 \
            AND ($3::int IS NULL OR id <> $3))",
     )
@@ -149,12 +150,12 @@ pub async fn name_taken<'e>(
 
 /// `(id, image_hash)` of the owner's photos matching any of `ids` / `hashes`.
 pub async fn owned_photos_matching<'e>(
-    db: impl PgExecutor<'e>,
+    db: impl Exec<'e>,
     owner_id: i32,
     ids: &[Uuid],
     hashes: &[String],
 ) -> sqlx::Result<Vec<(Uuid, String)>> {
-    sqlx::query_as(
+    let rows: Vec<(DjUuid, String)> = crate::sql::query_as(
         "SELECT id, image_hash FROM api_photo \
          WHERE owner_id = $1 AND (id = ANY($2) OR image_hash = ANY($3))",
     )
@@ -162,5 +163,6 @@ pub async fn owned_photos_matching<'e>(
     .bind(ids)
     .bind(hashes)
     .fetch_all(db)
-    .await
+    .await?;
+    Ok(rows.into_iter().map(|(id, h)| (id.0, h)).collect())
 }

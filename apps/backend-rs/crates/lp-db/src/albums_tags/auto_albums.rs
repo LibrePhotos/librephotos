@@ -1,12 +1,13 @@
 //! `AlbumAuto` (event album) reads.
 
 use chrono::{DateTime, Utc};
+use sqlx::FromRow;
 use sqlx::types::Json;
-use sqlx::{FromRow, PgExecutor, Postgres, QueryBuilder};
 use uuid::Uuid;
 
 use super::things_places::{HasTotal, fetch_paged};
 use super::{Paged, photo_hash_json};
+use crate::db::{DjUuid, Exec, Qb};
 use crate::scope;
 
 /// `AlbumAutoListSerializer` row.
@@ -36,10 +37,10 @@ pub async fn list<'e, E>(
     offset: i64,
 ) -> sqlx::Result<Paged<AutoAlbumListRow>>
 where
-    E: PgExecutor<'e> + Copy,
+    E: Exec<'e> + Copy,
 {
     let build = |limit: i64, offset: i64| {
-        let mut qb = QueryBuilder::<Postgres>::new(format!(
+        let mut qb = Qb::new(format!(
             "SELECT *, count(*) OVER () AS total_count FROM ( \
                SELECT a.id, a.title, a.timestamp, a.favorited, \
                  (SELECT count(DISTINCT p.id) FROM api_albumauto_photos l \
@@ -92,11 +93,11 @@ pub struct AutoAlbumRow {
 
 /// The owner's auto album `id` if it holds any photo (the viewset's queryset).
 pub async fn detail<'e>(
-    db: impl PgExecutor<'e>,
+    db: impl Exec<'e>,
     id: i32,
     owner_id: i32,
 ) -> sqlx::Result<Option<AutoAlbumRow>> {
-    sqlx::query_as(
+    crate::sql::query_as(
         "SELECT a.id, a.title, a.favorited, a.timestamp, a.created_on, a.gps_lat, a.gps_lon \
          FROM api_albumauto a WHERE a.id = $1 AND a.owner_id = $2 \
            AND EXISTS (SELECT 1 FROM api_albumauto_photos l \
@@ -111,6 +112,7 @@ pub async fn detail<'e>(
 /// `PhotoSimpleSerializer` row.
 #[derive(Debug, Clone, FromRow)]
 pub struct PhotoSimpleRow {
+    #[sqlx(try_from = "DjUuid")]
     pub id: Uuid,
     pub square_thumbnail: Option<String>,
     pub image_hash: String,
@@ -125,11 +127,8 @@ pub struct PhotoSimpleRow {
 
 /// The album's `Photo.visible` members, oldest first (Django's prefetch is
 /// unordered: whatever its join plan yields).
-pub async fn photos<'e>(
-    db: impl PgExecutor<'e>,
-    album_id: i32,
-) -> sqlx::Result<Vec<PhotoSimpleRow>> {
-    sqlx::query_as(&format!(
+pub async fn photos<'e>(db: impl Exec<'e>, album_id: i32) -> sqlx::Result<Vec<PhotoSimpleRow>> {
+    crate::sql::query_as(format!(
         "SELECT p.id, t.square_thumbnail, p.image_hash, p.exif_timestamp, p.exif_gps_lat, \
            p.exif_gps_lon, p.rating, p.geolocation_json, p.public, p.video \
          FROM api_albumauto_photos l JOIN api_photo p ON p.id = l.photo_id \
@@ -143,7 +142,7 @@ pub async fn photos<'e>(
 }
 
 fn visible_manager_sql() -> String {
-    let mut qb = QueryBuilder::<Postgres>::new("");
+    let mut qb = Qb::new("");
     scope::visible_manager(&mut qb, "p");
     qb.sql().to_string()
 }
@@ -167,11 +166,8 @@ pub struct AlbumPersonRow {
     pub has_first_face: bool,
 }
 
-pub async fn people<'e>(
-    db: impl PgExecutor<'e>,
-    album_id: i32,
-) -> sqlx::Result<Vec<AlbumPersonRow>> {
-    sqlx::query_as(&format!(
+pub async fn people<'e>(db: impl Exec<'e>, album_id: i32) -> sqlx::Result<Vec<AlbumPersonRow>> {
+    crate::sql::query_as(format!(
         "WITH seen AS ( \
            SELECT o.person_id, min(o.rn) AS ord FROM ( \
              SELECT f.person_id, row_number() OVER (ORDER BY p.ctid, f.ctid) AS rn \
@@ -200,6 +196,6 @@ pub async fn people<'e>(
 }
 
 /// Owner's auto album ids holding at least one photo (what DELETE may hit).
-pub async fn deletable<'e>(db: impl PgExecutor<'e>, id: i32, owner_id: i32) -> sqlx::Result<bool> {
+pub async fn deletable<'e>(db: impl Exec<'e>, id: i32, owner_id: i32) -> sqlx::Result<bool> {
     Ok(detail(db, id, owner_id).await?.is_some())
 }

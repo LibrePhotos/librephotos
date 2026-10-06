@@ -3,10 +3,11 @@
 
 use chrono::{DateTime, Utc};
 use serde_json::Value;
+use sqlx::FromRow;
 use sqlx::types::Json;
-use sqlx::{FromRow, PgExecutor};
 use uuid::Uuid;
 
+use crate::db::{DjUuid, Exec};
 use crate::pig::{self, PigPhoto};
 
 /// An enabled, unexpired album share with its album and owner.
@@ -26,11 +27,8 @@ pub struct PublicAlbum {
     pub share_faces: Option<bool>,
 }
 
-pub async fn active_album<'e>(
-    db: impl PgExecutor<'e>,
-    slug: &str,
-) -> sqlx::Result<Option<PublicAlbum>> {
-    sqlx::query_as(
+pub async fn active_album<'e>(db: impl Exec<'e>, slug: &str) -> sqlx::Result<Option<PublicAlbum>> {
+    crate::sql::query_as(
         "SELECT a.id, a.title, u.id AS owner_id, u.username AS owner_username, \
          u.first_name AS owner_first_name, u.last_name AS owner_last_name, \
          u.public_sharing_defaults AS owner_sharing_defaults, \
@@ -47,10 +45,7 @@ pub async fn active_album<'e>(
 
 /// The album's photos a visitor may see (not hidden, not in the trash; Django
 /// does not check `removed` or the owner here), newest first.
-pub async fn album_photos<'e>(
-    db: impl PgExecutor<'e>,
-    album_id: i32,
-) -> sqlx::Result<Vec<PigPhoto>> {
+pub async fn album_photos<'e>(db: impl Exec<'e>, album_id: i32) -> sqlx::Result<Vec<PigPhoto>> {
     let mut qb = pig::query();
     qb.push(
         " WHERE EXISTS (SELECT 1 FROM api_albumuser_photos ap WHERE ap.photo_id = p.id AND ap.albumuser_id = ",
@@ -62,12 +57,12 @@ pub async fn album_photos<'e>(
 
 /// `album.photos.filter(pk=… | image_hash=…, hidden=False, in_trashcan=False).first()`.
 pub async fn album_photo<'e>(
-    db: impl PgExecutor<'e>,
+    db: impl Exec<'e>,
     album_id: i32,
     id: Option<Uuid>,
     image_hash: Option<&str>,
 ) -> sqlx::Result<Option<Uuid>> {
-    sqlx::query_scalar(
+    crate::sql::query_scalar(
         "SELECT p.id FROM api_albumuser_photos ap JOIN api_photo p ON p.id = ap.photo_id \
          WHERE ap.albumuser_id = $1 AND NOT p.hidden AND NOT p.in_trashcan \
          AND (p.id = $2 OR p.image_hash = $3) ORDER BY p.id LIMIT 1",
@@ -83,15 +78,16 @@ pub async fn album_photo<'e>(
 #[derive(Debug, Clone, FromRow)]
 pub struct ActivePhotoShare {
     pub slug: String,
+    #[sqlx(try_from = "DjUuid")]
     pub photo_id: Uuid,
     pub owner_sharing_defaults: Option<Json<Value>>,
 }
 
 pub async fn active_photo_share<'e>(
-    db: impl PgExecutor<'e>,
+    db: impl Exec<'e>,
     slug: &str,
 ) -> sqlx::Result<Option<ActivePhotoShare>> {
-    sqlx::query_as(
+    crate::sql::query_as(
         "SELECT s.slug, s.photo_id, u.public_sharing_defaults AS owner_sharing_defaults \
          FROM api_photoshare s JOIN api_photo p ON p.id = s.photo_id JOIN api_user u ON u.id = p.owner_id \
          WHERE s.enabled AND s.slug = $1 AND NOT p.hidden AND NOT p.in_trashcan AND NOT p.removed \
@@ -105,6 +101,7 @@ pub async fn active_photo_share<'e>(
 /// Everything `PublicPhotoDetailSerializer` reads, in one row.
 #[derive(Debug, Clone, FromRow)]
 pub struct PublicPhotoRow {
+    #[sqlx(try_from = "DjUuid")]
     pub id: Uuid,
     pub image_hash: String,
     pub video: bool,
@@ -133,11 +130,8 @@ pub struct PublicPhotoRow {
     pub height: Option<i32>,
 }
 
-pub async fn public_photo<'e>(
-    db: impl PgExecutor<'e>,
-    id: Uuid,
-) -> sqlx::Result<Option<PublicPhotoRow>> {
-    sqlx::query_as(
+pub async fn public_photo<'e>(db: impl Exec<'e>, id: Uuid) -> sqlx::Result<Option<PublicPhotoRow>> {
+    crate::sql::query_as(
         "SELECT p.id, p.image_hash, p.video, p.exif_timestamp, p.exif_gps_lat, p.exif_gps_lon, \
          p.geolocation_json, \
          (t.photo_id IS NOT NULL) AS has_thumbnail, t.thumbnail_big, t.square_thumbnail, t.square_thumbnail_small, \
@@ -165,11 +159,8 @@ pub struct PublicFace {
     pub name: String,
 }
 
-pub async fn public_faces<'e>(
-    db: impl PgExecutor<'e>,
-    photo_id: Uuid,
-) -> sqlx::Result<Vec<PublicFace>> {
-    sqlx::query_as(
+pub async fn public_faces<'e>(db: impl Exec<'e>, photo_id: Uuid) -> sqlx::Result<Vec<PublicFace>> {
+    crate::sql::query_as(
         "SELECT f.id, f.image, COALESCE(pp.name, cp.name) AS name FROM api_face f \
          LEFT JOIN api_person pp ON pp.id = f.person_id \
          LEFT JOIN api_person cp ON cp.id = f.cluster_person_id \

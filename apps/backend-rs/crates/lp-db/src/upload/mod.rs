@@ -2,7 +2,9 @@
 //! photos by hash (`/api/exists`) and `chunked_upload_chunkedupload` rows.
 
 use chrono::{DateTime, Utc};
-use sqlx::{FromRow, PgExecutor};
+use sqlx::FromRow;
+
+use crate::db::Exec;
 
 /// `ChunkedUpload.UPLOADING` / `COMPLETE`.
 pub const UPLOADING: i16 = 1;
@@ -27,11 +29,11 @@ pub const CHUNKED_COLUMNS: &str =
 
 /// `Photo.objects.owned_by(user).filter(image_hash=h).exists()`.
 pub async fn owns_image_hash<'e>(
-    db: impl PgExecutor<'e>,
+    db: impl Exec<'e>,
     user_id: i32,
     image_hash: &str,
 ) -> sqlx::Result<bool> {
-    sqlx::query_scalar(
+    crate::sql::query_scalar(
         "SELECT EXISTS (SELECT 1 FROM api_photo WHERE owner_id = $1 AND image_hash = $2)",
     )
     .bind(user_id)
@@ -42,11 +44,11 @@ pub async fn owns_image_hash<'e>(
 
 /// The user's upload by `upload_id` (uploads are scoped to their uploader).
 pub async fn chunked_upload<'e>(
-    db: impl PgExecutor<'e>,
+    db: impl Exec<'e>,
     user_id: i32,
     upload_id: &str,
 ) -> sqlx::Result<Option<ChunkedUpload>> {
-    sqlx::query_as::<_, ChunkedUpload>(&format!(
+    crate::sql::query_as::<_, ChunkedUpload>(&format!(
         "SELECT {CHUNKED_COLUMNS} FROM chunked_upload_chunkedupload WHERE upload_id = $1 AND user_id = $2"
     ))
     .bind(upload_id)
@@ -57,10 +59,10 @@ pub async fn chunked_upload<'e>(
 
 /// Every upload created before `cutoff` (`created_on__lt`), any user.
 pub async fn created_before<'e>(
-    db: impl PgExecutor<'e>,
+    db: impl Exec<'e>,
     cutoff: DateTime<Utc>,
 ) -> sqlx::Result<Vec<ChunkedUpload>> {
-    sqlx::query_as::<_, ChunkedUpload>(&format!(
+    crate::sql::query_as::<_, ChunkedUpload>(&format!(
         "SELECT {CHUNKED_COLUMNS} FROM chunked_upload_chunkedupload WHERE created_on < $1 ORDER BY id"
     ))
     .bind(cutoff)

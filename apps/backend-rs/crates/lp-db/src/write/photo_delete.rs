@@ -7,7 +7,8 @@
 use std::collections::BTreeSet;
 use std::path::Path;
 
-use sqlx::PgConnection;
+use crate::db::Conn;
+
 use uuid::Uuid;
 
 use super::AfterCommit;
@@ -49,7 +50,7 @@ const THUMBNAIL_FILES: [(&str, &str); 5] = [
 /// Delete `ids` for good inside the caller's transaction. Face crops (S4)
 /// and orphaned thumbnail files (S5) are queued on `after`.
 pub async fn hard_delete(
-    conn: &mut PgConnection,
+    conn: &mut Conn,
     ids: &[Uuid],
     media_root: &Path,
     after: &mut AfterCommit,
@@ -58,13 +59,13 @@ pub async fn hard_delete(
         return Ok(());
     }
     super::deletion_log::photos_deleted(conn, ids).await?;
-    let crops: Vec<String> = sqlx::query_scalar(
+    let crops: Vec<String> = crate::sql::query_scalar(
         "SELECT image FROM api_face WHERE photo_id = ANY($1) AND image IS NOT NULL AND image <> ''",
     )
     .bind(ids)
     .fetch_all(&mut *conn)
     .await?;
-    let thumbs: Vec<(String, String, String)> = sqlx::query_as(
+    let thumbs: Vec<(String, String, String)> = crate::sql::query_as(
         "SELECT thumbnail_big, square_thumbnail, square_thumbnail_small \
          FROM api_thumbnail WHERE photo_id = ANY($1)",
     )
@@ -72,7 +73,7 @@ pub async fn hard_delete(
     .fetch_all(&mut *conn)
     .await?;
     for sql in BEFORE_PHOTO {
-        sqlx::query(sql).bind(ids).execute(&mut *conn).await?;
+        crate::sql::query(sql).bind(ids).execute(&mut *conn).await?;
     }
 
     for c in crops {
@@ -96,7 +97,7 @@ pub async fn hard_delete(
         .collect::<BTreeSet<_>>()
         .into_iter()
         .collect();
-    let still_named: BTreeSet<String> = sqlx::query_scalar(
+    let still_named: BTreeSet<String> = crate::sql::query_scalar(
         "SELECT n FROM api_thumbnail t, \
          unnest(ARRAY[t.thumbnail_big, t.square_thumbnail, t.square_thumbnail_small]) AS n \
          WHERE (t.thumbnail_big = ANY($1) OR t.square_thumbnail = ANY($1) \
@@ -122,13 +123,14 @@ pub async fn hard_delete(
     if stems.is_empty() {
         return Ok(());
     }
-    let still_used: BTreeSet<String> =
-        sqlx::query_scalar("SELECT DISTINCT image_hash FROM api_photo WHERE image_hash = ANY($1)")
-            .bind(&stems)
-            .fetch_all(&mut *conn)
-            .await?
-            .into_iter()
-            .collect();
+    let still_used: BTreeSet<String> = crate::sql::query_scalar(
+        "SELECT DISTINCT image_hash FROM api_photo WHERE image_hash = ANY($1)",
+    )
+    .bind(&stems)
+    .fetch_all(&mut *conn)
+    .await?
+    .into_iter()
+    .collect();
     for h in stems.iter().filter(|h| !still_used.contains(*h)) {
         for (dir, ext) in THUMBNAIL_FILES {
             after.delete_file(media_root.join(dir).join(format!("{h}.{ext}")));

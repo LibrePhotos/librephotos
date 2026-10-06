@@ -1,10 +1,11 @@
 //! Thing and place albums, plus the photo lists every grouped album detail
 //! (user, thing, place, tag) renders.
 
+use sqlx::FromRow;
 use sqlx::types::Json;
-use sqlx::{FromRow, PgExecutor, Postgres, QueryBuilder};
 
 use super::{Paged, photo_hash_json, push_search};
+use crate::db::{Exec, FromDbRow, Qb};
 use crate::pig::{self, PigPhoto};
 use crate::scope;
 
@@ -35,7 +36,7 @@ pub enum AlbumPhotos {
 /// Members ordered by `-exif_timestamp` (Postgres puts NULLs first), ready
 /// for `pig::group_by_date`.
 pub async fn album_photos<'e>(
-    db: impl PgExecutor<'e>,
+    db: impl Exec<'e>,
     source: AlbumPhotos,
     media: MediaFilter,
 ) -> sqlx::Result<Vec<PigPhoto>> {
@@ -81,7 +82,7 @@ pub async fn album_photos<'e>(
 /// when `public`), ordered like [`album_photos`]; pair them up with
 /// `user_albums::members`.
 pub async fn user_albums_photos<'e>(
-    db: impl PgExecutor<'e>,
+    db: impl Exec<'e>,
     album_ids: &[i32],
     public: bool,
 ) -> sqlx::Result<Vec<PigPhoto>> {
@@ -133,10 +134,10 @@ pub async fn thing_list<'e, E>(
     offset: i64,
 ) -> sqlx::Result<Paged<CoverAlbumRow>>
 where
-    E: PgExecutor<'e> + Copy,
+    E: Exec<'e> + Copy,
 {
     let build = |limit: i64, offset: i64| {
-        let mut qb = QueryBuilder::<Postgres>::new(format!(
+        let mut qb = Qb::new(format!(
             "SELECT t.id, t.title, t.photo_count::bigint AS photo_count, t.thing_type, \
                NULL::int AS geolocation_level, \
                (SELECT COALESCE(json_agg({ph} ORDER BY cp.ctid), '[]'::json) \
@@ -168,12 +169,12 @@ pub async fn place_list<'e, E>(
     offset: i64,
 ) -> sqlx::Result<Paged<CoverAlbumRow>>
 where
-    E: PgExecutor<'e> + Copy,
+    E: Exec<'e> + Copy,
 {
     let build = |limit: i64, offset: i64| {
         // One pass over the owner's place links: per-album correlated subqueries
         // made the planner hash-join all of api_photo once per album.
-        let mut qb = QueryBuilder::<Postgres>::new(format!(
+        let mut qb = Qb::new(format!(
             "SELECT pl.id, pl.title, a.photo_count, NULL::varchar AS thing_type, pl.geolocation_level, \
                COALESCE(array_to_json(a.covers), '[]'::json) AS cover_photos, \
                count(*) OVER () AS total_count \
@@ -211,9 +212,9 @@ pub(crate) async fn fetch_paged<'e, 'q, E, F, T>(
     offset: i64,
 ) -> sqlx::Result<Paged<T>>
 where
-    E: PgExecutor<'e> + Copy,
-    F: Fn(i64, i64) -> QueryBuilder<'q, Postgres>,
-    T: for<'r> FromRow<'r, sqlx::postgres::PgRow> + Send + Unpin + HasTotal,
+    E: Exec<'e> + Copy,
+    F: Fn(i64, i64) -> Qb<'q>,
+    T: FromDbRow + HasTotal,
 {
     let rows: Vec<T> = build(limit, offset).build_query_as().fetch_all(db).await?;
     let total = match rows.first() {
@@ -240,12 +241,12 @@ impl HasTotal for CoverAlbumRow {
 /// Header of a grouped thing / place album: `(id, title)` if the requester
 /// may see it under the list's rules.
 pub async fn thing_header<'e>(
-    db: impl PgExecutor<'e>,
+    db: impl Exec<'e>,
     id: i32,
     owner_id: i32,
     thing_types: &[String],
 ) -> sqlx::Result<Option<(i32, String)>> {
-    sqlx::query_as(
+    crate::sql::query_as(
         "SELECT id, title FROM api_albumthing \
          WHERE id = $1 AND owner_id = $2 AND photo_count > 0 AND thing_type = ANY($3)",
     )
@@ -257,11 +258,11 @@ pub async fn thing_header<'e>(
 }
 
 pub async fn place_header<'e>(
-    db: impl PgExecutor<'e>,
+    db: impl Exec<'e>,
     id: i32,
     owner_id: i32,
 ) -> sqlx::Result<Option<(i32, String)>> {
-    sqlx::query_as(
+    crate::sql::query_as(
         "SELECT pl.id, pl.title FROM api_albumplace pl \
          WHERE pl.id = $1 AND pl.owner_id = $2 AND EXISTS ( \
            SELECT 1 FROM api_albumplace_photos l JOIN api_photo p ON p.id = l.photo_id \

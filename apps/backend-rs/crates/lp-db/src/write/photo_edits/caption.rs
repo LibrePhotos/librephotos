@@ -3,14 +3,16 @@
 //! `#hashtag` AlbumThings (S1).
 
 use serde_json::{Map, Value};
-use sqlx::{FromRow, PgConnection};
+use sqlx::FromRow;
 use uuid::Uuid;
+
+use crate::db::{Conn, DjList};
 
 use super::album_thing_changed;
 
 /// `PhotoCaption.objects.get_or_create(photo=photo)`.
-pub async fn ensure_caption_row(conn: &mut PgConnection, photo_id: Uuid) -> sqlx::Result<()> {
-    sqlx::query(
+pub async fn ensure_caption_row(conn: &mut Conn, photo_id: Uuid) -> sqlx::Result<()> {
+    crate::sql::query(
         "INSERT INTO api_photo_caption (photo_id, captions_json, created_at, updated_at) \
          VALUES ($1, NULL, now(), now()) ON CONFLICT (photo_id) DO NOTHING",
     )
@@ -38,14 +40,14 @@ pub enum CaptionError {
 }
 
 async fn set_caption_key(
-    conn: &mut PgConnection,
+    conn: &mut Conn,
     photo_id: Uuid,
     key: &str,
     caption: &str,
     tagging_model: &str,
 ) -> Result<(), CaptionError> {
     ensure_caption_row(conn, photo_id).await?;
-    let current: Option<Value> = sqlx::query_scalar(
+    let current: Option<Value> = crate::sql::query_scalar(
         "SELECT captions_json FROM api_photo_caption WHERE photo_id = $1 FOR UPDATE",
     )
     .bind(photo_id)
@@ -57,7 +59,7 @@ async fn set_caption_key(
         Some(_) => return Err(CaptionError::NotAnObject),
     };
     captions.insert(key.to_string(), Value::String(caption.to_string()));
-    sqlx::query(
+    crate::sql::query(
         "UPDATE api_photo_caption SET captions_json = $2, updated_at = now() WHERE photo_id = $1",
     )
     .bind(photo_id)
@@ -71,7 +73,7 @@ async fn set_caption_key(
 /// `apply_user_caption`: store `user_caption`, reindex, sync hashtag albums.
 /// Returns the caption as stored.
 pub async fn save_user_caption(
-    conn: &mut PgConnection,
+    conn: &mut Conn,
     photo_id: Uuid,
     caption: &str,
     tagging_model: &str,
@@ -84,7 +86,7 @@ pub async fn save_user_caption(
 
 /// `_store_generated_caption`: every generated caption lives under `im2txt`.
 pub async fn store_generated_caption(
-    conn: &mut PgConnection,
+    conn: &mut Conn,
     photo_id: Uuid,
     caption: &str,
     tagging_model: &str,
@@ -98,8 +100,10 @@ struct SearchSource {
     is_screenshot: bool,
     is_document: bool,
     captions_json: Option<Value>,
+    #[sqlx(try_from = "DjList<String>")]
     face_names: Vec<String>,
     main_path: Option<String>,
+    #[sqlx(try_from = "DjList<String>")]
     file_paths: Vec<String>,
     camera_make: Option<String>,
     camera_model: Option<String>,
@@ -133,11 +137,11 @@ fn py_str(v: &Value) -> String {
 
 /// `PhotoSearch.recreate_search_captions` for one photo, then save (S19).
 pub async fn rebuild_search_captions(
-    conn: &mut PgConnection,
+    conn: &mut Conn,
     photo_id: Uuid,
     tagging_model: &str,
 ) -> sqlx::Result<()> {
-    let src: SearchSource = sqlx::query_as(
+    let src: SearchSource = crate::sql::query_as(
         "SELECT p.video, p.is_screenshot, p.is_document, c.captions_json, \
             ARRAY(SELECT pe.name FROM api_face f JOIN api_person pe ON pe.id = f.person_id \
                   WHERE f.photo_id = p.id ORDER BY f.id) AS face_names, \
@@ -216,7 +220,7 @@ pub async fn rebuild_search_captions(
         }
     }
     let search_captions = s.trim().to_string();
-    sqlx::query(
+    crate::sql::query(
         "INSERT INTO api_photo_search (photo_id, search_captions, search_location, created_at, updated_at) \
          VALUES ($1, $2, NULL, now(), now()) \
          ON CONFLICT (photo_id) DO UPDATE SET search_captions = EXCLUDED.search_captions, updated_at = now()",
@@ -238,17 +242,17 @@ pub fn hashtags(caption: &str) -> Vec<&str> {
 
 /// `_sync_hashtag_album_things`.
 async fn sync_hashtag_album_things(
-    conn: &mut PgConnection,
+    conn: &mut Conn,
     photo_id: Uuid,
     caption: &str,
 ) -> sqlx::Result<()> {
     let (owner_id, image_hash): (i32, String) =
-        sqlx::query_as("SELECT owner_id, image_hash FROM api_photo WHERE id = $1")
+        crate::sql::query_as("SELECT owner_id, image_hash FROM api_photo WHERE id = $1")
             .bind(photo_id)
             .fetch_one(&mut *conn)
             .await?;
     for tag in hashtags(caption) {
-        let existing: Option<i32> = sqlx::query_scalar(
+        let existing: Option<i32> = crate::sql::query_scalar(
             "SELECT id FROM api_albumthing WHERE title = $1 AND owner_id = $2 \
              AND thing_type = 'hashtag_attribute' ORDER BY id LIMIT 1",
         )
@@ -259,7 +263,7 @@ async fn sync_hashtag_album_things(
         let album_id = match existing {
             Some(id) => id,
             None => {
-                sqlx::query_scalar(
+                crate::sql::query_scalar(
                     "INSERT INTO api_albumthing (title, thing_type, favorited, owner_id, photo_count, last_modified) \
                      VALUES ($1, 'hashtag_attribute', FALSE, $2, 0, now()) RETURNING id",
                 )
@@ -269,7 +273,7 @@ async fn sync_hashtag_album_things(
                 .await?
             }
         };
-        let has_hash: bool = sqlx::query_scalar(
+        let has_hash: bool = crate::sql::query_scalar(
             "SELECT EXISTS (SELECT 1 FROM api_albumthing_photos ap JOIN api_photo p ON p.id = ap.photo_id \
              WHERE ap.albumthing_id = $1 AND p.image_hash = $2)",
         )
@@ -278,7 +282,7 @@ async fn sync_hashtag_album_things(
         .fetch_one(&mut *conn)
         .await?;
         if !has_hash {
-            sqlx::query(
+            crate::sql::query(
                 "INSERT INTO api_albumthing_photos (albumthing_id, photo_id) VALUES ($1, $2)",
             )
             .bind(album_id)
@@ -289,7 +293,7 @@ async fn sync_hashtag_album_things(
         }
     }
 
-    let linked: Vec<(i32, String)> = sqlx::query_as(
+    let linked: Vec<(i32, String)> = crate::sql::query_as(
         "SELECT DISTINCT a.id, a.title FROM api_albumthing a \
          JOIN api_albumthing_photos ap ON ap.albumthing_id = a.id \
          WHERE ap.photo_id = $1 AND a.thing_type = 'hashtag_attribute' AND a.owner_id = $2 ORDER BY a.id",
@@ -300,7 +304,7 @@ async fn sync_hashtag_album_things(
     .await?;
     for (album_id, title) in linked {
         if !caption.contains(&title) {
-            sqlx::query(
+            crate::sql::query(
                 "DELETE FROM api_albumthing_photos WHERE albumthing_id = $1 AND photo_id = $2",
             )
             .bind(album_id)

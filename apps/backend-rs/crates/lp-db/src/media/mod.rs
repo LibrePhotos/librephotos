@@ -1,14 +1,16 @@
 //! Reads for media serving (`lp-media`): the photo a media URL names, with
 //! every grant `api/views/media.py` checks, in one query per request.
 
-use sqlx::{FromRow, PgExecutor};
+use sqlx::FromRow;
 use uuid::Uuid;
 
+use crate::db::{DjUuid, Exec};
 use crate::scope::{PhotoGrants, has_thumbnail_sql, photo_grants_select};
 
 /// A photo as the media views need it, plus the requester's grants on it.
 #[derive(Debug, Clone, FromRow)]
 pub struct MediaPhoto {
+    #[sqlx(try_from = "DjUuid")]
     pub id: Uuid,
     pub owner_id: i32,
     pub image_hash: String,
@@ -62,11 +64,11 @@ fn select_with_grants(user_param: &str) -> String {
 /// share one), each with `user`'s grants. Unordered, like Django's
 /// `Photo.objects.filter(image_hash=...)`.
 pub async fn photos_by_hash<'e>(
-    db: impl PgExecutor<'e>,
+    db: impl Exec<'e>,
     image_hash: &str,
     user_id: Option<i32>,
 ) -> sqlx::Result<Vec<MediaPhoto>> {
-    sqlx::query_as::<_, MediaPhoto>(&format!(
+    crate::sql::query_as::<_, MediaPhoto>(&format!(
         "{} WHERE p.image_hash = $1",
         select_with_grants("$2")
     ))
@@ -78,11 +80,11 @@ pub async fn photos_by_hash<'e>(
 
 /// The photo with primary key `id`, with `user`'s grants.
 pub async fn photo_by_id<'e>(
-    db: impl PgExecutor<'e>,
+    db: impl Exec<'e>,
     id: Uuid,
     user_id: Option<i32>,
 ) -> sqlx::Result<Option<MediaPhoto>> {
-    sqlx::query_as::<_, MediaPhoto>(&format!("{} WHERE p.id = $1", select_with_grants("$2")))
+    crate::sql::query_as::<_, MediaPhoto>(&format!("{} WHERE p.id = $1", select_with_grants("$2")))
         .bind(id)
         .bind(user_id)
         .fetch_optional(db)
@@ -109,7 +111,7 @@ struct PathRow {
 /// kind; Django's bare `public=True` here kept serving the motion video of a
 /// public photo after it was hidden, trashed or removed.
 pub async fn embedded_media_path<'e>(
-    db: impl PgExecutor<'e>,
+    db: impl Exec<'e>,
     key: PhotoKey<'_>,
     user_id: Option<i32>,
 ) -> sqlx::Result<Option<Option<String>>> {
@@ -130,7 +132,7 @@ pub async fn embedded_media_path<'e>(
            WHERE em.from_file_id = p.main_file_id ORDER BY ef.hash LIMIT 1) AS path \
          FROM api_photo p WHERE {key_sql} AND {scope} ORDER BY p.id LIMIT 1"
     );
-    let q = sqlx::query_as::<_, PathRow>(&sql);
+    let q = crate::sql::query_as::<_, PathRow>(&sql);
     let q = match key {
         PhotoKey::Id(id) => q.bind(id),
         PhotoKey::Hash(h) => q.bind(h.to_string()),
@@ -146,10 +148,10 @@ pub async fn embedded_media_path<'e>(
 /// NULL once the photo is hidden, trashed or removed. No grants apply; the
 /// slug is the grant.
 pub async fn photo_for_share<'e>(
-    db: impl PgExecutor<'e>,
+    db: impl Exec<'e>,
     slug: &str,
 ) -> sqlx::Result<Option<MediaPhoto>> {
-    sqlx::query_as::<_, MediaPhoto>(&format!(
+    crate::sql::query_as::<_, MediaPhoto>(&format!(
         "SELECT {COLUMNS}, FALSE AS is_owner, FALSE AS shared_directly, \
            FALSE AS album_shared_to_user, FALSE AS in_public_album, FALSE AS is_public_photo \
          FROM api_photoshare s JOIN api_photo p ON p.id = s.photo_id \
@@ -168,16 +170,16 @@ pub async fn photo_for_share<'e>(
 /// `main_file.path` of the first photo (by pk) matching `key`, for the
 /// admin diagnostics view. `Some(None)` = a photo whose file was detached.
 pub async fn main_file_path<'e>(
-    db: impl PgExecutor<'e>,
+    db: impl Exec<'e>,
     key: PhotoKey<'_>,
 ) -> sqlx::Result<Option<Option<String>>> {
     let q = match key {
-        PhotoKey::Id(id) => sqlx::query_as::<_, PathRow>(
+        PhotoKey::Id(id) => crate::sql::query_as::<_, PathRow>(
             "SELECT f.path FROM api_photo p LEFT JOIN api_file f ON f.hash = p.main_file_id \
              WHERE p.id = $1 ORDER BY p.id LIMIT 1",
         )
         .bind(id),
-        PhotoKey::Hash(h) => sqlx::query_as::<_, PathRow>(
+        PhotoKey::Hash(h) => crate::sql::query_as::<_, PathRow>(
             "SELECT f.path FROM api_photo p LEFT JOIN api_file f ON f.hash = p.main_file_id \
              WHERE p.image_hash = $1 ORDER BY p.id LIMIT 1",
         )

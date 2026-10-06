@@ -10,18 +10,18 @@ use std::collections::BTreeSet;
 
 use chrono::{DateTime, Duration, Utc};
 use serde_json::Value;
-use sqlx::{PgConnection, PgPool, Postgres, QueryBuilder};
 use uuid::Uuid;
 
+use crate::db::{Conn, Db, Qb};
 use crate::timeline_photos::metadata::{METADATA_COLUMNS, MetadataPhoto, MetadataRow};
 
 /// `PhotoMetadata.objects.get_or_create(photo=..., defaults=...)`.
 pub async fn get_or_create_metadata(
-    conn: &mut PgConnection,
+    conn: &mut Conn,
     photo: &MetadataPhoto,
 ) -> sqlx::Result<MetadataRow> {
     let select = format!("SELECT {METADATA_COLUMNS} FROM api_photometadata WHERE photo_id = $1");
-    if let Some(row) = sqlx::query_as::<_, MetadataRow>(&select)
+    if let Some(row) = crate::sql::query_as::<_, MetadataRow>(&select)
         .bind(photo.id)
         .fetch_optional(&mut *conn)
         .await?
@@ -29,7 +29,7 @@ pub async fn get_or_create_metadata(
         return Ok(row);
     }
     let now = Utc::now();
-    sqlx::query(
+    crate::sql::query(
         "INSERT INTO api_photometadata (id, photo_id, date_taken, gps_latitude, gps_longitude, rating, \
          source, version, created_at, updated_at) \
          VALUES ($1, $2, $3, $4, $5, $6, 'embedded', 1, $7, $7) ON CONFLICT (photo_id) DO NOTHING",
@@ -43,7 +43,7 @@ pub async fn get_or_create_metadata(
     .bind(now)
     .execute(&mut *conn)
     .await?;
-    sqlx::query_as::<_, MetadataRow>(&select)
+    crate::sql::query_as::<_, MetadataRow>(&select)
         .bind(photo.id)
         .fetch_one(&mut *conn)
         .await
@@ -80,7 +80,7 @@ impl MetaValue {
         }
     }
 
-    fn push_bind(&self, qb: &mut QueryBuilder<'_, Postgres>) {
+    fn push_bind(&self, qb: &mut Qb<'_>) {
         match self.clone() {
             MetaValue::Text(v) => qb.push_bind(v),
             MetaValue::Int(v) => qb.push_bind(v),
@@ -134,7 +134,7 @@ pub fn tag_names(keywords: Option<&Value>) -> BTreeSet<String> {
 /// `PATCH /photos/{id}/metadata`. `changes` are the validated fields in
 /// serializer order. Returns nothing; the caller re-reads the metadata.
 pub async fn patch_metadata(
-    db: &PgPool,
+    db: &Db,
     photo: &MetadataPhoto,
     user_id: i32,
     changes: &[(&'static str, MetaValue)],
@@ -150,7 +150,7 @@ pub async fn patch_metadata(
         if !old.differs(new) {
             continue;
         }
-        sqlx::query(
+        crate::sql::query(
             "INSERT INTO api_metadataedit (id, field_name, old_value, new_value, synced_to_file, \
              synced_at, created_at, photo_id, user_id) VALUES ($1, $2, $3, $4, FALSE, NULL, $5, $6, $7)",
         )
@@ -166,7 +166,7 @@ pub async fn patch_metadata(
         n_edits += 1;
     }
 
-    let mut qb: QueryBuilder<'_, Postgres> = QueryBuilder::new("UPDATE api_photometadata SET ");
+    let mut qb: Qb<'_> = Qb::new("UPDATE api_photometadata SET ");
     for (field, new) in changes {
         if current(&row, field).is_none() {
             continue;
@@ -199,7 +199,7 @@ pub async fn patch_metadata(
 /// `get_or_create` + attach a tag per keyword (sorted), refreshing the
 /// `photo_count` of every tag touched.
 async fn sync_tags_from_keywords(
-    conn: &mut PgConnection,
+    conn: &mut Conn,
     photo_id: Uuid,
     owner_id: i32,
     keywords: Option<&Value>,
@@ -212,7 +212,7 @@ async fn sync_tags_from_keywords(
         .collect();
     let mut touched: Vec<i32> = Vec::new();
     if !dropped.is_empty() {
-        let removed: Vec<i32> = sqlx::query_scalar(
+        let removed: Vec<i32> = crate::sql::query_scalar(
             "DELETE FROM api_tag_photos tp USING api_tag t \
              WHERE t.id = tp.tag_id AND tp.photo_id = $1 AND t.owner_id = $2 AND t.name = ANY($3) \
              RETURNING tp.tag_id",
@@ -226,7 +226,7 @@ async fn sync_tags_from_keywords(
     }
     for name in &new_names {
         let existing: Option<i32> =
-            sqlx::query_scalar("SELECT id FROM api_tag WHERE name = $1 AND owner_id = $2")
+            crate::sql::query_scalar("SELECT id FROM api_tag WHERE name = $1 AND owner_id = $2")
                 .bind(name)
                 .bind(owner_id)
                 .fetch_optional(&mut *conn)
@@ -234,7 +234,7 @@ async fn sync_tags_from_keywords(
         let tag_id = match existing {
             Some(id) => id,
             None => {
-                sqlx::query_scalar(
+                crate::sql::query_scalar(
                     "INSERT INTO api_tag (name, owner_id, photo_count, last_modified) \
                      VALUES ($1, $2, 0, now()) RETURNING id",
                 )
@@ -244,7 +244,7 @@ async fn sync_tags_from_keywords(
                 .await?
             }
         };
-        sqlx::query(
+        crate::sql::query(
             "INSERT INTO api_tag_photos (tag_id, photo_id) SELECT $1, $2 \
              WHERE NOT EXISTS (SELECT 1 FROM api_tag_photos WHERE tag_id = $1 AND photo_id = $2)",
         )
@@ -258,7 +258,7 @@ async fn sync_tags_from_keywords(
     // the tag's `last_modified` (mobile-sync `m2m_changed`), linked before
     // or not.
     if !touched.is_empty() {
-        sqlx::query(
+        crate::sql::query(
             "UPDATE api_tag t SET photo_count = (SELECT count(*) FROM api_tag_photos tp \
                JOIN api_photo p ON p.id = tp.photo_id \
                WHERE tp.tag_id = t.id AND NOT p.hidden AND NOT p.in_trashcan AND NOT p.removed), \

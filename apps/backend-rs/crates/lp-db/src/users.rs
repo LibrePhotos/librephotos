@@ -2,7 +2,9 @@
 
 use chrono::{DateTime, Utc};
 use serde::Serialize;
-use sqlx::{FromRow, PgExecutor};
+use sqlx::FromRow;
+
+use crate::db::Exec;
 
 /// Every `api_user` column except the encrypted `nextcloud_app_password`
 /// (decrypt that with `lp_core::django_crypto` when needed).
@@ -90,8 +92,8 @@ pub struct SimpleUser {
     pub last_name: String,
 }
 
-pub async fn by_id<'e>(db: impl PgExecutor<'e>, id: i32) -> sqlx::Result<Option<User>> {
-    sqlx::query_as::<_, User>(&format!(
+pub async fn by_id<'e>(db: impl Exec<'e>, id: i32) -> sqlx::Result<Option<User>> {
+    crate::sql::query_as::<_, User>(&format!(
         "SELECT {USER_COLUMNS} FROM api_user WHERE id = $1"
     ))
     .bind(id)
@@ -100,8 +102,8 @@ pub async fn by_id<'e>(db: impl PgExecutor<'e>, id: i32) -> sqlx::Result<Option<
 }
 
 /// Active user by id (what simplejwt's `JWTAuthentication.get_user` accepts).
-pub async fn active_by_id<'e>(db: impl PgExecutor<'e>, id: i32) -> sqlx::Result<Option<User>> {
-    sqlx::query_as::<_, User>(&format!(
+pub async fn active_by_id<'e>(db: impl Exec<'e>, id: i32) -> sqlx::Result<Option<User>> {
+    crate::sql::query_as::<_, User>(&format!(
         "SELECT {USER_COLUMNS} FROM api_user WHERE id = $1 AND is_active"
     ))
     .bind(id)
@@ -110,11 +112,8 @@ pub async fn active_by_id<'e>(db: impl PgExecutor<'e>, id: i32) -> sqlx::Result<
 }
 
 /// Exact, case-sensitive username match (Django `get_by_natural_key`).
-pub async fn by_username<'e>(
-    db: impl PgExecutor<'e>,
-    username: &str,
-) -> sqlx::Result<Option<User>> {
-    sqlx::query_as::<_, User>(&format!(
+pub async fn by_username<'e>(db: impl Exec<'e>, username: &str) -> sqlx::Result<Option<User>> {
+    crate::sql::query_as::<_, User>(&format!(
         "SELECT {USER_COLUMNS} FROM api_user WHERE username = $1"
     ))
     .bind(username)
@@ -122,22 +121,22 @@ pub async fn by_username<'e>(
     .await
 }
 
-pub async fn is_active<'e>(db: impl PgExecutor<'e>, id: i32) -> sqlx::Result<bool> {
-    sqlx::query_scalar("SELECT EXISTS (SELECT 1 FROM api_user WHERE id = $1 AND is_active)")
+pub async fn is_active<'e>(db: impl Exec<'e>, id: i32) -> sqlx::Result<bool> {
+    crate::sql::query_scalar("SELECT EXISTS (SELECT 1 FROM api_user WHERE id = $1 AND is_active)")
         .bind(id)
         .fetch_one(db)
         .await
 }
 
-pub async fn count<'e>(db: impl PgExecutor<'e>) -> sqlx::Result<i64> {
-    sqlx::query_scalar("SELECT count(*) FROM api_user")
+pub async fn count<'e>(db: impl Exec<'e>) -> sqlx::Result<i64> {
+    crate::sql::query_scalar("SELECT count(*) FROM api_user")
         .fetch_one(db)
         .await
 }
 
 /// Whether a refresh token id was blacklisted (Rust's `refresh_token` table).
-pub async fn refresh_revoked<'e>(db: impl PgExecutor<'e>, jti: &str) -> sqlx::Result<bool> {
-    sqlx::query_scalar(
+pub async fn refresh_revoked<'e>(db: impl Exec<'e>, jti: &str) -> sqlx::Result<bool> {
+    crate::sql::query_scalar(
         "SELECT EXISTS (SELECT 1 FROM refresh_token WHERE jti = $1 AND revoked_at IS NOT NULL)",
     )
     .bind(jti)

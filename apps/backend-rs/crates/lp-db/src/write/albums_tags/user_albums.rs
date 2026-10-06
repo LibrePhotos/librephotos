@@ -2,10 +2,10 @@
 //! delete, sharing to users and the public share.
 
 use chrono::{DateTime, Utc};
-use sqlx::{PgConnection, PgPool, QueryBuilder};
 use uuid::Uuid;
 
 use super::PhotoSelection;
+use crate::db::{Conn, Db, Qb};
 use crate::write::deletion_log::{self as dl, AlbumKind, entity};
 
 /// What an edit request changes (`AlbumUserEditSerializer.update`), in the
@@ -21,13 +21,8 @@ pub struct AlbumEdit {
     pub add: Option<PhotoSelection>,
 }
 
-async fn add_photos(
-    conn: &mut PgConnection,
-    album_id: i32,
-    sel: &PhotoSelection,
-) -> sqlx::Result<()> {
-    let mut qb =
-        QueryBuilder::new("INSERT INTO api_albumuser_photos (albumuser_id, photo_id) SELECT ");
+async fn add_photos(conn: &mut Conn, album_id: i32, sel: &PhotoSelection) -> sqlx::Result<()> {
+    let mut qb = Qb::new("INSERT INTO api_albumuser_photos (albumuser_id, photo_id) SELECT ");
     qb.push_bind(album_id);
     qb.push(", s.id FROM (");
     sel.push_ids_query(&mut qb);
@@ -36,9 +31,9 @@ async fn add_photos(
     Ok(())
 }
 
-async fn apply(conn: &mut PgConnection, album_id: i32, edit: &AlbumEdit) -> sqlx::Result<()> {
+async fn apply(conn: &mut Conn, album_id: i32, edit: &AlbumEdit) -> sqlx::Result<()> {
     if let Some(hashes) = &edit.removed_hashes {
-        sqlx::query(
+        crate::sql::query(
             "DELETE FROM api_albumuser_photos l USING api_photo p \
              WHERE l.albumuser_id = $1 AND p.id = l.photo_id AND p.image_hash = ANY($2)",
         )
@@ -51,7 +46,7 @@ async fn apply(conn: &mut PgConnection, album_id: i32, edit: &AlbumEdit) -> sqlx
         add_photos(conn, album_id, sel).await?;
     }
     // instance.save(): auto_now `created_on` and `last_modified`.
-    sqlx::query(
+    crate::sql::query(
         "UPDATE api_albumuser SET title = COALESCE($2, title), \
            cover_photo_id = CASE WHEN $3 THEN $4 ELSE cover_photo_id END, \
            created_on = now(), last_modified = now() WHERE id = $1",
@@ -67,17 +62,12 @@ async fn apply(conn: &mut PgConnection, album_id: i32, edit: &AlbumEdit) -> sqlx
 
 /// `AlbumUserEditSerializer.create`: `get_or_create(title, owner)`; an
 /// existing album goes through the update path. Returns the album id.
-pub async fn create(
-    db: &PgPool,
-    owner_id: i32,
-    title: &str,
-    edit: &AlbumEdit,
-) -> sqlx::Result<i32> {
+pub async fn create(db: &Db, owner_id: i32, title: &str, edit: &AlbumEdit) -> sqlx::Result<i32> {
     let mut tx = db.begin().await?;
     // Look first: an INSERT .. ON CONFLICT would burn an id on every
     // existing title, and ids must stay in step with Django's.
     let existing: Option<i32> =
-        sqlx::query_scalar("SELECT id FROM api_albumuser WHERE title = $1 AND owner_id = $2")
+        crate::sql::query_scalar("SELECT id FROM api_albumuser WHERE title = $1 AND owner_id = $2")
             .bind(title)
             .bind(owner_id)
             .fetch_optional(&mut *tx)
@@ -88,7 +78,7 @@ pub async fn create(
             id
         }
         None => {
-            let id: i32 = sqlx::query_scalar(
+            let id: i32 = crate::sql::query_scalar(
                 "INSERT INTO api_albumuser (title, created_on, favorited, owner_id, cover_photo_id, last_modified)                  VALUES ($1, now(), FALSE, $2, NULL, now()) RETURNING id",
             )
             .bind(title)
@@ -108,8 +98,8 @@ pub async fn create(
 
 /// `AlbumUserSerializer.create`: a plain `AlbumUser.objects.create` (an
 /// existing title is a unique violation, a 500 in Django too).
-pub async fn create_empty(db: &PgPool, owner_id: i32, title: &str) -> sqlx::Result<i32> {
-    sqlx::query_scalar(
+pub async fn create_empty(db: &Db, owner_id: i32, title: &str) -> sqlx::Result<i32> {
+    crate::sql::query_scalar(
         "INSERT INTO api_albumuser (title, created_on, favorited, owner_id, cover_photo_id, last_modified) \
          VALUES ($1, now(), FALSE, $2, NULL, now()) RETURNING id",
     )
@@ -120,15 +110,15 @@ pub async fn create_empty(db: &PgPool, owner_id: i32, title: &str) -> sqlx::Resu
 }
 
 /// `AlbumUserEditSerializer.update` on the owner's album.
-pub async fn update(db: &PgPool, album_id: i32, edit: &AlbumEdit) -> sqlx::Result<()> {
+pub async fn update(db: &Db, album_id: i32, edit: &AlbumEdit) -> sqlx::Result<()> {
     let mut tx = db.begin().await?;
     apply(&mut tx, album_id, edit).await?;
     tx.commit().await
 }
 
 /// `PATCH /albums/user/{id}/` (`AlbumUserSerializer`, only `title` is writable).
-pub async fn rename(db: &PgPool, album_id: i32, title: Option<&str>) -> sqlx::Result<()> {
-    sqlx::query(
+pub async fn rename(db: &Db, album_id: i32, title: Option<&str>) -> sqlx::Result<()> {
+    crate::sql::query(
         "UPDATE api_albumuser SET title = COALESCE($2, title), created_on = now(), \
            last_modified = now() WHERE id = $1",
     )
@@ -142,7 +132,7 @@ pub async fn rename(db: &PgPool, album_id: i32, title: Option<&str>) -> sqlx::Re
 /// Django's collector for `AlbumUser.delete()`: links, share, the row.
 /// Tombstones for the owner and every recipient (`post_delete`) first,
 /// while the recipients are still linked.
-pub async fn delete(db: &PgPool, album_id: i32) -> sqlx::Result<()> {
+pub async fn delete(db: &Db, album_id: i32) -> sqlx::Result<()> {
     let mut tx = db.begin().await?;
     dl::albums_deleted(&mut tx, AlbumKind::User, &[album_id]).await?;
     for sql in [
@@ -151,23 +141,21 @@ pub async fn delete(db: &PgPool, album_id: i32) -> sqlx::Result<()> {
         "DELETE FROM api_albumusershare WHERE album_id = $1",
         "DELETE FROM api_albumuser WHERE id = $1",
     ] {
-        sqlx::query(sql).bind(album_id).execute(&mut *tx).await?;
+        crate::sql::query(sql)
+            .bind(album_id)
+            .execute(&mut *tx)
+            .await?;
     }
     tx.commit().await
 }
 
 /// `SetUserAlbumShared`: add/remove one recipient, then `save()`.
-pub async fn set_shared(
-    db: &PgPool,
-    album_id: i32,
-    user_id: i32,
-    shared: bool,
-) -> sqlx::Result<()> {
+pub async fn set_shared(db: &Db, album_id: i32, user_id: i32, shared: bool) -> sqlx::Result<()> {
     let mut tx = db.begin().await?;
     let album = [album_id.to_string()];
     if shared {
         // `shared_to.add`: a newly added recipient's stale tombstone goes.
-        let added = sqlx::query(
+        let added = crate::sql::query(
             "INSERT INTO api_albumuser_shared_to (albumuser_id, user_id) VALUES ($1, $2)              ON CONFLICT DO NOTHING",
         )
         .bind(album_id)
@@ -180,17 +168,21 @@ pub async fn set_shared(
         }
     } else {
         // `shared_to.remove`: a tombstone for the recipient, shared or not.
-        sqlx::query("DELETE FROM api_albumuser_shared_to WHERE albumuser_id = $1 AND user_id = $2")
-            .bind(album_id)
-            .bind(user_id)
-            .execute(&mut *tx)
-            .await?;
-        dl::unshared(&mut tx, entity::ALBUM_USER, &album, &[user_id]).await?;
-    }
-    sqlx::query("UPDATE api_albumuser SET created_on = now(), last_modified = now() WHERE id = $1")
+        crate::sql::query(
+            "DELETE FROM api_albumuser_shared_to WHERE albumuser_id = $1 AND user_id = $2",
+        )
         .bind(album_id)
+        .bind(user_id)
         .execute(&mut *tx)
         .await?;
+        dl::unshared(&mut tx, entity::ALBUM_USER, &album, &[user_id]).await?;
+    }
+    crate::sql::query(
+        "UPDATE api_albumuser SET created_on = now(), last_modified = now() WHERE id = $1",
+    )
+    .bind(album_id)
+    .execute(&mut *tx)
+    .await?;
     tx.commit().await
 }
 
@@ -228,9 +220,9 @@ struct ShareRow {
 }
 
 /// `AlbumUserShare.get_or_create` + field updates + `save()` (S17 slug).
-pub async fn set_public(db: &PgPool, album_id: i32, edit: &PublicShareEdit) -> sqlx::Result<()> {
+pub async fn set_public(db: &Db, album_id: i32, edit: &PublicShareEdit) -> sqlx::Result<()> {
     let mut tx = db.begin().await?;
-    let existing: Option<ShareRow> = sqlx::query_as(
+    let existing: Option<ShareRow> = crate::sql::query_as(
         "SELECT id, slug, expires_at, share_location, share_camera_info, share_timestamps, \
            share_captions, share_faces FROM api_albumusershare WHERE album_id = $1 FOR UPDATE",
     )
@@ -273,7 +265,7 @@ pub async fn set_public(db: &PgPool, album_id: i32, edit: &PublicShareEdit) -> s
         let mut candidate = base.clone();
         let mut idx = 0;
         loop {
-            let clash: bool = sqlx::query_scalar(
+            let clash: bool = crate::sql::query_scalar(
                 "SELECT EXISTS (SELECT 1 FROM api_albumusershare WHERE slug = $1 AND id <> $2)",
             )
             .bind(&candidate)
@@ -297,7 +289,7 @@ pub async fn set_public(db: &PgPool, album_id: i32, edit: &PublicShareEdit) -> s
            share_camera_info, share_timestamps, share_captions, share_faces) \
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)"
     };
-    sqlx::query(sql)
+    crate::sql::query(sql)
         .bind(album_id)
         .bind(edit.enabled)
         .bind(&row.slug)

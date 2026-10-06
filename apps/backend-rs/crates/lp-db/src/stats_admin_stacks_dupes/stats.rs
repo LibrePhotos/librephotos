@@ -4,8 +4,9 @@
 use chrono::{DateTime, NaiveDateTime, Utc};
 use serde::Serialize;
 use serde_json::Value;
-use sqlx::{FromRow, PgPool, Postgres, QueryBuilder};
+use sqlx::FromRow;
 
+use crate::db::{Db, Qb};
 use crate::scope;
 
 use super::UNKNOWN_PERSON_NAME;
@@ -27,7 +28,7 @@ pub struct CountStats {
     pub num_albumuser: i64,
 }
 
-fn visible_owned(qb: &mut QueryBuilder<'_, Postgres>, user_id: i32, extra: &str) {
+fn visible_owned(qb: &mut Qb<'_>, user_id: i32, extra: &str) {
     qb.push("(SELECT count(*) FROM api_photo p WHERE ");
     scope::owned_by(qb, "p", user_id);
     qb.push(" AND ");
@@ -36,7 +37,7 @@ fn visible_owned(qb: &mut QueryBuilder<'_, Postgres>, user_id: i32, extra: &str)
     qb.push(")");
 }
 
-fn non_empty_albums(qb: &mut QueryBuilder<'_, Postgres>, kind: &str, user_id: i32) {
+fn non_empty_albums(qb: &mut Qb<'_>, kind: &str, user_id: i32) {
     qb.push(format!(
         "(SELECT count(*) FROM api_album{kind} a WHERE EXISTS (SELECT 1 FROM api_album{kind}_photos ap \
          WHERE ap.album{kind}_id = a.id AND ap.photo_id IS NOT NULL) AND a.owner_id = "
@@ -46,8 +47,8 @@ fn non_empty_albums(qb: &mut QueryBuilder<'_, Postgres>, kind: &str, user_id: i3
 }
 
 /// One round trip: every counter is a scalar subquery.
-pub async fn count_stats(db: &PgPool, user_id: i32) -> sqlx::Result<CountStats> {
-    let mut qb = QueryBuilder::new("SELECT ");
+pub async fn count_stats(db: &Db, user_id: i32) -> sqlx::Result<CountStats> {
+    let mut qb = Qb::new("SELECT ");
     visible_owned(&mut qb, user_id, "");
     qb.push(" AS num_photos, ");
     visible_owned(&mut qb, user_id, " AND p.is_screenshot");
@@ -62,7 +63,7 @@ pub async fn count_stats(db: &PgPool, user_id: i32) -> sqlx::Result<CountStats> 
     );
     scope::owned_by(&mut qb, "p", user_id);
     qb.push(") AS num_missing_photos, ");
-    let faces = |qb: &mut QueryBuilder<'_, Postgres>, join: &str, cond: &str| {
+    let faces = |qb: &mut Qb<'_>, join: &str, cond: &str| {
         qb.push(format!(
             "(SELECT count(*) FROM api_face f JOIN api_photo p ON p.id = f.photo_id{join} WHERE {cond}"
         ));
@@ -99,11 +100,8 @@ pub async fn count_stats(db: &PgPool, user_id: i32) -> sqlx::Result<CountStats> 
 }
 
 /// `TruncMonth(exif_timestamp)` (UTC) -> photo count, unordered.
-pub async fn photo_month_counts(
-    db: &PgPool,
-    user_id: i32,
-) -> sqlx::Result<Vec<(NaiveDateTime, i64)>> {
-    let mut qb = QueryBuilder::new(
+pub async fn photo_month_counts(db: &Db, user_id: i32) -> sqlx::Result<Vec<(NaiveDateTime, i64)>> {
+    let mut qb = Qb::new(
         "SELECT date_trunc('month', p.exif_timestamp AT TIME ZONE 'UTC') AS month, \
          count(p.image_hash) AS c FROM api_photo p WHERE p.exif_timestamp IS NOT NULL AND ",
     );
@@ -115,11 +113,11 @@ pub async fn photo_month_counts(
 /// The active tagging model's entry of every captioned photo's
 /// `captions_json` (NULL when absent), in table order.
 pub async fn caption_tag_entries(
-    db: &PgPool,
+    db: &Db,
     user_id: i32,
     tagging_model: &str,
 ) -> sqlx::Result<Vec<Option<Value>>> {
-    let mut qb = QueryBuilder::new("SELECT pc.captions_json -> ");
+    let mut qb = Qb::new("SELECT pc.captions_json -> ");
     qb.push_bind(tagging_model.to_string());
     qb.push(
         " FROM api_photo p JOIN api_photo_caption pc ON pc.photo_id = p.id \
@@ -131,8 +129,8 @@ pub async fn caption_tag_entries(
 }
 
 /// `geolocation_json -> 'features'` of the user's geotagged photos, in table order.
-pub async fn geo_features(db: &PgPool, user_id: i32) -> sqlx::Result<Vec<Value>> {
-    let mut qb = QueryBuilder::new(
+pub async fn geo_features(db: &Db, user_id: i32) -> sqlx::Result<Vec<Value>> {
+    let mut qb = Qb::new(
         "SELECT p.geolocation_json -> 'features' FROM api_photo p \
          WHERE jsonb_typeof(p.geolocation_json -> 'features') = 'array' AND ",
     );
@@ -142,8 +140,8 @@ pub async fn geo_features(db: &PgPool, user_id: i32) -> sqlx::Result<Vec<Value>>
 }
 
 /// Face counts per person name, top 100 (`get_searchterms_wordcloud` people).
-pub async fn people_face_counts(db: &PgPool, user_id: i32) -> sqlx::Result<Vec<(String, i64)>> {
-    let mut qb = QueryBuilder::new(
+pub async fn people_face_counts(db: &Db, user_id: i32) -> sqlx::Result<Vec<(String, i64)>> {
+    let mut qb = Qb::new(
         "SELECT pe.name, count(f.id) AS c FROM api_face f JOIN api_photo p ON p.id = f.photo_id \
          JOIN api_person pe ON pe.id = f.person_id WHERE ",
     );
@@ -154,8 +152,8 @@ pub async fn people_face_counts(db: &PgPool, user_id: i32) -> sqlx::Result<Vec<(
 
 /// Person-name pairs that share a photo (`build_social_graph`), in the order
 /// Postgres returns them for the same statement Django runs.
-pub async fn social_links(db: &PgPool, user_id: i32) -> sqlx::Result<Vec<(String, String)>> {
-    sqlx::query_as(
+pub async fn social_links(db: &Db, user_id: i32) -> sqlx::Result<Vec<(String, String)>> {
+    crate::sql::query_as(
         "WITH face AS (
                 SELECT photo_id, person_id, name, owner_id
                 FROM api_face
@@ -178,10 +176,10 @@ pub async fn social_links(db: &PgPool, user_id: i32) -> sqlx::Result<Vec<(String
 /// `(features[-1].text, exif_timestamp)` of the user's timestamped photos,
 /// oldest first (`get_location_timeline`).
 pub async fn timeline_locations(
-    db: &PgPool,
+    db: &Db,
     user_id: i32,
 ) -> sqlx::Result<Vec<(Option<Value>, DateTime<Utc>)>> {
-    let mut qb = QueryBuilder::new(
+    let mut qb = Qb::new(
         "SELECT p.geolocation_json -> 'features' -> -1 -> 'text', p.exif_timestamp FROM api_photo p \
          WHERE p.exif_timestamp IS NOT NULL AND ",
     );

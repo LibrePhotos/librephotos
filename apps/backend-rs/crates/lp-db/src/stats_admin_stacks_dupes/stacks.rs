@@ -1,9 +1,10 @@
 //! Photo stack reads (`api/views/stacks.py`).
 
 use chrono::{DateTime, Utc};
-use sqlx::{FromRow, PgExecutor, PgPool, Postgres, QueryBuilder};
+use sqlx::FromRow;
 use uuid::Uuid;
 
+use crate::db::{Db, DjUuid, Exec, Qb};
 use crate::scope;
 
 /// `PhotoStack.VALID_STACK_TYPES`.
@@ -26,6 +27,7 @@ pub fn type_display(t: &str) -> String {
 
 #[derive(Debug, Clone, FromRow)]
 pub struct StackRow {
+    #[sqlx(try_from = "DjUuid")]
     pub id: Uuid,
     pub stack_type: String,
     pub sequence_start: Option<DateTime<Utc>>,
@@ -40,7 +42,9 @@ pub struct StackRow {
 /// A photo of a stack or duplicate group (preview or detail).
 #[derive(Debug, Clone, FromRow)]
 pub struct MemberPhoto {
+    #[sqlx(try_from = "DjUuid")]
     pub group_id: Uuid,
+    #[sqlx(try_from = "DjUuid")]
     pub id: Uuid,
     pub image_hash: String,
     pub size: i64,
@@ -57,6 +61,7 @@ pub struct MemberPhoto {
 
 #[derive(Debug, Clone, FromRow)]
 pub struct PhotoFileRow {
+    #[sqlx(try_from = "DjUuid")]
     pub photo_id: Uuid,
     pub hash: String,
     pub path: String,
@@ -74,8 +79,8 @@ const STACKS_CTE: &str = "WITH stacks AS (SELECT ps.*, \
     FROM api_photostack ps WHERE ps.owner_id = $1 AND ps.stack_type = ANY($2))";
 
 /// Stacks of `types` with at least two photos.
-pub async fn count_listed(db: &PgPool, owner: i32, types: &[&str]) -> sqlx::Result<i64> {
-    sqlx::query_scalar(&format!(
+pub async fn count_listed(db: &Db, owner: i32, types: &[&str]) -> sqlx::Result<i64> {
+    crate::sql::query_scalar(format!(
         "{STACKS_CTE} SELECT count(*) FROM stacks WHERE photo_count >= 2"
     ))
     .bind(owner)
@@ -86,13 +91,13 @@ pub async fn count_listed(db: &PgPool, owner: i32, types: &[&str]) -> sqlx::Resu
 
 /// One page of [`count_listed`], newest first.
 pub async fn list_page(
-    db: &PgPool,
+    db: &Db,
     owner: i32,
     types: &[&str],
     limit: i64,
     offset: i64,
 ) -> sqlx::Result<Vec<StackRow>> {
-    sqlx::query_as(&format!(
+    crate::sql::query_as(format!(
         "{STACKS_CTE} {STACK_SELECT} WHERE s.photo_count >= 2 \
          ORDER BY s.created_at DESC, s.id LIMIT $3 OFFSET $4"
     ))
@@ -104,13 +109,8 @@ pub async fn list_page(
     .await
 }
 
-pub async fn get(
-    db: &PgPool,
-    owner: i32,
-    id: Uuid,
-    types: &[&str],
-) -> sqlx::Result<Option<StackRow>> {
-    sqlx::query_as(&format!("{STACKS_CTE} {STACK_SELECT} WHERE s.id = $3"))
+pub async fn get(db: &Db, owner: i32, id: Uuid, types: &[&str]) -> sqlx::Result<Option<StackRow>> {
+    crate::sql::query_as(format!("{STACKS_CTE} {STACK_SELECT} WHERE s.id = $3"))
         .bind(owner)
         .bind(types)
         .bind(id)
@@ -119,8 +119,8 @@ pub async fn get(
 }
 
 /// Whether `owner` has a stack `id` (of any type).
-pub async fn exists(db: &PgPool, owner: i32, id: Uuid) -> sqlx::Result<bool> {
-    sqlx::query_scalar(
+pub async fn exists(db: &Db, owner: i32, id: Uuid) -> sqlx::Result<bool> {
+    crate::sql::query_scalar(
         "SELECT EXISTS (SELECT 1 FROM api_photostack WHERE id = $1 AND owner_id = $2)",
     )
     .bind(id)
@@ -141,7 +141,7 @@ const MEMBER_JOINS: &str = "LEFT JOIN api_thumbnail th ON th.photo_id = p.id \
 /// Members of groups through a link table (`api_photo_stacks` /
 /// `api_photo_duplicates`), in link order; at most `per_group` per group.
 pub async fn members<'e>(
-    db: impl PgExecutor<'e>,
+    db: impl Exec<'e>,
     link_table: &str,
     group_col: &str,
     group_ids: &[Uuid],
@@ -150,7 +150,7 @@ pub async fn members<'e>(
     if group_ids.is_empty() {
         return Ok(Vec::new());
     }
-    sqlx::query_as(&format!(
+    crate::sql::query_as(format!(
         "SELECT x.group_id, {MEMBER_COLUMNS} FROM ( \
            SELECT l.{group_col} AS group_id, l.photo_id, \
              row_number() OVER (PARTITION BY l.{group_col} ORDER BY l.id) AS rn \
@@ -165,7 +165,7 @@ pub async fn members<'e>(
 }
 
 pub async fn stack_members(
-    db: &PgPool,
+    db: &Db,
     stack_ids: &[Uuid],
     per_group: Option<i64>,
 ) -> sqlx::Result<Vec<MemberPhoto>> {
@@ -180,8 +180,8 @@ pub async fn stack_members(
 }
 
 /// Every file of `photo_ids`, in link order.
-pub async fn photo_files(db: &PgPool, photo_ids: &[Uuid]) -> sqlx::Result<Vec<PhotoFileRow>> {
-    sqlx::query_as(
+pub async fn photo_files(db: &Db, photo_ids: &[Uuid]) -> sqlx::Result<Vec<PhotoFileRow>> {
+    crate::sql::query_as(
         "SELECT pf.photo_id, f.hash, f.path, f.type AS file_type FROM api_photo_files pf \
          JOIN api_file f ON f.hash = pf.file_id WHERE pf.photo_id = ANY($1) ORDER BY pf.id",
     )
@@ -198,9 +198,9 @@ pub struct StackStats {
     pub total_photos: i64,
 }
 
-pub async fn stats(db: &PgPool, owner: i32) -> sqlx::Result<StackStats> {
+pub async fn stats(db: &Db, owner: i32) -> sqlx::Result<StackStats> {
     let types: Vec<String> = ALL_TYPES.iter().map(|t| t.to_string()).collect();
-    let mut qb = QueryBuilder::new("SELECT (SELECT count(*) FROM api_photostack WHERE owner_id = ");
+    let mut qb = Qb::new("SELECT (SELECT count(*) FROM api_photostack WHERE owner_id = ");
     qb.push_bind(owner);
     qb.push(" AND stack_type = ANY(");
     qb.push_bind(types.clone());
@@ -223,7 +223,7 @@ pub async fn stats(db: &PgPool, owner: i32) -> sqlx::Result<StackStats> {
 }
 
 /// `(owned, not hidden, not in the trash)` photo count as a scalar subquery.
-pub fn push_total_photos(qb: &mut QueryBuilder<'_, Postgres>, owner: i32) {
+pub fn push_total_photos(qb: &mut Qb<'_>, owner: i32) {
     qb.push("(SELECT count(*) FROM api_photo p WHERE NOT p.hidden AND NOT p.in_trashcan AND ");
     scope::owned_by(qb, "p", owner);
     qb.push(")");

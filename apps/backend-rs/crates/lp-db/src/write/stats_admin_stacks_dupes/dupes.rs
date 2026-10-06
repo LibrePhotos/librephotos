@@ -3,10 +3,10 @@
 
 use std::collections::HashSet;
 
-use sqlx::{PgConnection, PgPool};
 use uuid::Uuid;
 
 use super::refresh_tags_for_photos;
+use crate::db::{Conn, Db, DjUuid};
 use crate::stats_admin_stacks_dupes::dupes::{EXACT_COPY, best_photo};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -24,11 +24,11 @@ pub enum RevertOutcome {
 }
 
 async fn owned_status(
-    conn: &mut PgConnection,
+    conn: &mut Conn,
     owner: i32,
     id: Uuid,
 ) -> sqlx::Result<Option<(String, i32)>> {
-    sqlx::query_as(
+    crate::sql::query_as(
         "SELECT review_status, trashed_count FROM api_duplicate WHERE id = $1 AND owner_id = $2 FOR UPDATE",
     )
     .bind(id)
@@ -37,9 +37,9 @@ async fn owned_status(
     .await
 }
 
-async fn unlink_all(conn: &mut PgConnection, ids: &[Uuid]) -> sqlx::Result<u64> {
+async fn unlink_all(conn: &mut Conn, ids: &[Uuid]) -> sqlx::Result<u64> {
     Ok(
-        sqlx::query("DELETE FROM api_photo_duplicates WHERE duplicate_id = ANY($1)")
+        crate::sql::query("DELETE FROM api_photo_duplicates WHERE duplicate_id = ANY($1)")
             .bind(ids)
             .execute(conn)
             .await?
@@ -47,12 +47,12 @@ async fn unlink_all(conn: &mut PgConnection, ids: &[Uuid]) -> sqlx::Result<u64> 
     )
 }
 
-async fn delete_groups(conn: &mut PgConnection, ids: &[Uuid]) -> sqlx::Result<()> {
+async fn delete_groups(conn: &mut Conn, ids: &[Uuid]) -> sqlx::Result<()> {
     if ids.is_empty() {
         return Ok(());
     }
     unlink_all(conn, ids).await?;
-    sqlx::query("DELETE FROM api_duplicate WHERE id = ANY($1)")
+    crate::sql::query("DELETE FROM api_duplicate WHERE id = ANY($1)")
         .bind(ids)
         .execute(conn)
         .await?;
@@ -61,29 +61,30 @@ async fn delete_groups(conn: &mut PgConnection, ids: &[Uuid]) -> sqlx::Result<()
 
 /// `DELETE /api/duplicates/{id}/delete`: the number of distinct photos
 /// unlinked, None if the user has no such group.
-pub async fn delete(db: &PgPool, owner: i32, id: Uuid) -> sqlx::Result<Option<i64>> {
+pub async fn delete(db: &Db, owner: i32, id: Uuid) -> sqlx::Result<Option<i64>> {
     let mut tx = db.begin().await?;
     if owned_status(&mut tx, owner, id).await?.is_none() {
         return Ok(None);
     }
-    let n: i64 =
-        sqlx::query_scalar("SELECT count(*) FROM api_photo_duplicates WHERE duplicate_id = $1")
-            .bind(id)
-            .fetch_one(&mut *tx)
-            .await?;
+    let n: i64 = crate::sql::query_scalar(
+        "SELECT count(*) FROM api_photo_duplicates WHERE duplicate_id = $1",
+    )
+    .bind(id)
+    .fetch_one(&mut *tx)
+    .await?;
     delete_groups(&mut tx, &[id]).await?;
     tx.commit().await?;
     Ok(Some(n))
 }
 
 /// `POST /api/duplicates/{id}/dismiss`: false if the user has no such group.
-pub async fn dismiss(db: &PgPool, owner: i32, id: Uuid) -> sqlx::Result<bool> {
+pub async fn dismiss(db: &Db, owner: i32, id: Uuid) -> sqlx::Result<bool> {
     let mut tx = db.begin().await?;
     if owned_status(&mut tx, owner, id).await?.is_none() {
         return Ok(false);
     }
     unlink_all(&mut tx, &[id]).await?;
-    sqlx::query(
+    crate::sql::query(
         "UPDATE api_duplicate SET review_status = 'dismissed', reviewed_at = now(), updated_at = now() \
          WHERE id = $1",
     )
@@ -97,7 +98,7 @@ pub async fn dismiss(db: &PgPool, owner: i32, id: Uuid) -> sqlx::Result<bool> {
 /// `POST /api/duplicates/{id}/revert`: restore the group's trashed photos
 /// and reset it to pending. Unlike Django, the restored photos' tag counts
 /// are refreshed too (S20).
-pub async fn revert(db: &PgPool, owner: i32, id: Uuid) -> sqlx::Result<RevertOutcome> {
+pub async fn revert(db: &Db, owner: i32, id: Uuid) -> sqlx::Result<RevertOutcome> {
     let mut tx = db.begin().await?;
     let Some((status, _)) = owned_status(&mut tx, owner, id).await? else {
         return Ok(RevertOutcome::NotFound);
@@ -105,7 +106,7 @@ pub async fn revert(db: &PgPool, owner: i32, id: Uuid) -> sqlx::Result<RevertOut
     if status != "resolved" {
         return Ok(RevertOutcome::NotResolved);
     }
-    let restored: Vec<Uuid> = sqlx::query_scalar(
+    let restored: Vec<Uuid> = crate::sql::query_scalar(
         "UPDATE api_photo p SET in_trashcan = FALSE, last_modified = now() WHERE p.in_trashcan \
          AND p.id IN (SELECT photo_id FROM api_photo_duplicates WHERE duplicate_id = $1) RETURNING p.id",
     )
@@ -113,7 +114,7 @@ pub async fn revert(db: &PgPool, owner: i32, id: Uuid) -> sqlx::Result<RevertOut
     .fetch_all(&mut *tx)
     .await?;
     refresh_tags_for_photos(&mut tx, &restored).await?;
-    sqlx::query(
+    crate::sql::query(
         "UPDATE api_duplicate SET review_status = 'pending', kept_photo_id = NULL, trashed_count = 0, \
            reviewed_at = NULL, updated_at = now() WHERE id = $1",
     )
@@ -129,7 +130,7 @@ pub async fn revert(db: &PgPool, owner: i32, id: Uuid) -> sqlx::Result<RevertOut
 /// `POST /api/duplicates/{id}/resolve`: keep the photo with `keep_hash`,
 /// optionally trash the rest (S20: tag counts).
 pub async fn resolve(
-    db: &PgPool,
+    db: &Db,
     owner: i32,
     id: Uuid,
     keep_hash: &str,
@@ -139,7 +140,7 @@ pub async fn resolve(
     let Some((_, mut trashed_count)) = owned_status(&mut tx, owner, id).await? else {
         return Ok(ResolveOutcome::NotFound);
     };
-    let keep: Option<Uuid> = sqlx::query_scalar(
+    let keep: Option<Uuid> = crate::sql::query_scalar(
         "SELECT p.id FROM api_photo_duplicates x JOIN api_photo p ON p.id = x.photo_id \
          WHERE x.duplicate_id = $1 AND p.image_hash = $2 ORDER BY x.id LIMIT 1",
     )
@@ -151,7 +152,7 @@ pub async fn resolve(
         return Ok(ResolveOutcome::PhotoNotInGroup);
     };
     if trash_others {
-        let trashed: Vec<Uuid> = sqlx::query_scalar(
+        let trashed: Vec<Uuid> = crate::sql::query_scalar(
             "UPDATE api_photo p SET in_trashcan = TRUE, last_modified = now() \
              WHERE p.id <> $2 AND p.id IN (SELECT photo_id FROM api_photo_duplicates WHERE duplicate_id = $1) \
              RETURNING p.id",
@@ -163,7 +164,7 @@ pub async fn resolve(
         refresh_tags_for_photos(&mut tx, &trashed).await?;
         trashed_count = trashed.len() as i32;
     }
-    sqlx::query(
+    crate::sql::query(
         "UPDATE api_duplicate SET kept_photo_id = $2, review_status = 'resolved', reviewed_at = now(), \
            trashed_count = $3, updated_at = now() WHERE id = $1",
     )
@@ -179,14 +180,14 @@ pub async fn resolve(
 /// `Duplicate.calculate_potential_savings`: the size of every photo but the
 /// suggested one.
 pub async fn calculate_potential_savings(
-    conn: &mut PgConnection,
+    conn: &mut Conn,
     id: Uuid,
     duplicate_type: &str,
 ) -> sqlx::Result<i64> {
     let savings: i64 = match best_photo(conn, id, duplicate_type).await? {
         None => 0,
         Some((best, _)) => {
-            sqlx::query_scalar(
+            crate::sql::query_scalar(
                 "SELECT COALESCE(sum(p.size), 0)::bigint FROM api_photo_duplicates x \
              JOIN api_photo p ON p.id = x.photo_id WHERE x.duplicate_id = $1 AND p.id <> $2",
             )
@@ -196,7 +197,7 @@ pub async fn calculate_potential_savings(
             .await?
         }
     };
-    sqlx::query(
+    crate::sql::query(
         "UPDATE api_duplicate SET potential_savings = $2, updated_at = now() WHERE id = $1",
     )
     .bind(id)
@@ -208,10 +209,10 @@ pub async fn calculate_potential_savings(
 
 /// Link `photos` to `group` unless already linked (M2M `add`), in the
 /// given order: link order breaks ties in [`best_photo`].
-async fn add_photos(conn: &mut PgConnection, group: Uuid, photos: &[Uuid]) -> sqlx::Result<u64> {
+async fn add_photos(conn: &mut Conn, group: Uuid, photos: &[Uuid]) -> sqlx::Result<u64> {
     let mut seen = HashSet::new();
     let photos: Vec<Uuid> = photos.iter().copied().filter(|p| seen.insert(*p)).collect();
-    Ok(sqlx::query(
+    Ok(crate::sql::query(
         "INSERT INTO api_photo_duplicates (photo_id, duplicate_id) \
          SELECT u.id, $1::uuid FROM unnest($2::uuid[]) WITH ORDINALITY AS u(id, n) \
          WHERE NOT EXISTS (SELECT 1 FROM api_photo_duplicates x WHERE x.duplicate_id = $1 AND x.photo_id = u.id) \
@@ -230,13 +231,13 @@ async fn add_photos(conn: &mut PgConnection, group: Uuid, photos: &[Uuid]) -> sq
 /// bitmap scan for more), so the statement is shaped like Django's and
 /// planned with the actual ids (unnamed statement), as Django's inlined
 /// `IN (...)` list is.
-async fn django_order(conn: &mut PgConnection, photos: &[Uuid]) -> sqlx::Result<Vec<Uuid>> {
-    use sqlx::Row;
-    let rows = sqlx::query("SELECT p.id AS lp_order_id, p.* FROM api_photo p WHERE p.id = ANY($1)")
-        .bind(photos)
-        .persistent(false)
-        .fetch_all(conn)
-        .await?;
+async fn django_order(conn: &mut Conn, photos: &[Uuid]) -> sqlx::Result<Vec<Uuid>> {
+    let rows =
+        crate::sql::query("SELECT p.id AS lp_order_id, p.* FROM api_photo p WHERE p.id = ANY($1)")
+            .bind(photos)
+            .persistent(false)
+            .fetch_all(conn)
+            .await?;
     let mut ordered: Vec<Uuid> = rows.iter().map(|r| r.get(0)).collect();
     // Photos without a row keep a place at the end (they link and fail the
     // foreign key check at commit, as in Django).
@@ -247,8 +248,8 @@ async fn django_order(conn: &mut PgConnection, photos: &[Uuid]) -> sqlx::Result<
 
 /// Whether [`django_order`]'s statement for `photos` is an index scan
 /// (primary key order) rather than a bitmap or sequential scan (heap order).
-async fn in_list_is_index_scan(conn: &mut PgConnection, photos: &[Uuid]) -> sqlx::Result<bool> {
-    let plan: serde_json::Value = sqlx::query_scalar(
+async fn in_list_is_index_scan(conn: &mut Conn, photos: &[Uuid]) -> sqlx::Result<bool> {
+    let plan: serde_json::Value = crate::sql::query_scalar(
         "EXPLAIN (FORMAT JSON) SELECT p.id AS lp_order_id, p.* FROM api_photo p WHERE p.id = ANY($1)",
     )
     .bind(photos)
@@ -260,7 +261,7 @@ async fn in_list_is_index_scan(conn: &mut PgConnection, photos: &[Uuid]) -> sqlx
 
 /// `Duplicate.create_or_merge` for 2+ photos: returns the group.
 pub async fn create_or_merge(
-    conn: &mut PgConnection,
+    conn: &mut Conn,
     owner: i32,
     duplicate_type: &str,
     photos: &[Uuid],
@@ -270,7 +271,7 @@ pub async fn create_or_merge(
         return Ok(None);
     }
     let photos = &django_order(conn, photos).await?;
-    let existing: Vec<Uuid> = sqlx::query_scalar(
+    let existing: Vec<Uuid> = crate::sql::query_scalar(
         "SELECT d.id FROM api_duplicate d WHERE d.owner_id = $1 AND d.duplicate_type = $2 \
          AND EXISTS (SELECT 1 FROM api_photo_duplicates x WHERE x.duplicate_id = d.id AND x.photo_id = ANY($3)) \
          ORDER BY d.created_at DESC, d.id",
@@ -282,7 +283,7 @@ pub async fn create_or_merge(
     .await?;
     let Some((&target, others)) = existing.split_first() else {
         let id = Uuid::new_v4();
-        sqlx::query(
+        crate::sql::query(
             "INSERT INTO api_duplicate (id, duplicate_type, review_status, created_at, updated_at, \
                reviewed_at, similarity_score, potential_savings, trashed_count, note, kept_photo_id, owner_id) \
              VALUES ($1, $2, 'pending', now(), now(), NULL, $3, 0, 0, NULL, NULL, $4)",
@@ -298,7 +299,7 @@ pub async fn create_or_merge(
         return Ok(Some(id));
     };
     for &other in others {
-        let moved: Vec<Uuid> = sqlx::query_scalar(
+        let moved: Vec<Uuid> = crate::sql::query_scalar(
             "SELECT photo_id FROM api_photo_duplicates WHERE duplicate_id = $1 ORDER BY id",
         )
         .bind(other)
@@ -320,7 +321,7 @@ pub async fn create_or_merge(
 /// meet another, so they are inserted and priced together. Returns how many
 /// groups were created or merged into.
 pub async fn create_or_merge_many(
-    conn: &mut PgConnection,
+    conn: &mut Conn,
     owner: i32,
     duplicate_type: &str,
     groups: &[Vec<Uuid>],
@@ -330,7 +331,7 @@ pub async fn create_or_merge_many(
         return Ok(0);
     }
     let all: Vec<Uuid> = groups.iter().flat_map(|g| g.iter().copied()).collect();
-    let grouped: HashSet<Uuid> = sqlx::query_scalar::<_, Uuid>(
+    let grouped: HashSet<Uuid> = crate::sql::query_scalar::<_, Uuid>(
         "SELECT DISTINCT x.photo_id FROM api_photo_duplicates x \
          JOIN api_duplicate d ON d.id = x.duplicate_id \
          WHERE d.owner_id = $1 AND d.duplicate_type = $2 AND x.photo_id = ANY($3)",
@@ -360,7 +361,7 @@ pub async fn create_or_merge_many(
     let ids: Vec<Uuid> = fresh.iter().map(|_| Uuid::new_v4()).collect();
     // One microsecond apart, so the list (newest first) shows them in
     // reverse creation order like Django's one-by-one creates.
-    sqlx::query(
+    crate::sql::query(
         "INSERT INTO api_duplicate (id, duplicate_type, review_status, created_at, updated_at, \
            reviewed_at, similarity_score, potential_savings, trashed_count, note, kept_photo_id, owner_id) \
          SELECT g.id, $2, 'pending', now() + g.n * interval '1 microsecond', \
@@ -407,7 +408,7 @@ pub async fn create_or_merge_many(
             .iter()
             .flat_map(|&n| members[n].iter().map(move |&p| (n as i32, p)))
             .unzip();
-        let rows: Vec<(i32, Uuid)> = sqlx::query_as(
+        let rows: Vec<(i32, DjUuid)> = crate::sql::query_as(
             "SELECT l.n, p.id FROM unnest($1::int4[], $2::uuid[]) AS l(n, photo_id) \
              JOIN api_photo p ON p.id = l.photo_id ORDER BY l.n, p.ctid",
         )
@@ -419,7 +420,7 @@ pub async fn create_or_merge_many(
             members[n].clear();
         }
         for (n, p) in rows {
-            members[n as usize].push(p);
+            members[n as usize].push(p.0);
         }
     }
     let (link_dup, link_photo): (Vec<Uuid>, Vec<Uuid>) = members
@@ -427,7 +428,7 @@ pub async fn create_or_merge_many(
         .zip(&ids)
         .flat_map(|(m, &id)| m.into_iter().map(move |p| (id, p)))
         .unzip();
-    sqlx::query(
+    crate::sql::query(
         "INSERT INTO api_photo_duplicates (photo_id, duplicate_id) \
          SELECT l.photo_id, l.dup FROM unnest($1::uuid[], $2::uuid[]) WITH ORDINALITY AS l(dup, photo_id, n) \
          ORDER BY l.n",
@@ -438,7 +439,7 @@ pub async fn create_or_merge_many(
     .await?;
     let (best_join, best_key) = best_key(duplicate_type);
     let best_order = format!("{best_key}, x.id");
-    sqlx::query(&format!(
+    crate::sql::query(format!(
         "UPDATE api_duplicate d SET potential_savings = s.savings, updated_at = now() \
          FROM (SELECT b.id, COALESCE((SELECT sum(p.size) FROM api_photo_duplicates x \
                  JOIN api_photo p ON p.id = x.photo_id \
@@ -475,7 +476,7 @@ fn best_key(duplicate_type: &str) -> (&'static str, &'static str) {
 
 /// Positions of the groups where two or more photos share the best key.
 async fn tied_groups(
-    conn: &mut PgConnection,
+    conn: &mut Conn,
     duplicate_type: &str,
     groups: &[Vec<Uuid>],
 ) -> sqlx::Result<Vec<usize>> {
@@ -485,7 +486,7 @@ async fn tied_groups(
         .enumerate()
         .flat_map(|(n, g)| g.iter().map(move |&p| (n as i32, p)))
         .unzip();
-    let tied: Vec<i32> = sqlx::query_scalar(&format!(
+    let tied: Vec<i32> = crate::sql::query_scalar(format!(
         "SELECT r.n FROM (SELECT l.n, rank() OVER (PARTITION BY l.n ORDER BY {key}) AS r \
            FROM unnest($1::int4[], $2::uuid[]) AS l(n, photo_id) \
            JOIN api_photo p ON p.id = l.photo_id {join}) r \
@@ -499,8 +500,8 @@ async fn tied_groups(
 }
 
 /// `clear_pending`: delete the user's pending groups.
-pub async fn clear_pending(conn: &mut PgConnection, owner: i32) -> sqlx::Result<usize> {
-    let ids: Vec<Uuid> = sqlx::query_scalar(
+pub async fn clear_pending(conn: &mut Conn, owner: i32) -> sqlx::Result<usize> {
+    let ids: Vec<Uuid> = crate::sql::query_scalar(
         "SELECT id FROM api_duplicate WHERE owner_id = $1 AND review_status = 'pending'",
     )
     .bind(owner)

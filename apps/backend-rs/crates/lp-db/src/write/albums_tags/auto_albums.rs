@@ -5,38 +5,40 @@
 use std::collections::HashMap;
 
 use chrono::{DateTime, Datelike, Duration, Timelike, Utc};
-use sqlx::{FromRow, PgConnection, PgPool};
+use sqlx::FromRow;
 use uuid::Uuid;
 
+use crate::db::{Conn, Db, DjUuid};
 use crate::write::deletion_log::{self as dl, AlbumKind, entity};
 
 /// Delete albums `ids` as Django's collector does, with the `post_delete`
 /// tombstones (owner + recipients) written while the recipients are linked.
-async fn delete_ids(conn: &mut PgConnection, ids: &[i32]) -> sqlx::Result<()> {
+async fn delete_ids(conn: &mut Conn, ids: &[i32]) -> sqlx::Result<()> {
     dl::albums_deleted(conn, AlbumKind::Auto, ids).await?;
     for sql in [
         "DELETE FROM api_albumauto_photos WHERE albumauto_id = ANY($1)",
         "DELETE FROM api_albumauto_shared_to WHERE albumauto_id = ANY($1)",
         "DELETE FROM api_albumauto WHERE id = ANY($1)",
     ] {
-        sqlx::query(sql).bind(ids).execute(&mut *conn).await?;
+        crate::sql::query(sql).bind(ids).execute(&mut *conn).await?;
     }
     Ok(())
 }
 
-pub async fn delete(db: &PgPool, album_id: i32) -> sqlx::Result<()> {
+pub async fn delete(db: &Db, album_id: i32) -> sqlx::Result<()> {
     let mut tx = db.begin().await?;
     delete_ids(&mut tx, &[album_id]).await?;
     tx.commit().await
 }
 
 /// `AlbumAuto.objects.filter(owner=user).delete()`.
-pub async fn delete_all(db: &PgPool, owner_id: i32) -> sqlx::Result<()> {
+pub async fn delete_all(db: &Db, owner_id: i32) -> sqlx::Result<()> {
     let mut tx = db.begin().await?;
-    let ids: Vec<i32> = sqlx::query_scalar("SELECT id FROM api_albumauto WHERE owner_id = $1")
-        .bind(owner_id)
-        .fetch_all(&mut *tx)
-        .await?;
+    let ids: Vec<i32> =
+        crate::sql::query_scalar("SELECT id FROM api_albumauto WHERE owner_id = $1")
+            .bind(owner_id)
+            .fetch_all(&mut *tx)
+            .await?;
     delete_ids(&mut tx, &ids).await?;
     tx.commit().await
 }
@@ -44,6 +46,7 @@ pub async fn delete_all(db: &PgPool, owner_id: i32) -> sqlx::Result<()> {
 /// A photo as the event grouping sees it.
 #[derive(Debug, Clone, FromRow)]
 pub struct EventPhoto {
+    #[sqlx(try_from = "DjUuid")]
     pub id: Uuid,
     pub exif_timestamp: DateTime<Utc>,
     pub exif_gps_lat: Option<f64>,
@@ -72,8 +75,8 @@ fn group_by_gap<T>(items: Vec<T>, ts: impl Fn(&T) -> DateTime<Utc>, gap: Duratio
 }
 
 /// The owner's timestamped photos in events: runs less than 36 h apart.
-pub async fn event_groups(db: &PgPool, owner_id: i32) -> sqlx::Result<Vec<Vec<EventPhoto>>> {
-    let mut photos: Vec<EventPhoto> = sqlx::query_as(
+pub async fn event_groups(db: &Db, owner_id: i32) -> sqlx::Result<Vec<Vec<EventPhoto>>> {
+    let mut photos: Vec<EventPhoto> = crate::sql::query_as(
         "SELECT id, exif_timestamp, exif_gps_lat, exif_gps_lon FROM api_photo          WHERE owner_id = $1 AND exif_timestamp IS NOT NULL",
     )
     .bind(owner_id)
@@ -90,11 +93,7 @@ pub async fn event_groups(db: &PgPool, owner_id: i32) -> sqlx::Result<Vec<Vec<Ev
 /// One step of `generate_event_albums`: find or create the group's album
 /// (merging duplicates), add the photos, re-anchor, locate and retitle it.
 /// Groups of fewer than 2 photos are skipped, as in Django.
-pub async fn apply_event_group(
-    db: &PgPool,
-    owner_id: i32,
-    group: &[EventPhoto],
-) -> sqlx::Result<()> {
+pub async fn apply_event_group(db: &Db, owner_id: i32, group: &[EventPhoto]) -> sqlx::Result<()> {
     if group.len() < 2 {
         return Ok(());
     }
@@ -104,7 +103,7 @@ pub async fn apply_event_group(
 }
 
 /// `generate_event_albums` without progress reporting.
-pub async fn generate_event_albums(db: &PgPool, owner_id: i32) -> sqlx::Result<usize> {
+pub async fn generate_event_albums(db: &Db, owner_id: i32) -> sqlx::Result<usize> {
     let groups = event_groups(db, owner_id).await?;
     for group in &groups {
         apply_event_group(db, owner_id, group).await?;
@@ -112,15 +111,11 @@ pub async fn generate_event_albums(db: &PgPool, owner_id: i32) -> sqlx::Result<u
     Ok(groups.len())
 }
 
-async fn process_group(
-    conn: &mut PgConnection,
-    owner_id: i32,
-    group: &[EventPhoto],
-) -> sqlx::Result<()> {
+async fn process_group(conn: &mut Conn, owner_id: i32, group: &[EventPhoto]) -> sqlx::Result<()> {
     let first = group[0].exif_timestamp;
     let last = group[group.len() - 1].exif_timestamp;
     let key = first - Duration::hours(11) - Duration::minutes(59);
-    let albums: Vec<CandidateAlbum> = sqlx::query_as(
+    let albums: Vec<CandidateAlbum> = crate::sql::query_as(
         "SELECT a.id, a.favorited, a.timestamp FROM api_albumauto a WHERE a.owner_id = $1 \
            AND (EXISTS (SELECT 1 FROM api_albumauto_photos l JOIN api_photo p ON p.id = l.photo_id \
                   WHERE l.albumauto_id = a.id AND p.exif_timestamp BETWEEN $2 AND $3) \
@@ -142,7 +137,7 @@ async fn process_group(
     let (album_id, favorited, mut timestamp) = if let Some(album) = albums.first() {
         let mut favorited = album.favorited;
         for dup in &albums[1..] {
-            sqlx::query(
+            crate::sql::query(
                 "INSERT INTO api_albumauto_photos (albumauto_id, photo_id) \
                  SELECT $1, photo_id FROM api_albumauto_photos WHERE albumauto_id = $2 \
                  ON CONFLICT DO NOTHING",
@@ -154,7 +149,7 @@ async fn process_group(
             favorited = favorited || dup.favorited;
             // `album.shared_to.add(*dup.shared_to.all())`: recipients new to
             // the surviving album lose any stale tombstone of it.
-            let added: Vec<i32> = sqlx::query_scalar(
+            let added: Vec<i32> = crate::sql::query_scalar(
                 "INSERT INTO api_albumauto_shared_to (albumauto_id, user_id) \
                  SELECT $1, user_id FROM api_albumauto_shared_to WHERE albumauto_id = $2 \
                  ON CONFLICT DO NOTHING RETURNING user_id",
@@ -164,7 +159,7 @@ async fn process_group(
             .fetch_all(&mut *conn)
             .await?;
             dl::clear(conn, entity::ALBUM_AUTO, &[album.id.to_string()], &added).await?;
-            sqlx::query(
+            crate::sql::query(
                 "UPDATE api_albumauto SET favorited = $2, last_modified = now() WHERE id = $1",
             )
             .bind(album.id)
@@ -176,7 +171,7 @@ async fn process_group(
         }
         (album.id, favorited, album.timestamp)
     } else {
-        let id: i32 = sqlx::query_scalar(
+        let id: i32 = crate::sql::query_scalar(
             "INSERT INTO api_albumauto (title, timestamp, created_on, gps_lat, gps_lon, favorited, \
                owner_id, last_modified) \
              VALUES ('Untitled Album', $1, now(), NULL, NULL, FALSE, $2, now()) RETURNING id",
@@ -190,7 +185,7 @@ async fn process_group(
     };
 
     let ids: Vec<Uuid> = group.iter().map(|p| p.id).collect();
-    let added = sqlx::query(
+    let added = crate::sql::query(
         "INSERT INTO api_albumauto_photos (albumauto_id, photo_id) \
          SELECT $1, id FROM unnest($2::uuid[]) AS s(id) ON CONFLICT DO NOTHING",
     )
@@ -225,7 +220,7 @@ async fn process_group(
         }
     }
     let title = generate_title(conn, album_id, timestamp).await?;
-    sqlx::query(
+    crate::sql::query(
         "UPDATE api_albumauto SET title = $2, timestamp = $3, favorited = $4, \
            gps_lat = CASE WHEN $5 THEN $6 ELSE gps_lat END, \
            gps_lon = CASE WHEN $5 THEN $7 ELSE gps_lon END, last_modified = now() WHERE id = $1",
@@ -243,18 +238,18 @@ async fn process_group(
 }
 
 /// Albums `regenerate_event_titles` walks.
-pub async fn title_targets(db: &PgPool, owner_id: i32) -> sqlx::Result<Vec<(i32, DateTime<Utc>)>> {
-    sqlx::query_as("SELECT id, timestamp FROM api_albumauto WHERE owner_id = $1 ORDER BY id")
+pub async fn title_targets(db: &Db, owner_id: i32) -> sqlx::Result<Vec<(i32, DateTime<Utc>)>> {
+    crate::sql::query_as("SELECT id, timestamp FROM api_albumauto WHERE owner_id = $1 ORDER BY id")
         .bind(owner_id)
         .fetch_all(db)
         .await
 }
 
 /// `au._generate_title(); au.save()` for one album.
-pub async fn retitle(db: &PgPool, album_id: i32, timestamp: DateTime<Utc>) -> sqlx::Result<()> {
+pub async fn retitle(db: &Db, album_id: i32, timestamp: DateTime<Utc>) -> sqlx::Result<()> {
     let mut conn = db.acquire().await?;
     let title = generate_title(&mut conn, album_id, timestamp).await?;
-    sqlx::query("UPDATE api_albumauto SET title = $2, last_modified = now() WHERE id = $1")
+    crate::sql::query("UPDATE api_albumauto SET title = $2, last_modified = now() WHERE id = $1")
         .bind(album_id)
         .bind(title)
         .execute(&mut *conn)
@@ -264,6 +259,7 @@ pub async fn retitle(db: &PgPool, album_id: i32, timestamp: DateTime<Utc>) -> sq
 
 #[derive(Debug, Clone, FromRow)]
 struct TitlePhoto {
+    #[sqlx(try_from = "DjUuid")]
     id: Uuid,
     exif_timestamp: Option<DateTime<Utc>>,
     geolocation_json: Option<serde_json::Value>,
@@ -275,11 +271,11 @@ struct TitlePhoto {
 /// heap order (`ctid`), which is what Postgres hands Django's unordered
 /// queries.
 async fn generate_title(
-    conn: &mut PgConnection,
+    conn: &mut Conn,
     album_id: i32,
     timestamp: DateTime<Utc>,
 ) -> sqlx::Result<String> {
-    let photos: Vec<TitlePhoto> = sqlx::query_as(
+    let photos: Vec<TitlePhoto> = crate::sql::query_as(
         "SELECT p.id, p.exif_timestamp, p.geolocation_json FROM api_albumauto_photos l \
          JOIN api_photo p ON p.id = l.photo_id WHERE l.albumauto_id = $1 ORDER BY p.ctid",
     )
@@ -287,7 +283,7 @@ async fn generate_title(
     .fetch_all(&mut *conn)
     .await?;
     let ids: Vec<Uuid> = photos.iter().map(|p| p.id).collect();
-    let faces: Vec<(Uuid, String)> = sqlx::query_as(
+    let faces: Vec<(DjUuid, String)> = crate::sql::query_as(
         "SELECT f.photo_id, pe.name FROM api_face f JOIN api_person pe ON pe.id = f.person_id \
          WHERE f.photo_id = ANY($1) AND NOT f.deleted ORDER BY f.ctid",
     )
@@ -296,7 +292,7 @@ async fn generate_title(
     .await?;
     let mut people_of: HashMap<Uuid, Vec<String>> = HashMap::new();
     for (photo_id, name) in faces {
-        people_of.entry(photo_id).or_default().push(name);
+        people_of.entry(photo_id.0).or_default().push(name);
     }
     let details: Vec<TitleInput> = photos
         .into_iter()

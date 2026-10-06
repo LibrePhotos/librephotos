@@ -2,8 +2,7 @@
 //! (DRF `SearchFilter` over `search_captions`, `search_location`, `tags__name`,
 //! `exif_timestamp`, plus the OCR full-text match and semantic hits).
 
-use sqlx::{PgExecutor, Postgres, QueryBuilder};
-
+use crate::db::{Exec, Qb};
 use crate::pig::{self, PigPhoto};
 use crate::scope::{self, like_escape};
 
@@ -28,10 +27,7 @@ pub struct SearchQuery<'a> {
 
 /// Photos matching the search, newest first (`-exif_timestamp`, NULLs first
 /// as on Postgres; `id` breaks ties so the order is stable).
-pub async fn photos<'e>(
-    db: impl PgExecutor<'e>,
-    q: &SearchQuery<'_>,
-) -> sqlx::Result<Vec<PigPhoto>> {
+pub async fn photos<'e>(db: impl Exec<'e>, q: &SearchQuery<'_>) -> sqlx::Result<Vec<PigPhoto>> {
     let mut qb = pig::query();
     qb.push(" WHERE ");
     scope::owned_by(&mut qb, "p", q.user_id);
@@ -59,7 +55,7 @@ pub async fn photos<'e>(
 /// shared: a photo matches when a single tag row (or, without tags, the
 /// NULL row of the LEFT JOIN) satisfies every term. Equivalent form:
 /// every term matches without tags, OR some tag makes every term match.
-fn push_terms(qb: &mut QueryBuilder<'_, Postgres>, terms: &[String], semantic: Option<&[String]>) {
+fn push_terms(qb: &mut Qb<'_>, terms: &[String], semantic: Option<&[String]>) {
     qb.push(" AND ((");
     for (i, term) in terms.iter().enumerate() {
         if i > 0 {
@@ -93,7 +89,7 @@ fn pattern(term: &str) -> String {
 /// `exif_timestamp::text` on a UTC session), the OCR full-text match (the
 /// expression of the GIN index `api_photo_ocr_text_fts`), and semantic hits.
 fn push_term_without_tags(
-    qb: &mut QueryBuilder<'_, Postgres>,
+    qb: &mut Qb<'_>,
     term: &str,
     semantic: Option<&[String]>,
     p: &str,

@@ -1,10 +1,11 @@
 //! Duplicate group reads (`api/views/duplicates.py`, `api/models/duplicate.py`).
 
 use chrono::{DateTime, Utc};
-use sqlx::{FromRow, PgConnection, PgPool, QueryBuilder};
+use sqlx::FromRow;
 use uuid::Uuid;
 
 use super::stacks::{MemberPhoto, members, push_total_photos};
+use crate::db::{Conn, Db, DjUuid, Qb};
 use crate::scope;
 
 pub const EXACT_COPY: &str = "exact_copy";
@@ -33,6 +34,7 @@ pub fn status_display(s: &str) -> String {
 
 #[derive(Debug, Clone, FromRow)]
 pub struct DuplicateRow {
+    #[sqlx(try_from = "DjUuid")]
     pub id: Uuid,
     pub duplicate_type: String,
     pub review_status: String,
@@ -46,8 +48,8 @@ pub struct DuplicateRow {
     pub kept_thumb_small: Option<String>,
 }
 
-fn base(owner: i32) -> QueryBuilder<'static, sqlx::Postgres> {
-    let mut qb = QueryBuilder::new(
+fn base(owner: i32) -> Qb<'static> {
+    let mut qb = Qb::new(
         "WITH dups AS (SELECT d.*, (SELECT count(*) FROM api_photo_duplicates x \
            WHERE x.duplicate_id = d.id) AS photo_count FROM api_duplicate d WHERE d.owner_id = ",
     );
@@ -62,11 +64,7 @@ const DUP_SELECT: &str = "SELECT d.id, d.duplicate_type, d.review_status, d.phot
     FROM dups d LEFT JOIN api_photo kp ON kp.id = d.kept_photo_id \
     LEFT JOIN api_thumbnail kth ON kth.photo_id = kp.id";
 
-fn push_filters(
-    qb: &mut QueryBuilder<'_, sqlx::Postgres>,
-    duplicate_type: Option<&str>,
-    status: Option<&str>,
-) {
+fn push_filters(qb: &mut Qb<'_>, duplicate_type: Option<&str>, status: Option<&str>) {
     qb.push(" WHERE d.photo_count >= 2");
     if let Some(t) = duplicate_type {
         qb.push(" AND d.duplicate_type = ");
@@ -79,7 +77,7 @@ fn push_filters(
 }
 
 pub async fn count_listed(
-    db: &PgPool,
+    db: &Db,
     owner: i32,
     duplicate_type: Option<&str>,
     status: Option<&str>,
@@ -92,7 +90,7 @@ pub async fn count_listed(
 }
 
 pub async fn list_page(
-    db: &PgPool,
+    db: &Db,
     owner: i32,
     duplicate_type: Option<&str>,
     status: Option<&str>,
@@ -109,7 +107,7 @@ pub async fn list_page(
     qb.build_query_as().fetch_all(db).await
 }
 
-pub async fn get(db: &PgPool, owner: i32, id: Uuid) -> sqlx::Result<Option<DuplicateRow>> {
+pub async fn get(db: &Db, owner: i32, id: Uuid) -> sqlx::Result<Option<DuplicateRow>> {
     let mut qb = base(owner);
     qb.push(DUP_SELECT);
     qb.push(" WHERE d.id = ");
@@ -118,7 +116,7 @@ pub async fn get(db: &PgPool, owner: i32, id: Uuid) -> sqlx::Result<Option<Dupli
 }
 
 pub async fn dup_members(
-    db: &PgPool,
+    db: &Db,
     dup_ids: &[Uuid],
     per_group: Option<i64>,
 ) -> sqlx::Result<Vec<MemberPhoto>> {
@@ -138,7 +136,7 @@ pub async fn dup_members(
 /// meets the links in insertion order and its top-1 sort keeps the first
 /// maximum; `create_or_merge` links photos in Django's order.
 pub async fn best_photo(
-    conn: &mut PgConnection,
+    conn: &mut Conn,
     dup_id: Uuid,
     duplicate_type: &str,
 ) -> sqlx::Result<Option<(Uuid, String)>> {
@@ -147,7 +145,11 @@ pub async fn best_photo(
     } else {
         "SELECT p.id, p.image_hash FROM api_photo p          INNER JOIN api_photo_duplicates x ON (p.id = x.photo_id)          LEFT OUTER JOIN api_photometadata m ON (p.id = m.photo_id)          WHERE x.duplicate_id = $1 ORDER BY (m.width * m.height) DESC, x.id LIMIT 1"
     };
-    sqlx::query_as(sql).bind(dup_id).fetch_optional(conn).await
+    let row: Option<(DjUuid, String)> = crate::sql::query_as(sql)
+        .bind(dup_id)
+        .fetch_optional(conn)
+        .await?;
+    Ok(row.map(|(id, h)| (id.0, h)))
 }
 
 #[derive(Debug, Clone, FromRow)]
@@ -163,8 +165,8 @@ pub struct DuplicateStats {
     pub total_photos: i64,
 }
 
-pub async fn stats(db: &PgPool, owner: i32) -> sqlx::Result<DuplicateStats> {
-    let mut qb = QueryBuilder::new(
+pub async fn stats(db: &Db, owner: i32) -> sqlx::Result<DuplicateStats> {
+    let mut qb = Qb::new(
         "SELECT count(*) AS total_duplicates, \
            count(*) FILTER (WHERE duplicate_type = 'exact_copy') AS exact_copy, \
            count(*) FILTER (WHERE duplicate_type = 'visual_duplicate') AS visual_duplicate, \

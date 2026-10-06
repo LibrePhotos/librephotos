@@ -2,7 +2,9 @@
 //! every user at once: one query per figure family, grouped by owner.
 
 use chrono::{DateTime, Utc};
-use sqlx::{FromRow, PgPool};
+use sqlx::FromRow;
+
+use crate::db::Db;
 
 #[derive(Debug, Clone, FromRow)]
 pub struct UserRow {
@@ -36,14 +38,16 @@ pub struct GroupCount {
 }
 
 /// Every user but the `deleted` placeholder (`get_deleted_user`).
-pub async fn real_users(db: &PgPool) -> sqlx::Result<Vec<UserRow>> {
-    sqlx::query_as("SELECT id, date_joined FROM api_user WHERE username <> 'deleted' ORDER BY id")
-        .fetch_all(db)
-        .await
+pub async fn real_users(db: &Db) -> sqlx::Result<Vec<UserRow>> {
+    crate::sql::query_as(
+        "SELECT id, date_joined FROM api_user WHERE username <> 'deleted' ORDER BY id",
+    )
+    .fetch_all(db)
+    .await
 }
 
-pub async fn photo_totals(db: &PgPool) -> sqlx::Result<Vec<PhotoTotals>> {
-    sqlx::query_as(
+pub async fn photo_totals(db: &Db) -> sqlx::Result<Vec<PhotoTotals>> {
+    crate::sql::query_as(
         "SELECT p.owner_id, sum(p.size)::bigint AS size_sum, count(*) AS photos, \
            count(*) FILTER (WHERE p.video) AS videos, \
            count(*) FILTER (WHERE p.is_screenshot) AS screenshots, \
@@ -63,7 +67,7 @@ pub async fn photo_totals(db: &PgPool) -> sqlx::Result<Vec<PhotoTotals>> {
 
 /// Photo counts of every album (kinds `user`, `place`, `thing`, `auto`) and
 /// face counts of every clustered person (kind `person`).
-pub async fn group_counts(db: &PgPool) -> sqlx::Result<Vec<GroupCount>> {
+pub async fn group_counts(db: &Db) -> sqlx::Result<Vec<GroupCount>> {
     let album = |kind: &str| {
         format!(
             "SELECT '{kind}'::text AS kind, a.owner_id, count(ap.photo_id) AS count, \
@@ -82,12 +86,12 @@ pub async fn group_counts(db: &PgPool) -> sqlx::Result<Vec<GroupCount>> {
         album("thing"),
         album("auto"),
     );
-    sqlx::query_as(&sql).fetch_all(db).await
+    crate::sql::query_as(&sql).fetch_all(db).await
 }
 
 /// `Cluster` rows per owner.
-pub async fn cluster_counts(db: &PgPool) -> sqlx::Result<Vec<(i32, i64)>> {
-    sqlx::query_as(
+pub async fn cluster_counts(db: &Db) -> sqlx::Result<Vec<(i32, i64)>> {
+    crate::sql::query_as(
         "SELECT owner_id, count(*) FROM api_cluster WHERE owner_id IS NOT NULL GROUP BY owner_id",
     )
     .fetch_all(db)

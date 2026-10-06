@@ -2,9 +2,10 @@
 
 use chrono::{DateTime, Utc};
 use serde_json::Value;
-use sqlx::{FromRow, PgExecutor, PgPool, Postgres, QueryBuilder};
+use sqlx::FromRow;
 use uuid::Uuid;
 
+use crate::db::{Db, DjUuid, Exec, Qb};
 use crate::scope::{self, PhotoFilterParams};
 
 /// `api_longrunningjob` + its `started_by` user (`LongRunningJobSerializer`).
@@ -38,12 +39,12 @@ const JOB_SELECT: &str = "SELECT j.id, j.job_type, j.finished, j.failed, j.cance
 /// sorts `-started_at`); ties in insertion order, like Django's plain scan.
 /// `owner` = None is the staff-wide view.
 pub async fn list_jobs(
-    db: &PgPool,
+    db: &Db,
     owner: Option<i32>,
     limit: i64,
     offset: i64,
 ) -> sqlx::Result<Vec<JobRow>> {
-    sqlx::query_as::<_, JobRow>(&format!(
+    crate::sql::query_as::<_, JobRow>(&format!(
         "{JOB_SELECT} WHERE ($1::int IS NULL OR j.started_by_id = $1) \
          ORDER BY j.started_at DESC NULLS FIRST, j.id LIMIT $2 OFFSET $3"
     ))
@@ -54,8 +55,8 @@ pub async fn list_jobs(
     .await
 }
 
-pub async fn count_jobs(db: &PgPool, owner: Option<i32>) -> sqlx::Result<i64> {
-    sqlx::query_scalar(
+pub async fn count_jobs(db: &Db, owner: Option<i32>) -> sqlx::Result<i64> {
+    crate::sql::query_scalar(
         "SELECT count(*) FROM api_longrunningjob WHERE ($1::int IS NULL OR started_by_id = $1)",
     )
     .bind(owner)
@@ -65,11 +66,11 @@ pub async fn count_jobs(db: &PgPool, owner: Option<i32>) -> sqlx::Result<i64> {
 
 /// One job by primary key within the caller's scope.
 pub async fn job_by_pk<'e>(
-    db: impl PgExecutor<'e>,
+    db: impl Exec<'e>,
     id: i32,
     owner: Option<i32>,
 ) -> sqlx::Result<Option<JobRow>> {
-    sqlx::query_as::<_, JobRow>(&format!(
+    crate::sql::query_as::<_, JobRow>(&format!(
         "{JOB_SELECT} WHERE j.id = $1 AND ($2::int IS NULL OR j.started_by_id = $2)"
     ))
     .bind(id)
@@ -80,8 +81,8 @@ pub async fn job_by_pk<'e>(
 
 /// `QueueAvailabilityView`: the unfinished job that blocks the queue,
 /// ignoring rows older than `stuck_hours` (Django: `.order_by("-started_at").last()`).
-pub async fn blocking_job(db: &PgPool, stuck_hours: i32) -> sqlx::Result<Option<JobRow>> {
-    sqlx::query_as::<_, JobRow>(&format!(
+pub async fn blocking_job(db: &Db, stuck_hours: i32) -> sqlx::Result<Option<JobRow>> {
+    crate::sql::query_as::<_, JobRow>(&format!(
         "{JOB_SELECT} WHERE NOT j.finished AND ( \
            j.started_at >= now() - make_interval(hours => $1) \
            OR (j.started_at IS NULL AND j.queued_at >= now() - make_interval(hours => $1))) \
@@ -101,11 +102,11 @@ pub struct DownloadJobState {
 }
 
 pub async fn download_job_state(
-    db: &PgPool,
+    db: &Db,
     job_id: &str,
     user_id: i32,
 ) -> sqlx::Result<Option<DownloadJobState>> {
-    sqlx::query_as::<_, DownloadJobState>(
+    crate::sql::query_as::<_, DownloadJobState>(
         "SELECT finished, failed, result FROM api_longrunningjob \
          WHERE job_id = $1 AND started_by_id = $2 LIMIT 1",
     )
@@ -129,6 +130,7 @@ pub enum DownloadSelection<'a> {
 
 #[derive(Debug, Clone, FromRow)]
 pub struct DownloadPhoto {
+    #[sqlx(try_from = "DjUuid")]
     pub id: Uuid,
     pub size: i64,
 }
@@ -136,13 +138,12 @@ pub struct DownloadPhoto {
 /// The photos to archive, owner-scoped, optionally widened to every owned
 /// photo sharing a stack with one of them. One query.
 pub async fn download_photos(
-    db: &PgPool,
+    db: &Db,
     user_id: i32,
     selection: &DownloadSelection<'_>,
     include_stacked: bool,
 ) -> sqlx::Result<Vec<DownloadPhoto>> {
-    let mut qb: QueryBuilder<'_, Postgres> =
-        QueryBuilder::new("WITH sel AS (SELECT p.id FROM api_photo p WHERE ");
+    let mut qb: Qb<'_> = Qb::new("WITH sel AS (SELECT p.id FROM api_photo p WHERE ");
     match selection {
         DownloadSelection::Hashes(hashes) => {
             scope::owned_by(&mut qb, "p", user_id);
@@ -189,12 +190,8 @@ pub struct ZipFileRow {
 /// Every file of the given photos in `_add_photo_files_to_zip` order: main
 /// file, the photo's files, files of legacy RAW+JPEG / live-photo stack
 /// mates, then the embedded media of all of those. Owner-scoped.
-pub async fn zip_files(
-    db: &PgPool,
-    user_id: i32,
-    photo_ids: &[Uuid],
-) -> sqlx::Result<Vec<ZipFileRow>> {
-    sqlx::query_as::<_, ZipFileRow>(
+pub async fn zip_files(db: &Db, user_id: i32, photo_ids: &[Uuid]) -> sqlx::Result<Vec<ZipFileRow>> {
+    crate::sql::query_as::<_, ZipFileRow>(
         "WITH ph AS ( \
            SELECT p.id, t.ord FROM unnest($1::uuid[]) WITH ORDINALITY AS t(id, ord) \
            JOIN api_photo p ON p.id = t.id AND p.owner_id = $2), \

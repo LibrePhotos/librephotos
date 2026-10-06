@@ -12,9 +12,9 @@
 use std::collections::BTreeSet;
 
 use lp_core::settings::{KEYS, constance_decode};
-use sqlx::PgPool;
 use sqlx::migrate::Migrate;
 
+use crate::db::Db;
 use crate::migrate::{BASELINE_VERSION, migrator};
 
 const PINNED: &str = include_str!("django_migrations.txt");
@@ -58,17 +58,18 @@ fn replaced_by_squash(app: &str, name: &str) -> bool {
         && name != "0001_squashed_0100"
 }
 
-pub async fn check_django_migrations(pool: &PgPool) -> anyhow::Result<()> {
+pub async fn check_django_migrations(pool: &Db) -> anyhow::Result<()> {
     let exists: Option<String> =
-        sqlx::query_scalar("SELECT to_regclass('public.django_migrations')::text")
+        crate::sql::query_scalar("SELECT to_regclass('public.django_migrations')::text")
             .fetch_one(pool)
             .await?;
     if exists.is_none() {
         anyhow::bail!("no django_migrations table: this is not a Django-migrated database");
     }
-    let rows: Vec<(String, String)> = sqlx::query_as("SELECT app, name FROM django_migrations")
-        .fetch_all(pool)
-        .await?;
+    let rows: Vec<(String, String)> =
+        crate::sql::query_as("SELECT app, name FROM django_migrations")
+            .fetch_all(pool)
+            .await?;
     let have: BTreeSet<(String, String)> = rows.into_iter().collect();
     let pinned = pinned_set();
     let missing: Vec<_> = pinned.difference(&have).collect();
@@ -103,12 +104,12 @@ fn fmt_list(items: &[&(String, String)]) -> String {
     s.join(", ")
 }
 
-pub async fn adopt(pool: &PgPool, skip_check: bool) -> anyhow::Result<AdoptReport> {
+pub async fn adopt(pool: &Db, skip_check: bool) -> anyhow::Result<AdoptReport> {
     if !skip_check {
         check_django_migrations(pool).await?;
     }
     let has_photo: Option<String> =
-        sqlx::query_scalar("SELECT to_regclass('public.api_photo')::text")
+        crate::sql::query_scalar("SELECT to_regclass('public.api_photo')::text")
             .fetch_one(pool)
             .await?;
     if has_photo.is_none() {
@@ -123,15 +124,20 @@ pub async fn adopt(pool: &PgPool, skip_check: bool) -> anyhow::Result<AdoptRepor
         .find(|mig| mig.version == BASELINE_VERSION)
         .ok_or_else(|| anyhow::anyhow!("baseline migration missing from the binary"))?;
 
-    let mut conn = pool.acquire().await?;
+    // SQLITE(P2): adopt on SQLite checks sqlite_master, 0143/0144 and uses
+    // the SQLite migrator (design §4).
+    let pg = pool
+        .as_pg()
+        .ok_or_else(|| anyhow::anyhow!("adopt is not implemented on SQLite yet"))?;
+    let mut conn = pg.acquire().await?;
     conn.ensure_migrations_table().await?;
     let done: Option<i64> =
-        sqlx::query_scalar("SELECT version FROM _sqlx_migrations WHERE version = $1")
+        crate::sql::query_scalar("SELECT version FROM _sqlx_migrations WHERE version = $1")
             .bind(BASELINE_VERSION)
             .fetch_optional(&mut *conn)
             .await?;
     if done.is_none() {
-        sqlx::query(
+        crate::sql::query(
             "INSERT INTO _sqlx_migrations (version, description, success, checksum, execution_time) \
              VALUES ($1, $2, TRUE, $3, 0)",
         )
@@ -144,22 +150,22 @@ pub async fn adopt(pool: &PgPool, skip_check: bool) -> anyhow::Result<AdoptRepor
     }
     drop(conn);
 
-    m.run(pool).await?;
+    m.run(pg).await?;
 
     let has_constance: Option<String> =
-        sqlx::query_scalar("SELECT to_regclass('public.constance_constance')::text")
+        crate::sql::query_scalar("SELECT to_regclass('public.constance_constance')::text")
             .fetch_one(pool)
             .await?;
     if has_constance.is_some() {
         let rows: Vec<(String, Option<String>)> =
-            sqlx::query_as("SELECT key, value FROM constance_constance ORDER BY id")
+            crate::sql::query_as("SELECT key, value FROM constance_constance ORDER BY id")
                 .fetch_all(pool)
                 .await?;
         for (key, raw) in rows {
             let decoded = raw.as_deref().and_then(constance_decode);
             match decoded {
                 Some(value) if KEYS.contains(&key.as_str()) => {
-                    let inserted = sqlx::query(
+                    let inserted = crate::sql::query(
                         "INSERT INTO site_settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO NOTHING",
                     )
                     .bind(&key)

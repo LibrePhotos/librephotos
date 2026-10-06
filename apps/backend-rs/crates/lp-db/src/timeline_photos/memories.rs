@@ -2,13 +2,14 @@
 //! arithmetic lives in the handler; these are its three lookups.
 
 use chrono::NaiveDate;
-use sqlx::{FromRow, PgExecutor, Postgres, QueryBuilder};
+use sqlx::FromRow;
 use uuid::Uuid;
 
+use crate::db::{DjUuid, Exec, Qb};
 use crate::scope::{self, PhotoFilterParams};
 
 /// `memory_candidates`: the timeline's own photos minus screenshots and documents.
-fn push_candidates(qb: &mut QueryBuilder<'_, Postgres>, user_id: i32, favorite_min_rating: i32) {
+fn push_candidates(qb: &mut Qb<'_>, user_id: i32, favorite_min_rating: i32) {
     scope::photo_filters(
         qb,
         "p",
@@ -20,11 +21,8 @@ fn push_candidates(qb: &mut QueryBuilder<'_, Postgres>, user_id: i32, favorite_m
 }
 
 /// Earliest dated `AlbumDate` of the user.
-pub async fn first_date<'e>(
-    db: impl PgExecutor<'e>,
-    user_id: i32,
-) -> sqlx::Result<Option<NaiveDate>> {
-    sqlx::query_scalar(
+pub async fn first_date<'e>(db: impl Exec<'e>, user_id: i32) -> sqlx::Result<Option<NaiveDate>> {
+    crate::sql::query_scalar(
         "SELECT min(date) FROM api_albumdate WHERE owner_id = $1 AND date IS NOT NULL",
     )
     .bind(user_id)
@@ -44,13 +42,13 @@ pub struct MemoryDay {
 /// The user's days inside any of `windows` (inclusive), with their stored
 /// place and candidate-photo count.
 pub async fn days<'e>(
-    db: impl PgExecutor<'e>,
+    db: impl Exec<'e>,
     user_id: i32,
     favorite_min_rating: i32,
     windows: &[(NaiveDate, NaiveDate)],
 ) -> sqlx::Result<Vec<MemoryDay>> {
     let (starts, ends): (Vec<NaiveDate>, Vec<NaiveDate>) = windows.iter().copied().unzip();
-    let mut qb = QueryBuilder::new(
+    let mut qb = Qb::new(
         "SELECT d.date, CASE WHEN jsonb_typeof(d.location->'places'->0) = 'string' \
            THEN d.location->'places'->>0 ELSE '' END AS place, \
          (SELECT count(DISTINCT p.id) FROM api_photo p \
@@ -72,6 +70,7 @@ pub async fn days<'e>(
 #[derive(Debug, Clone, FromRow)]
 struct WindowPhoto {
     idx: i64,
+    #[sqlx(try_from = "DjUuid")]
     id: Uuid,
 }
 
@@ -79,7 +78,7 @@ struct WindowPhoto {
 /// (chronological, `image_hash` tie-break). Index `i` of the result is
 /// window `i`.
 pub async fn window_photo_ids<'e>(
-    db: impl PgExecutor<'e>,
+    db: impl Exec<'e>,
     user_id: i32,
     favorite_min_rating: i32,
     windows: &[(NaiveDate, NaiveDate)],
@@ -90,7 +89,7 @@ pub async fn window_photo_ids<'e>(
         return Ok(out);
     }
     let (starts, ends): (Vec<NaiveDate>, Vec<NaiveDate>) = windows.iter().copied().unzip();
-    let mut qb = QueryBuilder::new("SELECT w.idx AS idx, x.id FROM unnest(");
+    let mut qb = Qb::new("SELECT w.idx AS idx, x.id FROM unnest(");
     qb.push_bind(starts);
     qb.push("::date[], ");
     qb.push_bind(ends);

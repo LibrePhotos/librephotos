@@ -7,6 +7,7 @@
 //! * [`metadata`] - `GET /photos/{id}/metadata` (the write half is in
 //!   `lp_db::write::timeline_photos`).
 
+use crate::db::Qb;
 pub mod date_albums;
 pub mod detail;
 pub mod lists;
@@ -36,7 +37,7 @@ impl PhotoLookup {
     }
 
     /// Pushes `(p.id = $x)` or `(p.image_hash = $x)`.
-    pub fn push(&self, qb: &mut sqlx::QueryBuilder<'_, sqlx::Postgres>, p: &str) {
+    pub fn push(&self, qb: &mut Qb<'_>, p: &str) {
         match self {
             PhotoLookup::Id(id) => {
                 qb.push(format!("({p}.id = "));

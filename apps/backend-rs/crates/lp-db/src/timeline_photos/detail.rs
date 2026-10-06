@@ -6,11 +6,12 @@
 use chrono::{DateTime, Utc};
 use serde::Deserialize;
 use serde_json::Value;
+use sqlx::FromRow;
 use sqlx::types::Json;
-use sqlx::{FromRow, PgExecutor, Postgres, QueryBuilder};
 use uuid::Uuid;
 
 use super::PhotoLookup;
+use crate::db::{DjUuid, Exec, Qb};
 use crate::pig::VALID_STACK_TYPES_SQL;
 use crate::scope;
 
@@ -64,6 +65,7 @@ pub struct StackJson {
 
 #[derive(Debug, Clone, FromRow)]
 pub struct PhotoDetailRow {
+    #[sqlx(try_from = "DjUuid")]
     pub id: Uuid,
     pub exif_gps_lat: Option<f64>,
     pub exif_gps_lon: Option<f64>,
@@ -180,11 +182,11 @@ fn stacks_sql() -> String {
 /// `Photo.visible.visible_to(viewer)` looked up by id or hash; the first by
 /// `-exif_timestamp` when several photos share a hash.
 pub async fn photo_detail<'e>(
-    db: impl PgExecutor<'e>,
+    db: impl Exec<'e>,
     lookup: &PhotoLookup,
     viewer: Option<i32>,
 ) -> sqlx::Result<Option<PhotoDetailRow>> {
-    let mut qb: QueryBuilder<'_, Postgres> = QueryBuilder::new(DETAIL_SELECT);
+    let mut qb: Qb<'_> = Qb::new(DETAIL_SELECT);
     qb.push(stacks_sql());
     qb.push(
         " FROM api_photo p JOIN api_user u ON u.id = p.owner_id \
@@ -211,13 +213,12 @@ pub struct SimilarRow {
 
 /// Of `owner`'s photos with one of `hashes`, those `viewer` may see.
 pub async fn visible_owner_photos_by_hash<'e>(
-    db: impl PgExecutor<'e>,
+    db: impl Exec<'e>,
     owner_id: i32,
     viewer: Option<i32>,
     hashes: &[String],
 ) -> sqlx::Result<Vec<SimilarRow>> {
-    let mut qb: QueryBuilder<'_, Postgres> =
-        QueryBuilder::new("SELECT p.image_hash, p.video FROM api_photo p WHERE ");
+    let mut qb: Qb<'_> = Qb::new("SELECT p.image_hash, p.video FROM api_photo p WHERE ");
     scope::owned_by(&mut qb, "p", owner_id);
     qb.push(" AND ");
     scope::visible_to(&mut qb, "p", viewer);
@@ -286,7 +287,7 @@ fn user_json(alias: &str) -> String {
 /// requester (own, shared, public, or in one of their own or shared-to-them
 /// albums); else the requester's own and shared-to-them albums holding it.
 pub async fn photo_albums<'e>(
-    db: impl PgExecutor<'e>,
+    db: impl Exec<'e>,
     lookup: &PhotoLookup,
     viewer: Option<i32>,
 ) -> sqlx::Result<Option<Vec<PhotoAlbumJson>>> {
@@ -297,8 +298,7 @@ pub async fn photo_albums<'e>(
              WHERE ust.albumuser_id = {alias}.id AND ust.user_id = {v}))"
         )
     };
-    let mut qb: QueryBuilder<'_, Postgres> =
-        QueryBuilder::new("WITH ph AS (SELECT p.id FROM api_photo p WHERE ");
+    let mut qb: Qb<'_> = Qb::new("WITH ph AS (SELECT p.id FROM api_photo p WHERE ");
     lookup.push(&mut qb, "p");
     qb.push(" AND (");
     scope::visible_to(&mut qb, "p", viewer);

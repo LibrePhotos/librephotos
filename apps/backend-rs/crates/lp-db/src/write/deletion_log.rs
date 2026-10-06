@@ -17,9 +17,7 @@
 //!
 //! Like `_write_tombstones`, rows are only written for users that exist.
 
-use sqlx::PgConnection;
-use sqlx::postgres::{PgArguments, Postgres};
-use sqlx::query::Query;
+use crate::db::{Conn, Db, Q};
 use uuid::Uuid;
 
 /// `DeletionLog.ENTITY_*`.
@@ -86,13 +84,13 @@ fn insert_sql(pairs_sql: &str) -> String {
     )
 }
 
-async fn run(conn: &mut PgConnection, q: Query<'_, Postgres, PgArguments>) -> sqlx::Result<u64> {
+async fn run(conn: &mut Conn, q: Q<'_>) -> sqlx::Result<u64> {
     Ok(q.execute(&mut *conn).await?.rows_affected())
 }
 
 /// Hard delete of photos `ids` (`post_delete` on `Photo`): one tombstone for
 /// the owner and one for every `shared_to` user. Call before deleting.
-pub async fn photos_deleted(conn: &mut PgConnection, ids: &[Uuid]) -> sqlx::Result<u64> {
+pub async fn photos_deleted(conn: &mut Conn, ids: &[Uuid]) -> sqlx::Result<u64> {
     if ids.is_empty() {
         return Ok(0);
     }
@@ -101,17 +99,13 @@ pub async fn photos_deleted(conn: &mut PgConnection, ids: &[Uuid]) -> sqlx::Resu
          UNION SELECT s.photo_id::text, s.user_id FROM api_photo_shared_to s \
          WHERE s.photo_id = ANY($2)",
     );
-    run(conn, sqlx::query(&sql).bind(entity::PHOTO).bind(ids)).await
+    run(conn, crate::sql::query(&sql).bind(entity::PHOTO).bind(ids)).await
 }
 
 /// Hard delete of albums `ids` of one kind (`post_delete` on the album
 /// model): tombstones for the owner and every `shared_to` user. Call before
 /// deleting.
-pub async fn albums_deleted(
-    conn: &mut PgConnection,
-    kind: AlbumKind,
-    ids: &[i32],
-) -> sqlx::Result<u64> {
+pub async fn albums_deleted(conn: &mut Conn, kind: AlbumKind, ids: &[i32]) -> sqlx::Result<u64> {
     if ids.is_empty() {
         return Ok(0);
     }
@@ -120,13 +114,13 @@ pub async fn albums_deleted(
         "SELECT a.id::text AS eid, a.owner_id AS uid FROM {album} a WHERE a.id = ANY($2) \
          UNION SELECT s.{fk}::text, s.user_id FROM {through} s WHERE s.{fk} = ANY($2)"
     ));
-    run(conn, sqlx::query(&sql).bind(kind.entity()).bind(ids)).await
+    run(conn, crate::sql::query(&sql).bind(kind.entity()).bind(ids)).await
 }
 
 /// Hard delete of persons `ids` (`_person_tombstone`): only `USER`-kind
 /// persons with a `cluster_owner` are mirrored, so only they get one. Call
 /// before deleting.
-pub async fn persons_deleted(conn: &mut PgConnection, ids: &[i32]) -> sqlx::Result<u64> {
+pub async fn persons_deleted(conn: &mut Conn, ids: &[i32]) -> sqlx::Result<u64> {
     if ids.is_empty() {
         return Ok(0);
     }
@@ -134,25 +128,25 @@ pub async fn persons_deleted(conn: &mut PgConnection, ids: &[i32]) -> sqlx::Resu
         "SELECT p.id::text AS eid, p.cluster_owner_id AS uid FROM api_person p \
          WHERE p.id = ANY($2) AND p.kind = 'USER' AND p.cluster_owner_id IS NOT NULL",
     );
-    run(conn, sqlx::query(&sql).bind(entity::PERSON).bind(ids)).await
+    run(conn, crate::sql::query(&sql).bind(entity::PERSON).bind(ids)).await
 }
 
 /// Hard delete of tags `ids`: one tombstone for the owner. Call before
 /// deleting.
-pub async fn tags_deleted(conn: &mut PgConnection, ids: &[i32]) -> sqlx::Result<u64> {
+pub async fn tags_deleted(conn: &mut Conn, ids: &[i32]) -> sqlx::Result<u64> {
     if ids.is_empty() {
         return Ok(0);
     }
     let sql = insert_sql(
         "SELECT t.id::text AS eid, t.owner_id AS uid FROM api_tag t WHERE t.id = ANY($2)",
     );
-    run(conn, sqlx::query(&sql).bind(entity::TAG).bind(ids)).await
+    run(conn, crate::sql::query(&sql).bind(entity::TAG).bind(ids)).await
 }
 
 /// Visibility loss (un-share, `m2m_changed` `post_remove` / `post_clear`):
 /// one tombstone per `(entity_id, user)`.
 pub async fn unshared(
-    conn: &mut PgConnection,
+    conn: &mut Conn,
     entity: &str,
     entity_ids: &[String],
     user_ids: &[i32],
@@ -164,7 +158,7 @@ pub async fn unshared(
         insert_sql("SELECT e AS eid, u AS uid FROM unnest($2::text[]) e, unnest($3::int[]) u");
     run(
         conn,
-        sqlx::query(&sql)
+        crate::sql::query(&sql)
             .bind(entity)
             .bind(entity_ids)
             .bind(user_ids),
@@ -176,7 +170,7 @@ pub async fn unshared(
 /// selected photo, with no user-existence filter (an unknown
 /// `target_user_id` fails the deferred foreign key at commit, as on Django).
 pub async fn photos_unshared_bulk(
-    conn: &mut PgConnection,
+    conn: &mut Conn,
     photo_ids: &[Uuid],
     user_id: i32,
 ) -> sqlx::Result<u64> {
@@ -185,7 +179,7 @@ pub async fn photos_unshared_bulk(
     }
     run(
         conn,
-        sqlx::query(
+        crate::sql::query(
             "INSERT INTO api_deletionlog (entity, entity_id, owner_id, deleted_at) \
              SELECT $1, x::text, $3, clock_timestamp() FROM unnest($2::uuid[]) WITH ORDINALITY AS t(x, n) \
              ORDER BY n",
@@ -200,7 +194,7 @@ pub async fn photos_unshared_bulk(
 /// `clear_tombstones`: a row just became visible again to `user_ids`, so a
 /// stale tombstone must not shadow it on the next pull.
 pub async fn clear(
-    conn: &mut PgConnection,
+    conn: &mut Conn,
     entity: &str,
     entity_ids: &[String],
     user_ids: &[i32],
@@ -210,7 +204,7 @@ pub async fn clear(
     }
     run(
         conn,
-        sqlx::query(
+        crate::sql::query(
             "DELETE FROM api_deletionlog \
              WHERE entity = $1 AND entity_id = ANY($2) AND owner_id = ANY($3)",
         )
@@ -222,8 +216,8 @@ pub async fn clear(
 }
 
 /// `prune_deletion_log`: drop tombstones past the horizon; returns how many.
-pub async fn prune(db: &sqlx::PgPool) -> sqlx::Result<u64> {
-    Ok(sqlx::query(
+pub async fn prune(db: &Db) -> sqlx::Result<u64> {
+    Ok(crate::sql::query(
         "DELETE FROM api_deletionlog WHERE deleted_at < now() - make_interval(days => $1)",
     )
     .bind(PRUNE_HORIZON_DAYS as i32)

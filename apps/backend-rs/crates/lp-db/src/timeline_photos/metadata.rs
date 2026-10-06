@@ -2,14 +2,16 @@
 
 use chrono::{DateTime, Utc};
 use serde_json::Value;
-use sqlx::{FromRow, PgExecutor, Postgres, QueryBuilder};
+use sqlx::FromRow;
 use uuid::Uuid;
 
 use super::PhotoLookup;
+use crate::db::{DjUuid, Exec, Qb};
 use crate::scope;
 
 #[derive(Debug, Clone, FromRow)]
 pub struct MetadataPhoto {
+    #[sqlx(try_from = "DjUuid")]
     pub id: Uuid,
     pub owner_id: i32,
     pub exif_timestamp: Option<DateTime<Utc>>,
@@ -21,12 +23,12 @@ pub struct MetadataPhoto {
 /// `_get_photo`: staff look among all photos, everyone else among their own.
 /// With several matches (a hash shared by photos) the first by id.
 pub async fn find_photo<'e>(
-    db: impl PgExecutor<'e>,
+    db: impl Exec<'e>,
     lookup: &PhotoLookup,
     user_id: i32,
     is_staff: bool,
 ) -> sqlx::Result<Option<MetadataPhoto>> {
-    let mut qb: QueryBuilder<'_, Postgres> = QueryBuilder::new(
+    let mut qb: Qb<'_> = Qb::new(
         "SELECT p.id, p.owner_id, p.exif_timestamp, p.exif_gps_lat, p.exif_gps_lon, p.rating \
          FROM api_photo p WHERE ",
     );
@@ -42,7 +44,9 @@ pub async fn find_photo<'e>(
 /// Every column `PhotoMetadataSerializer` renders.
 #[derive(Debug, Clone, FromRow)]
 pub struct MetadataRow {
+    #[sqlx(try_from = "DjUuid")]
     pub id: Uuid,
+    #[sqlx(try_from = "DjUuid")]
     pub photo_id: Uuid,
     pub aperture: Option<f64>,
     pub shutter_speed: Option<String>,
@@ -95,11 +99,8 @@ pub const METADATA_COLUMNS: &str = "id, photo_id, aperture, shutter_speed, shutt
     location_address, title, caption, keywords, rating, copyright, creator, source, version, \
     created_at, updated_at";
 
-pub async fn by_photo<'e>(
-    db: impl PgExecutor<'e>,
-    photo_id: Uuid,
-) -> sqlx::Result<Option<MetadataRow>> {
-    sqlx::query_as(&format!(
+pub async fn by_photo<'e>(db: impl Exec<'e>, photo_id: Uuid) -> sqlx::Result<Option<MetadataRow>> {
+    crate::sql::query_as(format!(
         "SELECT {METADATA_COLUMNS} FROM api_photometadata WHERE photo_id = $1"
     ))
     .bind(photo_id)
@@ -109,6 +110,7 @@ pub async fn by_photo<'e>(
 
 #[derive(Debug, Clone, FromRow)]
 pub struct EditRow {
+    #[sqlx(try_from = "DjUuid")]
     pub id: Uuid,
     pub field_name: String,
     pub old_value: Option<Value>,
@@ -121,11 +123,8 @@ pub struct EditRow {
 }
 
 /// The 10 most recent edits (`-created_at, -id`).
-pub async fn recent_edits<'e>(
-    db: impl PgExecutor<'e>,
-    photo_id: Uuid,
-) -> sqlx::Result<Vec<EditRow>> {
-    sqlx::query_as(
+pub async fn recent_edits<'e>(db: impl Exec<'e>, photo_id: Uuid) -> sqlx::Result<Vec<EditRow>> {
+    crate::sql::query_as(
         "SELECT e.id, e.field_name, e.old_value, e.new_value, e.user_id, u.username AS user_name, \
          e.synced_to_file, e.synced_at, e.created_at \
          FROM api_metadataedit e LEFT JOIN api_user u ON u.id = e.user_id \
@@ -138,6 +137,7 @@ pub async fn recent_edits<'e>(
 
 #[derive(Debug, Clone, FromRow)]
 pub struct SidecarRow {
+    #[sqlx(try_from = "DjUuid")]
     pub id: Uuid,
     pub file_type: String,
     pub source: String,
@@ -148,11 +148,8 @@ pub struct SidecarRow {
 }
 
 /// `MetadataFile` rows of the photo (`-priority, -updated_at`).
-pub async fn sidecar_files<'e>(
-    db: impl PgExecutor<'e>,
-    photo_id: Uuid,
-) -> sqlx::Result<Vec<SidecarRow>> {
-    sqlx::query_as(
+pub async fn sidecar_files<'e>(db: impl Exec<'e>, photo_id: Uuid) -> sqlx::Result<Vec<SidecarRow>> {
+    crate::sql::query_as(
         "SELECT id, file_type, source, priority, creator_software, created_at, updated_at \
          FROM api_metadatafile WHERE photo_id = $1 ORDER BY priority DESC, updated_at DESC, id",
     )

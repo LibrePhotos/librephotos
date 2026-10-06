@@ -5,9 +5,10 @@
 //! face query is scoped to the requester's own photos (`photo__owner`).
 
 use chrono::{DateTime, Utc};
-use sqlx::{FromRow, PgExecutor, Postgres, QueryBuilder};
+use sqlx::FromRow;
 use uuid::Uuid;
 
+use crate::db::{DjUuid, DjUuidOpt, Exec, Qb};
 use crate::scope;
 
 pub const UNKNOWN_PERSON_NAME: &str = "Unknown - Other";
@@ -33,7 +34,7 @@ pub struct PersonRow {
     pub total: i64,
 }
 
-fn person_select(qb: &mut QueryBuilder<'_, Postgres>, user_id: i32, user_kind_only: bool) {
+fn person_select(qb: &mut Qb<'_>, user_id: i32, user_kind_only: bool) {
     qb.push(
         "SELECT p.id, p.name, p.face_count, p.cover_face_id, cf.image AS cover_face_image, \
            cp.image_hash AS cover_photo_hash, cp.video AS cover_photo_video, \
@@ -55,7 +56,7 @@ fn person_select(qb: &mut QueryBuilder<'_, Postgres>, user_id: i32, user_kind_on
 }
 
 /// DRF `SearchFilter` on `name`: every term must be contained, any case.
-fn push_search(qb: &mut QueryBuilder<'_, Postgres>, terms: &[String]) {
+fn push_search(qb: &mut Qb<'_>, terms: &[String]) {
     for term in terms {
         qb.push(" AND UPPER(p.name::text) LIKE UPPER(");
         qb.push_bind(format!("%{}%", scope::like_escape(term)));
@@ -65,13 +66,13 @@ fn push_search(qb: &mut QueryBuilder<'_, Postgres>, terms: &[String]) {
 
 /// One page of the requester's user-labelled persons, ordered by name.
 pub async fn list_persons<'e>(
-    db: impl PgExecutor<'e>,
+    db: impl Exec<'e>,
     user_id: i32,
     search: &[String],
     limit: i64,
     offset: i64,
 ) -> sqlx::Result<Vec<PersonRow>> {
-    let mut qb = QueryBuilder::new("");
+    let mut qb = Qb::new("");
     person_select(&mut qb, user_id, true);
     push_search(&mut qb, search);
     qb.push(" ORDER BY p.name, p.id LIMIT ");
@@ -82,11 +83,11 @@ pub async fn list_persons<'e>(
 }
 
 pub async fn count_persons<'e>(
-    db: impl PgExecutor<'e>,
+    db: impl Exec<'e>,
     user_id: i32,
     search: &[String],
 ) -> sqlx::Result<i64> {
-    let mut qb = QueryBuilder::new(
+    let mut qb = Qb::new(
         "SELECT COUNT(*) FROM api_person p WHERE p.kind = 'USER' AND p.cluster_owner_id = ",
     );
     qb.push_bind(user_id);
@@ -97,12 +98,12 @@ pub async fn count_persons<'e>(
 /// `PersonViewSet.get_object()`: a user-labelled person of the requester
 /// (the list's `?search=` narrows the detail routes too, as in DRF).
 pub async fn person_for_owner<'e>(
-    db: impl PgExecutor<'e>,
+    db: impl Exec<'e>,
     user_id: i32,
     person_id: i64,
     search: &[String],
 ) -> sqlx::Result<Option<PersonRow>> {
-    let mut qb = QueryBuilder::new("");
+    let mut qb = Qb::new("");
     person_select(&mut qb, user_id, true);
     qb.push(" AND p.id = ");
     qb.push_bind(person_id);
@@ -113,11 +114,11 @@ pub async fn person_for_owner<'e>(
 /// A person of the requester of any kind (`PersonSerializer.create` can
 /// hand back a cluster that already carries the name).
 pub async fn owned_person_any_kind<'e>(
-    db: impl PgExecutor<'e>,
+    db: impl Exec<'e>,
     user_id: i32,
     person_id: i32,
 ) -> sqlx::Result<Option<PersonRow>> {
-    let mut qb = QueryBuilder::new("");
+    let mut qb = Qb::new("");
     person_select(&mut qb, user_id, false);
     qb.push(" AND p.id = ");
     qb.push_bind(person_id);
@@ -127,12 +128,12 @@ pub async fn owned_person_any_kind<'e>(
 /// `Photo.objects.owned_by(user)` looked up by image hash first, then by
 /// primary key (`PersonSerializer.update`, cover photo).
 pub async fn owned_photo_by_hash_or_id<'e>(
-    db: impl PgExecutor<'e>,
+    db: impl Exec<'e>,
     user_id: i32,
     photo_ref: &str,
 ) -> sqlx::Result<Option<Uuid>> {
     let as_uuid = Uuid::parse_str(photo_ref).ok();
-    sqlx::query_scalar::<_, Uuid>(
+    crate::sql::query_scalar::<_, Uuid>(
         "SELECT id FROM ( \
            (SELECT 0 AS k, id FROM api_photo WHERE owner_id = $1 AND image_hash = $2 ORDER BY id LIMIT 1) \
            UNION ALL \
@@ -165,11 +166,11 @@ pub struct IncompletePerson {
 /// least one face in the requested bucket, ordered by name. `inferred`
 /// `None` = labelled faces of user-labelled persons.
 pub async fn incomplete_persons<'e>(
-    db: impl PgExecutor<'e>,
+    db: impl Exec<'e>,
     user_id: i32,
     inferred: Option<(AnalysisMethod, f64)>,
 ) -> sqlx::Result<Vec<IncompletePerson>> {
-    let mut qb = QueryBuilder::new(
+    let mut qb = Qb::new(
         "SELECT p.id, p.name, p.kind, COUNT(f.id) AS face_count FROM api_person p \
          JOIN api_face f ON ",
     );
@@ -205,11 +206,11 @@ pub async fn incomplete_persons<'e>(
 
 /// The "Unknown - Other" bucket size of the incomplete list.
 pub async fn unknown_face_count<'e>(
-    db: impl PgExecutor<'e>,
+    db: impl Exec<'e>,
     user_id: i32,
     inferred: Option<(AnalysisMethod, f64)>,
 ) -> sqlx::Result<i64> {
-    let mut qb = QueryBuilder::new(
+    let mut qb = Qb::new(
         "SELECT COUNT(*) FROM api_face f JOIN api_photo ph ON ph.id = f.photo_id \
          WHERE NOT f.deleted AND f.person_id IS NULL AND ",
     );
@@ -246,6 +247,7 @@ pub enum FaceFilter {
 pub struct FaceListRow {
     pub id: i32,
     pub image: Option<String>,
+    #[sqlx(try_from = "DjUuidOpt")]
     pub photo_id: Option<Uuid>,
     pub image_hash: Option<String>,
     pub exif_timestamp: Option<DateTime<Utc>>,
@@ -254,11 +256,11 @@ pub struct FaceListRow {
     pub total: i64,
 }
 
-fn push_face_filter(qb: &mut QueryBuilder<'_, Postgres>, user_id: i32, filter: FaceFilter) {
+fn push_face_filter(qb: &mut Qb<'_>, user_id: i32, filter: FaceFilter) {
     qb.push(" WHERE ");
     scope::owned_by(qb, "ph", user_id);
     qb.push(" AND NOT f.deleted AND ");
-    let opt_eq = |qb: &mut QueryBuilder<'_, Postgres>, col: &str, v: Option<i32>| match v {
+    let opt_eq = |qb: &mut Qb<'_>, col: &str, v: Option<i32>| match v {
         Some(id) => {
             qb.push(format!("f.{col} = "));
             qb.push_bind(id);
@@ -313,14 +315,14 @@ fn push_face_filter(qb: &mut QueryBuilder<'_, Postgres>, user_id: i32, filter: F
 
 /// One page of `FaceListView`, with the unpaginated count in `total`.
 pub async fn list_faces<'e>(
-    db: impl PgExecutor<'e>,
+    db: impl Exec<'e>,
     user_id: i32,
     filter: FaceFilter,
     order_by_date: bool,
     limit: i64,
     offset: i64,
 ) -> sqlx::Result<Vec<FaceListRow>> {
-    let mut qb = QueryBuilder::new(
+    let mut qb = Qb::new(
         "SELECT f.id, f.image, f.photo_id, ph.image_hash, ph.exif_timestamp, \
            f.cluster_probability, f.classification_probability, COUNT(*) OVER () AS total \
          FROM api_face f JOIN api_photo ph ON ph.id = f.photo_id",
@@ -349,13 +351,11 @@ pub async fn list_faces<'e>(
 }
 
 pub async fn count_faces<'e>(
-    db: impl PgExecutor<'e>,
+    db: impl Exec<'e>,
     user_id: i32,
     filter: FaceFilter,
 ) -> sqlx::Result<i64> {
-    let mut qb = QueryBuilder::new(
-        "SELECT COUNT(*) FROM api_face f JOIN api_photo ph ON ph.id = f.photo_id",
-    );
+    let mut qb = Qb::new("SELECT COUNT(*) FROM api_face f JOIN api_photo ph ON ph.id = f.photo_id");
     push_face_filter(&mut qb, user_id, filter);
     qb.build_query_scalar::<i64>().fetch_one(db).await
 }
@@ -373,8 +373,8 @@ pub struct VizFace {
 /// an encoding. Same statement shape (and so the same row order) as the
 /// unordered queryset Django pages through. Not prepared: a cached generic
 /// plan joins the other way round and so returns the rows in another order.
-pub async fn viz_faces<'e>(db: impl PgExecutor<'e>, user_id: i32) -> sqlx::Result<Vec<VizFace>> {
-    sqlx::query_as::<_, VizFace>(
+pub async fn viz_faces<'e>(db: impl Exec<'e>, user_id: i32) -> sqlx::Result<Vec<VizFace>> {
+    crate::sql::query_as::<_, VizFace>(
         "SELECT api_face.id, api_face.image, api_face.encoding, api_face.person_id FROM api_face \
          INNER JOIN api_photo ON (api_face.photo_id = api_photo.id) \
          WHERE (api_photo.owner_id = $1 AND NOT api_face.deleted)",
@@ -395,11 +395,8 @@ pub async fn viz_faces<'e>(db: impl PgExecutor<'e>, user_id: i32) -> sqlx::Resul
 /// in the order Postgres returns Django's `DISTINCT` query (colors are
 /// assigned in that order, so the statement is kept identical and, like
 /// [`viz_faces`], unprepared).
-pub async fn viz_persons<'e>(
-    db: impl PgExecutor<'e>,
-    user_id: i32,
-) -> sqlx::Result<Vec<(i32, String)>> {
-    sqlx::query_as::<_, (i32, String, String, Option<Uuid>, Option<i32>, i32, Option<i32>, DateTime<Utc>)>(
+pub async fn viz_persons<'e>(db: impl Exec<'e>, user_id: i32) -> sqlx::Result<Vec<(i32, String)>> {
+    crate::sql::query_as::<_, (i32, String, String, DjUuidOpt, Option<i32>, i32, Option<i32>, DateTime<Utc>)>(
         "SELECT DISTINCT api_person.id, api_person.name, api_person.kind, api_person.cover_photo_id, \
            api_person.cover_face_id, api_person.face_count, api_person.cluster_owner_id, \
            api_person.last_modified FROM api_person \
@@ -417,11 +414,11 @@ pub async fn viz_persons<'e>(
 /// `Person.objects.filter(name=, cluster_owner=, kind__in=(CLUSTER, UNKNOWN))`:
 /// a face cluster's label, which must not be confirmed as a person's name.
 pub async fn is_cluster_label<'e>(
-    db: impl PgExecutor<'e>,
+    db: impl Exec<'e>,
     user_id: i32,
     name: &str,
 ) -> sqlx::Result<bool> {
-    sqlx::query_scalar::<_, bool>(
+    crate::sql::query_scalar::<_, bool>(
         "SELECT EXISTS (SELECT 1 FROM api_person WHERE name = $1 AND cluster_owner_id = $2 \
            AND kind IN ('CLUSTER', 'UNKNOWN'))",
     )
@@ -435,6 +432,7 @@ pub async fn is_cluster_label<'e>(
 /// (top, right, bottom, left) of its non-deleted faces.
 #[derive(Debug, Clone, FromRow)]
 pub struct AddFacePhoto {
+    #[sqlx(try_from = "DjUuid")]
     pub id: Uuid,
     pub image_hash: String,
     pub thumbnail_big: Option<String>,
@@ -443,6 +441,7 @@ pub struct AddFacePhoto {
 
 #[derive(FromRow)]
 struct AddFacePhotoRow {
+    #[sqlx(try_from = "DjUuid")]
     id: Uuid,
     image_hash: String,
     thumbnail_big: Option<String>,
@@ -451,7 +450,7 @@ struct AddFacePhotoRow {
 
 /// `Photo.objects.owned_by(user).filter(**_get_photo_filter_kwargs(ref)).first()`.
 pub async fn add_face_photo<'e>(
-    db: impl PgExecutor<'e>,
+    db: impl Exec<'e>,
     user_id: i32,
     photo_ref: &str,
 ) -> sqlx::Result<Option<AddFacePhoto>> {
@@ -461,7 +460,7 @@ pub async fn add_face_photo<'e>(
     } else {
         None
     };
-    let mut qb = QueryBuilder::new(
+    let mut qb = Qb::new(
         "SELECT p.id, p.image_hash, t.thumbnail_big, \
            COALESCE((SELECT jsonb_agg(jsonb_build_array(f.location_top, f.location_right, \
                f.location_bottom, f.location_left) ORDER BY f.id) \

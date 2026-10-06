@@ -2,9 +2,10 @@
 
 use chrono::{DateTime, Utc};
 use serde_json::Value;
-use sqlx::{FromRow, PgExecutor, Postgres, QueryBuilder};
+use sqlx::FromRow;
 use uuid::Uuid;
 
+use crate::db::{Conn, DjUuid, Exec, Qb};
 use crate::scope;
 
 /// `_get_photo_filter_kwargs`: a 36-char, 4-hyphen UUID is a pk, anything
@@ -20,6 +21,7 @@ pub fn lookup_uuid(lookup: &str) -> Option<Uuid> {
 /// The `PhotoEditSerializer` columns plus what the edit services need.
 #[derive(Debug, Clone, FromRow)]
 pub struct EditPhoto {
+    #[sqlx(try_from = "DjUuid")]
     pub id: Uuid,
     pub image_hash: String,
     pub owner_id: i32,
@@ -42,7 +44,7 @@ const EDIT_COLUMNS: &str = "p.id, p.image_hash, p.owner_id, p.hidden, p.rating, 
     p.removed, p.video, p.exif_timestamp, p.\"timestamp\", p.exif_gps_lat, p.exif_gps_lon, \
     p.is_screenshot, p.is_document, p.category_source, mf.path AS main_file_path";
 
-fn push_lookup(qb: &mut QueryBuilder<'_, Postgres>, lookup: &str) {
+fn push_lookup(qb: &mut Qb<'_>, lookup: &str) {
     match lookup_uuid(lookup) {
         Some(id) => {
             qb.push("p.id = ");
@@ -58,11 +60,11 @@ fn push_lookup(qb: &mut QueryBuilder<'_, Postgres>, lookup: &str) {
 /// `PhotoEditViewSet.get_object`: `Photo.visible.owned_by(user)` by pk or
 /// hash, `.first()` (= lowest pk).
 pub async fn edit_target<'e>(
-    db: impl PgExecutor<'e>,
+    db: impl Exec<'e>,
     user_id: i32,
     lookup: &str,
 ) -> sqlx::Result<Option<EditPhoto>> {
-    let mut qb = QueryBuilder::new(format!(
+    let mut qb = Qb::new(format!(
         "SELECT {EDIT_COLUMNS} FROM api_photo p LEFT JOIN api_file mf ON mf.hash = p.main_file_id WHERE "
     ));
     scope::owned_by(&mut qb, "p", user_id);
@@ -74,11 +76,8 @@ pub async fn edit_target<'e>(
     qb.build_query_as::<EditPhoto>().fetch_optional(db).await
 }
 
-pub async fn edit_photo_by_id<'e>(
-    db: impl PgExecutor<'e>,
-    id: Uuid,
-) -> sqlx::Result<Option<EditPhoto>> {
-    sqlx::query_as::<_, EditPhoto>(&format!(
+pub async fn edit_photo_by_id<'e>(db: impl Exec<'e>, id: Uuid) -> sqlx::Result<Option<EditPhoto>> {
+    crate::sql::query_as::<_, EditPhoto>(&format!(
         "SELECT {EDIT_COLUMNS} FROM api_photo p LEFT JOIN api_file mf ON mf.hash = p.main_file_id \
          WHERE p.id = $1"
     ))
@@ -90,6 +89,7 @@ pub async fn edit_photo_by_id<'e>(
 /// A photo of the requester's, as the caption/rotate/share views find it.
 #[derive(Debug, Clone, FromRow)]
 pub struct OwnedPhoto {
+    #[sqlx(try_from = "DjUuid")]
     pub id: Uuid,
     pub image_hash: String,
     pub video: bool,
@@ -109,11 +109,11 @@ const OWNED_FROM: &str = "FROM api_photo p LEFT JOIN api_thumbnail t ON t.photo_
 
 /// `Photo.objects.owned_by(user).filter(image_hash=h).first()`.
 pub async fn owned_by_hash<'e>(
-    db: impl PgExecutor<'e>,
+    db: impl Exec<'e>,
     user_id: i32,
     image_hash: &str,
 ) -> sqlx::Result<Option<OwnedPhoto>> {
-    sqlx::query_as::<_, OwnedPhoto>(&format!(
+    crate::sql::query_as::<_, OwnedPhoto>(&format!(
         "SELECT {OWNED_COLUMNS} {OWNED_FROM} \
          WHERE p.owner_id = $1 AND p.image_hash = $2 ORDER BY p.id LIMIT 1"
     ))
@@ -125,12 +125,12 @@ pub async fn owned_by_hash<'e>(
 
 /// `public_photos._owned_photo`: a UUID pk first, then an image hash.
 pub async fn owned_by_id_or_hash<'e>(
-    db: impl PgExecutor<'e> + Copy,
+    db: impl Exec<'e> + Copy,
     user_id: i32,
     photo_id: &str,
 ) -> sqlx::Result<Option<OwnedPhoto>> {
     if let Ok(pk) = Uuid::parse_str(photo_id) {
-        let found = sqlx::query_as::<_, OwnedPhoto>(&format!(
+        let found = crate::sql::query_as::<_, OwnedPhoto>(&format!(
             "SELECT {OWNED_COLUMNS} {OWNED_FROM} WHERE p.owner_id = $1 AND p.id = $2"
         ))
         .bind(user_id)
@@ -146,10 +146,10 @@ pub async fn owned_by_id_or_hash<'e>(
 
 /// `PhotoMetadata.orientation`; `None` when the photo has no metadata row.
 pub async fn metadata_orientation<'e>(
-    db: impl PgExecutor<'e>,
+    db: impl Exec<'e>,
     photo_id: Uuid,
 ) -> sqlx::Result<Option<Option<i32>>> {
-    sqlx::query_scalar::<_, Option<i32>>(
+    crate::sql::query_scalar::<_, Option<i32>>(
         "SELECT orientation FROM api_photometadata WHERE photo_id = $1",
     )
     .bind(photo_id)
@@ -164,16 +164,14 @@ pub struct ShareRow {
     pub enabled: bool,
     pub slug: Option<String>,
     pub created_at: DateTime<Utc>,
+    #[sqlx(try_from = "DjUuid")]
     pub photo_id: Uuid,
     pub image_hash: String,
 }
 
 /// `PhotoShareList`: the requester's active photo shares, newest first.
-pub async fn active_shares<'e>(
-    db: impl PgExecutor<'e>,
-    user_id: i32,
-) -> sqlx::Result<Vec<ShareRow>> {
-    sqlx::query_as::<_, ShareRow>(
+pub async fn active_shares<'e>(db: impl Exec<'e>, user_id: i32) -> sqlx::Result<Vec<ShareRow>> {
+    crate::sql::query_as::<_, ShareRow>(
         "SELECT s.id, s.enabled, s.slug, s.created_at, s.photo_id, p.image_hash \
          FROM api_photoshare s JOIN api_photo p ON p.id = s.photo_id \
          WHERE p.owner_id = $1 AND s.enabled AND s.slug IS NOT NULL \
@@ -185,10 +183,10 @@ pub async fn active_shares<'e>(
 }
 
 pub async fn share_for_photo<'e>(
-    db: impl PgExecutor<'e>,
+    db: impl Exec<'e>,
     photo_id: Uuid,
 ) -> sqlx::Result<Option<ShareRow>> {
-    sqlx::query_as::<_, ShareRow>(
+    crate::sql::query_as::<_, ShareRow>(
         "SELECT s.id, s.enabled, s.slug, s.created_at, s.photo_id, p.image_hash \
          FROM api_photoshare s JOIN api_photo p ON p.id = s.photo_id WHERE s.photo_id = $1",
     )
@@ -205,10 +203,10 @@ pub struct CaptionContext {
 }
 
 pub async fn caption_context<'e>(
-    db: impl PgExecutor<'e>,
+    db: impl Exec<'e>,
     photo_id: Uuid,
 ) -> sqlx::Result<CaptionContext> {
-    sqlx::query_as::<_, CaptionContext>(
+    crate::sql::query_as::<_, CaptionContext>(
         "SELECT (SELECT pe.name FROM api_face f JOIN api_person pe ON pe.id = f.person_id \
                   WHERE f.photo_id = $1 ORDER BY f.id LIMIT 1) AS person_name, \
                 (SELECT s.search_location FROM api_photo_search s WHERE s.photo_id = $1) AS search_location",
@@ -219,11 +217,8 @@ pub async fn caption_context<'e>(
 }
 
 /// Raw `captions_json` of a photo (None = no row or SQL NULL).
-pub async fn captions_json<'e>(
-    db: impl PgExecutor<'e>,
-    photo_id: Uuid,
-) -> sqlx::Result<Option<Value>> {
-    Ok(sqlx::query_scalar::<_, Option<Value>>(
+pub async fn captions_json<'e>(db: impl Exec<'e>, photo_id: Uuid) -> sqlx::Result<Option<Value>> {
+    Ok(crate::sql::query_scalar::<_, Option<Value>>(
         "SELECT captions_json FROM api_photo_caption WHERE photo_id = $1",
     )
     .bind(photo_id)
@@ -234,13 +229,13 @@ pub async fn captions_json<'e>(
 
 /// Ids of `build_photo_queryset(user, query)` minus `excluded_hashes`.
 pub async fn select_all_ids(
-    conn: &mut sqlx::PgConnection,
+    conn: &mut Conn,
     user_id: i32,
     favorite_min_rating: i32,
     params: &scope::PhotoFilterParams,
     excluded_hashes: &[String],
 ) -> sqlx::Result<Vec<Uuid>> {
-    let mut qb = QueryBuilder::new("SELECT p.id FROM api_photo p WHERE ");
+    let mut qb = Qb::new("SELECT p.id FROM api_photo p WHERE ");
     crate::write::photo_edits::bulk::push_select_all(
         &mut qb,
         user_id,

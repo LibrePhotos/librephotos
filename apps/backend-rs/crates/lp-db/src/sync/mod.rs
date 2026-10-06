@@ -13,9 +13,10 @@
 //! order Django sees on a table that has not had rows deleted.
 
 use chrono::{DateTime, Utc};
-use sqlx::{FromRow, PgPool, Postgres, QueryBuilder};
+use sqlx::FromRow;
 use uuid::Uuid;
 
+use crate::db::{Db, DjUuid, DjUuidOpt, Qb};
 use crate::scope::owned_or_shared;
 use crate::write::deletion_log::AlbumKind;
 
@@ -34,7 +35,7 @@ pub struct Keyset {
 }
 
 /// ` AND (a.last_modified > dt OR (a.last_modified = dt AND a.id > pk))`.
-fn push_keyset(qb: &mut QueryBuilder<'_, Postgres>, a: &str, keyset: Option<Keyset>) {
+fn push_keyset(qb: &mut Qb<'_>, a: &str, keyset: Option<Keyset>) {
     let Some(k) = keyset else { return };
     qb.push(format!(" AND ({a}.last_modified > "));
     qb.push_bind(k.last_modified);
@@ -48,7 +49,7 @@ fn push_keyset(qb: &mut QueryBuilder<'_, Postgres>, a: &str, keyset: Option<Keys
     qb.push("))");
 }
 
-fn push_page(qb: &mut QueryBuilder<'_, Postgres>, a: &str, limit: i64) {
+fn push_page(qb: &mut Qb<'_>, a: &str, limit: i64) {
     qb.push(format!(" ORDER BY {a}.last_modified, {a}.id LIMIT "));
     qb.push_bind(limit);
 }
@@ -60,6 +61,7 @@ fn push_page(qb: &mut QueryBuilder<'_, Postgres>, a: &str, limit: i64) {
 /// `PHOTO_VALUES` + `has_motion`.
 #[derive(Debug, Clone, FromRow)]
 pub struct PhotoRow {
+    #[sqlx(try_from = "DjUuid")]
     pub id: Uuid,
     pub image_hash: String,
     pub owner_id: i32,
@@ -84,12 +86,12 @@ pub struct PhotoRow {
 }
 
 pub async fn photos_page(
-    db: &PgPool,
+    db: &Db,
     user_id: i32,
     keyset: Option<Keyset>,
     limit: i64,
 ) -> sqlx::Result<Vec<PhotoRow>> {
-    let mut qb = QueryBuilder::new(
+    let mut qb = Qb::new(
         "SELECT p.id, p.image_hash, p.owner_id, p.exif_timestamp, p.timestamp, p.added_on, \
          p.last_modified, p.video, p.video_length, p.rating, p.hidden, p.in_trashcan, \
          p.removed, p.public, p.exif_gps_lat, p.exif_gps_lon, t.aspect_ratio, \
@@ -108,8 +110,8 @@ pub async fn photos_page(
     qb.build_query_as().fetch_all(db).await
 }
 
-pub async fn photos_total(db: &PgPool, user_id: i32) -> sqlx::Result<i64> {
-    let mut qb = QueryBuilder::new("SELECT count(*) FROM api_photo p WHERE ");
+pub async fn photos_total(db: &Db, user_id: i32) -> sqlx::Result<i64> {
+    let mut qb = Qb::new("SELECT count(*) FROM api_photo p WHERE ");
     owned_or_shared(&mut qb, "p", "api_photo_shared_to", "photo_id", user_id);
     qb.build_query_scalar().fetch_one(db).await
 }
@@ -129,12 +131,12 @@ pub struct PersonRow {
 }
 
 pub async fn persons_page(
-    db: &PgPool,
+    db: &Db,
     user_id: i32,
     keyset: Option<Keyset>,
     limit: i64,
 ) -> sqlx::Result<Vec<PersonRow>> {
-    let mut qb = QueryBuilder::new(
+    let mut qb = Qb::new(
         "SELECT pe.id, pe.name, pe.kind, pe.face_count, cp.image_hash AS cover_photo_hash, \
          pe.last_modified FROM api_person pe \
          LEFT JOIN api_photo cp ON cp.id = pe.cover_photo_id \
@@ -146,8 +148,8 @@ pub async fn persons_page(
     qb.build_query_as().fetch_all(db).await
 }
 
-pub async fn persons_total(db: &PgPool, user_id: i32) -> sqlx::Result<i64> {
-    sqlx::query_scalar(
+pub async fn persons_total(db: &Db, user_id: i32) -> sqlx::Result<i64> {
+    crate::sql::query_scalar(
         "SELECT count(*) FROM api_person WHERE kind = 'USER' AND cluster_owner_id = $1",
     )
     .bind(user_id)
@@ -171,12 +173,12 @@ pub struct UserAlbumRow {
 }
 
 pub async fn user_albums_page(
-    db: &PgPool,
+    db: &Db,
     user_id: i32,
     keyset: Option<Keyset>,
     limit: i64,
 ) -> sqlx::Result<Vec<UserAlbumRow>> {
-    let mut qb = QueryBuilder::new(
+    let mut qb = Qb::new(
         "SELECT a.id, a.title, a.owner_id, a.favorited, cp.image_hash AS cover_photo_hash, \
          a.created_on, a.last_modified FROM api_albumuser a \
          LEFT JOIN api_photo cp ON cp.id = a.cover_photo_id WHERE ",
@@ -203,12 +205,12 @@ pub struct AutoAlbumRow {
 }
 
 pub async fn auto_albums_page(
-    db: &PgPool,
+    db: &Db,
     user_id: i32,
     keyset: Option<Keyset>,
     limit: i64,
 ) -> sqlx::Result<Vec<AutoAlbumRow>> {
-    let mut qb = QueryBuilder::new(
+    let mut qb = Qb::new(
         "SELECT a.id, a.title, a.timestamp, a.favorited, a.last_modified \
          FROM api_albumauto a WHERE ",
     );
@@ -236,12 +238,12 @@ pub struct NamedAlbumRow {
 }
 
 pub async fn thing_albums_page(
-    db: &PgPool,
+    db: &Db,
     user_id: i32,
     keyset: Option<Keyset>,
     limit: i64,
 ) -> sqlx::Result<Vec<NamedAlbumRow>> {
-    let mut qb = QueryBuilder::new(
+    let mut qb = Qb::new(
         "SELECT a.id, a.title, a.photo_count::bigint AS photo_count, \
          NULL::int AS geolocation_level, a.last_modified FROM api_albumthing a WHERE ",
     );
@@ -258,12 +260,12 @@ pub async fn thing_albums_page(
 }
 
 pub async fn place_albums_page(
-    db: &PgPool,
+    db: &Db,
     user_id: i32,
     keyset: Option<Keyset>,
     limit: i64,
 ) -> sqlx::Result<Vec<NamedAlbumRow>> {
-    let mut qb = QueryBuilder::new(
+    let mut qb = Qb::new(
         "SELECT a.id, a.title, \
          (SELECT count(m.photo_id) FROM api_albumplace_photos m WHERE m.albumplace_id = a.id) \
            AS photo_count, \
@@ -282,12 +284,12 @@ pub async fn place_albums_page(
 }
 
 pub async fn tags_page(
-    db: &PgPool,
+    db: &Db,
     user_id: i32,
     keyset: Option<Keyset>,
     limit: i64,
 ) -> sqlx::Result<Vec<NamedAlbumRow>> {
-    let mut qb = QueryBuilder::new(
+    let mut qb = Qb::new(
         "SELECT t.id, t.name AS title, t.photo_count::bigint AS photo_count, \
          NULL::int AS geolocation_level, t.last_modified FROM api_tag t WHERE t.owner_id = ",
     );
@@ -297,15 +299,15 @@ pub async fn tags_page(
     qb.build_query_as().fetch_all(db).await
 }
 
-pub async fn albums_total(db: &PgPool, kind: AlbumKind, user_id: i32) -> sqlx::Result<i64> {
+pub async fn albums_total(db: &Db, kind: AlbumKind, user_id: i32) -> sqlx::Result<i64> {
     let (album, through, fk) = kind.tables();
-    let mut qb = QueryBuilder::new(format!("SELECT count(*) FROM {album} a WHERE "));
+    let mut qb = Qb::new(format!("SELECT count(*) FROM {album} a WHERE "));
     owned_or_shared(&mut qb, "a", through, fk, user_id);
     qb.build_query_scalar().fetch_one(db).await
 }
 
-pub async fn tags_total(db: &PgPool, user_id: i32) -> sqlx::Result<i64> {
-    sqlx::query_scalar("SELECT count(*) FROM api_tag WHERE owner_id = $1")
+pub async fn tags_total(db: &Db, user_id: i32) -> sqlx::Result<i64> {
+    crate::sql::query_scalar("SELECT count(*) FROM api_tag WHERE owner_id = $1")
         .bind(user_id)
         .fetch_one(db)
         .await
@@ -314,7 +316,7 @@ pub async fn tags_total(db: &PgPool, user_id: i32) -> sqlx::Result<i64> {
 /// `(album_id, photo_id)` membership rows of `album_ids` (user or auto
 /// albums), in through-row order.
 pub async fn album_members(
-    db: &PgPool,
+    db: &Db,
     kind: AlbumKind,
     album_ids: &[i32],
 ) -> sqlx::Result<Vec<(i32, Option<Uuid>)>> {
@@ -327,20 +329,21 @@ pub async fn album_members(
     if album_ids.is_empty() {
         return Ok(Vec::new());
     }
-    sqlx::query_as(&format!(
+    let rows: Vec<(i32, DjUuidOpt)> = crate::sql::query_as(format!(
         "SELECT {fk}, photo_id FROM {table} WHERE {fk} = ANY($1) ORDER BY id"
     ))
     .bind(album_ids)
     .fetch_all(db)
-    .await
+    .await?;
+    Ok(rows.into_iter().map(|(a, p)| (a, p.0)).collect())
 }
 
 /// User albums among `album_ids` that are shared with anyone.
-pub async fn user_albums_shared(db: &PgPool, album_ids: &[i32]) -> sqlx::Result<Vec<i32>> {
+pub async fn user_albums_shared(db: &Db, album_ids: &[i32]) -> sqlx::Result<Vec<i32>> {
     if album_ids.is_empty() {
         return Ok(Vec::new());
     }
-    sqlx::query_scalar(
+    crate::sql::query_scalar(
         "SELECT DISTINCT albumuser_id FROM api_albumuser_shared_to WHERE albumuser_id = ANY($1)",
     )
     .bind(album_ids)
@@ -349,23 +352,25 @@ pub async fn user_albums_shared(db: &PgPool, album_ids: &[i32]) -> sqlx::Result<
 }
 
 /// `image_hash` of each photo in `ids`.
-pub async fn photo_hashes(db: &PgPool, ids: &[Uuid]) -> sqlx::Result<Vec<(Uuid, String)>> {
+pub async fn photo_hashes(db: &Db, ids: &[Uuid]) -> sqlx::Result<Vec<(Uuid, String)>> {
     if ids.is_empty() {
         return Ok(Vec::new());
     }
-    sqlx::query_as("SELECT id, image_hash FROM api_photo WHERE id = ANY($1)")
-        .bind(ids)
-        .fetch_all(db)
-        .await
+    let rows: Vec<(DjUuid, String)> =
+        crate::sql::query_as("SELECT id, image_hash FROM api_photo WHERE id = ANY($1)")
+            .bind(ids)
+            .fetch_all(db)
+            .await?;
+    Ok(rows.into_iter().map(|(id, h)| (id.0, h)).collect())
 }
 
 /// `(album_id, image_hash)` of the thing albums' cover photos, non-empty
 /// hashes only, in through-row order.
-pub async fn thing_covers(db: &PgPool, album_ids: &[i32]) -> sqlx::Result<Vec<(i32, String)>> {
+pub async fn thing_covers(db: &Db, album_ids: &[i32]) -> sqlx::Result<Vec<(i32, String)>> {
     if album_ids.is_empty() {
         return Ok(Vec::new());
     }
-    sqlx::query_as(
+    crate::sql::query_as(
         "SELECT c.albumthing_id, p.image_hash FROM api_albumthing_cover_photos c \
          JOIN api_photo p ON p.id = c.photo_id \
          WHERE c.albumthing_id = ANY($1) AND p.image_hash <> '' ORDER BY c.id",
@@ -413,12 +418,12 @@ pub struct SharedUserRow {
 }
 
 pub async fn shared_users_page(
-    db: &PgPool,
+    db: &Db,
     user_id: i32,
     keyset: Option<Keyset>,
     limit: i64,
 ) -> sqlx::Result<Vec<SharedUserRow>> {
-    let mut qb = QueryBuilder::new("WITH rel AS (");
+    let mut qb = Qb::new("WITH rel AS (");
     // RELEVANT_USERS binds `$1`: the first bind below.
     qb.push(RELEVANT_USERS);
     qb.push(
@@ -431,8 +436,8 @@ pub async fn shared_users_page(
     qb.build_query_as().fetch_all(db).await
 }
 
-pub async fn shared_users_total(db: &PgPool, user_id: i32) -> sqlx::Result<i64> {
-    sqlx::query_scalar(&format!(
+pub async fn shared_users_total(db: &Db, user_id: i32) -> sqlx::Result<i64> {
+    crate::sql::query_scalar(format!(
         "WITH rel AS ({RELEVANT_USERS}) SELECT count(*) FROM api_user u \
          WHERE u.id IN (SELECT id FROM rel) AND u.id <> $1"
     ))
@@ -447,12 +452,12 @@ pub async fn shared_users_total(db: &PgPool, user_id: i32) -> sqlx::Result<i64> 
 
 /// `DeletionLog` entity ids for `user` written after `since`.
 pub async fn tombstones(
-    db: &PgPool,
+    db: &Db,
     user_id: i32,
     entity: &str,
     since: DateTime<Utc>,
 ) -> sqlx::Result<Vec<String>> {
-    sqlx::query_scalar(
+    crate::sql::query_scalar(
         "SELECT entity_id FROM api_deletionlog \
          WHERE owner_id = $1 AND entity = $2 AND deleted_at > $3",
     )
@@ -475,8 +480,8 @@ pub struct Counts {
     pub tags: i64,
 }
 
-pub async fn counts(db: &PgPool, user_id: i32) -> sqlx::Result<Counts> {
-    let mut qb = QueryBuilder::new("SELECT (SELECT count(*) FROM api_photo p WHERE ");
+pub async fn counts(db: &Db, user_id: i32) -> sqlx::Result<Counts> {
+    let mut qb = Qb::new("SELECT (SELECT count(*) FROM api_photo p WHERE ");
     owned_or_shared(&mut qb, "p", "api_photo_shared_to", "photo_id", user_id);
     qb.push(
         ") AS photos, (SELECT count(*) FROM api_person pe \

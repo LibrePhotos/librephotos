@@ -2,7 +2,8 @@
 
 use std::path::Path;
 
-use sqlx::PgPool;
+use crate::db::Db;
+
 use uuid::Uuid;
 
 use super::AfterCommit;
@@ -10,9 +11,9 @@ use super::AfterCommit;
 /// `DELETE /api/jobs/{id}/`: the row goes; queue rows still waiting for it
 /// are cancelled so a deleted job never starts. Returns false when no row
 /// matched.
-pub async fn delete_job(db: &PgPool, id: i32, scope_user: Option<i32>) -> sqlx::Result<bool> {
+pub async fn delete_job(db: &Db, id: i32, scope_user: Option<i32>) -> sqlx::Result<bool> {
     let mut tx = db.begin().await?;
-    let job_id: Option<String> = sqlx::query_scalar(
+    let job_id: Option<String> = crate::sql::query_scalar(
         "DELETE FROM api_longrunningjob WHERE id = $1 AND ($2::int IS NULL OR started_by_id = $2) \
          RETURNING job_id",
     )
@@ -23,7 +24,7 @@ pub async fn delete_job(db: &PgPool, id: i32, scope_user: Option<i32>) -> sqlx::
     let Some(job_id) = job_id else {
         return Ok(false);
     };
-    sqlx::query(
+    crate::sql::query(
         "UPDATE job_queue SET status = 'cancelled', finished_at = now(), locked_by = NULL \
          WHERE lrj_id = $1 AND status = 'queued'",
     )
@@ -36,13 +37,9 @@ pub async fn delete_job(db: &PgPool, id: i32, scope_user: Option<i32>) -> sqlx::
 
 /// `api.services.cleanup_deleted_photos`: photos `removed` for more than
 /// `days` days are deleted for good. Returns how many.
-pub async fn cleanup_deleted_photos(
-    db: &PgPool,
-    media_root: &Path,
-    days: i32,
-) -> sqlx::Result<usize> {
+pub async fn cleanup_deleted_photos(db: &Db, media_root: &Path, days: i32) -> sqlx::Result<usize> {
     let mut tx = db.begin().await?;
-    let ids: Vec<Uuid> = sqlx::query_scalar(
+    let ids: Vec<Uuid> = crate::sql::query_scalar(
         "SELECT id FROM api_photo WHERE removed \
            AND last_modified <= now() - make_interval(days => $1)",
     )
@@ -59,9 +56,9 @@ pub async fn cleanup_deleted_photos(
 /// `LongRunningJob.cleanup_stuck_jobs`: unfinished jobs older than `hours`
 /// (by `started_at`, or `queued_at` if never started) are failed; their
 /// queue rows that never started are cancelled.
-pub async fn cleanup_stuck_jobs(db: &PgPool, hours: i32) -> sqlx::Result<u64> {
+pub async fn cleanup_stuck_jobs(db: &Db, hours: i32) -> sqlx::Result<u64> {
     let mut tx = db.begin().await?;
-    let ids: Vec<String> = sqlx::query_scalar(
+    let ids: Vec<String> = crate::sql::query_scalar(
         "UPDATE api_longrunningjob SET failed = TRUE, finished = TRUE, finished_at = now(), \
            result = jsonb_build_object('status', 'failed', 'error', \
                       format('Job timed out after %s hours', $1::int)) \
@@ -74,7 +71,7 @@ pub async fn cleanup_stuck_jobs(db: &PgPool, hours: i32) -> sqlx::Result<u64> {
     .fetch_all(&mut *tx)
     .await?;
     if !ids.is_empty() {
-        sqlx::query(
+        crate::sql::query(
             "UPDATE job_queue SET status = 'cancelled', finished_at = now() \
              WHERE lrj_id = ANY($1) AND status = 'queued'",
         )
@@ -89,8 +86,8 @@ pub async fn cleanup_stuck_jobs(db: &PgPool, hours: i32) -> sqlx::Result<u64> {
 /// `LongRunningJob.cleanup_old_jobs`: finished jobs older than `days` go,
 /// except the latest finished one per (user, job type), which is the
 /// incremental-scan baseline. Finished `job_queue` rows of that age go too.
-pub async fn cleanup_old_jobs(db: &PgPool, days: i32) -> sqlx::Result<u64> {
-    let deleted = sqlx::query(
+pub async fn cleanup_old_jobs(db: &Db, days: i32) -> sqlx::Result<u64> {
+    let deleted = crate::sql::query(
         "DELETE FROM api_longrunningjob WHERE finished \
            AND finished_at < now() - make_interval(days => $1) \
            AND id NOT IN ( \
@@ -102,7 +99,7 @@ pub async fn cleanup_old_jobs(db: &PgPool, days: i32) -> sqlx::Result<u64> {
     .execute(db)
     .await?
     .rows_affected();
-    sqlx::query(
+    crate::sql::query(
         "DELETE FROM job_queue WHERE status IN ('done', 'failed', 'cancelled') \
            AND COALESCE(finished_at, created_at) < now() - make_interval(days => $1)",
     )
@@ -113,9 +110,9 @@ pub async fn cleanup_old_jobs(db: &PgPool, days: i32) -> sqlx::Result<u64> {
 }
 
 /// Expired rows of the Rust refresh-token store.
-pub async fn prune_refresh_tokens(db: &PgPool) -> sqlx::Result<u64> {
+pub async fn prune_refresh_tokens(db: &Db) -> sqlx::Result<u64> {
     Ok(
-        sqlx::query("DELETE FROM refresh_token WHERE expires_at < now()")
+        crate::sql::query("DELETE FROM refresh_token WHERE expires_at < now()")
             .execute(db)
             .await?
             .rows_affected(),

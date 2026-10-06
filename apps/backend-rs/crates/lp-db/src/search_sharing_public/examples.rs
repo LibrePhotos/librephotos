@@ -2,8 +2,10 @@
 
 use chrono::{DateTime, Utc};
 use serde_json::Value;
+use sqlx::FromRow;
 use sqlx::types::Json;
-use sqlx::{FromRow, PgExecutor};
+
+use crate::db::{DjList, Exec};
 
 /// One captioned photo of the user with what the examples are built from.
 #[derive(Debug, Clone, FromRow)]
@@ -13,16 +15,14 @@ pub struct ExampleSample {
     pub captions_json: Option<Json<Value>>,
     /// One entry per face (deleted ones too, as Django's `p.faces.all()`),
     /// the person's name or NULL when the face has no person.
+    #[sqlx(try_from = "DjList<Option<String>>")]
     pub face_names: Vec<Option<String>>,
 }
 
 /// Up to 100 random photos among (at most) 1000 of the user's photos whose
 /// caption row holds a non-empty `captions_json`.
-pub async fn samples<'e>(
-    db: impl PgExecutor<'e>,
-    user_id: i32,
-) -> sqlx::Result<Vec<ExampleSample>> {
-    sqlx::query_as(
+pub async fn samples<'e>(db: impl Exec<'e>, user_id: i32) -> sqlx::Result<Vec<ExampleSample>> {
+    crate::sql::query_as(
         "SELECT p.geolocation_json, p.exif_timestamp, c.captions_json, \
          COALESCE((SELECT array_agg(pp.name ORDER BY f.id) FROM api_face f \
                    LEFT JOIN api_person pp ON pp.id = f.person_id WHERE f.photo_id = p.id), \

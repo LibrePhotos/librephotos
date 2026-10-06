@@ -1,8 +1,9 @@
 //! Read queries and row types for the `users_settings` area (owned by that area).
 
 use chrono::{DateTime, Utc};
-use sqlx::{FromRow, PgExecutor, PgPool, Postgres, QueryBuilder};
+use sqlx::FromRow;
 
+use crate::db::{Db, Exec, Qb};
 use crate::users::{USER_COLUMNS, User};
 
 pub mod sso;
@@ -45,7 +46,7 @@ struct CountRow {
 
 /// Photo numbers for several users: two queries in total (counts, samples).
 pub async fn photo_stats(
-    db: &PgPool,
+    db: &Db,
     user_ids: &[i32],
 ) -> sqlx::Result<std::collections::HashMap<i32, UserPhotoStats>> {
     let mut out: std::collections::HashMap<i32, UserPhotoStats> = user_ids
@@ -56,7 +57,7 @@ pub async fn photo_stats(
         return Ok(out);
     }
     let (counts, samples) = tokio::try_join!(
-        sqlx::query_as::<_, CountRow>(
+        crate::sql::query_as::<_, CountRow>(
             // Two scalar counts per owner can each use an index; one FILTER
             // aggregate forces a sequential scan of the owner's photos.
             "SELECT o.id AS owner_id, \
@@ -84,10 +85,10 @@ pub async fn photo_stats(
 
 /// `Photo.objects.owned_by(u).filter(public=True)[:10]` for every user at once.
 async fn public_samples<'e>(
-    db: impl PgExecutor<'e>,
+    db: impl Exec<'e>,
     user_ids: &[i32],
 ) -> sqlx::Result<Vec<PublicPhotoSample>> {
-    sqlx::query_as::<_, PublicPhotoSample>(
+    crate::sql::query_as::<_, PublicPhotoSample>(
         "SELECT owner_id, image_hash, rating, hidden, exif_timestamp, public, video FROM ( \
             SELECT p.owner_id, p.image_hash, p.rating, p.hidden, p.exif_timestamp, p.public, \
                    p.video, row_number() OVER (PARTITION BY p.owner_id) AS rn \
@@ -110,7 +111,7 @@ pub enum UserScope {
     All,
 }
 
-fn push_scope(qb: &mut QueryBuilder<'_, Postgres>, scope: UserScope) {
+fn push_scope(qb: &mut Qb<'_>, scope: UserScope) {
     if scope == UserScope::All {
         qb.push(" WHERE TRUE");
         return;
@@ -122,8 +123,8 @@ fn push_scope(qb: &mut QueryBuilder<'_, Postgres>, scope: UserScope) {
 }
 
 /// One user as `UserViewSet.get_object` finds it (404 = None).
-pub async fn visible_user(db: &PgPool, id: i32, scope: UserScope) -> sqlx::Result<Option<User>> {
-    let mut qb = QueryBuilder::new(format!(
+pub async fn visible_user(db: &Db, id: i32, scope: UserScope) -> sqlx::Result<Option<User>> {
+    let mut qb = Qb::new(format!(
         "SELECT {} FROM api_user u",
         prefixed_user_columns()
     ));
@@ -143,14 +144,14 @@ fn prefixed_user_columns() -> String {
 
 /// A LimitOffset page of users ordered by id, plus the total count.
 pub async fn list_users(
-    db: &PgPool,
+    db: &Db,
     scope: UserScope,
     limit: i64,
     offset: i64,
 ) -> sqlx::Result<(i64, Vec<User>)> {
-    let mut count_q = QueryBuilder::new("SELECT count(*) FROM api_user u");
+    let mut count_q = Qb::new("SELECT count(*) FROM api_user u");
     push_scope(&mut count_q, scope);
-    let mut page_q = QueryBuilder::new(format!(
+    let mut page_q = Qb::new(format!(
         "SELECT {} FROM api_user u",
         prefixed_user_columns()
     ));
@@ -168,16 +169,17 @@ pub async fn list_users(
 }
 
 /// `not User.objects.filter(is_superuser=True).exists()`.
-pub async fn is_first_time_setup<'e>(db: impl PgExecutor<'e>) -> sqlx::Result<bool> {
-    let any: bool = sqlx::query_scalar("SELECT EXISTS (SELECT 1 FROM api_user WHERE is_superuser)")
-        .fetch_one(db)
-        .await?;
+pub async fn is_first_time_setup<'e>(db: impl Exec<'e>) -> sqlx::Result<bool> {
+    let any: bool =
+        crate::sql::query_scalar("SELECT EXISTS (SELECT 1 FROM api_user WHERE is_superuser)")
+            .fetch_one(db)
+            .await?;
     Ok(!any)
 }
 
 /// `Photo.objects.owned_by(user).count()`.
-pub async fn photo_count<'e>(db: impl PgExecutor<'e>, user_id: i32) -> sqlx::Result<i64> {
-    sqlx::query_scalar("SELECT count(*) FROM api_photo WHERE owner_id = $1")
+pub async fn photo_count<'e>(db: impl Exec<'e>, user_id: i32) -> sqlx::Result<i64> {
+    crate::sql::query_scalar("SELECT count(*) FROM api_photo WHERE owner_id = $1")
         .bind(user_id)
         .fetch_one(db)
         .await
@@ -185,11 +187,11 @@ pub async fn photo_count<'e>(db: impl PgExecutor<'e>, user_id: i32) -> sqlx::Res
 
 /// Id of another user with exactly this username (DRF `UniqueValidator`).
 pub async fn username_taken_by_other<'e>(
-    db: impl PgExecutor<'e>,
+    db: impl Exec<'e>,
     username: &str,
     exclude_id: Option<i32>,
 ) -> sqlx::Result<bool> {
-    sqlx::query_scalar(
+    crate::sql::query_scalar(
         "SELECT EXISTS (SELECT 1 FROM api_user WHERE username = $1 \
          AND ($2::int IS NULL OR id <> $2))",
     )
@@ -208,10 +210,10 @@ pub struct ScanDirectoryOwner {
 
 /// Every other user with a scan directory (`reject_overlap_with_another_user`).
 pub async fn other_scan_directories<'e>(
-    db: impl PgExecutor<'e>,
+    db: impl Exec<'e>,
     exclude_id: Option<i32>,
 ) -> sqlx::Result<Vec<ScanDirectoryOwner>> {
-    sqlx::query_as::<_, ScanDirectoryOwner>(
+    crate::sql::query_as::<_, ScanDirectoryOwner>(
         "SELECT id, username, scan_directory FROM api_user \
          WHERE scan_directory <> '' AND ($1::int IS NULL OR id <> $1) ORDER BY id",
     )
@@ -222,10 +224,10 @@ pub async fn other_scan_directories<'e>(
 
 /// `User.objects.filter(email__iexact=email).first()` (ordered by pk).
 pub async fn user_by_email_iexact<'e>(
-    db: impl PgExecutor<'e>,
+    db: impl Exec<'e>,
     email: &str,
 ) -> sqlx::Result<Option<User>> {
-    sqlx::query_as::<_, User>(&format!(
+    crate::sql::query_as::<_, User>(&format!(
         "SELECT {USER_COLUMNS} FROM api_user WHERE upper(email) = upper($1) ORDER BY id LIMIT 1"
     ))
     .bind(email)
@@ -247,8 +249,8 @@ pub struct EmailConfigRow {
     pub secret: Vec<u8>,
 }
 
-pub async fn email_config<'e>(db: impl PgExecutor<'e>) -> sqlx::Result<Option<EmailConfigRow>> {
-    sqlx::query_as::<_, EmailConfigRow>(
+pub async fn email_config<'e>(db: impl Exec<'e>) -> sqlx::Result<Option<EmailConfigRow>> {
+    crate::sql::query_as::<_, EmailConfigRow>(
         "SELECT provider, from_email, host, port, use_tls, use_ssl, username, secret \
          FROM api_emailconfig WHERE id = 1",
     )
@@ -259,15 +261,15 @@ pub async fn email_config<'e>(db: impl PgExecutor<'e>) -> sqlx::Result<Option<Em
 /// OIDC providers configured through allauth (`SocialApp`, provider
 /// `openid_connect`): `(provider_id or client_id, name)`. Empty when the
 /// allauth tables do not exist (a Rust-only database).
-pub async fn oidc_providers(db: &PgPool) -> sqlx::Result<Vec<(String, String)>> {
+pub async fn oidc_providers(db: &Db) -> sqlx::Result<Vec<(String, String)>> {
     let exists: Option<String> =
-        sqlx::query_scalar("SELECT to_regclass('public.socialaccount_socialapp')::text")
+        crate::sql::query_scalar("SELECT to_regclass('public.socialaccount_socialapp')::text")
             .fetch_one(db)
             .await?;
     if exists.is_none() {
         return Ok(Vec::new());
     }
-    sqlx::query_as::<_, (String, String)>(
+    crate::sql::query_as::<_, (String, String)>(
         "SELECT COALESCE(NULLIF(provider_id, ''), client_id), name \
          FROM socialaccount_socialapp WHERE provider = 'openid_connect' ORDER BY id",
     )
@@ -277,12 +279,12 @@ pub async fn oidc_providers(db: &PgPool) -> sqlx::Result<Vec<(String, String)>> 
 
 /// Hits recorded in the sliding window of a rate limit (`rate_limit_hit`).
 pub async fn throttle_hits_since<'e>(
-    db: impl PgExecutor<'e>,
+    db: impl Exec<'e>,
     scope: &str,
     ident: &str,
     since: DateTime<Utc>,
 ) -> sqlx::Result<Vec<DateTime<Utc>>> {
-    sqlx::query_scalar(
+    crate::sql::query_scalar(
         "SELECT hit_at FROM rate_limit_hit WHERE scope = $1 AND ident = $2 AND hit_at > $3 \
          ORDER BY hit_at DESC",
     )
@@ -295,10 +297,10 @@ pub async fn throttle_hits_since<'e>(
 
 /// The encrypted `nextcloud_app_password` (not part of [`User`]).
 pub async fn nextcloud_app_password<'e>(
-    db: impl PgExecutor<'e>,
+    db: impl Exec<'e>,
     user_id: i32,
 ) -> sqlx::Result<Option<Vec<u8>>> {
-    sqlx::query_scalar("SELECT nextcloud_app_password FROM api_user WHERE id = $1")
+    crate::sql::query_scalar("SELECT nextcloud_app_password FROM api_user WHERE id = $1")
         .bind(user_id)
         .fetch_optional(db)
         .await

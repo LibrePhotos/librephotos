@@ -5,14 +5,13 @@
 //! (`count(*) OVER ()`); relations (covers, `shared_to`, share settings) are
 //! correlated subqueries, so every list is one round trip.
 
-use sqlx::{Postgres, QueryBuilder};
-
 pub mod auto_albums;
 pub mod misc;
 pub mod tags;
 pub mod things_places;
 pub mod user_albums;
 
+use crate::db::Qb;
 use crate::scope::like_escape;
 
 /// DRF `SearchFilter` terms: commas count as whitespace, quotes group words.
@@ -43,7 +42,7 @@ pub fn search_terms(raw: Option<&str>) -> Vec<String> {
 
 /// ` AND (<expr_1> ILIKE %term% OR ...)` per term: every term must match one
 /// of the expressions (`icontains`).
-pub(crate) fn push_search(qb: &mut QueryBuilder<'_, Postgres>, exprs: &[&str], terms: &[String]) {
+pub(crate) fn push_search(qb: &mut Qb<'_>, exprs: &[&str], terms: &[String]) {
     for term in terms {
         let pattern = format!("%{}%", like_escape(term));
         qb.push(" AND (");

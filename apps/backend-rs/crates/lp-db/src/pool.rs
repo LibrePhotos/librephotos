@@ -1,6 +1,9 @@
 use std::time::Duration;
 
 use lp_core::Config;
+use lp_core::db::Db;
+use lp_core::db::config::{Backend, DbSettings};
+use lp_core::db::lite::{LiteOptions, open};
 use sqlx::PgPool;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
@@ -21,8 +24,23 @@ pub fn connect_options(config: &Config, db_name: &str) -> PgConnectOptions {
         .application_name(APPLICATION_NAME)
 }
 
-/// Pool of `LP_DB_POOL` connections to `DB_NAME`.
-pub async fn connect(config: &Config) -> anyhow::Result<PgPool> {
+/// The database selected by `DB_BACKEND`: a pool of `LP_DB_POOL`
+/// connections to Postgres `DB_NAME` (the default), or the SQLite file at
+/// `LP_SQLITE_PATH` (design `sqlite_design.md` §2).
+pub async fn connect(config: &Config) -> anyhow::Result<Db> {
+    connect_with(config, &DbSettings::from_env()?).await
+}
+
+/// [`connect`] with explicit backend settings.
+pub async fn connect_with(config: &Config, s: &DbSettings) -> anyhow::Result<Db> {
+    Ok(match s.backend {
+        Backend::Postgres => Db::Pg(connect_pg(config).await?),
+        Backend::Sqlite => Db::Lite(open(&LiteOptions::from_settings(s)).await?),
+    })
+}
+
+/// Postgres pool of `LP_DB_POOL` connections to `DB_NAME`.
+pub async fn connect_pg(config: &Config) -> anyhow::Result<PgPool> {
     connect_to(config, &config.db.name, config.db_pool).await
 }
 

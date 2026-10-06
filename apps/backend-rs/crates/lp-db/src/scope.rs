@@ -6,7 +6,7 @@
 //! `QueryBuilder`, binding its own parameters. Combine with `" AND "`:
 //!
 //! ```ignore
-//! let mut qb = QueryBuilder::new("SELECT p.id FROM api_photo p WHERE ");
+//! let mut qb = Qb::new("SELECT p.id FROM api_photo p WHERE ");
 //! scope::owned_by(&mut qb, "p", user.id);
 //! qb.push(" AND ");
 //! scope::visible_manager(&mut qb, "p");
@@ -15,11 +15,13 @@
 use lp_core::extract::{QueryMap, py_truthy};
 use lp_core::{ApiError, ApiResult};
 use serde_json::Value;
-use sqlx::{FromRow, PgExecutor, Postgres, QueryBuilder};
+use sqlx::FromRow;
 use uuid::Uuid;
 
+use crate::db::{Exec, Qb};
+
 /// `PhotoQuerySet.owned_by(user)`: `owner_id = user`.
-pub fn owned_by(qb: &mut QueryBuilder<'_, Postgres>, p: &str, user_id: i32) {
+pub fn owned_by(qb: &mut Qb<'_>, p: &str, user_id: i32) {
     qb.push(format!("({p}.owner_id = "));
     qb.push_bind(user_id);
     qb.push(")");
@@ -28,7 +30,7 @@ pub fn owned_by(qb: &mut QueryBuilder<'_, Postgres>, p: &str, user_id: i32) {
 /// `PhotoQuerySet.visible_to(user)`: public, or owned, or shared directly.
 /// EXISTS, not a join: `api_photo_shared_to` lacks a unique pair and must
 /// not duplicate rows. `None` = anonymous (public only).
-pub fn visible_to(qb: &mut QueryBuilder<'_, Postgres>, p: &str, user_id: Option<i32>) {
+pub fn visible_to(qb: &mut Qb<'_>, p: &str, user_id: Option<i32>) {
     match user_id {
         None => {
             qb.push(format!("({p}.public)"));
@@ -49,13 +51,7 @@ pub fn visible_to(qb: &mut QueryBuilder<'_, Postgres>, p: &str, user_id: Option<
 /// `owner` and a `shared_to` M2M: the mobile sync scope of photos and albums.
 /// `through` / `fk` name the `shared_to` table and its column pointing at
 /// alias `a`. Unlike [`visible_to`], public rows are not included.
-pub fn owned_or_shared(
-    qb: &mut QueryBuilder<'_, Postgres>,
-    a: &str,
-    through: &str,
-    fk: &str,
-    user_id: i32,
-) {
+pub fn owned_or_shared(qb: &mut Qb<'_>, a: &str, through: &str, fk: &str, user_id: i32) {
     qb.push(format!("({a}.owner_id = "));
     qb.push_bind(user_id);
     qb.push(format!(
@@ -67,7 +63,7 @@ pub fn owned_or_shared(
 
 /// `Photo.visible` manager: not hidden/trashed/removed and a thumbnail with
 /// an aspect ratio (i.e. processed).
-pub fn visible_manager(qb: &mut QueryBuilder<'_, Postgres>, p: &str) {
+pub fn visible_manager(qb: &mut Qb<'_>, p: &str) {
     qb.push(format!(
         "(NOT {p}.hidden AND NOT {p}.in_trashcan AND NOT {p}.removed AND {})",
         has_thumbnail_sql(p)
@@ -91,7 +87,7 @@ pub fn stack_visible_sql(p: &str) -> String {
 }
 
 /// `faces__person__id = person`.
-pub fn person(qb: &mut QueryBuilder<'_, Postgres>, p: &str, person_id: i64) {
+pub fn person(qb: &mut Qb<'_>, p: &str, person_id: i64) {
     qb.push(format!(
         "EXISTS (SELECT 1 FROM api_face fx WHERE fx.photo_id = {p}.id AND fx.person_id = "
     ));
@@ -100,7 +96,7 @@ pub fn person(qb: &mut QueryBuilder<'_, Postgres>, p: &str, person_id: i64) {
 }
 
 /// `tags__id = tag`.
-pub fn tag(qb: &mut QueryBuilder<'_, Postgres>, p: &str, tag_id: i64) {
+pub fn tag(qb: &mut Qb<'_>, p: &str, tag_id: i64) {
     qb.push(format!(
         "EXISTS (SELECT 1 FROM api_tag_photos tx WHERE tx.photo_id = {p}.id AND tx.tag_id = "
     ));
@@ -110,7 +106,7 @@ pub fn tag(qb: &mut QueryBuilder<'_, Postgres>, p: &str, tag_id: i64) {
 
 /// `folder_path_q("files__path", folder)`: any of the photo's files lies
 /// inside `folder` (anchored on a separator, so `/a/b` doesn't match `/a/bc`).
-pub fn folder(qb: &mut QueryBuilder<'_, Postgres>, p: &str, folder: &str) {
+pub fn folder(qb: &mut Qb<'_>, p: &str, folder: &str) {
     qb.push(format!(
         "EXISTS (SELECT 1 FROM api_photo_files pfx JOIN api_file fx ON fx.hash = pfx.file_id \
          WHERE pfx.photo_id = {p}.id AND ("
@@ -236,7 +232,7 @@ impl PhotoFilterParams {
 /// select-all query (always owner-scoped; nothing in params can widen it).
 /// Pushes one parenthesized expression over alias `p`.
 pub fn photo_filters(
-    qb: &mut QueryBuilder<'_, Postgres>,
+    qb: &mut Qb<'_>,
     p: &str,
     user_id: i32,
     favorite_min_rating: i32,
@@ -335,11 +331,11 @@ pub fn photo_grants_select(p: &str, user: &str) -> String {
 }
 
 pub async fn album_share_grants<'e>(
-    db: impl PgExecutor<'e>,
+    db: impl Exec<'e>,
     photo_id: Uuid,
     user_id: Option<i32>,
 ) -> sqlx::Result<Option<PhotoGrants>> {
-    sqlx::query_as::<_, PhotoGrants>(&format!(
+    crate::sql::query_as::<_, PhotoGrants>(&format!(
         "SELECT {} FROM api_photo p WHERE p.id = $1",
         photo_grants_select("p", "$2")
     ))
@@ -377,7 +373,7 @@ mod tests {
 
     #[test]
     fn filter_sql_shape() {
-        let mut qb = QueryBuilder::<Postgres>::new("SELECT p.id FROM api_photo p WHERE ");
+        let mut qb = Qb::new("SELECT p.id FROM api_photo p WHERE ");
         let params = PhotoFilterParams {
             favorite: true,
             person: Some(3),

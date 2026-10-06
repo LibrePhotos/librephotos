@@ -2,9 +2,11 @@
 //! share responses), the detail header and membership.
 
 use chrono::{DateTime, Utc};
+use sqlx::FromRow;
 use sqlx::types::Json;
-use sqlx::{FromRow, PgExecutor, Postgres, QueryBuilder};
 use uuid::Uuid;
+
+use crate::db::{DjList, DjUuid, DjUuidOpt, Exec, Qb};
 
 use super::things_places::{HasTotal, fetch_paged};
 use super::{Paged, push_search, simple_user_json};
@@ -53,7 +55,7 @@ pub enum UserAlbumListKind<'a> {
     ById { id: i32 },
 }
 
-fn select(qb: &mut QueryBuilder<'_, Postgres>, nonhidden_count: bool, with_total: bool) {
+fn select(qb: &mut Qb<'_>, nonhidden_count: bool, with_total: bool) {
     let hidden = if nonhidden_count {
         " AND NOT cp_p.hidden"
     } else {
@@ -71,8 +73,8 @@ fn select(qb: &mut QueryBuilder<'_, Postgres>, nonhidden_count: bool, with_total
     ));
 }
 
-fn build<'a>(kind: &UserAlbumListKind<'a>, limit: i64, offset: i64) -> QueryBuilder<'a, Postgres> {
-    let mut qb = QueryBuilder::new("");
+fn build<'a>(kind: &UserAlbumListKind<'a>, limit: i64, offset: i64) -> Qb<'a> {
+    let mut qb = Qb::new("");
     match kind {
         UserAlbumListKind::Owned { owner_id, search } => {
             // The window must count only albums that survive photo_count > 0.
@@ -119,7 +121,7 @@ pub async fn list<'e, E>(
     offset: i64,
 ) -> sqlx::Result<Paged<UserAlbumListRow>>
 where
-    E: PgExecutor<'e> + Copy,
+    E: Exec<'e> + Copy,
 {
     let rows: Vec<UserAlbumListRow> = build(&kind, limit, offset)
         .build_query_as()
@@ -138,7 +140,7 @@ where
     Ok(Paged { rows, total })
 }
 
-pub async fn by_id<'e>(db: impl PgExecutor<'e>, id: i32) -> sqlx::Result<Option<UserAlbumListRow>> {
+pub async fn by_id<'e>(db: impl Exec<'e>, id: i32) -> sqlx::Result<Option<UserAlbumListRow>> {
     build(&UserAlbumListKind::ById { id }, 1, 0)
         .build_query_as()
         .fetch_optional(db)
@@ -182,8 +184,8 @@ pub enum DetailScope<'a> {
 }
 
 /// `SELECT` of [`UserAlbumDetailRow`] up to `WHERE `.
-fn detail_select<'a>() -> QueryBuilder<'a, Postgres> {
-    QueryBuilder::new(format!(
+fn detail_select<'a>() -> Qb<'a> {
+    Qb::new(format!(
         "SELECT a.id, a.title, a.owner_id, {ow} AS owner, ow.public_sharing_defaults AS owner_sharing_defaults, \
            (SELECT COALESCE(json_agg({st} ORDER BY st_l.id), '[]'::json) \
               FROM api_albumuser_shared_to st_l JOIN api_user st ON st.id = st_l.user_id \
@@ -208,7 +210,7 @@ fn detail_select<'a>() -> QueryBuilder<'a, Postgres> {
 }
 
 /// ` AND <scope>` over album `a`, share `s` and owner `ow`.
-fn push_detail_scope(qb: &mut QueryBuilder<'_, Postgres>, scope: DetailScope<'_>) {
+fn push_detail_scope(qb: &mut Qb<'_>, scope: DetailScope<'_>) {
     match scope {
         DetailScope::Visible { user_id, write } => {
             qb.push(" AND (a.owner_id = ");
@@ -234,7 +236,7 @@ fn push_detail_scope(qb: &mut QueryBuilder<'_, Postgres>, scope: DetailScope<'_>
 }
 
 pub async fn detail<'e>(
-    db: impl PgExecutor<'e>,
+    db: impl Exec<'e>,
     id: i32,
     scope: DetailScope<'_>,
 ) -> sqlx::Result<Option<UserAlbumDetailRow>> {
@@ -254,7 +256,7 @@ pub async fn detail_list<'e, E>(
     offset: i64,
 ) -> sqlx::Result<Paged<UserAlbumDetailRow>>
 where
-    E: PgExecutor<'e> + Copy,
+    E: Exec<'e> + Copy,
 {
     let build = |limit: i64, offset: i64| {
         let mut qb = detail_select();
@@ -289,10 +291,10 @@ pub async fn edit_list<'e, E>(
     offset: i64,
 ) -> sqlx::Result<Paged<UserAlbumEditRow>>
 where
-    E: PgExecutor<'e> + Copy,
+    E: Exec<'e> + Copy,
 {
     let build = |limit: i64, offset: i64| {
-        let mut qb = QueryBuilder::new(format!(
+        let mut qb = Qb::new(format!(
             "{EDIT_SELECT}, count(*) OVER () AS total_count FROM api_albumuser a WHERE a.owner_id = "
         ));
         qb.push_bind(owner_id);
@@ -306,17 +308,15 @@ where
 }
 
 /// `(album id, photo id)` memberships of `album_ids`.
-pub async fn members<'e>(
-    db: impl PgExecutor<'e>,
-    album_ids: &[i32],
-) -> sqlx::Result<Vec<(i32, Uuid)>> {
-    sqlx::query_as(
+pub async fn members<'e>(db: impl Exec<'e>, album_ids: &[i32]) -> sqlx::Result<Vec<(i32, Uuid)>> {
+    let rows: Vec<(i32, DjUuid)> = crate::sql::query_as(
         "SELECT albumuser_id, photo_id FROM api_albumuser_photos \
          WHERE albumuser_id = ANY($1) AND photo_id IS NOT NULL",
     )
     .bind(album_ids)
     .fetch_all(db)
-    .await
+    .await?;
+    Ok(rows.into_iter().map(|(a, p)| (a, p.0)).collect())
 }
 
 /// `AlbumUserEditSerializer` output row.
@@ -324,9 +324,11 @@ pub async fn members<'e>(
 pub struct UserAlbumEditRow {
     pub id: i32,
     pub title: String,
+    #[sqlx(try_from = "DjList<Uuid>")]
     pub photos: Vec<Uuid>,
     pub created_on: DateTime<Utc>,
     pub favorited: bool,
+    #[sqlx(try_from = "DjUuidOpt")]
     pub cover_photo_id: Option<Uuid>,
     #[sqlx(default)]
     pub total_count: Option<i64>,
@@ -337,8 +339,8 @@ const EDIT_SELECT: &str = "SELECT a.id, a.title, \
       WHERE l.albumuser_id = a.id AND l.photo_id IS NOT NULL ORDER BY l.id) AS photos, \
     a.created_on, a.favorited, a.cover_photo_id";
 
-pub async fn edit_row<'e>(db: impl PgExecutor<'e>, id: i32) -> sqlx::Result<UserAlbumEditRow> {
-    sqlx::query_as(&format!(
+pub async fn edit_row<'e>(db: impl Exec<'e>, id: i32) -> sqlx::Result<UserAlbumEditRow> {
+    crate::sql::query_as(format!(
         "{EDIT_SELECT} FROM api_albumuser a WHERE a.id = $1"
     ))
     .bind(id)
@@ -347,12 +349,8 @@ pub async fn edit_row<'e>(db: impl PgExecutor<'e>, id: i32) -> sqlx::Result<User
 }
 
 /// The owner's album id, if `id` exists and belongs to `owner_id`.
-pub async fn owned_id<'e>(
-    db: impl PgExecutor<'e>,
-    id: i32,
-    owner_id: i32,
-) -> sqlx::Result<Option<i32>> {
-    sqlx::query_scalar("SELECT id FROM api_albumuser WHERE id = $1 AND owner_id = $2")
+pub async fn owned_id<'e>(db: impl Exec<'e>, id: i32, owner_id: i32) -> sqlx::Result<Option<i32>> {
+    crate::sql::query_scalar("SELECT id FROM api_albumuser WHERE id = $1 AND owner_id = $2")
         .bind(id)
         .bind(owner_id)
         .fetch_optional(db)
@@ -360,8 +358,8 @@ pub async fn owned_id<'e>(
 }
 
 /// `(owner_id)` of album `id`.
-pub async fn owner_of<'e>(db: impl PgExecutor<'e>, id: i32) -> sqlx::Result<Option<i32>> {
-    sqlx::query_scalar("SELECT owner_id FROM api_albumuser WHERE id = $1")
+pub async fn owner_of<'e>(db: impl Exec<'e>, id: i32) -> sqlx::Result<Option<i32>> {
+    crate::sql::query_scalar("SELECT owner_id FROM api_albumuser WHERE id = $1")
         .bind(id)
         .fetch_optional(db)
         .await

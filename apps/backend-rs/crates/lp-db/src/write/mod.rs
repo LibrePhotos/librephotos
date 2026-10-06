@@ -2,8 +2,8 @@
 //! signals, so each service performs its side effects (S1..S22 in 02 §5)
 //! itself, in the same transaction:
 //!
-//! * Take `&mut PgConnection` (callers pass `&mut *tx`) when the write must
-//!   compose into a caller's transaction; take `&PgPool` and open the
+//! * Take `&mut Conn` (callers pass `&mut *tx`) when the write must
+//!   compose into a caller's transaction; take `&Db` and open the
 //!   transaction inside when the service is a complete unit.
 //! * Bump `last_modified` / `updated_at` yourself on every UPDATE of a model
 //!   with Django `auto_now` (S14): Django and Rust take turns on one DB.
@@ -12,7 +12,8 @@
 //! * File deletions happen only after commit: collect them in an
 //!   [`AfterCommit`] and call `run()` after `tx.commit()`.
 //! * Handler crates (`lp-api`, `lp-media`, `lp-auth`) may not call
-//!   `sqlx::query*` at all (clippy `disallowed-methods`); reads go in
+//!   `lp_db::sql::query*` (or `sqlx::query*`) at all (clippy
+//!   `disallowed-methods`); reads go in
 //!   `lp_db::<area>`, writes in `lp_db::write::<area>`.
 
 use std::path::PathBuf;

@@ -4,10 +4,11 @@
 
 use std::collections::HashSet;
 
-use sqlx::{FromRow, PgConnection, Postgres, QueryBuilder};
+use sqlx::FromRow;
 use uuid::Uuid;
 
 use super::{refresh_tag_photo_counts, tag_ids_for_photos};
+use crate::db::{Conn, DjUuid, Qb};
 use crate::scope::{self, PhotoFilterParams};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -32,12 +33,7 @@ impl Flag {
     }
 
     /// `differs(user, value)` over alias `p`.
-    fn push_differs(
-        self,
-        qb: &mut QueryBuilder<'_, Postgres>,
-        value: bool,
-        favorite_min_rating: i32,
-    ) {
+    fn push_differs(self, qb: &mut Qb<'_>, value: bool, favorite_min_rating: i32) {
         match self {
             Flag::Deleted => {
                 qb.push("(p.in_trashcan <> ");
@@ -64,7 +60,7 @@ impl Flag {
     }
 
     /// `new_values(user, value)` as a SET clause.
-    fn push_set(self, qb: &mut QueryBuilder<'_, Postgres>, value: bool, favorite_min_rating: i32) {
+    fn push_set(self, qb: &mut Qb<'_>, value: bool, favorite_min_rating: i32) {
         match self {
             Flag::Deleted => {
                 qb.push("in_trashcan = ");
@@ -107,6 +103,7 @@ pub struct BulkOutcome {
 
 #[derive(FromRow)]
 struct HashRow {
+    #[sqlx(try_from = "DjUuid")]
     id: Uuid,
     image_hash: String,
     changing: bool,
@@ -115,7 +112,7 @@ struct HashRow {
 /// `build_photo_queryset(user, query)` minus `excluded_hashes`, pushed as a
 /// WHERE body over alias `p`.
 pub fn push_select_all(
-    qb: &mut QueryBuilder<'_, Postgres>,
+    qb: &mut Qb<'_>,
     user_id: i32,
     favorite_min_rating: i32,
     params: &PhotoFilterParams,
@@ -130,7 +127,7 @@ pub fn push_select_all(
 }
 
 pub async fn apply(
-    conn: &mut PgConnection,
+    conn: &mut Conn,
     user_id: i32,
     favorite_min_rating: i32,
     flag: Flag,
@@ -142,7 +139,7 @@ pub async fn apply(
             params,
             excluded_hashes,
         } => {
-            let mut qb = QueryBuilder::new("SELECT p.id FROM api_photo p WHERE ");
+            let mut qb = Qb::new("SELECT p.id FROM api_photo p WHERE ");
             push_select_all(
                 &mut qb,
                 user_id,
@@ -163,7 +160,7 @@ pub async fn apply(
             })
         }
         Selection::Hashes(requested) => {
-            let mut qb = QueryBuilder::new("SELECT p.id, p.image_hash, ");
+            let mut qb = Qb::new("SELECT p.id, p.image_hash, ");
             flag.push_differs(&mut qb, value, favorite_min_rating);
             qb.push(" AS changing FROM api_photo p WHERE ");
             scope::owned_by(&mut qb, "p", user_id);
@@ -212,7 +209,7 @@ pub async fn apply(
 }
 
 async fn update(
-    conn: &mut PgConnection,
+    conn: &mut Conn,
     flag: Flag,
     value: bool,
     favorite_min_rating: i32,
@@ -228,7 +225,7 @@ async fn update(
     };
     if flag == Flag::Deleted && !value {
         // A restored photo re-enters its stacks: their reviews go back to pending.
-        sqlx::query(
+        crate::sql::query(
             "UPDATE api_stackreview SET decision = 'pending' WHERE decision = 'resolved' \
              AND stack_id IN (SELECT photostack_id FROM api_photo_stacks WHERE photo_id = ANY($1))",
         )
@@ -236,7 +233,7 @@ async fn update(
         .execute(&mut *conn)
         .await?;
     }
-    let mut qb = QueryBuilder::new("UPDATE api_photo SET ");
+    let mut qb = Qb::new("UPDATE api_photo SET ");
     flag.push_set(&mut qb, value, favorite_min_rating);
     qb.push(", last_modified = now() WHERE id = ANY(");
     qb.push_bind(ids.to_vec());

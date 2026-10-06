@@ -2,8 +2,9 @@
 //! schema (api.0142); everything after it is additive Rust-only schema.
 //! New files: `migrations/<YYYYMMDDHHMM>_<area>_<what>.sql` (see CLAUDE.md).
 
-use sqlx::PgPool;
 use sqlx::migrate::Migrator;
+
+use crate::db::Db;
 
 pub static MIGRATOR: Migrator = sqlx::migrate!("../../migrations");
 
@@ -21,20 +22,25 @@ pub fn migrator() -> Migrator {
     }
 }
 
-pub async fn run(pool: &PgPool) -> anyhow::Result<()> {
-    migrator().run(pool).await?;
+pub async fn run(db: &Db) -> anyhow::Result<()> {
+    match db.as_pg() {
+        Some(pool) => migrator().run(pool).await?,
+        // SQLITE(P2): migrations/sqlite/ and its own migrator (design §4).
+        None => anyhow::bail!("migrations are not implemented on SQLite yet"),
+    }
     Ok(())
 }
 
 /// `serve`/`migrate` guard: a Django database must go through `adopt`
 /// first (running the baseline on it would fail half-way).
-pub async fn run_checked(pool: &PgPool) -> anyhow::Result<()> {
+pub async fn run_checked(pool: &Db) -> anyhow::Result<()> {
+    // SQLITE(P2): sqlite_master instead of to_regclass.
     let tracked: Option<String> =
-        sqlx::query_scalar("SELECT to_regclass('public._sqlx_migrations')::text")
+        crate::sql::query_scalar("SELECT to_regclass('public._sqlx_migrations')::text")
             .fetch_one(pool)
             .await?;
     let has_photo: Option<String> =
-        sqlx::query_scalar("SELECT to_regclass('public.api_photo')::text")
+        crate::sql::query_scalar("SELECT to_regclass('public.api_photo')::text")
             .fetch_one(pool)
             .await?;
     if tracked.is_none() && has_photo.is_some() {

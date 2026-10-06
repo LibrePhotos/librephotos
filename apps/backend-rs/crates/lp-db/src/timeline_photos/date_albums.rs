@@ -5,8 +5,9 @@
 //! page like Django's `Paginator` and returns the summaries of that page.
 
 use chrono::NaiveDate;
-use sqlx::{FromRow, PgExecutor, Postgres, QueryBuilder};
+use sqlx::FromRow;
 
+use crate::db::{Db, Exec, Qb};
 use crate::pig::{PIG_COLUMNS, PIG_JOINS, PigPhoto, PigRow};
 use crate::scope::{self, PhotoFilterParams};
 
@@ -62,7 +63,7 @@ impl TimelineFilter {
 }
 
 /// `owner_id IN (SELECT id FROM api_user WHERE username = $x)`.
-fn push_username(qb: &mut QueryBuilder<'_, Postgres>, col: &str, username: &str) {
+fn push_username(qb: &mut Qb<'_>, col: &str, username: &str) {
     qb.push(format!(
         "{col} IN (SELECT uu.id FROM api_user uu WHERE uu.username = "
     ));
@@ -72,7 +73,7 @@ fn push_username(qb: &mut QueryBuilder<'_, Postgres>, col: &str, username: &str)
 
 /// Photo-level conditions shared by the list and the day page (everything
 /// but ownership), one parenthesized expression over alias `p`.
-fn push_photo_conditions(qb: &mut QueryBuilder<'_, Postgres>, p: &str, f: &TimelineFilter) {
+fn push_photo_conditions(qb: &mut Qb<'_>, p: &str, f: &TimelineFilter) {
     qb.push(format!(
         "({} AND {p}.hidden = ",
         scope::has_thumbnail_sql(p)
@@ -156,11 +157,8 @@ pub struct DateGroupRow {
 /// `GET /albums/date/list/`: every day with at least one matching photo,
 /// newest first. Counted per `albumdate_id` before the day rows join in, so
 /// the wide `location` JSON is not carried through the per-photo join.
-pub async fn list<'e>(
-    db: impl PgExecutor<'e>,
-    f: &TimelineFilter,
-) -> sqlx::Result<Vec<DateGroupRow>> {
-    let mut qb = QueryBuilder::new(format!(
+pub async fn list<'e>(db: impl Exec<'e>, f: &TimelineFilter) -> sqlx::Result<Vec<DateGroupRow>> {
+    let mut qb = Qb::new(format!(
         "SELECT a.id, a.date, {} AS location, c.n AS photo_count \
          FROM (SELECT ap.albumdate_id AS id, count(*) AS n FROM api_albumdate_photos ap \
            JOIN api_photo p ON p.id = ap.photo_id WHERE ",
@@ -214,12 +212,7 @@ pub struct DatePage {
 
 /// `_album_date`: the requester's own day, or with `public` a day holding a
 /// public photo (of `username`, when given).
-fn push_album_auth(
-    qb: &mut QueryBuilder<'_, Postgres>,
-    a: &str,
-    album_id: i32,
-    f: &TimelineFilter,
-) {
+fn push_album_auth(qb: &mut Qb<'_>, a: &str, album_id: i32, f: &TimelineFilter) {
     qb.push(format!("{a}.id = "));
     qb.push_bind(album_id);
     if f.public {
@@ -241,13 +234,13 @@ fn push_album_auth(
 /// `page`: `None` for a missing or non-integer page (Django: page 1);
 /// pages below 1 or past the end resolve to the last page.
 pub async fn page(
-    db: &sqlx::PgPool,
+    db: &Db,
     album_id: i32,
     f: &TimelineFilter,
     page: Option<i64>,
     size: i64,
 ) -> sqlx::Result<Option<DatePage>> {
-    let mut qb = QueryBuilder::new(format!(
+    let mut qb = Qb::new(format!(
         "WITH alb AS (SELECT a.id, a.date, {} AS location FROM api_albumdate a WHERE ",
         location_sql("a", f.public)
     ));
@@ -306,7 +299,7 @@ pub async fn page(
         }));
     }
     // No rows: either the day is not visible or no photo matches (total 0).
-    let mut qb = QueryBuilder::new(format!(
+    let mut qb = Qb::new(format!(
         "SELECT a.id, a.date, {} AS location FROM api_albumdate a WHERE ",
         location_sql("a", f.public)
     ));
@@ -333,7 +326,7 @@ mod tests {
             person: Some(1),
             ..Default::default()
         };
-        let mut qb = QueryBuilder::<Postgres>::new("SELECT 1 FROM api_photo p WHERE ");
+        let mut qb = Qb::new("SELECT 1 FROM api_photo p WHERE ");
         push_photo_conditions(&mut qb, "p", &f);
         let sql = qb.sql();
         assert!(sql.contains("p.video") && sql.contains("NOT p.video"));

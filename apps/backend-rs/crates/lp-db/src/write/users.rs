@@ -2,7 +2,8 @@
 
 use chrono::Utc;
 use lp_core::django_crypto::DjangoCrypto;
-use sqlx::PgExecutor;
+
+use crate::db::Exec;
 
 /// `settings.DEFAULT_FAVORITE_MIN_RATING`.
 pub const DEFAULT_FAVORITE_MIN_RATING: i32 = 4;
@@ -43,12 +44,12 @@ pub fn default_public_sharing_defaults() -> serde_json::Value {
 /// Insert a user with every Django default filled in; returns the new id.
 /// `nextcloud_app_password` gets a Django-decryptable encryption of "".
 pub async fn create_user<'e>(
-    db: impl PgExecutor<'e>,
+    db: impl Exec<'e>,
     crypto: &DjangoCrypto,
     new: &NewUser<'_>,
 ) -> sqlx::Result<i32> {
     let now = Utc::now();
-    sqlx::query_scalar(
+    crate::sql::query_scalar(
         "INSERT INTO api_user (password, last_login, is_superuser, username, first_name, last_name, \
            email, is_staff, is_active, date_joined, scan_directory, avatar, nextcloud_server_address, \
            nextcloud_username, nextcloud_app_password, nextcloud_scan_directory, confidence, \
@@ -84,11 +85,11 @@ pub async fn create_user<'e>(
 }
 
 pub async fn set_password<'e>(
-    db: impl PgExecutor<'e>,
+    db: impl Exec<'e>,
     user_id: i32,
     password_hash: &str,
 ) -> sqlx::Result<()> {
-    sqlx::query("UPDATE api_user SET password = $2, last_modified = now() WHERE id = $1")
+    crate::sql::query("UPDATE api_user SET password = $2, last_modified = now() WHERE id = $1")
         .bind(user_id)
         .bind(password_hash)
         .execute(db)

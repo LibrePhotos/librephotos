@@ -15,10 +15,11 @@ use chrono::{DateTime, Utc};
 use lp_core::codecs::DominantColor;
 use lp_core::time::{drf_datetime, py_isoformat};
 use serde::{Deserialize, Serialize};
+use sqlx::FromRow;
 use sqlx::types::Json;
-use sqlx::{FromRow, PgExecutor, Postgres, QueryBuilder};
 use uuid::Uuid;
 
+use crate::db::{DjUuid, Exec, Qb};
 use crate::users::SimpleUser;
 
 /// Stack types the frontend's `StackTypeEnum` accepts. Legacy `raw_jpeg` /
@@ -58,6 +59,7 @@ pub struct StackSummary {
 
 #[derive(Debug, Clone, FromRow)]
 pub struct PigRow {
+    #[sqlx(try_from = "DjUuid")]
     pub id: Uuid,
     pub image_hash: String,
     pub exif_timestamp: Option<DateTime<Utc>>,
@@ -172,25 +174,22 @@ impl From<PigRow> for PigPhoto {
 
 /// `SELECT <pig columns> FROM api_photo p <joins>`; push `" WHERE ..."`,
 /// ordering and limits yourself (alias `p`), then call [`fetch`].
-pub fn query<'a>() -> QueryBuilder<'a, Postgres> {
-    QueryBuilder::new(format!("SELECT {PIG_COLUMNS} FROM api_photo p{PIG_JOINS}"))
+pub fn query<'a>() -> Qb<'a> {
+    Qb::new(format!("SELECT {PIG_COLUMNS} FROM api_photo p{PIG_JOINS}"))
 }
 
-pub async fn fetch<'e>(
-    qb: &mut QueryBuilder<'_, Postgres>,
-    db: impl PgExecutor<'e>,
-) -> sqlx::Result<Vec<PigPhoto>> {
+pub async fn fetch<'e>(qb: &mut Qb<'_>, db: impl Exec<'e>) -> sqlx::Result<Vec<PigPhoto>> {
     let rows: Vec<PigRow> = qb.build_query_as().fetch_all(db).await?;
     Ok(rows.into_iter().map(PigPhoto::from).collect())
 }
 
 /// Summaries for `ids`, in the given order; unknown ids are skipped.
 /// Performs no authorization: scope the ids first.
-pub async fn by_ids<'e>(db: impl PgExecutor<'e>, ids: &[Uuid]) -> sqlx::Result<Vec<PigPhoto>> {
+pub async fn by_ids<'e>(db: impl Exec<'e>, ids: &[Uuid]) -> sqlx::Result<Vec<PigPhoto>> {
     if ids.is_empty() {
         return Ok(Vec::new());
     }
-    let rows: Vec<PigRow> = sqlx::query_as(&format!(
+    let rows: Vec<PigRow> = crate::sql::query_as(format!(
         "SELECT {PIG_COLUMNS} FROM unnest($1::uuid[]) WITH ORDINALITY AS pig_sel(id, ord) \
          JOIN api_photo p ON p.id = pig_sel.id{PIG_JOINS} ORDER BY pig_sel.ord"
     ))

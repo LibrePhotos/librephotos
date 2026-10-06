@@ -3,8 +3,8 @@
 use chrono::{DateTime, Utc};
 use lp_core::django_crypto::DjangoCrypto;
 use serde_json::Value;
-use sqlx::{PgConnection, PgPool, Postgres, QueryBuilder};
 
+use crate::db::{Conn, Db, Qb};
 use crate::write::users::{NewUser, create_user};
 
 /// A typed value for one `api_user` column in [`update_user`].
@@ -67,7 +67,7 @@ const UPDATABLE: &[&str] = &[
 /// `bump` mirrors Django's full `save()` (S14); `save(update_fields=..)`
 /// callers pass false. Panics on a column outside the whitelist (a bug).
 pub async fn update_user(
-    conn: &mut PgConnection,
+    conn: &mut Conn,
     user_id: i32,
     cols: &[(&str, ColVal)],
     bump: bool,
@@ -75,7 +75,7 @@ pub async fn update_user(
     if cols.is_empty() && !bump {
         return Ok(());
     }
-    let mut qb: QueryBuilder<'_, Postgres> = QueryBuilder::new("UPDATE api_user SET ");
+    let mut qb: Qb<'_> = Qb::new("UPDATE api_user SET ");
     let mut first = true;
     for (col, val) in cols {
         assert!(UPDATABLE.contains(col), "api_user.{col} is not updatable");
@@ -116,16 +116,17 @@ pub struct Signup<'a> {
 
 /// Sign-up: one INSERT (or the takeover of an abandoned sign-up row with the
 /// same username), admin when no superuser exists yet. Returns the user id.
-pub async fn signup(pool: &PgPool, crypto: &DjangoCrypto, s: &Signup<'_>) -> sqlx::Result<i32> {
+pub async fn signup(pool: &Db, crypto: &DjangoCrypto, s: &Signup<'_>) -> sqlx::Result<i32> {
     let mut tx = pool.begin().await?;
     let should_be_superuser: bool =
-        sqlx::query_scalar("SELECT NOT EXISTS (SELECT 1 FROM api_user WHERE is_superuser)")
+        crate::sql::query_scalar("SELECT NOT EXISTS (SELECT 1 FROM api_user WHERE is_superuser)")
             .fetch_one(&mut *tx)
             .await?;
-    let existing: Option<i32> = sqlx::query_scalar("SELECT id FROM api_user WHERE username = $1")
-        .bind(s.username)
-        .fetch_optional(&mut *tx)
-        .await?;
+    let existing: Option<i32> =
+        crate::sql::query_scalar("SELECT id FROM api_user WHERE username = $1")
+            .bind(s.username)
+            .fetch_optional(&mut *tx)
+            .await?;
     let id = match existing {
         Some(id) => {
             update_user(
@@ -169,7 +170,7 @@ pub async fn signup(pool: &PgPool, crypto: &DjangoCrypto, s: &Signup<'_>) -> sql
 /// `UserSerializer.create` (admin): `create_user` / `create_superuser` with
 /// the validated fields; `extra` are further model columns the admin sent.
 pub async fn admin_create(
-    pool: &PgPool,
+    pool: &Db,
     crypto: &DjangoCrypto,
     new: &NewUser<'_>,
     extra: &[(&str, ColVal)],
@@ -184,8 +185,8 @@ pub async fn admin_create(
 }
 
 /// `auto_create_user_directory`: `user.save(update_fields=["scan_directory"])`.
-pub async fn set_scan_directory(pool: &PgPool, user_id: i32, dir: &str) -> sqlx::Result<()> {
-    sqlx::query("UPDATE api_user SET scan_directory = $2 WHERE id = $1")
+pub async fn set_scan_directory(pool: &Db, user_id: i32, dir: &str) -> sqlx::Result<()> {
+    crate::sql::query("UPDATE api_user SET scan_directory = $2 WHERE id = $1")
         .bind(user_id)
         .bind(dir)
         .execute(pool)
@@ -195,7 +196,7 @@ pub async fn set_scan_directory(pool: &PgPool, user_id: i32, dir: &str) -> sqlx:
 
 /// Apply a profile/manage update as one statement (see [`update_user`]).
 pub async fn apply_user_update(
-    pool: &PgPool,
+    pool: &Db,
     user_id: i32,
     cols: &[(&str, ColVal)],
     bump: bool,
@@ -235,8 +236,8 @@ const DELETE_WITH_USER: &[(&str, &str)] = &[
     ("chunked_upload_chunkedupload", "user_id"),
 ];
 
-async fn table_exists(conn: &mut PgConnection, table: &str) -> sqlx::Result<bool> {
-    let found: Option<String> = sqlx::query_scalar("SELECT to_regclass($1)::text")
+async fn table_exists(conn: &mut Conn, table: &str) -> sqlx::Result<bool> {
+    let found: Option<String> = crate::sql::query_scalar("SELECT to_regclass($1)::text")
         .bind(format!("public.{table}"))
         .fetch_one(&mut *conn)
         .await?;
@@ -244,9 +245,9 @@ async fn table_exists(conn: &mut PgConnection, table: &str) -> sqlx::Result<bool
 }
 
 /// `get_deleted_user()`: the inactive `deleted` sentinel, created if missing.
-pub async fn deleted_user_id(conn: &mut PgConnection, crypto: &DjangoCrypto) -> sqlx::Result<i32> {
+pub async fn deleted_user_id(conn: &mut Conn, crypto: &DjangoCrypto) -> sqlx::Result<i32> {
     let found: Option<(i32, bool)> =
-        sqlx::query_as("SELECT id, is_active FROM api_user WHERE username = 'deleted'")
+        crate::sql::query_as("SELECT id, is_active FROM api_user WHERE username = 'deleted'")
             .fetch_optional(&mut *conn)
             .await?;
     let (id, active) = match found {
@@ -280,29 +281,29 @@ pub async fn deleted_user_id(conn: &mut PgConnection, crypto: &DjangoCrypto) -> 
 /// `SET(get_deleted_user)` FKs to the `deleted` user, null `Person.cluster_owner`,
 /// drop M2M/CASCADE rows (allauth, admin log, simplejwt outstanding tokens are
 /// handled when those tables exist), then the user row. One transaction.
-pub async fn delete_user(pool: &PgPool, crypto: &DjangoCrypto, user_id: i32) -> sqlx::Result<()> {
+pub async fn delete_user(pool: &Db, crypto: &DjangoCrypto, user_id: i32) -> sqlx::Result<()> {
     let mut tx = pool.begin().await?;
     let deleted = deleted_user_id(&mut tx, crypto).await?;
     for (table, col) in REASSIGN_TO_DELETED {
-        sqlx::query(&format!("UPDATE {table} SET {col} = $1 WHERE {col} = $2"))
+        crate::sql::query(format!("UPDATE {table} SET {col} = $1 WHERE {col} = $2"))
             .bind(deleted)
             .bind(user_id)
             .execute(&mut *tx)
             .await?;
     }
-    sqlx::query("UPDATE api_person SET cluster_owner_id = NULL WHERE cluster_owner_id = $1")
+    crate::sql::query("UPDATE api_person SET cluster_owner_id = NULL WHERE cluster_owner_id = $1")
         .bind(user_id)
         .execute(&mut *tx)
         .await?;
     for (table, col) in DELETE_WITH_USER {
-        sqlx::query(&format!("DELETE FROM {table} WHERE {col} = $1"))
+        crate::sql::query(format!("DELETE FROM {table} WHERE {col} = $1"))
             .bind(user_id)
             .execute(&mut *tx)
             .await?;
     }
     if table_exists(&mut tx, "account_emailaddress").await? {
         if table_exists(&mut tx, "account_emailconfirmation").await? {
-            sqlx::query(
+            crate::sql::query(
                 "DELETE FROM account_emailconfirmation WHERE email_address_id IN \
                  (SELECT id FROM account_emailaddress WHERE user_id = $1)",
             )
@@ -310,14 +311,14 @@ pub async fn delete_user(pool: &PgPool, crypto: &DjangoCrypto, user_id: i32) -> 
             .execute(&mut *tx)
             .await?;
         }
-        sqlx::query("DELETE FROM account_emailaddress WHERE user_id = $1")
+        crate::sql::query("DELETE FROM account_emailaddress WHERE user_id = $1")
             .bind(user_id)
             .execute(&mut *tx)
             .await?;
     }
     if table_exists(&mut tx, "socialaccount_socialaccount").await? {
         if table_exists(&mut tx, "socialaccount_socialtoken").await? {
-            sqlx::query(
+            crate::sql::query(
                 "DELETE FROM socialaccount_socialtoken WHERE account_id IN \
                  (SELECT id FROM socialaccount_socialaccount WHERE user_id = $1)",
             )
@@ -325,26 +326,26 @@ pub async fn delete_user(pool: &PgPool, crypto: &DjangoCrypto, user_id: i32) -> 
             .execute(&mut *tx)
             .await?;
         }
-        sqlx::query("DELETE FROM socialaccount_socialaccount WHERE user_id = $1")
+        crate::sql::query("DELETE FROM socialaccount_socialaccount WHERE user_id = $1")
             .bind(user_id)
             .execute(&mut *tx)
             .await?;
     }
     if table_exists(&mut tx, "django_admin_log").await? {
-        sqlx::query("DELETE FROM django_admin_log WHERE user_id = $1")
+        crate::sql::query("DELETE FROM django_admin_log WHERE user_id = $1")
             .bind(user_id)
             .execute(&mut *tx)
             .await?;
     }
     if table_exists(&mut tx, "token_blacklist_outstandingtoken").await? {
-        sqlx::query(
+        crate::sql::query(
             "UPDATE token_blacklist_outstandingtoken SET user_id = NULL WHERE user_id = $1",
         )
         .bind(user_id)
         .execute(&mut *tx)
         .await?;
     }
-    sqlx::query("DELETE FROM api_user WHERE id = $1")
+    crate::sql::query("DELETE FROM api_user WHERE id = $1")
         .bind(user_id)
         .execute(&mut *tx)
         .await?;
@@ -366,8 +367,8 @@ pub struct EmailConfigWrite<'a> {
 }
 
 /// S21: upsert the singleton row `pk=1`.
-pub async fn save_email_config(pool: &PgPool, c: &EmailConfigWrite<'_>) -> sqlx::Result<()> {
-    sqlx::query(
+pub async fn save_email_config(pool: &Db, c: &EmailConfigWrite<'_>) -> sqlx::Result<()> {
+    crate::sql::query(
         "INSERT INTO api_emailconfig (id, provider, from_email, host, port, use_tls, use_ssl, \
            username, secret) VALUES (1, $1, $2, $3, $4, $5, $6, $7, $8) \
          ON CONFLICT (id) DO UPDATE SET provider = EXCLUDED.provider, \
@@ -391,19 +392,19 @@ pub async fn save_email_config(pool: &PgPool, c: &EmailConfigWrite<'_>) -> sqlx:
 /// Record one rate-limited request and forget every hit of `scope` older than
 /// `keep_after` (all idents, so spoofed idents cannot pile up rows).
 pub async fn record_throttle_hit(
-    pool: &PgPool,
+    pool: &Db,
     scope: &str,
     ident: &str,
     at: DateTime<Utc>,
     keep_after: DateTime<Utc>,
 ) -> sqlx::Result<()> {
     let mut tx = pool.begin().await?;
-    sqlx::query("DELETE FROM rate_limit_hit WHERE scope = $1 AND hit_at <= $2")
+    crate::sql::query("DELETE FROM rate_limit_hit WHERE scope = $1 AND hit_at <= $2")
         .bind(scope)
         .bind(keep_after)
         .execute(&mut *tx)
         .await?;
-    sqlx::query("INSERT INTO rate_limit_hit (scope, ident, hit_at) VALUES ($1, $2, $3)")
+    crate::sql::query("INSERT INTO rate_limit_hit (scope, ident, hit_at) VALUES ($1, $2, $3)")
         .bind(scope)
         .bind(ident)
         .bind(at)
@@ -425,7 +426,7 @@ pub struct SsoIdentity<'a> {
 /// never staff or superuser, an unusable password, the IdP's email recorded
 /// as allauth's `EmailAddress` when that table exists. Returns the new id.
 pub async fn create_sso_user(
-    db: &PgPool,
+    db: &Db,
     crypto: &DjangoCrypto,
     new: &NewUser<'_>,
     email_verified: bool,
@@ -443,7 +444,7 @@ pub async fn create_sso_user(
     )
     .await?;
     if !new.email.is_empty() && table_exists(&mut tx, "account_emailaddress").await? {
-        sqlx::query(
+        crate::sql::query(
             "INSERT INTO account_emailaddress (email, verified, \"primary\", user_id) \
              VALUES ($1, $2, TRUE, $3) ON CONFLICT DO NOTHING",
         )
@@ -461,13 +462,13 @@ pub async fn create_sso_user(
 /// `sociallogin.connect` / a returning login: link (or refresh) the
 /// identity when allauth's table exists, and bump `last_login`.
 pub async fn record_sso_login(
-    db: &PgPool,
+    db: &Db,
     user_id: i32,
     identity: &SsoIdentity<'_>,
 ) -> sqlx::Result<()> {
     let mut tx = db.begin().await?;
     link_sso_identity(&mut tx, user_id, identity).await?;
-    sqlx::query("UPDATE api_user SET last_login = now() WHERE id = $1")
+    crate::sql::query("UPDATE api_user SET last_login = now() WHERE id = $1")
         .bind(user_id)
         .execute(&mut *tx)
         .await?;
@@ -475,14 +476,14 @@ pub async fn record_sso_login(
 }
 
 async fn link_sso_identity(
-    conn: &mut PgConnection,
+    conn: &mut Conn,
     user_id: i32,
     identity: &SsoIdentity<'_>,
 ) -> sqlx::Result<()> {
     if !table_exists(conn, "socialaccount_socialaccount").await? {
         return Ok(());
     }
-    sqlx::query(
+    crate::sql::query(
         "INSERT INTO socialaccount_socialaccount (provider, uid, last_login, date_joined, \
            extra_data, user_id) VALUES ($1, $2, now(), now(), $3, $4) \
          ON CONFLICT (provider, uid) DO UPDATE SET last_login = now(), \

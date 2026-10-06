@@ -7,25 +7,27 @@
 
 use chrono::{DateTime, Utc};
 use serde_json::Value;
-use sqlx::{FromRow, PgConnection, PgPool};
+use sqlx::FromRow;
 use uuid::Uuid;
+
+use crate::db::{Conn, Db, DjListOpt, DjUuid, DjUuidOpt};
 
 /// `instance.name = new_name; instance.save()` (`PersonSerializer.update`),
 /// plus S19: the photos the person is labelled on are found by the new name.
 /// Django leaves their search captions on the old name.
 pub async fn rename_person(
-    db: &PgPool,
+    db: &Db,
     person_id: i32,
     name: &str,
     tagging_model: &str,
 ) -> sqlx::Result<()> {
     let mut tx = db.begin().await?;
-    sqlx::query("UPDATE api_person SET name = $2, last_modified = now() WHERE id = $1")
+    crate::sql::query("UPDATE api_person SET name = $2, last_modified = now() WHERE id = $1")
         .bind(person_id)
         .bind(name)
         .execute(&mut *tx)
         .await?;
-    let photos: Vec<Uuid> = sqlx::query_scalar(
+    let photos: Vec<Uuid> = crate::sql::query_scalar(
         "SELECT DISTINCT photo_id FROM api_face WHERE person_id = $1 AND photo_id IS NOT NULL",
     )
     .bind(person_id)
@@ -37,9 +39,9 @@ pub async fn rename_person(
 
 /// `PersonSerializer.create`: the requester's person already called `name`
 /// (of any kind), else a new user-labelled one. Returns its id.
-pub async fn create_person(db: &PgPool, user_id: i32, name: &str) -> sqlx::Result<i32> {
+pub async fn create_person(db: &Db, user_id: i32, name: &str) -> sqlx::Result<i32> {
     let mut tx = db.begin().await?;
-    let existing: Option<i32> = sqlx::query_scalar(
+    let existing: Option<i32> = crate::sql::query_scalar(
         "SELECT id FROM api_person WHERE name = $1 AND cluster_owner_id = $2 ORDER BY id LIMIT 1",
     )
     .bind(name)
@@ -55,8 +57,8 @@ pub async fn create_person(db: &PgPool, user_id: i32, name: &str) -> sqlx::Resul
 }
 
 /// Cover photo + that photo's first face of the person as cover face.
-pub async fn set_person_cover(db: &PgPool, person_id: i32, photo_id: Uuid) -> sqlx::Result<()> {
-    sqlx::query(
+pub async fn set_person_cover(db: &Db, person_id: i32, photo_id: Uuid) -> sqlx::Result<()> {
+    crate::sql::query(
         "UPDATE api_person SET cover_photo_id = $2, \
            cover_face_id = (SELECT id FROM api_face WHERE photo_id = $2 AND person_id = $1 \
              ORDER BY id LIMIT 1), \
@@ -73,10 +75,10 @@ pub async fn set_person_cover(db: &PgPool, person_id: i32, photo_id: Uuid) -> sq
 /// `Person.delete()`: the collector's SET_NULLs (inferred faces, clusters)
 /// plus the `reset_person` signal (S3: labelled faces detached) and the
 /// mobile-sync tombstone of a `USER` person.
-pub async fn delete_person(db: &PgPool, person_id: i32) -> sqlx::Result<()> {
+pub async fn delete_person(db: &Db, person_id: i32) -> sqlx::Result<()> {
     let mut tx = db.begin().await?;
     super::deletion_log::persons_deleted(&mut tx, &[person_id]).await?;
-    sqlx::query(
+    crate::sql::query(
         "UPDATE api_face SET \
            person_id = CASE WHEN person_id = $1 THEN NULL ELSE person_id END, \
            classification_person_id = CASE WHEN classification_person_id = $1 THEN NULL \
@@ -87,11 +89,11 @@ pub async fn delete_person(db: &PgPool, person_id: i32) -> sqlx::Result<()> {
     .bind(person_id)
     .execute(&mut *tx)
     .await?;
-    sqlx::query("UPDATE api_cluster SET person_id = NULL WHERE person_id = $1")
+    crate::sql::query("UPDATE api_cluster SET person_id = NULL WHERE person_id = $1")
         .bind(person_id)
         .execute(&mut *tx)
         .await?;
-    sqlx::query("DELETE FROM api_person WHERE id = $1")
+    crate::sql::query("DELETE FROM api_person WHERE id = $1")
         .bind(person_id)
         .execute(&mut *tx)
         .await?;
@@ -100,11 +102,11 @@ pub async fn delete_person(db: &PgPool, person_id: i32) -> sqlx::Result<()> {
 
 /// `get_or_create_person(name, owner, KIND_USER)`; returns the id.
 pub async fn get_or_create_user_person(
-    conn: &mut PgConnection,
+    conn: &mut Conn,
     user_id: i32,
     name: &str,
 ) -> sqlx::Result<i32> {
-    let existing: Option<i32> = sqlx::query_scalar(
+    let existing: Option<i32> = crate::sql::query_scalar(
         "SELECT id FROM api_person WHERE name = $1 AND cluster_owner_id = $2 AND kind = 'USER' \
          ORDER BY id LIMIT 1",
     )
@@ -115,7 +117,7 @@ pub async fn get_or_create_user_person(
     if let Some(id) = existing {
         return Ok(id);
     }
-    sqlx::query_scalar(
+    crate::sql::query_scalar(
         "INSERT INTO api_person (name, kind, cluster_owner_id, face_count, cover_face_id, \
            cover_photo_id, last_modified) \
          VALUES ($1, 'USER', $2, 0, NULL, NULL, now()) RETURNING id",
@@ -128,11 +130,11 @@ pub async fn get_or_create_user_person(
 
 /// `Person._calculate_face_count()` then `_set_default_cover_photo()` for
 /// each person (S19). Deleted faces count, as in Django.
-pub async fn recompute_persons(conn: &mut PgConnection, person_ids: &[i32]) -> sqlx::Result<()> {
+pub async fn recompute_persons(conn: &mut Conn, person_ids: &[i32]) -> sqlx::Result<()> {
     if person_ids.is_empty() {
         return Ok(());
     }
-    sqlx::query(
+    crate::sql::query(
         "UPDATE api_person p SET face_count = ( \
              SELECT COUNT(*) FROM api_face f JOIN api_photo ph ON ph.id = f.photo_id \
              WHERE f.person_id = p.id AND NOT ph.hidden AND NOT ph.in_trashcan \
@@ -143,7 +145,7 @@ pub async fn recompute_persons(conn: &mut PgConnection, person_ids: &[i32]) -> s
     .bind(person_ids)
     .execute(&mut *conn)
     .await?;
-    sqlx::query(
+    crate::sql::query(
         "UPDATE api_person p SET cover_photo_id = ff.photo_id, cover_face_id = ff.id, \
            last_modified = now() \
          FROM (SELECT DISTINCT ON (f.person_id) f.person_id, f.id, f.photo_id FROM api_face f \
@@ -158,13 +160,16 @@ pub async fn recompute_persons(conn: &mut PgConnection, person_ids: &[i32]) -> s
 
 #[derive(FromRow)]
 struct CaptionSource {
+    #[sqlx(try_from = "DjUuid")]
     id: Uuid,
     video: bool,
     is_screenshot: bool,
     is_document: bool,
     captions_json: Option<Value>,
     main_path: Option<String>,
+    #[sqlx(try_from = "DjListOpt<String>")]
     file_paths: Option<Vec<String>>,
+    #[sqlx(try_from = "DjListOpt<String>")]
     person_names: Option<Vec<String>>,
     has_metadata: bool,
     camera_make: Option<String>,
@@ -261,14 +266,14 @@ fn is_truthy(v: &Value) -> bool {
 /// Rebuild `api_photo_search.search_captions` of these photos in one read
 /// and one upsert (S19; `SetFacePersonLabel._recreate_search_captions`).
 pub async fn rebuild_search_captions(
-    conn: &mut PgConnection,
+    conn: &mut Conn,
     photo_ids: &[Uuid],
     tagging_model: &str,
 ) -> sqlx::Result<()> {
     if photo_ids.is_empty() {
         return Ok(());
     }
-    let sources = sqlx::query_as::<_, CaptionSource>(
+    let sources = crate::sql::query_as::<_, CaptionSource>(
         "SELECT ph.id, ph.video, ph.is_screenshot, ph.is_document, c.captions_json, \
            mf.path AS main_path, \
            (SELECT array_agg(fl.path ORDER BY pf.id) FROM api_photo_files pf \
@@ -291,7 +296,7 @@ pub async fn rebuild_search_captions(
         .iter()
         .map(|s| search_captions(s, tagging_model))
         .collect();
-    sqlx::query(
+    crate::sql::query(
         "INSERT INTO api_photo_search (photo_id, search_captions, search_location, created_at, \
            updated_at) \
          SELECT u.id, u.captions, NULL, now(), now() FROM UNNEST($1::uuid[], $2::text[]) AS u(id, captions) \
@@ -310,6 +315,7 @@ pub async fn rebuild_search_captions(
 pub struct LabeledFace {
     pub id: i32,
     pub image: Option<String>,
+    #[sqlx(try_from = "DjUuidOpt")]
     pub photo_id: Option<Uuid>,
     pub exif_timestamp: Option<DateTime<Utc>>,
     pub cluster_probability: f64,
@@ -321,7 +327,7 @@ pub struct LabeledFace {
 /// (`None`, which also clears the inferred labels). Returns the person
 /// `(id, name)` and the relabelled faces, ordered by id.
 pub async fn label_faces(
-    db: &PgPool,
+    db: &Db,
     user_id: i32,
     face_ids: &[i32],
     person_name: Option<&str>,
@@ -338,7 +344,7 @@ pub async fn label_faces(
     let faces = if face_ids.is_empty() {
         Vec::new()
     } else {
-        sqlx::query_as::<_, LabeledFace>(
+        crate::sql::query_as::<_, LabeledFace>(
             "SELECT f.id, f.image, f.photo_id, ph.exif_timestamp, f.cluster_probability, \
                f.person_id AS old_person_id \
              FROM api_face f JOIN api_photo ph ON ph.id = f.photo_id \
@@ -357,7 +363,7 @@ pub async fn label_faces(
             "UPDATE api_face SET person_id = $2, cluster_person_id = NULL, \
                classification_person_id = NULL WHERE id = ANY($1)"
         };
-        sqlx::query(sql)
+        crate::sql::query(sql)
             .bind(&ids)
             .bind(person.as_ref().map(|p| p.0))
             .execute(&mut *tx)
@@ -379,14 +385,14 @@ pub async fn label_faces(
 /// `DeleteFaces.post`: soft-delete the requester's faces among `face_ids`;
 /// returns `(id, image)` of each, ordered by id.
 pub async fn delete_faces(
-    db: &PgPool,
+    db: &Db,
     user_id: i32,
     face_ids: &[i32],
 ) -> sqlx::Result<Vec<(i32, Option<String>)>> {
     if face_ids.is_empty() {
         return Ok(Vec::new());
     }
-    let mut rows: Vec<(i32, Option<String>)> = sqlx::query_as(
+    let mut rows: Vec<(i32, Option<String>)> = crate::sql::query_as(
         "UPDATE api_face f SET deleted = TRUE FROM api_photo ph \
          WHERE ph.id = f.photo_id AND ph.owner_id = $2 AND f.id = ANY($1) \
          RETURNING f.id, f.image",
@@ -415,7 +421,7 @@ pub struct NewManualFace<'a> {
 /// (a user label: no cluster, no inferred person), then S19. Returns
 /// `(face_id, person_id)`.
 pub async fn add_manual_face(
-    db: &PgPool,
+    db: &Db,
     user_id: i32,
     person_name: &str,
     face: &NewManualFace<'_>,
@@ -423,7 +429,7 @@ pub async fn add_manual_face(
 ) -> sqlx::Result<(i32, i32)> {
     let mut tx = db.begin().await?;
     let person_id = get_or_create_user_person(&mut tx, user_id, person_name).await?;
-    let face_id: i32 = sqlx::query_scalar(
+    let face_id: i32 = crate::sql::query_scalar(
         "INSERT INTO api_face (image, cluster_probability, location_top, location_bottom, \
            location_left, location_right, encoding, person_id, cluster_id, \
            classification_probability, deleted, classification_person_id, cluster_person_id, \
