@@ -12,7 +12,6 @@ use lp_auth::AuthUser;
 use lp_core::extract::py_truthy;
 use lp_core::time::py_isoformat;
 use lp_core::{ApiJson, ApiResult, AppState};
-use lp_db::db::Conn;
 use lp_db::photo_edits as reads;
 use lp_db::write::photo_edits::edit as svc;
 use lp_jobs::EnqueueOptions;
@@ -94,9 +93,11 @@ fn renders_exif_orientation(path: &str) -> bool {
 
 /// `_fold_rotation_into_file`: `None` when the file cannot take the rotation
 /// (nothing written), else the `local_orientation` to report.
+///
+/// The ExifTool reads and the write run outside any transaction; the DB part
+/// (`_adopt_written_orientation`) is its own short transaction afterwards.
 async fn fold_rotation_into_file(
     state: &AppState,
-    conn: &mut Conn,
     photo_id: uuid::Uuid,
     path: &str,
     local: i32,
@@ -120,7 +121,17 @@ async fn fold_rotation_into_file(
         );
         return Ok(Some(local));
     }
-    svc::adopt_written_orientation(conn, photo_id, combined).await?;
+    let mut tx = state.db.begin().await?;
+    let adopted = svc::adopt_written_orientation(&mut tx, photo_id, local, combined).await?;
+    tx.commit().await?;
+    if !adopted {
+        tracing::warn!(
+            path,
+            combined,
+            "another rotation changed local_orientation during the file write; not adopting"
+        );
+        return Ok(Some(local));
+    }
     Ok(Some(1))
 }
 
@@ -128,7 +139,6 @@ async fn fold_rotation_into_file(
 /// Returns the `local_orientation` the photo ends up with.
 async fn write_orientation_to_disk(
     state: &AppState,
-    conn: &mut Conn,
     user: &lp_db::users::User,
     photo: &reads::OwnedPhoto,
     angle: i32,
@@ -141,11 +151,11 @@ async fn write_orientation_to_disk(
         .as_deref()
         .ok_or_else(|| anyhow::anyhow!("photo has no main file"))?;
     if !use_sidecar
-        && let Some(shown) = fold_rotation_into_file(state, conn, photo.id, path, local).await?
+        && let Some(shown) = fold_rotation_into_file(state, photo.id, path, local).await?
     {
         return Ok(shown);
     }
-    let exif_orientation = reads::metadata_orientation(&mut *conn, photo.id)
+    let exif_orientation = reads::metadata_orientation(&state.db, photo.id)
         .await?
         .flatten()
         .filter(|o| *o != 0)
@@ -219,40 +229,30 @@ pub(super) async fn rotate(
     let (orientation, last_modified) = if angle == 0 && !flip {
         (photo.local_orientation, photo.last_modified)
     } else {
-        // SQLITE(P3) (area D): the ExifTool write below runs inside this
-        // transaction, holding the single SQLite writer for the whole file
-        // write (Django gives up after 5 s). Write the file outside (e.g. re-check
-        // the orientation in a second short transaction).
-        let mut tx = state.db.begin().await?;
-        let current = svc::lock_local_orientation(&mut tx, photo.id).await?;
-        let orientation = compose_orientation(current, angle, flip);
-        let last_modified = svc::set_local_orientation(&mut tx, photo.id, orientation).await?;
+        // The orientation in one short transaction; the ExifTool work below
+        // runs after its commit (on SQLite a write transaction holds the
+        // single writer, and Django gives up after 5 s).
+        let (orientation, last_modified) = {
+            let mut tx = state.db.begin().await?;
+            let current = svc::lock_local_orientation(&mut tx, photo.id).await?;
+            let orientation = compose_orientation(current, angle, flip);
+            let last_modified = svc::set_local_orientation(&mut tx, photo.id, orientation).await?;
+            tx.commit().await?;
+            (orientation, last_modified)
+        };
         let mut shown = orientation;
         let mut disk_failed = false;
-        if photo.has_thumbnail_row {
-            // Before the commit: the render must not see the file rotated
-            // while `local_orientation` still carries the turn.
-            if metadata_to_disk(&user) {
-                match write_orientation_to_disk(
-                    &state,
-                    &mut tx,
-                    &user,
-                    &photo,
-                    angle,
-                    flip,
-                    orientation,
-                )
-                .await
-                {
-                    Ok(o) => shown = o,
-                    Err(e) => {
-                        tracing::warn!(error = %e, image_hash, "Failed to rotate photo");
-                        disk_failed = true;
-                    }
+        // Before the render: it must not see the file rotated while
+        // `local_orientation` still carries the turn.
+        if photo.has_thumbnail_row && metadata_to_disk(&user) {
+            match write_orientation_to_disk(&state, &user, &photo, angle, flip, orientation).await {
+                Ok(o) => shown = o,
+                Err(e) => {
+                    tracing::warn!(error = %e, image_hash, "Failed to rotate photo");
+                    disk_failed = true;
                 }
             }
         }
-        tx.commit().await?;
         if photo.has_thumbnail_row {
             regenerate_thumbnails(&state, photo.id).await?;
         }

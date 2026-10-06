@@ -183,9 +183,10 @@ async fn bulk_flags_hashes_and_select_all() {
         .unwrap();
     lp_db::sql::query(
         "INSERT INTO api_stackreview (decision, trashed_count, created_at, reviewer_id, stack_id, uuid) \
-         VALUES ('resolved', 0, now(), 2, $1, gen_random_uuid())",
+         VALUES ('resolved', 0, now(), 2, $1, $2)",
     )
     .bind(stack)
+    .bind(Uuid::new_v4())
     .execute(app.pool())
     .await
     .unwrap();
@@ -265,10 +266,11 @@ async fn share_to_user() {
         .await;
     assert_eq!(res.json(), json!({"status": true, "count": 1}));
     let n: i64 = lp_db::sql::query_scalar(
-        "SELECT COUNT(*) FROM api_photo_shared_to WHERE user_id = $1 AND photo_id = ANY($2)",
+        "SELECT COUNT(*) FROM api_photo_shared_to WHERE user_id = $1 AND photo_id IN ($2, $3)",
     )
     .bind(bob_id as i32)
-    .bind(vec![e02.id, e06.id])
+    .bind(e02.id)
+    .bind(e06.id)
     .fetch_one(app.pool())
     .await
     .unwrap();

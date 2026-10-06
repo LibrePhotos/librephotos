@@ -6,7 +6,8 @@ use serde_json::{Map, Value};
 use sqlx::FromRow;
 use uuid::Uuid;
 
-use crate::db::{Conn, DjList};
+use crate::db::{Conn, Dialect, DjList};
+use crate::sql;
 
 use super::album_thing_changed;
 
@@ -47,9 +48,11 @@ async fn set_caption_key(
     tagging_model: &str,
 ) -> Result<(), CaptionError> {
     ensure_caption_row(conn, photo_id).await?;
-    let current: Option<Value> = crate::sql::query_scalar(
-        "SELECT captions_json FROM api_photo_caption WHERE photo_id = $1 FOR UPDATE",
-    )
+    let d = conn.dialect();
+    let current: Option<Value> = crate::sql::query_scalar(format!(
+        "SELECT captions_json FROM api_photo_caption WHERE photo_id = $1{}",
+        sql::for_update(d)
+    ))
     .bind(photo_id)
     .fetch_one(&mut *conn)
     .await?;
@@ -141,21 +144,35 @@ pub async fn rebuild_search_captions(
     photo_id: Uuid,
     tagging_model: &str,
 ) -> sqlx::Result<()> {
-    let src: SearchSource = crate::sql::query_as(
+    // `array_agg` has no SQLite twin: `json_group_array(.. ORDER BY ..)`
+    // (SQLite 3.44+) yields the same list as JSON text; both decode as `DjList`.
+    let (face_names, file_paths) = match conn.dialect() {
+        Dialect::Pg => (
+            "ARRAY(SELECT pe.name FROM api_face f JOIN api_person pe ON pe.id = f.person_id \
+                   WHERE f.photo_id = p.id ORDER BY f.id)",
+            "ARRAY(SELECT fl.path FROM api_photo_files pf JOIN api_file fl ON fl.hash = pf.file_id \
+                   WHERE pf.photo_id = p.id ORDER BY pf.id)",
+        ),
+        Dialect::Sqlite => (
+            "(SELECT json_group_array(pe.name ORDER BY f.id) FROM api_face f \
+                   JOIN api_person pe ON pe.id = f.person_id WHERE f.photo_id = p.id)",
+            "(SELECT json_group_array(fl.path ORDER BY pf.id) FROM api_photo_files pf \
+                   JOIN api_file fl ON fl.hash = pf.file_id WHERE pf.photo_id = p.id)",
+        ),
+    };
+    let src: SearchSource = crate::sql::query_as(format!(
         "SELECT p.video, p.is_screenshot, p.is_document, c.captions_json, \
-            ARRAY(SELECT pe.name FROM api_face f JOIN api_person pe ON pe.id = f.person_id \
-                  WHERE f.photo_id = p.id ORDER BY f.id) AS face_names, \
+            {face_names} AS face_names, \
             mf.path AS main_path, \
-            ARRAY(SELECT fl.path FROM api_photo_files pf JOIN api_file fl ON fl.hash = pf.file_id \
-                  WHERE pf.photo_id = p.id ORDER BY pf.id) AS file_paths, \
+            {file_paths} AS file_paths, \
             md.camera_make, md.camera_model, md.lens_make, md.lens_model, md.keywords, \
             (md.photo_id IS NOT NULL) AS has_metadata \
          FROM api_photo p \
          LEFT JOIN api_photo_caption c ON c.photo_id = p.id \
          LEFT JOIN api_file mf ON mf.hash = p.main_file_id \
          LEFT JOIN api_photometadata md ON md.photo_id = p.id \
-         WHERE p.id = $1",
-    )
+         WHERE p.id = $1"
+    ))
     .bind(photo_id)
     .fetch_one(&mut *conn)
     .await?;
