@@ -2,12 +2,13 @@
 
 #![allow(clippy::disallowed_methods)]
 
+use lp_db::db::DjUuid;
 use lp_ingest::Pipeline;
 use lp_testkit::TestApp;
 use uuid::Uuid;
 
 async fn insert_missing_file(app: &TestApp, hash: &str) {
-    sqlx::query("INSERT INTO api_file (hash, path, type, missing) VALUES ($1, $2, 1, TRUE)")
+    lp_db::sql::query("INSERT INTO api_file (hash, path, type, missing) VALUES ($1, $2, 1, TRUE)")
         .bind(hash)
         .bind(format!("C:/gone/{hash}.jpg"))
         .execute(app.pool())
@@ -16,7 +17,7 @@ async fn insert_missing_file(app: &TestApp, hash: &str) {
 }
 
 async fn file_exists(app: &TestApp, hash: &str) -> bool {
-    sqlx::query_scalar("SELECT EXISTS (SELECT 1 FROM api_file WHERE hash = $1)")
+    lp_db::sql::query_scalar("SELECT EXISTS (SELECT 1 FROM api_file WHERE hash = $1)")
         .bind(hash)
         .fetch_one(app.pool())
         .await
@@ -51,7 +52,7 @@ async fn delete_missing_photos_keeps_other_users_missing_files() {
 }
 
 async fn queued(app: &TestApp, kind: &str, user_id: i32) -> i64 {
-    sqlx::query_scalar(
+    lp_db::sql::query_scalar(
         "SELECT count(*) FROM job_queue WHERE kind = $1 AND status = 'queued' \
          AND payload->>'user_id' = $2::text",
     )
@@ -82,16 +83,17 @@ async fn uploads_share_one_queued_follow_up_per_kind() {
     for kind in ["tags.generate", "geo.locate", "faces.scan"] {
         assert_eq!(queued(&app, kind, user.id).await, 1, "{kind}");
     }
-    let lrjs: i64 =
-        sqlx::query_scalar("SELECT count(*) FROM api_longrunningjob WHERE started_by_id = $1")
-            .bind(user.id)
-            .fetch_one(app.pool())
-            .await
-            .unwrap();
+    let lrjs: i64 = lp_db::sql::query_scalar(
+        "SELECT count(*) FROM api_longrunningjob WHERE started_by_id = $1",
+    )
+    .bind(user.id)
+    .fetch_one(app.pool())
+    .await
+    .unwrap();
     assert_eq!(lrjs, 3, "one job-page entry per kind");
 
     // Once a worker has taken it, the next upload needs a job of its own.
-    sqlx::query("UPDATE job_queue SET status = 'running' WHERE kind = 'tags.generate'")
+    lp_db::sql::query("UPDATE job_queue SET status = 'running' WHERE kind = 'tags.generate'")
         .execute(app.pool())
         .await
         .unwrap();
@@ -108,7 +110,7 @@ async fn a_known_hash_at_a_new_path_moves_the_file_row_like_django() {
     let app = TestApp::new().await;
     let user = app.create_user("copier_fc", "pw", false).await;
     let hash = format!("{}{}", "c".repeat(32), user.id);
-    sqlx::query(
+    lp_db::sql::query(
         "INSERT INTO api_file (hash, path, type, missing) VALUES ($1, 'C:/lib/a.jpg', 1, TRUE)",
     )
     .bind(&hash)
@@ -121,7 +123,7 @@ async fn a_known_hash_at_a_new_path_moves_the_file_row_like_django() {
         .unwrap();
     assert_eq!((f.path.as_str(), f.missing), ("C:/lib/copy/a.jpg", false));
     let stored: (String, bool) =
-        sqlx::query_as("SELECT path, missing FROM api_file WHERE hash = $1")
+        lp_db::sql::query_as("SELECT path, missing FROM api_file WHERE hash = $1")
             .bind(&hash)
             .fetch_one(&mut *conn)
             .await
@@ -140,7 +142,7 @@ async fn the_last_file_group_queues_the_follow_ups_the_scan_stored() {
     let app = TestApp::new().await;
     let user = app.create_user("fanout_fu", "pw", false).await;
     let job = Uuid::new_v4().to_string();
-    sqlx::query(
+    lp_db::sql::query(
         "INSERT INTO api_longrunningjob (job_type, finished, failed, cancelled, job_id, queued_at, \
            started_at, started_by_id, progress_current, progress_target, result) \
          VALUES (1, FALSE, FALSE, FALSE, $1, now(), now(), $2, 0, 1, $3)",
@@ -174,14 +176,14 @@ async fn the_last_file_group_queues_the_follow_ups_the_scan_stored() {
     lp_ingest::jobs::scan_file_group(ctx).await.unwrap();
 
     let (finished, result): (bool, serde_json::Value) =
-        sqlx::query_as("SELECT finished, result FROM api_longrunningjob WHERE job_id = $1")
+        lp_db::sql::query_as("SELECT finished, result FROM api_longrunningjob WHERE job_id = $1")
             .bind(&job)
             .fetch_one(app.pool())
             .await
             .unwrap();
     assert!(finished);
     assert!(result.get("followups").is_none(), "{result}");
-    let full: Option<bool> = sqlx::query_scalar(
+    let full: Option<bool> = lp_db::sql::query_scalar(
         "SELECT (payload->>'full_scan')::bool FROM job_queue WHERE kind = 'tags.generate' \
          AND payload->>'user_id' = $1::text",
     )
@@ -199,11 +201,11 @@ async fn the_last_file_group_queues_the_follow_ups_the_scan_stored() {
 #[tokio::test]
 async fn scan_missing_photos_touches_only_photos_that_lost_a_file() {
     let app = TestApp::new().await;
-    let bob: (i32,) = sqlx::query_as("SELECT id FROM api_user WHERE username = 'bob'")
+    let bob: (i32,) = lp_db::sql::query_as("SELECT id FROM api_user WHERE username = 'bob'")
         .fetch_one(app.pool())
         .await
         .unwrap();
-    let photos: Vec<(Uuid, String)> = sqlx::query_as(
+    let photos: Vec<(DjUuid, String)> = lp_db::sql::query_as(
         "SELECT p.id, p.main_file_id FROM api_photo p WHERE p.owner_id = $1 ORDER BY p.id",
     )
     .bind(bob.0)
@@ -212,12 +214,12 @@ async fn scan_missing_photos_touches_only_photos_that_lost_a_file() {
     .unwrap();
     assert!(photos.len() >= 3, "fixture bob has three photos");
     let (lost, intact, removed) = (&photos[0], &photos[1], &photos[2]);
-    sqlx::query("UPDATE api_file SET path = 'C:/definitely/gone/x.jpg' WHERE hash = $1")
+    lp_db::sql::query("UPDATE api_file SET path = 'C:/definitely/gone/x.jpg' WHERE hash = $1")
         .bind(&lost.1)
         .execute(app.pool())
         .await
         .unwrap();
-    sqlx::query("UPDATE api_photo SET removed = (id = $2), last_modified = now() - interval '30 days' WHERE owner_id = $1")
+    lp_db::sql::query("UPDATE api_photo SET removed = (id = $2), last_modified = now() - interval '30 days' WHERE owner_id = $1")
         .bind(bob.0)
         .bind(removed.0)
         .execute(app.pool())
@@ -227,10 +229,10 @@ async fn scan_missing_photos_touches_only_photos_that_lost_a_file() {
     lp_ingest::repair::scan_missing_photos(&p, bob.0, &Uuid::new_v4().to_string())
         .await
         .unwrap();
-    let recent = |id: Uuid| {
+    let recent = |id: DjUuid| {
         let pool = app.pool().clone();
         async move {
-            sqlx::query_scalar::<_, bool>(
+            lp_db::sql::query_scalar::<_, bool>(
                 "SELECT last_modified > now() - interval '1 hour' FROM api_photo WHERE id = $1",
             )
             .bind(id)
@@ -245,7 +247,7 @@ async fn scan_missing_photos_touches_only_photos_that_lost_a_file() {
     );
     assert!(!recent(intact.0).await, "an intact photo is not");
     assert!(!recent(removed.0).await, "nor a removed one");
-    let missing: bool = sqlx::query_scalar("SELECT missing FROM api_file WHERE hash = $1")
+    let missing: bool = lp_db::sql::query_scalar("SELECT missing FROM api_file WHERE hash = $1")
         .bind(&lost.1)
         .fetch_one(app.pool())
         .await

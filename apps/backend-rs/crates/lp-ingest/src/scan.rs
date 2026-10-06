@@ -10,6 +10,7 @@ use std::sync::Arc;
 use anyhow::anyhow;
 use chrono::{DateTime, Utc};
 use futures::StreamExt;
+use lp_db::db::DjUuid;
 use lp_jobs::{EnqueueOptions, JobType};
 use serde_json::{Value, json};
 use tokio::sync::Mutex;
@@ -407,7 +408,7 @@ pub async fn attach_sidecar(p: &Pipeline, owner: &Owner, path: &Path) -> Result<
         let mut found = None;
         for (dir, stem) in fsutil::sidecar_grouping_keys(&pstr) {
             let prefix = format!("{}{}", fsutil::media_name(&dir, &stem), ".");
-            let rows: Vec<(uuid::Uuid, String)> = sqlx::query_as(
+            let rows: Vec<(DjUuid, String)> = lp_db::sql::query_as(
                 "SELECT p.id, f.path FROM api_photo p JOIN api_photo_files pf ON pf.photo_id = p.id \
                  JOIN api_file f ON f.hash = pf.file_id WHERE p.owner_id = $1 \
                  AND upper(f.path) LIKE upper($2) ESCAPE '\\' ORDER BY f.path",
@@ -419,7 +420,7 @@ pub async fn attach_sidecar(p: &Pipeline, owner: &Owner, path: &Path) -> Result<
             if let Some((id, _)) = rows.into_iter().find(|(_, fp)| {
                 fsutil::grouping_key(fp) == (dir.clone(), stem.clone()) && !fsutil::is_metadata(fp)
             }) {
-                found = Some(id);
+                found = Some(id.0);
                 break;
             }
         }
@@ -445,7 +446,7 @@ fn like_escape(s: &str) -> String {
 
 /// `backfill_missing_aspect_ratios`.
 async fn backfill_missing_aspect_ratios(p: &Pipeline, user_id: i32) -> anyhow::Result<()> {
-    let rows: Vec<(uuid::Uuid, String)> = sqlx::query_as(
+    let rows: Vec<(DjUuid, String)> = lp_db::sql::query_as(
         "SELECT t.photo_id, t.thumbnail_big FROM api_thumbnail t JOIN api_photo p ON p.id = t.photo_id \
          WHERE p.owner_id = $1 AND t.aspect_ratio IS NULL AND t.thumbnail_big IS NOT NULL",
     )
@@ -460,7 +461,7 @@ async fn backfill_missing_aspect_ratios(p: &Pipeline, user_id: i32) -> anyhow::R
         if let Some((w, h)) = crate::render::image_size(&path)
             && let Some(a) = lp_core::codecs::aspect_ratio(w, h)
         {
-            sqlx::query("UPDATE api_thumbnail SET aspect_ratio = $2 WHERE photo_id = $1")
+            lp_db::sql::query("UPDATE api_thumbnail SET aspect_ratio = $2 WHERE photo_id = $1")
                 .bind(photo)
                 .bind(a)
                 .execute(&p.state.db)

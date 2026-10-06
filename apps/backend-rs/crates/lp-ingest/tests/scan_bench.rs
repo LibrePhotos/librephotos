@@ -74,7 +74,7 @@ async fn scan_database() {
     let config = Config::from_map(&vars).expect("config");
     let pool = lp_db::connect(&config).await.expect("connect");
     let tracked: Option<String> =
-        sqlx::query_scalar("SELECT to_regclass('public._sqlx_migrations')::text")
+        lp_db::sql::query_scalar("SELECT to_regclass('public._sqlx_migrations')::text")
             .fetch_one(&pool)
             .await
             .unwrap();
@@ -85,11 +85,12 @@ async fn scan_database() {
     let state = AppState::new(pool.clone(), config, settings).unwrap();
     let pipeline = Pipeline::new(state.clone());
 
-    let users: Vec<(i32, String)> =
-        sqlx::query_as("SELECT id, username FROM api_user WHERE scan_directory <> '' ORDER BY id")
-            .fetch_all(&pool)
-            .await
-            .unwrap();
+    let users: Vec<(i32, String)> = lp_db::sql::query_as(
+        "SELECT id, username FROM api_user WHERE scan_directory <> '' ORDER BY id",
+    )
+    .fetch_all(&pool)
+    .await
+    .unwrap();
     let total = Instant::now();
     let mut report = Vec::new();
     for (id, name) in users {
@@ -118,7 +119,7 @@ async fn scan_database() {
         )
         .await
         .expect("scan");
-        let (target, result): (i32, Option<serde_json::Value>) = sqlx::query_as(
+        let (target, result): (i32, Option<serde_json::Value>) = lp_db::sql::query_as(
             "SELECT progress_target, result FROM api_longrunningjob WHERE job_id = $1",
         )
         .bind(&job)
@@ -129,7 +130,7 @@ async fn scan_database() {
             "user": name, "groups": target, "seconds": t.elapsed().as_secs_f64(), "result": result,
         }));
     }
-    let files: i64 = sqlx::query_scalar("SELECT count(*) FROM api_file")
+    let files: i64 = lp_db::sql::query_scalar("SELECT count(*) FROM api_file")
         .fetch_one(&pool)
         .await
         .unwrap();

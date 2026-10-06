@@ -44,7 +44,7 @@ pub async fn select_photos(
                WHERE f.photo_id = p.id AND NOT f.deleted AND pe.kind = 'USER')"
         }
     };
-    sqlx::query_scalar(&format!(
+    lp_db::sql::query_scalar(format!(
         "SELECT p.id FROM api_photo p WHERE ($1::int IS NULL OR p.owner_id = $1){face_sql} ORDER BY p.id"
     ))
     .bind(owner)
@@ -62,7 +62,7 @@ pub async fn write_photo(
     types: &[String],
     use_sidecar: bool,
 ) -> anyhow::Result<bool> {
-    let row: Option<(i32, Option<String>)> = sqlx::query_as(
+    let row: Option<(i32, Option<String>)> = lp_db::sql::query_as(
         "SELECT p.rating, f.path FROM api_photo p LEFT JOIN api_file f ON f.hash = p.main_file_id \
          WHERE p.id = $1",
     )
@@ -119,7 +119,7 @@ pub async fn write_all(
             Err(e) => {
                 out.errors += 1;
                 let hash: Option<String> =
-                    sqlx::query_scalar("SELECT image_hash FROM api_photo WHERE id = $1")
+                    lp_db::sql::query_scalar("SELECT image_hash FROM api_photo WHERE id = $1")
                         .bind(id)
                         .fetch_optional(&state.db)
                         .await

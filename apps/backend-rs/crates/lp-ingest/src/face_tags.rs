@@ -124,7 +124,7 @@ pub async fn write_face_tags(state: &AppState, photo_id: Uuid) -> anyhow::Result
 /// photo's non-deleted faces; None when it has no main file, no faces or no
 /// readable thumbnail (Django's `{}`).
 pub async fn region_tags(state: &AppState, photo_id: Uuid) -> anyhow::Result<Option<RegionTags>> {
-    let photo: Option<PhotoRow> = sqlx::query_as(
+    let photo: Option<PhotoRow> = lp_db::sql::query_as(
         "SELECT p.image_hash, f.path, t.thumbnail_big, u.save_metadata_to_disk \
          FROM api_photo p JOIN api_user u ON u.id = p.owner_id \
          LEFT JOIN api_file f ON f.hash = p.main_file_id \
@@ -139,7 +139,7 @@ pub async fn region_tags(state: &AppState, photo_id: Uuid) -> anyhow::Result<Opt
     let Some(path) = photo.path.filter(|p| !p.is_empty()) else {
         return Ok(None);
     };
-    let faces: Vec<FaceRow> = sqlx::query_as(
+    let faces: Vec<FaceRow> = lp_db::sql::query_as(
         "SELECT f.location_top, f.location_right, f.location_bottom, f.location_left, \
            pe.kind AS person_kind, pe.name AS person_name \
          FROM api_face f LEFT JOIN api_person pe ON pe.id = f.person_id \

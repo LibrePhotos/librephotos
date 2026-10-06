@@ -84,7 +84,7 @@ async fn scan_renders_raw_thumbnails_like_django() {
     let user = app.create_user("rawscanner", "pw", false).await;
     let dir = app.base_path().join("data").join("rawscanner");
     std::fs::create_dir_all(&dir).unwrap();
-    sqlx::query("UPDATE api_user SET scan_directory = $2 WHERE id = $1")
+    lp_db::sql::query("UPDATE api_user SET scan_directory = $2 WHERE id = $1")
         .bind(user.id)
         .bind(dir.to_string_lossy().to_string())
         .execute(app.pool())
@@ -134,7 +134,7 @@ async fn scan_renders_raw_thumbnails_like_django() {
     .unwrap();
     println!("scan of {} DNGs: {:?}", cases.len(), t.elapsed());
     let (result,): (Option<serde_json::Value>,) =
-        sqlx::query_as("SELECT result FROM api_longrunningjob WHERE job_id = $1")
+        lp_db::sql::query_as("SELECT result FROM api_longrunningjob WHERE job_id = $1")
             .bind(&job)
             .fetch_one(app.pool())
             .await
@@ -142,7 +142,7 @@ async fn scan_renders_raw_thumbnails_like_django() {
     let result = result.unwrap_or_default();
     assert_eq!(result["error_count"].as_i64().unwrap_or(0), 0, "{result}");
 
-    let rows: Vec<(String, String, Option<f64>)> = sqlx::query_as(
+    let rows: Vec<(String, String, Option<f64>)> = lp_db::sql::query_as(
         "SELECT p.image_hash, f.path, t.aspect_ratio FROM api_photo p \
          JOIN api_file f ON f.hash = p.main_file_id \
          LEFT JOIN api_thumbnail t ON t.photo_id = p.id WHERE p.owner_id = $1",

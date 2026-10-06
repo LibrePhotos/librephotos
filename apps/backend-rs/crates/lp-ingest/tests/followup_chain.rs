@@ -7,6 +7,7 @@
 use std::time::{Duration, Instant};
 
 use chrono::{DateTime, Utc};
+use lp_db::db::DjList;
 use lp_jobs::{HandlerRegistry, JobCtx, Worker, WorkerTiming};
 use lp_testkit::TestApp;
 use tokio_util::sync::CancellationToken;
@@ -14,14 +15,14 @@ use tokio_util::sync::CancellationToken;
 type Row = (
     i64,
     String,
-    Vec<i64>,
+    DjList<i64>,
     String,
     Option<DateTime<Utc>>,
     Option<DateTime<Utc>>,
 );
 
 async fn rows(app: &TestApp) -> Vec<Row> {
-    sqlx::query_as(
+    lp_db::sql::query_as(
         "SELECT id, kind, depends_on, status, started_at, finished_at FROM job_queue \
          WHERE kind IN ('repair.file_variants', 'tags.generate', 'geo.locate', 'clip.embed', \
            'faces.scan') ORDER BY id",
@@ -43,19 +44,23 @@ async fn faces_scan_waits_for_clip_embed() {
     let queued = rows(&app).await;
     let clip = queued.iter().find(|r| r.1 == "clip.embed").unwrap();
     let faces = queued.iter().find(|r| r.1 == "faces.scan").unwrap();
-    assert_eq!(faces.2, vec![clip.0], "faces.scan depends on clip.embed");
+    assert_eq!(faces.2.0, vec![clip.0], "faces.scan depends on clip.embed");
     // With MobileCLIP-S2 serving tags and search (the default), the tagger
     // stores the embeddings and clip.embed only fills the gaps after it.
     let unified = app.state.ml().semantic_shares_tagger();
     let tags = queued.iter().find(|r| r.1 == "tags.generate").unwrap();
     if unified {
-        assert_eq!(clip.2, vec![tags.0], "clip.embed depends on tags.generate");
+        assert_eq!(
+            clip.2.0,
+            vec![tags.0],
+            "clip.embed depends on tags.generate"
+        );
     }
     for r in queued
         .iter()
         .filter(|r| r.1 != "faces.scan" && !(unified && r.1 == "clip.embed"))
     {
-        assert!(r.2.is_empty(), "{} has no dependency", r.1);
+        assert!(r.2.0.is_empty(), "{} has no dependency", r.1);
     }
 
     let mut reg = HandlerRegistry::new();

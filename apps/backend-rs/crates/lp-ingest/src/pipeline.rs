@@ -7,15 +7,15 @@ use std::collections::HashMap;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 
+use crate::db::{self, FileRow, PhotoRow};
 use anyhow::{Context, anyhow};
 use lp_core::AppState;
+use lp_db::db::Conn;
 use lp_db::users::User;
 use lp_db::write::AfterCommit;
 use serde_json::Value;
-use sqlx::PgConnection;
 use uuid::Uuid;
 
-use crate::db::{self, FileRow, PhotoRow};
 use crate::fsutil::{self, METADATA_FILE, VIDEO, path_str, type_priority};
 use crate::render::{self, BIG, Renderer, SQUARE, SQUARE_SMALL, STATIC_DIRS};
 use crate::{color, dates, exifmap, phash, pyfmt};
@@ -198,7 +198,7 @@ impl Pipeline {
     /// `File.create(path, user)` for a path whose hash is not known yet.
     async fn file_create_path(
         &self,
-        db_conn: &mut PgConnection,
+        db_conn: &mut Conn,
         owner: i32,
         path: &Path,
     ) -> anyhow::Result<FileRow> {
@@ -300,10 +300,13 @@ impl Pipeline {
         };
         let hashes: Vec<String> = non_meta.iter().map(|f| f.hash.clone()).collect();
         let mut tx = self.state.db.begin().await?;
-        sqlx::query("SELECT pg_advisory_xact_lock(7340032, hashtext($1))")
-            .bind(&main.hash)
-            .execute(&mut *tx)
-            .await?;
+        // SQLITE(P2): no-op there, the IMMEDIATE transaction already serializes writers.
+        if tx.dialect().is_pg() {
+            lp_db::sql::query("SELECT pg_advisory_xact_lock(7340032, hashtext($1))")
+                .bind(&main.hash)
+                .execute(&mut *tx)
+                .await?;
+        }
         if let Some(existing) = db::find_photo_with_files(&mut tx, owner.id, &hashes).await? {
             for f in files {
                 db::add_photo_file(&mut tx, existing.id, &f.hash).await?;
@@ -539,7 +542,7 @@ impl Pipeline {
         db::save_photo_scan_fields(&mut tx, photo.id, &photo_update, is_screenshot, exif_ts)
             .await?;
         if let Some(rgb) = dominant {
-            sqlx::query(
+            lp_db::sql::query(
                 "UPDATE api_thumbnail SET dominant_color = $2 WHERE photo_id = $1 \
                  AND (dominant_color IS NULL OR dominant_color = '')",
             )
@@ -733,7 +736,7 @@ impl Pipeline {
             return Ok(None);
         }
         let old = existing.hash.clone();
-        let affected: Vec<PhotoRow> = sqlx::query_as(&format!(
+        let affected: Vec<PhotoRow> = lp_db::sql::query_as(format!(
             "SELECT {} FROM api_photo p WHERE NOT p.removed AND ( \
                EXISTS (SELECT 1 FROM api_photo_files pf WHERE pf.photo_id = p.id AND pf.file_id = $1) \
                OR p.main_file_id = $1 OR (p.image_hash = $1 AND p.main_file_id IS NOT NULL)) ORDER BY p.id",
@@ -796,7 +799,7 @@ impl Pipeline {
             ] {
                 after.delete_file(self.renderer.path(dir, &old, ext));
             }
-            sqlx::query("UPDATE api_photo SET image_hash = $2, added_on = now(), last_modified = now() WHERE id = $1")
+            lp_db::sql::query("UPDATE api_photo SET image_hash = $2, added_on = now(), last_modified = now() WHERE id = $1")
                 .bind(p.id)
                 .bind(new_hash)
                 .execute(&mut *tx)
@@ -851,7 +854,7 @@ impl Pipeline {
     /// `_discard_cheap_derived_content`: the cached transcode and the colour.
     async fn discard_cheap(
         &self,
-        tx: &mut PgConnection,
+        tx: &mut Conn,
         photo: Uuid,
         old: &str,
         after: &mut AfterCommit,
@@ -862,7 +865,7 @@ impl Pipeline {
                 .transcoded_dir()
                 .join(format!("{old}.mp4")),
         );
-        sqlx::query("UPDATE api_thumbnail SET dominant_color = NULL WHERE photo_id = $1")
+        lp_db::sql::query("UPDATE api_thumbnail SET dominant_color = NULL WHERE photo_id = $1")
             .bind(photo)
             .execute(tx)
             .await?;
@@ -878,51 +881,49 @@ enum Verdict {
 }
 
 /// `File.rekey`: a new row under `new_hash`, relations carried across.
-async fn rekey_file(
-    tx: &mut PgConnection,
-    old: &FileRow,
-    new_hash: &str,
-    kind: i32,
-) -> anyhow::Result<()> {
-    let variant_of: Vec<Uuid> = sqlx::query_scalar(
+async fn rekey_file(tx: &mut Conn, old: &FileRow, new_hash: &str, kind: i32) -> anyhow::Result<()> {
+    let variant_of: Vec<Uuid> = lp_db::sql::query_scalar(
         "SELECT photo_id FROM api_photo_files WHERE file_id = $1 AND photo_id IS NOT NULL",
     )
     .bind(&old.hash)
     .fetch_all(&mut *tx)
     .await?;
-    let main_of: Vec<Uuid> = sqlx::query_scalar("SELECT id FROM api_photo WHERE main_file_id = $1")
-        .bind(&old.hash)
-        .fetch_all(&mut *tx)
-        .await?;
-    let embedded: Vec<String> = sqlx::query_scalar(
+    let main_of: Vec<Uuid> =
+        lp_db::sql::query_scalar("SELECT id FROM api_photo WHERE main_file_id = $1")
+            .bind(&old.hash)
+            .fetch_all(&mut *tx)
+            .await?;
+    let embedded: Vec<String> = lp_db::sql::query_scalar(
         "SELECT to_file_id FROM api_file_embedded_media WHERE from_file_id = $1",
     )
     .bind(&old.hash)
     .fetch_all(&mut *tx)
     .await?;
-    let embedded_in: Vec<String> = sqlx::query_scalar(
+    let embedded_in: Vec<String> = lp_db::sql::query_scalar(
         "SELECT from_file_id FROM api_file_embedded_media WHERE to_file_id = $1",
     )
     .bind(&old.hash)
     .fetch_all(&mut *tx)
     .await?;
-    sqlx::query("DELETE FROM api_photo_files WHERE file_id = $1")
+    lp_db::sql::query("DELETE FROM api_photo_files WHERE file_id = $1")
         .bind(&old.hash)
         .execute(&mut *tx)
         .await?;
-    sqlx::query("DELETE FROM api_file_embedded_media WHERE from_file_id = $1 OR to_file_id = $1")
+    lp_db::sql::query(
+        "DELETE FROM api_file_embedded_media WHERE from_file_id = $1 OR to_file_id = $1",
+    )
+    .bind(&old.hash)
+    .execute(&mut *tx)
+    .await?;
+    lp_db::sql::query("UPDATE api_photo SET main_file_id = NULL WHERE main_file_id = $1")
         .bind(&old.hash)
         .execute(&mut *tx)
         .await?;
-    sqlx::query("UPDATE api_photo SET main_file_id = NULL WHERE main_file_id = $1")
+    lp_db::sql::query("DELETE FROM api_file WHERE hash = $1")
         .bind(&old.hash)
         .execute(&mut *tx)
         .await?;
-    sqlx::query("DELETE FROM api_file WHERE hash = $1")
-        .bind(&old.hash)
-        .execute(&mut *tx)
-        .await?;
-    sqlx::query("INSERT INTO api_file (hash, path, type, missing) VALUES ($1, $2, $3, $4)")
+    lp_db::sql::query("INSERT INTO api_file (hash, path, type, missing) VALUES ($1, $2, $3, $4)")
         .bind(new_hash)
         .bind(&old.path)
         .bind(kind)
@@ -952,11 +953,11 @@ async fn rekey_file(
 
 /// `_discard_embedded_media`.
 async fn discard_embedded_media(
-    tx: &mut PgConnection,
+    tx: &mut Conn,
     file: &str,
     after: &mut AfterCommit,
 ) -> anyhow::Result<()> {
-    let embedded: Vec<(String, String)> = sqlx::query_as(
+    let embedded: Vec<(String, String)> = lp_db::sql::query_as(
         "SELECT f.hash, f.path FROM api_file_embedded_media em JOIN api_file f ON f.hash = em.to_file_id \
          WHERE em.from_file_id = $1",
     )
@@ -964,21 +965,21 @@ async fn discard_embedded_media(
     .fetch_all(&mut *tx)
     .await?;
     for (hash, path) in embedded {
-        sqlx::query(
+        lp_db::sql::query(
             "DELETE FROM api_file_embedded_media WHERE to_file_id = $1 OR from_file_id = $1",
         )
         .bind(&hash)
         .execute(&mut *tx)
         .await?;
-        sqlx::query("DELETE FROM api_photo_files WHERE file_id = $1")
+        lp_db::sql::query("DELETE FROM api_photo_files WHERE file_id = $1")
             .bind(&hash)
             .execute(&mut *tx)
             .await?;
-        sqlx::query("UPDATE api_photo SET main_file_id = NULL WHERE main_file_id = $1")
+        lp_db::sql::query("UPDATE api_photo SET main_file_id = NULL WHERE main_file_id = $1")
             .bind(&hash)
             .execute(&mut *tx)
             .await?;
-        sqlx::query("DELETE FROM api_file WHERE hash = $1")
+        lp_db::sql::query("DELETE FROM api_file WHERE hash = $1")
             .bind(&hash)
             .execute(&mut *tx)
             .await?;
@@ -989,12 +990,12 @@ async fn discard_embedded_media(
 
 /// `_discard_faces`: delete the photo's faces (and crops), repair people.
 async fn discard_faces(
-    tx: &mut PgConnection,
+    tx: &mut Conn,
     photo: Uuid,
     media_root: &Path,
     after: &mut AfterCommit,
 ) -> anyhow::Result<()> {
-    let persons: Vec<i32> = sqlx::query_scalar(
+    let persons: Vec<i32> = lp_db::sql::query_scalar(
         "SELECT DISTINCT pe.id FROM api_person pe WHERE pe.cover_photo_id = $1 OR pe.id IN ( \
            SELECT person_id FROM api_face WHERE photo_id = $1 AND person_id IS NOT NULL \
            UNION SELECT classification_person_id FROM api_face WHERE photo_id = $1 AND classification_person_id IS NOT NULL \
@@ -1004,15 +1005,15 @@ async fn discard_faces(
     .fetch_all(&mut *tx)
     .await?;
     let images: Vec<Option<String>> =
-        sqlx::query_scalar("SELECT image FROM api_face WHERE photo_id = $1")
+        lp_db::sql::query_scalar("SELECT image FROM api_face WHERE photo_id = $1")
             .bind(photo)
             .fetch_all(&mut *tx)
             .await?;
-    sqlx::query("UPDATE api_person SET cover_face_id = NULL WHERE cover_face_id IN (SELECT id FROM api_face WHERE photo_id = $1)")
+    lp_db::sql::query("UPDATE api_person SET cover_face_id = NULL WHERE cover_face_id IN (SELECT id FROM api_face WHERE photo_id = $1)")
         .bind(photo)
         .execute(&mut *tx)
         .await?;
-    sqlx::query("DELETE FROM api_face WHERE photo_id = $1")
+    lp_db::sql::query("DELETE FROM api_face WHERE photo_id = $1")
         .bind(photo)
         .execute(&mut *tx)
         .await?;
@@ -1020,7 +1021,7 @@ async fn discard_faces(
         after.delete_file(media_root.join(img));
     }
     for person in persons {
-        sqlx::query(
+        lp_db::sql::query(
             "UPDATE api_person SET cover_photo_id = NULL, cover_face_id = NULL, last_modified = now() \
              WHERE id = $1 AND cover_photo_id = $2",
         )
@@ -1028,7 +1029,7 @@ async fn discard_faces(
         .bind(photo)
         .execute(&mut *tx)
         .await?;
-        sqlx::query(
+        lp_db::sql::query(
             "UPDATE api_person pe SET face_count = (SELECT count(*) FROM api_face f JOIN api_photo p ON p.id = f.photo_id \
                WHERE f.person_id = pe.id AND NOT p.hidden AND NOT p.in_trashcan AND p.owner_id = pe.cluster_owner_id), \
                last_modified = now() WHERE pe.id = $1 AND pe.cluster_owner_id IS NOT NULL",
@@ -1036,7 +1037,7 @@ async fn discard_faces(
         .bind(person)
         .execute(&mut *tx)
         .await?;
-        sqlx::query(
+        lp_db::sql::query(
             "UPDATE api_person pe SET cover_photo_id = f.photo_id, cover_face_id = f.id, last_modified = now() \
              FROM (SELECT id, photo_id FROM api_face WHERE person_id = $1 ORDER BY id LIMIT 1) f \
              WHERE pe.id = $1 AND pe.cover_photo_id IS NULL",

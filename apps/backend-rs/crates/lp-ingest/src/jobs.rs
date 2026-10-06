@@ -103,7 +103,7 @@ pub async fn scan_file_group(ctx: JobCtx) -> anyhow::Result<()> {
         return outcome.map(|_| ()).map_err(|e| anyhow!(e));
     };
     let db = &ctx.state.db;
-    sqlx::query(
+    lp_db::sql::query(
         "UPDATE api_longrunningjob SET progress_current = progress_current + 1 WHERE job_id = $1",
     )
     .bind(job)
@@ -135,7 +135,7 @@ pub async fn scan_file_group(ctx: JobCtx) -> anyhow::Result<()> {
         result["status"] = json!(if failed { "failed" } else { "partial_failure" });
         db::lrj_record_errors(db, job, &result, failed).await?;
     }
-    let finished = sqlx::query(
+    let finished = lp_db::sql::query(
         "UPDATE api_longrunningjob SET finished = TRUE, finished_at = now() WHERE job_id = $1 \
          AND NOT finished AND NOT cancelled AND progress_current >= progress_target",
     )
@@ -155,7 +155,7 @@ pub async fn scan_file_group(ctx: JobCtx) -> anyhow::Result<()> {
             .and_then(|r| r.get("followups"))
             .cloned()
             .unwrap_or(Value::Null);
-        sqlx::query(
+        lp_db::sql::query(
             "UPDATE api_longrunningjob SET result = result - 'followups' WHERE job_id = $1 \
              AND jsonb_typeof(result) = 'object'",
         )
@@ -188,7 +188,7 @@ pub async fn thumbnails_rerender(ctx: JobCtx) -> anyhow::Result<()> {
 pub async fn metadata_write(ctx: JobCtx) -> anyhow::Result<()> {
     let p: MetadataWrite = payload(&ctx)?;
     type Row = (i32, Option<DateTime<Utc>>, String, Option<String>);
-    let row: Option<Row> = sqlx::query_as(
+    let row: Option<Row> = lp_db::sql::query_as(
         "SELECT p.rating, p.timestamp, u.save_metadata_to_disk, f.path FROM api_photo p \
          JOIN api_user u ON u.id = p.owner_id LEFT JOIN api_file f ON f.hash = p.main_file_id WHERE p.id = $1",
     )

@@ -36,7 +36,7 @@ async fn photo_by_sibling(
         candidates.push(format!("{base}{e}"));
         candidates.push(format!("{base}{}", e.to_uppercase()));
     }
-    Ok(sqlx::query_scalar(
+    Ok(lp_db::sql::query_scalar(
         "SELECT p.id FROM api_photo p JOIN api_file f ON f.hash = p.main_file_id \
          WHERE p.owner_id = $1 AND f.path = ANY($2) ORDER BY array_position($2, f.path), p.id LIMIT 1",
     )
@@ -113,7 +113,7 @@ pub async fn create_new_image(
     };
     if let Some(photo) = sibling {
         let mut tx = p.state.db.begin().await?;
-        let linked: bool = sqlx::query_scalar(
+        let linked: bool = lp_db::sql::query_scalar(
             "SELECT EXISTS (SELECT 1 FROM api_photo_files pf JOIN api_file f ON f.hash = pf.file_id \
              WHERE pf.photo_id = $1 AND f.path = $2)",
         )
@@ -125,7 +125,7 @@ pub async fn create_new_image(
             let f = db::file_create(&mut tx, &pstr, &hash, kind).await?;
             db::add_photo_file(&mut tx, photo, &f.hash).await?;
             if is_video {
-                sqlx::query("UPDATE api_photo SET video = FALSE WHERE id = $1")
+                lp_db::sql::query("UPDATE api_photo SET video = FALSE WHERE id = $1")
                     .bind(photo)
                     .execute(&mut *tx)
                     .await?;
@@ -188,12 +188,15 @@ async fn enqueue_unless_queued(
     job_type: JobType,
 ) -> anyhow::Result<bool> {
     let mut tx = p.state.db.begin().await?;
-    sqlx::query("SELECT pg_advisory_xact_lock(7340033, hashtext($1 || ':' || $2::text))")
-        .bind(kind)
-        .bind(user_id)
-        .execute(&mut *tx)
-        .await?;
-    let queued: bool = sqlx::query_scalar(
+    // SQLITE(P2): no-op there, the IMMEDIATE transaction already serializes writers.
+    if tx.dialect().is_pg() {
+        lp_db::sql::query("SELECT pg_advisory_xact_lock(7340033, hashtext($1 || ':' || $2::text))")
+            .bind(kind)
+            .bind(user_id)
+            .execute(&mut *tx)
+            .await?;
+    }
+    let queued: bool = lp_db::sql::query_scalar(
         "SELECT EXISTS (SELECT 1 FROM job_queue WHERE status = 'queued' AND kind = $1 \
          AND payload->>'user_id' = $2::text)",
     )
@@ -263,7 +266,7 @@ pub async fn apply_device_timestamp_fallback(
         exif_ts,
     )
     .await?;
-    sqlx::query("UPDATE api_photo SET timestamp = $2, exif_timestamp = $3, last_modified = now() WHERE id = $1")
+    lp_db::sql::query("UPDATE api_photo SET timestamp = $2, exif_timestamp = $3, last_modified = now() WHERE id = $1")
         .bind(photo.id)
         .bind(ts)
         .bind(exif_ts)
@@ -284,7 +287,7 @@ pub async fn target_path(
     image_hash: &str,
 ) -> anyhow::Result<Option<PathBuf>> {
     let exists: bool =
-        sqlx::query_scalar("SELECT EXISTS (SELECT 1 FROM api_photo WHERE image_hash = $1)")
+        lp_db::sql::query_scalar("SELECT EXISTS (SELECT 1 FROM api_photo WHERE image_hash = $1)")
             .bind(image_hash)
             .fetch_one(&p.state.db)
             .await?;

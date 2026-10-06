@@ -5,6 +5,7 @@
 
 #![allow(clippy::disallowed_methods)]
 
+use lp_db::db::DjUuid;
 use std::path::{Path, PathBuf};
 
 use chrono::Utc;
@@ -77,7 +78,7 @@ async fn library_user(app: &TestApp, name: &str) -> (i32, PathBuf) {
     let user = app.create_user(name, "pw", false).await;
     let dir = app.base_path().join("data").join(name);
     std::fs::create_dir_all(&dir).unwrap();
-    sqlx::query("UPDATE api_user SET scan_directory = $2 WHERE id = $1")
+    lp_db::sql::query("UPDATE api_user SET scan_directory = $2 WHERE id = $1")
         .bind(user.id)
         .bind(dir.to_string_lossy().to_string())
         .execute(app.pool())
@@ -100,7 +101,7 @@ async fn scan(app: &TestApp, user: i32, full: bool) -> (String, i32, i32, Option
     )
     .await
     .unwrap();
-    let (current, target, result, finished): (i32, i32, Option<Value>, bool) = sqlx::query_as(
+    let (current, target, result, finished): (i32, i32, Option<Value>, bool) = lp_db::sql::query_as(
         "SELECT progress_current, progress_target, result, finished FROM api_longrunningjob WHERE job_id = $1",
     )
     .bind(&job)
@@ -150,7 +151,7 @@ struct Row {
 }
 
 async fn photos(app: &TestApp, user: i32) -> Vec<Row> {
-    sqlx::query_as(
+    lp_db::sql::query_as(
         "SELECT p.image_hash, f.path, p.rating, p.video, p.is_screenshot, p.exif_timestamp, p.video_length, \
            p.perceptual_hash, t.aspect_ratio, t.dominant_color, \
            (SELECT count(*) FROM api_photo_files pf WHERE pf.photo_id = p.id) AS files \
@@ -259,7 +260,7 @@ async fn scan_rescan_replace_and_cleanup() {
         "2021-04-01T12:00:00+00:00"
     );
 
-    let (keywords, caption, tags): (Value, Option<Value>, i64) = sqlx::query_as(
+    let (keywords, caption, tags): (Value, Option<Value>, i64) = lp_db::sql::query_as(
         "SELECT m.keywords, c.captions_json, (SELECT count(*) FROM api_tag WHERE owner_id = $1) \
          FROM api_photo p JOIN api_photometadata m ON m.photo_id = p.id \
          LEFT JOIN api_photo_caption c ON c.photo_id = p.id WHERE p.image_hash = $2",
@@ -275,7 +276,7 @@ async fn scan_rescan_replace_and_cleanup() {
         "Described in an XMP sidecar"
     );
     assert_eq!(tags, 2);
-    let search: String = sqlx::query_scalar(
+    let search: String = lp_db::sql::query_scalar(
         "SELECT s.search_captions FROM api_photo_search s JOIN api_photo p ON p.id = s.photo_id WHERE p.image_hash = $1",
     )
     .bind(&shot.image_hash)
@@ -283,13 +284,14 @@ async fn scan_rescan_replace_and_cleanup() {
     .await
     .unwrap();
     assert!(search.ends_with("type: screenshot"), "{search}");
-    let albums: i64 = sqlx::query_scalar("SELECT count(*) FROM api_albumdate WHERE owner_id = $1")
-        .bind(uid)
-        .fetch_one(app.pool())
-        .await
-        .unwrap();
+    let albums: i64 =
+        lp_db::sql::query_scalar("SELECT count(*) FROM api_albumdate WHERE owner_id = $1")
+            .bind(uid)
+            .fetch_one(app.pool())
+            .await
+            .unwrap();
     assert!(albums >= 5);
-    let queued: Vec<String> = sqlx::query_scalar("SELECT kind FROM job_queue ORDER BY id")
+    let queued: Vec<String> = lp_db::sql::query_scalar("SELECT kind FROM job_queue ORDER BY id")
         .fetch_all(app.pool())
         .await
         .unwrap();
@@ -313,14 +315,14 @@ async fn scan_rescan_replace_and_cleanup() {
         std::fs::read(Path::new(FIXTURE).join("e2e/e2e_02.jpg")).unwrap(),
     )
     .unwrap();
-    let before: Uuid = sqlx::query_scalar("SELECT id FROM api_photo WHERE image_hash = $1")
+    let before: Uuid = lp_db::sql::query_scalar("SELECT id FROM api_photo WHERE image_hash = $1")
         .bind(&e2e.image_hash)
         .fetch_one(app.pool())
         .await
         .unwrap();
     scan(&app, uid, false).await;
     let new_hash = lp_ingest::fsutil::calculate_hash(&e2e_path, uid).unwrap();
-    let after: String = sqlx::query_scalar("SELECT image_hash FROM api_photo WHERE id = $1")
+    let after: String = lp_db::sql::query_scalar("SELECT image_hash FROM api_photo WHERE id = $1")
         .bind(before)
         .fetch_one(app.pool())
         .await
@@ -341,7 +343,7 @@ async fn scan_rescan_replace_and_cleanup() {
     lp_ingest::repair::scan_missing_photos(&p, uid, &Uuid::new_v4().to_string())
         .await
         .unwrap();
-    let missing: bool = sqlx::query_scalar("SELECT missing FROM api_file WHERE hash = $1")
+    let missing: bool = lp_db::sql::query_scalar("SELECT missing FROM api_file WHERE hash = $1")
         .bind(&unicode.image_hash)
         .fetch_one(app.pool())
         .await
@@ -354,7 +356,7 @@ async fn scan_rescan_replace_and_cleanup() {
     ))
     .await
     .unwrap();
-    let left: i64 = sqlx::query_scalar("SELECT count(*) FROM api_photo WHERE owner_id = $1")
+    let left: i64 = lp_db::sql::query_scalar("SELECT count(*) FROM api_photo WHERE owner_id = $1")
         .bind(uid)
         .fetch_one(app.pool())
         .await
@@ -371,12 +373,13 @@ async fn jobs_rerender_metadata_write_and_upload_processing() {
     let (uid, dir) = library_user(&app, "jobs").await;
     copy("e2e/e2e_03.jpg", &dir);
     scan(&app, uid, false).await;
-    let (photo, hash): (Uuid, String) =
-        sqlx::query_as("SELECT id, image_hash FROM api_photo WHERE owner_id = $1")
+    let (photo, hash): (DjUuid, String) =
+        lp_db::sql::query_as("SELECT id, image_hash FROM api_photo WHERE owner_id = $1")
             .bind(uid)
             .fetch_one(app.pool())
             .await
             .unwrap();
+    let photo = photo.0;
 
     // thumbnails.rerender rebuilds deleted thumbnails.
     let small = app
@@ -396,12 +399,12 @@ async fn jobs_rerender_metadata_write_and_upload_processing() {
     assert!(small.exists());
 
     // metadata.write: rating to the XMP sidecar when the owner asks for it.
-    sqlx::query("UPDATE api_user SET save_metadata_to_disk = 'SIDECAR_FILE' WHERE id = $1")
+    lp_db::sql::query("UPDATE api_user SET save_metadata_to_disk = 'SIDECAR_FILE' WHERE id = $1")
         .bind(uid)
         .execute(app.pool())
         .await
         .unwrap();
-    sqlx::query("UPDATE api_photo SET rating = 3 WHERE id = $1")
+    lp_db::sql::query("UPDATE api_photo SET rating = 3 WHERE id = $1")
         .bind(photo)
         .execute(app.pool())
         .await
@@ -443,7 +446,7 @@ async fn jobs_rerender_metadata_write_and_upload_processing() {
         Option<chrono::DateTime<Utc>>,
         Option<chrono::DateTime<Utc>>,
         Option<f64>,
-    ) = sqlx::query_as(
+    ) = lp_db::sql::query_as(
         "SELECT p.timestamp, p.exif_timestamp, t.aspect_ratio FROM api_photo p \
              JOIN api_thumbnail t ON t.photo_id = p.id WHERE p.id = $1",
     )
@@ -482,13 +485,13 @@ async fn non_media_groups_do_not_fail_the_scan() {
     assert!(result.get("error_count").is_none(), "{result}");
     assert!(result.get("errors").is_none(), "{result}");
     let failed: bool =
-        sqlx::query_scalar("SELECT failed FROM api_longrunningjob WHERE job_id = $1")
+        lp_db::sql::query_scalar("SELECT failed FROM api_longrunningjob WHERE job_id = $1")
             .bind(&job)
             .fetch_one(app.pool())
             .await
             .unwrap();
     assert!(!failed, "non-media files do not fail the scan");
-    let n: i64 = sqlx::query_scalar("SELECT count(*) FROM api_photo WHERE owner_id = $1")
+    let n: i64 = lp_db::sql::query_scalar("SELECT count(*) FROM api_photo WHERE owner_id = $1")
         .bind(uid)
         .fetch_one(app.pool())
         .await

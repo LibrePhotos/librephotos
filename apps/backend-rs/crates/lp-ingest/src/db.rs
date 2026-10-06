@@ -4,9 +4,11 @@
 
 use std::collections::HashSet;
 
+use lp_db::db::{Conn, Db, DjUuid, Qb};
+
 use chrono::{DateTime, NaiveDate, Utc};
 use serde_json::{Value, json};
-use sqlx::{FromRow, PgConnection, PgPool, Postgres, QueryBuilder};
+use sqlx::FromRow;
 use uuid::Uuid;
 
 use crate::exifmap::{MetadataUpdate, PhotoUpdate};
@@ -22,6 +24,7 @@ pub struct FileRow {
 
 #[derive(Debug, Clone, FromRow)]
 pub struct PhotoRow {
+    #[sqlx(try_from = "DjUuid")]
     pub id: Uuid,
     pub image_hash: String,
     pub owner_id: i32,
@@ -43,8 +46,8 @@ pub const PHOTO_COLS: &str = "p.id, p.image_hash, p.owner_id, p.main_file_id, p.
     p.local_orientation, p.exif_timestamp, p.exif_gps_lat, p.exif_gps_lon, p.timestamp, \
     p.category_source, p.perceptual_hash, p.removed, p.is_screenshot, p.is_document";
 
-pub async fn photo_by_id(db: &mut PgConnection, id: Uuid) -> sqlx::Result<Option<PhotoRow>> {
-    sqlx::query_as::<_, PhotoRow>(&format!(
+pub async fn photo_by_id(db: &mut Conn, id: Uuid) -> sqlx::Result<Option<PhotoRow>> {
+    lp_db::sql::query_as::<_, PhotoRow>(&format!(
         "SELECT {PHOTO_COLS} FROM api_photo p WHERE p.id = $1"
     ))
     .bind(id)
@@ -52,23 +55,27 @@ pub async fn photo_by_id(db: &mut PgConnection, id: Uuid) -> sqlx::Result<Option
     .await
 }
 
-pub async fn file_by_hash(db: &mut PgConnection, hash: &str) -> sqlx::Result<Option<FileRow>> {
-    sqlx::query_as::<_, FileRow>("SELECT hash, path, type, missing FROM api_file WHERE hash = $1")
-        .bind(hash)
-        .fetch_optional(db)
-        .await
+pub async fn file_by_hash(db: &mut Conn, hash: &str) -> sqlx::Result<Option<FileRow>> {
+    lp_db::sql::query_as::<_, FileRow>(
+        "SELECT hash, path, type, missing FROM api_file WHERE hash = $1",
+    )
+    .bind(hash)
+    .fetch_optional(db)
+    .await
 }
 
-pub async fn file_by_path(db: &mut PgConnection, path: &str) -> sqlx::Result<Option<FileRow>> {
-    sqlx::query_as::<_, FileRow>("SELECT hash, path, type, missing FROM api_file WHERE path = $1")
-        .bind(path)
-        .fetch_optional(db)
-        .await
+pub async fn file_by_path(db: &mut Conn, path: &str) -> sqlx::Result<Option<FileRow>> {
+    lp_db::sql::query_as::<_, FileRow>(
+        "SELECT hash, path, type, missing FROM api_file WHERE path = $1",
+    )
+    .bind(path)
+    .fetch_optional(db)
+    .await
 }
 
 /// Paths among `paths` that some photo holds as a variant (`_known_paths`).
-pub async fn known_paths(db: &PgPool, paths: &[String]) -> sqlx::Result<HashSet<String>> {
-    let rows: Vec<(String,)> = sqlx::query_as(
+pub async fn known_paths(db: &Db, paths: &[String]) -> sqlx::Result<HashSet<String>> {
+    let rows: Vec<(String,)> = lp_db::sql::query_as(
         "SELECT f.path FROM api_file f JOIN api_photo_files pf ON pf.file_id = f.hash \
          JOIN api_photo p ON p.id = pf.photo_id WHERE f.path = ANY($1)",
     )
@@ -78,8 +85,8 @@ pub async fn known_paths(db: &PgPool, paths: &[String]) -> sqlx::Result<HashSet<
     Ok(rows.into_iter().map(|(p,)| p).collect())
 }
 
-pub async fn path_is_known(db: &PgPool, path: &str) -> sqlx::Result<bool> {
-    sqlx::query_scalar(
+pub async fn path_is_known(db: &Db, path: &str) -> sqlx::Result<bool> {
+    lp_db::sql::query_scalar(
         "SELECT EXISTS (SELECT 1 FROM api_file f JOIN api_photo_files pf ON pf.file_id = f.hash \
          JOIN api_photo p ON p.id = pf.photo_id WHERE f.path = $1)",
     )
@@ -89,11 +96,8 @@ pub async fn path_is_known(db: &PgPool, path: &str) -> sqlx::Result<bool> {
 }
 
 /// `_last_finished_scan(user).finished_at`.
-pub async fn last_scan_finished_at(
-    db: &PgPool,
-    user_id: i32,
-) -> sqlx::Result<Option<DateTime<Utc>>> {
-    sqlx::query_scalar(
+pub async fn last_scan_finished_at(db: &Db, user_id: i32) -> sqlx::Result<Option<DateTime<Utc>>> {
+    lp_db::sql::query_scalar(
         "SELECT finished_at FROM api_longrunningjob WHERE finished AND job_type = 1 \
          AND started_by_id = $1 AND finished_at IS NOT NULL ORDER BY finished_at DESC LIMIT 1",
     )
@@ -102,8 +106,8 @@ pub async fn last_scan_finished_at(
     .await
 }
 
-pub async fn is_embedded_media(db: &mut PgConnection, hash: &str) -> sqlx::Result<bool> {
-    sqlx::query_scalar(
+pub async fn is_embedded_media(db: &mut Conn, hash: &str) -> sqlx::Result<bool> {
+    lp_db::sql::query_scalar(
         "SELECT EXISTS (SELECT 1 FROM api_file_embedded_media WHERE to_file_id = $1)",
     )
     .bind(hash)
@@ -114,14 +118,14 @@ pub async fn is_embedded_media(db: &mut PgConnection, hash: &str) -> sqlx::Resul
 /// `File.create`: the row for `path` (un-flagging a reappeared missing
 /// file), else a new row; on a hash collision the existing row by hash.
 pub async fn file_create(
-    db: &mut PgConnection,
+    db: &mut Conn,
     path: &str,
     hash: &str,
     kind: i32,
 ) -> sqlx::Result<FileRow> {
     if let Some(existing) = file_by_path(db, path).await? {
         if existing.missing && std::path::Path::new(path).exists() {
-            sqlx::query("UPDATE api_file SET missing = FALSE WHERE hash = $1")
+            lp_db::sql::query("UPDATE api_file SET missing = FALSE WHERE hash = $1")
                 .bind(&existing.hash)
                 .execute(&mut *db)
                 .await?;
@@ -135,7 +139,7 @@ pub async fn file_create(
     // Django's `file.save()` on a hash that is already a row is an UPDATE
     // (the pk has no default, so save() tries UPDATE before INSERT): the row
     // moves to the path seen last, and is no longer missing.
-    let moved = sqlx::query_as::<_, FileRow>(
+    let moved = lp_db::sql::query_as::<_, FileRow>(
         "UPDATE api_file SET path = $2, type = $3, missing = FALSE WHERE hash = $1 \
          AND NOT EXISTS (SELECT 1 FROM api_file WHERE path = $2) RETURNING hash, path, type, missing",
     )
@@ -147,7 +151,7 @@ pub async fn file_create(
     if let Some(f) = moved {
         return Ok(f);
     }
-    let inserted = sqlx::query_as::<_, FileRow>(
+    let inserted = lp_db::sql::query_as::<_, FileRow>(
         "INSERT INTO api_file (hash, path, type, missing) VALUES ($1, $2, $3, FALSE) \
          ON CONFLICT DO NOTHING RETURNING hash, path, type, missing",
     )
@@ -170,11 +174,11 @@ pub async fn file_create(
 /// The owner's photo holding any of `hashes` as variant or main file
 /// (`.first()` = lowest id).
 pub async fn find_photo_with_files(
-    db: &mut PgConnection,
+    db: &mut Conn,
     user_id: i32,
     hashes: &[String],
 ) -> sqlx::Result<Option<PhotoRow>> {
-    sqlx::query_as::<_, PhotoRow>(&format!(
+    lp_db::sql::query_as::<_, PhotoRow>(&format!(
         "SELECT {PHOTO_COLS} FROM api_photo p WHERE p.owner_id = $1 AND ( \
            EXISTS (SELECT 1 FROM api_photo_files pf WHERE pf.photo_id = p.id AND pf.file_id = ANY($2)) \
            OR p.main_file_id = ANY($2)) ORDER BY p.id LIMIT 1"
@@ -186,8 +190,8 @@ pub async fn find_photo_with_files(
 }
 
 /// `photo.files.add(file)` unless already linked; true when added.
-pub async fn add_photo_file(db: &mut PgConnection, photo: Uuid, hash: &str) -> sqlx::Result<bool> {
-    let r = sqlx::query(
+pub async fn add_photo_file(db: &mut Conn, photo: Uuid, hash: &str) -> sqlx::Result<bool> {
+    let r = lp_db::sql::query(
         "INSERT INTO api_photo_files (photo_id, file_id) SELECT $1, $2 \
          WHERE NOT EXISTS (SELECT 1 FROM api_photo_files WHERE photo_id = $1 AND file_id = $2)",
     )
@@ -198,15 +202,15 @@ pub async fn add_photo_file(db: &mut PgConnection, photo: Uuid, hash: &str) -> s
     Ok(r.rows_affected() > 0)
 }
 
-pub async fn file_type(db: &mut PgConnection, hash: &str) -> sqlx::Result<Option<i32>> {
-    sqlx::query_scalar("SELECT type FROM api_file WHERE hash = $1")
+pub async fn file_type(db: &mut Conn, hash: &str) -> sqlx::Result<Option<i32>> {
+    lp_db::sql::query_scalar("SELECT type FROM api_file WHERE hash = $1")
         .bind(hash)
         .fetch_optional(db)
         .await
 }
 
-pub async fn set_main_file(db: &mut PgConnection, photo: Uuid, hash: &str) -> sqlx::Result<()> {
-    sqlx::query("UPDATE api_photo SET main_file_id = $2 WHERE id = $1")
+pub async fn set_main_file(db: &mut Conn, photo: Uuid, hash: &str) -> sqlx::Result<()> {
+    lp_db::sql::query("UPDATE api_photo SET main_file_id = $2 WHERE id = $1")
         .bind(photo)
         .bind(hash)
         .execute(db)
@@ -216,14 +220,14 @@ pub async fn set_main_file(db: &mut PgConnection, photo: Uuid, hash: &str) -> sq
 
 /// A new `Photo()` with Django's field defaults.
 pub async fn insert_photo(
-    db: &mut PgConnection,
+    db: &mut Conn,
     owner: i32,
     image_hash: &str,
     main_file: Option<&str>,
     video: bool,
 ) -> sqlx::Result<PhotoRow> {
     let id = Uuid::new_v4();
-    sqlx::query(
+    lp_db::sql::query(
         "INSERT INTO api_photo (id, image_hash, added_on, geolocation_json, hidden, public, \
            owner_id, video, rating, in_trashcan, size, main_file_id, last_modified, removed, \
            local_orientation, is_screenshot, is_document, category_source) \
@@ -256,16 +260,16 @@ pub async fn insert_photo(
     })
 }
 
-pub async fn touch_photo(db: &mut PgConnection, photo: Uuid) -> sqlx::Result<()> {
-    sqlx::query("UPDATE api_photo SET last_modified = now() WHERE id = $1")
+pub async fn touch_photo(db: &mut Conn, photo: Uuid) -> sqlx::Result<()> {
+    lp_db::sql::query("UPDATE api_photo SET last_modified = now() WHERE id = $1")
         .bind(photo)
         .execute(db)
         .await?;
     Ok(())
 }
 
-pub async fn link_embedded(db: &mut PgConnection, from: &str, to: &str) -> sqlx::Result<()> {
-    sqlx::query(
+pub async fn link_embedded(db: &mut Conn, from: &str, to: &str) -> sqlx::Result<()> {
+    lp_db::sql::query(
         "INSERT INTO api_file_embedded_media (from_file_id, to_file_id) VALUES ($1, $2) \
          ON CONFLICT DO NOTHING",
     )
@@ -284,15 +288,15 @@ pub struct ThumbRow {
 }
 
 /// `Thumbnail.objects.get_or_create(photo=photo)`.
-pub async fn ensure_thumbnail(db: &mut PgConnection, photo: Uuid) -> sqlx::Result<ThumbRow> {
-    sqlx::query(
+pub async fn ensure_thumbnail(db: &mut Conn, photo: Uuid) -> sqlx::Result<ThumbRow> {
+    lp_db::sql::query(
         "INSERT INTO api_thumbnail (photo_id, thumbnail_big, square_thumbnail, square_thumbnail_small) \
          VALUES ($1, '', '', '') ON CONFLICT DO NOTHING",
     )
     .bind(photo)
     .execute(&mut *db)
     .await?;
-    sqlx::query_as::<_, ThumbRow>(
+    lp_db::sql::query_as::<_, ThumbRow>(
         "SELECT thumbnail_big, aspect_ratio, dominant_color FROM api_thumbnail WHERE photo_id = $1",
     )
     .bind(photo)
@@ -308,12 +312,8 @@ pub struct ThumbWrite {
     pub dominant_color: Option<String>,
 }
 
-pub async fn write_thumbnail(
-    db: &mut PgConnection,
-    photo: Uuid,
-    t: &ThumbWrite,
-) -> sqlx::Result<()> {
-    sqlx::query(
+pub async fn write_thumbnail(db: &mut Conn, photo: Uuid, t: &ThumbWrite) -> sqlx::Result<()> {
+    lp_db::sql::query(
         "UPDATE api_thumbnail SET thumbnail_big = $2, square_thumbnail = $3, \
            square_thumbnail_small = $4, aspect_ratio = COALESCE($5, aspect_ratio), \
            dominant_color = COALESCE(dominant_color, $6) WHERE photo_id = $1",
@@ -329,12 +329,8 @@ pub async fn write_thumbnail(
     Ok(())
 }
 
-pub async fn set_perceptual_hash(
-    db: &mut PgConnection,
-    photo: Uuid,
-    phash: &str,
-) -> sqlx::Result<()> {
-    sqlx::query("UPDATE api_photo SET perceptual_hash = $2 WHERE id = $1")
+pub async fn set_perceptual_hash(db: &mut Conn, photo: Uuid, phash: &str) -> sqlx::Result<()> {
+    lp_db::sql::query("UPDATE api_photo SET perceptual_hash = $2 WHERE id = $1")
         .bind(photo)
         .bind(phash)
         .execute(db)
@@ -344,13 +340,13 @@ pub async fn set_perceptual_hash(
 
 /// The full `photo.save()` at the end of `extract_date_time`.
 pub async fn save_photo_scan_fields(
-    db: &mut PgConnection,
+    db: &mut Conn,
     photo: Uuid,
     u: &PhotoUpdate,
     is_screenshot: Option<bool>,
     exif_timestamp: Option<DateTime<Utc>>,
 ) -> sqlx::Result<()> {
-    sqlx::query(
+    lp_db::sql::query(
         "UPDATE api_photo SET size = COALESCE($2, size), video_length = COALESCE($3, video_length), \
            rating = COALESCE($4, rating), exif_timestamp_subsec = COALESCE($5, exif_timestamp_subsec), \
            image_sequence_number = COALESCE($6, image_sequence_number), \
@@ -372,6 +368,7 @@ pub async fn save_photo_scan_fields(
 
 #[derive(Debug, Clone, FromRow)]
 pub struct MetaRow {
+    #[sqlx(try_from = "DjUuid")]
     pub id: Uuid,
     pub camera_make: Option<String>,
     pub camera_model: Option<String>,
@@ -390,15 +387,11 @@ const META_COLS: &str = "id, camera_make, camera_model, lens_make, lens_model, a
     focal_length, gps_latitude, gps_longitude, keywords, source";
 
 /// `_user_edited(metadata, "caption")`.
-async fn caption_user_edited(
-    db: &mut PgConnection,
-    photo: Uuid,
-    source: &str,
-) -> sqlx::Result<bool> {
+async fn caption_user_edited(db: &mut Conn, photo: Uuid, source: &str) -> sqlx::Result<bool> {
     if source != "user_edit" {
         return Ok(false);
     }
-    sqlx::query_scalar(
+    lp_db::sql::query_scalar(
         "SELECT EXISTS (SELECT 1 FROM api_metadataedit e WHERE e.photo_id = $1 AND e.field_name = 'caption' \
            AND (e.created_at > (SELECT max(r.created_at) FROM api_metadataedit r \
                                 WHERE r.photo_id = $1 AND r.field_name = '_all') \
@@ -411,11 +404,11 @@ async fn caption_user_edited(
 
 /// `PhotoMetadata.objects.get_or_create(photo)` + `_apply_to_metadata` + save.
 pub async fn upsert_metadata(
-    db: &mut PgConnection,
+    db: &mut Conn,
     photo: Uuid,
     m: &MetadataUpdate,
 ) -> sqlx::Result<MetaRow> {
-    sqlx::query(
+    lp_db::sql::query(
         "INSERT INTO api_photometadata (id, photo_id, source, version, created_at, updated_at) \
          VALUES ($1, $2, 'embedded', 1, now(), now()) ON CONFLICT (photo_id) DO NOTHING",
     )
@@ -424,7 +417,7 @@ pub async fn upsert_metadata(
     .execute(&mut *db)
     .await?;
     let source: String =
-        sqlx::query_scalar("SELECT source FROM api_photometadata WHERE photo_id = $1")
+        lp_db::sql::query_scalar("SELECT source FROM api_photometadata WHERE photo_id = $1")
             .bind(photo)
             .fetch_one(&mut *db)
             .await?;
@@ -432,7 +425,7 @@ pub async fn upsert_metadata(
         Some(d) if !caption_user_edited(db, photo, &source).await? => Some(d.clone()),
         _ => None,
     };
-    sqlx::query_as::<_, MetaRow>(&format!(
+    lp_db::sql::query_as::<_, MetaRow>(&format!(
         "UPDATE api_photometadata SET aperture = COALESCE($2, aperture), \
            focal_length = COALESCE($3, focal_length), iso = COALESCE($4, iso), \
            width = COALESCE($5, width), height = COALESCE($6, height), \
@@ -463,7 +456,7 @@ pub async fn upsert_metadata(
 
 /// `link_tags_from_keywords`: get-or-create each tag, link, recount.
 pub async fn link_tags(
-    db: &mut PgConnection,
+    db: &mut Conn,
     owner: i32,
     photo: Uuid,
     keywords: &Value,
@@ -481,7 +474,7 @@ pub async fn link_tags(
     names.sort();
     names.dedup();
     for name in names {
-        sqlx::query(
+        lp_db::sql::query(
             "INSERT INTO api_tag (name, owner_id, photo_count, last_modified) VALUES ($1, $2, 0, now()) \
              ON CONFLICT ON CONSTRAINT \"unique Tag\" DO NOTHING",
         )
@@ -490,12 +483,12 @@ pub async fn link_tags(
         .execute(&mut *db)
         .await?;
         let tag_id: i32 =
-            sqlx::query_scalar("SELECT id FROM api_tag WHERE name = $1 AND owner_id = $2")
+            lp_db::sql::query_scalar("SELECT id FROM api_tag WHERE name = $1 AND owner_id = $2")
                 .bind(&name)
                 .bind(owner)
                 .fetch_one(&mut *db)
                 .await?;
-        sqlx::query(
+        lp_db::sql::query(
             "INSERT INTO api_tag_photos (tag_id, photo_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
         )
         .bind(tag_id)
@@ -504,7 +497,7 @@ pub async fn link_tags(
         .await?;
         // `tag.photos.add(photo)`: recount, and the mobile-sync bump even
         // when the link already existed.
-        sqlx::query(
+        lp_db::sql::query(
             "UPDATE api_tag SET photo_count = (SELECT count(*) FROM api_tag_photos tp \
                JOIN api_photo p ON p.id = tp.photo_id WHERE tp.tag_id = $1 AND NOT p.hidden \
                AND NOT p.in_trashcan AND NOT p.removed), last_modified = now() WHERE id = $1",
@@ -518,13 +511,13 @@ pub async fn link_tags(
 
 /// `_import_description_to_caption` (+ `apply_user_caption`'s hashtag albums).
 pub async fn import_description(
-    db: &mut PgConnection,
+    db: &mut Conn,
     owner: i32,
     photo: Uuid,
     image_hash: &str,
     description: &str,
 ) -> sqlx::Result<()> {
-    sqlx::query(
+    lp_db::sql::query(
         "INSERT INTO api_photo_caption (photo_id, captions_json, created_at, updated_at) \
          VALUES ($1, NULL, now(), now()) ON CONFLICT DO NOTHING",
     )
@@ -532,7 +525,7 @@ pub async fn import_description(
     .execute(&mut *db)
     .await?;
     let captions: Option<Value> =
-        sqlx::query_scalar("SELECT captions_json FROM api_photo_caption WHERE photo_id = $1")
+        lp_db::sql::query_scalar("SELECT captions_json FROM api_photo_caption WHERE photo_id = $1")
             .bind(photo)
             .fetch_one(&mut *db)
             .await?;
@@ -556,14 +549,14 @@ pub async fn import_description(
         let caption = description.replace("<start>", "").replace("<end>", "");
         let caption = caption.trim().to_string();
         captions.insert("user_caption".into(), json!(caption));
-        sqlx::query("UPDATE api_photo_caption SET captions_json = $2, updated_at = now() WHERE photo_id = $1")
+        lp_db::sql::query("UPDATE api_photo_caption SET captions_json = $2, updated_at = now() WHERE photo_id = $1")
             .bind(photo)
             .bind(Value::Object(captions))
             .execute(&mut *db)
             .await?;
         sync_hashtags(db, owner, photo, image_hash, &caption).await?;
     } else {
-        sqlx::query("UPDATE api_photo_caption SET captions_json = $2 WHERE photo_id = $1")
+        lp_db::sql::query("UPDATE api_photo_caption SET captions_json = $2 WHERE photo_id = $1")
             .bind(photo)
             .bind(Value::Object(captions))
             .execute(&mut *db)
@@ -575,7 +568,7 @@ pub async fn import_description(
 /// `_sync_hashtag_album_things`: add the photo to a `hashtag_attribute`
 /// AlbumThing per `#tag` (with the m2m signal's count/cover refresh).
 async fn sync_hashtags(
-    db: &mut PgConnection,
+    db: &mut Conn,
     owner: i32,
     photo: Uuid,
     image_hash: &str,
@@ -585,7 +578,7 @@ async fn sync_hashtags(
         .split_whitespace()
         .filter(|w| w.starts_with('#') && w.chars().count() > 1)
     {
-        sqlx::query(
+        lp_db::sql::query(
             "INSERT INTO api_albumthing (title, thing_type, favorited, owner_id, photo_count, last_modified) \
              VALUES ($1, 'hashtag_attribute', FALSE, $2, 0, now()) \
              ON CONFLICT ON CONSTRAINT \"unique AlbumThing\" DO NOTHING",
@@ -594,14 +587,14 @@ async fn sync_hashtags(
         .bind(owner)
         .execute(&mut *db)
         .await?;
-        let thing: i32 = sqlx::query_scalar(
+        let thing: i32 = lp_db::sql::query_scalar(
             "SELECT id FROM api_albumthing WHERE title = $1 AND thing_type = 'hashtag_attribute' AND owner_id = $2",
         )
         .bind(tag)
         .bind(owner)
         .fetch_one(&mut *db)
         .await?;
-        let has: bool = sqlx::query_scalar(
+        let has: bool = lp_db::sql::query_scalar(
             "SELECT EXISTS (SELECT 1 FROM api_albumthing_photos tp JOIN api_photo p ON p.id = tp.photo_id \
              WHERE tp.albumthing_id = $1 AND p.image_hash = $2)",
         )
@@ -612,12 +605,12 @@ async fn sync_hashtags(
         if has {
             continue;
         }
-        sqlx::query("INSERT INTO api_albumthing_photos (albumthing_id, photo_id) VALUES ($1, $2) ON CONFLICT DO NOTHING")
+        lp_db::sql::query("INSERT INTO api_albumthing_photos (albumthing_id, photo_id) VALUES ($1, $2) ON CONFLICT DO NOTHING")
             .bind(thing)
             .bind(photo)
             .execute(&mut *db)
             .await?;
-        sqlx::query(
+        lp_db::sql::query(
             "UPDATE api_albumthing SET photo_count = (SELECT count(*) FROM api_albumthing_photos tp \
                JOIN api_photo p ON p.id = tp.photo_id WHERE tp.albumthing_id = $1 AND NOT p.hidden), \
                last_modified = now() WHERE id = $1",
@@ -625,7 +618,7 @@ async fn sync_hashtags(
         .bind(thing)
         .execute(&mut *db)
         .await?;
-        sqlx::query(
+        lp_db::sql::query(
             "INSERT INTO api_albumthing_cover_photos (albumthing_id, photo_id) \
              SELECT $1, p.id FROM api_albumthing_photos tp JOIN api_photo p ON p.id = tp.photo_id \
              WHERE tp.albumthing_id = $1 AND NOT p.hidden AND p.id NOT IN \
@@ -641,8 +634,12 @@ async fn sync_hashtags(
 
 /// Serialize get-or-create of a user's null-date album (NULLs never
 /// conflict on the unique constraint).
-async fn lock_null_album(db: &mut PgConnection, owner: i32) -> sqlx::Result<()> {
-    sqlx::query("SELECT pg_advisory_xact_lock(7340031, $1)")
+async fn lock_null_album(db: &mut Conn, owner: i32) -> sqlx::Result<()> {
+    if db.dialect().is_sqlite() {
+        // SQLITE(P2): no-op, the IMMEDIATE transaction already serializes writers.
+        return Ok(());
+    }
+    lp_db::sql::query("SELECT pg_advisory_xact_lock(7340031, $1)")
         .bind(owner)
         .execute(db)
         .await?;
@@ -650,11 +647,11 @@ async fn lock_null_album(db: &mut PgConnection, owner: i32) -> sqlx::Result<()> 
 }
 
 async fn album_date_id(
-    db: &mut PgConnection,
+    db: &mut Conn,
     owner: i32,
     date: Option<NaiveDate>,
 ) -> sqlx::Result<Option<i32>> {
-    sqlx::query_scalar(
+    lp_db::sql::query_scalar(
         "SELECT id FROM api_albumdate WHERE owner_id = $1 AND date IS NOT DISTINCT FROM $2 ORDER BY id LIMIT 1",
     )
     .bind(owner)
@@ -666,7 +663,7 @@ async fn album_date_id(
 /// `extract_date_time`'s album move: out of the day album the photo was in,
 /// into the one of its (new) date.
 pub async fn move_to_album_date(
-    db: &mut PgConnection,
+    db: &mut Conn,
     owner: i32,
     photo: Uuid,
     image_hash: &str,
@@ -678,7 +675,7 @@ pub async fn move_to_album_date(
         lock_null_album(db, owner).await?;
     }
     if let Some(old_album) = album_date_id(db, owner, old_date).await? {
-        let holds: bool = sqlx::query_scalar(
+        let holds: bool = lp_db::sql::query_scalar(
             "SELECT EXISTS (SELECT 1 FROM api_albumdate_photos ap JOIN api_photo p ON p.id = ap.photo_id \
              WHERE ap.albumdate_id = $1 AND p.image_hash = $2)",
         )
@@ -687,7 +684,7 @@ pub async fn move_to_album_date(
         .fetch_one(&mut *db)
         .await?;
         if holds {
-            sqlx::query(
+            lp_db::sql::query(
                 "DELETE FROM api_albumdate_photos WHERE albumdate_id = $1 AND photo_id = $2",
             )
             .bind(old_album)
@@ -699,7 +696,7 @@ pub async fn move_to_album_date(
     let new_date = new.map(|d| d.date_naive());
     let album = match new_date {
         Some(d) => {
-            sqlx::query(
+            lp_db::sql::query(
                 "INSERT INTO api_albumdate (title, date, favorited, owner_id) VALUES ('', $1, FALSE, $2) \
                  ON CONFLICT (date, owner_id) DO NOTHING",
             )
@@ -712,7 +709,7 @@ pub async fn move_to_album_date(
         None => match album_date_id(db, owner, None).await? {
             Some(id) => Some(id),
             None => Some(
-                sqlx::query_scalar(
+                lp_db::sql::query_scalar(
                     "INSERT INTO api_albumdate (title, date, favorited, owner_id) VALUES ('', NULL, FALSE, $1) RETURNING id",
                 )
                 .bind(owner)
@@ -722,7 +719,7 @@ pub async fn move_to_album_date(
         },
     };
     if let Some(album) = album {
-        sqlx::query(
+        lp_db::sql::query(
             "INSERT INTO api_albumdate_photos (albumdate_id, photo_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
         )
         .bind(album)
@@ -734,11 +731,7 @@ pub async fn move_to_album_date(
 }
 
 /// `PhotoSearch.recreate_search_captions` + save.
-pub async fn recreate_search(
-    db: &mut PgConnection,
-    photo: Uuid,
-    tagging_model: &str,
-) -> sqlx::Result<()> {
+pub async fn recreate_search(db: &mut Conn, photo: Uuid, tagging_model: &str) -> sqlx::Result<()> {
     #[derive(FromRow)]
     struct Src {
         captions_json: Option<Value>,
@@ -747,7 +740,7 @@ pub async fn recreate_search(
         is_document: bool,
         main_path: Option<String>,
     }
-    let src = sqlx::query_as::<_, Src>(
+    let src = lp_db::sql::query_as::<_, Src>(
         "SELECT c.captions_json, p.video, p.is_screenshot, p.is_document, mf.path AS main_path \
          FROM api_photo p LEFT JOIN api_photo_caption c ON c.photo_id = p.id \
          LEFT JOIN api_file mf ON mf.hash = p.main_file_id WHERE p.id = $1",
@@ -776,7 +769,7 @@ pub async fn recreate_search(
             }
         }
     }
-    let names: Vec<String> = sqlx::query_scalar(
+    let names: Vec<String> = lp_db::sql::query_scalar(
         "SELECT pe.name FROM api_face f JOIN api_person pe ON pe.id = f.person_id \
          WHERE f.photo_id = $1 ORDER BY f.id",
     )
@@ -791,7 +784,7 @@ pub async fn recreate_search(
         s.push_str(p);
         s.push(' ');
     }
-    let paths: Vec<String> = sqlx::query_scalar(
+    let paths: Vec<String> = lp_db::sql::query_scalar(
         "SELECT f.path FROM api_photo_files pf JOIN api_file f ON f.hash = pf.file_id \
          WHERE pf.photo_id = $1 ORDER BY pf.id",
     )
@@ -811,7 +804,7 @@ pub async fn recreate_search(
     if src.is_document {
         s.push_str("type: document ");
     }
-    let meta = sqlx::query_as::<_, MetaRow>(&format!(
+    let meta = lp_db::sql::query_as::<_, MetaRow>(&format!(
         "SELECT {META_COLS} FROM api_photometadata WHERE photo_id = $1"
     ))
     .bind(photo)
@@ -835,7 +828,7 @@ pub async fn recreate_search(
         }
     }
     let text = s.trim().to_string();
-    sqlx::query(
+    lp_db::sql::query(
         "INSERT INTO api_photo_search (photo_id, search_captions, search_location, created_at, updated_at) \
          VALUES ($1, $2, NULL, now(), now()) \
          ON CONFLICT (photo_id) DO UPDATE SET search_captions = EXCLUDED.search_captions, updated_at = now()",
@@ -875,12 +868,12 @@ pub fn has_camera_metadata(m: &MetaRow) -> bool {
 
 /// `update_job_result`-style error record + the sticky `failed` flag.
 pub async fn lrj_record_errors(
-    db: &PgPool,
+    db: &Db,
     job_id: &str,
     result: &Value,
     failed: bool,
 ) -> sqlx::Result<()> {
-    sqlx::query(
+    lp_db::sql::query(
         "UPDATE api_longrunningjob SET result = $2, failed = failed OR $3 WHERE job_id = $1 AND NOT cancelled",
     )
     .bind(job_id)
@@ -892,8 +885,8 @@ pub async fn lrj_record_errors(
 }
 
 /// `finish_job_if_complete` once all work is done: finished exactly once.
-pub async fn lrj_finish(db: &PgPool, job_id: &str) -> sqlx::Result<bool> {
-    let n = sqlx::query(
+pub async fn lrj_finish(db: &Db, job_id: &str) -> sqlx::Result<bool> {
+    let n = lp_db::sql::query(
         "UPDATE api_longrunningjob SET finished = TRUE, finished_at = now() \
          WHERE job_id = $1 AND NOT finished AND NOT cancelled",
     )
@@ -905,13 +898,8 @@ pub async fn lrj_finish(db: &PgPool, job_id: &str) -> sqlx::Result<bool> {
 }
 
 /// `update_progress(current, target)`.
-pub async fn lrj_progress(
-    db: &PgPool,
-    job_id: &str,
-    current: i32,
-    target: i32,
-) -> sqlx::Result<()> {
-    sqlx::query("UPDATE api_longrunningjob SET progress_current = $2, progress_target = $3 WHERE job_id = $1")
+pub async fn lrj_progress(db: &Db, job_id: &str, current: i32, target: i32) -> sqlx::Result<()> {
+    lp_db::sql::query("UPDATE api_longrunningjob SET progress_current = $2, progress_target = $3 WHERE job_id = $1")
         .bind(job_id)
         .bind(current)
         .bind(target)
@@ -921,8 +909,8 @@ pub async fn lrj_progress(
 }
 
 /// `LongRunningJob.complete()`.
-pub async fn lrj_complete(db: &PgPool, job_id: &str) -> sqlx::Result<()> {
-    sqlx::query(
+pub async fn lrj_complete(db: &Db, job_id: &str) -> sqlx::Result<()> {
+    lp_db::sql::query(
         "UPDATE api_longrunningjob SET finished = TRUE, finished_at = now() WHERE job_id = $1",
     )
     .bind(job_id)
@@ -933,12 +921,12 @@ pub async fn lrj_complete(db: &PgPool, job_id: &str) -> sqlx::Result<()> {
 
 /// `LongRunningJob.get_or_create_job`: start it, creating it if needed.
 pub async fn lrj_get_or_create(
-    db: &PgPool,
+    db: &Db,
     job_id: &str,
     job_type: i32,
     user: i32,
 ) -> sqlx::Result<()> {
-    sqlx::query(
+    lp_db::sql::query(
         "INSERT INTO api_longrunningjob (job_type, finished, failed, cancelled, job_id, queued_at, \
            started_at, started_by_id, progress_current, progress_target) \
          SELECT $2, FALSE, FALSE, FALSE, $1, now(), now(), $3, 0, 0 \
@@ -949,7 +937,7 @@ pub async fn lrj_get_or_create(
     .bind(user)
     .execute(db)
     .await?;
-    sqlx::query(
+    lp_db::sql::query(
         "UPDATE api_longrunningjob SET started_at = COALESCE(started_at, now()) WHERE job_id = $1",
     )
     .bind(job_id)
@@ -958,13 +946,13 @@ pub async fn lrj_get_or_create(
     Ok(())
 }
 
-pub async fn photo_count(db: &PgPool, owner: i32) -> sqlx::Result<i64> {
-    sqlx::query_scalar("SELECT count(*) FROM api_photo WHERE owner_id = $1")
+pub async fn photo_count(db: &Db, owner: i32) -> sqlx::Result<i64> {
+    lp_db::sql::query_scalar("SELECT count(*) FROM api_photo WHERE owner_id = $1")
         .bind(owner)
         .fetch_one(db)
         .await
 }
 
-pub fn qb<'a>(sql: &str) -> QueryBuilder<'a, Postgres> {
-    QueryBuilder::new(sql)
+pub fn qb<'a>(sql: &str) -> Qb<'a> {
+    Qb::new(sql)
 }
