@@ -22,7 +22,10 @@ def render_raw(source, destination, height):
         rgb = raw.postprocess(use_camera_wb=True, half_size=half, output_bps=8)
     image = pyvips.Image.new_from_array(rgb)
     thumbnail = image.thumbnail_image(10000, height=height, size=pyvips.enums.Size.DOWN)
-    thumbnail.webpsave(destination, Q=95)
+    # Built from bare pixels, so nothing of the photo's own metadata is here, but
+    # libvips would still add a stock EXIF block; thumbnails carry none (see
+    # ``api.thumbnails.WEBP``).
+    thumbnail.webpsave(destination, Q=95, keep=pyvips.enums.ForeignKeep.NONE)
 
 
 def _inside_media_root(destination):

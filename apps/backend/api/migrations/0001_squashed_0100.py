@@ -18,7 +18,8 @@ from django.db import migrations, models
 # Photo UUID primary key (originally 0099_photo_uuid_primary_key)
 # ============================================================================
 #
-# Copied verbatim from the replaced migration. This is the one operation of
+# Copied from the replaced migration, except that the SQLite path now writes
+# uuid.hex (see _migrate_sqlite). This is the one operation of
 # 0001-0100 that could not be squashed away: it changes the schema with raw
 # SQL (PostgreSQL) or table recreation (SQLite) rather than through Django
 # schema operations, so a fresh database still has to run it to end up with
@@ -337,6 +338,29 @@ def _migrate_postgresql(schema_editor):
 #   5. Re-create indexes
 # ============================================================================
 
+# (table, column) of every photo reference the rebuild translates. The rebuilt
+# tables keep no REFERENCES clause, so foreign-key introspection cannot find
+# these columns afterwards; the tests of 0143_sqlite_photo_ids_hex check that
+# it still covers every one of them.
+SQLITE_FK_COLUMNS = [
+    ("api_face", "photo_id"),
+    ("api_photo_shared_to", "photo_id"),
+    ("api_photo_files", "photo_id"),
+    ("api_albumuser_photos", "photo_id"),
+    ("api_albumthing_photos", "photo_id"),
+    ("api_albumplace_photos", "photo_id"),
+    ("api_albumdate_photos", "photo_id"),
+    ("api_albumauto_photos", "photo_id"),
+    ("api_albumthing_cover_photos", "photo_id"),
+    ("api_person", "cover_photo_id"),
+    ("api_albumuser", "cover_photo_id"),
+    ("api_photostack", "primary_photo_id"),
+    ("api_thumbnail", "photo_id"),
+    ("api_photo_caption", "photo_id"),
+    ("api_photo_search", "photo_id"),
+]
+
+
 def _migrate_sqlite(schema_editor):
     """Execute the SQLite-compatible migration via table recreation."""
     cursor = schema_editor.connection.cursor()
@@ -346,8 +370,12 @@ def _migrate_sqlite(schema_editor):
 
     try:
         # -- Step 1: Build image_hash → UUID mapping --------------------------
+        # UUIDField stores uuid.hex on SQLite and looks rows up by it. The
+        # original 0099 wrote str(uuid4()) here, with dashes, which Django
+        # never matches; 0143_sqlite_photo_ids_hex repairs databases that
+        # already ran it.
         cursor.execute('SELECT "image_hash" FROM "api_photo"')
-        mapping = {row[0]: str(uuid.uuid4()) for row in cursor.fetchall()}
+        mapping = {row[0]: uuid.uuid4().hex for row in cursor.fetchall()}
 
         # -- Step 2: Add id column to api_photo and populate UUIDs ------------
         cursor.execute('ALTER TABLE "api_photo" ADD COLUMN "id" TEXT')
@@ -369,24 +397,7 @@ def _migrate_sqlite(schema_editor):
         )
 
         # -- Step 4: Update FK references in every related table --------------
-        _FK_TABLES = [
-            ("api_face", "photo_id"),
-            ("api_photo_shared_to", "photo_id"),
-            ("api_photo_files", "photo_id"),
-            ("api_albumuser_photos", "photo_id"),
-            ("api_albumthing_photos", "photo_id"),
-            ("api_albumplace_photos", "photo_id"),
-            ("api_albumdate_photos", "photo_id"),
-            ("api_albumauto_photos", "photo_id"),
-            ("api_albumthing_cover_photos", "photo_id"),
-            ("api_person", "cover_photo_id"),
-            ("api_albumuser", "cover_photo_id"),
-            ("api_photostack", "primary_photo_id"),
-            ("api_thumbnail", "photo_id"),
-            ("api_photo_caption", "photo_id"),
-            ("api_photo_search", "photo_id"),
-        ]
-        for table_name, fk_column in _FK_TABLES:
+        for table_name, fk_column in SQLITE_FK_COLUMNS:
             _sqlite_update_fk_table(cursor, table_name, fk_column, mapping)
 
         # -- Step 5: Create performance indexes -------------------------------

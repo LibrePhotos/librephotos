@@ -27,6 +27,46 @@ from api.models import AlbumUser, Photo
 logger = logging.getLogger(__name__)
 
 
+def _url_segment_traverses(*segments):
+    """Whether any ``/media/`` URL segment tries to leave its directory.
+
+    ``fname`` is meant to be a bare filename and ``path`` a forward-slash
+    subpath below ``MEDIA_ROOT``; neither ever legitimately contains a
+    backslash or a ``..`` component. A backslash is a directory separator on
+    Windows -- where ``os.path.join(MEDIA_ROOT, path, fname)`` and the Windows
+    filesystem collapse ``abc_\\..\\..\\target`` lexically, straight out of
+    ``MEDIA_ROOT`` -- and elsewhere only ever appears in an attack, so it is
+    refused on every platform. This runs before the request is dispatched, so
+    the check covers the ``X-Accel-Redirect`` URIs of proxy mode as much as the
+    filesystem joins of direct mode.
+    """
+    for segment in segments:
+        if "\\" in segment:
+            return True
+        # normpath would collapse the very ".." we mean to catch, so split raw.
+        if any(part == ".." for part in segment.split("/")):
+            return True
+    return False
+
+
+def _within_media_root(candidate):
+    """Whether ``candidate`` resolves to ``MEDIA_ROOT`` itself or below it.
+
+    Belt to the suspenders of :func:`_url_segment_traverses`: the path is
+    resolved (``..`` collapsed, symlinks followed) and required to stay inside
+    the resolved ``MEDIA_ROOT``, so no direct-mode join can serve a file the
+    resolved path places outside it -- including a caller reached without going
+    through :meth:`UnifiedMediaAccessView.get`.
+    """
+    root = os.path.realpath(settings.MEDIA_ROOT)
+    resolved = os.path.realpath(candidate)
+    try:
+        return os.path.commonpath([resolved, root]) == root
+    except ValueError:
+        # Raised when the two are on different drives (Windows): not inside.
+        return False
+
+
 def build_live_command(path):
     """The conversion a viewer is waiting on, bounded so it cannot take the host.
 
@@ -205,6 +245,20 @@ class UnifiedMediaAccessView(APIView):
             return mime_type(file_path)
         except Exception:
             return "application/octet-stream"
+
+    def _safe_media_join(self, path, fname, suffix=""):
+        """Join ``path``/``fname`` under ``MEDIA_ROOT``, or ``None`` if it escapes.
+
+        The single choke point for every direct-mode join of URL-controlled
+        segments onto ``MEDIA_ROOT``. ``get`` already refuses traversal before
+        dispatch, but re-checking the resolved join here keeps any direct-mode
+        helper (some are reachable on their own, e.g. from the shared-album and
+        public-photo routes) from serving a file outside ``MEDIA_ROOT``.
+        """
+        if _url_segment_traverses(path, fname):
+            return None
+        candidate = os.path.join(settings.MEDIA_ROOT, path, fname + suffix)
+        return candidate if _within_media_root(candidate) else None
 
     def _serve_file_direct(self, file_path, content_type=None):
         if not os.path.exists(file_path):
@@ -419,8 +473,8 @@ class UnifiedMediaAccessView(APIView):
         for ext, content_type in ((".webp", "image/webp"), (".mp4", "video/mp4")):
             if fname.endswith(ext):
                 continue
-            candidate = os.path.join(settings.MEDIA_ROOT, path, fname + ext)
-            if os.path.exists(candidate):
+            candidate = self._safe_media_join(path, fname, ext)
+            if candidate is not None and os.path.exists(candidate):
                 return self._serve_file_direct(candidate, content_type)
         return None
 
@@ -429,7 +483,9 @@ class UnifiedMediaAccessView(APIView):
         if response is not None:
             return response
 
-        file_path = os.path.join(settings.MEDIA_ROOT, path, fname)
+        file_path = self._safe_media_join(path, fname)
+        if file_path is None:
+            return HttpResponse(status=404)
         if not os.path.exists(file_path):
             response = self._suffixed_thumbnail_response(path, fname)
             if response is not None:
@@ -446,7 +502,9 @@ class UnifiedMediaAccessView(APIView):
             return self._thumbnail_response_direct(photo, path, fname)
 
         if "faces" in path:
-            file_path = os.path.join(settings.MEDIA_ROOT, path, fname)
+            file_path = self._safe_media_join(path, fname)
+            if file_path is None:
+                return HttpResponse(status=404)
             return self._serve_file_direct(file_path, "image/jpg")
 
         if photo.video:
@@ -454,7 +512,9 @@ class UnifiedMediaAccessView(APIView):
                 return self._transcoded_video_response(photo, use_proxy=False)
             return self._serve_file_direct(photo.main_file.path)
 
-        file_path = os.path.join(settings.MEDIA_ROOT, path, fname)
+        file_path = self._safe_media_join(path, fname)
+        if file_path is None:
+            return HttpResponse(status=404)
         return self._serve_file_direct(file_path, "image/jpg")
 
     def _generate_response_original(
@@ -622,7 +682,9 @@ class UnifiedMediaAccessView(APIView):
                 response["Content-Type"] = "application/x-zip-compressed"
                 response["X-Accel-Redirect"] = self._protected_media_url(path, filename)
                 return response
-            file_path = os.path.join(settings.MEDIA_ROOT, path, filename)
+            file_path = self._safe_media_join(path, filename)
+            if file_path is None:
+                return HttpResponse(status=404)
             return self._serve_file_direct(file_path, "application/x-zip-compressed")
         except Exception:
             return self._forbidden_unauthenticated()
@@ -636,7 +698,9 @@ class UnifiedMediaAccessView(APIView):
                 response["Content-Type"] = "image/png"
                 response["X-Accel-Redirect"] = self._protected_media_url(path, fname)
                 return response
-            file_path = os.path.join(settings.MEDIA_ROOT, path, fname)
+            file_path = self._safe_media_join(path, fname)
+            if file_path is None:
+                return HttpResponse(status=404)
             return self._serve_file_direct(file_path, "image/png")
         except Exception:
             return HttpResponse(status=404)
@@ -762,6 +826,13 @@ class UnifiedMediaAccessView(APIView):
         return self._refuse(user)
 
     def get(self, request, path, fname, album_id=None, format=None):
+        # Refused before anything is joined onto MEDIA_ROOT or written into an
+        # X-Accel-Redirect URI: a `..` component or a backslash in either URL
+        # segment is always an attempt to leave the media directory, never a
+        # real request (see _url_segment_traverses).
+        if _url_segment_traverses(path, fname):
+            return HttpResponse(status=404)
+
         use_proxy = self._should_use_proxy()
         kind = path.lower()
 

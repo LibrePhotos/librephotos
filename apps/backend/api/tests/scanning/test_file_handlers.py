@@ -20,7 +20,7 @@ from django.test import TestCase, override_settings
 from api.directory_watcher import file_handlers
 from api.directory_watcher.file_handlers import create_new_image, handle_file_group
 from api.models import File, LongRunningJob, Photo
-from api.models.file import calculate_hash
+from api.models.file import calculate_hash, looks_like_media
 from api.tests.utils import create_test_user
 
 MODULE = "api.directory_watcher.file_handlers"
@@ -36,6 +36,12 @@ def _write_bytes(path: str, payload: bytes) -> str:
     with open(path, "wb") as fh:
         fh.write(payload)
     return path
+
+
+# A JPEG start-of-image + APP0 marker followed by junk: filetype sniffs it as
+# image/jpeg, but no loader can open it.
+CORRUPT_JPEG = b"\xff\xd8\xff\xe0" + b"\x00" * 60
+PP3_SIDECAR = b"[Version]\nAppVersion=5.8\nVersion=349\n"
 
 
 class FileHandlerTestBase(TestCase):
@@ -368,8 +374,33 @@ class HandleFileGroupTests(FileHandlerTestBase):
         self.assertEqual(path, Photo.objects.first().main_file.path)
         self.mock_process.assert_called_once()
 
-    def test_no_valid_files_logs_warning_and_skips_processing(self):
-        bad_path = _write_bytes(self.p("garbage.txt"), b"nope")
+    def _assert_ignored(self, path):
+        job = self._make_job(target=1)
+
+        with patch(f"{MODULE}.logger") as logger:
+            handle_file_group(self.user, [path], self.job_id)
+
+        self.assertEqual(0, Photo.objects.count())
+        self.assertFalse(File.objects.filter(path=path).exists())
+        self.mock_process.assert_not_called()
+        logger.warning.assert_not_called()
+        self.assertIn("ignoring non-media files", logger.info.call_args[0][0])
+        job.refresh_from_db()
+        # Counted as processed, so the job still reaches its target.
+        self.assertEqual(1, job.progress_current)
+        self.assertTrue(job.finished)
+        self.assertFalse(job.failed)
+        self.assertNotIn("error_count", job.result or {})
+        self.assertNotIn("errors", job.result or {})
+
+    def test_rawtherapee_sidecar_group_is_ignored_not_failed(self):
+        self._assert_ignored(_write_bytes(self.p("IMG_3398.CR2.pp3"), PP3_SIDECAR))
+
+    def test_text_file_group_is_ignored_not_failed(self):
+        self._assert_ignored(_write_bytes(self.p("garbage.txt"), b"nope"))
+
+    def test_corrupt_jpeg_group_is_still_an_error(self):
+        bad_path = _write_bytes(self.p("broken.jpg"), b"not really a jpeg")
         self._make_job()
 
         with patch(f"{MODULE}.logger") as logger:
@@ -380,6 +411,58 @@ class HandleFileGroupTests(FileHandlerTestBase):
         self.assertIn("No valid files in group", logger.warning.call_args[0][0])
         job = LongRunningJob.objects.get(job_id=self.job_id)
         self.assertEqual(1, (job.result or {}).get("error_count"))
+        self.assertIn("broken.jpg", job.result["errors"][0])
+
+    def test_extensionless_file_with_jpeg_magic_is_still_media(self):
+        bad_path = _write_bytes(self.p("IMG_0001"), CORRUPT_JPEG)
+        self._make_job()
+
+        handle_file_group(self.user, [bad_path], self.job_id)
+
+        job = LongRunningJob.objects.get(job_id=self.job_id)
+        self.assertEqual(1, (job.result or {}).get("error_count"))
+
+    def test_unloadable_photo_in_a_group_with_a_sidecar_is_still_an_error(self):
+        """A non-media file in the group does not hide the photo's error."""
+        notes_path = _write_bytes(self.p("IMG_2.txt"), b"notes")
+        bad_path = _write_bytes(self.p("IMG_2.jpg"), b"truncated")
+        self._make_job()
+
+        handle_file_group(self.user, [notes_path, bad_path], self.job_id)
+
+        job = LongRunningJob.objects.get(job_id=self.job_id)
+        self.assertEqual(1, (job.result or {}).get("error_count"))
+
+    def test_many_sidecar_groups_do_not_fail_the_job(self):
+        """The reported scan: 205 .pp3 groups failed a job whose photos all
+        imported. More ignored groups than FAILURE_ERROR_FLOOR must not."""
+        sidecars = [
+            _write_bytes(self.p(f"IMG_{n}.CR2.pp3"), PP3_SIDECAR) for n in range(12)
+        ]
+        image_path = _write_image(self.p("IMG_99.png"), width=30)
+        job = self._make_job(target=len(sidecars) + 1)
+
+        for path in sidecars:
+            handle_file_group(self.user, [path], self.job_id)
+        handle_file_group(self.user, [image_path], self.job_id)
+
+        job.refresh_from_db()
+        self.assertEqual(len(sidecars) + 1, job.progress_current)
+        self.assertTrue(job.finished)
+        self.assertFalse(job.failed)
+        self.assertNotIn("error_count", job.result or {})
+        self.assertEqual(1, Photo.objects.count())
+
+    def test_many_corrupt_jpeg_groups_still_fail_the_job(self):
+        broken = [_write_bytes(self.p(f"BAD_{n}.jpg"), b"truncated") for n in range(12)]
+        job = self._make_job(target=len(broken))
+
+        for path in broken:
+            handle_file_group(self.user, [path], self.job_id)
+
+        job.refresh_from_db()
+        self.assertTrue(job.failed)
+        self.assertEqual(len(broken), job.result["error_count"])
 
     def test_metadata_only_group_creates_no_photo(self):
         xmp_path = _write_bytes(self.p("only.xmp"), b"<x:xmpmeta/>")
@@ -519,6 +602,52 @@ class HandleFileGroupTests(FileHandlerTestBase):
         self.assertEqual(1, Photo.objects.count())
         photo.refresh_from_db()
         self.assertEqual(jpeg_path, photo.main_file.path)
+
+
+class LooksLikeMediaTests(FileHandlerTestBase):
+    """The rule deciding whether an unloadable file is a failure or ignored."""
+
+    def test_known_extensions_count_whatever_the_content(self):
+        for name in (
+            "a.jpg",
+            "b.JPEG",
+            "c.heic",
+            "d.jxl",
+            "e.mp4",
+            "f.MOV",
+            "g.mts",
+            "h.CR2",
+            "i.nef",
+            "j.xmp",
+        ):
+            with self.subTest(name=name):
+                path = _write_bytes(self.p(name), b"garbage")
+                self.assertTrue(looks_like_media(path))
+
+    def test_sniffed_image_or_video_without_known_extension_counts(self):
+        jpeg = _write_bytes(self.p("photo"), CORRUPT_JPEG)
+        # AVCHD M2TS: a 4-byte timestamp, then the 0x47 sync byte.
+        packet = b"\x00" * 4 + b"\x47" + b"\x00" * 187
+        m2ts = _write_bytes(self.p("clip.bin"), packet * 3)
+        self.assertTrue(looks_like_media(jpeg))
+        self.assertFalse(looks_like_media(_write_bytes(self.p("x.bin"), b"\x00" * 600)))
+        self.assertTrue(looks_like_media(m2ts))
+
+    def test_stray_library_files_do_not_count(self):
+        for name, payload in (
+            ("IMG_3398.CR2.pp3", PP3_SIDECAR),
+            ("IMG_0001.AAE", b'<?xml version="1.0"?><plist/>'),
+            ("IMG_0001.jpg.json", b'{"title": "IMG_0001.jpg"}'),
+            ("notes.txt", b"hello"),
+            ("Thumbs.db", b"\x00" * 64),
+            ("archive.zip", b"PK\x03\x04" + b"\x00" * 60),
+            ("empty", b""),
+        ):
+            with self.subTest(name=name):
+                self.assertFalse(looks_like_media(_write_bytes(self.p(name), payload)))
+
+    def test_missing_file_with_unknown_extension_does_not_count(self):
+        self.assertFalse(looks_like_media(self.p("gone.pp3")))
 
 
 class ModuleContractTests(TestCase):

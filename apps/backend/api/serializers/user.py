@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 
@@ -15,6 +16,7 @@ from api.models import Photo, User
 from api.serializers.simple import PhotoSuperSimpleSerializer
 from api.util import is_valid_path
 from nextcloud.server_address import UnsafeServerAddress, validate_server_address
+from service.exif.tag_validation import is_safe_tag_name
 
 logger = logging.getLogger(__name__)
 
@@ -65,6 +67,51 @@ USER_UPDATE_FIELDS = (
         "Updated duplicate_clear_existing to {value} for user {username}",
     ),
 )
+
+
+def validate_rule_exif_tag_names(value, field_label):
+    """Reject a rules payload whose ExifTool tag names are not safe.
+
+    ``datetime_rules`` and ``burst_detection_rules`` are editable by any
+    authenticated user, and their tag names are handed to ExifTool by the exif
+    sidecar. A tag name that is not a plain tag (one with ``=``, a line break,
+    or a leading ``-``) turns a metadata read into a file write/rename or
+    injects ExifTool options, so it is refused at save time with a 400.
+
+    The tag names live in each rule's ``condition_exif`` (the part before the
+    first ``//``) and, for datetime rules, its ``exif_tag``. ``value`` may be
+    the parsed list of rules or the JSON string that encodes it -- the two
+    fields are stored differently -- and is returned unchanged; anything that
+    is not a list of rule objects is left for the field's own validation.
+    """
+    rules = value
+    if isinstance(rules, str):
+        try:
+            rules = json.loads(rules)
+        except ValueError as error:
+            raise ValidationError(f"{field_label} is not valid JSON.") from error
+    if not isinstance(rules, list):
+        return value
+
+    for rule in rules:
+        if not isinstance(rule, dict):
+            continue
+        tag_names = []
+        condition_exif = rule.get("condition_exif")
+        if isinstance(condition_exif, str) and condition_exif:
+            tag_names.append(condition_exif.split("//", maxsplit=1)[0])
+        exif_tag = rule.get("exif_tag")
+        if isinstance(exif_tag, str) and exif_tag:
+            tag_names.append(exif_tag)
+        for tag_name in tag_names:
+            if not is_safe_tag_name(tag_name):
+                raise ValidationError(
+                    f"{field_label} contains an invalid ExifTool tag name: "
+                    f"{tag_name!r}. A tag name may only contain letters, "
+                    f"digits and the characters _ : * ? # -, and must not "
+                    f"start with '-' or ':'."
+                )
+    return value
 
 
 def set_password_if_allowed(instance, validated_data):
@@ -335,6 +382,12 @@ class UserSerializer(serializers.ModelSerializer):
         except UnsafeServerAddress as e:
             raise ValidationError(str(e)) from e
         return value
+
+    def validate_datetime_rules(self, value):
+        return validate_rule_exif_tag_names(value, "datetime_rules")
+
+    def validate_burst_detection_rules(self, value):
+        return validate_rule_exif_tag_names(value, "burst_detection_rules")
 
     def create(self, validated_data):
         if "scan_directory" in validated_data.keys():

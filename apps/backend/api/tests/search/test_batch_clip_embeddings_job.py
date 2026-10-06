@@ -340,3 +340,18 @@ class BatchCalculateClipEmbeddingTestCase(TestCase):
         job = self.latest_job()
         self.assertTrue(job.finished)
         self.assertEqual(job.progress_current, 3)
+
+    def test_an_edit_made_during_the_sidecar_call_survives(self):
+        """The batch is loaded before the call; its save must not put it back."""
+        (photo,) = create_test_photos(number_of_photos=1, owner=self.user)
+
+        def rated_meanwhile(imgs):
+            Photo.objects.filter(pk=photo.pk).update(rating=5, hidden=True)
+            return fake_embeddings(imgs)
+
+        self.run_job(embeddings_side_effect=rated_meanwhile)
+
+        photo.refresh_from_db()
+        self.assertEqual(photo.rating, 5)
+        self.assertTrue(photo.hidden)
+        self.assertIsNotNone(photo.clip_embeddings)
