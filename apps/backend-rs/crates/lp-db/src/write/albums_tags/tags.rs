@@ -6,9 +6,9 @@
 //! its owner.
 
 use super::PhotoSelection;
+use super::tombstones;
 use crate::albums_tags::tags::TagRow;
 use crate::db::{Conn, Db, Qb};
-use crate::write::deletion_log;
 
 pub async fn create(db: &Db, owner_id: i32, name: &str) -> sqlx::Result<TagRow> {
     crate::sql::query_as(
@@ -33,7 +33,7 @@ pub async fn rename(db: &Db, tag_id: i32, name: Option<&str>) -> sqlx::Result<Ta
 }
 
 async fn delete_in(conn: &mut Conn, tag_id: i32) -> sqlx::Result<()> {
-    deletion_log::tags_deleted(conn, &[tag_id]).await?;
+    tombstones::tags_deleted(conn, &[tag_id]).await?;
     crate::sql::query("DELETE FROM api_tag_photos WHERE tag_id = $1")
         .bind(tag_id)
         .execute(&mut *conn)
@@ -56,7 +56,7 @@ pub async fn delete(db: &Db, tag_id: i32) -> sqlx::Result<()> {
 /// (`save(update_fields=["last_modified"])`).
 async fn after_link_change(conn: &mut Conn, tag_id: i32) -> sqlx::Result<TagRow> {
     crate::sql::query_as(
-        "UPDATE api_tag t SET photo_count = (SELECT count(*) FROM api_tag_photos tp \
+        "UPDATE api_tag AS t SET photo_count = (SELECT count(*) FROM api_tag_photos tp \
            JOIN api_photo p ON p.id = tp.photo_id \
            WHERE tp.tag_id = t.id AND NOT p.hidden AND NOT p.in_trashcan AND NOT p.removed), \
            last_modified = now() \
@@ -74,16 +74,33 @@ async fn current(conn: &mut Conn, tag_id: i32) -> sqlx::Result<TagRow> {
         .await
 }
 
+/// Number of photos in the selection (the receivers' "anything to add or
+/// remove" test).
+async fn selection_len(conn: &mut Conn, sel: &PhotoSelection) -> sqlx::Result<i64> {
+    if let PhotoSelection::Ids(ids) = sel {
+        return Ok(ids.len() as i64);
+    }
+    let mut qb = Qb::new("SELECT count(*) FROM (");
+    sel.push_ids_query(&mut qb);
+    qb.push(") sel");
+    qb.build_query_scalar().fetch_one(conn).await
+}
+
 /// `tag.photos.add(...)`. The receivers only run when the selection is not
-/// empty (Django never calls `add()` with nothing).
+/// empty (Django never calls `add()` with nothing). Two statements in one
+/// transaction: SQLite has no DML inside a CTE.
 pub async fn add_photos(db: &Db, tag_id: i32, sel: &PhotoSelection) -> sqlx::Result<TagRow> {
     let mut tx = db.begin().await?;
-    let mut qb = Qb::new("WITH sel AS (");
-    sel.push_ids_query(&mut qb);
-    qb.push("), ins AS (INSERT INTO api_tag_photos (tag_id, photo_id) SELECT ");
-    qb.push_bind(tag_id);
-    qb.push(", sel.id FROM sel ON CONFLICT DO NOTHING) SELECT count(*) FROM sel");
-    let n: i64 = qb.build_query_scalar().fetch_one(&mut *tx).await?;
+    let n = selection_len(&mut tx, sel).await?;
+    if n > 0 {
+        let mut qb = Qb::new("INSERT INTO api_tag_photos (tag_id, photo_id) SELECT ");
+        qb.push_bind(tag_id);
+        qb.push(", sel.id FROM (");
+        sel.push_ids_query(&mut qb);
+        // `WHERE true`: SQLite would read `ON` as a join constraint.
+        qb.push(") sel WHERE true ON CONFLICT DO NOTHING");
+        qb.build().execute(&mut *tx).await?;
+    }
     let row = if n > 0 {
         after_link_change(&mut tx, tag_id).await?
     } else {
@@ -96,12 +113,15 @@ pub async fn add_photos(db: &Db, tag_id: i32, sel: &PhotoSelection) -> sqlx::Res
 /// `tag.photos.remove(...)`.
 pub async fn remove_photos(db: &Db, tag_id: i32, sel: &PhotoSelection) -> sqlx::Result<TagRow> {
     let mut tx = db.begin().await?;
-    let mut qb = Qb::new("WITH sel AS (");
-    sel.push_ids_query(&mut qb);
-    qb.push("), del AS (DELETE FROM api_tag_photos WHERE tag_id = ");
-    qb.push_bind(tag_id);
-    qb.push(" AND photo_id IN (SELECT id FROM sel)) SELECT count(*) FROM sel");
-    let n: i64 = qb.build_query_scalar().fetch_one(&mut *tx).await?;
+    let n = selection_len(&mut tx, sel).await?;
+    if n > 0 {
+        let mut qb = Qb::new("DELETE FROM api_tag_photos WHERE tag_id = ");
+        qb.push_bind(tag_id);
+        qb.push(" AND photo_id IN (");
+        sel.push_ids_query(&mut qb);
+        qb.push(")");
+        qb.build().execute(&mut *tx).await?;
+    }
     let row = if n > 0 {
         after_link_change(&mut tx, tag_id).await?
     } else {
@@ -115,8 +135,8 @@ pub async fn remove_photos(db: &Db, tag_id: i32, sel: &PhotoSelection) -> sqlx::
 pub async fn merge(db: &Db, target_id: i32, source_id: i32) -> sqlx::Result<TagRow> {
     let mut tx = db.begin().await?;
     crate::sql::query(
-        "WITH src AS (SELECT photo_id FROM api_tag_photos WHERE tag_id = $2) \
-         INSERT INTO api_tag_photos (tag_id, photo_id) SELECT $1, photo_id FROM src \
+        "INSERT INTO api_tag_photos (tag_id, photo_id) \
+         SELECT $1, photo_id FROM api_tag_photos WHERE tag_id = $2 \
          ON CONFLICT DO NOTHING",
     )
     .bind(target_id)

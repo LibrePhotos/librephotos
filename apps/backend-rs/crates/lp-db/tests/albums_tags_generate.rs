@@ -5,7 +5,7 @@
 
 use std::collections::BTreeSet;
 
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, TimeZone, Utc};
 use lp_db::db::Db;
 use lp_db::write::albums_tags::auto_albums;
 use lp_testkit::TestApp;
@@ -120,9 +120,10 @@ async fn split_albums_are_merged_into_the_oldest() {
     assert!(!favorited);
     let split: i32 = lp_db::sql::query_scalar(
         "INSERT INTO api_albumauto (title, timestamp, created_on, favorited, owner_id, last_modified) \
-         VALUES ('Split', '1990-01-01T00:00:00Z', now(), TRUE, $1, now()) RETURNING id",
+         VALUES ('Split', $2, now(), TRUE, $1, now()) RETURNING id",
     )
     .bind(alice)
+    .bind(Utc.with_ymd_and_hms(1990, 1, 1, 0, 0, 0).unwrap())
     .fetch_one(db)
     .await
     .unwrap();

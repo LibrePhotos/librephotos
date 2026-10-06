@@ -5,8 +5,8 @@ use sqlx::types::Json;
 use uuid::Uuid;
 
 use super::things_places::{HasTotal, fetch_paged};
-use super::{Paged, photo_hash_json, push_search};
-use crate::db::{DjUuid, Exec, Qb};
+use super::{Paged, json_list, photo_hash_json, push_search};
+use crate::db::{DjUuid, Exec, Qb, sql};
 use crate::scope;
 
 /// `TagSerializer`: `{id, name, photo_count}`.
@@ -65,14 +65,18 @@ where
     E: Exec<'e> + Copy,
 {
     let build = |limit: i64, offset: i64| {
-        let mut qb = Qb::new(format!(
-            "SELECT t.id, t.name, t.photo_count, \
-               (SELECT COALESCE(json_agg(c.j ORDER BY c.lid), '[]'::json) FROM ( \
-                  SELECT {ph} AS j, cl.id AS lid FROM api_tag_photos cl \
-                    JOIN api_photo p ON p.id = cl.photo_id \
-                    WHERE cl.tag_id = t.id AND ",
-            ph = photo_hash_json("p"),
-        ));
+        let mut qb = Qb::new("");
+        qb.push_with(|d| {
+            format!(
+                "SELECT t.id, t.name, t.photo_count, \
+                   (SELECT {list} FROM ( \
+                      SELECT {ph} AS j, cl.id AS lid FROM api_tag_photos cl \
+                        JOIN api_photo p ON p.id = cl.photo_id \
+                        WHERE cl.tag_id = t.id AND ",
+                list = json_list(d, "c.j", "c.lid"),
+                ph = photo_hash_json(d, "p"),
+            )
+        });
         scope::visible_manager(&mut qb, "p");
         qb.push(
             " ORDER BY cl.id LIMIT 4) c) AS cover_photos, count(*) OVER () AS total_count \
@@ -139,7 +143,7 @@ pub async fn name_taken<'e>(
 ) -> sqlx::Result<bool> {
     crate::sql::query_scalar(
         "SELECT EXISTS (SELECT 1 FROM api_tag WHERE name = $1 AND owner_id = $2 \
-           AND ($3::int IS NULL OR id <> $3))",
+           AND ($3 IS NULL OR id <> $3))",
     )
     .bind(name)
     .bind(owner_id)
@@ -155,10 +159,12 @@ pub async fn owned_photos_matching<'e>(
     ids: &[Uuid],
     hashes: &[String],
 ) -> sqlx::Result<Vec<(Uuid, String)>> {
-    let rows: Vec<(DjUuid, String)> = crate::sql::query_as(
-        "SELECT id, image_hash FROM api_photo \
-         WHERE owner_id = $1 AND (id = ANY($2) OR image_hash = ANY($3))",
-    )
+    let d = db.dialect();
+    let rows: Vec<(DjUuid, String)> = crate::sql::query_as(format!(
+        "SELECT id, image_hash FROM api_photo WHERE owner_id = $1 AND ({} OR {})",
+        sql::any_sql(d, "id", 2),
+        sql::any_sql(d, "image_hash", 3)
+    ))
     .bind(owner_id)
     .bind(ids)
     .bind(hashes)

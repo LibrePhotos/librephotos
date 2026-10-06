@@ -47,8 +47,9 @@ async fn counts_follow_visibility() {
         .fetch_all(db)
         .await
         .unwrap();
+    // Through the held connection: on SQLite it is the single writer.
     lp_db::sql::query("DELETE FROM api_albumthing_cover_photos")
-        .execute(db)
+        .execute(&mut *conn)
         .await
         .unwrap();
     refresh_album_things(&mut conn, &things).await.unwrap();
@@ -57,7 +58,7 @@ async fn counts_follow_visibility() {
            FROM api_albumthing_photos l JOIN api_photo p ON p.id = l.photo_id \
            WHERE l.albumthing_id = t.id AND NOT p.hidden) \
          OR (SELECT count(*) FROM api_albumthing_cover_photos c WHERE c.albumthing_id = t.id) \
-            <> LEAST(4, t.photo_count)",
+            <> CASE WHEN t.photo_count < 4 THEN t.photo_count ELSE 4 END",
     )
     .fetch_one(db)
     .await
