@@ -43,7 +43,7 @@ struct UserRow {
 }
 
 async fn users(state: &AppState) -> sqlx::Result<Vec<UserRow>> {
-    let rows: Vec<(i32, String, String, String)> = sqlx::query_as(
+    let rows: Vec<(i32, String, String, String)> = lp_db::sql::query_as(
         "SELECT id, username, scan_directory, nextcloud_scan_directory FROM api_user ORDER BY id",
     )
     .fetch_all(&state.db)

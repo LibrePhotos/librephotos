@@ -3,6 +3,7 @@
 
 #![allow(clippy::disallowed_methods)]
 
+use lp_db::db::DjUuid;
 use std::path::{Path, PathBuf};
 
 use lp_server::commands::{self, SaveMetadataArgs, ScanMode};
@@ -31,7 +32,7 @@ fn text(buf: &[u8]) -> String {
 }
 
 async fn queued(app: &TestApp, kind: &str) -> Vec<Value> {
-    sqlx::query_scalar("SELECT payload FROM job_queue WHERE kind = $1 ORDER BY id")
+    lp_db::sql::query_scalar("SELECT payload FROM job_queue WHERE kind = $1 ORDER BY id")
         .bind(kind)
         .fetch_all(app.pool())
         .await
@@ -119,11 +120,11 @@ async fn createuser_creates_a_plain_user_and_updates_on_request() {
 #[tokio::test]
 async fn scan_queues_one_job_per_user_like_django() {
     let app = TestApp::new().await;
-    sqlx::query("DELETE FROM job_queue")
+    lp_db::sql::query("DELETE FROM job_queue")
         .execute(app.pool())
         .await
         .unwrap();
-    let dirs: Vec<(i32, String, String)> = sqlx::query_as(
+    let dirs: Vec<(i32, String, String)> = lp_db::sql::query_as(
         "SELECT id, username, scan_directory FROM api_user WHERE username <> 'deleted' ORDER BY id",
     )
     .fetch_all(app.pool())
@@ -149,7 +150,7 @@ async fn scan_queues_one_job_per_user_like_django() {
     assert_eq!(payloads[0]["full_scan"], json!(false));
     assert!(q.iter().all(|q| q.lrj_id.is_some()));
     let lrj_type: i32 =
-        sqlx::query_scalar("SELECT job_type FROM api_longrunningjob WHERE job_id = $1")
+        lp_db::sql::query_scalar("SELECT job_type FROM api_longrunningjob WHERE job_id = $1")
             .bind(q[0].lrj_id.as_deref().unwrap())
             .fetch_one(app.pool())
             .await
@@ -158,7 +159,7 @@ async fn scan_queues_one_job_per_user_like_django() {
     assert!(text(&out).contains("Queued scan for user"));
 
     // -f
-    sqlx::query("DELETE FROM job_queue")
+    lp_db::sql::query("DELETE FROM job_queue")
         .execute(app.pool())
         .await
         .unwrap();
@@ -177,7 +178,7 @@ async fn scan_queues_one_job_per_user_like_django() {
     );
 
     // -s: each file goes to the users whose scan directory prefixes it.
-    sqlx::query("DELETE FROM job_queue")
+    lp_db::sql::query("DELETE FROM job_queue")
         .execute(app.pool())
         .await
         .unwrap();
@@ -201,7 +202,7 @@ async fn scan_queues_one_job_per_user_like_django() {
     assert!(payloads.iter().any(|p| p["files"] == json!([a])));
 
     // -n: users without a Nextcloud directory are skipped with a message.
-    sqlx::query("UPDATE api_user SET nextcloud_scan_directory = '/Photos' WHERE id = $1")
+    lp_db::sql::query("UPDATE api_user SET nextcloud_scan_directory = '/Photos' WHERE id = $1")
         .bind(alice_id)
         .execute(app.pool())
         .await
@@ -230,7 +231,7 @@ async fn delete_expired_uploads_removes_rows_and_staged_files() {
         let id = Uuid::new_v4().simple().to_string();
         let rel = format!("chunked_uploads/{id}.part");
         std::fs::write(app.state.config.media_root.join(&rel), b"chunk").unwrap();
-        sqlx::query(
+        lp_db::sql::query(
             "INSERT INTO chunked_upload_chunkedupload (upload_id, file, filename, \"offset\", \
                created_on, status, user_id) \
              VALUES ($1, $2, $3, 5, now() - make_interval(hours => $4), $5, $6)",
@@ -276,12 +277,13 @@ async fn delete_expired_uploads_removes_rows_and_staged_files() {
     );
     assert!(!files[0].exists() && !files[1].exists());
     assert!(files[2].exists(), "a fresh upload stays");
-    let left: Vec<String> =
-        sqlx::query_scalar("SELECT filename FROM chunked_upload_chunkedupload WHERE user_id = $1")
-            .bind(user.id)
-            .fetch_all(app.pool())
-            .await
-            .unwrap();
+    let left: Vec<String> = lp_db::sql::query_scalar(
+        "SELECT filename FROM chunked_upload_chunkedupload WHERE user_id = $1",
+    )
+    .bind(user.id)
+    .fetch_all(app.pool())
+    .await
+    .unwrap();
     assert_eq!(left, vec!["fresh"]);
     app.cleanup().await;
 }
@@ -289,7 +291,7 @@ async fn delete_expired_uploads_removes_rows_and_staged_files() {
 /// A photo of a fresh user whose main file is a temp copy of a fixture
 /// JPEG, so writes never touch the shared fixture.
 async fn photo_with_temp_file(app: &TestApp, owner: i32, tmp: &Path) -> (Uuid, PathBuf) {
-    let (id, hash): (Uuid, String) = sqlx::query_as(
+    let (id, hash): (DjUuid, String) = lp_db::sql::query_as(
         "SELECT p.id, p.main_file_id FROM api_photo p JOIN api_file f ON f.hash = p.main_file_id \
          WHERE f.path LIKE '%berlin_01.jpg' LIMIT 1",
     )
@@ -298,19 +300,19 @@ async fn photo_with_temp_file(app: &TestApp, owner: i32, tmp: &Path) -> (Uuid, P
     .unwrap();
     let copy = tmp.join("berlin_copy.jpg");
     std::fs::copy(FIXTURE_JPEG, &copy).unwrap();
-    sqlx::query("UPDATE api_file SET path = $2 WHERE hash = $1")
+    lp_db::sql::query("UPDATE api_file SET path = $2 WHERE hash = $1")
         .bind(&hash)
         .bind(copy.to_string_lossy().to_string())
         .execute(app.pool())
         .await
         .unwrap();
-    sqlx::query("UPDATE api_photo SET owner_id = $2, rating = 4 WHERE id = $1")
+    lp_db::sql::query("UPDATE api_photo SET owner_id = $2, rating = 4 WHERE id = $1")
         .bind(id)
         .bind(owner)
         .execute(app.pool())
         .await
         .unwrap();
-    (id, copy)
+    (id.0, copy)
 }
 
 #[tokio::test]
@@ -386,7 +388,7 @@ async fn save_metadata_writes_ratings_to_sidecars() {
     assert_eq!(text(&err), "User 'nobody' not found\n");
 
     // The API view: the requester's photos, sidecar per their setting.
-    sqlx::query("UPDATE api_user SET save_metadata_to_disk = 'SIDECAR_FILE' WHERE id = $1")
+    lp_db::sql::query("UPDATE api_user SET save_metadata_to_disk = 'SIDECAR_FILE' WHERE id = $1")
         .bind(owner.id)
         .execute(app.pool())
         .await
@@ -441,11 +443,11 @@ async fn clear_cache_and_similarity_index() {
     let mut out = Vec::new();
     commands::clear_cache(&mut out).unwrap();
     assert_eq!(text(&out), "Your cache has been cleared!\n");
-    sqlx::query("DELETE FROM job_queue")
+    lp_db::sql::query("DELETE FROM job_queue")
         .execute(app.pool())
         .await
         .unwrap();
-    let users: i64 = sqlx::query_scalar("SELECT count(*) FROM api_user")
+    let users: i64 = lp_db::sql::query_scalar("SELECT count(*) FROM api_user")
         .fetch_one(app.pool())
         .await
         .unwrap();

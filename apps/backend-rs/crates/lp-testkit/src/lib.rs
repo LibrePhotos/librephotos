@@ -31,11 +31,12 @@ use axum::http::{HeaderMap, Method, Request, StatusCode};
 use http_body_util::BodyExt;
 use lp_core::django_crypto::DjangoCrypto;
 use lp_core::{AppState, Config};
+use lp_db::db::Db;
 use lp_db::users::User;
 use lp_db::write::users::NewUser;
 use sha2::{Digest, Sha256};
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
-use sqlx::{Connection, PgConnection, PgPool};
+use sqlx::{Connection, PgConnection};
 use tower::ServiceExt;
 
 pub use lp_server::App;
@@ -90,11 +91,13 @@ fn quote_ident(name: &str) -> String {
 }
 
 async fn db_exists(conn: &mut PgConnection, name: &str) -> bool {
-    sqlx::query_scalar::<_, bool>("SELECT EXISTS (SELECT 1 FROM pg_database WHERE datname = $1)")
-        .bind(name)
-        .fetch_one(conn)
-        .await
-        .unwrap_or(false)
+    lp_db::sql::query_scalar::<_, bool>(
+        "SELECT EXISTS (SELECT 1 FROM pg_database WHERE datname = $1)",
+    )
+    .bind(name)
+    .fetch_one(conn)
+    .await
+    .unwrap_or(false)
 }
 
 /// CREATE DATABASE ... TEMPLATE, retrying while the template is busy.
@@ -107,7 +110,7 @@ async fn clone_db(server: &PgServer, name: &str, template: &str) -> Result<(), s
             quote_ident(name),
             quote_ident(template)
         );
-        match sqlx::query(&sql).execute(&mut admin).await {
+        match lp_db::sql::query(&sql).execute(&mut admin).await {
             Ok(_) => return Ok(()),
             Err(e) => {
                 let busy = e.to_string().contains("being accessed by other users");
@@ -139,7 +142,7 @@ async fn empty_template(server: &PgServer) -> String {
         std::process::id(),
         COUNTER.fetch_add(1, Ordering::SeqCst)
     );
-    sqlx::query(&format!(
+    lp_db::sql::query(format!(
         "CREATE DATABASE {} TEMPLATE template0",
         quote_ident(&building)
     ))
@@ -147,15 +150,17 @@ async fn empty_template(server: &PgServer) -> String {
     .await
     .expect("create template database");
     {
-        let pool = PgPoolOptions::new()
-            .max_connections(1)
-            .connect_with(server.options(&building))
-            .await
-            .expect("connect template");
+        let pool = Db::Pg(
+            PgPoolOptions::new()
+                .max_connections(1)
+                .connect_with(server.options(&building))
+                .await
+                .expect("connect template"),
+        );
         lp_db::migrate::run(&pool).await.expect("migrate template");
         pool.close().await;
     }
-    let renamed = sqlx::query(&format!(
+    let renamed = lp_db::sql::query(format!(
         "ALTER DATABASE {} RENAME TO {}",
         quote_ident(&building),
         quote_ident(&name)
@@ -164,7 +169,7 @@ async fn empty_template(server: &PgServer) -> String {
     .await;
     if renamed.is_err() {
         // Another process won the race; ours is redundant.
-        let _ = sqlx::query(&format!(
+        let _ = lp_db::sql::query(format!(
             "DROP DATABASE IF EXISTS {} WITH (FORCE)",
             quote_ident(&building)
         ))
@@ -183,7 +188,7 @@ async fn sweep_stale(server: &PgServer) {
     }
     let mut admin = server.admin().await;
     let names: Vec<String> =
-        sqlx::query_scalar("SELECT datname FROM pg_database WHERE datname LIKE 'lptest\\_%'")
+        lp_db::sql::query_scalar("SELECT datname FROM pg_database WHERE datname LIKE 'lptest\\_%'")
             .fetch_all(&mut admin)
             .await
             .unwrap_or_default();
@@ -198,7 +203,7 @@ async fn sweep_stale(server: &PgServer) {
         if pid == std::process::id() || sys.process(sysinfo::Pid::from_u32(pid)).is_some() {
             continue;
         }
-        let _ = sqlx::query(&format!(
+        let _ = lp_db::sql::query(format!(
             "DROP DATABASE IF EXISTS {} WITH (FORCE)",
             quote_ident(&name)
         ))
@@ -210,7 +215,7 @@ async fn sweep_stale(server: &PgServer) {
 /// A throwaway database, dropped by [`TestDb::cleanup`] (or on drop).
 pub struct TestDb {
     pub name: String,
-    pub pool: PgPool,
+    pub pool: Db,
     pub server: PgServer,
     dropped: bool,
     /// The per-process shared database is never dropped by a test.
@@ -246,11 +251,13 @@ impl TestDb {
             .await
             .clone();
         let server = PgServer::from_env();
-        let pool = PgPoolOptions::new()
-            .max_connections(5)
-            .connect_with(server.options(&name))
-            .await
-            .expect("connect shared test db");
+        let pool = Db::Pg(
+            PgPoolOptions::new()
+                .max_connections(5)
+                .connect_with(server.options(&name))
+                .await
+                .expect("connect shared test db"),
+        );
         TestDb {
             name,
             pool,
@@ -263,11 +270,13 @@ impl TestDb {
     /// Attach to an existing database (never dropped, not migrated).
     pub async fn existing(name: &str) -> TestDb {
         let server = PgServer::from_env();
-        let pool = PgPoolOptions::new()
-            .max_connections(5)
-            .connect_with(server.options(name))
-            .await
-            .expect("connect existing db");
+        let pool = Db::Pg(
+            PgPoolOptions::new()
+                .max_connections(5)
+                .connect_with(server.options(name))
+                .await
+                .expect("connect existing db"),
+        );
         TestDb {
             name: name.to_string(),
             pool,
@@ -295,14 +304,16 @@ impl TestDb {
                 .await
                 .expect("clone empty template");
         }
-        let pool = PgPoolOptions::new()
-            .max_connections(5)
-            .connect_with(server.options(&name))
-            .await
-            .expect("connect test db");
+        let pool = Db::Pg(
+            PgPoolOptions::new()
+                .max_connections(5)
+                .connect_with(server.options(&name))
+                .await
+                .expect("connect test db"),
+        );
         if use_fixture {
             let tracked: Option<String> =
-                sqlx::query_scalar("SELECT to_regclass('public._sqlx_migrations')::text")
+                lp_db::sql::query_scalar("SELECT to_regclass('public._sqlx_migrations')::text")
                     .fetch_one(&pool)
                     .await
                     .expect("probe");
@@ -330,7 +341,7 @@ impl TestDb {
             return;
         }
         let mut admin = self.server.admin().await;
-        let _ = sqlx::query(&format!(
+        let _ = lp_db::sql::query(format!(
             "DROP DATABASE IF EXISTS {} WITH (FORCE)",
             quote_ident(&self.name)
         ))
@@ -357,7 +368,7 @@ impl Drop for TestDb {
                     if let Ok(mut admin) =
                         PgConnection::connect_with(&server.options("postgres")).await
                     {
-                        let _ = sqlx::query(&format!(
+                        let _ = lp_db::sql::query(format!(
                             "DROP DATABASE IF EXISTS {} WITH (FORCE)",
                             quote_ident(&name)
                         ))
@@ -473,7 +484,7 @@ impl TestApp {
         self.base_data.path().to_path_buf()
     }
 
-    pub fn pool(&self) -> &PgPool {
+    pub fn pool(&self) -> &Db {
         &self.db.pool
     }
 
