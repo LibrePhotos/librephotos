@@ -6,6 +6,9 @@ import handler from "./dist/server/server.js";
 import { startBackground } from "./src/background";
 import { ApiError } from "./src/lib/errors";
 import { PEER_HEADER } from "./src/lib/http";
+import { installLogFile } from "./src/lib/logfile";
+
+installLogFile();
 
 const [host, port] = (process.env.LP_BIND ?? `${process.env.LP_HOST ?? "127.0.0.1"}:${process.env.LP_PORT ?? 8001}`).split(":");
 const server = Bun.serve({

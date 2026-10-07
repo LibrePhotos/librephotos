@@ -3,3 +3,4 @@
 import "../features/albums_tags/jobs";
 import "../features/jobs/zip";
 import "../features/jobs/maintenance";
+import "../features/stats_admin_stacks_dupes/jobs";
