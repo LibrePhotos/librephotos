@@ -125,9 +125,11 @@ export class Progress {
     if (Date.now() - this.last >= 250) await this.flush();
   }
   async flush() {
-    if (this.pending && this.jobId) await lrjAddProgress(this.jobId, this.pending);
+    // Reset before awaiting: concurrent callers must not add the same increments twice.
+    const n = this.pending;
     this.pending = 0;
     this.last = Date.now();
+    if (n && this.jobId) await lrjAddProgress(this.jobId, n);
   }
 }
 
@@ -222,6 +224,8 @@ export function registerJob(kind: string, handler: JobHandler) {
   handlers.set(kind, handler);
 }
 export const registeredKinds = () => [...handlers.keys()];
+/** The handler of a kind (cli.ts run-job runs one inline). */
+export const handlerFor = (kind: string) => handlers.get(kind);
 
 // --------------------------------------------------------------- worker
 

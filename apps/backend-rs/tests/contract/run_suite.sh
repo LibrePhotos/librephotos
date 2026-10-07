@@ -221,6 +221,8 @@ start_ts() {
         export PHOTOS="$BASE_DATA/data" SECRET_KEY="$LP_SECRET_KEY" TZ=UTC
         export DB_NAME="$db" DB_USER="$LP_PG_USER" DB_PASS="$PGPASSWORD" DB_HOST="$LP_PG_HOST" DB_PORT="$LP_PG_PORT"
         export LP_BIND="127.0.0.1:$RS_PORT" LP_MEDIA_MODE="$mode"
+        # As for Rust: a trigger's models.download would fetch gigabytes.
+        export LP_ML_AUTO_DOWNLOAD=0
         export LP_EXIFTOOL="$V/exiftool_bin/exiftool.exe" LP_FFMPEG="$V/ffmpeg_bin/bin/ffmpeg.exe"
         export LP_FFPROBE="$V/ffmpeg_bin/bin/ffprobe.exe" LP_PYTHON="$(lp_win_path "$LP_DJANGO_PY")"
         if [ -n "$mock" ]; then

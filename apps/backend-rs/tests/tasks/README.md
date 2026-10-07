@@ -33,6 +33,15 @@ LP_DIFF_PREFIX=rs_rev_tasks_ LP_DIFF_PRESQL="UPDATE api_albumdate SET location =
   tests/tasks/run_diff.sh geo geo.locate alice
 ```
 
+The TypeScript server (`apps/backend-ts`) runs on the same harness with
+`LP_DIFF_SUT=ts`: the TS side is `bun run src/cli.ts run-job <kind> <payload>`
+(sidecars at the mock through `LP_SIDECAR_<NAME>_URL`, Nominatim through
+`LP_GEOCODE_NOMINATIM_URL`), e.g.
+
+```bash
+LP_DIFF_SUT=ts LP_DIFF_PREFIX=lp_t_tstsk_ LP_TASKS_MOCK_PORT=18130 LP_TASKS_FC_PORT=18131   tests/tasks/run_diff.sh faces faces.scan alice
+```
+
 Known, accepted differences:
 
 - Job error texts: Django appends a Python traceback.
