@@ -93,55 +93,84 @@ class BkTree {
 function forEachEarlierNeighbour(hi: Uint32Array, lo: Uint32Array, threshold: number, f: (i: number, j: number) => void) {
   const n = hi.length;
   if (!n) return;
-  const block = (i: number, b: number) => (b === 0 ? lo[i] & 0xffff : b === 1 ? lo[i] >>> 16 : b === 2 ? hi[i] & 0xffff : hi[i] >>> 16);
   const dist = (i: number, j: number) => popcount32(hi[i] ^ hi[j]) + popcount32(lo[i] ^ lo[j]);
   const radius = Math.floor(threshold / 4);
   if (radius > 3) {
     for (let i = 0; i < n; i++) for (let j = 0; j < i; j++) if (dist(i, j) <= threshold) f(i, j);
     return;
   }
+  const blocks: Uint16Array[] = [0, 1, 2, 3].map((b) => {
+    const a = new Uint16Array(n);
+    for (let i = 0; i < n; i++) a[i] = b === 0 ? lo[i] & 0xffff : b === 1 ? lo[i] >>> 16 : b === 2 ? hi[i] & 0xffff : hi[i] >>> 16;
+    return a;
+  });
   const offsets: Uint32Array[] = [];
   const items: Uint32Array[] = [];
-  for (let b = 0; b < 4; b++) {
+  for (const blk of blocks) {
     const counts = new Uint32Array(65537);
-    for (let i = 0; i < n; i++) counts[block(i, b) + 1]++;
+    for (let i = 0; i < n; i++) counts[blk[i] + 1]++;
     for (let k = 1; k < counts.length; k++) counts[k] += counts[k - 1];
     const fill = counts.slice();
     const list = new Uint32Array(n);
-    for (let i = 0; i < n; i++) list[fill[block(i, b)]++] = i;
+    for (let i = 0; i < n; i++) list[fill[blk[i]]++] = i;
     offsets.push(counts);
     items.push(list);
   }
-  const variants: number[] = [];
-  for (let m = 0; m <= 0xffff; m++) if (popcount32(m) <= radius) variants.push(m);
-  const out: number[] = [];
+  const pop16 = new Uint8Array(65536);
+  for (let m = 1; m < 65536; m++) pop16[m] = pop16[m >> 1] + (m & 1);
+  const variantList: number[] = [];
+  for (let m = 0; m <= 0xffff; m++) if (pop16[m] <= radius) variantList.push(m);
+  const variants = Uint16Array.from(variantList);
+  const ctx: ProbeCtx = { hi, lo, blocks, offsets, items, pop16, variants, threshold, radius, out: [] };
   for (let i = 0; i < n; i++) {
-    out.length = 0;
-    for (let b = 0; b < 4; b++) {
-      const key = block(i, b);
-      const off = offsets[b];
-      const list = items[b];
-      for (const flip of variants) {
-        const k = key ^ flip;
-        for (let p = off[k], end = off[k + 1]; p < end; p++) {
-          const j = list[p];
-          // Buckets list items in ascending order.
-          if (j >= i) break;
-          // Reported through the first block that matches.
-          let earlier = false;
-          for (let e = 0; e < b; e++) {
-            if (popcount32(block(i, e) ^ block(j, e)) <= radius) {
-              earlier = true;
-              break;
-            }
-          }
-          if (!earlier && dist(i, j) <= threshold) out.push(j);
-        }
+    const out = probe(ctx, i);
+    for (let k = 0; k < out.length; k++) f(i, out[k]);
+  }
+}
+
+interface ProbeCtx {
+  hi: Uint32Array;
+  lo: Uint32Array;
+  blocks: Uint16Array[];
+  offsets: Uint32Array[];
+  items: Uint32Array[];
+  pop16: Uint8Array;
+  variants: Uint16Array;
+  threshold: number;
+  radius: number;
+  out: number[];
+}
+
+/** Earlier neighbours of item i, ascending (a function of its own so the JIT optimizes it early). */
+function probe(c: ProbeCtx, i: number): number[] {
+  const { hi, lo, pop16, variants, threshold, radius, out } = c;
+  out.length = 0;
+  const hiI = hi[i];
+  const loI = lo[i];
+  const nv = variants.length;
+  for (let b = 0; b < 4; b++) {
+    const key = c.blocks[b][i];
+    const off = c.offsets[b];
+    const list = c.items[b];
+    for (let v = 0; v < nv; v++) {
+      const k = key ^ variants[v];
+      const end = off[k + 1];
+      for (let p = off[k]; p < end; p++) {
+        const j = list[p];
+        // Buckets list items in ascending order.
+        if (j >= i) break;
+        const xl = loI ^ lo[j];
+        const xh = hiI ^ hi[j];
+        const b0 = pop16[xl & 0xffff], b1 = pop16[xl >>> 16], b2 = pop16[xh & 0xffff];
+        if (b0 + b1 + b2 + pop16[xh >>> 16] > threshold) continue;
+        // Reported through the first block that matches.
+        if ((b > 0 && b0 <= radius) || (b > 1 && b1 <= radius) || (b > 2 && b2 <= radius)) continue;
+        out.push(j);
       }
     }
-    out.sort((a, b) => a - b);
-    for (const j of out) f(i, j);
   }
+  if (out.length > 1) out.sort((x, y) => x - y);
+  return out;
 }
 
 /**
