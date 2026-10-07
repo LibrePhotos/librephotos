@@ -102,14 +102,18 @@ export class ItemCounter {
       this.last = Date.now();
       return;
     }
+    // Take the counts before awaiting: concurrent callers (forEachPhoto's
+    // workers) must not flush the same increments twice.
+    const pending = this.pending;
     const result = this.errorsDirty ? this.errors.toResult(this.target) : null;
-    await client`UPDATE api_longrunningjob SET progress_current = progress_current + ${this.pending},
-        result = COALESCE(${result === null ? null : JSON.stringify(result)}::text::jsonb, result),
-        failed = failed OR ${this.errors.isFailure(this.target)}
-      WHERE job_id = ${this.jobId} AND NOT cancelled`;
+    const failed = this.errors.isFailure(this.target);
     this.pending = 0;
     this.errorsDirty = false;
     this.last = Date.now();
+    await client`UPDATE api_longrunningjob SET progress_current = progress_current + ${pending},
+        result = COALESCE(${result === null ? null : JSON.stringify(result)}::text::jsonb, result),
+        failed = failed OR ${failed}
+      WHERE job_id = ${this.jobId} AND NOT cancelled`;
   }
 
   /** Flush, then `finish_job_if_complete`. Returns whether this call finished it. */
