@@ -25,6 +25,8 @@ physical cores, a Pi-sized box) with ONNX_INTRA_OP_THREADS=4; Postgres to
 CPUs 8-11.
 
 rs = `librephotos-rs serve` (LP_RS_BIN, in-process ML, embedded worker).
+ts = `bun run server.ts` in apps/backend-ts (LP_BUN, LP_TS_CMD; in-process ML via
+onnxruntime-node, embedded worker); setup still uses LP_RS_BIN for createadmin.
 dj = uvicorn (1 worker) + qcluster (WORKER_CONCURRENCY workers) + the 8 Python
 sidecars (exif and the 7 ML ones, fixed ports 8002-8012: nothing else may hold them).
 RSS = working set, private = private bytes, both summed over every process of
@@ -57,7 +59,12 @@ PY = VENV / "Scripts" / "python.exe"
 SP = VENV / "Lib" / "site-packages"
 PG_BIN = LIBREPHOTOS / "rust-pg" / "pginstall" / "bin"
 RS_BIN = Path(os.environ.get("LP_RS_BIN", RS_DIR / "target" / "release" / "librephotos-rs.exe"))
-PORT = {"rs": 8761, "dj": 8760}
+PORT = {"rs": 8761, "dj": 8760, "ts": 8762}
+# The TypeScript server (apps/backend-ts, in-process ML through onnxruntime-node):
+# LP_BUN = the bun executable (>= 1.4.2), LP_TS_CMD = a command run instead of
+# `bun run server.ts` (e.g. "<bun> dist/aot/server.js"); bun run build first.
+TS_DIR = WT / "apps" / "backend-ts"
+BUN = os.environ.get("LP_BUN", "bun")
 USER, PW = "foot", "foot-pw"
 SERVER_CPUS = [0, 2, 4, 6]
 PG_CPUS = [8, 9, 10, 11]
@@ -178,6 +185,9 @@ def setup(side, tag, lib):
     subprocess.run([str(RS_BIN), "adopt"], env=env, check=True, capture_output=True)
     subprocess.run([str(RS_BIN), "createadmin", USER, "foot@example.com"], env={**env, "ADMIN_PASSWORD": PW},
                    check=True, capture_output=True)
+    if side == "ts":  # TS's own additive objects (the clip model trigger trusts librephotos-ts)
+        subprocess.run([BUN, "run", "src/cli.ts", "adopt"], env={**env, "TZ": "UTC"}, cwd=TS_DIR, check=True,
+                       capture_output=True)
     libw = str(lib).replace("/", "\\")
     psql(f"""UPDATE api_user SET scan_directory = '{libw}', semantic_search_topk = 100 WHERE username = '{USER}';
 DELETE FROM constance_constance WHERE key = 'OCR_MODEL';
@@ -270,6 +280,16 @@ def start(side, db, base, conc, extra=None):
             env["LP_ORT_LIB"] = str(GPU_ORT[ARGS.gpu_ort][0])
         env.update(ARGS.env)
         roots["librephotos-rs"] = spawn("server", [str(RS_BIN), "serve"], env, RS_DIR, logs)
+    elif side == "ts":
+        env.update(LP_BIND=f"127.0.0.1:{PORT['ts']}", LP_MEDIA_MODE="direct", LP_ML_AUTO_DOWNLOAD="0",
+                   LP_PYTHON=str(PY),
+                   LP_EXIFTOOL=str(SP / "exiftool_bin" / "exiftool.exe"),
+                   LP_FFMPEG=str(SP / "ffmpeg_bin" / "bin" / "ffmpeg.exe"),
+                   LP_FFPROBE=str(SP / "ffmpeg_bin" / "bin" / "ffprobe.exe"))
+        env.update(ARGS.env)
+        cmd = os.environ.get("LP_TS_CMD")
+        argv = cmd.split() if cmd else [BUN, "run", "server.ts"]
+        roots["librephotos-ts"] = spawn("server", argv, env, TS_DIR, logs)
     else:
         env.update(ARGS.env)
         env.update(DJANGO_SETTINGS_MODULE="lp_twin_settings", BACKEND_HOST="127.0.0.1", LP_DJANGO_DIRECT="1",
@@ -488,7 +508,7 @@ def wait_ready(side, roots, deadline=240):
 
 def busy(side, db, uid):
     n = int(psql(f"SELECT count(*) FROM api_longrunningjob WHERE started_by_id = {uid} AND NOT finished", db))
-    if side == "rs":
+    if side in ("rs", "ts"):
         n += int(psql("SELECT count(*) FROM job_queue WHERE kind NOT LIKE 'maintenance.%' AND "
                       "(status = 'running' OR (status = 'queued' AND run_after <= now()))", db))
     else:
@@ -581,8 +601,8 @@ def cmd_scan(args):
     result = {"side": side, "concurrency": conc, "db": db, "bin": str(RS_BIN) if side == "rs" else None,
               "no_arena": ARGS.no_arena, "env": ARGS.env, "site": ARGS.site, "lib": args.lib, "cpus": ARGS.cpus,
               "threads": ARGS.threads, "gpu_ort": ARGS.gpu_ort, "gpu_baseline_mib": gpu_base}
-    if side == "rs":
-        gpu.track(roots["librephotos-rs"])
+    if side in ("rs", "ts"):
+        gpu.track(roots["librephotos-rs" if side == "rs" else "librephotos-ts"])
     try:
         api, ready_s = wait_ready(side, roots)
         sampler.start()
@@ -647,7 +667,7 @@ def cmd_scan(args):
         sc = stages["scan+tags+clip+faces"]
         result["files_per_s"] = round(n / sc, 3) if sc else None
         result["gpu"] = gpu.window(t0 - 30, time.time(), gpu_base)
-        if side == "rs":
+        if side in ("rs", "ts"):
             result["services"] = services_status(api)
         log(f"  peak rss {result['peak']['rss_mb']} MB, private {result['peak']['private_mb']} MB; "
             f"{n} photos in {sc} s = {result['files_per_s']} files/s; gpu {result['gpu']}")
@@ -827,7 +847,7 @@ def main():
     m.add_argument("--out", required=True)
     m.add_argument("--only", choices=sorted(ISOLATED))
     s = sub.add_parser("scan")
-    s.add_argument("side", choices=["rs", "dj"])
+    s.add_argument("side", choices=["rs", "dj", "ts"])
     s.add_argument("--concurrency", type=int, default=1)
     s.add_argument("--out", required=True)
     s.add_argument("--cap", type=int, default=540, help="seconds for all ML stages")
