@@ -196,6 +196,63 @@ Tried and dropped:
 - **libuv threadpool and libvips concurrency settings.** Within noise.
 - **`node:cluster`.** Doesn't load-balance on Windows.
 
+## Wave 3: OCR pixel work, ML memory, deployable size
+
+| change | effect (controlled A/B on the same machine state) |
+|---|---|
+| OCR text-box crops on worker threads (`cropAll`, `LP_OCR_CROP_WORKERS`, default min(3, cores - 1)) | Each crop is a cv2-exact bicubic perspective warp, about 200 ns per output pixel in JS. With 4 photos in flight on 30 library photos: 645 -> 484 ms/photo. The crops are still bit-identical (305/305 OCR golden crops) |
+| ORT worker replies transfer their output buffers; per-call inputs are marked `transferable()` | Tensors move between threads instead of being copied |
+| OCR runs without ORT's CPU arena (`variableShapeArena()`, like captions; `LP_ORT_CPU_ARENA=1` restores it) | The arena keeps the largest input's memory for the life of the session, and onnxruntime-node ignores the shrink run option that Rust uses (tested). OCR, 40 photos, 4 in flight: peak 1,537 -> 956 MiB, 1,049 -> 324 MiB after the stage, 466 -> 464 ms/photo |
+| `bun run pack`: `dist/pack/`, the server bundled to bytecode plus only the native packages, ORT pruned to the platform | 133 MiB on Windows x64 (+ bun.exe 82 MiB), against a 498 MiB `bun install --production`. A copy outside the repo passes examples, media@direct, rotate, upload, sidecars and people_faces |
+
+The full ML-on scan rerun after these changes is in the table below once it
+has run on a quiet machine. A run while another workload held the CPU at
+80-100% is not comparable for speed, but its peak was 979 MB against 1,852 MB
+before.
+
+## Targets
+
+| target | Django | Rust | TS | TS verdict |
+|---|---|---|---|---|
+| Faster than Django | - | API 2-73x, scan 2.4x, ML scan 4.7x | API 2-74x, scan 2.2x, ML scan 3.4x | **hit** |
+| Same results as Django | reference | contract suite, scan parity, ML goldens | contract suite (13 read + 15 mutation units), scan parity 0 diff, ML goldens bit-exact | **hit** |
+| Easy to install on Windows | Python 3.11 venv (1.4 GB), 8 ML sidecar processes and qcluster | a release-built exe plus ORT and libvips DLLs plus ExifTool and ffmpeg | `bun` (one exe, `npm i -g bun` or bun.sh) plus prebuilt npm natives (`bun install`, no compiler, no Python), or unzip `dist/pack`; ffmpeg for videos, Python only for HEIC/JPEG XL/RAW fallbacks | **hit** |
+| Smaller binary / install | ~1.4 GB venv + Python | ~119 MB (exe 48 + ORT 17 + libvips 19 + ExifTool 35) | ~215 MB (bun 82 + pack 133), ~160 MB on Linux arm64 | **hit vs Django, about 1.8x Rust** |
+| Small idle memory | 200 MB API, 1.44 GB with ML | 15-21 MB | 68-75 MB | **partial**: 3x smaller than Django's API process, 3.5-4.5x Rust |
+| Raspberry Pi (4 GB) | does not fit comfortably (4.3 GB ML peak) | fits a 2 GB Pi (765 MB ML peak) | every dependency has a linux-arm64 build (Bun aarch64, sharp-linux-arm64 + libvips, ORT `linux/arm64`, Perl ExifTool; install resolution verified); idle 70 MB, ML peak 1.4-1.9 GB in wave 2 (wave-3 rerun pending) | **expected to fit a 4 GB Pi; not run on real hardware** |
+
+## Benefits, ranked
+
+What the TypeScript rewrite gives LibrePhotos, most important first:
+
+1. **Speed over Django where users feel it.** Timeline, albums, photo detail
+   and people pages are 5-74x faster. The scan is 2.2x faster, and with ML
+   3.4x faster. Most of this comes from the rewrite's queries, which TS and
+   Rust share.
+2. **A much smaller ML stack.** One process instead of Django plus qcluster
+   plus 8 Python sidecars. Idle memory is 68 MB against 1.44 GB, and the ML
+   peak is under half of Django's (wave 2: 1.4-1.9 GB against 4.3 GB).
+3. **One language with the frontend.** TypeScript end to end, with a Drizzle
+   schema pulled from the existing database. The whole port, including
+   in-process ML, took about a day of parallel agent work from the Rust
+   reference. The frontend's zod schemas test it directly.
+4. **Simple installs.** Prebuilt native npm packages (libvips, ONNX Runtime,
+   ExifTool), no compiler, no Python venv. A portable folder of about 215 MB
+   on Windows or about 160 MB on Linux arm64.
+5. **Near-Rust on the heavy paths.** Database-bound pages tie with Rust, the
+   timeline day page is at 98% and the plain scan at 90%. Per inference, ML
+   runs at ORT speed in both rewrites.
+
+Where Rust stays ahead, most important first:
+
+1. **Memory:** 15-21 MB idle against 68-75 MB, and a smaller ML peak (Rust
+   shares one arena and shrinks it).
+2. **Tiny endpoints and thumbnails on Windows:** TS reaches 40-56% of Rust.
+   One JS thread serves HTTP because Bun cannot load-balance a port on Windows.
+3. **Install size:** about 1.8x Rust's.
+4. **ML stages:** scan with ML at 74% of Rust's speed, OCR at about 62%
+   before wave 3.
+
 ## Code
 
 | | lines | notes |
