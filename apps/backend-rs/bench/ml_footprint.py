@@ -64,7 +64,12 @@ PORT = {"rs": 8761, "dj": 8760, "ts": 8762}
 # LP_BUN = the bun executable (>= 1.4.2), LP_TS_CMD = a command run instead of
 # `bun run server.ts` (e.g. "<bun> dist/aot/server.js"); bun run build first.
 TS_DIR = WT / "apps" / "backend-ts"
-BUN = os.environ.get("LP_BUN", "bun")
+def _bun():
+    from lpb import BUN as found  # resolves npm's .cmd shim to the real bun.exe
+    return found
+
+
+BUN = os.environ.get("LP_BUN") or _bun()
 USER, PW = "foot", "foot-pw"
 SERVER_CPUS = [0, 2, 4, 6]
 PG_CPUS = [8, 9, 10, 11]
