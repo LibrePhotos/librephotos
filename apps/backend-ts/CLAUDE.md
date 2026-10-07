@@ -94,8 +94,8 @@ export const Route = createFileRoute("/api/user/$id")({
   Django's QueryDict semantics (`get` = last value, `flag`, `int`, `nonEmpty`).
 - DRF pagination: `src/lib/pagination.ts` (`pageRequest`, `validFor`, `drfPage`).
 - Keep route files thin; put logic in `src/features/<area>/`.
-- Every handler must exist for exactly the methods Django allows; a method the
-  view doesn't allow should give 405 like Django (`ApiError.methodNotAllowed`).
+- Define handlers for exactly the methods Django allows. A method without a
+  handler falls through to Start's SSR page, which server.ts turns into DRF's 405.
 
 **Database** (`src/lib/db.ts`): Drizzle over Bun's native Postgres driver.
 
