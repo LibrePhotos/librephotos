@@ -3,20 +3,26 @@
 // api/image_similarity.py search_similar_embedding / search_similar_image;
 // call policy of api/sidecars.py, port of lp_sidecars::client).
 //
-// TS talks only to the Python sidecars, whose CLIP is ViT-B/32 (Django's
-// CLIP_ROOT), so the semantic model is always clip_vit_b32: the same choice
-// librephotos-rs makes when CLIP is not in-process.
+// CLIP and the index run in-process (src/ml, port of lp_ml) or in the
+// Python sidecars (LP_ML_CLIP / LP_ML_SIMILARITY, see src/ml/runtime.ts
+// modeFor). The semantic model follows SEMANTIC_SEARCH_MODEL like
+// librephotos-rs; the sidecar's CLIP is ViT-B/32 only (Django's CLIP_ROOT),
+// so with CLIP in the sidecar it is always clip_vit_b32.
 import path from "node:path";
 import { config } from "~/lib/config";
+import { MlFailed } from "~/ml/errors";
+import { dataModels } from "~/ml/runtime";
+import { producedBy, searchThreshold, similarThreshold, type SemanticModel } from "~/ml/clip/model";
+import { clipInProcess, semanticModel, similarityInProcess } from "~/ml/clip/select";
 
-export const SEMANTIC_MODEL = "clip_vit_b32";
-/** search_similar_embedding's cut for ViT-B/32. */
-export const SEARCH_THRESHOLD = 27;
-/** The photo detail's similar-photos cut for ViT-B/32. */
-export const SIMILAR_THRESHOLD = 90;
+export { semanticModel };
+/** search_similar_embedding's cut for the semantic model (27 for ViT-B/32). */
+export const searchThresholdFor = searchThreshold;
+/** The photo detail's similar-photos cut for the semantic model (90 for ViT-B/32). */
+export const similarThresholdFor = similarThreshold;
 
-/** Whether an embedding stored with this clip_embeddings_model is in the ViT-B/32 index (NULL = Django's). */
-export const sidecarSemanticModelProduced = (column: string | null) => column === null || column === SEMANTIC_MODEL;
+/** Whether an embedding stored with this clip_embeddings_model is in `model`'s index (NULL = Django's ViT-B/32). */
+export const semanticModelProduced = (model: SemanticModel, column: string | null) => producedBy(model, column);
 
 export class SidecarError extends Error {
   constructor(
@@ -89,6 +95,16 @@ export async function similarityHashes(
   threshold: number,
   strict: boolean,
 ): Promise<string[]> {
+  if (similarityInProcess()) {
+    const { similarityStore } = await import("~/ml/similarity/inprocess");
+    try {
+      return similarityStore().search(userId, embedding, n, threshold);
+    } catch (e) {
+      if (!(e instanceof MlFailed)) throw e;
+      console.error(`error retrieving similar embeddings for user ${userId}: status ${e.status}`);
+      return [];
+    }
+  }
   const body: Record<string, unknown> = { user_id: userId, image_embedding: embedding, threshold };
   if (n !== null) body.n = n;
   try {
@@ -104,9 +120,13 @@ export async function similarityHashes(
   }
 }
 
-/** The CLIP text embedding of `query` (any failure throws). */
-export async function queryEmbedding(query: string): Promise<number[]> {
-  const model = path.join(config.mediaRoot, "data_models", SEMANTIC_MODEL);
+/** The CLIP text embedding of `query` by `model` (any failure throws). */
+export async function queryEmbedding(query: string, semantic: SemanticModel): Promise<number[]> {
+  if (clipInProcess()) {
+    const clip = await import("~/ml/clip/inprocess");
+    return Array.from((await clip.queryEmbedding(query, path.join(dataModels(), semantic))).emb);
+  }
+  const model = path.join(config.mediaRoot, "data_models", semantic);
   const reply = await postJson<{ emb?: unknown }>("clip", 8006, "/query-embeddings", { query, model }, 120);
   if (!Array.isArray(reply.emb) || !reply.emb.every((x) => typeof x === "number")) {
     throw new SidecarError("clip sidecar returned an unusable reply");

@@ -11,7 +11,7 @@ import { VALID_STACK_TYPES_SQL } from "~/lib/pig";
 import { ownedBy, visibleManager, visibleTo } from "~/lib/scope";
 import { drfTs } from "~/lib/time";
 import type { User } from "~/lib/users";
-import { similarityHashes, SIMILAR_THRESHOLD, sidecarSemanticModelProduced } from "../search/sidecar";
+import { semanticModel, semanticModelProduced, similarityHashes, similarThresholdFor } from "../search/sidecar";
 import { displayName, fileUrl, lookupSql, mediaUrl, megapixels, parseLookup, resolution, truthy } from "./common";
 
 interface FaceJson {
@@ -229,11 +229,12 @@ function decodeEmbedding(v: unknown): number[] | null {
 
 async function similarPhotos(r: DetailRow, viewer: number | null) {
   // The index holds only the selected model's embeddings.
-  if (!sidecarSemanticModelProduced(r.clip_embeddings_model)) return [];
+  const model = await semanticModel();
+  if (!semanticModelProduced(model, r.clip_embeddings_model)) return [];
   if (!truthy(r.clip_embeddings)) return [];
   const emb = decodeEmbedding(r.clip_embeddings);
   if (!emb) return [];
-  const hashes = await similarityHashes(r.owner_id, emb, null, SIMILAR_THRESHOLD, false);
+  const hashes = await similarityHashes(r.owner_id, emb, null, similarThresholdFor(model), false);
   if (!hashes.length) return [];
   const rs = await rows<{ image_hash: string; video: boolean }>(sql`SELECT p.image_hash, p.video FROM api_photo p
     WHERE ${ownedBy("p", r.owner_id)} AND ${visibleTo("p", viewer)} AND p.image_hash = ANY(${pgArray(hashes, "text")})
