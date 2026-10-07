@@ -11,10 +11,15 @@
 //   LP_ML_IDLE_UNLOAD_SECS       unload a model after this long unused (120)
 //   LP_ML_<SERVICE>_CONCURRENCY  parallel runs per model (1)
 import path from "node:path";
-import * as ort from "onnxruntime-node";
+import type * as OrtNs from "onnxruntime-node";
 import { config } from "../lib/config";
 
-export { ort };
+export type Ort = typeof OrtNs;
+export type InferenceSession = OrtNs.InferenceSession;
+
+let ortModule: Promise<Ort> | null = null;
+/** onnxruntime-node, loaded on first use: a static import would load the native library into every idle server (all routes share one chunk). */
+export const loadOrt = (): Promise<Ort> => (ortModule ??= import("onnxruntime-node"));
 
 export type Service = "clip" | "similarity" | "tags" | "ocr" | "face" | "caption" | "face_cluster" | "raw_thumbnail";
 
@@ -26,7 +31,8 @@ const intraThreads = () => {
 };
 
 /** An ORT session with the process-wide options (CPU EP, graph optimizations on). */
-export function session(modelPath: string, extra: ort.InferenceSession.SessionOptions = {}): Promise<ort.InferenceSession> {
+export async function session(modelPath: string, extra: OrtNs.InferenceSession.SessionOptions = {}): Promise<InferenceSession> {
+  const ort = await loadOrt();
   return ort.InferenceSession.create(modelPath, {
     executionProviders: ["cpu"],
     graphOptimizationLevel: "all",
