@@ -11,6 +11,16 @@ const WIN = process.platform === "win32";
 const DJANGO_DEFAULT_TYPE = "text/html; charset=utf-8";
 /** Answers up to this size are read in one go; larger ones are streamed. */
 const INLINE_READ_MAX = 1024 * 1024;
+
+/**
+ * Set by src/server.ts: its fetch wrapper hands FILE_BODY slices straight to
+ * Bun.serve (sendfile with Content-Length) without going through Start, so
+ * no size needs reading into memory here.
+ */
+let directFileBodies = false;
+export function useDirectFileBodies() {
+  directFileBodies = true;
+}
 const CHUNK = 256 * 1024;
 /** Property a large file Response carries for server.ts (see serveFile). */
 export const FILE_BODY = Symbol.for("librephotos.fileBody");
@@ -191,6 +201,11 @@ export function serveFile(req: FileRequest, rangeHeader: string | null, head: bo
   }
   headers["Content-Length"] = String(length);
   if (head) return new Response(null, { status, headers });
+  if (directFileBodies) {
+    const res = new Response(null, { status, headers });
+    (res as unknown as Record<symbol, Blob>)[FILE_BODY] = Bun.file(req.path).slice(start, start + length);
+    return res;
+  }
   let fd: number;
   try {
     fd = openSync(req.path, "r");

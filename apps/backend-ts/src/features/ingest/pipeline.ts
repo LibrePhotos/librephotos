@@ -14,13 +14,12 @@ import { client } from "../../lib/db";
 import { config } from "../../lib/config";
 import { exif } from "../../lib/exif";
 import { siteSettings } from "../../lib/settings";
-import { dominantRgb, formatDominant } from "./color";
 import * as dates from "./dates";
 import * as db from "./db";
 import { begin, type FileRow, type PhotoRow, type Q } from "./db";
 import { EXIF_TAGS, metadataUpdate, photoUpdate, type ExifValues } from "./exifmap";
 import * as fsu from "./fsutil";
-import { phashRgb } from "./phash";
+import { hashPixels } from "./hashPool";
 import { listRepr, pyRound2 } from "./pyfmt";
 import * as render from "./render";
 import { BIG, SQUARE, SQUARE_SMALL, STATIC_DIRS, storedName, thumbPath } from "./render";
@@ -255,26 +254,11 @@ export async function attachMotion(owner: Owner, photo: string, file: FileRow, l
 
 // ---- _process_photo ----------------------------------------------------------
 
-function rgbOf(p: render.Pixels): Uint8Array {
-  if (p.channels === 3) return p.data;
-  const n = p.width * p.height;
-  const out = new Uint8Array(n * 3);
-  for (let i = 0; i < n; i++) {
-    const s = i * p.channels;
-    if (p.channels >= 3) {
-      out[i * 3] = p.data[s];
-      out[i * 3 + 1] = p.data[s + 1];
-      out[i * 3 + 2] = p.data[s + 2];
-    } else out[i * 3] = out[i * 3 + 1] = out[i * 3 + 2] = p.data[s];
-  }
-  return out;
-}
 
 async function phashOf(webp: Uint8Array): Promise<string | null> {
   try {
     const px = await render.decodePixels(webp);
-    if (px.channels < 3) return phashRgb(rgbOf(px), 3, px.width, px.height);
-    return phashRgb(px.data, px.channels, px.width, px.height);
+    return await hashPixels("phash", px.data, px.width, px.height, px.channels);
   } catch {
     return null;
   }
@@ -283,8 +267,7 @@ async function phashOf(webp: Uint8Array): Promise<string | null> {
 async function dominantOf(webp: Uint8Array): Promise<string | null> {
   try {
     const px = await render.decodePixels(webp);
-    const rgb = dominantRgb(rgbOf(px), px.width, px.height);
-    return rgb ? formatDominant(rgb) : null;
+    return await hashPixels("dominant", px.data, px.width, px.height, px.channels);
   } catch {
     return null;
   }

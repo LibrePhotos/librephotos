@@ -4,11 +4,11 @@
   "type": "module",
   "scripts": {
     "dev": "bun --bun vite dev --port 8001",
-    "build": "bun --bun vite build",
+    "build": "bun --bun vite build && bun build src/features/ingest/hashWorker.ts --target=bun --minify --outfile dist/hash-worker.js",
     "start": "bun run server.ts",
     "adopt": "bun run src/cli.ts adopt",
     "typecheck": "tsc --noEmit",
-    "build:aot": "bun --bun vite build && bun build --target=bun --bytecode --format=cjs --minify --packages=external server.ts --outdir dist/aot",
+    "build:aot": "bun run build && bun build --target=bun --bytecode --format=cjs --minify --packages=external server.ts --outdir dist/aot",
     "start:aot": "bun dist/aot/server.js"
   },
   "dependencies": {
