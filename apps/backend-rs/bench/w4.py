@@ -5,6 +5,9 @@ a no-change rescan, and duplicate detection.
   python w4.py dupes --out <dir> [--ds 50k --reps 3]
 
 A/B of Rust settings in one binary: `--variants rust,rust@v --variant-env v:LP_X=1,LP_Y=2`
+(`ts`, `ts@v`: the TypeScript server, apps/backend-ts, started like rust; build it first
+with `bun --bun run build`; `--port`, `--db-prefix` and `--no-pin` keep a run off shared
+ports, databases and CPU masks)
 (alternating order per rep). `--idle-wait 75` snapshots the tree's memory 75 s after
 the rescan; `--dump-phash` writes image_hash/pHash per run. Rust runs also record the
 tree's peak working set and private bytes per executable (psutil).
@@ -32,6 +35,8 @@ SCAN_TEMPLATE = "lp_bench_scan"
 SCAN_USER = "scanner"
 WEB_PORT = 8921
 EXIF_PORT = 8010
+DB_PREFIX = "lp_run_scan_"
+PIN = True
 
 
 def scan_template():
@@ -70,7 +75,7 @@ def lrj(db, job_id):
 
 
 def queue_busy(db, kind):
-    if kind == "rust":
+    if kind in ("rust", "ts"):
         return int(lpb.psql("SELECT count(*) FROM job_queue WHERE status IN ('queued', 'running') "
                             "AND run_after < now() + interval '5 minutes'", db))
     # A claimed row keeps a lock far in the future (retry = 20000000 s) even when
@@ -83,15 +88,16 @@ class Stack:
 
     def __init__(self, variant, db, media, workers, env=None):
         self.variant, self.db, self.media, self.workers = variant, db, media, workers
-        # `rust@<name>`: the Rust server with the extra env of --variant-env <name>:...
-        self.kind = "rust" if variant.split("@")[0] == "rust" else "django"
+        # `rust@<name>` / `ts@<name>`: that server with the extra env of --variant-env <name>:...
+        base = variant.split("@")[0]
+        self.kind = base if base in ("rust", "ts") else "django"
         self.env = env or {}
         self.helpers = []
         self.server = None
 
     def start(self):
-        if self.kind == "rust":
-            self.server = lpb.Server("rust", self.db, WEB_PORT, media=self.media,
+        if self.kind in ("rust", "ts"):
+            self.server = lpb.Server(self.kind, self.db, WEB_PORT, media=self.media,
                                      extra_env={"WORKER_CONCURRENCY": str(self.workers), **self.env}).start()
         else:
             if lpb.listener_pid(EXIF_PORT) is not None:
@@ -105,8 +111,8 @@ class Stack:
             lpb.wait_port(EXIF_PORT)
             self.helpers.append(lpb.Proc(f"qcluster-{self.db}", [lpb.DJANGO_PY, "manage.py", "qcluster"], env))
             self.server = lpb.Server("django-shipped", self.db, WEB_PORT, media=self.media).start()
-        pids = self.pids()
-        lpb.pin(pids, lpb.MASK_SERVER)
+        if PIN:
+            lpb.pin(self.pids(), lpb.MASK_SERVER)
         return self
 
     def pids(self):
@@ -126,7 +132,7 @@ class Stack:
     def trigger_scan(self, uid):
         """Start a (non-full) scan of the user's directory; returns (job_id, t0)."""
         token = lpb.mint_token(uid)
-        if self.kind == "rust":
+        if self.kind in ("rust", "ts"):
             t0 = time.perf_counter()
             status, body, _ = lpb.http_get(f"{self.server.base}/api/scanphotos/", token)
             if status != 200:
@@ -291,7 +297,8 @@ def stage_scan(args):
     done = {(r["rep"], r["variant"]) for r in rows}
     variants = args.variants.split(",")
     pm = lpb.pg_postmaster()
-    lpb.pin([pm], lpb.MASK_PG)
+    if PIN:
+        lpb.pin([pm], lpb.MASK_PG)
     try:
         for rep in range(1, args.reps + 1):
             order = variants if rep % 2 == 1 else list(reversed(variants))
@@ -299,8 +306,8 @@ def stage_scan(args):
                 if (rep, variant) in done:
                     continue
                 slug = variant.replace("-", "_").replace("@", "_")
-                db = f"lp_run_scan_{slug}"
-                media = os.path.join(lpb.RUNS, "scan-media", slug)
+                db = f"{DB_PREFIX}{slug}"
+                media = os.path.join(lpb.RUNS, "scan-media", slug if DB_PREFIX == "lp_run_scan_" else db)
                 shutil.rmtree(media, ignore_errors=True)
                 os.makedirs(os.path.join(media, "data"), exist_ok=True)
                 lpb.clone(SCAN_TEMPLATE, db)
@@ -311,7 +318,7 @@ def stage_scan(args):
                     lpb.quiesce(stack.pids() + [pm], limit_s=60)
                     cpu0 = lpb.lpbench("procstat", "--pids", ",".join(map(str, stack.pids())))["cpu_s"]
                     sampler = lpb.TreeSampler(stack.pids(), period=0.5)
-                    exe = ExeSampler(stack.server.proc.pid) if stack.kind == "rust" else None
+                    exe = ExeSampler(stack.server.proc.pid) if stack.kind in ("rust", "ts") else None
                     job_id, t0 = stack.trigger_scan(uid)
                     wall, j = wait_job(db, job_id, t0, args.timeout, "scan")
                     rss = sampler.finish()
@@ -324,7 +331,7 @@ def stage_scan(args):
                     outcome = scan_outcome(db, uid, media)
                     log(f"scan rep{rep} {variant:<15} {wall:7.1f} s  {outcome['photos'] / wall:6.1f} files/s  "
                         f"peak {rss['peak_working_set'] / 2**20:.0f} MiB  cpu {cpu:.0f} s  {outcome}")
-                    drained = drain(stack)
+                    drained = drain(stack, timeout=args.drain_timeout)
                     # no-change rescan: the same trigger again once the follow-ups are done
                     cpu1 = lpb.lpbench("procstat", "--pids", ",".join(map(str, stack.pids())))["cpu_s"]
                     job2, t1 = stack.trigger_scan(uid)
@@ -333,7 +340,7 @@ def stage_scan(args):
                     after = scan_outcome(db, uid, media)
                     log(f"rescan rep{rep} {variant:<15} {wall2:7.2f} s  target {j2['target']}  photos {after['photos']}")
                     idle = {}
-                    if stack.kind == "rust":
+                    if stack.kind in ("rust", "ts"):
                         idle["after_rescan"] = ExeSampler.snap(stack.server.proc.pid)
                         if args.idle_wait:
                             time.sleep(args.idle_wait)
@@ -357,7 +364,8 @@ def stage_scan(args):
                     stack.stop()
                     lpb.drop(db)
     finally:
-        lpb.pin([pm], lpb.MASK_ALL)
+        if PIN:
+            lpb.pin([pm], lpb.MASK_ALL)
 
 
 def stage_dupes(args):
@@ -414,6 +422,7 @@ def stage_dupes(args):
 
 
 def main():
+    global WEB_PORT, DB_PREFIX, PIN
     ap = argparse.ArgumentParser()
     ap.add_argument("stage")
     ap.add_argument("--out", required=True)
@@ -428,7 +437,13 @@ def main():
     ap.add_argument("--idle-wait", type=float, default=0,
                     help="after the rescan, wait this long and snapshot the tree's memory again")
     ap.add_argument("--dump-phash", action="store_true", help="write image_hash -> pHash per run")
+    ap.add_argument("--port", type=int, default=WEB_PORT, help="web server port of the contender")
+    ap.add_argument("--db-prefix", default=DB_PREFIX, help="run database name prefix (scan stage)")
+    ap.add_argument("--no-pin", action="store_true", help="leave CPU affinities alone (shared machine)")
+    ap.add_argument("--drain-timeout", type=float, default=900,
+                    help="wait at most this long for the follow-up jobs before the rescan")
     args = ap.parse_args()
+    WEB_PORT, DB_PREFIX, PIN = args.port, args.db_prefix, not args.no_pin
     os.makedirs(args.out, exist_ok=True)
     {"scan": stage_scan, "dupes": stage_dupes}[args.stage](args)
 

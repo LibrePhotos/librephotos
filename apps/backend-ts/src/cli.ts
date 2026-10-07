@@ -1,5 +1,9 @@
 // librephotos-ts command line.
 //   bun run src/cli.ts adopt   take over a database Django migrated (api.0142+)
+//   bun run src/cli.ts scan [username...] [--full] [--followups]
+//                              scan.user inline to completion (every user with
+//                              a scan directory when none is named), SCAN_REPORT json
+//   bun run src/cli.ts strip-thumbnail-metadata [--dry-run]
 //
 // adopt applies migrations/*.sql: the same additive objects librephotos-rs
 // creates (site_settings, refresh_token, job_queue, ...), written
@@ -39,8 +43,11 @@ if (import.meta.main) {
     if (cmd === "adopt") {
       await adopt();
       console.log("adopted");
+    } else if (cmd === "scan" || cmd === "strip-thumbnail-metadata") {
+      const { ingestCommand } = await import("./features/ingest/cli");
+      await ingestCommand(cmd, process.argv.slice(3));
     } else {
-      console.error("usage: cli.ts adopt");
+      console.error("usage: cli.ts adopt | scan [username...] [--full] [--followups] | strip-thumbnail-metadata [--dry-run]");
       process.exit(2);
     }
   } catch (e) {
