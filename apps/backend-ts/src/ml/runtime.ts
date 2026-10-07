@@ -10,6 +10,7 @@
 //   ONNX_INTRA_OP_THREADS        threads per session (0/unset = ORT default)
 //   LP_ML_IDLE_UNLOAD_SECS       unload a model after this long unused (120)
 //   LP_ML_<SERVICE>_CONCURRENCY  parallel runs per model (1)
+//   LP_ORT_CPU_ARENA             0 = sessions without the CPU memory arena
 import path from "node:path";
 import type * as Ort from "onnxruntime-node";
 import { config } from "../lib/config";
@@ -43,7 +44,10 @@ export async function session(modelPath: string, extra: Ort.InferenceSession.Ses
     graphOptimizationLevel: "all",
     intraOpNumThreads: intraThreads(),
     interOpNumThreads: 1,
-    enableCpuMemArena: true,
+    // LP_ORT_CPU_ARENA=0: no per-session arena (ORT keeps an arena's peak for
+    // the session's life; onnxruntime-node has no shared, shrinkable arena
+    // like librephotos-rs). Models may override (the face packs turn it off).
+    enableCpuMemArena: process.env.LP_ORT_CPU_ARENA !== "0",
     ...extra,
   });
 }
