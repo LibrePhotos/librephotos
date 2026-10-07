@@ -60,6 +60,17 @@ export async function session(modelPath: string, extra: Ort.InferenceSession.Ses
   return ort.InferenceSession.create(modelPath, options);
 }
 
+/**
+ * Session options for models with variable input shapes (OCR detection,
+ * the caption decoder): ORT's CPU arena keeps the largest run's memory for
+ * the session's life and onnxruntime-node cannot shrink it (librephotos-rs
+ * shrinks its shared arena after each run), so these run without it unless
+ * LP_ORT_CPU_ARENA=1|on. OCR: ~7% slower, 1.3 GB -> 0.96 GB peak, 1.1 GB ->
+ * 0.3 GB after the stage.
+ */
+export const variableShapeArena = (): { enableCpuMemArena?: boolean } =>
+  ["1", "on"].includes((process.env.LP_ORT_CPU_ARENA ?? "").toLowerCase()) ? {} : { enableCpuMemArena: false };
+
 /** A whole-model failure the caller reports like the sidecar's "unavailable". */
 export class MlUnavailable extends Error {}
 

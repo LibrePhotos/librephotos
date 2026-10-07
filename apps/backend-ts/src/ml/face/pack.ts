@@ -7,6 +7,7 @@
 // insightface, whose API expects BGR: both networks see the channels swapped.
 // That is reproduced on purpose, so new embeddings keep matching the stored
 // ones. Embeddings are not normalised.
+import { transferable } from "../ortThread";
 import { readdirSync, statSync } from "node:fs";
 import path from "node:path";
 import type { FaceBox } from "../../features/tasks/sidecars";
@@ -122,7 +123,7 @@ export class ArcFace {
     const blob = new Float32Array(n * per);
     crops.forEach((c, i) => blobBgrSwapped(c, this.size, this.size, this.mean, this.std, blob, i * per));
     const s = this.session;
-    const outs = await s.run({ [s.inputNames[0]]: new (await loadOrt()).Tensor("float32", blob, [n, 3, this.size, this.size]) });
+    const outs = await s.run({ [s.inputNames[0]]: transferable(new (await loadOrt()).Tensor("float32", blob, [n, 3, this.size, this.size])) });
     const data = outs[s.outputNames[0]].data as Float32Array;
     if (data.length % n !== 0) throw new Error(`recognition batch of ${n} gave ${data.length} values`);
     const d = data.length / n;

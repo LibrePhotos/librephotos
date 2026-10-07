@@ -3,8 +3,9 @@
 // greedy decoding, reading order. The cv2 / pyclipper pieces are ported
 // from their sources so boxes and crops match the sidecar bit for bit
 // (scripts/ml_goldens_ocr.ts checks them against the goldens).
+import { transferable } from "../ortThread";
 import { resizeLinear } from "../preprocess/cv2";
-import { loadOrt, session, type Ort } from "../runtime";
+import { loadOrt, session, type Ort, variableShapeArena } from "../runtime";
 import { decodeCharset, loadConfig, type OcrConfig } from "./config";
 import { findContours } from "./contours";
 import { getMiniBoxes, type Quad } from "./hull";
@@ -364,10 +365,10 @@ export class Engine {
   static async load(dir: string): Promise<Engine> {
     const config = loadConfig(dir);
     const ort = await loadOrt();
-    const det = await session(path.join(dir, "det.onnx"));
+    const det = await session(path.join(dir, "det.onnx"), variableShapeArena());
     let rec: Ort.InferenceSession | null = null;
     try {
-      rec = await session(path.join(dir, "rec.onnx"));
+      rec = await session(path.join(dir, "rec.onnx"), variableShapeArena());
       const meta = rec.outputMetadata[0];
       const last = meta?.isTensor ? meta.shape[meta.shape.length - 1] : undefined;
       if (typeof last !== "number" || last <= 0) throw new Error("recognition model output has no fixed class dimension");
@@ -386,7 +387,7 @@ export class Engine {
 
   /** The detector's probability map [map, width, height] for a prepared input. */
   async runDet(d: DetInput): Promise<[Float32Array, number, number]> {
-    const input = new this.ort.Tensor("float32", d.x, [1, 3, d.nh, d.nw]);
+    const input = transferable(new this.ort.Tensor("float32", d.x, [1, 3, d.nh, d.nw]));
     const out = await this.det.run({ [this.det.inputNames[0]]: input });
     const t = out[this.det.outputNames[0]];
     if (t.dims.length !== 4) throw new Error(`unexpected detection output shape ${JSON.stringify(t.dims)}`);
@@ -414,7 +415,7 @@ export class Engine {
     const results: [string, number][] = Array.from({ length: n }, () => ["", 0]);
     const [c, h, w] = this.config.recInputShape;
     for (const b of batches) {
-      const input = new this.ort.Tensor("float32", b.data, [b.idx.length, c, h, w]);
+      const input = transferable(new this.ort.Tensor("float32", b.data, [b.idx.length, c, h, w]));
       const out = await this.rec.run({ [this.rec.inputNames[0]]: input });
       const o = out[this.rec.outputNames[0]];
       if (o.dims.length !== 3) throw new Error(`unexpected recognition output shape ${JSON.stringify(o.dims)}`);

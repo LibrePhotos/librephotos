@@ -13,12 +13,13 @@
 // idempotently, so Django, Rust and TS can take turns on one database. Then
 // it imports constance values into site_settings (existing rows win).
 import "./lib/tz";
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { client } from "./lib/db";
 import { constanceDecode, SETTING_KEYS } from "./lib/settings";
 
-const MIGRATIONS = path.join(import.meta.dir, "..", "migrations");
+// src/cli.ts -> ../migrations; the packed cli.js -> ./migrations.
+const MIGRATIONS = [path.join(import.meta.dir, "..", "migrations"), path.join(import.meta.dir, "migrations")].find((d) => existsSync(d)) ?? path.join(import.meta.dir, "..", "migrations");
 
 export async function adopt(): Promise<void> {
   const [{ ok }] = await client`SELECT to_regclass('django_migrations') IS NOT NULL AS ok`;

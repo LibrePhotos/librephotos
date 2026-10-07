@@ -9,7 +9,8 @@
     "adopt": "bun run src/cli.ts adopt",
     "typecheck": "tsc --noEmit",
     "build:aot": "bun run build && bun build --target=bun --bytecode --format=cjs --minify --packages=external server.ts --outdir dist/aot",
-    "start:aot": "bun dist/aot/server.js"
+    "start:aot": "bun dist/aot/server.js",
+    "pack": "bun run scripts/pack.ts"
   },
   "dependencies": {
     "@photostructure/tz-lookup": "^11.7.0",

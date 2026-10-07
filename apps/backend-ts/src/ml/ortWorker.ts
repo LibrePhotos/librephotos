@@ -50,8 +50,14 @@ if (typeof Bun !== "undefined" && !Bun.isMainThread) {
         }
         const out = fetches ? await s.run(feeds, fetches as never) : await s.run(feeds);
         const value: Record<string, WireTensor> = {};
-        for (const [k, t] of Object.entries(out)) value[k] = wire(t as Ort.Tensor);
-        self.postMessage({ id: m.id, ok: true, value } satisfies Reply);
+        // Outputs are fresh on this side: hand their buffers over instead of copying.
+        const transfer = new Set<ArrayBuffer>();
+        for (const [k, t] of Object.entries(out)) {
+          value[k] = wire(t as Ort.Tensor);
+          const b = ((t as Ort.Tensor).data as ArrayBufferView).buffer;
+          if (b instanceof ArrayBuffer) transfer.add(b);
+        }
+        self.postMessage({ id: m.id, ok: true, value } satisfies Reply, [...transfer]);
       } else {
         await sessions.get(m.sid)?.release();
         sessions.delete(m.sid);

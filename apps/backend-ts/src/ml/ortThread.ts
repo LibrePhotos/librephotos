@@ -46,15 +46,27 @@ function workers(): Worker[] {
   return pool;
 }
 
-function call<T>(w: Worker, msg: Omit<Request, "id"> & { op: Request["op"] }): Promise<T> {
+function call<T>(w: Worker, msg: Omit<Request, "id"> & { op: Request["op"] }, transfer: ArrayBuffer[] = []): Promise<T> {
   const id = ++seq;
   return new Promise<T>((resolve, reject) => {
     pending.set(id, { resolve: resolve as (v: unknown) => void, reject });
-    w.postMessage({ ...msg, id });
+    w.postMessage({ ...msg, id }, transfer);
   });
 }
 
 const wire = (t: Ort.Tensor): WireTensor => ({ type: t.type, data: t.data, dims: t.dims });
+
+const handOver = new WeakSet<object>();
+/**
+ * Mark a feed tensor the caller won't touch again: its buffer moves to the
+ * ORT thread instead of being copied (it is detached afterwards). Only for
+ * tensors that own their whole buffer.
+ */
+export function transferable<T extends Ort.Tensor>(t: T): T {
+  const d = t.data as ArrayBufferView;
+  if (d.buffer instanceof ArrayBuffer && d.byteOffset === 0 && d.byteLength === d.buffer.byteLength) handOver.add(t);
+  return t;
+}
 
 export class ThreadSession {
   private constructor(
@@ -80,7 +92,11 @@ export class ThreadSession {
 
   async run(feeds: Record<string, Ort.Tensor>, fetches?: readonly string[] | Record<string, Ort.Tensor | null>): Promise<Record<string, Ort.Tensor>> {
     const f: Record<string, WireTensor> = {};
-    for (const [k, t] of Object.entries(feeds)) f[k] = wire(t);
+    const transfer: ArrayBuffer[] = [];
+    for (const [k, t] of Object.entries(feeds)) {
+      f[k] = wire(t);
+      if (handOver.has(t)) transfer.push((t.data as ArrayBufferView).buffer as ArrayBuffer);
+    }
     let wf: string[] | Record<string, WireTensor> | undefined;
     const given: Record<string, Ort.Tensor> = {};
     if (Array.isArray(fetches)) wf = [...fetches];
@@ -93,7 +109,7 @@ export class ThreadSession {
         }
       }
     }
-    const out = await call<Record<string, WireTensor>>(this.worker, { op: "run", sid: this.sid, feeds: f, fetches: wf } as never);
+    const out = await call<Record<string, WireTensor>>(this.worker, { op: "run", sid: this.sid, feeds: f, fetches: wf } as never, transfer);
     const res: Record<string, Ort.Tensor> = {};
     for (const [k, t] of Object.entries(out)) {
       const mine = given[k];

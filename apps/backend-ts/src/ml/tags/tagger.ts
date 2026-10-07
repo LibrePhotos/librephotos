@@ -6,6 +6,7 @@
 // The text tower only runs to build `<model dir>/tag_embeddings.npy` (the
 // cache file the Python taggers and librephotos-rs write and read too) and
 // is released again afterwards.
+import { transferable } from "../ortThread";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { ClipTokenizer } from "../clip/tokenizer";
@@ -279,7 +280,7 @@ export class Tagger {
       data.set(img, i * per);
     });
     const ort = await loadOrt();
-    const outs = await runOutputs(this.vision, { [this.vision.inputNames[0]]: new ort.Tensor("float32", data, [n, 3, size, size]) });
+    const outs = await runOutputs(this.vision, { [this.vision.inputNames[0]]: transferable(new ort.Tensor("float32", data, [n, 3, size, size])) });
     const flat = selectPooled(outs, n, null);
     if (flat.length !== n * this.dim) {
       throw new Error(`batch of ${n} gave ${flat.length} values, the tag embeddings have ${this.dim} per image`);

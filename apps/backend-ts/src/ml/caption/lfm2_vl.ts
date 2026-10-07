@@ -16,7 +16,7 @@
 // the attention mask is a view of one ones-filled array.
 import path from "node:path";
 import { loadRgb, pyRound, resize, type Rgb } from "../preprocess";
-import { loadOrt, session, type Ort } from "../runtime";
+import { loadOrt, session, type Ort, variableShapeArena } from "../runtime";
 import { Lfm2Tokenizer } from "./tokenizer";
 
 export const MODEL_NAME = "lfm2_vl_450m";
@@ -35,7 +35,7 @@ const TOKENIZER_FILE = "tokenizer.json";
  * with it, 506 / 707 MB without (librephotos-rs: 431 / 350), at the same speed
  * (3.94 vs 3.88 s a caption).
  */
-const ARENA = ["1", "on"].includes((process.env.LP_ORT_CPU_ARENA ?? "").toLowerCase()) ? {} : { enableCpuMemArena: false };
+const ARENA = variableShapeArena();
 
 /** Every file of the model (lp_ml::models CATALOG, ml_type Captioning). */
 export const MODEL_FILES = [

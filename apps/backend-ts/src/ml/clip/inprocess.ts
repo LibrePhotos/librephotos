@@ -2,6 +2,7 @@
 // service/clip_embeddings/clip_onnx.py): ViT-B/32 (Xenova ONNX export) and
 // MobileCLIP-S2 image + text towers. Embeddings stay unnormalised, as the
 // sidecar returns them, with their magnitude next to each one.
+import { transferable } from "../ortThread";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { MlFailed } from "../errors";
@@ -81,7 +82,7 @@ export class Clip {
     const out: Float32Array[] = [];
     for (let at = 0; at < pixels.length; at += IMAGE_BATCH_SIZE) {
       const batch = pixels.slice(at, at + IMAGE_BATCH_SIZE);
-      const input = new ort.Tensor("float32", stack(batch, per), [batch.length, 3, s, s]);
+      const input = transferable(new ort.Tensor("float32", stack(batch, per), [batch.length, 3, s, s]));
       const res = await vision.run({ [vision.inputNames[0]]: input });
       const t = res[vision.outputNames[0]];
       const [n, d] = t.dims.map(Number);

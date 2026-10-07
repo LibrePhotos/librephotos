@@ -1,5 +1,6 @@
 // insightface's SCRFD detector (model_zoo/retinaface.py, RetinaFace), float32
 // throughout like the numpy code. Port of lp_ml::face::scrfd.
+import { transferable } from "../ortThread";
 import { loadOrt, type InferenceSession } from "../runtime";
 import { resizeLinear } from "../preprocess/cv2";
 import { inputDim, type ModelInfo } from "./onnx_meta";
@@ -148,7 +149,7 @@ export class Scrfd {
 
   private async forward(blob: Float32Array, inW: number, inH: number) {
     const s = this.session;
-    const outs = await s.run({ [s.inputNames[0]]: new (await loadOrt()).Tensor("float32", blob, [1, 3, inH, inW]) });
+    const outs = await s.run({ [s.inputNames[0]]: transferable(new (await loadOrt()).Tensor("float32", blob, [1, 3, inH, inW])) });
     const out = (i: number) => outs[s.outputNames[i]].data as Float32Array;
     const scoresAll: number[] = [];
     const bboxesAll: [number, number, number, number][] = [];
