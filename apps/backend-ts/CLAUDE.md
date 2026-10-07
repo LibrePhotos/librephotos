@@ -47,7 +47,8 @@ TZ=UTC DB_HOST=localhost DB_PORT=5433 DB_USER=postgres DB_PASS=x DB_NAME=<clone>
   BASE_DATA=C:/Users/Niaz/librephotos/rust-pg/fixture LP_BIND=127.0.0.1:8899 bun run server.ts
 ```
 
-`bun run build` must be rerun after every change before the suite sees it.
+`bun run build` (= `bun --bun vite build`; vite under Node cannot resolve
+`import "bun"`) must be rerun after every change before the suite sees it.
 Routes are files: `src/routes/api/albums/date/list.ts` serves
 `/api/albums/date/list` and `/api/albums/date/list/` (both slash forms match).
 Dynamic segments are `$name` (`src/routes/api/user/$id.ts`), `$` is a splat.
@@ -93,7 +94,15 @@ export const Route = createFileRoute("/api/user/$id")({
   for JSON/form/multipart. Query strings: `query` is a `QueryMap` with
   Django's QueryDict semantics (`get` = last value, `flag`, `int`, `nonEmpty`).
 - DRF pagination: `src/lib/pagination.ts` (`pageRequest`, `validFor`, `drfPage`).
-- Keep route files thin; put logic in `src/features/<area>/`.
+- Keep route files thin; put logic in `src/features/<area>/`. Write the
+  handlers inline in `server.handlers`: a handler defined elsewhere in the
+  route file is not stripped from the client bundle and drags `db.ts` in.
+- Large files: `src/features/media/serve.ts` hands >1 MiB bodies to
+  server.ts via `Symbol.for("librephotos.fileBody")` (Start re-reads
+  `Response.body`, which loses `Content-Length` on `Bun.file` bodies).
+- sharp: pass Buffers, not paths (on Windows sharp keeps path-opened files
+  locked, which breaks later rewrites of thumbnails and originals).
+- Parallel suite runs: `export LP_DB_POOL=4` (Postgres has 100 connections).
 - Define handlers for exactly the methods Django allows. A method without a
   handler falls through to Start's SSR page, which server.ts turns into DRF's 405.
 
