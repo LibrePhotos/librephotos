@@ -222,6 +222,8 @@ export function registerJob(kind: string, handler: JobHandler) {
   handlers.set(kind, handler);
 }
 export const registeredKinds = () => [...handlers.keys()];
+/** The handler of a kind (cli.ts run-job runs one inline). */
+export const handlerFor = (kind: string) => handlers.get(kind);
 
 // --------------------------------------------------------------- worker
 
