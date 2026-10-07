@@ -29,6 +29,6 @@ export async function ingestCommand(cmd: string, args: string[]) {
   }
   const [{ n }] = await client`SELECT count(*)::int AS n FROM api_file`;
   const secs = (performance.now() - total) / 1000;
-  console.log(`SCAN_REPORT ${JSON.stringify({ users: report, files: n, seconds: secs, files_per_second: n / secs, peak_rss_mib: Math.round(process.memoryUsage().rss / 2 ** 20) })}`);
+  console.log(`SCAN_REPORT ${JSON.stringify({ users: report, files: n, seconds: secs, files_per_second: n / secs, cpu_s: (process.resourceUsage().userCPUTime + process.resourceUsage().systemCPUTime) / 1e6, peak_rss_mib: Math.round(process.memoryUsage().rss / 2 ** 20) })}`);
   await exif.shutdown();
 }

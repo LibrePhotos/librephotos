@@ -28,7 +28,18 @@ LPBENCH = os.environ.get("LP_LPBENCH") or os.path.join(HERE, "client", "target",
 RS_BIN = os.environ.get("LP_RS_BIN") or os.path.join(BACKEND_RS, "target", "release", "librephotos-rs.exe")
 # The TypeScript contender (apps/backend-ts): `bun run server.ts` after `bun run src/cli.ts adopt`.
 TS_DIR = os.path.join(REPO, "apps", "backend-ts")
-BUN = os.environ.get("LP_BUN") or "bun"
+def _bun():
+    """bun.exe itself: npm's `bun` shim is a .cmd, which CreateProcess does not run."""
+    import shutil
+    found = shutil.which("bun.exe") or shutil.which("bun")
+    if found and found.lower().endswith((".cmd", ".ps1", "bun")) and not found.lower().endswith(".exe"):
+        exe = os.path.join(os.path.dirname(found), "node_modules", "bun", "bin", "bun.exe")
+        if os.path.exists(exe):
+            return exe
+    return found or "bun"
+
+
+BUN = os.environ.get("LP_BUN") or _bun()
 # Parallel agents: their own database prefix (lp_run_ or lp_t_*) and port block.
 RUN_PREFIX = os.environ.get("LP_BENCH_DB_PREFIX", "lp_run_")
 PORT_BASE = int(os.environ.get("LP_BENCH_PORT_BASE", "8901"))
