@@ -69,3 +69,23 @@ export async function writeAll(
   }
   return out;
 }
+
+/** The `types` of a savemetadata body (default ["ratings"]). */
+export function typesOf(body: Record<string, unknown>): string[] {
+  const t = body.types;
+  if (t === undefined || t === null) return [RATINGS];
+  if (Array.isArray(t)) return t.map((v) => (typeof v === "string" ? v : JSON.stringify(v)));
+  return [typeof t === "string" ? t : JSON.stringify(t)];
+}
+
+/**
+ * POST /api/savemetadata (SaveMetadataView): write the requester's ratings
+ * and/or face regions back to their files, synchronously. The target is the
+ * XMP sidecar only when save_metadata_to_disk is SIDECAR_FILE.
+ */
+export async function saveMetadata(user: { id: number; saveMetadataToDisk: string }, body: Record<string, unknown>) {
+  const types = typesOf(body);
+  const ids = await selectPhotos(user.id, types, "labelled");
+  const out = await writeAll(ids, types, user.saveMetadataToDisk === "SIDECAR_FILE", (h, e) => console.error(`Failed to save metadata for photo ${h}: ${e.message}`), () => {});
+  return { status: true, written: out.written, errors: out.errors };
+}

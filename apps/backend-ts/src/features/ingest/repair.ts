@@ -6,7 +6,8 @@ import { JobType, lrjFail, lrjIsCancelled } from "../../lib/jobs";
 import * as db from "./db";
 import { begin, type Q } from "./db";
 import { exists, IMAGE, RAW_FILE, splitext } from "./fsutil";
-import { hardDelete } from "./photoDelete";
+import { config } from "../../lib/config";
+import { hardDeletePhotos } from "../jobs/photoDelete";
 import { AfterCommit } from "./pipeline";
 
 const PAGE = 5000;
@@ -83,7 +84,7 @@ export async function repairFileVariants(userId: number, jobId: string) {
           const hashes: { file_id: string }[] = await tx`SELECT file_id FROM api_photo_files WHERE photo_id = ${photo}::uuid ORDER BY id`;
           for (const h of hashes) await db.addPhotoFile(tx, jpeg, h.file_id);
           await db.touchPhoto(tx, jpeg);
-          await hardDelete(tx, [photo], after);
+          for (const f of await hardDeletePhotos(tx, [photo], config.mediaRoot)) after.deleteFile(f);
           merged++;
         }
       });
@@ -116,7 +117,7 @@ export async function deleteMissingPhotos(userId: number, jobId: string) {
       await begin(async (tx) => {
         for (const r of await tx`SELECT DISTINCT albumthing_id AS id FROM api_albumthing_photos WHERE photo_id = ANY(${arr}::uuid[])`) things.add(r.id);
         for (const r of await tx`SELECT DISTINCT tag_id AS id FROM api_tag_photos WHERE photo_id = ANY(${arr}::uuid[])`) tags.add(r.id);
-        await hardDelete(tx, batch, after);
+        for (const f of await hardDeletePhotos(tx, batch, config.mediaRoot)) after.deleteFile(f);
         done += batch.length;
         await tx`UPDATE api_longrunningjob SET progress_current = ${done}, progress_target = ${target} WHERE job_id = ${jobId}`;
       });

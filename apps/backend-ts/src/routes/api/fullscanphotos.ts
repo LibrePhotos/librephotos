@@ -1,9 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { scanPhotos } from "~/features/ingest/triggers";
+import { scan } from "~/features/jobs/triggers";
 import { endpoint } from "~/lib/http";
 
-const handler = endpoint("user", ({ user }) => scanPhotos(user, true));
-
 export const Route = createFileRoute("/api/fullscanphotos")({
-  server: { handlers: { GET: handler, POST: handler } },
+  server: {
+    handlers: {
+      GET: endpoint("user", ({ user }) => scan(user, true)),
+      POST: endpoint("user", ({ user }) => scan(user, true)),
+    },
+  },
 });

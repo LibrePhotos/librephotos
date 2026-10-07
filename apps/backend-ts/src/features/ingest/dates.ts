@@ -4,7 +4,7 @@
 // epoch read as UTC (`Micros`), so WhatsApp's sequence-number microseconds
 // survive; toPgTimestamp() renders them for SQL.
 import { statSync } from "node:fs";
-import { geoTz } from "exiftool-vendored/dist/GeoTz";
+import tzLookup from "@photostructure/tz-lookup";
 import { truthy, valueStr, type PyValue } from "./pyfmt";
 import { fileName } from "./fsutil";
 
@@ -120,7 +120,7 @@ const validTz = (tz: string) => (tz && tzFormat(tz) ? tz : null);
 function gpsTz(lat: number | null, lon: number | null): string | null {
   if (lat === null || lon === null || !Number.isFinite(lat) || !Number.isFinite(lon) || (lat === 0 && lon === 0)) return null;
   try {
-    return validTz(geoTz(lat, lon) ?? "");
+    return validTz(tzLookup(lat, lon) ?? "");
   } catch {
     return null;
   }

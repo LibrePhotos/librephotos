@@ -1,9 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { deleteMissingPhotos } from "~/features/ingest/triggers";
+import { deleteMissingPhotos } from "~/features/jobs/triggers";
 import { endpoint } from "~/lib/http";
 
-const handler = endpoint("user", ({ user }) => deleteMissingPhotos(user));
-
 export const Route = createFileRoute("/api/deletemissingphotos")({
-  server: { handlers: { GET: handler, POST: handler } },
+  server: {
+    handlers: {
+      GET: endpoint("user", ({ user }) => deleteMissingPhotos(user)),
+      POST: endpoint("user", ({ user }) => deleteMissingPhotos(user)),
+    },
+  },
 });

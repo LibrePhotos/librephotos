@@ -65,7 +65,15 @@ export interface Pixels {
 }
 
 const rawOpts = (p: Pixels) => ({ raw: { width: p.width, height: p.height, channels: p.channels } });
-const src = (input: Input) => (typeof input === "string" ? input : Buffer.from(input.buffer, input.byteOffset, input.byteLength));
+/**
+ * Always bytes, never a path: libvips keeps a file it opened by name open,
+ * and on Windows that blocks thumbnail rewrites and ExifTool's in-place
+ * writes of originals.
+ */
+async function src(input: Input): Promise<Buffer> {
+  const b = typeof input === "string" ? await Bun.file(input).bytes() : input;
+  return Buffer.from(b.buffer, b.byteOffset, b.byteLength);
+}
 
 const madeDirs = new Set<string>();
 function ensureDirOf(file: string) {
@@ -155,7 +163,7 @@ export async function imageSize(file: string): Promise<[number, number] | null> 
     const head = new Uint8Array(await Bun.file(file).slice(0, 64).arrayBuffer());
     const s = webpSize(head);
     if (s) return s;
-    const m = await sharp(file).metadata();
+    const m = await sharp(await src(file)).metadata();
     return m.width && m.height ? [m.width, m.height] : null;
   } catch {
     return null;
@@ -166,13 +174,13 @@ export async function imageSize(file: string): Promise<[number, number] | null> 
 
 /** Decode an encoded image (a WebP thumbnail) to pixels, no rotation. */
 export async function decodePixels(input: Input): Promise<Pixels> {
-  const { data, info } = await sharp(src(input)).raw().toBuffer({ resolveWithObject: true });
+  const { data, info } = await sharp(await src(input)).raw().toBuffer({ resolveWithObject: true });
   return { data, width: info.width, height: info.height, channels: info.channels as Pixels["channels"] };
 }
 
 /** pyvips Image.thumbnail(f, 10000, height=h, size=DOWN): autorotated, untransformed colours. */
 async function thumbnailPixels(input: Input, height: number): Promise<Pixels> {
-  const { data, info } = await sharp(src(input), { failOn: "none", limitInputPixels: false })
+  const { data, info } = await sharp(await src(input), { failOn: "none", limitInputPixels: false })
     .rotate()
     .resize({ width: 10000, height, fit: "inside", withoutEnlargement: true, fastShrinkOnLoad: false })
     .keepIccProfile()
@@ -222,7 +230,7 @@ const knownIcc = new WeakMap<object, Uint8Array | null>();
 async function iccOf(input: Input): Promise<Uint8Array | undefined> {
   if (typeof input !== "string" && knownIcc.has(input)) return knownIcc.get(input) ?? undefined;
   try {
-    return (await sharp(src(input)).metadata()).icc;
+    return (await sharp(await src(input)).metadata()).icc;
   } catch {
     return undefined;
   }
@@ -231,7 +239,7 @@ async function iccOf(input: Input): Promise<Uint8Array | undefined> {
 /** image_decoding.can_decode: a libvips header load, else a sniffed image type. */
 export async function canDecode(input: Input, sniffed: string | null): Promise<boolean> {
   try {
-    const m = await sharp(src(input)).metadata();
+    const m = await sharp(await src(input)).metadata();
     if (typeof input !== "string") knownIcc.set(input, m.icc ?? null);
     return true;
   } catch {

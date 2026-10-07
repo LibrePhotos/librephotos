@@ -3,13 +3,14 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite dev --port 8001",
-    "build": "vite build",
+    "dev": "bun --bun vite dev --port 8001",
+    "build": "bun --bun vite build",
     "start": "bun run server.ts",
     "adopt": "bun run src/cli.ts adopt",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@photostructure/tz-lookup": "^11.7.0",
     "@tanstack/react-router": "^1.170.41",
     "@tanstack/react-start": "^1.168.60",
     "drizzle-orm": "^0.45.3",

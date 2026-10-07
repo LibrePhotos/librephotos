@@ -319,9 +319,14 @@ export async function runWorker(concurrency: number) {
   const kinds = registeredKinds();
   console.log(`job worker ${WORKER_ID}: ${kinds.length} kinds, ${concurrency} slots`);
   await requeueStale().catch((e) => console.warn("stale requeue failed", e));
+  const runMaintenance = async () => {
+    for (const t of maintenanceTasks) await t().catch((e) => console.warn("maintenance task failed", e));
+  };
+  // Like lp_jobs' maintenance loop: once at start (due schedules fire), then every 30 s.
+  await runMaintenance();
   const maint = setInterval(async () => {
     await requeueStale().catch((e) => console.warn("stale requeue failed", e));
-    for (const t of maintenanceTasks) await t().catch((e) => console.warn("maintenance task failed", e));
+    await runMaintenance();
   }, 30_000);
   let running = 0;
   let waiter: (() => void) | null = null;

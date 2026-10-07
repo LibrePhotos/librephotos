@@ -4,6 +4,8 @@
 import "./src/lib/tz";
 import handler from "./dist/server/server.js";
 import { startBackground } from "./src/background";
+import { ApiError } from "./src/lib/errors";
+import { PEER_HEADER } from "./src/lib/http";
 
 const [host, port] = (process.env.LP_BIND ?? `${process.env.LP_HOST ?? "127.0.0.1"}:${process.env.LP_PORT ?? 8001}`).split(":");
 const server = Bun.serve({
@@ -11,8 +13,20 @@ const server = Bun.serve({
   hostname: host,
   idleTimeout: 120,
   maxRequestBodySize: 1024 * 1024 * 1024,
-  fetch(req) {
-    return handler.fetch(req);
+  async fetch(req, srv) {
+    // REMOTE_ADDR for routes (DRF get_ident's last resort); a client-sent copy is dropped.
+    req.headers.delete(PEER_HEADER);
+    const peer = srv.requestIP(req)?.address;
+    if (peer) req.headers.set(PEER_HEADER, peer);
+    const res = await handler.fetch(req);
+    // A route without a handler for this method falls through to Start's
+    // SSR renderer (an HTML 200). The API has no pages: answer like DRF.
+    // (Only a 200: the upload views answer Django's own HTML 404/400 pages.)
+    if (res.status === 200 && res.headers.get("content-type")?.startsWith("text/html")) {
+      const path = new URL(req.url).pathname;
+      if (path.startsWith("/api/") || path.startsWith("/media/")) return ApiError.methodNotAllowed(req.method).toResponse();
+    }
+    return res;
   },
 });
 console.log(`librephotos-ts listening on ${server.hostname}:${server.port}`);
