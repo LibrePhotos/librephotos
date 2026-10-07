@@ -5,8 +5,8 @@
 //
 //   ONNX_INTRA_OP_THREADS=4 bun run scripts/ml_goldens_ocr.ts [section...]
 //
-// Sections: cv2 resize geometry edge_tiny edge_medium pipeline_tiny
-// pipeline_small (default: all). LP_ML_GOLDENS (default
+// Sections: cv2 resize geometry units edge_tiny edge_medium inprocess
+// pipeline_tiny pipeline_small (default: all). LP_ML_GOLDENS (default
 // <librephotos>/rust-pg/ml-goldens) and LP_DATA_MODELS (default
 // <librephotos>/rust-pg/ml/protected_media/data_models).
 import { createHash } from "node:crypto";
@@ -531,6 +531,66 @@ async function pipelineSection(tier: string) {
   check(jpegRate >= 0.9, `ocr pipeline ${tier}: JPEG line parity ${jpegRate}`);
 }
 
+// ------------------------------------------------------------- the service (staged slot path)
+
+/**
+ * `inprocess.predict` (what ocr.generate calls): the sidecar's error contract
+ * (missing file 400 before any model load, unknown / missing bundle
+ * unavailable, undecodable file 400) and the edge cases' answers.
+ */
+async function inprocessSection() {
+  const g = await load("ocr", "edge_tiny");
+  if (!g) return;
+  const svc = await import("../src/ml/ocr/inprocess");
+  const { MlFailed } = await import("../src/ml/errors");
+  const { MlUnavailable } = await import("../src/ml/runtime");
+  const err = async (f: () => Promise<unknown>) => {
+    try {
+      await f();
+      return null;
+    } catch (e) {
+      return e as Error;
+    }
+  };
+  const missing = await err(() => svc.predict(path.join(GOLDENS, "nope.png"), "ppocrv6_tiny"));
+  check(missing instanceof MlFailed && missing.status === 400 && missing.message === "Image not found", `inprocess: missing file -> ${missing}`);
+  const anyImage = g.cases.find((c) => c.output.error === undefined)!.input.image as string;
+  const unknown = await err(() => svc.predict(anyImage, "ppocrv9_huge"));
+  check(unknown instanceof MlUnavailable, `inprocess: unknown model -> ${unknown}`);
+  const none = await err(() => svc.predict(anyImage, "none"));
+  check(none instanceof MlUnavailable, `inprocess: no model selected -> ${none}`);
+  let ok = 0;
+  let exactAnswers = 0;
+  for (const c of g.cases) {
+    const file = c.input.image as string;
+    if (c.output.error !== undefined) {
+      const e = await err(() => svc.predict(file, "ppocrv6_tiny"));
+      const good = e instanceof MlFailed && e.status === 400;
+      check(good, `inprocess ${c.id}: ${e} (cv2 refused it)`);
+      ok += good ? 1 : 0;
+      continue;
+    }
+    const want = c.output.predict;
+    const p = await svc.ocr(file, "ppocrv6_tiny", 0.6);
+    // Pixels unlike cv2's (CMYK JPEG): the text must agree, like the edge section.
+    const exact = c.output.decoded.sha256 ? sha(bgr(await readImage(file))) === c.output.decoded.sha256 : false;
+    const good =
+      p.text === want.text &&
+      (!exact ||
+        (same(p.blocks.map((b) => [b.text, b.box]), (want.blocks as { text: string; box: number[][] }[]).map((b) => [b.text, b.box])) &&
+          p.image_width === want.image_width &&
+          p.image_height === want.image_height &&
+          Math.abs(p.mean_confidence - want.mean_confidence) < 1e-4 &&
+      Math.abs(p.text_area_fraction - want.text_area_fraction) < 1e-4));
+    exactAnswers += exact && good ? 1 : 0;
+    check(good, `inprocess ${c.id}: ${JSON.stringify(p)} vs ${JSON.stringify(want)}`);
+    ok += good ? 1 : 0;
+  }
+  const det = await svc.predict(anyImage, "ppocrv6_tiny", { minConfidence: 0.6, maxSide: null, detOnly: true });
+  check(det.blocks.length === 0 && det.boxCount > 0, "inprocess: det_only");
+  summary.push(`ocr service (inprocess.predict, staged slot): error contract checked, edge_tiny ${ok}/${g.cases.length} match (refusals, text; whole answers identical on ${exactAnswers} with cv2's pixels)`);
+}
+
 const sections: Record<string, () => Promise<void> | void> = {
   cv2: cv2Section,
   resize: resizeSection,
@@ -538,6 +598,7 @@ const sections: Record<string, () => Promise<void> | void> = {
   units: unitSection,
   edge_tiny: () => edgeSection("tiny"),
   edge_medium: () => edgeSection("medium"),
+  inprocess: inprocessSection,
   pipeline_tiny: () => pipelineSection("tiny"),
   pipeline_small: () => pipelineSection("small"),
 };

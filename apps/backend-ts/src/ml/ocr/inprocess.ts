@@ -4,15 +4,16 @@
 // mean_confidence, text_area_fraction}; a missing or undecodable image is a
 // 400. The Python sidecar always loads ppocrv6_small and ignores the
 // OCR_MODEL site setting; the port (like librephotos-rs) uses the selected
-// bundle. Decoding happens outside the slot, so the next photos decode
-// while the models run.
+// bundle. Decoding, resizing and the pixel work around the two model runs
+// happen outside the model slot, so other photos' work overlaps inference.
 import { existsSync, statSync } from "node:fs";
 import path from "node:path";
 import { MlFailed } from "../errors";
 import { dataModels, modelSlot, MlUnavailable } from "../runtime";
-import { BUNDLE_FILES, OCR_MODELS } from "./config";
+import { BUNDLE_FILES, loadConfig, OCR_MODELS, type OcrConfig } from "./config";
 import { DecodeError, readImage } from "./decode";
-import { Engine, blockJson, defaultOptions, type Options, type Prediction } from "./ppocr";
+import { assemble, blockJson, boxesFromBitmap, defaultOptions, detInput, Engine, recBatches, type Options, type Prediction } from "./ppocr";
+import { rotateCrop } from "./warp";
 
 /** Set once the port passes its goldens; `auto` mode then uses it. */
 export const IMPLEMENTED = true;
@@ -73,22 +74,38 @@ export async function predict(imagePath: string, model: string, opts: Options = 
     }
     throw e;
   }
+  const cfg = configFor(dir);
   const slot = modelSlot<Engine>("ocr", model, () => Engine.load(dir), (e) => e.release());
-  const prepass = prepassSide();
+  // Only the two model runs hold the slot: resizing, the DB postprocess and
+  // the crops of one photo overlap the inference of the others.
+  const detect = async (side: number) => {
+    const d = detInput(img, cfg, side);
+    const [prob, pw, ph] = await slot.run((e) => e.runDet(d));
+    return boxesFromBitmap(prob, pw, ph, cfg, [img.w, img.h]);
+  };
   try {
-    return await slot.run(async (engine) => {
-      if (prepass !== null && !opts.detOnly) {
-        const [boxes] = await engine.detect(img, prepass);
-        // No text at the coarse size: an empty result.
-        if (!boxes.length) return engine.finish(img, [], opts);
-      }
-      return engine.predictImage(img, opts);
-    });
+    const prepass = prepassSide();
+    // No text at the coarse size: an empty result.
+    if (prepass !== null && !opts.detOnly && !(await detect(prepass)).length) return assemble(img, [], [], opts);
+    const boxes = await detect(opts.maxSide ?? cfg.detMaxSide);
+    if (opts.detOnly) return assemble(img, boxes, null, opts);
+    const crops = boxes.map((q) => rotateCrop(img, q));
+    const batches = recBatches(crops, cfg);
+    const recognized = crops.length ? await slot.run((e) => e.runRec(batches, crops.length)) : [];
+    return assemble(img, boxes, recognized, opts);
   } catch (e) {
     if (e instanceof MlUnavailable || e instanceof MlFailed) throw e;
     console.warn(`ocr failed for ${imagePath} (model ${model}): ${(e as Error).message}`);
     throw new MlFailed(500, (e as Error).message);
   }
+}
+
+const configs = new Map<string, OcrConfig>();
+/** The bundle's config.json + charset, read once per directory. */
+function configFor(dir: string): OcrConfig {
+  let c = configs.get(dir);
+  if (!c) configs.set(dir, (c = loadConfig(dir)));
+  return c;
 }
 
 /** What the sidecar's /ocr answers with bundle `model` (the OCR_MODEL setting), for `ocr.generate`. */

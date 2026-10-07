@@ -291,6 +291,64 @@ export function predictionJson(p: Prediction): Record<string, unknown> {
   };
 }
 
+/** A detection input tensor (CHW, `nw` x `nh`). */
+export interface DetInput {
+  x: Float32Array;
+  nw: number;
+  nh: number;
+}
+
+/** The detector's input: resize to the bundle's multiple, normalise in its channel order. */
+export function detInput(img: Image3, cfg: OcrConfig, maxSide: number): DetInput {
+  const [nw, nh] = computeResize(img.h, img.w, maxSide, cfg.detSizeMultiple);
+  const resized = resizeLinear(img.data, img.w, img.h, 3, nw, nh);
+  const scale = cfg.detScale;
+  return { x: toChw(resized, nw, nh, !cfg.detRgb, (v) => f(v * scale), cfg.detMean, cfg.detStd), nw, nh };
+}
+
+/** One recognizer batch: the crops' indices and their stacked tensors. */
+export interface RecBatch {
+  idx: number[];
+  data: Float32Array;
+}
+
+/** The recognizer's batches: crops sorted by aspect ratio, REC_BATCH_SIZE at a time. */
+export function recBatches(crops: Image3[], cfg: OcrConfig): RecBatch[] {
+  const n = crops.length;
+  const aspect = (i: number) => crops[i].w / Math.max(crops[i].h, 1);
+  const order = Array.from({ length: n }, (_, i) => i).sort((a, b) => aspect(a) - aspect(b));
+  const shape = cfg.recInputShape;
+  const per = shape[0] * shape[1] * shape[2];
+  const out: RecBatch[] = [];
+  for (let s = 0; s < n; s += REC_BATCH_SIZE) {
+    const idx = order.slice(s, s + REC_BATCH_SIZE);
+    const data = new Float32Array(idx.length * per);
+    idx.forEach((i, j) => data.set(resizeNormImg(crops[i], shape), j * per));
+    out.push({ idx, data });
+  }
+  return out;
+}
+
+/** The answer from the boxes and (unless det-only) their recognition: filtering and reading order. */
+export function assemble(img: Image3, boxes: IntQuad[], recognized: [string, number][] | null, opts: Options): Prediction {
+  const pred: Prediction = {
+    text: "",
+    blocks: [],
+    textAreaFraction: textAreaFraction(boxes, img.h, img.w),
+    meanConfidence: 0,
+    boxCount: boxes.length,
+    imageWidth: img.w,
+    imageHeight: img.h,
+    detOnly: opts.detOnly,
+  };
+  if (opts.detOnly || !recognized) return pred;
+  const blocks = readingOrderSort(buildBlocks(boxes, recognized, opts.minConfidence));
+  pred.text = blocks.map((b) => b.text).join("\n");
+  pred.meanConfidence = meanConfidence(blocks);
+  pred.blocks = blocks;
+  return pred;
+}
+
 /** A loaded bundle: config, both sessions and the decode table. */
 export class Engine {
   private constructor(
@@ -326,14 +384,9 @@ export class Engine {
     await this.rec.release();
   }
 
-  /** The detector's probability map [map, width, height]. */
-  async probMap(img: Image3, maxSide: number): Promise<[Float32Array, number, number]> {
-    const cfg = this.config;
-    const [nw, nh] = computeResize(img.h, img.w, maxSide, cfg.detSizeMultiple);
-    const resized = resizeLinear(img.data, img.w, img.h, 3, nw, nh);
-    const scale = cfg.detScale;
-    const x = toChw(resized, nw, nh, !cfg.detRgb, (v) => f(v * scale), cfg.detMean, cfg.detStd);
-    const input = new this.ort.Tensor("float32", x, [1, 3, nh, nw]);
+  /** The detector's probability map [map, width, height] for a prepared input. */
+  async runDet(d: DetInput): Promise<[Float32Array, number, number]> {
+    const input = new this.ort.Tensor("float32", d.x, [1, 3, d.nh, d.nw]);
     const out = await this.det.run({ [this.det.inputNames[0]]: input });
     const t = out[this.det.outputNames[0]];
     if (t.dims.length !== 4) throw new Error(`unexpected detection output shape ${JSON.stringify(t.dims)}`);
@@ -344,6 +397,11 @@ export class Engine {
     return [prob, pw, ph];
   }
 
+  /** The detector's probability map [map, width, height]. */
+  probMap(img: Image3, maxSide: number): Promise<[Float32Array, number, number]> {
+    return this.runDet(detInput(img, this.config, maxSide));
+  }
+
   /** `detect`: quads in `img` coordinates plus the detection input size. */
   async detect(img: Image3, maxSide: number): Promise<[IntQuad[], [number, number]]> {
     const [prob, pw, ph] = await this.probMap(img, maxSide);
@@ -351,32 +409,29 @@ export class Engine {
     return [boxesFromBitmap(prob, pw, ph, this.config, [img.w, img.h]), size];
   }
 
-  /** `Recognizer.recognize`: [text, confidence] per crop, in input order, batched by aspect ratio. */
-  async recognize(crops: Image3[]): Promise<[string, number][]> {
-    const n = crops.length;
+  /** The recognizer over prepared batches: [text, confidence] per crop, in input order. */
+  async runRec(batches: RecBatch[], n: number): Promise<[string, number][]> {
     const results: [string, number][] = Array.from({ length: n }, () => ["", 0]);
-    const aspect = (i: number) => crops[i].w / Math.max(crops[i].h, 1);
-    const order = Array.from({ length: n }, (_, i) => i).sort((a, b) => aspect(a) - aspect(b));
-    const shape = this.config.recInputShape;
-    const [c, h, w] = shape;
-    const per = c * h * w;
-    for (let s = 0; s < n; s += REC_BATCH_SIZE) {
-      const batch = order.slice(s, s + REC_BATCH_SIZE);
-      const data = new Float32Array(batch.length * per);
-      batch.forEach((i, j) => data.set(resizeNormImg(crops[i], shape), j * per));
-      const input = new this.ort.Tensor("float32", data, [batch.length, c, h, w]);
+    const [c, h, w] = this.config.recInputShape;
+    for (const b of batches) {
+      const input = new this.ort.Tensor("float32", b.data, [b.idx.length, c, h, w]);
       const out = await this.rec.run({ [this.rec.inputNames[0]]: input });
       const o = out[this.rec.outputNames[0]];
       if (o.dims.length !== 3) throw new Error(`unexpected recognition output shape ${JSON.stringify(o.dims)}`);
       const t = o.dims[1];
       const classes = o.dims[2];
       const probs = o.data as Float32Array;
-      batch.forEach((orig, j) => {
+      b.idx.forEach((orig, j) => {
         results[orig] = ctcGreedyDecode(probs, j * t * classes, t, classes, this.decode);
       });
       o.dispose();
     }
     return results;
+  }
+
+  /** `Recognizer.recognize`: [text, confidence] per crop, in input order, batched by aspect ratio. */
+  recognize(crops: Image3[]): Promise<[string, number][]> {
+    return this.runRec(recBatches(crops, this.config), crops.length);
   }
 
   /** The whole pipeline on a decoded image. */
@@ -388,23 +443,8 @@ export class Engine {
 
   /** Everything after detection: area signal, crops, recognition, filtering and reading order. */
   async finish(img: Image3, boxes: IntQuad[], opts: Options): Promise<Prediction> {
-    const pred: Prediction = {
-      text: "",
-      blocks: [],
-      textAreaFraction: textAreaFraction(boxes, img.h, img.w),
-      meanConfidence: 0,
-      boxCount: boxes.length,
-      imageWidth: img.w,
-      imageHeight: img.h,
-      detOnly: opts.detOnly,
-    };
-    if (opts.detOnly) return pred;
+    if (opts.detOnly) return assemble(img, boxes, null, opts);
     const crops = boxes.map((q) => rotateCrop(img, q));
-    const recognized = await this.recognize(crops);
-    const blocks = readingOrderSort(buildBlocks(boxes, recognized, opts.minConfidence));
-    pred.text = blocks.map((b) => b.text).join("\n");
-    pred.meanConfidence = meanConfidence(blocks);
-    pred.blocks = blocks;
-    return pred;
+    return assemble(img, boxes, await this.recognize(crops), opts);
   }
 }
