@@ -26,6 +26,17 @@ const EMBED_FILE = "embed_tokens_q4.onnx";
 const DECODER_FILE = "decoder_model_merged_q4.onnx";
 const TOKENIZER_FILE = "tokenizer.json";
 
+/**
+ * ORT's CPU arena is off for the captioner unless LP_ORT_CPU_ARENA=1|on
+ * (librephotos-rs's variable; its default shrinks the arena after each run,
+ * which onnxruntime-node cannot ask for). The decoder's shapes grow every
+ * step, so a per-session arena keeps a high-water mark of every sequence
+ * length: after 8 captions the server had 892 MB working set / 1369 MB private
+ * with it, 506 / 707 MB without (librephotos-rs: 431 / 350), at the same speed
+ * (3.94 vs 3.88 s a caption).
+ */
+const ARENA = ["1", "on"].includes((process.env.LP_ORT_CPU_ARENA ?? "").toLowerCase()) ? {} : { enableCpuMemArena: false };
+
 /** Every file of the model (lp_ml::models CATALOG, ml_type Captioning). */
 export const MODEL_FILES = [
   VISION_FILE,
@@ -180,7 +191,8 @@ export interface Generated {
   imageTokens: number;
   /** The resized [width, height]. */
   resized: [number, number];
-  /** Wall time of the prefill step and the decoder steps after it (ms). */
+  /** Wall time (ms) of the vision tower + prompt embedding, the decoder's prefill step, and the steps after it. */
+  visionMs: number;
   prefillMs: number;
   decodeMs: number;
 }
@@ -210,7 +222,7 @@ export class Lfm2Vl {
     const opened: Ort.InferenceSession[] = [];
     try {
       const open = async (f: string) => {
-        const s = await session(path.join(dir, f)).catch((e: Error) => {
+        const s = await session(path.join(dir, f), ARENA).catch((e: Error) => {
           throw new Error(`loading ${path.join(dir, f)}: ${e.message}`);
         });
         opened.push(s);
@@ -376,9 +388,11 @@ export class Lfm2Vl {
 
   /** {@link generate} from prepared patches (the preparation can run outside the model's slot). */
   async generatePatches(patches: Patches, prompt: string, maxNewTokens = DEFAULT_MAX_NEW_TOKENS): Promise<Generated> {
+    const t0 = performance.now();
     const { dims, data } = await this.imageFeatures(patches);
     const nImage = dims[0] ?? 0;
     const { ids: promptIds, embeds } = await this.promptEmbeddings(data, nImage, prompt);
+    const visionMs = performance.now() - t0;
     const { ids, prefillMs, decodeMs } = await this.decode(embeds, maxNewTokens);
     return {
       caption: cleanCaption(this.tokenizer.decode(ids, true)),
@@ -386,6 +400,7 @@ export class Lfm2Vl {
       promptIds,
       imageTokens: nImage,
       resized: patches.resized,
+      visionMs,
       prefillMs,
       decodeMs,
     };

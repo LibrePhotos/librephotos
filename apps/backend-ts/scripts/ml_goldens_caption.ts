@@ -216,6 +216,7 @@ async function captions() {
     decodeMs = 0,
     decodeSteps = 0,
     prefillMs = 0,
+    visionMs = 0,
     tokens = 0;
   const report: string[] = [];
   for (const c of cases) {
@@ -236,6 +237,7 @@ async function captions() {
     const ms = performance.now() - t1;
     totalMs += ms;
     prefillMs += got.prefillMs;
+    visionMs += got.visionMs;
     decodeMs += got.decodeMs;
     // The steps after the prefill: one per generated token (the last emits <|im_end|> unless the 64 cap hit).
     decodeSteps += got.tokenIds.length < lfm.DEFAULT_MAX_NEW_TOKENS ? got.tokenIds.length : got.tokenIds.length - 1;
@@ -267,7 +269,7 @@ async function captions() {
   );
   console.log(
     `  mean ms per caption ${(totalMs / n).toFixed(0)} (python ${((1000 * cases.reduce((s, c) => s + Number(c.output.seconds ?? 0), 0)) / n).toFixed(0)} when the goldens were made); ` +
-      `decoder prefill ${(prefillMs / n).toFixed(0)} ms; decode ${(decodeMs / Math.max(1, decodeSteps)).toFixed(1)} ms/token over ${decodeSteps} steps (${tokens} tokens)`,
+      `vision + prompt embedding ${(visionMs / n).toFixed(0)} ms, decoder prefill ${(prefillMs / n).toFixed(0)} ms; decode ${(decodeMs / Math.max(1, decodeSteps)).toFixed(1)} ms/token over ${decodeSteps} steps (${tokens} tokens)`,
   );
   for (const r of report) console.log(`  ${r}`);
   check(sameIds >= 0.9 * n, `only ${sameIds}/${n} captions have Python's token sequence`);
