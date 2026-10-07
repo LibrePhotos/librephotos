@@ -179,11 +179,14 @@ export class FacePack {
     }
     if (!detection) throw new Error(`no detection model in ${dir}`);
     if (!recognition) throw new Error(`no recognition model in ${dir}`);
-    const det = await session(detection[0]);
+    // No per-session arena: it keeps every run's buffers at their high-water
+    // mark (+65 MB here, same speed); librephotos-rs shrinks a shared one.
+    const noArena = { enableCpuMemArena: false };
+    const det = await session(detection[0], noArena);
     let rec: InferenceSession;
     try {
       // The batch axis is declared 1 in the graph: quiet ORT's shape warning for batched runs.
-      rec = await session(recognition[0], { logSeverityLevel: 3 });
+      rec = await session(recognition[0], { ...noArena, logSeverityLevel: 3 });
     } catch (e) {
       await det.release();
       throw e;

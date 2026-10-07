@@ -28,7 +28,7 @@ const WORKER_FILE = "./worker.ts";
 function onWorker(m: Op): Promise<unknown> {
   const url = new URL(WORKER_FILE, import.meta.url);
   if (process.env.LP_ML_FACE_CLUSTER_WORKER === "0" || url.protocol !== "file:" || !existsSync(fileURLToPath(url))) {
-    return Promise.resolve().then(() => runOp(m));
+    return runOp(m);
   }
   return new Promise((resolve, reject) => {
     const w = new Worker(url.href);

@@ -111,7 +111,12 @@ export function cluster(req: ClusterRequest): { ids: number[]; labels: number[] 
 }
 
 /** The sidecar's `_train` (Django's train_faces minus the ORM). */
-export function train(req: TrainRequest): FacePrediction[] {
+/** Fits one classifier; the worker hands the known-faces fit to a second thread. */
+export type Fit = (x: Matrix, y: number[]) => Promise<Mlp>;
+
+const fitHere: Fit = async (x, y) => Mlp.fit(x, y);
+
+export async function train(req: TrainRequest, fitElsewhere: Fit = fitHere): Promise<FacePrediction[]> {
   let known = req.known.map((f) => decode(f.encoding));
   let knownIds = req.known.map((f) => f.person_id);
   const clusters = req.clusters.map((f) => decode(f.encoding));
@@ -142,12 +147,12 @@ export function train(req: TrainRequest): FacePrediction[] {
 
   let classifier: Mlp | null;
   let clusterClassifier: Mlp;
-  try {
-    classifier = nKnown > 0 ? Mlp.fit(knownX, knownIds.slice(0, nKnown)) : null;
-    clusterClassifier = Mlp.fit(allX, allIds);
-  } catch (e) {
-    throw new FitError((e as Error).message);
-  }
+  // Both fits at once (rayon::join in Rust); the known-faces one reports first.
+  const [knownFit, allFit] = await Promise.allSettled([nKnown > 0 ? fitElsewhere(knownX, knownIds.slice(0, nKnown)) : null, fitHere(allX, allIds)]);
+  if (knownFit.status === "rejected") throw new FitError((knownFit.reason as Error).message);
+  if (allFit.status === "rejected") throw new FitError((allFit.reason as Error).message);
+  classifier = knownFit.value;
+  clusterClassifier = allFit.value;
 
   const predictions: FacePrediction[] = [];
   for (let start = 0; start < unknown.length; start += PREDICT_PAGE) {
@@ -185,10 +190,15 @@ export function pca(encodings: string[]): [number, number, number][] {
   return pcaScores(rows, 3).map((r) => [r[0], r[1], r[2]]);
 }
 
-export type Op = { op: "cluster"; req: ClusterRequest } | { op: "train"; req: TrainRequest } | { op: "pca"; req: string[] };
+export type Op =
+  | { op: "cluster"; req: ClusterRequest }
+  | { op: "train"; req: TrainRequest }
+  | { op: "pca"; req: string[] }
+  | { op: "fit"; req: { x: Matrix; y: number[] } };
 
-export function runOp(m: Op): unknown {
+export async function runOp(m: Op, fitElsewhere?: Fit): Promise<unknown> {
   if (m.op === "cluster") return cluster(m.req);
-  if (m.op === "train") return train(m.req);
+  if (m.op === "train") return train(m.req, fitElsewhere);
+  if (m.op === "fit") return Mlp.fit(m.req.x, m.req.y).toParams();
   return pca(m.req);
 }

@@ -87,6 +87,18 @@ export class Mt19937 {
 
 type Output = "softmax" | "logistic";
 
+export interface MlpParams {
+  classes: number[];
+  out: Output;
+  w0: Float64Array;
+  w1: Float64Array;
+  b0: Float64Array;
+  b1: Float64Array;
+  d: number;
+  nOut: number;
+  nIter: number;
+}
+
 /** `c (m x n) = a (m x k) · b (k x n)`, all row-major. */
 function matmul(a: Float64Array, b: Float64Array, m: number, k: number, n: number, c = new Float64Array(m * n)): Float64Array {
   c.fill(0, 0, m * n);
@@ -197,6 +209,16 @@ export class Mlp {
     private nOut: number,
     readonly nIter: number,
   ) {}
+
+  /** The fitted state, to hand a model between threads. */
+  toParams(): MlpParams {
+    const { classes, out, w0, w1, b0, b1, d, nOut, nIter } = this;
+    return { classes, out, w0, w1, b0, b1, d, nOut, nIter };
+  }
+
+  static fromParams(p: MlpParams): Mlp {
+    return new Mlp(p.classes, p.out, p.w0, p.w1, p.b0, p.b1, p.d, p.nOut, p.nIter);
+  }
 
   /** `MLPClassifier(...).fit(x, y)`. Errors carry sklearn's text. */
   static fit(xIn: Matrix | number[][], y: ArrayLike<number>): Mlp {
