@@ -14,6 +14,9 @@
 #   LP_DIFF_PRESQL    SQL run on both clones before the task (a starting state)
 #   LP_DIFF_IGNORE    `compare.py --ignore` entries (table or table.column)
 #   LP_DIFF_COUNT_ONLY  link tables compared by rows per parent (`--count-only`)
+#   LP_DIFF_SUT       rust (default) or ts: the side compared with Django.
+#                     ts runs librephotos-ts (apps/backend-ts, or LP_TS_DIR):
+#                     `bun run src/cli.ts run-job <kind> <payload>`
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 F="$HERE/../fixture"
@@ -70,6 +73,33 @@ echo "== django $dj"
     echo "django wall time: $(awk "BEGIN{print $end - $start}") s"
 )
 
+SUT="${LP_DIFF_SUT:-rust}"
+if [ "$SUT" = ts ]; then
+echo "== ts $kind"
+(
+    TS_DIR="${LP_TS_DIR:-$(cd "$HERE/../../../backend-ts" && pwd)}"
+    uid="$(lp_psql -d "$RS" -Atc "SELECT id FROM api_user WHERE username = '$user'")"
+    case "$kind" in
+        captions.generate) payload="{\"photo_id\": \"${LP_DIFF_PHOTO:?LP_DIFF_PHOTO}\"}" ;;
+        *) payload="{\"user_id\": $uid, \"full_scan\": $([ "$full" = 1 ] && echo true || echo false)}" ;;
+    esac
+    extra=()
+    case "$kind" in faces.scan|faces.cluster) extra+=(--then faces.train) ;; esac
+    IFS=';' read -ra kvs <<<"$settings"
+    for kv in "${kvs[@]}"; do [ -n "$kv" ] && extra+=(--setting "$kv"); done
+    export BASE_DATA="$(lp_win_path "$ROOT/media_$RS")" SECRET_KEY="$LP_SECRET_KEY" TZ=UTC
+    export PHOTOS="$BASE_DATA/data" BASE_LOGS="$(lp_win_path "$ROOT/run_$RS")"
+    export DB_NAME="$RS" DB_USER="$LP_PG_USER" DB_PASS="$PGPASSWORD" DB_HOST="$LP_PG_HOST" DB_PORT="$LP_PG_PORT" LP_DB_POOL="${LP_DB_POOL:-4}"
+    for s in SIMILARITY FACE CLIP CAPTION TAGS OCR; do export "LP_SIDECAR_${s}_URL=$MOCK"; done
+    export LP_SIDECAR_FACE_CLUSTER_URL="$FC" LP_GEOCODE_NOMINATIM_URL="$MOCK" LP_ML_AUTO_DOWNLOAD=0
+    export FEATURE_FACE_DETECTION=1 FEATURE_FACE_CLUSTER=1 FEATURE_IMAGE_CAPTIONING=1
+    export FEATURE_REVERSE_GEOCODING=1 FEATURE_SCENE_CLASSIFICATION=1
+    export LP_EXIFTOOL="$(lp_win_path "$EXIFTOOL")"
+    cd "$TS_DIR"
+    { bun run src/cli.ts adopt && bun run src/cli.ts run-job "$kind" "$payload" "${extra[@]}"; }         > "$OUT/ts.log" 2>&1 || { tail -40 "$OUT/ts.log"; exit 1; }
+    grep -E "ts .* done" "$OUT/ts.log"
+)
+else
 echo "== rust $kind"
 (
     cd "$HERE/../.."
@@ -80,6 +110,7 @@ echo "== rust $kind"
         > "$OUT/rust.log" 2>&1 || { tail -40 "$OUT/rust.log"; exit 1; }
     grep -E "rust .* done" "$OUT/rust.log"
 )
+fi
 
 echo "== diff"
 D="$(lp_win_path "$F/dump_state.py")"
