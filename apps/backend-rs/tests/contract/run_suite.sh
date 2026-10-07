@@ -25,7 +25,8 @@
 #                    stops up front when `adopt` fails on a probe clone),
 #                    presql files use their *.sqlite.sql twins.
 #   LP_SUITE_RS      rust (default), ts or django: the server "under test".
-#                    ts = librephotos-ts (apps/backend-ts, Bun; `bun run build`
+#                    ts = librephotos-ts (apps/backend-ts, Bun >= 1.4.2 via
+#                    LP_BUN or bun on PATH; `bun run build`
 #                    first; LP_TS_DIR overrides the app dir). django = a
 #                    second Django on its own clone: Django vs Django proves
 #                    the harness itself (every twin and state diff must be empty).
@@ -234,8 +235,8 @@ start_ts() {
             export FEATURE_REVERSE_GEOCODING=0 FEATURE_SCENE_CLASSIFICATION=0
         fi
         cd "$TS_DIR"
-        bun run src/cli.ts adopt >"$logs/adopt.log" 2>&1
-        exec bun run server.ts
+        "${LP_BUN:-bun}" run src/cli.ts adopt >"$logs/adopt.log" 2>&1
+        exec "${LP_BUN:-bun}" run server.ts
     ) >"$logs/ts.log" 2>&1 &
 }
 

@@ -9,7 +9,8 @@ ALTER TABLE api_photo ADD COLUMN IF NOT EXISTS clip_embeddings_model varchar(64)
 -- changes the embedding (a fill, or a stale instance saved over a Rust
 -- re-embedding) must not keep a Rust model name, so any writer other than
 -- librephotos-rs (lp_db::pool::APPLICATION_NAME) that changes the embedding
--- resets the column to NULL (= ViT-B/32). Rust writes set it themselves.
+-- resets the column to NULL (= ViT-B/32). Rust and TS (librephotos-ts) writes
+-- set it themselves.
 CREATE OR REPLACE FUNCTION lp_clip_embeddings_model_reset() RETURNS trigger
 LANGUAGE plpgsql AS $$
 BEGIN
@@ -23,5 +24,5 @@ CREATE TRIGGER lp_clip_embeddings_model_reset
     BEFORE UPDATE OF clip_embeddings ON api_photo
     FOR EACH ROW
     WHEN (OLD.clip_embeddings IS DISTINCT FROM NEW.clip_embeddings
-          AND current_setting('application_name') IS DISTINCT FROM 'librephotos-rs')
+          AND current_setting('application_name') NOT IN ('librephotos-rs', 'librephotos-ts'))
     EXECUTE FUNCTION lp_clip_embeddings_model_reset();
