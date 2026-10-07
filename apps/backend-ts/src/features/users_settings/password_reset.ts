@@ -9,7 +9,7 @@
 // (rate_limit_hit) so every process shares it.
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import { ApiError } from "~/lib/errors";
-import { json, jsonBody } from "~/lib/http";
+import { json, jsonBody, peerAddress } from "~/lib/http";
 import { hashPassword } from "~/lib/password";
 import { pyTruthy } from "~/lib/query";
 import { config } from "~/lib/config";
@@ -147,8 +147,7 @@ function clientIdent(req: Request): string {
   if (xff) return xff;
   const real = (req.headers.get("x-real-ip") ?? "").trim();
   if (real) return real;
-  // The peer address (REMOTE_ADDR) is not visible to a Start route.
-  return "unknown";
+  return peerAddress(req) ?? "unknown";
 }
 
 async function throttle(ident: string) {
