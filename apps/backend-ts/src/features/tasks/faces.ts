@@ -1,7 +1,8 @@
 // Faces: `faces.scan` (processing_jobs.scan_faces + photo_faces.extract_faces),
 // the encoding back-fill (generate_face_embeddings), XMP face regions
 // (face_extractor.extract_from_exif). Port of lp_tasks::faces + faces::xmp,
-// with detection and encodings from the face_recognition sidecar.
+// with detection and encodings from the face service (in process or the
+// face_recognition sidecar, src/ml/face).
 import { existsSync, mkdirSync } from "node:fs";
 import { unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -14,7 +15,7 @@ import { clusterAllFaces } from "./cluster";
 import { getTags, stopExiftool } from "./exif";
 import { loadPhotos, mediaPath, thumbnailPath, type TaskPhoto } from "./photos";
 import { CANCEL_CHECK_EVERY, ItemCounter, begin, complete, fail, isCancelled, lastFinishedStart, setProgress, startItems } from "./run";
-import * as sidecars from "./sidecars";
+import * as faceApi from "../../ml/face/index";
 import type { FaceBox } from "./sidecars";
 import type { Exec } from "./things";
 
@@ -153,7 +154,7 @@ async function findFaces(photo: TaskPhoto, big: string, main: string, width: num
   if (!found.length) {
     const model = (await siteSettings()).FACE_RECOGNITION_MODEL;
     try {
-      found = (await sidecars.detectFaces(big, model)).map((f) => ({ location: f.location, name: null, encoding: f.encoding }));
+      found = (await faceApi.detectFaces(big, model)).map((f) => ({ location: f.location, name: null, encoding: f.encoding }));
     } catch (e) {
       console.error(`can't extract face information of ${photo.image_hash}: ${(e as Error).message}`);
     }
@@ -420,7 +421,7 @@ export async function generateFaceEmbeddings(userId: number): Promise<void> {
     let error: string | null = null;
     try {
       if (!face.thumbnail_big) throw new Error("The 'thumbnail_big' attribute has no file associated with it.");
-      const encodings = await sidecars.faceEncodings(mediaPath(face.thumbnail_big), [[face.t, face.r, face.b, face.l]], model);
+      const encodings = await faceApi.faceEncodings(mediaPath(face.thumbnail_big), [[face.t, face.r, face.b, face.l]], model);
       if (!encodings.length) throw new Error(`Face service returned no encoding for face ${face.id}`);
       if (!encodings[0]) throw new Error(`The face service detected no face in face ${face.id}`);
       await client`UPDATE api_face SET encoding = ${encodeFaceEncoding(encodings[0])} WHERE id = ${face.id}`;

@@ -1,12 +1,13 @@
 // `faces.cluster` (face_classify.cluster_all_faces + ClusterManager) and
 // `faces.train` (face_classify.train_faces); port of lp_tasks::faces::cluster.
-// HDBSCAN and the MLP classifiers run in the face_cluster sidecar; every
-// read and write is here.
+// HDBSCAN and the MLP classifiers run in the face_cluster service (in
+// process or the sidecar, src/ml/face_cluster); every read and write is here.
 import { arrayLiteral, client } from "../../lib/db";
 import { config } from "../../lib/config";
 import { JobType, enqueue } from "../../lib/jobs";
 import { decodeFaceEncoding, encodeFaceEncoding, unknownCluster } from "./faces";
 import { begin, complete, fail, setProgress } from "./run";
+import * as fcApi from "../../ml/face_cluster/index";
 import * as sidecars from "./sidecars";
 import type { Exec } from "./things";
 
@@ -189,7 +190,7 @@ async function createAllClusters(userId: number): Promise<number> {
   let labels: number[];
   try {
     labels = (
-      await sidecars.clusterFaces({
+      await fcApi.clusterFaces({
         faces,
         min_cluster_size: resolveMinClusterSize(s.min_cluster_size, target),
         min_samples: s.min_samples > 0 ? s.min_samples : 1,
@@ -322,7 +323,7 @@ async function train(userId: number, jobId: string): Promise<void> {
   let predictions: sidecars.FacePrediction[];
   try {
     predictions = (
-      await sidecars.trainFaces({
+      await fcApi.trainFaces({
         known,
         clusters: clusters.map((c) => ({ person_id: c.person_id, encoding: c.mean_face_encoding })),
         unknown,
