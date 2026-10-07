@@ -24,7 +24,7 @@ import lpb
 from lpb import log
 
 PORTS = {"django-shipped": lpb.PORT_BASE, "django-tuned": lpb.PORT_BASE + 1, "rust": lpb.PORT_BASE + 2,
-         "django-sqlite": lpb.PORT_BASE + 3, "rust-sqlite": lpb.PORT_BASE + 4}
+         "django-sqlite": lpb.PORT_BASE + 3, "rust-sqlite": lpb.PORT_BASE + 4, "ts": lpb.PORT_BASE + 5}
 
 
 def db_for(ds, name):

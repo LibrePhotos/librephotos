@@ -6,7 +6,7 @@
 
 One cell per (endpoint, contender): 1 s warm-up + --duration s measured at one
 concurrency, checked against the endpoint plan of the full run. Prints a
-requests/s table with the Rust speedup and appends it to results/quick.jsonl.
+requests/s table with each contender's speedup over the first and appends it to results/quick.jsonl.
 Build the release binary first (cargo build --release -p lp-server).
 
 Contenders: django-shipped, django-tuned, rust (Postgres), django-sqlite and
@@ -80,16 +80,19 @@ def main():
         stop_all(servers)
         lpb.pin([pm], lpb.MASK_ALL)
 
-    ref, rs = names[0], names[-1]
+    ref = names[0]
     print(f"\n{args.ds}, c={args.conc}, {args.duration:g} s/cell, {time.perf_counter() - t0:.0f} s total"
           + (f" [{args.label}]" if args.label else ""))
-    print(f"| endpoint | {ref} rps | {rs} rps | speedup | {ref} p50 ms | {rs} p50 ms | errors |")
-    print("|---|---:|---:|---:|---:|---:|---:|")
+    others = names[1:]
+    print("| endpoint | " + " | ".join(f"{n} rps" for n in names) + " | "
+          + " | ".join(f"{n} vs {ref}" for n in others) + " | " + " | ".join(f"{n} p50 ms" for n in names) + " | errors |")
+    print("|---|" + "---:|" * (2 * len(names) + len(others) + 1))
     for row in rows:
-        a, b = row[ref], row[rs]
-        sp = b["rps"] / a["rps"] if a["rps"] else float("inf")
-        print(f"| {row['endpoint']} | {a['rps']:.1f} | {b['rps']:.1f} | {sp:.1f}x | {a['p50']:.1f} | {b['p50']:.1f} | "
-              f"{a['bad']}/{b['bad']} |")
+        a = row[ref]
+        sp = [row[n]["rps"] / a["rps"] if a["rps"] else float("inf") for n in others]
+        print(f"| {row['endpoint']} | " + " | ".join(f"{row[n]['rps']:.1f}" for n in names) + " | "
+              + " | ".join(f"{x:.1f}x" for x in sp) + " | " + " | ".join(f"{row[n]['p50']:.1f}" for n in names)
+              + " | " + "/".join(str(row[n]["bad"]) for n in names) + " |")
     lpb.append_jsonl(os.path.join(lpb.HERE, "results", "quick.jsonl"),
                      {"t": time.time(), "commit": lpb.git_commit(), "ds": args.ds, "conc": args.conc,
                       "duration": args.duration, "label": args.label, "rows": rows})
