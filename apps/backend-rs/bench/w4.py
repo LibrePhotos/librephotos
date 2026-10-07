@@ -331,7 +331,7 @@ def stage_scan(args):
                     outcome = scan_outcome(db, uid, media)
                     log(f"scan rep{rep} {variant:<15} {wall:7.1f} s  {outcome['photos'] / wall:6.1f} files/s  "
                         f"peak {rss['peak_working_set'] / 2**20:.0f} MiB  cpu {cpu:.0f} s  {outcome}")
-                    drained = drain(stack)
+                    drained = drain(stack, timeout=args.drain_timeout)
                     # no-change rescan: the same trigger again once the follow-ups are done
                     cpu1 = lpb.lpbench("procstat", "--pids", ",".join(map(str, stack.pids())))["cpu_s"]
                     job2, t1 = stack.trigger_scan(uid)
@@ -422,6 +422,7 @@ def stage_dupes(args):
 
 
 def main():
+    global WEB_PORT, DB_PREFIX, PIN
     ap = argparse.ArgumentParser()
     ap.add_argument("stage")
     ap.add_argument("--out", required=True)
@@ -439,8 +440,9 @@ def main():
     ap.add_argument("--port", type=int, default=WEB_PORT, help="web server port of the contender")
     ap.add_argument("--db-prefix", default=DB_PREFIX, help="run database name prefix (scan stage)")
     ap.add_argument("--no-pin", action="store_true", help="leave CPU affinities alone (shared machine)")
+    ap.add_argument("--drain-timeout", type=float, default=900,
+                    help="wait at most this long for the follow-up jobs before the rescan")
     args = ap.parse_args()
-    global WEB_PORT, DB_PREFIX, PIN
     WEB_PORT, DB_PREFIX, PIN = args.port, args.db_prefix, not args.no_pin
     os.makedirs(args.out, exist_ok=True)
     {"scan": stage_scan, "dupes": stage_dupes}[args.stage](args)
