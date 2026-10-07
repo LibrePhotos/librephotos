@@ -29,6 +29,13 @@ export function lookupSql(l: PhotoLookup, p: string): SQL {
 const SAFE = new Set(Array.from("/~!*()'-_.", (c) => c.charCodeAt(0)));
 
 function quotePath(name: string): string {
+  // encodeURIComponent keeps exactly alnum and -_.!~*'() (UTF-8, upper-case
+  // hex), i.e. this SAFE set minus "/": the fast path for the usual names.
+  try {
+    return encodeURIComponent(name.replaceAll("\\", "/")).replaceAll("%2F", "/");
+  } catch {
+    // lone surrogates: fall through to the byte loop (TextEncoder's U+FFFD)
+  }
   let out = "";
   for (const b of new TextEncoder().encode(name.replaceAll("\\", "/"))) {
     const alnum = (b >= 48 && b <= 57) || (b >= 65 && b <= 90) || (b >= 97 && b <= 122);

@@ -8,9 +8,21 @@ import { sql, type SQL } from "drizzle-orm";
 
 const BASE = `'YYYY-MM-DD"T"HH24:MI:SS'`;
 
+const rawText = (c: string, suffix: string) =>
+  `(CASE WHEN ${c} IS NULL THEN NULL ELSE to_char(${c} AT TIME ZONE 'UTC', ${BASE}) || CASE WHEN extract(microseconds FROM ${c})::bigint % 1000000 <> 0 THEN to_char(${c} AT TIME ZONE 'UTC', '.US') ELSE '' END || '${suffix}' END)`;
+
+// A literal column name gives a fully static expression: cache it as one raw
+// chunk (Drizzle re-renders every chunk of every query on each call).
+const cache = new Map<string, SQL>();
+
 function fmt(col: SQL | string, suffix: string): SQL {
-  const c = typeof col === "string" ? sql.raw(col) : col;
-  return sql`(CASE WHEN ${c} IS NULL THEN NULL ELSE to_char(${c} AT TIME ZONE 'UTC', ${sql.raw(BASE)}) || CASE WHEN extract(microseconds FROM ${c})::bigint % 1000000 <> 0 THEN to_char(${c} AT TIME ZONE 'UTC', '.US') ELSE '' END || ${suffix} END)`;
+  if (typeof col === "string") {
+    const key = `${col}|${suffix}`;
+    let hit = cache.get(key);
+    if (!hit) cache.set(key, (hit = sql.raw(rawText(col, suffix))));
+    return hit;
+  }
+  return sql`(CASE WHEN ${col} IS NULL THEN NULL ELSE to_char(${col} AT TIME ZONE 'UTC', ${sql.raw(BASE)}) || CASE WHEN extract(microseconds FROM ${col})::bigint % 1000000 <> 0 THEN to_char(${col} AT TIME ZONE 'UTC', '.US') ELSE '' END || ${sql.raw(`'${suffix}'`)} END)`;
 }
 
 /** SQL expression: DRF DateTimeField text ("...Z") or NULL. */
