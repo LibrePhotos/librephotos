@@ -13,6 +13,7 @@ import { json } from "~/lib/http";
 import { enqueue, JobType } from "~/lib/jobs";
 import { pyTruthy } from "~/lib/query";
 import { siteSettings } from "~/lib/settings";
+import { captionInProcess } from "~/ml/caption/select";
 import type { User } from "~/lib/users";
 import { object, pyStr, required, statusMessage } from "./common";
 import { ownedByHash } from "./reads";
@@ -252,8 +253,9 @@ function captionPrompt(llm: Record<string, unknown> | null, person: string | nul
   return prompt;
 }
 
-/** api.image_captioning.generate_caption over the captioning sidecar. */
+/** api.image_captioning.generate_caption: in-process (src/ml/caption) or over the captioning sidecar. */
 async function callCaptioner(imagePath: string, prompt: string): Promise<string> {
+  if (captionInProcess()) return (await import("../../ml/caption/inprocess")).generateCaption(imagePath, prompt);
   const res = await fetch(`${config.sidecar("caption", 8007)}/generate-caption`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

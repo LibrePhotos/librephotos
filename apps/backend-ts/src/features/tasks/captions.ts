@@ -1,6 +1,6 @@
 // `captions.generate` and the caption behind /api/photosedit/generateim2txt
 // (PhotoCaption.generate_captions_im2txt); port of lp_tasks::captions over the
-// image_captioning sidecar.
+// in-process captioner (src/ml/caption) or the image_captioning sidecar.
 import { client } from "../../lib/db";
 import { config } from "../../lib/config";
 import { siteSettings } from "../../lib/settings";
@@ -8,6 +8,7 @@ import { pyTruthy } from "../../lib/query";
 import { loadPhoto, thumbnailPath } from "./photos";
 import { rebuildSearchCaptions } from "./searchCaptions";
 import * as sidecars from "./sidecars";
+import { captionInProcess } from "../../ml/caption/select";
 import type { Exec } from "./things";
 
 export interface CaptionContext {
@@ -90,7 +91,10 @@ export async function generateIm2txt(photoId: string): Promise<{ ok: true; capti
   const prompt = captionPrompt(await captionContext(photoId, photo.owner_id));
   let caption: string;
   try {
-    caption = cleanCaption(await sidecars.generateCaption(thumb, prompt));
+    const raw = captionInProcess()
+      ? await (await import("../../ml/caption/inprocess")).generateCaption(thumb, prompt)
+      : await sidecars.generateCaption(thumb, prompt);
+    caption = cleanCaption(raw);
   } catch (e) {
     console.error(`could not generate caption for ${thumb}: ${(e as Error).message}`);
     return { ok: false, reason: "captioning sidecar failed" };
