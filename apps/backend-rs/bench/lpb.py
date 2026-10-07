@@ -26,6 +26,9 @@ PG_PORT = 5433
 BASH = r"C:\Program Files\Git\bin\bash.exe"
 LPBENCH = os.environ.get("LP_LPBENCH") or os.path.join(HERE, "client", "target", "release", "lpbench.exe")
 RS_BIN = os.environ.get("LP_RS_BIN") or os.path.join(BACKEND_RS, "target", "release", "librephotos-rs.exe")
+# The TypeScript contender (apps/backend-ts): `bun run server.ts` after `bun run src/cli.ts adopt`.
+TS_DIR = os.path.join(REPO, "apps", "backend-ts")
+BUN = os.environ.get("LP_BUN") or "bun"
 # Parallel agents: their own database prefix (lp_run_ or lp_t_*) and port block.
 RUN_PREFIX = os.environ.get("LP_BENCH_DB_PREFIX", "lp_run_")
 PORT_BASE = int(os.environ.get("LP_BENCH_PORT_BASE", "8901"))
@@ -58,6 +61,8 @@ CONTENDERS = {
     # librephotos-rs with DB_BACKEND=sqlite (needs the P2 SQLite plumbing);
     # LP_DB_POOL = SQLite reader connections.
     "rust-sqlite": {"kind": "rust", "backend": "sqlite", "pool": 2 * SERVER_CPUS},
+    # librephotos-ts (Bun) with the same env as rust; built with `bun --bun run build` first.
+    "ts": {"kind": "ts", "pool": 2 * SERVER_CPUS},
 }
 ORDER = ["django-shipped", "django-tuned", "rust"]
 
@@ -256,7 +261,15 @@ class Server:
         db_label = os.path.splitext(os.path.basename(self.db))[0]
         self.logfile = open(os.path.join(logdir, f"{self.name}-{db_label}-{self.port}.log"), "ab")
         sqlite = self.cfg.get("backend") == "sqlite"
-        if self.kind == "django":
+        cwd = None
+        if self.kind == "ts":
+            env = rust_env(self.db, self.port, self.media, extra={"LP_DB_POOL": str(self.cfg.get("pool", 12)),
+                                                                   "LP_PYTHON": DJANGO_PY, **self.extra_env})
+            if not os.path.exists(os.path.join(TS_DIR, "dist", "server", "server.js")):
+                subprocess.run([BUN, "--bun", "run", "build"], cwd=TS_DIR, env=env, check=True, capture_output=True)
+            subprocess.run([BUN, "run", "src/cli.ts", "adopt"], cwd=TS_DIR, env=env, check=True, capture_output=True)
+            cmd, cwd = [BUN, "run", "server.ts"], TS_DIR
+        elif self.kind == "django":
             env = dict(os.environ)
             env.update({"TZ": "UTC", "LP_WORKERS": str(self.cfg.get("workers", 1)), "WEB_THREADS": str(self.cfg.get("threads", 16)),
                         "LP_MEDIA_ROOT": self.media, "LP_RUNS_ROOT": os.path.join(RUNS, "django"),
@@ -269,7 +282,7 @@ class Server:
                 env.update(sqlite_env(self.db))
             cmd = [RS_BIN, *self.rust_cmd]
         t0 = time.perf_counter()
-        self.proc = subprocess.Popen(cmd, env=env, stdout=self.logfile, stderr=subprocess.STDOUT,
+        self.proc = subprocess.Popen(cmd, env=env, cwd=cwd, stdout=self.logfile, stderr=subprocess.STDOUT,
                                      creationflags=subprocess.CREATE_NEW_PROCESS_GROUP)
         while True:
             if self.proc.poll() is not None:
