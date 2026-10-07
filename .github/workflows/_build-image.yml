@@ -51,12 +51,12 @@ jobs:
   # Both copy :dev, so whichever runs first wins and the other is a no-op.
   pin-base:
     if: ${{ inputs.base-image != '' && inputs.release-tag != '' }}
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
       - name: Login to Docker Hub
-        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
@@ -75,15 +75,15 @@ jobs:
     needs: pin-base
     # pin-base is skipped for dev builds and for images without a base-image.
     if: ${{ !cancelled() && (needs.pin-base.result == 'success' || needs.pin-base.result == 'skipped') }}
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
       - name: Login to Docker Hub
-        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
@@ -99,7 +99,7 @@ jobs:
             echo "base-arg=BASE_TAG=${{ inputs.release-tag }}" >> "$GITHUB_OUTPUT"
           fi
       - name: Build and push (AMD64)
-        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: ${{ inputs.context }}
           file: ${{ inputs.dockerfile }}
@@ -116,15 +116,15 @@ jobs:
   build-arm64:
     needs: pin-base
     if: ${{ !inputs.amd64-only && !cancelled() && (needs.pin-base.result == 'success' || needs.pin-base.result == 'skipped') }}
-    runs-on: ubuntu-24.04-arm
+    runs-on: ubuntu-26.04-arm
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
       - name: Login to Docker Hub
-        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
@@ -140,7 +140,7 @@ jobs:
             echo "base-arg=BASE_TAG=${{ inputs.release-tag }}" >> "$GITHUB_OUTPUT"
           fi
       - name: Build and push (ARM64)
-        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: ${{ inputs.context }}
           file: ${{ inputs.dockerfile }}
@@ -160,12 +160,12 @@ jobs:
       always() &&
       needs.build-amd64.result == 'success' &&
       (inputs.amd64-only || needs.build-arm64.result == 'success')
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
       - name: Login to Docker Hub
-        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}

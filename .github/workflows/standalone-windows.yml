@@ -27,15 +27,15 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 300
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version: 24
           cache: yarn
           cache-dependency-path: apps/frontend/yarn.lock
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.11"
           cache: pip
@@ -49,7 +49,7 @@ jobs:
           pip install -r requirements.txt -r requirements.standalone.txt
       # Nuitka caches compiled C for the dependencies it has seen before; the
       # first run is a compile of everything, later runs mostly link.
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: ~\AppData\Local\Nuitka\Nuitka\Cache
           key: nuitka-${{ runner.os }}-${{ hashFiles('apps/backend/requirements.txt', 'apps/backend/requirements.standalone.txt') }}
@@ -64,7 +64,7 @@ jobs:
           ./librephotos.exe --help
           ./librephotos.exe --data-dir "$RUNNER_TEMP/librephotos" manage check
           ./librephotos.exe --data-dir "$RUNNER_TEMP/librephotos" manage migrate --noinput | tail -3
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: librephotos-windows-x64
           path: apps/backend/build/standalone/librephotos-windows-x64.zip
