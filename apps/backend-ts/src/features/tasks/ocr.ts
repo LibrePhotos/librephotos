@@ -3,6 +3,8 @@
 import { arrayLiteral, client } from "../../lib/db";
 import { JobType } from "../../lib/jobs";
 import { siteSettings } from "../../lib/settings";
+import { MlFailed } from "../../ml/errors";
+import { modeFor } from "../../ml/runtime";
 import { classifyDocument, extensionLower, isScreenshot } from "./detect";
 import { PHOTO_CONCURRENCY, forEachPhoto, loadPhoto, thumbnailPath, type TaskPhoto } from "./photos";
 import { CANCEL_CHECK_EVERY, ItemCounter, complete, isCancelled, lastFinishedStart, setProgress, sinceParams, startItems } from "./run";
@@ -70,14 +72,35 @@ export async function ocrPhoto(photoId: string): Promise<void> {
     return;
   }
   let data: sidecars.OcrResult;
+  const inproc = await import("../../ml/ocr/inprocess");
+  if (modeFor("ocr", inproc.IMPLEMENTED) === "inprocess") {
+    try {
+      data = await inproc.ocr(imagePath, model, OCR_MIN_CONFIDENCE);
+    } catch (e) {
+      if (e instanceof MlFailed) {
+        throw new Error(`Photo ${photo.image_hash}: OCR service returned status ${e.status} for ${imagePath}: ${e.message}`);
+      }
+      throw new Error(`Photo ${photo.image_hash}: ${(e as Error).message}`);
+    }
+  } else {
+    data = await sidecarOcr(photo.image_hash, imagePath);
+  }
+  await storeOcr(photoId, model, data);
+}
+
+async function sidecarOcr(hash: string, imagePath: string): Promise<sidecars.OcrResult> {
   try {
-    data = await sidecars.ocr(imagePath, OCR_MIN_CONFIDENCE);
+    return await sidecars.ocr(imagePath, OCR_MIN_CONFIDENCE);
   } catch (e) {
     if (e instanceof sidecars.SidecarError && e.kind === "status") {
-      throw new Error(`Photo ${photo.image_hash}: OCR service returned status ${e.status} for ${imagePath}: ${e.detail}`);
+      throw new Error(`Photo ${hash}: OCR service returned status ${e.status} for ${imagePath}: ${e.detail}`);
     }
-    throw new Error(`Photo ${photo.image_hash}: ${(e as Error).message}`);
+    throw new Error(`Photo ${hash}: ${(e as Error).message}`);
   }
+}
+
+/** Store one OCR answer (PhotoOcr upsert) and re-derive is_document. */
+async function storeOcr(photoId: string, model: string, data: sidecars.OcrResult): Promise<void> {
   const text = typeof data.text === "string" ? data.text : "";
   const storedText = [...text].slice(0, MAX_TEXT_LENGTH).join("");
   const blocks = Array.isArray(data.blocks) ? data.blocks.slice(0, MAX_BLOCKS) : isFalsy(data.blocks) ? [] : data.blocks;

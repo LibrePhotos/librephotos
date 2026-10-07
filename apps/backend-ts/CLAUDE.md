@@ -34,8 +34,9 @@ src/features/<area>/    endpoint logic per area (plain functions)
 src/routes/api/...      thin TanStack Start file routes, one per URL
 src/jobs/index.ts       imports every area's job handler module
 src/ml/                 in-process ML (port of lp_ml; LP_ML_<SERVICE>=inprocess|sidecar|auto,
-                        runtime.ts modeFor): clip, tags, similarity, preprocess;
-                        parity: `bun run scripts/ml_goldens.ts`, speed: scripts/ml_bench.ts
+                        runtime.ts modeFor): clip, tags, similarity, ocr, preprocess (pil, cv2);
+                        parity: `bun run scripts/ml_goldens.ts` (+ ml_goldens_ocr.ts),
+                        speed: scripts/ml_bench.ts
 ```
 
 ## Running
