@@ -1,0 +1,51 @@
+[package]
+name = "lp-ml"
+description = "In-process ML (ONNX Runtime) replacing the Python sidecars, the model store, and the sidecar/in-process switch"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+lp-sidecars.workspace = true
+tokio.workspace = true
+tokio-util.workspace = true
+futures.workspace = true
+bytes.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+anyhow.workspace = true
+tracing.workspace = true
+arc-swap.workspace = true
+once_cell.workspace = true
+dashmap.workspace = true
+rayon.workspace = true
+reqwest.workspace = true
+sha2.workspace = true
+hex.workspace = true
+base64.workspace = true
+zip.workspace = true
+tempfile.workspace = true
+image.workspace = true
+fast_image_resize.workspace = true
+webp.workspace = true
+rawler.workspace = true
+sysinfo.workspace = true
+chrono.workspace = true
+uuid.workspace = true
+indexmap.workspace = true
+ort.workspace = true
+libloading.workspace = true
+ndarray.workspace = true
+tokenizers.workspace = true
+async-trait.workspace = true
+flate2.workspace = true
+tar.workspace = true
+
+[dev-dependencies]
+proptest.workspace = true
+
+[lints]
+workspace = true

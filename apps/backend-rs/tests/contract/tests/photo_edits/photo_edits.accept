@@ -1,0 +1,10 @@
+# Accepted differences for run_suite.sh mut:photo_edits (grep -E patterns
+# over dump_state.py diff lines).
+#
+# savecaption changes e2e_05's caption from "Lake day #summer #lake" to
+# "Lake day #summer". Rust rebuilds search_captions from the saved caption
+# (02 §5 S19); Django rebuilds it from the row as it was before the save, so
+# the removed hashtag stays searchable there until the next rebuild.
+^~ api_photo_search \["<new-uuid>"\] search_captions: ".*Lake day #summer #lake .*" -> ".*Lake day #summer [^#].*"$
+# Photo share slugs are random.
+^~ api_photoshare \[[0-9]+\] slug: "[A-Za-z0-9_-]+" -> "[A-Za-z0-9_-]+"$
