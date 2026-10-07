@@ -11,9 +11,9 @@ import path from "node:path";
 import { MlFailed } from "../errors";
 import { dataModels, modelSlot, MlUnavailable } from "../runtime";
 import { BUNDLE_FILES, loadConfig, OCR_MODELS, type OcrConfig } from "./config";
+import { cropAll } from "./cropPool";
 import { DecodeError, readImage } from "./decode";
 import { assemble, blockJson, boxesFromBitmap, defaultOptions, detInput, Engine, recBatches, type Options, type Prediction } from "./ppocr";
-import { rotateCrop } from "./warp";
 
 /** Set once the port passes its goldens; `auto` mode then uses it. */
 export const IMPLEMENTED = true;
@@ -89,7 +89,7 @@ export async function predict(imagePath: string, model: string, opts: Options = 
     if (prepass !== null && !opts.detOnly && !(await detect(prepass)).length) return assemble(img, [], [], opts);
     const boxes = await detect(opts.maxSide ?? cfg.detMaxSide);
     if (opts.detOnly) return assemble(img, boxes, null, opts);
-    const crops = boxes.map((q) => rotateCrop(img, q));
+    const crops = await cropAll(img, boxes);
     const batches = recBatches(crops, cfg);
     const recognized = crops.length ? await slot.run((e) => e.runRec(batches, crops.length)) : [];
     return assemble(img, boxes, recognized, opts);
