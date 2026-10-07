@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "bun --bun vite dev --port 8001",
-    "build": "bun --bun vite build && bun build src/features/ingest/hashWorker.ts --target=bun --minify --outfile dist/hash-worker.js && bun build src/ml/face_cluster/worker.ts --target=bun --minify --outfile dist/face-cluster-worker.js",
+    "build": "bun --bun vite build && bun build src/features/ingest/hashWorker.ts --target=bun --minify --outfile dist/hash-worker.js && bun build src/ml/face_cluster/worker.ts --target=bun --minify --outfile dist/face-cluster-worker.js && bun build src/ml/ortWorker.ts --target=bun --minify --packages=external --outfile dist/ort-worker.js",
     "start": "bun run server.ts",
     "adopt": "bun run src/cli.ts adopt",
     "typecheck": "tsc --noEmit",

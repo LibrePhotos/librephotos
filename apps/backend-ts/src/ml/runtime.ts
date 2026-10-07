@@ -11,9 +11,11 @@
 //   LP_ML_IDLE_UNLOAD_SECS       unload a model after this long unused (120)
 //   LP_ML_<SERVICE>_CONCURRENCY  parallel runs per model (1)
 //   LP_ORT_CPU_ARENA             0 = sessions without the CPU memory arena
+//   LP_ML_THREADS                worker threads running inference (2; 0 = calling thread)
 import path from "node:path";
 import type * as Ort from "onnxruntime-node";
 import { config } from "../lib/config";
+import { mlThreads, ThreadSession } from "./ortThread";
 
 export type { Ort };
 export type InferenceSession = Ort.InferenceSession;
@@ -39,7 +41,7 @@ const intraThreads = () => {
 /** An ORT session with the process-wide options (CPU EP, graph optimizations on). */
 export async function session(modelPath: string, extra: Ort.InferenceSession.SessionOptions = {}): Promise<Ort.InferenceSession> {
   const ort = await loadOrt();
-  return ort.InferenceSession.create(modelPath, {
+  const options: Ort.InferenceSession.SessionOptions = {
     executionProviders: ["cpu"],
     graphOptimizationLevel: "all",
     intraOpNumThreads: intraThreads(),
@@ -49,7 +51,13 @@ export async function session(modelPath: string, extra: Ort.InferenceSession.Ses
     // like librephotos-rs). Models may override (the face packs turn it off).
     enableCpuMemArena: process.env.LP_ORT_CPU_ARENA !== "0",
     ...extra,
-  });
+  };
+  // run() blocks the calling JS thread for the whole inference: off the
+  // main thread unless LP_ML_THREADS=0 (or already on a worker).
+  if (mlThreads() > 0 && Bun.isMainThread) {
+    return (await ThreadSession.create(ort, modelPath, options)) as unknown as Ort.InferenceSession;
+  }
+  return ort.InferenceSession.create(modelPath, options);
 }
 
 /** A whole-model failure the caller reports like the sidecar's "unavailable". */
