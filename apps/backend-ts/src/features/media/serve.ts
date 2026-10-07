@@ -12,6 +12,8 @@ const DJANGO_DEFAULT_TYPE = "text/html; charset=utf-8";
 /** Answers up to this size are read in one go; larger ones are streamed. */
 const INLINE_READ_MAX = 1024 * 1024;
 const CHUNK = 256 * 1024;
+/** Property a large file Response carries for server.ts (see serveFile). */
+export const FILE_BODY = Symbol.for("librephotos.fileBody");
 
 /** Django's HttpResponse(status=...): no body, the default content type. */
 export function empty(status: number, extra?: Record<string, string>): Response {
@@ -204,7 +206,11 @@ export function serveFile(req: FileRequest, rangeHeader: string | null, head: bo
       closeSync(fd);
     }
   }
-  return new Response(fdStream(fd, start, length), { status, headers });
+  const res = new Response(fdStream(fd, start, length), { status, headers });
+  // server.ts swaps in this file slice (Bun keeps Content-Length for it and
+  // sends it efficiently); the chunked stream is the fallback without it.
+  (res as unknown as Record<symbol, Blob>)[FILE_BODY] = Bun.file(req.path).slice(start, start + length);
+  return res;
 }
 
 /** A Bun direct ReadableStream over part of an open file (Bun keeps Content-Length for these); closes fd. */
