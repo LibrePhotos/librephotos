@@ -11,7 +11,7 @@ import { groupByDate, pigFromRow, pigRows } from "~/lib/pig";
 import type { QueryMap } from "~/lib/query";
 import { likeEscape, ownedBy, visibleManager } from "~/lib/scope";
 import type { User } from "~/lib/users";
-import { queryEmbedding, SEARCH_THRESHOLD, similarityHashes } from "./sidecar";
+import { queryEmbedding, searchThresholdFor, semanticModel, similarityHashes } from "./sidecar";
 
 /** Python's str.isspace set (Unicode White_Space plus \x1c..\x1f). */
 const PY_SPACE_CODES = new Set([0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x20, 0x1c, 0x1d, 0x1e, 0x1f, 0x85, 0xa0, 0x1680,
@@ -147,8 +147,9 @@ export async function searchList(user: User, q: QueryMap) {
     // A CLIP failure of any kind and an unreachable similarity sidecar are 500s (Django).
     let emb: number[];
     try {
-      emb = await queryEmbedding(raw);
-      semantic = await similarityHashes(user.id, emb, Math.max(user.semanticSearchTopk, 0), SEARCH_THRESHOLD, true);
+      const model = await semanticModel();
+      emb = await queryEmbedding(raw, model);
+      semantic = await similarityHashes(user.id, emb, Math.max(user.semanticSearchTopk, 0), searchThresholdFor(model), true);
     } catch (e) {
       throw ApiError.internal(e);
     }

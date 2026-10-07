@@ -22,6 +22,8 @@ export function semanticModelOf(setting: string | null | undefined): SemanticMod
 }
 
 export async function semanticModel(): Promise<SemanticModel> {
+  // Without in-process CLIP every setting means ViT-B/32: no settings read.
+  if (!clipInProcess()) return "clip_vit_b32";
   return semanticModelOf((await siteSettings()).SEMANTIC_SEARCH_MODEL);
 }
 
@@ -32,6 +34,7 @@ export async function semanticModel(): Promise<SemanticModel> {
  * clip.embed reuses the tagger's image tower.
  */
 export async function semanticSharesTagger(): Promise<boolean> {
+  if (!clipInProcess() || !tagsInProcess()) return false;
   const s = await siteSettings();
   const semantic = semanticModelOf(s.SEMANTIC_SEARCH_MODEL);
   const tagging = s.TAGGING_MODEL.trim() || DEFAULT_TAGGING_MODEL;
