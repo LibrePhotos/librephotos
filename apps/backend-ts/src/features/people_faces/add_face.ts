@@ -2,15 +2,16 @@
 // face box drawn by hand becomes a labelled face. The box arrives as fractions
 // of the displayed image and is stored in big-thumbnail pixels; the crop is cut
 // from the big thumbnail.
+import { loadSharp } from "~/lib/native";
 import { randomUUID } from "node:crypto";
 import { mkdir, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { loadSharp } from "~/lib/native";
 import { config } from "~/lib/config";
 import { ApiError } from "~/lib/errors";
 import { json, jsonBody } from "~/lib/http";
 import { pyTruthy } from "~/lib/query";
 import { siteSettings } from "~/lib/settings";
+import { faceEncodingsInProcess, faceMode } from "~/ml/face/index";
 import type { User } from "~/lib/users";
 import { UNKNOWN_PERSON_NAME, mediaUrl, parsePyFloat, statusMessage, strippedStr } from "./common";
 import * as dbq from "./db";
@@ -83,9 +84,11 @@ function encodeEncoding(values: number[]): string {
 /**
  * The face service's encoding of one box, or null when the service is down,
  * errors or detects no face there (Django then keeps the face without one).
+ * In process (LP_ML_FACE) the same contract runs on the local models.
  */
 async function faceEncoding(imagePath: string, box: Box, model: string): Promise<number[] | null> {
   try {
+    if (faceMode() === "inprocess") return (await faceEncodingsInProcess(imagePath, [box], model))[0] ?? null;
     const res = await fetch(`${config.sidecar("face", 8005)}/face-encodings`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },

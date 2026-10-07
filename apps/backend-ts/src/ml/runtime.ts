@@ -15,6 +15,7 @@ import type * as Ort from "onnxruntime-node";
 import { config } from "../lib/config";
 
 export type { Ort };
+export type InferenceSession = Ort.InferenceSession;
 
 let ortModule: Promise<typeof Ort> | null = null;
 

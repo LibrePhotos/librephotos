@@ -3,8 +3,7 @@
 // LP_SCAN_HASH_WORKERS sets the size (default min(4, cores - 2); 0 = inline).
 // The worker script is dist/hash-worker.js (bun run build) or, when running
 // from source, hashWorker.ts itself.
-import { existsSync } from "node:fs";
-import path from "node:path";
+import { workerFile } from "../../lib/workers";
 import { runHashTask, type HashTask } from "./hashWorker";
 
 type Pending = { resolve: (v: string | null) => void; reject: (e: Error) => void };
@@ -13,18 +12,6 @@ let workers: Worker[] | null = null;
 let next = 0;
 let seq = 0;
 const pending = new Map<number, Pending>();
-
-function workerFile(): string | null {
-  const here = import.meta.dir;
-  const candidates = [
-    path.join(here, "hashWorker.ts"),
-    path.join(here, "hash-worker.js"),
-    path.join(here, "..", "hash-worker.js"),
-    path.join(here, "..", "..", "hash-worker.js"),
-    path.join(process.cwd(), "dist", "hash-worker.js"),
-  ];
-  return candidates.find((p) => existsSync(p)) ?? null;
-}
 
 function poolSize(): number {
   const raw = process.env.LP_SCAN_HASH_WORKERS;
@@ -37,7 +24,7 @@ function poolSize(): number {
 
 function pool(): Worker[] {
   if (workers) return workers;
-  const file = poolSize() > 0 ? workerFile() : null;
+  const file = poolSize() > 0 ? workerFile(import.meta.url, "hashWorker.ts", "hash-worker.js") : null;
   workers = [];
   if (!file) return workers;
   for (let i = 0; i < poolSize(); i++) {

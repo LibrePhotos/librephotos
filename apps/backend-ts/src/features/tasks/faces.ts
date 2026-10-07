@@ -1,9 +1,10 @@
 // Faces: `faces.scan` (processing_jobs.scan_faces + photo_faces.extract_faces),
 // the encoding back-fill (generate_face_embeddings), XMP face regions
 // (face_extractor.extract_from_exif). Port of lp_tasks::faces + faces::xmp,
-// with detection and encodings from the face_recognition sidecar.
+// with detection and encodings from the face service (in process or the
+// face_recognition sidecar, src/ml/face).
 import { existsSync, mkdirSync } from "node:fs";
-import { unlink, writeFile } from "node:fs/promises";
+import { readFile, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { loadSharp } from "../../lib/native";
 import { config } from "../../lib/config";
@@ -14,7 +15,8 @@ import { clusterAllFaces } from "./cluster";
 import { getTags, stopExiftool } from "./exif";
 import { loadPhotos, mediaPath, thumbnailPath, type TaskPhoto } from "./photos";
 import { CANCEL_CHECK_EVERY, ItemCounter, begin, complete, fail, isCancelled, lastFinishedStart, setProgress, startItems } from "./run";
-import * as sidecars from "./sidecars";
+import { decodeRgb, type Rgb } from "../../ml/face/image";
+import * as faceApi from "../../ml/face/index";
 import type { FaceBox } from "./sidecars";
 import type { Exec } from "./things";
 
@@ -128,20 +130,28 @@ export async function extractFaces(photo: TaskPhoto): Promise<number> {
   const big = thumbnailPath(photo);
   if (!big) throw new Error("The 'thumbnail_big' attribute has no file associated with it.");
   let image: Pixels;
+  // In process the thumbnail is decoded once, like Pillow (and Rust): the
+  // detector and the crops see the same pixels.
+  let rgb: Rgb | null = null;
   try {
-    const { data, info } = await (await loadSharp())(big).removeAlpha().toColourspace("srgb").raw().toBuffer({ resolveWithObject: true });
-    image = { data, width: info.width, height: info.height, channels: info.channels as 3 };
+    if (faceApi.faceMode() === "inprocess") {
+      rgb = await decodeRgb(await readFile(big));
+      image = { data: Buffer.from(rgb.data.buffer, rgb.data.byteOffset, rgb.data.length), width: rgb.width, height: rgb.height, channels: 3 };
+    } else {
+      const { data, info } = await (await loadSharp())(big).removeAlpha().toColourspace("srgb").raw().toBuffer({ resolveWithObject: true });
+      image = { data, width: info.width, height: info.height, channels: info.channels as 3 };
+    }
   } catch (e) {
     throw new Error(`${big}: ${(e as Error).message}`);
   }
   if (!photo.main_path) throw new Error("'NoneType' object has no attribute 'path'");
-  const found = await findFaces(photo, big, photo.main_path, image.width, image.height);
+  const found = await findFaces(photo, big, photo.main_path, image.width, image.height, rgb);
   if (!found.length) return 0;
   return writeFaces(photo, image, found);
 }
 
 /** XMP regions of the original, else the face service on the thumbnail. */
-async function findFaces(photo: TaskPhoto, big: string, main: string, width: number, height: number): Promise<Found[]> {
+async function findFaces(photo: TaskPhoto, big: string, main: string, width: number, height: number, pixels: Rgb | null): Promise<Found[]> {
   let found: Found[] = [];
   const values = await getTags(main, ["XMP:RegionInfo", "EXIF:Orientation"], true);
   if (values) {
@@ -153,7 +163,8 @@ async function findFaces(photo: TaskPhoto, big: string, main: string, width: num
   if (!found.length) {
     const model = (await siteSettings()).FACE_RECOGNITION_MODEL;
     try {
-      found = (await sidecars.detectFaces(big, model)).map((f) => ({ location: f.location, name: null, encoding: f.encoding }));
+      const detected = pixels ? await faceApi.detectFacesRgb(pixels, model) : await faceApi.detectFaces(big, model);
+      found = detected.map((f) => ({ location: f.location, name: null, encoding: f.encoding }));
     } catch (e) {
       console.error(`can't extract face information of ${photo.image_hash}: ${(e as Error).message}`);
     }
@@ -420,7 +431,7 @@ export async function generateFaceEmbeddings(userId: number): Promise<void> {
     let error: string | null = null;
     try {
       if (!face.thumbnail_big) throw new Error("The 'thumbnail_big' attribute has no file associated with it.");
-      const encodings = await sidecars.faceEncodings(mediaPath(face.thumbnail_big), [[face.t, face.r, face.b, face.l]], model);
+      const encodings = await faceApi.faceEncodings(mediaPath(face.thumbnail_big), [[face.t, face.r, face.b, face.l]], model);
       if (!encodings.length) throw new Error(`Face service returned no encoding for face ${face.id}`);
       if (!encodings[0]) throw new Error(`The face service detected no face in face ${face.id}`);
       await client`UPDATE api_face SET encoding = ${encodeFaceEncoding(encodings[0])} WHERE id = ${face.id}`;
