@@ -22,6 +22,10 @@ import { verifyPassword } from "./password";
 import { QueryMap } from "./query";
 import { isAdmin, userById, userByUsername, type User } from "./users";
 
+/** Set by server.ts to the TCP peer address (Django's REMOTE_ADDR). */
+export const PEER_HEADER = "x-lp-peer-ip";
+export const peerAddress = (req: Request) => req.headers.get(PEER_HEADER) ?? undefined;
+
 export type AuthMode = "none" | "optional" | "user" | "admin" | "cookie" | "cookie-optional";
 type UserFor<M extends AuthMode> = M extends "user" | "admin" | "cookie" ? User : User | null;
 
