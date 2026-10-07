@@ -45,6 +45,29 @@ export const photosByHash = (imageHash: string, userId: number | null) =>
 export const photoById = (id: string, userId: number | null) =>
   row<MediaPhoto>(withGrants(userId, sql`p.id = ${id}::uuid`));
 
+/** The requester's api_user row as a claimed-token lookup needs it. */
+export interface Me {
+  is_active: boolean | null;
+  transcode_videos: boolean | null;
+}
+
+/**
+ * photosByHash / photoById for a requester known only by a token's user id:
+ * the same statement also returns that user's row (me undefined = no such
+ * user), so the hot path is one query.
+ */
+export async function photosWithMe(key: { hash: string } | { id: string }, uid: number): Promise<{ me: Me | undefined; photos: MediaPhoto[] }> {
+  const where = "id" in key ? sql`p.id = ${key.id}::uuid` : sql`p.image_hash = ${key.hash}`;
+  const r = await rows<MediaPhoto & { me_found: boolean; me_active: boolean | null; me_transcode: boolean | null }>(sql`
+    SELECT me.id IS NOT NULL AS me_found, me.is_active AS me_active, me.transcode_videos AS me_transcode, ph.*
+    FROM (SELECT 1) one
+    LEFT JOIN api_user me ON me.id = ${uid}
+    LEFT JOIN LATERAL (${withGrants(uid, where)}) ph ON TRUE`);
+  const first = r[0];
+  const me = first?.me_found ? { is_active: first.me_active, transcode_videos: first.me_transcode } : undefined;
+  return { me, photos: r.filter((x) => x.id !== null) };
+}
+
 /** How embedded_media and diagnostics address their photo. */
 export type PhotoKey = { id: string } | { hash: string };
 const keyWhere = (key: PhotoKey) => ("id" in key ? sql`p.id = ${key.id}::uuid` : sql`p.image_hash = ${key.hash}`);

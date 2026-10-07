@@ -1,17 +1,17 @@
 // Response builders shared by the media routes (port of lp_media::serve):
 // Django's empty status responses, X-Accel hand-offs, and direct file
 // serving with a single byte range (api/http_range.py), confined to the
-// roots the file may live in. Files are streamed by Bun (Bun.file bodies),
-// never buffered.
-import { existsSync, realpathSync, statSync } from "node:fs";
+// roots the file may live in.
+import { closeSync, openSync, readSync, realpathSync, statSync, type Stats } from "node:fs";
 import path from "node:path";
 import { mimeType } from "./mime";
 import { basename, headerValue, inlineDisposition } from "./pyfmt";
 
 const WIN = process.platform === "win32";
 const DJANGO_DEFAULT_TYPE = "text/html; charset=utf-8";
-/** Ranges up to this size are read in one go; larger ones are streamed. */
+/** Answers up to this size are read in one go; larger ones are streamed. */
 const INLINE_READ_MAX = 1024 * 1024;
+const CHUNK = 256 * 1024;
 
 /** Django's HttpResponse(status=...): no body, the default content type. */
 export function empty(status: number, extra?: Record<string, string>): Response {
@@ -131,27 +131,50 @@ export function confined(p: string, roots: string[]): boolean {
   return false;
 }
 
-/** _serve_file_direct + ranged_response. `head` sends the headers only. */
-export async function serveFile(req: FileRequest, rangeHeader: string | null, head: boolean): Promise<Response> {
-  if (!existsSync(req.path)) return empty(404);
+const errStatus = (e: unknown) => {
+  const code = (e as NodeJS.ErrnoException).code;
+  return code === "ENOENT" || code === "ENOTDIR" ? 404 : code === "EACCES" || code === "EPERM" ? 403 : 500;
+};
+
+/** Read length bytes at start (synchronous: Bun's async file reads are slow on Windows). */
+function readAt(fd: number, start: number, length: number): Uint8Array<ArrayBuffer> {
+  // Never from the shared pool: the body outlives this call.
+  const buf = new Uint8Array(new ArrayBuffer(length));
+  let got = 0;
+  while (got < length) {
+    const n = readSync(fd, buf, got, length - got, start + got);
+    if (n <= 0) break;
+    got += n;
+  }
+  return got === length ? buf : buf.subarray(0, got);
+}
+
+/**
+ * _serve_file_direct + ranged_response. `head` sends the headers only.
+ * Small answers are read in one go; larger ones stream in chunks from the
+ * open descriptor. (Start's handler reads `.body`, which would turn a
+ * Bun.file body into a slow plain stream, run a sliced one to EOF and drop
+ * Content-Length.)
+ */
+export function serveFile(req: FileRequest, rangeHeader: string | null, head: boolean): Response {
+  let st: Stats | undefined;
+  try {
+    st = statSync(req.path, { throwIfNoEntry: false });
+  } catch (e) {
+    return empty(errStatus(e));
+  }
+  if (!st) return empty(404);
   if (!confined(req.path, req.roots)) {
     console.warn(`media path outside its root; refused: ${req.path}`);
     return empty(404);
   }
-  let size: number;
-  try {
-    const st = statSync(req.path);
-    if (!st.isFile()) return empty(404);
-    size = st.size;
-  } catch (e) {
-    const code = (e as NodeJS.ErrnoException).code;
-    return empty(code === "ENOENT" ? 404 : code === "EACCES" || code === "EPERM" ? 403 : 500);
-  }
-  const contentType = req.contentType ?? mimeType(req.path);
+  if (!st.isFile()) return empty(404);
+  const size = st.size;
   const range = parseRange(rangeHeader, size);
   if (range.kind === "unsatisfiable") {
     return empty(416, { "Content-Range": `bytes */${size}`, "Accept-Ranges": "bytes" });
   }
+  const contentType = req.contentType ?? mimeType(req.path);
   const headers: Record<string, string> = { "Content-Type": headerValue(contentType), "Accept-Ranges": "bytes" };
   let status = 200;
   let start = 0;
@@ -166,28 +189,50 @@ export async function serveFile(req: FileRequest, rangeHeader: string | null, he
   }
   headers["Content-Length"] = String(length);
   if (head) return new Response(null, { status, headers });
-  const file = Bun.file(req.path);
-  if (range.kind === "whole") return new Response(file, { status, headers });
-  // A sliced Bun.file's `.body` (which Start's handler reads) runs to EOF,
-  // and a plain stream body loses Content-Length: small ranges are read
-  // whole, large ones streamed through a direct stream (which keeps it).
-  const slice = file.slice(start, start + length);
-  if (length <= INLINE_READ_MAX) return new Response(await slice.bytes(), { status, headers });
-  return new Response(directStream(slice), { status, headers });
+  let fd: number;
+  try {
+    fd = openSync(req.path, "r");
+  } catch (e) {
+    return empty(errStatus(e));
+  }
+  if (length <= INLINE_READ_MAX) {
+    try {
+      return new Response(readAt(fd, start, length), { status, headers });
+    } catch (e) {
+      return empty(errStatus(e));
+    } finally {
+      closeSync(fd);
+    }
+  }
+  return new Response(fdStream(fd, start, length), { status, headers });
 }
 
-/** A Bun direct ReadableStream over a blob (Bun keeps the Content-Length header for these). */
-function directStream(blob: Blob): ReadableStream<Uint8Array> {
+/** A Bun direct ReadableStream over part of an open file (Bun keeps Content-Length for these); closes fd. */
+function fdStream(fd: number, start: number, length: number): ReadableStream<Uint8Array> {
+  let closed = false;
+  const close = () => {
+    if (!closed) {
+      closed = true;
+      closeSync(fd);
+    }
+  };
   return new ReadableStream({
     type: "direct",
-    async pull(controller: { write(chunk: Uint8Array): unknown; close(): void }) {
-      const reader = blob.stream().getReader();
-      for (;;) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        await controller.write(value);
+    async pull(controller: { write(chunk: Uint8Array): unknown; flush(): unknown; close(): void }) {
+      try {
+        let pos = 0;
+        while (pos < length && !closed) {
+          const chunk = readAt(fd, start + pos, Math.min(CHUNK, length - pos));
+          if (chunk.length === 0) break;
+          pos += chunk.length;
+          controller.write(chunk);
+          await controller.flush();
+        }
+      } finally {
+        close();
       }
       controller.close();
     },
+    cancel: close,
   } as unknown as UnderlyingDefaultSource<Uint8Array>);
 }

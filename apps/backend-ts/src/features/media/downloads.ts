@@ -8,7 +8,7 @@ import { pjoin } from "./pyfmt";
 import { empty, fileRequest, serveFile, xAccel } from "./serve";
 import { mediaCtx, zipFileName } from "./view";
 
-export function download(request: Request, user: User, name: string): Response | Promise<Response> {
+export function download(request: Request, user: User, name: string): Response {
   const filename = name.slice(36) === String(user.id) ? zipFileName(name.slice(0, 36), user.id) : undefined;
   if (!filename) return empty(404);
   const ctx = mediaCtx(request);

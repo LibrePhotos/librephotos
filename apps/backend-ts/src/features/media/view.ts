@@ -6,8 +6,8 @@
 import { existsSync } from "node:fs";
 import { config } from "~/lib/config";
 import { mayAccess } from "~/lib/scope";
-import type { User } from "~/lib/users";
-import { embeddedMediaPath, photoById, photosByHash, type MediaPhoto, type PhotoKey } from "./queries";
+import { embeddedMediaPath, photoById, photosByHash, photosWithMe, type MediaPhoto, type PhotoKey } from "./queries";
+import { definite, requester, settleClaim, type Requester, type Viewer } from "./requester";
 import { mimeType } from "./mime";
 import { MEDIA_ROOT } from "./paths";
 import { basename, ext, headerValue, iriToUri, pjoin, quote } from "./pyfmt";
@@ -226,14 +226,32 @@ function pick(candidates: MediaPhoto[], signedIn: boolean): MediaPhoto | undefin
   return candidates[i < 0 ? 0 : i];
 }
 
-/** _lookup_photo. */
-async function lookup(imageHash: string, user: User | null, allowUuid: boolean): Promise<MediaPhoto | undefined> {
-  const uid = user?.id ?? null;
+/**
+ * _lookup_photo, plus the requester made definite: a claimed token's user is
+ * checked in the same statement (one query on the hot path).
+ */
+async function lookup(
+  request: Request,
+  req: Requester,
+  imageHash: string,
+  allowUuid: boolean,
+): Promise<{ photo: MediaPhoto | undefined; viewer: Viewer | null }> {
+  let key: { hash: string } | { id: string } | undefined = { hash: imageHash };
   if (allowUuid && isUuidFormat(imageHash)) {
     const id = parseUuid(imageHash);
-    return id === undefined ? undefined : photoById(id, uid);
+    key = id === undefined ? undefined : { id };
   }
-  return pick(await photosByHash(imageHash, uid), user !== null);
+  let viewer: Viewer | null;
+  if (req.kind === "claimed" && key !== undefined) {
+    const found = await photosWithMe(key, req.uid);
+    const settled = await settleClaim(request, req, found.me);
+    if (settled.trusted) return { photo: "id" in key ? found.photos[0] : pick(found.photos, true), viewer: settled.viewer };
+    viewer = settled.viewer;
+  } else viewer = await definite(request, req);
+  if (key === undefined) return { photo: undefined, viewer };
+  const uid = viewer?.id ?? null;
+  const photo = "id" in key ? await photoById(key.id, uid) : pick(await photosByHash(key.hash, uid), viewer !== null);
+  return { photo, viewer };
 }
 
 /** zip_file_name: <canonical uuid><user id>.zip, undefined for anything else. */
@@ -242,7 +260,7 @@ export function zipFileName(fileUuid: string, userId: number): string | undefine
   return canonical === undefined ? undefined : `${canonical}${userId}.zip`;
 }
 
-function serveZip(ctx: MediaCtx, user: User | null, p: string, fname: string): Response | Promise<Response> {
+function serveZip(ctx: MediaCtx, user: Viewer | null, p: string, fname: string): Response {
   if (!user) return forbiddenUnauthenticated();
   const filename = zipFileName(fname, user.id);
   if (!filename) return empty(404);
@@ -252,7 +270,7 @@ function serveZip(ctx: MediaCtx, user: User | null, p: string, fname: string): R
   return file(ctx, fileRequest(pf.file, pf.root, "application/x-zip-compressed"));
 }
 
-function serveAvatar(ctx: MediaCtx, user: User | null, p: string, fname: string): Response | Promise<Response> {
+function serveAvatar(ctx: MediaCtx, user: Viewer | null, p: string, fname: string): Response {
   if (!user) return forbiddenUnauthenticated();
   const pf = protectedFile(p, fname);
   if (!pf) return empty(404);
@@ -260,7 +278,7 @@ function serveAvatar(ctx: MediaCtx, user: User | null, p: string, fname: string)
   return file(ctx, fileRequest(pf.file, pf.root, "image/png"));
 }
 
-async function serveEmbedded(ctx: MediaCtx, user: User | null, p: string, fname: string): Promise<Response> {
+async function serveEmbedded(ctx: MediaCtx, user: Viewer | null, p: string, fname: string): Promise<Response> {
   let key: PhotoKey;
   if (isUuidFormat(fname)) {
     const id = parseUuid(fname);
@@ -276,25 +294,25 @@ async function serveEmbedded(ctx: MediaCtx, user: User | null, p: string, fname:
   return file(ctx, fileRequest(embedded, MEDIA_ROOT, "video/mp4"));
 }
 
-async function serveDerived(ctx: MediaCtx, user: User | null, imageHash: string, p: string, fname: string): Promise<Response> {
-  const photo = await lookup(imageHash, user, true);
-  if (!photo) return refuse(user !== null);
+async function serveDerived(request: Request, ctx: MediaCtx, req: Requester, imageHash: string, p: string, fname: string): Promise<Response> {
+  const { photo, viewer } = await lookup(request, req, imageHash, true);
+  if (!photo) return refuse(viewer !== null);
   if (photo.in_public_album) return generate(ctx, photo, p, fname, false);
-  if (user && mayAccess(photo)) return generate(ctx, photo, p, fname, user.transcodeVideos);
+  if (viewer && mayAccess(photo)) return generate(ctx, photo, p, fname, viewer.transcodeVideos);
   if (photo.is_public_photo) return generate(ctx, photo, p, fname, false);
-  return refuse(user !== null);
+  return refuse(viewer !== null);
 }
 
-async function serveOriginal(ctx: MediaCtx, user: User | null, imageHash: string): Promise<Response> {
-  const photo = await lookup(imageHash, user, false);
-  if (!photo) return refuse(user !== null);
+async function serveOriginal(request: Request, ctx: MediaCtx, req: Requester, imageHash: string): Promise<Response> {
+  const { photo, viewer } = await lookup(request, req, imageHash, false);
+  if (!photo) return refuse(viewer !== null);
   if (photo.in_public_album) return generateOriginal(ctx, photo, false, false);
-  if (user) {
-    if (photo.is_owner || photo.shared_directly) return generateOriginal(ctx, photo, user.transcodeVideos, true);
-    if (mayAccess(photo)) return generateOriginal(ctx, photo, user.transcodeVideos, false);
+  if (viewer) {
+    if (photo.is_owner || photo.shared_directly) return generateOriginal(ctx, photo, viewer.transcodeVideos, true);
+    if (mayAccess(photo)) return generateOriginal(ctx, photo, viewer.transcodeVideos, false);
   }
   if (photo.is_public_photo) return generateOriginal(ctx, photo, false, false);
-  return refuse(user !== null);
+  return refuse(viewer !== null);
 }
 
 /**
@@ -321,27 +339,36 @@ export function mediaRest(url: URL): string | undefined {
   }
 }
 
-/** GET|HEAD /media/{*rest}. */
-export async function media(request: Request, url: URL, user: User | null): Promise<Response> {
+/**
+ * GET|HEAD /media/{*rest}. Authentication runs first, as on Django (a bad
+ * bearer token is a 401 whatever the path).
+ */
+export async function media(request: Request, url: URL): Promise<Response> {
+  const req = await requester(request);
   const rest = mediaRest(url);
-  if (rest === undefined) return empty(404);
   const ctx = mediaCtx(request);
   // Django's ^media/(?P<path>.*)/(?P<fname>.*): everything up to the last slash is the path.
-  const slash = rest.lastIndexOf("/");
-  const [p, fname] = slash < 0 ? [rest, ""] : [rest.slice(0, slash), rest.slice(slash + 1)];
-  if (traverses(p) || traverses(fname)) return empty(404);
+  const slash = rest === undefined ? -1 : rest.lastIndexOf("/");
+  const [p, fname] = rest === undefined ? ["", ""] : slash < 0 ? [rest, ""] : [rest.slice(0, slash), rest.slice(slash + 1)];
+  if (rest === undefined || traverses(p) || traverses(fname)) {
+    await definite(request, req);
+    return empty(404);
+  }
   switch (p.toLowerCase()) {
     case "zip":
-      return serveZip(ctx, user, p, fname);
+      return serveZip(ctx, await definite(request, req), p, fname);
     case "avatars":
-      return serveAvatar(ctx, user, p, fname);
+      return serveAvatar(ctx, await definite(request, req), p, fname);
     case "embedded_media":
-      return serveEmbedded(ctx, user, p, fname);
+      return serveEmbedded(ctx, await definite(request, req), p, fname);
   }
   // Django joins this text into file paths and X-Accel targets; a path that
   // could climb out of MEDIA_ROOT names nothing we serve.
-  if (!safeDir(p)) return empty(404);
+  if (!safeDir(p)) {
+    await definite(request, req);
+    return empty(404);
+  }
   const imageHash = fname.split(".")[0]!.split("_")[0]!;
-  if (p.toLowerCase() !== "photos") return serveDerived(ctx, user, imageHash, p, fname);
-  return serveOriginal(ctx, user, imageHash);
+  if (p.toLowerCase() !== "photos") return serveDerived(request, ctx, req, imageHash, p, fname);
+  return serveOriginal(request, ctx, req, imageHash);
 }

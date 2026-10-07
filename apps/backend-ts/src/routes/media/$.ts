@@ -2,8 +2,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import { media } from "~/features/media/view";
 import { endpoint } from "~/lib/http";
 
-// <img>/<video> tags send only the jwt cookie: cookie-optional auth.
-const handler = endpoint("cookie-optional", ({ request, url, user }) => media(request, url, user));
+// Auth is cookie-optional (<img>/<video> send only the jwt cookie), resolved
+// inside media() so the hot path checks the user in its photo query.
+const handler = endpoint("none", ({ request, url }) => media(request, url));
 export const Route = createFileRoute("/media/$")({
   server: { handlers: { GET: handler, HEAD: handler } },
 });
