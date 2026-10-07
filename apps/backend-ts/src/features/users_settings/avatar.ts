@@ -4,7 +4,7 @@
 import { mkdir, open } from "node:fs/promises";
 import path from "node:path";
 import { randomInt } from "node:crypto";
-import sharp from "sharp";
+import { loadSharp } from "~/lib/native";
 import { config } from "~/lib/config";
 import { ApiError } from "~/lib/errors";
 import type { InputValue, UploadedFile } from "./input";
@@ -23,7 +23,7 @@ export async function validateAvatar(raw: InputValue): Promise<{ file: UploadedF
   const len = [...f.filename].length;
   if (len > MAX_NAME) return { error: `Ensure this filename has at most ${MAX_NAME} characters (it has ${len}).` };
   try {
-    const m = await sharp(f.bytes).metadata();
+    const m = await (await loadSharp())(f.bytes).metadata();
     if (!m.format || !m.width) throw new Error("no image");
   } catch {
     return { error: "Upload a valid image. The file you uploaded was either not an image or a corrupted image." };

@@ -18,7 +18,8 @@
 import { mkdirSync, rmSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import sharp, { type Sharp } from "sharp";
+import type { Sharp } from "sharp";
+import { loadSharp } from "../../lib/native";
 import { config } from "../../lib/config";
 import { exif } from "../../lib/exif";
 import { isRaw, mediaName } from "./fsutil";
@@ -53,8 +54,7 @@ const FFMPEG_TIMEOUT_MS = 300_000;
 // No operation cache (a cached load keeps the file open on Windows and hands
 // back stale pixels for a file changed in place); one libvips thread per
 // operation, as file groups already run side by side (LP_VIPS_CONCURRENCY).
-sharp.cache(false);
-sharp.concurrency(envInt("LP_VIPS_CONCURRENCY", 0, 256) ?? 1);
+// sharp.cache(false) and LP_VIPS_CONCURRENCY (1): src/lib/native.ts loadSharp().
 
 type Input = string | Uint8Array;
 export interface Pixels {
@@ -163,7 +163,7 @@ export async function imageSize(file: string): Promise<[number, number] | null> 
     const head = new Uint8Array(await Bun.file(file).slice(0, 64).arrayBuffer());
     const s = webpSize(head);
     if (s) return s;
-    const m = await sharp(await src(file)).metadata();
+    const m = await (await loadSharp())(await src(file)).metadata();
     return m.width && m.height ? [m.width, m.height] : null;
   } catch {
     return null;
@@ -174,13 +174,13 @@ export async function imageSize(file: string): Promise<[number, number] | null> 
 
 /** Decode an encoded image (a WebP thumbnail) to pixels, no rotation. */
 export async function decodePixels(input: Input): Promise<Pixels> {
-  const { data, info } = await sharp(await src(input)).raw().toBuffer({ resolveWithObject: true });
+  const { data, info } = await (await loadSharp())(await src(input)).raw().toBuffer({ resolveWithObject: true });
   return { data, width: info.width, height: info.height, channels: info.channels as Pixels["channels"] };
 }
 
 /** pyvips Image.thumbnail(f, 10000, height=h, size=DOWN): autorotated, untransformed colours. */
 async function thumbnailPixels(input: Input, height: number): Promise<Pixels> {
-  const { data, info } = await sharp(await src(input), { failOn: "none", limitInputPixels: false })
+  const { data, info } = await (await loadSharp())(await src(input), { failOn: "none", limitInputPixels: false })
     .rotate()
     .resize({ width: 10000, height, fit: "inside", withoutEnlargement: true, fastShrinkOnLoad: false })
     .keepIccProfile()
@@ -192,7 +192,7 @@ async function thumbnailPixels(input: Input, height: number): Promise<Pixels> {
 /** image.thumbnail_image(10000, height=h, size=DOWN) on pixels in memory. */
 async function shrinkPixels(p: Pixels, height: number): Promise<Pixels> {
   if (p.height <= height) return p;
-  const { data, info } = await sharp(p.data, rawOpts(p))
+  const { data, info } = await (await loadSharp())(p.data, rawOpts(p))
     .resize({ width: 10000, height, fit: "inside", withoutEnlargement: true })
     .raw()
     .toBuffer({ resolveWithObject: true });
@@ -212,7 +212,7 @@ export async function orient(p: Pixels, o: number): Promise<Pixels> {
   }[o] ?? [];
   let cur = p;
   for (const step of steps) {
-    const { data, info } = await step(sharp(cur.data, rawOpts(cur))).raw().toBuffer({ resolveWithObject: true });
+    const { data, info } = await step((await loadSharp())(cur.data, rawOpts(cur))).raw().toBuffer({ resolveWithObject: true });
     cur = { data, width: info.width, height: info.height, channels: info.channels as Pixels["channels"] };
   }
   return cur;
@@ -220,7 +220,7 @@ export async function orient(p: Pixels, o: number): Promise<Pixels> {
 
 /** WebP of pixels (with `icc` muxed in when kept); effort null = libwebp's default (legacy). */
 export async function encodeWebp(p: Pixels, quality: number, effort: number | null, icc?: Uint8Array): Promise<Buffer> {
-  const out = await sharp(p.data, rawOpts(p)).webp({ quality, ...(effort === null ? {} : { effort }) }).toBuffer();
+  const out = await (await loadSharp())(p.data, rawOpts(p)).webp({ quality, ...(effort === null ? {} : { effort }) }).toBuffer();
   return KEEP_ICC ? webpWithIcc(out, icc, p.width, p.height) : out;
 }
 
@@ -230,7 +230,7 @@ const knownIcc = new WeakMap<object, Uint8Array | null>();
 async function iccOf(input: Input): Promise<Uint8Array | undefined> {
   if (typeof input !== "string" && knownIcc.has(input)) return knownIcc.get(input) ?? undefined;
   try {
-    return (await sharp(await src(input)).metadata()).icc;
+    return (await (await loadSharp())(await src(input)).metadata()).icc;
   } catch {
     return undefined;
   }
@@ -239,7 +239,7 @@ async function iccOf(input: Input): Promise<Uint8Array | undefined> {
 /** image_decoding.can_decode: a libvips header load, else a sniffed image type. */
 export async function canDecode(input: Input, sniffed: string | null): Promise<boolean> {
   try {
-    const m = await sharp(await src(input)).metadata();
+    const m = await (await loadSharp())(await src(input)).metadata();
     if (typeof input !== "string") knownIcc.set(input, m.icc ?? null);
     return true;
   } catch {
@@ -393,7 +393,7 @@ async function exiftoolPreview(file: string, height: number): Promise<Pixels | n
       else if (typeof v === "string" && v.startsWith("base64:")) {
         const data = Buffer.from(v.slice(7), "base64");
         if (data[0] !== 0xff || data[1] !== 0xd8) continue;
-        const m = await sharp(data).metadata().catch(() => null);
+        const m = await (await loadSharp())(data).metadata().catch(() => null);
         if (m?.width && m.height && (!best || m.width * m.height > best.px)) best = { px: m.width * m.height, data };
       }
     }
@@ -401,7 +401,7 @@ async function exiftoolPreview(file: string, height: number): Promise<Pixels | n
     const angle = ({ 3: 180, 6: 90, 8: 270 } as Record<number, number>)[orientation] ?? 0;
     const sideways = angle === 90 || angle === 270;
     const resize = sideways ? { width: height, withoutEnlargement: true } : { height, withoutEnlargement: true };
-    const { data, info } = await sharp(best.data).resize(resize).rotate(angle).raw().toBuffer({ resolveWithObject: true });
+    const { data, info } = await (await loadSharp())(best.data).resize(resize).rotate(angle).raw().toBuffer({ resolveWithObject: true });
     return { data, width: info.width, height: info.height, channels: info.channels as Pixels["channels"] };
   } catch {
     return null;

@@ -5,7 +5,7 @@
 import { existsSync, mkdirSync } from "node:fs";
 import { unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
-import sharp from "sharp";
+import { loadSharp } from "../../lib/native";
 import { config } from "../../lib/config";
 import { client } from "../../lib/db";
 import { JobType } from "../../lib/jobs";
@@ -129,7 +129,7 @@ export async function extractFaces(photo: TaskPhoto): Promise<number> {
   if (!big) throw new Error("The 'thumbnail_big' attribute has no file associated with it.");
   let image: Pixels;
   try {
-    const { data, info } = await sharp(big).removeAlpha().toColourspace("srgb").raw().toBuffer({ resolveWithObject: true });
+    const { data, info } = await (await loadSharp())(big).removeAlpha().toColourspace("srgb").raw().toBuffer({ resolveWithObject: true });
     image = { data, width: info.width, height: info.height, channels: info.channels as 3 };
   } catch (e) {
     throw new Error(`${big}: ${(e as Error).message}`);
@@ -176,7 +176,7 @@ async function cropJpeg(image: Pixels, loc: FaceBox): Promise<Buffer> {
   const [y0, y1] = pySlice(top, bottom, image.height);
   const [x0, x1] = pySlice(left, right, image.width);
   if (y1 === y0 || x1 === x0) throw new Error(`empty face crop [${loc.join(", ")}] on a ${image.width}x${image.height} thumbnail`);
-  return sharp(image.data, { raw: { width: image.width, height: image.height, channels: image.channels } })
+  return (await loadSharp())(image.data, { raw: { width: image.width, height: image.height, channels: image.channels } })
     .extract({ left: x0, top: y0, width: x1 - x0, height: y1 - y0 })
     .jpeg({ quality: CROP_JPEG_QUALITY })
     .toBuffer();

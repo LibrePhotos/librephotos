@@ -26,7 +26,8 @@
 #                    presql files use their *.sqlite.sql twins.
 #   LP_SUITE_RS      rust (default), ts or django: the server "under test".
 #                    ts = librephotos-ts (apps/backend-ts, Bun >= 1.4.2 via
-#                    LP_BUN or bun on PATH; `bun run build`
+#                    LP_BUN or bun on PATH, or LP_TS_CMD = a command run in
+#                    apps/backend-ts instead of `bun run server.ts`; `bun run build`
 #                    first; LP_TS_DIR overrides the app dir). django = a
 #                    second Django on its own clone: Django vs Django proves
 #                    the harness itself (every twin and state diff must be empty).
@@ -236,6 +237,7 @@ start_ts() {
         fi
         cd "$TS_DIR"
         "${LP_BUN:-bun}" run src/cli.ts adopt >"$logs/adopt.log" 2>&1
+        if [ -n "${LP_TS_CMD:-}" ]; then exec $LP_TS_CMD; fi  # e.g. the AOT executable dist/librephotos-ts.exe
         exec "${LP_BUN:-bun}" run server.ts
     ) >"$logs/ts.log" 2>&1 &
 }

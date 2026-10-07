@@ -220,12 +220,26 @@ export interface JobCtx {
 export type JobHandler = (ctx: JobCtx) => Promise<void>;
 
 const handlers = new Map<string, JobHandler>();
+/** Kinds whose module is imported on the first job of that kind (idle memory). */
+const lazy = new Map<string, () => Promise<unknown>>();
 export function registerJob(kind: string, handler: JobHandler) {
   handlers.set(kind, handler);
 }
-export const registeredKinds = () => [...handlers.keys()];
-/** The handler of a kind (cli.ts run-job runs one inline). */
-export const handlerFor = (kind: string) => handlers.get(kind);
+/**
+ * Declare kinds a module registers when imported: the worker claims them
+ * from the start, the module (sharp, ExifTool, ORT, ...) loads on the first
+ * claimed job.
+ */
+export function registerLazyJobs(kinds: string[], load: () => Promise<unknown>) {
+  for (const k of kinds) if (!handlers.has(k)) lazy.set(k, load);
+}
+export const registeredKinds = () => [...new Set([...handlers.keys(), ...lazy.keys()])];
+/** The handler of a kind, importing its module first if it is lazy (cli.ts run-job uses it too). */
+export async function resolveHandler(kind: string): Promise<JobHandler | undefined> {
+  const load = lazy.get(kind);
+  if (!handlers.has(kind) && load) await load();
+  return handlers.get(kind);
+}
 
 // --------------------------------------------------------------- worker
 
@@ -259,8 +273,8 @@ async function runJob(job: QueuedJob) {
     client`UPDATE job_queue SET heartbeat_at = now() WHERE id = ${job.id} AND status = 'running'`.catch(() => {});
   }, 10_000);
   let error: string | null = null;
-  const handler = handlers.get(job.kind);
   try {
+    const handler = await resolveHandler(job.kind);
     if (!handler) throw new Error(`no handler for job kind ${JSON.stringify(job.kind)}`);
     const progress = new Progress(job.lrj_id);
     await handler({

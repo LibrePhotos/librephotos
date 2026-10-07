@@ -6,18 +6,25 @@
 // batching/attribution, with a small cache so one scan reads each photo once.
 // Output is parsed with parseExifJson, which keeps Python's int/float split.
 import { statSync } from "node:fs";
-import { ExifTool, ExifToolTask } from "exiftool-vendored";
+import type { ExifTool } from "exiftool-vendored";
+import { loadExiftool } from "./native";
 import { config } from "./config";
 import { parseExifJson, type PyValue } from "../features/ingest/pyfmt";
 
 type Values = Map<string, PyValue | null>;
 type ExifObj = Record<string, PyValue>;
 
+type Lib = Awaited<ReturnType<typeof loadExiftool>>;
+let rawTask: ((args: string[]) => InstanceType<Lib["ExifToolTask"]>) | null = null;
+
 /** One command's stdout, whatever ExifTool printed to stderr (pyexiftool ignores it). */
-class RawTask extends ExifToolTask<string> {
-  protected parse(input: string): string {
-    return input;
+function makeRawTaskFactory(lib: Lib) {
+  class RawTask extends lib.ExifToolTask<string> {
+    protected parse(input: string): string {
+      return input;
+    }
   }
+  return (args: string[]) => new RawTask(args);
 }
 
 const COMMAND_TIMEOUT_MS = 120_000;
@@ -27,8 +34,8 @@ const envInt = (k: string) => {
   return Number.isFinite(v) && process.env[k] !== "" ? v : undefined;
 };
 
-function makeTool(procs: number): ExifTool {
-  return new ExifTool({
+function makeTool(lib: Lib, procs: number): ExifTool {
+  return new lib.ExifTool({
     ...(config.exiftool ? { exiftoolPath: config.exiftool } : {}),
     maxProcs: procs,
     maxTasksPerProcess: 1_000_000,
@@ -131,9 +138,11 @@ export class ExifPool {
   private cache = new Map<string, { stamps: string; values: Values }>();
   constructor(readonly poolSize: number) {}
 
-  private tool(structured: boolean): ExifTool {
-    if (structured) return (this.structured ??= makeTool(Math.min(2, this.poolSize)));
-    return (this.plain ??= makeTool(this.poolSize));
+  private async tool(structured: boolean): Promise<ExifTool> {
+    const lib = await loadExiftool();
+    rawTask ??= makeRawTaskFactory(lib);
+    if (structured) return (this.structured ??= makeTool(lib, Math.min(2, this.poolSize)));
+    return (this.plain ??= makeTool(lib, this.poolSize));
   }
 
   /** Run one command (the arguments before -execute) and return its stdout. */
@@ -142,7 +151,8 @@ export class ExifPool {
     const bad = args.find((a) => /[\r\n]/.test(a));
     if (bad !== undefined) throw new ExifError(`exiftool argument contains a line break: ${JSON.stringify(bad)}`);
     const common = structured ? ["-struct"] : ["-G", "-n"];
-    return this.tool(structured).enqueueTask(() => new RawTask([...common, ...args]), false);
+    const tool = await this.tool(structured);
+    return tool.enqueueTask(() => rawTask!([...common, ...args]) as never, false) as Promise<string>;
   }
 
   /** pyexiftool execute_json: `-j` + args; an empty answer is an error like json.loads(""). */

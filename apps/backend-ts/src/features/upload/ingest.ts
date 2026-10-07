@@ -9,7 +9,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { createReadStream, existsSync, openSync, readSync, closeSync } from "node:fs";
 import path from "node:path";
-import sharp from "sharp";
+import { loadSharp } from "~/lib/native";
 import { config } from "~/lib/config";
 import { client } from "~/lib/db";
 
@@ -69,7 +69,7 @@ function isVideo(p: string): boolean {
 
 async function canDecode(p: string): Promise<boolean> {
   try {
-    const m = await sharp(p, { failOn: "none" }).metadata();
+    const m = await (await loadSharp())(p, { failOn: "none" }).metadata();
     return !!m.width && !!m.height;
   } catch {
     return false;

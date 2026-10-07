@@ -48,4 +48,7 @@ const server = Bun.serve({
   },
 });
 console.log(`librephotos-ts listening on ${server.hostname}:${server.port}`);
-await startBackground();
+startBackground().catch((e) => {
+  console.error("background start failed", e);
+  process.exit(1);
+});

@@ -5,7 +5,7 @@
 import { randomUUID } from "node:crypto";
 import { mkdir, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
-import sharp from "sharp";
+import { loadSharp } from "~/lib/native";
 import { config } from "~/lib/config";
 import { ApiError } from "~/lib/errors";
 import { json, jsonBody } from "~/lib/http";
@@ -118,7 +118,7 @@ export async function addFace(user: User, request: Request) {
   const thumb = mediaPath(photo.thumbnail_big);
   let size: { width: number; height: number } | null = null;
   try {
-    const m = await sharp(thumb).metadata();
+    const m = await (await loadSharp())(thumb).metadata();
     if (m.width && m.height) size = { width: m.width, height: m.height };
   } catch {
     size = null;
@@ -133,7 +133,7 @@ export async function addFace(user: User, request: Request) {
     return statusMessage(409, "there is already a face here; label that one instead of adding a second face over it");
 
   const [top, right, bottom, left] = bx;
-  const jpeg = await sharp(thumb)
+  const jpeg = await (await loadSharp())(thumb)
     .extract({ left, top, width: right - left, height: bottom - top })
     .removeAlpha()
     .jpeg({ quality: 75 })

@@ -42,14 +42,14 @@ export async function adopt(): Promise<void> {
 
 /** Run one handler inline (a fresh LongRunningJob unless the payload's job queues one), then drain `then` kinds. */
 export async function runJob(kind: string, payload: unknown, then: string[], settings: [string, string][]): Promise<void> {
-  const { handlerFor } = await import("./lib/jobs");
+  const { resolveHandler } = await import("./lib/jobs");
   await import("./jobs");
   for (const [k, v] of settings) {
     await client`INSERT INTO site_settings (key, value) VALUES (${k}, ${JSON.stringify(v)}::text::jsonb)
       ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`;
   }
   const run = async (job: { id: number; kind: string; payload: any; lrj_id: string | null; group_id: string | null }) => {
-    const handler = handlerFor(job.kind);
+    const handler = await resolveHandler(job.kind);
     if (!handler) throw new Error(`no handler for job kind ${JSON.stringify(job.kind)}`);
     const { Progress, lrjIsCancelled } = await import("./lib/jobs");
     const progress = new Progress(job.lrj_id);
