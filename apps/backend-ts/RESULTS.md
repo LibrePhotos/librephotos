@@ -232,14 +232,28 @@ What the TypeScript rewrite gives LibrePhotos, most important first:
 2. **A much smaller ML stack.** One process instead of Django plus qcluster
    plus 8 Python sidecars. Idle memory is 68 MB against 1.44 GB, and the ML
    peak is under half of Django's (wave 2: 1.4-1.9 GB against 4.3 GB).
-3. **One language with the frontend.** TypeScript end to end, with a Drizzle
-   schema pulled from the existing database. The whole port, including
-   in-process ML, took about a day of parallel agent work from the Rust
-   reference. The frontend's zod schemas test it directly.
-4. **Simple installs.** Prebuilt native npm packages (libvips, ONNX Runtime,
+3. **No language split.** Rust adds a second language next to the
+   TypeScript frontend; this rewrite keeps one language for frontend, backend
+   and tests:
+   - the contract harness and the frontend's zod schemas are TypeScript;
+   - the Drizzle schema was pulled from the existing database;
+   - frontend contributors can read and change the backend.
+4. **No compile times.** Rust's release build took 12.7 min (4 jobs), and its
+   debug `target/` is 8.1 GB per worktree. TS runs from source: the CLI,
+   job handlers and ML golden scripts start straight from `.ts` files. Only
+   the HTTP server is bundled (`bun run build`, about 2 s), and the typecheck
+   takes about 4 s. This matters most in agent
+   workflows:
+   - the Rust experiment had to cap builds at 4 jobs and 2 heavy agents after
+     9 parallel builds crashed the machine and filled the disk;
+   - the TS port ran 10 area agents at once with no build contention, and
+     each edit-run-test loop took seconds;
+   - the whole port, in-process ML included, took about a day of parallel
+     agent work from the Rust reference.
+5. **Simple installs.** Prebuilt native npm packages (libvips, ONNX Runtime,
    ExifTool), no compiler, no Python venv. A portable folder of about 215 MB
    on Windows or about 160 MB on Linux arm64.
-5. **Near-Rust on the heavy paths.** Database-bound pages tie with Rust, the
+6. **Near-Rust on the heavy paths.** Database-bound pages tie with Rust, the
    timeline day page is at 98% and the plain scan at 90%. Per inference, ML
    runs at ORT speed in both rewrites.
 
