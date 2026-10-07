@@ -3,8 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite dev --port 8001",
-    "build": "vite build",
+    "dev": "bun --bun vite dev --port 8001",
+    "build": "bun --bun vite build",
     "start": "bun run server.ts",
     "adopt": "bun run src/cli.ts adopt",
     "typecheck": "tsc --noEmit"
