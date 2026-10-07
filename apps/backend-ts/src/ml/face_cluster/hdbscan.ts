@@ -7,9 +7,11 @@
 //
 // Distances are summed feature by feature like the Cython `euclidean_dist`,
 // so they are bit-identical and the MST is the same tree. Rust prunes its
-// O(n²) scans with f32 / i8 copies; here a partial sum of squares (which
-// only grows) is compared with the bound instead, so a row is skipped only
-// when its exact distance cannot matter.
+// O(n²) scans with f32 / i8 copies (JSC reads those typed arrays several
+// times slower than f64); here a fast Gram-form distance (four-lane f64 dot
+// product, the core distances in cache blocks) rules rows out with its error
+// bound, and the exact feature-ordered sum runs only for the rows it cannot
+// (stopping early once its partial sum, which only grows, passes the bound).
 
 export interface Params {
   min_cluster_size: number;
@@ -69,8 +71,9 @@ export function labels(data: Float64Array, d: number, p: Params): number[] {
   }
   const minSamples = Math.max(Math.min(p.min_samples, n - 1), 1);
   if (minSamples + 1 > n) throw new Error("k must be less than or equal to the number of training points");
-  const core = coreDistances(data, d, n, minSamples + 1);
-  const mst = primMst(data, d, core);
+  const gram = new Gram(data, d, n);
+  const core = coreDistances(data, d, n, minSamples + 1, gram);
+  const mst = primMst(data, d, core, gram);
   // `np.argsort(mst.T[2])`; equal weights keep Prim's order (stable sort).
   const order = Array.from({ length: mst.w.length }, (_, i) => i).sort((a, b) => mst.w[a] - mst.w[b]);
   const sorted = {
@@ -83,26 +86,113 @@ export function labels(data: Float64Array, d: number, p: Params): number[] {
   return getClusters(tree, p.cluster_selection_epsilon);
 }
 
-/** `KDTree.query(X, k)[0][:, -1]`: distance to the k-th nearest row, the row itself included. */
-function coreDistances(data: Float64Array, d: number, n: number, k: number): Float64Array {
-  const out = new Float64Array(n);
-  const best = new Float64Array(k);
-  for (let i = 0; i < n; i++) {
-    let len = 0;
-    for (let j = 0; j < n; j++) {
-      const bound = len === k ? best[k - 1] : Infinity;
-      const v = rdistBounded(data, d, i, j, bound);
-      if (len === k && v >= best[k - 1]) continue;
-      // Insert after equal values (partition_point(x <= v)).
-      let pos = len;
-      while (pos > 0 && best[pos - 1] > v) pos--;
-      for (let q = Math.min(len, k - 1); q > pos; q--) best[q] = best[q - 1];
-      best[pos] = v;
-      if (len < k) len++;
+/**
+ * Fast squared distances for ruling rows out: `|a|² + |b|² - 2 a·b` with the
+ * dot product summed in four lanes (twice the speed of the feature-ordered
+ * sum), off from the exact value by far less than `slack(i, j)`.
+ */
+class Gram {
+  readonly norms: Float64Array;
+
+  constructor(
+    private data: Float64Array,
+    private d: number,
+    n: number,
+  ) {
+    this.norms = new Float64Array(n);
+    for (let i = 0; i < n; i++) {
+      let s = 0;
+      for (let f = i * d; f < (i + 1) * d; f++) s += data[f] * data[f];
+      this.norms[i] = s;
     }
-    out[i] = Math.sqrt(best[k - 1]);
   }
-  return out;
+
+  /** Bound on |approx - exact|: (d + 4)·eps·(|a|² + |b|²) is the textbook bound; this is 100x that. */
+  slack(i: number, j: number): number {
+    return (this.d + 4) * 2.3e-14 * (this.norms[i] + this.norms[j]);
+  }
+
+  approx(i: number, j: number): number {
+    const data = this.data;
+    const d = this.d;
+    const a = i * d;
+    const b = j * d;
+    let s0 = 0;
+    let s1 = 0;
+    let s2 = 0;
+    let s3 = 0;
+    let f = 0;
+    for (; f + 3 < d; f += 4) {
+      s0 += data[a + f] * data[b + f];
+      s1 += data[a + f + 1] * data[b + f + 1];
+      s2 += data[a + f + 2] * data[b + f + 2];
+      s3 += data[a + f + 3] * data[b + f + 3];
+    }
+    for (; f < d; f++) s0 += data[a + f] * data[b + f];
+    return this.norms[i] + this.norms[j] - 2 * (s0 + s1 + s2 + s3);
+  }
+}
+
+/** Rows per cache block of the core-distance pair loop (64 rows of 512 f64 = 256 KiB). */
+const BLOCK = 64;
+
+/** The k smallest squared distances of one row, ascending. */
+class KBest {
+  readonly v: Float64Array;
+  len = 0;
+
+  constructor(readonly k: number) {
+    this.v = new Float64Array(k);
+  }
+
+  /** Values at or above this cannot enter. */
+  get bound(): number {
+    return this.len === this.k ? this.v[this.k - 1] : Infinity;
+  }
+
+  offer(x: number) {
+    const k = this.k;
+    if (this.len === k && x >= this.v[k - 1]) return;
+    // Insert after equal values (partition_point(x <= v)).
+    let pos = this.len;
+    while (pos > 0 && this.v[pos - 1] > x) pos--;
+    for (let q = Math.min(this.len, k - 1); q > pos; q--) this.v[q] = this.v[q - 1];
+    this.v[pos] = x;
+    if (this.len < k) this.len++;
+  }
+}
+
+/**
+ * `KDTree.query(X, k)[0][:, -1]`: distance to the k-th nearest row, the row
+ * itself included. Each pair is looked at once (the distance is symmetric);
+ * the exact distance is computed only when the fast one cannot rule the pair
+ * out for both rows.
+ */
+function coreDistances(data: Float64Array, d: number, n: number, k: number, gram: Gram): Float64Array {
+  const best = Array.from({ length: n }, (_, i) => {
+    const b = new KBest(k);
+    b.offer(rdistBounded(data, d, i, i, Infinity));
+    return b;
+  });
+  // Blocks of rows that stay in cache while paired with each other.
+  for (let ib = 0; ib < n; ib += BLOCK) {
+    const iEnd = Math.min(ib + BLOCK, n);
+    for (let jb = ib; jb < n; jb += BLOCK) {
+      const jEnd = Math.min(jb + BLOCK, n);
+      for (let i = ib; i < iEnd; i++) {
+        const bi = best[i];
+        for (let j = Math.max(jb, i + 1); j < jEnd; j++) {
+          const bj = best[j];
+          const bound = Math.max(bi.bound, bj.bound);
+          if (bound !== Infinity && gram.approx(i, j) - gram.slack(i, j) > bound) continue;
+          const v = rdistBounded(data, d, i, j, bound);
+          bi.offer(v);
+          bj.offer(v);
+        }
+      }
+    }
+  }
+  return Float64Array.from(best, (b) => Math.sqrt(b.v[k - 1]));
 }
 
 interface Edges {
@@ -116,7 +206,7 @@ interface Edges {
  * reachability distance, edges in the order the nodes join the tree. The next
  * node is the lowest index one at the smallest distance, as in the Cython loop.
  */
-function primMst(data: Float64Array, d: number, core: Float64Array): Edges {
+function primMst(data: Float64Array, d: number, core: Float64Array, gram: Gram): Edges {
   const n = core.length;
   const m = Math.max(n - 1, 0);
   const ea = new Int32Array(m);
@@ -125,8 +215,8 @@ function primMst(data: Float64Array, d: number, core: Float64Array): Edges {
   if (n < 2) return { a: ea, b: eb, w: ew };
   const dist = new Float64Array(n).fill(Infinity);
   const source = new Int32Array(n).fill(1);
-  // The nodes not yet in the tree (node 0 joins first); order is irrelevant
-  // since ties go to the lowest index.
+  // The nodes not yet in the tree (node 0 joins first), kept in index order
+  // so each pass reads the rows front to back.
   const live = Int32Array.from({ length: n - 1 }, (_, i) => i + 1);
   let liveCount = n - 1;
   let current = 0;
@@ -141,9 +231,9 @@ function primMst(data: Float64Array, d: number, core: Float64Array): Edges {
       const right = dist[j];
       const coreJ = core[j];
       let value = right;
-      if (!(coreCur > right || coreJ > right)) {
-        // Past right² (with margin) sqrt(s) > right: the row keeps its distance.
-        const bound = right === Infinity ? Infinity : right * right * (1 + 1e-12);
+      // Past right² (with margin) sqrt(s) > right: the row keeps its distance.
+      const bound = right === Infinity ? Infinity : right * right * (1 + 1e-9);
+      if (!(coreCur > right || coreJ > right || (bound !== Infinity && gram.approx(current, j) - gram.slack(current, j) > bound))) {
         const left = Math.sqrt(rdistBounded(data, d, current, j, bound));
         if (left <= right) {
           const mr = coreJ > coreCur ? (coreJ > left ? coreJ : left) : coreCur > left ? coreCur : left;
@@ -173,7 +263,7 @@ function primMst(data: Float64Array, d: number, core: Float64Array): Edges {
     eb[edges] = bestNode;
     ew[edges] = bestValue;
     edges++;
-    live[bestPos] = live[--liveCount];
+    live.copyWithin(bestPos, bestPos + 1, liveCount--);
     current = bestNode;
   }
   return { a: ea.subarray(0, edges), b: eb.subarray(0, edges), w: ew.subarray(0, edges) };
