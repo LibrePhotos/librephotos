@@ -12,8 +12,6 @@ export function roundEven(v: number): number {
   return r - v === 0.5 && r % 2 !== 0 ? r - 1 : r;
 }
 
-const clampI16 = (v: number) => (v < -32768 ? -32768 : v > 32767 ? 32767 : v);
-
 /** `cv2.resize(img, (dstW, dstH))` with `INTER_LINEAR` (the default). */
 export function resizeLinear(src: Uint8Array, w: number, h: number, channels: number, dstW: number, dstH: number): Uint8Array {
   if (src.length !== w * h * channels) throw new Error("image buffer size");
@@ -53,16 +51,33 @@ export function resizeLinear(src: Uint8Array, w: number, h: number, channels: nu
   const row = (y: number) => (y < 0 ? 0 : y > h - 1 ? h - 1 : y);
   const rowLen = dstW * channels;
 
+  // Horizontal pass of one source row: per output column, the two taps' weighted sum.
+  const xs0 = new Int32Array(dstW);
+  const xs1 = new Int32Array(dstW);
+  for (let dx = 0; dx < dstW; dx++) {
+    xs0[dx] = xt.s[dx] * channels;
+    xs1[dx] = Math.min(xt.s[dx] + 1, w - 1) * channels;
+  }
   const hrow = (y: number, out: Int32Array) => {
     const base = y * w * channels;
-    for (let dx = 0; dx < dstW; dx++) {
-      const sx = xt.s[dx];
-      const nx = Math.min(sx + 1, w - 1);
-      const a0 = xt.a0[dx];
-      const a1 = xt.a1[dx];
-      for (let c = 0; c < channels; c++) {
-        out[dx * channels + c] = src[base + sx * channels + c] * a0 + src[base + nx * channels + c] * a1;
+    const a0s = xt.a0;
+    const a1s = xt.a1;
+    if (channels === 3) {
+      for (let dx = 0, o = 0; dx < dstW; dx++, o += 3) {
+        const p0 = base + xs0[dx];
+        const p1 = base + xs1[dx];
+        const a0 = a0s[dx];
+        const a1 = a1s[dx];
+        out[o] = src[p0] * a0 + src[p1] * a1;
+        out[o + 1] = src[p0 + 1] * a0 + src[p1 + 1] * a1;
+        out[o + 2] = src[p0 + 2] * a0 + src[p1 + 2] * a1;
       }
+      return;
+    }
+    for (let dx = 0; dx < dstW; dx++) {
+      const a0 = a0s[dx];
+      const a1 = a1s[dx];
+      for (let c = 0; c < channels; c++) out[dx * channels + c] = src[base + xs0[dx] + c] * a0 + src[base + xs1[dx] + c] * a1;
     }
   };
 
@@ -90,12 +105,11 @@ export function resizeLinear(src: Uint8Array, w: number, h: number, channels: nu
     const b0 = yt.a0[dy];
     const b1 = yt.a1[dy];
     const o = dy * rowLen;
+    // OpenCV saturates S >> 4 and the sum to int16; with 8-bit pixels and
+    // weights summing to 2048 (±1) neither can overflow, so no clamps here.
     for (let i = 0; i < rowLen; i++) {
-      const s0 = clampI16(r0[i] >> 4);
-      const s1 = clampI16(r1[i] >> 4);
-      const t = clampI16(((s0 * b0) >> 16) + ((s1 * b1) >> 16));
-      const v = (t + 2) >> 2;
-      out[o + i] = v < 0 ? 0 : v > 255 ? 255 : v;
+      const v = (((r0[i] >> 4) * b0) >> 16) + (((r1[i] >> 4) * b1) >> 16) + 2;
+      out[o + i] = v < 0 ? 0 : v > 1023 ? 255 : v >> 2;
     }
   }
   return out;

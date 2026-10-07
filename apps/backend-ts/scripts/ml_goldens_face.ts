@@ -3,7 +3,7 @@
 // tolerances of lp-ml's tests/face.rs and tests/face_cluster.rs.
 //
 //   LP_DATA_MODELS=.../rust-pg/ml/protected_media/data_models \
-//   bun run scripts/ml_goldens_face.ts [face] [packs] [cluster] [mlp] [train] [pca]
+//   bun run scripts/ml_goldens_face.ts [cv2] [face] [packs] [cluster] [mlp] [train] [pca]
 //
 // No argument runs everything except the four extra packs. LP_ML_GOLDENS
 // overrides the goldens root (default <librephotos>/rust-pg/ml-goldens).
@@ -16,6 +16,7 @@ import { detectFacesInProcess, faceEncodingsInProcess, packDir } from "../src/ml
 import { FacePack } from "../src/ml/face/pack";
 import * as fc from "../src/ml/face_cluster/index";
 import { Mlp, Mt19937 } from "../src/ml/face_cluster/mlp";
+import { resizeArea, resizeLinear } from "../src/ml/preprocess/cv2";
 
 const ROOT = process.env.LP_ML_GOLDENS ?? path.resolve(import.meta.dir, "../../../../rust-pg/ml-goldens");
 process.env.LP_DATA_MODELS ??= path.resolve(import.meta.dir, "../../../../rust-pg/ml/protected_media/data_models");
@@ -304,6 +305,47 @@ async function checkEdge() {
   console.log(`odd inputs: ${cases.length} cases, min cosine ${minCos.toFixed(6)}`);
 }
 
+/** The cv2 resizes the detector uses, bit-exact against opencv-python 5.0 (preprocess/resize.json). */
+async function checkCv2() {
+  const cases = load("preprocess", "resize");
+  if (!cases) return;
+  const tally = new Map<string, { cases: number; exact: number; maxDiff: number }>();
+  const record = (k: string, ours: Uint8Array, want: Arr) => {
+    const w = bytes(want);
+    const t = tally.get(k) ?? { cases: 0, exact: 0, maxDiff: 0 };
+    let d = ours.length === w.length ? 0 : 255;
+    for (let i = 0; i < Math.min(ours.length, w.length); i++) d = Math.max(d, Math.abs(ours[i] - w[i]));
+    t.cases++;
+    if (d === 0) t.exact++;
+    t.maxDiff = Math.max(t.maxDiff, d);
+    tally.set(k, t);
+  };
+  for (const c of cases) {
+    const src = await loadRgb(c.input.decoded_png);
+    const { data, width: w, height: h } = src;
+    const [ow, oh] = c.input.odd as number[];
+    record("cv2_linear_odd", resizeLinear(data, w, h, 3, ow, oh), c.output.cv2_linear_odd);
+    record("cv2_area_odd", resizeArea(data, w, h, 3, ow, oh), c.output.cv2_area_odd);
+    const cw = Math.min(w, 50);
+    const ch = Math.min(h, 40);
+    const sub = new Uint8Array(cw * ch * 3);
+    for (let y = 0; y < ch; y++) sub.set(data.subarray(y * w * 3, (y * w + cw) * 3), y * cw * 3);
+    const [uw, uh] = c.input.up as number[];
+    record("cv2_linear_up", resizeLinear(sub, cw, ch, 3, uw, uh), c.output.cv2_linear_up);
+    if (c.output.cv2_linear_half) {
+      const hw = Math.floor(w / 2);
+      const hh = Math.floor(h / 2);
+      const even = new Uint8Array(hw * 2 * hh * 2 * 3);
+      for (let y = 0; y < hh * 2; y++) even.set(data.subarray(y * w * 3, (y * w + hw * 2) * 3), y * hw * 2 * 3);
+      record("cv2_linear_half", resizeLinear(even, hw * 2, hh * 2, 3, hw, hh), c.output.cv2_linear_half);
+    }
+  }
+  for (const [k, v] of tally) {
+    console.log(`${k}: ${v.exact}/${v.cases} identical, max diff ${v.maxDiff}`);
+    check(v.maxDiff === 0, `${k}: max diff ${v.maxDiff}`);
+  }
+}
+
 // --------------------------------------------------------- face_cluster
 
 /** Adjusted Rand index, noise (-1) counted as one label. */
@@ -513,6 +555,7 @@ async function checkPca() {
 
 const args = new Set(process.argv.slice(2));
 const all = args.size === 0;
+if (all || args.has("cv2")) await checkCv2();
 if (all || args.has("face")) {
   await checkPack("buffalo_sc");
   await checkEncodings();
