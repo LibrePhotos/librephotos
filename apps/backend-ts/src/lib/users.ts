@@ -22,15 +22,36 @@ export type User = Omit<typeof schema.apiUser.$inferSelect, "nextcloudAppPasswor
   lastModified: string;
 };
 
+// Prepared once: Drizzle's builder costs ~7 us per selected column on Bun,
+// ~0.35 ms for this 45-column row, and these run on every authenticated request.
+const byIdStmt = db
+  .select(userColumns)
+  .from(schema.apiUser)
+  .where(eq(schema.apiUser.id, sql.placeholder("id")))
+  .limit(1)
+  .prepare("lp_user_by_id");
+const byUsernameStmt = db
+  .select(userColumns)
+  .from(schema.apiUser)
+  .where(eq(schema.apiUser.username, sql.placeholder("username")))
+  .limit(1)
+  .prepare("lp_user_by_username");
+
 export async function userById(id: number, tx: Db | Tx = db): Promise<User | undefined> {
-  const r = await tx.select(userColumns).from(schema.apiUser).where(eq(schema.apiUser.id, id)).limit(1);
-  return r[0];
+  const r =
+    tx === db
+      ? await byIdStmt.execute({ id })
+      : await tx.select(userColumns).from(schema.apiUser).where(eq(schema.apiUser.id, id)).limit(1);
+  return r[0] as User | undefined;
 }
 
 /** Exact, case-sensitive username match (Django get_by_natural_key). */
 export async function userByUsername(username: string, tx: Db | Tx = db): Promise<User | undefined> {
-  const r = await tx.select(userColumns).from(schema.apiUser).where(eq(schema.apiUser.username, username)).limit(1);
-  return r[0];
+  const r =
+    tx === db
+      ? await byUsernameStmt.execute({ username })
+      : await tx.select(userColumns).from(schema.apiUser).where(eq(schema.apiUser.username, username)).limit(1);
+  return r[0] as User | undefined;
 }
 
 /** DRF IsAdminUser checks is_staff; the JWT is_admin claim is is_superuser. */
