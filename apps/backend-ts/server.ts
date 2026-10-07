@@ -16,7 +16,9 @@ const server = Bun.serve({
     const res = await handler.fetch(req);
     // A route without a handler for this method falls through to Start's
     // SSR renderer (an HTML 200). The API has no pages: answer like DRF.
-    if (res.headers.get("content-type")?.startsWith("text/html")) {
+    // Media refusals are empty text/html responses too (Django's default
+    // content type, Content-Length: 0); those are real answers.
+    if (res.headers.get("content-type")?.startsWith("text/html") && res.headers.get("content-length") !== "0") {
       const path = new URL(req.url).pathname;
       if (path.startsWith("/api/") || path.startsWith("/media/")) return ApiError.methodNotAllowed(req.method).toResponse();
     }
