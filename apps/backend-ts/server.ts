@@ -16,7 +16,8 @@ const server = Bun.serve({
     const res = await handler.fetch(req);
     // A route without a handler for this method falls through to Start's
     // SSR renderer (an HTML 200). The API has no pages: answer like DRF.
-    if (res.headers.get("content-type")?.startsWith("text/html")) {
+    // (Only a 200: the upload views answer Django's own HTML 404/400 pages.)
+    if (res.status === 200 && res.headers.get("content-type")?.startsWith("text/html")) {
       const path = new URL(req.url).pathname;
       if (path.startsWith("/api/") || path.startsWith("/media/")) return ApiError.methodNotAllowed(req.method).toResponse();
     }
