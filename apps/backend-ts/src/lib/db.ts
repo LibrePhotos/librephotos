@@ -19,7 +19,8 @@ export const client = new SQL({
   username: config.dbUser,
   password: config.dbPass,
   max: config.dbPool,
-  idleTimeout: 60,
+  // No idleTimeout: Bun 1.3 closes pooled connections that are about to be
+  // reused ("Idle timeout reached" on an in-flight query) after idle gaps.
   connection: { application_name: "librephotos-ts", TimeZone: "UTC" },
 });
 
