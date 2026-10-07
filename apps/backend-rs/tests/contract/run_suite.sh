@@ -24,9 +24,11 @@
 #                    DB_BACKEND=sqlite LP_SQLITE_PATH=<clone> (the suite
 #                    stops up front when `adopt` fails on a probe clone),
 #                    presql files use their *.sqlite.sql twins.
-#   LP_SUITE_RS      rust (default) or django: the server "under test" is a
-#                    second Django on its own clone. Django vs Django proves the
-#                    harness itself (every twin and state diff must be empty).
+#   LP_SUITE_RS      rust (default), ts or django: the server "under test".
+#                    ts = librephotos-ts (apps/backend-ts, Bun; `bun run build`
+#                    first; LP_TS_DIR overrides the app dir). django = a
+#                    second Django on its own clone: Django vs Django proves
+#                    the harness itself (every twin and state diff must be empty).
 #
 # The Rust server runs its job worker in-process, Django has no qcluster:
 # jobs a case starts run on the Rust clone only.
@@ -52,7 +54,8 @@ V="$(dirname "$(dirname "$LP_DJANGO_PY")")/Lib/site-packages"
 PFX="${LP_SUITE_DB_PREFIX:-lp_run_}"
 export LP_CLONE_PREFIXES="$PFX"
 SUT="${LP_SUITE_RS:-rust}"
-case "$SUT" in rust|django) ;; *) echo "LP_SUITE_RS must be rust or django" >&2; exit 2 ;; esac
+case "$SUT" in rust|django|ts) ;; *) echo "LP_SUITE_RS must be rust, ts or django" >&2; exit 2 ;; esac
+TS_DIR="${LP_TS_DIR:-$(cd "$RS_ROOT/../backend-ts" && pwd)}"
 if [ "$LP_DB_BACKEND" = sqlite ]; then
     export LP_MANIFEST="${LP_MANIFEST:-$(lp_win_path "$LP_FIXTURE_ROOT/manifest.json")}"
 fi
@@ -111,6 +114,9 @@ for p in "$REF_PORT" "$RS_PORT" "$MOCK_PORT"; do
         exit 2
     fi
 done
+if [ "$SUT" = ts ]; then
+    [ -f "$TS_DIR/dist/server/server.js" ] || { echo "no build in $TS_DIR/dist (bun run build)" >&2; exit 2; }
+fi
 if [ "$SUT" = rust ]; then
     [ -x "$BIN" ] || { echo "no binary at $BIN (cargo build --release -p lp-server)" >&2; exit 2; }
 fi
@@ -179,6 +185,10 @@ start_rust() {
         start_django "$db" "$media" "$mode" "$mock" "$RS_PORT"
         return
     fi
+    if [ "$SUT" = ts ]; then
+        start_ts "$@"
+        return
+    fi
     (
         export BASE_DATA="$(lp_win_path "$media")" BASE_LOGS="$(lp_win_path "$logs")"
         export PHOTOS="$BASE_DATA/data" SECRET_KEY="$LP_SECRET_KEY"
@@ -201,6 +211,30 @@ start_rust() {
         "$BIN" adopt >"$logs/adopt.log" 2>&1
         exec "$BIN" serve
     ) >"$logs/rust.log" 2>&1 &
+}
+
+# start_ts <db> <media> <mode> <log dir> [mock]: librephotos-ts on the Rust port.
+start_ts() {
+    local db="$1" media="$2" mode="$3" logs="$4" mock="${5:-}"
+    (
+        export BASE_DATA="$(lp_win_path "$media")" BASE_LOGS="$(lp_win_path "$logs")"
+        export PHOTOS="$BASE_DATA/data" SECRET_KEY="$LP_SECRET_KEY" TZ=UTC
+        export DB_NAME="$db" DB_USER="$LP_PG_USER" DB_PASS="$PGPASSWORD" DB_HOST="$LP_PG_HOST" DB_PORT="$LP_PG_PORT"
+        export LP_BIND="127.0.0.1:$RS_PORT" LP_MEDIA_MODE="$mode"
+        export LP_EXIFTOOL="$V/exiftool_bin/exiftool.exe" LP_FFMPEG="$V/ffmpeg_bin/bin/ffmpeg.exe"
+        export LP_FFPROBE="$V/ffmpeg_bin/bin/ffprobe.exe" LP_PYTHON="$(lp_win_path "$LP_DJANGO_PY")"
+        if [ -n "$mock" ]; then
+            for s in SIMILARITY FACE CLIP CAPTION TAGS OCR FACE_CLUSTER EXIF THUMBNAIL LLM; do export "LP_SIDECAR_${s}_URL=$MOCK"; done
+            export FEATURE_FACE_DETECTION=1 FEATURE_FACE_CLUSTER=1 FEATURE_IMAGE_CAPTIONING=1
+            export FEATURE_REVERSE_GEOCODING=0 FEATURE_SCENE_CLASSIFICATION=1
+        else
+            export FEATURE_FACE_DETECTION=0 FEATURE_FACE_CLUSTER=0 FEATURE_IMAGE_CAPTIONING=0
+            export FEATURE_REVERSE_GEOCODING=0 FEATURE_SCENE_CLASSIFICATION=0
+        fi
+        cd "$TS_DIR"
+        bun run src/cli.ts adopt >"$logs/adopt.log" 2>&1
+        exec bun run server.ts
+    ) >"$logs/ts.log" 2>&1 &
 }
 
 # start_django <db> <media> <mode> [mock] [port]

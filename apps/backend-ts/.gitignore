@@ -1,0 +1,5 @@
+node_modules
+dist
+.output
+*.log
+src/routeTree.gen.ts
