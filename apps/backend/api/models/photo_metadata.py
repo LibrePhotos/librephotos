@@ -120,13 +120,19 @@ def _description(values):
 
 
 def _merge_keywords(*values):
-    """Merge XMP:Subject / IPTC:Keywords entries, deduplicated and sorted."""
+    """Merge XMP:Subject / IPTC:Keywords entries as sorted, unique text."""
     merged = set()
     for value in values:
         if isinstance(value, list):
-            merged.update(value)
-        elif isinstance(value, str) and value:
-            merged.add(value)
+            entries = value
+        elif isinstance(value, str) and not value:
+            continue
+        else:
+            entries = [value]
+        for entry in entries:
+            text = entry if isinstance(entry, str) else _text_value(entry)
+            if text is not None:
+                merged.add(text)
     return sorted(merged)
 
 
