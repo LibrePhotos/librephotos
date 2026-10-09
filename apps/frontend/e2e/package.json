@@ -10,7 +10,7 @@
     "report": "playwright show-report"
   },
   "devDependencies": {
-    "@playwright/test": "1.63.0",
+    "@playwright/test": "1.64.0",
     "@types/node": "^22.0.0"
   }
 }
