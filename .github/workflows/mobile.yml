@@ -29,12 +29,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           # npm workspaces: install once at the repo root against the root
           # package-lock.json (apps/mobile + packages/* are workspaces).
-          node-version: '22'
+          # better-sqlite3 must stay >= 12 here: 11.x aborts jest workers on
+          # Node 24 (Statement destructor after env teardown).
+          node-version: '24'
           cache: npm
           cache-dependency-path: package-lock.json
       - name: Install (workspaces)
@@ -50,10 +52,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
-          node-version: '22'
+          node-version: '24'
           cache: npm
           cache-dependency-path: package-lock.json
       - name: Install (workspaces)
