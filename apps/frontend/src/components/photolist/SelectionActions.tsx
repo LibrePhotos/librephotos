@@ -25,7 +25,6 @@ import { useLocation } from "@tanstack/react-router";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useRemovePhotoFromUserAlbumMutation } from "../../api_client/albums/hooks";
-import { UserAlbum } from "../../api_client/albums/types";
 import { serverAddress } from "../../api_client/apiClient";
 import { useDownloadPhotosMutation } from "../../api_client/jobs";
 import {
@@ -36,7 +35,7 @@ import {
   useSetPhotosPublicMutation,
   type PhotoCategory,
 } from "../../api_client/photos/hooks";
-import type { BulkPhotoQuery, SelectionState } from "../../api_client/photos/types";
+import type { BulkPhotoQuery, PigPhoto, SelectionState } from "../../api_client/photos/types";
 import {
   useCreateManualStackMutation,
   useMergeStacksMutation,
@@ -47,7 +46,7 @@ import { copyToClipboard } from "../../util/util";
 import { ModalDownloadOptions } from "../modals/ModalDownloadOptions";
 
 type Props = {
-  selectedItems: UserAlbum[];
+  selectedItems: PigPhoto[];
   selectAllMode?: boolean;
   selectAllQuery?: BulkPhotoQuery;
   totalCount?: number;
@@ -60,6 +59,7 @@ type Props = {
   title: string;
   albumID?: number | string;
   ownerUsername?: string;
+  albumLocked?: boolean;
 };
 
 export function SelectionActions(props: Readonly<Props>) {
@@ -90,6 +90,7 @@ export function SelectionActions(props: Readonly<Props>) {
     albumID,
     onAddToAlbum,
     onAddTags,
+    albumLocked = false,
   } = props;
 
   // Helper to reset selection state after action
@@ -563,10 +564,10 @@ export function SelectionActions(props: Readonly<Props>) {
 
                   <Menu.Item
                     leftSection={<FileMinus />}
-                    disabled={!hasSelection || selectAllMode}
+                    disabled={!hasSelection || selectAllMode || albumLocked}
                     onClick={() => {
                       // Remove from album doesn't support selectAll mode
-                      if (!selectAllMode) {
+                      if (!selectAllMode && !albumLocked) {
                         removePhotosFromAlbum.mutate({
                           id: `${albumID ?? ""}`,
                           title,

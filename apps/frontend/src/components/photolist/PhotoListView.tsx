@@ -105,6 +105,7 @@ type Props = Readonly<{
   additionalSubHeader?: any;
   albumID?: string;
   ownerUsername?: string;
+  albumLocked?: boolean;
   emptyStateConfig?: EmptyStateConfig;
   // Query params for server-side select all
   photosetQuery?: BulkPhotoQuery;
@@ -139,6 +140,7 @@ function PhotoListViewComponent({
   additionalSubHeader = null,
   albumID,
   ownerUsername,
+  albumLocked = false,
   emptyStateConfig,
   photosetQuery,
   mediaType,
@@ -737,6 +739,7 @@ function PhotoListViewComponent({
                     totalCount={selectionState.totalCount || numberOfItems || idx2hash.length}
                     albumID={albumID}
                     ownerUsername={ownerUsername}
+                    albumLocked={albumLocked}
                     title={title}
                     setAlbumCover={(actionType, photoId) => {
                       // If photoId is provided (from modal), use it directly

@@ -1081,7 +1081,13 @@
     "albumalreadyexists": "Album {{name}} already exists.",
     "albumplaceholder": "Album title",
     "sharedWith": "Shared with:",
-    "albumIsPublic": "This album is public"
+    "albumIsPublic": "This album is public",
+    "albumActions": "Album actions",
+    "lockAlbum": "Lock album",
+    "unlockAlbum": "Unlock album",
+    "locked": "Locked",
+    "albumIsLocked": "This album is locked",
+    "lockedCannotAdd": "{{title}} is locked. Unlock it to add photos."
   },
   "personedit": {
     "labelfaces": "Label faces",

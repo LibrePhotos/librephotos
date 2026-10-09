@@ -34,6 +34,7 @@ class AlbumUserSerializer(serializers.ModelSerializer):
         fields = (
             "id",
             "title",
+            "locked",
             "owner",
             "shared_to",
             "date",
@@ -128,6 +129,7 @@ class AlbumUserEditSerializer(serializers.ModelSerializer):
             "photos",
             "created_on",
             "favorited",
+            "locked",
             "removedPhotos",
             "cover_photo",
             "select_all",
@@ -157,6 +159,7 @@ class AlbumUserEditSerializer(serializers.ModelSerializer):
             user = request.user
 
         # check if an album exists with the given title and call the update method if it does
+        # (update() refuses to change a locked album's photos)
         instance, created = AlbumUser.objects.get_or_create(title=title, owner=user)
         if not created:
             return self.update(instance, validated_data)
@@ -164,11 +167,32 @@ class AlbumUserEditSerializer(serializers.ModelSerializer):
         photo_pks = self._resolve_new_photo_pks(validated_data)
         if photo_pks:
             instance.photos.add(*photo_pks)
+        if "locked" in validated_data:
+            instance.locked = validated_data["locked"]
         instance.save()
         logger.info(f"Created user album {instance.id} with {len(photo_pks)} photos")
         return instance
 
     def update(self, instance, validated_data):
+        # A locked album is read-only for its photo set: adding or removing
+        # photos is refused unless the same request unlocks it. Renaming, cover
+        # changes and toggling the lock itself stay allowed. See issue #867.
+        if instance.locked and validated_data.get("locked", True):
+            if (
+                validated_data.get("removedPhotos")
+                or validated_data.get("photos")
+                or validated_data.get("select_all")
+            ):
+                raise serializers.ValidationError(
+                    {
+                        "locked": "This album is locked. "
+                        "Unlock it to add or remove photos."
+                    }
+                )
+
+        if "locked" in validated_data.keys():
+            instance.locked = validated_data["locked"]
+
         if "title" in validated_data.keys():
             title = validated_data["title"]
             instance.title = title
@@ -220,6 +244,7 @@ class AlbumUserListSerializer(serializers.ModelSerializer):
             "cover_photo",
             "created_on",
             "favorited",
+            "locked",
             "title",
             "shared_to",
             "owner",

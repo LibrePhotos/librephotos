@@ -58,6 +58,7 @@ function AlbumUserGallery() {
       isAlbumPubliclyShared={album?.public ?? false}
       albumID={albumID}
       ownerUsername={album?.owner.username}
+      albumLocked={album?.locked ?? false}
       mediaType={mediaType}
       selectable
     />

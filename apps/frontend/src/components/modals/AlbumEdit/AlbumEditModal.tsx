@@ -111,20 +111,27 @@ export function AlbumEditModal(props: Props) {
           {albumsUserList
             .filter(el => fuzzyMatch(newAlbumTitle, el.title))
             .map(item => (
-              <UnstyledButton
-                key={`ub-${item.id}`}
-                onClick={() => {
-                  addPhotoToUserAlbum.mutate({
-                    id: `${item.id}`,
-                    title: item.title,
-                    photos: selectAllMode ? [] : selectedImages.map(i => i.id),
-                    ...(selectAllMode ? selectAllFields : {}),
-                  });
-                  onRequestClose();
-                }}
-              >
-                <AlbumListItem album={item} showUpdatedTime />
-              </UnstyledButton>
+              <div key={`ub-${item.id}`}>
+                <UnstyledButton
+                  disabled={item.locked}
+                  aria-label={item.locked ? t("useralbum.lockedCannotAdd", { title: item.title }) : undefined}
+                  onClick={() => {
+                    if (item.locked) return;
+                    addPhotoToUserAlbum.mutate({
+                      id: `${item.id}`,
+                      title: item.title,
+                      photos: selectAllMode ? [] : selectedImages.map(i => i.id),
+                      ...(selectAllMode ? selectAllFields : {}),
+                    });
+                    onRequestClose();
+                  }}
+                >
+                  <Group gap="xs" wrap="nowrap">
+                    <AlbumListItem album={item} showUpdatedTime />
+                    {item.locked && <Badge color="gray">{t("useralbum.locked")}</Badge>}
+                  </Group>
+                </UnstyledButton>
+              </div>
             ))}
         </Stack>
       </Stack>

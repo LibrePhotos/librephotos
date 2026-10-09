@@ -220,7 +220,12 @@ function SharingExplore() {
               ))}
               {/* Show preview albums */}
               {previewAlbumsWithMe.map(album => (
-                <Link key={album.id} to={`/album/user/${album.id}`} className={classes.albumCard}>
+                <Link
+                  key={album.id}
+                  to="/album/user/$id"
+                  params={{ id: album.id.toString() }}
+                  className={classes.albumCard}
+                >
                   <div className={classes.albumCover}>
                     {album.cover_photo ? (
                       <Tile
@@ -312,7 +317,12 @@ function SharingExplore() {
               ))}
               {/* Show preview albums */}
               {previewAlbumsByMe.map(album => (
-                <Link key={album.id} to={`/album/user/${album.id}`} className={classes.albumCard}>
+                <Link
+                  key={album.id}
+                  to="/album/user/$id"
+                  params={{ id: album.id.toString() }}
+                  className={classes.albumCard}
+                >
                   <div className={classes.albumCover}>
                     {album.cover_photo ? (
                       <Tile
@@ -391,7 +401,7 @@ function SharingExplore() {
               {/* Show preview public albums */}
               {previewPublicAlbums.map(album => (
                 <div key={album.id} style={{ position: "relative" }}>
-                  <Link to={`/album/user/${album.id}`} className={classes.albumCard}>
+                  <Link to="/album/user/$id" params={{ id: album.id.toString() }} className={classes.albumCard}>
                     <div className={classes.albumCover}>
                       {album.cover_photo ? (
                         <Tile
