@@ -26,7 +26,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.14"
       - name: Build every win_amd64 wheel requirements.txt references by URL
         shell: python
         working-directory: apps/backend
