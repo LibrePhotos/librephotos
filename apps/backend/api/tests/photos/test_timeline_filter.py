@@ -153,6 +153,8 @@ class ResolveTimelineFilterTest(SimpleTestCase):
             {"apply_default": "1", "public": "true"},
             {"apply_default": "1", "public": "true", "username": "bob"},
             {"apply_default": "1", "username": "bob"},
+            # The date-album views answer ?public=false as a public view too.
+            {"apply_default": "1", "public": "false"},
         ):
             with self.subTest(params=params):
                 self.assertEqual(

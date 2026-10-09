@@ -9,10 +9,12 @@ category read-only, so the lightbox can show it.
 """
 
 import uuid
+from unittest.mock import patch
 
 from django.test import TestCase
 from rest_framework.test import APIClient
 
+from api.directory_watcher import processing_jobs
 from api.directory_watcher.processing_jobs import classify_media
 from api.models import PhotoOcr
 from api.models.album_thing import AlbumThing
@@ -150,12 +152,54 @@ class SetPhotosCategoryTest(TestCase):
             {"category": "photo", "image_hashes": [1, 2]},
             {"category": "photo", "select_all": True, "query": "all"},
             {"category": "photo", "select_all": True, "excluded_hashes": "x"},
+            {"category": "photo", "select_all": "true", "query": {}},
+            {"category": "photo", "select_all": True, "excluded_hashes": [None]},
             ["photo"],
         ):
             with self.subTest(body=body):
                 self.assertEqual(self._post(body).status_code, 400)
         photo.refresh_from_db()
         self.assertEqual(photo.category_source, "auto")
+
+    def test_videos_are_never_made_screenshots_or_documents(self):
+        video = create_test_photo(owner=self.user, video=True)
+        still = create_test_photo(owner=self.user, camera_model="Canon EOS")
+        for category in ("document", "screenshot"):
+            with self.subTest(category=category):
+                response = self._post(
+                    {
+                        "image_hashes": [video.image_hash, still.image_hash],
+                        "category": category,
+                    }
+                )
+                self.assertNotIn(video.image_hash, response.json()["updated_hashes"])
+                video.refresh_from_db()
+                self.assertEqual(
+                    (video.is_screenshot, video.is_document), (False, False)
+                )
+                self.assertEqual(video.category_source, "auto")
+
+        # Select-all "Mark as document" on the timeline leaves videos alone.
+        response = self._post({"select_all": True, "query": {}, "category": "document"})
+        video.refresh_from_db()
+        self.assertFalse(video.is_document)
+
+    def test_photo_clears_a_wrong_flag_on_a_video(self):
+        # A screen recording in a Screenshots/ folder is detected as one.
+        video = create_test_photo(owner=self.user, video=True, is_screenshot=True)
+        response = self._post({"image_hashes": [video.image_hash], "category": "photo"})
+        self.assertEqual(response.json()["updated_hashes"], [video.image_hash])
+        video.refresh_from_db()
+        self.assertFalse(video.is_screenshot)
+        self.assertEqual(video.category_source, "user")
+
+    def test_auto_takes_hashes_not_select_all(self):
+        photo = create_test_photo(owner=self.user)
+        self._post({"image_hashes": [photo.image_hash], "category": "photo"})
+        response = self._post({"select_all": True, "query": {}, "category": "auto"})
+        self.assertEqual(response.status_code, 400)
+        photo.refresh_from_db()
+        self.assertEqual(photo.category_source, "user")
 
     def test_anonymous_is_refused(self):
         photo = create_test_photo(owner=self.user)
@@ -217,7 +261,8 @@ class UserCategorySurvivesClassificationTest(TestCase):
             {"image_hashes": [photo.image_hash], "category": "photo"},
             format="json",
         )
-        classify_media(self.user, uuid.uuid4())
+        with patch.object(processing_jobs.db.connections, "close_all"):
+            classify_media(self.user, uuid.uuid4())
         photo.refresh_from_db()
         self.assertFalse(photo.is_screenshot)
         self.assertEqual(photo.category_source, "user")
@@ -232,7 +277,8 @@ class UserCategorySurvivesClassificationTest(TestCase):
             )
         photo.is_screenshot = False
         photo.save(update_fields=["is_screenshot"])
-        classify_media(self.user, uuid.uuid4())
+        with patch.object(processing_jobs.db.connections, "close_all"):
+            classify_media(self.user, uuid.uuid4())
         photo.refresh_from_db()
         self.assertTrue(photo.is_screenshot)
 
@@ -265,3 +311,18 @@ class PhotoDetailCategoryFieldsTest(TestCase):
         self.assertEqual(photo.category_source, "auto")
         self.assertFalse(photo.is_screenshot)
         self.assertFalse(photo.is_document)
+
+
+class ClassifyMediaKeepsScreenshotOnDocumentErrorTest(TestCase):
+    def test_document_lookup_failure_keeps_screenshot_update(self):
+        user = create_test_user()
+        photo = create_test_photo(owner=user)  # metadata-less PNG: a screenshot
+        with (
+            patch.object(processing_jobs.db.connections, "close_all"),
+            patch.object(
+                processing_jobs, "detect_document", side_effect=RuntimeError("boom")
+            ),
+        ):
+            classify_media(user, uuid.uuid4())
+        photo.refresh_from_db()
+        self.assertTrue(photo.is_screenshot)

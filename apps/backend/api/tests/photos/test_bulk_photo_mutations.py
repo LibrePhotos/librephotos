@@ -192,7 +192,22 @@ class BulkMutationMalformedBodyTest(TestCase):
                 {"image_hashes": ["abc"]},
                 {field: True, "image_hashes": "abc"},
                 {field: True, "select_all": True, "query": ["x"]},
+                # Strings are not read by truthiness: "false" would trash.
+                {field: "false", "image_hashes": ["abc"]},
+                {field: 1, "image_hashes": ["abc"]},
+                {field: True, "select_all": "false", "image_hashes": ["abc"]},
             ):
                 with self.subTest(url=url, body=body):
                     response = self.client.post(url, body, format="json")
                     self.assertEqual(response.status_code, 400)
+
+    def test_string_false_never_trashes(self):
+        photo = create_test_photos(number_of_photos=1, owner=self.user)[0]
+        response = self.client.post(
+            "/api/photosedit/setdeleted/",
+            {"image_hashes": [photo.image_hash], "deleted": "false"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 400)
+        photo.refresh_from_db()
+        self.assertFalse(photo.in_trashcan)

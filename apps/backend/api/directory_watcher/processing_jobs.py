@@ -402,13 +402,17 @@ def detect_media_category(photo: Photo) -> tuple[bool, bool | None]:
     """
     from api.screenshot_detection import classify
 
+    return classify(photo), detect_document(photo)
+
+
+def detect_document(photo: Photo) -> bool | None:
+    """The document detector's verdict, or ``None`` without an OCR row."""
     ocr = _get_photo_ocr(photo)
-    is_document = None
-    if ocr is not None:
-        is_document = classify_document(
-            ocr.text, ocr.text_area_fraction, _siglip_labels_for_photo(photo)
-        )
-    return classify(photo), is_document
+    if ocr is None:
+        return None
+    return classify_document(
+        ocr.text, ocr.text_area_fraction, _siglip_labels_for_photo(photo)
+    )
 
 
 def _derive_is_document(
@@ -517,6 +521,8 @@ def classify_media(user, job_id: UUID):
         user: The user whose photos to classify
         job_id: Job ID for tracking progress
     """
+    from api.screenshot_detection import classify
+
     lrj = LongRunningJob.get_or_create_job(
         user=user,
         job_type=LongRunningJob.JOB_CLASSIFY_MEDIA,
@@ -567,11 +573,14 @@ def classify_media(user, job_id: UUID):
             failed = False
             error = None
             try:
-                new_screenshot, new_document = detect_media_category(photo)
+                # Screenshot first and queued before the document lookup, so a
+                # failing OCR/tag lookup still keeps the screenshot update.
+                new_screenshot = classify(photo)
                 if new_screenshot != photo.is_screenshot:
                     photo.is_screenshot = new_screenshot
                     pending_screenshot.append(photo)
 
+                new_document = detect_document(photo)
                 if new_document is not None and new_document != photo.is_document:
                     photo.is_document = new_document
                     pending_document.append(photo)

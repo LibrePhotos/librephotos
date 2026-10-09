@@ -155,7 +155,10 @@ def _category_override(params, only_param, hide_param):
 
 def resolve_timeline_filter(user, params):
     """The filter for ``params`` (query params or a select-all ``query``)."""
-    public_view = parse_tristate(params.get("public")) or params.get("username")
+    # Read ``public`` exactly as the date-album views do (any non-empty value,
+    # "false" included, makes them a public view), so the default is never
+    # applied to a request they answer as public.
+    public_view = bool(params.get("public")) or bool(params.get("username"))
     base = (
         saved_default(user)
         if parse_tristate(params.get("apply_default")) and not public_view
