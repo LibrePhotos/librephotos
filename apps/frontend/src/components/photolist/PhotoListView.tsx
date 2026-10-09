@@ -279,17 +279,29 @@ function PhotoListViewComponent({
     setLocalHeaderSize(headerSize);
   }, [imageScale, textAlignment, headerSize]);
 
-  const debouncedSavePreferences = useDebouncedCallback((partial: Partial<User>) => {
-    if (userSelfDetails?.id) {
-      const newUserDetails = { ...userSelfDetails, ...partial };
-      updateUser.mutate(newUserDetails, {
-        context: { silent: true },
-        onSuccess: () => {
-          queryClient.invalidateQueries({ queryKey: UserSelfDetailsQueryKeys });
-        },
-      });
+  // Only the changed preferences are sent: echoing the whole profile back sent
+  // the avatar URL, which the backend rejects as "not a file" (#2153). Changes
+  // made within one debounce window are merged so none of them is dropped.
+  const pendingPreferences = useRef<Partial<User>>({});
+  const flushPreferences = useDebouncedCallback(() => {
+    const changes = pendingPreferences.current;
+    pendingPreferences.current = {};
+    const userId = userSelfDetails?.id;
+    if (userId) {
+      updateUser.mutate(
+        { id: userId, ...changes },
+        {
+          onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: UserSelfDetailsQueryKeys });
+          },
+        }
+      );
     }
   }, 500);
+  const debouncedSavePreferences = (partial: Partial<User>) => {
+    pendingPreferences.current = { ...pendingPreferences.current, ...partial };
+    flushPreferences();
+  };
 
   const handleThumbnailSizeChange = (value: number) => {
     setLocalImageScale(value);
