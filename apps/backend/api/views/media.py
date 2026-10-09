@@ -127,7 +127,7 @@ def build_live_command(path, transfer=None):
     # exactly that. Upscaling costs bandwidth and CPU to add nothing a viewer
     # can see. An HDR source needs tonemapping after it, or the browser reads a
     # PQ curve as bt709 and shows it washed out; see :mod:`api.video_color`.
-    command += video_color.h264_video_args(path, "scale=-2:'min(720,ih)'", transfer)
+    command += video_color.h264_video_args(path, video_color.PLAYBACK_SCALE, transfer)
 
     return command + ["-f", "mp4", "-"]
 

@@ -39,6 +39,12 @@ def geolocate_photo(photo, commit=True):
 
     The new coordinates are saved before the geocoder runs, so a geocoder
     failure still leaves them persisted.
+
+    Both saves write only the columns set here. The geolocation job runs from a
+    row loaded before the geocoder's network call, alongside other jobs on the
+    same photos -- Probe Videos among them -- and a whole-row save put back
+    whatever the rest of the row held when it was loaded, the video fields
+    that job had just filled in going back to empty.
     """
     old_gps_lat = photo.exif_gps_lat
     old_gps_lon = photo.exif_gps_lon
@@ -60,7 +66,7 @@ def geolocate_photo(photo, commit=True):
     photo.exif_gps_lon = float(new_gps_lon)
     photo.exif_gps_lat = float(new_gps_lat)
     if commit:
-        photo.save()
+        photo.save(update_fields=["exif_gps_lat", "exif_gps_lon", "last_modified"])
 
     res = _reverse_geocode_safely(new_gps_lat, new_gps_lon)
     if not res:
@@ -71,7 +77,7 @@ def geolocate_photo(photo, commit=True):
     _move_to_album_places(photo, old_album_places)
 
     if commit:
-        photo.save()
+        photo.save(update_fields=["geolocation_json", "last_modified"])
 
 
 def _has_current_geolocation(photo):

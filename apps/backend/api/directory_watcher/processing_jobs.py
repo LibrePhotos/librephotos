@@ -636,7 +636,10 @@ def probe_videos(user, job_id: UUID):
                     transcode_cache.discard(photo.image_hash)
                     thumbnail = getattr(photo, "thumbnail", None)
                     if thumbnail is not None:
-                        thumbnail._regenerate_thumbnails()
+                        # If ffmpeg fails, the old thumbnail stays: washed out
+                        # or not, it is the video's picture, and none at all
+                        # would be worse.
+                        thumbnail._regenerate_thumbnails(keep_old_on_failure=True)
             except Exception as err:
                 logger.exception("An error occurred: ")
                 error = (

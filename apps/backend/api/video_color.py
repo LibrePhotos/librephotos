@@ -86,6 +86,15 @@ _FALLBACK = "format=yuv420p"
 # where the chain already ends in yuv420p.
 _PIXEL_FORMAT = ["-pix_fmt", "yuv420p"]
 
+# The resize the live and the cached conversion share: 720 lines as a ceiling,
+# not a target, so that nothing shorter is enlarged. Rounded down to an even
+# height, because libx264 refuses an odd width or height in 4:2:0 -- and with
+# ``_PIXEL_FORMAT`` every conversion is 4:2:0 now, including the 4:2:2 and 4:4:4
+# sources whose odd sizes used to pass through untouched. The ``-2`` already
+# keeps the width even. An even height, which is nearly every video, comes out
+# exactly as before.
+PLAYBACK_SCALE = "scale=-2:'trunc(min(720,ih)/2)*2'"
+
 # What the tonemapped picture is. Without the tags the browser has to guess, and
 # the guess is bt709 only by convention.
 _BT709_TAGS = [

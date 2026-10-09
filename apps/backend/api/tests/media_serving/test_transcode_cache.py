@@ -115,7 +115,7 @@ class CommandTest(CacheDirectoryTestCase):
         # "scale=-2:720" enlarges anything shorter, which is most phone footage
         # and exactly the material that needs converting.
         command = transcode_cache.build_command("/in.mkv", "/out.part")
-        self.assertIn("scale=-2:'min(720,ih)'", command)
+        self.assertIn("scale=-2:'trunc(min(720,ih)/2)*2'", command)
 
     def test_the_cached_copy_is_encoded_more_carefully_than_the_live_one(self):
         # Nothing is waiting on this conversion, and ultrafast costs roughly

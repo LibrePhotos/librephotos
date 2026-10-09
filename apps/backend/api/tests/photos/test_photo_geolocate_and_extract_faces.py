@@ -23,7 +23,7 @@ from django.db.utils import IntegrityError
 from django.test import TestCase, override_settings
 
 from api.geocode.photo_location import geolocate_photo
-from api.models import Face, Person
+from api.models import Face, Person, Photo
 from api.models.album_place import AlbumPlace, get_album_place
 from api.models.cluster import UNKNOWN_CLUSTER_ID
 from api.models.photo_search import PhotoSearch
@@ -228,6 +228,49 @@ class GeolocateCharacterizationTest(TestCase):
 
         self.assertEqual(self.photo.exif_gps_lon, 13.4)
         self.assertIsNone(self.photo.geolocation_json)
+
+    # ---- concurrent writers ---------------------------------------------
+    #
+    # The geolocation job holds a row loaded before the geocoder's network
+    # call, while Probe Videos fills in the same photos' video fields.
+
+    def _probed_meanwhile(self):
+        held_by_job = Photo.objects.get(pk=self.photo.pk)
+        Photo.objects.filter(pk=self.photo.pk).update(
+            video_color_transfer="smpte2084", video_pixel_format="yuv420p10le"
+        )
+        return held_by_job
+
+    @patch("api.geocode.photo_location.reverse_geocode", return_value=GEO_RESULT)
+    @patch("api.geocode.photo_location.get_metadata", return_value=(52.5, 13.4))
+    def test_a_video_probed_while_the_job_held_the_row_keeps_its_fields(
+        self, _meta, _rev
+    ):
+        geolocate_photo(self._probed_meanwhile())
+        self.photo.refresh_from_db()
+
+        self.assertEqual(self.photo.video_color_transfer, "smpte2084")
+        self.assertEqual(self.photo.video_pixel_format, "yuv420p10le")
+        self.assertEqual(self.photo.exif_gps_lat, 52.5)
+        self.assertEqual(self.photo.geolocation_json, GEO_RESULT)
+
+    @patch("api.geocode.photo_location.reverse_geocode", return_value={})
+    @patch("api.geocode.photo_location.get_metadata", return_value=(52.5, 13.4))
+    def test_the_coordinates_alone_do_not_overwrite_it_either(self, _meta, _rev):
+        geolocate_photo(self._probed_meanwhile())
+        self.photo.refresh_from_db()
+
+        self.assertEqual(self.photo.video_color_transfer, "smpte2084")
+        self.assertEqual(self.photo.exif_gps_lon, 13.4)
+
+    @patch("api.geocode.photo_location.reverse_geocode", return_value=GEO_RESULT)
+    @patch("api.geocode.photo_location.get_metadata", return_value=(52.5, 13.4))
+    def test_geolocating_still_tells_the_sync_feed(self, _meta, _rev):
+        before = Photo.objects.get(pk=self.photo.pk).last_modified
+
+        geolocate_photo(Photo.objects.get(pk=self.photo.pk))
+
+        self.assertGreater(Photo.objects.get(pk=self.photo.pk).last_modified, before)
 
     # ---- commit flag ---------------------------------------------------
 
