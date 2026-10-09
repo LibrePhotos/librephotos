@@ -11,7 +11,7 @@ type IJobDuration = Readonly<{
   startedAt: string | null;
 }>;
 
-export function JobDuration({ matches, finished, finishedAt, startedAt }: IJobDuration): JSX.Element | null {
+export function JobDuration({ matches, finished, finishedAt, startedAt }: IJobDuration): React.JSX.Element | null {
   const { t } = useTranslation();
 
   if (matches) {

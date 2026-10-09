@@ -75,7 +75,7 @@ export function CountStats() {
   const { data: countStats = COUNT_STATS_DEFAULTS } = useFetchCountStatsQuery();
 
   return (
-    <Grid gutter="xs">
+    <Grid gap="xs">
       {/* Photos & Days combined */}
       <Grid.Col span={{ base: 6, sm: 6, md: 3 }}>
         <Card withBorder p="xs">

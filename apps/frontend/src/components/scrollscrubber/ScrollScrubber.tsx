@@ -1,5 +1,5 @@
 import { Badge, Box, Group, useComputedColorScheme, useMantineTheme } from "@mantine/core";
-import { useElementSize, useMediaQuery } from "@mantine/hooks";
+import { useElementSize, useMediaQuery, useMergedRef } from "@mantine/hooks";
 import { debounce, deburr, throttle } from "lodash-es";
 import { DateTime } from "luxon";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -17,8 +17,11 @@ type Props = Readonly<{
 }>;
 
 export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY, children }: Props) {
-  // ref and size of scrollscrubber
-  const { ref, width, height } = useElementSize();
+  // ref and size of scrollscrubber. Mantine 9's useElementSize hands back a
+  // ref callback rather than a ref object, so keep our own handle on the node.
+  const { ref: sizeRef, width, height } = useElementSize<HTMLDivElement>();
+  const ref = useRef<any>(null);
+  const scrubberRef = useMergedRef(sizeRef, ref);
   const scrollerVisibilityTimerRef: { current: NodeJS.Timeout | null } = useRef(null);
   const matches = useMediaQuery("(min-width: 700px)");
   const [scrollerIsVisible, setScrollerIsVisible] = useState(false);
@@ -451,7 +454,7 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
         }}
       />
       <Box
-        ref={ref}
+        ref={scrubberRef}
         className="scrollscrubber"
         style={{
           opacity: scrollerIsVisible ? 1 : 0,

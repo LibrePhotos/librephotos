@@ -57,7 +57,7 @@ export interface LocationState {
   };
 }
 
-function LoginPage(): JSX.Element {
+function LoginPage(): React.JSX.Element {
   const colorScheme = useComputedColorScheme("dark");
   const { t } = useTranslation();
   const { data: isAuthenticated } = useIsAuthenticatedQuery();
@@ -216,7 +216,7 @@ export type FirstTimeSetupProps = {
   onComplete?: () => void;
 };
 
-function FirstTimeSetupPage({ onComplete }: FirstTimeSetupProps): JSX.Element {
+function FirstTimeSetupPage({ onComplete }: FirstTimeSetupProps): React.JSX.Element {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { mutate: signup, isPending: isSignupPending } = useSignUpMutation();
@@ -527,7 +527,7 @@ function FirstTimeSetupPage({ onComplete }: FirstTimeSetupProps): JSX.Element {
   );
 }
 
-function Login(): JSX.Element {
+function Login(): React.JSX.Element {
   const { data: isFirstTimeSetup, isLoading } = useIsFirstTimeSetupQuery();
   const [firstTimeFlow, setFirstTimeFlow] = useState(false);
 

@@ -19,7 +19,7 @@ export const Route = createFileRoute("/_protected/album/persons/$id")({
   validateSearch: validateMediaSearch,
 });
 
-function AlbumPersonGallery(): JSX.Element {
+function AlbumPersonGallery(): React.JSX.Element {
   const { id } = Route.useParams();
   const { t } = useTranslation();
   const mediaType = useMediaTypeFilter();

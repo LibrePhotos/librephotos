@@ -37,7 +37,7 @@ const NEEDS_HOST = new Set(["custom", "ses"]);
 // Providers that expose the full advanced SMTP fields (port / TLS / SSL).
 const IS_CUSTOM = (provider: string) => provider === "custom";
 
-export function EmailSettings(): JSX.Element {
+export function EmailSettings(): React.JSX.Element {
   const { t } = useTranslation();
   const { data: config, isLoading } = useGetEmailConfigQuery();
   const { mutate: save, isPending: isSaving } = useUpdateEmailConfigMutation();

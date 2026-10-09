@@ -46,7 +46,7 @@ export function Profile() {
     editorRef = ref;
   };
 
-  let dropzoneRef = React.useRef<DropzoneRef>();
+  let dropzoneRef = React.useRef<DropzoneRef | null>(null);
 
   const urlToFile = async (url: string, filename: string, mimeType = undefined) => {
     const type = mimeType || (url.match(/^data:([^;]+);/) || "")[1];

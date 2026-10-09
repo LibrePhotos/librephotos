@@ -1,7 +1,7 @@
 import { Carousel } from "@mantine/carousel";
 import "@mantine/carousel/styles.css";
 import { Modal, Stack } from "@mantine/core";
-import { useFullscreen, useHotkeys } from "@mantine/hooks";
+import { useFullscreenDocument, useHotkeys } from "@mantine/hooks";
 import { useGesture } from "@use-gesture/react";
 import { AnimatePresence, motion } from "motion/react";
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -76,7 +76,9 @@ export function ContentViewer({
 
   // Fullscreen support
   const contentRef = useRef<HTMLDivElement>(null);
-  const { toggle: toggleFullscreen, fullscreen: isFullscreen } = useFullscreen(contentRef);
+  // Mantine 8's useFullscreen() took no argument (contentRef was ignored) and
+  // fullscreened the whole document; keep that with its Mantine 9 successor.
+  const { toggle: toggleFullscreen, fullscreen: isFullscreen } = useFullscreenDocument();
 
   // Fetch user settings for default slideshow interval (skip on public pages)
   const { data: userSelfDetails } = useCurrentUserSelfDetailsQuery(isPublic);

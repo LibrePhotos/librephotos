@@ -5,9 +5,8 @@
  * is not enough there. Everything it can play is served as it is, at full
  * resolution, and falls back to a conversion only if it fails after all.
  */
-import React from "react";
+import React, { act } from "react";
 import { createRoot } from "react-dom/client";
-import { act } from "react-dom/test-utils";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { MediaDisplay } from "./MediaDisplay";
 

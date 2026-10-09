@@ -82,7 +82,7 @@ function PhotoInfoSection({
 
       {/* File variants shown when toggled */}
       {hasVariants && (
-        <Collapse in={showVariants}>
+        <Collapse expanded={showVariants}>
           <Stack gap={4} ml="xl" mt="xs">
             {nonMainVariants.map(variant => {
               const { color, label } = getVariantBadgeProps(variant);
@@ -222,7 +222,7 @@ export function VersionComponent(props: Readonly<{ photoDetail: PhotoType; isPub
         <CameraInfoSection photoDetail={photoDetail} />
 
         {/* Expanded information section */}
-        <Collapse in={showMore}>
+        <Collapse expanded={showMore}>
           <Stack>
             {/* Additional photo metadata */}
             <AdditionalInfoSection photoDetail={photoDetail} isPublic={isPublic} t={t} />

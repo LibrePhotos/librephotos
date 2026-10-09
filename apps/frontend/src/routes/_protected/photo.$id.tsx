@@ -123,7 +123,7 @@ function SinglePhotoView() {
           </Box>
 
           {/* Details Section */}
-          <Grid gutter={isMobile ? "xs" : "md"}>
+          <Grid gap={isMobile ? "xs" : "md"}>
             {/* Left Column - Main Information */}
             <Grid.Col span={isMobile ? 12 : 6}>
               <Stack gap={isMobile ? "xs" : "md"}>
