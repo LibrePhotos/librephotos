@@ -45,7 +45,7 @@ const IS_CUSTOM = (provider: string) => provider === "custom";
 const LABEL_SPAN = { base: 12, sm: 8 };
 const CONTROL_SPAN = { base: 12, sm: 4 };
 
-export function EmailSettings(): JSX.Element {
+export function EmailSettings(): React.JSX.Element {
   const { t } = useTranslation();
   const { data: config, isLoading } = useGetEmailConfigQuery();
   const { mutate: save, isPending: isSaving } = useUpdateEmailConfigMutation();

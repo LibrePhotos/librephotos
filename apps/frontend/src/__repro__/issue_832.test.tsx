@@ -21,9 +21,8 @@
 import { MantineProvider } from "@mantine/core";
 import i18n from "i18next";
 import { Settings } from "luxon";
-import React from "react";
+import React, { act } from "react";
 import { createRoot } from "react-dom/client";
-import { act } from "react-dom/test-utils";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { TimestampItem } from "../components/lightbox/TimestampItem";
 

@@ -78,7 +78,7 @@ export function CountStats() {
   // Cards fill their grid cell (h="100%") so the row reads as one band even
   // where a card has no second line or its label wraps.
   return (
-    <Grid gutter="xs">
+    <Grid gap="xs">
       {/* Photos & Days combined */}
       <Grid.Col span={{ base: 6, sm: 6, md: 3 }}>
         <Card withBorder p="xs" h="100%">

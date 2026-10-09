@@ -1,6 +1,6 @@
 import { Carousel, type CarouselProps } from "@mantine/carousel";
 import { Modal, Stack } from "@mantine/core";
-import { useFullscreen, useHotkeys } from "@mantine/hooks";
+import { useFullscreenDocument, useHotkeys } from "@mantine/hooks";
 import { useGesture } from "@use-gesture/react";
 import { AnimatePresence, motion } from "motion/react";
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -116,10 +116,10 @@ export function ContentViewer({
   const [slideshowProgress, setSlideshowProgress] = useState(0);
 
   const contentRef = useRef<HTMLDivElement>(null);
-  // Fullscreen support. Mantine 8's hook takes no element: with its ref left
-  // unattached it toggles the whole document, as it always has here (the
-  // contentRef this used to be handed was ignored).
-  const { toggle: toggleFullscreen, fullscreen: isFullscreen } = useFullscreen<HTMLDivElement>();
+  // Fullscreen support. The whole document goes fullscreen, as it always has
+  // here: Mantine 8's useFullscreen() took no element (the contentRef this used
+  // to be handed was ignored), and useFullscreenDocument is its Mantine 9 successor.
+  const { toggle: toggleFullscreen, fullscreen: isFullscreen } = useFullscreenDocument();
 
   // Fetch user settings for default slideshow interval (skip on public pages)
   const { data: userSelfDetails } = useCurrentUserSelfDetailsQuery(isPublic);

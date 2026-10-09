@@ -307,7 +307,7 @@ export function Library() {
                     </Text>
                   )}
                   {/* In the description column, so the collapsed help adds no gap to the rows. */}
-                  <Collapse in={isScanHelpOpen} id="scan-library-help">
+                  <Collapse expanded={isScanHelpOpen} id="scan-library-help">
                     <Stack gap={0} mt="xs">
                       <Text>{t("settings.scanhelpheading")}</Text>
                       <List>

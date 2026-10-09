@@ -6,9 +6,8 @@
  * resolution, and falls back to a conversion only if it fails after all.
  * A photo's alt text is its caption or file name, never "Main Content".
  */
-import React from "react";
+import React, { act } from "react";
 import { createRoot } from "react-dom/client";
-import { act } from "react-dom/test-utils";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { defined } from "../../util/defined.test-utils";
 import { MediaDisplay, type MediaDisplayDetails } from "./MediaDisplay";

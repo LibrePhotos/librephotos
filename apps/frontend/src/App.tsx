@@ -1,4 +1,4 @@
-import { createTheme, MantineProvider, Modal, PasswordInput, useMatches } from "@mantine/core";
+import { createTheme, MantineProvider, Modal, PasswordInput, useMatches, v8CssVariablesResolver } from "@mantine/core";
 import { DatesProvider } from "@mantine/dates";
 import { Notifications, type NotificationsProps } from "@mantine/notifications";
 import "@mantine/notifications/styles.css";
@@ -36,6 +36,11 @@ declare module "@tanstack/react-router" {
 }
 
 const theme = createTheme({
+  // Mantine 9 changed two defaults that restyle the whole app: the default radius
+  // went from sm to md, and light variants use solid colours instead of
+  // transparent ones (v8CssVariablesResolver below). Keep the Mantine 8 look
+  // until the UI is reviewed for 9.
+  defaultRadius: "sm",
   components: {
     // PasswordInput has no default size, so its text fell back to 16px next to
     // the 14px of every TextInput in the same form.
@@ -65,6 +70,8 @@ function AppNotifications() {
       position={position}
       autoClose={3000}
       zIndex={1001}
+      // Mantine 9 pauses every toast when one is hovered; keep 8's per-toast pause.
+      pauseResetOnHover="notification"
       classNames={{ root: notificationClasses.notifications }}
       // Applied to every position's container; only the top ones read it.
       style={{ "--app-notifications-top": `${TOP_MENU_HEIGHT + 8}px` }}
@@ -94,7 +101,7 @@ export function App() {
   // No ColorSchemeScript here: React never runs a <script> it renders, so the
   // equivalent inline script lives in index.html's <head>.
   return (
-    <MantineProvider defaultColorScheme="auto" theme={theme}>
+    <MantineProvider defaultColorScheme="auto" theme={theme} cssVariablesResolver={v8CssVariablesResolver}>
       <AppNotifications />
       <LocalizedDatesProvider>
         <RouterProvider router={router} />

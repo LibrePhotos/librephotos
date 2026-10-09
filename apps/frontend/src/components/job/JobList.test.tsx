@@ -14,9 +14,8 @@
  *     where the card clipped them.
  */
 import { MantineProvider } from "@mantine/core";
-import React from "react";
+import React, { act } from "react";
 import { createRoot } from "react-dom/client";
-import { act } from "react-dom/test-utils";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { useCancelJobMutation, useDeleteJobMutation } from "../../api_client/jobs/hooks";
 import i18n from "../../i18n";

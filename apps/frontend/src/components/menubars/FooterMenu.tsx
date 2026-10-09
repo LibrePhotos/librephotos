@@ -18,7 +18,7 @@ import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useC
 import { useAuth } from "../../hooks/useAuth";
 import { getNavigationItems, isNavItemActive } from "./navigation";
 
-export function FooterMenu(): JSX.Element {
+export function FooterMenu(): React.JSX.Element {
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const { pathname } = useLocation();

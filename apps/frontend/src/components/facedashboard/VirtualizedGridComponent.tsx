@@ -14,7 +14,7 @@ import classes from "./VirtualizedGridComponent.module.css";
 
 interface VirtualizedGridComponentProps {
   containerRef: React.Ref<HTMLDivElement>;
-  gridRef: React.RefObject<VirtualGridHandle>;
+  gridRef: React.RefObject<VirtualGridHandle | null>;
   entrySquareSize: number;
   numEntrySquaresPerRow: number;
   gridHeight: number;
