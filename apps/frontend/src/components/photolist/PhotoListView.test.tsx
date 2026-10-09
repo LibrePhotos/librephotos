@@ -271,3 +271,26 @@ describe("PhotoListView display preferences", () => {
     expect(userHooks.mutate.mock.calls[0][0]).toEqual({ id: 1, text_alignment: "left", header_size: "small" });
   });
 });
+
+describe("PhotoListView header actions", () => {
+  // The main timeline's Filter button refetches the view on every toggle; an
+  // open filter popover closed under the pointer when the toolbar unmounted
+  // for the reload (issue #2130).
+  it("keeps headerActions mounted while the view reloads", async () => {
+    let mounts = 0;
+    function Probe() {
+      React.useEffect(() => {
+        mounts += 1;
+      }, []);
+      return <span data-testid="filter-button" />;
+    }
+    const el = await render({ headerActions: <Probe /> });
+    expect(el.querySelector('[data-testid="filter-button"]')).not.toBeNull();
+
+    await render({ headerActions: <Probe />, loading: true });
+    expect(el.querySelector('[data-testid="filter-button"]')).not.toBeNull();
+    await render({ headerActions: <Probe />, loading: false, photoset: [], idx2hash: [] });
+    expect(el.querySelector('[data-testid="filter-button"]')).not.toBeNull();
+    expect(mounts).toBe(1);
+  });
+});

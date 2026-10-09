@@ -542,6 +542,13 @@ function PhotoListViewComponent({
   // Use live prop length so UI reflects data availability immediately on load
   const getNumPhotos = () => (idx2hash ? idx2hash.length : 0);
   const isUserAlbum = location.pathname.startsWith("/album/user/");
+  // headerActions stay mounted while the view reloads: changing the timeline
+  // filter refetches, and an open filter popover must not close under the
+  // pointer. The other controls wait for the photos.
+  const showHeaderToolbar =
+    !isPublic &&
+    !isFirstTimeSetup &&
+    (!!headerActions || (!isLoading && (getNumPhotos() > 0 || mediaType !== undefined)));
 
   return (
     <RemoveScroll enabled={lightboxOpen}>
@@ -571,7 +578,7 @@ function PhotoListViewComponent({
               hasEmptyState={!!emptyStateConfig && !isFirstTimeSetup}
               isPublic={isPublic}
             />
-            {!isLoading && !isPublic && (getNumPhotos() > 0 || mediaType !== undefined || !!headerActions) && (
+            {showHeaderToolbar && (
               <Box
                 style={{
                   position: "absolute",
@@ -583,9 +590,9 @@ function PhotoListViewComponent({
                 <Group gap="xs">
                   {/* The media-type filter stays visible even when the current
                       filter yields no photos, so the user is never trapped. */}
-                  {mediaType !== undefined && <MediaTypeSelector />}
+                  {!isLoading && mediaType !== undefined && <MediaTypeSelector />}
                   {headerActions}
-                  {getNumPhotos() > 0 && isAlbumPubliclyShared && isUserAlbum && (
+                  {!isLoading && getNumPhotos() > 0 && isAlbumPubliclyShared && isUserAlbum && (
                     <Tooltip label={t("sidemenu.sharing")} position="bottom">
                       <ActionIcon
                         variant="subtle"
@@ -602,7 +609,7 @@ function PhotoListViewComponent({
                       </ActionIcon>
                     </Tooltip>
                   )}
-                  {getNumPhotos() > 0 && (
+                  {!isLoading && getNumPhotos() > 0 && (
                     <Menu shadow="md" width={200} position="bottom-end">
                       <Menu.Target>
                         <Tooltip label={t("photodisplay.settings")} position="bottom">

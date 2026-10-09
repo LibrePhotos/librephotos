@@ -97,6 +97,8 @@ export function CategorySection({ photoDetail }: Props) {
           showNotification({
             id,
             color: "teal",
+            // Long enough to reach the Undo button; the app default is 3 s.
+            autoClose: 10000,
             title: t("toasts.setcategorytitle"),
             message: (
               <Group justify="space-between" wrap="nowrap">
