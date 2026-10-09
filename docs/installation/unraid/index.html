@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.a1e92a76.css">
-<script src="/assets/js/runtime~main.f6bc2627.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.7d00975f.js" defer="defer"></script>
 <script src="/assets/js/main.bd7a7c03.js" defer="defer"></script>
 </head>
 <body>
@@ -50,6 +50,7 @@
 <div class="language-bash codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_QJqH"><pre tabindex="0" class="prism-code language-bash codeBlock_bY9V thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_e6Vv"><div class="token-line" style="color:#393A34"><span class="token function" style="color:#d73a49">docker-compose</span><span class="token plain"> down</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token function" style="color:#d73a49">docker-compose</span><span class="token plain"> pull</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token function" style="color:#d73a49">docker-compose</span><span class="token plain"> up </span><span class="token parameter variable" style="color:#36acaa">-d</span><br></div></code></pre></div></div>
 <p>Running <code>docker-compose pull</code> on its own only downloads the new images; the containers keep running the old ones until they are recreated, so pull the images and then bring the stack back up.</p>
 <p>If your install is on 2025w44 or older, go through release 1.1.0 first; see <a class="" href="/docs/installation/upgrading#old-releases">Upgrading from a release older than 2026w10</a>.</p>
+<p>Coming from 1.2.1 or older, run the thumbnail cleanup once after the update; see <a class="" href="/docs/installation/upgrading#strip-thumbnail-metadata">After upgrading from 1.2.1 or older</a>.</p>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="docker-compose-issues-when-rebooting">docker-compose issues when rebooting<a href="#docker-compose-issues-when-rebooting" class="hash-link" aria-label="Direct link to docker-compose issues when rebooting" title="Direct link to docker-compose issues when rebooting" translate="no">​</a></h2>
 <p>After a reboot, docker-compose is not installed anymore, since unRAID loads everything from ram. Someone created a Docker Compose Manager app in the Apps catalog for unRAID. This makes sure docker-compose is installed every time you reboot unRAID, and they are currently working on a Web GUI.</p>
 <p>Thanks to <a href="https://old.reddit.com/user/Tusc00" target="_blank" rel="noopener noreferrer" class="">u/Tusc00</a> and Martijn (Spiek90) for this <a href="https://old.reddit.com/r/unRAID/comments/knaniy/librephotos/goeyy4l/" target="_blank" rel="noopener noreferrer" class="">write-up</a>!</p>

@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.a1e92a76.css">
-<script src="/assets/js/runtime~main.f6bc2627.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.7d00975f.js" defer="defer"></script>
 <script src="/assets/js/main.bd7a7c03.js" defer="defer"></script>
 </head>
 <body>
@@ -36,7 +36,7 @@ In the top right corner of the web interface, there is an upload button. Clickin
 <p>The upload behavior depends on whether the user has a scan directory configured:</p>
 <h4 class="anchor anchorTargetStickyNavbar_Vzrq" id="when-scan-directory-is-properly-configured">When scan directory is properly configured:<a href="#when-scan-directory-is-properly-configured" class="hash-link" aria-label="Direct link to When scan directory is properly configured:" title="Direct link to When scan directory is properly configured:" translate="no">​</a></h4>
 <ul>
-<li class="">Files are saved to: <code>{scan_directory}/uploads/web/{filename}</code></li>
+<li class="">Files are saved to: <code>{scan_directory}/uploads/web/{filename}</code>, also when the mobile app backs them up</li>
 <li class="">This is the normal and expected behavior</li>
 <li class="">Files are stored in the mounted host directory and are persistent</li>
 <li class="">An admin can point a user&#x27;s uploads at a different folder with the <strong>Upload folder</strong> field in the user edit dialog (see <a class="" href="/docs/user-guide/managing-users#upload-folder">Managing users</a>). Files then go to <code>{upload folder}/web/{filename}</code> instead.</li>
@@ -68,7 +68,7 @@ In the top right corner of the web interface, there is an upload button. Clickin
 <p>After upload, you can scan the uploaded photos in two ways:</p>
 <ol>
 <li class=""><strong>Automatic scanning</strong>: The upload process automatically triggers processing for the uploaded photo</li>
-<li class=""><strong>Manual scanning</strong>: You can manually scan all uploaded photos by going to the Library page and clicking the scan button</li>
+<li class=""><strong>Manual scanning</strong>: You can manually scan all uploaded photos by going to the Library page and clicking the scan button. That scan covers your scan directory, so it does not reach an upload folder an admin set outside it.</li>
 </ol>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="troubleshooting">Troubleshooting<a href="#troubleshooting" class="hash-link" aria-label="Direct link to Troubleshooting" title="Direct link to Troubleshooting" translate="no">​</a></h3>
 <h4 class="anchor anchorTargetStickyNavbar_Vzrq" id="upload-button-is-greyed-out">Upload button is greyed out<a href="#upload-button-is-greyed-out" class="hash-link" aria-label="Direct link to Upload button is greyed out" title="Direct link to Upload button is greyed out" translate="no">​</a></h4>

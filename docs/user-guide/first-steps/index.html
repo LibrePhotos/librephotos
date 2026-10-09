@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.a1e92a76.css">
-<script src="/assets/js/runtime~main.f6bc2627.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.7d00975f.js" defer="defer"></script>
 <script src="/assets/js/main.bd7a7c03.js" defer="defer"></script>
 </head>
 <body>
@@ -43,10 +43,6 @@
 <p>This is where you tell LibrePhotos where your photos are stored:</p>
 <ol>
 <li class="">
-<p><strong>Stack RAW+JPEG pairs</strong> (on by default) – Leave this on to have RAW files automatically grouped with their JPEG counterparts during scans. Both files remain in your library. Turn it off if you want RAW and JPEG versions to appear as separate photos.</p>
-<p>You can change this later under your avatar (top right) &gt; <code>Library</code>.</p>
-</li>
-<li class="">
 <p><strong>Scan Directory</strong> – Select or type the path to your photos folder. If you haven&#x27;t modified the default <code>docker-compose.yml</code>, your photos are under <code>/data</code>, which corresponds to the folder you configured as <code>scanDirectory</code> in your <code>.env</code> file.</p>
 <p>If you will be the only user, <code>/data</code> itself is fine. If you plan to add more users later, pick a subfolder for yourself instead, for example <code>/data/admin</code> (create it on the host first). Scan directories of different users cannot overlap, so once your account scans <code>/data</code> itself, no other user can be given a folder under it. See <a class="" href="/docs/user-guide/managing-users">Managing users</a>.</p>
 <p>The directory picker shows a visual tree of available folders that you can click to select, or you can type the path directly.</p>
@@ -56,6 +52,7 @@
 </li>
 </ol>
 <p>Once complete, you&#x27;ll be taken to the main LibrePhotos interface and your first scan will begin automatically if you configured a scan directory.</p>
+<p>If you shoot RAW+JPEG, the scan keeps the two files of a shot together as one photo with a RAW variant when they are in the same folder and have the same name. See <a class="" href="/docs/user-guide/stacks-and-file-variants#rawjpeg-pairs">Stacks &amp; file variants</a>.</p>
 <hr>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="after-setup">After Setup<a href="#after-setup" class="hash-link" aria-label="Direct link to After Setup" title="Direct link to After Setup" translate="no">​</a></h2>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="understanding-scan-directories">Understanding Scan Directories<a href="#understanding-scan-directories" class="hash-link" aria-label="Direct link to Understanding Scan Directories" title="Direct link to Understanding Scan Directories" translate="no">​</a></h3>

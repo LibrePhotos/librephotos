@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.a1e92a76.css">
-<script src="/assets/js/runtime~main.f6bc2627.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.7d00975f.js" defer="defer"></script>
 <script src="/assets/js/main.bd7a7c03.js" defer="defer"></script>
 </head>
 <body>
@@ -80,7 +80,9 @@ to be on. That switch is the authoritative setting; the <code>ALLOW_UPLOAD</code
 environment variable only supplies its initial default (see
 <a class="" href="/docs/installation/environment-variables">Environment variables</a>).</li>
 <li class=""><strong>Your account needs a Scan Directory</strong> that exists on the server. Uploaded
-files are saved under it. See
+files are saved in its <code>uploads/web/</code> folder, or in the <code>web/</code> folder inside
+the upload folder an admin set for you (see
+<a class="" href="/docs/user-guide/managing-users#upload-folder">Upload folder</a>). See
 <a class="" href="/docs/user-guide/first-steps#how-to-change-your-scan-directory">How to Change Your Scan Directory</a>.</li>
 </ul>
 <p>If either is missing, the server rejects the upload.</p>
