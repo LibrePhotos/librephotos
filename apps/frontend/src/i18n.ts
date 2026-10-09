@@ -1,6 +1,5 @@
 import i18n, { type BackendModule, type ResourceKey } from "i18next";
 import LanguageDetector from "i18next-browser-languagedetector";
-import { DateTime } from "luxon";
 import { initReactI18next } from "react-i18next";
 import translationEn from "./locales/en/translation.json";
 
@@ -78,13 +77,6 @@ export const i18nReady = i18n
     debug: process.env.NODE_ENV === "development",
     fallbackLng: "en",
     interpolation: {
-      format: (value, format, lng) => {
-        if (value instanceof Date) {
-          // @ts-ignore
-          return DateTime.fromJSDate(value).setLocale(lng).toLocaleString(DateTime[format]);
-        }
-        return value;
-      },
       escapeValue: false,
     },
   });
