@@ -132,6 +132,7 @@
     "vitest": "^3.2.4"
   },
   "resolutions": {
-    "react-i18next": "^15.7.4"
+    "react-i18next": "^15.7.4",
+    "nwsapi": "2.2.13"
   }
 }
