@@ -228,7 +228,9 @@ class PersonListCoverFallbackTest(TestCase):
         entry = self._results()["faceless"]
         self.assertEqual(entry["face_url"], "")
         self.assertEqual(entry["face_photo_url"], "")
-        self.assertEqual(entry["video"], "False")
+        # A boolean: the string "False" failed the frontend's schema and
+        # emptied the whole people list (#2151).
+        self.assertIs(entry["video"], False)
 
 
 class AlbumUserListCoverFallbackTest(TestCase):
