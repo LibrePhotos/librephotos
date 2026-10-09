@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.a1e92a76.css">
-<script src="/assets/js/runtime~main.81890938.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.6614441b.js" defer="defer"></script>
 <script src="/assets/js/main.bd7a7c03.js" defer="defer"></script>
 </head>
 <body>
@@ -46,7 +46,7 @@
 <p>This is not yet handled gracefully, which means, you will probably just get non-descriptive errors, when you are trying to use these features.</p>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="videos-are-not-playing-and-showing-a-404-error">Videos are not playing and showing a 404 error<a href="#videos-are-not-playing-and-showing-a-404-error" class="hash-link" aria-label="Direct link to Videos are not playing and showing a 404 error" title="Direct link to Videos are not playing and showing a 404 error" translate="no">​</a></h2>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="reason-1">Reason 1:<a href="#reason-1" class="hash-link" aria-label="Direct link to Reason 1:" title="Direct link to Reason 1:" translate="no">​</a></h3>
-<p>The video may be encoded in h.265 format, which is not supported by your browser. You can enable &quot;Always transcode videos&quot; under Experimental Settings to resolve this issue. On the other hand, this will be quite CPU heavy.</p>
+<p>The video may be in a format your browser cannot decode, most often H.265 (HEVC) in Firefox, or in Chrome on a machine without a hardware decoder for it. LibrePhotos converts such a video for your browser as it plays, without any setting (see <a class="" href="/docs/user-guide/viewing-photos#videos-your-browser-cannot-play">Videos your browser cannot play</a>). On a version before that, enable &quot;Always transcode videos&quot; under Experimental Settings instead; it converts every video, so it is quite CPU heavy.</p>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="reason-2">Reason 2:<a href="#reason-2" class="hash-link" aria-label="Direct link to Reason 2:" title="Direct link to Reason 2:" translate="no">​</a></h3>
 <p>The issue could be caused by incorrect file permissions. You can resolve this by adjusting the permissions using the following commands:</p>
 <div class="language-text codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_QJqH"><pre tabindex="0" class="prism-code language-text codeBlock_bY9V thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_e6Vv"><div class="token-line" style="color:#393A34"><span class="token plain">find . -type d -exec chmod 755 {} +</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">find . -type f -exec chmod 644 {} +</span><br></div></code></pre></div></div>
