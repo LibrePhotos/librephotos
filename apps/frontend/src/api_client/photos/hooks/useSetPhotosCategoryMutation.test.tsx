@@ -2,23 +2,23 @@
  * A failed category change says so (issue #2130). The toast is at hook level,
  * so it also reports an Undo fired after the lightbox closed.
  */
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, describe, expect, it, vi } from "vitest";
+import { defined } from "../../../util/defined.test-utils";
 
-const stubs = vi.hoisted(() => ({
-  post: vi.fn(),
-  requestFailed: vi.fn(),
-  setPhotosCategory: vi.fn(),
-  queryClient: undefined as unknown as QueryClient,
-}));
-
-vi.mock("../../api", async () => {
-  const { QueryClient: Client } = await import("@tanstack/react-query");
-  stubs.queryClient = new Client();
-  return { fetchClient: { post: stubs.post }, queryClient: stubs.queryClient };
+const stubs = await vi.hoisted(async () => {
+  const { QueryClient } = await import("@tanstack/react-query");
+  return {
+    post: vi.fn<(endpoint: string, data?: unknown) => Promise<unknown>>(),
+    requestFailed: vi.fn<(title: string, message: string) => void>(),
+    setPhotosCategory: vi.fn<(numberOfPhotos: number, category: "photo" | "screenshot" | "document") => void>(),
+    queryClient: new QueryClient(),
+  };
 });
+
+vi.mock("../../api", () => ({ fetchClient: { post: stubs.post }, queryClient: stubs.queryClient }));
 vi.mock("../../../service/notifications", () => ({
   notification: { requestFailed: stubs.requestFailed, setPhotosCategory: stubs.setPhotosCategory },
 }));
@@ -26,7 +26,6 @@ vi.mock("../../../service/notifications", () => ({
 const { useSetPhotosCategoryMutation } = await import("./useSetPhotosCategoryMutation");
 
 beforeAll(() => {
-  // @ts-ignore
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 });
 
@@ -49,7 +48,7 @@ describe("useSetPhotosCategoryMutation", () => {
     await act(async () => root.unmount());
 
     await act(async () => {
-      mutate!({ image_hashes: ["abc"], category: "auto", notify: false });
+      defined(mutate)({ image_hashes: ["abc"], category: "auto", notify: false });
       await new Promise(resolve => {
         setTimeout(resolve, 0);
       });

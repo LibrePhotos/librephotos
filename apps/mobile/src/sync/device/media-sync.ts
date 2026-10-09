@@ -440,7 +440,7 @@ export async function syncDeviceMedia(
   acc.scanned = ctx.scanned;
   acc.complete = !ctx.truncated;
 
-  // Device-wide deletions: any asset now in no album at all. Only safe once the
+  // Device-wide deletions: every asset now in no album at all. Only safe once the
   // whole library has actually been walked — after a truncated run the unread
   // assets are not orphans, they are simply unread.
   if (!ctx.truncated) {

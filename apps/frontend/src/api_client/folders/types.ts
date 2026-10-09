@@ -8,7 +8,7 @@ export interface DirTree {
 
 export type DirTreeResponse = DirTree[];
 
-export const DirTree = z.lazy(() =>
+export const DirTree: z.ZodType<DirTree> = z.lazy(() =>
   z.object({
     title: z.string(),
     absolute_path: z.string(),

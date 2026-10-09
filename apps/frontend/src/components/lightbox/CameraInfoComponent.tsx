@@ -21,7 +21,7 @@ export function CameraInfoComponent({ photoDetail }: { photoDetail: PhotoType })
             <FileInfoComponent info={`${photoDetail.subjectDistance} m`} />
             <FileInfoComponent info={`ƒ / ${photoDetail.fstop}`} />
             <FileInfoComponent info={`${photoDetail.shutter_speed}`} />
-            <FileInfoComponent info={`${Math.round(photoDetail.focal_length!)} mm`} />
+            <FileInfoComponent info={`${Math.round(photoDetail.focal_length ?? 0)} mm`} />
             <FileInfoComponent info={`ISO${photoDetail.iso?.toString()}`} />
           </Group>
         </div>

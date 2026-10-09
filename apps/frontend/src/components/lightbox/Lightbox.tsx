@@ -205,7 +205,6 @@ export function Lightbox(props: ExtendedLightBoxProps) {
         onCloseRequest={handleCloseRequest}
         onMovePrevRequest={onMovePrevRequest}
         onMoveNextRequest={onMoveNextRequest}
-        onImageLoad={() => {}}
         onPhotoSelect={handlePhotoSelect}
         startSlideshow={startSlideshow}
         gridItem={gridItem}

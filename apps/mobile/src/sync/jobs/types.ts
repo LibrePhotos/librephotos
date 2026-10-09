@@ -24,6 +24,8 @@
  * enqueues its own continuation. The budgets below are chosen so the slowest
  * plausible device still clears each one inside that envelope.
  */
+import { z } from "zod";
+import { parseJson } from "@/lib/guards";
 
 /** Every job kind, in priority order (see {@link JOB_PRIORITY}). */
 export const JOB_KINDS = [
@@ -140,8 +142,11 @@ export function jobBackoffDelay(
 export type JobPayloads = {
   outbox_replay: Record<string, never>;
   reseed_check: Record<string, never>;
-  /** One entity's next delta page. The cursor itself lives in `sync_state`. */
-  remote_delta: { entity: string };
+  /**
+   * One entity's next delta page. The cursor itself lives in `sync_state`;
+   * `page` only numbers the pages of a pass (page 0 restarts its progress).
+   */
+  remote_delta: { entity: string; page?: number };
   /** Chunk index, for observability only — the watermark lives in `app_meta`. */
   device_scan: { chunk: number };
   hash_batch: Record<string, never>;
@@ -150,17 +155,23 @@ export type JobPayloads = {
   integrity_check: Record<string, never>;
 };
 
-/** A job to enqueue: kind + payload, with priority/dedupe derived by default. */
-export type JobSpec<K extends JobKind = JobKind> = {
-  kind: K;
-  payload?: JobPayloads[K];
-  /** Override the kind's default priority (rarely needed). */
-  priority?: number;
-  /** Override the derived dedupe key (rarely needed). */
-  dedupeKey?: string;
-  /** Earliest ms-epoch this job may run. Default: immediately. */
-  notBefore?: number;
-};
+/**
+ * A job to enqueue: kind + payload, with priority/dedupe derived by default.
+ * Distributes over the kinds, so `JobSpec` is a union discriminated by `kind`
+ * and each kind can only carry its own payload.
+ */
+export type JobSpec<K extends JobKind = JobKind> = K extends JobKind
+  ? {
+      kind: K;
+      payload?: JobPayloads[K];
+      /** Override the kind's default priority (rarely needed). */
+      priority?: number;
+      /** Override the derived dedupe key (rarely needed). */
+      dedupeKey?: string;
+      /** Earliest ms-epoch this job may run. Default: immediately. */
+      notBefore?: number;
+    }
+  : never;
 
 /**
  * Identity of a unit of work. Two enqueues with the same key while one is still
@@ -171,14 +182,14 @@ export type JobSpec<K extends JobKind = JobKind> = {
  * `remote_delta` keys per entity and `upload_asset` per asset, because those
  * genuinely are independent units that should run in parallel over time.
  */
-export function dedupeKeyFor<K extends JobKind>(kind: K, payload?: JobPayloads[K]): string {
-  switch (kind) {
+export function dedupeKeyFor(spec: JobSpec): string {
+  switch (spec.kind) {
     case "remote_delta":
-      return `remote_delta:${(payload as JobPayloads["remote_delta"] | undefined)?.entity ?? ""}`;
+      return `remote_delta:${spec.payload?.entity ?? ""}`;
     case "upload_asset":
-      return `upload_asset:${(payload as JobPayloads["upload_asset"] | undefined)?.assetId ?? ""}`;
+      return `upload_asset:${spec.payload?.assetId ?? ""}`;
     default:
-      return kind;
+      return spec.kind;
   }
 }
 
@@ -198,12 +209,36 @@ export type JobRow = {
   last_error: string | null;
 };
 
+const EmptyPayload = z.object({});
+
+/**
+ * Each kind's payload as it is read back. Every field is optional and a field of
+ * the wrong type is dropped rather than failing the payload: a bad payload must
+ * not wedge the queue, and each handler already defaults a missing field.
+ */
+const JOB_PAYLOAD_SCHEMAS: { [K in JobKind]: z.ZodType<Partial<JobPayloads[K]>, z.ZodTypeDef, unknown> } = {
+  outbox_replay: EmptyPayload,
+  reseed_check: EmptyPayload,
+  remote_delta: z.object({
+    entity: z.string().optional().catch(undefined),
+    page: z.number().optional().catch(undefined),
+  }),
+  device_scan: z.object({ chunk: z.number().optional().catch(undefined) }),
+  hash_batch: EmptyPayload,
+  upload_asset: z.object({ assetId: z.string().optional().catch(undefined) }),
+  thumb_prefetch: EmptyPayload,
+  integrity_check: EmptyPayload,
+};
+
 /** Parse a row's payload, tolerating null/garbage (a bad payload must not wedge). */
-export function jobPayload<K extends JobKind>(row: JobRow): Partial<JobPayloads[K]> {
+export function jobPayload<K extends JobKind>(kind: K, row: JobRow): Partial<JobPayloads[K]> {
   if (!row.payload) return {};
+  let raw: unknown;
   try {
-    return JSON.parse(row.payload) as Partial<JobPayloads[K]>;
+    raw = parseJson(row.payload);
   } catch {
     return {};
   }
+  const parsed = JOB_PAYLOAD_SCHEMAS[kind].safeParse(raw);
+  return parsed.success ? parsed.data : {};
 }

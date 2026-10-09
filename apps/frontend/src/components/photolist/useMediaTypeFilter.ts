@@ -5,6 +5,6 @@ import { DEFAULT_MEDIA_TYPE, type MediaType } from "./mediaTypeFilter";
 // param. Reset-per-view by design: the value lives in the URL, so it survives
 // reload / back-forward for a given view but does not leak across surfaces.
 export function useMediaTypeFilter(): MediaType {
-  const search = useSearch({ strict: false }) as { media?: MediaType };
+  const search = useSearch({ strict: false });
   return search.media ?? DEFAULT_MEDIA_TYPE;
 }

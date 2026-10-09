@@ -99,11 +99,14 @@ export const Photo = z.object({
   exif_timestamp: z.string().nullable(),
   search_captions: z.string().nullable(),
   search_location: z.string().nullable(),
-  captions_json: z.any().nullable(),
+  // Never null from current servers ({"im2txt": ""} when there are no captions):
+  // user_caption, im2txt, places365 and one { tags } object per tagging model.
+  captions_json: z.record(z.string(), z.unknown()).nullish(),
   big_thumbnail_url: z.string().nullable(),
   small_square_thumbnail_url: z.string().nullable(),
-  geolocation_json: z.any().nullable(),
-  exif_json: z.any().nullable(),
+  // The reverse geocoder's answer (features, places, ...), stored as it came.
+  geolocation_json: z.unknown(),
+  exif_json: z.unknown(),
   people: People.array(),
   image_hash: z.string(),
   image_path: z.string().array(),

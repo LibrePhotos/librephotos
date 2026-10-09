@@ -24,11 +24,11 @@ describe("OnlineAlbumDetailScreen", () => {
   let t: TestDb;
   beforeEach(() => {
     t = createTestDb();
-    (globalThis as { __mockNetworkConnected?: boolean }).__mockNetworkConnected = true;
+    globalThis.__mockNetworkConnected = true;
   });
   afterEach(() => {
     t.close();
-    (globalThis as { __mockNetworkConnected?: boolean }).__mockNetworkConnected = true;
+    globalThis.__mockNetworkConnected = true;
   });
 
   it("renders the online photo grid for a thing album", async () => {
@@ -45,7 +45,7 @@ describe("OnlineAlbumDetailScreen", () => {
   });
 
   it("shows an offline state when disconnected with no data", async () => {
-    (globalThis as { __mockNetworkConnected?: boolean }).__mockNetworkConnected = false;
+    globalThis.__mockNetworkConnected = false;
     const client = makeMockClient(async () => jsonResponse({}, 500));
     const { getByTestId } = renderWithDb(<OnlineAlbumDetailScreen kind="thing" id="5" />, t.db, client);
 

@@ -5,18 +5,19 @@ import { renderWithDb } from "@/test/test-utils";
 import { createTestDb, type TestDb } from "@/db/test-db";
 import { useAuthStore } from "@/stores/auth";
 import { useToastStore } from "@/stores/toasts";
+import { defined } from "@/test/defined";
 
-jest.mock("@/sync/run", () => ({ runSync: jest.fn() }));
+jest.mock("@/sync/run", () => ({ runSync: jest.fn<void, unknown[]>() }));
 
 function setParams(items: unknown[]) {
-  (globalThis as { __mockSearchParams?: unknown }).__mockSearchParams = { items: JSON.stringify(items) };
+  globalThis.__mockSearchParams = { items: JSON.stringify(items) };
 }
 
 describe("parseSharedItems", () => {
   it("parses a JSON array of shared items and skips invalid entries", () => {
     const out = parseSharedItems(JSON.stringify([{ uri: "content://a" }, { name: "no-uri" }]));
     expect(out).toHaveLength(1);
-    expect(out[0]!.uri).toBe("content://a");
+    expect(defined(out[0]).uri).toBe("content://a");
   });
   it("returns [] for missing/garbage input", () => {
     expect(parseSharedItems(undefined)).toEqual([]);
@@ -33,7 +34,7 @@ describe("ShareIntentScreen", () => {
   });
   afterEach(() => {
     t.close();
-    (globalThis as { __mockSearchParams?: unknown }).__mockSearchParams = undefined;
+    globalThis.__mockSearchParams = undefined;
   });
 
   it("renders shared thumbnails and enqueues them as one-off uploads", async () => {

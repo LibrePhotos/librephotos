@@ -8,19 +8,20 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { defined } from "../../../util/defined.test-utils";
 import { useMarkPhotosDeletedMutation } from "./useMarkPhotosDeletedMutation";
 
 const mocks = vi.hoisted(() => ({
-  post: vi.fn(),
-  invalidateQueries: vi.fn(),
-  togglePhotoDelete: vi.fn(),
+  post: vi.fn<(endpoint: string, data?: unknown) => Promise<unknown>>(),
+  invalidateQueries: vi.fn<(filters: { queryKey: readonly unknown[] }) => void>(),
+  togglePhotoDelete: vi.fn<(isDeleted: boolean, numberOfPhotos: number) => void>(),
 }));
 
 vi.mock("../../api", () => ({
   fetchClient: { post: mocks.post },
   queryClient: { invalidateQueries: mocks.invalidateQueries },
 }));
-vi.mock("../invalidatePhotoLists", () => ({ invalidatePhotoLists: vi.fn() }));
+vi.mock("../invalidatePhotoLists", () => ({ invalidatePhotoLists: vi.fn<() => void>() }));
 vi.mock("../../../service/notifications", () => ({
   notification: { togglePhotoDelete: mocks.togglePhotoDelete },
 }));
@@ -28,7 +29,7 @@ vi.mock("../../../service/notifications", () => ({
 vi.mock("../../../util/zodUtils", () => ({ parseWithNotification: (_schema: unknown, data: unknown) => data }));
 
 beforeAll(() => {
-  (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+  globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 });
 
 beforeEach(() => {
@@ -53,7 +54,7 @@ async function trash(imageHashes: string[]) {
     );
   });
   await act(async () => {
-    await mutation!.mutateAsync({ image_hashes: imageHashes, deleted: true });
+    await defined(mutation).mutateAsync({ image_hashes: imageHashes, deleted: true });
   });
   await act(async () => {
     root.unmount();

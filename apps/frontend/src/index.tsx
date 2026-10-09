@@ -18,7 +18,10 @@ import { App } from "./App";
 import { i18nReady } from "./i18n";
 
 const container = document.getElementById("root");
-const root = createRoot(container!); // createRoot(container!) if you use TypeScript
+if (!container) {
+  throw new Error("index.html has no #root element to render into");
+}
+const root = createRoot(container);
 // Non-English locales are fetched on demand; wait for the saved/detected one so
 // the first paint is already in the right language (English resolves at once).
 // Also wait for the dev-only why-did-you-render patch, so it sees every render.

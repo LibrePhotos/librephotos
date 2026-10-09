@@ -3,6 +3,7 @@ import { createApiClient } from "../transport";
 import type { TokenSupplier } from "../transport";
 import * as endpoints from "../endpoints";
 import { ResponseParseError } from "../util/parse";
+import { defined } from "./defined";
 
 const FUTURE_JWT =
   "eyJhbGciOiJIUzI1NiJ9." +
@@ -37,20 +38,20 @@ describe("album detail endpoints", () => {
   it("fetches thing album detail and unwraps results", async () => {
     const { client, calls } = harness({ results: { id: "5", title: "Dog", grouped_photos: [] } });
     const album = await endpoints.fetchThingAlbum(client, 5);
-    expect(calls[0]!.url).toBe("https://demo.example.com/api/albums/thing/5/");
+    expect(defined(calls[0]).url).toBe("https://demo.example.com/api/albums/thing/5/");
     expect(album.title).toBe("Dog");
   });
 
   it("fetches place album detail", async () => {
     const { client, calls } = harness({ results: { id: "3", title: "Berlin", grouped_photos: [] } });
     await endpoints.fetchPlaceAlbum(client, 3);
-    expect(calls[0]!.url).toBe("https://demo.example.com/api/albums/place/3/");
+    expect(defined(calls[0]).url).toBe("https://demo.example.com/api/albums/place/3/");
   });
 
   it("fetches tag album detail via /tags/", async () => {
     const { client, calls } = harness({ results: { id: 7, name: "sunset", grouped_photos: [] } });
     await endpoints.fetchTagAlbum(client, 7);
-    expect(calls[0]!.url).toBe("https://demo.example.com/api/tags/7/");
+    expect(defined(calls[0]).url).toBe("https://demo.example.com/api/tags/7/");
   });
 });
 
@@ -61,7 +62,7 @@ describe("date album endpoints", () => {
       results: { id: "12", date: "2024-04-02", location: "", items: [], incomplete: false, numberOfItems: 0 },
     });
     await endpoints.fetchDateAlbum(client, "12", 2, { video: true });
-    expect(calls[0]!.url).toBe("https://demo.example.com/api/albums/date/12/?video=true&page=2");
+    expect(defined(calls[0]).url).toBe("https://demo.example.com/api/albums/date/12/?video=true&page=2");
   });
 });
 
@@ -70,8 +71,8 @@ describe("album media filters", () => {
     const { client, calls } = harness({ results: { id: "5", title: "Dog", grouped_photos: [] } });
     await endpoints.fetchThingAlbum(client, 5, { video: true });
     await endpoints.fetchPlaceAlbum(client, 5, { is_screenshot: true });
-    expect(calls[0]!.url).toBe("https://demo.example.com/api/albums/thing/5/?video=true");
-    expect(calls[1]!.url).toBe("https://demo.example.com/api/albums/place/5/?is_screenshot=true");
+    expect(defined(calls[0]).url).toBe("https://demo.example.com/api/albums/thing/5/?video=true");
+    expect(defined(calls[1]).url).toBe("https://demo.example.com/api/albums/place/5/?is_screenshot=true");
   });
 
   it("reads a user album through its public link", async () => {
@@ -79,8 +80,8 @@ describe("album media filters", () => {
     const { client, calls } = harness({ id: "9", title: "T", owner, date: "2024", location: null, grouped_photos: [] });
     await endpoints.fetchUserAlbum(client, 9, { photo: true, public: true, username: "ann" });
     await endpoints.fetchUserAlbum(client, 9);
-    expect(calls[0]!.url).toBe("https://demo.example.com/api/albums/user/9/?photo=true&public=true&username=ann");
-    expect(calls[1]!.url).toBe("https://demo.example.com/api/albums/user/9/");
+    expect(defined(calls[0]).url).toBe("https://demo.example.com/api/albums/user/9/?photo=true&public=true&username=ann");
+    expect(defined(calls[1]).url).toBe("https://demo.example.com/api/albums/user/9/");
   });
 });
 
@@ -88,8 +89,8 @@ describe("sharing endpoints", () => {
   it("sends share photos payload", async () => {
     const { client, calls } = harness({ status: true, count: 1 });
     await endpoints.setPhotosShared(client, ["h1", "h2"], 42, true);
-    expect(calls[0]!.url).toBe("https://demo.example.com/api/photosedit/share/");
-    expect(JSON.parse(String(calls[0]!.init!.body))).toEqual({
+    expect(defined(calls[0]).url).toBe("https://demo.example.com/api/photosedit/share/");
+    expect(JSON.parse(String(defined(defined(calls[0]).init).body))).toEqual({
       image_hashes: ["h1", "h2"],
       target_user_id: 42,
       val_shared: true,
@@ -99,7 +100,7 @@ describe("sharing endpoints", () => {
   it("sends album share payload with string ids", async () => {
     const { client, calls } = harness({ status: true });
     await endpoints.setUserAlbumShared(client, 9, 3, false);
-    expect(JSON.parse(String(calls[0]!.init!.body))).toEqual({
+    expect(JSON.parse(String(defined(defined(calls[0]).init).body))).toEqual({
       album_id: "9",
       target_user_id: "3",
       shared: false,
@@ -119,8 +120,8 @@ describe("public link endpoints", () => {
   it("sends makepublic payload", async () => {
     const { client, calls } = harness({ status: true });
     await endpoints.setPhotosPublic(client, ["h1"], true);
-    expect(calls[0]!.url).toBe("https://demo.example.com/api/photosedit/makepublic/");
-    expect(JSON.parse(String(calls[0]!.init!.body))).toEqual({ image_hashes: ["h1"], val_public: true });
+    expect(defined(calls[0]).url).toBe("https://demo.example.com/api/photosedit/makepublic/");
+    expect(JSON.parse(String(defined(defined(calls[0]).init).body))).toEqual({ image_hashes: ["h1"], val_public: true });
   });
 });
 
@@ -128,30 +129,30 @@ describe("faces endpoints", () => {
   it("builds the faces list query with defaults", async () => {
     const { client, calls } = harness({ count: 0, next: null, previous: null, results: [] });
     await endpoints.fetchFaces(client, { person: 4, inferred: true });
-    expect(calls[0]!.url).toContain("/api/faces/?");
-    expect(calls[0]!.url).toContain("person=4");
-    expect(calls[0]!.url).toContain("inferred=true");
-    expect(calls[0]!.url).toContain("order_by=confidence");
+    expect(defined(calls[0]).url).toContain("/api/faces/?");
+    expect(defined(calls[0]).url).toContain("person=4");
+    expect(defined(calls[0]).url).toContain("inferred=true");
+    expect(defined(calls[0]).url).toContain("order_by=confidence");
   });
 
   it("labels faces with a person name", async () => {
     const { client, calls } = harness({ status: true, results: [], updated: [], not_updated: [] });
     await endpoints.labelFaces(client, [1, 2], "Alice");
-    expect(calls[0]!.url).toBe("https://demo.example.com/api/labelfaces");
-    expect(JSON.parse(String(calls[0]!.init!.body))).toEqual({ face_ids: [1, 2], person_name: "Alice" });
+    expect(defined(calls[0]).url).toBe("https://demo.example.com/api/labelfaces");
+    expect(JSON.parse(String(defined(defined(calls[0]).init).body))).toEqual({ face_ids: [1, 2], person_name: "Alice" });
   });
 
   it("deletes faces", async () => {
     const { client, calls } = harness({ status: true, results: [], deleted: [], not_deleted: [] });
     await endpoints.deleteFaces(client, [5]);
-    expect(calls[0]!.url).toBe("https://demo.example.com/api/deletefaces");
-    expect(JSON.parse(String(calls[0]!.init!.body))).toEqual({ face_ids: [5] });
+    expect(defined(calls[0]).url).toBe("https://demo.example.com/api/deletefaces");
+    expect(JSON.parse(String(defined(defined(calls[0]).init).body))).toEqual({ face_ids: [5] });
   });
 
   it("fetches the incomplete-faces bare array", async () => {
     const { client, calls } = harness([{ id: 1, name: "Bob", face_count: 3 }]);
     const rows = await endpoints.fetchIncompleteFaces(client, { inferred: false });
-    expect(calls[0]!.url).toContain("/api/faces/incomplete/?");
+    expect(defined(calls[0]).url).toContain("/api/faces/incomplete/?");
     expect(rows).toHaveLength(1);
   });
 });
@@ -160,14 +161,14 @@ describe("admin/jobs endpoints", () => {
   it("triggers a library scan", async () => {
     const { client, calls } = harness({ status: true, job_id: "job-1" });
     const res = await endpoints.scanPhotos(client);
-    expect(calls[0]!.url).toBe("https://demo.example.com/api/scanphotos/");
+    expect(defined(calls[0]).url).toBe("https://demo.example.com/api/scanphotos/");
     expect(res.job_id).toBe("job-1");
   });
 
   it("reads worker availability", async () => {
     const { client, calls } = harness({ status: true, queue_can_accept_job: true });
     const res = await endpoints.fetchWorkerAvailability(client);
-    expect(calls[0]!.url).toBe("https://demo.example.com/api/rqavailable/");
+    expect(defined(calls[0]).url).toBe("https://demo.example.com/api/rqavailable/");
     expect(res.queue_can_accept_job).toBe(true);
   });
 });
@@ -176,8 +177,8 @@ describe("response parsing", () => {
   it("rejects a drifted response with a ResponseParseError naming the endpoint and the issue", async () => {
     const { client } = harness({ results: [{ id: "not-a-number", title: "Dog" }] });
     const error = await endpoints.fetchThingAlbumsList(client).catch((e: unknown) => e);
-    expect(error).toBeInstanceOf(ResponseParseError);
-    const { context, issues, message } = error as ResponseParseError;
+    if (!(error instanceof ResponseParseError)) throw new Error(`expected a ResponseParseError, got ${String(error)}`);
+    const { context, issues, message } = error;
     expect(context).toBe("thing albums");
     expect(issues).toContain("results.0.id");
     expect(message).toBe(`Failed to parse thing albums: ${issues}`);

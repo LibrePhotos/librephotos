@@ -9,6 +9,7 @@ import { createRoot } from "react-dom/client";
 import type { Root } from "react-dom/client";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import i18n from "../../i18n";
+import { defined } from "../../util/defined.test-utils";
 import { DefaultHeader } from "./DefaultHeader";
 
 const route = vi.hoisted(() => ({ pathname: "/" }));
@@ -34,7 +35,7 @@ async function render(props: Partial<React.ComponentProps<typeof DefaultHeader>>
   document.body.appendChild(container);
   root = createRoot(container);
   await act(async () => {
-    root!.render(
+    defined(root).render(
       <MantineProvider>
         <DefaultHeader
           loading={false}
@@ -54,8 +55,8 @@ async function render(props: Partial<React.ComponentProps<typeof DefaultHeader>>
 }
 
 beforeAll(async () => {
-  // @ts-ignore - jsdom has no matchMedia, MantineProvider needs it
-  window.matchMedia = (query: string) => ({
+  // jsdom has no matchMedia, MantineProvider needs it
+  window.matchMedia = (query: string): MediaQueryList => ({
     matches: false,
     media: query,
     onchange: null,
@@ -65,7 +66,6 @@ beforeAll(async () => {
     removeEventListener: () => {},
     dispatchEvent: () => false,
   });
-  // @ts-ignore
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   await i18n.changeLanguage("en");
 });
@@ -81,7 +81,7 @@ afterEach(async () => {
 describe("DefaultHeader counter", () => {
   it("uses the singular for one photo", async () => {
     expect((await render({ numPhotosetItems: 1, numPhotos: 1 })).textContent).toContain("1 photo");
-    expect(container!.textContent).not.toContain("1 photos");
+    expect(defined(container).textContent).not.toContain("1 photos");
   });
 
   it("pluralises days and photos", async () => {
@@ -98,11 +98,11 @@ describe("DefaultHeader counter", () => {
 describe("DefaultHeader view switcher", () => {
   it("opens from a button inside the heading, so the keyboard can reach it", async () => {
     const el = await render({});
-    const heading = el.querySelector("h2")!;
+    const heading = defined(el.querySelector("h2"));
     const button = heading.querySelector("button");
 
     expect(button).not.toBeNull();
-    expect(button!.getAttribute("aria-haspopup")).toBe("menu");
+    expect(defined(button).getAttribute("aria-haspopup")).toBe("menu");
     expect(heading.textContent).toContain("Photos");
   });
 });

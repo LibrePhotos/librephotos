@@ -23,7 +23,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useDb } from "@/db/provider";
 import { viewerSlideById, type ViewerSlide } from "@/db/queries/detail";
-import { timelineCursorFor, timelinePage, type TimelineCursor } from "@/db/queries/timeline";
+import { timelineCursorFor, timelinePage, timelineRowKey, type TimelineCursor } from "@/db/queries/timeline";
 import type { MergedTimelineRow } from "@/db/types";
 
 /** Slides loaded either side of the tapped photo. */
@@ -59,7 +59,7 @@ type State = {
 
 export function rowToSlide(r: MergedTimelineRow): ViewerSlide {
   return {
-    key: (r.remote_id ?? r.local_id ?? r.image_hash) as string,
+    key: timelineRowKey(r),
     remote_id: r.remote_id,
     local_id: r.local_id,
     image_hash: r.image_hash,

@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { jwtDecode } from "jwt-decode";
-import { Cookies } from "react-cookie";
 import { z } from "zod";
 import { Token } from "..";
+import { getAuthCookie } from "../../authCookies";
 
 export const AuthResponse = z.object({
   access: z.object({
@@ -18,8 +18,7 @@ export const useAccessToken = () =>
   useQuery({
     queryKey: AuthQueryKeys,
     queryFn: async () => {
-      const cookies = new Cookies();
-      const accessToken = cookies.get("access");
+      const accessToken = getAuthCookie("access");
 
       if (!accessToken) {
         return { access: null };

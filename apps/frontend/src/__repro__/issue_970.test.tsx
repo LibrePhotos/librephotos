@@ -26,6 +26,8 @@ import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Tile from "../components/react-pig/components/Tile/Tile";
+import type { ScrollSpeed } from "../components/react-pig/types";
+import { defined } from "../util/defined.test-utils";
 
 const SERVER = "http://localhost:3000";
 
@@ -62,7 +64,7 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 let container: HTMLDivElement | null = null;
 let root: ReturnType<typeof createRoot> | null = null;
 
-function tileElements(count: number, scrollSpeed: string, activeTileUrl: string | null = null) {
+function tileElements(count: number, scrollSpeed: ScrollSpeed, activeTileUrl: string | null = null) {
   return Array.from({ length: count }, (_, i) => videoItem(i)).map(item => (
     <Tile
       key={item.id}
@@ -83,19 +85,19 @@ function tileElements(count: number, scrollSpeed: string, activeTileUrl: string 
   ));
 }
 
-function renderTiles(count: number, scrollSpeed = "slow", activeTileUrl: string | null = null) {
+function renderTiles(count: number, scrollSpeed: ScrollSpeed = "slow", activeTileUrl: string | null = null) {
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
   act(() => {
-    root!.render(<>{tileElements(count, scrollSpeed, activeTileUrl)}</>);
+    defined(root).render(<>{tileElements(count, scrollSpeed, activeTileUrl)}</>);
   });
   return container;
 }
 
-function rerenderTiles(count: number, scrollSpeed: string, activeTileUrl: string | null = null) {
+function rerenderTiles(count: number, scrollSpeed: ScrollSpeed, activeTileUrl: string | null = null) {
   act(() => {
-    root!.render(<>{tileElements(count, scrollSpeed, activeTileUrl)}</>);
+    defined(root).render(<>{tileElements(count, scrollSpeed, activeTileUrl)}</>);
   });
 }
 
@@ -107,7 +109,7 @@ beforeEach(() => {
 
 afterEach(() => {
   if (root && container) {
-    act(() => root!.unmount());
+    act(() => defined(root).unmount());
     container.remove();
   }
   root = null;
@@ -140,31 +142,31 @@ describe("issue 970: listing a huge amount of videos", () => {
   });
 
   it("releases the media element when a tile scrolls out of the buffer", () => {
-    const video = renderTiles(1).querySelector("video")!;
+    const video = defined(renderTiles(1).querySelector("video"));
 
-    act(() => root!.unmount());
+    act(() => defined(root).unmount());
     root = null;
 
     expectReleased(video);
   });
 
   it("releases the media element when scrolling gets too fast to render previews", () => {
-    const video = renderTiles(1).querySelector("video")!;
+    const video = defined(renderTiles(1).querySelector("video"));
 
     // The tile stays mounted, only the <video> inside it goes away.
     rerenderTiles(1, "fast");
 
-    expect(container!.querySelector("video")).toBeNull();
+    expect(defined(container).querySelector("video")).toBeNull();
     expectReleased(video);
   });
 
   it("releases the media element when the expanded tile is dismissed", () => {
     const expandedUrl = videoItem(0).url;
-    const video = renderTiles(1, "fast", expandedUrl).querySelector("video")!;
+    const video = defined(renderTiles(1, "fast", expandedUrl).querySelector("video"));
 
     rerenderTiles(1, "fast");
 
-    expect(container!.querySelector("video")).toBeNull();
+    expect(defined(container).querySelector("video")).toBeNull();
     expectReleased(video);
   });
 });

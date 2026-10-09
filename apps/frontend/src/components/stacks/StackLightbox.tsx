@@ -93,7 +93,6 @@ export function StackLightbox({ photos, initialPhotoHash, onClose, isPublic = fa
       onCloseRequest={onClose}
       onMovePrevRequest={goToPrev}
       onMoveNextRequest={goToNext}
-      onImageLoad={() => {}}
     />
   );
 }

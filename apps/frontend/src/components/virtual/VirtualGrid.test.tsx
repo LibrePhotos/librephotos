@@ -1,15 +1,15 @@
 import React, { act, createRef } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { defined } from "../../util/defined.test-utils";
 import { AutoSizer } from "./AutoSizer";
 import { VirtualGrid } from "./VirtualGrid";
-import type { GridCellProps, VirtualGridHandle } from "./VirtualGrid";
+import type { GridCellProps, GridScrollParams, SectionRenderedParams, VirtualGridHandle } from "./VirtualGrid";
 
 let root: Root;
 let container: HTMLDivElement;
 
 beforeAll(() => {
-  // @ts-ignore
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 });
 
@@ -54,11 +54,18 @@ async function renderGrid(props: Partial<GridProps> = {}, ref?: React.Ref<Virtua
   });
 }
 
-const scroller = () => container.firstElementChild as HTMLDivElement;
-const inner = () => scroller().firstElementChild as HTMLDivElement;
+// The grid renders a scrolling <div> around a canvas <div>.
+function divOf(element: Element | null): HTMLDivElement {
+  if (!(element instanceof HTMLDivElement)) throw new Error("expected a <div>");
+  return element;
+}
+const scroller = () => divOf(container.firstElementChild);
+const inner = () => divOf(scroller().firstElementChild);
 const renderedRows = () => [
   ...new Set(
-    Array.from(container.querySelectorAll("[data-cell]"), cell => Number(cell.getAttribute("data-cell")!.split(":")[0]))
+    Array.from(container.querySelectorAll("[data-cell]"), cell =>
+      Number(defined(cell.getAttribute("data-cell")).split(":")[0])
+    )
   ),
 ];
 
@@ -84,7 +91,7 @@ describe("VirtualGrid", () => {
   it("positions each cell at its row offset and column", async () => {
     await renderGrid();
 
-    const cell = container.querySelector<HTMLElement>('[data-cell="3:2"]')!;
+    const cell = divOf(container.querySelector('[data-cell="3:2"]'));
     expect(cell.style.position).toBe("absolute");
     expect(cell.style.top).toBe("300px");
     expect(cell.style.left).toBe("100px");
@@ -93,8 +100,8 @@ describe("VirtualGrid", () => {
   });
 
   it("moves the rendered rows with the scroll position and reports them", async () => {
-    const onScroll = vi.fn();
-    const onSectionRendered = vi.fn();
+    const onScroll = vi.fn<(params: GridScrollParams) => void>();
+    const onSectionRendered = vi.fn<(params: SectionRenderedParams) => void>();
     await renderGrid({ onScroll, onSectionRendered });
     expect(onSectionRendered).toHaveBeenLastCalledWith({
       rowOverscanStartIndex: 0,
@@ -116,7 +123,7 @@ describe("VirtualGrid", () => {
   });
 
   it("reports a section once, not on every render", async () => {
-    const onSectionRendered = vi.fn();
+    const onSectionRendered = vi.fn<(params: SectionRenderedParams) => void>();
     await renderGrid({ onSectionRendered });
     await renderGrid({ onSectionRendered, cellRenderer: props => renderCell(props) });
 
@@ -136,7 +143,7 @@ describe("VirtualGrid", () => {
     await renderGrid({}, ref);
 
     await act(async () => {
-      ref.current!.scrollToPosition({ scrollTop: 2500 });
+      defined(ref.current).scrollToPosition({ scrollTop: 2500 });
     });
 
     expect(scroller().scrollTop).toBe(2500);
@@ -147,7 +154,7 @@ describe("VirtualGrid", () => {
     await renderGrid({ rowHeight: 50 });
 
     expect(inner().style.height).toBe("50000px");
-    expect(container.querySelector<HTMLElement>('[data-cell="3:0"]')!.style.top).toBe("150px");
+    expect(divOf(container.querySelector('[data-cell="3:0"]')).style.top).toBe("150px");
     // 300px of 50px rows shows rows 0-5
     expect(renderedRows()).toEqual([0, 1, 2, 3, 4, 5, 6, 7]);
   });
@@ -157,7 +164,7 @@ describe("VirtualGrid", () => {
     await renderGrid({ rowHeight, rowCount: 10 });
 
     expect(inner().style.height).toBe(`${5 * 70 + 5 * 200}px`);
-    expect(container.querySelector<HTMLElement>('[data-cell="2:0"]')!.style.top).toBe("270px");
+    expect(divOf(container.querySelector('[data-cell="2:0"]')).style.top).toBe("270px");
   });
 
   it("shows more rows when the viewport grows", async () => {
@@ -180,7 +187,7 @@ describe("VirtualGrid", () => {
   });
 
   it("renders nothing for an empty grid", async () => {
-    const onSectionRendered = vi.fn();
+    const onSectionRendered = vi.fn<(params: SectionRenderedParams) => void>();
     await renderGrid({ rowCount: 0, onSectionRendered });
 
     expect(container.querySelectorAll("[data-cell]")).toHaveLength(0);
@@ -210,7 +217,7 @@ describe("AutoSizer", () => {
     });
 
     expect(sizes.at(-1)).toEqual({ width: 800, height: 640 });
-    const box = parent.firstElementChild as HTMLElement;
+    const box = divOf(parent.firstElementChild);
     expect(box.style.width).toBe("0px");
     expect(box.style.height).toBe("0px");
 

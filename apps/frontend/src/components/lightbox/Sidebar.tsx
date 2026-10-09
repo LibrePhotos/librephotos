@@ -21,7 +21,7 @@ import { AlbumsSection } from "./AlbumsSection";
 import { CategorySection } from "./CategorySection";
 import { Description } from "./Description";
 import { KeywordsSection } from "./KeywordsSection";
-import type { LightboxItem } from "./lightbox.types";
+import type { FaceLocationType, LightboxItem } from "./lightbox.types";
 import { LocationSection } from "./LocationSection";
 import { PeopleSection } from "./PeopleSection";
 import { SimilarPhotosSection } from "./SimilarPhotosSection";
@@ -37,7 +37,8 @@ interface SidebarProps {
   /** The grid's entry for the photo, all a viewer who is not the owner has of it. */
   gridItem?: LightboxItem;
   closeSidepanel: () => void;
-  setFaceLocation: (face: { face_id: number; face_url: string }) => void;
+  /** The box of the face the pointer is on, or null once it leaves. */
+  setFaceLocation: (location: FaceLocationType) => void;
   onPhotoSelect?: (photoId: string) => void;
   /** Marking a face the detector missed happens on the photo, which the viewer owns. */
   onAddFaceRequest?: () => void;
@@ -199,10 +200,10 @@ export function Sidebar({
               {sharingSettings?.share_camera_info && publicPhotoDetail.camera && (
                 <CameraInfoSection photoDetail={publicPhotoDetail} />
               )}
-              {sharingSettings?.share_captions && <Description photoDetail={publicPhotoDetail as any} isPublic />}
+              {sharingSettings?.share_captions && <Description photoDetail={publicPhotoDetail} isPublic />}
               {sharingSettings?.share_faces && publicPhotoDetail.people.length > 0 && (
                 <PeopleSection
-                  photoDetail={publicPhotoDetail as any}
+                  photoDetail={publicPhotoDetail}
                   isPublic
                   setFaceLocation={() => {}}
                   onPersonEdit={() => {}}
@@ -237,7 +238,13 @@ export function Sidebar({
         <Stack>
           <SidebarHeader closeSidepanel={closeSidepanel} />
           {date && <TimestampItem photoDetail={{ image_hash: id, exif_timestamp: date }} isPublic />}
-          {location && <LocationSection photoDetail={{ image_hash: id, search_location: location }} isPublic />}
+          {/* The grid has the place name, never the coordinates: no map. */}
+          {location && (
+            <LocationSection
+              photoDetail={{ image_hash: id, search_location: location, exif_gps_lat: null, exif_gps_lon: null }}
+              isPublic
+            />
+          )}
           <Text size="sm" c="dimmed">
             {date || location ? t("lightbox.sidebar.ownerOnlyMoreDetails") : t("lightbox.sidebar.ownerOnlyDetails")}
           </Text>
@@ -271,8 +278,8 @@ export function Sidebar({
     notification.removeFacesFromPerson(ids.length);
   };
 
-  const handlePersonEdit = (faceId: string, faceUrl: string) => {
-    setSelectedFaces([{ face_id: parseInt(faceId, 10), face_url: faceUrl }]);
+  const handlePersonEdit = (faceId: number, faceUrl: string) => {
+    setSelectedFaces([{ face_id: faceId, face_url: faceUrl }]);
     setPersonEditOpen(true);
   };
 

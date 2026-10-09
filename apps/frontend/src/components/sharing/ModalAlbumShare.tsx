@@ -72,7 +72,7 @@ export function ModalAlbumShare(props: Props) {
             <Stack>
               <AlbumSlugSection
                 albumID={albumID}
-                album={album as any}
+                album={album}
                 isPublic={isPublic}
                 showSettings={showSettings}
                 refetch={refetch}

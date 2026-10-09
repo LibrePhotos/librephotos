@@ -11,15 +11,19 @@ import { PigPhoto } from "../../api_client/photos/types";
 import i18n from "../../i18n";
 import { SelectionBar } from "./SelectionBar";
 
+type SelectionBarProps = React.ComponentProps<typeof SelectionBar>;
+
 let root: Root | null = null;
 let container: HTMLDivElement | null = null;
 
-async function render(props: Partial<React.ComponentProps<typeof SelectionBar>>) {
-  container = document.createElement("div");
-  document.body.appendChild(container);
-  root = createRoot(container);
+async function render(props: Partial<SelectionBarProps>) {
+  const host = document.createElement("div");
+  document.body.appendChild(host);
+  const hostRoot = createRoot(host);
+  container = host;
+  root = hostRoot;
   await act(async () => {
-    root!.render(
+    hostRoot.render(
       <MantineProvider>
         <SelectionBar
           selectMode={false}
@@ -33,12 +37,14 @@ async function render(props: Partial<React.ComponentProps<typeof SelectionBar>>)
       </MantineProvider>
     );
   });
-  return container.querySelector<HTMLButtonElement>("button")!;
+  const button = host.querySelector("button");
+  if (!button) throw new Error("SelectionBar rendered no button");
+  return button;
 }
 
 beforeAll(async () => {
-  // @ts-ignore - jsdom has no matchMedia, MantineProvider needs it
-  window.matchMedia = (query: string) => ({
+  // jsdom has no matchMedia, MantineProvider needs it
+  window.matchMedia = (query: string): MediaQueryList => ({
     matches: false,
     media: query,
     onchange: null,
@@ -48,7 +54,6 @@ beforeAll(async () => {
     removeEventListener: () => {},
     dispatchEvent: () => false,
   });
-  // @ts-ignore
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   await i18n.changeLanguage("en");
 });
@@ -62,7 +67,7 @@ afterEach(async () => {
 
 describe("SelectionBar select-all button", () => {
   it("offers Select all on an empty grid, matching what a click does", async () => {
-    const updateSelectionState = vi.fn();
+    const updateSelectionState = vi.fn<SelectionBarProps["updateSelectionState"]>();
     const button = await render({ updateSelectionState });
 
     expect(button.getAttribute("aria-label")).toBe("Select all");

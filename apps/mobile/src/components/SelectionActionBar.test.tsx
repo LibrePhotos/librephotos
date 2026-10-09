@@ -4,11 +4,11 @@ import { renderWithProviders, makeMockClient, jsonResponse } from "@/test/test-u
 
 function setup(overrides: Partial<React.ComponentProps<typeof SelectionActionBar>> = {}) {
   const handlers = {
-    onFavorite: jest.fn(),
-    onHide: jest.fn(),
-    onTrash: jest.fn(),
-    onAddToAlbum: jest.fn(),
-    onCancel: jest.fn(),
+    onFavorite: jest.fn<void, []>(),
+    onHide: jest.fn<void, []>(),
+    onTrash: jest.fn<void, []>(),
+    onAddToAlbum: jest.fn<void, []>(),
+    onCancel: jest.fn<void, []>(),
   };
   const client = makeMockClient(async () => jsonResponse({}, 404));
   const utils = renderWithProviders(
@@ -33,23 +33,23 @@ describe("SelectionActionBar", () => {
   });
 
   it("disables online-only actions when offline", () => {
-    const onDownload = jest.fn();
+    const onDownload = jest.fn<void, []>();
     const { getByTestId } = setup({ isOnline: false, onDownload });
     fireEvent.press(getByTestId("action-download"));
     // Offline: the online-only handler must NOT fire.
     expect(onDownload).not.toHaveBeenCalled();
-    expect(getByTestId("action-download").props.accessibilityState.disabled).toBe(true);
+    expect(getByTestId("action-download").props.accessibilityState).toHaveProperty("disabled", true);
   });
 
   it("enables online-only actions when online", () => {
-    const onDownload = jest.fn();
+    const onDownload = jest.fn<void, []>();
     const { getByTestId } = setup({ isOnline: true, onDownload });
     fireEvent.press(getByTestId("action-download"));
     expect(onDownload).toHaveBeenCalled();
   });
 
   it("renders a remove-from-album action only when provided", () => {
-    const onRemoveFromAlbum = jest.fn();
+    const onRemoveFromAlbum = jest.fn<void, []>();
     const { getByTestId, queryByTestId, handlers } = setup();
     expect(queryByTestId("action-remove-album")).toBeNull();
     const withRemove = setup({ onRemoveFromAlbum });

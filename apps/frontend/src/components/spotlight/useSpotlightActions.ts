@@ -1,6 +1,6 @@
 import { Avatar, useComputedColorScheme, useMantineColorScheme } from "@mantine/core";
 import { showNotification } from "@mantine/notifications";
-import type { SpotlightActionData, SpotlightActionGroupData } from "@mantine/spotlight";
+import type { SpotlightActionData } from "@mantine/spotlight";
 import {
   IconAlbum,
   IconBook,
@@ -66,9 +66,14 @@ export const AVATAR_SIZE = 28;
 // With nothing typed, a few suggestions are enough: the commands below them must show too
 const EMPTY_QUERY_SEARCH_SUGGESTIONS = 3;
 
-type SpotlightAction = SpotlightActionData & {
+/** An action of the palette. It does the same however it is picked, so onClick takes no event. */
+export type SpotlightAction = Omit<SpotlightActionData, "onClick"> & {
+  onClick: () => void;
   keywords?: string[];
 };
+
+/** A group of actions, as Mantine's SpotlightActionGroupData holds them. */
+export type SpotlightActionGroup = { group: string; actions: SpotlightAction[] };
 
 function getThumbnailUrl(imageHash: string | undefined): string | undefined {
   if (!imageHash) return undefined;
@@ -83,9 +88,9 @@ function getFaceUrl(faceUrl: string | undefined): string | undefined {
 
 function searchOptionToAction(option: SearchOption, navigate: ReturnType<typeof useNavigate>): SpotlightAction {
   const getLeftSection = () => {
-    // For people, show face avatar
+    // For people, show face avatar. Avatar is polymorphic: createElement needs the element it renders.
     if (option.type === SearchOptionType.PEOPLE && option.thumbnail) {
-      return React.createElement(Avatar, {
+      return React.createElement(Avatar<"div">, {
         src: getFaceUrl(option.thumbnail),
         size: AVATAR_SIZE,
         radius: "xl",
@@ -94,7 +99,7 @@ function searchOptionToAction(option: SearchOption, navigate: ReturnType<typeof 
 
     // For user albums (my albums) with thumbnails, show album cover
     if (option.type === SearchOptionType.USER_ALBUM && option.thumbnail) {
-      return React.createElement(Avatar, {
+      return React.createElement(Avatar<"div">, {
         src: getThumbnailUrl(option.thumbnail),
         size: AVATAR_SIZE,
         radius: "sm",
@@ -594,8 +599,8 @@ export function useSpotlightActions(query: string = "") {
   }, [query, t, navigate]);
 
   // Build grouped actions
-  const actions: (SpotlightActionGroupData | SpotlightActionData)[] = useMemo(() => {
-    const groups: (SpotlightActionGroupData | SpotlightActionData)[] = [];
+  const actions: SpotlightActionGroup[] = useMemo(() => {
+    const groups: SpotlightActionGroup[] = [];
 
     // Search group with "Search for [query]" as first option
     const allSearchActions: SpotlightAction[] = [];

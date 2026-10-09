@@ -23,7 +23,6 @@ let root: ReturnType<typeof createRoot>;
 let container: HTMLDivElement;
 
 beforeAll(() => {
-  // @ts-ignore
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 });
 

@@ -7,15 +7,19 @@ import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { Media } from "../../api_client/photos/types";
 import i18n from "../../i18n";
 import { SimilarPhotosSection } from "./SimilarPhotosSection";
 
 const navigations: string[] = [];
 
+/** The props the section hands the router's Link. */
+type LinkStubProps = React.AnchorHTMLAttributes<HTMLAnchorElement> & { to: string; params: { id: string } };
+
 // A router Link stand-in that records client-side navigations instead of
 // letting the browser follow the href.
 vi.mock("@tanstack/react-router", () => ({
-  Link: React.forwardRef<HTMLAnchorElement, any>(({ to, params, onClick, children, ...rest }, ref) => (
+  Link: React.forwardRef<HTMLAnchorElement, LinkStubProps>(({ to, params, onClick, children, ...rest }, ref) => (
     <a
       ref={ref}
       {...rest}
@@ -34,17 +38,17 @@ vi.mock("@tanstack/react-router", () => ({
 }));
 vi.mock("../Tile", () => ({ Tile: () => <span /> }));
 
-const PHOTO = {
+const PHOTO: React.ComponentProps<typeof SimilarPhotosSection>["photoDetail"] = {
   image_hash: "current",
   similar_photos: [
-    { image_hash: "current", type: "image" },
-    { image_hash: "other", type: "image" },
+    { image_hash: "current", type: Media.IMAGE },
+    { image_hash: "other", type: Media.IMAGE },
   ],
-} as any;
+};
 
 beforeAll(async () => {
-  // @ts-ignore - jsdom has no matchMedia, MantineProvider needs it
-  window.matchMedia = (query: string) => ({
+  // jsdom has no matchMedia, MantineProvider needs it
+  window.matchMedia = (query: string): MediaQueryList => ({
     matches: false,
     media: query,
     onchange: null,
@@ -54,7 +58,6 @@ beforeAll(async () => {
     removeEventListener: () => {},
     dispatchEvent: () => false,
   });
-  // @ts-ignore
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   await i18n.changeLanguage("en");
 });

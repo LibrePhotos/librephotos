@@ -54,7 +54,7 @@ function calculateGridValues(width: number, navbarShown: boolean): { entries: nu
   return { entries, squareSize: columnWidth / entries };
 }
 
-export function useAlbumListGridConfig(albums: Object[]): AlbumGridConfig {
+export function useAlbumListGridConfig(albums: readonly unknown[]): AlbumGridConfig {
   const { width, height } = useViewportSize();
   const theme = useMantineTheme();
   // The AppShell's own test for its navbar (and, below it, the phone footer). The sm breakpoint

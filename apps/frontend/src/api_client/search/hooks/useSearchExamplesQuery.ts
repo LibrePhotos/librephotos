@@ -9,7 +9,7 @@ export const useSearchExamplesQuery = (skip: boolean = false) =>
   useQuery({
     queryKey: [...SearchExamplesQueryKeys],
     queryFn: async () => {
-      const response = await fetchClient.get<{ results: string[] }>("/searchtermexamples/");
+      const response = await fetchClient.get("/searchtermexamples/");
       return parseWithNotification(SearchExamplesResponse, response, "Failed to parse search examples").results;
     },
     enabled: !skip,

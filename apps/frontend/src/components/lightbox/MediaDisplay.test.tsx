@@ -10,11 +10,12 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import { act } from "react-dom/test-utils";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import { MediaDisplay } from "./MediaDisplay";
+import { defined } from "../../util/defined.test-utils";
+import { MediaDisplay, type MediaDisplayDetails } from "./MediaDisplay";
 
 type PlayerProps = { url: string; fallbackUrl?: string; convertible?: boolean; height: string; maxHeight?: string };
 
-const player = vi.fn();
+const player = vi.fn<(props: PlayerProps) => void>();
 
 vi.mock("./VideoPlayer", () => ({
   VideoPlayer: (props: PlayerProps) => {
@@ -28,7 +29,7 @@ vi.mock("../../api_client/apiClient", () => ({ serverAddress: "" }));
 const HEVC = 'video/mp4; codecs="hvc1.2.4.L120.90"';
 
 beforeAll(() => {
-  (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+  globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 });
 
 afterEach(() => {
@@ -36,7 +37,12 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-async function renderVideo(photoDetails: object | null, type = "video", isPublic = false, fullHeight = false) {
+async function renderVideo(
+  photoDetails: MediaDisplayDetails | null,
+  type = "video",
+  isPublic = false,
+  fullHeight = false
+) {
   const container = document.createElement("div");
   const root = createRoot(container);
   await act(async () => {
@@ -46,7 +52,7 @@ async function renderVideo(photoDetails: object | null, type = "video", isPublic
         image_hash="abc"
         isMainContent
         type={type}
-        faceLocation={null as never}
+        faceLocation={null}
         handleDragStart={() => {}}
         photoDetails={photoDetails}
         isPublic={isPublic}
@@ -55,7 +61,7 @@ async function renderVideo(photoDetails: object | null, type = "video", isPublic
     );
   });
   await act(async () => root.unmount());
-  return player.mock.calls.at(-1)![0] as PlayerProps;
+  return defined(player.mock.calls.at(-1))[0];
 }
 
 describe("MediaDisplay video source", () => {
@@ -125,7 +131,7 @@ describe("MediaDisplay video size", () => {
 });
 
 describe("MediaDisplay alt text", () => {
-  async function renderPhotoAlt(photoDetails: object | undefined) {
+  async function renderPhotoAlt(photoDetails: MediaDisplayDetails | undefined) {
     const container = document.createElement("div");
     const root = createRoot(container);
     await act(async () => {
@@ -135,7 +141,7 @@ describe("MediaDisplay alt text", () => {
           image_hash="abc"
           isMainContent
           type="photo"
-          faceLocation={null as never}
+          faceLocation={null}
           handleDragStart={() => {}}
           photoDetails={photoDetails}
         />

@@ -24,9 +24,10 @@ type StacksDuplicatesSearchParams = {
 
 export const Route = createFileRoute("/_protected/organizing/$tab")({
   component: StacksDuplicatesPage,
+  // The pages read their filters from the URL themselves and only take the ones they know
   validateSearch: (search: Record<string, unknown>): StacksDuplicatesSearchParams => ({
-    type: search.type as string | undefined,
-    status: search.status as string | undefined,
+    type: typeof search.type === "string" ? search.type : undefined,
+    status: typeof search.status === "string" ? search.status : undefined,
   }),
 });
 
@@ -42,7 +43,7 @@ function StacksDuplicatesPage() {
 
   // Validate tab parameter
   if (tab !== "duplicates" && tab !== "stacks") {
-    return <Navigate to="/organizing/duplicates" replace />;
+    return <Navigate to="/organizing/$tab" params={{ tab: "duplicates" }} replace />;
   }
 
   const getSubtitle = () => {

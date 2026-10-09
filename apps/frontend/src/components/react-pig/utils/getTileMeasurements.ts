@@ -1,4 +1,21 @@
-export default ({ item, windowHeight, settings, containerWidth, containerOffsetTop }) => {
+import type { ImageItem } from "../types";
+
+type TileMeasurementsInput = {
+  item: Pick<ImageItem, "aspectRatio">;
+  windowHeight: number;
+  settings: { gridGap: number };
+  containerWidth: number;
+  /** Null until Pig has measured its container; counts as 0. */
+  containerOffsetTop: number | null;
+};
+
+export default function getTileMeasurements({
+  item,
+  windowHeight,
+  settings,
+  containerWidth,
+  containerOffsetTop,
+}: TileMeasurementsInput) {
   // When expanded, portrait and Landscape images are treated differently
   const isImgPortrait = item.aspectRatio <= 1;
   // Based on the window height, calculate the max image width
@@ -27,7 +44,10 @@ export default ({ item, windowHeight, settings, containerWidth, containerOffsetT
   // calculate the offset position in the center of the screen
   const offsetX = containerWidth / 2 - calcWidth / 2;
   const offsetY =
-    (typeof window !== "undefined" ? window.scrollY : 0) + windowHeight / 2 - calcHeight / 2 - containerOffsetTop;
+    (typeof window !== "undefined" ? window.scrollY : 0) +
+    windowHeight / 2 -
+    calcHeight / 2 -
+    (containerOffsetTop ?? 0);
 
   return { calcWidth, calcHeight, offsetX, offsetY };
-};
+}

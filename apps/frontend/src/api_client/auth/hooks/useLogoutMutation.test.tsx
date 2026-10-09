@@ -13,16 +13,16 @@ import { act } from "react-dom/test-utils";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { useLogoutMutation } from "./useLogoutMutation";
 
-const post = vi.fn();
-const redirectToLogin = vi.fn();
+const post = vi.fn<(endpoint: string, data?: unknown) => Promise<unknown>>();
+const redirectToLogin = vi.fn<() => void>();
 
 vi.mock("../../api", () => ({
-  fetchClient: { post: (...args: unknown[]) => post(...args) },
+  fetchClient: { post: (...args: Parameters<typeof post>) => post(...args) },
   redirectToLogin: () => redirectToLogin(),
 }));
 
 beforeAll(() => {
-  (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+  globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 });
 
 beforeEach(() => {

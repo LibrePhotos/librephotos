@@ -29,6 +29,7 @@ import { useDeleteAllAutoAlbumsMutation } from "../../api_client/albums/hooks";
 import { useFetchServerStatsQuery } from "../../api_client/server/hooks";
 import { useFetchUserListQuery } from "../../api_client/user/hooks";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
+import type { ListUser } from "../../api_client/user/types";
 import { i18nResolvedLanguage } from "../../i18n";
 import { EmptyState } from "../common/EmptyState";
 import { JobList } from "../job/JobList";
@@ -42,8 +43,9 @@ function UserTable() {
   const { t } = useTranslation();
   const [userModalOpen, setUserModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [userToEdit, setUserToEdit] = useState({});
-  const [userToDelete, setUserToDelete] = useState({});
+  // Empty until a row is picked, and for a new user.
+  const [userToEdit, setUserToEdit] = useState<Partial<ListUser>>({});
+  const [userToDelete, setUserToDelete] = useState<Partial<ListUser>>({});
   const [createNewUser, setCreateNewUser] = useState(false);
   const { data: userList, isFetching } = useFetchUserListQuery();
   const matches = useMediaQuery("(min-width: 700px)");
@@ -115,7 +117,9 @@ function UserTable() {
                 {matches && <Table.Td>{user.photo_count}</Table.Td>}
                 {matches && (
                   <Table.Td>
-                    {DateTime.fromISO(user.date_joined).setLocale(i18nResolvedLanguage()).toRelative()}
+                    {user.date_joined
+                      ? DateTime.fromISO(user.date_joined).setLocale(i18nResolvedLanguage()).toRelative()
+                      : null}
                   </Table.Td>
                 )}
               </Table.Tr>
@@ -144,7 +148,7 @@ function UserTable() {
           setUserModalOpen(false);
         }}
         userToEdit={userToEdit}
-        userList={userList}
+        userList={userList ?? []}
         isOpen={userModalOpen}
         createNew={createNewUser}
       />

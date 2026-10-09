@@ -15,7 +15,7 @@ export const useUpdateUserScanDirectoryMutation = () => {
 
   return useMutation({
     mutationFn: async ({ id, scan_directory }: UpdateScanDirectoryRequest) => {
-      const response = await fetchClient.patch<ManageUser>(`/manage/user/${id}/`, {
+      const response = await fetchClient.patch(`/manage/user/${id}/`, {
         scan_directory,
       });
       return parseWithNotification(ManageUser, response, "Failed to parse update user scan directory response");

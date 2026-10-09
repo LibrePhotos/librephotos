@@ -14,11 +14,16 @@ import { Settings } from "luxon";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import type { SharedPhoto } from "../../api_client/photos/hooks/usePhotoShareMutation";
+import { defined } from "../../util/defined.test-utils";
 
-const stubs = vi.hoisted(() => ({
-  component: undefined as React.ComponentType | undefined,
-  photo: undefined as object | undefined,
-}));
+const stubs = vi.hoisted(() => {
+  const state: { component: React.ComponentType | undefined; photo: SharedPhoto | undefined } = {
+    component: undefined,
+    photo: undefined,
+  };
+  return state;
+});
 
 vi.mock("@tanstack/react-router", () => ({
   createFileRoute: () => {
@@ -40,18 +45,17 @@ vi.mock("../../i18n", () => ({ i18nResolvedLanguage: () => "en" }));
 const defaultZone = Settings.defaultZone;
 
 beforeAll(async () => {
-  (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
-  window.matchMedia = (query: string) =>
-    ({
-      matches: false,
-      media: query,
-      onchange: null,
-      addListener: () => {},
-      removeListener: () => {},
-      addEventListener: () => {},
-      removeEventListener: () => {},
-      dispatchEvent: () => false,
-    }) as unknown as MediaQueryList;
+  globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+  window.matchMedia = (query: string): MediaQueryList => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => false,
+  });
   await import("./p.$slug");
 });
 
@@ -62,12 +66,15 @@ afterAll(() => {
 const mounted: Array<() => Promise<void>> = [];
 
 afterEach(async () => {
-  while (mounted.length) await mounted.pop()!();
+  while (mounted.length) await defined(mounted.pop())();
   stubs.photo = undefined;
 });
 
 async function renderPage() {
-  const Page = stubs.component!;
+  const Page = stubs.component;
+  if (!Page) {
+    throw new Error("the route module did not register its component");
+  }
   const container = document.createElement("div");
   document.body.appendChild(container);
   const root = createRoot(container);
@@ -91,7 +98,7 @@ const shared = {
   thumbnail_url: "/media/public_photo/s1.jpg",
   exif_timestamp: "2024-04-01T01:00:00Z",
   captions_json: {},
-};
+} satisfies SharedPhoto;
 
 describe("shared photo page", () => {
   it("plays the video, and says why when the browser cannot", async () => {
@@ -100,7 +107,7 @@ describe("shared photo page", () => {
     expect(container.textContent).not.toContain("publicphoto.videoUnsupported");
 
     await act(async () => {
-      container.querySelector("video")!.dispatchEvent(new Event("error"));
+      defined(container.querySelector("video")).dispatchEvent(new Event("error"));
     });
 
     expect(container.querySelector("video")).toBeNull();
@@ -130,7 +137,7 @@ describe("shared photo page", () => {
     await renderPage();
     expect(document.title).toBe("Beach day · LibrePhotos");
 
-    while (mounted.length) await mounted.pop()!();
+    while (mounted.length) await defined(mounted.pop())();
     expect(document.title).toBe("LibrePhotos");
   });
 

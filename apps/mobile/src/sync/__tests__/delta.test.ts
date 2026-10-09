@@ -2,6 +2,7 @@
  * @jest-environment node
  */
 import { sql } from "drizzle-orm";
+import type { SyncPhotosResponse, SyncUserAlbumsResponse } from "@librephotos/api-client";
 import { createTestDb, type TestDb } from "@/db/test-db";
 import { getSyncState } from "@/db/queries/sync-state";
 import { pullAll, pullEntity, SyncAbortedError } from "../remote/delta";
@@ -137,28 +138,28 @@ describe("delta pull loop", () => {
   });
 
   it("is idempotent: re-applying the same page converges without duplicates", async () => {
-    const env = {
-      v: 1 as const,
+    const env: SyncPhotosResponse = {
+      v: 1,
       items: [photoItem("p1"), photoItem("p2")],
       tombstones: [],
       next_cursor: null,
       server_time: "0",
     };
     // Need a sync_state row for the cursor UPDATE (no-op here since next=null).
-    applyPhotosPage(t.db, env as never, Date.now());
-    applyPhotosPage(t.db, env as never, Date.now());
+    applyPhotosPage(t.db, env, Date.now());
+    applyPhotosPage(t.db, env, Date.now());
     expect(photoCount(t)).toBe(2);
   });
 
   it("user-album membership is replaced from embedded photo_ids", async () => {
-    const env = {
-      v: 1 as const,
+    const env: SyncUserAlbumsResponse = {
+      v: 1,
       items: [userAlbumItem(7, { photo_ids: ["a", "b", "c"], photo_count: 3 })],
       tombstones: [],
       next_cursor: null,
       server_time: "0",
     };
-    applyUserAlbumsPage(t.db, env as never, Date.now());
+    applyUserAlbumsPage(t.db, env, Date.now());
     const members = t.db.all(sql`SELECT photo_id FROM user_album_photo WHERE album_id = 7`) as {
       photo_id: string;
     }[];

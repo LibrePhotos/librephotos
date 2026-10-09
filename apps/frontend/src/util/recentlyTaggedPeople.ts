@@ -15,7 +15,7 @@ const listeners = new Set<() => void>();
 export function getRecentlyTaggedPeopleIds(): RecentlyTaggedPersonId[] {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
-    const parsed = saved ? JSON.parse(saved) : [];
+    const parsed: unknown = saved ? JSON.parse(saved) : [];
     return Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === "string") : [];
   } catch (e) {
     // eslint-disable-next-line no-console

@@ -3,14 +3,15 @@ import { IconUserPlus, IconUsers } from "@tabler/icons-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import type { Photo as PhotoType } from "../../api_client/photos/types";
+import type { FaceLocationType } from "./lightbox.types";
 import { PersonDetail } from "./PersonDetailComponent";
 
 interface PeopleSectionProps {
-  photoDetail: PhotoType;
+  photoDetail: Pick<PhotoType, "people">;
   isPublic: boolean;
   showTitle?: boolean;
-  setFaceLocation: (face: { face_id: number; face_url: string }) => void;
-  onPersonEdit: (faceId: string, faceUrl: string) => void;
+  setFaceLocation: (location: FaceLocationType) => void;
+  onPersonEdit: (faceId: number, faceUrl: string) => void;
   notThisPerson: (faceId: number) => void;
   /** Absent when adding a face is not available, e.g. on a shared photo. */
   onAddFaceRequest?: () => void;

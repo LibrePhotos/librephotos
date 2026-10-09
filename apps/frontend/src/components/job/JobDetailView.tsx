@@ -40,6 +40,9 @@ type IJobDetailView = Readonly<{
   backTo: string;
 }>;
 
+// Array.isArray on its own leaves the items unchecked; here they stay unknown until each is read
+const isUnknownArray = (value: unknown): value is unknown[] => Array.isArray(value);
+
 const STATUS_ICONS = {
   queued: IconClock,
   running: IconRefresh,
@@ -102,7 +105,8 @@ export function JobDetailView({ jobId, backTo }: IJobDetailView) {
   const outcome = jobOutcome(job);
   const color = JOB_OUTCOME_COLOR[outcome];
   const errorCount = job.result?.error_count != null ? Number(job.result.error_count) : 0;
-  const failedItems = Array.isArray(job.result?.errors) ? (job.result.errors as unknown[]).map(String) : [];
+  const reportedErrors = job.result?.errors;
+  const failedItems = isUnknownArray(reportedErrors) ? reportedErrors.map(String) : [];
   const StatusIcon = STATUS_ICONS[outcome];
 
   const statusLabels = {

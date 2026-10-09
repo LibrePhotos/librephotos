@@ -34,8 +34,21 @@ import i18n from "../i18n";
 // component to the createFileRoute stub.
 import "../routes/_protected/album/places.index";
 
+/** The route stub: createFileRoute("...")(options) and its chained calls hand back the same function. */
+type RouteStub = (options?: { component?: React.ComponentType }) => RouteStub;
+
+/** The part of a MapLibre map the page reads. */
+type MapStub = {
+  getBounds: () => {
+    getNorthEast: () => { lat: number; lng: number };
+    getSouthWest: () => { lat: number; lng: number };
+  };
+  queryRenderedFeatures: () => never[];
+  getSource: () => null;
+};
+
 const stubs = vi.hoisted(() => ({
-  component: null as React.ComponentType<any> | null,
+  component: null as React.ComponentType | null,
   // [longitude, latitude, name], as /locclust/ returns it.
   locationClusters: [
     [2.35, 48.85, "Paris"],
@@ -55,8 +68,8 @@ const stubs = vi.hoisted(() => ({
 
 vi.mock("@tanstack/react-router", () => ({
   createFileRoute: () => {
-    const route = (options?: any) => {
-      stubs.component = options?.component;
+    const route: RouteStub = options => {
+      stubs.component = options?.component ?? null;
       return route;
     };
     return route;
@@ -79,8 +92,8 @@ vi.mock("../util/mapStyle", () => ({ useMapStyle: () => stubs.mapStyle }));
  */
 vi.mock("react-map-gl/maplibre", async () => {
   const react = await import("react");
-  const MapGL = react.forwardRef(function MapGL(props: any, ref: any) {
-    const [map, setMap] = react.useState<any>(null);
+  const MapGL = react.forwardRef<MapStub | null, { children?: React.ReactNode }>(function MapGL(props, ref) {
+    const [map, setMap] = react.useState<MapStub | null>(null);
     react.useEffect(() => {
       let mounted = true;
       Promise.resolve().then(() => {
@@ -98,10 +111,11 @@ vi.mock("react-map-gl/maplibre", async () => {
         mounted = false;
       };
     }, []);
-    react.useImperativeHandle(ref, () => map, [map]);
+    react.useImperativeHandle<MapStub | null, MapStub | null>(ref, () => map, [map]);
     return react.createElement("div", { "data-testid": "map" }, map ? props.children : null);
   });
-  const passthrough = ({ children }: any) => react.createElement(react.Fragment, null, children);
+  const passthrough = ({ children }: { children?: React.ReactNode }) =>
+    react.createElement(react.Fragment, null, children);
   return {
     default: MapGL,
     Source: passthrough,
@@ -112,8 +126,8 @@ vi.mock("react-map-gl/maplibre", async () => {
 });
 
 beforeAll(async () => {
-  // @ts-ignore - jsdom has no matchMedia, MantineProvider needs it
-  window.matchMedia = (query: string) => ({
+  // jsdom has no matchMedia, MantineProvider needs it
+  window.matchMedia = (query: string): MediaQueryList => ({
     matches: false,
     media: query,
     onchange: null,
@@ -123,7 +137,6 @@ beforeAll(async () => {
     removeEventListener: () => {},
     dispatchEvent: () => false,
   });
-  // @ts-ignore
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   await i18n.changeLanguage("en");
 });
@@ -134,7 +147,8 @@ beforeEach(() => {
 });
 
 async function renderPage() {
-  const AlbumPlace = stubs.component!;
+  const AlbumPlace = stubs.component;
+  if (!AlbumPlace) throw new Error("the route did not register its component");
   const container = document.createElement("div");
   document.body.appendChild(container);
   const root = createRoot(container);

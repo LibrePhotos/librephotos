@@ -5,7 +5,8 @@ import { useTranslation } from "react-i18next";
 import { useFetchDateAlbumQuery, useFetchDateAlbumsQuery } from "../../api_client/albums/hooks";
 import { Photoset, PigPhoto } from "../../api_client/photos/types";
 import { mediaTypeToBulkQuery, validateMediaSearch } from "../../components/photolist/mediaTypeFilter";
-import { EmptyStateConfig, PhotoGroup, PhotoListView } from "../../components/photolist/PhotoListView";
+import { NO_PHOTO_GROUP } from "../../components/photolist/photoGroup";
+import { EmptyStateConfig, PhotoListView } from "../../components/photolist/PhotoListView";
 import { useMediaTypeFilter } from "../../components/photolist/useMediaTypeFilter";
 import type { PigVisibleGroup } from "../../components/react-pig";
 import { getPhotosFlatFromGroupedByDate } from "../../util/util";
@@ -31,7 +32,7 @@ function HiddenPhotos() {
     if (photosGroupedByDate) setPhotosFlat(getPhotosFlatFromGroupedByDate(photosGroupedByDate));
   }, [photosGroupedByDate]);
 
-  const [group, setGroup] = useState({} as PhotoGroup);
+  const [group, setGroup] = useState(NO_PHOTO_GROUP);
   useFetchDateAlbumQuery(
     { album_date_id: group.id, page: group.page, photosetType: Photoset.HIDDEN, mediaType },
     { skip: !group.id }

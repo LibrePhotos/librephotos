@@ -1,22 +1,5 @@
 import { z } from "zod";
 
-export type FacesState = {
-  labeledFacesList: CompletePersonFaceList;
-  unknownFacesList: CompletePersonFaceList;
-  inferredFacesList: CompletePersonFaceList;
-  facesVis: any[];
-  training: boolean;
-  trained: boolean;
-  clustering: boolean;
-  clustered: boolean;
-  orderBy: FacesOrderOption;
-  analysisMethod: FaceAnalysisMethod;
-  error: any;
-  activeTab: FacesTab;
-  minConfidence: number;
-  tabs: TabSettingsArray;
-};
-
 export const FacesTab = z.enum(["labeled", "inferred", "unknown"]);
 export type FacesTab = z.infer<typeof FacesTab>;
 
@@ -29,6 +12,13 @@ export type TabSettingsArray = z.infer<typeof TabSettingsArray>;
 
 export const FacesOrderOption = z.enum(["confidence", "date"]);
 export type FacesOrderOption = z.infer<typeof FacesOrderOption>;
+
+/**
+ * The order the faces dashboard keeps in its URL: the backend's two orders, plus "person",
+ * an older order the dashboard still sorts by date.
+ */
+export const FacesRouteOrder = z.enum(["confidence", "date", "person"]);
+export type FacesRouteOrder = z.infer<typeof FacesRouteOrder>;
 
 export const FaceAnalysisMethod = z.enum(["clustering", "classification"]);
 export type FaceAnalysisMethod = z.infer<typeof FaceAnalysisMethod>;

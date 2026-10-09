@@ -30,7 +30,7 @@ import { TimestampItem } from "../components/lightbox/TimestampItem";
 // The component only uses this to PATCH edits; irrelevant to rendering, and
 // mocking it keeps react-query's provider out of the picture.
 vi.mock("../api_client/photos/hooks", () => ({
-  useUpdatePhotoMutation: () => ({ mutate: vi.fn() }),
+  useUpdatePhotoMutation: () => ({ mutate: vi.fn<() => void>() }),
 }));
 
 // The reporter's browser zone: Australia/Perth, UTC+8, no DST.
@@ -40,17 +40,16 @@ const originalZone = Settings.defaultZone;
 // jsdom ships no matchMedia; MantineProvider needs it to resolve the color scheme.
 function stubMatchMedia() {
   if (typeof window.matchMedia === "function") return;
-  window.matchMedia = (query: string) =>
-    ({
-      matches: false,
-      media: query,
-      onchange: null,
-      addListener: () => {},
-      removeListener: () => {},
-      addEventListener: () => {},
-      removeEventListener: () => {},
-      dispatchEvent: () => false,
-    }) as unknown as MediaQueryList;
+  window.matchMedia = (query: string): MediaQueryList => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => false,
+  });
 }
 
 async function renderLabel(exifTimestamp: string): Promise<string> {

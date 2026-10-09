@@ -1,6 +1,6 @@
 export type JobOutcome = "queued" | "running" | "failed" | "cancelled" | "partial_failure" | "completed";
 
-type JobState = Readonly<{
+export type JobState = Readonly<{
   finished: boolean;
   failed?: boolean;
   cancelled?: boolean;

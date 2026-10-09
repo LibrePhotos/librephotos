@@ -7,7 +7,9 @@ import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, describe, expect, it, vi } from "vitest";
+import type { FileVariant, Photo } from "../../api_client/photos/types";
 import i18n from "../../i18n";
+import { makePhoto } from "./photoFixture.test-utils";
 import { VersionComponent } from "./VersionComponent";
 
 vi.mock("../../api_client/apiClient", () => ({ serverAddress: "" }));
@@ -15,8 +17,8 @@ vi.mock("../../api_client/apiClient", () => ({ serverAddress: "" }));
 vi.mock("../common/BreadcrumbPath", () => ({ BreadcrumbPath: () => null }));
 
 beforeAll(async () => {
-  // @ts-ignore - jsdom has no matchMedia, MantineProvider needs it
-  window.matchMedia = (query: string) => ({
+  // jsdom has no matchMedia, MantineProvider needs it
+  window.matchMedia = (query: string): MediaQueryList => ({
     matches: false,
     media: query,
     onchange: null,
@@ -26,18 +28,25 @@ beforeAll(async () => {
     removeEventListener: () => {},
     dispatchEvent: () => false,
   });
-  // @ts-ignore
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   await i18n.changeLanguage("en");
 });
 
-const variant = (hash: string) => ({ hash, type: "raw", is_main: false, path: `/lib/${hash}.raf`, filename: null });
+// A RAW file next to the JPEG (type_id 4 is File.RAW_FILE on the backend).
+const variant = (hash: string): FileVariant => ({
+  hash,
+  type: "raw",
+  type_id: 4,
+  is_main: false,
+  path: `/lib/${hash}.raf`,
+  filename: null,
+});
 
-async function renderText(overrides: Record<string, unknown>) {
+async function renderText(overrides: Partial<Photo>) {
   const container = document.createElement("div");
   document.body.appendChild(container);
   const root = createRoot(container);
-  const photoDetail = {
+  const photoDetail = makePhoto({
     image_hash: "abc",
     width: 4000,
     height: 3000,
@@ -45,7 +54,7 @@ async function renderText(overrides: Record<string, unknown>) {
     image_path: ["/lib/photos/IMG_0001.jpg"],
     file_variants: [],
     ...overrides,
-  } as any;
+  });
   await act(async () => {
     root.render(
       <MantineProvider>

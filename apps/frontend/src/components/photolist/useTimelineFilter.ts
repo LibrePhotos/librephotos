@@ -1,7 +1,6 @@
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useCallback, useMemo } from "react";
 import { useCurrentUserSelfDetailsQuery, useSaveDefaultTimelineFilterMutation } from "../../api_client/user/hooks";
-import type { User } from "../../api_client/user/types";
 import {
   resolveTimelineFilter,
   savedTimelineFilter,
@@ -16,9 +15,8 @@ import {
 // than fetching (and showing) an unfiltered library first.
 export function useTimelineFilter() {
   const navigate = useNavigate();
-  const rawSearch = useSearch({ strict: false }) as Record<string, unknown>;
-  const { data } = useCurrentUserSelfDetailsQuery();
-  const user = data as User | undefined;
+  const rawSearch = useSearch({ strict: false });
+  const { data: user } = useCurrentUserSelfDetailsQuery();
   const saveDefault = useSaveDefaultTimelineFilterMutation();
   const savedRaw = user?.default_timeline_filter;
 

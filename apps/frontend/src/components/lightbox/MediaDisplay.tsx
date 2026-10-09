@@ -2,7 +2,8 @@ import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { serverAddress } from "../../api_client/apiClient";
 import type { NormalizedFaceBox } from "../../api_client/faces/hooks/useAddFaceMutation";
-import type { PhotoOcrBlock } from "../../api_client/photos/types";
+import { generatedCaptionOf, userCaptionOf } from "../../api_client/photos/captions";
+import type { Photo, PhotoOcrBlock } from "../../api_client/photos/types";
 import { convertedUrl, needsConversion } from "../../util/videoPlayback";
 import { FaceDrawLayer } from "./FaceDrawLayer";
 import { FaceOverlay } from "./FaceOverlay";
@@ -20,11 +21,16 @@ export const LIGHTBOX_VIDEO_HEIGHT = "min(82vh, calc(100vh - 160px))";
 /** The tallest a video gets outside the lightbox. */
 const PAGE_VIDEO_MAX_HEIGHT = "70vh";
 
+/**
+ * What MediaDisplay reads from the photo's details. The neighbouring slides and
+ * public pages have none, and a test may give only the part it is about.
+ */
+export type MediaDisplayDetails = Partial<Pick<Photo, "captions_json" | "image_path" | "video_playback_type">>;
+
 /** What a screen reader says for the photo: its caption, else its file name. */
-function describePhoto(photoDetails: any): string {
-  const captions = photoDetails?.captions_json;
-  const caption = captions?.user_caption || captions?.im2txt;
-  if (typeof caption === "string" && caption.trim()) return caption.trim();
+function describePhoto(photoDetails: MediaDisplayDetails | null | undefined): string {
+  const caption = userCaptionOf(photoDetails?.captions_json) || generatedCaptionOf(photoDetails?.captions_json);
+  if (caption?.trim()) return caption.trim();
   const path = photoDetails?.image_path?.[0];
   return typeof path === "string" ? (path.split(/[\\/]/).pop() ?? "") : "";
 }
@@ -34,7 +40,8 @@ export type MediaDisplayProps = {
   image_hash?: string | undefined;
   isMainContent?: boolean;
   type: string;
-  bind?: any;
+  /** useGesture's bind(): the pinch and drag handlers for the main photo. */
+  bind?: () => React.DOMAttributes<HTMLDivElement>;
   faceLocation: FaceLocationType;
   toggleZoom?: () => void;
   scale?: number;
@@ -42,7 +49,7 @@ export type MediaDisplayProps = {
   handleDragStart: (event: React.DragEvent) => void;
   fullHeight?: boolean;
   playing?: boolean;
-  photoDetails?: any | null; // Allow null values from the API
+  photoDetails?: MediaDisplayDetails | null;
   /** A public page: the server never converts for an anonymous visitor. */
   isPublic?: boolean;
   onEnded?: () => void;
@@ -109,7 +116,7 @@ export function MediaDisplay({
     if (!photoDetails?.image_path || !Array.isArray(photoDetails.image_path)) {
       return false;
     }
-    return photoDetails.image_path.some((path: string) => path.toLowerCase().endsWith(".gif"));
+    return photoDetails.image_path.some(path => path.toLowerCase().endsWith(".gif"));
   };
 
   const currentType = isMainContent ? type : "photo";

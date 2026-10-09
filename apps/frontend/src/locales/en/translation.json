@@ -204,6 +204,8 @@
     "public_sharing": "Public sharing",
     "add_rule": "Add Rule",
     "delete_rule": "Delete rule",
+    "unreadable_rules_hint": "This page cannot read these saved entries as rules. They are kept as saved, and the server may still apply them in their place in the list. Delete one to remove it.",
+    "unreadable_rule": "Unrecognised rule, kept as saved (entry {{position}} of the saved list)",
     "reset_to_defaults": "Reset to Defaults",
     "burst": {
       "title": "Burst Detection Rules",

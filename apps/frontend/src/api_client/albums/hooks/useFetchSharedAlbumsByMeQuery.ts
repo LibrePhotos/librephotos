@@ -4,7 +4,8 @@ import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient } from "../../api";
 import { UserAlbumList, UserAlbumListResponse } from "../types";
 
-type UserAlbumsGroupedByUserId = {
+/** One row of the shared-albums queries: a sharer (or recipient) and their albums. */
+export type UserAlbumsGroupedByUserId = {
   user_id: number;
   albums: UserAlbumList;
 };

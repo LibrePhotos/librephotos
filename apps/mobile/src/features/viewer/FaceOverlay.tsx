@@ -53,14 +53,16 @@ export function faceRect(
   boxWidth: number,
   boxHeight: number
 ): Rect | null {
+  // containedRect has no rect without both source dimensions either.
+  if (!sourceWidth || !sourceHeight) return null;
   const image = containedRect(sourceWidth, sourceHeight, boxWidth, boxHeight);
   if (!image) return null;
   const { top, bottom, left, right } = location;
   if (!(right > left) || !(bottom > top)) return null;
 
   const normalized = right <= 1 && bottom <= 1 && left >= 0 && top >= 0;
-  const denomX = normalized ? 1 : (sourceWidth as number);
-  const denomY = normalized ? 1 : (sourceHeight as number);
+  const denomX = normalized ? 1 : sourceWidth;
+  const denomY = normalized ? 1 : sourceHeight;
 
   return {
     left: image.left + (left / denomX) * image.width,

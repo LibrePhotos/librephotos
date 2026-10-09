@@ -48,6 +48,7 @@ import { DefaultHeader } from "./DefaultHeader";
 import type { MediaType } from "./mediaTypeFilter";
 import { MediaTypeSelector } from "./MediaTypeSelector";
 import { SelectionActions } from "./SelectionActions";
+import type { AlbumCoverType } from "./SelectionActions";
 import { SelectionBar } from "./SelectionBar";
 import { StackOverlay } from "./StackOverlay";
 import { TopRightOverlay } from "./TopRightOverlay";
@@ -66,6 +67,9 @@ const scrollToY = (y: number) => {
 
 type HeaderSize = "large" | "normal" | "small";
 
+const isHeaderSize = (value: string): value is HeaderSize =>
+  value === "large" || value === "normal" || value === "small";
+
 // Date views pass the groups as `photoset` and the flat list as `idx2hash`;
 // flat views pass the one list as both.
 const isDateGroupList = (photoset: DatePhotosGroup[] | PigPhoto[]): photoset is DatePhotosGroup[] =>
@@ -76,11 +80,7 @@ const isDateGroupList = (photoset: DatePhotosGroup[] | PigPhoto[]): photoset is 
 const hasCursor = (group: GroupedImageItem<PigPhoto>): group is PigVisibleGroup<PigPhoto> =>
   typeof group.id === "string";
 
-export type PhotoGroup = {
-  id: string;
-  page: number;
-  items?: PigPhoto[];
-};
+export type { PhotoGroup } from "./photoGroup";
 
 export type EmptyStateConfig = {
   icon?: React.ReactNode;
@@ -165,7 +165,7 @@ function PhotoListViewComponent({
   const [modalSharePhotosOpen, setModalSharePhotosOpen] = useState(false);
   const [modalAlbumShareOpen, setModalAlbumShareOpen] = useState(false);
   const [modalCoverPickerOpen, setModalCoverPickerOpen] = useState(false);
-  const [coverPickerAlbumType, setCoverPickerAlbumType] = useState<"person" | "useralbum" | null>(null);
+  const [coverPickerAlbumType, setCoverPickerAlbumType] = useState<AlbumCoverType | null>(null);
   const [selectionState, setSelectionState] = useState<SelectionState>({
     selectedItems: [],
     selectMode: false,
@@ -196,8 +196,8 @@ function PhotoListViewComponent({
     !isLoading && auth?.access && location.pathname === "/" && auth.access.is_admin && !userSelfDetails?.scan_directory;
 
   const imageScale = userSelfDetails?.image_scale ?? 1;
-  const textAlignment = (userSelfDetails?.text_alignment as "left" | "right") ?? "right";
-  const headerSize = (userSelfDetails?.header_size as HeaderSize) ?? "large";
+  const textAlignment = userSelfDetails?.text_alignment ?? "right";
+  const headerSize = userSelfDetails?.header_size ?? "large";
 
   const [localImageScale, setLocalImageScale] = useState(imageScale);
   const [localTextAlignment, setLocalTextAlignment] = useState<"left" | "right">(textAlignment);
@@ -696,7 +696,10 @@ function PhotoListViewComponent({
                             size="xs"
                             fullWidth
                             value={localHeaderSize}
-                            onChange={value => handleHeaderSizeChange(value as HeaderSize)}
+                            onChange={value => {
+                              // The options below are the three header sizes.
+                              if (isHeaderSize(value)) handleHeaderSizeChange(value);
+                            }}
                             data={[
                               { value: "large", label: t("photodisplay.large") },
                               { value: "normal", label: t("photodisplay.normal") },
@@ -782,7 +785,7 @@ function PhotoListViewComponent({
                         }
                       } else if (selectionState.selectedItems.length === 0) {
                         // No selection - open modal picker
-                        setCoverPickerAlbumType(actionType as "person" | "useralbum");
+                        setCoverPickerAlbumType(actionType);
                         setModalCoverPickerOpen(true);
                       }
                       // Multiple selected: action is disabled at menu level

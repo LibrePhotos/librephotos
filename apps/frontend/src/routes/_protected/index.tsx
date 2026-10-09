@@ -5,7 +5,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchDateAlbumQuery, useFetchDateAlbumsQuery } from "../../api_client/albums/hooks";
 import { Photoset, PigPhoto } from "../../api_client/photos/types";
-import { EmptyStateConfig, PhotoGroup, PhotoListView } from "../../components/photolist/PhotoListView";
+import { NO_PHOTO_GROUP, type PhotoGroup } from "../../components/photolist/photoGroup";
+import { EmptyStateConfig, PhotoListView } from "../../components/photolist/PhotoListView";
 import {
   countActiveFilters,
   describeTimelineFilter,
@@ -65,7 +66,7 @@ function TimestampPhotos() {
   // The day page to load, with the filter it was asked under: after the
   // filter changes, a day of the old list is not requested again under the
   // new filter (it may not even be in the new list).
-  const [group, setGroup] = useState({} as PhotoGroup & { filterKey?: string });
+  const [group, setGroup] = useState<PhotoGroup & { filterKey?: string }>(NO_PHOTO_GROUP);
   useFetchDateAlbumQuery(
     { album_date_id: group.id, page: group.page, photosetType: Photoset.NONE, timelineFilter: filter },
     { skip: !group.id || !filterReady || group.filterKey !== filterKey }

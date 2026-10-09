@@ -8,6 +8,7 @@ import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import i18n from "../../i18n";
+import { defined } from "../../util/defined.test-utils";
 import type { LightboxItem } from "./lightbox.types";
 import { Sidebar } from "./Sidebar";
 
@@ -21,25 +22,24 @@ vi.mock("../LocationMap", () => ({ LocationMap: () => null }));
 vi.mock("../modals/ModalPersonEdit", () => ({ ModalPersonEdit: () => null }));
 
 beforeAll(async () => {
-  (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
-  window.matchMedia = (query: string) =>
-    ({
-      matches: false,
-      media: query,
-      onchange: null,
-      addListener: () => {},
-      removeListener: () => {},
-      addEventListener: () => {},
-      removeEventListener: () => {},
-      dispatchEvent: () => false,
-    }) as unknown as MediaQueryList;
+  globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+  window.matchMedia = (query: string): MediaQueryList => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => false,
+  });
   await i18n.changeLanguage("en");
 });
 
 const mounted: Array<() => Promise<void>> = [];
 
 afterEach(async () => {
-  while (mounted.length) await mounted.pop()!();
+  while (mounted.length) await defined(mounted.pop())();
 });
 
 async function renderSidebar(gridItem?: LightboxItem) {

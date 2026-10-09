@@ -15,6 +15,7 @@ import { IconPhoto as Photo, IconUpload as Upload, IconUser as User } from "@tab
 import { useQueryClient } from "@tanstack/react-query";
 import { isEqual } from "lodash-es";
 import React, { useEffect, useRef, useState } from "react";
+import type { AvatarEditorRef } from "react-avatar-editor";
 import AvatarEditor from "react-avatar-editor";
 import type { DropzoneRef } from "react-dropzone";
 import Dropzone from "react-dropzone";
@@ -40,16 +41,11 @@ export function Profile() {
   const { t, i18n } = useTranslation();
   const updateAvatar = useUpdateAvatarMutation();
   const updateUser = useUpdateUserMutation();
-  let editorRef = useRef(null);
+  const editorRef = useRef<AvatarEditorRef>(null);
   const queryClient = useQueryClient();
+  const dropzoneRef = useRef<DropzoneRef>(null);
 
-  const setEditorRef = ref => {
-    editorRef = ref;
-  };
-
-  let dropzoneRef = React.useRef<DropzoneRef>();
-
-  const urlToFile = async (url: string, filename: string, mimeType = undefined) => {
+  const urlToFile = async (url: string, filename: string, mimeType?: string) => {
     const type = mimeType || (url.match(/^data:([^;]+);/) || "")[1];
     const res = await fetch(url);
     const buf = await res.arrayBuffer();
@@ -116,12 +112,7 @@ export function Profile() {
             <div>
               <Dropzone
                 noClick
-                // @ts-ignore
-                style={{ width: 150, height: 150, borderRadius: 75 }}
-                ref={node => {
-                  // @ts-ignore
-                  dropzoneRef = node;
-                }}
+                ref={dropzoneRef}
                 onDrop={accepted => {
                   setAvatarImgSrc(URL.createObjectURL(accepted[0]));
                 }}
@@ -129,7 +120,7 @@ export function Profile() {
                 {({ getRootProps, getInputProps }) => (
                   <div {...getRootProps()}>
                     <input {...getInputProps()} />
-                    <AvatarEditor ref={setEditorRef} width={150} height={150} border={0} image={avatarImgSrc} />
+                    <AvatarEditor ref={editorRef} width={150} height={150} border={0} image={avatarImgSrc} />
                   </div>
                 )}
               </Dropzone>
@@ -143,8 +134,7 @@ export function Profile() {
                   size="sm"
                   leftSection={<Photo size={16} />}
                   onClick={() => {
-                    // @ts-ignore
-                    dropzoneRef.open();
+                    dropzoneRef.current?.open();
                   }}
                 >
                   <Trans i18nKey="settings.image">Choose image</Trans>
@@ -154,10 +144,11 @@ export function Profile() {
                   color="green"
                   leftSection={<Upload size={16} />}
                   onClick={async () => {
+                    const editor = editorRef.current;
+                    if (!editor) return;
                     const formData = new FormData();
                     const file = await urlToFile(
-                      // @ts-ignore
-                      editorRef.getImageScaledToCanvas().toDataURL(),
+                      editor.getImageScaledToCanvas().toDataURL(),
                       `${editedUserDetails.first_name}avatar.png`
                     );
                     formData.append("avatar", file, `${editedUserDetails.first_name}avatar.png`);

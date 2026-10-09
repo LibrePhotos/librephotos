@@ -14,31 +14,30 @@ import {
 import { useDisclosure } from "@mantine/hooks";
 import { IconArrowBackUp as ArrowBackUp, IconCodePlus as CodePlus } from "@tabler/icons-react";
 import type { TFunction } from "i18next";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchPredefinedBurstRulesQuery } from "../../api_client/settings/hooks/useFetchPredefinedBurstRulesQuery";
 import { ModalConfigBurstDetection } from "../modals/ModalConfigBurstDetection";
-import type { BurstDetectionRule } from "./burst-detection.zod";
+import { isHardRule, isRuleEnabled, SavedBurstDetectionRule, type BurstDetectionRule } from "./burst-detection.zod";
+import { readSavedList, savedIds, withRuleOrder } from "./savedRuleList";
 import { SortableTbody, SortableTr } from "./SortableTableRows";
+import { UnreadableSavedEntries } from "./UnreadableSavedEntries";
 
 type ConfigBurstDetectionProps = Readonly<{
-  value: BurstDetectionRule[] | string | null | undefined;
-  onChange: (rules: BurstDetectionRule[]) => void;
+  /** The user's burst_detection_rules: a list of rules, or the JSON string of one. */
+  value: unknown;
+  /**
+   * The edited list: the rules, and every saved entry that is not one (kept unchanged, in its
+   * place), so a save never drops what the page does not show.
+   */
+  onChange: (entries: unknown[]) => void;
 }>;
 
-function parseRules(value: BurstDetectionRule[] | string | null | undefined): BurstDetectionRule[] {
-  if (!value) return [];
-  if (typeof value === "string") {
-    try {
-      return JSON.parse(value);
-    } catch {
-      return [];
-    }
-  }
-  return value;
+function isSavedBurstDetectionRule(entry: unknown): entry is SavedBurstDetectionRule {
+  return SavedBurstDetectionRule.safeParse(entry).success;
 }
 
-function getRuleExtraInfo(rule: BurstDetectionRule, t: TFunction<"translation", undefined>): string | null {
+function getRuleExtraInfo(rule: SavedBurstDetectionRule, t: TFunction<"translation", undefined>): string | null {
   switch (rule.rule_type) {
     case "timestamp_proximity": {
       const interval = t("settings.burst.rule_interval", { ms: rule.interval_ms || 2000 });
@@ -60,23 +59,26 @@ export function ConfigBurstDetection({ value, onChange }: ConfigBurstDetectionPr
   const { t } = useTranslation();
   const colorScheme = useComputedColorScheme();
   const { data: allRules } = useFetchPredefinedBurstRulesQuery();
-  const [userRules, setUserRules] = useState<BurstDetectionRule[]>([]);
+  // Every saved entry: the list shows and edits the rules, and saves the other entries as they are.
+  const [entries, setEntries] = useState<unknown[]>([]);
+  const userRules = useMemo(() => entries.filter(isSavedBurstDetectionRule), [entries]);
   const [availableRules, setAvailableRules] = useState<BurstDetectionRule[]>([]);
   const [resetButtonDisabled, setResetButtonDisabled] = useState(true);
   const [opened, { open, close }] = useDisclosure(false);
 
   useEffect(() => {
     // Also an empty list, so that Cancel resets a rule added to a saved list that was empty.
-    setUserRules(parseRules(value));
+    setEntries(readSavedList(value));
   }, [value]);
 
   useEffect(() => {
-    if (!allRules || !userRules) {
+    if (!allRules) {
       return;
     }
 
     // Also with no rules left, so the rule deleted last can be added back.
-    setAvailableRules(allRules.filter(rule => !userRules.find(r => r.id === rule.id)));
+    const takenIds = savedIds(entries);
+    setAvailableRules(allRules.filter(rule => !takenIds.includes(rule.id)));
 
     const defaultRules = allRules.filter(rule => rule.is_default);
     const defaultRuleIds = defaultRules.map(r => r.id).sort();
@@ -84,61 +86,68 @@ export function ConfigBurstDetection({ value, onChange }: ConfigBurstDetectionPr
     const defaultEnabled = defaultRules.map(r => ({ id: r.id, enabled: r.enabled }));
     const userEnabled = userRules.map(r => ({ id: r.id, enabled: r.enabled }));
 
+    // A saved entry that is not a rule also makes the list differ from the defaults.
     setResetButtonDisabled(
-      JSON.stringify(userRuleIds) === JSON.stringify(defaultRuleIds) &&
+      entries.length === userRules.length &&
+        JSON.stringify(userRuleIds) === JSON.stringify(defaultRuleIds) &&
         JSON.stringify(userEnabled) === JSON.stringify(defaultEnabled)
     );
-  }, [allRules, userRules]);
+  }, [allRules, entries, userRules]);
+
+  function save(updatedEntries: unknown[]) {
+    setEntries(updatedEntries);
+    onChange(updatedEntries);
+  }
 
   function addRules(newRules: BurstDetectionRule[]) {
-    const tmp = userRules.concat(newRules);
-    setUserRules(tmp);
-    onChange(tmp);
+    save([...entries, ...newRules]);
   }
 
-  function deleteRule(rule: BurstDetectionRule) {
-    const updatedRules = userRules.filter(r => r.id !== rule.id);
-    setUserRules(updatedRules);
-    onChange(updatedRules);
+  function deleteRule(rule: SavedBurstDetectionRule) {
+    save(entries.filter(entry => !(isSavedBurstDetectionRule(entry) && entry.id === rule.id)));
   }
 
-  function toggleRule(rule: BurstDetectionRule) {
-    const updatedRules = userRules.map(r => (r.id === rule.id ? { ...r, enabled: !r.enabled } : r));
-    setUserRules(updatedRules);
-    onChange(updatedRules);
+  // A saved entry the list cannot read as a rule has no id to go by: it goes by its place.
+  function deleteEntry(index: number) {
+    save(entries.filter((_, i) => i !== index));
+  }
+
+  function toggleRule(rule: SavedBurstDetectionRule) {
+    save(
+      entries.map(entry =>
+        isSavedBurstDetectionRule(entry) && entry.id === rule.id ? { ...entry, enabled: !isRuleEnabled(entry) } : entry
+      )
+    );
   }
 
   // Save the order the list shows after a drop: the dragged rule at its new place and the ones
   // in between shifted by one.
   function moveRule(from: number, to: number) {
-    const tmp = arrayMove(userRules, from, to);
-    setUserRules(tmp);
-    onChange(tmp);
+    save(withRuleOrder(entries, isSavedBurstDetectionRule, arrayMove(userRules, from, to)));
   }
 
+  // The defaults replace the whole saved list, as they always did.
   function resetToDefaultRules() {
     if (!allRules) {
       return;
     }
 
-    const defaultRules = allRules.filter(rule => rule.is_default);
-    setUserRules(defaultRules);
-    onChange(defaultRules);
+    save(allRules.filter(rule => rule.is_default));
   }
 
-  const renderRuleRow = (rule: BurstDetectionRule) => (
+  const renderRuleRow = (rule: SavedBurstDetectionRule) => (
     <SortableTr key={rule.id} id={rule.id.toString()}>
       <Table.Td width={60}>
-        <Switch checked={rule.enabled} onChange={() => toggleRule(rule)} size="sm" aria-label={rule.name} />
+        <Switch checked={isRuleEnabled(rule)} onChange={() => toggleRule(rule)} size="sm" aria-label={rule.name} />
       </Table.Td>
       {/* Only the text dims for a disabled rule: a dimmed switch reads as a disabled control.
           Long tokens such as "MakerNotes:ContinuousDrive" wrap, so the delete button stays in view
           on a phone. */}
-      <Table.Td style={{ opacity: rule.enabled ? 1 : 0.6, overflowWrap: "anywhere" }}>
+      <Table.Td style={{ opacity: isRuleEnabled(rule) ? 1 : 0.6, overflowWrap: "anywhere" }}>
         <Group gap="xs">
           <strong>{rule.name}</strong>
-          <Badge size="xs" color={rule.category === "hard" ? "blue" : "orange"}>
-            {rule.category === "hard" ? t("settings.burst.hard_criterion") : t("settings.burst.soft_criterion")}
+          <Badge size="xs" color={isHardRule(rule) ? "blue" : "orange"}>
+            {isHardRule(rule) ? t("settings.burst.hard_criterion") : t("settings.burst.soft_criterion")}
           </Badge>
         </Group>
         {rule.description && (
@@ -202,6 +211,8 @@ export function ConfigBurstDetection({ value, onChange }: ConfigBurstDetectionPr
           </SortableTbody>
         </Table>
       </ScrollArea>
+
+      <UnreadableSavedEntries entries={entries} isRule={isSavedBurstDetectionRule} onDelete={deleteEntry} />
 
       <ModalConfigBurstDetection
         availableRules={availableRules}

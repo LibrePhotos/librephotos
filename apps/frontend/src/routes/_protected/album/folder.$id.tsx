@@ -123,7 +123,7 @@ FolderButton.displayName = "FolderButton";
 // FolderListModal component - encapsulates all modal functionality
 interface FolderListModalProps {
   folderPath?: string;
-  subfolders: any;
+  subfolders: readonly SubfolderInfo[];
   /** How many of them the header already shows as buttons. */
   visibleCount: number;
   buttonSize: string;
@@ -146,9 +146,7 @@ const FolderListModal = memo<FolderListModalProps>(
     const filteredSubfolders = useMemo(() => {
       const query = folderSearch.trim().toLowerCase();
       if (!query) return allSubfolders;
-      return allSubfolders.filter(
-        (f: any) => f.name.toLowerCase().includes(query) || f.path.toLowerCase().includes(query)
-      );
+      return allSubfolders.filter(f => f.name.toLowerCase().includes(query) || f.path.toLowerCase().includes(query));
     }, [allSubfolders, folderSearch]);
 
     // One observer per open list, disconnected again: an inline ref callback
@@ -201,7 +199,7 @@ const FolderListModal = memo<FolderListModalProps>(
             </Group>
             <ScrollArea.Autosize mah={600} type="auto">
               <Stack gap="lg" p="md">
-                {filteredSubfolders.map((subfolder: any) => (
+                {filteredSubfolders.map(subfolder => (
                   <FolderButton
                     key={subfolder.path}
                     subfolder={subfolder}
@@ -306,7 +304,8 @@ function FolderDetail() {
     }
   }, [photosGroupedByDate]);
 
-  const [group, setGroup] = useState({} as PhotoGroup);
+  // No group to fetch until the grid asks for one
+  const [group, setGroup] = useState<PhotoGroup>({ id: "", page: 0 });
 
   useFetchDateAlbumQuery(
     { album_date_id: group.id, page: group.page, photosetType: Photoset.NONE, folder: folderPath },

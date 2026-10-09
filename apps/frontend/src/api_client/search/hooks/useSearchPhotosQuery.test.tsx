@@ -9,13 +9,14 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { defined } from "../../../util/defined.test-utils";
 import { useSearchPhotosQuery } from "./useSearchPhotosQuery";
 
 const stubs = vi.hoisted(() => ({
-  get: vi.fn(),
+  get: vi.fn<(endpoint: string) => Promise<unknown>>(),
   user: undefined as { semantic_search_topk: number } | undefined,
   userFailed: false,
-  parseError: vi.fn(),
+  parseError: vi.fn<(message: string) => void>(),
 }));
 
 vi.mock("../../api", () => ({ fetchClient: { get: stubs.get } }));
@@ -45,7 +46,7 @@ function Probe() {
 
 async function render(client: QueryClient) {
   await act(async () => {
-    root!.render(
+    defined(root).render(
       <QueryClientProvider client={client}>
         <Probe />
       </QueryClientProvider>
@@ -63,7 +64,6 @@ async function settle(done: () => boolean) {
 }
 
 beforeAll(() => {
-  // @ts-ignore
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 });
 

@@ -8,6 +8,7 @@ import {
   offlineSearch,
   pushRecentSearch,
 } from "../queries/search";
+import { defined } from "@/test/defined";
 
 describe("offline search", () => {
   let t: TestDb;
@@ -39,7 +40,7 @@ describe("offline search", () => {
     ]);
     const res = offlineSearch(t.db, "2024");
     expect(res.photos).toHaveLength(1);
-    expect(res.photos[0]!.image_hash).toBe("h2");
+    expect(defined(res.photos[0]).image_hash).toBe("h2");
   });
 
   it("matches people and albums by name/title", () => {

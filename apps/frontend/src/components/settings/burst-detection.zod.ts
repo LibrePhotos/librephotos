@@ -14,19 +14,22 @@ export const BurstRuleType = z.enum([
 ]);
 export type BurstRuleType = z.infer<typeof BurstRuleType>;
 
-// Base properties for all burst rules
-const BaseBurstRuleProps = z.object({
-  id: z.number(),
-  name: z.string(),
-  category: BurstRuleCategory,
-  enabled: z.boolean(),
-  is_default: z.boolean(),
-  description: z.string().optional(),
-  // Optional conditions
-  condition_path: z.string().optional(),
-  condition_filename: z.string().optional(),
-  condition_exif: z.string().optional(),
-});
+// Base properties for all burst rules. Loose: a key the schema does not know (a param added on the
+// backend later) stays on the rule, so it is saved back with it.
+const BaseBurstRuleProps = z
+  .object({
+    id: z.number(),
+    name: z.string(),
+    category: BurstRuleCategory,
+    enabled: z.boolean(),
+    is_default: z.boolean(),
+    description: z.string().optional(),
+    // Optional conditions
+    condition_path: z.string().optional(),
+    condition_filename: z.string().optional(),
+    condition_exif: z.string().optional(),
+  })
+  .loose();
 
 // EXIF Burst Mode rule (hard criterion)
 const ExifBurstModeRuleProps = BaseBurstRuleProps.extend({
@@ -75,27 +78,53 @@ export type BurstDetectionRule = z.infer<typeof BurstDetectionRule>;
 export const PredefinedBurstRules = z.array(BurstDetectionRule);
 export type PredefinedBurstRules = z.infer<typeof PredefinedBurstRules>;
 
+// A rule in a user's burst_detection_rules. The predefined rules always have these keys, but the
+// backend (BurstDetectionRule.__init__ in api/burst_detection_rules.py) fills in a missing name,
+// category, enabled and is_default, so a rule saved through the API without them still applies
+// and the list keeps it.
+const SavedRuleDefaults = {
+  name: z.string().optional(),
+  category: BurstRuleCategory.optional(),
+  enabled: z.boolean().optional(),
+  is_default: z.boolean().optional(),
+};
+
+export const SavedBurstDetectionRule = z.union([
+  ExifBurstModeRuleProps.extend(SavedRuleDefaults),
+  ExifSequenceNumberRuleProps.extend(SavedRuleDefaults),
+  FilenamePatternRuleProps.extend(SavedRuleDefaults),
+  TimestampProximityRuleProps.extend(SavedRuleDefaults),
+  VisualSimilarityRuleProps.extend(SavedRuleDefaults),
+]);
+
+export type SavedBurstDetectionRule = z.infer<typeof SavedBurstDetectionRule>;
+
+// Whether the list shows a rule as enabled: only with enabled set to true
+export function isRuleEnabled(rule: SavedBurstDetectionRule): boolean {
+  return rule.enabled === true;
+}
+
 // Helper to check if a rule is a hard criterion
-export function isHardRule(rule: BurstDetectionRule): boolean {
+export function isHardRule(rule: SavedBurstDetectionRule): boolean {
   return rule.category === "hard";
 }
 
 // Helper to check if a rule is a soft criterion
-export function isSoftRule(rule: BurstDetectionRule): boolean {
+export function isSoftRule(rule: SavedBurstDetectionRule): boolean {
   return rule.category === "soft";
 }
 
 // Helper to get enabled rules
-export function getEnabledRules(rules: BurstDetectionRule[]): BurstDetectionRule[] {
-  return rules.filter(r => r.enabled);
+export function getEnabledRules<Rule extends SavedBurstDetectionRule>(rules: Rule[]): Rule[] {
+  return rules.filter(isRuleEnabled);
 }
 
 // Helper to get hard rules
-export function getHardRules(rules: BurstDetectionRule[]): BurstDetectionRule[] {
-  return rules.filter(r => r.category === "hard");
+export function getHardRules<Rule extends SavedBurstDetectionRule>(rules: Rule[]): Rule[] {
+  return rules.filter(isHardRule);
 }
 
 // Helper to get soft rules
-export function getSoftRules(rules: BurstDetectionRule[]): BurstDetectionRule[] {
-  return rules.filter(r => r.category === "soft");
+export function getSoftRules<Rule extends SavedBurstDetectionRule>(rules: Rule[]): Rule[] {
+  return rules.filter(isSoftRule);
 }

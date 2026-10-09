@@ -10,10 +10,10 @@ import { ApiError } from "../../api";
 import { isBackendUnreachable, useLoginMutation } from "./useLoginMutation";
 
 const stubs = vi.hoisted(() => ({
-  post: vi.fn(),
-  backendUnreachable: vi.fn(),
-  navigate: vi.fn(),
-  setAuthCookie: vi.fn(),
+  post: vi.fn<(endpoint: string, data?: unknown) => Promise<unknown>>(),
+  backendUnreachable: vi.fn<() => void>(),
+  navigate: vi.fn<(options: { to?: string; href?: string }) => void>(),
+  setAuthCookie: vi.fn<(name: "access" | "refresh", value: string) => void>(),
 }));
 
 vi.mock("@tanstack/react-router", () => ({ useNavigate: () => stubs.navigate }));
@@ -29,11 +29,11 @@ vi.mock("../../authCookies", async importOriginal => ({
 }));
 vi.mock("../../api", async importOriginal => ({
   ...(await importOriginal<typeof import("../../api")>()),
-  fetchClient: { post: (...args: unknown[]) => stubs.post(...args) },
+  fetchClient: { post: (...args: Parameters<typeof stubs.post>) => stubs.post(...args) },
 }));
 
 beforeAll(() => {
-  (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+  globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 });
 
 beforeEach(() => {

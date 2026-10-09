@@ -65,7 +65,7 @@ const stubs = vi.hoisted(() => ({
 }));
 
 vi.mock("@tanstack/react-router", () => ({
-  Link: ({ children }: any) => <a href="/">{children}</a>,
+  Link: ({ children }: { children?: React.ReactNode }) => <a href="/">{children}</a>,
 }));
 vi.mock("../api_client/api", () => ({ fetchClient: { get: () => {}, post: () => {} } }));
 vi.mock("../api_client/apiClient", () => ({ serverAddress: "" }));
@@ -99,8 +99,8 @@ vi.mock("../components/modals/ModalNextcloudScanDirectoryEdit", () => ({
 vi.mock("../components/modals/ModalUserEdit", () => ({ ModalUserEdit: () => null }));
 
 beforeAll(() => {
-  // @ts-ignore - jsdom has no matchMedia, MantineProvider needs it
-  window.matchMedia = (query: string) => ({
+  // jsdom has no matchMedia, MantineProvider needs it
+  window.matchMedia = (query: string): MediaQueryList => ({
     matches: false,
     media: query,
     onchange: null,
@@ -110,7 +110,6 @@ beforeAll(() => {
     removeEventListener: () => {},
     dispatchEvent: () => false,
   });
-  // @ts-ignore
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   // With the bundle already in the store, changeLanguage("fr") has nothing to fetch.
   i18n.addResourceBundle("fr", "translation", translationFr);
@@ -126,7 +125,7 @@ type ActionButton = {
 
 /** Reads the max-width Mantine generated for the Grid.Col that holds `button`. */
 function reservedWidthOf(button: HTMLElement): string {
-  const col = button.closest(".mantine-Grid-col") as HTMLElement | null;
+  const col = button.closest(".mantine-Grid-col");
   const generatedClass = col && Array.from(col.classList).find(c => c.startsWith("__m__"));
   if (!generatedClass) return "auto";
   const rules = Array.from(document.querySelectorAll("style"))
@@ -139,9 +138,9 @@ function reservedWidthOf(button: HTMLElement): string {
 }
 
 function collectActionButtons(container: HTMLElement): ActionButton[] {
-  return Array.from(container.querySelectorAll<HTMLElement>("button"))
+  return Array.from(container.querySelectorAll("button"))
     .map(button => {
-      const label = button.querySelector<HTMLElement>(".mantine-Button-label");
+      const label = button.querySelector(".mantine-Button-label");
       if (!label || !label.textContent?.trim()) return null;
       const css = getComputedStyle(label);
       return {

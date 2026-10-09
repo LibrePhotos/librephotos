@@ -9,12 +9,15 @@ import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import type { useSetPhotosCategoryMutation } from "../../api_client/photos/hooks";
 import { PigPhoto } from "../../api_client/photos/types";
 import i18n from "../../i18n";
 import { addTempElementsToFlatList } from "../../util/util";
 import { SelectionActions } from "./SelectionActions";
 
-const stubs = vi.hoisted(() => ({ setCategory: vi.fn() }));
+type SetCategory = ReturnType<typeof useSetPhotosCategoryMutation>["mutate"];
+
+const stubs = vi.hoisted(() => ({ setCategory: vi.fn<SetCategory>() }));
 const noopMutation = vi.hoisted(() => () => ({ mutate: () => {}, mutateAsync: async () => {} }));
 vi.mock("@tanstack/react-router", () => ({ useLocation: () => ({ pathname: "/" }) }));
 vi.mock("../../api_client/apiClient", () => ({ serverAddress: "", shareAddress: "" }));
@@ -36,8 +39,8 @@ vi.mock("../../hooks/useAuth", () => ({ useAuth: () => ({ userId: 1 }) }));
 vi.mock("../modals/ModalDownloadOptions", () => ({ ModalDownloadOptions: () => null }));
 
 beforeAll(async () => {
-  // @ts-ignore - jsdom has no matchMedia, MantineProvider needs it
-  window.matchMedia = (query: string) => ({
+  // jsdom has no matchMedia, MantineProvider needs it
+  window.matchMedia = (query: string): MediaQueryList => ({
     matches: false,
     media: query,
     onchange: null,
@@ -47,7 +50,6 @@ beforeAll(async () => {
     removeEventListener: () => {},
     dispatchEvent: () => false,
   });
-  // @ts-ignore
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   await i18n.changeLanguage("en");
 });
@@ -90,7 +92,7 @@ async function markAs(props: Partial<React.ComponentProps<typeof SelectionAction
   // The second menu (the dots) holds the photo actions.
   const menuButtons = container.querySelectorAll("button");
   await act(async () => {
-    (menuButtons[menuButtons.length - 1] as HTMLButtonElement).click();
+    menuButtons[menuButtons.length - 1].click();
   });
   const item = Array.from(document.body.querySelectorAll("button")).find(
     button => button.textContent?.trim() === label

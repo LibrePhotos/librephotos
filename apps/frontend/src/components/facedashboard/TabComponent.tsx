@@ -25,7 +25,7 @@ export function TabComponent({ fetchingLabeledFacesList, fetchingInferredFacesLi
         value={activeTab}
         w="100%"
         onChange={value => {
-          navigate({ to: "/faces", search: { ...search, tab: value as FacesTab } });
+          navigate({ to: "/faces", search: { ...search, tab: FacesTab.safeParse(value).data } });
         }}
       >
         <Tabs.List>

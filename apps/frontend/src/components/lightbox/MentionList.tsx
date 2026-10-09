@@ -1,16 +1,24 @@
+import type { MentionNodeAttrs } from "@tiptap/extension-mention";
+import type { SuggestionKeyDownProps } from "@tiptap/suggestion";
 import React, { forwardRef, useEffect, useImperativeHandle, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-type Props = {
+/** The suggestion props the list uses; the renderer hands it all of them. */
+export type MentionListProps = {
   items: string[];
-  command: (params: { id: string }) => void;
+  command: (attrs: MentionNodeAttrs) => void;
 };
 
-export const MentionList = forwardRef((props: Props, ref) => {
+/** What the suggestion plugin calls on the list while it is open. */
+export type MentionListHandle = {
+  onKeyDown: (props: Pick<SuggestionKeyDownProps, "event">) => boolean;
+};
+
+export const MentionList = forwardRef<MentionListHandle, MentionListProps>((props, ref) => {
   const { t } = useTranslation();
   const [selectedIndex, setSelectedIndex] = useState(0);
 
-  const selectItem = index => {
+  const selectItem = (index: number) => {
     const item = props.items[index];
 
     if (item) {

@@ -104,9 +104,8 @@ export async function bulkUpdateMetadata(
   photoIds: string[],
   updates: MetadataUpdateFields
 ): Promise<{ updated_count: number; message: string }> {
-  const response = await fetchClient.patch("/photos/metadata/bulk", {
+  return fetchClient.patch<{ updated_count: number; message: string }>("/photos/metadata/bulk", {
     photo_ids: photoIds,
     updates,
   });
-  return response as { updated_count: number; message: string };
 }

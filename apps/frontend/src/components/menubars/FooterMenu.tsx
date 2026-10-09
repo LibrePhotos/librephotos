@@ -80,9 +80,18 @@ export function FooterMenu(): JSX.Element {
               if (subitem.separator) {
                 return <Divider key={subkey} />;
               }
-              const submenuIcon = <subitem.icon size={14} color={subitem.color} />;
+              const { icon: SubmenuIcon, link: submenuLink } = subitem;
+              const submenuIcon = SubmenuIcon ? <SubmenuIcon size={14} color={subitem.color} /> : undefined;
               return (
-                <Menu.Item key={subkey} leftSection={submenuIcon} onClick={() => navigate({ to: subitem.link! })}>
+                <Menu.Item
+                  key={subkey}
+                  leftSection={submenuIcon}
+                  onClick={() => {
+                    if (submenuLink !== undefined) {
+                      navigate({ to: submenuLink });
+                    }
+                  }}
+                >
                   {subitem.label}
                 </Menu.Item>
               );

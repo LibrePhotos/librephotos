@@ -18,6 +18,7 @@
  */
 import * as FileSystem from "expo-file-system/legacy";
 import * as MediaLibrary from "expo-media-library/legacy";
+import { isRecord, parseJson } from "@/lib/guards";
 import type {
   UploadCompleteInput,
   UploadFileInput,
@@ -64,8 +65,8 @@ async function resolveReadableUri(id: string, uri: string): Promise<string> {
 function httpError(what: string, status: number, body: string): Error {
   let detail = (body ?? "").trim();
   try {
-    const parsed = JSON.parse(detail) as { detail?: string };
-    if (parsed?.detail) detail = parsed.detail;
+    const parsed = parseJson(detail);
+    if (isRecord(parsed) && typeof parsed.detail === "string" && parsed.detail) detail = parsed.detail;
   } catch {
     // not JSON — keep the raw text
   }
@@ -84,8 +85,8 @@ export function createExpoUploadTransport(deps: TransportDeps): UploadTransport 
         headers: { Accept: "application/json", ...authHeaders(token, false) },
       });
       if (!res.ok) throw httpError("exists check", res.status, await res.text().catch(() => ""));
-      const json = (await res.json()) as { exists?: boolean };
-      return json.exists === true;
+      const json: unknown = await res.json();
+      return isRecord(json) && json.exists === true;
     },
 
     async uploadFile(
@@ -130,8 +131,8 @@ export function createExpoUploadTransport(deps: TransportDeps): UploadTransport 
       if (result.status >= 300) throw httpError("upload", result.status, result.body);
       let uploadId = "";
       try {
-        const parsed = JSON.parse(result.body) as { upload_id?: string };
-        uploadId = parsed.upload_id ?? "";
+        const parsed = parseJson(result.body);
+        uploadId = isRecord(parsed) && typeof parsed.upload_id === "string" ? parsed.upload_id : "";
       } catch {
         throw new Error("upload response was not valid JSON");
       }

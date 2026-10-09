@@ -56,7 +56,8 @@ const lazyLocaleBackend: BackendModule = {
     }
     load().then(
       module => callback(null, module.default),
-      error => callback(error, false)
+      // A failed dynamic import rejects with an Error (TypeError: failed to fetch the chunk).
+      (error: unknown) => callback(error instanceof Error ? error : String(error), false)
     );
   },
 };

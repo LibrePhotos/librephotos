@@ -9,14 +9,23 @@ import "@mantine/core/styles.css";
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
-import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it, vi, type Mock } from "vitest";
+import type { usePhotoShareMutation } from "../../api_client/photos/hooks/usePhotoShareMutation";
 import i18n from "../../i18n";
 import { PhotoShareLinkModal } from "./PhotoShareLinkModal";
 
-const mutation = {
-  mutate: vi.fn(),
-  reset: vi.fn(),
-  data: undefined as { enabled: boolean; slug: string | null; url: string | null } | undefined,
+// The part of the real hook's result the dialog reads, so a change to its
+// mutate/data signature fails the typecheck here too.
+type ShareMutation = ReturnType<typeof usePhotoShareMutation>;
+type ShareMutationFake = Pick<ShareMutation, "data" | "isPending" | "isError"> & {
+  mutate: Mock<ShareMutation["mutate"]>;
+  reset: Mock<ShareMutation["reset"]>;
+};
+
+const mutation: ShareMutationFake = {
+  mutate: vi.fn<ShareMutation["mutate"]>(),
+  reset: vi.fn<ShareMutation["reset"]>(),
+  data: undefined,
   isPending: false,
   isError: false,
 };
@@ -25,8 +34,8 @@ vi.mock("../../api_client/apiClient", () => ({ serverAddress: "", shareAddress: 
 vi.mock("../../api_client/photos/hooks", () => ({ usePhotoShareMutation: () => mutation }));
 
 beforeAll(async () => {
-  // @ts-ignore - jsdom has no matchMedia, MantineProvider needs it
-  window.matchMedia = (query: string) => ({
+  // jsdom has no matchMedia, MantineProvider needs it
+  window.matchMedia = (query: string): MediaQueryList => ({
     matches: false,
     media: query,
     onchange: null,
@@ -36,7 +45,6 @@ beforeAll(async () => {
     removeEventListener: () => {},
     dispatchEvent: () => false,
   });
-  // @ts-ignore
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   await i18n.changeLanguage("en");
 });
@@ -50,7 +58,7 @@ beforeEach(() => {
   mutation.isError = false;
 });
 
-async function renderModal(photoId: string | null, onClose = vi.fn()) {
+async function renderModal(photoId: string | null, onClose = vi.fn<() => void>()) {
   const container = document.createElement("div");
   document.body.appendChild(container);
   const root = createRoot(container);
@@ -64,14 +72,22 @@ async function renderModal(photoId: string | null, onClose = vi.fn()) {
   return { onClose };
 }
 
-function buttonNamed(label: string) {
-  return Array.from(document.querySelectorAll("button")).find(b => b.textContent === label);
+function buttonNamed(label: string): HTMLButtonElement {
+  const button = Array.from(document.querySelectorAll("button")).find(b => b.textContent === label);
+  if (!button) {
+    throw new Error(`no button named "${label}"`);
+  }
+  return button;
 }
 
 /** The confirm button in the open confirmation popover, labelled like its trigger. */
-function confirmButton(label: string) {
-  const dialog = document.querySelector<HTMLElement>(`[role="dialog"][aria-label="${label}"]`);
-  return Array.from(dialog?.querySelectorAll("button") ?? []).find(b => b.textContent === label);
+function confirmButton(label: string): HTMLButtonElement {
+  const dialog = document.querySelector(`[role="dialog"][aria-label="${label}"]`);
+  const button = Array.from(dialog?.querySelectorAll("button") ?? []).find(b => b.textContent === label);
+  if (!button) {
+    throw new Error(`no confirmation button named "${label}"`);
+  }
+  return button;
 }
 
 describe("PhotoShareLinkModal", () => {
@@ -87,8 +103,7 @@ describe("PhotoShareLinkModal", () => {
 
     await renderModal("photo-1");
 
-    const input = document.querySelector("input") as HTMLInputElement;
-    expect(input.value).toBe("https://photos.example/public/p/abc");
+    expect(document.querySelector("input")?.value).toBe("https://photos.example/public/p/abc");
   });
 
   it("replaces and revokes through the same mutation, closing after a revoke", async () => {
@@ -97,14 +112,14 @@ describe("PhotoShareLinkModal", () => {
     mutation.mutate.mockClear();
 
     // Both end the link recipients already have, so each asks first.
-    await act(async () => buttonNamed(i18n.t("sharing.rotateLink"))!.click());
+    await act(async () => buttonNamed(i18n.t("sharing.rotateLink")).click());
     expect(mutation.mutate).not.toHaveBeenCalled();
-    await act(async () => confirmButton(i18n.t("sharing.rotateLink"))!.click());
+    await act(async () => confirmButton(i18n.t("sharing.rotateLink")).click());
     expect(mutation.mutate).toHaveBeenLastCalledWith({ photoId: "photo-1", action: "rotate" });
 
-    await act(async () => buttonNamed(i18n.t("sharing.revokeLink"))!.click());
+    await act(async () => buttonNamed(i18n.t("sharing.revokeLink")).click());
     expect(mutation.mutate).toHaveBeenCalledTimes(1);
-    await act(async () => confirmButton(i18n.t("sharing.revokeLink"))!.click());
+    await act(async () => confirmButton(i18n.t("sharing.revokeLink")).click());
     expect(mutation.mutate).toHaveBeenLastCalledWith({ photoId: "photo-1", action: "disable" }, { onSuccess: onClose });
   });
 
@@ -113,13 +128,12 @@ describe("PhotoShareLinkModal", () => {
     await renderModal("photo-1");
     mutation.mutate.mockClear();
 
-    await act(async () => buttonNamed(i18n.t("sharing.revokeLink"))!.click());
+    await act(async () => buttonNamed(i18n.t("sharing.revokeLink")).click());
     expect(document.body.textContent).toContain(i18n.t("sharing.revokeLinkConfirm"));
-    const dialog = document.querySelector<HTMLElement>(
-      `[role="dialog"][aria-label="${i18n.t("sharing.revokeLink")}"]`
-    )!;
-    const cancel = Array.from(dialog.querySelectorAll("button")).find(b => b.textContent === i18n.t("cancel"))!;
-    await act(async () => cancel.click());
+    const dialog = document.querySelector(`[role="dialog"][aria-label="${i18n.t("sharing.revokeLink")}"]`);
+    const cancel = Array.from(dialog?.querySelectorAll("button") ?? []).find(b => b.textContent === i18n.t("cancel"));
+    expect(cancel).toBeDefined();
+    await act(async () => cancel?.click());
 
     expect(mutation.mutate).not.toHaveBeenCalled();
   });
@@ -130,8 +144,8 @@ describe("PhotoShareLinkModal", () => {
     mutation.data = { enabled: true, slug: "abc", url: "/public/p/abc" };
     const { onClose } = await renderModal("photo-1");
 
-    await act(async () => buttonNamed(i18n.t("sharing.revokeLink"))!.click());
-    const cancel = buttonNamed(i18n.t("cancel"))!;
+    await act(async () => buttonNamed(i18n.t("sharing.revokeLink")).click());
+    const cancel = buttonNamed(i18n.t("cancel"));
     cancel.focus();
     await act(async () => {
       cancel.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));

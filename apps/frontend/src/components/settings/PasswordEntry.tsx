@@ -5,7 +5,8 @@ import { useTranslation } from "react-i18next";
 
 type Props = Readonly<{
   createNew?: boolean;
-  onValidate: (string, boolean) => void;
+  /** The password to save ("" for none) and whether the fields allow saving. */
+  onValidate: (password: string, isValid: boolean) => void;
   closing?: boolean;
 }>;
 
@@ -22,7 +23,7 @@ export function PasswordEntry(props: Props): JSX.Element {
   // red the moment the fields unlock or the Create User dialog opens.
   const [touched, setTouched] = useState(false);
 
-  const validateAndUpdatePassword = (password, passwordConfirm, isClosing = false) => {
+  const validateAndUpdatePassword = (password: string, passwordConfirm: string, isClosing = false) => {
     setConfirmPasswordError("");
     setNewPasswordError("");
     let validPassword = "";

@@ -5,11 +5,12 @@ import { useNavigate } from "@tanstack/react-router";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useCancelJobMutation } from "../../api_client/jobs/hooks";
-import { JobDetail } from "../../api_client/jobs/types";
+import type { JobDetail } from "../../api_client/jobs/types";
 import { useWorkerStatus } from "../../hooks/useWorkerStatus";
 
 type IWorkerIndicator = Readonly<{
-  workerRunningJob: JobDetail;
+  // Null while the worker reports no running job.
+  workerRunningJob: JobDetail | null;
 }>;
 
 function WorkerRunningJob({ workerRunningJob }: IWorkerIndicator) {

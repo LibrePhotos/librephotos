@@ -17,6 +17,7 @@ import { showNotification } from "@mantine/notifications";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ApiError } from "../../api_client/api";
+import type { EmailConfigUpdate } from "../../api_client/settings/hooks/useEmailConfig";
 import {
   useGetEmailConfigQuery,
   useSendTestEmailMutation,
@@ -93,8 +94,9 @@ export function EmailSettings(): JSX.Element {
     return option;
   });
 
-  const presetHost = config?.presets?.[provider]?.host as string | undefined;
-  const helpUrl = config?.presets?.[provider]?.help_url as string | undefined;
+  const preset = config?.presets?.[provider];
+  const presetHost = preset?.host;
+  const helpUrl = preset?.help_url;
 
   // Same rules as reportUserSaveError (util/apiErrors.ts): a 401 is left to the auth handling, and
   // only the server's own message is shown, never FetchClient's internal English one.
@@ -110,7 +112,7 @@ export function EmailSettings(): JSX.Element {
 
   const onSave = () => {
     setTestResult(null);
-    const payload: Record<string, unknown> = {
+    const payload: EmailConfigUpdate = {
       provider,
       from_email: fromEmail,
       host,

@@ -9,6 +9,7 @@ import {
   parseTime,
   setMemoriesNotifPrefs,
 } from "../queries/memories";
+import { defined } from "@/test/defined";
 
 /** June 15th of the given year, at noon UTC. */
 function jun15(year: number): number {
@@ -37,7 +38,7 @@ describe("memories (on this day)", () => {
     ]);
     const res = onThisDay(t.db, { today });
     expect(res.map((m) => m.image_hash)).toEqual(["h2023fav", "h2022"]);
-    expect(res[0]!.year).toBe(2023);
+    expect(defined(res[0]).year).toBe(2023);
   });
 
   it("excludes hidden and trashed photos", () => {

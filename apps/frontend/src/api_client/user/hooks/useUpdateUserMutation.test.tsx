@@ -8,12 +8,13 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { defined } from "../../../util/defined.test-utils";
 import { useUpdateUserMutation } from "./useUpdateUserMutation";
 
 const mocks = vi.hoisted(() => ({
-  patch: vi.fn(),
-  invalidateQueries: vi.fn(),
-  updateUser: vi.fn(),
+  patch: vi.fn<(endpoint: string, data?: unknown) => Promise<unknown>>(),
+  invalidateQueries: vi.fn<(filters: { queryKey: readonly unknown[] }) => void>(),
+  updateUser: vi.fn<(username: string) => void>(),
 }));
 
 vi.mock("../../api", () => ({
@@ -25,7 +26,7 @@ vi.mock("../../../service/notifications", () => ({ notification: { updateUser: m
 vi.mock("../../../util/zodUtils", () => ({ parseWithNotification: (_schema: unknown, data: unknown) => data }));
 
 beforeAll(() => {
-  (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+  globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 });
 
 beforeEach(() => {
@@ -51,7 +52,7 @@ async function saveWith(options?: { silent?: boolean }) {
     );
   });
   await act(async () => {
-    await mutation!.mutateAsync({ id: 1, image_scale: 2 });
+    await defined(mutation).mutateAsync({ id: 1, image_scale: 2 });
   });
   await act(async () => {
     root.unmount();

@@ -17,6 +17,7 @@ import { useEditor } from "@tiptap/react";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchThingsAlbumsQuery } from "../../api_client/albums/hooks";
+import { autoTagsOf, generatedCaptionOf, userCaptionOf } from "../../api_client/photos/captions";
 import { useGenerateImageToTextCaptionMutation, useSavePhotoCaptionMutation } from "../../api_client/photos/hooks";
 import type { Photo as PhotoType } from "../../api_client/photos/types";
 import { useGetSettingsQuery } from "../../api_client/settings/hooks";
@@ -28,7 +29,8 @@ import suggestion from "./Suggestion";
 
 type Props = Readonly<{
   isPublic: boolean;
-  photoDetail: PhotoType;
+  /** All the editor reads: a public page hands it the shared subset of the details. */
+  photoDetail: Pick<PhotoType, "image_hash" | "captions_json">;
 }>;
 
 /** Captions are saved as plain text; the editor shows their hashtags as mentions. */
@@ -53,8 +55,8 @@ function CaptionEditor(props: Props) {
   const navigate = useNavigate();
 
   // Every tagging model stores { tags: string[] } under its own key.
-  const autoTags: string[] | undefined = photoDetail.captions_json?.[taggingModel]?.tags;
-  const savedCaption = photoDetail.captions_json?.user_caption ?? "";
+  const autoTags = autoTagsOf(photoDetail.captions_json, taggingModel);
+  const savedCaption = userCaptionOf(photoDetail.captions_json);
 
   const [editMode, setEditMode] = useState(false);
   const [imageCaption, setImageCaption] = useState<string | null>(null);
@@ -140,7 +142,7 @@ function CaptionEditor(props: Props) {
     setEditing(false);
   };
 
-  const im2txt = photoDetail.captions_json?.im2txt;
+  const im2txt = generatedCaptionOf(photoDetail.captions_json);
   const isEmpty = !editMode && !(imageCaption ?? savedCaption);
 
   return (
@@ -242,7 +244,7 @@ function CaptionEditor(props: Props) {
             <Title order={4}>{t("lightbox.sidebar.autotags")}</Title>
           </Group>
           <Group gap="xs">
-            {autoTags.map((tag: string) =>
+            {autoTags.map(tag =>
               // Search needs a login, so a public page's tags are just labels;
               // the owner's are buttons, so the keyboard can reach them too.
               isPublic ? (

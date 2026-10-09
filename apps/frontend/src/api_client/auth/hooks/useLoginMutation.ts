@@ -22,7 +22,7 @@ export const LoginResponse = z.object({
 export type LoginResponse = z.infer<typeof LoginResponse>;
 
 const login = (credentials: LoginPost) =>
-  fetchClient.post<LoginResponse>("/auth/token/obtain/", credentials).then(response => {
+  fetchClient.post("/auth/token/obtain/", credentials).then(response => {
     const data = parseWithNotification(LoginResponse, response, "Failed to parse login response");
     setAuthCookie("access", data.access);
     setAuthCookie("refresh", data.refresh);

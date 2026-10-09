@@ -25,6 +25,7 @@ import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, describe, expect, it, vi } from "vitest";
+import type { useLoginMutation } from "../api_client/auth";
 import i18n from "../i18n";
 // Imported statically, like every other test's subject: loading the route's
 // module graph then happens while the file is collected, which has no time
@@ -33,9 +34,10 @@ import i18n from "../i18n";
 // are hoisted above this import, and running the module hands its page
 // component to the createFileRoute stub.
 import "../routes/login";
+import { defined } from "../util/defined.test-utils";
 
 const stubs = vi.hoisted(() => ({
-  login: vi.fn(),
+  login: vi.fn<ReturnType<typeof useLoginMutation>["mutate"]>(),
   noopMutation: { mutate: () => {}, isPending: false },
   component: undefined as React.ComponentType | undefined,
 }));
@@ -84,8 +86,8 @@ vi.mock("../components/setup/DirectoryPicker", () => ({ DirectoryPicker: () => n
 vi.mock("../util/apiErrors", () => ({ reportSignupError: () => {}, reportUserSaveError: () => {} }));
 
 beforeAll(async () => {
-  // @ts-ignore - jsdom has no matchMedia, MantineProvider needs it
-  window.matchMedia = (query: string) => ({
+  // jsdom has no matchMedia, MantineProvider needs it
+  window.matchMedia = (query: string): MediaQueryList => ({
     matches: false,
     media: query,
     onchange: null,
@@ -95,7 +97,6 @@ beforeAll(async () => {
     removeEventListener: () => {},
     dispatchEvent: () => false,
   });
-  // @ts-ignore
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   await i18n.changeLanguage("en");
 });
@@ -103,7 +104,8 @@ beforeAll(async () => {
 async function renderLoginPage() {
   // The route component renders the sign-in form when this is not a first-time setup,
   // which the useIsFirstTimeSetupQuery mock above guarantees.
-  const LoginPage = stubs.component!;
+  const LoginPage = stubs.component;
+  if (!LoginPage) throw new Error("the login route registered no component");
   const container = document.createElement("div");
   document.body.appendChild(container);
   const root = createRoot(container);
@@ -130,24 +132,24 @@ describe("issue #924 - browsers cannot offer to remember the login credentials",
     const form = container.querySelector("form");
     expect(form).not.toBeNull();
 
-    const username = form!.querySelector<HTMLInputElement>('input[name="username"]');
-    const password = form!.querySelector<HTMLInputElement>('input[name="password"]');
+    const username = defined(form).querySelector<HTMLInputElement>('input[name="username"]');
+    const password = defined(form).querySelector<HTMLInputElement>('input[name="password"]');
     expect(username).not.toBeNull();
     expect(password).not.toBeNull();
 
-    expect(password!.type).toBe("password");
-    expect(username!.getAttribute("autocomplete")).toBe("username");
-    expect(password!.getAttribute("autocomplete")).toBe("current-password");
+    expect(defined(password).type).toBe("password");
+    expect(defined(username).getAttribute("autocomplete")).toBe("username");
+    expect(defined(password).getAttribute("autocomplete")).toBe("current-password");
 
     await cleanup();
   });
 
   it("submits through the form so the browser sees a credential submission", async () => {
     const { container, cleanup } = await renderLoginPage();
-    const form = container.querySelector("form")!;
+    const form = defined(container.querySelector("form"));
 
-    const username = form.querySelector<HTMLInputElement>('input[name="username"]')!;
-    const password = form.querySelector<HTMLInputElement>('input[name="password"]')!;
+    const username = defined(form.querySelector<HTMLInputElement>('input[name="username"]'));
+    const password = defined(form.querySelector<HTMLInputElement>('input[name="password"]'));
 
     // A submit button inside the form, not a bare onClick handler: browsers treat the
     // form's submit event as the signal that credentials were used.
@@ -156,9 +158,15 @@ describe("issue #924 - browsers cannot offer to remember the login credentials",
     stubs.login.mockClear();
     await act(async () => {
       username.focus();
-      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(username, "Alice");
+      defined(defined(Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")).set).call(
+        username,
+        "Alice"
+      );
       username.dispatchEvent(new Event("input", { bubbles: true }));
-      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(password, "hunter2");
+      defined(defined(Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")).set).call(
+        password,
+        "hunter2"
+      );
       password.dispatchEvent(new Event("input", { bubbles: true }));
     });
     await act(async () => {

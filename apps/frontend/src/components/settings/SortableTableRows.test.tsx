@@ -11,8 +11,8 @@ let root: Root;
 let container: HTMLDivElement;
 
 beforeAll(() => {
-  // @ts-ignore - jsdom has no matchMedia, MantineProvider needs it
-  window.matchMedia = (query: string) => ({
+  // jsdom has no matchMedia, MantineProvider needs it
+  window.matchMedia = (query: string): MediaQueryList => ({
     matches: false,
     media: query,
     onchange: null,
@@ -22,7 +22,6 @@ beforeAll(() => {
     removeEventListener: () => {},
     dispatchEvent: () => false,
   });
-  // @ts-ignore
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 });
 
@@ -30,7 +29,7 @@ beforeEach(() => {
   // jsdom has no layout: stack the rows 40px apart so dnd-kit can tell which row is below which.
   vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function rect(this: HTMLElement) {
     const row = this.closest("tr[data-sortable-id]");
-    const index = row ? Array.from(row.parentElement!.children).indexOf(row) : 0;
+    const index = row?.parentElement ? Array.from(row.parentElement.children).indexOf(row) : 0;
     const top = index * ROW_HEIGHT;
     return {
       x: 0,
@@ -42,7 +41,7 @@ beforeEach(() => {
       right: 400,
       bottom: top + ROW_HEIGHT,
       toJSON: () => ({}),
-    } as DOMRect;
+    };
   });
   container = document.createElement("div");
   document.body.appendChild(container);
@@ -88,7 +87,12 @@ function RuleList({ onChange, onDelete }: Readonly<{ onChange: (ids: string[]) =
 
 const rowOrder = () =>
   Array.from(container.querySelectorAll("tr[data-sortable-id]"), row => row.getAttribute("data-sortable-id"));
-const row = (id: string) => container.querySelector<HTMLElement>(`tr[data-sortable-id="${id}"]`)!;
+function found<T>(element: T | null | undefined, what: string): T {
+  if (element === null || element === undefined) throw new Error(`${what} not found`);
+  return element;
+}
+
+const row = (id: string) => found(container.querySelector<HTMLElement>(`tr[data-sortable-id="${id}"]`), `row ${id}`);
 
 async function key(target: EventTarget, code: string) {
   await act(async () => {
@@ -127,7 +131,7 @@ describe("SortableTbody", () => {
   });
 
   it("moves a row from the keyboard and saves the order the list shows", async () => {
-    const onChange = vi.fn();
+    const onChange = vi.fn<(ids: string[]) => void>();
     await act(async () => {
       root.render(<RuleList onChange={onChange} />);
     });
@@ -144,7 +148,7 @@ describe("SortableTbody", () => {
   });
 
   it("leaves the order alone when a keyboard drag is cancelled", async () => {
-    const onChange = vi.fn();
+    const onChange = vi.fn<(ids: string[]) => void>();
     await act(async () => {
       root.render(<RuleList onChange={onChange} />);
     });
@@ -163,7 +167,7 @@ describe("SortableTbody", () => {
       root.render(<RuleList onChange={() => {}} />);
     });
 
-    await pointerDrag(row("a").querySelector("td")!);
+    await pointerDrag(found(row("a").querySelector("td"), "cell"));
 
     expect(row("a").getAttribute("aria-pressed")).toBe("true");
 
@@ -175,11 +179,11 @@ describe("SortableTbody", () => {
   });
 
   it("does not start a drag from a control inside the row", async () => {
-    const onDelete = vi.fn();
+    const onDelete = vi.fn<() => void>();
     await act(async () => {
       root.render(<RuleList onChange={() => {}} onDelete={onDelete} />);
     });
-    const button = row("a").querySelector("button")!;
+    const button = found(row("a").querySelector("button"), "delete button");
 
     await pointerDrag(button);
     await act(async () => {

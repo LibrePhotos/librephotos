@@ -1,4 +1,4 @@
-import { Button, Group, Modal, Paper, Stack, Text, TextInput, Tree } from "@mantine/core";
+import { Button, Group, Modal, Paper, Stack, Text, TextInput, Tree, type TreeNodeData } from "@mantine/core";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchNextcloudDirsQuery } from "../../api_client/folders/hooks/useFetchNextcloudDirsQuery";
@@ -7,7 +7,8 @@ import { Leaf } from "./Leaf";
 import { modalTitleStyles } from "./modalTitleStyles";
 
 type Props = Readonly<{
-  path: string;
+  /** The saved folder; unset until the user picked one. */
+  path: string | null | undefined;
   isOpen: boolean;
   onChange: (dir: string) => void;
   onClose: () => void;
@@ -34,7 +35,7 @@ export function ModalNextcloudScanDirectoryEdit(props: Props) {
   }, [isOpen, path]);
 
   // Convert DirTree data to the format expected by Mantine Tree
-  const convertToMantineTreeData = (data: DirTree[]) =>
+  const convertToMantineTreeData = (data: DirTree[]): TreeNodeData[] =>
     data.map(item => ({
       value: item.absolute_path,
       label: item.title,

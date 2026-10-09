@@ -1,9 +1,16 @@
-import type { TFunction } from "i18next";
 import { describe, expect, it } from "vitest";
+import i18n from "../../i18n";
 import { getNavigationItems, isNavItemActive } from "./navigation";
 
-const t = ((key: string, fallback?: string) => fallback ?? key) as unknown as TFunction<"translation", undefined>;
-const item = (link: string) => getNavigationItems(t, true).find(entry => entry.link === link)!;
+// Only the links are checked here; the labels come from whatever i18n returns.
+const t = i18n.getFixedT("en");
+function item(link: string) {
+  const entry = getNavigationItems(t, true).find(candidate => candidate.link === link);
+  if (!entry) {
+    throw new Error(`no nav item for ${link}`);
+  }
+  return entry;
+}
 
 describe("isNavItemActive", () => {
   it("keeps the timeline entry to its own views, not every path under /", () => {

@@ -7,13 +7,14 @@ import { describe, expect, it } from "vitest";
 import type { User } from "../../api_client/user/types";
 import filterUsers from "./utils";
 
-const users = [
+// Only the fields the filter reads: the user list gives non-admins no more.
+const users: Pick<User, "id" | "username" | "first_name" | "last_name">[] = [
   { id: 1, username: "admin", first_name: "Alex", last_name: "Admin" },
   { id: 2, username: "jdoe", first_name: "John", last_name: "Doe" },
   { id: 3, username: "mara", first_name: "", last_name: "" },
-] as User[];
+];
 
-const names = (list: User[]) => list.map(user => user.username);
+const names = (list: readonly Pick<User, "username">[]) => list.map(user => user.username);
 
 describe("filterUsers", () => {
   it.each(["(", ")", "john+", "[", "*", "?", "a\\", " ", "  ", "\t"])("does not throw on %j", input => {

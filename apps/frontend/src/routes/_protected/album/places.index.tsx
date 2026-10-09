@@ -3,14 +3,27 @@ import { useViewportSize } from "@mantine/hooks";
 import { IconMap2 as Map2 } from "@tabler/icons-react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { orderBy } from "lodash-es";
-import type { CircleLayer, GeoJSONSource, SymbolLayer } from "maplibre-gl";
+import type {
+  CircleLayerSpecification,
+  GeoJSONSource,
+  Source as MapSource,
+  SymbolLayerSpecification,
+} from "maplibre-gl";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import MapGL, { AttributionControl, Layer, MapRef, NavigationControl, Source } from "react-map-gl/maplibre";
+import MapGL, {
+  AttributionControl,
+  Layer,
+  MapLayerMouseEvent,
+  MapRef,
+  NavigationControl,
+  Source,
+} from "react-map-gl/maplibre";
 import type { PlaceAlbumList } from "../../../api_client/albums/hooks";
 import { useFetchLocationClustersQuery, useFetchPlacesAlbumsQuery } from "../../../api_client/albums/hooks";
 import { EmptyState } from "../../../components/common/EmptyState";
 import { HeaderComponent } from "../../../components/HeaderComponent";
+import { clusterFeatureCollection, clusterPoints } from "../../../components/map/locationClusters";
 import { MapDisabledPlaceholder } from "../../../components/map/MapDisabledPlaceholder";
 import { ignoreMissingStyleImages } from "../../../components/map/mapImages";
 import { Tile } from "../../../components/Tile";
@@ -37,8 +50,12 @@ const WORLD_VIEW = { longitude: 0, latitude: 40, zoom: 2 };
 const MAP_HEIGHT = 240;
 const MAP_BLOCK_HEIGHT = MAP_HEIGHT + 10;
 
+// MapLibre refuses to register another source type under a built-in name, so
+// "geojson" is always its own GeoJSONSource
+const isGeoJSONSource = (source: MapSource | undefined): source is GeoJSONSource => source?.type === "geojson";
+
 // Layer styles for clustered points
-const clusterLayer: CircleLayer = {
+const clusterLayer: CircleLayerSpecification = {
   id: "clusters",
   type: "circle",
   source: "locations",
@@ -49,7 +66,7 @@ const clusterLayer: CircleLayer = {
   },
 };
 
-const clusterCountLayer: SymbolLayer = {
+const clusterCountLayer: SymbolLayerSpecification = {
   id: "cluster-count",
   type: "symbol",
   source: "locations",
@@ -64,7 +81,7 @@ const clusterCountLayer: SymbolLayer = {
   },
 };
 
-const unclusteredPointLayer: CircleLayer = {
+const unclusteredPointLayer: CircleLayerSpecification = {
   id: "unclustered-point",
   type: "circle",
   source: "locations",
@@ -103,38 +120,21 @@ function AlbumPlace({ height = 0 }: Props) {
   const { entriesPerRow, entrySquareSize, numberOfRows, gridHeight } = useAlbumListGridConfig(shownAlbums);
 
   // Convert locationClusters to GeoJSON FeatureCollection
-  const geojsonData = useMemo(() => {
-    if (!locationClusters) {
-      return { type: "FeatureCollection" as const, features: [] };
-    }
-    const features = locationClusters
-      .filter(loc => loc[0] !== 0)
-      .map((loc, idx) => ({
-        type: "Feature" as const,
-        properties: {
-          name: loc[2],
-          id: idx,
-        },
-        geometry: {
-          type: "Point" as const,
-          coordinates: [loc[0], loc[1]], // [lng, lat]
-        },
-      }));
-    return { type: "FeatureCollection" as const, features };
-  }, [locationClusters]);
+  const geojsonData = useMemo(() => clusterFeatureCollection(locationClusters), [locationClusters]);
 
   // Open on every place rather than a fixed view of Europe: the grid lists only
   // what the map shows, so places outside that view were missing until a pan.
   const initialViewState = useMemo(() => {
-    const coordinates = geojsonData.features.map(feature => feature.geometry.coordinates as number[]);
+    const coordinates = geojsonData.features.map(feature => feature.geometry.coordinates);
     if (coordinates.length === 0) return WORLD_VIEW;
     const longitudes = coordinates.map(([lng]) => lng);
     const latitudes = coordinates.map(([, lat]) => lat);
+    const bounds: [[number, number], [number, number]] = [
+      [Math.min(...longitudes), Math.min(...latitudes)],
+      [Math.max(...longitudes), Math.max(...latitudes)],
+    ];
     return {
-      bounds: [
-        [Math.min(...longitudes), Math.min(...latitudes)],
-        [Math.max(...longitudes), Math.max(...latitudes)],
-      ] as [[number, number], [number, number]],
+      bounds,
       // The padding keeps edge points strictly inside the bounds the grid filters by
       fitBoundsOptions: { padding: 40, maxZoom: 10 },
     };
@@ -150,13 +150,11 @@ function AlbumPlace({ height = 0 }: Props) {
       const ne = bounds.getNorthEast();
       const sw = bounds.getSouthWest();
 
-      const markers = locationClusters.filter(loc => {
-        const markerLng = loc[0];
-        const markerLat = loc[1];
-        return markerLat < ne.lat && markerLat > sw.lat && markerLng < ne.lng && markerLng > sw.lng;
-      });
+      const markers = clusterPoints(locationClusters).filter(
+        ({ lng, lat }) => lat < ne.lat && lat > sw.lat && lng < ne.lng && lng > sw.lng
+      );
 
-      const visiblePlaceNames = markers.map(el => el[2]);
+      const visiblePlaceNames = markers.map(el => el.name);
       const visiblePlaceAlbums = albums.filter(el => visiblePlaceNames.includes(el.title));
       setVisibleAlbums(sortPlaces(visiblePlaceAlbums));
     },
@@ -174,7 +172,7 @@ function AlbumPlace({ height = 0 }: Props) {
   }, [updateVisibleAlbums]);
 
   // Handle click on clusters to zoom in
-  const onClick = useCallback(async (event: any) => {
+  const onClick = useCallback(async (event: MapLayerMouseEvent) => {
     if (!mapRef.current) return;
 
     const features = mapRef.current.queryRenderedFeatures(event.point, {
@@ -182,15 +180,20 @@ function AlbumPlace({ height = 0 }: Props) {
     });
 
     if (features.length > 0) {
-      const clusterId = features[0].properties?.cluster_id;
-      const mapboxSource = mapRef.current.getSource("locations") as GeoJSONSource;
+      const clusterId: unknown = features[0].properties?.cluster_id;
+      // The clustered GeoJSON source declared below
+      const mapboxSource = mapRef.current.getSource("locations");
 
-      if (mapboxSource && clusterId !== undefined) {
+      if (isGeoJSONSource(mapboxSource) && typeof clusterId === "number") {
         try {
           const zoom = await mapboxSource.getClusterExpansionZoom(clusterId);
-          const { coordinates: center } = features[0].geometry;
+          const { geometry } = features[0];
 
-          mapRef.current.easeTo({ center, zoom });
+          // A cluster is always a point
+          if (geometry.type === "Point") {
+            const [lng, lat] = geometry.coordinates;
+            mapRef.current.easeTo({ center: [lng, lat], zoom });
+          }
         } catch (err) {
           console.error("Error getting cluster expansion zoom:", err);
         }
@@ -275,14 +278,14 @@ function AlbumPlace({ height = 0 }: Props) {
         <>
           {/* Inset like the header above it, rather than pulled into the menu's edge */}
           <div style={{ padding: "0 10px 10px" }}>
-            {mapsDisabled ? (
+            {mapStyle === null ? (
               <MapDisabledPlaceholder height={MAP_HEIGHT} />
             ) : (
               <MapGL
                 ref={setMapRef}
                 initialViewState={initialViewState}
                 style={{ width: "100%", height: MAP_HEIGHT }}
-                mapStyle={mapStyle!}
+                mapStyle={mapStyle}
                 onMoveEnd={onMoveEnd}
                 onLoad={onMapLoad}
                 onClick={onClick}

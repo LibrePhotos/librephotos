@@ -13,7 +13,8 @@ export function decodeJwtExp(token: string): number | null {
   if (!payload) return null;
   try {
     const json = base64UrlDecode(payload);
-    const parsed = JSON.parse(json) as { exp?: number };
+    const parsed: unknown = JSON.parse(json);
+    if (typeof parsed !== "object" || parsed === null || !("exp" in parsed)) return null;
     return typeof parsed.exp === "number" ? parsed.exp : null;
   } catch {
     return null;
@@ -43,7 +44,8 @@ function base64UrlDecode(input: string): string {
       return binary;
     }
   }
-  const g = globalThis as { Buffer?: { from(s: string, enc: string): { toString(enc: string): string } } };
+  // Node's Buffer where there is one (it fits this shape); undefined elsewhere.
+  const g: { Buffer?: { from(s: string, enc: "base64"): { toString(enc: "utf-8"): string } } } = globalThis;
   if (g.Buffer) {
     return g.Buffer.from(padded, "base64").toString("utf-8");
   }

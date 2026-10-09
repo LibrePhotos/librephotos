@@ -98,35 +98,56 @@ export type PullStepResult = {
   total: number;
 };
 
-type LooseEnvelope = PageEnvelope<{ last_modified?: number | null }> & { server_time: string };
-
-type EntityHandler = {
-  fetch: (params: SyncPullParams) => Promise<LooseEnvelope>;
-  apply: (db: AppDatabase, env: LooseEnvelope, now: number) => ApplyResult;
+/**
+ * What a pull step needs from one fetched page: the cursor and total that drive
+ * the loop, and the entity's applier already bound to that very page.
+ */
+type FetchedPage = {
+  next_cursor: string | null;
+  total?: number;
+  apply: (db: AppDatabase, now: number) => ApplyResult;
 };
 
+type EntityHandler = (params: SyncPullParams) => Promise<FetchedPage>;
+
 /**
- * Bind an entity to its source fetcher + page applier. The casts are safe: each
- * `apply` only ever receives the envelope its own `fetch` produced.
+ * Pair an entity's fetcher with its page applier. The shared type parameter is
+ * the guarantee: `apply` only ever receives the envelope its own `fetch`
+ * produced, so no entity's page can reach another entity's applier.
  */
+function bindHandler<E extends PageEnvelope<unknown>>(
+  fetch: (params: SyncPullParams) => Promise<E>,
+  apply: (db: AppDatabase, env: E, now: number) => ApplyResult
+): EntityHandler {
+  return async (params) => {
+    const env = await fetch(params);
+    return {
+      next_cursor: env.next_cursor,
+      total: env.total,
+      apply: (db, now) => apply(db, env, now),
+    };
+  };
+}
+
+/** Bind an entity to its source fetcher + page applier. */
 function handlerFor(source: RemoteSyncSource, entity: SyncEntity): EntityHandler {
   switch (entity) {
     case "photo":
-      return { fetch: (p) => source.photos(p), apply: (db, e, n) => applyPhotosPage(db, e as never, n) };
+      return bindHandler((p) => source.photos(p), applyPhotosPage);
     case "person":
-      return { fetch: (p) => source.persons(p), apply: (db, e, n) => applyPersonsPage(db, e as never, n) };
+      return bindHandler((p) => source.persons(p), applyPersonsPage);
     case "user_album":
-      return { fetch: (p) => source.userAlbums(p), apply: (db, e, n) => applyUserAlbumsPage(db, e as never, n) };
+      return bindHandler((p) => source.userAlbums(p), applyUserAlbumsPage);
     case "auto_album":
-      return { fetch: (p) => source.autoAlbums(p), apply: (db, e, n) => applyAutoAlbumsPage(db, e as never, n) };
+      return bindHandler((p) => source.autoAlbums(p), applyAutoAlbumsPage);
     case "thing_album":
-      return { fetch: (p) => source.thingAlbums(p), apply: (db, e, n) => applyThingAlbumsPage(db, e as never, n) };
+      return bindHandler((p) => source.thingAlbums(p), applyThingAlbumsPage);
     case "place_album":
-      return { fetch: (p) => source.placeAlbums(p), apply: (db, e, n) => applyPlaceAlbumsPage(db, e as never, n) };
+      return bindHandler((p) => source.placeAlbums(p), applyPlaceAlbumsPage);
     case "tag_album":
-      return { fetch: (p) => source.tagAlbums(p), apply: (db, e, n) => applyTagAlbumsPage(db, e as never, n) };
+      return bindHandler((p) => source.tagAlbums(p), applyTagAlbumsPage);
     case "sharing":
-      return { fetch: (p) => source.sharing(p), apply: (db, e, n) => applySharingPage(db, e as never, n) };
+      return bindHandler((p) => source.sharing(p), applySharingPage);
   }
 }
 
@@ -159,7 +180,7 @@ export async function pullEntityStep(
 ): Promise<PullStepResult> {
   const now = opts.now ?? Date.now();
   const pageSize = opts.pageSize ?? DEFAULT_PAGE_SIZE;
-  const handler = handlerFor(source, entity);
+  const fetchPage = handlerFor(source, entity);
 
   const prev = getSyncState(db, entity);
   const cursor: string | null = prev?.cursor_id ?? null;
@@ -179,9 +200,9 @@ export async function pullEntityStep(
 
   throwIfAborted(opts.signal);
 
-  let env: LooseEnvelope;
+  let page: FetchedPage;
   try {
-    env = await handler.fetch({ cursor, pageSize });
+    page = await fetchPage({ cursor, pageSize });
   } catch (err) {
     if (isCursorExpired(err) && opts.allowReseed !== false) {
       // The mirror is disposable: drop this entity and restart from zero. Not
@@ -200,11 +221,11 @@ export async function pullEntityStep(
   }
 
   // Seed (cursorless) first page carries the determinate total.
-  if (cursor == null && env.total != null) total = env.total;
+  if (cursor == null && page.total != null) total = page.total;
 
-  const res = handler.apply(db, env, now);
+  const res = page.apply(db, now);
   const applied = base + res.applied;
-  const done = env.next_cursor == null;
+  const done = page.next_cursor == null;
 
   upsertSyncState(db, entity, {
     status: done ? "done" : "running",

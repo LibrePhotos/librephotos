@@ -1,12 +1,25 @@
 // like computeLayout but specific for groups. Could combine them but it might get messy
+import type { GroupedImageItem, ImageItem, LaidOutGroup, LaidOutTile, PigSettings } from "./types";
 import getMinAspectRatio from "./utils/getMinAspectRatio";
 
-export default function computeLayoutGroups({ imageData, settings, wrapperWidth, scaleOfImages }) {
+type ComputeLayoutGroupsParams<T extends ImageItem> = {
+  imageData: readonly GroupedImageItem<T>[];
+  settings: Pick<PigSettings, "gridGap" | "headerSize" | "breakpoint" | "groupGapSm" | "groupGapLg">;
+  wrapperWidth: number;
+  scaleOfImages: number;
+};
+
+export default function computeLayoutGroups<T extends ImageItem>({
+  imageData,
+  settings,
+  wrapperWidth,
+  scaleOfImages,
+}: ComputeLayoutGroupsParams<T>): { imageData: LaidOutGroup<T>[]; newTotalHeight: number } {
   // Compute the minimum aspect ratio that should be applied to the rows.
   const minAspectRatio = getMinAspectRatio(wrapperWidth, scaleOfImages);
 
   // Calculate group title height based on header size setting
-  let groupTitleHeight;
+  let groupTitleHeight: number;
   if (settings.headerSize === "small") {
     groupTitleHeight = wrapperWidth < settings.breakpoint ? 25 : 30; // Small headers are more compact
   } else if (settings.headerSize === "normal") {
@@ -15,19 +28,19 @@ export default function computeLayoutGroups({ imageData, settings, wrapperWidth,
     groupTitleHeight = wrapperWidth < settings.breakpoint ? 45 : 50; // Large headers (default) are full size
   }
 
-  const tempGroupData = [];
+  const tempGroupData: LaidOutGroup<T>[] = [];
   let translateY = 0;
 
   imageData.forEach(g => {
-    // Skip empty groups
+    // Skip empty groups (and an entry from untyped data whose `items` is unset)
     if (!g.items || g.items.length === 0) return;
 
     let groupHeight = 0;
     let groupTranslateY = 0;
-    let row = []; // The list of images in the current row.
+    let row: T[] = []; // The list of images in the current row.
     let translateX = 0; // The current translateX value that we are at
     let rowAspectRatio = 0; // The aspect ratio of the row we are building
-    const tempImgData = [];
+    const tempImgData: LaidOutTile<T>[] = [];
 
     // Loop through all our images, building them up into rows and computing
     // the working rowAspectRatio.
@@ -88,7 +101,7 @@ export default function computeLayoutGroups({ imageData, settings, wrapperWidth,
     });
 
     // Calculate group gap based on header size for more compact spacing with smaller headers
-    let groupGap;
+    let groupGap: number;
     if (settings.headerSize === "small") {
       groupGap = 5; // Much more compact for small headers
     } else if (settings.headerSize === "normal") {

@@ -5,6 +5,7 @@
  * doc 02 §1).
  */
 import { sql } from "drizzle-orm";
+import { isArray, parseJson } from "@/lib/guards";
 import type { AppDatabase } from "../types";
 import type { PhotoTileRow } from "./filters";
 
@@ -81,8 +82,8 @@ export type NamedAlbumRow = {
 export function firstCoverHash(coverHashes: string | null): string | null {
   if (!coverHashes) return null;
   try {
-    const arr = JSON.parse(coverHashes) as unknown;
-    if (Array.isArray(arr) && typeof arr[0] === "string") return arr[0];
+    const arr = parseJson(coverHashes);
+    if (isArray(arr) && typeof arr[0] === "string") return arr[0];
   } catch {
     // malformed — treat as no cover
   }

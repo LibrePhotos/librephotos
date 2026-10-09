@@ -6,7 +6,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { invalidatePhotoLists } from "./invalidatePhotoLists";
 
-const stubs = vi.hoisted(() => ({ invalidateQueries: vi.fn() }));
+const stubs = vi.hoisted(() => ({
+  invalidateQueries: vi.fn<(filters: { queryKey: readonly unknown[] }) => void>(),
+}));
 
 vi.mock("../api", () => ({ queryClient: { invalidateQueries: stubs.invalidateQueries } }));
 

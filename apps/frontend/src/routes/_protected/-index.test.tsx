@@ -8,27 +8,33 @@
  *
  * The leading "-" keeps the TanStack router plugin from treating this file as a route.
  */
+import type { UseNavigateResult } from "@tanstack/react-router";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { useFetchDateAlbumQuery, useFetchDateAlbumsQuery } from "../../api_client/albums/hooks";
 import { Media } from "../../api_client/photos/types";
 import type { PigPhoto } from "../../api_client/photos/types";
+import type { useSaveDefaultTimelineFilterMutation } from "../../api_client/user/hooks";
 import type { PhotoListView } from "../../components/photolist/PhotoListView";
 import { TimelineFilterPopover } from "../../components/photolist/TimelineFilterPopover";
 import i18n from "../../i18n";
+import { defined } from "../../util/defined.test-utils";
 
 type ListArgs = Parameters<typeof useFetchDateAlbumsQuery>;
 type DayArgs = Parameters<typeof useFetchDateAlbumQuery>;
 type PhotoListViewProps = React.ComponentProps<typeof PhotoListView>;
+type SaveDefaultRequest = Parameters<ReturnType<typeof useSaveDefaultTimelineFilterMutation>["mutate"]>[0];
+/** The callbacks the timeline hands the save mutation, as these tests invoke them. */
+type SaveDefaultCallbacks = { onSuccess: () => void };
 
 const stubs = vi.hoisted(() => ({
   component: undefined as React.ComponentType | undefined,
   search: {} as Record<string, unknown>,
   user: undefined as { id: number; photo_count?: number; default_timeline_filter: Record<string, unknown> } | undefined,
   dayCalls: [] as { options: DayArgs[0]; queryOptions: DayArgs[1] }[],
-  navigate: vi.fn(),
-  saveDefault: vi.fn(),
+  navigate: vi.fn<UseNavigateResult<string>>(),
+  saveDefault: vi.fn<(request: SaveDefaultRequest, callbacks: SaveDefaultCallbacks) => void>(),
   listCalls: [] as { options: ListArgs[0]; queryOptions: ListArgs[1] }[],
   // One object, like the query cache: a fresh one per render loops the
   // route's effect that flattens it.
@@ -71,7 +77,6 @@ vi.mock("../../components/photolist/PhotoListView", () => ({
 }));
 
 beforeAll(async () => {
-  // @ts-ignore
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   await i18n.changeLanguage("en");
   // The cold import of the route takes seconds, longer when the suite runs in parallel
@@ -119,12 +124,12 @@ const placeholder: PigPhoto = {
 };
 
 async function renderTimeline() {
-  const Timeline = stubs.component!;
+  const Timeline = defined(stubs.component);
   const root = createRoot(document.createElement("div"));
   await act(async () => {
     root.render(<Timeline />);
   });
-  return stubs.listCalls.at(-1)!;
+  return defined(stubs.listCalls.at(-1));
 }
 
 describe("the main timeline filter", () => {
@@ -231,21 +236,21 @@ describe("the main timeline filter", () => {
   });
 
   it("does not ask for a day of the old list after the filter changed", async () => {
-    const Timeline = stubs.component!;
+    const Timeline = defined(stubs.component);
     const root = createRoot(document.createElement("div"));
     await act(async () => {
       root.render(<Timeline />);
     });
     await act(async () => {
-      listProps().updateGroups!([{ id: "day-1", date: null, items: [placeholder] }]);
+      defined(listProps().updateGroups)([{ id: "day-1", date: null, items: [placeholder] }]);
     });
-    expect(stubs.dayCalls.at(-1)!.options.album_date_id).toBe("day-1");
-    expect(stubs.dayCalls.at(-1)!.queryOptions?.skip).toBe(false);
+    expect(defined(stubs.dayCalls.at(-1)).options.album_date_id).toBe("day-1");
+    expect(defined(stubs.dayCalls.at(-1)).queryOptions?.skip).toBe(false);
 
     stubs.search = { media: "videos" };
     await act(async () => {
       root.render(<Timeline />);
     });
-    expect(stubs.dayCalls.at(-1)!.queryOptions?.skip).toBe(true);
+    expect(defined(stubs.dayCalls.at(-1)).queryOptions?.skip).toBe(true);
   });
 });

@@ -4,11 +4,11 @@ import { renderWithProviders, makeMockClient, jsonResponse } from "@/test/test-u
 
 function setup(overrides: Partial<React.ComponentProps<typeof ViewerActionBar>> = {}) {
   const handlers = {
-    onToggleFavorite: jest.fn(),
-    onToggleHide: jest.fn(),
-    onToggleTrash: jest.fn(),
-    onTogglePublic: jest.fn(),
-    onRate: jest.fn(),
+    onToggleFavorite: jest.fn<void, []>(),
+    onToggleHide: jest.fn<void, []>(),
+    onToggleTrash: jest.fn<void, []>(),
+    onTogglePublic: jest.fn<void, []>(),
+    onRate: jest.fn<void, [rating: number]>(),
   };
   const client = makeMockClient(async () => jsonResponse({}, 404));
   const utils = renderWithProviders(

@@ -33,9 +33,10 @@ export function passwordResetError(error: unknown): PasswordResetError {
     return { kind: "throttled" };
   }
   if (error.status === 400) {
-    const body = (error.body ?? {}) as { code?: unknown; message?: unknown };
-    const message = typeof body.message === "string" ? body.message : "";
-    const weak = typeof body.code === "string" ? body.code === "weak_password" : !LINK_REFUSALS.has(message);
+    const body = typeof error.body === "object" && error.body !== null ? error.body : {};
+    const message = "message" in body && typeof body.message === "string" ? body.message : "";
+    const code = "code" in body ? body.code : undefined;
+    const weak = typeof code === "string" ? code === "weak_password" : !LINK_REFUSALS.has(message);
     return weak && message ? { kind: "weakPassword", message } : { kind: "invalidLink" };
   }
   return { kind: "other" };

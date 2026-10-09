@@ -1,12 +1,13 @@
 import { Anchor, Avatar, Loader, Stack, Text } from "@mantine/core";
-import { useDisclosure, useElementSize, useViewportSize } from "@mantine/hooks";
+import { useDisclosure, useElementSize, useMergedRef, useViewportSize } from "@mantine/hooks";
 import { IconShare, IconPolaroid as Polaroid } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useFetchSharedAlbumsByMeQuery } from "../../api_client/albums/hooks";
+import { useFetchSharedAlbumsByMeQuery, type UserAlbumsGroupedByUserId } from "../../api_client/albums/hooks";
+import type { UserAlbumInfo } from "../../api_client/albums/types";
 import { useFetchUserListQuery } from "../../api_client/user/hooks";
-import { calculateGridCellSize, calculateSharedAlbumGridCells } from "../../util/gridUtils";
+import { calculateGridCellSize, calculateSharedAlbumGridCells, type GroupedGridRows } from "../../util/gridUtils";
 import { Tile } from "../Tile";
 import { VirtualGrid } from "../virtual/VirtualGrid";
 import type { GridCellProps } from "../virtual/VirtualGrid";
@@ -20,10 +21,14 @@ const CAPTION_HEIGHT = 52;
 
 export function AlbumsSharedByMe() {
   const { t } = useTranslation();
-  const [albumGridContents, setAlbumGridContents] = React.useState<any[]>([]);
+  const [albumGridContents, setAlbumGridContents] = React.useState<
+    GroupedGridRows<UserAlbumsGroupedByUserId, UserAlbumInfo>
+  >([]);
   // Size the columns from the width the grid actually gets, less room for its scrollbar, so they
   // fit it and follow a resize. The viewport size reads 0 until its first effect.
-  const { ref: containerRef, width } = useElementSize();
+  const { ref: sizeRef, width } = useElementSize<HTMLDivElement>();
+  // Mantine types its ref for React 19 (RefObject<T | null>); a callback ref fills the same object.
+  const containerRef = useMergedRef(sizeRef);
   const height = useViewportSize().height || window.innerHeight;
   const { entrySquareSize, numEntrySquaresPerRow } = calculateGridCellSize((width || window.innerWidth) - 20);
   const { data: albums, isFetching, isSuccess } = useFetchSharedAlbumsByMeQuery();
@@ -45,17 +50,17 @@ export function AlbumsSharedByMe() {
   const rowHeight = useCallback(
     ({ index }: { index: number }) =>
       // a sharer header row, or a row of album covers with their title and count
-      albumGridContents[index][0].user_id ? DAY_HEADER_HEIGHT : entrySquareSize + CAPTION_HEIGHT,
+      "user_id" in albumGridContents[index][0] ? DAY_HEADER_HEIGHT : entrySquareSize + CAPTION_HEIGHT,
     [albumGridContents, entrySquareSize]
   );
 
   const cellRenderer = ({ columnIndex, key, rowIndex, style }: GridCellProps) => {
     if (albumGridContents[rowIndex][columnIndex]) {
       const cell = albumGridContents[rowIndex][columnIndex];
-      if (cell.user_id) {
+      if ("user_id" in cell) {
         // sharer info header
         const owner = users?.filter(e => e.id === cell.user_id)[0];
-        let displayName = cell.user_id;
+        let displayName = `${cell.user_id}`;
         if (owner && owner.last_name.length + owner.first_name.length > 0) {
           displayName = `${owner.first_name} ${owner.last_name}`;
         } else if (owner) {

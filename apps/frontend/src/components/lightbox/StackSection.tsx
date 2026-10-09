@@ -146,7 +146,7 @@ function SingleStackCard({ stack, photoId, t, isCompact = false, onPhotoSelect }
 
 export function StackSection({ photoDetail, onPhotoSelect }: StackSectionProps) {
   const { t } = useTranslation();
-  const stacks = photoDetail.stacks as PhotoStackDetail[] | null | undefined;
+  const { stacks } = photoDetail;
   const [selectedStackId, setSelectedStackId] = useState<string | null>(null);
 
   if (!stacks || stacks.length === 0) {

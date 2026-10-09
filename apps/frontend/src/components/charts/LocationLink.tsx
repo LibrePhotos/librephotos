@@ -30,7 +30,12 @@ import {
   LinkVerticalLine,
   LinkVerticalStep,
 } from "@visx/shape";
+// d3-hierarchy runs at 3.x, but its types here are @types/d3-hierarchy 1.x, which @visx/hierarchy
+// and @visx/shape depend on: Tree and the Link components are typed against those, so the nodes
+// built here must be too. Nothing this file uses changed between the two (hierarchy, the point
+// node and link types). @types/d3-shape is pinned to the version @visx/vendor pins.
 import { hierarchy } from "d3-hierarchy";
+import type { HierarchyPointLink, HierarchyPointNode } from "d3-hierarchy";
 import { pointRadial } from "d3-shape";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -45,6 +50,48 @@ type NodeData = {
   isExpanded?: boolean;
   hex?: string;
 };
+
+/** What every link of the tree is drawn with; only the step and curve links read percent. */
+type TreeLinkProps = {
+  data: HierarchyPointLink<NodeData>;
+  percent: number;
+  stroke: string;
+  strokeWidth: number;
+  strokeLinecap: "round";
+  fill: string;
+  className: string;
+};
+
+// visx types LinkRadial's angle and radius as required, but they default to the node's x and y
+const nodeX = (node: HierarchyPointNode<NodeData>) => node.x;
+const nodeY = (node: HierarchyPointNode<NodeData>) => node.y;
+
+function LinkRadialDiagonal(props: TreeLinkProps) {
+  return <LinkRadial {...props} angle={nodeX} radius={nodeY} />;
+}
+
+function linkComponentFor(
+  layout: "cartesian" | "polar",
+  orientation: "horizontal" | "vertical",
+  linkType: "diagonal" | "step" | "curve" | "line"
+): React.ComponentType<TreeLinkProps> {
+  if (layout === "polar") {
+    if (linkType === "step") return LinkRadialStep;
+    if (linkType === "curve") return LinkRadialCurve;
+    if (linkType === "line") return LinkRadialLine;
+    return LinkRadialDiagonal;
+  }
+  if (orientation === "vertical") {
+    if (linkType === "step") return LinkVerticalStep;
+    if (linkType === "curve") return LinkVerticalCurve;
+    if (linkType === "line") return LinkVerticalLine;
+    return LinkVertical;
+  }
+  if (linkType === "step") return LinkHorizontalStep;
+  if (linkType === "curve") return LinkHorizontalCurve;
+  if (linkType === "line") return LinkHorizontalLine;
+  return LinkHorizontal;
+}
 
 type Props = Readonly<{
   margin?: {
@@ -535,27 +582,7 @@ export function LocationLink({ margin = { top: 0, left: 0, right: 0, bottom: 0 }
                 {/* Links */}
                 {tree.links().map((link, i) => {
                   const key = `link-${layout}-${linkType}-${i}`;
-                  let LinkComponent;
-
-                  if (layout === "polar") {
-                    if (linkType === "step") LinkComponent = LinkRadialStep;
-                    else if (linkType === "curve") LinkComponent = LinkRadialCurve;
-                    else if (linkType === "line") LinkComponent = LinkRadialLine;
-                    else LinkComponent = LinkRadial;
-                  } else if (orientation === "vertical") {
-                    if (linkType === "step") LinkComponent = LinkVerticalStep;
-                    else if (linkType === "curve") LinkComponent = LinkVerticalCurve;
-                    else if (linkType === "line") LinkComponent = LinkVerticalLine;
-                    else LinkComponent = LinkVertical;
-                  } else if (linkType === "step") {
-                    LinkComponent = LinkHorizontalStep;
-                  } else if (linkType === "curve") {
-                    LinkComponent = LinkHorizontalCurve;
-                  } else if (linkType === "line") {
-                    LinkComponent = LinkHorizontalLine;
-                  } else {
-                    LinkComponent = LinkHorizontal;
-                  }
+                  const LinkComponent = linkComponentFor(layout, orientation, linkType);
 
                   return (
                     <LinkComponent
@@ -589,7 +616,7 @@ export function LocationLink({ margin = { top: 0, left: 0, right: 0, bottom: 0 }
                     left = node.y;
                   }
 
-                  const nodeData = node.data as NodeData;
+                  const nodeData = node.data;
                   const colors = getNodeColor(node);
                   const hasChildren = !!nodeData.children?.length;
                   const isExpanded = expandedNodes.has(nodeData.name);

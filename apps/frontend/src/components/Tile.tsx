@@ -1,12 +1,11 @@
 import { Image } from "@mantine/core";
-import type { CSSProperties, MouseEventHandler } from "react";
+import type { CSSProperties } from "react";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { serverAddress } from "../api_client/apiClient";
 
 type DefaultProps = {
   style: CSSProperties;
   video: boolean;
-  onClick: (e: MouseEventHandler<HTMLElement>) => void;
   className: string;
 };
 
@@ -35,7 +34,7 @@ export function Tile({ video, width, height, style, image_hash, className }: Pro
   // Deliberately never cleared: React detaches refs before it runs effect
   // cleanups, so a plain ref would already be null by the time the cleanup
   // below needs the element. Same pattern as the photo grid tile
-  // (react-pig/components/Tile/Tile.jsx, #2018).
+  // (react-pig/components/Tile/Tile.tsx, #2018).
   const holdVideoNode = useCallback((node: HTMLVideoElement | null) => {
     if (node) videoNode.current = node;
   }, []);

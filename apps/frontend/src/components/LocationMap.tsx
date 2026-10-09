@@ -2,13 +2,21 @@ import { Box, Image } from "@mantine/core";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import MapGL, { AttributionControl, Marker, NavigationControl, Popup } from "react-map-gl/maplibre";
 import type { MapRef } from "react-map-gl/maplibre";
+import { serverAddress } from "../api_client/apiClient";
+import type { Photo } from "../api_client/photos/types";
 import { useMapStyle } from "../util/mapStyle";
 import { getAveragedCoordinates } from "../util/util";
 import { MapDisabledPlaceholder } from "./map/MapDisabledPlaceholder";
 import { ignoreMissingStyleImages } from "./map/mapImages";
 
+type MappablePhoto = Readonly<Pick<Photo, "image_hash" | "exif_gps_lat" | "exif_gps_lon">>;
+type LocatedPhoto = MappablePhoto & Readonly<{ exif_gps_lat: number; exif_gps_lon: number }>;
+
+const isLocated = (photo: MappablePhoto): photo is LocatedPhoto =>
+  photo.exif_gps_lat !== null && photo.exif_gps_lon !== null && photo.exif_gps_lon !== 0;
+
 type Props = Readonly<{
-  photos: any[];
+  photos: readonly MappablePhoto[];
 }>;
 
 // Street level: the map shows where one photo was taken
@@ -16,13 +24,11 @@ const PHOTO_ZOOM = 16;
 
 export function LocationMap({ photos }: Props) {
   const height = "200px";
-  const [popupInfo, setPopupInfo] = useState<any>(null);
-  const { mapStyle, mapsDisabled } = useMapStyle();
+  const [popupInfo, setPopupInfo] = useState<LocatedPhoto | null>(null);
+  // Null while map display is turned off
+  const { mapStyle } = useMapStyle();
 
-  const photosWithGPS = useMemo(
-    () => photos.filter(photo => photo.exif_gps_lon !== null && photo.exif_gps_lon),
-    [photos]
-  );
+  const photosWithGPS = useMemo(() => photos.filter(isLocated), [photos]);
   const { avgLat, avgLon } = getAveragedCoordinates(photosWithGPS);
 
   const mapRef = useRef<MapRef | null>(null);
@@ -57,11 +63,11 @@ export function LocationMap({ photos }: Props) {
     [photosWithGPS]
   );
 
-  if (photosWithGPS.length > 0 && mapsDisabled) {
+  if (photosWithGPS.length > 0 && mapStyle === null) {
     return <MapDisabledPlaceholder height={height} />;
   }
 
-  if (photosWithGPS.length > 0) {
+  if (photosWithGPS.length > 0 && mapStyle !== null) {
     return (
       <Box style={{ zIndex: 2, height, padding: 0 }}>
         <MapGL
@@ -72,7 +78,7 @@ export function LocationMap({ photos }: Props) {
             zoom: PHOTO_ZOOM,
           }}
           style={{ width: "100%", height }}
-          mapStyle={mapStyle!}
+          mapStyle={mapStyle}
           attributionControl={false}
         >
           <NavigationControl position="top-right" />
@@ -86,7 +92,7 @@ export function LocationMap({ photos }: Props) {
               onClose={() => setPopupInfo(null)}
             >
               <div>
-                <Image src={popupInfo.square_thumbnail} />
+                <Image src={`${serverAddress}/media/square_thumbnails/${popupInfo.image_hash}`} />
               </div>
             </Popup>
           )}

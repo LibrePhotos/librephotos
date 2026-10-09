@@ -23,7 +23,8 @@ import {
 const isValidDate = (date: Date | null): date is Date => date instanceof Date && !Number.isNaN(date.getTime());
 
 type Props = Readonly<{
-  photoDetail: Partial<Photo>;
+  /** Only the hash is always there: a viewer who is not the owner may have no date. */
+  photoDetail: Pick<Photo, "image_hash"> & Partial<Pick<Photo, "exif_timestamp">>;
   isPublic: boolean;
 }>;
 
@@ -88,7 +89,7 @@ function TimestampEditor({ photoDetail, isPublic }: Props) {
     const differentJson = {
       exif_timestamp: isValidDate(timestamp) ? pickerDateToPhotoTimestamp(timestamp) : null,
     };
-    updatePhoto({ id: photoDetail.image_hash!, data: differentJson });
+    updatePhoto({ id: photoDetail.image_hash, data: differentJson });
     setEditMode(false);
   };
 
@@ -128,7 +129,7 @@ function TimestampEditor({ photoDetail, isPublic }: Props) {
     const differentJson = {
       exif_timestamp: isValidDate(savedTimestamp) ? pickerDateToPhotoTimestamp(savedTimestamp) : null,
     };
-    updatePhoto({ id: photoDetail.image_hash!, data: differentJson });
+    updatePhoto({ id: photoDetail.image_hash, data: differentJson });
     setTimestamp(savedTimestamp);
   };
 

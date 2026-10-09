@@ -1,3 +1,4 @@
+import type { PlaceAlbumInfo, ThingAlbumInfo } from "@librephotos/api-client";
 import { useCallback, useEffect, useState } from "react";
 import {
   useFetchPeopleAlbumsQuery,
@@ -5,6 +6,8 @@ import {
   useFetchThingsAlbumsQuery,
   useFetchUserAlbumsQuery,
 } from "../api_client/albums/hooks";
+import type { Person } from "../api_client/albums/hooks/useFetchPeopleAlbumsQuery";
+import type { UserAlbumInfo } from "../api_client/albums/types";
 import { useSearchExamplesQuery } from "../api_client/search/hooks/useSearchExamplesQuery";
 import { fuzzyMatch } from "../util/util";
 
@@ -19,7 +22,9 @@ export enum SearchOptionType {
 export type SearchOption = {
   value: string;
   type: SearchOptionType;
-  data: string | null;
+  // The search term, or the album's id (a number; a person's is a string): the
+  // option's URL is built from it.
+  data: string | number | null;
   thumbnail?: string;
 };
 
@@ -42,7 +47,7 @@ function toExampleOption(item: string): SearchOption {
   return { value: item, type: SearchOptionType.EXAMPLE, data: item };
 }
 
-function toPlaceOption(item: any): SearchOption {
+function toPlaceOption(item: PlaceAlbumInfo): SearchOption {
   const coverHash = item.cover_photos?.[0]?.image_hash;
   return {
     value: item.title,
@@ -52,7 +57,7 @@ function toPlaceOption(item: any): SearchOption {
   };
 }
 
-function toThingOption(item: any): SearchOption {
+function toThingOption(item: ThingAlbumInfo): SearchOption {
   const coverHash = item.cover_photos?.[0]?.image_hash;
   return {
     value: item.title,
@@ -62,7 +67,7 @@ function toThingOption(item: any): SearchOption {
   };
 }
 
-function toUserAlbumOption(item: any): SearchOption {
+function toUserAlbumOption(item: UserAlbumInfo): SearchOption {
   return {
     value: item.title,
     type: SearchOptionType.USER_ALBUM,
@@ -71,7 +76,7 @@ function toUserAlbumOption(item: any): SearchOption {
   };
 }
 
-function toPersonOption(item: any): SearchOption {
+function toPersonOption(item: Person): SearchOption {
   return { value: item.name, type: SearchOptionType.PEOPLE, data: item.id, thumbnail: item.face_url };
 }
 
@@ -93,23 +98,23 @@ export function useSearch() {
       }
       setOptions([
         ...searchExamples
-          .filter((item: string) => isSearchExample(item) && fuzzyMatch(q, item))
+          .filter(item => isSearchExample(item) && fuzzyMatch(q, item))
           .slice(0, 2)
           .map(toExampleOption),
         ...placeAlbums
-          .filter((item: any) => fuzzyMatch(q, item.title))
+          .filter(item => fuzzyMatch(q, item.title))
           .slice(0, 2)
           .map(toPlaceOption),
         ...thingAlbums
-          .filter((item: any) => fuzzyMatch(q, item.title))
+          .filter(item => fuzzyMatch(q, item.title))
           .slice(0, 2)
           .map(toThingOption),
         ...userAlbums
-          .filter((item: any) => fuzzyMatch(q, item.title))
+          .filter(item => fuzzyMatch(q, item.title))
           .slice(0, 2)
           .map(toUserAlbumOption),
         ...people
-          .filter((item: any) => fuzzyMatch(q, item.name))
+          .filter(item => fuzzyMatch(q, item.name))
           .slice(0, 9)
           .map(toPersonOption),
       ]);

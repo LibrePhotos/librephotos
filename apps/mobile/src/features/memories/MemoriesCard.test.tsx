@@ -1,6 +1,6 @@
 import { fireEvent, waitFor } from "@testing-library/react-native";
 import { MemoriesCard } from "./MemoriesCard";
-import { renderWithDb } from "@/test/test-utils";
+import { mockRouter, renderWithDb } from "@/test/test-utils";
 import { createTestDb, type TestDb } from "@/db/test-db";
 import { seedRemotePhotos, remotePhoto } from "@/db/__tests__/fixtures";
 
@@ -28,7 +28,8 @@ describe("MemoriesCard", () => {
 
     await waitFor(() => expect(getByTestId("memories-card")).toBeTruthy());
     fireEvent.press(getByTestId("memory-mem-hash"));
-    const router = (globalThis as unknown as { __mockRouter: { push: jest.Mock } }).__mockRouter;
+    // jest.setup.js installs the router mock on globalThis.
+    const router = mockRouter();
     // Seeded: the viewer paints this photo without asking the mirror first.
     expect(router.push).toHaveBeenCalledWith({
       pathname: "/photo/[id]",

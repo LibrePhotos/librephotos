@@ -7,16 +7,10 @@ export const MemoriesQueryKeys = {
   list: (size?: number) => ["memories", { size }] as const,
 };
 
-// The cast restates what zod has already guaranteed at runtime: the schema's
-// fields carry defaults, so its parsed output is narrower than its input and
-// `parseWithNotification` infers the wider of the two.
 const fetchMemories = (size?: number): Promise<FetchMemoriesResponse> =>
   fetchClient
     .get(size ? `/memories?size=${size}` : "/memories")
-    .then(
-      response =>
-        parseWithNotification(FetchMemoriesResponse, response, "Failed to parse memories") as FetchMemoriesResponse
-    );
+    .then(response => parseWithNotification(FetchMemoriesResponse, response, "Failed to parse memories"));
 
 /**
  * The page loads with the default page of items per memory, which is all the

@@ -32,7 +32,7 @@ import type { AppDatabase } from "@/db/types";
 import type { SyncLogEntry } from "@/db/queries/sync-log";
 import { sql } from "drizzle-orm";
 import { storeHash } from "@/sync/device/hasher";
-import type { AssetMaterializer, LocalMediaType } from "@/sync/device/types";
+import type { AssetMaterializer } from "@/sync/device/types";
 import {
   markDone,
   markFailed,
@@ -216,7 +216,7 @@ async function processItem(
       const fetched = await opts.materialize({
         id: assetId,
         uri,
-        type: (item.type as LocalMediaType | null) ?? "image",
+        type: item.type === "video" ? "video" : "image",
       });
       if (!fetched) {
         markFailed(db, assetId, "could not download the original from iCloud", now(), base);

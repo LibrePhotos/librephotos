@@ -10,6 +10,7 @@ import {
 } from "../../../api_client/albums/hooks";
 import { Photoset, PigPhoto } from "../../../api_client/photos/types";
 import { mediaTypeToBulkQuery, validateMediaSearch } from "../../../components/photolist/mediaTypeFilter";
+import { NO_PHOTO_GROUP } from "../../../components/photolist/photoGroup";
 import { PhotoGroup, PhotoListView } from "../../../components/photolist/PhotoListView";
 import { useMediaTypeFilter } from "../../../components/photolist/useMediaTypeFilter";
 import type { PigVisibleGroup } from "../../../components/react-pig";
@@ -40,7 +41,8 @@ function AlbumPersonGallery(): JSX.Element {
     if (photosGroupedByDate) setPhotosFlat(getPhotosFlatFromGroupedByDate(photosGroupedByDate));
   }, [photosGroupedByDate]);
 
-  const [group, setGroup] = useState({} as PhotoGroup);
+  // No day album asked for yet: the query below stays off until one is
+  const [group, setGroup] = useState<PhotoGroup>(NO_PHOTO_GROUP);
   useFetchDateAlbumQuery(
     {
       album_date_id: group.id,

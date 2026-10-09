@@ -6,6 +6,7 @@ import {
   tagAlbumsList,
   thingAlbumsList,
 } from "../queries/albums";
+import { defined } from "@/test/defined";
 
 describe("named album (thing/place/tag) list mirrors", () => {
   let t: TestDb;
@@ -29,7 +30,7 @@ describe("named album (thing/place/tag) list mirrors", () => {
     );
     const rows = thingAlbumsList(t.db);
     expect(rows.map((r) => r.title)).toEqual(["Cat", "Dog"]);
-    expect(firstCoverHash(rows[0]!.cover_hashes)).toBe("cat-cover");
+    expect(firstCoverHash(defined(rows[0]).cover_hashes)).toBe("cat-cover");
   });
 
   it("lists place albums", () => {
@@ -39,7 +40,7 @@ describe("named album (thing/place/tag) list mirrors", () => {
     );
     const rows = placeAlbumsList(t.db);
     expect(rows).toHaveLength(1);
-    expect(rows[0]!.title).toBe("Berlin");
+    expect(defined(rows[0]).title).toBe("Berlin");
   });
 
   it("lists tag albums", () => {
@@ -49,6 +50,6 @@ describe("named album (thing/place/tag) list mirrors", () => {
     );
     const rows = tagAlbumsList(t.db);
     expect(rows).toHaveLength(1);
-    expect(rows[0]!.title).toBe("sunset");
+    expect(defined(rows[0]).title).toBe("sunset");
   });
 });

@@ -2,7 +2,7 @@ import { Box, Group, Loader, Stack, Text, Title } from "@mantine/core";
 import React from "react";
 
 type Props = {
-  icon: any;
+  icon: React.ReactNode;
   title: string;
   fetching: boolean;
   subtitle: string;

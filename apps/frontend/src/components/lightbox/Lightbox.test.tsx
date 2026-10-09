@@ -10,14 +10,17 @@
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import type { Photo } from "../../api_client/photos/types";
+import { defined } from "../../util/defined.test-utils";
 import { Lightbox } from "./Lightbox";
-import type { LightboxItem } from "./lightbox.types";
+import type { ContentViewerProps, LightboxItem } from "./lightbox.types";
 
-const viewer = vi.fn();
-const details = { current: undefined as object | undefined };
+const viewer = vi.fn<(props: ContentViewerProps) => void>();
+/** What the stubbed details query answers: only the fields the media type is read from. */
+const details: { current: Pick<Photo, "video" | "embedded_media"> | undefined } = { current: undefined };
 
 vi.mock("./ContentViewer", () => ({
-  ContentViewer: (props: Record<string, unknown>) => {
+  ContentViewer: (props: ContentViewerProps) => {
     viewer(props);
     return null;
   },
@@ -28,7 +31,7 @@ vi.mock("../../api_client/photos/hooks", () => ({
 }));
 
 beforeAll(() => {
-  (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+  globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 });
 
 afterEach(() => {
@@ -51,13 +54,7 @@ async function open(idx2hash: LightboxItem[], selectedImage: string, isPublic = 
     );
   });
   await act(async () => root.unmount());
-  return viewer.mock.calls.at(-1)![0] as {
-    type: string;
-    enableZoom: boolean;
-    nextSrc: string | null;
-    prevSrc: string | null;
-    gridItem?: LightboxItem;
-  };
+  return defined(viewer.mock.calls.at(-1))[0];
 }
 
 describe("Lightbox media type without photo details", () => {
@@ -105,10 +102,10 @@ describe("Lightbox neighbours", () => {
   });
 
   it("does not step onto a placeholder for a page that has not loaded", async () => {
-    // As PhotoListView passes them today: a made-up id and no hash.
+    // As PhotoListView passes them today: a made-up id and an empty hash.
     const props = await open(
       [
-        { id: "temp-0", image_hash: undefined as unknown as string },
+        { id: "temp-0", image_hash: "" },
         { id: "b", image_hash: "hb" },
         { id: "0", image_hash: "", isTemp: true },
       ],

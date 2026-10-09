@@ -7,12 +7,11 @@
  * to what this function returns at different values of the passed
  * parameter `containerWidth`.
  *
- * @param {Number} containerWidth - The last computed width of the
- *                                   container
- * @param {Number} scaleOfImages - The size of the images
- * @returns {Number} The minimum aspect ratio at this window width.
+ * @param containerWidth - The last computed width of the container
+ * @param scaleOfImages - The size of the images
+ * @returns The minimum aspect ratio at this window width.
  */
-export default function getMinAspectRatio(containerWidth, scaleOfImages) {
+export default function getMinAspectRatio(containerWidth: number, scaleOfImages: number): number {
   if (containerWidth <= 800) return 1.5 * scaleOfImages;
   if (containerWidth <= 1280) return 3 * scaleOfImages;
   if (containerWidth <= 1920) return 4 * scaleOfImages;

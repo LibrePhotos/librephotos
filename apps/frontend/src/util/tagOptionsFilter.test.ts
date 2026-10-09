@@ -7,7 +7,8 @@ const options = ["Alberta", "beach", "Beachcomber", "holiday", "seaside beach"].
 }));
 
 const filter = (search: string, limit = Infinity) =>
-  (tagOptionsFilter({ options, search, limit }) as { label: string }[]).map(item => item.label);
+  // Options without groups come back as items, never as groups.
+  tagOptionsFilter({ options, search, limit }).flatMap(item => ("label" in item ? [item.label] : []));
 
 describe("tagOptionsFilter", () => {
   test("puts names starting with the query first", () => {

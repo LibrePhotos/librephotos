@@ -4,6 +4,7 @@ import { createRoot } from "react-dom/client";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import type { UserAlbumInfo } from "../../api_client/albums/types";
 import i18n from "../../i18n";
+import { defined } from "../../util/defined.test-utils";
 import { UserAlbumCard } from "./UserAlbumCard";
 
 vi.mock("@tanstack/react-router", () => ({
@@ -40,7 +41,7 @@ beforeAll(async () => {
   await i18n.changeLanguage("en");
 });
 
-async function renderCard(locked: boolean, onToggleLocked = vi.fn()) {
+async function renderCard(locked: boolean, onToggleLocked = vi.fn<(id: string, locked: boolean) => void>()) {
   const container = document.createElement("div");
   document.body.appendChild(container);
   const root = createRoot(container);
@@ -63,7 +64,7 @@ async function renderCard(locked: boolean, onToggleLocked = vi.fn()) {
 
 async function openActions(container: HTMLElement) {
   await act(async () => {
-    container.querySelector<HTMLButtonElement>('button[aria-label="Album actions"]')!.click();
+    defined(container.querySelector<HTMLButtonElement>('button[aria-label="Album actions"]')).click();
     await Promise.resolve();
   });
 }
@@ -77,7 +78,7 @@ describe("UserAlbumCard album locking", () => {
       element.textContent?.includes("Lock album")
     );
     expect(item).toBeDefined();
-    await act(async () => item!.click());
+    await act(async () => defined(item).click());
     expect(view.onToggleLocked).toHaveBeenCalledWith("867", true);
     expect(view.container.querySelector('[aria-label="This album is locked"]')).toBeNull();
 
@@ -93,7 +94,7 @@ describe("UserAlbumCard album locking", () => {
       element.textContent?.includes("Unlock album")
     );
     expect(item).toBeDefined();
-    await act(async () => item!.click());
+    await act(async () => defined(item).click());
     expect(view.onToggleLocked).toHaveBeenCalledWith("867", false);
 
     await view.cleanup();

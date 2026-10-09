@@ -11,6 +11,7 @@
  */
 import { sql } from "drizzle-orm";
 import type { AppDatabase } from "@/db/types";
+import { isRecord } from "@/lib/guards";
 
 /** Synthetic album that owns shared one-off uploads (selection 0 = not in the backup timeline). */
 export const SHARED_UPLOADS_ALBUM_ID = "__shared_uploads__";
@@ -52,12 +53,12 @@ export function enqueueSharedUploads(db: AppDatabase, items: SharedUploadItem[],
         sql`INSERT INTO local_album_asset (album_id, asset_id) VALUES (${SHARED_UPLOADS_ALBUM_ID}, ${item.id})
             ON CONFLICT(album_id, asset_id) DO NOTHING`
       );
-      const res = tx.run(
+      const res: unknown = tx.run(
         sql`INSERT INTO upload_queue (asset_id, state, progress, attempts, enqueued_at)
             VALUES (${item.id}, 'pending', 0, 0, ${now})
             ON CONFLICT(asset_id) DO NOTHING`
-      ) as { changes?: number };
-      if (res?.changes) queued += 1;
+      );
+      if (isRecord(res) && typeof res.changes === "number" && res.changes > 0) queued += 1;
     }
     tx.run(
       sql`UPDATE local_album SET asset_count = (SELECT COUNT(*) FROM local_album_asset WHERE album_id = ${SHARED_UPLOADS_ALBUM_ID})

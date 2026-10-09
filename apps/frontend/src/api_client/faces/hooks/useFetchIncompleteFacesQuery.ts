@@ -29,7 +29,7 @@ const fetchIncompleteFaces = (params: IncompletePersonFaceListRequest) => {
     minConfidence ? `&min_confidence=${minConfidence}` : ""
   }`;
 
-  return fetchClient.get<IncompletePersonFaceListResponse>(url).then(response => {
+  return fetchClient.get(url).then(response => {
     const payload = parseWithNotification(
       IncompletePersonFaceListResponse,
       response,

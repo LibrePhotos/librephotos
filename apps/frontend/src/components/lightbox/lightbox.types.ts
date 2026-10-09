@@ -18,7 +18,6 @@ export type ContentViewerProps = {
   onCloseRequest: () => void;
   onMovePrevRequest: () => void;
   onMoveNextRequest: () => void;
-  onImageLoad: () => void;
   enableZoom: boolean;
   isPublic: boolean;
   publicAlbumSlug?: string;
@@ -62,26 +61,9 @@ export type ImageDimensions = {
   height: number;
 };
 
-export type MediaDisplayProps = {
-  id: string | undefined;
-  image_hash: string | undefined;
-  isMainContent?: boolean;
-  type: string;
-  bind?: any;
-  imageDimensions: ImageDimensions;
-  setImageDimensions: (dimensions: ImageDimensions) => void;
-  faceLocation: FaceLocationType;
-  toggleZoom?: () => void;
-  scale?: number;
-  offset?: { x: number; y: number };
-  handleDragStart: (event: React.DragEvent) => void;
-  fullHeight?: boolean;
-  playing?: boolean;
-  onEnded?: () => void;
-};
-
 export type LightboxControlsProps = {
-  photoDetail: Photo | undefined;
+  /** null when the details query had no hash to fetch. */
+  photoDetail: Photo | null | undefined;
   isPhotoDetailsLoading: boolean;
   lightboxSidebarShow: boolean;
   setLightBoxSidebarShow: React.Dispatch<React.SetStateAction<boolean>>;
@@ -110,26 +92,6 @@ export type LightboxControlsProps = {
   isCopyingToClipboard?: boolean;
   /** Called once the photo was moved to (or restored from) the trash. */
   onAfterTrashToggle?: () => void;
-};
-
-export type ThumbnailNavigationProps = {
-  prevSrc: string | null;
-  prevSrcHash: string | null;
-  mainSrc: string;
-  mainSrcHash: string;
-  nextSrc: string | null;
-  nextSrcHash: string | null;
-  onMovePrevRequest: () => void;
-  onMoveNextRequest: () => void;
-  containerWidth?: string;
-};
-
-export type SidebarProps = {
-  id: string;
-  closeSidepanel: () => void;
-  isPublic: boolean;
-  setFaceLocation: (location: FaceLocationType) => void;
-  onPhotoSelect?: (photoId: string) => void;
 };
 
 export type FaceOverlayProps = {

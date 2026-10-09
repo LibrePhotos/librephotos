@@ -20,16 +20,23 @@
  */
 import "@mantine/core/styles.css";
 import { MantineProvider } from "@mantine/core";
+import type { UseNavigateResult } from "@tanstack/react-router";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import type { useDeleteFacesMutation, useSetFacesPersonLabelMutation } from "../api_client/faces";
 import { PersonDetail } from "../components/lightbox/PersonDetailComponent";
 import i18n from "../i18n";
+import { defined } from "../util/defined.test-utils";
+
+type SetFacesPersonLabel = ReturnType<typeof useSetFacesPersonLabelMutation>["mutate"];
+type DeleteFaces = ReturnType<typeof useDeleteFacesMutation>["mutate"];
+type PersonDetailProps = React.ComponentProps<typeof PersonDetail>;
 
 const stubs = vi.hoisted(() => ({
-  setFacesPersonLabel: vi.fn(),
-  deleteFaces: vi.fn(),
-  navigate: vi.fn(),
+  setFacesPersonLabel: vi.fn<SetFacesPersonLabel>(),
+  deleteFaces: vi.fn<DeleteFaces>(),
+  navigate: vi.fn<UseNavigateResult<string>>(),
 }));
 
 vi.mock("../api_client/apiClient", () => ({ serverAddress: "" }));
@@ -45,8 +52,8 @@ vi.mock("@tanstack/react-router", () => ({
 }));
 
 beforeAll(async () => {
-  // @ts-ignore - jsdom has no matchMedia, MantineProvider needs it
-  window.matchMedia = (query: string) => ({
+  // jsdom has no matchMedia, MantineProvider needs it
+  window.matchMedia = (query: string): MediaQueryList => ({
     matches: false,
     media: query,
     onchange: null,
@@ -56,7 +63,6 @@ beforeAll(async () => {
     removeEventListener: () => {},
     dispatchEvent: () => false,
   });
-  // @ts-ignore
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   await i18n.changeLanguage("en");
 });
@@ -86,7 +92,7 @@ const inferredFace = { ...unnamedFace, name: "Alice", type: "classification", pr
 // there is no person behind it to confirm the face onto.
 const clusterFace = { ...unnamedFace, name: "Unknown 001", type: "cluster", probability: 0.6, face_id: 3 };
 
-const onPersonEdit = vi.fn();
+const onPersonEdit = vi.fn<PersonDetailProps["onPersonEdit"]>();
 
 async function renderRow(person: typeof unnamedFace, isPublic = false) {
   onPersonEdit.mockReset();
@@ -175,7 +181,7 @@ describe("a face the algorithms did name", () => {
 
   it("confirms under the inferred name", async () => {
     const container = await renderRow(inferredFace);
-    const confirm = buttons(container).find(b => b.querySelector(".tabler-icon-user-check"))!;
+    const confirm = defined(buttons(container).find(b => b.querySelector(".tabler-icon-user-check")));
 
     await act(async () => {
       confirm.click();
@@ -234,7 +240,7 @@ describe("a face that carries only a cluster's label", () => {
 
   it("can still be named, through the person picker", async () => {
     const container = await renderRow(clusterFace);
-    const edit = buttons(container).find(b => b.querySelector(".tabler-icon-edit"))!;
+    const edit = defined(buttons(container).find(b => b.querySelector(".tabler-icon-edit")));
 
     await act(async () => {
       edit.click();

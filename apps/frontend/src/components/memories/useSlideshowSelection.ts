@@ -11,7 +11,7 @@ import { PigPhoto } from "../../api_client/photos/types";
  * being shown, starting at the first of `items`, and hands back the two props
  * the lightbox needs.
  */
-export function useSlideshowSelection(items: PigPhoto[]) {
+export function useSlideshowSelection(items: readonly Pick<PigPhoto, "id">[]) {
   const [shownId, setShownId] = useState<string | null>(null);
 
   const first = items.length > 0 ? items[0].id : null;

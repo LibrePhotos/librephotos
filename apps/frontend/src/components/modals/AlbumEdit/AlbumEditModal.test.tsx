@@ -9,15 +9,17 @@ import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import type { useAddPhotoToUserAlbumMutation, useCreateUserAlbumMutation } from "../../../api_client/albums/hooks";
 import type { UserAlbumInfo } from "../../../api_client/albums/types";
 import { Media } from "../../../api_client/photos/types";
 import i18n from "../../../i18n";
+import { defined } from "../../../util/defined.test-utils";
 import { AlbumEditModal } from "./AlbumEditModal";
 
 const stubs = vi.hoisted(() => ({
-  create: vi.fn(),
-  add: vi.fn(),
-  close: vi.fn(),
+  create: vi.fn<ReturnType<typeof useCreateUserAlbumMutation>["mutate"]>(),
+  add: vi.fn<ReturnType<typeof useAddPhotoToUserAlbumMutation>["mutate"]>(),
+  close: vi.fn<() => void>(),
   albums: [] as UserAlbumInfo[],
 }));
 
@@ -92,14 +94,23 @@ afterEach(() => {
   document.body.innerHTML = "";
 });
 
-const titleInput = () => document.querySelector(".mantine-Modal-body input") as HTMLInputElement;
-const createButton = () => document.querySelector('.mantine-Modal-body button[type="submit"]') as HTMLButtonElement;
+function found<E extends Element>(element: E | null | undefined, what: string): E {
+  if (!element) throw new Error(`${what} is not rendered`);
+  return element;
+}
+
+const titleInput = () =>
+  found(document.querySelector<HTMLInputElement>(".mantine-Modal-body input"), "the title input");
+const createButton = () =>
+  found(document.querySelector<HTMLButtonElement>('.mantine-Modal-body button[type="submit"]'), "the Create button");
+// React tracks the previous value on the node itself, so a plain assignment is swallowed.
+const setInputValue = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
 const listedAlbums = () => Array.from(document.querySelectorAll(".mantine-Modal-body .album"), el => el.textContent);
 
 function type(value: string) {
   const input = titleInput();
   act(() => {
-    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(input, value);
+    setInputValue?.call(input, value);
     input.dispatchEvent(new Event("input", { bubbles: true }));
   });
 }
@@ -127,7 +138,11 @@ describe("AlbumEditModal", () => {
   it("forgets the typed filter after adding to an existing album", () => {
     type("Tr");
     expect(listedAlbums()).toEqual(["Trip"]);
-    act(() => (document.querySelector(".mantine-Modal-body .album")!.closest("button") as HTMLButtonElement).click());
+    const firstAlbum = found(
+      document.querySelector(".mantine-Modal-body .album")?.closest("button"),
+      "the first album"
+    );
+    act(() => firstAlbum.click());
     expect(stubs.add).toHaveBeenCalledWith(expect.objectContaining({ id: "1", photos: ["a1"] }));
     expect(stubs.close).toHaveBeenCalled();
 
@@ -148,10 +163,10 @@ describe("AlbumEditModal locked albums", () => {
       'button[aria-label="Finished trip is locked. Unlock it to add photos."]'
     );
     expect(lockedAlbum).not.toBeNull();
-    expect(lockedAlbum!.disabled).toBe(true);
+    expect(defined(lockedAlbum).disabled).toBe(true);
     expect(document.body.textContent).toContain("Locked");
 
-    act(() => lockedAlbum!.click());
+    act(() => defined(lockedAlbum).click());
     expect(stubs.add).not.toHaveBeenCalled();
     expect(stubs.close).not.toHaveBeenCalled();
   });

@@ -56,12 +56,7 @@ import {
   useResolveDuplicateMutation,
   useRevertDuplicateMutation,
 } from "../../api_client/duplicates";
-import {
-  DuplicateType,
-  type Duplicate,
-  type DuplicatePhoto,
-  type ReviewStatus,
-} from "../../api_client/duplicates/types";
+import { DuplicateType, ReviewStatus, type Duplicate, type DuplicatePhoto } from "../../api_client/duplicates/types";
 import { useFetchUserSelfDetailsQuery } from "../../api_client/user/hooks";
 import { buttonRoleProps } from "../../util/a11y";
 import { parsePhotoTimestamp } from "../../util/dateUtils";
@@ -621,15 +616,9 @@ export function DuplicatesPageContent() {
   const [selectedDuplicateId, setSelectedDuplicateId] = useState<string | null>(null);
   const [selectedDuplicateIds, setSelectedDuplicateIds] = useState<Set<string>>(new Set());
   const [statusFilter, setStatusFilter] = useState<ReviewStatus | undefined>(
-    statusParam === "pending" || statusParam === "resolved" || statusParam === "dismissed"
-      ? (statusParam as ReviewStatus)
-      : "pending"
+    ReviewStatus.safeParse(statusParam).data ?? "pending"
   );
-  const [typeFilter, setTypeFilter] = useState<DuplicateType | undefined>(
-    typeParam && (typeParam === "exact_copy" || typeParam === "visual_duplicate")
-      ? (typeParam as DuplicateType)
-      : undefined
-  );
+  const [typeFilter, setTypeFilter] = useState<DuplicateType | undefined>(DuplicateType.safeParse(typeParam).data);
   const [page, setPage] = useState(1);
   const pageSize = 20;
 
@@ -668,17 +657,14 @@ export function DuplicatesPageContent() {
   // Initialize filters from URL search params
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
-    const statusFromUrl = searchParams.get("status");
-    const typeFromUrl = searchParams.get("type");
+    const statusFromUrl = ReviewStatus.safeParse(searchParams.get("status")).data;
+    const typeFromUrl = DuplicateType.safeParse(searchParams.get("type")).data;
 
-    if (typeFromUrl && (typeFromUrl === "exact_copy" || typeFromUrl === "visual_duplicate")) {
-      setTypeFilter(typeFromUrl as DuplicateType);
+    if (typeFromUrl) {
+      setTypeFilter(typeFromUrl);
     }
-    if (
-      statusFromUrl &&
-      (statusFromUrl === "pending" || statusFromUrl === "resolved" || statusFromUrl === "dismissed")
-    ) {
-      setStatusFilter(statusFromUrl as ReviewStatus);
+    if (statusFromUrl) {
+      setStatusFilter(statusFromUrl);
     }
   }, []);
 
@@ -728,7 +714,7 @@ export function DuplicatesPageContent() {
     setSelectedDuplicateIds(new Set());
   };
 
-  const duplicateTypes: Array<{ value: string; label: string }> = [
+  const duplicateTypes: Array<{ value: DuplicateType | ""; label: string }> = [
     { value: "", label: t("duplicates.allTypes", "All Types") },
     ...DuplicateType.options.map(type => ({ value: type, label: t(`duplicates.types.${type}`) })),
   ];
@@ -739,8 +725,8 @@ export function DuplicatesPageContent() {
     { value: "dismissed", label: `${t("duplicates.dismissed", "Dismissed")} (${stats?.dismissed_duplicates ?? 0})` },
     { value: ALL_STATUSES, label: t("duplicates.all", "All") },
   ];
-  const onStatusChange = (value: string | null) =>
-    setStatusFilter(value && value !== ALL_STATUSES ? (value as ReviewStatus) : undefined);
+  // "All" is no status, so it parses to undefined
+  const onStatusChange = (value: string | null) => setStatusFilter(ReviewStatus.safeParse(value).data);
 
   const selectedOnPage = duplicates.filter(d => selectedDuplicateIds.has(d.id)).length;
 
@@ -818,7 +804,7 @@ export function DuplicatesPageContent() {
               {duplicateTypes.map(type => (
                 <Menu.Item
                   key={type.value}
-                  onClick={() => setTypeFilter((type.value || undefined) as DuplicateType | undefined)}
+                  onClick={() => setTypeFilter(type.value || undefined)}
                   rightSection={
                     typeFilter === type.value || (!typeFilter && !type.value) ? <IconCheck size={14} /> : null
                   }

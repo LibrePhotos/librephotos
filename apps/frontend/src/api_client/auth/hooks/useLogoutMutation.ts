@@ -1,12 +1,8 @@
 import { useMutation } from "@tanstack/react-query";
-import { Cookies } from "react-cookie";
 import { fetchClient, redirectToLogin } from "../../api";
-import { clearAuthCookies } from "../../authCookies";
+import { clearAuthCookies, getAuthCookie } from "../../authCookies";
 
-const logout = () => {
-  const cookies = new Cookies();
-  return fetchClient.post("/auth/token/blacklist/", { refresh: cookies.get("refresh") });
-};
+const logout = () => fetchClient.post("/auth/token/blacklist/", { refresh: getAuthCookie("refresh") });
 
 export const useLogoutMutation = () =>
   useMutation({

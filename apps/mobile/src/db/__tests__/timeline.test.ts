@@ -35,11 +35,11 @@ describe("merged timeline", () => {
     );
     seedRemotePhotos(t.db, rows);
 
-    const seen: string[] = [];
+    const seen: (string | null)[] = [];
     let cursor = null as null | { timestamp: number; sortId: string };
     for (let guard = 0; guard < 10; guard++) {
       const page = timelinePage(t.db, { limit: 10, cursor });
-      seen.push(...page.rows.map((r) => r.remote_id as string));
+      seen.push(...page.rows.map((r) => r.remote_id));
       if (!page.nextCursor) break;
       cursor = page.nextCursor;
     }
@@ -239,12 +239,12 @@ describe("merged timeline", () => {
 
     it("walks all the way to the newest photo and stops there", () => {
       let cursor = timelineCursorFor(t.db, "p0");
-      const seen: string[] = [];
+      const seen: (string | null)[] = [];
       for (let guard = 0; guard < 10; guard++) {
         const p = timelinePage(t.db, { limit: 4, cursor, direction: "newer" });
         // Each page arrives newest-first and each page is newer than the last,
         // which is exactly how the viewer prepends them to its window.
-        seen.unshift(...p.rows.map((r) => r.remote_id as string));
+        seen.unshift(...p.rows.map((r) => r.remote_id));
         if (!p.nextCursor) break;
         cursor = p.nextCursor;
       }
@@ -256,10 +256,10 @@ describe("merged timeline", () => {
 
     it("walks all the way to the oldest photo and stops there", () => {
       let cursor = timelineCursorFor(t.db, "p8");
-      const seen: string[] = [];
+      const seen: (string | null)[] = [];
       for (let guard = 0; guard < 10; guard++) {
         const p = timelinePage(t.db, { limit: 4, cursor, direction: "older" });
-        seen.push(...p.rows.map((r) => r.remote_id as string));
+        seen.push(...p.rows.map((r) => r.remote_id));
         if (!p.nextCursor) break;
         cursor = p.nextCursor;
       }

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { addTempElementsToGroups } from "../../../util/util";
+import { addTempElementsToGroups, tempPigPhoto } from "../../../util/util";
 import { IncompleteDatePhotosGroup, Photoset, PigPhoto } from "../../photos/types";
 import {
   buildDateAlbumFilterParams,
@@ -89,12 +89,12 @@ describe("buildDateAlbumFilterParams — mediaType toggle layered on a neutral s
  * timeline as bare date headers.
  */
 function tempGroup(id: string, numberOfItems: number): IncompleteDatePhotosGroup {
-  const group = { id, date: id, location: "", incomplete: true, numberOfItems, items: [] } as IncompleteDatePhotosGroup;
+  const group: IncompleteDatePhotosGroup = { id, date: id, location: "", incomplete: true, numberOfItems, items: [] };
   addTempElementsToGroups([group]);
   return group;
 }
 
-const photo = (id: string) => ({ id, aspectRatio: 1.5, isTemp: false }) as PigPhoto;
+const photo = (id: string): PigPhoto => ({ ...tempPigPhoto(id), aspectRatio: 1.5, isTemp: false });
 
 describe("hydrateGroupsFromCachedPages", () => {
   test("replaces placeholders of a loaded page and keeps the rest temp", () => {

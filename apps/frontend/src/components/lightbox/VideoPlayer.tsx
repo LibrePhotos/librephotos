@@ -66,6 +66,14 @@ export function requestLightboxSeek(seconds: number) {
   window.dispatchEvent(new CustomEvent(LIGHTBOX_SEEK_EVENT, { detail: { seconds } }));
 }
 
+/** The seconds a seek event asks for, as requestLightboxSeek sends them. */
+function seekSecondsOf(event: Event): number | undefined {
+  if (!(event instanceof CustomEvent)) return undefined;
+  const detail: unknown = event.detail;
+  if (typeof detail !== "object" || detail === null || !("seconds" in detail)) return undefined;
+  return typeof detail.seconds === "number" ? detail.seconds : undefined;
+}
+
 export type VideoErrorKind = "permission" | "missing" | "format" | "server" | "session" | "unknown";
 
 /**
@@ -198,7 +206,7 @@ export const VideoPlayer = memo(function VideoPlayer({
 
     const handleSeek = (event: Event) => {
       const video = videoRef.current;
-      const seconds = (event as CustomEvent<{ seconds: number }>).detail?.seconds;
+      const seconds = seekSecondsOf(event);
       if (!video || !seconds) return;
       // `seekable` is the honest bound, not `duration`. A video the backend is
       // transcoding on the fly is served as a chunked stream with no length and

@@ -7,8 +7,9 @@ import { useTranslation } from "react-i18next";
 import { useSignUpMutation } from "../../api_client/auth";
 import { useScanPhotosMutation } from "../../api_client/jobs";
 import { useGetSettingsQuery } from "../../api_client/settings";
-import { User } from "../../api_client/user";
+import type { ListUser, User } from "../../api_client/user";
 import { useManageUpdateUserMutation } from "../../api_client/user/hooks";
+import { notification } from "../../service/notifications";
 import { reportUserSaveError } from "../../util/apiErrors";
 import { EMAIL_REGEX } from "../../util/util";
 import { PasswordEntry } from "../settings/PasswordEntry";
@@ -19,16 +20,26 @@ import { modalTitleStyles } from "./modalTitleStyles";
 type Props = Readonly<{
   isOpen: boolean;
   updateAndScan?: boolean;
-  userToEdit: any;
+  /** The user to edit; "Add new user" passes {}. */
+  userToEdit: Readonly<Partial<User>>;
   selectedNodeId?: string;
   onRequestClose: () => void;
-  userList: any;
+  /** The users a new username must not clash with; none while the list is loading. */
+  userList?: readonly Pick<ListUser, "id" | "username">[];
   createNew: boolean;
   firstTimeSetup?: boolean;
 }>;
 
 export function ModalUserEdit(props: Props) {
-  const { isOpen, updateAndScan, onRequestClose: closeModal, userList, createNew, firstTimeSetup, userToEdit } = props;
+  const {
+    isOpen,
+    updateAndScan,
+    onRequestClose: closeModal,
+    userList = [],
+    createNew,
+    firstTimeSetup,
+    userToEdit,
+  } = props;
   const [userPassword, setUserPassword] = useState("");
   const [newPasswordIsValid, setNewPasswordIsValid] = useState(true);
   const [scanDirectoryPlaceholder, setScanDirectoryPlaceholder] = useState("");
@@ -48,10 +59,8 @@ export function ModalUserEdit(props: Props) {
     if (!username) {
       return t("modaluseredit.errorusernamecannotbeblank");
     }
-    const exist = userList.reduce(
-      (acc: boolean, user: User) =>
-        acc || (user.id !== userToEdit.id && user.username.toLowerCase() === username.toLowerCase()),
-      false
+    const exist = userList.some(
+      user => user.id !== userToEdit.id && user.username.toLowerCase() === username.toLowerCase()
     );
     if (exist) {
       return t("modaluseredit.errorusernameexists");
@@ -135,7 +144,7 @@ export function ModalUserEdit(props: Props) {
       return;
     }
     const { email, username, first_name: firstName, last_name: lastName, scan_directory: scanDirectory } = form.values;
-    const newUserData = { ...userToEdit };
+    const newUserData: Partial<User> = { ...userToEdit };
 
     if (scanDirectory) {
       newUserData.scan_directory = scanDirectory;
@@ -168,6 +177,14 @@ export function ModalUserEdit(props: Props) {
       }
       return;
     }
+    // Only an existing user is edited, and every one has an id. Without one (the
+    // dialog opened before the user's details loaded) there is nothing to save to:
+    // say so, as the request to /manage/user/undefined/ used to by failing.
+    const { id } = userToEdit;
+    if (id === undefined) {
+      notification.updateUserError();
+      return;
+    }
     newUserData.email = email;
     newUserData.first_name = firstName;
     newUserData.last_name = lastName;
@@ -182,15 +199,18 @@ export function ModalUserEdit(props: Props) {
     // The modal must stay open when the backend rejects the save (for example
     // a scan directory outside the data root), otherwise the failure is
     // invisible and the old value silently stays in place. See issue #492.
-    updateUser(newUserData, {
-      onSuccess: () => {
-        if (updateAndScan && newUserData.scan_directory) {
-          scanPhotos.mutate();
-        }
-        closeModal();
-      },
-      onError: reportUserSaveError,
-    });
+    updateUser(
+      { ...newUserData, id },
+      {
+        onSuccess: () => {
+          if (updateAndScan && newUserData.scan_directory) {
+            scanPhotos.mutate();
+          }
+          closeModal();
+        },
+        onError: reportUserSaveError,
+      }
+    );
   };
 
   const onPasswordValidate = (pass: string, valid: boolean) => {

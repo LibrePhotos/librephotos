@@ -10,7 +10,7 @@ import { parsePhotoTimestamp } from "../../util/dateUtils";
 type Props = Readonly<{
   tooltipOpened: boolean;
   probability: number;
-  timestamp?: string;
+  timestamp?: string | null;
   children?: React.ReactNode;
   tab?: FacesTab;
 }>;

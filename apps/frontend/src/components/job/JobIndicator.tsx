@@ -6,10 +6,9 @@ import {
   IconRefresh as Refresh,
 } from "@tabler/icons-react";
 import React from "react";
-import { JobDetail } from "../../api_client/jobs/types";
-import { JOB_OUTCOME_COLOR, jobOutcome } from "./jobStatus";
+import { JOB_OUTCOME_COLOR, jobOutcome, type JobState } from "./jobStatus";
 
-export function JobIndicator({ job }: { job: JobDetail }) {
+export function JobIndicator({ job }: { job: JobState }) {
   const outcome = jobOutcome(job);
   const color = JOB_OUTCOME_COLOR[outcome];
   switch (outcome) {

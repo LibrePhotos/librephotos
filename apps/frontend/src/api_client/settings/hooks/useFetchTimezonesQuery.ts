@@ -11,7 +11,7 @@ export const useFetchTimezonesQuery = () =>
     queryFn: async () => {
       const response = await fetchClient.get<string>("/timezones/");
       try {
-        const timezones = JSON.parse(response);
+        const timezones: unknown = JSON.parse(response);
         return parseWithNotification(Timezones, timezones, "Failed to parse timezones");
       } catch (_e) {
         return [];

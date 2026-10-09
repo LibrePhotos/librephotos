@@ -1,6 +1,7 @@
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { defined } from "../../util/defined.test-utils";
 import { useContentBoxSize } from "./useContentBoxSize";
 
 let root: Root;
@@ -9,7 +10,6 @@ let resize: (() => void) | undefined;
 let borderBoxWidth = 1200;
 
 beforeAll(() => {
-  // @ts-ignore
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 });
 
@@ -70,7 +70,7 @@ describe("useContentBoxSize", () => {
     });
     borderBoxWidth = 830;
     await act(async () => {
-      resize!();
+      defined(resize)();
     });
 
     expect(sizes.at(-1)).toEqual({ width: 800, height: 700 });

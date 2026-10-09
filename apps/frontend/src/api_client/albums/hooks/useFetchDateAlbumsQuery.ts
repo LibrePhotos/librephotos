@@ -5,7 +5,7 @@ import {
   timelineFilterToParams,
   type TimelineFilter,
 } from "../../../components/photolist/timelineFilter";
-import { addTempElementsToGroups } from "../../../util/util";
+import { addTempElementsToGroups, definedSearchParams } from "../../../util/util";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient, queryClient } from "../../api";
 import { IncompleteDatePhotosGroup, Photoset, PigPhoto } from "../../photos/types";
@@ -60,26 +60,20 @@ type DateAlbumsListKey = [
 // Collects the still-valid, already-loaded pages of every date album that
 // belongs to the list identified by `listKey` (see useFetchDateAlbumQuery for
 // the per-day query key layout).
-function getCachedDateAlbumPages<T>(listKey: DateAlbumsListKey): CachedDateAlbumPage<T>[] {
+function getCachedDateAlbumPages(listKey: DateAlbumsListKey): CachedDateAlbumPage[] {
   const [photosetType, personId, username, folder, mediaType, timelineFilter] = listKey;
   return queryClient
     .getQueryCache()
     .findAll({ queryKey: [...DateAlbumQueryKeys, photosetType] })
     .flatMap(query => {
-      const [, , albumDateId, page, qPersonId, qUsername, qFolder, qMediaType, qTimelineFilter] = query.queryKey as [
-        string,
-        Photoset,
-        string,
-        number,
-        number | undefined,
-        string | undefined,
-        string | undefined,
-        MediaType | "all",
-        string,
-      ];
-      const data = query.state.data as { items?: T[] } | undefined;
+      // The day query's key: ["dateAlbum", photoset, day id, page, person, user, folder, media type, filter]
+      const [, , albumDateId, page, qPersonId, qUsername, qFolder, qMediaType, qTimelineFilter] = query.queryKey;
+      // useFetchDateAlbumQuery is the only query under this key, and it caches the day's group.
+      const data = queryClient.getQueryData<IncompleteDatePhotosGroup>(query.queryKey);
       if (
         query.state.isInvalidated ||
+        typeof albumDateId !== "string" ||
+        typeof page !== "number" ||
         !data?.items ||
         qPersonId !== personId ||
         qUsername !== username ||
@@ -162,20 +156,13 @@ export const useFetchDateAlbumsQuery = (options: AlbumDateListOptions, queryOpti
         folder: options.folder,
       };
 
-      const response = await fetchClient.get(
-        `/albums/date/list/?${new URLSearchParams(
-          Object.entries(params).filter(([, v]) => v !== undefined) as [string, string][]
-        ).toString()}`
-      );
+      const response = await fetchClient.get(`/albums/date/list/?${definedSearchParams(params).toString()}`);
 
       const parsed = parseWithNotification(FetchDateAlbumsListResponse, response, "Failed to load photo groups");
       const { results } = parsed;
 
       addTempElementsToGroups(results);
-      hydrateGroupsFromCachedPages(
-        results,
-        getCachedDateAlbumPages<(typeof results)[number]["items"][number]>(listKey)
-      );
+      hydrateGroupsFromCachedPages(results, getCachedDateAlbumPages(listKey));
       return results;
     },
     enabled: !queryOptions?.skip,

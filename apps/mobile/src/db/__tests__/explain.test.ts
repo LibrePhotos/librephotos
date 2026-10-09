@@ -19,6 +19,7 @@ import {
 import { explainFilter, filterPhotos } from "../queries/filters";
 import { remotePhoto, seedRemotePhotos } from "./fixtures";
 import type { RemotePhotoInput } from "../writers";
+import { defined } from "@/test/defined";
 
 const N = 100_000;
 const DAY = 86_400_000;
@@ -33,7 +34,7 @@ describe("EXPLAIN QUERY PLAN budget (100k rows)", () => {
 
   beforeAll(() => {
     t = createTestDb();
-    const rows: RemotePhotoInput[] = new Array(N);
+    const rows = new Array<RemotePhotoInput>(N);
     for (let i = 0; i < N; i++) {
       const ts = START + i * (DAY / 8); // ~8 photos/day across ~34 years
       rows[i] = remotePhoto({
@@ -88,7 +89,7 @@ describe("EXPLAIN QUERY PLAN budget (100k rows)", () => {
     expect(rows).toHaveLength(100);
     expect(nextCursor).not.toBeNull();
     // Newest first.
-    expect(rows[0].timestamp!).toBeGreaterThan(rows[99].timestamp!);
+    expect(defined(rows[0].timestamp)).toBeGreaterThan(defined(rows[99].timestamp));
     expect(elapsed).toBeLessThan(200);
   });
 
@@ -116,7 +117,7 @@ describe("EXPLAIN QUERY PLAN budget — merged timeline (20k remote + 20k camera
 
   beforeAll(() => {
     t = createTestDb();
-    const rows: RemotePhotoInput[] = new Array(REMOTE);
+    const rows = new Array<RemotePhotoInput>(REMOTE);
     for (let i = 0; i < REMOTE; i++) {
       rows[i] = remotePhoto({
         id: `p${String(i).padStart(7, "0")}`,
@@ -202,8 +203,8 @@ describe("EXPLAIN QUERY PLAN budget — merged timeline (20k remote + 20k camera
     // The anchor is the first of the "older" (inclusive) page…
     expect(older.rows[0].remote_id).toBe("p0010000");
     // …and the "newer" page is handed back newest-first and stops just above it.
-    expect(newer.rows[19].timestamp!).toBeGreaterThan(older.rows[0].timestamp!);
-    expect(newer.rows[0].timestamp!).toBeGreaterThan(newer.rows[19].timestamp!);
+    expect(defined(newer.rows[19].timestamp)).toBeGreaterThan(defined(older.rows[0].timestamp));
+    expect(defined(newer.rows[0].timestamp)).toBeGreaterThan(defined(newer.rows[19].timestamp));
     // 41 slides out of 30k timeline rows, index-driven: nowhere near the ~40ms
     // the unbounded shape cost at this size.
     expect(elapsed).toBeLessThan(50);

@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
+import { z } from "zod";
 import { FacesTab } from "../../../api_client/faces/types";
 
 const STORAGE_KEY = "faceCollapsedPersons";
@@ -14,9 +15,17 @@ function save(collapsed: Record<FacesTab, number[]>) {
 }
 
 // The stored value ends up in `new Set(...)`, so a tab that is not an id array has to be
-// dropped here rather than throwing out of a render
+// dropped here rather than throwing out of a render. Ids that are not numbers are left out.
+const StoredIds = z
+  .array(z.unknown())
+  .transform(ids => ids.filter((id): id is number => typeof id === "number"))
+  .catch(() => []);
+const StoredCollapsed = z
+  .object({ labeled: StoredIds, inferred: StoredIds, unknown: StoredIds })
+  .catch(() => ({ labeled: [], inferred: [], unknown: [] }));
+
 function load(): Record<FacesTab, number[]> {
-  let parsed: any = null;
+  let parsed: unknown = null;
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
     parsed = saved ? JSON.parse(saved) : null;
@@ -24,12 +33,7 @@ function load(): Record<FacesTab, number[]> {
     // eslint-disable-next-line no-console
     console.error("Error loading collapsed persons from localStorage:", e);
   }
-  return Object.fromEntries(
-    FacesTab.options.map(tab => [
-      tab,
-      Array.isArray(parsed?.[tab]) ? parsed[tab].filter((id: unknown) => typeof id === "number") : [],
-    ])
-  ) as Record<FacesTab, number[]>;
+  return StoredCollapsed.parse(parsed);
 }
 
 // Custom hook to manage which person groups are folded, per tab, in localStorage

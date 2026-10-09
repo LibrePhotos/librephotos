@@ -46,7 +46,6 @@ describe("useSearch", () => {
   const examples = () => search.options.filter(o => o.type === SearchOptionType.EXAMPLE).map(o => o.value);
 
   beforeAll(() => {
-    // @ts-ignore
     globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   });
 

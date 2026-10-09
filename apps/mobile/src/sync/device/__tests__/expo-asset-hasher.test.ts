@@ -12,16 +12,21 @@
  * suite mocks the native modules and asserts on the arguments.
  */
 import type { AssetHashResult } from "../types";
+import { createExpoAssetHasher } from "../expo-asset-hasher";
 
 // `mock`-prefixed so jest's hoisted factories may reference them.
-const mockGetAssetInfoAsync = jest.fn();
-const mockGetInfoAsync = jest.fn();
+const mockGetAssetInfoAsync = jest.fn<Promise<unknown>, [id: string, options: { shouldDownloadFromNetwork: boolean }]>();
+const mockGetInfoAsync = jest.fn<Promise<unknown>, [uri: string, options: { md5: boolean }]>();
 
-jest.mock("expo-media-library/legacy", () => ({ getAssetInfoAsync: mockGetAssetInfoAsync }));
-jest.mock("expo-file-system/legacy", () => ({ getInfoAsync: mockGetInfoAsync }));
-
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const { createExpoAssetHasher } = require("../expo-asset-hasher") as typeof import("../expo-asset-hasher");
+// The factories run when the import above loads the hasher, before the mocks
+// are initialised, so they only reach the mocks once a test calls through.
+jest.mock("expo-media-library/legacy", () => ({
+  getAssetInfoAsync: (id: string, options: { shouldDownloadFromNetwork: boolean }) =>
+    mockGetAssetInfoAsync(id, options),
+}));
+jest.mock("expo-file-system/legacy", () => ({
+  getInfoAsync: (uri: string, options: { md5: boolean }) => mockGetInfoAsync(uri, options),
+}));
 
 const photo = (id = "a1", uri = `ph://${id}`) => ({ id, uri, type: "image" as const });
 

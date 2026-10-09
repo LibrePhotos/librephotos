@@ -11,10 +11,15 @@ import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import type { useDeleteUserAlbumMutation, useRenameUserAlbumMutation } from "../../api_client/albums/hooks";
 import i18n from "../../i18n";
+import { defined } from "../../util/defined.test-utils";
 import { DeleteUserAlbumModal, RenameUserAlbumModal } from "./UserAlbumModals";
 
-const stubs = vi.hoisted(() => ({ rename: vi.fn(), remove: vi.fn() }));
+const stubs = vi.hoisted(() => ({
+  rename: vi.fn<ReturnType<typeof useRenameUserAlbumMutation>["mutate"]>(),
+  remove: vi.fn<ReturnType<typeof useDeleteUserAlbumMutation>["mutate"]>(),
+}));
 
 vi.mock("../../api_client/albums/hooks", () => ({
   useRenameUserAlbumMutation: () => ({ mutate: stubs.rename }),
@@ -25,8 +30,8 @@ let root: ReturnType<typeof createRoot>;
 let container: HTMLDivElement;
 
 beforeAll(async () => {
-  // @ts-ignore - jsdom has no matchMedia, MantineProvider needs it
-  window.matchMedia = (query: string) => ({
+  // jsdom has no matchMedia, MantineProvider needs it
+  window.matchMedia = (query: string): MediaQueryList => ({
     matches: false,
     media: query,
     onchange: null,
@@ -36,7 +41,6 @@ beforeAll(async () => {
     removeEventListener: () => {},
     dispatchEvent: () => false,
   });
-  // @ts-ignore
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   await i18n.changeLanguage("en");
 });
@@ -54,7 +58,7 @@ afterEach(async () => {
   container.remove();
 });
 
-const onClose = vi.fn();
+const onClose = vi.fn<() => void>();
 
 async function renderRename(opened: boolean, existingTitles: string[]) {
   await act(async () => {
@@ -73,14 +77,16 @@ async function renderRename(opened: boolean, existingTitles: string[]) {
   });
 }
 
-const input = () => container.querySelector<HTMLInputElement>("input")!;
+const input = () => defined(container.querySelector<HTMLInputElement>("input"));
 const button = (label: string) =>
-  Array.from(container.querySelectorAll<HTMLButtonElement>("button")).find(el => el.textContent === label)!;
+  defined(Array.from(container.querySelectorAll<HTMLButtonElement>("button")).find(el => el.textContent === label));
+
+// React tracks the previous value on the node itself, so a plain assignment is swallowed.
+const setInputValue = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
 
 async function type(value: string) {
-  const setValue = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!;
   await act(async () => {
-    setValue.call(input(), value);
+    setInputValue?.call(input(), value);
     input().dispatchEvent(new Event("input", { bubbles: true }));
   });
 }

@@ -1,4 +1,4 @@
-import { Grid, Paper, Text, TextInput, Tree } from "@mantine/core";
+import { Grid, Paper, Text, TextInput, Tree, type TreeNodeData } from "@mantine/core";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useFetchDirsQuery } from "../../api_client/folders/hooks";
 import type { DirTree } from "../../api_client/folders/types";
@@ -21,7 +21,7 @@ type DirectoryPickerProps = Readonly<{
   missingPathError?: string;
 }>;
 
-const convertTree = (data: DirTree[]): Array<{ value: string; label: string; children?: any[] }> =>
+const convertTree = (data: DirTree[]): TreeNodeData[] =>
   data.map(item => ({
     value: item.absolute_path,
     label: item.title,

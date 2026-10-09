@@ -11,12 +11,15 @@ export const AuthError = z.object({
   }),
 });
 
+// The claims of an access token, as the backend's CustomTokenObtainPairSerializer
+// writes them. Only a type: the cookie's JWT is decoded, not validated.
 export const Token = z.object({
-  token: z.string(),
   token_type: z.string().regex(/access|refresh/),
   exp: z.number(),
+  iat: z.number(),
   jti: z.string(),
-  user_id: z.number(),
+  // simplejwt (5.5+) writes the user id claim as a string.
+  user_id: z.string(),
   name: z.string(),
   is_admin: z.boolean(),
   first_name: z.string(),

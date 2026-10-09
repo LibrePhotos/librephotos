@@ -11,13 +11,22 @@
 import { ApiError } from "@librephotos/api-client";
 import type {
   SyncAutoAlbumItem,
+  SyncAutoAlbumsResponse,
   SyncCounts,
+  SyncEnvelope,
   SyncNamedAlbumItem,
   SyncPersonItem,
+  SyncPersonsResponse,
   SyncPhotoItem,
+  SyncPhotosResponse,
   SyncPlaceAlbumItem,
+  SyncPlaceAlbumsResponse,
   SyncSharedUserItem,
+  SyncSharingResponse,
+  SyncTagAlbumsResponse,
+  SyncThingAlbumsResponse,
   SyncUserAlbumItem,
+  SyncUserAlbumsResponse,
 } from "@librephotos/api-client";
 import type { RemoteSyncSource, SyncPullParams } from "../remote/source";
 import type { SyncEntity } from "@/db/queries/sync-state";
@@ -48,7 +57,7 @@ export function keysetPage<T extends Keyed>(
   items: T[],
   params: SyncPullParams,
   overrides: PageOverrides = {}
-) {
+): SyncEnvelope<T> {
   const sorted = [...items].sort(cmp);
   let start = 0;
   if (params.cursor) {
@@ -181,7 +190,7 @@ export class FakeSource implements RemoteSyncSource {
     this.expired = { ...(config.expireOnce ?? {}) };
   }
 
-  private serve<T extends Keyed>(entity: SyncEntity, items: T[], params: SyncPullParams) {
+  private serve<T extends Keyed>(entity: SyncEntity, items: T[], params: SyncPullParams): SyncEnvelope<T> {
     this.fetchOrder.push(entity);
     this.calls[entity] = (this.calls[entity] ?? 0) + 1;
     if (this.expired[entity]) {
@@ -191,29 +200,29 @@ export class FakeSource implements RemoteSyncSource {
     return keysetPage(items, params, { tombstones: this.config.tombstones?.[entity] });
   }
 
-  photos(p: SyncPullParams) {
-    return Promise.resolve(this.serve("photo", this.store.photo, p) as never);
+  photos(p: SyncPullParams): Promise<SyncPhotosResponse> {
+    return Promise.resolve(this.serve("photo", this.store.photo, p));
   }
-  persons(p: SyncPullParams) {
-    return Promise.resolve(this.serve("person", this.store.person, p) as never);
+  persons(p: SyncPullParams): Promise<SyncPersonsResponse> {
+    return Promise.resolve(this.serve("person", this.store.person, p));
   }
-  userAlbums(p: SyncPullParams) {
-    return Promise.resolve(this.serve("user_album", this.store.user_album, p) as never);
+  userAlbums(p: SyncPullParams): Promise<SyncUserAlbumsResponse> {
+    return Promise.resolve(this.serve("user_album", this.store.user_album, p));
   }
-  autoAlbums(p: SyncPullParams) {
-    return Promise.resolve(this.serve("auto_album", this.store.auto_album, p) as never);
+  autoAlbums(p: SyncPullParams): Promise<SyncAutoAlbumsResponse> {
+    return Promise.resolve(this.serve("auto_album", this.store.auto_album, p));
   }
-  thingAlbums(p: SyncPullParams) {
-    return Promise.resolve(this.serve("thing_album", this.store.thing_album, p) as never);
+  thingAlbums(p: SyncPullParams): Promise<SyncThingAlbumsResponse> {
+    return Promise.resolve(this.serve("thing_album", this.store.thing_album, p));
   }
-  placeAlbums(p: SyncPullParams) {
-    return Promise.resolve(this.serve("place_album", this.store.place_album, p) as never);
+  placeAlbums(p: SyncPullParams): Promise<SyncPlaceAlbumsResponse> {
+    return Promise.resolve(this.serve("place_album", this.store.place_album, p));
   }
-  tagAlbums(p: SyncPullParams) {
-    return Promise.resolve(this.serve("tag_album", this.store.tag_album, p) as never);
+  tagAlbums(p: SyncPullParams): Promise<SyncTagAlbumsResponse> {
+    return Promise.resolve(this.serve("tag_album", this.store.tag_album, p));
   }
-  sharing(p: SyncPullParams) {
-    return Promise.resolve(this.serve("sharing", this.store.sharing, p) as never);
+  sharing(p: SyncPullParams): Promise<SyncSharingResponse> {
+    return Promise.resolve(this.serve("sharing", this.store.sharing, p));
   }
   counts(): Promise<SyncCounts> {
     return Promise.resolve({

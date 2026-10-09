@@ -45,6 +45,9 @@ import { useAuth } from "../../hooks/useAuth";
 import { copyToClipboard } from "../../util/util";
 import { ModalDownloadOptions } from "../modals/ModalDownloadOptions";
 
+/** The albums whose cover the selection can set. */
+export type AlbumCoverType = "person" | "useralbum";
+
 type Props = {
   selectedItems: PigPhoto[];
   selectAllMode?: boolean;
@@ -52,7 +55,7 @@ type Props = {
   totalCount?: number;
   updateSelectionState: (state: Partial<SelectionState>) => void;
   onSharePhotos: () => void;
-  setAlbumCover: (actionType: string, photoId?: string) => void;
+  setAlbumCover: (actionType: AlbumCoverType, photoId?: string) => void;
   onShareAlbum: () => void;
   onAddToAlbum: () => void;
   onAddTags: () => void;
@@ -114,15 +117,10 @@ export function SelectionActions(props: Readonly<Props>) {
   const getManualStacksFromSelection = (): Array<{ stackId: string; photoHash: string }> => {
     const result: Array<{ stackId: string; photoHash: string }> = [];
     selectedItems.forEach(item => {
-      // Check if item has stacks property (from PigPhoto type)
-      const photo = item as unknown as {
-        stacks?: Array<{ id: string; type: string }>;
-        image_hash?: string;
-      };
       // Use image_hash if available, otherwise fall back to id
-      const photoHash = photo.image_hash || item.id;
-      if (photo.stacks && Array.isArray(photo.stacks)) {
-        photo.stacks.forEach(stack => {
+      const photoHash = item.image_hash || item.id;
+      if (item.stacks && Array.isArray(item.stacks)) {
+        item.stacks.forEach(stack => {
           if (stack.type === "manual") {
             result.push({ stackId: stack.id, photoHash });
           }
@@ -511,10 +509,9 @@ export function SelectionActions(props: Readonly<Props>) {
                 // Group by stack ID to remove photos from each stack
                 const stacksByStackId = new Map<string, string[]>();
                 stackPhotos.forEach(({ stackId, photoHash }) => {
-                  if (!stacksByStackId.has(stackId)) {
-                    stacksByStackId.set(stackId, []);
-                  }
-                  stacksByStackId.get(stackId)!.push(photoHash);
+                  const photoHashes = stacksByStackId.get(stackId) ?? [];
+                  photoHashes.push(photoHash);
+                  stacksByStackId.set(stackId, photoHashes);
                 });
 
                 // Remove photos from each stack

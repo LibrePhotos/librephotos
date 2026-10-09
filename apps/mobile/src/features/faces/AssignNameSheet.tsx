@@ -26,12 +26,14 @@ export function AssignNameSheet({
 
   const matches = useMemo(() => {
     const q = text.trim().toLowerCase();
-    const named = persons.filter((p) => p.name && p.name.toLowerCase() !== "unknown");
+    const named = persons.flatMap((p) =>
+      p.name && p.name.toLowerCase() !== "unknown" ? [{ ...p, name: p.name }] : []
+    );
     if (!q) return named.slice(0, 30);
-    return named.filter((p) => p.name!.toLowerCase().includes(q)).slice(0, 30);
+    return named.filter((p) => p.name.toLowerCase().includes(q)).slice(0, 30);
   }, [persons, text]);
 
-  const exact = matches.some((p) => p.name!.toLowerCase() === text.trim().toLowerCase());
+  const exact = matches.some((p) => p.name.toLowerCase() === text.trim().toLowerCase());
   const canCreate = text.trim().length > 0 && !exact;
 
   return (
@@ -73,7 +75,7 @@ export function AssignNameSheet({
             renderItem={({ item }) => (
               <Pressable
                 testID={`assign-person-${item.id}`}
-                onPress={() => onAssign(item.name!)}
+                onPress={() => onAssign(item.name)}
                 style={{ paddingVertical: 12, borderBottomColor: theme.border, borderBottomWidth: 1 }}
               >
                 <Text style={{ color: theme.text }}>{item.name}</Text>

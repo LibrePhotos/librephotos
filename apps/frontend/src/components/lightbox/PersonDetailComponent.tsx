@@ -5,15 +5,18 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { serverAddress } from "../../api_client/apiClient";
 import { useDeleteFacesMutation, useSetFacesPersonLabelMutation } from "../../api_client/faces";
+import type { People } from "../../api_client/photos/types";
 import { notification } from "../../service/notifications";
 import { calculateProbabiltyColor } from "../facedashboard/FaceComponent";
 import { FaceTooltip } from "../facedashboard/FaceTooltip";
+import type { FaceLocationType } from "./lightbox.types";
 
 type Props = {
-  person: any;
+  /** One face on the photo, as the photo detail lists it. */
+  person: People;
   isPublic: boolean;
-  setFaceLocation: (face: any) => void;
-  onPersonEdit: (faceId: string, faceUrl: string) => void;
+  setFaceLocation: (location: FaceLocationType) => void;
+  onPersonEdit: (faceId: number, faceUrl: string) => void;
   notThisPerson: (faceId: number) => void;
 };
 

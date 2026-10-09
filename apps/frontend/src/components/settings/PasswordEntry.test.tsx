@@ -12,18 +12,17 @@ import { PasswordEntry } from "./PasswordEntry";
 vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
 
 beforeAll(() => {
-  (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
-  window.matchMedia = (query: string) =>
-    ({
-      matches: false,
-      media: query,
-      onchange: null,
-      addListener: () => {},
-      removeListener: () => {},
-      addEventListener: () => {},
-      removeEventListener: () => {},
-      dispatchEvent: () => false,
-    }) as unknown as MediaQueryList;
+  globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+  window.matchMedia = (query: string): MediaQueryList => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => false,
+  });
 });
 
 let cleanup: (() => Promise<void>) | undefined;
@@ -33,12 +32,14 @@ afterEach(async () => {
   cleanup = undefined;
 });
 
-async function render(props: Partial<React.ComponentProps<typeof PasswordEntry>> = {}) {
-  const onValidate = vi.fn();
+type PasswordEntryProps = React.ComponentProps<typeof PasswordEntry>;
+
+async function render(props: Partial<PasswordEntryProps> = {}) {
+  const onValidate = vi.fn<PasswordEntryProps["onValidate"]>();
   const container = document.createElement("div");
   document.body.appendChild(container);
   const root = createRoot(container);
-  const draw = async (next: Partial<React.ComponentProps<typeof PasswordEntry>>) => {
+  const draw = async (next: Partial<PasswordEntryProps>) => {
     await act(async () => {
       root.render(
         <MantineProvider>
@@ -55,16 +56,21 @@ async function render(props: Partial<React.ComponentProps<typeof PasswordEntry>>
     container.remove();
   };
   const inputs = () => [...container.querySelectorAll<HTMLInputElement>('input[type="password"]')];
-  const lock = () =>
+  const findLock = () =>
     container.querySelector<HTMLButtonElement>('button[aria-label="settings.password.tooltipeditbutton"]');
-  return { container, inputs, lock, draw, onValidate };
+  const lock = () => {
+    const button = findLock();
+    if (!button) throw new Error("no lock button");
+    return button;
+  };
+  return { container, inputs, lock, findLock, draw, onValidate };
 }
 
 describe("PasswordEntry", () => {
   it("unlocks the fields from a real, focusable button", async () => {
     const { inputs, lock } = await render();
 
-    const button = lock()!;
+    const button = lock();
     expect(button.tagName).toBe("BUTTON");
     expect(button.type).toBe("button");
     expect(button.getAttribute("aria-pressed")).toBe("false");
@@ -82,7 +88,7 @@ describe("PasswordEntry", () => {
     const { container, inputs, lock } = await render();
 
     await act(async () => {
-      lock()!.click();
+      lock().click();
     });
     expect(container.textContent).not.toContain("settings.password.errorcannotbeblank");
 
@@ -103,9 +109,9 @@ describe("PasswordEntry", () => {
   });
 
   it("shows no lock when a new password is set", async () => {
-    const { inputs, lock } = await render({ createNew: true });
+    const { inputs, findLock } = await render({ createNew: true });
 
-    expect(lock()).toBeNull();
+    expect(findLock()).toBeNull();
     expect(inputs().every(input => !input.disabled)).toBe(true);
   });
 });

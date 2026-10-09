@@ -3,24 +3,33 @@
  * mounted while the user steps from one photo to the next, rather than
  * remounting it per photo, needs it to follow the new coordinates itself:
  * otherwise it kept showing the first photo's area with the new pin off-screen.
+ *
+ * A photo is only placed with both coordinates, and its popup shows the
+ * photo's own square thumbnail.
  */
 import "@mantine/core/styles.css";
 import { MantineProvider } from "@mantine/core";
+import type { JumpToOptions } from "maplibre-gl";
 import React, { act } from "react";
-import { createRoot } from "react-dom/client";
+import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { serverAddress } from "../api_client/apiClient";
 import { LocationMap } from "./LocationMap";
 
-const stubs = vi.hoisted(() => ({ jumpTo: vi.fn(), mounts: 0 }));
+const stubs = vi.hoisted(() => ({ jumpTo: vi.fn<(options: JumpToOptions) => void>(), mounts: 0 }));
 
 vi.mock("../util/mapStyle", () => ({
   useMapStyle: () => ({ mapStyle: "https://example.invalid/style.json", mapsDisabled: false }),
 }));
 
-// Stands in for react-map-gl's <Map>: counts mounts and hands out a handle with jumpTo
+// Stands in for react-map-gl's <Map>: counts mounts and hands out a handle with jumpTo.
+// A marker is a button and a popup shows its content.
 vi.mock("react-map-gl/maplibre", async () => {
   const react = await import("react");
-  const MapGL = react.forwardRef(function MapGL(props: any, ref: any) {
+  const MapGL = react.forwardRef(function MapGL(
+    props: { children?: React.ReactNode },
+    ref: React.ForwardedRef<{ jumpTo: typeof stubs.jumpTo }>
+  ) {
     react.useEffect(() => {
       stubs.mounts += 1;
     }, []);
@@ -29,19 +38,25 @@ vi.mock("react-map-gl/maplibre", async () => {
   });
   return {
     default: MapGL,
-    Marker: () => null,
-    Popup: () => null,
+    Marker: ({ onClick }: { onClick?: (event: { originalEvent: MouseEvent }) => void }) =>
+      react.createElement("button", {
+        type: "button",
+        "data-testid": "marker",
+        onClick: (event: React.MouseEvent) => onClick?.({ originalEvent: event.nativeEvent }),
+      }),
+    Popup: (props: { children?: React.ReactNode }) =>
+      react.createElement("div", { "data-testid": "popup" }, props.children),
     NavigationControl: () => null,
     AttributionControl: () => null,
   };
 });
 
-let root: ReturnType<typeof createRoot> | undefined;
+let root: Root;
 let container: HTMLDivElement;
 
 beforeAll(() => {
-  // @ts-ignore - jsdom has no matchMedia, MantineProvider needs it
-  window.matchMedia = (query: string) => ({
+  // jsdom has no matchMedia, MantineProvider needs it
+  window.matchMedia = (query: string): MediaQueryList => ({
     matches: false,
     media: query,
     onchange: null,
@@ -51,7 +66,6 @@ beforeAll(() => {
     removeEventListener: () => {},
     dispatchEvent: () => false,
   });
-  // @ts-ignore
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 });
 
@@ -64,15 +78,19 @@ beforeEach(() => {
 });
 
 afterEach(async () => {
-  await act(async () => root?.unmount());
+  await act(async () => root.unmount());
   container.remove();
 });
 
-const photo = (image_hash: string, lat: number, lon: number) => ({ image_hash, exif_gps_lat: lat, exif_gps_lon: lon });
+const photo = (image_hash: string, lat: number | null, lon: number | null) => ({
+  image_hash,
+  exif_gps_lat: lat,
+  exif_gps_lon: lon,
+});
 
-async function render(photos: unknown[]) {
+async function render(photos: React.ComponentProps<typeof LocationMap>["photos"]) {
   await act(async () => {
-    root!.render(
+    root.render(
       <MantineProvider>
         <LocationMap photos={photos} />
       </MantineProvider>
@@ -97,5 +115,25 @@ describe("LocationMap", () => {
     await render([photo("a", 48.85, 2.35)]);
 
     expect(stubs.jumpTo).not.toHaveBeenCalled();
+  });
+
+  it("leaves out a photo with only one of its coordinates", async () => {
+    await render([photo("a", null, 2.35)]);
+
+    expect(stubs.mounts).toBe(0);
+    expect(container.querySelector('[data-testid="map"]')).toBeNull();
+  });
+
+  it("shows the photo's square thumbnail in the marker's popup", async () => {
+    await render([photo("abc123", 48.85, 2.35)]);
+    expect(container.querySelector('[data-testid="popup"]')).toBeNull();
+
+    await act(async () => {
+      container.querySelector<HTMLButtonElement>('[data-testid="marker"]')?.click();
+    });
+
+    expect(container.querySelector('[data-testid="popup"] img')?.getAttribute("src")).toBe(
+      `${serverAddress}/media/square_thumbnails/abc123`
+    );
   });
 });

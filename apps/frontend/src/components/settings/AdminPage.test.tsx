@@ -9,13 +9,18 @@ import { createRoot } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { AdminPage } from "./AdminPage";
 
-const mocks = vi.hoisted(() => ({
-  selfDetails: { data: undefined as { is_superuser: boolean } | undefined, isPending: true },
-  deleteAll: vi.fn(),
-}));
+type SelfDetailsResult = { data: { is_superuser: boolean } | undefined; isPending: boolean };
+
+const mocks = vi.hoisted(() => {
+  const selfDetails: SelfDetailsResult = { data: undefined, isPending: true };
+  return {
+    selfDetails,
+    deleteAll: vi.fn<(variables: undefined, options?: { onSettled?: () => void }) => void>(),
+  };
+});
 
 vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
-vi.mock("@tanstack/react-router", () => ({ useNavigate: () => vi.fn() }));
+vi.mock("@tanstack/react-router", () => ({ useNavigate: () => () => {} }));
 vi.mock("../../api_client/albums/hooks", () => ({
   useDeleteAllAutoAlbumsMutation: () => ({ mutate: mocks.deleteAll, isPending: false }),
 }));
@@ -33,18 +38,17 @@ vi.mock("./ServiceList", () => ({ ServiceList: () => null }));
 vi.mock("./SiteSettings", () => ({ SiteSettings: () => null }));
 
 beforeAll(() => {
-  (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
-  window.matchMedia = (query: string) =>
-    ({
-      matches: false,
-      media: query,
-      onchange: null,
-      addListener: () => {},
-      removeListener: () => {},
-      addEventListener: () => {},
-      removeEventListener: () => {},
-      dispatchEvent: () => false,
-    }) as unknown as MediaQueryList;
+  globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+  window.matchMedia = (query: string): MediaQueryList => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => false,
+  });
 });
 
 let container: HTMLDivElement;
@@ -107,7 +111,8 @@ describe("AdminPage", () => {
     expect(mocks.deleteAll).not.toHaveBeenCalled();
     expect(document.body.textContent).toContain("adminarea.deleteallautoalbumsexplanation");
 
-    const confirm = buttonByText("adminarea.delete").find(button => button !== trigger)!;
+    const confirm = buttonByText("adminarea.delete").find(button => button !== trigger);
+    if (!confirm) throw new Error("the confirmation has no delete button");
     await act(async () => {
       confirm.click();
     });

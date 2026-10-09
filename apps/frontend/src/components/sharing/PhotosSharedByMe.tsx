@@ -10,7 +10,7 @@ import { avatarSrc } from "./avatarSrc";
 type GroupHeaderProps = {
   group: {
     userId: number;
-    photos: any[];
+    photos: readonly unknown[];
   };
   isSharedToMe: boolean;
 };

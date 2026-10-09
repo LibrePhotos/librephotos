@@ -6,6 +6,7 @@
  * labeled "offline results" in the UI. Pure SQL so it is Node-tested.
  */
 import { sql } from "drizzle-orm";
+import { isArray, parseJson } from "@/lib/guards";
 import type { AppDatabase } from "../types";
 import type { PhotoTileRow } from "./filters";
 import { getMeta, setMeta } from "./app-meta";
@@ -27,11 +28,11 @@ export function datePrefixFor(term: string): string | null {
   if (/^\d{4}$/.test(t)) return `${t}-%`;
   if (/^\d{4}-\d{1,2}$/.test(t)) {
     const [y, m] = t.split("-");
-    return `${y}-${m!.padStart(2, "0")}-%`;
+    return `${y}-${m.padStart(2, "0")}-%`;
   }
   if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(t)) {
     const [y, m, d] = t.split("-");
-    return `${y}-${m!.padStart(2, "0")}-${d!.padStart(2, "0")}`;
+    return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
   }
   return null;
 }
@@ -96,8 +97,8 @@ export function getRecentSearches(db: AppDatabase): string[] {
   const raw = getMeta(db, RECENT_KEY);
   if (!raw) return [];
   try {
-    const arr = JSON.parse(raw) as unknown;
-    return Array.isArray(arr) ? arr.filter((x): x is string => typeof x === "string") : [];
+    const arr = parseJson(raw);
+    return isArray(arr) ? arr.filter((x): x is string => typeof x === "string") : [];
   } catch {
     return [];
   }

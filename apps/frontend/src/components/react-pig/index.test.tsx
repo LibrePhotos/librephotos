@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import "../../i18n";
 import Pig from ".";
+import { defined } from "../../util/defined.test-utils";
 
 const groups = [
   {
@@ -18,21 +19,20 @@ let root: ReturnType<typeof createRoot> | null = null;
 
 function renderPig(props: { textAlignment: "left" | "right"; headerSize: "large" | "normal" | "small" }) {
   act(() => {
-    root!.render(<Pig imageData={groups} groupByDate getUrl={(url: string) => `/media/${url}`} {...props} />);
+    defined(root).render(<Pig imageData={groups} groupByDate getUrl={(url: string) => `/media/${url}`} {...props} />);
   });
-  return container!.querySelector(".pig-header")!;
+  return defined(defined(container).querySelector(".pig-header"));
 }
 
 beforeAll(() => {
   // jsdom lays nothing out; give the grid a width so it computes a layout.
   Object.defineProperty(HTMLElement.prototype, "offsetWidth", { configurable: true, get: () => 1000 });
-  // @ts-ignore
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 });
 
 afterEach(() => {
   if (root && container) {
-    act(() => root!.unmount());
+    act(() => defined(root).unmount());
     container.remove();
   }
   root = null;
@@ -55,13 +55,13 @@ describe("react-pig date headers", () => {
     });
 
     act(() => {
-      root!.render(
+      defined(root).render(
         <Pig imageData={[sameDay("a"), sameDay("b")]} groupByDate getUrl={(url: string) => `/media/${url}`} />
       );
     });
 
     expect(container.querySelectorAll(".pig-header")).toHaveLength(2);
-    expect(errors.mock.calls.some(call => String(call[0]).includes("same key"))).toBe(false);
+    expect(errors.mock.calls.some((call: unknown[]) => String(call[0]).includes("same key"))).toBe(false);
     errors.mockRestore();
   });
 
@@ -80,7 +80,7 @@ describe("react-pig date headers", () => {
     });
     const render = (data: ReturnType<typeof sameDay>[]) =>
       act(() => {
-        root!.render(<Pig imageData={data} groupByDate getUrl={(url: string) => `/media/${url}`} />);
+        defined(root).render(<Pig imageData={data} groupByDate getUrl={(url: string) => `/media/${url}`} />);
       });
 
     render([sameDay("g1"), sameDay("g2")]);
@@ -98,13 +98,34 @@ describe("react-pig date headers", () => {
 
     const header = renderPig({ textAlignment: "right", headerSize: "large" });
     expect(header).not.toBeNull();
-    expect(header.firstElementChild!.className).toContain("pig-header_location");
+    expect(defined(header.firstElementChild).className).toContain("pig-header_location");
 
     const realigned = renderPig({ textAlignment: "left", headerSize: "large" });
-    expect(realigned.firstElementChild!.className).toContain("pig-header_date");
+    expect(defined(realigned.firstElementChild).className).toContain("pig-header_date");
 
     const before = renderPig({ textAlignment: "left", headerSize: "large" }).className;
     const resized = renderPig({ textAlignment: "left", headerSize: "small" }).className;
     expect(resized).not.toBe(before);
+  });
+});
+
+describe("react-pig photo size", () => {
+  it("lays the grid out at the size it was just given", async () => {
+    container = document.createElement("div");
+    document.body.appendChild(container);
+    root = createRoot(container);
+    const tiles = [{ id: "photo-1", url: "hash1", aspectRatio: 1.5, dominantColor: "#123456" }];
+    const tileWidth = (scaleOfImages: number) => {
+      act(() => {
+        defined(root).render(
+          <Pig imageData={tiles} scaleOfImages={scaleOfImages} getUrl={(url: string) => `/media/${url}`} />
+        );
+      });
+      return Number(defined(container).querySelector("img")?.getAttribute("width"));
+    };
+
+    // 1000px wide: a row needs an aspect ratio of 3 at scale 1, of 6 at scale 2
+    expect(tileWidth(1)).toBeCloseTo(500);
+    expect(tileWidth(2)).toBeCloseTo(250);
   });
 });

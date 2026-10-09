@@ -37,8 +37,9 @@ export const SharedFromMePhoto = z.object({
 export const MetadataEdit = z.object({
   id: z.guid(),
   field_name: z.string(),
-  old_value: z.any(),
-  new_value: z.any(),
+  // JSONFields: whatever the edited field held (a string, number, list...).
+  old_value: z.unknown(),
+  new_value: z.unknown(),
   user: z.number(),
   user_name: z.string(),
   synced_to_file: z.boolean(),
