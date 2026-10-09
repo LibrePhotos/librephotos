@@ -84,6 +84,18 @@
       "enabled": false
     },
     {
+      "description": "The proxy stays on nginx's stable branch, whose minor versions are even (1.30, 1.32). Odd minors are mainline: the 1.31 tag is the same image as mainline.",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["nginx"],
+      "allowedVersions": "/^[0-9]+\\.[0-9]*[02468](\\.|$)/"
+    },
+    {
+      "description": "The Python a workflow sets up is a target, not a tool to keep current: the Windows standalone build and the prebuilt win_amd64 wheels are cp311, pinned by URL in apps/backend/requirements.txt. Renovate counts 3.11 -> 3.14 as a minor update, which the github-actions group automerges. Move it by hand together with the wheels.",
+      "matchManagers": ["github-actions"],
+      "matchDepNames": ["python"],
+      "enabled": false
+    },
+    {
       "description": "A Postgres major needs pg_upgrade or dump/restore on existing volumes. Never bump it automatically.",
       "matchDatasources": ["docker"],
       "matchPackageNames": ["postgres"],
