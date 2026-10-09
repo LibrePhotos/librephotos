@@ -4,11 +4,11 @@ ipdb==0.13.13
 # release supporting 3.10). Renovate is disabled for it (see renovate.json).
 ipython==9.16.1; python_version >= "3.11"
 ipython==8.39.0; python_version < "3.11"
-Pygments==2.20.0
+Pygments==2.21.0
 prompt-toolkit==3.0.53
 pre-commit==4.6.2
-coverage==7.15.4
-Faker==40.36.0
+coverage==7.16.2
+Faker==40.41.0
 setuptools==83.0.0
 pyfakefs==6.2.0
 pytest==9.1.1
