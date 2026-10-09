@@ -10,6 +10,7 @@ from rest_framework import filters
 
 from api.image_similarity import search_similar_embedding
 from api.semantic_search import calculate_query_embeddings
+from api.timeline_filter import timeline_filter_q
 
 logger = logging.getLogger(__name__)
 
@@ -54,21 +55,17 @@ def build_ocr_search_q(search_term, vendor):
 
 class SemanticSearchFilter(filters.SearchFilter):
     def filter_queryset(self, request, queryset, view):
-        # Narrow by media type independent of the search term, mirroring the
-        # video/photo params already used by the album-date endpoints. This is
-        # applied before the no-search-term early return so the filter works
-        # whether or not a query is supplied.
-        if request.query_params.get("video"):
-            queryset = queryset.filter(video=True)
-        elif request.query_params.get("photo"):
-            queryset = queryset.filter(video=False)
-
-        # Narrow by media category (screenshot/document), independent of the
-        # search term, mirroring the video/photo params above.
-        if request.query_params.get("is_screenshot"):
-            queryset = queryset.filter(is_screenshot=True)
-        if request.query_params.get("is_document"):
-            queryset = queryset.filter(is_document=True)
+        # Narrow by media type and category (video/photo, is_screenshot,
+        # is_document) independent of the search term, parsed like the
+        # album-date endpoints do (tri-state). Search never applies the saved
+        # timeline default or the favorites filter. This is applied before the
+        # no-search-term early return so the filter works whether or not a
+        # query is supplied.
+        media_params = {
+            param: request.query_params.get(param)
+            for param in ("video", "photo", "is_screenshot", "is_document")
+        }
+        queryset = queryset.filter(*timeline_filter_q(request.user, media_params))
 
         search_fields = self.get_search_fields(view, request)
         search_terms = self.get_search_terms(request)
