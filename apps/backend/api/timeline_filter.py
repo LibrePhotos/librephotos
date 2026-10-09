@@ -13,7 +13,9 @@ The filter has four keys, the same as ``User.default_timeline_filter``:
 * ``favorites``: only photos rated at least ``User.favorite_min_rating``.
 
 The user's saved default applies only when the request asks for it with
-``apply_default``, so older clients and every other view keep their behaviour.
+``apply_default``, so older clients and every other view keep their behaviour,
+and never on a public view (``public`` or ``username``): the viewer's default
+must not filter someone else's public timeline.
 Explicit params then override the default key by key:
 
 * ``media`` (``all``/``photos``/``videos``), or the older ``video`` / ``photo``,
@@ -153,9 +155,10 @@ def _category_override(params, only_param, hide_param):
 
 def resolve_timeline_filter(user, params):
     """The filter for ``params`` (query params or a select-all ``query``)."""
+    public_view = parse_tristate(params.get("public")) or params.get("username")
     base = (
         saved_default(user)
-        if parse_tristate(params.get("apply_default"))
+        if parse_tristate(params.get("apply_default")) and not public_view
         else TimelineFilter()
     )
     media = _media_override(params)

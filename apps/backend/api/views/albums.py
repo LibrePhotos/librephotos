@@ -479,6 +479,32 @@ class AlbumUserListViewSet(ListViewSet):
         )
 
 
+# The filters AlbumDateViewSet and AlbumDateListViewSet both take; the media
+# filters resolve through api.timeline_filter.
+DATE_ALBUM_FILTER_PARAMETERS = [
+    OpenApiParameter("favorite", OpenApiTypes.BOOL),
+    OpenApiParameter("public", OpenApiTypes.BOOL),
+    OpenApiParameter("in_trashcan", OpenApiTypes.BOOL),
+    OpenApiParameter("hidden", OpenApiTypes.BOOL),
+    OpenApiParameter("video", OpenApiTypes.BOOL),
+    OpenApiParameter("photo", OpenApiTypes.BOOL),
+    OpenApiParameter("is_screenshot", OpenApiTypes.BOOL),
+    OpenApiParameter("is_document", OpenApiTypes.BOOL),
+    OpenApiParameter("media", OpenApiTypes.STR, enum=["all", "photos", "videos"]),
+    OpenApiParameter("hide_screenshots", OpenApiTypes.BOOL),
+    OpenApiParameter("hide_documents", OpenApiTypes.BOOL),
+    OpenApiParameter(
+        "apply_default",
+        OpenApiTypes.BOOL,
+        description="Apply the user's default_timeline_filter; the "
+        "other filter params override it key by key.",
+    ),
+    OpenApiParameter("username", OpenApiTypes.STR),
+    OpenApiParameter("person", OpenApiTypes.INT),
+    OpenApiParameter("last_modified", OpenApiTypes.DATE),
+]
+
+
 class AlbumDateViewSet(viewsets.ModelViewSet):
     serializer_class = AlbumDateSerializer
     pagination_class = RegularResultsSetPagination
@@ -590,30 +616,7 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
         return [permission() for permission in permission_classes]
 
     @extend_schema(
-        parameters=[
-            OpenApiParameter("favorite", OpenApiTypes.BOOL),
-            OpenApiParameter("public", OpenApiTypes.BOOL),
-            OpenApiParameter("in_trashcan", OpenApiTypes.BOOL),
-            OpenApiParameter("hidden", OpenApiTypes.BOOL),
-            OpenApiParameter("video", OpenApiTypes.BOOL),
-            OpenApiParameter("photo", OpenApiTypes.BOOL),
-            OpenApiParameter("is_screenshot", OpenApiTypes.BOOL),
-            OpenApiParameter("is_document", OpenApiTypes.BOOL),
-            OpenApiParameter(
-                "media", OpenApiTypes.STR, enum=["all", "photos", "videos"]
-            ),
-            OpenApiParameter("hide_screenshots", OpenApiTypes.BOOL),
-            OpenApiParameter("hide_documents", OpenApiTypes.BOOL),
-            OpenApiParameter(
-                "apply_default",
-                OpenApiTypes.BOOL,
-                description="Apply the user's default_timeline_filter; the "
-                "other filter params override it key by key.",
-            ),
-            OpenApiParameter("username", OpenApiTypes.STR),
-            OpenApiParameter("person", OpenApiTypes.INT),
-            OpenApiParameter("last_modified", OpenApiTypes.DATE),
-        ],
+        parameters=DATE_ALBUM_FILTER_PARAMETERS,
         description="Returns the actual images, for a given day in chunks of 100 images.",
     )
     def retrieve(self, *args, **kwargs):
@@ -729,30 +732,7 @@ class AlbumDateListViewSet(ListViewSet):
         return [permission() for permission in permission_classes]
 
     @extend_schema(
-        parameters=[
-            OpenApiParameter("favorite", OpenApiTypes.BOOL),
-            OpenApiParameter("public", OpenApiTypes.BOOL),
-            OpenApiParameter("in_trashcan", OpenApiTypes.BOOL),
-            OpenApiParameter("hidden", OpenApiTypes.BOOL),
-            OpenApiParameter("video", OpenApiTypes.BOOL),
-            OpenApiParameter("photo", OpenApiTypes.BOOL),
-            OpenApiParameter("is_screenshot", OpenApiTypes.BOOL),
-            OpenApiParameter("is_document", OpenApiTypes.BOOL),
-            OpenApiParameter(
-                "media", OpenApiTypes.STR, enum=["all", "photos", "videos"]
-            ),
-            OpenApiParameter("hide_screenshots", OpenApiTypes.BOOL),
-            OpenApiParameter("hide_documents", OpenApiTypes.BOOL),
-            OpenApiParameter(
-                "apply_default",
-                OpenApiTypes.BOOL,
-                description="Apply the user's default_timeline_filter; the "
-                "other filter params override it key by key.",
-            ),
-            OpenApiParameter("username", OpenApiTypes.STR),
-            OpenApiParameter("person", OpenApiTypes.INT),
-            OpenApiParameter("last_modified", OpenApiTypes.DATE),
-        ],
+        parameters=DATE_ALBUM_FILTER_PARAMETERS,
         description="Gives you a list of days with the number of elements. This is not paginated and can be large.",
     )
     def list(self, *args, **kwargs):

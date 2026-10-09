@@ -147,6 +147,18 @@ class ResolveTimelineFilterTest(SimpleTestCase):
             resolve_timeline_filter(user, {"apply_default": "1"}), TimelineFilter()
         )
 
+    def test_public_view_never_gets_the_viewers_default(self):
+        user = _FakeUser({"hide_screenshots": True})
+        for params in (
+            {"apply_default": "1", "public": "true"},
+            {"apply_default": "1", "public": "true", "username": "bob"},
+            {"apply_default": "1", "username": "bob"},
+        ):
+            with self.subTest(params=params):
+                self.assertEqual(
+                    resolve_timeline_filter(user, params), TimelineFilter()
+                )
+
     def test_anonymous_user_never_gets_a_default(self):
         self.assertEqual(
             resolve_timeline_filter(AnonymousUser(), {"apply_default": "1"}),
@@ -262,6 +274,30 @@ class TimelineEndpointsTest(TestCase):
         self.assertEqual(hashes, {self.plain.image_hash})
         days = self._list({"favorite": "true"})
         self.assertEqual(days, {str(self.mixed.id): 1})
+
+
+class PublicTimelineIgnoresViewerDefaultTest(TestCase):
+    """Bob's saved default never filters Alice's public timeline."""
+
+    def test_public_list_and_day(self):
+        alice = create_test_user()
+        bob = create_test_user(default_timeline_filter={"hide_screenshots": True})
+        now = timezone.now()
+        day = AlbumDate.objects.create(owner=alice, date=now.date())
+        shot = create_test_photo(
+            owner=alice, exif_timestamp=now, is_screenshot=True, public=True
+        )
+        day.photos.add(shot)
+        client = APIClient()
+        client.force_authenticate(user=bob)
+        params = {"public": "true", "username": alice.username, "apply_default": "1"}
+
+        listed = client.get("/api/albums/date/list/", params).json()["results"]
+        self.assertEqual([row["id"] for row in listed], [str(day.id)])
+        items = client.get(f"/api/albums/date/{day.id}/", params).json()["results"]
+        self.assertEqual(
+            [item["image_hash"] for item in items["items"]], [shot.image_hash]
+        )
 
 
 class SelectAllMatchesTimelineTest(TestCase):
