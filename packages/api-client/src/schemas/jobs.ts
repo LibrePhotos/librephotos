@@ -16,7 +16,7 @@ export const Job = z.object({
   progress_current: z.number().optional(),
   progress_target: z.number().optional(),
   progress_step: z.string().nullable().optional(),
-  result: z.record(z.any()).nullable().optional(),
+  result: z.record(z.string(), z.any()).nullable().optional(),
   id: z.number(),
 });
 export type Job = z.infer<typeof Job>;
@@ -44,7 +44,7 @@ export const JobDetail = z.object({
   progress_target: z.number(),
   progress_current: z.number(),
   progress_step: z.string().nullable().optional(),
-  result: z.record(z.any()).nullable().optional(),
+  result: z.record(z.string(), z.any()).nullable().optional(),
 });
 export type JobDetail = z.infer<typeof JobDetail>;
 

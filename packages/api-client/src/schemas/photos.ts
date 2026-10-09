@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { Media, PigPhoto, SimpleUser, StackTypeEnum } from "./common";
+import { Media, PigPhoto, SimpleUser, StackTypeEnum, UuidString } from "./common";
 
 export const People = z.object({
   name: z.string(),
@@ -66,7 +66,7 @@ export type FileVariant = z.infer<typeof FileVariant>;
 
 /** One member photo of a stack, as listed on the photo detail. */
 export const StackPhotoDetail = z.object({
-  id: z.string().uuid(),
+  id: UuidString,
   image_hash: z.string(),
   is_primary: z.boolean(),
   thumbnail_url: z.string().nullable(),
@@ -81,7 +81,7 @@ export type StackPhotoDetail = z.infer<typeof StackPhotoDetail>;
  * separate model, and RAW+JPEG pairs / Live Photos are file variants.
  */
 export const PhotoStackDetail = z.object({
-  id: z.string().uuid(),
+  id: UuidString,
   type: StackTypeEnum,
   type_display: z.string(),
   photo_count: z.number(),
@@ -92,7 +92,7 @@ export type PhotoStackDetail = z.infer<typeof PhotoStackDetail>;
 
 /** Full photo-detail response from GET /api/photos/{hash}/. */
 export const Photo = z.object({
-  id: z.string().uuid(),
+  id: UuidString,
   camera: z.string().nullable(),
   exif_gps_lat: z.number().nullable(),
   exif_gps_lon: z.number().nullable(),

@@ -1,5 +1,15 @@
 import { z } from "zod";
 
+/**
+ * A dashed, 36-character UUID of any version. `z.string().uuid()` accepts
+ * that on zod 3 but only RFC 9562 version/variant bits on zod 4, and this
+ * package runs under both: zod 3 in the mobile app, zod 4 in the web app,
+ * which compiles it from source against its own copy.
+ */
+export const UuidString = z
+  .string()
+  .regex(/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/, "Invalid uuid");
+
 export const SimpleUser = z.object({
   id: z.number(),
   username: z.string(),
@@ -18,7 +28,7 @@ export const StackTypeEnum = z.enum(["burst", "bracket", "manual"]);
 export type StackTypeEnum = z.infer<typeof StackTypeEnum>;
 
 export const PhotoStackSummary = z.object({
-  id: z.string().uuid(),
+  id: UuidString,
   type: StackTypeEnum,
   photo_count: z.number(),
   is_primary: z.boolean(),
@@ -37,7 +47,7 @@ export type PhotoHash = z.infer<typeof PhotoHash>;
  * image hash; use `imageHashOf()` to extract it.
  */
 export const PigPhoto = z.object({
-  id: z.string().uuid(),
+  id: UuidString,
   image_hash: z.string(),
   dominantColor: z.string().optional(),
   url: z.string().optional(),
