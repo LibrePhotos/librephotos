@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { serverAddress } from "../../api_client/apiClient";
 import type { NormalizedFaceBox } from "../../api_client/faces/hooks/useAddFaceMutation";
 import type { PhotoOcrBlock } from "../../api_client/photos/types";
+import { convertedUrl, needsConversion } from "../../util/videoPlayback";
 import { FaceDrawLayer } from "./FaceDrawLayer";
 import { FaceOverlay } from "./FaceOverlay";
 import type { FaceLocationType } from "./lightbox.types";
@@ -22,6 +23,8 @@ export type MediaDisplayProps = {
   fullHeight?: boolean;
   playing?: boolean;
   photoDetails?: any | null; // Allow null values from the API
+  /** A public page: the server never converts for an anonymous visitor. */
+  isPublic?: boolean;
   onEnded?: () => void;
   rotationAngle?: number;
   imageCacheKey?: number;
@@ -49,6 +52,7 @@ export function MediaDisplay({
   fullHeight = false,
   playing = false,
   photoDetails,
+  isPublic = false,
   onEnded,
   rotationAngle = 0,
   imageCacheKey = 0,
@@ -95,15 +99,27 @@ export function MediaDisplay({
     // Backend strips extension via fname.split(".")[0], so .mp4 suffix is safe
     // and helps the browser identify the content type for native playback.
     // The backend serves either the original file (via X-Accel-Redirect / FileResponse)
-    // or a transcoded stream (StreamingHttpResponse) depending on user settings.
+    // or a transcoded stream (StreamingHttpResponse): always with "Always
+    // transcode videos" on, otherwise when asked with ?transcode=1 -- which is
+    // done up front for a video this browser says it cannot play, and as a
+    // fallback for one it turns out not to.
+    const originalUrl = `${serverAddress}/media/photos/${mediaHash}.mp4`;
     const videoUrl =
       currentType === "video"
-        ? `${serverAddress}/media/photos/${mediaHash}.mp4`
+        ? needsConversion(photoDetails?.video_playback_type)
+          ? convertedUrl(originalUrl)
+          : originalUrl
         : `${serverAddress}/media/embedded_media/${mediaHash}`;
+    // Not on a public page: the server answers ?transcode=1 there with the same
+    // original, so the retry could only fail again and blame a conversion that
+    // never ran.
+    const fallbackUrl =
+      currentType === "video" && videoUrl === originalUrl && !isPublic ? convertedUrl(originalUrl) : undefined;
 
     return (
       <VideoPlayer
         url={videoUrl}
+        fallbackUrl={fallbackUrl}
         posterUrl={thumbnailUrl}
         mediaHash={mediaHash}
         height={videoContainerHeight}

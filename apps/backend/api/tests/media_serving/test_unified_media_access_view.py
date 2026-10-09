@@ -549,15 +549,32 @@ class UnifiedTranscodeBranchTest(TestCase):
         # The cached copy is written only after the live stream is exhausted.
         ensure_cached.assert_called_once_with(self.video)
 
-    def test_public_album_video_is_never_transcoded(self):
+    def test_public_album_video_is_never_transcoded_for_a_visitor(self):
         from unittest import mock
 
         album = AlbumUser.objects.create(title="Open", owner=self.owner)
         album.photos.add(self.video)
         AlbumUserShare.objects.create(album=album, enabled=True)
         with mock.patch("api.transcode_cache.cached_path") as cached_path:
-            response = _unified("photos", self.video.image_hash, user=self.owner)
+            response = _unified("photos", self.video.image_hash)
         cached_path.assert_not_called()
+        self.assertEqual(response.status_code, 200)
+
+    def test_owner_of_a_video_in_a_public_album_keeps_transcoding(self):
+        """As for a public photo below: sharing must not cost the owner playback."""
+        from unittest import mock
+
+        from django.conf import settings
+
+        album = AlbumUser.objects.create(title="Open", owner=self.owner)
+        album.photos.add(self.video)
+        AlbumUserShare.objects.create(album=album, enabled=True)
+        cached = os.path.join(settings.MEDIA_ROOT, "transcoded", "clip.mp4")
+        with mock.patch(
+            "api.transcode_cache.cached_path", return_value=cached
+        ) as cached_path:
+            response = _unified("photos", self.video.image_hash, user=self.owner)
+        cached_path.assert_called_once()
         self.assertEqual(response.status_code, 200)
 
     def test_owner_of_a_public_video_keeps_transcoding(self):

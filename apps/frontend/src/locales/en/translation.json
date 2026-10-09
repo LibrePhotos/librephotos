@@ -592,6 +592,7 @@
       "unknown": "The video could not be loaded. It may be missing, unsupported, or unavailable.",
       "formattitle": "This video cannot be played in your browser",
       "format": "The file arrived intact, so this is a format your browser cannot decode. Turning on \"Always transcode videos\" in your settings will convert it as it plays.",
+      "formatconverted": "Your browser cannot decode this video, and converting it for playback failed too. The server log has the reason the conversion stopped.",
       "missingtitle": "This file is no longer on disk",
       "missing": "The library still lists this video, but the file itself is gone - moved, renamed or deleted since the last scan.",
       "permissiontitle": "The server cannot read this file",
