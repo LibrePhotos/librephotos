@@ -7,7 +7,12 @@ or the cloud provider's metadata endpoint on a link-local address.
 
 ``validate_server_address`` resolves the host name and looks at every address
 it resolves to, so a DNS name cannot smuggle in an address a literal IP would
-have been refused for. Loopback, link-local, multicast, unspecified and
+have been refused for. The address is parsed twice: once the way Python's
+``urlparse`` reads it and once the way urllib3 (which ``requests`` and so
+pyocclient connect through) reads it. The two disagree on some addresses, for
+example ``http://127.0.0.1:8163\\@8.8.8.8/`` is 8.8.8.8 to ``urlparse`` but
+127.0.0.1 to urllib3, so both hosts are checked and an address they do not
+agree on is refused. Loopback, link-local, multicast, unspecified and
 reserved addresses are always refused. Private network addresses (RFC 1918,
 IPv6 unique local, the 100.64.0.0/10 shared space Tailscale uses, Docker's
 networks) are allowed by default, because a Nextcloud on the same LAN or in the
@@ -25,6 +30,8 @@ from urllib.parse import urljoin, urlparse
 
 import owncloud as nextcloud
 from django.conf import settings
+from urllib3.exceptions import LocationParseError
+from urllib3.util import parse_url
 
 _ALLOWED_SCHEMES = {"http", "https"}
 _NAT64 = ipaddress.ip_network("64:ff9b::/96")
@@ -91,25 +98,21 @@ def _resolve(host: str, port):
     return addresses
 
 
-def validate_server_address(url: str) -> None:
-    """Raise ``UnsafeServerAddress`` unless ``url`` may be contacted."""
-    if not (url or "").strip():
-        raise UnsafeServerAddress("No Nextcloud server address is set.")
-    try:
-        parsed = urlparse((url or "").strip())
-        port = parsed.port
-    except ValueError as e:
-        raise UnsafeServerAddress("The Nextcloud server address is not a URL.") from e
-    if parsed.scheme.lower() not in _ALLOWED_SCHEMES:
-        raise UnsafeServerAddress(
-            "The Nextcloud server address has to start with http:// or https://."
-        )
-    host = parsed.hostname
-    if not host:
-        raise UnsafeServerAddress("The Nextcloud server address has no host name.")
+def _default_port(scheme: str) -> int:
+    return 443 if scheme == "https" else 80
 
-    allow_private = private_addresses_allowed()
-    for addr in _resolve(host, port or (443 if parsed.scheme == "https" else 80)):
+
+def _host_key(host: str) -> str:
+    """``host`` as both parsers would write it, for comparing the two."""
+    host = host.strip("[]").lower()
+    try:
+        return host.encode("idna").decode("ascii")
+    except UnicodeError:
+        return host
+
+
+def _check_host(host: str, port: int, allow_private: bool) -> None:
+    for addr in _resolve(host, port):
         kind = _refusal(addr, allow_private)
         if kind:
             hint = (
@@ -124,6 +127,40 @@ def validate_server_address(url: str) -> None:
             )
 
 
+def validate_server_address(url: str) -> None:
+    """Raise ``UnsafeServerAddress`` unless ``url`` may be contacted."""
+    url = (url or "").strip()
+    if not url:
+        raise UnsafeServerAddress("No Nextcloud server address is set.")
+    try:
+        parsed = urlparse(url)
+        port = parsed.port
+        # The host requests will actually connect to.
+        dialed = parse_url(url)
+    except (ValueError, LocationParseError) as e:
+        raise UnsafeServerAddress("The Nextcloud server address is not a URL.") from e
+    scheme = parsed.scheme.lower()
+    if scheme not in _ALLOWED_SCHEMES or (dialed.scheme or "") != scheme:
+        raise UnsafeServerAddress(
+            "The Nextcloud server address has to start with http:// or https://."
+        )
+    host = parsed.hostname
+    dialed_host = (dialed.host or "").strip("[]")
+    if not host or not dialed_host:
+        raise UnsafeServerAddress("The Nextcloud server address has no host name.")
+    port = port or _default_port(scheme)
+    dialed_port = dialed.port or _default_port(scheme)
+
+    allow_private = private_addresses_allowed()
+    _check_host(host, port, allow_private)
+    if (_host_key(dialed_host), dialed_port) != (_host_key(host), port):
+        _check_host(dialed_host, dialed_port, allow_private)
+        raise UnsafeServerAddress(
+            "The Nextcloud server address is ambiguous: it can be read as more "
+            "than one host. Remove any backslashes, spaces or '@' from it."
+        )
+
+
 def is_safe_server_address(url: str) -> bool:
     try:
         validate_server_address(url)
@@ -133,8 +170,18 @@ def is_safe_server_address(url: str) -> bool:
 
 
 def _refuse_unsafe_redirect(response, *args, **kwargs):
+    # Every hop gets the full check, including the urlparse/urllib3 comparison.
     if response.is_redirect:
-        validate_server_address(urljoin(response.url, response.headers["location"]))
+        try:
+            target = urljoin(response.url, response.headers["location"])
+        except ValueError as e:
+            # Newer Pythons validate bracketed hosts while splitting, so a
+            # Location such as "http://[::1]:80\@host/" raises here instead
+            # of reaching the check. Refuse it the same way.
+            raise UnsafeServerAddress(
+                "The Nextcloud server address is not a URL."
+            ) from e
+        validate_server_address(target)
     return response
 
 
