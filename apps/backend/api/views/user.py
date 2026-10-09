@@ -1,7 +1,7 @@
 import logging
 
 from django.conf import settings
-from rest_framework import status, viewsets
+from rest_framework import mixins, status, viewsets
 from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -166,7 +166,12 @@ class UserViewSet(viewsets.ModelViewSet):
         return [p() for p in permission_classes]
 
 
-class DeleteUserViewSet(viewsets.ModelViewSet):
+class DeleteUserViewSet(mixins.DestroyModelMixin, viewsets.GenericViewSet):
+    # Delete only. This used to be a full ModelViewSet over a serializer of
+    # every User column, so an admin could read password hashes here and PUT a
+    # scan_directory or upload_directory that ManageUserSerializer would have
+    # refused (outside DATA_ROOT, or overlapping another user's library).
+    # Listing and editing users goes through /api/manage/user/.
     queryset = User.objects.all().order_by("id")
     serializer_class = DeleteUserSerializer
     permission_classes = (IsAdminUser,)
