@@ -13,7 +13,7 @@ export const PublicPhotoDetail = z.object({
   exif_timestamp: z.string().nullable().optional(),
   exif_gps_lat: z.number().nullable().optional(),
   exif_gps_lon: z.number().nullable().optional(),
-  geolocation_json: z.record(z.unknown()).nullable().optional(),
+  geolocation_json: z.record(z.string(), z.unknown()).nullable().optional(),
   search_location: z.string().optional(),
   camera: z.string().nullable().optional(),
   lens: z.string().nullable().optional(),
@@ -24,7 +24,7 @@ export const PublicPhotoDetail = z.object({
   width: z.number().optional(),
   height: z.number().optional(),
   search_captions: z.string().optional(),
-  captions_json: z.record(z.unknown()).optional(),
+  captions_json: z.record(z.string(), z.unknown()).optional(),
   people: z
     .array(
       z.object({
@@ -56,7 +56,7 @@ async function fetchPublicPhotoDetail(slug: string, photoId: string): Promise<Pu
 
   const parsed = PublicPhotoDetailResponse.safeParse(response);
   if (!parsed.success) {
-    console.error("Failed to parse public photo detail:", parsed.error.errors);
+    console.error("Failed to parse public photo detail:", parsed.error.issues);
     console.error("Response was:", response);
     throw new Error("Failed to parse public photo detail response");
   }

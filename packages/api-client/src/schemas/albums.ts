@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { DatePhotosGroup, IncompleteDatePhotosGroup, PhotoHash, SimpleUser } from "./common";
+import { DatePhotosGroup, IncompleteDatePhotosGroup, PhotoHash, SimpleUser, UuidString } from "./common";
 import { Person } from "./persons";
 
 /* ---- Date albums (the timeline) ---------------------------------------- */
@@ -96,7 +96,7 @@ export const FetchAutoAlbumsListResponse = z.object({
 export type FetchAutoAlbumsListResponse = z.infer<typeof FetchAutoAlbumsListResponse>;
 
 export const PhotoSimple = z.object({
-  id: z.string().uuid(),
+  id: UuidString,
   square_thumbnail: z.string(),
   image_hash: z.string(),
   exif_timestamp: z.string(),
