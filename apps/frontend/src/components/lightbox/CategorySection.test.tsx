@@ -209,9 +209,20 @@ describe("CategorySection", () => {
     expect(container.textContent).toContain("Shown in Screenshots. Hidden from your timeline by your filter.");
   });
 
-  it("is not offered for videos", async () => {
-    const container = await renderSection({ ...screenshot, is_screenshot: false, video: true });
-    expect(container.querySelector("input[type=radio]")).toBeNull();
+  it("is not offered for a video, unless it carries a wrong flag to clear", async () => {
+    const plainVideo = await renderSection({ ...screenshot, is_screenshot: false, video: true });
+    expect(plainVideo.querySelector("input[type=radio]")).toBeNull();
+
+    // A screen recording detected as a screenshot: only Photo is offered.
+    const flagged = await renderSection({ ...screenshot, video: true });
+    expect(radio(flagged, "screenshot").checked).toBe(true);
+    expect(radio(flagged, "photo").disabled).toBe(false);
+    expect(radio(flagged, "document").disabled).toBe(true);
+  });
+
+  it("says a trashed item is not in the timeline", async () => {
+    const container = await renderSection({ ...screenshot, in_trashcan: true });
+    expect(container.textContent).toContain("Items in the trash are not shown in your timeline.");
   });
 
   it("says when the item is in the timeline", async () => {

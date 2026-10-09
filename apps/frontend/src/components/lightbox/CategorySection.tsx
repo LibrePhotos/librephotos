@@ -50,8 +50,9 @@ const UNDO_NOTIFICATION_ID = "photo-category-undo";
 
 // Where the item shows up, given its flags and the user's saved default
 // timeline filter (what a bare "/" shows).
-function whereKey(state: CategoryState, shownInTimeline: boolean, hidden: boolean) {
-  if (hidden) return "lightbox.category.where.hiddenphoto";
+function whereKey(state: CategoryState, shownInTimeline: boolean, photo: PhotoType) {
+  if (photo.in_trashcan) return "lightbox.category.where.trashed";
+  if (photo.hidden) return "lightbox.category.where.hiddenphoto";
   if (state.is_screenshot) {
     return shownInTimeline ? "lightbox.category.where.screenshotshown" : "lightbox.category.where.screenshothidden";
   }
@@ -80,7 +81,8 @@ function pickedState(imageHash: string, category: PhotoCategory): CategoryState 
 
 // Photo / Screenshot / Document, for fixing a wrong automatic category
 // (issue #2130). Owner-only: the endpoint only ever touches the requester's
-// photos, so the control is not offered on anyone else's. Not for videos.
+// photos, so the control is not offered on anyone else's. A video gets it
+// only to clear a wrong flag: it can never become a screenshot or document.
 export function CategorySection({ photoDetail }: Props) {
   const { t } = useTranslation();
   const { userId } = useAuth();
@@ -96,7 +98,8 @@ export function CategorySection({ photoDetail }: Props) {
     setOptimistic(null);
   }, [fromServer.imageHash, fromServer.category, fromServer.source]);
 
-  if (userId === null || photoDetail.owner?.id !== userId || photoDetail.video) {
+  const flaggedVideo = photoDetail.video && (photoDetail.is_screenshot || photoDetail.is_document);
+  if (userId === null || photoDetail.owner?.id !== userId || (photoDetail.video && !flaggedVideo)) {
     return null;
   }
 
@@ -173,6 +176,8 @@ export function CategorySection({ photoDetail }: Props) {
           const Icon = ICONS[category];
           return {
             value: category,
+            // The server never makes a video a screenshot or a document.
+            disabled: photoDetail.video && category !== "photo",
             label: (
               <Center style={{ gap: 6 }}>
                 <Icon size={16} color={ICON_COLORS[category]} />
@@ -184,7 +189,7 @@ export function CategorySection({ photoDetail }: Props) {
       />
       <Group gap={6} wrap="nowrap" align="flex-start">
         <InfoCircle size={16} style={{ flex: "none", marginTop: 2 }} color="var(--mantine-color-dimmed)" />
-        <Text size="sm">{t(whereKey(state, shownInTimeline, photoDetail.hidden))}</Text>
+        <Text size="sm">{t(whereKey(state, shownInTimeline, photoDetail))}</Text>
       </Group>
       <Text size="xs" c="dimmed">
         {t("lightbox.category.kept")}

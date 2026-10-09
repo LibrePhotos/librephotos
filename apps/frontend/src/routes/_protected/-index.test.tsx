@@ -150,7 +150,7 @@ describe("the main timeline filter", () => {
 
   it("says what the filter hides under the counter", async () => {
     await renderTimeline();
-    expect(stubs.listProps.additionalSubHeader.props.children).toBe("Filtered: No screenshots");
+    expect(stubs.listProps.additionalSubHeader.props.children).toBe("Filtered: no screenshots");
 
     stubs.user = { id: 1, default_timeline_filter: {} };
     await renderTimeline();

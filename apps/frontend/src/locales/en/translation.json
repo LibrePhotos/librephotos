@@ -633,7 +633,8 @@
         "filtered": "Hidden from your timeline by your filter.",
         "screenshotshown": "Shown in your timeline and in Screenshots.",
         "screenshothidden": "Shown in Screenshots. Hidden from your timeline by your filter.",
-        "hiddenphoto": "Hidden items are not shown in your timeline."
+        "hiddenphoto": "Hidden items are not shown in your timeline.",
+        "trashed": "Items in the trash are not shown in your timeline."
       },
       "kept": "Your choice is kept, even when the library is rescanned or Classify Media runs again.",
       "marked": {
@@ -1315,7 +1316,8 @@
       "screenshot_other": "{{count}} items marked as screenshot.",
       "document_one": "{{count}} item marked as document.",
       "document_other": "{{count}} items marked as document."
-    }
+    },
+    "setcategoryfailed": "The category could not be changed. Please try again."
   },
   "rules": {
     "1": "Local time from DATE_TIME_ORIGINAL Exif tag",
@@ -1533,7 +1535,7 @@
       "favorites": "favorites only",
       "noscreenshots": "no screenshots",
       "nodocuments": "no documents",
-      "everything": "Everything"
+      "everything": "everything"
     },
     "empty": {
       "title": "Nothing matches this filter",

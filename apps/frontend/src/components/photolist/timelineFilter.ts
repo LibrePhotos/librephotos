@@ -130,9 +130,11 @@ export function timelineFilterKey(filter: TimelineFilter | undefined): string {
   return keys.length ? keys.map(key => `${key}=${params[key]}`).join("&") : "none";
 }
 
-// A short description, e.g. "Photos, no screenshots", for the popover footer
-// and the header. "Everything" when nothing filters.
-export function describeTimelineFilter(filter: TimelineFilter, t: TFunction): string {
+// A short description, e.g. "photos, no screenshots", for the popover footer
+// ("Your default: ...") and the header ("Filtered: ..."). The fragments are
+// joined the way the language lists things, and left in the case their
+// translation gives them. "everything" when nothing filters.
+export function describeTimelineFilter(filter: TimelineFilter, t: TFunction, language = "en"): string {
   const parts: string[] = [];
   if (filter.media === "photos") parts.push(t("timelinefilter.summary.photos"));
   if (filter.media === "videos") parts.push(t("timelinefilter.summary.videos"));
@@ -140,8 +142,12 @@ export function describeTimelineFilter(filter: TimelineFilter, t: TFunction): st
   if (filter.hide_screenshots) parts.push(t("timelinefilter.summary.noscreenshots"));
   if (filter.hide_documents) parts.push(t("timelinefilter.summary.nodocuments"));
   if (parts.length === 0) return t("timelinefilter.summary.everything");
-  const text = parts.join(", ");
-  return text.charAt(0).toUpperCase() + text.slice(1);
+  try {
+    return new Intl.ListFormat(language, { style: "short", type: "unit" }).format(parts);
+  } catch {
+    // An unknown language tag
+    return new Intl.ListFormat("en", { style: "short", type: "unit" }).format(parts);
+  }
 }
 
 export type TimelineItem = {

@@ -17,6 +17,7 @@ import {
 import { TimelineFilterPopover } from "../../components/photolist/TimelineFilterPopover";
 import { useTimelineFilter } from "../../components/photolist/useTimelineFilter";
 import { useWorkerStatus } from "../../hooks/useWorkerStatus";
+import { i18nResolvedLanguage } from "../../i18n";
 import { getPhotosFlatFromGroupedByDate } from "../../util/util";
 
 export const Route = createFileRoute("/_protected/")({
@@ -127,7 +128,7 @@ function TimestampPhotos() {
     () =>
       filterActive ? (
         <Text ta="left" size="sm" c="blue">
-          {t("timelinefilter.filtered", { summary: describeTimelineFilter(filter, t) })}
+          {t("timelinefilter.filtered", { summary: describeTimelineFilter(filter, t, i18nResolvedLanguage()) })}
         </Text>
       ) : null,
     [filterActive, filter, t]

@@ -106,7 +106,8 @@ export function SelectionActions(props: Readonly<Props>) {
   const getImageHashes = () => selectedItems.filter(i => !i.isTemp).map(i => i.image_hash);
 
   // Helper to get excluded hashes for selectAll mode
-  const getExcludedHashes = () => selectedItems.map(i => i.image_hash);
+  // Placeholder tiles that never loaded have no hash.
+  const getExcludedHashes = () => selectedItems.map(i => i.image_hash).filter(Boolean);
 
   // Helper to get manual stacks from selected photos
   const getManualStacksFromSelection = (): Array<{ stackId: string; photoHash: string }> => {

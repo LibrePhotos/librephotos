@@ -46,7 +46,12 @@ beforeEach(() => {
   onSaveDefault.mockReset();
 });
 
-async function renderPopover(current: TimelineFilter, saved: TimelineFilter = SHOW_EVERYTHING, ready = true) {
+async function renderPopover(
+  current: TimelineFilter,
+  saved: TimelineFilter = SHOW_EVERYTHING,
+  ready = true,
+  saving = false
+) {
   const container = document.createElement("div");
   document.body.appendChild(container);
   const root = createRoot(container);
@@ -60,6 +65,7 @@ async function renderPopover(current: TimelineFilter, saved: TimelineFilter = SH
           onReset={onReset}
           onSaveDefault={onSaveDefault}
           ready={ready}
+          saving={saving}
         />
       </MantineProvider>
     );
@@ -128,7 +134,7 @@ describe("TimelineFilterPopover", () => {
     const saved = { ...SHOW_EVERYTHING, hide_screenshots: true };
     await renderPopover({ ...saved, hide_documents: true }, saved);
     await open();
-    expect(document.body.textContent).toContain("Your default: No screenshots");
+    expect(document.body.textContent).toContain("Your default: no screenshots");
 
     await act(async () => {
       buttonByText("Save as default").click();
@@ -163,5 +169,16 @@ describe("TimelineFilterPopover", () => {
     } finally {
       window.matchMedia = wide;
     }
+  });
+
+  it("freezes the controls while the default saves", async () => {
+    await renderPopover({ ...SHOW_EVERYTHING, hide_documents: true }, SHOW_EVERYTHING, true, true);
+    await open();
+    expect(switchLabelled("Screenshots").disabled).toBe(true);
+    expect(switchLabelled("Favorites").disabled).toBe(true);
+    const photos = Array.from(document.body.querySelectorAll<HTMLInputElement>("input[type=radio]")).find(
+      input => input.value === "photos"
+    );
+    expect(photos!.disabled).toBe(true);
   });
 });

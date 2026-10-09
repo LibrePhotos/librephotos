@@ -1,5 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { z } from "zod";
+import i18n from "../../../i18n";
 import { notification } from "../../../service/notifications";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { DateAlbumQueryKeys } from "../../albums/hooks/useFetchDateAlbumQuery";
@@ -73,5 +74,10 @@ export const useSetPhotosCategoryMutation = () =>
       queryClient.invalidateQueries({ queryKey: [...DateAlbumQueryKeys] });
       queryClient.invalidateQueries({ queryKey: [...CountStatsQueryKeys] });
       queryClient.invalidateQueries({ queryKey: [...PhotoDetailsQueryKeys] });
+    },
+    // At hook level, so it also reports an Undo fired after the lightbox
+    // closed (per-call callbacks of an unmounted component never run).
+    onError: () => {
+      notification.requestFailed(i18n.t("toasts.setcategorytitle"), i18n.t("toasts.setcategoryfailed"));
     },
   });

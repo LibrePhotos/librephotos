@@ -22,6 +22,7 @@ import {
 } from "@tabler/icons-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
+import { i18nResolvedLanguage } from "../../i18n";
 import {
   countActiveFilters,
   describeTimelineFilter,
@@ -68,6 +69,8 @@ export function TimelineFilterPopover({
   const compact = useMediaQuery(`(max-width: ${theme.breakpoints.sm})`);
   const active = countActiveFilters(current);
   const isDefault = sameTimelineFilter(current, saved);
+  // The controls are frozen while the default saves: the save clears the
+  // URL's overrides when it lands, which would drop a change made meanwhile.
   const set = (patch: Partial<TimelineFilter>) => onChange({ ...current, ...patch });
   const activeLabel = active > 0 ? t("timelinefilter.activecount", { count: active }) : undefined;
 
@@ -118,6 +121,7 @@ export function TimelineFilterPopover({
             aria-label={t("timelinefilter.mediatype")}
             value={current.media}
             onChange={value => set({ media: value as TimelineMedia })}
+            disabled={saving}
             data={[
               { value: "all", label: t("mediafilter.all") },
               { value: "photos", label: t("timelinefilter.media.photos") },
@@ -129,6 +133,7 @@ export function TimelineFilterPopover({
           <Switch
             checked={current.hide_screenshots}
             onChange={event => set({ hide_screenshots: event.currentTarget.checked })}
+            disabled={saving}
             label={
               <Group gap={6} wrap="nowrap">
                 <Screenshot size={16} color="var(--mantine-color-violet-6)" />
@@ -139,6 +144,7 @@ export function TimelineFilterPopover({
           <Switch
             checked={current.hide_documents}
             onChange={event => set({ hide_documents: event.currentTarget.checked })}
+            disabled={saving}
             label={
               <Group gap={6} wrap="nowrap">
                 <FileText size={16} color="var(--mantine-color-orange-7)" />
@@ -151,6 +157,7 @@ export function TimelineFilterPopover({
           <Switch
             checked={current.favorites}
             onChange={event => set({ favorites: event.currentTarget.checked })}
+            disabled={saving}
             label={
               <Group gap={6} wrap="nowrap">
                 <Star size={16} color="var(--mantine-color-yellow-6)" />
@@ -169,7 +176,7 @@ export function TimelineFilterPopover({
             </Group>
           ) : (
             <Text size="sm" c="dimmed">
-              {t("timelinefilter.yourdefault", { summary: describeTimelineFilter(saved, t) })}
+              {t("timelinefilter.yourdefault", { summary: describeTimelineFilter(saved, t, i18nResolvedLanguage()) })}
             </Text>
           )}
           <Group justify="space-between">

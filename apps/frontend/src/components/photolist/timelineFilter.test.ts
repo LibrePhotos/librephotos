@@ -122,10 +122,14 @@ describe("helpers", () => {
 
   test("describeTimelineFilter", async () => {
     await i18n.changeLanguage("en");
-    expect(describeTimelineFilter(SHOW_EVERYTHING, i18n.t)).toBe("Everything");
-    expect(describeTimelineFilter({ ...SHOW_EVERYTHING, media: "photos", hide_screenshots: true }, i18n.t)).toBe(
-      "Photos, no screenshots"
+    expect(describeTimelineFilter(SHOW_EVERYTHING, i18n.t)).toBe("everything");
+    const filter = { ...SHOW_EVERYTHING, media: "photos" as const, hide_screenshots: true, hide_documents: true };
+    // Joined the way the language lists things, casing left alone.
+    expect(describeTimelineFilter(filter, i18n.t, "en")).toBe("photos, no screenshots, no documents");
+    expect(describeTimelineFilter(filter, i18n.t, "de")).toBe(
+      new Intl.ListFormat("de", { style: "short", type: "unit" }).format(["photos", "no screenshots", "no documents"])
     );
+    expect(describeTimelineFilter(filter, i18n.t, "not a language")).toBe("photos, no screenshots, no documents");
   });
 
   test("timelineFilterShows mirrors the backend filter", () => {
