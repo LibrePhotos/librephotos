@@ -16,6 +16,7 @@ import { useFetchPhotoDetailsQuery, useFetchPublicPhotoDetailQuery } from "../..
 import { notification } from "../../service/notifications";
 import { ModalPersonEdit } from "../modals/ModalPersonEdit";
 import { AlbumsSection } from "./AlbumsSection";
+import { CategorySection } from "./CategorySection";
 import { Description } from "./Description";
 import { KeywordsSection } from "./KeywordsSection";
 import { LocationSection } from "./LocationSection";
@@ -261,6 +262,8 @@ export function Sidebar({
         <SidebarHeader closeSidepanel={closeSidepanel} />
         <TimestampItem photoDetail={photoDetail} isPublic={isPublic} />
         <VersionComponent photoDetail={photoDetail} isPublic={isPublic} />
+        {/* Owner-only: CategorySection renders nothing on someone else's photo. */}
+        {!isPublic && <CategorySection photoDetail={photoDetail} />}
         <StackSection photoDetail={photoDetail} onPhotoSelect={onPhotoSelect} />
         <LocationSection photoDetail={photoDetail} mapHeight={200} isPublic={isPublic} />
         <PeopleSection

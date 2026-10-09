@@ -6,6 +6,7 @@ import {
   IconEye as Eye,
   IconEyeOff as EyeOff,
   IconFileMinus as FileMinus,
+  IconFileText as FileText,
   IconGlobe as Globe,
   IconLayersLinked,
   IconLayersSubtract,
@@ -13,6 +14,7 @@ import {
   IconKey as Key,
   IconPhoto as Photo,
   IconPlus as Plus,
+  IconScreenshot as Screenshot,
   IconShare as Share,
   IconStar as Star,
   IconStarOff as StarOff,
@@ -29,8 +31,10 @@ import { useDownloadPhotosMutation } from "../../api_client/jobs";
 import {
   useMarkPhotosDeletedMutation,
   useSetFavoritePhotosMutation,
+  useSetPhotosCategoryMutation,
   useSetPhotosHiddenMutation,
   useSetPhotosPublicMutation,
+  type PhotoCategory,
 } from "../../api_client/photos/hooks";
 import type { BulkPhotoQuery, SelectionState } from "../../api_client/photos/types";
 import {
@@ -67,6 +71,7 @@ export function SelectionActions(props: Readonly<Props>) {
   const setPhotosPublic = useSetPhotosPublicMutation();
   const setFavoritePhotos = useSetFavoritePhotosMutation();
   const setPhotosDeleted = useMarkPhotosDeletedMutation();
+  const setPhotosCategory = useSetPhotosCategoryMutation();
   const downloadPhotoArchive = useDownloadPhotosMutation();
   const createManualStack = useCreateManualStackMutation();
   const mergeStacks = useMergeStacksMutation();
@@ -130,6 +135,22 @@ export function SelectionActions(props: Readonly<Props>) {
 
   // Check if any action is possible
   const hasSelection = selectAllMode || selectedItems.length > 0;
+
+  // Fix the media category of the selection; pinned as set by the user, so
+  // rescans and Classify Media keep it.
+  const markAs = (category: PhotoCategory) => {
+    if (selectAllMode) {
+      setPhotosCategory.mutate({
+        select_all: true,
+        query: selectAllQuery ?? {},
+        excluded_hashes: getExcludedHashes(),
+        category,
+      });
+    } else {
+      setPhotosCategory.mutate({ image_hashes: getImageHashes(), category });
+    }
+    resetSelection();
+  };
 
   // Download modal state
   const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
@@ -312,6 +333,20 @@ export function SelectionActions(props: Readonly<Props>) {
             }}
           >
             {`  ${t("selectionactions.unhide")}`}
+          </Menu.Item>
+
+          <Menu.Divider />
+
+          <Menu.Item leftSection={<Photo />} disabled={!hasSelection} onClick={() => markAs("photo")}>
+            {t("selectionactions.markasphoto")}
+          </Menu.Item>
+
+          <Menu.Item leftSection={<Screenshot />} disabled={!hasSelection} onClick={() => markAs("screenshot")}>
+            {t("selectionactions.markasscreenshot")}
+          </Menu.Item>
+
+          <Menu.Item leftSection={<FileText />} disabled={!hasSelection} onClick={() => markAs("document")}>
+            {t("selectionactions.markasdocument")}
           </Menu.Item>
 
           <Menu.Divider />
