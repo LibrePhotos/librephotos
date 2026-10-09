@@ -34,7 +34,7 @@ def turn_off_public_links_of_deleted_users(apps, schema_editor):
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("api", "0146_user_upload_directory"),
+        ("api", "0148_albumuser_locked"),
     ]
 
     operations = [

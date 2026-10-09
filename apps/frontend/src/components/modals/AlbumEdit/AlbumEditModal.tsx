@@ -7,7 +7,7 @@ import {
   useFetchUserAlbumsQuery,
 } from "../../../api_client/albums/hooks";
 import type { SelectAllAlbumFields } from "../../../api_client/albums/types";
-import type { BulkPhotoQuery } from "../../../api_client/photos/types";
+import type { BulkPhotoQuery, PigPhoto } from "../../../api_client/photos/types";
 import { fuzzyMatch } from "../../../util/util";
 import { AlbumListItem } from "../../album/AlbumListItem";
 import { Tile } from "../../Tile";
@@ -18,7 +18,7 @@ type Props = Readonly<{
   isOpen: boolean;
   onRequestClose: () => void;
   // In select-all mode this holds the EXCLUDED items, not the selection.
-  selectedImages: any[];
+  selectedImages: ReadonlyArray<Pick<PigPhoto, "id" | "image_hash" | "type">>;
   selectAllMode?: boolean;
   selectAllQuery?: BulkPhotoQuery;
   totalCount?: number;
@@ -110,20 +110,27 @@ export function AlbumEditModal(props: Props) {
           {albumsUserList
             .filter(el => fuzzyMatch(trimmedTitle, el.title))
             .map(item => (
-              <UnstyledButton
-                key={`ub-${item.id}`}
-                onClick={() => {
-                  addPhotoToUserAlbum.mutate({
-                    id: `${item.id}`,
-                    title: item.title,
-                    photos: selectAllMode ? [] : selectedImages.map(i => i.id),
-                    ...(selectAllMode ? selectAllFields : {}),
-                  });
-                  close();
-                }}
-              >
-                <AlbumListItem album={item} showUpdatedTime />
-              </UnstyledButton>
+              <div key={`ub-${item.id}`}>
+                <UnstyledButton
+                  disabled={item.locked}
+                  aria-label={item.locked ? t("useralbum.lockedCannotAdd", { title: item.title }) : undefined}
+                  onClick={() => {
+                    if (item.locked) return;
+                    addPhotoToUserAlbum.mutate({
+                      id: `${item.id}`,
+                      title: item.title,
+                      photos: selectAllMode ? [] : selectedImages.map(i => i.id),
+                      ...(selectAllMode ? selectAllFields : {}),
+                    });
+                    close();
+                  }}
+                >
+                  <Group gap="xs" wrap="nowrap">
+                    <AlbumListItem album={item} showUpdatedTime />
+                    {item.locked && <Badge color="gray">{t("useralbum.locked")}</Badge>}
+                  </Group>
+                </UnstyledButton>
+              </div>
             ))}
         </Stack>
       </Stack>

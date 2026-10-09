@@ -17,6 +17,7 @@ import {
 } from "../../../api_client/photos/hooks";
 import { Photoset } from "../../../api_client/photos/types";
 import { useFetchUserListQuery } from "../../../api_client/user/hooks";
+import type { ListUserList } from "../../../api_client/user/types";
 import classes from "../../../components/album/AlbumSection.module.css";
 import { AlbumShareButton } from "../../../components/sharing/AlbumShareButton";
 import { avatarSrc } from "../../../components/sharing/avatarSrc";
@@ -30,7 +31,7 @@ export const Route = createFileRoute("/_protected/sharing/")({
   component: SharingExplore,
 });
 
-function publicUsers(items: any[] = []) {
+function publicUsers(items: ListUserList = []) {
   return items.filter(el => el.public_sharing);
 }
 
@@ -180,7 +181,8 @@ function SharingExplore() {
         <div className={classes.section}>
           <div className={classes.header}>
             <Link
-              to="/sharing/withme/photos"
+              to="/sharing/withme/$tab"
+              params={{ tab: "photos" }}
               className={classes.headerLeft}
               style={{ textDecoration: "none", color: "inherit" }}
             >
@@ -222,7 +224,7 @@ function SharingExplore() {
             <div className={classes.scrollContainer}>
               {/* Show preview photos */}
               {previewPhotosWithMe.map(photo => (
-                <Link key={photo.id} to="/sharing/withme/photos" className={classes.albumCard}>
+                <Link key={photo.id} to="/sharing/withme/$tab" params={{ tab: "photos" }} className={classes.albumCard}>
                   <div className={classes.albumCover}>
                     <Tile
                       video={photo.type === "video"}
@@ -236,7 +238,12 @@ function SharingExplore() {
               ))}
               {/* Show preview albums */}
               {previewAlbumsWithMe.map(album => (
-                <Link key={album.id} to={`/album/user/${album.id}`} className={classes.albumCard}>
+                <Link
+                  key={album.id}
+                  to="/album/user/$id"
+                  params={{ id: album.id.toString() }}
+                  className={classes.albumCard}
+                >
                   <div className={classes.albumCover}>
                     {album.cover_photo ? (
                       <Tile
@@ -270,7 +277,8 @@ function SharingExplore() {
         <div className={classes.section}>
           <div className={classes.header}>
             <Link
-              to="/sharing/byme/photos"
+              to="/sharing/byme/$tab"
+              params={{ tab: "photos" }}
               className={classes.headerLeft}
               style={{ textDecoration: "none", color: "inherit" }}
             >
@@ -311,7 +319,7 @@ function SharingExplore() {
             <div className={classes.scrollContainer}>
               {/* Show preview photos */}
               {previewPhotosByMe.map(photo => (
-                <Link key={photo.id} to="/sharing/byme/photos" className={classes.albumCard}>
+                <Link key={photo.id} to="/sharing/byme/$tab" params={{ tab: "photos" }} className={classes.albumCard}>
                   <div className={classes.albumCover}>
                     <Tile
                       video={photo.type === "video"}
@@ -325,7 +333,12 @@ function SharingExplore() {
               ))}
               {/* Show preview albums */}
               {previewAlbumsByMe.map(album => (
-                <Link key={album.id} to={`/album/user/${album.id}`} className={classes.albumCard}>
+                <Link
+                  key={album.id}
+                  to="/album/user/$id"
+                  params={{ id: album.id.toString() }}
+                  className={classes.albumCard}
+                >
                   <div className={classes.albumCover}>
                     {album.cover_photo ? (
                       <Tile
@@ -407,7 +420,12 @@ function SharingExplore() {
                   key={album.id}
                   style={{ position: "relative", flexShrink: 0, width: 140, scrollSnapAlign: "start" }}
                 >
-                  <Link to={`/album/user/${album.id}`} className={classes.albumCard} style={{ display: "block" }}>
+                  <Link
+                    to="/album/user/$id"
+                    params={{ id: album.id.toString() }}
+                    className={classes.albumCard}
+                    style={{ display: "block" }}
+                  >
                     <div className={classes.albumCover}>
                       {album.cover_photo ? (
                         <Tile

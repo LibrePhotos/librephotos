@@ -6,6 +6,7 @@ import {
   IconEye as Eye,
   IconEyeOff as EyeOff,
   IconFileMinus as FileMinus,
+  IconFileText as FileText,
   IconGlobe as Globe,
   IconLayersLinked,
   IconLayersSubtract,
@@ -13,6 +14,7 @@ import {
   IconKey as Key,
   IconPhoto as Photo,
   IconPlus as Plus,
+  IconScreenshot as Screenshot,
   IconShare as Share,
   IconStar as Star,
   IconStarOff as StarOff,
@@ -23,16 +25,17 @@ import { useLocation } from "@tanstack/react-router";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useRemovePhotoFromUserAlbumMutation } from "../../api_client/albums/hooks";
-import { UserAlbum } from "../../api_client/albums/types";
 import { shareAddress } from "../../api_client/apiClient";
 import { useDownloadPhotosMutation } from "../../api_client/jobs";
 import {
   useMarkPhotosDeletedMutation,
   useSetFavoritePhotosMutation,
+  useSetPhotosCategoryMutation,
   useSetPhotosHiddenMutation,
   useSetPhotosPublicMutation,
+  type PhotoCategory,
 } from "../../api_client/photos/hooks";
-import type { BulkPhotoQuery, SelectionState } from "../../api_client/photos/types";
+import type { BulkPhotoQuery, PigPhoto, SelectionState } from "../../api_client/photos/types";
 import {
   useCreateManualStackMutation,
   useMergeStacksMutation,
@@ -43,7 +46,7 @@ import { copyToClipboard } from "../../util/util";
 import { ModalDownloadOptions } from "../modals/ModalDownloadOptions";
 
 type Props = {
-  selectedItems: UserAlbum[];
+  selectedItems: PigPhoto[];
   selectAllMode?: boolean;
   selectAllQuery?: BulkPhotoQuery;
   totalCount?: number;
@@ -56,6 +59,7 @@ type Props = {
   title: string;
   albumID?: number | string;
   ownerUsername?: string;
+  albumLocked?: boolean;
 };
 
 export function SelectionActions(props: Readonly<Props>) {
@@ -67,6 +71,7 @@ export function SelectionActions(props: Readonly<Props>) {
   const setPhotosPublic = useSetPhotosPublicMutation();
   const setFavoritePhotos = useSetFavoritePhotosMutation();
   const setPhotosDeleted = useMarkPhotosDeletedMutation();
+  const setPhotosCategory = useSetPhotosCategoryMutation();
   const downloadPhotoArchive = useDownloadPhotosMutation();
   const createManualStack = useCreateManualStackMutation();
   const mergeStacks = useMergeStacksMutation();
@@ -85,6 +90,7 @@ export function SelectionActions(props: Readonly<Props>) {
     albumID,
     onAddToAlbum,
     onAddTags,
+    albumLocked = false,
   } = props;
 
   // Helper to reset selection state after action
@@ -101,7 +107,8 @@ export function SelectionActions(props: Readonly<Props>) {
   const getImageHashes = () => selectedItems.filter(i => !i.isTemp).map(i => i.image_hash);
 
   // Helper to get excluded hashes for selectAll mode
-  const getExcludedHashes = () => selectedItems.map(i => i.image_hash);
+  // Placeholder tiles that never loaded have no hash.
+  const getExcludedHashes = () => selectedItems.map(i => i.image_hash).filter(Boolean);
 
   // Helper to get manual stacks from selected photos
   const getManualStacksFromSelection = (): Array<{ stackId: string; photoHash: string }> => {
@@ -130,6 +137,22 @@ export function SelectionActions(props: Readonly<Props>) {
 
   // Check if any action is possible
   const hasSelection = selectAllMode || selectedItems.length > 0;
+
+  // Fix the media category of the selection; pinned as set by the user, so
+  // rescans and Classify Media keep it.
+  const markAs = (category: PhotoCategory) => {
+    if (selectAllMode) {
+      setPhotosCategory.mutate({
+        select_all: true,
+        query: selectAllQuery ?? {},
+        excluded_hashes: getExcludedHashes(),
+        category,
+      });
+    } else {
+      setPhotosCategory.mutate({ image_hashes: getImageHashes(), category });
+    }
+    resetSelection();
+  };
 
   // Download modal state
   const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
@@ -312,6 +335,24 @@ export function SelectionActions(props: Readonly<Props>) {
             }}
           >
             {t("selectionactions.unhide")}
+          </Menu.Item>
+
+          <Menu.Divider />
+
+          <Menu.Item leftSection={<Photo size={14} />} disabled={!hasSelection} onClick={() => markAs("photo")}>
+            {t("selectionactions.markasphoto")}
+          </Menu.Item>
+
+          <Menu.Item
+            leftSection={<Screenshot size={14} />}
+            disabled={!hasSelection}
+            onClick={() => markAs("screenshot")}
+          >
+            {t("selectionactions.markasscreenshot")}
+          </Menu.Item>
+
+          <Menu.Item leftSection={<FileText size={14} />} disabled={!hasSelection} onClick={() => markAs("document")}>
+            {t("selectionactions.markasdocument")}
           </Menu.Item>
 
           <Menu.Divider />
@@ -533,10 +574,10 @@ export function SelectionActions(props: Readonly<Props>) {
 
                   <Menu.Item
                     leftSection={<FileMinus size={14} />}
-                    disabled={!hasSelection || selectAllMode}
+                    disabled={!hasSelection || selectAllMode || albumLocked}
                     onClick={() => {
                       // Remove from album doesn't support selectAll mode
-                      if (!selectAllMode) {
+                      if (!selectAllMode && !albumLocked) {
                         removePhotosFromAlbum.mutate({
                           id: `${albumID ?? ""}`,
                           title,

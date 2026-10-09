@@ -18,7 +18,7 @@ let root: ReturnType<typeof createRoot> | null = null;
 
 function renderPig(props: { textAlignment: "left" | "right"; headerSize: "large" | "normal" | "small" }) {
   act(() => {
-    root!.render(<Pig imageData={groups} groupByDate getUrl={(url: any) => `/media/${url}`} {...props} />);
+    root!.render(<Pig imageData={groups} groupByDate getUrl={(url: string) => `/media/${url}`} {...props} />);
   });
   return container!.querySelector(".pig-header")!;
 }
@@ -55,7 +55,9 @@ describe("react-pig date headers", () => {
     });
 
     act(() => {
-      root!.render(<Pig imageData={[sameDay("a"), sameDay("b")]} groupByDate getUrl={(url: any) => `/media/${url}`} />);
+      root!.render(
+        <Pig imageData={[sameDay("a"), sameDay("b")]} groupByDate getUrl={(url: string) => `/media/${url}`} />
+      );
     });
 
     expect(container.querySelectorAll(".pig-header")).toHaveLength(2);
@@ -78,7 +80,7 @@ describe("react-pig date headers", () => {
     });
     const render = (data: ReturnType<typeof sameDay>[]) =>
       act(() => {
-        root!.render(<Pig imageData={data} groupByDate getUrl={(url: any) => `/media/${url}`} />);
+        root!.render(<Pig imageData={data} groupByDate getUrl={(url: string) => `/media/${url}`} />);
       });
 
     render([sameDay("g1"), sameDay("g2")]);

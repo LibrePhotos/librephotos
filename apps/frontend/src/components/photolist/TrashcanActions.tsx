@@ -4,14 +4,14 @@ import { useLocation } from "@tanstack/react-router";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMarkPhotosDeletedMutation, usePurgeDeletedPhotosMutation } from "../../api_client/photos/hooks";
-import { BulkPhotoQuery } from "../../api_client/photos/types";
+import { BulkPhotoQuery, PigPhoto, SelectionState } from "../../api_client/photos/types";
 
 type Props = {
-  selectedItems: any[];
+  selectedItems: PigPhoto[];
   selectAllMode?: boolean;
   selectAllQuery?: BulkPhotoQuery;
   totalCount?: number;
-  updateSelectionState: (input: any) => void;
+  updateSelectionState: (input: Partial<SelectionState>) => void;
 };
 
 export function TrashcanActions(props: Readonly<Props>) {

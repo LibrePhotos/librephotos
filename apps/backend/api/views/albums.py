@@ -45,6 +45,7 @@ from api.serializers.photos import (
     # Kept under its old name for the views that import it from here.
     with_photo_summary_relations as _with_photo_summary_relations,
 )
+from api.timeline_filter import timeline_filter_q
 from api.util import folder_path_q
 from api.views.custom_api_view import ListViewSet
 from api.views.pagination import (
@@ -437,16 +438,35 @@ class AlbumUserListViewSet(ListViewSet):
         )
 
 
+# The filters AlbumDateViewSet and AlbumDateListViewSet both take; the media
+# filters resolve through api.timeline_filter.
+DATE_ALBUM_FILTER_PARAMETERS = [
+    OpenApiParameter("favorite", OpenApiTypes.BOOL),
+    OpenApiParameter("public", OpenApiTypes.BOOL),
+    OpenApiParameter("in_trashcan", OpenApiTypes.BOOL),
+    OpenApiParameter("hidden", OpenApiTypes.BOOL),
+    OpenApiParameter("video", OpenApiTypes.BOOL),
+    OpenApiParameter("photo", OpenApiTypes.BOOL),
+    OpenApiParameter("is_screenshot", OpenApiTypes.BOOL),
+    OpenApiParameter("is_document", OpenApiTypes.BOOL),
+    OpenApiParameter("media", OpenApiTypes.STR, enum=["all", "photos", "videos"]),
+    OpenApiParameter("hide_screenshots", OpenApiTypes.BOOL),
+    OpenApiParameter("hide_documents", OpenApiTypes.BOOL),
+    OpenApiParameter(
+        "apply_default",
+        OpenApiTypes.BOOL,
+        description="Apply the user's default_timeline_filter; the "
+        "other filter params override it key by key.",
+    ),
+    OpenApiParameter("username", OpenApiTypes.STR),
+    OpenApiParameter("person", OpenApiTypes.INT),
+    OpenApiParameter("last_modified", OpenApiTypes.DATE),
+]
+
+
 class AlbumDateViewSet(viewsets.ModelViewSet):
     serializer_class = AlbumDateSerializer
     pagination_class = RegularResultsSetPagination
-
-    MEDIA_FLAG_FILTERS = (
-        ("video", Q(video=True)),
-        ("photo", Q(video=False)),
-        ("is_screenshot", Q(is_screenshot=True)),
-        ("is_document", Q(is_document=True)),
-    )
 
     def _ownership_filters(self):
         params = self.request.query_params
@@ -455,8 +475,6 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
         filters = [Q(thumbnail__aspect_ratio__isnull=False)]
         if not user.is_anonymous and not params.get("public"):
             filters.append(Q(owner=user))
-        if params.get("favorite"):
-            filters.append(Q(rating__gte=user.favorite_min_rating))
         if params.get("public"):
             if params.get("username"):
                 filters.append(Q(owner__username=params.get("username")))
@@ -467,9 +485,9 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
         params = self.request.query_params
 
         filters = [Q(hidden=bool(params.get("hidden")))]
-        for param, condition in self.MEDIA_FLAG_FILTERS:
-            if params.get(param):
-                filters.append(condition)
+        # Media type, screenshots, documents and favorites: resolved exactly as
+        # AlbumDateListViewSet does, so a day's pages match its count there.
+        filters += timeline_filter_q(self.request.user, params)
         if params.get("in_trashcan"):
             filters.append(Q(in_trashcan=True) & Q(removed=False))
         else:
@@ -561,18 +579,7 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
         return [permission() for permission in permission_classes]
 
     @extend_schema(
-        parameters=[
-            OpenApiParameter("favorite", OpenApiTypes.BOOL),
-            OpenApiParameter("public", OpenApiTypes.BOOL),
-            OpenApiParameter("in_trashcan", OpenApiTypes.BOOL),
-            OpenApiParameter("hidden", OpenApiTypes.BOOL),
-            OpenApiParameter("video", OpenApiTypes.BOOL),
-            OpenApiParameter("is_screenshot", OpenApiTypes.BOOL),
-            OpenApiParameter("is_document", OpenApiTypes.BOOL),
-            OpenApiParameter("username", OpenApiTypes.STR),
-            OpenApiParameter("person", OpenApiTypes.INT),
-            OpenApiParameter("last_modified", OpenApiTypes.DATE),
-        ],
+        parameters=DATE_ALBUM_FILTER_PARAMETERS,
         description="Returns the actual images, for a given day in chunks of 100 images.",
     )
     def retrieve(self, *args, **kwargs):
@@ -641,27 +648,19 @@ class AlbumDateListViewSet(ListViewSet):
             filter.append(Q(owner=self.request.user))
             filter.append(Q(photos__owner=self.request.user))
 
-        if self.request.query_params.get("favorite"):
-            min_rating = self.request.user.favorite_min_rating
-            filter.append(Q(photos__rating__gte=min_rating))
-
         if self.request.query_params.get("public"):
             username = self.request.query_params.get("username")
             if username:
                 filter.append(Q(owner__username=username))
             filter.append(Q(photos__public=True))
 
-        if self.request.query_params.get("video"):
-            filter.append(Q(photos__video=True))
-
-        if self.request.query_params.get("photo"):
-            filter.append(Q(photos__video=False))
-
-        if self.request.query_params.get("is_screenshot"):
-            filter.append(Q(photos__is_screenshot=True))
-
-        if self.request.query_params.get("is_document"):
-            filter.append(Q(photos__is_document=True))
+        # Media type, screenshots, documents and favorites (see
+        # api.timeline_filter). Positive conditions on the photos join, applied
+        # in the one filter() call below, so a day holding a screenshot keeps
+        # its other photos and photo_count counts only the matching ones.
+        filter += timeline_filter_q(
+            self.request.user, self.request.query_params, prefix="photos__"
+        )
 
         if self.request.query_params.get("person"):
             filter.append(
@@ -699,18 +698,7 @@ class AlbumDateListViewSet(ListViewSet):
         return [permission() for permission in permission_classes]
 
     @extend_schema(
-        parameters=[
-            OpenApiParameter("favorite", OpenApiTypes.BOOL),
-            OpenApiParameter("public", OpenApiTypes.BOOL),
-            OpenApiParameter("in_trashcan", OpenApiTypes.BOOL),
-            OpenApiParameter("hidden", OpenApiTypes.BOOL),
-            OpenApiParameter("video", OpenApiTypes.BOOL),
-            OpenApiParameter("is_screenshot", OpenApiTypes.BOOL),
-            OpenApiParameter("is_document", OpenApiTypes.BOOL),
-            OpenApiParameter("username", OpenApiTypes.STR),
-            OpenApiParameter("person", OpenApiTypes.INT),
-            OpenApiParameter("last_modified", OpenApiTypes.DATE),
-        ],
+        parameters=DATE_ALBUM_FILTER_PARAMETERS,
         description="Gives you a list of days with the number of elements. This is not paginated and can be large.",
     )
     def list(self, *args, **kwargs):

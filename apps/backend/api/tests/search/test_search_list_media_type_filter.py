@@ -60,12 +60,14 @@ class SearchMediaTypeFilterTest(TestCase):
         self.assertIn(self.photo.image_hash, hashes)
         self.assertIn(self.video.image_hash, hashes)
 
-    def test_video_takes_precedence_over_photo(self):
-        # Mirrors build_photo_queryset: video wins when both are supplied.
+    def test_video_and_photo_together_match_nothing(self):
+        # Like the timeline and select-all (api.timeline_filter): asking for
+        # only videos and only stills leaves nothing. Video used to win here
+        # and in select-all while the timeline answered with nothing.
         response = self.client.get(SEARCH_URL, {"video": "true", "photo": "true"})
         self.assertEqual(response.status_code, 200)
         hashes = _hashes_in_grouped_response(response)
-        self.assertIn(self.video.image_hash, hashes)
+        self.assertNotIn(self.video.image_hash, hashes)
         self.assertNotIn(self.photo.image_hash, hashes)
 
     def test_undated_media_are_grouped_last_under_the_legacy_date(self):

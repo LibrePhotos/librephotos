@@ -29,6 +29,6 @@ export const ExistsRequest = z.object({
 export type ExistsRequest = z.infer<typeof ExistsRequest>;
 
 export const ExistsResponse = z.object({
-  exists: z.record(z.boolean()),
+  exists: z.record(z.string(), z.boolean()),
 });
 export type ExistsResponse = z.infer<typeof ExistsResponse>;

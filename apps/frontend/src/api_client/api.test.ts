@@ -311,6 +311,19 @@ describe("FetchClient response types", () => {
     vi.unstubAllGlobals();
   });
 
+  // Node 22's undici returns its own Blob (with text(), unknown to jsdom's
+  // FileReader); Node 24's builds the global one, which under jsdom is jsdom's
+  // Blob and has no text(). Browsers have both, so read it either way.
+  const readBlobText = (blob: Blob) =>
+    typeof blob.text === "function"
+      ? blob.text()
+      : new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = () => reject(reader.error);
+          reader.readAsText(blob);
+        });
+
   it("returns a Blob when asked, whatever the content type", async () => {
     stubFetch([
       [
@@ -324,7 +337,7 @@ describe("FetchClient response types", () => {
     // Not toBeInstanceOf(Blob): undici's Blob and jsdom's are different classes.
     expect(typeof blob).toBe("object");
     expect(blob.type).toBe("text/plain");
-    expect(await blob.text()).toBe("log line");
+    expect(await readBlobText(blob)).toBe("log line");
   });
 
   it("does not forward responseType to fetch", async () => {

@@ -10,34 +10,63 @@ import getScrollSpeed from "./utils/getScrollSpeed";
 import getUrl from "./utils/getUrl";
 import sortByDate from "./utils/sortByDate";
 
-// Define TypeScript types
-type ImageItem = {
+/** A tile's position and size, as computeLayout / computeLayoutGroups set it. */
+export type PigTileStyle = {
+  width?: number;
+  height?: number;
+  translateX?: number;
+  translateY?: number;
+};
+
+/**
+ * One tile. Callers pass their own item type (photos carry many more fields);
+ * Pig hands copies of those items, with `style` filled in, to its callbacks.
+ */
+export type ImageItem = {
   id: string | number;
   url?: string;
   aspectRatio?: number;
-  style?: {
-    width?: number;
-    translateX?: number;
-    translateY?: number;
-    height?: number;
-    [key: string]: any;
-  };
+  style?: PigTileStyle;
   isTemp?: boolean;
   dominantColor?: string;
   type?: string;
-  [key: string]: any;
+  /** When it was taken; Tile puts it in its label. */
+  date?: string | null;
 };
 
-type GroupedImageItem = {
-  date: string;
-  items: ImageItem[];
-  numberOfItems: number;
+/** A date group of tiles, for `groupByDate`. */
+export type GroupedImageItem<T extends ImageItem = ImageItem> = {
+  /** The date-album cursor; only the paginated date lists have one. */
+  id?: string;
+  date: string | null;
+  items: T[];
+  numberOfItems?: number;
   updated?: boolean;
   groupTranslateY?: number;
   height?: number;
-  location?: string;
-  [key: string]: any;
+  location?: string | null;
+  /** Pig ignores these; the scroll scrubber reads them back from the handle. */
+  year?: number | null;
+  month?: number | null;
 };
+
+/**
+ * A group as `updateGroups` reports it to a paginated date list: only its
+ * tiles on screen, plus the group's cursor id, which names the page to load.
+ */
+export type PigVisibleGroup<T extends ImageItem = ImageItem> = GroupedImageItem<T> & { id: string };
+
+/** An entry of Pig's data: a tile, or (with `groupByDate`) a date group. */
+export type PigEntry<T extends ImageItem = ImageItem> = T | GroupedImageItem<T>;
+
+/** A tile as Pig lays it out: the caller's item plus its `style` (unset until the first layout). */
+export type PigTile<T extends ImageItem = ImageItem> = T & { style?: PigTileStyle };
+
+/** A group after computeLayoutGroups: positioned, and its tiles have their `style`. */
+type LaidOutGroup<T extends ImageItem> = GroupedImageItem<T> & { groupTranslateY: number; height: number };
+
+/** A tile overlay (favourite star, stack badge, video length); Tile renders it with the tile's item. */
+type PigOverlay<T extends ImageItem> = React.ComponentType<{ item: T }>;
 
 type PigSettings = {
   gridGap: number;
@@ -53,11 +82,35 @@ type PigSettings = {
   headerSize?: "large" | "normal" | "small";
 };
 
-type PigProps = {
-  imageData: ImageItem[] | GroupedImageItem[];
+/** The props Pig renders Tile with; Tile is plain JS, so they are spelled out here. */
+type TileProps<T extends ImageItem> = {
+  item: T;
+  useLqip: boolean;
+  windowHeight: number;
+  containerWidth: number;
+  containerOffsetTop: number | null;
+  getUrl: (url: string, size: number) => string;
+  handleClick: (event: React.MouseEvent, item: T) => void;
+  handleSelection: (item: T) => void;
+  selectable: boolean;
+  selected: boolean;
+  activeTileUrl: string | null;
+  settings: PigSettings;
+  scrollSpeed: string;
+  toprightoverlay: PigOverlay<T> | null;
+  bottomleftoverlay: PigOverlay<T> | null;
+  bottomrightoverlay: PigOverlay<T> | null;
+};
+
+// Tile.jsx infers no props of its own; this gives Pig's use of it a checked shape.
+const TypedTile: <T extends ImageItem>(props: TileProps<T>) => React.ReactNode = Tile;
+
+export type PigProps<T extends ImageItem> = {
+  imageData: T[] | GroupedImageItem<T>[];
   useLqip?: boolean;
   gridGap?: number;
-  getUrl?: ((item: ImageItem, size: number) => string) | null;
+  /** Builds an image or video URL from a tile's `url`; Tile calls it for loaded tiles only. */
+  getUrl?: ((url: string, size: number) => string) | null;
   primaryImageBufferHeight?: number;
   secondaryImageBufferHeight?: number;
   sortByDate?: boolean;
@@ -65,49 +118,49 @@ type PigProps = {
   groupGapSm?: number;
   groupGapLg?: number;
   breakpoint?: number;
-  sortFunc?: ((a: any, b: any) => number) | null;
+  sortFunc?: ((a: PigEntry<T>, b: PigEntry<T>) => number) | null;
   expandedSize?: number;
   thumbnailSize?: number;
   bgColor?: string;
-  handleClick?: ((event: React.MouseEvent, item: ImageItem) => void) | null;
+  handleClick?: ((event: React.MouseEvent, item: T) => void) | null;
   selectable?: boolean;
-  handleSelection?: ((item: ImageItem) => void) | null;
+  handleSelection?: ((item: T) => void) | null;
   numberOfItems?: number | null;
   scaleOfImages?: number;
-  updateGroups?: ((groups: GroupedImageItem[]) => void) | null;
-  updateItems?: ((items: ImageItem[]) => void) | null;
-  selectedItems?: ImageItem[] | null;
-  toprightoverlay?: React.FC<any> | null;
-  bottomleftoverlay?: React.FC<any> | null;
-  bottomrightoverlay?: React.FC<any> | null;
+  updateGroups?: ((groups: GroupedImageItem<T>[]) => void) | null;
+  updateItems?: ((items: T[]) => void) | null;
+  selectedItems?: T[] | null;
+  toprightoverlay?: PigOverlay<T> | null;
+  bottomleftoverlay?: PigOverlay<T> | null;
+  bottomrightoverlay?: PigOverlay<T> | null;
   className?: string;
   textAlignment?: "left" | "right";
   headerSize?: "large" | "normal" | "small";
 };
 
 // Define types for layout computation functions
-type ComputeLayoutParams = {
-  imageData: ImageItem[];
+type ComputeLayoutParams<T extends ImageItem> = {
+  imageData: T[];
   settings: PigSettings;
   wrapperWidth: number;
   scaleOfImages: number;
 };
 
-type ComputeLayoutGroupsParams = {
-  imageData: GroupedImageItem[];
+type ComputeLayoutGroupsParams<T extends ImageItem> = {
+  imageData: GroupedImageItem<T>[];
   settings: PigSettings;
   wrapperWidth: number;
   scaleOfImages: number;
 };
 
-type LayoutResult = {
-  imageData: ImageItem[] | GroupedImageItem[];
+type LayoutResult<T extends ImageItem> = {
+  imageData: PigEntry<T>[];
   newTotalHeight: number;
 };
 
-// Define the exported ref handle type
-export type PigHandle = {
-  imageData: any[];
+/** The ref handle: the computed layout (tiles or groups of tiles) and its height. */
+export type PigHandle<T extends ImageItem = ImageItem> = {
+  imageData: PigEntry<PigTile<T>>[];
   totalHeight: number;
 };
 
@@ -127,7 +180,7 @@ export type PigHandle = {
 //   return tempPhotos;
 // }
 
-function Pig(
+function Pig<T extends ImageItem>(
   {
     imageData,
     useLqip = true,
@@ -158,14 +211,14 @@ function Pig(
     className = "",
     textAlignment = "right",
     headerSize = "large",
-  }: PigProps,
-  ref
+  }: PigProps<T>,
+  ref: React.ForwardedRef<PigHandle<T>>
 ) {
   if (!imageData) throw new Error("imageData is missing");
 
   // State
-  const [renderedItems, setRenderedItems] = useState<(ImageItem | GroupedImageItem)[]>([]);
-  const [selectedItems, setSelectedItems] = useState<ImageItem[]>([]);
+  const [renderedItems, setRenderedItems] = useState<(T | LaidOutGroup<T>)[]>([]);
+  const [selectedItems, setSelectedItems] = useState<T[]>([]);
   const [scrollSpeed, setScrollSpeed] = useState<string>("slow");
   const [activeTileUrl, setActiveTileUrl] = useState<string | null>(null);
 
@@ -174,7 +227,7 @@ function Pig(
   const containerWidthRef = useRef<number>(0);
 
   // Define memoized callbacks first before using them in refs
-  const defaultHandleSelection = useCallback((item: ImageItem): void => {
+  const defaultHandleSelection = useCallback((item: T): void => {
     setSelectedItems(prev => {
       if (prev.includes(item)) {
         return prev.filter(value => value !== item);
@@ -183,7 +236,7 @@ function Pig(
     });
   }, []);
 
-  const defaultHandleClick = useCallback((event: React.MouseEvent, item: ImageItem): void => {
+  const defaultHandleClick = useCallback((event: React.MouseEvent, item: T): void => {
     // if an image is already the width of the container, don't expand it on click
     if (item.style?.width && item.style.width >= containerWidthRef.current) {
       setActiveTileUrl(null);
@@ -194,17 +247,15 @@ function Pig(
   }, []);
 
   // Instance variables (use refs for mutable values that don't trigger re-renders)
-  const getUrlFunc = useRef<(item: ImageItem, size: number) => string>(propGetUrl || getUrl);
-  const handleClickFunc = useRef<(event: React.MouseEvent, item: ImageItem) => void>(
-    propHandleClick || defaultHandleClick
-  );
-  const handleSelectionFunc = useRef<(item: ImageItem) => void>(propHandleSelection || defaultHandleSelection);
+  const getUrlFunc = useRef<(url: string, size: number) => string>(propGetUrl || getUrl);
+  const handleClickFunc = useRef<(event: React.MouseEvent, item: T) => void>(propHandleClick || defaultHandleClick);
+  const handleSelectionFunc = useRef<(item: T) => void>(propHandleSelection || defaultHandleSelection);
   const selectableRef = useRef<boolean>(selectable);
-  const imageDataRef = useRef<(ImageItem | GroupedImageItem)[]>(imageData);
+  const imageDataRef = useRef<PigEntry<T>[]>(imageData);
   const numberOfItemsRef = useRef<number>(numberOfItems || imageData.length);
   const scaleOfImagesRef = useRef<number>(scaleOfImages);
-  const updateGroupsFunc = useRef<(groups: GroupedImageItem[]) => void>(propUpdateGroups || (() => {}));
-  const updateItemsFunc = useRef<(items: ImageItem[]) => void>(propUpdateItems || (() => {}));
+  const updateGroupsFunc = useRef<(groups: GroupedImageItem<T>[]) => void>(propUpdateGroups || (() => {}));
+  const updateItemsFunc = useRef<(items: T[]) => void>(propUpdateItems || (() => {}));
 
   // Other instance variables
   const scrollThrottleMs = 300;
@@ -225,7 +276,7 @@ function Pig(
   // Sort image data if needed
   useEffect(() => {
     if (sortFunc) imageDataRef.current.sort(sortFunc);
-    else if (propSortByDate) imageDataRef.current = sortByDate(imageDataRef.current as any);
+    else if (propSortByDate) imageDataRef.current = sortByDate(imageDataRef.current);
 
     // Check grouping ability
     if (groupByDate && imageDataRef.current.length > 0 && !("items" in imageDataRef.current[0])) {
@@ -268,35 +319,37 @@ function Pig(
     ]
   );
 
-  const getUpdatedImageLayout = useCallback((): (ImageItem | GroupedImageItem)[] => {
+  const getUpdatedImageLayout = useCallback((): PigEntry<T>[] => {
     if (!containerRef.current) return imageDataRef.current;
     const wrapperWidth = containerRef.current.offsetWidth;
 
     if (settings.groupByDate) {
-      const result = computeLayoutGroups({
+      const params: ComputeLayoutGroupsParams<T> = {
         wrapperWidth,
-        imageData: imageDataRef.current as GroupedImageItem[],
+        imageData: imageDataRef.current as GroupedImageItem<T>[],
         settings,
         scaleOfImages: scaleOfImagesRef.current,
-      } as ComputeLayoutGroupsParams) as LayoutResult;
+      };
+      const result: LayoutResult<T> = computeLayoutGroups(params);
 
       totalHeightRef.current = result.newTotalHeight;
       return result.imageData;
     }
 
-    const result = computeLayout({
+    const params: ComputeLayoutParams<T> = {
       wrapperWidth,
-      imageData: imageDataRef.current as ImageItem[],
+      imageData: imageDataRef.current as T[],
       settings,
       scaleOfImages: scaleOfImagesRef.current,
-    } as ComputeLayoutParams) as LayoutResult;
+    };
+    const result: LayoutResult<T> = computeLayout(params);
 
     totalHeightRef.current = result.newTotalHeight;
     return result.imageData;
   }, [settings]);
 
   const setRenderedItemsFunc = useCallback(
-    (data: (ImageItem | GroupedImageItem)[]) => {
+    (data: PigEntry<T>[]) => {
       // Set the container height, only need to do this once.
       if (containerRef.current && !containerRef.current.style.height) {
         containerRef.current.style.height = `${totalHeightRef.current}px`;
@@ -411,20 +464,15 @@ function Pig(
 
   // Render methods
   const renderTile = useCallback(
-    (item: ImageItem) => {
-      // Cast the Tile component as any to avoid TypeScript errors
-      // since we can't modify the actual Tile component
-      const TileComponent = Tile as any;
-
+    (item: T) => {
       return (
-        <TileComponent
+        <TypedTile
           key={`tile-${item.id?.toString() || item.url || Math.random().toString(36)}`}
           useLqip={useLqip}
           windowHeight={windowHeightRef.current}
           containerWidth={containerWidthRef.current}
           containerOffsetTop={containerOffsetTopRef.current}
           item={item}
-          gridGap={settings.gridGap}
           getUrl={getUrlFunc.current}
           handleClick={handleClickFunc.current}
           handleSelection={handleSelectionFunc.current}
@@ -436,7 +484,6 @@ function Pig(
           }
           activeTileUrl={activeTileUrl}
           settings={settings}
-          thumbnailSize={thumbnailSize}
           scrollSpeed={scrollSpeed}
           toprightoverlay={toprightoverlay}
           bottomleftoverlay={bottomleftoverlay}
@@ -446,7 +493,6 @@ function Pig(
     },
     [
       useLqip,
-      thumbnailSize,
       toprightoverlay,
       bottomleftoverlay,
       bottomrightoverlay,
@@ -459,20 +505,17 @@ function Pig(
   );
 
   const renderGroup = useCallback(
-    (group: GroupedImageItem) => {
-      // Cast the GroupHeader component as any to avoid TypeScript errors
-      const GroupHeaderComponent = GroupHeader as any;
-
+    (group: LaidOutGroup<T>) => {
       return (
         <React.Fragment key={group.date}>
-          <GroupHeaderComponent
+          <GroupHeader
             settings={settings}
             group={group}
             activeTileUrl={activeTileUrl}
             textAlignment={textAlignment}
             headerSize={headerSize}
           />
-          {group.items.map((item: ImageItem, index: number) => (
+          {group.items.map((item, index) => (
             <React.Fragment key={item.id?.toString() || item.url || `group-item-${index}`}>
               {renderTile(item)}
             </React.Fragment>
@@ -483,7 +526,7 @@ function Pig(
     [settings, activeTileUrl, renderTile, textAlignment, headerSize]
   );
 
-  const renderFlat = useCallback((item: ImageItem) => renderTile(item), [renderTile]);
+  const renderFlat = useCallback((item: T) => renderTile(item), [renderTile]);
 
   // Render
   // Key by id where there is one (photos, date-album groups): the suffix below
@@ -495,14 +538,13 @@ function Pig(
   return (
     <div className={`${styles.output} ${className}`} ref={containerRef}>
       {renderedItems.map((item, index) => {
-        const baseKey =
-          item.id?.toString() || ("date" in item && item.date ? item.date : "") || item.url || `item-${index}`;
+        const baseKey = item.id?.toString() || item.date || ("items" in item ? undefined : item.url) || `item-${index}`;
         const repeat = seenKeys.get(baseKey) ?? 0;
         seenKeys.set(baseKey, repeat + 1);
         const key = repeat ? `${baseKey}#${repeat}` : baseKey;
         return (
           <React.Fragment key={key}>
-            {settings.groupByDate ? renderGroup(item as GroupedImageItem) : renderFlat(item as ImageItem)}
+            {settings.groupByDate ? renderGroup(item as LaidOutGroup<T>) : renderFlat(item as T)}
           </React.Fragment>
         );
       })}
@@ -510,6 +552,12 @@ function Pig(
   );
 }
 
-const memoizedPig = React.memo(forwardRef(Pig));
+// forwardRef and memo drop Pig's type parameter (they take a fixed props
+// type); restore it so a caller's callbacks get its own item type back.
+type PigComponent = <T extends ImageItem>(
+  props: PigProps<T> & React.RefAttributes<PigHandle<T>>
+) => React.ReactElement | null;
+
+const memoizedPig = React.memo(forwardRef(Pig)) as PigComponent;
 
 export default memoizedPig;

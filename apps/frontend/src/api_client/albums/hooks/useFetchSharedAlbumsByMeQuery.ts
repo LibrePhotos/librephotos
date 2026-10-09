@@ -6,7 +6,7 @@ import { UserAlbumList, UserAlbumListResponse } from "../types";
 
 type UserAlbumsGroupedByUserId = {
   user_id: number;
-  albums: UserAlbumList[];
+  albums: UserAlbumList;
 };
 
 export const SharedAlbumsByMeQueryKeys = ["sharedAlbumsByMe"] as const;
@@ -30,10 +30,10 @@ export const useFetchSharedAlbumsByMeQuery = () =>
         });
       });
       // Group by recipient ID
-      const grouped = toPairs(groupBy(albumsByRecipient, "recipientId")).map(el => ({
+      const grouped: UserAlbumsGroupedByUserId[] = toPairs(groupBy(albumsByRecipient, "recipientId")).map(el => ({
         user_id: parseInt(el[0], 10),
         albums: el[1].map(item => item.album),
-      })) as unknown as UserAlbumsGroupedByUserId[];
+      }));
       return grouped;
     },
   });

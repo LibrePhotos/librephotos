@@ -250,8 +250,10 @@
     "enablellm": "Tell the captioning model what LibrePhotos knows about a photo",
     "addperson": "Use the names of recognised people in captions",
     "addlocation": "Mention where the photo was taken in captions",
+    "all_rules_in_use": "All rules are already in use",
+    "no_rules_match": "No rules match your search",
+    "add_rule_named": "Add rule: {{name}}",
     "missingphotosconfirm": "This deletes all missing photos and their metadata from the database. It cannot be undone.",
-    "danish": "Danish",
     "transcodevideodescription": "Usually not needed: videos your browser cannot play are converted automatically. Turning this on converts every video, at no more than 720p.",
     "slideshowseconds_one": "{{count}} second",
     "slideshowseconds_other": "{{count}} seconds",
@@ -266,9 +268,7 @@
     "togglecolorscheme": "Toggle color scheme",
     "sceneconfidencedescription": "How sure the tagging model has to be before it adds a tag. Lower values add more tags, and more wrong ones.",
     "scandirectoryreadonly": "Change it in the user list of the Admin Area.",
-    "all_rules_in_use": "All rules are already in use",
-    "no_rules_match": "No rules match your search",
-    "add_rule_named": "Add rule: {{name}}"
+    "danish": "Danish"
   },
   "modalalbum": {
     "title": "Add to Album",
@@ -583,6 +583,9 @@
     "rotateccw": "Rotate 90° Counter-Clockwise",
     "tag": "Tags",
     "tagdescription": "Add tags to the selected photos (shortcut: t)",
+    "markasphoto": "Mark as photo",
+    "markasscreenshot": "Mark as screenshot",
+    "markasdocument": "Mark as document",
     "addto": "Add to album or tags"
   },
   "lightbox": {
@@ -629,6 +632,7 @@
       "noMentionResults": "No results",
       "tagsSaveFailed": "The tags could not be saved. Please try again.",
       "save": "Save",
+      "ownerOnlyMoreDetails": "Further details are only shown to the owner of this photo.",
       "no_location": "No location yet",
       "update_location": "Update location",
       "pick_location": "Pick location",
@@ -639,8 +643,7 @@
       "ownerOnlyDetails": "Details are only shown to the owner of this photo.",
       "editCaption": "Edit caption",
       "noCaption": "No caption",
-      "generateCaption": "Generate caption",
-      "ownerOnlyMoreDetails": "Further details are only shown to the owner of this photo."
+      "generateCaption": "Generate caption"
     },
     "addface": {
       "tooltip": "Add a face the scan missed",
@@ -717,6 +720,29 @@
       "copied": "Copied",
       "copyheading": "LibrePhotos - this video could not be played",
       "formatnoconversion": "The file arrived intact, so this is a format your browser cannot decode, and it cannot be converted for playback here. Try opening it in a different browser."
+    },
+    "category": {
+      "title": "Category",
+      "photo": "Photo",
+      "screenshot": "Screenshot",
+      "document": "Document",
+      "detected": "Detected automatically",
+      "setbyyou": "Set by you",
+      "where": {
+        "shown": "Shown in your timeline.",
+        "filtered": "Hidden from your timeline by your filter.",
+        "screenshotshown": "Shown in your timeline and in Screenshots.",
+        "screenshothidden": "Shown in Screenshots. Hidden from your timeline by your filter.",
+        "hiddenphoto": "Hidden items are not shown in your timeline.",
+        "trashed": "Items in the trash are not shown in your timeline."
+      },
+      "kept": "Your choice is kept, even when the library is rescanned or Classify Media runs again.",
+      "marked": {
+        "photo": "Marked as photo",
+        "screenshot": "Marked as screenshot",
+        "document": "Marked as document"
+      },
+      "undo": "Undo"
     }
   },
   "exif": {
@@ -863,6 +889,13 @@
       "burstinterval": "Burst interval (ms)",
       "clearpending": "Clear existing pending stacks"
     },
+    "typelabel": {
+      "raw_jpeg": "RAW + JPEG Pair",
+      "live_photo": "Live Photo",
+      "burst": "Burst Sequence",
+      "bracket": "Exposure Bracket",
+      "manual": "Manual Stack"
+    },
     "subtitle": "Group burst sequences, exposure brackets and related photos",
     "unstack": "Unstack Photos",
     "detectOptions": "Detection Options",
@@ -877,13 +910,6 @@
       "video": "Video",
       "metadata": "Metadata",
       "file": "File"
-    },
-    "typelabel": {
-      "burst": "Burst Sequence",
-      "bracket": "Exposure Bracket",
-      "manual": "Manual Stack",
-      "raw_jpeg": "RAW + JPEG Pair",
-      "live_photo": "Live Photo"
     }
   },
   "photos": {
@@ -1294,9 +1320,15 @@
     "albumplaceholder": "Album title",
     "sharedWith": "Shared with:",
     "albumIsPublic": "This album is public",
-    "ownedby": "Owned by {{name}}",
+    "albumActions": "Album actions",
+    "lockAlbum": "Lock album",
+    "unlockAlbum": "Unlock album",
+    "locked": "Locked",
+    "albumIsLocked": "This album is locked",
+    "lockedCannotAdd": "{{title}} is locked. Unlock it to add photos.",
     "numberof_one": "{{count}} album",
-    "numberof_other": "{{count}} albums"
+    "numberof_other": "{{count}} albums",
+    "ownedby": "Owned by {{name}}"
   },
   "personedit": {
     "labelfaces": "Label faces",
@@ -1337,10 +1369,10 @@
     "clusteredfacescounter_other": "{{count}} Clustered faces",
     "unknownfacescounter_one": "{{count}} Unknown Face",
     "unknownfacescounter_other": "{{count}} Unknown Faces",
+    "showphoto": "Show photo",
     "confidentsuffix": "% confident",
     "numberoffaces_one": "{{count}} Face",
-    "numberoffaces_other": "{{count}} Faces",
-    "showphoto": "Show photo"
+    "numberoffaces_other": "{{count}} Faces"
   },
   "Scan Photos": "Scan Photos",
   "Generate Event Albums": "Generate Event Albums",
@@ -1529,6 +1561,18 @@
     "jobcancelledtitle": "Job Cancelled",
     "taggedphotos": "Added {{tags}} to {{count}} photo(s)",
     "taggedphotostitle": "Photos tagged",
+    "setcategorytitle": "Set category",
+    "setcategory": {
+      "photo_one": "{{count}} item marked as photo.",
+      "photo_other": "{{count}} items marked as photo.",
+      "screenshot_one": "{{count}} item marked as screenshot.",
+      "screenshot_other": "{{count}} items marked as screenshot.",
+      "document_one": "{{count}} item marked as document.",
+      "document_other": "{{count}} items marked as document."
+    },
+    "setcategoryfailed": "The category could not be changed. Please try again.",
+    "deleteallautoalbumsfailedtitle": "Could not delete the event albums",
+    "deleteallautoalbumsfailed": "The event albums could not be deleted.",
     "addfacefailedtitle": "Face not added",
     "addfacefailed": "The face could not be added. Please try again.",
     "addfaceoverlap": "There is already a face here. Label that face instead of drawing a new box.",
@@ -1541,9 +1585,7 @@
     "servererrortitle": "Server error",
     "servererror": "Something went wrong on the server ({{endpoint}}). Please report this issue on GitHub.",
     "parseerrortitle": "Unexpected server response",
-    "reportissue": "{{detail}}. Please report this issue on GitHub.",
-    "deleteallautoalbumsfailedtitle": "Could not delete the event albums",
-    "deleteallautoalbumsfailed": "The event albums could not be deleted."
+    "reportissue": "{{detail}}. Please report this issue on GitHub."
   },
   "rules": {
     "1": "Local time from DATE_TIME_ORIGINAL Exif tag",
@@ -1716,10 +1758,6 @@
     "goToFaces": "Go to Faces",
     "generateEvents": "Generate Events",
     "scanPhotos": "Scan Photos",
-    "search": {
-      "title": "No matching photos",
-      "description": "Nothing matched \"{{query}}\". Try other words, a place, a person or a date."
-    },
     "useralbums": {
       "title": "No albums yet",
       "description": "Select photos anywhere in your library, open the + menu and choose Album to create one.",
@@ -1756,6 +1794,10 @@
         "inferred": "Show inferred faces",
         "unknown": "Show unknown faces"
       }
+    },
+    "search": {
+      "title": "No matching photos",
+      "description": "Nothing matched \"{{query}}\". Try other words, a place, a person or a date."
     }
   },
   "skip": "Skip",
@@ -1793,44 +1835,41 @@
     },
     "empty_file": "The file is empty"
   },
-  "photopage": {
-    "noid": "No photo ID provided",
-    "loading": "Loading photo details…",
-    "notfound": "This photo could not be found, or you do not have access to it.",
-    "unknownfilename": "Unknown filename"
+  "timelinefilter": {
+    "button": "Filter",
+    "title": "Filter timeline",
+    "activecount_one": "{{count}} filter active",
+    "activecount_other": "{{count}} filters active",
+    "mediatype": "Media type",
+    "media": {
+      "photos": "Photos",
+      "videos": "Videos"
+    },
+    "hide": "Hide from timeline",
+    "screenshots": "Screenshots",
+    "documents": "Documents",
+    "showonly": "Show only",
+    "favorites": "Favorites",
+    "isdefault": "This is your default view",
+    "yourdefault": "Your default: {{summary}}",
+    "reset": "Reset to default",
+    "save": "Save as default",
+    "filtered": "Filtered: {{summary}}",
+    "summary": {
+      "photos": "photos",
+      "videos": "videos",
+      "favorites": "favorites only",
+      "noscreenshots": "no screenshots",
+      "nodocuments": "no documents",
+      "everything": "everything"
+    },
+    "empty": {
+      "title": "Nothing matches this filter",
+      "description": "Change the filter to see more of your library.",
+      "action": "Show everything"
+    },
+    "savefailed": "Your default view could not be saved. Please try again."
   },
-  "moreactions": "More actions",
-  "folder": "Folder",
-  "folders_count_one": "{{count}} folder with photos",
-  "folders_count_other": "{{count}} folders with photos",
-  "more_available": "More available",
-  "try_different_search": "Try adjusting your search terms",
-  "close": "Close",
-  "Add Geolocation": "Add Geolocation",
-  "Generate Tags": "Generate Tags",
-  "Generate Face Embeddings": "Generate Face Embeddings",
-  "Scan Missing Photos": "Scan Missing Photos",
-  "Detect Duplicate Photos": "Detect Duplicate Photos",
-  "Repair File Variants": "Repair File Variants",
-  "Classify Media Categories": "Classify Media Categories",
-  "Extract Text (OCR)": "Extract Text (OCR)",
-  "Probe Videos": "Probe Videos",
-  "routefallback": {
-    "notfoundtitle": "Page not found",
-    "notfounddescription": "The link may be outdated, or the page has moved.",
-    "errortitle": "Something went wrong",
-    "errordescription": "This page could not be shown. Reloading usually fixes it.",
-    "reload": "Reload"
-  },
-  "download": {
-    "title": "Download Photos",
-    "selectedcount_one": "You have selected {{count}} photo to download.",
-    "selectedcount_other": "You have selected {{count}} photos to download.",
-    "includestacked": "Include all photos from stacks",
-    "includestackeddesc": "When enabled, all photos from burst sequences, brackets, and manual stacks will be included in the download.",
-    "start": "Download"
-  },
-  "viewfull": "View full size",
   "numberofphotos_one": "{{count}} Photo",
   "numberofphotos_other": "{{count}} Photos",
   "locationpicker": {
@@ -1849,5 +1888,43 @@
   },
   "map": {
     "display_disabled": "Map display is turned off in site settings."
+  },
+  "viewfull": "View full size",
+  "moreactions": "More actions",
+  "folder": "Folder",
+  "folders_count_one": "{{count}} folder with photos",
+  "folders_count_other": "{{count}} folders with photos",
+  "more_available": "More available",
+  "try_different_search": "Try adjusting your search terms",
+  "close": "Close",
+  "photopage": {
+    "noid": "No photo ID provided",
+    "loading": "Loading photo details…",
+    "notfound": "This photo could not be found, or you do not have access to it.",
+    "unknownfilename": "Unknown filename"
+  },
+  "Add Geolocation": "Add Geolocation",
+  "Generate Tags": "Generate Tags",
+  "Generate Face Embeddings": "Generate Face Embeddings",
+  "Scan Missing Photos": "Scan Missing Photos",
+  "Detect Duplicate Photos": "Detect Duplicate Photos",
+  "Repair File Variants": "Repair File Variants",
+  "Classify Media Categories": "Classify Media Categories",
+  "Extract Text (OCR)": "Extract Text (OCR)",
+  "Probe Videos": "Probe Videos",
+  "download": {
+    "title": "Download Photos",
+    "selectedcount_one": "You have selected {{count}} photo to download.",
+    "selectedcount_other": "You have selected {{count}} photos to download.",
+    "includestacked": "Include all photos from stacks",
+    "includestackeddesc": "When enabled, all photos from burst sequences, brackets, and manual stacks will be included in the download.",
+    "start": "Download"
+  },
+  "routefallback": {
+    "notfoundtitle": "Page not found",
+    "notfounddescription": "The link may be outdated, or the page has moved.",
+    "errortitle": "Something went wrong",
+    "errordescription": "This page could not be shown. Reloading usually fixes it.",
+    "reload": "Reload"
   }
 }

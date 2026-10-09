@@ -62,6 +62,7 @@ function AlbumUserGallery() {
       isAlbumPubliclyShared={album?.public ?? false}
       albumID={albumID}
       ownerUsername={album?.owner.username}
+      albumLocked={album?.locked ?? false}
       // No photo filter for an album that is not there
       mediaType={notFound ? undefined : mediaType}
       selectable

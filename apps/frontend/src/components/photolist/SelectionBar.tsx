@@ -2,14 +2,14 @@ import { ActionIcon, Button, Group, Popover, Text } from "@mantine/core";
 import { IconCheck as Check, IconChecks as Checks } from "@tabler/icons-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { BulkPhotoQuery, SelectionState } from "../../api_client/photos/types";
+import type { BulkPhotoQuery, PigPhoto, SelectionState } from "../../api_client/photos/types";
 
 type Props = {
   selectMode: boolean;
   selectAllMode: boolean;
   updateSelectionState: (state: Partial<SelectionState>) => void;
-  selectedItems: any[];
-  idx2hash: any[];
+  selectedItems: PigPhoto[];
+  idx2hash: PigPhoto[];
   photosetQuery?: BulkPhotoQuery;
   totalCount: number;
 };

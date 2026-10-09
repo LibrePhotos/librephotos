@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { useFetchDateAlbumQuery, useFetchDateAlbumsQuery } from "../../api_client/albums/hooks";
 import { Photoset, PigPhoto } from "../../api_client/photos/types";
 import { EmptyStateConfig, PhotoGroup, PhotoListView } from "../../components/photolist/PhotoListView";
+import type { PigVisibleGroup } from "../../components/react-pig";
 import { getPhotosFlatFromGroupedByDate } from "../../util/util";
 
 export const Route = createFileRoute("/_protected/deleted")({
@@ -27,11 +28,11 @@ function DeletedPhotos() {
     { skip: !group.id }
   );
 
-  const getAlbums = (visibleGroups: any) => {
-    visibleGroups.reverse().forEach((photoGroup: any) => {
+  const getAlbums = (visibleGroups: PigVisibleGroup<PigPhoto>[]) => {
+    visibleGroups.reverse().forEach(photoGroup => {
       const visibleImages = photoGroup.items;
-      if (visibleImages.filter((i: any) => i.isTemp).length > 0) {
-        const firstTempObject = visibleImages.filter((i: any) => i.isTemp)[0];
+      if (visibleImages.filter(i => i.isTemp).length > 0) {
+        const firstTempObject = visibleImages.filter(i => i.isTemp)[0];
         const page = Math.ceil((parseInt(firstTempObject.id, 10) + 1) / 100);
 
         setGroup({ id: photoGroup.id, page });

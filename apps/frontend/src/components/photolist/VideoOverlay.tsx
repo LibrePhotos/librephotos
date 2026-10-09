@@ -8,7 +8,7 @@ import { TileBadge } from "./TileBadge";
 type Props = Readonly<{
   item: {
     type: Media;
-    video_length: string;
+    video_length?: string;
     is_hdr?: boolean;
   };
 }>;
@@ -28,10 +28,11 @@ function HdrBadge() {
   );
 }
 export function VideoOverlay({ item }: Props) {
-  function getDuration({ video_length }) {
+  // video_length is the duration in seconds, as a string.
+  function getDuration(videoLength: string) {
     return (
       // No top margin: it pushed the text below the play icon's centre line.
-      <span style={{ marginRight: 5 }}>{Duration.fromObject({ seconds: video_length }).toFormat("mm:ss")}</span>
+      <span style={{ marginRight: 5 }}>{Duration.fromObject({ seconds: Number(videoLength) }).toFormat("mm:ss")}</span>
     );
   }
 
@@ -43,7 +44,7 @@ export function VideoOverlay({ item }: Props) {
     <div style={{ display: "flex", alignItems: "center", color: "white", padding: "0 5px 5px 0" }}>
       {item.type === Media.VIDEO && item.is_hdr && <HdrBadge />}
       {item.type === Media.MOTION_PHOTO ? <Run /> : <PlayerPlay />}
-      {item.video_length && item.video_length !== "None" && getDuration(item)}
+      {item.video_length && item.video_length !== "None" && getDuration(item.video_length)}
     </div>
   );
 }

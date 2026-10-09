@@ -3,7 +3,7 @@ import { IconBookmark as Bookmark } from "@tabler/icons-react";
 import { createFileRoute } from "@tanstack/react-router";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useFetchUserAlbumsQuery } from "../../../api_client/albums/hooks";
+import { useFetchUserAlbumsQuery, useToggleUserAlbumLockedMutation } from "../../../api_client/albums/hooks";
 import { UserAlbumCard } from "../../../components/album/UserAlbumCard";
 import { DeleteUserAlbumModal, RenameUserAlbumModal } from "../../../components/album/UserAlbumModals";
 import { EmptyState } from "../../../components/common/EmptyState";
@@ -28,6 +28,7 @@ function AlbumUser() {
   const { data: albums, isFetching, isLoading } = useFetchUserAlbumsQuery();
   const { entriesPerRow, entrySquareSize, numberOfRows, gridHeight } = useAlbumListGridConfig(albums ?? []);
   const hasAlbums = (albums?.length ?? 0) > 0;
+  const toggleUserAlbumLocked = useToggleUserAlbumLockedMutation();
 
   const openDeleteDialog = (id: string, title: string) => {
     showDeleteDialog();
@@ -68,6 +69,7 @@ function AlbumUser() {
             onRename={openRenameDialog}
             onShare={openShareDialog}
             onDelete={openDeleteDialog}
+            onToggleLocked={(id, locked) => toggleUserAlbumLocked.mutate({ id, locked })}
           />
         </div>
       </div>

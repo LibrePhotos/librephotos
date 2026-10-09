@@ -10,17 +10,18 @@ type PigSettings = {
   headerSize?: "large" | "normal" | "small";
 };
 
+// A laid-out date group (Pig's GroupedImageItem after computeLayoutGroups).
 type Group = {
   groupTranslateY: number;
   height: number;
-  location?: string;
-  date: string;
+  location?: string | null;
+  date: string | null;
 };
 
 type GroupHeaderProps = {
   settings: PigSettings;
   group: Group;
-  activeTileUrl?: string;
+  activeTileUrl?: string | null;
   textAlignment?: "left" | "right";
   headerSize?: "large" | "normal" | "small";
 };
@@ -49,7 +50,10 @@ export default function GroupHeader({
       >
         {textAlignment === "right" ? (
           <>
-            <span className={`${styles.location} pig-header_location ${styles[headerSize]}`} title={group.location}>
+            <span
+              className={`${styles.location} pig-header_location ${styles[headerSize]}`}
+              title={group.location ?? undefined}
+            >
               {group.location}
             </span>
             <span className={`${styles.date} pig-header_date ${styles[headerSize]}`}>{group.date}</span>
@@ -57,7 +61,10 @@ export default function GroupHeader({
         ) : (
           <>
             <span className={`${styles.date} pig-header_date ${styles[headerSize]}`}>{group.date}</span>
-            <span className={`${styles.location} pig-header_location ${styles[headerSize]}`} title={group.location}>
+            <span
+              className={`${styles.location} pig-header_location ${styles[headerSize]}`}
+              title={group.location ?? undefined}
+            >
               {group.location}
             </span>
           </>

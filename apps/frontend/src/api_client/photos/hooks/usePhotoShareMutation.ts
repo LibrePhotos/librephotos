@@ -75,7 +75,7 @@ export const SharedPhoto = z.object({
   camera: z.string().nullable().optional(),
   lens: z.string().nullable().optional(),
   search_captions: z.string().optional(),
-  captions_json: z.record(z.unknown()).optional(),
+  captions_json: z.record(z.string(), z.unknown()).optional(),
   people: z.array(z.object({ name: z.string() })).optional(),
 });
 export type SharedPhoto = z.infer<typeof SharedPhoto>;

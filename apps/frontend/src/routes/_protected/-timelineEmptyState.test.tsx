@@ -21,6 +21,8 @@ const stubs = vi.hoisted(() => ({
   // the routes' "flatten the groups" effect.
   emptyTimeline: { data: [], isLoading: false, refetch: () => {} },
   emptyRecent: { data: { results: [], date: null }, status: "success" },
+  // The timeline's filter reads the URL; a bare "/" is the saved default.
+  search: {},
 }));
 
 vi.mock("@tanstack/react-router", () => ({
@@ -28,6 +30,8 @@ vi.mock("@tanstack/react-router", () => ({
     stubs.components[path] = options?.component;
     return {};
   },
+  useNavigate: () => () => {},
+  useSearch: () => stubs.search,
 }));
 vi.mock("../../api_client/albums/hooks", () => ({
   useFetchDateAlbumsQuery: () => stubs.emptyTimeline,
@@ -40,9 +44,14 @@ vi.mock("../../api_client/auth/hooks", () => ({ useAccessToken: () => ({ data: s
 vi.mock("../../api_client/user/hooks/useCurrentUserSelfDetailsQuery", () => ({
   useCurrentUserSelfDetailsQuery: () => ({ data: stubs.user }),
 }));
+// The timeline's filter waits for the user's saved default (none here).
+vi.mock("../../api_client/user/hooks", () => ({
+  useCurrentUserSelfDetailsQuery: () => ({ data: stubs.user }),
+  useSaveDefaultTimelineFilterMutation: () => ({ mutate: () => {}, isPending: false }),
+}));
 vi.mock("../../hooks/useWorkerStatus", () => ({ useWorkerStatus: () => ({ workerRunningJob: null }) }));
 vi.mock("../../components/photolist/PhotoListView", () => ({
-  PhotoListView: ({ emptyStateConfig }: any) => {
+  PhotoListView: ({ emptyStateConfig }: { emptyStateConfig?: { description: string; actionLink?: string } }) => {
     stubs.emptyStateConfig = emptyStateConfig;
     return null;
   },

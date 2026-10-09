@@ -392,6 +392,29 @@ def _siglip_labels_for_photo(photo: Photo) -> set[str]:
     return {title.lower() for title in titles if title}
 
 
+def detect_media_category(photo: Photo) -> tuple[bool, bool | None]:
+    """``(is_screenshot, is_document)`` as the detectors see ``photo`` now.
+
+    Both are DB-only heuristics: :func:`api.screenshot_detection.classify` and,
+    for a photo with an OCR row, :func:`classify_document` over its OCR text
+    and SigLIP labels. ``is_document`` is ``None`` without an OCR row: there is
+    no evidence either way. No service call, no file read.
+    """
+    from api.screenshot_detection import classify
+
+    return classify(photo), detect_document(photo)
+
+
+def detect_document(photo: Photo) -> bool | None:
+    """The document detector's verdict, or ``None`` without an OCR row."""
+    ocr = _get_photo_ocr(photo)
+    if ocr is None:
+        return None
+    return classify_document(
+        ocr.text, ocr.text_area_fraction, _siglip_labels_for_photo(photo)
+    )
+
+
 def _derive_is_document(
     photo: Photo, ocr_text: str | None, text_area_fraction: float | None
 ) -> bool:
@@ -550,21 +573,17 @@ def classify_media(user, job_id: UUID):
             failed = False
             error = None
             try:
+                # Screenshot first and queued before the document lookup, so a
+                # failing OCR/tag lookup still keeps the screenshot update.
                 new_screenshot = classify(photo)
                 if new_screenshot != photo.is_screenshot:
                     photo.is_screenshot = new_screenshot
                     pending_screenshot.append(photo)
 
-                ocr = _get_photo_ocr(photo)
-                if ocr is not None:
-                    new_document = classify_document(
-                        ocr.text,
-                        ocr.text_area_fraction,
-                        _siglip_labels_for_photo(photo),
-                    )
-                    if new_document != photo.is_document:
-                        photo.is_document = new_document
-                        pending_document.append(photo)
+                new_document = detect_document(photo)
+                if new_document is not None and new_document != photo.is_document:
+                    photo.is_document = new_document
+                    pending_document.append(photo)
 
                 if len(pending_screenshot) + len(pending_document) >= BATCH_SIZE:
                     flush()

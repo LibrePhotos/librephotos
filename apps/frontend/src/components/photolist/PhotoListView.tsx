@@ -38,7 +38,7 @@ import { AlbumCoverPickerModal } from "../modals/AlbumCoverPickerModal";
 import { AlbumEditModal } from "../modals/AlbumEdit/AlbumEditModal";
 import { ModalTagEdit } from "../modals/ModalTagEdit";
 import Pig from "../react-pig";
-import type { PigHandle } from "../react-pig";
+import type { GroupedImageItem, PigHandle, PigVisibleGroup } from "../react-pig";
 import { ScrollScrubber } from "../scrollscrubber/ScrollScrubber";
 import { ScrollerType } from "../scrollscrubber/ScrollScrubberTypes.zod";
 import type { ScrollerData } from "../scrollscrubber/ScrollScrubberTypes.zod";
@@ -64,10 +64,17 @@ const scrollToY = (y: number) => {
   window.scrollTo(0, y);
 };
 
-// Layout data Pig attaches to each date group (see react-pig computeLayoutGroups).
-type PigGroupLayout = DatePhotosGroup & { groupTranslateY: number };
-
 type HeaderSize = "large" | "normal" | "small";
+
+// Date views pass the groups as `photoset` and the flat list as `idx2hash`;
+// flat views pass the one list as both.
+const isDateGroupList = (photoset: DatePhotosGroup[] | PigPhoto[]): photoset is DatePhotosGroup[] =>
+  photoset.every(entry => "items" in entry);
+
+// Only the paginated date lists' groups carry the cursor id that names the
+// page still to load; the others have nothing to fetch.
+const hasCursor = (group: GroupedImageItem<PigPhoto>): group is PigVisibleGroup<PigPhoto> =>
+  typeof group.id === "string";
 
 export type PhotoGroup = {
   id: string;
@@ -91,22 +98,25 @@ export type EmptyStateConfig = {
 type Props = Readonly<{
   title: string;
   loading: boolean;
-  icon: any;
-  photoset: any[];
-  idx2hash: any[];
+  icon: React.ReactElement;
+  photoset: DatePhotosGroup[] | PigPhoto[];
+  idx2hash: PigPhoto[];
   selectable: boolean;
   isPublic?: boolean;
   isAlbumPubliclyShared?: boolean;
   publicAlbumSlug?: string;
   numberOfItems?: number;
-  updateGroups?: any;
-  updateItems?: any;
-  date?: any;
-  dayHeaderPrefix?: any;
-  header?: any;
-  additionalSubHeader?: any;
+  // Pig reports the groups (date views) or tiles (flat views) on screen, so
+  // the caller can load the pages their placeholders stand for.
+  updateGroups?: (visibleGroups: PigVisibleGroup<PigPhoto>[]) => void;
+  updateItems?: (visibleItems: PigPhoto[]) => void;
+  date?: string;
+  dayHeaderPrefix?: string;
+  header?: React.ReactNode;
+  additionalSubHeader?: React.ReactNode;
   albumID?: string;
   ownerUsername?: string;
+  albumLocked?: boolean;
   emptyStateConfig?: EmptyStateConfig;
   // Query params for server-side select all
   photosetQuery?: BulkPhotoQuery;
@@ -114,6 +124,10 @@ type Props = Readonly<{
   // the current selection (from the route's `?media` param) — passing it keeps
   // the memoized grid re-rendering when the filter changes.
   mediaType?: MediaType;
+  // Extra controls for the header's right-hand toolbar, before the display
+  // options (the main timeline's Filter button). Shown even when the view is
+  // empty, so a filter that matches nothing can always be changed back.
+  headerActions?: React.ReactNode;
 }>;
 
 // SelectionState is now imported from api_client/photos/types
@@ -121,7 +135,7 @@ type Props = Readonly<{
 function PhotoListViewComponent({
   title = "",
   loading = true,
-  icon = null,
+  icon,
   photoset = [],
   idx2hash = [],
   selectable = false,
@@ -129,21 +143,23 @@ function PhotoListViewComponent({
   isAlbumPubliclyShared = false,
   publicAlbumSlug,
   numberOfItems = 0,
-  updateGroups = null,
-  updateItems = null,
-  date = null,
-  dayHeaderPrefix = null,
-  header = null,
-  additionalSubHeader = null,
+  updateGroups,
+  updateItems,
+  date,
+  dayHeaderPrefix,
+  header,
+  additionalSubHeader,
   albumID,
   ownerUsername,
+  albumLocked = false,
   emptyStateConfig,
   photosetQuery,
   mediaType,
+  headerActions,
 }: Props) {
   const { t } = useTranslation();
   const { height } = useViewportSize();
-  const pigRef = useRef<PigHandle>(null);
+  const pigRef = useRef<PigHandle<PigPhoto>>(null);
   const [modalAddToAlbumOpen, setModalAddToAlbumOpen] = useState(false);
   const [modalTagOpen, setModalTagOpen] = useState(false);
   const [modalSharePhotosOpen, setModalSharePhotosOpen] = useState(false);
@@ -223,16 +239,19 @@ function PhotoListViewComponent({
           // tiles have no <img> to match on (the old index fallback then
           // pointed at an unrelated tile).
           const currentId = idx2hash[currentImageIndexRef.current]?.id;
-          const layout = (pigRef.current?.imageData ?? []).flatMap((entry: any) => entry.items ?? [entry]);
-          const tile = layout.find((entry: any) => entry.id === currentId);
+          const layout = pigRef.current?.imageData ?? [];
+          const tile = layout
+            .flatMap(entry => ("items" in entry ? entry.items : [entry]))
+            .find(entry => entry.id === currentId);
+          const { translateY, height: tileHeight } = tile?.style ?? {};
           const grid = gridRef.current;
-          if (!tile?.style || !grid) return;
+          if (translateY === undefined || tileHeight === undefined || !grid) return;
           // Pig is the grid wrapper's only child, inside its padding.
           const pig = grid.firstElementChild ?? grid;
-          const tileTop = pig.getBoundingClientRect().top + window.scrollY + tile.style.translateY;
+          const tileTop = pig.getBoundingClientRect().top + window.scrollY + translateY;
           // Centre the tile, so it is not left under the sticky header.
           window.scrollTo({
-            top: Math.max(0, tileTop - (window.innerHeight - tile.style.height) / 2),
+            top: Math.max(0, tileTop - (window.innerHeight - tileHeight) / 2),
             behavior: "smooth",
           });
         }, 100);
@@ -248,7 +267,10 @@ function PhotoListViewComponent({
   const isDateView = photoset !== idx2hash;
   // Pig re-lays-out the whole grid whenever `imageData` changes identity, so
   // only re-format the date groups when the photoset itself changes.
-  const photos = useMemo(() => (isDateView ? formatDateForPhotoGroups(photoset) : photoset), [isDateView, photoset]);
+  const photos = useMemo(
+    () => (isDateView && isDateGroupList(photoset) ? formatDateForPhotoGroups(photoset) : photoset),
+    [isDateView, photoset]
+  );
 
   const theme = useMantineTheme();
   const colorScheme = useComputedColorScheme("light");
@@ -317,11 +339,15 @@ function PhotoListViewComponent({
   }, [updateGroups, updateItems]);
 
   const throttledUpdateGroups = useMemo(
-    () => throttle((visibleGroups: unknown) => updateGroupsRef.current?.(visibleGroups), 500),
+    () =>
+      throttle(
+        (visibleGroups: GroupedImageItem<PigPhoto>[]) => updateGroupsRef.current?.(visibleGroups.filter(hasCursor)),
+        500
+      ),
     []
   );
   const throttledUpdateItems = useMemo(
-    () => throttle((visibleItems: unknown) => updateItemsRef.current?.(visibleItems), 500),
+    () => throttle((visibleItems: PigPhoto[]) => updateItemsRef.current?.(visibleItems), 500),
     []
   );
   useEffect(
@@ -332,8 +358,8 @@ function PhotoListViewComponent({
     [throttledUpdateGroups, throttledUpdateItems]
   );
 
-  const getUrl = useCallback((item: any, pxHeight: number) => {
-    const url = typeof item === "string" ? item : item.url;
+  // Pig passes a tile's `url`: the image hash, then `;`-separated extras.
+  const getUrl = useCallback((url: string, pxHeight: number) => {
     if (pxHeight < 250) {
       return `${serverAddress}/media/square_thumbnails_small/${url.split(";")[0]}`;
     }
@@ -367,9 +393,12 @@ function PhotoListViewComponent({
     ],
   ]);
 
-  // Clear any active selection when the media-type filter changes: the set of
-  // photos on screen changes, so a carried-over selection (and its "N selected"
-  // count or server-side select-all query) would be stale and misleading.
+  // Clear any active selection when the media-type or timeline filter changes:
+  // the set of photos on screen changes, so a carried-over selection (and its
+  // "N selected" count or server-side select-all query) would be stale and
+  // misleading. Callers pass photosetQuery as a fresh literal, so compare it
+  // by value.
+  const photosetQueryKey = JSON.stringify(photosetQuery ?? null);
   useEffect(() => {
     const cleared: SelectionState = {
       selectedItems: [],
@@ -380,10 +409,10 @@ function PhotoListViewComponent({
     };
     selectionStateRef.current = cleared;
     setSelectionState(cleared);
-  }, [mediaType]);
+  }, [mediaType, photosetQueryKey]);
 
   const handleSelection = useCallback(
-    (item: any) => {
+    (item: PigPhoto) => {
       const currentState = selectionStateRef.current;
 
       // In selectAllMode, selectedItems tracks EXCLUDED items
@@ -425,7 +454,7 @@ function PhotoListViewComponent({
   // placeholders are skipped. In selectAllMode selectedItems holds the
   // exclusions, so the range is excluded, as a plain click excludes one item.
   const handleSelections = useCallback(
-    (items: any[]) => {
+    (items: PigPhoto[]) => {
       const current = selectionStateRef.current;
       const added = items.filter(
         item => !item.isTemp && !current.selectedItems.some(selectedItem => selectedItem.id === item.id)
@@ -446,12 +475,15 @@ function PhotoListViewComponent({
   const getDataForScrollIndicator = (): ScrollerData[] => {
     const scrollPositions: ScrollerData[] = [];
     if (pigRef.current) {
-      (pigRef.current.imageData as PigGroupLayout[]).forEach(group => {
+      pigRef.current.imageData.forEach(entry => {
+        // A flat list's tiles have no group position, so (as before) they give
+        // the scrubber NaN, which places no usable marker.
+        const group = "items" in entry ? entry : undefined;
         scrollPositions.push({
-          label: group.date as string,
-          targetY: group.groupTranslateY,
-          year: group.year,
-          month: group.month,
+          label: entry.date ?? "",
+          targetY: group?.groupTranslateY ?? Number.NaN,
+          year: group?.year,
+          month: group?.month,
         });
       });
     }
@@ -469,7 +501,7 @@ function PhotoListViewComponent({
   }, [isLoading, pigRef.current?.totalHeight]);
 
   const handleClick = useCallback(
-    (event: React.MouseEvent<Element, MouseEvent>, item: any) => {
+    (event: React.MouseEvent<Element, MouseEvent>, item: PigPhoto) => {
       // if an image is selectable, then handle shift click
       if (selectable && event.shiftKey) {
         const lastSelectedElement = selectionStateRef.current.selectedItems.at(-1);
@@ -498,7 +530,8 @@ function PhotoListViewComponent({
 
       // If Ctrl/Cmd key is pressed, navigate to single photo view
       if (("ctrlKey" in event && event.ctrlKey) || ("metaKey" in event && event.metaKey)) {
-        navigate(`/photo/${item.id}`);
+        // TanStack Router takes options, not a path: a bare string navigated nowhere.
+        navigate({ to: "/photo/$id", params: { id: item.id } });
         return;
       }
 
@@ -524,6 +557,13 @@ function PhotoListViewComponent({
   // Use live prop length so UI reflects data availability immediately on load
   const getNumPhotos = () => (idx2hash ? idx2hash.length : 0);
   const isUserAlbum = location.pathname.startsWith("/album/user/");
+  // headerActions stay mounted while the view reloads: changing the timeline
+  // filter refetches, and an open filter popover must not close under the
+  // pointer. The other controls wait for the photos.
+  const showHeaderToolbar =
+    !isPublic &&
+    !isFirstTimeSetup &&
+    (!!headerActions || (!isLoading && (getNumPhotos() > 0 || mediaType !== undefined)));
 
   return (
     <RemoveScroll enabled={lightboxOpen}>
@@ -559,13 +599,14 @@ function PhotoListViewComponent({
                 countsVideos={mediaType === "videos" || location.pathname.startsWith("/videos")}
               />
             </Box>
-            {!isLoading && !isPublic && (getNumPhotos() > 0 || mediaType !== undefined) && (
+            {showHeaderToolbar && (
               <Box ml="auto">
                 <Group gap="xs" wrap="nowrap">
                   {/* The media-type filter stays visible even when the current
                       filter yields no photos, so the user is never trapped. */}
-                  {mediaType !== undefined && <MediaTypeSelector />}
-                  {getNumPhotos() > 0 && isAlbumPubliclyShared && isUserAlbum && (
+                  {!isLoading && mediaType !== undefined && <MediaTypeSelector />}
+                  {headerActions}
+                  {!isLoading && getNumPhotos() > 0 && isAlbumPubliclyShared && isUserAlbum && (
                     <Tooltip label={t("sidemenu.sharing")} position="bottom">
                       <ActionIcon
                         variant="subtle"
@@ -582,7 +623,7 @@ function PhotoListViewComponent({
                       </ActionIcon>
                     </Tooltip>
                   )}
-                  {getNumPhotos() > 0 && (
+                  {!isLoading && getNumPhotos() > 0 && (
                     <Menu
                       shadow="md"
                       width={240}
@@ -705,6 +746,7 @@ function PhotoListViewComponent({
                     totalCount={selectionState.totalCount || numberOfItems || idx2hash.length}
                     albumID={albumID}
                     ownerUsername={ownerUsername}
+                    albumLocked={albumLocked}
                     title={title}
                     setAlbumCover={(actionType, photoId) => {
                       // If photoId is provided (from modal), use it directly
@@ -772,7 +814,7 @@ function PhotoListViewComponent({
           type={ScrollerType.enum.date}
         >
           <Box p={10} ref={gridRef}>
-            <Pig
+            <Pig<PigPhoto>
               ref={pigRef}
               className="scrollscrubbertarget"
               imageData={photos}

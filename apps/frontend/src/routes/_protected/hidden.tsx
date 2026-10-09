@@ -7,6 +7,7 @@ import { Photoset, PigPhoto } from "../../api_client/photos/types";
 import { mediaTypeToBulkQuery, validateMediaSearch } from "../../components/photolist/mediaTypeFilter";
 import { EmptyStateConfig, PhotoGroup, PhotoListView } from "../../components/photolist/PhotoListView";
 import { useMediaTypeFilter } from "../../components/photolist/useMediaTypeFilter";
+import type { PigVisibleGroup } from "../../components/react-pig";
 import { getPhotosFlatFromGroupedByDate } from "../../util/util";
 
 export const Route = createFileRoute("/_protected/hidden")({
@@ -36,11 +37,11 @@ function HiddenPhotos() {
     { skip: !group.id }
   );
 
-  const getAlbums = (visibleGroups: any) => {
-    visibleGroups.reverse().forEach((photoGroup: any) => {
+  const getAlbums = (visibleGroups: PigVisibleGroup<PigPhoto>[]) => {
+    visibleGroups.reverse().forEach(photoGroup => {
       const visibleImages = photoGroup.items;
-      if (visibleImages.filter((i: any) => i.isTemp).length > 0) {
-        const firstTempObject = visibleImages.filter((i: any) => i.isTemp)[0];
+      if (visibleImages.filter(i => i.isTemp).length > 0) {
+        const firstTempObject = visibleImages.filter(i => i.isTemp)[0];
         const page = Math.ceil((parseInt(firstTempObject.id, 10) + 1) / 100);
 
         setGroup({ id: photoGroup.id, page });

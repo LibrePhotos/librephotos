@@ -50,6 +50,7 @@ function AlbumAutoGalleryView() {
   // Convert photos to the format expected by PhotoListView
   const groupedPhotos = Object.entries(byDate).map(([date, items]) => ({
     date,
+    location: null,
     items: items.map(photo => ({
       id: photo.id,
       hash: photo.image_hash,
@@ -69,6 +70,10 @@ function AlbumAutoGalleryView() {
       dominantColor: photo.dominantColor ?? "",
       video_length: photo.video_length == null ? undefined : String(photo.video_length),
       is_hdr: photo.is_hdr ?? false,
+      // The grid fields an event photo has no source for
+      shared_to: [],
+      isTemp: false,
+      has_raw_variant: false,
       style: {
         width: 200,
         height: 200,
@@ -139,7 +144,8 @@ function AlbumAutoGalleryView() {
         loading={false}
         icon={<SettingsAutomation size={50} />}
         photoset={groupedPhotos}
-        idx2hash={photos.map(photo => ({ id: photo.id, image_hash: photo.image_hash }))}
+        // The grid's own items in its order: the photos are sorted by time, so the days are too
+        idx2hash={groupedPhotos.flatMap(group => group.items)}
         additionalSubHeader={subHeader}
         selectable
       />

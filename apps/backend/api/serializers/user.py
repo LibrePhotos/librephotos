@@ -14,6 +14,7 @@ from api.batch_jobs import batch_calculate_clip_embedding
 from api.ml_models import do_all_models_exist, download_models
 from api.models import Photo, User
 from api.serializers.simple import PhotoSuperSimpleSerializer
+from api.timeline_filter import validate_default_timeline_filter
 from api.util import is_valid_path
 from nextcloud.server_address import UnsafeServerAddress, validate_server_address
 from service.exif.tag_validation import is_safe_tag_name
@@ -65,6 +66,10 @@ USER_UPDATE_FIELDS = (
     (
         "duplicate_clear_existing",
         "Updated duplicate_clear_existing to {value} for user {username}",
+    ),
+    (
+        "default_timeline_filter",
+        "Updated default_timeline_filter to {value} for user {username}",
     ),
 )
 
@@ -358,6 +363,7 @@ class UserSerializer(serializers.ModelSerializer):
             "slideshow_interval": {"required": False},
             "duplicate_sensitivity": {"required": False},
             "duplicate_clear_existing": {"required": False},
+            "default_timeline_filter": {"required": False},
         }
         fields = (
             "id",
@@ -404,6 +410,7 @@ class UserSerializer(serializers.ModelSerializer):
             "slideshow_interval",
             "duplicate_sensitivity",
             "duplicate_clear_existing",
+            "default_timeline_filter",
         )
 
     def validate_nextcloud_app_password(self, value):
@@ -431,6 +438,12 @@ class UserSerializer(serializers.ModelSerializer):
 
     def validate_burst_detection_rules(self, value):
         return validate_rule_exif_tag_names(value, "burst_detection_rules")
+
+    def validate_default_timeline_filter(self, value):
+        try:
+            return validate_default_timeline_filter(value)
+        except ValueError as error:
+            raise ValidationError(f"default_timeline_filter {error}.") from error
 
     def create(self, validated_data):
         if "scan_directory" in validated_data.keys():

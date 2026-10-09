@@ -9,6 +9,7 @@ class AlbumUser(models.Model):
     created_on = models.DateTimeField(auto_now=True, db_index=True)
     photos = models.ManyToManyField(Photo)
     favorited = models.BooleanField(default=False, db_index=True)
+    locked = models.BooleanField(default=False)
     owner = models.ForeignKey(
         User, on_delete=models.SET(get_deleted_user), default=None
     )

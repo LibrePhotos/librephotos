@@ -19,6 +19,22 @@ export const PublicSharingDefaults = z.object({
 });
 export type PublicSharingDefaults = z.infer<typeof PublicSharingDefaults>;
 
+/**
+ * What the main timeline shows when its URL names no filter (issue #2130).
+ * Every key is optional and an empty object shows everything. The server
+ * validates what is saved; a value written past the API never fails the
+ * whole user: a bad key is dropped, anything but an object becomes {}.
+ */
+export const TimelineFilterDefault = z
+  .object({
+    media: z.enum(["all", "photos", "videos"]).optional().catch(undefined),
+    hide_screenshots: z.boolean().optional().catch(undefined),
+    hide_documents: z.boolean().optional().catch(undefined),
+    favorites: z.boolean().optional().catch(undefined),
+  })
+  .catch({});
+export type TimelineFilterDefault = z.infer<typeof TimelineFilterDefault>;
+
 export const User = z.object({
   id: z.number(),
   username: z.string(),
@@ -66,6 +82,7 @@ export const User = z.object({
   slideshow_interval: z.number().default(5),
   duplicate_sensitivity: z.enum(["strict", "normal", "loose"]).default("normal"),
   duplicate_clear_existing: z.boolean().default(false),
+  default_timeline_filter: TimelineFilterDefault.optional().default({}),
 });
 export type User = z.infer<typeof User>;
 

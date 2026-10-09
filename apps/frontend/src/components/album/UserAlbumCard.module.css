@@ -48,7 +48,27 @@
   align-items: center;
 }
 
+.lockedIcon {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 1;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 4px;
+  padding: 2px 4px;
+  display: flex;
+  align-items: center;
+}
+
+.lockedIcon + .publicIcon {
+  left: 36px;
+}
+
 [data-mantine-color-scheme="dark"] .publicIcon {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+[data-mantine-color-scheme="dark"] .lockedIcon {
   background: rgba(0, 0, 0, 0.7);
 }
 
@@ -67,4 +87,3 @@
 .sharedIcon:hover {
   color: var(--mantine-color-blue-8);
 }
-

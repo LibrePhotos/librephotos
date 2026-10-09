@@ -42,8 +42,8 @@ type Props = Readonly<{
   icon: ReactElement;
   title: string;
   additionalSubHeader: React.ReactNode;
-  dayHeaderPrefix: string;
-  date: string;
+  dayHeaderPrefix?: string;
+  date?: string;
   hasEmptyState?: boolean;
   isPublic?: boolean;
   // Count the items as videos rather than photos (the Videos view and the

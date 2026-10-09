@@ -3,22 +3,26 @@
  * before the request settles, so Create must not be clickable without a name
  * (it only checked for duplicates and failed silently). The parent keeps the
  * modal mounted, so a typed title must not survive into the next opening.
+ * A locked album (#867) is listed but cannot take new photos.
  */
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import type { UserAlbumInfo } from "../../../api_client/albums/types";
+import { Media } from "../../../api_client/photos/types";
+import i18n from "../../../i18n";
 import { AlbumEditModal } from "./AlbumEditModal";
 
-const stubs = vi.hoisted(() => ({ create: vi.fn(), add: vi.fn(), close: vi.fn() }));
+const stubs = vi.hoisted(() => ({
+  create: vi.fn(),
+  add: vi.fn(),
+  close: vi.fn(),
+  albums: [] as UserAlbumInfo[],
+}));
 
 vi.mock("../../../api_client/albums/hooks", () => ({
-  useFetchUserAlbumsQuery: () => ({
-    data: [
-      { id: 1, title: "Trip", photo_count: 3, created_on: "2026-01-01" },
-      { id: 2, title: "Home", photo_count: 1, created_on: "2026-01-02" },
-    ],
-  }),
+  useFetchUserAlbumsQuery: () => ({ data: stubs.albums }),
   useCreateUserAlbumMutation: () => ({ mutate: stubs.create }),
   useAddPhotoToUserAlbumMutation: () => ({ mutate: stubs.add }),
 }));
@@ -27,9 +31,21 @@ vi.mock("../../album/AlbumListItem", () => ({
 }));
 vi.mock("../../Tile", () => ({ Tile: () => null }));
 
-beforeAll(() => {
-  // @ts-ignore - jsdom has no matchMedia, MantineProvider needs it
-  window.matchMedia = (query: string) => ({
+const album = (id: number, title: string, locked = false): UserAlbumInfo => ({
+  id,
+  title,
+  cover_photo: null,
+  photo_count: 3,
+  owner: { id: 1, username: "owner", first_name: "", last_name: "" },
+  shared_to: [],
+  created_on: "2026-10-01T00:00:00Z",
+  favorited: false,
+  locked,
+});
+
+beforeAll(async () => {
+  // jsdom has no matchMedia, MantineProvider needs it
+  window.matchMedia = (query: string): MediaQueryList => ({
     matches: false,
     media: query,
     onchange: null,
@@ -39,8 +55,8 @@ beforeAll(() => {
     removeEventListener: () => {},
     dispatchEvent: () => false,
   });
-  // @ts-ignore
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+  await i18n.changeLanguage("en");
 });
 
 let root: Root;
@@ -52,19 +68,23 @@ function renderModal(isOpen: boolean) {
         <AlbumEditModal
           isOpen={isOpen}
           onRequestClose={stubs.close}
-          selectedImages={[{ id: "a1", image_hash: "a1" }]}
+          selectedImages={[{ id: "a1", image_hash: "a1", type: Media.IMAGE }]}
         />
       </MantineProvider>
     );
   });
 }
 
-beforeEach(() => {
-  vi.clearAllMocks();
+function mount(albums: UserAlbumInfo[]) {
+  stubs.albums = albums;
   const container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
   renderModal(true);
+}
+
+beforeEach(() => {
+  vi.clearAllMocks();
 });
 
 afterEach(() => {
@@ -85,6 +105,8 @@ function type(value: string) {
 }
 
 describe("AlbumEditModal", () => {
+  beforeEach(() => mount([album(1, "Trip"), album(2, "Home")]));
+
   it("keeps Create disabled until there is a new, non-blank title", () => {
     expect(createButton().disabled).toBe(true);
     type("   ");
@@ -115,5 +137,22 @@ describe("AlbumEditModal", () => {
     expect(titleInput().value).toBe("");
     expect(createButton().disabled).toBe(true);
     expect(listedAlbums()).toEqual(["Trip", "Home"]);
+  });
+});
+
+describe("AlbumEditModal locked albums", () => {
+  beforeEach(() => mount([album(867, "Finished trip", true)]));
+
+  it("shows the locked state and prevents adding photos", () => {
+    const lockedAlbum = document.body.querySelector<HTMLButtonElement>(
+      'button[aria-label="Finished trip is locked. Unlock it to add photos."]'
+    );
+    expect(lockedAlbum).not.toBeNull();
+    expect(lockedAlbum!.disabled).toBe(true);
+    expect(document.body.textContent).toContain("Locked");
+
+    act(() => lockedAlbum!.click());
+    expect(stubs.add).not.toHaveBeenCalled();
+    expect(stubs.close).not.toHaveBeenCalled();
   });
 });

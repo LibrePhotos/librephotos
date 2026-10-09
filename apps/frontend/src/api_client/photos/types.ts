@@ -35,7 +35,7 @@ export const SharedFromMePhoto = z.object({
 // Metadata edit history entry — mirrors MetadataEditSerializer.
 // `id` is a UUID string: MetadataEdit uses a UUIDField primary key.
 export const MetadataEdit = z.object({
-  id: z.string().uuid(),
+  id: z.guid(),
   field_name: z.string(),
   old_value: z.any(),
   new_value: z.any(),
@@ -56,7 +56,7 @@ export type MetadataFileSourceEnum = z.infer<typeof MetadataFileSourceEnum>;
 // XMP sidecar file info — mirrors MetadataFileSerializer.
 // `id` is a UUID string: MetadataFile uses a UUIDField primary key.
 export const MetadataFile = z.object({
-  id: z.string().uuid(),
+  id: z.guid(),
   file_type: MetadataFileTypeEnum,
   source: MetadataFileSourceEnum,
   priority: z.number(),
@@ -74,7 +74,7 @@ export type MetadataFile = z.infer<typeof MetadataFile>;
 // use `edit_history` to tell whether a photo has been edited.
 export const PhotoMetadata = z.object({
   // PhotoMetadata uses a UUIDField primary key, so this is a string.
-  id: z.string().uuid(),
+  id: z.guid(),
   // Capture settings
   aperture: z.number().nullable(),
   shutter_speed: z.string().nullable(),

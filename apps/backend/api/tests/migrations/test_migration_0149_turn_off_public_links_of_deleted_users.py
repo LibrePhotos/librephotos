@@ -9,8 +9,8 @@ from api.models.user import get_deleted_user
 from ..utils import create_test_photo, create_test_user
 
 # The module name starts with a digit, so a plain import cannot load it.
-migration_0147 = importlib.import_module(
-    "api.migrations.0147_turn_off_public_links_of_deleted_users"
+migration_0149 = importlib.import_module(
+    "api.migrations.0149_turn_off_public_links_of_deleted_users"
 )
 
 
@@ -26,7 +26,7 @@ class TurnOffPublicLinksOfDeletedUsersMigrationTest(TestCase):
         return photo, album_share, photo_share
 
     def _run(self):
-        migration_0147.turn_off_public_links_of_deleted_users(global_apps, None)
+        migration_0149.turn_off_public_links_of_deleted_users(global_apps, None)
 
     def test_turns_off_the_links_held_by_deleted(self):
         photo, album_share, photo_share = self._links(get_deleted_user())

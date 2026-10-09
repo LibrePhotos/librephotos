@@ -53,6 +53,13 @@
       "addLabels": ["mobile"]
     },
     {
+      "description": "Expo SDK 57 pins these: expo's bundledNativeModules.json names the exact version (or patch range) of every native module it was built and tested with, and react, react-dom, react-test-renderer, @types/react, jest-expo and react-native must match each other exactly (jest-expo hard-fails otherwise, and its peer ranges break the lockfile update). Minor and patch bumps inside an SDK are not ours to pick. Move them only when moving to a new SDK, with `npx expo install --fix` in apps/mobile (then mirror expo, expo-router, react, react-dom and the overrides in the root package.json). SDK majors still come through as major PRs.",
+      "matchFileNames": ["apps/mobile/package.json", "package.json"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "matchPackageNames": ["expo", "/^expo-/", "/^@expo\\//", "react", "react-dom", "react-test-renderer", "@types/react", "react-native", "/^react-native-/", "/^@react-native\\//", "/^@react-native-[a-z-]+\\//", "@shopify/flash-list", "@shopify/react-native-skia", "jest-expo", "babel-preset-expo", "eslint-config-expo", "lottie-react-native", "react-server-dom-webpack", "@sentry/react-native", "@stripe/stripe-react-native"],
+      "enabled": false
+    },
+    {
       "matchFileNames": ["apps/docs/**"],
       "groupName": "docs dependencies",
       "addLabels": ["docs"]
@@ -111,6 +118,11 @@
       "description": "Django 6 requires Python >= 3.12, which the Python 3.10 GPU image cannot install. Stay on the 5.2 LTS until the GPU image moves off 3.10.",
       "matchPackageNames": ["Django", "django"],
       "allowedVersions": "<6"
+    },
+    {
+      "description": "nwsapi is pinned to 2.2.13 through resolutions in apps/frontend/package.json: 2.2.28 makes jsdom's selector matching 4-6x slower, and the ModalTagEdit tests time out at vitest's 5 s default. Check a newer release's test timings by hand before moving the pin.",
+      "matchPackageNames": ["nwsapi"],
+      "enabled": false
     },
     {
       "description": "typescript-eslint 8 supports TypeScript < 6.1 only; a newer TypeScript fails lint before anything else runs.",

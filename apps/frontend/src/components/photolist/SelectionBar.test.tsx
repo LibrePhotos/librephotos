@@ -7,6 +7,7 @@ import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import type { Root } from "react-dom/client";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { PigPhoto } from "../../api_client/photos/types";
 import i18n from "../../i18n";
 import { SelectionBar } from "./SelectionBar";
 
@@ -70,7 +71,9 @@ describe("SelectionBar select-all button", () => {
   });
 
   it("offers Deselect all once every loaded item is selected", async () => {
-    const items = [{ id: "a" }, { id: "b" }];
+    const items = [1, 2].map(n =>
+      PigPhoto.parse({ id: `00000000-0000-4000-8000-00000000000${n}`, image_hash: `hash-${n}`, aspectRatio: 1 })
+    );
     const button = await render({ idx2hash: items, selectedItems: items, selectMode: true });
 
     expect(button.getAttribute("aria-label")).toBe("Deselect all");

@@ -13,10 +13,12 @@ is required.
 from unittest.mock import patch
 
 from django.test import TestCase
+from rest_framework.test import APIClient
 
 from api.metadata.reader import MetadataReadError
 from api.metadata.tags import Tags
 from api.models.photo_metadata import PhotoMetadata
+from api.models.photo_search import PhotoSearch
 from api.tests.utils import create_test_photo, create_test_user
 
 # Index of each value inside the tuple returned by get_metadata(), in the
@@ -320,9 +322,91 @@ class ExtractExifDataKeywordsTestCase(ExtractExifDataBaseTestCase):
         self.assertEqual(metadata.keywords, ["z"])
 
     @patch("api.models.photo_metadata.link_tags_from_keywords")
-    def test_non_list_non_string_keywords_are_ignored(self, _link_tags):
-        metadata = self.extract(xmp_subject={"a": 1}, iptc_keywords=42)
+    def test_unsupported_scalar_keywords_are_ignored(self, _link_tags):
+        metadata = self.extract(xmp_subject={"a": 1}, iptc_keywords=True)
         self.assertIsNone(metadata.keywords)
+
+    def test_numeric_list_keywords_are_text_before_merging(self):
+        metadata = self.extract(
+            xmp_subject=[" Urlaub Bodensee ", "September", 2026, 0],
+            iptc_keywords=["", "2026", 2026, "0", "September"],
+        )
+        expected = ["", " Urlaub Bodensee ", "0", "2026", "September"]
+        metadata.refresh_from_db()
+        self.assertEqual(metadata.keywords, expected)
+        self.assertEqual(
+            list(self.photo.tags.order_by("name").values_list("name", flat=True)),
+            ["0", "2026", "September", "Urlaub Bodensee"],
+        )
+
+        # An empty scalar keyword must not replace the imported keyword list.
+        metadata = self.extract(xmp_subject="")
+        metadata.refresh_from_db()
+        self.assertEqual(metadata.keywords, expected)
+
+    def test_numeric_scalar_keywords_are_preserved_in_each_source(self):
+        for source in ("xmp_subject", "iptc_keywords"):
+            for value in (2026, 0, 2.5):
+                with self.subTest(source=source, value=value):
+                    metadata = self.extract(**{source: value})
+                    metadata.refresh_from_db()
+                    self.assertEqual(metadata.keywords, [str(value)])
+                    self.assertTrue(self.photo.tags.filter(name=str(value)).exists())
+
+    def test_unsupported_list_items_are_ignored(self):
+        metadata = self.extract(xmp_subject=["valid", None, True, False, {}, [], "", 0])
+        metadata.refresh_from_db()
+        self.assertEqual(metadata.keywords, ["", "0", "valid"])
+
+    def test_rescan_numeric_keywords_restores_tags_and_search(self):
+        PhotoMetadata.objects.create(photo=self.photo, keywords=[2026, 0])
+
+        metadata = self.extract(xmp_subject=[2026, 0])
+        metadata.refresh_from_db()
+        self.assertEqual(metadata.keywords, ["0", "2026"])
+        self.assertEqual(
+            list(self.photo.tags.order_by("name").values_list("name", flat=True)),
+            ["0", "2026"],
+        )
+
+        self.photo.refresh_from_db()
+        search, _ = PhotoSearch.objects.get_or_create(photo=self.photo)
+        search.recreate_search_captions()
+        self.assertIn("2026", search.search_captions.split())
+        self.assertIn("0", search.search_captions.split())
+
+        # Empty captions and nonmatching file paths isolate the imported Tag.
+        search.search_captions = ""
+        search.save(update_fields=["search_captions"])
+        untagged = create_test_photo(owner=self.user, search_captions="")
+        for photo, path in (
+            (self.photo, "/photos/tagged.png"),
+            (untagged, "/photos/untagged.png"),
+        ):
+            photo.main_file.path = path
+            photo.main_file.save(update_fields=["path"])
+        self.user.semantic_search_topk = 0
+        self.user.save(update_fields=["semantic_search_topk"])
+        client = APIClient()
+        client.force_authenticate(user=self.user)
+        response = client.get("/api/photos/", {"search": "2026"})
+        self.assertEqual(response.status_code, 200)
+        rows = response.data
+        if isinstance(rows, dict):
+            rows = rows["results"]
+        hashes = {row["image_hash"] for row in rows}
+        self.assertIn(self.photo.image_hash, hashes)
+        self.assertNotIn(untagged.image_hash, hashes)
+
+    def test_legacy_numeric_keywords_still_indexed_in_search_captions(self):
+        """Rows stored before the fix may hold raw ints; indexing must not drop them."""
+        PhotoMetadata.objects.create(photo=self.photo, keywords=[2026, 0])
+        self.photo.refresh_from_db()
+        search, _ = PhotoSearch.objects.get_or_create(photo=self.photo)
+        search.recreate_search_captions()
+        words = search.search_captions.split()
+        self.assertIn("2026", words)
+        self.assertIn("0", words)
 
     @patch("api.models.photo_metadata.link_tags_from_keywords")
     def test_empty_keyword_containers_leave_existing_keywords_intact(self, link_tags):

@@ -6,6 +6,7 @@ import { useFetchDateAlbumQuery, useFetchDateAlbumsQuery, useFetchUserAlbumQuery
 import { Photoset, PigPhoto } from "../../api_client/photos/types";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
+import type { PigVisibleGroup } from "../../components/react-pig";
 import { isUndatedShare } from "../../components/sharing/publicAlbum";
 import { usePublicPageTitle } from "../../components/sharing/usePublicPageTitle";
 import { getPhotosFlatFromGroupedByDate } from "../../util/util";
@@ -50,11 +51,11 @@ function UserPublicPage() {
     currentUser?.username === users ? t("sidemenu.mypublicphotos") : t("sharing.publicPhotosOf", { name: users });
   usePublicPageTitle(albumId && userAlbum ? userAlbum.title : pageTitle);
 
-  const getAlbums = (visibleGroups: any) => {
-    visibleGroups.reverse().forEach((photoGroup: any) => {
+  const getAlbums = (visibleGroups: PigVisibleGroup<PigPhoto>[]) => {
+    visibleGroups.reverse().forEach(photoGroup => {
       const visibleImages = photoGroup.items;
-      if (visibleImages.filter((i: any) => i.isTemp).length > 0) {
-        const firstTempObject = visibleImages.filter((i: any) => i.isTemp)[0];
+      if (visibleImages.filter(i => i.isTemp).length > 0) {
+        const firstTempObject = visibleImages.filter(i => i.isTemp)[0];
         const page = Math.ceil((parseInt(firstTempObject.id, 10) + 1) / 100);
 
         setGroup({ id: photoGroup.id, page });
