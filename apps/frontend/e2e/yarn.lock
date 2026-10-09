@@ -2,12 +2,12 @@
 # yarn lockfile v1
 
 
-"@playwright/test@1.63.0":
-  version "1.63.0"
-  resolved "https://registry.yarnpkg.com/@playwright/test/-/test-1.63.0.tgz#808020c46e8b6b91f9d628cd0ebcbb32bdfd8b6c"
-  integrity sha512-oxMK4vllB9RK5NQ2l1pq1IfOf2AvnEuj/vYGDj0H2nMtmtZpKtCwt/l00GEO6xjGfpBNAvjovvYdCm50dRQkpQ==
+"@playwright/test@1.64.0":
+  version "1.64.0"
+  resolved "https://registry.yarnpkg.com/@playwright/test/-/test-1.64.0.tgz#af51c4f1dd5f689b2ff16e6eacf27ac00843f239"
+  integrity sha512-oTN9FNYuN6bqQMwiho6jJKLCG2/QOYCixGXuCjRmzOq23eODeukuY2XiAVoVpAECbuezMt1MHQjAiQxK8F+Y+g==
   dependencies:
-    playwright "1.63.0"
+    playwright "1.64.0"
 
 "@types/node@^22.0.0":
   version "22.20.5"
@@ -16,17 +16,17 @@
   dependencies:
     undici-types "~6.21.0"
 
-playwright-core@1.63.0:
-  version "1.63.0"
-  resolved "https://registry.yarnpkg.com/playwright-core/-/playwright-core-1.63.0.tgz#e57665bc32846c213ac39a1e4d5bc6228e76b376"
-  integrity sha512-rYCsBF/M5HjUch52bbtVONEFjv6Xu8sm8h72dNlR5bzIE1fvC/bxgspzkjSfU+MweEMmPM8KJebG6nnyxo5mCg==
+playwright-core@1.64.0:
+  version "1.64.0"
+  resolved "https://registry.yarnpkg.com/playwright-core/-/playwright-core-1.64.0.tgz#a765f91dabd2b2cadd67e87439842c1d6c72c652"
+  integrity sha512-T9r+MZkTECl2+oUcZ26YgZzTrYidTsIhYYkJix+6iDOymOb1FB2RLLSOxRGnZGv5DStt+aduIVbt+E8WygXYpg==
 
-playwright@1.63.0:
-  version "1.63.0"
-  resolved "https://registry.yarnpkg.com/playwright/-/playwright-1.63.0.tgz#99b56f9f69b1b70c44f00bf84b2fe52348ae2511"
-  integrity sha512-+7ziBLidS4NaNCdt57SUDT+wYmmd5fmiQejUic/kb+YsYSCPyOOE9sebzMjNmQrsnNpDJqd4WHvV/8lfKfUDUg==
+playwright@1.64.0:
+  version "1.64.0"
+  resolved "https://registry.yarnpkg.com/playwright/-/playwright-1.64.0.tgz#c105a3ffe174d487a5927a6836a79778b1180742"
+  integrity sha512-kVzTnYFYEyQ9RGzBjNCd2+yEqWmVbxl3AHPynv3qQ6JTjv4a+kwRcnqQwIpuP3NnrnIrE/Q6wWAIAvMfIE2/Yg==
   dependencies:
-    playwright-core "1.63.0"
+    playwright-core "1.64.0"
 
 undici-types@~6.21.0:
   version "6.21.0"
