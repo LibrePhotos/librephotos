@@ -170,8 +170,15 @@ class RestoreForeignKeysTest(TransactionTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
+        # The models as the latest migration leaves them, not as 0144 saw them.
+        # The migration rebuilds a table from the models it is handed, and this
+        # test database has every later migration applied too: rebuilt from
+        # 0144's models, a table loses any column added since, and the
+        # comparisons with today's models fail -- as does every later test,
+        # since tearDown rebuilds the tables the same way.
         loader = MigrationLoader(connection)
-        cls.state_apps = loader.project_state(("api", MIGRATION_NAME)).apps
+        [leaf] = loader.graph.leaf_nodes("api")
+        cls.state_apps = loader.project_state(leaf).apps
 
     def tearDown(self):
         # Put back whatever a test left in 0099's shape, so that a failure
