@@ -61,6 +61,7 @@ jobs:
           file: deploy/docker/proxy/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
+          # A pre-release keeps :latest where it is (see _build-image.yml).
           tags: |
             reallibrephotos/librephotos-proxy:${{ github.event.release.tag_name }}
-            reallibrephotos/librephotos-proxy:latest
+            ${{ !github.event.release.prerelease && 'reallibrephotos/librephotos-proxy:latest' || '' }}

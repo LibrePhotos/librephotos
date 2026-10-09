@@ -44,3 +44,30 @@ jobs:
     secrets:
       DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
       DOCKER_HUB_ACCESS_TOKEN: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+
+  # deploy/k8s pins its images by hand (Renovate skips it) and sat on 2023w31
+  # for years unnoticed. Fail the release when its tag still pins another one,
+  # so Kubernetes installs that check out the tag run it. Separate from the
+  # build, which this never holds up.
+  k8s-pins:
+    if: github.event_name == 'release' && github.event.action == 'created' && !github.event.release.prerelease
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Check the deploy/k8s image tags
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          awk -v tag="$RELEASE_TAG" '
+            $1 == "-" && $2 == "name:" { name = $3 }
+            $1 == "newTag:" && name ~ /^(backend|frontend|proxy)-placeholder$/ {
+              gsub(/"/, "", $2)
+              if ($2 == tag) ok++; else print name " is pinned to " $2
+            }
+            END { exit (ok != 3) }
+          ' deploy/k8s/kustomization.yaml || {
+            echo "::error file=deploy/k8s/kustomization.yaml::The Kubernetes manifests in this release do not run it. Set the three LibrePhotos images in deploy/k8s/kustomization.yaml to ${RELEASE_TAG} on dev."
+            exit 1
+          }
