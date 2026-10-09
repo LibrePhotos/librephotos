@@ -16,7 +16,8 @@ import i18n from "../../i18n";
 const stubs = vi.hoisted(() => ({
   component: undefined as React.ComponentType | undefined,
   search: {} as Record<string, unknown>,
-  user: undefined as { id: number; default_timeline_filter: Record<string, unknown> } | undefined,
+  user: undefined as { id: number; photo_count?: number; default_timeline_filter: Record<string, unknown> } | undefined,
+  dayCalls: [] as { options: any; queryOptions: any }[],
   navigate: vi.fn(),
   saveDefault: vi.fn(),
   listCalls: [] as { options: any; queryOptions: any }[],
@@ -43,7 +44,10 @@ vi.mock("../../api_client/albums/hooks", () => ({
     stubs.listCalls.push({ options, queryOptions });
     return stubs.listResult;
   },
-  useFetchDateAlbumQuery: () => ({}),
+  useFetchDateAlbumQuery: (options: any, queryOptions: any) => {
+    stubs.dayCalls.push({ options, queryOptions });
+    return {};
+  },
 }));
 vi.mock("../../hooks/useWorkerStatus", () => ({ useWorkerStatus: () => ({ workerRunningJob: undefined }) }));
 vi.mock("../../components/photolist/PhotoListView", () => ({
@@ -67,6 +71,7 @@ beforeEach(() => {
   stubs.navigate.mockReset();
   stubs.saveDefault.mockReset();
   stubs.listCalls = [];
+  stubs.dayCalls = [];
   stubs.listProps = undefined;
 });
 
@@ -118,12 +123,12 @@ describe("the main timeline filter", () => {
     await act(async () => {
       popover.onChange({ media: "videos", hide_screenshots: true, hide_documents: false, favorites: false });
     });
-    expect(stubs.navigate).toHaveBeenCalledWith({ to: "/", search: { media: "videos" } });
+    expect(stubs.navigate).toHaveBeenCalledWith({ to: "/", search: { media: "videos" }, replace: true });
 
     await act(async () => {
       popover.onReset();
     });
-    expect(stubs.navigate).toHaveBeenLastCalledWith({ to: "/", search: {} });
+    expect(stubs.navigate).toHaveBeenLastCalledWith({ to: "/", search: {}, replace: true });
   });
 
   it("saves the view as the default and then drops the URL overrides", async () => {
@@ -140,7 +145,7 @@ describe("the main timeline filter", () => {
     await act(async () => {
       callbacks.onSuccess();
     });
-    expect(stubs.navigate).toHaveBeenLastCalledWith({ to: "/", search: {} });
+    expect(stubs.navigate).toHaveBeenLastCalledWith({ to: "/", search: {}, replace: true });
   });
 
   it("says what the filter hides under the counter", async () => {
@@ -150,5 +155,40 @@ describe("the main timeline filter", () => {
     stubs.user = { id: 1, default_timeline_filter: {} };
     await renderTimeline();
     expect(stubs.listProps.additionalSubHeader).toBeNull();
+  });
+
+  it("hands the popover its readiness", async () => {
+    stubs.user = undefined;
+    await renderTimeline();
+    expect(stubs.listProps.headerActions.props.ready).toBe(false);
+  });
+
+  it("tells an empty library from a filter that hides everything", async () => {
+    stubs.user = { id: 1, photo_count: 0, default_timeline_filter: { hide_screenshots: true } };
+    await renderTimeline();
+    expect(stubs.listProps.emptyStateConfig.actionLink).toBe("/library");
+
+    stubs.user = { id: 1, photo_count: 12, default_timeline_filter: { hide_screenshots: true } };
+    await renderTimeline();
+    expect(stubs.listProps.emptyStateConfig.title).toBe("Nothing matches this filter");
+  });
+
+  it("does not ask for a day of the old list after the filter changed", async () => {
+    const Timeline = stubs.component!;
+    const root = createRoot(document.createElement("div"));
+    await act(async () => {
+      root.render(<Timeline />);
+    });
+    await act(async () => {
+      stubs.listProps.updateGroups([{ id: "day-1", items: [{ id: "0", isTemp: true }] }]);
+    });
+    expect(stubs.dayCalls.at(-1)!.options.album_date_id).toBe("day-1");
+    expect(stubs.dayCalls.at(-1)!.queryOptions.skip).toBe(false);
+
+    stubs.search = { media: "videos" };
+    await act(async () => {
+      root.render(<Timeline />);
+    });
+    expect(stubs.dayCalls.at(-1)!.queryOptions.skip).toBe(true);
   });
 });

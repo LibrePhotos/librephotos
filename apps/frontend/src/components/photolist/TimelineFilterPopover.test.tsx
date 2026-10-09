@@ -46,7 +46,7 @@ beforeEach(() => {
   onSaveDefault.mockReset();
 });
 
-async function renderPopover(current: TimelineFilter, saved: TimelineFilter = SHOW_EVERYTHING) {
+async function renderPopover(current: TimelineFilter, saved: TimelineFilter = SHOW_EVERYTHING, ready = true) {
   const container = document.createElement("div");
   document.body.appendChild(container);
   const root = createRoot(container);
@@ -59,6 +59,7 @@ async function renderPopover(current: TimelineFilter, saved: TimelineFilter = SH
           onChange={onChange}
           onReset={onReset}
           onSaveDefault={onSaveDefault}
+          ready={ready}
         />
       </MantineProvider>
     );
@@ -138,5 +139,29 @@ describe("TimelineFilterPopover", () => {
       buttonByText("Reset to default").click();
     });
     expect(onReset).toHaveBeenCalledTimes(1);
+  });
+
+  it("names the media type control and waits for the saved default", async () => {
+    await renderPopover(SHOW_EVERYTHING, SHOW_EVERYTHING, false);
+    expect(document.body.querySelector("button")!.disabled).toBe(true);
+
+    document.body.innerHTML = "";
+    await renderPopover(SHOW_EVERYTHING);
+    await open();
+    expect(document.body.querySelector('[aria-label="Media type"]')).not.toBeNull();
+  });
+
+  it("shrinks to an icon with a count on a phone", async () => {
+    const wide = window.matchMedia;
+    // @ts-ignore - every media query matches: the phone layout
+    window.matchMedia = (query: string) => ({ ...wide(query), matches: true });
+    try {
+      await renderPopover({ ...SHOW_EVERYTHING, hide_documents: true });
+      const button = document.body.querySelector("button")!;
+      expect(button.getAttribute("aria-label")).toBe("Filter, 1 filter active");
+      expect(button.textContent).toBe("");
+    } finally {
+      window.matchMedia = wide;
+    }
   });
 });

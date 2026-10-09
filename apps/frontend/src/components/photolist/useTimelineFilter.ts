@@ -33,13 +33,15 @@ export function useTimelineFilter() {
   const setFilter = useCallback(
     (filter: TimelineFilter) => {
       // "/" has no search params besides the filter's.
-      navigate({ to: "/", search: timelineSearchFor(filter, savedRaw) });
+      // Replace, not push: Back leaves the timeline rather than stepping
+      // through every switch the user flipped.
+      navigate({ to: "/", search: timelineSearchFor(filter, savedRaw), replace: true });
     },
     [navigate, savedRaw]
   );
 
   const reset = useCallback(() => {
-    navigate({ to: "/", search: {} });
+    navigate({ to: "/", search: {}, replace: true });
   }, [navigate]);
 
   const saveAsDefault = useCallback(() => {
@@ -55,6 +57,9 @@ export function useTimelineFilter() {
     current,
     saved,
     ready: !!user,
+    // Whether the library has any photos at all, to tell an empty library
+    // from a filter that hides everything.
+    libraryEmpty: user?.photo_count === 0,
     setFilter,
     reset,
     saveAsDefault,

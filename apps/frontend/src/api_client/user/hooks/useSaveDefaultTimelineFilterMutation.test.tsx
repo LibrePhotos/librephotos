@@ -2,7 +2,8 @@
  * Saving the timeline's default filter (issue #2130) sends that one field,
  * never the whole user: the whole user carries `avatar` back as a URL, which
  * the server refuses with a 400 for anyone who has an avatar (issue #2153).
- * It also updates the cached user and invalidates the timeline queries.
+ * It updates the cached user; the timeline already sends its filter in full,
+ * so its queries are left alone. A failed save says so.
  */
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React, { act } from "react";
@@ -12,6 +13,7 @@ import { SHOW_EVERYTHING } from "../../../components/photolist/timelineFilter";
 
 const stubs = vi.hoisted(() => ({
   patch: vi.fn(),
+  requestFailed: vi.fn(),
   queryClient: undefined as unknown as QueryClient,
 }));
 
@@ -20,6 +22,10 @@ vi.mock("../../api", async () => {
   stubs.queryClient = new Client();
   return { fetchClient: { patch: stubs.patch }, queryClient: stubs.queryClient };
 });
+
+vi.mock("../../../service/notifications", () => ({
+  notification: { requestFailed: stubs.requestFailed },
+}));
 
 const { compactTimelineFilter, useSaveDefaultTimelineFilterMutation } =
   await import("./useSaveDefaultTimelineFilterMutation");
@@ -73,7 +79,34 @@ describe("compactTimelineFilter", () => {
 });
 
 describe("useSaveDefaultTimelineFilterMutation", () => {
-  it("patches only default_timeline_filter and refreshes the timeline", async () => {
+  async function renderProbe() {
+    let mutate: ReturnType<typeof useSaveDefaultTimelineFilterMutation>["mutateAsync"] | undefined;
+    function Probe() {
+      mutate = useSaveDefaultTimelineFilterMutation().mutateAsync;
+      return null;
+    }
+    const root = createRoot(document.createElement("div"));
+    await act(async () => {
+      root.render(
+        <QueryClientProvider client={stubs.queryClient}>
+          <Probe />
+        </QueryClientProvider>
+      );
+    });
+    return mutate!;
+  }
+
+  it("says so when the save fails", async () => {
+    stubs.patch.mockRejectedValueOnce(new Error("500"));
+    const mutate = await renderProbe();
+    await act(async () => {
+      await mutate({ userId: 7, filter: SHOW_EVERYTHING }).catch(() => {});
+    });
+    expect(stubs.requestFailed).toHaveBeenCalledTimes(1);
+  });
+
+  it("patches only default_timeline_filter and keeps the timeline", async () => {
+    stubs.patch.mockReset();
     stubs.patch.mockResolvedValue(savedUser);
     const { queryClient } = stubs;
     queryClient.setQueryData(["userSelfDetails", "7"], { ...savedUser, default_timeline_filter: {} });
@@ -104,6 +137,6 @@ describe("useSaveDefaultTimelineFilterMutation", () => {
       hide_screenshots: true,
     });
     const invalidated = invalidate.mock.calls.map(([filters]) => filters?.queryKey?.[0]);
-    expect(invalidated).toEqual(expect.arrayContaining(["userSelfDetails", "dateAlbums", "dateAlbum"]));
+    expect(invalidated).toEqual(["userSelfDetails"]);
   });
 });

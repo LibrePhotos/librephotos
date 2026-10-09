@@ -10,6 +10,7 @@ import {
   countActiveFilters,
   describeTimelineFilter,
   SHOW_EVERYTHING,
+  timelineFilterKey,
   timelineFilterToBulkQuery,
   validateTimelineSearch,
 } from "../../components/photolist/timelineFilter";
@@ -38,8 +39,10 @@ function TimestampPhotos() {
     reset: resetFilter,
     saveAsDefault,
     saving: savingDefault,
+    libraryEmpty,
   } = useTimelineFilter();
   const filterActive = countActiveFilters(filter) > 0;
+  const filterKey = timelineFilterKey(filter);
 
   // Waits for the saved default: fetching before it loaded would show (and
   // cache) the unfiltered library for a moment.
@@ -53,10 +56,13 @@ function TimestampPhotos() {
     if (photosGroupedByDate) setPhotosFlat(getPhotosFlatFromGroupedByDate(photosGroupedByDate));
   }, [photosGroupedByDate]);
 
-  const [group, setGroup] = useState({} as PhotoGroup);
+  // The day page to load, with the filter it was asked under: after the
+  // filter changes, a day of the old list is not requested again under the
+  // new filter (it may not even be in the new list).
+  const [group, setGroup] = useState({} as PhotoGroup & { filterKey?: string });
   useFetchDateAlbumQuery(
     { album_date_id: group.id, page: group.page, photosetType: Photoset.NONE, timelineFilter: filter },
-    { skip: !group.id || !filterReady }
+    { skip: !group.id || !filterReady || group.filterKey !== filterKey }
   );
 
   const getAlbums = (visibleGroups: any) => {
@@ -66,7 +72,7 @@ function TimestampPhotos() {
         const firstTempObject = visibleImages.filter((i: any) => i.isTemp)[0];
         const page = Math.ceil((parseInt(firstTempObject.id, 10) + 1) / 100);
 
-        setGroup({ id: photoGroup.id, page });
+        setGroup({ id: photoGroup.id, page, filterKey });
       }
     });
   };
@@ -92,7 +98,9 @@ function TimestampPhotos() {
       };
     }
 
-    if (filterActive) {
+    // An empty library says so even with a saved default; only a filter that
+    // hides photos the library does have gets the "nothing matches" state.
+    if (filterActive && !libraryEmpty) {
       return {
         icon: <FilterOff size={40} />,
         title: t("timelinefilter.empty.title"),
@@ -109,7 +117,7 @@ function TimestampPhotos() {
       actionLabel: t("emptystate.goToLibrary"),
       actionLink: "/library",
     };
-  }, [t, isScanRunning, workerRunningJob, refetch, filterActive, setFilter]);
+  }, [t, isScanRunning, workerRunningJob, refetch, filterActive, libraryEmpty, setFilter]);
 
   // Select-all carries the filter on screen, so "select all, then delete"
   // never reaches the screenshots or documents the timeline hides.
@@ -134,9 +142,10 @@ function TimestampPhotos() {
         onReset={resetFilter}
         onSaveDefault={saveAsDefault}
         saving={savingDefault}
+        ready={filterReady}
       />
     ),
-    [filter, savedFilter, setFilter, resetFilter, saveAsDefault, savingDefault]
+    [filter, savedFilter, setFilter, resetFilter, saveAsDefault, savingDefault, filterReady]
   );
 
   return (

@@ -1309,9 +1309,12 @@
     "taggedphotostitle": "Photos tagged",
     "setcategorytitle": "Set category",
     "setcategory": {
-      "photo": "{{numberOfPhotos}} item(s) marked as photo.",
-      "screenshot": "{{numberOfPhotos}} item(s) marked as screenshot.",
-      "document": "{{numberOfPhotos}} item(s) marked as document."
+      "photo_one": "{{count}} item marked as photo.",
+      "photo_other": "{{count}} items marked as photo.",
+      "screenshot_one": "{{count}} item marked as screenshot.",
+      "screenshot_other": "{{count}} items marked as screenshot.",
+      "document_one": "{{count}} item marked as document.",
+      "document_other": "{{count}} items marked as document."
     }
   },
   "rules": {
@@ -1511,7 +1514,6 @@
     "activecount_other": "{{count}} filters active",
     "mediatype": "Media type",
     "media": {
-      "all": "All",
       "photos": "Photos",
       "videos": "Videos"
     },
@@ -1537,6 +1539,7 @@
       "title": "Nothing matches this filter",
       "description": "Change the filter to see more of your library.",
       "action": "Show everything"
-    }
+    },
+    "savefailed": "Your default view could not be saved. Please try again."
   }
 }
