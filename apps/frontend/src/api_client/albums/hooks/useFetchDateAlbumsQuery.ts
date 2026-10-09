@@ -1,5 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { type MediaType } from "../../../components/photolist/mediaTypeFilter";
+import {
+  timelineFilterKey,
+  timelineFilterToParams,
+  type TimelineFilter,
+} from "../../../components/photolist/timelineFilter";
 import { addTempElementsToGroups } from "../../../util/util";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient, queryClient } from "../../api";
@@ -13,7 +18,7 @@ export const DATE_ALBUM_PAGE_SIZE = 100;
 
 // A page of a single date album that is already in the query cache:
 // `/albums/date/<id>?page=<n>` for the same photoset / person / user /
-// folder / media-type filter as the list being loaded.
+// folder / media-type / timeline filter as the list being loaded.
 export type CachedDateAlbumPage<T = PigPhoto> = {
   albumDateId: string;
   page: number;
@@ -49,18 +54,19 @@ type DateAlbumsListKey = [
   username: string | undefined,
   folder: string | undefined,
   mediaType: MediaType | "all",
+  timelineFilter: string,
 ];
 
 // Collects the still-valid, already-loaded pages of every date album that
 // belongs to the list identified by `listKey` (see useFetchDateAlbumQuery for
 // the per-day query key layout).
 function getCachedDateAlbumPages<T>(listKey: DateAlbumsListKey): CachedDateAlbumPage<T>[] {
-  const [photosetType, personId, username, folder, mediaType] = listKey;
+  const [photosetType, personId, username, folder, mediaType, timelineFilter] = listKey;
   return queryClient
     .getQueryCache()
     .findAll({ queryKey: [...DateAlbumQueryKeys, photosetType] })
     .flatMap(query => {
-      const [, , albumDateId, page, qPersonId, qUsername, qFolder, qMediaType] = query.queryKey as [
+      const [, , albumDateId, page, qPersonId, qUsername, qFolder, qMediaType, qTimelineFilter] = query.queryKey as [
         string,
         Photoset,
         string,
@@ -69,6 +75,7 @@ function getCachedDateAlbumPages<T>(listKey: DateAlbumsListKey): CachedDateAlbum
         string | undefined,
         string | undefined,
         MediaType | "all",
+        string,
       ];
       const data = query.state.data as { items?: T[] } | undefined;
       if (
@@ -77,7 +84,8 @@ function getCachedDateAlbumPages<T>(listKey: DateAlbumsListKey): CachedDateAlbum
         qPersonId !== personId ||
         qUsername !== username ||
         qFolder !== folder ||
-        qMediaType !== mediaType
+        qMediaType !== mediaType ||
+        qTimelineFilter !== timelineFilter
       ) {
         return [];
       }
@@ -123,22 +131,32 @@ type AlbumDateListOptions = {
   // Optional media-type filter, independent of photosetType (e.g. a person
   // album filtered to videos). Combines with photosetType for photo/video.
   mediaType?: MediaType;
+  // The main timeline's filter, already resolved against the user's saved
+  // default (see components/photolist/timelineFilter.ts). Only "/" sets it.
+  timelineFilter?: TimelineFilter;
 };
 
-// Fetch date albums
-export const useFetchDateAlbumsQuery = (options: AlbumDateListOptions) => {
-  const listKey: DateAlbumsListKey = [
+// The list's query key; useFetchDateAlbumQuery merges its pages into it.
+export function dateAlbumsListKey(options: AlbumDateListOptions): DateAlbumsListKey {
+  return [
     options.photosetType,
     options.person_id,
     options.username,
     options.folder,
     options.mediaType ?? "all",
+    timelineFilterKey(options.timelineFilter),
   ];
+}
+
+// Fetch date albums
+export const useFetchDateAlbumsQuery = (options: AlbumDateListOptions, queryOptions?: { skip?: boolean }) => {
+  const listKey = dateAlbumsListKey(options);
   return useQuery({
     queryKey: [...DateAlbumsQueryKeys, ...listKey],
     queryFn: async () => {
       const params = {
         ...buildDateAlbumFilterParams(options.photosetType, options.mediaType),
+        ...timelineFilterToParams(options.timelineFilter),
         person: options.person_id,
         username: options.username?.toLowerCase(),
         folder: options.folder,
@@ -160,5 +178,6 @@ export const useFetchDateAlbumsQuery = (options: AlbumDateListOptions) => {
       );
       return results;
     },
+    enabled: !queryOptions?.skip,
   });
 };

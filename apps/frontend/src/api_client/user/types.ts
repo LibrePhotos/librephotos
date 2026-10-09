@@ -1,3 +1,4 @@
+import { TimelineFilterDefault } from "@librephotos/api-client";
 import { z } from "zod";
 
 export const PublicPhotoSample = z.object({
@@ -66,6 +67,8 @@ export const User = z.object({
   // Duplicate detection settings
   duplicate_sensitivity: z.enum(["strict", "normal", "loose"]).default("normal"),
   duplicate_clear_existing: z.boolean().default(false),
+  // What the main timeline shows by default (issue #2130); {} shows everything
+  default_timeline_filter: TimelineFilterDefault.optional().default({}),
 });
 
 export const ManageUser = z.object({

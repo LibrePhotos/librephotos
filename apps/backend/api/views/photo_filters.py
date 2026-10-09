@@ -8,6 +8,7 @@ enabling server-side "Select All" operations without sending individual photo ID
 from django.db.models import Q
 
 from api.models import Photo
+from api.timeline_filter import timeline_filter_q
 from api.util import folder_path_q
 
 
@@ -23,14 +24,14 @@ def build_photo_queryset(user, params: dict):
     Args:
         user: The authenticated user making the request
         params: Dictionary of filter parameters:
-            - favorite: bool - Filter by favorite status (rating >= user.favorite_min_rating)
             - public: bool - Only the user's photos that are marked public
             - hidden: bool - Filter by hidden photos
             - in_trashcan: bool - Filter by trashed photos
-            - video: bool - Filter by videos only
-            - photo: bool - Filter by photos only (non-videos)
-            - is_screenshot: bool - Filter by screenshots only
-            - is_document: bool - Filter by documents only
+            - media, video, photo, is_screenshot, is_document,
+              hide_screenshots, hide_documents, favorite, apply_default -
+              the timeline filter, resolved by api.timeline_filter exactly as
+              the date-album endpoints resolve it, so select-all on the
+              timeline acts on what it shows
             - person: int - Filter by person ID (faces)
             - tag: int - Filter by tag ID
             - folder: str - Filter by folder path prefix
@@ -41,10 +42,8 @@ def build_photo_queryset(user, params: dict):
     """
     filters = [Q(thumbnail__aspect_ratio__isnull=False)]
 
-    # Favorite filter
-    if params.get("favorite"):
-        min_rating = user.favorite_min_rating
-        filters.append(Q(rating__gte=min_rating))
+    # Media type, screenshots, documents and favorites
+    filters += timeline_filter_q(user, params)
 
     if params.get("public"):
         filters.append(Q(public=True))
@@ -54,18 +53,6 @@ def build_photo_queryset(user, params: dict):
         filters.append(Q(hidden=True))
     else:
         filters.append(Q(hidden=False))
-
-    # Video/photo type filter
-    if params.get("video"):
-        filters.append(Q(video=True))
-    elif params.get("photo"):
-        filters.append(Q(video=False))
-
-    # Media-category filters (mirrors the video param convention)
-    if params.get("is_screenshot"):
-        filters.append(Q(is_screenshot=True))
-    if params.get("is_document"):
-        filters.append(Q(is_document=True))
 
     # Trashcan filter
     if params.get("in_trashcan"):

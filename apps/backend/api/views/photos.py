@@ -8,7 +8,7 @@ from django.utils import timezone
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
-from rest_framework.exceptions import NotFound
+from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -207,6 +207,10 @@ class NoTimestampPhotoViewSet(ListViewSet):
         return super().list(*args, **kwargs)
 
 
+def _is_list_of_strings(value):
+    return isinstance(value, list) and all(isinstance(item, str) for item in value)
+
+
 class BulkPhotoMutationView(APIView):
     """Set one flag on many of the requester's photos in a single UPDATE.
 
@@ -260,12 +264,44 @@ class BulkPhotoMutationView(APIView):
             refresh_tag_photo_counts(affected_tag_ids)
         return count
 
+    def parse_value(self, data):
+        """The new value from the request body: a JSON boolean.
+
+        Raise ``ValidationError`` (a 400) for a missing or malformed value. A
+        string is refused rather than read by truthiness: ``"false"`` would
+        otherwise trash or hide photos. A subclass whose value is more than a
+        flag checks it here.
+        """
+        value = data.get(self.value_field)
+        if not isinstance(value, bool):
+            raise ValidationError({self.value_field: "Expected true or false."})
+        return value
+
     def post(self, request, format=None):
-        data = dict(request.data)
-        value = data[self.value_field]
-        if data.get("select_all"):
+        data = request.data
+        if not isinstance(data, dict):
+            raise ValidationError("Expected a JSON object.")
+        value = self.parse_value(data)
+        select_all = data.get("select_all", False)
+        if not isinstance(select_all, bool):
+            raise ValidationError({"select_all": "Expected true or false."})
+        if select_all:
+            self.check_select_all(value)
+            if not isinstance(data.get("query", {}), dict):
+                raise ValidationError({"query": "Expected an object."})
+            if not _is_list_of_strings(data.get("excluded_hashes", [])):
+                raise ValidationError({"excluded_hashes": "Expected a list of hashes."})
             return self._post_select_all(request.user, data, value)
-        return self._post_hashes(request.user, data["image_hashes"], value)
+        image_hashes = data.get("image_hashes")
+        if not _is_list_of_strings(image_hashes):
+            raise ValidationError(
+                {"image_hashes": "Expected a list of hashes, or select_all."}
+            )
+        return self._post_hashes(request.user, image_hashes, value)
+
+    def check_select_all(self, value):
+        """Hook: raise ``ValidationError`` if ``value`` may not be applied by
+        select_all."""
 
     def _post_select_all(self, user, data, value):
         from api.views.photo_filters import build_photo_queryset
@@ -399,6 +435,97 @@ class SetPhotosPublic(BulkPhotoMutationView):
 
     def new_values(self, user, value):
         return {"public": value}
+
+
+class SetPhotosCategory(BulkPhotoMutationView):
+    """Mark photos as a photo, a screenshot or a document, or reset them.
+
+    Fixes a wrong automatic category. The categories are exclusive here, and
+    the photos are pinned with ``category_source="user"`` so neither a rescan
+    nor the Classify Media job overwrites the choice. ``category: "auto"``
+    hands the photos back to the detectors: ``category_source`` goes back to
+    ``"auto"`` and both flags are recomputed the way Classify Media computes
+    them (the lightbox's Undo of a first correction). ``category_source`` is
+    never taken from the client.
+    """
+
+    value_field = "category"
+    flag_name = "category"
+    past_tense = {True: "recategorized", False: "recategorized"}
+    select_all_only_changed = True
+    AUTO = "auto"
+    #: (is_screenshot, is_document) for each category.
+    CATEGORY_FLAGS = {
+        "photo": (False, False),
+        "screenshot": (True, False),
+        "document": (False, True),
+    }
+
+    def parse_value(self, data):
+        category = data.get(self.value_field)
+        if not isinstance(category, str) or (
+            category not in self.CATEGORY_FLAGS and category != self.AUTO
+        ):
+            raise ValidationError(
+                {
+                    self.value_field: "Expected one of "
+                    f"{', '.join([*self.CATEGORY_FLAGS, self.AUTO])}."
+                }
+            )
+        return category
+
+    def new_values(self, user, value):
+        is_screenshot, is_document = self.CATEGORY_FLAGS[value]
+        return {
+            "is_screenshot": is_screenshot,
+            "is_document": is_document,
+            "category_source": "user",
+        }
+
+    def check_select_all(self, value):
+        # The reset runs the detectors per photo, inside the request: fine for
+        # the lightbox's Undo of one photo, not for a whole library.
+        if value == self.AUTO:
+            raise ValidationError(
+                {self.value_field: '"auto" takes image_hashes, not select_all.'}
+            )
+
+    def differs(self, user, value):
+        if value == self.AUTO:
+            # A photo still on automatic already has the detectors' flags.
+            return ~Q(category_source="auto")
+        changes = ~Q(**self.new_values(user, value))
+        if value != "photo":
+            # A video is never made a screenshot or a document: the lightbox
+            # offers it no category, and a select-all "Mark as document" on
+            # the timeline would otherwise hide every video for good. "photo"
+            # (and "auto") still reach videos, to clear a wrong flag.
+            changes &= Q(video=False)
+        return changes
+
+    def apply(self, user, photos, value):
+        if value != self.AUTO:
+            return super().apply(user, photos, value)
+        # Per photo, as Classify Media does it: both detectors are DB-only
+        # heuristics (no sidecar call, no file read). Without an OCR row the
+        # document detector has no evidence, so the photo is not a document.
+        from api.directory_watcher.processing_jobs import detect_media_category
+
+        now = timezone.now()
+        reset = []
+        for photo in photos.select_related("ocr", "main_file", "metadata").iterator():
+            is_screenshot, is_document = detect_media_category(photo)
+            photo.is_screenshot = is_screenshot
+            photo.is_document = bool(is_document)
+            photo.category_source = "auto"
+            photo.last_modified = now
+            reset.append(photo)
+        Photo.objects.bulk_update(
+            reset,
+            ["is_screenshot", "is_document", "category_source", "last_modified"],
+            batch_size=200,
+        )
+        return len(reset)
 
 
 class PhotoViewSet(viewsets.ModelViewSet):

@@ -175,3 +175,39 @@ class WritePhotoRatingsJobTest(TestCase):
         ) as write:
             write_photo_ratings([p.pk for p in self.photos], False)
         self.assertEqual(write.call_count, 2)
+
+
+class BulkMutationMalformedBodyTest(TestCase):
+    """A malformed body is a 400, not a KeyError/TypeError 500."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.user = create_test_user()
+        self.client.force_authenticate(user=self.user)
+
+    def test_missing_or_mistyped_fields(self):
+        for url, field in ENDPOINTS:
+            for body in (
+                {field: True},
+                {"image_hashes": ["abc"]},
+                {field: True, "image_hashes": "abc"},
+                {field: True, "select_all": True, "query": ["x"]},
+                # Strings are not read by truthiness: "false" would trash.
+                {field: "false", "image_hashes": ["abc"]},
+                {field: 1, "image_hashes": ["abc"]},
+                {field: True, "select_all": "false", "image_hashes": ["abc"]},
+            ):
+                with self.subTest(url=url, body=body):
+                    response = self.client.post(url, body, format="json")
+                    self.assertEqual(response.status_code, 400)
+
+    def test_string_false_never_trashes(self):
+        photo = create_test_photos(number_of_photos=1, owner=self.user)[0]
+        response = self.client.post(
+            "/api/photosedit/setdeleted/",
+            {"image_hashes": [photo.image_hash], "deleted": "false"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 400)
+        photo.refresh_from_db()
+        self.assertFalse(photo.in_trashcan)

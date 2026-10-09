@@ -10,6 +10,7 @@ export * from "./hooks/usePurgeDeletedPhotosMutation";
 export * from "./hooks/useSetFavoritePhotosMutation";
 export * from "./hooks/useSetPhotosHiddenMutation";
 export * from "./hooks/useSetPhotosPublicMutation";
+export * from "./hooks/useSetPhotosCategoryMutation";
 export * from "./hooks/useUpdatePhotoMutation";
 export * from "./hooks/useUpdatePhotoSharingMutation";
 export * from "./hooks/useSavePhotoCaptionMutation";

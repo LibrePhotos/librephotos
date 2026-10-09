@@ -1,32 +1,69 @@
-import { IconPhoto as Photo } from "@tabler/icons-react";
+import { Text } from "@mantine/core";
+import { IconFilterOff as FilterOff, IconPhoto as Photo } from "@tabler/icons-react";
 import { createFileRoute } from "@tanstack/react-router";
 import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchDateAlbumQuery, useFetchDateAlbumsQuery } from "../../api_client/albums/hooks";
 import { Photoset, PigPhoto } from "../../api_client/photos/types";
 import { EmptyStateConfig, PhotoGroup, PhotoListView } from "../../components/photolist/PhotoListView";
+import {
+  countActiveFilters,
+  describeTimelineFilter,
+  SHOW_EVERYTHING,
+  timelineFilterKey,
+  timelineFilterToBulkQuery,
+  validateTimelineSearch,
+} from "../../components/photolist/timelineFilter";
+import { TimelineFilterPopover } from "../../components/photolist/TimelineFilterPopover";
+import { useTimelineFilter } from "../../components/photolist/useTimelineFilter";
 import { useWorkerStatus } from "../../hooks/useWorkerStatus";
+import { i18nResolvedLanguage } from "../../i18n";
 import { getPhotosFlatFromGroupedByDate } from "../../util/util";
 
 export const Route = createFileRoute("/_protected/")({
   component: TimestampPhotos,
+  // ?media=, ?hide_screenshots=, ?hide_documents=, ?favorites= override the
+  // user's saved default timeline filter key by key; none of them is the
+  // default.
+  validateSearch: validateTimelineSearch,
 });
 
 function TimestampPhotos() {
   const { t } = useTranslation();
   const [photosFlat, setPhotosFlat] = useState<PigPhoto[]>([]);
   const { workerRunningJob } = useWorkerStatus();
+  const {
+    current: filter,
+    saved: savedFilter,
+    ready: filterReady,
+    setFilter,
+    reset: resetFilter,
+    saveAsDefault,
+    saving: savingDefault,
+    libraryEmpty,
+  } = useTimelineFilter();
+  const filterActive = countActiveFilters(filter) > 0;
+  const filterKey = timelineFilterKey(filter);
 
-  const { data: photosGroupedByDate, isLoading, refetch } = useFetchDateAlbumsQuery({ photosetType: Photoset.NONE });
+  // Waits for the saved default: fetching before it loaded would show (and
+  // cache) the unfiltered library for a moment.
+  const {
+    data: photosGroupedByDate,
+    isLoading,
+    refetch,
+  } = useFetchDateAlbumsQuery({ photosetType: Photoset.NONE, timelineFilter: filter }, { skip: !filterReady });
 
   useEffect(() => {
     if (photosGroupedByDate) setPhotosFlat(getPhotosFlatFromGroupedByDate(photosGroupedByDate));
   }, [photosGroupedByDate]);
 
-  const [group, setGroup] = useState({} as PhotoGroup);
+  // The day page to load, with the filter it was asked under: after the
+  // filter changes, a day of the old list is not requested again under the
+  // new filter (it may not even be in the new list).
+  const [group, setGroup] = useState({} as PhotoGroup & { filterKey?: string });
   useFetchDateAlbumQuery(
-    { album_date_id: group.id, page: group.page, photosetType: Photoset.NONE },
-    { skip: !group.id }
+    { album_date_id: group.id, page: group.page, photosetType: Photoset.NONE, timelineFilter: filter },
+    { skip: !group.id || !filterReady || group.filterKey !== filterKey }
   );
 
   const getAlbums = (visibleGroups: any) => {
@@ -36,7 +73,7 @@ function TimestampPhotos() {
         const firstTempObject = visibleImages.filter((i: any) => i.isTemp)[0];
         const page = Math.ceil((parseInt(firstTempObject.id, 10) + 1) / 100);
 
-        setGroup({ id: photoGroup.id, page });
+        setGroup({ id: photoGroup.id, page, filterKey });
       }
     });
   };
@@ -62,6 +99,18 @@ function TimestampPhotos() {
       };
     }
 
+    // An empty library says so even with a saved default; only a filter that
+    // hides photos the library does have gets the "nothing matches" state.
+    if (filterActive && !libraryEmpty) {
+      return {
+        icon: <FilterOff size={40} />,
+        title: t("timelinefilter.empty.title"),
+        description: t("timelinefilter.empty.description"),
+        actionLabel: t("timelinefilter.empty.action"),
+        onAction: () => setFilter(SHOW_EVERYTHING),
+      };
+    }
+
     return {
       icon: <Photo size={40} />,
       title: t("emptystate.photos.title"),
@@ -69,19 +118,50 @@ function TimestampPhotos() {
       actionLabel: t("emptystate.goToLibrary"),
       actionLink: "/library",
     };
-  }, [t, isScanRunning, workerRunningJob, refetch]);
+  }, [t, isScanRunning, workerRunningJob, refetch, filterActive, libraryEmpty, setFilter]);
+
+  // Select-all carries the filter on screen, so "select all, then delete"
+  // never reaches the screenshots or documents the timeline hides.
+  const photosetQuery = useMemo(() => timelineFilterToBulkQuery(filter), [filter]);
+
+  const filterSummary = useMemo(
+    () =>
+      filterActive ? (
+        <Text ta="left" size="sm" c="blue">
+          {t("timelinefilter.filtered", { summary: describeTimelineFilter(filter, t, i18nResolvedLanguage()) })}
+        </Text>
+      ) : null,
+    [filterActive, filter, t]
+  );
+
+  const filterButton = useMemo(
+    () => (
+      <TimelineFilterPopover
+        current={filter}
+        saved={savedFilter}
+        onChange={setFilter}
+        onReset={resetFilter}
+        onSaveDefault={saveAsDefault}
+        saving={savingDefault}
+        ready={filterReady}
+      />
+    ),
+    [filter, savedFilter, setFilter, resetFilter, saveAsDefault, savingDefault, filterReady]
+  );
 
   return (
     <PhotoListView
       title={t("photos.photos")}
-      loading={isLoading}
+      loading={isLoading || !filterReady}
       icon={<Photo size={50} />}
       photoset={photosGroupedByDate ?? []}
       idx2hash={photosFlat}
       updateGroups={getAlbums}
       selectable
       emptyStateConfig={emptyStateConfig}
-      photosetQuery={{}}
+      photosetQuery={photosetQuery}
+      additionalSubHeader={filterSummary}
+      headerActions={filterButton}
     />
   );
 }

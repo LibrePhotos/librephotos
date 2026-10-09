@@ -501,7 +501,10 @@
     "rotatecw": "Rotate 90° Clockwise",
     "rotateccw": "Rotate 90° Counter-Clockwise",
     "tag": "Tags",
-    "tagdescription": "Add tags to the selected photos (shortcut: t)"
+    "tagdescription": "Add tags to the selected photos (shortcut: t)",
+    "markasphoto": "Mark as photo",
+    "markasscreenshot": "Mark as screenshot",
+    "markasdocument": "Mark as document"
   },
   "lightbox": {
     "sidebar": {
@@ -617,6 +620,29 @@
       "copy": "Copy this report",
       "copied": "Copied",
       "copyheading": "LibrePhotos - this video could not be played"
+    },
+    "category": {
+      "title": "Category",
+      "photo": "Photo",
+      "screenshot": "Screenshot",
+      "document": "Document",
+      "detected": "Detected automatically",
+      "setbyyou": "Set by you",
+      "where": {
+        "shown": "Shown in your timeline.",
+        "filtered": "Hidden from your timeline by your filter.",
+        "screenshotshown": "Shown in your timeline and in Screenshots.",
+        "screenshothidden": "Shown in Screenshots. Hidden from your timeline by your filter.",
+        "hiddenphoto": "Hidden items are not shown in your timeline.",
+        "trashed": "Items in the trash are not shown in your timeline."
+      },
+      "kept": "Your choice is kept, even when the library is rescanned or Classify Media runs again.",
+      "marked": {
+        "photo": "Marked as photo",
+        "screenshot": "Marked as screenshot",
+        "document": "Marked as document"
+      },
+      "undo": "Undo"
     }
   },
   "exif": {
@@ -1281,7 +1307,17 @@
     "jobcancelled": "Job has been cancelled",
     "jobcancelledtitle": "Job Cancelled",
     "taggedphotos": "Added {{tags}} to {{count}} photo(s)",
-    "taggedphotostitle": "Photos tagged"
+    "taggedphotostitle": "Photos tagged",
+    "setcategorytitle": "Set category",
+    "setcategory": {
+      "photo_one": "{{count}} item marked as photo.",
+      "photo_other": "{{count}} items marked as photo.",
+      "screenshot_one": "{{count}} item marked as screenshot.",
+      "screenshot_other": "{{count}} items marked as screenshot.",
+      "document_one": "{{count}} item marked as document.",
+      "document_other": "{{count}} items marked as document."
+    },
+    "setcategoryfailed": "The category could not be changed. Please try again."
   },
   "rules": {
     "1": "Local time from DATE_TIME_ORIGINAL Exif tag",
@@ -1472,5 +1508,40 @@
       "duplicate": "Duplicate",
       "error": "Error"
     }
+  },
+  "timelinefilter": {
+    "button": "Filter",
+    "title": "Filter timeline",
+    "activecount_one": "{{count}} filter active",
+    "activecount_other": "{{count}} filters active",
+    "mediatype": "Media type",
+    "media": {
+      "photos": "Photos",
+      "videos": "Videos"
+    },
+    "hide": "Hide from timeline",
+    "screenshots": "Screenshots",
+    "documents": "Documents",
+    "showonly": "Show only",
+    "favorites": "Favorites",
+    "isdefault": "This is your default view",
+    "yourdefault": "Your default: {{summary}}",
+    "reset": "Reset to default",
+    "save": "Save as default",
+    "filtered": "Filtered: {{summary}}",
+    "summary": {
+      "photos": "photos",
+      "videos": "videos",
+      "favorites": "favorites only",
+      "noscreenshots": "no screenshots",
+      "nodocuments": "no documents",
+      "everything": "everything"
+    },
+    "empty": {
+      "title": "Nothing matches this filter",
+      "description": "Change the filter to see more of your library.",
+      "action": "Show everything"
+    },
+    "savefailed": "Your default view could not be saved. Please try again."
   }
 }

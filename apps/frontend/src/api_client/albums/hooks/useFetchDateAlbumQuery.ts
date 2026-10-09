@@ -1,10 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
 import { type MediaType } from "../../../components/photolist/mediaTypeFilter";
+import {
+  timelineFilterKey,
+  timelineFilterToParams,
+  type TimelineFilter,
+} from "../../../components/photolist/timelineFilter";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient, queryClient } from "../../api";
 import { IncompleteDatePhotosGroup, Photoset } from "../../photos/types";
 import { FetchDateAlbumResponse } from "../types";
-import { buildDateAlbumFilterParams, DateAlbumsQueryKeys } from "./useFetchDateAlbumsQuery";
+import { buildDateAlbumFilterParams, dateAlbumsListKey, DateAlbumsQueryKeys } from "./useFetchDateAlbumsQuery";
 
 type AlbumDateOption = {
   photosetType: Photoset;
@@ -14,6 +19,7 @@ type AlbumDateOption = {
   person_id?: number;
   folder?: string;
   mediaType?: MediaType;
+  timelineFilter?: TimelineFilter;
 };
 
 export const DateAlbumQueryKeys = ["dateAlbum"];
@@ -30,10 +36,12 @@ export const useFetchDateAlbumQuery = (options: AlbumDateOption, queryOptions?: 
       options.username,
       options.folder,
       options.mediaType ?? "all",
+      timelineFilterKey(options.timelineFilter),
     ],
     queryFn: async () => {
       const params = {
         ...buildDateAlbumFilterParams(options.photosetType, options.mediaType),
+        ...timelineFilterToParams(options.timelineFilter),
         page: options.page.toString(),
         person: options.person_id?.toString(),
         username: options.username?.toLowerCase(),
@@ -50,14 +58,7 @@ export const useFetchDateAlbumQuery = (options: AlbumDateOption, queryOptions?: 
       const result = parsed.results;
 
       // Get the current data from cache
-      const dateAlbumsQueryKey = [
-        ...DateAlbumsQueryKeys,
-        options.photosetType,
-        options.person_id,
-        options.username,
-        options.folder,
-        options.mediaType ?? "all",
-      ];
+      const dateAlbumsQueryKey = [...DateAlbumsQueryKeys, ...dateAlbumsListKey(options)];
       const oldData = queryClient.getQueryData(dateAlbumsQueryKey) as IncompleteDatePhotosGroup[] | undefined;
 
       if (oldData) {

@@ -172,9 +172,9 @@ def memory_candidates(user):
     documents are dropped on top of that: they are photos the user took, but a
     screenshot from four years ago is not a memory of anything.
     """
-    return build_photo_queryset(user, {}).filter(
-        removed=False, is_screenshot=False, is_document=False
-    )
+    return build_photo_queryset(
+        user, {"hide_screenshots": True, "hide_documents": True}
+    ).filter(removed=False)
 
 
 class MemoriesView(APIView):

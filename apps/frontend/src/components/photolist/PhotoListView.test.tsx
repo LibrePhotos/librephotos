@@ -20,6 +20,7 @@ import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { PhotoListView } from "./PhotoListView";
 
 const pig = vi.hoisted(() => ({ props: [] as any[] }));
+const selectionBar = vi.hoisted(() => ({ props: undefined as any }));
 // TanStack Router's useNavigate returns a stable function.
 const navigate = vi.hoisted(() => () => {});
 const userHooks = vi.hoisted(() => ({
@@ -69,7 +70,12 @@ vi.mock("../sharing/ModalAlbumShare", () => ({ ModalAlbumShare: () => null }));
 vi.mock("../sharing/ModalPhotosShare", () => ({ ModalPhotosShare: () => null }));
 vi.mock("./MediaTypeSelector", () => ({ MediaTypeSelector: () => null }));
 vi.mock("./SelectionActions", () => ({ SelectionActions: () => null }));
-vi.mock("./SelectionBar", () => ({ SelectionBar: () => null }));
+vi.mock("./SelectionBar", () => ({
+  SelectionBar: (props: any) => {
+    selectionBar.props = props;
+    return null;
+  },
+}));
 vi.mock("./TrashcanActions", () => ({ TrashcanActions: () => null }));
 
 const items = [
@@ -269,5 +275,52 @@ describe("PhotoListView display preferences", () => {
     // Both changes arrive in one debounced save, and nothing else is sent.
     expect(userHooks.mutate).toHaveBeenCalledTimes(1);
     expect(userHooks.mutate.mock.calls[0][0]).toEqual({ id: 1, text_alignment: "left", header_size: "small" });
+  });
+});
+
+describe("PhotoListView header actions", () => {
+  // The main timeline's Filter button refetches the view on every toggle; an
+  // open filter popover closed under the pointer when the toolbar unmounted
+  // for the reload (issue #2130).
+  it("keeps headerActions mounted while the view reloads", async () => {
+    let mounts = 0;
+    function Probe() {
+      React.useEffect(() => {
+        mounts += 1;
+      }, []);
+      return <span data-testid="filter-button" />;
+    }
+    const el = await render({ headerActions: <Probe /> });
+    expect(el.querySelector('[data-testid="filter-button"]')).not.toBeNull();
+
+    await render({ headerActions: <Probe />, loading: true });
+    expect(el.querySelector('[data-testid="filter-button"]')).not.toBeNull();
+    await render({ headerActions: <Probe />, loading: false, photoset: [], idx2hash: [] });
+    expect(el.querySelector('[data-testid="filter-button"]')).not.toBeNull();
+    expect(mounts).toBe(1);
+  });
+});
+
+describe("PhotoListView selection", () => {
+  // Select all, change the timeline filter, then delete: the carried-over
+  // select-all query would act on the old filter (issue #2130).
+  it("clears a select-all when the photoset query changes", async () => {
+    await render({ photosetQuery: { hide_screenshots: true } });
+    await act(async () => {
+      selectionBar.props.updateSelectionState({
+        selectMode: true,
+        selectAllMode: true,
+        selectAllQuery: { hide_screenshots: true },
+      });
+    });
+    expect(selectionBar.props.selectAllMode).toBe(true);
+
+    // An equal query passed as a fresh literal keeps the selection.
+    await render({ photosetQuery: { hide_screenshots: true } });
+    expect(selectionBar.props.selectAllMode).toBe(true);
+
+    await render({ photosetQuery: {} });
+    expect(selectionBar.props.selectAllMode).toBe(false);
+    expect(selectionBar.props.selectMode).toBe(false);
   });
 });

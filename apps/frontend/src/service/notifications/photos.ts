@@ -88,6 +88,14 @@ function togglePhotosHidden(numberOfPhotos: number, isHidden: boolean) {
   });
 }
 
+function setPhotosCategory(numberOfPhotos: number, category: "photo" | "screenshot" | "document") {
+  showNotification({
+    message: i18n.t(`toasts.setcategory.${category}`, { count: numberOfPhotos }),
+    title: i18n.t("toasts.setcategorytitle"),
+    color: "teal",
+  });
+}
+
 function startPhotoScan() {
   showNotification({
     message: i18n.t("toasts.scanphotos"),
@@ -212,6 +220,7 @@ export const photos = {
   rotatePhotos,
   savePhotoCaptions,
   scanDirectoryRequired,
+  setPhotosCategory,
   startFullOcrScan,
   startFullPhotoScan,
   startNextcloudPhotoScan,

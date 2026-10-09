@@ -406,6 +406,11 @@ class PhotoSerializer(serializers.ModelSerializer):
             "shared_to",
             "similar_photos",
             "video",
+            # Media category, and whether the user set it ("user") or the
+            # detector did ("auto"); the lightbox shows and changes it.
+            "is_screenshot",
+            "is_document",
+            "category_source",
             "owner",
             "size",
             "height",
@@ -427,6 +432,10 @@ class PhotoSerializer(serializers.ModelSerializer):
             "ocr",
             "local_orientation",
         )
+        # Shown, never written here: a category change goes through
+        # /api/photosedit/category/ (or the PhotoEditSerializer), which pins
+        # category_source="user"; category_source is server-managed.
+        read_only_fields = ("is_screenshot", "is_document", "category_source")
 
     def _get_metadata(self, obj) -> PhotoMetadata | None:
         """Helper to get PhotoMetadata, with caching."""
