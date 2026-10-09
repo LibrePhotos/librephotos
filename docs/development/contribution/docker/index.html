@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.a1e92a76.css">
-<script src="/assets/js/runtime~main.9e705f7c.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.4a2f5a43.js" defer="defer"></script>
 <script src="/assets/js/main.bd7a7c03.js" defer="defer"></script>
 </head>
 <body>
@@ -57,7 +57,7 @@
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="modifying-the-frontend-dockerfile">Modifying the Frontend Dockerfile<a href="#modifying-the-frontend-dockerfile" class="hash-link" aria-label="Direct link to Modifying the Frontend Dockerfile" title="Direct link to Modifying the Frontend Dockerfile" translate="no">​</a></h3>
 <p>The frontend has two Dockerfiles:</p>
 <ul>
-<li class=""><code>deploy/docker/frontend/Dockerfile</code> - Production build (multi-stage: <code>node:22-slim</code> builds <code>dist/</code>, then <code>halverneus/static-file-server</code> serves it on port 3000 behind the nginx proxy)</li>
+<li class=""><code>deploy/docker/frontend/Dockerfile</code> - Production build (multi-stage: <code>node:24-slim</code> builds <code>dist/</code>, then <code>halverneus/static-file-server</code> serves it on port 3000 behind the nginx proxy)</li>
 <li class=""><code>deploy/docker/frontend/Dockerfile.dev</code> - Development build (hot reload)</li>
 </ul>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="modifying-the-proxy-nginx">Modifying the Proxy (Nginx)<a href="#modifying-the-proxy-nginx" class="hash-link" aria-label="Direct link to Modifying the Proxy (Nginx)" title="Direct link to Modifying the Proxy (Nginx)" translate="no">​</a></h3>
