@@ -2,9 +2,10 @@
 
 Marks photos as photo, screenshot or document, by hash or select-all, only
 ever the requester's own, and pins ``category_source="user"`` so a rescan and
-the Classify Media job keep the choice. ``category_source="auto"`` is accepted
-only to undo a change the lightbox just made. The photo detail endpoint serves
-the category, so the lightbox can show and change it.
+the Classify Media job keep the choice. ``category: "auto"`` hands photos back
+to the detectors (the lightbox's Undo of a first correction); clients never
+set ``category_source`` themselves. The photo detail endpoint serves the
+category read-only, so the lightbox can show it.
 """
 
 import uuid
@@ -13,6 +14,8 @@ from django.test import TestCase
 from rest_framework.test import APIClient
 
 from api.directory_watcher.processing_jobs import classify_media
+from api.models import PhotoOcr
+from api.models.album_thing import AlbumThing
 from api.tests.utils import create_test_photo, create_test_user
 
 URL = "/api/photosedit/category/"
@@ -61,20 +64,56 @@ class SetPhotosCategoryTest(TestCase):
         photo.refresh_from_db()
         self.assertEqual(photo.category_source, "user")
 
-    def test_undo_restores_automatic_source(self):
-        photo = create_test_photo(owner=self.user, is_screenshot=True)
+    def test_auto_recomputes_both_flags(self):
+        # A metadata-less PNG with receipt OCR: the detectors call it both a
+        # screenshot and a document. The user said "photo"; "auto" restores
+        # what the detectors say, both flags, which a client-sent previous
+        # category could not (the UI shows one category).
+        photo = create_test_photo(owner=self.user)
+        PhotoOcr.objects.create(
+            photo=photo, text="STORE\nTOTAL 12,50 EUR", text_area_fraction=0.30
+        )
+        tag = AlbumThing.objects.create(
+            title="receipt", thing_type="siglip2_tag", owner=self.user
+        )
+        tag.photos.add(photo)
         self._post({"image_hashes": [photo.image_hash], "category": "photo"})
+        photo.refresh_from_db()
+        before = photo.last_modified
+
+        response = self._post({"image_hashes": [photo.image_hash], "category": "auto"})
+        self.assertEqual(response.status_code, 200, response.content)
+        self.assertEqual(response.json()["updated_hashes"], [photo.image_hash])
+        photo.refresh_from_db()
+        self.assertEqual((photo.is_screenshot, photo.is_document), (True, True))
+        self.assertEqual(photo.category_source, "auto")
+        self.assertGreater(photo.last_modified, before)
+
+    def test_auto_without_ocr_is_not_a_document(self):
+        photo = create_test_photo(owner=self.user, camera_model="Canon EOS")
+        self._post({"image_hashes": [photo.image_hash], "category": "document"})
+        self._post({"image_hashes": [photo.image_hash], "category": "auto"})
+        photo.refresh_from_db()
+        self.assertEqual((photo.is_screenshot, photo.is_document), (False, False))
+        self.assertEqual(photo.category_source, "auto")
+
+    def test_auto_leaves_photos_already_on_automatic(self):
+        photo = create_test_photo(owner=self.user, camera_model="Canon EOS")
+        response = self._post({"image_hashes": [photo.image_hash], "category": "auto"})
+        self.assertEqual(response.json()["not_updated_hashes"], [photo.image_hash])
+
+    def test_client_category_source_is_ignored(self):
+        photo = create_test_photo(owner=self.user)
         response = self._post(
             {
                 "image_hashes": [photo.image_hash],
-                "category": "screenshot",
+                "category": "photo",
                 "category_source": "auto",
             }
         )
         self.assertEqual(response.status_code, 200)
         photo.refresh_from_db()
-        self.assertTrue(photo.is_screenshot)
-        self.assertEqual(photo.category_source, "auto")
+        self.assertEqual(photo.category_source, "user")
 
     def test_select_all_uses_the_shared_query(self):
         plain = create_test_photo(owner=self.user)
@@ -98,16 +137,20 @@ class SetPhotosCategoryTest(TestCase):
         # doc was outside the query: untouched.
         self.assertEqual(doc.category_source, "auto")
 
-    def test_rejects_unknown_values(self):
+    def test_malformed_bodies_are_a_400(self):
         photo = create_test_photo(owner=self.user)
+        hashes = [photo.image_hash]
         for body in (
-            {"image_hashes": [photo.image_hash], "category": "video"},
-            {"image_hashes": [photo.image_hash]},
-            {
-                "image_hashes": [photo.image_hash],
-                "category": "photo",
-                "category_source": "admin",
-            },
+            {"image_hashes": hashes, "category": "video"},
+            {"image_hashes": hashes},
+            {"image_hashes": hashes, "category": ["photo"]},
+            {"image_hashes": hashes, "category": None},
+            {"category": "photo"},
+            {"category": "photo", "image_hashes": photo.image_hash},
+            {"category": "photo", "image_hashes": [1, 2]},
+            {"category": "photo", "select_all": True, "query": "all"},
+            {"category": "photo", "select_all": True, "excluded_hashes": "x"},
+            ["photo"],
         ):
             with self.subTest(body=body):
                 self.assertEqual(self._post(body).status_code, 400)
@@ -179,17 +222,16 @@ class UserCategorySurvivesClassificationTest(TestCase):
         self.assertFalse(photo.is_screenshot)
         self.assertEqual(photo.category_source, "user")
 
-    def test_classify_media_still_reclassifies_after_undo(self):
+    def test_classify_media_still_reclassifies_after_auto(self):
         photo = create_test_photo(owner=self.user)
-        self.client.post(
-            URL,
-            {
-                "image_hashes": [photo.image_hash],
-                "category": "photo",
-                "category_source": "auto",
-            },
-            format="json",
-        )
+        for category in ("photo", "auto"):
+            self.client.post(
+                URL,
+                {"image_hashes": [photo.image_hash], "category": category},
+                format="json",
+            )
+        photo.is_screenshot = False
+        photo.save(update_fields=["is_screenshot"])
         classify_media(self.user, uuid.uuid4())
         photo.refresh_from_db()
         self.assertTrue(photo.is_screenshot)
@@ -205,3 +247,21 @@ class PhotoDetailCategoryFieldsTest(TestCase):
         self.assertEqual(data["is_screenshot"], False)
         self.assertEqual(data["is_document"], True)
         self.assertEqual(data["category_source"], "user")
+
+    def test_photo_patch_cannot_write_the_category(self):
+        # PhotoViewSet's PATCH lets an owner write PhotoSerializer fields; the
+        # category is read-only there, so category_source stays server-managed.
+        user = create_test_user()
+        photo = create_test_photo(owner=user)
+        client = APIClient()
+        client.force_authenticate(user=user)
+        response = client.patch(
+            f"/api/photos/{photo.image_hash}/",
+            {"category_source": "garbage", "is_screenshot": True, "is_document": True},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200, response.content)
+        photo.refresh_from_db()
+        self.assertEqual(photo.category_source, "auto")
+        self.assertFalse(photo.is_screenshot)
+        self.assertFalse(photo.is_document)

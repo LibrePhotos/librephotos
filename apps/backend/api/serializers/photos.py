@@ -432,6 +432,10 @@ class PhotoSerializer(serializers.ModelSerializer):
             "ocr",
             "local_orientation",
         )
+        # Shown, never written here: a category change goes through
+        # /api/photosedit/category/ (or the PhotoEditSerializer), which pins
+        # category_source="user"; category_source is server-managed.
+        read_only_fields = ("is_screenshot", "is_document", "category_source")
 
     def _get_metadata(self, obj) -> PhotoMetadata | None:
         """Helper to get PhotoMetadata, with caching."""
