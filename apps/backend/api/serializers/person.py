@@ -95,15 +95,17 @@ class PersonSerializer(serializers.ModelSerializer):
         )
         return image_hash or ""
 
-    def get_video(self, obj) -> str:
+    def get_video(self, obj) -> bool:
         if obj.cover_photo:
-            return obj.cover_photo.video
+            return bool(obj.cover_photo.video)
         video = self._first_face_value(
             obj,
             "first_face_photo_video",
             lambda face: face.photo.video if face.photo else None,
         )
-        return "False" if video is None else video
+        # A boolean, never the string "False": the frontend parses the list
+        # strictly, so one person without faces would empty it (#2151).
+        return bool(video)
 
     def _requester(self):
         return getattr(self.context.get("request"), "user", None)
