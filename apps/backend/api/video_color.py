@@ -32,6 +32,7 @@ value existed keeps working until the backfill reaches it.
 
 import json
 import logging
+import os
 import shutil
 import subprocess
 
@@ -46,6 +47,11 @@ logger = logging.getLogger(__name__)
 # it reports -- bt709, smpte170m, an empty string for a file that does not say
 # -- is already SDR and has to be left alone.
 HDR_TRANSFERS = frozenset({"smpte2084", "arib-std-b67"})
+
+# The pixel formats libx264 was already handed as 8-bit 4:2:0 before every
+# conversion forced it. A source in anything else came out High 10 or High
+# 4:2:2 -- a thumbnail or cached copy no browser plays.
+BROWSER_PIXEL_FORMATS = frozenset({"yuv420p", "yuvj420p"})
 
 # npl=100 is the display being mapped *to*, not the one the source was graded
 # for: 100 nits is SDR reference white.
@@ -116,8 +122,14 @@ def probe(path):
 
     A value the file does not carry comes back as an empty string, which is an
     answer: an untagged video is SDR. ``None`` means there is no answer yet --
-    no ffprobe, a file that cannot be read right now -- and is what makes the
-    backfill try again on the next scan instead of settling on a guess.
+    no ffprobe, a file that is not there right now, such as one on a drive
+    that is not mounted -- and is what makes the backfill try again on the next
+    scan instead of settling on a guess.
+
+    A file that is there and that ffprobe refuses (a truncated upload, a
+    "moov atom not found") is answered with empty strings, as if untagged.
+    Asking it again would only fail again, and would queue the backfill after
+    every scan for good; the live probe it replaces read it as SDR as well.
     """
     if not can_probe():
         return None
@@ -143,6 +155,8 @@ def probe(path):
             logger.warning(
                 "could not probe %s: %s", path, (completed.stderr or "").strip()
             )
+            if os.path.isfile(path):
+                return dict.fromkeys(PROBED_FIELDS, "")
             return None
         output = json.loads(completed.stdout)
         sections = {
@@ -174,6 +188,21 @@ def record(photo):
         setattr(photo, field, value)
     photo.save(save_metadata=False, update_fields=list(values))
     return True
+
+
+def converted_wrongly_before(photo):
+    """Whether what was made from ``photo`` before it was probed is unusable.
+
+    Thumbnails and the cached copy made before every conversion was tonemapped
+    and forced to 8-bit 4:2:0: an HDR source's came out washed out, a 10-bit or
+    4:2:2 one's came out as an H.264 profile browsers do not play. Both stay
+    that way, since a thumbnail or cached copy that exists is kept. An empty
+    pixel format is a file that did not say, and is left alone.
+    """
+    if photo.video_color_transfer in HDR_TRANSFERS:
+        return True
+    pixel_format = photo.video_pixel_format or ""
+    return bool(pixel_format) and pixel_format not in BROWSER_PIXEL_FORMATS
 
 
 def transfer_characteristics(path):

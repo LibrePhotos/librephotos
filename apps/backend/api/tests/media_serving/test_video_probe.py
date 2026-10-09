@@ -103,7 +103,18 @@ class ProbeTest(SimpleTestCase):
         """The drive may just not be mounted: None, so it is tried again."""
         run = _ffprobe("{\n\n}", returncode=1, stderr="Invalid data found")
         with mock.patch.object(video_color.subprocess, "run", run):
-            self.assertIsNone(video_color.probe("/v.mov"))
+            with mock.patch.object(video_color.os.path, "isfile", return_value=False):
+                self.assertIsNone(video_color.probe("/v.mov"))
+
+    def test_a_file_that_is_there_but_unreadable_is_settled_as_untagged(self):
+        """Retrying a broken file only fails again, and requeues the backfill."""
+        run = _ffprobe("{\n\n}", returncode=1, stderr="moov atom not found")
+        with mock.patch.object(video_color.subprocess, "run", run):
+            with mock.patch.object(video_color.os.path, "isfile", return_value=True):
+                self.assertEqual(
+                    video_color.probe("/v.mov"),
+                    dict.fromkeys(video_color.PROBED_FIELDS, ""),
+                )
 
     def test_ffprobe_blowing_up_has_no_answer(self):
         for side_effect in (
@@ -408,26 +419,36 @@ class ProbeVideosBackfillTest(TestCase):
         self._video(video_color_transfer="")  # probed, untagged
         self._video(video_color_transfer="bt709")
         self._video(removed=True)
+        missing = self._video()
+        missing.main_file.missing = True
+        missing.main_file.save(update_fields=["missing"])
         create_test_photo(owner=self.user, video=False)
         create_test_photo(owner=create_test_user(), video=True)  # someone else's
         self.assertEqual(list(processing_jobs.videos_to_probe(self.user)), [unprobed])
 
     def _run(self):
         job_id = "00000000-0000-0000-0000-000000000019"
-        with mock.patch.object(
-            Thumbnail, "_regenerate_thumbnails", autospec=True
-        ) as regenerate:
+        with (
+            mock.patch.object(
+                Thumbnail, "_regenerate_thumbnails", autospec=True
+            ) as regenerate,
+            mock.patch.object(transcode_cache, "discard") as discard,
+        ):
             processing_jobs.probe_videos(self.user, job_id)
+        self.discarded = [call.args[0] for call in discard.call_args_list]
         return LongRunningJob.objects.get(job_id=job_id), regenerate
 
     def _probe_saying(self, by_path):
         def probe(path):
-            transfer = by_path[path]
-            if transfer is None:
+            answer = by_path[path]
+            if answer is None:
                 return None
+            transfer, pixel_format = (
+                answer if isinstance(answer, tuple) else (answer, "yuv420p10le")
+            )
             return {
                 "video_codec": "hevc",
-                "video_pixel_format": "yuv420p10le",
+                "video_pixel_format": pixel_format,
                 "video_color_transfer": transfer,
                 "video_container": "mov,mp4,m4a,3gp,3g2,mj2",
             }
@@ -438,7 +459,7 @@ class ProbeVideosBackfillTest(TestCase):
         hdr = self._video()
         sdr = self._video()
         with self._probe_saying(
-            {hdr.main_file.path: "smpte2084", sdr.main_file.path: ""}
+            {hdr.main_file.path: "smpte2084", sdr.main_file.path: ("", "yuv420p")}
         ):
             job, regenerate = self._run()
         hdr.refresh_from_db()
@@ -448,8 +469,30 @@ class ProbeVideosBackfillTest(TestCase):
         self.assertEqual(sdr.video_codec, "hevc")
         rebuilt = [call.args[0].photo_id for call in regenerate.call_args_list]
         self.assertEqual(rebuilt, [hdr.pk])
+        self.assertEqual(self.discarded, [hdr.image_hash])
         self.assertTrue(job.finished)
         self.assertEqual(job.progress_current, 2)
+
+    def test_a_10_bit_or_422_sdr_video_is_rebuilt_too(self):
+        """Its old animated thumbnail and cached copy are High 10 / High 4:2:2."""
+        ten_bit = self._video()
+        four_two_two = self._video()
+        eight_bit = self._video()
+        untold = self._video()
+        with self._probe_saying(
+            {
+                ten_bit.main_file.path: ("", "yuv420p10le"),
+                four_two_two.main_file.path: ("bt709", "yuv422p"),
+                eight_bit.main_file.path: ("bt709", "yuvj420p"),
+                untold.main_file.path: ("", ""),
+            }
+        ):
+            _, regenerate = self._run()
+        rebuilt = {call.args[0].photo_id for call in regenerate.call_args_list}
+        self.assertEqual(rebuilt, {ten_bit.pk, four_two_two.pk})
+        self.assertEqual(
+            set(self.discarded), {ten_bit.image_hash, four_two_two.image_hash}
+        )
 
     def test_a_video_that_cannot_be_read_stays_unprobed_for_next_time(self):
         gone = self._video()

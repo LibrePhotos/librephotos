@@ -90,6 +90,8 @@ class Person(models.Model):
                         "owner__id",
                         "public",
                         "hidden",
+                        "video",
+                        "video_color_transfer",
                     )
                     .prefetch_related("owner"),
                 )

@@ -15,7 +15,7 @@ from django import db
 from django.db.models import Q
 from django_q.tasks import AsyncTask
 
-from api import sidecars, video_color
+from api import sidecars, transcode_cache, video_color
 from api.document_detection import classify_document
 from api.face_classify import cluster_all_faces
 from api.geocode.photo_location import add_location_to_album_dates, geolocate_photo
@@ -585,11 +585,16 @@ def classify_media(user, job_id: UUID):
 
 
 def videos_to_probe(user):
-    """The user's videos the scan has never probed: indexed before #2045."""
+    """The user's videos the scan has never probed: indexed before #2045.
+
+    A file flagged missing is left out: probing it can only fail, and counting
+    it would queue this job after every scan until the drive comes back.
+    """
     return Photo.objects.owned_by(user).filter(
         video=True,
         video_color_transfer__isnull=True,
         main_file__isnull=False,
+        main_file__missing=False,
         removed=False,
     )
 
@@ -600,10 +605,12 @@ def probe_videos(user, job_id: UUID):
     New videos are probed as they are scanned. Older ones would never be: the
     scan skips a file it already knows. Until they are, every conversion of one
     probes the file itself, and their thumbnails date from before HDR sources
-    were tonemapped -- ``_generate_thumbnail`` keeps a thumbnail that exists, so
-    a washed-out one stays washed out. This fills the fields in and rebuilds the
-    thumbnails of the HDR ones, and only those: an SDR thumbnail was already
-    right.
+    were tonemapped and every output was forced to 8-bit 4:2:0 --
+    ``_generate_thumbnail`` keeps a thumbnail that exists, so a washed-out or
+    unplayable one stays that way, and so does the cached copy. This fills the
+    fields in and, for the videos :func:`video_color.converted_wrongly_before`
+    names, drops the cached copy and rebuilds the thumbnails. An 8-bit 4:2:0
+    SDR video's were already right.
 
     A video that cannot be probed right now -- ffprobe missing, the file on a
     drive that is not mounted -- is left unprobed and tried again after the
@@ -625,7 +632,8 @@ def probe_videos(user, job_id: UUID):
             try:
                 if not video_color.record(photo):
                     error = f"Photo {photo.image_hash}: could not probe the video"
-                elif photo.video_color_transfer in video_color.HDR_TRANSFERS:
+                elif video_color.converted_wrongly_before(photo):
+                    transcode_cache.discard(photo.image_hash)
                     thumbnail = getattr(photo, "thumbnail", None)
                     if thumbnail is not None:
                         thumbnail._regenerate_thumbnails()
