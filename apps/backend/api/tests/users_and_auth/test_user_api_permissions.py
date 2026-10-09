@@ -66,6 +66,7 @@ class UserTest(TestCase):
         "slideshow_interval",
         "duplicate_sensitivity",
         "duplicate_clear_existing",
+        "default_timeline_filter",
         "cluster_selection_epsilon",
         "llm_settings",
         "text_alignment",

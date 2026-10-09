@@ -65,9 +65,10 @@ def parse_tristate(value):
 
 @dataclass(frozen=True)
 class TimelineFilter:
-    """A resolved filter. ``screenshots`` / ``documents`` are ``any``,
-    ``hide`` or ``only``; ``only`` is never saved as a default, it is what the
-    Screenshots page asks for."""
+    """A resolved filter. ``media`` is one of ``MEDIA_CHOICES`` or ``none``
+    (``?video=true&photo=true`` asks for both and gets neither).
+    ``screenshots`` / ``documents`` are ``any``, ``hide`` or ``only``; ``only``
+    is never saved as a default, it is what the Screenshots page asks for."""
 
     media: str = "all"
     screenshots: str = "any"
@@ -84,9 +85,9 @@ class TimelineFilter:
         the day and its other photos.
         """
         filters = []
-        if self.media == "photos":
+        if self.media in ("photos", "none"):
             filters.append(Q(**{f"{prefix}video": False}))
-        elif self.media == "videos":
+        if self.media in ("videos", "none"):
             filters.append(Q(**{f"{prefix}video": True}))
         for field, mode in (
             ("is_screenshot", self.screenshots),
@@ -126,14 +127,18 @@ def _media_override(params):
     media = params.get("media")
     if media in MEDIA_CHOICES:
         return media
+    # The older params narrow the media types allowed; both together leave
+    # none, as two filters on the same photo always did on the timeline.
+    allowed = {"photos", "videos"}
     video = parse_tristate(params.get("video"))
     photo = parse_tristate(params.get("photo"))
-    # ``video`` wins over ``photo``, as it always did.
     if video is not None:
-        return "videos" if video else "photos"
+        allowed.discard("photos" if video else "videos")
     if photo is not None:
-        return "photos" if photo else "videos"
-    return None
+        allowed.discard("videos" if photo else "photos")
+    if len(allowed) == 2:
+        return None
+    return allowed.pop() if allowed else "none"
 
 
 def _category_override(params, only_param, hide_param):

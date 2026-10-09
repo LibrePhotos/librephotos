@@ -129,6 +129,10 @@ class ResolveTimelineFilterTest(SimpleTestCase):
             resolve_timeline_filter(user, {"video": "false"}).media, "photos"
         )
         self.assertEqual(resolve_timeline_filter(user, {"photo": True}).media, "photos")
+        # Both at once match nothing, on every endpoint alike.
+        both = resolve_timeline_filter(user, {"video": "true", "photo": "true"})
+        self.assertEqual(both.media, "none")
+        self.assertEqual(len(both.q(user)), 2)
 
     def test_unknown_media_value_is_ignored(self):
         self.assertEqual(
