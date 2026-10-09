@@ -611,9 +611,13 @@ class SignupUserSerializer(serializers.ModelSerializer):
 
 
 class DeleteUserSerializer(serializers.ModelSerializer):
+    # DeleteUserViewSet only deletes and never renders a user, but the schema
+    # generator still describes this serializer: keep it to the id rather than
+    # "__all__", which named the password hash and every other column.
     class Meta:
         model = get_user_model()
-        fields = "__all__"
+        fields = ("id",)
+        read_only_fields = ("id",)
 
 
 class ManageUserSerializer(serializers.ModelSerializer):
