@@ -133,6 +133,6 @@
   },
   "resolutions": {
     "react-i18next": "^17.0.0",
-    "nwsapi": "2.2.28"
+    "nwsapi": "2.2.13"
   }
 }
