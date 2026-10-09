@@ -183,11 +183,10 @@ To remove photos from a User Album:
 This only removes the photos from the album. The original photos remain in your library.
 :::
 
-
 ## Locking user albums (unreleased)
 
 In the user album list, open an album’s three-dot menu and choose **Lock album**. A lock icon marks locked albums. Choose **Unlock album** from the same menu to allow changes again.
 
-Locking prevents adding photos to the album or removing photos from it. Locked albums are disabled in the add-to-album picker. In a locked album’s selection menu, photo editing and deletion actions are disabled; viewing and downloading remain available. You can still rename the album, change its cover, and manage album sharing.
+Locking prevents adding photos to the album or removing photos from it. Locked albums are disabled in the add-to-album picker, and **Remove from album** is disabled in a locked album’s selection menu. The lock protects which photos are in the album, not the photos themselves: you can still favorite, hide, share, tag or delete them, rename the album, change its cover, and manage album sharing.
 
 The API enforces the album membership lock. This does not protect the underlying photos from changes made elsewhere in your library or prevent deleting the album itself.

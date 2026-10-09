@@ -126,6 +126,6 @@ export const UserAlbumEdit = z.object({
   photos: z.string().array(),
   created_on: z.string(),
   favorited: z.boolean(),
-  locked: z.boolean(),
+  locked: z.boolean().optional().default(false),
   removedPhotos: z.string().array().optional(),
 });

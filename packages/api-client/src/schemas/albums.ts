@@ -36,7 +36,7 @@ export const UserAlbumInfo = z.object({
   shared_to: SimpleUser.array(),
   created_on: z.string(),
   favorited: z.boolean(),
-  locked: z.boolean(),
+  locked: z.boolean().optional().default(false),
   public: z.boolean().optional(),
 });
 export type UserAlbumInfo = z.infer<typeof UserAlbumInfo>;

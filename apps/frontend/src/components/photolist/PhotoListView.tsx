@@ -382,7 +382,7 @@ function PhotoListViewComponent({
       "t",
       () => {
         const { selectMode, selectAllMode, selectedItems } = selectionStateRef.current;
-        if (!isPublic && !albumLocked && (selectAllMode || (selectMode && selectedItems.length > 0))) {
+        if (!isPublic && (selectAllMode || (selectMode && selectedItems.length > 0))) {
           setModalTagOpen(true);
         }
       },
@@ -783,7 +783,7 @@ function PhotoListViewComponent({
                     onSharePhotos={() => setModalSharePhotosOpen(true)}
                     onShareAlbum={() => setModalAlbumShareOpen(true)}
                     onAddToAlbum={() => setModalAddToAlbumOpen(true)}
-                    onAddTags={() => !albumLocked && setModalTagOpen(true)}
+                    onAddTags={() => setModalTagOpen(true)}
                     updateSelectionState={updateSelectionState}
                   />
                 )}

@@ -159,6 +159,7 @@ class AlbumUserEditSerializer(serializers.ModelSerializer):
             user = request.user
 
         # check if an album exists with the given title and call the update method if it does
+        # (update() refuses to change a locked album's photos)
         instance, created = AlbumUser.objects.get_or_create(title=title, owner=user)
         if not created:
             return self.update(instance, validated_data)
@@ -166,6 +167,8 @@ class AlbumUserEditSerializer(serializers.ModelSerializer):
         photo_pks = self._resolve_new_photo_pks(validated_data)
         if photo_pks:
             instance.photos.add(*photo_pks)
+        if "locked" in validated_data:
+            instance.locked = validated_data["locked"]
         instance.save()
         logger.info(f"Created user album {instance.id} with {len(photo_pks)} photos")
         return instance

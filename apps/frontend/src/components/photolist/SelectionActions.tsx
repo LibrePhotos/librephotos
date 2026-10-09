@@ -219,7 +219,7 @@ export function SelectionActions(props: Readonly<Props>) {
                   t
                 </Text>
               }
-              disabled={!hasSelection || albumLocked}
+              disabled={!hasSelection}
               onClick={() => hasSelection && onAddTags()}
             >
               {t("selectionactions.tag")}
@@ -245,7 +245,7 @@ export function SelectionActions(props: Readonly<Props>) {
 
           <Menu.Item
             leftSection={<Star />}
-            disabled={!hasSelection || albumLocked}
+            disabled={!hasSelection}
             onClick={() => {
               if (selectAllMode) {
                 setFavoritePhotos.mutate({
@@ -268,7 +268,7 @@ export function SelectionActions(props: Readonly<Props>) {
 
           <Menu.Item
             leftSection={<StarOff />}
-            disabled={!hasSelection || albumLocked}
+            disabled={!hasSelection}
             onClick={() => {
               if (selectAllMode) {
                 setFavoritePhotos.mutate({
@@ -293,7 +293,7 @@ export function SelectionActions(props: Readonly<Props>) {
 
           <Menu.Item
             leftSection={<EyeOff />}
-            disabled={!hasSelection || albumLocked}
+            disabled={!hasSelection}
             onClick={() => {
               if (selectAllMode) {
                 setPhotosHidden.mutate({
@@ -316,7 +316,7 @@ export function SelectionActions(props: Readonly<Props>) {
 
           <Menu.Item
             leftSection={<Eye />}
-            disabled={!hasSelection || albumLocked}
+            disabled={!hasSelection}
             onClick={() => {
               if (selectAllMode) {
                 setPhotosHidden.mutate({
@@ -355,7 +355,7 @@ export function SelectionActions(props: Readonly<Props>) {
 
           <Menu.Item
             leftSection={<Globe />}
-            disabled={!hasSelection || albumLocked}
+            disabled={!hasSelection}
             onClick={() => {
               if (selectAllMode) {
                 setPhotosPublic.mutate({
@@ -383,7 +383,7 @@ export function SelectionActions(props: Readonly<Props>) {
 
           <Menu.Item
             leftSection={<Key />}
-            disabled={!hasSelection || albumLocked}
+            disabled={!hasSelection}
             onClick={() => {
               if (selectAllMode) {
                 setPhotosPublic.mutate({
@@ -414,7 +414,7 @@ export function SelectionActions(props: Readonly<Props>) {
 
           <Menu.Item
             leftSection={<Trash />}
-            disabled={!hasSelection || albumLocked}
+            disabled={!hasSelection}
             onClick={() => {
               if (selectAllMode) {
                 setPhotosDeleted.mutate({
@@ -439,7 +439,7 @@ export function SelectionActions(props: Readonly<Props>) {
 
           <Menu.Item
             leftSection={<Share />}
-            disabled={!hasSelection || albumLocked}
+            disabled={!hasSelection}
             onClick={() => {
               if (hasSelection) {
                 onSharePhotos();
@@ -456,7 +456,7 @@ export function SelectionActions(props: Readonly<Props>) {
 
           <Menu.Item
             leftSection={<IconStack2 size={16} />}
-            disabled={!hasSelection || albumLocked || selectAllMode || selectedItems.length < 2}
+            disabled={!hasSelection || selectAllMode || selectedItems.length < 2}
             onClick={() => {
               if (!selectAllMode && selectedItems.length >= 2) {
                 createManualStack.mutate(
@@ -475,7 +475,7 @@ export function SelectionActions(props: Readonly<Props>) {
 
           <Menu.Item
             leftSection={<IconLayersLinked size={16} />}
-            disabled={!hasSelection || albumLocked || selectAllMode || !hasPhotosInManualStacks()}
+            disabled={!hasSelection || selectAllMode || !hasPhotosInManualStacks()}
             onClick={() => {
               if (!selectAllMode && hasPhotosInManualStacks()) {
                 mergeStacks.mutate(
@@ -494,7 +494,7 @@ export function SelectionActions(props: Readonly<Props>) {
 
           <Menu.Item
             leftSection={<IconLayersSubtract size={16} />}
-            disabled={!hasSelection || albumLocked || selectAllMode || !hasPhotosInManualStacks()}
+            disabled={!hasSelection || selectAllMode || !hasPhotosInManualStacks()}
             onClick={() => {
               if (!selectAllMode && hasPhotosInManualStacks()) {
                 const stackPhotos = getManualStacksFromSelection();

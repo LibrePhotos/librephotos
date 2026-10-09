@@ -17,6 +17,7 @@ vi.mock("../../api_client/photos/hooks", () => ({
   useSetFavoritePhotosMutation: () => ({ mutate: vi.fn() }),
   useSetPhotosHiddenMutation: () => ({ mutate: vi.fn() }),
   useSetPhotosPublicMutation: () => ({ mutate: vi.fn() }),
+  useSetPhotosCategoryMutation: () => ({ mutate: vi.fn() }),
 }));
 vi.mock("../../api_client/jobs", () => ({ useDownloadPhotosMutation: () => ({ mutate: vi.fn() }) }));
 vi.mock("../../api_client/stacks", () => ({
@@ -33,7 +34,9 @@ beforeAll(async () => {
   await i18n.changeLanguage("en");
 });
 describe("locked album selection actions", () => {
-  it.each([true, false])("gates deletion and removal when locked=%s", async locked => {
+  // A lock protects the album's photo set: only "Remove from album" is gated;
+  // the photos themselves can still be favorited, hidden, shared or deleted.
+  it.each([true, false])("gates only removal from the album when locked=%s", async locked => {
     hooks.remove.mockClear();
     hooks.deleted.mockClear();
     const container = document.createElement("div");
@@ -79,14 +82,13 @@ describe("locked album selection actions", () => {
       expect(remove).toBeDefined();
       expect(deleted).toBeDefined();
       expect(remove!.disabled).toBe(locked);
-      expect(deleted!.disabled).toBe(locked);
-      expect(menuItem("selectionactions.download")!.disabled).toBe(false);
+      expect(deleted!.disabled).toBe(false);
+      for (const key of ["selectionactions.download", "selectionactions.favorite", "selectionactions.hide"]) {
+        const item = menuItem(key);
+        expect(item?.disabled).toBe(false);
+      }
       await act(async () => remove!.click());
       expect(hooks.remove).toHaveBeenCalledTimes(locked ? 0 : 1);
-      if (locked) {
-        await act(async () => deleted!.click());
-        expect(hooks.deleted).not.toHaveBeenCalled();
-      }
     } finally {
       await act(async () => root.unmount());
       container.remove();
