@@ -406,6 +406,11 @@ class PhotoSerializer(serializers.ModelSerializer):
             "shared_to",
             "similar_photos",
             "video",
+            # Media category, and whether the user set it ("user") or the
+            # detector did ("auto"); the lightbox shows and changes it.
+            "is_screenshot",
+            "is_document",
+            "category_source",
             "owner",
             "size",
             "height",

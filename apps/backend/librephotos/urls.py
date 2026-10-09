@@ -253,6 +253,7 @@ urlpatterns = [
     re_path(r"^api/photosedit/favorite", photos.SetPhotosFavorite.as_view()),
     re_path(r"^api/photosedit/hide", photos.SetPhotosHidden.as_view()),
     re_path(r"^api/photosedit/makepublic", photos.SetPhotosPublic.as_view()),
+    re_path(r"^api/photosedit/category", photos.SetPhotosCategory.as_view()),
     re_path(r"^api/photosedit/share", photos.SetPhotosShared.as_view()),
     re_path(r"^api/photosedit/generateim2txt", photos.GeneratePhotoCaption.as_view()),
     re_path(r"^api/photosedit/savecaption", photos.SavePhotoCaption.as_view()),

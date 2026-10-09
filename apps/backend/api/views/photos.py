@@ -401,6 +401,58 @@ class SetPhotosPublic(BulkPhotoMutationView):
         return {"public": value}
 
 
+class SetPhotosCategory(BulkPhotoMutationView):
+    """Mark photos as a photo, a screenshot or a document.
+
+    Fixes a wrong automatic category. The categories are exclusive here, and
+    the photos are pinned with ``category_source="user"`` so neither a rescan
+    nor the Classify Media job overwrites the choice. ``category_source:
+    "auto"`` puts back a detected category: the lightbox's Undo sends it.
+    """
+
+    value_field = "category"
+    flag_name = "category"
+    past_tense = {True: "recategorised", False: "recategorised"}
+    select_all_only_changed = True
+    #: (is_screenshot, is_document) for each category.
+    CATEGORY_FLAGS = {
+        "photo": (False, False),
+        "screenshot": (True, False),
+        "document": (False, True),
+    }
+    CATEGORY_SOURCES = ("user", "auto")
+
+    def post(self, request, format=None):
+        data = dict(request.data)
+        category = data.get("category")
+        source = data.get("category_source", "user")
+        if category not in self.CATEGORY_FLAGS or source not in self.CATEGORY_SOURCES:
+            return Response(
+                {
+                    "detail": "category must be one of "
+                    f"{', '.join(self.CATEGORY_FLAGS)}, and category_source "
+                    f"one of {', '.join(self.CATEGORY_SOURCES)}."
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        value = (category, source)
+        if data.get("select_all"):
+            return self._post_select_all(request.user, data, value)
+        return self._post_hashes(request.user, data["image_hashes"], value)
+
+    def new_values(self, user, value):
+        category, source = value
+        is_screenshot, is_document = self.CATEGORY_FLAGS[category]
+        return {
+            "is_screenshot": is_screenshot,
+            "is_document": is_document,
+            "category_source": source,
+        }
+
+    def differs(self, user, value):
+        return ~Q(**self.new_values(user, value))
+
+
 class PhotoViewSet(viewsets.ModelViewSet):
     serializer_class = PhotoSerializer
     pagination_class = HugeResultsSetPagination
