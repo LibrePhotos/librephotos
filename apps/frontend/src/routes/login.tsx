@@ -230,6 +230,8 @@ function FirstTimeSetupPage({ onComplete }: FirstTimeSetupProps): JSX.Element {
   const [activeStep, setActiveStep] = useState(0);
   const [scanDirectory, setScanDirectory] = useState("");
   const [isPathValid, setIsPathValid] = useState(true);
+  // Null without a scan directory: the backend refuses uploads then.
+  const webUploadLocation = uploadLocation(scanDirectory);
   const [stackRawJpeg, setStackRawJpeg] = useState(true);
   const [allowUpload, setAllowUpload] = useState<boolean | null>(null);
   const [allowRegistration, setAllowRegistration] = useState<boolean | null>(null);
@@ -491,9 +493,9 @@ function FirstTimeSetupPage({ onComplete }: FirstTimeSetupProps): JSX.Element {
                     description={<Title order={6}>{t("modalscandirectoryedit.explanation3")}</Title>}
                     missingPathError={t("modalscandirectoryedit.pathdoesnotexist")}
                   />
-                  {scanDirectory && (
+                  {webUploadLocation && (
                     <Text size="sm" c="dimmed">
-                      {t("modalscandirectoryedit.uploadlocation", { path: uploadLocation(scanDirectory) })}
+                      {t("modalscandirectoryedit.uploadlocation", { path: webUploadLocation })}
                     </Text>
                   )}
                   <Group justify="space-between">

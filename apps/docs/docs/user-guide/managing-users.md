@@ -33,9 +33,9 @@ The separation will also not keep the photos "private" as the admin of the host 
 The upload folder setting is not in a release yet. It ships with the next LibrePhotos version.
 :::
 
-Photos uploaded through the web interface are written to an `uploads` folder inside the user's scan directory, in a subfolder per device: `/data/user1/uploads/web/`. The user edit dialog in the Admin Area shows that location under the scan directory.
+Photos uploaded through the web interface are written to an `uploads` folder inside the user's scan directory, in a subfolder per device: `/data/user1/uploads/web/`. The user edit dialog in the Admin Area shows the folder web uploads land in under the scan directory.
 
-To put a user's uploads somewhere else, pick a folder in the **Upload folder** field of the same dialog. It is checked like a scan directory: it must already exist under `/data`, and it must not be inside, above or the same as another user's scan directory. A folder inside the user's own scan directory is fine. Uploads then go to `<upload folder>/web/`. Clear the field to go back to the default.
+To put a user's uploads somewhere else, pick a folder in the **Upload folder** field of the same dialog. It is checked like a scan directory: it must already exist under `/data`, and it must not be inside, above or the same as another user's scan directory or another user's upload folder. A folder inside the user's own scan directory is fine. Uploaded photos are scanned into the uploader's library, so an upload folder counts as part of that user's files: the same rule also refuses a scan directory that is inside, above or the same as another user's upload folder, and the error names the user and whether it clashes with their library or their upload folder. As with scan directories, a value that already overlaps is kept when you save the user without changing it. Uploads then go to `<upload folder>/web/`. Clear the field to go back to the default.
 
 Uploaded photos always belong to the user who uploaded them. If the upload folder is outside the user's scan directory, the photos still show up in their library, but a scan of the scan directory does not look in that folder and the folder view does not list it.
 

@@ -191,6 +191,9 @@ export function ModalUserEdit(props: Props) {
     }
   }
 
+  // Null without a scan directory: the backend refuses uploads then.
+  const webUploadLocation = uploadLocation(form.values.scan_directory, form.values.upload_directory);
+
   return (
     <Modal
       opened={isOpen}
@@ -262,11 +265,9 @@ export function ModalUserEdit(props: Props) {
               description={<Title order={6}>{t("modalscandirectoryedit.explanation3")}</Title>}
               missingPathError={t("modalscandirectoryedit.pathdoesnotexist")}
             />
-            {(form.values.upload_directory || form.values.scan_directory) && (
+            {webUploadLocation && (
               <Text size="sm" c="dimmed" mt="xs">
-                {t("modalscandirectoryedit.uploadlocation", {
-                  path: uploadLocation(form.values.scan_directory, form.values.upload_directory),
-                })}
+                {t("modalscandirectoryedit.uploadlocation", { path: webUploadLocation })}
               </Text>
             )}
             <Space h="md" />
