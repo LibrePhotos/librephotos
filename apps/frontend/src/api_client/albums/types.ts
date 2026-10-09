@@ -34,9 +34,13 @@ export {
 } from "@librephotos/api-client";
 
 // Frontend album lists return a lightweight cover photo. Keep the shared album
-// fields (including locked) while using that same shape throughout the UI.
+// fields while using that same shape throughout the UI. `locked` is optional
+// (absent from servers before #2146; absent means unlocked) and has no
+// .default() here: parseWithNotification types its result by the schema's
+// input, so a default would leave the parsed and the declared type apart.
 export const UserAlbumInfo = SharedUserAlbumInfo.extend({
   cover_photo: PhotoHash.nullable(),
+  locked: z.boolean().optional(),
 });
 export type UserAlbumInfo = z.infer<typeof UserAlbumInfo>;
 

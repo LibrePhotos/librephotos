@@ -46,4 +46,18 @@ describe("user album lock responses", () => {
     expect(album.cover_photo).toEqual({ image_hash: "photo-hash", video: false });
     expect(album.locked).toBe(true);
   });
+  it("parses album lists from servers that predate the lock flag", () => {
+    const album = {
+      id: 867,
+      title: "Trip",
+      cover_photo: null,
+      photo_count: 3,
+      owner: publicAlbum.owner,
+      shared_to: [],
+      created_on: "2026-10-05T00:00:00Z",
+      favorited: false,
+    };
+    expect(SharedUserAlbumInfo.parse(album).locked).toBe(false);
+    expect(UserAlbumInfo.parse(album).locked).toBeFalsy();
+  });
 });
