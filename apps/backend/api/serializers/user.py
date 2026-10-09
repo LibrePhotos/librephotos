@@ -144,41 +144,59 @@ def directories_overlap(one, other):
     return is_valid_path(one, other) or is_valid_path(other, one)
 
 
-def reject_overlap_with_another_user(abs_scan_directory, user):
-    """Refuse a library root that another user already scans.
+def reject_overlap_with_another_user(
+    abs_scan_directory, user, label="Scan directory", field="scan_directory"
+):
+    """Refuse a directory that reaches into a tree another user owns.
 
     A photo has exactly one owner, so two users pointed at overlapping trees
     give an outcome that depends on which scan runs first: the second either
     skips the files the first already owns, or takes them over. Equal, parent
     and child paths all have that problem, so all three are rejected (#2034).
 
-    Leaving the directory as it is never conflicts, even when it already
-    overlaps -- an install that predates this check has to stay editable,
-    rather than having every other field on that user locked behind a
-    directory the admin may not want to move.
+    Another user's tree is both its library (``scan_directory``) and its
+    upload folder (``upload_directory``, #2033): uploads are scanned into the
+    uploader's library, so a folder that one user uploads into and another
+    scans would have the same race. The rule holds in both directions, for a
+    scan directory and for an upload folder. A user's own library and upload
+    folder never conflict with each other.
+
+    ``field`` is the attribute on ``user`` that the directory is being set
+    for. Leaving it as it is never conflicts, even when it already overlaps --
+    an install that predates this check has to stay editable, rather than
+    having every other field on that user locked behind a directory the admin
+    may not want to move.
     """
     # Compare normalised forms: a directory stored before this check, or by an
     # older version, may carry a trailing separator or a non-canonical
     # spelling, and a raw string compare would read that as a change and lock
     # the user out of its own directory.
-    if user is not None and user.scan_directory:
-        if comparable_path(abs_scan_directory) == comparable_path(user.scan_directory):
-            return
+    current = getattr(user, field, "") if user is not None else ""
+    if current and comparable_path(abs_scan_directory) == comparable_path(current):
+        return
 
-    others = User.objects.exclude(scan_directory="")
+    # exclude() with two lookups drops only the users that have neither.
+    others = User.objects.exclude(scan_directory="", upload_directory="")
     if user is not None and user.pk is not None:
         others = others.exclude(pk=user.pk)
 
-    for other in others.only("pk", "username", "scan_directory").iterator():
-        if directories_overlap(abs_scan_directory, other.scan_directory):
-            raise ValidationError(
-                f"Scan directory overlaps the library of user "
-                f"'{other.username}' ({other.scan_directory}). Every photo has "
-                f"exactly one owner, so two users cannot scan the same files."
-            )
+    others = others.only("pk", "username", "scan_directory", "upload_directory")
+    for other in others.iterator():
+        for taken, kind in (
+            (other.scan_directory, "library"),
+            (other.upload_directory, "upload folder"),
+        ):
+            if taken and directories_overlap(abs_scan_directory, taken):
+                raise ValidationError(
+                    f"{label} overlaps the {kind} of user "
+                    f"'{other.username}' ({taken}). Every photo has "
+                    f"exactly one owner, so two users cannot scan the same files."
+                )
 
 
-def normalize_scan_directory(scan_directory, user=None):
+def normalize_scan_directory(
+    scan_directory, user=None, label="Scan directory", field="scan_directory"
+):
     """Return ``scan_directory`` as a usable absolute library root.
 
     Returns ``None`` when nothing was supplied, so callers can leave the
@@ -189,7 +207,9 @@ def normalize_scan_directory(scan_directory, user=None):
     ``user`` is the account the directory is being set on, so that its own
     current directory is not read as a conflict with itself. Leave it out when
     creating a user, where there is no account yet and every other user's
-    directory is somebody else's.
+    directory is somebody else's. ``label`` names the field in the error
+    messages, and ``field`` is the attribute on ``user`` being set, whose
+    current value is never a conflict.
     """
     if not scan_directory:
         return None
@@ -197,12 +217,12 @@ def normalize_scan_directory(scan_directory, user=None):
     abs_scan_directory = os.path.abspath(scan_directory)
 
     if not is_valid_path(abs_scan_directory, settings.DATA_ROOT):
-        raise ValidationError("Scan directory must be inside the data root.")
+        raise ValidationError(f"{label} must be inside the data root.")
 
     if not os.path.exists(abs_scan_directory):
-        raise ValidationError("Scan directory does not exist")
+        raise ValidationError(f"{label} does not exist")
 
-    reject_overlap_with_another_user(abs_scan_directory, user)
+    reject_overlap_with_another_user(abs_scan_directory, user, label, field)
 
     return abs_scan_directory
 
@@ -604,6 +624,7 @@ class ManageUserSerializer(serializers.ModelSerializer):
         fields = (
             "username",
             "scan_directory",
+            "upload_directory",
             "skip_raw_files",
             "stack_raw_jpeg",
             "confidence",
@@ -623,6 +644,7 @@ class ManageUserSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             "password": {"write_only": True},
             "scan_directory": {"required": False},
+            "upload_directory": {"required": False},
             "skip_raw_files": {"required": False},
             "stack_raw_jpeg": {"required": False},
         }
@@ -636,6 +658,11 @@ class ManageUserSerializer(serializers.ModelSerializer):
 
         if "scan_directory" in validated_data:
             self.apply_scan_directory(instance, validated_data.pop("scan_directory"))
+
+        if "upload_directory" in validated_data:
+            self.apply_upload_directory(
+                instance, validated_data.pop("upload_directory")
+            )
 
         assign_fields(instance, validated_data, ("skip_raw_files", "stack_raw_jpeg"))
 
@@ -656,6 +683,36 @@ class ManageUserSerializer(serializers.ModelSerializer):
 
         instance.scan_directory = abs_new_scan_directory
         logger.info(f"Updated scan directory for user {instance.scan_directory}")
+
+    def apply_upload_directory(self, instance: User, new_upload_directory):
+        """Set where web uploads go; an empty value restores the default.
+
+        The folder passes the same checks as a scan directory: it must exist
+        inside ``DATA_ROOT`` and must not reach into another user's library
+        or upload folder.
+        """
+        if not new_upload_directory:
+            instance.upload_directory = ""
+            return
+        # The admin page sends the whole user back on every save, so an
+        # unchanged folder is not re-checked: one that has since gone missing
+        # must not block saving unrelated fields.
+        if new_upload_directory == instance.upload_directory:
+            return
+        try:
+            abs_upload_directory = normalize_scan_directory(
+                new_upload_directory,
+                user=instance,
+                label="Upload directory",
+                field="upload_directory",
+            )
+        except ValidationError as e:
+            raise ValidationError({"upload_directory": e.detail}) from e
+        instance.upload_directory = abs_upload_directory
+        logger.info(
+            f"Updated upload directory for user {instance.username} "
+            f"to {abs_upload_directory}"
+        )
 
     def apply_username(self, instance: User, username):
         if username != "":

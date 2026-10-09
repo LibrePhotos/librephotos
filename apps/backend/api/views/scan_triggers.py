@@ -91,7 +91,7 @@ class SelectiveScanPhotosView(APIView):
         # To-Do: Sanatize the scan_directory
         return _validate_scan_directory(request.user) or _start_photo_scan(
             request.user,
-            os.path.join(request.user.scan_directory, "uploads", "web"),
+            os.path.join(request.user.upload_root(), "web"),
         )
 
 

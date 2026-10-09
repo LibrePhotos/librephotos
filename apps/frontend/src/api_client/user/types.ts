@@ -78,6 +78,8 @@ export const ManageUser = z.object({
   photo_count: z.number(),
   save_metadata_to_disk: z.string(),
   scan_directory: z.string().nullish(),
+  // Empty means the "uploads" folder inside scan_directory
+  upload_directory: z.string().nullish(),
   semantic_search_topk: z.number(),
   // Deprecated: kept for backward compatibility
   skip_raw_files: z.boolean().optional(),

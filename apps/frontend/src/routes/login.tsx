@@ -41,6 +41,7 @@ import {
   useUpdateUserScanDirectoryMutation,
 } from "../api_client/user/hooks";
 import { DirectoryPicker } from "../components/setup/DirectoryPicker";
+import { uploadLocation } from "../components/setup/uploadLocation";
 import { reportSignupError, reportUserSaveError } from "../util/apiErrors";
 import { ssoErrorMessageKey } from "../util/ssoErrors";
 import { isStringEmpty } from "../util/stringUtils";
@@ -229,6 +230,8 @@ function FirstTimeSetupPage({ onComplete }: FirstTimeSetupProps): JSX.Element {
   const [activeStep, setActiveStep] = useState(0);
   const [scanDirectory, setScanDirectory] = useState("");
   const [isPathValid, setIsPathValid] = useState(true);
+  // Null without a scan directory: the backend refuses uploads then.
+  const webUploadLocation = uploadLocation(scanDirectory);
   const [stackRawJpeg, setStackRawJpeg] = useState(true);
   const [allowUpload, setAllowUpload] = useState<boolean | null>(null);
   const [allowRegistration, setAllowRegistration] = useState<boolean | null>(null);
@@ -490,6 +493,11 @@ function FirstTimeSetupPage({ onComplete }: FirstTimeSetupProps): JSX.Element {
                     description={<Title order={6}>{t("modalscandirectoryedit.explanation3")}</Title>}
                     missingPathError={t("modalscandirectoryedit.pathdoesnotexist")}
                   />
+                  {webUploadLocation && (
+                    <Text size="sm" c="dimmed">
+                      {t("modalscandirectoryedit.uploadlocation", { path: webUploadLocation })}
+                    </Text>
+                  )}
                   <Group justify="space-between">
                     <Button variant="default" onClick={() => navigate({ to: "/" })}>
                       {t("skip")}

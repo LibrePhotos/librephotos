@@ -306,6 +306,24 @@ class OnCompletionBodyTest(OnCompletionTestBase):
         self.assertIs(photo, first_call[4])
 
     @patch("api.views.upload.is_valid_media", return_value=True)
+    def test_upload_directory_receives_the_file(
+        self, _valid, get_object_or_404, create_new_image, chain_cls
+    ):
+        # An admin-set upload folder replaces <scan directory>/uploads; the
+        # per-device subfolder is kept.
+        upload_dir = tempfile.mkdtemp(prefix="upload-target-")
+        self.addCleanup(shutil.rmtree, upload_dir, True)
+        self.user.upload_directory = upload_dir
+        self.user.save(update_fields=["upload_directory"])
+
+        self.run_on_completion(content=b"custom-bytes", filename="pic.jpg")
+
+        expected_path = os.path.join(upload_dir, "web", "pic.jpg")
+        self.assertTrue(os.path.isfile(expected_path))
+        self.assertFalse(os.path.exists(os.path.join(self.scan_dir, "uploads")))
+        create_new_image.assert_called_once_with(self.user, expected_path)
+
+    @patch("api.views.upload.is_valid_media", return_value=True)
     def test_filename_is_sanitized(
         self, _valid, get_object_or_404, create_new_image, chain_cls
     ):

@@ -320,3 +320,227 @@ class DirectoriesOverlapTestCase(SimpleTestCase):
     def test_windows_spellings_of_one_directory_overlap(self):
         self.assertTrue(directories_overlap(r"C:\Data\alice", "c:/data/alice/2020"))
         self.assertFalse(directories_overlap(r"C:\Data\alice", r"C:\Data\alice2"))
+
+
+class UploadDirectoryTestCase(TestCase):
+    """The upload folder is checked like a scan directory (#2033)."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.admin = User.objects.create_superuser(
+            "upload_admin", "upload_admin@test.com", create_password()
+        )
+        self.client.force_authenticate(user=self.admin)
+        self.library = os.path.abspath(os.path.join(settings.DATA_ROOT, "upload-lib"))
+        self.inbox = os.path.join(self.library, "phone")
+        self.elsewhere = os.path.abspath(
+            os.path.join(settings.DATA_ROOT, "upload-elsewhere")
+        )
+        self.taken = os.path.abspath(os.path.join(settings.DATA_ROOT, "upload-taken"))
+        for path in (self.inbox, self.elsewhere, self.taken):
+            os.makedirs(path, exist_ok=True)
+        for name in ("upload-lib", "upload-elsewhere", "upload-taken"):
+            self.addCleanup(shutil.rmtree, os.path.join(settings.DATA_ROOT, name), True)
+
+        self.user = User.objects.create_user(
+            "upload_user", "upload_user@test.com", create_password()
+        )
+        self.user.scan_directory = self.library
+        self.user.save()
+        neighbour = User.objects.create_user(
+            "upload_neighbour", "upload_neighbour@test.com", create_password()
+        )
+        neighbour.scan_directory = self.taken
+        neighbour.save()
+
+    def _patch(self, upload_directory):
+        return self.client.patch(
+            f"/api/manage/user/{self.user.id}/",
+            {"upload_directory": upload_directory},
+        )
+
+    def test_default_is_the_uploads_folder_of_the_scan_directory(self):
+        self.assertEqual(self.user.upload_directory, "")
+        self.assertEqual(self.user.upload_root(), os.path.join(self.library, "uploads"))
+
+    def test_a_folder_inside_the_users_own_library_is_accepted(self):
+        response = self._patch(self.inbox + os.sep)
+        self.assertEqual(response.status_code, 200)
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.upload_directory, self.inbox)
+        self.assertEqual(self.user.upload_root(), self.inbox)
+        self.assertEqual(response.json()["upload_directory"], self.inbox)
+
+    def test_a_folder_outside_the_library_is_accepted(self):
+        response = self._patch(self.elsewhere)
+        self.assertEqual(response.status_code, 200)
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.upload_root(), self.elsewhere)
+
+    def test_an_empty_value_restores_the_default(self):
+        self.user.upload_directory = self.inbox
+        self.user.save()
+        response = self._patch("")
+        self.assertEqual(response.status_code, 200)
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.upload_directory, "")
+        self.assertEqual(self.user.upload_root(), os.path.join(self.library, "uploads"))
+
+    def test_a_folder_outside_the_data_root_is_rejected(self):
+        outside = os.path.abspath(os.path.join(settings.DATA_ROOT, "..", "elsewhere"))
+        response = self._patch(outside)
+        self.assertEqual(response.status_code, 400)
+        error = response.json()["errors"][0]
+        self.assertEqual(error["field"], "upload_directory")
+        self.assertEqual(
+            error["message"], "Upload directory must be inside the data root."
+        )
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.upload_directory, "")
+
+    def test_a_missing_folder_is_rejected(self):
+        response = self._patch(os.path.join(self.library, "does-not-exist"))
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.json()["errors"][0]["message"], "Upload directory does not exist"
+        )
+
+    def test_another_users_library_is_rejected(self):
+        response = self._patch(self.taken)
+        self.assertEqual(response.status_code, 400)
+        message = response.json()["errors"][0]["message"]
+        self.assertTrue(message.startswith("Upload directory overlaps"), message)
+        self.assertIn("upload_neighbour", message)
+
+    def test_an_unchanged_folder_that_went_missing_does_not_block_other_edits(self):
+        gone = os.path.join(self.library, "gone")
+        os.makedirs(gone)
+        self.user.upload_directory = gone
+        self.user.save()
+        os.rmdir(gone)
+        response = self.client.patch(
+            f"/api/manage/user/{self.user.id}/",
+            {"upload_directory": gone, "first_name": "Renamed"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.first_name, "Renamed")
+        self.assertEqual(self.user.upload_directory, gone)
+
+
+class UploadFolderOwnershipTestCase(TestCase):
+    """An upload folder belongs to its user as much as its library does.
+
+    Uploads are scanned into the uploader's library, so a folder one user
+    uploads into and another user scans has the same first-scan-wins race as
+    two overlapping libraries. The one-owner-per-tree rule therefore holds in
+    both directions: a scan directory may not reach into another user's upload
+    folder, and an upload folder may not reach into another user's upload
+    folder (#2033).
+    """
+
+    def setUp(self):
+        self.client = APIClient()
+        self.admin = User.objects.create_superuser(
+            "uofolder_admin", "uofolder_admin@test.com", create_password()
+        )
+        self.client.force_authenticate(user=self.admin)
+
+        def data_path(*parts):
+            return os.path.abspath(os.path.join(settings.DATA_ROOT, *parts))
+
+        self.library_a = data_path("uofolder-lib-a")
+        self.library_b = data_path("uofolder-lib-b")
+        # A's upload folder sits outside A's library, under a parent that
+        # holds nobody's library, so only the upload folder can conflict.
+        self.parent_of_inbox_a = data_path("uofolder-inboxes")
+        self.inbox_a = os.path.join(self.parent_of_inbox_a, "alice")
+        self.own_inbox_b = os.path.join(self.library_b, "phone")
+        for path in (self.library_a, self.inbox_a, self.own_inbox_b):
+            os.makedirs(path, exist_ok=True)
+        for name in ("uofolder-lib-a", "uofolder-lib-b", "uofolder-inboxes"):
+            self.addCleanup(shutil.rmtree, os.path.join(settings.DATA_ROOT, name), True)
+
+        self.alice = User.objects.create_user(
+            "uofolder_alice", "uofolder_alice@test.com", create_password()
+        )
+        self.alice.scan_directory = self.library_a
+        self.alice.upload_directory = self.inbox_a
+        self.alice.save()
+        self.bob = User.objects.create_user(
+            "uofolder_bob", "uofolder_bob@test.com", create_password()
+        )
+
+    def _patch(self, user, **data):
+        return self.client.patch(f"/api/manage/user/{user.id}/", data)
+
+    def _assert_rejected_for_alices_upload_folder(self, response):
+        self.assertEqual(response.status_code, 400)
+        message = response.json()["errors"][0]["message"]
+        self.assertIn("upload folder of user 'uofolder_alice'", message)
+
+    def test_a_scan_directory_on_another_users_upload_folder_is_rejected(self):
+        response = self._patch(self.bob, scan_directory=self.inbox_a)
+        self._assert_rejected_for_alices_upload_folder(response)
+        self.bob.refresh_from_db()
+        self.assertEqual(self.bob.scan_directory, "")
+
+    def test_a_scan_directory_above_another_users_upload_folder_is_rejected(self):
+        response = self._patch(self.bob, scan_directory=self.parent_of_inbox_a)
+        self._assert_rejected_for_alices_upload_folder(response)
+
+    def test_creating_a_user_on_another_users_upload_folder_is_rejected(self):
+        response = self.client.post(
+            "/api/user/",
+            {
+                "username": "uofolder_new",
+                "password": create_password(),
+                "email": "uofolder_new@test.com",
+                "scan_directory": self.inbox_a,
+            },
+        )
+        self._assert_rejected_for_alices_upload_folder(response)
+        self.assertFalse(User.objects.filter(username="uofolder_new").exists())
+
+    def test_an_upload_folder_equal_to_another_users_upload_folder_is_rejected(self):
+        self.bob.scan_directory = self.library_b
+        self.bob.save()
+        response = self._patch(self.bob, upload_directory=self.inbox_a)
+        self._assert_rejected_for_alices_upload_folder(response)
+        message = response.json()["errors"][0]["message"]
+        self.assertTrue(message.startswith("Upload directory overlaps"), message)
+        self.bob.refresh_from_db()
+        self.assertEqual(self.bob.upload_directory, "")
+
+    def test_an_upload_folder_inside_the_users_own_library_is_accepted(self):
+        # Neither a user's own library nor its own upload folder is somebody
+        # else's tree, even with other users' upload folders around.
+        self.bob.scan_directory = self.library_b
+        self.bob.save()
+        response = self._patch(self.bob, upload_directory=self.own_inbox_b)
+        self.assertEqual(response.status_code, 200)
+        self.bob.refresh_from_db()
+        self.assertEqual(self.bob.upload_directory, self.own_inbox_b)
+
+        # And the library can be re-sent around its own upload folder.
+        response = self._patch(self.bob, scan_directory=self.library_b)
+        self.assertEqual(response.status_code, 200)
+
+    def test_an_unchanged_overlapping_value_still_saves(self):
+        # Installs that predate this check may already overlap. Re-sending the
+        # stored values, or editing another field, must not be refused.
+        self.bob.scan_directory = self.inbox_a
+        self.bob.upload_directory = self.inbox_a
+        self.bob.save()
+
+        response = self._patch(
+            self.bob,
+            scan_directory=self.inbox_a + os.sep,
+            upload_directory=self.inbox_a,
+            first_name="Still",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.bob.refresh_from_db()
+        self.assertEqual(self.bob.first_name, "Still")
+        self.assertEqual(self.bob.scan_directory, self.inbox_a)
+        self.assertEqual(self.bob.upload_directory, self.inbox_a)

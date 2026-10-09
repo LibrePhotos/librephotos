@@ -188,7 +188,7 @@ class UploadPhotosChunkedComplete(UploaderScopedMixin, ChunkedUploadCompleteView
             logger.info(f"Photo {filename} duplicated with hash {image_hash} ")
             return ""
 
-        upload_dir = os.path.join(user.scan_directory, "uploads", device)
+        upload_dir = os.path.join(user.upload_root(), device)
         photo_path = os.path.join(upload_dir, filename)
         if not os.path.exists(photo_path):
             return photo_path
@@ -240,10 +240,7 @@ class UploadPhotosChunkedComplete(UploaderScopedMixin, ChunkedUploadCompleteView
         # To-Do: Get origin device
         device = "web"
 
-        if not os.path.exists(os.path.join(user.scan_directory, "uploads")):
-            os.mkdir(os.path.join(user.scan_directory, "uploads"))
-        if not os.path.exists(os.path.join(user.scan_directory, "uploads", device)):
-            os.mkdir(os.path.join(user.scan_directory, "uploads", device))
+        os.makedirs(os.path.join(user.upload_root(), device), exist_ok=True)
 
         photo = uploaded_file
         image_hash = calculate_hash_b64(user, io.BytesIO(photo.read()))
