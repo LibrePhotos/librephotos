@@ -233,7 +233,7 @@ export const VideoPlayer = memo(function VideoPlayer({
     const probeId = probeRef.current;
 
     const probe = async () => {
-      let kind: VideoErrorKind = "unknown";
+      let kind: VideoErrorKind;
       let status: number | null = null;
       try {
         // HEAD, not GET: the status is all we need, and a GET would re-download

@@ -11,7 +11,7 @@
     "types": ["node", "vite/client", "vitest/globals"],
     "allowSyntheticDefaultImports": true,
     "strict": true,
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
