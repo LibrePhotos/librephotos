@@ -33,7 +33,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-async function renderVideo(photoDetails: object | null, type = "video") {
+async function renderVideo(photoDetails: object | null, type = "video", isPublic = false) {
   const container = document.createElement("div");
   const root = createRoot(container);
   await act(async () => {
@@ -46,6 +46,7 @@ async function renderVideo(photoDetails: object | null, type = "video") {
         faceLocation={null as never}
         handleDragStart={() => {}}
         photoDetails={photoDetails}
+        isPublic={isPublic}
       />
     );
   });
@@ -80,6 +81,13 @@ describe("MediaDisplay video source", () => {
     expect(props.url).toBe("/media/photos/abc.mp4");
     expect(props.fallbackUrl).toBe("/media/photos/abc.mp4?transcode=1");
     expect(canPlayType).not.toHaveBeenCalled();
+  });
+
+  it("holds no conversion in reserve on a public page, where the server never converts", async () => {
+    const props = await renderVideo(null, "video", true);
+
+    expect(props.url).toBe("/media/photos/abc.mp4");
+    expect(props.fallbackUrl).toBeUndefined();
   });
 
   it("leaves a Live Photo's motion clip alone", async () => {

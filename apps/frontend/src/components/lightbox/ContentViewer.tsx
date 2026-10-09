@@ -530,6 +530,7 @@ export function ContentViewer({
                         drawingFace={isDrawingFace}
                         onFaceDrawn={handleFaceDrawn}
                         onCancelDrawFace={cancelDrawingFace}
+                        isPublic={isPublic}
                         {...(photoDetails ? { photoDetails } : {})}
                       />
                     </motion.div>

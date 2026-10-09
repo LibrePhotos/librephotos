@@ -318,6 +318,15 @@ class UnifiedMediaAccessView(APIView):
                 return response
             return self._serve_file_direct(cached, "video/mp4")
 
+        # The lightbox sends a HEAD to learn why a video failed, and only the
+        # status matters to it. Django answers HEAD by running the GET and
+        # dropping the body, which here would mean a whole live conversion,
+        # and then the cached copy, for a reply that is always 200.
+        if getattr(self, "request", None) is not None and self.request.method == "HEAD":
+            response = HttpResponse(content_type="video/mp4")
+            response["Cache-Control"] = "no-store"
+            return response
+
         response = StreamingHttpResponse(
             self._cache_after_streaming(
                 gen(VideoTranscoder(photo.main_file.path, photo.video_color_transfer)),

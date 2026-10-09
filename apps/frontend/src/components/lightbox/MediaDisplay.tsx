@@ -23,6 +23,8 @@ export type MediaDisplayProps = {
   fullHeight?: boolean;
   playing?: boolean;
   photoDetails?: any | null; // Allow null values from the API
+  /** A public page: the server never converts for an anonymous visitor. */
+  isPublic?: boolean;
   onEnded?: () => void;
   rotationAngle?: number;
   imageCacheKey?: number;
@@ -50,6 +52,7 @@ export function MediaDisplay({
   fullHeight = false,
   playing = false,
   photoDetails,
+  isPublic = false,
   onEnded,
   rotationAngle = 0,
   imageCacheKey = 0,
@@ -107,7 +110,11 @@ export function MediaDisplay({
           ? convertedUrl(originalUrl)
           : originalUrl
         : `${serverAddress}/media/embedded_media/${mediaHash}`;
-    const fallbackUrl = currentType === "video" && videoUrl === originalUrl ? convertedUrl(originalUrl) : undefined;
+    // Not on a public page: the server answers ?transcode=1 there with the same
+    // original, so the retry could only fail again and blame a conversion that
+    // never ran.
+    const fallbackUrl =
+      currentType === "video" && videoUrl === originalUrl && !isPublic ? convertedUrl(originalUrl) : undefined;
 
     return (
       <VideoPlayer

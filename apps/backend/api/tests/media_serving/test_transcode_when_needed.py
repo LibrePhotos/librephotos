@@ -20,7 +20,7 @@ from django.test import SimpleTestCase, TestCase
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import AccessToken
 
-from api import video_playback
+from api import transcode_cache, video_playback
 from api.models import AlbumUser, Photo
 from api.models.album_user_share import AlbumUserShare
 from api.serializers.photos import PhotoSerializer
@@ -131,14 +131,14 @@ class TranscodeOnRequestTest(TestCase):
         self.addCleanup(lambda: os.path.exists(path) and os.remove(path))
         self.url = f"/media/photos/{self.photo.image_hash}.mp4"
 
-    def _get(self, user=None, query=""):
+    def _get(self, user=None, query="", method="get"):
         client = APIClient()
         if user is not None:
             client.cookies["jwt"] = str(AccessToken.for_user(user))
         with patch(
             "api.views.media.VideoTranscoder", side_effect=FakeVideoTranscoder
         ) as transcoder:
-            response = client.get(self.url + query)
+            response = getattr(client, method)(self.url + query)
         return response, transcoder.called
 
     def _public_album(self):
@@ -183,6 +183,22 @@ class TranscodeOnRequestTest(TestCase):
         """The public album used to answer first, for everyone, unconverted."""
         self._public_album()
         _, converted = self._get(self.owner, "?transcode=1")
+        self.assertTrue(converted)
+
+    def test_a_head_request_does_not_start_a_conversion(self):
+        """The lightbox's failure probe asks for the status only."""
+        with patch.object(transcode_cache, "ensure_cached") as ensure_cached:
+            response, converted = self._get(self.owner, "?transcode=1", "head")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "video/mp4")
+        self.assertFalse(converted)
+        ensure_cached.assert_not_called()
+
+    def test_a_signed_in_viewer_of_a_public_album_can_ask(self):
+        """Any user may already convert their own videos, so this grants nothing."""
+        self._public_album()
+        response, converted = self._get(create_test_user(), "?transcode=1")
+        self.assertEqual(response.status_code, 200)
         self.assertTrue(converted)
 
     def test_a_stranger_is_still_refused(self):
