@@ -11,6 +11,7 @@ Every LibrePhotos release brings its own database migrations. The backend applie
 - [Standard Docker setup](standard-install.md#updating)
 - [Single container deployment](unified-deployment.md): pull `reallibrephotos/librephotos-unified` again and recreate the container.
 - [unRAID](unraid.md)
+- [Kubernetes](https://github.com/LibrePhotos/librephotos/tree/dev/deploy/k8s#upgrading): the image tags in `kustomization.yaml` are pinned, so check out the new release's tag, whose manifests name its images. Since 1.3.0 the manifests run PostgreSQL 16 instead of 13, so an older install moves its database with a dump and restore first.
 
 Back up your database before any upgrade. It is the only way back if a migration fails halfway, and it is cheap:
 
@@ -20,6 +21,22 @@ docker compose exec -T db pg_dump -U docker librephotos > librephotos-backup.sql
 ```
 
 Replace `docker` and `librephotos` with the `dbUser` and `dbName` from your `.env` if you changed them.
+
+## After upgrading from 1.2.1 or older {#strip-thumbnail-metadata}
+
+Thumbnails made by 1.2.1 and older still carry the photo's EXIF and XMP: its GPS position, camera serial number and keywords. A public link serves those thumbnails, so anyone holding one can read the location, even with location sharing off. Since 1.3.0, new thumbnails are written without it, but the ones already on disk keep it until you run the cleanup once:
+
+```sh
+# Standard Docker setup, from the folder with your docker-compose.yml and .env
+docker compose exec backend python manage.py strip_thumbnail_metadata
+
+# Single container deployment
+docker exec librephotos python manage.py strip_thumbnail_metadata
+```
+
+On the [Windows standalone](windows-standalone.md) build, run `start /wait librephotos.exe manage strip_thumbnail_metadata` in `cmd`.
+
+The command only rewrites thumbnails that still carry metadata, and keeps their pixels and colour profile, so running it again is safe. Add `--dry-run` to only count them. See [Management Commands](../user-guide/library.md#management-commands).
 
 ## Upgrading from a release older than 2026w10 {#old-releases}
 
@@ -62,10 +79,10 @@ For the single container deployment the steps are the same: run `reallibrephotos
 
 ### Not sure which release you are on?
 
-Before upgrading, ask the backend you are running now:
+If you run 1.2.0 or newer, you can always upgrade directly. Otherwise, before upgrading, ask the backend you are running now:
 
 ```sh
-docker compose exec backend python manage.py showmigrations api | grep 0100_
+docker compose exec backend python manage.py showmigrations api | grep -E '0100_|squashed_0100'
 ```
 
-If this prints `[X] 0100_metadataedit_metadatafile_photometadata_stackreview_and_more`, your database is recent enough to upgrade directly. If it prints `[ ]` in front of that line, or nothing at all, use the two-step upgrade.
+If this prints `[X]` (or `[-]`) in front of `0100_metadataedit_metadatafile_photometadata_stackreview_and_more` or of `0001_squashed_0100`, your database is recent enough to upgrade directly. Releases since 1.2.0 print the second one. If it prints `[ ]` in front of `0100_metadataedit_...`, or nothing at all, use the two-step upgrade.

@@ -14,6 +14,8 @@ File variants represent the same moment captured in different file formats. Inst
 
 When you shoot in RAW+JPEG mode, your camera creates two files for each shot (e.g. `IMG_001.CR2` and `IMG_001.jpg`). LibrePhotos groups these automatically during scanning — you'll see one photo in your timeline with a **RAW badge** overlay indicating that a RAW variant is available.
 
+This happens whenever both files are in the same folder and have the same name, like `IMG_001.CR2` and `IMG_001.jpg`, and there is no setting for it: both files stay in your library, as one photo with a RAW variant. A RAW in another folder, for example on a second memory card, becomes a photo of its own. The **Stack RAW+JPEG pairs** switch that 1.2.1 and older showed on the Library page and in first-time setup did nothing, and is gone since 1.3.0.
+
 ### Live Photos
 
 Live Photos (common on iPhones) consist of a still image and a short video clip. LibrePhotos detects these and groups the image and video as file variants of a single photo.
@@ -35,12 +37,6 @@ When viewing a photo that has file variants:
 - A **RAW badge** appears on the thumbnail in the photo grid
 - In the lightbox sidebar, next to the filename (beside the dimensions and file size), a photo with extra formats shows a **+N format(s)** link. Expanding it lists the non-primary variants, each with a format badge (**JPG**, **RAW**, **VIDEO**, **META**, or **FILE**).
 - When you download photos as a zip, all file variants of each photo are included automatically.
-
-### Settings
-
-In **Settings**, you can configure:
-
-- **Stack RAW+JPEG** — a legacy switch, left over from when RAW+JPEG pairs were modelled as stacks. RAW+JPEG pairs are now always grouped as file variants during scanning, so turning this off currently has no effect.
 
 ## Stacks
 

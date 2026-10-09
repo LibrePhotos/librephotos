@@ -40,3 +40,4 @@ The traditional multi-container setup with separate nginx proxy. Choose this if 
 
 - [Unraid Installation](unraid.md) - For Unraid NAS systems
 - [Windows standalone](windows-standalone.md) - One folder with `librephotos.exe`, no Docker or Python
+- [Kubernetes](https://github.com/LibrePhotos/librephotos/tree/dev/deploy/k8s#kubernetes-installation) - Kustomize manifests in `deploy/k8s`, with their own install and upgrade steps

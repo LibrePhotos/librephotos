@@ -27,15 +27,27 @@ While the application saves metadata (e.g., tags, albums, facial recognition dat
 
 The separation will also not keep the photos "private" as the admin of the host system can see all the images.
 
+## Deleting a user
+
+The red trash icon in a user's row deletes that account. Admin accounts cannot be deleted, so the icon is greyed out for them.
+
+Deleting a user removes the account, so it can no longer sign in, but it does not remove the user's library. Their photos, albums, tags and stacks stay in the database and are handed to a disabled placeholder account called `deleted`, which cannot sign in and is not listed in the Admin Area. Nothing is removed from disk: the original files and their thumbnails stay where they are. If the photos should go as well, they have to be deleted from that user's library while the account still exists (see [Trash](./trash.md)).
+
+Since 1.3.0, deleting a user also turns off everything of theirs that people without an account could open: public album links, photo links and public photos. Those links stop working for anyone who opens them. Nobody can sign in as `deleted`, so nobody could turn them off later. Links left on by users deleted with an older version are turned off when you upgrade to 1.3.0.
+
+Albums and photos the user shared with other users of the instance stay shared. Those users keep seeing them, now owned by `deleted`. Photos that other users shared with the deleted user are taken out of the deleted user's albums, so the people those albums are shared with cannot open them later. The photos stay in their owners' libraries.
+
+A user deleted after another one can have an album or a tag with the same name as one that `deleted` already holds. Two albums are never mixed into one, so nobody gets to see one user's photos through the other user's shares:
+
+- An album the user made gets their username added to its title, for example `Holiday (bob)`, and keeps its photos and the users it is shared with.
+- A generated album (an event, a day, a place or a thing) is dropped. Its photos are kept.
+- A tag is merged into the tag of the same name. Tags are not shared with anyone.
+
 ## Upload folder
 
-:::note
-The upload folder setting is not in a release yet. It ships with the next LibrePhotos version.
-:::
+Photos uploaded through the web interface or backed up by the mobile app are written to an `uploads` folder inside the user's scan directory: `/data/user1/uploads/web/`. The user edit dialog in the Admin Area shows the folder uploads land in under the scan directory.
 
-Photos uploaded through the web interface are written to an `uploads` folder inside the user's scan directory, in a subfolder per device: `/data/user1/uploads/web/`. The user edit dialog in the Admin Area shows the folder web uploads land in under the scan directory.
-
-To put a user's uploads somewhere else, pick a folder in the **Upload folder** field of the same dialog. It is checked like a scan directory: it must already exist under `/data`, and it must not be inside, above or the same as another user's scan directory or another user's upload folder. A folder inside the user's own scan directory is fine. Uploaded photos are scanned into the uploader's library, so an upload folder counts as part of that user's files: the same rule also refuses a scan directory that is inside, above or the same as another user's upload folder, and the error names the user and whether it clashes with their library or their upload folder. As with scan directories, a value that already overlaps is kept when you save the user without changing it. Uploads then go to `<upload folder>/web/`. Clear the field to go back to the default.
+Since 1.3.0, you can put a user's uploads somewhere else: pick a folder in the **Upload folder** field of the same dialog. It is checked like a scan directory: it must already exist under `/data`, and it must not be inside, above or the same as another user's scan directory or another user's upload folder. A folder inside the user's own scan directory is fine. Uploaded photos are scanned into the uploader's library, so an upload folder counts as part of that user's files: the same rule also refuses a scan directory that is inside, above or the same as another user's upload folder, and the error names the user and whether it clashes with their library or their upload folder. As with scan directories, a value that already overlaps is kept when you save the user without changing it. Uploads then go to `<upload folder>/web/`. Clear the field to go back to the default.
 
 Uploaded photos always belong to the user who uploaded them. If the upload folder is outside the user's scan directory, the photos still show up in their library, but a scan of the scan directory does not look in that folder and the folder view does not list it.
 

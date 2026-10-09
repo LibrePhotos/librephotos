@@ -39,7 +39,7 @@ We also create thumbnails for previewing faces: during face extraction the face 
 
 :::note Authentication
 
-These `/media/...` endpoints are all served by `UnifiedMediaAccessView`, which is declared `AllowAny` and authenticates from the **`jwt` cookie**, not from an `Authorization` header. Obtain the cookie with `POST /api/auth/token/obtain/` and refresh it with `POST /api/auth/token/refresh/`; both responses set the `jwt` cookie automatically. Send your request with cookies enabled — an `Authorization: Bearer <token>` header on its own is ignored, and the request is rejected with `403 Forbidden`.
+These `/media/...` endpoints are all served by `UnifiedMediaAccessView`, which is declared `AllowAny` and authenticates with `JWTCookieAuthentication` plus Basic auth: an `Authorization: Bearer <token>` header when there is one, otherwise the **`jwt` cookie**. When both are sent, the header wins. `POST /api/auth/token/obtain/` and `POST /api/auth/token/refresh/` set the `jwt` cookie automatically, which is how `<img>` and `<video>` requests authenticate. A request without a usable credential for non-public media is rejected with `403 Forbidden` and an `X-Media-Error: authentication` header; an invalid bearer header answers `401`.
 
 The exception is media belonging to an active public album share, which is served without any authentication. See [API authentication](../../../user-guide/api-authentication.md) for the full flow.
 
@@ -71,8 +71,8 @@ Returns the avatar for a given user. The frontend uploads it as `<first_name>ava
 
 ### `GET /media/embedded_media/<hash>`
 
-Returns the embedded video track of a motion photo (Samsung or Google) as `video/mp4`. The path segment accepts either the photo UUID (36 characters with 4 hyphens) or the legacy image hash, and returns 404 if the photo has no embedded media file. Used by the frontend lightbox to play the motion-photo clip. Unlike the other endpoints this one does not hard-require the cookie: an unauthenticated request is limited to public photos, and it narrows to the owner's photos when a session user or valid `jwt` cookie is present.
+Returns the embedded video track of a motion photo (Samsung or Google) as `video/mp4`. The path segment accepts either the photo UUID (36 characters with 4 hyphens) or the legacy image hash, and returns 404 if the photo has no embedded media file. Used by the frontend lightbox to play the motion-photo clip. Unlike the other endpoints this one does not hard-require the cookie: an unauthenticated request is limited to public photos, and it narrows to the owner's photos when the request is authenticated (bearer header, `jwt` cookie or Basic auth).
 
 ### `GET /media/zip/<prefix>`
 
-Serves a bulk-download archive as `application/x-zip-compressed`. The path segment is a filename prefix, not the full filename — the backend appends the requesting user's id and `.zip`, so a user can only retrieve their own archive. Requires a valid `jwt` cookie; returns `403 Forbidden` otherwise.
+Serves a bulk-download archive as `application/x-zip-compressed`. The path segment is a filename prefix, not the full filename — the backend appends the requesting user's id and `.zip`, so a user can only retrieve their own archive. Requires authentication (bearer header or `jwt` cookie); returns `403 Forbidden` otherwise.

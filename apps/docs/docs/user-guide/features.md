@@ -115,7 +115,7 @@ sidebar_position: 26
     </tr>
     <tr>
         <td>x265 videos</td>
-        <p hidden>LibrePhotos</p>    <td>❌</td>
+        <p hidden>LibrePhotos</p>    <td>✔️</td>
         <p hidden>Photoview</p>      <td>✔️</td>
         <p hidden>PhotoPrism</p>     <td>✔️</td>
         <p hidden>Immich</p>         <td>✔️</td>

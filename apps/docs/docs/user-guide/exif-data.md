@@ -71,6 +71,13 @@ sidebar_position: 18
         <td>Used for video length on video tiles</td>
     </tr>
     <tr>
+        <td>Matroska:Duration</td>
+        <td>Video length</td>
+        <td>✔️</td>
+        <td>❌</td>
+        <td>Video length of MKV and WebM files, which carry no QuickTime:Duration. Since 1.3.0; videos scanned by an older version get it with a Rescan from the Library page.</td>
+    </tr>
+    <tr>
         <td>Composite:GPSLatitude</td>
         <td>GPS_lat</td>
         <td>✔️</td>

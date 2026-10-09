@@ -74,7 +74,9 @@ Backup needs two things an admin sets up on the server:
   environment variable only supplies its initial default (see
   [Environment variables](../../installation/environment-variables.md)).
 - **Your account needs a Scan Directory** that exists on the server. Uploaded
-  files are saved under it. See
+  files are saved in its `uploads/web/` folder, or in the `web/` folder inside
+  the upload folder an admin set for you (see
+  [Upload folder](../managing-users.md#upload-folder)). See
   [How to Change Your Scan Directory](../first-steps.md#how-to-change-your-scan-directory).
 
 If either is missing, the server rejects the upload.
