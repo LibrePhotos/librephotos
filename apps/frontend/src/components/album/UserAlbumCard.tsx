@@ -4,6 +4,8 @@ import {
   IconDotsVertical as DotsVertical,
   IconEdit as Edit,
   IconLink as LinkIcon,
+  IconLock as Lock,
+  IconLockOpen as LockOpen,
   IconShare as Share,
   IconTrash as Trash,
   IconUser as User,
@@ -23,6 +25,7 @@ type UserAlbumCardProps = {
   onRename?: (id: string, title: string) => void;
   onShare?: (id: string, title: string) => void;
   onDelete?: (id: string, title: string) => void;
+  onToggleLocked?: (id: string, locked: boolean) => void;
 };
 
 function SharedWith({ album }: Readonly<{ album: UserAlbumInfo }>) {
@@ -76,6 +79,7 @@ export function UserAlbumCard({
   onRename,
   onShare,
   onDelete,
+  onToggleLocked,
 }: UserAlbumCardProps) {
   const { t } = useTranslation();
 
@@ -100,11 +104,17 @@ export function UserAlbumCard({
       </Link>
 
       {/* Actions menu */}
-      {showActions && (onRename || onShare || onDelete) && (
+      {showActions && (onRename || onShare || onDelete || onToggleLocked) && (
         <div className={classes.actions}>
-          <Menu position="bottom-end">
+          <Menu position="bottom-end" transitionProps={{ duration: 0 }}>
             <Menu.Target>
-              <ActionIcon variant="subtle" c="gray" size="sm" onClick={e => e.preventDefault()}>
+              <ActionIcon
+                variant="subtle"
+                c="gray"
+                size="sm"
+                aria-label={t("useralbum.albumActions")}
+                onClick={e => e.preventDefault()}
+              >
                 <DotsVertical size={16} />
               </ActionIcon>
             </Menu.Target>
@@ -119,6 +129,14 @@ export function UserAlbumCard({
                   {t("sidemenu.sharing")}
                 </Menu.Item>
               )}
+              {onToggleLocked && (
+                <Menu.Item
+                  leftSection={album.locked ? <LockOpen size={14} /> : <Lock size={14} />}
+                  onClick={() => onToggleLocked(`${album.id}`, !album.locked)}
+                >
+                  {t(album.locked ? "useralbum.unlockAlbum" : "useralbum.lockAlbum")}
+                </Menu.Item>
+              )}
               {onDelete && (
                 <Menu.Item leftSection={<Trash size={14} />} onClick={() => onDelete(`${album.id}`, album.title)}>
                   {t("delete")}
@@ -126,6 +144,16 @@ export function UserAlbumCard({
               )}
             </Menu.Dropdown>
           </Menu>
+        </div>
+      )}
+
+      {album.locked && (
+        <div className={classes.lockedIcon}>
+          <Tooltip label={t("useralbum.albumIsLocked")}>
+            <span aria-label={t("useralbum.albumIsLocked")}>
+              <Lock size={14} />
+            </span>
+          </Tooltip>
         </div>
       )}
 

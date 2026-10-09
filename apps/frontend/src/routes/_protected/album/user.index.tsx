@@ -8,6 +8,7 @@ import {
   useDeleteUserAlbumMutation,
   useFetchUserAlbumsQuery,
   useRenameUserAlbumMutation,
+  useToggleUserAlbumLockedMutation,
 } from "../../../api_client/albums/hooks";
 import { UserAlbumCard } from "../../../components/album/UserAlbumCard";
 import { HeaderComponent } from "../../../components/HeaderComponent";
@@ -33,6 +34,7 @@ function AlbumUser() {
   const { entriesPerRow, entrySquareSize, numberOfRows, gridHeight } = useAlbumListGridConfig(albums ?? []);
   const deleteUserAlbum = useDeleteUserAlbumMutation();
   const renameUserAlbum = useRenameUserAlbumMutation();
+  const toggleUserAlbumLocked = useToggleUserAlbumLockedMutation();
 
   const openDeleteDialog = (id: string, title: string) => {
     showDeleteDialog();
@@ -73,6 +75,7 @@ function AlbumUser() {
             onRename={openRenameDialog}
             onShare={openShareDialog}
             onDelete={openDeleteDialog}
+            onToggleLocked={(id, locked) => toggleUserAlbumLocked.mutate({ id, locked })}
           />
         </div>
       </div>

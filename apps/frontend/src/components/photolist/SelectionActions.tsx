@@ -25,7 +25,6 @@ import { useLocation } from "@tanstack/react-router";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useRemovePhotoFromUserAlbumMutation } from "../../api_client/albums/hooks";
-import { UserAlbum } from "../../api_client/albums/types";
 import { serverAddress } from "../../api_client/apiClient";
 import { useDownloadPhotosMutation } from "../../api_client/jobs";
 import {
@@ -36,7 +35,7 @@ import {
   useSetPhotosPublicMutation,
   type PhotoCategory,
 } from "../../api_client/photos/hooks";
-import type { BulkPhotoQuery, SelectionState } from "../../api_client/photos/types";
+import type { BulkPhotoQuery, PigPhoto, SelectionState } from "../../api_client/photos/types";
 import {
   useCreateManualStackMutation,
   useMergeStacksMutation,
@@ -47,7 +46,7 @@ import { copyToClipboard } from "../../util/util";
 import { ModalDownloadOptions } from "../modals/ModalDownloadOptions";
 
 type Props = {
-  selectedItems: UserAlbum[];
+  selectedItems: PigPhoto[];
   selectAllMode?: boolean;
   selectAllQuery?: BulkPhotoQuery;
   totalCount?: number;
@@ -60,6 +59,7 @@ type Props = {
   title: string;
   albumID?: number | string;
   ownerUsername?: string;
+  albumLocked?: boolean;
 };
 
 export function SelectionActions(props: Readonly<Props>) {
@@ -90,6 +90,7 @@ export function SelectionActions(props: Readonly<Props>) {
     albumID,
     onAddToAlbum,
     onAddTags,
+    albumLocked = false,
   } = props;
 
   // Helper to reset selection state after action
@@ -218,7 +219,7 @@ export function SelectionActions(props: Readonly<Props>) {
                   t
                 </Text>
               }
-              disabled={!hasSelection}
+              disabled={!hasSelection || albumLocked}
               onClick={() => hasSelection && onAddTags()}
             >
               {t("selectionactions.tag")}
@@ -244,7 +245,7 @@ export function SelectionActions(props: Readonly<Props>) {
 
           <Menu.Item
             leftSection={<Star />}
-            disabled={!hasSelection}
+            disabled={!hasSelection || albumLocked}
             onClick={() => {
               if (selectAllMode) {
                 setFavoritePhotos.mutate({
@@ -267,7 +268,7 @@ export function SelectionActions(props: Readonly<Props>) {
 
           <Menu.Item
             leftSection={<StarOff />}
-            disabled={!hasSelection}
+            disabled={!hasSelection || albumLocked}
             onClick={() => {
               if (selectAllMode) {
                 setFavoritePhotos.mutate({
@@ -292,7 +293,7 @@ export function SelectionActions(props: Readonly<Props>) {
 
           <Menu.Item
             leftSection={<EyeOff />}
-            disabled={!hasSelection}
+            disabled={!hasSelection || albumLocked}
             onClick={() => {
               if (selectAllMode) {
                 setPhotosHidden.mutate({
@@ -315,7 +316,7 @@ export function SelectionActions(props: Readonly<Props>) {
 
           <Menu.Item
             leftSection={<Eye />}
-            disabled={!hasSelection}
+            disabled={!hasSelection || albumLocked}
             onClick={() => {
               if (selectAllMode) {
                 setPhotosHidden.mutate({
@@ -354,7 +355,7 @@ export function SelectionActions(props: Readonly<Props>) {
 
           <Menu.Item
             leftSection={<Globe />}
-            disabled={!hasSelection}
+            disabled={!hasSelection || albumLocked}
             onClick={() => {
               if (selectAllMode) {
                 setPhotosPublic.mutate({
@@ -382,7 +383,7 @@ export function SelectionActions(props: Readonly<Props>) {
 
           <Menu.Item
             leftSection={<Key />}
-            disabled={!hasSelection}
+            disabled={!hasSelection || albumLocked}
             onClick={() => {
               if (selectAllMode) {
                 setPhotosPublic.mutate({
@@ -413,7 +414,7 @@ export function SelectionActions(props: Readonly<Props>) {
 
           <Menu.Item
             leftSection={<Trash />}
-            disabled={!hasSelection}
+            disabled={!hasSelection || albumLocked}
             onClick={() => {
               if (selectAllMode) {
                 setPhotosDeleted.mutate({
@@ -438,7 +439,7 @@ export function SelectionActions(props: Readonly<Props>) {
 
           <Menu.Item
             leftSection={<Share />}
-            disabled={!hasSelection}
+            disabled={!hasSelection || albumLocked}
             onClick={() => {
               if (hasSelection) {
                 onSharePhotos();
@@ -455,7 +456,7 @@ export function SelectionActions(props: Readonly<Props>) {
 
           <Menu.Item
             leftSection={<IconStack2 size={16} />}
-            disabled={!hasSelection || selectAllMode || selectedItems.length < 2}
+            disabled={!hasSelection || albumLocked || selectAllMode || selectedItems.length < 2}
             onClick={() => {
               if (!selectAllMode && selectedItems.length >= 2) {
                 createManualStack.mutate(
@@ -474,7 +475,7 @@ export function SelectionActions(props: Readonly<Props>) {
 
           <Menu.Item
             leftSection={<IconLayersLinked size={16} />}
-            disabled={!hasSelection || selectAllMode || !hasPhotosInManualStacks()}
+            disabled={!hasSelection || albumLocked || selectAllMode || !hasPhotosInManualStacks()}
             onClick={() => {
               if (!selectAllMode && hasPhotosInManualStacks()) {
                 mergeStacks.mutate(
@@ -493,7 +494,7 @@ export function SelectionActions(props: Readonly<Props>) {
 
           <Menu.Item
             leftSection={<IconLayersSubtract size={16} />}
-            disabled={!hasSelection || selectAllMode || !hasPhotosInManualStacks()}
+            disabled={!hasSelection || albumLocked || selectAllMode || !hasPhotosInManualStacks()}
             onClick={() => {
               if (!selectAllMode && hasPhotosInManualStacks()) {
                 const stackPhotos = getManualStacksFromSelection();
@@ -563,10 +564,10 @@ export function SelectionActions(props: Readonly<Props>) {
 
                   <Menu.Item
                     leftSection={<FileMinus />}
-                    disabled={!hasSelection || selectAllMode}
+                    disabled={!hasSelection || selectAllMode || albumLocked}
                     onClick={() => {
                       // Remove from album doesn't support selectAll mode
-                      if (!selectAllMode) {
+                      if (!selectAllMode && !albumLocked) {
                         removePhotosFromAlbum.mutate({
                           id: `${albumID ?? ""}`,
                           title,

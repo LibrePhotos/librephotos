@@ -36,6 +36,7 @@ export const UserAlbumInfo = z.object({
   shared_to: SimpleUser.array(),
   created_on: z.string(),
   favorited: z.boolean(),
+  locked: z.boolean(),
   public: z.boolean().optional(),
 });
 export type UserAlbumInfo = z.infer<typeof UserAlbumInfo>;
@@ -49,7 +50,9 @@ const UserAlbumDetails = z.object({
   id: z.string(),
   title: z.string(),
   owner: SimpleUser,
+  // Public album responses omit the lock flag; they are already read-only.
   shared_to: SimpleUser.array().optional(),
+  locked: z.boolean().default(false),
   date: z.string(),
   location: z.string().nullable(),
 });

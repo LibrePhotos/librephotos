@@ -1,4 +1,9 @@
-import { PhotoHash, SimpleUser, type BulkPhotoQuery, type UserAlbum } from "@librephotos/api-client";
+import {
+  PhotoHash,
+  UserAlbumInfo as SharedUserAlbumInfo,
+  type BulkPhotoQuery,
+  type UserAlbum,
+} from "@librephotos/api-client";
 import { z } from "zod";
 
 // The album schemas are shared with the mobile app and live in
@@ -26,25 +31,16 @@ export {
   ThingAlbum,
   ThingAlbumInfo,
   UserAlbum,
-  UserAlbumInfo,
 } from "@librephotos/api-client";
 
-// What useFetchUserAlbumsQuery parses /albums/user/list/ with. It differs from
-// the shared UserAlbumInfo (cover_photo: PhotoSuperSimple | null), which the
-// album pages are not typed for yet; see the migration checklist.
-const UserAlbumResponse = z.object({
-  id: z.number(),
-  title: z.string(),
-  cover_photo: PhotoHash,
-  photo_count: z.number(),
-  owner: SimpleUser,
-  shared_to: SimpleUser.array(),
-  created_on: z.string(),
-  favorited: z.boolean(),
-  public: z.boolean().optional(),
+// Frontend album lists return a lightweight cover photo. Keep the shared album
+// fields (including locked) while using that same shape throughout the UI.
+export const UserAlbumInfo = SharedUserAlbumInfo.extend({
+  cover_photo: PhotoHash.nullable(),
 });
+export type UserAlbumInfo = z.infer<typeof UserAlbumInfo>;
 
-const UserAlbumList = UserAlbumResponse.array();
+const UserAlbumList = UserAlbumInfo.array();
 
 export const UserAlbumListResponse = z.object({
   results: UserAlbumList,
@@ -61,6 +57,11 @@ export type RenameUserAlbumParams = {
   id: string;
   title: string;
   newTitle: string;
+};
+
+export type ToggleUserAlbumLockedParams = {
+  id: string;
+  locked: boolean;
 };
 
 // Server-side "Select All": instead of listing every photo id, send the query
@@ -117,7 +118,7 @@ export const PersonDataPointList = z.object({
   links: Link.array(),
 });
 
-export type UserAlbumDetails = Pick<UserAlbum, "id" | "title" | "owner" | "shared_to" | "date" | "location">;
+export type UserAlbumDetails = Pick<UserAlbum, "id" | "title" | "owner" | "shared_to" | "locked" | "date" | "location">;
 
 export const UserAlbumEdit = z.object({
   id: z.number(),
@@ -125,5 +126,6 @@ export const UserAlbumEdit = z.object({
   photos: z.string().array(),
   created_on: z.string(),
   favorited: z.boolean(),
+  locked: z.boolean(),
   removedPhotos: z.string().array().optional(),
 });
