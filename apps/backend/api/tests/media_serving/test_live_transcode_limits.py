@@ -220,7 +220,7 @@ class BuildLiveCommandTest(SimpleTestCase):
 
     def test_the_height_is_still_a_ceiling_and_not_a_target(self):
         command = media.build_live_command("/x.mp4")
-        self.assertIn("scale=-2:'min(720,ih)'", command)
+        self.assertIn("scale=-2:'trunc(min(720,ih)/2)*2'", command)
 
     def test_the_conversion_being_watched_is_not_niced(self):
         """Unlike the cached copy: somebody is waiting for this one."""

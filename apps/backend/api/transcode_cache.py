@@ -271,7 +271,7 @@ def build_command(source, destination, transfer=None):
 
     # An HDR source converted without tonemapping comes out washed out, because
     # the browser reads its PQ or HLG curve as bt709. See :mod:`api.video_color`.
-    command += video_color.h264_video_args(source, "scale=-2:'min(720,ih)'", transfer)
+    command += video_color.h264_video_args(source, video_color.PLAYBACK_SCALE, transfer)
 
     return command + ["-movflags", "+faststart", "-f", "mp4", destination]
 

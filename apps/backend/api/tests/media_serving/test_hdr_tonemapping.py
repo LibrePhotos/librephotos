@@ -216,22 +216,26 @@ class ConversionSitesTest(SimpleTestCase):
     def test_live_playback_tonemaps_an_hdr_source(self):
         with self._hdr(), self._zscale():
             command = media.build_live_command("/v.mov")
-        self.assertEqual(_filter_arg(command), "scale=-2:'min(720,ih)'," + TONEMAP)
+        self.assertEqual(
+            _filter_arg(command), "scale=-2:'trunc(min(720,ih)/2)*2'," + TONEMAP
+        )
 
     def test_live_playback_leaves_an_sdr_source_alone(self):
         with self._hdr(False), self._zscale():
             command = media.build_live_command("/v.mov")
-        self.assertEqual(_filter_arg(command), "scale=-2:'min(720,ih)'")
+        self.assertEqual(_filter_arg(command), "scale=-2:'trunc(min(720,ih)/2)*2'")
 
     def test_the_cached_copy_tonemaps_an_hdr_source(self):
         with self._hdr(), self._zscale():
             command = transcode_cache.build_command("/v.mov", "/out.mp4")
-        self.assertEqual(_filter_arg(command), "scale=-2:'min(720,ih)'," + TONEMAP)
+        self.assertEqual(
+            _filter_arg(command), "scale=-2:'trunc(min(720,ih)/2)*2'," + TONEMAP
+        )
 
     def test_the_cached_copy_leaves_an_sdr_source_alone(self):
         with self._hdr(False), self._zscale():
             command = transcode_cache.build_command("/v.mov", "/out.mp4")
-        self.assertEqual(_filter_arg(command), "scale=-2:'min(720,ih)'")
+        self.assertEqual(_filter_arg(command), "scale=-2:'trunc(min(720,ih)/2)*2'")
 
     def test_the_filter_stays_after_the_input(self):
         """Before -i it would be read as a decoder setting and do nothing."""

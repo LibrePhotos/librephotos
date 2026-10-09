@@ -27,17 +27,58 @@ STATIC_THUMBNAIL_DIRS = (
 ANIMATED_THUMBNAIL_DIRS = ("square_thumbnails", "square_thumbnails_small")
 
 
-def delete_thumbnail_files(photo_hash: str) -> None:
-    """Remove every thumbnail file named after ``photo_hash``."""
+# Where a rebuild keeps the thumbnails it replaces until the new ones exist.
+SET_ASIDE_SUFFIX = ".previous"
+
+
+def thumbnail_file_paths(photo_hash: str) -> list[str]:
+    """Every path a thumbnail named after ``photo_hash`` can have."""
     named = [(d, ".webp") for d in STATIC_THUMBNAIL_DIRS]
     named += [(d, ".mp4") for d in ANIMATED_THUMBNAIL_DIRS]
-    for output_dir, extension in named:
-        path = os.path.join(settings.MEDIA_ROOT, output_dir, photo_hash + extension)
+    return [
+        os.path.join(settings.MEDIA_ROOT, output_dir, photo_hash + extension)
+        for output_dir, extension in named
+    ]
+
+
+def delete_thumbnail_files(photo_hash: str) -> None:
+    """Remove every thumbnail file named after ``photo_hash``."""
+    for path in thumbnail_file_paths(photo_hash):
         if os.path.exists(path):
             try:
                 os.remove(path)
             except OSError:
                 logger.error(f"could not remove thumbnail {path}")
+
+
+def _put_back(set_aside):
+    """Return set-aside thumbnails to their places, over anything made since."""
+    for path, previous in set_aside:
+        try:
+            os.replace(previous, path)
+        except OSError:
+            logger.error(f"could not restore thumbnail {path} from {previous}")
+
+
+def _set_aside_thumbnail_files(photo_hash: str) -> list[tuple[str, str]]:
+    """Move ``photo_hash``'s thumbnails out of the way; return (path, moved to).
+
+    Renamed next to themselves, not deleted, so that a rebuild that fails can
+    put them back. A file that cannot be moved puts back the ones already moved
+    and raises, leaving everything as it was.
+    """
+    set_aside = []
+    for path in thumbnail_file_paths(photo_hash):
+        if not os.path.exists(path):
+            continue
+        previous = path + SET_ASIDE_SUFFIX
+        try:
+            os.replace(path, previous)
+        except OSError:
+            _put_back(set_aside)
+            raise
+        set_aside.append((path, previous))
+    return set_aside
 
 
 class Thumbnail(models.Model):
@@ -119,16 +160,36 @@ class Thumbnail(models.Model):
             )
             raise e
 
-    def _regenerate_thumbnails(self) -> None:
+    def _regenerate_thumbnails(self, keep_old_on_failure: bool = False) -> None:
         """Delete all existing thumbnail files and regenerate them.
 
         Picks up ``photo.local_orientation`` automatically via
         ``_generate_thumbnail``.  Should be called after updating
         ``Photo.local_orientation``.
-        """
-        delete_thumbnail_files(self.photo.image_hash)
 
-        self._generate_thumbnail()
+        ``keep_old_on_failure`` is for a rebuild whose old thumbnails still show
+        the right picture, only worse -- a video's washed-out HDR or unplayable
+        10-bit ones. They are set aside rather than deleted, and if ffmpeg then
+        fails they are put back: a washed-out thumbnail beats none at all. A
+        rotation or a rewritten file leaves the old ones showing a picture that
+        is no longer the photo's, so those still start from nothing.
+        """
+        if not keep_old_on_failure:
+            delete_thumbnail_files(self.photo.image_hash)
+            self._generate_thumbnail()
+        else:
+            set_aside = _set_aside_thumbnail_files(self.photo.image_hash)
+            try:
+                self._generate_thumbnail()
+            except Exception:
+                _put_back(set_aside)
+                raise
+            for _, previous in set_aside:
+                try:
+                    os.remove(previous)
+                except OSError:
+                    logger.error(f"could not remove old thumbnail {previous}")
+
         self._calculate_aspect_ratio()
         self._refresh_perceptual_hash()
 
