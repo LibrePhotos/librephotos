@@ -12,16 +12,16 @@
   "dependencies": {
     "expo": "~57.0.24",
     "expo-router": "~57.0.22",
-    "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
   },
   "//overrides": "expo-router is installed at the root (see above), and npm auto-installs its open-ended peers (react-native: *, react-native-screens: *, react-native-safe-area-context: >= 5.4.0, react-native-reanimated/worklets via @expo/ui) at the LATEST version there. That gave the root a newer copy than apps/mobile pins (react-native 0.87 next to the app's 0.86), so the bundle and the type checker saw two copies of the native modules. These overrides force one copy each, at the versions Expo SDK 57 bundles. Bump them together with the SDK.",
   "overrides": {
-    "react-native": "0.86.3",
-    "react-native-reanimated": "4.5.1",
-    "react-native-worklets": "0.10.1",
-    "react-native-gesture-handler": "~2.32.0",
-    "react-native-screens": "~4.26.0",
-    "react-native-safe-area-context": "~5.7.0"
+    "react-native": "0.87.1",
+    "react-native-reanimated": "4.7.1",
+    "react-native-worklets": "0.13.0",
+    "react-native-gesture-handler": "~2.33.0",
+    "react-native-screens": "~4.29.0",
+    "react-native-safe-area-context": "~5.10.0"
   }
 }
