@@ -99,7 +99,8 @@ export async function fetchDateAlbum(
     folder: filter.folder,
     page,
   });
-  const res = await client.get<unknown>(`/albums/date/${albumDateId}${query}`);
+  // Trailing slash: the router 301-redirects without it, one extra round trip per day page.
+  const res = await client.get<unknown>(`/albums/date/${albumDateId}/${query}`);
   return parseResponse(S.FetchDateAlbumResponse, res, "date album").results;
 }
 

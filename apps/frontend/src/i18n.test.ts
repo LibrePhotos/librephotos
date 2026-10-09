@@ -1,4 +1,6 @@
+import dayjs from "dayjs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import translationDa from "./locales/da/translation.json";
 import translationDe from "./locales/de/translation.json";
 import translationEn from "./locales/en/translation.json";
 import translationFr from "./locales/fr/translation.json";
@@ -39,6 +41,25 @@ describe("i18n lazy locale loading", () => {
     expect(i18n.hasResourceBundle("de", "translation")).toBe(true);
     expect(i18n.resolvedLanguage).toBe("de");
     expect(i18n.t("settings.language")).toBe(translationDe.settings.language);
+    expect(document.documentElement.lang).toBe("de");
+  });
+
+  it("keeps <html lang> a valid language tag", async () => {
+    window.localStorage.setItem("i18nextLng", "en");
+    const i18n = await loadI18n();
+    expect(document.documentElement.lang).toBe("en");
+
+    await i18n.changeLanguage("zh_Hans");
+
+    expect(document.documentElement.lang).toBe("zh-Hans");
+  });
+
+  it("loads the Danish translation Weblate maintains", async () => {
+    window.localStorage.setItem("i18nextLng", "da");
+    const i18n = await loadI18n();
+
+    expect(i18n.resolvedLanguage).toBe("da");
+    expect(i18n.t("settings.language")).toBe(translationDa.settings.language);
   });
 
   it("loads a saved non-English language before reporting ready", async () => {
@@ -55,6 +76,7 @@ describe("i18n lazy locale loading", () => {
 
     expect(i18n.resolvedLanguage).toBe("de");
     expect(i18n.t("settings.language")).toBe(translationDe.settings.language);
+    expect(document.documentElement.lang).toBe("de");
   });
 
   it("falls back to English for keys a locale has not translated", async () => {
@@ -65,5 +87,27 @@ describe("i18n lazy locale loading", () => {
     await i18n.changeLanguage("fr");
 
     expect(i18n.t("only.in.english")).toBe("English only");
+  });
+});
+
+describe("loadDayjsLocale", () => {
+  it("registers the date picker locale under dayjs's own name", async () => {
+    const { loadDayjsLocale } = await import("./i18n");
+
+    expect(await loadDayjsLocale("de")).toBe("de");
+    expect(
+      dayjs(new Date(2024, 2, 15))
+        .locale("de")
+        .format("MMMM")
+    ).toBe("März");
+    expect(await loadDayjsLocale("nb_NO")).toBe("nb");
+    expect(await loadDayjsLocale("zh_Hans")).toBe("zh-cn");
+  });
+
+  it("keeps English for English and for languages without dayjs data", async () => {
+    const { loadDayjsLocale } = await import("./i18n");
+
+    expect(await loadDayjsLocale("en")).toBe("en");
+    expect(await loadDayjsLocale(undefined)).toBe("en");
   });
 });

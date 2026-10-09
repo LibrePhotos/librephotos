@@ -44,13 +44,25 @@ const cookieTokens: TokenSupplier = {
 };
 
 /**
- * Set once the first failed authentication starts logging the user out, so
- * concurrent 401s don't each blacklist the token, notify and redirect. Never
+ * Set once the first failed authentication (or Log out) starts logging the user
+ * out, so concurrent 401s don't each blacklist the token, notify and redirect. Never
  * reset: logging out ends in a full page navigation, which reloads this module.
  */
 let loggingOut = false;
 
 const isPublicPage = () => window.location.pathname.startsWith("/public");
+
+/**
+ * End the session with a full page load of the login page. Not a router
+ * navigation: the cached "logged in" answer would send /login straight back
+ * into the app, and a reload drops every cached query, so whoever signs in
+ * next in this tab never sees the previous user's data. The 401s that requests
+ * still in flight get meanwhile are ignored (see `loggingOut`).
+ */
+export function redirectToLogin(): void {
+  loggingOut = true;
+  window.location.assign(PUBLIC_URL + "/login");
+}
 
 /**
  * A 401 the shared transport could not fix with a token refresh. The web
@@ -63,12 +75,16 @@ async function handleUnauthorized(endpoint: string, response: Response): Promise
   const isLoginPage = pathname.includes("/login");
   const isSignupPage = pathname.includes("/signup");
   const suppressAuthNotifications = isPublicPage() || isPasswordResetPage || isLoginPage || isSignupPage;
+  // Pages for logged-out users stay where they are. A refused sign-up
+  // (registration turned off) answers 401 too, and used to reload the sign-up
+  // form into the login page without a word; the form reports it itself now.
+  const staysOnPage = isLoginPage || isSignupPage;
 
   // On public pages, silently ignore 401 errors for authenticated-only endpoints.
   if (isPublicPage() || isPasswordResetPage) {
     return;
   }
-  if (!isLoginPage) {
+  if (!staysOnPage) {
     // Another request already started logging out and redirecting.
     if (loggingOut) {
       return;
@@ -90,7 +106,7 @@ async function handleUnauthorized(endpoint: string, response: Response): Promise
     }
   }
   // Clear auth cookies and redirect to login if we are not already on the login page
-  if (!isLoginPage) {
+  if (!staysOnPage) {
     cookieTokens.clearTokens();
     // A full navigation on purpose: the router lives in App.tsx (importing it
     // here would be circular) and a reload also drops the cached queries.
@@ -126,12 +142,7 @@ const sharedClient = createApiClient({
   tokens: cookieTokens,
   useCredentials: true,
   onUnauthorized: handleUnauthorized,
-  onServerError: endpoint => {
-    notification.requestFailed(
-      `500 (Internal Server Error) for ${endpoint}`,
-      "Something went wrong on the server. Please open up the network tab in your browser's developer tools and report this issue on GitHub."
-    );
-  },
+  onServerError: endpoint => notification.serverError(endpoint),
 });
 
 /**
@@ -190,10 +201,7 @@ export const fetchClient = apiClient;
 /** A response that did not match its schema (server drift) asks the user to report it. */
 function notifyParseError(error: unknown) {
   if (error instanceof ResponseParseError) {
-    notification.requestFailed(
-      `Failed to parse ${error.context}`,
-      `${error.issues}. Please report this issue on GitHub.`
-    );
+    notification.parseError(`${error.context}: ${error.issues}`);
   }
 }
 

@@ -75,7 +75,8 @@ export function EventCountMonthGraph() {
           gridAxis="y"
           withTooltip
           tooltipAnimationDuration={200}
-          cursorFill="var(--mantine-color-blue-light)"
+          // Mantine 8.3 forwards cursorFill to the DOM (React warning); the CSS variable is the same setting
+          vars={() => ({ root: { "--chart-cursor-fill": "var(--mantine-color-blue-light)" } })}
           tooltipProps={{ content: ({ payload }) => getTooltipContent(payload) }}
         />
       )}

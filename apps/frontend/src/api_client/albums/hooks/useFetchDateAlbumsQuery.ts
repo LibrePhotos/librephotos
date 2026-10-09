@@ -12,7 +12,7 @@ export const DateAlbumsQueryKeys = ["dateAlbums"] as const;
 export const DATE_ALBUM_PAGE_SIZE = 100;
 
 // A page of a single date album that is already in the query cache:
-// `/albums/date/<id>?page=<n>` for the same photoset / person / user /
+// `/albums/date/<id>/?page=<n>` for the same photoset / person / user /
 // folder / media-type filter as the list being loaded.
 export type CachedDateAlbumPage<T = PigPhoto> = {
   albumDateId: string;

@@ -2,13 +2,12 @@ import {
   Button,
   Card,
   Container,
-  Dialog,
   Group,
   Radio,
   Select,
+  SimpleGrid,
   Space,
   Stack,
-  Text,
   TextInput,
   Title,
 } from "@mantine/core";
@@ -28,7 +27,9 @@ import {
   useUpdateUserMutation,
 } from "../../api_client/user/hooks";
 import { UserSelfDetailsQueryKeys } from "../../api_client/user/hooks/useFetchUserSelfDetailsQuery";
+import { reportUserSaveError } from "../../util/apiErrors";
 import { PasswordEntry } from "./PasswordEntry";
+import { SaveChangesDialog } from "./SaveChangesDialog";
 
 export function Profile() {
   const [isOpenUpdateDialog, setIsOpenUpdateDialog] = useState(false);
@@ -101,7 +102,7 @@ export function Profile() {
 
   return (
     <Container>
-      <Group gap="xs" mt={40} mb={20}>
+      <Group gap="xs" mt={{ base: 20, sm: 40 }} mb={{ base: 10, sm: 20 }}>
         <User size={35} />
         <Title order={1}>{t("settings.profile")}</Title>
       </Group>
@@ -111,7 +112,7 @@ export function Profile() {
             {t("settings.user")}
           </Title>
           <Title order={5}>{t("settings.avatar")}</Title>
-          <Group justify="center" align="self-start" grow mb="lg">
+          <Group align="flex-start" gap="xl" mb="lg">
             <div>
               <Dropzone
                 noClick
@@ -140,17 +141,18 @@ export function Profile() {
               <Group>
                 <Button
                   size="sm"
+                  leftSection={<Photo size={16} />}
                   onClick={() => {
                     // @ts-ignore
                     dropzoneRef.open();
                   }}
                 >
-                  <Photo />
                   <Trans i18nKey="settings.image">Choose image</Trans>
                 </Button>
                 <Button
                   size="sm"
                   color="green"
+                  leftSection={<Upload size={16} />}
                   onClick={async () => {
                     const formData = new FormData();
                     const file = await urlToFile(
@@ -162,7 +164,6 @@ export function Profile() {
                     updateAvatar.mutate({ id: editedUserDetails.id.toString(), data: formData });
                   }}
                 >
-                  <Upload />
                   <Trans i18nKey="settings.upload">Upload</Trans>
                 </Button>
               </Group>
@@ -172,7 +173,7 @@ export function Profile() {
             </div>
           </Group>
           <Title order={5}>{t("settings.account")}</Title>
-          <Group grow>
+          <SimpleGrid cols={{ base: 1, sm: 3 }}>
             <TextInput
               onChange={event => {
                 setEditedUserDetails({ ...editedUserDetails, first_name: event.currentTarget.value });
@@ -197,7 +198,7 @@ export function Profile() {
                 setEditedUserDetails({ ...editedUserDetails, email: event.currentTarget.value });
               }}
             />
-          </Group>
+          </SimpleGrid>
         </Card>
 
         <Card shadow="md">
@@ -219,8 +220,8 @@ export function Profile() {
             mb={10}
           >
             <Group mt="xs">
-              <Radio value="1" label={t("enabled")} />
-              <Radio value="0" label={t("disabled")} />
+              <Radio value="1" label={t("settings.on")} />
+              <Radio value="0" label={t("settings.off")} />
             </Group>
           </Radio.Group>
 
@@ -229,8 +230,11 @@ export function Profile() {
               <TextInput
                 type="text"
                 label={t("settings.scandirectory")}
-                disabled
-                placeholder={editedUserDetails.scan_directory}
+                description={t("settings.scandirectoryreadonly")}
+                // Filled, so it does not pass for one of the editable fields around it.
+                variant="filled"
+                readOnly
+                value={editedUserDetails.scan_directory ?? ""}
               />
             ) : null}
           </Stack>
@@ -241,8 +245,11 @@ export function Profile() {
               placeholder={t("settings.language")}
               onChange={value => i18n.changeLanguage(value ?? "en")}
               searchable
+              allowDeselect={false}
               maxDropdownHeight={280}
-              value={window.localStorage.i18nextLng === "gb" ? "en" : window.localStorage.i18nextLng}
+              // The detector stores the browser's code as is ("en-US", "de-DE"), which matches no
+              // option; resolvedLanguage is the bundle actually in use ("en", "de", "pt_BR").
+              value={i18n.resolvedLanguage ?? "en"}
               data={[
                 {
                   value: "en",
@@ -311,6 +318,10 @@ export function Profile() {
                 {
                   value: "cs",
                   label: t("settings.czech"),
+                },
+                {
+                  value: "da",
+                  label: t("settings.danish"),
                 },
                 {
                   value: "pt",
@@ -386,41 +397,25 @@ export function Profile() {
           </Group>
         </Card>
         <Space h="xl" />
-        <Dialog
+        <SaveChangesDialog
           opened={isOpenUpdateDialog}
-          withCloseButton
-          onClose={() => setIsOpenUpdateDialog(false)}
-          size="lg"
-          radius="md"
-        >
-          <Text size="sm" style={{ marginBottom: 10 }} fw={500}>
-            Save Changes?
-          </Text>
-
-          <Group justify="flex-end">
-            <Button
-              size="sm"
-              color="green"
-              onClick={() => {
-                const newUserData = { ...editedUserDetails };
-                delete newUserData.scan_directory;
-                delete newUserData.avatar;
-                updateUser.mutate(newUserData);
-                setIsOpenUpdateDialog(false);
-              }}
-            >
-              <Trans i18nKey="settings.favoriteupdate">Update profile settings</Trans>
-            </Button>
-            <Button
-              onClick={() => {
-                setEditedUserDetails(userSelfDetails);
-              }}
-              size="sm"
-            >
-              <Trans i18nKey="settings.nextcloudcancel">Cancel</Trans>
-            </Button>
-          </Group>
-        </Dialog>
+          saving={updateUser.isPending}
+          onSave={() => {
+            const newUserData = { ...editedUserDetails };
+            delete newUserData.scan_directory;
+            delete newUserData.avatar;
+            // Keep the dialog open when the server rejects the save (an invalid email address,
+            // for example), so the edits can be fixed.
+            updateUser.mutate(newUserData, {
+              onSuccess: () => setIsOpenUpdateDialog(false),
+              onError: reportUserSaveError,
+            });
+          }}
+          onCancel={() => {
+            setEditedUserDetails(userSelfDetails);
+            setIsOpenUpdateDialog(false);
+          }}
+        />
       </Stack>
     </Container>
   );

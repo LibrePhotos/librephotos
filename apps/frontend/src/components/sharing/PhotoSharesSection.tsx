@@ -1,16 +1,4 @@
-import {
-  ActionIcon,
-  Button,
-  CopyButton,
-  Group,
-  Image,
-  Paper,
-  Stack,
-  Text,
-  TextInput,
-  Title,
-  Tooltip,
-} from "@mantine/core";
+import { ActionIcon, Button, CopyButton, Group, Paper, Stack, Text, TextInput, Title, Tooltip } from "@mantine/core";
 import {
   IconCheck as CheckIcon,
   IconCopy as CopyIcon,
@@ -19,9 +7,11 @@ import {
 } from "@tabler/icons-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { serverAddress, shareAddress } from "../../api_client/apiClient";
+import { shareAddress } from "../../api_client/apiClient";
 import { useFetchPhotoSharesQuery, usePhotoShareMutation } from "../../api_client/photos/hooks";
 import type { PhotoShare } from "../../api_client/photos/hooks";
+import { ConfirmPopover } from "./ConfirmPopover";
+import { ShareThumbnail } from "./ShareThumbnail";
 
 /** One link, with its own mutation so only this row shows a spinner. */
 function PhotoShareRow({ share }: Readonly<{ share: PhotoShare }>) {
@@ -32,45 +22,63 @@ function PhotoShareRow({ share }: Readonly<{ share: PhotoShare }>) {
 
   return (
     <Group gap="xs" wrap="nowrap">
-      {share.image_hash && (
-        <Image
-          src={`${serverAddress}/media/square_thumbnails_small/${share.image_hash}`}
-          w={36}
-          h={36}
-          radius="sm"
-          alt=""
-        />
-      )}
-      <TextInput readOnly value={fullUrl} style={{ flexGrow: 1 }} onFocus={e => e.currentTarget.select()} />
-      <CopyButton value={fullUrl}>
-        {({ copied, copy }) => (
-          <Tooltip label={copied ? t("sharing.copied") : t("sharing.copyLink")} withArrow>
-            <ActionIcon variant="subtle" color={copied ? "teal" : "gray"} onClick={copy}>
-              {copied ? <CheckIcon size={18} /> : <CopyIcon size={18} />}
-            </ActionIcon>
-          </Tooltip>
-        )}
-      </CopyButton>
-      <Tooltip label={t("sharing.rotateLink")} withArrow>
-        <ActionIcon
-          variant="subtle"
-          loading={isPending && variables?.action === "rotate"}
-          disabled={isPending}
-          onClick={() => mutate({ photoId, action: "rotate" })}
+      {share.image_hash && <ShareThumbnail imageHash={share.image_hash} size={36} />}
+      {/* The link gives way on a phone; the buttons keep their size (Revoke was cut off). */}
+      <TextInput
+        readOnly
+        value={fullUrl}
+        style={{ flex: 1, minWidth: 0 }}
+        onFocus={e => e.currentTarget.select()}
+        aria-label={t("sharing.photoLink")}
+      />
+      <Group gap={4} wrap="nowrap" style={{ flexShrink: 0 }}>
+        <CopyButton value={fullUrl}>
+          {({ copied, copy }) => (
+            <Tooltip label={copied ? t("sharing.copied") : t("sharing.copyLink")} withArrow>
+              <ActionIcon
+                variant="subtle"
+                color={copied ? "teal" : "gray"}
+                onClick={copy}
+                aria-label={t("sharing.copyLink")}
+              >
+                {copied ? <CheckIcon size={18} /> : <CopyIcon size={18} />}
+              </ActionIcon>
+            </Tooltip>
+          )}
+        </CopyButton>
+        {/* Icon-only, right next to Copy: a misclick used to end the link at once. */}
+        <ConfirmPopover
+          message={t("sharing.rotateLinkConfirm")}
+          confirmLabel={t("sharing.rotateLink")}
+          tooltip={t("sharing.rotateLink")}
+          onConfirm={() => mutate({ photoId, action: "rotate" })}
         >
-          <RefreshIcon size={18} />
-        </ActionIcon>
-      </Tooltip>
-      <Button
-        size="xs"
-        variant="subtle"
-        color="red"
-        loading={isPending && variables?.action === "disable"}
-        disabled={isPending}
-        onClick={() => mutate({ photoId, action: "disable" })}
-      >
-        {t("sharing.revokeLink")}
-      </Button>
+          <ActionIcon
+            variant="subtle"
+            aria-label={t("sharing.rotateLink")}
+            loading={isPending && variables?.action === "rotate"}
+            disabled={isPending}
+          >
+            <RefreshIcon size={18} />
+          </ActionIcon>
+        </ConfirmPopover>
+        <ConfirmPopover
+          message={t("sharing.revokeLinkConfirm")}
+          confirmLabel={t("sharing.revokeLink")}
+          color="red"
+          onConfirm={() => mutate({ photoId, action: "disable" })}
+        >
+          <Button
+            size="xs"
+            variant="subtle"
+            color="red"
+            loading={isPending && variables?.action === "disable"}
+            disabled={isPending}
+          >
+            {t("sharing.revokeLink")}
+          </Button>
+        </ConfirmPopover>
+      </Group>
     </Group>
   );
 }

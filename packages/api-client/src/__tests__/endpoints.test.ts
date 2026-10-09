@@ -54,6 +54,17 @@ describe("album detail endpoints", () => {
   });
 });
 
+describe("date album endpoints", () => {
+  // Without the slash the router answers each day page with a 301 first.
+  it("fetches a day page with a trailing slash before the query", async () => {
+    const { client, calls } = harness({
+      results: { id: "12", date: "2024-04-02", location: "", items: [], incomplete: false, numberOfItems: 0 },
+    });
+    await endpoints.fetchDateAlbum(client, "12", 2, { video: true });
+    expect(calls[0]!.url).toBe("https://demo.example.com/api/albums/date/12/?video=true&page=2");
+  });
+});
+
 describe("album media filters", () => {
   it("passes the media-type filter to thing and place albums", async () => {
     const { client, calls } = harness({ results: { id: "5", title: "Dog", grouped_photos: [] } });

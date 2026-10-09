@@ -1,13 +1,18 @@
-import { Box, Image, Loader } from "@mantine/core";
-import React, { useMemo, useState } from "react";
+import { Box, Image } from "@mantine/core";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import MapGL, { AttributionControl, Marker, NavigationControl, Popup } from "react-map-gl/maplibre";
+import type { MapRef } from "react-map-gl/maplibre";
 import { useMapStyle } from "../util/mapStyle";
 import { getAveragedCoordinates } from "../util/util";
 import { MapDisabledPlaceholder } from "./map/MapDisabledPlaceholder";
+import { ignoreMissingStyleImages } from "./map/mapImages";
 
 type Props = Readonly<{
   photos: any[];
 }>;
+
+// Street level: the map shows where one photo was taken
+const PHOTO_ZOOM = 16;
 
 export function LocationMap({ photos }: Props) {
   const height = "200px";
@@ -19,6 +24,21 @@ export function LocationMap({ photos }: Props) {
     [photos]
   );
   const { avgLat, avgLon } = getAveragedCoordinates(photosWithGPS);
+
+  const mapRef = useRef<MapRef | null>(null);
+  const setMapRef = useCallback((ref: MapRef | null) => {
+    mapRef.current = ref;
+    ignoreMissingStyleImages(ref);
+  }, []);
+  // The map reads initialViewState only when it mounts: follow new coordinates and drop the
+  // old popup, so a caller stepping through photos need not remount it (a remount rebuilds
+  // the WebGL map and reloads its style and tiles, a blank flash per photo). The view is
+  // reset too, so each photo opens at street level like a fresh map, not at the zoom or
+  // rotation the user left on the previous one.
+  useEffect(() => {
+    mapRef.current?.jumpTo({ center: [avgLon, avgLat], zoom: PHOTO_ZOOM, bearing: 0, pitch: 0 });
+    setPopupInfo(null);
+  }, [avgLat, avgLon]);
 
   const markers = useMemo(
     () =>
@@ -45,10 +65,11 @@ export function LocationMap({ photos }: Props) {
     return (
       <Box style={{ zIndex: 2, height, padding: 0 }}>
         <MapGL
+          ref={setMapRef}
           initialViewState={{
             longitude: avgLon,
             latitude: avgLat,
-            zoom: 16,
+            zoom: PHOTO_ZOOM,
           }}
           style={{ width: "100%", height }}
           mapStyle={mapStyle!}
@@ -73,9 +94,6 @@ export function LocationMap({ photos }: Props) {
       </Box>
     );
   }
-  return (
-    <Box style={{ height }}>
-      <Loader>Map loading...</Loader>
-    </Box>
-  );
+  // Without coordinates there is nothing to load: this used to read "Map loading..." for good
+  return null;
 }

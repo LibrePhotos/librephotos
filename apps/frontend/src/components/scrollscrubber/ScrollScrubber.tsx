@@ -8,6 +8,10 @@ import { i18nResolvedLanguage } from "../../i18n";
 import "./ScrollScrubber.css";
 import { ScrollerData, ScrollerPosition, ScrollerType } from "./ScrollScrubberTypes.zod";
 
+// Minimum vertical distance between two markers: a marker chip is 18px tall,
+// so anything closer overlaps its neighbour.
+const MIN_MARKER_GAP = 20;
+
 type Props = Readonly<{
   type: ScrollerType; // Type of scroller marks to display
   scrollPositions: ScrollerData[]; // Array of positions to show on the scroller (label and Y position on target scrollable area)
@@ -68,7 +72,7 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
   const getLabelsMarkers = useCallback((): ScrollerPosition[] => {
     const markers: ScrollerPosition[] = [];
     positions.forEach(item => {
-      if (markers.length < 1 || item.scrollerY - markers.slice(-1)[0].scrollerY > 15) {
+      if (markers.length < 1 || item.scrollerY - markers.slice(-1)[0].scrollerY > MIN_MARKER_GAP) {
         markers.push({
           label: item.label,
           targetY: item.targetY,
@@ -104,7 +108,7 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
         currentLetter = letter;
         const label = item.label === "Unknown - Other" ? item.label : currentLetter;
         // Only display letter if there is enough space with preivous letter
-        if (alphabet.length < 1 || item.scrollerY - alphabet.slice(-1)[0].scrollerY > 15) {
+        if (alphabet.length < 1 || item.scrollerY - alphabet.slice(-1)[0].scrollerY > MIN_MARKER_GAP) {
           alphabet.push({
             label,
             targetY: item.targetY,
@@ -133,7 +137,7 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
         if (label !== currentDate) {
           currentDate = label;
           countDifferentValues += 1;
-          if (dates.length < 1 || item.scrollerY - dates.slice(-1)[0].scrollerY > 15) {
+          if (dates.length < 1 || item.scrollerY - dates.slice(-1)[0].scrollerY > MIN_MARKER_GAP) {
             dates.push({
               label: currentDate,
               targetY: item.targetY,
@@ -143,10 +147,10 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
           }
         }
       });
-      if (countDifferentValues < 10) {
-        if (dateType === "years") return getDateMarkers("months");
-        return getLabelsMarkers();
-      }
+      if (dateType === "years" && countDifferentValues < 10) return getDateMarkers("months");
+      // Per-day labels are long ("Wednesday, March 12, 2025") and cover the
+      // grid, so keep month markers unless everything is in one month.
+      if (dateType === "months" && countDifferentValues < 2) return getLabelsMarkers();
       return dates;
     },
     [positions, getLabelsMarkers]

@@ -11,6 +11,7 @@ import {
   Photo,
   PhotosWithoutTimestampResponse,
   Photoset,
+  SearchPhotos,
   User,
   UserAlbum,
   imageHashOf,
@@ -44,6 +45,23 @@ describe("schema parsing against fixtures", () => {
     expect(parsed.stack_raw_jpeg).toBe(true);
     expect(parsed.text_alignment).toBe("right");
     expect(parsed.duplicate_sensitivity).toBe("normal");
+  });
+
+  // zod strips unknown keys; the web Edit User dialog lost the upload folder.
+  it("keeps a user's upload folder, which may be empty or null", () => {
+    expect(User.parse({ ...userFixture, upload_directory: "/data/photos/inbox" }).upload_directory).toBe(
+      "/data/photos/inbox"
+    );
+    expect(User.parse({ ...userFixture, upload_directory: null }).upload_directory).toBeNull();
+    expect(User.parse(userFixture).upload_directory).toBeUndefined();
+  });
+
+  // Search sends "No timestamp" for the undated group today and may send null,
+  // as the other grouped lists do; a null used to fail the whole search.
+  it("parses search date groups with either undated marker", () => {
+    const group = (date: string | null) => ({ date, location: "", items: [] });
+    const parsed = SearchPhotos.parse({ results: [group("2024-06-15"), group("No timestamp"), group(null)] });
+    expect(parsed.results.map(g => g.date)).toEqual(["2024-06-15", "No timestamp", null]);
   });
 
   it("rejects malformed data loudly (server drift)", () => {

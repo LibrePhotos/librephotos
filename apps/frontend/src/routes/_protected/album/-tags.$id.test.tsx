@@ -18,7 +18,8 @@ import { beforeAll, describe, expect, it, vi } from "vitest";
 import i18n from "../../../i18n";
 
 const stubs = vi.hoisted(() => ({
-  tagAlbum: { id: 7, name: "beach", grouped_photos: [] as unknown[] },
+  tagAlbum: { id: 7, name: "beach", grouped_photos: [] as unknown[] } as unknown,
+  isError: false,
   component: undefined as React.ComponentType | undefined,
 }));
 
@@ -38,7 +39,7 @@ vi.mock("@tanstack/react-router", () => ({
   Link: ({ children }: { children?: React.ReactNode }) => <span>{children}</span>,
 }));
 vi.mock("../../../api_client/tags/hooks", () => ({
-  useFetchTagAlbumQuery: () => ({ data: stubs.tagAlbum, isLoading: false }),
+  useFetchTagAlbumQuery: () => ({ data: stubs.tagAlbum, isLoading: false, isError: stubs.isError }),
 }));
 // PhotoListView drags in the whole grid; the empty branch is all that matters.
 vi.mock("../../../components/photolist/PhotoListView", () => ({
@@ -119,6 +120,29 @@ describe("a tag album with no photos", () => {
     const action = page.container.querySelector('[data-testid="empty"] a');
     expect(action?.textContent).toBe("Back to all tags");
     expect(action?.getAttribute("href")).toBe("/album/tags");
+    await page.unmount();
+  });
+});
+
+describe("a tag that no longer exists", () => {
+  it("says it is gone rather than empty", async () => {
+    stubs.tagAlbum = undefined;
+    stubs.isError = true;
+    const page = await renderPage();
+
+    const empty = page.container.querySelector('[data-testid="empty"]');
+    expect(empty?.querySelector("h1")?.textContent).toBe("Tag not found");
+    expect(empty?.querySelector("a")?.getAttribute("href")).toBe("/album/tags");
+    await page.unmount();
+  });
+
+  // TanStack sets isError on a failed background refetch too, keeping the cached tag
+  it("is not claimed when only a refetch failed", async () => {
+    stubs.tagAlbum = { id: 7, name: "beach", grouped_photos: [] };
+    stubs.isError = true;
+    const page = await renderPage();
+
+    expect(page.container.querySelector('[data-testid="empty"] h1')?.textContent).toBe("This tag has no photos");
     await page.unmount();
   });
 });

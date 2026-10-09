@@ -36,9 +36,15 @@ async function checkDownloadStatus(job_id: string) {
   return response as StatusResponse;
 }
 
-async function downloadFile(filename: string) {
-  // nginx route /api/downloads/{filename} maps to /protected_media/zip/{filename}.zip
-  const response = await fetch(`${serverAddress}/api/downloads/${filename}`, {
+// How often the archive job is polled.
+export const DOWNLOAD_POLL_INTERVAL_MS = 3000;
+
+async function downloadFile(fileUuid: string) {
+  // Served by the backend (UnifiedMediaAccessView), which appends the
+  // requester's user id and ".zip" itself. It works behind the proxy (X-Accel)
+  // and without it; the old nginx-only /api/downloads/ route 404ed on the
+  // unified image, the Windows build and native dev.
+  const response = await fetch(`${serverAddress}/media/zip/${fileUuid}`, {
     credentials: "include",
   });
   if (!response.ok) {
@@ -100,16 +106,25 @@ export const useDownloadPhotosMutation = () =>
       const { job_id: jobId, url: filename } = await startDownloadProcess(downloadRequest);
       console.log("[Download] Job started", { jobId, filename });
 
-      const statusInterval = setInterval(async () => {
-        const { status } = await checkDownloadStatus(jobId);
+      // One check at a time, the next scheduled only after the previous one
+      // settled. With setInterval a thrown check (network error, 404) left the
+      // timer running forever and toasted on every tick.
+      const poll = async () => {
+        const response = await checkDownloadStatus(jobId).catch(err => {
+          console.error("[Download] Status check failed", err);
+          return null;
+        });
+        if (!response) {
+          notification.downloadFailed();
+          return;
+        }
+        const { status } = response;
         console.log("[Download] Status check", { jobId, status });
         switch (status) {
           case "SUCCESS": {
-            clearInterval(statusInterval);
-            const fullFilename = `${filename}${userId}`;
-            console.log("[Download] Job succeeded, downloading file", { fullFilename });
+            console.log("[Download] Job succeeded, downloading file", { filename });
             try {
-              await downloadFile(fullFilename);
+              await downloadFile(filename);
               console.log("[Download] File downloaded, deleting zip", { filename });
               await fetchClient.delete(`/delete/zip/${filename}`);
               notification.downloadCompleted();
@@ -122,16 +137,17 @@ export const useDownloadPhotosMutation = () =>
           }
 
           case "FAILURE":
-            clearInterval(statusInterval);
             console.error("[Download] Job failed", { jobId });
             notification.downloadFailed();
             break;
 
           default:
-            // noop on PROGRESS
+            // Still building the archive
+            setTimeout(poll, DOWNLOAD_POLL_INTERVAL_MS);
             break;
         }
-      }, 3000);
+      };
+      setTimeout(poll, DOWNLOAD_POLL_INTERVAL_MS);
 
       return { success: true };
     },

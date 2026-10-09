@@ -3,6 +3,7 @@ import { motion } from "motion/react";
 import PropTypes from "prop-types";
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { parsePhotoTimestamp } from "../../../../util/dateUtils";
 import getImageHeight from "../../utils/getImageHeight";
 import getTileMeasurements from "../../utils/getTileMeasurements";
 import styles from "./styles.module.css";
@@ -97,13 +98,16 @@ const Tile = React.memo(
     // what it opens: the kind of media and, when known, when it was taken.
     const language = i18n.resolvedLanguage;
     const label = useMemo(() => {
-      const taken = item.date ? DateTime.fromISO(item.date) : null;
+      // exif_timestamp is the camera's wall clock tagged as UTC: read it in UTC.
+      const taken = item.date ? parsePhotoTimestamp(item.date) : null;
       const date = taken?.isValid
         ? taken.setLocale((language ?? "en").replace("_", "-")).toLocaleString(DateTime.DATETIME_MED)
         : null;
+      // The HDR badge is hidden from assistive tech, so the label says it.
+      if (isVideo && item.is_hdr) return date ? t("phototile.hdrvideotaken", { date }) : t("phototile.hdrvideolabel");
       if (isVideo) return date ? t("phototile.videotaken", { date }) : t("phototile.video");
       return date ? t("phototile.phototaken", { date }) : t("phototile.photo");
-    }, [item.date, isVideo, language, t]);
+    }, [item.date, item.is_hdr, isVideo, language, t]);
 
     // The wrapper carries the position and animation; the button and the
     // selection checkbox sit side by side in it, because a checkbox inside a
@@ -126,7 +130,9 @@ const Tile = React.memo(
         transition={springTransition}
         style={{
           outline: isExpanded ? `${settings.gridGap}px solid ${settings.bgColor}` : null,
-          backgroundColor: item.dominantColor,
+          // Videos (and placeholders) have no dominant colour: a neutral fill
+          // instead of a see-through hole while they load.
+          backgroundColor: item.dominantColor || "var(--mantine-color-default-hover)",
           position: "absolute",
           left: 0,
           top: 0,
@@ -249,6 +255,7 @@ const ItemType = PropTypes.shape({
   url: PropTypes.string,
   type: PropTypes.string,
   date: PropTypes.string,
+  is_hdr: PropTypes.bool,
   style: PropTypes.shape({
     height: PropTypes.number,
     width: PropTypes.number,

@@ -88,7 +88,7 @@ const clusterFace = { ...unnamedFace, name: "Unknown 001", type: "cluster", prob
 
 const onPersonEdit = vi.fn();
 
-async function renderRow(person: typeof unnamedFace) {
+async function renderRow(person: typeof unnamedFace, isPublic = false) {
   onPersonEdit.mockReset();
   const container = document.createElement("div");
   document.body.appendChild(container);
@@ -98,7 +98,7 @@ async function renderRow(person: typeof unnamedFace) {
       <MantineProvider>
         <PersonDetail
           person={person}
-          isPublic={false}
+          isPublic={isPublic}
           setFaceLocation={() => {}}
           onPersonEdit={onPersonEdit}
           notThisPerson={() => {}}
@@ -195,6 +195,23 @@ describe("a face the algorithms did name", () => {
     });
 
     expect(stubs.navigate).toHaveBeenCalledWith({ to: "/search/Alice" });
+  });
+
+  it("encodes the name it searches for", async () => {
+    const container = await renderRow({ ...inferredFace, name: "Anna & Bo" });
+
+    await act(async () => {
+      buttons(container)[0].click();
+    });
+
+    expect(stubs.navigate).toHaveBeenCalledWith({ to: "/search/Anna%20%26%20Bo" });
+  });
+
+  it("is only a label on a public page, whose visitor cannot search", async () => {
+    const container = await renderRow(inferredFace, true);
+
+    expect(container.textContent).toContain("Alice");
+    expect(buttons(container)).toEqual([]);
   });
 });
 

@@ -1,4 +1,4 @@
-import { Avatar, Box, Group, Skeleton, Stack, Text, Title, Tooltip } from "@mantine/core";
+import { Avatar, Box, Group, Skeleton, Stack, Text, Title } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { IconChevronRight, IconDownload, IconLink, IconUpload, IconUsers, IconWorld } from "@tabler/icons-react";
 import { createFileRoute, Link } from "@tanstack/react-router";
@@ -10,11 +10,19 @@ import {
   useFetchSharedAlbumsWithMeQuery,
   useFetchUserAlbumsQuery,
 } from "../../../api_client/albums/hooks";
-import { useFetchSharedPhotosByMeQuery, useFetchSharedPhotosWithMeQuery } from "../../../api_client/photos/hooks";
+import {
+  useFetchPhotoSharesQuery,
+  useFetchSharedPhotosByMeQuery,
+  useFetchSharedPhotosWithMeQuery,
+} from "../../../api_client/photos/hooks";
 import { Photoset } from "../../../api_client/photos/types";
 import { useFetchUserListQuery } from "../../../api_client/user/hooks";
 import classes from "../../../components/album/AlbumSection.module.css";
+import { AlbumShareButton } from "../../../components/sharing/AlbumShareButton";
+import { avatarSrc } from "../../../components/sharing/avatarSrc";
 import { ModalAlbumShare } from "../../../components/sharing/ModalAlbumShare";
+import { ShareThumbnail } from "../../../components/sharing/ShareThumbnail";
+import { SharingPageHeader } from "../../../components/sharing/SharingPageHeader";
 import { Tile } from "../../../components/Tile";
 import { getPhotosFlatFromGroupedByDate } from "../../../util/util";
 
@@ -50,6 +58,8 @@ function SharingExplore() {
   const { data: publicPhotosGrouped, isLoading: isLoadingPublicPhotos } = useFetchDateAlbumsQuery({
     photosetType: Photoset.PUBLIC,
   });
+  // Per-photo share links are public links too; the Public Links page lists them.
+  const { data: photoShares = [], isLoading: isLoadingPhotoShares } = useFetchPhotoSharesQuery();
 
   const publicUsersList = publicUsers(users);
 
@@ -65,8 +75,9 @@ function SharingExplore() {
   // Count totals
   const totalPhotosWithMe = photosWithMe.reduce((acc, group) => acc + group.photos.length, 0);
   const totalAlbumsWithMe = albumsWithMe.reduce((acc, group) => acc + group.albums.length, 0);
-  const totalPhotosByMe = photosByMe.reduce((acc, group) => acc + group.photos.length, 0);
-  const totalAlbumsByMe = albumsByMe.reduce((acc, group) => acc + group.albums.length, 0);
+  // Grouped per recipient: count what was shared once, however many users got it.
+  const totalPhotosByMe = new Set(photosByMe.flatMap(group => group.photos.map(photo => photo.id))).size;
+  const totalAlbumsByMe = new Set(albumsByMe.flatMap(group => group.albums.map(album => album.id))).size;
 
   // Get preview photos for shared with me
   const previewPhotosWithMe = photosWithMe.flatMap(group => group.photos).slice(0, 6);
@@ -79,16 +90,23 @@ function SharingExplore() {
   // Get preview for public links
   const previewPublicPhotos = publicPhotos.filter(p => !p.isTemp).slice(0, 6);
   const previewPublicAlbums = publicLinkAlbums.slice(0, 6);
+  const totalPublicPhotos = publicPhotos.filter(p => !p.isTemp).length + photoShares.length;
+  const previewPhotoShares = photoShares.filter(share => share.image_hash).slice(0, 6);
+
+  // "1 photo, 2 albums": each count is pluralised on its own.
+  const itemSummary = (photos: number, albums: number) =>
+    t("sharing.itemSummary", {
+      photos: t("sharing.photoCount", { count: photos }),
+      albums: t("explore.albumCount", { count: albums }),
+    });
 
   return (
-    <Box p={10}>
-      <Group justify="flex-start" mb="md">
-        <IconUsers size={40} stroke={1.5} />
-        <div>
-          <Title order={2}>{t("sidemenu.sharing")}</Title>
-          <Text c="dimmed">{t("sharing.subtitle", "Photos and albums shared with others")}</Text>
-        </div>
-      </Group>
+    <Box p="md">
+      <SharingPageHeader
+        icon={IconUsers}
+        title={t("sidemenu.sharing")}
+        subtitle={t("sharing.subtitle", "Photos and albums shared with others")}
+      />
 
       <Stack gap="md">
         {/* Public Users Section */}
@@ -144,7 +162,7 @@ function SharingExplore() {
                     className={classes.avatarItem}
                   >
                     <div className={classes.avatar}>
-                      <Avatar size={52} radius="xl" src="/unknown_user.jpg">
+                      <Avatar size={52} radius="xl" src={avatarSrc(user)}>
                         {displayName.charAt(0).toUpperCase()}
                       </Avatar>
                     </div>
@@ -171,10 +189,7 @@ function SharingExplore() {
                 <Title order={4}>{t("sidemenu.sharedwithyou")}</Title>
                 <Group gap={6}>
                   <Text size="sm" c="dimmed">
-                    {t("sharing.itemCount", {
-                      photos: totalPhotosWithMe,
-                      albums: totalAlbumsWithMe,
-                    })}
+                    {itemSummary(totalPhotosWithMe, totalAlbumsWithMe)}
                   </Text>
                   <Text size="sm" c="dimmed">
                     ·
@@ -188,7 +203,8 @@ function SharingExplore() {
             </Link>
           </div>
 
-          {isLoadingPhotosWithMe && isLoadingAlbumsWithMe ? (
+          {/* Until both answer: one empty list alone said "nothing shared yet". */}
+          {isLoadingPhotosWithMe || isLoadingAlbumsWithMe ? (
             <div className={classes.loadingContainer}>
               {[1, 2, 3, 4, 5].map(i => (
                 <div key={i} className={classes.skeleton}>
@@ -241,7 +257,7 @@ function SharingExplore() {
                       {album.title}
                     </Text>
                     <Text size="xs" c="dimmed">
-                      {t("numberofphotos", { number: album.photo_count })}
+                      {t("numberofphotos", { count: album.photo_count, number: album.photo_count })}
                     </Text>
                   </div>
                 </Link>
@@ -263,10 +279,7 @@ function SharingExplore() {
                 <Title order={4}>{t("sidemenu.youshared")}</Title>
                 <Group gap={6}>
                   <Text size="sm" c="dimmed">
-                    {t("sharing.itemCount", {
-                      photos: totalPhotosByMe,
-                      albums: totalAlbumsByMe,
-                    })}
+                    {itemSummary(totalPhotosByMe, totalAlbumsByMe)}
                   </Text>
                   <Text size="sm" c="dimmed">
                     ·
@@ -280,7 +293,7 @@ function SharingExplore() {
             </Link>
           </div>
 
-          {isLoadingPhotosByMe && isLoadingAlbumsByMe ? (
+          {isLoadingPhotosByMe || isLoadingAlbumsByMe ? (
             <div className={classes.loadingContainer}>
               {[1, 2, 3, 4, 5].map(i => (
                 <div key={i} className={classes.skeleton}>
@@ -333,7 +346,7 @@ function SharingExplore() {
                       {album.title}
                     </Text>
                     <Text size="xs" c="dimmed">
-                      {t("numberofphotos", { number: album.photo_count })}
+                      {t("numberofphotos", { count: album.photo_count, number: album.photo_count })}
                     </Text>
                   </div>
                 </Link>
@@ -355,10 +368,7 @@ function SharingExplore() {
                 <Title order={4}>{t("sharing.publicLinks", "Public Links")}</Title>
                 <Group gap={6}>
                   <Text size="sm" c="dimmed">
-                    {t("sharing.itemCount", {
-                      photos: publicPhotos.filter(p => !p.isTemp).length,
-                      albums: publicLinkAlbums.length,
-                    })}
+                    {itemSummary(totalPublicPhotos, publicLinkAlbums.length)}
                   </Text>
                   <Text size="sm" c="dimmed">
                     ·
@@ -372,7 +382,7 @@ function SharingExplore() {
             </Link>
           </div>
 
-          {isLoadingUserAlbums && isLoadingPublicPhotos ? (
+          {isLoadingUserAlbums || isLoadingPublicPhotos || isLoadingPhotoShares ? (
             <div className={classes.loadingContainer}>
               {[1, 2, 3, 4, 5].map(i => (
                 <div key={i} className={classes.skeleton}>
@@ -382,7 +392,7 @@ function SharingExplore() {
                 </div>
               ))}
             </div>
-          ) : publicPhotos.filter(p => !p.isTemp).length === 0 && publicLinkAlbums.length === 0 ? (
+          ) : totalPublicPhotos === 0 && publicLinkAlbums.length === 0 ? (
             <div className={classes.emptyState}>
               <Text c="dimmed">{t("sharing.noPublicLinks", "You haven't made anything public via link yet")}</Text>
             </div>
@@ -390,8 +400,14 @@ function SharingExplore() {
             <div className={classes.scrollContainer}>
               {/* Show preview public albums */}
               {previewPublicAlbums.map(album => (
-                <div key={album.id} style={{ position: "relative" }}>
-                  <Link to={`/album/user/${album.id}`} className={classes.albumCard}>
+                // The wrapper is the 140px card: a plain inline link inside it
+                // ignored the card width, so a long title widened the card and
+                // pushed the share button off the cover.
+                <div
+                  key={album.id}
+                  style={{ position: "relative", flexShrink: 0, width: 140, scrollSnapAlign: "start" }}
+                >
+                  <Link to={`/album/user/${album.id}`} className={classes.albumCard} style={{ display: "block" }}>
                     <div className={classes.albumCover}>
                       {album.cover_photo ? (
                         <Tile
@@ -412,47 +428,38 @@ function SharingExplore() {
                         {album.title}
                       </Text>
                       <Text size="xs" c="dimmed">
-                        {t("numberofphotos", { number: album.photo_count })}
+                        {t("numberofphotos", { count: album.photo_count, number: album.photo_count })}
                       </Text>
                     </div>
                   </Link>
-                  <Tooltip label={t("sidemenu.sharing")}>
-                    <div
-                      role="button"
-                      tabIndex={0}
-                      style={{
-                        position: "absolute",
-                        top: 8,
-                        right: 8,
-                        zIndex: 1,
-                        backgroundColor: "rgba(0, 0, 0, 0.5)",
-                        borderRadius: 4,
-                        padding: "4px 6px",
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                      onClick={e => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        openShareDialog(`${album.id}`, album.owner.username);
-                      }}
-                      onKeyDown={e => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          e.preventDefault();
-                          openShareDialog(`${album.id}`, album.owner.username);
-                        }
-                      }}
-                    >
-                      <IconLink size={16} color="white" />
-                    </div>
-                  </Tooltip>
+                  <AlbumShareButton
+                    label={t("sidemenu.sharing")}
+                    onClick={() => openShareDialog(`${album.id}`, album.owner.username)}
+                  />
                 </div>
+              ))}
+              {/* Show preview photo links */}
+              {previewPhotoShares.map(share => (
+                <Link
+                  key={share.slug ?? share.image_hash}
+                  to="/sharing/links"
+                  search={{ tab: "photos" }}
+                  className={classes.albumCard}
+                >
+                  <div className={classes.albumCover}>
+                    <ShareThumbnail
+                      imageHash={share.image_hash ?? ""}
+                      size={140}
+                      kind="square_thumbnails"
+                      className={classes.albumCoverImage}
+                      radius={0}
+                    />
+                  </div>
+                </Link>
               ))}
               {/* Show preview public photos */}
               {previewPublicPhotos.map(photo => (
-                <Link key={photo.id} to="/sharing/links" className={classes.albumCard}>
+                <Link key={photo.id} to="/sharing/links" search={{ tab: "photos" }} className={classes.albumCard}>
                   <div className={classes.albumCover}>
                     <Tile
                       video={photo.type === "video"}

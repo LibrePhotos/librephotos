@@ -1,7 +1,15 @@
+import { Settings } from "luxon";
 import type { DirTree } from "../api_client/folders/types";
 import type { DatePhotosGroup } from "../api_client/photos/types";
 import i18n from "../i18n";
-import { EMAIL_REGEX, formatDateForPhotoGroups, fuzzyMatch, getAveragedCoordinates, mergeDirTree } from "./util";
+import {
+  EMAIL_REGEX,
+  formatDateForPhotoGroups,
+  fuzzyMatch,
+  getAveragedCoordinates,
+  LEGACY_UNDATED_GROUP_DATE,
+  mergeDirTree,
+} from "./util";
 
 describe("email regex test", () => {
   test("good samples should match", () => {
@@ -101,6 +109,19 @@ describe("fuzzyMatch", () => {
     matches.forEach(item => {
       expect(fuzzyMatch(item.query, item.value)).toBe(item.result);
     });
+  });
+
+  // A space typed first in a search box threw "Reduce of empty array with no
+  // initial value" and crashed the component.
+  test("matches everything for a whitespace-only query, like an empty one", () => {
+    expect(fuzzyMatch("", "Dinosaur")).toBe(true);
+    expect(fuzzyMatch(" ", "Dinosaur")).toBe(true);
+    expect(fuzzyMatch(" 	 ", "Dinosaur")).toBe(true);
+  });
+
+  test("ignores whitespace inside the query", () => {
+    expect(fuzzyMatch(" di no ", "Dinosaur")).toBe(true);
+    expect(fuzzyMatch("d x", "Dinosaur")).toBe(false);
   });
 });
 
@@ -209,6 +230,20 @@ describe("adjust date for photo list group", () => {
     expect(actual[1].month).toEqual(5);
   });
 
+  it("keeps the camera's day for viewers east of UTC", () => {
+    // Group dates are wall-clock exif_timestamps tagged as UTC; 23:05 must not
+    // roll over to the next day in Berlin.
+    const previousZone = Settings.defaultZone;
+    Settings.defaultZone = "Europe/Berlin";
+    try {
+      const actual = formatDateForPhotoGroups([{ date: "2024-04-02T23:05:00Z", location: "", items: [] }]);
+      expect(actual[0].date).toEqual("Tuesday, April 2, 2024");
+      expect(actual[0].month).toEqual(4);
+    } finally {
+      Settings.defaultZone = previousZone;
+    }
+  });
+
   it("should return original date if it is not valid", () => {
     const photoGroups: DatePhotosGroup[] = [
       {
@@ -231,6 +266,14 @@ describe("adjust date for photo list group", () => {
     ];
     const actual = formatDateForPhotoGroups(photoGroups);
     expect(actual[0].date).toEqual(i18n.t("sidemenu.withouttimestamp"));
+  });
+
+  // Search still sends this English literal for installed mobile apps; it was
+  // shown as is, in every language and unlike "Without Timestamp" elsewhere.
+  it("labels the search endpoint's legacy undated group the same way", () => {
+    const actual = formatDateForPhotoGroups([{ date: LEGACY_UNDATED_GROUP_DATE, location: "", items: [] }]);
+    expect(actual[0].date).toEqual(i18n.t("sidemenu.withouttimestamp"));
+    expect(actual[0].year).toBeUndefined();
   });
 });
 

@@ -1,6 +1,7 @@
-import { Anchor, Loader, Stack, Text } from "@mantine/core";
+import { Anchor, Avatar, Loader, Stack, Text } from "@mantine/core";
 import { useElementSize, useViewportSize } from "@mantine/hooks";
-import { IconPolaroid as Polaroid, IconUser as User } from "@tabler/icons-react";
+import { IconPolaroid as Polaroid } from "@tabler/icons-react";
+import { Link } from "@tanstack/react-router";
 import React, { useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchSharedAlbumsWithMeQuery } from "../../api_client/albums/hooks";
@@ -9,8 +10,11 @@ import { calculateGridCellSize, calculateSharedAlbumGridCells } from "../../util
 import { Tile } from "../Tile";
 import { VirtualGrid } from "../virtual/VirtualGrid";
 import type { GridCellProps } from "../virtual/VirtualGrid";
+import { avatarSrc } from "./avatarSrc";
 
 const DAY_HEADER_HEIGHT = 70;
+// Below the cover: a one-line title (md, 24.8px) and the photo count (sm, 20.3px).
+const CAPTION_HEIGHT = 52;
 
 export function AlbumsSharedWithMe() {
   const { t } = useTranslation();
@@ -36,7 +40,7 @@ export function AlbumsSharedWithMe() {
   const rowHeight = useCallback(
     ({ index }: { index: number }) =>
       // a sharer header row, or a row of album covers with their title and count
-      albumGridContents[index][0].user_id ? DAY_HEADER_HEIGHT : entrySquareSize + 40,
+      albumGridContents[index][0].user_id ? DAY_HEADER_HEIGHT : entrySquareSize + CAPTION_HEIGHT,
     [albumGridContents, entrySquareSize]
   );
 
@@ -63,8 +67,8 @@ export function AlbumsSharedWithMe() {
               paddingLeft: 5,
             }}
           >
-            <div style={{ display: "flex" }}>
-              <User size={36} style={{ margin: 5 }} />
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <Avatar size={36} radius="xl" src={avatarSrc(owner)} />
               <div>
                 <Text size="md" fw="bold">
                   {displayName}
@@ -78,11 +82,13 @@ export function AlbumsSharedWithMe() {
           </div>
         );
       }
-      // photo cell
+      // album cell
       return (
         <div key={key} style={{ ...style, padding: 1 }}>
-          <Anchor href={`/album/user/${cell.id}`}>
-            {cell.cover_photo && (
+          <Anchor
+            renderRoot={rootProps => <Link {...rootProps} to="/album/user/$id" params={{ id: String(cell.id) }} />}
+          >
+            {cell.cover_photo ? (
               <Tile
                 style={{ objectFit: "cover" }}
                 width={entrySquareSize - 2}
@@ -90,11 +96,21 @@ export function AlbumsSharedWithMe() {
                 image_hash={cell.cover_photo.image_hash}
                 video={cell.cover_photo.video}
               />
+            ) : (
+              <div
+                style={{
+                  width: entrySquareSize - 2,
+                  height: entrySquareSize - 2,
+                  backgroundColor: "light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6))",
+                }}
+              />
             )}
           </Anchor>
-          <Text fw={700}>{cell.title}</Text>
+          <Text fw={700} mt={4} lineClamp={1} title={cell.title}>
+            {cell.title}
+          </Text>
           <Text size="sm" c="dimmed">
-            {t("sharing.photoCount", { count: cell.photo_count })}
+            {t("numberofphotos", { count: cell.photo_count, number: cell.photo_count })}
           </Text>
         </div>
       );
@@ -106,13 +122,17 @@ export function AlbumsSharedWithMe() {
   return (
     <div ref={containerRef}>
       {isFetching && !isSuccess && (
-        <Stack align="center">
+        <Stack align="center" mt="xl">
           <Loader />
           {t("sharing.loadingAlbumsSharedWithYou")}
         </Stack>
       )}
 
-      {albumGridContents.length === 0 && isSuccess && <div>{t("sharing.noAlbumsSharedWithYou")}</div>}
+      {albumGridContents.length === 0 && isSuccess && (
+        <Stack align="center" mt="xl">
+          <Text c="dimmed">{t("sharing.noAlbumsSharedWithYou")}</Text>
+        </Stack>
+      )}
 
       {albumGridContents.length > 0 && (
         <div>

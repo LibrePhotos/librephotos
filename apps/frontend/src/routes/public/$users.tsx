@@ -1,10 +1,13 @@
 import { IconGlobe as Globe } from "@tabler/icons-react";
 import { createFileRoute } from "@tanstack/react-router";
 import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useFetchDateAlbumQuery, useFetchDateAlbumsQuery, useFetchUserAlbumQuery } from "../../api_client/albums/hooks";
 import { Photoset, PigPhoto } from "../../api_client/photos/types";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
+import { isUndatedShare } from "../../components/sharing/publicAlbum";
+import { usePublicPageTitle } from "../../components/sharing/usePublicPageTitle";
 import { getPhotosFlatFromGroupedByDate } from "../../util/util";
 
 type PhotoGroup = { id: string; page: number };
@@ -14,6 +17,7 @@ export const Route = createFileRoute("/public/$users")({
 });
 
 function UserPublicPage() {
+  const { t } = useTranslation();
   const { users } = Route.useParams();
   const { data: currentUser } = useCurrentUserSelfDetailsQuery();
 
@@ -42,6 +46,10 @@ function UserPublicPage() {
   const albumId = params.get("album") ?? "";
   const { data: userAlbum } = useFetchUserAlbumQuery(albumId, albumId ? { public: true, username: users } : undefined);
 
+  const pageTitle =
+    currentUser?.username === users ? t("sidemenu.mypublicphotos") : t("sharing.publicPhotosOf", { name: users });
+  usePublicPageTitle(albumId && userAlbum ? userAlbum.title : pageTitle);
+
   const getAlbums = (visibleGroups: any) => {
     visibleGroups.reverse().forEach((photoGroup: any) => {
       const visibleImages = photoGroup.items;
@@ -56,13 +64,15 @@ function UserPublicPage() {
 
   // If a specific album is requested and loaded, render it directly
   if (albumId && userAlbum) {
+    const albumPhotos = getPhotosFlatFromGroupedByDate(userAlbum.grouped_photos);
     return (
       <PhotoListView
         title={userAlbum.title}
         loading={false}
         icon={<Globe size={50} />}
-        photoset={userAlbum.grouped_photos}
-        idx2hash={getPhotosFlatFromGroupedByDate(userAlbum.grouped_photos)}
+        // The same array as idx2hash makes a flat grid (see s.$slug.tsx).
+        photoset={isUndatedShare(userAlbum.grouped_photos) ? albumPhotos : userAlbum.grouped_photos}
+        idx2hash={albumPhotos}
         isPublic={true}
         updateGroups={() => {}}
         selectable
@@ -72,7 +82,7 @@ function UserPublicPage() {
 
   return (
     <PhotoListView
-      title={currentUser?.username === users ? "Your public photos" : `Public photos of ${users}`}
+      title={pageTitle}
       loading={isLoading}
       icon={<Globe size={50} />}
       photoset={photosGroupedByDate ?? []}

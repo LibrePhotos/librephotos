@@ -49,13 +49,17 @@ export default function GroupHeader({
       >
         {textAlignment === "right" ? (
           <>
-            <span className={`${styles.location} pig-header_location ${styles[headerSize]}`}>{group.location}</span>
+            <span className={`${styles.location} pig-header_location ${styles[headerSize]}`} title={group.location}>
+              {group.location}
+            </span>
             <span className={`${styles.date} pig-header_date ${styles[headerSize]}`}>{group.date}</span>
           </>
         ) : (
           <>
             <span className={`${styles.date} pig-header_date ${styles[headerSize]}`}>{group.date}</span>
-            <span className={`${styles.location} pig-header_location ${styles[headerSize]}`}>{group.location}</span>
+            <span className={`${styles.location} pig-header_location ${styles[headerSize]}`} title={group.location}>
+              {group.location}
+            </span>
           </>
         )}
       </div>

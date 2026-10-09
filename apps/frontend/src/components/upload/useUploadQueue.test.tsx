@@ -198,4 +198,22 @@ describe("useUploadQueue", () => {
     });
     expect(latest.items).toHaveLength(0);
   });
+
+  it("fails an empty file and moves on instead of stalling the queue", async () => {
+    // Uses the real hash, which used to wait forever on a 0-byte file.
+    const { calculateMD5 } = await vi.importActual<typeof import("./chunkedUpload")>("./chunkedUpload");
+    stubs.md5.mockImplementation(calculateMD5);
+
+    await act(async () => {
+      latest.start([file("empty.jpg", 0), file("ok.jpg", 10)]);
+    });
+    await settle();
+
+    expect(latest.items.map(i => [i.file.name, i.status])).toEqual([
+      ["empty.jpg", "error"],
+      ["ok.jpg", "done"],
+    ]);
+    expect(latest.items[0].error).toBeTruthy();
+    expect(stubs.uploadFinished).toHaveBeenCalledTimes(1);
+  });
 });

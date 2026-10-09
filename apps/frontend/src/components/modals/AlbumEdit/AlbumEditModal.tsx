@@ -11,6 +11,7 @@ import type { BulkPhotoQuery } from "../../../api_client/photos/types";
 import { fuzzyMatch } from "../../../util/util";
 import { AlbumListItem } from "../../album/AlbumListItem";
 import { Tile } from "../../Tile";
+import { modalTitleStyles } from "../modalTitleStyles";
 import classes from "./AlbumEditModal.module.css";
 
 type Props = Readonly<{
@@ -43,16 +44,20 @@ export function AlbumEditModal(props: Props) {
     photoCount: effectiveCount,
   };
 
+  // The server refuses a blank title (400) and the modal closes before the
+  // request settles, so an empty or duplicate name must not be submittable.
+  const trimmedTitle = newAlbumTitle.trim();
+  const titleExists = albumsUserList.some(el => el.title.toLowerCase().trim() === trimmedTitle.toLowerCase());
+
+  // The parent keeps this component mounted, so every way out must clear the
+  // title: a leftover filter would otherwise reopen hidden behind an empty input.
+  const close = () => {
+    onRequestClose();
+    setNewAlbumTitle("");
+  };
+
   return (
-    <Modal
-      zIndex={1500}
-      opened={isOpen}
-      title={<Title>{t("modalalbum.title")} </Title>}
-      onClose={() => {
-        onRequestClose();
-        setNewAlbumTitle("");
-      }}
-    >
+    <Modal styles={modalTitleStyles} zIndex={1500} opened={isOpen} title={t("modalalbum.title")} onClose={close}>
       <Stack>
         <Text c="dimmed">{t("modalalbum.selectedimages", { count: effectiveCount })}</Text>
         {selectAllMode ? (
@@ -78,11 +83,8 @@ export function AlbumEditModal(props: Props) {
         <Title order={4}>{t("modalalbum.newalbum")}</Title>
         <Group>
           <TextInput
-            error={
-              albumsUserList.map(el => el.title.toLowerCase().trim()).includes(newAlbumTitle.toLowerCase().trim())
-                ? t("modalalbum.alreadyexists", { title: newAlbumTitle })
-                : ""
-            }
+            error={titleExists ? t("modalalbum.alreadyexists", { title: trimmedTitle }) : ""}
+            value={newAlbumTitle}
             onChange={v => {
               setNewAlbumTitle(v.currentTarget.value);
             }}
@@ -91,16 +93,13 @@ export function AlbumEditModal(props: Props) {
           <Button
             onClick={() => {
               createUserAlbum.mutate({
-                title: newAlbumTitle,
+                title: trimmedTitle,
                 photos: selectAllMode ? [] : selectedImages.map(i => i.id),
                 ...(selectAllMode ? selectAllFields : {}),
               });
-              onRequestClose();
-              setNewAlbumTitle("");
+              close();
             }}
-            disabled={albumsUserList
-              .map(el => el.title.toLowerCase().trim())
-              .includes(newAlbumTitle.toLowerCase().trim())}
+            disabled={!trimmedTitle || titleExists}
             type="submit"
           >
             {t("modalalbum.create")}
@@ -109,7 +108,7 @@ export function AlbumEditModal(props: Props) {
         <Divider />
         <Stack className={classes.albums}>
           {albumsUserList
-            .filter(el => fuzzyMatch(newAlbumTitle, el.title))
+            .filter(el => fuzzyMatch(trimmedTitle, el.title))
             .map(item => (
               <UnstyledButton
                 key={`ub-${item.id}`}
@@ -120,7 +119,7 @@ export function AlbumEditModal(props: Props) {
                     photos: selectAllMode ? [] : selectedImages.map(i => i.id),
                     ...(selectAllMode ? selectAllFields : {}),
                   });
-                  onRequestClose();
+                  close();
                 }}
               >
                 <AlbumListItem album={item} showUpdatedTime />

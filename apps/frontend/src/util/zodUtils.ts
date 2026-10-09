@@ -24,11 +24,13 @@ export function parseWithNotification<T>(schema: ZodSchema<T>, data: unknown, er
       const errorMessage =
         errorMessages.length > 0 ? errorMessages.join("; ") : error.message || "Failed to parse response";
 
-      notification.requestFailed(errorTitle, `${errorMessage}. Please report this issue on GitHub.`);
+      // The callers' titles and the Zod text are English diagnostics for the bug
+      // report: they go in the message, under a translated title.
+      notification.parseError(`${errorTitle}: ${errorMessage}`);
     } else {
       // Handle non-Zod errors
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
-      notification.requestFailed(errorTitle, `${errorMessage}. Please report this issue on GitHub.`);
+      notification.parseError(`${errorTitle}: ${errorMessage}`);
     }
 
     throw error;

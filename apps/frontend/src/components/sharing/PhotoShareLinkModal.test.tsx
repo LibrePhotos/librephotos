@@ -68,6 +68,12 @@ function buttonNamed(label: string) {
   return Array.from(document.querySelectorAll("button")).find(b => b.textContent === label);
 }
 
+/** The confirm button in the open confirmation popover, labelled like its trigger. */
+function confirmButton(label: string) {
+  const dialog = document.querySelector<HTMLElement>(`[role="dialog"][aria-label="${label}"]`);
+  return Array.from(dialog?.querySelectorAll("button") ?? []).find(b => b.textContent === label);
+}
+
 describe("PhotoShareLinkModal", () => {
   it("creates the link when opened, without touching anything else", async () => {
     await renderModal("photo-1");
@@ -88,12 +94,52 @@ describe("PhotoShareLinkModal", () => {
   it("replaces and revokes through the same mutation, closing after a revoke", async () => {
     mutation.data = { enabled: true, slug: "abc", url: "/public/p/abc" };
     const { onClose } = await renderModal("photo-1");
+    mutation.mutate.mockClear();
 
+    // Both end the link recipients already have, so each asks first.
     await act(async () => buttonNamed(i18n.t("sharing.rotateLink"))!.click());
+    expect(mutation.mutate).not.toHaveBeenCalled();
+    await act(async () => confirmButton(i18n.t("sharing.rotateLink"))!.click());
     expect(mutation.mutate).toHaveBeenLastCalledWith({ photoId: "photo-1", action: "rotate" });
 
     await act(async () => buttonNamed(i18n.t("sharing.revokeLink"))!.click());
+    expect(mutation.mutate).toHaveBeenCalledTimes(1);
+    await act(async () => confirmButton(i18n.t("sharing.revokeLink"))!.click());
     expect(mutation.mutate).toHaveBeenLastCalledWith({ photoId: "photo-1", action: "disable" }, { onSuccess: onClose });
+  });
+
+  it("leaves the link alone when the confirmation is cancelled", async () => {
+    mutation.data = { enabled: true, slug: "abc", url: "/public/p/abc" };
+    await renderModal("photo-1");
+    mutation.mutate.mockClear();
+
+    await act(async () => buttonNamed(i18n.t("sharing.revokeLink"))!.click());
+    expect(document.body.textContent).toContain(i18n.t("sharing.revokeLinkConfirm"));
+    const dialog = document.querySelector<HTMLElement>(
+      `[role="dialog"][aria-label="${i18n.t("sharing.revokeLink")}"]`
+    )!;
+    const cancel = Array.from(dialog.querySelectorAll("button")).find(b => b.textContent === i18n.t("cancel"))!;
+    await act(async () => cancel.click());
+
+    expect(mutation.mutate).not.toHaveBeenCalled();
+  });
+
+  // The Modal hears Escape on window first: without an opt-out on the focused
+  // button it closed the whole share dialog along with the confirmation.
+  it("closes only the confirmation on Escape", async () => {
+    mutation.data = { enabled: true, slug: "abc", url: "/public/p/abc" };
+    const { onClose } = await renderModal("photo-1");
+
+    await act(async () => buttonNamed(i18n.t("sharing.revokeLink"))!.click());
+    const cancel = buttonNamed(i18n.t("cancel"))!;
+    cancel.focus();
+    await act(async () => {
+      cancel.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    });
+
+    expect(onClose).not.toHaveBeenCalled();
+    expect(document.body.textContent).not.toContain(i18n.t("sharing.revokeLinkConfirm"));
+    expect(mutation.mutate).not.toHaveBeenCalledWith(expect.objectContaining({ action: "disable" }), expect.anything());
   });
 
   it("says so when the link could not be created", async () => {

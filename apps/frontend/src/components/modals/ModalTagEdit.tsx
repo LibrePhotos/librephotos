@@ -1,4 +1,4 @@
-import { Badge, Button, Divider, Group, Modal, Stack, TagsInput, Text, Title } from "@mantine/core";
+import { Badge, Button, Divider, Group, Modal, Stack, TagsInput, Text } from "@mantine/core";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { BulkPhotoQuery } from "../../api_client/photos/types";
@@ -7,6 +7,7 @@ import { notification } from "../../service/notifications";
 import { TAG_SUGGESTION_LIMIT, tagOptionsFilter } from "../../util/tagOptionsFilter";
 import { Tile } from "../Tile";
 import classes from "./ModalTagEdit.module.css";
+import { modalTitleStyles } from "./modalTitleStyles";
 
 /** How many thumbnails of the selection to show before falling back to a count. */
 const MAX_PREVIEW_TILES = 12;
@@ -72,7 +73,7 @@ export function ModalTagEdit(props: Props) {
   }
 
   return (
-    <Modal zIndex={1500} opened={isOpen} title={<Title order={3}>{t("modaltag.title")}</Title>} onClose={close}>
+    <Modal styles={modalTitleStyles} zIndex={1500} opened={isOpen} title={t("modaltag.title")} onClose={close}>
       <Stack>
         <Text c="dimmed">{t("modaltag.selectedimages", { count: photoCount })}</Text>
 

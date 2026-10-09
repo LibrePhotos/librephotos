@@ -38,6 +38,7 @@ const authError = new ApiError("Authentication failed", 401);
 
 vi.mock("../api_client/auth", () => ({ useSignUpMutation: () => ({ mutate: () => {} }) }));
 vi.mock("../api_client/jobs", () => ({ useScanPhotosMutation: () => ({ mutate: () => {} }) }));
+vi.mock("../api_client/settings", () => ({ useGetSettingsQuery: () => ({ data: { allow_upload: true } }) }));
 vi.mock("../api_client/user/hooks", () => ({
   useManageUpdateUserMutation: () => ({ mutate: stubs.updateUser }),
 }));

@@ -13,6 +13,7 @@ const localeLoaders: Record<string, () => Promise<{ default: ResourceKey }>> = {
   ar: () => import("./locales/ar/translation.json"),
   ca: () => import("./locales/ca/translation.json"),
   cs: () => import("./locales/cs/translation.json"),
+  da: () => import("./locales/da/translation.json"),
   de: () => import("./locales/de/translation.json"),
   eo: () => import("./locales/eo/translation.json"),
   es: () => import("./locales/es/translation.json"),
@@ -60,6 +61,65 @@ const lazyLocaleBackend: BackendModule = {
     );
   },
 };
+
+// Mantine's date pickers format through dayjs, which has its own locale data
+// and names ("nb", "zh-cn"). Explicit imports: Vite cannot resolve a template
+// string into node_modules.
+const dayjsLocaleLoaders: Record<string, [string, () => Promise<unknown>]> = {
+  ar: ["ar", () => import("dayjs/locale/ar")],
+  ca: ["ca", () => import("dayjs/locale/ca")],
+  cs: ["cs", () => import("dayjs/locale/cs")],
+  da: ["da", () => import("dayjs/locale/da")],
+  de: ["de", () => import("dayjs/locale/de")],
+  eo: ["eo", () => import("dayjs/locale/eo")],
+  es: ["es", () => import("dayjs/locale/es")],
+  et: ["et", () => import("dayjs/locale/et")],
+  eu: ["eu", () => import("dayjs/locale/eu")],
+  fi: ["fi", () => import("dayjs/locale/fi")],
+  fr: ["fr", () => import("dayjs/locale/fr")],
+  hi: ["hi", () => import("dayjs/locale/hi")],
+  hu: ["hu", () => import("dayjs/locale/hu")],
+  it: ["it", () => import("dayjs/locale/it")],
+  ja: ["ja", () => import("dayjs/locale/ja")],
+  ko: ["ko", () => import("dayjs/locale/ko")],
+  nb_NO: ["nb", () => import("dayjs/locale/nb")],
+  nl: ["nl", () => import("dayjs/locale/nl")],
+  pl: ["pl", () => import("dayjs/locale/pl")],
+  pt: ["pt", () => import("dayjs/locale/pt")],
+  pt_BR: ["pt-br", () => import("dayjs/locale/pt-br")],
+  ro: ["ro", () => import("dayjs/locale/ro")],
+  ru: ["ru", () => import("dayjs/locale/ru")],
+  sk: ["sk", () => import("dayjs/locale/sk")],
+  sv: ["sv", () => import("dayjs/locale/sv")],
+  ta: ["ta", () => import("dayjs/locale/ta")],
+  tr: ["tr", () => import("dayjs/locale/tr")],
+  uk: ["uk", () => import("dayjs/locale/uk")],
+  ur: ["ur", () => import("dayjs/locale/ur")],
+  vi: ["vi", () => import("dayjs/locale/vi")],
+  zh_Hans: ["zh-cn", () => import("dayjs/locale/zh-cn")],
+  zh_Hant: ["zh-tw", () => import("dayjs/locale/zh-tw")],
+};
+
+/** Loads dayjs's data for an app language and resolves to its dayjs name ("en" without one). */
+export function loadDayjsLocale(language: string | undefined): Promise<string> {
+  const entry = language ? dayjsLocaleLoaders[language] : undefined;
+  if (!entry) {
+    return Promise.resolve("en");
+  }
+  const [name, load] = entry;
+  return load().then(
+    () => name,
+    () => "en"
+  );
+}
+
+// Keep <html lang> in step with the UI language (screen-reader pronunciation,
+// hyphenation). Registered before init, so the initial detection counts too.
+i18n.on("languageChanged", () => {
+  if (typeof document !== "undefined") {
+    document.documentElement.lang = i18nResolvedLanguage();
+  }
+});
 
 /** Resolves once the detected (or saved) language has been loaded. */
 export const i18nReady = i18n

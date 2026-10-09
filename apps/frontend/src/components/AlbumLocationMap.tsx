@@ -3,6 +3,7 @@ import MapGL, { AttributionControl, Marker, NavigationControl } from "react-map-
 import { useMapStyle } from "../util/mapStyle";
 import { getAveragedCoordinates, PartialPhotoWithLocation } from "../util/util";
 import { MapDisabledPlaceholder } from "./map/MapDisabledPlaceholder";
+import { ignoreMissingStyleImages } from "./map/mapImages";
 
 type Props = {
   photos: PartialPhotoWithLocation[];
@@ -37,6 +38,7 @@ export function AlbumLocationMap({ photos }: Readonly<Props>) {
     return (
       <div style={{ padding: 0 }}>
         <MapGL
+          ref={ignoreMissingStyleImages}
           initialViewState={{
             longitude: avgLon,
             latitude: avgLat,

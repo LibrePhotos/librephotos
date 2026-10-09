@@ -49,6 +49,8 @@ const stubs = vi.hoisted(() => ({
     mapStyle: unknown;
     mapsDisabled: boolean;
   },
+  // A background refetch: the data is there and the queries are fetching again
+  fetching: false,
 }));
 
 vi.mock("@tanstack/react-router", () => ({
@@ -64,8 +66,8 @@ vi.mock("@tanstack/react-router", () => ({
 }));
 vi.mock("../api_client/apiClient", () => ({ serverAddress: "" }));
 vi.mock("../api_client/albums/hooks", () => ({
-  useFetchPlacesAlbumsQuery: () => ({ data: stubs.albums, isFetching: false }),
-  useFetchLocationClustersQuery: () => ({ data: stubs.locationClusters, isFetching: false }),
+  useFetchPlacesAlbumsQuery: () => ({ data: stubs.albums, isFetching: stubs.fetching, isLoading: false }),
+  useFetchLocationClustersQuery: () => ({ data: stubs.locationClusters, isFetching: stubs.fetching, isLoading: false }),
 }));
 vi.mock("../util/mapStyle", () => ({ useMapStyle: () => stubs.mapStyle }));
 
@@ -128,6 +130,7 @@ beforeAll(async () => {
 
 beforeEach(() => {
   stubs.mapStyle = { mapStyle: "https://example.invalid/style.json", mapsDisabled: false };
+  stubs.fetching = false;
 });
 
 async function renderPage() {
@@ -144,7 +147,8 @@ async function renderPage() {
   });
   return {
     container,
-    titles: () => Array.from(container.querySelectorAll("b")).map(el => el.textContent),
+    // Each place card titles its (clamped) name with the full one
+    titles: () => Array.from(container.querySelectorAll("p[title]")).map(el => el.getAttribute("title")),
     subtitle: () => container.textContent ?? "",
     async unmount() {
       await act(async () => {
@@ -164,11 +168,31 @@ describe("the places page on first mount", () => {
     await page.unmount();
   });
 
+  it("keeps the map and the places on screen while refetching in the background", async () => {
+    stubs.fetching = true;
+    const page = await renderPage();
+
+    // Unmounting the map here threw away the user's pan and zoom
+    expect(page.container.querySelector('[data-testid="map"]')).not.toBeNull();
+    expect(page.titles()).toEqual(expect.arrayContaining(["Paris", "Berlin"]));
+    await page.unmount();
+  });
+
+  it("lists the place with the most photos first", async () => {
+    const page = await renderPage();
+
+    expect(page.titles()).toEqual(["Paris", "Berlin"]);
+    await page.unmount();
+  });
+
   it("lists the place albums when map display is turned off", async () => {
     stubs.mapStyle = { mapStyle: null, mapsDisabled: true };
     const page = await renderPage();
 
     expect(page.titles()).toEqual(expect.arrayContaining(["Paris", "Berlin"]));
+    // There is no map, and the count is every place
+    expect(page.subtitle()).toContain("2 places");
+    expect(page.subtitle()).not.toContain("on the map");
     await page.unmount();
   });
 });

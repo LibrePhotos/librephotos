@@ -408,12 +408,15 @@ export function FaceClusterGraph({ height }: Props) {
           </div>
 
           {/* Legend */}
-          <ScrollArea type="hover" offsetScrollbars>
-            <Group gap="xs" wrap="nowrap">
+          {/* Natural width, so a long row scrolls instead of squeezing the chips to "A…";
+              the scrollbar always shows, as touch screens have no hover */}
+          <ScrollArea type="auto" offsetScrollbars>
+            <Group gap="xs" wrap="nowrap" w="max-content">
               <Badge
                 variant={selectedPerson === null ? "filled" : "light"}
                 color="gray"
                 size="lg"
+                tt="none"
                 style={{ cursor: "pointer" }}
                 onClick={() => setSelectedPerson(null)}
                 leftSection={<IconUser size={14} />}
@@ -442,6 +445,8 @@ export function FaceClusterGraph({ height }: Props) {
                       borderColor: stat.color,
                     }}
                     size="lg"
+                    // Names keep their own case
+                    tt="none"
                     onClick={() => setSelectedPerson(selectedPerson === name ? null : name)}
                   >
                     {name}
@@ -453,11 +458,12 @@ export function FaceClusterGraph({ height }: Props) {
                   variant={selectedPerson === "unknown" ? "filled" : "light"}
                   color="gray"
                   size="lg"
+                  tt="none"
                   style={{ cursor: "pointer" }}
                   onClick={() => setSelectedPerson(selectedPerson === "unknown" ? null : "unknown")}
                   leftSection={<IconUserQuestion size={14} />}
                 >
-                  {t("unknown")} ({unknownCount})
+                  {t("settings.unknown")} ({unknownCount})
                 </Badge>
               )}
             </Group>
@@ -516,7 +522,7 @@ export function FaceClusterGraph({ height }: Props) {
                   />
                   <Stack gap={4}>
                     <Text fw={600} size="sm" style={{ color: hoveredPoint.color }}>
-                      {hoveredPoint.name === "unknown" ? t("unknown") : hoveredPoint.name}
+                      {hoveredPoint.name === "unknown" ? t("settings.unknown") : hoveredPoint.name}
                     </Text>
                     <Text size="xs" c="dimmed">
                       {t("clicktoview")}

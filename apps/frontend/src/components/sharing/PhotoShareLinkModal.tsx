@@ -4,6 +4,7 @@ import React, { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { shareAddress } from "../../api_client/apiClient";
 import { usePhotoShareMutation } from "../../api_client/photos/hooks";
+import { ConfirmPopover } from "./ConfirmPopover";
 
 type Props = {
   /** The photo to share; the dialog is open while this is set. */
@@ -54,28 +55,39 @@ export function PhotoShareLinkModal({ photoId, onClose }: Readonly<Props>) {
               <CopyButton value={fullUrl}>
                 {({ copied, copy }) => (
                   <Tooltip label={copied ? t("sharing.copied") : t("sharing.copyLink")} withArrow>
-                    <ActionIcon variant="subtle" color={copied ? "teal" : "gray"} onClick={copy}>
+                    <ActionIcon
+                      variant="subtle"
+                      color={copied ? "teal" : "gray"}
+                      onClick={copy}
+                      aria-label={t("sharing.copyLink")}
+                    >
                       {copied ? <CheckIcon size={18} /> : <CopyIcon size={18} />}
                     </ActionIcon>
                   </Tooltip>
                 )}
               </CopyButton>
             </Group>
+            {/* Both end the link the recipients already have, for good. */}
             <Group justify="flex-end" gap="xs">
-              <Button
-                variant="subtle"
-                leftSection={<RefreshIcon size={16} />}
-                onClick={() => photoId && mutate({ photoId, action: "rotate" })}
+              <ConfirmPopover
+                message={t("sharing.rotateLinkConfirm")}
+                confirmLabel={t("sharing.rotateLink")}
+                onConfirm={() => photoId && mutate({ photoId, action: "rotate" })}
               >
-                {t("sharing.rotateLink")}
-              </Button>
-              <Button
-                variant="subtle"
+                <Button variant="subtle" leftSection={<RefreshIcon size={16} />}>
+                  {t("sharing.rotateLink")}
+                </Button>
+              </ConfirmPopover>
+              <ConfirmPopover
+                message={t("sharing.revokeLinkConfirm")}
+                confirmLabel={t("sharing.revokeLink")}
                 color="red"
-                onClick={() => photoId && mutate({ photoId, action: "disable" }, { onSuccess: onClose })}
+                onConfirm={() => photoId && mutate({ photoId, action: "disable" }, { onSuccess: onClose })}
               >
-                {t("sharing.revokeLink")}
-              </Button>
+                <Button variant="subtle" color="red">
+                  {t("sharing.revokeLink")}
+                </Button>
+              </ConfirmPopover>
             </Group>
           </>
         )}

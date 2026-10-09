@@ -7,6 +7,8 @@ import { useTranslation } from "react-i18next";
 import { UserAlbum } from "../../api_client/albums/types";
 import { ApiError, fetchClient } from "../../api_client/api";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
+import { isUndatedShare } from "../../components/sharing/publicAlbum";
+import { usePublicPageTitle } from "../../components/sharing/usePublicPageTitle";
 import { getPhotosFlatFromGroupedByDate } from "../../util/util";
 import { parseWithNotification } from "../../util/zodUtils";
 
@@ -39,6 +41,7 @@ function PublicAlbumBySlug() {
   });
 
   const flat = useMemo(() => (album ? getPhotosFlatFromGroupedByDate(album.grouped_photos) : []), [album]);
+  usePublicPageTitle(album?.title);
 
   if (!isLoading && (album === null || isError)) {
     return (
@@ -64,7 +67,9 @@ function PublicAlbumBySlug() {
       title={album ? album.title : t("loading")}
       loading={isLoading}
       icon={<Globe size={50} />}
-      photoset={album ? album.grouped_photos : []}
+      // PhotoListView shows a flat grid when photoset is the idx2hash array
+      // itself: no made-up "Without Timestamp" day for hidden dates.
+      photoset={album ? (isUndatedShare(album.grouped_photos) ? flat : album.grouped_photos) : []}
       idx2hash={flat}
       isPublic
       publicAlbumSlug={slug}

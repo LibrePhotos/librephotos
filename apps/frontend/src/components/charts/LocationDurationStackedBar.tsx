@@ -7,48 +7,22 @@ import { useTranslation } from "react-i18next";
 import { useLocationTimelineQuery } from "../../api_client/stats/hooks";
 import { i18nResolvedLanguage } from "../../i18n";
 import { EmptyState } from "../common/EmptyState";
+import { locationTimelineChart, stayForSeries } from "./locationTimelineChart";
 
 export function LocationDurationStackedBar() {
   const { data: locationTimeline = [], isSuccess: fetchedLocationTimeline, isLoading } = useLocationTimelineQuery();
   const { t } = useTranslation();
   const [hoveredSegment, setHoveredSegment] = useState<string | null>(null);
 
-  // Transform data for Mantine BarChart - stacked timeline
-  const chartData =
-    fetchedLocationTimeline && locationTimeline.length > 0
-      ? [
-          locationTimeline.reduce(
-            (acc: Record<string, number | string>, el: { loc: string; data: number[] }) => {
-              const [first] = el.data;
-              acc[el.loc] = first;
-              return acc;
-            },
-            { label: "" }
-          ),
-        ]
-      : [];
+  const { data: chartData, series } = locationTimelineChart(fetchedLocationTimeline ? locationTimeline : []);
 
-  const series = locationTimeline.map((el: { loc: string; color: string }) => ({
-    name: el.loc,
-    color: el.color,
-  }));
-
-  // Build a lookup for tooltip
-  const locationLookup = locationTimeline.reduce(
-    (acc: Record<string, { start: number; end: number }>, el: { loc: string; start: number; end: number }) => {
-      acc[el.loc] = { start: el.start, end: el.end };
-      return acc;
-    },
-    {}
-  );
-
-  function getTooltipContent(active: boolean) {
+  function getTooltipContent(active?: boolean) {
     if (!active || !hoveredSegment) return null;
 
-    const locData = locationLookup[hoveredSegment];
+    const locData = stayForSeries(locationTimeline, hoveredSegment);
     if (!locData) return null;
 
-    const segmentColor = series.find(s => s.name === hoveredSegment)?.color;
+    const segmentColor = locData.color;
     const startDate = DateTime.fromSeconds(locData.start)
       .setLocale(i18nResolvedLanguage())
       .toLocaleString({ year: "numeric", month: "short" });
@@ -76,7 +50,7 @@ export function LocationDurationStackedBar() {
               flexShrink: 0,
             }}
           />
-          <div style={{ fontWeight: 500 }}>{hoveredSegment}</div>
+          <div style={{ fontWeight: 500 }}>{locData.loc}</div>
         </div>
         <div style={{ color: "var(--mantine-color-dimmed)", fontSize: "0.875rem", marginTop: 4 }}>
           {startDate} – {endDate}
@@ -109,6 +83,9 @@ export function LocationDurationStackedBar() {
             series={series}
             withYAxis={false}
             withXAxis={false}
+            // Without a domain the hidden value axis rounds up to a "nice"
+            // tick and the bar stopped short of the right edge.
+            xAxisProps={{ domain: [0, "dataMax"] }}
             gridAxis="none"
             barProps={{
               radius: 4,
@@ -121,7 +98,8 @@ export function LocationDurationStackedBar() {
               onMouseLeave: () => setHoveredSegment(null),
             }}
             tooltipAnimationDuration={200}
-            cursorFill="var(--mantine-color-gray-light)"
+            // Mantine 8.3 forwards cursorFill to the DOM (React warning); the CSS variable is the same setting
+            vars={() => ({ root: { "--chart-cursor-fill": "var(--mantine-color-gray-light)" } })}
             tooltipProps={{ content: ({ active }) => getTooltipContent(active) }}
           />
           <ScrollArea type="auto" offsetScrollbars>
@@ -136,7 +114,7 @@ export function LocationDurationStackedBar() {
                       backgroundColor: s.color,
                     }}
                   />
-                  <span style={{ fontSize: "0.75rem" }}>{s.name}</span>
+                  <span style={{ fontSize: "0.75rem" }}>{s.label}</span>
                 </div>
               ))}
             </div>

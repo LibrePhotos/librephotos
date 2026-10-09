@@ -24,6 +24,9 @@ export const User = z.object({
   username: z.string(),
   email: z.string(),
   scan_directory: z.string().optional(),
+  // Empty means the "uploads" folder inside scan_directory. Without it here zod
+  // stripped the field, and the Edit User dialog showed an empty upload folder.
+  upload_directory: z.string().nullish(),
   confidence: z.number(),
   confidence_person: z.number(),
   transcode_videos: z.boolean(),
@@ -49,7 +52,7 @@ export const User = z.object({
   default_timezone: z.string(),
   // Skip RAW files during scans (deprecated, kept for backward compatibility)
   skip_raw_files: z.boolean().optional().default(false),
-  // Stack RAW+JPEG pairs automatically during scans and as default for manual detection
+  // Deprecated: no longer read by the backend (RAW+JPEG pairs are always grouped), kept for backward compatibility
   stack_raw_jpeg: z.boolean().optional().default(true),
   password: z.string().optional(),
   is_superuser: z.boolean().optional(),
@@ -83,7 +86,7 @@ export const ManageUser = z.object({
   semantic_search_topk: z.number(),
   // Deprecated: kept for backward compatibility
   skip_raw_files: z.boolean().optional(),
-  // Stack RAW+JPEG pairs automatically during scans
+  // Deprecated: no longer read by the backend, kept for backward compatibility
   stack_raw_jpeg: z.boolean().optional(),
   username: z.string().optional(),
   email: z.string().nullable(),

@@ -7,7 +7,11 @@ export function FileInfoComponent({
   size = "xs",
   width,
 }: Readonly<{ description?: string; info: string | undefined; size?: string; width?: number }>) {
-  if (!info || info.includes("undefined") || info.includes("null") || info.includes("0 mm")) return null;
+  // Callers build the text from fields that may be missing ("null mm",
+  // "ISOundefined", "NaN mm"). A zero focal length is missing too, but only an
+  // exact "0 mm": 50 mm or a "24-70 mm" lens name must still show.
+  if (!info || info.includes("undefined") || info.includes("null") || info.includes("NaN") || info.trim() === "0 mm")
+    return null;
 
   // Calculate maxWidth based on size
   const getMaxWidth = () => {

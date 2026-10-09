@@ -1,6 +1,6 @@
 import { RemoveScroll, Stack } from "@mantine/core";
 import { IconFaceId } from "@tabler/icons-react";
-import { getRouteApi } from "@tanstack/react-router";
+import { getRouteApi, useNavigate } from "@tanstack/react-router";
 import { debounce } from "lodash-es";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -32,7 +32,9 @@ export function FaceDashboard() {
   const { ref, width } = useContentBoxSize<HTMLDivElement>();
   const { t } = useTranslation();
 
-  const { tab: activeTab, method: analysisMethod, orderBy, minConfidence } = routeApi.useSearch();
+  const navigate = useNavigate();
+  const search = routeApi.useSearch();
+  const { tab: activeTab, method: analysisMethod, orderBy, minConfidence } = search;
 
   // Tab scroll positions from localStorage
   const { tabPositions, updatePosition } = useTabScrollPositions();
@@ -195,9 +197,12 @@ export function FaceDashboard() {
     if (prevTabRef.current !== activeTab) {
       // Tab changed - restore the saved scroll position for the new tab
       setScrollTo(tabPositions[activeTab]);
+      // The tabs show different faces: a selection carried over would let Delete,
+      // Not this person and Add act on faces that are no longer on screen
+      clearSelection();
       prevTabRef.current = activeTab;
     }
-  }, [activeTab, tabPositions]);
+  }, [activeTab, tabPositions, clearSelection]);
 
   const handleLightboxImageChange = useCallback((imageId: string) => {
     setLightboxImageId(imageId);
@@ -219,6 +224,36 @@ export function FaceDashboard() {
     setCollapsedForTab(activeTab, allCollapsed ? [] : currentTabList.map(person => person.id));
   }, [activeTab, allCollapsed, currentTabList, setCollapsedForTab]);
 
+  // "Scan your photos" only fits when no tab has any face. Otherwise only this tab
+  // is empty (e.g. every face is labeled), so offer the tab that has faces instead.
+  const renderEmptyState = () => {
+    const noFacesAtAll =
+      !fetchingLabeledFacesList &&
+      !fetchingInferredFacesList &&
+      lists.labeled.length + lists.inferred.length + lists.unknown.length === 0;
+    if (noFacesAtAll) {
+      return (
+        <EmptyState
+          icon={<IconFaceId size={40} />}
+          title={t("emptystate.faces.title")}
+          description={t("emptystate.faces.description")}
+          actionLabel={t("emptystate.goToLibrary")}
+          actionLink="/library"
+        />
+      );
+    }
+    const otherTab = FacesTab.options.find(tab => tab !== activeTab && lists[tab].length > 0);
+    return (
+      <EmptyState
+        icon={<IconFaceId size={40} />}
+        title={t(`emptystate.facesTab.${activeTab}.title`)}
+        description={t(`emptystate.facesTab.${activeTab}.description`)}
+        actionLabel={otherTab && t(`emptystate.facesTab.show.${otherTab}`)}
+        onAction={otherTab && (() => navigate({ to: "/faces", search: { ...search, tab: otherTab } }))}
+      />
+    );
+  };
+
   return (
     <RemoveScroll enabled={lightboxOpen}>
       <Stack h={`calc(100vh - ${TOP_MENU_HEIGHT}px)`}>
@@ -238,13 +273,7 @@ export function FaceDashboard() {
           canCollapse={hasFaces}
         />
         {!isFetching && !hasFaces ? (
-          <EmptyState
-            icon={<IconFaceId size={40} />}
-            title={t("emptystate.faces.title")}
-            description={t("emptystate.faces.description")}
-            actionLabel={t("emptystate.goToLibrary")}
-            actionLink="/library"
-          />
+          renderEmptyState()
         ) : (
           <VirtualizedGridComponent
             containerRef={ref}

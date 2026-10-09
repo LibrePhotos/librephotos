@@ -42,7 +42,8 @@ function Memories() {
   // One memory per year, so there is nothing to virtualize -- but the tiles are
   // sized like the album grids so the two pages look like the same product.
   const { entrySquareSize } = useAlbumListGridConfig(memories);
-  const tileSize = Math.max(entrySquareSize - 10, 0);
+  // Whole pixels: a full row of fractional tiles can add up a hair past the page and wrap
+  const tileSize = Math.max(Math.floor(entrySquareSize) - 10, 0);
 
   const items = memoriesToFlatItems(memories);
   const playingItems =

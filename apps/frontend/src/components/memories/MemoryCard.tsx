@@ -3,6 +3,7 @@ import { IconPlayerPlay as PlayerPlay } from "@tabler/icons-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { Memory } from "../../api_client/memories";
+import { Media } from "../../api_client/photos/types";
 import { i18nResolvedLanguage } from "../../i18n";
 import { Tile } from "../Tile";
 import { memoryDayLabel, memoryMonthLabel } from "./memoryLabels";
@@ -27,7 +28,13 @@ export function MemoryCard({ memory, size, onPlay }: Props) {
         title={t("memories.play")}
         style={{ background: "none", border: "none", padding: 0, cursor: "pointer", position: "relative" }}
       >
-        <Tile video={false} height={size} width={size} image_hash={memory.cover.image_hash} />
+        {/* A day of only videos has a video cover, whose square thumbnail is an MP4 */}
+        <Tile
+          video={memory.cover.type === Media.VIDEO}
+          height={size}
+          width={size}
+          image_hash={memory.cover.image_hash}
+        />
         <ActionIcon
           component="span"
           variant="filled"

@@ -5,7 +5,6 @@ import {
   Table,
   Text,
   TextInput,
-  Title,
   useComputedColorScheme,
   useMantineTheme,
 } from "@mantine/core";
@@ -15,6 +14,7 @@ import { useTranslation } from "react-i18next";
 import { fuzzyMatch } from "../../util/util";
 import { getRuleExtraInfo } from "../settings/date-time-settings";
 import type { DateTimeRule } from "../settings/date-time.zod";
+import { modalTitleStyles } from "./modalTitleStyles";
 
 type Props = Readonly<{
   opened: boolean;
@@ -68,7 +68,12 @@ export function ModalConfigDatetime({ opened, onClose, availableRules, onAddRule
           {getRuleExtraInfo(rule, t)}
         </Table.Td>
         <Table.Td width={40}>
-          <ActionIcon variant="subtle" color="green" onClick={() => appendRule(rule)}>
+          <ActionIcon
+            variant="subtle"
+            color="green"
+            aria-label={t("settings.add_rule_named", { name: rule.name })}
+            onClick={() => appendRule(rule)}
+          >
             <CirclePlus />
           </ActionIcon>
         </Table.Td>
@@ -82,12 +87,16 @@ export function ModalConfigDatetime({ opened, onClose, availableRules, onAddRule
 
   return (
     <Modal
+      styles={modalTitleStyles}
       opened={opened}
       size="xl"
-      title={<Title order={3}>{t("settings.configdatetime_add_title")}</Title>}
+      title={t("settings.configdatetime_add_title")}
       onClose={() => onClose()}
     >
-      <Text c="dimmed">{t("settings.configdatetime_add_description")}</Text>
+      {/* Same gap above the search field as the burst-rule dialog */}
+      <Text c="dimmed" mb="md">
+        {t("settings.configdatetime_add_description")}
+      </Text>
       <ScrollArea>
         <TextInput
           placeholder={t("settings.configdatetime_search_placeholder")}
@@ -96,9 +105,20 @@ export function ModalConfigDatetime({ opened, onClose, availableRules, onAddRule
           value={filter}
           onChange={e => handleFilterRules(e)}
         />
-        <Table highlightOnHover>
-          <Table.Tbody>{rules}</Table.Tbody>
-        </Table>
+        {rules.length > 0 && (
+          <Table highlightOnHover>
+            <Table.Tbody>{rules}</Table.Tbody>
+          </Table>
+        )}
+        {/* An empty table read as a glitch once every rule was in use or the search missed.
+            The live region stays mounted so screen readers announce the message as you type. */}
+        <div role="status">
+          {rules.length === 0 && (
+            <Text c="dimmed" ta="center" py="md">
+              {availableRules.some(ignoreSelectedRules) ? t("settings.no_rules_match") : t("settings.all_rules_in_use")}
+            </Text>
+          )}
+        </div>
       </ScrollArea>
     </Modal>
   );

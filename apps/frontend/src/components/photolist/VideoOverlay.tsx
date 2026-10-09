@@ -3,6 +3,7 @@ import { Duration } from "luxon";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { Media } from "../../api_client/photos/types";
+import { TileBadge } from "./TileBadge";
 
 type Props = Readonly<{
   item: {
@@ -18,27 +19,19 @@ type Props = Readonly<{
  */
 function HdrBadge() {
   const { t } = useTranslation();
+  // Same filled badge as RAW. The tile button's aria-label already says "HDR
+  // video", so the badge is not read out a second time.
   return (
-    <span
-      title={t("phototile.hdrvideo")}
-      style={{
-        margin: "5px 5px 0 0",
-        padding: "0 4px",
-        border: "1px solid currentColor",
-        borderRadius: 3,
-        fontSize: "0.7em",
-        fontWeight: 700,
-        lineHeight: 1.4,
-      }}
-    >
+    <TileBadge title={t("phototile.hdrvideo")} aria-hidden="true" style={{ marginRight: 5, flexShrink: 0 }}>
       HDR
-    </span>
+    </TileBadge>
   );
 }
 export function VideoOverlay({ item }: Props) {
   function getDuration({ video_length }) {
     return (
-      <span style={{ margin: "5px 5px 0 0" }}>{Duration.fromObject({ seconds: video_length }).toFormat("mm:ss")}</span>
+      // No top margin: it pushed the text below the play icon's centre line.
+      <span style={{ marginRight: 5 }}>{Duration.fromObject({ seconds: video_length }).toFormat("mm:ss")}</span>
     );
   }
 

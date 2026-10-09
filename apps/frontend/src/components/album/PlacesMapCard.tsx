@@ -8,6 +8,7 @@ import MapGL, { Layer, Source } from "react-map-gl/maplibre";
 import { useFetchLocationClustersQuery, useFetchPlacesAlbumsQuery } from "../../api_client/albums/hooks";
 import { useMapStyle } from "../../util/mapStyle";
 import { MapDisabledPlaceholder } from "../map/MapDisabledPlaceholder";
+import { ignoreMissingStyleImages } from "../map/mapImages";
 import classes from "./PlacesMapCard.module.css";
 
 // Simplified layer for the mini map
@@ -69,6 +70,7 @@ export function PlacesMapCard() {
           <MapDisabledPlaceholder height="100%" />
         ) : (
           <MapGL
+            ref={ignoreMissingStyleImages}
             initialViewState={{
               longitude: 0,
               latitude: 30,
@@ -93,7 +95,7 @@ export function PlacesMapCard() {
           </Text>
         </div>
         <Text size="xs" c="dimmed" mt={4}>
-          {t("explore.albumCount", { count })}
+          {t("explore.placeCount", { count })}
         </Text>
       </div>
     </Link>

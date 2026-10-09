@@ -11,7 +11,10 @@ export type SearchExamplesResponse = z.infer<typeof SearchExamplesResponse>;
 
 export const PhotosGroupedByDate = z.array(
   z.object({
-    date: z.string(),
+    // The undated group's date: null from the album, person, place, thing and
+    // tag lists; search, and those lists on servers before 1.3, send the legacy
+    // "No timestamp" string. Accept both, so search can switch too.
+    date: z.string().nullable(),
     location: z.string(),
     items: z.array(PigPhoto),
   })

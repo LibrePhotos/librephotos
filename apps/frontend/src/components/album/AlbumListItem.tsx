@@ -35,7 +35,8 @@ export function AlbumListItem({ album, showUpdatedTime = false }: AlbumListItemP
           {showUpdatedTime && (
             <>
               <br />
-              {t("modalalbum.updated", {
+              {/* The list only knows when the album was created, not when it last changed */}
+              {t("modalalbum.created", {
                 duration: DateTime.fromISO(album.created_on).setLocale(i18nResolvedLanguage()).toRelative(),
               })}
             </>

@@ -466,7 +466,6 @@ function Pig(
       return (
         <React.Fragment key={group.date}>
           <GroupHeaderComponent
-            key={group.date}
             settings={settings}
             group={group}
             activeTileUrl={activeTileUrl}
@@ -487,10 +486,20 @@ function Pig(
   const renderFlat = useCallback((item: ImageItem) => renderTile(item), [renderTile]);
 
   // Render
+  // Key by id where there is one (photos, date-album groups): the suffix below
+  // counts within the rendered window only, so it shifts as groups scroll out
+  // and would remount their tiles. Search and user-album groups have no id and
+  // fall back to their date label, which two groups can share (two UTC days
+  // that fall on the same local day); suffix repeats so keys stay unique.
+  const seenKeys = new Map<string, number>();
   return (
     <div className={`${styles.output} ${className}`} ref={containerRef}>
       {renderedItems.map((item, index) => {
-        const key = "date" in item && item.date ? item.date : item.id?.toString() || item.url || `item-${index}`;
+        const baseKey =
+          item.id?.toString() || ("date" in item && item.date ? item.date : "") || item.url || `item-${index}`;
+        const repeat = seenKeys.get(baseKey) ?? 0;
+        seenKeys.set(baseKey, repeat + 1);
+        const key = repeat ? `${baseKey}#${repeat}` : baseKey;
         return (
           <React.Fragment key={key}>
             {settings.groupByDate ? renderGroup(item as GroupedImageItem) : renderFlat(item as ImageItem)}

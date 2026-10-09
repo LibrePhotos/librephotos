@@ -141,7 +141,8 @@ export type Photo = z.infer<typeof Photo>;
 
 export const RecentlyAddedPhotosResponse = z.object({
   results: PigPhoto.array(),
-  date: z.string(),
+  // When the newest photos were added; null while the user has no visible photos.
+  date: z.string().nullable(),
 });
 export type RecentlyAddedPhotosResponse = z.infer<typeof RecentlyAddedPhotosResponse>;
 

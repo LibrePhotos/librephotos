@@ -50,6 +50,8 @@
 }
 
 .albumCard {
+  /* A link is inline: block keeps the 140px width when it is not a flex child. */
+  display: block;
   flex-shrink: 0;
   scroll-snap-align: start;
   width: 140px;
@@ -198,6 +200,13 @@
   align-items: center;
   justify-content: center;
   height: 100%;
+  color: var(--mantine-color-dimmed);
+}
+
+/* A section without covers shows its small header icon here; at 20px it read as a broken tile */
+.cardCoverSingle svg {
+  width: 40px;
+  height: 40px;
 }
 
 .cardCoverImage {
@@ -214,6 +223,20 @@
 
 .cardBody {
   padding: 0.75rem;
+}
+
+/* The albums overview has five category cards: in its two-column range the last one would sit alone */
+@media (min-width: 48em) and (max-width: 61.99em) {
+  .lastCategoryCard {
+    grid-column: 1 / -1;
+  }
+}
+
+/* and in its three-column range it would leave a gap after it */
+@media (min-width: 62em) and (max-width: 74.99em) {
+  .lastCategoryCard {
+    grid-column: span 2;
+  }
 }
 
 .cardTitle {

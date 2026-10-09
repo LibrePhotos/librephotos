@@ -14,15 +14,26 @@
 }
 
 /* Base styles - will be overridden by header size classes */
+/* Both stay on one line: the space above each group is fixed (see
+   computeLayoutGroups), so a wrapped date or place ran into the photos on
+   phones. The place gives way first and is cut with an ellipsis. */
 .location {
   margin-right: 1rem;
   flex: 1;
   opacity: 0.5;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .date {
   font-weight: bold;
   text-align: right;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 @media (min-width: 600px) {

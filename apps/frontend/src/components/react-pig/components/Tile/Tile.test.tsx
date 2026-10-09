@@ -1,3 +1,4 @@
+import { Settings } from "luxon";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
@@ -88,6 +89,17 @@ describe("react-pig Tile accessibility", () => {
     expect(Array.from(button.querySelectorAll("img")).every(img => img.getAttribute("alt") === "")).toBe(true);
   });
 
+  it("reads the capture time as the camera's wall clock, whatever the viewer's zone", () => {
+    // exif_timestamp is tagged UTC but means local time where the photo was taken.
+    const previousZone = Settings.defaultZone;
+    Settings.defaultZone = "America/New_York";
+    try {
+      expect(renderTile(photoItem()).button.getAttribute("aria-label")).toContain("2:02");
+    } finally {
+      Settings.defaultZone = previousZone;
+    }
+  });
+
   it("falls back to the media type when there is no date", () => {
     expect(renderTile(photoItem({ date: null })).button.getAttribute("aria-label")).toBe("Photo");
   });
@@ -95,6 +107,24 @@ describe("react-pig Tile accessibility", () => {
   it("names videos as videos and ignores an unparseable date", () => {
     const { button } = renderTile(photoItem({ type: "video", date: "not a date" }));
     expect(button.getAttribute("aria-label")).toBe("Video");
+  });
+
+  it("says when a video is HDR: the badge on the tile is hidden from assistive tech", () => {
+    expect(renderTile(photoItem({ type: "video", is_hdr: true })).button.getAttribute("aria-label")).toMatch(
+      /^HDR video taken /
+    );
+  });
+
+  it("names an undated HDR video, and leaves SDR videos alone", () => {
+    expect(renderTile(photoItem({ type: "video", is_hdr: true, date: null })).button.getAttribute("aria-label")).toBe(
+      "HDR video"
+    );
+    act(() => root!.unmount());
+    container!.remove();
+    root = null;
+    expect(renderTile(photoItem({ type: "video", is_hdr: false })).button.getAttribute("aria-label")).toMatch(
+      /^Video taken /
+    );
   });
 
   it("keeps the selection checkbox out of the button and names it", () => {

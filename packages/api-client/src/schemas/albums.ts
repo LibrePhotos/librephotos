@@ -83,7 +83,12 @@ export type FetchUserAlbumsSharedResponse = z.infer<typeof FetchUserAlbumsShared
 export const AutoAlbumInfo = z.object({
   id: z.number(),
   title: z.string(),
+  /**
+   * The event's grouping key, about 12 hours before its first photo: not a date
+   * to show. `start` (the first photo's exif_timestamp) is; older backends lack it.
+   */
   timestamp: z.string(),
+  start: z.string().nullish(),
   photos: PhotoHash,
   photo_count: z.number(),
   favorited: z.boolean(),
@@ -106,6 +111,12 @@ export const PhotoSimple = z.object({
   geolocation_json: z.any(),
   public: z.boolean(),
   video: z.boolean(),
+  // What a grid tile needs beyond the hash, as the photo summaries carry it.
+  // Optional: backends before 1.3 do not send them.
+  aspectRatio: z.number().nullish(),
+  dominantColor: z.string().nullish(),
+  video_length: z.union([z.string(), z.number()]).nullish(),
+  is_hdr: z.boolean().optional(),
 });
 export type PhotoSimple = z.infer<typeof PhotoSimple>;
 

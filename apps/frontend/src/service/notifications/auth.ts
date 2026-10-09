@@ -7,7 +7,8 @@ function authError(isLogin: boolean, field: string, display: string) {
 
   showNotification({
     message,
-    title: toUpperCase(field),
+    // A refused login used to be titled with the raw field name ("Detail").
+    title: isLogin ? i18n.t("login.errortitle") : toUpperCase(field),
     color: "red",
   });
 }
@@ -20,7 +21,17 @@ function invalidToken() {
   });
 }
 
+/** The server could not be reached at all, or the proxy answered for it (502-504). */
+function backendUnreachable() {
+  showNotification({
+    message: i18n.t("login.errorbackend"),
+    title: i18n.t("login.errortitle"),
+    color: "red",
+  });
+}
+
 export const auth = {
   authError,
+  backendUnreachable,
   invalidToken,
 };

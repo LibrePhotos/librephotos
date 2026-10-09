@@ -47,6 +47,8 @@ vi.mock("@tanstack/react-router", () => ({
       stubs.component = options?.component;
       return route;
     };
+    // The page reads its validated ?redirect= target.
+    route.useSearch = () => ({});
     return route;
   },
   Navigate: () => null,

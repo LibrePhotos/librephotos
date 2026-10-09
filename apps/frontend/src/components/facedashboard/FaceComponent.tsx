@@ -3,6 +3,7 @@ import { IconPhoto as Photo } from "@tabler/icons-react";
 import { getRouteApi } from "@tanstack/react-router";
 import { reverse } from "lodash-es";
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { serverAddress } from "../../api_client/apiClient";
 import classes from "./FaceComponent.module.css";
 import { FaceTooltip } from "./FaceTooltip";
@@ -42,6 +43,7 @@ export function FaceComponent({
   handleClick,
   handleShowClick,
 }: Props) {
+  const { t } = useTranslation();
   const [tooltipOpened, setTooltipOpened] = useState(false);
   const entrySize = entrySquareSize - (selectMode ? 30 : 10);
   const labelProbabilityColor = calculateProbabiltyColor(cell.person_label_probability);
@@ -52,7 +54,7 @@ export function FaceComponent({
   }
 
   return (
-    <Box className={classes.box} data-selected={isSelected} w="100%" h="100%" align="center">
+    <Box className={classes.box} data-selected={isSelected} w="100%" h="100%">
       <Box>
         <FaceTooltip
           tooltipOpened={tooltipOpened}
@@ -82,6 +84,7 @@ export function FaceComponent({
           className={classes.action}
           variant="filled"
           color="gray"
+          aria-label={t("facesdashboard.showphoto")}
           onClick={(e: any) => handleShowClick(e, cell)}
         >
           <Photo />

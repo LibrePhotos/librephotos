@@ -1,4 +1,4 @@
-import { Box, Button, Group, Modal, SimpleGrid, Stack, Text, Title, UnstyledButton } from "@mantine/core";
+import { Box, Button, Group, Modal, SimpleGrid, Stack, Text, UnstyledButton } from "@mantine/core";
 import { IconInfoCircle, IconPhoto } from "@tabler/icons-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -6,6 +6,7 @@ import type { PigPhoto } from "../../api_client/photos/types";
 import { Media } from "../../api_client/photos/types";
 import { Tile } from "../Tile";
 import classes from "./AlbumCoverPickerModal.module.css";
+import { modalTitleStyles } from "./modalTitleStyles";
 
 const PHOTOS_PER_PAGE = 50;
 
@@ -43,9 +44,10 @@ export function AlbumCoverPickerModal({ isOpen, onRequestClose, photos, onSelect
 
   return (
     <Modal
+      styles={modalTitleStyles}
       zIndex={1500}
       opened={isOpen}
-      title={<Title order={3}>{t("modalalbumcover.title")}</Title>}
+      title={t("modalalbumcover.title")}
       onClose={onRequestClose}
       size="lg"
     >

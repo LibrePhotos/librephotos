@@ -28,6 +28,8 @@ type AlbumSectionProps = {
   isLoading?: boolean;
   emptyMessage?: string;
   count?: number;
+  /** What the count is shown as; defaults to "N albums", wrong for people, tags or folders. */
+  countLabel?: string;
   variant?: AlbumSectionVariant;
   maxItems?: number;
   actionLink?: string;
@@ -178,6 +180,7 @@ export function AlbumSection({
   isLoading = false,
   emptyMessage,
   count,
+  countLabel,
   variant = "scroll",
   maxItems,
   actionLink,
@@ -188,6 +191,7 @@ export function AlbumSection({
   const { t } = useTranslation();
   const navigate = useNavigate();
   const displayCount = count ?? albums.length;
+  const countText = countLabel ?? t("explore.albumCount", { count: displayCount });
 
   // Determine max items based on variant
   const defaultMaxItems = getDetfaultMaxItems(variant);
@@ -201,13 +205,18 @@ export function AlbumSection({
   if (variant === "card") {
     const previewAlbums = albums.slice(0, 6).filter(a => a.coverUrl || a.icon);
     const hasCovers = previewAlbums.some(a => a.coverUrl);
+    const shownCovers = previewAlbums.slice(0, 3);
 
     return (
       <Link to={viewAllLink} className={classes.cardContainer}>
-        <div className={classes.cardCover}>
+        <div
+          className={classes.cardCover}
+          // As many columns as thumbnails, so two covers fill the tile instead of two thirds of it
+          style={hasCovers ? { gridTemplateColumns: `repeat(${shownCovers.length}, 1fr)` } : undefined}
+        >
           {hasCovers ? (
             // Show up to 3 thumbnails in a row
-            previewAlbums.slice(0, 3).map(album =>
+            shownCovers.map(album =>
               album.coverUrl ? (
                 <Tile
                   key={album.id}
@@ -235,7 +244,7 @@ export function AlbumSection({
             </Text>
           </div>
           <Text size="xs" c="dimmed" mt={4}>
-            {t("explore.albumCount", { count: displayCount })}
+            {countText}
           </Text>
         </div>
       </Link>
@@ -253,7 +262,7 @@ export function AlbumSection({
               <Title order={4}>{title}</Title>
               <Group gap={6}>
                 <Text size="sm" c="dimmed">
-                  {t("explore.albumCount", { count: displayCount })}
+                  {countText}
                 </Text>
                 <Text size="sm" c="dimmed">
                   ·
@@ -310,7 +319,7 @@ export function AlbumSection({
             <Title order={4}>{title}</Title>
             <Group gap={6}>
               <Text size="sm" c="dimmed">
-                {t("explore.albumCount", { count: displayCount })}
+                {countText}
               </Text>
               <Text size="sm" c="dimmed">
                 ·
@@ -340,7 +349,7 @@ export function AlbumSection({
                   {album.title}
                 </Text>
                 <Text size="xs" c="dimmed">
-                  {t("numberofphotos", { number: album.photoCount })}
+                  {t("numberofphotos", { count: album.photoCount, number: album.photoCount })}
                 </Text>
               </div>
             </Link>

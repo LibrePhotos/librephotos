@@ -1,23 +1,10 @@
 import { IconLayersLinked, IconStack2 as Stack } from "@tabler/icons-react";
 import React from "react";
 import { PigPhoto } from "../../api_client/photos/types";
+import { TileBadge } from "./TileBadge";
 
 function RawBadge() {
-  return (
-    <span
-      style={{
-        backgroundColor: "rgba(128, 128, 128, 0.85)",
-        color: "white",
-        fontSize: 10,
-        fontWeight: 600,
-        padding: "2px 4px",
-        borderRadius: 3,
-        lineHeight: 1,
-      }}
-    >
-      RAW
-    </span>
-  );
+  return <TileBadge>RAW</TileBadge>;
 }
 
 export function StackOverlay({ item }: { item: PigPhoto }) {

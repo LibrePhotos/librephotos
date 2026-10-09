@@ -4,6 +4,7 @@
  * the sound over a black picture and reports no error, so waiting for a failure
  * is not enough there. Everything it can play is served as it is, at full
  * resolution, and falls back to a conversion only if it fails after all.
+ * A photo's alt text is its caption or file name, never "Main Content".
  */
 import React from "react";
 import { createRoot } from "react-dom/client";
@@ -11,10 +12,12 @@ import { act } from "react-dom/test-utils";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { MediaDisplay } from "./MediaDisplay";
 
+type PlayerProps = { url: string; fallbackUrl?: string; convertible?: boolean; height: string; maxHeight?: string };
+
 const player = vi.fn();
 
 vi.mock("./VideoPlayer", () => ({
-  VideoPlayer: (props: { url: string; fallbackUrl?: string }) => {
+  VideoPlayer: (props: PlayerProps) => {
     player(props);
     return null;
   },
@@ -33,7 +36,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-async function renderVideo(photoDetails: object | null, type = "video", isPublic = false) {
+async function renderVideo(photoDetails: object | null, type = "video", isPublic = false, fullHeight = false) {
   const container = document.createElement("div");
   const root = createRoot(container);
   await act(async () => {
@@ -47,11 +50,12 @@ async function renderVideo(photoDetails: object | null, type = "video", isPublic
         handleDragStart={() => {}}
         photoDetails={photoDetails}
         isPublic={isPublic}
+        fullHeight={fullHeight}
       />
     );
   });
   await act(async () => root.unmount());
-  return player.mock.calls.at(-1)![0] as { url: string; fallbackUrl?: string };
+  return player.mock.calls.at(-1)![0] as PlayerProps;
 }
 
 describe("MediaDisplay video source", () => {
@@ -71,6 +75,7 @@ describe("MediaDisplay video source", () => {
 
     expect(props.url).toBe("/media/photos/abc.mp4");
     expect(props.fallbackUrl).toBe("/media/photos/abc.mp4?transcode=1");
+    expect(props.convertible).toBe(true);
   });
 
   it("plays a video that has not been probed yet as it is", async () => {
@@ -97,5 +102,58 @@ describe("MediaDisplay video source", () => {
 
     expect(props.url).toBe("/media/embedded_media/abc");
     expect(props.fallbackUrl).toBeUndefined();
+    // Nothing converts it, so the player must not advise a conversion either.
+    expect(props.convertible).toBe(false);
+  });
+});
+
+describe("MediaDisplay video size", () => {
+  it("fills the lightbox's box", async () => {
+    const props = await renderVideo({ video_playback_type: null });
+
+    expect(props.height).toBe("min(82vh, calc(100vh - 160px))");
+    expect(props.maxHeight).toBeUndefined();
+  });
+
+  it("takes the video's own shape on the photo page, where there is no box to fill", async () => {
+    const props = await renderVideo({ video_playback_type: null }, "video", false, true);
+
+    // Not from the stored width and height: they ignore a phone video's rotation.
+    expect(props.height).toBe("auto");
+    expect(props.maxHeight).toBe("70vh");
+  });
+});
+
+describe("MediaDisplay alt text", () => {
+  async function renderPhotoAlt(photoDetails: object | undefined) {
+    const container = document.createElement("div");
+    const root = createRoot(container);
+    await act(async () => {
+      root.render(
+        <MediaDisplay
+          id="abc"
+          image_hash="abc"
+          isMainContent
+          type="photo"
+          faceLocation={null as never}
+          handleDragStart={() => {}}
+          photoDetails={photoDetails}
+        />
+      );
+    });
+    const alt = container.querySelector("img")?.getAttribute("alt");
+    await act(async () => root.unmount());
+    return alt;
+  }
+
+  it("uses the caption, then the file name of a POSIX or Windows path", async () => {
+    expect(await renderPhotoAlt({ captions_json: { user_caption: "Beach day" }, image_path: ["/p/a.jpg"] })).toBe(
+      "Beach day"
+    );
+    expect(await renderPhotoAlt({ captions_json: {}, image_path: ["C:\\Photos\\IMG_1.jpg"] })).toBe("IMG_1.jpg");
+  });
+
+  it("falls back to a generic label without details", async () => {
+    expect(await renderPhotoAlt(undefined)).toBe("phototile.photo");
   });
 });

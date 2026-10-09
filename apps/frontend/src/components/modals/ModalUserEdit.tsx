@@ -1,4 +1,4 @@
-import { Box, Button, Modal, ScrollArea, SimpleGrid, Space, Text, TextInput, Title } from "@mantine/core";
+import { Box, Button, Group, Modal, ScrollArea, SimpleGrid, Space, Text, TextInput, Title } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { IconUser, IconMail as Mail } from "@tabler/icons-react";
 import type { FormEvent } from "react";
@@ -6,6 +6,7 @@ import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSignUpMutation } from "../../api_client/auth";
 import { useScanPhotosMutation } from "../../api_client/jobs";
+import { useGetSettingsQuery } from "../../api_client/settings";
 import { User } from "../../api_client/user";
 import { useManageUpdateUserMutation } from "../../api_client/user/hooks";
 import { reportUserSaveError } from "../../util/apiErrors";
@@ -13,6 +14,7 @@ import { EMAIL_REGEX } from "../../util/util";
 import { PasswordEntry } from "../settings/PasswordEntry";
 import { DirectoryPicker } from "../setup/DirectoryPicker";
 import { uploadLocation } from "../setup/uploadLocation";
+import { modalTitleStyles } from "./modalTitleStyles";
 
 type Props = Readonly<{
   isOpen: boolean;
@@ -35,6 +37,9 @@ export function ModalUserEdit(props: Props) {
   const { mutate: signup, isPending: isSigningUp } = useSignUpMutation();
   const { mutate: updateUser, isPending: isUpdating } = useManageUpdateUserMutation();
   const scanPhotos = useScanPhotosMutation();
+  const { data: siteSettings } = useGetSettingsQuery();
+  // The upload folder only matters while uploads are allowed on this server.
+  const uploadsAllowed = !!siteSettings?.allow_upload;
   const [isPathValid, setIsPathValid] = useState(true);
   const [isUploadPathValid, setIsUploadPathValid] = useState(true);
   const isSaving = createNew ? isSigningUp : isUpdating;
@@ -96,12 +101,15 @@ export function ModalUserEdit(props: Props) {
       } else {
         setScanDirectoryPlaceholder(t("modalscandirectoryedit.notset"));
       }
+      // Every field falls back to "": "Add new user" passes {}, and an
+      // undefined value turned the inputs uncontrolled, so they kept showing
+      // the last edited user while the form itself was empty.
       form.setValues({
-        username: userToEdit.username,
-        email: userToEdit.email,
-        first_name: userToEdit.first_name,
-        last_name: userToEdit.last_name,
-        scan_directory: userToEdit.scan_directory,
+        username: userToEdit.username ?? "",
+        email: userToEdit.email ?? "",
+        first_name: userToEdit.first_name ?? "",
+        last_name: userToEdit.last_name ?? "",
+        scan_directory: userToEdit.scan_directory ?? "",
         upload_directory: userToEdit.upload_directory ?? "",
         password: userPassword || "",
       });
@@ -135,8 +143,15 @@ export function ModalUserEdit(props: Props) {
     if (!newUserData.scan_directory) {
       delete newUserData.scan_directory;
     }
-    // An empty upload folder is sent as "" so that it restores the default.
-    newUserData.upload_directory = form.values.upload_directory ?? "";
+    // Sent only when the admin changed it ("" restores the default). A caller
+    // that never loaded the stored folder would otherwise reset it on every
+    // save of the user.
+    const uploadDirectory = form.values.upload_directory ?? "";
+    if (uploadDirectory !== (userToEdit.upload_directory ?? "")) {
+      newUserData.upload_directory = uploadDirectory;
+    } else {
+      delete newUserData.upload_directory;
+    }
 
     if (createNew) {
       if (userPassword && username) {
@@ -196,6 +211,7 @@ export function ModalUserEdit(props: Props) {
 
   return (
     <Modal
+      styles={modalTitleStyles}
       opened={isOpen}
       centered
       scrollAreaComponent={ScrollArea.Autosize}
@@ -203,7 +219,7 @@ export function ModalUserEdit(props: Props) {
       onClose={() => {
         closeModal();
       }}
-      title={<Title order={4}>{createNew ? t("modaluseredit.createheader") : t("modaluseredit.header")}</Title>}
+      title={createNew ? t("modaluseredit.createheader") : t("modaluseredit.header")}
     >
       <form onSubmit={onSubmit}>
         <Box pb="md">
@@ -262,46 +278,56 @@ export function ModalUserEdit(props: Props) {
                   {t("modalscandirectoryedit.currentdirectory")}
                 </Text>
               }
-              description={<Title order={6}>{t("modalscandirectoryedit.explanation3")}</Title>}
-              missingPathError={t("modalscandirectoryedit.pathdoesnotexist")}
-            />
-            {webUploadLocation && (
-              <Text size="sm" c="dimmed" mt="xs">
-                {t("modalscandirectoryedit.uploadlocation", { path: webUploadLocation })}
-              </Text>
-            )}
-            <Space h="md" />
-            <DirectoryPicker
-              value={form.values.upload_directory}
-              onChange={next => form.setFieldValue("upload_directory", next)}
-              onValidityChange={setIsUploadPathValid}
-              placeholder={t("modalscandirectoryedit.uploadfolderdefault")}
-              label={
-                <Text fw="bold" span>
-                  {t("modalscandirectoryedit.uploadfolder")}
+              description={
+                <Text size="sm" c="dimmed" mt="xs">
+                  {t("modalscandirectoryedit.explanation3")}
                 </Text>
               }
-              description={<Text size="sm">{t("modalscandirectoryedit.uploadfolderexplanation")}</Text>}
               missingPathError={t("modalscandirectoryedit.pathdoesnotexist")}
             />
+            {uploadsAllowed && (
+              <>
+                <Space h="md" />
+                <DirectoryPicker
+                  name="upload_directory"
+                  value={form.values.upload_directory}
+                  onChange={next => form.setFieldValue("upload_directory", next)}
+                  onValidityChange={setIsUploadPathValid}
+                  placeholder={t("modalscandirectoryedit.uploadfolderdefault")}
+                  label={
+                    <Text fw="bold" span>
+                      {t("modalscandirectoryedit.uploadfolder")}
+                    </Text>
+                  }
+                  // Under the upload folder input, the one that changes it, rather than
+                  // two fields up; a missing folder would make the announced location wrong.
+                  hint={
+                    isPathValid && isUploadPathValid && webUploadLocation ? (
+                      <Text size="sm" c="dimmed" mt={4} style={{ overflowWrap: "anywhere" }}>
+                        {t("modalscandirectoryedit.uploadlocation", { path: webUploadLocation })}
+                      </Text>
+                    ) : undefined
+                  }
+                  description={
+                    <Text size="sm" c="dimmed" mt="xs">
+                      {t("modalscandirectoryedit.uploadfolderexplanation")}
+                    </Text>
+                  }
+                  missingPathError={t("modalscandirectoryedit.pathdoesnotexist")}
+                />
+              </>
+            )}
           </>
         )}
-        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+        <Group justify="flex-end" mt="md">
           <Button variant="default" onClick={() => closeModal()}>
             {t("cancel")}
           </Button>
-          <Space w="md" />
           <Button type="submit" loading={isSaving} disabled={isSaving}>
             {t("save")}
           </Button>
-        </div>
+        </Group>
       </form>
     </Modal>
   );
 }
-
-ModalUserEdit.defaultProps = {
-  updateAndScan: false,
-  selectedNodeId: "",
-  firstTimeSetup: false,
-};

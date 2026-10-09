@@ -130,15 +130,4 @@ export const DetectDuplicatesResponse = z.object({
 });
 export type DetectDuplicatesResponse = z.infer<typeof DetectDuplicatesResponse>;
 
-// Display labels for duplicate types
-export const duplicateTypeLabels: Record<DuplicateType, string> = {
-  exact_copy: "Exact Copies",
-  visual_duplicate: "Visual Duplicates",
-};
-
-// Display labels for review status
-export const reviewStatusLabels: Record<ReviewStatus, string> = {
-  pending: "Pending Review",
-  resolved: "Resolved",
-  dismissed: "Dismissed",
-};
+// Display labels: use the translated duplicates.types.<type> and duplicates.<status> keys

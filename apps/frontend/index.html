@@ -4,6 +4,28 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
     <meta name="theme-color" content="#000000" />
+    <script>
+      // Mantine's ColorSchemeScript, inlined: apply the saved (or OS) colour
+      // scheme before the first paint, so dark mode does not flash white while
+      // the app loads. Key and values as in Mantine's localStorage manager.
+      try {
+        var savedScheme = window.localStorage.getItem("mantine-color-scheme-value");
+        var colorScheme =
+          savedScheme === "light" || savedScheme === "dark"
+            ? savedScheme
+            : window.matchMedia("(prefers-color-scheme: dark)").matches
+              ? "dark"
+              : "light";
+        document.documentElement.setAttribute("data-mantine-color-scheme", colorScheme);
+      } catch (e) {}
+    </script>
+    <style type="text/css">
+      /* Dark canvas until Mantine's stylesheet (loaded by the app) takes over. */
+      :root[data-mantine-color-scheme="dark"] {
+        color-scheme: dark;
+        background-color: #1f1f1f;
+      }
+    </style>
     <!--
       manifest.json provides metadata used when your web app is added to the
       homescreen on Android. See https://developers.google.com/web/fundamentals/engage-and-retain/web-app-manifest/

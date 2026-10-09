@@ -5,8 +5,9 @@ import { useIsAuthenticatedQuery } from "../../api_client/auth";
 import { FooterMenu } from "../../components/menubars/FooterMenu";
 import { SideMenuNarrow } from "../../components/menubars/SideMenuNarrow";
 import { TopMenu } from "../../components/menubars/TopMenu";
+import { SpotlightProvider } from "../../components/spotlight";
 import { UploadProgressCard, UploadProvider } from "../../components/upload";
-import { FOOTER_HEIGHT, LEFT_MENU_WIDTH, MIN_VIEWPORT_WIDTH, TOP_MENU_HEIGHT } from "../../ui-constants";
+import { FOOTER_HEIGHT, LEFT_MENU_WIDTH, TOP_MENU_HEIGHT } from "../../ui-constants";
 
 export const Route = createFileRoute("/_protected")({
   component: AppShellProtected,
@@ -16,7 +17,8 @@ function AppShellProtected() {
   const colorScheme = useComputedColorScheme();
   const theme = useMantineTheme();
   const { data: isAuthenticated, isLoading } = useIsAuthenticatedQuery();
-  const { pathname } = window.location;
+  // Keep the query string too, so the login can return to exactly this view.
+  const { pathname, search } = window.location;
 
   if (isLoading) {
     return <Loader />;
@@ -25,16 +27,18 @@ function AppShellProtected() {
   if (!isAuthenticated && !isLoading) {
     // eslint-disable-next-line no-console
     console.log("Redirecting to login");
-    return <Navigate to="/login" search={{ redirect: pathname }} replace />;
+    return <Navigate to="/login" search={{ redirect: pathname + search }} replace />;
   }
 
   return (
     <UploadProvider>
+      {/* Here, not in __root: its search queries need a session, and login,
+          signup and public pages have none (each fired 401s on load). */}
+      <SpotlightProvider />
       <AppShell
         header={{ height: TOP_MENU_HEIGHT }}
         navbar={{ width: LEFT_MENU_WIDTH, breakpoint: "sm", collapsed: { mobile: true, desktop: false } }}
         footer={{ height: { base: FOOTER_HEIGHT, sm: 0 } }}
-        style={{ minWidth: MIN_VIEWPORT_WIDTH }}
         transitionDuration={0}
       >
         <AppShell.Header>
@@ -50,7 +54,9 @@ function AppShellProtected() {
         >
           <Outlet />
         </AppShell.Main>
-        <AppShell.Footer>
+        {/* The footer is the phone navigation. A 0px footer on desktop still
+            drew a 1px border and left its links in the tab order. */}
+        <AppShell.Footer hiddenFrom="sm">
           <FooterMenu />
         </AppShell.Footer>
       </AppShell>

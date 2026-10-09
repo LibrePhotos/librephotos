@@ -64,9 +64,10 @@ async function renderLabel(exifTimestamp: string): Promise<string> {
       </MantineProvider>
     );
   });
-  // The label lives in the button; container.textContent would also drag in
-  // Mantine's injected <style> blocks.
-  const text = container.querySelector("button")?.textContent ?? "";
+  // The label is two lines of text (no button on a public page, where it cannot
+  // be edited); container.textContent would also drag in Mantine's injected
+  // <style> blocks.
+  const text = Array.from(container.querySelectorAll("p"), line => line.textContent).join(" ");
   await act(async () => {
     root.unmount();
   });

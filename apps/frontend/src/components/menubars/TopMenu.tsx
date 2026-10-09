@@ -10,22 +10,26 @@ import { TopMenuLogo } from "./TopMenuLogo";
 import { WorkerIndicator } from "./WorkerIndicator";
 
 export function TopMenu(): React.ReactNode {
+  // Centre both groups in the header instead of nudging them with margins, so
+  // the search field and the 30px tiles share one midline.
   return (
-    <Flex>
-      <Group visibleFrom="sm" w={LEFT_MENU_WIDTH} flex="0 0 auto" p={10}>
+    <Flex h="100%" align="center">
+      <Group visibleFrom="sm" w={LEFT_MENU_WIDTH} flex="0 0 auto" px={10}>
         <TopMenuLogo />
       </Group>
       <Group wrap="nowrap" gap="xs" w="100%" px="xs" className={classes.topMenuGroup}>
         <SpotlightTrigger />
+        {/* display: flex on the wrappers, so each tile is centred itself rather
+            than sitting on a text baseline (the avatar sat 3px higher). */}
         <Group wrap="nowrap" gap="xs">
-          <Box visibleFrom="sm">
+          <Box visibleFrom="sm" display="flex">
             <ColorModeSwitch />
           </Box>
           <ChunkedUploadButton />
-          <Box visibleFrom="sm">
+          <Box visibleFrom="sm" display="flex">
             <WorkerIndicator />
           </Box>
-          <Box visibleFrom="sm">
+          <Box visibleFrom="sm" display="flex">
             <ProfileButton />
           </Box>
         </Group>

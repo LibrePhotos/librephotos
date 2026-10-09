@@ -1,8 +1,11 @@
-import { Button, Modal, Space, Text, Title } from "@mantine/core";
+import { Button, Group, Modal, Stack, Text } from "@mantine/core";
 import { IconTrash as Trash } from "@tabler/icons-react";
 import React from "react";
-import { Trans, useTranslation } from "react-i18next";
+import { useTranslation } from "react-i18next";
+import { ApiError } from "../../api_client/api";
 import { useDeleteUserMutation } from "../../api_client/user/hooks";
+import { notification } from "../../service/notifications";
+import { modalTitleStyles } from "./modalTitleStyles";
 
 type Props = Readonly<{
   isOpen: boolean;
@@ -12,55 +15,57 @@ type Props = Readonly<{
 
 export function ModalUserDelete(props: Props) {
   const { isOpen, onRequestClose, userToDelete } = props;
-  const { mutate: deleteUser } = useDeleteUserMutation();
+  const { mutate: deleteUser, isPending } = useDeleteUserMutation();
 
   const { t } = useTranslation();
 
-  const clearStateAndClose = () => {
-    onRequestClose();
-  };
-
+  // The dialog stays open until the request settles: closing it straight away
+  // left the admin guessing whether the deletion ran, worked or failed.
   const deleteUserAndClose = () => {
-    deleteUser(userToDelete.id);
-    clearStateAndClose();
+    deleteUser(userToDelete.id, {
+      onSuccess: () => {
+        notification.deleteUser(userToDelete.username);
+        onRequestClose();
+      },
+      onError: error => {
+        // A 401 is handled (and reported) by the fetch client.
+        if (error instanceof ApiError && error.status === 401) {
+          return;
+        }
+        notification.requestFailed(
+          t("toasts.deleteusererrortitle"),
+          (error instanceof ApiError && error.serverMessage) || t("toasts.deleteusererror")
+        );
+      },
+    });
   };
 
   return (
     <Modal
+      styles={modalTitleStyles}
       opened={isOpen}
       centered
       size="md"
-      onClose={() => {
-        clearStateAndClose();
-      }}
-      title={
-        <Title order={5}>
-          <span style={{ paddingRight: "5px" }}>
-            <Trash size={16} />
-          </span>
-          <Trans i18nKey="adminarea.titledeleteuser">Delete User</Trans>
-        </Title>
-      }
+      onClose={onRequestClose}
+      closeOnClickOutside={!isPending}
+      closeOnEscape={!isPending}
+      withCloseButton={!isPending}
+      title={t("adminarea.titledeleteuser")}
     >
-      <Text size="sm">
-        <Trans i18nKey="adminarea.deleteuserconfirmexplanation" username={userToDelete.username}>
-          You are about to delete the following user: {{ username: userToDelete.username }}. This will delete all
-          associated data.
-        </Trans>
-      </Text>
-      <br />
-      <Text size="sm" color="red">
-        <Trans i18nKey="adminarea.cannotbeundone">This action cannot be undone.</Trans>
-      </Text>
-      <div style={{ display: "flex", justifyContent: "flex-end" }}>
-        <Button variant="default" onClick={() => clearStateAndClose()}>
-          {t("cancel")}
-        </Button>
-        <Space w="md" />
-        <Button disabled={!true} onClick={() => deleteUserAndClose()}>
-          {t("confirm")}
-        </Button>
-      </div>
+      <Stack>
+        <Text size="sm">{t("adminarea.deleteuserconfirmexplanation", { username: userToDelete.username })}</Text>
+        <Text size="sm" c="red">
+          {t("adminarea.cannotbeundone")}
+        </Text>
+        <Group justify="flex-end" mt="md">
+          <Button variant="default" onClick={onRequestClose} disabled={isPending}>
+            {t("cancel")}
+          </Button>
+          <Button color="red" leftSection={<Trash size={16} />} loading={isPending} onClick={deleteUserAndClose}>
+            {t("delete")}
+          </Button>
+        </Group>
+      </Stack>
     </Modal>
   );
 }

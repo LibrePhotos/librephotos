@@ -4,6 +4,7 @@ import { DateTime } from "luxon";
 import type { DirTree } from "../api_client/folders/types";
 import type { DatePhotosGroup, IncompleteDatePhotosGroup, PigPhoto } from "../api_client/photos/types";
 import i18n, { i18nResolvedLanguage } from "../i18n";
+import { parsePhotoTimestamp } from "./dateUtils";
 
 export const EMAIL_REGEX = /^\w+([-.]?\w+){0,2}(\+?\w+([-.]?\w+){0,2})?@(\w+-?\w+\.){1,9}[a-z]{2,}$/;
 
@@ -20,13 +21,19 @@ export const copyToClipboard = (str: string) => {
   }
 };
 
+// The undated group's date from the search endpoint, and from the album, person,
+// place, thing and tag lists on servers before 1.3 (those send null now).
+export const LEGACY_UNDATED_GROUP_DATE = "No timestamp";
+
 // TODO: Add ordinal suffix to day of month when implemented in luxon (NB, is it still valid?)
 export function formatDateForPhotoGroups(photoGroups: DatePhotosGroup[]): DatePhotosGroup[] {
   return photoGroups.map(photoGroup => {
-    if (photoGroup.date === null) {
+    if (photoGroup.date === null || photoGroup.date === LEGACY_UNDATED_GROUP_DATE) {
       return { ...photoGroup, date: i18n.t("sidemenu.withouttimestamp") };
     }
-    const date = DateTime.fromISO(photoGroup.date);
+    // Group dates are the first photo's exif_timestamp: wall-clock time tagged
+    // as UTC. Read in the viewer's zone, late or early shots land on another day.
+    const date = parsePhotoTimestamp(photoGroup.date);
     if (date.isValid) {
       return {
         ...photoGroup,
@@ -76,17 +83,17 @@ export function getPhotosFlatFromGroupedByUser(photosGroupedByUser: any[]) {
 }
 
 export function fuzzyMatch(query: string, value: string): boolean {
-  if (query.split("").length > 0) {
-    const expression = query
-      .toLowerCase()
-      .replace(/\s/g, "")
-      .split("")
-      .map(a => escapeRegExp(a))
-      .reduce((a, b) => `${a}.*${b}`)
-      .concat(".*");
-    return new RegExp(expression).test(value.toLowerCase());
+  // Whitespace is dropped first: checking the raw query let "  " through to a
+  // reduce() over no characters, which threw and crashed the search box.
+  const chars = query.toLowerCase().replace(/\s/g, "").split("");
+  if (chars.length === 0) {
+    return true;
   }
-  return true;
+  const expression = chars
+    .map(a => escapeRegExp(a))
+    .join(".*")
+    .concat(".*");
+  return new RegExp(expression).test(value.toLowerCase());
 }
 
 export function mergeDirTree(tree: DirTree[], branch: DirTree): DirTree[] {

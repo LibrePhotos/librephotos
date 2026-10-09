@@ -13,6 +13,7 @@ import {
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { IconArrowBackUp as ArrowBackUp, IconCodePlus as CodePlus } from "@tabler/icons-react";
+import type { TFunction } from "i18next";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchPredefinedBurstRulesQuery } from "../../api_client/settings/hooks/useFetchPredefinedBurstRulesQuery";
@@ -37,17 +38,19 @@ function parseRules(value: BurstDetectionRule[] | string | null | undefined): Bu
   return value;
 }
 
-function getRuleExtraInfo(rule: BurstDetectionRule): string | null {
+function getRuleExtraInfo(rule: BurstDetectionRule, t: TFunction<"translation", undefined>): string | null {
   switch (rule.rule_type) {
-    case "timestamp_proximity":
-      return `Interval: ${rule.interval_ms || 2000}ms${rule.require_same_camera !== false ? ", Same camera required" : ""}`;
+    case "timestamp_proximity": {
+      const interval = t("settings.burst.rule_interval", { ms: rule.interval_ms || 2000 });
+      return rule.require_same_camera !== false ? `${interval}, ${t("settings.burst.rule_same_camera")}` : interval;
+    }
     case "visual_similarity":
-      return `Threshold: ${rule.similarity_threshold || 15}`;
+      return t("settings.burst.rule_threshold", { value: rule.similarity_threshold || 15 });
     case "filename_pattern":
       if (rule.custom_pattern) {
-        return `Custom pattern: ${rule.custom_pattern}`;
+        return t("settings.burst.rule_custom_pattern", { pattern: rule.custom_pattern });
       }
-      return `Pattern type: ${rule.pattern_type || "all"}`;
+      return t("settings.burst.rule_pattern_type", { type: rule.pattern_type || "all" });
     default:
       return null;
   }
@@ -63,10 +66,8 @@ export function ConfigBurstDetection({ value, onChange }: ConfigBurstDetectionPr
   const [opened, { open, close }] = useDisclosure(false);
 
   useEffect(() => {
-    const parsed = parseRules(value);
-    if (parsed.length > 0) {
-      setUserRules(parsed);
-    }
+    // Also an empty list, so that Cancel resets a rule added to a saved list that was empty.
+    setUserRules(parseRules(value));
   }, [value]);
 
   useEffect(() => {
@@ -74,9 +75,8 @@ export function ConfigBurstDetection({ value, onChange }: ConfigBurstDetectionPr
       return;
     }
 
-    if (allRules.length && userRules.length) {
-      setAvailableRules(allRules.filter(rule => !userRules.find(r => r.id === rule.id)));
-    }
+    // Also with no rules left, so the rule deleted last can be added back.
+    setAvailableRules(allRules.filter(rule => !userRules.find(r => r.id === rule.id)));
 
     const defaultRules = allRules.filter(rule => rule.is_default);
     const defaultRuleIds = defaultRules.map(r => r.id).sort();
@@ -127,11 +127,14 @@ export function ConfigBurstDetection({ value, onChange }: ConfigBurstDetectionPr
   }
 
   const renderRuleRow = (rule: BurstDetectionRule) => (
-    <SortableTr key={rule.id} id={rule.id.toString()} style={{ opacity: rule.enabled ? 1 : 0.6 }}>
+    <SortableTr key={rule.id} id={rule.id.toString()}>
       <Table.Td width={60}>
-        <Switch checked={rule.enabled} onChange={() => toggleRule(rule)} size="sm" />
+        <Switch checked={rule.enabled} onChange={() => toggleRule(rule)} size="sm" aria-label={rule.name} />
       </Table.Td>
-      <Table.Td>
+      {/* Only the text dims for a disabled rule: a dimmed switch reads as a disabled control.
+          Long tokens such as "MakerNotes:ContinuousDrive" wrap, so the delete button stays in view
+          on a phone. */}
+      <Table.Td style={{ opacity: rule.enabled ? 1 : 0.6, overflowWrap: "anywhere" }}>
         <Group gap="xs">
           <strong>{rule.name}</strong>
           <Badge size="xs" color={rule.category === "hard" ? "blue" : "orange"}>
@@ -143,14 +146,19 @@ export function ConfigBurstDetection({ value, onChange }: ConfigBurstDetectionPr
             {rule.description}
           </Text>
         )}
-        {getRuleExtraInfo(rule) && (
+        {getRuleExtraInfo(rule, t) && (
           <Text size="xs" c="dimmed">
-            {getRuleExtraInfo(rule)}
+            {getRuleExtraInfo(rule, t)}
           </Text>
         )}
       </Table.Td>
       <Table.Td width={40}>
-        <CloseButton title={t("settings.delete_rule")} size="md" onClick={() => deleteRule(rule)} />
+        <CloseButton
+          title={t("settings.delete_rule")}
+          aria-label={t("settings.delete_rule")}
+          size="md"
+          onClick={() => deleteRule(rule)}
+        />
       </Table.Td>
     </SortableTr>
   );

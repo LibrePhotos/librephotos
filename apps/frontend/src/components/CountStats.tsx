@@ -72,14 +72,17 @@ function Count({ value, withTooltip = true }: { value: number; withTooltip?: boo
 
 export function CountStats() {
   const { t } = useTranslation();
+  const locale = i18nResolvedLanguage();
   const { data: countStats = COUNT_STATS_DEFAULTS } = useFetchCountStatsQuery();
 
+  // Cards fill their grid cell (h="100%") so the row reads as one band even
+  // where a card has no second line or its label wraps.
   return (
     <Grid gutter="xs">
       {/* Photos & Days combined */}
       <Grid.Col span={{ base: 6, sm: 6, md: 3 }}>
-        <Card withBorder p="xs">
-          <Group justify="flex-start" gap="xs">
+        <Card withBorder p="xs" h="100%">
+          <Group justify="flex-start" gap="xs" wrap="nowrap" h="100%">
             <Photo size={40} strokeWidth={1} />
             <div>
               <Text c="dimmed" size="xs">
@@ -102,8 +105,8 @@ export function CountStats() {
       <Grid.Col span={{ base: 6, sm: 6, md: 3 }}>
         <HoverCard width={200} shadow="md" withinPortal withArrow>
           <HoverCard.Target>
-            <Card withBorder p="xs">
-              <Group justify="flex-start" gap="xs">
+            <Card withBorder p="xs" h="100%">
+              <Group justify="flex-start" gap="xs" wrap="nowrap" h="100%">
                 <Users size={40} strokeWidth={1} />
                 <div>
                   <Text c="dimmed" size="xs">
@@ -129,7 +132,7 @@ export function CountStats() {
                 </Text>
                 <Group gap="xs">
                   <FaceId size={16} />
-                  <Text size="sm">{countStats.num_inferred_faces}</Text>
+                  <Text size="sm">{formatCount(countStats.num_inferred_faces, locale)}</Text>
                 </Group>
               </Group>
               <Group justify="space-between">
@@ -138,7 +141,7 @@ export function CountStats() {
                 </Text>
                 <Group gap="xs">
                   <Tag size={16} />
-                  <Text size="sm">{countStats.num_labeled_faces}</Text>
+                  <Text size="sm">{formatCount(countStats.num_labeled_faces, locale)}</Text>
                 </Group>
               </Group>
               <Group justify="space-between">
@@ -147,7 +150,7 @@ export function CountStats() {
                 </Text>
                 <Group gap="xs">
                   <QuestionMark size={16} />
-                  <Text size="sm">{countStats.num_unknown_faces}</Text>
+                  <Text size="sm">{formatCount(countStats.num_unknown_faces, locale)}</Text>
                 </Group>
               </Group>
             </Stack>
@@ -157,8 +160,8 @@ export function CountStats() {
 
       {/* Events */}
       <Grid.Col span={{ base: 6, sm: 6, md: 3 }}>
-        <Card withBorder p="xs">
-          <Group justify="flex-start" gap="xs">
+        <Card withBorder p="xs" h="100%">
+          <Group justify="flex-start" gap="xs" wrap="nowrap" h="100%">
             <SettingsAutomation size={40} strokeWidth={1} />
             <div>
               <Text c="dimmed" size="xs">
@@ -207,10 +210,10 @@ export function CountStats() {
             }
           `}
         </style>
-        <UnstyledButton component={Link} to="/statistics" style={{ display: "block", width: "100%" }}>
-          <Card withBorder p="xs" className="dataviz-card" style={{ cursor: "pointer" }}>
-            <Group justify="space-between" gap="xs" wrap="nowrap">
-              <Group gap="xs">
+        <UnstyledButton component={Link} to="/statistics" style={{ display: "block", width: "100%", height: "100%" }}>
+          <Card withBorder p="xs" h="100%" className="dataviz-card" style={{ cursor: "pointer" }}>
+            <Group justify="space-between" gap="xs" wrap="nowrap" h="100%">
+              <Group gap="xs" wrap="nowrap">
                 <ChartLine size={40} strokeWidth={1} color="var(--mantine-color-yellow-6)" />
                 <div>
                   <Text c="var(--mantine-color-yellow-7)" size="xs" fw={600}>

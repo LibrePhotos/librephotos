@@ -21,8 +21,10 @@ export const PublicPhotoDetail = z.object({
   fstop: z.number().nullable().optional(),
   iso: z.number().nullable().optional(),
   shutter_speed: z.string().nullable().optional(),
-  width: z.number().optional(),
-  height: z.number().optional(),
+  // A null size (unknown to the metadata) failed the whole parse and left the
+  // details panel empty. The server sends 0 for it now; null stays accepted.
+  width: z.number().nullable().optional(),
+  height: z.number().nullable().optional(),
   search_captions: z.string().optional(),
   captions_json: z.record(z.unknown()).optional(),
   people: z

@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { useFetchDateAlbumQuery, useFetchDateAlbumsQuery } from "../../api_client/albums/hooks";
 import { Photoset, PigPhoto } from "../../api_client/photos/types";
 import { EmptyStateConfig, PhotoGroup, PhotoListView } from "../../components/photolist/PhotoListView";
+import { useHasNoScanDirectory } from "../../components/photolist/useScanEmptyStateAction";
 import { useWorkerStatus } from "../../hooks/useWorkerStatus";
 import { getPhotosFlatFromGroupedByDate } from "../../util/util";
 
@@ -16,6 +17,9 @@ function TimestampPhotos() {
   const { t } = useTranslation();
   const [photosFlat, setPhotosFlat] = useState<PigPhoto[]>([]);
   const { workerRunningJob } = useWorkerStatus();
+  // Only an admin can set a user's scan folder, so "Go to Library" would be a
+  // dead end; point at what others shared instead.
+  const hasNoScanDirectory = useHasNoScanDirectory();
 
   const { data: photosGroupedByDate, isLoading, refetch } = useFetchDateAlbumsQuery({ photosetType: Photoset.NONE });
 
@@ -51,7 +55,8 @@ function TimestampPhotos() {
     if (isScanRunning && workerRunningJob) {
       return {
         icon: <Photo size={40} />,
-        title: `${t("emptystate.scanning.title")} — ${workerRunningJob.job_type_str}`,
+        // The English job name is also the translation key, as in the job list.
+        title: `${t("emptystate.scanning.title")} — ${t(workerRunningJob.job_type_str)}`,
         description: t("emptystate.scanning.refresh"),
         actionLabel: t("emptystate.scanning.refreshButton"),
         onAction: () => refetch(),
@@ -62,6 +67,16 @@ function TimestampPhotos() {
       };
     }
 
+    if (hasNoScanDirectory) {
+      return {
+        icon: <Photo size={40} />,
+        title: t("emptystate.photos.title"),
+        description: t("emptystate.photos.noscandirectory"),
+        actionLabel: t("sidemenu.sharedwithyou"),
+        actionLink: "/sharing/withme/albums",
+      };
+    }
+
     return {
       icon: <Photo size={40} />,
       title: t("emptystate.photos.title"),
@@ -69,7 +84,7 @@ function TimestampPhotos() {
       actionLabel: t("emptystate.goToLibrary"),
       actionLink: "/library",
     };
-  }, [t, isScanRunning, workerRunningJob, refetch]);
+  }, [t, isScanRunning, workerRunningJob, refetch, hasNoScanDirectory]);
 
   return (
     <PhotoListView

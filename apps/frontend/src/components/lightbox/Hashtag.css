@@ -1,9 +1,12 @@
 .hashtag {
   border: 0.1rem transparent;
   font-size: 0.6875rem;
-  background-color: #d8f5a2;
-  color: #66a80f;
-  letter-spacing: rem(0.25px);
+  /* lime-2 on lime-8 was a light pill in dark mode too; dark gets the light
+     variant a Mantine Badge uses there. */
+  background-color: light-dark(var(--mantine-color-lime-2), var(--mantine-color-lime-light));
+  color: light-dark(var(--mantine-color-lime-8), var(--mantine-color-lime-light-color));
+  /* Not rem(): that needs postcss-preset-mantine, which this build has not got. */
+  letter-spacing: 0.25px;
   border-radius: 2rem;
   line-height: calc(1.25rem - 0.125rem);
   align-items: center;

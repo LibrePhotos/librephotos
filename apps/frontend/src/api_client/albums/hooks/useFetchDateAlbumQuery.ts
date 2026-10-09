@@ -40,8 +40,10 @@ export const useFetchDateAlbumQuery = (options: AlbumDateOption, queryOptions?: 
         folder: options.folder,
       };
 
+      // The trailing slash matters: without it Django answers every day page
+      // with a 301 to the slashed URL.
       const response = await fetchClient.get(
-        `/albums/date/${options.album_date_id}?${new URLSearchParams(
+        `/albums/date/${options.album_date_id}/?${new URLSearchParams(
           Object.entries(params).filter(([, v]) => v !== undefined) as [string, string][]
         ).toString()}`
       );

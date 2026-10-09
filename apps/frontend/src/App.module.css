@@ -1,0 +1,9 @@
+/*
+ * Every Notifications position gets its own fixed container with this class.
+ * Only the top ones move down, below the top bar and the lightbox toolbar; a
+ * `top` on the bottom containers would stretch them across the screen.
+ * --app-notifications-top is set in App.tsx from TOP_MENU_HEIGHT.
+ */
+.notifications:is([data-position="top-center"], [data-position="top-right"], [data-position="top-left"]) {
+  top: var(--app-notifications-top);
+}

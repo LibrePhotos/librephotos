@@ -69,6 +69,10 @@ export function useFaceSelection(getFacesInRange: (start: FaceCell, end: FaceCel
     onFaceSelect,
     onFacesSelect,
     handleCellClick,
-    clearSelection: useCallback(() => setSelectedFaces([]), []),
+    // Also forget the shift-click anchor, which may not be on screen any more
+    clearSelection: useCallback(() => {
+      setSelectedFaces([]);
+      setLastChecked(null);
+    }, []),
   };
 }

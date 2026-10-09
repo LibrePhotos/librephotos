@@ -1,5 +1,6 @@
-import { Anchor, Badge, Button, Collapse, Divider, Group, Stack, Text } from "@mantine/core";
+import { Anchor, Badge, Collapse, Divider, Group, Stack, Text } from "@mantine/core";
 import { IconCamera as Camera, IconPhoto as Photo } from "@tabler/icons-react";
+import type { TFunction } from "i18next";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { serverAddress } from "../../api_client/apiClient";
@@ -7,6 +8,15 @@ import type { FileVariant } from "../../api_client/photos/types";
 import { Photo as PhotoType } from "../../api_client/photos/types";
 import { BreadcrumbPath } from "../common/BreadcrumbPath";
 import { FileInfoComponent } from "./FileInfoComponent";
+
+// Where the text next to a 24px row icon starts (icon plus the Group's default
+// md gap), so the toggles and expanded details line up with the rows above.
+const TEXT_COLUMN = "calc(24px + var(--mantine-spacing-md))";
+
+/** The file name of a path from either a POSIX or a Windows backend. */
+function fileNameOf(path: string): string {
+  return path.split(/[\\/]/).pop() ?? path;
+}
 
 /**
  * Get file variant type badge color and label
@@ -26,13 +36,7 @@ function getVariantBadgeProps(variant: FileVariant): { color: string; label: str
  * Basic photo information (filename, dimensions, file size)
  * Includes file variants with a dedicated toggle
  */
-function PhotoInfoSection({
-  photoDetail,
-  t,
-}: {
-  photoDetail: PhotoType;
-  t: (key: string, fallback?: string) => string;
-}) {
+function PhotoInfoSection({ photoDetail, t }: { photoDetail: PhotoType; t: TFunction }) {
   const [showVariants, setShowVariants] = useState(false);
   const fileVariants = photoDetail.file_variants || [];
   const nonMainVariants = fileVariants.filter(v => !v.is_main);
@@ -47,12 +51,12 @@ function PhotoInfoSection({
             <Anchor href={`${serverAddress}/media/photos/${photoDetail.image_hash}`} target="_blank">
               <Text fw={800} lineClamp={1} style={{ maxWidth: 225 }}>
                 {photoDetail.image_path && photoDetail.image_path.length > 0
-                  ? photoDetail.image_path[0].substring(photoDetail.image_path[0].lastIndexOf("/") + 1)
-                  : "Unknown filename"}
+                  ? fileNameOf(photoDetail.image_path[0])
+                  : t("exif.unknownFilename")}
               </Text>
             </Anchor>
             <Group gap="xs">
-              <FileInfoComponent info={`${photoDetail.height} x ${photoDetail.width}`} />
+              <FileInfoComponent info={`${photoDetail.width} × ${photoDetail.height}`} />
               {Math.round((photoDetail.size / 1024 / 1024) * 100) / 100 < 1 ? (
                 <FileInfoComponent info={`${Math.round((photoDetail.size / 1024) * 100) / 100} kB`} />
               ) : (
@@ -67,12 +71,7 @@ function PhotoInfoSection({
                   onClick={() => setShowVariants(!showVariants)}
                   style={{ cursor: "pointer" }}
                 >
-                  {showVariants
-                    ? t("exif.hideFormats", "Hide formats")
-                    : t(
-                        "exif.showFormats",
-                        `+${nonMainVariants.length} format${nonMainVariants.length > 1 ? "s" : ""}`
-                      )}
+                  {showVariants ? t("exif.hideFormats") : t("exif.showFormats", { count: nonMainVariants.length })}
                 </Anchor>
               )}
             </Group>
@@ -83,7 +82,7 @@ function PhotoInfoSection({
       {/* File variants shown when toggled */}
       {hasVariants && (
         <Collapse in={showVariants}>
-          <Stack gap={4} ml="xl" mt="xs">
+          <Stack gap={4} ml={TEXT_COLUMN} mt="xs">
             {nonMainVariants.map(variant => {
               const { color, label } = getVariantBadgeProps(variant);
               return (
@@ -92,7 +91,7 @@ function PhotoInfoSection({
                     {label}
                   </Badge>
                   <Anchor href={`${serverAddress}/media/photos/${variant.hash}`} target="_blank" size="xs" c="dimmed">
-                    {variant.filename || variant.path.split("/").pop()}
+                    {variant.filename || fileNameOf(variant.path)}
                   </Anchor>
                 </Group>
               );
@@ -118,12 +117,13 @@ export function CameraInfoSection({ photoDetail }: { photoDetail: Partial<PhotoT
         <div>
           <Text fw={800}>{photoDetail.camera?.toString()}</Text>
           <Group gap="xs">
-            {photoDetail.lens && <FileInfoComponent info={photoDetail.lens.toString()} />}
-            {photoDetail.subjectDistance && <FileInfoComponent info={`${photoDetail.subjectDistance} m`} />}
-            {photoDetail.fstop && <FileInfoComponent info={`ƒ / ${photoDetail.fstop}`} />}
-            {photoDetail.shutter_speed && <FileInfoComponent info={`${photoDetail.shutter_speed}`} />}
-            {photoDetail.focal_length && <FileInfoComponent info={`${Math.round(photoDetail.focal_length)} mm`} />}
-            {photoDetail.iso && <FileInfoComponent info={`ISO${photoDetail.iso.toString()}`} />}
+            {/* !! so a 0 renders nothing rather than a stray "0" */}
+            {!!photoDetail.lens && <FileInfoComponent info={photoDetail.lens.toString()} />}
+            {!!photoDetail.subjectDistance && <FileInfoComponent info={`${photoDetail.subjectDistance} m`} />}
+            {!!photoDetail.fstop && <FileInfoComponent info={`ƒ / ${photoDetail.fstop}`} />}
+            {!!photoDetail.shutter_speed && <FileInfoComponent info={`${photoDetail.shutter_speed}`} />}
+            {!!photoDetail.focal_length && <FileInfoComponent info={`${Math.round(photoDetail.focal_length)} mm`} />}
+            {!!photoDetail.iso && <FileInfoComponent info={`ISO${photoDetail.iso.toString()}`} />}
           </Group>
         </div>
       </Group>
@@ -141,7 +141,7 @@ function AdditionalInfoSection({
 }: {
   photoDetail: PhotoType;
   isPublic: boolean;
-  t: (key: string) => string;
+  t: TFunction;
 }) {
   return (
     <Stack>
@@ -167,17 +167,14 @@ function AdditionalInfoSection({
  * Displays duplicate files (multiple files attached to same photo)
  * Note: Duplicate management is now handled through the Duplicates page
  */
-function DuplicatesSection({ duplicates, t }: { duplicates: string[]; t: (key: string) => string }) {
+function DuplicatesSection({ duplicates, t }: { duplicates: string[]; t: TFunction }) {
   if (duplicates.length === 0) return null;
 
   return (
     <>
       <Text fw={800}>{t("exif.duplicates")}</Text>
       <Text size="sm" c="dimmed" mb="xs">
-        {t(
-          "exif.duplicates.managed_via_duplicates_page",
-          "This photo has multiple file copies. Manage duplicates via the Duplicates page."
-        )}
+        {t("exif.duplicatesManaged")}
       </Text>
       {duplicates.map(element => (
         <Stack key={element}>
@@ -223,7 +220,7 @@ export function VersionComponent(props: Readonly<{ photoDetail: PhotoType; isPub
 
         {/* Expanded information section */}
         <Collapse in={showMore}>
-          <Stack>
+          <Stack ml={TEXT_COLUMN}>
             {/* Additional photo metadata */}
             <AdditionalInfoSection photoDetail={photoDetail} isPublic={isPublic} t={t} />
 
@@ -236,9 +233,9 @@ export function VersionComponent(props: Readonly<{ photoDetail: PhotoType; isPub
         </Collapse>
 
         {/* Show more/less button */}
-        <Button onClick={() => setShowMore(!showMore)} variant="subtle" size="compact-xs">
+        <Anchor component="button" type="button" size="xs" ml={TEXT_COLUMN} onClick={() => setShowMore(!showMore)}>
           {showMore ? t("exif.showless") : t("exif.showmore")}
-        </Button>
+        </Anchor>
       </Stack>
     </div>
   );

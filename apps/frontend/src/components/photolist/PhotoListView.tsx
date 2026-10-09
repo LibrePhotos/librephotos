@@ -1,10 +1,10 @@
 import {
   ActionIcon,
   Box,
-  Button,
   Group,
   Menu,
   RemoveScroll,
+  SegmentedControl,
   Slider,
   Stack,
   Switch,
@@ -66,6 +66,8 @@ const scrollToY = (y: number) => {
 
 // Layout data Pig attaches to each date group (see react-pig computeLayoutGroups).
 type PigGroupLayout = DatePhotosGroup & { groupTranslateY: number };
+
+type HeaderSize = "large" | "normal" | "small";
 
 export type PhotoGroup = {
   id: string;
@@ -158,9 +160,11 @@ function PhotoListViewComponent({
   const selectionStateRef = useRef(selectionState);
   const [dataForScrollIndicator, setDataForScrollIndicator] = useState<ScrollerData[]>([]);
   const gridHeight = useRef(200);
+  const gridRef = useRef<HTMLDivElement>(null);
   const setUserAlbumCover = useSetUserAlbumCoverMutation();
   const setPersonAlbumCover = useSetPersonAlbumCoverMutation();
-  const updateUser = useUpdateUserMutation();
+  // Silent: the debounced grid preference saves would otherwise pop an "Update user" toast.
+  const updateUser = useUpdateUserMutation({ silent: true });
   const queryClient = useQueryClient();
   const location = useLocation();
   // Skip user details query on public pages
@@ -177,11 +181,12 @@ function PhotoListViewComponent({
 
   const imageScale = userSelfDetails?.image_scale ?? 1;
   const textAlignment = (userSelfDetails?.text_alignment as "left" | "right") ?? "right";
-  const headerSize = (userSelfDetails?.header_size as "large" | "normal" | "small") ?? "large";
+  const headerSize = (userSelfDetails?.header_size as HeaderSize) ?? "large";
 
   const [localImageScale, setLocalImageScale] = useState(imageScale);
   const [localTextAlignment, setLocalTextAlignment] = useState<"left" | "right">(textAlignment);
-  const [localHeaderSize, setLocalHeaderSize] = useState<"large" | "normal" | "small">(headerSize);
+  const [localHeaderSize, setLocalHeaderSize] = useState<HeaderSize>(headerSize);
+  const [displayMenuOpened, setDisplayMenuOpened] = useState(false);
 
   const currentImageIndexRef = useRef(0);
   const navigate = useNavigate();
@@ -213,43 +218,23 @@ function PhotoListViewComponent({
       if (pigRef.current && idx2hash[currentImageIndexRef.current]) {
         // Use setTimeout to ensure DOM is updated after lightbox is closed
         setTimeout(() => {
-          try {
-            // Get all image buttons
-            const buttons = document.querySelectorAll(".pig-btn");
-            const currentImage = idx2hash[currentImageIndexRef.current];
-            // Use image_hash instead of UUID since image URLs use image_hash
-            const currentImageHash = currentImage.image_hash || currentImage.url?.split(";")[0];
-
-            // Try to find by checking img contents using image_hash
-            let targetButton: Element | null =
-              Array.from(buttons).find(btn => {
-                const imgs = btn.querySelectorAll("img");
-                return Array.from(imgs).some(img => currentImageHash && img.src.includes(currentImageHash));
-              }) || null;
-
-            // If no button found, try another approach - get index position
-            if (!targetButton && buttons.length > 0) {
-              // Use index directly if it's within bounds
-              if (currentImageIndexRef.current >= 0 && currentImageIndexRef.current < buttons.length) {
-                targetButton = buttons[currentImageIndexRef.current];
-              }
-            }
-
-            if (targetButton) {
-              // Get position
-              const rect = targetButton.getBoundingClientRect();
-              const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-              const targetY = rect.top + scrollTop - 80; // Offset to show a bit of context
-
-              // Scroll to position
-              window.scrollTo({
-                top: targetY,
-                behavior: "smooth",
-              });
-            }
-          } catch (error) {
-            console.error("Error scrolling to image:", error);
-          }
+          // Read the tile's position from Pig's layout rather than the DOM: the
+          // grid is virtualised, so the tile may not be rendered, and video
+          // tiles have no <img> to match on (the old index fallback then
+          // pointed at an unrelated tile).
+          const currentId = idx2hash[currentImageIndexRef.current]?.id;
+          const layout = (pigRef.current?.imageData ?? []).flatMap((entry: any) => entry.items ?? [entry]);
+          const tile = layout.find((entry: any) => entry.id === currentId);
+          const grid = gridRef.current;
+          if (!tile?.style || !grid) return;
+          // Pig is the grid wrapper's only child, inside its padding.
+          const pig = grid.firstElementChild ?? grid;
+          const tileTop = pig.getBoundingClientRect().top + window.scrollY + tile.style.translateY;
+          // Centre the tile, so it is not left under the sticky header.
+          window.scrollTo({
+            top: Math.max(0, tileTop - (window.innerHeight - tile.style.height) / 2),
+            behavior: "smooth",
+          });
         }, 100);
       }
     },
@@ -313,7 +298,7 @@ function PhotoListViewComponent({
     debouncedSavePreferences({ text_alignment: alignment });
   };
 
-  const handleHeaderSizeChange = (size: "large" | "normal" | "small") => {
+  const handleHeaderSizeChange = (size: HeaderSize) => {
     setLocalHeaderSize(size);
     debouncedSavePreferences({ header_size: size });
   };
@@ -435,16 +420,21 @@ function PhotoListViewComponent({
     [updateSelectionState]
   );
 
+  // Shift-click selects the whole range, like a file manager: items already
+  // selected stay selected (toggling deselected them), and not-yet-loaded
+  // placeholders are skipped. In selectAllMode selectedItems holds the
+  // exclusions, so the range is excluded, as a plain click excludes one item.
   const handleSelections = useCallback(
     (items: any[]) => {
-      let newSelectedItems = selectionStateRef.current.selectedItems;
-      items.forEach(item => {
-        if (newSelectedItems.find(selectedItem => selectedItem.id === item.id)) {
-          newSelectedItems = newSelectedItems.filter(value => value.id !== item.id);
-        } else {
-          newSelectedItems = newSelectedItems.concat(item);
-        }
-      });
+      const current = selectionStateRef.current;
+      const added = items.filter(
+        item => !item.isTemp && !current.selectedItems.some(selectedItem => selectedItem.id === item.id)
+      );
+      const newSelectedItems = current.selectedItems.concat(added);
+      if (current.selectAllMode) {
+        updateSelectionState({ selectedItems: newSelectedItems });
+        return;
+      }
       updateSelectionState({
         selectedItems: newSelectedItems,
         selectMode: newSelectedItems.length > 0,
@@ -550,29 +540,28 @@ function PhotoListViewComponent({
         }}
       >
         {header || (
-          <Box style={{ position: "relative", width: "100%" }}>
-            <DefaultHeader
-              loading={isLoading}
-              numPhotosetItems={photos.length || 0}
-              numPhotos={getNumPhotos()}
-              icon={icon}
-              title={title}
-              dayHeaderPrefix={dayHeaderPrefix}
-              date={date}
-              additionalSubHeader={additionalSubHeader}
-              hasEmptyState={!!emptyStateConfig && !isFirstTimeSetup}
-              isPublic={isPublic}
-            />
+          // The actions sit beside the title in the normal flow (they used to be
+          // absolutely positioned over it). The 260px basis wraps a wide action
+          // group onto its own row on phones instead of squeezing the title.
+          <Group justify="space-between" align="flex-start" gap="xs" style={{ rowGap: 4 }}>
+            <Box style={{ flex: "1 1 260px", minWidth: 0 }}>
+              <DefaultHeader
+                loading={isLoading}
+                numPhotosetItems={photos.length || 0}
+                numPhotos={getNumPhotos()}
+                icon={icon}
+                title={title}
+                dayHeaderPrefix={dayHeaderPrefix}
+                date={date}
+                additionalSubHeader={additionalSubHeader}
+                hasEmptyState={!!emptyStateConfig && !isFirstTimeSetup}
+                isPublic={isPublic}
+                countsVideos={mediaType === "videos" || location.pathname.startsWith("/videos")}
+              />
+            </Box>
             {!isLoading && !isPublic && (getNumPhotos() > 0 || mediaType !== undefined) && (
-              <Box
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  right: 0,
-                  zIndex: 10,
-                }}
-              >
-                <Group gap="xs">
+              <Box ml="auto">
+                <Group gap="xs" wrap="nowrap">
                   {/* The media-type filter stays visible even when the current
                       filter yields no photos, so the user is never trapped. */}
                   {mediaType !== undefined && <MediaTypeSelector />}
@@ -594,9 +583,16 @@ function PhotoListViewComponent({
                     </Tooltip>
                   )}
                   {getNumPhotos() > 0 && (
-                    <Menu shadow="md" width={200} position="bottom-end">
+                    <Menu
+                      shadow="md"
+                      width={240}
+                      position="bottom-end"
+                      opened={displayMenuOpened}
+                      onChange={setDisplayMenuOpened}
+                    >
                       <Menu.Target>
-                        <Tooltip label={t("photodisplay.settings")} position="bottom">
+                        {/* Hidden while the menu is open: it would sit over the menu's first label. */}
+                        <Tooltip label={t("photodisplay.settings")} position="bottom" disabled={displayMenuOpened}>
                           <ActionIcon
                             variant="subtle"
                             color="gray"
@@ -655,29 +651,17 @@ function PhotoListViewComponent({
 
                         <Menu.Label>{t("photodisplay.headerSize")}</Menu.Label>
                         <Box p="xs">
-                          <Group>
-                            <Button
-                              size="xs"
-                              variant={localHeaderSize === "large" ? "filled" : "outline"}
-                              onClick={() => handleHeaderSizeChange("large")}
-                            >
-                              {t("photodisplay.large")}
-                            </Button>
-                            <Button
-                              size="xs"
-                              variant={localHeaderSize === "normal" ? "filled" : "outline"}
-                              onClick={() => handleHeaderSizeChange("normal")}
-                            >
-                              {t("photodisplay.normal")}
-                            </Button>
-                            <Button
-                              size="xs"
-                              variant={localHeaderSize === "small" ? "filled" : "outline"}
-                              onClick={() => handleHeaderSizeChange("small")}
-                            >
-                              {t("photodisplay.small")}
-                            </Button>
-                          </Group>
+                          <SegmentedControl
+                            size="xs"
+                            fullWidth
+                            value={localHeaderSize}
+                            onChange={value => handleHeaderSizeChange(value as HeaderSize)}
+                            data={[
+                              { value: "large", label: t("photodisplay.large") },
+                              { value: "normal", label: t("photodisplay.normal") },
+                              { value: "small", label: t("photodisplay.small") },
+                            ]}
+                          />
                         </Box>
                       </Menu.Dropdown>
                     </Menu>
@@ -685,7 +669,7 @@ function PhotoListViewComponent({
                 </Group>
               </Box>
             )}
-          </Box>
+          </Group>
         )}
         {!isLoading && !isPublic && getNumPhotos() > 0 && (
           <Box
@@ -787,7 +771,7 @@ function PhotoListViewComponent({
           targetHeight={gridHeight.current}
           type={ScrollerType.enum.date}
         >
-          <Box p={10}>
+          <Box p={10} ref={gridRef}>
             <Pig
               ref={pigRef}
               className="scrollscrubbertarget"
@@ -838,7 +822,18 @@ function PhotoListViewComponent({
         <Lightbox
           isPublic={isPublic}
           publicAlbumSlug={publicAlbumSlug}
-          idx2hash={idx2hash.map(item => ({ id: item.id, image_hash: item.image_hash }))}
+          // type lets public and shared views, which have no photo details, play videos;
+          // isTemp marks placeholders that have not loaded yet; date and location feed
+          // the details panel a non-owner sees (the server already leaves out what it
+          // may not share).
+          idx2hash={idx2hash.map(item => ({
+            id: item.id,
+            image_hash: item.image_hash,
+            type: item.type,
+            isTemp: item.isTemp,
+            date: item.date,
+            location: item.location,
+          }))}
           selectedImage={lightboxImageId}
           onChangedIndex={handleLightboxIndexChange}
           onCloseRequest={closeLightbox}

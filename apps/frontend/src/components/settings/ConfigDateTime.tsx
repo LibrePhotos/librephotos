@@ -5,6 +5,7 @@ import {
   Group,
   ScrollArea,
   Table,
+  Text,
   Title,
   useComputedColorScheme,
   useMantineTheme,
@@ -15,7 +16,7 @@ import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchPredefinedRulesQuery } from "../../api_client/settings/hooks/useFetchPredefinedRulesQuery";
 import { ModalConfigDatetime } from "../modals/ModalConfigDatetime";
-import { getRuleExtraInfo } from "./date-time-settings";
+import { describeRuleType, getRuleExtraInfo } from "./date-time-settings";
 import type { DateTimeRule } from "./date-time.zod";
 import { SortableTbody, SortableTr } from "./SortableTableRows";
 
@@ -45,9 +46,9 @@ export function ConfigDateTime({ value, onChange }: ConfigDateTimeProps) {
       return;
     }
 
-    if (allRules.length && userRules.length) {
-      setAvailableRules(allRules.filter(rule => !userRules.find(r => r.id === rule.id)));
-    }
+    // Also with no rules left: otherwise the list kept excluding the rule deleted last, and
+    // after a reload with no rules the Add Rule dialog was empty.
+    setAvailableRules(allRules.filter(rule => !userRules.find(r => r.id === rule.id)));
 
     const defaultRules = allRules.filter(rule => rule.is_default);
     setResetButtonDisabled(JSON.stringify(userRules.map(r => r.id)) === JSON.stringify(defaultRules.map(r => r.id)));
@@ -95,12 +96,17 @@ export function ConfigDateTime({ value, onChange }: ConfigDateTimeProps) {
             color: colorScheme === "dark" ? theme.colors.gray[6] : theme.colors.dark[3],
           }}
         >
-          {t("rules.rule_type", { rule: rule.rule_type })}
+          {t("rules.rule_type", { rule: describeRuleType(rule.rule_type, t) })}
         </div>
         {getRuleExtraInfo(rule, t)}
       </Table.Td>
       <Table.Td width={40}>
-        <CloseButton title="Delete rule" size="md" onClick={() => deleteRule(rule)} />
+        <CloseButton
+          title={t("settings.delete_rule")}
+          aria-label={t("settings.delete_rule")}
+          size="md"
+          onClick={() => deleteRule(rule)}
+        />
       </Table.Td>
     </SortableTr>
   ));
@@ -111,8 +117,12 @@ export function ConfigDateTime({ value, onChange }: ConfigDateTimeProps) {
         {t("settings.configdatetime")}
       </Title>
 
-      <Group>
-        <Button color="green" leftSection={<CodePlus />} onClick={open} style={{ marginBottom: 10 }}>
+      <Text size="sm" c="dimmed" mb="md">
+        {t("settings.configdatetime_order_hint")}
+      </Text>
+
+      <Group mb="md">
+        <Button color="green" leftSection={<CodePlus />} onClick={open}>
           {t("settings.add_rule")}
         </Button>
 
@@ -121,9 +131,8 @@ export function ConfigDateTime({ value, onChange }: ConfigDateTimeProps) {
           disabled={resetButtonDisabled}
           leftSection={<ArrowBackUp />}
           onClick={() => resetToDefaultRules()}
-          style={{ marginBottom: 10 }}
         >
-          Reset To Defaults
+          {t("settings.reset_to_defaults")}
         </Button>
       </Group>
 

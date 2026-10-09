@@ -20,9 +20,15 @@ const DEFAULT_VALUES = {
 export const Route = createFileRoute("/_protected/faces")({
   component: FaceDashboard,
   validateSearch: (search: Record<string, unknown>): FacesSearch => ({
-    tab: (search.tab as FacesTab) || DEFAULT_VALUES.activeTab,
-    method: (search.method as FaceAnalysisMethod) || DEFAULT_VALUES.analysisMethod,
+    tab: FacesTab.safeParse(search.tab).data ?? DEFAULT_VALUES.activeTab,
+    method: FaceAnalysisMethod.safeParse(search.method).data ?? DEFAULT_VALUES.analysisMethod,
     orderBy: (search.orderBy as string) || DEFAULT_VALUES.orderBy,
-    minConfidence: (search.minConfidence as number) || DEFAULT_VALUES.minConfidence,
+    // 0 is a valid threshold ("show every suggestion"), so no || fallback here. Out-of-range
+    // values are clamped, not reset: the NumberInput reports "150" while it is being typed,
+    // and a reset to 70 would make the field jump mid-typing
+    minConfidence:
+      typeof search.minConfidence === "number" && Number.isFinite(search.minConfidence)
+        ? Math.min(1, Math.max(0, search.minConfidence))
+        : DEFAULT_VALUES.minConfidence,
   }),
 });

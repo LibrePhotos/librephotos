@@ -27,7 +27,11 @@ import {
   VideoPlayer,
 } from "./VideoPlayer";
 
-const accessToken = { current: { access: { user_id: "1", name: "dotan", is_admin: false } } };
+const accessToken = {
+  current: { access: { user_id: "1", name: "dotan", is_admin: false } } as {
+    access: { user_id: string; name: string; is_admin: boolean } | null;
+  },
+};
 const diagnostics = { current: undefined as unknown };
 const diagnosticsEnabled = vi.fn();
 
@@ -81,7 +85,9 @@ function stubProbe(status: number, mediaError?: string) {
   return fetchMock;
 }
 
-async function renderPlayer(props: { url?: string; fallbackUrl?: string } = {}) {
+async function renderPlayer(
+  props: { url?: string; fallbackUrl?: string; convertible?: boolean; height?: string; maxHeight?: string } = {}
+) {
   const container = document.createElement("div");
   document.body.appendChild(container);
   const root = createRoot(container);
@@ -91,7 +97,9 @@ async function renderPlayer(props: { url?: string; fallbackUrl?: string } = {}) 
         <VideoPlayer
           url={props.url ?? "/media/photos/abc.mp4"}
           fallbackUrl={props.fallbackUrl}
-          height="80vh"
+          convertible={props.convertible}
+          height={props.height ?? "80vh"}
+          maxHeight={props.maxHeight}
           controls
           playing={false}
           mediaHash="abc"
@@ -469,6 +477,118 @@ describe("VideoPlayer conversion fallback", () => {
     expect(container.textContent).toContain("lightbox.videoerror.formatconverted");
     await unmount();
   });
+
+  it("shows no error panel while it is still finding out whether to convert", async () => {
+    // A red "Video Unavailable" box used to flash up for the length of the
+    // probe, for a video that then played fine from the conversion.
+    let release: (value: unknown) => void = () => {};
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        () =>
+          new Promise(resolve => {
+            release = resolve;
+          })
+      )
+    );
+    const { container, unmount } = await renderPlayer({ fallbackUrl: converted });
+    await act(async () => {
+      container.querySelector("video")!.dispatchEvent(new Event("error"));
+    });
+
+    expect(container.querySelector(".mantine-Alert-root")).toBeNull();
+    expect(container.textContent).not.toContain("lightbox.videoerror.unknowntitle");
+
+    await act(async () => {
+      release({ ok: true, status: 200, headers: { get: () => null } });
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(container.querySelector("video")!.getAttribute("src")).toBe(converted);
+    expect(container.querySelector(".mantine-Alert-root")).toBeNull();
+    await unmount();
+  });
+
+  it("still reports a file that is gone when a conversion was in reserve", async () => {
+    stubProbe(404);
+    const { container, fail, unmount } = await renderPlayer({ fallbackUrl: converted });
+
+    await fail();
+
+    expect(container.textContent).toContain("lightbox.videoerror.missingtitle");
+    await unmount();
+  });
+
+  it("says why it waits while a conversion is starting", async () => {
+    const { container, unmount } = await renderPlayer({ url: converted });
+
+    expect(container.textContent).toContain("lightbox.video.converting");
+    await unmount();
+  });
+
+  it("does not claim a conversion for an original that is loading", async () => {
+    const { container, unmount } = await renderPlayer();
+
+    expect(container.textContent).not.toContain("lightbox.video.converting");
+    await unmount();
+  });
+
+  it("offers no conversion advice for a clip nothing converts", async () => {
+    // A motion photo's clip is always served as it is.
+    stubProbe(200);
+    const { container, fail, unmount } = await renderPlayer({ convertible: false });
+
+    await fail();
+
+    expect(container.textContent).toContain("lightbox.videoerror.formatnoconversion");
+    expect(container.textContent).not.toContain("lightbox.videoerror.formatconverted");
+    await unmount();
+  });
+
+  it("does not blame a conversion that never ran for a visitor without an account", async () => {
+    // The server ignores ?transcode=1 for anonymous requests and sends the original.
+    accessToken.current = { access: null };
+    stubProbe(200);
+    const { container, fail, unmount } = await renderPlayer({ url: converted });
+
+    await fail();
+
+    expect(container.textContent).toContain("lightbox.videoerror.formatnoconversion");
+    expect(container.textContent).not.toContain("lightbox.videoerror.formatconverted");
+    await unmount();
+  });
+
+  it("names the converted stream in the copied report when that is what failed", async () => {
+    stubProbe(200);
+    const { container, fail, unmount } = await renderPlayer({ fallbackUrl: converted });
+    await fail();
+    await fail();
+
+    await act(async () => {
+      container.querySelector<HTMLButtonElement>('[aria-label="lightbox.videoerror.copy"]')!.click();
+    });
+
+    // Whole lines: the converted URL starts with the original one.
+    const lines = (copied.mock.calls[0][0] as string).split("\n");
+    expect(lines).toContain(converted);
+    expect(lines).not.toContain(original);
+    await unmount();
+  });
+});
+
+describe("VideoPlayer error panel", () => {
+  it("keeps the message white on its dark box in either colour scheme", async () => {
+    // The light scheme colours an Alert's message black, which on the 75%
+    // black box made the explanation unreadable.
+    stubProbe(404);
+    const { container, fail, unmount } = await renderPlayer();
+
+    await fail();
+
+    const message = container.querySelector<HTMLElement>(".mantine-Alert-message")!;
+    expect(message.style.color).toBe("var(--mantine-color-white)");
+    await unmount();
+  });
 });
 
 describe("factToText", () => {
@@ -584,6 +704,27 @@ describe("VideoPlayer copy button", () => {
       await Promise.resolve();
     });
     expect(container.querySelector('[aria-label="lightbox.videoerror.copy"]')).not.toBeNull();
+    await unmount();
+  });
+});
+
+describe("VideoPlayer size", () => {
+  it("fills a fixed box", async () => {
+    const { container, unmount } = await renderPlayer();
+    const video = container.querySelector("video")!;
+
+    expect(video.style.height).toBe("80vh");
+    expect(video.style.maxHeight).toBe("");
+    await unmount();
+  });
+
+  it("takes the video's own shape up to a cap when there is no box", async () => {
+    const { container, unmount } = await renderPlayer({ height: "auto", maxHeight: "70vh" });
+    const video = container.querySelector("video")!;
+
+    expect(video.style.width).toBe("100%");
+    expect(video.style.height).toBe("auto");
+    expect(video.style.maxHeight).toBe("70vh");
     await unmount();
   });
 });

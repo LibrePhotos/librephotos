@@ -6,11 +6,13 @@ import {
   Stack,
   Text,
   Title,
+  Tooltip,
   useComputedColorScheme,
   useMantineTheme,
 } from "@mantine/core";
 import { IconX as X } from "@tabler/icons-react";
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useSetFacesPersonLabelMutation } from "../../api_client/faces";
 import { useFetchPhotoDetailsQuery, useFetchPublicPhotoDetailQuery } from "../../api_client/photos/hooks";
 import { notification } from "../../service/notifications";
@@ -18,6 +20,7 @@ import { ModalPersonEdit } from "../modals/ModalPersonEdit";
 import { AlbumsSection } from "./AlbumsSection";
 import { Description } from "./Description";
 import { KeywordsSection } from "./KeywordsSection";
+import type { LightboxItem } from "./lightbox.types";
 import { LocationSection } from "./LocationSection";
 import { PeopleSection } from "./PeopleSection";
 import { SimilarPhotosSection } from "./SimilarPhotosSection";
@@ -30,6 +33,8 @@ interface SidebarProps {
   isPublic: boolean;
   publicAlbumSlug?: string;
   id: string;
+  /** The grid's entry for the photo, all a viewer who is not the owner has of it. */
+  gridItem?: LightboxItem;
   closeSidepanel: () => void;
   setFaceLocation: (face: { face_id: number; face_url: string }) => void;
   onPhotoSelect?: (photoId: string) => void;
@@ -55,17 +60,53 @@ const sidebarStyles = {
   },
 };
 
+/** The panel every state of the sidebar renders in. */
+function SidebarPanel({ children }: { children: React.ReactNode }) {
+  const theme = useMantineTheme();
+  const colorScheme = useComputedColorScheme();
+
+  // Apply shadow only on mobile
+  const shadowStyle = {
+    ...sidebarStyles.container,
+    boxShadow: window.innerWidth < 768 ? sidebarStyles.container.boxShadow : "none",
+  };
+
+  return (
+    <Box
+      w={{ base: "100%", md: "400px" }}
+      h="100%"
+      pos={{ base: "fixed", md: "relative" }}
+      top={{ base: 0, md: "auto" }}
+      right={{ base: 0, md: "auto" }}
+      bottom={{ base: 0, md: "auto" }}
+      style={shadowStyle}
+      p="sm"
+      bg={colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[0]}
+    >
+      {children}
+    </Box>
+  );
+}
+
 type SidebarHeaderProps = {
   closeSidepanel: () => void;
 };
 
 function SidebarHeader({ closeSidepanel }: SidebarHeaderProps) {
+  const { t } = useTranslation();
   return (
     <Group justify="space-between">
-      <Title order={3}>Details</Title>
-      <ActionIcon variant="subtle" color="gray" onClick={closeSidepanel}>
-        <X />
-      </ActionIcon>
+      <Title order={3}>{t("lightbox.sidebar.details")}</Title>
+      <Tooltip label={t("lightbox.toolbar.hideInfoPanel")}>
+        <ActionIcon
+          variant="subtle"
+          color="gray"
+          aria-label={t("lightbox.toolbar.hideInfoPanel")}
+          onClick={closeSidepanel}
+        >
+          <X />
+        </ActionIcon>
+      </Tooltip>
     </Group>
   );
 }
@@ -76,17 +117,19 @@ export function Sidebar({
   closeSidepanel,
   setFaceLocation,
   id,
+  gridItem,
   onPhotoSelect,
   onAddFaceRequest,
   onCancelAddFace,
   isDrawingFace,
   addFaceBlockedReason,
 }: SidebarProps) {
+  const { t } = useTranslation();
   const [personEditOpen, setPersonEditOpen] = useState(false);
   const [selectedFaces, setSelectedFaces] = useState<SelectedFace[]>([]);
 
   // Skip photo details query on public pages - use public API instead
-  const { data: photoDetail } = useFetchPhotoDetailsQuery(id, isPublic);
+  const { data: photoDetail, isError: isPhotoDetailError } = useFetchPhotoDetailsQuery(id, isPublic);
 
   // For public album pages with a slug, fetch public photo details
   const { data: publicPhotoData, isLoading: isPublicPhotoLoading } = useFetchPublicPhotoDetailQuery({
@@ -96,15 +139,6 @@ export function Sidebar({
   });
 
   const { mutate: setFacesPersonLabel } = useSetFacesPersonLabelMutation();
-
-  const theme = useMantineTheme();
-  const colorScheme = useComputedColorScheme();
-
-  // Apply shadow only on mobile
-  const shadowStyle = {
-    ...sidebarStyles.container,
-    boxShadow: window.innerWidth < 768 ? sidebarStyles.container.boxShadow : "none",
-  };
 
   // On public pages with a slug, show available photo details based on sharing settings
   if (isPublic && publicAlbumSlug) {
@@ -151,17 +185,7 @@ export function Sidebar({
       sharingSettings?.share_faces;
 
     return (
-      <Box
-        w={{ base: "100%", md: "400px" }}
-        h="100%"
-        pos={{ base: "fixed", md: "relative" }}
-        top={{ base: 0, md: "auto" }}
-        right={{ base: 0, md: "auto" }}
-        bottom={{ base: 0, md: "auto" }}
-        style={shadowStyle}
-        p="sm"
-        bg={colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[0]}
-      >
+      <SidebarPanel>
         <Stack>
           <SidebarHeader closeSidepanel={closeSidepanel} />
           {isPublicPhotoLoading && <Loader size="sm" />}
@@ -186,47 +210,58 @@ export function Sidebar({
               )}
               {!hasAnySharedContent && (
                 <Text size="sm" c="dimmed">
-                  No additional details available for this photo.
+                  {t("lightbox.sidebar.noAdditionalDetails")}
                 </Text>
               )}
             </>
           )}
           {!isPublicPhotoLoading && !publicPhotoDetail && (
             <Text size="sm" c="dimmed">
-              Photo details could not be loaded.
+              {t("lightbox.sidebar.detailsLoadFailed")}
             </Text>
           )}
         </Stack>
-      </Box>
+      </SidebarPanel>
     );
   }
 
-  // On public pages without a slug (legacy public photos), show simple message
+  // Public pages without a slug, and shared albums: anyone who is not the owner.
   if (isPublic) {
+    // The grid already shows these viewers the date and place (the server
+    // leaves out what it may not share), so the panel does too.
+    const date = gridItem?.date || null;
+    const location = gridItem?.location || null;
     return (
-      <Box
-        w={{ base: "100%", md: "400px" }}
-        h="100%"
-        pos={{ base: "fixed", md: "relative" }}
-        top={{ base: 0, md: "auto" }}
-        right={{ base: 0, md: "auto" }}
-        bottom={{ base: 0, md: "auto" }}
-        style={shadowStyle}
-        p="sm"
-        bg={colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[0]}
-      >
+      <SidebarPanel>
         <Stack>
           <SidebarHeader closeSidepanel={closeSidepanel} />
-          <Title order={5} c="dimmed">
-            Photo details are not available for public albums
-          </Title>
+          {date && <TimestampItem photoDetail={{ image_hash: id, exif_timestamp: date }} isPublic />}
+          {location && <LocationSection photoDetail={{ image_hash: id, search_location: location }} isPublic />}
+          <Text size="sm" c="dimmed">
+            {date || location ? t("lightbox.sidebar.ownerOnlyMoreDetails") : t("lightbox.sidebar.ownerOnlyDetails")}
+          </Text>
         </Stack>
-      </Box>
+      </SidebarPanel>
     );
   }
 
   if (!photoDetail) {
-    return null;
+    // Keep the panel in place while loading, and say so if the photo has no
+    // details for this user, instead of an empty strip next to the photo.
+    return (
+      <SidebarPanel>
+        <Stack>
+          <SidebarHeader closeSidepanel={closeSidepanel} />
+          {isPhotoDetailError ? (
+            <Text size="sm" c="dimmed">
+              {t("lightbox.sidebar.detailsLoadFailed")}
+            </Text>
+          ) : (
+            <Loader size="sm" />
+          )}
+        </Stack>
+      </SidebarPanel>
+    );
   }
 
   const notThisPerson = (faceId: number) => {
@@ -246,17 +281,7 @@ export function Sidebar({
   };
 
   return (
-    <Box
-      w={{ base: "100%", md: "400px" }}
-      h="100%"
-      pos={{ base: "fixed", md: "relative" }}
-      top={{ base: 0, md: "auto" }}
-      right={{ base: 0, md: "auto" }}
-      bottom={{ base: 0, md: "auto" }}
-      style={shadowStyle}
-      p="sm"
-      bg={colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[0]}
-    >
+    <SidebarPanel>
       <Stack>
         <SidebarHeader closeSidepanel={closeSidepanel} />
         <TimestampItem photoDetail={photoDetail} isPublic={isPublic} />
@@ -283,6 +308,6 @@ export function Sidebar({
       </Stack>
 
       <ModalPersonEdit isOpen={personEditOpen} onRequestClose={handleModalClose} selectedFaces={selectedFaces} />
-    </Box>
+    </SidebarPanel>
   );
 }

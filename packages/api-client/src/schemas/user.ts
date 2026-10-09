@@ -24,6 +24,9 @@ export const User = z.object({
   username: z.string(),
   email: z.string(),
   scan_directory: z.string().optional(),
+  // Empty means the "uploads" folder inside scan_directory. Without it here zod
+  // stripped the field, and the Edit User dialog showed an empty upload folder.
+  upload_directory: z.string().nullish(),
   confidence: z.number(),
   confidence_person: z.number(),
   transcode_videos: z.boolean(),

@@ -27,11 +27,28 @@ type MenuItem = {
   color?: MantineColor;
   display?: boolean;
   submenu?: Array<Partial<SubmenuItem>>;
+  /** Paths whose sub-pages also highlight this entry; defaults to [link]. */
+  activePrefixes?: string[];
 };
+
+/** Whether a nav entry is the current section, e.g. Albums on /album/user/3. */
+export function isNavItemActive(item: Pick<MenuItem, "link" | "activePrefixes">, pathname: string): boolean {
+  return (item.activePrefixes ?? [item.link]).some(prefix =>
+    // "/" prefixes every path, so the timeline entry only matches itself.
+    prefix === "/" ? pathname === "/" : pathname === prefix || pathname.startsWith(`${prefix}/`)
+  );
+}
 
 export function getNavigationItems(t: TFunction<"translation", undefined>, isAuthenticated: boolean): Array<MenuItem> {
   return [
-    { label: t("sidemenu.photos"), link: "/", icon: Photo, color: "green" },
+    {
+      label: t("sidemenu.photos"),
+      link: "/",
+      icon: Photo,
+      color: "green",
+      // The views the Photos header dropdown switches between.
+      activePrefixes: ["/", "/photos", "/favorites", "/videos", "/recent", "/hidden", "/notimestamp", "/screenshots"],
+    },
     { label: t("sidemenu.albums"), link: "/album", icon: Album, color: "blue" },
     {
       label: t("sidemenu.memories", "Memories"),
@@ -50,6 +67,7 @@ export function getNavigationItems(t: TFunction<"translation", undefined>, isAut
     {
       label: t("sidemenu.organizing", "Organizing"),
       link: "/organizing/duplicates",
+      activePrefixes: ["/organizing"],
       display: isAuthenticated,
       icon: Stacks,
       color: "yellow",

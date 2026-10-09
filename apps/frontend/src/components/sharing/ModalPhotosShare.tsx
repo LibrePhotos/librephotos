@@ -21,7 +21,7 @@ import type { BulkPhotoQuery } from "../../api_client/photos/types";
 import { useFetchUserListQuery } from "../../api_client/user/hooks";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import { i18nResolvedLanguage } from "../../i18n";
-import classes from "./ModalAlbumShare.module.css";
+import { avatarSrc } from "./avatarSrc";
 import filterUsers from "./utils";
 
 type Props = Readonly<{
@@ -69,7 +69,7 @@ export function ModalPhotosShare(props: Props) {
   return (
     <Modal
       opened={isOpen}
-      title={<span className={classes.title}>{t("modalphotosshare.title")}</span>}
+      title={t("modalphotosshare.title")}
       onClose={() => {
         onRequestClose();
         setUserNameFilter("");
@@ -109,11 +109,10 @@ export function ModalPhotosShare(props: Props) {
                 if (item.first_name.length > 0 && item.last_name.length > 0) {
                   displayName = `${item.first_name} ${item.last_name}`;
                 }
-                const avatar = item.avatar ? item.avatar_url : "/unknown_user.jpg";
                 return (
                   <Group justify="space-between" key={item.id}>
                     <Group>
-                      <Avatar radius="xl" size={50} src={avatar} />
+                      <Avatar radius="xl" size={50} src={avatarSrc(item)} />
                       <div>
                         <Title order={4}>{displayName}</Title>
                         {item.date_joined && (
@@ -125,10 +124,18 @@ export function ModalPhotosShare(props: Props) {
                       </div>
                     </Group>
                     <Group>
-                      <ActionIcon onClick={() => handleShare(item, true)} color="green">
+                      <ActionIcon
+                        onClick={() => handleShare(item, true)}
+                        color="green"
+                        aria-label={`${t("modalphotosshare.share")}: ${displayName}`}
+                      >
                         <Share />
                       </ActionIcon>
-                      <ActionIcon onClick={() => handleShare(item, false)} color="red">
+                      <ActionIcon
+                        onClick={() => handleShare(item, false)}
+                        color="red"
+                        aria-label={`${t("modalphotosshare.unshare")}: ${displayName}`}
+                      >
                         <ShareOff />
                       </ActionIcon>
                     </Group>

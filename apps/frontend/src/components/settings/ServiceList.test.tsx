@@ -11,13 +11,15 @@ import { act } from "react-dom/test-utils";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { ServiceList } from "./ServiceList";
 
-const t = vi.fn((key: string) => key);
+// Like i18next without a bundle: the default value if one is given, else the key.
+const t = vi.fn((key: string, defaultValue?: unknown) => (typeof defaultValue === "string" ? defaultValue : key));
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({ t }),
 }));
 
 const health: Record<string, unknown> = {};
+const healthQuery: { data: Record<string, unknown> | undefined } = { data: health };
 
 vi.mock("../../api_client/api", () => ({
   queryClient: { invalidateQueries: vi.fn() },
@@ -33,7 +35,7 @@ vi.mock("../../api_client/services/hooks/useServicesQuery", () => ({
     data: { services: { face_recognition: 8005, thumbnail: 8003 } },
     isLoading: false,
   }),
-  useServicesHealthQuery: () => ({ data: health, isLoading: false }),
+  useServicesHealthQuery: () => ({ data: healthQuery.data, isLoading: healthQuery.data === undefined }),
 }));
 
 // jsdom ships no matchMedia; MantineProvider needs it.
@@ -79,6 +81,7 @@ function startButtons(container: HTMLElement) {
 describe("ServiceList", () => {
   beforeEach(() => {
     t.mockClear();
+    healthQuery.data = health;
     health.face_recognition = {
       service_name: "face_recognition",
       healthy: false,
@@ -122,6 +125,25 @@ describe("ServiceList", () => {
     const row = [...container.querySelectorAll("tbody tr")].find(tr => tr.textContent?.includes("Thumbnail"))!;
     expect(row.textContent).toContain("services.unhealthy");
     expect(startButtons(row as HTMLElement)).toHaveLength(1);
+
+    await unmount();
+  });
+
+  it("offers no Start button while the health status is still loading", async () => {
+    // Before the health check answers every service looks stopped, also the switched-off ones.
+    healthQuery.data = undefined;
+
+    const { container, unmount } = await render();
+
+    expect(startButtons(container)).toHaveLength(0);
+
+    await unmount();
+  });
+
+  it("gives the icon-only refresh button an accessible name", async () => {
+    const { container, unmount } = await render();
+
+    expect(container.querySelector('button[aria-label="services.refresh"]')).not.toBeNull();
 
     await unmount();
   });

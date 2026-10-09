@@ -1,9 +1,11 @@
-import { Group, Kbd, Text, UnstyledButton } from "@mantine/core";
+import { Button, Group, Kbd, Modal, Stack, Text, UnstyledButton } from "@mantine/core";
 import { Spotlight as MantineSpotlight, spotlight } from "@mantine/spotlight";
 import { IconSearch } from "@tabler/icons-react";
 import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useSpotlightActions } from "./useSpotlightActions";
+import { useDeleteMissingPhotosMutation } from "../../api_client/photos/hooks";
+import { notification } from "../../service/notifications";
+import { AVATAR_SIZE, useSpotlightActions } from "./useSpotlightActions";
 
 type SpotlightTriggerProps = {
   className?: string;
@@ -25,7 +27,9 @@ export function SpotlightTrigger({ className }: SpotlightTriggerProps) {
         display: "flex",
         alignItems: "center",
         gap: "var(--mantine-spacing-sm)",
-        padding: "var(--mantine-spacing-xs) var(--mantine-spacing-md)",
+        // As tall as the header's inputs, not the 44px that vertical padding gave
+        padding: "0 var(--mantine-spacing-md)",
+        minHeight: 36,
         borderRadius: "var(--mantine-radius-md)",
         border: "1px solid var(--mantine-color-default-border)",
         backgroundColor: "var(--mantine-color-body)",
@@ -37,10 +41,14 @@ export function SpotlightTrigger({ className }: SpotlightTriggerProps) {
       }}
     >
       <IconSearch size={16} stroke={1.5} />
-      <Text size="sm" c="dimmed" style={{ flex: 1 }}>
+      {/* Phones have no keyboard shortcut to hint at, and need the header room */}
+      <Text size="sm" c="dimmed" style={{ flex: 1 }} truncate visibleFrom="sm">
         {t("spotlight.triggerPlaceholder")}
       </Text>
-      <Group gap={4}>
+      <Text size="sm" c="dimmed" style={{ flex: 1 }} truncate hiddenFrom="sm">
+        {t("search.search")}
+      </Text>
+      <Group gap={4} wrap="nowrap" visibleFrom="sm">
         <Kbd size="xs">{isMac ? "⌘" : "Ctrl"}</Kbd>
         <Kbd size="xs">K</Kbd>
       </Group>
@@ -48,10 +56,37 @@ export function SpotlightTrigger({ className }: SpotlightTriggerProps) {
   );
 }
 
+export function ConfirmDeleteMissingPhotosModal({ opened, onClose }: { opened: boolean; onClose: () => void }) {
+  const { t } = useTranslation();
+  const deleteMissingPhotos = useDeleteMissingPhotosMutation();
+
+  return (
+    <Modal opened={opened} onClose={onClose} title={t("settings.missingphotosbutton")} centered>
+      <Stack>
+        <Text size="sm">{t("settings.missingphotosconfirm")}</Text>
+        <Group justify="flex-end">
+          <Button variant="default" onClick={onClose}>
+            {t("cancel")}
+          </Button>
+          <Button
+            color="red"
+            onClick={() => {
+              deleteMissingPhotos.mutate(undefined, { onSuccess: () => notification.deleteMissingPhotos() });
+              onClose();
+            }}
+          >
+            {t("confirm")}
+          </Button>
+        </Group>
+      </Stack>
+    </Modal>
+  );
+}
+
 export function SpotlightProvider() {
   const { t } = useTranslation();
   const [query, setQuery] = useState("");
-  const { actions, filterOptions } = useSpotlightActions(query);
+  const { actions, filterOptions, deleteMissingConfirm } = useSpotlightActions(query);
 
   const handleQueryChange = useCallback(
     (newQuery: string) => {
@@ -62,19 +97,36 @@ export function SpotlightProvider() {
   );
 
   return (
-    <MantineSpotlight
-      actions={actions}
-      query={query}
-      onQueryChange={handleQueryChange}
-      nothingFound={t("spotlight.nothingFound")}
-      highlightQuery
-      limit={7}
-      shortcut={["mod + k", "mod + p", "/"]}
-      searchProps={{
-        leftSection: <IconSearch size={20} stroke={1.5} />,
-        placeholder: t("spotlight.placeholder"),
-      }}
-    />
+    <>
+      <MantineSpotlight
+        actions={actions}
+        query={query}
+        onQueryChange={handleQueryChange}
+        nothingFound={t("spotlight.nothingFound")}
+        highlightQuery
+        // The limit counts across groups: on open, search suggestions alone would fill
+        // it and hide every command, so the empty palette lists everything and scrolls.
+        // Only then: a scrollable palette is always its full max height.
+        limit={query.trim() ? 7 : Infinity}
+        scrollable={!query.trim()}
+        // One width for icons and avatars, so every label starts at the same x
+        styles={{
+          actionSection: {
+            width: AVATAR_SIZE,
+            flexShrink: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          },
+        }}
+        shortcut={["mod + k", "mod + p", "/"]}
+        searchProps={{
+          leftSection: <IconSearch size={20} stroke={1.5} />,
+          placeholder: t("spotlight.placeholder"),
+        }}
+      />
+      <ConfirmDeleteMissingPhotosModal opened={deleteMissingConfirm.opened} onClose={deleteMissingConfirm.close} />
+    </>
   );
 }
 

@@ -1,4 +1,4 @@
-import { ActionIcon, Button, Flex, Group, Menu, Modal, Text } from "@mantine/core";
+import { ActionIcon, Button, Flex, Group, Menu, Modal, Stack, Text } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import {
   IconDotsVertical as DotsVertical,
@@ -11,12 +11,13 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useDeleteAutoAlbumMutation, useFetchAutoAlbumsQuery } from "../../../api_client/albums/hooks";
 import { useGenerateAutoAlbumsMutation } from "../../../api_client/jobs/hooks";
+import { eventStartDate } from "../../../components/album/eventDate";
 import { EmptyState } from "../../../components/common/EmptyState";
 import { HeaderComponent } from "../../../components/HeaderComponent";
 import { Tile } from "../../../components/Tile";
 import { VirtualGrid } from "../../../components/virtual/VirtualGrid";
 import type { GridCellProps } from "../../../components/virtual/VirtualGrid";
-import { useAlbumListGridConfig } from "../../../hooks/useAlbumListGridConfig";
+import { ALBUM_GRID_GUTTER, useAlbumListGridConfig } from "../../../hooks/useAlbumListGridConfig";
 import { i18nResolvedLanguage } from "../../../i18n";
 
 export const Route = createFileRoute("/_protected/album/events/")({
@@ -49,14 +50,15 @@ function AlbumAuto() {
       return <div key={key} style={style} />;
     }
     const album = albums[index];
-    const dateTimeLabel = DateTime.fromISO(album.timestamp).isValid
-      ? DateTime.fromISO(album.timestamp).setLocale(i18nResolvedLanguage()).toLocaleString(DateTime.DATE_MED)
+    const start = eventStartDate(album);
+    const dateTimeLabel = start.isValid
+      ? start.setLocale(i18nResolvedLanguage()).toLocaleString(DateTime.DATE_MED)
       : null;
 
     return (
       <div key={key} style={style}>
         <div style={{ padding: 5 }}>
-          <Link key={album.id} to={`/album/events/${album.id}/`}>
+          <Link key={album.id} to="/album/events/$id" params={{ id: String(album.id) }}>
             <Tile
               video={album.photos.video === true}
               height={entrySquareSize - 10}
@@ -65,14 +67,16 @@ function AlbumAuto() {
             />
           </Link>
           <div style={{ position: "absolute", top: 10, right: 10 }}>
-            <Menu position="bottom-end">
+            {/* Focus stays in the delete dialog it opens instead of going back to the trigger */}
+            <Menu position="bottom-end" returnFocus={false}>
               <Menu.Target>
-                <ActionIcon variant="subtle" color="gray">
-                  <DotsVertical />
+                {/* A solid chip: a bare icon vanished on light covers */}
+                <ActionIcon variant="default" radius="xl" size="sm" aria-label={t("moreactions")}>
+                  <DotsVertical size={16} />
                 </ActionIcon>
               </Menu.Target>
               <Menu.Dropdown>
-                <Menu.Item leftSection={<Trash />} onClick={() => deleteAlbum(album)}>
+                <Menu.Item leftSection={<Trash size={14} />} onClick={() => deleteAlbum(album)}>
                   {t("delete")}
                 </Menu.Item>
               </Menu.Dropdown>
@@ -86,7 +90,7 @@ function AlbumAuto() {
             </Text>
             <Text size="xs">
               {dateTimeLabel ? `${dateTimeLabel} - ` : ""}
-              {t("numberofphotos", { number: album.photo_count })}
+              {t("numberofphotos", { count: album.photo_count, number: album.photo_count })}
             </Text>
           </Flex>
         </Group>
@@ -101,7 +105,8 @@ function AlbumAuto() {
         title={t("events")}
         fetching={isFetching}
         subtitle={t("autoalbum.subtitle", {
-          autoalbumlength: (albums && albums.length) || 0,
+          count: albums?.length ?? 0,
+          autoalbumlength: albums?.length ?? 0,
         })}
       />
 
@@ -115,7 +120,7 @@ function AlbumAuto() {
         />
       ) : (
         <VirtualGrid
-          style={{ outline: "none" }}
+          style={{ outline: "none", paddingLeft: ALBUM_GRID_GUTTER }}
           cellRenderer={cellRenderer}
           columnWidth={entrySquareSize}
           columnCount={entriesPerRow}
@@ -126,20 +131,24 @@ function AlbumAuto() {
       )}
 
       <Modal opened={deleteDialogVisible} title={t("autoalbum.delete")} onClose={closeDeleteDialog}>
-        <Text size="lg">{autoAlbumTitle}</Text>
-        <Text size="sm">{t("autoalbum.deleteexplanation")}</Text>
-        <Group>
-          <Button onClick={closeDeleteDialog}>{t("cancel")}</Button>
-          <Button
-            color="red"
-            onClick={() => {
-              deleteAutoAlbum({ id: autoAlbumID, albumTitle: autoAlbumTitle });
-              closeDeleteDialog();
-            }}
-          >
-            {t("delete")}
-          </Button>
-        </Group>
+        <Stack>
+          <Text fw={500}>{autoAlbumTitle}</Text>
+          <Text size="sm">{t("autoalbum.deleteexplanation")}</Text>
+          <Group justify="flex-end">
+            <Button variant="default" onClick={closeDeleteDialog}>
+              {t("cancel")}
+            </Button>
+            <Button
+              color="red"
+              onClick={() => {
+                deleteAutoAlbum({ id: autoAlbumID, albumTitle: autoAlbumTitle });
+                closeDeleteDialog();
+              }}
+            >
+              {t("delete")}
+            </Button>
+          </Group>
+        </Stack>
       </Modal>
     </div>
   );

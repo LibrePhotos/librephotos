@@ -1,5 +1,5 @@
 import { ActionIcon, Badge, Group, Stack, TagsInput, Text, Title, Tooltip } from "@mantine/core";
-import { IconCheck, IconPencil, IconX } from "@tabler/icons-react";
+import { IconCheck, IconHash, IconPencil, IconX } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -10,7 +10,13 @@ interface KeywordsSectionProps {
   photoDetail: PhotoType;
 }
 
-export function KeywordsSection({ photoDetail }: KeywordsSectionProps) {
+export function KeywordsSection(props: KeywordsSectionProps) {
+  // The draft belongs to one photo: remount when the photo changes, or an editor
+  // left open while browsing would save this photo's keywords onto the next one.
+  return <KeywordsEditor key={props.photoDetail.image_hash} {...props} />;
+}
+
+function KeywordsEditor({ photoDetail }: KeywordsSectionProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [editing, setEditing] = useState(false);
@@ -46,22 +52,45 @@ export function KeywordsSection({ photoDetail }: KeywordsSectionProps) {
   return (
     <Stack gap="xs">
       <Group justify="space-between">
-        <Title order={5}>{t("lightbox.sidebar.keywords", "Keywords")}</Title>
+        <Group>
+          <IconHash />
+          <Title order={4}>{t("lightbox.sidebar.keywords", "Keywords")}</Title>
+        </Group>
         {!editing ? (
           <Tooltip label={t("lightbox.sidebar.editKeywords", "Edit keywords")}>
-            <ActionIcon variant="subtle" color="gray" size="sm" onClick={handleEditOpen}>
+            <ActionIcon
+              variant="subtle"
+              color="gray"
+              size="sm"
+              aria-label={t("lightbox.sidebar.editKeywords", "Edit keywords")}
+              onClick={handleEditOpen}
+            >
               <IconPencil size={16} />
             </ActionIcon>
           </Tooltip>
         ) : (
           <Group gap="xs">
             <Tooltip label={t("lightbox.sidebar.cancel", "Cancel")}>
-              <ActionIcon variant="subtle" color="gray" size="sm" onClick={handleCancel} disabled={isSaving}>
+              <ActionIcon
+                variant="subtle"
+                color="gray"
+                size="sm"
+                aria-label={t("lightbox.sidebar.cancel", "Cancel")}
+                onClick={handleCancel}
+                disabled={isSaving}
+              >
                 <IconX size={16} />
               </ActionIcon>
             </Tooltip>
             <Tooltip label={t("lightbox.sidebar.save", "Save")}>
-              <ActionIcon variant="subtle" color="blue" size="sm" onClick={handleSave} loading={isSaving}>
+              <ActionIcon
+                variant="subtle"
+                color="blue"
+                size="sm"
+                aria-label={t("lightbox.sidebar.save", "Save")}
+                onClick={handleSave}
+                loading={isSaving}
+              >
                 <IconCheck size={16} />
               </ActionIcon>
             </Tooltip>
@@ -80,8 +109,13 @@ export function KeywordsSection({ photoDetail }: KeywordsSectionProps) {
       ) : keywords.length > 0 ? (
         <Group gap="xs">
           {keywords.map(keyword => (
+            // A button, so the keyword can be reached and searched from the keyboard,
+            // with the focus ring of the edit button above.
             <Badge
               key={keyword}
+              component="button"
+              type="button"
+              className="mantine-focus-auto"
               color="violet"
               variant="light"
               style={{ cursor: "pointer" }}

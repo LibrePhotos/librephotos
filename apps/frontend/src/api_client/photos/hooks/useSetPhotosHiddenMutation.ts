@@ -2,15 +2,13 @@ import { useMutation } from "@tanstack/react-query";
 import { z } from "zod";
 import { notification } from "../../../service/notifications";
 import { parseWithNotification } from "../../../util/zodUtils";
-import { DateAlbumQueryKeys } from "../../albums/hooks/useFetchDateAlbumQuery";
-import { DateAlbumsQueryKeys } from "../../albums/hooks/useFetchDateAlbumsQuery";
 import { fetchClient, queryClient } from "../../api";
 import { IncompleteFacesQueryKeys } from "../../faces/hooks/useFetchIncompleteFacesQuery";
 import { CountStatsQueryKeys } from "../../stats/hooks/useFetchCountStatsQuery";
 import { PhotoMonthCountQueryKeys } from "../../stats/hooks/useFetchPhotoMonthCountQuery";
+import { invalidatePhotoLists } from "../invalidatePhotoLists";
 import { BulkPhotoQuery } from "../types";
 import { PhotoDetailsQueryKeys } from "./useFetchPhotoDetailsQuery";
-import { RecentlyAddedPhotosQueryKeys } from "./useFetchRecentlyAddedPhotosQuery";
 
 const UpdatePhotosResponse = z.object({
   status: z.boolean(),
@@ -55,10 +53,8 @@ export const useSetPhotosHiddenMutation = () =>
     },
     onSuccess: (data, request) => {
       // Invalidate relevant queries to ensure consistent state
-      queryClient.invalidateQueries({ queryKey: [...DateAlbumsQueryKeys] });
-      queryClient.invalidateQueries({ queryKey: [...DateAlbumQueryKeys] });
+      invalidatePhotoLists();
       queryClient.invalidateQueries({ queryKey: [...IncompleteFacesQueryKeys] });
-      queryClient.invalidateQueries({ queryKey: [...RecentlyAddedPhotosQueryKeys] });
       queryClient.invalidateQueries({ queryKey: [...CountStatsQueryKeys] });
       queryClient.invalidateQueries({ queryKey: [...PhotoMonthCountQueryKeys] });
 

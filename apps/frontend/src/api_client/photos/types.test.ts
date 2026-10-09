@@ -1,3 +1,4 @@
+import { RecentlyAddedPhotosResponse } from "@librephotos/api-client";
 import { describe, expect, test } from "vitest";
 import { z } from "zod";
 import { MetadataHistoryResponse, Photo, PhotoMetadata, PhotoOcrData, Photoset, PigPhoto } from "./types";
@@ -275,5 +276,17 @@ describe("HDR flag on grid photos", () => {
 
   test("defaults to false for a backend that predates it", () => {
     expect(schema.parse({ image_hash: "abc" })).toEqual({ image_hash: "abc", is_hdr: false });
+  });
+});
+
+describe("RecentlyAddedPhotosResponse", () => {
+  // The backend sends date: null while the user has no visible photos; parsing
+  // that failed with a "Please report this issue on GitHub" toast on /recent.
+  test("accepts the empty-library response", () => {
+    expect(RecentlyAddedPhotosResponse.parse({ date: null, results: [] })).toEqual({ date: null, results: [] });
+  });
+
+  test("still requires the date field", () => {
+    expect(RecentlyAddedPhotosResponse.safeParse({ results: [] }).success).toBe(false);
   });
 });

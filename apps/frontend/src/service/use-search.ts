@@ -1,7 +1,4 @@
-import { useInterval } from "@mantine/hooks";
-import { random } from "lodash-es";
 import { useCallback, useEffect, useState } from "react";
-import { useTranslation } from "react-i18next";
 import {
   useFetchPeopleAlbumsQuery,
   useFetchPlacesAlbumsQuery,
@@ -25,6 +22,21 @@ export type SearchOption = {
   data: string | null;
   thumbnail?: string;
 };
+
+// Without captioned photos the backend sends these fragments, written to finish an
+// old "Search ..." placeholder. As results they read as broken English and search
+// for the phrase itself, so they are not offered.
+const DEFAULT_SEARCH_HINTS = new Set([
+  "for people",
+  "for places",
+  "for things",
+  "for time",
+  "for file path or file name",
+]);
+
+export function isSearchExample(item: string): boolean {
+  return !DEFAULT_SEARCH_HINTS.has(item);
+}
 
 function toExampleOption(item: string): SearchOption {
   return { value: item, type: SearchOptionType.EXAMPLE, data: item };
@@ -64,7 +76,6 @@ function toPersonOption(item: any): SearchOption {
 }
 
 export function useSearch() {
-  const { t } = useTranslation();
   // Skip queries on public pages to avoid 401 errors
   const isPublicPage = typeof window !== "undefined" && window.location.pathname.startsWith("/public");
   const { data: searchExamples, isLoading: isExamplesLoading } = useSearchExamplesQuery(isPublicPage);
@@ -73,7 +84,6 @@ export function useSearch() {
   const { data: userAlbums, isLoading: isAlbumsLoading } = useFetchUserAlbumsQuery(isPublicPage);
   const { data: people, isLoading: isPeopleLoading } = useFetchPeopleAlbumsQuery(isPublicPage);
   const [options, setOptions] = useState<SearchOption[]>([]);
-  const [placeholder, setPlaceholder] = useState(t("search.search"));
   const isLoading = isExamplesLoading || isPlacesLoading || isThingsLoading || isAlbumsLoading || isPeopleLoading;
 
   const filterOptions = useCallback(
@@ -83,7 +93,7 @@ export function useSearch() {
       }
       setOptions([
         ...searchExamples
-          .filter((item: string) => fuzzyMatch(q, item))
+          .filter((item: string) => isSearchExample(item) && fuzzyMatch(q, item))
           .slice(0, 2)
           .map(toExampleOption),
         ...placeAlbums
@@ -107,19 +117,6 @@ export function useSearch() {
     [placeAlbums, searchExamples, thingAlbums, userAlbums, people]
   );
 
-  const updateSearchPlaceholder = useInterval(() => {
-    if (!searchExamples) {
-      return;
-    }
-    const example = searchExamples[Math.floor(random(0.1, 1) * searchExamples.length)];
-    setPlaceholder(`${t("search.search")} ${example}`);
-  }, 5000);
-
-  useEffect(() => {
-    updateSearchPlaceholder.start();
-    return updateSearchPlaceholder.stop;
-  }, [updateSearchPlaceholder]);
-
   // Seed the unfiltered options once everything has loaded. Deliberately not
   // re-run when filterOptions changes (any refetch): that would replace the
   // options for the query the user is typing with the unfiltered list.
@@ -131,7 +128,6 @@ export function useSearch() {
   return {
     options,
     filterOptions,
-    placeholder,
     isLoading,
   };
 }

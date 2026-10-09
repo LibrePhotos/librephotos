@@ -4,6 +4,10 @@ import CryptoJS from "crypto-js";
 export const CHUNK_SIZE = 1000000;
 
 export function calculateMD5(file: File): Promise<string> {
+  // An empty file has nothing to read; onload would see "" and never settle.
+  if (file.size === 0) {
+    return Promise.resolve(CryptoJS.algo.MD5.create().finalize().toString(CryptoJS.enc.Hex));
+  }
   const reader = new FileReader();
   const blockSize = 25 * 1024 * 1024;
   let offset = 0;
@@ -20,7 +24,12 @@ export function calculateMD5(file: File): Promise<string> {
 
     reader.onload = () => {
       const result = reader.result as string | null;
-      if (!result) return;
+      if (result === null) return;
+      // A short read (the file shrank while hashing) would otherwise wait forever.
+      if (result.length === 0 && offset < file.size) {
+        reject(new DOMException("Problem parsing input file."));
+        return;
+      }
       offset += result.length;
       md5.update(CryptoJS.enc.Latin1.parse(result));
       if (offset >= file.size) {

@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { useFetchDateAlbumQuery, useFetchDateAlbumsQuery } from "../../api_client/albums/hooks";
 import { Photoset, PigPhoto } from "../../api_client/photos/types";
 import { EmptyStateConfig, PhotoGroup, PhotoListView } from "../../components/photolist/PhotoListView";
+import { useScanEmptyStateAction } from "../../components/photolist/useScanEmptyStateAction";
 import { getPhotosFlatFromGroupedByDate } from "../../util/util";
 
 export const Route = createFileRoute("/_protected/videos")({
@@ -39,15 +40,14 @@ function OnlyVideos() {
     });
   };
 
+  const emptyAction = useScanEmptyStateAction(t("emptystate.videos.description"));
   const emptyStateConfig: EmptyStateConfig = useMemo(
     () => ({
       icon: <Video size={40} />,
       title: t("emptystate.videos.title"),
-      description: t("emptystate.videos.description"),
-      actionLabel: t("emptystate.goToLibrary"),
-      actionLink: "/library",
+      ...emptyAction,
     }),
-    [t]
+    [t, emptyAction]
   );
 
   return (

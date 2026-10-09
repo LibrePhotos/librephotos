@@ -74,7 +74,8 @@ function SingleStackCard({ stack, photoId, t, isCompact = false, onPhotoSelect }
         <Group gap="xs" justify="space-between">
           <Group gap="xs">
             <Badge size="sm" color={color} variant="light" leftSection={icon}>
-              {stack.type_display}
+              {/* Translated, not the server's English type_display (kept as the fallback) */}
+              {t(`stacks.typelabel.${stack.type}`, stack.type_display)}
             </Badge>
             <Text size="sm" c="dimmed">
               {t("lightbox.sidebar.stackPhotos", "{{count}} photos", { count: stack.photo_count })}
@@ -93,7 +94,7 @@ function SingleStackCard({ stack, photoId, t, isCompact = false, onPhotoSelect }
                     label={
                       <Stack gap={2}>
                         <Text size="xs">
-                          {stackPhoto.width}x{stackPhoto.height}
+                          {stackPhoto.width} × {stackPhoto.height}
                         </Text>
                         <Text size="xs">{formatBytes(stackPhoto.size)}</Text>
                         {stackPhoto.is_primary && (
@@ -157,10 +158,19 @@ export function StackSection({ photoDetail, onPhotoSelect }: StackSectionProps) 
     return (
       <>
         <Stack gap="xs">
-          <Group gap="xs" justify="space-between">
-            <Title order={5}>{t("lightbox.sidebar.stack", "Stack")}</Title>
+          <Group justify="space-between">
+            <Group>
+              <IconStack2 />
+              <Title order={4}>{t("lightbox.sidebar.stack", "Stack")}</Title>
+            </Group>
             <Tooltip label={t("lightbox.sidebar.openStack", "View full stack")}>
-              <ActionIcon variant="subtle" color="gray" size="sm" onClick={() => setSelectedStackId(stacks[0].id)}>
+              <ActionIcon
+                variant="subtle"
+                color="gray"
+                size="sm"
+                aria-label={t("lightbox.sidebar.openStack", "View full stack")}
+                onClick={() => setSelectedStackId(stacks[0].id)}
+              >
                 <IconExternalLink size={16} />
               </ActionIcon>
             </Tooltip>
@@ -179,11 +189,14 @@ export function StackSection({ photoDetail, onPhotoSelect }: StackSectionProps) 
   return (
     <>
       <Stack gap="xs">
-        <Group gap="xs">
-          <Title order={5}>{t("lightbox.sidebar.stacks", "Stacks")}</Title>
-          <Badge size="sm" variant="light" color="gray">
-            {stacks.length}
-          </Badge>
+        <Group>
+          <IconStack2 />
+          <Group gap="xs">
+            <Title order={4}>{t("lightbox.sidebar.stacks", "Stacks")}</Title>
+            <Badge size="sm" variant="light" color="gray">
+              {stacks.length}
+            </Badge>
+          </Group>
         </Group>
 
         <Text size="xs" c="dimmed">
@@ -201,7 +214,7 @@ export function StackSection({ photoDetail, onPhotoSelect }: StackSectionProps) 
                   <Group gap="xs" justify="space-between" style={{ width: "100%" }}>
                     <Group gap="xs">
                       <Text size="sm" fw={500}>
-                        {stack.type_display}
+                        {t(`stacks.typelabel.${stack.type}`, stack.type_display)}
                       </Text>
                       <Badge size="xs" color={color} variant="light">
                         {stack.photo_count}
@@ -212,6 +225,7 @@ export function StackSection({ photoDetail, onPhotoSelect }: StackSectionProps) 
                         variant="subtle"
                         color="gray"
                         size="xs"
+                        aria-label={t("lightbox.sidebar.openStack", "View full stack")}
                         onClick={e => {
                           e.stopPropagation();
                           setSelectedStackId(stack.id);
@@ -233,7 +247,7 @@ export function StackSection({ photoDetail, onPhotoSelect }: StackSectionProps) 
                             label={
                               <Stack gap={2}>
                                 <Text size="xs">
-                                  {stackPhoto.width}x{stackPhoto.height}
+                                  {stackPhoto.width} × {stackPhoto.height}
                                 </Text>
                                 <Text size="xs">{formatBytes(stackPhoto.size)}</Text>
                                 {stackPhoto.is_primary && (

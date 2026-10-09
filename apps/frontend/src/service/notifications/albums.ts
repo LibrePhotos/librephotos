@@ -35,7 +35,9 @@ function createAlbum(title: string, numberOfPhotos: number) {
 
 function renameAlbum(oldTitle: string, newTitle: string) {
   showNotification({
-    message: i18n.t("toasts.renamealbum", { oldTitle, newTitle }),
+    // The placeholder names every translation uses; passing others left the
+    // literal {{albumTitle}} in the toast.
+    message: i18n.t("toasts.renamealbum", { albumTitle: oldTitle, newAlbumTitle: newTitle }),
     title: i18n.t("toasts.renamealbumtitle"),
     color: "teal",
   });

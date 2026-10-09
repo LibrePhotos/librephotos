@@ -14,6 +14,15 @@ import { AlbumsSharedWithMe } from "./AlbumsSharedWithMe";
 
 const stubs = vi.hoisted(() => ({ width: 1200 }));
 
+// The covers are router links now (a plain href reloaded the whole app).
+vi.mock("@tanstack/react-router", async () => {
+  const { forwardRef, createElement } = await import("react");
+  return {
+    Link: forwardRef<HTMLAnchorElement, { to: string; params: { id: string }; children?: React.ReactNode }>(
+      ({ to, params, ...rest }, ref) => createElement("a", { ref, href: to.replace("$id", params.id), ...rest })
+    ),
+  };
+});
 vi.mock("@mantine/hooks", async importOriginal => ({
   ...(await importOriginal<typeof import("@mantine/hooks")>()),
   useElementSize: () => ({ ref: () => {}, width: stubs.width, height: 0 }),
@@ -102,5 +111,15 @@ describe("the albums-shared-with-me grid", () => {
     const narrow = await renderAt(700);
     expect(narrow.canvasWidth).toBeLessThanOrEqual(700);
     expect(narrow.columns).toBeLessThan(wide.columns);
+  });
+
+  it("keeps a long title on one line, with the full title on hover", async () => {
+    await renderAt(1200);
+
+    const title = Array.from(container.querySelectorAll<HTMLElement>("[data-line-clamp]")).find(
+      element => element.textContent === "Trip 1"
+    );
+    expect(title?.getAttribute("title")).toBe("Trip 1");
+    expect(container.querySelector("a[href='/album/user/1']")).not.toBeNull();
   });
 });

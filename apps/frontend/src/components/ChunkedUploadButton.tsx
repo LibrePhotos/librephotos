@@ -35,18 +35,21 @@ export function ChunkedUploadButton() {
   }
 
   const uploadContent = (
-    <div {...getRootProps({ className: "dropzone" })} style={{ alignContent: "center", display: "flex" }}>
+    <div {...getRootProps({ className: "dropzone" })} style={{ alignItems: "center", display: "flex" }}>
       <input {...getInputProps()} />
-      <Indicator processing disabled={!isUploading} color="blue" size={8} offset={3}>
+      {/* Same 30px tile and 1.1rem glyph as the colour scheme toggle beside it.
+          A block Indicator gave the button a line box that lifted it ~2px. */}
+      <Indicator processing disabled={!isUploading} color="blue" size={8} offset={3} style={{ display: "flex" }}>
         <ActionIcon
           color="gray"
           variant="light"
+          size={30}
           onClick={hasScanDirectory ? open : undefined}
           disabled={!hasScanDirectory}
           style={!hasScanDirectory ? { opacity: 0.5, cursor: "not-allowed" } : undefined}
           aria-label={t("upload.button")}
         >
-          <Upload />
+          <Upload size="1.1rem" />
         </ActionIcon>
       </Indicator>
     </div>

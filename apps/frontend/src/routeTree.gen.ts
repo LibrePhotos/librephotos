@@ -30,6 +30,7 @@ import { Route as ProtectedSettingsRouteImport } from './routes/_protected/setti
 import { Route as ProtectedStacksRouteImport } from './routes/_protected/stacks'
 import { Route as ProtectedVideosRouteImport } from './routes/_protected/videos'
 import { Route as PasswordResetIndexRouteImport } from './routes/password-reset.index'
+import { Route as PublicIndexRouteImport } from './routes/public/index'
 import { Route as PublicUsersRouteImport } from './routes/public/$users'
 import { Route as ProtectedAdminIndexRouteImport } from './routes/_protected/admin/index'
 import { Route as ProtectedAlbumIndexRouteImport } from './routes/_protected/album/index'
@@ -171,6 +172,11 @@ const PasswordResetIndexRoute = PasswordResetIndexRouteImport.update({
   id: '/password-reset/',
   path: '/password-reset/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const PublicIndexRoute = PublicIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PublicRouteRoute,
 } as any)
 const PublicUsersRoute = PublicUsersRouteImport.update({
   id: '/$users',
@@ -393,6 +399,7 @@ export interface FileRoutesByFullPath {
   '/videos': typeof ProtectedVideosRoute
   '/public/$users': typeof PublicUsersRoute
   '/password-reset/': typeof PasswordResetIndexRoute
+  '/public/': typeof PublicIndexRoute
   '/jobs/$id': typeof ProtectedJobsIdRoute
   '/organizing/$tab': typeof ProtectedOrganizingTabRoute
   '/photo/$id': typeof ProtectedPhotoIdRoute
@@ -431,7 +438,6 @@ export interface FileRoutesByFullPath {
   '/album/user/': typeof ProtectedAlbumUserIndexRoute
 }
 export interface FileRoutesByTo {
-  '/public': typeof PublicRouteRouteWithChildren
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/deleted': typeof ProtectedDeletedRoute
@@ -451,6 +457,7 @@ export interface FileRoutesByTo {
   '/public/$users': typeof PublicUsersRoute
   '/': typeof ProtectedIndexRoute
   '/password-reset': typeof PasswordResetIndexRoute
+  '/public': typeof PublicIndexRoute
   '/jobs/$id': typeof ProtectedJobsIdRoute
   '/organizing/$tab': typeof ProtectedOrganizingTabRoute
   '/photo/$id': typeof ProtectedPhotoIdRoute
@@ -512,6 +519,7 @@ export interface FileRoutesById {
   '/public/$users': typeof PublicUsersRoute
   '/_protected/': typeof ProtectedIndexRoute
   '/password-reset/': typeof PasswordResetIndexRoute
+  '/public/': typeof PublicIndexRoute
   '/_protected/jobs/$id': typeof ProtectedJobsIdRoute
   '/_protected/organizing/$tab': typeof ProtectedOrganizingTabRoute
   '/_protected/photo/$id': typeof ProtectedPhotoIdRoute
@@ -573,6 +581,7 @@ export interface FileRouteTypes {
     | '/videos'
     | '/public/$users'
     | '/password-reset/'
+    | '/public/'
     | '/jobs/$id'
     | '/organizing/$tab'
     | '/photo/$id'
@@ -611,7 +620,6 @@ export interface FileRouteTypes {
     | '/album/user/'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/public'
     | '/login'
     | '/signup'
     | '/deleted'
@@ -631,6 +639,7 @@ export interface FileRouteTypes {
     | '/public/$users'
     | '/'
     | '/password-reset'
+    | '/public'
     | '/jobs/$id'
     | '/organizing/$tab'
     | '/photo/$id'
@@ -691,6 +700,7 @@ export interface FileRouteTypes {
     | '/public/$users'
     | '/_protected/'
     | '/password-reset/'
+    | '/public/'
     | '/_protected/jobs/$id'
     | '/_protected/organizing/$tab'
     | '/_protected/photo/$id'
@@ -886,6 +896,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/password-reset/'
       preLoaderRoute: typeof PasswordResetIndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/public/': {
+      id: '/public/'
+      path: '/'
+      fullPath: '/public/'
+      preLoaderRoute: typeof PublicIndexRouteImport
+      parentRoute: typeof PublicRouteRoute
     }
     '/public/$users': {
       id: '/public/$users'
@@ -1269,12 +1286,14 @@ const ProtectedRouteRouteWithChildren = ProtectedRouteRoute._addFileChildren(
 
 interface PublicRouteRouteChildren {
   PublicUsersRoute: typeof PublicUsersRoute
+  PublicIndexRoute: typeof PublicIndexRoute
   PublicPSlugRoute: typeof PublicPSlugRoute
   PublicSSlugRoute: typeof PublicSSlugRoute
 }
 
 const PublicRouteRouteChildren: PublicRouteRouteChildren = {
   PublicUsersRoute: PublicUsersRoute,
+  PublicIndexRoute: PublicIndexRoute,
   PublicPSlugRoute: PublicPSlugRoute,
   PublicSSlugRoute: PublicSSlugRoute,
 }

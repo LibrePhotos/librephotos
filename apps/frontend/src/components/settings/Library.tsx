@@ -5,9 +5,7 @@ import {
   Card,
   Collapse,
   Container,
-  Dialog,
   Divider,
-  Flex,
   Grid,
   Group,
   HoverCard,
@@ -17,7 +15,6 @@ import {
   Modal,
   Space,
   Stack,
-  Switch,
   Text,
   TextInput,
   Title,
@@ -61,9 +58,14 @@ import { useFetchUserListQuery, useUpdateUserMutation } from "../../api_client/u
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import { User } from "../../api_client/user/types";
 import { notification } from "../../service/notifications";
+import { reportUserSaveError } from "../../util/apiErrors";
 import { CountStats } from "../CountStats";
 import { ModalNextcloudScanDirectoryEdit } from "../modals/ModalNextcloudScanDirectoryEdit";
 import { ModalUserEdit } from "../modals/ModalUserEdit";
+import { SaveChangesDialog } from "./SaveChangesDialog";
+
+// The action buttons share one minimum width so they line up; longer translations still grow.
+const ACTION_MIN_WIDTH = 160;
 
 function BadgeIcon(details: User, isSuccess: boolean, isError: boolean, isFetching: boolean) {
   const { nextcloud_server_address: server } = details;
@@ -82,7 +84,7 @@ function BadgeIcon(details: User, isSuccess: boolean, isError: boolean, isFetchi
 export function Library() {
   const [isOpen, { open, close }] = useDisclosure(false);
   const [isOpenUpdateDialog, setIsOpenUpdateDialog] = useState(false);
-  const [isOpenNextcloudHelp, setIsOpenNextcloudHelp] = useState(false);
+  const [isScanHelpOpen, setIsScanHelpOpen] = useState(false);
   const [avatarImgSrc, setAvatarImgSrc] = useState("/unknown_user.jpg");
   const [modalNextcloudScanDirectoryOpen, setModalNextcloudScanDirectoryOpen] = useState(false);
   const [scanDirectorySetupOpen, setScanDirectorySetupOpen] = useState(false);
@@ -124,12 +126,18 @@ export function Library() {
     close();
   };
 
+  const isAdmin = !!auth?.access?.is_admin;
+  // Without a scan directory an admin can still set one up from the Scan button; anyone else has
+  // to ask an admin, so say so up front instead of only after a click.
+  const hasScanDirectory = !!userSelfDetails?.scan_directory;
+  const scanBlocked = !hasScanDirectory && !isAdmin;
+
   const guardScan = (run: () => void) => {
-    if (userSelfDetails?.scan_directory) {
+    if (hasScanDirectory) {
       run();
       return;
     }
-    if (auth?.access?.is_admin) {
+    if (isAdmin) {
       setScanDirectorySetupOpen(true);
     } else {
       notification.scanDirectoryRequired();
@@ -176,32 +184,40 @@ export function Library() {
     }
   }
 
-  const handleNextcloudServerAddressChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (userSelfDetails) {
-      setEditedUser({ ...userSelfDetails, nextcloud_server_address: event.currentTarget.value });
-    }
-  };
-
-  const handleNextcloudUsernameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (userSelfDetails) {
-      setEditedUser({ ...userSelfDetails, nextcloud_username: event.currentTarget.value });
-    }
-  };
-
-  const handleNextcloudPasswordChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (userSelfDetails) {
-      setEditedUser({ ...userSelfDetails, nextcloud_app_password: event.currentTarget.value });
-    }
-  };
+  // Edits build on the pending edits, not on the saved profile, so that filling in one Nextcloud
+  // field keeps what was typed into the others. Read the value first: React clears
+  // currentTarget before a functional update runs.
+  const editNextcloudField =
+    (field: "nextcloud_server_address" | "nextcloud_username" | "nextcloud_app_password") =>
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const { value } = event.currentTarget;
+      setEditedUser(prev => (prev ? { ...prev, [field]: value } : prev));
+    };
+  const handleNextcloudServerAddressChange = editNextcloudField("nextcloud_server_address");
+  const handleNextcloudUsernameChange = editNextcloudField("nextcloud_username");
+  const handleNextcloudPasswordChange = editNextcloudField("nextcloud_app_password");
 
   const handleSubmit = () => {
     if (editedUser) {
       const newUserData = { ...editedUser };
       delete newUserData.scan_directory;
       delete newUserData.avatar;
-      updateUser.mutate(newUserData);
-      setIsOpenUpdateDialog(false);
+      // Keep the dialog open when the server rejects the save (an unsafe Nextcloud address, for
+      // example), so the edits can be fixed.
+      updateUser.mutate(newUserData, {
+        onSuccess: () => setIsOpenUpdateDialog(false),
+        onError: reportUserSaveError,
+      });
     }
+  };
+
+  const regenerateEventTitles = () => {
+    // /autoalbumtitlegen/ re-titles every existing event album; /autoalbumgen/ would only
+    // title the albums whose photos changed. fetchClient already reports server errors.
+    fetchClient
+      .post("/autoalbumtitlegen/", {})
+      .then(() => notification.regenerateEventAlbums())
+      .catch(() => {});
   };
 
   const handleCancel = () => {
@@ -217,18 +233,16 @@ export function Library() {
 
   return (
     <Container>
-      <Flex align="baseline" justify="space-between">
-        <Group gap="xs" mt={{ base: 20, sm: 40 }} mb={{ base: 10, sm: 20 }}>
-          <Book size={35} />
-          <Title order={1}>{t("settings.library")}</Title>
-        </Group>
-      </Flex>
+      <Group gap="xs" mt={{ base: 20, sm: 40 }} mb={{ base: 10, sm: 20 }}>
+        <Book size={35} />
+        <Title order={1}>{t("settings.library")}</Title>
+      </Group>
 
       <Stack>
         <CountStats />
         <Card shadow="md">
           <Stack>
-            <Title order={4} mb={16}>
+            <Title order={4}>
               <Trans i18nKey="settings.photos">Photos</Trans>
               {countStats.num_missing_photos > 0 && (
                 <HoverCard width={280} shadow="md">
@@ -246,11 +260,13 @@ export function Library() {
               )}
               <Modal opened={isOpen} title={t("settings.missingphotosbutton")} onClose={close}>
                 <Stack gap="xl">
-                  This action will delete all missing photos and it&apos;s metadata from the database.
-                  <Group>
-                    <Button onClick={close}>Cancel</Button>
+                  <Text size="sm">{t("settings.missingphotosconfirm")}</Text>
+                  <Group justify="flex-end">
+                    <Button variant="default" onClick={close}>
+                      {t("cancel")}
+                    </Button>
                     <Button color="red" onClick={onDeleteMissingPhotosButtonClick}>
-                      Confirm
+                      {t("confirm")}
                     </Button>
                   </Group>
                 </Stack>
@@ -264,45 +280,119 @@ export function Library() {
               off by a fixed column width.
             */}
 
-            {/* Stack RAW+JPEG pairs toggle (per-user) */}
             <Grid>
               <Grid.Col span={{ base: 12, sm: "auto" }}>
                 <Stack gap={0}>
-                  <Text>{t("sitesettings.stack_raw_jpeg")}</Text>
-                  <Text fz="sm" c="dimmed">
-                    {t("settings.stack_raw_jpeg_note")}
-                  </Text>
-                </Stack>
-              </Grid.Col>
-              <Grid.Col span={{ base: 12, sm: "content" }}>
-                <Switch
-                  checked={editedUser?.stack_raw_jpeg !== false}
-                  onChange={() =>
-                    editedUser && setEditedUser({ ...editedUser, stack_raw_jpeg: !editedUser.stack_raw_jpeg })
-                  }
-                />
-              </Grid.Col>
-            </Grid>
-
-            <Grid>
-              <Grid.Col span={{ base: 12, sm: "auto" }}>
-                <Stack gap={0}>
-                  <Group>
+                  <Group gap="xs">
                     <Text>{t("settings.scanlibrary")}</Text>
-                    <ActionIcon radius="xl" variant="light" size="xs">
-                      <QuestionMark onClick={() => setIsOpenNextcloudHelp(!isOpenNextcloudHelp)} />
+                    {/* The handler sits on the button, not the icon, so Enter and Space work too. */}
+                    <ActionIcon
+                      radius="xl"
+                      variant="light"
+                      size="xs"
+                      aria-label={t("settings.scanhelp")}
+                      aria-expanded={isScanHelpOpen}
+                      aria-controls="scan-library-help"
+                      onClick={() => setIsScanHelpOpen(open => !open)}
+                    >
+                      <QuestionMark size={14} />
                     </ActionIcon>
                   </Group>
                   <Text fz="sm" c="dimmed">
                     {t("settings.scanphotosdescription")}
                   </Text>
+                  {scanBlocked && (
+                    <Text fz="sm" c="orange">
+                      {t("toasts.scan_directory_required")}
+                    </Text>
+                  )}
+                  {/* In the description column, so the collapsed help adds no gap to the rows. */}
+                  <Collapse in={isScanHelpOpen} id="scan-library-help">
+                    <Stack gap={0} mt="xs">
+                      <Text>{t("settings.scanhelpheading")}</Text>
+                      <List>
+                        <List.Item>
+                          <Text fz="sm" c="dimmed">
+                            <Trans i18nKey="settings.scannextclouddescription.item1">
+                              Make a list of all files in subdirectories. For each media file:
+                            </Trans>
+                          </Text>
+                        </List.Item>
+                        <List.Item>
+                          <Text fz="sm" c="dimmed">
+                            <Trans i18nKey="settings.scannextclouddescription.item2">
+                              If the filepath exists, check if the file has been modified. If it was modified, rescan
+                              the image. If not, we skip.
+                            </Trans>
+                          </Text>
+                        </List.Item>
+                        <List.Item>
+                          <Text fz="sm" c="dimmed">
+                            <Trans i18nKey="settings.scannextclouddescription.item3">
+                              Calculate a unique ID of the image file (md5)
+                            </Trans>
+                          </Text>
+                        </List.Item>
+                        <List.Item>
+                          <Text fz="sm" c="dimmed">
+                            <Trans i18nKey="settings.scannextclouddescription.item4">
+                              If this media file is already in the database, we add the path to the existing media file.
+                            </Trans>
+                          </Text>
+                        </List.Item>
+                        <List.Item>
+                          <Text fz="sm" c="dimmed">
+                            <Trans i18nKey="settings.scannextclouddescription.item5">
+                              Generate a number of thumbnails
+                            </Trans>
+                          </Text>
+                        </List.Item>
+                        <List.Item>
+                          <Text fz="sm" c="dimmed">
+                            <Trans i18nKey="settings.scannextclouddescription.item6">Generate image captions</Trans>
+                          </Text>
+                        </List.Item>
+                        <List.Item>
+                          <Text fz="sm" c="dimmed">
+                            <Trans i18nKey="settings.scannextclouddescription.item7">Extract Exif information</Trans>
+                          </Text>
+                        </List.Item>
+                        <List.Item>
+                          <Text fz="sm" c="dimmed">
+                            <Trans i18nKey="settings.scannextclouddescription.item8">
+                              Reverse geolocate to get location names from GPS coordinates
+                            </Trans>
+                          </Text>
+                        </List.Item>
+                        <List.Item>
+                          <Text fz="sm" c="dimmed">
+                            <Trans i18nKey="settings.scannextclouddescription.item9">Extract faces.</Trans>
+                          </Text>
+                        </List.Item>
+                        <List.Item>
+                          <Text fz="sm" c="dimmed">
+                            <Trans i18nKey="settings.scannextclouddescription.item10">
+                              Add photo to thing and place albums.
+                            </Trans>
+                          </Text>
+                        </List.Item>
+                        <List.Item>
+                          <Text fz="sm" c="dimmed">
+                            <Trans i18nKey="settings.scannextclouddescription.item11">
+                              Check if photos are missing or have been moved.
+                            </Trans>
+                          </Text>
+                        </List.Item>
+                      </List>
+                    </Stack>
+                  </Collapse>
                 </Stack>
               </Grid.Col>
-              <Grid.Col span={{ base: 12, sm: "content" }}>
+              <Grid.Col span={{ base: 12, sm: "content" }} miw={ACTION_MIN_WIDTH}>
                 <Group wrap="nowrap" gap={0} justify="flex-end">
                   <Button
                     onClick={() => guardScan(() => scanPhotos.mutate())}
-                    disabled={!workerAvailability}
+                    disabled={!workerAvailability || scanBlocked}
                     leftSection={<Refresh />}
                     variant="filled"
                     style={{ borderTopRightRadius: 0, borderBottomRightRadius: 0 }}
@@ -316,6 +406,8 @@ export function Library() {
                         variant="filled"
                         color="blue"
                         size={36}
+                        disabled={!workerAvailability || scanBlocked}
+                        aria-label={t("settings.statusrescanphotosfalse")}
                         style={{
                           borderTopLeftRadius: 0,
                           borderBottomLeftRadius: 0,
@@ -331,7 +423,7 @@ export function Library() {
                       <Menu.Item
                         leftSection={<Refresh size="1rem" />}
                         onClick={() => guardScan(() => rescanPhotos.mutate())}
-                        disabled={!workerAvailability}
+                        disabled={!workerAvailability || scanBlocked}
                       >
                         {t("settings.statusrescanphotosfalse")}
                       </Menu.Item>
@@ -341,84 +433,7 @@ export function Library() {
               </Grid.Col>
             </Grid>
 
-            <Collapse in={isOpenNextcloudHelp}>
-              <Stack gap={0}>
-                <Text>Rescan will reprocess your entire library through the following tasks:</Text>
-                <List>
-                  <List.Item>
-                    <Text fz="sm" c="dimmed">
-                      <Trans i18nKey="settings.scannextclouddescription.item1">
-                        Make a list of all files in subdirectories. For each media file:
-                      </Trans>
-                    </Text>
-                  </List.Item>
-                  <List.Item>
-                    <Text fz="sm" c="dimmed">
-                      <Trans i18nKey="settings.scannextclouddescription.item2">
-                        If the filepath exists, check if the file has been modified. If it was modified, rescan the
-                        image. If not, we skip.
-                      </Trans>
-                    </Text>
-                  </List.Item>
-                  <List.Item>
-                    <Text fz="sm" c="dimmed">
-                      <Trans i18nKey="settings.scannextclouddescription.item3">
-                        Calculate a unique ID of the image file (md5)
-                      </Trans>
-                    </Text>
-                  </List.Item>
-                  <List.Item>
-                    <Text fz="sm" c="dimmed">
-                      <Trans i18nKey="settings.scannextclouddescription.item4">
-                        If this media file is already in the database, we add the path to the existing media file.
-                      </Trans>
-                    </Text>
-                  </List.Item>
-                  <List.Item>
-                    <Text fz="sm" c="dimmed">
-                      <Trans i18nKey="settings.scannextclouddescription.item5">Generate a number of thumbnails</Trans>
-                    </Text>
-                  </List.Item>
-                  <List.Item>
-                    <Text fz="sm" c="dimmed">
-                      <Trans i18nKey="settings.scannextclouddescription.item6">Generate image captions</Trans>
-                    </Text>
-                  </List.Item>
-                  <List.Item>
-                    <Text fz="sm" c="dimmed">
-                      <Trans i18nKey="settings.scannextclouddescription.item7">Extract Exif information</Trans>
-                    </Text>
-                  </List.Item>
-                  <List.Item>
-                    <Text fz="sm" c="dimmed">
-                      <Trans i18nKey="settings.scannextclouddescription.item8">
-                        Reverse geolocate to get location names from GPS coordinates
-                      </Trans>
-                    </Text>
-                  </List.Item>
-                  <List.Item>
-                    <Text fz="sm" c="dimmed">
-                      <Trans i18nKey="settings.scannextclouddescription.item9">Extract faces.</Trans>
-                    </Text>
-                  </List.Item>
-                  <List.Item>
-                    <Text fz="sm" c="dimmed">
-                      <Trans i18nKey="settings.scannextclouddescription.item10">
-                        Add photo to thing and place albums.
-                      </Trans>
-                    </Text>
-                  </List.Item>
-                  <List.Item>
-                    <Text fz="sm" c="dimmed">
-                      <Trans i18nKey="settings.scannextclouddescription.item11">
-                        Check if photos are missing or have been moved.
-                      </Trans>
-                    </Text>
-                  </List.Item>
-                </List>
-              </Stack>
-            </Collapse>
-            <Divider labelPosition="left" label={<Text fw="bold">{t("settings.eventsalbums")}</Text>} mt={20} mb={10} />
+            <Divider labelPosition="left" label={<Text fw="bold">{t("settings.eventsalbums")}</Text>} mt={20} />
             <Grid>
               <Grid.Col span={{ base: 12, sm: "auto" }}>
                 <Stack gap={0}>
@@ -428,7 +443,7 @@ export function Library() {
                   </Text>
                 </Stack>
               </Grid.Col>
-              <Grid.Col span={{ base: 12, sm: "content" }}>
+              <Grid.Col span={{ base: 12, sm: "content" }} miw={ACTION_MIN_WIDTH}>
                 <Button
                   onClick={onGenerateEventAlbumsButtonClick}
                   disabled={!workerAvailability}
@@ -436,7 +451,7 @@ export function Library() {
                   variant="outline"
                   fullWidth
                 >
-                  Generate
+                  {t("settings.generate")}
                 </Button>
               </Grid.Col>
             </Grid>
@@ -450,272 +465,253 @@ export function Library() {
                   </Text>
                 </Stack>
               </Grid.Col>
-              <Grid.Col span={{ base: 12, sm: "content" }}>
+              <Grid.Col span={{ base: 12, sm: "content" }} miw={ACTION_MIN_WIDTH}>
                 <Button
-                  onClick={() => {
-                    generateAutoAlbums();
-                    notification.regenerateEventAlbums();
-                  }}
+                  onClick={regenerateEventTitles}
                   disabled={!workerAvailability}
                   leftSection={<RefreshDot />}
                   variant="outline"
                   fullWidth
                 >
-                  Generate
+                  {t("settings.regenerate")}
                 </Button>
               </Grid.Col>
             </Grid>
-          </Stack>
-          <Divider
-            labelPosition="left"
-            label={
-              <Text fw="bold">
-                {t("settings.faces")} & {t("settings.people")}
-              </Text>
-            }
-            mt={20}
-            mb={10}
-          />
-          <Grid>
-            <Grid.Col span={{ base: 12, sm: "auto" }}>
-              <Stack gap={0}>
-                <Text>{t("settings.trainfacestitle")}</Text>
-                <Text fz="sm" c="dimmed">
-                  {t("settings.trainfacesdescription")}
+            <Divider
+              labelPosition="left"
+              label={
+                <Text fw="bold">
+                  {t("settings.faces")} & {t("settings.people")}
                 </Text>
-              </Stack>
-            </Grid.Col>
-            <Grid.Col span={{ base: 12, sm: "content" }}>
-              <Button
-                disabled={!workerAvailability}
-                onClick={() => trainFaces.mutate()}
-                leftSection={<FaceId />}
-                variant="outline"
-                fullWidth
-              >
-                <Trans i18nKey="settings.facesbutton">Train Faces</Trans>
-              </Button>
-            </Grid.Col>
-          </Grid>
-          <Grid>
-            <Grid.Col span={{ base: 12, sm: "auto" }}>
-              <Stack gap={0}>
-                <Text>{t("settings.rescanfacestitle")}</Text>
-                <Text fz="sm" c="dimmed">
-                  {t("settings.rescanfacesdescription")}
-                </Text>
-              </Stack>
-            </Grid.Col>
-            <Grid.Col span={{ base: 12, sm: "content" }}>
-              <Button
-                disabled={!workerAvailability}
-                onClick={() => {
-                  fetchClient
-                    .get("/scanfaces")
-                    .then(() => notification.rescanFaces())
-                    .catch(() => notification.rescanFacesFailed());
-                }}
-                leftSection={<FaceId />}
-                variant="outline"
-                fullWidth
-              >
-                <Trans i18nKey="settings.rescanfaces">Rescan</Trans>
-              </Button>
-            </Grid.Col>
-          </Grid>
-          <Divider
-            labelPosition="left"
-            label={<Text fw="bold">{t("settings.textrecognition")}</Text>}
-            mt={20}
-            mb={10}
-          />
-          <Grid>
-            <Grid.Col span={{ base: 12, sm: "auto" }}>
-              <Stack gap={0}>
-                <Text>{t("settings.ocrtitle")}</Text>
-                <Text fz="sm" c="dimmed">
-                  {isOcrEnabled ? t("settings.ocrdescription") : t("settings.ocrdisabled")}
-                </Text>
-              </Stack>
-            </Grid.Col>
-            <Grid.Col span={{ base: 12, sm: "content" }}>
-              <Group wrap="nowrap" gap={0} justify="flex-end">
+              }
+              mt={20}
+            />
+            <Grid>
+              <Grid.Col span={{ base: 12, sm: "auto" }}>
+                <Stack gap={0}>
+                  <Text>{t("settings.trainfacestitle")}</Text>
+                  <Text fz="sm" c="dimmed">
+                    {t("settings.trainfacesdescription")}
+                  </Text>
+                </Stack>
+              </Grid.Col>
+              <Grid.Col span={{ base: 12, sm: "content" }} miw={ACTION_MIN_WIDTH}>
                 <Button
-                  disabled={!workerAvailability || !isOcrEnabled}
-                  onClick={() => generateOcr.mutate(false)}
-                  leftSection={<TextRecognition />}
+                  disabled={!workerAvailability}
+                  onClick={() => trainFaces.mutate()}
+                  leftSection={<FaceId />}
                   variant="outline"
-                  style={{ borderTopRightRadius: 0, borderBottomRightRadius: 0, borderRight: 0 }}
                   fullWidth
                 >
-                  {t("settings.ocrbutton")}
+                  <Trans i18nKey="settings.facesbutton">Train Faces</Trans>
                 </Button>
-                <Menu transitionProps={{ transition: "pop" }} position="bottom-end" withinPortal>
-                  <Menu.Target>
-                    <ActionIcon
-                      variant="outline"
-                      size={36}
-                      disabled={!workerAvailability || !isOcrEnabled}
-                      style={{ borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }}
-                    >
-                      <ChevronDown size="1rem" />
-                    </ActionIcon>
-                  </Menu.Target>
-                  <Menu.Dropdown>
-                    <Menu.Item
-                      leftSection={<TextRecognition size="1rem" />}
-                      onClick={() => generateOcr.mutate(true)}
-                      disabled={!workerAvailability || !isOcrEnabled}
-                    >
-                      {t("settings.ocrfullbutton")}
-                    </Menu.Item>
-                  </Menu.Dropdown>
-                </Menu>
-              </Group>
-            </Grid.Col>
-          </Grid>
-          {isNextcloudEnabled && (
-            <>
-              <Divider
-                labelPosition="left"
-                label={<Text fw="bold">{t("settings.nextcloudheader")}</Text>}
-                mt={20}
-                mb={10}
-              />
-              {/*
+              </Grid.Col>
+            </Grid>
+            <Grid>
+              <Grid.Col span={{ base: 12, sm: "auto" }}>
+                <Stack gap={0}>
+                  <Text>{t("settings.rescanfacestitle")}</Text>
+                  <Text fz="sm" c="dimmed">
+                    {t("settings.rescanfacesdescription")}
+                  </Text>
+                </Stack>
+              </Grid.Col>
+              <Grid.Col span={{ base: 12, sm: "content" }} miw={ACTION_MIN_WIDTH}>
+                <Button
+                  disabled={!workerAvailability}
+                  onClick={() => {
+                    fetchClient
+                      .get("/scanfaces")
+                      .then(() => notification.rescanFaces())
+                      .catch(() => notification.rescanFacesFailed());
+                  }}
+                  leftSection={<FaceId />}
+                  variant="outline"
+                  fullWidth
+                >
+                  <Trans i18nKey="settings.rescanfaces">Rescan</Trans>
+                </Button>
+              </Grid.Col>
+            </Grid>
+            <Divider labelPosition="left" label={<Text fw="bold">{t("settings.textrecognition")}</Text>} mt={20} />
+            <Grid>
+              <Grid.Col span={{ base: 12, sm: "auto" }}>
+                <Stack gap={0}>
+                  <Text>{t("settings.ocrtitle")}</Text>
+                  <Text fz="sm" c="dimmed">
+                    {isOcrEnabled
+                      ? t("settings.ocrdescription")
+                      : t(isAdmin ? "settings.ocrdisabled" : "settings.ocrdisablednonadmin")}
+                  </Text>
+                </Stack>
+              </Grid.Col>
+              <Grid.Col span={{ base: 12, sm: "content" }} miw={ACTION_MIN_WIDTH}>
+                <Group wrap="nowrap" gap={0} justify="flex-end">
+                  <Button
+                    disabled={!workerAvailability || !isOcrEnabled}
+                    onClick={() => generateOcr.mutate(false)}
+                    leftSection={<TextRecognition />}
+                    variant="outline"
+                    style={{ borderTopRightRadius: 0, borderBottomRightRadius: 0, borderRight: 0 }}
+                    fullWidth
+                  >
+                    {t("settings.ocrbutton")}
+                  </Button>
+                  <Menu transitionProps={{ transition: "pop" }} position="bottom-end" withinPortal>
+                    <Menu.Target>
+                      <ActionIcon
+                        variant="outline"
+                        size={36}
+                        disabled={!workerAvailability || !isOcrEnabled}
+                        aria-label={t("settings.ocrfullbutton")}
+                        style={{ borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }}
+                      >
+                        <ChevronDown size="1rem" />
+                      </ActionIcon>
+                    </Menu.Target>
+                    <Menu.Dropdown>
+                      <Menu.Item
+                        leftSection={<TextRecognition size="1rem" />}
+                        onClick={() => generateOcr.mutate(true)}
+                        disabled={!workerAvailability || !isOcrEnabled}
+                      >
+                        {t("settings.ocrfullbutton")}
+                      </Menu.Item>
+                    </Menu.Dropdown>
+                  </Menu>
+                </Group>
+              </Grid.Col>
+            </Grid>
+            {isNextcloudEnabled && (
+              <>
+                <Divider labelPosition="left" label={<Text fw="bold">{t("settings.nextcloudheader")}</Text>} mt={20} />
+                {/*
                 One grid per row: a content sized column may not share a flex line with the fixed
                 width columns of the credentials rows below, otherwise those would move up into it.
               */}
-              <Stack>
-                <Grid>
-                  <Grid.Col span={{ base: 12, sm: "auto" }}>
-                    <Stack gap={0}>
-                      <Text>Status</Text>
-                    </Stack>
-                  </Grid.Col>
-                  <Grid.Col span={{ base: 12, sm: "content" }}>
-                    <Badge
-                      leftSection={BadgeIcon(
-                        userSelfDetails,
-                        isNextcloudSuccess,
-                        isNextcloudError,
-                        isNextcloudFetching
-                      )}
-                      variant="outline"
-                      color={nextcloudStatusColor}
-                      fullWidth
-                    >
-                      {!userSelfDetails.nextcloud_server_address && t("settings.nextcloudsetup")}
-                      {isNextcloudFetching && t("settings.nextcloudconnecting")}
-                      {isNextcloudSuccess &&
-                        userSelfDetails.nextcloud_server_address &&
-                        !isNextcloudFetching &&
-                        t("settings.nextcloudloggedin")}
-                      {isNextcloudError && t("settings.nextcloudnotloggedin")}
-                    </Badge>
-                  </Grid.Col>
-                </Grid>
-                <Grid>
-                  <Grid.Col span={{ base: 12, sm: 7 }}>
-                    <Stack gap={0}>
-                      <Trans i18nKey="settings.serveradress" />
-                    </Stack>
-                  </Grid.Col>
-                  <Grid.Col span={{ base: 12, sm: 5 }}>
-                    <TextInput
-                      onChange={handleNextcloudServerAddressChange}
-                      value={userSelfDetails.nextcloud_server_address}
-                      placeholder={t("settings.serveradressplaceholder")}
-                    />
-                  </Grid.Col>
-                  <Grid.Col span={{ base: 12, sm: 7 }}>
-                    <Stack gap={0}>
-                      <Trans i18nKey="settings.nextcloudusername" />
-                    </Stack>
-                  </Grid.Col>
-                  <Grid.Col span={{ base: 12, sm: 5 }}>
-                    <TextInput
-                      onChange={handleNextcloudUsernameChange}
-                      value={userSelfDetails.nextcloud_username}
-                      placeholder={t("settings.nextcloudusernameplaceholder")}
-                    />
-                  </Grid.Col>
-                  <Grid.Col span={{ base: 12, sm: 7 }}>
-                    <Stack gap={0}>
-                      <Trans i18nKey="settings.nextcloudpassword" />
-                      <Text size="sm" c="dimmed">
-                        {t("settings.credentialspopup")}
-                      </Text>
-                    </Stack>
-                  </Grid.Col>
-                  <Grid.Col span={{ base: 12, sm: 5 }}>
-                    <TextInput
-                      onChange={handleNextcloudPasswordChange}
-                      type="password"
-                      placeholder={t("settings.nextcloudpasswordplaceholder")}
-                      value={editedUser?.nextcloud_app_password ?? ""}
-                    />
-                  </Grid.Col>
-                </Grid>
-                <Grid>
-                  <Grid.Col span={{ base: 12, sm: "auto" }}>
-                    <Stack gap={0}>
-                      <Trans i18nKey="settings.nextcloudscandirectory" />
-                      <Text size="sm" c="dimmed">
-                        {userSelfDetails.nextcloud_scan_directory
-                          ? userSelfDetails.nextcloud_scan_directory
-                          : "Choose the folder to process from the nextcloud instance"}
-                      </Text>
-                    </Stack>
-                  </Grid.Col>
-                  <Grid.Col span={{ base: 12, sm: "content" }}>
-                    <Button
-                      leftSection={<Folder />}
-                      disabled={isNextcloudError || isNextcloudFetching || !userSelfDetails.nextcloud_server_address}
-                      onClick={() => {
-                        setModalNextcloudScanDirectoryOpen(true);
-                      }}
-                      variant="outline"
-                      fullWidth
-                    >
-                      {t("modalnextcloud.browse")}
-                    </Button>
-                  </Grid.Col>
-                </Grid>
-                <Grid justify="flex-end">
-                  <Grid.Col span={{ base: 12, sm: "content" }}>
-                    <Button
-                      onClick={() => {
-                        scanNextcloudPhotos.mutate();
-                      }}
-                      disabled={isNextcloudFetching || !workerAvailability || !userSelfDetails.nextcloud_server_address}
-                      variant="filled"
-                      leftSection={<BrandNextcloud />}
-                      fullWidth
-                    >
-                      <Trans i18nKey="settings.scannextcloudphotos">Scan photos (Nextcloud)</Trans>
-                    </Button>
-                  </Grid.Col>
-                </Grid>
-              </Stack>
-              <ModalNextcloudScanDirectoryEdit
-                path={userSelfDetails.nextcloud_scan_directory}
-                isOpen={modalNextcloudScanDirectoryOpen}
-                onChange={path =>
-                  setEditedUser({
-                    ...userSelfDetails,
-                    nextcloud_scan_directory: path,
-                  })
-                }
-                onClose={() => {
-                  setModalNextcloudScanDirectoryOpen(false);
-                }}
-              />
-            </>
-          )}
-
-          <Group mt={20} />
-          <Space h="xl" />
+                <Stack>
+                  <Grid>
+                    <Grid.Col span={{ base: 12, sm: "auto" }}>
+                      <Stack gap={0}>
+                        <Text>{t("joblist.status")}</Text>
+                      </Stack>
+                    </Grid.Col>
+                    <Grid.Col span={{ base: 12, sm: "content" }}>
+                      <Badge
+                        leftSection={BadgeIcon(
+                          userSelfDetails,
+                          isNextcloudSuccess,
+                          isNextcloudError,
+                          isNextcloudFetching
+                        )}
+                        variant="outline"
+                        color={nextcloudStatusColor}
+                        fullWidth
+                      >
+                        {!userSelfDetails.nextcloud_server_address && t("settings.nextcloudsetup")}
+                        {isNextcloudFetching && t("settings.nextcloudconnecting")}
+                        {isNextcloudSuccess &&
+                          userSelfDetails.nextcloud_server_address &&
+                          !isNextcloudFetching &&
+                          t("settings.nextcloudloggedin")}
+                        {isNextcloudError && t("settings.nextcloudnotloggedin")}
+                      </Badge>
+                    </Grid.Col>
+                  </Grid>
+                  <Grid>
+                    <Grid.Col span={{ base: 12, sm: 7 }}>
+                      <Stack gap={0}>
+                        <Trans i18nKey="settings.serveradress" />
+                      </Stack>
+                    </Grid.Col>
+                    <Grid.Col span={{ base: 12, sm: 5 }}>
+                      <TextInput
+                        onChange={handleNextcloudServerAddressChange}
+                        value={editedUser?.nextcloud_server_address ?? ""}
+                        placeholder={t("settings.serveradressplaceholder")}
+                      />
+                    </Grid.Col>
+                    <Grid.Col span={{ base: 12, sm: 7 }}>
+                      <Stack gap={0}>
+                        <Trans i18nKey="settings.nextcloudusername" />
+                      </Stack>
+                    </Grid.Col>
+                    <Grid.Col span={{ base: 12, sm: 5 }}>
+                      <TextInput
+                        onChange={handleNextcloudUsernameChange}
+                        value={editedUser?.nextcloud_username ?? ""}
+                        placeholder={t("settings.nextcloudusernameplaceholder")}
+                      />
+                    </Grid.Col>
+                    <Grid.Col span={{ base: 12, sm: 7 }}>
+                      <Stack gap={0}>
+                        <Trans i18nKey="settings.nextcloudpassword" />
+                        <Text size="sm" c="dimmed">
+                          {t("settings.credentialspopup")}
+                        </Text>
+                      </Stack>
+                    </Grid.Col>
+                    <Grid.Col span={{ base: 12, sm: 5 }}>
+                      <TextInput
+                        onChange={handleNextcloudPasswordChange}
+                        type="password"
+                        placeholder={t("settings.nextcloudpasswordplaceholder")}
+                        value={editedUser?.nextcloud_app_password ?? ""}
+                      />
+                    </Grid.Col>
+                  </Grid>
+                  <Grid>
+                    <Grid.Col span={{ base: 12, sm: "auto" }}>
+                      <Stack gap={0}>
+                        <Trans i18nKey="settings.nextcloudscandirectory" />
+                        <Text size="sm" c="dimmed">
+                          {editedUser?.nextcloud_scan_directory || t("settings.nextcloudscandirectoryplaceholder")}
+                        </Text>
+                      </Stack>
+                    </Grid.Col>
+                    <Grid.Col span={{ base: 12, sm: "content" }} miw={ACTION_MIN_WIDTH}>
+                      <Button
+                        leftSection={<Folder />}
+                        disabled={isNextcloudError || isNextcloudFetching || !userSelfDetails.nextcloud_server_address}
+                        onClick={() => {
+                          setModalNextcloudScanDirectoryOpen(true);
+                        }}
+                        variant="outline"
+                        fullWidth
+                      >
+                        {t("modalnextcloud.browse")}
+                      </Button>
+                    </Grid.Col>
+                  </Grid>
+                  <Grid justify="flex-end">
+                    <Grid.Col span={{ base: 12, sm: "content" }}>
+                      <Button
+                        onClick={() => {
+                          scanNextcloudPhotos.mutate();
+                        }}
+                        disabled={
+                          isNextcloudFetching || !workerAvailability || !userSelfDetails.nextcloud_server_address
+                        }
+                        variant="filled"
+                        leftSection={<BrandNextcloud />}
+                        fullWidth
+                      >
+                        <Trans i18nKey="settings.scannextcloudphotos">Scan photos (Nextcloud)</Trans>
+                      </Button>
+                    </Grid.Col>
+                  </Grid>
+                </Stack>
+                <ModalNextcloudScanDirectoryEdit
+                  path={editedUser?.nextcloud_scan_directory ?? userSelfDetails.nextcloud_scan_directory}
+                  isOpen={modalNextcloudScanDirectoryOpen}
+                  onChange={path => setEditedUser(prev => (prev ? { ...prev, nextcloud_scan_directory: path } : prev))}
+                  onClose={() => {
+                    setModalNextcloudScanDirectoryOpen(false);
+                  }}
+                />
+              </>
+            )}
+          </Stack>
         </Card>
 
         <ModalUserEdit
@@ -728,20 +724,12 @@ export function Library() {
           firstTimeSetup
         />
 
-        <Dialog opened={isOpenUpdateDialog} withCloseButton onClose={handleCancel} size="lg" radius="md">
-          <Text size="sm" style={{ marginBottom: 10 }} fw={500}>
-            Save Changes?
-          </Text>
-
-          <Group justify="flex-end">
-            <Button size="sm" color="green" onClick={handleSubmit}>
-              <Trans i18nKey="settings.favoriteupdate">Update profile settings</Trans>
-            </Button>
-            <Button onClick={handleCancel} size="sm">
-              <Trans i18nKey="settings.nextcloudcancel">Cancel</Trans>
-            </Button>
-          </Group>
-        </Dialog>
+        <SaveChangesDialog
+          opened={isOpenUpdateDialog}
+          saving={updateUser.isPending}
+          onSave={handleSubmit}
+          onCancel={handleCancel}
+        />
       </Stack>
       <Space h="xl" />
     </Container>

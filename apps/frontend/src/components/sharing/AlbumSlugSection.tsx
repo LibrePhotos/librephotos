@@ -9,6 +9,7 @@ import { useTranslation } from "react-i18next";
 import { useToggleUserAlbumPublicMutation, type PublicSharingOptions } from "../../api_client/albums/hooks";
 import { UserAlbum } from "../../api_client/albums/types";
 import { ApiError, fetchClient } from "../../api_client/api";
+import { shareAddress } from "../../api_client/apiClient";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import { type PublicSharingDefaults, type User } from "../../api_client/user/types";
 import { copyToClipboard } from "../../util/util";
@@ -201,7 +202,8 @@ export function AlbumSlugSection({ albumID, album, isPublic, showSettings, refet
   const { data: currentUser } = useCurrentUserSelfDetailsQuery() as { data: User | undefined };
 
   // derived values
-  const slugLink = album?.public_slug ? `${window.location.origin}/public/s/${album.public_slug}` : "";
+  // shareAddress carries the subpath the app may be served under.
+  const slugLink = album?.public_slug ? `${shareAddress}/public/s/${album.public_slug}` : "";
   const effectiveSlug = slugDirty ? customSlug : album?.public_slug || "";
   const effectiveExpires = expiresDirty ? expiresAt : (album?.public_expires_at as unknown as string) || "";
 
@@ -257,7 +259,17 @@ export function AlbumSlugSection({ albumID, album, isPublic, showSettings, refet
           setExpiresDirty(false);
           setSharingOptionsDirty(false);
         },
-        onError: () => setErrorMsg(t("sharing.saveLinkError")),
+        // The server checks the slug again on save: an expired share still
+        // holds its slug although the availability check calls it free.
+        onError: error => {
+          if (error instanceof ApiError && error.status === 409) {
+            setErrorMsg(t("sharing.urlTaken"));
+          } else if (error instanceof ApiError && error.status === 400) {
+            setErrorMsg(t("sharing.customUrlError"));
+          } else {
+            setErrorMsg(t("sharing.saveLinkError"));
+          }
+        },
       }
     );
   }, [
@@ -279,9 +291,10 @@ export function AlbumSlugSection({ albumID, album, isPublic, showSettings, refet
 
   return (
     <>
-      <Group mt="sm" align="flex-end">
+      {/* nowrap: on a phone the open-link button dropped onto a line of its own. */}
+      <Group mt="sm" align="flex-end" gap="xs" wrap="nowrap">
         <TextInput
-          style={{ flexGrow: 1 }}
+          style={{ flex: 1, minWidth: 0 }}
           value={slugLink || t("sharing.generating")}
           readOnly
           leftSection={<LinkIcon size={16} />}

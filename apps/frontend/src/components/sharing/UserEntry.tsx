@@ -6,6 +6,7 @@ import { useFetchUserAlbumQuery, useShareUserAlbumMutation } from "../../api_cli
 import type { UserAlbum } from "../../api_client/albums/types";
 import type { User } from "../../api_client/user/types";
 import { i18nResolvedLanguage } from "../../i18n";
+import { avatarSrc } from "./avatarSrc";
 
 type UserEntryProps = Readonly<{
   item: User;
@@ -16,10 +17,6 @@ function getDisplayName(item: User) {
   return item.first_name.length > 0 && item.last_name.length > 0
     ? `${item.first_name} ${item.last_name}`
     : item.username;
-}
-
-function getAvatar(item: User) {
-  return item.avatar ? item.avatar_url : "/unknown_user.jpg";
 }
 
 function isShared(album: UserAlbum, user: User) {
@@ -35,7 +32,7 @@ export function UserEntry(props: UserEntryProps) {
   return (
     <Group justify="space-between" key={user.id}>
       <Group>
-        <Avatar radius="xl" size={50} src={getAvatar(user)} />
+        <Avatar radius="xl" size={50} src={avatarSrc(user)} />
         <div>
           <Title order={4}>{getDisplayName(user)}</Title>
           {user.date_joined && (
@@ -48,6 +45,7 @@ export function UserEntry(props: UserEntryProps) {
       </Group>
       <Group>
         <Switch
+          aria-label={getDisplayName(user)}
           checked={isShared(albumDetails!, user)}
           onChange={() => {
             shareAlbum({

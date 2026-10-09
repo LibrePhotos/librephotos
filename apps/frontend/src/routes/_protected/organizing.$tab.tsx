@@ -3,15 +3,17 @@
  *
  * This page provides a unified interface for:
  * - Duplicates: Finding and removing duplicate photos to save storage space
- * - Stacks: Organizing related photos together (RAW+JPEG, bursts, brackets, etc.)
+ * - Stacks: Organizing related photos together (bursts, brackets, manual stacks)
  */
-import { Group, Stack, Tabs, Text, Title } from "@mantine/core";
+import { Badge, Box, Group, Stack, Tabs, Text, Title } from "@mantine/core";
+import { useMediaQuery } from "@mantine/hooks";
 import { IconCopy, IconLayersSubtract } from "@tabler/icons-react";
 import { createFileRoute, Navigate, useNavigate } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { useDuplicateStatsQuery } from "../../api_client/duplicates";
 import { useStackStatsQuery } from "../../api_client/stacks";
+import { countListedStacks } from "../../api_client/stacks/types";
 import { DuplicatesPageContent } from "../../components/stacks-duplicates/DuplicatesPageContent";
 import { StacksPageContent } from "../../components/stacks-duplicates/StacksPageContent";
 
@@ -34,6 +36,9 @@ function StacksDuplicatesPage() {
   const { tab } = Route.useParams();
   const { data: duplicateStats } = useDuplicateStatsQuery();
   const { data: stackStats } = useStackStatsQuery();
+  // Phones drop the tab icons so both labels and counts fit on one row. Read synchronously
+  // (no SSR here) so the icons do not flash in on the first frame
+  const isPhone = useMediaQuery("(max-width: 36em)", undefined, { getInitialValueInEffect: false });
 
   // Validate tab parameter
   if (tab !== "duplicates" && tab !== "stacks") {
@@ -44,7 +49,7 @@ function StacksDuplicatesPage() {
     if (tab === "duplicates") {
       return t("duplicates.subtitle", "Find and remove duplicate photos to save storage space");
     }
-    return t("stacks.subtitle", "Organize RAW+JPEG pairs, bursts, and related photos");
+    return t("stacks.subtitle", "Group burst sequences, exposure brackets and related photos");
   };
 
   const handleTabChange = (value: string | null) => {
@@ -57,32 +62,45 @@ function StacksDuplicatesPage() {
   };
 
   return (
-    <Stack gap="lg" p="md">
-      {/* Shared Header */}
-      <Group>
-        <div>
+    // p={10}, HeaderComponent's inset, so the header and content line up with the other
+    // pages' (with "md" both sat 6px further in than on People or Albums)
+    <Stack gap="lg" p={10}>
+      {/* Shared header, laid out like HeaderComponent, with the sidebar's Organizing icon.
+          The page's own padding stands in for HeaderComponent's. */}
+      <Group gap="sm" wrap="nowrap">
+        <Box style={{ display: "flex", flexShrink: 0 }}>
+          <IconLayersSubtract size={50} />
+        </Box>
+        <Stack gap={0} style={{ minWidth: 0 }}>
           <Title order={2}>{t("sidemenu.organizing", "Organizing")}</Title>
           <Text c="dimmed" size="sm">
             {getSubtitle()}
           </Text>
-        </div>
+        </Stack>
       </Group>
 
       {/* Tab Navigation */}
-      <Tabs value={tab} onChange={handleTabChange}>
+      {/* Kept on one row on phones: a wrapped tab leaves the active underline under the first row only */}
+      <Tabs
+        value={tab}
+        onChange={handleTabChange}
+        styles={{
+          list: { flexWrap: "nowrap" },
+          tab: { minWidth: 0 },
+          tabLabel: { overflow: "hidden", textOverflow: "ellipsis" },
+        }}
+      >
         <Tabs.List>
           <Tabs.Tab
             value="duplicates"
-            leftSection={<IconCopy size={18} />}
+            leftSection={isPhone ? undefined : <IconCopy size={18} />}
             rightSection={
               duplicateStats ? (
-                <span style={{ marginLeft: 4 }}>
-                  (
+                <Badge size="sm" variant="light" color="gray">
                   {duplicateStats.pending_duplicates > 0
                     ? duplicateStats.pending_duplicates
                     : duplicateStats.total_duplicates}
-                  )
-                </span>
+                </Badge>
               ) : null
             }
           >
@@ -90,8 +108,14 @@ function StacksDuplicatesPage() {
           </Tabs.Tab>
           <Tabs.Tab
             value="stacks"
-            leftSection={<IconLayersSubtract size={18} />}
-            rightSection={stackStats ? <span style={{ marginLeft: 4 }}>({stackStats.total_stacks})</span> : null}
+            leftSection={isPhone ? undefined : <IconLayersSubtract size={18} />}
+            rightSection={
+              stackStats ? (
+                <Badge size="sm" variant="light" color="gray">
+                  {countListedStacks(stackStats)}
+                </Badge>
+              ) : null
+            }
           >
             {t("stacks.title", "Stacks")}
           </Tabs.Tab>

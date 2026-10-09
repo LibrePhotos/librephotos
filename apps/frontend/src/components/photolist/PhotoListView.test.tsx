@@ -10,6 +10,9 @@
  * The photo size / text alignment / header size menu used to save by sending
  * the whole profile back, avatar URL included, which the backend rejected with
  * 400 "The submitted data was not a file" (#2153).
+ *
+ * The items handed to the lightbox dropped date and location, so a non-owner's
+ * details panel never showed when or where a photo was taken.
  */
 import { MantineProvider } from "@mantine/core";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -17,9 +20,11 @@ import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import type { Root } from "react-dom/client";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { useUpdateUserMutation } from "../../api_client/user/hooks";
 import { PhotoListView } from "./PhotoListView";
 
 const pig = vi.hoisted(() => ({ props: [] as any[] }));
+const lightbox = vi.hoisted(() => ({ props: [] as any[] }));
 // TanStack Router's useNavigate returns a stable function.
 const navigate = vi.hoisted(() => () => {});
 const userHooks = vi.hoisted(() => ({
@@ -31,7 +36,7 @@ vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => navigate,
   useLocation: () => ({ pathname: "/photos" }),
 }));
-vi.mock("../../api_client/apiClient", () => ({ serverAddress: "" }));
+vi.mock("../../api_client/apiClient", () => ({ serverAddress: "", shareAddress: "" }));
 vi.mock("../../api_client/albums/hooks", () => ({
   useSetPersonAlbumCoverMutation: () => ({ mutate: () => {} }),
   useSetUserAlbumCoverMutation: () => ({ mutate: () => {} }),
@@ -42,7 +47,7 @@ vi.mock("../../api_client/auth/hooks", () => ({
 vi.mock("../../api_client/user/hooks", () => ({
   useCurrentUserSelfDetailsQuery: () => ({ data: userHooks.self, isLoading: false }),
   UserSelfDetailsQueryKeys: ["user"],
-  useUpdateUserMutation: () => ({ mutate: userHooks.mutate }),
+  useUpdateUserMutation: vi.fn(() => ({ mutate: userHooks.mutate })),
 }));
 // A fresh array per call, like the real formatter: that is what made Pig
 // re-lay-out the grid on every parent render.
@@ -61,7 +66,12 @@ vi.mock("./DefaultHeader", () => ({
 vi.mock("../scrollscrubber/ScrollScrubber", () => ({
   ScrollScrubber: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }));
-vi.mock("../lightbox/Lightbox", () => ({ Lightbox: () => null }));
+vi.mock("../lightbox/Lightbox", () => ({
+  Lightbox: (props: any) => {
+    lightbox.props.push(props);
+    return null;
+  },
+}));
 vi.mock("../modals/AlbumCoverPickerModal", () => ({ AlbumCoverPickerModal: () => null }));
 vi.mock("../modals/AlbumEdit/AlbumEditModal", () => ({ AlbumEditModal: () => null }));
 vi.mock("../modals/ModalTagEdit", () => ({ ModalTagEdit: () => null }));
@@ -120,6 +130,13 @@ beforeAll(() => {
     removeEventListener: () => {},
     dispatchEvent: () => false,
   });
+  // jsdom has no ResizeObserver; the header-size SegmentedControl uses one
+  // @ts-ignore
+  globalThis.ResizeObserver ??= class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  };
   // @ts-ignore
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 });
@@ -130,6 +147,7 @@ afterEach(async () => {
   root = null;
   container = null;
   pig.props = [];
+  lightbox.props = [];
   userHooks.self = { id: 1, image_scale: 1 };
   userHooks.mutate.mockReset();
   vi.useRealTimers();
@@ -230,6 +248,64 @@ describe("PhotoListView throttled callbacks", () => {
   });
 });
 
+describe("PhotoListView range selection", () => {
+  const four = ["a", "b", "c", "d"].map(id => ({ id, image_hash: id, url: id }));
+  const placeholder = { id: "0", isTemp: true };
+
+  async function shiftClick(item: object) {
+    await act(async () => pig.props.at(-1).handleClick({ shiftKey: true }, item));
+  }
+
+  it("selects the whole shift-clicked range and keeps what was already selected", async () => {
+    const list = [four[0], four[1], placeholder, four[2], four[3]];
+    await render({ photoset: [{ date: "2024-01-01", location: null, items: list }], idx2hash: list });
+
+    await act(async () => pig.props.at(-1).handleSelection(four[0]));
+    await act(async () => pig.props.at(-1).handleSelection(four[2]));
+    // c .. d, then back to b: c lies in that second range and used to be toggled off
+    await shiftClick(four[3]);
+    await shiftClick(four[1]);
+
+    const selected = pig.props.at(-1).selectedItems.map((item: { id: string }) => item.id);
+    expect(selected.sort()).toEqual(["a", "b", "c", "d"]);
+  });
+});
+
+// Public and shared views have no photo details, so the lightbox learns from
+// the grid item whether to play a video and what date / place to show a
+// non-owner. Each side was tested on its own, and the grid dropped date and
+// location on the way.
+describe("PhotoListView lightbox items", () => {
+  const video = {
+    id: "v",
+    image_hash: "v",
+    url: "v",
+    type: "video",
+    isTemp: false,
+    date: "2024-01-01T10:00:00Z",
+    location: "Berlin, Germany",
+  };
+  const placeholder = { id: "0", isTemp: true };
+
+  it("passes each item's type, isTemp, date and location to the lightbox", async () => {
+    const list = [video, placeholder];
+    await render({ isPublic: true, photoset: [{ date: "2024-01-01", location: null, items: list }], idx2hash: list });
+
+    await act(async () => pig.props.at(-1).handleClick({}, video));
+
+    const { idx2hash } = lightbox.props.at(-1);
+    expect(idx2hash[0]).toMatchObject({
+      id: "v",
+      image_hash: "v",
+      type: "video",
+      isTemp: false,
+      date: "2024-01-01T10:00:00Z",
+      location: "Berlin, Germany",
+    });
+    expect(idx2hash[1]).toMatchObject({ id: "0", isTemp: true });
+  });
+});
+
 describe("PhotoListView display preferences", () => {
   async function openSettingsMenu() {
     const toggle = document.querySelector<HTMLButtonElement>('button[aria-label="Photo Display Settings"]');
@@ -239,9 +315,11 @@ describe("PhotoListView display preferences", () => {
     await act(async () => new Promise(resolve => setTimeout(resolve, 50)));
   }
 
+  // The header sizes are a SegmentedControl: a radio input per option, picked
+  // through its label.
   function headerSizeButton(label: string) {
-    return Array.from(document.querySelectorAll<HTMLButtonElement>("button")).find(
-      button => button.textContent === label
+    return Array.from(document.querySelectorAll<HTMLLabelElement>("label")).find(
+      option => option.textContent === label
     );
   }
 
@@ -269,5 +347,7 @@ describe("PhotoListView display preferences", () => {
     // Both changes arrive in one debounced save, and nothing else is sent.
     expect(userHooks.mutate).toHaveBeenCalledTimes(1);
     expect(userHooks.mutate.mock.calls[0][0]).toEqual({ id: 1, text_alignment: "left", header_size: "small" });
+    // The saves are silent, so tweaking the grid does not pop an "Update user" toast.
+    expect(vi.mocked(useUpdateUserMutation)).toHaveBeenCalledWith({ silent: true });
   });
 });

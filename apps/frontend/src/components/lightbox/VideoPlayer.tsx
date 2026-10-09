@@ -16,10 +16,20 @@ type VideoPlayerProps = {
   fallbackUrl?: string;
   posterUrl?: string;
   height: string;
+  /**
+   * With `height` "auto": the video takes the full width at its own shape, up
+   * to this tall, instead of filling a fixed box.
+   */
+  maxHeight?: string;
   controls: boolean;
   playing: boolean;
   mediaHash?: string;
   onEnded?: () => void;
+  /**
+   * Whether the server can convert this clip at all. A motion photo's clip is
+   * always served as it is, so advising a conversion setting would not help.
+   */
+  convertible?: boolean;
 };
 
 /**
@@ -116,10 +126,12 @@ export const VideoPlayer = memo(function VideoPlayer({
   fallbackUrl,
   posterUrl,
   height,
+  maxHeight,
   controls,
   playing,
   mediaHash,
   onEnded,
+  convertible = true,
 }: VideoPlayerProps) {
   const { t } = useTranslation();
   const { data: auth } = useAccessToken();
@@ -225,8 +237,15 @@ export const VideoPlayer = memo(function VideoPlayer({
   }, []);
 
   const handleError = useCallback(() => {
-    setLoading(false);
-    setErrorKind("unknown");
+    // With a conversion still in reserve the probe most likely ends in a retry,
+    // so keep the spinner up instead of flashing an error panel for a moment.
+    const mayFallBack = !!fallbackUrl && !usingFallbackRef.current;
+    if (mayFallBack) {
+      setLoading(true);
+    } else {
+      setLoading(false);
+      setErrorKind("unknown");
+    }
     setProbing(true);
 
     probeRef.current += 1;
@@ -258,6 +277,7 @@ export const VideoPlayer = memo(function VideoPlayer({
         setLoading(true);
         return;
       }
+      setLoading(false);
       setErrorKind(kind);
       setErrorStatus(status);
       setProbing(false);
@@ -300,6 +320,11 @@ export const VideoPlayer = memo(function VideoPlayer({
       case "missing":
         return t("lightbox.videoerror.missing");
       case "format":
+        // Nothing converts this clip for this viewer: a motion photo's clip is
+        // served as it is, and a visitor without an account always gets the
+        // original (any ?transcode=1 is ignored), so neither the setting nor
+        // "the conversion failed" applies.
+        if (!convertible || !auth?.access) return t("lightbox.videoerror.formatnoconversion");
         // Already converted and still refused: advising a conversion would
         // send the user to a switch that cannot help.
         return src.includes("transcode=1") ? t("lightbox.videoerror.formatconverted") : t("lightbox.videoerror.format");
@@ -357,7 +382,8 @@ export const VideoPlayer = memo(function VideoPlayer({
       errorTitle(),
       errorBody(),
       "",
-      url,
+      // The request that actually failed, which after a fallback is the conversion.
+      src,
       ...(facts.length ? ["", `${t("lightbox.videoerror.diagnosticstitle")}:`, ...facts.map(factToText)] : []),
     ].join("\n");
   };
@@ -408,6 +434,12 @@ export const VideoPlayer = memo(function VideoPlayer({
           color="red"
           title={errorTitle()}
           style={{ maxWidth: 560, backdropFilter: "blur(8px)", background: "rgba(0,0,0,0.75)" }}
+          // The box is dark in both colour schemes, but the light scheme colours
+          // the message black.
+          styles={{
+            message: { color: "var(--mantine-color-white)" },
+            title: { color: "var(--mantine-color-red-4)" },
+          }}
         >
           {probing ? (
             <Group gap="xs">
@@ -461,7 +493,20 @@ export const VideoPlayer = memo(function VideoPlayer({
             borderRadius: "8px",
           }}
         >
-          <Loader color="white" size="lg" />
+          <Stack align="center" gap="sm">
+            <Loader color="white" size="lg" />
+            {/* A conversion can take many seconds to start; say why it waits. */}
+            {src.includes("transcode=1") && (
+              <Text
+                size="sm"
+                c="white"
+                ta="center"
+                style={{ background: "rgba(0,0,0,0.65)", borderRadius: 8, padding: "4px 12px" }}
+              >
+                {t("lightbox.video.converting")}
+              </Text>
+            )}
+          </Stack>
         </Center>
       )}
       {seekHint !== null && (
@@ -478,7 +523,10 @@ export const VideoPlayer = memo(function VideoPlayer({
       )}
       <video
         ref={videoRef}
-        key={`${src}-${retryCount}`}
+        // `url` too: when it changes to the stream already playing (the details
+        // arrived after the fallback picked it), the reset above clears the
+        // ready flag, and only a fresh element fires canplay again.
+        key={`${url}|${src}-${retryCount}`}
         src={src}
         poster={posterUrl}
         controls={controls}
@@ -490,8 +538,11 @@ export const VideoPlayer = memo(function VideoPlayer({
         controlsList="nodownload"
         playsInline
         style={{
+          // Block: inline, the box would grow by a line's descent below it.
+          display: "block",
           width: "100%",
           height,
+          maxHeight,
           objectFit: "contain",
           borderRadius: "8px",
         }}

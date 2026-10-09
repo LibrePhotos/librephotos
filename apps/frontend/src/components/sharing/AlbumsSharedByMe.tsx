@@ -1,7 +1,8 @@
-import { Anchor, Loader, Stack, Text } from "@mantine/core";
-import { useElementSize, useViewportSize } from "@mantine/hooks";
-import { IconPolaroid as Polaroid, IconUser as User } from "@tabler/icons-react";
-import React, { useCallback, useEffect } from "react";
+import { Anchor, Avatar, Loader, Stack, Text } from "@mantine/core";
+import { useDisclosure, useElementSize, useViewportSize } from "@mantine/hooks";
+import { IconShare, IconPolaroid as Polaroid } from "@tabler/icons-react";
+import { Link } from "@tanstack/react-router";
+import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchSharedAlbumsByMeQuery } from "../../api_client/albums/hooks";
 import { useFetchUserListQuery } from "../../api_client/user/hooks";
@@ -9,8 +10,13 @@ import { calculateGridCellSize, calculateSharedAlbumGridCells } from "../../util
 import { Tile } from "../Tile";
 import { VirtualGrid } from "../virtual/VirtualGrid";
 import type { GridCellProps } from "../virtual/VirtualGrid";
+import { AlbumShareButton } from "./AlbumShareButton";
+import { avatarSrc } from "./avatarSrc";
+import { ModalAlbumShare } from "./ModalAlbumShare";
 
 const DAY_HEADER_HEIGHT = 70;
+// Below the cover: a one-line title (md, 24.8px) and the photo count (sm, 20.3px).
+const CAPTION_HEIGHT = 52;
 
 export function AlbumsSharedByMe() {
   const { t } = useTranslation();
@@ -22,6 +28,9 @@ export function AlbumsSharedByMe() {
   const { entrySquareSize, numEntrySquaresPerRow } = calculateGridCellSize((width || window.innerWidth) - 20);
   const { data: albums, isFetching, isSuccess } = useFetchSharedAlbumsByMeQuery();
   const { data: users } = useFetchUserListQuery();
+  // Stop or change a share from here instead of opening each album.
+  const [shareAlbumId, setShareAlbumId] = useState("");
+  const [isShareDialogOpen, { open: openShareDialog, close: closeShareDialog }] = useDisclosure(false);
 
   useEffect(() => {
     if (!isSuccess) {
@@ -36,7 +45,7 @@ export function AlbumsSharedByMe() {
   const rowHeight = useCallback(
     ({ index }: { index: number }) =>
       // a sharer header row, or a row of album covers with their title and count
-      albumGridContents[index][0].user_id ? DAY_HEADER_HEIGHT : entrySquareSize + 40,
+      albumGridContents[index][0].user_id ? DAY_HEADER_HEIGHT : entrySquareSize + CAPTION_HEIGHT,
     [albumGridContents, entrySquareSize]
   );
 
@@ -63,13 +72,13 @@ export function AlbumsSharedByMe() {
               paddingLeft: 5,
             }}
           >
-            <div style={{ display: "flex" }}>
-              <User size={36} style={{ margin: 5 }} />
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <Avatar size={36} radius="xl" src={avatarSrc(owner)} />
               <div>
                 <Text size="md" fw="bold">
                   {displayName}
                 </Text>
-                <Text size="xs" style={{ display: "flex", alignItems: "center" }}>
+                <Text size="xs" c="dimmed" style={{ display: "flex", alignItems: "center" }}>
                   <Polaroid size={16} style={{ marginRight: 5 }} />
                   {t("sharing.youSharedAlbumsWithThem", { count: cell.albums.length })}
                 </Text>
@@ -78,11 +87,13 @@ export function AlbumsSharedByMe() {
           </div>
         );
       }
-      // photo cell
+      // album cell
       return (
         <div key={key} style={{ ...style, padding: 1 }}>
-          <Anchor href={`/album/user/${cell.id}`}>
-            {cell.cover_photo && (
+          <Anchor
+            renderRoot={rootProps => <Link {...rootProps} to="/album/user/$id" params={{ id: String(cell.id) }} />}
+          >
+            {cell.cover_photo ? (
               <Tile
                 style={{ objectFit: "cover" }}
                 width={entrySquareSize - 2}
@@ -90,11 +101,29 @@ export function AlbumsSharedByMe() {
                 image_hash={cell.cover_photo.image_hash}
                 video={cell.cover_photo.video}
               />
+            ) : (
+              <div
+                style={{
+                  width: entrySquareSize - 2,
+                  height: entrySquareSize - 2,
+                  backgroundColor: "light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6))",
+                }}
+              />
             )}
           </Anchor>
-          <Text fw={700}>{cell.title}</Text>
+          <AlbumShareButton
+            label={t("sidemenu.sharing")}
+            icon={<IconShare size={16} color="white" />}
+            onClick={() => {
+              setShareAlbumId(`${cell.id}`);
+              openShareDialog();
+            }}
+          />
+          <Text fw={700} mt={4} lineClamp={1} title={cell.title}>
+            {cell.title}
+          </Text>
           <Text size="sm" c="dimmed">
-            {t("sharing.photoCount", { count: cell.photo_count })}
+            {t("numberofphotos", { count: cell.photo_count, number: cell.photo_count })}
           </Text>
         </div>
       );
@@ -105,14 +134,20 @@ export function AlbumsSharedByMe() {
 
   return (
     <div ref={containerRef}>
-      {isFetching && (
-        <Stack align="center">
+      {/* Only before the first answer: a background refetch kept stacking a
+          loader above the grid. */}
+      {isFetching && !isSuccess && (
+        <Stack align="center" mt="xl">
           <Loader />
           {t("sharing.loadingAlbumsSharedByYou")}
         </Stack>
       )}
 
-      {albumGridContents.length === 0 && isSuccess && <div>{t("sharing.noAlbumsSharedByYou")}</div>}
+      {albumGridContents.length === 0 && isSuccess && (
+        <Stack align="center" mt="xl">
+          <Text c="dimmed">{t("sharing.noAlbumsSharedByYou")}</Text>
+        </Stack>
+      )}
 
       {albumGridContents.length > 0 && (
         <div>
@@ -127,6 +162,8 @@ export function AlbumsSharedByMe() {
           />
         </div>
       )}
+
+      <ModalAlbumShare isOpen={isShareDialogOpen} onRequestClose={closeShareDialog} albumID={shareAlbumId} />
     </div>
   );
 }

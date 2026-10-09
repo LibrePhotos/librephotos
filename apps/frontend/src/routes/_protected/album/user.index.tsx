@@ -1,27 +1,23 @@
-import { Button, Group, Modal, Stack, TextInput, Title } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { IconAlbum as Album } from "@tabler/icons-react";
+import { IconBookmark as Bookmark } from "@tabler/icons-react";
 import { createFileRoute } from "@tanstack/react-router";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  useDeleteUserAlbumMutation,
-  useFetchUserAlbumsQuery,
-  useRenameUserAlbumMutation,
-} from "../../../api_client/albums/hooks";
+import { useFetchUserAlbumsQuery } from "../../../api_client/albums/hooks";
 import { UserAlbumCard } from "../../../components/album/UserAlbumCard";
+import { DeleteUserAlbumModal, RenameUserAlbumModal } from "../../../components/album/UserAlbumModals";
+import { EmptyState } from "../../../components/common/EmptyState";
 import { HeaderComponent } from "../../../components/HeaderComponent";
 import { ModalAlbumShare } from "../../../components/sharing/ModalAlbumShare";
 import { VirtualGrid } from "../../../components/virtual/VirtualGrid";
 import type { GridCellProps } from "../../../components/virtual/VirtualGrid";
-import { useAlbumListGridConfig } from "../../../hooks/useAlbumListGridConfig";
+import { ALBUM_GRID_GUTTER, useAlbumListGridConfig } from "../../../hooks/useAlbumListGridConfig";
 
 export const Route = createFileRoute("/_protected/album/user/")({
   component: AlbumUser,
 });
 
 function AlbumUser() {
-  const [newAlbumTitle, setNewAlbumTitle] = useState("");
   const [albumID, setAlbumID] = useState("");
   const [albumOwner, setAlbumOwner] = useState("");
   const [albumTitle, setAlbumTitle] = useState("");
@@ -29,10 +25,9 @@ function AlbumUser() {
   const [isRenameDialogOpen, { open: showRenameDialog, close: hideRenameDialog }] = useDisclosure(false);
   const [isShareDialogOpen, { open: showShareDialog, close: hideShareDialog }] = useDisclosure(false);
   const { t } = useTranslation();
-  const { data: albums, isFetching } = useFetchUserAlbumsQuery();
+  const { data: albums, isFetching, isLoading } = useFetchUserAlbumsQuery();
   const { entriesPerRow, entrySquareSize, numberOfRows, gridHeight } = useAlbumListGridConfig(albums ?? []);
-  const deleteUserAlbum = useDeleteUserAlbumMutation();
-  const renameUserAlbum = useRenameUserAlbumMutation();
+  const hasAlbums = (albums?.length ?? 0) > 0;
 
   const openDeleteDialog = (id: string, title: string) => {
     showDeleteDialog();
@@ -82,82 +77,54 @@ function AlbumUser() {
   return (
     <div>
       <HeaderComponent
-        icon={<Album size={50} />}
+        icon={<Bookmark size={50} />}
         title={t("myalbums")}
         fetching={isFetching}
         subtitle={t("useralbum.numberof", {
+          count: albums?.length ?? 0,
           number: albums?.length ?? 0,
         })}
       />
-      <Modal size="mini" onClose={hideRenameDialog} opened={isRenameDialogOpen}>
-        <div style={{ padding: 20 }}>
-          <Title order={4}>{t("useralbum.renamealbum")}</Title>
-
-          <Group>
-            <TextInput
-              error={
-                albums?.map(el => el.title.toLowerCase().trim()).includes(newAlbumTitle.toLowerCase().trim()) ? (
-                  <>
-                    {t("useralbum.albumalreadyexists")}, {{ name: newAlbumTitle.trim() }}
-                  </>
-                ) : (
-                  ""
-                )
-              }
-              onChange={v => {
-                setNewAlbumTitle(v.currentTarget.value);
-              }}
-              placeholder={t("useralbum.albumplaceholder")}
-            />
-
-            <Button
-              color="green"
-              onClick={() => {
-                renameUserAlbum.mutate({ id: albumID, title: albumTitle, newTitle: newAlbumTitle });
-                hideRenameDialog();
-              }}
-              disabled={albums?.map(el => el.title.toLowerCase().trim()).includes(newAlbumTitle.toLowerCase().trim())}
-              type="submit"
-            >
-              {t("rename")}
-            </Button>
-          </Group>
-        </div>
-      </Modal>
+      <RenameUserAlbumModal
+        opened={isRenameDialogOpen}
+        onClose={hideRenameDialog}
+        albumId={albumID}
+        albumTitle={albumTitle}
+        existingTitles={albums?.map(album => album.title) ?? []}
+      />
       <ModalAlbumShare
         isOpen={isShareDialogOpen}
         onRequestClose={hideShareDialog}
         albumID={albumID}
         ownerUsername={albumOwner}
       />
-      <Modal opened={isDeleteDialogOpen} onClose={hideDeleteDialog}>
-        <Stack>
-          {t("deletealbumexplanation")}
-          <Group justify="center">
-            <Button color="blue" onClick={hideDeleteDialog}>
-              {t("cancel")}
-            </Button>
-            <Button
-              color="red"
-              onClick={() => {
-                deleteUserAlbum.mutate({ id: albumID, albumTitle });
-                hideDeleteDialog();
-              }}
-            >
-              {t("confirm")}
-            </Button>
-          </Group>
-        </Stack>
-      </Modal>
-      <VirtualGrid
-        style={{ outline: "none" }}
-        cellRenderer={renderCell}
-        columnWidth={entrySquareSize}
-        columnCount={entriesPerRow}
-        height={gridHeight}
-        rowHeight={entrySquareSize + 60}
-        rowCount={numberOfRows}
+      <DeleteUserAlbumModal
+        opened={isDeleteDialogOpen}
+        onClose={hideDeleteDialog}
+        albumId={albumID}
+        albumTitle={albumTitle}
       />
+      {!isLoading && !hasAlbums ? (
+        <EmptyState
+          icon={<Bookmark size={40} />}
+          title={t("emptystate.useralbums.title")}
+          description={t("emptystate.useralbums.description")}
+          actionLabel={t("emptystate.useralbums.action")}
+          actionLink="/"
+          secondaryActionLabel={t("sidemenu.sharedwithyou")}
+          secondaryActionLink="/sharing/withme/albums"
+        />
+      ) : (
+        <VirtualGrid
+          style={{ outline: "none", paddingLeft: ALBUM_GRID_GUTTER }}
+          cellRenderer={renderCell}
+          columnWidth={entrySquareSize}
+          columnCount={entriesPerRow}
+          height={gridHeight}
+          rowHeight={entrySquareSize + 60}
+          rowCount={numberOfRows}
+        />
+      )}
     </div>
   );
 }
