@@ -35,9 +35,9 @@ export {
 
 // Frontend album lists return a lightweight cover photo. Keep the shared album
 // fields while using that same shape throughout the UI. `locked` is optional
-// (absent from servers before #2146; absent means unlocked) and has no
-// .default() here: parseWithNotification types its result by the schema's
-// input, so a default would leave the parsed and the declared type apart.
+// (absent from servers before #2146; absent means unlocked). No .default()
+// here: with zod 3 parseWithNotification typed its result by the schema
+// input, and a default left the parsed and declared album types apart.
 export const UserAlbumInfo = SharedUserAlbumInfo.extend({
   cover_photo: PhotoHash.nullable(),
   locked: z.boolean().optional(),
