@@ -7,7 +7,24 @@ export function describeRuleType(ruleType: string, t: TFunction<"translation", u
   return t(`rules.rule_type_names.${ruleType}`, ruleType);
 }
 
-type RuleValue = string | number | boolean | undefined;
+type RuleValue = string | number | boolean | null | undefined;
+
+/**
+ * A rule param as the list shows it. A rule keeps the keys the schema does not know, so a param
+ * can be any JSON value: a list or an object shows as its JSON (React cannot render an object).
+ */
+function ruleValue(value: unknown): RuleValue {
+  if (
+    value === undefined ||
+    value === null ||
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean"
+  ) {
+    return value;
+  }
+  return JSON.stringify(value);
+}
 
 /** A timezone description as the backend's _get_tz reads it: "utc", "name:<tz>" or a keyword. */
 function describeTimezone(value: RuleValue, t: TFunction<"translation", undefined>): RuleValue {
@@ -27,7 +44,7 @@ export function getRuleExtraInfo(rule: DateTimeRule, t: TFunction<"translation",
         .filter(i => !ignoredProps.includes(i[0]))
         .map(([key, value]): [string, RuleValue] => [
           key,
-          TIMEZONE_PROPS.includes(key) ? describeTimezone(value, t) : value,
+          TIMEZONE_PROPS.includes(key) ? describeTimezone(ruleValue(value), t) : ruleValue(value),
         ])
         .map(prop => (
           <div key={prop[0]}>

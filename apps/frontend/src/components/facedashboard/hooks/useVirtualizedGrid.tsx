@@ -1,37 +1,45 @@
 import { flatten, uniqBy } from "lodash-es";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FaceAnalysisMethod, FacesTab } from "../../../api_client/faces";
+import type { CompletePersonFace, CompletePersonFaceList, PersonFace } from "../../../api_client/faces";
 import { calculateFaceGridCells, calculateFaceGridCellSize } from "../../../util/gridUtils";
+import type { GroupedGridRows } from "../../../util/gridUtils";
 import type { ScrollerData } from "../../scrollscrubber/ScrollScrubberTypes.zod";
 import type { SectionRenderedParams, VirtualGridHandle } from "../../virtual/VirtualGrid";
 
-export type FaceCell = {
-  id: number;
-  face_url: string;
-  image?: string | null;
-  name?: string;
-  isTemp?: boolean;
-  person?: number;
-  photo?: string;
-};
+/** A cell of the faces grid: a person's header, or one of their faces. */
+export type GridCell = CompletePersonFace | PersonFace;
+export type GridRows = GroupedGridRows<CompletePersonFace, PersonFace>;
+
+/**
+ * A face that has been paged in. Until then a face is a placeholder: no image or URL yet,
+ * and its index in the person's list as its id.
+ */
+export type FaceCell = PersonFace & { face_url: string };
 
 export type FaceSelection = {
   face_id: number;
   face_url: string;
 };
 
+/** Header cells are the people; faces have a person_name, not a name. */
+export function isPersonCell(cell: GridCell): cell is CompletePersonFace {
+  return "name" in cell;
+}
+
+/** A face that has been paged in (the backend sends every face with its URL). */
+export function isLoadedFace(cell: GridCell): cell is FaceCell {
+  return !isPersonCell(cell) && !cell.isTemp && cell.face_url !== null;
+}
+
 type RenderedSection = SectionRenderedParams;
 
 // Custom hook to manage grid functionality
 export function useVirtualizedGrid(
   activeTab: FacesTab,
-  lists: {
-    labeled: any[];
-    inferred: any[];
-    unknown: any[];
-  },
+  lists: Readonly<Record<FacesTab, CompletePersonFaceList>>,
   handleCellClick: (e: React.MouseEvent, cell: FaceCell) => void,
-  handleShowClick: (e: React.KeyboardEvent, item: any) => void,
+  handleShowClick: (e: React.MouseEvent, cell: FaceCell) => void,
   onSectionChange: (
     visibleInfos: Array<{
       page: number;
@@ -103,28 +111,33 @@ export function useVirtualizedGrid(
   );
 
   // Get cell contents for the active tab - stable reference due to memoized cellContents
-  const getCellContentsForTab = useCallback((tab: FacesTab) => cellContents[tab] || [], [cellContents]);
+  const getCellContentsForTab = useCallback((tab: FacesTab): GridRows => cellContents[tab] || [], [cellContents]);
 
   // Get endpoint cell for section rendering
-  const getEndpointCell = useCallback((cells: any[][], rowStopIndex: number, columnStopIndex: number) => {
-    if (columnStopIndex < 0) {
-      return undefined;
-    }
-    if (cells[rowStopIndex]?.[columnStopIndex]) {
-      return cells[rowStopIndex][columnStopIndex];
-    }
-    return getEndpointCell(cells, rowStopIndex, columnStopIndex - 1);
-  }, []);
+  const getEndpointCell = useCallback(
+    (cells: GridRows, rowStopIndex: number, columnStopIndex: number): GridCell | undefined => {
+      if (columnStopIndex < 0) {
+        return undefined;
+      }
+      const cell: GridCell | undefined = cells[rowStopIndex]?.[columnStopIndex];
+      if (cell) {
+        return cell;
+      }
+      return getEndpointCell(cells, rowStopIndex, columnStopIndex - 1);
+    },
+    []
+  );
 
   // Generate scroll positions for the scrubber
   const getScrollPositions = useCallback((): ScrollerData[] => {
     const rows = getCellContentsForTab(activeTab);
-    return rows.reduce((positions, row, index) => {
-      if (row[0]?.name) {
-        positions.push({ label: row[0].name, targetY: index * entrySquareSize });
+    return rows.reduce<ScrollerData[]>((positions, row, index) => {
+      const first: GridCell | undefined = row[0];
+      if (first && isPersonCell(first) && first.name) {
+        positions.push({ label: first.name, targetY: index * entrySquareSize });
       }
       return positions;
-    }, [] as ScrollerData[]);
+    }, []);
   }, [activeTab, getCellContentsForTab, entrySquareSize]);
 
   // Request the pages backing the placeholder cells of a rendered section
@@ -136,20 +149,25 @@ export function useVirtualizedGrid(
       columnOverscanStopIndex,
     }: RenderedSection) => {
       const cells = getCellContentsForTab(activeTab);
-      const startPoint = cells[rowOverscanStartIndex]?.[columnOverscanStartIndex];
+      const startPoint: GridCell | undefined = cells[rowOverscanStartIndex]?.[columnOverscanStartIndex];
       const endPoint = getEndpointCell(cells, rowOverscanStopIndex, columnOverscanStopIndex);
 
       if (!startPoint || !endPoint) return;
 
-      const flatCells = flatten(cells);
+      const flatCells = flatten<GridCell>(cells);
       const startIndex = flatCells.indexOf(startPoint);
       const endIndex = flatCells.indexOf(endPoint);
 
       const relevantInfos = flatCells
         .slice(startIndex, endIndex + 1)
-        .filter((i: any) => i?.isTemp)
+        // The placeholders, which fetchIncompleteFaces gives their person's id
+        .filter(
+          (cell): cell is PersonFace & { person: number } =>
+            !isPersonCell(cell) && !!cell.isTemp && typeof cell.person === "number"
+        )
         .map(i => ({
-          page: Math.ceil((parseInt(i.id, 10) + 1) / 100),
+          // A placeholder's id is its index in the person's faces
+          page: Math.ceil((i.id + 1) / 100),
           person: activeTab === FacesTab.enum.unknown ? 0 : i.person,
           inferred: activeTab !== FacesTab.enum.labeled,
           method: analysisMethod,
@@ -190,7 +208,7 @@ export function useVirtualizedGrid(
 
   // Get flattened cell contents for cell range selection
   const getFlattenedCells = useCallback(
-    (): FaceCell[] => flatten(getCellContentsForTab(activeTab)),
+    (): GridCell[] => flatten<GridCell>(getCellContentsForTab(activeTab)),
     [activeTab, getCellContentsForTab]
   );
 

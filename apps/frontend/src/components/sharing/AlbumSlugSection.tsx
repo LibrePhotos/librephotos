@@ -11,7 +11,7 @@ import { UserAlbum } from "../../api_client/albums/types";
 import { ApiError, fetchClient } from "../../api_client/api";
 import { shareAddress } from "../../api_client/apiClient";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
-import { type PublicSharingDefaults, type User } from "../../api_client/user/types";
+import { type PublicSharingDefaults } from "../../api_client/user/types";
 import { copyToClipboard } from "../../util/util";
 
 dayjs.extend(customParseFormat);
@@ -36,10 +36,10 @@ function SlugSetting({ value, onChange, isPublic, albumId, onMetaChange }: SlugP
     enabled,
     queryFn: async () => {
       try {
-        const data = await fetchClient.get<{ results?: { id?: string | number } } | null>(
-          `/public/albums/s/${encodeURIComponent(value)}/`
-        );
-        return data?.results?.id ?? "__exists__";
+        const data = await fetchClient.get(`/public/albums/s/${encodeURIComponent(value)}/`);
+        const album = typeof data === "object" && data !== null && "results" in data ? data.results : undefined;
+        const id = typeof album === "object" && album !== null && "id" in album ? album.id : undefined;
+        return typeof id === "string" || typeof id === "number" ? id : "__exists__";
       } catch (error) {
         // 404 means the slug is free; other HTTP errors don't block saving either.
         if (error instanceof ApiError) return null;
@@ -199,19 +199,19 @@ export function AlbumSlugSection({ albumID, album, isPublic, showSettings, refet
   const [errorMsg, setErrorMsg] = useState("");
 
   const toggleAlbumPublic = useToggleUserAlbumPublicMutation();
-  const { data: currentUser } = useCurrentUserSelfDetailsQuery() as { data: User | undefined };
+  const { data: currentUser } = useCurrentUserSelfDetailsQuery();
 
   // derived values
   // shareAddress carries the subpath the app may be served under.
   const slugLink = album?.public_slug ? `${shareAddress}/public/s/${album.public_slug}` : "";
   const effectiveSlug = slugDirty ? customSlug : album?.public_slug || "";
-  const effectiveExpires = expiresDirty ? expiresAt : (album?.public_expires_at as unknown as string) || "";
+  const effectiveExpires = expiresDirty ? expiresAt : album?.public_expires_at || "";
 
   // initialize from album when it changes (unless user started editing)
   useEffect(() => {
     if (!album) return;
     if (!slugDirty) setCustomSlug(album.public_slug || "");
-    if (!expiresDirty) setExpiresAt((album.public_expires_at as unknown as string) || "");
+    if (!expiresDirty) setExpiresAt(album.public_expires_at || "");
     if (!sharingOptionsDirty && album.public_sharing_options) {
       setSharingOptions(album.public_sharing_options);
     }
@@ -224,8 +224,7 @@ export function AlbumSlugSection({ albumID, album, isPublic, showSettings, refet
 
   const hasChanges = useMemo(() => {
     const slugChanged = slugDirty && effectiveSlug.trim() !== (album?.public_slug || "");
-    const expChanged =
-      expiresDirty && (effectiveExpires || "") !== ((album?.public_expires_at as unknown as string) || "");
+    const expChanged = expiresDirty && (effectiveExpires || "") !== (album?.public_expires_at || "");
     return slugChanged || expChanged || sharingOptionsDirty;
   }, [
     slugDirty,

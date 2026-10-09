@@ -16,6 +16,7 @@
  */
 import { MantineProvider } from "@mantine/core";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import type { UseNavigateResult } from "@tanstack/react-router";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import type { Root } from "react-dom/client";
@@ -23,6 +24,7 @@ import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { Media } from "../../api_client/photos/types";
 import type { DatePhotosGroup, PigPhoto } from "../../api_client/photos/types";
 import { useUpdateUserMutation } from "../../api_client/user/hooks";
+import { defined } from "../../util/defined.test-utils";
 import type { Lightbox } from "../lightbox/Lightbox";
 import type { GroupedImageItem, PigHandle, PigProps } from "../react-pig";
 import { PhotoListView } from "./PhotoListView";
@@ -30,15 +32,19 @@ import type { SelectionBar } from "./SelectionBar";
 
 type LightboxProps = React.ComponentProps<typeof Lightbox>;
 type SelectionBarProps = React.ComponentProps<typeof SelectionBar>;
+type PhotoListViewProps = React.ComponentProps<typeof PhotoListView>;
+type UpdateGroups = NonNullable<PhotoListViewProps["updateGroups"]>;
+type UpdateItems = NonNullable<PhotoListViewProps["updateItems"]>;
+type UpdateUser = ReturnType<typeof useUpdateUserMutation>["mutate"];
 
 const pig = vi.hoisted(() => ({ props: [] as PigProps<PigPhoto>[] }));
 const lightbox = vi.hoisted(() => ({ props: [] as LightboxProps[] }));
 const selectionBar = vi.hoisted(() => ({ props: undefined as SelectionBarProps | undefined }));
 // TanStack Router's useNavigate returns a stable function.
-const navigate = vi.hoisted(() => vi.fn());
+const navigate = vi.hoisted(() => vi.fn<UseNavigateResult<string>>());
 const userHooks = vi.hoisted(() => ({
   self: { id: 1, image_scale: 1 } as Record<string, unknown>,
-  mutate: vi.fn(),
+  mutate: vi.fn<UpdateUser>(),
 }));
 
 vi.mock("@tanstack/react-router", () => ({
@@ -118,9 +124,30 @@ function visibleGroup(id: string | undefined, groupItems: PigPhoto[] = []): Grou
   return { id, date: "2024-01-01", location: null, items: groupItems };
 }
 
-// The handlers only read the modifier keys of the click Pig hands them.
-function click(modifiers: Partial<Pick<React.MouseEvent, "shiftKey" | "ctrlKey" | "metaKey">> = {}) {
-  return { shiftKey: false, ctrlKey: false, metaKey: false, ...modifiers } as React.MouseEvent;
+// A real React click event with these modifier keys, caught on a button rendered for the
+// purpose: the handlers read the modifier keys of the click Pig hands them.
+function click(modifiers: Pick<MouseEventInit, "shiftKey" | "ctrlKey" | "metaKey"> = {}): React.MouseEvent {
+  let caught: React.MouseEvent | undefined;
+  const host = document.createElement("div");
+  document.body.appendChild(host);
+  const clickRoot = createRoot(host);
+  act(() => {
+    clickRoot.render(
+      <button
+        type="button"
+        onClick={event => {
+          caught = event;
+        }}
+      />
+    );
+  });
+  act(() => {
+    host.querySelector("button")?.dispatchEvent(new MouseEvent("click", { bubbles: true, ...modifiers }));
+  });
+  act(() => clickRoot.unmount());
+  host.remove();
+  if (!caught) throw new Error("the click did not reach React");
+  return caught;
 }
 
 function lastPigProps() {
@@ -136,14 +163,14 @@ let root: Root | null = null;
 let container: HTMLDivElement | null = null;
 const queryClient = new QueryClient();
 
-async function render(props: Partial<React.ComponentProps<typeof PhotoListView>>) {
+async function render(props: Partial<PhotoListViewProps>) {
   if (!container) {
     container = document.createElement("div");
     document.body.appendChild(container);
     root = createRoot(container);
   }
   await act(async () => {
-    root!.render(
+    defined(root).render(
       <QueryClientProvider client={queryClient}>
         <MantineProvider>
           <PhotoListView
@@ -163,8 +190,8 @@ async function render(props: Partial<React.ComponentProps<typeof PhotoListView>>
 }
 
 beforeAll(() => {
-  // @ts-ignore - jsdom has no matchMedia, MantineProvider needs it
-  window.matchMedia = (query: string) => ({
+  // jsdom has no matchMedia, MantineProvider needs it
+  window.matchMedia = (query: string): MediaQueryList => ({
     matches: false,
     media: query,
     onchange: null,
@@ -175,13 +202,11 @@ beforeAll(() => {
     dispatchEvent: () => false,
   });
   // jsdom has no ResizeObserver; the header-size SegmentedControl uses one
-  // @ts-ignore
   globalThis.ResizeObserver ??= class {
     observe() {}
     unobserve() {}
     disconnect() {}
   };
-  // @ts-ignore
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 });
 
@@ -235,14 +260,14 @@ describe("PhotoListView memoisation", () => {
 describe("PhotoListView throttled callbacks", () => {
   it("calls the latest updateGroups, not the one from the first render", async () => {
     vi.useFakeTimers();
-    const first = vi.fn();
-    const latest = vi.fn();
+    const first = vi.fn<UpdateGroups>();
+    const latest = vi.fn<UpdateGroups>();
 
     await render({ updateGroups: first });
     await render({ updateGroups: latest });
 
     const visible = [visibleGroup("group")];
-    lastPigProps().updateGroups!(visible);
+    defined(lastPigProps().updateGroups)(visible);
 
     expect(latest).toHaveBeenCalledWith(visible);
     expect(first).not.toHaveBeenCalled();
@@ -250,23 +275,23 @@ describe("PhotoListView throttled callbacks", () => {
 
   it("passes on only the groups with a cursor id, the page loader's key", async () => {
     vi.useFakeTimers();
-    const updateGroups = vi.fn();
+    const updateGroups = vi.fn<UpdateGroups>();
     await render({ updateGroups });
 
-    lastPigProps().updateGroups!([visibleGroup(undefined), visibleGroup("day-2")]);
+    defined(lastPigProps().updateGroups)([visibleGroup(undefined), visibleGroup("day-2")]);
 
     expect(updateGroups).toHaveBeenCalledWith([visibleGroup("day-2")]);
   });
 
   it("calls the latest updateItems", async () => {
     vi.useFakeTimers();
-    const first = vi.fn();
-    const latest = vi.fn();
+    const first = vi.fn<UpdateItems>();
+    const latest = vi.fn<UpdateItems>();
 
     await render({ updateItems: first });
     await render({ updateItems: latest });
 
-    lastPigProps().updateItems!([photo("x")]);
+    defined(lastPigProps().updateItems)([photo("x")]);
 
     expect(latest).toHaveBeenCalledWith([photo("x")]);
     expect(first).not.toHaveBeenCalled();
@@ -274,10 +299,10 @@ describe("PhotoListView throttled callbacks", () => {
 
   it("still throttles: a burst of calls reaches the callback twice at most", async () => {
     vi.useFakeTimers();
-    const updateGroups = vi.fn();
+    const updateGroups = vi.fn<UpdateGroups>();
     await render({ updateGroups });
 
-    const throttled = lastPigProps().updateGroups!;
+    const throttled = defined(lastPigProps().updateGroups);
     for (let i = 0; i < 10; i += 1) throttled([visibleGroup(`day-${i}`)]);
     vi.advanceTimersByTime(600);
 
@@ -288,10 +313,10 @@ describe("PhotoListView throttled callbacks", () => {
 
   it("drops a pending trailing call on unmount", async () => {
     vi.useFakeTimers();
-    const updateGroups = vi.fn();
+    const updateGroups = vi.fn<UpdateGroups>();
     await render({ updateGroups });
 
-    const throttled = lastPigProps().updateGroups!;
+    const throttled = defined(lastPigProps().updateGroups);
     throttled([visibleGroup("day-1")]);
     throttled([visibleGroup("day-2")]);
     await act(async () => root?.unmount());
@@ -307,15 +332,16 @@ describe("PhotoListView range selection", () => {
   const placeholder = photo("0", { isTemp: true });
 
   async function shiftClick(item: PigPhoto) {
-    await act(async () => lastPigProps().handleClick!(click({ shiftKey: true }), item));
+    const event = click({ shiftKey: true });
+    await act(async () => defined(lastPigProps().handleClick)(event, item));
   }
 
   it("selects the whole shift-clicked range and keeps what was already selected", async () => {
     const list = [four[0], four[1], placeholder, four[2], four[3]];
     await render({ photoset: [{ date: "2024-01-01", location: null, items: list }], idx2hash: list });
 
-    await act(async () => lastPigProps().handleSelection!(four[0]));
-    await act(async () => lastPigProps().handleSelection!(four[2]));
+    await act(async () => defined(lastPigProps().handleSelection)(four[0]));
+    await act(async () => defined(lastPigProps().handleSelection)(four[2]));
     // c .. d, then back to b: c lies in that second range and used to be toggled off
     await shiftClick(four[3]);
     await shiftClick(four[1]);
@@ -341,9 +367,10 @@ describe("PhotoListView lightbox items", () => {
     const list = [video, placeholder];
     await render({ isPublic: true, photoset: [{ date: "2024-01-01", location: null, items: list }], idx2hash: list });
 
-    await act(async () => lastPigProps().handleClick!(click(), video));
+    const event = click();
+    await act(async () => defined(lastPigProps().handleClick)(event, video));
 
-    const { idx2hash } = lightbox.props.at(-1)!;
+    const { idx2hash } = defined(lightbox.props.at(-1));
     expect(idx2hash[0]).toMatchObject({
       id: "v",
       image_hash: "v",
@@ -361,7 +388,8 @@ describe("PhotoListView photo page", () => {
     navigate.mockClear();
     await render({});
 
-    await act(async () => lastPigProps().handleClick!(click({ ctrlKey: true }), items[0]));
+    const event = click({ ctrlKey: true });
+    await act(async () => defined(lastPigProps().handleClick)(event, items[0]));
 
     expect(navigate).toHaveBeenCalledWith({ to: "/photo/$id", params: { id: "a" } });
   });
@@ -371,7 +399,7 @@ describe("PhotoListView display preferences", () => {
   async function openSettingsMenu() {
     const toggle = document.querySelector<HTMLButtonElement>('button[aria-label="Photo Display Settings"]');
     expect(toggle).not.toBeNull();
-    await act(async () => toggle!.click());
+    await act(async () => defined(toggle).click());
     // let the menu's open transition mount the dropdown
     await act(async () => new Promise(resolve => setTimeout(resolve, 50)));
   }
@@ -379,9 +407,7 @@ describe("PhotoListView display preferences", () => {
   // The header sizes are a SegmentedControl: a radio input per option, picked
   // through its label.
   function headerSizeButton(label: string) {
-    return Array.from(document.querySelectorAll<HTMLLabelElement>("label")).find(
-      option => option.textContent === label
-    );
+    return Array.from(document.querySelectorAll("label")).find(option => option.textContent === label);
   }
 
   it("saves only the changed preferences, never the avatar URL (#2153)", async () => {
@@ -401,8 +427,8 @@ describe("PhotoListView display preferences", () => {
 
     const leftAlign = document.querySelector<HTMLInputElement>('input[type="checkbox"]');
     expect(leftAlign).not.toBeNull();
-    await act(async () => leftAlign!.click());
-    await act(async () => headerSizeButton("Small")!.click());
+    await act(async () => defined(leftAlign).click());
+    await act(async () => defined(headerSizeButton("Small")).click());
     await act(async () => vi.advanceTimersByTime(600));
 
     // Both changes arrive in one debounced save, and nothing else is sent.
@@ -442,7 +468,7 @@ describe("PhotoListView selection", () => {
   it("clears a select-all when the photoset query changes", async () => {
     await render({ photosetQuery: { hide_screenshots: true } });
     await act(async () => {
-      selectionBar.props!.updateSelectionState({
+      defined(selectionBar.props).updateSelectionState({
         selectMode: true,
         selectAllMode: true,
         selectAllQuery: { hide_screenshots: true },

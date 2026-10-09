@@ -39,6 +39,15 @@ function visibleCookieFolders() {
   return folders;
 }
 
+/**
+ * A JWT cookie's value, or undefined when it is not set. The cookie library
+ * returns whatever it parsed; a token is never JSON, so it stays a string.
+ */
+export function getAuthCookie(name: "access" | "refresh"): string | undefined {
+  const value: unknown = new Cookies().get(name);
+  return typeof value === "string" ? value : undefined;
+}
+
 export function setAuthCookie(name: "access" | "refresh", value: string) {
   const cookies = new Cookies();
   // A copy an earlier version scoped to a folder is listed before the `/` one

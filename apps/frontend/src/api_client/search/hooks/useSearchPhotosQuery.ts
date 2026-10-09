@@ -21,7 +21,7 @@ export const useSearchPhotosQuery = (searchTerm: string, mediaType?: MediaType) 
     queryKey: [...SearchPhotosQueryKeys, searchTerm, mediaType ?? "all", semantic ? "semantic" : "grouped"],
     queryFn: async () => {
       const params = new URLSearchParams({ search: searchTerm, ...mediaTypeToParams(mediaType) });
-      const response = await fetchClient.get<typeof SearchPhotos>(`/photos/searchlist/?${params.toString()}`);
+      const response = await fetchClient.get(`/photos/searchlist/?${params.toString()}`);
 
       // If semantic_search_topk is set, return a flat list
       if (semantic) {

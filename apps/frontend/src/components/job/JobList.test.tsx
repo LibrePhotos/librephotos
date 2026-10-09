@@ -18,11 +18,15 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import { act } from "react-dom/test-utils";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import type { useCancelJobMutation, useDeleteJobMutation } from "../../api_client/jobs/hooks";
 import i18n from "../../i18n";
+import { defined } from "../../util/defined.test-utils";
 import { JobList } from "./JobList";
 
-const navigate = vi.fn();
-const useJobsQuery = vi.fn();
+// The row links JobList navigates to
+const navigate = vi.fn<(options: { to: string }) => void>();
+// Records the arguments the list queries with
+const useJobsQuery = vi.fn<(...args: unknown[]) => void>();
 
 vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => navigate,
@@ -54,28 +58,33 @@ vi.mock("../../api_client/jobs/hooks", () => ({
     useJobsQuery(...args);
     return { data: { count: jobsData.results.length, results: jobsData.results }, isLoading: false };
   },
-  useCancelJobMutation: () => ({ mutate: vi.fn(), isPending: false }),
-  useDeleteJobMutation: () => ({ mutate: vi.fn(), isPending: false }),
+  useCancelJobMutation: () => ({
+    mutate: vi.fn<ReturnType<typeof useCancelJobMutation>["mutate"]>(),
+    isPending: false,
+  }),
+  useDeleteJobMutation: () => ({
+    mutate: vi.fn<ReturnType<typeof useDeleteJobMutation>["mutate"]>(),
+    isPending: false,
+  }),
 }));
 
 // jsdom ships no matchMedia; MantineProvider and useMediaQuery both need it.
 // Reporting a wide viewport keeps the desktop-only columns (incl. Started By) in.
 function mockViewport(wide: boolean) {
-  window.matchMedia = (query: string) =>
-    ({
-      matches: wide && query.includes("min-width"),
-      media: query,
-      onchange: null,
-      addListener: () => {},
-      removeListener: () => {},
-      addEventListener: () => {},
-      removeEventListener: () => {},
-      dispatchEvent: () => false,
-    }) as unknown as MediaQueryList;
+  window.matchMedia = (query: string): MediaQueryList => ({
+    matches: wide && query.includes("min-width"),
+    media: query,
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => false,
+  });
 }
 
 beforeAll(() => {
-  (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+  globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 });
 
 async function render(element: React.ReactElement) {
@@ -96,7 +105,7 @@ async function render(element: React.ReactElement) {
 
 async function clickFirstRow(container: HTMLElement) {
   await act(async () => {
-    container.querySelector("tbody tr")!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    defined(container.querySelector("tbody tr")).dispatchEvent(new MouseEvent("click", { bubbles: true }));
   });
 }
 
@@ -158,7 +167,7 @@ describe("JobList", () => {
 
     const headers = container.querySelectorAll("thead th").length;
     expect(headers).toBe(4);
-    expect(container.querySelector("tbody tr")!.querySelectorAll("td")).toHaveLength(headers);
+    expect(defined(container.querySelector("tbody tr")).querySelectorAll("td")).toHaveLength(headers);
     // The finished job is not waiting for anything.
     expect(container.textContent).not.toContain(i18n.t("joblist.waiting"));
     await unmount();

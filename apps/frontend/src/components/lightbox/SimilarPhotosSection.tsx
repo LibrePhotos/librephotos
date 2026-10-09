@@ -7,7 +7,7 @@ import type { Photo as PhotoType } from "../../api_client/photos/types";
 import { Tile } from "../Tile";
 
 interface SimilarPhotosSectionProps {
-  photoDetail: PhotoType;
+  photoDetail: Pick<PhotoType, "image_hash" | "similar_photos">;
   maxItems?: number;
   showTitle?: boolean;
 }

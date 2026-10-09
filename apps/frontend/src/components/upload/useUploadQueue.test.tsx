@@ -8,7 +8,7 @@ const stubs = vi.hoisted(() => ({
   exists: vi.fn<(url: string) => Promise<unknown>>(),
   uploadChunk: vi.fn<(opts: { form_data: FormData; offset: number; chunk_size: number }) => Promise<unknown>>(),
   uploadFinished: vi.fn<(opts: { formData: FormData; shouldInvalidate: boolean }) => Promise<unknown>>(),
-  invalidate: vi.fn(),
+  invalidate: vi.fn<() => void>(),
 }));
 
 vi.mock("../../api_client/api", () => ({
@@ -53,7 +53,6 @@ const settle = async () => {
 const file = (name: string, bytes: number, type = "image/jpeg") => new File([new Uint8Array(bytes)], name, { type });
 
 beforeAll(() => {
-  // @ts-ignore
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 });
 

@@ -20,6 +20,7 @@
  * entry back to a person.
  */
 import "@mantine/core/styles.css";
+import type { ApiClient } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React, { act, useState } from "react";
@@ -28,6 +29,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { useSetFacesPersonLabelMutation } from "../api_client/faces/hooks/useSetFacesPersonLabelMutation";
 import { ModalPersonEdit } from "../components/modals/ModalPersonEdit";
 import i18n from "../i18n";
+import { defined } from "../util/defined.test-utils";
 import {
   getRecentlyTaggedPeopleIds,
   RECENTLY_TAGGED_PEOPLE_LIMIT,
@@ -44,8 +46,8 @@ const stubs = vi.hoisted(() => ({
     { id: "2", name: "Bob", video: false, face_count: 8, face_photo_url: "/bob", face_url: "/bob" },
     { id: "3", name: "Charlie", video: false, face_count: 3, face_photo_url: "/charlie", face_url: "/charlie" },
   ],
-  setFacesPersonLabel: vi.fn(),
-  post: vi.fn(),
+  setFacesPersonLabel: vi.fn<ReturnType<typeof useSetFacesPersonLabelMutation>["mutate"]>(),
+  post: vi.fn<ApiClient["post"]>(),
 }));
 
 vi.mock("../api_client/apiClient", () => ({ serverAddress: "" }));
@@ -64,8 +66,8 @@ vi.mock("../api_client/api", () => ({
 }));
 
 beforeAll(async () => {
-  // @ts-ignore - jsdom has no matchMedia, MantineProvider needs it
-  window.matchMedia = (query: string) => ({
+  // jsdom has no matchMedia, MantineProvider needs it
+  window.matchMedia = (query: string): MediaQueryList => ({
     matches: false,
     media: query,
     onchange: null,
@@ -75,7 +77,7 @@ beforeAll(async () => {
     removeEventListener: () => {},
     dispatchEvent: () => false,
   });
-  // @ts-ignore - jsdom has no ResizeObserver, the modal's ScrollArea needs it
+  // jsdom has no ResizeObserver, the modal's ScrollArea needs it
   globalThis.ResizeObserver = class {
     observe() {}
 
@@ -83,7 +85,6 @@ beforeAll(async () => {
 
     disconnect() {}
   };
-  // @ts-ignore
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   await i18n.changeLanguage("en");
 });
@@ -96,7 +97,8 @@ beforeEach(() => {
 /** The modal renders into a portal, so everything below reads from the document. */
 function recentlyTaggedSection(): HTMLElement | null {
   const heading = Array.from(document.querySelectorAll("h5")).find(h => h.textContent === "Recently tagged");
-  return (heading?.nextElementSibling as HTMLElement | null) ?? null;
+  const section = heading?.nextElementSibling;
+  return section instanceof HTMLElement ? section : null;
 }
 
 function namesOf(root: ParentNode | null): string[] {
@@ -104,13 +106,17 @@ function namesOf(root: ParentNode | null): string[] {
 }
 
 function personRow(name: string): HTMLButtonElement {
-  return Array.from(document.querySelectorAll("button")).find(
+  const row = Array.from(document.querySelectorAll("button")).find(
     button => button.querySelector("h4")?.textContent === name
-  ) as HTMLButtonElement;
+  );
+  if (!row) throw new Error(`no row for ${name}`);
+  return row;
 }
 
 function filterInput(): HTMLInputElement {
-  return document.querySelector("input") as HTMLInputElement;
+  const input = document.querySelector("input");
+  if (!input) throw new Error("no filter input");
+  return input;
 }
 
 /** React tracks the previous value on the node itself, so plain assignment is swallowed. */
@@ -239,7 +245,8 @@ describe("issue 644 - recently tagged people in the face tagging popup", () => {
     it("labels the selection when a recently tagged person is picked", async () => {
       const modal = await renderModal(["3"]);
 
-      const row = recentlyTaggedSection()?.querySelector("button") as HTMLButtonElement;
+      const row = recentlyTaggedSection()?.querySelector("button");
+      if (!row) throw new Error("no recently tagged person");
       await act(async () => {
         row.click();
       });
@@ -325,7 +332,7 @@ describe("issue 644 - recently tagged people in the face tagging popup", () => {
       });
 
       await act(async () => {
-        await tag!();
+        await defined(tag)();
       });
 
       expect(getRecentlyTaggedPeopleIds()).toEqual(["3"]);

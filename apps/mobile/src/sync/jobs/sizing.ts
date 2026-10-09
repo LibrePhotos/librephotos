@@ -32,7 +32,7 @@
  * read budgets from it. An explicit `budgets` override in the seams bypasses it
  * entirely, which is what keeps the pipeline tests deterministic.
  */
-import { HASH_BATCH_SIZE, SCAN_CHUNK, THUMB_BATCH, type JobKind } from "./types";
+import { HASH_BATCH_SIZE, JOB_KINDS, SCAN_CHUNK, THUMB_BATCH, type JobKind } from "./types";
 
 /**
  * What one job run should aim to take. Comfortably inside the "well under a
@@ -108,8 +108,9 @@ export function createJobSizer(
   const budgets = new Map<JobKind, number>();
   const seed = () => {
     budgets.clear();
-    for (const [kind, spec] of Object.entries(specs) as [JobKind, BudgetSpec][]) {
-      budgets.set(kind, spec.initial);
+    for (const kind of JOB_KINDS) {
+      const spec = specs[kind];
+      if (spec) budgets.set(kind, spec.initial);
     }
   };
   seed();

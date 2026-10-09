@@ -19,6 +19,7 @@ import {
 } from "../actions";
 import { enqueueOutbox, pendingOutboxCount, outboxSummary } from "../outbox";
 import type { OutboxRow } from "../types";
+import { defined } from "@/test/defined";
 
 function outboxRows(t: TestDb): OutboxRow[] {
   return t.db.all(sql`SELECT * FROM outbox ORDER BY id`) as OutboxRow[];
@@ -48,7 +49,7 @@ describe("mutation actions — optimistic write + outbox row", () => {
     const rows = outboxRows(t);
     expect(rows).toHaveLength(1);
     expect(rows[0].kind).toBe("favorite");
-    expect(JSON.parse(rows[0].payload!)).toEqual({ imageHashes: ["hashA"], favorite: true });
+    expect(JSON.parse(defined(rows[0].payload))).toEqual({ imageHashes: ["hashA"], favorite: true });
   });
 
   it("unfavorite resets rating to 0", () => {
@@ -81,7 +82,7 @@ describe("mutation actions — optimistic write + outbox row", () => {
     const detail = t.db.get(sql`SELECT payload FROM remote_photo_detail WHERE photo_id = 'p1'`) as {
       payload: string;
     };
-    expect(JSON.parse(detail.payload).captions_json.user_caption).toBe("Sunset");
+    expect(JSON.parse(detail.payload)).toHaveProperty("captions_json.user_caption", "Sunset");
     expect(pendingOutboxCount(t.db)).toBe(1);
   });
 
@@ -139,7 +140,7 @@ describe("album + person mutations", () => {
     expect(album).toMatchObject({ title: "New", photo_count: 1 });
     const rows = t.db.all(sql`SELECT kind, payload FROM outbox`) as { kind: string; payload: string }[];
     expect(rows[0].kind).toBe("album_create");
-    expect(JSON.parse(rows[0].payload).tempId).toBe(tempId);
+    expect(JSON.parse(rows[0].payload)).toHaveProperty("tempId", tempId);
   });
 
   it("consecutive create-album temp ids never collide", () => {
@@ -165,7 +166,7 @@ describe("outbox helpers", () => {
   it("enqueueOutbox rejects a payload that fails its schema", () => {
     // rating out of range.
     expect(() =>
-      enqueueOutbox(t.db, "rating", { imageHash: "x", rating: 99 } as never)
+      enqueueOutbox(t.db, "rating", { imageHash: "x", rating: 99 })
     ).toThrow();
     expect(pendingOutboxCount(t.db)).toBe(0);
   });

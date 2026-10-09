@@ -4,7 +4,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchDateAlbumQuery, useFetchDateAlbumsQuery } from "../../api_client/albums/hooks";
 import { Photoset, PigPhoto } from "../../api_client/photos/types";
-import { EmptyStateConfig, PhotoGroup, PhotoListView } from "../../components/photolist/PhotoListView";
+import { NO_PHOTO_GROUP } from "../../components/photolist/photoGroup";
+import { EmptyStateConfig, PhotoListView } from "../../components/photolist/PhotoListView";
 import type { PigVisibleGroup } from "../../components/react-pig";
 import { getPhotosFlatFromGroupedByDate } from "../../util/util";
 
@@ -22,7 +23,7 @@ function DeletedPhotos() {
     if (photosGroupedByDate) setPhotosFlat(getPhotosFlatFromGroupedByDate(photosGroupedByDate));
   }, [photosGroupedByDate]);
 
-  const [group, setGroup] = useState({} as PhotoGroup);
+  const [group, setGroup] = useState(NO_PHOTO_GROUP);
   useFetchDateAlbumQuery(
     { album_date_id: group.id, page: group.page, photosetType: Photoset.IN_TRASHCAN },
     { skip: !group.id }

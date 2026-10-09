@@ -11,6 +11,7 @@ import { claimNextJob, enqueueJob, enqueueJobs, failJob } from "@/sync/jobs/queu
 import { MAX_JOB_ATTEMPTS } from "@/sync/jobs/types";
 import { useAuthStore } from "@/stores/auth";
 import { useSyncStore } from "@/stores/sync";
+import { defined } from "@/test/defined";
 
 describe("SyncStatusScreen", () => {
   let t: TestDb;
@@ -56,7 +57,7 @@ describe("SyncStatusScreen", () => {
     const { getByTestId } = renderWithDb(<SyncStatusScreen />, t.db);
     await waitFor(() => {
       expect(getByTestId("outbox-badge")).toBeTruthy();
-      expect(getByTestId("outbox-badge").props.children.props.children).toBe(2);
+      expect(getByTestId("outbox-badge").props.children).toHaveProperty("props.children", 2);
     });
   });
 
@@ -117,14 +118,16 @@ describe("SyncStatusScreen: work queue", () => {
 
   it("shows each failure with its own reason, and offers a retry", async () => {
     enqueueJob(t.db, { kind: "hash_batch" });
-    const job = claimNextJob(t.db, 1_000)!;
+    const job = defined(claimNextJob(t.db, 1_000));
     failJob(t.db, { id: job.id, attempts: MAX_JOB_ATTEMPTS }, "media library denied", 1_000);
 
     const { getByTestId } = renderWithDb(<SyncStatusScreen />, t.db);
     await waitFor(() => {
       // "what is blocking it" — in the queue's own words, not a guess.
       const failure = getByTestId(`sync-queue-failure-${job.id}`);
-      expect(failure.props.children.join("")).toContain("media library denied");
+      const parts: unknown = failure.props.children;
+      if (!Array.isArray(parts)) throw new Error("expected the failure text in parts");
+      expect(parts.join("")).toContain("media library denied");
       expect(getByTestId("sync-queue-retry-button")).toBeTruthy();
     });
   });

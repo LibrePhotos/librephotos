@@ -8,11 +8,15 @@ import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import type { Photo } from "../../api_client/photos/types";
+import { defined } from "../../util/defined.test-utils";
 import type { LightboxControlsProps } from "./lightbox.types";
 import { LightboxControls } from "./LightboxControls";
+import { makePhoto } from "./photoFixture.test-utils";
 
 const stubs = vi.hoisted(() => ({
-  markDeleted: vi.fn(),
+  markDeleted:
+    vi.fn<(variables: { image_hashes: string[]; deleted: boolean }, options: { onSuccess: () => void }) => void>(),
   narrow: false,
 }));
 
@@ -28,40 +32,39 @@ vi.mock("../../api_client/user/hooks/useCurrentUserSelfDetailsQuery", () => ({
 vi.mock("../sharing/PhotoShareLinkModal", () => ({ PhotoShareLinkModal: () => null }));
 
 beforeAll(() => {
-  (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+  globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   // jsdom has neither; the interval picker's dropdown uses both.
-  globalThis.ResizeObserver = class {
+  globalThis.ResizeObserver = class ResizeObserverStub implements ResizeObserver {
     observe() {}
 
     unobserve() {}
 
     disconnect() {}
-  } as unknown as typeof ResizeObserver;
+  };
   Element.prototype.scrollIntoView = () => {};
-  window.matchMedia = (query: string) =>
-    ({
-      matches: stubs.narrow && query.includes("max-width"),
-      media: query,
-      onchange: null,
-      addListener: () => {},
-      removeListener: () => {},
-      addEventListener: () => {},
-      removeEventListener: () => {},
-      dispatchEvent: () => false,
-    }) as unknown as MediaQueryList;
+  window.matchMedia = (query: string): MediaQueryList => ({
+    matches: stubs.narrow && query.includes("max-width"),
+    media: query,
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => false,
+  });
 });
 
 const mounted: Array<() => Promise<void>> = [];
 
 afterEach(async () => {
-  while (mounted.length) await mounted.pop()!();
+  while (mounted.length) await defined(mounted.pop())();
   stubs.markDeleted.mockClear();
   stubs.narrow = false;
 });
 
-const photo = { id: "p1", image_hash: "h1", hidden: false, rating: 0, in_trashcan: false };
+const photo: Partial<Photo> = { id: "p1", image_hash: "h1", hidden: false, rating: 0, in_trashcan: false };
 
-async function renderControls(props: Partial<LightboxControlsProps> & { photo?: object } = {}) {
+async function renderControls(props: Partial<LightboxControlsProps> & { photo?: Partial<Photo> } = {}) {
   const { photo: photoOverride, ...rest } = props;
   // Inside the lightbox's body, as ContentViewer renders it.
   const container = document.createElement("div");
@@ -73,7 +76,7 @@ async function renderControls(props: Partial<LightboxControlsProps> & { photo?: 
     root.render(
       <MantineProvider env="test">
         <LightboxControls
-          photoDetail={{ ...photo, ...photoOverride } as unknown as LightboxControlsProps["photoDetail"]}
+          photoDetail={makePhoto({ ...photo, ...photoOverride })}
           isPhotoDetailsLoading={false}
           lightboxSidebarShow={false}
           setLightBoxSidebarShow={() => {}}
@@ -129,11 +132,11 @@ describe("LightboxControls", () => {
   });
 
   it("moves a photo to the trash and then lets the viewer move on", async () => {
-    const onAfterTrashToggle = vi.fn();
+    const onAfterTrashToggle = vi.fn<() => void>();
     const container = await renderControls({ onAfterTrashToggle });
 
     await act(async () => {
-      container.querySelector<HTMLButtonElement>('[aria-label="lightbox.toolbar.deletePhoto"]')!.click();
+      defined(container.querySelector<HTMLButtonElement>('[aria-label="lightbox.toolbar.deletePhoto"]')).click();
     });
 
     expect(stubs.markDeleted).toHaveBeenCalledWith({ image_hashes: ["h1"], deleted: true }, expect.anything());
@@ -146,7 +149,7 @@ describe("LightboxControls", () => {
 
     expect(container.querySelector('[aria-label="lightbox.toolbar.deletePhoto"]')).toBeNull();
     await act(async () => {
-      container.querySelector<HTMLButtonElement>('[aria-label="lightbox.toolbar.restorePhoto"]')!.click();
+      defined(container.querySelector<HTMLButtonElement>('[aria-label="lightbox.toolbar.restorePhoto"]')).click();
     });
     await act(async () => {
       window.dispatchEvent(new CustomEvent("lightbox-delete-shortcut"));
@@ -209,7 +212,7 @@ describe("LightboxControls", () => {
 
   it("reports a toggle's state once: in the label, or with aria-pressed for zoom", async () => {
     const container = await renderControls({ photo: { rating: 5 }, lightboxSidebarShow: true, isZoomed: true });
-    const button = (label: string) => container.querySelector(`[aria-label="${label}"]`)!;
+    const button = (label: string) => defined(container.querySelector(`[aria-label="${label}"]`));
 
     expect(button("lightbox.toolbar.removeFromFavorites").hasAttribute("aria-pressed")).toBe(false);
     expect(button("lightbox.toolbar.hideInfoPanel").hasAttribute("aria-pressed")).toBe(false);
@@ -218,15 +221,17 @@ describe("LightboxControls", () => {
   });
 
   it("hands focus back to the lightbox once a slideshow interval is picked", async () => {
-    const setSlideshowInterval = vi.fn();
+    const setSlideshowInterval = vi.fn<LightboxControlsProps["setSlideshowInterval"]>();
     const container = await renderControls({ isSlideshowActive: true, setSlideshowInterval });
-    const input = container.querySelector<HTMLInputElement>("input:not([type=hidden])")!;
+    const input = defined(container.querySelector<HTMLInputElement>("input:not([type=hidden])"));
 
     await act(async () => {
       input.focus();
       input.click();
     });
-    const option = [...container.querySelectorAll<HTMLElement>('[role="option"]')].find(o => o.textContent === "10s")!;
+    const option = defined(
+      [...container.querySelectorAll<HTMLElement>('[role="option"]')].find(o => o.textContent === "10s")
+    );
     await act(async () => option.click());
 
     expect(setSlideshowInterval).toHaveBeenCalledWith(10);

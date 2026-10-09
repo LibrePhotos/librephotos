@@ -2,7 +2,7 @@
  * React Query hook for fetching photo metadata
  */
 
-import { useQuery, UseQueryOptions } from "@tanstack/react-query";
+import { skipToken, useQuery, UseQueryOptions } from "@tanstack/react-query";
 import { fetchPhotoMetadata } from "../metadata";
 import type { PhotoMetadata } from "../types";
 
@@ -19,7 +19,7 @@ export function useFetchPhotoMetadataQuery(
     // Goes through the api_client function so the response is validated against
     // the PhotoMetadata schema instead of being blind-cast.
     queryKey: ["photoMetadata", photoId],
-    queryFn: () => fetchPhotoMetadata(photoId!),
+    queryFn: photoId ? () => fetchPhotoMetadata(photoId) : skipToken,
     enabled: !!photoId,
     staleTime: 30 * 1000, // 30 seconds - metadata changes rarely
     ...options,

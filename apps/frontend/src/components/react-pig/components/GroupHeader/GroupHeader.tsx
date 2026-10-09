@@ -1,14 +1,6 @@
 import React from "react";
+import type { HeaderSize, PigSettings } from "../../types";
 import styles from "./styles.module.css";
-
-// TypeScript types
-type PigSettings = {
-  gridGap: number;
-  bgColor: string;
-  thumbnailSize?: number;
-  expandedSize?: number;
-  headerSize?: "large" | "normal" | "small";
-};
 
 // A laid-out date group (Pig's GroupedImageItem after computeLayoutGroups).
 type Group = {
@@ -19,11 +11,11 @@ type Group = {
 };
 
 type GroupHeaderProps = {
-  settings: PigSettings;
+  settings: Pick<PigSettings, "gridGap" | "bgColor">;
   group: Group;
   activeTileUrl?: string | null;
   textAlignment?: "left" | "right";
-  headerSize?: "large" | "normal" | "small";
+  headerSize?: HeaderSize;
 };
 
 export default function GroupHeader({

@@ -10,7 +10,7 @@ export const useFetchUserSelfDetailsQuery = (userId: string) =>
   useQuery<User>({
     queryKey: [...UserSelfDetailsQueryKeys, userId],
     queryFn: async () => {
-      const response = await fetchClient.get<User>(`/user/${userId}/`);
+      const response = await fetchClient.get(`/user/${userId}/`);
       return parseWithNotification(User, response, "Failed to parse user self details");
     },
     enabled: !!userId,

@@ -12,21 +12,24 @@ import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import i18n from "../i18n";
+import { defined } from "../util/defined.test-utils";
 import { safeRedirect } from "./login";
+
+type ValidateSearch = (search: Record<string, unknown>) => { redirect?: string };
 
 const stubs = vi.hoisted(() => ({
   component: undefined as React.ComponentType | undefined,
-  validateSearch: undefined as ((search: Record<string, unknown>) => { redirect?: string }) | undefined,
+  validateSearch: undefined as ValidateSearch | undefined,
   search: {} as { redirect?: string },
   isAuthenticated: false,
-  login: vi.fn(),
-  loginOptions: vi.fn(),
-  navigateProps: vi.fn(),
+  login: vi.fn<(credentials: { username: string; password: string }, options?: unknown) => void>(),
+  loginOptions: vi.fn<(options: unknown) => void>(),
+  navigateProps: vi.fn<(props: Record<string, unknown>) => void>(),
   noopMutation: { mutate: () => {}, isPending: false },
 }));
 
 vi.mock("@tanstack/react-router", () => ({
-  createFileRoute: () => (options: { component?: React.ComponentType; validateSearch?: any }) => {
+  createFileRoute: () => (options: { component?: React.ComponentType; validateSearch?: ValidateSearch }) => {
     stubs.component = options.component;
     stubs.validateSearch = options.validateSearch;
     return { useSearch: () => stubs.search };
@@ -71,8 +74,8 @@ let root: ReturnType<typeof createRoot> | undefined;
 let container: HTMLDivElement;
 
 beforeAll(async () => {
-  // @ts-ignore - jsdom has no matchMedia, MantineProvider needs it
-  window.matchMedia = (query: string) => ({
+  // jsdom has no matchMedia, MantineProvider needs it
+  window.matchMedia = (query: string): MediaQueryList => ({
     matches: false,
     media: query,
     onchange: null,
@@ -82,7 +85,6 @@ beforeAll(async () => {
     removeEventListener: () => {},
     dispatchEvent: () => false,
   });
-  // @ts-ignore
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   await i18n.changeLanguage("en");
 });
@@ -102,12 +104,16 @@ afterEach(async () => {
 });
 
 async function renderLogin() {
-  const Login = stubs.component!;
+  const Login = stubs.component;
+  if (!Login) {
+    throw new Error("the route module did not register its component");
+  }
   container = document.createElement("div");
   document.body.appendChild(container);
-  root = createRoot(container);
+  const mounted = createRoot(container);
+  root = mounted;
   await act(async () => {
-    root!.render(
+    mounted.render(
       <MantineProvider>
         <Login />
       </MantineProvider>
@@ -137,8 +143,8 @@ describe("safeRedirect", () => {
   });
 
   it("is what the route's search validator applies", () => {
-    expect(stubs.validateSearch!({ redirect: "/albums" })).toEqual({ redirect: "/albums" });
-    expect(stubs.validateSearch!({ redirect: "//evil.example" })).toEqual({ redirect: undefined });
+    expect(defined(stubs.validateSearch)({ redirect: "/albums" })).toEqual({ redirect: "/albums" });
+    expect(defined(stubs.validateSearch)({ redirect: "//evil.example" })).toEqual({ redirect: undefined });
   });
 });
 

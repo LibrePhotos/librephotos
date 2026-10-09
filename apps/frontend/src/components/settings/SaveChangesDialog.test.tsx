@@ -18,19 +18,18 @@ vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => k
 let desktop = false;
 
 beforeAll(() => {
-  (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+  globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   // Only the "sm and up" query of useMatches matters; a phone matches none of them.
-  window.matchMedia = (query: string) =>
-    ({
-      matches: desktop && query.includes("min-width"),
-      media: query,
-      onchange: null,
-      addListener: () => {},
-      removeListener: () => {},
-      addEventListener: () => {},
-      removeEventListener: () => {},
-      dispatchEvent: () => false,
-    }) as unknown as MediaQueryList;
+  window.matchMedia = (query: string): MediaQueryList => ({
+    matches: desktop && query.includes("min-width"),
+    media: query,
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => false,
+  });
 });
 
 let cleanup: (() => Promise<void>) | undefined;
@@ -40,9 +39,14 @@ afterEach(async () => {
   cleanup = undefined;
 });
 
+function found<T>(element: T | null | undefined, what: string): T {
+  if (element === null || element === undefined) throw new Error(`${what} not found`);
+  return element;
+}
+
 async function render(props: Partial<React.ComponentProps<typeof SaveChangesDialog>> = {}) {
-  const onSave = vi.fn();
-  const onCancel = vi.fn();
+  const onSave = vi.fn<() => void>();
+  const onCancel = vi.fn<() => void>();
   const container = document.createElement("div");
   document.body.appendChild(container);
   const root = createRoot(container);
@@ -59,9 +63,12 @@ async function render(props: Partial<React.ComponentProps<typeof SaveChangesDial
     });
     container.remove();
   };
-  const dialog = document.body.querySelector<HTMLElement>('[data-testid="save-changes-dialog"]')!;
+  const dialog = found(document.body.querySelector<HTMLElement>('[data-testid="save-changes-dialog"]'), "dialog");
   const button = (label: string) =>
-    [...dialog.querySelectorAll("button")].find(b => b.textContent?.trim() === label) as HTMLButtonElement;
+    found(
+      [...dialog.querySelectorAll("button")].find(b => b.textContent?.trim() === label),
+      `button "${label}"`
+    );
   return { dialog, button, onSave, onCancel };
 }
 
@@ -93,7 +100,7 @@ describe("SaveChangesDialog", () => {
       button("settings.nextcloudcancel").click();
     });
     await act(async () => {
-      dialog.querySelector<HTMLButtonElement>(".mantine-Dialog-closeButton")!.click();
+      found(dialog.querySelector<HTMLButtonElement>(".mantine-Dialog-closeButton"), "close button").click();
     });
 
     expect(onCancel).toHaveBeenCalledTimes(2);

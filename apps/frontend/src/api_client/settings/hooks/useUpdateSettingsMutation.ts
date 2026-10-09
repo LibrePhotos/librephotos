@@ -2,8 +2,7 @@ import { useMutation } from "@tanstack/react-query";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient, queryClient } from "../../api";
 import { SiteSettings } from "../types";
-
-export const SiteSettingsQueryKeys = ["siteSettings"] as const;
+import { SiteSettingsQueryKeys } from "./useGetSettingsQuery";
 
 export const useUpdateSettingsMutation = () =>
   useMutation({

@@ -28,15 +28,16 @@ function PublicAlbumBySlug() {
     queryKey: ["publicAlbumBySlug", slug],
     retry: false,
     queryFn: async () => {
-      let json: { results: unknown };
+      let json: unknown;
       try {
         // Through fetchClient so the request is prefixed with PUBLIC_URL.
-        json = await fetchClient.get<{ results: unknown }>(`/public/albums/s/${slug}/`);
+        json = await fetchClient.get(`/public/albums/s/${slug}/`);
       } catch (error) {
         if (error instanceof ApiError && error.status === 404) return null;
         throw error;
       }
-      return parseWithNotification(UserAlbum, json.results, "Failed to parse public album");
+      const results = typeof json === "object" && json !== null && "results" in json ? json.results : undefined;
+      return parseWithNotification(UserAlbum, results, "Failed to parse public album");
     },
   });
 

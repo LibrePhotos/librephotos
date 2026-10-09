@@ -15,10 +15,11 @@ import { getRouteApi, useNavigate } from "@tanstack/react-router";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FaceAnalysisMethod, FacesOrderOption, useTrainFacesMutation } from "../../api_client/faces";
+import type { FaceSelection } from "./hooks/useVirtualizedGrid";
 
 type Props = Readonly<{
   selectMode: boolean;
-  selectedFaces: any;
+  selectedFaces: readonly FaceSelection[];
   changeSelectMode: () => void;
   addFaces: () => void;
   deleteFaces: () => void;
@@ -79,7 +80,8 @@ export function HeaderButtons({
               w={150}
               value={orderBy}
               onChange={value => {
-                navigate({ to: "/faces", search: { ...search, orderBy: value as FacesOrderOption } });
+                // Picking the selected option again clears it (null): the route then falls back to its default
+                navigate({ to: "/faces", search: { ...search, orderBy: FacesOrderOption.safeParse(value).data } });
               }}
               leftSection={<SortDescending size={16} />}
               data={[
@@ -102,7 +104,7 @@ export function HeaderButtons({
                   w={150}
                   value={analysisMethod}
                   onChange={value => {
-                    navigate({ to: "/faces", search: { ...search, method: value as FaceAnalysisMethod } });
+                    navigate({ to: "/faces", search: { ...search, method: FaceAnalysisMethod.safeParse(value).data } });
                   }}
                   leftSection={<Filter size={16} />}
                   data={[

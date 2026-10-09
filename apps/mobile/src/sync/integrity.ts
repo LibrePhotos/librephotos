@@ -24,6 +24,10 @@ const COUNT_KEY_TO_ENTITY: Record<keyof LocalCounts, SyncEntity> = {
   tags: "tag_album",
 };
 
+function isCountKey(key: string): key is keyof LocalCounts {
+  return Object.prototype.hasOwnProperty.call(COUNT_KEY_TO_ENTITY, key);
+}
+
 export type IntegrityDrift = {
   key: keyof LocalCounts;
   entity: SyncEntity;
@@ -45,7 +49,7 @@ export function checkIntegrity(
 ): IntegrityReport {
   const local = localCounts(db);
   const drifts: IntegrityDrift[] = [];
-  for (const key of Object.keys(COUNT_KEY_TO_ENTITY) as (keyof LocalCounts)[]) {
+  for (const key of Object.keys(COUNT_KEY_TO_ENTITY).filter(isCountKey)) {
     const l = local[key];
     const s = server[key] ?? 0;
     if (Math.abs(l - s) > tolerance) {

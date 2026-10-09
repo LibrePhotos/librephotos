@@ -12,11 +12,13 @@ export const Job = z.object({
   job_type: z.number(),
   job_type_str: z.string(),
   started_by: SimpleUser,
-  error: z.any().optional(),
+  // Not sent by current servers (LongRunningJobSerializer has no such field).
+  error: z.unknown().optional(),
   progress_current: z.number().optional(),
   progress_target: z.number().optional(),
   progress_step: z.string().nullable().optional(),
-  result: z.record(z.string(), z.any()).nullable().optional(),
+  // Whatever the job reported: status, error, error_count, errors, counts...
+  result: z.record(z.string(), z.unknown()).nullable().optional(),
   id: z.number(),
 });
 export type Job = z.infer<typeof Job>;
@@ -44,7 +46,8 @@ export const JobDetail = z.object({
   progress_target: z.number(),
   progress_current: z.number(),
   progress_step: z.string().nullable().optional(),
-  result: z.record(z.string(), z.any()).nullable().optional(),
+  // Whatever the job reported: status, error, error_count, errors, counts...
+  result: z.record(z.string(), z.unknown()).nullable().optional(),
 });
 export type JobDetail = z.infer<typeof JobDetail>;
 

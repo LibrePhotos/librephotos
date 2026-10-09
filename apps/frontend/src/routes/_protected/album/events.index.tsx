@@ -10,6 +10,7 @@ import { DateTime } from "luxon";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useDeleteAutoAlbumMutation, useFetchAutoAlbumsQuery } from "../../../api_client/albums/hooks";
+import type { AutoAlbumInfo } from "../../../api_client/albums/types";
 import { useGenerateAutoAlbumsMutation } from "../../../api_client/jobs/hooks";
 import { eventStartDate } from "../../../components/album/eventDate";
 import { EmptyState } from "../../../components/common/EmptyState";
@@ -35,8 +36,8 @@ function AlbumAuto() {
   const { t } = useTranslation();
   const hasAlbums = albums && albums.length > 0;
 
-  function deleteAlbum(album) {
-    setAutoAlbumID(album.id);
+  function deleteAlbum(album: AutoAlbumInfo) {
+    setAutoAlbumID(String(album.id));
     setAutoAlbumTitle(album.title);
     showDeleteDialog();
   }

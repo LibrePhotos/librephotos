@@ -5,6 +5,7 @@ import {
   timelineFilterToParams,
   type TimelineFilter,
 } from "../../../components/photolist/timelineFilter";
+import { definedSearchParams } from "../../../util/util";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient, queryClient } from "../../api";
 import { IncompleteDatePhotosGroup, Photoset } from "../../photos/types";
@@ -51,9 +52,7 @@ export const useFetchDateAlbumQuery = (options: AlbumDateOption, queryOptions?: 
       // The trailing slash matters: without it Django answers every day page
       // with a 301 to the slashed URL.
       const response = await fetchClient.get(
-        `/albums/date/${options.album_date_id}/?${new URLSearchParams(
-          Object.entries(params).filter(([, v]) => v !== undefined) as [string, string][]
-        ).toString()}`
+        `/albums/date/${options.album_date_id}/?${definedSearchParams(params).toString()}`
       );
 
       const parsed = parseWithNotification(FetchDateAlbumResponse, response, "Failed to load photos");
@@ -61,7 +60,7 @@ export const useFetchDateAlbumQuery = (options: AlbumDateOption, queryOptions?: 
 
       // Get the current data from cache
       const dateAlbumsQueryKey = [...DateAlbumsQueryKeys, ...dateAlbumsListKey(options)];
-      const oldData = queryClient.getQueryData(dateAlbumsQueryKey) as IncompleteDatePhotosGroup[] | undefined;
+      const oldData = queryClient.getQueryData<IncompleteDatePhotosGroup[]>(dateAlbumsQueryKey);
 
       if (oldData) {
         const newData = [...oldData];

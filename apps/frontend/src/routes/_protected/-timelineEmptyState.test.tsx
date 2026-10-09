@@ -11,6 +11,7 @@ import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import i18n from "../../i18n";
+import { defined } from "../../util/defined.test-utils";
 
 const stubs = vi.hoisted(() => ({
   components: {} as Record<string, React.ComponentType | undefined>,
@@ -58,7 +59,6 @@ vi.mock("../../components/photolist/PhotoListView", () => ({
 }));
 
 beforeAll(async () => {
-  // @ts-ignore
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   await i18n.changeLanguage("en");
   // The cold import of the routes takes seconds, longer when the suite runs in parallel
@@ -74,13 +74,13 @@ beforeEach(() => {
 });
 
 async function renderRoute(path: string) {
-  const Component = stubs.components[path]!;
+  const Component = defined(stubs.components[path]);
   const root = createRoot(document.createElement("div"));
   await act(async () => {
     root.render(<Component />);
   });
   act(() => root.unmount());
-  return stubs.emptyStateConfig!;
+  return defined(stubs.emptyStateConfig);
 }
 
 describe.each([

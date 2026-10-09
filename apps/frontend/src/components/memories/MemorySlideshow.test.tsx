@@ -11,7 +11,15 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import { act } from "react-dom/test-utils";
 import { describe, expect, it, vi } from "vitest";
+import type { PigPhoto } from "../../api_client/photos/types";
+import { tempPigPhoto } from "../../util/util";
+import type { ContentViewer } from "../lightbox/ContentViewer";
 import { MemorySlideshow } from "./MemorySlideshow";
+
+type ViewerProps = Pick<
+  React.ComponentProps<typeof ContentViewer>,
+  "mainSrc" | "nextSrc" | "onMoveNextRequest" | "onMovePrevRequest" | "startSlideshow"
+>;
 
 // vitest hoists these above the imports, so the stubs are in place either way.
 vi.mock("../../api_client/photos/hooks", () => ({
@@ -20,7 +28,7 @@ vi.mock("../../api_client/photos/hooks", () => ({
 
 // Stands in for the viewer, exposing what it would otherwise do on a timer.
 vi.mock("../lightbox/ContentViewer", () => ({
-  ContentViewer: ({ mainSrc, nextSrc, onMoveNextRequest, onMovePrevRequest, startSlideshow }: any) => (
+  ContentViewer: ({ mainSrc, nextSrc, onMoveNextRequest, onMovePrevRequest, startSlideshow }: ViewerProps) => (
     <div>
       <span data-testid="shown">{mainSrc}</span>
       <span data-testid="next">{nextSrc ?? "end"}</span>
@@ -31,11 +39,11 @@ vi.mock("../lightbox/ContentViewer", () => ({
   ),
 }));
 
-function photo(id: string) {
-  return { id, image_hash: `hash-${id}`, aspectRatio: 1 } as any;
+function photo(id: string): PigPhoto {
+  return { ...tempPigPhoto(id), image_hash: `hash-${id}`, isTemp: false };
 }
 
-function play(items: any[]) {
+function play(items: PigPhoto[]) {
   const container = document.createElement("div");
   document.body.appendChild(container);
   const root = createRoot(container);

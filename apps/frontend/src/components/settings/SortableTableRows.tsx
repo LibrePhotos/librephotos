@@ -30,7 +30,9 @@ class RowPointerSensor extends PointerSensor {
     {
       eventName: "onPointerDown" as const,
       handler: ({ nativeEvent: event }: PointerEvent) =>
-        event.isPrimary && event.button === 0 && !(event.target as Element | null)?.closest(INTERACTIVE),
+        event.isPrimary &&
+        event.button === 0 &&
+        !(event.target instanceof Element && event.target.closest(INTERACTIVE)),
     },
   ];
 }

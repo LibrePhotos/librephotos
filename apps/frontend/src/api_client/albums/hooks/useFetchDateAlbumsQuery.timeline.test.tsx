@@ -3,22 +3,21 @@
  * day requests as params, and is part of both query keys, so a cached page of
  * one filter is never shown (or merged) under another.
  */
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { Photoset } from "../../photos/types";
 
-const stubs = vi.hoisted(() => ({
-  get: vi.fn(),
-  queryClient: undefined as unknown as QueryClient,
-}));
-
-vi.mock("../../api", async () => {
-  const { QueryClient: Client } = await import("@tanstack/react-query");
-  stubs.queryClient = new Client({ defaultOptions: { queries: { retry: false } } });
-  return { fetchClient: { get: stubs.get }, queryClient: stubs.queryClient };
+const stubs = await vi.hoisted(async () => {
+  const { QueryClient } = await import("@tanstack/react-query");
+  return {
+    get: vi.fn<(endpoint: string) => Promise<unknown>>(),
+    queryClient: new QueryClient({ defaultOptions: { queries: { retry: false } } }),
+  };
 });
+
+vi.mock("../../api", () => ({ fetchClient: { get: stubs.get }, queryClient: stubs.queryClient }));
 
 const { useFetchDateAlbumsQuery } = await import("./useFetchDateAlbumsQuery");
 const { useFetchDateAlbumQuery } = await import("./useFetchDateAlbumQuery");
@@ -26,7 +25,6 @@ const { useFetchDateAlbumQuery } = await import("./useFetchDateAlbumQuery");
 const filter = { media: "photos" as const, hide_screenshots: true, hide_documents: false, favorites: false };
 
 beforeAll(() => {
-  // @ts-ignore
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 });
 

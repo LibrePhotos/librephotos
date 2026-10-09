@@ -9,7 +9,7 @@ import { VirtualGrid } from "../virtual/VirtualGrid";
 import type { GridCellProps, SectionRenderedParams, VirtualGridHandle } from "../virtual/VirtualGrid";
 import { FaceComponent } from "./FaceComponent";
 import { HeaderComponent } from "./HeaderComponent";
-import { FaceCell, FaceSelection } from "./hooks/useVirtualizedGrid";
+import { FaceCell, FaceSelection, GridCell, GridRows, isLoadedFace, isPersonCell } from "./hooks/useVirtualizedGrid";
 import classes from "./VirtualizedGridComponent.module.css";
 
 interface VirtualizedGridComponentProps {
@@ -18,14 +18,14 @@ interface VirtualizedGridComponentProps {
   entrySquareSize: number;
   numEntrySquaresPerRow: number;
   gridHeight: number;
-  getCellContentsForTab: (tab: FacesTab) => any[][];
+  getCellContentsForTab: (tab: FacesTab) => GridRows;
   getScrollPositions: () => ScrollerData[];
   handleScrubberScroll: (y: number) => void;
   onSectionRendered: (params: SectionRenderedParams) => void;
   scrollPosition: number | undefined;
   onScroll: (params: { scrollTop: number }) => void;
   handleCellClick: (e: React.MouseEvent, cell: FaceCell) => void;
-  handleShowClick: (e: React.KeyboardEvent, item: any) => void;
+  handleShowClick: (e: React.MouseEvent, cell: FaceCell) => void;
   selectMode: boolean;
   selectedFaces: FaceSelection[];
   setSelectedFaces: (faces: FaceSelection[]) => void;
@@ -58,10 +58,10 @@ export function VirtualizedGridComponent({
   // Cell renderer for the virtualized grid
   const cellRenderer = useCallback(
     ({ columnIndex, key, rowIndex, style }: GridCellProps) => {
-      const cell = getCellContentsForTab(activeTab)[rowIndex]?.[columnIndex];
+      const cell: GridCell | undefined = getCellContentsForTab(activeTab)[rowIndex]?.[columnIndex];
       if (!cell) return null;
 
-      if (cell.name) {
+      if (isPersonCell(cell)) {
         return (
           <HeaderComponent
             key={key}
@@ -75,7 +75,8 @@ export function VirtualizedGridComponent({
         );
       }
 
-      if (cell.isTemp) {
+      // A placeholder until its page has loaded
+      if (!isLoadedFace(cell)) {
         return <div key={key} style={{ ...style, height: entrySquareSize, width: entrySquareSize }} />;
       }
 

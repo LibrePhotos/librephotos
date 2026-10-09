@@ -1,17 +1,17 @@
 import { fireEvent, waitFor } from "@testing-library/react-native";
 import { sql } from "drizzle-orm";
 import { SearchScreen } from "./SearchScreen";
-import { renderWithDb, makeMockClient, jsonResponse } from "@/test/test-utils";
+import { renderWithDb, makeMockClient, jsonResponse, mockRouter } from "@/test/test-utils";
 import { createTestDb, type TestDb } from "@/db/test-db";
 import { seedRemotePhotos, remotePhoto } from "@/db/__tests__/fixtures";
 import { getRecentSearches, pushRecentSearch } from "@/db/queries/search";
 import type { AppDatabase } from "@/db/types";
 
 function setOnline(v: boolean) {
-  (globalThis as { __mockNetworkConnected?: boolean }).__mockNetworkConnected = v;
+  globalThis.__mockNetworkConnected = v;
 }
 
-const router = (globalThis as { __mockRouter?: { push: jest.Mock } }).__mockRouter!;
+const router = mockRouter();
 
 const SERVER_RESULTS = {
   results: [

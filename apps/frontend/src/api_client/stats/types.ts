@@ -1,14 +1,19 @@
 import { z } from "zod";
 
-export const LocationSunburst = z.lazy(() =>
+/** One node of the location tree (sunburst chart): a place and the places in it. */
+export interface LocationSunburst {
+  name: string;
+  hex?: string;
+  children?: LocationSunburst[];
+}
+
+export const LocationSunburst: z.ZodType<LocationSunburst> = z.lazy(() =>
   z.object({
     name: z.string(),
     hex: z.string().optional(),
     children: z.array(LocationSunburst).optional(),
   })
 );
-
-export type LocationSunburst = z.infer<typeof LocationSunburst>;
 
 export const CountStats = z.object({
   num_photos: z.number(),

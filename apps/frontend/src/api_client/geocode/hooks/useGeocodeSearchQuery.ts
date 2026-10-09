@@ -9,7 +9,7 @@ export const useGeocodeSearchQuery = (query: string, enabled: boolean = true) =>
   useQuery({
     queryKey: [...GeocodeSearchQueryKeys, query],
     queryFn: async (): Promise<GeocodeSearchResponse> => {
-      const response = await fetchClient.get<GeocodeSearchResponse>(`/geocode/search?q=${encodeURIComponent(query)}`);
+      const response = await fetchClient.get(`/geocode/search?q=${encodeURIComponent(query)}`);
       return parseWithNotification(GeocodeSearchResponseSchema, response, "Failed to parse geocode search response");
     },
     enabled: enabled && query.trim().length > 2,

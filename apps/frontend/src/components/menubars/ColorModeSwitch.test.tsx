@@ -14,8 +14,8 @@ let root: Root;
 let container: HTMLDivElement;
 
 const mockOsScheme = (dark: boolean) => {
-  // @ts-ignore - jsdom has no matchMedia
-  window.matchMedia = (query: string) => ({
+  // jsdom has no matchMedia
+  window.matchMedia = (query: string): MediaQueryList => ({
     matches: dark && query.includes("dark"),
     media: query,
     onchange: null,
@@ -40,7 +40,6 @@ const render = async () => {
 };
 
 beforeAll(async () => {
-  // @ts-ignore
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   await i18n.changeLanguage("en");
 });

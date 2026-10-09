@@ -16,8 +16,7 @@ export const useFetchFolderSubfoldersInfiniteQuery = (
       const params = new URLSearchParams();
       if (path) params.set("path", path);
       params.set("page", String(page));
-      const response = await fetchClient.get(`/folders/subfolders/?${params.toString()}`);
-      return response as FolderNavigationResponse;
+      return fetchClient.get<FolderNavigationResponse>(`/folders/subfolders/?${params.toString()}`);
     },
     getNextPageParam: lastPage => {
       const { pagination } = lastPage;

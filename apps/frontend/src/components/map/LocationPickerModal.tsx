@@ -78,7 +78,7 @@ export function LocationPickerModal({ imageHash, onClose, initialLat, initialLon
   const handleSave = useCallback(async () => {
     if (!position) return;
     const [lat, lon] = position;
-    await mutateAsync({ id: imageHash, data: { exif_gps_lat: lat, exif_gps_lon: lon } as any });
+    await mutateAsync({ id: imageHash, data: { exif_gps_lat: lat, exif_gps_lon: lon } });
     invalidatePlaces();
     onClose();
   }, [mutateAsync, position, imageHash, onClose]);
@@ -233,7 +233,7 @@ export function LocationPickerModal({ imageHash, onClose, initialLat, initialLon
           : t("locationpicker.instructions", "Click on the map to set the location, or search above.")}
       </Text>
 
-      {!mapsDisabled && (
+      {mapStyle !== null && (
         <Box style={{ height: 350 }}>
           <MapGL
             ref={setMapRef}
@@ -243,7 +243,7 @@ export function LocationPickerModal({ imageHash, onClose, initialLat, initialLon
               zoom: initialZoom,
             }}
             style={{ width: "100%", height: 350 }}
-            mapStyle={mapStyle!}
+            mapStyle={mapStyle}
             onClick={handleMapClick}
             attributionControl={false}
           >

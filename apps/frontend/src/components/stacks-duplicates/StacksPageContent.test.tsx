@@ -14,11 +14,11 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite
 import i18n from "../../i18n";
 import { StacksPageContent } from "./StacksPageContent";
 
-const stubs = vi.hoisted(() => ({ detect: vi.fn() }));
+const stubs = vi.hoisted(() => ({ detect: vi.fn<(options: { detect_bursts: boolean }) => void>() }));
 
 vi.mock("../stacks/StackModal", () => ({ StackModal: () => null }));
 vi.mock("../../api_client/stacks", () => ({
-  useDeleteStackMutation: () => ({ mutate: vi.fn() }),
+  useDeleteStackMutation: () => ({ mutate: vi.fn<(...args: unknown[]) => void>() }),
   useDetectStacksMutation: () => ({ mutate: stubs.detect, isPending: false }),
   useStackStatsQuery: () => ({
     data: { total_stacks: 1, by_type: { burst: 1 }, photos_in_stacks: 3, total_photos: 9 },
@@ -46,8 +46,8 @@ let root: ReturnType<typeof createRoot>;
 let container: HTMLDivElement;
 
 beforeAll(async () => {
-  // @ts-ignore - jsdom has no matchMedia, MantineProvider and useMediaQuery need it
-  window.matchMedia = (query: string) => ({
+  // jsdom has no matchMedia, MantineProvider and useMediaQuery need it
+  window.matchMedia = (query: string): MediaQueryList => ({
     matches: false,
     media: query,
     onchange: null,
@@ -57,7 +57,6 @@ beforeAll(async () => {
     removeEventListener: () => {},
     dispatchEvent: () => false,
   });
-  // @ts-ignore
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   await i18n.changeLanguage("en");
 }, 60000);
@@ -82,8 +81,17 @@ afterEach(async () => {
   container.remove();
 });
 
+/** The element a test goes on to use: missing, the test fails here and says what was missing. */
+function rendered<T>(element: T | null | undefined, what: string): T {
+  if (element === null || element === undefined) throw new Error(`${what} is not rendered`);
+  return element;
+}
+
 const button = (label: string) =>
-  Array.from(container.querySelectorAll<HTMLButtonElement>("button")).find(el => el.textContent === label)!;
+  rendered(
+    Array.from(container.querySelectorAll<HTMLButtonElement>("button")).find(el => el.textContent === label),
+    `the ${label} button`
+  );
 const click = async (element: HTMLElement) => {
   await act(async () => element.click());
 };
@@ -99,7 +107,7 @@ describe("StacksPageContent", () => {
     expect(detect.disabled).toBe(false);
 
     await click(button(i18n.t("stacks.detectOptions")));
-    const bursts = container.querySelector<HTMLInputElement>("input[type=checkbox]")!;
+    const bursts = rendered(container.querySelector<HTMLInputElement>("input[type=checkbox]"), "the bursts option");
     await click(bursts);
 
     expect(bursts.checked).toBe(false);

@@ -1,28 +1,38 @@
 import { Group, Loader, Text, useComputedColorScheme } from "@mantine/core";
 import { IconShare } from "@tabler/icons-react";
 import { drag } from "d3-drag";
+import type { D3DragEvent, SubjectPosition } from "d3-drag";
 import { forceCenter, forceCollide, forceLink, forceManyBody, forceSimulation } from "d3-force";
+import type { SimulationNodeDatum } from "d3-force";
 import { select } from "d3-selection";
 import { zoom as d3Zoom } from "d3-zoom";
+import type { D3ZoomEvent } from "d3-zoom";
 import React, { useCallback, useEffect, useRef } from "react";
 import useDimensions from "react-cool-dimensions";
 import { useTranslation } from "react-i18next";
 import { useFetchSocialGraphQuery } from "../../api_client/stats/hooks";
+import type { PersonDataPointList } from "../../api_client/stats/hooks";
 import { EmptyState } from "../common/EmptyState";
 
 type Props = Readonly<{
   height: number;
 }>;
 
-function ForceGraph({
-  data,
-  width,
-  height,
-}: {
-  data: { nodes: { id: string; x: number; y: number }[]; links: { source: string; target: string }[] };
-  width: number;
-  height: number;
-}) {
+type GraphNode = SimulationNodeDatum & { id: string };
+/** forceLink swaps each end's node id for the node itself when the simulation starts. */
+type GraphLink = { source: string | GraphNode; target: string | GraphNode };
+
+// The events d3 passes the listeners below: the @types/d3-* listener signatures leave the event untyped.
+// The zoom has no datum; a drag's subject is the dragged node, d3's default subject.
+type ZoomEvent = D3ZoomEvent<SVGSVGElement, unknown>;
+type NodeDragEvent = D3DragEvent<SVGCircleElement, GraphNode, GraphNode | SubjectPosition>;
+
+// By the first tick the ends are nodes the simulation has placed. null, like the
+// undefined it stands in for, makes d3 leave the attribute out.
+const endPosition = (end: GraphLink["source"], axis: "x" | "y") =>
+  typeof end === "string" ? null : (end[axis] ?? null);
+
+function ForceGraph({ data, width, height }: { data: PersonDataPointList; width: number; height: number }) {
   const svgRef = useRef<SVGSVGElement>(null);
   const colorScheme = useComputedColorScheme();
 
@@ -36,20 +46,21 @@ function ForceGraph({
 
     const zoom = d3Zoom<SVGSVGElement, unknown>()
       .scaleExtent([0.1, 4])
-      .on("zoom", event => {
-        g.attr("transform", event.transform);
+      .on("zoom", (event: ZoomEvent) => {
+        // What setAttribute would make of the transform object anyway
+        g.attr("transform", event.transform.toString());
       });
 
     svg.call(zoom);
 
-    const nodes = data.nodes.map(d => ({ ...d }));
-    const links = data.links.map(d => ({ ...d }));
+    const nodes: GraphNode[] = data.nodes.map(d => ({ ...d }));
+    const links: GraphLink[] = data.links.map(d => ({ ...d }));
 
     const simulation = forceSimulation(nodes)
       .force(
         "link",
-        forceLink(links)
-          .id((d: any) => d.id)
+        forceLink<GraphNode, GraphLink>(links)
+          .id(d => d.id)
           .distance(100)
       )
       .force("charge", forceManyBody().strength(-300))
@@ -58,16 +69,18 @@ function ForceGraph({
 
     const link = g
       .append("g")
-      .selectAll("line")
+      .selectAll<SVGLineElement, GraphLink>("line")
       .data(links)
       .join("line")
       .attr("stroke", "#12939A")
       .attr("stroke-width", 1.5)
       .attr("stroke-opacity", 0.6);
 
+    // join() types its result as what selectAll found plus what it creates, and drag()
+    // takes only circles, so selectAll names the element type
     const node = g
       .append("g")
-      .selectAll("circle")
+      .selectAll<SVGCircleElement, GraphNode>("circle")
       .data(nodes)
       .join("circle")
       .attr("r", 12)
@@ -75,18 +88,18 @@ function ForceGraph({
       .attr("stroke", "#fff")
       .attr("stroke-width", 1.5)
       .call(
-        drag<SVGCircleElement, any>()
-          .on("start", (event, d) => {
+        drag<SVGCircleElement, GraphNode>()
+          .on("start", (event: NodeDragEvent, d) => {
             if (!event.active) simulation.alphaTarget(0.3).restart();
             /* eslint-disable no-param-reassign -- d3-force requires mutating node properties */
             d.fx = d.x;
             d.fy = d.y;
           })
-          .on("drag", (event, d) => {
+          .on("drag", (event: NodeDragEvent, d) => {
             d.fx = event.x;
             d.fy = event.y;
           })
-          .on("end", (event, d) => {
+          .on("end", (event: NodeDragEvent, d) => {
             if (!event.active) simulation.alphaTarget(0);
             d.fx = null;
             d.fy = null;
@@ -104,7 +117,7 @@ function ForceGraph({
 
     const label = g
       .append("g")
-      .selectAll("text")
+      .selectAll<SVGTextElement, GraphNode>("text")
       .data(nodes)
       .join("text")
       .text(d => d.id)
@@ -115,12 +128,12 @@ function ForceGraph({
 
     simulation.on("tick", () => {
       link
-        .attr("x1", (d: any) => d.source.x)
-        .attr("y1", (d: any) => d.source.y)
-        .attr("x2", (d: any) => d.target.x)
-        .attr("y2", (d: any) => d.target.y);
-      node.attr("cx", (d: any) => d.x).attr("cy", (d: any) => d.y);
-      label.attr("x", (d: any) => d.x).attr("y", (d: any) => d.y);
+        .attr("x1", d => endPosition(d.source, "x"))
+        .attr("y1", d => endPosition(d.source, "y"))
+        .attr("x2", d => endPosition(d.target, "x"))
+        .attr("y2", d => endPosition(d.target, "y"));
+      node.attr("cx", d => d.x ?? null).attr("cy", d => d.y ?? null);
+      label.attr("x", d => d.x ?? null).attr("y", d => d.y ?? null);
     });
 
     return () => {

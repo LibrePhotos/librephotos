@@ -177,9 +177,7 @@ export function StacksPageContent() {
   const typeParam = urlParams.get("type");
 
   const [selectedStackId, setSelectedStackId] = useState<string | null>(null);
-  const [typeFilter, setTypeFilter] = useState<StackType | undefined>(
-    typeParam && validStackTypes.includes(typeParam as StackType) ? (typeParam as StackType) : undefined
-  );
+  const [typeFilter, setTypeFilter] = useState<StackType | undefined>(StackType.safeParse(typeParam).data);
   const [page, setPage] = useState(1);
   const pageSize = 20;
 
@@ -190,9 +188,9 @@ export function StacksPageContent() {
   // Initialize filters from URL search params
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
-    const typeFromUrl = searchParams.get("type");
-    if (typeFromUrl && validStackTypes.includes(typeFromUrl as StackType)) {
-      setTypeFilter(typeFromUrl as StackType);
+    const typeFromUrl = StackType.safeParse(searchParams.get("type")).data;
+    if (typeFromUrl) {
+      setTypeFilter(typeFromUrl);
     }
   }, []);
 
@@ -226,14 +224,15 @@ export function StacksPageContent() {
   // Show "All Types" always, but filter out empty specific types only if stats are loaded.
   // Legacy RAW + JPEG / Live Photo stacks still show up in the stats, but the list
   // endpoint never returns them, so they get no filter entry and are not counted.
-  const stackTypes: Array<{ value: string; label: string; count: number }> = [
+  const allStackTypes: Array<{ value: StackType | ""; label: string; count: number }> = [
     { value: "", label: t("stacks.types.all", "All Types"), count: stats ? countListedStacks(stats) : 0 },
     ...validStackTypes.map(type => ({
       value: type,
       label: t(`stacks.types.${type}`),
       count: stats?.by_type?.[type] ?? 0,
     })),
-  ].filter(type => type.value === "" || !stats || type.count > 0);
+  ];
+  const stackTypes = allStackTypes.filter(type => type.value === "" || !stats || type.count > 0);
 
   return (
     <Stack gap="lg">
@@ -251,7 +250,7 @@ export function StacksPageContent() {
               {stackTypes.map(type => (
                 <Menu.Item
                   key={type.value}
-                  onClick={() => setTypeFilter((type.value || undefined) as StackType | undefined)}
+                  onClick={() => setTypeFilter(type.value || undefined)}
                   rightSection={
                     typeFilter === type.value || (!typeFilter && !type.value) ? <IconCheck size={14} /> : null
                   }

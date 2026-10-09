@@ -7,12 +7,13 @@ import { createRoot } from "react-dom/client";
 import { act } from "react-dom/test-utils";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { Media } from "../../api_client/photos/types";
+import { defined } from "../../util/defined.test-utils";
 import { VideoOverlay } from "./VideoOverlay";
 
 vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
 
 beforeAll(() => {
-  (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+  globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 });
 
 async function render(item: { type: Media; video_length: string; is_hdr?: boolean }) {
@@ -29,7 +30,7 @@ describe("VideoOverlay", () => {
   it("badges an HDR video, with a tooltip saying what that means", async () => {
     const { badge, text } = await render({ type: Media.VIDEO, video_length: "12", is_hdr: true });
     expect(badge).toBeDefined();
-    expect(badge!.getAttribute("title")).toBe("phototile.hdrvideo");
+    expect(defined(badge).getAttribute("title")).toBe("phototile.hdrvideo");
     expect(text).toContain("00:12");
   });
 

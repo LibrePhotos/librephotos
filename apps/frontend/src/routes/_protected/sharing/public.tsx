@@ -3,7 +3,7 @@ import { IconWorld } from "@tabler/icons-react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { UserList } from "../../../api_client/user";
+import type { ListUserList } from "../../../api_client/user";
 import { useFetchUserListQuery } from "../../../api_client/user/hooks";
 import { avatarSrc } from "../../../components/sharing/avatarSrc";
 import { SharingPageHeader } from "../../../components/sharing/SharingPageHeader";
@@ -12,7 +12,7 @@ export const Route = createFileRoute("/_protected/sharing/public")({
   component: PublicUserList,
 });
 
-function publicUsers(items: UserList = []) {
+function publicUsers(items: ListUserList = []) {
   return items.filter(el => el.public_sharing);
 }
 

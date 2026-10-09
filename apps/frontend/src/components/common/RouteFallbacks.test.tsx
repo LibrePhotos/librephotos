@@ -5,7 +5,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite
 import i18n from "../../i18n";
 import { NotFoundPage, RouteErrorPage } from "./RouteFallbacks";
 
-const stubs = vi.hoisted(() => ({ navigate: vi.fn() }));
+const stubs = vi.hoisted(() => ({ navigate: vi.fn<(options: { to: string }) => void>() }));
 
 vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => stubs.navigate,
@@ -20,11 +20,17 @@ const render = async (element: React.ReactNode) => {
   });
 };
 
-const button = (label: string) => [...container.querySelectorAll("button")].find(b => b.textContent === label)!;
+function button(label: string): HTMLButtonElement {
+  const found = [...container.querySelectorAll("button")].find(b => b.textContent === label);
+  if (!found) {
+    throw new Error(`no button named "${label}"`);
+  }
+  return found;
+}
 
 beforeAll(async () => {
-  // @ts-ignore - jsdom has no matchMedia, MantineProvider needs it
-  window.matchMedia = (query: string) => ({
+  // jsdom has no matchMedia, MantineProvider needs it
+  window.matchMedia = (query: string): MediaQueryList => ({
     matches: false,
     media: query,
     onchange: null,
@@ -34,7 +40,6 @@ beforeAll(async () => {
     removeEventListener: () => {},
     dispatchEvent: () => false,
   });
-  // @ts-ignore
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   await i18n.changeLanguage("en");
 });

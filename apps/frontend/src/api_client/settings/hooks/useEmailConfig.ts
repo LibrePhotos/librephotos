@@ -3,11 +3,9 @@ import { z } from "zod";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient, queryClient } from "../../api";
 import { EmailConfig } from "../types";
+import { SiteSettingsQueryKeys } from "./useGetSettingsQuery";
 
 export const EmailConfigQueryKeys = ["emailConfig"] as const;
-// Local (not re-exported) to avoid an `export *` name clash with the
-// SiteSettingsQueryKeys already exported by the settings query/mutation hooks.
-const SiteSettingsQueryKeys = ["siteSettings"] as const;
 
 export const useGetEmailConfigQuery = () =>
   useQuery({

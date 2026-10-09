@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError, createApiClient } from "../transport";
 import type { TokenSupplier } from "../transport";
+import { defined } from "./defined";
 
 /** A non-expiring JWT (exp far in the future) so the proactive refresh path is skipped. */
 const FUTURE_JWT =
@@ -23,8 +24,8 @@ function mockFetch(handler: (url: string, init?: RequestInit) => Promise<Respons
   return vi.fn((input: RequestInfo | URL, init?: RequestInit) => handler(String(input), init));
 }
 
-function makeTokens(overrides?: Partial<Record<keyof TokenSupplier, unknown>>) {
-  const store = { access: FUTURE_JWT as string | null, refresh: "refresh-1" as string | null };
+function makeTokens() {
+  const store: { access: string | null; refresh: string | null } = { access: FUTURE_JWT, refresh: "refresh-1" };
   const tokens: TokenSupplier = {
     getAccessToken: vi.fn(() => store.access),
     getRefreshToken: vi.fn(() => store.refresh),
@@ -35,7 +36,6 @@ function makeTokens(overrides?: Partial<Record<keyof TokenSupplier, unknown>>) {
       store.access = null;
       store.refresh = null;
     }),
-    ...(overrides as object),
   };
   return { tokens, store };
 }
@@ -51,9 +51,9 @@ describe("createApiClient transport", () => {
     const data = await client.get<{ ok: boolean }>("/user/1/");
 
     expect(data).toEqual({ ok: true });
-    const [url, init] = fetchMock.mock.calls[0]!;
+    const [url, init] = defined(fetchMock.mock.calls[0]);
     expect(url).toBe("https://demo.example.com/api/user/1/");
-    expect(new Headers(init!.headers).get("Authorization")).toBe(`Bearer ${FUTURE_JWT}`);
+    expect(new Headers(defined(init).headers).get("Authorization")).toBe(`Bearer ${FUTURE_JWT}`);
   });
 
   it("JSON-encodes object bodies and sets Content-Type", async () => {
@@ -63,9 +63,9 @@ describe("createApiClient transport", () => {
 
     await client.post("/albums/user/", { title: "Trip" });
 
-    const [, init] = fetchMock.mock.calls[0]!;
-    expect(init!.body).toBe(JSON.stringify({ title: "Trip" }));
-    expect(new Headers(init!.headers).get("Content-Type")).toBe("application/json");
+    const [, init] = defined(fetchMock.mock.calls[0]);
+    expect(defined(init).body).toBe(JSON.stringify({ title: "Trip" }));
+    expect(new Headers(defined(init).headers).get("Content-Type")).toBe("application/json");
   });
 
   it("refreshes proactively when the access token is about to expire", async () => {
@@ -80,8 +80,8 @@ describe("createApiClient transport", () => {
     await client.get("/photos/recentlyadded/");
 
     expect(tokens.setAccessToken).toHaveBeenCalledWith(FUTURE_JWT);
-    const dataCall = fetchMock.mock.calls.find(([u]) => (u as string).includes("/photos/recentlyadded/"))!;
-    expect(new Headers((dataCall[1] as RequestInit).headers).get("Authorization")).toBe(`Bearer ${FUTURE_JWT}`);
+    const dataCall = fetchMock.mock.calls.find(([u]) => String(u).includes("/photos/recentlyadded/"));
+    expect(new Headers(dataCall?.[1]?.headers).get("Authorization")).toBe(`Bearer ${FUTURE_JWT}`);
   });
 
   it("reactively refreshes + retries once on a 401", async () => {
@@ -101,7 +101,7 @@ describe("createApiClient transport", () => {
 
   it("clears tokens and fires onAuthError when refresh fails on a 401", async () => {
     const { tokens } = makeTokens();
-    const onAuthError = vi.fn();
+    const onAuthError = vi.fn<() => void>();
     const fetchMock = mockFetch(async (url: string) => {
       if (url.endsWith("/auth/token/refresh/")) return jsonResponse({ detail: "bad" }, 401);
       return jsonResponse({ detail: "expired" }, 401);
@@ -123,8 +123,8 @@ describe("createApiClient transport", () => {
     base = "https://two.example.com";
     await client.get("/x");
 
-    expect(fetchMock.mock.calls[0]![0]).toBe("https://one.example.com/api/x");
-    expect(fetchMock.mock.calls[1]![0]).toBe("https://two.example.com/api/x");
+    expect(defined(fetchMock.mock.calls[0])[0]).toBe("https://one.example.com/api/x");
+    expect(defined(fetchMock.mock.calls[1])[0]).toBe("https://two.example.com/api/x");
   });
 });
 
@@ -144,8 +144,8 @@ describe("createApiClient errors", () => {
       },
       (e: unknown) => e
     );
-    expect(error).toBeInstanceOf(ApiError);
-    return error as ApiError;
+    if (!(error instanceof ApiError)) throw new Error(`expected an ApiError, got ${String(error)}`);
+    return error;
   }
 
   it("takes serverMessage from the first DRF errors[] message", async () => {
@@ -178,18 +178,18 @@ describe("createApiClient errors", () => {
   });
 
   it("never reports a server message for a 500, and hands onServerError a readable response", async () => {
-    const onServerError = vi.fn(async (_endpoint: string, response: Response) => response.json());
+    const onServerError = vi.fn(async (_endpoint: string, response: Response): Promise<unknown> => response.json());
     const error = await rejection(
       client(jsonResponse({ errors: [{ message: "boom" }] }, 500), { onServerError }).get("/x/")
     );
     expect(error.serverMessage).toBeNull();
     expect(onServerError).toHaveBeenCalledWith("/x/", expect.any(Response));
-    await expect(onServerError.mock.results[0]!.value).resolves.toEqual({ errors: [{ message: "boom" }] });
+    await expect(defined(onServerError.mock.results[0]).value).resolves.toEqual({ errors: [{ message: "boom" }] });
   });
 
   it("lets onUnauthorized replace the default 401 handling, for the login endpoint too", async () => {
     const { tokens } = makeTokens();
-    const onAuthError = vi.fn();
+    const onAuthError = vi.fn<() => void>();
     const seen: unknown[] = [];
     const onUnauthorized = vi.fn(async (endpoint: string, response: Response) => {
       seen.push([endpoint, await response.json()]);
@@ -232,15 +232,15 @@ describe("createApiClient bodies and response types", () => {
   it("sends a JSON Content-Type for a string body", async () => {
     const { api, fetchMock } = harness();
     await api.request("/photos/edit/", { method: "POST", body: JSON.stringify({ caption: "FormData" }) });
-    const [, init] = fetchMock.mock.calls[0]!;
-    expect(init!.body).toBe(JSON.stringify({ caption: "FormData" }));
-    expect(new Headers(init!.headers).get("Content-Type")).toBe("application/json");
+    const [, init] = defined(fetchMock.mock.calls[0]);
+    expect(defined(init).body).toBe(JSON.stringify({ caption: "FormData" }));
+    expect(new Headers(defined(init).headers).get("Content-Type")).toBe("application/json");
   });
 
   it("keeps an explicit Content-Type for a string body", async () => {
     const { api, fetchMock } = harness();
     await api.request("/x/", { method: "POST", body: "a=b", headers: { "Content-Type": "text/plain" } });
-    expect(new Headers(fetchMock.mock.calls[0]![1]!.headers).get("Content-Type")).toBe("text/plain");
+    expect(new Headers(defined(defined(fetchMock.mock.calls[0])[1]).headers).get("Content-Type")).toBe("text/plain");
   });
 
   it("leaves Content-Type unset for FormData so the runtime adds the boundary", async () => {
@@ -248,9 +248,9 @@ describe("createApiClient bodies and response types", () => {
     const form = new FormData();
     form.append("file", new Blob(["x"]), "x.jpg");
     await api.post("/upload/", form);
-    const [, init] = fetchMock.mock.calls[0]!;
-    expect(init!.body).toBe(form);
-    expect(new Headers(init!.headers).has("Content-Type")).toBe(false);
+    const [, init] = defined(fetchMock.mock.calls[0]);
+    expect(defined(init).body).toBe(form);
+    expect(new Headers(defined(init).headers).has("Content-Type")).toBe(false);
   });
 
   it("returns a Blob from getBlob whatever the Content-Type, without forwarding responseType", async () => {
@@ -260,7 +260,7 @@ describe("createApiClient bodies and response types", () => {
     const blob = await api.getBlob("/serverlogs");
     expect(blob.type).toBe("text/plain");
     expect(await blob.text()).toBe("log line");
-    const [url, init] = fetchMock.mock.calls[0]!;
+    const [url, init] = defined(fetchMock.mock.calls[0]);
     expect(url).toBe("/api/serverlogs");
     expect(init).not.toHaveProperty("responseType");
   });

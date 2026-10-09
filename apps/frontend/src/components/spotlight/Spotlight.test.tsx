@@ -10,7 +10,10 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite
 import i18n from "../../i18n";
 import { ConfirmDeleteMissingPhotosModal } from "./Spotlight";
 
-const stubs = vi.hoisted(() => ({ mutate: vi.fn(), toast: vi.fn() }));
+const stubs = vi.hoisted(() => ({
+  mutate: vi.fn<(variables: undefined, options: { onSuccess: () => void }) => void>(),
+  toast: vi.fn<() => void>(),
+}));
 
 vi.mock("../../api_client/photos/hooks", () => ({
   useDeleteMissingPhotosMutation: () => ({ mutate: stubs.mutate }),
@@ -21,11 +24,11 @@ vi.mock("./useSpotlightActions", () => ({ useSpotlightActions: () => ({}) }));
 
 let root: ReturnType<typeof createRoot>;
 let container: HTMLDivElement;
-const onClose = vi.fn();
+const onClose = vi.fn<() => void>();
 
 beforeAll(async () => {
-  // @ts-ignore - jsdom has no matchMedia, MantineProvider needs it
-  window.matchMedia = (query: string) => ({
+  // jsdom has no matchMedia, MantineProvider needs it
+  window.matchMedia = (query: string): MediaQueryList => ({
     matches: false,
     media: query,
     onchange: null,
@@ -35,7 +38,6 @@ beforeAll(async () => {
     removeEventListener: () => {},
     dispatchEvent: () => false,
   });
-  // @ts-ignore
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   await i18n.changeLanguage("en");
 });
@@ -60,8 +62,13 @@ afterEach(async () => {
   container.remove();
 });
 
-const button = (label: string) =>
-  Array.from(container.querySelectorAll<HTMLButtonElement>("button")).find(el => el.textContent === label)!;
+const button = (label: string) => {
+  const found = Array.from(container.querySelectorAll<HTMLButtonElement>("button")).find(
+    el => el.textContent === label
+  );
+  if (!found) throw new Error(`the ${label} button is not rendered`);
+  return found;
+};
 
 describe("ConfirmDeleteMissingPhotosModal", () => {
   it("explains what the job does", () => {

@@ -5,23 +5,23 @@
  * It updates the cached user; the timeline already sends its filter in full,
  * so its queries are left alone. A failed save says so.
  */
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { SHOW_EVERYTHING } from "../../../components/photolist/timelineFilter";
+import { defined } from "../../../util/defined.test-utils";
 
-const stubs = vi.hoisted(() => ({
-  patch: vi.fn(),
-  requestFailed: vi.fn(),
-  queryClient: undefined as unknown as QueryClient,
-}));
-
-vi.mock("../../api", async () => {
-  const { QueryClient: Client } = await import("@tanstack/react-query");
-  stubs.queryClient = new Client();
-  return { fetchClient: { patch: stubs.patch }, queryClient: stubs.queryClient };
+const stubs = await vi.hoisted(async () => {
+  const { QueryClient } = await import("@tanstack/react-query");
+  return {
+    patch: vi.fn<(endpoint: string, data?: unknown) => Promise<unknown>>(),
+    requestFailed: vi.fn<(title: string, message: string) => void>(),
+    queryClient: new QueryClient(),
+  };
 });
+
+vi.mock("../../api", () => ({ fetchClient: { patch: stubs.patch }, queryClient: stubs.queryClient }));
 
 vi.mock("../../../service/notifications", () => ({
   notification: { requestFailed: stubs.requestFailed },
@@ -64,7 +64,6 @@ const savedUser = {
 };
 
 beforeAll(() => {
-  // @ts-ignore
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 });
 
@@ -93,7 +92,7 @@ describe("useSaveDefaultTimelineFilterMutation", () => {
         </QueryClientProvider>
       );
     });
-    return mutate!;
+    return defined(mutate);
   }
 
   it("says so when the save fails", async () => {
@@ -128,12 +127,12 @@ describe("useSaveDefaultTimelineFilterMutation", () => {
     });
 
     await act(async () => {
-      await mutate!({ userId: 7, filter: { ...SHOW_EVERYTHING, hide_screenshots: true } });
+      await defined(mutate)({ userId: 7, filter: { ...SHOW_EVERYTHING, hide_screenshots: true } });
     });
 
     expect(stubs.patch).toHaveBeenCalledTimes(1);
     expect(stubs.patch).toHaveBeenCalledWith("/user/7/", { default_timeline_filter: { hide_screenshots: true } });
-    expect((queryClient.getQueryData(["userSelfDetails", "7"]) as typeof savedUser).default_timeline_filter).toEqual({
+    expect(queryClient.getQueryData(["userSelfDetails", "7"])).toHaveProperty("default_timeline_filter", {
       hide_screenshots: true,
     });
     const invalidated = invalidate.mock.calls.map(([filters]) => filters?.queryKey?.[0]);

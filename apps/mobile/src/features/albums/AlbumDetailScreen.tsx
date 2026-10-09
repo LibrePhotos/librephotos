@@ -34,22 +34,23 @@ export function AlbumDetailScreen({
   const token = useAccessToken();
   const base = serverAddress();
   const mutations = useMutations();
-  const isUserAlbum = album?.kind === "user";
+  // Only a user album can be renamed and have photos removed.
+  const userAlbumId = album?.kind === "user" ? album.id : undefined;
 
   const items = useReactiveQuery((db) => query(db).map(tileRowToItem), []);
   // Live album title (so a rename reflects immediately).
   const liveTitle = useReactiveQuery(
     (db) =>
-      isUserAlbum
-        ? ((db.get(sql`SELECT title FROM user_album WHERE id = ${album!.id}`) as { title: string } | undefined)
+      userAlbumId !== undefined
+        ? ((db.get(sql`SELECT title FROM user_album WHERE id = ${userAlbumId}`) as { title: string } | undefined)
             ?.title ?? title)
         : title,
-    [album?.id, title, isUserAlbum]
+    [userAlbumId, title]
   );
 
   const selection = useGridSelection(
     {},
-    isUserAlbum ? { albumId: album!.id, title: liveTitle } : undefined
+    userAlbumId !== undefined ? { albumId: userAlbumId, title: liveTitle } : undefined
   );
   const [renaming, setRenaming] = useState(false);
 
@@ -75,7 +76,7 @@ export function AlbumDetailScreen({
         <Text testID="album-detail-title" numberOfLines={1} style={{ fontSize: 22, fontWeight: "700", color: theme.text, flex: 1 }}>
           {liveTitle}
         </Text>
-        {isUserAlbum ? (
+        {userAlbumId !== undefined ? (
           <Pressable testID="album-rename-button" onPress={() => setRenaming(true)} hitSlop={8}>
             <Text style={{ color: theme.brand, fontWeight: "600" }}>{t("mutations.rename")}</Text>
           </Pressable>
@@ -98,7 +99,7 @@ export function AlbumDetailScreen({
         />
       </View>
       {selection.overlay}
-      {isUserAlbum ? (
+      {userAlbumId !== undefined ? (
         <TextPromptModal
           visible={renaming}
           title={t("mutations.renameAlbum")}
@@ -107,7 +108,7 @@ export function AlbumDetailScreen({
           testID="album-rename-prompt"
           onSubmit={(value) => {
             setRenaming(false);
-            if (value && value !== liveTitle) mutations.renameAlbum(album!.id, value);
+            if (value && value !== liveTitle) mutations.renameAlbum(userAlbumId, value);
           }}
           onCancel={() => setRenaming(false)}
         />

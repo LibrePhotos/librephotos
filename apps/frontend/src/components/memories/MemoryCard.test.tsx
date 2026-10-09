@@ -6,21 +6,22 @@
 import "@mantine/core/styles.css";
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
-import { createRoot } from "react-dom/client";
+import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { Memory, MemoryType } from "../../api_client/memories";
-import { Media } from "../../api_client/photos/types";
+import { Media, type PigPhoto } from "../../api_client/photos/types";
 import i18n from "../../i18n";
+import { tempPigPhoto } from "../../util/util";
 import { MemoryCard } from "./MemoryCard";
 
 vi.mock("../../api_client/apiClient", () => ({ serverAddress: "" }));
 
-let root: ReturnType<typeof createRoot> | undefined;
+let root: Root | undefined;
 let container: HTMLDivElement;
 
 beforeAll(async () => {
-  // @ts-ignore - jsdom has no matchMedia, MantineProvider needs it
-  window.matchMedia = (query: string) => ({
+  // jsdom has no matchMedia, MantineProvider needs it
+  window.matchMedia = (query: string): MediaQueryList => ({
     matches: false,
     media: query,
     onchange: null,
@@ -30,7 +31,6 @@ beforeAll(async () => {
     removeEventListener: () => {},
     dispatchEvent: () => false,
   });
-  // @ts-ignore
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   // jsdom has no media playback; the tile pauses and unloads its video on unmount
   HTMLMediaElement.prototype.pause = () => {};
@@ -44,7 +44,12 @@ afterEach(async () => {
 });
 
 function memoryWithCover(type: Media): Memory {
-  const cover = { id: "00000000-0000-4000-8000-000000000001", image_hash: "cover", aspectRatio: 1, type } as any;
+  const cover: PigPhoto = {
+    ...tempPigPhoto("00000000-0000-4000-8000-000000000001"),
+    image_hash: "cover",
+    type,
+    isTemp: false,
+  };
   return {
     id: "m1",
     type: MemoryType.YEARS_AGO,
@@ -63,9 +68,10 @@ function memoryWithCover(type: Media): Memory {
 async function renderCard(memory: Memory) {
   container = document.createElement("div");
   document.body.appendChild(container);
-  root = createRoot(container);
+  const cardRoot = createRoot(container);
+  root = cardRoot;
   await act(async () => {
-    root!.render(
+    cardRoot.render(
       <MantineProvider>
         <MemoryCard memory={memory} size={200} onPlay={() => {}} />
       </MantineProvider>

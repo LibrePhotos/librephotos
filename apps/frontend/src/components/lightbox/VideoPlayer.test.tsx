@@ -18,6 +18,7 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import { act } from "react-dom/test-utils";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { defined } from "../../util/defined.test-utils";
 import {
   classifyVideoFailure,
   factToText,
@@ -27,19 +28,20 @@ import {
   VideoPlayer,
 } from "./VideoPlayer";
 
-const accessToken = {
-  current: { access: { user_id: "1", name: "dotan", is_admin: false } } as {
-    access: { user_id: string; name: string; is_admin: boolean } | null;
-  },
+/** The decoded access token the player reads is_admin from; null once signed out. */
+type AccessTokenStub = { access: { user_id: string; name: string; is_admin: boolean } | null };
+
+const accessToken: { current: AccessTokenStub } = {
+  current: { access: { user_id: "1", name: "dotan", is_admin: false } },
 };
-const diagnostics = { current: undefined as unknown };
-const diagnosticsEnabled = vi.fn();
+const diagnostics: { current: unknown } = { current: undefined };
+const diagnosticsEnabled = vi.fn<(mediaHash: string | undefined, enabled: boolean) => void>();
 
 vi.mock("../../api_client/auth/hooks", () => ({
   useAccessToken: () => ({ data: accessToken.current }),
 }));
 
-const copied = vi.fn();
+const copied = vi.fn<(text: string) => void>();
 
 // Mocked bare, without importOriginal: util.ts pulls in ../api_client/dir-tree,
 // which does not exist in the tree, so loading the real module here fails.
@@ -55,18 +57,17 @@ vi.mock("../../api_client/media", () => ({
 }));
 
 beforeAll(() => {
-  (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
-  window.matchMedia = (query: string) =>
-    ({
-      matches: query.includes("min-width"),
-      media: query,
-      onchange: null,
-      addListener: () => {},
-      removeListener: () => {},
-      addEventListener: () => {},
-      removeEventListener: () => {},
-      dispatchEvent: () => false,
-    }) as unknown as MediaQueryList;
+  globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+  window.matchMedia = (query: string): MediaQueryList => ({
+    matches: query.includes("min-width"),
+    media: query,
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => false,
+  });
   // jsdom never loads media, so playback control is not what is under test here.
   window.HTMLMediaElement.prototype.play = () => Promise.resolve();
   window.HTMLMediaElement.prototype.pause = () => {};
@@ -109,7 +110,7 @@ async function renderPlayer(
   });
   const fail = async () => {
     await act(async () => {
-      container.querySelector("video")!.dispatchEvent(new Event("error"));
+      defined(container.querySelector("video")).dispatchEvent(new Event("error"));
     });
     // Let the probe's promise chain settle before anything is asserted.
     await act(async () => {
@@ -164,7 +165,7 @@ function stubPlayhead(video: HTMLVideoElement, ranges: [number, number][], start
 describe("VideoPlayer seeking", () => {
   it("moves the playhead by the requested amount and says how far", async () => {
     const { container, unmount } = await renderPlayer();
-    const at = stubPlayhead(container.querySelector("video")!, [[0, 120]], 30);
+    const at = stubPlayhead(defined(container.querySelector("video")), [[0, 120]], 30);
 
     await act(async () => {
       requestLightboxSeek(10);
@@ -184,7 +185,7 @@ describe("VideoPlayer seeking", () => {
 
   it("takes the long jump too, and says so in minutes", async () => {
     const { container, unmount } = await renderPlayer();
-    const at = stubPlayhead(container.querySelector("video")!, [[0, 600]], 120);
+    const at = stubPlayhead(defined(container.querySelector("video")), [[0, 600]], 120);
 
     await act(async () => {
       requestLightboxSeek(60);
@@ -197,7 +198,7 @@ describe("VideoPlayer seeking", () => {
 
   it("stops at the ends of the seekable window instead of running past them", async () => {
     const { container, unmount } = await renderPlayer();
-    const at = stubPlayhead(container.querySelector("video")!, [[0, 12]], 4);
+    const at = stubPlayhead(defined(container.querySelector("video")), [[0, 12]], 4);
 
     await act(async () => {
       requestLightboxSeek(-10);
@@ -221,7 +222,7 @@ describe("VideoPlayer seeking", () => {
     // browser offers no seekable window at all. A shortcut that quietly did
     // nothing here is the failure this feature exists to avoid.
     const { container, unmount } = await renderPlayer();
-    const at = stubPlayhead(container.querySelector("video")!, [], 5);
+    const at = stubPlayhead(defined(container.querySelector("video")), [], 5);
 
     await act(async () => {
       requestLightboxSeek(10);
@@ -234,7 +235,7 @@ describe("VideoPlayer seeking", () => {
 
   it("ignores a request carrying no distance", async () => {
     const { container, unmount } = await renderPlayer();
-    const at = stubPlayhead(container.querySelector("video")!, [[0, 120]], 30);
+    const at = stubPlayhead(defined(container.querySelector("video")), [[0, 120]], 30);
 
     await act(async () => {
       window.dispatchEvent(new CustomEvent(LIGHTBOX_SEEK_EVENT, { detail: { seconds: 0 } }));
@@ -249,7 +250,7 @@ describe("VideoPlayer seeking", () => {
 
   it("stops listening once the player is gone", async () => {
     const { container, unmount } = await renderPlayer();
-    const at = stubPlayhead(container.querySelector("video")!, [[0, 120]], 30);
+    const at = stubPlayhead(defined(container.querySelector("video")), [[0, 120]], 30);
     await unmount();
 
     await act(async () => {
@@ -425,7 +426,7 @@ describe("VideoPlayer conversion fallback", () => {
 
     await fail();
 
-    expect(container.querySelector("video")!.getAttribute("src")).toBe(converted);
+    expect(defined(container.querySelector("video")).getAttribute("src")).toBe(converted);
     expect(container.textContent).not.toContain("lightbox.videoerror.formattitle");
     await unmount();
   });
@@ -493,7 +494,7 @@ describe("VideoPlayer conversion fallback", () => {
     );
     const { container, unmount } = await renderPlayer({ fallbackUrl: converted });
     await act(async () => {
-      container.querySelector("video")!.dispatchEvent(new Event("error"));
+      defined(container.querySelector("video")).dispatchEvent(new Event("error"));
     });
 
     expect(container.querySelector(".mantine-Alert-root")).toBeNull();
@@ -504,7 +505,7 @@ describe("VideoPlayer conversion fallback", () => {
       await Promise.resolve();
       await Promise.resolve();
     });
-    expect(container.querySelector("video")!.getAttribute("src")).toBe(converted);
+    expect(defined(container.querySelector("video")).getAttribute("src")).toBe(converted);
     expect(container.querySelector(".mantine-Alert-root")).toBeNull();
     await unmount();
   });
@@ -565,11 +566,11 @@ describe("VideoPlayer conversion fallback", () => {
     await fail();
 
     await act(async () => {
-      container.querySelector<HTMLButtonElement>('[aria-label="lightbox.videoerror.copy"]')!.click();
+      defined(container.querySelector<HTMLButtonElement>('[aria-label="lightbox.videoerror.copy"]')).click();
     });
 
     // Whole lines: the converted URL starts with the original one.
-    const lines = (copied.mock.calls[0][0] as string).split("\n");
+    const lines = copied.mock.calls[0][0].split("\n");
     expect(lines).toContain(converted);
     expect(lines).not.toContain(original);
     await unmount();
@@ -585,7 +586,7 @@ describe("VideoPlayer error panel", () => {
 
     await fail();
 
-    const message = container.querySelector<HTMLElement>(".mantine-Alert-message")!;
+    const message = defined(container.querySelector<HTMLElement>(".mantine-Alert-message"));
     expect(message.style.color).toBe("var(--mantine-color-white)");
     await unmount();
   });
@@ -621,11 +622,11 @@ describe("VideoPlayer copy button", () => {
     await fail();
 
     await act(async () => {
-      container.querySelector<HTMLButtonElement>('[aria-label="lightbox.videoerror.copy"]')!.click();
+      defined(container.querySelector<HTMLButtonElement>('[aria-label="lightbox.videoerror.copy"]')).click();
     });
 
     expect(copied).toHaveBeenCalledTimes(1);
-    const report = copied.mock.calls[0][0] as string;
+    const report = copied.mock.calls[0][0];
     // The offending path and the remedy are the whole reason to copy this.
     expect(report).toContain("/data/SomeUser");
     expect(report).toContain("lightbox.videoerror.remedychmod");
@@ -645,10 +646,10 @@ describe("VideoPlayer copy button", () => {
     await fail();
 
     await act(async () => {
-      container.querySelector<HTMLButtonElement>('[aria-label="lightbox.videoerror.copy"]')!.click();
+      defined(container.querySelector<HTMLButtonElement>('[aria-label="lightbox.videoerror.copy"]')).click();
     });
 
-    const report = copied.mock.calls[0][0] as string;
+    const report = copied.mock.calls[0][0];
     const facts = [
       factToText({
         label: "lightbox.videoerror.blockeddirectory",
@@ -670,10 +671,10 @@ describe("VideoPlayer copy button", () => {
     await fail();
 
     await act(async () => {
-      container.querySelector<HTMLButtonElement>('[aria-label="lightbox.videoerror.copy"]')!.click();
+      defined(container.querySelector<HTMLButtonElement>('[aria-label="lightbox.videoerror.copy"]')).click();
     });
 
-    const report = copied.mock.calls[0][0] as string;
+    const report = copied.mock.calls[0][0];
     expect(report).toContain("lightbox.videoerror.permissionuser");
     // A regular user never receives filesystem detail, so none can leak here.
     expect(report).not.toContain("/data/");
@@ -693,7 +694,7 @@ describe("VideoPlayer copy button", () => {
     );
     const { container, unmount } = await renderPlayer();
     await act(async () => {
-      container.querySelector("video")!.dispatchEvent(new Event("error"));
+      defined(container.querySelector("video")).dispatchEvent(new Event("error"));
     });
 
     expect(container.querySelector('[aria-label="lightbox.videoerror.copy"]')).toBeNull();
@@ -711,7 +712,7 @@ describe("VideoPlayer copy button", () => {
 describe("VideoPlayer size", () => {
   it("fills a fixed box", async () => {
     const { container, unmount } = await renderPlayer();
-    const video = container.querySelector("video")!;
+    const video = defined(container.querySelector("video"));
 
     expect(video.style.height).toBe("80vh");
     expect(video.style.maxHeight).toBe("");
@@ -720,7 +721,7 @@ describe("VideoPlayer size", () => {
 
   it("takes the video's own shape up to a cap when there is no box", async () => {
     const { container, unmount } = await renderPlayer({ height: "auto", maxHeight: "70vh" });
-    const video = container.querySelector("video")!;
+    const video = defined(container.querySelector("video"));
 
     expect(video.style.width).toBe("100%");
     expect(video.style.height).toBe("auto");

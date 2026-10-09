@@ -9,7 +9,14 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite
 import { ApiError } from "../../api_client/api";
 import { ModalUserDelete } from "./ModalUserDelete";
 
-const stubs = vi.hoisted(() => ({ deleteUser: vi.fn(), requestFailed: vi.fn(), deletedToast: vi.fn() }));
+/** The callbacks the dialog hands to the delete mutation. */
+type DeleteCallbacks = { onSuccess: () => void; onError: (error: unknown) => void };
+
+const stubs = vi.hoisted(() => ({
+  deleteUser: vi.fn<(userId: number, callbacks: DeleteCallbacks) => void>(),
+  requestFailed: vi.fn<(title: string, message: string) => void>(),
+  deletedToast: vi.fn<(username: string) => void>(),
+}));
 
 vi.mock("../../api_client/user/hooks", () => ({
   useDeleteUserMutation: () => ({ mutate: stubs.deleteUser, isPending: false }),
@@ -19,8 +26,8 @@ vi.mock("../../service/notifications", () => ({
 }));
 
 beforeAll(() => {
-  // @ts-ignore - jsdom has no matchMedia, MantineProvider needs it
-  window.matchMedia = (query: string) => ({
+  // jsdom has no matchMedia, MantineProvider needs it
+  window.matchMedia = (query: string): MediaQueryList => ({
     matches: false,
     media: query,
     onchange: null,
@@ -30,12 +37,11 @@ beforeAll(() => {
     removeEventListener: () => {},
     dispatchEvent: () => false,
   });
-  // @ts-ignore
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 });
 
 let root: Root;
-const onRequestClose = vi.fn();
+const onRequestClose = vi.fn<() => void>();
 
 function renderAndConfirm() {
   act(() => {
@@ -46,9 +52,9 @@ function renderAndConfirm() {
     );
   });
   // The confirm button is the last one in the dialog (after Cancel).
-  const buttons = Array.from(document.querySelectorAll(".mantine-Modal-body button"));
+  const buttons = Array.from(document.querySelectorAll<HTMLButtonElement>(".mantine-Modal-body button"));
   act(() => {
-    (buttons[buttons.length - 1] as HTMLButtonElement).click();
+    buttons[buttons.length - 1].click();
   });
 }
 

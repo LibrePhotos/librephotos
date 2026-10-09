@@ -26,9 +26,9 @@ import { i18nResolvedLanguage } from "../../i18n";
 import {
   countActiveFilters,
   describeTimelineFilter,
+  isTimelineMedia,
   sameTimelineFilter,
   type TimelineFilter,
-  type TimelineMedia,
 } from "./timelineFilter";
 
 type Props = Readonly<{
@@ -120,7 +120,10 @@ export function TimelineFilterPopover({
             fullWidth
             aria-label={t("timelinefilter.mediatype")}
             value={current.media}
-            onChange={value => set({ media: value as TimelineMedia })}
+            onChange={value => {
+              // The options below are the three media types.
+              if (isTimelineMedia(value)) set({ media: value });
+            }}
             disabled={saving}
             data={[
               { value: "all", label: t("mediafilter.all") },

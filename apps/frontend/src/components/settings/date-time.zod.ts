@@ -1,47 +1,59 @@
 import { z } from "zod";
 
-const BaseDateTimeProps = z.object({
-  id: z.number(),
-  name: z.string(),
-  is_default: z.boolean(),
-});
+// A date-time rule with the params the backend's TimeExtractionRule reads
+// (api/date_time_extractor.py). The predefined rules come from /predefinedrules/,
+// and a user's datetime_rules is the JSON list of the rules picked from them.
 
-const TransformTimezoneProps = BaseDateTimeProps.extend({
-  transform_tz: z.number().optional(),
-  source_tz: z.string().optional(),
-  report_tz: z.enum(["gps_timezonefinder", "user_default"]).optional(),
+/** "utc", "gps_timezonefinder", "server_local", "user_default" or "name:<timezone>". */
+const TimezoneDescription = z.string();
+
+// Loose: a key the schema does not know (a param added on the backend later) stays on the rule, so
+// it is saved back with it.
+const BaseDateTimeProps = z
+  .object({
+    id: z.number(),
+    name: z.string(),
+    // The predefined rules always have it; a rule saved before the flag was added (2022-12) does not.
+    is_default: z.boolean().optional(),
+    // The rule only applies to a file whose full path, filename or ExifTool tag
+    // ("<tag name>//<regexp>") matches.
+    condition_path: z.string().optional(),
+    condition_filename: z.string().optional(),
+    condition_exif: z.string().optional(),
+    // With transform_tz set, the time read in source_tz is reported in report_tz.
+    transform_tz: z.number().optional(),
+    source_tz: TimezoneDescription.optional(),
+    report_tz: TimezoneDescription.optional(),
+  })
+  .loose();
+
+const ExifDateTimeProps = BaseDateTimeProps.extend({
+  rule_type: z.literal("exif"),
+  // An ExifTool tag name, such as "EXIF:DateTimeOriginal" or "XMP:DateCreated".
+  exif_tag: z.string(),
 });
 
 const PathDateTimeProps = BaseDateTimeProps.extend({
-  rule_type: z.enum(["path"]),
+  rule_type: z.literal("path"),
+  path_part: z.enum(["filename", "full_path"]).optional(),
   predefined_regexp: z.string().optional(),
+  custom_regexp: z.string().optional(),
 });
 
-const FilesystemDateTimeProps = TransformTimezoneProps.extend({
-  rule_type: z.enum(["filesystem"]),
+const FilesystemDateTimeProps = BaseDateTimeProps.extend({
+  rule_type: z.literal("filesystem"),
   file_property: z.enum(["ctime", "mtime"]),
 });
 
-const SimpleDateTimeProps = BaseDateTimeProps.extend({
-  rule_type: z.enum(["path", "filesystem", "user_defined"]),
+const UserDefinedDateTimeProps = BaseDateTimeProps.extend({
+  rule_type: z.literal("user_defined"),
 });
 
-const SimpleExifDateTimeProps = BaseDateTimeProps.extend({
-  rule_type: z.enum(["exif"]),
-  exif_tag: z.enum(["EXIF:DateTime", "EXIF:DateTimeOriginal"]),
-});
-
-const ExtendedExifDateTimeProps = TransformTimezoneProps.extend({
-  rule_type: z.enum(["exif"]),
-  exif_tag: z.enum(["QuickTime:CreateDate", "Composite:GPSDateTime"]),
-});
-
-export const DateTimeRule = z.union([
+export const DateTimeRule = z.discriminatedUnion("rule_type", [
+  ExifDateTimeProps,
   PathDateTimeProps,
   FilesystemDateTimeProps,
-  SimpleDateTimeProps,
-  SimpleExifDateTimeProps,
-  ExtendedExifDateTimeProps,
+  UserDefinedDateTimeProps,
 ]);
 
 export type DateTimeRule = z.infer<typeof DateTimeRule>;

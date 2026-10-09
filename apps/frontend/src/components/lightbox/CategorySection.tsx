@@ -15,7 +15,6 @@ import {
 } from "../../api_client/photos/hooks/useSetPhotosCategoryMutation";
 import type { Photo as PhotoType } from "../../api_client/photos/types";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
-import type { User } from "../../api_client/user/types";
 import { useAuth } from "../../hooks/useAuth";
 import { savedTimelineFilter, timelineFilterShows } from "../photolist/timelineFilter";
 
@@ -32,6 +31,13 @@ type CategoryState = {
 type Props = Readonly<{
   photoDetail: PhotoType;
 }>;
+
+const CATEGORIES: readonly PhotoCategory[] = ["photo", "screenshot", "document"];
+
+/** SegmentedControl reports its value as a plain string. */
+function isPhotoCategory(value: string): value is PhotoCategory {
+  return CATEGORIES.some(category => category === value);
+}
 
 const ICONS: Record<PhotoCategory, typeof Photo> = {
   photo: Photo,
@@ -86,8 +92,7 @@ function pickedState(imageHash: string, category: PhotoCategory): CategoryState 
 export function CategorySection({ photoDetail }: Props) {
   const { t } = useTranslation();
   const { userId } = useAuth();
-  const { data } = useCurrentUserSelfDetailsQuery();
-  const user = data as User | undefined;
+  const { data: user } = useCurrentUserSelfDetailsQuery();
   const setCategory = useSetPhotosCategoryMutation();
 
   const fromServer = stateFromServer(photoDetail);
@@ -170,9 +175,11 @@ export function CategorySection({ photoDetail }: Props) {
         fullWidth
         aria-label={t("lightbox.category.title")}
         value={state.category}
-        onChange={value => apply(pickedState(state.imageHash, value as PhotoCategory), state)}
+        onChange={value => {
+          if (isPhotoCategory(value)) apply(pickedState(state.imageHash, value), state);
+        }}
         disabled={setCategory.isPending}
-        data={(["photo", "screenshot", "document"] as const).map(category => {
+        data={CATEGORIES.map(category => {
           const Icon = ICONS[category];
           return {
             value: category,

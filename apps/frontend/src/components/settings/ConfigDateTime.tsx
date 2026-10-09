@@ -12,76 +12,93 @@ import {
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { IconArrowBackUp as ArrowBackUp, IconCodePlus as CodePlus } from "@tabler/icons-react";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchPredefinedRulesQuery } from "../../api_client/settings/hooks/useFetchPredefinedRulesQuery";
 import { ModalConfigDatetime } from "../modals/ModalConfigDatetime";
 import { describeRuleType, getRuleExtraInfo } from "./date-time-settings";
-import type { DateTimeRule } from "./date-time.zod";
+import { DateTimeRule } from "./date-time.zod";
+import { readSavedList, savedIds, withRuleOrder } from "./savedRuleList";
 import { SortableTbody, SortableTr } from "./SortableTableRows";
+import { UnreadableSavedEntries } from "./UnreadableSavedEntries";
 
 type ConfigDateTimeProps = Readonly<{
   value: string;
   onChange: (rules: string) => void;
 }>;
 
+function isDateTimeRule(entry: unknown): entry is DateTimeRule {
+  return DateTimeRule.safeParse(entry).success;
+}
+
 export function ConfigDateTime({ value, onChange }: ConfigDateTimeProps) {
   const { t } = useTranslation();
   const theme = useMantineTheme();
   const colorScheme = useComputedColorScheme();
   const { data: allRules } = useFetchPredefinedRulesQuery();
-  const [userRules, setUserRules] = useState<DateTimeRule[]>([]);
+  // Every saved entry: the list shows and edits the rules, and saves the other entries as they are.
+  const [entries, setEntries] = useState<unknown[]>([]);
+  const userRules = useMemo(() => entries.filter(isDateTimeRule), [entries]);
   const [availableRules, setAvailableRules] = useState<DateTimeRule[]>([]);
   const [resetButtonDisabled, setResetButtonDisabled] = useState(true);
   const [opened, { open, close }] = useDisclosure(false);
 
   useEffect(() => {
     if (value) {
-      setUserRules(JSON.parse(value));
+      setEntries(readSavedList(value));
     }
   }, [value]);
 
   useEffect(() => {
-    if (!allRules || !userRules) {
+    if (!allRules) {
       return;
     }
 
     // Also with no rules left: otherwise the list kept excluding the rule deleted last, and
     // after a reload with no rules the Add Rule dialog was empty.
-    setAvailableRules(allRules.filter(rule => !userRules.find(r => r.id === rule.id)));
+    const takenIds = savedIds(entries);
+    setAvailableRules(allRules.filter(rule => !takenIds.includes(rule.id)));
 
+    // A saved entry that is not a rule also makes the list differ from the defaults.
     const defaultRules = allRules.filter(rule => rule.is_default);
-    setResetButtonDisabled(JSON.stringify(userRules.map(r => r.id)) === JSON.stringify(defaultRules.map(r => r.id)));
-  }, [allRules, userRules]);
+    setResetButtonDisabled(
+      entries.length === userRules.length &&
+        JSON.stringify(userRules.map(r => r.id)) === JSON.stringify(defaultRules.map(r => r.id))
+    );
+  }, [allRules, entries, userRules]);
+
+  function save(updatedEntries: unknown[]) {
+    setEntries(updatedEntries);
+    onChange(JSON.stringify(updatedEntries));
+  }
 
   function addRules(newRules: DateTimeRule[]) {
-    const tmp = userRules.concat(newRules);
-    setUserRules(tmp);
-    onChange(JSON.stringify(tmp));
+    save([...entries, ...newRules]);
   }
 
   function deleteRule(rule: DateTimeRule) {
-    const updatedRules = userRules.filter(r => r.id !== rule.id);
-    setUserRules(updatedRules);
-    onChange(JSON.stringify(updatedRules));
+    save(entries.filter(entry => !(isDateTimeRule(entry) && entry.id === rule.id)));
+  }
+
+  // A saved entry the list cannot read as a rule has no id to go by: it goes by its place.
+  function deleteEntry(index: number) {
+    save(entries.filter((_, i) => i !== index));
   }
 
   // Rules apply in order, so save the order the list shows after a drop: the dragged rule at
-  // its new place and the ones in between shifted by one.
+  // its new place and the ones in between shifted by one. An entry the list does not show keeps
+  // its place.
   function moveRule(from: number, to: number) {
-    const tmp = arrayMove(userRules, from, to);
-    setUserRules(tmp);
-    onChange(JSON.stringify(tmp));
+    save(withRuleOrder(entries, isDateTimeRule, arrayMove(userRules, from, to)));
   }
 
+  // The defaults replace the whole saved list, as they always did.
   function resetToDefaultRules() {
     if (!allRules) {
       return;
     }
 
-    const defaultRules = allRules.filter(rule => rule.is_default);
-    setUserRules(defaultRules);
-    onChange(JSON.stringify(defaultRules));
+    save(allRules.filter(rule => rule.is_default));
   }
 
   const items = userRules.map(rule => (
@@ -143,6 +160,8 @@ export function ConfigDateTime({ value, onChange }: ConfigDateTimeProps) {
           </SortableTbody>
         </Table>
       </ScrollArea>
+
+      <UnreadableSavedEntries entries={entries} isRule={isDateTimeRule} onDelete={deleteEntry} />
 
       <ModalConfigDatetime
         availableRules={availableRules}

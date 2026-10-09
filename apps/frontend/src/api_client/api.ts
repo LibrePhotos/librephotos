@@ -7,9 +7,8 @@ import {
   type TokenSupplier,
 } from "@librephotos/api-client";
 import { MutationCache, QueryCache, QueryClient } from "@tanstack/react-query";
-import { Cookies } from "react-cookie";
 import { notification } from "../service/notifications";
-import { clearAuthCookies, setAuthCookie } from "./authCookies";
+import { clearAuthCookies, getAuthCookie, setAuthCookie } from "./authCookies";
 
 const PUBLIC_URL = import.meta.env.VITE_PUBLIC_URL || import.meta.env.PUBLIC_URL || "";
 const API_BASE_URL = PUBLIC_URL + "/api";
@@ -37,8 +36,8 @@ export type RequestOptions = SharedRequestOptions;
 
 /** The web keeps its JWTs in (script-readable) cookies. */
 const cookieTokens: TokenSupplier = {
-  getAccessToken: () => new Cookies().get("access") ?? null,
-  getRefreshToken: () => new Cookies().get("refresh") ?? null,
+  getAccessToken: () => getAuthCookie("access") ?? null,
+  getRefreshToken: () => getAuthCookie("refresh") ?? null,
   setAccessToken: token => setAuthCookie("access", token),
   clearTokens: clearAuthCookies,
 };
@@ -62,6 +61,18 @@ const isPublicPage = () => window.location.pathname.startsWith("/public");
 export function redirectToLogin(): void {
   loggingOut = true;
   window.location.assign(PUBLIC_URL + "/login");
+}
+
+/** One `{ field, message }` entry of the backend's error body. */
+function isFieldError(value: unknown): value is { field: string; message: string } {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "field" in value &&
+    typeof value.field === "string" &&
+    "message" in value &&
+    typeof value.message === "string"
+  );
 }
 
 /**
@@ -92,7 +103,7 @@ async function handleUnauthorized(endpoint: string, response: Response): Promise
     loggingOut = true;
   }
   // Logout the user by blacklisting the refresh token
-  const refreshToken = new Cookies().get("refresh");
+  const refreshToken = getAuthCookie("refresh");
   if (refreshToken) {
     try {
       await fetch(`${API_BASE_URL}/auth/token/blacklist/`, {
@@ -117,15 +128,20 @@ async function handleUnauthorized(endpoint: string, response: Response): Promise
   // but suppress other 401 notifications on public/login/signup pages
   const isLoginAttempt = endpoint === "/auth/token/obtain/";
   if (!suppressAuthNotifications || isLoginAttempt) {
-    const data = await response.json().catch(() => ({}));
-    if (data.errors) {
-      data.errors.forEach((error: { field: string; message: string }) => {
-        if (error.field === "detail") {
+    const data: unknown = await response.json().catch(() => ({}));
+    const body = typeof data === "object" && data !== null ? data : {};
+    const errors = "errors" in body ? body.errors : undefined;
+    const detail = "detail" in body ? body.detail : undefined;
+    if (errors) {
+      // The backend's exception handler: { errors: [{ field, message }] }
+      const entries: unknown[] = Array.isArray(errors) ? errors : [];
+      entries.forEach(error => {
+        if (isFieldError(error) && error.field === "detail") {
           notification.authError(isLoginAttempt, error.field, error.message);
         }
       });
-    } else if (isLoginAttempt && data.detail) {
-      notification.authError(true, "detail", data.detail);
+    } else if (isLoginAttempt && typeof detail === "string" && detail) {
+      notification.authError(true, "detail", detail);
     } else if (!isLoginAttempt) {
       notification.invalidToken();
     }

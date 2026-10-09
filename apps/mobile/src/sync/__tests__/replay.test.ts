@@ -16,10 +16,9 @@ import { FakeSource, emptyStore, photoItem } from "./fake-source";
 function makeExecutor(over: Partial<OutboxExecutor> = {}): OutboxExecutor & { calls: string[] } {
   const calls: string[] = [];
   const rec =
-    <T>(name: string, ret?: T) =>
-    async (): Promise<T> => {
+    (name: string) =>
+    async (): Promise<void> => {
       calls.push(name);
-      return ret as T;
     };
   return {
     calls,
@@ -30,7 +29,10 @@ function makeExecutor(over: Partial<OutboxExecutor> = {}): OutboxExecutor & { ca
     caption: rec("caption"),
     albumAdd: rec("albumAdd"),
     albumRemove: rec("albumRemove"),
-    albumCreate: rec("albumCreate", { id: 999 }),
+    albumCreate: async () => {
+      calls.push("albumCreate");
+      return { id: 999 };
+    },
     albumRename: rec("albumRename"),
     personRename: rec("personRename"),
     ...over,
@@ -191,7 +193,7 @@ describe("temp-id reconciliation", () => {
     addPhotosToAlbum(t.db, { albumId: tempId, title: "X", photoIds: ["pa"], imageHashes: ["hA"] });
     reconcileTempAlbum(t.db, tempId, 77);
     const add = t.db.get(sql`SELECT payload FROM outbox WHERE kind = 'album_add'`) as { payload: string };
-    expect(JSON.parse(add.payload).albumId).toBe(77);
+    expect(JSON.parse(add.payload)).toHaveProperty("albumId", 77);
   });
 });
 

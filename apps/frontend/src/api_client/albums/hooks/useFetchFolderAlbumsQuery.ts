@@ -39,7 +39,7 @@ export const useFetchFolderSubfoldersQuery = (path?: string) =>
     queryKey: [...FOLDER_SUBFOLDERS_QUERY_KEY, path],
     queryFn: async (): Promise<FolderNavigationResponse> => {
       const params = path ? `?path=${encodeURIComponent(path)}` : "";
-      return (await fetchClient.get(`/folders/subfolders/${params}`)) as FolderNavigationResponse;
+      return fetchClient.get<FolderNavigationResponse>(`/folders/subfolders/${params}`);
     },
     retry: retryFolderRequest,
     retryDelay: 1000,

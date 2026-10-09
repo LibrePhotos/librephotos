@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import * as Notifications from "expo-notifications";
-import { useRouter } from "expo-router";
+import { useRouter, type Href } from "expo-router";
 
 /**
  * Routes a tapped local notification to its deep-link target (the memories
@@ -12,7 +12,8 @@ export function NotificationRouter() {
 
   useEffect(() => {
     const go = (url: unknown) => {
-      if (typeof url === "string" && url.startsWith("/")) router.push(url as never);
+      // A deep link into the app, written by the reminder that scheduled it.
+      if (typeof url === "string" && url.startsWith("/")) router.push(url as Href);
     };
     // Cold start: app opened from a notification tap.
     void Notifications.getLastNotificationResponseAsync().then((res) => {

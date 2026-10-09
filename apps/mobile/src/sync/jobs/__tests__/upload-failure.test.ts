@@ -28,6 +28,7 @@ import { createJobHandlers } from "../handlers";
 import { enqueueJob } from "../queue";
 import { runWorker, resetBootReclaimForTests } from "../worker";
 import type { SyncLogEntry } from "@/db/queries/sync-log";
+import { defined } from "@/test/defined";
 
 const USER_ID = 7;
 const fastYield = () => Promise.resolve();
@@ -85,7 +86,7 @@ describe("upload_asset job failure propagation", () => {
       uploadAsset: (ctx, assetId) =>
         runUploadItem(ctx.db, assetId, { userId: USER_ID, transport }),
     });
-    const id = enqueueJob(t.db, { kind: "upload_asset", payload: { assetId: "a1" } })!;
+    const id = defined(enqueueJob(t.db, { kind: "upload_asset", payload: { assetId: "a1" } }));
 
     const stats = await runWorker(t.db, {
       handlers,
@@ -149,7 +150,7 @@ describe("upload_asset job failure propagation", () => {
       uploadAsset: (ctx, assetId) =>
         runUploadItem(ctx.db, assetId, { userId: USER_ID, transport }),
     });
-    const id = enqueueJob(t.db, { kind: "upload_asset", payload: { assetId: "a1" } })!;
+    const id = defined(enqueueJob(t.db, { kind: "upload_asset", payload: { assetId: "a1" } }));
 
     const stats = await runWorker(t.db, { handlers, yield: fastYield });
 

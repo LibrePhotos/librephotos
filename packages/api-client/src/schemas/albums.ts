@@ -20,7 +20,7 @@ export const PhotoSuperSimple = z.object({
   image_hash: z.string(),
   exif_timestamp: z.string().nullable(),
   rating: z.number(),
-  geolocation_json: z.any(),
+  geolocation_json: z.unknown(),
   hidden: z.boolean(),
   public: z.boolean(),
   video: z.boolean(),
@@ -111,7 +111,7 @@ export const PhotoSimple = z.object({
   exif_gps_lat: z.number().nullable(),
   exif_gps_lon: z.number().nullable(),
   rating: z.number(),
-  geolocation_json: z.any(),
+  geolocation_json: z.unknown(),
   public: z.boolean(),
   video: z.boolean(),
   // What a grid tile needs beyond the hash, as the photo summaries carry it.

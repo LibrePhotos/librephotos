@@ -7,11 +7,16 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { notification } from ".";
 import i18n from "../../i18n";
 
-const { showNotification } = vi.hoisted(() => ({ showNotification: vi.fn() }));
+type Shown = { title?: string; message?: string };
+
+const { showNotification } = vi.hoisted(() => ({ showNotification: vi.fn<(notification: Shown) => void>() }));
 vi.mock("@mantine/notifications", () => ({ showNotification }));
 
-type Shown = { title?: string; message?: string };
-const lastShown = () => showNotification.mock.calls.at(-1)?.[0] as Shown;
+const lastShown = (): Shown => {
+  const shown = showNotification.mock.calls.at(-1)?.[0];
+  if (!shown) throw new Error("no notification was shown");
+  return shown;
+};
 
 beforeAll(async () => {
   await i18n.changeLanguage("en");
@@ -22,11 +27,10 @@ beforeEach(() => {
 });
 
 describe("notifications", () => {
-  it.each(Object.keys(notification))("%s fills in every placeholder", name => {
-    const show = notification[name as keyof typeof notification] as (...args: unknown[]) => void;
-
-    // An array stands in for both a name and a list of names (taggedPhotos).
-    show(["A"], 2, true);
+  it.each(Object.entries(notification))("%s fills in every placeholder", (_name, show) => {
+    // An array stands in for both a name and a list of names (taggedPhotos). The arguments
+    // fit no notifier's parameters on purpose, so the call is made through Reflect.apply.
+    Reflect.apply(show, undefined, [["A"], 2, true]);
 
     const { title, message } = lastShown();
     expect(`${title ?? ""} ${message ?? ""}`).not.toContain("{{");

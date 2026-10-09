@@ -21,7 +21,11 @@ export function useFetchMetadataHistoryQuery(
     // Goes through the api_client function so the response is validated against
     // the MetadataHistoryResponse schema instead of being blind-cast.
     queryKey: ["metadataHistory", photoId, page, pageSize],
-    queryFn: () => fetchMetadataHistory(photoId!, page, pageSize),
+    queryFn: () => {
+      // Only runs while enabled, i.e. with a photo (unless options turn it on without one).
+      if (!photoId) throw new Error("No photo to load the metadata history of");
+      return fetchMetadataHistory(photoId, page, pageSize);
+    },
     enabled: !!photoId,
     staleTime: 10 * 1000, // 10 seconds
     ...options,

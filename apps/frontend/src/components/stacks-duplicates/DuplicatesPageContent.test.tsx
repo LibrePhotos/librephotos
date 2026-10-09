@@ -16,14 +16,18 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite
 import i18n from "../../i18n";
 import { DuplicatesPageContent } from "./DuplicatesPageContent";
 
-const stubs = vi.hoisted(() => ({
-  deleteDuplicate: vi.fn(),
-  pages: {} as Record<number, { id: string }[]>,
-  numPages: 1,
-  stats: undefined as Record<string, number> | undefined,
-}));
+type PageState = {
+  pages: Record<number, { id: string }[]>;
+  numPages: number;
+  stats: Record<string, number> | undefined;
+};
 
-vi.mock("@tanstack/react-router", () => ({ useNavigate: () => vi.fn() }));
+const stubs = vi.hoisted(() => {
+  const state: PageState = { pages: {}, numPages: 1, stats: undefined };
+  return { deleteDuplicate: vi.fn<(id: string) => void>(), ...state };
+});
+
+vi.mock("@tanstack/react-router", () => ({ useNavigate: () => vi.fn<(options: unknown) => void>() }));
 vi.mock("../lightbox", () => ({ Lightbox: () => null }));
 vi.mock("../../api_client/auth", () => ({ useAccessToken: () => ({ data: { access: { user_id: "1" } } }) }));
 vi.mock("../../api_client/user/hooks", () => ({ useFetchUserSelfDetailsQuery: () => ({ data: undefined }) }));
@@ -43,7 +47,7 @@ const duplicate = (id: string) => ({
 });
 
 vi.mock("../../api_client/duplicates", () => {
-  const idle = () => ({ mutate: vi.fn(), isPending: false });
+  const idle = () => ({ mutate: vi.fn<(...args: unknown[]) => void>(), isPending: false });
   return {
     useDeleteDuplicateMutation: () => ({ mutate: stubs.deleteDuplicate }),
     useDetectDuplicatesMutation: idle,
@@ -66,8 +70,8 @@ let root: ReturnType<typeof createRoot>;
 let container: HTMLDivElement;
 
 beforeAll(async () => {
-  // @ts-ignore - jsdom has no matchMedia, MantineProvider and useMediaQuery need it
-  window.matchMedia = (query: string) => ({
+  // jsdom has no matchMedia, MantineProvider and useMediaQuery need it
+  window.matchMedia = (query: string): MediaQueryList => ({
     matches: false,
     media: query,
     onchange: null,
@@ -77,13 +81,12 @@ beforeAll(async () => {
     removeEventListener: () => {},
     dispatchEvent: () => false,
   });
-  // @ts-ignore - jsdom has no ResizeObserver either (ScrollArea, SegmentedControl)
+  // jsdom has no ResizeObserver either (ScrollArea, SegmentedControl)
   globalThis.ResizeObserver = class {
     observe() {}
     unobserve() {}
     disconnect() {}
   };
-  // @ts-ignore
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   await i18n.changeLanguage("en");
 }, 60000);
@@ -114,17 +117,30 @@ async function render() {
   });
 }
 
+/** The element a test goes on to use: missing, the test fails here and says what was missing. */
+function rendered<T>(element: T | null | undefined, what: string): T {
+  if (element === null || element === undefined) throw new Error(`${what} is not rendered`);
+  return element;
+}
+
 const buttons = () => Array.from(container.querySelectorAll<HTMLButtonElement>("button"));
-const button = (label: string) => buttons().find(el => el.textContent === label)!;
-const click = async (element: Element) => {
+const button = (label: string) =>
+  rendered(
+    buttons().find(el => el.textContent === label),
+    `the ${label} button`
+  );
+const click = async (element: HTMLElement) => {
   await act(async () => {
-    (element as HTMLElement).click();
+    element.click();
   });
 };
 const selectAll = () =>
-  Array.from(container.querySelectorAll<HTMLInputElement>("input[type=checkbox]")).find(input =>
-    input.closest("label, .mantine-Checkbox-root")?.textContent?.includes("Select All")
-  )!;
+  rendered(
+    Array.from(container.querySelectorAll<HTMLInputElement>("input[type=checkbox]")).find(input =>
+      input.closest("label, .mantine-Checkbox-root")?.textContent?.includes("Select All")
+    ),
+    "the Select All checkbox"
+  );
 
 describe("deleting duplicate groups", () => {
   it("asks before deleting a single group", async () => {

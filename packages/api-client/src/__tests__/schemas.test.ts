@@ -17,19 +17,20 @@ import {
   imageHashOf,
 } from "../schemas";
 import { photosetToFilter } from "../endpoints";
+import { defined } from "./defined";
 
 describe("schema parsing against fixtures", () => {
   it("parses a date-albums (timeline) list", () => {
     const parsed = FetchDateAlbumsListResponse.parse(dateAlbumsList);
     expect(parsed.results).toHaveLength(2);
-    const first = parsed.results[0]!;
+    const first = defined(parsed.results[0]);
     expect(first.id).toBe("2024-06-15");
-    expect(first.items[0]!.type).toBe(Media.IMAGE);
+    expect(defined(first.items[0]).type).toBe(Media.IMAGE);
     // defaults applied by zod
-    expect(first.items[0]!.isTemp).toBe(false);
-    expect(first.items[0]!.shared_to).toEqual([]);
+    expect(defined(first.items[0]).isTemp).toBe(false);
+    expect(defined(first.items[0]).shared_to).toEqual([]);
     // the null-date "no timestamp" bucket is allowed
-    expect(parsed.results[1]!.date).toBeNull();
+    expect(defined(parsed.results[1]).date).toBeNull();
   });
 
   it("parses a login response", () => {

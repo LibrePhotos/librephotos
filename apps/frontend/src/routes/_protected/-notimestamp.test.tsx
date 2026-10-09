@@ -11,17 +11,30 @@
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, describe, expect, it, vi } from "vitest";
+import type { PigPhoto } from "../../api_client/photos/types";
+import type { PhotoListView } from "../../components/photolist/PhotoListView";
 import i18n from "../../i18n";
+import { defined } from "../../util/defined.test-utils";
+import { tempPigPhoto } from "../../util/util";
 
-type PageResult = { data?: { count: number; results: { id: string }[] }; isPlaceholderData: boolean };
+type PhotoListViewProps = React.ComponentProps<typeof PhotoListView>;
+type PageResult = { data?: { count: number; results: PigPhoto[] }; isPlaceholderData: boolean };
 
 const stubs = vi.hoisted(() => ({
   component: undefined as React.ComponentType | undefined,
   pages: {} as Record<number, PageResult>,
   requestedPages: [] as number[],
-  photoset: [] as { id: string; isTemp?: boolean }[],
-  updateItems: undefined as ((visible: unknown[]) => void) | undefined,
+  photoset: [] as PigPhoto[],
+  updateItems: undefined as PhotoListViewProps["updateItems"],
 }));
+
+/** The page hands PhotoListView one flat list of photos. */
+function flatList(photoset: PhotoListViewProps["photoset"]): PigPhoto[] {
+  return photoset.map(entry => {
+    if ("items" in entry) throw new Error("the no-timestamp page lists photos, not date groups");
+    return entry;
+  });
+}
 
 vi.mock("@tanstack/react-router", () => ({
   createFileRoute: () => (options?: { component?: React.ComponentType }) => {
@@ -36,17 +49,17 @@ vi.mock("../../api_client/photos/hooks/useFetchPhotosWithoutTimestampQuery", () 
   },
 }));
 vi.mock("../../components/photolist/PhotoListView", () => ({
-  PhotoListView: ({ photoset, updateItems }: any) => {
-    stubs.photoset = photoset;
+  PhotoListView: ({ photoset, updateItems }: Pick<PhotoListViewProps, "photoset" | "updateItems">) => {
+    stubs.photoset = flatList(photoset);
     stubs.updateItems = updateItems;
     return null;
   },
 }));
 
-const photos = (page: number) => Array.from({ length: 100 }, (_unused, i) => ({ id: `p${page}-${i}` }));
+const photos = (page: number) =>
+  Array.from({ length: 100 }, (_unused, i): PigPhoto => ({ ...tempPigPhoto(`p${page}-${i}`), isTemp: false }));
 
 beforeAll(async () => {
-  // @ts-ignore
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   await i18n.changeLanguage("en");
   // The cold import of the route takes seconds, longer when the suite runs in parallel
@@ -57,7 +70,7 @@ describe("the no-timestamp page", () => {
   it("fills each page into its own slots and ignores the placeholder of the previous page", async () => {
     const page1 = { count: 250, results: photos(1) };
     stubs.pages = { 1: { data: page1, isPlaceholderData: false } };
-    const NoTimestamp = stubs.component!;
+    const NoTimestamp = defined(stubs.component);
     const root = createRoot(document.createElement("div"));
 
     await act(async () => {
@@ -70,7 +83,7 @@ describe("the no-timestamp page", () => {
     // Scrolling reaches the placeholders of page 2, which is still loading
     stubs.pages[2] = { data: page1, isPlaceholderData: true };
     await act(async () => {
-      stubs.updateItems!([{ id: "temp-150", isTemp: true }]);
+      defined(stubs.updateItems)([tempPigPhoto("temp-150")]);
     });
     expect(stubs.requestedPages.at(-1)).toBe(2);
     expect(stubs.photoset[100].isTemp).toBe(true);

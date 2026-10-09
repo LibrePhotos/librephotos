@@ -5,14 +5,16 @@
  */
 import "@mantine/core/styles.css";
 import { MantineProvider } from "@mantine/core";
+import type { TiptapEditorHTMLElement } from "@tiptap/core";
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi, type MockInstance } from "vitest";
 import i18n from "../../i18n";
+import { defined } from "../../util/defined.test-utils";
 import { Description } from "./Description";
 
-const saveCaption = vi.fn();
-const navigate = vi.hoisted(() => vi.fn());
+const saveCaption = vi.fn<(variables: { id: string; caption: string }) => void>();
+const navigate = vi.hoisted(() => vi.fn<(options: { to: string }) => void>());
 const fetchThingsAlbums = vi.hoisted(() => vi.fn(() => ({ data: [] })));
 
 vi.mock("../../api_client/albums/hooks", () => ({
@@ -20,21 +22,25 @@ vi.mock("../../api_client/albums/hooks", () => ({
 }));
 vi.mock("../../api_client/photos/hooks", () => ({
   useSavePhotoCaptionMutation: () => ({ mutate: saveCaption }),
-  useGenerateImageToTextCaptionMutation: () => ({ mutate: vi.fn(), isPending: false }),
+  useGenerateImageToTextCaptionMutation: () => ({ mutate: vi.fn<(...args: unknown[]) => void>(), isPending: false }),
 }));
 vi.mock("../../api_client/settings/hooks", () => ({
   useGetSettingsQuery: () => ({ data: undefined }),
 }));
 vi.mock("@tanstack/react-router", () => ({ useNavigate: () => navigate }));
 
-const photo = (hash: string, caption: string, extra: Record<string, unknown> = {}) =>
-  ({ image_hash: hash, captions_json: { user_caption: caption, ...extra } }) as any;
+type DescribedPhoto = React.ComponentProps<typeof Description>["photoDetail"];
 
-let warn: ReturnType<typeof vi.spyOn>;
+const photo = (hash: string, caption: string, extra: Record<string, unknown> = {}): DescribedPhoto => ({
+  image_hash: hash,
+  captions_json: { user_caption: caption, ...extra },
+});
+
+let warn: MockInstance<typeof console.warn>;
 
 beforeAll(async () => {
-  // @ts-ignore - jsdom has no matchMedia, MantineProvider needs it
-  window.matchMedia = (query: string) => ({
+  // jsdom has no matchMedia, MantineProvider needs it
+  window.matchMedia = (query: string): MediaQueryList => ({
     matches: false,
     media: query,
     onchange: null,
@@ -45,10 +51,10 @@ beforeAll(async () => {
     dispatchEvent: () => false,
   });
   // jsdom does no layout; ProseMirror measures the caret to scroll it into view
-  // when the editor takes focus.
-  Range.prototype.getClientRects = () => [] as unknown as DOMRectList;
+  // when the editor takes focus. An element's list, which jsdom leaves empty,
+  // stands in for the range's.
+  Range.prototype.getClientRects = () => document.createElement("div").getClientRects();
   Range.prototype.getBoundingClientRect = () => new DOMRect();
-  // @ts-ignore
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   await i18n.changeLanguage("en");
 });
@@ -70,21 +76,23 @@ function mount() {
   return { container, root: createRoot(container) };
 }
 
-async function render(root: Root, photoDetail: unknown, isPublic = false) {
+async function render(root: Root, photoDetail: DescribedPhoto, isPublic = false) {
   await act(async () => {
     root.render(
       <MantineProvider>
-        <Description photoDetail={photoDetail as any} isPublic={isPublic} />
+        <Description photoDetail={photoDetail} isPublic={isPublic} />
       </MantineProvider>
     );
   });
 }
 
-const editorElement = (container: HTMLElement) => container.querySelector<HTMLElement>(".ProseMirror")!;
+const editorElement = (container: HTMLElement) => defined(container.querySelector<HTMLElement>(".ProseMirror"));
 
 /** Types at the caret, as the user would; tiptap keeps its editor on the DOM node. */
 async function type(container: HTMLElement, text: string) {
-  const { view } = (editorElement(container) as any).editor;
+  const element: TiptapEditorHTMLElement = editorElement(container);
+  if (!element.editor) throw new Error("tiptap left no editor on its node");
+  const { view } = element.editor;
   await act(async () => {
     view.dispatch(view.state.tr.insertText(text));
   });
@@ -94,7 +102,7 @@ async function clickLabelled(container: HTMLElement, label: string) {
   const button = container.querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`);
   expect(button, label).toBeTruthy();
   await act(async () => {
-    button!.click();
+    defined(button).click();
   });
 }
 
@@ -175,7 +183,7 @@ describe("Description", () => {
     const tagged = photo("a", "", { mobileclip_s2: { tags: ["rock & roll"] } });
     const { container, root } = mount();
     await render(root, tagged);
-    const badge = () => [...container.querySelectorAll<HTMLElement>(".mantine-Badge-root")].at(-1)!;
+    const badge = () => defined([...container.querySelectorAll<HTMLElement>(".mantine-Badge-root")].at(-1));
     // The owner gets the hashtag albums for the editor's suggestions.
     expect(fetchThingsAlbums).toHaveBeenLastCalledWith(false);
     // A button, so keyboard and screen-reader users can start the search too.

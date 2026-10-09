@@ -3,11 +3,20 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { queryClient } from "../../../api_client/api";
 import { FacesQueryKeys, FacesTab, IncompleteFacesQueryKeys } from "../../../api_client/faces";
+import type {
+  CompletePersonFaceList,
+  IncompletePersonFaceListRequest,
+  PersonFaceList,
+  PersonFaceListRequest,
+} from "../../../api_client/faces";
 import { useFaceDataFetching } from "./useFaceDataFetching";
 
+// The part of useFetchIncompleteFacesQuery's result the hook reads
+type IncompleteFacesResult = { data: CompletePersonFaceList | undefined; isFetching: boolean };
+
 const stubs = vi.hoisted(() => ({
-  fetchFaces: vi.fn(),
-  incomplete: vi.fn(),
+  fetchFaces: vi.fn<(params: PersonFaceListRequest) => Promise<PersonFaceList>>(),
+  incomplete: vi.fn<(request: IncompletePersonFaceListRequest) => IncompleteFacesResult>(),
 }));
 
 vi.mock("../../../api_client/faces", async importOriginal => {
@@ -27,7 +36,7 @@ type Group = { page: number; person: number; inferred: boolean; method: "cluster
 
 const page = (n: number): Group => ({ page: n, person: PERSON_ID, inferred: true, method: "clustering" });
 
-const placeholders = (count: number) =>
+const placeholders = (count: number): PersonFaceList =>
   Array.from({ length: count }, (_, id) => ({
     id,
     image: null,
@@ -42,9 +51,16 @@ let isFetchingLists = false;
 
 /** Seed the incomplete-faces cache the way a fresh list response would. */
 const seedPerson = (faceCount: number) => {
-  queryClient.setQueryData(INFERRED_KEY, [
+  queryClient.setQueryData<CompletePersonFaceList>(INFERRED_KEY, [
     { id: PERSON_ID, name: "Unknown 7", face_count: faceCount, kind: "CLUSTER", faces: placeholders(faceCount) },
   ]);
+};
+
+/** The first face of the seeded person, as the cache holds it now. */
+const firstCachedFace = () => {
+  const people = queryClient.getQueryData<CompletePersonFaceList>(INFERRED_KEY);
+  if (!people?.length) throw new Error("no person in the incomplete-faces cache");
+  return people[0].faces[0];
 };
 
 let root: Root;
@@ -65,16 +81,16 @@ const render = async (groups: Group[]) => {
 };
 
 beforeEach(() => {
-  // @ts-ignore - tells React that act() is in charge of flushing here
+  // Tells React that act() is in charge of flushing here
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   isFetchingLists = false;
-  stubs.incomplete.mockImplementation((request: { inferred: boolean }) =>
+  stubs.incomplete.mockImplementation(request =>
     request.inferred
-      ? { data: queryClient.getQueryData(INFERRED_KEY), isFetching: isFetchingLists }
+      ? { data: queryClient.getQueryData<CompletePersonFaceList>(INFERRED_KEY), isFetching: isFetchingLists }
       : { data: [], isFetching: isFetchingLists }
   );
   stubs.fetchFaces.mockReset();
-  stubs.fetchFaces.mockImplementation(({ page: requested }: { page: number }) =>
+  stubs.fetchFaces.mockImplementation(({ page: requested }) =>
     Promise.resolve(
       Array.from({ length: 100 }, (_, i) => ({
         id: (requested - 1) * 100 + i + 1000,
@@ -125,7 +141,7 @@ describe("useFaceDataFetching", () => {
     await render([page(1), page(2)]);
 
     expect(stubs.fetchFaces).toHaveBeenCalledTimes(2);
-    expect(queryClient.getQueryData<any>(INFERRED_KEY)[0].faces[0].isTemp).toBeUndefined();
+    expect(firstCachedFace().isTemp).toBeUndefined();
   });
 
   it("reloads the pages on screen after a tagging mutation refreshed the list", async () => {
@@ -148,6 +164,6 @@ describe("useFaceDataFetching", () => {
     await render(groups);
 
     expect(stubs.fetchFaces).toHaveBeenCalledTimes(2);
-    expect(queryClient.getQueryData<any>(INFERRED_KEY)[0].faces[0].isTemp).toBeUndefined();
+    expect(firstCachedFace().isTemp).toBeUndefined();
   });
 });

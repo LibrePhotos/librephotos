@@ -34,7 +34,7 @@ function client(onScan?: () => void) {
 describe("AdminScreen", () => {
   beforeEach(() => {
     useToastStore.setState({ toasts: [] });
-    (globalThis as { __mockNetworkConnected?: boolean }).__mockNetworkConnected = true;
+    globalThis.__mockNetworkConnected = true;
   });
 
   it("renders the worker indicator and the job list", async () => {

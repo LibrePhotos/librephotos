@@ -8,13 +8,27 @@ import { useFetchPhotoMonthCountQuery } from "../../api_client/stats/hooks";
 import { i18nResolvedLanguage } from "../../i18n";
 import { EmptyState } from "../common/EmptyState";
 
+/** One bar: the month as the locale writes it, and its photo count. */
+type MonthBar = { month: string; Photos: number };
+
+function isMonthBar(value: unknown): value is MonthBar {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "month" in value &&
+    typeof value.month === "string" &&
+    "Photos" in value &&
+    typeof value.Photos === "number"
+  );
+}
+
 export function EventCountMonthGraph() {
   const { t } = useTranslation();
   const { data: photoMonthCounts, isSuccess: fetchedPhotoMonthCounts, isLoading } = useFetchPhotoMonthCountQuery();
 
-  const chartData =
+  const chartData: MonthBar[] =
     fetchedPhotoMonthCounts && photoMonthCounts
-      ? photoMonthCounts.map((el: { count: number; month: string }) => {
+      ? photoMonthCounts.map(el => {
           // Parse the month string (format: "YYYY-M") and format by locale
           const [year, month] = el.month.split("-");
           const date = DateTime.fromObject({ year: parseInt(year, 10), month: parseInt(month, 10) });
@@ -31,9 +45,10 @@ export function EventCountMonthGraph() {
 
   const hasData = chartData.length > 0;
 
-  function getTooltipContent(payload: any[]) {
-    if (!payload || payload.length === 0) return null;
-    const data = payload[0].payload;
+  // Recharts hands the hovered bar's chartData entry back as `payload`
+  function getTooltipContent(payload: ReadonlyArray<{ payload?: unknown }> | undefined) {
+    const data = payload?.[0]?.payload;
+    if (!isMonthBar(data)) return null;
     return (
       <div
         style={{

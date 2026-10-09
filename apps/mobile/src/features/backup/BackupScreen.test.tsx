@@ -10,6 +10,7 @@ import { claimNextJob, enqueueJob, failJob } from "@/sync/jobs/queue";
 import { MAX_JOB_ATTEMPTS } from "@/sync/jobs/types";
 import { useAuthStore } from "@/stores/auth";
 import { useSyncStore } from "@/stores/sync";
+import { defined } from "@/test/defined";
 
 /** Seed a couple of albums + a queued upload row for the fixture render. */
 function seed(t: TestDb): void {
@@ -146,7 +147,7 @@ describe("BackupScreen", () => {
     insertLocalAsset(t.db, { id: "a1", hash: "h1" });
     insertLocalAlbum(t.db, { id: "cam", backupSelection: 1, assetIds: ["a1"] });
     enqueueJob(t.db, { kind: "hash_batch" });
-    const job = claimNextJob(t.db, 1_000)!;
+    const job = defined(claimNextJob(t.db, 1_000));
     failJob(t.db, { id: job.id, attempts: MAX_JOB_ATTEMPTS }, "media library denied", 1_000);
 
     const { getByTestId } = renderWithDb(<BackupScreen />, t.db);

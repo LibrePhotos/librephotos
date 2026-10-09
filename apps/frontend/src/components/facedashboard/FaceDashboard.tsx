@@ -22,6 +22,7 @@ import { useFaceDataFetching } from "./hooks/useFaceDataFetching";
 import { useFaceSelection } from "./hooks/useFaceSelection";
 import { useTabScrollPositions } from "./hooks/useTabScrollPositions";
 import { useVirtualizedGrid } from "./hooks/useVirtualizedGrid";
+import type { FaceCell, GridCell } from "./hooks/useVirtualizedGrid";
 import { TabComponent } from "./TabComponent";
 import { VirtualizedGridComponent } from "./VirtualizedGridComponent";
 
@@ -62,7 +63,7 @@ export function FaceDashboard() {
     groups,
     activeTab,
     analysisMethod,
-    orderBy as any,
+    orderBy,
     minConfidence
   );
 
@@ -84,7 +85,7 @@ export function FaceDashboard() {
 
   // Event handlers
   const handleShowClick = useCallback(
-    (event: React.KeyboardEvent, item: any) => {
+    (event: React.MouseEvent, item: FaceCell) => {
       const index = idx2hash.findIndex(image => image.id === item.photo);
       showLightbox(item.photo, index >= 0);
     },
@@ -120,8 +121,8 @@ export function FaceDashboard() {
     // We need to initialize with cell calculation functions
     // that will be replaced after the grid is initialized
     const utils = {
-      getFlattenedCells: () => [] as any[],
-      getFacesInRange: (start: any, end: any) => {
+      getFlattenedCells: (): GridCell[] => [],
+      getFacesInRange: (start: GridCell, end: GridCell) => {
         const allFaces = utils.getFlattenedCells();
         const startIndex = allFaces.indexOf(start);
         const endIndex = allFaces.indexOf(end);
@@ -196,7 +197,8 @@ export function FaceDashboard() {
   useEffect(() => {
     if (prevTabRef.current !== activeTab) {
       // Tab changed - restore the saved scroll position for the new tab
-      setScrollTo(tabPositions[activeTab]);
+      // A tab without a saved position is not scrolled (null, as undefined was before)
+      setScrollTo(tabPositions[activeTab] ?? null);
       // The tabs show different faces: a selection carried over would let Delete,
       // Not this person and Add act on faces that are no longer on screen
       clearSelection();

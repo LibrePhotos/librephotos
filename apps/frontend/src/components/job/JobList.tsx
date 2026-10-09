@@ -83,15 +83,15 @@ export function JobList({ variant = "admin" }: IJobList) {
                 style={{ cursor: "pointer" }}
                 onClick={e => {
                   // Don't navigate if clicking on the delete button or its container
-                  const target = e.target as HTMLElement;
-                  if (target.closest("button") || target.closest('[role="button"]')) {
+                  const { target } = e;
+                  if (target instanceof Element && (target.closest("button") || target.closest('[role="button"]'))) {
                     return;
                   }
                   navigate({ to: `${mine ? "/jobs" : "/admin/job"}/${job.id}` });
                 }}
               >
                 <Table.Td>
-                  <JobIndicator job={Object.create(job)} />
+                  <JobIndicator job={job} />
                 </Table.Td>
                 <Table.Td>{t(job.job_type_str)}</Table.Td>
                 <Table.Td>
@@ -113,7 +113,7 @@ export function JobList({ variant = "admin" }: IJobList) {
                     </Table.Td>
                     <Table.Td>
                       {job.started_at
-                        ? DateTime.fromISO(job.started_at!).setLocale(i18nResolvedLanguage()).toRelative()
+                        ? DateTime.fromISO(job.started_at).setLocale(i18nResolvedLanguage()).toRelative()
                         : ""}
                     </Table.Td>
                   </>

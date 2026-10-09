@@ -6,6 +6,8 @@ import { MAX_MEMORY_ITEMS } from "../../api_client/memories";
 
 export type MemoriesView = "tiles" | "gallery";
 
+const isMemoriesView = (value: string): value is MemoriesView => value === "tiles" || value === "gallery";
+
 type Props = {
   view: MemoriesView;
   onViewChange: (view: MemoriesView) => void;
@@ -47,7 +49,9 @@ export function MemoriesHeader({ view, onViewChange, onPlayAll, photoCount, capp
           </Button>
           <SegmentedControl
             value={view}
-            onChange={value => onViewChange(value as MemoriesView)}
+            onChange={value => {
+              if (isMemoriesView(value)) onViewChange(value);
+            }}
             data={[
               { value: "tiles", label: t("memories.tiles") },
               { value: "gallery", label: t("memories.gallery") },

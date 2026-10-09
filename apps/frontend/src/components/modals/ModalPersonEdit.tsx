@@ -24,11 +24,14 @@ import { useRecentlyTaggedPeople } from "../../hooks/useRecentlyTaggedPeople";
 import { fuzzyMatch } from "../../util/util";
 import { modalTitleStyles } from "./modalTitleStyles";
 
+/** A face the dialog labels: its id, and its crop for the preview row. */
+export type FaceToLabel = Readonly<{ face_id: number; face_url: string }>;
+
 type Props = Readonly<{
   isOpen: boolean;
   onRequestClose: () => void;
   resetGroups?: () => void;
-  selectedFaces: any[];
+  selectedFaces: readonly FaceToLabel[];
   /**
    * Takes over what picking a person does. The dialog is also used for a face
    * that does not exist yet -- a box the user just drew -- where there is no

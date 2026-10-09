@@ -9,7 +9,7 @@ type Session = { isAuthenticated: boolean; user?: { username: string }; isLoadin
 
 const stubs = vi.hoisted(() => ({
   session: { isAuthenticated: false } as Session,
-  navigate: vi.fn(),
+  navigate: vi.fn<(options: { to: string }) => void>(),
   userQuerySkips: [] as boolean[],
 }));
 
@@ -46,9 +46,17 @@ const render = async (session: Session) => {
 
 const buttons = () => [...container.querySelectorAll("button")];
 
+function buttonNamed(label: string): HTMLButtonElement {
+  const found = buttons().find(button => button.textContent === label);
+  if (!found) {
+    throw new Error(`no button named "${label}"`);
+  }
+  return found;
+}
+
 beforeAll(async () => {
-  // @ts-ignore - jsdom has no matchMedia, MantineProvider needs it
-  window.matchMedia = (query: string) => ({
+  // jsdom has no matchMedia, MantineProvider needs it
+  window.matchMedia = (query: string): MediaQueryList => ({
     matches: false,
     media: query,
     onchange: null,
@@ -58,7 +66,6 @@ beforeAll(async () => {
     removeEventListener: () => {},
     dispatchEvent: () => false,
   });
-  // @ts-ignore
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   await i18n.changeLanguage("en");
 });
@@ -82,8 +89,7 @@ describe("TopMenuPublic", () => {
 
     // No cookie, no request for the user.
     expect(stubs.userQuerySkips.every(Boolean)).toBe(true);
-    const login = buttons().find(button => button.textContent === i18n.t("login.login"))!;
-    expect(login).toBeDefined();
+    const login = buttonNamed(i18n.t("login.login"));
     expect(container.textContent).not.toContain("account");
     await act(async () => login.click());
     expect(stubs.navigate).toHaveBeenCalledWith({ to: "/login" });
@@ -94,7 +100,7 @@ describe("TopMenuPublic", () => {
 
     expect(container.textContent).not.toContain(i18n.t("login.login"));
     expect(container.textContent).toContain("account");
-    const home = buttons().find(button => button.textContent === i18n.t("publicalbum.goHome"))!;
+    const home = buttonNamed(i18n.t("publicalbum.goHome"));
     await act(async () => home.click());
     expect(stubs.navigate).toHaveBeenCalledWith({ to: "/" });
   });

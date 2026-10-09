@@ -16,7 +16,7 @@ import i18n from "../../../i18n";
 const stubs = vi.hoisted(() => ({
   component: undefined as React.ComponentType | undefined,
   params: { tab: "photos" },
-  navigate: vi.fn(),
+  navigate: vi.fn<(options: { to: string }) => void>(),
 }));
 
 vi.mock("@tanstack/react-router", () => ({
@@ -53,8 +53,8 @@ let root: ReturnType<typeof createRoot> | undefined;
 let container: HTMLDivElement;
 
 beforeAll(async () => {
-  // @ts-ignore - jsdom has no matchMedia, MantineProvider needs it
-  window.matchMedia = (query: string) => ({
+  // jsdom has no matchMedia, MantineProvider needs it
+  window.matchMedia = (query: string): MediaQueryList => ({
     matches: false,
     media: query,
     onchange: null,
@@ -64,7 +64,6 @@ beforeAll(async () => {
     removeEventListener: () => {},
     dispatchEvent: () => false,
   });
-  // @ts-ignore
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   await i18n.changeLanguage("en");
   await import("./byme.$tab");
@@ -78,14 +77,18 @@ afterEach(async () => {
 
 async function renderAt(tab: string) {
   stubs.params = { tab };
-  const SharedByMe = stubs.component!;
+  const SharedByMe = stubs.component;
+  if (!SharedByMe) {
+    throw new Error("the route module did not register its component");
+  }
   if (!root) {
     container = document.createElement("div");
     document.body.appendChild(container);
     root = createRoot(container);
   }
+  const mounted = root;
   await act(async () => {
-    root!.render(
+    mounted.render(
       <MantineProvider env="test">
         <SharedByMe />
       </MantineProvider>

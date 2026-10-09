@@ -26,14 +26,12 @@ type SelectAllDownloadOptions = {
 
 type DownloadOptions = IndividualDownloadOptions | SelectAllDownloadOptions;
 
-async function startDownloadProcess(options: DownloadOptions) {
-  const response = await fetchClient.post("/photos/download", options);
-  return response as DownloadResponse;
+function startDownloadProcess(options: DownloadOptions) {
+  return fetchClient.post<DownloadResponse>("/photos/download", options);
 }
 
-async function checkDownloadStatus(job_id: string) {
-  const response = await fetchClient.get(`/photos/download?job_id=${job_id}`);
-  return response as StatusResponse;
+function checkDownloadStatus(job_id: string) {
+  return fetchClient.get<StatusResponse>(`/photos/download?job_id=${job_id}`);
 }
 
 // How often the archive job is polled.

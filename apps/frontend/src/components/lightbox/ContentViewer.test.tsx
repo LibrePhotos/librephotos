@@ -4,21 +4,44 @@
  * a photo leaves for the trash. Everything it renders is stubbed; only the
  * decisions ContentViewer makes itself are under test.
  */
+import type { CarouselProps } from "@mantine/carousel";
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import type { Photo } from "../../api_client/photos/types";
+import { defined } from "../../util/defined.test-utils";
 import { ContentViewer, escapeTargetsLightbox } from "./ContentViewer";
+import type { LightboxControlsProps } from "./lightbox.types";
+import type { MediaDisplayProps } from "./MediaDisplay";
 
-const stubs = vi.hoisted(() => ({
-  carousel: [] as Array<Record<string, any>>,
-  media: [] as Array<Record<string, any>>,
-  controls: [] as Array<Record<string, any>>,
-  details: { data: undefined as object | undefined, isLoading: false },
-}));
+/** What the stubbed details query answers: a test sets only the fields it is about. */
+type DetailsStub = { data: Partial<Photo> | undefined; isLoading: boolean };
+
+const stubs = vi.hoisted(() => {
+  const carousel: CarouselProps[] = [];
+  const media: MediaDisplayProps[] = [];
+  const controls: LightboxControlsProps[] = [];
+  const details: DetailsStub = { data: undefined, isLoading: false };
+  return { carousel, media, controls, details };
+});
+
+/** The last props the stubbed toolbar got. */
+function lastControls(): LightboxControlsProps {
+  const props = stubs.controls.at(-1);
+  if (!props) throw new Error("LightboxControls was not rendered");
+  return props;
+}
+
+/** What the toolbar calls once the photo is in (or out of) the trash. */
+function afterTrashToggle(): () => void {
+  const { onAfterTrashToggle } = lastControls();
+  if (!onAfterTrashToggle) throw new Error("LightboxControls got no onAfterTrashToggle");
+  return onAfterTrashToggle;
+}
 
 vi.mock("@mantine/carousel", () => {
-  const Carousel = (props: Record<string, any>) => {
+  const Carousel = (props: CarouselProps) => {
     stubs.carousel.push(props);
     return <div>{props.children}</div>;
   };
@@ -32,13 +55,13 @@ vi.mock("motion/react", () => ({
 vi.mock("./MediaDisplay", () => ({
   LIGHTBOX_PHOTO_HEIGHT: "82vh",
   LIGHTBOX_VIDEO_HEIGHT: "80vh",
-  MediaDisplay: (props: Record<string, any>) => {
+  MediaDisplay: (props: MediaDisplayProps) => {
     if (props.isMainContent) stubs.media.push(props);
     return null;
   },
 }));
 vi.mock("./LightboxControls", () => ({
-  LightboxControls: (props: Record<string, any>) => {
+  LightboxControls: (props: LightboxControlsProps) => {
     stubs.controls.push(props);
     // Something to tab to, at either end of the toolbar.
     return (
@@ -71,24 +94,23 @@ vi.mock("../../hooks/useCopyPhotoToClipboard", () => ({
 }));
 
 beforeAll(() => {
-  (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
-  window.matchMedia = (query: string) =>
-    ({
-      matches: false,
-      media: query,
-      onchange: null,
-      addListener: () => {},
-      removeListener: () => {},
-      addEventListener: () => {},
-      removeEventListener: () => {},
-      dispatchEvent: () => false,
-    }) as unknown as MediaQueryList;
+  globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+  window.matchMedia = (query: string): MediaQueryList => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => false,
+  });
 });
 
 const mounted: Array<() => Promise<void>> = [];
 
 afterEach(async () => {
-  while (mounted.length) await mounted.pop()!();
+  while (mounted.length) await defined(mounted.pop())();
   stubs.carousel.length = 0;
   stubs.media.length = 0;
   stubs.controls.length = 0;
@@ -97,9 +119,9 @@ afterEach(async () => {
 
 async function renderViewer(props: Partial<React.ComponentProps<typeof ContentViewer>> = {}) {
   const handlers = {
-    onCloseRequest: vi.fn(),
-    onMovePrevRequest: vi.fn(),
-    onMoveNextRequest: vi.fn(),
+    onCloseRequest: vi.fn<() => void>(),
+    onMovePrevRequest: vi.fn<() => void>(),
+    onMoveNextRequest: vi.fn<() => void>(),
   };
   const container = document.createElement("div");
   document.body.appendChild(container);
@@ -118,7 +140,6 @@ async function renderViewer(props: Partial<React.ComponentProps<typeof ContentVi
             type="photo"
             enableZoom
             isPublic={false}
-            onImageLoad={() => {}}
             {...handlers}
             {...overrides}
           />
@@ -217,11 +238,11 @@ describe("ContentViewer Escape", () => {
 describe("ContentViewer swiping", () => {
   it("swipes until the photo is zoomed, then pans instead", async () => {
     await renderViewer();
-    expect(stubs.carousel.at(-1)!.emblaOptions).toEqual({ watchDrag: true });
+    expect(defined(stubs.carousel.at(-1)).emblaOptions).toEqual({ watchDrag: true });
 
     await press("z");
 
-    expect(stubs.carousel.at(-1)!.emblaOptions).toEqual({ watchDrag: false });
+    expect(defined(stubs.carousel.at(-1)).emblaOptions).toEqual({ watchDrag: false });
   });
 
   it("drops the zoom on the next item, so swiping works there again", async () => {
@@ -230,16 +251,16 @@ describe("ContentViewer swiping", () => {
 
     await rerender(NEXT_ITEM);
 
-    expect(stubs.carousel.at(-1)!.emblaOptions).toEqual({ watchDrag: true });
-    expect(stubs.controls.at(-1)!.isZoomed).toBe(false);
-    expect(stubs.media.at(-1)!.scale).toBe(1);
+    expect(defined(stubs.carousel.at(-1)).emblaOptions).toEqual({ watchDrag: true });
+    expect(lastControls().isZoomed).toBe(false);
+    expect(defined(stubs.media.at(-1)).scale).toBe(1);
   });
 });
 
 describe("ContentViewer focus", () => {
   // The body takes focus on open and on a click on the photo; Mantine's trap
   // only wraps from the ends of its tab order, which the body is not.
-  const lightboxBody = () => document.querySelector<HTMLElement>("[data-autofocus]")!;
+  const lightboxBody = () => defined(document.querySelector<HTMLElement>("[data-autofocus]"));
 
   it("keeps Shift+Tab from the body inside the lightbox", async () => {
     await renderViewer();
@@ -262,7 +283,7 @@ describe("ContentViewer focus", () => {
 
   it("leaves Tab between the controls to the focus trap", async () => {
     await renderViewer();
-    const first = [...document.querySelectorAll("button")].find(button => button.textContent === "first")!;
+    const first = defined([...document.querySelectorAll("button")].find(button => button.textContent === "first"));
     first.focus();
 
     const event = await press("Tab", first);
@@ -277,7 +298,7 @@ describe("ContentViewer main slide", () => {
 
     await renderViewer({ type: "video" });
 
-    expect(stubs.media.at(-1)!.type).toBe("photo");
+    expect(defined(stubs.media.at(-1)).type).toBe("photo");
   });
 
   it("plays it once they are there", async () => {
@@ -285,14 +306,14 @@ describe("ContentViewer main slide", () => {
 
     await renderViewer({ type: "video" });
 
-    expect(stubs.media.at(-1)!.type).toBe("video");
-    expect(stubs.media.at(-1)!.photoDetails).toEqual({ image_hash: "hb", video: true });
+    expect(defined(stubs.media.at(-1)).type).toBe("video");
+    expect(defined(stubs.media.at(-1)).photoDetails).toEqual({ image_hash: "hb", video: true });
   });
 
   it("does not wait on a public page, which never fetches details", async () => {
     await renderViewer({ type: "video", isPublic: true });
 
-    expect(stubs.media.at(-1)!.type).toBe("video");
+    expect(defined(stubs.media.at(-1)).type).toBe("video");
   });
 });
 
@@ -314,7 +335,7 @@ describe("ContentViewer after a photo leaves for the trash", () => {
   it("moves on to the next photo", async () => {
     const { onMoveNextRequest, onCloseRequest } = await renderViewer();
 
-    await act(async () => stubs.controls.at(-1)!.onAfterTrashToggle());
+    await act(async () => afterTrashToggle()());
 
     expect(onMoveNextRequest).toHaveBeenCalledTimes(1);
     expect(onCloseRequest).not.toHaveBeenCalled();
@@ -323,7 +344,7 @@ describe("ContentViewer after a photo leaves for the trash", () => {
   it("steps back from the last photo", async () => {
     const { onMovePrevRequest } = await renderViewer({ nextSrc: null, nextSrcHash: null });
 
-    await act(async () => stubs.controls.at(-1)!.onAfterTrashToggle());
+    await act(async () => afterTrashToggle()());
 
     expect(onMovePrevRequest).toHaveBeenCalledTimes(1);
   });
@@ -331,7 +352,7 @@ describe("ContentViewer after a photo leaves for the trash", () => {
   it("stays put when the user has moved on before the request finished", async () => {
     const { onMoveNextRequest, onMovePrevRequest, onCloseRequest, rerender } = await renderViewer();
     // Bound when the photo was trashed, as the mutation's onSuccess is.
-    const afterTrash = stubs.controls.at(-1)!.onAfterTrashToggle;
+    const afterTrash = afterTrashToggle();
 
     await rerender(NEXT_ITEM);
     await act(async () => afterTrash());
@@ -349,7 +370,7 @@ describe("ContentViewer after a photo leaves for the trash", () => {
       prevSrcHash: null,
     });
 
-    await act(async () => stubs.controls.at(-1)!.onAfterTrashToggle());
+    await act(async () => afterTrashToggle()());
 
     expect(onCloseRequest).toHaveBeenCalledTimes(1);
   });

@@ -36,7 +36,8 @@ function UserPublicPage() {
     if (photosGroupedByDate) setPhotosFlat(getPhotosFlatFromGroupedByDate(photosGroupedByDate));
   }, [photosGroupedByDate]);
 
-  const [group, setGroup] = useState({} as PhotoGroup);
+  // No day group asked for yet: the query below stays disabled until one is.
+  const [group, setGroup] = useState<PhotoGroup>({ id: "", page: 0 });
   useFetchDateAlbumQuery(
     { album_date_id: group.id, page: group.page, photosetType: Photoset.PUBLIC, username: users },
     { skip: !group.id }

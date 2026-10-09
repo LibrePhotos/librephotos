@@ -7,6 +7,7 @@ import { focusManager, QueryClient, QueryClientProvider } from "@tanstack/react-
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { defined } from "../../../util/defined.test-utils";
 import { useAllFolderSubfolders } from "./useFetchFolderSubfoldersInfiniteQuery";
 
 const stubs = vi.hoisted(() => {
@@ -15,7 +16,7 @@ const stubs = vi.hoisted(() => {
       super(`API error: ${status}`);
     }
   }
-  return { ApiError, get: vi.fn() };
+  return { ApiError, get: vi.fn<(endpoint: string) => Promise<unknown>>() };
 });
 
 vi.mock("../../api", () => ({ ApiError: stubs.ApiError, fetchClient: { get: stubs.get } }));
@@ -39,7 +40,6 @@ function Probe() {
 }
 
 beforeAll(() => {
-  // @ts-ignore
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 });
 
@@ -54,7 +54,7 @@ async function mount() {
   root = createRoot(container);
   const client = new QueryClient({ defaultOptions: { queries: { retryDelay: 0 } } });
   await act(async () => {
-    root!.render(
+    defined(root).render(
       <QueryClientProvider client={client}>
         <Probe />
       </QueryClientProvider>

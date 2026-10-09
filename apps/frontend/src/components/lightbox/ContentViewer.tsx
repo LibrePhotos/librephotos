@@ -1,4 +1,4 @@
-import { Carousel } from "@mantine/carousel";
+import { Carousel, type CarouselProps } from "@mantine/carousel";
 import { Modal, Stack } from "@mantine/core";
 import { useFullscreen, useHotkeys } from "@mantine/hooks";
 import { useGesture } from "@use-gesture/react";
@@ -29,6 +29,9 @@ import { LIGHTBOX_PHOTO_HEIGHT, LIGHTBOX_VIDEO_HEIGHT, MediaDisplay } from "./Me
 import { Sidebar } from "./Sidebar";
 import { ThumbnailNavigation } from "./ThumbnailNavigation";
 import { requestLightboxSeek, SEEK_LONG_STEP_SECONDS, SEEK_STEP_SECONDS } from "./VideoPlayer";
+
+/** The Embla carousel API that Mantine's Carousel hands to getEmblaApi. */
+type EmblaApi = Parameters<NonNullable<CarouselProps["getEmblaApi"]>>[0];
 
 /**
  * Whether an Escape keypress is the lightbox's to handle. A dialog opened on
@@ -91,7 +94,7 @@ export function ContentViewer({
   const [offset, setOffset] = useState({ x: 0, y: 0 }); // For dragging the image
   const [lightboxSidebarShow, setLightBoxSidebarShow] = useState(false);
   const [faceLocation, setFaceLocation] = useState<FaceLocationType>(null);
-  const [embla, setEmbla] = useState<any | null>(null);
+  const [embla, setEmbla] = useState<EmblaApi | null>(null);
   const [playing, setPlaying] = useState(true);
   const [rotationAngle, setRotationAngle] = useState(0);
   const [imageCacheKey, setImageCacheKey] = useState(0);
@@ -112,9 +115,11 @@ export function ContentViewer({
   const [localSlideshowInterval, setLocalSlideshowInterval] = useState<number | null>(null);
   const [slideshowProgress, setSlideshowProgress] = useState(0);
 
-  // Fullscreen support
   const contentRef = useRef<HTMLDivElement>(null);
-  const { toggle: toggleFullscreen, fullscreen: isFullscreen } = useFullscreen(contentRef);
+  // Fullscreen support. Mantine 8's hook takes no element: with its ref left
+  // unattached it toggles the whole document, as it always has here (the
+  // contentRef this used to be handed was ignored).
+  const { toggle: toggleFullscreen, fullscreen: isFullscreen } = useFullscreen<HTMLDivElement>();
 
   // Fetch user settings for default slideshow interval (skip on public pages)
   const { data: userSelfDetails } = useCurrentUserSelfDetailsQuery(isPublic);
@@ -319,7 +324,9 @@ export function ContentViewer({
 
     embla.on("select", onSlideChange);
     // eslint-disable-next-line consistent-return
-    return () => embla.off("select", onSlideChange);
+    return () => {
+      embla.off("select", onSlideChange);
+    };
     // prevSrc/nextSrc must be deps: the handler decides from them whether a swipe
     // can move at all, and a handler registered on the first photo would otherwise
     // keep seeing "no previous photo" after navigating forward.
@@ -469,7 +476,7 @@ export function ContentViewer({
     }
   }, [lightboxSidebarShow, embla]);
 
-  const handleDragStart = event => {
+  const handleDragStart = (event: React.DragEvent) => {
     event.preventDefault();
   };
 
@@ -480,7 +487,7 @@ export function ContentViewer({
         <Modal.Body
           ref={contentRef}
           // The focus trap otherwise lands on the first toolbar button, which
-          // then shows a focus ring as soon as any shortcut key is pressed.
+          // then shows a focus ring as soon as a shortcut key is pressed.
           data-autofocus
           tabIndex={-1}
           onKeyDown={keepTabInside}
@@ -649,7 +656,6 @@ export function ContentViewer({
             <ThumbnailNavigation
               prevSrc={prevSrc}
               prevSrcHash={prevSrcHash}
-              mainSrc={mainSrc}
               mainSrcHash={mainSrcHash}
               nextSrc={nextSrc}
               nextSrcHash={nextSrcHash}

@@ -122,14 +122,18 @@ export function SideMenuNarrow(): JSX.Element {
               if (subitem.separator) {
                 return <Menu.Divider key={idx} />;
               }
+              const { icon: SubmenuIcon, link: submenuLink } = subitem;
               const onClick = (event: { preventDefault: () => void }) => {
                 event.preventDefault();
-                setActive(subitem.link!);
-                navigate({ to: subitem.link! });
+                if (submenuLink === undefined) {
+                  return;
+                }
+                setActive(submenuLink);
+                navigate({ to: submenuLink });
               };
               const icon = (
                 <ActionIcon component="span" variant="light" color={subitem.color ? subitem.color : defaultIconColor}>
-                  <subitem.icon />
+                  {SubmenuIcon && <SubmenuIcon />}
                 </ActionIcon>
               );
               return (

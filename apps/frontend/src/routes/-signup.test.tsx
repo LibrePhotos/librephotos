@@ -12,15 +12,17 @@ import { createRoot } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../api_client/api";
 import i18n from "../i18n";
+import { defined } from "../util/defined.test-utils";
 
-type MutateOptions = { onSuccess?: () => void; onError?: (error: unknown) => void };
+// What the page hands the sign-up mutation; it always passes both callbacks.
+type MutateOptions = { onSuccess: () => void; onError: (error: unknown) => void };
 
 const stubs = vi.hoisted(() => ({
   component: undefined as React.ComponentType | undefined,
-  signup: vi.fn(),
-  login: vi.fn(),
-  reportSignupError: vi.fn(),
-  signupError: vi.fn(),
+  signup: vi.fn<(variables: Record<string, string>, options: MutateOptions) => void>(),
+  login: vi.fn<(credentials: { username: string; password: string }) => void>(),
+  reportSignupError: vi.fn<(error: unknown) => void>(),
+  signupError: vi.fn<(message: string) => void>(),
   settings: { allow_registration: true } as { allow_registration: boolean } | undefined,
 }));
 
@@ -48,8 +50,8 @@ let root: ReturnType<typeof createRoot> | undefined;
 let container: HTMLDivElement;
 
 beforeAll(async () => {
-  // @ts-ignore - jsdom has no matchMedia, MantineProvider needs it
-  window.matchMedia = (query: string) => ({
+  // jsdom has no matchMedia, MantineProvider needs it
+  window.matchMedia = (query: string): MediaQueryList => ({
     matches: false,
     media: query,
     onchange: null,
@@ -59,7 +61,6 @@ beforeAll(async () => {
     removeEventListener: () => {},
     dispatchEvent: () => false,
   });
-  // @ts-ignore
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   await i18n.changeLanguage("en");
   await import("./signup");
@@ -80,12 +81,16 @@ afterEach(async () => {
 });
 
 async function renderPage() {
-  const SignupPage = stubs.component!;
+  const SignupPage = stubs.component;
+  if (!SignupPage) {
+    throw new Error("the route module did not register its component");
+  }
   container = document.createElement("div");
   document.body.appendChild(container);
-  root = createRoot(container);
+  const mounted = createRoot(container);
+  root = mounted;
   await act(async () => {
-    root!.render(
+    mounted.render(
       <MantineProvider env="test">
         <SignupPage />
       </MantineProvider>
@@ -102,18 +107,22 @@ async function fillAndSubmit() {
     password: "wonderland",
     passwordConfirm: "wonderland",
   };
-  const form = container.querySelector("form")!;
+  const form = defined(container.querySelector("form"));
   await act(async () => {
     Object.entries(values).forEach(([name, value]) => {
-      const input = form.querySelector<HTMLInputElement>(`input[name="${name}"]`)!;
-      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(input, value);
+      const input = defined(form.querySelector<HTMLInputElement>(`input[name="${name}"]`));
+      defined(defined(Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")).set).call(input, value);
       input.dispatchEvent(new Event("input", { bubbles: true }));
     });
   });
   await act(async () => {
     form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
   });
-  return stubs.signup.mock.calls[0]?.[1] as MutateOptions;
+  const options = stubs.signup.mock.calls[0]?.[1];
+  if (!options) {
+    throw new Error("submitting the form did not sign up");
+  }
+  return options;
 }
 
 describe("the sign-up page", () => {
@@ -131,7 +140,7 @@ describe("the sign-up page", () => {
       },
       expect.anything()
     );
-    await act(async () => options.onSuccess!());
+    await act(async () => options.onSuccess());
     expect(stubs.login).toHaveBeenCalledWith({ username: "alice", password: "wonderland" });
   });
 
@@ -140,7 +149,7 @@ describe("the sign-up page", () => {
     const options = await fillAndSubmit();
     const taken = new ApiError("Bad Request", 400, "A user with that username already exists.");
 
-    await act(async () => options.onError!(taken));
+    await act(async () => options.onError(taken));
 
     expect(stubs.reportSignupError).toHaveBeenCalledWith(taken);
   });
@@ -149,7 +158,7 @@ describe("the sign-up page", () => {
     await renderPage();
     const options = await fillAndSubmit();
 
-    await act(async () => options.onError!(new ApiError("Authentication failed", 401)));
+    await act(async () => options.onError(new ApiError("Authentication failed", 401)));
 
     expect(stubs.signupError).toHaveBeenCalledWith(i18n.t("login.registrationdisabled"));
     expect(stubs.reportSignupError).not.toHaveBeenCalled();
@@ -167,7 +176,7 @@ describe("the sign-up page", () => {
   it("marks both password fields as required", async () => {
     await renderPage();
 
-    expect(container.querySelector<HTMLInputElement>('input[name="password"]')!.required).toBe(true);
-    expect(container.querySelector<HTMLInputElement>('input[name="passwordConfirm"]')!.required).toBe(true);
+    expect(defined(container.querySelector<HTMLInputElement>('input[name="password"]')).required).toBe(true);
+    expect(defined(container.querySelector<HTMLInputElement>('input[name="passwordConfirm"]')).required).toBe(true);
   });
 });

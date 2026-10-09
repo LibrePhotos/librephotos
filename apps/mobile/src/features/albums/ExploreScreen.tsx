@@ -15,7 +15,7 @@ import {
   userAlbums,
 } from "@/db/queries/albums";
 import { people } from "@/db/queries/people";
-import { allSyncState, type SyncEntity } from "@/db/queries/sync-state";
+import { allSyncState, SYNC_ENTITIES, type SyncEntity } from "@/db/queries/sync-state";
 import { useOnlineStatus } from "@/hooks/use-online-status";
 import { useTheme } from "@/theme";
 
@@ -45,7 +45,8 @@ type ExploreData = {
 export function readExplore(db: AppDatabase, labels: { unknownPerson: string }): ExploreData {
   const seeded = new Set<SyncEntity>();
   for (const row of allSyncState(db)) {
-    if (row.last_full_sync != null) seeded.add(row.entity as SyncEntity);
+    const entity = SYNC_ENTITIES.find((e) => e === row.entity);
+    if (entity && row.last_full_sync != null) seeded.add(entity);
   }
   const seeding = new Set<SyncEntity>(
     (["user_album", "person", "thing_album", "tag_album", "place_album", "auto_album"] as const).filter(

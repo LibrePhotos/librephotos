@@ -24,8 +24,10 @@ export function MediaTypeSelector() {
 
   const select = (value: MediaType) => {
     navigate({
+      // The current page: navigate resolves a missing `to` to "." as well.
+      to: ".",
       // Clear the param for the default so the URL stays clean.
-      search: (prev: Record<string, unknown>) => ({ ...prev, media: value === "all" ? undefined : value }),
+      search: prev => ({ ...prev, media: value === "all" ? undefined : value }),
     });
   };
 

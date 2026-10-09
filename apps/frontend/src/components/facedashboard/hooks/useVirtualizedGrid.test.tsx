@@ -10,7 +10,6 @@ let root: Root;
 let container: HTMLDivElement;
 
 beforeAll(() => {
-  // @ts-ignore
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 });
 
@@ -65,8 +64,9 @@ describe("faces grid sizing", () => {
       root.render(<Harness />);
     });
 
-    expect(layout!.width).toBe(1170);
-    expect(layout!.columns).toBe(8);
-    expect(layout!.columns * layout!.cellSize).toBeLessThanOrEqual(1170);
+    if (!layout) throw new Error("the grid did not render");
+    expect(layout.width).toBe(1170);
+    expect(layout.columns).toBe(8);
+    expect(layout.columns * layout.cellSize).toBeLessThanOrEqual(1170);
   });
 });

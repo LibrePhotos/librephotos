@@ -171,11 +171,8 @@ function SinglePhotoView() {
                 <PeopleSection
                   photoDetail={photoDetail}
                   isPublic={false}
-                  // Called with the face's location box, whatever the prop type says.
-                  setFaceLocation={location => setFaceLocation(location as unknown as FaceLocationType)}
-                  onPersonEdit={(faceId, faceUrl) =>
-                    setSelectedFaces([{ face_id: parseInt(faceId, 10), face_url: faceUrl }])
-                  }
+                  setFaceLocation={setFaceLocation}
+                  onPersonEdit={(faceId, faceUrl) => setSelectedFaces([{ face_id: faceId, face_url: faceUrl }])}
                   notThisPerson={notThisPerson}
                 />
                 <Description photoDetail={photoDetail} isPublic={false} />

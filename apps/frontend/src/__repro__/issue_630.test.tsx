@@ -6,6 +6,7 @@ import { createRoot } from "react-dom/client";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import "@mantine/core/styles.css";
 import { TimestampItem } from "../components/lightbox/TimestampItem";
+import { defined } from "../util/defined.test-utils";
 
 /**
  * Repro for https://github.com/LibrePhotos/librephotos/issues/630
@@ -27,7 +28,7 @@ import { TimestampItem } from "../components/lightbox/TimestampItem";
 // Must be set before anything captures the timezone.
 process.env.TZ = "Europe/Berlin";
 
-const updatePhoto = vi.fn();
+const updatePhoto = vi.fn<(request: { id: string; data: { exif_timestamp?: unknown } }) => void>();
 
 vi.mock("../api_client/photos/hooks", () => ({
   useUpdatePhotoMutation: () => ({ mutate: updatePhoto }),
@@ -51,8 +52,8 @@ beforeAll(() => {
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(new Date(2022, 4, 15, 12, 0, 0));
 
-  // @ts-ignore - jsdom has no matchMedia
-  window.matchMedia = (q: string) => ({
+  // jsdom has no matchMedia
+  window.matchMedia = (q: string): MediaQueryList => ({
     matches: false,
     media: q,
     onchange: null,
@@ -62,7 +63,6 @@ beforeAll(() => {
     removeEventListener: () => {},
     dispatchEvent: () => false,
   });
-  // @ts-ignore
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 });
 
@@ -85,7 +85,8 @@ describe("issue 630: lightbox 'Time taken' date picker", () => {
     });
 
     // Open the "Time taken" editor.
-    const editButton = container.querySelector("button") as HTMLButtonElement;
+    const editButton = container.querySelector("button");
+    if (!editButton) throw new Error("no edit button");
     await act(async () => {
       editButton.click();
     });
@@ -96,18 +97,20 @@ describe("issue 630: lightbox 'Time taken' date picker", () => {
     );
     expect(dayButton, "day cell for the picked day").toBeTruthy();
     await act(async () => {
-      dayButton!.click();
+      defined(dayButton).click();
     });
 
     // Confirm (the green check ActionIcon).
-    const actionIcons = container.querySelectorAll<HTMLButtonElement>(".mantine-ActionIcon-root");
+    const actionIcons = Array.from(container.querySelectorAll(".mantine-ActionIcon-root")).filter(
+      icon => icon instanceof HTMLElement
+    );
     expect(actionIcons.length, "cancel + submit action icons").toBe(2);
     await act(async () => {
       actionIcons[1].click();
     });
 
     expect(updatePhoto).toHaveBeenCalledTimes(1);
-    const sent = updatePhoto.mock.calls[0][0].data.exif_timestamp as string;
+    const sent = String(updatePhoto.mock.calls[0][0].data.exif_timestamp);
 
     // exif_timestamp carries the photo's local wall clock, so what leaves the
     // browser must still read 2022-05-21 00:30:00 - the user picked 21 May and

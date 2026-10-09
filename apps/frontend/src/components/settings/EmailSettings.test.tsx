@@ -8,7 +8,11 @@ import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import type { EmailConfigUpdate } from "../../api_client/settings/hooks/useEmailConfig";
 import { EmailSettings } from "./EmailSettings";
+
+/** The mutate options EmailSettings passes when it saves. */
+type SaveOptions = { onSuccess?: () => void; onError?: (error: unknown) => void };
 
 const mocks = vi.hoisted(() => {
   class ApiError extends Error {
@@ -20,7 +24,11 @@ const mocks = vi.hoisted(() => {
       super(message);
     }
   }
-  return { ApiError, save: vi.fn(), showNotification: vi.fn() };
+  return {
+    ApiError,
+    save: vi.fn<(config: EmailConfigUpdate, options?: SaveOptions) => void>(),
+    showNotification: vi.fn<(notification: { message: string; color: string }) => void>(),
+  };
 });
 
 vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
@@ -47,26 +55,25 @@ vi.mock("../../api_client/settings/hooks/useEmailConfig", () => ({
 }));
 
 beforeAll(() => {
-  (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+  globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   // jsdom has none; the provider Select's dropdown uses it.
-  globalThis.ResizeObserver = class {
+  globalThis.ResizeObserver = class implements ResizeObserver {
     observe() {}
 
     unobserve() {}
 
     disconnect() {}
-  } as unknown as typeof ResizeObserver;
-  window.matchMedia = (query: string) =>
-    ({
-      matches: false,
-      media: query,
-      onchange: null,
-      addListener: () => {},
-      removeListener: () => {},
-      addEventListener: () => {},
-      removeEventListener: () => {},
-      dispatchEvent: () => false,
-    }) as unknown as MediaQueryList;
+  };
+  window.matchMedia = (query: string): MediaQueryList => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => false,
+  });
 });
 
 let container: HTMLDivElement;
@@ -96,10 +103,11 @@ afterEach(async () => {
 
 /** Remove the stored credential, with the save failing with `error`. */
 async function clearSecretFailingWith(error: unknown) {
-  mocks.save.mockImplementation((_data, options) => options.onError(error));
+  mocks.save.mockImplementation((_data, options) => options?.onError?.(error));
   const clear = [...container.querySelectorAll("button")].find(
     button => button.textContent?.trim() === "emailsettings.clear_secret"
-  )!;
+  );
+  if (!clear) throw new Error("no button removes the stored credential");
   await act(async () => {
     clear.click();
   });

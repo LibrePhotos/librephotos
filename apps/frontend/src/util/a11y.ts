@@ -9,12 +9,15 @@ import type React from "react";
  * Prefer a real <button> (UnstyledButton, Anchor component="button") where the
  * markup allows it; this is for wrappers whose layout component cannot be one.
  */
+/** What the key handler reads of a keyboard event. */
+type ActivationKeyEvent = Pick<React.KeyboardEvent<HTMLElement>, "key" | "target" | "currentTarget" | "preventDefault">;
+
 export function buttonRoleProps(onActivate: () => void) {
   return {
     role: "button" as const,
     tabIndex: 0,
     onClick: onActivate,
-    onKeyDown: (event: React.KeyboardEvent<HTMLElement>) => {
+    onKeyDown: (event: ActivationKeyEvent) => {
       // Only the element itself: keys pressed on something focusable inside it
       // belong to that control.
       if (event.target !== event.currentTarget) return;

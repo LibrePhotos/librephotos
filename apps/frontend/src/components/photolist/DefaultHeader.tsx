@@ -32,6 +32,7 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAccessToken } from "../../api_client/auth/hooks";
 import { useFetchUserListQuery, useFetchUserSelfDetailsQuery } from "../../api_client/user/hooks";
+import type { User } from "../../api_client/user/types";
 import { i18nResolvedLanguage } from "../../i18n";
 import { ModalUserEdit } from "../modals/ModalUserEdit";
 
@@ -53,7 +54,7 @@ type Props = Readonly<{
 
 export function DefaultHeader(props: Props) {
   const [modalOpen, setModalOpen] = useState(false);
-  const [userToEdit, setUserToEdit] = useState({});
+  const [userToEdit, setUserToEdit] = useState<Partial<User>>({});
   const navigate = useNavigate();
   const router = useRouter();
   const { data: auth } = useAccessToken();
@@ -82,7 +83,6 @@ export function DefaultHeader(props: Props) {
 
   // return true if it is a view with a dropdown
   const isMenuView = () => {
-    // @ts-ignore
     const path = location.pathname;
     return (
       path === "/" ||

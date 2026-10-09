@@ -23,8 +23,9 @@ export function calculateMD5(file: File): Promise<string> {
     };
 
     reader.onload = () => {
-      const result = reader.result as string | null;
-      if (result === null) return;
+      // readAsBinaryString reads to a string
+      const { result } = reader;
+      if (typeof result !== "string") return;
       // A short read (the file shrank while hashing) would otherwise wait forever.
       if (result.length === 0 && offset < file.size) {
         reject(new DOMException("Problem parsing input file."));

@@ -12,15 +12,38 @@ import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import type { Photo } from "../../api_client/photos/types";
+import type { MediaDisplayProps } from "../../components/lightbox";
+import type { PeopleSection } from "../../components/lightbox/PeopleSection";
+import { makePhoto } from "../../components/lightbox/photoFixture.test-utils";
+import type { ModalPersonEdit } from "../../components/modals/ModalPersonEdit";
+import { defined } from "../../util/defined.test-utils";
 
-const stubs = vi.hoisted(() => ({
-  component: undefined as React.ComponentType | undefined,
-  query: { data: undefined as object | undefined, isError: false },
-  media: [] as Array<Record<string, any>>,
-  people: [] as Array<Record<string, any>>,
-  personEdit: [] as Array<Record<string, any>>,
-  setLabel: vi.fn(),
-}));
+type Stubs = {
+  component: React.ComponentType | undefined;
+  query: { data: Photo | undefined; isError: boolean };
+  media: MediaDisplayProps[];
+  people: React.ComponentProps<typeof PeopleSection>[];
+  personEdit: React.ComponentProps<typeof ModalPersonEdit>[];
+};
+
+const stubs = vi.hoisted(() => {
+  const state: Stubs = {
+    component: undefined,
+    query: { data: undefined, isError: false },
+    media: [],
+    people: [],
+    personEdit: [],
+  };
+  return Object.assign(state, { setLabel: vi.fn<(variables: { faceIds: number[]; personName: string }) => void>() });
+});
+
+/** The props the page last handed one of its stubbed children. */
+function last<Props>(rendered: Props[]): Props {
+  const props = rendered.at(-1);
+  if (!props) throw new Error("the page did not render it");
+  return props;
+}
 
 vi.mock("@tanstack/react-router", () => ({
   createFileRoute: () => {
@@ -39,19 +62,19 @@ vi.mock("../../api_client/faces", () => ({ useSetFacesPersonLabelMutation: () =>
 vi.mock("../../service/notifications", () => ({ notification: { removeFacesFromPerson: () => {} } }));
 vi.mock("../../i18n", () => ({ i18nResolvedLanguage: () => "en" }));
 vi.mock("../../components/lightbox", () => ({
-  MediaDisplay: (props: Record<string, any>) => {
+  MediaDisplay: (props: MediaDisplayProps) => {
     stubs.media.push(props);
     return null;
   },
 }));
 vi.mock("../../components/lightbox/PeopleSection", () => ({
-  PeopleSection: (props: Record<string, any>) => {
+  PeopleSection: (props: React.ComponentProps<typeof PeopleSection>) => {
     stubs.people.push(props);
     return null;
   },
 }));
 vi.mock("../../components/modals/ModalPersonEdit", () => ({
-  ModalPersonEdit: (props: Record<string, any>) => {
+  ModalPersonEdit: (props: React.ComponentProps<typeof ModalPersonEdit>) => {
     stubs.personEdit.push(props);
     return null;
   },
@@ -68,25 +91,24 @@ vi.mock("../../components/lightbox/TagsSection", () => ({ TagsSection: () => nul
 vi.mock("../../components/lightbox/TimestampItem", () => ({ TimestampItem: () => null }));
 
 beforeAll(async () => {
-  (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
-  window.matchMedia = (query: string) =>
-    ({
-      matches: false,
-      media: query,
-      onchange: null,
-      addListener: () => {},
-      removeListener: () => {},
-      addEventListener: () => {},
-      removeEventListener: () => {},
-      dispatchEvent: () => false,
-    }) as unknown as MediaQueryList;
+  globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+  window.matchMedia = (query: string): MediaQueryList => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => false,
+  });
   await import("./photo.$id");
 });
 
 const mounted: Array<() => Promise<void>> = [];
 
 afterEach(async () => {
-  while (mounted.length) await mounted.pop()!();
+  while (mounted.length) await defined(mounted.pop())();
   stubs.query = { data: undefined, isError: false };
   stubs.media.length = 0;
   stubs.people.length = 0;
@@ -95,7 +117,10 @@ afterEach(async () => {
 });
 
 async function renderPage() {
-  const Page = stubs.component!;
+  const Page = stubs.component;
+  if (!Page) {
+    throw new Error("the route module did not register its component");
+  }
   const container = document.createElement("div");
   document.body.appendChild(container);
   const root = createRoot(container);
@@ -113,7 +138,7 @@ async function renderPage() {
   return container;
 }
 
-const video = {
+const video = makePhoto({
   id: "abc",
   image_hash: "abc",
   image_path: ["C:\\Photos\\Videos\\clip.mp4"],
@@ -124,7 +149,7 @@ const video = {
   width: 1920,
   height: 1080,
   people: [],
-};
+});
 
 describe("single-photo page", () => {
   it("says the photo cannot be found instead of loading forever", async () => {
@@ -141,8 +166,8 @@ describe("single-photo page", () => {
 
     await renderPage();
 
-    expect(stubs.media.at(-1)!.type).toBe("video");
-    expect(stubs.media.at(-1)!.photoDetails).toBe(video);
+    expect(last(stubs.media).type).toBe("video");
+    expect(last(stubs.media).photoDetails).toBe(video);
   });
 
   it("names the file from a Windows path too", async () => {
@@ -158,11 +183,11 @@ describe("single-photo page", () => {
     stubs.query = { data: video, isError: false };
     await renderPage();
 
-    await act(async () => stubs.people.at(-1)!.onPersonEdit("12", "/media/faces/12.jpg"));
-    expect(stubs.personEdit.at(-1)!.isOpen).toBe(true);
-    expect(stubs.personEdit.at(-1)!.selectedFaces).toEqual([{ face_id: 12, face_url: "/media/faces/12.jpg" }]);
+    await act(async () => last(stubs.people).onPersonEdit(12, "/media/faces/12.jpg"));
+    expect(last(stubs.personEdit).isOpen).toBe(true);
+    expect(last(stubs.personEdit).selectedFaces).toEqual([{ face_id: 12, face_url: "/media/faces/12.jpg" }]);
 
-    await act(async () => stubs.people.at(-1)!.notThisPerson(12));
+    await act(async () => last(stubs.people).notThisPerson(12));
     expect(stubs.setLabel).toHaveBeenCalledWith({ faceIds: [12], personName: "Unknown - Other" });
   });
 });

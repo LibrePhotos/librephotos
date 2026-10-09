@@ -15,8 +15,8 @@ type Props = Readonly<{
   selectMode: boolean;
   entrySquareSize: number;
   isSelected: boolean;
-  handleClick: (e: any, cell: any) => void;
-  handleShowClick: (e: any, cell: any) => void;
+  handleClick: (e: React.MouseEvent, cell: FaceCell) => void;
+  handleShowClick: (e: React.MouseEvent, cell: FaceCell) => void;
 }>;
 
 export const calculateProbabiltyColor = (labelProbability: number) => {
@@ -28,9 +28,9 @@ export const calculateProbabiltyColor = (labelProbability: number) => {
 
 const routeApi = getRouteApi("/_protected/faces");
 
-function getFaceImageUrl(cell: FaceCell): string {
-  // cell.image is string e.g. http://backeng/path/to/file.jpg
-  const fileName = reverse(cell.image.split("/"))[0];
+function getFaceImageUrl(image: string): string {
+  // image is a URL, e.g. http://backend/path/to/file.jpg
+  const fileName = reverse(image.split("/"))[0];
   return `${serverAddress}/media/faces/${fileName}`;
 }
 
@@ -72,10 +72,11 @@ export function FaceComponent({
           >
             <Avatar
               radius="md"
-              onClick={(e: any) => {
+              onClick={e => {
                 handleClick(e, cell);
               }}
-              src={getFaceImageUrl(cell)}
+              // A paged-in face always has its image; null would only be a placeholder's
+              src={cell.image === null ? undefined : getFaceImageUrl(cell.image)}
               size={entrySize}
             />
           </Indicator>
@@ -85,7 +86,7 @@ export function FaceComponent({
           variant="filled"
           color="gray"
           aria-label={t("facesdashboard.showphoto")}
-          onClick={(e: any) => handleShowClick(e, cell)}
+          onClick={e => handleShowClick(e, cell)}
         >
           <Photo />
         </ActionIcon>

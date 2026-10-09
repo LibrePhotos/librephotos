@@ -30,7 +30,7 @@ const KEYS = ["media", "hide_screenshots", "hide_documents", "favorites"] as con
 // saved default, so a bookmark of "/" follows the default when it changes.
 export type TimelineFilterSearch = Partial<TimelineFilter>;
 
-function isMedia(value: unknown): value is TimelineMedia {
+export function isTimelineMedia(value: unknown): value is TimelineMedia {
   return value === "all" || value === "photos" || value === "videos";
 }
 
@@ -45,7 +45,7 @@ function asBoolean(value: unknown): boolean | undefined {
 // Route `validateSearch` for "/": unknown keys and values are dropped.
 export function validateTimelineSearch(search: Record<string, unknown>): TimelineFilterSearch {
   const result: TimelineFilterSearch = {};
-  if (isMedia(search.media)) result.media = search.media;
+  if (isTimelineMedia(search.media)) result.media = search.media;
   const hideScreenshots = asBoolean(search.hide_screenshots);
   if (hideScreenshots !== undefined) result.hide_screenshots = hideScreenshots;
   const hideDocuments = asBoolean(search.hide_documents);
@@ -58,7 +58,7 @@ export function validateTimelineSearch(search: Record<string, unknown>): Timelin
 // The saved default with its missing keys filled in.
 export function savedTimelineFilter(saved: SavedTimelineFilter | undefined): TimelineFilter {
   return {
-    media: isMedia(saved?.media) ? saved.media : "all",
+    media: isTimelineMedia(saved?.media) ? saved.media : "all",
     hide_screenshots: saved?.hide_screenshots === true,
     hide_documents: saved?.hide_documents === true,
     favorites: saved?.favorites === true,
@@ -73,6 +73,11 @@ export function resolveTimelineFilter(
   return { ...savedTimelineFilter(saved), ...validateTimelineSearch(search) };
 }
 
+// One key of `filter` into `search`; generic, so the value's type follows the key.
+function copyKey<K extends keyof TimelineFilter>(search: TimelineFilterSearch, filter: TimelineFilter, key: K) {
+  search[key] = filter[key];
+}
+
 // The URL search params that make `filter` the current view: only the keys
 // that differ from the saved default, so a filter equal to it is a bare "/".
 export function timelineSearchFor(
@@ -83,7 +88,7 @@ export function timelineSearchFor(
   const search: TimelineFilterSearch = {};
   KEYS.forEach(key => {
     if (filter[key] !== base[key]) {
-      (search as Record<string, unknown>)[key] = filter[key];
+      copyKey(search, filter, key);
     }
   });
   return search;

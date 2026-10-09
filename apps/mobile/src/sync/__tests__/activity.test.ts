@@ -178,7 +178,7 @@ describe("back-off never stalls the pipeline", () => {
         device_scan: async () => {
           remaining -= 1;
           return remaining > 0
-            ? { enqueue: [{ kind: "device_scan", payload: { chunk: 12 - remaining } as never }] }
+            ? { enqueue: [{ kind: "device_scan", payload: { chunk: 12 - remaining } }] }
             : {};
         },
       },

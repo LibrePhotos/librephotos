@@ -1,4 +1,4 @@
-import { MantineColor } from "@mantine/core";
+import type { MantineColor } from "@mantine/core";
 import type { Icon } from "@tabler/icons-react";
 import {
   IconAlbum as Album,
@@ -8,12 +8,12 @@ import {
   IconTrash as Trash,
   IconUsers as Users,
 } from "@tabler/icons-react";
-import { TFunction } from "i18next";
+import type { TFunction } from "i18next";
 
 type SubmenuItem = {
   label: string;
   link: string;
-  icon: any;
+  icon: Icon;
   header: string;
   separator: boolean;
   disabled: boolean;

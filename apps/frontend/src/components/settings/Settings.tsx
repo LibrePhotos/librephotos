@@ -23,12 +23,38 @@ import {
   UserSelfDetailsQueryKeys,
   useUpdateUserMutation,
 } from "../../api_client/user/hooks";
+import { PublicSharingDefaults, User } from "../../api_client/user/types";
 import { reportUserSaveError } from "../../util/apiErrors";
 import { ConfigBurstDetection } from "./ConfigBurstDetection";
 import { ConfigDateTime } from "./ConfigDateTime";
 import { SaveChangesDialog } from "./SaveChangesDialog";
 
 const SLIDESHOW_INTERVALS = [3, 5, 10, 15, 30];
+
+const DuplicateSensitivity = User.shape.duplicate_sensitivity.unwrap();
+
+type LlmSwitch = "enabled" | "add_person" | "add_location";
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+/**
+ * One switch of the stored caption context (llm_settings, which holds whatever a client saved).
+ * Each switch is read on its own, so a bad value under another key does not turn it off.
+ */
+function llmSwitchOf(settings: unknown, key: LlmSwitch): boolean | undefined {
+  const value = isRecord(settings) ? settings[key] : undefined;
+  return typeof value === "boolean" ? value : undefined;
+}
+
+/**
+ * The stored caption context with one switch changed. The other keys keep their values and their
+ * order, so switching back gives the saved JSON again and the "Save changes?" prompt closes.
+ */
+function withLlmSwitch(settings: unknown, key: LlmSwitch, value: boolean): Record<string, unknown> {
+  return { ...(isRecord(settings) ? settings : {}), [key]: value };
+}
 
 export function Settings() {
   const [isOpenUpdateDialog, setIsOpenUpdateDialog] = useState(false);
@@ -64,6 +90,10 @@ export function Settings() {
   if (!userSelfDetails || !editedUserDetails) {
     return null;
   }
+
+  const llmEnabled = llmSwitchOf(editedUserDetails.llm_settings, "enabled");
+  // The server always sends the defaults; all off is what it assumes when they are missing.
+  const sharingDefaults = editedUserDetails.public_sharing_defaults ?? PublicSharingDefaults.parse({});
 
   return (
     <Container>
@@ -303,42 +333,41 @@ export function Settings() {
             </Title>
             <Switch
               label={t("settings.enablellm")}
-              checked={editedUserDetails.llm_settings?.enabled}
+              checked={llmEnabled}
               onChange={event => {
                 setEditedUserDetails({
                   ...editedUserDetails,
-                  llm_settings: {
-                    ...editedUserDetails.llm_settings,
-                    enabled: event.currentTarget.checked,
-                  },
+                  llm_settings: withLlmSwitch(editedUserDetails.llm_settings, "enabled", event.currentTarget.checked),
                 });
               }}
             />
             <Switch
               label={t("settings.addperson")}
-              checked={editedUserDetails.llm_settings?.add_person}
-              disabled={!editedUserDetails.llm_settings?.enabled}
+              checked={llmSwitchOf(editedUserDetails.llm_settings, "add_person")}
+              disabled={!llmEnabled}
               onChange={event => {
                 setEditedUserDetails({
                   ...editedUserDetails,
-                  llm_settings: {
-                    ...editedUserDetails.llm_settings,
-                    add_person: event.currentTarget.checked,
-                  },
+                  llm_settings: withLlmSwitch(
+                    editedUserDetails.llm_settings,
+                    "add_person",
+                    event.currentTarget.checked
+                  ),
                 });
               }}
             />
             <Switch
               label={t("settings.addlocation")}
-              checked={editedUserDetails.llm_settings?.add_location}
-              disabled={!editedUserDetails.llm_settings?.enabled}
+              checked={llmSwitchOf(editedUserDetails.llm_settings, "add_location")}
+              disabled={!llmEnabled}
               onChange={event => {
                 setEditedUserDetails({
                   ...editedUserDetails,
-                  llm_settings: {
-                    ...editedUserDetails.llm_settings,
-                    add_location: event.currentTarget.checked,
-                  },
+                  llm_settings: withLlmSwitch(
+                    editedUserDetails.llm_settings,
+                    "add_location",
+                    event.currentTarget.checked
+                  ),
                 });
               }}
             />
@@ -354,12 +383,12 @@ export function Settings() {
             </Text>
             <Switch
               label={t("sharing.shareTimestamps")}
-              checked={editedUserDetails.public_sharing_defaults?.share_timestamps ?? false}
+              checked={sharingDefaults.share_timestamps}
               onChange={event => {
                 setEditedUserDetails({
                   ...editedUserDetails,
                   public_sharing_defaults: {
-                    ...editedUserDetails.public_sharing_defaults,
+                    ...sharingDefaults,
                     share_timestamps: event.currentTarget.checked,
                   },
                 });
@@ -367,12 +396,12 @@ export function Settings() {
             />
             <Switch
               label={t("sharing.shareLocation")}
-              checked={editedUserDetails.public_sharing_defaults?.share_location ?? false}
+              checked={sharingDefaults.share_location}
               onChange={event => {
                 setEditedUserDetails({
                   ...editedUserDetails,
                   public_sharing_defaults: {
-                    ...editedUserDetails.public_sharing_defaults,
+                    ...sharingDefaults,
                     share_location: event.currentTarget.checked,
                   },
                 });
@@ -380,12 +409,12 @@ export function Settings() {
             />
             <Switch
               label={t("sharing.shareCameraInfo")}
-              checked={editedUserDetails.public_sharing_defaults?.share_camera_info ?? false}
+              checked={sharingDefaults.share_camera_info}
               onChange={event => {
                 setEditedUserDetails({
                   ...editedUserDetails,
                   public_sharing_defaults: {
-                    ...editedUserDetails.public_sharing_defaults,
+                    ...sharingDefaults,
                     share_camera_info: event.currentTarget.checked,
                   },
                 });
@@ -393,12 +422,12 @@ export function Settings() {
             />
             <Switch
               label={t("sharing.shareCaptions")}
-              checked={editedUserDetails.public_sharing_defaults?.share_captions ?? false}
+              checked={sharingDefaults.share_captions}
               onChange={event => {
                 setEditedUserDetails({
                   ...editedUserDetails,
                   public_sharing_defaults: {
-                    ...editedUserDetails.public_sharing_defaults,
+                    ...sharingDefaults,
                     share_captions: event.currentTarget.checked,
                   },
                 });
@@ -406,12 +435,12 @@ export function Settings() {
             />
             <Switch
               label={t("sharing.shareFaces")}
-              checked={editedUserDetails.public_sharing_defaults?.share_faces ?? false}
+              checked={sharingDefaults.share_faces}
               onChange={event => {
                 setEditedUserDetails({
                   ...editedUserDetails,
                   public_sharing_defaults: {
-                    ...editedUserDetails.public_sharing_defaults,
+                    ...sharingDefaults,
                     share_faces: event.currentTarget.checked,
                   },
                 });
@@ -452,7 +481,11 @@ export function Settings() {
               description={t("settings.duplicatesensitivityhelp")}
               value={editedUserDetails.duplicate_sensitivity || "normal"}
               onChange={value => {
-                setEditedUserDetails({ ...editedUserDetails, duplicate_sensitivity: value || "normal" });
+                const sensitivity = DuplicateSensitivity.safeParse(value);
+                setEditedUserDetails({
+                  ...editedUserDetails,
+                  duplicate_sensitivity: sensitivity.success ? sensitivity.data : "normal",
+                });
               }}
             >
               <Group mt="xs">

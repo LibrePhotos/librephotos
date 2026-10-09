@@ -6,7 +6,7 @@
 import "@mantine/core/styles.css";
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
-import { createRoot } from "react-dom/client";
+import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import i18n from "../../../i18n";
 
@@ -27,12 +27,12 @@ vi.mock("../../../api_client/albums/hooks", () => ({
   useAllFolderSubfolders: () => stubs.folders,
 }));
 
-let root: ReturnType<typeof createRoot> | undefined;
+let root: Root | undefined;
 let container: HTMLDivElement;
 
 beforeAll(async () => {
-  // @ts-ignore - jsdom has no matchMedia, MantineProvider needs it
-  window.matchMedia = (query: string) => ({
+  // jsdom has no matchMedia, MantineProvider needs it
+  window.matchMedia = (query: string): MediaQueryList => ({
     matches: false,
     media: query,
     onchange: null,
@@ -42,7 +42,6 @@ beforeAll(async () => {
     removeEventListener: () => {},
     dispatchEvent: () => false,
   });
-  // @ts-ignore
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   await i18n.changeLanguage("en");
 });
@@ -54,12 +53,14 @@ afterEach(async () => {
 
 async function renderPage() {
   await import("./folder.index");
-  const AlbumFolder = stubs.component!;
+  const AlbumFolder = stubs.component;
+  if (!AlbumFolder) throw new Error("folder.index handed no component to createFileRoute");
   container = document.createElement("div");
   document.body.appendChild(container);
-  root = createRoot(container);
+  const pageRoot = createRoot(container);
+  root = pageRoot;
   await act(async () => {
-    root!.render(
+    pageRoot.render(
       <MantineProvider>
         <AlbumFolder />
       </MantineProvider>

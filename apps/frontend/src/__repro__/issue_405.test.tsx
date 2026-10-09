@@ -24,9 +24,10 @@ import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { FaceAnalysisMethod, FacesTab } from "../api_client/faces/types";
+import type { CompletePersonFace, PersonFace } from "../api_client/faces/types";
 import { HeaderComponent } from "../components/facedashboard/HeaderComponent";
 import { useCollapsedPersons } from "../components/facedashboard/hooks/useCollapsedPersons";
-import { useVirtualizedGrid } from "../components/facedashboard/hooks/useVirtualizedGrid";
+import { isPersonCell, useVirtualizedGrid, type GridCell } from "../components/facedashboard/hooks/useVirtualizedGrid";
 import i18n from "../i18n";
 import { calculateFaceGridCells } from "../util/gridUtils";
 
@@ -47,8 +48,8 @@ vi.mock("../api_client/faces/hooks", () => ({
 }));
 
 beforeAll(async () => {
-  // @ts-ignore - jsdom has no matchMedia, MantineProvider needs it
-  window.matchMedia = (query: string) => ({
+  // jsdom has no matchMedia, MantineProvider needs it
+  window.matchMedia = (query: string): MediaQueryList => ({
     matches: false,
     media: query,
     onchange: null,
@@ -58,13 +59,12 @@ beforeAll(async () => {
     removeEventListener: () => {},
     dispatchEvent: () => false,
   });
-  // @ts-ignore
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   await i18n.changeLanguage("en");
 });
 
 /** A person as `/faces/incomplete/` delivers it: face_count placeholders, no images yet. */
-function person(id: number, name: string, faceCount: number) {
+function person(id: number, name: string, faceCount: number): CompletePersonFace {
   return {
     id,
     name,
@@ -93,11 +93,16 @@ const NOTHING_COLLAPSED: Record<FacesTab, ReadonlySet<number>> = {
   unknown: new Set<number>(),
 };
 
+type HeaderProps = React.ComponentProps<typeof HeaderComponent>;
+
+const nameOf = (cell: GridCell) => (isPersonCell(cell) ? cell.name : undefined);
+const isPlaceholderFace = (cell: GridCell): cell is PersonFace => !isPersonCell(cell) && cell.isTemp === true;
+
 async function renderHeader(
-  cell: any,
+  cell: HeaderProps["cell"],
   isCollapsed: boolean,
   onToggleCollapse: () => void,
-  setSelectedFaces: (faces: any[]) => void = () => {}
+  setSelectedFaces: HeaderProps["setSelectedFaces"] = () => {}
 ) {
   const container = document.createElement("div");
   document.body.appendChild(container);
@@ -130,7 +135,8 @@ async function renderHeader(
   };
 }
 
-type SectionRequest = { page: number; person: number };
+type OnSectionChange = Parameters<typeof useVirtualizedGrid>[4];
+type SectionRequest = Parameters<OnSectionChange>[0][number];
 
 function GridHost({
   collapsedPersons,
@@ -138,7 +144,7 @@ function GridHost({
   onRender,
 }: Readonly<{
   collapsedPersons: Record<FacesTab, ReadonlySet<number>>;
-  onSectionChange: (requests: SectionRequest[]) => void;
+  onSectionChange: OnSectionChange;
   onRender: (grid: ReturnType<typeof useVirtualizedGrid>) => void;
 }>) {
   onRender(
@@ -147,7 +153,7 @@ function GridHost({
       LISTS,
       () => {},
       () => {},
-      onSectionChange as any,
+      onSectionChange,
       undefined,
       () => {},
       false,
@@ -161,10 +167,10 @@ function GridHost({
   return null;
 }
 
-async function renderGrid(onSectionChange: (requests: SectionRequest[]) => void) {
+async function renderGrid(onSectionChange: OnSectionChange) {
   const container = document.createElement("div");
   const root = createRoot(container);
-  let grid: any;
+  let grid: ReturnType<typeof useVirtualizedGrid> | undefined;
   const render = (collapsedPersons: Record<FacesTab, ReadonlySet<number>>) =>
     act(async () => {
       root.render(
@@ -181,6 +187,7 @@ async function renderGrid(onSectionChange: (requests: SectionRequest[]) => void)
   await render(NOTHING_COLLAPSED);
   return {
     get grid() {
+      if (!grid) throw new Error("the grid hook has not rendered");
       return grid;
     },
     render,
@@ -195,7 +202,7 @@ async function renderGrid(onSectionChange: (requests: SectionRequest[]) => void)
 async function renderCollapsedPersons() {
   const container = document.createElement("div");
   const root = createRoot(container);
-  let hook: any;
+  let hook: ReturnType<typeof useCollapsedPersons> | undefined;
   function Host() {
     hook = useCollapsedPersons();
     return null;
@@ -205,6 +212,7 @@ async function renderCollapsedPersons() {
   });
   return {
     get hook() {
+      if (!hook) throw new Error("the collapsed-persons hook has not rendered");
       return hook;
     },
     cleanup: async () => {
@@ -231,24 +239,24 @@ describe("issue #405 - fold/unfold person groups on the faces page", () => {
 
     expect(cellContents).toHaveLength(1 + 1 + Math.ceil(5 / ITEMS_PER_ROW));
     // Bob's header follows Alice's immediately - no empty rows left behind
-    expect(cellContents[0][0].name).toBe("Alice");
-    expect(cellContents[1][0].name).toBe("Bob");
+    expect(nameOf(cellContents[0][0])).toBe("Alice");
+    expect(nameOf(cellContents[1][0])).toBe("Bob");
   });
 
   it("keeps every person reachable when all groups are collapsed", () => {
     const { cellContents } = calculateFaceGridCells(PEOPLE, ITEMS_PER_ROW, new Set([1, 2]));
 
     expect(cellContents).toHaveLength(PEOPLE.length);
-    expect(cellContents.map(row => row[0].name)).toEqual(["Alice", "Bob"]);
+    expect(cellContents.map(row => nameOf(row[0]))).toEqual(["Alice", "Bob"]);
   });
 
   it("stops the lazy loader from paging in the faces of a collapsed person", () => {
     const { cellContents } = calculateFaceGridCells(PEOPLE, ITEMS_PER_ROW, new Set([1]));
 
     // onSectionRendered only asks the API for cells that are both visible and isTemp
-    const pagedPersons = cellContents.flat().filter((cell: any) => cell.isTemp);
+    const pagedPersons = cellContents.flat().filter(isPlaceholderFace);
 
-    expect(new Set(pagedPersons.map((cell: any) => cell.person))).toEqual(new Set([2]));
+    expect(new Set(pagedPersons.map(cell => cell.person))).toEqual(new Set([2]));
   });
 
   it("shows the face count and an expandable toggle while collapsed", async () => {
@@ -281,8 +289,8 @@ describe("issue #405 - fold/unfold person groups on the faces page", () => {
     // A group whose first face arrived, while the rest are still placeholders carrying their
     // index as id - selecting those would act on whatever real faces own ids 1 and 2
     const alice = person(1, "Alice", 3);
-    alice.faces[0] = { ...alice.faces[0], id: 4711, face_url: "/media/faces/4711.jpg", isTemp: false } as any;
-    const selections: any[][] = [];
+    alice.faces[0] = { ...alice.faces[0], id: 4711, face_url: "/media/faces/4711.jpg", isTemp: false };
+    const selections: Parameters<HeaderProps["setSelectedFaces"]>[0][] = [];
     const { selectAll, cleanup } = await renderHeader(
       alice,
       false,
@@ -342,7 +350,8 @@ describe("issue #405 - fold/unfold person groups on the faces page", () => {
     });
 
     expect(view.hook.collapsedPersons.labeled).toEqual(new Set([7, 9]));
-    expect(JSON.parse(localStorage.getItem("faceCollapsedPersons") ?? "{}")).toEqual({
+    const stored: unknown = JSON.parse(localStorage.getItem("faceCollapsedPersons") ?? "{}");
+    expect(stored).toEqual({
       labeled: [7, 9],
       inferred: [],
       unknown: [],

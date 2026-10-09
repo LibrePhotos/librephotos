@@ -19,7 +19,7 @@ import { modalTitleStyles } from "./modalTitleStyles";
 type Props = Readonly<{
   opened: boolean;
   onClose: () => void;
-  onAddRules: (item: any) => void;
+  onAddRules: (rules: DateTimeRule[]) => void;
   availableRules: DateTimeRule[];
 }>;
 
@@ -35,8 +35,8 @@ export function ModalConfigDatetime({ opened, onClose, availableRules, onAddRule
   const colorScheme = useComputedColorScheme();
   const [filter, setFilter] = useState("");
   const [rulesToAdd, setRulesToAdd] = useState<DateTimeRule[]>([]);
-  const appendRule = rule => setRulesToAdd([...rulesToAdd, rule]);
-  const ignoreSelectedRules = rule => !rulesToAdd.find(r => r.id === rule.id);
+  const appendRule = (rule: DateTimeRule) => setRulesToAdd([...rulesToAdd, rule]);
+  const ignoreSelectedRules = (rule: DateTimeRule) => !rulesToAdd.find(r => r.id === rule.id);
 
   useEffect(() => {
     /**

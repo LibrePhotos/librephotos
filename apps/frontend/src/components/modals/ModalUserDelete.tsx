@@ -3,13 +3,15 @@ import { IconTrash as Trash } from "@tabler/icons-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { ApiError } from "../../api_client/api";
+import type { ListUser } from "../../api_client/user";
 import { useDeleteUserMutation } from "../../api_client/user/hooks";
 import { notification } from "../../service/notifications";
 import { modalTitleStyles } from "./modalTitleStyles";
 
 type Props = Readonly<{
   isOpen: boolean;
-  userToDelete: any;
+  /** {} until the admin picked a user to delete. */
+  userToDelete: Readonly<Partial<Pick<ListUser, "id" | "username">>>;
   onRequestClose: () => void;
 }>;
 
@@ -22,9 +24,13 @@ export function ModalUserDelete(props: Props) {
   // The dialog stays open until the request settles: closing it straight away
   // left the admin guessing whether the deletion ran, worked or failed.
   const deleteUserAndClose = () => {
-    deleteUser(userToDelete.id, {
+    const { id, username } = userToDelete;
+    if (id === undefined || username === undefined) {
+      return;
+    }
+    deleteUser(id, {
       onSuccess: () => {
-        notification.deleteUser(userToDelete.username);
+        notification.deleteUser(username);
         onRequestClose();
       },
       onError: error => {

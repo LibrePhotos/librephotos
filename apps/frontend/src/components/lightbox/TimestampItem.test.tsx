@@ -10,9 +10,10 @@ import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import i18n from "../../i18n";
+import { defined } from "../../util/defined.test-utils";
 import { TimestampItem } from "./TimestampItem";
 
-const updatePhoto = vi.fn();
+const updatePhoto = vi.fn<(variables: { id: string; data: { exif_timestamp?: string | null } }) => void>();
 
 vi.mock("../../api_client/photos/hooks", () => ({
   useUpdatePhotoMutation: () => ({ mutate: updatePhoto }),
@@ -22,8 +23,8 @@ const PHOTO_A = { image_hash: "photoA", exif_timestamp: "2024-05-01T08:15:00+00:
 const PHOTO_B = { image_hash: "photoB", exif_timestamp: "2019-11-20T19:40:00+00:00" };
 
 beforeAll(async () => {
-  // @ts-ignore - jsdom has no matchMedia, MantineProvider needs it
-  window.matchMedia = (query: string) => ({
+  // jsdom has no matchMedia, MantineProvider needs it
+  window.matchMedia = (query: string): MediaQueryList => ({
     matches: false,
     media: query,
     onchange: null,
@@ -33,7 +34,6 @@ beforeAll(async () => {
     removeEventListener: () => {},
     dispatchEvent: () => false,
   });
-  // @ts-ignore
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   await i18n.changeLanguage("en");
 });
@@ -66,7 +66,7 @@ function button(container: HTMLElement, label: string) {
 async function click(element: HTMLElement | null) {
   expect(element).toBeTruthy();
   await act(async () => {
-    element!.click();
+    defined(element).click();
   });
 }
 
@@ -95,7 +95,7 @@ describe("TimestampItem", () => {
     expect(updatePhoto).toHaveBeenCalledTimes(1);
     const { id, data } = updatePhoto.mock.calls[0][0];
     expect(id).toBe("photoB");
-    expect(data.exif_timestamp.slice(0, 19)).toBe("2019-11-10T19:40:00");
+    expect(data.exif_timestamp?.slice(0, 19)).toBe("2019-11-10T19:40:00");
   });
 
   it("writes nothing when the date is saved unchanged", async () => {

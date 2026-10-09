@@ -14,6 +14,7 @@
 import { describe, expect, it } from "vitest";
 
 import { createApiClient, endpoints } from "../index";
+import { defined } from "./defined";
 
 const baseUrl = process.env.LIBREPHOTOS_LIVE_URL;
 const username = process.env.LIBREPHOTOS_LIVE_USER;
@@ -36,8 +37,8 @@ const client = createApiClient({
 });
 
 function userIdFromToken(token: string): string {
-  const payload = JSON.parse(Buffer.from(token.split(".")[1] ?? "", "base64url").toString("utf8"));
-  return String(payload.user_id);
+  const payload: unknown = JSON.parse(Buffer.from(token.split(".")[1] ?? "", "base64url").toString("utf8"));
+  return String(typeof payload === "object" && payload !== null && "user_id" in payload ? payload.user_id : undefined);
 }
 
 describe.skipIf(!baseUrl)("live backend contract", () => {
@@ -49,16 +50,16 @@ describe.skipIf(!baseUrl)("live backend contract", () => {
   });
 
   it("user + site settings", async () => {
-    await endpoints.fetchUserSelfDetails(client, userIdFromToken(access!));
+    await endpoints.fetchUserSelfDetails(client, userIdFromToken(defined(access)));
     await endpoints.fetchSiteSettings(client);
   });
 
   it("timeline: date album list, one date album, photo detail", async () => {
     const groups = await endpoints.fetchDateAlbumsList(client);
     expect(groups.length).toBeGreaterThan(0);
-    const group = await endpoints.fetchDateAlbum(client, String(groups[0]!.id), 1);
+    const group = await endpoints.fetchDateAlbum(client, String(defined(groups[0]).id), 1);
     expect(group.items.length).toBeGreaterThan(0);
-    await endpoints.fetchPhotoDetails(client, group.items[0]!.id);
+    await endpoints.fetchPhotoDetails(client, defined(group.items[0]).id);
     await endpoints.fetchRecentlyAddedPhotos(client);
     await endpoints.fetchPhotosWithoutTimestamp(client, 1);
   });

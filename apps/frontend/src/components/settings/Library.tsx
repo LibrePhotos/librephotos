@@ -702,7 +702,7 @@ export function Library() {
                   </Grid>
                 </Stack>
                 <ModalNextcloudScanDirectoryEdit
-                  path={editedUser?.nextcloud_scan_directory ?? userSelfDetails.nextcloud_scan_directory}
+                  path={editedUser?.nextcloud_scan_directory ?? userSelfDetails.nextcloud_scan_directory ?? ""}
                   isOpen={modalNextcloudScanDirectoryOpen}
                   onChange={path => setEditedUser(prev => (prev ? { ...prev, nextcloud_scan_directory: path } : prev))}
                   onClose={() => {

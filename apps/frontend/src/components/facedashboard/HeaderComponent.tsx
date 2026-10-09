@@ -18,13 +18,16 @@ import {
   useRenamePersonAlbumMutation,
 } from "../../api_client/albums/hooks";
 import { useSetFacesPersonLabelMutation } from "../../api_client/faces/hooks";
+import type { CompletePersonFace } from "../../api_client/faces/types";
 import classes from "./HeaderComponent.module.css";
+import { isLoadedFace } from "./hooks/useVirtualizedGrid";
+import type { FaceSelection } from "./hooks/useVirtualizedGrid";
 
 type Props = {
-  cell: any;
-  style: any;
-  setSelectedFaces: any;
-  selectedFaces: any;
+  cell: CompletePersonFace;
+  style: React.CSSProperties;
+  setSelectedFaces: (faces: FaceSelection[]) => void;
+  selectedFaces: readonly FaceSelection[];
   isCollapsed: boolean;
   onToggleCollapse: () => void;
 };
@@ -82,7 +85,7 @@ export function HeaderComponent({
 
   // Faces that have not been paged in yet carry their index as id, so acting on them would hit
   // whatever real faces happen to have those ids
-  const loadedFaces = cell.faces.filter(face => !face.isTemp);
+  const loadedFaces = cell.faces.filter(isLoadedFace);
 
   const handleClick = () => {
     if (!checked) {
@@ -160,10 +163,10 @@ export function HeaderComponent({
             </Menu.Target>
 
             <Menu.Dropdown>
-              <Menu.Item leftSection={<Edit size={14} />} onClick={() => openRenameDialog(cell.id, cell.name)}>
+              <Menu.Item leftSection={<Edit size={14} />} onClick={() => openRenameDialog(String(cell.id), cell.name)}>
                 {t("rename")}
               </Menu.Item>
-              <Menu.Item leftSection={<Trash size={14} />} onClick={() => openDeleteDialog(cell.id)}>
+              <Menu.Item leftSection={<Trash size={14} />} onClick={() => openDeleteDialog(String(cell.id))}>
                 {t("delete")}
               </Menu.Item>
             </Menu.Dropdown>

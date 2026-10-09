@@ -20,32 +20,43 @@ import { createRoot } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import i18n from "../../i18n";
 import { SearchOptionType } from "../../service/use-search";
+import type { SearchOption } from "../../service/use-search";
 import { useSpotlightActions } from "./useSpotlightActions";
+import type { SpotlightAction } from "./useSpotlightActions";
 
-const stubs = vi.hoisted(() => ({
-  navigate: vi.fn(),
-  scan: vi.fn(),
-  rescan: vi.fn(),
-  scanDirectoryRequired: vi.fn(),
-  showNotification: vi.fn(),
-  isAdmin: false,
-  userDetailsPending: false,
-  scanDirectory: "/photos" as string | undefined,
-  searchOptions: [] as { value: string; type: number; data: string | null }[],
-}));
+type StubState = {
+  isAdmin: boolean;
+  userDetailsPending: boolean;
+  scanDirectory: string | undefined;
+  searchOptions: SearchOption[];
+};
+
+const stubs = vi.hoisted(() => {
+  const state: StubState = { isAdmin: false, userDetailsPending: false, scanDirectory: "/photos", searchOptions: [] };
+  return {
+    navigate: vi.fn<(options: { to: string }) => void>(),
+    scan: vi.fn<() => void>(),
+    rescan: vi.fn<() => void>(),
+    scanDirectoryRequired: vi.fn<() => void>(),
+    showNotification: vi.fn<(notification: { message: string }) => void>(),
+    ...state,
+  };
+});
 
 vi.mock("@tanstack/react-router", () => ({ useNavigate: () => stubs.navigate }));
 vi.mock("@mantine/notifications", () => ({ showNotification: stubs.showNotification }));
-vi.mock("../../api_client/api", () => ({ fetchClient: { get: vi.fn() } }));
+vi.mock("../../api_client/api", () => ({ fetchClient: { get: vi.fn<(endpoint: string) => Promise<unknown>>() } }));
 vi.mock("../../api_client/auth", () => ({
   useAccessToken: () => ({ data: { access: { user_id: "1", is_admin: stubs.isAdmin } } }),
 }));
-vi.mock("../../api_client/faces", () => ({ useTrainFacesMutation: () => ({ mutate: vi.fn() }) }));
+vi.mock("../../api_client/faces", () => ({
+  useTrainFacesMutation: () => ({ mutate: vi.fn<(...args: unknown[]) => void>() }),
+}));
 vi.mock("../../api_client/jobs/hooks", () => ({
   useWorkerQuery: () => ({ data: { queue_can_accept_job: true } }),
   useScanPhotosMutation: () => ({ mutate: stubs.scan }),
   useRescanPhotosMutation: () => ({ mutate: stubs.rescan }),
-  useGenerateAutoAlbumsMutation: () => ({ mutate: vi.fn() }),
+  useGenerateAutoAlbumsMutation: () => ({ mutate: vi.fn<(...args: unknown[]) => void>() }),
 }));
 vi.mock("../../api_client/user/hooks/useCurrentUserSelfDetailsQuery", () => ({
   useCurrentUserSelfDetailsQuery: () =>
@@ -59,11 +70,14 @@ vi.mock("../../service/notifications", () => ({
 }));
 vi.mock("../../service/use-search", async importOriginal => ({
   ...(await importOriginal<typeof import("../../service/use-search")>()),
-  useSearch: () => ({ options: stubs.searchOptions, filterOptions: vi.fn(), isLoading: false }),
+  useSearch: () => ({
+    options: stubs.searchOptions,
+    filterOptions: vi.fn<(...args: unknown[]) => void>(),
+    isLoading: false,
+  }),
 }));
 
 type Result = ReturnType<typeof useSpotlightActions>;
-type Action = { id: string; onClick?: () => void; leftSection?: React.ReactNode };
 
 let result: Result;
 let root: ReturnType<typeof createRoot>;
@@ -85,19 +99,27 @@ async function render(defaultColorScheme: MantineColorScheme = "light") {
   });
 }
 
-const allActions = (): Action[] =>
-  result.actions.flatMap(entry => ("actions" in entry ? entry.actions : [entry])) as Action[];
+const allActions = (): SpotlightAction[] => result.actions.flatMap(group => group.actions);
 const action = (id: string) => allActions().find(entry => entry.id === id);
-const themeIcon = () => (action("quick-toggle-theme")!.leftSection as React.ReactElement).type;
+const requireAction = (id: string) => {
+  const found = action(id);
+  if (!found) throw new Error(`the palette has no ${id} action`);
+  return found;
+};
+// The component the icon is drawn with
+const themeIcon = () => {
+  const icon = requireAction("quick-toggle-theme").leftSection;
+  return React.isValidElement(icon) ? icon.type : undefined;
+};
 const trigger = async (id: string) => {
-  await act(async () => action(id)!.onClick!());
+  await act(async () => requireAction(id).onClick());
 };
 
 let osDark = false;
 
 beforeAll(() => {
-  // @ts-ignore - jsdom has no matchMedia, MantineProvider needs it
-  window.matchMedia = (query: string) => ({
+  // jsdom has no matchMedia, MantineProvider needs it
+  window.matchMedia = (query: string): MediaQueryList => ({
     matches: osDark && query === "(prefers-color-scheme: dark)",
     media: query,
     onchange: null,
@@ -107,7 +129,6 @@ beforeAll(() => {
     removeEventListener: () => {},
     dispatchEvent: () => false,
   });
-  // @ts-ignore
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 });
 
@@ -207,8 +228,12 @@ describe("navigation", () => {
 });
 
 describe("grouping", () => {
-  const groups = () => result.actions.filter(entry => "actions" in entry) as { group: string; actions: Action[] }[];
-  const searchGroup = () => groups().find(group => group.group === i18n.t("spotlight.groups.search"))!;
+  const groups = () => result.actions;
+  const searchGroup = () => {
+    const found = groups().find(group => group.group === i18n.t("spotlight.groups.search"));
+    if (!found) throw new Error("the palette has no search group");
+    return found;
+  };
 
   beforeEach(() => {
     stubs.searchOptions = Array.from({ length: 10 }, (_, i) => ({

@@ -13,8 +13,12 @@ import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import type { User } from "../../api_client/user/types";
 import i18n from "../../i18n";
 import { Library } from "./Library";
+
+/** The mutate options Library passes when it saves the profile. */
+type SaveOptions = { onSuccess?: () => void; onError?: (error: unknown) => void };
 
 const mocks = vi.hoisted(() => {
   class ApiError extends Error {
@@ -26,14 +30,15 @@ const mocks = vi.hoisted(() => {
       super(message);
     }
   }
+  const user: Partial<User> = {};
   return {
     ApiError,
-    post: vi.fn(),
-    mutate: vi.fn(),
-    generateAutoAlbums: vi.fn(),
-    updateUserError: vi.fn(),
-    regenerateEventAlbums: vi.fn(),
-    user: {} as Record<string, unknown>,
+    post: vi.fn<(url: string, body: unknown) => Promise<unknown>>(),
+    mutate: vi.fn<(user: Partial<User>, options?: SaveOptions) => void>(),
+    generateAutoAlbums: vi.fn<() => void>(),
+    updateUserError: vi.fn<(message: string) => void>(),
+    regenerateEventAlbums: vi.fn<() => void>(),
+    user,
     auth: { access: { is_admin: true } },
   };
 });
@@ -71,7 +76,7 @@ vi.mock("../../api_client/user/hooks/useCurrentUserSelfDetailsQuery", () => ({
   useCurrentUserSelfDetailsQuery: () => ({ data: mocks.user }),
 }));
 vi.mock("../../service/notifications", () => ({
-  notification: new Proxy(
+  notification: new Proxy<Record<string, unknown>>(
     {},
     {
       get: (_target, key) => {
@@ -101,20 +106,19 @@ vi.mock("./SaveChangesDialog", () => ({
 }));
 
 beforeAll(async () => {
-  (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+  globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   // The assertions read the English labels.
   await i18n.changeLanguage("en");
-  window.matchMedia = (query: string) =>
-    ({
-      matches: false,
-      media: query,
-      onchange: null,
-      addListener: () => {},
-      removeListener: () => {},
-      addEventListener: () => {},
-      removeEventListener: () => {},
-      dispatchEvent: () => false,
-    }) as unknown as MediaQueryList;
+  window.matchMedia = (query: string): MediaQueryList => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => false,
+  });
 });
 
 let container: HTMLDivElement;
@@ -154,18 +158,27 @@ afterEach(async () => {
   container.remove();
 });
 
+function found<T>(element: T | null | undefined, what: string): T {
+  if (element === null || element === undefined) throw new Error(`${what} not found`);
+  return element;
+}
+
 const setInputValue = async (input: HTMLInputElement, value: string) => {
   // React tracks the value itself; set it the way a browser does so onChange fires.
-  const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!;
+  const setter = found(Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set, "value setter");
   await act(async () => {
     setter.call(input, value);
     input.dispatchEvent(new Event("input", { bubbles: true }));
   });
 };
 
-const byPlaceholder = (key: string) => container.querySelector<HTMLInputElement>(`input[placeholder="${key}"]`)!;
+const byPlaceholder = (key: string) =>
+  found(container.querySelector<HTMLInputElement>(`input[placeholder="${key}"]`), `input "${key}"`);
 const buttonByText = (text: string) =>
-  [...document.body.querySelectorAll("button")].find(button => button.textContent?.trim() === text);
+  found(
+    [...document.body.querySelectorAll("button")].find(button => button.textContent?.trim() === text),
+    `button "${text}"`
+  );
 const click = async (element: HTMLElement) => {
   await act(async () => {
     element.click();
@@ -187,9 +200,12 @@ describe("Library Nextcloud settings", () => {
   it("saves every Nextcloud field typed before the save", async () => {
     await setInputValue(byPlaceholder("https://"), "https://cloud.example.com");
     await setInputValue(byPlaceholder("User name"), "mara");
-    await setInputValue(container.querySelector<HTMLInputElement>('input[type="password"]')!, "app-secret");
+    await setInputValue(
+      found(container.querySelector<HTMLInputElement>('input[type="password"]'), "password input"),
+      "app-secret"
+    );
 
-    await click(buttonByText("dialog-save")!);
+    await click(buttonByText("dialog-save"));
 
     expect(mocks.mutate).toHaveBeenCalledTimes(1);
     expect(mocks.mutate.mock.calls[0][0]).toMatchObject({
@@ -201,11 +217,11 @@ describe("Library Nextcloud settings", () => {
 
   it("reports a rejected save and keeps the dialog open", async () => {
     mocks.mutate.mockImplementation((_data, options) =>
-      options.onError(new mocks.ApiError("API error: 400", 400, "The address must start with https://."))
+      options?.onError?.(new mocks.ApiError("API error: 400", 400, "The address must start with https://."))
     );
     await setInputValue(byPlaceholder("https://"), "cloud.example.com");
 
-    await click(buttonByText("dialog-save")!);
+    await click(buttonByText("dialog-save"));
 
     expect(mocks.updateUserError).toHaveBeenCalledWith("The address must start with https://.");
     expect(document.body.querySelector('[data-testid="save-dialog"]')).not.toBeNull();
@@ -214,7 +230,7 @@ describe("Library Nextcloud settings", () => {
 
 describe("Library actions", () => {
   it("regenerates the titles of the existing event albums", async () => {
-    await click(buttonByText("Regenerate")!);
+    await click(buttonByText("Regenerate"));
 
     expect(mocks.post).toHaveBeenCalledWith("/autoalbumtitlegen/", {});
     expect(mocks.generateAutoAlbums).not.toHaveBeenCalled();
@@ -222,7 +238,10 @@ describe("Library actions", () => {
   });
 
   it("opens the scan help from the button itself", async () => {
-    const help = container.querySelector<HTMLButtonElement>('button[aria-label="How scanning works"]')!;
+    const help = found(
+      container.querySelector<HTMLButtonElement>('button[aria-label="How scanning works"]'),
+      "scan help button"
+    );
     expect(help.getAttribute("aria-expanded")).toBe("false");
 
     await click(help);

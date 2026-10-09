@@ -17,9 +17,9 @@ const dayMemory = {
   end_date: "2019-08-24",
   location: "",
   numberOfItems: 3,
-} as Memory;
+} satisfies Omit<Memory, "cover" | "items">;
 
-const monthMemory = { ...dayMemory, type: MemoryType.MONTH_YEARS_AGO, date: "2019-08-03" } as Memory;
+const monthMemory = { ...dayMemory, type: MemoryType.MONTH_YEARS_AGO, date: "2019-08-03" };
 
 describe("memoryMonthLabel", () => {
   test("names a month memory by its month", () => {
@@ -32,7 +32,7 @@ describe("memoryMonthLabel", () => {
 
   test("follows the interface language", () => {
     expect(memoryMonthLabel(monthMemory, "de")).toBe("August 2019");
-    expect(memoryMonthLabel({ ...monthMemory, date: "2019-05-03" } as Memory, "de")).toBe("Mai 2019");
+    expect(memoryMonthLabel({ ...monthMemory, date: "2019-05-03" }, "de")).toBe("Mai 2019");
   });
 });
 
@@ -46,6 +46,6 @@ describe("memoryDayLabel", () => {
   });
 
   test("degrades to no label rather than to Invalid DateTime", () => {
-    expect(memoryDayLabel({ ...dayMemory, date: "not-a-date" } as Memory, "en")).toBeNull();
+    expect(memoryDayLabel({ ...dayMemory, date: "not-a-date" }, "en")).toBeNull();
   });
 });

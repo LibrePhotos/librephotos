@@ -39,6 +39,7 @@ import type {
 } from "@librephotos/api-client";
 import type { AppDatabase } from "@/db/types";
 import { parseServerTimestamp } from "@/db/time";
+import { isArray, parseJson } from "@/lib/guards";
 import {
   pigPhotoToRemoteRow,
   upsertAutoAlbums,
@@ -207,8 +208,8 @@ function loadDoneBuckets(db: AppDatabase): string[] {
     | undefined;
   if (!row?.cursor_id) return [];
   try {
-    const parsed = JSON.parse(row.cursor_id) as unknown;
-    return Array.isArray(parsed) ? (parsed as string[]) : [];
+    const parsed = parseJson(row.cursor_id);
+    return isArray(parsed) ? parsed.filter((v): v is string => typeof v === "string") : [];
   } catch {
     return [];
   }
@@ -231,7 +232,7 @@ export async function seedPeople(db: AppDatabase, source: SeedSource, now: numbe
   const rows = list.map((p) => ({
     id: p.id,
     name: p.name,
-    kind: (p as { kind?: string }).kind ?? null,
+    kind: "kind" in p && typeof p.kind === "string" ? p.kind : null,
     faceCount: p.face_count,
     coverPhotoHash: p.cover_photo ?? null,
     lastModified: now,

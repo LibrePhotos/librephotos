@@ -15,21 +15,34 @@
  *
  * All DOM manipulation occurs in `doLayout`.
  */
+import type { ImageItem, LaidOutTile, PigSettings } from "./types";
 import getMinAspectRatio from "./utils/getMinAspectRatio";
 
-export default function computeLayout({ imageData, settings, wrapperWidth, scaleOfImages }) {
+type ComputeLayoutParams<T extends ImageItem> = {
+  imageData: readonly T[];
+  settings: Pick<PigSettings, "gridGap">;
+  wrapperWidth: number;
+  scaleOfImages: number;
+};
+
+export default function computeLayout<T extends ImageItem>({
+  imageData,
+  settings,
+  wrapperWidth,
+  scaleOfImages,
+}: ComputeLayoutParams<T>): { imageData: LaidOutTile<T>[]; newTotalHeight: number } {
   // Compute the minimum aspect ratio that should be applied to the rows.
   const minAspectRatio = getMinAspectRatio(wrapperWidth, scaleOfImages);
 
   // State
-  let row = []; // The list of images in the current row.
+  let row: T[] = []; // The list of images in the current row.
   let translateX = 0; // The current translateX value that we are at
   let translateY = 0; // The current translateY value that we are at
   let rowAspectRatio = 0; // The aspect ratio of the row we are building
 
   // Loop through all our images, building them up into rows and computing
   // the working rowAspectRatio.
-  const tempImgData = [];
+  const tempImgData: LaidOutTile<T>[] = [];
   imageData.forEach((image, index) => {
     row.push(image);
 
@@ -62,8 +75,8 @@ export default function computeLayout({ imageData, settings, wrapperWidth, scale
         tempImgData.push({
           ...img,
           style: {
-            width: parseFloat(imageWidth.toFixed(3), 10),
-            height: parseFloat(rowHeight.toFixed(3), 10),
+            width: parseFloat(imageWidth.toFixed(3)),
+            height: parseFloat(rowHeight.toFixed(3)),
             translateX,
             translateY,
           },
@@ -77,7 +90,8 @@ export default function computeLayout({ imageData, settings, wrapperWidth, scale
       // Reset our state variables for next row.
       row = [];
       rowAspectRatio = 0;
-      translateY += parseInt(rowHeight, 10) + settings.gridGap;
+      // parseInt reads the height's string form, which truncates it
+      translateY += parseInt(String(rowHeight), 10) + settings.gridGap;
       translateX = 0;
     }
   });

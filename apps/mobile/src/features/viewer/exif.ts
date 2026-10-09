@@ -12,6 +12,7 @@
  *  - The web prints `height x width` for dimensions — transposed. Photos are
  *    described width-first everywhere else in the product, so this does too.
  */
+import { isArray, isRecord } from "@/lib/guards";
 
 /** A number that is present and meaningful (a `0` focal length is neither). */
 function positive(value: number | null | undefined): value is number {
@@ -118,10 +119,9 @@ export type SceneLabels = { attributes: string[]; categories: string[]; tags: st
 
 export function sceneLabels(captionsJson: unknown): SceneLabels {
   const empty: SceneLabels = { attributes: [], categories: [], tags: [] };
-  if (!captionsJson || typeof captionsJson !== "object") return empty;
-  const json = captionsJson as Record<string, unknown>;
-  const places = json.places365 as Record<string, unknown> | undefined;
-  const siglip = json.siglip2 as Record<string, unknown> | undefined;
+  if (!isRecord(captionsJson)) return empty;
+  const places = isRecord(captionsJson.places365) ? captionsJson.places365 : undefined;
+  const siglip = isRecord(captionsJson.siglip2) ? captionsJson.siglip2 : undefined;
   return {
     attributes: stringArray(places?.attributes),
     categories: stringArray(places?.categories),
@@ -130,20 +130,20 @@ export function sceneLabels(captionsJson: unknown): SceneLabels {
 }
 
 function stringArray(value: unknown): string[] {
-  return Array.isArray(value) ? value.filter((v): v is string => typeof v === "string") : [];
+  return isArray(value) ? value.filter((v): v is string => typeof v === "string") : [];
 }
 
 /** The user's own caption, or null. Empty strings are "no caption", not "". */
 export function userCaption(captionsJson: unknown): string | null {
-  if (!captionsJson || typeof captionsJson !== "object") return null;
-  const value = (captionsJson as Record<string, unknown>).user_caption;
+  if (!isRecord(captionsJson)) return null;
+  const value = captionsJson.user_caption;
   return typeof value === "string" && value.trim().length > 0 ? value : null;
 }
 
 /** The model-generated caption suggestion (web: the "AI suggestion" chip). */
 export function suggestedCaption(captionsJson: unknown): string | null {
-  if (!captionsJson || typeof captionsJson !== "object") return null;
-  const value = (captionsJson as Record<string, unknown>).im2txt;
+  if (!isRecord(captionsJson)) return null;
+  const value = captionsJson.im2txt;
   return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
 }
 

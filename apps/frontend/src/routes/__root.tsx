@@ -1,9 +1,8 @@
 import { useComputedColorScheme, useMantineTheme } from "@mantine/core";
-import { createRootRouteWithContext, Outlet } from "@tanstack/react-router";
+import { createRootRoute, Outlet } from "@tanstack/react-router";
 
-interface MyRouterContext {}
-
-export const Route = createRootRouteWithContext<MyRouterContext>()({
+// The router passes no context to its routes (see createRouter in App.tsx).
+export const Route = createRootRoute({
   component: AppShellPublicWithoutHeader,
 });
 

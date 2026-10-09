@@ -12,11 +12,11 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite
 import { DOWNLOAD_POLL_INTERVAL_MS, useDownloadPhotosMutation } from "./useDownloadPhotosMutation";
 
 const stubs = vi.hoisted(() => ({
-  post: vi.fn(),
-  get: vi.fn(),
-  delete: vi.fn(),
-  downloadFailed: vi.fn(),
-  downloadCompleted: vi.fn(),
+  post: vi.fn<(endpoint: string, data?: unknown) => Promise<unknown>>(),
+  get: vi.fn<(endpoint: string) => Promise<unknown>>(),
+  delete: vi.fn<(endpoint: string, data?: unknown) => Promise<unknown>>(),
+  downloadFailed: vi.fn<() => void>(),
+  downloadCompleted: vi.fn<() => void>(),
 }));
 
 vi.mock("../../api", () => ({
@@ -39,10 +39,11 @@ function Harness() {
   return null;
 }
 
-const fetchMock = vi.fn();
+// Stands in for fetch: the hook reads only ok and blob() of the archive response.
+const fetchMock = vi.fn<(input: string, init?: RequestInit) => Promise<Pick<Response, "ok" | "blob">>>();
 
 beforeAll(() => {
-  (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+  globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 });
 
 beforeEach(async () => {
@@ -52,7 +53,7 @@ beforeEach(async () => {
   vi.spyOn(console, "error").mockImplementation(() => {});
   vi.stubGlobal("fetch", fetchMock);
   window.URL.createObjectURL = vi.fn(() => "blob:zip");
-  window.URL.revokeObjectURL = vi.fn();
+  window.URL.revokeObjectURL = vi.fn<(url: string) => void>();
   fetchMock.mockResolvedValue({ ok: true, blob: async () => new Blob(["zip"]) });
   stubs.post.mockResolvedValue({ url: UUID, job_id: "job-1" });
   stubs.delete.mockResolvedValue({});

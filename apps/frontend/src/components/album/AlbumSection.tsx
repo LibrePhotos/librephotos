@@ -63,7 +63,7 @@ function LoadingCard() {
   );
 }
 
-function LoadingAvararGrid({ icon, title }: { icon: React.FC; title: string }) {
+function LoadingAvararGrid({ icon, title }: { icon: React.ReactNode; title: string }) {
   return (
     <div className={classes.section}>
       <div className={classes.header}>
@@ -87,7 +87,7 @@ function LoadingAvararGrid({ icon, title }: { icon: React.FC; title: string }) {
   );
 }
 
-function LoadingOther({ icon, title }: { icon: React.FC; title: string }) {
+function LoadingOther({ icon, title }: { icon: React.ReactNode; title: string }) {
   return (
     <div className={classes.section}>
       <div className={classes.header}>
@@ -161,7 +161,15 @@ function ScrollPreview({ album }: { album: AlbumPreview }) {
   );
 }
 
-function LoadingComponent({ variant, icon, title }: { variant: AlbumSectionVariant; icon: React.FC; title: string }) {
+function LoadingComponent({
+  variant,
+  icon,
+  title,
+}: {
+  variant: AlbumSectionVariant;
+  icon: React.ReactNode;
+  title: string;
+}) {
   switch (variant) {
     case "avatarGrid":
       return <LoadingAvararGrid icon={icon} title={title} />;
