@@ -4,7 +4,11 @@ django-constance==4.3.5
 django-cors-headers==4.9.0
 django-cryptography-5==2.0.3
 django-extensions==4.1
-django-filter==26.2
+# django-filter 26.2+ requires Python >= 3.11; the backend-gpu image runs Python 3.10.
+# Keep the python_version < "3.11" pin on 26.1 (last py3.10 release). Renovate is
+# disabled for it (see renovate.json), so bump both lines by hand.
+django-filter==26.2; python_version >= "3.11"
+django-filter==26.1; python_version < "3.11"
 django-bulk-update==2.2.0
 django-silk==5.5.2
 djangorestframework==3.18.0
