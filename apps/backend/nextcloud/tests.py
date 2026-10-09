@@ -22,6 +22,10 @@ from nextcloud.server_address import (
 )
 
 LOOPBACK = "points to a loopback address"
+# Python 3.14 (and the security releases that carry the same check) refuse a
+# bracketed host followed by a backslash while splitting the URL, before any
+# host is looked at. That is a refusal too, just an earlier one.
+NOT_A_URL = "is not a URL"
 AMBIGUOUS = "is ambiguous"
 
 # Read as a public host by urlparse, dialed on loopback by requests.
@@ -45,6 +49,13 @@ USERINFO_ADDRESSES = (
 )
 
 
+def assertRefusal(test, wording, message, url):
+    """The refusal names ``wording``, or, for a bracketed host, the URL itself."""
+    if "[" in url and NOT_A_URL in message:
+        return
+    test.assertIn(wording, message, url)
+
+
 class ParserDifferentialTest(SimpleTestCase):
     def setUp(self):
         dns = patch_nextcloud_dns({"localhost": ["127.0.0.1", "::1"]})
@@ -54,7 +65,7 @@ class ParserDifferentialTest(SimpleTestCase):
     def assertRefusedAs(self, wording, url):
         with self.assertRaises(UnsafeServerAddress, msg=url) as caught:
             validate_server_address(url)
-        self.assertIn(wording, str(caught.exception), url)
+        assertRefusal(self, wording, str(caught.exception), url)
 
     def test_backslash_before_userinfo_is_judged_by_the_dialed_host(self):
         for url in BACKSLASH_ADDRESSES:
@@ -100,7 +111,23 @@ class RedirectParserDifferentialTest(SimpleTestCase):
             response.headers["location"] = location
             with self.assertRaises(UnsafeServerAddress, msg=location) as caught:
                 hook(response)
-            self.assertIn(LOOPBACK, str(caught.exception), location)
+            assertRefusal(self, LOOPBACK, str(caught.exception), location)
+
+    def test_a_location_the_url_splitter_rejects_is_refused(self):
+        nc = GuardedClient("https://cloud.example.com")
+        nc._session = requests.Session()
+        hook = nc._session.hooks["response"][0]
+        response = requests.Response()
+        response.status_code = 302
+        response.url = "https://cloud.example.com/status.php"
+        response.headers["location"] = "http://[::1]:8163\\@8.8.8.8/"
+        with mock.patch(
+            "nextcloud.server_address.urljoin",
+            side_effect=ValueError("An IPv4 address cannot be in brackets"),
+        ):
+            with self.assertRaises(UnsafeServerAddress) as caught:
+                hook(response)
+        self.assertIn(NOT_A_URL, str(caught.exception))
 
 
 @override_config(NEXTCLOUD_ENABLED=True)

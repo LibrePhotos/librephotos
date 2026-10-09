@@ -172,7 +172,16 @@ def is_safe_server_address(url: str) -> bool:
 def _refuse_unsafe_redirect(response, *args, **kwargs):
     # Every hop gets the full check, including the urlparse/urllib3 comparison.
     if response.is_redirect:
-        validate_server_address(urljoin(response.url, response.headers["location"]))
+        try:
+            target = urljoin(response.url, response.headers["location"])
+        except ValueError as e:
+            # Newer Pythons validate bracketed hosts while splitting, so a
+            # Location such as "http://[::1]:80\@host/" raises here instead
+            # of reaching the check. Refuse it the same way.
+            raise UnsafeServerAddress(
+                "The Nextcloud server address is not a URL."
+            ) from e
+        validate_server_address(target)
     return response
 
 
