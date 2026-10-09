@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { z } from "zod";
-import { MetadataHistoryResponse, Photo, PhotoMetadata, PhotoOcrData, Photoset } from "./types";
+import { MetadataHistoryResponse, Photo, PhotoMetadata, PhotoOcrData, Photoset, PigPhoto } from "./types";
 
 /**
  * Regression coverage for the PhotoMetadata zod schema drifting from the
@@ -263,5 +263,17 @@ describe("MetadataHistoryResponse schema", () => {
 
     expect(() => MetadataHistoryResponse.parse(payload)).not.toThrow();
     expect(MetadataHistoryResponse.parse(payload).results[0].field_name).toBe("title");
+  });
+});
+
+describe("HDR flag on grid photos", () => {
+  const schema = PigPhoto.pick({ image_hash: true, is_hdr: true });
+
+  test("survives parsing, so the tile can badge the video", () => {
+    expect(schema.parse({ image_hash: "abc", is_hdr: true }).is_hdr).toBe(true);
+  });
+
+  test("defaults to false for a backend that predates it", () => {
+    expect(schema.parse({ image_hash: "abc" })).toEqual({ image_hash: "abc", is_hdr: false });
   });
 });

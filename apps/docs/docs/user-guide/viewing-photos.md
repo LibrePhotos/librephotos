@@ -201,7 +201,7 @@ Seeking is unavailable while a video is still being converted for playback, whic
 
 Most phones record video in HDR by default: iPhones in Dolby Vision, most Android phones in HLG. Wherever LibrePhotos converts such a video — the gallery thumbnails, and playback when **Always transcode videos** is on — it maps the picture down to ordinary SDR colours, so it looks like itself instead of washed out and grey.
 
-Whether a video is HDR is worked out once, when the scan adds it, together with its codec and pixel format. Videos that were already in your library before this existed are checked by the **Probe Videos** job, which runs by itself after your next scan and rebuilds the thumbnails of the HDR ones, so any that looked washed out are corrected then. See [Job System](./job-system.md#probe-videos).
+In the photo grid, an HDR video carries an **HDR** badge next to its duration. Whether a video is HDR is worked out once, when the scan adds it, together with its codec and pixel format. Videos that were already in your library before this existed are checked by the **Probe Videos** job, which runs by itself after your next scan and rebuilds the thumbnails of the HDR ones, so any that looked washed out are corrected then. See [Job System](./job-system.md#probe-videos).
 
 :::note
 Not in a release yet: this arrives in the release after 1.2.1.

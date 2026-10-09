@@ -47,6 +47,9 @@ export const PigPhoto = z.object({
   aspectRatio: z.number(),
   type: z.nativeEnum(Media).default(Media.IMAGE),
   video_length: z.string().optional(),
+  // An HDR (PQ or HLG) video, for the badge on its tile. Absent from backends
+  // that predate it, where no video is flagged.
+  is_hdr: z.boolean().optional().default(false),
   rating: z.number().default(0),
   owner: SimpleUser.optional(),
   shared_to: SimpleUser.array().default([]),
