@@ -286,11 +286,29 @@ def auto_create_user_directory(user, claim_existing=False):
     logger.info(f"Assigned data folder {candidate} to user {user.username}")
 
 
+class AvatarField(serializers.ImageField):
+    """The avatar, which only changes through a file upload.
+
+    Clients save settings by sending back the whole profile they read, and
+    that profile carries ``avatar`` as the avatar's URL. A plain
+    ``ImageField`` rejects that string with "The submitted data was not a
+    file", failing the whole save (#2153), so a string here is treated as
+    "unchanged" and the field is left out.
+    """
+
+    def get_value(self, dictionary):
+        value = super().get_value(dictionary)
+        if isinstance(value, str):
+            return serializers.empty
+        return value
+
+
 class UserSerializer(serializers.ModelSerializer):
     public_photo_count = serializers.SerializerMethodField()
     public_photo_samples = serializers.SerializerMethodField()
     photo_count = serializers.SerializerMethodField()
     avatar_url = serializers.SerializerMethodField()
+    avatar = AvatarField(required=False, allow_null=True, max_length=100)
 
     class Meta:
         model = User

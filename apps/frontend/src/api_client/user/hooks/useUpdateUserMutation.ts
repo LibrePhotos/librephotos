@@ -13,7 +13,9 @@ type UpdateUserContext = {
 
 export const useUpdateUserMutation = () =>
   useMutation({
-    mutationFn: async (user: User) => {
+    // PATCH: send only the fields to change. Echoing the whole profile back
+    // also sends read-only values such as the avatar URL (#2153).
+    mutationFn: async (user: Partial<User> & Pick<User, "id">) => {
       const response = await fetchClient.patch(`/user/${user.id}/`, user);
       return parseWithNotification(User, response, "Failed to parse update user response");
     },

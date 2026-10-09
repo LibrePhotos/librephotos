@@ -6,6 +6,10 @@
  *
  * Its throttled updateGroups/updateItems wrappers were also built once with an
  * empty-deps useCallback, so they called the first-render callback forever.
+ *
+ * The photo size / text alignment / header size menu used to save by sending
+ * the whole profile back, avatar URL included, which the backend rejected with
+ * 400 "The submitted data was not a file" (#2153).
  */
 import { MantineProvider } from "@mantine/core";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -18,6 +22,10 @@ import { PhotoListView } from "./PhotoListView";
 const pig = vi.hoisted(() => ({ props: [] as any[] }));
 // TanStack Router's useNavigate returns a stable function.
 const navigate = vi.hoisted(() => () => {});
+const userHooks = vi.hoisted(() => ({
+  self: { id: 1, image_scale: 1 } as Record<string, unknown>,
+  mutate: vi.fn(),
+}));
 
 vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => navigate,
@@ -32,9 +40,9 @@ vi.mock("../../api_client/auth/hooks", () => ({
   useAccessToken: () => ({ data: undefined }),
 }));
 vi.mock("../../api_client/user/hooks", () => ({
-  useCurrentUserSelfDetailsQuery: () => ({ data: { id: 1, image_scale: 1 }, isLoading: false }),
+  useCurrentUserSelfDetailsQuery: () => ({ data: userHooks.self, isLoading: false }),
   UserSelfDetailsQueryKeys: ["user"],
-  useUpdateUserMutation: () => ({ mutate: () => {} }),
+  useUpdateUserMutation: () => ({ mutate: userHooks.mutate }),
 }));
 // A fresh array per call, like the real formatter: that is what made Pig
 // re-lay-out the grid on every parent render.
@@ -122,6 +130,8 @@ afterEach(async () => {
   root = null;
   container = null;
   pig.props = [];
+  userHooks.self = { id: 1, image_scale: 1 };
+  userHooks.mutate.mockReset();
   vi.useRealTimers();
 });
 
@@ -217,5 +227,47 @@ describe("PhotoListView throttled callbacks", () => {
     vi.advanceTimersByTime(600);
 
     expect(updateGroups).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("PhotoListView display preferences", () => {
+  async function openSettingsMenu() {
+    const toggle = document.querySelector<HTMLButtonElement>('button[aria-label="Photo Display Settings"]');
+    expect(toggle).not.toBeNull();
+    await act(async () => toggle!.click());
+    // let the menu's open transition mount the dropdown
+    await act(async () => new Promise(resolve => setTimeout(resolve, 50)));
+  }
+
+  function headerSizeButton(label: string) {
+    return Array.from(document.querySelectorAll<HTMLButtonElement>("button")).find(
+      button => button.textContent === label
+    );
+  }
+
+  it("saves only the changed preferences, never the avatar URL (#2153)", async () => {
+    userHooks.self = {
+      id: 1,
+      username: "admin",
+      image_scale: 1,
+      text_alignment: "right",
+      header_size: "large",
+      avatar: "http://localhost/media/avatars/admin.png",
+      avatar_url: "/media/avatars/admin.png",
+      scan_directory: "/data",
+    };
+    await render({});
+    await openSettingsMenu();
+    vi.useFakeTimers();
+
+    const leftAlign = document.querySelector<HTMLInputElement>('input[type="checkbox"]');
+    expect(leftAlign).not.toBeNull();
+    await act(async () => leftAlign!.click());
+    await act(async () => headerSizeButton("Small")!.click());
+    await act(async () => vi.advanceTimersByTime(600));
+
+    // Both changes arrive in one debounced save, and nothing else is sent.
+    expect(userHooks.mutate).toHaveBeenCalledTimes(1);
+    expect(userHooks.mutate.mock.calls[0][0]).toEqual({ id: 1, text_alignment: "left", header_size: "small" });
   });
 });
