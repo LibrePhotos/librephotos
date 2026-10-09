@@ -49,7 +49,7 @@ export function ModalUserDelete(props: Props) {
         </Trans>
       </Text>
       <br />
-      <Text size="sm" color="red">
+      <Text size="sm" c="red">
         <Trans i18nKey="adminarea.cannotbeundone">This action cannot be undone.</Trans>
       </Text>
       <div style={{ display: "flex", justifyContent: "flex-end" }}>

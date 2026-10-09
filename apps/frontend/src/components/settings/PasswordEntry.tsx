@@ -9,8 +9,9 @@ type Props = Readonly<{
   closing?: boolean;
 }>;
 
-export function PasswordEntry(props: Props): JSX.Element {
-  const { closing, createNew, onValidate } = props;
+export function PasswordEntry(props: Props): React.JSX.Element {
+  // Defaults live here: React 19 ignores defaultProps on function components.
+  const { closing = false, createNew = false, onValidate } = props;
 
   const [editPasswordMode, setEditPasswordMode] = useState(false);
   const { t } = useTranslation();
@@ -104,8 +105,3 @@ export function PasswordEntry(props: Props): JSX.Element {
     </Stack>
   );
 }
-
-PasswordEntry.defaultProps = {
-  createNew: false,
-  closing: false,
-};

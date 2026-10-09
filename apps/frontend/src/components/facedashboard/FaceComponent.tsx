@@ -52,7 +52,15 @@ export function FaceComponent({
   }
 
   return (
-    <Box className={classes.box} data-selected={isSelected} w="100%" h="100%" align="center">
+    <Box
+      className={classes.box}
+      data-selected={isSelected}
+      w="100%"
+      h="100%"
+      // React 19 dropped the legacy `align` attribute from its DOM types; it
+      // still renders, so pass it untyped to keep the cell layout unchanged.
+      {...{ align: "center" }}
+    >
       <Box>
         <FaceTooltip
           tooltipOpened={tooltipOpened}

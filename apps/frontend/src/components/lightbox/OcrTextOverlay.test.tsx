@@ -7,9 +7,8 @@
  * follows the image aspect ratio, so x and y share one scale and the invisible
  * selectable glyphs line up with the printed text underneath.
  */
-import React from "react";
+import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { act } from "react-dom/test-utils";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { PhotoOcrBlock } from "../../api_client/photos/types";
 import { OcrTextOverlay, placeBlock } from "./OcrTextOverlay";

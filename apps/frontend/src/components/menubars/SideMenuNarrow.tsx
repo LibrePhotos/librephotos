@@ -37,7 +37,7 @@ function formatBytes(bytes: number, decimals = 2) {
   return `${parseFloat((bytes / k ** i).toFixed(dm))} ${sizes[i]}`;
 }
 
-export function SideMenuNarrow(): JSX.Element {
+export function SideMenuNarrow(): React.JSX.Element {
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [active, setActive] = useState("/");

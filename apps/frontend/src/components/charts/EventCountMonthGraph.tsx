@@ -31,7 +31,7 @@ export function EventCountMonthGraph() {
 
   const hasData = chartData.length > 0;
 
-  function getTooltipContent(payload: any[]) {
+  function getTooltipContent(payload: readonly any[] | undefined) {
     if (!payload || payload.length === 0) return null;
     const data = payload[0].payload;
     return (

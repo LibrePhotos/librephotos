@@ -4,9 +4,8 @@
  * it is showing. This hook is what keeps the two in step -- before it existed,
  * "play all" opened and then replayed its first photo for ever.
  */
-import React from "react";
+import React, { act } from "react";
 import { createRoot } from "react-dom/client";
-import { act } from "react-dom/test-utils";
 import { describe, expect, it } from "vitest";
 import { useSlideshowSelection } from "./useSlideshowSelection";
 

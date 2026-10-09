@@ -12,7 +12,7 @@ export const Route = createFileRoute("/password-reset/confirm/$uid/$token")({
   component: PasswordResetConfirmPage,
 });
 
-function PasswordResetConfirmPage(): JSX.Element {
+function PasswordResetConfirmPage(): React.JSX.Element {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const colorScheme = useComputedColorScheme("dark");

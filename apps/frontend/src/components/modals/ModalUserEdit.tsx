@@ -26,7 +26,16 @@ type Props = Readonly<{
 }>;
 
 export function ModalUserEdit(props: Props) {
-  const { isOpen, updateAndScan, onRequestClose: closeModal, userList, createNew, firstTimeSetup, userToEdit } = props;
+  // Defaults live here: React 19 ignores defaultProps on function components.
+  const {
+    isOpen,
+    updateAndScan = false,
+    onRequestClose: closeModal,
+    userList,
+    createNew,
+    firstTimeSetup = false,
+    userToEdit,
+  } = props;
   const [userPassword, setUserPassword] = useState("");
   const [newPasswordIsValid, setNewPasswordIsValid] = useState(true);
   const [scanDirectoryPlaceholder, setScanDirectoryPlaceholder] = useState("");
@@ -299,9 +308,3 @@ export function ModalUserEdit(props: Props) {
     </Modal>
   );
 }
-
-ModalUserEdit.defaultProps = {
-  updateAndScan: false,
-  selectedNodeId: "",
-  firstTimeSetup: false,
-};

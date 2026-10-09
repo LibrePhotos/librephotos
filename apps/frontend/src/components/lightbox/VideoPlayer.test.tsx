@@ -14,9 +14,8 @@
  * shown to administrators alone.
  */
 import { MantineProvider } from "@mantine/core";
-import React from "react";
+import React, { act } from "react";
 import { createRoot } from "react-dom/client";
-import { act } from "react-dom/test-utils";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   classifyVideoFailure,

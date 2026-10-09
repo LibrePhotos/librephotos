@@ -341,7 +341,7 @@ export function Library() {
               </Grid.Col>
             </Grid>
 
-            <Collapse in={isOpenNextcloudHelp}>
+            <Collapse expanded={isOpenNextcloudHelp}>
               <Stack gap={0}>
                 <Text>Rescan will reprocess your entire library through the following tasks:</Text>
                 <List>

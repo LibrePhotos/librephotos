@@ -7,9 +7,8 @@
  * because the bug lived in how the two talk to each other. Passing a fixed
  * `selectedImage`, as the page first did, makes the second assertion fail.
  */
-import React from "react";
+import React, { act } from "react";
 import { createRoot } from "react-dom/client";
-import { act } from "react-dom/test-utils";
 import { describe, expect, it, vi } from "vitest";
 import { MemorySlideshow } from "./MemorySlideshow";
 

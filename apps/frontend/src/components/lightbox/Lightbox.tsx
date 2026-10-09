@@ -9,7 +9,7 @@ interface ExtendedLightBoxProps extends LightBoxProps {
 
 // Custom hook to track previous value
 function usePrevious<T>(value: T): T | undefined {
-  const ref = useRef<T>();
+  const ref = useRef<T | undefined>(undefined);
   useEffect(() => {
     ref.current = value;
   });

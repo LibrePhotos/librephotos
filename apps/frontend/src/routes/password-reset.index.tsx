@@ -23,7 +23,7 @@ export const Route = createFileRoute("/password-reset/")({
   component: PasswordResetRequestPage,
 });
 
-function PasswordResetRequestPage(): JSX.Element {
+function PasswordResetRequestPage(): React.JSX.Element {
   const { t } = useTranslation();
   const colorScheme = useComputedColorScheme("dark");
   const { mutate: requestReset, isPending } = useRequestPasswordResetMutation();

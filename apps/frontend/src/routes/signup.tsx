@@ -21,7 +21,7 @@ export const Route = createFileRoute("/signup")({
   component: SignupPage,
 });
 
-function SignupPage(): JSX.Element {
+function SignupPage(): React.JSX.Element {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const colorScheme = useComputedColorScheme("light");
