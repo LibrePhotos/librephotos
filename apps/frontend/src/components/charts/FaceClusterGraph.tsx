@@ -38,6 +38,8 @@ type FacePoint = {
   person_id: number;
 };
 
+type PersonStat = { count: number; color: string; face_url: string; person_id: number };
+
 // Extract photo hash from face_url (format: /media/faces/{image_hash}_{face_index}_{suffix}.jpg)
 function extractPhotoHashFromFaceUrl(faceUrl: string): string | null {
   if (!faceUrl) return null;
@@ -70,6 +72,35 @@ const CLUSTER_COLORS = [
   "#87CEEB", // Sky
 ];
 
+// How far from a point, in pixels, the mouse still hovers or clicks it
+const HIT_RADIUS = 20;
+
+/** The point closest to the mouse within HIT_RADIUS; with a person picked, only theirs count. */
+function findPointNear(
+  points: readonly FacePoint[],
+  mouseX: number,
+  mouseY: number,
+  selectedPerson: string | null,
+  toCanvas: (point: FacePoint) => { cx: number; cy: number }
+): FacePoint | null {
+  let closestPoint: FacePoint | null = null;
+  let minDist = HIT_RADIUS;
+
+  points.forEach(point => {
+    if (selectedPerson && point.name !== selectedPerson) return;
+
+    const { cx, cy } = toCanvas(point);
+    const dist = Math.sqrt((mouseX - cx) ** 2 + (mouseY - cy) ** 2);
+
+    if (dist < minDist) {
+      minDist = dist;
+      closestPoint = point;
+    }
+  });
+
+  return closestPoint;
+}
+
 function getColorForPerson(personName: string, index: number): string {
   if (personName === "unknown" || !personName) {
     return "rgba(100, 100, 100, 0.4)";
@@ -98,19 +129,23 @@ export function FaceClusterGraph({ height }: Props) {
   // Process data and assign colors
   const { points, personStats, bounds } = useMemo(() => {
     if (!facesVis?.data || facesVis.data.length === 0) {
-      return { points: [], personStats: new Map(), bounds: { minX: 0, maxX: 1, minY: 0, maxY: 1 } };
+      return {
+        points: [],
+        personStats: new Map<string, PersonStat>(),
+        bounds: { minX: 0, maxX: 1, minY: 0, maxY: 1 },
+      };
     }
 
     const allPoints: FacePoint[] = [];
-    const stats = new Map<string, { count: number; color: string; face_url: string; person_id: number }>();
+    const stats = new Map<string, PersonStat>();
 
     // Get unique person names (excluding unknown first for color assignment)
-    const uniqueNames = [...new Set(facesVis.data.map((el: any) => el.person_name))];
+    const uniqueNames = [...new Set(facesVis.data.map(el => el.person_name))];
     const knownNames = uniqueNames.filter(n => n !== "unknown");
     const nameColorMap = new Map<string, string>();
 
     knownNames.forEach((name, index) => {
-      nameColorMap.set(name as string, getColorForPerson(name as string, index));
+      nameColorMap.set(name, getColorForPerson(name, index));
     });
     nameColorMap.set("unknown", getColorForPerson("unknown", 0));
 
@@ -119,7 +154,7 @@ export function FaceClusterGraph({ height }: Props) {
     let minY = Infinity;
     let maxY = -Infinity;
 
-    facesVis.data.forEach((el: any) => {
+    facesVis.data.forEach(el => {
       const color = nameColorMap.get(el.person_name) || "rgba(100, 100, 100, 0.4)";
       const photoHash = extractPhotoHashFromFaceUrl(el.face_url);
       const point: FacePoint = {
@@ -141,16 +176,17 @@ export function FaceClusterGraph({ height }: Props) {
       maxY = Math.max(maxY, el.value.y);
 
       // Update stats
-      if (!stats.has(el.person_name)) {
+      const stat = stats.get(el.person_name);
+      if (stat) {
+        stat.count += 1;
+      } else {
         stats.set(el.person_name, {
-          count: 0,
+          count: 1,
           color,
           face_url: el.face_url,
           person_id: el.person_id,
         });
       }
-      const stat = stats.get(el.person_name)!;
-      stat.count += 1;
     });
 
     // Add padding to bounds
@@ -297,23 +333,11 @@ export function FaceClusterGraph({ height }: Props) {
 
       setMousePos({ x: e.clientX, y: e.clientY });
 
-      // Find closest point
-      let closestPoint: FacePoint | null = null;
-      let minDist = 20; // Detection radius in pixels
-
-      points.forEach(point => {
-        if (selectedPerson && point.name !== selectedPerson) return;
-
-        const { cx, cy } = toCanvasCoords(point.x, point.y, canvasWidth, canvasHeight);
-        const dist = Math.sqrt((mouseX - cx) ** 2 + (mouseY - cy) ** 2);
-
-        if (dist < minDist) {
-          minDist = dist;
-          closestPoint = point;
-        }
-      });
-
-      setHoveredPoint(closestPoint);
+      setHoveredPoint(
+        findPointNear(points, mouseX, mouseY, selectedPerson, point =>
+          toCanvasCoords(point.x, point.y, canvasWidth, canvasHeight)
+        )
+      );
     },
     [points, selectedPerson, toCanvasCoords, canvasWidth, canvasHeight]
   );
@@ -332,21 +356,9 @@ export function FaceClusterGraph({ height }: Props) {
       const mouseX = e.clientX - rect.left;
       const mouseY = e.clientY - rect.top;
 
-      // Find clicked point
-      let clickedPoint: FacePoint | null = null;
-      let minDist = 20;
-
-      points.forEach(point => {
-        if (selectedPerson && point.name !== selectedPerson) return;
-
-        const { cx, cy } = toCanvasCoords(point.x, point.y, canvasWidth, canvasHeight);
-        const dist = Math.sqrt((mouseX - cx) ** 2 + (mouseY - cy) ** 2);
-
-        if (dist < minDist) {
-          minDist = dist;
-          clickedPoint = point;
-        }
-      });
+      const clickedPoint = findPointNear(points, mouseX, mouseY, selectedPerson, point =>
+        toCanvasCoords(point.x, point.y, canvasWidth, canvasHeight)
+      );
 
       if (clickedPoint && clickedPoint.photo) {
         setLightboxImageId(clickedPoint.photo);
@@ -408,12 +420,15 @@ export function FaceClusterGraph({ height }: Props) {
           </div>
 
           {/* Legend */}
-          <ScrollArea type="hover" offsetScrollbars>
-            <Group gap="xs" wrap="nowrap">
+          {/* Natural width, so a long row scrolls instead of squeezing the chips to "A…";
+              the scrollbar always shows, as touch screens have no hover */}
+          <ScrollArea type="auto" offsetScrollbars>
+            <Group gap="xs" wrap="nowrap" w="max-content">
               <Badge
                 variant={selectedPerson === null ? "filled" : "light"}
                 color="gray"
                 size="lg"
+                tt="none"
                 style={{ cursor: "pointer" }}
                 onClick={() => setSelectedPerson(null)}
                 leftSection={<IconUser size={14} />}
@@ -442,6 +457,8 @@ export function FaceClusterGraph({ height }: Props) {
                       borderColor: stat.color,
                     }}
                     size="lg"
+                    // Names keep their own case
+                    tt="none"
                     onClick={() => setSelectedPerson(selectedPerson === name ? null : name)}
                   >
                     {name}
@@ -453,11 +470,12 @@ export function FaceClusterGraph({ height }: Props) {
                   variant={selectedPerson === "unknown" ? "filled" : "light"}
                   color="gray"
                   size="lg"
+                  tt="none"
                   style={{ cursor: "pointer" }}
                   onClick={() => setSelectedPerson(selectedPerson === "unknown" ? null : "unknown")}
                   leftSection={<IconUserQuestion size={14} />}
                 >
-                  {t("unknown")} ({unknownCount})
+                  {t("settings.unknown")} ({unknownCount})
                 </Badge>
               )}
             </Group>
@@ -516,7 +534,7 @@ export function FaceClusterGraph({ height }: Props) {
                   />
                   <Stack gap={4}>
                     <Text fw={600} size="sm" style={{ color: hoveredPoint.color }}>
-                      {hoveredPoint.name === "unknown" ? t("unknown") : hoveredPoint.name}
+                      {hoveredPoint.name === "unknown" ? t("settings.unknown") : hoveredPoint.name}
                     </Text>
                     <Text size="xs" c="dimmed">
                       {t("clicktoview")}

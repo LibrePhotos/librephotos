@@ -207,9 +207,9 @@ A skipped service is named once in the backend log at startup, so `docker logs b
 
 ### Cached video conversions
 
-A user who turns on **Always transcode videos** (Settings → Experimental) has videos in containers or codecs their browser cannot decode converted as they play. A conversion happening live has no known length, so it carries no `Content-Length` and no `Accept-Ranges`, and it cannot be sought at all — no duration, no scrub bar, no skipping. The same conversion is therefore written to a file once, and every later play of that video is served from the file instead, as an ordinary seekable mp4. The first play still streams live and starts exactly as quickly as it does today: the copy is written **after** that stream ends, never alongside it, because the live conversion has to keep ahead of playback and would lose a share of the machine to a second ffmpeg. The copy is also niced and limited to half the cores, so playback, thumbnails and a running scan all outrank it.
+A video is converted as it plays when the viewer's browser says it cannot play it, or when it turns out not to decode (see [Videos your browser cannot play](../user-guide/viewing-photos.md#videos-your-browser-cannot-play)). A user who turns on **Always transcode videos** (Settings → Experimental) has every video converted. A conversion happening live has no known length, so it carries no `Content-Length` and no `Accept-Ranges`, and it cannot be sought at all — no duration, no scrub bar, no skipping. The same conversion is therefore written to a file once, and every later play of that video is served from the file instead, as an ordinary seekable mp4. The first play still streams live and starts exactly as quickly as it does today: the copy is written **after** that stream ends, never alongside it, because the live conversion has to keep ahead of playback and would lose a share of the machine to a second ffmpeg. The copy is also niced and limited to half the cores, so playback, thumbnails and a running scan all outrank it.
 
-The cache costs somewhere between 10 and 20 MB per minute of video — how much movement there is in the footage decides where in that range it lands — and only for the videos somebody actually opens with that setting on. If nobody turns it on, nothing is ever written.
+The cache costs somewhere between 10 and 20 MB per minute of video — how much movement there is in the footage decides where in that range it lands — and only for the converted videos somebody actually opens. No setting has to be on for this: since 1.3.0, a library of HEVC phone videos watched in Firefox fills the cache on its own. A library whose videos all play in your users' browsers, with nobody using **Always transcode videos**, writes nothing.
 
 | Variable | `.env` key | Default | What it does |
 | --- | --- | --- | --- |
@@ -279,7 +279,7 @@ The backend writes its log files into the directory named by `BASE_LOGS`. `ownph
 
 `LOG_LEVEL=DEBUG` adds per-photo and per-request detail. That is what you want while reproducing a bug, but on a large library the file grows quickly - put it back afterwards. If you already know which part is misbehaving, `LOG_LEVELS=api.directory_watcher=DEBUG` (the scanner, in this example) keeps the rest of the log at its usual volume.
 
-Keep `LOG_TO_CONSOLE` on if the log directory does not survive a restart. On Kubernetes `/logs` is often an `emptyDir`, and then standard output is the only copy of the log that outlives the pod.
+Keep `LOG_TO_CONSOLE` on if the log directory does not survive a restart. On Kubernetes `/logs` is often an `emptyDir`, and then standard output, kept by a cluster log collector, is the only copy of the log that can outlive the pod.
 
 None of these is in the bundled `.env` file; pass them to the backend container directly:
 
@@ -325,7 +325,7 @@ Releases before 1.2.0 treated the whole value as a single origin, so a comma-sep
 
 ### Demo mode
 
-`DEMO_SITE=true` runs LibrePhotos as a public demo: password changes submitted through the API are ignored. It is off unless set to `true`, `1`, `yes` or `on`. (Before this was fixed on `dev`, any value other than exactly `False` - including `false`, `0` or an empty value - switched demo mode on.)
+`DEMO_SITE=true` runs LibrePhotos as a public demo: password changes submitted through the API are ignored. It is off unless set to `true`, `1`, `yes` or `on`. (Before 1.2.0, any value other than exactly `False` - including `false`, `0` or an empty value - switched demo mode on.)
 
 ### Hosting under a sub-path (subdirectory)
 

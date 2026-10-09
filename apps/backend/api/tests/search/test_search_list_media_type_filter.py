@@ -28,8 +28,9 @@ class SearchMediaTypeFilterTest(TestCase):
         self.user = create_test_user()
         self.client = APIClient()
         self.client.force_authenticate(user=self.user)
-        # exif_timestamp is required: get_photos_ordered_by_date drops photos
-        # without one, so the date-grouped response would otherwise be empty.
+        # Dated, so both land in one day group; undated media are grouped
+        # separately at the end (see
+        # test_undated_media_are_grouped_last_under_the_legacy_date).
         timestamp = timezone.now()
         self.photo = create_test_photo(
             owner=self.user, video=False, exif_timestamp=timestamp
@@ -68,3 +69,15 @@ class SearchMediaTypeFilterTest(TestCase):
         hashes = _hashes_in_grouped_response(response)
         self.assertNotIn(self.video.image_hash, hashes)
         self.assertNotIn(self.photo.image_hash, hashes)
+
+    def test_undated_media_are_grouped_last_under_the_legacy_date(self):
+        # Not null, as album details send: installed mobile apps parse this
+        # group's date as a string and would fail the whole search.
+        undated = create_test_photo(owner=self.user, exif_timestamp=None)
+        response = self.client.get(SEARCH_URL)
+        self.assertEqual(response.status_code, 200)
+        last = response.data["results"][-1]
+        self.assertEqual(last["date"], "No timestamp")
+        self.assertEqual(
+            [item["image_hash"] for item in last["items"]], [undated.image_hash]
+        )

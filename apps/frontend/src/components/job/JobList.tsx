@@ -1,4 +1,4 @@
-import { Alert, Card, Flex, Loader, Pagination, Table, Title } from "@mantine/core";
+import { Alert, Card, Center, Flex, Group, Loader, Pagination, Table, Text, Title } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { IconAlertCircle as AlertCircle } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
@@ -46,87 +46,112 @@ export function JobList({ variant = "admin" }: IJobList) {
 
   return (
     <Card shadow="md">
-      <Title order={3} mb={20}>
-        {mine ? t("jobs.myjobs") : t("joblist.workerlogs")} {isLoading ? <Loader size="xs" /> : null}
-      </Title>
-      <Alert icon={<AlertCircle />} title={t("joblist.removeentries")} mb={20}>
+      {/* On /jobs the page heading already says "My Jobs"; a card title repeating it read as a second page title. */}
+      {!mine && (
+        <Title order={4} mb={16}>
+          {t("joblist.workerlogs")} {isLoading ? <Loader size="xs" /> : null}
+        </Title>
+      )}
+      <Alert icon={<AlertCircle />} title={t("joblist.removeentries")} mb={16}>
         {t("joblist.removeexplanation")}
       </Alert>
-      <Table striped highlightOnHover verticalSpacing="xs">
-        <Table.Thead>
-          <Table.Tr>
-            <Table.Th> {t("joblist.status")}</Table.Th>
-            <Table.Th> {t("joblist.jobtype")}</Table.Th>
-            <Table.Th> {t("joblist.progress")}</Table.Th>
-            {matches && (
-              <>
-                <Table.Th> {t("joblist.queued")}</Table.Th>
-                <Table.Th> {t("joblist.started")}</Table.Th>
-                <Table.Th> {t("joblist.duration")}</Table.Th>
-                {!mine && <Table.Th> {t("joblist.startedby")}</Table.Th>}
-              </>
-            )}
-            <Table.Th> {t("joblist.cancel")}</Table.Th>
-            <Table.Th> {t("joblist.delete")}</Table.Th>
-          </Table.Tr>
-        </Table.Thead>
-        <Table.Tbody>
-          {jobs?.results.map(job => (
-            <Table.Tr
-              key={job.job_id}
-              style={{ cursor: "pointer" }}
-              onClick={e => {
-                // Don't navigate if clicking on the delete button or its container
-                const target = e.target as HTMLElement;
-                if (target.closest("button") || target.closest('[role="button"]')) {
-                  return;
-                }
-                navigate({ to: `${mine ? "/jobs" : "/admin/job"}/${job.id}` });
-              }}
-            >
-              <Table.Td>
-                <JobIndicator job={Object.create(job)} />
-              </Table.Td>
-              <Table.Td>{t(job.job_type_str)}</Table.Td>
-              <Table.Td>
-                <JobProgress
-                  target={job.progress_target}
-                  current={job.progress_current}
-                  failed={job.failed}
-                  error={job.error}
-                  finished={job.finished}
-                  result={job.result}
-                  progressStep={job.progress_step}
-                />
-              </Table.Td>
+      {/* Scrolls sideways on a phone instead of clipping the action buttons at the card edge */}
+      <Table.ScrollContainer minWidth={280} type="native">
+        {/* Tighter cells on a phone so the four columns fit without scrolling */}
+        <Table striped highlightOnHover verticalSpacing="xs" horizontalSpacing={matches ? "xs" : 6}>
+          <Table.Thead>
+            <Table.Tr>
+              <Table.Th> {t("joblist.status")}</Table.Th>
+              <Table.Th> {t("joblist.jobtype")}</Table.Th>
+              <Table.Th> {t("joblist.progress")}</Table.Th>
               {matches && (
                 <>
-                  <Table.Td>{DateTime.fromISO(job.queued_at).setLocale(i18nResolvedLanguage()).toRelative()}</Table.Td>
-                  <Table.Td>
-                    {job.started_at
-                      ? DateTime.fromISO(job.started_at!).setLocale(i18nResolvedLanguage()).toRelative()
-                      : ""}
-                  </Table.Td>
+                  <Table.Th> {t("joblist.queued")}</Table.Th>
+                  <Table.Th> {t("joblist.started")}</Table.Th>
+                  <Table.Th> {t("joblist.duration")}</Table.Th>
+                  {!mine && <Table.Th> {t("joblist.startedby")}</Table.Th>}
                 </>
               )}
-
-              <JobDuration
-                matches={!!matches}
-                finished={job.finished}
-                finishedAt={job.finished_at}
-                startedAt={job.started_at}
-              />
-              {matches && !mine && <Table.Td>{job.started_by.username}</Table.Td>}
-              <Table.Td onClick={e => e.stopPropagation()}>
-                <CancelJobButton job={job} />
-              </Table.Td>
-              <Table.Td onClick={e => e.stopPropagation()}>
-                <DeleteJobButton job={job} />
-              </Table.Td>
+              {/* One column for Cancel and Remove: Cancel only exists while a job runs, so its own column was empty on almost every row */}
+              <Table.Th> {t("joblist.actions")}</Table.Th>
             </Table.Tr>
-          ))}
-        </Table.Tbody>
-      </Table>
+          </Table.Thead>
+          <Table.Tbody>
+            {jobs?.results.map(job => (
+              <Table.Tr
+                key={job.job_id}
+                style={{ cursor: "pointer" }}
+                onClick={e => {
+                  // Don't navigate if clicking on the delete button or its container
+                  const { target } = e;
+                  if (target instanceof Element && (target.closest("button") || target.closest('[role="button"]'))) {
+                    return;
+                  }
+                  navigate({ to: `${mine ? "/jobs" : "/admin/job"}/${job.id}` });
+                }}
+              >
+                <Table.Td>
+                  <JobIndicator job={job} />
+                </Table.Td>
+                <Table.Td>{t(job.job_type_str)}</Table.Td>
+                <Table.Td>
+                  <JobProgress
+                    target={job.progress_target}
+                    current={job.progress_current}
+                    failed={job.failed}
+                    cancelled={job.cancelled}
+                    error={job.error}
+                    finished={job.finished}
+                    result={job.result}
+                    progressStep={job.progress_step}
+                  />
+                </Table.Td>
+                {matches && (
+                  <>
+                    <Table.Td>
+                      {DateTime.fromISO(job.queued_at).setLocale(i18nResolvedLanguage()).toRelative()}
+                    </Table.Td>
+                    <Table.Td>
+                      {job.started_at
+                        ? DateTime.fromISO(job.started_at).setLocale(i18nResolvedLanguage()).toRelative()
+                        : ""}
+                    </Table.Td>
+                  </>
+                )}
+
+                <JobDuration
+                  matches={!!matches}
+                  finished={job.finished}
+                  finishedAt={job.finished_at}
+                  startedAt={job.started_at}
+                />
+                {matches && !mine && <Table.Td>{job.started_by.username}</Table.Td>}
+                <Table.Td onClick={e => e.stopPropagation()}>
+                  <Group gap="xs" wrap="nowrap">
+                    <CancelJobButton job={job} />
+                    <DeleteJobButton job={job} />
+                  </Group>
+                </Table.Td>
+              </Table.Tr>
+            ))}
+            {(isLoading || jobs?.results.length === 0) && (
+              <Table.Tr>
+                <Table.Td colSpan={matches ? (mine ? 7 : 8) : 4}>
+                  <Center py="md">
+                    {isLoading ? (
+                      <Loader size="sm" />
+                    ) : (
+                      <Text size="sm" c="dimmed">
+                        {t("joblist.empty")}
+                      </Text>
+                    )}
+                  </Center>
+                </Table.Td>
+              </Table.Tr>
+            )}
+          </Table.Tbody>
+        </Table>
+      </Table.ScrollContainer>
       <Flex justify="center" mt={20}>
         <Pagination
           total={Math.ceil(+jobCount.toFixed(1) / pageSize)}

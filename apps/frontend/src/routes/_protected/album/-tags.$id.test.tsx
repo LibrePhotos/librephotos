@@ -15,10 +15,14 @@ import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, describe, expect, it, vi } from "vitest";
+import type { PhotoListView } from "../../../components/photolist/PhotoListView";
 import i18n from "../../../i18n";
 
+type PhotoListProps = Pick<React.ComponentProps<typeof PhotoListView>, "emptyStateConfig" | "photoset">;
+
 const stubs = vi.hoisted(() => ({
-  tagAlbum: { id: 7, name: "beach", grouped_photos: [] as unknown[] },
+  tagAlbum: { id: 7, name: "beach", grouped_photos: [] as unknown[] } as unknown,
+  isError: false,
   component: undefined as React.ComponentType | undefined,
 }));
 
@@ -38,11 +42,11 @@ vi.mock("@tanstack/react-router", () => ({
   Link: ({ children }: { children?: React.ReactNode }) => <span>{children}</span>,
 }));
 vi.mock("../../../api_client/tags/hooks", () => ({
-  useFetchTagAlbumQuery: () => ({ data: stubs.tagAlbum, isLoading: false }),
+  useFetchTagAlbumQuery: () => ({ data: stubs.tagAlbum, isLoading: false, isError: stubs.isError }),
 }));
 // PhotoListView drags in the whole grid; the empty branch is all that matters.
 vi.mock("../../../components/photolist/PhotoListView", () => ({
-  PhotoListView: ({ emptyStateConfig, photoset }: any) => (
+  PhotoListView: ({ emptyStateConfig, photoset }: PhotoListProps) => (
     <div data-testid="photolist">
       {photoset.length === 0 && emptyStateConfig ? (
         <div data-testid="empty">
@@ -62,8 +66,8 @@ vi.mock("../../../components/photolist/mediaTypeFilter", () => ({
 }));
 
 beforeAll(async () => {
-  // @ts-ignore - jsdom has no matchMedia, MantineProvider needs it
-  window.matchMedia = (query: string) => ({
+  // jsdom has no matchMedia, MantineProvider needs it
+  window.matchMedia = (query: string): MediaQueryList => ({
     matches: false,
     media: query,
     onchange: null,
@@ -73,14 +77,14 @@ beforeAll(async () => {
     removeEventListener: () => {},
     dispatchEvent: () => false,
   });
-  // @ts-ignore
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   await i18n.changeLanguage("en");
 });
 
 async function renderPage() {
   await import("./tags.$id");
-  const AlbumTagGallery = stubs.component!;
+  const AlbumTagGallery = stubs.component;
+  if (!AlbumTagGallery) throw new Error("tags.$id handed no component to createFileRoute");
   const container = document.createElement("div");
   document.body.appendChild(container);
   const root = createRoot(container);
@@ -119,6 +123,29 @@ describe("a tag album with no photos", () => {
     const action = page.container.querySelector('[data-testid="empty"] a');
     expect(action?.textContent).toBe("Back to all tags");
     expect(action?.getAttribute("href")).toBe("/album/tags");
+    await page.unmount();
+  });
+});
+
+describe("a tag that no longer exists", () => {
+  it("says it is gone rather than empty", async () => {
+    stubs.tagAlbum = undefined;
+    stubs.isError = true;
+    const page = await renderPage();
+
+    const empty = page.container.querySelector('[data-testid="empty"]');
+    expect(empty?.querySelector("h1")?.textContent).toBe("Tag not found");
+    expect(empty?.querySelector("a")?.getAttribute("href")).toBe("/album/tags");
+    await page.unmount();
+  });
+
+  // TanStack sets isError on a failed background refetch too, keeping the cached tag
+  it("is not claimed when only a refetch failed", async () => {
+    stubs.tagAlbum = { id: 7, name: "beach", grouped_photos: [] };
+    stubs.isError = true;
+    const page = await renderPage();
+
+    expect(page.container.querySelector('[data-testid="empty"] h1')?.textContent).toBe("This tag has no photos");
     await page.unmount();
   });
 });

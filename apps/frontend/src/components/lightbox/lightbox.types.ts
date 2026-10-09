@@ -18,17 +18,35 @@ export type ContentViewerProps = {
   onCloseRequest: () => void;
   onMovePrevRequest: () => void;
   onMoveNextRequest: () => void;
-  onImageLoad: () => void;
   enableZoom: boolean;
   isPublic: boolean;
   publicAlbumSlug?: string;
   onPhotoSelect?: (photoId: string) => void;
   /** Start playing as a slideshow instead of waiting for the "s" hotkey. */
   startSlideshow?: boolean;
+  /** The grid's entry for the photo shown. */
+  gridItem?: LightboxItem;
+};
+
+/**
+ * One entry of the list the lightbox steps through. `type` and `isTemp` come
+ * from the grid's PigPhoto: a public page fetches no photo details, so the
+ * grid is the only place that knows an item is a video, and `isTemp` marks a
+ * placeholder for a page of the grid that has not loaded yet. `date` and
+ * `location` are what the grid already shows a viewer who is not the owner,
+ * for the details panel that has nothing else to show them.
+ */
+export type LightboxItem = {
+  id: string;
+  image_hash: string;
+  type?: string;
+  isTemp?: boolean;
+  date?: string | null;
+  location?: string;
 };
 
 export type LightBoxProps = {
-  idx2hash: Array<{ id: string; image_hash: string }>;
+  idx2hash: LightboxItem[];
   isPublic: boolean;
   publicAlbumSlug?: string;
   onCloseRequest: () => void;
@@ -43,26 +61,9 @@ export type ImageDimensions = {
   height: number;
 };
 
-export type MediaDisplayProps = {
-  id: string | undefined;
-  image_hash: string | undefined;
-  isMainContent?: boolean;
-  type: string;
-  bind?: any;
-  imageDimensions: ImageDimensions;
-  setImageDimensions: (dimensions: ImageDimensions) => void;
-  faceLocation: FaceLocationType;
-  toggleZoom?: () => void;
-  scale?: number;
-  offset?: { x: number; y: number };
-  handleDragStart: (event: React.DragEvent) => void;
-  fullHeight?: boolean;
-  playing?: boolean;
-  onEnded?: () => void;
-};
-
 export type LightboxControlsProps = {
-  photoDetail: Photo | undefined;
+  /** null when the details query had no hash to fetch. */
+  photoDetail: Photo | null | undefined;
   isPhotoDetailsLoading: boolean;
   lightboxSidebarShow: boolean;
   setLightBoxSidebarShow: React.Dispatch<React.SetStateAction<boolean>>;
@@ -89,26 +90,8 @@ export type LightboxControlsProps = {
   /** Copy the photo to the clipboard; absent when the page has no image clipboard or the item is a video. */
   onCopyToClipboard?: () => void;
   isCopyingToClipboard?: boolean;
-};
-
-export type ThumbnailNavigationProps = {
-  prevSrc: string | null;
-  prevSrcHash: string | null;
-  mainSrc: string;
-  mainSrcHash: string;
-  nextSrc: string | null;
-  nextSrcHash: string | null;
-  onMovePrevRequest: () => void;
-  onMoveNextRequest: () => void;
-  containerWidth?: string;
-};
-
-export type SidebarProps = {
-  id: string;
-  closeSidepanel: () => void;
-  isPublic: boolean;
-  setFaceLocation: (location: FaceLocationType) => void;
-  onPhotoSelect?: (photoId: string) => void;
+  /** Called once the photo was moved to (or restored from) the trash. */
+  onAfterTrashToggle?: () => void;
 };
 
 export type FaceOverlayProps = {

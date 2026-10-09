@@ -1,6 +1,20 @@
-import { Box, Button, Center, Group, Loader, Menu, Stack, Text, ThemeIcon, Title } from "@mantine/core";
+import {
+  Box,
+  Button,
+  Center,
+  Group,
+  Loader,
+  Menu,
+  Stack,
+  Text,
+  ThemeIcon,
+  Title,
+  UnstyledButton,
+  useMantineTheme,
+} from "@mantine/core";
 import {
   IconCalendar as Calendar,
+  IconCheck as Check,
   IconChevronDown as ChevronDown,
   IconClock as Clock,
   IconEyeOff as EyeOff,
@@ -18,6 +32,7 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAccessToken } from "../../api_client/auth/hooks";
 import { useFetchUserListQuery, useFetchUserSelfDetailsQuery } from "../../api_client/user/hooks";
+import type { User } from "../../api_client/user/types";
 import { i18nResolvedLanguage } from "../../i18n";
 import { ModalUserEdit } from "../modals/ModalUserEdit";
 
@@ -28,15 +43,18 @@ type Props = Readonly<{
   icon: ReactElement;
   title: string;
   additionalSubHeader: React.ReactNode;
-  dayHeaderPrefix: string;
-  date: string;
+  dayHeaderPrefix?: string;
+  date?: string;
   hasEmptyState?: boolean;
   isPublic?: boolean;
+  // Count the items as videos rather than photos (the Videos view and the
+  // videos-only media filter).
+  countsVideos?: boolean;
 }>;
 
 export function DefaultHeader(props: Props) {
   const [modalOpen, setModalOpen] = useState(false);
-  const [userToEdit, setUserToEdit] = useState({});
+  const [userToEdit, setUserToEdit] = useState<Partial<User>>({});
   const navigate = useNavigate();
   const router = useRouter();
   const { data: auth } = useAccessToken();
@@ -52,6 +70,7 @@ export function DefaultHeader(props: Props) {
     dayHeaderPrefix,
     hasEmptyState,
     isPublic,
+    countsVideos,
   } = props;
 
   // Don't fetch user data on public pages
@@ -60,10 +79,10 @@ export function DefaultHeader(props: Props) {
   const { location } = router.state;
 
   const { t } = useTranslation();
+  const theme = useMantineTheme();
 
   // return true if it is a view with a dropdown
   const isMenuView = () => {
-    // @ts-ignore
     const path = location.pathname;
     return (
       path === "/" ||
@@ -80,13 +99,18 @@ export function DefaultHeader(props: Props) {
 
   const isScanView = () => location.pathname === "/";
 
+  // The view switcher marks the view the user is on.
+  const currentView = (to: string) => (location.pathname === to ? <Check size={14} /> : null);
+
   function getPhotoCounter() {
     if (loading) {
       return (
-        <Text ta="left" c="dimmed">
-          {t("defaultheader.loading")}
-          <Loader size={20} />
-        </Text>
+        <Group gap={6} wrap="nowrap">
+          <Text ta="left" c="dimmed">
+            {t("defaultheader.loading")}
+          </Text>
+          <Loader size="xs" />
+        </Group>
       );
     }
 
@@ -105,8 +129,10 @@ export function DefaultHeader(props: Props) {
     return (
       <div>
         <Text ta="left" c="dimmed">
-          {numPhotosetItems !== numPhotos ? `${numPhotosetItems} ${t("defaultheader.days")}, ` : ""}
-          {numPhotos} {t("defaultheader.photos")}
+          {numPhotosetItems !== numPhotos
+            ? `${numPhotosetItems} ${t("defaultheader.days", { count: numPhotosetItems })}, `
+            : ""}
+          {numPhotos} {t(countsVideos ? "defaultheader.videos" : "defaultheader.photos", { count: numPhotos })}
         </Text>
         {additionalSubHeader}
       </div>
@@ -165,85 +191,123 @@ export function DefaultHeader(props: Props) {
   return (
     <div>
       <Group justify="space-between">
-        <Group justify="flex-start">
-          {icon}
-          <div>
+        {/* nowrap + minWidth 0: a long title wraps next to the icon instead of
+            dropping the whole text column below it. A tall subheader (folder
+            chips, people) keeps the icon at the top; otherwise it stays centred
+            on the title. */}
+        <Group
+          justify="flex-start"
+          align={additionalSubHeader ? "flex-start" : "center"}
+          wrap="nowrap"
+          style={{ flex: "1 1 auto", minWidth: 0 }}
+        >
+          {/* The text column takes the free space (flex: 1) and the icon never
+              shrinks, or a long title squeezed the icon to a sliver. */}
+          <Box style={{ flexShrink: 0, display: "flex" }}>{icon}</Box>
+          <div style={{ minWidth: 0, flex: 1 }}>
             {auth?.access && isMenuView() ? (
-              <Menu>
-                <Menu.Target>
-                  <Title style={{ minWidth: 200 }} ta="left" order={2}>
-                    {title} <ChevronDown size={20} />
-                  </Title>
-                </Menu.Target>
-
-                <Menu.Dropdown>
-                  <Menu.Item leftSection={<Calendar color="green" size={14} />} onClick={() => navigate({ to: "/" })}>
-                    {t("sidemenu.withtimestamp")}
-                  </Menu.Item>
-
-                  <Menu.Item
-                    leftSection={<Calendar color="red" size={14} />}
-                    onClick={() => navigate({ to: "/notimestamp" })}
-                  >
-                    {t("sidemenu.withouttimestamp")}
-                  </Menu.Item>
-
-                  <Menu.Divider />
-
-                  <Menu.Item leftSection={<Clock size={14} />} onClick={() => navigate({ to: "/recent" })}>
-                    {t("sidemenu.recentlyadded")}
-                  </Menu.Item>
-
-                  <Menu.Divider />
-
-                  <Menu.Item leftSection={<EyeOff color="red" size={14} />} onClick={() => navigate({ to: "/hidden" })}>
-                    {t("sidemenu.hidden")}
-                  </Menu.Item>
-
-                  <Menu.Item
-                    leftSection={<Star color="yellow" size={14} />}
-                    onClick={() => navigate({ to: "/favorites" })}
-                  >
-                    {t("sidemenu.favorites")}
-                  </Menu.Item>
-
-                  <Menu.Item leftSection={<Photo color="blue" size={14} />} onClick={() => navigate({ to: "/photos" })}>
-                    {t("sidemenu.photos")}
-                  </Menu.Item>
-
-                  <Menu.Item leftSection={<Video color="pink" size={14} />} onClick={() => navigate({ to: "/videos" })}>
-                    {t("sidemenu.videos")}
-                  </Menu.Item>
-
-                  <Menu.Item
-                    leftSection={<Screenshot color="violet" size={14} />}
-                    onClick={() => navigate({ to: "/screenshots" })}
-                  >
-                    {t("sidemenu.screenshots")}
-                  </Menu.Item>
-
-                  <Menu.Item
-                    leftSection={<Globe color="green" size={14} />}
-                    disabled={!auth?.access}
-                    onClick={() =>
-                      navigate(
-                        auth?.access ? { to: "/public/$users", params: { users: auth.access.name } } : { to: "/" }
-                      )
-                    }
-                  >
-                    {t("sidemenu.mypublicphotos")}
-                  </Menu.Item>
-                </Menu.Dropdown>
-              </Menu>
-            ) : (
               <Title ta="left" order={2}>
+                <Menu>
+                  {/* A real button, so the view switcher is reachable from the keyboard. */}
+                  <Menu.Target>
+                    <UnstyledButton style={{ fontSize: "inherit" }}>
+                      {title} <ChevronDown size={20} style={{ verticalAlign: "middle" }} />
+                    </UnstyledButton>
+                  </Menu.Target>
+
+                  <Menu.Dropdown>
+                    <Menu.Item
+                      leftSection={<Calendar color={theme.colors.green[6]} size={14} />}
+                      rightSection={currentView("/")}
+                      onClick={() => navigate({ to: "/" })}
+                    >
+                      {t("sidemenu.photos")}
+                    </Menu.Item>
+
+                    <Menu.Item
+                      leftSection={<Calendar color={theme.colors.red[6]} size={14} />}
+                      rightSection={currentView("/notimestamp")}
+                      onClick={() => navigate({ to: "/notimestamp" })}
+                    >
+                      {t("sidemenu.withouttimestamp")}
+                    </Menu.Item>
+
+                    <Menu.Divider />
+
+                    <Menu.Item
+                      leftSection={<Clock size={14} />}
+                      rightSection={currentView("/recent")}
+                      onClick={() => navigate({ to: "/recent" })}
+                    >
+                      {t("sidemenu.recentlyadded")}
+                    </Menu.Item>
+
+                    <Menu.Divider />
+
+                    <Menu.Item
+                      leftSection={<EyeOff color={theme.colors.red[6]} size={14} />}
+                      rightSection={currentView("/hidden")}
+                      onClick={() => navigate({ to: "/hidden" })}
+                    >
+                      {t("sidemenu.hidden")}
+                    </Menu.Item>
+
+                    <Menu.Item
+                      leftSection={<Star color={theme.colors.yellow[6]} size={14} />}
+                      rightSection={currentView("/favorites")}
+                      onClick={() => navigate({ to: "/favorites" })}
+                    >
+                      {t("sidemenu.favorites")}
+                    </Menu.Item>
+
+                    <Menu.Item
+                      leftSection={<Photo color={theme.colors.blue[6]} size={14} />}
+                      rightSection={currentView("/photos")}
+                      onClick={() => navigate({ to: "/photos" })}
+                    >
+                      {t("mediafilter.photos")}
+                    </Menu.Item>
+
+                    <Menu.Item
+                      leftSection={<Video color={theme.colors.pink[6]} size={14} />}
+                      rightSection={currentView("/videos")}
+                      onClick={() => navigate({ to: "/videos" })}
+                    >
+                      {t("sidemenu.videos")}
+                    </Menu.Item>
+
+                    <Menu.Item
+                      leftSection={<Screenshot color={theme.colors.violet[6]} size={14} />}
+                      rightSection={currentView("/screenshots")}
+                      onClick={() => navigate({ to: "/screenshots" })}
+                    >
+                      {t("sidemenu.screenshots")}
+                    </Menu.Item>
+
+                    <Menu.Item
+                      leftSection={<Globe color={theme.colors.green[6]} size={14} />}
+                      disabled={!auth?.access}
+                      onClick={() =>
+                        navigate(
+                          auth?.access ? { to: "/public/$users", params: { users: auth.access.name } } : { to: "/" }
+                        )
+                      }
+                    >
+                      {t("sidemenu.mypublicphotos")}
+                    </Menu.Item>
+                  </Menu.Dropdown>
+                </Menu>
+              </Title>
+            ) : (
+              // Long album names and search queries can be one unbroken word.
+              <Title ta="left" order={2} style={{ overflowWrap: "anywhere" }}>
                 {title}
               </Title>
             )}
             {getPhotoCounter()}
           </div>
         </Group>
-        {(!hasEmptyState || numPhotosetItems > 0) && (dayHeaderPrefix || date) && (
+        {(!hasEmptyState || numPhotosetItems > 0) && date && (
           <Group justify="flex-end" wrap="nowrap">
             <Text style={{ whiteSpace: "nowrap" }}>
               <b>

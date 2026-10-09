@@ -1,4 +1,4 @@
-import { Box, Button, Group, Modal, SimpleGrid, Skeleton, Stack, Text, TextInput, Title } from "@mantine/core";
+import { Box, Group, SimpleGrid, Skeleton, Stack, Text, Title } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import {
   IconAlbum,
@@ -6,28 +6,27 @@ import {
   IconChevronRight,
   IconFaceId,
   IconFolder,
+  IconSettingsAutomation,
   IconTag,
   IconTags,
   IconUsers,
-  IconWand,
 } from "@tabler/icons-react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  useDeleteUserAlbumMutation,
+  useAllFolderSubfolders,
   useFetchAutoAlbumsQuery,
   useFetchPeopleAlbumsQuery,
   useFetchThingsAlbumsQuery,
   useFetchUserAlbumsQuery,
-  useRenameUserAlbumMutation,
 } from "../../../api_client/albums/hooks";
-import { useFetchFolderSubfoldersQuery } from "../../../api_client/albums/hooks/useFetchFolderAlbumsQuery";
 import { useFetchTagsQuery } from "../../../api_client/tags/hooks";
 import { AlbumSection } from "../../../components/album/AlbumSection";
 import classes from "../../../components/album/AlbumSection.module.css";
 import { PlacesMapCard } from "../../../components/album/PlacesMapCard";
 import { UserAlbumCard } from "../../../components/album/UserAlbumCard";
+import { DeleteUserAlbumModal, RenameUserAlbumModal } from "../../../components/album/UserAlbumModals";
 import { ModalAlbumShare } from "../../../components/sharing/ModalAlbumShare";
 
 export const Route = createFileRoute("/_protected/album/")({
@@ -38,7 +37,6 @@ function AlbumExplore() {
   const { t } = useTranslation();
 
   // Album action state
-  const [newAlbumTitle, setNewAlbumTitle] = useState("");
   const [albumID, setAlbumID] = useState("");
   const [albumOwner, setAlbumOwner] = useState("");
   const [albumTitle, setAlbumTitle] = useState("");
@@ -46,19 +44,14 @@ function AlbumExplore() {
   const [isRenameDialogOpen, { open: showRenameDialog, close: hideRenameDialog }] = useDisclosure(false);
   const [isShareDialogOpen, { open: showShareDialog, close: hideShareDialog }] = useDisclosure(false);
 
-  // Mutations
-  const deleteUserAlbum = useDeleteUserAlbumMutation();
-  const renameUserAlbum = useRenameUserAlbumMutation();
-
   // Fetch all album types
   const { data: peopleAlbums, isLoading: isLoadingPeople } = useFetchPeopleAlbumsQuery();
   const { data: thingsAlbums, isLoading: isLoadingThings } = useFetchThingsAlbumsQuery();
   const { data: userAlbums, isLoading: isLoadingUser } = useFetchUserAlbumsQuery();
-  const { data: folderData, isLoading: isLoadingFolders } = useFetchFolderSubfoldersQuery();
+  // Every page of them, so the card counts all top-level folders, not the first 100
+  const { subfolders: folders, isLoading: isLoadingFolders } = useAllFolderSubfolders();
   const { data: autoAlbums, isLoading: isLoadingAuto } = useFetchAutoAlbumsQuery();
   const { data: tags, isLoading: isLoadingTags } = useFetchTagsQuery();
-
-  const folders = folderData?.subfolders ?? [];
 
   // Action handlers
   const openDeleteDialog = (id: string, title: string) => {
@@ -71,7 +64,6 @@ function AlbumExplore() {
     showRenameDialog();
     setAlbumID(id);
     setAlbumTitle(title);
-    setNewAlbumTitle("");
   };
 
   const openShareDialog = (id: string, title: string) => {
@@ -131,12 +123,15 @@ function AlbumExplore() {
 
   return (
     <Box p={10}>
-      <Group justify="flex-start" mb="md">
-        <IconAlbum size={40} stroke={1.5} />
-        <div>
+      {/* Same icon size and title/subtitle stack as the other album pages */}
+      <Group gap="sm" wrap="nowrap" mb={10}>
+        <IconAlbum size={50} />
+        <Stack gap={0}>
           <Title order={2}>{t("explore.title")}</Title>
-          <Text c="dimmed">{t("explore.subtitle")}</Text>
-        </div>
+          <Text c="dimmed" size="sm">
+            {t("explore.subtitle")}
+          </Text>
+        </Stack>
       </Group>
 
       <Stack gap="md">
@@ -175,7 +170,13 @@ function AlbumExplore() {
             </div>
           ) : !userAlbums || userAlbums.length === 0 ? (
             <div className={classes.emptyState}>
-              <Text c="dimmed">{t("explore.noAlbums")}</Text>
+              <Stack gap={4} align="center">
+                <Text c="dimmed">{t("explore.noAlbums")}</Text>
+                {/* How to make one: there is no "new album" button */}
+                <Text c="dimmed" size="sm" ta="center">
+                  {t("emptystate.useralbums.description")}
+                </Text>
+              </Stack>
             </div>
           ) : (
             <div className={classes.scrollContainer}>
@@ -202,6 +203,8 @@ function AlbumExplore() {
           viewAllLink="/album/persons"
           isLoading={isLoadingPeople}
           count={peopleAlbums?.length}
+          countLabel={t("explore.peopleCount", { count: peopleAlbums?.length ?? 0 })}
+          emptyMessage={t("emptystate.people.title")}
           variant="avatarGrid"
           maxItems={16}
           actionLink="/faces"
@@ -210,8 +213,8 @@ function AlbumExplore() {
           actionColor="orange"
         />
 
-        {/* Category cards - 4 columns on large screens */}
-        <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }} spacing="md">
+        {/* Category cards: five of them, so one row on large screens */}
+        <SimpleGrid cols={{ base: 1, sm: 2, md: 3, lg: 5 }} spacing="md">
           <AlbumSection
             title={t("sidemenu.things")}
             icon={<IconTags size={20} stroke={1.5} />}
@@ -219,6 +222,7 @@ function AlbumExplore() {
             viewAllLink="/album/things"
             isLoading={isLoadingThings}
             count={thingsAlbums?.length}
+            countLabel={t("explore.thingCount", { count: thingsAlbums?.length ?? 0 })}
             variant="card"
           />
           <AlbumSection
@@ -228,63 +232,43 @@ function AlbumExplore() {
             viewAllLink="/album/tags"
             isLoading={isLoadingTags}
             count={tags?.length}
+            countLabel={t("explore.tagCount", { count: tags?.length ?? 0 })}
             variant="card"
           />
           <PlacesMapCard />
           <AlbumSection
-            title={t("sidemenu.autoalbums")}
-            icon={<IconWand size={20} stroke={1.5} />}
+            title={t("events")}
+            icon={<IconSettingsAutomation size={20} stroke={1.5} />}
             albums={autoAlbumsPreview}
             viewAllLink="/album/events"
             isLoading={isLoadingAuto}
             count={autoAlbums?.length}
+            countLabel={t("explore.eventCount", { count: autoAlbums?.length ?? 0 })}
             variant="card"
           />
-          <AlbumSection
-            title={t("folders")}
-            icon={<IconFolder size={20} stroke={1.5} />}
-            albums={foldersPreview}
-            viewAllLink="/album/folder"
-            isLoading={isLoadingFolders}
-            count={folders.length}
-            variant="card"
-          />
+          {/* Spans the row when two columns would leave it on its own */}
+          <div className={classes.lastCategoryCard}>
+            <AlbumSection
+              title={t("folders")}
+              icon={<IconFolder size={20} stroke={1.5} />}
+              albums={foldersPreview}
+              viewAllLink="/album/folder"
+              isLoading={isLoadingFolders}
+              count={folders.length}
+              countLabel={t("explore.folderCount", { count: folders.length })}
+              variant="card"
+            />
+          </div>
         </SimpleGrid>
       </Stack>
 
-      {/* Rename Modal */}
-      <Modal size="sm" onClose={hideRenameDialog} opened={isRenameDialogOpen} title={t("useralbum.renamealbum")}>
-        <Stack>
-          <TextInput
-            label={albumTitle}
-            error={
-              userAlbums?.map(el => el.title.toLowerCase().trim()).includes(newAlbumTitle.toLowerCase().trim())
-                ? t("useralbum.albumalreadyexists", { name: newAlbumTitle.trim() })
-                : ""
-            }
-            onChange={v => setNewAlbumTitle(v.currentTarget.value)}
-            placeholder={t("useralbum.albumplaceholder")}
-          />
-          <Group justify="flex-end">
-            <Button variant="default" onClick={hideRenameDialog}>
-              {t("cancel")}
-            </Button>
-            <Button
-              color="green"
-              onClick={() => {
-                renameUserAlbum.mutate({ id: albumID, title: albumTitle, newTitle: newAlbumTitle });
-                hideRenameDialog();
-              }}
-              disabled={
-                !newAlbumTitle.trim() ||
-                userAlbums?.map(el => el.title.toLowerCase().trim()).includes(newAlbumTitle.toLowerCase().trim())
-              }
-            >
-              {t("rename")}
-            </Button>
-          </Group>
-        </Stack>
-      </Modal>
+      <RenameUserAlbumModal
+        opened={isRenameDialogOpen}
+        onClose={hideRenameDialog}
+        albumId={albumID}
+        albumTitle={albumTitle}
+        existingTitles={userAlbums?.map(album => album.title) ?? []}
+      />
 
       {/* Share Modal */}
       <ModalAlbumShare
@@ -294,26 +278,12 @@ function AlbumExplore() {
         ownerUsername={albumOwner}
       />
 
-      {/* Delete Modal */}
-      <Modal opened={isDeleteDialogOpen} onClose={hideDeleteDialog} title={t("delete")}>
-        <Stack>
-          <Text>{t("deletealbumexplanation")}</Text>
-          <Group justify="flex-end">
-            <Button variant="default" onClick={hideDeleteDialog}>
-              {t("cancel")}
-            </Button>
-            <Button
-              color="red"
-              onClick={() => {
-                deleteUserAlbum.mutate({ id: albumID, albumTitle });
-                hideDeleteDialog();
-              }}
-            >
-              {t("confirm")}
-            </Button>
-          </Group>
-        </Stack>
-      </Modal>
+      <DeleteUserAlbumModal
+        opened={isDeleteDialogOpen}
+        onClose={hideDeleteDialog}
+        albumId={albumID}
+        albumTitle={albumTitle}
+      />
     </Box>
   );
 }

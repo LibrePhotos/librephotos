@@ -1,16 +1,16 @@
 import { fireEvent } from "@testing-library/react-native";
 import { sql } from "drizzle-orm";
 import { ExploreScreen } from "./ExploreScreen";
-import { renderWithDb } from "@/test/test-utils";
+import { mockRouter, renderWithDb } from "@/test/test-utils";
 import { createTestDb, type TestDb } from "@/db/test-db";
 import type { AppDatabase } from "@/db/types";
 import { upsertSyncState, SYNC_ENTITIES } from "@/db/queries/sync-state";
 
 function setOnline(v: boolean) {
-  (globalThis as { __mockNetworkConnected?: boolean }).__mockNetworkConnected = v;
+  globalThis.__mockNetworkConnected = v;
 }
 
-const router = (globalThis as { __mockRouter?: { push: jest.Mock } }).__mockRouter!;
+const router = mockRouter();
 
 /** Mark every mirrored entity as having finished its first full sync. */
 function markSeeded(db: AppDatabase) {

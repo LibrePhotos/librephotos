@@ -34,9 +34,9 @@ function NoTimestampPhotosView() {
     });
   }, [photosData, isPlaceholderData, page]);
 
-  const getImages = (visibleItems: any) => {
-    if (visibleItems.filter((i: any) => i.isTemp).length > 0) {
-      const firstTempObject = visibleItems.filter((i: any) => i.isTemp)[0];
+  const getImages = (visibleItems: PigPhoto[]) => {
+    if (visibleItems.filter(i => i.isTemp).length > 0) {
+      const firstTempObject = visibleItems.filter(i => i.isTemp)[0];
       // Extract the numeric part from temp IDs like "temp-0", "temp-1", etc.
       const tempIndex = parseInt(firstTempObject.id.replace("temp-", ""), 10);
       const pageNumber = Math.ceil((tempIndex + 1) / 100);

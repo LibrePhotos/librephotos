@@ -1,10 +1,8 @@
 import { useComputedColorScheme, useMantineTheme } from "@mantine/core";
-import { createRootRouteWithContext, Outlet } from "@tanstack/react-router";
-import { SpotlightProvider } from "../components/spotlight";
+import { createRootRoute, Outlet } from "@tanstack/react-router";
 
-interface MyRouterContext {}
-
-export const Route = createRootRouteWithContext<MyRouterContext>()({
+// The router passes no context to its routes (see createRouter in App.tsx).
+export const Route = createRootRoute({
   component: AppShellPublicWithoutHeader,
 });
 
@@ -15,10 +13,11 @@ function AppShellPublicWithoutHeader() {
     <div
       style={{
         backgroundColor: colorScheme === "dark" ? theme.colors.dark[8] : theme.colors.gray[0],
-        height: "100vh",
+        // min-height: login/signup can be taller than a short screen, and a
+        // fixed height left the page below it in the body colour.
+        minHeight: "100dvh",
       }}
     >
-      <SpotlightProvider />
       <Outlet />
     </div>
   );

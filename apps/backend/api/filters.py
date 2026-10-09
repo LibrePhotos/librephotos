@@ -3,6 +3,7 @@ import logging
 import operator
 from functools import reduce
 
+import requests
 from django.contrib.postgres.search import SearchQuery, SearchVector
 from django.db import connection
 from django.db.models import Q
@@ -54,6 +55,21 @@ def build_ocr_search_q(search_term, vendor):
 
 
 class SemanticSearchFilter(filters.SearchFilter):
+    def _semantic_matches(self, request):
+        """Hashes of the requester's photos closest to the query, by CLIP."""
+        query = request.query_params.get("search")
+        start = datetime.datetime.now()
+        emb, magnitude = calculate_query_embeddings(query)
+        elapsed = (datetime.datetime.now() - start).total_seconds()
+        logger.info("finished calculating query embedding - took %.2f seconds", elapsed)
+        start = datetime.datetime.now()
+        image_hashes = search_similar_embedding(
+            request.user.id, emb, request.user.semantic_search_topk, threshold=27
+        )
+        elapsed = (datetime.datetime.now() - start).total_seconds()
+        logger.info("search similar embedding - took %.2f seconds", elapsed)
+        return image_hashes
+
     def filter_queryset(self, request, queryset, view):
         # Narrow by media type and category (video/photo, is_screenshot,
         # is_document) independent of the search term, parsed like the
@@ -87,20 +103,17 @@ class SemanticSearchFilter(filters.SearchFilter):
             for search_field in search_fields
         ]
 
+        image_hashes = None
         if request.user.semantic_search_topk > 0:
-            query = request.query_params.get("search")
-            start = datetime.datetime.now()
-            emb, magnitude = calculate_query_embeddings(query)
-            elapsed = (datetime.datetime.now() - start).total_seconds()
-            logger.info(
-                "finished calculating query embedding - took %.2f seconds", elapsed
-            )
-            start = datetime.datetime.now()
-            image_hashes = search_similar_embedding(
-                request.user.id, emb, request.user.semantic_search_topk, threshold=27
-            )
-            elapsed = (datetime.datetime.now() - start).total_seconds()
-            logger.info("search similar embedding - took %.2f seconds", elapsed)
+            try:
+                image_hashes = self._semantic_matches(request)
+            except (requests.RequestException, KeyError, ValueError) as error:
+                # The text, tag and OCR matches still answer while the CLIP
+                # sidecar is down, busy or missing its model.
+                logger.warning(
+                    "semantic search unavailable, using the text match only: %s",
+                    error,
+                )
         conditions = []
         for search_term in search_terms:
             queries = [Q(**{orm_lookup: search_term}) for orm_lookup in orm_lookups]
@@ -110,7 +123,7 @@ class SemanticSearchFilter(filters.SearchFilter):
             # OCR text, and terms are AND-ed together (reduce(and_) below).
             queries.append(build_ocr_search_q(search_term, vendor))
 
-            if request.user.semantic_search_topk > 0:
+            if image_hashes is not None:
                 queries += [Q(image_hash__in=image_hashes)]
 
             conditions.append(reduce(operator.or_, queries))

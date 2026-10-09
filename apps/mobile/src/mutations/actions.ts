@@ -12,6 +12,7 @@
 import { sql } from "drizzle-orm";
 import type { AppDatabase } from "@/db/types";
 import { getMetaNumber, META_FAVORITE_MIN_RATING } from "@/db/queries/app-meta";
+import { isRecord, parseJson } from "@/lib/guards";
 import { enqueueOutbox } from "./outbox";
 
 /** LibrePhotos default when the server threshold hasn't been synced yet. */
@@ -131,12 +132,14 @@ export function captionPhoto(
       ) as { payload: string } | undefined;
       if (cached) {
         try {
-          const parsed = JSON.parse(cached.payload) as Record<string, unknown>;
-          const captions = (parsed.captions_json ?? {}) as Record<string, unknown>;
-          parsed.captions_json = { ...captions, user_caption: args.caption };
-          tx.run(
-            sql`UPDATE remote_photo_detail SET payload = ${JSON.stringify(parsed)} WHERE photo_id = ${photoId}`
-          );
+          const parsed = parseJson(cached.payload);
+          if (isRecord(parsed)) {
+            const captions = isRecord(parsed.captions_json) ? parsed.captions_json : {};
+            const patched = { ...parsed, captions_json: { ...captions, user_caption: args.caption } };
+            tx.run(
+              sql`UPDATE remote_photo_detail SET payload = ${JSON.stringify(patched)} WHERE photo_id = ${photoId}`
+            );
+          }
         } catch {
           // Malformed cache — leave it; the outbox row is what matters.
         }

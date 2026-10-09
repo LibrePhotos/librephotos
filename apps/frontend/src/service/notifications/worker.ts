@@ -25,8 +25,28 @@ function requestFailed(title: string, message: string) {
   });
 }
 
+/** An unhandled exception on the server (HTTP 500). The endpoint helps a bug report. */
+function serverError(endpoint: string) {
+  showNotification({
+    title: i18n.t("toasts.servererrortitle"),
+    message: i18n.t("toasts.servererror", { endpoint }),
+    color: "red",
+  });
+}
+
+/** A response that did not match its schema; the detail is technical and stays as it is. */
+function parseError(detail: string, title?: string) {
+  showNotification({
+    title: title ?? i18n.t("toasts.parseerrortitle"),
+    message: i18n.t("toasts.reportissue", { detail }),
+    color: "red",
+  });
+}
+
 export const worker = {
   jobCancelled,
   jobFinished,
+  parseError,
   requestFailed,
+  serverError,
 };

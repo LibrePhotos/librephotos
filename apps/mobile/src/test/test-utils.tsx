@@ -13,6 +13,13 @@ import i18n from "@/i18n";
 import { DbProvider, type DbChangeSubscribe } from "@/db/provider";
 import type { AppDatabase } from "@/db/types";
 
+/** The router jest.setup.js installs: what the expo-router mock's `useRouter` returns. */
+export function mockRouter(): NonNullable<typeof globalThis.__mockRouter> {
+  const router = globalThis.__mockRouter;
+  if (!router) throw new Error("jest.setup.js did not install the expo-router mock");
+  return router;
+}
+
 /** A token supplier backed by a plain object for tests. */
 export function fakeTokens(access: string | null = "test-access", refresh: string | null = "test-refresh"): TokenSupplier {
   const store = { access, refresh };

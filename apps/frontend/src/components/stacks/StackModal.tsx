@@ -15,26 +15,17 @@ import {
   SimpleGrid,
   Stack,
   Text,
-  Title,
   Tooltip,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import {
-  IconBolt,
-  IconCamera,
-  IconLayersSubtract,
-  IconMaximize,
-  IconPhoto,
-  IconStack2,
-  IconSun,
-  IconVideo,
-} from "@tabler/icons-react";
+import { IconBolt, IconLayersSubtract, IconMaximize, IconPhoto, IconStack2, IconSun } from "@tabler/icons-react";
+import type { TFunction } from "i18next";
 import { DateTime } from "luxon";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { serverAddress } from "../../api_client/apiClient";
 import { useSetCoverPhotoMutation, useStackQuery } from "../../api_client/stacks";
-import type { StackType } from "../../api_client/stacks/types";
+import type { PhotoStack } from "../../api_client/stacks/types";
 import { parsePhotoTimestamp } from "../../util/dateUtils";
 import { PLACEHOLDER_IMAGE } from "../../util/placeholderImage";
 import { StackLightbox } from "./StackLightbox";
@@ -73,8 +64,8 @@ function formatFileSize(bytes: number): string {
   return `${parseFloat((bytes / k ** i).toFixed(2))} ${sizes[i]}`;
 }
 
-function formatResolution(width: number | null, height: number | null): string {
-  if (!width || !height) return "Unknown";
+function formatResolution(width: number | null, height: number | null): string | null {
+  if (!width || !height) return null;
   return `${width} × ${height}`;
 }
 
@@ -88,28 +79,33 @@ function getFileExtension(filePath: string | null): string | null {
   return null;
 }
 
-// Map file_type to user-friendly labels
-const fileTypeLabels: Record<string, string> = {
-  image: "JPEG",
-  video: "Video",
-  raw: "RAW",
-  metadata: "Metadata",
-  unknown: "File",
-};
+// Map file_type to user-friendly labels (format names stay untranslated)
+function getFileTypeLabel(fileType: string, t: TFunction): string | undefined {
+  switch (fileType) {
+    case "image":
+      return "JPEG";
+    case "raw":
+      return "RAW";
+    case "video":
+      return t("stacks.filetype.video", "Video");
+    case "metadata":
+      return t("stacks.filetype.metadata", "Metadata");
+    case "unknown":
+      return t("stacks.filetype.file", "File");
+    default:
+      return undefined;
+  }
+}
 
 // Get display label for file type
-function getFileTypeDisplay(fileType: string | null, filePath: string | null): string {
+function getFileTypeDisplay(fileType: string | null, filePath: string | null, t: TFunction): string {
   // First try to get actual extension from file path
   const extension = getFileExtension(filePath);
   if (extension) {
     return extension;
   }
-  // Fall back to mapped label
-  if (fileType && fileTypeLabels[fileType]) {
-    return fileTypeLabels[fileType];
-  }
-  // Use file_type directly if no mapping
-  return fileType || "File";
+  // Fall back to mapped label, then to file_type itself
+  return (fileType && getFileTypeLabel(fileType, t)) || fileType || t("stacks.filetype.file", "File");
 }
 
 // Get badge color based on file type
@@ -124,20 +120,17 @@ function getFileTypeColor(fileType: string | null, filePath: string | null): str
   return "gray";
 }
 
-function getStackTypeIcon(type: StackType) {
+function getStackTypeIcon(type: PhotoStack["stack_type"], size = 14) {
   switch (type) {
-    case "raw_jpeg":
-      return <IconCamera size={14} />;
     case "burst":
-      return <IconBolt size={14} />;
+      return <IconBolt size={size} />;
     case "bracket":
-      return <IconSun size={14} />;
-    case "live_photo":
-      return <IconVideo size={14} />;
+      return <IconSun size={size} />;
     case "manual":
-      return <IconStack2 size={14} />;
+      return <IconStack2 size={size} />;
     default:
-      return <IconLayersSubtract size={14} />;
+      // Also the legacy RAW + JPEG and Live Photo stacks a photo can still open
+      return <IconLayersSubtract size={size} />;
   }
 }
 
@@ -187,7 +180,7 @@ function StackPhotoCard({
         >
           <Image
             src={thumbnailUrl}
-            alt="Stack photo"
+            alt={t("stacks.photoalt", "Stack photo")}
             fallbackSrc={PLACEHOLDER_IMAGE}
             fit="contain"
             h={200}
@@ -198,7 +191,7 @@ function StackPhotoCard({
           />
           {isCover && (
             <Badge size="xs" color="blue" style={{ position: "absolute", top: 4, left: 4 }}>
-              Cover
+              {t("stacks.cover", "Cover")}
             </Badge>
           )}
         </Box>
@@ -207,6 +200,7 @@ function StackPhotoCard({
           color="dark"
           size="sm"
           style={{ position: "absolute", top: 8, right: 8, opacity: 0.8 }}
+          aria-label={t("viewfull")}
           onClick={e => {
             e.stopPropagation();
             onViewFull();
@@ -219,7 +213,7 @@ function StackPhotoCard({
       <Stack gap="xs" mt="sm" style={{ flex: 1 }}>
         <Group justify="space-between">
           <Text size="sm" fw={500}>
-            {formatResolution(photo.width, photo.height)}
+            {formatResolution(photo.width, photo.height) ?? t("settings.unknown", "Unknown")}
           </Text>
           <Badge color={photo.size > 1024 * 1024 ? "blue" : "gray"} variant="light">
             {formatFileSize(photo.size)}
@@ -249,7 +243,7 @@ function StackPhotoCard({
                     variant={variant.is_main ? "filled" : "outline"}
                     color={getFileTypeColor(variant.type, variant.path)}
                   >
-                    {getFileTypeDisplay(variant.type, variant.path)}
+                    {getFileTypeDisplay(variant.type, variant.path, t)}
                   </Badge>
                   <Text size="xs" c="dimmed" truncate style={{ flex: 1 }}>
                     {variant.filename || variant.path.split("/").pop()}
@@ -262,7 +256,7 @@ function StackPhotoCard({
           <Tooltip label={photo.file_path} multiline w={300}>
             <Group gap="xs" wrap="nowrap">
               <Badge size="xs" variant="outline" color={getFileTypeColor(photo.file_type, photo.file_path)}>
-                {getFileTypeDisplay(photo.file_type, photo.file_path)}
+                {getFileTypeDisplay(photo.file_type, photo.file_path, t)}
               </Badge>
               <Text size="xs" c="dimmed" truncate style={{ flex: 1 }}>
                 {photo.file_path.split("/").pop()}
@@ -281,7 +275,7 @@ function StackPhotoCard({
             size="sm"
             mt="auto"
           >
-            {t("stacks.setCover", "Set as Cover")}
+            {t("stacks.setprimary", "Set as Cover")}
           </Button>
         )}
       </Stack>
@@ -312,24 +306,6 @@ export function StackModal({ stackId, opened, onClose }: StackModalProps) {
     setCoverPhoto({ stackId, photoHash });
   };
 
-  const getStackDescription = () => {
-    if (!stack) return "";
-    switch (stack.stack_type) {
-      case "raw_jpeg":
-        return t("stacks.desc.raw_jpeg", "RAW and JPEG versions of the same shot. Both are preserved.");
-      case "burst":
-        return t("stacks.desc.burst", "Photos taken in rapid succession (burst mode).");
-      case "bracket":
-        return t("stacks.desc.bracket", "Exposure bracketed shots for HDR.");
-      case "live_photo":
-        return t("stacks.desc.live_photo", "Live Photo with embedded video.");
-      case "manual":
-        return t("stacks.desc.manual", "Photos you grouped manually.");
-      default:
-        return "";
-    }
-  };
-
   return (
     <>
       {lightboxOpened && lightboxImageHash && stack?.photos && (
@@ -344,10 +320,17 @@ export function StackModal({ stackId, opened, onClose }: StackModalProps) {
         opened={opened}
         onClose={onClose}
         title={
-          <Group>
-            {stack && getStackTypeIcon(stack.stack_type)}
-            <Title order={4}>{stack?.stack_type_display || t("stacks.view", "View Stack")}</Title>
-          </Group>
+          // A span, not a Group (a div): Mantine's title is an <h2>, which takes phrasing
+          // content only. The 18px icon matches the theme's title text.
+          <Box
+            component="span"
+            style={{ display: "inline-flex", alignItems: "center", gap: "var(--mantine-spacing-xs)" }}
+          >
+            {stack && getStackTypeIcon(stack.stack_type, 18)}
+            {/* Translated label rather than the server's English stack_type_display. Plain
+                text, styled by the app's Modal theme. */}
+            {stack ? t(`stacks.typelabel.${stack.stack_type}`) : t("stacks.view", "View Stack")}
+          </Box>
         }
         size="90%"
         centered
@@ -361,7 +344,7 @@ export function StackModal({ stackId, opened, onClose }: StackModalProps) {
         ) : stack ? (
           <Stack gap="md">
             <Text size="sm" c="dimmed">
-              {getStackDescription()}
+              {t(`stacks.typedescriptions.${stack.stack_type}`)}
             </Text>
 
             <Text size="sm" c="dimmed">

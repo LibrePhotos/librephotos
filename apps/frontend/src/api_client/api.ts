@@ -7,9 +7,8 @@ import {
   type TokenSupplier,
 } from "@librephotos/api-client";
 import { MutationCache, QueryCache, QueryClient } from "@tanstack/react-query";
-import { Cookies } from "react-cookie";
 import { notification } from "../service/notifications";
-import { clearAuthCookies, setAuthCookie } from "./authCookies";
+import { clearAuthCookies, getAuthCookie, setAuthCookie } from "./authCookies";
 
 const PUBLIC_URL = import.meta.env.VITE_PUBLIC_URL || import.meta.env.PUBLIC_URL || "";
 const API_BASE_URL = PUBLIC_URL + "/api";
@@ -37,20 +36,44 @@ export type RequestOptions = SharedRequestOptions;
 
 /** The web keeps its JWTs in (script-readable) cookies. */
 const cookieTokens: TokenSupplier = {
-  getAccessToken: () => new Cookies().get("access") ?? null,
-  getRefreshToken: () => new Cookies().get("refresh") ?? null,
+  getAccessToken: () => getAuthCookie("access") ?? null,
+  getRefreshToken: () => getAuthCookie("refresh") ?? null,
   setAccessToken: token => setAuthCookie("access", token),
   clearTokens: clearAuthCookies,
 };
 
 /**
- * Set once the first failed authentication starts logging the user out, so
- * concurrent 401s don't each blacklist the token, notify and redirect. Never
+ * Set once the first failed authentication (or Log out) starts logging the user
+ * out, so concurrent 401s don't each blacklist the token, notify and redirect. Never
  * reset: logging out ends in a full page navigation, which reloads this module.
  */
 let loggingOut = false;
 
 const isPublicPage = () => window.location.pathname.startsWith("/public");
+
+/**
+ * End the session with a full page load of the login page. Not a router
+ * navigation: the cached "logged in" answer would send /login straight back
+ * into the app, and a reload drops every cached query, so whoever signs in
+ * next in this tab never sees the previous user's data. The 401s that requests
+ * still in flight get meanwhile are ignored (see `loggingOut`).
+ */
+export function redirectToLogin(): void {
+  loggingOut = true;
+  window.location.assign(PUBLIC_URL + "/login");
+}
+
+/** One `{ field, message }` entry of the backend's error body. */
+function isFieldError(value: unknown): value is { field: string; message: string } {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "field" in value &&
+    typeof value.field === "string" &&
+    "message" in value &&
+    typeof value.message === "string"
+  );
+}
 
 /**
  * A 401 the shared transport could not fix with a token refresh. The web
@@ -63,12 +86,16 @@ async function handleUnauthorized(endpoint: string, response: Response): Promise
   const isLoginPage = pathname.includes("/login");
   const isSignupPage = pathname.includes("/signup");
   const suppressAuthNotifications = isPublicPage() || isPasswordResetPage || isLoginPage || isSignupPage;
+  // Pages for logged-out users stay where they are. A refused sign-up
+  // (registration turned off) answers 401 too, and used to reload the sign-up
+  // form into the login page without a word; the form reports it itself now.
+  const staysOnPage = isLoginPage || isSignupPage;
 
   // On public pages, silently ignore 401 errors for authenticated-only endpoints.
   if (isPublicPage() || isPasswordResetPage) {
     return;
   }
-  if (!isLoginPage) {
+  if (!staysOnPage) {
     // Another request already started logging out and redirecting.
     if (loggingOut) {
       return;
@@ -76,7 +103,7 @@ async function handleUnauthorized(endpoint: string, response: Response): Promise
     loggingOut = true;
   }
   // Logout the user by blacklisting the refresh token
-  const refreshToken = new Cookies().get("refresh");
+  const refreshToken = getAuthCookie("refresh");
   if (refreshToken) {
     try {
       await fetch(`${API_BASE_URL}/auth/token/blacklist/`, {
@@ -90,7 +117,7 @@ async function handleUnauthorized(endpoint: string, response: Response): Promise
     }
   }
   // Clear auth cookies and redirect to login if we are not already on the login page
-  if (!isLoginPage) {
+  if (!staysOnPage) {
     cookieTokens.clearTokens();
     // A full navigation on purpose: the router lives in App.tsx (importing it
     // here would be circular) and a reload also drops the cached queries.
@@ -101,15 +128,20 @@ async function handleUnauthorized(endpoint: string, response: Response): Promise
   // but suppress other 401 notifications on public/login/signup pages
   const isLoginAttempt = endpoint === "/auth/token/obtain/";
   if (!suppressAuthNotifications || isLoginAttempt) {
-    const data = await response.json().catch(() => ({}));
-    if (data.errors) {
-      data.errors.forEach((error: { field: string; message: string }) => {
-        if (error.field === "detail") {
+    const data: unknown = await response.json().catch(() => ({}));
+    const body = typeof data === "object" && data !== null ? data : {};
+    const errors = "errors" in body ? body.errors : undefined;
+    const detail = "detail" in body ? body.detail : undefined;
+    if (errors) {
+      // The backend's exception handler: { errors: [{ field, message }] }
+      const entries: unknown[] = Array.isArray(errors) ? errors : [];
+      entries.forEach(error => {
+        if (isFieldError(error) && error.field === "detail") {
           notification.authError(isLoginAttempt, error.field, error.message);
         }
       });
-    } else if (isLoginAttempt && data.detail) {
-      notification.authError(true, "detail", data.detail);
+    } else if (isLoginAttempt && typeof detail === "string" && detail) {
+      notification.authError(true, "detail", detail);
     } else if (!isLoginAttempt) {
       notification.invalidToken();
     }
@@ -126,12 +158,7 @@ const sharedClient = createApiClient({
   tokens: cookieTokens,
   useCredentials: true,
   onUnauthorized: handleUnauthorized,
-  onServerError: endpoint => {
-    notification.requestFailed(
-      `500 (Internal Server Error) for ${endpoint}`,
-      "Something went wrong on the server. Please open up the network tab in your browser's developer tools and report this issue on GitHub."
-    );
-  },
+  onServerError: endpoint => notification.serverError(endpoint),
 });
 
 /**
@@ -190,10 +217,7 @@ export const fetchClient = apiClient;
 /** A response that did not match its schema (server drift) asks the user to report it. */
 function notifyParseError(error: unknown) {
   if (error instanceof ResponseParseError) {
-    notification.requestFailed(
-      `Failed to parse ${error.context}`,
-      `${error.issues}. Please report this issue on GitHub.`
-    );
+    notification.parseError(`${error.context}: ${error.issues}`);
   }
 }
 

@@ -20,7 +20,7 @@ export const useFetchUserListQuery = (skip: boolean = false) =>
   useQuery<ListUserList>({
     queryKey: UserListQueryKeys,
     queryFn: async () => {
-      const response = await fetchClient.get<ListUserList>("/user/");
+      const response = await fetchClient.get("/user/");
       return parseWithNotification(UserListResponse, response, "Failed to parse user list").results;
     },
     enabled: !skip,

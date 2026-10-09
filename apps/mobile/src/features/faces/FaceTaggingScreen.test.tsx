@@ -43,7 +43,7 @@ describe("FaceTaggingScreen", () => {
   beforeEach(() => {
     t = createTestDb();
     useToastStore.setState({ toasts: [] });
-    (globalThis as { __mockNetworkConnected?: boolean }).__mockNetworkConnected = true;
+    globalThis.__mockNetworkConnected = true;
   });
   afterEach(() => t.close());
 
@@ -75,7 +75,7 @@ describe("FaceTaggingScreen", () => {
   });
 
   it("shows an offline state when disconnected", async () => {
-    (globalThis as { __mockNetworkConnected?: boolean }).__mockNetworkConnected = false;
+    globalThis.__mockNetworkConnected = false;
     const { getByTestId } = renderWithDb(<FaceTaggingScreen />, t.db, client());
     await waitFor(() => expect(getByTestId("faces-offline")).toBeTruthy());
   });

@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { fetchClient } from "../../api";
+import { ApiError, fetchClient } from "../../api";
 
 const FOLDER_SUBFOLDERS_QUERY_KEY = ["folderSubfolders"] as const;
 
@@ -11,7 +11,8 @@ export interface SubfolderInfo {
 }
 
 export interface FolderNavigationResponse {
-  current_path: string;
+  // null, with an empty listing, for a user without a scan directory
+  current_path: string | null;
   parent_path: string | null;
   subfolders: SubfolderInfo[];
   pagination?: {
@@ -24,23 +25,23 @@ export interface FolderNavigationResponse {
   };
 }
 
+/**
+ * A 4xx answer (a folder outside the scan directory gets 403) does not change
+ * on a retry; only server and network failures are worth asking again.
+ */
+export function retryFolderRequest(failureCount: number, error: unknown): boolean {
+  if (error instanceof ApiError && error.status < 500) return false;
+  return failureCount < 3;
+}
+
 export const useFetchFolderSubfoldersQuery = (path?: string) =>
   useQuery({
     queryKey: [...FOLDER_SUBFOLDERS_QUERY_KEY, path],
     queryFn: async (): Promise<FolderNavigationResponse> => {
-      // eslint-disable-next-line no-console
-      console.log("Fetching folder subfolders for path:", path);
-      try {
-        const params = path ? `?path=${encodeURIComponent(path)}` : "";
-        const response = await fetchClient.get(`/folders/subfolders/${params}`);
-        return response as FolderNavigationResponse;
-      } catch (error) {
-        // eslint-disable-next-line no-console
-        console.error("Error fetching folder subfolders:", error);
-        throw error;
-      }
+      const params = path ? `?path=${encodeURIComponent(path)}` : "";
+      return fetchClient.get<FolderNavigationResponse>(`/folders/subfolders/${params}`);
     },
-    retry: 3,
+    retry: retryFolderRequest,
     retryDelay: 1000,
     refetchOnWindowFocus: true,
   });

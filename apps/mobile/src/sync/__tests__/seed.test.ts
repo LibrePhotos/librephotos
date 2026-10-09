@@ -2,60 +2,58 @@
  * @jest-environment node
  */
 import { sql } from "drizzle-orm";
+import { Media, type IncompleteDatePhotosGroup, type PigPhoto } from "@librephotos/api-client";
 import { createTestDb, type TestDb } from "@/db/test-db";
 import { seedAll, seedPhotos, type SeedSource } from "../remote/seed";
 import { getSyncState } from "@/db/queries/sync-state";
 import { filterPhotos } from "@/db/queries/filters";
 
-type Item = {
-  id: string;
-  image_hash: string;
-  aspectRatio: number;
-  type: string;
-  rating: number;
-  date: string | null;
-};
-
-const item = (id: string, rating = 0, date: string | null = "2024-01-02T10:00:00"): Item => ({
+const item = (id: string, rating = 0, date: string | null = "2024-01-02T10:00:00"): PigPhoto => ({
   id,
   image_hash: `hash-${id}`,
   aspectRatio: 1,
-  type: "image",
+  type: Media.IMAGE,
   rating,
   date,
+  is_hdr: false,
+  shared_to: [],
+  isTemp: false,
+  has_raw_variant: false,
 });
+
+/** One date bucket as the paginated date-album endpoints return it. */
+function bucket(id: string, items: PigPhoto[], numberOfItems: number, incomplete: boolean): IncompleteDatePhotosGroup {
+  return { id, date: "2024-01-02", location: null, items, incomplete, numberOfItems };
+}
+
+/** The lists here are empty, so the seeder never asks for one album's detail. */
+function noAlbum(id: number): Promise<never> {
+  return Promise.reject(new Error(`album ${id} is not in this fixture`));
+}
 
 /** A fake source with two timeline buckets, one hidden bucket, and small lists. */
 function makeSource(overrides: Partial<SeedSource> = {}): SeedSource {
-  const bucketItems: Record<string, Item[]> = {
+  const bucketItems: Record<string, PigPhoto[]> = {
     b1: [item("p1", 5), item("p2", 0)],
     b2: [item("p3", 0)],
     h1: [item("p4", 0)],
   };
-  const listFor = (name: string, count: number) => ({
-    id: name,
-    date: "2024-01-02",
-    location: null,
-    items: [],
-    incomplete: true,
-    numberOfItems: count,
-  });
   return {
     dateAlbumsList: async (filter) => {
-      if (filter.hidden) return [listFor("h1", 1)] as never;
+      if (filter.hidden) return [bucket("h1", [], 1, true)];
       if (filter.in_trashcan) return [];
-      return [listFor("b1", 2), listFor("b2", 1)] as never;
+      return [bucket("b1", [], 2, true), bucket("b2", [], 1, true)];
     },
     dateAlbum: async (id, page) => {
       const items = page === 1 ? (bucketItems[id] ?? []) : [];
-      return { id, date: "2024-01-02", location: null, items, incomplete: false, numberOfItems: items.length } as never;
+      return bucket(id, items, items.length, false);
     },
     photosWithoutTimestamp: async () => ({ results: [], next: null }),
-    people: async () => [{ id: 1, name: "Ann", face_url: null, face_count: 3, face_photo_url: null, cover_photo: "h1" }] as never,
-    userAlbumsList: async () => [] as never,
-    userAlbum: async () => ({ grouped_photos: [] }) as never,
-    autoAlbumsList: async () => [] as never,
-    autoAlbum: async () => ({ photos: [] }) as never,
+    people: async () => [{ id: 1, name: "Ann", face_url: null, face_count: 3, face_photo_url: null, cover_photo: "h1" }],
+    userAlbumsList: async () => [],
+    userAlbum: noAlbum,
+    autoAlbumsList: async () => [],
+    autoAlbum: noAlbum,
     thingAlbumsList: async () => [],
     placeAlbumsList: async () => [],
     tagAlbumsList: async () => [],
@@ -101,7 +99,7 @@ describe("seeder", () => {
 
   it("resumes an interrupted seed: only un-ingested buckets are re-fetched", async () => {
     const fetched: string[] = [];
-    const bucketItems = (id: string): Item[] =>
+    const bucketItems = (id: string): PigPhoto[] =>
       id === "b1" ? [item("p1", 5), item("p2")] : id === "b2" ? [item("p3")] : [item("p4")];
 
     // First run fails while fetching b2 — b1 is ingested and recorded, status
@@ -111,7 +109,7 @@ describe("seeder", () => {
         fetched.push(id);
         if (id === "b2") throw new Error("network drop");
         const items = page === 1 ? bucketItems(id) : [];
-        return { id, date: "2024-01-02", location: null, items, incomplete: false, numberOfItems: items.length } as never;
+        return bucket(id, items, items.length, false);
       },
     });
     await expect(seedPhotos(t.db, failing, OPTS)).rejects.toThrow("network drop");
@@ -124,7 +122,7 @@ describe("seeder", () => {
       dateAlbum: async (id, page) => {
         fetched.push(id);
         const items = page === 1 ? bucketItems(id) : [];
-        return { id, date: "2024-01-02", location: null, items, incomplete: false, numberOfItems: items.length } as never;
+        return bucket(id, items, items.length, false);
       },
     });
     await seedPhotos(t.db, ok, OPTS);

@@ -36,7 +36,14 @@ export default defineConfig(({ mode }) => {
       // also exported from the route file. Under vitest it is switched off, so
       // tests that mock @tanstack/react-router get the real component back
       // rather than a lazyRouteComponent wrapper.
-      tanstackRouter({ target: "react", autoCodeSplitting: !process.env.VITEST }),
+      //
+      // The generated route tree is type-checked like the rest of src: its header leaves out
+      // the generator's default `// @ts-nocheck`.
+      tanstackRouter({
+        target: "react",
+        autoCodeSplitting: !process.env.VITEST,
+        routeTreeFileHeader: ["/* eslint-disable */", "// noinspection JSUnusedGlobalSymbols"],
+      }),
       react(wdyr ? { jsxImportSource: "@welldone-software/why-did-you-render" } : {}),
     ],
     resolve: {
@@ -67,6 +74,8 @@ export default defineConfig(({ mode }) => {
       assetsDir: "assets",
       emptyOutDir: true,
     },
+    // maplibre-gl 6 starts its worker as a module worker (see util/maplibreWorker.ts).
+    worker: { format: "es" },
     test: {
       globals: true,
       environment: "jsdom",

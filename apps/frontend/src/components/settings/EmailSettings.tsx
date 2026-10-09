@@ -13,17 +13,21 @@ import {
   TextInput,
   Title,
 } from "@mantine/core";
+import { showNotification } from "@mantine/notifications";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { ApiError } from "../../api_client/api";
+import type { EmailConfigUpdate } from "../../api_client/settings/hooks/useEmailConfig";
 import {
   useGetEmailConfigQuery,
   useSendTestEmailMutation,
   useUpdateEmailConfigMutation,
 } from "../../api_client/settings/hooks/useEmailConfig";
 
+// "disabled" and "custom" are labelled with translated text at render time.
 const PROVIDERS = [
-  { value: "disabled", label: "Disabled" },
-  { value: "custom", label: "Custom SMTP server" },
+  { value: "disabled", label: "" },
+  { value: "custom", label: "" },
   { value: "sendgrid", label: "SendGrid" },
   { value: "mailgun", label: "Mailgun" },
   { value: "postmark", label: "Postmark" },
@@ -36,6 +40,10 @@ const PROVIDERS = [
 const NEEDS_HOST = new Set(["custom", "ses"]);
 // Providers that expose the full advanced SMTP fields (port / TLS / SSL).
 const IS_CUSTOM = (provider: string) => provider === "custom";
+
+// Label and control side by side from the sm breakpoint up, stacked on a phone.
+const LABEL_SPAN = { base: 12, sm: 8 };
+const CONTROL_SPAN = { base: 12, sm: 4 };
 
 export function EmailSettings(): JSX.Element {
   const { t } = useTranslation();
@@ -68,12 +76,43 @@ export function EmailSettings(): JSX.Element {
     }
   }, [config, isLoading]);
 
-  const presetHost = config?.presets?.[provider]?.host as string | undefined;
-  const helpUrl = config?.presets?.[provider]?.help_url as string | undefined;
+  // Save only does something once a field differs from the stored configuration.
+  const isDirty =
+    !!config &&
+    (provider !== config.provider ||
+      fromEmail !== config.from_email ||
+      host !== config.host ||
+      port !== config.port ||
+      useTls !== config.use_tls ||
+      useSsl !== config.use_ssl ||
+      username !== config.username ||
+      secret !== "");
+
+  const providers = PROVIDERS.map(option => {
+    if (option.value === "disabled") return { ...option, label: t("emailsettings.provider_disabled") };
+    if (option.value === "custom") return { ...option, label: t("emailsettings.provider_custom") };
+    return option;
+  });
+
+  const preset = config?.presets?.[provider];
+  const presetHost = preset?.host;
+  const helpUrl = preset?.help_url;
+
+  // Same rules as reportUserSaveError (util/apiErrors.ts): a 401 is left to the auth handling, and
+  // only the server's own message is shown, never FetchClient's internal English one.
+  const reportSaveError = (error: unknown) => {
+    if (error instanceof ApiError && error.status === 401) {
+      return;
+    }
+    showNotification({
+      message: (error instanceof ApiError && error.serverMessage) || t("emailsettings.savefailed"),
+      color: "red",
+    });
+  };
 
   const onSave = () => {
     setTestResult(null);
-    const payload: Record<string, unknown> = {
+    const payload: EmailConfigUpdate = {
       provider,
       from_email: fromEmail,
       host,
@@ -91,7 +130,9 @@ export function EmailSettings(): JSX.Element {
       onSuccess: () => {
         setSecret("");
         setHasSecret(!!secret || hasSecret);
+        showNotification({ message: t("emailsettings.saved"), color: "teal" });
       },
+      onError: reportSaveError,
     });
   };
 
@@ -103,6 +144,7 @@ export function EmailSettings(): JSX.Element {
           setHasSecret(false);
           setSecret("");
         },
+        onError: reportSaveError,
       }
     );
   };
@@ -116,7 +158,7 @@ export function EmailSettings(): JSX.Element {
   };
 
   return (
-    <Card shadow="md" mb={10}>
+    <Card shadow="md">
       <Stack>
         <Title order={4} mb={4}>
           {t("emailsettings.header", "Email (SMTP)")}
@@ -129,12 +171,12 @@ export function EmailSettings(): JSX.Element {
         </Text>
 
         <Grid justify="flex-end" align="center">
-          <Grid.Col span={8}>
+          <Grid.Col span={LABEL_SPAN}>
             <Text>{t("emailsettings.provider", "Provider")}</Text>
           </Grid.Col>
-          <Grid.Col span={4}>
+          <Grid.Col span={CONTROL_SPAN}>
             <Select
-              data={PROVIDERS}
+              data={providers}
               value={provider}
               onChange={value => setProvider(value || "disabled")}
               allowDeselect={false}
@@ -143,10 +185,10 @@ export function EmailSettings(): JSX.Element {
 
           {provider !== "disabled" && (
             <>
-              <Grid.Col span={8}>
+              <Grid.Col span={LABEL_SPAN}>
                 <Text>{t("emailsettings.from_email", "From address")}</Text>
               </Grid.Col>
-              <Grid.Col span={4}>
+              <Grid.Col span={CONTROL_SPAN}>
                 <TextInput
                   placeholder="LibrePhotos <no-reply@example.org>"
                   value={fromEmail}
@@ -156,10 +198,10 @@ export function EmailSettings(): JSX.Element {
 
               {NEEDS_HOST.has(provider) && (
                 <>
-                  <Grid.Col span={8}>
+                  <Grid.Col span={LABEL_SPAN}>
                     <Text>{t("emailsettings.host", "SMTP host")}</Text>
                   </Grid.Col>
-                  <Grid.Col span={4}>
+                  <Grid.Col span={CONTROL_SPAN}>
                     <TextInput
                       placeholder={provider === "ses" ? "email-smtp.us-east-1.amazonaws.com" : "smtp.example.org"}
                       value={host}
@@ -184,20 +226,20 @@ export function EmailSettings(): JSX.Element {
 
               {IS_CUSTOM(provider) && (
                 <>
-                  <Grid.Col span={8}>
+                  <Grid.Col span={LABEL_SPAN}>
                     <Text>{t("emailsettings.port", "Port")}</Text>
                   </Grid.Col>
-                  <Grid.Col span={4}>
+                  <Grid.Col span={CONTROL_SPAN}>
                     <TextInput type="number" value={port} onChange={e => setPort(Number(e.currentTarget.value) || 0)} />
                   </Grid.Col>
-                  <Grid.Col span={6}>
+                  <Grid.Col span={{ base: 12, xs: 6 }}>
                     <Switch
                       label={t("emailsettings.use_tls", "Use STARTTLS")}
                       checked={useTls}
                       onChange={e => setUseTls(e.currentTarget.checked)}
                     />
                   </Grid.Col>
-                  <Grid.Col span={6}>
+                  <Grid.Col span={{ base: 12, xs: 6 }}>
                     <Switch
                       label={t("emailsettings.use_ssl", "Use implicit SSL")}
                       checked={useSsl}
@@ -207,7 +249,7 @@ export function EmailSettings(): JSX.Element {
                 </>
               )}
 
-              <Grid.Col span={8}>
+              <Grid.Col span={LABEL_SPAN}>
                 <Text>{t("emailsettings.username", "Username")}</Text>
                 {provider === "sendgrid" && (
                   <Text fz="xs" c="dimmed">
@@ -215,14 +257,14 @@ export function EmailSettings(): JSX.Element {
                   </Text>
                 )}
               </Grid.Col>
-              <Grid.Col span={4}>
+              <Grid.Col span={CONTROL_SPAN}>
                 <TextInput value={username} onChange={e => setUsername(e.currentTarget.value)} />
               </Grid.Col>
 
-              <Grid.Col span={8}>
+              <Grid.Col span={LABEL_SPAN}>
                 <Text>{t("emailsettings.secret", "Password / API key")}</Text>
               </Grid.Col>
-              <Grid.Col span={4}>
+              <Grid.Col span={CONTROL_SPAN}>
                 <PasswordInput
                   placeholder={hasSecret ? t("emailsettings.secret_set", "•••••• (unchanged)") : ""}
                   value={secret}
@@ -240,12 +282,12 @@ export function EmailSettings(): JSX.Element {
           )}
         </Grid>
 
-        <Group>
-          <Button onClick={onSave} loading={isSaving}>
-            {t("save", "Save")}
-          </Button>
+        <Group justify="flex-end">
           <Button variant="default" onClick={onTest} loading={isTesting} disabled={!config?.is_configured}>
             {t("emailsettings.sendtest", "Send test email")}
+          </Button>
+          <Button onClick={onSave} loading={isSaving} disabled={!isDirty}>
+            {t("save", "Save")}
           </Button>
         </Group>
 

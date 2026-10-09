@@ -1,4 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
+import i18n from "../../../i18n";
 import { notification } from "../../../service/notifications";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient, queryClient } from "../../api";
@@ -18,6 +19,6 @@ export const useCancelJobMutation = () =>
       queryClient.invalidateQueries({ queryKey: [...WorkerQueryKeys] });
     },
     onError: () => {
-      notification.requestFailed("Cancel Job Failed", "Failed to cancel the job");
+      notification.requestFailed(i18n.t("toasts.canceljobfailedtitle"), i18n.t("toasts.canceljobfailed"));
     },
   });

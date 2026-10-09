@@ -1,16 +1,24 @@
+import type { MentionNodeAttrs } from "@tiptap/extension-mention";
+import type { SuggestionKeyDownProps } from "@tiptap/suggestion";
 import React, { forwardRef, useEffect, useImperativeHandle, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-type Props = {
+/** The suggestion props the list uses; the renderer hands it all of them. */
+export type MentionListProps = {
   items: string[];
-  command: (params: { id: string }) => void;
+  command: (attrs: MentionNodeAttrs) => void;
 };
 
-export const MentionList = forwardRef((props: Props, ref) => {
+/** What the suggestion plugin calls on the list while it is open. */
+export type MentionListHandle = {
+  onKeyDown: (props: Pick<SuggestionKeyDownProps, "event">) => boolean;
+};
+
+export const MentionList = forwardRef<MentionListHandle, MentionListProps>((props, ref) => {
   const { t } = useTranslation();
   const [selectedIndex, setSelectedIndex] = useState(0);
 
-  const selectItem = index => {
+  const selectItem = (index: number) => {
     const item = props.items[index];
 
     if (item) {
@@ -54,15 +62,19 @@ export const MentionList = forwardRef((props: Props, ref) => {
   }));
 
   return (
+    // tippy mounts this on document.body, outside the Mantine tree, but the theme's
+    // CSS variables are global, so it can still follow the colour scheme.
     <div
       style={{
         padding: "0.2rem",
         position: "relative",
-        borderRadius: "0.5rem",
-        background: "#FFF",
-        color: "rgba(0, 0, 0, 0.8)",
+        borderRadius: "var(--mantine-radius-md)",
+        background: "var(--mantine-color-body)",
+        color: "var(--mantine-color-text)",
+        border: "1px solid var(--mantine-color-default-border)",
+        boxShadow: "var(--mantine-shadow-md)",
         overflow: "hidden",
-        fontSize: "0.9rem",
+        fontSize: "var(--mantine-font-size-sm)",
       }}
     >
       {props.items.length ? (
@@ -72,14 +84,17 @@ export const MentionList = forwardRef((props: Props, ref) => {
             style={{
               display: "block",
               margin: "0",
-              background: "transparent",
               padding: "0.2rem 0.5rem",
               width: "100%",
               textAlign: "left",
-              border: "1px solid transparent",
-              borderRadius: "0.4rem",
+              border: 0,
+              borderRadius: "var(--mantine-radius-sm)",
               cursor: "pointer",
-              borderColor: index === selectedIndex ? "#000" : "transparent",
+              // Buttons do not inherit colour or font; in dark mode they would
+              // keep the browser's own ButtonText on our background.
+              font: "inherit",
+              color: index === selectedIndex ? "var(--mantine-primary-color-light-color)" : "inherit",
+              background: index === selectedIndex ? "var(--mantine-primary-color-light)" : "transparent",
             }}
             key={item}
             onClick={() => selectItem(index)}
@@ -88,7 +103,9 @@ export const MentionList = forwardRef((props: Props, ref) => {
           </button>
         ))
       ) : (
-        <div className="item">{t("lightbox.sidebar.noMentionResults")}</div>
+        <div style={{ padding: "0.2rem 0.5rem", color: "var(--mantine-color-dimmed)" }}>
+          {t("lightbox.sidebar.noMentionResults")}
+        </div>
       )}
     </div>
   );

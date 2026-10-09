@@ -3,6 +3,7 @@ import {
   isGridActionOfflineCapable,
   isViewerActionAvailable,
   isViewerActionOfflineCapable,
+  type ViewerAction,
 } from "./offline";
 import { OFFLINE_KINDS } from "@/mutations/types";
 
@@ -59,19 +60,19 @@ describe("offline availability", () => {
    * locally and then quietly never reach the server.
    */
   it("every offline-capable viewer action has a matching outbox kind", () => {
-    const kindFor: Record<string, string> = {
-      favorite: "favorite",
-      hide: "hide",
-      trash: "trash",
-      restore: "trash",
-      rating: "rating",
-      caption: "caption",
-      addToAlbum: "album_add",
-      removeFromAlbum: "album_remove",
-      renamePerson: "person_rename",
-    };
-    for (const [action, kind] of Object.entries(kindFor)) {
-      expect(isViewerActionOfflineCapable(action as never)).toBe(true);
+    const kindFor: [ViewerAction, string][] = [
+      ["favorite", "favorite"],
+      ["hide", "hide"],
+      ["trash", "trash"],
+      ["restore", "trash"],
+      ["rating", "rating"],
+      ["caption", "caption"],
+      ["addToAlbum", "album_add"],
+      ["removeFromAlbum", "album_remove"],
+      ["renamePerson", "person_rename"],
+    ];
+    for (const [action, kind] of kindFor) {
+      expect(isViewerActionOfflineCapable(action)).toBe(true);
       expect(OFFLINE_KINDS).toContain(kind);
     }
   });

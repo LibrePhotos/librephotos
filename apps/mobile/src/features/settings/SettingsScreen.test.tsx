@@ -9,7 +9,7 @@ import { useToastStore } from "@/stores/toasts";
 import SELF_USER from "../../../../../packages/api-client/src/__tests__/fixtures/user.json";
 
 // Avoid pulling the expo-native sync chain (and real network) into the test.
-jest.mock("@/sync/run", () => ({ runSync: jest.fn() }));
+jest.mock("@/sync/run", () => ({ runSync: jest.fn<void, unknown[]>() }));
 
 function client(onPatch?: (body: unknown) => void) {
   return makeMockClient(async (url, init) => {
@@ -29,7 +29,7 @@ describe("SettingsScreen", () => {
     useAuthStore.setState({ userId: 1 });
     useToastStore.setState({ toasts: [] });
     useSettingsStore.setState({ theme: "system", locale: "en", thumbCapBytes: 2 * 1024 * 1024 * 1024 });
-    (globalThis as { __mockNetworkConnected?: boolean }).__mockNetworkConnected = true;
+    globalThis.__mockNetworkConnected = true;
   });
   afterEach(() => t.close());
 

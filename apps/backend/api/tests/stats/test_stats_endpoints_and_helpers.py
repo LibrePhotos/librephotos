@@ -236,8 +236,8 @@ class StackStatsAccuracyTestCase(APITestCase):
 
         response = self.client.get("/api/stacks/stats")
         self.assertEqual(response.status_code, 200)
-        # Total: 4 + 3 = 7 photos
-        self.assertEqual(response.data["photos_in_stacks"], 7)
+        # Only the burst's 3: the list never shows deprecated RAW+JPEG stacks
+        self.assertEqual(response.data["photos_in_stacks"], 3)
 
     def test_photo_in_multiple_stacks_counted_once(self):
         """Test that a photo in multiple stacks is counted only once."""
@@ -445,8 +445,9 @@ class StatsEdgeCasesTestCase(APITestCase):
 
         response = self.client.get("/api/stacks/stats")
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data["total_stacks"], 1)
-        self.assertEqual(response.data["photos_in_stacks"], 1)
+        # Not counted: the list only shows stacks of at least 2 photos
+        self.assertEqual(response.data["total_stacks"], 0)
+        self.assertEqual(response.data["photos_in_stacks"], 0)
 
     def test_deleted_photo_in_group(self):
         """Test stats when photo has been deleted from group."""

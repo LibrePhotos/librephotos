@@ -9,16 +9,19 @@ import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import i18n from "../../i18n";
+import { defined } from "../../util/defined.test-utils";
 import { SHOW_EVERYTHING, type TimelineFilter } from "./timelineFilter";
 import { TimelineFilterPopover } from "./TimelineFilterPopover";
 
-const onChange = vi.fn();
-const onReset = vi.fn();
-const onSaveDefault = vi.fn();
+type PopoverProps = React.ComponentProps<typeof TimelineFilterPopover>;
+
+const onChange = vi.fn<PopoverProps["onChange"]>();
+const onReset = vi.fn<PopoverProps["onReset"]>();
+const onSaveDefault = vi.fn<PopoverProps["onSaveDefault"]>();
 
 beforeAll(async () => {
-  // @ts-ignore - jsdom has no matchMedia, MantineProvider needs it
-  window.matchMedia = (query: string) => ({
+  // jsdom has no matchMedia, MantineProvider needs it
+  window.matchMedia = (query: string): MediaQueryList => ({
     matches: false,
     media: query,
     onchange: null,
@@ -28,13 +31,12 @@ beforeAll(async () => {
     removeEventListener: () => {},
     dispatchEvent: () => false,
   });
-  // @ts-ignore - jsdom has no ResizeObserver, SegmentedControl needs it
+  // jsdom has no ResizeObserver, SegmentedControl needs it
   globalThis.ResizeObserver = class {
     observe() {}
     unobserve() {}
     disconnect() {}
   };
-  // @ts-ignore
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   await i18n.changeLanguage("en");
 });
@@ -78,13 +80,13 @@ function buttonByText(text: string): HTMLButtonElement {
     candidate => candidate.textContent?.trim() === text
   );
   if (!button) throw new Error(`no button "${text}"`);
-  return button as HTMLButtonElement;
+  return button;
 }
 
 // The Filter button is the first button on the page.
 async function open() {
   await act(async () => {
-    document.body.querySelector("button")!.click();
+    defined(document.body.querySelector("button")).click();
   });
 }
 
@@ -94,17 +96,17 @@ function switchLabelled(text: string): HTMLInputElement {
   );
   const input = label?.closest(".mantine-Switch-root")?.querySelector("input");
   if (!input) throw new Error(`no switch "${text}"`);
-  return input as HTMLInputElement;
+  return input;
 }
 
 describe("TimelineFilterPopover", () => {
   it("shows no badge while nothing filters, and the count once something does", async () => {
     const plain = await renderPopover(SHOW_EVERYTHING);
-    expect(plain.querySelector("button")!.textContent).toBe("Filter");
+    expect(defined(plain.querySelector("button")).textContent).toBe("Filter");
 
     document.body.innerHTML = "";
     const filtered = await renderPopover({ ...SHOW_EVERYTHING, hide_screenshots: true, media: "photos" });
-    expect(filtered.querySelector("button")!.textContent).toBe("Filter2");
+    expect(defined(filtered.querySelector("button")).textContent).toBe("Filter2");
   });
 
   it("hands the toggled filter up", async () => {
@@ -149,7 +151,7 @@ describe("TimelineFilterPopover", () => {
 
   it("names the media type control and waits for the saved default", async () => {
     await renderPopover(SHOW_EVERYTHING, SHOW_EVERYTHING, false);
-    expect(document.body.querySelector("button")!.disabled).toBe(true);
+    expect(defined(document.body.querySelector("button")).disabled).toBe(true);
 
     document.body.innerHTML = "";
     await renderPopover(SHOW_EVERYTHING);
@@ -159,11 +161,11 @@ describe("TimelineFilterPopover", () => {
 
   it("shrinks to an icon with a count on a phone", async () => {
     const wide = window.matchMedia;
-    // @ts-ignore - every media query matches: the phone layout
-    window.matchMedia = (query: string) => ({ ...wide(query), matches: true });
+    // Every media query matches: the phone layout
+    window.matchMedia = (query: string): MediaQueryList => ({ ...wide(query), matches: true });
     try {
       await renderPopover({ ...SHOW_EVERYTHING, hide_documents: true });
-      const button = document.body.querySelector("button")!;
+      const button = defined(document.body.querySelector("button"));
       expect(button.getAttribute("aria-label")).toBe("Filter, 1 filter active");
       expect(button.textContent).toBe("");
     } finally {
@@ -179,6 +181,6 @@ describe("TimelineFilterPopover", () => {
     const photos = Array.from(document.body.querySelectorAll<HTMLInputElement>("input[type=radio]")).find(
       input => input.value === "photos"
     );
-    expect(photos!.disabled).toBe(true);
+    expect(defined(photos).disabled).toBe(true);
   });
 });

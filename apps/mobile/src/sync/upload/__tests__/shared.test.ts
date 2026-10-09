@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import { createTestDb, type TestDb } from "@/db/test-db";
 import { enqueueSharedUploads, SHARED_UPLOADS_ALBUM_ID } from "../shared";
 import { sweepOrphanAssets } from "@/sync/device/media-store";
+import { defined } from "@/test/defined";
 
 describe("enqueueSharedUploads", () => {
   let t: TestDb;
@@ -19,7 +20,7 @@ describe("enqueueSharedUploads", () => {
 
     const assets = t.db.all(sql`SELECT id, hash FROM local_asset ORDER BY id`) as { id: string; hash: string | null }[];
     expect(assets.map((a) => a.id)).toEqual(["s1", "s2"]);
-    expect(assets[0]!.hash).toBeNull(); // hashed later by the hash pass
+    expect(defined(assets[0]).hash).toBeNull(); // hashed later by the hash pass
 
     const queued = t.db.all(sql`SELECT asset_id, state FROM upload_queue ORDER BY asset_id`) as {
       asset_id: string;

@@ -1,16 +1,15 @@
 """A disk cache of transcoded videos, so a converted video can be sought.
 
 Some videos a library holds are in containers or codecs the browser cannot
-decode, and the per-user "Always transcode videos" setting exists to get those
-users something playable: the file is piped through ffmpeg and streamed out as
-mp4 while it is being converted.
+decode. Those, and every video of a user with "Always transcode videos" on, are
+piped through ffmpeg and streamed out as mp4 while they are being converted.
 
 A live conversion cannot be sought, and nothing about the player can change
 that. Its length is not known until it ends, so the response carries no
 ``Content-Length`` and no ``Accept-Ranges``; a ``Range`` request against it can
-only be answered with the whole stream from the beginning. For anyone with that
-setting on, every video therefore plays start to finish with no duration, no
-scrub bar and no way to skip -- a limitation with no notice attached to it.
+only be answered with the whole stream from the beginning. Every converted
+video therefore plays start to finish with no duration, no scrub bar and no way
+to skip.
 
 So the conversion is also written to a real file, once, in the background. The
 next play of that video is served from the file: an ordinary mp4 with a length

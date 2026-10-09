@@ -8,23 +8,39 @@
  *
  * The leading "-" keeps the TanStack router plugin from treating this file as a route.
  */
+import type { UseNavigateResult } from "@tanstack/react-router";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import type { useFetchDateAlbumQuery, useFetchDateAlbumsQuery } from "../../api_client/albums/hooks";
+import { Media } from "../../api_client/photos/types";
+import type { PigPhoto } from "../../api_client/photos/types";
+import type { useSaveDefaultTimelineFilterMutation } from "../../api_client/user/hooks";
+import type { PhotoListView } from "../../components/photolist/PhotoListView";
+import { TimelineFilterPopover } from "../../components/photolist/TimelineFilterPopover";
 import i18n from "../../i18n";
+import { defined } from "../../util/defined.test-utils";
+
+type ListArgs = Parameters<typeof useFetchDateAlbumsQuery>;
+type DayArgs = Parameters<typeof useFetchDateAlbumQuery>;
+type PhotoListViewProps = React.ComponentProps<typeof PhotoListView>;
+type SaveDefaultRequest = Parameters<ReturnType<typeof useSaveDefaultTimelineFilterMutation>["mutate"]>[0];
+/** The callbacks the timeline hands the save mutation, as these tests invoke them. */
+type SaveDefaultCallbacks = { onSuccess: () => void };
 
 const stubs = vi.hoisted(() => ({
   component: undefined as React.ComponentType | undefined,
   search: {} as Record<string, unknown>,
   user: undefined as { id: number; photo_count?: number; default_timeline_filter: Record<string, unknown> } | undefined,
-  dayCalls: [] as { options: any; queryOptions: any }[],
-  navigate: vi.fn(),
-  saveDefault: vi.fn(),
-  listCalls: [] as { options: any; queryOptions: any }[],
+  dayCalls: [] as { options: DayArgs[0]; queryOptions: DayArgs[1] }[],
+  navigate: vi.fn<UseNavigateResult<string>>(),
+  saveDefault: vi.fn<(request: SaveDefaultRequest, callbacks: SaveDefaultCallbacks) => void>(),
+  listCalls: [] as { options: ListArgs[0]; queryOptions: ListArgs[1] }[],
   // One object, like the query cache: a fresh one per render loops the
   // route's effect that flattens it.
   listResult: { data: [], isLoading: false, refetch: () => {} },
-  listProps: undefined as any,
+  listProps: undefined as PhotoListViewProps | undefined,
+  noScanDirectory: false,
 }));
 
 vi.mock("@tanstack/react-router", () => ({
@@ -40,25 +56,27 @@ vi.mock("../../api_client/user/hooks", () => ({
   useSaveDefaultTimelineFilterMutation: () => ({ mutate: stubs.saveDefault, isPending: false }),
 }));
 vi.mock("../../api_client/albums/hooks", () => ({
-  useFetchDateAlbumsQuery: (options: any, queryOptions: any) => {
+  useFetchDateAlbumsQuery: (...[options, queryOptions]: ListArgs) => {
     stubs.listCalls.push({ options, queryOptions });
     return stubs.listResult;
   },
-  useFetchDateAlbumQuery: (options: any, queryOptions: any) => {
+  useFetchDateAlbumQuery: (...[options, queryOptions]: DayArgs) => {
     stubs.dayCalls.push({ options, queryOptions });
     return {};
   },
 }));
 vi.mock("../../hooks/useWorkerStatus", () => ({ useWorkerStatus: () => ({ workerRunningJob: undefined }) }));
+vi.mock("../../components/photolist/useScanEmptyStateAction", () => ({
+  useHasNoScanDirectory: () => stubs.noScanDirectory,
+}));
 vi.mock("../../components/photolist/PhotoListView", () => ({
-  PhotoListView: (props: any) => {
+  PhotoListView: (props: PhotoListViewProps) => {
     stubs.listProps = props;
     return null;
   },
 }));
 
 beforeAll(async () => {
-  // @ts-ignore
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   await i18n.changeLanguage("en");
   // The cold import of the route takes seconds, longer when the suite runs in parallel
@@ -73,28 +91,58 @@ beforeEach(() => {
   stubs.listCalls = [];
   stubs.dayCalls = [];
   stubs.listProps = undefined;
+  stubs.noScanDirectory = false;
 });
 
+// What the route last rendered PhotoListView with.
+function listProps() {
+  if (!stubs.listProps) throw new Error("PhotoListView was not rendered");
+  return stubs.listProps;
+}
+
+// The props of the Filter button the route puts in the header toolbar.
+function popoverProps() {
+  const button = listProps().headerActions;
+  if (!React.isValidElement<React.ComponentProps<typeof TimelineFilterPopover>>(button)) {
+    throw new Error("no filter button");
+  }
+  expect(button.type).toBe(TimelineFilterPopover);
+  return button.props;
+}
+
+// A day's placeholder tile, standing for a photo of a page not loaded yet.
+const placeholder: PigPhoto = {
+  id: "0",
+  image_hash: "",
+  aspectRatio: 1,
+  type: Media.IMAGE,
+  is_hdr: false,
+  rating: 0,
+  shared_to: [],
+  isTemp: true,
+  has_raw_variant: false,
+};
+
 async function renderTimeline() {
-  const Timeline = stubs.component!;
+  const Timeline = defined(stubs.component);
   const root = createRoot(document.createElement("div"));
   await act(async () => {
     root.render(<Timeline />);
   });
-  return stubs.listCalls.at(-1)!;
+  return defined(stubs.listCalls.at(-1));
 }
 
 describe("the main timeline filter", () => {
   it("applies the saved default to the queries and to select-all", async () => {
     const { options, queryOptions } = await renderTimeline();
-    expect(queryOptions.skip).toBe(false);
+    expect(queryOptions?.skip).toBe(false);
     expect(options.timelineFilter).toEqual({
       media: "all",
       hide_screenshots: true,
       hide_documents: false,
       favorites: false,
     });
-    expect(stubs.listProps.photosetQuery).toEqual({ hide_screenshots: true });
+    expect(listProps().photosetQuery).toEqual({ hide_screenshots: true });
   });
 
   it("lets URL params override the default key by key", async () => {
@@ -107,19 +155,19 @@ describe("the main timeline filter", () => {
       favorites: false,
     });
     // Select-all acts on exactly this view.
-    expect(stubs.listProps.photosetQuery).toEqual({ media: "photos", hide_documents: true });
+    expect(listProps().photosetQuery).toEqual({ media: "photos", hide_documents: true });
   });
 
   it("waits for the saved default before fetching", async () => {
     stubs.user = undefined;
     const { queryOptions } = await renderTimeline();
-    expect(queryOptions.skip).toBe(true);
-    expect(stubs.listProps.loading).toBe(true);
+    expect(queryOptions?.skip).toBe(true);
+    expect(listProps().loading).toBe(true);
   });
 
   it("writes a changed filter to the URL as overrides of the default", async () => {
     await renderTimeline();
-    const popover = stubs.listProps.headerActions.props;
+    const popover = popoverProps();
     await act(async () => {
       popover.onChange({ media: "videos", hide_screenshots: true, hide_documents: false, favorites: false });
     });
@@ -135,7 +183,7 @@ describe("the main timeline filter", () => {
     stubs.search = { hide_documents: true };
     await renderTimeline();
     await act(async () => {
-      stubs.listProps.headerActions.props.onSaveDefault();
+      popoverProps().onSaveDefault();
     });
     const [request, callbacks] = stubs.saveDefault.mock.calls[0];
     expect(request).toEqual({
@@ -150,45 +198,59 @@ describe("the main timeline filter", () => {
 
   it("says what the filter hides under the counter", async () => {
     await renderTimeline();
-    expect(stubs.listProps.additionalSubHeader.props.children).toBe("Filtered: no screenshots");
+    const summary = listProps().additionalSubHeader;
+    expect(React.isValidElement<{ children?: React.ReactNode }>(summary) && summary.props.children).toBe(
+      "Filtered: no screenshots"
+    );
 
     stubs.user = { id: 1, default_timeline_filter: {} };
     await renderTimeline();
-    expect(stubs.listProps.additionalSubHeader).toBeNull();
+    expect(listProps().additionalSubHeader).toBeNull();
   });
 
   it("hands the popover its readiness", async () => {
     stubs.user = undefined;
     await renderTimeline();
-    expect(stubs.listProps.headerActions.props.ready).toBe(false);
+    expect(popoverProps().ready).toBe(false);
   });
 
   it("tells an empty library from a filter that hides everything", async () => {
     stubs.user = { id: 1, photo_count: 0, default_timeline_filter: { hide_screenshots: true } };
     await renderTimeline();
-    expect(stubs.listProps.emptyStateConfig.actionLink).toBe("/library");
+    expect(listProps().emptyStateConfig?.actionLink).toBe("/library");
 
     stubs.user = { id: 1, photo_count: 12, default_timeline_filter: { hide_screenshots: true } };
     await renderTimeline();
-    expect(stubs.listProps.emptyStateConfig.title).toBe("Nothing matches this filter");
+    expect(listProps().emptyStateConfig?.title).toBe("Nothing matches this filter");
+  });
+
+  it("points a user without a scan folder at what others shared, unless a filter hides their photos", async () => {
+    stubs.noScanDirectory = true;
+    stubs.user = { id: 1, photo_count: 0, default_timeline_filter: {} };
+    await renderTimeline();
+    expect(listProps().emptyStateConfig?.actionLink).toBe("/sharing/withme/albums");
+
+    stubs.user = { id: 1, photo_count: 12, default_timeline_filter: { hide_screenshots: true } };
+    await renderTimeline();
+    expect(listProps().emptyStateConfig?.title).toBe("Nothing matches this filter");
   });
 
   it("does not ask for a day of the old list after the filter changed", async () => {
-    const Timeline = stubs.component!;
+    const Timeline = defined(stubs.component);
     const root = createRoot(document.createElement("div"));
     await act(async () => {
       root.render(<Timeline />);
     });
     await act(async () => {
-      stubs.listProps.updateGroups([{ id: "day-1", items: [{ id: "0", isTemp: true }] }]);
+      defined(listProps().updateGroups)([{ id: "day-1", date: null, items: [placeholder] }]);
     });
-    expect(stubs.dayCalls.at(-1)!.options.album_date_id).toBe("day-1");
-    expect(stubs.dayCalls.at(-1)!.queryOptions.skip).toBe(false);
+    expect(defined(stubs.dayCalls.at(-1)).options.album_date_id).toBe("day-1");
+    expect(defined(stubs.dayCalls.at(-1)).queryOptions?.skip).toBe(false);
 
     stubs.search = { media: "videos" };
     await act(async () => {
       root.render(<Timeline />);
     });
-    expect(stubs.dayCalls.at(-1)!.queryOptions.skip).toBe(true);
+    expect(defined(stubs.dayCalls.at(-1)).queryOptions?.skip).toBe(true);
   });
 });

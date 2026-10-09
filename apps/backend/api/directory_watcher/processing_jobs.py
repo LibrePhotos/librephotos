@@ -618,13 +618,42 @@ def videos_to_probe(user):
     )
 
 
+def _repair_probed_video(photo, fields):
+    """Rebuild what was made from ``photo`` wrongly, then save its probe.
+
+    ``fields`` are the probed values :func:`video_color.apply_probe` set on the
+    photo. They are saved last, so that a worker killed half-way through the
+    rebuild -- a container restart while ffmpeg runs -- leaves the video
+    unprobed and the next scan's backfill tries it again, putting its set-aside
+    thumbnails back first. A rebuild that fails cleanly has put them back
+    already, and trying again would only fail again, so that one is saved.
+    """
+    try:
+        if video_color.converted_wrongly_before(photo):
+            transcode_cache.discard(photo.image_hash)
+            # Fetched with select_related, so its photo is this one, and the
+            # rebuild reads the values not saved yet.
+            thumbnail = getattr(photo, "thumbnail", None)
+            if thumbnail is not None:
+                # If ffmpeg fails, the old thumbnail stays: washed out or not,
+                # it is the video's picture, and none at all would be worse.
+                thumbnail._regenerate_thumbnails(keep_old_on_failure=True)
+    except Exception:
+        photo.save(save_metadata=False, update_fields=fields)
+        raise
+    photo.save(save_metadata=False, update_fields=fields)
+
+
 def probe_videos(user, job_id: UUID):
     """Probe the videos indexed before the scan stored what they are.
 
     New videos are probed as they are scanned. Older ones would never be: the
-    scan skips a file it already knows. Until they are, every conversion of one
-    probes the file itself, and their thumbnails date from before HDR sources
-    were tonemapped and every output was forced to 8-bit 4:2:0 --
+    scan skips a file it already knows. (A full rescan does not, and does the
+    repair below itself while none of these jobs is running: see
+    ``file_handlers._process_photo``.) Until they are,
+    every conversion of one probes the file itself, and their thumbnails date
+    from before HDR sources were tonemapped and every output was forced to
+    8-bit 4:2:0 --
     ``_generate_thumbnail`` keeps a thumbnail that exists, so a washed-out or
     unplayable one stays that way, and so does the cached copy. This fills the
     fields in and, for the videos :func:`video_color.converted_wrongly_before`
@@ -649,16 +678,17 @@ def probe_videos(user, job_id: UUID):
                 return
             error = None
             try:
-                if not video_color.record(photo):
+                if Photo.objects.filter(
+                    pk=photo.pk, video_color_transfer__isnull=False
+                ).exists():
+                    # Probed and repaired since this job listed it, by a full
+                    # rescan or another of these jobs; doing it again would
+                    # only rebuild the same thumbnails.
+                    pass
+                elif (fields := video_color.apply_probe(photo)) is None:
                     error = f"Photo {photo.image_hash}: could not probe the video"
-                elif video_color.converted_wrongly_before(photo):
-                    transcode_cache.discard(photo.image_hash)
-                    thumbnail = getattr(photo, "thumbnail", None)
-                    if thumbnail is not None:
-                        # If ffmpeg fails, the old thumbnail stays: washed out
-                        # or not, it is the video's picture, and none at all
-                        # would be worse.
-                        thumbnail._regenerate_thumbnails(keep_old_on_failure=True)
+                else:
+                    _repair_probed_video(photo, fields)
             except Exception as err:
                 logger.exception("An error occurred: ")
                 error = (

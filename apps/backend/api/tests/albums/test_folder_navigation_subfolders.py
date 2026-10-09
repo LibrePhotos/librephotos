@@ -58,15 +58,21 @@ class SubfoldersAuthTests(SubfoldersTestBase):
         resp = APIClient().get(URL)
         self.assertIn(resp.status_code, (401, 403))
 
-    def test_regular_user_without_scan_directory_is_rejected(self):
+    def test_regular_user_without_scan_directory_gets_empty_listing(self):
+        # A user who only sees shared albums has no folders: the album hub and
+        # the Folders page asked on every visit and logged a 403 each time.
         user = create_test_user()  # scan_directory defaults to ""
         resp = self.client_for(user).get(URL)
-        self.assertEqual(resp.status_code, 403)
-        self.assertEqual(resp.json(), {"error": "User scan directory not configured"})
+        self.assertEqual(resp.status_code, 200)
+        body = resp.json()
+        self.assertEqual(body["subfolders"], [])
+        self.assertIsNone(body["current_path"])
+        self.assertIsNone(body["parent_path"])
+        self.assertEqual(body["pagination"]["total_folders"], 0)
+        self.assertFalse(body["pagination"]["has_next"])
 
     def test_regular_user_without_scan_directory_rejected_even_with_path(self):
-        # The default-path branch runs before ``path`` is read, so an explicit
-        # (valid) path does not help a user with no scan directory.
+        # An explicit (valid) path does not help a user with no scan directory.
         user = create_test_user()
         resp = self.client_for(user).get(URL, {"path": self.root})
         self.assertEqual(resp.status_code, 403)
@@ -231,6 +237,23 @@ class SubfoldersListingTests(SubfoldersTestBase):
         self.assertEqual(entry["path"], os.path.join(self.root, "alpha"))
         self.assertEqual(entry["photo_count"], 1)
         self.assertIsInstance(entry["modified"], float)
+
+    def test_hidden_and_trashed_photos_are_not_counted(self):
+        admin = create_test_user(is_admin=True)
+        _mkdirs(self.root, "a", "b")
+        self.add_photo_in(admin, os.path.join(self.root, "a"))
+        trashed = self.add_photo_in(admin, os.path.join(self.root, "a"), "t.jpg")
+        trashed.in_trashcan = True
+        trashed.save(update_fields=["in_trashcan"])
+        hidden = self.add_photo_in(admin, os.path.join(self.root, "b"))
+        hidden.hidden = True
+        hidden.save(update_fields=["hidden"])
+
+        body = self.client_for(admin).get(URL).json()
+        self.assertEqual(
+            [(f["name"], f["photo_count"]) for f in body["subfolders"]], [("a", 1)]
+        )
+        self.assertEqual(body["pagination"]["total_folders"], 2)
 
     def test_hidden_folders_and_files_are_ignored(self):
         admin = create_test_user(is_admin=True)

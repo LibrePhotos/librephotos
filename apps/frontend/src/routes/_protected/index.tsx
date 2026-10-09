@@ -5,7 +5,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchDateAlbumQuery, useFetchDateAlbumsQuery } from "../../api_client/albums/hooks";
 import { Photoset, PigPhoto } from "../../api_client/photos/types";
-import { EmptyStateConfig, PhotoGroup, PhotoListView } from "../../components/photolist/PhotoListView";
+import { NO_PHOTO_GROUP, type PhotoGroup } from "../../components/photolist/photoGroup";
+import { EmptyStateConfig, PhotoListView } from "../../components/photolist/PhotoListView";
 import {
   countActiveFilters,
   describeTimelineFilter,
@@ -15,7 +16,9 @@ import {
   validateTimelineSearch,
 } from "../../components/photolist/timelineFilter";
 import { TimelineFilterPopover } from "../../components/photolist/TimelineFilterPopover";
+import { useHasNoScanDirectory } from "../../components/photolist/useScanEmptyStateAction";
 import { useTimelineFilter } from "../../components/photolist/useTimelineFilter";
+import type { PigVisibleGroup } from "../../components/react-pig";
 import { useWorkerStatus } from "../../hooks/useWorkerStatus";
 import { i18nResolvedLanguage } from "../../i18n";
 import { getPhotosFlatFromGroupedByDate } from "../../util/util";
@@ -32,6 +35,9 @@ function TimestampPhotos() {
   const { t } = useTranslation();
   const [photosFlat, setPhotosFlat] = useState<PigPhoto[]>([]);
   const { workerRunningJob } = useWorkerStatus();
+  // Only an admin can set a user's scan folder, so "Go to Library" would be a
+  // dead end; point at what others shared instead.
+  const hasNoScanDirectory = useHasNoScanDirectory();
   const {
     current: filter,
     saved: savedFilter,
@@ -60,17 +66,18 @@ function TimestampPhotos() {
   // The day page to load, with the filter it was asked under: after the
   // filter changes, a day of the old list is not requested again under the
   // new filter (it may not even be in the new list).
-  const [group, setGroup] = useState({} as PhotoGroup & { filterKey?: string });
+  const [group, setGroup] = useState<PhotoGroup & { filterKey?: string }>(NO_PHOTO_GROUP);
   useFetchDateAlbumQuery(
     { album_date_id: group.id, page: group.page, photosetType: Photoset.NONE, timelineFilter: filter },
     { skip: !group.id || !filterReady || group.filterKey !== filterKey }
   );
 
-  const getAlbums = (visibleGroups: any) => {
-    visibleGroups.reverse().forEach((photoGroup: any) => {
-      const visibleImages = photoGroup.items;
-      if (visibleImages.filter((i: any) => i.isTemp).length > 0) {
-        const firstTempObject = visibleImages.filter((i: any) => i.isTemp)[0];
+  // Pig reports the date groups on screen; a group's first placeholder tile
+  // names the page of that day still to load.
+  const getAlbums = (visibleGroups: PigVisibleGroup<PigPhoto>[]) => {
+    visibleGroups.reverse().forEach(photoGroup => {
+      const firstTempObject = photoGroup.items.find(i => i.isTemp);
+      if (firstTempObject) {
         const page = Math.ceil((parseInt(firstTempObject.id, 10) + 1) / 100);
 
         setGroup({ id: photoGroup.id, page, filterKey });
@@ -88,7 +95,8 @@ function TimestampPhotos() {
     if (isScanRunning && workerRunningJob) {
       return {
         icon: <Photo size={40} />,
-        title: `${t("emptystate.scanning.title")} — ${workerRunningJob.job_type_str}`,
+        // The English job name is also the translation key, as in the job list.
+        title: `${t("emptystate.scanning.title")} — ${t(workerRunningJob.job_type_str)}`,
         description: t("emptystate.scanning.refresh"),
         actionLabel: t("emptystate.scanning.refreshButton"),
         onAction: () => refetch(),
@@ -111,6 +119,16 @@ function TimestampPhotos() {
       };
     }
 
+    if (hasNoScanDirectory) {
+      return {
+        icon: <Photo size={40} />,
+        title: t("emptystate.photos.title"),
+        description: t("emptystate.photos.noscandirectory"),
+        actionLabel: t("sidemenu.sharedwithyou"),
+        actionLink: "/sharing/withme/albums",
+      };
+    }
+
     return {
       icon: <Photo size={40} />,
       title: t("emptystate.photos.title"),
@@ -118,7 +136,7 @@ function TimestampPhotos() {
       actionLabel: t("emptystate.goToLibrary"),
       actionLink: "/library",
     };
-  }, [t, isScanRunning, workerRunningJob, refetch, filterActive, libraryEmpty, setFilter]);
+  }, [t, isScanRunning, workerRunningJob, refetch, filterActive, libraryEmpty, setFilter, hasNoScanDirectory]);
 
   // Select-all carries the filter on screen, so "select all, then delete"
   // never reaches the screenshots or documents the timeline hides.

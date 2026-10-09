@@ -1,17 +1,17 @@
-import { ActionIcon, Button, Group, Modal, Space, Stack, Text, Title, Tooltip } from "@mantine/core";
+import { ActionIcon, Button, Group, Modal, Space, Stack, Text, Tooltip } from "@mantine/core";
 import { IconArrowBackUp as ArrowBackUp, IconTrash as Trash } from "@tabler/icons-react";
 import { useLocation } from "@tanstack/react-router";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMarkPhotosDeletedMutation, usePurgeDeletedPhotosMutation } from "../../api_client/photos/hooks";
-import { BulkPhotoQuery } from "../../api_client/photos/types";
+import { BulkPhotoQuery, PigPhoto, SelectionState } from "../../api_client/photos/types";
 
 type Props = {
-  selectedItems: any[];
+  selectedItems: PigPhoto[];
   selectAllMode?: boolean;
   selectAllQuery?: BulkPhotoQuery;
   totalCount?: number;
-  updateSelectionState: (input: any) => void;
+  updateSelectionState: (input: Partial<SelectionState>) => void;
 };
 
 export function TrashcanActions(props: Readonly<Props>) {
@@ -79,21 +79,22 @@ export function TrashcanActions(props: Readonly<Props>) {
   // Check if any action is possible
   const hasSelection = selectAllMode || selectedItems.length > 0;
   const selectedCount = getSelectedCount();
+  // Shared by each Tooltip and the aria-label of its icon-only button.
+  const restoreLabel =
+    selectedCount === 1 ? t("trash.restorePhoto") : t("trash.restorePhotos", { count: selectedCount });
+  const deleteLabel =
+    selectedCount === 1 ? t("trash.deletePermanently") : t("trash.deletePhotosPermanently", { count: selectedCount });
 
   return (
     <Group>
       {location.pathname.startsWith("/deleted") && (
         <>
-          <Tooltip
-            label={selectedCount === 1 ? t("trash.restorePhoto") : t("trash.restorePhotos", { count: selectedCount })}
-            position="bottom"
-            withArrow
-          >
+          <Tooltip label={restoreLabel} position="bottom" withArrow>
             <ActionIcon
               disabled={!hasSelection}
               variant="light"
               color="blue"
-              size="lg"
+              aria-label={restoreLabel}
               onClick={() => {
                 if (selectAllMode) {
                   markPhotosDeleted.mutate(
@@ -138,20 +139,12 @@ export function TrashcanActions(props: Readonly<Props>) {
             </ActionIcon>
           </Tooltip>
 
-          <Tooltip
-            label={
-              selectedCount === 1
-                ? t("trash.deletePermanently")
-                : t("trash.deletePhotosPermanently", { count: selectedCount })
-            }
-            position="bottom"
-            withArrow
-          >
+          <Tooltip label={deleteLabel} position="bottom" withArrow>
             <ActionIcon
               disabled={!hasSelection}
               variant="light"
               color="red"
-              size="lg"
+              aria-label={deleteLabel}
               onClick={() => {
                 setOpenDeleteDialog(true);
               }}
@@ -167,14 +160,8 @@ export function TrashcanActions(props: Readonly<Props>) {
         onClose={closeDialog}
         centered
         size="md"
-        title={
-          <Title order={5}>
-            <span style={{ paddingRight: "8px" }}>
-              <Trash size={20} />
-            </span>
-            {t("toasts.finaldeletephototitle")}
-          </Title>
-        }
+        // Plain text, styled by the app's Modal theme like every other dialog's title
+        title={t("toasts.finaldeletephototitle")}
       >
         <Stack>
           <Text size="sm">{t("trash.permanentDeleteWarning", { count: selectedCount })}</Text>

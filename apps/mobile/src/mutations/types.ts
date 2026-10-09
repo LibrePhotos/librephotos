@@ -89,5 +89,10 @@ export type OutboxRow = {
   next_attempt_at: number | null;
 };
 
+/** Whether a string names one of the outbox kinds above. */
+export function isOutboxKind(kind: string): kind is OutboxKind {
+  return Object.prototype.hasOwnProperty.call(OUTBOX_SCHEMAS, kind);
+}
+
 /** All outbox kinds that are offline-capable (i.e. produced by this module). */
-export const OFFLINE_KINDS = Object.keys(OUTBOX_SCHEMAS) as OutboxKind[];
+export const OFFLINE_KINDS: OutboxKind[] = Object.keys(OUTBOX_SCHEMAS).filter(isOutboxKind);

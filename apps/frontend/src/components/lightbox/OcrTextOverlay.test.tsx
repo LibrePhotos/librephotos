@@ -12,6 +12,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { act } from "react-dom/test-utils";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { PhotoOcrBlock } from "../../api_client/photos/types";
+import { defined } from "../../util/defined.test-utils";
 import { OcrTextOverlay, placeBlock } from "./OcrTextOverlay";
 
 const axisAlignedBlock: PhotoOcrBlock = {
@@ -33,11 +34,11 @@ describe("placeBlock", () => {
   it("maps a normalized axis-aligned quad into viewBox units", () => {
     const placed = placeBlock(axisAlignedBlock, viewHeight);
     expect(placed).not.toBeNull();
-    expect(placed!.x).toBeCloseTo(100);
-    expect(placed!.y).toBeCloseTo(50);
-    expect(placed!.width).toBeCloseTo(500);
-    expect(placed!.height).toBeCloseTo(50);
-    expect(placed!.angle).toBeCloseTo(0);
+    expect(defined(placed).x).toBeCloseTo(100);
+    expect(defined(placed).y).toBeCloseTo(50);
+    expect(defined(placed).width).toBeCloseTo(500);
+    expect(defined(placed).height).toBeCloseTo(50);
+    expect(defined(placed).angle).toBeCloseTo(0);
   });
 
   it("derives the rotation angle from the top edge", () => {
@@ -55,7 +56,7 @@ describe("placeBlock", () => {
     };
     const placed = placeBlock(rotated, 1000);
     expect(placed).not.toBeNull();
-    expect(placed!.angle).toBeCloseTo(45);
+    expect(defined(placed).angle).toBeCloseTo(45);
   });
 
   it("rejects degenerate and malformed blocks", () => {
@@ -103,19 +104,19 @@ describe("OcrTextOverlay", () => {
     const svg = container.querySelector("svg");
     expect(svg).not.toBeNull();
     // viewBox height follows the aspect ratio so glyphs stay undistorted.
-    expect(svg!.getAttribute("viewBox")).toBe("0 0 1000 500");
+    expect(defined(svg).getAttribute("viewBox")).toBe("0 0 1000 500");
     const text = container.querySelector("text");
     expect(text).not.toBeNull();
-    expect(text!.textContent).toBe("TOTAL 12.34");
-    expect(text!.getAttribute("fill")).toBe("transparent");
-    expect(text!.getAttribute("textLength")).not.toBeNull();
+    expect(defined(text).textContent).toBe("TOTAL 12.34");
+    expect(defined(text).getAttribute("fill")).toBe("transparent");
+    expect(defined(text).getAttribute("textLength")).not.toBeNull();
   });
 
   it("keeps the svg transparent to pointer events, glyphs interactive", () => {
     render([axisAlignedBlock]);
     const svg = container.querySelector("svg");
-    expect(svg!.style.pointerEvents).toBe("none");
-    const text = container.querySelector("text") as SVGTextElement;
+    expect(defined(svg).style.pointerEvents).toBe("none");
+    const text = defined(container.querySelector("text"));
     expect(text.style.pointerEvents).toBe("auto");
   });
 
@@ -131,7 +132,7 @@ describe("OcrTextOverlay", () => {
       escaped = true;
     };
     container.addEventListener("pointerdown", listener);
-    const text = container.querySelector("text") as SVGTextElement;
+    const text = defined(container.querySelector("text"));
     // jsdom lacks PointerEvent; a bubbling Event with the right type is enough
     // to exercise the native capture-free stopPropagation listener.
     text.dispatchEvent(new Event("pointerdown", { bubbles: true }));

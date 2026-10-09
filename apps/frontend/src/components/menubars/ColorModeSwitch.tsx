@@ -1,10 +1,12 @@
-import { ActionIcon, Tooltip, useMantineColorScheme } from "@mantine/core";
+import { ActionIcon, Tooltip, useComputedColorScheme, useMantineColorScheme } from "@mantine/core";
 import { IconMoon as Moon, IconSun as Sun } from "@tabler/icons-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
 export function ColorModeSwitch(): React.ReactNode {
-  const { colorScheme, toggleColorScheme } = useMantineColorScheme();
+  const { toggleColorScheme } = useMantineColorScheme();
+  // The raw scheme is "auto" until the user picks one; show the one in effect.
+  const colorScheme = useComputedColorScheme("light", { getInitialValueInEffect: false });
   const { t } = useTranslation();
 
   return (
@@ -14,7 +16,8 @@ export function ColorModeSwitch(): React.ReactNode {
         variant="light"
         color="gray"
         size={30}
-        aria-label="Toggle color scheme"
+        // The action, not just the noun: the state is only in the tooltip.
+        aria-label={t("settings.togglecolorscheme")}
       >
         {colorScheme === "dark" ? <Moon size="1.1rem" /> : <Sun size="1.1rem" />}
       </ActionIcon>

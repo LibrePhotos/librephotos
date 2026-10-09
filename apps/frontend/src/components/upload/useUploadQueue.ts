@@ -7,6 +7,7 @@ import {
   useUploadMutation,
 } from "../../api_client/upload";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
+import i18n from "../../i18n";
 import { parseWithNotification } from "../../util/zodUtils";
 import { calculateChunks, calculateMD5 } from "./chunkedUpload";
 
@@ -104,9 +105,13 @@ export function useUploadQueue(): UploadQueue {
       const user = userRef.current;
       if (!user) throw new Error("Not signed in");
 
+      // The server cannot store an empty file (there is no chunk to send), and
+      // waiting on one used to stall every file queued after it.
+      if (item.file.size === 0) throw new Error(i18n.t("upload.empty_file"));
+
       patchItem(item.id, { status: "hashing", progress: 0, error: undefined });
       const md5 = await calculateMD5(item.file);
-      const response = await fetchClient.get<string>(`/exists/${md5 + user.id}`);
+      const response = await fetchClient.get(`/exists/${md5 + user.id}`);
       const { exists } = parseWithNotification(UploadExistResponse, response, "Failed to parse upload exists response");
       if (exists) {
         patchItem(item.id, { status: "duplicate", progress: 100 });

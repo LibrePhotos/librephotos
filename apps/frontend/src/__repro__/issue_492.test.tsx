@@ -20,10 +20,15 @@ import { createRoot } from "react-dom/client";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../api_client/api";
 import { ModalUserEdit } from "../components/modals/ModalUserEdit";
+import type { DirectoryPicker } from "../components/setup/DirectoryPicker";
+import type { notification } from "../service/notifications";
+
+/** The callbacks the modal hands the update mutation, as these tests invoke them. */
+type MutateCallbacks = { onError?: (error: unknown) => void; onSuccess?: () => void };
 
 const stubs = vi.hoisted(() => ({
-  updateUser: vi.fn(),
-  updateUserError: vi.fn(),
+  updateUser: vi.fn<(data: unknown, options?: MutateCallbacks) => void>(),
+  updateUserError: vi.fn<typeof notification.updateUserError>(),
 }));
 
 // Mirrors what the backend answers for a scan directory outside DATA_ROOT.
@@ -38,6 +43,7 @@ const authError = new ApiError("Authentication failed", 401);
 
 vi.mock("../api_client/auth", () => ({ useSignUpMutation: () => ({ mutate: () => {} }) }));
 vi.mock("../api_client/jobs", () => ({ useScanPhotosMutation: () => ({ mutate: () => {} }) }));
+vi.mock("../api_client/settings", () => ({ useGetSettingsQuery: () => ({ data: { allow_upload: true } }) }));
 vi.mock("../api_client/user/hooks", () => ({
   useManageUpdateUserMutation: () => ({ mutate: stubs.updateUser }),
 }));
@@ -45,7 +51,7 @@ vi.mock("../service/notifications", () => ({
   notification: { updateUserError: stubs.updateUserError },
 }));
 vi.mock("../components/setup/DirectoryPicker", () => ({
-  DirectoryPicker: ({ value, onChange }: any) => (
+  DirectoryPicker: ({ value, onChange }: Pick<React.ComponentProps<typeof DirectoryPicker>, "value" | "onChange">) => (
     <input
       aria-label="scan_directory"
       name="scan_directory"
@@ -56,8 +62,8 @@ vi.mock("../components/setup/DirectoryPicker", () => ({
 }));
 
 beforeAll(() => {
-  // @ts-ignore - jsdom has no matchMedia, MantineProvider needs it
-  window.matchMedia = (query: string) => ({
+  // jsdom has no matchMedia, MantineProvider needs it
+  window.matchMedia = (query: string): MediaQueryList => ({
     matches: false,
     media: query,
     onchange: null,
@@ -67,13 +73,12 @@ beforeAll(() => {
     removeEventListener: () => {},
     dispatchEvent: () => false,
   });
-  // @ts-ignore - jsdom has no ResizeObserver, Mantine's ScrollArea needs it
+  // jsdom has no ResizeObserver, Mantine's ScrollArea needs it
   globalThis.ResizeObserver = class {
     observe() {}
     unobserve() {}
     disconnect() {}
   };
-  // @ts-ignore
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 });
 
@@ -106,8 +111,10 @@ function renderModal(onRequestClose: () => void) {
 }
 
 function submit() {
-  const form = document.querySelector("form") as HTMLFormElement;
-  const saveButton = Array.from(form.querySelectorAll("button")).find(b => b.type === "submit") as HTMLButtonElement;
+  const form = document.querySelector("form");
+  if (!form) throw new Error("the modal has no form");
+  const saveButton = Array.from(form.querySelectorAll("button")).find(b => b.type === "submit");
+  if (!saveButton) throw new Error("the form has no submit button");
   act(() => {
     saveButton.click();
   });
@@ -121,10 +128,10 @@ describe("issue #492 - saving a rejected scan directory must not fail silently",
   });
 
   function failWith(error: unknown) {
-    stubs.updateUser.mockImplementation((_data: unknown, options: any) => {
+    stubs.updateUser.mockImplementation((_data, options) => {
       options?.onError?.(error);
     });
-    const onRequestClose = vi.fn();
+    const onRequestClose = vi.fn<() => void>();
     renderModal(onRequestClose);
     submit();
     return onRequestClose;
@@ -151,10 +158,10 @@ describe("issue #492 - saving a rejected scan directory must not fail silently",
   });
 
   it("closes the modal once the save actually succeeded", () => {
-    stubs.updateUser.mockImplementation((_data: unknown, options: any) => {
+    stubs.updateUser.mockImplementation((_data, options) => {
       options?.onSuccess?.();
     });
-    const onRequestClose = vi.fn();
+    const onRequestClose = vi.fn<() => void>();
     renderModal(onRequestClose);
 
     submit();

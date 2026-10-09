@@ -4,7 +4,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Image } from "expo-image";
 import { useTranslation } from "react-i18next";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { z } from "zod";
 import { useDb } from "@/db/provider";
+import { parseJson } from "@/lib/guards";
 import { goBackOr } from "@/lib/navigation";
 import { enqueueSharedUploads, type SharedUploadItem } from "@/sync/upload/shared";
 import { runSync } from "@/sync/run";
@@ -19,21 +21,33 @@ import { useTheme } from "@/theme";
  * addition). Each item is enqueued as a one-off upload through the existing
  * upload worker path — NOT the camera-roll backup queue.
  */
+const SharedItemsParam = z.array(z.unknown());
+
+/** One shared item: a uri is required; a name or type of the wrong kind is dropped. */
+const SharedItemParam = z.object({
+  uri: z.string(),
+  name: z.string().optional().catch(undefined),
+  type: z.string().optional().catch(undefined),
+});
+
 export function parseSharedItems(raw: string | string[] | undefined): SharedUploadItem[] {
   if (!raw) return [];
   const text = Array.isArray(raw) ? raw[0] : raw;
+  if (!text) return [];
+  let list: unknown[];
   try {
-    const parsed = JSON.parse(text) as unknown;
-    if (!Array.isArray(parsed)) return [];
-    return parsed
-      .filter((x): x is { uri: string } => !!x && typeof (x as { uri?: unknown }).uri === "string")
-      .map((x, i) => {
-        const o = x as { uri: string; name?: string; type?: string };
-        return { id: `shared:${o.uri}:${i}`, uri: o.uri, name: o.name ?? null, type: o.type ?? "image" };
-      });
+    const parsed = SharedItemsParam.safeParse(parseJson(text));
+    if (!parsed.success) return [];
+    list = parsed.data;
   } catch {
     return [];
   }
+  return list
+    .flatMap((x) => {
+      const item = SharedItemParam.safeParse(x);
+      return item.success ? [item.data] : [];
+    })
+    .map((o, i) => ({ id: `shared:${o.uri}:${i}`, uri: o.uri, name: o.name ?? null, type: o.type ?? "image" }));
 }
 
 export function ShareIntentScreen() {

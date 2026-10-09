@@ -8,6 +8,17 @@ import { queryKeys } from "./queryKeys";
 export { ApiClientProvider, useApiClient } from "./context";
 export { queryKeys } from "./queryKeys";
 
+/** Whether a query has the id it loads: an id that is not missing or empty. */
+function hasId(id: string | number | undefined): id is string | number {
+  return id !== undefined && id !== "";
+}
+
+// A query below is only enabled with the id it loads, so its queryFn throws without one (it then
+// only runs when a caller refetches a disabled query).
+function missing(what: string): Error {
+  return new Error(`No ${what} to load`);
+}
+
 /* ---- auth -------------------------------------------------------------- */
 
 export function useLoginMutation(options?: { onSuccess?: () => void }) {
@@ -43,8 +54,11 @@ export function useUserSelfDetailsQuery(userId: string | number | undefined) {
   const client = useApiClient();
   return useQuery({
     queryKey: queryKeys.userSelfDetails(userId ?? ""),
-    queryFn: () => endpoints.fetchUserSelfDetails(client, userId!),
-    enabled: userId !== undefined && userId !== "",
+    queryFn: () => {
+      if (!hasId(userId)) throw missing("user");
+      return endpoints.fetchUserSelfDetails(client, userId);
+    },
+    enabled: hasId(userId),
   });
 }
 
@@ -94,7 +108,10 @@ export function usePhotoDetailsQuery(imageHash: string | undefined) {
   const client = useApiClient();
   return useQuery({
     queryKey: queryKeys.photoDetails(imageHash ?? ""),
-    queryFn: () => endpoints.fetchPhotoDetails(client, imageHash!),
+    queryFn: () => {
+      if (!imageHash) throw missing("photo");
+      return endpoints.fetchPhotoDetails(client, imageHash);
+    },
     enabled: !!imageHash,
   });
 }
@@ -130,8 +147,11 @@ export function useThingAlbumQuery(id: string | number | undefined) {
   const client = useApiClient();
   return useQuery({
     queryKey: queryKeys.thingAlbum(id ?? ""),
-    queryFn: () => endpoints.fetchThingAlbum(client, id!),
-    enabled: id !== undefined && id !== "",
+    queryFn: () => {
+      if (!hasId(id)) throw missing("thing album");
+      return endpoints.fetchThingAlbum(client, id);
+    },
+    enabled: hasId(id),
   });
 }
 
@@ -139,8 +159,11 @@ export function usePlaceAlbumQuery(id: string | number | undefined) {
   const client = useApiClient();
   return useQuery({
     queryKey: queryKeys.placeAlbum(id ?? ""),
-    queryFn: () => endpoints.fetchPlaceAlbum(client, id!),
-    enabled: id !== undefined && id !== "",
+    queryFn: () => {
+      if (!hasId(id)) throw missing("place album");
+      return endpoints.fetchPlaceAlbum(client, id);
+    },
+    enabled: hasId(id),
   });
 }
 
@@ -148,8 +171,11 @@ export function useTagAlbumQuery(id: string | number | undefined) {
   const client = useApiClient();
   return useQuery({
     queryKey: queryKeys.tagAlbum(id ?? ""),
-    queryFn: () => endpoints.fetchTagAlbum(client, id!),
-    enabled: id !== undefined && id !== "",
+    queryFn: () => {
+      if (!hasId(id)) throw missing("tag album");
+      return endpoints.fetchTagAlbum(client, id);
+    },
+    enabled: hasId(id),
   });
 }
 

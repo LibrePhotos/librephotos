@@ -1,4 +1,4 @@
-import { fireEvent, waitFor } from "@testing-library/react-native";
+import { fireEvent, waitFor, type RenderResult } from "@testing-library/react-native";
 import { sql } from "drizzle-orm";
 import { PhotoViewerScreen } from "./PhotoViewerScreen";
 import { useSettingsStore } from "@/stores/settings";
@@ -14,7 +14,7 @@ import { notifyOutboxWrite } from "@/sync/triggers";
  * mutation must still tell the sync engine there is something to push — without
  * dragging the whole engine into a screen test.
  */
-jest.mock("@/sync/triggers", () => ({ notifyOutboxWrite: jest.fn() }));
+jest.mock("@/sync/triggers", () => ({ notifyOutboxWrite: jest.fn<void, unknown[]>() }));
 
 const PHOTO_ID = "11111111-1111-4111-8111-111111111111";
 
@@ -80,15 +80,15 @@ function onlineClient() {
 }
 
 /** Open the info sheet through the chrome's info button. */
-function openSheet(utils: { getByTestId: (id: string) => unknown }) {
-  fireEvent.press(utils.getByTestId("viewer-info") as never);
+function openSheet(utils: Pick<RenderResult, "getByTestId">) {
+  fireEvent.press(utils.getByTestId("viewer-info"));
 }
 
 describe("PhotoViewerScreen", () => {
   let t: TestDb;
   beforeEach(() => {
     useSettingsStore.setState({ serverUrl: "https://test.local" });
-    (globalThis as { __mockSearchParams?: unknown }).__mockSearchParams = { id: "hashA" };
+    globalThis.__mockSearchParams = { id: "hashA" };
     t = createTestDb();
     seedRemotePhotos(t.db, [
       remotePhoto({
@@ -101,8 +101,8 @@ describe("PhotoViewerScreen", () => {
   });
   afterEach(() => {
     t.close();
-    (globalThis as { __mockSearchParams?: unknown }).__mockSearchParams = undefined;
-    (globalThis as { __mockNetworkConnected?: unknown }).__mockNetworkConnected = undefined;
+    globalThis.__mockSearchParams = undefined;
+    globalThis.__mockNetworkConnected = undefined;
   });
 
   it("opens the pager at the tapped hash from the mirror context", () => {
@@ -120,7 +120,7 @@ describe("PhotoViewerScreen", () => {
     it("paints the tapped photo from the route params with an empty mirror", () => {
       const empty = createTestDb();
       try {
-        (globalThis as { __mockSearchParams?: unknown }).__mockSearchParams = {
+        globalThis.__mockSearchParams = {
           id: "L9",
           su: "ph://L9",
           sl: "L9",
@@ -151,7 +151,7 @@ describe("PhotoViewerScreen", () => {
             })
           )
         );
-        (globalThis as { __mockSearchParams?: unknown }).__mockSearchParams = { id: "wh100" };
+        globalThis.__mockSearchParams = { id: "wh100" };
         const { getByTestId, queryByTestId } = renderWithDb(<PhotoViewerScreen />, many.db);
 
         expect(getByTestId("viewer-filmstrip-p100")).toBeTruthy();
@@ -220,7 +220,7 @@ describe("PhotoViewerScreen", () => {
         sql`INSERT INTO user_album (id, title, owner_id, shared, favorited, photo_count) VALUES (3, 'Holiday', 1, 0, 0, 1)`
       );
       t.db.run(sql`INSERT INTO user_album_photo (album_id, photo_id, ordering) VALUES (3, ${PHOTO_ID}, 0)`);
-      (globalThis as { __mockNetworkConnected?: unknown }).__mockNetworkConnected = false;
+      globalThis.__mockNetworkConnected = false;
 
       const utils = renderWithDb(<PhotoViewerScreen />, t.db);
       openSheet(utils);
@@ -246,7 +246,7 @@ describe("PhotoViewerScreen", () => {
 
     it("renders the cached payload offline and says it is cached", async () => {
       putPhotoDetail(t.db, PHOTO_ID, JSON.stringify(PHOTO_DETAIL), Date.now());
-      (globalThis as { __mockNetworkConnected?: unknown }).__mockNetworkConnected = false;
+      globalThis.__mockNetworkConnected = false;
 
       const utils = renderWithDb(<PhotoViewerScreen />, t.db);
       openSheet(utils);
@@ -303,11 +303,11 @@ describe("PhotoViewerScreen", () => {
      * (doc 07 §4) — and it must say so instead of failing silently.
      */
     it("disables the timestamp edit while offline", async () => {
-      (globalThis as { __mockNetworkConnected?: unknown }).__mockNetworkConnected = false;
+      globalThis.__mockNetworkConnected = false;
       const utils = renderWithDb(<PhotoViewerScreen />, t.db);
       openSheet(utils);
       await waitFor(() => expect(utils.getByTestId("viewer-timestamp-edit")).toBeTruthy());
-      expect(utils.getByTestId("viewer-timestamp-edit").props.accessibilityState.disabled).toBe(true);
+      expect(utils.getByTestId("viewer-timestamp-edit").props.accessibilityState).toHaveProperty("disabled", true);
     });
 
     it("patches the timestamp through the API when online", async () => {
@@ -343,7 +343,7 @@ describe("PhotoViewerScreen", () => {
           timestamp: Date.UTC(2024, 0, 2),
         }),
       ]);
-      (globalThis as { __mockSearchParams?: unknown }).__mockSearchParams = { id: "hashV" };
+      globalThis.__mockSearchParams = { id: "hashV" };
 
       const utils = renderWithDb(<PhotoViewerScreen />, t.db);
       const view = utils.getByTestId("viewer-video-hashV");
@@ -365,7 +365,10 @@ describe("PhotoViewerScreen", () => {
       });
       const utils = renderWithDb(<PhotoViewerScreen />, t.db, client);
       await waitFor(() =>
-        expect(utils.getByTestId("viewer-image-hashA").props.source.uri).toContain("/media/photos/hashA")
+        expect(utils.getByTestId("viewer-image-hashA").props.source).toHaveProperty(
+          "uri",
+          expect.stringContaining("/media/photos/hashA")
+        )
       );
     });
   });
@@ -388,7 +391,7 @@ describe("PhotoViewerScreen", () => {
     beforeEach(() => {
       insertLocalAsset(t.db, { id: "L1", hash: null, uri: "ph://L1" });
       insertLocalAlbum(t.db, { id: "cam", backupSelection: 1, assetIds: ["L1"] });
-      (globalThis as { __mockSearchParams?: unknown }).__mockSearchParams = { id: "L1" };
+      globalThis.__mockSearchParams = { id: "L1" };
     });
 
     it("opens by local asset id and renders from the camera-roll uri", () => {

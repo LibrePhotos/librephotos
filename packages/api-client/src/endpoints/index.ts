@@ -8,6 +8,16 @@ import { Photoset } from "../schemas";
  * returns parsed, typed data. No React here — hooks build on top of these.
  * ---------------------------------------------------------------------- */
 
+/**
+ * The rows of a DRF list answer: the bare array, or the page's `results` ([] when it has
+ * none). Null passes through, so the parse rejects it.
+ */
+function listRows(res: unknown): unknown {
+  if (Array.isArray(res) || res === null || res === undefined) return res;
+  const results = typeof res === "object" && "results" in res ? res.results : undefined;
+  return results ?? [];
+}
+
 /* ---- auth -------------------------------------------------------------- */
 
 export async function login(client: ApiClient, credentials: S.LoginPost): Promise<S.LoginResponse> {
@@ -27,9 +37,8 @@ export async function fetchUserSelfDetails(client: ApiClient, userId: string | n
 }
 
 export async function fetchUserList(client: ApiClient): Promise<S.ListUserList> {
-  const res = await client.get<{ results?: unknown } | unknown[]>("/user/");
-  const results = Array.isArray(res) ? res : ((res as { results?: unknown }).results ?? []);
-  return parseResponse(S.ListUserList, results, "user list");
+  const res = await client.get<unknown>("/user/");
+  return parseResponse(S.ListUserList, listRows(res), "user list");
 }
 
 /* ---- date albums (timeline) ------------------------------------------- */
@@ -99,7 +108,8 @@ export async function fetchDateAlbum(
     folder: filter.folder,
     page,
   });
-  const res = await client.get<unknown>(`/albums/date/${albumDateId}${query}`);
+  // Trailing slash: the router 301-redirects without it, one extra round trip per day page.
+  const res = await client.get<unknown>(`/albums/date/${albumDateId}/${query}`);
   return parseResponse(S.FetchDateAlbumResponse, res, "date album").results;
 }
 
@@ -298,15 +308,13 @@ export async function fetchSharedPhotosWithMe(client: ApiClient): Promise<S.Shar
 }
 
 export async function fetchSharedAlbumsByMe(client: ApiClient): Promise<S.SharedAlbumsResponse["results"]> {
-  const res = await client.get<{ results?: unknown } | unknown[]>("/albums/user/shared/fromme/");
-  const results = Array.isArray(res) ? res : ((res as { results?: unknown }).results ?? []);
-  return parseResponse(S.SharedAlbumsResponse, { results }, "shared albums by me").results;
+  const res = await client.get<unknown>("/albums/user/shared/fromme/");
+  return parseResponse(S.SharedAlbumsResponse, { results: listRows(res) }, "shared albums by me").results;
 }
 
 export async function fetchSharedAlbumsWithMe(client: ApiClient): Promise<S.SharedAlbumsResponse["results"]> {
-  const res = await client.get<{ results?: unknown } | unknown[]>("/albums/user/shared/tome/");
-  const results = Array.isArray(res) ? res : ((res as { results?: unknown }).results ?? []);
-  return parseResponse(S.SharedAlbumsResponse, { results }, "shared albums with me").results;
+  const res = await client.get<unknown>("/albums/user/shared/tome/");
+  return parseResponse(S.SharedAlbumsResponse, { results: listRows(res) }, "shared albums with me").results;
 }
 
 /** Share (or unshare) photos to another user by hash. */

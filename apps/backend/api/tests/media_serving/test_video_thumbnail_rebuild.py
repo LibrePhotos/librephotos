@@ -16,7 +16,7 @@ from unittest import mock
 from django.test import TestCase, override_settings
 
 from api import thumbnails, transcode_cache, video_color
-from api.directory_watcher import processing_jobs
+from api.directory_watcher import file_handlers, processing_jobs
 from api.models import LongRunningJob, Photo, Thumbnail
 from api.models.thumbnail import SET_ASIDE_SUFFIX, thumbnail_file_paths
 from api.tests.utils import create_test_photo, create_test_user
@@ -45,6 +45,10 @@ def _ffmpeg_failing_on(fail_on):
         return mock.Mock(returncode=0)
 
     return mock.patch.object(thumbnails.subprocess, "run", side_effect=run)
+
+
+class _Killed(BaseException):
+    """A worker killed mid-rebuild: no ``except Exception`` gets to run."""
 
 
 class ThumbnailRebuildTest(TestCase):
@@ -152,5 +156,107 @@ class ThumbnailRebuildTest(TestCase):
         job = LongRunningJob.objects.get(job_id=job_id)
         self.assertTrue(job.finished)
         self.assertEqual(job.result["error_count"], 1)
+        self.photo.refresh_from_db()
+        self.assertEqual(self.photo.video_color_transfer, "smpte2084")
+
+    def test_a_rebuild_killed_half_way_is_put_right_by_the_next_one(self):
+        """The dead one left the old files set aside, and half an output."""
+        for path in self.video_paths:
+            os.replace(path, path + SET_ASIDE_SUFFIX)
+        with open(self.video_paths[0], "wb") as handle:
+            handle.write(b"partial")
+        with (
+            _ffmpeg_failing_on([".mp4"]),
+            self.assertRaises(thumbnails.VideoThumbnailError),
+        ):
+            self._thumbnail()._regenerate_thumbnails(keep_old_on_failure=True)
+        self.assertEqual(set(self._contents().values()), {b"old"})
+        self.assertEqual(len(self._contents()), 3)
+        self.assertEqual(self._leftovers(), [])
+
+    def test_probe_videos_killed_mid_rebuild_tries_the_video_again(self):
+        with (
+            mock.patch.object(video_color, "probe", return_value=HDR_PROBE),
+            mock.patch.object(transcode_cache, "discard"),
+            mock.patch.object(thumbnails.subprocess, "run", side_effect=_Killed),
+            self.assertRaises(_Killed),
+        ):
+            processing_jobs.probe_videos(
+                self.user, "00000000-0000-0000-0000-000000002158"
+            )
+        self.photo.refresh_from_db()
+        self.assertIsNone(self.photo.video_color_transfer)
+        self.assertEqual(list(processing_jobs.videos_to_probe(self.user)), [self.photo])
+
+        with (
+            mock.patch.object(video_color, "probe", return_value=HDR_PROBE),
+            mock.patch.object(transcode_cache, "discard"),
+            mock.patch.object(video_color, "video_filter", return_value=None) as poster,
+            _ffmpeg_failing_on([]),
+        ):
+            processing_jobs.probe_videos(
+                self.user, "00000000-0000-0000-0000-000000002159"
+            )
+        self.assertEqual(set(self._contents().values()), {b"new"})
+        self.assertEqual(self._leftovers(), [])
+        # The rebuild read the probe before it was saved.
+        self.assertEqual(poster.call_args.kwargs["transfer"], "smpte2084")
+        self.photo.refresh_from_db()
+        self.assertEqual(self.photo.video_color_transfer, "smpte2084")
+
+    def _rescan(self):
+        """A full rescan's processing of the video, the steps after it stubbed."""
+        photo = Photo.objects.get(pk=self.photo.pk)
+        with (
+            mock.patch("api.models.photo_metadata.PhotoMetadata.extract_exif_data"),
+            mock.patch.object(file_handlers, "extract_date_time"),
+            mock.patch("api.screenshot_detection.classify", return_value=False),
+            mock.patch.object(
+                file_handlers, "calculate_hash_from_thumbnail", return_value=None
+            ),
+            mock.patch.object(Thumbnail, "_get_dominant_color"),
+            mock.patch.object(file_handlers.PhotoSearch, "recreate_search_captions"),
+        ):
+            file_handlers._process_photo(
+                photo, photo.main_file.path, None, file_handlers.datetime.datetime.now()
+            )
+
+    def test_a_rescan_rebuilds_from_the_probe_it_has_not_saved_yet(self):
+        with (
+            mock.patch.object(video_color, "probe", return_value=HDR_PROBE),
+            mock.patch.object(transcode_cache, "discard"),
+            mock.patch.object(video_color, "video_filter", return_value=None) as poster,
+            _ffmpeg_failing_on([]),
+        ):
+            self._rescan()
+        self.assertEqual(set(self._contents().values()), {b"new"})
+        self.assertEqual(self._leftovers(), [])
+        self.assertEqual(poster.call_args.kwargs["transfer"], "smpte2084")
+        self.photo.refresh_from_db()
+        self.assertEqual(self.photo.video_color_transfer, "smpte2084")
+
+    def test_a_rescan_killed_mid_rebuild_leaves_the_video_to_probe_videos(self):
+        """With the probe saved first, nothing would repair it or put them back."""
+        with (
+            mock.patch.object(video_color, "probe", return_value=HDR_PROBE),
+            mock.patch.object(transcode_cache, "discard"),
+            mock.patch.object(thumbnails.subprocess, "run", side_effect=_Killed),
+            self.assertRaises(_Killed),
+        ):
+            self._rescan()
+        self.photo.refresh_from_db()
+        self.assertIsNone(self.photo.video_color_transfer)
+        self.assertEqual(list(processing_jobs.videos_to_probe(self.user)), [self.photo])
+
+        with (
+            mock.patch.object(video_color, "probe", return_value=HDR_PROBE),
+            mock.patch.object(transcode_cache, "discard"),
+            _ffmpeg_failing_on([]),
+        ):
+            processing_jobs.probe_videos(
+                self.user, "00000000-0000-0000-0000-000000002160"
+            )
+        self.assertEqual(set(self._contents().values()), {b"new"})
+        self.assertEqual(self._leftovers(), [])
         self.photo.refresh_from_db()
         self.assertEqual(self.photo.video_color_transfer, "smpte2084")

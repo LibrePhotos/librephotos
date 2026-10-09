@@ -26,8 +26,8 @@ async function expectApiError(promise: Promise<unknown>) {
   try {
     await promise;
   } catch (error) {
-    expect(error).toBeInstanceOf(ApiError);
-    return error as ApiError;
+    if (error instanceof ApiError) return error;
+    throw new Error(`expected an ApiError, got ${String(error)}`, { cause: error });
   }
   throw new Error("expected the request to reject");
 }
@@ -99,7 +99,7 @@ describe("FetchClient error handling", () => {
 });
 
 function fakeJwt(expSecondsFromNow: number): string {
-  const encode = (value: object) =>
+  const encode = (value: Record<string, string | number>) =>
     btoa(JSON.stringify(value)).replace(/=+$/, "").replace(/\+/g, "-").replace(/\//g, "_");
   const exp = Math.floor(Date.now() / 1000) + expSecondsFromNow;
   return `${encode({ alg: "HS256", typ: "JWT" })}.${encode({ exp })}.signature`;
@@ -237,9 +237,9 @@ describe("FetchClient token refresh", () => {
 
     results.forEach(result => {
       expect(result.status).toBe("rejected");
-      const { reason } = result as PromiseRejectedResult;
+      const reason: unknown = result.status === "rejected" ? result.reason : undefined;
       expect(reason).toBeInstanceOf(FreshApiError);
-      expect(reason.status).toBe(401);
+      expect(reason instanceof FreshApiError ? reason.status : undefined).toBe(401);
     });
     expect(calls.filter(call => call.url.endsWith("/auth/token/refresh/"))).toHaveLength(1);
     expect(calls.filter(call => call.url.endsWith("/auth/token/blacklist/"))).toHaveLength(1);
@@ -319,7 +319,8 @@ describe("FetchClient response types", () => {
       ? blob.text()
       : new Promise<string>((resolve, reject) => {
           const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as string);
+          // readAsText always leaves a string
+          reader.onload = () => resolve(typeof reader.result === "string" ? reader.result : "");
           reader.onerror = () => reject(reader.error);
           reader.readAsText(blob);
         });

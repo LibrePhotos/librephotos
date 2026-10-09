@@ -1,28 +1,21 @@
 import React from "react";
+import type { HeaderSize, PigSettings } from "../../types";
 import styles from "./styles.module.css";
 
-// TypeScript types
-type PigSettings = {
-  gridGap: number;
-  bgColor: string;
-  thumbnailSize?: number;
-  expandedSize?: number;
-  headerSize?: "large" | "normal" | "small";
-};
-
+// A laid-out date group (Pig's GroupedImageItem after computeLayoutGroups).
 type Group = {
   groupTranslateY: number;
   height: number;
-  location?: string;
-  date: string;
+  location?: string | null;
+  date: string | null;
 };
 
 type GroupHeaderProps = {
-  settings: PigSettings;
+  settings: Pick<PigSettings, "gridGap" | "bgColor">;
   group: Group;
-  activeTileUrl?: string;
+  activeTileUrl?: string | null;
   textAlignment?: "left" | "right";
-  headerSize?: "large" | "normal" | "small";
+  headerSize?: HeaderSize;
 };
 
 export default function GroupHeader({
@@ -49,13 +42,23 @@ export default function GroupHeader({
       >
         {textAlignment === "right" ? (
           <>
-            <span className={`${styles.location} pig-header_location ${styles[headerSize]}`}>{group.location}</span>
+            <span
+              className={`${styles.location} pig-header_location ${styles[headerSize]}`}
+              title={group.location ?? undefined}
+            >
+              {group.location}
+            </span>
             <span className={`${styles.date} pig-header_date ${styles[headerSize]}`}>{group.date}</span>
           </>
         ) : (
           <>
             <span className={`${styles.date} pig-header_date ${styles[headerSize]}`}>{group.date}</span>
-            <span className={`${styles.location} pig-header_location ${styles[headerSize]}`}>{group.location}</span>
+            <span
+              className={`${styles.location} pig-header_location ${styles[headerSize]}`}
+              title={group.location ?? undefined}
+            >
+              {group.location}
+            </span>
           </>
         )}
       </div>

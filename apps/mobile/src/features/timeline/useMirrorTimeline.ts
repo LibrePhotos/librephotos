@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import { useReactiveQuery } from "@/db/provider";
-import { timelinePage } from "@/db/queries/timeline";
+import { timelinePage, timelineRowKey } from "@/db/queries/timeline";
 import type { MergedTimelineRow } from "@/db/types";
 import type { TimelineItem } from "@/components/TimelineList";
 
@@ -8,7 +8,7 @@ const PAGE = 120;
 
 export function rowToItem(r: MergedTimelineRow): TimelineItem {
   return {
-    key: (r.remote_id ?? r.local_id ?? r.image_hash) as string,
+    key: timelineRowKey(r),
     photoId: r.remote_id,
     imageHash: r.image_hash,
     type: r.type,

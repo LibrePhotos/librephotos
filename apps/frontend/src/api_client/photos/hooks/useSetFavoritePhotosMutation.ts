@@ -2,12 +2,10 @@ import { useMutation } from "@tanstack/react-query";
 import { z } from "zod";
 import { notification } from "../../../service/notifications";
 import { parseWithNotification } from "../../../util/zodUtils";
-import { DateAlbumQueryKeys } from "../../albums/hooks/useFetchDateAlbumQuery";
-import { DateAlbumsQueryKeys } from "../../albums/hooks/useFetchDateAlbumsQuery";
 import { fetchClient, queryClient } from "../../api";
+import { invalidatePhotoLists } from "../invalidatePhotoLists";
 import { BulkPhotoQuery } from "../types";
 import { PhotoDetailsQueryKeys } from "./useFetchPhotoDetailsQuery";
-import { RecentlyAddedPhotosQueryKeys } from "./useFetchRecentlyAddedPhotosQuery";
 
 const UpdatedPhotosResponse = z.object({
   status: z.boolean(),
@@ -56,10 +54,8 @@ export const useSetFavoritePhotosMutation = () =>
       return data;
     },
     onSuccess: (data, request) => {
-      // Invalidate relevant queries
-      queryClient.invalidateQueries({ queryKey: [...DateAlbumsQueryKeys] });
-      queryClient.invalidateQueries({ queryKey: [...DateAlbumQueryKeys] });
-      queryClient.invalidateQueries({ queryKey: [...RecentlyAddedPhotosQueryKeys] });
+      // Every grid draws the star from the list data
+      invalidatePhotoLists();
 
       // If we have a single photo in individual mode, invalidate its details
       if (!request.select_all && request.image_hashes.length === 1) {

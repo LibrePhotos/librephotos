@@ -193,10 +193,10 @@ export function PhotoViewerScreen() {
     if (!ready) return;
     const index = slides.findIndex((s) => s.key === current?.key);
     if (index < 0) return;
-    const urls = [index - 2, index - 1, index + 1, index + 2]
-      .map((i) => slides[i])
-      .filter((s): s is ViewerSlide => !!s && !s.local_uri && !!s.image_hash)
-      .map((s) => bigThumbnailUrl(base, s.image_hash as string));
+    const urls = [index - 2, index - 1, index + 1, index + 2].flatMap((i) => {
+      const s: ViewerSlide | undefined = slides[i];
+      return s && !s.local_uri && s.image_hash ? [bigThumbnailUrl(base, s.image_hash)] : [];
+    });
     if (urls.length === 0) return;
     // Guarded: the jest expo-image stub has no prefetch, and neither does an
     // older runtime — preloading is an optimization, never a requirement.

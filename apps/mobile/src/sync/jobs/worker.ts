@@ -41,7 +41,7 @@ import {
   releaseJob,
 } from "./queue";
 import { JOB_SLOW_MS } from "./sizing";
-import type { JobKind, JobRow, JobSpec } from "./types";
+import { JOB_KINDS, type JobKind, type JobRow, type JobSpec } from "./types";
 
 /** Bounded concurrency. One is deliberate: the device is a phone, and every
  *  handler already yields internally. Raising it is a one-line change, but the
@@ -219,7 +219,10 @@ function recordDuration(stats: WorkerStats, kind: JobKind, durationMs: number): 
  * work is too big on their device — see {@link WorkerStats.slowestByKind}.
  */
 export function formatSlowestByKind(stats: WorkerStats): string {
-  const entries = Object.entries(stats.slowestByKind) as [JobKind, number][];
+  const entries = JOB_KINDS.flatMap((kind): [JobKind, number][] => {
+    const ms = stats.slowestByKind[kind];
+    return ms == null ? [] : [[kind, ms]];
+  });
   if (entries.length === 0) return "none";
   return entries
     .sort((a, b) => b[1] - a[1])

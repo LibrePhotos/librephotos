@@ -1,10 +1,20 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useFetchPhotoDetailsQuery } from "../../api_client/photos/hooks";
 import { ContentViewer } from "./ContentViewer";
-import type { LightBoxProps } from "./lightbox.types";
+import type { LightboxItem, LightBoxProps } from "./lightbox.types";
 
 interface ExtendedLightBoxProps extends LightBoxProps {
   onImageChange?: (imageId: string) => void;
+}
+
+/**
+ * The id to step to, or null when there is nothing there to show: a grid
+ * placeholder for a page that has not loaded yet has a made-up id ("0",
+ * "temp-0") and no image hash, so stepping onto it requested /photos/0/.
+ */
+function navigableId(image: LightboxItem | undefined): string | null {
+  if (!image || image.isTemp || !image.image_hash) return null;
+  return typeof image.id === "string" && image.id.length ? image.id : null;
 }
 
 // Custom hook to track previous value
@@ -32,7 +42,7 @@ export function Lightbox(props: ExtendedLightBoxProps) {
   const previousIdx2hash = usePrevious(idx2hash);
 
   // Stable navigation snapshot - only used when current image is deleted
-  const stableNavigationSnapshot = useRef<Array<{ id: string; image_hash: string }>>([]);
+  const stableNavigationSnapshot = useRef<LightboxItem[]>([]);
   const usingStableNavigation = useRef<boolean>(false);
 
   // Get the effective navigation list
@@ -125,13 +135,7 @@ export function Lightbox(props: ExtendedLightBoxProps) {
     if (currentIndex <= 0 || !effectiveIdx2hash || !effectiveIdx2hash.length) return null;
 
     const prevIndex = (currentIndex - 1 + effectiveIdx2hash.length) % effectiveIdx2hash.length;
-    const image = effectiveIdx2hash[prevIndex];
-
-    // Check if image and image.id exist and image.id is a valid string (not just a numeric index)
-    if (!image || !image.id || typeof image.id !== "string" || !image.id.length) return null;
-
-    // Additional validation to ensure it's a hash (should contain alphanumeric characters)
-    return /^[a-zA-Z0-9-]+$/.test(image.id) ? image.id : null;
+    return navigableId(effectiveIdx2hash[prevIndex]);
   };
 
   const getNextId = () => {
@@ -141,18 +145,17 @@ export function Lightbox(props: ExtendedLightBoxProps) {
     if (currentIndex >= effectiveIdx2hash.length - 1 || !effectiveIdx2hash || !effectiveIdx2hash.length) return null;
 
     const nextIndex = (currentIndex + 1) % effectiveIdx2hash.length;
-    const image = effectiveIdx2hash[nextIndex];
-
-    // Check if image and image.id exist and image.id is a valid string (not just a numeric index)
-    if (!image || !image.id || typeof image.id !== "string" || !image.id.length) return null;
-
-    // Additional validation to ensure it's a hash (should contain alphanumeric characters)
-    return /^[a-zA-Z0-9-]+$/.test(image.id) ? image.id : null;
+    return navigableId(effectiveIdx2hash[nextIndex]);
   };
 
   const getMediaType = () => {
     if (photoDetails === undefined || photoDetails === null) {
-      return "photo";
+      // A public or shared page never fetches details, but the grid item still
+      // knows it is a video. A motion photo stays a still there: its clip is
+      // served only to the owner and for photos marked public.
+      if (!isPublic) return "photo";
+      const item = getEffectiveNavigation().idx2hash.find(photo => photo.id === lightboxImageId);
+      return item?.type === "video" ? "video" : "photo";
     }
 
     if (photoDetails.video) {
@@ -165,6 +168,8 @@ export function Lightbox(props: ExtendedLightBoxProps) {
 
     return "photo";
   };
+
+  const mediaType = getMediaType();
 
   const handleCloseRequest = useCallback(() => {
     // Clear the snapshot when closing
@@ -181,6 +186,9 @@ export function Lightbox(props: ExtendedLightBoxProps) {
     [onImageChange]
   );
 
+  // A viewer who is not the owner gets no photo details, only what the grid knows.
+  const gridItem = isPublic ? getEffectiveNavigation().idx2hash.find(photo => photo.id === lightboxImageId) : undefined;
+
   return (
     <div>
       <ContentViewer
@@ -192,14 +200,14 @@ export function Lightbox(props: ExtendedLightBoxProps) {
         prevSrcHash={getImageHashForId(getPreviousId())}
         isPublic={isPublic}
         publicAlbumSlug={publicAlbumSlug}
-        type={getMediaType()}
-        enableZoom={getMediaType() === "photo"}
+        type={mediaType}
+        enableZoom={mediaType === "photo"}
         onCloseRequest={handleCloseRequest}
         onMovePrevRequest={onMovePrevRequest}
         onMoveNextRequest={onMoveNextRequest}
-        onImageLoad={() => {}}
         onPhotoSelect={handlePhotoSelect}
         startSlideshow={startSlideshow}
+        gridItem={gridItem}
       />
     </div>
   );

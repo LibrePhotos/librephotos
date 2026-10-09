@@ -10,7 +10,6 @@ import { useFetchUserAlbumQuery, useToggleUserAlbumPublicMutation } from "../../
 import { useFetchUserListQuery } from "../../api_client/user/hooks";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import { AlbumSlugSection } from "./AlbumSlugSection";
-import classes from "./ModalAlbumShare.module.css";
 import { UserEntry } from "./UserEntry";
 import filterUsers from "./utils";
 
@@ -35,7 +34,7 @@ export function ModalAlbumShare(props: Props) {
   return (
     <Modal
       opened={isOpen}
-      title={<span className={classes.title}>{t("modalphotosshare.title")}</span>}
+      title={t("modalalbumsshare.title")}
       onClose={() => {
         onRequestClose();
         setUserNameFilter("");
@@ -46,14 +45,15 @@ export function ModalAlbumShare(props: Props) {
           <Group justify="space-between" align="center">
             <Group gap="sm">
               <div>
-                <Title order={4}>Public sharing</Title>
+                <Title order={4}>{t("modalalbumsshare.publicsharing")}</Title>
                 <Text size="xs" c="dimmed">
-                  Anyone with this link can view the album.
+                  {t("modalalbumsshare.publicsharingdesc")}
                 </Text>
               </div>
             </Group>
             <Group gap="xs" align="center">
               <Switch
+                aria-label={t("modalalbumsshare.publicsharing")}
                 checked={isPublic}
                 onChange={e => {
                   toggleAlbumPublic.mutate(
@@ -63,7 +63,7 @@ export function ModalAlbumShare(props: Props) {
                 }}
               />
               <Text size="sm" c={isPublic ? "green" : "dimmed"} fw={500}>
-                {isPublic ? "On" : "Off"}
+                {isPublic ? t("settings.on") : t("settings.off")}
               </Text>
             </Group>
           </Group>
@@ -72,7 +72,7 @@ export function ModalAlbumShare(props: Props) {
             <Stack>
               <AlbumSlugSection
                 albumID={albumID}
-                album={album as any}
+                album={album}
                 isPublic={isPublic}
                 showSettings={showSettings}
                 refetch={refetch}
@@ -84,7 +84,7 @@ export function ModalAlbumShare(props: Props) {
                 rightSection={showSettings ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                 onClick={() => setShowSettings(s => !s)}
               >
-                {showSettings ? "Hide settings" : "Show settings"}
+                {showSettings ? t("modalalbumsshare.hidesettings") : t("modalalbumsshare.showsettings")}
               </Button>
             </Stack>
           )}
@@ -92,16 +92,16 @@ export function ModalAlbumShare(props: Props) {
           <Divider my="sm" />
           <Stack>
             <div>
-              <Title order={4}>Share with LibrePhotos users</Title>
+              <Title order={4}>{t("modalalbumsshare.sharewithusers")}</Title>
               <Text size="xs" c="dimmed" mb={4}>
-                Invite specific users on this server to access the album.
+                {t("modalalbumsshare.sharewithusersdesc")}
               </Text>
             </div>
             <TextInput
               onChange={event => {
                 setUserNameFilter(event.currentTarget.value);
               }}
-              placeholder={t("modalphotosshare.name")}
+              placeholder={t("modalalbumsshare.name")}
             />
             <Divider />
 
@@ -119,7 +119,7 @@ export function ModalAlbumShare(props: Props) {
         </Paper>
         <Group justify="flex-end">
           <Button variant="default" onClick={onRequestClose}>
-            Done
+            {t("modalalbumsshare.done")}
           </Button>
         </Group>
       </Stack>

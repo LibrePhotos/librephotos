@@ -34,7 +34,7 @@ describe("ShareSheet", () => {
       return jsonResponse({}, 404);
     });
 
-    const onClose = jest.fn();
+    const onClose = jest.fn<void, []>();
     const { getByTestId } = renderWithProviders(
       <ShareSheet visible imageHashes={["h1", "h2"]} onClose={onClose} />,
       client
@@ -56,7 +56,7 @@ describe("ShareSheet", () => {
     });
 
     const { getByTestId } = renderWithProviders(
-      <ShareSheet visible imageHashes={["h1"]} onClose={jest.fn()} />,
+      <ShareSheet visible imageHashes={["h1"]} onClose={jest.fn<void, []>()} />,
       client
     );
 

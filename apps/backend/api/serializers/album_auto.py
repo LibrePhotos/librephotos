@@ -25,16 +25,15 @@ class AlbumAutoSerializer(serializers.ModelSerializer):
         )
 
     def get_people(self, obj) -> PersonSerializer(many=True):
-        res = []
+        # Each person once, in order of first appearance: serializing one per
+        # face cost a cover lookup per face and a quadratic de-duplication.
+        persons = {}
         for photo in obj.photos.all():
-            faces = photo.faces.all()
-            for face in faces:
-                if face.deleted or face.person is None:
+            for face in photo.faces.all():
+                if face.deleted or face.person_id is None:
                     continue
-                serialized_person = PersonSerializer(face.person).data
-                if serialized_person not in res:
-                    res.append(serialized_person)
-        return res
+                persons.setdefault(face.person_id, face.person)
+        return PersonSerializer(list(persons.values()), many=True).data
 
     def delete(self, validated_data, id):
         album = AlbumAuto.objects.filter(id=id).get()
@@ -44,6 +43,8 @@ class AlbumAutoSerializer(serializers.ModelSerializer):
 class AlbumAutoListSerializer(serializers.ModelSerializer):
     photos = serializers.SerializerMethodField()
     photo_count = serializers.SerializerMethodField()
+    # The first photo's exif_timestamp, annotated by AlbumAutoListViewSet.
+    start = serializers.DateTimeField(read_only=True, allow_null=True)
 
     class Meta:
         model = AlbumAuto
@@ -51,6 +52,7 @@ class AlbumAutoListSerializer(serializers.ModelSerializer):
             "id",
             "title",
             "timestamp",
+            "start",
             "photos",
             "photo_count",
             "favorited",

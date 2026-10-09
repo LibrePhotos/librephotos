@@ -11,20 +11,22 @@ import { act } from "react-dom/test-utils";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { ServiceList } from "./ServiceList";
 
-const t = vi.fn((key: string) => key);
+// Like i18next without a bundle: the default value if one is given, else the key.
+const t = vi.fn((key: string, defaultValue?: unknown) => (typeof defaultValue === "string" ? defaultValue : key));
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({ t }),
 }));
 
 const health: Record<string, unknown> = {};
+const healthQuery: { data: Record<string, unknown> | undefined } = { data: health };
 
 vi.mock("../../api_client/api", () => ({
-  queryClient: { invalidateQueries: vi.fn() },
+  queryClient: { invalidateQueries: () => {} },
 }));
 
 vi.mock("../../api_client/services/hooks/useServiceActionMutation", () => ({
-  useServiceActionMutation: () => ({ mutate: vi.fn(), isPending: false, variables: undefined }),
+  useServiceActionMutation: () => ({ mutate: () => {}, isPending: false, variables: undefined }),
 }));
 
 vi.mock("../../api_client/services/hooks/useServicesQuery", () => ({
@@ -33,23 +35,22 @@ vi.mock("../../api_client/services/hooks/useServicesQuery", () => ({
     data: { services: { face_recognition: 8005, thumbnail: 8003 } },
     isLoading: false,
   }),
-  useServicesHealthQuery: () => ({ data: health, isLoading: false }),
+  useServicesHealthQuery: () => ({ data: healthQuery.data, isLoading: healthQuery.data === undefined }),
 }));
 
 // jsdom ships no matchMedia; MantineProvider needs it.
 beforeAll(() => {
-  (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
-  window.matchMedia = (query: string) =>
-    ({
-      matches: query.includes("min-width"),
-      media: query,
-      onchange: null,
-      addListener: () => {},
-      removeListener: () => {},
-      addEventListener: () => {},
-      removeEventListener: () => {},
-      dispatchEvent: () => false,
-    }) as unknown as MediaQueryList;
+  globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+  window.matchMedia = (query: string): MediaQueryList => ({
+    matches: query.includes("min-width"),
+    media: query,
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => false,
+  });
 });
 
 async function render() {
@@ -72,13 +73,21 @@ async function render() {
   return { container, unmount };
 }
 
-function startButtons(container: HTMLElement) {
+function startButtons(container: Element) {
   return [...container.querySelectorAll("button")].filter(button => button.textContent?.includes("services.start"));
+}
+
+/** The table row of the service labelled `label`. */
+function serviceRow(container: Element, label: string) {
+  const row = [...container.querySelectorAll("tbody tr")].find(tr => tr.textContent?.includes(label));
+  if (!row) throw new Error(`no row for ${label}`);
+  return row;
 }
 
 describe("ServiceList", () => {
   beforeEach(() => {
     t.mockClear();
+    healthQuery.data = health;
     health.face_recognition = {
       service_name: "face_recognition",
       healthy: false,
@@ -91,7 +100,7 @@ describe("ServiceList", () => {
   it("marks a switched-off service disabled rather than unhealthy", async () => {
     const { container, unmount } = await render();
 
-    const row = [...container.querySelectorAll("tbody tr")].find(tr => tr.textContent?.includes("Face Recognition"))!;
+    const row = serviceRow(container, "Face Recognition");
     expect(row.textContent).toContain("services.disabled");
     expect(row.textContent).not.toContain("services.unhealthy");
 
@@ -119,9 +128,28 @@ describe("ServiceList", () => {
   it("still reports a genuinely dead service as unhealthy and offers to start it", async () => {
     const { container, unmount } = await render();
 
-    const row = [...container.querySelectorAll("tbody tr")].find(tr => tr.textContent?.includes("Thumbnail"))!;
+    const row = serviceRow(container, "Thumbnail");
     expect(row.textContent).toContain("services.unhealthy");
-    expect(startButtons(row as HTMLElement)).toHaveLength(1);
+    expect(startButtons(row)).toHaveLength(1);
+
+    await unmount();
+  });
+
+  it("offers no Start button while the health status is still loading", async () => {
+    // Before the health check answers every service looks stopped, also the switched-off ones.
+    healthQuery.data = undefined;
+
+    const { container, unmount } = await render();
+
+    expect(startButtons(container)).toHaveLength(0);
+
+    await unmount();
+  });
+
+  it("gives the icon-only refresh button an accessible name", async () => {
+    const { container, unmount } = await render();
+
+    expect(container.querySelector('button[aria-label="services.refresh"]')).not.toBeNull();
 
     await unmount();
   });

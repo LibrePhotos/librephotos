@@ -2,14 +2,14 @@ import { ActionIcon, Button, Group, Popover, Text } from "@mantine/core";
 import { IconCheck as Check, IconChecks as Checks } from "@tabler/icons-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { BulkPhotoQuery, SelectionState } from "../../api_client/photos/types";
+import type { BulkPhotoQuery, PigPhoto, SelectionState } from "../../api_client/photos/types";
 
 type Props = {
   selectMode: boolean;
   selectAllMode: boolean;
   updateSelectionState: (state: Partial<SelectionState>) => void;
-  selectedItems: any[];
-  idx2hash: any[];
+  selectedItems: PigPhoto[];
+  idx2hash: PigPhoto[];
   photosetQuery?: BulkPhotoQuery;
   totalCount: number;
 };
@@ -32,8 +32,8 @@ export function SelectionBar(props: Readonly<Props>) {
     return `${selectedItems.length} ${t("selectionbar.selected")}`;
   };
 
-  // Determine if "all" are selected
-  const isAllSelected = selectAllMode || selectedItems.length === idx2hash.length;
+  // Determine if "all" are selected; an empty grid is not "all selected" (0 === 0)
+  const isAllSelected = selectAllMode || (idx2hash.length > 0 && selectedItems.length === idx2hash.length);
 
   return (
     <Group gap="xs">
@@ -43,8 +43,9 @@ export function SelectionBar(props: Readonly<Props>) {
             onMouseEnter={() => setOpenedAll(true)}
             onMouseLeave={() => setOpenedAll(false)}
             variant="light"
+            aria-label={isAllSelected ? t("selectionbar.deselect") : t("selectionbar.select")}
             onClick={() => {
-              if (selectAllMode || (idx2hash.length > 0 && selectedItems.length === idx2hash.length)) {
+              if (isAllSelected) {
                 // Already fully selected (server-side or every loaded item) - deselect
                 updateSelectionState({
                   selectMode: false,

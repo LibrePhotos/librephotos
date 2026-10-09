@@ -50,7 +50,15 @@ export default [
       "prettier/prettier": "error",
 
       // TypeScript rules
-      "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_", varsIgnorePattern: "^_", caughtErrorsIgnorePattern: "^_" }],
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_", caughtErrorsIgnorePattern: "^_" },
+      ],
+      // Fix the type error instead of silencing it.
+      "@typescript-eslint/ban-ts-comment": [
+        "error",
+        { "ts-ignore": true, "ts-expect-error": true, "ts-nocheck": true },
+      ],
 
       // React rules
       "react/react-in-jsx-scope": "off",
@@ -66,6 +74,35 @@ export default [
       "no-unused-vars": "off", // handled by @typescript-eslint/no-unused-vars
       "no-redeclare": "off", // handled by TypeScript (Zod pattern: const X = z.object(); type X = z.infer<typeof X>)
       "no-undef": "off", // handled by TypeScript compiler
+    },
+  },
+  {
+    // No `any`: neither written out nor flowing in from a library (JSON.parse, an untyped
+    // mock, a catch-all prop type), and no assertion that claims more than the value is,
+    // a non-null `!` included. Narrow unknown data with a type guard or parse it with its zod
+    // schema; a test that needs a value to be there uses defined() (util/defined.test-utils).
+    files: ["**/*.{ts,tsx}"],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "error",
+      "@typescript-eslint/no-unsafe-argument": "error",
+      "@typescript-eslint/no-unsafe-assignment": "error",
+      "@typescript-eslint/no-unsafe-call": "error",
+      "@typescript-eslint/no-unsafe-member-access": "error",
+      "@typescript-eslint/no-unsafe-return": "error",
+      "@typescript-eslint/no-unsafe-type-assertion": "error",
+      "@typescript-eslint/no-non-null-assertion": "error",
+      "@typescript-eslint/no-unsafe-function-type": "error",
+      "@typescript-eslint/no-empty-object-type": "error",
+      "@typescript-eslint/no-wrapper-object-types": "error",
+      "no-restricted-syntax": [
+        "error",
+        {
+          // vi.fn() is a Mock<(...args: any[]) => any>; give it the signature it stands in for.
+          selector:
+            "CallExpression[callee.object.name='vi'][callee.property.name='fn'][arguments.length=0]:not([typeArguments])",
+          message: "Type the mock: vi.fn<(arg: T) => R>() or vi.fn(implementation).",
+        },
+      ],
     },
   },
 ];

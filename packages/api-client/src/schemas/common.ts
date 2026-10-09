@@ -24,7 +24,10 @@ export enum Media {
   MOTION_PHOTO = "motion_photo",
 }
 
-export const StackTypeEnum = z.enum(["burst", "bracket", "manual"]);
+// RAW + JPEG pairs and Live Photos are file variants now, but migration 0112 left
+// the stacks it could not convert, and photo lists and details still return them.
+// Without them here one such photo fails the parse of its whole page.
+export const StackTypeEnum = z.enum(["burst", "bracket", "manual", "raw_jpeg", "live_photo"]);
 export type StackTypeEnum = z.infer<typeof StackTypeEnum>;
 
 export const PhotoStackSummary = z.object({

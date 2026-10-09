@@ -7,6 +7,7 @@ import React from "react";
 import type { FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { useConfirmPasswordResetMutation } from "../api_client/auth";
+import { passwordResetError } from "../api_client/auth/passwordResetErrors";
 
 export const Route = createFileRoute("/password-reset/confirm/$uid/$token")({
   component: PasswordResetConfirmPage,
@@ -42,9 +43,19 @@ function PasswordResetConfirmPage(): JSX.Element {
           });
           navigate({ to: "/login" });
         },
-        onError: () => {
+        onError: error => {
+          const reason = passwordResetError(error);
+          // A password the validators refuse leaves the link usable: say what
+          // is wrong at the field instead of sending the user for a new link.
+          if (reason.kind === "weakPassword") {
+            form.setFieldError("password", reason.message);
+            return;
+          }
+          if (reason.kind === "reported") {
+            return;
+          }
           showNotification({
-            message: t("passwordreset.errorinvalidlink"),
+            message: t(reason.kind === "invalidLink" ? "passwordreset.errorinvalidlink" : "passwordreset.errorgeneric"),
             color: "red",
           });
         },

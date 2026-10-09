@@ -5,11 +5,12 @@ import { DateTime } from "luxon";
 import React from "react";
 import { FacesTab } from "../../api_client/faces";
 import { i18nResolvedLanguage } from "../../i18n";
+import { parsePhotoTimestamp } from "../../util/dateUtils";
 
 type Props = Readonly<{
   tooltipOpened: boolean;
   probability: number;
-  timestamp?: string;
+  timestamp?: string | null;
   children?: React.ReactNode;
   tab?: FacesTab;
 }>;
@@ -32,10 +33,10 @@ export function FaceTooltip({ tooltipOpened, probability, timestamp, tab, childr
       ? t("settings.confidencepercentage", { percentage: (probability * 100).toFixed(1) })
       : null;
 
-  const dateTimeLabel = DateTime.fromISO(timestamp || "undefined").isValid
-    ? DateTime.fromISO(timestamp || "undefined")
-        .setLocale(i18nResolvedLanguage())
-        .toLocaleString(DateTime.DATETIME_MED)
+  // The face's timestamp is its photo's exif_timestamp: a wall clock, not an instant
+  const photoTime = timestamp ? parsePhotoTimestamp(timestamp) : null;
+  const dateTimeLabel = photoTime?.isValid
+    ? photoTime.setLocale(i18nResolvedLanguage()).toLocaleString(DateTime.DATETIME_MED)
     : null;
 
   const tooltipIsEmpty = confidencePercentageLabel === null && dateTimeLabel === null;

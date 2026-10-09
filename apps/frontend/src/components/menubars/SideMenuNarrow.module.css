@@ -2,7 +2,11 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  height: 100vh;
+  /* Fill the fixed navbar, and scroll inside it when the viewport is too short
+     (landscape phones), instead of pushing the bottom links off-screen. */
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .links {

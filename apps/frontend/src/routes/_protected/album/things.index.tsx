@@ -9,7 +9,7 @@ import { HeaderComponent } from "../../../components/HeaderComponent";
 import { Tile } from "../../../components/Tile";
 import { VirtualGrid } from "../../../components/virtual/VirtualGrid";
 import type { GridCellProps } from "../../../components/virtual/VirtualGrid";
-import { useAlbumListGridConfig } from "../../../hooks/useAlbumListGridConfig";
+import { ALBUM_GRID_GUTTER, useAlbumListGridConfig } from "../../../hooks/useAlbumListGridConfig";
 
 export const Route = createFileRoute("/_protected/album/things/")({
   component: AlbumThing,
@@ -49,7 +49,7 @@ function AlbumThing() {
             <Text size="sm" fw={500} lineClamp={1} title={album.title}>
               {album.title}
             </Text>
-            <Text size="xs">{t("numberofphotos", { number: album.photo_count })}</Text>
+            <Text size="xs">{t("numberofphotos", { count: album.photo_count, number: album.photo_count })}</Text>
           </Flex>
         </Group>
       </div>
@@ -63,7 +63,8 @@ function AlbumThing() {
         title={t("things")}
         fetching={isFetching}
         subtitle={t("thingalbum.showingthings", {
-          number: (albums && albums.length) || 0,
+          count: albums?.length ?? 0,
+          number: albums?.length ?? 0,
         })}
       />
       {!isFetching && !hasAlbums ? (
@@ -76,7 +77,7 @@ function AlbumThing() {
         />
       ) : (
         <VirtualGrid
-          style={{ outline: "none" }}
+          style={{ outline: "none", paddingLeft: ALBUM_GRID_GUTTER }}
           cellRenderer={renderCell}
           columnWidth={entrySquareSize}
           columnCount={entriesPerRow}

@@ -3,6 +3,8 @@ import { z } from "zod";
 import { notification } from "../../../service/notifications";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient, queryClient } from "../../api";
+import { PhotoMonthCountQueryKeys } from "../../stats/hooks/useFetchPhotoMonthCountQuery";
+import { invalidatePhotoLists } from "../invalidatePhotoLists";
 import type { Photo } from "../types";
 import { PhotoDetailsQueryKeys } from "./useFetchPhotoDetailsQuery";
 
@@ -26,7 +28,13 @@ export const useUpdatePhotoMutation = () =>
       notification.updatePhoto();
       return result;
     },
-    onSuccess: data => {
+    onSuccess: (data, { data: patch }) => {
       queryClient.invalidateQueries({ queryKey: [...PhotoDetailsQueryKeys, data.image_hash] });
+      // A new date moves the photo to another day on the timeline, and out of
+      // the no-timestamp list.
+      if ("exif_timestamp" in patch) {
+        invalidatePhotoLists();
+        queryClient.invalidateQueries({ queryKey: [...PhotoMonthCountQueryKeys] });
+      }
     },
   });

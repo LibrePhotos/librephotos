@@ -16,16 +16,22 @@ configMapGenerator:
     envs:
       - config/backend.env
 
+# Pinned by hand: Renovate skips deploy/k8s (see renovate.json). Move the three
+# LibrePhotos images to the next release's tag together on dev before that
+# release is tagged; image-backend.yml fails a release whose tag these do not
+# name. Changing the PostgreSQL major needs a dump and restore first; see
+# README.md -> Upgrading.
 images:
   - name: backend-placeholder
     newName: reallibrephotos/librephotos
-    newTag: 2023w31
+    newTag: 1.3.0
   - name: frontend-placeholder
     newName: reallibrephotos/librephotos-frontend
-    newTag: 2023w31
+    newTag: 1.3.0
   - name: proxy-placeholder
     newName: reallibrephotos/librephotos-proxy
-    newTag: 2023w31
+    newTag: 1.3.0
+  # Django 5.2 refuses PostgreSQL older than 14. 16 matches the e2e stack.
   - name: postgresql-placeholder
     newName: postgres
-    newTag: "13"
+    newTag: "16"

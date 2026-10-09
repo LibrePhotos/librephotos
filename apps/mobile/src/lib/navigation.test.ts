@@ -1,4 +1,4 @@
-import { goBackOr } from "./navigation";
+import { goBackOr, type BackCapableRouter } from "./navigation";
 
 /**
  * Regression cover for the crash reported on the first device run: opening
@@ -7,21 +7,21 @@ import { goBackOr } from "./navigation";
  */
 describe("goBackOr", () => {
   it("pops the stack when there is history", () => {
-    const router = { back: jest.fn(), replace: jest.fn(), canGoBack: () => true };
+    const router = { back: jest.fn<void, []>(), replace: jest.fn<void, Parameters<BackCapableRouter["replace"]>>(), canGoBack: () => true };
     goBackOr(router, "/photos");
     expect(router.back).toHaveBeenCalledTimes(1);
     expect(router.replace).not.toHaveBeenCalled();
   });
 
   it("replaces with the fallback when the screen is the first in its stack", () => {
-    const router = { back: jest.fn(), replace: jest.fn(), canGoBack: () => false };
+    const router = { back: jest.fn<void, []>(), replace: jest.fn<void, Parameters<BackCapableRouter["replace"]>>(), canGoBack: () => false };
     goBackOr(router, "/photos");
     expect(router.back).not.toHaveBeenCalled();
     expect(router.replace).toHaveBeenCalledWith("/photos");
   });
 
   it("falls back rather than throwing when the router cannot report history", () => {
-    const router = { back: jest.fn(), replace: jest.fn() };
+    const router = { back: jest.fn<void, []>(), replace: jest.fn<void, Parameters<BackCapableRouter["replace"]>>() };
     goBackOr(router, "/photos");
     expect(router.back).not.toHaveBeenCalled();
     expect(router.replace).toHaveBeenCalledWith("/photos");

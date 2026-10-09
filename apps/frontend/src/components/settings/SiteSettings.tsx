@@ -1,9 +1,17 @@
 import { Button, Card, Grid, Group, Modal, Select, Stack, Switch, Text, TextInput, Title } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
+import { showNotification } from "@mantine/notifications";
+import type { TFunction } from "i18next";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useGetSettingsQuery, useUpdateSettingsMutation } from "../../api_client/settings/hooks";
+import type { SiteSettings as SiteSettingsType } from "../../api_client/settings/types";
 import { EmailSettings } from "./EmailSettings";
+
+/** What an option's label says about it, after the product name; translated at render time. */
+type OptionHint = "default" | "fast_default" | "lightweight_default" | "fastest" | "most_accurate";
+
+type ModelOption = { value: string; label: string; hint?: OptionHint };
 
 const MAP_API_PROVIDERS = [
   {
@@ -17,30 +25,30 @@ const MAP_API_PROVIDERS = [
   { value: "tomtom", label: "TomTom", data: { use_api_key: true, url: "https://www.tomtom.com/" } },
 ];
 
-const MAP_TILE_PROVIDERS = [
-  { value: "photoprism", label: "PhotoPrism (default)" },
+const MAP_TILE_PROVIDERS: ModelOption[] = [
+  { value: "photoprism", label: "PhotoPrism", hint: "default" },
   { value: "osm", label: "OpenStreetMap" },
-  { value: "none", label: "None (hide map)" },
+  { value: "none", label: "" },
 ];
 
-const CAPTIONING_MODELS = [
-  { value: "lfm2_vl_450m", label: "LFM2.5-VL (default)" },
-  { value: "none", label: "None" },
+const CAPTIONING_MODELS: ModelOption[] = [
+  { value: "lfm2_vl_450m", label: "LFM2.5-VL", hint: "default" },
+  { value: "none", label: "" },
 ];
 
 const DEFAULT_CAPTIONING_MODEL = "lfm2_vl_450m";
 const DEFAULT_TAGGING_MODEL = "mobileclip_s2";
 
-const TAGGING_MODELS = [
-  { value: "mobileclip_s2", label: "MobileCLIP-S2 (fast, default)" },
-  { value: "siglip2", label: "SigLIP 2 (most accurate)" },
+const TAGGING_MODELS: ModelOption[] = [
+  { value: "mobileclip_s2", label: "MobileCLIP-S2", hint: "fast_default" },
+  { value: "siglip2", label: "SigLIP 2", hint: "most_accurate" },
 ];
 
-const OCR_MODELS = [
-  { value: "none", label: "None" },
-  { value: "ppocrv6_tiny", label: "PP-OCRv6 Tiny (fastest)" },
+const OCR_MODELS: ModelOption[] = [
+  { value: "none", label: "" },
+  { value: "ppocrv6_tiny", label: "PP-OCRv6 Tiny", hint: "fastest" },
   { value: "ppocrv6_small", label: "PP-OCRv6 Small" },
-  { value: "ppocrv6_medium", label: "PP-OCRv6 Medium (most accurate)" },
+  { value: "ppocrv6_medium", label: "PP-OCRv6 Medium", hint: "most_accurate" },
 ];
 
 const OCR_DISABLED = "none";
@@ -57,13 +65,27 @@ function normalizeOcrModel(model: string | null | undefined) {
   return model;
 }
 
-const FACE_RECOGNITION_MODELS = [
-  { value: "buffalo_sc", label: "buffalo_sc (lightweight, default)" },
+const FACE_RECOGNITION_MODELS: ModelOption[] = [
+  { value: "buffalo_sc", label: "buffalo_sc", hint: "lightweight_default" },
   { value: "buffalo_s", label: "buffalo_s" },
   { value: "buffalo_m", label: "buffalo_m" },
-  { value: "buffalo_l", label: "buffalo_l (most accurate)" },
+  { value: "buffalo_l", label: "buffalo_l", hint: "most_accurate" },
   { value: "antelopev2", label: "antelopev2" },
 ];
+
+/** Product names stay as they are; "None" and the hints after a name are translated. */
+function translateOptions(options: ModelOption[], t: TFunction<"translation", undefined>, noneLabel: string) {
+  return options.map(({ value, label, hint }) => {
+    if (value === "none") {
+      return { value, label: noneLabel };
+    }
+    return { value, label: hint ? t(`sitesettings.option_${hint}`, { name: label }) : label };
+  });
+}
+
+// Label and control side by side from the sm breakpoint up, stacked on a phone.
+const LABEL_SPAN = { base: 12, sm: 8 };
+const CONTROL_SPAN = { base: 12, sm: 4 };
 
 export function SiteSettings() {
   const [skipPatterns, setSkipPatterns] = useState("");
@@ -86,8 +108,31 @@ export function SiteSettings() {
   const { mutate: saveSettings } = useUpdateSettingsMutation();
   const [opened, { open, close }] = useDisclosure(false);
 
-  const saveSettingsWithValidation = (input: any) => {
-    saveSettings(input);
+  // Site settings apply as soon as they change, so confirm each save. The fixed id keeps a
+  // quick run of toggles from stacking up toasts.
+  const save = (input: Partial<SiteSettingsType>) => {
+    saveSettings(input, {
+      onSuccess: () =>
+        showNotification({
+          id: "site-settings-saved",
+          message: t("sitesettings.saved"),
+          color: "teal",
+          autoClose: 1500,
+        }),
+    });
+  };
+
+  // The text fields save on blur and on Enter; only send what actually changed.
+  const saveSkipPatterns = () => {
+    if (settings && skipPatterns !== settings.skip_patterns) {
+      save({ skip_patterns: skipPatterns });
+    }
+  };
+
+  const saveMapApiKey = () => {
+    if (settings && mapApiKey !== settings.map_api_key) {
+      save({ map_api_key: mapApiKey });
+    }
   };
 
   const dismissWarning = () => {
@@ -99,7 +144,7 @@ export function SiteSettings() {
 
   const confirmWarning = () => {
     if (warning === "ocr") {
-      saveSettings({ ocr_model: ocrModel });
+      save({ ocr_model: ocrModel });
       setPreviousOcrModel(ocrModel);
     }
     close();
@@ -123,23 +168,23 @@ export function SiteSettings() {
     }
   }, [settings, isLoading]);
 
+  // A fragment, so the cards are direct children of the admin page's Stack and get its gap.
   return (
-    <div>
+    <>
       <Modal
         opened={opened}
         onClose={dismissWarning}
-        title={
-          <Title order={4}>
-            {warning === "ocr" ? t("sitesettings.ocr_warning_header") : t("sitesettings.ram_warning_header")}
-          </Title>
-        }
+        // Plain text: the title is already an h2, and the app theme styles it like every other dialog.
+        title={warning === "ocr" ? t("sitesettings.ocr_warning_header") : t("sitesettings.ram_warning_header")}
       >
         <Stack>
           <Text>
             {warning === "ocr" ? t("sitesettings.ocr_warning") : t("sitesettings.heavyweight_process_warning")}
           </Text>
-          <Group>
-            <Button onClick={dismissWarning}>{t("cancel")}</Button>
+          <Group justify="flex-end">
+            <Button variant="default" onClick={dismissWarning}>
+              {t("cancel")}
+            </Button>
             <Button onClick={confirmWarning} color="red">
               {t("save")}
             </Button>
@@ -147,36 +192,34 @@ export function SiteSettings() {
         </Stack>
       </Modal>
 
-      <Card shadow="md" mb={10}>
+      <Card shadow="md">
         <Stack>
-          <Title order={4} mb={16}>
-            {t("adminarea.sitesettings")}
-          </Title>
+          <Title order={4}>{t("adminarea.sitesettings")}</Title>
 
           <Switch
             label={t("sitesettings.header")}
-            onChange={() => saveSettings({ allow_registration: !allowRegistration })}
+            onChange={() => save({ allow_registration: !allowRegistration })}
             checked={allowRegistration}
           />
           <Switch
             label={t("sitesettings.headerupload")}
-            onChange={() => saveSettings({ allow_upload: !allowUpload })}
+            onChange={() => save({ allow_upload: !allowUpload })}
             checked={allowUpload}
           />
           <Switch
             label={t("sitesettings.headernextcloud")}
-            onChange={() => saveSettings({ nextcloud_enabled: !nextcloudEnabled })}
+            onChange={() => save({ nextcloud_enabled: !nextcloudEnabled })}
             checked={nextcloudEnabled}
           />
           <Switch
             label={t("sitesettings.headerautocreateuserdirectory")}
             description={t("sitesettings.autocreateuserdirectory")}
-            onChange={() => saveSettings({ auto_create_user_directory: !autoCreateUserDirectory })}
+            onChange={() => save({ auto_create_user_directory: !autoCreateUserDirectory })}
             checked={autoCreateUserDirectory}
           />
 
           <Grid justify="flex-end">
-            <Grid.Col span={8}>
+            <Grid.Col span={LABEL_SPAN}>
               <Stack gap={0}>
                 <Text>{t("sitesettings.headerskippatterns")}</Text>
                 <Text fz="sm" c="dimmed">
@@ -184,19 +227,19 @@ export function SiteSettings() {
                 </Text>
               </Stack>
             </Grid.Col>
-            <Grid.Col span={4}>
+            <Grid.Col span={CONTROL_SPAN}>
               <TextInput
                 value={skipPatterns}
                 onKeyDown={e => {
                   if (e.key === "Enter") {
-                    saveSettings({ skip_patterns: skipPatterns });
+                    saveSkipPatterns();
                   }
                 }}
-                onBlur={() => saveSettings({ skip_patterns: skipPatterns })}
+                onBlur={saveSkipPatterns}
                 onChange={event => setSkipPatterns(event.currentTarget.value)}
               />
             </Grid.Col>
-            <Grid.Col span={8}>
+            <Grid.Col span={LABEL_SPAN}>
               <Stack gap={0}>
                 <Text>{t("sitesettings.map_api_provider_header")}</Text>
                 <Text fz="sm" c="dimmed">
@@ -206,21 +249,24 @@ export function SiteSettings() {
                 </Text>
               </Stack>
             </Grid.Col>
-            <Grid.Col span={4}>
+            <Grid.Col span={CONTROL_SPAN}>
+              {/* allowDeselect: clicking the selected option again would otherwise save an
+                  empty value, which silently breaks reverse geocoding (or unsets the model). */}
               <Select
                 searchable
+                allowDeselect={false}
                 data={MAP_API_PROVIDERS}
                 value={mapApiProvider}
                 onChange={provider => {
-                  const value = provider || "";
-                  setMapApiProvider(value);
-                  saveSettings({ map_api_provider: value });
+                  if (!provider) return;
+                  setMapApiProvider(provider);
+                  save({ map_api_provider: provider });
                 }}
               />
             </Grid.Col>
             {MAP_API_PROVIDERS.find(provider => provider.value === mapApiProvider)?.data.use_api_key && (
               <>
-                <Grid.Col span={8}>
+                <Grid.Col span={LABEL_SPAN}>
                   <Stack gap={0}>
                     <Text>{t("sitesettings.map_api_key_header")}</Text>
                     <Text fz="sm" c="dimmed">
@@ -230,21 +276,21 @@ export function SiteSettings() {
                     </Text>
                   </Stack>
                 </Grid.Col>
-                <Grid.Col span={4}>
+                <Grid.Col span={CONTROL_SPAN}>
                   <TextInput
                     value={mapApiKey}
                     onKeyDown={e => {
                       if (e.key === "Enter") {
-                        saveSettings({ map_api_key: mapApiKey });
+                        saveMapApiKey();
                       }
                     }}
-                    onBlur={() => saveSettings({ map_api_key: mapApiKey })}
+                    onBlur={saveMapApiKey}
                     onChange={e => setMapApiKey(e.target.value)}
                   />
                 </Grid.Col>
               </>
             )}
-            <Grid.Col span={8}>
+            <Grid.Col span={LABEL_SPAN}>
               <Stack gap={0}>
                 <Text>{t("sitesettings.map_tile_provider_header")}</Text>
                 <Text fz="sm" c="dimmed">
@@ -252,18 +298,19 @@ export function SiteSettings() {
                 </Text>
               </Stack>
             </Grid.Col>
-            <Grid.Col span={4}>
+            <Grid.Col span={CONTROL_SPAN}>
               <Select
-                data={MAP_TILE_PROVIDERS}
+                allowDeselect={false}
+                data={translateOptions(MAP_TILE_PROVIDERS, t, t("sitesettings.maptile_none"))}
                 value={mapTileProvider}
                 onChange={provider => {
                   const value = provider || "photoprism";
                   setMapTileProvider(value);
-                  saveSettings({ map_tile_provider: value });
+                  save({ map_tile_provider: value });
                 }}
               />
             </Grid.Col>
-            <Grid.Col span={8}>
+            <Grid.Col span={LABEL_SPAN}>
               <Stack gap={0}>
                 <Text>{t("sitesettings.captioning_model_header")}</Text>
                 <Text fz="sm" c="dimmed">
@@ -271,42 +318,41 @@ export function SiteSettings() {
                 </Text>
               </Stack>
             </Grid.Col>
-            <Grid.Col span={4}>
+            <Grid.Col span={CONTROL_SPAN}>
               <Select
                 searchable
-                data={CAPTIONING_MODELS}
+                allowDeselect={false}
+                data={translateOptions(CAPTIONING_MODELS, t, t("sitesettings.model_none"))}
                 value={captioningModel}
                 onChange={model => {
-                  const value = model ?? "";
-                  saveSettingsWithValidation({ captioning_model: value });
-                  setCaptioningModel(value);
+                  if (!model) return;
+                  save({ captioning_model: model });
+                  setCaptioningModel(model);
                 }}
               />
             </Grid.Col>
-            <Grid.Col span={8}>
+            <Grid.Col span={LABEL_SPAN}>
               <Stack gap={0}>
-                <Text>{t("sitesettings.tagging_model_header", "Tagging Model")}</Text>
+                <Text>{t("sitesettings.tagging_model_header")}</Text>
                 <Text fz="sm" c="dimmed">
-                  {t(
-                    "sitesettings.tagging_model_description",
-                    "Select the model used for auto-tagging photos. Switching models does not delete previously generated tags."
-                  )}
+                  {t("sitesettings.tagging_model_description")}
                 </Text>
               </Stack>
             </Grid.Col>
-            <Grid.Col span={4}>
+            <Grid.Col span={CONTROL_SPAN}>
               <Select
                 searchable
-                data={TAGGING_MODELS}
+                allowDeselect={false}
+                data={translateOptions(TAGGING_MODELS, t, t("sitesettings.model_none"))}
                 value={taggingModel}
                 onChange={model => {
                   const value = model ?? DEFAULT_TAGGING_MODEL;
-                  saveSettings({ tagging_model: value });
+                  save({ tagging_model: value });
                   setTaggingModel(value);
                 }}
               />
             </Grid.Col>
-            <Grid.Col span={8}>
+            <Grid.Col span={LABEL_SPAN}>
               <Stack gap={0}>
                 <Text>{t("sitesettings.ocr_model_header", "Text Recognition (OCR) Model")}</Text>
                 <Text fz="sm" c="dimmed">
@@ -317,17 +363,18 @@ export function SiteSettings() {
                 </Text>
               </Stack>
             </Grid.Col>
-            <Grid.Col span={4}>
+            <Grid.Col span={CONTROL_SPAN}>
               <Select
                 searchable
-                data={OCR_MODELS}
+                allowDeselect={false}
+                data={translateOptions(OCR_MODELS, t, t("sitesettings.model_none"))}
                 value={ocrModel}
                 onChange={model => {
                   const value = normalizeOcrModel(model);
                   setOcrModel(value);
                   if (value === OCR_DISABLED) {
                     setPreviousOcrModel(value);
-                    saveSettings({ ocr_model: value });
+                    save({ ocr_model: value });
                     return;
                   }
                   // Turning OCR on has privacy consequences, so let the admin confirm first.
@@ -336,7 +383,7 @@ export function SiteSettings() {
                 }}
               />
             </Grid.Col>
-            <Grid.Col span={8}>
+            <Grid.Col span={LABEL_SPAN}>
               <Stack gap={0}>
                 <Text>{t("sitesettings.face_recognition_model_header", "Face Recognition Model")}</Text>
                 <Text fz="sm" c="dimmed">
@@ -347,14 +394,15 @@ export function SiteSettings() {
                 </Text>
               </Stack>
             </Grid.Col>
-            <Grid.Col span={4}>
+            <Grid.Col span={CONTROL_SPAN}>
               <Select
                 searchable
-                data={FACE_RECOGNITION_MODELS}
+                allowDeselect={false}
+                data={translateOptions(FACE_RECOGNITION_MODELS, t, t("sitesettings.model_none"))}
                 value={faceRecognitionModel}
                 onChange={model => {
                   const value = model ?? "buffalo_sc";
-                  saveSettings({ face_recognition_model: value });
+                  save({ face_recognition_model: value });
                   setFaceRecognitionModel(value);
                 }}
               />
@@ -364,6 +412,6 @@ export function SiteSettings() {
       </Card>
 
       <EmailSettings />
-    </div>
+    </>
   );
 }

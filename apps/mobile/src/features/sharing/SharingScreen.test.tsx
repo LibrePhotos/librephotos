@@ -38,7 +38,7 @@ describe("SharingScreen", () => {
   let t: TestDb;
   beforeEach(() => {
     t = createTestDb();
-    (globalThis as { __mockNetworkConnected?: boolean }).__mockNetworkConnected = true;
+    globalThis.__mockNetworkConnected = true;
   });
   afterEach(() => t.close());
 

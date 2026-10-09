@@ -21,8 +21,10 @@ export const PublicPhotoDetail = z.object({
   fstop: z.number().nullable().optional(),
   iso: z.number().nullable().optional(),
   shutter_speed: z.string().nullable().optional(),
-  width: z.number().optional(),
-  height: z.number().optional(),
+  // A null size (unknown to the metadata) failed the whole parse and left the
+  // details panel empty. The server sends 0 for it now; null stays accepted.
+  width: z.number().nullable().optional(),
+  height: z.number().nullable().optional(),
   search_captions: z.string().optional(),
   captions_json: z.record(z.string(), z.unknown()).optional(),
   people: z
@@ -52,7 +54,7 @@ export type PublicPhotoDetailResponse = z.infer<typeof PublicPhotoDetailResponse
 export const PublicPhotoDetailQueryKeys = ["publicPhotoDetail"] as const;
 
 async function fetchPublicPhotoDetail(slug: string, photoId: string): Promise<PublicPhotoDetailResponse> {
-  const response = await fetchClient.get<PublicPhotoDetailResponse>(`/public/albums/s/${slug}/photos/${photoId}/`);
+  const response = await fetchClient.get(`/public/albums/s/${slug}/photos/${photoId}/`);
 
   const parsed = PublicPhotoDetailResponse.safeParse(response);
   if (!parsed.success) {

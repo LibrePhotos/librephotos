@@ -2,13 +2,12 @@ import {
   Button,
   Card,
   Container,
-  Dialog,
   Group,
   Radio,
   Select,
+  SimpleGrid,
   Space,
   Stack,
-  Text,
   TextInput,
   Title,
 } from "@mantine/core";
@@ -16,6 +15,7 @@ import { IconPhoto as Photo, IconUpload as Upload, IconUser as User } from "@tab
 import { useQueryClient } from "@tanstack/react-query";
 import { isEqual } from "lodash-es";
 import React, { useEffect, useRef, useState } from "react";
+import type { AvatarEditorRef } from "react-avatar-editor";
 import AvatarEditor from "react-avatar-editor";
 import type { DropzoneRef } from "react-dropzone";
 import Dropzone from "react-dropzone";
@@ -28,7 +28,9 @@ import {
   useUpdateUserMutation,
 } from "../../api_client/user/hooks";
 import { UserSelfDetailsQueryKeys } from "../../api_client/user/hooks/useFetchUserSelfDetailsQuery";
+import { reportUserSaveError } from "../../util/apiErrors";
 import { PasswordEntry } from "./PasswordEntry";
+import { SaveChangesDialog } from "./SaveChangesDialog";
 
 export function Profile() {
   const [isOpenUpdateDialog, setIsOpenUpdateDialog] = useState(false);
@@ -39,16 +41,11 @@ export function Profile() {
   const { t, i18n } = useTranslation();
   const updateAvatar = useUpdateAvatarMutation();
   const updateUser = useUpdateUserMutation();
-  let editorRef = useRef(null);
+  const editorRef = useRef<AvatarEditorRef>(null);
   const queryClient = useQueryClient();
+  const dropzoneRef = useRef<DropzoneRef>(null);
 
-  const setEditorRef = ref => {
-    editorRef = ref;
-  };
-
-  let dropzoneRef = React.useRef<DropzoneRef>();
-
-  const urlToFile = async (url: string, filename: string, mimeType = undefined) => {
+  const urlToFile = async (url: string, filename: string, mimeType?: string) => {
     const type = mimeType || (url.match(/^data:([^;]+);/) || "")[1];
     const res = await fetch(url);
     const buf = await res.arrayBuffer();
@@ -101,7 +98,7 @@ export function Profile() {
 
   return (
     <Container>
-      <Group gap="xs" mt={40} mb={20}>
+      <Group gap="xs" mt={{ base: 20, sm: 40 }} mb={{ base: 10, sm: 20 }}>
         <User size={35} />
         <Title order={1}>{t("settings.profile")}</Title>
       </Group>
@@ -111,16 +108,11 @@ export function Profile() {
             {t("settings.user")}
           </Title>
           <Title order={5}>{t("settings.avatar")}</Title>
-          <Group justify="center" align="self-start" grow mb="lg">
+          <Group align="flex-start" gap="xl" mb="lg">
             <div>
               <Dropzone
                 noClick
-                // @ts-ignore
-                style={{ width: 150, height: 150, borderRadius: 75 }}
-                ref={node => {
-                  // @ts-ignore
-                  dropzoneRef = node;
-                }}
+                ref={dropzoneRef}
                 onDrop={accepted => {
                   setAvatarImgSrc(URL.createObjectURL(accepted[0]));
                 }}
@@ -128,7 +120,7 @@ export function Profile() {
                 {({ getRootProps, getInputProps }) => (
                   <div {...getRootProps()}>
                     <input {...getInputProps()} />
-                    <AvatarEditor ref={setEditorRef} width={150} height={150} border={0} image={avatarImgSrc} />
+                    <AvatarEditor ref={editorRef} width={150} height={150} border={0} image={avatarImgSrc} />
                   </div>
                 )}
               </Dropzone>
@@ -140,29 +132,29 @@ export function Profile() {
               <Group>
                 <Button
                   size="sm"
+                  leftSection={<Photo size={16} />}
                   onClick={() => {
-                    // @ts-ignore
-                    dropzoneRef.open();
+                    dropzoneRef.current?.open();
                   }}
                 >
-                  <Photo />
                   <Trans i18nKey="settings.image">Choose image</Trans>
                 </Button>
                 <Button
                   size="sm"
                   color="green"
+                  leftSection={<Upload size={16} />}
                   onClick={async () => {
+                    const editor = editorRef.current;
+                    if (!editor) return;
                     const formData = new FormData();
                     const file = await urlToFile(
-                      // @ts-ignore
-                      editorRef.getImageScaledToCanvas().toDataURL(),
+                      editor.getImageScaledToCanvas().toDataURL(),
                       `${editedUserDetails.first_name}avatar.png`
                     );
                     formData.append("avatar", file, `${editedUserDetails.first_name}avatar.png`);
                     updateAvatar.mutate({ id: editedUserDetails.id.toString(), data: formData });
                   }}
                 >
-                  <Upload />
                   <Trans i18nKey="settings.upload">Upload</Trans>
                 </Button>
               </Group>
@@ -172,7 +164,7 @@ export function Profile() {
             </div>
           </Group>
           <Title order={5}>{t("settings.account")}</Title>
-          <Group grow>
+          <SimpleGrid cols={{ base: 1, sm: 3 }}>
             <TextInput
               onChange={event => {
                 setEditedUserDetails({ ...editedUserDetails, first_name: event.currentTarget.value });
@@ -197,7 +189,7 @@ export function Profile() {
                 setEditedUserDetails({ ...editedUserDetails, email: event.currentTarget.value });
               }}
             />
-          </Group>
+          </SimpleGrid>
         </Card>
 
         <Card shadow="md">
@@ -219,8 +211,8 @@ export function Profile() {
             mb={10}
           >
             <Group mt="xs">
-              <Radio value="1" label={t("enabled")} />
-              <Radio value="0" label={t("disabled")} />
+              <Radio value="1" label={t("settings.on")} />
+              <Radio value="0" label={t("settings.off")} />
             </Group>
           </Radio.Group>
 
@@ -229,8 +221,11 @@ export function Profile() {
               <TextInput
                 type="text"
                 label={t("settings.scandirectory")}
-                disabled
-                placeholder={editedUserDetails.scan_directory}
+                description={t("settings.scandirectoryreadonly")}
+                // Filled, so it does not pass for one of the editable fields around it.
+                variant="filled"
+                readOnly
+                value={editedUserDetails.scan_directory ?? ""}
               />
             ) : null}
           </Stack>
@@ -241,8 +236,11 @@ export function Profile() {
               placeholder={t("settings.language")}
               onChange={value => i18n.changeLanguage(value ?? "en")}
               searchable
+              allowDeselect={false}
               maxDropdownHeight={280}
-              value={window.localStorage.i18nextLng === "gb" ? "en" : window.localStorage.i18nextLng}
+              // The detector stores the browser's code as is ("en-US", "de-DE"), which matches no
+              // option; resolvedLanguage is the bundle actually in use ("en", "de", "pt_BR").
+              value={i18n.resolvedLanguage ?? "en"}
               data={[
                 {
                   value: "en",
@@ -311,6 +309,10 @@ export function Profile() {
                 {
                   value: "cs",
                   label: t("settings.czech"),
+                },
+                {
+                  value: "da",
+                  label: t("settings.danish"),
                 },
                 {
                   value: "pt",
@@ -386,41 +388,25 @@ export function Profile() {
           </Group>
         </Card>
         <Space h="xl" />
-        <Dialog
+        <SaveChangesDialog
           opened={isOpenUpdateDialog}
-          withCloseButton
-          onClose={() => setIsOpenUpdateDialog(false)}
-          size="lg"
-          radius="md"
-        >
-          <Text size="sm" style={{ marginBottom: 10 }} fw={500}>
-            Save Changes?
-          </Text>
-
-          <Group justify="flex-end">
-            <Button
-              size="sm"
-              color="green"
-              onClick={() => {
-                const newUserData = { ...editedUserDetails };
-                delete newUserData.scan_directory;
-                delete newUserData.avatar;
-                updateUser.mutate(newUserData);
-                setIsOpenUpdateDialog(false);
-              }}
-            >
-              <Trans i18nKey="settings.favoriteupdate">Update profile settings</Trans>
-            </Button>
-            <Button
-              onClick={() => {
-                setEditedUserDetails(userSelfDetails);
-              }}
-              size="sm"
-            >
-              <Trans i18nKey="settings.nextcloudcancel">Cancel</Trans>
-            </Button>
-          </Group>
-        </Dialog>
+          saving={updateUser.isPending}
+          onSave={() => {
+            const newUserData = { ...editedUserDetails };
+            delete newUserData.scan_directory;
+            delete newUserData.avatar;
+            // Keep the dialog open when the server rejects the save (an invalid email address,
+            // for example), so the edits can be fixed.
+            updateUser.mutate(newUserData, {
+              onSuccess: () => setIsOpenUpdateDialog(false),
+              onError: reportUserSaveError,
+            });
+          }}
+          onCancel={() => {
+            setEditedUserDetails(userSelfDetails);
+            setIsOpenUpdateDialog(false);
+          }}
+        />
       </Stack>
     </Container>
   );

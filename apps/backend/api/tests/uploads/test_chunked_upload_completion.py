@@ -38,15 +38,22 @@ def token_for(user):
 
 
 class FakeUploadedFile:
-    """Stand-in for the django UploadedFile handed to on_completion."""
+    """Stand-in for the django UploadedFile handed to on_completion.
+
+    ``content`` is the staged file at ``path``, which is where on_completion
+    reads it from.
+    """
 
     def __init__(self, content: bytes, path: str):
+        with open(path, "wb") as f:
+            f.write(content)
         self._buf = io.BytesIO(content)
         self.file = MagicMock()
         self.file.path = path
 
     def read(self, *args):
-        return self._buf.read(*args)
+        # A multi-GB video read whole costs the web worker that much RAM.
+        raise AssertionError("on_completion must not read the upload into memory")
 
     def seek(self, *args):
         return self._buf.seek(*args)

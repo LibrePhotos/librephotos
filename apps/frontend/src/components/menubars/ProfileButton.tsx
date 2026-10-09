@@ -7,7 +7,6 @@ import {
   IconSettings as Settings,
   IconUser as User,
 } from "@tabler/icons-react";
-import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import React from "react";
 import { Trans, useTranslation } from "react-i18next";
@@ -19,17 +18,16 @@ export function ProfileButton(): React.ReactNode {
   const { t } = useTranslation();
   const { data: user } = useCurrentUserSelfDetailsQuery();
   const { mutate: logout } = useLogoutMutation();
-  const queryClient = useQueryClient();
   const navigate = useNavigate();
 
   return (
-    <Menu width={200}>
+    <Menu width={200} position="bottom-end">
       <Menu.Target>
-        <ActionIcon m="xs" variant="transparent">
+        <ActionIcon variant="transparent" size={30} aria-label={t("topmenu.accountmenu")}>
           <Avatar
             src={user && user.avatar_url ? serverAddress + user.avatar_url : "/unknown_user.jpg"}
-            size={25}
-            alt="it's me"
+            size={28}
+            alt=""
             radius="xl"
           />
         </ActionIcon>
@@ -40,37 +38,31 @@ export function ProfileButton(): React.ReactNode {
           <Trans i18nKey="topmenu.loggedin">Logged in as</Trans> {user ? user.username : ""}
         </Menu.Label>
 
-        <Menu.Item leftSection={<Book />} onClick={() => navigate({ to: "/library" })}>
+        <Menu.Item leftSection={<Book size={14} />} onClick={() => navigate({ to: "/library" })}>
           {t("topmenu.library")}
         </Menu.Item>
 
-        <Menu.Item leftSection={<User />} onClick={() => navigate({ to: "/profile" })}>
+        <Menu.Item leftSection={<User size={14} />} onClick={() => navigate({ to: "/profile" })}>
           {t("topmenu.profile")}
         </Menu.Item>
 
-        <Menu.Item leftSection={<Settings />} onClick={() => navigate({ to: "/settings" })}>
+        <Menu.Item leftSection={<Settings size={14} />} onClick={() => navigate({ to: "/settings" })}>
           {t("topmenu.settings")}
         </Menu.Item>
 
-        <Menu.Item leftSection={<ListDetails />} onClick={() => navigate({ to: "/jobs" })}>
+        <Menu.Item leftSection={<ListDetails size={14} />} onClick={() => navigate({ to: "/jobs" })}>
           {t("topmenu.jobs")}
         </Menu.Item>
 
         {user && user.is_superuser && <Menu.Divider />}
 
         {user && user.is_superuser && (
-          <Menu.Item leftSection={<Adjustments />} onClick={() => navigate({ to: "/admin" })}>
+          <Menu.Item leftSection={<Adjustments size={14} />} onClick={() => navigate({ to: "/admin" })}>
             {t("topmenu.adminarea")}
           </Menu.Item>
         )}
 
-        <Menu.Item
-          leftSection={<Logout />}
-          onClick={() => {
-            queryClient.invalidateQueries();
-            logout();
-          }}
-        >
+        <Menu.Item leftSection={<Logout size={14} />} onClick={() => logout()}>
           {t("topmenu.logout")}
         </Menu.Item>
       </Menu.Dropdown>

@@ -2,11 +2,10 @@
  * Stacks page content - extracted component for use in unified page.
  *
  * This component focuses on photo organization (not storage cleanup):
- * - RAW + JPEG pairs: Keep both versions linked
  * - Burst sequences: Photos taken in rapid succession
  * - Exposure brackets: HDR bracketed shots
- * - Live Photos: Photo with embedded video
  * - Manual stacks: User-created groupings
+ * RAW + JPEG pairs and Live Photos are file variants of one photo, not stacks.
  */
 import {
   ActionIcon,
@@ -21,14 +20,13 @@ import {
   Loader,
   Menu,
   Pagination,
-  Paper,
   SimpleGrid,
   Stack,
   Text,
 } from "@mantine/core";
+import { useMediaQuery } from "@mantine/hooks";
 import {
   IconBolt,
-  IconCamera,
   IconCheck,
   IconChevronDown,
   IconDots,
@@ -37,37 +35,30 @@ import {
   IconStack2,
   IconSun,
   IconTrash,
-  IconVideo,
 } from "@tabler/icons-react";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { serverAddress } from "../../api_client/apiClient";
-import { useAccessToken } from "../../api_client/auth";
 import {
   useDeleteStackMutation,
   useDetectStacksMutation,
   useStacksQuery,
   useStackStatsQuery,
 } from "../../api_client/stacks";
-import type { StackType } from "../../api_client/stacks/types";
-import { stackTypeLabels } from "../../api_client/stacks/types";
-import { useFetchUserSelfDetailsQuery } from "../../api_client/user/hooks";
+import { countListedStacks, StackType } from "../../api_client/stacks/types";
 import { buttonRoleProps } from "../../util/a11y";
 import { PLACEHOLDER_IMAGE } from "../../util/placeholderImage";
+import { EmptyState } from "../common/EmptyState";
 import { StackModal } from "../stacks/StackModal";
 
-const validStackTypes: StackType[] = ["raw_jpeg", "burst", "bracket", "live_photo", "manual"];
+const validStackTypes: readonly StackType[] = StackType.options;
 
 function getStackTypeIcon(type: StackType) {
   switch (type) {
-    case "raw_jpeg":
-      return <IconCamera size={14} />;
     case "burst":
       return <IconBolt size={14} />;
     case "bracket":
       return <IconSun size={14} />;
-    case "live_photo":
-      return <IconVideo size={14} />;
     case "manual":
       return <IconStack2 size={14} />;
     default:
@@ -77,14 +68,10 @@ function getStackTypeIcon(type: StackType) {
 
 function getStackTypeColor(type: StackType): string {
   switch (type) {
-    case "raw_jpeg":
-      return "cyan";
     case "burst":
       return "yellow";
     case "bracket":
       return "lime";
-    case "live_photo":
-      return "grape";
     case "manual":
       return "blue";
     default:
@@ -127,7 +114,8 @@ function StackCard({ stack, onClick, onDelete }: { stack: StackListItem; onClick
             src={photo.thumbnail_url ? `${serverAddress}${photo.thumbnail_url}` : undefined}
             h={100}
             w="50%"
-            alt="Preview"
+            // Decorative: the surrounding button is named by its aria-label
+            alt=""
             fallbackSrc={PLACEHOLDER_IMAGE}
           />
         ))}
@@ -139,7 +127,7 @@ function StackCard({ stack, onClick, onDelete }: { stack: StackListItem; onClick
           {stack.photo_count}
         </Badge>
         <Text size="xs" c="dimmed">
-          {stack.stack_type_display}
+          {t(`stacks.typelabel.${stack.stack_type}`)}
         </Text>
       </Group>
 
@@ -157,6 +145,7 @@ function StackCard({ stack, onClick, onDelete }: { stack: StackListItem; onClick
               background: "rgba(0,0,0,0.5)",
               borderRadius: "4px",
             }}
+            aria-label={t("moreactions")}
             onClick={e => e.stopPropagation()}
           >
             <IconDots size={14} />
@@ -181,45 +170,29 @@ function StackCard({ stack, onClick, onDelete }: { stack: StackListItem; onClick
 
 export function StacksPageContent() {
   const { t } = useTranslation();
+  // Read synchronously (no SSR here) so phones do not paint the desktop layout for a frame
+  const isPhone = useMediaQuery("(max-width: 36em)", undefined, { getInitialValueInEffect: false });
   // Get search params from URL
   const urlParams = new URLSearchParams(window.location.search);
   const typeParam = urlParams.get("type");
 
-  const { data: auth } = useAccessToken();
-  const { data: userSelfDetails } = useFetchUserSelfDetailsQuery(auth?.access?.user_id.toString() ?? "");
-
   const [selectedStackId, setSelectedStackId] = useState<string | null>(null);
-  const [typeFilter, setTypeFilter] = useState<StackType | undefined>(
-    typeParam && validStackTypes.includes(typeParam as StackType) ? (typeParam as StackType) : undefined
-  );
+  const [typeFilter, setTypeFilter] = useState<StackType | undefined>(StackType.safeParse(typeParam).data);
   const [page, setPage] = useState(1);
   const pageSize = 20;
 
-  // Detection options - initialized from user settings
-  const [detectOptions, setDetectOptions] = useState({
-    detect_raw_jpeg: userSelfDetails?.stack_raw_jpeg !== false, // Default to true if not set
-    detect_bursts: true,
-    detect_live_photos: true,
-  });
+  // The backend only runs burst detection (with the user's rules); RAW + JPEG
+  // pairs and Live Photos are grouped as file variants during the scan.
+  const [detectOptions, setDetectOptions] = useState({ detect_bursts: true });
 
   // Initialize filters from URL search params
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
-    const typeFromUrl = searchParams.get("type");
-    if (typeFromUrl && validStackTypes.includes(typeFromUrl as StackType)) {
-      setTypeFilter(typeFromUrl as StackType);
+    const typeFromUrl = StackType.safeParse(searchParams.get("type")).data;
+    if (typeFromUrl) {
+      setTypeFilter(typeFromUrl);
     }
   }, []);
-
-  // Update detection options when user settings load
-  useEffect(() => {
-    if (userSelfDetails) {
-      setDetectOptions(prev => ({
-        ...prev,
-        detect_raw_jpeg: userSelfDetails.stack_raw_jpeg !== false,
-      }));
-    }
-  }, [userSelfDetails]);
 
   const { data: stats } = useStackStatsQuery();
   const { data: stacksResponse, isLoading: stacksLoading } = useStacksQuery({
@@ -248,15 +221,18 @@ export function StacksPageContent() {
   }, [typeFilter]);
 
   // Build stack types list with counts, filtering out empty types
-  // Show "All Types" always, but filter out empty specific types only if stats are loaded
-  const stackTypes: Array<{ value: string; label: string; count: number }> = [
-    { value: "", label: t("stacks.allTypes", "All Types"), count: stats?.total_stacks ?? 0 },
-    { value: "raw_jpeg", label: stackTypeLabels.raw_jpeg, count: stats?.by_type?.raw_jpeg ?? 0 },
-    { value: "burst", label: stackTypeLabels.burst, count: stats?.by_type?.burst ?? 0 },
-    { value: "bracket", label: stackTypeLabels.bracket, count: stats?.by_type?.bracket ?? 0 },
-    { value: "live_photo", label: stackTypeLabels.live_photo, count: stats?.by_type?.live_photo ?? 0 },
-    { value: "manual", label: stackTypeLabels.manual, count: stats?.by_type?.manual ?? 0 },
-  ].filter(type => type.value === "" || !stats || type.count > 0); // Show "All Types" always, filter empty types only when stats are loaded
+  // Show "All Types" always, but filter out empty specific types only if stats are loaded.
+  // Legacy RAW + JPEG / Live Photo stacks still show up in the stats, but the list
+  // endpoint never returns them, so they get no filter entry and are not counted.
+  const allStackTypes: Array<{ value: StackType | ""; label: string; count: number }> = [
+    { value: "", label: t("stacks.types.all", "All Types"), count: stats ? countListedStacks(stats) : 0 },
+    ...validStackTypes.map(type => ({
+      value: type,
+      label: t(`stacks.types.${type}`),
+      count: stats?.by_type?.[type] ?? 0,
+    })),
+  ];
+  const stackTypes = allStackTypes.filter(type => type.value === "" || !stats || type.count > 0);
 
   return (
     <Stack gap="lg">
@@ -267,14 +243,14 @@ export function StacksPageContent() {
           <Menu shadow="md" width={200}>
             <Menu.Target>
               <Button variant="light" size="sm" rightSection={<IconChevronDown size={14} />}>
-                {typeFilter ? stackTypeLabels[typeFilter] : t("stacks.allTypes", "All Types")}
+                {typeFilter ? t(`stacks.types.${typeFilter}`) : t("stacks.types.all", "All Types")}
               </Button>
             </Menu.Target>
             <Menu.Dropdown>
               {stackTypes.map(type => (
                 <Menu.Item
                   key={type.value}
-                  onClick={() => setTypeFilter((type.value || undefined) as StackType | undefined)}
+                  onClick={() => setTypeFilter(type.value || undefined)}
                   rightSection={
                     typeFilter === type.value || (!typeFilter && !type.value) ? <IconCheck size={14} /> : null
                   }
@@ -292,11 +268,12 @@ export function StacksPageContent() {
             </Menu.Dropdown>
           </Menu>
         </Group>
-        <Group gap="xs">
-          <ButtonGroup>
+        {/* Stacked on phones: side by side the two buttons are wider than the screen */}
+        <Group gap="xs" w={isPhone ? "100%" : undefined}>
+          <ButtonGroup orientation={isPhone ? "vertical" : "horizontal"} w={isPhone ? "100%" : undefined}>
             <Menu shadow="md" width={300}>
               <Menu.Target>
-                <Button variant="outline" size="sm" rightSection={<IconChevronDown size={14} />}>
+                <Button variant="outline" size="sm" fullWidth={isPhone} rightSection={<IconChevronDown size={14} />}>
                   {t("stacks.detectOptions", "Detection Options")}
                 </Button>
               </Menu.Target>
@@ -306,15 +283,9 @@ export function StacksPageContent() {
                   <Stack gap="xs">
                     <Checkbox
                       size="sm"
-                      checked={detectOptions.detect_raw_jpeg}
-                      onChange={e => setDetectOptions(o => ({ ...o, detect_raw_jpeg: e.currentTarget.checked }))}
-                      label={t("stacks.detectRawJpeg", "RAW + JPEG pairs")}
-                    />
-                    <Checkbox
-                      size="sm"
                       checked={detectOptions.detect_bursts}
                       onChange={e => setDetectOptions(o => ({ ...o, detect_bursts: e.currentTarget.checked }))}
-                      label={t("stacks.detectBursts", "Burst sequences")}
+                      label={t("stacks.options.detectbursts", "Burst sequences")}
                     />
                     {detectOptions.detect_bursts && (
                       <Box pl="md">
@@ -323,17 +294,19 @@ export function StacksPageContent() {
                         </Text>
                       </Box>
                     )}
-                    <Checkbox
-                      size="sm"
-                      checked={detectOptions.detect_live_photos}
-                      onChange={e => setDetectOptions(o => ({ ...o, detect_live_photos: e.currentTarget.checked }))}
-                      label={t("stacks.detectLivePhotos", "Live Photos")}
-                    />
                   </Stack>
                 </Box>
               </Menu.Dropdown>
             </Menu>
-            <Button size="sm" leftSection={<IconRefresh size={16} />} onClick={handleDetect} loading={isDetecting}>
+            <Button
+              size="sm"
+              fullWidth={isPhone}
+              leftSection={<IconRefresh size={16} />}
+              onClick={handleDetect}
+              loading={isDetecting}
+              // Bursts are the only thing to detect: with it unchecked the job would do nothing
+              disabled={!detectOptions.detect_bursts}
+            >
               {t("stacks.detect", "Detect Stacks")}
             </Button>
           </ButtonGroup>
@@ -369,17 +342,11 @@ export function StacksPageContent() {
           )}
         </>
       ) : (
-        <Paper p="xl" withBorder>
-          <Stack align="center" gap="md">
-            <IconLayersSubtract size={48} color="gray" />
-            <Text size="lg" fw={500}>
-              {t("stacks.noStacks", "No photo stacks found")}
-            </Text>
-            <Text size="sm" c="dimmed" ta="center">
-              {t("stacks.empty", "Click 'Detect Stacks' to find RAW+JPEG pairs, bursts, and other related photos.")}
-            </Text>
-          </Stack>
-        </Paper>
+        <EmptyState
+          icon={<IconLayersSubtract size={40} />}
+          title={t("stacks.nostacks", "No photo stacks found")}
+          description={t("stacks.empty")}
+        />
       )}
 
       {/* Detail Modal */}

@@ -30,7 +30,7 @@ On the first chunk leave `upload_id` empty, you will get a response with the `up
 #### Headers:
 
 - `Content-Type` - `multipart/form-data`
-- `Cookie` - `jwt=<access token>`
+- `Authorization` - `Bearer <access token>` (or `Cookie` - `jwt=<access token>` as a fallback)
 - `Content-Range` - `bytes <start>-<end>/<total>`
 
 The server derives the chunk position from the `Content-Range` header only, not from the `offset` form field. If the header is omitted it assumes the chunk starts at byte 0, so any upload of more than one chunk must send `Content-Range` or the second chunk fails with `400 "Offsets do not match"`. The response body returns the server's authoritative `offset` (alongside `upload_id` and `expires`); use it as the start of the next chunk.
@@ -48,13 +48,13 @@ Assembles the uploaded chunks into a single file and imports it.
 #### Headers:
 
 - `Content-Type` - `multipart/form-data`
-- `Cookie` - `jwt=<access token>`
+- `Authorization` - `Bearer <access token>` (or `Cookie` - `jwt=<access token>` as a fallback)
 
 #### On completion:
 
 On success the server:
 
-- Writes the assembled file to `<scan_directory>/uploads/web/<sanitized filename>` (the `uploads/` and `uploads/web/` directories are created if missing; `web` is currently hardcoded as the origin device).
+- Writes the assembled file to `<upload root>/web/<sanitized filename>`. The upload root is the user's upload folder when an admin set one, otherwise `<scan_directory>/uploads` (`User.upload_root()`). The `web/` subfolder is created if missing; `web` is currently hardcoded as the origin device, so mobile backups land there too.
 - Queues a background task chain (django-q) that imports the photo — `create_new_image` + `handle_new_image`, caption generation, geolocation, album-date location and face extraction. Because of this, **clients do not need to call `/api/scanuploadedphotos/` afterwards**; the upload is already imported.
 - Deduplicates by hash: if a `Photo` with the same hash already exists, or a same-named file in the upload folder has the same hash, the file is not copied and no new import is performed (the endpoint still returns `200`). If a same-named file exists with a *different* hash, the image hash is appended to the basename.
 
@@ -64,7 +64,7 @@ Error responses:
 - `400 "File type not allowed"` if the file fails the media-type check (`is_valid_media`); the chunked-upload record is deleted.
 
 :::note Authentication for the upload endpoints
-Unlike the other endpoints, `/api/upload/` and `/api/upload/complete/` are plain Django views rather than DRF views, so DRF's JWT authentication never runs and the `Authorization` header is ignored. They authenticate solely from the `jwt` cookie, whose value is the access token set on the response of `POST /api/auth/token/obtain/` and `POST /api/auth/token/refresh/`. Browser clients send it automatically with `credentials: "include"`; other clients must send it explicitly (e.g. `curl --cookie "jwt=<access token>"`). A request without a valid cookie returns `403 {"detail": "Authentication credentials were not provided"}`. Uploads must also be enabled: the endpoints check the `ALLOW_UPLOAD` site setting first and return `403 "Uploading is not allowed"` when it is off, so that 403 is not always an authentication problem.
+Unlike the other endpoints, `/api/upload/` and `/api/upload/complete/` are plain Django views rather than DRF views, so DRF's authentication never runs. They call `JWTCookieAuthentication.authenticate_strict` themselves (`authenticate_upload_request`), which reads an `Authorization: Bearer <access token>` header first and falls back to the `jwt` cookie, whose value is the access token set on the response of `POST /api/auth/token/obtain/` and `POST /api/auth/token/refresh/`. Browser clients send the cookie automatically with `credentials: "include"`; other clients should send the header. A request without credentials returns `403 {"detail": "Authentication credentials were not provided"}`, and one with an expired or otherwise invalid token `403 {"detail": "Authentication credentials were invalid"}`. A malformed header, or a token for an account that is gone or deactivated, also answers `403 {"detail": "Authentication credentials were not provided"}`. Uploads must also be enabled: the endpoints check the `ALLOW_UPLOAD` site setting first and return `403 "Uploading is not allowed"` when it is off, so that 403 is not always an authentication problem.
 :::
 
 ### `POST /api/scanuploadedphotos/`

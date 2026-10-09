@@ -44,16 +44,19 @@ class TagViewSet(viewsets.ModelViewSet):
 
         queryset = Tag.objects.filter(owner=self.request.user)
 
-        photo = self.request.query_params.get("photo")
-        if photo:
-            queryset = queryset.filter(
-                **{
-                    f"photos__{field}": value
-                    for field, value in _get_photo_filter_kwargs(photo).items()
-                }
-            )
-
         if self.action == "list":
+            # "Tags of this photo" on the list only: on a tag album's detail
+            # ?photo=true is the Photos media filter, and reading it as an
+            # image hash 404'd the album.
+            photo = self.request.query_params.get("photo")
+            if photo:
+                queryset = queryset.filter(
+                    **{
+                        f"photos__{field}": value
+                        for field, value in _get_photo_filter_kwargs(photo).items()
+                    }
+                ).distinct()
+
             # The same photos the detail action serves: a tile must not cover
             # itself with a trashed photo whose file is already gone.
             cover_photos = Photo.visible.only("image_hash", "video")

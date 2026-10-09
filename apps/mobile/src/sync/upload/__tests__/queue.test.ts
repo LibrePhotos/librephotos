@@ -96,6 +96,6 @@ describe("upload queue enqueue rule", () => {
     enqueueBackups(t.db, 2_000);
 
     const window = enqueueUploadWindow(t.db, 3_000);
-    expect(window.map((j) => (j.payload as { assetId: string }).assetId)).toEqual(["local", "cloud"]);
+    expect(window.map((j) => j.payload?.assetId)).toEqual(["local", "cloud"]);
   });
 });

@@ -32,6 +32,24 @@ spec:
               name: database
         - name: POSTGRES_DB
           value: librephotos
+        # On a fresh volume the image first runs a temporary server that only
+        # listens on the Unix socket. Checking over TCP keeps the Pod NotReady
+        # until the real server is up, so a restore (README.md) cannot start
+        # against the temporary one. The startup probe holds the liveness
+        # probe off meanwhile: a restart in the middle of that first setup
+        # leaves a volume without the database or its pg_hba.conf entry, and
+        # the image never sets it up again.
+        startupProbe:
+          exec:
+            command:
+            - pg_isready
+            - -h
+            - localhost
+            - -U
+            - librephotos
+          periodSeconds: 5
+          timeoutSeconds: 5
+          failureThreshold: 60
         livenessProbe:
           exec:
             command:
@@ -40,6 +58,16 @@ spec:
             - localhost
             - -U
             - librephotos
+          timeoutSeconds: 5
+        readinessProbe:
+          exec:
+            command:
+            - pg_isready
+            - -h
+            - localhost
+            - -U
+            - librephotos
+          timeoutSeconds: 5
         ports:
         - containerPort: 5432
           name: psql

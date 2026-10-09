@@ -25,16 +25,17 @@ import {
 
 /** Does `binding` fire when the browser reports this keypress? */
 function fires(binding: string, key: string, { shift = false, ctrl = false, meta = false } = {}) {
-  const handler = vi.fn();
-  getHotkeyHandler([[binding, handler]])({
-    key,
-    code: key === " " ? "Space" : key,
-    altKey: false,
-    metaKey: meta,
-    ctrlKey: ctrl,
-    shiftKey: shift,
-    preventDefault: () => {},
-  } as unknown as KeyboardEvent);
+  const handler = vi.fn<(event: KeyboardEvent) => void>();
+  getHotkeyHandler([[binding, handler]])(
+    new KeyboardEvent("keydown", {
+      key,
+      code: key === " " ? "Space" : key,
+      altKey: false,
+      metaKey: meta,
+      ctrlKey: ctrl,
+      shiftKey: shift,
+    })
+  );
   return handler.mock.calls.length > 0;
 }
 

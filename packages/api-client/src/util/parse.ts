@@ -1,4 +1,13 @@
-import type { z } from "zod";
+/**
+ * What parseResponse needs of a schema. Typed by shape, not as a zod class: the
+ * package is compiled against zod 3 (mobile) and zod 4 (web), and both versions'
+ * schemas have this safeParse, which hands back the parsed value with its type.
+ */
+type SafeParser<T> = {
+  safeParse(data: unknown):
+    | { success: true; data: T }
+    | { success: false; error: { issues: ReadonlyArray<{ path: ReadonlyArray<PropertyKey>; message: string }> } };
+};
 
 /**
  * A response that does not match its schema, i.e. server drift. A class of its
@@ -25,15 +34,11 @@ export class ResponseParseError extends Error {
  * contract tests and the app's error boundary both want a loud failure so
  * server drift is caught.
  */
-export function parseResponse<T extends z.ZodTypeAny>(
-  schema: T,
-  data: unknown,
-  context = "response"
-): z.infer<T> {
+export function parseResponse<T>(schema: SafeParser<T>, data: unknown, context = "response"): T {
   const result = schema.safeParse(data);
   if (!result.success) {
     const issues = result.error.issues
-      .map(issue => `${issue.path.join(".") || "(root)"}: ${issue.message}`)
+      .map(issue => `${issue.path.map(String).join(".") || "(root)"}: ${issue.message}`)
       .join("; ");
     throw new ResponseParseError(context, issues);
   }

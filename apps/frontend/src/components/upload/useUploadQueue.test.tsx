@@ -8,7 +8,7 @@ const stubs = vi.hoisted(() => ({
   exists: vi.fn<(url: string) => Promise<unknown>>(),
   uploadChunk: vi.fn<(opts: { form_data: FormData; offset: number; chunk_size: number }) => Promise<unknown>>(),
   uploadFinished: vi.fn<(opts: { formData: FormData; shouldInvalidate: boolean }) => Promise<unknown>>(),
-  invalidate: vi.fn(),
+  invalidate: vi.fn<() => void>(),
 }));
 
 vi.mock("../../api_client/api", () => ({
@@ -53,7 +53,6 @@ const settle = async () => {
 const file = (name: string, bytes: number, type = "image/jpeg") => new File([new Uint8Array(bytes)], name, { type });
 
 beforeAll(() => {
-  // @ts-ignore
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 });
 
@@ -197,5 +196,23 @@ describe("useUploadQueue", () => {
       latest.reset();
     });
     expect(latest.items).toHaveLength(0);
+  });
+
+  it("fails an empty file and moves on instead of stalling the queue", async () => {
+    // Uses the real hash, which used to wait forever on a 0-byte file.
+    const { calculateMD5 } = await vi.importActual<typeof import("./chunkedUpload")>("./chunkedUpload");
+    stubs.md5.mockImplementation(calculateMD5);
+
+    await act(async () => {
+      latest.start([file("empty.jpg", 0), file("ok.jpg", 10)]);
+    });
+    await settle();
+
+    expect(latest.items.map(i => [i.file.name, i.status])).toEqual([
+      ["empty.jpg", "error"],
+      ["ok.jpg", "done"],
+    ]);
+    expect(latest.items[0].error).toBeTruthy();
+    expect(stubs.uploadFinished).toHaveBeenCalledTimes(1);
   });
 });

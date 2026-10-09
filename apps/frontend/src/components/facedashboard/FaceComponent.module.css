@@ -1,5 +1,6 @@
 .box {
-  display: block;
+  /* Grid, so justify-items centres the face (a block) in its cell */
+  display: grid;
   background-color: transparent;
   align-content: center;
   justify-items: center;
@@ -12,7 +13,7 @@
   }
 
   &[data-selected="true"] {
-    background-color: var(--mantine-color-blue-1);
+    background-color: light-dark(var(--mantine-color-blue-1), var(--mantine-color-blue-9));
   }
 
   .action {

@@ -69,6 +69,12 @@ Releases after 1.1.0 cannot upgrade a database from before 2026w10 directly. Go 
 
 :::
 
+:::note Coming from 1.2.1 or older?
+
+Run the thumbnail cleanup once after the update, so older thumbnails stop carrying the photo's GPS position. See [After upgrading from 1.2.1 or older](upgrading.md#strip-thumbnail-metadata).
+
+:::
+
 :::note
 
 `docker compose pull` only downloads newer container images. `docker-compose.yml` is a tracked file in the repository and gains new settings over time. Recent versions, for example, added the lines that pass `workerConcurrency` and `frontendBaseUrl` from your `.env` through to the backend, and changed the database volume path for Postgres v18+. If your `docker-compose.yml` predates those changes, setting the matching variables in `.env` has no effect until you `git pull`.

@@ -10,6 +10,7 @@ import { createTestDb, type TestDb } from "@/db/test-db";
 import { claimNextJob, enqueueJob, enqueueJobs, getJob } from "../queue";
 import { runWorker, resetBootReclaimForTests, type JobHandlers } from "../worker";
 import { MAX_JOB_ATTEMPTS } from "../types";
+import { defined } from "@/test/defined";
 
 /** Synchronous yield: keeps the tests fast and deterministic. */
 const fastYield = () => Promise.resolve();
@@ -68,7 +69,7 @@ describe("job worker", () => {
     await runWorker(t.db, { handlers: noop, yield: fastYield });
 
     // A second drain must NOT steal a job another drain legitimately owns.
-    const id = enqueueJob(t.db, { kind: "hash_batch" })!;
+    const id = defined(enqueueJob(t.db, { kind: "hash_batch" }));
     claimNextJob(t.db, 2_000);
     await runWorker(t.db, { handlers: noop, yield: fastYield });
     expect(stateOf(t, id)).toBe("running");
@@ -79,7 +80,11 @@ describe("job worker", () => {
     const chunks: number[] = [];
     const handlers: JobHandlers = {
       device_scan: async ({ job }) => {
-        const chunk = JSON.parse(job.payload ?? "{}").chunk as number;
+        const payload: unknown = JSON.parse(job.payload ?? "{}");
+        const chunk =
+          typeof payload === "object" && payload !== null && "chunk" in payload && typeof payload.chunk === "number"
+            ? payload.chunk
+            : NaN;
         chunks.push(chunk);
         // A self-continuation: only legal because the worker records this job's
         // outcome before applying `enqueue`, freeing the dedupe key.
@@ -108,7 +113,7 @@ describe("job worker", () => {
   });
 
   it("retries a throwing job behind a backoff window, then parks it as failed", async () => {
-    const id = enqueueJob(t.db, { kind: "hash_batch" })!;
+    const id = defined(enqueueJob(t.db, { kind: "hash_batch" }));
     let calls = 0;
     const handlers: JobHandlers = {
       hash_batch: async () => {
@@ -121,8 +126,8 @@ describe("job worker", () => {
     let now = 1_000;
     await runWorker(t.db, { handlers, yield: fastYield, now: () => now });
     expect(calls).toBe(1);
-    expect(getJob(t.db, id)!.state).toBe("pending");
-    expect(getJob(t.db, id)!.last_error).toBe("disk on fire");
+    expect(defined(getJob(t.db, id)).state).toBe("pending");
+    expect(defined(getJob(t.db, id)).last_error).toBe("disk on fire");
 
     // Walk the clock past each window until the attempt cap is spent.
     for (let i = 1; i < MAX_JOB_ATTEMPTS; i += 1) {
@@ -130,7 +135,7 @@ describe("job worker", () => {
       await runWorker(t.db, { handlers, yield: fastYield, now: () => now });
     }
     expect(calls).toBe(MAX_JOB_ATTEMPTS);
-    const row = getJob(t.db, id)!;
+    const row = defined(getJob(t.db, id));
     expect(row.state).toBe("failed");
     expect(row.last_error).toBe("disk on fire");
   });
@@ -154,10 +159,10 @@ describe("job worker", () => {
   });
 
   it("parks a job with no registered handler instead of retrying it five times", async () => {
-    const id = enqueueJob(t.db, { kind: "upload_asset", payload: { assetId: "a1" } })!;
+    const id = defined(enqueueJob(t.db, { kind: "upload_asset", payload: { assetId: "a1" } }));
     await runWorker(t.db, { handlers: {}, yield: fastYield });
-    expect(getJob(t.db, id)!.state).toBe("failed");
-    expect(getJob(t.db, id)!.last_error).toContain("no handler");
+    expect(defined(getJob(t.db, id)).state).toBe("failed");
+    expect(defined(getJob(t.db, id)).last_error).toContain("no handler");
   });
 
   it("stops on the job budget and leaves the rest claimable", async () => {
@@ -216,7 +221,7 @@ describe("job worker: cancellation", () => {
   });
 
   it("releases the in-flight job with its attempt refunded rather than failing it", async () => {
-    const id = enqueueJob(t.db, { kind: "hash_batch" })!;
+    const id = defined(enqueueJob(t.db, { kind: "hash_batch" }));
     const controller = new AbortController();
     await runWorker(t.db, {
       handlers: {
@@ -229,7 +234,7 @@ describe("job worker: cancellation", () => {
       yield: fastYield,
     });
 
-    const row = getJob(t.db, id)!;
+    const row = defined(getJob(t.db, id));
     expect(row.state).toBe("pending");
     expect(row.attempts).toBe(0); // refunded — cancellation is not the job's fault
     expect(row.last_error).toBeNull();

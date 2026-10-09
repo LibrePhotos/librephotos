@@ -13,7 +13,10 @@ spec:
 
 ---
 
-# This volume contains thumbnails. Setting it to 10-15% the size of "photos" is probably reasonable.
+# This volume (/protected_media) holds the thumbnails, about 10-15% the size of "photos", and next to them the
+# machine learning models (several GB once downloaded), the cache of converted videos (TRANSCODE_CACHE_MAX_GB,
+# 10 GB by default) and the zip archives of downloads, which are kept for a day. Size it for all of them, including
+# the largest download you expect.
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -21,7 +24,7 @@ metadata:
 spec:
   resources:
     requests:
-      storage: 3Gi
+      storage: 20Gi
   volumeMode: Filesystem
   accessModes:
   - ReadWriteOnce

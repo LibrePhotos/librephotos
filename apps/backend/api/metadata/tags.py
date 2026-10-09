@@ -12,6 +12,8 @@ class Tags:
     DATE_CREATED = "XMP:DateCreated"
     QUICKTIME_CREATE_DATE = "QuickTime:CreateDate"
     QUICKTIME_DURATION = "QuickTime:Duration"
+    # MKV and WebM: ExifTool files their duration under Matroska, not QuickTime.
+    MATROSKA_DURATION = "Matroska:Duration"
     LATITUDE = "Composite:GPSLatitude"
     LONGITUDE = "Composite:GPSLongitude"
     GPS_DATE_TIME = "Composite:GPSDateTime"

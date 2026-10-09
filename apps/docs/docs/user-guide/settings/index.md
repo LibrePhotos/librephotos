@@ -146,7 +146,7 @@ Directly below the Site Settings card is an **Email (SMTP)** card that configure
 
 ## Users
 
-The admin can change here the scan directory and password for users, or add new users to the system.
+The admin can change here the scan directory, upload folder and password for users, or add new users to the system. Deleting a user keeps their photos and albums under a placeholder account, turns off their public links and removes nothing from disk. See [Managing users](../managing-users.md#deleting-a-user).
 
 ### Worker Logs
 

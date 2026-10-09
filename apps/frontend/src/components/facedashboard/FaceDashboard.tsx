@@ -1,6 +1,6 @@
 import { RemoveScroll, Stack } from "@mantine/core";
 import { IconFaceId } from "@tabler/icons-react";
-import { getRouteApi } from "@tanstack/react-router";
+import { getRouteApi, useNavigate } from "@tanstack/react-router";
 import { debounce } from "lodash-es";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -22,6 +22,7 @@ import { useFaceDataFetching } from "./hooks/useFaceDataFetching";
 import { useFaceSelection } from "./hooks/useFaceSelection";
 import { useTabScrollPositions } from "./hooks/useTabScrollPositions";
 import { useVirtualizedGrid } from "./hooks/useVirtualizedGrid";
+import type { FaceCell, GridCell } from "./hooks/useVirtualizedGrid";
 import { TabComponent } from "./TabComponent";
 import { VirtualizedGridComponent } from "./VirtualizedGridComponent";
 
@@ -32,7 +33,9 @@ export function FaceDashboard() {
   const { ref, width } = useContentBoxSize<HTMLDivElement>();
   const { t } = useTranslation();
 
-  const { tab: activeTab, method: analysisMethod, orderBy, minConfidence } = routeApi.useSearch();
+  const navigate = useNavigate();
+  const search = routeApi.useSearch();
+  const { tab: activeTab, method: analysisMethod, orderBy, minConfidence } = search;
 
   // Tab scroll positions from localStorage
   const { tabPositions, updatePosition } = useTabScrollPositions();
@@ -60,7 +63,7 @@ export function FaceDashboard() {
     groups,
     activeTab,
     analysisMethod,
-    orderBy as any,
+    orderBy,
     minConfidence
   );
 
@@ -82,7 +85,7 @@ export function FaceDashboard() {
 
   // Event handlers
   const handleShowClick = useCallback(
-    (event: React.KeyboardEvent, item: any) => {
+    (event: React.MouseEvent, item: FaceCell) => {
       const index = idx2hash.findIndex(image => image.id === item.photo);
       showLightbox(item.photo, index >= 0);
     },
@@ -118,8 +121,8 @@ export function FaceDashboard() {
     // We need to initialize with cell calculation functions
     // that will be replaced after the grid is initialized
     const utils = {
-      getFlattenedCells: () => [] as any[],
-      getFacesInRange: (start: any, end: any) => {
+      getFlattenedCells: (): GridCell[] => [],
+      getFacesInRange: (start: GridCell, end: GridCell) => {
         const allFaces = utils.getFlattenedCells();
         const startIndex = allFaces.indexOf(start);
         const endIndex = allFaces.indexOf(end);
@@ -194,10 +197,14 @@ export function FaceDashboard() {
   useEffect(() => {
     if (prevTabRef.current !== activeTab) {
       // Tab changed - restore the saved scroll position for the new tab
-      setScrollTo(tabPositions[activeTab]);
+      // A tab without a saved position is not scrolled (null, as undefined was before)
+      setScrollTo(tabPositions[activeTab] ?? null);
+      // The tabs show different faces: a selection carried over would let Delete,
+      // Not this person and Add act on faces that are no longer on screen
+      clearSelection();
       prevTabRef.current = activeTab;
     }
-  }, [activeTab, tabPositions]);
+  }, [activeTab, tabPositions, clearSelection]);
 
   const handleLightboxImageChange = useCallback((imageId: string) => {
     setLightboxImageId(imageId);
@@ -219,6 +226,36 @@ export function FaceDashboard() {
     setCollapsedForTab(activeTab, allCollapsed ? [] : currentTabList.map(person => person.id));
   }, [activeTab, allCollapsed, currentTabList, setCollapsedForTab]);
 
+  // "Scan your photos" only fits when no tab has any face. Otherwise only this tab
+  // is empty (e.g. every face is labeled), so offer the tab that has faces instead.
+  const renderEmptyState = () => {
+    const noFacesAtAll =
+      !fetchingLabeledFacesList &&
+      !fetchingInferredFacesList &&
+      lists.labeled.length + lists.inferred.length + lists.unknown.length === 0;
+    if (noFacesAtAll) {
+      return (
+        <EmptyState
+          icon={<IconFaceId size={40} />}
+          title={t("emptystate.faces.title")}
+          description={t("emptystate.faces.description")}
+          actionLabel={t("emptystate.goToLibrary")}
+          actionLink="/library"
+        />
+      );
+    }
+    const otherTab = FacesTab.options.find(tab => tab !== activeTab && lists[tab].length > 0);
+    return (
+      <EmptyState
+        icon={<IconFaceId size={40} />}
+        title={t(`emptystate.facesTab.${activeTab}.title`)}
+        description={t(`emptystate.facesTab.${activeTab}.description`)}
+        actionLabel={otherTab && t(`emptystate.facesTab.show.${otherTab}`)}
+        onAction={otherTab && (() => navigate({ to: "/faces", search: { ...search, tab: otherTab } }))}
+      />
+    );
+  };
+
   return (
     <RemoveScroll enabled={lightboxOpen}>
       <Stack h={`calc(100vh - ${TOP_MENU_HEIGHT}px)`}>
@@ -238,13 +275,7 @@ export function FaceDashboard() {
           canCollapse={hasFaces}
         />
         {!isFetching && !hasFaces ? (
-          <EmptyState
-            icon={<IconFaceId size={40} />}
-            title={t("emptystate.faces.title")}
-            description={t("emptystate.faces.description")}
-            actionLabel={t("emptystate.goToLibrary")}
-            actionLink="/library"
-          />
+          renderEmptyState()
         ) : (
           <VirtualizedGridComponent
             containerRef={ref}

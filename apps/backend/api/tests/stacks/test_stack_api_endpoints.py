@@ -409,7 +409,9 @@ class StackStatsAPITestCase(TestCase):
         response = self.client.get("/api/stacks/stats")
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data["total_stacks"], 3)
+        # The list never returns the deprecated RAW+JPEG stack, so the total
+        # leaves it out; by_type still reports it for migration visibility.
+        self.assertEqual(response.data["total_stacks"], 2)
         self.assertEqual(
             response.data["by_type"][PhotoStack.StackType.BURST_SEQUENCE], 1
         )
@@ -417,6 +419,33 @@ class StackStatsAPITestCase(TestCase):
             response.data["by_type"][PhotoStack.StackType.RAW_JPEG_PAIR], 1
         )
         self.assertEqual(response.data["by_type"][PhotoStack.StackType.MANUAL], 1)
+
+    def test_stats_count_what_the_list_returns(self):
+        """A badge must not promise stacks the list endpoint leaves out."""
+        photos = [create_test_photo(owner=self.user) for _ in range(5)]
+        burst = PhotoStack.objects.create(
+            owner=self.user, stack_type=PhotoStack.StackType.BURST_SEQUENCE
+        )
+        burst.photos.add(photos[0], photos[1])
+        # Listed nowhere: a stack of one, and a deprecated type.
+        single = PhotoStack.objects.create(
+            owner=self.user, stack_type=PhotoStack.StackType.MANUAL
+        )
+        single.photos.add(photos[2])
+        live = PhotoStack.objects.create(
+            owner=self.user, stack_type=PhotoStack.StackType.LIVE_PHOTO
+        )
+        live.photos.add(photos[3], photos[4])
+
+        stats = self.client.get("/api/stacks/stats").data
+        listed = self.client.get("/api/stacks/").data
+
+        self.assertEqual(listed["count"], stats["total_stacks"])
+        self.assertEqual(1, stats["total_stacks"])
+        self.assertEqual(1, stats["by_type"][PhotoStack.StackType.BURST_SEQUENCE])
+        self.assertEqual(0, stats["by_type"][PhotoStack.StackType.MANUAL])
+        self.assertEqual(1, stats["by_type"][PhotoStack.StackType.LIVE_PHOTO])
+        self.assertEqual(2, stats["photos_in_stacks"])
 
     def test_stats_photos_in_stacks(self):
         """Test stats counts photos in stacks correctly."""

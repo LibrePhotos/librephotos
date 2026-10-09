@@ -1,5 +1,5 @@
 import { ActionIcon, Badge, Group, Stack, TagsInput, Text, Title, Tooltip } from "@mantine/core";
-import { IconCheck, IconPencil, IconX } from "@tabler/icons-react";
+import { IconCheck, IconPencil, IconTag, IconX } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -18,7 +18,13 @@ interface TagsSectionProps {
   photoDetail: PhotoType;
 }
 
-export function TagsSection({ photoDetail }: TagsSectionProps) {
+export function TagsSection(props: TagsSectionProps) {
+  // The draft belongs to one photo: remount when the photo changes, or an editor
+  // left open while browsing would save this photo's tags onto the next one.
+  return <TagsEditor key={props.photoDetail.image_hash} {...props} />;
+}
+
+function TagsEditor({ photoDetail }: TagsSectionProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [editing, setEditing] = useState(false);
@@ -74,22 +80,45 @@ export function TagsSection({ photoDetail }: TagsSectionProps) {
   return (
     <Stack gap="xs">
       <Group justify="space-between">
-        <Title order={5}>{t("lightbox.sidebar.tags")}</Title>
+        <Group>
+          <IconTag />
+          <Title order={4}>{t("lightbox.sidebar.tags")}</Title>
+        </Group>
         {!editing ? (
           <Tooltip label={t("lightbox.sidebar.editTags")}>
-            <ActionIcon variant="subtle" color="gray" size="sm" onClick={handleEditOpen}>
+            <ActionIcon
+              variant="subtle"
+              color="gray"
+              size="sm"
+              aria-label={t("lightbox.sidebar.editTags")}
+              onClick={handleEditOpen}
+            >
               <IconPencil size={16} />
             </ActionIcon>
           </Tooltip>
         ) : (
           <Group gap="xs">
             <Tooltip label={t("lightbox.sidebar.cancel", "Cancel")}>
-              <ActionIcon variant="subtle" color="gray" size="sm" onClick={handleCancel} disabled={isSaving}>
+              <ActionIcon
+                variant="subtle"
+                color="gray"
+                size="sm"
+                aria-label={t("lightbox.sidebar.cancel", "Cancel")}
+                onClick={handleCancel}
+                disabled={isSaving}
+              >
                 <IconX size={16} />
               </ActionIcon>
             </Tooltip>
             <Tooltip label={t("lightbox.sidebar.save", "Save")}>
-              <ActionIcon variant="subtle" color="blue" size="sm" onClick={handleSave} loading={isSaving}>
+              <ActionIcon
+                variant="subtle"
+                color="blue"
+                size="sm"
+                aria-label={t("lightbox.sidebar.save", "Save")}
+                onClick={handleSave}
+                loading={isSaving}
+              >
                 <IconCheck size={16} />
               </ActionIcon>
             </Tooltip>
@@ -111,8 +140,13 @@ export function TagsSection({ photoDetail }: TagsSectionProps) {
       ) : tags.length > 0 ? (
         <Group gap="xs">
           {tags.map(tag => (
+            // A button, so the tag can be reached and opened from the keyboard, with
+            // the focus ring of the edit button above.
             <Badge
               key={tag.id}
+              component="button"
+              type="button"
+              className="mantine-focus-auto"
               color="teal"
               variant="light"
               style={{ cursor: "pointer" }}

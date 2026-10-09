@@ -2,6 +2,7 @@ import { Button, Center, Progress, Stack, Text, ThemeIcon, Title } from "@mantin
 import { IconPhoto } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import React from "react";
+import { useTranslation } from "react-i18next";
 
 type EmptyStateProps = Readonly<{
   icon?: React.ReactNode;
@@ -32,6 +33,7 @@ export function EmptyState({
   progress,
 }: EmptyStateProps) {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const handlePrimaryClick = () => {
     if (onAction) {
@@ -70,7 +72,8 @@ export function EmptyState({
               color="blue"
             />
             <Text c="dimmed" ta="center" size="sm">
-              {progress.current} / {progress.target} items
+              {/* One string, so translations can order the numbers and words themselves */}
+              {t("emptystate.scanning.progress", { current: progress.current, count: progress.target })}
             </Text>
           </Stack>
         )}

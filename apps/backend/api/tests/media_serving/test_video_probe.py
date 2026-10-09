@@ -370,9 +370,9 @@ class ScanProbesBeforeThumbnailingTest(TestCase):
         with (
             mock.patch.object(
                 file_handlers.video_color,
-                "record",
+                "apply_probe",
                 side_effect=lambda p: order.append("probe"),
-            ) as record,
+            ) as probe,
             mock.patch.object(
                 Thumbnail,
                 "_generate_thumbnail",
@@ -389,19 +389,199 @@ class ScanProbesBeforeThumbnailingTest(TestCase):
             file_handlers._process_photo(
                 photo, photo.main_file.path, None, file_handlers.datetime.datetime.now()
             )
-        return record, order
+        return probe, order
 
     def test_a_video_is_probed_before_its_thumbnails_are_made(self):
         photo = create_test_photo(owner=self.user, video=True)
-        record, order = self._process(photo)
-        record.assert_called_once_with(photo)
+        probe, order = self._process(photo)
+        probe.assert_called_once_with(photo)
         self.assertEqual(order, ["probe", "thumbnail"])
 
     def test_a_photo_is_not_probed(self):
         photo = create_test_photo(owner=self.user, video=False)
-        record, order = self._process(photo)
-        record.assert_not_called()
+        probe, order = self._process(photo)
+        probe.assert_not_called()
         self.assertEqual(order, ["thumbnail"])
+
+
+HDR_ANSWER = {
+    "video_codec": "hevc",
+    "video_pixel_format": "yuv420p10le",
+    "video_color_transfer": "smpte2084",
+    "video_container": "mov,mp4,m4a,3gp,3g2,mj2",
+}
+SDR_ANSWER = {
+    "video_codec": "h264",
+    "video_pixel_format": "yuv420p",
+    "video_color_transfer": "bt709",
+    "video_container": "mov,mp4,m4a,3gp,3g2,mj2",
+}
+
+
+class RescanRepairsWhatWasMadeBeforeTheProbeTest(TestCase):
+    """A full rescan probes every old video, so Probe Videos never sees them.
+
+    The rescan has to do the backfill's repair itself: the thumbnails it would
+    otherwise keep were made without tonemapping or 8-bit 4:2:0. While a Probe
+    Videos job runs, it leaves them to that job instead.
+    """
+
+    def setUp(self):
+        self.user = create_test_user()
+
+    def _process(self, photo, answer, rebuild=None):
+        def apply_probe(p):
+            for field, value in answer.items():
+                setattr(p, field, value)
+            return list(answer)
+
+        with (
+            mock.patch.object(
+                file_handlers.video_color, "apply_probe", side_effect=apply_probe
+            ) as probe,
+            mock.patch.object(Thumbnail, "_generate_thumbnail") as generate,
+            mock.patch.object(
+                Thumbnail, "_regenerate_thumbnails", side_effect=rebuild
+            ) as regenerate,
+            mock.patch.object(file_handlers.transcode_cache, "discard") as discard,
+            mock.patch.object(Thumbnail, "_calculate_aspect_ratio"),
+            mock.patch.object(Thumbnail, "_get_dominant_color"),
+            mock.patch("api.models.photo_metadata.PhotoMetadata.extract_exif_data"),
+            mock.patch.object(file_handlers, "extract_date_time") as dates,
+            mock.patch("api.screenshot_detection.classify", return_value=False),
+            mock.patch.object(file_handlers.PhotoSearch, "recreate_search_captions"),
+        ):
+            file_handlers._process_photo(
+                photo, photo.main_file.path, None, file_handlers.datetime.datetime.now()
+            )
+        self.probe = probe
+        self.generate = generate
+        self.regenerate = regenerate
+        self.discard = discard
+        self.dates = dates
+
+    def _stored_transfer(self, photo):
+        return Photo.objects.get(pk=photo.pk).video_color_transfer
+
+    def _probe_videos_running(self):
+        LongRunningJob.create_job(
+            user=self.user, job_type=LongRunningJob.JOB_PROBE_VIDEOS, start_now=True
+        )
+
+    def test_an_unprobed_hdr_video_has_its_thumbnails_rebuilt(self):
+        photo = create_test_photo(owner=self.user, video=True)
+        self._process(photo, HDR_ANSWER)
+        self.regenerate.assert_called_once_with(keep_old_on_failure=True)
+        self.discard.assert_called_once_with(photo.image_hash)
+        self.generate.assert_not_called()
+
+    def test_the_probe_is_saved_once_the_rebuild_is_over(self):
+        """A worker killed half-way leaves the video unprobed for Probe Videos."""
+        photo = create_test_photo(owner=self.user, video=True)
+        during = []
+        self._process(
+            photo,
+            HDR_ANSWER,
+            rebuild=lambda **kwargs: during.append(self._stored_transfer(photo)),
+        )
+        self.assertEqual(during, [None])
+        self.assertEqual(self._stored_transfer(photo), "smpte2084")
+
+    def test_an_unprobed_8_bit_sdr_video_keeps_them(self):
+        photo = create_test_photo(owner=self.user, video=True)
+        self._process(photo, SDR_ANSWER)
+        self.regenerate.assert_not_called()
+        self.discard.assert_not_called()
+        self.generate.assert_called_once_with()
+        self.assertEqual(self._stored_transfer(photo), "bt709")
+
+    def test_left_to_a_probe_videos_job_that_is_running(self):
+        """Two rebuilds of one video at once take each other's thumbnails."""
+        self._probe_videos_running()
+        photo = create_test_photo(owner=self.user, video=True)
+        self._process(photo, HDR_ANSWER)
+        self.probe.assert_not_called()
+        self.regenerate.assert_not_called()
+        self.generate.assert_called_once_with()
+        self.assertEqual(list(processing_jobs.videos_to_probe(self.user)), [photo])
+
+    def test_a_new_video_is_probed_while_probe_videos_runs(self):
+        """That job did not list it, and its thumbnails are made from the probe."""
+        self._probe_videos_running()
+        photo = create_test_photo(owner=self.user, video=True)
+        Thumbnail.objects.filter(photo=photo).delete()
+        self._process(Photo.objects.get(pk=photo.pk), HDR_ANSWER)
+        self.probe.assert_called_once()
+        self.generate.assert_called_once_with()
+        self.assertEqual(self._stored_transfer(photo), "smpte2084")
+
+    def test_a_video_probed_before_is_not_rebuilt_again(self):
+        """Its thumbnails were made knowing what it is."""
+        photo = create_test_photo(
+            owner=self.user,
+            video=True,
+            video_color_transfer="smpte2084",
+            video_pixel_format="yuv420p10le",
+        )
+        self._process(Photo.objects.get(pk=photo.pk), HDR_ANSWER)
+        self.regenerate.assert_not_called()
+        self.generate.assert_called_once_with()
+
+    def test_a_new_video_just_gets_its_first_thumbnails(self):
+        photo = create_test_photo(owner=self.user, video=True)
+        Thumbnail.objects.filter(photo=photo).delete()
+        self._process(Photo.objects.get(pk=photo.pk), HDR_ANSWER)
+        self.regenerate.assert_not_called()
+        self.generate.assert_called_once_with()
+
+    def test_a_rebuild_that_fails_does_not_stop_the_rest_of_the_scan(self):
+        photo = create_test_photo(owner=self.user, video=True)
+        self._process(photo, HDR_ANSWER, rebuild=thumbnails.VideoThumbnailError("x"))
+        self.regenerate.assert_called_once_with(keep_old_on_failure=True)
+        self.dates.assert_called_once()
+        # It put the old thumbnails back; trying again would only fail again.
+        self.assertEqual(self._stored_transfer(photo), "smpte2084")
+
+
+class ReplacedVideoIsProbedBeforeItsRebuildTest(TestCase):
+    """A file rewritten in place is rebuilt by phase 1, before ``_process_photo``.
+
+    The stored transfer is the old file's; a clip re-exported from HDR to SDR
+    would otherwise be tonemapped as if it were still HDR.
+    """
+
+    def test_the_rebuild_uses_the_new_files_transfer(self):
+        photo = create_test_photo(
+            owner=create_test_user(),
+            video=True,
+            video_color_transfer="smpte2084",
+            video_pixel_format="yuv420p10le",
+        )
+        with (
+            tempfile.TemporaryDirectory() as media_root,
+            override_settings(MEDIA_ROOT=media_root),
+            mock.patch.object(video_color, "probe", return_value=SDR_ANSWER),
+            mock.patch("api.models.thumbnail.create_thumbnail_for_video") as poster,
+            mock.patch("api.models.thumbnail.create_animated_thumbnail") as animated,
+            mock.patch.object(Thumbnail, "_calculate_aspect_ratio"),
+            mock.patch.object(Thumbnail, "_refresh_perceptual_hash"),
+        ):
+            file_handlers._regenerate_thumbnails(Photo.objects.get(pk=photo.pk))
+        poster.assert_called_once()
+        self.assertEqual(poster.call_args.kwargs["transfer"], "bt709")
+        self.assertEqual(animated.call_count, 2)
+        for call in animated.call_args_list:
+            self.assertEqual(call.kwargs["transfer"], "bt709")
+        self.assertEqual(Photo.objects.get(pk=photo.pk).video_color_transfer, "bt709")
+
+    def test_a_photo_is_not_probed(self):
+        photo = create_test_photo(owner=create_test_user(), video=False)
+        with (
+            mock.patch.object(video_color, "probe") as probe,
+            mock.patch.object(Thumbnail, "_regenerate_thumbnails"),
+        ):
+            file_handlers._regenerate_thumbnails(photo)
+        probe.assert_not_called()
 
 
 class ProbeVideosBackfillTest(TestCase):
@@ -503,6 +683,28 @@ class ProbeVideosBackfillTest(TestCase):
         regenerate.assert_not_called()
         self.assertTrue(job.finished)
         self.assertEqual(list(processing_jobs.videos_to_probe(self.user)), [gone])
+
+    def test_a_video_probed_since_the_job_listed_it_is_left_alone(self):
+        """A full rescan, or another of these jobs, got to it first."""
+        self._video()
+        self._video()
+        probed = []
+
+        def probe(path):
+            probed.append(path)
+            # Meanwhile the other one is probed and repaired elsewhere.
+            Photo.objects.filter(video=True).exclude(main_file__path=path).update(
+                **HDR_ANSWER
+            )
+            return dict(HDR_ANSWER)
+
+        with mock.patch.object(video_color, "probe", side_effect=probe):
+            job, regenerate = self._run()
+        self.assertEqual(len(probed), 1)
+        self.assertEqual(regenerate.call_count, 1)
+        self.assertTrue(job.finished)
+        self.assertFalse(job.failed)
+        self.assertEqual(job.progress_current, 2)
 
     def test_nothing_to_probe_finishes_at_once(self):
         with mock.patch.object(video_color, "probe") as probe:

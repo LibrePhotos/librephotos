@@ -9,13 +9,18 @@ import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import type { useSetPhotosCategoryMutation } from "../../api_client/photos/hooks";
+import { PigPhoto } from "../../api_client/photos/types";
 import i18n from "../../i18n";
+import { addTempElementsToFlatList } from "../../util/util";
 import { SelectionActions } from "./SelectionActions";
 
-const stubs = vi.hoisted(() => ({ setCategory: vi.fn() }));
+type SetCategory = ReturnType<typeof useSetPhotosCategoryMutation>["mutate"];
+
+const stubs = vi.hoisted(() => ({ setCategory: vi.fn<SetCategory>() }));
 const noopMutation = vi.hoisted(() => () => ({ mutate: () => {}, mutateAsync: async () => {} }));
 vi.mock("@tanstack/react-router", () => ({ useLocation: () => ({ pathname: "/" }) }));
-vi.mock("../../api_client/apiClient", () => ({ serverAddress: "" }));
+vi.mock("../../api_client/apiClient", () => ({ serverAddress: "", shareAddress: "" }));
 vi.mock("../../api_client/albums/hooks", () => ({ useRemovePhotoFromUserAlbumMutation: noopMutation }));
 vi.mock("../../api_client/jobs", () => ({ useDownloadPhotosMutation: noopMutation }));
 vi.mock("../../api_client/photos/hooks", () => ({
@@ -34,8 +39,8 @@ vi.mock("../../hooks/useAuth", () => ({ useAuth: () => ({ userId: 1 }) }));
 vi.mock("../modals/ModalDownloadOptions", () => ({ ModalDownloadOptions: () => null }));
 
 beforeAll(async () => {
-  // @ts-ignore - jsdom has no matchMedia, MantineProvider needs it
-  window.matchMedia = (query: string) => ({
+  // jsdom has no matchMedia, MantineProvider needs it
+  window.matchMedia = (query: string): MediaQueryList => ({
     matches: false,
     media: query,
     onchange: null,
@@ -45,7 +50,6 @@ beforeAll(async () => {
     removeEventListener: () => {},
     dispatchEvent: () => false,
   });
-  // @ts-ignore
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   await i18n.changeLanguage("en");
 });
@@ -54,6 +58,15 @@ beforeEach(() => {
   document.body.innerHTML = "";
   stubs.setCategory.mockReset();
 });
+
+// A loaded grid photo; PigPhoto fills in the other fields' defaults.
+function photo(n: number, imageHash: string, extra: Partial<PigPhoto> = {}) {
+  const id = `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
+  return PigPhoto.parse({ id, image_hash: imageHash, aspectRatio: 1, ...extra });
+}
+
+// The grid's stand-in for a photo of a page not loaded yet: it has no hash.
+const [placeholder] = addTempElementsToFlatList(1);
 
 async function markAs(props: Partial<React.ComponentProps<typeof SelectionActions>>, label: string) {
   const container = document.createElement("div");
@@ -79,7 +92,7 @@ async function markAs(props: Partial<React.ComponentProps<typeof SelectionAction
   // The second menu (the dots) holds the photo actions.
   const menuButtons = container.querySelectorAll("button");
   await act(async () => {
-    (menuButtons[menuButtons.length - 1] as HTMLButtonElement).click();
+    menuButtons[menuButtons.length - 1].click();
   });
   const item = Array.from(document.body.querySelectorAll("button")).find(
     button => button.textContent?.trim() === label
@@ -94,10 +107,7 @@ describe("SelectionActions Mark as", () => {
   it("sends the selected hashes", async () => {
     await markAs(
       {
-        selectedItems: [
-          { id: "1", image_hash: "aaa" },
-          { id: "2", image_hash: "bbb", isTemp: true },
-        ] as any,
+        selectedItems: [photo(1, "aaa"), photo(2, "bbb", { isTemp: true })],
       },
       "Mark as document"
     );
@@ -109,7 +119,7 @@ describe("SelectionActions Mark as", () => {
       {
         selectAllMode: true,
         selectAllQuery: { hide_screenshots: true },
-        selectedItems: [{ id: "1", image_hash: "aaa" }, { id: "temp-2" }] as any,
+        selectedItems: [photo(1, "aaa"), placeholder],
       },
       "Mark as photo"
     );

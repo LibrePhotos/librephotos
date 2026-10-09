@@ -114,7 +114,7 @@
     "eventalbumsregeneratedescription": "Automatically generated albums have names of people in the titles. If you trained your face classifier after making event albums, you can generate new titles for already existing event albums to reflect the new names associated with the faces in photos.",
     "faces": "Faces",
     "people": "People",
-    "trainfacestitle": "Train faces",
+    "trainfacestitle": "Train Faces",
     "trainfacesdescription": "Teach the system based on existing info",
     "facesbutton": "Train",
     "inferred": "Inferred",
@@ -125,8 +125,8 @@
     "rescanfacestitle": "Rescan Faces",
     "rescanfacesdescription": "Look for faces on the library",
     "rescanfaces": "Rescan",
-    "textrecognition": "Text recognition",
-    "ocrtitle": "Extract text",
+    "textrecognition": "Text Recognition",
+    "ocrtitle": "Extract Text",
     "ocrdescription": "Read the text on your photos so that you can search for it. Only photos that have not been processed yet are read.",
     "ocrdisabled": "Choose a text recognition model in the admin area to enable this.",
     "ocrbutton": "Extract",
@@ -152,7 +152,8 @@
       "top100": "Top 100",
       "top50": "Top 50",
       "top10": "Top 10",
-      "top0": "Disabled"
+      "top0": "Disabled",
+      "description": "How many photos a search adds because they look like the search text. Disabled searches by text only."
     },
     "semanticsearchupdate": "Update",
     "favorite": "Favorite options",
@@ -169,7 +170,7 @@
     },
     "favoriteupdate": "Update",
     "savechanges": "Save changes?",
-    "experimentaloptions": "Experimental options",
+    "experimentaloptions": "Experimental Options",
     "transcodevideo": "Always transcode videos",
     "publicsharingdefaults": "Public Sharing Defaults",
     "publicsharingdefaultsdesc": "Default settings for what photo details are shared when you make albums or photos public. These can be overridden for individual albums.",
@@ -188,7 +189,7 @@
     },
     "duplicateclearexisting": "Clear existing pending duplicates",
     "duplicateclearexistinghelp": "When enabled, duplicates that are still pending review are removed before a new detection run starts.",
-    "configdatetime": "Set date and time parsing rules",
+    "configdatetime": "Date and Time Parsing Rules",
     "configdatetime_add_title": "Choose a new rule to add",
     "configdatetime_add_description": "Choose a rule, that will parse the date from a certain field or attribute.",
     "configdatetime_search_placeholder": "Find rules by name or type...",
@@ -203,6 +204,8 @@
     "public_sharing": "Public sharing",
     "add_rule": "Add Rule",
     "delete_rule": "Delete rule",
+    "unreadable_rules_hint": "This page cannot read these saved entries as rules. They are kept as saved, and the server may still apply them in their place in the list. Delete one to remove it.",
+    "unreadable_rule": "Unrecognised rule, kept as saved (entry {{position}} of the saved list)",
     "reset_to_defaults": "Reset to Defaults",
     "burst": {
       "title": "Burst Detection Rules",
@@ -213,7 +216,12 @@
       "rule": "Rule",
       "add_rule_title": "Add Burst Detection Rule",
       "add_rule_description": "Choose a rule to detect burst sequences. Hard criteria are more reliable but may miss some bursts. Soft criteria can catch more bursts but may group unrelated photos.",
-      "search_placeholder": "Search rules by name or type..."
+      "search_placeholder": "Search rules by name or type...",
+      "rule_interval": "Interval: {{ms}}ms",
+      "rule_same_camera": "same camera required",
+      "rule_threshold": "Threshold: {{value}}",
+      "rule_custom_pattern": "Custom pattern: {{pattern}}",
+      "rule_pattern_type": "Pattern type: {{type}}"
     },
     "face_options": "Face Options",
     "face_recognition_model": "Face Recognition Model",
@@ -243,7 +251,26 @@
     "llm": "Caption Context",
     "enablellm": "Tell the captioning model what LibrePhotos knows about a photo",
     "addperson": "Use the names of recognised people in captions",
-    "addlocation": "Mention where the photo was taken in captions"
+    "addlocation": "Mention where the photo was taken in captions",
+    "all_rules_in_use": "All rules are already in use",
+    "no_rules_match": "No rules match your search",
+    "add_rule_named": "Add rule: {{name}}",
+    "missingphotosconfirm": "This deletes all missing photos and their metadata from the database. It cannot be undone.",
+    "transcodevideodescription": "Usually not needed: videos your browser cannot play are converted automatically. Turning this on converts every video, at no more than 720p.",
+    "slideshowseconds_one": "{{count}} second",
+    "slideshowseconds_other": "{{count}} seconds",
+    "duplicatedetection": "Duplicate Detection",
+    "scanhelp": "How scanning works",
+    "scanhelpheading": "Scan processes new and changed files, and Rescan processes every file again. Both run these tasks:",
+    "generate": "Generate",
+    "regenerate": "Regenerate",
+    "nextcloudscandirectoryplaceholder": "Choose the folder to process from the Nextcloud instance",
+    "ocrdisablednonadmin": "Text recognition is turned off on this server. Ask your administrator to choose a text recognition model.",
+    "configdatetime_order_hint": "Rules are tried from top to bottom, and the first one that finds a date is used. Drag a rule to change the order.",
+    "togglecolorscheme": "Toggle color scheme",
+    "sceneconfidencedescription": "How sure the tagging model has to be before it adds a tag. Lower values add more tags, and more wrong ones.",
+    "scandirectoryreadonly": "Change it in the user list of the Admin Area.",
+    "danish": "Danish"
   },
   "modalalbum": {
     "title": "Add to Album",
@@ -253,7 +280,12 @@
     "placeholder": "Album title",
     "create": "Create",
     "items": "{{count}} Item(s)",
-    "updated": "Updated {{duration}}"
+    "updated": "Updated {{duration}}",
+    "created": "Created {{duration}}",
+    "selectedimages_one": "Add the selected {{count}} item to…",
+    "selectedimages_other": "Add the selected {{count}} items to…",
+    "items_one": "{{count}} item",
+    "items_other": "{{count}} items"
   },
   "modalalbumcover": {
     "title": "Choose Album Cover",
@@ -261,7 +293,9 @@
     "nophotos": "No photos available in this album",
     "tip": "Tip: You can also select a single photo in the album and click \"Set album cover\" from the menu.",
     "loadmore": "Load {{count}} more photos",
-    "showing": "Showing {{visible}} of {{total}} photos"
+    "showing": "Showing {{visible}} of {{total}} photos",
+    "loadmore_one": "Load {{count}} more photo",
+    "loadmore_other": "Load {{count}} more photos"
   },
   "modalnextcloud": {
     "setdirectory": "Set your Nextcloud scan directory",
@@ -269,7 +303,8 @@
     "browse": "Browse",
     "update": "Update",
     "cancel": "Cancel",
-    "choosedirectory": "Choose a directory from below"
+    "choosedirectory": "Choose a directory from below",
+    "notset": "Not set"
   },
   "modalphotosshare": {
     "title": "Share photos",
@@ -281,10 +316,17 @@
     "loading": "Loading..."
   },
   "modalalbumsshare": {
-    "title": "Share Album",
+    "title": "Share album",
     "search": "Search User",
     "name": "Person name",
-    "joined": "Joined"
+    "joined": "Joined",
+    "publicsharing": "Public sharing",
+    "publicsharingdesc": "Anyone with the link can view the album.",
+    "showsettings": "Show settings",
+    "hidesettings": "Hide settings",
+    "sharewithusers": "Share with LibrePhotos users",
+    "sharewithusersdesc": "Invite specific users on this server to access the album.",
+    "done": "Done"
   },
   "modaltag": {
     "title": "Add Tags",
@@ -307,7 +349,10 @@
     "library": "Library",
     "adminarea": "Admin Area",
     "jobs": "My Jobs",
-    "viewalljobs": "View all jobs"
+    "viewalljobs": "View all jobs",
+    "accountmenu": "Account menu",
+    "workerstatusavailable": "Worker status: available",
+    "workerstatusbusy": "Worker status: busy"
   },
   "jobs": {
     "header": "My Jobs",
@@ -355,7 +400,9 @@
     "duplicates": "Duplicates",
     "publicphotos": "Public photos",
     "youshared": "You shared",
-    "sharedwithyou": "Shared with you"
+    "sharedwithyou": "Shared with you",
+    "organizing": "Organizing",
+    "backendversion": "Backend version: {{hash}}"
   },
   "memories": {
     "title": "Memories",
@@ -370,7 +417,7 @@
     "gallery": "Gallery",
     "capped": "showing the first {{count}} photos of each year",
     "emptytitle": "No memories yet",
-    "emptydescription": "Memories show up once your library reaches back further than a year. Try again on another day, or scan more photos."
+    "emptydescription": "Memories show photos taken around this date in earlier years. Your library has none from this month in past years, so check back next month or scan older photos."
   },
   "explore": {
     "title": "Explore Albums",
@@ -379,7 +426,19 @@
     "albumCount_one": "{{count}} album",
     "albumCount_other": "{{count}} albums",
     "noAlbums": "No albums yet",
-    "noCover": "No cover"
+    "noCover": "No cover",
+    "peopleCount_one": "{{count}} person",
+    "peopleCount_other": "{{count}} people",
+    "tagCount_one": "{{count}} tag",
+    "tagCount_other": "{{count}} tags",
+    "folderCount_one": "{{count}} folder",
+    "folderCount_other": "{{count}} folders",
+    "eventCount_one": "{{count}} event",
+    "eventCount_other": "{{count}} events",
+    "placeCount_one": "{{count}} place",
+    "placeCount_other": "{{count}} places",
+    "thingCount_one": "{{count}} thing",
+    "thingCount_other": "{{count}} things"
   },
   "sharing": {
     "subtitle": "Photos and albums shared with others",
@@ -393,10 +452,10 @@
     "albumsYouShared": "Albums you shared",
     "photosOthersShared": "Photos others shared",
     "albumsOthersShared": "Albums others shared",
-    "photoSharesWithUsers": "{{photoCount}} photo share(s) with {{userCount}} user(s)",
+    "photoSharesWithUsers": "{{photos}} shared with {{users}}",
     "youSharedAlbums": "You shared {{count}} album(s)",
-    "usersSharedPhotosWithYou": "{{userCount}} user(s) shared {{photoCount}} photo(s) with you",
-    "usersSharedAlbumsWithYou": "{{userCount}} user(s) shared {{albumCount}} album(s) with you",
+    "usersSharedPhotosWithYou": "{{users}} shared {{photos}} with you",
+    "usersSharedAlbumsWithYou": "{{users}} shared {{albums}} with you",
     "sharedPhotosWithYou": "shared {{count}} photos with you",
     "youSharedPhotos": "you shared {{count}} photos",
     "sharedAlbumsWithYou": "shared {{count}} albums with you",
@@ -422,7 +481,7 @@
     "copied": "Copied",
     "copyLink": "Copy link",
     "photoLinks": "Photo links",
-    "photoLinksExplanation": "Anyone with one of these links can see that photo. Refresh a link to replace it, or revoke it to switch it off.",
+    "photoLinksExplanation": "Anyone with one of these links can see that photo. Replace a link to give it a new address, or revoke it to switch it off.",
     "rotateLink": "Replace link",
     "revokeLink": "Revoke",
     "photoLink": "Share link",
@@ -452,7 +511,27 @@
     "sharingOptions": "Sharing Options",
     "useDefault": "Use my default",
     "photoDetailsTitle": "Photo Details",
-    "photoDetailsDesc": "Control what information is visible to viewers. Click to cycle: default → on → off → default."
+    "photoDetailsDesc": "Control what information is visible to viewers. Click to cycle: default → on → off → default.",
+    "itemSummary": "{{photos}}, {{albums}}",
+    "photoCount_one": "{{count}} photo",
+    "photoCount_other": "{{count}} photos",
+    "publicPhotoCount_one": "{{count}} public photo",
+    "publicPhotoCount_other": "{{count}} public photos",
+    "publicPhotosOf": "Public photos of {{name}}",
+    "youSharedAlbums_one": "You shared {{count}} album",
+    "youSharedAlbums_other": "You shared {{count}} albums",
+    "youSharedAlbumsWithThem_one": "You shared {{count}} album with them",
+    "youSharedAlbumsWithThem_other": "You shared {{count}} albums with them",
+    "youSharedPhotos_one": "You shared {{count}} photo",
+    "youSharedPhotos_other": "You shared {{count}} photos",
+    "sharedPhotosWithYou_one": "shared {{count}} photo with you",
+    "sharedPhotosWithYou_other": "shared {{count}} photos with you",
+    "sharedAlbumsWithYou_one": "shared {{count}} album with you",
+    "sharedAlbumsWithYou_other": "shared {{count}} albums with you",
+    "noPhotosSharedByYou": "You have not shared any photos with other users yet.",
+    "noPhotosSharedWithYou": "No one has shared any photos with you yet.",
+    "rotateLinkConfirm": "The current link stops working right away. Anyone you sent it to will need the new one.",
+    "revokeLinkConfirm": "The link stops working right away and cannot be restored."
   },
   "selectionbar": {
     "selected": "selected",
@@ -469,7 +548,11 @@
     "loading": "Loading...",
     "noimages": "No images found",
     "days": "days",
-    "photos": "photos"
+    "photos": "photos",
+    "days_one": "day",
+    "photos_one": "photo",
+    "videos": "videos",
+    "videos_one": "video"
   },
   "selectionactions": {
     "photoactions": "Photo Actions",
@@ -504,7 +587,8 @@
     "tagdescription": "Add tags to the selected photos (shortcut: t)",
     "markasphoto": "Mark as photo",
     "markasscreenshot": "Mark as screenshot",
-    "markasdocument": "Mark as document"
+    "markasdocument": "Mark as document",
+    "addto": "Add to album or tags"
   },
   "lightbox": {
     "sidebar": {
@@ -549,7 +633,19 @@
       "noTags": "No tags",
       "noMentionResults": "No results",
       "tagsSaveFailed": "The tags could not be saved. Please try again.",
-      "save": "Save"
+      "save": "Save",
+      "ownerOnlyMoreDetails": "Further details are only shown to the owner of this photo.",
+      "no_location": "No location yet",
+      "update_location": "Update location",
+      "pick_location": "Pick location",
+      "clickToView": "Click to view",
+      "openStack": "View full stack",
+      "noAdditionalDetails": "No additional details available for this photo.",
+      "detailsLoadFailed": "Photo details could not be loaded.",
+      "ownerOnlyDetails": "Details are only shown to the owner of this photo.",
+      "editCaption": "Edit caption",
+      "noCaption": "No caption",
+      "generateCaption": "Generate caption"
     },
     "addface": {
       "tooltip": "Add a face the scan missed",
@@ -561,14 +657,16 @@
     },
     "controls": {
       "fullscreen": "Fullscreen (G)",
-      "exitfullscreen": "Exit Fullscreen (G)",
+      "exitfullscreen": "Exit fullscreen (G)",
       "zoom": "Zoom (Z)",
       "close": "Close (Escape)",
       "slideshow": "Slideshow (S)",
-      "stopslideshow": "Stop Slideshow (S)",
+      "stopslideshow": "Stop slideshow (S)",
       "livetext": "Select text in photo (T)",
       "livetextoff": "Stop selecting text (T)",
-      "copy": "Copy photo to clipboard ({{shortcut}})"
+      "copy": "Copy photo to clipboard ({{shortcut}})",
+      "previous": "Previous",
+      "next": "Next"
     },
     "toolbar": {
       "pauseVideo": "Pause video (Space)",
@@ -583,10 +681,13 @@
       "hideInfoPanel": "Hide info panel (I)",
       "deletePhoto": "Delete photo (D)",
       "rotateCW": "Rotate 90° clockwise",
-      "rotateCCW": "Rotate 90° counter-clockwise"
+      "rotateCCW": "Rotate 90° counter-clockwise",
+      "restorePhoto": "Restore photo (D)",
+      "moreActions": "More actions"
     },
     "video": {
-      "seekunavailable": "Seeking is not available while this video is being converted"
+      "seekunavailable": "Seeking is not available while this video is being converted",
+      "converting": "Converting this video for your browser…"
     },
     "videoerror": {
       "retry": "Retry",
@@ -619,7 +720,8 @@
       "remedylabels": "The mode bits along this path already let the web server read the file, so permissions are not the problem. Look instead at SELinux or AppArmor labelling (a bind mount may need :z or :Z), a container runtime that remaps user ids, or a rebuilt proxy image whose web server does not run as the ids above.",
       "copy": "Copy this report",
       "copied": "Copied",
-      "copyheading": "LibrePhotos - this video could not be played"
+      "copyheading": "LibrePhotos - this video could not be played",
+      "formatnoconversion": "The file arrived intact, so this is a format your browser cannot decode, and it cannot be converted for playback here. Try opening it in a different browser."
     },
     "category": {
       "title": "Category",
@@ -652,10 +754,15 @@
     "focallengthin35mmfilm": "Focal Length 35mm Equivalent",
     "otherversions": "Other Versions",
     "duplicates": "Duplicates",
-    "showmore": "Show More",
-    "showless": "Show Less",
+    "showmore": "Show more",
+    "showless": "Show less",
     "deleteduplicatetitle": "Delete Duplicate",
-    "deleteduplicate": "Delete this duplicate?"
+    "deleteduplicate": "Delete this duplicate?",
+    "unknownFilename": "Unknown filename",
+    "hideFormats": "Hide formats",
+    "showFormats_one": "+{{count}} format",
+    "showFormats_other": "+{{count}} formats",
+    "duplicatesManaged": "This photo has multiple file copies. Manage duplicates via the Duplicates page."
   },
   "duplicates": {
     "title": "Duplicate Photos",
@@ -677,7 +784,48 @@
     "select": "Select",
     "notduplicates": "Not Duplicates",
     "keepandtrash": "Keep Selected & Trash Others",
-    "error": "Failed to load duplicate group"
+    "error": "Failed to load duplicate group",
+    "subtitle": "Find and remove duplicate photos to save storage space",
+    "review": "Review Duplicate",
+    "desc": {
+      "exact_copy": "These are exact copies of the same file (identical content).",
+      "visual_duplicate": "These photos look visually similar but may have different resolutions or quality."
+    },
+    "types": {
+      "exact_copy": "Exact Copies",
+      "visual_duplicate": "Visual Duplicates"
+    },
+    "similarpercent": "({{percent}}% similar)",
+    "resolvedInfo": "This duplicate was resolved. Some photos were moved to trash.",
+    "revertInfo": "You can revert to restore trashed photos.",
+    "dismissedInfo": "This was marked as not a duplicate.",
+    "revert": "Revert & Restore Photos",
+    "potentialSavings": "Potential space savings",
+    "deleteGroup": "Delete Group",
+    "deleteconfirmtitle_one": "Delete duplicate group?",
+    "deleteconfirmtitle_other": "Delete {{count}} duplicate groups?",
+    "deleteconfirmdescription": "The photos are not deleted. If a group was resolved, the photos it moved to the trash stay there and can no longer be restored with Revert.",
+    "allTypes": "All Types",
+    "selectedCount": "{{count}} selected",
+    "deleteSelected": "Delete Selected",
+    "clearSelection": "Clear Selection",
+    "selectAll": "Select All",
+    "resolved": "Resolved",
+    "dismissed": "Dismissed",
+    "statusfilter": "Review status",
+    "detectOptions": "Detection Options",
+    "whatToDetect": "What to Detect",
+    "detectExactCopies": "Exact file copies (identical content)",
+    "detectVisualDuplicates": "Visual duplicates (similar images)",
+    "visualSensitivity": "Visual sensitivity",
+    "optionslabel": "Options",
+    "clearPending": "Clear pending duplicates",
+    "clearPendingDesc": "Remove pending duplicates before detection",
+    "showing_one": "Showing {{count}} duplicate group",
+    "showing_other": "Showing {{count}} duplicate groups",
+    "nomatch": "No duplicate groups match the current filters.",
+    "photoalt": "Duplicate photo",
+    "original": "Original"
   },
   "stacks": {
     "title": "Photo Stacks",
@@ -700,7 +848,7 @@
     "select": "Set Primary",
     "notrelated": "Not Related",
     "keepandtrash": "Keep Selected & Trash Others",
-    "setprimary": "Set as Primary",
+    "setprimary": "Set as Cover",
     "error": "Failed to load photo stack",
     "types": {
       "raw_jpeg": "RAW + JPEG Pairs",
@@ -737,11 +885,33 @@
       "detectexact": "Detect exact file copies",
       "detectvisual": "Detect visual duplicates",
       "detectrawjpeg": "Detect RAW+JPEG pairs",
-      "detectbursts": "Detect burst sequences",
+      "detectbursts": "Burst sequences",
       "detectlivephotos": "Detect live photos",
       "visualsensitivity": "Visual similarity threshold",
       "burstinterval": "Burst interval (ms)",
       "clearpending": "Clear existing pending stacks"
+    },
+    "typelabel": {
+      "raw_jpeg": "RAW + JPEG Pair",
+      "live_photo": "Live Photo",
+      "burst": "Burst Sequence",
+      "bracket": "Exposure Bracket",
+      "manual": "Manual Stack"
+    },
+    "subtitle": "Group burst sequences, exposure brackets and related photos",
+    "unstack": "Unstack Photos",
+    "detectOptions": "Detection Options",
+    "whatToDetect": "What to Detect",
+    "showing_one": "Showing {{count}} stack",
+    "showing_other": "Showing {{count}} stacks",
+    "view": "View Stack",
+    "coverInfo": "The cover photo represents this stack in the gallery. Click 'Set as Cover' to change it.",
+    "cover": "Cover",
+    "photoalt": "Stack photo",
+    "filetype": {
+      "video": "Video",
+      "metadata": "Metadata",
+      "file": "File"
     }
   },
   "photos": {
@@ -760,8 +930,10 @@
     "phototaken": "Photo taken {{date}}",
     "video": "Video",
     "videotaken": "Video taken {{date}}",
-    "hdrvideo": "HDR video: recorded with more brightness and colour than the tile can show",
-    "select": "Select {{name}}"
+    "hdrvideo": "HDR video: recorded with more brightness and color than the tile can show",
+    "select": "Select {{name}}",
+    "hdrvideolabel": "HDR video",
+    "hdrvideotaken": "HDR video taken {{date}}"
   },
   "trash": {
     "restorePhoto": "Restore photo",
@@ -800,8 +972,13 @@
       "erroremailnotverified": "Your identity provider has not verified that email address, so it cannot be used to sign in.",
       "errornotauthenticated": "The sign-in did not complete. Please try again.",
       "errorpublicurlnotconfigured": "Single sign-on is not fully configured: the administrator needs to set this server's public URL (FRONTEND_BASE_URL).",
-      "errorunknown": "Single sign-on failed. Please try again or use your password."
-    }
+      "errorunknown": "Single sign-on failed. Please try again or use your password.",
+      "errortitle": "Could not sign in with single sign-on"
+    },
+    "errordetail": "Incorrect username or password.",
+    "errortitle": "Login failed",
+    "registrationdisabled": "Sign-ups are turned off on this server. Ask an administrator to create an account for you.",
+    "setupsitesettings": "Uploads and sign-ups"
   },
   "passwordreset": {
     "forgotpassword": "Forgot your password?",
@@ -818,7 +995,9 @@
     "setpassword": "Set new password",
     "errormustmatch": "Passwords must match.",
     "success": "Your password has been reset. You can now log in.",
-    "errorinvalidlink": "This password reset link is invalid or has expired. Please request a new one."
+    "errorinvalidlink": "This password reset link is invalid or has expired. Please request a new one.",
+    "errorthrottled": "Too many reset requests. Please wait a while and try again.",
+    "errorgeneric": "Something went wrong. Please try again."
   },
   "emailsettings": {
     "header": "Email (SMTP)",
@@ -837,12 +1016,17 @@
     "presethost": "Sends via {{host}} over TLS.",
     "getkey": "Where do I get the key?",
     "sendtest": "Send test email",
-    "testfailed": "Test email failed to send."
+    "testfailed": "Test email failed to send.",
+    "provider_disabled": "Disabled",
+    "provider_custom": "Custom SMTP server",
+    "saved": "Email settings saved",
+    "savefailed": "The email settings could not be saved."
   },
   "search": {
     "search": "Search",
     "default": "Search...",
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "resultsfor": "Results for \"{{query}}\""
   },
   "spotlight": {
     "placeholder": "Search photos, run commands...",
@@ -906,7 +1090,7 @@
       "trainFaces": "Train Face Recognition",
       "rescanFaces": "Detect Faces in Photos",
       "generateEvents": "Generate Event Albums",
-      "deleteMissing": "Delete Missing Photos",
+      "deleteMissing": "Remove Missing Photos",
       "scanNextcloud": "Scan Nextcloud Photos"
     },
     "quick": {
@@ -926,7 +1110,19 @@
     "disabled_hint": "Switched off in the site settings — select a model to run this service.",
     "start": "Start",
     "stop": "Stop",
-    "refresh": "Refresh health status"
+    "refresh": "Refresh health status",
+    "label_image_similarity": "Image Similarity",
+    "label_thumbnail": "Thumbnail",
+    "label_face_recognition": "Face Recognition",
+    "label_clip_embeddings": "CLIP Embeddings",
+    "label_llm": "LLM",
+    "label_image_captioning": "Image Captioning",
+    "label_exif": "EXIF",
+    "label_tags": "Tags",
+    "label_ocr": "OCR",
+    "actionfailed": "Service action failed",
+    "startfailed": "Could not start the {{name}} service",
+    "stopfailed": "Could not stop the {{name}} service"
   },
   "adminarea": {
     "header": "Admin Area",
@@ -941,8 +1137,8 @@
     "remove": "Remove",
     "delete": "Delete",
     "admintools": "Admin Tools",
-    "deleteallautoalbums": "Delete all auto created albums",
-    "deleteuserconfirmexplanation": "You are about to delete the following user: {{username}}. This will delete all associated data.",
+    "deleteallautoalbums": "Delete all event albums",
+    "deleteuserconfirmexplanation": "You are about to delete the user {{username}}. The account is removed and can no longer sign in. Their photos and albums are kept, and no files are deleted. Their public album links, photo links and public photos are turned off.",
     "titledeleteuser": "Delete User",
     "cannotbeundone": "This action cannot be undone.",
     "cannotdeleteadmin": "Cannot delete admin user",
@@ -953,7 +1149,11 @@
     "serverlogslines": "Lines",
     "refresh": "Refresh",
     "downloadserverlogs": "Download Server Logs",
-    "serverlogsnone": "No logs available"
+    "serverlogsnone": "No logs available",
+    "actions": "Actions",
+    "unauthorized": "Admins only",
+    "unauthorizeddescription": "Only administrators can open the admin area. Ask your administrator if you need access.",
+    "deleteallautoalbumsexplanation": "This deletes all of your event albums, including their favorites and sharing. Your photos are not deleted. You can create event albums again with Generate Event Albums on the Library page, but favorites and sharing are lost."
   },
   "joblist": {
     "workerlogs": "Worker Logs",
@@ -975,7 +1175,24 @@
     "faileditems": "Failed items",
     "removeexplanation": "Removing an entry does not actually stop the job - it's only removed from the DB. Use only in cases when you know that a job failed ungracefully, by inspecting the logs, etc.",
     "removeentries": "Removing entries",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "itemsprocessed_one": "{{count}} item processed",
+    "itemsprocessed_other": "{{count}} items processed",
+    "cancelled": "Cancelled",
+    "completed": "Completed",
+    "actions": "Actions",
+    "empty": "No jobs yet",
+    "loadingdetails": "Loading job details…",
+    "loadfailed": "This job could not be loaded",
+    "loadfaileddescription": "It may have been removed from the job list, or you do not have access to it.",
+    "jobinformation": "Job Information",
+    "jobid": "Job ID",
+    "queuedat": "Queued At",
+    "startedat": "Started At",
+    "finishedat": "Finished At",
+    "errordetails": "Error Details",
+    "errormessage": "Error message",
+    "resultdata": "Result Data"
   },
   "modaluseredit": {
     "header": "Edit User",
@@ -994,9 +1211,9 @@
     "explanation3": "Choose a directory from below",
     "pathdoesnotexist": "Path does not exist",
     "mustspecifypath": "You must specify a scan directory",
-    "uploadlocation": "Photos uploaded through the web interface are stored in {{path}}",
+    "uploadlocation": "Photos uploaded through the web interface or the mobile app are stored in {{path}}",
     "uploadfolder": "Upload folder",
-    "uploadfolderexplanation": "Optional. Where photos uploaded through the web interface are saved, in a subfolder per device. Leave empty to use the uploads folder inside the scan directory.",
+    "uploadfolderexplanation": "Optional. Where photos uploaded through the web interface or the mobile app are saved. Leave empty to use the uploads folder inside the scan directory.",
     "uploadfolderdefault": "Default: the uploads folder inside the scan directory"
   },
   "sitesettings": {
@@ -1028,7 +1245,17 @@
     "ocr_model_header": "Text Recognition (OCR) Model",
     "ocr_model_description": "Extracts readable text from your photos into the database so that it becomes searchable. This includes text on documents, receipts and IDs. Choose \"None\" to keep OCR off.",
     "ocr_warning_header": "Text recognition reads everything",
-    "ocr_warning": "Text recognition stores all readable text of every photo in the database as plain text. That includes documents, receipts, letters and IDs that happen to be in your library. Larger models are more accurate, but need more time and memory per photo."
+    "ocr_warning": "Text recognition stores all readable text of every photo in the database as plain text. That includes documents, receipts, letters and IDs that happen to be in your library. Larger models are more accurate, but need more time and memory per photo.",
+    "tagging_model_header": "Tagging Model",
+    "tagging_model_description": "Select the model used for auto-tagging photos. Switching models does not delete previously generated tags.",
+    "saved": "Setting saved",
+    "option_default": "{{name}} (default)",
+    "option_fast_default": "{{name}} (fast, default)",
+    "option_lightweight_default": "{{name}} (lightweight, default)",
+    "option_fastest": "{{name}} (fastest)",
+    "option_most_accurate": "{{name}} (most accurate)",
+    "maptile_none": "None (hide map)",
+    "model_none": "None"
   },
   "countstats": {
     "photos": "Photos",
@@ -1038,15 +1265,18 @@
     "title": "Statistics"
   },
   "autoalbum": {
-    "subtitle": "Showing {{ autoalbumlength }} Auto created albums",
-    "delete": "Delete Auto Album",
-    "deleteexplanation": "This will delete the auto album. Are you sure?"
+    "subtitle": "Showing {{ autoalbumlength }} events",
+    "delete": "Delete event",
+    "deleteexplanation": "This will delete the event. Are you sure?",
+    "subtitle_one": "{{count}} event",
+    "subtitle_other": "{{count}} events"
   },
   "autoalbumgallery": {
     "showmap": "Show Map",
     "hidemap": "Hide Map",
     "day": "Day {{day}}",
-    "dateRange": "{{from}} - {{to}}"
+    "dateRange": "{{from}} - {{to}}",
+    "showonmap": "{{place}} on map"
   },
   "personalbum": {
     "numberofpeople": "{{peoplelength}} People",
@@ -1056,14 +1286,22 @@
     "renamepersonheader": "What do you want to rename {{name}} to?",
     "personalreadyexists": "Person {{name}} already exists.",
     "nameplaceholder": "Name",
-    "managefaces": "Manage Faces"
+    "managefaces": "Manage Faces",
+    "numberofpeople_one": "{{count}} person",
+    "numberofpeople_other": "{{count}} people"
   },
   "placealbum": {
     "showingplaces": "Showing {{number}} places on the map",
-    "maploading": "Map loading..."
+    "maploading": "Map loading...",
+    "showingplaces_one": "Showing {{count}} place on the map",
+    "showingplaces_other": "Showing {{count}} places on the map",
+    "placecount_one": "{{count}} place",
+    "placecount_other": "{{count}} places"
   },
   "thingalbum": {
-    "showingthings": "Showing top {{number}} things"
+    "showingthings": "Showing {{number}} things",
+    "showingthings_one": "{{count}} thing",
+    "showingthings_other": "{{count}} things"
   },
   "tagalbum": {
     "showingtags": "Showing {{number}} tags",
@@ -1073,7 +1311,9 @@
     "merge": "Merge",
     "mergetag": "Merge Tag",
     "mergeexplanation": "Pick the tag to merge into {{name}}. Its photos move over and the merged tag is deleted.",
-    "deleteexplanation": "This action will permanently delete the tag. The photos themselves are not deleted."
+    "deleteexplanation": "This action will permanently delete the tag. The photos themselves are not deleted.",
+    "showingtags_one": "{{count}} tag",
+    "showingtags_other": "{{count}} tags"
   },
   "useralbum": {
     "numberof": "Showing {{number}} user created albums",
@@ -1087,7 +1327,10 @@
     "unlockAlbum": "Unlock album",
     "locked": "Locked",
     "albumIsLocked": "This album is locked",
-    "lockedCannotAdd": "{{title}} is locked. Unlock it to add photos."
+    "lockedCannotAdd": "{{title}} is locked. Unlock it to add photos.",
+    "numberof_one": "{{count}} album",
+    "numberof_other": "{{count}} albums",
+    "ownedby": "Owned by {{name}}"
   },
   "personedit": {
     "labelfaces": "Label faces",
@@ -1101,7 +1344,7 @@
     "numberoffaces": "{{number}} Faces",
     "selectedfaces": "{{number}} selected",
     "explanationadding": "Add to an existing face ID or create a new face ID",
-    "explanationdeleting": "Delete the face and it's thumbnails",
+    "explanationdeleting": "Delete the face and its thumbnails",
     "explanationtraining": "Identify similar faces and try to find matches",
     "explanationvalidate": "Confirm that all faces from this group match with this person and add them to the corresponding face ID",
     "notthisperson": "Move the faces back to 'Unknown - Other'",
@@ -1126,8 +1369,12 @@
     "facescounter_other": "{{count}} faces",
     "clusteredfacescounter_one": "{{count}} Clustered face",
     "clusteredfacescounter_other": "{{count}} Clustered faces",
-    "unknownfacescounter_one": "{{count}} Unkown Face",
-    "unknownfacescounter_other": "{{count}} Unkown Faces"
+    "unknownfacescounter_one": "{{count}} Unknown Face",
+    "unknownfacescounter_other": "{{count}} Unknown Faces",
+    "showphoto": "Show photo",
+    "confidentsuffix": "% confident",
+    "numberoffaces_one": "{{count}} Face",
+    "numberoffaces_other": "{{count}} Faces"
   },
   "Scan Photos": "Scan Photos",
   "Generate Event Albums": "Generate Event Albums",
@@ -1170,7 +1417,9 @@
     "reset": "Reset view (0)",
     "hint": "Click nodes to expand • Drag to pan • Scroll to zoom",
     "ariaLabel": "Interactive place tree visualization",
-    "clickToExpand": "Click to expand/collapse"
+    "clickToExpand": "Click to expand/collapse",
+    "photocount_one": "{{count}} photo",
+    "photocount_other": "{{count}} photos"
   },
   "wordclouds": "Word Clouds",
   "timeline": "Timeline",
@@ -1216,8 +1465,8 @@
     "renamealbumtitle": "Rename Album",
     "deletealbum": "{{albumTitle}} deleted.",
     "deletealbumtitle": "Delete album",
-    "deleteallautoalbums": "All auto created albums deleted.",
-    "deleteallautoalbumstitle": "Delete all auto created albums",
+    "deleteallautoalbums": "All event albums deleted.",
+    "deleteallautoalbumstitle": "Delete all event albums",
     "removefromalbum": "{{numberOfPhotos}} photo(s) were successfully removed from album {{title}}",
     "removefromalbumtitle": "Remove from album",
     "addtoalbum": "{{numberOfPhotos}} photo(s) were added to the existing {{title}} album",
@@ -1323,7 +1572,22 @@
       "document_one": "{{count}} item marked as document.",
       "document_other": "{{count}} items marked as document."
     },
-    "setcategoryfailed": "The category could not be changed. Please try again."
+    "setcategoryfailed": "The category could not be changed. Please try again.",
+    "deleteallautoalbumsfailedtitle": "Could not delete the event albums",
+    "deleteallautoalbumsfailed": "The event albums could not be deleted.",
+    "addfacefailedtitle": "Face not added",
+    "addfacefailed": "The face could not be added. Please try again.",
+    "addfaceoverlap": "There is already a face here. Label that face instead of drawing a new box.",
+    "addfacenotowner": "Faces can only be added to your own photos.",
+    "scan_directory_setup": "Set a scan directory first. Click Scan on this page to choose one.",
+    "canceljobfailedtitle": "Could not cancel job",
+    "canceljobfailed": "The job could not be cancelled.",
+    "deleteusererrortitle": "Could not delete user",
+    "deleteusererror": "The user could not be deleted.",
+    "servererrortitle": "Server error",
+    "servererror": "Something went wrong on the server ({{endpoint}}). Please report this issue on GitHub.",
+    "parseerrortitle": "Unexpected server response",
+    "reportissue": "{{detail}}. Please report this issue on GitHub."
   },
   "rules": {
     "1": "Local time from DATE_TIME_ORIGINAL Exif tag",
@@ -1346,7 +1610,18 @@
     "file_property": "Use file property: {{rule}}",
     "source_tz": "Transform from {{rule}}",
     "report_tz": "Transform to {{rule}}",
-    "predefined_regexp": "Use predefined regular expression: {{rule}}"
+    "predefined_regexp": "Use predefined regular expression: {{rule}}",
+    "rule_type_names": {
+      "exif": "Exif tag",
+      "path": "File path",
+      "filesystem": "File property",
+      "user_defined": "Set by user"
+    },
+    "tz_names": {
+      "gps_timezonefinder": "the timezone at the GPS location",
+      "user_default": "your default timezone",
+      "server_local": "the server's local time"
+    }
   },
   "locationstimeline": {
     "fromto": "{{location}} from {{start}} to {{end}}"
@@ -1365,7 +1640,9 @@
   "showing_first": "showing first",
   "publicphoto": {
     "title": "Shared photo",
-    "notFound": "Photo not found or the link was revoked"
+    "notFound": "Photo not found or the link was revoked",
+    "videoUnsupported": "Your browser could not play this video, most likely because it cannot decode its format. Try another browser, or download the video.",
+    "downloadVideo": "Download video"
   },
   "publicalbum": {
     "notFound": "Album not found or the link has expired",
@@ -1395,7 +1672,8 @@
     },
     "photos": {
       "title": "No photos yet",
-      "description": "Scan your photo library to see your photos here."
+      "description": "Scan your photo library to see your photos here.",
+      "noscandirectory": "An administrator has not set up a photo folder for you yet. Albums and photos others share with you are under Sharing."
     },
     "favorites": {
       "title": "No favorites yet",
@@ -1474,12 +1752,55 @@
       "title": "Scan in progress",
       "processed": "items processed",
       "refresh": "Refresh the page to see newly scanned photos.",
-      "refreshButton": "Refresh"
+      "refreshButton": "Refresh",
+      "progress_one": "{{current}} / {{count}} item processed",
+      "progress_other": "{{current}} / {{count}} items processed"
     },
     "goToLibrary": "Go to Library",
     "goToFaces": "Go to Faces",
     "generateEvents": "Generate Events",
-    "scanPhotos": "Scan Photos"
+    "scanPhotos": "Scan Photos",
+    "useralbums": {
+      "title": "No albums yet",
+      "description": "Select photos anywhere in your library, open the + menu and choose Album to create one.",
+      "action": "Browse photos"
+    },
+    "folders": {
+      "title": "No folders with photos",
+      "description": "The folders of your scan directory show up here once the photos in them are scanned."
+    },
+    "albumnotfound": {
+      "title": "Album not found",
+      "description": "It may have been deleted or rebuilt, or it is no longer shared with you.",
+      "action": "Show all albums"
+    },
+    "tagnotfound": {
+      "title": "Tag not found",
+      "description": "It may have been deleted or merged into another tag."
+    },
+    "facesTab": {
+      "inferred": {
+        "title": "Nothing to review",
+        "description": "There are no suggestions at the current confidence level. Lower the confidence, or train faces to get new suggestions."
+      },
+      "unknown": {
+        "title": "No unknown faces",
+        "description": "Every detected face is labeled or suggested for a person."
+      },
+      "labeled": {
+        "title": "No labeled faces yet",
+        "description": "Label faces in the Inferred or Unknown tab to organize your photos by person."
+      },
+      "show": {
+        "labeled": "Show labeled faces",
+        "inferred": "Show inferred faces",
+        "unknown": "Show unknown faces"
+      }
+    },
+    "search": {
+      "title": "No matching photos",
+      "description": "Nothing matched \"{{query}}\". Try other words, a place, a person or a date."
+    }
   },
   "skip": "Skip",
   "continue": "Continue",
@@ -1513,7 +1834,8 @@
       "done": "Done",
       "duplicate": "Duplicate",
       "error": "Error"
-    }
+    },
+    "empty_file": "The file is empty"
   },
   "timelinefilter": {
     "button": "Filter",
@@ -1549,5 +1871,62 @@
       "action": "Show everything"
     },
     "savefailed": "Your default view could not be saved. Please try again."
+  },
+  "numberofphotos_one": "{{count}} Photo",
+  "numberofphotos_other": "{{count}} Photos",
+  "locationpicker": {
+    "geolocation_not_supported": "Geolocation is not supported by your browser",
+    "permission_denied": "Location permission denied",
+    "position_unavailable": "Location unavailable",
+    "timeout": "Location request timed out",
+    "unknown_error": "An unknown error occurred",
+    "search_placeholder": "Search for a location...",
+    "no_results": "No locations found",
+    "type_to_search": "Type at least 3 characters to search",
+    "use_my_location": "Use my current location",
+    "instructions_no_map": "Search above or use your current location to set the location. The map is turned off in site settings.",
+    "instructions": "Click on the map to set the location, or search above.",
+    "coordinates": "Coordinates"
+  },
+  "map": {
+    "display_disabled": "Map display is turned off in site settings."
+  },
+  "viewfull": "View full size",
+  "moreactions": "More actions",
+  "folder": "Folder",
+  "folders_count_one": "{{count}} folder with photos",
+  "folders_count_other": "{{count}} folders with photos",
+  "more_available": "More available",
+  "try_different_search": "Try adjusting your search terms",
+  "close": "Close",
+  "photopage": {
+    "noid": "No photo ID provided",
+    "loading": "Loading photo details…",
+    "notfound": "This photo could not be found, or you do not have access to it.",
+    "unknownfilename": "Unknown filename"
+  },
+  "Add Geolocation": "Add Geolocation",
+  "Generate Tags": "Generate Tags",
+  "Generate Face Embeddings": "Generate Face Embeddings",
+  "Scan Missing Photos": "Scan Missing Photos",
+  "Detect Duplicate Photos": "Detect Duplicate Photos",
+  "Repair File Variants": "Repair File Variants",
+  "Classify Media Categories": "Classify Media Categories",
+  "Extract Text (OCR)": "Extract Text (OCR)",
+  "Probe Videos": "Probe Videos",
+  "download": {
+    "title": "Download Photos",
+    "selectedcount_one": "You have selected {{count}} photo to download.",
+    "selectedcount_other": "You have selected {{count}} photos to download.",
+    "includestacked": "Include all photos from stacks",
+    "includestackeddesc": "When enabled, all photos from burst sequences, brackets, and manual stacks will be included in the download.",
+    "start": "Download"
+  },
+  "routefallback": {
+    "notfoundtitle": "Page not found",
+    "notfounddescription": "The link may be outdated, or the page has moved.",
+    "errortitle": "Something went wrong",
+    "errordescription": "This page could not be shown. Reloading usually fixes it.",
+    "reload": "Reload"
   }
 }

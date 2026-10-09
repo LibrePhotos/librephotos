@@ -66,6 +66,10 @@ export const SharedPhoto = z.object({
   video: z.boolean(),
   thumbnail_url: z.string(),
   video_url: z.string().nullable(),
+  // The canPlayType() string for a probed video (e.g. `video/mp4;
+  // codecs="hvc1..."`); null for stills and unprobed videos. The public page
+  // never transcodes, so it shows the fallback up front when this cannot play.
+  video_playback_type: z.string().nullish(),
   exif_timestamp: z.string().nullable().optional(),
   search_location: z.string().optional(),
   camera: z.string().nullable().optional(),

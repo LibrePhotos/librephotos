@@ -22,12 +22,16 @@ import { serverAddress } from "../../api_client/apiClient";
 import { useSetFacesPersonLabelMutation } from "../../api_client/faces";
 import { useRecentlyTaggedPeople } from "../../hooks/useRecentlyTaggedPeople";
 import { fuzzyMatch } from "../../util/util";
+import { modalTitleStyles } from "./modalTitleStyles";
+
+/** A face the dialog labels: its id, and its crop for the preview row. */
+export type FaceToLabel = Readonly<{ face_id: number; face_url: string }>;
 
 type Props = Readonly<{
   isOpen: boolean;
   onRequestClose: () => void;
   resetGroups?: () => void;
-  selectedFaces: any[];
+  selectedFaces: readonly FaceToLabel[];
   /**
    * Takes over what picking a person does. The dialog is also used for a face
    * that does not exist yet -- a box the user just drew -- where there is no
@@ -67,9 +71,8 @@ function PersonRow({ person, onSelect }: PersonRowProps) {
             {person.name}
           </Title>
           <Text size="sm" c="dimmed">
-            {t("numberofphotos", {
-              number: person.face_count,
-            })}
+            {/* face_count counts faces, not photos; number keeps the plain key working in locales without plurals */}
+            {t("facesdashboard.numberoffaces", { count: person.face_count, number: person.face_count })}
           </Text>
         </div>
       </Group>
@@ -125,9 +128,10 @@ export function ModalPersonEdit({
 
   return (
     <Modal
+      styles={modalTitleStyles}
       zIndex={1500}
       opened={isOpen}
-      title={<Title>{t("personedit.labelfaces")}</Title>}
+      title={t("personedit.labelfaces")}
       onClose={() => {
         onRequestClose();
         setNewPersonName("");

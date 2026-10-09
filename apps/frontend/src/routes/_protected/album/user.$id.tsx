@@ -1,3 +1,4 @@
+import { Text } from "@mantine/core";
 import { IconBookmark as Bookmark } from "@tabler/icons-react";
 import { createFileRoute } from "@tanstack/react-router";
 import React, { useEffect, useState } from "react";
@@ -5,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import { useFetchUserAlbumQuery } from "../../../api_client/albums/hooks";
 import type { DatePhotosGroup, PigPhoto } from "../../../api_client/photos/types";
 import { useCurrentUserSelfDetailsQuery } from "../../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
+import { albumNotFoundState } from "../../../components/album/albumNotFound";
 import { validateMediaSearch } from "../../../components/photolist/mediaTypeFilter";
 import { PhotoListView } from "../../../components/photolist/PhotoListView";
 import { useMediaTypeFilter } from "../../../components/photolist/useMediaTypeFilter";
@@ -23,7 +25,11 @@ function AlbumUserGallery() {
   const { id: albumID } = Route.useParams();
   const mediaType = useMediaTypeFilter();
 
-  const { data: album, isFetching } = useFetchUserAlbumQuery(albumID ?? "", { mediaType });
+  // isLoading, not isFetching: a refetch (window focus, removing photos) must not
+  // unmount the grid and drop the scroll position.
+  const { data: album, isLoading, isError } = useFetchUserAlbumQuery(albumID ?? "", { mediaType });
+  // A failed background refetch also sets isError, with the album still on screen
+  const notFound = isError && !album;
   const { t } = useTranslation();
 
   useEffect(() => {
@@ -35,22 +41,20 @@ function AlbumUserGallery() {
     setFlatPhotos(getPhotosFlatFromGroupedByDate(album.grouped_photos));
   }, [album, currentUser]);
 
+  // Only for an album someone shared with you; it sits on its own line under the photo count.
   function getSubheader(showHeader: boolean) {
     if (showHeader && album) {
-      return (
-        <span>
-          {", "}owned by {album.owner.id === currentUser?.id ? "you" : album.owner.username}
-        </span>
-      );
+      return <Text c="dimmed">{t("useralbum.ownedby", { name: album.owner.first_name || album.owner.username })}</Text>;
     }
-    return <div />;
+    return null;
   }
 
   return (
     <PhotoListView
-      title={album ? album.title : t("loading")}
+      title={album ? album.title : notFound ? t("myalbums") : t("loading")}
       additionalSubHeader={getSubheader(isPublic)}
-      loading={isFetching}
+      loading={isLoading}
+      emptyStateConfig={notFound ? albumNotFoundState(t, <Bookmark size={40} />, "/album/user") : undefined}
       icon={<Bookmark size={50} />}
       photoset={groupedPhotos}
       idx2hash={flatPhotos}
@@ -59,7 +63,8 @@ function AlbumUserGallery() {
       albumID={albumID}
       ownerUsername={album?.owner.username}
       albumLocked={album?.locked ?? false}
-      mediaType={mediaType}
+      // No photo filter for an album that is not there
+      mediaType={notFound ? undefined : mediaType}
       selectable
     />
   );

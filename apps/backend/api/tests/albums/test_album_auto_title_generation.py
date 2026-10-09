@@ -111,10 +111,10 @@ class GenerateTitleTestCase(TestCase):
             geolocation_json={"places": ["Berlin", "Berlin", "Germany"]},
         )
         album._generate_title()
-        self.assertEqual(album.title, "Monday Morning  in Berlin and Germany")
+        self.assertEqual(album.title, "Monday Morning in Berlin and Germany")
 
-    def test_double_space_when_places_but_no_people(self):
-        """QUIRK: the empty people slot leaves a double space in the title."""
+    def test_no_double_space_when_places_but_no_people(self):
+        """The empty people slot used to leave a double space in the title."""
         album = self.make_album(utc(2022, 1, 3, 8, 0))
         self.add_photo(
             album,
@@ -122,7 +122,8 @@ class GenerateTitleTestCase(TestCase):
             geolocation_json={"places": ["Berlin"]},
         )
         album._generate_title()
-        self.assertIn("  ", album.title)
+        self.assertNotIn("  ", album.title)
+        self.assertEqual(album.title, "Monday Morning in Berlin")
 
     def test_only_two_most_common_places_are_used(self):
         album = self.make_album(utc(2022, 1, 3, 8, 0))
@@ -132,7 +133,7 @@ class GenerateTitleTestCase(TestCase):
             geolocation_json={"places": ["A", "A", "B", "B", "C"]},
         )
         album._generate_title()
-        self.assertEqual(album.title, "Monday Morning  in A and B")
+        self.assertEqual(album.title, "Monday Morning in A and B")
 
     def test_places_from_last_photo_win(self):
         """QUIRK: ``places`` is overwritten (``=``) per photo, not accumulated.
@@ -155,7 +156,7 @@ class GenerateTitleTestCase(TestCase):
         last_with_places = ordered[-1]
         album._generate_title()
         expected = "First" if last_with_places.pk == p1.pk else "Second"
-        self.assertEqual(album.title, f"Monday Morning  in {expected}")
+        self.assertEqual(album.title, f"Monday Morning in {expected}")
         self.assertIn(last_with_places.pk, {p1.pk, p2.pk})
 
     def test_empty_places_list_is_ignored(self):
@@ -233,24 +234,18 @@ class GenerateTitleTestCase(TestCase):
         album._generate_title()
         self.assertEqual(album.title, "Monday Morning")
 
-    def test_unknown_other_placeholder_is_not_filtered_bug(self):
-        """BUG (pinned): ``Person.UNKNOWN_PERSON_NAME`` is never filtered.
+    def test_unknown_other_placeholder_is_filtered_out(self):
+        """``Person.UNKNOWN_PERSON_NAME`` ("Unknown - Other") never names an album.
 
-        The guard compares ``k.lower()`` against ``Person.UNKNOWN_PERSON_NAME``
-        ("Unknown - Other"), which contains capitals, so a lowercased name can
-        never equal it. The placeholder therefore leaks into titles.
+        The guard used to compare ``k.lower()`` with the capitalised constant,
+        so the placeholder leaked into titles as "with Unknown - Other".
         """
-        self.assertNotEqual(
-            Person.UNKNOWN_PERSON_NAME, Person.UNKNOWN_PERSON_NAME.lower()
-        )
         album = self.make_album(utc(2022, 1, 3, 8, 0))
         photo = self.add_photo(album, exif_timestamp=utc(2022, 1, 3, 8, 0))
         placeholder = create_test_person(name=Person.UNKNOWN_PERSON_NAME)
         create_test_face(photo=photo, person=placeholder)
         album._generate_title()
-        self.assertEqual(
-            album.title, f"Monday Morning with {Person.UNKNOWN_PERSON_NAME}"
-        )
+        self.assertEqual(album.title, "Monday Morning")
 
     def test_face_without_person_is_skipped_instead_of_raising(self):
         """A face with ``person=None`` is simply not a person to name.

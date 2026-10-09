@@ -10,16 +10,18 @@ import { act } from "react-dom/test-utils";
 import { describe, expect, it } from "vitest";
 import { useSlideshowSelection } from "./useSlideshowSelection";
 
-function photo(id: string) {
-  return { id, image_hash: `hash-${id}`, aspectRatio: 1 } as any;
+type SlideshowItem = Parameters<typeof useSlideshowSelection>[0][number];
+
+function photo(id: string): SlideshowItem {
+  return { id };
 }
 
 /** Drives the hook the way MemorySlideshow does. */
-function mount(items: any[]) {
+function mount(items: SlideshowItem[]) {
   const seen: Array<string | null> = [];
   let onImageChange: (id: string) => void;
 
-  function Probe({ items: probeItems }: { items: any[] }) {
+  function Probe({ items: probeItems }: { items: SlideshowItem[] }) {
     const selection = useSlideshowSelection(probeItems);
     onImageChange = selection.onImageChange;
     seen.push(selection.selectedImage);
@@ -36,7 +38,7 @@ function mount(items: any[]) {
     advanceTo(id: string) {
       act(() => onImageChange(id));
     },
-    setItems(next: any[]) {
+    setItems(next: SlideshowItem[]) {
       act(() => root.render(<Probe items={next} />));
     },
   };

@@ -5,15 +5,18 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { serverAddress } from "../../api_client/apiClient";
 import { useDeleteFacesMutation, useSetFacesPersonLabelMutation } from "../../api_client/faces";
+import type { People } from "../../api_client/photos/types";
 import { notification } from "../../service/notifications";
 import { calculateProbabiltyColor } from "../facedashboard/FaceComponent";
 import { FaceTooltip } from "../facedashboard/FaceTooltip";
+import type { FaceLocationType } from "./lightbox.types";
 
 type Props = {
-  person: any;
+  /** One face on the photo, as the photo detail lists it. */
+  person: People;
   isPublic: boolean;
-  setFaceLocation: (face: any) => void;
-  onPersonEdit: (faceId: string, faceUrl: string) => void;
+  setFaceLocation: (location: FaceLocationType) => void;
+  onPersonEdit: (faceId: number, faceUrl: string) => void;
   notThisPerson: (faceId: number) => void;
 };
 
@@ -39,46 +42,71 @@ export function PersonDetail({ person, isPublic, setFaceLocation, onPersonEdit, 
 
   const openPersonPicker = () => onPersonEdit(person.face_id, person.face_url);
 
+  const face = (
+    <FaceTooltip tooltipOpened={tooltipOpened} probability={person.probability}>
+      <Indicator
+        color={calculateProbabiltyColor(person.probability)}
+        disabled={person.type === "user" || isUnnamed}
+        onMouseEnter={() => person.type !== "user" && !isUnnamed && setTooltipOpened(true)}
+        onMouseLeave={() => setTooltipOpened(false)}
+        size={12}
+        offset={4}
+      >
+        <Avatar radius="xl" src={`${serverAddress}${person.face_url}`} />
+      </Indicator>
+    </FaceTooltip>
+  );
+
+  const label = (
+    <Text
+      size="sm"
+      truncate
+      title={isUnnamed ? undefined : person.name}
+      c={isUnnamed ? "dimmed" : undefined}
+      fs={isUnnamed ? "italic" : undefined}
+    >
+      {isUnnamed ? t("lightbox.sidebar.unnamedface") : person.name}
+    </Text>
+  );
+
   return (
+    // One row per face: a long name is cut short rather than pushing the
+    // actions onto a line of their own.
     <Group
       align="center"
       gap="xs"
+      wrap="nowrap"
+      maw="100%"
       onMouseEnter={() => setFaceLocation(person.location)}
       onMouseLeave={() => setFaceLocation(null)}
     >
-      <Button
-        variant="subtle"
-        h="auto"
-        p={3}
-        leftSection={
-          <FaceTooltip tooltipOpened={tooltipOpened} probability={person.probability}>
-            <Indicator
-              color={calculateProbabiltyColor(person.probability)}
-              disabled={person.type === "user" || isUnnamed}
-              onMouseEnter={() => person.type !== "user" && !isUnnamed && setTooltipOpened(true)}
-              onMouseLeave={() => setTooltipOpened(false)}
-              size={12}
-              offset={4}
-            >
-              <Avatar radius="xl" src={`${serverAddress}${person.face_url}`} />
-            </Indicator>
-          </FaceTooltip>
-        }
-        // An unnamed face has no person album and no search term to navigate to,
-        // so the whole row is the affordance for naming it instead.
-        onClick={() => {
-          if (isPublic) return;
-          if (isUnnamed) {
-            openPersonPicker();
-          } else {
-            navigate({ to: `/search/${person.name}` });
-          }
-        }}
-      >
-        <Text size="sm" c={isUnnamed ? "dimmed" : undefined} fs={isUnnamed ? "italic" : undefined}>
-          {isUnnamed ? t("lightbox.sidebar.unnamedface") : person.name}
-        </Text>
-      </Button>
+      {isPublic ? (
+        // Search needs a login, so a public page's names are just labels, laid
+        // out like the button below (its padding and section gap).
+        <Group gap="xs" wrap="nowrap" miw={0} p={3}>
+          {face}
+          {label}
+        </Group>
+      ) : (
+        <Button
+          variant="subtle"
+          h="auto"
+          p={3}
+          miw={0}
+          leftSection={face}
+          // An unnamed face has no person album and no search term to navigate to,
+          // so the whole row is the affordance for naming it instead.
+          onClick={() => {
+            if (isUnnamed) {
+              openPersonPicker();
+            } else {
+              navigate({ to: `/search/${encodeURIComponent(person.name)}` });
+            }
+          }}
+        >
+          {label}
+        </Button>
+      )}
       {!isPublic && !isUnnamed && !isClusterLabel && person.type !== "user" && (
         <Tooltip label={t("facesdashboard.explanationadding")}>
           <ActionIcon

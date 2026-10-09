@@ -171,6 +171,65 @@ class SetUserAlbumPublicEnableTest(SetUserAlbumPublicTestBase):
         self.assertEqual(200, response.status_code)
         self.assertEqual("keep-me", AlbumUserShare.objects.get(album=self.album).slug)
 
+    def _other_album_share(self, **share_kwargs):
+        other_album = AlbumUser.objects.create(title="album-b", owner=self.other)
+        return AlbumUserShare.objects.create(album=other_album, **share_kwargs)
+
+    def test_a_slug_held_by_an_expired_share_is_taken(self):
+        # The public link answers 404 for it, so the UI calls it free; saving
+        # it used to hit the unique constraint and answer 500.
+        held = self._other_album_share(
+            enabled=True,
+            slug="taken",
+            expires_at=timezone.now() - datetime.timedelta(days=1),
+        )
+
+        response = self.post(
+            {"album_id": self.album.id, "val_public": True, "slug": "taken"}
+        )
+
+        self.assertEqual(409, response.status_code)
+        self.assertFalse(response.json()["status"])
+        held.refresh_from_db()
+        self.assertEqual("taken", held.slug)
+        self.assertFalse(AlbumUserShare.objects.filter(album=self.album).exists())
+
+    def test_a_slug_kept_by_a_legacy_disabled_share_is_taken(self):
+        self._other_album_share(enabled=False, slug="legacy")
+
+        response = self.post(
+            {"album_id": self.album.id, "val_public": True, "slug": "legacy"}
+        )
+
+        self.assertEqual(409, response.status_code)
+
+    def test_saving_the_albums_own_slug_again_is_fine(self):
+        AlbumUserShare.objects.create(album=self.album, enabled=True, slug="mine")
+
+        response = self.post(
+            {"album_id": self.album.id, "val_public": True, "slug": "mine"}
+        )
+
+        self.assertEqual(200, response.status_code)
+        self.assertEqual("mine", AlbumUserShare.objects.get(album=self.album).slug)
+
+    def test_a_slug_that_is_not_one_is_refused(self):
+        for slug in ("a b/c", "x" * 65):
+            with self.subTest(slug=slug):
+                response = self.post(
+                    {"album_id": self.album.id, "val_public": True, "slug": slug}
+                )
+                self.assertEqual(400, response.status_code)
+                self.assertFalse(response.json()["status"])
+
+    def test_surrounding_spaces_are_trimmed(self):
+        response = self.post(
+            {"album_id": self.album.id, "val_public": True, "slug": " my-album "}
+        )
+
+        self.assertEqual(200, response.status_code)
+        self.assertEqual("my-album", AlbumUserShare.objects.get(album=self.album).slug)
+
     def test_truthy_non_boolean_val_public_enables_sharing(self):
         # bool("false") is True -- string payloads enable the share.
         response = self.post({"album_id": self.album.id, "val_public": "false"})

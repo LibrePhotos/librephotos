@@ -79,7 +79,7 @@ These endpoints accept an `Authorization: Bearer <access_token>` header like eve
 Media belonging to an active public or shared album, and photos made public, are served without any credential. An expired or otherwise unusable cookie counts as no credential there: public media is still served, and anything else answers 403 with an `X-Media-Error: authentication` header, telling you to sign in again. An invalid bearer *header* answers 401, as on every other endpoint.
 
 :::note
-Servers released before this change read only the cookie on the media endpoints and ignore the header there. The cookie works on every version.
+Releases before 1.2.0 read only the cookie on the media endpoints and ignore the header there. The cookie works on every version.
 :::
 
 From a script, capture the cookie when you obtain the token and replay it:

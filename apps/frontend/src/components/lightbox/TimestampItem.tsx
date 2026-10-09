@@ -1,16 +1,12 @@
-import { ActionIcon, Button, Group, Stack, Text, Tooltip } from "@mantine/core";
+import { ActionIcon, Box, Group, Stack, Text, Tooltip, UnstyledButton } from "@mantine/core";
 import { DatePicker, TimeInput } from "@mantine/dates";
-import "@mantine/dates/styles.css";
-// only needs to be imported once
 import {
   IconArrowBackUp as ArrowBackUp,
   IconCalendar as Calendar,
   IconCheck as Check,
-  IconEdit as Edit,
+  IconPencil,
   IconX as X,
 } from "@tabler/icons-react";
-import dayjs from "dayjs";
-import "dayjs/locale/en";
 import { DateTime } from "luxon";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -27,11 +23,19 @@ import {
 const isValidDate = (date: Date | null): date is Date => date instanceof Date && !Number.isNaN(date.getTime());
 
 type Props = Readonly<{
-  photoDetail: Partial<Photo>;
+  /** Only the hash is always there: a viewer who is not the owner may have no date. */
+  photoDetail: Pick<Photo, "image_hash"> & Partial<Pick<Photo, "exif_timestamp">>;
   isPublic: boolean;
 }>;
 
-export function TimestampItem({ photoDetail, isPublic }: Props) {
+export function TimestampItem(props: Props) {
+  // The edit state belongs to one photo: remount when the photo changes, or a
+  // panel left open while browsing would save (or undo) this photo's date onto
+  // the next one.
+  return <TimestampEditor key={props.photoDetail.image_hash} {...props} />;
+}
+
+function TimestampEditor({ photoDetail, isPublic }: Props) {
   const [timestamp, setTimestamp] = useState(() =>
     photoDetail.exif_timestamp ? photoTimestampToPickerDate(photoDetail.exif_timestamp) : null
   );
@@ -44,7 +48,6 @@ export function TimestampItem({ photoDetail, isPublic }: Props) {
 
   const { t } = useTranslation();
   const lang = i18nResolvedLanguage();
-  dayjs.locale(lang);
 
   const onChangeDate = (date: Date | string | null) => {
     if (!date) {
@@ -77,10 +80,16 @@ export function TimestampItem({ photoDetail, isPublic }: Props) {
   };
 
   const onSaveDateTime = () => {
+    // Save sits where the pencil was, so a double-click saves straight away. An
+    // unchanged date is a Cancel, not a metadata write and an edit-history entry.
+    if (timestamp?.getTime() === savedTimestamp?.getTime()) {
+      onCancelDateTime();
+      return;
+    }
     const differentJson = {
       exif_timestamp: isValidDate(timestamp) ? pickerDateToPhotoTimestamp(timestamp) : null,
     };
-    updatePhoto({ id: photoDetail.image_hash!, data: differentJson });
+    updatePhoto({ id: photoDetail.image_hash, data: differentJson });
     setEditMode(false);
   };
 
@@ -100,7 +109,7 @@ export function TimestampItem({ photoDetail, isPublic }: Props) {
       const time = photoDateTime.toLocaleString(DateTime.TIME_SIMPLE);
       return (
         <div>
-          {date}{" "}
+          <Text fw={800}>{date}</Text>
           <Text size="xs" c="dimmed">
             {dayOfWeek}, {time}
           </Text>
@@ -120,7 +129,7 @@ export function TimestampItem({ photoDetail, isPublic }: Props) {
     const differentJson = {
       exif_timestamp: isValidDate(savedTimestamp) ? pickerDateToPhotoTimestamp(savedTimestamp) : null,
     };
-    updatePhoto({ id: photoDetail.image_hash!, data: differentJson });
+    updatePhoto({ id: photoDetail.image_hash, data: differentJson });
     setTimestamp(savedTimestamp);
   };
 
@@ -135,55 +144,91 @@ export function TimestampItem({ photoDetail, isPublic }: Props) {
     <Group>
       {editMode && (
         <Stack w="100%">
-          <Group>
-            <Calendar />
-            <Text>{t("lightbox.sidebar.editdatetime")}</Text>
+          {/* Cancel and save sit where the caption, tags and keywords put them. */}
+          <Group justify="space-between" wrap="nowrap">
+            <Group wrap="nowrap">
+              <Calendar />
+              <Text>{t("lightbox.sidebar.editdatetime")}</Text>
+            </Group>
+            <Group gap="xs" wrap="nowrap">
+              <Tooltip label={t("lightbox.sidebar.cancel")}>
+                <ActionIcon
+                  variant="subtle"
+                  color="gray"
+                  size="sm"
+                  aria-label={t("lightbox.sidebar.cancel")}
+                  onClick={onCancelDateTime}
+                >
+                  <X size={16} />
+                </ActionIcon>
+              </Tooltip>
+              <Tooltip label={t("lightbox.sidebar.save")}>
+                <ActionIcon
+                  variant="subtle"
+                  color="blue"
+                  size="sm"
+                  aria-label={t("lightbox.sidebar.save")}
+                  onClick={onSaveDateTime}
+                >
+                  <Check size={16} />
+                </ActionIcon>
+              </Tooltip>
+            </Group>
           </Group>
           <Stack>
-            <DatePicker locale={lang} value={timestamp} onChange={onChangeDate} />
+            {/* The month shown comes only from defaultDate, never from value. */}
+            <DatePicker value={timestamp} defaultDate={timestamp ?? undefined} onChange={onChangeDate} />
             <TimeInput
               withSeconds
               value={formatTimeForInput(timestamp)}
               onChange={onChangeTime}
               placeholder="00:00:00"
             />
-            <Group justify="center">
-              <Tooltip label={t("lightbox.sidebar.cancel")}>
-                <ActionIcon variant="light" onClick={onCancelDateTime} color="red">
-                  <X />
-                </ActionIcon>
-              </Tooltip>
-              <Tooltip label={t("lightbox.sidebar.submit")}>
-                <ActionIcon variant="light" color="green" onClick={onSaveDateTime}>
-                  <Check />
-                </ActionIcon>
-              </Tooltip>
-            </Group>
           </Stack>
         </Stack>
       )}
       {!editMode && (
-        <Group>
-          <Calendar />
-          <Button
-            color="dark"
-            variant="subtle"
-            onClick={() => {
-              if (isPublic) {
-                return;
-              }
-              onActivateEditMode();
-            }}
-            rightSection={!isPublic && <Edit size={17} />}
-          >
-            {getDateTimeLabel()}
-          </Button>
-          {savedTimestamp !== timestamp && (
-            <Tooltip label={t("lightbox.sidebar.undotimestampmodification")}>
-              <ActionIcon onClick={onUndoChangedTimestamp} color="dark">
-                <ArrowBackUp size={17} />
-              </ActionIcon>
-            </Tooltip>
+        // Laid out like the file and camera rows below (icon, then the text
+        // column), with the edit action on the right like every other section.
+        <Group justify="space-between" wrap="nowrap" w="100%">
+          <Group wrap="nowrap">
+            <Calendar />
+            {/* Not a button on a public share: there is nothing to activate. */}
+            {isPublic ? (
+              <Box fz="sm">{getDateTimeLabel()}</Box>
+            ) : (
+              <UnstyledButton fz="sm" onClick={onActivateEditMode}>
+                {getDateTimeLabel()}
+              </UnstyledButton>
+            )}
+          </Group>
+          {!isPublic && (
+            <Group gap="xs" wrap="nowrap">
+              {savedTimestamp !== timestamp && (
+                <Tooltip label={t("lightbox.sidebar.undotimestampmodification")}>
+                  <ActionIcon
+                    variant="subtle"
+                    color="gray"
+                    size="sm"
+                    aria-label={t("lightbox.sidebar.undotimestampmodification")}
+                    onClick={onUndoChangedTimestamp}
+                  >
+                    <ArrowBackUp size={16} />
+                  </ActionIcon>
+                </Tooltip>
+              )}
+              <Tooltip label={t("lightbox.sidebar.editdatetime")}>
+                <ActionIcon
+                  variant="subtle"
+                  color="gray"
+                  size="sm"
+                  aria-label={t("lightbox.sidebar.editdatetime")}
+                  onClick={onActivateEditMode}
+                >
+                  <IconPencil size={16} />
+                </ActionIcon>
+              </Tooltip>
+            </Group>
           )}
         </Group>
       )}

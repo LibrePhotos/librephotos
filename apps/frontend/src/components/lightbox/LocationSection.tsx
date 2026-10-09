@@ -1,6 +1,6 @@
 import { ActionIcon, Box, Group, Modal, Stack, Text, Tooltip } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { IconEdit as Edit, IconMapPin as MapPin } from "@tabler/icons-react";
+import { IconPencil, IconMapPin as MapPin } from "@tabler/icons-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import type { Photo as PhotoType } from "../../api_client/photos/types";
@@ -8,7 +8,9 @@ import { LocationMap } from "../LocationMap";
 import { LocationPickerModal } from "../map/LocationPickerModal";
 
 interface LocationSectionProps {
-  photoDetail: Partial<PhotoType>;
+  /** The coordinates are null where the viewer may not see them; the map then stays hidden. */
+  photoDetail: Pick<PhotoType, "image_hash" | "exif_gps_lat" | "exif_gps_lon"> &
+    Partial<Pick<PhotoType, "search_location">>;
   mapHeight?: number;
   isPublic?: boolean;
 }
@@ -19,21 +21,33 @@ export function LocationSection({ photoDetail, mapHeight = 250, isPublic = false
   return (
     <Group>
       <Stack w="100%">
-        <Group gap="xs" wrap="nowrap" align="center">
+        <Group wrap="nowrap" align="center">
           <MapPin />
-          <Text style={{ flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+          <Text
+            c={photoDetail.search_location ? undefined : "dimmed"}
+            title={photoDetail.search_location ?? undefined}
+            style={{ flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
+          >
             {photoDetail.search_location || t("lightbox.sidebar.no_location", "No location yet")}
           </Text>
           {!isPublic && (
             <Tooltip label={t("lightbox.sidebar.update_location", "Update location")}>
-              <ActionIcon variant="subtle" color="dark" onClick={open}>
-                <Edit size={17} />
+              <ActionIcon
+                variant="subtle"
+                color="gray"
+                size="sm"
+                aria-label={t("lightbox.sidebar.update_location", "Update location")}
+                onClick={open}
+              >
+                <IconPencil size={16} />
               </ActionIcon>
             </Tooltip>
           )}
         </Group>
         {photoDetail.exif_gps_lat && photoDetail.exif_gps_lon && (
           <Box h={mapHeight}>
+            {/* No key per photo: LocationMap recentres on new coordinates itself, and a
+                remount would rebuild the WebGL map on every arrow-key step. */}
             <LocationMap photos={[photoDetail]} />
           </Box>
         )}

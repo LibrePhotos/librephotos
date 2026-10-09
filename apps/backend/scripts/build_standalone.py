@@ -11,6 +11,7 @@ loads at run time. See librephotos/standalone.py for what the binary does.
 """
 
 import argparse
+import json
 import os
 import platform
 import shutil
@@ -257,7 +258,31 @@ def copy_tree(source, target):
     )
 
 
-def stage_runtime_files(dist, frontend_build, static):
+def build_info(version):
+    """The release and commit librephotos/standalone.py reports at run time.
+
+    The default 0.0.0 is a build nobody versioned; it says "dev", as an
+    untagged image does, rather than pass for a release.
+    """
+    git_hash = ""
+    try:
+        completed = subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"],
+            cwd=BACKEND,
+            capture_output=True,
+            text=True,
+        )
+        if completed.returncode == 0:
+            git_hash = completed.stdout.strip()
+    except OSError:
+        pass
+    return {
+        "version": "" if version == "0.0.0" else version,
+        "git_hash": git_hash or os.environ.get("GITHUB_SHA", "")[:9],
+    }
+
+
+def stage_runtime_files(dist, frontend_build, static, version):
     copy_tree(frontend_build, dist / "frontend_build")
     copy_tree(static, dist / "static")
     site_packages = Path(sysconfig.get_paths()["purelib"])
@@ -272,6 +297,10 @@ def stage_runtime_files(dist, frontend_build, static):
             shutil.copy(source, dist / directory / source.name)
     for name in ("LICENSE", "README.md"):
         shutil.copy(BACKEND / name, dist / name)
+    # Read back by librephotos/standalone.py (BUILD_INFO_NAME).
+    (dist / "build_info.json").write_text(
+        json.dumps(build_info(version)), encoding="utf-8"
+    )
     (dist / "START_HERE.txt").write_text(
         "LibrePhotos standalone\n"
         "\n"
@@ -329,7 +358,7 @@ def main():
     output_dir = args.output_dir.resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
     dist = compile_binary(output_dir, args.jobs, args.version)
-    stage_runtime_files(dist, frontend_build, static)
+    stage_runtime_files(dist, frontend_build, static, args.version)
     print(f"built: {dist}")
     if args.zip:
         archive(dist, output_dir)

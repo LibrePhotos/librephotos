@@ -30,7 +30,12 @@ import {
   LinkVerticalLine,
   LinkVerticalStep,
 } from "@visx/shape";
+// d3-hierarchy runs at 3.x, but its types here are @types/d3-hierarchy 1.x, which @visx/hierarchy
+// and @visx/shape depend on: Tree and the Link components are typed against those, so the nodes
+// built here must be too. Nothing this file uses changed between the two (hierarchy, the point
+// node and link types). @types/d3-shape is pinned to the version @visx/vendor pins.
 import { hierarchy } from "d3-hierarchy";
+import type { HierarchyPointLink, HierarchyPointNode } from "d3-hierarchy";
 import { pointRadial } from "d3-shape";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -46,6 +51,48 @@ type NodeData = {
   hex?: string;
 };
 
+/** What every link of the tree is drawn with; only the step and curve links read percent. */
+type TreeLinkProps = {
+  data: HierarchyPointLink<NodeData>;
+  percent: number;
+  stroke: string;
+  strokeWidth: number;
+  strokeLinecap: "round";
+  fill: string;
+  className: string;
+};
+
+// visx types LinkRadial's angle and radius as required, but they default to the node's x and y
+const nodeX = (node: HierarchyPointNode<NodeData>) => node.x;
+const nodeY = (node: HierarchyPointNode<NodeData>) => node.y;
+
+function LinkRadialDiagonal(props: TreeLinkProps) {
+  return <LinkRadial {...props} angle={nodeX} radius={nodeY} />;
+}
+
+function linkComponentFor(
+  layout: "cartesian" | "polar",
+  orientation: "horizontal" | "vertical",
+  linkType: "diagonal" | "step" | "curve" | "line"
+): React.ComponentType<TreeLinkProps> {
+  if (layout === "polar") {
+    if (linkType === "step") return LinkRadialStep;
+    if (linkType === "curve") return LinkRadialCurve;
+    if (linkType === "line") return LinkRadialLine;
+    return LinkRadialDiagonal;
+  }
+  if (orientation === "vertical") {
+    if (linkType === "step") return LinkVerticalStep;
+    if (linkType === "curve") return LinkVerticalCurve;
+    if (linkType === "line") return LinkVerticalLine;
+    return LinkVertical;
+  }
+  if (linkType === "step") return LinkHorizontalStep;
+  if (linkType === "curve") return LinkHorizontalCurve;
+  if (linkType === "line") return LinkHorizontalLine;
+  return LinkHorizontal;
+}
+
 type Props = Readonly<{
   margin?: {
     top: number;
@@ -59,6 +106,9 @@ type Props = Readonly<{
 type TooltipData = {
   x: number;
   y: number;
+  // Shown left of the node: x is then the distance from the right edge of the window
+  flip: boolean;
+  maxWidth: number;
   name: string;
   value?: number;
   hasChildren: boolean;
@@ -72,6 +122,73 @@ const HEADER_HEIGHT = 200;
 const RECT_WIDTH = 140;
 const RECT_HEIGHT = 32;
 const SVG_PADDING = 120;
+// The label keeps this much space to the box's edges, and the "+"/"−" glyph takes
+// the right INDICATOR_SPACE of a box with children
+const LABEL_PADDING = 10;
+const INDICATOR_SPACE = 18;
+// The root has no siblings to collide with, so its box grows to fit its name
+const ROOT_MAX_WIDTH = 220;
+// As .nodeText draws it
+const LABEL_FONT = "500 12px system-ui, -apple-system, sans-serif";
+const LABEL_LETTER_SPACING = 0.2;
+
+let labelContext: CanvasRenderingContext2D | null | undefined;
+const labelWidths = new Map<string, number>();
+
+function measureLabel(text: string): number {
+  let width = labelWidths.get(text);
+  if (width === undefined) {
+    if (labelContext === undefined) {
+      labelContext = document.createElement("canvas").getContext("2d");
+    }
+    if (labelContext) {
+      labelContext.font = LABEL_FONT;
+      width = labelContext.measureText(text).width + text.length * LABEL_LETTER_SPACING;
+    } else {
+      // No canvas (tests): a rough average glyph width
+      width = text.length * 7;
+    }
+    labelWidths.set(text, width);
+  }
+  return width;
+}
+
+/** Cuts a name to the width it may take, by its measured width rather than its length. */
+export function fitLabel(name: string, maxWidth: number, measure: (text: string) => number = measureLabel): string {
+  if (measure(name) <= maxWidth) return name;
+  let end = name.length - 1;
+  while (end > 1 && measure(`${name.slice(0, end).trimEnd()}…`) > maxWidth) end--;
+  return `${name.slice(0, end).trimEnd()}…`;
+}
+
+// Space between a node and its tooltip, and between the tooltip and the window's edge
+const TOOLTIP_GAP = 8;
+const TOOLTIP_GUTTER = 8;
+// .tooltip's max-width, and the narrowest it gets before it may cover the node
+const TOOLTIP_MAX_WIDTH = 250;
+const TOOLTIP_MIN_WIDTH = 160;
+
+/**
+ * Puts a node's tooltip on the side with room, kept inside the window. Next to a node
+ * near the right edge it was squeezed into a one-character-wide column, and flipping
+ * it left without checking the room there pushed it out of a phone's window instead.
+ */
+export function placeTooltip(
+  rect: { left: number; right: number },
+  viewportWidth: number
+): { x: number; flip: boolean; maxWidth: number } {
+  const spaceRight = viewportWidth - rect.right - TOOLTIP_GAP - TOOLTIP_GUTTER;
+  const spaceLeft = rect.left - TOOLTIP_GAP - TOOLTIP_GUTTER;
+  const flip = spaceRight < TOOLTIP_MAX_WIDTH && spaceLeft > spaceRight;
+  const maxWidth = Math.min(TOOLTIP_MAX_WIDTH, Math.max(TOOLTIP_MIN_WIDTH, flip ? spaceLeft : spaceRight));
+  const x = flip ? viewportWidth - rect.left + TOOLTIP_GAP : rect.right + TOOLTIP_GAP;
+  // Where neither side has room for the narrowest tooltip it is moved back into the window
+  return {
+    x: Math.max(TOOLTIP_GUTTER, Math.min(x, viewportWidth - maxWidth - TOOLTIP_GUTTER)),
+    flip,
+    maxWidth,
+  };
+}
 
 // Beautiful gradient colors for nodes
 const NODE_COLORS = {
@@ -99,7 +216,13 @@ export function LocationLink({ margin = { top: 0, left: 0, right: 0, bottom: 0 }
   const [showHint, setShowHint] = useState(true);
   const svgRef = useRef<SVGSVGElement>(null);
   const { data: locationSunburst, isLoading } = useFetchLocationTreeQuery();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  // placetree.photocount is new; until a locale translates it, keep that locale's
+  // existing "Photos" word instead of switching the tree to English
+  const photoCount = (count: number) =>
+    i18n.getResource(i18n.resolvedLanguage ?? "en", "translation", "placetree.photocount_other") === undefined
+      ? `${count} ${t("photos.photos")}`
+      : t("placetree.photocount", { count });
 
   // Hide hint after first interaction
   const hideHint = useCallback(() => setShowHint(false), []);
@@ -212,7 +335,7 @@ export function LocationLink({ margin = { top: 0, left: 0, right: 0, bottom: 0 }
   const handleNodeMouseEnter = useCallback((e: React.MouseEvent, nodeData: NodeData) => {
     const rect = e.currentTarget.getBoundingClientRect();
     setTooltip({
-      x: rect.right + 8,
+      ...placeTooltip(rect, document.documentElement.clientWidth),
       y: rect.top + rect.height / 2,
       name: nodeData.name,
       value: nodeData.value,
@@ -459,27 +582,7 @@ export function LocationLink({ margin = { top: 0, left: 0, right: 0, bottom: 0 }
                 {/* Links */}
                 {tree.links().map((link, i) => {
                   const key = `link-${layout}-${linkType}-${i}`;
-                  let LinkComponent;
-
-                  if (layout === "polar") {
-                    if (linkType === "step") LinkComponent = LinkRadialStep;
-                    else if (linkType === "curve") LinkComponent = LinkRadialCurve;
-                    else if (linkType === "line") LinkComponent = LinkRadialLine;
-                    else LinkComponent = LinkRadial;
-                  } else if (orientation === "vertical") {
-                    if (linkType === "step") LinkComponent = LinkVerticalStep;
-                    else if (linkType === "curve") LinkComponent = LinkVerticalCurve;
-                    else if (linkType === "line") LinkComponent = LinkVerticalLine;
-                    else LinkComponent = LinkVertical;
-                  } else if (linkType === "step") {
-                    LinkComponent = LinkHorizontalStep;
-                  } else if (linkType === "curve") {
-                    LinkComponent = LinkHorizontalCurve;
-                  } else if (linkType === "line") {
-                    LinkComponent = LinkHorizontalLine;
-                  } else {
-                    LinkComponent = LinkHorizontal;
-                  }
+                  const LinkComponent = linkComponentFor(layout, orientation, linkType);
 
                   return (
                     <LinkComponent
@@ -513,13 +616,22 @@ export function LocationLink({ margin = { top: 0, left: 0, right: 0, bottom: 0 }
                     left = node.y;
                   }
 
-                  const nodeData = node.data as NodeData;
+                  const nodeData = node.data;
                   const colors = getNodeColor(node);
                   const hasChildren = !!nodeData.children?.length;
                   const isExpanded = expandedNodes.has(nodeData.name);
 
-                  // Truncate long names
-                  const displayName = nodeData.name.length > 16 ? `${nodeData.name.substring(0, 14)}…` : nodeData.name;
+                  // Cut long names to the box, left of the expand glyph; the tooltip has the full name
+                  const indicatorSpace = hasChildren ? INDICATOR_SPACE : 0;
+                  const rectWidth =
+                    node.depth === 0
+                      ? Math.min(
+                          ROOT_MAX_WIDTH,
+                          Math.max(RECT_WIDTH, measureLabel(nodeData.name) + 2 * LABEL_PADDING + indicatorSpace)
+                        )
+                      : RECT_WIDTH;
+                  const displayName = fitLabel(nodeData.name, rectWidth - 2 * LABEL_PADDING - indicatorSpace);
+                  const labelX = -indicatorSpace / 2;
 
                   return (
                     <VisxGroup
@@ -539,9 +651,9 @@ export function LocationLink({ margin = { top: 0, left: 0, right: 0, bottom: 0 }
                       </defs>
                       <rect
                         height={RECT_HEIGHT}
-                        width={RECT_WIDTH}
+                        width={rectWidth}
                         y={-RECT_HEIGHT / 2}
-                        x={-RECT_WIDTH / 2}
+                        x={-rectWidth / 2}
                         fill={`url(#node-grad-${idx})`}
                         rx={8}
                         className={styles.nodeRect}
@@ -549,7 +661,7 @@ export function LocationLink({ margin = { top: 0, left: 0, right: 0, bottom: 0 }
                       />
                       <text
                         y={nodeData.value ? -2 : 1}
-                        x={0}
+                        x={labelX}
                         fontSize={12}
                         fontFamily="system-ui, -apple-system, sans-serif"
                         textAnchor="middle"
@@ -562,7 +674,7 @@ export function LocationLink({ margin = { top: 0, left: 0, right: 0, bottom: 0 }
                       {nodeData.value && (
                         <text
                           y={10}
-                          x={0}
+                          x={labelX}
                           fontSize={10}
                           fontFamily="system-ui, -apple-system, sans-serif"
                           textAnchor="middle"
@@ -570,13 +682,13 @@ export function LocationLink({ margin = { top: 0, left: 0, right: 0, bottom: 0 }
                           fill="rgba(255,255,255,0.75)"
                           className={styles.nodeText}
                         >
-                          {nodeData.value} {nodeData.value === 1 ? t("photo") : t("photos.photos")}
+                          {photoCount(nodeData.value)}
                         </text>
                       )}
                       {hasChildren && (
                         <text
                           y={0}
-                          x={RECT_WIDTH / 2 - 12}
+                          x={rectWidth / 2 - 12}
                           fontSize={14}
                           textAnchor="middle"
                           dominantBaseline="middle"
@@ -600,17 +712,14 @@ export function LocationLink({ margin = { top: 0, left: 0, right: 0, bottom: 0 }
         <div
           className={styles.tooltip}
           style={{
-            left: tooltip.x,
+            ...(tooltip.flip ? { right: tooltip.x } : { left: tooltip.x }),
+            maxWidth: tooltip.maxWidth,
             top: tooltip.y,
             transform: "translateY(-50%)",
           }}
         >
           <div className={styles.tooltipTitle}>{tooltip.name}</div>
-          {tooltip.value && (
-            <div className={styles.tooltipCount}>
-              {tooltip.value} {tooltip.value === 1 ? t("photo") : t("photos.photos")}
-            </div>
-          )}
+          {tooltip.value && <div className={styles.tooltipCount}>{photoCount(tooltip.value)}</div>}
           {tooltip.hasChildren && (
             <div className={styles.tooltipHint}>{t("placetree.clickToExpand", "Click to expand/collapse")}</div>
           )}

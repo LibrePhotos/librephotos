@@ -10,7 +10,7 @@ import {
 } from "@tabler/icons-react";
 import { getRouteApi } from "@tanstack/react-router";
 import { uniqBy } from "lodash-es";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   useDeletePersonAlbumMutation,
@@ -18,12 +18,16 @@ import {
   useRenamePersonAlbumMutation,
 } from "../../api_client/albums/hooks";
 import { useSetFacesPersonLabelMutation } from "../../api_client/faces/hooks";
+import type { CompletePersonFace } from "../../api_client/faces/types";
+import classes from "./HeaderComponent.module.css";
+import { isLoadedFace } from "./hooks/useVirtualizedGrid";
+import type { FaceSelection } from "./hooks/useVirtualizedGrid";
 
 type Props = {
-  cell: any;
-  style: any;
-  setSelectedFaces: any;
-  selectedFaces: any;
+  cell: CompletePersonFace;
+  style: React.CSSProperties;
+  setSelectedFaces: (faces: FaceSelection[]) => void;
+  selectedFaces: readonly FaceSelection[];
   isCollapsed: boolean;
   onToggleCollapse: () => void;
 };
@@ -50,6 +54,19 @@ export function HeaderComponent({
   const [personID, setPersonID] = useState("");
   const [personName, setPersonName] = useState("");
   const [newPersonName, setNewPersonName] = useState("");
+  // The dialogs open from menu items that are gone when they close, so the Modal's own
+  // focus return dropped focus on the page body: it goes back to the ⋮ button instead
+  const menuTrigger = useRef<HTMLButtonElement>(null);
+
+  function closeRenameDialog() {
+    hideRenameDialog();
+    menuTrigger.current?.focus();
+  }
+
+  function closeDeleteDialog() {
+    hideDeleteDialog();
+    menuTrigger.current?.focus();
+  }
 
   function openDeleteDialog(id: string) {
     setPersonID(id);
@@ -63,9 +80,12 @@ export function HeaderComponent({
     showRenameDialog();
   }
 
+  const trimmedName = newPersonName.trim();
+  const nameTaken = !!albums?.some(el => el.name.toLowerCase().trim() === trimmedName.toLowerCase());
+
   // Faces that have not been paged in yet carry their index as id, so acting on them would hit
   // whatever real faces happen to have those ids
-  const loadedFaces = cell.faces.filter(face => !face.isTemp);
+  const loadedFaces = cell.faces.filter(isLoadedFace);
 
   const handleClick = () => {
     if (!checked) {
@@ -96,7 +116,7 @@ export function HeaderComponent({
 
   return (
     <Stack w="100%" justify="end" pb="xl" style={style}>
-      <Group>
+      <Group wrap="nowrap">
         <ActionIcon
           variant="subtle"
           color="gray"
@@ -110,83 +130,118 @@ export function HeaderComponent({
         >
           {isCollapsed ? <ChevronRight /> : <ChevronDown />}
         </ActionIcon>
-        <Chip variant="filled" radius="xs" size="lg" checked={checked} onChange={handleClick}>
+        <Chip
+          variant="filled"
+          radius="xs"
+          size="lg"
+          checked={checked}
+          onChange={handleClick}
+          classNames={{ root: classes.nameChip, label: classes.nameChipLabel, iconWrapper: classes.nameChipIcon }}
+          wrapperProps={{ title: cell.name }}
+        >
           {cell.name}
         </Chip>
         {activeTab === "inferred" && !(cell.kind === "CLUSTER" || cell.kind === "UNKNOWN") && (
           <Tooltip label={t("facesdashboard.explanationvalidate")}>
-            <ActionIcon variant="light" color="green" disabled={false} onClick={() => confirmFacesAssociation()}>
+            <ActionIcon
+              variant="light"
+              color="green"
+              aria-label={t("facesdashboard.explanationvalidate")}
+              onClick={() => confirmFacesAssociation()}
+            >
               <UserCheck />
             </ActionIcon>
           </Tooltip>
         )}
         {!(cell.kind === "CLUSTER" || cell.kind === "UNKNOWN") && (
-          <Menu position="bottom-end">
+          // Its items open dialogs: handing focus back to the trigger took it from the dialog's input
+          <Menu position="bottom-end" returnFocus={false}>
             <Menu.Target>
-              <ActionIcon variant="subtle" color="gray">
+              <ActionIcon ref={menuTrigger} variant="subtle" color="gray" aria-label={t("moreactions")}>
                 <DotsVertical />
               </ActionIcon>
             </Menu.Target>
 
             <Menu.Dropdown>
-              <Menu.Item leftSection={<Edit />} onClick={() => openRenameDialog(cell.id, cell.name)}>
+              <Menu.Item leftSection={<Edit size={14} />} onClick={() => openRenameDialog(String(cell.id), cell.name)}>
                 {t("rename")}
               </Menu.Item>
-              <Menu.Item leftSection={<Trash />} onClick={() => openDeleteDialog(cell.id)}>
+              <Menu.Item leftSection={<Trash size={14} />} onClick={() => openDeleteDialog(String(cell.id))}>
                 {t("delete")}
               </Menu.Item>
             </Menu.Dropdown>
           </Menu>
         )}
-        <Text c="dimmed">
+        <Text c="dimmed" style={{ flexShrink: 0 }}>
+          {/* count picks the plural form; number keeps older translations of the key working */}
           {t("facesdashboard.numberoffaces", {
+            count: cell.faces.length,
             number: cell.faces.length,
           })}
         </Text>
       </Group>
 
       <Divider />
-      <Modal title={t("personalbum.renameperson")} onClose={hideRenameDialog} opened={renameDialogVisible}>
-        <Group>
-          <TextInput
-            error={
-              albums?.map(el => el.name.toLowerCase().trim()).includes(newPersonName.toLowerCase().trim())
-                ? t("personalbum.personalreadyexists", {
-                    name: newPersonName.trim(),
-                  })
-                : false
-            }
-            onChange={e => {
-              setNewPersonName(e.currentTarget.value);
-            }}
-            placeholder={t("personalbum.nameplaceholder")}
-          />
-          <Button
-            onClick={() => {
-              renamePerson({ id: personID, personName, newPersonName });
-              hideRenameDialog();
-            }}
-            disabled={albums?.map(el => el.name.toLowerCase().trim()).includes(newPersonName.toLowerCase().trim())}
-            type="submit"
-          >
-            {t("rename")}
-          </Button>
-        </Group>
+      <Modal
+        title={t("personalbum.renameperson")}
+        onClose={closeRenameDialog}
+        opened={renameDialogVisible}
+        returnFocus={false}
+      >
+        {/* A form, so Enter renames too */}
+        <form
+          onSubmit={e => {
+            e.preventDefault();
+            // The backend rejects a blank name, and nothing would report that
+            if (!trimmedName || nameTaken) return;
+            renamePerson({ id: personID, personName, newPersonName: trimmedName });
+            closeRenameDialog();
+          }}
+        >
+          <Stack>
+            <TextInput
+              data-autofocus
+              label={t("personalbum.nameplaceholder")}
+              error={nameTaken ? t("personalbum.personalreadyexists", { name: trimmedName }) : false}
+              onChange={e => {
+                setNewPersonName(e.currentTarget.value);
+              }}
+              placeholder={personName}
+            />
+            <Group justify="flex-end">
+              <Button variant="default" onClick={closeRenameDialog}>
+                {t("cancel")}
+              </Button>
+              <Button disabled={!trimmedName || nameTaken} type="submit">
+                {t("rename")}
+              </Button>
+            </Group>
+          </Stack>
+        </form>
       </Modal>
-      <Modal opened={deleteDialogVisible} title={t("personalbum.deleteperson")} onClose={hideDeleteDialog}>
-        <Text size="sm">{t("personalbum.deletepersondescription")}</Text>
-        <Group>
-          <Button onClick={hideDeleteDialog}>{t("cancel")}</Button>
-          <Button
-            color="red"
-            onClick={() => {
-              deletePerson(personID);
-              hideDeleteDialog();
-            }}
-          >
-            {t("delete")}
-          </Button>
-        </Group>
+      <Modal
+        opened={deleteDialogVisible}
+        title={t("personalbum.deleteperson")}
+        onClose={closeDeleteDialog}
+        returnFocus={false}
+      >
+        <Stack>
+          <Text size="sm">{t("personalbum.deletepersondescription")}</Text>
+          <Group justify="flex-end">
+            <Button variant="default" onClick={closeDeleteDialog}>
+              {t("cancel")}
+            </Button>
+            <Button
+              color="red"
+              onClick={() => {
+                deletePerson(personID);
+                closeDeleteDialog();
+              }}
+            >
+              {t("delete")}
+            </Button>
+          </Group>
+        </Stack>
       </Modal>
     </Stack>
   );

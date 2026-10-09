@@ -1,5 +1,4 @@
-import { Carousel } from "@mantine/carousel";
-import "@mantine/carousel/styles.css";
+import { Carousel, type CarouselProps } from "@mantine/carousel";
 import { Modal, Stack } from "@mantine/core";
 import { useFullscreen, useHotkeys } from "@mantine/hooks";
 import { useGesture } from "@use-gesture/react";
@@ -26,10 +25,51 @@ import {
 } from "./lightbox.hotkeys";
 import type { ContentViewerProps, FaceLocationType } from "./lightbox.types";
 import { LightboxControls } from "./LightboxControls";
-import { MediaDisplay } from "./MediaDisplay";
+import { LIGHTBOX_PHOTO_HEIGHT, LIGHTBOX_VIDEO_HEIGHT, MediaDisplay } from "./MediaDisplay";
 import { Sidebar } from "./Sidebar";
 import { ThumbnailNavigation } from "./ThumbnailNavigation";
 import { requestLightboxSeek, SEEK_LONG_STEP_SECONDS, SEEK_STEP_SECONDS } from "./VideoPlayer";
+
+/** The Embla carousel API that Mantine's Carousel hands to getEmblaApi. */
+type EmblaApi = Parameters<NonNullable<CarouselProps["getEmblaApi"]>>[0];
+
+/**
+ * Whether an Escape keypress is the lightbox's to handle. A dialog opened on
+ * top of it (naming a face, picking a location, the share link) portals its
+ * own `role="dialog"` and closes itself on Escape, and Mantine marks an open
+ * menu or combobox the same way it does for its own modals; the lightbox must
+ * not close with them.
+ */
+export function escapeTargetsLightbox(target: EventTarget | null, lightboxDialog: Element | null): boolean {
+  if (!(target instanceof Element)) return true;
+  if (target.getAttribute("data-mantine-stop-propagation") === "true") return false;
+  const dialog = target.closest('[role="dialog"]');
+  return !dialog || dialog === lightboxDialog;
+}
+
+/**
+ * Tab from the focused lightbox body itself goes to its first or last control.
+ * Mantine's focus trap only wraps from either end of its tab order, and the
+ * body (focused on open, and again by a click on the photo) is neither, so
+ * Shift+Tab would otherwise leave for the page behind the overlay.
+ */
+function keepTabInside(event: React.KeyboardEvent<HTMLElement>) {
+  if (event.key !== "Tab" || event.target !== event.currentTarget) return;
+  const tabbable = [
+    ...event.currentTarget.querySelectorAll<HTMLElement>("a[href], button, input, select, textarea, [tabindex]"),
+  ].filter(
+    el => el.tabIndex >= 0 && !el.matches(":disabled") && !(el instanceof HTMLInputElement && el.type === "hidden")
+  );
+  if (event.shiftKey) tabbable.reverse();
+  // The first one that actually takes focus: a control can be hidden.
+  for (const el of tabbable) {
+    el.focus();
+    if (el.ownerDocument.activeElement === el) {
+      event.preventDefault();
+      return;
+    }
+  }
+}
 
 export function ContentViewer({
   mainSrc,
@@ -47,13 +87,14 @@ export function ContentViewer({
   publicAlbumSlug,
   onPhotoSelect,
   startSlideshow = false,
+  gridItem,
 }: ContentViewerProps) {
   const [isZoomed, setIsZoomed] = useState(false);
   const [scale, setScale] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 }); // For dragging the image
   const [lightboxSidebarShow, setLightBoxSidebarShow] = useState(false);
   const [faceLocation, setFaceLocation] = useState<FaceLocationType>(null);
-  const [embla, setEmbla] = useState<any | null>(null);
+  const [embla, setEmbla] = useState<EmblaApi | null>(null);
   const [playing, setPlaying] = useState(true);
   const [rotationAngle, setRotationAngle] = useState(0);
   const [imageCacheKey, setImageCacheKey] = useState(0);
@@ -74,9 +115,11 @@ export function ContentViewer({
   const [localSlideshowInterval, setLocalSlideshowInterval] = useState<number | null>(null);
   const [slideshowProgress, setSlideshowProgress] = useState(0);
 
-  // Fullscreen support
   const contentRef = useRef<HTMLDivElement>(null);
-  const { toggle: toggleFullscreen, fullscreen: isFullscreen } = useFullscreen(contentRef);
+  // Fullscreen support. Mantine 8's hook takes no element: with its ref left
+  // unattached it toggles the whole document, as it always has here (the
+  // contentRef this used to be handed was ignored).
+  const { toggle: toggleFullscreen, fullscreen: isFullscreen } = useFullscreen<HTMLDivElement>();
 
   // Fetch user settings for default slideshow interval (skip on public pages)
   const { data: userSelfDetails } = useCurrentUserSelfDetailsQuery(isPublic);
@@ -86,6 +129,12 @@ export function ContentViewer({
   // Use image_hash for API calls since backend still uses image_hash for lookup
   // Skip this query on public pages since we don't have authenticated access to photo details
   const { data: photoDetails, isLoading: isPhotoDetailsLoading } = useFetchPhotoDetailsQuery(mainSrcHash, isPublic);
+  // Whether the original or a conversion is played is decided from the details
+  // (`video_playback_type`), so a video waits for them as its poster rather
+  // than starting the original and restarting on the converted stream.
+  const mainType = type === "video" && !isPublic && isPhotoDetailsLoading ? "photo" : type;
+  const mediaBoxHeight =
+    mainType === "video" || mainType === "embedded" ? LIGHTBOX_VIDEO_HEIGHT : LIGHTBOX_PHOTO_HEIGHT;
   const { t } = useTranslation();
   const { mutate: addFace } = useAddFaceMutation();
 
@@ -148,6 +197,11 @@ export function ContentViewer({
     setShowOcrText(false);
     pendingRotationReset.current = false;
     setSuppressRotationTransition(false);
+    // A zoom (or pinch) left over from the last photo would also keep swiping
+    // off, and a video next has no zoom button to undo it.
+    setIsZoomed(false);
+    setScale(1);
+    setOffset({ x: 0, y: 0 });
   }, [mainSrc]);
 
   // Slideshow timer and progress for images
@@ -270,7 +324,9 @@ export function ContentViewer({
 
     embla.on("select", onSlideChange);
     // eslint-disable-next-line consistent-return
-    return () => embla.off("select", onSlideChange);
+    return () => {
+      embla.off("select", onSlideChange);
+    };
     // prevSrc/nextSrc must be deps: the handler decides from them whether a swipe
     // can move at all, and a handler registered on the first photo would otherwise
     // keep seeing "no previous photo" after navigating forward.
@@ -291,6 +347,25 @@ export function ContentViewer({
     onCloseRequest();
   };
 
+  // A trashed (or, in the trash, restored) photo leaves the list it was opened
+  // from, so step to a neighbour rather than leave it on screen.
+  const shownHashRef = useRef(mainSrcHash);
+  shownHashRef.current = mainSrcHash;
+  const handleAfterTrashToggle = () => {
+    // This runs when the request succeeds, from the render the click was made
+    // in. If the user has moved on meanwhile, stepping from that photo would
+    // jump them back to its neighbour.
+    if (shownHashRef.current !== mainSrcHash) return;
+    if (nextSrc) onMoveNextRequest();
+    else if (prevSrc) onMovePrevRequest();
+    else handleClose();
+  };
+
+  const handleEscape = (event: KeyboardEvent) => {
+    if (!escapeTargetsLightbox(event.target, contentRef.current?.closest('[role="dialog"]') ?? null)) return;
+    handleClose();
+  };
+
   // Add keyboard navigation using Mantine's useHotkeys
   useHotkeys([
     [PREVIOUS_KEY, () => prevSrc && onMovePrevRequest()],
@@ -308,7 +383,11 @@ export function ContentViewer({
     [SEEK_FORWARD_KEY, () => requestLightboxSeek(SEEK_STEP_SECONDS)],
     [SEEK_LONG_BACK_KEY, () => requestLightboxSeek(-SEEK_LONG_STEP_SECONDS)],
     [SEEK_LONG_FORWARD_KEY, () => requestLightboxSeek(SEEK_LONG_STEP_SECONDS)],
-    ["Escape", handleClose],
+    // Mantine's own closeOnEscape is off (see Modal.Root): it listens on the
+    // window ahead of everything, so Escape meant for the caption editor, a tag
+    // input, the face-drawing layer or a nested dialog closed the lightbox too.
+    // This hotkey skips inputs and contenteditable, and the face layer stops it.
+    ["Escape", handleEscape],
     [PLAY_PAUSE_KEY, () => type === "video" && setPlaying(prev => !prev)],
     ["z", () => type === "photo" && toggleZoom()],
     ["i", () => setLightBoxSidebarShow(prev => !prev)], // Toggle info panel
@@ -366,6 +445,10 @@ export function ContentViewer({
     ],
   ]);
 
+  // Pinching sets the scale without the zoom toggle, and either way a drag
+  // then pans the photo instead of swiping to the next one.
+  const isMagnified = isZoomed || scale > 1;
+
   const bind = useGesture({
     onPinch: state => {
       setScale(Math.max(1, Math.min(scale * state.offset[0], 4)));
@@ -378,7 +461,7 @@ export function ContentViewer({
       }
     },
     onDrag: state => {
-      if (isZoomed) {
+      if (isMagnified) {
         setOffset({
           x: state.offset[0],
           y: state.offset[1],
@@ -393,17 +476,23 @@ export function ContentViewer({
     }
   }, [lightboxSidebarShow, embla]);
 
-  const handleDragStart = event => {
+  const handleDragStart = (event: React.DragEvent) => {
     event.preventDefault();
   };
 
   return (
-    <Modal.Root opened onClose={handleClose} fullScreen>
+    <Modal.Root opened onClose={handleClose} fullScreen closeOnEscape={false}>
       <Modal.Overlay blur={5} backgroundOpacity={0.8} />
       <Modal.Content style={{ background: "transparent" }}>
         <Modal.Body
           ref={contentRef}
+          // The focus trap otherwise lands on the first toolbar button, which
+          // then shows a focus ring as soon as a shortcut key is pressed.
+          data-autofocus
+          tabIndex={-1}
+          onKeyDown={keepTabInside}
           style={{
+            outline: "none",
             width: `100vw`,
             height: "100vh",
             display: "flex",
@@ -452,6 +541,7 @@ export function ContentViewer({
               toggleOcrText={toggleOcrText}
               onCopyToClipboard={canCopyPhoto ? handleCopyPhoto : undefined}
               isCopyingToClipboard={isCopyingToClipboard}
+              onAfterTrashToggle={handleAfterTrashToggle}
             />
 
             {/* Main photo/video with swipe navigation */}
@@ -471,9 +561,16 @@ export function ContentViewer({
                 slideSize="100%"
                 slideGap={0}
                 orientation="horizontal"
-                loop={false}
-                draggable={!isZoomed}
-                containScroll="trimSnaps"
+                // Mantine 8 takes Embla options only here (loop: false and
+                // containScroll: "trimSnaps" are its defaults); the old
+                // `draggable` prop was silently dropped.
+                emblaOptions={{ watchDrag: !isMagnified }}
+                // The media box sits at the top of the slide: centre the arrows
+                // on it, not on the taller carousel.
+                styles={{ controls: { top: `calc(${mediaBoxHeight} / 2 - var(--carousel-control-size) / 2)` } }}
+                // Mantine leaves the arrow buttons unnamed.
+                previousControlProps={{ "aria-label": t("lightbox.controls.previous") }}
+                nextControlProps={{ "aria-label": t("lightbox.controls.next") }}
               >
                 {/* Previous slide */}
                 <Carousel.Slide>
@@ -512,7 +609,7 @@ export function ContentViewer({
                         id={mainSrc}
                         image_hash={mainSrcHash}
                         isMainContent
-                        type={type}
+                        type={mainType}
                         bind={bind}
                         faceLocation={faceLocation}
                         toggleZoom={toggleZoom}
@@ -559,7 +656,6 @@ export function ContentViewer({
             <ThumbnailNavigation
               prevSrc={prevSrc}
               prevSrcHash={prevSrcHash}
-              mainSrc={mainSrc}
               mainSrcHash={mainSrcHash}
               nextSrc={nextSrc}
               nextSrcHash={nextSrcHash}
@@ -575,6 +671,7 @@ export function ContentViewer({
               closeSidepanel={() => setLightBoxSidebarShow(!lightboxSidebarShow)}
               isPublic={isPublic}
               publicAlbumSlug={publicAlbumSlug}
+              gridItem={gridItem}
               setFaceLocation={setFaceLocation}
               onPhotoSelect={onPhotoSelect}
               onAddFaceRequest={type === "photo" ? startDrawingFace : undefined}
@@ -583,13 +680,16 @@ export function ContentViewer({
               addFaceBlockedReason={addFaceBlockedReason}
             />
           )}
-          <ModalPersonEdit
-            isOpen={!!drawnFaceBox}
-            onRequestClose={cancelDrawingFace}
-            selectedFaces={[]}
-            prompt={t("lightbox.addface.whoisit")}
-            onPersonChosen={handleFacePersonChosen}
-          />
+          {/* Only an owner adds faces; mounted on a public page, its people query would 401. */}
+          {!isPublic && (
+            <ModalPersonEdit
+              isOpen={!!drawnFaceBox}
+              onRequestClose={cancelDrawingFace}
+              selectedFaces={[]}
+              prompt={t("lightbox.addface.whoisit")}
+              onPersonChosen={handleFacePersonChosen}
+            />
+          )}
         </Modal.Body>
       </Modal.Content>
     </Modal.Root>

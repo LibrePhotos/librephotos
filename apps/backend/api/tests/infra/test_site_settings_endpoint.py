@@ -2,8 +2,10 @@ from unittest.mock import patch
 
 from constance.test import override_config
 from django.test import TestCase
+from django_q.tasks import AsyncTask
 from rest_framework.test import APIClient
 
+from api.models import LongRunningJob
 from api.tests.utils import create_test_user
 
 
@@ -44,3 +46,31 @@ class SiteSettingsTest(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["map_tile_provider"], "none")
+
+    @patch("api.views.site_settings.do_all_models_exist", return_value=False)
+    @patch.object(AsyncTask, "run")
+    def test_saving_while_models_download_queues_no_second_download(
+        self, run, _mock_do_all_models_exist
+    ):
+        """The form saves on every toggle and blur, often mid-download."""
+        LongRunningJob.create_job(
+            user=self.admin,
+            job_type=LongRunningJob.JOB_DOWNLOAD_MODELS,
+            start_now=True,
+        )
+        response = self.client.post(
+            "/api/sitesettings", data={"allow_upload": True}, format="json"
+        )
+        self.assertEqual(response.status_code, 200)
+        run.assert_not_called()
+
+    @patch("api.views.site_settings.do_all_models_exist", return_value=False)
+    @patch.object(AsyncTask, "run")
+    def test_saving_with_models_missing_queues_the_download(
+        self, run, _mock_do_all_models_exist
+    ):
+        response = self.client.post(
+            "/api/sitesettings", data={"allow_upload": True}, format="json"
+        )
+        self.assertEqual(response.status_code, 200)
+        run.assert_called_once_with()

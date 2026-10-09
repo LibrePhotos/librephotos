@@ -15,7 +15,8 @@ const routeApi = getRouteApi("/_protected/faces");
 export function TabComponent({ fetchingLabeledFacesList, fetchingInferredFacesList }: Props) {
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const { tab: activeTab } = routeApi.useSearch();
+  const search = routeApi.useSearch();
+  const { tab: activeTab } = search;
 
   return (
     <Group justify="space-between">
@@ -24,13 +25,7 @@ export function TabComponent({ fetchingLabeledFacesList, fetchingInferredFacesLi
         value={activeTab}
         w="100%"
         onChange={value => {
-          navigate({
-            to: "/faces",
-            search: prev => ({
-              ...prev,
-              tab: value as FacesTab,
-            }),
-          });
+          navigate({ to: "/faces", search: { ...search, tab: FacesTab.safeParse(value).data } });
         }}
       >
         <Tabs.List>

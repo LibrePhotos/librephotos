@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Cookies } from "react-cookie";
+import { getAuthCookie } from "../../authCookies";
 
 export const IsAuthenticatedQueryKeys = ["isAuthenticated"];
 
@@ -7,8 +7,7 @@ export const useIsAuthenticatedQuery = () =>
   useQuery({
     queryKey: IsAuthenticatedQueryKeys,
     queryFn: () => {
-      const cookies = new Cookies();
-      const token = cookies.get("access");
+      const token = getAuthCookie("access");
       return !!token;
     },
   });

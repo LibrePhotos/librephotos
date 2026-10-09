@@ -1,12 +1,14 @@
-import { Button, Divider, Grid, Modal, Stack, TextInput, Title, Tree } from "@mantine/core";
-import React, { useEffect, useRef, useState } from "react";
+import { Button, Group, Modal, Paper, Stack, Text, TextInput, Tree, type TreeNodeData } from "@mantine/core";
+import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchNextcloudDirsQuery } from "../../api_client/folders/hooks/useFetchNextcloudDirsQuery";
 import type { DirTree, DirTreeResponse } from "../../api_client/folders/types";
 import { Leaf } from "./Leaf";
+import { modalTitleStyles } from "./modalTitleStyles";
 
 type Props = Readonly<{
-  path: string;
+  /** The saved folder; unset until the user picked one. */
+  path: string | null | undefined;
   isOpen: boolean;
   onChange: (dir: string) => void;
   onClose: () => void;
@@ -15,10 +17,8 @@ type Props = Readonly<{
 export function ModalNextcloudScanDirectoryEdit(props: Props) {
   const { t } = useTranslation();
   const { path, isOpen, onChange, onClose } = props;
-  const [newScanDirectory, setNewScanDirectory] = useState("");
+  const [newScanDirectory, setNewScanDirectory] = useState(path ?? "");
   const [treeData, setTreeData] = useState<DirTreeResponse>([]);
-  const [placeholder, setPlaceholder] = useState("...");
-  const inputRef = useRef<HTMLInputElement>(null);
   const { data: nextcloudDirs } = useFetchNextcloudDirsQuery();
 
   useEffect(() => {
@@ -27,12 +27,15 @@ export function ModalNextcloudScanDirectoryEdit(props: Props) {
     }
   }, [nextcloudDirs]);
 
+  // Start from the saved folder each time the dialog opens.
   useEffect(() => {
-    setPlaceholder(path || t("modalnextcloud.notset"));
-  }, [path, t]);
+    if (isOpen) {
+      setNewScanDirectory(path ?? "");
+    }
+  }, [isOpen, path]);
 
   // Convert DirTree data to the format expected by Mantine Tree
-  const convertToMantineTreeData = (data: DirTree[]) =>
+  const convertToMantineTreeData = (data: DirTree[]): TreeNodeData[] =>
     data.map(item => ({
       value: item.absolute_path,
       label: item.title,
@@ -40,50 +43,53 @@ export function ModalNextcloudScanDirectoryEdit(props: Props) {
     }));
 
   const treeItems = convertToMantineTreeData(treeData);
+  const trimmed = newScanDirectory.trim();
 
   return (
     <Modal
+      styles={modalTitleStyles}
       opened={isOpen}
       centered
       onClose={onClose}
-      title={<Title order={4}>{t("modalnextcloud.setdirectory")}</Title>}
+      title={t("modalnextcloud.setdirectory")}
       size="xl"
     >
       <Stack>
-        <Title order={5}>{t("modalnextcloud.currentdirectory")}</Title>
-        <Grid grow>
-          <Grid.Col span={9}>
-            <TextInput ref={inputRef} placeholder={placeholder} />
-          </Grid.Col>
-          <Grid.Col span={3}>
-            <Button
-              type="submit"
-              color="green"
-              onClick={() => {
-                onChange(newScanDirectory);
-                onClose();
-              }}
-            >
-              {t("modalnextcloud.update")}
-            </Button>
-          </Grid.Col>
-        </Grid>
-        <Divider />
-        <Title order={5}>{t("modalnextcloud.choosedirectory")}</Title>
-        <div style={{ height: "250px", overflow: "auto" }}>
-          <Tree
-            data={treeItems}
-            selectOnClick
-            clearSelectionOnOutsideClick
-            onClick={node => {
-              if (inputRef.current) {
-                inputRef.current.value = node.value;
-              }
-              setNewScanDirectory(node.value);
-            }}
-            renderNode={payload => <Leaf {...payload} />}
-          />
+        <TextInput
+          label={t("modalnextcloud.currentdirectory")}
+          placeholder={t("modalnextcloud.notset")}
+          value={newScanDirectory}
+          onChange={event => setNewScanDirectory(event.currentTarget.value)}
+        />
+        <div>
+          <Text size="sm" c="dimmed" mb={4}>
+            {t("modalnextcloud.choosedirectory")}
+          </Text>
+          <Paper withBorder radius="sm" p={4} mah={250} style={{ overflow: "auto" }}>
+            {/* Mantine's Tree has no per-node click handler: the Leaf reports the
+                clicked folder (Tree's own onClick receives the <ul> click event). */}
+            <Tree
+              data={treeItems}
+              selectOnClick
+              clearSelectionOnOutsideClick
+              renderNode={payload => <Leaf {...payload} nodeClicked={node => setNewScanDirectory(node.value)} />}
+            />
+          </Paper>
         </div>
+        <Group justify="flex-end">
+          <Button variant="default" onClick={onClose}>
+            {t("modalnextcloud.cancel")}
+          </Button>
+          <Button
+            disabled={!trimmed || trimmed === (path ?? "")}
+            onClick={() => {
+              onChange(trimmed);
+              onClose();
+            }}
+          >
+            {t("modalnextcloud.update")}
+          </Button>
+        </Group>
       </Stack>
     </Modal>
   );

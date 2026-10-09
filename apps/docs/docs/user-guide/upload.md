@@ -26,7 +26,7 @@ The upload process works in the following way:
 The upload behavior depends on whether the user has a scan directory configured:
 
 #### When scan directory is properly configured:
-- Files are saved to: `{scan_directory}/uploads/web/{filename}`
+- Files are saved to: `{scan_directory}/uploads/web/{filename}`, also when the mobile app backs them up
 - This is the normal and expected behavior
 - Files are stored in the mounted host directory and are persistent
 - An admin can point a user's uploads at a different folder with the **Upload folder** field in the user edit dialog (see [Managing users](./managing-users.md#upload-folder)). Files then go to `{upload folder}/web/{filename}` instead.
@@ -63,7 +63,7 @@ You can activate / deactivate by navigating as an admin to the admin area and cl
 After upload, you can scan the uploaded photos in two ways:
 
 1. **Automatic scanning**: The upload process automatically triggers processing for the uploaded photo
-2. **Manual scanning**: You can manually scan all uploaded photos by going to the Library page and clicking the scan button
+2. **Manual scanning**: You can manually scan all uploaded photos by going to the Library page and clicking the scan button. That scan covers your scan directory, so it does not reach an upload folder an admin set outside it.
 
 ### Troubleshooting
 

@@ -8,7 +8,7 @@
  * several of them, that many decoders at once.
  *
  * This is the same class of problem #970 had in the photo *grid* tile
- * (`react-pig/components/Tile/Tile.jsx`, fixed in #2018): no preload hint, and
+ * (`react-pig/components/Tile/Tile.tsx`, fixed in #2018): no preload hint, and
  * nothing released the media element on unmount.
  */
 import { MantineProvider } from "@mantine/core";
@@ -16,6 +16,7 @@ import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { Tile } from "../components/Tile";
+import { defined } from "../util/defined.test-utils";
 
 beforeAll(() => {
   // jsdom implements none of these, and the component calls all three.
@@ -23,7 +24,7 @@ beforeAll(() => {
   HTMLMediaElement.prototype.load = () => {};
   HTMLMediaElement.prototype.play = () => Promise.resolve();
   // MantineProvider reads it on mount; jsdom has no matchMedia.
-  window.matchMedia = ((query: string) => ({
+  window.matchMedia = (query: string): MediaQueryList => ({
     matches: false,
     media: query,
     onchange: null,
@@ -32,8 +33,7 @@ beforeAll(() => {
     addEventListener: () => {},
     removeEventListener: () => {},
     dispatchEvent: () => false,
-  })) as unknown as typeof window.matchMedia;
-  // @ts-ignore
+  });
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 });
 
@@ -45,7 +45,7 @@ function renderCovers(count: number) {
   document.body.appendChild(container);
   root = createRoot(container);
   act(() => {
-    root!.render(
+    defined(root).render(
       <>
         {Array.from({ length: count }, (_, i) => (
           <Tile key={i} video width={200} height={200} image_hash={`videohash${i}`} />
@@ -58,7 +58,7 @@ function renderCovers(count: number) {
 
 afterEach(() => {
   if (root && container) {
-    act(() => root!.unmount());
+    act(() => defined(root).unmount());
     container.remove();
   }
   root = null;
@@ -85,7 +85,7 @@ describe("issue 2027: album cover tiles autoplay and loop", () => {
 
   it("plays on hover and stops again on leave", () => {
     const covers = renderCovers(1);
-    const video = covers.querySelector("video")!;
+    const video = defined(covers.querySelector("video"));
     const play = vi.spyOn(video, "play").mockResolvedValue(undefined);
     const pause = vi.spyOn(video, "pause");
 
@@ -106,14 +106,14 @@ describe("issue 2027: album cover tiles autoplay and loop", () => {
     document.body.appendChild(container);
     root = createRoot(container);
     act(() => {
-      root!.render(
+      defined(root).render(
         <a href="/album/things/1">
           <Tile video width={200} height={200} image_hash="videohash" />
         </a>
       );
     });
-    const link = container.querySelector("a")!;
-    const video = container.querySelector("video")!;
+    const link = defined(container.querySelector("a"));
+    const video = defined(container.querySelector("video"));
     const play = vi.spyOn(video, "play").mockResolvedValue(undefined);
     const pause = vi.spyOn(video, "pause");
 
@@ -127,11 +127,11 @@ describe("issue 2027: album cover tiles autoplay and loop", () => {
 
   it("releases the media element on unmount", () => {
     const covers = renderCovers(1);
-    const video = covers.querySelector("video")!;
+    const video = defined(covers.querySelector("video"));
     const pause = vi.spyOn(video, "pause");
     const load = vi.spyOn(video, "load");
 
-    act(() => root!.unmount());
+    act(() => defined(root).unmount());
     root = null;
 
     expect(pause).toHaveBeenCalled();
@@ -146,7 +146,7 @@ describe("issue 2027: album cover tiles autoplay and loop", () => {
     act(() => {
       // Mantine's <Image> needs the provider; the video branch does not, which
       // is why only this case is wrapped.
-      root!.render(
+      defined(root).render(
         <MantineProvider>
           <Tile width={200} height={200} image_hash="stillhash" />
         </MantineProvider>

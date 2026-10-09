@@ -65,7 +65,7 @@ export class Header {
   readonly profileButton: Locator;
 
   constructor(readonly page: Page) {
-    this.profileButton = page.getByRole("banner").getByRole("button", { name: "it's me" });
+    this.profileButton = page.getByRole("banner").getByRole("button", { name: "Account menu" });
   }
 
   async logout() {

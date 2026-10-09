@@ -1,8 +1,14 @@
+import type React from "react";
 import { useCallback, useState } from "react";
-import { FaceCell, FaceSelection } from "./useVirtualizedGrid";
+import { FaceCell, FaceSelection, GridCell, isPersonCell } from "./useVirtualizedGrid";
+
+/** A face in a shift-click range that can be selected: paged in, so it has its image. */
+function isSelectableFace(cell: GridCell): cell is FaceCell {
+  return !isPersonCell(cell) && !!cell.image && cell.face_url !== null;
+}
 
 // Custom hook to manage face selection
-export function useFaceSelection(getFacesInRange: (start: FaceCell, end: FaceCell) => FaceCell[]) {
+export function useFaceSelection(getFacesInRange: (start: FaceCell, end: FaceCell) => GridCell[]) {
   const [lastChecked, setLastChecked] = useState<FaceCell | null>(null);
   const [selectedFaces, setSelectedFaces] = useState<FaceSelection[]>([]);
 
@@ -10,9 +16,11 @@ export function useFaceSelection(getFacesInRange: (start: FaceCell, end: FaceCel
     (faces: FaceSelection[]) => {
       setSelectedFaces(prev => {
         const duplicates = faces.filter(face => prev.some(i => i.face_id === face.face_id));
-        const merged = Array.from(new Set([...prev, ...faces].map(el => el.face_id))).map(
-          id => faces.find(f => f.face_id === id) || (prev.find(f => f.face_id === id) as FaceSelection)
-        );
+        // Every id comes from prev or faces, so each finds its face
+        const merged = Array.from(new Set([...prev, ...faces].map(el => el.face_id))).flatMap(id => {
+          const face = faces.find(f => f.face_id === id) ?? prev.find(f => f.face_id === id);
+          return face ? [face] : [];
+        });
 
         // If there are no duplicates, add the last checked face to the selection
         if (duplicates.length !== faces.length && lastChecked) {
@@ -35,7 +43,7 @@ export function useFaceSelection(getFacesInRange: (start: FaceCell, end: FaceCel
   }, []);
 
   const handleCellClick = useCallback(
-    (e, cell) => {
+    (e: React.MouseEvent, cell: FaceCell) => {
       if (!lastChecked) {
         setLastChecked(cell);
         onFaceSelect({ face_id: cell.id, face_url: cell.face_url });
@@ -47,7 +55,7 @@ export function useFaceSelection(getFacesInRange: (start: FaceCell, end: FaceCel
         const facesInRange = getFacesInRange(cell, lastChecked);
 
         const facesToSelect = facesInRange
-          .filter(face => face && face.image)
+          .filter(isSelectableFace)
           .map(face => ({ face_id: face.id, face_url: face.face_url }));
 
         onFacesSelect(facesToSelect);
@@ -69,6 +77,10 @@ export function useFaceSelection(getFacesInRange: (start: FaceCell, end: FaceCel
     onFaceSelect,
     onFacesSelect,
     handleCellClick,
-    clearSelection: useCallback(() => setSelectedFaces([]), []),
+    // Also forget the shift-click anchor, which may not be on screen any more
+    clearSelection: useCallback(() => {
+      setSelectedFaces([]);
+      setLastChecked(null);
+    }, []),
   };
 }

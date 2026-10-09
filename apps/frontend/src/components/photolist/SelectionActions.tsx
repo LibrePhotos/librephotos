@@ -25,7 +25,7 @@ import { useLocation } from "@tanstack/react-router";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useRemovePhotoFromUserAlbumMutation } from "../../api_client/albums/hooks";
-import { serverAddress } from "../../api_client/apiClient";
+import { shareAddress } from "../../api_client/apiClient";
 import { useDownloadPhotosMutation } from "../../api_client/jobs";
 import {
   useMarkPhotosDeletedMutation,
@@ -45,6 +45,9 @@ import { useAuth } from "../../hooks/useAuth";
 import { copyToClipboard } from "../../util/util";
 import { ModalDownloadOptions } from "../modals/ModalDownloadOptions";
 
+/** The albums whose cover the selection can set. */
+export type AlbumCoverType = "person" | "useralbum";
+
 type Props = {
   selectedItems: PigPhoto[];
   selectAllMode?: boolean;
@@ -52,7 +55,7 @@ type Props = {
   totalCount?: number;
   updateSelectionState: (state: Partial<SelectionState>) => void;
   onSharePhotos: () => void;
-  setAlbumCover: (actionType: string, photoId?: string) => void;
+  setAlbumCover: (actionType: AlbumCoverType, photoId?: string) => void;
   onShareAlbum: () => void;
   onAddToAlbum: () => void;
   onAddTags: () => void;
@@ -114,15 +117,10 @@ export function SelectionActions(props: Readonly<Props>) {
   const getManualStacksFromSelection = (): Array<{ stackId: string; photoHash: string }> => {
     const result: Array<{ stackId: string; photoHash: string }> = [];
     selectedItems.forEach(item => {
-      // Check if item has stacks property (from PigPhoto type)
-      const photo = item as unknown as {
-        stacks?: Array<{ id: string; type: string }>;
-        image_hash?: string;
-      };
       // Use image_hash if available, otherwise fall back to id
-      const photoHash = photo.image_hash || item.id;
-      if (photo.stacks && Array.isArray(photo.stacks)) {
-        photo.stacks.forEach(stack => {
+      const photoHash = item.image_hash || item.id;
+      if (item.stacks && Array.isArray(item.stacks)) {
+        item.stacks.forEach(stack => {
           if (stack.type === "manual") {
             result.push({ stackId: stack.id, photoHash });
           }
@@ -194,7 +192,7 @@ export function SelectionActions(props: Readonly<Props>) {
       />
       <Menu width={200}>
         <Menu.Target>
-          <ActionIcon variant="subtle" color="gray" disabled={!hasSelection}>
+          <ActionIcon variant="subtle" color="gray" disabled={!hasSelection} aria-label={t("selectionactions.addto")}>
             <Plus />
           </ActionIcon>
         </Menu.Target>
@@ -202,18 +200,18 @@ export function SelectionActions(props: Readonly<Props>) {
         <Menu.Dropdown>
           <Menu.Label>
             {t("selectionactions.album")} ({selectAllMode ? t("selectionbar.all") : selectedItems.length}{" "}
-            {t("selectionactions.selected")} )
+            {t("selectionactions.selected")})
           </Menu.Label>
 
           <Menu.Divider />
 
-          <Menu.Item leftSection={<Album />} onClick={() => hasSelection && onAddToAlbum()}>
-            {" Album"}
+          <Menu.Item leftSection={<Album size={14} />} onClick={() => hasSelection && onAddToAlbum()}>
+            {t("selectionactions.album")}
           </Menu.Item>
 
           <Tooltip label={t("selectionactions.tagdescription")} position="left">
             <Menu.Item
-              leftSection={<Tag />}
+              leftSection={<Tag size={14} />}
               rightSection={
                 <Text size="xs" c="dimmed">
                   t
@@ -230,7 +228,7 @@ export function SelectionActions(props: Readonly<Props>) {
 
       <Menu width={200}>
         <Menu.Target>
-          <ActionIcon variant="subtle" color="gray">
+          <ActionIcon variant="subtle" color="gray" aria-label={t("selectionactions.photoactions")}>
             <DotsVertical />
           </ActionIcon>
         </Menu.Target>
@@ -238,13 +236,13 @@ export function SelectionActions(props: Readonly<Props>) {
         <Menu.Dropdown>
           <Menu.Label>
             {t("selectionactions.photoactions")} ({selectAllMode ? t("selectionbar.all") : selectedItems.length}{" "}
-            {t("selectionactions.selected")} )
+            {t("selectionactions.selected")})
           </Menu.Label>
 
           <Menu.Divider />
 
           <Menu.Item
-            leftSection={<Star />}
+            leftSection={<Star size={14} />}
             disabled={!hasSelection}
             onClick={() => {
               if (selectAllMode) {
@@ -263,11 +261,11 @@ export function SelectionActions(props: Readonly<Props>) {
               resetSelection();
             }}
           >
-            {`${t("selectionactions.favorite")}`}
+            {t("selectionactions.favorite")}
           </Menu.Item>
 
           <Menu.Item
-            leftSection={<StarOff />}
+            leftSection={<StarOff size={14} />}
             disabled={!hasSelection}
             onClick={() => {
               if (selectAllMode) {
@@ -286,13 +284,13 @@ export function SelectionActions(props: Readonly<Props>) {
               resetSelection();
             }}
           >
-            {`  ${t("selectionactions.unfavorite")}`}
+            {t("selectionactions.unfavorite")}
           </Menu.Item>
 
           <Menu.Divider />
 
           <Menu.Item
-            leftSection={<EyeOff />}
+            leftSection={<EyeOff size={14} />}
             disabled={!hasSelection}
             onClick={() => {
               if (selectAllMode) {
@@ -311,11 +309,11 @@ export function SelectionActions(props: Readonly<Props>) {
               resetSelection();
             }}
           >
-            {`  ${t("selectionactions.hide")}`}
+            {t("selectionactions.hide")}
           </Menu.Item>
 
           <Menu.Item
-            leftSection={<Eye />}
+            leftSection={<Eye size={14} />}
             disabled={!hasSelection}
             onClick={() => {
               if (selectAllMode) {
@@ -334,27 +332,31 @@ export function SelectionActions(props: Readonly<Props>) {
               resetSelection();
             }}
           >
-            {`  ${t("selectionactions.unhide")}`}
+            {t("selectionactions.unhide")}
           </Menu.Item>
 
           <Menu.Divider />
 
-          <Menu.Item leftSection={<Photo />} disabled={!hasSelection} onClick={() => markAs("photo")}>
+          <Menu.Item leftSection={<Photo size={14} />} disabled={!hasSelection} onClick={() => markAs("photo")}>
             {t("selectionactions.markasphoto")}
           </Menu.Item>
 
-          <Menu.Item leftSection={<Screenshot />} disabled={!hasSelection} onClick={() => markAs("screenshot")}>
+          <Menu.Item
+            leftSection={<Screenshot size={14} />}
+            disabled={!hasSelection}
+            onClick={() => markAs("screenshot")}
+          >
             {t("selectionactions.markasscreenshot")}
           </Menu.Item>
 
-          <Menu.Item leftSection={<FileText />} disabled={!hasSelection} onClick={() => markAs("document")}>
+          <Menu.Item leftSection={<FileText size={14} />} disabled={!hasSelection} onClick={() => markAs("document")}>
             {t("selectionactions.markasdocument")}
           </Menu.Item>
 
           <Menu.Divider />
 
           <Menu.Item
-            leftSection={<Globe />}
+            leftSection={<Globe size={14} />}
             disabled={!hasSelection}
             onClick={() => {
               if (selectAllMode) {
@@ -370,19 +372,21 @@ export function SelectionActions(props: Readonly<Props>) {
                   image_hashes: getImageHashes(),
                   val_public: true,
                 });
+                // Absolute links (shareAddress is the origin plus the subpath), and
+                // no ".jpg": the same link serves videos too.
                 const linksToCopy = getImageHashes()
-                  .map(ih => `${serverAddress}/media/photos/${ih}.jpg`)
+                  .map(ih => `${shareAddress}/media/photos/${ih}`)
                   .join("\n");
                 copyToClipboard(linksToCopy);
               }
               resetSelection();
             }}
           >
-            {`  ${t("selectionactions.makepublic")}`}
+            {t("selectionactions.makepublic")}
           </Menu.Item>
 
           <Menu.Item
-            leftSection={<Key />}
+            leftSection={<Key size={14} />}
             disabled={!hasSelection}
             onClick={() => {
               if (selectAllMode) {
@@ -401,19 +405,23 @@ export function SelectionActions(props: Readonly<Props>) {
               resetSelection();
             }}
           >
-            {`  ${t("selectionactions.makeprivate")}`}
-          </Menu.Item>
-
-          <Menu.Divider />
-
-          <Menu.Item leftSection={<Download />} disabled={!hasSelection} onClick={() => setIsDownloadModalOpen(true)}>
-            {`  ${t("selectionactions.download")}`}
+            {t("selectionactions.makeprivate")}
           </Menu.Item>
 
           <Menu.Divider />
 
           <Menu.Item
-            leftSection={<Trash />}
+            leftSection={<Download size={14} />}
+            disabled={!hasSelection}
+            onClick={() => setIsDownloadModalOpen(true)}
+          >
+            {t("selectionactions.download")}
+          </Menu.Item>
+
+          <Menu.Divider />
+
+          <Menu.Item
+            leftSection={<Trash size={14} />}
             disabled={!hasSelection}
             onClick={() => {
               if (selectAllMode) {
@@ -432,13 +440,13 @@ export function SelectionActions(props: Readonly<Props>) {
               resetSelection();
             }}
           >
-            {`  ${t("selectionactions.deleted")}`}
+            {t("selectionactions.deleted")}
           </Menu.Item>
 
           <Menu.Divider />
 
           <Menu.Item
-            leftSection={<Share />}
+            leftSection={<Share size={14} />}
             disabled={!hasSelection}
             onClick={() => {
               if (hasSelection) {
@@ -446,7 +454,7 @@ export function SelectionActions(props: Readonly<Props>) {
               }
             }}
           >
-            {`${t("selectionactions.sharing")}`}
+            {t("selectionactions.sharing")}
           </Menu.Item>
 
           {/* Stack Actions */}
@@ -455,7 +463,7 @@ export function SelectionActions(props: Readonly<Props>) {
           <Menu.Label>{t("selectionactions.stackactions", "Stack Actions")}</Menu.Label>
 
           <Menu.Item
-            leftSection={<IconStack2 size={16} />}
+            leftSection={<IconStack2 size={14} />}
             disabled={!hasSelection || selectAllMode || selectedItems.length < 2}
             onClick={() => {
               if (!selectAllMode && selectedItems.length >= 2) {
@@ -474,7 +482,7 @@ export function SelectionActions(props: Readonly<Props>) {
           </Menu.Item>
 
           <Menu.Item
-            leftSection={<IconLayersLinked size={16} />}
+            leftSection={<IconLayersLinked size={14} />}
             disabled={!hasSelection || selectAllMode || !hasPhotosInManualStacks()}
             onClick={() => {
               if (!selectAllMode && hasPhotosInManualStacks()) {
@@ -493,7 +501,7 @@ export function SelectionActions(props: Readonly<Props>) {
           </Menu.Item>
 
           <Menu.Item
-            leftSection={<IconLayersSubtract size={16} />}
+            leftSection={<IconLayersSubtract size={14} />}
             disabled={!hasSelection || selectAllMode || !hasPhotosInManualStacks()}
             onClick={() => {
               if (!selectAllMode && hasPhotosInManualStacks()) {
@@ -501,10 +509,9 @@ export function SelectionActions(props: Readonly<Props>) {
                 // Group by stack ID to remove photos from each stack
                 const stacksByStackId = new Map<string, string[]>();
                 stackPhotos.forEach(({ stackId, photoHash }) => {
-                  if (!stacksByStackId.has(stackId)) {
-                    stacksByStackId.set(stackId, []);
-                  }
-                  stacksByStackId.get(stackId)!.push(photoHash);
+                  const photoHashes = stacksByStackId.get(stackId) ?? [];
+                  photoHashes.push(photoHash);
+                  stacksByStackId.set(stackId, photoHashes);
                 });
 
                 // Remove photos from each stack
@@ -538,7 +545,7 @@ export function SelectionActions(props: Readonly<Props>) {
               >
                 <Menu.Item
                   disabled={selectedItems.length > 1 || selectAllMode}
-                  leftSection={<Photo />}
+                  leftSection={<Photo size={14} />}
                   onClick={() => {
                     if (location.pathname.startsWith("/album/persons/")) {
                       setAlbumCover("person");
@@ -552,18 +559,18 @@ export function SelectionActions(props: Readonly<Props>) {
                     }
                   }}
                 >
-                  {`${t("selectionactions.albumcover")}`}
+                  {t("selectionactions.albumcover")}
                 </Menu.Item>
               </Tooltip>
 
               {location.pathname.startsWith("/album/user/") && (
                 <>
-                  <Menu.Item leftSection={<Share />} onClick={onShareAlbum}>
-                    {`  ${t("selectionactions.sharing")}`}
+                  <Menu.Item leftSection={<Share size={14} />} onClick={onShareAlbum}>
+                    {t("selectionactions.sharing")}
                   </Menu.Item>
 
                   <Menu.Item
-                    leftSection={<FileMinus />}
+                    leftSection={<FileMinus size={14} />}
                     disabled={!hasSelection || selectAllMode || albumLocked}
                     onClick={() => {
                       // Remove from album doesn't support selectAll mode
@@ -577,7 +584,7 @@ export function SelectionActions(props: Readonly<Props>) {
                       resetSelection();
                     }}
                   >
-                    {`  ${t("selectionactions.removephotos")}`}
+                    {t("selectionactions.removephotos")}
                   </Menu.Item>
                 </>
               )}

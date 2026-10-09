@@ -18,18 +18,17 @@ vi.mock("react-i18next", () => ({
 }));
 
 beforeAll(() => {
-  (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
-  window.matchMedia = (query: string) =>
-    ({
-      matches: query.includes("min-width"),
-      media: query,
-      onchange: null,
-      addListener: () => {},
-      removeListener: () => {},
-      addEventListener: () => {},
-      removeEventListener: () => {},
-      dispatchEvent: () => false,
-    }) as unknown as MediaQueryList;
+  globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+  window.matchMedia = (query: string): MediaQueryList => ({
+    matches: query.includes("min-width"),
+    media: query,
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => false,
+  });
 });
 
 async function render(element: React.ReactElement) {
@@ -59,12 +58,12 @@ describe("JobProgress finished states", () => {
     );
 
     expect(barColor(container)).toContain("green");
-    expect(container.textContent).toContain("joblist.itemsadded");
+    expect(container.textContent).toContain("joblist.itemsprocessed 150000");
     expect(container.textContent).not.toContain("joblist.failed");
     await unmount();
   });
 
-  it("renders a mostly-successful scan amber, not red", async () => {
+  it("renders a mostly-successful scan orange, not red", async () => {
     const { container, unmount } = await render(
       <JobProgress
         finished
@@ -80,7 +79,8 @@ describe("JobProgress finished states", () => {
       />
     );
 
-    expect(barColor(container)).toContain("yellow");
+    // Orange like the detail page and the list icon, not yellow.
+    expect(barColor(container)).toContain("orange");
     expect(barColor(container)).not.toContain("red");
     // errorCount out of progress_target, so the user can see how small it is.
     expect(container.textContent).toContain("joblist.partialfailure 4/150000");
@@ -100,6 +100,19 @@ describe("JobProgress finished states", () => {
 
     expect(barColor(container)).toContain("red");
     expect(container.textContent).toContain("joblist.failed");
+    await unmount();
+  });
+
+  it("renders a cancelled job grey with how far it got, not as a success", async () => {
+    // LongRunningJob.cancel() sets finished and cancelled but not failed.
+    const { container, unmount } = await render(
+      <JobProgress finished cancelled target={100} current={40} failed={false} result={{ status: "cancelled" }} />
+    );
+
+    expect(barColor(container)).toContain("gray");
+    expect(barColor(container)).toContain("40%");
+    expect(container.textContent).toContain("joblist.cancelled");
+    expect(container.textContent).not.toContain("joblist.itemsprocessed");
     await unmount();
   });
 

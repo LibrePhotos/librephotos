@@ -1,13 +1,13 @@
-import { useInterval } from "@mantine/hooks";
-import { random } from "lodash-es";
+import type { PlaceAlbumInfo, ThingAlbumInfo } from "@librephotos/api-client";
 import { useCallback, useEffect, useState } from "react";
-import { useTranslation } from "react-i18next";
 import {
   useFetchPeopleAlbumsQuery,
   useFetchPlacesAlbumsQuery,
   useFetchThingsAlbumsQuery,
   useFetchUserAlbumsQuery,
 } from "../api_client/albums/hooks";
+import type { Person } from "../api_client/albums/hooks/useFetchPeopleAlbumsQuery";
+import type { UserAlbumInfo } from "../api_client/albums/types";
 import { useSearchExamplesQuery } from "../api_client/search/hooks/useSearchExamplesQuery";
 import { fuzzyMatch } from "../util/util";
 
@@ -22,15 +22,32 @@ export enum SearchOptionType {
 export type SearchOption = {
   value: string;
   type: SearchOptionType;
-  data: string | null;
+  // The search term, or the album's id (a number; a person's is a string): the
+  // option's URL is built from it.
+  data: string | number | null;
   thumbnail?: string;
 };
+
+// Without captioned photos the backend sends these fragments, written to finish an
+// old "Search ..." placeholder. As results they read as broken English and search
+// for the phrase itself, so they are not offered.
+const DEFAULT_SEARCH_HINTS = new Set([
+  "for people",
+  "for places",
+  "for things",
+  "for time",
+  "for file path or file name",
+]);
+
+export function isSearchExample(item: string): boolean {
+  return !DEFAULT_SEARCH_HINTS.has(item);
+}
 
 function toExampleOption(item: string): SearchOption {
   return { value: item, type: SearchOptionType.EXAMPLE, data: item };
 }
 
-function toPlaceOption(item: any): SearchOption {
+function toPlaceOption(item: PlaceAlbumInfo): SearchOption {
   const coverHash = item.cover_photos?.[0]?.image_hash;
   return {
     value: item.title,
@@ -40,7 +57,7 @@ function toPlaceOption(item: any): SearchOption {
   };
 }
 
-function toThingOption(item: any): SearchOption {
+function toThingOption(item: ThingAlbumInfo): SearchOption {
   const coverHash = item.cover_photos?.[0]?.image_hash;
   return {
     value: item.title,
@@ -50,7 +67,7 @@ function toThingOption(item: any): SearchOption {
   };
 }
 
-function toUserAlbumOption(item: any): SearchOption {
+function toUserAlbumOption(item: UserAlbumInfo): SearchOption {
   return {
     value: item.title,
     type: SearchOptionType.USER_ALBUM,
@@ -59,12 +76,11 @@ function toUserAlbumOption(item: any): SearchOption {
   };
 }
 
-function toPersonOption(item: any): SearchOption {
+function toPersonOption(item: Person): SearchOption {
   return { value: item.name, type: SearchOptionType.PEOPLE, data: item.id, thumbnail: item.face_url };
 }
 
 export function useSearch() {
-  const { t } = useTranslation();
   // Skip queries on public pages to avoid 401 errors
   const isPublicPage = typeof window !== "undefined" && window.location.pathname.startsWith("/public");
   const { data: searchExamples, isLoading: isExamplesLoading } = useSearchExamplesQuery(isPublicPage);
@@ -73,7 +89,6 @@ export function useSearch() {
   const { data: userAlbums, isLoading: isAlbumsLoading } = useFetchUserAlbumsQuery(isPublicPage);
   const { data: people, isLoading: isPeopleLoading } = useFetchPeopleAlbumsQuery(isPublicPage);
   const [options, setOptions] = useState<SearchOption[]>([]);
-  const [placeholder, setPlaceholder] = useState(t("search.search"));
   const isLoading = isExamplesLoading || isPlacesLoading || isThingsLoading || isAlbumsLoading || isPeopleLoading;
 
   const filterOptions = useCallback(
@@ -83,42 +98,29 @@ export function useSearch() {
       }
       setOptions([
         ...searchExamples
-          .filter((item: string) => fuzzyMatch(q, item))
+          .filter(item => isSearchExample(item) && fuzzyMatch(q, item))
           .slice(0, 2)
           .map(toExampleOption),
         ...placeAlbums
-          .filter((item: any) => fuzzyMatch(q, item.title))
+          .filter(item => fuzzyMatch(q, item.title))
           .slice(0, 2)
           .map(toPlaceOption),
         ...thingAlbums
-          .filter((item: any) => fuzzyMatch(q, item.title))
+          .filter(item => fuzzyMatch(q, item.title))
           .slice(0, 2)
           .map(toThingOption),
         ...userAlbums
-          .filter((item: any) => fuzzyMatch(q, item.title))
+          .filter(item => fuzzyMatch(q, item.title))
           .slice(0, 2)
           .map(toUserAlbumOption),
         ...people
-          .filter((item: any) => fuzzyMatch(q, item.name))
+          .filter(item => fuzzyMatch(q, item.name))
           .slice(0, 9)
           .map(toPersonOption),
       ]);
     },
     [placeAlbums, searchExamples, thingAlbums, userAlbums, people]
   );
-
-  const updateSearchPlaceholder = useInterval(() => {
-    if (!searchExamples) {
-      return;
-    }
-    const example = searchExamples[Math.floor(random(0.1, 1) * searchExamples.length)];
-    setPlaceholder(`${t("search.search")} ${example}`);
-  }, 5000);
-
-  useEffect(() => {
-    updateSearchPlaceholder.start();
-    return updateSearchPlaceholder.stop;
-  }, [updateSearchPlaceholder]);
 
   // Seed the unfiltered options once everything has loaded. Deliberately not
   // re-run when filterOptions changes (any refetch): that would replace the
@@ -131,7 +133,6 @@ export function useSearch() {
   return {
     options,
     filterOptions,
-    placeholder,
     isLoading,
   };
 }

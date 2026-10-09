@@ -15,10 +15,6 @@ At the top of the Library page, you'll see quick stats about your library:
 - **Faces** — Total faces detected
 - **Events** — Number of auto-generated event albums
 
-## Library Settings
-
-- **Stack RAW+JPEG pairs** — When enabled, RAW files are automatically grouped with their JPEG counterparts as [file variants](./stacks-and-file-variants.md) during scans. Both files remain in your library. This is a per-user setting and is **on by default**. It is also offered during first-time setup, when you configure your scan directory.
-
 ## Scanning
 
 ### Scan Photos (File System)
@@ -26,13 +22,15 @@ At the top of the Library page, you'll see quick stats about your library:
 In the **Scan Library** row, click **Scan** to scan your configured scan directory for new photos. The scan process:
 
 1. Discovers new image and video files
-2. Groups related files (RAW+JPEG pairs, Live Photos) as [file variants](./stacks-and-file-variants.md)
+2. Groups related files (RAW+JPEG pairs, Live Photos) as [file variants](./stacks-and-file-variants.md). A RAW and a JPEG with the same name in the same folder become one photo with a RAW variant; there is no setting for this.
 3. Creates thumbnails
 4. Extracts EXIF metadata
 5. Runs face detection
 6. Generates AI tags (MobileCLIP-S2 or SigLIP 2, depending on your Tagging Model setting)
 7. Performs reverse geocoding
 8. Calculates CLIP embeddings for semantic search
+
+The scan imports images, videos, RAW files and XMP sidecars. Any other file in your folders, such as an editor sidecar (`.pp3`, `.aae`), a Google Takeout `.json` or `Thumbs.db`, is skipped and does not count as an error. A file that looks like a photo or video but cannot be read, such as an empty `.jpg` or one whose header is damaged, is still listed in the scan job's errors (see [Job System](./job-system.md)).
 
 To re-process all existing photos, open the dropdown next to **Scan** (the chevron) and choose **Rescan**.
 
@@ -146,13 +144,15 @@ The sidebar shows the backend image tag (`dev` when `IMAGE_TAG` is unset). Hover
 For advanced users with shell access, LibrePhotos provides several management commands:
 
 ```bash
-# Scan all users' photo directories
+# Scan all users' photo directories (users without a scan directory are skipped)
 python manage.py scan
 
 # Full rescan (re-process all photos)
 python manage.py scan -f
 
-# Scan specific files
+# Scan specific files, given by full path; each file goes to every user whose
+# scan directory contains it (normally exactly one; /data/alice2/x.jpg is not
+# in /data/alice), and a file outside every scan directory is ignored
 python manage.py scan -s /path/to/file.jpg
 
 # Scan Nextcloud directories for every user that has one configured
@@ -172,7 +172,7 @@ python manage.py start_service all
 python manage.py clear_cache
 
 # Remove the original's metadata (EXIF incl. GPS, XMP, a video's location) from
-# thumbnails created by older releases; pixels and colour profiles are kept,
+# thumbnails created by 1.2.1 and older; pixels and colour profiles are kept,
 # clean files are not touched, so it is safe to run again (--dry-run only counts)
 python manage.py strip_thumbnail_metadata
 

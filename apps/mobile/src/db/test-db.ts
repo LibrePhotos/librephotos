@@ -19,6 +19,6 @@ export type TestDb = { db: AppDatabase; sqlite: Database.Database; close: () => 
 export function createTestDb(): TestDb {
   const sqlite = new Database(":memory:");
   for (const stmt of MIGRATION_STATEMENTS) sqlite.exec(stmt);
-  const db = drizzle(sqlite, { schema }) as unknown as AppDatabase;
+  const db: AppDatabase = drizzle(sqlite, { schema });
   return { db, sqlite, close: () => sqlite.close() };
 }

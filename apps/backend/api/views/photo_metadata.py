@@ -8,9 +8,10 @@ Provides endpoints for:
 - Viewing edit history
 """
 
-from django.shortcuts import get_object_or_404
+from django.http import Http404
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 from rest_framework.decorators import action
+from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -56,8 +57,16 @@ class PhotoMetadataViewSet(ViewSet):
             photos = Photo.objects.owned_by(request.user)
 
         if is_uuid_format:
+            # DRF's get_object_or_404: a malformed UUID is a 404, not a 500.
             return get_object_or_404(photos, pk=photo_id)
-        return get_object_or_404(photos, image_hash=photo_id)
+        # image_hash is not unique (two users who scan the same file share
+        # one), so .get() could raise MultipleObjectsReturned: prefer the
+        # requester's own row.
+        matches = photos.filter(image_hash=photo_id)
+        photo = matches.owned_by(request.user).first() or matches.first()
+        if photo is None:
+            raise Http404
+        return photo
 
     def _get_or_create_metadata(self, photo: Photo) -> PhotoMetadata:
         """Get or create PhotoMetadata for a photo."""
@@ -116,9 +125,16 @@ class PhotoMetadataViewSet(ViewSet):
         # MetadataEdit.Meta.
         edits = MetadataEdit.objects.filter(photo=photo).order_by("-created_at", "-id")
 
-        # Pagination
-        page = int(request.query_params.get("page", 1))
-        page_size = int(request.query_params.get("page_size", 20))
+        # Pagination; a malformed or out-of-range value falls back, as in
+        # PhotoStackListView, instead of a 500 (a negative slice raises).
+        try:
+            page = max(1, int(request.query_params.get("page", 1)))
+        except (TypeError, ValueError):
+            page = 1
+        try:
+            page_size = max(1, min(int(request.query_params.get("page_size", 20)), 100))
+        except (TypeError, ValueError):
+            page_size = 20
         start = (page - 1) * page_size
         end = start + page_size
 

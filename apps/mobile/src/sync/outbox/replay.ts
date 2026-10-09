@@ -16,6 +16,7 @@
 import { sql } from "drizzle-orm";
 import { ApiError } from "@librephotos/api-client";
 import type { AppDatabase } from "@/db/types";
+import { isRecord, parseJson } from "@/lib/guards";
 import type { SyncLogEntry } from "@/db/queries/sync-log";
 import {
   AlbumAddPayload,
@@ -130,10 +131,9 @@ export function reconcileTempAlbum(db: AppDatabase, tempId: number, realId: numb
   ) as { id: number; kind: string; payload: string }[];
   for (const r of rows) {
     try {
-      const p = JSON.parse(r.payload) as { albumId?: number };
-      if (p.albumId === tempId) {
-        p.albumId = realId;
-        db.run(sql`UPDATE outbox SET payload = ${JSON.stringify(p)} WHERE id = ${r.id}`);
+      const p = parseJson(r.payload);
+      if (isRecord(p) && p.albumId === tempId) {
+        db.run(sql`UPDATE outbox SET payload = ${JSON.stringify({ ...p, albumId: realId })} WHERE id = ${r.id}`);
       }
     } catch {
       // Unparseable payload — skip; replay will drop it as a 4xx later.
@@ -143,7 +143,7 @@ export function reconcileTempAlbum(db: AppDatabase, tempId: number, realId: numb
 
 /** Parse + dispatch one row to the executor. `albumCreate` reconciles the id. */
 async function execRow(db: AppDatabase, executor: OutboxExecutor, row: OutboxRow): Promise<void> {
-  const raw = row.payload ? (JSON.parse(row.payload) as unknown) : {};
+  const raw = row.payload ? parseJson(row.payload) : {};
   switch (row.kind as OutboxKind) {
     case "favorite":
       return executor.favorite(FavoritePayload.parse(raw));

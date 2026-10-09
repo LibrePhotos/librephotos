@@ -1,5 +1,5 @@
 import { Badge, Box, Group, useComputedColorScheme, useMantineTheme } from "@mantine/core";
-import { useElementSize, useMediaQuery } from "@mantine/hooks";
+import { useElementSize, useMediaQuery, useMergedRef } from "@mantine/hooks";
 import { debounce, deburr, throttle } from "lodash-es";
 import { DateTime } from "luxon";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -8,18 +8,24 @@ import { i18nResolvedLanguage } from "../../i18n";
 import "./ScrollScrubber.css";
 import { ScrollerData, ScrollerPosition, ScrollerType } from "./ScrollScrubberTypes.zod";
 
+// Minimum vertical distance between two markers: a marker chip is 18px tall,
+// so anything closer overlaps its neighbour.
+const MIN_MARKER_GAP = 20;
+
 type Props = Readonly<{
   type: ScrollerType; // Type of scroller marks to display
   scrollPositions: ScrollerData[]; // Array of positions to show on the scroller (label and Y position on target scrollable area)
   targetHeight: number; // Height of the target scrollable area
-  scrollToY: (number) => void; // Callback function that scrolls to a given Y position on target element
+  scrollToY: (y: number) => void; // Callback function that scrolls to a given Y position on target element
   children: ReactNode | null; // Target element must be one of the children nodes
 }>;
 
 export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY, children }: Props) {
   // ref and size of scrollscrubber
-  const { ref, width, height } = useElementSize();
-  const scrollerVisibilityTimerRef: { current: NodeJS.Timeout | null } = useRef(null);
+  const { ref, width, height } = useElementSize<HTMLDivElement>();
+  // Mantine types its ref for React 19 (RefObject<T | null>); a callback ref fills the same object.
+  const scrubberRef = useMergedRef(ref);
+  const scrollerVisibilityTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const matches = useMediaQuery("(min-width: 700px)");
   const [scrollerIsVisible, setScrollerIsVisible] = useState(false);
   const [positions, setPositions] = useState<ScrollerPosition[]>([]);
@@ -68,7 +74,7 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
   const getLabelsMarkers = useCallback((): ScrollerPosition[] => {
     const markers: ScrollerPosition[] = [];
     positions.forEach(item => {
-      if (markers.length < 1 || item.scrollerY - markers.slice(-1)[0].scrollerY > 15) {
+      if (markers.length < 1 || item.scrollerY - markers.slice(-1)[0].scrollerY > MIN_MARKER_GAP) {
         markers.push({
           label: item.label,
           targetY: item.targetY,
@@ -104,7 +110,7 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
         currentLetter = letter;
         const label = item.label === "Unknown - Other" ? item.label : currentLetter;
         // Only display letter if there is enough space with preivous letter
-        if (alphabet.length < 1 || item.scrollerY - alphabet.slice(-1)[0].scrollerY > 15) {
+        if (alphabet.length < 1 || item.scrollerY - alphabet.slice(-1)[0].scrollerY > MIN_MARKER_GAP) {
           alphabet.push({
             label,
             targetY: item.targetY,
@@ -133,7 +139,7 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
         if (label !== currentDate) {
           currentDate = label;
           countDifferentValues += 1;
-          if (dates.length < 1 || item.scrollerY - dates.slice(-1)[0].scrollerY > 15) {
+          if (dates.length < 1 || item.scrollerY - dates.slice(-1)[0].scrollerY > MIN_MARKER_GAP) {
             dates.push({
               label: currentDate,
               targetY: item.targetY,
@@ -143,10 +149,10 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
           }
         }
       });
-      if (countDifferentValues < 10) {
-        if (dateType === "years") return getDateMarkers("months");
-        return getLabelsMarkers();
-      }
+      if (dateType === "years" && countDifferentValues < 10) return getDateMarkers("months");
+      // Per-day labels are long ("Wednesday, March 12, 2025") and cover the
+      // grid, so keep month markers unless everything is in one month.
+      if (dateType === "months" && countDifferentValues < 2) return getLabelsMarkers();
       return dates;
     },
     [positions, getLabelsMarkers]
@@ -162,8 +168,6 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
   }, [positions, type, getAlphabetMarkers, getDateMarkers, getLabelsMarkers]);
 
   const determinePositionsCoordinates = () => {
-    if (ref.current) ref.current.height = targetClientHeight;
-
     const newPositions: ScrollerPosition[] = [];
     if (scrollPositions.length > 0) {
       scrollPositions.forEach(item => {
@@ -202,13 +206,14 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
       debounce(() => {
         setTargetClientHeight(window.innerHeight);
         if (ref.current) {
-          let elmt = ref.current;
-          while (typeof elmt.parentElement !== "undefined") {
-            if (elmt.parentElement.offsetTop !== 0) {
-              setOffsetTop(elmt.parentElement.offsetTop);
+          // The nearest ancestor that is offset from the top of the page.
+          let parent = ref.current.parentElement;
+          while (parent) {
+            if (parent.offsetTop !== 0) {
+              setOffsetTop(parent.offsetTop);
               break;
             }
-            elmt = elmt.parentElement;
+            parent = parent.parentElement;
           }
         }
       }, 500),
@@ -451,7 +456,7 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
         }}
       />
       <Box
-        ref={ref}
+        ref={scrubberRef}
         className="scrollscrubber"
         style={{
           opacity: scrollerIsVisible ? 1 : 0,

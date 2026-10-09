@@ -2,13 +2,12 @@
 
 import jsonschema
 from constance import config as site_config
-from django_q.tasks import AsyncTask
 from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from api.mail import email_is_configured
-from api.ml_models import do_all_models_exist, download_models
+from api.ml_models import do_all_models_exist, start_model_download
 from api.models import User
 from api.schemas.site_settings import site_settings_schema
 
@@ -75,6 +74,9 @@ class SiteSettingsView(APIView):
                 "auto_create_user_directory"
             ]
         if not do_all_models_exist():
-            AsyncTask(download_models, User.objects.get(id=request.user.id)).run()
+            # Not a new job per save: the settings form saves on every toggle
+            # and blur, often while the first download is still running, and
+            # parallel downloads write the same partial file.
+            start_model_download(User.objects.get(id=request.user.id))
 
         return self.get(request, format=format)

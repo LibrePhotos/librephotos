@@ -1,7 +1,8 @@
-import { Button, Checkbox, Group, Modal, Stack, Text, Title } from "@mantine/core";
+import { Button, Checkbox, Group, Modal, Stack, Text } from "@mantine/core";
 import { IconDownload as Download } from "@tabler/icons-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { modalTitleStyles } from "./modalTitleStyles";
 
 type Props = Readonly<{
   isOpen: boolean;
@@ -27,30 +28,19 @@ export function ModalDownloadOptions(props: Props) {
 
   return (
     <Modal
+      styles={modalTitleStyles}
       opened={isOpen}
       centered
       size="md"
       onClose={handleClose}
-      title={
-        <Title order={5}>
-          <Group gap="xs">
-            <Download size={16} />
-            {t("download.title", "Download Photos")}
-          </Group>
-        </Title>
-      }
+      title={t("download.title")}
     >
       <Stack gap="md">
-        <Text size="sm">
-          {t("download.selectedcount", "You have selected {{count}} photo(s) to download.", { count: photoCount })}
-        </Text>
+        <Text size="sm">{t("download.selectedcount", { count: photoCount })}</Text>
 
         <Checkbox
-          label={t("download.includestacked", "Include all photos from stacks")}
-          description={t(
-            "download.includestackeddesc",
-            "When enabled, all photos from burst sequences, brackets, and manual stacks will be included in the download."
-          )}
+          label={t("download.includestacked")}
+          description={t("download.includestackeddesc")}
           checked={includeStackedPhotos}
           onChange={event => setIncludeStackedPhotos(event.currentTarget.checked)}
         />
@@ -60,7 +50,7 @@ export function ModalDownloadOptions(props: Props) {
             {t("cancel")}
           </Button>
           <Button leftSection={<Download size={16} />} onClick={handleConfirm}>
-            {t("download.start", "Download")}
+            {t("download.start")}
           </Button>
         </Group>
       </Stack>

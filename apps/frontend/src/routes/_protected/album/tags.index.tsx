@@ -21,7 +21,7 @@ import { HeaderComponent } from "../../../components/HeaderComponent";
 import { Tile } from "../../../components/Tile";
 import { VirtualGrid } from "../../../components/virtual/VirtualGrid";
 import type { GridCellProps } from "../../../components/virtual/VirtualGrid";
-import { useAlbumListGridConfig } from "../../../hooks/useAlbumListGridConfig";
+import { ALBUM_GRID_GUTTER, useAlbumListGridConfig } from "../../../hooks/useAlbumListGridConfig";
 
 export const Route = createFileRoute("/_protected/album/tags/")({
   component: AlbumTag,
@@ -77,7 +77,7 @@ function AlbumTag() {
       <div key={key} style={style}>
         <div style={{ padding: 5 }}>
           {cover ? (
-            <Link to={`/album/tags/${tag.id}`}>
+            <Link to="/album/tags/$id" params={{ id: String(tag.id) }}>
               <Tile
                 video={cover.video === true}
                 height={entrySquareSize - 10}
@@ -86,7 +86,7 @@ function AlbumTag() {
               />
             </Link>
           ) : (
-            <Link to={`/album/tags/${tag.id}`}>
+            <Link to="/album/tags/$id" params={{ id: String(tag.id) }}>
               <Flex
                 align="center"
                 justify="center"
@@ -104,11 +104,11 @@ function AlbumTag() {
             <Text size="sm" fw={500} lineClamp={1} title={tag.name}>
               {tag.name}
             </Text>
-            <Text size="xs">{t("numberofphotos", { number: tag.photo_count })}</Text>
+            <Text size="xs">{t("numberofphotos", { count: tag.photo_count, number: tag.photo_count })}</Text>
           </Flex>
           <Menu position="bottom-end">
             <Menu.Target>
-              <ActionIcon variant="subtle" c="gray" size="sm">
+              <ActionIcon variant="subtle" c="gray" size="sm" aria-label={t("moreactions")}>
                 <DotsVertical size={16} />
               </ActionIcon>
             </Menu.Target>
@@ -135,7 +135,7 @@ function AlbumTag() {
         icon={<Tag size={50} />}
         title={t("tags")}
         fetching={isFetching}
-        subtitle={t("tagalbum.showingtags", { number: (tags && tags.length) || 0 })}
+        subtitle={t("tagalbum.showingtags", { count: tags?.length ?? 0, number: tags?.length ?? 0 })}
       />
       {!isFetching && !hasTags ? (
         <EmptyState
@@ -147,7 +147,7 @@ function AlbumTag() {
         />
       ) : (
         <VirtualGrid
-          style={{ outline: "none" }}
+          style={{ outline: "none", paddingLeft: ALBUM_GRID_GUTTER }}
           cellRenderer={renderCell}
           columnWidth={entrySquareSize}
           columnCount={entriesPerRow}

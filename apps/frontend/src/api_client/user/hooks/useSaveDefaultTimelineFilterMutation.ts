@@ -14,7 +14,7 @@ type SaveDefaultTimelineFilterRequest = {
 };
 
 // Only the keys that narrow the timeline are saved, so "show everything" is
-// stored as {}, the same as never having saved a default.
+// stored as {}, which is what a user who never saved a default has.
 export function compactTimelineFilter(filter: TimelineFilter): User["default_timeline_filter"] {
   const saved: User["default_timeline_filter"] = {};
   if (filter.media !== SHOW_EVERYTHING.media) saved.media = filter.media;

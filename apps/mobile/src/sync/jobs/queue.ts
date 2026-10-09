@@ -35,7 +35,7 @@ import {
  * exception, and the index makes it impossible to get wrong from elsewhere.
  */
 export function enqueueJob(db: AppDatabase, spec: JobSpec, now = Date.now()): number | null {
-  const key = spec.dedupeKey ?? dedupeKeyFor(spec.kind, spec.payload);
+  const key = spec.dedupeKey ?? dedupeKeyFor(spec);
   const priority = spec.priority ?? JOB_PRIORITY[spec.kind];
   const payload = spec.payload ? JSON.stringify(spec.payload) : null;
   const notBefore = spec.notBefore ?? 0;

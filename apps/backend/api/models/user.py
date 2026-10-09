@@ -135,6 +135,9 @@ class User(AbstractUser):
     skip_raw_files = models.BooleanField(
         default=False
     )  # Deprecated: kept for migration compatibility
+    # No longer read: every scan groups a RAW with its JPEG as file variants.
+    # Kept like skip_raw_files: dropping it needs a column-drop migration, and
+    # the user API still returns it to clients that read it.
     stack_raw_jpeg = models.BooleanField(default=True)
     slideshow_interval = models.IntegerField(default=5)
     # What the main timeline shows when its URL names no filter: any of

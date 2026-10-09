@@ -1,4 +1,4 @@
-import { Grid, Text, TextInput, Tree } from "@mantine/core";
+import { Grid, Paper, Text, TextInput, Tree, type TreeNodeData } from "@mantine/core";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useFetchDirsQuery } from "../../api_client/folders/hooks";
 import type { DirTree } from "../../api_client/folders/types";
@@ -12,12 +12,16 @@ type DirectoryPickerProps = Readonly<{
   required?: boolean;
   placeholder?: string;
   label?: React.ReactNode;
+  /** Shown right under the input, above the folder tree. */
+  hint?: React.ReactNode;
   description?: React.ReactNode;
+  /** Form field name; give each picker on a page its own. */
+  name?: string;
   treeHeight?: number;
   missingPathError?: string;
 }>;
 
-const convertTree = (data: DirTree[]): Array<{ value: string; label: string; children?: any[] }> =>
+const convertTree = (data: DirTree[]): TreeNodeData[] =>
   data.map(item => ({
     value: item.absolute_path,
     label: item.title,
@@ -47,7 +51,9 @@ export function DirectoryPicker(props: DirectoryPickerProps) {
     required,
     placeholder,
     label,
+    hint,
     description,
+    name = "scan_directory",
     treeHeight = 150,
     missingPathError = "Path does not exist",
   } = props;
@@ -111,7 +117,7 @@ export function DirectoryPicker(props: DirectoryPickerProps) {
             ref={inputRef}
             required={required}
             placeholder={placeholder}
-            name="scan_directory"
+            name={name}
             value={value}
             onChange={event => {
               const nextPath = event.currentTarget.value;
@@ -128,18 +134,18 @@ export function DirectoryPicker(props: DirectoryPickerProps) {
           />
         </Grid.Col>
       </Grid>
+      {hint}
       {description}
-      <Text size="sm" c="dimmed">
-        {/* spacer to align with previous UI; keep description optional */}
-      </Text>
-      <div style={{ height: `${treeHeight}px`, overflow: "auto" }}>
+      {/* Grows with the expanded folders up to treeHeight instead of reserving
+          it: the tree starts as a single row. The border shows it is a list. */}
+      <Paper withBorder radius="sm" p={4} mt={4} mah={treeHeight} style={{ overflow: "auto" }}>
         <Tree
           data={mantineTreeData}
           selectOnClick
           clearSelectionOnOutsideClick
           renderNode={payload => <Leaf {...payload} nodeClicked={nodeClicked} />}
         />
-      </div>
+      </Paper>
     </>
   );
 }

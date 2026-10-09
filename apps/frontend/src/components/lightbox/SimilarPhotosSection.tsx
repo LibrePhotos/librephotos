@@ -1,12 +1,13 @@
 import { Anchor, Flex, Group, Title } from "@mantine/core";
 import { IconPhoto as Photo } from "@tabler/icons-react";
+import { Link } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import type { Photo as PhotoType } from "../../api_client/photos/types";
 import { Tile } from "../Tile";
 
 interface SimilarPhotosSectionProps {
-  photoDetail: PhotoType;
+  photoDetail: Pick<PhotoType, "image_hash" | "similar_photos">;
   maxItems?: number;
   showTitle?: boolean;
 }
@@ -33,7 +34,10 @@ export function SimilarPhotosSection({ photoDetail, maxItems = 8, showTitle = tr
         {filteredSimilarPhotos.slice(0, maxItems).map(el => (
           <Anchor
             key={el.image_hash}
-            href={`/photo/${el.image_hash}`}
+            // A router link, not a plain href, so the app is not reloaded. It goes
+            // to the photo page even inside the lightbox: the lightbox's lists key
+            // photos by id, and a similar photo is often not in them.
+            renderRoot={rootProps => <Link {...rootProps} to="/photo/$id" params={{ id: el.image_hash }} />}
             style={{
               minWidth: "110px",
               maxWidth: "110px",

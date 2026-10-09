@@ -106,11 +106,14 @@ export function UserAlbumCard({
       {/* Actions menu */}
       {showActions && (onRename || onShare || onDelete || onToggleLocked) && (
         <div className={classes.actions}>
-          <Menu position="bottom-end" transitionProps={{ duration: 0 }}>
+          {/* Its items open dialogs: handing focus back to the trigger after close took it from
+              the dialog's input. Escape still returns it (Mantine does that on its own). */}
+          <Menu position="bottom-end" returnFocus={false} transitionProps={{ duration: 0 }}>
             <Menu.Target>
+              {/* A solid chip, like the public badge opposite: a bare icon vanished on light covers */}
               <ActionIcon
-                variant="subtle"
-                c="gray"
+                variant="default"
+                radius="xl"
                 size="sm"
                 aria-label={t("useralbum.albumActions")}
                 onClick={e => e.preventDefault()}
@@ -177,7 +180,7 @@ export function UserAlbumCard({
           </Text>
         </Group>
         <Text size="xs" c="dimmed">
-          {t("numberofphotos", { number: album.photo_count })}
+          {t("numberofphotos", { count: album.photo_count, number: album.photo_count })}
         </Text>
       </div>
     </div>

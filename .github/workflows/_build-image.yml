@@ -22,7 +22,7 @@ on:
         default: ""
         type: string
       release-tag:
-        description: "If set, push as <image>:<release-tag> and also <image>:latest. Otherwise push as <image>:dev."
+        description: "If set, push as <image>:<release-tag> and, unless the release is a pre-release, <image>:latest. Otherwise push as <image>:dev."
         required: false
         default: ""
         type: string
@@ -181,7 +181,12 @@ jobs:
             SOURCES="${BASE}-amd64"
             [ -n "$ARM64_SUFFIX" ] && SOURCES="$SOURCES ${BASE}${ARM64_SUFFIX}"
             docker buildx imagetools create -t "${BASE}" $SOURCES
-            docker buildx imagetools create -t ${{ inputs.image }}:latest $SOURCES
+            # A GitHub pre-release (an RC) gets its own tag but must not move
+            # :latest, which every compose install pulls by default. A called
+            # workflow sees the caller's event, so the flag is available here.
+            if [ "${{ github.event.release.prerelease }}" != "true" ]; then
+              docker buildx imagetools create -t ${{ inputs.image }}:latest $SOURCES
+            fi
           else
             SOURCES="${{ inputs.image }}:dev-amd64"
             [ -n "$ARM64_SUFFIX" ] && SOURCES="$SOURCES ${{ inputs.image }}:dev${ARM64_SUFFIX}"

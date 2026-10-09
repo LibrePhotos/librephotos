@@ -27,7 +27,7 @@ from api.directory_watcher.file_grouping import (
 )
 from api.directory_watcher.utils import update_scan_counter
 from api.metadata.photo_datetime import extract_date_time
-from api.models import File, Person, Photo, Thumbnail
+from api.models import File, LongRunningJob, Person, Photo, Thumbnail
 from api.models.file import (
     calculate_hash,
     content_hash,
@@ -235,6 +235,11 @@ def _regenerate_thumbnails(photo: Photo) -> None:
     thumbnail that has just been deleted.
     """
     try:
+        if photo.video:
+            # The stored colour fields describe the bytes that were replaced;
+            # the poster frame and the animated thumbnails decide whether to
+            # tonemap from them, so the new bytes are asked first.
+            video_color.record(photo)
         thumbnail, _ = Thumbnail.objects.get_or_create(photo=photo)
         thumbnail._regenerate_thumbnails()
     except Exception:
@@ -751,6 +756,35 @@ def handle_file_group(user, file_paths: list[str], job_id):
         update_scan_counter(job_id, failed=error is not None, error=error)
 
 
+def _probe_videos_unfinished(user) -> bool:
+    """Whether a Probe Videos job of ``user``'s is running, or was killed."""
+    return LongRunningJob.objects.filter(
+        started_by=user, job_type=LongRunningJob.JOB_PROBE_VIDEOS, finished=False
+    ).exists()
+
+
+def _rebuild_made_before_probe(photo, thumbnail, fields, job_id, path):
+    """Rebuild a video's thumbnails made before it was probed, then save the probe.
+
+    ``fields`` are the probed values set on ``photo`` but not saved yet. Saved
+    last, as Probe Videos does (``processing_jobs._repair_probed_video``): a
+    worker killed half-way leaves the video unprobed, so that job tries it
+    again and puts its set-aside thumbnails back first.
+    """
+    # The row get_or_create found would load its photo afresh, without them.
+    thumbnail.photo = photo
+    transcode_cache.discard(photo.image_hash)
+    try:
+        thumbnail._regenerate_thumbnails(keep_old_on_failure=True)
+    except Exception:
+        # The old thumbnails are back in place; the rest still runs.
+        logger.warning(
+            f"job {job_id}: could not rebuild the thumbnails of {path}",
+            exc_info=True,
+        )
+    photo.save(save_metadata=False, update_fields=fields)
+
+
 def _process_photo(photo: Photo, path: str, job_id, start: datetime.datetime):
     """
     Process a photo: generate thumbnails, extract EXIF, calculate hashes, etc.
@@ -765,17 +799,37 @@ def _process_photo(photo: Photo, path: str, job_id, start: datetime.datetime):
     """
     logger.info(f"job {job_id}: handling image {path}")
 
+    # Create or get thumbnail instance
+    thumbnail, created = Thumbnail.objects.get_or_create(photo=photo)
+
     # Before the thumbnails, which read it: the poster frame and both animated
     # thumbnails need to know whether to tonemap. Every time, not only when the
     # fields are empty -- a rescanned video may be a new file under the old path.
+    rebuild_fields = None
     if photo.video:
-        video_color.record(photo)
+        # A video indexed before it was probed may have washed-out or
+        # unplayable thumbnails and cached copy. Probe Videos repairs those
+        # only for videos still unprobed, which this is about to settle --
+        # on a full rescan, for every one of them -- so it is done here.
+        made_before_probe = photo.video_color_transfer is None and not created
+        if made_before_probe and _probe_videos_unfinished(photo.owner):
+            # That job has this video on its list, and two rebuilds of one
+            # video at once take each other's set-aside thumbnails. Left
+            # unprobed for it, or for the one this scan queues.
+            fields = None
+        else:
+            fields = video_color.apply_probe(photo)
+        if fields and made_before_probe and video_color.converted_wrongly_before(photo):
+            rebuild_fields = fields
+        elif fields:
+            photo.save(save_metadata=False, update_fields=fields)
         elapsed = (datetime.datetime.now() - start).total_seconds()
         logger.info(f"job {job_id}: probe video: {path}, elapsed: {elapsed}")
 
-    # Create or get thumbnail instance
-    thumbnail, _ = Thumbnail.objects.get_or_create(photo=photo)
-    thumbnail._generate_thumbnail()
+    if rebuild_fields:
+        _rebuild_made_before_probe(photo, thumbnail, rebuild_fields, job_id, path)
+    else:
+        thumbnail._generate_thumbnail()
     elapsed = (datetime.datetime.now() - start).total_seconds()
     logger.info(f"job {job_id}: generate thumbnails: {path}, elapsed: {elapsed}")
 

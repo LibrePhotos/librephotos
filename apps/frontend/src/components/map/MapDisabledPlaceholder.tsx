@@ -19,9 +19,10 @@ export function MapDisabledPlaceholder({ height = 200 }: Props) {
       style={{
         height,
         width: "100%",
-        border: "1px solid var(--mantine-color-gray-3)",
+        // Scheme-aware: the light greys stayed a near-white box in dark mode
+        border: "1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4))",
         borderRadius: "var(--mantine-radius-sm)",
-        background: "var(--mantine-color-gray-0)",
+        background: "light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6))",
       }}
     >
       <Stack align="center" gap={4}>

@@ -1,5 +1,7 @@
 import { create } from "zustand";
+import { z } from "zod";
 import { decodeJwtExp } from "@librephotos/api-client";
+import { parseJson } from "@/lib/guards";
 import { tokenStorage } from "@/lib/tokenStorage";
 import { useSettingsStore } from "@/stores/settings";
 
@@ -19,6 +21,9 @@ type AuthState = {
   onLoggedOut: () => void;
 };
 
+/** The one claim read from the access token here (SimpleJWT sends a number or a string). */
+const AccessTokenClaims = z.object({ user_id: z.union([z.number(), z.string()]).optional() });
+
 export function userIdFromToken(access: string | null): number | null {
   if (!access) return null;
   // exp is validated by decodeJwtExp; user_id is read opportunistically.
@@ -27,8 +32,9 @@ export function userIdFromToken(access: string | null): number | null {
   if (typeof atob !== "function") return null;
   try {
     const json = atob(parts[1].replace(/-/g, "+").replace(/_/g, "/"));
-    const payload = JSON.parse(json) as { user_id?: number | string };
-    const raw = payload.user_id;
+    const claims = AccessTokenClaims.safeParse(parseJson(json));
+    if (!claims.success) return null;
+    const raw = claims.data.user_id;
     return typeof raw === "number" ? raw : raw ? Number(raw) : null;
   } catch {
     return null;

@@ -91,8 +91,16 @@ class IsFirstTimeSetupView(APIView):
         )
 
 
+# Users are deleted through /api/delete/user/ only, which refuses to delete a
+# superuser (the last one would put the instance back into first-time setup).
+# The two full viewsets below would otherwise delete anyone for any staff user.
+NO_DELETE = ["get", "post", "put", "patch", "head", "options"]
+
+
 # To-Do: This executes multiple querys per users
 class UserViewSet(viewsets.ModelViewSet):
+    http_method_names = NO_DELETE
+
     def get_queryset(self):
         queryset = (
             User.objects.exclude(is_active=False)
@@ -101,6 +109,7 @@ class UserViewSet(viewsets.ModelViewSet):
                 "username",
                 "email",
                 "scan_directory",
+                "upload_directory",
                 "transcode_videos",
                 "confidence",
                 "confidence_person",
@@ -151,8 +160,8 @@ class UserViewSet(viewsets.ModelViewSet):
                 return UserSerializer
             return PublicUserSerializer
 
-        # update / partial_update / destroy are already restricted to self-or-admin
-        # by get_permissions (IsAdminOrSelf) and need the full serializer.
+        # update / partial_update are already restricted to self-or-admin by
+        # get_permissions (IsAdminOrSelf) and need the full serializer.
         return UserSerializer
 
     def get_permissions(self):
@@ -181,13 +190,18 @@ class DeleteUserViewSet(mixins.DestroyModelMixin, viewsets.GenericViewSet):
             return Response(status=status.HTTP_401_UNAUTHORIZED)
         instance = self.get_object()
 
-        if instance.is_superuser:
+        # Nor the ``deleted`` placeholder: its rows would be handed to itself,
+        # and the delete failed with a 500.
+        if instance.is_superuser or instance.username == "deleted":
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
+        # api.user_deletion turns off the user's public links and makes room
+        # for their albums and tags in ``deleted``, in the delete's transaction.
         return super().destroy(request, *args, **kwargs)
 
 
 class ManageUserViewSet(viewsets.ModelViewSet):
+    http_method_names = NO_DELETE
     queryset = User.objects.all().order_by("id")
     serializer_class = ManageUserSerializer
     permission_classes = (IsAdminUser,)

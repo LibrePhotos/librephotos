@@ -427,6 +427,40 @@ class UploadDirectoryTestCase(TestCase):
         self.assertEqual(self.user.first_name, "Renamed")
         self.assertEqual(self.user.upload_directory, gone)
 
+    def test_the_user_list_reads_the_folder_back(self):
+        # The admin dialog fills its form from /api/user/; without the field it
+        # sent "" back on every save, which restores the default.
+        self.user.upload_directory = self.inbox
+        self.user.save()
+        response = self.client.get("/api/user/")
+        self.assertEqual(response.status_code, 200)
+        row = next(u for u in response.json()["results"] if u["id"] == self.user.id)
+        self.assertEqual(row["upload_directory"], self.inbox)
+
+    def test_the_user_endpoint_cannot_write_the_folder(self):
+        # /api/user/ skips the DATA_ROOT and overlap checks, so it only reads it.
+        outside = os.path.abspath(os.path.join(settings.DATA_ROOT, "..", "elsewhere"))
+        response = self.client.patch(
+            f"/api/user/{self.user.id}/", {"upload_directory": outside}, format="json"
+        )
+        self.assertEqual(response.status_code, 200)
+        response = self.client.post(
+            "/api/user/",
+            {
+                "username": "upload_created",
+                "email": "upload_created@test.com",
+                "password": create_password(),
+                "upload_directory": outside,
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 201)
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.upload_directory, "")
+        self.assertEqual(
+            User.objects.get(username="upload_created").upload_directory, ""
+        )
+
 
 class UploadFolderOwnershipTestCase(TestCase):
     """An upload folder belongs to its user as much as its library does.

@@ -11,12 +11,14 @@ import {
   useComputedColorScheme,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
+import { showNotification } from "@mantine/notifications";
 import { IconMail as Mail } from "@tabler/icons-react";
 import { createFileRoute } from "@tanstack/react-router";
 import React, { useState } from "react";
 import type { FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { useRequestPasswordResetMutation } from "../api_client/auth";
+import { passwordResetError } from "../api_client/auth/passwordResetErrors";
 import { EMAIL_REGEX } from "../util/util";
 
 export const Route = createFileRoute("/password-reset/")({
@@ -48,6 +50,18 @@ function PasswordResetRequestPage(): JSX.Element {
         // The endpoint always returns 200 (it never reveals whether the address
         // is registered), so show the same confirmation regardless.
         onSuccess: () => setSubmitted(true),
+        // A throttled request (5 an hour) used to leave the form as it was,
+        // with nothing said.
+        onError: error => {
+          const reason = passwordResetError(error);
+          if (reason.kind === "reported") {
+            return;
+          }
+          showNotification({
+            message: t(reason.kind === "throttled" ? "passwordreset.errorthrottled" : "passwordreset.errorgeneric"),
+            color: "red",
+          });
+        },
       }
     );
   }

@@ -144,13 +144,52 @@ class UnifiedEmbeddedMediaTest(TestCase):
         response = _unified("embedded_media", self.photo.image_hash, user=self.other)
         self.assertEqual(response.status_code, 404)
 
-    def test_anonymous_gets_404_for_a_private_photo(self):
+    def test_anonymous_is_refused_a_private_photo(self):
+        # The same sign-in refusal as every other photo route (GHSA-hq2w).
         response = _unified("embedded_media", self.photo.image_hash)
-        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response["X-Media-Error"], "authentication")
 
     def test_photo_without_embedded_media_is_404(self):
         lonely = create_test_photo(owner=self.owner)
         response = _unified("embedded_media", lonely.image_hash, user=self.owner)
+        self.assertEqual(response.status_code, 404)
+
+    def test_user_the_photo_is_shared_to_gets_the_embedded_file(self):
+        self.photo.shared_to.add(self.other)
+        response = _unified("embedded_media", self.photo.image_hash, user=self.other)
+        self.assertEqual(response.status_code, 200)
+
+    def test_member_of_a_shared_album_gets_the_embedded_file(self):
+        album = AlbumUser.objects.create(title="trip", owner=self.owner)
+        album.photos.add(self.photo)
+        album.shared_to.add(self.other)
+        response = _unified("embedded_media", self.photo.image_hash, user=self.other)
+        self.assertEqual(response.status_code, 200)
+
+    def test_signed_in_user_gets_a_public_photos_embedded_file(self):
+        self.photo.public = True
+        self.photo.save(update_fields=["public"])
+        response = _unified("embedded_media", self.photo.image_hash, user=self.other)
+        self.assertEqual(response.status_code, 200)
+
+    def test_anonymous_gets_a_public_photos_embedded_file(self):
+        self.photo.public = True
+        self.photo.save(update_fields=["public"])
+        response = _unified("embedded_media", self.photo.image_hash)
+        self.assertEqual(response.status_code, 200)
+
+    def test_anonymous_is_refused_a_hidden_public_photo(self):
+        self.photo.public = True
+        self.photo.hidden = True
+        self.photo.save(update_fields=["public", "hidden"])
+        response = _unified("embedded_media", self.photo.image_hash)
+        self.assertEqual(response.status_code, 403)
+
+    def test_photo_without_main_file_is_404(self):
+        self.photo.main_file = None
+        self.photo.save(update_fields=["main_file"])
+        response = _unified("embedded_media", self.photo.image_hash, user=self.owner)
         self.assertEqual(response.status_code, 404)
 
 

@@ -6,6 +6,7 @@ import {
   photoTimestampToPickerDate,
   pickerDateToPhotoTimestamp,
 } from "./dateUtils";
+import { defined } from "./defined.test-utils";
 
 const originalZone = Settings.defaultZone;
 
@@ -45,12 +46,12 @@ describe("photoTimestampToPickerDate", () => {
   test("exposes the wall clock through the Date's local getters", () => {
     const date = photoTimestampToPickerDate("2023-09-21T14:30:15Z");
     expect(date).not.toBeNull();
-    expect(date!.getFullYear()).toBe(2023);
-    expect(date!.getMonth()).toBe(8);
-    expect(date!.getDate()).toBe(21);
-    expect(date!.getHours()).toBe(14);
-    expect(date!.getMinutes()).toBe(30);
-    expect(date!.getSeconds()).toBe(15);
+    expect(defined(date).getFullYear()).toBe(2023);
+    expect(defined(date).getMonth()).toBe(8);
+    expect(defined(date).getDate()).toBe(21);
+    expect(defined(date).getHours()).toBe(14);
+    expect(defined(date).getMinutes()).toBe(30);
+    expect(defined(date).getSeconds()).toBe(15);
   });
 
   test("returns null for an unparseable timestamp", () => {
@@ -64,14 +65,14 @@ describe("parsePickerDate", () => {
     // 20th anywhere west of UTC.
     const parsed = parsePickerDate("2023-09-21");
     expect(parsed).not.toBeNull();
-    expect(parsed!.getFullYear()).toBe(2023);
-    expect(parsed!.getMonth()).toBe(8);
-    expect(parsed!.getDate()).toBe(21);
+    expect(defined(parsed).getFullYear()).toBe(2023);
+    expect(defined(parsed).getMonth()).toBe(8);
+    expect(defined(parsed).getDate()).toBe(21);
   });
 
   test("passes a Date through unchanged", () => {
     const date = new Date(2023, 8, 21, 14, 30);
-    expect(parsePickerDate(date)!.getTime()).toBe(date.getTime());
+    expect(defined(parsePickerDate(date)).getTime()).toBe(date.getTime());
   });
 
   test("returns null for unusable input", () => {
@@ -83,7 +84,7 @@ describe("parsePickerDate", () => {
 describe("pickerDateToPhotoTimestamp", () => {
   test("round-trips a timestamp unchanged", () => {
     const timestamp = "2023-09-21T14:30:15.000Z";
-    expect(pickerDateToPhotoTimestamp(photoTimestampToPickerDate(timestamp)!)).toBe(timestamp);
+    expect(pickerDateToPhotoTimestamp(defined(photoTimestampToPickerDate(timestamp)))).toBe(timestamp);
   });
 
   test("stores the wall clock the user picked, not a converted instant", () => {

@@ -33,10 +33,20 @@
   -webkit-appearance: none;
 }
 
-/* .pigBtn:hover,
-.pigBtn:focus {
-  outline: 6px solid yellow;
-} */
+/* Keyboard focus ring. The tile's images are positioned layers that paint over
+   an outline on the button, so the ring is its own layer on top; it is inset
+   because the tile has contain: strict. The white inner line keeps it visible
+   on blue photos. */
+.pigBtn:focus-visible::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  box-shadow:
+    inset 0 0 0 3px var(--mantine-primary-color-filled),
+    inset 0 0 0 4px rgba(255, 255, 255, 0.8);
+}
 
 .pigBtn:hover .caption,
 .pigBtn:focus .caption {
@@ -121,10 +131,13 @@
   left: 0px;
 }
 
+/* Inset like the bottom overlays' 5px padding; display: flex drops the gap
+   an inline SVG leaves below itself. */
 .overlaysTopRight {
   position: absolute;
-  top: 0px;
-  right: -4px;
+  top: 5px;
+  right: 5px;
+  display: flex;
 }
 
 .overlaysBottomLeft {
@@ -137,4 +150,12 @@
   position: absolute;
   bottom: 0px;
   right: 0px;
+}
+
+/* The overlay icons and text are white (the star gold): a soft shadow keeps
+   them visible on bright photos and video frames. */
+.overlaysTopRight,
+.overlaysBottomLeft,
+.overlaysBottomRight {
+  filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.75));
 }

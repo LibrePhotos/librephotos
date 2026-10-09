@@ -17,16 +17,18 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React, { act, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { Media, type BulkPhotoQuery } from "../../api_client/photos/types";
 import i18n from "../../i18n";
 import { ModalTagEdit } from "./ModalTagEdit";
 
 const stubs = vi.hoisted(() => ({
-  post: vi.fn(),
+  // Shaped like fetchClient.post
+  post: vi.fn<(endpoint: string, data?: unknown) => Promise<unknown>>(),
   tags: [
     { id: 7, name: "beach", photo_count: 2, cover_photos: [] },
     { id: 8, name: "holiday", photo_count: 5, cover_photos: [] },
   ],
-  taggedPhotos: vi.fn(),
+  taggedPhotos: vi.fn<(names: string[], numberOfPhotos: number) => void>(),
 }));
 
 vi.mock("../../api_client/apiClient", () => ({ serverAddress: "" }));
@@ -52,8 +54,8 @@ vi.mock("../../api_client/api", () => ({
 }));
 
 beforeAll(async () => {
-  // @ts-ignore - jsdom has no matchMedia, MantineProvider needs it
-  window.matchMedia = (query: string) => ({
+  // jsdom has no matchMedia, MantineProvider needs it
+  window.matchMedia = (query: string): MediaQueryList => ({
     matches: false,
     media: query,
     onchange: null,
@@ -63,7 +65,7 @@ beforeAll(async () => {
     removeEventListener: () => {},
     dispatchEvent: () => false,
   });
-  // @ts-ignore - jsdom has no ResizeObserver, the modal needs it
+  // jsdom has no ResizeObserver, the modal needs it
   globalThis.ResizeObserver = class {
     observe() {}
 
@@ -71,7 +73,6 @@ beforeAll(async () => {
 
     disconnect() {}
   };
-  // @ts-ignore
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   await i18n.changeLanguage("en");
 });
@@ -83,8 +84,8 @@ beforeEach(() => {
 });
 
 const selection = [
-  { id: "photo-1", image_hash: "a".repeat(32), type: "photo" },
-  { id: "photo-2", image_hash: "b".repeat(32), type: "video" },
+  { id: "photo-1", image_hash: "a".repeat(32), type: Media.IMAGE },
+  { id: "photo-2", image_hash: "b".repeat(32), type: Media.VIDEO },
 ];
 
 /** React tracks the previous value on the node itself, so plain assignment is swallowed. */
@@ -96,7 +97,9 @@ function setInputValue(input: HTMLInputElement, value: string) {
 
 /** TagsInput renders a hidden input for the committed value; the first one is the search box. */
 function tagInput(): HTMLInputElement {
-  return document.querySelector("input") as HTMLInputElement;
+  const input = document.querySelector("input");
+  if (!input) throw new Error("the tag input is not rendered");
+  return input;
 }
 
 function pressKey(key: string) {
@@ -104,14 +107,14 @@ function pressKey(key: string) {
 }
 
 function addButton(): HTMLButtonElement {
-  return Array.from(document.querySelectorAll("button")).find(
-    button => button.textContent === "Add tags"
-  ) as HTMLButtonElement;
+  const button = Array.from(document.querySelectorAll("button")).find(element => element.textContent === "Add tags");
+  if (!button) throw new Error("the Add tags button is not rendered");
+  return button;
 }
 
 type RenderOptions = {
   selectAllMode?: boolean;
-  selectAllQuery?: Record<string, unknown>;
+  selectAllQuery?: BulkPhotoQuery;
   totalCount?: number;
   selectedImages?: typeof selection;
 };
@@ -133,7 +136,7 @@ async function renderModal(options: RenderOptions = {}) {
         }}
         selectedImages={options.selectedImages ?? selection}
         selectAllMode={options.selectAllMode}
-        selectAllQuery={options.selectAllQuery as never}
+        selectAllQuery={options.selectAllQuery}
         totalCount={options.totalCount}
       />
     );

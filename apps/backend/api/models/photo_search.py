@@ -57,9 +57,10 @@ class PhotoSearch(models.Model):
 
         # Add face/person names. Go through the related manager so a caller that
         # already prefetched the faces (and their people) does not pay a query
-        # per photo and per face here.
+        # per photo and per face here. A deleted face keeps its person, so it
+        # is skipped here rather than filtered out of that prefetch.
         for face in self.photo.faces.all():
-            if face.person:
+            if face.person and not face.deleted:
                 search_captions += face.person.name + " "
 
         # Add file paths

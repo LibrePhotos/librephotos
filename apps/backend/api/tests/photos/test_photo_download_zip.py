@@ -36,6 +36,52 @@ class PhotoListWithoutTimestampTest(TestCase):
         self.assertEqual(response_3.status_code, 507)
 
 
+class ZipJobStatusTest(TestCase):
+    """Failed and cancelled jobs are finished too; they used to poll as SUCCESS."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.user = create_test_user()
+        self.client.force_authenticate(user=self.user)
+        self.job = LongRunningJob.create_job(
+            user=self.user, job_type=LongRunningJob.JOB_DOWNLOAD_PHOTOS
+        )
+
+    def _poll(self):
+        return self.client.get("/api/photos/download", {"job_id": self.job.job_id})
+
+    def test_a_finished_job_is_a_success(self):
+        self.job.complete()
+        response = self._poll()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["status"], "SUCCESS")
+
+    def test_a_failed_job_is_a_failure(self):
+        self.job.fail(error=OSError("No space left on device"))
+        response = self._poll()
+        # Not a 500: the web client shows an error toast for each one it polls.
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["status"], "FAILURE")
+        self.assertIn("No space left", response.json()["result"]["error"])
+
+    def test_a_cancelled_job_is_a_failure(self):
+        self.job.cancel()
+        self.assertEqual(self._poll().json()["status"], "FAILURE")
+
+
+class ZipFreeSpaceTest(TestCase):
+    def test_measures_the_media_root_not_the_root_file_system(self):
+        """In the images MEDIA_ROOT is a volume of its own."""
+        from django.conf import settings
+
+        from api.views import zip_downloads
+
+        with patch("shutil.disk_usage") as disk_usage:
+            disk_usage.return_value.free = 123
+            self.assertEqual(zip_downloads._free_space_for_archives(), 123)
+        disk_usage.assert_called_once_with(settings.MEDIA_ROOT)
+
+
 class ZipListPhotosV2SelectAllTest(TestCase):
     """The download endpoint also accepts the select_all + query payload
     shape that the other bulk mutations (favorite/hide/public/delete)

@@ -4,6 +4,7 @@ import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchRecentlyAddedPhotosQuery } from "../../api_client/photos/hooks/useFetchRecentlyAddedPhotosQuery";
 import { EmptyStateConfig, PhotoListView } from "../../components/photolist/PhotoListView";
+import { useScanEmptyStateAction } from "../../components/photolist/useScanEmptyStateAction";
 
 export const Route = createFileRoute("/_protected/recent")({
   component: RecentlyAddedPhotos,
@@ -13,17 +14,18 @@ function RecentlyAddedPhotos() {
   const { t } = useTranslation();
   const { data, status } = useFetchRecentlyAddedPhotosQuery();
   const photosFlat = data?.results || [];
-  const recentlyAddedPhotosDate = data?.results?.[0]?.date;
+  // The day the newest import happened (the backend's added_on), not the first
+  // photo's capture date; null while the user has no photos.
+  const recentlyAddedPhotosDate = data?.date ?? undefined;
 
+  const emptyAction = useScanEmptyStateAction(t("emptystate.recent.description"));
   const emptyStateConfig: EmptyStateConfig = useMemo(
     () => ({
       icon: <Clock size={40} />,
       title: t("emptystate.recent.title"),
-      description: t("emptystate.recent.description"),
-      actionLabel: t("emptystate.goToLibrary"),
-      actionLink: "/library",
+      ...emptyAction,
     }),
-    [t]
+    [t, emptyAction]
   );
 
   return (

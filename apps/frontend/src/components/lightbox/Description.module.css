@@ -1,0 +1,13 @@
+/* A caption that is not being edited reads as text in the panel's column, like
+   the tags and keywords below it, not as an input box that cannot be typed in. */
+.caption[data-read-only] {
+  border: 0;
+}
+
+.caption[data-read-only] :global(.mantine-RichTextEditor-content) {
+  background-color: transparent;
+}
+
+.caption[data-read-only] :global(.ProseMirror) {
+  padding: 0;
+}

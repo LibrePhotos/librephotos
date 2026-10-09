@@ -18,7 +18,7 @@ This job will look at all media files that already exist. It tries to find commo
 
 ### Regenerate Event Titles
 
-This will create a title for the event album based on the information of the media files in the event album.
+This will create a title for the event album based on the information of the media files in the event album. Since 1.3.0, titles leave out faces in "Unknown - Other" and no longer contain a double space where a part is missing. Run this job once to fix the titles of albums made by an older version.
 
 ### Train Faces
 
@@ -70,7 +70,7 @@ Runs after each scan to fix RAW files that were scanned as their own photos. For
 
 ### Probe Videos
 
-Checks the videos that were added to your library before LibrePhotos recorded each video's colour, codec and pixel format during the scan. It runs by itself after a scan, only while such videos are left, so most scans never show it. For every HDR video it finds, it also rebuilds the thumbnails, which an older version made washed out (see [HDR Videos](./viewing-photos.md#hdr-videos)). A video whose file cannot be read at the time — for example on a drive that is not mounted — is simply tried again after the next scan. Not in a release yet: it arrives in the release after 1.2.1.
+Checks the videos that were added to your library before LibrePhotos recorded each video's colour, codec and pixel format during the scan. It runs by itself after a scan, only while such videos are left, so most scans never show it. It rebuilds the thumbnails of every HDR video, which an older version made washed out (see [HDR Videos](./viewing-photos.md#hdr-videos)). It does the same for every video not stored as ordinary 8-bit 4:2:0, such as 10-bit clips or the 4:2:2 Motion JPEG files older cameras record, whose animated thumbnails an older version made in a form no browser plays. For each of these videos it also drops any converted copy kept from before, so the next playback converts it again. If a rebuild fails, the old thumbnail is kept. A video whose file cannot be read at the time — for example on a drive that is not mounted — is simply tried again after the next scan. Since 1.3.0.
 
 ### Detect Duplicate Photos
 

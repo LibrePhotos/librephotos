@@ -14,12 +14,12 @@ function UserJobsPage() {
 
   return (
     <Container>
+      {/* Outside the Stack and with the same offsets as Settings, Profile, Library and Admin. */}
+      <Group gap="xs" mt={{ base: 20, sm: 40 }} mb={{ base: 10, sm: 20 }}>
+        <ListDetails size={35} />
+        <Title order={1}>{t("jobs.header")}</Title>
+      </Group>
       <Stack>
-        <Group gap="xs" mt={40} mb={20}>
-          <ListDetails size={35} />
-          <Title order={1}>{t("jobs.header")}</Title>
-        </Group>
-
         {/* Non-staff are scoped to their own jobs by the backend (#1861); the
             "mine" variant additionally asks it to narrow the list for staff, so
             this page means the caller's own jobs whoever is looking. */}

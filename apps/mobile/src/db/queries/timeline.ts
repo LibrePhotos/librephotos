@@ -239,6 +239,16 @@ export function timelineBuckets(db: AppDatabase): TimelineBucket[] {
 }
 
 /**
+ * A timeline row's identity. Every row comes from remote_photo (`remote_id` is
+ * its primary key) or from local_asset (`local_id` is its primary key), so one
+ * of the two is always set; the hash and the empty string only cover a row the
+ * queries above cannot produce.
+ */
+export function timelineRowKey(r: MergedTimelineRow): string {
+  return r.remote_id ?? r.local_id ?? r.image_hash ?? "";
+}
+
+/**
  * Where a photo sits in the timeline's sort order, from any identity the app
  * routes with: a remote photo id, an image hash, or a local asset id. This is
  * the anchor a windowed pager needs — with it the viewer can read a slice

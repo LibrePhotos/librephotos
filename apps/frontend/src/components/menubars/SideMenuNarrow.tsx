@@ -15,6 +15,7 @@ import {
   IconChevronRight as ChevronRight,
   IconCloud as Cloud,
   IconHeart as Heart,
+  IconInfoCircle as InfoCircle,
 } from "@tabler/icons-react";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import React, { useEffect, useState } from "react";
@@ -22,7 +23,7 @@ import { useTranslation } from "react-i18next";
 import { useFetchImageTagQuery, useFetchStorageStatsQuery } from "../../api_client/server";
 import { useAuth } from "../../hooks/useAuth";
 import { DOCUMENTATION_LINK, SUPPORT_LINK } from "../../ui-constants";
-import { getNavigationItems } from "./navigation";
+import { getNavigationItems, isNavItemActive } from "./navigation";
 import classes from "./SideMenuNarrow.module.css";
 
 function formatBytes(bytes: number, decimals = 2) {
@@ -67,15 +68,20 @@ export function SideMenuNarrow(): JSX.Element {
 
     // Check if this menu item or any submenu item is active
     const isSubmenuItemActive = item.submenu?.some(subitem => subitem.link && active.startsWith(subitem.link));
-    const isItemActive = item.link === active || isSubmenuItemActive;
+    const isItemActive = isNavItemActive(item, active) || isSubmenuItemActive;
 
     const link = (
       <a
         className={classes.link}
         data-active={isItemActive}
+        aria-current={isItemActive ? "page" : undefined}
         href={item.link}
         key={item.label}
         onClick={event => {
+          // Let the browser open Ctrl/Cmd/Shift-clicks in a new tab or window.
+          if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) {
+            return;
+          }
           event.preventDefault();
           if (!item.submenu) {
             setActive(item.link);
@@ -116,14 +122,18 @@ export function SideMenuNarrow(): JSX.Element {
               if (subitem.separator) {
                 return <Menu.Divider key={idx} />;
               }
+              const { icon: SubmenuIcon, link: submenuLink } = subitem;
               const onClick = (event: { preventDefault: () => void }) => {
                 event.preventDefault();
-                setActive(subitem.link!);
-                navigate({ to: subitem.link! });
+                if (submenuLink === undefined) {
+                  return;
+                }
+                setActive(submenuLink);
+                navigate({ to: submenuLink });
               };
               const icon = (
                 <ActionIcon component="span" variant="light" color={subitem.color ? subitem.color : defaultIconColor}>
-                  <subitem.icon />
+                  {SubmenuIcon && <SubmenuIcon />}
                 </ActionIcon>
               );
               return (
@@ -140,15 +150,24 @@ export function SideMenuNarrow(): JSX.Element {
     return link;
   });
 
+  const usedStoragePercent = storageStats?.total_storage
+    ? (storageStats.used_storage / storageStats.total_storage) * 100
+    : 0;
+
+  // The icons are spans (as in the links above): the row is the control, so
+  // they are neither tab stops nor buttons nested in the anchors. The labels
+  // use the same Text as the links above so weight and alignment match.
   return (
     <nav className={classes.nav}>
       <div className={classes.links}>{links}</div>
       <div className={classes.bottom_links}>
         <div className={classes.link} data-hover="no">
-          <ActionIcon className={classes.link_icon} variant="transparent" color={defaultIconColor}>
+          <ActionIcon component="span" className={classes.link_icon} variant="transparent" color={defaultIconColor}>
             <Cloud />
           </ActionIcon>
-          <span>{t("storage")}</span>
+          <Text className={classes.link_text} size="sm">
+            {t("storage")}
+          </Text>
         </div>
         {isLoading && (
           <Center>
@@ -164,27 +183,40 @@ export function SideMenuNarrow(): JSX.Element {
           >
             <Progress
               className={classes.progress}
-              value={(storageStats.used_storage / storageStats.total_storage) * 100}
-              color="grey"
+              value={usedStoragePercent}
+              // Warn before the disk fills up and scans or uploads start failing.
+              color={usedStoragePercent >= 90 ? "red" : usedStoragePercent >= 75 ? "orange" : "gray"}
             />
           </Tooltip>
         )}
         <div className={classes.link} data-hover="no">
-          <Tooltip label={`Backend Version: ${imageInfos?.git_hash}`}>
-            <span>{t("version", { version: imageInfos?.image_tag || "dev" })}</span>
+          <ActionIcon component="span" className={classes.link_icon} variant="transparent" color={defaultIconColor}>
+            <InfoCircle />
+          </ActionIcon>
+          <Tooltip
+            label={t("sidemenu.backendversion", { hash: imageInfos?.git_hash })}
+            disabled={!imageInfos?.git_hash}
+          >
+            <Text className={classes.link_text} size="sm">
+              {t("version", { version: imageInfos?.image_tag || "dev" })}
+            </Text>
           </Tooltip>
         </div>
         <a href={DOCUMENTATION_LINK} target="_blank" rel="noreferrer" className={classes.link}>
-          <ActionIcon className={classes.link_icon} variant="transparent">
+          <ActionIcon component="span" className={classes.link_icon} variant="transparent">
             <Book />
           </ActionIcon>
-          {t("docs")}
+          <Text className={classes.link_text} size="sm">
+            {t("docs")}
+          </Text>
         </a>
         <a href={SUPPORT_LINK} target="_blank" rel="noreferrer" className={classes.link}>
-          <ActionIcon className={classes.link_icon} variant="transparent" color="pink">
+          <ActionIcon component="span" className={classes.link_icon} variant="transparent" color="pink">
             <Heart />
           </ActionIcon>
-          {t("supportus")}
+          <Text className={classes.link_text} size="sm">
+            {t("supportus")}
+          </Text>
         </a>
       </div>
     </nav>

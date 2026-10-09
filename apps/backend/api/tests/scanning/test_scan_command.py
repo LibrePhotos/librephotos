@@ -90,17 +90,16 @@ class ScanDirectoryScanTest(ScanCommandBaseTest):
         job_ids = [c.args[2] for c in scan_photos.call_args_list]
         self.assertEqual(len(set(job_ids)), 2)
 
-    def test_user_with_empty_scan_directory_is_still_scanned(self):
-        # Current behaviour: no guard on an unconfigured scan_directory, the
-        # empty string is handed straight to scan_photos.
-        user = create_test_user()
+    def test_user_without_a_scan_directory_is_skipped(self):
+        # Walking "" raised FileNotFoundError and aborted the scan for every
+        # user after this one.
+        create_test_user()
+        alice = create_test_user(scan_directory="/data/alice")
 
         with patch(f"{MODULE}.scan_photos") as scan_photos:
             self.call_scan()
 
-        self.assertEqual(scan_photos.call_count, 1)
-        self.assertEqual(scan_photos.call_args.args[0], user)
-        self.assertEqual(scan_photos.call_args.args[3], "")
+        self.assertEqual([c.args[0] for c in scan_photos.call_args_list], [alice])
 
     def test_only_deleted_user_exists_means_no_scan(self):
         with patch(f"{MODULE}.scan_photos") as scan_photos:
@@ -183,33 +182,29 @@ class ScanFilesTest(ScanCommandBaseTest):
 
         scan_photos.assert_not_called()
 
-    def test_empty_scan_directory_matches_every_file(self):
-        # BUG (pinned as current behaviour): a user whose scan_directory has
-        # never been configured has "" as prefix, so ``startswith("")`` is
-        # true for every path and the user gets every file handed to them.
-        user = create_test_user()
+    def test_user_without_a_scan_directory_gets_no_files(self):
+        # "".startswith-matching handed every file to a user whose scan
+        # directory was never configured, importing other people's photos.
+        create_test_user()
 
         with patch(f"{MODULE}.scan_photos") as scan_photos:
             self.call_scan("--scan-files", "/somewhere/else/a.jpg")
 
-        self.assertEqual(scan_photos.call_count, 1)
-        self.assertEqual(scan_photos.call_args.args[0], user)
-        self.assertEqual(
-            scan_photos.call_args.kwargs["scan_files"], ["/somewhere/else/a.jpg"]
-        )
+        scan_photos.assert_not_called()
 
-    def test_prefix_match_is_a_plain_string_prefix_not_a_path_boundary(self):
-        # BUG (pinned): "/data/alice2/x.jpg" starts with "/data/alice" so it
-        # leaks into alice's scan as well as alice2's.
+    def test_files_match_on_a_path_boundary_not_a_string_prefix(self):
+        # "/data/alice2/x.jpg" starts with "/data/alice" but is alice2's file.
         create_test_user(scan_directory="/data/alice")
-        create_test_user(scan_directory="/data/alice2")
+        alice2 = create_test_user(scan_directory="/data/alice2")
 
         with patch(f"{MODULE}.scan_photos") as scan_photos:
             self.call_scan("--scan-files", "/data/alice2/x.jpg")
 
-        self.assertEqual(scan_photos.call_count, 2)
-        for call in scan_photos.call_args_list:
-            self.assertEqual(call.kwargs["scan_files"], ["/data/alice2/x.jpg"])
+        self.assertEqual(scan_photos.call_count, 1)
+        self.assertEqual(scan_photos.call_args.args[0], alice2)
+        self.assertEqual(
+            scan_photos.call_args.kwargs["scan_files"], ["/data/alice2/x.jpg"]
+        )
 
     def test_empty_scan_files_list_falls_through_to_directory_scan(self):
         user = create_test_user(scan_directory="/data/alice")

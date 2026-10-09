@@ -1,4 +1,4 @@
-import { Box, Button, Modal, ScrollArea, SimpleGrid, Space, Text, TextInput, Title } from "@mantine/core";
+import { Box, Button, Group, Modal, ScrollArea, SimpleGrid, Space, Text, TextInput, Title } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { IconUser, IconMail as Mail } from "@tabler/icons-react";
 import type { FormEvent } from "react";
@@ -6,27 +6,40 @@ import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSignUpMutation } from "../../api_client/auth";
 import { useScanPhotosMutation } from "../../api_client/jobs";
-import { User } from "../../api_client/user";
+import { useGetSettingsQuery } from "../../api_client/settings";
+import type { ListUser, User } from "../../api_client/user";
 import { useManageUpdateUserMutation } from "../../api_client/user/hooks";
+import { notification } from "../../service/notifications";
 import { reportUserSaveError } from "../../util/apiErrors";
 import { EMAIL_REGEX } from "../../util/util";
 import { PasswordEntry } from "../settings/PasswordEntry";
 import { DirectoryPicker } from "../setup/DirectoryPicker";
 import { uploadLocation } from "../setup/uploadLocation";
+import { modalTitleStyles } from "./modalTitleStyles";
 
 type Props = Readonly<{
   isOpen: boolean;
   updateAndScan?: boolean;
-  userToEdit: any;
+  /** The user to edit; "Add new user" passes {}. */
+  userToEdit: Readonly<Partial<User>>;
   selectedNodeId?: string;
   onRequestClose: () => void;
-  userList: any;
+  /** The users a new username must not clash with; none while the list is loading. */
+  userList?: readonly Pick<ListUser, "id" | "username">[];
   createNew: boolean;
   firstTimeSetup?: boolean;
 }>;
 
 export function ModalUserEdit(props: Props) {
-  const { isOpen, updateAndScan, onRequestClose: closeModal, userList, createNew, firstTimeSetup, userToEdit } = props;
+  const {
+    isOpen,
+    updateAndScan,
+    onRequestClose: closeModal,
+    userList = [],
+    createNew,
+    firstTimeSetup,
+    userToEdit,
+  } = props;
   const [userPassword, setUserPassword] = useState("");
   const [newPasswordIsValid, setNewPasswordIsValid] = useState(true);
   const [scanDirectoryPlaceholder, setScanDirectoryPlaceholder] = useState("");
@@ -35,6 +48,9 @@ export function ModalUserEdit(props: Props) {
   const { mutate: signup, isPending: isSigningUp } = useSignUpMutation();
   const { mutate: updateUser, isPending: isUpdating } = useManageUpdateUserMutation();
   const scanPhotos = useScanPhotosMutation();
+  const { data: siteSettings } = useGetSettingsQuery();
+  // The upload folder only matters while uploads are allowed on this server.
+  const uploadsAllowed = !!siteSettings?.allow_upload;
   const [isPathValid, setIsPathValid] = useState(true);
   const [isUploadPathValid, setIsUploadPathValid] = useState(true);
   const isSaving = createNew ? isSigningUp : isUpdating;
@@ -43,10 +59,8 @@ export function ModalUserEdit(props: Props) {
     if (!username) {
       return t("modaluseredit.errorusernamecannotbeblank");
     }
-    const exist = userList.reduce(
-      (acc: boolean, user: User) =>
-        acc || (user.id !== userToEdit.id && user.username.toLowerCase() === username.toLowerCase()),
-      false
+    const exist = userList.some(
+      user => user.id !== userToEdit.id && user.username.toLowerCase() === username.toLowerCase()
     );
     if (exist) {
       return t("modaluseredit.errorusernameexists");
@@ -96,12 +110,15 @@ export function ModalUserEdit(props: Props) {
       } else {
         setScanDirectoryPlaceholder(t("modalscandirectoryedit.notset"));
       }
+      // Every field falls back to "": "Add new user" passes {}, and an
+      // undefined value turned the inputs uncontrolled, so they kept showing
+      // the last edited user while the form itself was empty.
       form.setValues({
-        username: userToEdit.username,
-        email: userToEdit.email,
-        first_name: userToEdit.first_name,
-        last_name: userToEdit.last_name,
-        scan_directory: userToEdit.scan_directory,
+        username: userToEdit.username ?? "",
+        email: userToEdit.email ?? "",
+        first_name: userToEdit.first_name ?? "",
+        last_name: userToEdit.last_name ?? "",
+        scan_directory: userToEdit.scan_directory ?? "",
         upload_directory: userToEdit.upload_directory ?? "",
         password: userPassword || "",
       });
@@ -127,7 +144,7 @@ export function ModalUserEdit(props: Props) {
       return;
     }
     const { email, username, first_name: firstName, last_name: lastName, scan_directory: scanDirectory } = form.values;
-    const newUserData = { ...userToEdit };
+    const newUserData: Partial<User> = { ...userToEdit };
 
     if (scanDirectory) {
       newUserData.scan_directory = scanDirectory;
@@ -135,8 +152,15 @@ export function ModalUserEdit(props: Props) {
     if (!newUserData.scan_directory) {
       delete newUserData.scan_directory;
     }
-    // An empty upload folder is sent as "" so that it restores the default.
-    newUserData.upload_directory = form.values.upload_directory ?? "";
+    // Sent only when the admin changed it ("" restores the default). A caller
+    // that never loaded the stored folder would otherwise reset it on every
+    // save of the user.
+    const uploadDirectory = form.values.upload_directory ?? "";
+    if (uploadDirectory !== (userToEdit.upload_directory ?? "")) {
+      newUserData.upload_directory = uploadDirectory;
+    } else {
+      delete newUserData.upload_directory;
+    }
 
     if (createNew) {
       if (userPassword && username) {
@@ -153,6 +177,14 @@ export function ModalUserEdit(props: Props) {
       }
       return;
     }
+    // Only an existing user is edited, and every one has an id. Without one (the
+    // dialog opened before the user's details loaded) there is nothing to save to:
+    // say so, as the request to /manage/user/undefined/ used to by failing.
+    const { id } = userToEdit;
+    if (id === undefined) {
+      notification.updateUserError();
+      return;
+    }
     newUserData.email = email;
     newUserData.first_name = firstName;
     newUserData.last_name = lastName;
@@ -167,15 +199,18 @@ export function ModalUserEdit(props: Props) {
     // The modal must stay open when the backend rejects the save (for example
     // a scan directory outside the data root), otherwise the failure is
     // invisible and the old value silently stays in place. See issue #492.
-    updateUser(newUserData, {
-      onSuccess: () => {
-        if (updateAndScan && newUserData.scan_directory) {
-          scanPhotos.mutate();
-        }
-        closeModal();
-      },
-      onError: reportUserSaveError,
-    });
+    updateUser(
+      { ...newUserData, id },
+      {
+        onSuccess: () => {
+          if (updateAndScan && newUserData.scan_directory) {
+            scanPhotos.mutate();
+          }
+          closeModal();
+        },
+        onError: reportUserSaveError,
+      }
+    );
   };
 
   const onPasswordValidate = (pass: string, valid: boolean) => {
@@ -196,6 +231,7 @@ export function ModalUserEdit(props: Props) {
 
   return (
     <Modal
+      styles={modalTitleStyles}
       opened={isOpen}
       centered
       scrollAreaComponent={ScrollArea.Autosize}
@@ -203,7 +239,7 @@ export function ModalUserEdit(props: Props) {
       onClose={() => {
         closeModal();
       }}
-      title={<Title order={4}>{createNew ? t("modaluseredit.createheader") : t("modaluseredit.header")}</Title>}
+      title={createNew ? t("modaluseredit.createheader") : t("modaluseredit.header")}
     >
       <form onSubmit={onSubmit}>
         <Box pb="md">
@@ -262,46 +298,56 @@ export function ModalUserEdit(props: Props) {
                   {t("modalscandirectoryedit.currentdirectory")}
                 </Text>
               }
-              description={<Title order={6}>{t("modalscandirectoryedit.explanation3")}</Title>}
-              missingPathError={t("modalscandirectoryedit.pathdoesnotexist")}
-            />
-            {webUploadLocation && (
-              <Text size="sm" c="dimmed" mt="xs">
-                {t("modalscandirectoryedit.uploadlocation", { path: webUploadLocation })}
-              </Text>
-            )}
-            <Space h="md" />
-            <DirectoryPicker
-              value={form.values.upload_directory}
-              onChange={next => form.setFieldValue("upload_directory", next)}
-              onValidityChange={setIsUploadPathValid}
-              placeholder={t("modalscandirectoryedit.uploadfolderdefault")}
-              label={
-                <Text fw="bold" span>
-                  {t("modalscandirectoryedit.uploadfolder")}
+              description={
+                <Text size="sm" c="dimmed" mt="xs">
+                  {t("modalscandirectoryedit.explanation3")}
                 </Text>
               }
-              description={<Text size="sm">{t("modalscandirectoryedit.uploadfolderexplanation")}</Text>}
               missingPathError={t("modalscandirectoryedit.pathdoesnotexist")}
             />
+            {uploadsAllowed && (
+              <>
+                <Space h="md" />
+                <DirectoryPicker
+                  name="upload_directory"
+                  value={form.values.upload_directory}
+                  onChange={next => form.setFieldValue("upload_directory", next)}
+                  onValidityChange={setIsUploadPathValid}
+                  placeholder={t("modalscandirectoryedit.uploadfolderdefault")}
+                  label={
+                    <Text fw="bold" span>
+                      {t("modalscandirectoryedit.uploadfolder")}
+                    </Text>
+                  }
+                  // Under the upload folder input, the one that changes it, rather than
+                  // two fields up; a missing folder would make the announced location wrong.
+                  hint={
+                    isPathValid && isUploadPathValid && webUploadLocation ? (
+                      <Text size="sm" c="dimmed" mt={4} style={{ overflowWrap: "anywhere" }}>
+                        {t("modalscandirectoryedit.uploadlocation", { path: webUploadLocation })}
+                      </Text>
+                    ) : undefined
+                  }
+                  description={
+                    <Text size="sm" c="dimmed" mt="xs">
+                      {t("modalscandirectoryedit.uploadfolderexplanation")}
+                    </Text>
+                  }
+                  missingPathError={t("modalscandirectoryedit.pathdoesnotexist")}
+                />
+              </>
+            )}
           </>
         )}
-        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+        <Group justify="flex-end" mt="md">
           <Button variant="default" onClick={() => closeModal()}>
             {t("cancel")}
           </Button>
-          <Space w="md" />
           <Button type="submit" loading={isSaving} disabled={isSaving}>
             {t("save")}
           </Button>
-        </div>
+        </Group>
       </form>
     </Modal>
   );
 }
-
-ModalUserEdit.defaultProps = {
-  updateAndScan: false,
-  selectedNodeId: "",
-  firstTimeSetup: false,
-};

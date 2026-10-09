@@ -1,0 +1,20 @@
+/* A long name is cut short instead of wrapping the row: the grid row has a fixed
+   height, so a wrapped header spilled above it and hid the collapse chevron */
+.nameChip {
+  min-width: 0;
+}
+
+.nameChipLabel {
+  max-width: 100%;
+}
+
+/* Chip puts the name in a span after the check icon */
+.nameChipLabel > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Only the name gives way: the selected person's check icon was squeezed too */
+.nameChipIcon {
+  flex-shrink: 0;
+}

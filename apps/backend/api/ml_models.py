@@ -500,7 +500,10 @@ def download_models(user):
     model_folder.mkdir(parents=True, exist_ok=True)
 
     failures = []
+    passed_over = []
     for idx, model in enumerate(ML_MODELS):
+        if not _is_model_selected(model):
+            passed_over.append(model)
         try:
             download_model(model)
         except Exception as error:
@@ -510,6 +513,18 @@ def download_models(user):
             logger.exception(f"Failed to download model {model['name']}")
             failures.append(f"{model['name']}: {error}")
         lrj.update_progress(current=idx + 1)
+
+    # A model picked in Site Settings while this ran, after the loop had passed
+    # its entry, was skipped above. No second job is queued while this one runs
+    # (start_model_download), so this one fetches it.
+    for model in passed_over:
+        if not _is_model_selected(model):
+            continue
+        try:
+            download_model(model)
+        except Exception as error:
+            logger.exception(f"Failed to download model {model['name']}")
+            failures.append(f"{model['name']}: {error}")
 
     if failures:
         lrj.fail("Failed to download " + ", ".join(failures))

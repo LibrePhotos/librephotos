@@ -1,16 +1,25 @@
 from django.core.cache import cache
-from django.db.models import Prefetch
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from api.api_util import get_search_term_examples
 from api.filters import SemanticSearchFilter
-from api.models import File, Photo, User
-from api.serializers.photos import GroupedPhotosSerializer, PhotoSummarySerializer
+from api.models import Photo
+from api.serializers.photos import (
+    GroupedPhotosSerializer,
+    PhotoSummarySerializer,
+    with_photo_summary_relations,
+)
 from api.serializers.PhotosGroupedByDate import get_photos_ordered_by_date
 from api.views.custom_api_view import ListViewSet
 from api.views.pagination import HugeResultsSetPagination
+
+# The date of the undated group in search results. The other grouped lists send
+# null, but the web and mobile search schemas require a string here, and null
+# would fail the whole search in mobile apps already installed. Switch to null
+# once a mobile release that accepts it has shipped.
+LEGACY_UNDATED_DATE = "No timestamp"
 
 
 class SearchListViewSet(ListViewSet):
@@ -42,82 +51,18 @@ class SearchListViewSet(ListViewSet):
         ),
     )
     def list(self, request):
+        # The helper loads the stacks, files and local_orientation the summary
+        # serializer reads; without them every match cost three more queries.
+        photos = with_photo_summary_relations(Photo.visible.owned_by(request.user))
         if request.user.semantic_search_topk == 0:
-            queryset = self.filter_queryset(
-                Photo.visible.owned_by(self.request.user)
-                .select_related("thumbnail", "search_instance", "main_file")
-                .prefetch_related(
-                    Prefetch(
-                        "owner",
-                        queryset=User.objects.only(
-                            "id", "username", "first_name", "last_name"
-                        ),
-                    ),
-                    Prefetch(
-                        "main_file__embedded_media",
-                        queryset=File.objects.only("hash"),
-                    ),
-                )
-                .order_by("-exif_timestamp")
-                .only(
-                    "image_hash",
-                    "thumbnail__aspect_ratio",
-                    "thumbnail__dominant_color",
-                    "video",
-                    "main_file",
-                    "search_instance__search_location",
-                    "public",
-                    "rating",
-                    "hidden",
-                    "exif_timestamp",
-                    "owner",
-                    "video_length",
-                    "video_color_transfer",
-                    "exif_gps_lat",
-                    "exif_gps_lon",
-                    "removed",
-                    "in_trashcan",
-                )
+            queryset = self.filter_queryset(photos.order_by("-exif_timestamp"))
+            grouped_photos = get_photos_ordered_by_date(
+                queryset, undated_date=LEGACY_UNDATED_DATE
             )
-            grouped_photos = get_photos_ordered_by_date(queryset)
             serializer = GroupedPhotosSerializer(grouped_photos, many=True)
             return Response({"results": serializer.data})
         else:
-            queryset = self.filter_queryset(
-                Photo.visible.owned_by(self.request.user)
-                .select_related("thumbnail", "search_instance", "main_file")
-                .prefetch_related(
-                    Prefetch(
-                        "owner",
-                        queryset=User.objects.only(
-                            "id", "username", "first_name", "last_name"
-                        ),
-                    ),
-                    Prefetch(
-                        "main_file__embedded_media",
-                        queryset=File.objects.only("hash"),
-                    ),
-                )
-                .only(
-                    "image_hash",
-                    "thumbnail__aspect_ratio",
-                    "thumbnail__dominant_color",
-                    "video",
-                    "main_file",
-                    "search_instance__search_location",
-                    "public",
-                    "rating",
-                    "hidden",
-                    "exif_timestamp",
-                    "owner",
-                    "video_length",
-                    "video_color_transfer",
-                    "exif_gps_lat",
-                    "exif_gps_lon",
-                    "removed",
-                    "in_trashcan",
-                )
-            )
+            queryset = self.filter_queryset(photos)
             serializer = PhotoSummarySerializer(queryset, many=True)
             return Response({"results": serializer.data})
 

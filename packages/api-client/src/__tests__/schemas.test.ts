@@ -11,24 +11,26 @@ import {
   Photo,
   PhotosWithoutTimestampResponse,
   Photoset,
+  SearchPhotos,
   User,
   UserAlbum,
   imageHashOf,
 } from "../schemas";
 import { photosetToFilter } from "../endpoints";
+import { defined } from "./defined";
 
 describe("schema parsing against fixtures", () => {
   it("parses a date-albums (timeline) list", () => {
     const parsed = FetchDateAlbumsListResponse.parse(dateAlbumsList);
     expect(parsed.results).toHaveLength(2);
-    const first = parsed.results[0]!;
+    const first = defined(parsed.results[0]);
     expect(first.id).toBe("2024-06-15");
-    expect(first.items[0]!.type).toBe(Media.IMAGE);
+    expect(defined(first.items[0]).type).toBe(Media.IMAGE);
     // defaults applied by zod
-    expect(first.items[0]!.isTemp).toBe(false);
-    expect(first.items[0]!.shared_to).toEqual([]);
+    expect(defined(first.items[0]).isTemp).toBe(false);
+    expect(defined(first.items[0]).shared_to).toEqual([]);
     // the null-date "no timestamp" bucket is allowed
-    expect(parsed.results[1]!.date).toBeNull();
+    expect(defined(parsed.results[1]).date).toBeNull();
   });
 
   it("parses a login response", () => {
@@ -64,6 +66,23 @@ describe("schema parsing against fixtures", () => {
     expect(Photo.shape.category_source.parse("garbage")).toBe("auto");
     expect(Photo.shape.category_source.parse(undefined)).toBe("auto");
     expect(Photo.shape.category_source.parse("user")).toBe("user");
+  });
+
+  // zod strips unknown keys; the web Edit User dialog lost the upload folder.
+  it("keeps a user's upload folder, which may be empty or null", () => {
+    expect(User.parse({ ...userFixture, upload_directory: "/data/photos/inbox" }).upload_directory).toBe(
+      "/data/photos/inbox"
+    );
+    expect(User.parse({ ...userFixture, upload_directory: null }).upload_directory).toBeNull();
+    expect(User.parse(userFixture).upload_directory).toBeUndefined();
+  });
+
+  // Search sends "No timestamp" for the undated group today and may send null,
+  // as the other grouped lists do; a null used to fail the whole search.
+  it("parses search date groups with either undated marker", () => {
+    const group = (date: string | null) => ({ date, location: "", items: [] });
+    const parsed = SearchPhotos.parse({ results: [group("2024-06-15"), group("No timestamp"), group(null)] });
+    expect(parsed.results.map(g => g.date)).toEqual(["2024-06-15", "No timestamp", null]);
   });
 
   it("rejects malformed data loudly (server drift)", () => {

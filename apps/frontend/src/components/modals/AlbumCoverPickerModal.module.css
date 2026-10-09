@@ -12,7 +12,8 @@
   width: 100%;
   aspect-ratio: 1;
   padding: 0;
-  background: var(--mantine-color-gray-1);
+  /* gray-1 is a light colour in both schemes; it flashed light squares in dark mode */
+  background: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-5));
 }
 
 .photoButton:hover {

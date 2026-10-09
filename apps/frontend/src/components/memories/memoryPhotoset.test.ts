@@ -1,9 +1,11 @@
 import { describe, expect, test } from "vitest";
 import { Memory, MemoryType } from "../../api_client/memories";
+import type { PigPhoto } from "../../api_client/photos/types";
+import { tempPigPhoto } from "../../util/util";
 import { memoriesAreCapped, memoriesPhotoCount, memoriesToFlatItems, memoriesToPhotoGroups } from "./memoryPhotoset";
 
-function photo(id: string) {
-  return { id, image_hash: `hash-${id}`, aspectRatio: 1 } as any;
+function photo(id: string): PigPhoto {
+  return { ...tempPigPhoto(id), image_hash: `hash-${id}`, isTemp: false };
 }
 
 function memory(overrides: Partial<Memory> = {}): Memory {
@@ -20,7 +22,7 @@ function memory(overrides: Partial<Memory> = {}): Memory {
     cover: photo("a"),
     items: [photo("a")],
     ...overrides,
-  } as Memory;
+  };
 }
 
 describe("memoriesToPhotoGroups", () => {

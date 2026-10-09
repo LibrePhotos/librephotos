@@ -1,9 +1,11 @@
+import { StackTypeEnum } from "@librephotos/api-client";
 import { z } from "zod";
 
 // Types for organizational PhotoStack system
 // For duplicates (exact copies, visual duplicates), see api_client/duplicates
 // NOTE: RAW+JPEG pairs and Live Photos now use file_variants instead of stacks
 
+// The types the stack list returns, and so the ones its filter offers and counts
 export const StackType = z.enum(["burst", "bracket", "manual"]);
 export type StackType = z.infer<typeof StackType>;
 
@@ -76,10 +78,11 @@ export const PhotoStackListResponse = z.object({
 });
 export type PhotoStackListResponse = z.infer<typeof PhotoStackListResponse>;
 
-// Full stack detail
+// Full stack detail. A photo's lightbox can still open a legacy RAW + JPEG or
+// Live Photo stack (left by migration 0112), so this takes every stored type.
 export const PhotoStack = z.object({
   id: z.string(),
-  stack_type: StackType,
+  stack_type: StackTypeEnum,
   stack_type_display: z.string(),
   photo_count: z.number(),
   sequence_start: z.string().nullable(),
@@ -126,10 +129,9 @@ export const MergeStacksRequest = z.object({
 });
 export type MergeStacksRequest = z.infer<typeof MergeStacksRequest>;
 
+// RAW + JPEG pairs and Live Photos are file variants now; the backend only detects bursts
 export const DetectStacksRequest = z.object({
-  detect_raw_jpeg: z.boolean().optional(),
   detect_bursts: z.boolean().optional(),
-  detect_live_photos: z.boolean().optional(),
 });
 export type DetectStacksRequest = z.infer<typeof DetectStacksRequest>;
 
@@ -184,12 +186,16 @@ export const DetectStacksResponse = z.object({
 });
 export type DetectStacksResponse = z.infer<typeof DetectStacksResponse>;
 
-// Display labels
-export const stackTypeLabels: Record<StackType, string> = {
-  burst: "Burst Sequence",
-  bracket: "Exposure Bracket",
-  manual: "Manual Stack",
-};
+// Display labels are translated: stacks.typelabel.<type> names one stack,
+// stacks.types.<type> the filter entry for all stacks of that type
+
+// by_type still counts legacy RAW + JPEG / Live Photo stacks, which the list never
+// returns, and so does total_stacks on backends before 1.3. Summing the listed
+// types keeps badges closer to the list on those older backends (their by_type
+// also counted single-photo stacks, which the list hides); once they need no
+// support, total_stacks can be used directly.
+export const countListedStacks = (stats: PhotoStackStats): number =>
+  StackType.options.reduce((sum, type) => sum + (stats.by_type[type] ?? 0), 0);
 
 export const stackTypeIcons: Record<StackType, string> = {
   burst: "bolt",

@@ -4,19 +4,30 @@
  */
 import "@mantine/core/styles.css";
 import { MantineProvider } from "@mantine/core";
+import type { NotificationData } from "@mantine/notifications";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import type { SetPhotosCategoryRequest } from "../../api_client/photos/hooks/useSetPhotosCategoryMutation";
+import type { Photo } from "../../api_client/photos/types";
+import type { User } from "../../api_client/user/types";
 import i18n from "../../i18n";
+import { defined } from "../../util/defined.test-utils";
 import { CategorySection } from "./CategorySection";
+import { makePhoto } from "./photoFixture.test-utils";
 
-const stubs = vi.hoisted(() => ({
-  mutate: vi.fn(),
-  showNotification: vi.fn(),
-  hideNotification: vi.fn(),
-  userId: 1 as number | null,
-  user: { id: 1, favorite_min_rating: 4, default_timeline_filter: { hide_screenshots: true } } as any,
-}));
+/** The part of the signed-in user the section reads. */
+type UserStub = Pick<User, "id" | "favorite_min_rating" | "default_timeline_filter">;
+
+const stubs = vi.hoisted(() => {
+  const user: UserStub = { id: 1, favorite_min_rating: 4, default_timeline_filter: { hide_screenshots: true } };
+  const state: { userId: number | null; user: UserStub } = { userId: 1, user };
+  return Object.assign(state, {
+    mutate: vi.fn<(request: SetPhotosCategoryRequest, options: { onSuccess: () => void }) => void>(),
+    showNotification: vi.fn<(notification: NotificationData) => string>(),
+    hideNotification: vi.fn<(id: string) => void>(),
+  });
+});
 
 vi.mock("../../api_client/photos/hooks/useSetPhotosCategoryMutation", async importOriginal => ({
   ...(await importOriginal<typeof import("../../api_client/photos/hooks/useSetPhotosCategoryMutation")>()),
@@ -32,8 +43,8 @@ vi.mock("@mantine/notifications", () => ({
 }));
 
 beforeAll(async () => {
-  // @ts-ignore - jsdom has no matchMedia, MantineProvider needs it
-  window.matchMedia = (query: string) => ({
+  // jsdom has no matchMedia, MantineProvider needs it
+  window.matchMedia = (query: string): MediaQueryList => ({
     matches: false,
     media: query,
     onchange: null,
@@ -43,13 +54,12 @@ beforeAll(async () => {
     removeEventListener: () => {},
     dispatchEvent: () => false,
   });
-  // @ts-ignore - jsdom has no ResizeObserver, SegmentedControl needs it
-  globalThis.ResizeObserver = class {
+  // jsdom has no ResizeObserver, SegmentedControl needs it
+  globalThis.ResizeObserver = class ResizeObserverStub implements ResizeObserver {
     observe() {}
     unobserve() {}
     disconnect() {}
   };
-  // @ts-ignore
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   await i18n.changeLanguage("en");
 });
@@ -63,7 +73,7 @@ beforeEach(() => {
   stubs.userId = 1;
 });
 
-const screenshot = {
+const screenshot = makePhoto({
   image_hash: "abc",
   owner: { id: 1, username: "alice", first_name: "", last_name: "" },
   video: false,
@@ -72,17 +82,17 @@ const screenshot = {
   is_screenshot: true,
   is_document: false,
   category_source: "auto",
-};
+});
 
-async function renderSection(photo: Record<string, unknown> = screenshot) {
+async function renderSection(photo: Photo = screenshot) {
   const container = document.createElement("div");
   document.body.appendChild(container);
   const root = createRoot(container);
-  const rerender = async (next: Record<string, unknown>) => {
+  const rerender = async (next: Photo) => {
     await act(async () => {
       root.render(
         <MantineProvider env="test">
-          <CategorySection photoDetail={next as any} />
+          <CategorySection photoDetail={next} />
         </MantineProvider>
       );
     });
@@ -100,9 +110,7 @@ async function clickUndo(call: number) {
     createRoot(toast).render(<MantineProvider env="test">{message}</MantineProvider>);
   });
   await act(async () => {
-    Array.from(toast.querySelectorAll("button"))
-      .find(button => button.textContent === "Undo")!
-      .click();
+    defined(Array.from(toast.querySelectorAll("button")).find(button => button.textContent === "Undo")).click();
   });
 }
 
@@ -175,7 +183,7 @@ describe("CategorySection", () => {
     await act(async () => {
       stubs.mutate.mock.calls[0][1].onSuccess();
     });
-    const photoB = { ...screenshot, image_hash: "def", is_screenshot: false, category_source: "user" };
+    const photoB: Photo = { ...screenshot, image_hash: "def", is_screenshot: false, category_source: "user" };
     await container.rerender(photoB);
     expect(radio(container, "photo").checked).toBe(true);
 

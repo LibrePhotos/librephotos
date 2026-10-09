@@ -5,7 +5,7 @@ nuitka==4.2.2
 # Nuitka (4.2.2 too) reads lazy_loader._StubVisitor to follow scikit-image's
 # lazy imports; lazy_loader 0.6 moved it inside attach_stub(), and the build
 # crashes on skimage. Drop the pin once Nuitka handles 0.6.
-lazy_loader==0.6
+lazy_loader==0.5
 ordered-set==4.1.0
 zstandard==0.25.0
 whitenoise==6.12.0

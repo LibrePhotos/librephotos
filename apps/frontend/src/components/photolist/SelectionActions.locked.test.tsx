@@ -2,11 +2,18 @@ import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, describe, expect, it, vi } from "vitest";
+import type { useRemovePhotoFromUserAlbumMutation } from "../../api_client/albums/hooks";
+import type { useMarkPhotosDeletedMutation } from "../../api_client/photos/hooks";
 import { PigPhoto } from "../../api_client/photos/types";
 import i18n from "../../i18n";
+import { defined } from "../../util/defined.test-utils";
 import { SelectionActions } from "./SelectionActions";
 
-const hooks = vi.hoisted(() => ({ remove: vi.fn(), deleted: vi.fn() }));
+type Props = React.ComponentProps<typeof SelectionActions>;
+type RemoveFromAlbum = ReturnType<typeof useRemovePhotoFromUserAlbumMutation>["mutate"];
+type MarkDeleted = ReturnType<typeof useMarkPhotosDeletedMutation>["mutate"];
+
+const hooks = vi.hoisted(() => ({ remove: vi.fn<RemoveFromAlbum>(), deleted: vi.fn<MarkDeleted>() }));
 vi.mock("@tanstack/react-router", () => ({ useLocation: () => ({ pathname: "/album/user/867" }) }));
 vi.mock("../../hooks/useAuth", () => ({ useAuth: () => ({ userId: 1 }) }));
 vi.mock("../../api_client/albums/hooks", () => ({
@@ -14,22 +21,30 @@ vi.mock("../../api_client/albums/hooks", () => ({
 }));
 vi.mock("../../api_client/photos/hooks", () => ({
   useMarkPhotosDeletedMutation: () => ({ mutate: hooks.deleted }),
-  useSetFavoritePhotosMutation: () => ({ mutate: vi.fn() }),
-  useSetPhotosHiddenMutation: () => ({ mutate: vi.fn() }),
-  useSetPhotosPublicMutation: () => ({ mutate: vi.fn() }),
-  useSetPhotosCategoryMutation: () => ({ mutate: vi.fn() }),
+  useSetFavoritePhotosMutation: () => ({ mutate: vi.fn<() => void>() }),
+  useSetPhotosHiddenMutation: () => ({ mutate: vi.fn<() => void>() }),
+  useSetPhotosPublicMutation: () => ({ mutate: vi.fn<() => void>() }),
+  useSetPhotosCategoryMutation: () => ({ mutate: vi.fn<() => void>() }),
 }));
-vi.mock("../../api_client/jobs", () => ({ useDownloadPhotosMutation: () => ({ mutate: vi.fn() }) }));
+vi.mock("../../api_client/jobs", () => ({ useDownloadPhotosMutation: () => ({ mutate: vi.fn<() => void>() }) }));
 vi.mock("../../api_client/stacks", () => ({
-  useCreateManualStackMutation: () => ({ mutate: vi.fn() }),
-  useMergeStacksMutation: () => ({ mutate: vi.fn() }),
-  useRemoveFromStackMutation: () => ({ mutateAsync: vi.fn() }),
+  useCreateManualStackMutation: () => ({ mutate: vi.fn<() => void>() }),
+  useMergeStacksMutation: () => ({ mutate: vi.fn<() => void>() }),
+  useRemoveFromStackMutation: () => ({ mutateAsync: vi.fn<() => void>() }),
 }));
 vi.mock("../modals/ModalDownloadOptions", () => ({ ModalDownloadOptions: () => null }));
 beforeAll(async () => {
-  window.matchMedia = vi
-    .fn()
-    .mockReturnValue({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() });
+  // jsdom has no matchMedia, MantineProvider needs it
+  window.matchMedia = (query: string): MediaQueryList => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => false,
+  });
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   await i18n.changeLanguage("en");
 });
@@ -57,37 +72,37 @@ describe("locked album selection actions", () => {
                   aspectRatio: 1,
                 }),
               ]}
-              updateSelectionState={vi.fn()}
-              onSharePhotos={vi.fn()}
-              onShareAlbum={vi.fn()}
-              onAddToAlbum={vi.fn()}
-              onAddTags={vi.fn()}
-              setAlbumCover={vi.fn()}
+              updateSelectionState={vi.fn<Props["updateSelectionState"]>()}
+              onSharePhotos={vi.fn<Props["onSharePhotos"]>()}
+              onShareAlbum={vi.fn<Props["onShareAlbum"]>()}
+              onAddToAlbum={vi.fn<Props["onAddToAlbum"]>()}
+              onAddTags={vi.fn<Props["onAddTags"]>()}
+              setAlbumCover={vi.fn<Props["setAlbumCover"]>()}
             />
           </MantineProvider>
         );
       });
       await act(async () => {
-        container.querySelectorAll<HTMLButtonElement>("button")[1].click();
+        container.querySelectorAll("button")[1].click();
       });
       await act(async () => {
         await new Promise(resolve => setTimeout(resolve, 250));
       });
       const menuItem = (key: string) =>
-        Array.from(document.body.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')).find(
-          item => item.textContent?.trim() === i18n.t(key)
-        );
+        Array.from(document.body.querySelectorAll('[role="menuitem"]'))
+          .filter(item => item instanceof HTMLButtonElement)
+          .find(item => item.textContent?.trim() === i18n.t(key));
       const remove = menuItem("selectionactions.removephotos");
       const deleted = menuItem("selectionactions.deleted");
       expect(remove).toBeDefined();
       expect(deleted).toBeDefined();
-      expect(remove!.disabled).toBe(locked);
-      expect(deleted!.disabled).toBe(false);
+      expect(defined(remove).disabled).toBe(locked);
+      expect(defined(deleted).disabled).toBe(false);
       for (const key of ["selectionactions.download", "selectionactions.favorite", "selectionactions.hide"]) {
         const item = menuItem(key);
         expect(item?.disabled).toBe(false);
       }
-      await act(async () => remove!.click());
+      await act(async () => defined(remove).click());
       expect(hooks.remove).toHaveBeenCalledTimes(locked ? 0 : 1);
     } finally {
       await act(async () => root.unmount());

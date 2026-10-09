@@ -1,16 +1,17 @@
-import { ActionIcon, PasswordInput, Stack, Text, Title } from "@mantine/core";
+import { ActionIcon, Group, PasswordInput, Stack, Text } from "@mantine/core";
 import { IconLock as Lock, IconLockOpen as LockOpen } from "@tabler/icons-react";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 type Props = Readonly<{
   createNew?: boolean;
-  onValidate: (string, boolean) => void;
+  /** The password to save ("" for none) and whether the fields allow saving. */
+  onValidate: (password: string, isValid: boolean) => void;
   closing?: boolean;
 }>;
 
 export function PasswordEntry(props: Props): JSX.Element {
-  const { closing, createNew, onValidate } = props;
+  const { closing = false, createNew = false, onValidate } = props;
 
   const [editPasswordMode, setEditPasswordMode] = useState(false);
   const { t } = useTranslation();
@@ -18,8 +19,11 @@ export function PasswordEntry(props: Props): JSX.Element {
   const [newPasswordConfirm, setNewPasswordConfirm] = useState("");
   const [newPasswordError, setNewPasswordError] = useState("");
   const [confirmPasswordError, setConfirmPasswordError] = useState("");
+  // "Cannot be blank" waits until the user has left a field or submits, instead of showing in
+  // red the moment the fields unlock or the Create User dialog opens.
+  const [touched, setTouched] = useState(false);
 
-  const validateAndUpdatePassword = (password, passwordConfirm, isClosing = false) => {
+  const validateAndUpdatePassword = (password: string, passwordConfirm: string, isClosing = false) => {
     setConfirmPasswordError("");
     setNewPasswordError("");
     let validPassword = "";
@@ -35,7 +39,9 @@ export function PasswordEntry(props: Props): JSX.Element {
         setConfirmPasswordError(t("settings.password.errormustretype"));
       }
     } else if (editPasswordMode || createNew) {
-      setNewPasswordError(t("settings.password.errorcannotbeblank"));
+      if (isClosing || touched) {
+        setNewPasswordError(t("settings.password.errorcannotbeblank"));
+      }
     } else {
       isValid = true;
     }
@@ -49,31 +55,33 @@ export function PasswordEntry(props: Props): JSX.Element {
   useEffect(() => {
     validateAndUpdatePassword(newPassword, newPasswordConfirm, closing);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [createNew, closing, editPasswordMode]);
+  }, [createNew, closing, editPasswordMode, touched]);
 
   return (
     <Stack style={{ display: "flex", alignContent: "stretch" }} gap="xs">
-      <Title order={6}>
-        {createNew ? (
-          <Text>{t("settings.password.titlesetpassword")}</Text>
-        ) : (
-          <Text style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            {t("settings.password.titlechangepassword")}
-            <ActionIcon
-              title={t("settings.password.tooltipeditbutton")}
-              color="blue"
-              variant={editPasswordMode ? "outline" : "filled"}
-              component="span"
-              style={{ marginLeft: "5px" }}
-              onClick={() => {
-                setEditPasswordMode(!editPasswordMode);
-              }}
-            >
-              {editPasswordMode ? <LockOpen size={16} /> : <Lock size={16} />}
-            </ActionIcon>
-          </Text>
-        )}
-      </Title>
+      {createNew ? (
+        <Text fw={700}>{t("settings.password.titlesetpassword")}</Text>
+      ) : (
+        <Group gap="xs" wrap="nowrap">
+          <Text fw={700}>{t("settings.password.titlechangepassword")}</Text>
+          {/* A real button, so keyboard and screen reader users can unlock the fields too. */}
+          <ActionIcon
+            title={t("settings.password.tooltipeditbutton")}
+            aria-label={t("settings.password.tooltipeditbutton")}
+            aria-pressed={editPasswordMode}
+            color="blue"
+            variant={editPasswordMode ? "outline" : "filled"}
+            onClick={() => {
+              if (editPasswordMode) {
+                setTouched(false);
+              }
+              setEditPasswordMode(!editPasswordMode);
+            }}
+          >
+            {editPasswordMode ? <LockOpen size={16} /> : <Lock size={16} />}
+          </ActionIcon>
+        </Group>
+      )}
 
       <PasswordInput
         leftSection={<Lock />}
@@ -83,6 +91,7 @@ export function PasswordEntry(props: Props): JSX.Element {
         required={editPasswordMode}
         value={newPassword}
         error={newPasswordError}
+        onBlur={() => setTouched(true)}
         onChange={event => {
           setNewPassword(event.currentTarget.value);
           validateAndUpdatePassword(event.currentTarget.value, newPasswordConfirm);
@@ -96,6 +105,7 @@ export function PasswordEntry(props: Props): JSX.Element {
         required={editPasswordMode}
         value={newPasswordConfirm}
         error={confirmPasswordError}
+        onBlur={() => setTouched(true)}
         onChange={event => {
           setNewPasswordConfirm(event.currentTarget.value);
           validateAndUpdatePassword(newPassword, event.currentTarget.value);
@@ -104,8 +114,3 @@ export function PasswordEntry(props: Props): JSX.Element {
     </Stack>
   );
 }
-
-PasswordEntry.defaultProps = {
-  createNew: false,
-  closing: false,
-};

@@ -1,13 +1,15 @@
-import { Group, Text } from "@mantine/core";
+import { Flex, Text } from "@mantine/core";
 import { IconFolder as Folder } from "@tabler/icons-react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { useFetchFolderSubfoldersQuery } from "../../../api_client/albums/hooks";
+import { useAllFolderSubfolders } from "../../../api_client/albums/hooks";
+import { EmptyState } from "../../../components/common/EmptyState";
 import { HeaderComponent } from "../../../components/HeaderComponent";
 import { VirtualGrid } from "../../../components/virtual/VirtualGrid";
 import type { GridCellProps } from "../../../components/virtual/VirtualGrid";
-import { useAlbumListGridConfig } from "../../../hooks/useAlbumListGridConfig";
+import { ALBUM_GRID_GUTTER, useAlbumListGridConfig } from "../../../hooks/useAlbumListGridConfig";
+import classes from "./folder.module.css";
 
 export const Route = createFileRoute("/_protected/album/folder/")({
   component: AlbumFolder,
@@ -15,29 +17,10 @@ export const Route = createFileRoute("/_protected/album/folder/")({
 
 function AlbumFolder() {
   const { t } = useTranslation();
-  const { data: folderData, isFetching } = useFetchFolderSubfoldersQuery();
-  const subfolders = folderData?.subfolders ?? [];
+  const { subfolders, isLoading, isFetching } = useAllFolderSubfolders();
   const { entriesPerRow, entrySquareSize, numberOfRows, gridHeight } = useAlbumListGridConfig(subfolders);
 
   function renderCell({ columnIndex, key, rowIndex, style }: GridCellProps) {
-    if (!subfolders || subfolders.length === 0) {
-      // Show a message when there are no subfolders
-      if (columnIndex === 0 && rowIndex === 0) {
-        return (
-          <div key={key} style={{ ...style, gridColumn: "1 / -1", textAlign: "center", padding: "50px" }}>
-            <Folder size={64} style={{ color: "#ccc", marginBottom: "16px" }} />
-            <Text size="lg" c="dimmed">
-              {t("no_folders", { defaultValue: "No folders with photos found" })}
-            </Text>
-            <Text size="sm" c="dimmed" mt="xs">
-              {t("upload_photos_hint", { defaultValue: "Upload some photos to see your folder structure!" })}
-            </Text>
-          </div>
-        );
-      }
-      return <div key={key} style={style} />;
-    }
-
     const index = rowIndex * entriesPerRow + columnIndex;
     if (index >= subfolders.length) {
       return <div key={key} style={style} />;
@@ -46,44 +29,19 @@ function AlbumFolder() {
     const subfolder = subfolders[index];
     return (
       <div key={key} style={style}>
-        <div style={{ padding: 5, height: entrySquareSize, width: entrySquareSize }}>
+        <div style={{ padding: 5 }}>
           <Link to="/album/folder/$id" params={{ id: encodeURIComponent(subfolder.path) }}>
-            <div
-              style={{
-                width: entrySquareSize - 10,
-                height: entrySquareSize - 10,
-                backgroundColor: "#f0f0f0",
-                borderRadius: "8px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                border: "2px solid #ddd",
-                transition: "all 0.2s ease",
-                cursor: "pointer",
-              }}
-              onMouseEnter={e => {
-                e.currentTarget.style.backgroundColor = "#e8f4f8";
-                e.currentTarget.style.borderColor = "#228be6";
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.backgroundColor = "#f0f0f0";
-                e.currentTarget.style.borderColor = "#ddd";
-              }}
-            >
-              <Folder size={40} style={{ color: "#666" }} />
+            <div className={classes.folderTile} style={{ width: entrySquareSize - 10, height: entrySquareSize - 10 }}>
+              <Folder size={40} stroke={1.5} />
             </div>
           </Link>
         </div>
-        <div style={{ paddingLeft: 15, paddingRight: 15, height: 50 }}>
-          <Group justify="center">
-            <Text fw="bold" lineClamp={1} ta="center" size="sm">
-              {subfolder.name}
-            </Text>
-          </Group>
-          <Text size="xs" c="dimmed" ta="center" mt="xs">
-            {t("photo_count", { defaultValue: "{{count}} photos", count: subfolder.photo_count })}
+        <Flex gap={0} justify="flex-start" direction="column" px={8}>
+          <Text size="sm" fw={500} lineClamp={1} title={subfolder.path}>
+            {subfolder.name}
           </Text>
-        </div>
+          <Text size="xs">{t("numberofphotos", { count: subfolder.photo_count, number: subfolder.photo_count })}</Text>
+        </Flex>
       </div>
     );
   }
@@ -92,23 +50,31 @@ function AlbumFolder() {
     <div>
       <HeaderComponent
         icon={<Folder size={50} />}
-        title={t("folders", { defaultValue: "Folders" })}
+        title={t("folders")}
         fetching={isFetching}
-        subtitle={t("folders_count", {
-          defaultValue: "{{count}} folders with photos",
-          count: subfolders.length,
-        })}
+        subtitle={t("folders_count", { count: subfolders.length })}
       />
 
-      <VirtualGrid
-        style={{ outline: "none" }}
-        cellRenderer={renderCell}
-        columnWidth={entrySquareSize}
-        columnCount={entriesPerRow}
-        height={gridHeight}
-        rowHeight={entrySquareSize + 60}
-        rowCount={numberOfRows}
-      />
+      {/* Outside the grid: with no folders it renders no cells to put a message in */}
+      {!isLoading && subfolders.length === 0 ? (
+        <EmptyState
+          icon={<Folder size={40} />}
+          title={t("emptystate.folders.title")}
+          description={t("emptystate.folders.description")}
+          actionLabel={t("emptystate.goToLibrary")}
+          actionLink="/library"
+        />
+      ) : (
+        <VirtualGrid
+          style={{ outline: "none", paddingLeft: ALBUM_GRID_GUTTER }}
+          cellRenderer={renderCell}
+          columnWidth={entrySquareSize}
+          columnCount={entriesPerRow}
+          height={gridHeight}
+          rowHeight={entrySquareSize + 60}
+          rowCount={numberOfRows}
+        />
+      )}
     </div>
   );
 }

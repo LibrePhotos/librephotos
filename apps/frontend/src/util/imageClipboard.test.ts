@@ -28,11 +28,26 @@ class FakeClipboardItem {
 }
 
 const stubs = vi.hoisted(() => ({
-  write: vi.fn(),
-  toBlob: vi.fn(),
-  drawImage: vi.fn(),
-  close: vi.fn(),
+  write: vi.fn<(items: FakeClipboardItem[]) => Promise<void>>(),
+  toBlob: vi.fn<(callback: BlobCallback, type?: string) => void>(),
+  // drawImage's overloads differ only in how many coordinates follow the image
+  drawImage: vi.fn<(image: CanvasImageSource, ...coordinates: number[]) => void>(),
+  close: vi.fn<() => void>(),
 }));
+
+/** A response whose blob() hands back the very Blob it was made with. */
+class BlobResponse extends Response {
+  constructor(
+    private readonly payload: Blob,
+    status: number
+  ) {
+    super(null, { status });
+  }
+
+  override async blob(): Promise<Blob> {
+    return this.payload;
+  }
+}
 
 function setSecureContext(value: boolean | undefined) {
   Object.defineProperty(window, "isSecureContext", { value, configurable: true });
@@ -97,9 +112,14 @@ describe("copyImageToClipboard", () => {
       "createImageBitmap",
       vi.fn(async () => ({ width: 4, height: 3, close: stubs.close }))
     );
-    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({
+    // The spy is typed by getContext's last overload (RenderingContext | null). The
+    // smallest of those contexts, plus the drawImage the code under test calls:
+    const context: ImageBitmapRenderingContext & Pick<CanvasRenderingContext2D, "drawImage"> = {
+      canvas: document.createElement("canvas"),
+      transferFromImageBitmap: () => {},
       drawImage: stubs.drawImage,
-    } as unknown as CanvasRenderingContext2D);
+    };
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(context);
     stubs.toBlob.mockImplementation((callback: BlobCallback) => callback(png));
     HTMLCanvasElement.prototype.toBlob = stubs.toBlob;
   });
@@ -109,8 +129,8 @@ describe("copyImageToClipboard", () => {
     vi.restoreAllMocks();
   });
 
-  function respondWith(blob: Blob, ok = true, status = 200) {
-    fetchDeferred.resolve({ ok, status, blob: async () => blob } as unknown as Response);
+  function respondWith(blob: Blob, status = 200) {
+    fetchDeferred.resolve(new BlobResponse(blob, status));
   }
 
   it("hands the clipboard a promise before the image has arrived (Safari keeps the gesture)", async () => {
@@ -118,7 +138,7 @@ describe("copyImageToClipboard", () => {
 
     // Nothing has been fetched yet, and the write is already issued.
     expect(stubs.write).toHaveBeenCalledTimes(1);
-    const [item] = stubs.write.mock.calls[0][0] as FakeClipboardItem[];
+    const [item] = stubs.write.mock.calls[0][0];
     expect(item.data["image/png"]).toBeInstanceOf(Promise);
 
     respondWith(webp);
@@ -148,13 +168,13 @@ describe("copyImageToClipboard", () => {
     await pending;
 
     expect(createImageBitmap).not.toHaveBeenCalled();
-    const [item] = stubs.write.mock.calls[0][0] as FakeClipboardItem[];
+    const [item] = stubs.write.mock.calls[0][0];
     await expect(item.data["image/png"]).resolves.toBe(png);
   });
 
   it("rejects when the image cannot be fetched", async () => {
     const pending = copyImageToClipboard("/media/thumbnails_big/missing");
-    respondWith(webp, false, 404);
+    respondWith(webp, 404);
     await expect(pending).rejects.toThrow("HTTP 404");
   });
 

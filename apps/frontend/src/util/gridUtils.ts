@@ -1,35 +1,17 @@
-import { reverse, sortBy } from "lodash-es";
-
 const gridType = "dense";
 
-export const calculateSharedPhotoGridCells = (groupedBySharerList, itemsPerRow) => {
-  const gridContents: any[] = [];
-  let rowCursor: any[] = [];
+/**
+ * The rows of a grid of groups: each group gets a header row holding just the
+ * group, followed by rows of up to `itemsPerRow` of its items.
+ */
+export type GroupedGridRows<Group, Item> = Array<[Group] | Item[]>;
 
-  groupedBySharerList.forEach(group => {
-    gridContents.push([group]);
-    reverse(sortBy(group.photos, "exif_timestamp")).forEach((photo, idx) => {
-      if (idx === 0) {
-        rowCursor = [];
-      }
-      if (idx > 0 && idx % itemsPerRow === 0) {
-        gridContents.push(rowCursor);
-      }
-      if (idx % itemsPerRow === 0) {
-        rowCursor = [];
-      }
-      rowCursor.push(photo);
-      if (idx === group.photos.length - 1) {
-        gridContents.push(rowCursor);
-      }
-    });
-  });
-  return { cellContents: gridContents };
-};
-
-export const calculateSharedAlbumGridCells = (groupedBySharerList, itemsPerRow) => {
-  const gridContents: any[] = [];
-  let rowCursor: any[] = [];
+export const calculateSharedAlbumGridCells = <Group extends { albums: readonly unknown[] }>(
+  groupedBySharerList: readonly Group[],
+  itemsPerRow: number
+): { cellContents: GroupedGridRows<Group, Group["albums"][number]> } => {
+  const gridContents: GroupedGridRows<Group, Group["albums"][number]> = [];
+  let rowCursor: Group["albums"][number][] = [];
 
   groupedBySharerList.forEach(group => {
     gridContents.push([group]);
@@ -104,14 +86,13 @@ export const calculateGridCellSize = (gridWidth: number) => {
   return { entrySquareSize, numEntrySquaresPerRow };
 };
 
-export const calculateFaceGridCells = (
-  groupedByPersonList,
-  itemsPerRow,
+export const calculateFaceGridCells = <Person extends { id: number; faces: readonly unknown[] }>(
+  groupedByPersonList: readonly Person[],
+  itemsPerRow: number,
   collapsedPersonIds: ReadonlySet<number> = new Set()
-) => {
-  const gridContents: any[] = [];
-  let rowCursor: any[] = [];
-  const hash2row = {};
+): { cellContents: GroupedGridRows<Person, Person["faces"][number]> } => {
+  const gridContents: GroupedGridRows<Person, Person["faces"][number]> = [];
+  let rowCursor: Person["faces"][number][] = [];
 
   groupedByPersonList.forEach(person => {
     gridContents.push([person]);
@@ -120,7 +101,6 @@ export const calculateFaceGridCells = (
     if (collapsedPersonIds.has(person.id)) {
       return;
     }
-    const currRowIdx = gridContents.length;
     person.faces.forEach((face, idx) => {
       if (idx === 0) {
         rowCursor = [];
@@ -132,17 +112,15 @@ export const calculateFaceGridCells = (
         rowCursor = [];
       }
       rowCursor.push(face);
-      // @ts-ignore
-      hash2row[[face.image_hash]] = currRowIdx;
       if (idx === person.faces.length - 1) {
         gridContents.push(rowCursor);
       }
     });
   });
-  return { cellContents: gridContents, hash2row };
+  return { cellContents: gridContents };
 };
 
-export const calculateFaceGridCellSize = gridWidth => {
+export const calculateFaceGridCellSize = (gridWidth: number) => {
   let numEntrySquaresPerRow = 10;
   if (gridWidth < 300) {
     numEntrySquaresPerRow = 2;

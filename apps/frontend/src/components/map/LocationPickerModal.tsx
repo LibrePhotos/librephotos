@@ -23,9 +23,11 @@ import MapGL, {
   MarkerDragEvent,
   NavigationControl,
 } from "react-map-gl/maplibre";
+import { invalidatePlaces } from "../../api_client/albums/invalidatePlaces";
 import { useGeocodeSearchQuery } from "../../api_client/geocode";
 import { useUpdatePhotoMutation } from "../../api_client/photos/hooks/useUpdatePhotoMutation";
 import { useMapStyle } from "../../util/mapStyle";
+import { ignoreMissingStyleImages } from "./mapImages";
 
 type Props = Readonly<{
   imageHash: string;
@@ -36,7 +38,11 @@ type Props = Readonly<{
 
 export function LocationPickerModal({ imageHash, onClose, initialLat, initialLon }: Props) {
   const { t } = useTranslation();
-  const mapRef = useRef<MapRef>(null);
+  const mapRef = useRef<MapRef | null>(null);
+  const setMapRef = useCallback((map: MapRef | null) => {
+    mapRef.current = map;
+    ignoreMissingStyleImages(map);
+  }, []);
   const { mapStyle, mapsDisabled } = useMapStyle();
 
   const [position, setPosition] = useState<[number, number] | null>(
@@ -72,7 +78,8 @@ export function LocationPickerModal({ imageHash, onClose, initialLat, initialLon
   const handleSave = useCallback(async () => {
     if (!position) return;
     const [lat, lon] = position;
-    await mutateAsync({ id: imageHash, data: { exif_gps_lat: lat, exif_gps_lon: lon } as any });
+    await mutateAsync({ id: imageHash, data: { exif_gps_lat: lat, exif_gps_lon: lon } });
+    invalidatePlaces();
     onClose();
   }, [mutateAsync, position, imageHash, onClose]);
 
@@ -226,17 +233,17 @@ export function LocationPickerModal({ imageHash, onClose, initialLat, initialLon
           : t("locationpicker.instructions", "Click on the map to set the location, or search above.")}
       </Text>
 
-      {!mapsDisabled && (
+      {mapStyle !== null && (
         <Box style={{ height: 350 }}>
           <MapGL
-            ref={mapRef}
+            ref={setMapRef}
             initialViewState={{
               longitude: initialCenter[1],
               latitude: initialCenter[0],
               zoom: initialZoom,
             }}
             style={{ width: "100%", height: 350 }}
-            mapStyle={mapStyle!}
+            mapStyle={mapStyle}
             onClick={handleMapClick}
             attributionControl={false}
           >
@@ -263,10 +270,10 @@ export function LocationPickerModal({ imageHash, onClose, initialLat, initialLon
 
       <Group justify="flex-end">
         <Button variant="default" onClick={onClose}>
-          {t("locationpicker.cancel", "Cancel")}
+          {t("cancel")}
         </Button>
         <Button onClick={handleSave} disabled={!position} loading={isPending}>
-          {t("locationpicker.save", "Save")}
+          {t("save")}
         </Button>
       </Group>
     </Stack>

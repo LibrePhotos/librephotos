@@ -1,7 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { serverAddress } from "../../api_client/apiClient";
 import type { NormalizedFaceBox } from "../../api_client/faces/hooks/useAddFaceMutation";
-import type { PhotoOcrBlock } from "../../api_client/photos/types";
+import { generatedCaptionOf, userCaptionOf } from "../../api_client/photos/captions";
+import type { Photo, PhotoOcrBlock } from "../../api_client/photos/types";
 import { convertedUrl, needsConversion } from "../../util/videoPlayback";
 import { FaceDrawLayer } from "./FaceDrawLayer";
 import { FaceOverlay } from "./FaceOverlay";
@@ -9,12 +11,37 @@ import type { FaceLocationType } from "./lightbox.types";
 import { OcrTextOverlay } from "./OcrTextOverlay";
 import { VideoPlayer } from "./VideoPlayer";
 
+/** How tall the lightbox's media box is; the carousel arrows centre on it. */
+export const LIGHTBOX_PHOTO_HEIGHT = "82vh";
+// The box starts 48px down, under the toolbar, and the thumbnail strip floats
+// over the bottom 96px of the lightbox. A video's native seek bar is at its
+// bottom edge, so on a short window the video stops short of the strip instead
+// of running under it.
+export const LIGHTBOX_VIDEO_HEIGHT = "min(82vh, calc(100vh - 160px))";
+/** The tallest a video gets outside the lightbox. */
+const PAGE_VIDEO_MAX_HEIGHT = "70vh";
+
+/**
+ * What MediaDisplay reads from the photo's details. The neighbouring slides and
+ * public pages have none, and a test may give only the part it is about.
+ */
+export type MediaDisplayDetails = Partial<Pick<Photo, "captions_json" | "image_path" | "video_playback_type">>;
+
+/** What a screen reader says for the photo: its caption, else its file name. */
+function describePhoto(photoDetails: MediaDisplayDetails | null | undefined): string {
+  const caption = userCaptionOf(photoDetails?.captions_json) || generatedCaptionOf(photoDetails?.captions_json);
+  if (caption?.trim()) return caption.trim();
+  const path = photoDetails?.image_path?.[0];
+  return typeof path === "string" ? (path.split(/[\\/]/).pop() ?? "") : "";
+}
+
 export type MediaDisplayProps = {
   id: string | undefined;
   image_hash?: string | undefined;
   isMainContent?: boolean;
   type: string;
-  bind?: any;
+  /** useGesture's bind(): the pinch and drag handlers for the main photo. */
+  bind?: () => React.DOMAttributes<HTMLDivElement>;
   faceLocation: FaceLocationType;
   toggleZoom?: () => void;
   scale?: number;
@@ -22,7 +49,7 @@ export type MediaDisplayProps = {
   handleDragStart: (event: React.DragEvent) => void;
   fullHeight?: boolean;
   playing?: boolean;
-  photoDetails?: any | null; // Allow null values from the API
+  photoDetails?: MediaDisplayDetails | null;
   /** A public page: the server never converts for an anonymous visitor. */
   isPublic?: boolean;
   onEnded?: () => void;
@@ -64,6 +91,7 @@ export function MediaDisplay({
   onFaceDrawn,
   onCancelDrawFace,
 }: MediaDisplayProps) {
+  const { t } = useTranslation();
   const imgRef = useRef<HTMLImageElement | null>(null);
   // Natural pixel size of the loaded image; drives the OCR overlay's aspect
   // ratio and is reset while a different image is loading.
@@ -88,11 +116,16 @@ export function MediaDisplay({
     if (!photoDetails?.image_path || !Array.isArray(photoDetails.image_path)) {
       return false;
     }
-    return photoDetails.image_path.some((path: string) => path.toLowerCase().endsWith(".gif"));
+    return photoDetails.image_path.some(path => path.toLowerCase().endsWith(".gif"));
   };
 
   const currentType = isMainContent ? type : "photo";
-  const videoContainerHeight = fullHeight ? "100%" : "82vh";
+  // Outside the lightbox (the photo page) there is no box to fill: the video
+  // takes the page's width at its own shape, capped like the photo there. A
+  // fixed box left bands around a landscape clip, and the stored width and
+  // height cannot shape one, since they ignore a phone video's rotation.
+  const videoContainerHeight = fullHeight ? "auto" : LIGHTBOX_VIDEO_HEIGHT;
+  const videoMaxHeight = fullHeight ? PAGE_VIDEO_MAX_HEIGHT : undefined;
   const thumbnailUrl = `${serverAddress}/media/thumbnails_big/${mediaHash}`;
 
   if (currentType === "video" || currentType === "embedded") {
@@ -123,9 +156,12 @@ export function MediaDisplay({
         posterUrl={thumbnailUrl}
         mediaHash={mediaHash}
         height={videoContainerHeight}
+        maxHeight={videoMaxHeight}
         controls={isMainContent}
         playing={isMainContent && playing}
         onEnded={isMainContent ? onEnded : undefined}
+        // A motion photo's clip is served as it is, never converted.
+        convertible={currentType === "video"}
       />
     );
   }
@@ -160,7 +196,7 @@ export function MediaDisplay({
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        height: fullHeight ? "100%" : "82vh",
+        height: fullHeight ? "100%" : LIGHTBOX_PHOTO_HEIGHT,
         borderRadius: "8px",
       }}
     >
@@ -168,7 +204,8 @@ export function MediaDisplay({
         <img
           ref={imgRef}
           src={imageUrl}
-          alt={isMainContent ? "Main Content" : "Preview"}
+          // The neighbouring slides get no details, so they are just "Photo".
+          alt={describePhoto(photoDetails) || t("phototile.photo")}
           loading="eager"
           onDragStart={handleDragStart}
           onDoubleClick={isMainContent && toggleZoom ? toggleZoom : undefined}

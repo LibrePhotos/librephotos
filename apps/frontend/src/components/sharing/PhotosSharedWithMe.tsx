@@ -1,15 +1,16 @@
-import { Loader, Stack, Text } from "@mantine/core";
-import { IconPhoto as Photo, IconPolaroid as Polaroid, IconUser as User } from "@tabler/icons-react";
+import { Avatar, Loader, Stack, Text } from "@mantine/core";
+import { IconPhoto as Photo, IconPolaroid as Polaroid } from "@tabler/icons-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchSharedPhotosWithMeQuery } from "../../api_client/photos/hooks";
 import { useFetchUserListQuery } from "../../api_client/user/hooks";
 import { PhotoListView } from "../photolist/PhotoListView";
+import { avatarSrc } from "./avatarSrc";
 
 type GroupHeaderProps = {
   group: {
     userId: number;
-    photos: any[];
+    photos: readonly unknown[];
   };
 };
 
@@ -17,18 +18,19 @@ function GroupHeader({ group }: Readonly<GroupHeaderProps>) {
   const { t } = useTranslation();
   const { data: users } = useFetchUserListQuery();
 
-  function getUserName(userId: number) {
+  const owner = users?.filter(e => e.id === group.userId)[0];
+
+  function getUserName() {
     if (!users) {
       return <Loader size={16} />;
     }
-    const owner = users.filter(e => e.id === userId)[0];
     let displayName = `user(${group.userId})`;
     if (owner && owner.last_name.length + owner.first_name.length > 0) {
       displayName = `${owner.first_name} ${owner.last_name}`;
     } else if (owner) {
       displayName = owner.username;
     }
-    return <Text>{displayName}</Text>;
+    return displayName;
   }
 
   return (
@@ -38,11 +40,11 @@ function GroupHeader({ group }: Readonly<GroupHeaderProps>) {
         paddingBottom: 15,
       }}
     >
-      <div style={{ display: "flex", textAlign: "left" }}>
-        <User size={36} style={{ margin: 5 }} />
+      <div style={{ display: "flex", alignItems: "center", gap: 10, textAlign: "left" }}>
+        <Avatar size={36} radius="xl" src={avatarSrc(owner)} />
         <div>
-          <Text size="md" fw="bold">
-            {getUserName(group.userId)}
+          <Text size="md" fw="bold" component="div">
+            {getUserName()}
           </Text>
           <Text size="xs" c="dimmed" style={{ display: "flex", alignItems: "center" }}>
             <Polaroid size={16} style={{ marginRight: 5 }} />
@@ -56,13 +58,23 @@ function GroupHeader({ group }: Readonly<GroupHeaderProps>) {
 
 export function PhotosSharedWithMe() {
   const { t } = useTranslation();
-  const { data: photos = [], isFetching } = useFetchSharedPhotosWithMeQuery();
+  // isLoading, not isFetching: a background refetch replaced every list with
+  // the loader and lost the scroll position.
+  const { data: photos = [], isLoading } = useFetchSharedPhotosWithMeQuery();
 
-  if (isFetching) {
+  if (isLoading) {
     return (
-      <Stack align="center">
+      <Stack align="center" mt="xl">
         <Loader />
         <Text>{t("sharing.loadingPhotosSharedWithYou")}</Text>
+      </Stack>
+    );
+  }
+
+  if (photos.length === 0) {
+    return (
+      <Stack align="center" mt="xl">
+        <Text c="dimmed">{t("sharing.noPhotosSharedWithYou")}</Text>
       </Stack>
     );
   }
@@ -73,7 +85,7 @@ export function PhotosSharedWithMe() {
         <PhotoListView
           key={group.userId}
           title={t("sidemenu.photos")}
-          loading={isFetching}
+          loading={false}
           icon={<Photo size={50} />}
           photoset={group.photos}
           idx2hash={group.photos}

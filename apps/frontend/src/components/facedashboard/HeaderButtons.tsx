@@ -1,4 +1,4 @@
-import { ActionIcon, Button, Divider, Group, Modal, NumberInput, Select, Stack, Tooltip } from "@mantine/core";
+import { ActionIcon, Button, Divider, Group, Modal, NumberInput, Select, Stack, Text, Tooltip } from "@mantine/core";
 import {
   IconBarbell as Barbell,
   IconCheck as Check,
@@ -15,10 +15,11 @@ import { getRouteApi, useNavigate } from "@tanstack/react-router";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FaceAnalysisMethod, FacesOrderOption, useTrainFacesMutation } from "../../api_client/faces";
+import type { FaceSelection } from "./hooks/useVirtualizedGrid";
 
 type Props = Readonly<{
   selectMode: boolean;
-  selectedFaces: any;
+  selectedFaces: readonly FaceSelection[];
   changeSelectMode: () => void;
   addFaces: () => void;
   deleteFaces: () => void;
@@ -47,7 +48,8 @@ export function HeaderButtons({
   const navigate = useNavigate();
   const trainFacesMutation = useTrainFacesMutation();
   const { t } = useTranslation();
-  const { tab: activeTab, method: analysisMethod, orderBy, minConfidence } = routeApi.useSearch();
+  const search = routeApi.useSearch();
+  const { tab: activeTab, method: analysisMethod, orderBy, minConfidence } = search;
 
   useEffect(() => {
     if (trainFacesMutation.isPending) {
@@ -71,19 +73,15 @@ export function HeaderButtons({
           >
             {`${selectedFaces.length} ${t("selectionbar.selected")}`}
           </Button>
-          <Divider orientation="vertical" />
+          {/* Dividers only where the controls fit on one row: when the row wraps they end up dangling at line ends */}
+          <Divider orientation="vertical" visibleFrom="md" />
           <Stack align="start">
             <Select
               w={150}
               value={orderBy}
               onChange={value => {
-                navigate({
-                  to: "/faces",
-                  search: prev => ({
-                    ...prev,
-                    orderBy: value as FacesOrderOption,
-                  }),
-                });
+                // Picking the selected option again clears it (null): the route then falls back to its default
+                navigate({ to: "/faces", search: { ...search, orderBy: FacesOrderOption.safeParse(value).data } });
               }}
               leftSection={<SortDescending size={16} />}
               data={[
@@ -100,19 +98,13 @@ export function HeaderButtons({
           </Stack>
           {(activeTab === "inferred" || activeTab === "unknown") && (
             <>
-              <Divider orientation="vertical" />
+              <Divider orientation="vertical" visibleFrom="md" />
               <Stack align="start">
                 <Select
                   w={150}
                   value={analysisMethod}
                   onChange={value => {
-                    navigate({
-                      to: "/faces",
-                      search: prev => ({
-                        ...prev,
-                        method: value as FaceAnalysisMethod,
-                      }),
-                    });
+                    navigate({ to: "/faces", search: { ...search, method: FaceAnalysisMethod.safeParse(value).data } });
                   }}
                   leftSection={<Filter size={16} />}
                   data={[
@@ -127,22 +119,14 @@ export function HeaderButtons({
                   ]}
                 />
               </Stack>
-              <Divider orientation="vertical" />
+              <Divider orientation="vertical" visibleFrom="md" />
               <Stack align="start">
                 <NumberInput
                   w={200}
                   value={minConfidence * 100}
                   onChange={value => {
                     if (typeof value === "number") {
-                      navigate({
-                        to: "/faces",
-                        search: prev => ({
-                          tab: prev.tab || "inferred",
-                          method: prev.method || "clustering",
-                          orderBy: prev.orderBy || FacesOrderOption.enum.confidence,
-                          minConfidence: value / 100,
-                        }),
-                      });
+                      navigate({ to: "/faces", search: { ...search, minConfidence: value / 100 } });
                     }
                   }}
                   min={0}
@@ -150,13 +134,13 @@ export function HeaderButtons({
                   step={5}
                   decimalScale={0}
                   leftSection={<IconWand size={16} />}
-                  suffix="% confident"
+                  suffix={t("facesdashboard.confidentsuffix", "% confident")}
                 />
               </Stack>
             </>
           )}
         </Group>
-        <Group h={36}>
+        <Group h={36} wrap="nowrap">
           <Tooltip label={allCollapsed ? t("facesdashboard.expandall") : t("facesdashboard.collapseall")}>
             <ActionIcon
               variant="light"
@@ -170,7 +154,13 @@ export function HeaderButtons({
           </Tooltip>
           <Divider orientation="vertical" />
           <Tooltip label={t("facesdashboard.explanationadding")}>
-            <ActionIcon variant="light" color="green" disabled={selectedFaces.length === 0} onClick={addFaces}>
+            <ActionIcon
+              variant="light"
+              color="green"
+              disabled={selectedFaces.length === 0}
+              aria-label={t("facesdashboard.explanationadding")}
+              onClick={addFaces}
+            >
               <Plus />
             </ActionIcon>
           </Tooltip>
@@ -179,6 +169,7 @@ export function HeaderButtons({
               variant="light"
               color="orange"
               disabled={selectedFaces.length === 0}
+              aria-label={t("facesdashboard.notthisperson")}
               onClick={() => notThisPerson()}
             >
               <UserOff />
@@ -189,6 +180,7 @@ export function HeaderButtons({
               variant="light"
               color="red"
               disabled={selectedFaces.length === 0}
+              aria-label={t("facesdashboard.explanationdeleting")}
               onClick={() => setOpenDeleteDialog(true)}
             >
               <Trash />
@@ -200,6 +192,7 @@ export function HeaderButtons({
               loading={jobType === "Train Faces"}
               color="blue"
               variant="light"
+              aria-label={t("facesdashboard.explanationtraining")}
               onClick={() => trainFacesMutation.mutate()}
             >
               <Barbell />
@@ -207,12 +200,12 @@ export function HeaderButtons({
           </Tooltip>
         </Group>
       </Group>
-      <Modal opened={openDeleteDialog} onClose={() => setOpenDeleteDialog(false)} title={<h3>{t("deleteface")}</h3>}>
+      <Modal opened={openDeleteDialog} onClose={() => setOpenDeleteDialog(false)} title={t("deleteface")}>
         <Stack>
-          {t("deletefaceexplanation")}
-          <Group justify="center">
+          <Text size="sm">{t("deletefaceexplanation")}</Text>
+          <Group justify="flex-end">
             <Button
-              color="blue"
+              variant="default"
               onClick={() => {
                 setOpenDeleteDialog(false);
               }}

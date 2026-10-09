@@ -1,0 +1,13 @@
+/* The slideshow interval picker sits on the dark lightbox in either colour
+   scheme, so its options keep white text. Mantine's light-scheme hover would
+   put that text on a near-white background; nesting under the dropdown class
+   outranks its rule whatever order the stylesheets load in. */
+.intervalOption {
+  color: var(--mantine-color-white);
+  font-size: 12px;
+}
+
+.intervalDropdown .intervalOption:hover:where(:not([data-combobox-selected])),
+.intervalDropdown .intervalOption:active:where(:not([data-combobox-selected])) {
+  background-color: rgba(255, 255, 255, 0.08);
+}

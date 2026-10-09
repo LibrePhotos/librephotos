@@ -6,7 +6,6 @@ import {
   Center,
   Container,
   Divider,
-  Grid,
   Group,
   Image,
   PasswordInput,
@@ -47,8 +46,33 @@ import { ssoErrorMessageKey } from "../util/ssoErrors";
 import { isStringEmpty } from "../util/stringUtils";
 import { EMAIL_REGEX } from "../util/util";
 
+/**
+ * The protected shell sends a signed-out visitor here with `?redirect=<path>`.
+ * Only a path on this origin is honoured, never `//host`, `/\host` or a full
+ * URL, so a crafted login link cannot forward the user to another site after
+ * they sign in. `/login` itself is dropped so the page cannot loop.
+ */
+export function safeRedirect(value: unknown): string | undefined {
+  if (typeof value !== "string" || !value.startsWith("/") || value.startsWith("//") || value.startsWith("/\\")) {
+    return undefined;
+  }
+  try {
+    // Catches what the URL parser turns into another host, e.g. a tab between the slashes.
+    const url = new URL(value, window.location.origin);
+    if (url.origin !== window.location.origin || url.pathname === "/login" || url.pathname.startsWith("/login/")) {
+      return undefined;
+    }
+  } catch {
+    return undefined;
+  }
+  return value;
+}
+
 export const Route = createFileRoute("/login")({
   component: Login,
+  validateSearch: (search: Record<string, unknown>): { redirect?: string } => ({
+    redirect: safeRedirect(search.redirect),
+  }),
 });
 
 export interface LocationState {
@@ -63,7 +87,10 @@ function LoginPage(): JSX.Element {
   const { data: isAuthenticated } = useIsAuthenticatedQuery();
   const { data: siteSettings } = useGetSettingsQuery();
   const { data: ssoConfig } = useSsoConfigQuery();
-  const { mutate: login, isPending: isLoading } = useLoginMutation();
+  // Back to the page that sent the visitor here; already checked in validateSearch.
+  const { redirect } = Route.useSearch();
+  const target = redirect ?? "/";
+  const { mutate: login, isPending: isLoading } = useLoginMutation({ redirectTo: target });
   // The backend redirects here with a full page load, so the query string is the
   // source of truth; there is no router state to carry the reason.
   const ssoErrorKey = useMemo(
@@ -83,7 +110,10 @@ function LoginPage(): JSX.Element {
   }
 
   if (isAuthenticated) {
-    return <Navigate to="/" replace />;
+    // href carries the target with its own query string and replaces `to` when
+    // the location is built; `to="."` is only there because Navigate's types
+    // require a `to`.
+    return <Navigate to="." href={target} replace />;
   }
 
   return (
@@ -100,7 +130,7 @@ function LoginPage(): JSX.Element {
             <Title order={3}>{t("login.login")}</Title>
 
             {ssoErrorKey && (
-              <Alert color="red" variant="light" title={t("login.error")}>
+              <Alert color="red" variant="light" title={t("login.sso.errortitle")}>
                 {t(ssoErrorKey)}
               </Alert>
             )}
@@ -126,7 +156,12 @@ function LoginPage(): JSX.Element {
                   autoComplete="current-password"
                   {...form.getInputProps("password")}
                 />
-                <Button variant="gradient" gradient={{ from: "#43cea2", to: "#185a9d" }} type="submit">
+                <Button
+                  variant="gradient"
+                  gradient={{ from: "#43cea2", to: "#185a9d" }}
+                  type="submit"
+                  loading={isLoading}
+                >
                   {t("login.login")}
                 </Button>
                 {siteSettings?.email_configured && (
@@ -232,7 +267,6 @@ function FirstTimeSetupPage({ onComplete }: FirstTimeSetupProps): JSX.Element {
   const [isPathValid, setIsPathValid] = useState(true);
   // Null without a scan directory: the backend refuses uploads then.
   const webUploadLocation = uploadLocation(scanDirectory);
-  const [stackRawJpeg, setStackRawJpeg] = useState(true);
   const [allowUpload, setAllowUpload] = useState<boolean | null>(null);
   const [allowRegistration, setAllowRegistration] = useState<boolean | null>(null);
   const isSavingDirectory = isUpdatePending || scanPhotos.isPending;
@@ -256,12 +290,6 @@ function FirstTimeSetupPage({ onComplete }: FirstTimeSetupProps): JSX.Element {
 
   const colorScheme = useComputedColorScheme();
   const dark = colorScheme === "dark";
-
-  useEffect(() => {
-    if (currentUser?.stack_raw_jpeg !== undefined) {
-      setStackRawJpeg(currentUser.stack_raw_jpeg);
-    }
-  }, [currentUser]);
 
   useEffect(() => {
     if (siteSettings) {
@@ -332,7 +360,7 @@ function FirstTimeSetupPage({ onComplete }: FirstTimeSetupProps): JSX.Element {
     }
     if (currentUser) {
       updateScanDirectory(
-        { id: currentUser.id, scan_directory: scanDirectory || null, stack_raw_jpeg: stackRawJpeg },
+        { id: currentUser.id, scan_directory: scanDirectory || null },
         {
           onSuccess: () => {
             if (scanDirectory) {
@@ -376,7 +404,9 @@ function FirstTimeSetupPage({ onComplete }: FirstTimeSetupProps): JSX.Element {
         <Container size="xl" px="md" style={{ width: "100%" }}>
           <Card shadow="xl" w="100%" maw={800} mx="auto">
             <Stepper active={activeStep} onStepClick={setActiveStep} allowNextStepsSelect={false} size="sm">
-              <Stepper.Step label={t("login.firsttimesetup")} description={t("login.signup")}>
+              {/* The account exists once this step is done: going back to it
+                  only led to a second sign-up that failed with "user exists". */}
+              <Stepper.Step label={t("login.firsttimesetup")} description={t("login.signup")} allowStepSelect={false}>
                 <Stack mt="md">
                   <form onSubmit={onSubmit}>
                     <Stack>
@@ -416,6 +446,7 @@ function FirstTimeSetupPage({ onComplete }: FirstTimeSetupProps): JSX.Element {
                       </Group>
                       <Group grow>
                         <PasswordInput
+                          required
                           leftSection={<Lock />}
                           placeholder={t("login.passwordplaceholder")}
                           name="password"
@@ -444,7 +475,7 @@ function FirstTimeSetupPage({ onComplete }: FirstTimeSetupProps): JSX.Element {
                   </form>
                 </Stack>
               </Stepper.Step>
-              <Stepper.Step label={t("sitesettings.header")} description={t("sitesettings.headerupload")}>
+              <Stepper.Step label={t("adminarea.sitesettings")} description={t("login.setupsitesettings")}>
                 <Stack mt="md" gap="md">
                   <Switch
                     label={t("sitesettings.headerupload")}
@@ -468,36 +499,32 @@ function FirstTimeSetupPage({ onComplete }: FirstTimeSetupProps): JSX.Element {
                   </Group>
                 </Stack>
               </Stepper.Step>
-              <Stepper.Step label={t("modalscandirectoryedit.header")} description={t("login.setupdatadirectory")}>
+              <Stepper.Step label={t("settings.scandirectory")} description={t("login.setupdatadirectory")}>
                 <Stack mt="md" gap="md">
-                  <Grid>
-                    <Grid.Col span={{ base: 12, sm: 10 }}>
-                      <Stack gap={0}>
-                        <Text>{t("sitesettings.stack_raw_jpeg")}</Text>
-                        <Text fz="sm" c="dimmed">
-                          {t("settings.stack_raw_jpeg_note")}
-                        </Text>
-                      </Stack>
-                    </Grid.Col>
-                    <Grid.Col span={{ base: 12, sm: 2 }}>
-                      <Switch checked={stackRawJpeg} onChange={event => setStackRawJpeg(event.currentTarget.checked)} />
-                    </Grid.Col>
-                  </Grid>
-                  <Divider my="sm" />
                   <DirectoryPicker
                     value={scanDirectory}
                     onChange={setScanDirectory}
                     onValidityChange={setIsPathValid}
                     placeholder="/data"
                     label={<Text fw="bold">{t("modalscandirectoryedit.currentdirectory")}</Text>}
-                    description={<Title order={6}>{t("modalscandirectoryedit.explanation3")}</Title>}
+                    // Explanatory text, not a heading; matches the user dialog's picker.
+                    description={
+                      <Text size="sm" c="dimmed" mt="xs">
+                        {t("modalscandirectoryedit.explanation3")}
+                      </Text>
+                    }
                     missingPathError={t("modalscandirectoryedit.pathdoesnotexist")}
+                    // Only where uploads are on and the path exists: the hint is about a
+                    // folder the server will really write to. Under the input it describes,
+                    // as in the user dialog, not below the folder tree.
+                    hint={
+                      allowUpload && isPathValid && webUploadLocation ? (
+                        <Text size="sm" c="dimmed" mt={4} style={{ overflowWrap: "anywhere" }}>
+                          {t("modalscandirectoryedit.uploadlocation", { path: webUploadLocation })}
+                        </Text>
+                      ) : undefined
+                    }
                   />
-                  {webUploadLocation && (
-                    <Text size="sm" c="dimmed">
-                      {t("modalscandirectoryedit.uploadlocation", { path: webUploadLocation })}
-                    </Text>
-                  )}
                   <Group justify="space-between">
                     <Button variant="default" onClick={() => navigate({ to: "/" })}>
                       {t("skip")}

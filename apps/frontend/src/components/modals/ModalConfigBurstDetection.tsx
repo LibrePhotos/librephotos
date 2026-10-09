@@ -1,19 +1,11 @@
-import {
-  ActionIcon,
-  Badge,
-  Modal,
-  ScrollArea,
-  Table,
-  Text,
-  TextInput,
-  Title,
-  useComputedColorScheme,
-} from "@mantine/core";
+import { ActionIcon, Badge, Modal, ScrollArea, Table, Text, TextInput, useComputedColorScheme } from "@mantine/core";
 import { IconCirclePlus as CirclePlus, IconSearch as Search } from "@tabler/icons-react";
+import type { TFunction } from "i18next";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { fuzzyMatch } from "../../util/util";
 import type { BurstDetectionRule } from "../settings/burst-detection.zod";
+import { modalTitleStyles } from "./modalTitleStyles";
 
 type Props = Readonly<{
   opened: boolean;
@@ -33,17 +25,20 @@ function searchRules(query: string) {
   };
 }
 
-function getRuleExtraInfo(rule: BurstDetectionRule): string | null {
+function getRuleExtraInfo(rule: BurstDetectionRule, t: TFunction<"translation", undefined>): string | null {
   switch (rule.rule_type) {
-    case "timestamp_proximity":
-      return `Interval: ${rule.interval_ms || 2000}ms`;
+    // Same wording as the rule list in ConfigBurstDetection
+    case "timestamp_proximity": {
+      const interval = t("settings.burst.rule_interval", { ms: rule.interval_ms || 2000 });
+      return rule.require_same_camera !== false ? `${interval}, ${t("settings.burst.rule_same_camera")}` : interval;
+    }
     case "visual_similarity":
-      return `Threshold: ${rule.similarity_threshold || 15}`;
+      return t("settings.burst.rule_threshold", { value: rule.similarity_threshold || 15 });
     case "filename_pattern":
       if (rule.custom_pattern) {
-        return `Custom pattern: ${rule.custom_pattern}`;
+        return t("settings.burst.rule_custom_pattern", { pattern: rule.custom_pattern });
       }
-      return `Pattern type: ${rule.pattern_type || "all"}`;
+      return t("settings.burst.rule_pattern_type", { type: rule.pattern_type || "all" });
     default:
       return null;
   }
@@ -84,14 +79,19 @@ export function ModalConfigBurstDetection({ opened, onClose, availableRules, onA
               {rule.description}
             </Text>
           )}
-          {getRuleExtraInfo(rule) && (
+          {getRuleExtraInfo(rule, t) && (
             <Text size="xs" c="dimmed">
-              {getRuleExtraInfo(rule)}
+              {getRuleExtraInfo(rule, t)}
             </Text>
           )}
         </Table.Td>
         <Table.Td width={40}>
-          <ActionIcon variant="subtle" color="green" onClick={() => appendRule(rule)}>
+          <ActionIcon
+            variant="subtle"
+            color="green"
+            aria-label={t("settings.add_rule_named", { name: rule.name })}
+            onClick={() => appendRule(rule)}
+          >
             <CirclePlus />
           </ActionIcon>
         </Table.Td>
@@ -105,9 +105,10 @@ export function ModalConfigBurstDetection({ opened, onClose, availableRules, onA
 
   return (
     <Modal
+      styles={modalTitleStyles}
       opened={opened}
       size="xl"
-      title={<Title order={3}>{t("settings.burst.add_rule_title")}</Title>}
+      title={t("settings.burst.add_rule_title")}
       onClose={() => onClose()}
     >
       <Text c="dimmed" mb="md">
@@ -121,9 +122,20 @@ export function ModalConfigBurstDetection({ opened, onClose, availableRules, onA
           value={filter}
           onChange={e => handleFilterRules(e)}
         />
-        <Table highlightOnHover>
-          <Table.Tbody>{rules}</Table.Tbody>
-        </Table>
+        {rules.length > 0 && (
+          <Table highlightOnHover>
+            <Table.Tbody>{rules}</Table.Tbody>
+          </Table>
+        )}
+        {/* An empty table read as a glitch once every rule was in use or the search missed.
+            The live region stays mounted so screen readers announce the message as you type. */}
+        <div role="status">
+          {rules.length === 0 && (
+            <Text c="dimmed" ta="center" py="md">
+              {availableRules.some(ignoreSelectedRules) ? t("settings.no_rules_match") : t("settings.all_rules_in_use")}
+            </Text>
+          )}
+        </div>
       </ScrollArea>
     </Modal>
   );

@@ -40,6 +40,9 @@ export const User = z.object({
   username: z.string(),
   email: z.string(),
   scan_directory: z.string().optional(),
+  // Empty means the "uploads" folder inside scan_directory. Without it here zod
+  // stripped the field, and the Edit User dialog showed an empty upload folder.
+  upload_directory: z.string().nullish(),
   confidence: z.number(),
   confidence_person: z.number(),
   transcode_videos: z.boolean(),
@@ -49,19 +52,22 @@ export const User = z.object({
   last_name: z.string(),
   public_photo_count: z.number(),
   date_joined: z.string(),
-  avatar: z.any().nullable(),
+  // The avatar's URL (an ImageField); a client never sends it back as one.
+  avatar: z.string().nullish(),
   photo_count: z.number(),
-  nextcloud_server_address: z.any().nullable(),
-  nextcloud_username: z.any().nullable(),
+  nextcloud_server_address: z.string().nullish(),
+  nextcloud_username: z.string().nullish(),
   nextcloud_app_password: z.string().optional(),
-  nextcloud_scan_directory: z.any().nullable(),
-  avatar_url: z.any().nullable(),
+  nextcloud_scan_directory: z.string().nullish(),
+  avatar_url: z.string().nullish(),
   favorite_min_rating: z.number(),
   image_scale: z.number(),
   save_metadata_to_disk: z.string(),
   save_face_tags_to_disk: z.boolean().default(false),
   datetime_rules: z.string(),
-  burst_detection_rules: z.any().optional(),
+  // A JSON list of rules, or the JSON string encoding one: the server stores
+  // what a client saved.
+  burst_detection_rules: z.unknown().optional(),
   default_timezone: z.string(),
   skip_raw_files: z.boolean().optional().default(false),
   stack_raw_jpeg: z.boolean().optional().default(true),
@@ -72,7 +78,10 @@ export const User = z.object({
   min_cluster_size: z.number(),
   min_samples: z.number(),
   cluster_selection_epsilon: z.number(),
-  llm_settings: z.any().nullable(),
+  // The caption context switches (the name is from the LLM era). The server
+  // stores whatever a client saved there, so it stays `unknown`: readers narrow
+  // each key on its own, and a settings save sends the other keys back unchanged.
+  llm_settings: z.unknown(),
   public_sharing_defaults: PublicSharingDefaults.optional(),
   text_alignment: z.enum(["left", "right"]).default("right"),
   header_size: z.enum(["large", "normal", "small"]).default("large"),

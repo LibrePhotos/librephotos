@@ -45,7 +45,6 @@ import {
   THUMB_BATCH,
   UPLOAD_WINDOW,
   jobPayload,
-  type JobPayloads,
   type JobSpec,
 } from "./types";
 
@@ -141,7 +140,7 @@ export function enqueueUploadWindow(
   db: AppDatabase,
   now: number,
   limit = UPLOAD_WINDOW
-): JobSpec[] {
+): JobSpec<"upload_asset">[] {
   const rows = db.all(
     sql`SELECT uq.asset_id AS asset_id
         FROM upload_queue uq JOIN local_asset la ON la.id = uq.asset_id
@@ -155,7 +154,7 @@ export function enqueueUploadWindow(
         ORDER BY ${LOCAL_FIRST}, uq.enqueued_at ASC, uq.asset_id ASC
         LIMIT ${limit}`
   ) as { asset_id: string }[];
-  return rows.map((r) => ({ kind: "upload_asset" as const, payload: { assetId: r.asset_id } }));
+  return rows.map((r) => ({ kind: "upload_asset", payload: { assetId: r.asset_id } }));
 }
 
 /** How many `upload_asset` jobs are already live (keeps the window a window). */
@@ -248,11 +247,10 @@ export function createJobHandlers(seams: JobSeams): JobHandlers {
 
     /* -- 3. one delta page per job (see delta.pullEntityStep) ------------- */
     remote_delta: async (ctx): Promise<JobOutcome> => {
-      const payload = jobPayload<"remote_delta">(ctx.job) as Partial<JobPayloads["remote_delta"]> & {
-        page?: number;
-      };
-      const entity = payload.entity as SyncEntity | undefined;
-      if (!entity || !SYNC_ENTITIES.includes(entity)) return;
+      const payload = jobPayload("remote_delta", ctx.job);
+      // The payload is what was enqueued: run only an entity this build syncs.
+      const entity = SYNC_ENTITIES.find((e) => e === payload.entity);
+      if (!entity) return;
       const page = payload.page ?? 0;
 
       const step = await pullEntityStep(ctx.db, seams.source, entity, {
@@ -274,14 +272,14 @@ export function createJobHandlers(seams: JobSeams): JobHandlers {
           : `${entity} page ${page}: +${step.applied}/-${step.deleted}${step.done ? " (caught up)" : ""}`,
         enqueue: step.done
           ? []
-          : [{ kind: "remote_delta", payload: { entity, page: page + 1 } as never }],
+          : [{ kind: "remote_delta", payload: { entity, page: page + 1 } }],
       };
     },
 
     /* -- 4. one chunk of the camera roll --------------------------------- */
     device_scan: async (ctx): Promise<JobOutcome> => {
       if (!seams.scanChunk) return;
-      const { chunk = 0 } = jobPayload<"device_scan">(ctx.job);
+      const { chunk = 0 } = jobPayload("device_scan", ctx.job);
       const budget = budgets.scan ?? sizer.budgetFor("device_scan") ?? SCAN_CHUNK;
       const startedAt = Date.now();
       const result = await seams.scanChunk(ctx, budget);
@@ -295,7 +293,7 @@ export function createJobHandlers(seams: JobSeams): JobHandlers {
       // dedupe key drops this one and nothing piles up.
       if (result.scanned > 0 || !result.complete) next.push({ kind: "hash_batch" });
       if (!result.complete) {
-        next.push({ kind: "device_scan", payload: { chunk: chunk + 1 } as never });
+        next.push({ kind: "device_scan", payload: { chunk: chunk + 1 } });
       }
       return {
         applied: result.added,
@@ -335,7 +333,7 @@ export function createJobHandlers(seams: JobSeams): JobHandlers {
     /* -- 6. one photo -------------------------------------------------- */
     upload_asset: async (ctx): Promise<JobOutcome> => {
       if (!seams.uploadAsset) return;
-      const { assetId } = jobPayload<"upload_asset">(ctx.job);
+      const { assetId } = jobPayload("upload_asset", ctx.job);
       if (!assetId) return;
 
       const result = await seams.uploadAsset(ctx, assetId);
@@ -350,7 +348,7 @@ export function createJobHandlers(seams: JobSeams): JobHandlers {
           enqueue: [
             {
               kind: "upload_asset",
-              payload: { assetId } as never,
+              payload: { assetId },
               notBefore: ctx.now + GATE_RETRY_MS,
             },
           ],
@@ -368,7 +366,7 @@ export function createJobHandlers(seams: JobSeams): JobHandlers {
       const next: JobSpec[] = topUpUploadWindow(ctx.db, ctx.now, window);
       // A landed upload means new server rows: pull a photos delta so the
       // merged-timeline badge flips from pending to synced (doc 03 §5).
-      if (result.uploaded) next.push({ kind: "remote_delta", payload: { entity: "photo", page: 0 } as never });
+      if (result.uploaded) next.push({ kind: "remote_delta", payload: { entity: "photo", page: 0 } });
 
       return {
         applied: result.uploaded ? 1 : 0,
@@ -412,7 +410,7 @@ export function createJobHandlers(seams: JobSeams): JobHandlers {
       const drifted: JobSpec[] = [];
       for (const drift of report.drifts) {
         scheduleReseed(ctx.db, drift.entity);
-        drifted.push({ kind: "remote_delta", payload: { entity: drift.entity, page: 0 } as never });
+        drifted.push({ kind: "remote_delta", payload: { entity: drift.entity, page: 0 } });
         ctx.log({
           op: "integrity",
           entity: drift.entity,

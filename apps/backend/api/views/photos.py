@@ -3,7 +3,7 @@ import uuid
 from collections import defaultdict
 
 from django.conf import settings
-from django.db.models import Count, Prefetch, Q
+from django.db.models import Q
 from django.utils import timezone
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework import filters, status, viewsets
@@ -16,7 +16,11 @@ from rest_framework.views import APIView
 from api.mime import mime_type
 from api.metadata.jobs import queue_rating_write
 from api.ml_models import captioning_model_exists, start_model_download
-from api.models import AlbumUser, File, Photo, User
+from api.models import AlbumUser, Photo, User
+from api.models.album_thing import (
+    album_thing_ids_for_photos,
+    refresh_album_thing_photo_counts,
+)
 from api.models.photo_stack import PhotoStack
 from api.models.person import Person
 from api.models.photo_caption import PhotoCaption
@@ -28,6 +32,7 @@ from api.serializers.photos import (
     PhotoEditSerializer,
     PhotoSerializer,
     PhotoSummarySerializer,
+    with_photo_summary_relations,
 )
 from api.views.custom_api_view import ListViewSet
 from api.views.pagination import (
@@ -83,60 +88,12 @@ class RecentlyAddedPhotoListViewSet(ListViewSet):
             return Photo.objects.none()
         latest_date = latest_photo.added_on
 
-        # Prefetch stacks with type filter and annotated photo count
-        # to avoid N+1 queries in PhotoSummarySerializer.get_stacks()
-        valid_stack_types = PhotoStack.VALID_STACK_TYPES + [
-            PhotoStack.StackType.RAW_JPEG_PAIR,
-            PhotoStack.StackType.LIVE_PHOTO,
-        ]
-        stacks_prefetch = Prefetch(
-            "stacks",
-            queryset=PhotoStack.objects.filter(
-                stack_type__in=valid_stack_types
-            ).annotate(photo_count_annotation=Count("photos")),
-        )
-
-        queryset = (
-            Photo.visible.owned_by(self.request.user)
-            .filter(
+        return with_photo_summary_relations(
+            Photo.visible.owned_by(self.request.user).filter(
                 Q(thumbnail__aspect_ratio__isnull=False)
                 & Q(added_on__date=latest_date.date())
             )
-            .select_related("thumbnail", "search_instance", "main_file")
-            .prefetch_related(
-                Prefetch(
-                    "owner",
-                    queryset=User.objects.only(
-                        "id", "username", "first_name", "last_name"
-                    ),
-                ),
-                Prefetch(
-                    "main_file__embedded_media",
-                    queryset=File.objects.only("hash"),
-                ),
-                stacks_prefetch,
-                "files",  # For get_has_raw_variant()
-            )
-            .only(
-                "image_hash",
-                "thumbnail__aspect_ratio",
-                "thumbnail__dominant_color",
-                "video",
-                "main_file",
-                "search_instance__search_location",
-                "rating",
-                "owner",
-                "exif_gps_lat",
-                "exif_gps_lon",
-                "removed",
-                "in_trashcan",
-                "exif_timestamp",
-                "video_length",
-                "video_color_transfer",
-            )
-            .order_by("-added_on")
-        )
-        return queryset
+        ).order_by("-added_on")
 
     def list(self, *args, **kwargs):
         queryset = self.get_queryset()
@@ -167,41 +124,9 @@ class NoTimestampPhotoViewSet(ListViewSet):
     ]
 
     def get_queryset(self):
-        return (
-            Photo.visible.owned_by(self.request.user)
-            .filter(exif_timestamp=None)
-            .select_related("thumbnail", "search_instance", "main_file")
-            .prefetch_related(
-                Prefetch(
-                    "owner",
-                    queryset=User.objects.only(
-                        "id", "username", "first_name", "last_name"
-                    ),
-                ),
-                Prefetch(
-                    "main_file__embedded_media",
-                    queryset=File.objects.only("hash"),
-                ),
-            )
-            .only(
-                "image_hash",
-                "thumbnail__aspect_ratio",
-                "thumbnail__dominant_color",
-                "video",
-                "main_file",
-                "search_instance__search_location",
-                "rating",
-                "owner",
-                "exif_gps_lat",
-                "exif_gps_lon",
-                "removed",
-                "in_trashcan",
-                "exif_timestamp",
-                "video_length",
-                "video_color_transfer",
-            )
-            .order_by("added_on")
-        )
+        return with_photo_summary_relations(
+            Photo.visible.owned_by(self.request.user).filter(exif_timestamp=None)
+        ).order_by("added_on")
 
     def list(self, *args, **kwargs):
         return super().list(*args, **kwargs)
@@ -233,8 +158,8 @@ class BulkPhotoMutationView(APIView):
     flag_name = None
     #: What happened to a photo, by new value, for log lines.
     past_tense = {True: "changed", False: "changed"}
-    #: Hiding or trashing a photo takes it out of its tags' counts, and a
-    #: queryset UPDATE fires no signal to say so.
+    #: Hiding or trashing a photo takes it out of its tags' and thing albums'
+    #: counts, and a queryset UPDATE fires no signal to say so.
     refreshes_tag_counts = False
     #: In ``select_all`` mode, touch (and count) only photos whose state
     #: differs rather than every photo the query matches.
@@ -253,15 +178,16 @@ class BulkPhotoMutationView(APIView):
 
     def apply(self, user, photos, value):
         """UPDATE ``photos`` to ``value``; return the number of rows changed."""
-        affected_tag_ids = (
-            tag_ids_for_photos(photos) if self.refreshes_tag_counts else None
-        )
+        if self.refreshes_tag_counts:
+            affected_tag_ids = tag_ids_for_photos(photos)
+            affected_thing_ids = album_thing_ids_for_photos(photos)
         self.before_update(user, photos, value)
         count = photos.update(
             **self.new_values(user, value), last_modified=timezone.now()
         )
-        if affected_tag_ids is not None:
+        if self.refreshes_tag_counts:
             refresh_tag_photo_counts(affected_tag_ids)
+            refresh_album_thing_photo_counts(affected_thing_ids)
         return count
 
     def parse_value(self, data):
@@ -615,7 +541,10 @@ class PhotoViewSet(viewsets.ModelViewSet):
         return Response({"results": serializer.data})
 
     def get_permissions(self):
-        if self.action in ("list", "retrieve", "summary", "albums"):
+        # Not "list": no client uses it, and anonymously it rendered the full
+        # detail serializer (a similarity-sidecar call each) for every public
+        # photo of every user, up to 5000 a page.
+        if self.action in ("retrieve", "summary", "albums"):
             permission_classes = [IsPhotoOrAlbumSharedTo]
         else:
             # Writes are the owner's alone, staff included: IsAdminUser has no
@@ -628,8 +557,15 @@ class PhotoViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         # Photos in shared albums are handled by the permission class.
+        user = self.request.user
+        # Others see only what the library lists; the owner also opens their
+        # own hidden and trashed photos, from the Hidden and Trash pages.
+        own = Photo.objects.owned_by(user).filter(
+            removed=False, thumbnail__aspect_ratio__isnull=False
+        )
         return (
-            Photo.visible.visible_to(self.request.user)
+            (Photo.visible.visible_to(user) | own)
+            .distinct()
             .prefetch_related("stacks")
             .order_by("-exif_timestamp")
         )
@@ -646,7 +582,8 @@ class PhotoEditViewSet(viewsets.ModelViewSet):
     pagination_class = StandardResultsSetPagination
 
     def get_queryset(self):
-        return Photo.visible.owned_by(self.request.user)
+        # Hidden and trashed photos keep an editable date and location.
+        return Photo.objects.owned_by(self.request.user).filter(removed=False)
 
     def get_object(self):
         """
@@ -1116,13 +1053,15 @@ def _parse_rotation_angle(raw_angle):
 
 def _get_rotatable_photo(image_hash, user):
     """Return ``(photo, error_response)`` for a photo that may be rotated."""
-    try:
-        photo = (
-            Photo.objects.owned_by(user)
-            .select_related("thumbnail", "main_file", "owner")
-            .get(image_hash=image_hash)
-        )
-    except Photo.DoesNotExist:
+    # first(), as in _get_owned_photo: byte-identical files can give one user
+    # two photos with the same hash, and get() turned that into a 500.
+    photo = (
+        Photo.objects.owned_by(user)
+        .select_related("thumbnail", "main_file", "owner")
+        .filter(image_hash=image_hash)
+        .first()
+    )
+    if photo is None:
         return None, _rotation_error("photo not found", status.HTTP_404_NOT_FOUND)
 
     if photo.video:

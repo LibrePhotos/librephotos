@@ -36,6 +36,9 @@ $env:DJANGO_SETTINGS_MODULE = "librephotos.settings.dev_windows"
 $env:BASE_DATA = $DataDir
 $env:BASE_LOGS = $LogsDir
 if (-not $env:SECRET_KEY) { $env:SECRET_KEY = "dev-secret-key" }
+# service/exif/main.py imports service._common; a script only has its own
+# directory on sys.path, so the backend root has to be on PYTHONPATH.
+$env:PYTHONPATH = if ($env:PYTHONPATH) { "$BackendDir;$env:PYTHONPATH" } else { $BackendDir }
 
 
 Push-Location $BackendDir

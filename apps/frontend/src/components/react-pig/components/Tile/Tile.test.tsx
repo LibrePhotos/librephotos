@@ -1,15 +1,17 @@
+import { Settings } from "luxon";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import i18n from "../../../../i18n";
-import TileJsx from "./Tile";
-
-// Tile.jsx declares its props with PropTypes only, which TypeScript cannot see.
-const Tile = TileJsx as React.ComponentType<any>;
+import { defined } from "../../../../util/defined.test-utils";
+import type { ImageItem } from "../../types";
+import Tile from "./Tile";
 
 const settings = { gridGap: 8, bgColor: "#fff", thumbnailSize: 20, expandedSize: 1000 };
 
-function photoItem(overrides: Record<string, unknown> = {}) {
+type PhotoItem = ReturnType<typeof photoItem>;
+
+function photoItem(overrides: Partial<Pick<ImageItem, "type" | "date" | "is_hdr">> = {}) {
   return {
     id: "photo-1",
     url: "hash1",
@@ -27,14 +29,18 @@ let container: HTMLDivElement | null = null;
 let root: ReturnType<typeof createRoot> | null = null;
 
 function renderTile(
-  item: ReturnType<typeof photoItem>,
-  { selectable = true, handleClick = vi.fn(), handleSelection = vi.fn() } = {}
+  item: PhotoItem,
+  {
+    selectable = true,
+    handleClick = vi.fn<(event: React.MouseEvent<HTMLButtonElement>, clicked: PhotoItem) => void>(),
+    handleSelection = vi.fn<(selected: PhotoItem) => void>(),
+  } = {}
 ) {
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
   act(() => {
-    root!.render(
+    defined(root).render(
       <Tile
         item={item}
         useLqip
@@ -53,7 +59,7 @@ function renderTile(
     );
   });
   return {
-    button: container.querySelector("button")!,
+    button: defined(container.querySelector("button")),
     checkbox: container.querySelector<HTMLInputElement>('input[type="checkbox"]'),
     handleClick,
     handleSelection,
@@ -63,14 +69,13 @@ function renderTile(
 beforeAll(async () => {
   HTMLMediaElement.prototype.pause = () => {};
   HTMLMediaElement.prototype.load = () => {};
-  // @ts-ignore
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   await i18n.changeLanguage("en");
 });
 
 afterEach(() => {
   if (root && container) {
-    act(() => root!.unmount());
+    act(() => defined(root).unmount());
     container.remove();
   }
   root = null;
@@ -88,6 +93,17 @@ describe("react-pig Tile accessibility", () => {
     expect(Array.from(button.querySelectorAll("img")).every(img => img.getAttribute("alt") === "")).toBe(true);
   });
 
+  it("reads the capture time as the camera's wall clock, whatever the viewer's zone", () => {
+    // exif_timestamp is tagged UTC but means local time where the photo was taken.
+    const previousZone = Settings.defaultZone;
+    Settings.defaultZone = "America/New_York";
+    try {
+      expect(renderTile(photoItem()).button.getAttribute("aria-label")).toContain("2:02");
+    } finally {
+      Settings.defaultZone = previousZone;
+    }
+  });
+
   it("falls back to the media type when there is no date", () => {
     expect(renderTile(photoItem({ date: null })).button.getAttribute("aria-label")).toBe("Photo");
   });
@@ -97,19 +113,37 @@ describe("react-pig Tile accessibility", () => {
     expect(button.getAttribute("aria-label")).toBe("Video");
   });
 
+  it("says when a video is HDR: the badge on the tile is hidden from assistive tech", () => {
+    expect(renderTile(photoItem({ type: "video", is_hdr: true })).button.getAttribute("aria-label")).toMatch(
+      /^HDR video taken /
+    );
+  });
+
+  it("names an undated HDR video, and leaves SDR videos alone", () => {
+    expect(renderTile(photoItem({ type: "video", is_hdr: true, date: null })).button.getAttribute("aria-label")).toBe(
+      "HDR video"
+    );
+    act(() => defined(root).unmount());
+    defined(container).remove();
+    root = null;
+    expect(renderTile(photoItem({ type: "video", is_hdr: false })).button.getAttribute("aria-label")).toMatch(
+      /^Video taken /
+    );
+  });
+
   it("keeps the selection checkbox out of the button and names it", () => {
     const { button, checkbox } = renderTile(photoItem());
 
     expect(checkbox).not.toBeNull();
     expect(button.contains(checkbox)).toBe(false);
-    expect(checkbox!.closest("button")).toBeNull();
-    expect(checkbox!.getAttribute("aria-label")).toBe(`Select ${button.getAttribute("aria-label")}`);
+    expect(defined(checkbox).closest("button")).toBeNull();
+    expect(defined(checkbox).getAttribute("aria-label")).toBe(`Select ${button.getAttribute("aria-label")}`);
   });
 
   it("selects through the checkbox without also opening the photo", () => {
     const { checkbox, handleClick, handleSelection } = renderTile(photoItem());
 
-    act(() => checkbox!.click());
+    act(() => defined(checkbox).click());
 
     expect(handleSelection).toHaveBeenCalledTimes(1);
     expect(handleSelection).toHaveBeenCalledWith(expect.objectContaining({ id: "photo-1" }));

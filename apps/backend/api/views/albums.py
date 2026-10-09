@@ -1,11 +1,10 @@
 import logging
-import re
 
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
-from django.db.models import Count, F, OuterRef, Prefetch, Q, Subquery
-from django.shortcuts import get_object_or_404
+from django.db.models import Count, Exists, F, OuterRef, Prefetch, Q, Subquery
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework import filters, viewsets
+from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import SAFE_METHODS, AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
@@ -15,12 +14,10 @@ from api.models import (
     AlbumThing,
     AlbumUser,
     Face,
-    File,
     Person,
     Photo,
-    User,
 )
-from api.models.photo_stack import PhotoStack
+from api.models.photo import visible_photo_q
 from api.serializers.album_date import (
     AlbumDateSerializer,
     IncompleteAlbumDateSerializer,
@@ -43,7 +40,11 @@ from api.serializers.album_user import (
     AlbumUserSerializer,
 )
 from api.serializers.person import GroupedPersonPhotosSerializer, PersonSerializer
-from api.serializers.photos import PhotoSummarySerializer
+from api.serializers.photos import (
+    PhotoSummarySerializer,
+    # Kept under its old name for the views that import it from here.
+    with_photo_summary_relations as _with_photo_summary_relations,
+)
 from api.timeline_filter import timeline_filter_q
 from api.util import folder_path_q
 from api.views.custom_api_view import ListViewSet
@@ -94,11 +95,9 @@ class AlbumPersonViewSet(viewsets.ModelViewSet):
         )
 
     def retrieve(self, *args, **kwargs):
-        queryset = self.get_queryset()
-        logger.warning(args[0].__str__())
-        albumid = re.findall(r"\'(.+?)\'", args[0].__str__())[0].split("/")[-2]
+        album = get_object_or_404(self.get_queryset(), pk=self.kwargs["pk"])
         serializer = GroupedPersonPhotosSerializer(
-            queryset.filter(id=albumid).first(), context={"request": self.request}
+            album, context={"request": self.request}
         )
         return Response({"results": serializer.data})
 
@@ -128,7 +127,7 @@ class PersonViewSet(viewsets.ModelViewSet):
         # its faces, so without this a face attached from another user's photo
         # would put that photo's image hash in this user's people list (#2047).
         first_face = Face.objects.filter(
-            person=OuterRef("pk"), photo__owner=self.request.user
+            person=OuterRef("pk"), photo__owner=self.request.user, deleted=False
         ).order_by("id")
         qs = (
             Person.objects.filter(
@@ -155,65 +154,6 @@ class PersonViewSet(viewsets.ModelViewSet):
         return qs
 
 
-def _with_photo_summary_relations(queryset):
-    """Load everything ``PhotoSummarySerializer`` reads in a constant number of queries.
-
-    The summary serializer touches the thumbnail, the search instance, the main
-    file's embedded media, the photo's stacks and its files for every photo it
-    renders. Without these joins an album detail response costs a handful of
-    extra round trips *per photo*, which is why large albums took seconds before
-    showing their first thumbnail (issue #619).
-    """
-    # Filter the stacks to valid types and annotate photo_count so that
-    # get_stacks() never has to fall back to a query of its own.
-    valid_stack_types = PhotoStack.VALID_STACK_TYPES + [
-        PhotoStack.StackType.RAW_JPEG_PAIR,
-        PhotoStack.StackType.LIVE_PHOTO,
-    ]
-    stacks_prefetch = Prefetch(
-        "stacks",
-        queryset=PhotoStack.objects.filter(stack_type__in=valid_stack_types).annotate(
-            photo_count_annotation=Count("photos")
-        ),
-    )
-
-    return (
-        queryset.prefetch_related(
-            Prefetch(
-                "owner",
-                queryset=User.objects.only("id", "username", "first_name", "last_name"),
-            ),
-            Prefetch(
-                "main_file__embedded_media",
-                queryset=File.objects.only("hash"),
-            ),
-            stacks_prefetch,
-            "files",  # Prefetch files for get_has_raw_variant()
-        )
-        .select_related("thumbnail", "search_instance", "main_file")
-        .only(
-            "image_hash",
-            "thumbnail__aspect_ratio",
-            "thumbnail__dominant_color",
-            "video",
-            "main_file",
-            "search_instance__search_location",
-            "public",
-            "rating",
-            "hidden",
-            "exif_timestamp",
-            "owner",
-            "video_length",
-            "video_color_transfer",
-            "exif_gps_lat",
-            "exif_gps_lon",
-            "removed",
-            "in_trashcan",
-            "local_orientation",
-        )
-    )
-
-
 def with_album_user_list_relations(queryset):
     """Load everything ``AlbumUserListSerializer`` reads in a constant number of queries.
 
@@ -225,10 +165,11 @@ def with_album_user_list_relations(queryset):
     return queryset.select_related("owner", "cover_photo", "share").prefetch_related(
         "shared_to",
         # Fallback cover for albums without an explicit one. ``.first()`` on the
-        # unordered m2m orders by pk, so the prefetch has to do the same.
+        # unordered m2m orders by pk, so the prefetch has to do the same. Only
+        # a photo the album detail shows, not a hidden or trashed one.
         Prefetch(
             "photos",
-            queryset=Photo.objects.order_by("pk")[:1],
+            queryset=Photo.visible.order_by("pk")[:1],
             to_attr="first_photos",
         ),
     )
@@ -241,6 +182,20 @@ def _get_active_tag_thing_types():
     return [f"{site_config.TAGGING_MODEL}_tag"]
 
 
+def _thing_has_visible_photo():
+    """Whether a thing album holds a photo its detail shows.
+
+    The list and the detail both gate on it, so a listed card always opens.
+    An EXISTS stops at the first such photo: counting every album's visible
+    photos per request took seconds on a 250k-photo library.
+    """
+    return Exists(
+        AlbumThing.photos.through.objects.filter(albumthing_id=OuterRef("pk")).filter(
+            visible_photo_q("photo__")
+        )
+    )
+
+
 class AlbumThingViewSet(viewsets.ModelViewSet):
     serializer_class = AlbumThingSerializer
     pagination_class = StandardResultsSetPagination
@@ -251,7 +206,7 @@ class AlbumThingViewSet(viewsets.ModelViewSet):
             return AlbumThing.objects.none()
         return (
             AlbumThing.objects.filter(Q(owner=self.request.user))
-            .filter(Q(photo_count__gt=0))
+            .filter(_thing_has_visible_photo())
             .prefetch_related(
                 Prefetch(
                     "photos",
@@ -272,11 +227,10 @@ class AlbumThingViewSet(viewsets.ModelViewSet):
         )
 
     def retrieve(self, *args, **kwargs):
-        logger.warning(args[0].__str__())
-        albumid = re.findall(r"\'(.+?)\'", args[0].__str__())[0].split("/")[-2]
+        # A missing album used to serialize as {"title": ""} with a 200.
+        album = get_object_or_404(self.get_queryset(), pk=self.kwargs["pk"])
         serializer = GroupedThingPhotosSerializer(
-            self.get_queryset().filter(id=albumid).first(),
-            context={"request": self.request},
+            album, context={"request": self.request}
         )
         return Response({"results": serializer.data})
 
@@ -300,10 +254,17 @@ class AlbumThingListViewSet(ListViewSet):
             return AlbumThing.objects.none()
 
         active_types = _get_active_tag_thing_types()
+        # The card shows the stored photo_count. cover_photos are stored too
+        # and not refreshed when one is hidden or trashed, so they are
+        # filtered here.
         queryset = (
             AlbumThing.objects.filter(owner=self.request.user)
-            .prefetch_related("cover_photos")
-            .filter(photo_count__gt=0)
+            .filter(_thing_has_visible_photo())
+            .prefetch_related(
+                Prefetch(
+                    "cover_photos", queryset=Photo.visible.only("image_hash", "video")
+                )
+            )
             .filter(Q(thing_type__in=active_types) | Q(thing_type="hashtag_attribute"))
             .order_by("-title")
         )
@@ -327,7 +288,7 @@ class AlbumPlaceViewSet(viewsets.ModelViewSet):
         """
         if self.request.user.is_anonymous:
             return AlbumPlace.objects.none()
-        photos = Photo.objects.filter(hidden=False).order_by("-exif_timestamp")
+        photos = Photo.visible.order_by("-exif_timestamp")
         if with_photo_summary:
             photos = _with_photo_summary_relations(photos)
         else:
@@ -342,7 +303,7 @@ class AlbumPlaceViewSet(viewsets.ModelViewSet):
         return (
             AlbumPlace.objects.annotate(
                 photo_count=Count(
-                    "photos", filter=Q(photos__hidden=False), distinct=True
+                    "photos", filter=visible_photo_q("photos__"), distinct=True
                 )
             )
             .filter(Q(photo_count__gt=0) & Q(owner=self.request.user))
@@ -354,11 +315,11 @@ class AlbumPlaceViewSet(viewsets.ModelViewSet):
         return self._album_queryset()
 
     def retrieve(self, *args, **kwargs):
-        logger.warning(args[0].__str__())
-        albumid = re.findall(r"\'(.+?)\'", args[0].__str__())[0].split("/")[-2]
+        album = get_object_or_404(
+            self._album_queryset(with_photo_summary=True), pk=self.kwargs["pk"]
+        )
         serializer = GroupedPlacePhotosSerializer(
-            self._album_queryset(with_photo_summary=True).filter(id=albumid).first(),
-            context={"request": self.request},
+            album, context={"request": self.request}
         )
         return Response({"results": serializer.data})
 
@@ -373,15 +334,13 @@ class AlbumPlaceListViewSet(ListViewSet):
     def get_queryset(self):
         if self.request.user.is_anonymous:
             return AlbumPlace.objects.none()
-        cover_photos_query = Photo.objects.filter(hidden=False).only(
-            "image_hash", "video"
-        )
+        cover_photos_query = Photo.visible.only("image_hash", "video")
 
         return (
             AlbumPlace.objects.filter(owner=self.request.user)
             .annotate(
                 photo_count=Count(
-                    "photos", filter=Q(photos__hidden=False), distinct=True
+                    "photos", filter=visible_photo_q("photos__"), distinct=True
                 )
             )
             .prefetch_related(
@@ -471,7 +430,7 @@ class AlbumUserListViewSet(ListViewSet):
             AlbumUser.objects.filter(owner=self.request.user)
             .annotate(
                 photo_count=Count(
-                    "photos", filter=Q(photos__hidden=False), distinct=True
+                    "photos", filter=visible_photo_q("photos__"), distinct=True
                 )
             )
             .filter(Q(photo_count__gt=0) & Q(owner=self.request.user))
@@ -547,7 +506,10 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
         if not params.get("show_all_stack_photos"):
             filters.append(Q(stacks__isnull=True) | Q(primary_in_stack__isnull=False))
         if params.get("person"):
-            filters.append(Q(faces__person__id=params.get("person")))
+            # One Q, so both conditions apply to the same face.
+            filters.append(
+                Q(faces__person__id=params.get("person"), faces__deleted=False)
+            )
         return filters
 
     def _photo_filters(self):
@@ -587,14 +549,15 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
         ``username``, when given).
         """
         params = self.request.query_params
-        albums = AlbumDate.objects.filter(id=self.kwargs["pk"])
+        albums = AlbumDate.objects.all()
         if params.get("public"):
             if params.get("username"):
                 albums = albums.filter(owner__username=params.get("username"))
             albums = albums.filter(photos__public=True)
         else:
             albums = albums.filter(owner=self.request.user)
-        return get_object_or_404(albums.distinct())
+        # DRF's get_object_or_404 also turns a non-numeric id into a 404.
+        return get_object_or_404(albums.distinct(), pk=self.kwargs["pk"])
 
     def get_queryset(self):
         album_date = self._album_date()
@@ -701,7 +664,10 @@ class AlbumDateListViewSet(ListViewSet):
 
         if self.request.query_params.get("person"):
             filter.append(
-                Q(photos__faces__person__id=self.request.query_params.get("person"))
+                Q(
+                    photos__faces__person__id=self.request.query_params.get("person"),
+                    photos__faces__deleted=False,
+                )
             )
         if self.request.query_params.get("last_modified"):
             filter = []

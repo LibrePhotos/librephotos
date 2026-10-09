@@ -21,6 +21,7 @@ import {
   JOB_TARGET_MS,
   type BudgetSpec,
 } from "../sizing";
+import { defined } from "@/test/defined";
 
 const SPEC: BudgetSpec = { initial: 100, min: 10, max: 400 };
 
@@ -36,9 +37,9 @@ describe("work-unit budgets", () => {
 
   it("keeps every spec's initial value within its own clamps", () => {
     for (const [kind, spec] of Object.entries(JOB_BUDGET_SPECS)) {
-      expect(spec!.min).toBeLessThanOrEqual(spec!.initial);
-      expect(spec!.initial).toBeLessThanOrEqual(spec!.max);
-      expect(spec!.min).toBeGreaterThan(0);
+      expect(defined(spec).min).toBeLessThanOrEqual(defined(spec).initial);
+      expect(defined(spec).initial).toBeLessThanOrEqual(defined(spec).max);
+      expect(defined(spec).min).toBeGreaterThan(0);
       expect(kind).toBeTruthy();
     }
   });
@@ -84,10 +85,10 @@ describe("job sizer", () => {
     // A device where each unit of work costs 40ms: the right budget is ~10.
     const costPerUnit = 40;
     for (let i = 0; i < 12; i += 1) {
-      const budget = sizer.budgetFor("hash_batch")!;
+      const budget = defined(sizer.budgetFor("hash_batch"));
       sizer.observe("hash_batch", budget * costPerUnit);
     }
-    const settled = sizer.budgetFor("hash_batch")!;
+    const settled = defined(sizer.budgetFor("hash_batch"));
     expect(settled).toBeGreaterThanOrEqual(8);
     expect(settled).toBeLessThanOrEqual(12);
   });
@@ -96,10 +97,10 @@ describe("job sizer", () => {
     const sizer = createJobSizer({ hash_batch: { initial: 2, min: 2, max: 400 } });
     const costPerUnit = 4; // a fast device — it should earn a bigger budget
     for (let i = 0; i < 12; i += 1) {
-      const budget = sizer.budgetFor("hash_batch")!;
+      const budget = defined(sizer.budgetFor("hash_batch"));
       sizer.observe("hash_batch", budget * costPerUnit);
     }
-    const settled = sizer.budgetFor("hash_batch")!;
+    const settled = defined(sizer.budgetFor("hash_batch"));
     expect(settled).toBeGreaterThanOrEqual(80);
     expect(settled).toBeLessThanOrEqual(120);
   });

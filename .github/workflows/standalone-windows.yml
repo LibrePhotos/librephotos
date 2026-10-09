@@ -14,7 +14,7 @@ on:
         description: "Release tag to attach the zip to (leave empty for an artifact only)"
         required: false
       version:
-        description: "Numeric X.Y.Z stamped into librephotos.exe"
+        description: "Numeric X.Y.Z stamped into librephotos.exe; left at 0.0.0, a tag that is X.Y.Z is used instead"
         required: false
         default: "0.0.0"
 
@@ -56,7 +56,17 @@ jobs:
           restore-keys: nuitka-${{ runner.os }}-
       - name: Build
         working-directory: apps/backend
-        run: python scripts/build_standalone.py --zip --version "${{ inputs.version || github.event.release.tag_name || '0.0.0' }}"
+        shell: bash
+        env:
+          VERSION: ${{ inputs.version || github.event.release.tag_name || '0.0.0' }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          # A manual run attaching to a release with the default version would
+          # otherwise build it as 0.0.0, which reports itself as "dev".
+          if [ "$VERSION" = "0.0.0" ] && [[ "$TAG" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            VERSION="$TAG"
+          fi
+          python scripts/build_standalone.py --zip --version "$VERSION"
       - name: Smoke test
         working-directory: apps/backend/build/standalone/librephotos
         shell: bash

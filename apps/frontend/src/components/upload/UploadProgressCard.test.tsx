@@ -4,18 +4,20 @@ import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import i18n from "../../i18n";
+import { defined } from "../../util/defined.test-utils";
 import { UploadProgressCard } from "./UploadProgressCard";
 import type { UploadItem, UploadQueue } from "./useUploadQueue";
 
-const stubs = vi.hoisted(() => ({
-  queue: {
-    items: [] as UploadItem[],
+const stubs = vi.hoisted(() => {
+  const queue: UploadQueue = {
+    items: [],
     isUploading: false,
-    start: vi.fn(),
-    retry: vi.fn(),
-    reset: vi.fn(),
-  } as UploadQueue,
-}));
+    start: vi.fn<UploadQueue["start"]>(),
+    retry: vi.fn<UploadQueue["retry"]>(),
+    reset: vi.fn<UploadQueue["reset"]>(),
+  };
+  return { queue };
+});
 
 vi.mock("./UploadContext", () => ({
   useUpload: () => stubs.queue,
@@ -51,8 +53,8 @@ const click = (el: HTMLElement | null) =>
   });
 
 beforeAll(async () => {
-  // @ts-ignore - jsdom has no matchMedia, MantineProvider needs it
-  window.matchMedia = (query: string) => ({
+  // jsdom has no matchMedia, MantineProvider needs it
+  window.matchMedia = (query: string): MediaQueryList => ({
     matches: false,
     media: query,
     onchange: null,
@@ -62,7 +64,6 @@ beforeAll(async () => {
     removeEventListener: () => {},
     dispatchEvent: () => false,
   });
-  // @ts-ignore
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   await i18n.changeLanguage("en");
 });
@@ -90,7 +91,7 @@ describe("UploadProgressCard", () => {
   it("summarises a running upload and keeps the close button locked", async () => {
     await render([item("a.jpg", "done", 100), item("b.mp4", "uploading", 50), item("c.jpg", "error", 0, "Boom")], true);
 
-    const card = byTestId("upload-progress-card")!;
+    const card = defined(byTestId("upload-progress-card"));
     expect(card.textContent).toContain("Uploading…");
     expect(card.textContent).toContain("2/3 processed");
     expect(card.textContent).toContain("1 error");
@@ -107,12 +108,12 @@ describe("UploadProgressCard", () => {
     const items = [item("a.jpg", "done", 100), item("b.jpg", "error", 0, "Boom"), item("c.jpg", "error", 0, "Bang")];
     await render(items, false);
 
-    const card = byTestId("upload-progress-card")!;
+    const card = defined(byTestId("upload-progress-card"));
     expect(card.textContent).toContain("Upload complete");
     expect(card.textContent).toContain("3/3 processed");
     expect(card.textContent).toContain("2 errors");
 
-    const retryAll = byTestId("upload-retry-all")!;
+    const retryAll = defined(byTestId("upload-retry-all"));
     expect(retryAll.textContent).toContain("Retry 2 failed uploads");
     await click(retryAll);
     expect(stubs.queue.retry).toHaveBeenCalledWith(items);
@@ -127,7 +128,7 @@ describe("UploadProgressCard", () => {
 
     await click(container.querySelector<HTMLElement>('[aria-label="Collapse list"]'));
     expect(container.querySelectorAll('[data-testid="upload-row"]')).toHaveLength(0);
-    expect(byTestId("upload-progress-card")!.textContent).toContain("2/2 processed");
-    expect(byTestId("upload-progress-card")!.textContent).toContain("1 duplicate");
+    expect(defined(byTestId("upload-progress-card")).textContent).toContain("2/2 processed");
+    expect(defined(byTestId("upload-progress-card")).textContent).toContain("1 duplicate");
   });
 });

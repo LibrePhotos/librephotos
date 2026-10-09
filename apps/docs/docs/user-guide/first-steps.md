@@ -34,19 +34,17 @@ These settings can always be changed later in the Admin Area. Click **Continue**
 
 This is where you tell LibrePhotos where your photos are stored:
 
-1. **Stack RAW+JPEG pairs** (on by default) – Leave this on to have RAW files automatically grouped with their JPEG counterparts during scans. Both files remain in your library. Turn it off if you want RAW and JPEG versions to appear as separate photos.
-
-   You can change this later under your avatar (top right) > `Library`.
-
-2. **Scan Directory** – Select or type the path to your photos folder. If you haven't modified the default `docker-compose.yml`, your photos are under `/data`, which corresponds to the folder you configured as `scanDirectory` in your `.env` file.
+1. **Scan Directory** – Select or type the path to your photos folder. If you haven't modified the default `docker-compose.yml`, your photos are under `/data`, which corresponds to the folder you configured as `scanDirectory` in your `.env` file.
 
    If you will be the only user, `/data` itself is fine. If you plan to add more users later, pick a subfolder for yourself instead, for example `/data/admin` (create it on the host first). Scan directories of different users cannot overlap, so once your account scans `/data` itself, no other user can be given a folder under it. See [Managing users](./managing-users.md).
 
    The directory picker shows a visual tree of available folders that you can click to select, or you can type the path directly.
 
-3. Click **Save** to save your settings and start the initial photo scan, or click **Skip** if you want to configure this later.
+2. Click **Save** to save your settings and start the initial photo scan, or click **Skip** if you want to configure this later.
 
 Once complete, you'll be taken to the main LibrePhotos interface and your first scan will begin automatically if you configured a scan directory.
+
+If you shoot RAW+JPEG, the scan keeps the two files of a shot together as one photo with a RAW variant when they are in the same folder and have the same name. See [Stacks & file variants](./stacks-and-file-variants.md#rawjpeg-pairs).
 
 ---
 

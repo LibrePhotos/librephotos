@@ -18,6 +18,7 @@ import { backupState } from "@/sync/upload/status";
 import { claimNextJob, enqueueJob, enqueueJobs, failJob } from "../queue";
 import { MAX_JOB_ATTEMPTS } from "../types";
 import { hashCounts, jobQueueSnapshot, scanCounts, syncStages, thumbCounts } from "../status";
+import { defined } from "@/test/defined";
 
 describe("jobQueueSnapshot", () => {
   let t: TestDb;
@@ -46,7 +47,7 @@ describe("jobQueueSnapshot", () => {
     expect(snap.inFlight).toHaveLength(1);
     expect(snap.inFlight[0].kind).toBe("device_scan");
     expect(snap.inFlight[0].startedAt).toBe(5_000);
-    expect(JSON.parse(snap.inFlight[0].payload!)).toEqual({ chunk: 3 });
+    expect(JSON.parse(defined(snap.inFlight[0].payload))).toEqual({ chunk: 3 });
     expect(snap.totals.running).toBe(1);
   });
 
@@ -55,9 +56,9 @@ describe("jobQueueSnapshot", () => {
       { kind: "upload_asset", payload: { assetId: "a1" } },
       { kind: "hash_batch" },
     ]);
-    const retrying = claimNextJob(t.db, 1_000)!;
+    const retrying = defined(claimNextJob(t.db, 1_000));
     failJob(t.db, retrying, "network unreachable", 1_000);
-    const dead = claimNextJob(t.db, 1_000)!;
+    const dead = defined(claimNextJob(t.db, 1_000));
     failJob(t.db, { id: dead.id, attempts: MAX_JOB_ATTEMPTS }, "file unreadable", 1_000);
 
     const snap = jobQueueSnapshot(t.db);
@@ -202,7 +203,7 @@ describe("backupState with the job queue wired in", () => {
     insertLocalAsset(t.db, { id: "a0", hash: "h0" });
     insertLocalAlbum(t.db, { id: "cam", backupSelection: 1, assetIds: ["a0"] });
     enqueueJob(t.db, { kind: "hash_batch" });
-    const job = claimNextJob(t.db, 1_000)!;
+    const job = defined(claimNextJob(t.db, 1_000));
     failJob(t.db, { id: job.id, attempts: MAX_JOB_ATTEMPTS }, "media library denied", 1_000);
 
     expect(stateOf().blocker).toEqual({

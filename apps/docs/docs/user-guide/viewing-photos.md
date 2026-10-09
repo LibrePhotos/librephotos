@@ -236,15 +236,15 @@ LibrePhotos asks your browser, for each video, whether it can play it. If it can
 This applies to you and to anyone you share a video with who signs in. Visitors to a public album without an account are always served the original.
 
 :::note
-Not in a release yet: this arrives in the release after 1.2.1. Before it, a video your browser could not play needed **Always transcode videos**.
+Since 1.3.0. On 1.2.1 and older, a video your browser could not play needed **Always transcode videos**.
 :::
 
 ### HDR Videos
 
-Most phones record video in HDR by default: iPhones in Dolby Vision, most Android phones in HLG. Wherever LibrePhotos converts such a video — the gallery thumbnails, and playback when **Always transcode videos** is on — it maps the picture down to ordinary SDR colours, so it looks like itself instead of washed out and grey.
+Most phones record video in HDR by default: iPhones in Dolby Vision, most Android phones in HLG. Wherever LibrePhotos converts such a video — the gallery thumbnails, and playback whenever it is converted (see [Videos your browser cannot play](#videos-your-browser-cannot-play)) — it maps the picture down to ordinary SDR colours, so it looks like itself instead of washed out and grey.
 
-In the photo grid, an HDR video carries an **HDR** badge next to its duration. Whether a video is HDR is worked out once, when the scan adds it, together with its codec and pixel format. Videos that were already in your library before this existed are checked by the **Probe Videos** job, which runs by itself after your next scan and rebuilds the thumbnails of the HDR ones, so any that looked washed out are corrected then. See [Job System](./job-system.md#probe-videos).
+In the photo grid, an HDR video carries an **HDR** badge next to its duration. Whether a video is HDR is worked out once, when the scan adds it, together with its codec and pixel format. Videos that were already in your library before this existed are checked by the **Probe Videos** job, which runs by itself after your next scan and rebuilds the thumbnails of the HDR ones, and of any 10-bit or 4:2:2 ones, so thumbnails that looked washed out or did not play are corrected then. See [Job System](./job-system.md#probe-videos).
 
 :::note
-Not in a release yet: this arrives in the release after 1.2.1.
+The HDR badge, the scan-time check and **Probe Videos** are new in 1.3.0. 1.2.0 and 1.2.1 already mapped HDR videos to SDR, but could turn bright skies and highlights flat white; older releases converted them washed out.
 :::

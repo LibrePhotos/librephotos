@@ -8,9 +8,8 @@ import {
   fetchFaces,
   IncompleteFacesQueryKeys,
   useFetchIncompleteFacesQuery,
+  type FacesRouteOrder,
 } from "../../../api_client/faces";
-
-type OrderByType = "confidence" | "date" | "person";
 
 /** Page size of the backend's face list endpoint (RegularResultsSetPagination). */
 const PAGE_SIZE = 100;
@@ -25,7 +24,7 @@ export function useFaceDataFetching(
   }>,
   activeTab: FacesTab,
   analysisMethod: FaceAnalysisMethod,
-  orderBy: OrderByType,
+  orderBy: FacesRouteOrder,
   minConfidence: number
 ) {
   // Create params objects for API calls. Memoized: they key the cache entries the

@@ -10,27 +10,29 @@ import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import type { People } from "../../api_client/photos/types";
 import i18n from "../../i18n";
+import { defined } from "../../util/defined.test-utils";
 import { PeopleSection } from "./PeopleSection";
 
 vi.mock("../../api_client/apiClient", () => ({ serverAddress: "" }));
 vi.mock("../../service/notifications", () => ({ notification: new Proxy({}, { get: () => () => {} }) }));
 vi.mock("../../api_client/faces", () => ({
-  useSetFacesPersonLabelMutation: () => ({ mutate: vi.fn() }),
-  useDeleteFacesMutation: () => ({ mutate: vi.fn() }),
+  useSetFacesPersonLabelMutation: () => ({ mutate: vi.fn<(...args: unknown[]) => void>() }),
+  useDeleteFacesMutation: () => ({ mutate: vi.fn<(...args: unknown[]) => void>() }),
   FacesTab: { enum: { inferred: "inferred", unknown: "unknown", labeled: "labeled" } },
 }));
 vi.mock("@tanstack/react-router", () => ({
-  useNavigate: () => vi.fn(),
+  useNavigate: () => vi.fn<(options: unknown) => void>(),
   getRouteApi: () => ({ useSearch: () => ({ tab: "inferred" }) }),
 }));
 
-const onAddFaceRequest = vi.fn();
-const onCancelAddFace = vi.fn();
+const onAddFaceRequest = vi.fn<() => void>();
+const onCancelAddFace = vi.fn<() => void>();
 
 beforeAll(async () => {
-  // @ts-ignore - jsdom has no matchMedia, MantineProvider needs it
-  window.matchMedia = (query: string) => ({
+  // jsdom has no matchMedia, MantineProvider needs it
+  window.matchMedia = (query: string): MediaQueryList => ({
     matches: false,
     media: query,
     onchange: null,
@@ -40,7 +42,6 @@ beforeAll(async () => {
     removeEventListener: () => {},
     dispatchEvent: () => false,
   });
-  // @ts-ignore
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   await i18n.changeLanguage("en");
 });
@@ -51,7 +52,10 @@ beforeEach(() => {
   onCancelAddFace.mockReset();
 });
 
-async function renderSection(overrides: Record<string, unknown> = {}, people: unknown[] = []) {
+async function renderSection(
+  overrides: Partial<React.ComponentProps<typeof PeopleSection>> = {},
+  people: People[] = []
+) {
   const container = document.createElement("div");
   document.body.appendChild(container);
   const root = createRoot(container);
@@ -59,7 +63,7 @@ async function renderSection(overrides: Record<string, unknown> = {}, people: un
     root.render(
       <MantineProvider>
         <PeopleSection
-          photoDetail={{ people } as any}
+          photoDetail={{ people }}
           isPublic={false}
           setFaceLocation={() => {}}
           onPersonEdit={() => {}}
@@ -77,7 +81,7 @@ async function renderSection(overrides: Record<string, unknown> = {}, people: un
 function addButton(container: HTMLElement): HTMLButtonElement | undefined {
   return Array.from(container.querySelectorAll("button")).find(button =>
     button.querySelector(".tabler-icon-user-plus")
-  ) as HTMLButtonElement | undefined;
+  );
 }
 
 describe("adding a face the scan missed", () => {
@@ -92,7 +96,7 @@ describe("adding a face the scan missed", () => {
     const container = await renderSection();
 
     await act(async () => {
-      addButton(container)!.click();
+      defined(addButton(container)).click();
     });
 
     expect(onAddFaceRequest).toHaveBeenCalledOnce();
@@ -104,7 +108,7 @@ describe("adding a face the scan missed", () => {
     expect(container.textContent).toContain("Drag a box around the face");
     expect(addButton(container)).toBeUndefined();
 
-    const cancel = Array.from(container.querySelectorAll("button")).find(b => b.textContent === "Cancel")!;
+    const cancel = defined(Array.from(container.querySelectorAll("button")).find(b => b.textContent === "Cancel"));
     await act(async () => {
       cancel.click();
     });
@@ -115,7 +119,7 @@ describe("adding a face the scan missed", () => {
   it("disables the button when the photo is turned, where a drawn box would not line up", async () => {
     const container = await renderSection({ addFaceBlockedReason: "Turn the photo back upright to add a face" });
 
-    expect(addButton(container)!.disabled).toBe(true);
+    expect(defined(addButton(container)).disabled).toBe(true);
   });
 
   it("does not offer it on someone else's shared photo", async () => {

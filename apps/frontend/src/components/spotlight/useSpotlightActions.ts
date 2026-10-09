@@ -1,5 +1,6 @@
-import { Avatar, useMantineColorScheme } from "@mantine/core";
-import type { SpotlightActionData, SpotlightActionGroupData } from "@mantine/spotlight";
+import { Avatar, useComputedColorScheme, useMantineColorScheme } from "@mantine/core";
+import { showNotification } from "@mantine/notifications";
+import type { SpotlightActionData } from "@mantine/spotlight";
 import {
   IconAlbum,
   IconBook,
@@ -40,10 +41,11 @@ import {
   IconVideo,
 } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { fetchClient } from "../../api_client/api";
 import { serverAddress } from "../../api_client/apiClient";
+import { useAccessToken } from "../../api_client/auth";
 import { useTrainFacesMutation } from "../../api_client/faces";
 import {
   useGenerateAutoAlbumsMutation,
@@ -51,7 +53,7 @@ import {
   useScanPhotosMutation,
   useWorkerQuery,
 } from "../../api_client/jobs/hooks";
-import { useDeleteMissingPhotosMutation } from "../../api_client/photos/hooks";
+import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import { useAuth } from "../../hooks/useAuth";
 import { notification } from "../../service/notifications";
 import { SearchOptionType, useSearch, type SearchOption } from "../../service/use-search";
@@ -59,11 +61,19 @@ import { SearchOptionType, useSearch, type SearchOption } from "../../service/us
 const ICON_SIZE = 20;
 // Module-level so the useMemo action lists below do not depend on a per-render object.
 const iconProps = { size: ICON_SIZE, stroke: 1.5 };
-const AVATAR_SIZE = 28;
+// Also the width of every action's left section, see Spotlight.tsx
+export const AVATAR_SIZE = 28;
+// With nothing typed, a few suggestions are enough: the commands below them must show too
+const EMPTY_QUERY_SEARCH_SUGGESTIONS = 3;
 
-type SpotlightAction = SpotlightActionData & {
+/** An action of the palette. It does the same however it is picked, so onClick takes no event. */
+export type SpotlightAction = Omit<SpotlightActionData, "onClick"> & {
+  onClick: () => void;
   keywords?: string[];
 };
+
+/** A group of actions, as Mantine's SpotlightActionGroupData holds them. */
+export type SpotlightActionGroup = { group: string; actions: SpotlightAction[] };
 
 function getThumbnailUrl(imageHash: string | undefined): string | undefined {
   if (!imageHash) return undefined;
@@ -78,9 +88,9 @@ function getFaceUrl(faceUrl: string | undefined): string | undefined {
 
 function searchOptionToAction(option: SearchOption, navigate: ReturnType<typeof useNavigate>): SpotlightAction {
   const getLeftSection = () => {
-    // For people, show face avatar
+    // For people, show face avatar. Avatar is polymorphic: createElement needs the element it renders.
     if (option.type === SearchOptionType.PEOPLE && option.thumbnail) {
-      return React.createElement(Avatar, {
+      return React.createElement(Avatar<"div">, {
         src: getFaceUrl(option.thumbnail),
         size: AVATAR_SIZE,
         radius: "xl",
@@ -89,7 +99,7 @@ function searchOptionToAction(option: SearchOption, navigate: ReturnType<typeof 
 
     // For user albums (my albums) with thumbnails, show album cover
     if (option.type === SearchOptionType.USER_ALBUM && option.thumbnail) {
-      return React.createElement(Avatar, {
+      return React.createElement(Avatar<"div">, {
         src: getThumbnailUrl(option.thumbnail),
         size: AVATAR_SIZE,
         radius: "sm",
@@ -115,7 +125,7 @@ function searchOptionToAction(option: SearchOption, navigate: ReturnType<typeof 
   const getOnClick = () => {
     switch (option.type) {
       case SearchOptionType.EXAMPLE:
-        return () => navigate({ to: `/search/${option.data}` });
+        return () => navigate({ to: `/search/${encodeURIComponent(option.data ?? option.value)}` });
       case SearchOptionType.USER_ALBUM:
         return () => navigate({ to: `/album/user/${option.data}` });
       case SearchOptionType.PLACE_ALBUM:
@@ -125,7 +135,7 @@ function searchOptionToAction(option: SearchOption, navigate: ReturnType<typeof 
       case SearchOptionType.PEOPLE:
         return () => navigate({ to: `/album/persons/${option.data}` });
       default:
-        return () => navigate({ to: `/search/${option.value}` });
+        return () => navigate({ to: `/search/${encodeURIComponent(option.value)}` });
     }
   };
 
@@ -142,7 +152,13 @@ export function useSpotlightActions(query: string = "") {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
-  const { colorScheme, toggleColorScheme } = useMantineColorScheme();
+  const { data: auth } = useAccessToken();
+  const isAdmin = auth?.access?.is_admin ?? false;
+  const { data: userSelfDetails, isPending: isUserSelfDetailsPending } = useCurrentUserSelfDetailsQuery();
+  const { toggleColorScheme } = useMantineColorScheme();
+  // The raw scheme is "auto" on the default setting; the computed one says which
+  // theme is showing, so the toggle offers the other one.
+  const colorScheme = useComputedColorScheme("light", { getInitialValueInEffect: false });
   const { options: searchOptions, filterOptions, isLoading: isSearchLoading } = useSearch();
 
   // Worker and mutation hooks - only query when authenticated
@@ -152,8 +168,9 @@ export function useSpotlightActions(query: string = "") {
   const scanPhotos = useScanPhotosMutation();
   const rescanPhotos = useRescanPhotosMutation();
   const { mutate: generateAutoAlbums } = useGenerateAutoAlbumsMutation();
-  const deleteMissingPhotos = useDeleteMissingPhotosMutation();
   const trainFaces = useTrainFacesMutation();
+  // Deleting missing photos drops their records for good, so it asks first, as on the Library page
+  const [deleteMissingConfirmOpen, setDeleteMissingConfirmOpen] = useState(false);
 
   // Navigation actions
   const navigationActions: SpotlightAction[] = useMemo(
@@ -354,13 +371,18 @@ export function useSpotlightActions(query: string = "") {
         onClick: () => navigate({ to: "/statistics/faceclusters" }),
         keywords: ["face clusters", "clustering"],
       },
-      {
-        id: "nav-admin",
-        label: t("spotlight.nav.admin"),
-        leftSection: React.createElement(IconShield, iconProps),
-        onClick: () => navigate({ to: "/admin" }),
-        keywords: ["admin", "administration", "users", "site settings"],
-      },
+      // The admin area is for superusers only, as in the profile menu
+      ...(isAdmin
+        ? [
+            {
+              id: "nav-admin",
+              label: t("spotlight.nav.admin"),
+              leftSection: React.createElement(IconShield, iconProps),
+              onClick: () => navigate({ to: "/admin" }),
+              keywords: ["admin", "administration", "users", "site settings"],
+            },
+          ]
+        : []),
       // Settings-focused navigation with helpful keywords
       {
         id: "nav-settings-scan",
@@ -419,12 +441,34 @@ export function useSpotlightActions(query: string = "") {
         keywords: ["avatar", "profile picture", "photo"],
       },
     ],
-    [t, navigate]
+    [t, navigate, isAdmin]
   );
 
   // Job actions
-  const jobActions: SpotlightAction[] = useMemo(
-    () => [
+  const jobActions: SpotlightAction[] = useMemo(() => {
+    // Same check as the Library page: a scan without a scan directory fails, so
+    // send admins to set one up there and tell everyone else who can
+    const guardScan = (run: () => void) => {
+      // Until the user details load, a configured user looks like one without a
+      // scan directory, so do nothing rather than redirect them
+      if (isUserSelfDetailsPending) {
+        return;
+      }
+      if (userSelfDetails?.scan_directory) {
+        run();
+      } else if (isAdmin) {
+        navigate({ to: "/library" });
+        // The Library page opens the setup from its own Scan button, so say why the scan did not start
+        showNotification({
+          title: t("toasts.scanphotostitle"),
+          message: t("toasts.scan_directory_setup"),
+          color: "orange",
+        });
+      } else {
+        notification.scanDirectoryRequired();
+      }
+    };
+    return [
       {
         id: "action-scan",
         label: t("spotlight.actions.scanPhotos"),
@@ -432,7 +476,7 @@ export function useSpotlightActions(query: string = "") {
         leftSection: React.createElement(IconRefresh, iconProps),
         onClick: () => {
           if (workerAvailable) {
-            scanPhotos.mutate();
+            guardScan(() => scanPhotos.mutate());
           }
         },
         disabled: !workerAvailable,
@@ -445,7 +489,7 @@ export function useSpotlightActions(query: string = "") {
         leftSection: React.createElement(IconRefreshDot, iconProps),
         onClick: () => {
           if (workerAvailable) {
-            rescanPhotos.mutate();
+            guardScan(() => rescanPhotos.mutate());
           }
         },
         disabled: !workerAvailable,
@@ -500,15 +544,25 @@ export function useSpotlightActions(query: string = "") {
         leftSection: React.createElement(IconPhotoX, iconProps),
         onClick: () => {
           if (workerAvailable) {
-            deleteMissingPhotos.mutate();
+            setDeleteMissingConfirmOpen(true);
           }
         },
         disabled: !workerAvailable,
         keywords: ["delete", "missing", "cleanup"],
       },
-    ],
-    [t, workerAvailable, scanPhotos, rescanPhotos, trainFaces, generateAutoAlbums, deleteMissingPhotos]
-  );
+    ];
+  }, [
+    t,
+    workerAvailable,
+    scanPhotos,
+    rescanPhotos,
+    trainFaces,
+    generateAutoAlbums,
+    userSelfDetails,
+    isUserSelfDetailsPending,
+    isAdmin,
+    navigate,
+  ]);
 
   // Quick actions
   const quickActions: SpotlightAction[] = useMemo(
@@ -545,15 +599,17 @@ export function useSpotlightActions(query: string = "") {
   }, [query, t, navigate]);
 
   // Build grouped actions
-  const actions: (SpotlightActionGroupData | SpotlightActionData)[] = useMemo(() => {
-    const groups: (SpotlightActionGroupData | SpotlightActionData)[] = [];
+  const actions: SpotlightActionGroup[] = useMemo(() => {
+    const groups: SpotlightActionGroup[] = [];
 
     // Search group with "Search for [query]" as first option
     const allSearchActions: SpotlightAction[] = [];
     if (searchForQueryAction) {
       allSearchActions.push(searchForQueryAction);
+      allSearchActions.push(...searchActions);
+    } else {
+      allSearchActions.push(...searchActions.slice(0, EMPTY_QUERY_SEARCH_SUGGESTIONS));
     }
-    allSearchActions.push(...searchActions);
 
     if (allSearchActions.length > 0) {
       groups.push({
@@ -586,5 +642,9 @@ export function useSpotlightActions(query: string = "") {
     actions,
     filterOptions,
     isLoading: isSearchLoading,
+    deleteMissingConfirm: {
+      opened: deleteMissingConfirmOpen,
+      close: () => setDeleteMissingConfirmOpen(false),
+    },
   };
 }

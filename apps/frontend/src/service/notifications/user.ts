@@ -17,6 +17,14 @@ function updateUserError(message?: string) {
   });
 }
 
+function deleteUser(username: string) {
+  showNotification({
+    message: i18n.t("toasts.deleteuser", { username }),
+    title: i18n.t("toasts.deleteusertitle"),
+    color: "teal",
+  });
+}
+
 function signupError(message?: string) {
   showNotification({
     message: message || i18n.t("toasts.signuperror"),
@@ -26,6 +34,7 @@ function signupError(message?: string) {
 }
 
 export const user = {
+  deleteUser,
   updateUser,
   updateUserError,
   signupError,

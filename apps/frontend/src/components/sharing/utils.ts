@@ -1,23 +1,24 @@
-import { User } from "../../api_client/user/types";
+import type { User } from "../../api_client/user/types";
+import { fuzzyMatch } from "../../util/util";
 
-function fuzzyMatch(str: string, pattern: string) {
-  if (pattern.split("").length > 0) {
-    const expr = pattern.split("").reduce((a, b) => `${a}.*${b}`);
-    return new RegExp(expr).test(str);
-  }
-  return false;
-}
-
-export default function filterUsers(username: string, excludeUserId: number, users: User[] = []): User[] {
+// The shared matcher escapes what it is given: a local copy built a RegExp
+// straight from the typed text, so "(" or "+" threw during render and took the
+// whole page down.
+// Generic over the row shape: the user list gives non-admins only the public
+// fields (ListUser), which still carry everything matched on here.
+export default function filterUsers<U extends Pick<User, "id" | "username" | "first_name" | "last_name">>(
+  username: string,
+  excludeUserId: number,
+  users: readonly U[] = []
+): U[] {
   return users
     .filter(user => {
-      if (username.length === 0) {
+      // fuzzyMatch drops whitespace and throws on a query with nothing left, so a
+      // filter of only spaces lists everyone, like an empty one.
+      if (username.trim().length === 0) {
         return true;
       }
-      return (
-        fuzzyMatch(user.username.toLowerCase(), username.toLowerCase()) ||
-        fuzzyMatch(`${user.first_name.toLowerCase()} ${user.last_name.toLowerCase()}`, username.toLowerCase())
-      );
+      return fuzzyMatch(username, user.username) || fuzzyMatch(username, `${user.first_name} ${user.last_name}`);
     })
     .filter(user => user.id !== excludeUserId);
 }

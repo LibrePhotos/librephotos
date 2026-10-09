@@ -13,6 +13,7 @@ Stacks are for organization, duplicates are for storage cleanup.
 """
 
 import logging
+from collections import Counter
 
 from django.core.paginator import Paginator
 from django.db.models import Count
@@ -39,7 +40,7 @@ class PhotoStackListView(APIView):
             OpenApiParameter(
                 "stack_type",
                 str,
-                description="Filter by stack type: raw_jpeg, burst, bracket, live_photo, manual",
+                description="Filter by stack type: burst, bracket, manual",
             ),
             OpenApiParameter(
                 "page",
@@ -361,30 +362,47 @@ class DetectStacksView(APIView):
 
 
 class PhotoStackStatsView(APIView):
-    """Get stack statistics for the current user."""
+    """Get stack statistics for the current user.
+
+    ``total_stacks``, ``photos_in_stacks`` and the ``by_type`` counts of the
+    organizational types count what PhotoStackListView lists: those types,
+    with at least 2 photos. Counting more put a number on the Stacks badge
+    that the list could not show. The deprecated RAW+JPEG and Live Photo types
+    stay in ``by_type`` so their migration can be followed, but nothing else
+    counts them.
+    """
 
     permission_classes = [IsAuthenticated]
 
-    def get(self, request):
-        # Include all stack types for stats (shows deprecated types for migration visibility)
-        all_stack_types = PhotoStack.VALID_STACK_TYPES + [
-            PhotoStack.StackType.RAW_JPEG_PAIR,
-            PhotoStack.StackType.LIVE_PHOTO,
-        ]
+    DEPRECATED_STACK_TYPES = [
+        PhotoStack.StackType.RAW_JPEG_PAIR,
+        PhotoStack.StackType.LIVE_PHOTO,
+    ]
 
-        stacks = PhotoStack.objects.filter(
-            owner=request.user, stack_type__in=all_stack_types
+    def get(self, request):
+        listed = (
+            PhotoStack.objects.filter(
+                owner=request.user, stack_type__in=PhotoStack.VALID_STACK_TYPES
+            )
+            .annotate(photos_count=Count("photos"))
+            .filter(photos_count__gte=2)
         )
 
-        # Count by type (includes deprecated types so users can see migration progress)
-        by_type = {}
-        for stack_type in all_stack_types:
-            by_type[stack_type] = stacks.filter(stack_type=stack_type).count()
+        listed_types = Counter(listed.values_list("stack_type", flat=True))
+        by_type = {
+            stack_type: listed_types[stack_type]
+            for stack_type in PhotoStack.VALID_STACK_TYPES
+        }
+        deprecated = PhotoStack.objects.filter(
+            owner=request.user, stack_type__in=self.DEPRECATED_STACK_TYPES
+        )
+        for stack_type in self.DEPRECATED_STACK_TYPES:
+            by_type[stack_type] = deprecated.filter(stack_type=stack_type).count()
 
-        # Count photos in stacks (ManyToMany - photos with at least one valid organizational stack)
+        # A photo can be in several stacks (ManyToMany): count it once.
         photos_in_stacks = (
             Photo.objects.owned_by(request.user)
-            .filter(stacks__stack_type__in=all_stack_types)
+            .filter(stacks__in=listed.values("pk"))
             .distinct()
             .count()
         )
@@ -397,7 +415,7 @@ class PhotoStackStatsView(APIView):
 
         return Response(
             {
-                "total_stacks": stacks.count(),
+                "total_stacks": listed_types.total(),
                 "by_type": by_type,
                 "photos_in_stacks": photos_in_stacks,
                 "total_photos": total_photos,

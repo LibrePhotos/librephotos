@@ -35,6 +35,7 @@ class UserTest(TestCase):
         "username",
         "email",
         "scan_directory",
+        "upload_directory",
         "confidence",
         "confidence_person",
         "transcode_videos",
@@ -247,10 +248,12 @@ class UserTest(TestCase):
         )
         self.assertEqual(200, response.status_code)
 
-    def test_admin_delete_user(self):
+    def test_admin_cannot_delete_user_through_user_endpoint(self):
+        # /api/delete/user/ is the one delete path; it keeps the superuser guards.
         self.client.force_authenticate(user=self.admin)
         response = self.client.delete(f"/api/user/{self.user1.id}/")
-        self.assertEqual(204, response.status_code)
+        self.assertEqual(405, response.status_code)
+        self.assertTrue(User.objects.filter(id=self.user1.id).exists())
 
     @override_config(ALLOW_REGISTRATION=False)
     def test_first_time_setup_creates_user_when_registration_is_disabled(self):

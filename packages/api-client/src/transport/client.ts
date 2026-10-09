@@ -1,5 +1,5 @@
 import { decodeJwtExp, isExpiryClose } from "./jwt";
-import type { ApiClient, ApiClientConfig, RequestOptions, TokenSupplier } from "./types";
+import type { ApiClient, ApiClientConfig, RequestOptions, ResponseType, TokenSupplier } from "./types";
 
 /**
  * Thrown for any non-ok HTTP response so callers/hooks can branch on status.
@@ -31,14 +31,38 @@ export class ApiError extends Error {
  */
 export function extractServerMessage(body: unknown): string | null {
   if (!body || typeof body !== "object") return null;
-  const { errors, detail } = body as { errors?: unknown; detail?: unknown };
+  const errors = "errors" in body ? body.errors : undefined;
+  const detail = "detail" in body ? body.detail : undefined;
   if (Array.isArray(errors)) {
-    for (const error of errors) {
-      const message = (error as { message?: unknown } | null)?.message;
+    const entries: unknown[] = errors;
+    for (const error of entries) {
+      const message = typeof error === "object" && error !== null && "message" in error ? error.message : undefined;
       if (typeof message === "string" && message) return message;
     }
   }
   return typeof detail === "string" && detail ? detail : null;
+}
+
+/**
+ * A successful response's body, read the way `responseType` asks: "auto" picks
+ * by Content-Type (JSON, a file as a Blob, else text).
+ */
+async function readBody(response: Response, responseType: ResponseType): Promise<unknown> {
+  if (responseType === "blob") return response.blob();
+  if (responseType === "text") return response.text();
+
+  const contentType = response.headers.get("content-type") ?? "";
+  if (contentType.includes("application/json")) {
+    return response.json();
+  }
+  if (
+    contentType.includes("application/octet-stream") ||
+    contentType.includes("application/zip") ||
+    contentType.includes("application/x-zip-compressed")
+  ) {
+    return response.blob();
+  }
+  return response.text();
 }
 
 function isFormData(value: unknown): value is FormData {
@@ -84,9 +108,13 @@ export function createApiClient(config: ApiClientConfig): ApiClient {
           ...(config.useCredentials ? { credentials: "include" } : {}),
         });
         if (res.ok) {
-          const data = (await res.json()) as { access: string };
-          await tokens.setAccessToken(data.access);
-          return data.access;
+          const data: unknown = await res.json();
+          const access = typeof data === "object" && data !== null && "access" in data ? data.access : undefined;
+          // A refresh answer without a token string counts as no new token.
+          if (typeof access === "string") {
+            await tokens.setAccessToken(access);
+            return access;
+          }
         }
       } catch {
         // Network / parse failure — treated as "no new token".
@@ -179,21 +207,11 @@ export function createApiClient(config: ApiClientConfig): ApiClient {
       );
     }
 
-    if (responseType === "blob") return (await response.blob()) as unknown as T;
-    if (responseType === "text") return (await response.text()) as unknown as T;
-
-    const contentType = response.headers.get("content-type") ?? "";
-    if (contentType.includes("application/json")) {
-      return (await response.json()) as T;
-    }
-    if (
-      contentType.includes("application/octet-stream") ||
-      contentType.includes("application/zip") ||
-      contentType.includes("application/x-zip-compressed")
-    ) {
-      return (await response.blob()) as unknown as T;
-    }
-    return (await response.text()) as unknown as T;
+    // T is the caller's claim about the endpoint, not checked here: callers
+    // validate with the endpoint's schema (see util/parse.ts). Leave T out (it
+    // is then unknown) unless the caller deliberately trusts the endpoint.
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- the one unchecked boundary, see above
+    return (await readBody(response, responseType)) as T;
   };
 
   return {

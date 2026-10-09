@@ -81,5 +81,7 @@ export function setAlbumBackupSelection(db: AppDatabase, albumId: string, select
 
 /** Cycle a selection none → selected → excluded → none (Backup tab tap). */
 export function cycleAlbumSelection(current: number): 0 | 1 | 2 {
-  return (((current + 1) % 3) as 0 | 1 | 2);
+  if (current === 0) return 1;
+  if (current === 1) return 2;
+  return 0;
 }

@@ -41,9 +41,18 @@ const COLORS = [
   "#84cc16", // lime
 ];
 
+// CJK ideographs, kana, Hangul and full-width forms are about 1em wide.
+const WIDE_CHAR = /[\u1100-\u115f\u2e80-\ua4cf\uac00-\ud7a3\uf900-\ufaff\ufe30-\ufe4f\uff00-\uff60\uffe0-\uffe6]/;
+
 function estimateTextWidth(text: string, fontSize: number): number {
-  // Average character width is roughly 0.55 of the font size for sans-serif
-  return text.length * fontSize * 0.55;
+  // Average Latin character width is roughly 0.55 of the font size for
+  // sans-serif. Counting wide characters the same let Japanese place names
+  // overlap their neighbours.
+  let em = 0;
+  for (const ch of text) {
+    em += WIDE_CHAR.test(ch) ? 1 : 0.55;
+  }
+  return em * fontSize;
 }
 
 function rectanglesOverlap(
@@ -89,7 +98,12 @@ function layoutWords(words: WordItem[], containerWidth: number, containerHeight:
     // Normalize font size with logarithmic scaling for better distribution
     const normalizedValue = (word.y - minValue) / valueRange;
     const logScaled = normalizedValue ** 0.6; // Compress the range a bit
-    const fontSize = minFontSize + logScaled * (maxFontSize - minFontSize);
+    // Shrink a word that would not fit the width at all: it was never placed,
+    // so long names (often the top person) silently went missing.
+    const fontSize = Math.min(
+      minFontSize + logScaled * (maxFontSize - minFontSize),
+      (containerWidth - 4) / estimateTextWidth(word.label, 1)
+    );
     const width = estimateTextWidth(word.label, fontSize);
     const height = fontSize * 1.2;
 
@@ -187,11 +201,10 @@ export function WordCloud(props: Props) {
     return [];
   }, [wordCloud, type]);
 
-  const positionedWords = useMemo(() => {
-    const chartHeight = height - 70;
-    const chartWidth = width - 50;
-    return layoutWords(words, chartWidth, chartHeight);
-  }, [words, width, height]);
+  // 0 until the ResizeObserver reports a width; a negative svg width is invalid.
+  const chartWidth = Math.max(0, width - 50);
+  const chartHeight = Math.max(0, height - 70);
+  const positionedWords = useMemo(() => layoutWords(words, chartWidth, chartHeight), [words, chartWidth, chartHeight]);
 
   const hasData = words.length > 0;
 
@@ -217,42 +230,39 @@ export function WordCloud(props: Props) {
   return (
     <div ref={observeChange}>
       <Title order={3}>{title()}</Title>
-      <svg
-        width={width - 50}
-        height={height - 70}
-        style={{ overflow: "visible" }}
-        aria-label={`Word cloud for ${title()}`}
-      >
-        {positionedWords.map((word, idx) => {
-          const key = `${word.label}-${idx}`;
-          const isHovered = hoveredWord === key;
-          return (
-            <text
-              key={key}
-              x={word.x + word.width / 2}
-              y={word.y + word.height / 2}
-              fontSize={word.fontSize}
-              fontFamily="system-ui, -apple-system, sans-serif"
-              fontWeight={word.fontSize > 30 ? 600 : 400}
-              fill={word.color}
-              textAnchor="middle"
-              dominantBaseline="middle"
-              onClick={() => handleWordClick(word.label)}
-              onMouseEnter={() => setHoveredWord(`${word.label}-${idx}`)}
-              onMouseLeave={() => setHoveredWord(null)}
-              style={{
-                cursor: "pointer",
-                opacity: isHovered ? 0.7 : 1,
-                transform: isHovered ? "scale(1.05)" : "scale(1)",
-                transformOrigin: `${word.x + word.width / 2}px ${word.y + word.height / 2}px`,
-                transition: "opacity 0.15s ease, transform 0.15s ease",
-              }}
-            >
-              {word.label}
-            </text>
-          );
-        })}
-      </svg>
+      {chartWidth > 0 && (
+        <svg width={chartWidth} height={chartHeight} style={{ overflow: "visible" }} aria-label={title()}>
+          {positionedWords.map((word, idx) => {
+            const key = `${word.label}-${idx}`;
+            const isHovered = hoveredWord === key;
+            return (
+              <text
+                key={key}
+                x={word.x + word.width / 2}
+                y={word.y + word.height / 2}
+                fontSize={word.fontSize}
+                fontFamily="system-ui, -apple-system, sans-serif"
+                fontWeight={word.fontSize > 30 ? 600 : 400}
+                fill={word.color}
+                textAnchor="middle"
+                dominantBaseline="middle"
+                onClick={() => handleWordClick(word.label)}
+                onMouseEnter={() => setHoveredWord(`${word.label}-${idx}`)}
+                onMouseLeave={() => setHoveredWord(null)}
+                style={{
+                  cursor: "pointer",
+                  opacity: isHovered ? 0.7 : 1,
+                  transform: isHovered ? "scale(1.05)" : "scale(1)",
+                  transformOrigin: `${word.x + word.width / 2}px ${word.y + word.height / 2}px`,
+                  transition: "opacity 0.15s ease, transform 0.15s ease",
+                }}
+              >
+                {word.label}
+              </text>
+            );
+          })}
+        </svg>
+      )}
     </div>
   );
 }

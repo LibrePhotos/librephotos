@@ -35,6 +35,12 @@ class ApiConfig(AppConfig):
 
         sync_signals.register()
 
+        # Before a user is deleted, however that happens: turn off their public
+        # links and make room for their albums and tags in ``deleted``.
+        from api import user_deletion
+
+        user_deletion.register()
+
         try:
             reconfigure_logging()
         except LoggingNotConfiguredError:

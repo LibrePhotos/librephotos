@@ -7,6 +7,8 @@ import { useTranslation } from "react-i18next";
 import { UserAlbum } from "../../api_client/albums/types";
 import { ApiError, fetchClient } from "../../api_client/api";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
+import { isUndatedShare } from "../../components/sharing/publicAlbum";
+import { usePublicPageTitle } from "../../components/sharing/usePublicPageTitle";
 import { getPhotosFlatFromGroupedByDate } from "../../util/util";
 import { parseWithNotification } from "../../util/zodUtils";
 
@@ -26,19 +28,21 @@ function PublicAlbumBySlug() {
     queryKey: ["publicAlbumBySlug", slug],
     retry: false,
     queryFn: async () => {
-      let json: { results: unknown };
+      let json: unknown;
       try {
         // Through fetchClient so the request is prefixed with PUBLIC_URL.
-        json = await fetchClient.get<{ results: unknown }>(`/public/albums/s/${slug}/`);
+        json = await fetchClient.get(`/public/albums/s/${slug}/`);
       } catch (error) {
         if (error instanceof ApiError && error.status === 404) return null;
         throw error;
       }
-      return parseWithNotification(UserAlbum, json.results, "Failed to parse public album");
+      const results = typeof json === "object" && json !== null && "results" in json ? json.results : undefined;
+      return parseWithNotification(UserAlbum, results, "Failed to parse public album");
     },
   });
 
   const flat = useMemo(() => (album ? getPhotosFlatFromGroupedByDate(album.grouped_photos) : []), [album]);
+  usePublicPageTitle(album?.title);
 
   if (!isLoading && (album === null || isError)) {
     return (
@@ -64,7 +68,9 @@ function PublicAlbumBySlug() {
       title={album ? album.title : t("loading")}
       loading={isLoading}
       icon={<Globe size={50} />}
-      photoset={album ? album.grouped_photos : []}
+      // PhotoListView shows a flat grid when photoset is the idx2hash array
+      // itself: no made-up "Without Timestamp" day for hidden dates.
+      photoset={album ? (isUndatedShare(album.grouped_photos) ? flat : album.grouped_photos) : []}
       idx2hash={flat}
       isPublic
       publicAlbumSlug={slug}

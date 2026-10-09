@@ -4,26 +4,23 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchUserAlbumQuery, useShareUserAlbumMutation } from "../../api_client/albums/hooks";
 import type { UserAlbum } from "../../api_client/albums/types";
-import type { User } from "../../api_client/user/types";
+import type { ListUser } from "../../api_client/user/types";
 import { i18nResolvedLanguage } from "../../i18n";
+import { avatarSrc } from "./avatarSrc";
 
 type UserEntryProps = Readonly<{
-  item: User;
+  item: ListUser;
   albumID: string;
 }>;
 
-function getDisplayName(item: User) {
+function getDisplayName(item: ListUser) {
   return item.first_name.length > 0 && item.last_name.length > 0
     ? `${item.first_name} ${item.last_name}`
     : item.username;
 }
 
-function getAvatar(item: User) {
-  return item.avatar ? item.avatar_url : "/unknown_user.jpg";
-}
-
-function isShared(album: UserAlbum, user: User) {
-  return album?.shared_to.map(sUser => sUser.id).includes(user.id);
+function isShared(album: UserAlbum | undefined, user: ListUser) {
+  return album?.shared_to?.map(sUser => sUser.id).includes(user.id);
 }
 
 export function UserEntry(props: UserEntryProps) {
@@ -35,7 +32,7 @@ export function UserEntry(props: UserEntryProps) {
   return (
     <Group justify="space-between" key={user.id}>
       <Group>
-        <Avatar radius="xl" size={50} src={getAvatar(user)} />
+        <Avatar radius="xl" size={50} src={avatarSrc(user)} />
         <div>
           <Title order={4}>{getDisplayName(user)}</Title>
           {user.date_joined && (
@@ -48,12 +45,13 @@ export function UserEntry(props: UserEntryProps) {
       </Group>
       <Group>
         <Switch
-          checked={isShared(albumDetails!, user)}
+          aria-label={getDisplayName(user)}
+          checked={isShared(albumDetails, user)}
           onChange={() => {
             shareAlbum({
               albumId: albumID,
               userId: user.id.toString(),
-              share: !albumDetails?.shared_to.map(e => e.id).includes(user.id),
+              share: !albumDetails?.shared_to?.map(e => e.id).includes(user.id),
             });
           }}
         />

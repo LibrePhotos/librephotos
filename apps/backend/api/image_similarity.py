@@ -33,7 +33,9 @@ def search_similar_embedding(user, emb, result_count=100, threshold=27):
         res = sidecars.post(
             "image_similarity", "/search/", json=post_data, timeout=SIMILARITY
         )
-    except requests.HTTPError as error:
+    # Not only an error reply: a stopped, restarting or busy sidecar raises a
+    # ConnectionError or a timeout, which used to fail the whole search.
+    except requests.RequestException as error:
         logger.error(
             f"error retrieving similar embeddings for user {user_id}: "
             f"{sidecars.error_detail(error)}"
@@ -63,7 +65,8 @@ def search_similar_image(user, photo, threshold=27):
         res = sidecars.post(
             "image_similarity", "/search/", json=post_data, timeout=SIMILARITY
         )
-    except requests.HTTPError as error:
+    # As above: an unreachable sidecar must not fail the photo detail request.
+    except requests.RequestException as error:
         logger.error(
             f"error retrieving similar photos to {photo.image_hash} belonging to "
             f"user {user_id}: {sidecars.error_detail(error)}"

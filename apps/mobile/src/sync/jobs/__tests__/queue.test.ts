@@ -24,6 +24,7 @@ import {
   retryFailedJobs,
 } from "../queue";
 import { JOB_BACKOFF_BASE_MS, MAX_JOB_ATTEMPTS, jobBackoffDelay } from "../types";
+import { defined } from "@/test/defined";
 
 function stateOf(t: TestDb, id: number): string {
   return (t.db.get(sql`SELECT state FROM job_queue WHERE id = ${id}`) as { state: string }).state;
@@ -40,7 +41,7 @@ describe("job_queue: enqueue + dedupe", () => {
   it("enqueues a job with the kind's default priority and dedupe key", () => {
     const id = enqueueJob(t.db, { kind: "hash_batch" }, 1_000);
     expect(id).not.toBeNull();
-    const row = getJob(t.db, id!)!;
+    const row = defined(getJob(t.db, defined(id)));
     expect(row.kind).toBe("hash_batch");
     expect(row.dedupe_key).toBe("hash_batch");
     expect(row.state).toBe("pending");
@@ -72,7 +73,7 @@ describe("job_queue: enqueue + dedupe", () => {
   });
 
   it("lets the same work be re-enqueued once the previous row has finished", () => {
-    const first = enqueueJob(t.db, { kind: "hash_batch" })!;
+    const first = defined(enqueueJob(t.db, { kind: "hash_batch" }));
     completeJob(t.db, first);
     // A finished row must not block the next pass — the dedupe index is partial
     // on (pending|running) precisely so a later sync can scan again.
@@ -83,7 +84,7 @@ describe("job_queue: enqueue + dedupe", () => {
 
   it("does not dedupe against a job that is running — a continuation is a new row", () => {
     enqueueJob(t.db, { kind: "hash_batch" });
-    const claimed = claimNextJob(t.db, 1_000)!;
+    const claimed = defined(claimNextJob(t.db, 1_000));
     expect(claimed.state).toBe("running");
     // While it runs, re-requesting is still a duplicate…
     expect(enqueueJob(t.db, { kind: "hash_batch" })).toBeNull();
@@ -105,7 +106,7 @@ describe("job_queue: atomic claim", () => {
     const b = claimNextJob(t.db, 1_000);
     expect(a).not.toBeNull();
     expect(b).toBeNull(); // the only job is already claimed
-    expect(stateOf(t, a!.id)).toBe("running");
+    expect(stateOf(t, defined(a).id)).toBe("running");
   });
 
   it("hands out distinct jobs to interleaved claimants", () => {
@@ -120,18 +121,18 @@ describe("job_queue: atomic claim", () => {
       claimNextJob(t.db, 1_000),
       claimNextJob(t.db, 1_000),
     ];
-    const ids = claimed.filter(Boolean).map((j) => j!.id);
+    const ids = claimed.filter(Boolean).map((j) => defined(j).id);
     expect(ids).toHaveLength(3);
     expect(new Set(ids).size).toBe(3); // all different — no double-claim
     expect(claimed[3]).toBeNull();
   });
 
   it("increments attempts on claim, so a job that never reports back still ages", () => {
-    const id = enqueueJob(t.db, { kind: "hash_batch" })!;
-    expect(claimNextJob(t.db, 1_000)!.attempts).toBe(1);
+    const id = defined(enqueueJob(t.db, { kind: "hash_batch" }));
+    expect(defined(claimNextJob(t.db, 1_000)).attempts).toBe(1);
     reclaimStaleJobs(t.db, 2_000);
     // Reclaim refunds the attempt: a crash is not evidence the job is bad.
-    expect(getJob(t.db, id)!.attempts).toBe(0);
+    expect(defined(getJob(t.db, id)).attempts).toBe(0);
   });
 
   it("skips jobs whose backoff window has not opened", () => {
@@ -201,12 +202,12 @@ describe("job_queue: retry + backoff", () => {
 
   it("returns a failed job to pending behind an exponential window", () => {
     enqueueJob(t.db, { kind: "hash_batch" });
-    const job = claimNextJob(t.db, 1_000)!;
+    const job = defined(claimNextJob(t.db, 1_000));
     const outcome = failJob(t.db, job, "boom", 1_000);
 
     expect(outcome.state).toBe("pending");
     expect(outcome.retryAt).toBe(1_000 + JOB_BACKOFF_BASE_MS); // attempts=1 ⇒ base * 2^0
-    const row = getJob(t.db, job.id)!;
+    const row = defined(getJob(t.db, job.id));
     expect(row.state).toBe("pending");
     expect(row.last_error).toBe("boom");
     expect(row.started_at).toBeNull();
@@ -223,15 +224,15 @@ describe("job_queue: retry + backoff", () => {
   });
 
   it("becomes terminally failed at the attempt cap, keeping the error", () => {
-    const id = enqueueJob(t.db, { kind: "hash_batch" })!;
+    const id = defined(enqueueJob(t.db, { kind: "hash_batch" }));
     let now = 1_000;
     for (let i = 0; i < MAX_JOB_ATTEMPTS; i += 1) {
       const job = claimNextJob(t.db, now);
       expect(job).not.toBeNull();
-      failJob(t.db, job!, `boom ${i}`, now);
+      failJob(t.db, defined(job), `boom ${i}`, now);
       now += jobBackoffDelay(i + 1) + 1;
     }
-    const row = getJob(t.db, id)!;
+    const row = defined(getJob(t.db, id));
     expect(row.state).toBe("failed");
     expect(row.attempts).toBe(MAX_JOB_ATTEMPTS);
     expect(row.last_error).toBe(`boom ${MAX_JOB_ATTEMPTS - 1}`);
@@ -240,13 +241,13 @@ describe("job_queue: retry + backoff", () => {
   });
 
   it("retryFailedJobs revives terminal failures for the user's retry button", () => {
-    const id = enqueueJob(t.db, { kind: "upload_asset", payload: { assetId: "a1" } })!;
-    const job = claimNextJob(t.db, 1_000)!;
+    const id = defined(enqueueJob(t.db, { kind: "upload_asset", payload: { assetId: "a1" } }));
+    const job = defined(claimNextJob(t.db, 1_000));
     failJob(t.db, { id: job.id, attempts: MAX_JOB_ATTEMPTS }, "nope", 1_000);
     expect(stateOf(t, id)).toBe("failed");
 
     expect(retryFailedJobs(t.db)).toBe(1);
-    const row = getJob(t.db, id)!;
+    const row = defined(getJob(t.db, id));
     expect(row.state).toBe("pending");
     expect(row.attempts).toBe(0);
     expect(row.last_error).toBeNull();
@@ -256,28 +257,28 @@ describe("job_queue: retry + backoff", () => {
     // The same work can die terminally in two different sessions, leaving two
     // `failed` rows with one key. Reviving both would violate the one-live-row
     // guarantee the partial unique index enforces — so only the newest returns.
-    const older = enqueueJob(t.db, { kind: "hash_batch" })!;
-    failJob(t.db, { id: claimNextJob(t.db, 1_000)!.id, attempts: MAX_JOB_ATTEMPTS }, "a", 1_000);
-    const newer = enqueueJob(t.db, { kind: "hash_batch" })!;
-    failJob(t.db, { id: claimNextJob(t.db, 2_000)!.id, attempts: MAX_JOB_ATTEMPTS }, "b", 2_000);
+    const older = defined(enqueueJob(t.db, { kind: "hash_batch" }));
+    failJob(t.db, { id: defined(claimNextJob(t.db, 1_000)).id, attempts: MAX_JOB_ATTEMPTS }, "a", 1_000);
+    const newer = defined(enqueueJob(t.db, { kind: "hash_batch" }));
+    failJob(t.db, { id: defined(claimNextJob(t.db, 2_000)).id, attempts: MAX_JOB_ATTEMPTS }, "b", 2_000);
 
     expect(() => retryFailedJobs(t.db)).not.toThrow();
     expect(getJob(t.db, older)).toBeNull();
-    expect(getJob(t.db, newer)!.state).toBe("pending");
+    expect(defined(getJob(t.db, newer)).state).toBe("pending");
   });
 
   it("retryFailedJobs drops a failure whose work has already been re-requested", () => {
-    const stale = enqueueJob(t.db, { kind: "hash_batch" })!;
-    const job = claimNextJob(t.db, 1_000)!;
+    const stale = defined(enqueueJob(t.db, { kind: "hash_batch" }));
+    const job = defined(claimNextJob(t.db, 1_000));
     failJob(t.db, { id: job.id, attempts: MAX_JOB_ATTEMPTS }, "nope", 1_000);
     // A newer row now carries the same dedupe key…
-    const fresh = enqueueJob(t.db, { kind: "hash_batch" })!;
+    const fresh = defined(enqueueJob(t.db, { kind: "hash_batch" }));
 
     retryFailedJobs(t.db);
     // …so reviving the old one would violate the uniqueness guarantee. The
     // newer row wins and the stale failure is discarded.
     expect(getJob(t.db, stale)).toBeNull();
-    expect(getJob(t.db, fresh)!.state).toBe("pending");
+    expect(defined(getJob(t.db, fresh)).state).toBe("pending");
   });
 });
 
@@ -288,8 +289,8 @@ describe("job_queue: crash recovery", () => {
 
   it("reclaims a `running` row left behind by a killed process", () => {
     enqueueJobs(t.db, [{ kind: "hash_batch" }, { kind: "device_scan", payload: { chunk: 0 } }]);
-    const a = claimNextJob(t.db, 1_000)!;
-    const b = claimNextJob(t.db, 1_000)!;
+    const a = defined(claimNextJob(t.db, 1_000));
+    const b = defined(claimNextJob(t.db, 1_000));
     expect(stateOf(t, a.id)).toBe("running");
     expect(stateOf(t, b.id)).toBe("running");
 
@@ -299,7 +300,7 @@ describe("job_queue: crash recovery", () => {
     expect(reclaimStaleJobs(t.db, 2_000)).toBe(2);
     expect(stateOf(t, a.id)).toBe("pending");
     expect(stateOf(t, b.id)).toBe("pending");
-    expect(getJob(t.db, a.id)!.started_at).toBeNull();
+    expect(defined(getJob(t.db, a.id)).started_at).toBeNull();
     // Reclaimed work is immediately claimable again — no backoff penalty.
     expect(claimNextJob(t.db, 2_000)).not.toBeNull();
   });
@@ -313,12 +314,12 @@ describe("job_queue: crash recovery", () => {
   });
 
   it("releaseJob hands a cancelled job back with its attempt refunded", () => {
-    const id = enqueueJob(t.db, { kind: "hash_batch" })!;
+    const id = defined(enqueueJob(t.db, { kind: "hash_batch" }));
     claimNextJob(t.db, 1_000);
-    expect(getJob(t.db, id)!.attempts).toBe(1);
+    expect(defined(getJob(t.db, id)).attempts).toBe(1);
 
     releaseJob(t.db, id);
-    const row = getJob(t.db, id)!;
+    const row = defined(getJob(t.db, id));
     expect(row.state).toBe("pending");
     // Backgrounding the app repeatedly must not exhaust a job's retry budget.
     expect(row.attempts).toBe(0);
@@ -333,16 +334,16 @@ describe("job_queue: housekeeping", () => {
 
   it("prunes old `done` rows but keeps failures", () => {
     for (let i = 0; i < 12; i += 1) {
-      const id = enqueueJob(t.db, { kind: "upload_asset", payload: { assetId: `a${i}` } })!;
+      const id = defined(enqueueJob(t.db, { kind: "upload_asset", payload: { assetId: `a${i}` } }));
       completeJob(t.db, id);
     }
-    const failed = enqueueJob(t.db, { kind: "hash_batch" })!;
+    const failed = defined(enqueueJob(t.db, { kind: "hash_batch" }));
     failJob(t.db, { id: failed, attempts: MAX_JOB_ATTEMPTS }, "kept", 1_000);
 
     expect(pruneJobs(t.db, 5)).toBe(7);
     expect((t.db.get(sql`SELECT COUNT(*) AS c FROM job_queue WHERE state = 'done'`) as { c: number }).c).toBe(5);
     // Failures are the only record of a blocker, so they survive pruning.
-    expect(getJob(t.db, failed)!.state).toBe("failed");
+    expect(defined(getJob(t.db, failed)).state).toBe("failed");
   });
 
   it("counts live work and clears the queue", () => {

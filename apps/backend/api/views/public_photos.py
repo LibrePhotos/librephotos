@@ -6,6 +6,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from api import video_playback
 from api.models import Photo
 from api.models.photo_share import PhotoShare
 from api.serializers.photos import PublicPhotoDetailSerializer
@@ -187,6 +188,9 @@ class PublicPhotoBySlug(APIView):
         data["video_url"] = (
             shared_photo_media_url(share.slug, "video") if photo.video else None
         )
+        # Lets the page ask canPlayType up front: Chrome without an HEVC
+        # decoder plays the sound over a black picture and reports no error.
+        data["video_playback_type"] = video_playback.playback_type(photo)
         return Response({"results": data, "sharing_settings": sharing_settings})
 
 

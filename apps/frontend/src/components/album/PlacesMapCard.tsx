@@ -1,17 +1,19 @@
 import { Skeleton, Text } from "@mantine/core";
 import { IconMap } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
-import type { CircleLayer } from "maplibre-gl";
+import type { CircleLayerSpecification } from "maplibre-gl";
 import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import MapGL, { Layer, Source } from "react-map-gl/maplibre";
 import { useFetchLocationClustersQuery, useFetchPlacesAlbumsQuery } from "../../api_client/albums/hooks";
 import { useMapStyle } from "../../util/mapStyle";
+import { clusterFeatureCollection } from "../map/locationClusters";
 import { MapDisabledPlaceholder } from "../map/MapDisabledPlaceholder";
+import { ignoreMissingStyleImages } from "../map/mapImages";
 import classes from "./PlacesMapCard.module.css";
 
 // Simplified layer for the mini map
-const pointLayer: CircleLayer = {
+const pointLayer: CircleLayerSpecification = {
   id: "points",
   type: "circle",
   source: "locations",
@@ -25,7 +27,8 @@ const pointLayer: CircleLayer = {
 
 export function PlacesMapCard() {
   const { t } = useTranslation();
-  const { mapStyle, mapsDisabled } = useMapStyle();
+  // Null while map display is turned off
+  const { mapStyle } = useMapStyle();
   const { data: albums, isLoading: isLoadingAlbums } = useFetchPlacesAlbumsQuery();
   const { data: locationClusters, isLoading: isLoadingClusters } = useFetchLocationClustersQuery();
 
@@ -33,22 +36,7 @@ export function PlacesMapCard() {
   const count = albums?.length ?? 0;
 
   // Convert locationClusters to GeoJSON
-  const geojsonData = useMemo(() => {
-    if (!locationClusters) {
-      return { type: "FeatureCollection" as const, features: [] };
-    }
-    const features = locationClusters
-      .filter(loc => loc[0] !== 0)
-      .map((loc, idx) => ({
-        type: "Feature" as const,
-        properties: { name: loc[2], id: idx },
-        geometry: {
-          type: "Point" as const,
-          coordinates: [loc[0], loc[1]],
-        },
-      }));
-    return { type: "FeatureCollection" as const, features };
-  }, [locationClusters]);
+  const geojsonData = useMemo(() => clusterFeatureCollection(locationClusters), [locationClusters]);
 
   if (isLoading) {
     return (
@@ -65,17 +53,18 @@ export function PlacesMapCard() {
   return (
     <Link to="/album/places" className={classes.card}>
       <div className={classes.mapContainer}>
-        {mapsDisabled ? (
+        {mapStyle === null ? (
           <MapDisabledPlaceholder height="100%" />
         ) : (
           <MapGL
+            ref={ignoreMissingStyleImages}
             initialViewState={{
               longitude: 0,
               latitude: 30,
               zoom: 0.8,
             }}
             style={{ width: "100%", height: "100%" }}
-            mapStyle={mapStyle!}
+            mapStyle={mapStyle}
             interactive={false}
             attributionControl={false}
           >
@@ -93,7 +82,7 @@ export function PlacesMapCard() {
           </Text>
         </div>
         <Text size="xs" c="dimmed" mt={4}>
-          {t("explore.albumCount", { count })}
+          {t("explore.placeCount", { count })}
         </Text>
       </div>
     </Link>

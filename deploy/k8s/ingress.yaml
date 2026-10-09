@@ -1,15 +1,18 @@
 # This ingress will make your photo site available to web browsers. For this to work, you'll need an ingress controller
 # already installed in your cluster: https://kubernetes.io/docs/concepts/services-networking/ingress-controllers/
 # You should use TLS/SSL to protect the site. Either use cert-manager (https://cert-manager.io/) or something else.
-# If TLS/SSL is available, uncomment the annotation below, and the tls section.
+# If TLS/SSL is available, uncomment the tls section below, and the annotation if you use ingress-nginx.
 
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: photos.example.com
   # annotations:
-  #   ingress.kubernetes.io/ssl-redirect: "true"
+  #   nginx.ingress.kubernetes.io/ssl-redirect: "true"
 spec:
+  # The class of your ingress controller, for example traefik, haproxy or the one your cloud provider installs. "nginx"
+  # is ingress-nginx, which Kubernetes retired in March 2026 (no more security fixes); the annotation above only
+  # applies to it.
   ingressClassName: nginx
   rules:
   - host: photos.example.com
