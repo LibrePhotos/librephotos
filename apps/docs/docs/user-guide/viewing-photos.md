@@ -129,7 +129,11 @@ For more details on how file variants and stacks work, see [Stacks & File Varian
 
 ### Category
 
-LibrePhotos detects screenshots while scanning and documents (receipts, letters, forms) from their text, and the **Classify Media Categories** job (listed on the Jobs page) re-runs both over the library. When it gets one wrong, change it here: **Photo**, **Screenshot** or **Document**. The badge next to the heading says whether the category was **Detected automatically** or **Set by you**, and the line below says where the item appears with your saved [timeline filter](#filtering-the-timeline). A notification with **Undo** confirms the change.
+:::note
+The Category control is not in a release yet; it ships with the first release after 1.2.1.
+:::
+
+LibrePhotos detects screenshots while scanning and documents (receipts, letters, forms) from their text, and the **Classify Media Categories** job (listed on the Jobs page) re-runs both over the library. When it gets one wrong, change it here: **Photo**, **Screenshot** or **Document**. The badge next to the heading says whether the category was **Detected automatically** or **Set by you**, and the line below says where the item appears with your saved [timeline filter](#filtering-the-timeline). A notification with **Undo** confirms the change; undoing a correction of a detected category hands the item back to the detectors. The control is not shown for videos.
 
 A category you set is kept: rescanning the library or running Classify Media Categories again never overwrites it. The control is shown on your own photos only.
 

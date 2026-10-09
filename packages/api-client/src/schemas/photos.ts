@@ -119,7 +119,7 @@ export const Photo = z.object({
   is_screenshot: z.boolean().optional().default(false),
   is_document: z.boolean().optional().default(false),
   // "user" once the owner set the category; rescans then leave it alone.
-  category_source: z.enum(["auto", "user"]).optional().default("auto"),
+  category_source: z.enum(["auto", "user"]).optional().default("auto").catch("auto"),
   owner: SimpleUser,
   shutter_speed: z.string().nullable(),
   height: z.number().nullable(),
