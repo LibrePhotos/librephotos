@@ -88,7 +88,7 @@ concurrent-log-handler==0.9.30
 
 # Tokenizers for the ONNX models: CLIP BPE (semantic search, MobileCLIP tags)
 # and the LFM2 tokenizer (captions). The Rust package alone, no transformers.
-tokenizers==0.23.2
+tokenizers==0.23.3
 argon2-cffi==25.1.0
 # Dependencies for SigLIP 2 ONNX inference
 # On the GPU image (Python 3.10) the Dockerfile swaps this for
