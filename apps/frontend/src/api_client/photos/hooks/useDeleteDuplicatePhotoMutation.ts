@@ -1,5 +1,4 @@
 import { useMutation } from "@tanstack/react-query";
-import { z } from "zod";
 import { notification } from "../../../service/notifications";
 import { AutoAlbumsQueryKeys } from "../../albums/hooks/useFetchAutoAlbumsQuery";
 import { DateAlbumQueryKeys } from "../../albums/hooks/useFetchDateAlbumQuery";
@@ -9,11 +8,10 @@ import { CountStatsQueryKeys } from "../../stats/hooks/useFetchCountStatsQuery";
 import { PhotoMonthCountQueryKeys } from "../../stats/hooks/useFetchPhotoMonthCountQuery";
 import { RecentlyAddedPhotosQueryKeys } from "./useFetchRecentlyAddedPhotosQuery";
 
-const DeleteDuplicatePhotoRequest = z.object({
-  image_hash: z.string(),
-  path: z.string(),
-});
-type DeleteDuplicatePhotoRequest = z.infer<typeof DeleteDuplicatePhotoRequest>;
+type DeleteDuplicatePhotoRequest = {
+  image_hash: string;
+  path: string;
+};
 
 export const useDeleteDuplicatePhotoMutation = () =>
   useMutation({
