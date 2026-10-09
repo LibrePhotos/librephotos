@@ -396,6 +396,16 @@ class ExtractExifDataKeywordsTestCase(ExtractExifDataBaseTestCase):
         self.assertIn(self.photo.image_hash, hashes)
         self.assertNotIn(untagged.image_hash, hashes)
 
+    def test_legacy_numeric_keywords_still_indexed_in_search_captions(self):
+        """Rows stored before the fix may hold raw ints; indexing must not drop them."""
+        PhotoMetadata.objects.create(photo=self.photo, keywords=[2026, 0])
+        self.photo.refresh_from_db()
+        search, _ = PhotoSearch.objects.get_or_create(photo=self.photo)
+        search.recreate_search_captions()
+        words = search.search_captions.split()
+        self.assertIn("2026", words)
+        self.assertIn("0", words)
+
     @patch("api.models.photo_metadata.link_tags_from_keywords")
     def test_empty_keyword_containers_leave_existing_keywords_intact(self, link_tags):
         """No keywords found -> the existing keywords column is not cleared."""
