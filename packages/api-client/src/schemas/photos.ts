@@ -117,6 +117,9 @@ export const Photo = z.object({
   similar_photos: z.object({ image_hash: z.string(), type: z.nativeEnum(Media) }).array(),
   video: z.boolean(),
   is_screenshot: z.boolean().optional().default(false),
+  is_document: z.boolean().optional().default(false),
+  // "user" once the owner set the category; rescans then leave it alone.
+  category_source: z.enum(["auto", "user"]).optional().default("auto"),
   owner: SimpleUser,
   shutter_speed: z.string().nullable(),
   height: z.number().nullable(),
@@ -162,7 +165,13 @@ export const BulkPhotoQuery = z.object({
   in_trashcan: z.boolean().optional(),
   video: z.boolean().optional(),
   photo: z.boolean().optional(),
+  // true: only screenshots / documents; false: none of them.
   is_screenshot: z.boolean().optional(),
+  is_document: z.boolean().optional(),
+  // The timeline filter, as the timeline sends it (see api/timeline_filter.py).
+  media: z.enum(["all", "photos", "videos"]).optional(),
+  hide_screenshots: z.boolean().optional(),
+  hide_documents: z.boolean().optional(),
   person: z.number().optional(),
   folder: z.string().optional(),
   username: z.string().optional(),

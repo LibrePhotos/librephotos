@@ -44,6 +44,15 @@ describe("schema parsing against fixtures", () => {
     expect(parsed.stack_raw_jpeg).toBe(true);
     expect(parsed.text_alignment).toBe("right");
     expect(parsed.duplicate_sensitivity).toBe("normal");
+    expect(parsed.default_timeline_filter).toEqual({});
+  });
+
+  it("keeps the valid keys of a saved timeline filter and drops the rest", () => {
+    const parsed = User.parse({
+      ...userFixture,
+      default_timeline_filter: { media: "photos", hide_screenshots: "yes", favorites: true },
+    });
+    expect(parsed.default_timeline_filter).toEqual({ media: "photos", favorites: true });
   });
 
   it("rejects malformed data loudly (server drift)", () => {

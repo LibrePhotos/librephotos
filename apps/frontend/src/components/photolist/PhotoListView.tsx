@@ -112,6 +112,10 @@ type Props = Readonly<{
   // the current selection (from the route's `?media` param) — passing it keeps
   // the memoized grid re-rendering when the filter changes.
   mediaType?: MediaType;
+  // Extra controls for the header's right-hand toolbar, before the display
+  // options (the main timeline's Filter button). Shown even when the view is
+  // empty, so a filter that matches nothing can always be changed back.
+  headerActions?: React.ReactNode;
 }>;
 
 // SelectionState is now imported from api_client/photos/types
@@ -138,6 +142,7 @@ function PhotoListViewComponent({
   emptyStateConfig,
   photosetQuery,
   mediaType,
+  headerActions,
 }: Props) {
   const { t } = useTranslation();
   const { height } = useViewportSize();
@@ -382,9 +387,12 @@ function PhotoListViewComponent({
     ],
   ]);
 
-  // Clear any active selection when the media-type filter changes: the set of
-  // photos on screen changes, so a carried-over selection (and its "N selected"
-  // count or server-side select-all query) would be stale and misleading.
+  // Clear any active selection when the media-type or timeline filter changes:
+  // the set of photos on screen changes, so a carried-over selection (and its
+  // "N selected" count or server-side select-all query) would be stale and
+  // misleading. Callers pass photosetQuery as a fresh literal, so compare it
+  // by value.
+  const photosetQueryKey = JSON.stringify(photosetQuery ?? null);
   useEffect(() => {
     const cleared: SelectionState = {
       selectedItems: [],
@@ -395,7 +403,7 @@ function PhotoListViewComponent({
     };
     selectionStateRef.current = cleared;
     setSelectionState(cleared);
-  }, [mediaType]);
+  }, [mediaType, photosetQueryKey]);
 
   const handleSelection = useCallback(
     (item: any) => {
@@ -563,7 +571,7 @@ function PhotoListViewComponent({
               hasEmptyState={!!emptyStateConfig && !isFirstTimeSetup}
               isPublic={isPublic}
             />
-            {!isLoading && !isPublic && (getNumPhotos() > 0 || mediaType !== undefined) && (
+            {!isLoading && !isPublic && (getNumPhotos() > 0 || mediaType !== undefined || !!headerActions) && (
               <Box
                 style={{
                   position: "absolute",
@@ -576,6 +584,7 @@ function PhotoListViewComponent({
                   {/* The media-type filter stays visible even when the current
                       filter yields no photos, so the user is never trapped. */}
                   {mediaType !== undefined && <MediaTypeSelector />}
+                  {headerActions}
                   {getNumPhotos() > 0 && isAlbumPubliclyShared && isUserAlbum && (
                     <Tooltip label={t("sidemenu.sharing")} position="bottom">
                       <ActionIcon
