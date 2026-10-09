@@ -78,7 +78,7 @@ export default defineConfig(({ mode }) => {
       // imports it had Node resolve, stat and load all of them. Across a
       // parallel run that costs 1-4 s per file. Pre-bundling it into a single
       // module brings that down to ~0.1 s.
-      deps: { optimizer: { web: { enabled: true, include: ["lodash-es"] } } },
+      deps: { optimizer: { client: { enabled: true, include: ["lodash-es"] } } },
       reporters: ["verbose"],
       coverage: {
         reporter: ["text", "json", "html"],
