@@ -218,7 +218,6 @@ src/routes/_protected/album/persons.$id.tsx: TS2345 Argument of type '{ id: stri
 src/routes/_protected/album/persons.index.tsx: TS2345 Argument of type '{ to: "/faces"; }' is not assignable to parameter of type 'NavigateOptions<RouterCore<Route<Register, any, "/", "/", string, "__root__", undefined, {}, MyRouterContext, AnyContext, AnyContext, {}, undefined, ... 4 more ..., undefined>, "never", false, RouterHistory, Record<...>>, string, "/faces", string, "">'.
 src/routes/_protected/album/places.index.tsx: TS2305 Module '"maplibre-gl"' has no exported member 'CircleLayer'.
 src/routes/_protected/album/places.index.tsx: TS2305 Module '"maplibre-gl"' has no exported member 'SymbolLayer'.
-src/routes/_protected/album/places.index.tsx: TS2339 Property 'coordinates' does not exist on type 'Geometry'.
 src/routes/_protected/album/places.index.tsx: TS2365 Operator '<' cannot be applied to types 'string | number' and 'number'.
 src/routes/_protected/album/places.index.tsx: TS2365 Operator '<' cannot be applied to types 'string | number' and 'number'.
 src/routes/_protected/album/places.index.tsx: TS2365 Operator '>' cannot be applied to types 'string | number' and 'number'.
