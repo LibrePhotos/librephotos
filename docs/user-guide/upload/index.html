@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.a1e92a76.css">
-<script src="/assets/js/runtime~main.6614441b.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.9e705f7c.js" defer="defer"></script>
 <script src="/assets/js/main.bd7a7c03.js" defer="defer"></script>
 </head>
 <body>
@@ -39,6 +39,7 @@ In the top right corner of the web interface, there is an upload button. Clickin
 <li class="">Files are saved to: <code>{scan_directory}/uploads/web/{filename}</code></li>
 <li class="">This is the normal and expected behavior</li>
 <li class="">Files are stored in the mounted host directory and are persistent</li>
+<li class="">An admin can point a user&#x27;s uploads at a different folder with the <strong>Upload folder</strong> field in the user edit dialog (see <a class="" href="/docs/user-guide/managing-users#upload-folder">Managing users</a>). Files then go to <code>{upload folder}/web/{filename}</code> instead.</li>
 </ul>
 <h4 class="anchor anchorTargetStickyNavbar_Vzrq" id="when-scan-directory-is-not-configured">When scan directory is NOT configured:<a href="#when-scan-directory-is-not-configured" class="hash-link" aria-label="Direct link to When scan directory is NOT configured:" title="Direct link to When scan directory is NOT configured:" translate="no">​</a></h4>
 <p>Uploads are blocked and nothing is written to disk.</p>
