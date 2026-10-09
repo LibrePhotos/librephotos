@@ -12,6 +12,24 @@ LibrePhotos provides several ways to browse your photo library. You can switch b
 
 The default view showing all your photos grouped by date, from newest to oldest. A **scroll scrubber** on the right edge lets you quickly jump to any date — click or drag it to navigate through large libraries.
 
+#### Filtering the timeline
+
+:::note
+The timeline filter is not in a release yet; it ships with the first release after 1.2.1.
+:::
+
+The **Filter** button next to the display options narrows what the timeline shows:
+
+- **Media type**: all, photos only, or videos only.
+- **Hide from timeline**: leave out **Screenshots** and/or **Documents** (see [Fixing a wrong category](#category)).
+- **Show only**: **Favorites**.
+
+While a filter is active the button is highlighted with the number of active filters, and the header says what is filtered. The filter lives in the page address, so it survives a reload and can be bookmarked.
+
+**Save as default** makes the current filter what the timeline shows every time you open it, for example to keep screenshots out for good. **Reset to default** goes back to your saved default. A saved default applies to the main timeline only: Favorites, Screenshots, Videos, Hidden, Trash, albums, folders, search, people, places and public pages are never filtered by it.
+
+Selecting all photos on a filtered timeline selects only what it shows, so **Select all** followed by **Move to trash** never reaches the screenshots or documents the filter hides.
+
 ### Favorites
 
 Photos you've marked as favorites. To favorite a photo, click the star icon in the lightbox toolbar (or press `f`), or use the selection actions menu. The star turns yellow once the photo's rating reaches the **Minimum image rating to interpret as favorite** value in your user settings.
@@ -108,6 +126,14 @@ Near the top of the sidebar, LibrePhotos shows a summary of the current file: th
 If a photo has multiple file variants (e.g., RAW+JPEG pairs, Live Photos with embedded video, or edited copies), the file info row shows a **+N formats** toggle that lists them with type badges (JPG, RAW, VIDEO, META). Downloading a photo always includes every one of its file variants in the zip — there is no separate option for that. The download dialog's only checkbox, **"Include all photos from stacks"**, controls whether the other photos from the same *stack* (bursts, brackets, manual stacks) are added as well. A RAW badge overlay is shown on photos that have RAW file variants.
 
 For more details on how file variants and stacks work, see [Stacks & File Variants](./stacks-and-file-variants.md).
+
+### Category
+
+LibrePhotos detects screenshots while scanning and documents (receipts, letters, forms) from their text, and the **Classify Media Categories** job (listed on the Jobs page) re-runs both over the library. When it gets one wrong, change it here: **Photo**, **Screenshot** or **Document**. The badge next to the heading says whether the category was **Detected automatically** or **Set by you**, and the line below says where the item appears with your saved [timeline filter](#filtering-the-timeline). A notification with **Undo** confirms the change.
+
+A category you set is kept: rescanning the library or running Classify Media Categories again never overwrites it. The control is shown on your own photos only.
+
+To fix many items at once, select them in the grid and choose **Mark as photo**, **Mark as screenshot** or **Mark as document** from the selection actions menu.
 
 ### Location
 
