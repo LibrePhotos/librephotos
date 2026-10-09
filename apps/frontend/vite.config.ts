@@ -67,6 +67,8 @@ export default defineConfig(({ mode }) => {
       assetsDir: "assets",
       emptyOutDir: true,
     },
+    // maplibre-gl 6 starts its worker as a module worker (see util/maplibreWorker.ts).
+    worker: { format: "es" },
     test: {
       globals: true,
       environment: "jsdom",

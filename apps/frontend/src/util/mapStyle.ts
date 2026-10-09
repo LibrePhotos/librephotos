@@ -1,6 +1,9 @@
 import type { StyleSpecification } from "maplibre-gl";
 import { useMemo } from "react";
 import { useGetSettingsQuery } from "../api_client/settings/hooks";
+// Every map component resolves its style here, so this is where the worker
+// URL gets registered before the first map is constructed.
+import "./maplibreWorker";
 
 // The historical, hardcoded default. Loads map tiles (and, for the Places page,
 // glyphs/sprites) from PhotoPrism's public CDN.
