@@ -18,6 +18,7 @@ from unittest import mock
 import numpy as np
 import pyvips
 from django.core.management import call_command
+from django.core.management.base import CommandError
 from django.test import SimpleTestCase, override_settings
 from PIL import Image, ImageCms
 
@@ -288,6 +289,21 @@ class StripThumbnailMetadataTest(MediaRootTestCase):
         call_command("strip_thumbnail_metadata", stdout=out)
         self.assertIn("Stripped 3 thumbnails", out.getvalue())
         self.assertFalse(webp_has_metadata(self.path("square_thumbnails")))
+
+    def test_management_command_fails_when_a_thumbnail_cannot_be_rewritten(self):
+        """A locked file is not left out of the result as if it were clean."""
+        out, err = StringIO(), StringIO()
+        with (
+            mock.patch(
+                "api.thumbnail_metadata.strip_webp_metadata",
+                side_effect=PermissionError("locked"),
+            ),
+            self.assertRaises(CommandError) as raised,
+        ):
+            call_command("strip_thumbnail_metadata", stdout=out, stderr=err)
+        self.assertIn("4 errors (see above)", str(raised.exception))
+        self.assertIn("locked", err.getvalue())
+        self.assertNotIn("Stripped", out.getvalue())
 
 
 def _video_tools_available():

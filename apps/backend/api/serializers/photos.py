@@ -1,6 +1,7 @@
 import json
 import logging
 
+from django.db.models import Count, Prefetch
 from rest_framework import serializers
 
 from api import video_color, video_playback
@@ -10,10 +11,11 @@ from api.geocode.photo_location import find_album_places
 from api.metadata.photo_datetime import extract_date_time
 
 from api.image_similarity import search_similar_image
-from api.models import AlbumDate, File, Photo
+from api.models import AlbumDate, File, Photo, User
 from api.models.album_place import get_album_place
 from api.models.photo_metadata import PhotoMetadata
 from api.models.photo_ocr import PhotoOcr
+from api.models.photo_stack import PhotoStack
 from api.serializers.photo_metadata import PhotoMetadataSummarySerializer
 from api.serializers.simple import SimpleUserSerializer
 
@@ -190,7 +192,7 @@ class GroupedPhotosSerializer(serializers.ModelSerializer):
         model = Photo
         fields = ("date", "location", "items")
 
-    def get_date(self, obj) -> str:
+    def get_date(self, obj) -> str | None:
         return obj.date
 
     def get_location(self, obj) -> str:
@@ -198,6 +200,68 @@ class GroupedPhotosSerializer(serializers.ModelSerializer):
 
     def get_items(self, obj) -> PhotoSummarySerializer(many=True):
         return PhotoSummarySerializer(obj.photos, many=True).data
+
+
+def with_photo_summary_relations(queryset):
+    """Load everything ``PhotoSummarySerializer`` reads in a constant number of queries.
+
+    The summary serializer touches the thumbnail, the search instance, the main
+    file's embedded media, the photo's stacks and its files for every photo it
+    renders. Without these joins an album detail response costs a handful of
+    extra round trips *per photo*, which is why large albums took seconds before
+    showing their first thumbnail (issue #619).
+    """
+    # Filter the stacks to valid types and annotate photo_count so that
+    # get_stacks() never has to fall back to a query of its own.
+    valid_stack_types = PhotoStack.VALID_STACK_TYPES + [
+        PhotoStack.StackType.RAW_JPEG_PAIR,
+        PhotoStack.StackType.LIVE_PHOTO,
+    ]
+    stacks_prefetch = Prefetch(
+        "stacks",
+        queryset=PhotoStack.objects.filter(stack_type__in=valid_stack_types).annotate(
+            photo_count_annotation=Count("photos")
+        ),
+    )
+
+    return (
+        queryset.prefetch_related(
+            Prefetch(
+                "owner",
+                queryset=User.objects.only("id", "username", "first_name", "last_name"),
+            ),
+            Prefetch(
+                "main_file__embedded_media",
+                queryset=File.objects.only("hash"),
+            ),
+            stacks_prefetch,
+            "files",  # Prefetch files for get_has_raw_variant()
+        )
+        .select_related("thumbnail", "search_instance", "main_file")
+        .only(
+            "image_hash",
+            "thumbnail__aspect_ratio",
+            "thumbnail__dominant_color",
+            "video",
+            "main_file",
+            "search_instance__search_location",
+            "public",
+            "rating",
+            "hidden",
+            "exif_timestamp",
+            "owner",
+            "video_length",
+            "video_color_transfer",
+            "exif_gps_lat",
+            "exif_gps_lon",
+            "removed",
+            "in_trashcan",
+            "local_orientation",
+            # Read by filter_photos_by_media_type for ?is_screenshot / ?is_document.
+            "is_screenshot",
+            "is_document",
+        )
+    )
 
 
 class PhotoEditSerializer(serializers.ModelSerializer):
@@ -977,11 +1041,13 @@ class PublicPhotoDetailSerializer(serializers.ModelSerializer):
     def get_shutter_speed(self, obj) -> str | None:
         return self._get_camera_field(obj, "shutter_speed")
 
+    # 0 also for a size the metadata does not know (stored as NULL), as when
+    # camera info is not shared: the public client rejects a null here.
     def get_width(self, obj) -> int:
-        return self._get_camera_field(obj, "width", default=0)
+        return self._get_camera_field(obj, "width") or 0
 
     def get_height(self, obj) -> int:
-        return self._get_camera_field(obj, "height", default=0)
+        return self._get_camera_field(obj, "height") or 0
 
     # Captions - conditional
     def get_search_captions(self, obj) -> str:

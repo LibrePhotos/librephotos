@@ -66,12 +66,26 @@ def _set_aside_thumbnail_files(photo_hash: str) -> list[tuple[str, str]]:
     Renamed next to themselves, not deleted, so that a rebuild that fails can
     put them back. A file that cannot be moved puts back the ones already moved
     and raises, leaving everything as it was.
+
+    One already set aside was left by a rebuild whose worker was killed before
+    it could put it back. It is the last complete thumbnail, where whatever is
+    at ``path`` may be what ffmpeg had half written, so it goes back first.
+    That holds only while one worker rebuilds a video at a time. Nothing locks
+    it: a full rescan leaves the videos a running Probe Videos job has listed
+    to that job, which skips the ones probed since it listed them, but two
+    Probe Videos jobs at once are not kept apart.
     """
     set_aside = []
     for path in thumbnail_file_paths(photo_hash):
+        previous = path + SET_ASIDE_SUFFIX
+        if os.path.exists(previous):
+            try:
+                os.replace(previous, path)
+            except OSError:
+                _put_back(set_aside)
+                raise
         if not os.path.exists(path):
             continue
-        previous = path + SET_ASIDE_SUFFIX
         try:
             os.replace(path, previous)
         except OSError:
@@ -189,9 +203,25 @@ class Thumbnail(models.Model):
                     os.remove(previous)
                 except OSError:
                     logger.error(f"could not remove old thumbnail {previous}")
+            # Only these change the colours of the picture: a rotation keeps
+            # them, and a rewritten file has had its colour cleared already.
+            self._refresh_dominant_color()
 
         self._calculate_aspect_ratio()
         self._refresh_perceptual_hash()
+
+    def _refresh_dominant_color(self) -> None:
+        """Sample the placeholder colour again from the thumbnails just built.
+
+        ``_get_dominant_color`` keeps a colour once set, so a washed-out HDR
+        video rebuilt tonemapped would keep the desaturated one. A colour that
+        cannot be sampled again is cleared: the neutral placeholder, not the
+        old rendering's.
+        """
+        self.dominant_color = None
+        self._get_dominant_color()
+        if self.dominant_color is None:
+            self.save(update_fields=["dominant_color"])
 
     def _refresh_perceptual_hash(self) -> None:
         """Re-read the photo's perceptual hash from the thumbnail just built.
@@ -243,12 +273,17 @@ class Thumbnail(models.Model):
         if self.dominant_color:
             return
         try:
-            # Resize image to speed up processing
-            img = Image.open(self.square_thumbnail_small.path)
-            img.thumbnail((100, 100))
+            # A video's square thumbnails are mp4 clips, which PIL cannot open,
+            # so videos never got a colour; their big thumbnail is a still.
+            source = (
+                self.thumbnail_big if self.photo.video else self.square_thumbnail_small
+            )
+            with Image.open(source.path) as img:
+                # Resize image to speed up processing
+                img.thumbnail((100, 100))
 
-            # Reduce colors (uses k-means internally)
-            paletted = img.convert("P", palette=Image.ADAPTIVE, colors=palette_size)
+                # Reduce colors (uses k-means internally)
+                paletted = img.convert("P", palette=Image.ADAPTIVE, colors=palette_size)
 
             # Find the color that occurs most often
             palette = paletted.getpalette()

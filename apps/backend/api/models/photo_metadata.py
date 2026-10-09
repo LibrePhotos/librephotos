@@ -50,6 +50,7 @@ EXIF_VALUE_NAMES = (
     "iptc_keywords",
     "xmp_description",
     "xmp_description_any_language",
+    "matroska_duration",
 )
 
 EXIF_TAGS = [
@@ -73,6 +74,7 @@ EXIF_TAGS = [
     Tags.IPTC_KEYWORDS,
     Tags.DESCRIPTION,
     Tags.DESCRIPTION_ANY_LANGUAGE,
+    Tags.MATROSKA_DURATION,
 ]
 
 # Key in PhotoCaption.captions_json remembering the description last imported
@@ -441,7 +443,12 @@ class PhotoMetadata(models.Model):
     def _apply_to_photo(photo, values):
         """Update the Photo fields that are still stored outside PhotoMetadata."""
         _assign_nonzero_number(photo, "size", values["size"])
-        _assign_nonzero_number(photo, "video_length", values["video_length"])
+        # MP4/MOV carry QuickTime:Duration, MKV/WebM Matroska:Duration.
+        _assign_nonzero_number(
+            photo,
+            "video_length",
+            values["video_length"] or values["matroska_duration"],
+        )
         _assign_number(photo, "rating", values["rating"])
 
         # Burst/sequence detection fields

@@ -1,6 +1,6 @@
-import io
 import logging
 import os
+import time
 import uuid
 import zipfile
 
@@ -105,7 +105,7 @@ def _zippable_path(file_obj, files_added):
     return file_obj.path
 
 
-def _add_photo_files_to_zip(photo, mf, files_added):
+def _add_photo_files_to_zip(photo, zf, files_added):
     all_files = _photo_own_files(photo) + _stacked_variant_files(photo)
     all_files.extend(_embedded_media_files(list(all_files)))
 
@@ -117,8 +117,37 @@ def _add_photo_files_to_zip(photo, mf, files_added):
         file_name = _unique_arcname(os.path.basename(path), files_added.values())
         files_added[path] = file_name
 
-        with zipfile.ZipFile(mf, mode="a", compression=zipfile.ZIP_DEFLATED) as zf:
-            zf.write(path, arcname=file_name)
+        zf.write(path, arcname=file_name)
+
+
+def _remove_partial_zip(path):
+    try:
+        os.remove(path)
+    except FileNotFoundError:
+        pass
+    except OSError as e:
+        logger.error(f"Could not remove partial zip {path}: {e}")
+
+
+def _remove_abandoned_partial_zips(output_directory):
+    """Remove the partial archives of zip jobs whose worker was killed.
+
+    A container restart mid-archive leaves its ``.part`` behind, and
+    ``delete_zip_file`` is scheduled only for a finished archive. Untouched for
+    a day, it is no running job's.
+    """
+    cutoff = time.time() - 24 * 60 * 60
+    try:
+        entries = list(os.scandir(output_directory))
+    except OSError:
+        return
+    for entry in entries:
+        try:
+            abandoned = entry.name.endswith(".part") and entry.stat().st_mtime < cutoff
+        except OSError:
+            continue
+        if abandoned:
+            _remove_partial_zip(entry.path)
 
 
 def zip_photos_task(job_id, user, photos, filename):
@@ -128,21 +157,31 @@ def zip_photos_task(job_id, user, photos, filename):
     lrj.update_progress(current=0, target=count)
     output_directory = os.path.join(settings.MEDIA_ROOT, "zip")
     output_path = os.path.join(output_directory, filename)
+    # Streamed to disk rather than built in memory, which cost the worker the
+    # whole archive's size in RAM, twice. Under another name until complete,
+    # so that a partial archive is never served.
+    partial_path = output_path + ".part"
     try:
         if not os.path.exists(output_directory):
             os.mkdir(output_directory)
-        mf = io.BytesIO()
+        _remove_abandoned_partial_zips(output_directory)
         files_added = {}  # Track files by path to avoid duplicates
 
-        for done_count, photo in enumerate(photos, start=1):
-            _add_photo_files_to_zip(photo, mf, files_added)
-            lrj.update_progress(current=done_count, target=count)
-
-        with open(output_path, "wb") as output_file:
-            output_file.write(mf.getvalue())
+        with zipfile.ZipFile(
+            partial_path, mode="w", compression=zipfile.ZIP_DEFLATED
+        ) as zf:
+            for done_count, photo in enumerate(photos, start=1):
+                _add_photo_files_to_zip(photo, zf, files_added)
+                lrj.update_progress(current=done_count, target=count)
+        os.replace(partial_path, output_path)
 
     except Exception as e:
         logger.error(f"Error while converting files to zip: {e}")
+        _remove_partial_zip(partial_path)
+        # Reported as such: the client would otherwise fetch an archive that
+        # is not there.
+        lrj.fail(error=e)
+        return None
 
     lrj.complete()
     # scheduling a task to delete the zip file after a day

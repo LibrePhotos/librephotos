@@ -291,9 +291,9 @@ class UnifiedMediaAccessView(APIView):
     def _transcoded_video_response(self, photo, use_proxy):
         """Hand out a playable mp4 for a video the browser cannot decode.
 
-        Browsers cannot decode every container/codec we store, so the per-user
-        "Always transcode videos" setting exists to get them something they can
-        actually play.
+        Browsers cannot decode every container/codec we store, so those videos
+        (and every video, with "Always transcode videos" on) are converted to
+        something they can actually play.
 
         A conversion happening live cannot be sought -- its length is unknown
         until it ends, so there is no ``Content-Length``, no ``Accept-Ranges``
@@ -713,17 +713,22 @@ class UnifiedMediaAccessView(APIView):
         except Exception:
             return HttpResponse(status=404)
 
-    def _embedded_media_query(self, request):
-        user = self._requester(request)
-        return Q(public=True) if user is None else Q(owner=user)
-
     def _serve_embedded_media(self, request, path, fname, use_proxy):
-        query = self._embedded_media_query(request)
-        if self._is_uuid_format(fname):
-            photo = Photo.objects.filter(query, pk=fname).first()
-        else:
-            photo = Photo.objects.filter(query, image_hash=fname).first()
-        embedded_media_file = photo.main_file.embedded_media.first() if photo else None
+        # Authorized like the photo itself: an owner-only filter refused the
+        # people a motion photo was shared with, and a bare public=True kept
+        # serving one that was hidden or trashed later.
+        user = self._requester(request)
+        photo = self._lookup_photo(fname, user, allow_uuid=True)
+        if photo is None or not (
+            self._may_access(photo, user)
+            or self._in_public_album(photo)
+            or self._is_public_photo(photo)
+        ):
+            return self._refuse(user)
+        main_file = photo.main_file
+        embedded_media_file = (
+            main_file.embedded_media.first() if main_file is not None else None
+        )
         if not embedded_media_file:
             return HttpResponse(status=404)
         if use_proxy:

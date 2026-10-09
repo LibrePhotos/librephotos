@@ -9,6 +9,7 @@ from api.serializers.album_user import AlbumUserListSerializer
 from api.serializers.photos import (
     PhotoSummarySerializer,
     SharedFromMePhotoThroughSerializer,
+    with_photo_summary_relations,
 )
 from api.views.albums import with_album_user_list_relations
 from api.views.custom_api_view import ListViewSet
@@ -22,20 +23,11 @@ class SharedToMePhotoSuperSimpleListViewSet(ListViewSet):
     pagination_class = HugeResultsSetPagination
 
     def get_queryset(self):
-        return (
+        # PhotoSummarySerializer reads far more than the old "super simple"
+        # columns: each deferred field and relation was a query per photo.
+        return with_photo_summary_relations(
             Photo.visible.filter(Q(shared_to__id__exact=self.request.user.id))
-            .only(
-                "image_hash",
-                "public",
-                "rating",
-                "owner",
-                "hidden",
-                "exif_timestamp",
-                "video_color_transfer",
-            )
-            .prefetch_related("owner")
-            .order_by("exif_timestamp")
-        )
+        ).order_by("exif_timestamp")
 
 
 class SharedFromMePhotoSuperSimpleListViewSet(ListViewSet):
@@ -59,8 +51,8 @@ class SharedFromMePhotoSuperSimpleListViewSet(ListViewSet):
             .prefetch_related(
                 Prefetch(
                     "photo",
-                    queryset=Photo.objects.filter(hidden=False).only(
-                        "image_hash", "rating", "hidden", "exif_timestamp", "public"
+                    queryset=with_photo_summary_relations(
+                        Photo.objects.filter(hidden=False)
                     ),
                 )
             )

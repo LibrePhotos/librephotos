@@ -56,7 +56,7 @@ class AutoAlbumTitleTimeOfDayTest(TestCase):
             geolocation_json={"places": ["Bondi Beach"]},
         )
 
-        self.assertEqual(album.title, "Saturday Morning  in Bondi Beach")
+        self.assertEqual(album.title, "Saturday Morning in Bondi Beach")
         # The grouping key is untouched: it is what a later run matches on.
         self.assertEqual(album.timestamp, first - GROUPING_KEY_OFFSET)
 
@@ -68,7 +68,7 @@ class AutoAlbumTitleTimeOfDayTest(TestCase):
             geolocation_json={"places": ["Tokyo"]},
         )
 
-        self.assertEqual(album.title, "Sunday Evening  in Tokyo")
+        self.assertEqual(album.title, "Sunday Evening in Tokyo")
         self.assertEqual(album.timestamp, first - GROUPING_KEY_OFFSET)
 
     def test_title_follows_the_earliest_photo_not_the_stored_key(self):

@@ -1,4 +1,4 @@
-from django.db.models import Count, Prefetch, Q
+from django.db.models import Count, Min, Prefetch, Q
 from django_q.tasks import AsyncTask
 from drf_spectacular.utils import extend_schema
 from rest_framework import filters, viewsets
@@ -8,6 +8,7 @@ from rest_framework.views import APIView
 
 from api.autoalbum import generate_event_albums, regenerate_event_titles
 from api.models import AlbumAuto, Person, Photo
+from api.models.photo import visible_photo_q
 from api.serializers.album_auto import AlbumAutoListSerializer, AlbumAutoSerializer
 from api.views.custom_api_view import ListViewSet
 from api.views.pagination import StandardResultsSetPagination
@@ -43,7 +44,10 @@ class AlbumAutoViewSet(viewsets.ModelViewSet):
                 # behaviour decision rather than a cleanup.
                 Prefetch(
                     "photos__faces__person",
-                    queryset=Person.objects.all().annotate(
+                    # PersonSerializer reads both covers of every person.
+                    queryset=Person.objects.select_related(
+                        "cover_face", "cover_photo"
+                    ).annotate(
                         viewable_face_count=Count("faces"),
                     ),
                 ),
@@ -71,12 +75,16 @@ class AlbumAutoListViewSet(ListViewSet):
     ]
 
     def get_queryset(self):
-        cover_photo_query = Photo.objects.filter(hidden=False)
+        # Count and cover with the photos the album detail shows.
+        cover_photo_query = Photo.visible.all()
         return (
             AlbumAuto.objects.annotate(
                 photo_count=Count(
-                    "photos", filter=Q(photos__hidden=False), distinct=True
-                )
+                    "photos", filter=visible_photo_q("photos__"), distinct=True
+                ),
+                # When the event began: `timestamp` is only its grouping key,
+                # 11h59m before the first photo (api/autoalbum.py).
+                start=Min("photos__exif_timestamp", filter=visible_photo_q("photos__")),
             )
             .filter(Q(photo_count__gt=0) & Q(owner=self.request.user))
             .prefetch_related(

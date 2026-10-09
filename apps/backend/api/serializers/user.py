@@ -337,6 +337,10 @@ class UserSerializer(serializers.ModelSerializer):
             "first_name": {"required": False},
             "last_name": {"required": False},
             "scan_directory": {"required": False},
+            # Shown so the admin and settings dialogs can send it back
+            # unchanged; it is only written through /manage/user/, which runs
+            # the DATA_ROOT and overlap checks.
+            "upload_directory": {"read_only": True},
             "confidence": {"required": False},
             "confidence_person": {"required": False},
             "semantic_search_topk": {"required": False},
@@ -360,6 +364,7 @@ class UserSerializer(serializers.ModelSerializer):
             "username",
             "email",
             "scan_directory",
+            "upload_directory",
             "confidence",
             "confidence_person",
             "transcode_videos",
@@ -493,14 +498,17 @@ class UserSerializer(serializers.ModelSerializer):
         chain.run()
 
     def get_photo_count(self, obj) -> int:
-        return Photo.objects.owned_by(obj).count()
+        # As in ManageUserSerializer: the count the Library page shows.
+        return Photo.visible.owned_by(obj).count()
 
     def get_public_photo_count(self, obj) -> int:
-        return Photo.objects.owned_by(obj).filter(public=True).count()
+        # Photo.visible: ``public`` is never cleared when a photo is hidden,
+        # trashed or removed later, and those are not served to visitors.
+        return Photo.visible.owned_by(obj).filter(public=True).count()
 
     def get_public_photo_samples(self, obj) -> PhotoSuperSimpleSerializer(many=True):
         return PhotoSuperSimpleSerializer(
-            Photo.objects.owned_by(obj).filter(public=True)[:10], many=True
+            Photo.visible.owned_by(obj).filter(public=True)[:10], many=True
         ).data
 
     def get_avatar_url(self, obj) -> str or None:
@@ -534,11 +542,12 @@ class PublicUserSerializer(serializers.ModelSerializer):
         )
 
     def get_public_photo_count(self, obj) -> int:
-        return Photo.objects.owned_by(obj).filter(public=True).count()
+        # As in UserSerializer: only what a visitor can open.
+        return Photo.visible.owned_by(obj).filter(public=True).count()
 
     def get_public_photo_samples(self, obj) -> PhotoSuperSimpleSerializer(many=True):
         return PhotoSuperSimpleSerializer(
-            Photo.objects.owned_by(obj).filter(public=True)[:10], many=True
+            Photo.visible.owned_by(obj).filter(public=True)[:10], many=True
         ).data
 
     def get_avatar_url(self, obj) -> str or None:
@@ -672,7 +681,9 @@ class ManageUserSerializer(serializers.ModelSerializer):
         }
 
     def get_photo_count(self, obj) -> int:
-        return Photo.objects.owned_by(obj).count()
+        # The count the user's Library page shows: counting hidden, trashed and
+        # missing photos too made the admin's user list disagree with it.
+        return Photo.visible.owned_by(obj).count()
 
     def update(self, instance: User, validated_data):
         if "password" in validated_data:

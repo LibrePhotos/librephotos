@@ -33,18 +33,23 @@ class PhotoQuerySet(models.QuerySet):
         return self.filter(q)
 
 
+def visible_photo_q(prefix=""):
+    """The photos ``Photo.visible`` keeps, as a ``Q``.
+
+    ``prefix`` reaches them through a relation, e.g. ``"photos__"`` for an
+    album's photo count, so a count agrees with the photos the album shows.
+    """
+    return (
+        Q(**{f"{prefix}hidden": False})
+        & Q(**{f"{prefix}thumbnail__aspect_ratio__isnull": False})
+        & Q(**{f"{prefix}in_trashcan": False})
+        & Q(**{f"{prefix}removed": False})
+    )
+
+
 class VisiblePhotoManager(models.Manager.from_queryset(PhotoQuerySet)):
     def get_queryset(self):
-        return (
-            super()
-            .get_queryset()
-            .filter(
-                Q(hidden=False)
-                & Q(thumbnail__aspect_ratio__isnull=False)
-                & Q(in_trashcan=False)
-                & Q(removed=False)
-            )
-        )
+        return super().get_queryset().filter(visible_photo_q())
 
 
 class Photo(models.Model):

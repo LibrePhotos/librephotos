@@ -1,6 +1,6 @@
-import io
 import logging
 import os
+import shutil
 
 from chunked_upload.constants import http_status
 from chunked_upload.exceptions import ChunkedUploadError
@@ -22,7 +22,7 @@ from api.directory_watcher import create_new_image, handle_new_image, is_valid_m
 from api.directory_watcher.file_handlers import apply_device_timestamp_fallback
 from api.geocode.photo_location import add_location_to_album_dates, geolocate_photo
 from api.models import Photo
-from api.models.file import calculate_hash, calculate_hash_b64
+from api.models.file import calculate_hash
 from api.models.photo_caption import PhotoCaption
 from api.photo_faces import extract_faces
 
@@ -242,14 +242,14 @@ class UploadPhotosChunkedComplete(UploaderScopedMixin, ChunkedUploadCompleteView
 
         os.makedirs(os.path.join(user.upload_root(), device), exist_ok=True)
 
-        photo = uploaded_file
-        image_hash = calculate_hash_b64(user, io.BytesIO(photo.read()))
+        # Hashed and copied from the staged file on disk: read into memory,
+        # a large video cost the web worker its whole size in RAM.
+        staged_path = uploaded_file.file.path
+        image_hash = calculate_hash(user, staged_path)
         photo_path = self.target_path(user, device, filename, image_hash)
 
         if photo_path:
-            with open(photo_path, "wb") as f:
-                photo.seek(0)
-                f.write(photo.read())
+            shutil.copyfile(staged_path, photo_path)
 
         self.delete_chunked_upload(request, uploaded_file)
 

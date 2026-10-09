@@ -96,7 +96,10 @@ def _photo_counts(user, entries):
         )
         for idx, (_, folder_path, _) in enumerate(entries)
     }
-    counts = Photo.objects.owned_by(user).aggregate(**aggregates)
+    # The photos the Library shows (hidden, trashed and still unprocessed ones
+    # excluded): a tile counting the others opened a smaller, or an empty,
+    # timeline. A folder left with none is not listed.
+    counts = Photo.visible.owned_by(user).aggregate(**aggregates)
     return [counts.get(f"count_{idx}", 0) or 0 for idx in range(len(entries))]
 
 
@@ -156,6 +159,16 @@ class FolderNavigationViewSet(viewsets.ViewSet):
         """Get subfolders for a given path with pagination."""
         page = _requested_page(request)
         is_admin = request.user.is_staff if request.user else False
+
+        # No scan directory is the normal state of a user who only sees shared
+        # albums: an empty listing, not a denial. An explicit path is still
+        # refused below.
+        if (
+            not is_admin
+            and not _user_scan_directory(request.user)
+            and "path" not in request.query_params
+        ):
+            return _folder_response(None, None, [], page, 0)
 
         default_path, error = _default_path(request, is_admin)
         if error:

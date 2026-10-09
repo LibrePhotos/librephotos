@@ -1,6 +1,8 @@
 """
-Test to verify the behavior of the stack_raw_jpeg feature during scans.
-Note: skip_raw_files is deprecated - RAW files are always imported, but can be stacked or not.
+RAW files are always imported. The deprecated skip_raw_files and
+stack_raw_jpeg are no longer read: a RAW is always imported, and a JPEG of the
+same name in the same folder takes it as a file variant (see
+stacks/test_raw_jpeg_always_grouped).
 """
 
 from unittest.mock import patch
@@ -12,7 +14,7 @@ from api.models.file import is_valid_media
 
 
 class StackRawJpegTestCase(TestCase):
-    """Test to verify that RAW files are always imported and can be stacked"""
+    """Test to verify that RAW files are always imported"""
 
     def setUp(self):
         """Set up the test environment"""

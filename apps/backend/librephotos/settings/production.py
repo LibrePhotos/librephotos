@@ -32,10 +32,10 @@ WEBSERVER_GID = int(os.environ.get("WEBSERVER_GID", "101"))
 CLIP_ROOT = os.path.join(MEDIA_ROOT, "data_models", "clip_vit_b32")
 
 # Videos in a container or codec the browser cannot decode are converted on the
-# fly for users who turn on "Always transcode videos". A live conversion has no
-# known length, so it cannot be sought at all; the same conversion is therefore
-# written to a file in the background and later plays are served from that,
-# seekable. See api/transcode_cache.py.
+# fly, and every video is converted for users who turn on "Always transcode
+# videos". A live conversion has no known length, so it cannot be sought at all;
+# the same conversion is therefore written to a file in the background and later
+# plays are served from that, seekable. See api/transcode_cache.py.
 #
 # The cache is bounded twice over: it never grows past TRANSCODE_CACHE_MAX_GB,
 # and it never eats into the last TRANSCODE_CACHE_MIN_FREE_GB of the volume,

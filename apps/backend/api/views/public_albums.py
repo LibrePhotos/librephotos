@@ -1,3 +1,6 @@
+from django.core.exceptions import ValidationError
+from django.core.validators import validate_slug
+from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
@@ -46,6 +49,13 @@ class SetUserAlbumPublic(APIView):
                 status=403,
             )
 
+        slug = data.get("slug")
+        if val_public and slug:
+            data["slug"] = slug = str(slug).strip()
+            refusal = self._slug_refusal(album, slug)
+            if refusal is not None:
+                return refusal
+
         share, _ = AlbumUserShare.objects.get_or_create(album=album)
         share.enabled = bool(val_public)
         self._apply_share_settings(share, data)
@@ -56,9 +66,37 @@ class SetUserAlbumPublic(APIView):
             # gets access again (issue #76). Dropping it makes save() mint a
             # fresh random one on the next enable.
             share.slug = None
-        share.save()
+        try:
+            # A savepoint, so a slug taken in a race does not break the request.
+            with transaction.atomic():
+                share.save()
+        except IntegrityError:
+            return self._slug_taken()
 
         return Response({"status": True, "album": AlbumUserListSerializer(album).data})
+
+    @staticmethod
+    def _slug_taken():
+        return Response({"status": False, "message": "Slug already in use"}, status=409)
+
+    def _slug_refusal(self, album, slug):
+        """A 400 for a slug that is not one, a 409 for one another album holds.
+
+        save() does not run the SlugField's validators, and the UI's
+        availability check asks the public link, which answers 404 for an
+        expired share that still holds its slug: saving then hit the unique
+        constraint and answered 500.
+        """
+        try:
+            validate_slug(slug)
+            valid = len(slug) <= AlbumUserShare._meta.get_field("slug").max_length
+        except ValidationError:
+            valid = False
+        if not valid:
+            return Response({"status": False, "message": "Invalid slug"}, status=400)
+        if AlbumUserShare.objects.filter(slug=slug).exclude(album=album).exists():
+            return self._slug_taken()
+        return None
 
     def _apply_share_settings(self, share, data):
         slug = data.get("slug")

@@ -1,8 +1,10 @@
 """Zip downloads: start an archive job, poll it, delete the archive."""
 
 import logging
+import shutil
 import uuid
 
+from django.conf import settings
 from django.db.models import Sum
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -13,13 +15,23 @@ from api.models import LongRunningJob, Photo
 logger = logging.getLogger(__name__)
 
 
+def _free_space_for_archives():
+    """Free bytes on the file system the archive is written to.
+
+    That is MEDIA_ROOT's, which in the images is a volume of its own rather
+    than the container's root file system.
+    """
+    try:
+        return shutil.disk_usage(settings.MEDIA_ROOT).free
+    except OSError:
+        return shutil.disk_usage("/").free
+
+
 class ZipListPhotosView_V2(APIView):
     def post(self, request):
-        import shutil
-
         from api.views.photo_filters import build_photo_queryset
 
-        free_storage = shutil.disk_usage("/").free
+        free_storage = _free_space_for_archives()
         data = request.data
 
         include_stacked = data.get("include_stacked_photos", False)
@@ -109,12 +121,16 @@ class ZipListPhotosView_V2(APIView):
         ).first()
         if job is None:
             return Response(status=404)
+        # A failed or cancelled job is finished too, so it is asked first; it
+        # used to be reported as SUCCESS. 200 rather than 500: the job failed,
+        # not this request, and the web client reads the status from the body
+        # while its fetch client shows an error toast for every 500 it polls.
+        if job.failed or job.cancelled:
+            return Response(
+                data={"status": "FAILURE", "result": job.result}, status=200
+            )
         if job.finished:
             return Response(data={"status": "SUCCESS"}, status=200)
-        if job.failed:
-            return Response(
-                data={"status": "FAILURE", "result": job.result}, status=500
-            )
         return Response(data={"status": "PENDING", "progress": job.result}, status=202)
 
 

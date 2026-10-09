@@ -183,6 +183,20 @@ def probe(path):
     return values
 
 
+def apply_probe(photo):
+    """Probe ``photo``'s video and set the answer on it, without saving it.
+
+    Returns the names of the fields set, or ``None`` when there was no answer,
+    in which case they are left as they were.
+    """
+    values = probe(photo.main_file.path)
+    if values is None:
+        return None
+    for field, value in values.items():
+        setattr(photo, field, value)
+    return list(values)
+
+
 def record(photo):
     """Probe ``photo``'s video and store the answer on it.
 
@@ -190,12 +204,10 @@ def record(photo):
     were, so a video that could not be read keeps its old values, or stays
     unprobed and is retried.
     """
-    values = probe(photo.main_file.path)
-    if values is None:
+    fields = apply_probe(photo)
+    if fields is None:
         return False
-    for field, value in values.items():
-        setattr(photo, field, value)
-    photo.save(save_metadata=False, update_fields=list(values))
+    photo.save(save_metadata=False, update_fields=fields)
     return True
 
 

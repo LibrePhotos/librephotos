@@ -61,7 +61,7 @@ def _describe_people(people):
         [
             (k, v)
             for k, v in Counter(people).most_common(2)
-            if k.lower() != "unknown" and k.lower() != Person.UNKNOWN_PERSON_NAME
+            if k.lower() not in ("unknown", Person.UNKNOWN_PERSON_NAME.lower())
         ]
     ).keys()
     if not names:
@@ -123,13 +123,14 @@ class AlbumAuto(models.Model):
                 weekday = util.weekdays[anchor.isoweekday()]
                 time = _time_of_day(anchor.hour)
 
-            when = " ".join([weekday, time])
+            when = " ".join(part for part in [weekday, time] if part)
 
             loc = _describe_places(places)
             pep = _describe_people(people)
             when = _describe_span(timestamps, when)
 
-            title = " ".join([when, pep, loc]).strip()
+            # Skip the empty parts, or "Tuesday Afternoon  in Paris" gets two spaces.
+            title = " ".join(part for part in [when, pep, loc] if part)
             # Ensure title is never empty
             if not title:
                 title = f"Album from {self.timestamp.strftime('%Y-%m-%d')}"

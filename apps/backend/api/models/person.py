@@ -62,6 +62,7 @@ class Person(models.Model):
 
     def _calculate_face_count(self):
         self.face_count = self.faces.filter(
+            deleted=False,
             photo__hidden=False,
             photo__in_trashcan=False,
             photo__owner=self.cluster_owner.id,
@@ -69,9 +70,15 @@ class Person(models.Model):
         self.save()
 
     def _set_default_cover_photo(self):
-        if not self.cover_photo and self.faces.count() > 0:
-            self.cover_photo = self.faces.first().photo
-            self.cover_face = self.faces.first()
+        # A deleted face keeps its person, but is no cover for it. Only a face
+        # on the owner's own photos, as in _calculate_face_count: a face from
+        # another user's photo would leak that photo's hash (#2047).
+        first_face = self.faces.filter(
+            deleted=False, photo__owner_id=self.cluster_owner_id
+        ).first()
+        if not self.cover_photo and first_face is not None:
+            self.cover_photo = first_face.photo
+            self.cover_face = first_face
             self.save()
 
     def get_photos(self, owner):

@@ -6,6 +6,7 @@ from django.core.management.base import BaseCommand
 from api.directory_watcher import scan_photos
 from api.models import User
 from api.models.user import get_deleted_user
+from api.util import is_valid_path
 from nextcloud.directory_watcher import scan_photos as scan_photos_nextcloud
 
 
@@ -36,15 +37,24 @@ class Command(BaseCommand):
             self.directory_scan(options["full_scan"])
 
     def scannable_users(self):
+        # A user without a scan directory (e.g. one who only views shared
+        # albums) has nothing to scan; walking "" raised and stopped the scan
+        # for every user after them.
         deleted_user: User = get_deleted_user()
-        return [user for user in User.objects.all() if user != deleted_user]
+        return [
+            user
+            for user in User.objects.all()
+            if user != deleted_user and user.scan_directory
+        ]
 
     def scan_selected_files(self, scan_files):
         for user in self.scannable_users():
+            # A path boundary, not a string prefix: /data/alice2/x.jpg is not
+            # alice's file just because it starts with /data/alice.
             user_files = [
                 scan_file
                 for scan_file in scan_files
-                if scan_file.startswith(user.scan_directory)
+                if is_valid_path(scan_file, user.scan_directory)
             ]
             if user_files:
                 scan_photos(user, False, uuid.uuid4(), scan_files=user_files)

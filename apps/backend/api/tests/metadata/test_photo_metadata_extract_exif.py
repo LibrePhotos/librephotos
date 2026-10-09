@@ -42,6 +42,7 @@ IDX = {
     "iptc_keywords": 17,
     "xmp_description": 18,
     "xmp_description_any_language": 19,
+    "matroska_duration": 20,
 }
 
 
@@ -125,6 +126,7 @@ class ExtractExifDataGuardTestCase(ExtractExifDataBaseTestCase):
                 Tags.IPTC_KEYWORDS,
                 Tags.DESCRIPTION,
                 Tags.DESCRIPTION_ANY_LANGUAGE,
+                Tags.MATROSKA_DURATION,
             ],
         )
 
@@ -413,3 +415,19 @@ class ExtractExifDataAllNoneTestCase(ExtractExifDataBaseTestCase):
             "keywords",
         ):
             self.assertIsNone(getattr(metadata, field), field)
+
+
+class ExtractExifDataVideoDurationTestCase(ExtractExifDataBaseTestCase):
+    def test_mkv_and_webm_duration_comes_from_matroska(self):
+        # ExifTool has no QuickTime:Duration for Matroska files, so MKV and
+        # WebM videos never had a length (no duration on their tiles).
+        self.extract(matroska_duration=3.0)
+
+        self.photo.refresh_from_db()
+        self.assertEqual(self.photo.video_length, "3.0")
+
+    def test_quicktime_duration_wins_when_both_are_present(self):
+        self.extract(video_length=12.5, matroska_duration=3.0)
+
+        self.photo.refresh_from_db()
+        self.assertEqual(self.photo.video_length, "12.5")

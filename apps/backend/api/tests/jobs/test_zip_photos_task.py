@@ -13,6 +13,7 @@ The LongRunningJob is a real DB row because the task loads it by job_id.
 import os
 import shutil
 import tempfile
+import time
 import zipfile
 
 from django.test import TestCase, override_settings
@@ -185,16 +186,47 @@ class ZipPhotosTaskHappyPathTest(ZipPhotosTaskTestBase):
 
         self.assertEqual(self.zip_names(result), ["f.jpg"])
 
-    def test_empty_photo_list_writes_empty_zero_byte_file(self):
+    def test_empty_photo_list_writes_an_empty_archive(self):
         result, job = self.run_task([], filename="empty.zip")
 
         self.assertTrue(os.path.exists(result))
-        # Nothing was ever written into the in-memory buffer, so the output is
-        # a zero-byte file that is NOT a valid zip archive.
-        self.assertEqual(os.path.getsize(result), 0)
-        self.assertFalse(zipfile.is_zipfile(result))
+        # It used to be a zero-byte file that was not a zip archive at all.
+        self.assertTrue(zipfile.is_zipfile(result))
+        self.assertEqual(self.zip_names(result), [])
         self.assertTrue(job.finished)
         self.assertEqual(job.progress_target, 0)
+
+    def test_leaves_no_partial_file_behind(self):
+        photo = FakePhoto(main_file=FakeFile(self.write_source("a.jpg")))
+
+        result, _ = self.run_task([photo], filename="out.zip")
+
+        self.assertEqual(os.listdir(os.path.dirname(result)), ["out.zip"])
+
+    def test_removes_a_partial_archive_left_by_a_killed_worker(self):
+        """Only a day-old one: a younger one may be another job's, still running."""
+        zip_dir = os.path.join(self.media_root, "zip")
+        os.makedirs(zip_dir)
+        two_days_ago = time.time() - 2 * 24 * 60 * 60
+        for name, modified in (
+            ("killed.zip.part", two_days_ago),
+            ("running.zip.part", None),
+            # Finished: its own scheduled delete_zip_file removes it.
+            ("finished.zip", two_days_ago),
+        ):
+            path = os.path.join(zip_dir, name)
+            with open(path, "wb") as handle:
+                handle.write(b"x")
+            if modified:
+                os.utime(path, (modified, modified))
+        photo = FakePhoto(main_file=FakeFile(self.write_source("a.jpg")))
+
+        self.run_task([photo], filename="out.zip")
+
+        self.assertEqual(
+            sorted(os.listdir(zip_dir)),
+            ["finished.zip", "out.zip", "running.zip.part"],
+        )
 
 
 class ZipPhotosTaskDeduplicationTest(ZipPhotosTaskTestBase):
@@ -330,25 +362,46 @@ class ZipPhotosTaskStacksTest(ZipPhotosTaskTestBase):
 
 
 class ZipPhotosTaskErrorHandlingTest(ZipPhotosTaskTestBase):
-    def test_unexpected_error_is_logged_and_job_still_completes(self):
+    def test_unexpected_error_is_logged_and_fails_the_job(self):
         photo = FakePhoto(main_file=FakeFile(self.write_source("a.jpg")))
         job = self.make_job()
 
         with patch("api.all_tasks.zipfile.ZipFile", side_effect=OSError("nope")):
             result, job = self.run_task([photo], filename="broken.zip", job=job)
 
-        # No zip is written, but the task still returns the path it would have
-        # written, marks the job complete (NOT failed) and schedules cleanup.
-        self.assertEqual(result, os.path.join(self.media_root, "zip", "broken.zip"))
-        self.assertFalse(os.path.exists(result))
+        # It used to complete the job, and the client then fetched an archive
+        # that was not there.
+        self.assertIsNone(result)
+        self.assertFalse(
+            os.path.exists(os.path.join(self.media_root, "zip", "broken.zip"))
+        )
         self.assertTrue(self.mock_logger.error.called)
         self.assertIn(
             "Error while converting files to zip",
             self.mock_logger.error.call_args[0][0],
         )
-        self.assertTrue(job.finished)
-        self.assertFalse(job.failed)
-        self.assertEqual(self.mock_schedule.call_count, 1)
+        self.assertTrue(job.failed)
+        self.assertIn("nope", job.result["error"])
+        self.assertFalse(self.mock_schedule.called)
+
+    def test_a_failure_half_way_removes_the_partial_archive(self):
+        photos = [
+            FakePhoto(main_file=FakeFile(self.write_source("a.jpg"))),
+            FakePhoto(main_file=FakeFile(self.write_source("b.jpg"))),
+        ]
+        write = zipfile.ZipFile.write
+
+        def disk_full_on_b(zf, path, *args, **kwargs):
+            if path.endswith("b.jpg"):
+                raise OSError("No space left on device")
+            return write(zf, path, *args, **kwargs)
+
+        with patch.object(zipfile.ZipFile, "write", disk_full_on_b):
+            result, job = self.run_task(photos, filename="full.zip")
+
+        self.assertIsNone(result)
+        self.assertEqual(os.listdir(os.path.join(self.media_root, "zip")), [])
+        self.assertTrue(job.failed)
 
     def test_missing_job_id_raises_before_any_work(self):
         with override_settings(MEDIA_ROOT=self.media_root):

@@ -8,6 +8,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import requests
+from constance import config as site_config
 from constance.test import override_config
 from django.test import TestCase, override_settings
 
@@ -303,6 +304,31 @@ class DownloadModelsJobTest(TestCase):
         job = LongRunningJob.objects.get(job_type=LongRunningJob.JOB_DOWNLOAD_MODELS)
         self.assertFalse(job.failed)
         self.assertTrue(job.finished)
+
+    @override_config(TAGGING_MODEL="siglip2", FACE_RECOGNITION_MODEL="buffalo_sc")
+    def test_a_model_picked_while_it_runs_is_fetched_by_the_same_job(self):
+        """Site Settings queue no second job while this one runs."""
+        fetched = []
+
+        def fake_download_model(model):
+            if not _is_model_selected(model):
+                return
+            fetched.append(model["name"])
+            if model["name"] == "lfm2_vl_450m":
+                # Switched once the loop has passed the tagging model's entry.
+                site_config.TAGGING_MODEL = "mobileclip_s2"
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            with override_settings(MEDIA_ROOT=str(Path(temp_dir) / "protected_media")):
+                with patch(
+                    "api.ml_models.download_model", side_effect=fake_download_model
+                ):
+                    download_models(self.user)
+
+        self.assertEqual(fetched[-1], "mobileclip_s2")
+        self.assertNotIn("siglip2", fetched)
+        job = LongRunningJob.objects.get(job_type=LongRunningJob.JOB_DOWNLOAD_MODELS)
+        self.assertFalse(job.failed)
 
 
 _SHA256_RE = re.compile(r"^[0-9a-fA-F]{40,}$")

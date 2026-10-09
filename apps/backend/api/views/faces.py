@@ -669,6 +669,36 @@ class DeleteFaces(APIView):
             face.deleted = True
             face.save()
 
+        # A deleted face keeps its person (reads filter on ``deleted``), so the
+        # person's count and cover have to be recomputed, as on relabeling.
+        deleted_ids = set(faces)
+        affected_person_ids = {f.person_id for f in faces.values() if f.person_id}
+        # _calculate_face_count needs the owner; a legacy ownerless person is
+        # left as it is rather than failing the delete.
+        for person in Person.objects.filter(
+            id__in=affected_person_ids, cluster_owner__isnull=False
+        ):
+            if person.cover_face_id in deleted_ids:
+                person.cover_face = None
+                person.cover_photo = None
+            person._calculate_face_count()
+            person._set_default_cover_photo()
+
+        # Search indexes the names of the people on a photo, so a deleted
+        # face's person kept matching it until the next rescan.
+        labeled_photo_ids = {f.photo_id for f in faces.values() if f.person_id}
+        if labeled_photo_ids:
+            photos = (
+                Photo.objects.owned_by(request.user)
+                .filter(pk__in=labeled_photo_ids)
+                .select_related("main_file", "metadata", "caption_instance")
+                .prefetch_related(
+                    "files",
+                    Prefetch("faces", queryset=Face.objects.select_related("person")),
+                )
+            )
+            SetFacePersonLabel._recreate_search_captions(list(photos))
+
         return Response(
             {
                 "status": True,

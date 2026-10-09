@@ -37,8 +37,14 @@ from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 from rest_framework.test import APIClient
 
-from api.models import AlbumAuto, AlbumPlace, AlbumThing
-from api.tests.utils import create_test_photo, create_test_user
+from api.models import AlbumAuto, AlbumPlace, AlbumThing, AlbumUser
+from api.models.album_user_share import AlbumUserShare
+from api.tests.utils import (
+    create_test_face,
+    create_test_person,
+    create_test_photo,
+    create_test_user,
+)
 
 
 class AlbumDetailQueryCountTestMixin:
@@ -73,6 +79,9 @@ class AlbumDetailQueryCountTestMixin:
             return {item["image_hash"] for group in groups for item in group["items"]}
         return {item["image_hash"] for item in data.get("photos", [])}
 
+    def _url(self, album):
+        return f"/api/albums/{self.KIND}/{album.id}/"
+
     def _count_queries(self, url):
         with CaptureQueriesContext(connection) as ctx:
             response = self.client.get(url)
@@ -90,14 +99,10 @@ class AlbumDetailQueryCountTestMixin:
         # one-time INSERT unrelated to album size; counting it would make the
         # first measurement look worse than the second for reasons that have
         # nothing to do with the N+1 this test is about.
-        self._count_queries(f"/api/albums/{self.KIND}/{small_album.id}/")
+        self._count_queries(self._url(small_album))
 
-        small_queries, small_response = self._count_queries(
-            f"/api/albums/{self.KIND}/{small_album.id}/"
-        )
-        large_queries, large_response = self._count_queries(
-            f"/api/albums/{self.KIND}/{large_album.id}/"
-        )
+        small_queries, small_response = self._count_queries(self._url(small_album))
+        large_queries, large_response = self._count_queries(self._url(large_album))
 
         # Sanity: both endpoints actually returned the photos we asked for, so
         # the query counts below are comparing like with like.
@@ -154,3 +159,118 @@ class AlbumAutoDetailQueryCountTest(AlbumDetailQueryCountTestMixin, TestCase):
         )
         album.photos.add(*photos)
         return album
+
+
+class AlbumAutoWithPeopleDetailQueryCountTest(AlbumDetailQueryCountTestMixin, TestCase):
+    """Every photo shows the same person, who has no cover (the worst case).
+
+    The people list used to serialize a PersonSerializer per face, each of
+    which looked up the person's first face for its cover.
+    """
+
+    KIND = "auto"
+
+    def _make_album(self, photos):
+        album = AlbumAuto.objects.create(
+            title=f"Birthday {len(photos)}",
+            owner=self.user,
+            timestamp=self.now - timezone.timedelta(days=len(photos)),
+            created_on=self.now,
+        )
+        album.photos.add(*photos)
+        person = create_test_person(cluster_owner=self.user)
+        for photo in photos:
+            create_test_face(photo=photo, person=person)
+        return album
+
+    def test_each_person_is_listed_once(self):
+        album = self._make_album(self._photos(3))
+        response = self.client.get(self._url(album))
+        self.assertEqual(len(response.json()["people"]), 1)
+
+
+class AlbumUserDetailQueryCountTest(AlbumDetailQueryCountTestMixin, TestCase):
+    KIND = "user"
+
+    def _make_album(self, photos):
+        album = AlbumUser.objects.create(
+            title=f"Holiday {len(photos)}", owner=self.user
+        )
+        album.photos.add(*photos)
+        return album
+
+
+class AlbumUserSharedDetailQueryCountTest(AlbumUserDetailQueryCountTest):
+    """The same album, opened by someone it is shared with."""
+
+    def setUp(self):
+        super().setUp()
+        self.recipient = create_test_user()
+
+    def _make_album(self, photos):
+        album = super()._make_album(photos)
+        album.shared_to.add(self.recipient)
+        return album
+
+    def _count_queries(self, url):
+        self.client.force_authenticate(user=self.recipient)
+        return super()._count_queries(url)
+
+
+class PublicAlbumDetailQueryCountTest(AlbumUserDetailQueryCountTest):
+    """The public link of a user album (/api/public/albums/s/<slug>/)."""
+
+    def _make_album(self, photos):
+        album = super()._make_album(photos)
+        AlbumUserShare.objects.create(
+            album=album, enabled=True, slug=f"holiday-{len(photos)}"
+        )
+        return album
+
+    def _url(self, album):
+        return f"/api/public/albums/s/{album.share.slug}/"
+
+    def _count_queries(self, url):
+        self.client.force_authenticate(user=None)
+        return super()._count_queries(url)
+
+
+class AlbumUserHiddenAndTrashedPhotosTest(TestCase):
+    """A user album lists what the library lists, for its owner and its guests."""
+
+    def setUp(self):
+        self.owner = create_test_user()
+        self.recipient = create_test_user()
+        self.client = APIClient()
+        self.visible = create_test_photo(owner=self.owner)
+        self.hidden = create_test_photo(owner=self.owner, hidden=True)
+        self.trashed = create_test_photo(owner=self.owner, in_trashcan=True)
+        self.album = AlbumUser.objects.create(title="Mixed", owner=self.owner)
+        self.album.photos.add(self.visible, self.hidden, self.trashed)
+        self.album.shared_to.add(self.recipient)
+
+    def _hashes(self, user):
+        self.client.force_authenticate(user=user)
+        response = self.client.get(f"/api/albums/user/{self.album.id}/")
+        self.assertEqual(response.status_code, 200)
+        groups = response.json()["grouped_photos"]
+        return {item["image_hash"] for group in groups for item in group["items"]}
+
+    def test_the_owner_sees_only_visible_photos(self):
+        self.assertEqual(self._hashes(self.owner), {self.visible.image_hash})
+
+    def test_a_share_recipient_sees_only_visible_photos(self):
+        self.assertEqual(self._hashes(self.recipient), {self.visible.image_hash})
+
+    def test_the_album_date_is_the_newest_photo(self):
+        older = create_test_photo(
+            owner=self.owner, exif_timestamp=timezone.now() - timezone.timedelta(30)
+        )
+        newer = create_test_photo(owner=self.owner, exif_timestamp=timezone.now())
+        self.album.photos.add(older, newer)
+        self.client.force_authenticate(user=self.owner)
+        response = self.client.get(f"/api/albums/user/{self.album.id}/")
+        self.assertEqual(
+            response.json()["date"],
+            newer.exif_timestamp.isoformat().replace("+00:00", "Z"),
+        )

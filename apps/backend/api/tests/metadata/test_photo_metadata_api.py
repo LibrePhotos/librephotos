@@ -82,6 +82,53 @@ class PhotoMetadataRetrieveTestCase(APITestCase):
         self.assertEqual(response.status_code, 200)
 
 
+class PhotoMetadataLookupRobustnessTestCase(APITestCase):
+    """Odd ids are a 404 and odd paging falls back, never a 500."""
+
+    def setUp(self):
+        self.user = create_test_user()
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.user)
+        self.photo = create_test_photo(owner=self.user)
+
+    def test_a_uuid_shaped_id_that_is_no_uuid_is_not_found(self):
+        response = self.client.get(
+            "/api/photos/zzzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz/metadata/"
+        )
+        self.assertEqual(response.status_code, 404)
+
+    def test_a_hash_shared_by_two_rows_resolves_to_the_requesters_own(self):
+        # Two users who scan the same file share its image_hash.
+        self.user.is_staff = True
+        self.user.save()
+        twin = create_test_photo(owner=create_test_user())
+        twin.image_hash = self.photo.image_hash
+        twin.save(update_fields=["image_hash"])
+
+        response = self.client.get(f"/api/photos/{self.photo.image_hash}/metadata/")
+        self.assertEqual(response.status_code, 200)
+        own = PhotoMetadata.objects.get(photo=self.photo)
+        self.assertEqual(str(response.data["id"]), str(own.id))
+
+    def test_a_bad_history_page_falls_back_to_the_first(self):
+        url = f"/api/photos/{self.photo.pk}/metadata/history/"
+        for params in ({"page": "abc"}, {"page": "0"}, {"page": "-3"}):
+            with self.subTest(params=params):
+                response = self.client.get(url, params)
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.data["page"], 1)
+
+    def test_a_bad_history_page_size_falls_back(self):
+        url = f"/api/photos/{self.photo.pk}/metadata/history/"
+        response = self.client.get(url, {"page_size": "lots"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["page_size"], 20)
+
+    def test_a_non_numeric_edit_id_is_not_found(self):
+        response = self.client.post(f"/api/photos/{self.photo.pk}/metadata/revert/abc/")
+        self.assertEqual(response.status_code, 404)
+
+
 class PhotoMetadataUpdateTestCase(APITestCase):
     """Test metadata update endpoints."""
 

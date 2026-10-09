@@ -20,6 +20,7 @@ is how it is tested; only the paths differ.
 
 import argparse
 import importlib
+import json
 import os
 import subprocess
 import sys
@@ -34,6 +35,9 @@ DEFAULT_PORT = 8000
 CONSOLE_LOG_ENV = "LIBREPHOTOS_CONSOLE_LOG"
 CONSOLE_LOG_NAME = "console.log"
 SUBCOMMANDS = ("run", "manage", "service")
+# Written next to the binary by scripts/build_standalone.py: the release and
+# commit it was built from, which the Docker images get from build arguments.
+BUILD_INFO_NAME = "build_info.json"
 BACKEND_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # Directories in the distribution whose executables the code finds on PATH:
@@ -242,6 +246,26 @@ def default_data_dir():
     return os.path.join(base, APP_DIR_NAME)
 
 
+def apply_build_info(root):
+    """Report the release this distribution was built as, like an image does.
+
+    The version endpoint reads IMAGE_TAG and GIT_HASH, which only the Docker
+    images set, and there is no .git to ask either, so a release zip said
+    "dev". From source there is no file and nothing changes.
+    """
+    try:
+        with open(os.path.join(root, BUILD_INFO_NAME), encoding="utf-8") as handle:
+            info = json.load(handle)
+    except (OSError, ValueError):
+        return
+    if not isinstance(info, dict):
+        return
+    for key, variable in (("version", "IMAGE_TAG"), ("git_hash", "GIT_HASH")):
+        value = info.get(key)
+        if value and isinstance(value, str):
+            os.environ.setdefault(variable, value)
+
+
 def prepare_environment(data_dir=None, photos_dir=None):
     """Point the settings at the data directory and the bundled binaries.
 
@@ -267,6 +291,7 @@ def prepare_environment(data_dir=None, photos_dir=None):
     os.makedirs(os.environ["BASE_LOGS"], exist_ok=True)
 
     root = install_root()
+    apply_build_info(root)
     bundled = [
         os.path.join(root, *parts)
         for parts in BUNDLED_BINARY_DIRS

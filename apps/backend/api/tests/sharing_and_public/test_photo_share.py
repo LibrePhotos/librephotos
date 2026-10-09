@@ -190,6 +190,7 @@ class PublicPhotoBySlugTest(PhotoShareTestBase):
         results = response.json()["results"]
         self.assertEqual(media_url(slug), results["thumbnail_url"])
         self.assertIsNone(results["video_url"])
+        self.assertIsNone(results["video_playback_type"])
 
     def test_hash_derived_fields_are_not_exposed(self):
         slug = self.share()
@@ -216,6 +217,24 @@ class PublicPhotoBySlugTest(PhotoShareTestBase):
         results = APIClient().get(public_url(slug)).json()["results"]
 
         self.assertEqual(media_url(slug, "video"), results["video_url"])
+
+    def test_video_share_tells_the_browser_what_the_video_is(self):
+        # So the page can ask canPlayType before playing: an HEVC clip in a
+        # Chrome without the decoder plays sound over a black picture.
+        video = create_test_photo(
+            owner=self.owner,
+            video=True,
+            video_codec="hevc",
+            video_pixel_format="yuv420p10le",
+            video_container="mov,mp4,m4a,3gp,3g2,mj2",
+        )
+        slug = self.post({"photo_id": str(video.pk)}).json()["share"]["slug"]
+
+        results = APIClient().get(public_url(slug)).json()["results"]
+
+        self.assertEqual(
+            'video/mp4; codecs="hvc1.2.4.L120.90"', results["video_playback_type"]
+        )
 
     def test_unknown_slug_returns_404(self):
         self.assertEqual(404, APIClient().get(public_url("deadbeefcafe")).status_code)

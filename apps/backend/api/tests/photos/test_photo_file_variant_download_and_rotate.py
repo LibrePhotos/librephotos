@@ -333,6 +333,16 @@ class RotatePhotoViewTest(APITestCase):
         self.photo.refresh_from_db()
         self.assertEqual(self.photo.local_orientation, 1)
 
+    def test_two_photos_sharing_a_hash_rotate_instead_of_500(self):
+        twin = create_test_photo(owner=self.user)
+        twin.image_hash = self.photo.image_hash
+        twin.save(update_fields=["image_hash"])
+
+        response = self.call({"image_hash": self.photo.image_hash, "angle": 90})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["local_orientation"], 6)
+
     def test_video_returns_400(self):
         video = create_test_photo(owner=self.user, video=True)
 

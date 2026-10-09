@@ -3,9 +3,13 @@ import logging
 from rest_framework import serializers
 
 from api.models import AlbumUser
+from api.models.photo import visible_photo_q
 from api.models.user import get_default_public_sharing_settings
 from api.serializers.fields import OwnedPhotoField
-from api.serializers.photos import GroupedPhotosSerializer
+from api.serializers.photos import (
+    GroupedPhotosSerializer,
+    with_photo_summary_relations,
+)
 from api.serializers.PhotosGroupedByDate import (
     PhotosGroupedByDate,
     filter_photos_by_media_type,
@@ -15,6 +19,23 @@ from api.serializers.simple import PhotoSuperSimpleSerializer, SimpleUserSeriali
 from api.views.photo_filters import build_photo_queryset
 
 logger = logging.getLogger(__name__)
+
+
+def _album_photos(serializer, album):
+    """The album's photos the library lists, newest first, loaded once.
+
+    Hidden and trashed photos stay out, as on every other album, also for the
+    users it is shared with. Date, location and the grid all read this one
+    list, keyed by album because a ``many=True`` serializer serves them all.
+    """
+    cache = serializer.__dict__.setdefault("_album_photos", {})
+    if album.pk not in cache:
+        cache[album.pk] = list(
+            with_photo_summary_relations(
+                album.photos.filter(visible_photo_q()).order_by("-exif_timestamp")
+            )
+        )
+    return cache[album.pk]
 
 
 class AlbumUserSerializer(serializers.ModelSerializer):
@@ -51,15 +72,14 @@ class AlbumUserSerializer(serializers.ModelSerializer):
 
     def get_grouped_photos(self, obj) -> GroupedPhotosSerializer(many=True):
         photos = filter_photos_by_media_type(
-            obj.photos.all().order_by("-exif_timestamp"),
-            self.context.get("request"),
+            _album_photos(self, obj), self.context.get("request")
         )
         grouped_photos = get_photos_ordered_by_date(photos)
         res = GroupedPhotosSerializer(grouped_photos, many=True).data
         return res
 
     def get_location(self, obj) -> str:
-        for photo in obj.photos.all():
+        for photo in _album_photos(self, obj):
             if (
                 photo
                 and hasattr(photo, "search_instance")
@@ -70,7 +90,7 @@ class AlbumUserSerializer(serializers.ModelSerializer):
         return ""
 
     def get_date(self, obj) -> str:
-        for photo in obj.photos.all():
+        for photo in _album_photos(self, obj):
             if photo and photo.exif_timestamp:
                 return photo.exif_timestamp
         return ""
@@ -304,9 +324,7 @@ class AlbumUserPublicSerializer(serializers.ModelSerializer):
 
     def _filtered_photos(self, obj):
         # Public albums should not expose hidden or trash photos
-        return obj.photos.filter(hidden=False, in_trashcan=False).order_by(
-            "-exif_timestamp"
-        )
+        return _album_photos(self, obj)
 
     def _sharing_settings(self, obj) -> dict:
         # What the owner chose to publish. The grid used to ignore it and hand

@@ -141,6 +141,49 @@ class PrepareEnvironmentTest(SimpleTestCase):
                 ],
             )
 
+    def _prepare_with_build_info(self, content, environ=None):
+        """prepare_environment in a distribution whose build_info.json says ``content``."""
+        with tempfile.TemporaryDirectory() as root:
+            if content is not None:
+                with open(
+                    os.path.join(root, standalone.BUILD_INFO_NAME),
+                    "w",
+                    encoding="utf-8",
+                ) as handle:
+                    handle.write(content)
+            with (
+                patch.dict(os.environ, environ or {}),
+                patch("os.makedirs"),
+                patch.object(standalone, "install_root", return_value=root),
+            ):
+                if not environ:
+                    os.environ.pop("IMAGE_TAG", None)
+                    os.environ.pop("GIT_HASH", None)
+                standalone.prepare_environment("/tmp/lp-data")
+                return os.environ.get("IMAGE_TAG"), os.environ.get("GIT_HASH")
+
+    def test_a_release_build_reports_its_version(self):
+        """Otherwise the sidebar says "dev": only the images set IMAGE_TAG."""
+        self.assertEqual(
+            self._prepare_with_build_info(
+                '{"version": "1.3.0", "git_hash": "abc1234"}'
+            ),
+            ("1.3.0", "abc1234"),
+        )
+
+    def test_the_environment_wins_over_the_build_info(self):
+        self.assertEqual(
+            self._prepare_with_build_info(
+                '{"version": "1.3.0", "git_hash": "abc1234"}',
+                {"IMAGE_TAG": "custom", "GIT_HASH": "def5678"},
+            ),
+            ("custom", "def5678"),
+        )
+
+    def test_no_or_a_broken_build_info_changes_nothing(self):
+        for content in (None, "not json", "[]", '{"version": ""}'):
+            self.assertEqual(self._prepare_with_build_info(content), (None, None))
+
 
 @patch("api.services.subprocess.Popen")
 class SidecarCommandTest(SimpleTestCase):
