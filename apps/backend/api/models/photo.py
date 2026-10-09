@@ -87,6 +87,13 @@ class Photo(models.Model):
     is_document = models.BooleanField(default=False, db_index=True)
     category_source = models.CharField(max_length=8, default="auto")
     video_length = models.TextField(blank=True, null=True)
+    # What ffprobe said about a video's first stream and container, asked once
+    # at scan time (see api.video_color.probe). NULL: never probed. "": probed,
+    # and the file does not say -- an untagged transfer is SDR.
+    video_codec = models.CharField(max_length=32, blank=True, null=True)
+    video_pixel_format = models.CharField(max_length=32, blank=True, null=True)
+    video_color_transfer = models.CharField(max_length=32, blank=True, null=True)
+    video_container = models.CharField(max_length=64, blank=True, null=True)
     size = models.BigIntegerField(default=0)
     # Metadata fields (camera, lens, fstop, etc.) moved to PhotoMetadata model
     # See migration 0103_remove_photo_metadata_fields.py

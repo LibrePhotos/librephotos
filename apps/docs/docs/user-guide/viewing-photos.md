@@ -196,3 +196,13 @@ The `f`, `h`, `p` and `d` shortcuts act on the current photo and are disabled on
 On macOS, `Ctrl` with the arrow keys is claimed by Mission Control for switching between desktops, so the one-minute jump may not reach the page there; `Shift` is unaffected.
 
 Seeking is unavailable while a video is still being converted for playback, which happens when you have **Always transcode videos** turned on in your settings. For as long as that conversion is running the browser is never told how long the video is or how to jump within it, so the player says so rather than ignoring the key.
+
+### HDR Videos
+
+Most phones record video in HDR by default: iPhones in Dolby Vision, most Android phones in HLG. Wherever LibrePhotos converts such a video — the gallery thumbnails, and playback when **Always transcode videos** is on — it maps the picture down to ordinary SDR colours, so it looks like itself instead of washed out and grey.
+
+Whether a video is HDR is worked out once, when the scan adds it, together with its codec and pixel format. Videos that were already in your library before this existed are checked by the **Probe Videos** job, which runs by itself after your next scan and rebuilds the thumbnails of the HDR ones, so any that looked washed out are corrected then. See [Job System](./job-system.md#probe-videos).
+
+:::note
+Not in a release yet: this arrives in the release after 1.2.1.
+:::

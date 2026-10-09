@@ -347,7 +347,9 @@ def _remove_partial(output):
         pass
 
 
-def create_animated_thumbnail(input_path, output_height, output_path, hash, file_type):
+def create_animated_thumbnail(
+    input_path, output_height, output_path, hash, file_type, transfer=None
+):
     try:
         output = os.path.join(settings.MEDIA_ROOT, output_path, hash + file_type)
         command = [
@@ -365,8 +367,9 @@ def create_animated_thumbnail(input_path, output_height, output_path, hash, file
             *NO_METADATA,
             # Tonemapped when the source is HDR, or the gallery shows the same
             # washed-out picture the player does. See :mod:`api.video_color`.
-            "-filter:v",
-            video_color.video_filter(input_path, f"scale=-2:{output_height}"),
+            *video_color.h264_video_args(
+                input_path, f"scale=-2:{output_height}", transfer
+            ),
             output,
         ]
 
@@ -376,7 +379,7 @@ def create_animated_thumbnail(input_path, output_height, output_path, hash, file
         raise e
 
 
-def create_thumbnail_for_video(input_path, output_path, hash, file_type):
+def create_thumbnail_for_video(input_path, output_path, hash, file_type, transfer=None):
     try:
         output = os.path.join(settings.MEDIA_ROOT, output_path, hash + file_type)
         command = [
@@ -392,7 +395,7 @@ def create_thumbnail_for_video(input_path, output_path, hash, file_type):
         ]
         # No resizing here, so there is a filter only when the source is HDR and
         # the grabbed frame would otherwise be washed out.
-        tonemap = video_color.video_filter(input_path)
+        tonemap = video_color.video_filter(input_path, transfer=transfer)
         if tonemap:
             command += ["-filter:v", tonemap]
         command.append(output)

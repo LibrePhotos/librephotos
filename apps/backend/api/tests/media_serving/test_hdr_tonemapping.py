@@ -12,6 +12,10 @@ that cannot be probed is converted the way it always was, and that all four
 conversion sites ask.
 """
 
+import re
+import shutil
+import subprocess
+import unittest
 from unittest import mock
 
 from django.test import SimpleTestCase
@@ -24,7 +28,7 @@ TONEMAP = (
     "zscale=t=linear:npl=100,"
     "format=gbrpf32le,"
     "zscale=p=bt709,"
-    "tonemap=hable,"
+    "tonemap=mobius:desat=0,"
     "zscale=t=bt709:m=bt709:r=tv,"
     "format=yuv420p"
 )
@@ -263,3 +267,74 @@ class ConversionSitesTest(SimpleTestCase):
             with mock.patch.object(thumbnails.subprocess, "run") as popen:
                 thumbnails.create_thumbnail_for_video("/v.mov", "out", "h", ".webp")
         self.assertIsNone(_filter_arg(popen.call_args[0][0]))
+
+
+def _real_ffmpeg_with_zscale():
+    ffmpeg_budget.reset_probe_cache()
+    try:
+        return bool(shutil.which("ffmpeg")) and ffmpeg_budget.supports_filter("zscale")
+    finally:
+        ffmpeg_budget.reset_probe_cache()
+
+
+@unittest.skipUnless(_real_ffmpeg_with_zscale(), "no ffmpeg with zscale")
+class RealTonemapTest(SimpleTestCase):
+    """The chain, run by the real ffmpeg on a picture graded like phone HDR.
+
+    A test pattern is taken to linear light and put back on the PQ curve with
+    its white at ``white_nits`` -- 1000 is ordinary for a phone's HDR video, and
+    100 is SDR reference white. The tonemapped result is then compared with the
+    pattern itself: SDR cannot reproduce a 1000-nit picture, but it can keep it
+    recognisable. The filter's default ``desat`` did not: at 1000 nits it faded
+    98% of the frame to flat white.
+    """
+
+    PATTERN = "testsrc2=size=320x180:rate=1"
+
+    def _stats(self, vf):
+        run = subprocess.run(
+            [
+                shutil.which("ffmpeg"),
+                "-nostdin",
+                "-f",
+                "lavfi",
+                "-i",
+                self.PATTERN,
+                "-frames:v",
+                "1",
+                "-vf",
+                f"{vf},signalstats,metadata=print",
+                "-f",
+                "null",
+                "-",
+            ],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        values = dict(
+            re.findall(r"lavfi\.signalstats\.(YAVG|SATAVG)=([0-9.]+)", run.stderr)
+        )
+        return float(values["YAVG"]), float(values["SATAVG"])
+
+    def _graded(self, white_nits):
+        return (
+            "format=yuv420p,"
+            "setparams=color_trc=bt709:color_primaries=bt709:colorspace=bt709:range=tv,"
+            "zscale=t=linear:npl=100,format=gbrpf32le,"
+            f"zscale=p=bt2020:t=smpte2084:m=bt2020nc:npl={white_nits},"
+            "format=yuv420p10le"
+        )
+
+    def _assert_recognisable(self, white_nits):
+        reference_y, reference_sat = self._stats("format=yuv420p")
+        y, sat = self._stats(f"{self._graded(white_nits)},{video_color._TONEMAP}")
+        self.assertGreater(sat, reference_sat * 0.7, "the colour is gone")
+        self.assertLess(y, 200, "the picture has faded to white")
+        self.assertGreater(y, reference_y * 0.8, "the picture has gone dark")
+
+    def test_a_bright_hdr_picture_keeps_its_colours(self):
+        self._assert_recognisable(1000)
+
+    def test_an_sdr_level_picture_keeps_its_colours(self):
+        self._assert_recognisable(100)

@@ -3,6 +3,7 @@ import logging
 
 from rest_framework import serializers
 
+from api import video_color
 from api.geocode.geocode import reverse_geocode
 from api.geocode import GEOCODE_VERSION
 from api.geocode.photo_location import find_album_places
@@ -31,6 +32,9 @@ class PhotoSummarySerializer(serializers.ModelSerializer):
     date = serializers.SerializerMethodField()
     birthTime = serializers.SerializerMethodField()
     video_length = serializers.SerializerMethodField()
+    # For an HDR badge on the tile. False for a video the scan has not probed
+    # yet as well as for an SDR one: the backfill job fills the older ones in.
+    is_hdr = serializers.SerializerMethodField()
     type = serializers.SerializerMethodField()
     owner = SimpleUserSerializer()
     # Stack information (can be multiple stacks)
@@ -51,6 +55,7 @@ class PhotoSummarySerializer(serializers.ModelSerializer):
             "aspectRatio",
             "type",
             "video_length",
+            "is_hdr",
             "rating",
             "owner",
             "exif_gps_lat",
@@ -91,6 +96,9 @@ class PhotoSummarySerializer(serializers.ModelSerializer):
             return obj.video_length
         else:
             return ""
+
+    def get_is_hdr(self, obj) -> bool:
+        return obj.video and obj.video_color_transfer in video_color.HDR_TRANSFERS
 
     # TODO: Remove this field in the future
     def get_birthTime(self, obj) -> str:
