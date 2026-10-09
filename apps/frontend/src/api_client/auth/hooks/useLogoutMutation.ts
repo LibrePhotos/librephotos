@@ -15,8 +15,8 @@ export const useLogoutMutation = () => {
   return useMutation({
     mutationFn: logout,
     // Whatever the server said. A refresh token that is already blacklisted --
-    // a second click on Log out -- answers 401, and the user still asked to
-    // be logged out; only on success, they stayed signed in.
+    // a second click on Log out -- answers 401, but the user still asked to
+    // be logged out; clearing the cookies only on success left them signed in.
     onSettled: () => {
       clearAuthCookies();
       navigate({ to: "/login" });

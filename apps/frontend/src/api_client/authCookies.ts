@@ -16,15 +16,46 @@ export const AUTH_COOKIE_OPTIONS = { path: "/" } as const;
 
 const AUTH_COOKIES = ["access", "refresh", "jwt"] as const;
 
+/**
+ * Every folder an earlier version could have left a copy in that this page
+ * can see: `/` and each folder above the page, down to its own. On
+ * `/librephotos/search/x` that is `/`, `/librephotos` and
+ * `/librephotos/search`.
+ *
+ * The browser scopes a cookie set without a path to the page's folder: the
+ * path up to, but not including, its last `/` (or `/` itself when that is the
+ * only one). A page sees the cookies of its own folder and of every folder
+ * above it, so a copy made on any of those pages -- the login page of a
+ * subpath install at `/librephotos`, say -- is one of these.
+ */
+function visibleCookieFolders() {
+  const folders = ["/"];
+  let folder = "";
+  // Drop the leading "" and the page's own name: what is left are the folders.
+  for (const segment of window.location.pathname.split("/").slice(1, -1)) {
+    folder += `/${segment}`;
+    folders.push(folder);
+  }
+  return folders;
+}
+
 export function setAuthCookie(name: "access" | "refresh", value: string) {
-  new Cookies().set(name, value, AUTH_COOKIE_OPTIONS);
+  const cookies = new Cookies();
+  // A copy an earlier version scoped to a folder is listed before the `/` one
+  // on this page -- longer paths come first -- and would be read instead of
+  // the fresh token.
+  for (const folder of visibleCookieFolders().slice(1)) {
+    cookies.remove(name, { path: folder });
+  }
+  cookies.set(name, value, AUTH_COOKIE_OPTIONS);
 }
 
 export function clearAuthCookies() {
   const cookies = new Cookies();
   for (const name of AUTH_COOKIES) {
-    cookies.remove(name, AUTH_COOKIE_OPTIONS);
-    // A copy an earlier version scoped to this page's folder.
-    cookies.remove(name);
+    // The `/` cookie, and any copy an earlier version left above this page.
+    for (const folder of visibleCookieFolders()) {
+      cookies.remove(name, { path: folder });
+    }
   }
 }

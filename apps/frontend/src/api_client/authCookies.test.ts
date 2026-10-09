@@ -24,7 +24,7 @@ function accessCookies() {
 }
 
 afterEach(() => {
-  for (const path of ["/", "/search", "/login"]) {
+  for (const path of ["/", "/search", "/search/deep", "/login", "/librephotos", "/librephotos/search"]) {
     visit(`${path === "/" ? "" : path}/x`);
     for (const name of ["access", "refresh", "jwt"]) {
       document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:01 GMT; path=${path}`;
@@ -63,6 +63,41 @@ describe("auth cookies", () => {
     clearAuthCookies();
 
     expect(accessCookies()).toEqual([]);
+  });
+
+  it("also clears a copy an older version left in a folder above this page", () => {
+    visit("/search/hdr_hlg_hevc");
+    new Cookies().set("access", "old-scoped");
+    visit("/search/deep/page");
+
+    clearAuthCookies();
+
+    expect(accessCookies()).toEqual([]);
+  });
+
+  it("logs out of a subpath install from a page in a folder", () => {
+    // VITE_PUBLIC_URL=/librephotos: the old login page scoped its copy to
+    // /librephotos, a refresh on a search page to /librephotos/search.
+    visit("/librephotos/login");
+    new Cookies().set("access", "old-login");
+    new Cookies().set("refresh", "old-refresh");
+    visit("/librephotos/search/hdr_hlg_hevc");
+    new Cookies().set("access", "old-refreshed");
+    setAuthCookie("refresh", "refresh-token");
+
+    clearAuthCookies();
+
+    expect(document.cookie).toBe("");
+  });
+
+  it("reads the fresh token on a page an older version left a copy on", () => {
+    visit("/search/hdr_hlg_hevc");
+    new Cookies().set("access", "old-scoped");
+
+    setAuthCookie("access", "refreshed");
+
+    expect(accessCookies()).toEqual(["access=refreshed"]);
+    expect(new Cookies().get("access")).toBe("refreshed");
   });
 
   it("was broken with the old calls, which is what this pins", () => {
