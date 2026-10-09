@@ -19,10 +19,10 @@ const SetPhotosCategoryResponse = z.object({
 });
 
 type CategoryFields = {
-  category: PhotoCategory;
-  // "auto" puts back a detected category (the lightbox's Undo); the server
-  // pins every other change as "user", which rescans leave alone.
-  category_source?: "user" | "auto";
+  // A category is pinned as set by the user, which rescans leave alone.
+  // "auto" hands the photos back to the detectors, which recompute both
+  // flags (the lightbox's Undo of a first correction).
+  category: PhotoCategory | "auto";
   // Show the default "N items marked as ..." toast; the lightbox shows its
   // own, with an Undo button.
   notify?: boolean;
@@ -59,7 +59,7 @@ export const useSetPhotosCategoryMutation = () =>
         response,
         "Failed to parse set photos category response"
       );
-      if (notify) {
+      if (notify && request.category !== "auto") {
         notification.setPhotosCategory(data.count ?? 0, request.category);
       }
       return data;

@@ -263,7 +263,7 @@ export function Sidebar({
         <TimestampItem photoDetail={photoDetail} isPublic={isPublic} />
         <VersionComponent photoDetail={photoDetail} isPublic={isPublic} />
         {/* Owner-only: CategorySection renders nothing on someone else's photo. */}
-        {!isPublic && <CategorySection photoDetail={photoDetail} />}
+        {!isPublic && <CategorySection key={photoDetail.image_hash} photoDetail={photoDetail} />}
         <StackSection photoDetail={photoDetail} onPhotoSelect={onPhotoSelect} />
         <LocationSection photoDetail={photoDetail} mapHeight={200} isPublic={isPublic} />
         <PeopleSection
