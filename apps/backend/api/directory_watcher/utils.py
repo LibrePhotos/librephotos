@@ -252,11 +252,15 @@ def finish_job_if_complete(job_id) -> bool:
 
 def _on_job_finished(job_id):
     """Start whatever had to wait for this job's work to be done."""
-    job_type = (
+    job = (
         LongRunningJob.objects.filter(job_id=job_id)
-        .values_list("job_type", flat=True)
+        .values("job_type", "started_by_id")
         .first()
     )
+    job_type = job and job["job_type"]
+    if job_type == LongRunningJob.JOB_GENERATE_TAGS:
+        _queue_embeddings_after_tags(job_id, job["started_by_id"])
+        return
     if job_type != LongRunningJob.JOB_SCAN_PHOTOS:
         return
     # Imported here because scan_jobs imports this module.
@@ -266,6 +270,31 @@ def _on_job_finished(job_id):
         queue_scan_followups(job_id)
     except Exception:
         logger.exception(f"job {job_id}: could not queue the scan follow-ups")
+
+
+def _queue_embeddings_after_tags(job_id, user_id):
+    """Fill the gaps the tags job left in the search embeddings.
+
+    When MobileCLIP-S2 tags and searches, the tags job stores each photo's
+    search embedding, and the scan's own embedding job left those photos to
+    it. This run embeds the photos it could not tag and rebuilds the index.
+    """
+    from api.semantic_search import semantic_shares_tagger
+
+    if user_id is None or not semantic_shares_tagger():
+        return
+    from django_q.tasks import AsyncTask
+
+    from api.batch_jobs import batch_calculate_clip_embedding
+    from api.models import User
+
+    user = User.objects.filter(pk=user_id).first()
+    if user is None:
+        return
+    try:
+        AsyncTask(batch_calculate_clip_embedding, user).run()
+    except Exception:
+        logger.exception(f"job {job_id}: could not queue the search embeddings")
 
 
 def update_scan_counter(job_id, failed=False, error=None):

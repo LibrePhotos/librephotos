@@ -104,6 +104,15 @@ Turning the setting on also queues a background job that computes CLIP embedding
 You need to have the **CLIP embedding** calculation job completed for semantic search to work. This runs automatically during photo scanning, or you can trigger it manually from the Library page.
 :::
 
+### Which model searches
+
+The **Semantic Search Model** in the Admin Area's site settings picks the model that turns photos and queries into embeddings:
+
+- **MobileCLIP-S2** (the default since 1.3.0) is also the default tagging model. When it does both, tagging a photo yields its search embedding from the same run, so a scan runs one vision model per photo instead of two, and the 600 MB CLIP ViT-B/32 model is never downloaded or loaded.
+- **CLIP ViT-B/32** is the model LibrePhotos used before.
+
+Each photo's embedding remembers which model made it. After you switch, or after upgrading from a release that used CLIP ViT-B/32, a **Calculate Clip Embeddings** job re-embeds every photo with the selected model in the background; nothing is deleted first. While it runs, semantic search and similar photos cover the photos converted so far, and the index catches up every 2,000 photos.
+
 ### How It Works
 
 1. During scanning, LibrePhotos computes a CLIP embedding for each photo — a numerical representation of the image's visual content

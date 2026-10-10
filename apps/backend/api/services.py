@@ -58,10 +58,43 @@ def _ocr_model_selected():
         return True
 
 
+def _semantic_search_model():
+    """The semantic search model, or None when the configuration is unreadable
+    (a database that is not up yet must not be able to take a service away)."""
+    try:
+        from constance import config as site_config
+
+        from api.semantic_search import (
+            DEFAULT_SEMANTIC_SEARCH_MODEL,
+            SEMANTIC_SEARCH_MODELS,
+        )
+
+        value = str(site_config.SEMANTIC_SEARCH_MODEL or "").strip()
+    except Exception:
+        return None
+    return value if value in SEMANTIC_SEARCH_MODELS else DEFAULT_SEMANTIC_SEARCH_MODEL
+
+
+def _clip_is_search_model():
+    """clip_embeddings runs CLIP ViT-B/32, needed only as the search model;
+    MobileCLIP-S2 searches through the tags service (api.semantic_search)."""
+    return _semantic_search_model() in (None, "clip_vit_b32")
+
+
+def _tags_serve_search():
+    return _semantic_search_model() in (None, "mobileclip_s2")
+
+
 # Services whose switch is a site setting rather than an environment flag. The
 # per-minute watchdog re-reads these, so selecting an OCR model starts the
 # sidecar without a restart.
-SERVICE_SITE_GATES = {"ocr": _ocr_model_selected}
+SERVICE_SITE_GATES = {
+    "ocr": _ocr_model_selected,
+    "clip_embeddings": _clip_is_search_model,
+}
+
+# Services needed for something else even with their feature flag off.
+SERVICE_ALSO_NEEDED = {"tags": _tags_serve_search}
 
 
 def is_service_enabled(service):
@@ -78,7 +111,10 @@ def is_service_enabled(service):
     flag = SERVICE_FEATURE_FLAGS.get(service)
     if flag is None:
         return True
-    return bool(getattr(settings, flag, True))
+    if bool(getattr(settings, flag, True)):
+        return True
+    also_needed = SERVICE_ALSO_NEEDED.get(service)
+    return bool(also_needed and also_needed())
 
 
 def disabled_reason(service):
@@ -86,6 +122,8 @@ def disabled_reason(service):
     flag = SERVICE_FEATURE_FLAGS.get(service)
     if flag is not None and not bool(getattr(settings, flag, True)):
         return f"{flag} is disabled"
+    if service == "clip_embeddings":
+        return "semantic search runs on MobileCLIP-S2 in the tags service"
     return "no model is selected for it in the site settings"
 
 
@@ -226,6 +264,12 @@ def _service_environment():
     if os.environ.get("PYTHONPATH"):
         pythonpath.append(os.environ["PYTHONPATH"])
     return {
+        # numpy's OpenBLAS starts a thread per core in every process that
+        # imports it and reserves a buffer for each: ~350 MB of committed
+        # memory per sidecar on a 12-thread machine. The sidecars do their
+        # heavy maths in ONNX Runtime, which has its own threads, and use
+        # numpy only for pre- and post-processing. Unless set already.
+        "OPENBLAS_NUM_THREADS": "1",
         **os.environ,
         "BASE_DATA": settings.BASE_DATA,
         "BASE_LOGS": settings.LOGS_ROOT,

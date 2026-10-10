@@ -2,11 +2,13 @@ import html
 import re
 from html.parser import HTMLParser
 
-import numpy as np
 import requests
 from constance import config as site_config
 
 from api import sidecars
+from api.lazy_import import LazyModule
+
+np = LazyModule("numpy")
 
 
 class _HTMLTextExtractor(HTMLParser):

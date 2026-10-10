@@ -10,6 +10,8 @@ export const SiteSettings = z.object({
   captioning_model: z.string(),
   llm_model: z.string(),
   tagging_model: z.string(),
+  // Older backends search with CLIP ViT-B/32 and have no setting for it.
+  semantic_search_model: z.string().default("clip_vit_b32"),
   // Older backends do not know about OCR yet; default rather than require it.
   ocr_model: z.string().default("none"),
   face_recognition_model: z.string(),

@@ -12,6 +12,8 @@ export const SiteSettings = z.object({
   // Gone with the LLM; older servers still send it.
   llm_model: z.string().optional(),
   tagging_model: z.string(),
+  // Older backends search with CLIP ViT-B/32 and have no setting for it.
+  semantic_search_model: z.string().default("clip_vit_b32"),
   // Older backends do not know about OCR yet. Default it instead of requiring it, so that a
   // frontend running against such a backend still renders the rest of the settings page.
   ocr_model: z.string().default("none"),

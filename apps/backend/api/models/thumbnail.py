@@ -8,15 +8,42 @@ from django.dispatch import receiver
 from PIL import Image
 
 from api.models.photo import Photo
-from api.thumbnails import (
-    create_animated_thumbnail,
-    create_static_thumbnails,
-    create_thumbnail_for_video,
-    does_static_thumbnail_exist,
-    does_video_thumbnail_exist,
-)
 
 logger = logging.getLogger(__name__)
+
+
+# api.thumbnails loads libvips and numpy; the models load with every process,
+# the API server included, which never renders. These forward on first use and
+# stay module attributes, so tests can patch them here.
+def create_animated_thumbnail(*args, **kwargs):
+    from api import thumbnails
+
+    return thumbnails.create_animated_thumbnail(*args, **kwargs)
+
+
+def create_static_thumbnails(*args, **kwargs):
+    from api import thumbnails
+
+    return thumbnails.create_static_thumbnails(*args, **kwargs)
+
+
+def create_thumbnail_for_video(*args, **kwargs):
+    from api import thumbnails
+
+    return thumbnails.create_thumbnail_for_video(*args, **kwargs)
+
+
+def does_static_thumbnail_exist(*args, **kwargs):
+    from api import thumbnails
+
+    return thumbnails.does_static_thumbnail_exist(*args, **kwargs)
+
+
+def does_video_thumbnail_exist(*args, **kwargs):
+    from api import thumbnails
+
+    return thumbnails.does_video_thumbnail_exist(*args, **kwargs)
+
 
 # Static thumbnails are webp; the animated ones videos get instead are mp4.
 STATIC_THUMBNAIL_DIRS = (
@@ -104,6 +131,17 @@ class Thumbnail(models.Model):
     square_thumbnail_small = models.ImageField(upload_to="square_thumbnails_small")
     aspect_ratio = models.FloatField(blank=True, null=True)
     dominant_color = models.TextField(blank=True, null=True)
+
+    class Meta:
+        indexes = [
+            # "Has a thumbnail" (aspect_ratio set) is part of every visible
+            # photo filter; joined from the photo side as an index-only scan.
+            models.Index(
+                fields=["photo"],
+                condition=models.Q(aspect_ratio__isnull=False),
+                name="thumbnail_ready_idx",
+            ),
+        ]
 
     def _generate_thumbnail(self):
         try:

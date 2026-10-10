@@ -33,6 +33,11 @@ class PhotoQuerySet(models.QuerySet):
         return self.filter(q)
 
 
+# Large per-photo columns that list endpoints never render: defer them when a
+# query loads whole photos only to show a cover or a hash.
+HEAVY_PHOTO_COLUMNS = ("clip_embeddings", "exif_json", "geolocation_json")
+
+
 def visible_photo_q(prefix=""):
     """The photos ``Photo.visible`` keeps, as a ``Q``.
 
@@ -115,6 +120,10 @@ class Photo(models.Model):
     clip_embeddings = models.JSONField(blank=True, null=True)
 
     clip_embeddings_magnitude = models.FloatField(blank=True, null=True)
+    # The model behind clip_embeddings (api.semantic_search): "mobileclip_s2" or
+    # "clip_vit_b32"; NULL for embeddings stored before the column, which are
+    # all CLIP ViT-B/32.
+    clip_embeddings_model = models.CharField(max_length=32, blank=True, null=True)
     last_modified = models.DateTimeField(auto_now=True)
 
     # Perceptual hash for duplicate detection (pHash algorithm)
@@ -162,6 +171,14 @@ class Photo(models.Model):
             # WHERE (last_modified, id) > (:c1, :c2) ORDER BY last_modified, id.
             # The UUID pk is the tie-break, same trap as PR #1935.
             models.Index(fields=["last_modified", "id"], name="photo_sync_keyset_idx"),
+            # The date list and the album counts read every photo of the
+            # owner with these flags: an index-only scan instead of the wide
+            # api_photo heap (from the Rust experiment's date list work).
+            models.Index(
+                fields=["owner", "id"],
+                include=["hidden", "in_trashcan"],
+                name="photo_owner_visible_idx",
+            ),
         ]
 
     def get_clip_embeddings(self):

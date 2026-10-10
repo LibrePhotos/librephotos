@@ -14,6 +14,7 @@ from django.test import SimpleTestCase
 from api.directory_watcher.scan_jobs import (
     _group_needs_processing,
     _select_groups_to_process,
+    _videos_first,
 )
 
 
@@ -140,3 +141,19 @@ class SelectGroupsToProcessTest(SimpleTestCase):
         )
         self.assertEqual(result, groups)
         self.assertEqual(calls, [])
+
+
+class VideosFirstTest(SimpleTestCase):
+    """Groups holding a video are queued first; the rest keep walk order."""
+
+    def test_videos_first_keeps_walk_order_otherwise(self):
+        groups = [
+            (("/p", "a"), ["/p/a.jpg"]),
+            (("/p", "b"), ["/p/b.MP4"]),
+            (("/p", "c"), ["/p/c.jpg", "/p/c.cr2"]),
+            (("/p", "d"), ["/p/d.heic", "/p/d.mov"]),
+            (("/p", "e"), ["/p/e.png"]),
+        ]
+        self.assertEqual(
+            [key[1] for key, _ in _videos_first(groups)], ["b", "d", "a", "c", "e"]
+        )

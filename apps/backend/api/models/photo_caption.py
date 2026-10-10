@@ -1,14 +1,17 @@
 import logging
+import math
 
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
 from django.db.models import Q
+from django.utils import timezone
 
 import api.models
 from api import sidecars
 from api.image_captioning import generate_caption
 from api.models.user import User
+from api.semantic_search import MOBILECLIP_S2, semantic_shares_tagger
 
 logger = logging.getLogger(__name__)
 
@@ -280,6 +283,11 @@ class PhotoCaption(models.Model):
                 "confidence": confidence,
                 "tagging_model": tagging_model,
             }
+            # One image-tower run for the tags and the search embedding when
+            # MobileCLIP-S2 is both models (api.semantic_search).
+            shares_embedding = semantic_shares_tagger()
+            if shares_embedding:
+                json_data["with_embedding"] = True
             try:
                 response = sidecars.post(
                     "tags", "/generate-tags", json=json_data, timeout=TAGS
@@ -303,6 +311,13 @@ class PhotoCaption(models.Model):
 
             if tags_result is None:
                 return
+            embedding = (
+                tags_result.pop("embedding", None)
+                if isinstance(tags_result, dict)
+                else None
+            )
+            if shares_embedding and embedding:
+                self._store_search_embedding(embedding)
             if self.captions_json is None:
                 self.captions_json = {}
 
@@ -321,13 +336,30 @@ class PhotoCaption(models.Model):
             )
             raise e
 
+    def _store_search_embedding(self, embedding):
+        """Store the tagger's image embedding as the photo's search embedding.
+
+        A queryset update of the embedding columns only: the photo row was
+        read before the sidecar call, and a save would write all of it back.
+        """
+        magnitude = math.sqrt(sum(value * value for value in embedding))
+        fields = {
+            "clip_embeddings": embedding,
+            "clip_embeddings_magnitude": magnitude,
+            "clip_embeddings_model": MOBILECLIP_S2,
+        }
+        api.models.Photo.objects.filter(pk=self.photo.pk).update(
+            **fields, last_modified=timezone.now()
+        )
+        for name, value in fields.items():
+            setattr(self.photo, name, value)
+
     def _update_tag_album_things(self, tag_result, tagging_model):
         """Replace this photo's AlbumThing memberships for one tagging model."""
         thing_type = tag_thing_type(tagging_model)
         tags = (tag_result or {}).get("tags", [])
 
-        self._detach_photo_from_album_things([thing_type])
-        self._attach_photo_to_album_things(tags, thing_type)
+        api.models.album_thing.set_photo_album_things(self.photo, tags, thing_type)
 
     # Backward-compatible alias
     def generate_places365_captions(self, commit=True):

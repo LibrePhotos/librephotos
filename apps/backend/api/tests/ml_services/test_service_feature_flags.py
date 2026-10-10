@@ -65,7 +65,20 @@ class ServiceFeatureFlagMappingTest(SimpleTestCase):
 
     @override_settings(FEATURE_SCENE_CLASSIFICATION=False)
     def test_tags_follows_scene_classification(self):
-        self.assertFalse(is_service_enabled("tags"))
+        with patch("api.services._semantic_search_model", return_value="clip_vit_b32"):
+            self.assertFalse(is_service_enabled("tags"))
+
+    @override_settings(FEATURE_SCENE_CLASSIFICATION=False)
+    def test_tags_still_serve_mobileclip_search(self):
+        """MobileCLIP-S2 search embeddings run in the tags service."""
+        with patch("api.services._semantic_search_model", return_value="mobileclip_s2"):
+            self.assertTrue(is_service_enabled("tags"))
+
+    def test_clip_embeddings_runs_only_for_clip_search(self):
+        with patch("api.services._semantic_search_model", return_value="mobileclip_s2"):
+            self.assertFalse(is_service_enabled("clip_embeddings"))
+        with patch("api.services._semantic_search_model", return_value="clip_vit_b32"):
+            self.assertTrue(is_service_enabled("clip_embeddings"))
 
     @override_settings(FEATURE_IMAGE_CAPTIONING=False)
     def test_image_captioning_follows_the_captioning_flag(self):
@@ -115,6 +128,15 @@ class StartAllCommandTest(TestCase):
     """`manage.py start_service all` is what the Docker entrypoints run."""
 
     def test_everything_starts_by_default(self, popen_mock):
+        """But CLIP ViT-B/32: MobileCLIP-S2 searches, in the tags service."""
+        call_command("start_service", "all")
+
+        self.assertEqual(
+            set(SERVICES) - {"clip_embeddings"}, spawned_services(popen_mock)
+        )
+
+    @override_config(SEMANTIC_SEARCH_MODEL="clip_vit_b32")
+    def test_clip_embeddings_starts_for_clip_search(self, popen_mock):
         call_command("start_service", "all")
 
         self.assertEqual(set(SERVICES), spawned_services(popen_mock))
@@ -125,7 +147,9 @@ class StartAllCommandTest(TestCase):
 
         started = spawned_services(popen_mock)
         self.assertNotIn("face_recognition", started)
-        self.assertEqual(set(SERVICES) - {"face_recognition"}, started)
+        self.assertEqual(
+            set(SERVICES) - {"face_recognition", "clip_embeddings"}, started
+        )
 
     @override_settings(
         FEATURE_FACE_DETECTION=False,
@@ -136,7 +160,7 @@ class StartAllCommandTest(TestCase):
         call_command("start_service", "all")
 
         self.assertEqual(
-            {"image_similarity", "thumbnail", "clip_embeddings", "exif", "ocr"},
+            {"image_similarity", "thumbnail", "tags", "exif", "ocr"},
             spawned_services(popen_mock),
         )
 
@@ -165,6 +189,8 @@ class CheckServicesTest(SimpleTestCase):
     ):
         check_services()
 
+        # No database here: the semantic search model cannot be read, and an
+        # unreadable configuration takes no service away (clip_embeddings too).
         self.assertEqual(set(SERVICES), self._restarted(start_mock))
 
     @override_settings(FEATURE_FACE_DETECTION=False)

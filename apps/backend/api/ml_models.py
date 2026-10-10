@@ -12,6 +12,7 @@ from django.conf import settings
 
 from api.http_timeouts import MODEL_DOWNLOAD
 from api.models.long_running_job import LongRunningJob
+from api.semantic_search import semantic_search_model
 
 logger = logging.getLogger(__name__)
 
@@ -241,7 +242,13 @@ def _is_model_selected(model):
         # captioning on should never wait for a download.
         return True
     if model_type == MlTypes.TAGGING:
-        return model["name"] == site_config.TAGGING_MODEL
+        # MobileCLIP-S2 also serves semantic search (api.semantic_search).
+        return model["name"] == site_config.TAGGING_MODEL or (
+            model["name"] == semantic_search_model()
+        )
+    if model_type == MlTypes.CLIP:
+        # Only needed when it is the semantic search model.
+        return model["name"] == semantic_search_model()
     if model_type == MlTypes.FACE_RECOGNITION:
         return model["name"] == site_config.FACE_RECOGNITION_MODEL
     if model_type == MlTypes.OCR:
@@ -555,15 +562,19 @@ def captioning_model_exists():
     )
 
 
+def model_download_running():
+    return LongRunningJob.objects.filter(
+        job_type=LongRunningJob.JOB_DOWNLOAD_MODELS, finished=False
+    ).exists()
+
+
 def start_model_download(user):
     """Queue a Download Models job unless one is already running.
 
     Returns True when a download is now running (just queued or already
     underway), False when it could not be queued.
     """
-    if LongRunningJob.objects.filter(
-        job_type=LongRunningJob.JOB_DOWNLOAD_MODELS, finished=False
-    ).exists():
+    if model_download_running():
         return True
     try:
         from django_q.tasks import AsyncTask

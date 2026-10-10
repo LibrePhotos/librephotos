@@ -9,9 +9,15 @@ Uses pHash (perceptual hash) algorithm which is robust to:
 """
 
 import logging
+import re
 
-import imagehash
 from PIL import Image
+
+from api.lazy_import import LazyModule
+
+# imagehash brings numpy and scipy along; only the scan and duplicate
+# detection hash, not the API server that imports this module.
+imagehash = LazyModule("imagehash")
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +25,8 @@ logger = logging.getLogger(__name__)
 # Threshold for considering two images as duplicates
 # pHash produces 64-bit hashes, Hamming distance <= 10 indicates high similarity
 DEFAULT_HAMMING_THRESHOLD = 10
+
+HEX64_HASH = re.compile(r"[0-9a-fA-F]{16}")
 
 
 def calculate_perceptual_hash(image_path: str, hash_size: int = 8) -> str | None:
@@ -72,6 +80,16 @@ def hamming_distance(hash1: str, hash2: str) -> int:
     Returns:
         Number of differing bits (0 = identical, higher = more different)
     """
+    if (
+        isinstance(hash1, str)
+        and isinstance(hash2, str)
+        and HEX64_HASH.fullmatch(hash1)
+        and HEX64_HASH.fullmatch(hash2)
+    ):
+        # The usual 64-bit hash: XOR and count, ~150x faster than two
+        # imagehash objects, which every comparison of a scan or a duplicate
+        # search paid.
+        return (int(hash1, 16) ^ int(hash2, 16)).bit_count()
     try:
         h1 = imagehash.hex_to_hash(hash1)
         h2 = imagehash.hex_to_hash(hash2)

@@ -5,7 +5,7 @@ from rest_framework import serializers
 from api.models import AlbumUser
 from api.models.photo import visible_photo_q
 from api.models.user import get_default_public_sharing_settings
-from api.serializers.fields import OwnedPhotoField
+from api.serializers.fields import OwnedPhotoField, shared_serializer
 from api.serializers.photos import (
     GroupedPhotosSerializer,
     with_photo_summary_relations,
@@ -277,16 +277,20 @@ class AlbumUserListSerializer(serializers.ModelSerializer):
 
     def get_cover_photo(self, obj) -> PhotoSuperSimpleSerializer:
         if obj.cover_photo:
-            return PhotoSuperSimpleSerializer(obj.cover_photo).data
+            return shared_serializer(
+                self, PhotoSuperSimpleSerializer
+            ).to_representation(obj.cover_photo)
         # ``first_photos`` is the prefetched fallback cover (see
         # ``with_album_user_list_relations``); fall back to a query when the
         # serializer is used on a plain album.
         first_photos = getattr(obj, "first_photos", None)
         if first_photos is None:
             return PhotoSuperSimpleSerializer(obj.photos.first()).data
-        return PhotoSuperSimpleSerializer(
-            first_photos[0] if first_photos else None
-        ).data
+        if not first_photos:
+            return PhotoSuperSimpleSerializer(None).data
+        return shared_serializer(self, PhotoSuperSimpleSerializer).to_representation(
+            first_photos[0]
+        )
 
     def get_photo_count(self, obj) -> int:
         try:

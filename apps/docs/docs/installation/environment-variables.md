@@ -140,6 +140,12 @@ services:
 
 Each machine learning service is a separate process, and by default each model in it may use one thread per physical core. With several of them busy during a scan they compete for the same cores. `ONNX_INTRA_OP_THREADS` caps every model at that many threads (`0` or unset keeps the default), which pairs well with a `cpus:` limit: set it to the number of cores you give the container, or fewer. The face recognition models are the exception, because the library that loads them does not pass the setting through.
 
+#### Memory the models keep between photos
+
+ONNX Runtime keeps a memory arena per model: once a model has needed a buffer, it holds on to it for as long as the model stays loaded. For text recognition (OCR) and captioning, whose input sizes change from photo to photo, that kept the memory of the largest photo they ever saw, several hundred MB each. Since 1.3.0 those two run without the arena, which costs a few percent of their speed; the other models keep it. `ONNX_CPU_ARENA=1` gives every model the arena again, `ONNX_CPU_ARENA=0` takes it from every model. The face recognition models keep their default either way.
+
+The services also start with `OPENBLAS_NUM_THREADS=1` unless you set it: they do their heavy work in ONNX Runtime, and otherwise every one of them reserved buffers for a thread per core.
+
 :::warning
 Do not cap the container so hard that the first scan cannot finish. Face detection and captioning load sizeable models; below roughly 2 GB of memory the backend will be killed by the kernel — and *that* really is an out-of-memory kill.
 :::
@@ -237,6 +243,16 @@ Unlike the cached copy, the live conversion is **not** niced: somebody is watchi
 `TRANSCODE_LIVE_READRATE` and `TRANSCODE_LIVE_BURST_SECONDS` need a recent ffmpeg — `-readrate` arrived in ffmpeg 5.0 and `-readrate_initial_burst` in 6.1. The CPU image has both. **The GPU image does not**: it is built on Ubuntu 22.04, whose ffmpeg is 4.4, so on that image these two settings have no effect and only `TRANSCODE_LIVE_CPU_FRACTION` applies. The same goes for a host supplying its own older ffmpeg. Nothing has to be configured for that — the option is simply not passed, and the core cap still holds.
 
 `TRANSCODE_LIVE_CPU_FRACTION` is a divisor, so a **larger** number means fewer cores: `4` is stricter than `2`. Raising it, or lowering the readrate, makes a busy server more responsive while a video is playing; going the other way favours the person watching. If a video stutters on a slow machine, set `TRANSCODE_LIVE_CPU_FRACTION` to `1` first: a stutter means the conversion cannot keep ahead of playback, and it is the core cap that decides how fast it can go — the readrate is a ceiling it never reached. For scale, one core converts 1080p to 720p at about 1.5x real time, and two at about 2x, so a machine with few cores has little margin at 1080p and none to spare for a second viewer.
+
+### Thumbnail quality
+
+Every photo gets three WebP thumbnails: a big one, 1080 px high, which the lightbox shows and the duplicate detection and machine learning read, and two squares of 500 and 250 px, which the timeline and album grids show by the hundreds. The big one is encoded at quality 95. The squares are encoded at 80 since 1.3.0 (95 before): they come out 60–70 % smaller and encode a third faster, so a grid loads fewer bytes and the server sends more of them per second, for a difference that is hard to see at their size.
+
+| Variable | `.env` key | Default | What it does |
+| --- | --- | --- | --- |
+| `SQUARE_THUMBNAIL_QUALITY` | `squareThumbnailQuality` | `80` | WebP quality (1–100) of the 500 and 250 px square thumbnails. `95` brings back the old size and look. |
+
+It applies to thumbnails rendered from then on, such as those of newly scanned or rotated photos. Existing thumbnails keep their quality until they are rendered again.
 
 ### Internal service address
 

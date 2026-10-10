@@ -230,6 +230,14 @@ router.register(r"api/jobs", jobs.LongRunningJobViewSet, basename="jobs")
 router.register(r"api/services", services.ServiceViewSet, basename="service")
 
 urlpatterns = [
+    # First: thumbnails are most of all requests, and Django tries patterns in
+    # order; behind the ~200 router patterns each one paid ~0.5 ms to resolve.
+    # Every router prefix starts with api/, so nothing else can match here.
+    re_path(
+        r"^media/(?P<path>.*)/(?P<fname>.*)",
+        media.UnifiedMediaAccessView.as_view(),
+        name="media",
+    ),
     re_path(r"^", include(router.urls)),
     # Health probes - unauthenticated, and under /api/ because the proxy only
     # forwards ^/(api|media)/ to the backend. Must stay ahead of the
@@ -406,11 +414,6 @@ urlpatterns = [
         r"^api/media/diagnostics/(?P<fname>[^/]+)/$",
         serving_diagnostics.MediaPermissionDiagnosticsView.as_view(),
         name="media-diagnostics",
-    ),
-    re_path(
-        r"^media/(?P<path>.*)/(?P<fname>.*)",
-        media.UnifiedMediaAccessView.as_view(),
-        name="media",
     ),
     re_path(
         r"^api/delete/zip/(?P<fname>[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})/?$",

@@ -95,6 +95,7 @@ def prepare_image(image, size=IMAGE_SIZE):
 class MobileCLIP:
     def __init__(self):
         self.vision_session = None
+        self.text_session = None
         self.tokenizer = None
         self.tags = None
         self.tag_embeddings = None
@@ -112,6 +113,7 @@ class MobileCLIP:
 
     def unload(self):
         self.vision_session = None
+        self.text_session = None
         self.tokenizer = None
         self.tags = None
         self.tag_embeddings = None
@@ -166,30 +168,66 @@ class MobileCLIP:
         self.tag_embeddings = cache
 
     # ----------------------------------------------------------------- image
-    def embed_image(self, image_path):
-        """L2-normalised image embedding, shape (1, dim)."""
-        pixel_values = prepare_image(Image.open(image_path))
+    def embed_image_raw(self, image_path):
+        """The image tower's output as it is, shape (1, dim).
+
+        Unnormalised, like the CLIP embeddings semantic search stores: the
+        similarity index ranks by inner product, and the search thresholds
+        are calibrated on these raw values.
+        """
+        if self.vision_session is None:
+            self.vision_session = inference_session(MOBILECLIP_VISION_PATH)
+        with Image.open(image_path) as image:
+            pixel_values = prepare_image(image)
         input_name = self.vision_session.get_inputs()[0].name
         (raw,) = self.vision_session.run(None, {input_name: pixel_values})
-        return _l2_normalize(raw)
+        return raw.astype(np.float32)
+
+    def embed_image(self, image_path):
+        """L2-normalised image embedding, shape (1, dim)."""
+        return _l2_normalize(self.embed_image_raw(image_path))
 
     def predict(
-        self, image_path, threshold=DEFAULT_MIN_PROBABILITY, max_tags=DEFAULT_MAX_TAGS
+        self,
+        image_path,
+        threshold=DEFAULT_MIN_PROBABILITY,
+        max_tags=DEFAULT_MAX_TAGS,
+        with_embedding=False,
     ):
         """The most likely tags for a photo.
 
         ``threshold`` is a probability under the softmax over all tags, not a
         raw cosine similarity (see the module docstring). Returns
-        ``{"tags": [...]}`` ordered from most to least likely.
+        ``{"tags": [...]}`` ordered from most to least likely; with
+        ``with_embedding`` also ``"embedding"``, the raw image embedding of the
+        same run (:meth:`embed_image_raw`), which semantic search stores when
+        MobileCLIP-S2 is its model too: one image-tower run serves both.
         """
         if not self.is_loaded:
             self.load()
 
-        image_embedding = self.embed_image(image_path)
-        similarities = (image_embedding @ self.tag_embeddings.T)[0]
+        raw = self.embed_image_raw(image_path)
+        similarities = (_l2_normalize(raw) @ self.tag_embeddings.T)[0]
         probabilities = _softmax(LOGIT_SCALE * similarities)
 
-        return {"tags": self._top_tags(probabilities, threshold, max_tags)}
+        result = {"tags": self._top_tags(probabilities, threshold, max_tags)}
+        if with_embedding:
+            result["embedding"] = raw[0].tolist()
+        return result
+
+    # ---------------------------------------------------------- text queries
+    def embed_text_raw(self, text):
+        """A search query through the text tower, unnormalised, shape (dim,).
+
+        The text tower is kept loaded after the first query (it goes with the
+        rest on unload); building the tag embeddings uses its own short-lived
+        session.
+        """
+        if self.text_session is None:
+            self.text_session = inference_session(MOBILECLIP_TEXT_PATH)
+        input_name = self.text_session.get_inputs()[0].name
+        (raw,) = self.text_session.run(None, {input_name: self._tokenize([text])})
+        return raw[0].astype(np.float32)
 
     def _top_tags(self, probabilities, threshold, max_tags):
         tags = []

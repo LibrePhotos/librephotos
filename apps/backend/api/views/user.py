@@ -104,31 +104,10 @@ class UserViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = (
             User.objects.exclude(is_active=False)
-            .only(
-                "id",
-                "username",
-                "email",
-                "scan_directory",
-                "upload_directory",
-                "transcode_videos",
-                "confidence",
-                "confidence_person",
-                "semantic_search_topk",
-                "first_name",
-                "last_name",
-                "date_joined",
-                "avatar",
-                "nextcloud_server_address",
-                "nextcloud_username",
-                "nextcloud_scan_directory",
-                "favorite_min_rating",
-                "image_scale",
-                "save_metadata_to_disk",
-                "datetime_rules",
-                "default_timezone",
-                "is_superuser",
-                "public_sharing",
-            )
+            # Every field the serializers read is loaded with the row: an
+            # .only() list fell behind the serializer and each missing field
+            # cost one more query per user. The secrets are never read.
+            .defer("password", "nextcloud_app_password")
             .order_by("id")
         )
         if not self.request.user.is_authenticated:

@@ -321,8 +321,25 @@ class BuildImageSimilarityIndexTest(TestCase):
         photos = create_test_photos(number_of_photos=count, owner=self.user)
         for number, photo in enumerate(photos):
             photo.clip_embeddings = unit(number)
+            # The default semantic search model's.
+            photo.clip_embeddings_model = "mobileclip_s2"
             photo.save()
         return photos
+
+    @patch("api.sidecars.http.delete")
+    @patch("api.sidecars.http.post")
+    def test_the_other_models_embeddings_are_left_out(self, post, delete):
+        """A library half converted to MobileCLIP-S2 has only those indexed."""
+        photos = self._with_embeddings(3)
+        photos[0].clip_embeddings_model = None  # CLIP ViT-B/32, not converted
+        photos[0].save()
+        post.return_value = _build_reply(index_size=2)
+
+        build_image_similarity_index(self.user)
+
+        sent = post.call_args.kwargs["json"]
+        self.assertEqual(len(sent["image_hashes"]), 2)
+        self.assertNotIn(photos[0].image_hash, sent["image_hashes"])
 
     @patch("api.sidecars.http.delete")
     @patch("api.sidecars.http.post")

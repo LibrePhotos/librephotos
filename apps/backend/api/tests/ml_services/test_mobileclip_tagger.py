@@ -189,6 +189,42 @@ class MobileCLIPTaggerTest(SimpleTestCase):
         self.assertEqual(feed["pixel_values"].shape, (1, 3, 256, 256))
         self.assertEqual(feed["pixel_values"].dtype, np.float32)
 
+    def test_predict_can_return_the_raw_embedding_of_the_same_run(self):
+        """Semantic search stores it: one image-tower run for both."""
+        tagger = MobileCLIP()
+        with patch.object(
+            mobileclip_module.Image, "open", return_value=Image.new("RGB", (300, 200))
+        ):
+            result = tagger.predict("/photo.jpg", with_embedding=True)
+
+        self.assertEqual(result["tags"], ["beach"])
+        # Unnormalised, exactly the tower's output.
+        np.testing.assert_allclose(result["embedding"], [0.9, 0.85, 0.0, 0.0])
+        self.assertEqual(len(self.vision_session.calls), 1)
+
+    def test_text_queries_use_the_padded_text_tower_and_keep_it(self):
+        tagger = MobileCLIP()
+        first = tagger.embed_text_raw("a dog")
+        tagger.embed_text_raw("a cat")
+
+        self.assertEqual(first.shape, (4,))
+        np.testing.assert_allclose(first, 1.0)  # raw, not normalised
+        feeds = self.text_session.calls
+        self.assertEqual(len(feeds), 2)
+        self.assertEqual(feeds[0]["input_ids"].shape, (1, 77))
+        self.assertIs(tagger.text_session, self.text_session)
+        tagger.unload()
+        self.assertIsNone(tagger.text_session)
+
+    def test_image_embeddings_need_no_tag_list(self):
+        tagger = MobileCLIP()
+        with patch.object(
+            mobileclip_module.Image, "open", return_value=Image.new("RGB", (300, 200))
+        ):
+            raw = tagger.embed_image_raw("/photo.jpg")
+        self.assertEqual(raw.shape, (1, 4))
+        self.assertFalse(tagger.is_loaded)
+
 
 class PrepareImageTest(SimpleTestCase):
     def test_centre_crop_and_zero_one_range(self):

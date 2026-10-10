@@ -102,6 +102,24 @@ class MlModelsTest(TestCase):
                 self.assertFalse(do_all_models_exist())
 
 
+class SemanticSearchModelSelectionTest(TestCase):
+    """The search model's files are required; CLIP ViT-B/32 only as that."""
+
+    def _model(self, name):
+        return next(m for m in ML_MODELS if m["name"] == name)
+
+    @override_config(TAGGING_MODEL="siglip2", SEMANTIC_SEARCH_MODEL="mobileclip_s2")
+    def test_mobileclip_is_kept_for_search_when_siglip_tags(self):
+        self.assertTrue(_is_model_selected(self._model("mobileclip_s2")))
+        self.assertTrue(_is_model_selected(self._model("siglip2")))
+        self.assertFalse(_is_model_selected(self._model("clip_vit_b32")))
+
+    @override_config(TAGGING_MODEL="siglip2", SEMANTIC_SEARCH_MODEL="clip_vit_b32")
+    def test_clip_is_needed_only_as_the_search_model(self):
+        self.assertTrue(_is_model_selected(self._model("clip_vit_b32")))
+        self.assertFalse(_is_model_selected(self._model("mobileclip_s2")))
+
+
 class OcrModelSelectionTest(TestCase):
     @override_config(OCR_MODEL="None")
     def test_ocr_models_not_selected_when_none(self):
@@ -305,7 +323,12 @@ class DownloadModelsJobTest(TestCase):
         self.assertFalse(job.failed)
         self.assertTrue(job.finished)
 
-    @override_config(TAGGING_MODEL="siglip2", FACE_RECOGNITION_MODEL="buffalo_sc")
+    # CLIP ViT-B/32 searches, so MobileCLIP-S2 is needed only once it tags.
+    @override_config(
+        TAGGING_MODEL="siglip2",
+        FACE_RECOGNITION_MODEL="buffalo_sc",
+        SEMANTIC_SEARCH_MODEL="clip_vit_b32",
+    )
     def test_a_model_picked_while_it_runs_is_fetched_by_the_same_job(self):
         """Site Settings queue no second job while this one runs."""
         fetched = []

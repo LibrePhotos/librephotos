@@ -14,6 +14,14 @@ installed onnxruntime offers, CUDA first:
     Threads one session may use inside an operator. Unset or 0: onnxruntime's
     default, one per physical core. The face models are the exception:
     insightface builds their sessions itself and passes no options through.
+``ONNX_CPU_ARENA``
+    ``1`` / ``0`` force ONNX Runtime's CPU memory arena on or off for every
+    session. Unset: off for the models whose input size changes from call to
+    call (OCR, captions), on for the rest. The arena keeps the largest
+    activations a session ever needed for as long as it lives, which for the
+    variable-shape models is hundreds of MB more than their next request
+    needs (the Rust and TypeScript experiments measured -400 MB resident for
+    OCR and -200 MB for captions for a few % more time).
 
 The sidecars are scripts started as ``python service/<name>/main.py``;
 api.services puts the backend root on their PYTHONPATH so this module imports
@@ -56,16 +64,34 @@ def intra_op_threads():
     return threads if threads > 0 else None
 
 
-def session_options():
+def cpu_arena(variable_shapes=False):
+    """Whether a session gets ONNX Runtime's CPU arena (see ONNX_CPU_ARENA)."""
+    value = os.environ.get("ONNX_CPU_ARENA", "").strip().lower()
+    if value in ("1", "true", "yes", "on"):
+        return True
+    if value in ("0", "false", "no", "off"):
+        return False
+    return not variable_shapes
+
+
+def session_options(variable_shapes=False):
     options = ort.SessionOptions()
     threads = intra_op_threads()
     if threads is not None:
         options.intra_op_num_threads = threads
+    options.enable_cpu_mem_arena = cpu_arena(variable_shapes)
     return options
 
 
-def inference_session(path):
-    """An InferenceSession for *path* on the configured providers."""
+def inference_session(path, variable_shapes=False):
+    """An InferenceSession for *path* on the configured providers.
+
+    ``variable_shapes``: the model is fed inputs of changing sizes (text boxes,
+    image tiles, a growing token sequence), so it runs without the CPU arena
+    unless ONNX_CPU_ARENA says otherwise.
+    """
     return ort.InferenceSession(
-        path, sess_options=session_options(), providers=execution_providers()
+        path,
+        sess_options=session_options(variable_shapes),
+        providers=execution_providers(),
     )

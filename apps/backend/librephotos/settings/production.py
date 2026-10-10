@@ -129,6 +129,12 @@ def _env_int(name, default):
         ) from None
 
 
+# WebP quality (1-100) of the 500 and 250 px square thumbnails the photo grids
+# show; the big 1080 px thumbnail stays at 95. Applies to thumbnails rendered
+# from now on (a scan of new photos, a rotate, "Generate thumbnails").
+SQUARE_THUMBNAIL_QUALITY = min(100, max(1, _env_int("SQUARE_THUMBNAIL_QUALITY", 80)))
+
+
 def _env_list(name, default=()):
     """Read a comma-separated list from the environment, dropping blank entries."""
     value = os.environ.get(name)
@@ -291,6 +297,17 @@ CONSTANCE_ADDITIONAL_FIELDS = {
             ),
         },
     ],
+    "semantic_search_model": [
+        "django.forms.fields.ChoiceField",
+        {
+            "widget": "django.forms.Select",
+            # api.semantic_search.SEMANTIC_SEARCH_MODELS.
+            "choices": (
+                ("mobileclip_s2", "MobileCLIP-S2 (default, shared with tagging)"),
+                ("clip_vit_b32", "CLIP ViT-B/32"),
+            ),
+        },
+    ],
     "ocr_model": [
         "django.forms.fields.ChoiceField",
         {
@@ -369,6 +386,12 @@ CONSTANCE_CONFIG = {
         "captioning_model",
     ),
     "TAGGING_MODEL": ("mobileclip_s2", "Tagging model", "tagging_model"),
+    "SEMANTIC_SEARCH_MODEL": (
+        "mobileclip_s2",
+        "Semantic search model. Switching re-embeds every photo with the new"
+        " model in the background.",
+        "semantic_search_model",
+    ),
     "OCR_MODEL": (
         "None",
         "OCR model. OCR extracts ALL readable text from photos into the database"

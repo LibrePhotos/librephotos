@@ -17,3 +17,18 @@ class OwnedPhotoField(serializers.PrimaryKeyRelatedField):
         return Photo.objects.owned_by(
             getattr(self.context.get("request"), "user", None)
         )
+
+
+def shared_serializer(parent, serializer_class):
+    """One *serializer_class* instance per *parent* serializer.
+
+    For ``get_*`` methods that render one related object per row: building a
+    ModelSerializer's fields introspects the model and costs a few ms, which a
+    list of hundreds of rows paid once per row. Render with
+    ``.to_representation(obj)`` on the returned instance.
+    """
+    cache = parent.__dict__.setdefault("_shared_serializers", {})
+    serializer = cache.get(serializer_class)
+    if serializer is None:
+        serializer = cache[serializer_class] = serializer_class(context=parent.context)
+    return serializer

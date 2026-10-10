@@ -76,6 +76,15 @@ class LongRunningJob(models.Model):
 
     class Meta:
         ordering = ["-queued_at"]
+        indexes = [
+            # /api/rqavailable/, polled every 2 s by every open tab, looks for
+            # the unfinished job without reading the whole job history.
+            models.Index(
+                fields=["started_at"],
+                condition=models.Q(finished=False),
+                name="lrj_unfinished_idx",
+            ),
+        ]
         verbose_name = "Long Running Job"
         verbose_name_plural = "Long Running Jobs"
 

@@ -44,6 +44,13 @@ const TAGGING_MODELS: ModelOption[] = [
   { value: "siglip2", label: "SigLIP 2", hint: "most_accurate" },
 ];
 
+const DEFAULT_SEMANTIC_SEARCH_MODEL = "mobileclip_s2";
+
+const SEMANTIC_SEARCH_MODELS: ModelOption[] = [
+  { value: "mobileclip_s2", label: "MobileCLIP-S2", hint: "fast_default" },
+  { value: "clip_vit_b32", label: "CLIP ViT-B/32" },
+];
+
 const OCR_MODELS: ModelOption[] = [
   { value: "none", label: "" },
   { value: "ppocrv6_tiny", label: "PP-OCRv6 Tiny", hint: "fastest" },
@@ -98,6 +105,7 @@ export function SiteSettings() {
   const [autoCreateUserDirectory, setAutoCreateUserDirectory] = useState(false);
   const [captioningModel, setCaptioningModel] = useState(DEFAULT_CAPTIONING_MODEL);
   const [taggingModel, setTaggingModel] = useState(DEFAULT_TAGGING_MODEL);
+  const [semanticSearchModel, setSemanticSearchModel] = useState(DEFAULT_SEMANTIC_SEARCH_MODEL);
   const [ocrModel, setOcrModel] = useState(OCR_DISABLED);
   // Restored when the user backs out of the OCR confirmation dialog.
   const [previousOcrModel, setPreviousOcrModel] = useState(OCR_DISABLED);
@@ -162,6 +170,7 @@ export function SiteSettings() {
       setAutoCreateUserDirectory(settings.auto_create_user_directory ?? false);
       setCaptioningModel(settings.captioning_model);
       setTaggingModel(settings.tagging_model);
+      setSemanticSearchModel(settings.semantic_search_model);
       setOcrModel(normalizeOcrModel(settings.ocr_model));
       setPreviousOcrModel(normalizeOcrModel(settings.ocr_model));
       setFaceRecognitionModel(settings.face_recognition_model);
@@ -349,6 +358,27 @@ export function SiteSettings() {
                   const value = model ?? DEFAULT_TAGGING_MODEL;
                   save({ tagging_model: value });
                   setTaggingModel(value);
+                }}
+              />
+            </Grid.Col>
+            <Grid.Col span={LABEL_SPAN}>
+              <Stack gap={0}>
+                <Text>{t("sitesettings.semantic_search_model_header")}</Text>
+                <Text fz="sm" c="dimmed">
+                  {t("sitesettings.semantic_search_model_description")}
+                </Text>
+              </Stack>
+            </Grid.Col>
+            <Grid.Col span={CONTROL_SPAN}>
+              <Select
+                searchable
+                allowDeselect={false}
+                data={translateOptions(SEMANTIC_SEARCH_MODELS, t, t("sitesettings.model_none"))}
+                value={semanticSearchModel}
+                onChange={model => {
+                  const value = model ?? DEFAULT_SEMANTIC_SEARCH_MODEL;
+                  save({ semantic_search_model: value });
+                  setSemanticSearchModel(value);
                 }}
               />
             </Grid.Col>

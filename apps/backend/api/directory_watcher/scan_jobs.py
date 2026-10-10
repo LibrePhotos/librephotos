@@ -22,8 +22,9 @@ from django_q.tasks import AsyncTask, Chain
 from api.metadata.reader import get_sidecar_files_in_priority_order
 from api import video_color
 from api.batch_jobs import batch_calculate_clip_embedding
+from api.semantic_search import semantic_shares_tagger
 from api.models import LongRunningJob, Photo, Thumbnail
-from api.models.file import is_metadata
+from api.models.file import VIDEO_EXTENSIONS, is_metadata
 from api.photo_files import detach_missing_files
 
 from api.directory_watcher.file_grouping import (
@@ -245,6 +246,21 @@ def _known_paths(batch_paths):
     )
 
 
+def _has_video(paths):
+    return any(os.path.splitext(path)[1].lower() in VIDEO_EXTENSIONS for path in paths)
+
+
+def _videos_first(groups):
+    """The file groups with a video first, otherwise in walk order.
+
+    A video takes far longer than a photo (ffmpeg thumbnails, probing, often
+    tens of seconds), and the walk tends to reach them last, so the scan ended
+    with a few workers on videos and the rest idle. Queued first, they run
+    alongside the photos (the Rust experiment's scan: +9.5% files/s).
+    """
+    return sorted(groups, key=lambda group: not _has_video(group[1]))
+
+
 def _queue_scan_work(
     user, groups_to_process, metadata_paths, full_scan, last_scan, job_id
 ):
@@ -254,7 +270,7 @@ def _queue_scan_work(
     remaining ones have nothing to wait for and are queued directly.
     """
     image_group_id = str(uuid.uuid4())
-    for _, paths in groups_to_process:
+    for _, paths in _videos_first(groups_to_process):
         AsyncTask(
             handle_file_group,
             user,
@@ -341,7 +357,12 @@ def _queue_followup_jobs(user, full_scan, scan_missing):
 
     # The scan faces job will have issues if the embeddings haven't been generated before it runs
     chain = Chain()
-    chain.append(batch_calculate_clip_embedding, user)
+    # When the tags job stores the search embeddings too, this run leaves the
+    # photos it is about to tag to it (its end queues the rest).
+    if semantic_shares_tagger():
+        chain.append(batch_calculate_clip_embedding, user, wait_for_tags=True)
+    else:
+        chain.append(batch_calculate_clip_embedding, user)
     if settings.FEATURE_FACE_DETECTION:
         chain.append(scan_faces, user, uuid.uuid4(), full_scan)
     chain.run()

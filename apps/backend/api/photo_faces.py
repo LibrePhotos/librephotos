@@ -9,7 +9,6 @@ as its first argument.
 import logging
 from io import BytesIO
 
-import numpy as np
 import PIL
 from django.conf import settings
 from django.core.files.base import ContentFile
@@ -18,6 +17,9 @@ from django.db.utils import IntegrityError
 import api.models
 from api import face_extractor
 from api.util import FACE_OVERLAP_IOU_THRESHOLD, calculate_iou
+from api.lazy_import import LazyModule
+
+np = LazyModule("numpy")
 
 logger = logging.getLogger(__name__)
 

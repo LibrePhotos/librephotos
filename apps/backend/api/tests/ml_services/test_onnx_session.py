@@ -34,7 +34,7 @@ def _available(providers):
 def _environ(**values):
     patcher = patch.dict(os.environ)
     patcher.start()
-    for name in ("ONNX_PROVIDERS", "ONNX_INTRA_OP_THREADS"):
+    for name in ("ONNX_PROVIDERS", "ONNX_INTRA_OP_THREADS", "ONNX_CPU_ARENA"):
         os.environ.pop(name, None)
     os.environ.update(values)
     return patcher
@@ -103,6 +103,33 @@ class SessionOptionsTest(SimpleTestCase):
         self.assertEqual(args, ("/models/m.onnx",))
         self.assertEqual(kwargs["providers"], WITH_CUDA)
         self.assertEqual(kwargs["sess_options"].intra_op_num_threads, 2)
+
+
+class CpuArenaTest(SimpleTestCase):
+    """The variable-shape models run without the CPU arena unless told."""
+
+    def setUp(self):
+        self.addCleanup(_environ().stop)
+
+    def test_default_follows_the_model(self):
+        self.assertTrue(session_options().enable_cpu_mem_arena)
+        self.assertFalse(session_options(variable_shapes=True).enable_cpu_mem_arena)
+
+    def test_the_environment_forces_it(self):
+        for value, expected in (("1", True), ("on", True), ("0", False)):
+            with self.subTest(value=value):
+                os.environ["ONNX_CPU_ARENA"] = value
+                self.assertEqual(session_options().enable_cpu_mem_arena, expected)
+                self.assertEqual(
+                    session_options(variable_shapes=True).enable_cpu_mem_arena,
+                    expected,
+                )
+
+    def test_ocr_and_captions_ask_for_variable_shapes(self):
+        for path in ("ocr/ppocr/engine.py", "image_captioning/lfm2_vl.py"):
+            with self.subTest(path=path):
+                source = (SERVICE_DIR / path).read_text(encoding="utf-8")
+                self.assertIn("variable_shapes=True", source)
 
 
 class NoPinnedProvidersTest(SimpleTestCase):

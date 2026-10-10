@@ -1252,6 +1252,8 @@
     "ocr_warning": "Text recognition stores all readable text of every photo in the database as plain text. That includes documents, receipts, letters and IDs that happen to be in your library. Larger models are more accurate, but need more time and memory per photo.",
     "tagging_model_header": "Tagging Model",
     "tagging_model_description": "Select the model used for auto-tagging photos. Switching models does not delete previously generated tags.",
+    "semantic_search_model_header": "Semantic Search Model",
+    "semantic_search_model_description": "The model behind searching photos by what they show and behind similar photos. MobileCLIP-S2 is also the tagging model, so each photo runs through one model instead of two. Switching re-embeds every photo in the background; search covers the converted photos meanwhile.",
     "saved": "Setting saved",
     "option_default": "{{name}} (default)",
     "option_fast_default": "{{name}} (fast, default)",

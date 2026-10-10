@@ -17,7 +17,8 @@ from api.models import (
     Person,
     Photo,
 )
-from api.models.photo import visible_photo_q
+from api.models.photo import HEAVY_PHOTO_COLUMNS, visible_photo_q
+from api.models.photo_stack import PhotoStack
 from api.serializers.album_date import (
     AlbumDateSerializer,
     IncompleteAlbumDateSerializer,
@@ -162,16 +163,23 @@ def with_album_user_list_relations(queryset):
     default, so every album on the page costs four extra round trips and the
     cover grid only appears once the last of them has come back (issue #618).
     """
-    return queryset.select_related("owner", "cover_photo", "share").prefetch_related(
-        "shared_to",
-        # Fallback cover for albums without an explicit one. ``.first()`` on the
-        # unordered m2m orders by pk, so the prefetch has to do the same. Only
-        # a photo the album detail shows, not a hidden or trashed one.
-        Prefetch(
-            "photos",
-            queryset=Photo.visible.order_by("pk")[:1],
-            to_attr="first_photos",
-        ),
+    return (
+        queryset.select_related("owner", "cover_photo", "share")
+        # The cover renders six photo columns; the embedding and EXIF blobs
+        # of every album's cover were read for nothing.
+        .defer(*(f"cover_photo__{name}" for name in HEAVY_PHOTO_COLUMNS))
+        .prefetch_related(
+            "shared_to",
+            # Fallback cover for albums without an explicit one. ``.first()`` on
+            # the unordered m2m orders by pk, so the prefetch has to do the
+            # same. Only a photo the album detail shows, not a hidden or
+            # trashed one.
+            Prefetch(
+                "photos",
+                queryset=Photo.visible.defer(*HEAVY_PHOTO_COLUMNS).order_by("pk")[:1],
+                to_attr="first_photos",
+            ),
+        )
     )
 
 
@@ -338,11 +346,9 @@ class AlbumPlaceListViewSet(ListViewSet):
 
         return (
             AlbumPlace.objects.filter(owner=self.request.user)
-            .annotate(
-                photo_count=Count(
-                    "photos", filter=visible_photo_q("photos__"), distinct=True
-                )
-            )
+            # No DISTINCT: a place holds a photo once and the thumbnail join is
+            # one-to-one, and COUNT(DISTINCT) sorted every place link.
+            .annotate(photo_count=Count("photos", filter=visible_photo_q("photos__")))
             .prefetch_related(
                 Prefetch(
                     "photos", queryset=cover_photos_query[:4], to_attr="cover_photos"
@@ -428,11 +434,9 @@ class AlbumUserListViewSet(ListViewSet):
             return AlbumUser.objects.none()
         return with_album_user_list_relations(
             AlbumUser.objects.filter(owner=self.request.user)
-            .annotate(
-                photo_count=Count(
-                    "photos", filter=visible_photo_q("photos__"), distinct=True
-                )
-            )
+            # No DISTINCT: an album holds a photo once and the thumbnail join
+            # is one-to-one, and COUNT(DISTINCT) sorted every album link.
+            .annotate(photo_count=Count("photos", filter=visible_photo_q("photos__")))
             .filter(Q(photo_count__gt=0) & Q(owner=self.request.user))
             .order_by("title")
         )
@@ -632,9 +636,21 @@ class AlbumDateListViewSet(ListViewSet):
         # Non-primary photos are hidden in the timeline but accessible via stack expansion
         # NOTE: Duplicates are handled separately via the Duplicate model and are not filtered here
         if not self.request.query_params.get("show_all_stack_photos"):
+            # As subqueries, not LEFT JOINs: a join multiplied the rows of a
+            # photo in several stacks, which is what made the count DISTINCT
+            # (a sort of every row on the timeline's hottest query).
+            in_no_stack = ~Exists(
+                Photo.stacks.through.objects.filter(photo_id=OuterRef("pk"))
+            )
+            is_primary = Exists(
+                PhotoStack.objects.filter(primary_photo_id=OuterRef("pk"))
+            )
             filter.append(
-                Q(photos__stacks__isnull=True)
-                | Q(photos__primary_in_stack__isnull=False)
+                Q(
+                    photos__in=Photo.objects.filter(in_no_stack | is_primary).values(
+                        "pk"
+                    )
+                )
             )
 
         # Filter by folder path if provided
@@ -681,9 +697,16 @@ class AlbumDateListViewSet(ListViewSet):
                 )
             )
 
+        # Only these reach a photo's many files or faces, or the search fields,
+        # through a join that repeats the photo; otherwise each row is one
+        # day's photo and a plain count is exact.
+        params = self.request.query_params
+        repeats_photos = bool(
+            params.get("folder") or params.get("person") or params.get("search")
+        )
         qs = (
             AlbumDate.objects.filter(*filter)
-            .annotate(photo_count=Count("photos", distinct=True))
+            .annotate(photo_count=Count("photos", distinct=repeats_photos))
             .filter(Q(photo_count__gt=0))
             .order_by(F("date").desc(nulls_last=True))
         )

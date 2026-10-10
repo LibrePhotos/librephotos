@@ -16,7 +16,26 @@ EXIFTOOL = shutil.which("exiftool") or "exiftool"
 static_et = exiftool.ExifTool(EXIFTOOL)
 static_struct_et = exiftool.ExifTool(EXIFTOOL, common_args=["-struct"])
 
-app = create_app("exif")
+
+def stop_exiftools():
+    """Stop both ExifTool processes; the next request starts the one it needs.
+
+    Each is a Perl interpreter of ~30-40 MB (plus a console host on Windows)
+    that stayed up between scans. The watchdog (api.services) calls this once
+    the sidecar has been idle for a while, as it unloads the ML sidecars'
+    models; a restart costs one Perl start-up (~0.3 s). The Rust experiment
+    measured -57 % idle memory for its ExifTool pool this way.
+    """
+    for et in (static_et, static_struct_et):
+        if et.running:
+            et.terminate()
+
+
+app = create_app(
+    "exif",
+    unload=stop_exiftools,
+    is_loaded=lambda: static_et.running or static_struct_et.running,
+)
 log = logger("exif")
 
 

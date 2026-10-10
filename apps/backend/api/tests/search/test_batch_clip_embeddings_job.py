@@ -10,15 +10,17 @@ model and its threading.
 from unittest.mock import patch
 
 import numpy as np
-from django.test import TestCase
+from constance.test import override_config
+from django.test import TestCase, override_settings
 
 from api import batch_jobs
 from api.models.long_running_job import LongRunningJob
 from api.models.photo import Photo
+from api.models.photo_caption import PhotoCaption
 from api.tests.utils import create_test_photos, create_test_user
 
 
-def fake_embeddings(imgs):
+def fake_embeddings(imgs, model=None):
     """Deterministic stand-in for ``create_clip_embeddings``."""
     imgs_emb = [np.array([float(i), float(i) + 1.0]) for i in range(len(imgs))]
     magnitudes = [float(i) + 0.5 for i in range(len(imgs))]
@@ -125,6 +127,7 @@ class BatchCalculateClipEmbeddingTestCase(TestCase):
         done = create_test_photos(number_of_photos=1, owner=self.user)[0]
         done.clip_embeddings = [9.0, 9.0]
         done.clip_embeddings_magnitude = 42.0
+        done.clip_embeddings_model = "mobileclip_s2"  # the selected model
         done.save()
         create_test_photos(number_of_photos=2, owner=self.user)
 
@@ -135,6 +138,57 @@ class BatchCalculateClipEmbeddingTestCase(TestCase):
         self.assertEqual(done.clip_embeddings_magnitude, 42.0)
         self.assertEqual(len(m_embed.call_args[0][0]), 2)
         self.assertEqual(self.latest_job().progress_target, 2)
+
+    def test_the_other_models_embeddings_are_replaced_in_place(self):
+        """Switching models re-embeds; the old vector stays until replaced."""
+        legacy = create_test_photos(number_of_photos=2, owner=self.user)
+        for photo in legacy:
+            photo.clip_embeddings = [9.0, 9.0]  # CLIP ViT-B/32 (model NULL)
+            photo.save()
+
+        m_embed, m_index = self.run_job()
+
+        self.assertEqual(m_embed.call_args[0][1], "mobileclip_s2")
+        for photo in legacy:
+            photo.refresh_from_db()
+            self.assertEqual(photo.clip_embeddings_model, "mobileclip_s2")
+            self.assertNotEqual(photo.clip_embeddings, [9.0, 9.0])
+        # Once before converting (the old model's index goes), once at the end.
+        self.assertEqual(m_index.call_count, 2)
+
+    @override_config(SEMANTIC_SEARCH_MODEL="clip_vit_b32")
+    def test_clip_vit_b32_keeps_its_legacy_embeddings(self):
+        done = create_test_photos(number_of_photos=1, owner=self.user)[0]
+        done.clip_embeddings = [9.0, 9.0]  # model NULL = CLIP ViT-B/32
+        done.save()
+
+        m_embed, _ = self.run_job()
+
+        m_embed.assert_not_called()
+
+    @override_settings(FEATURE_SCENE_CLASSIFICATION=True)
+    @override_config(
+        TAGGING_MODEL="mobileclip_s2", SEMANTIC_SEARCH_MODEL="mobileclip_s2"
+    )
+    def test_waiting_for_tags_leaves_untagged_photos_to_the_tagger(self):
+        tagged, untagged = create_test_photos(number_of_photos=2, owner=self.user)
+        PhotoCaption.objects.update_or_create(
+            photo=tagged, defaults={"captions_json": {"mobileclip_s2": {"tags": []}}}
+        )
+
+        with (
+            patch.object(
+                batch_jobs, "create_clip_embeddings", side_effect=fake_embeddings
+            ),
+            patch.object(batch_jobs, "build_image_similarity_index"),
+            patch.object(batch_jobs.os.path, "exists", return_value=True),
+        ):
+            batch_jobs.batch_calculate_clip_embedding(self.user, wait_for_tags=True)
+
+        tagged.refresh_from_db()
+        untagged.refresh_from_db()
+        self.assertIsNotNone(tagged.clip_embeddings)
+        self.assertIsNone(untagged.clip_embeddings)
 
     def test_no_photos_skips_loop_but_still_rebuilds_index_and_completes(self):
         m_embed, m_index = self.run_job()
@@ -191,7 +245,7 @@ class BatchCalculateClipEmbeddingTestCase(TestCase):
 
         good.refresh_from_db()
         self.assertIsNotNone(good.clip_embeddings)
-        m_embed.assert_called_once_with([good_path])
+        m_embed.assert_called_once_with([good_path], "mobileclip_s2")
         self.assertFalse(
             Photo.objects.filter(
                 pk__in=[p.pk for p in broken], clip_embeddings__isnull=False
@@ -211,7 +265,7 @@ class BatchCalculateClipEmbeddingTestCase(TestCase):
             for p in Photo.objects.filter(owner=self.user).order_by("pk")[:64]
         }
 
-        def skip_unreadable(imgs):
+        def skip_unreadable(imgs, model=None):
             embeddings = [
                 None if img in unreadable else np.array([1.0, 2.0]) for img in imgs
             ]
@@ -300,7 +354,7 @@ class BatchCalculateClipEmbeddingTestCase(TestCase):
         """
         photos = create_test_photos(number_of_photos=3, owner=self.user)
 
-        def with_gap(imgs):
+        def with_gap(imgs, model=None):
             return (
                 [np.array([1.0, 0.0]), None, np.array([3.0, 0.0])],
                 [1.0, None, 3.0],
@@ -327,7 +381,7 @@ class BatchCalculateClipEmbeddingTestCase(TestCase):
         """``zip`` truncates: a short sidecar response silently skips photos."""
         create_test_photos(number_of_photos=3, owner=self.user)
 
-        def short_response(imgs):
+        def short_response(imgs, model=None):
             return [np.array([1.0, 2.0])], [7.0]
 
         _, m_index = self.run_job(embeddings_side_effect=short_response)
@@ -345,7 +399,7 @@ class BatchCalculateClipEmbeddingTestCase(TestCase):
         """The batch is loaded before the call; its save must not put it back."""
         (photo,) = create_test_photos(number_of_photos=1, owner=self.user)
 
-        def rated_meanwhile(imgs):
+        def rated_meanwhile(imgs, model=None):
             Photo.objects.filter(pk=photo.pk).update(rating=5, hidden=True)
             return fake_embeddings(imgs)
 

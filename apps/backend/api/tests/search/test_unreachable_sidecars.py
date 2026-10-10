@@ -20,6 +20,7 @@ FAILURES = (requests.ConnectionError("refused"), requests.ReadTimeout("busy"))
 
 class _Photo:
     image_hash = "a" * 32
+    clip_embeddings_model = "mobileclip_s2"  # the default search model's
 
     def get_clip_embeddings(self):
         return [0.1] * 512
