@@ -1,4 +1,5 @@
 import {
+  Badge,
   Box,
   Button,
   Center,
@@ -17,11 +18,14 @@ import {
   IconCheck as Check,
   IconChevronDown as ChevronDown,
   IconClock as Clock,
+  IconCopy as Copy,
   IconEyeOff as EyeOff,
   IconGlobe as Globe,
   IconFolderSearch,
   IconPhoto as Photo,
   IconScreenshot as Screenshot,
+  IconSparkles as Sparkles,
+  IconLayersSubtract as Stacks,
   IconStar as Star,
   IconVideo as Video,
 } from "@tabler/icons-react";
@@ -31,6 +35,7 @@ import type { ReactElement } from "react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAccessToken } from "../../api_client/auth/hooks";
+import { useDuplicateStatsQuery } from "../../api_client/duplicates";
 import { useFetchUserListQuery, useFetchUserSelfDetailsQuery } from "../../api_client/user/hooks";
 import type { User } from "../../api_client/user/types";
 import { i18nResolvedLanguage } from "../../i18n";
@@ -51,6 +56,30 @@ type Props = Readonly<{
   // videos-only media filter).
   countsVideos?: boolean;
 }>;
+
+// Its own component so the stats are only fetched once the dropdown is open.
+function DuplicatesMenuItem({ onClick }: Readonly<{ onClick: () => void }>) {
+  const { t } = useTranslation();
+  const theme = useMantineTheme();
+  const { data: stats } = useDuplicateStatsQuery();
+  const pending = stats?.pending_duplicates ?? 0;
+
+  return (
+    <Menu.Item
+      leftSection={<Copy color={theme.colors.yellow[6]} size={14} />}
+      rightSection={
+        pending > 0 ? (
+          <Badge size="sm" variant="light" color="yellow" circle={pending < 10}>
+            {pending}
+          </Badge>
+        ) : null
+      }
+      onClick={onClick}
+    >
+      {t("sidemenu.duplicates")}
+    </Menu.Item>
+  );
+}
 
 export function DefaultHeader(props: Props) {
   const [modalOpen, setModalOpen] = useState(false);
@@ -242,6 +271,13 @@ export function DefaultHeader(props: Props) {
                       {t("sidemenu.recentlyadded")}
                     </Menu.Item>
 
+                    <Menu.Item
+                      leftSection={<Sparkles color={theme.colors.grape[6]} size={14} />}
+                      onClick={() => navigate({ to: "/memories" })}
+                    >
+                      {t("sidemenu.memories")}
+                    </Menu.Item>
+
                     <Menu.Divider />
 
                     <Menu.Item
@@ -294,6 +330,20 @@ export function DefaultHeader(props: Props) {
                       }
                     >
                       {t("sidemenu.mypublicphotos")}
+                    </Menu.Item>
+
+                    <Menu.Divider />
+                    <Menu.Label>{t("sidemenu.organizing")}</Menu.Label>
+
+                    <DuplicatesMenuItem
+                      onClick={() => navigate({ to: "/organizing/$tab", params: { tab: "duplicates" } })}
+                    />
+
+                    <Menu.Item
+                      leftSection={<Stacks color={theme.colors.yellow[6]} size={14} />}
+                      onClick={() => navigate({ to: "/organizing/$tab", params: { tab: "stacks" } })}
+                    >
+                      {t("sidemenu.stacks")}
                     </Menu.Item>
                   </Menu.Dropdown>
                 </Menu>

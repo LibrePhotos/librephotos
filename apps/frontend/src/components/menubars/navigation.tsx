@@ -1,13 +1,6 @@
 import type { MantineColor } from "@mantine/core";
 import type { Icon } from "@tabler/icons-react";
-import {
-  IconAlbum as Album,
-  IconPhoto as Photo,
-  IconSparkles as Sparkles,
-  IconLayersSubtract as Stacks,
-  IconTrash as Trash,
-  IconUsers as Users,
-} from "@tabler/icons-react";
+import { IconAlbum as Album, IconPhoto as Photo, IconTrash as Trash, IconUsers as Users } from "@tabler/icons-react";
 import type { TFunction } from "i18next";
 
 type SubmenuItem = {
@@ -47,30 +40,26 @@ export function getNavigationItems(t: TFunction<"translation", undefined>, isAut
       icon: Photo,
       color: "green",
       // The views the Photos header dropdown switches between.
-      activePrefixes: ["/", "/photos", "/favorites", "/videos", "/recent", "/hidden", "/notimestamp", "/screenshots"],
+      activePrefixes: [
+        "/",
+        "/photos",
+        "/favorites",
+        "/videos",
+        "/recent",
+        "/hidden",
+        "/notimestamp",
+        "/screenshots",
+        "/memories",
+        "/organizing",
+      ],
     },
     { label: t("sidemenu.albums"), link: "/album", icon: Album, color: "blue" },
-    {
-      label: t("sidemenu.memories", "Memories"),
-      link: "/memories",
-      display: isAuthenticated,
-      icon: Sparkles,
-      color: "grape",
-    },
     {
       label: t("sidemenu.sharing"),
       link: "/sharing",
       display: isAuthenticated,
       icon: Users,
       color: "red",
-    },
-    {
-      label: t("sidemenu.organizing", "Organizing"),
-      link: "/organizing/duplicates",
-      activePrefixes: ["/organizing"],
-      display: isAuthenticated,
-      icon: Stacks,
-      color: "yellow",
     },
     { label: t("photos.deleted"), link: "/deleted", icon: Trash, color: "gray" },
   ];

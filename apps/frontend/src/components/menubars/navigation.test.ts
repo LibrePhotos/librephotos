@@ -33,10 +33,16 @@ describe("isNavItemActive", () => {
     expect(isNavItemActive(item("/deleted"), "/deletedfoo")).toBe(false);
   });
 
-  it("keeps Organizing active on both of its tabs", () => {
-    const organizing = item("/organizing/duplicates");
-    expect(isNavItemActive(organizing, "/organizing/duplicates")).toBe(true);
-    expect(isNavItemActive(organizing, "/organizing/stacks")).toBe(true);
-    expect(isNavItemActive(organizing, "/")).toBe(false);
+  it("keeps Photos active on the pages its dropdown opens", () => {
+    const photos = item("/");
+    expect(isNavItemActive(photos, "/memories")).toBe(true);
+    expect(isNavItemActive(photos, "/organizing/duplicates")).toBe(true);
+    expect(isNavItemActive(photos, "/organizing/stacks")).toBe(true);
+  });
+
+  it("leaves Memories and Organizing out of the menu", () => {
+    const links = getNavigationItems(t, true).map(entry => entry.link);
+    expect(links).not.toContain("/memories");
+    expect(links.some(link => link.startsWith("/organizing"))).toBe(false);
   });
 });

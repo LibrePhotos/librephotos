@@ -398,10 +398,16 @@
     "dashboards": "Dashboards",
     "sharing": "Sharing",
     "duplicates": "Duplicates",
+    "stacks": "Stacks",
     "publicphotos": "Public photos",
     "youshared": "You shared",
     "sharedwithyou": "Shared with you",
     "organizing": "Organizing",
+    "cleanup": {
+      "title_one": "{{count}} duplicate to review",
+      "title_other": "{{count}} duplicates to review",
+      "savings": "Free up {{size}}"
+    },
     "backendversion": "Backend version: {{hash}}"
   },
   "memories": {
@@ -417,7 +423,8 @@
     "gallery": "Gallery",
     "capped": "showing the first {{count}} photos of each year",
     "emptytitle": "No memories yet",
-    "emptydescription": "Memories show photos taken around this date in earlier years. Your library has none from this month in past years, so check back next month or scan older photos."
+    "emptydescription": "Memories show photos taken around this date in earlier years. Your library has none from this month in past years, so check back next month or scan older photos.",
+    "seeall": "See all"
   },
   "explore": {
     "title": "Explore Albums",

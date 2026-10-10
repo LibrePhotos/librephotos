@@ -69,6 +69,8 @@ vi.mock("../../hooks/useWorkerStatus", () => ({ useWorkerStatus: () => ({ worker
 vi.mock("../../components/photolist/useScanEmptyStateAction", () => ({
   useHasNoScanDirectory: () => stubs.noScanDirectory,
 }));
+// Pulls in the slideshow and its lightbox, which these tests never open.
+vi.mock("../../components/memories/MemoriesStrip", () => ({ MemoriesStrip: () => null }));
 vi.mock("../../components/photolist/PhotoListView", () => ({
   PhotoListView: (props: PhotoListViewProps) => {
     stubs.listProps = props;

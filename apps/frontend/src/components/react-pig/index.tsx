@@ -300,6 +300,9 @@ function Pig<T extends ImageItem>(
     scrollDirectionRef.current = latestYOffsetRef.current > previousYOffsetRef.current ? "down" : "up";
 
     window.requestAnimationFrame(() => {
+      // Content above the grid can load after it (the timeline's memories), so
+      // the offset measured at mount goes stale and the top rows were culled.
+      if (containerRef.current) containerOffsetTopRef.current = containerRef.current.offsetTop;
       if (layoutRef.current) setRenderedItemsFunc(layoutRef.current);
 
       // measure users scrolling speed and set it to state, used for conditional tile rendering
