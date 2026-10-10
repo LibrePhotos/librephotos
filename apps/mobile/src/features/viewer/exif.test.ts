@@ -79,7 +79,7 @@ describe("exif formatting", () => {
       user_caption: "Beach day",
       im2txt: "a person standing on a beach",
       places365: { attributes: ["sunny"], categories: ["beach"] },
-      siglip2: { tags: ["ocean"] },
+      openclip_vitb32: { tags: ["ocean"] },
     };
     expect(userCaption(blob)).toBe("Beach day");
     expect(suggestedCaption(blob)).toBe("a person standing on a beach");
