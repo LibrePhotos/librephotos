@@ -34,7 +34,7 @@ Goes through every photo in the database and flags the ones whose file can no lo
 
 ### Calculate Clip Embeddings
 
-Calculates the CLIP value for all images. This is used for semantic search and for finding similar images.
+Calculates the search embedding of every photo that has none from the selected **Semantic Search Model**, then rebuilds the similarity index. This is used for semantic search and for finding similar images. With MobileCLIP-S2 as both the tagging and the search model, **Generate Tags** stores the embeddings as it tags, and this job only fills the gaps. After the search model changes, it re-embeds the photos of the other model in place.
 
 ### Generate Tags
 

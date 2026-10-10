@@ -125,4 +125,9 @@ Both taggers cache their tag embeddings next to the model after the first run an
 
 #### Semantic Search
 
-Here you can find the code which allows us to search semantically for images like "trees in a valley". The `clip_embeddings` service (`service/clip_embeddings/clip_onnx.py`) runs OpenAI's CLIP ViT-B/32 as ONNX; these are the same weights the earlier sentence-transformers bundle wrapped, so embeddings stored before the switch stay valid.
+Here you can find the code which allows us to search semantically for images like "trees in a valley". `api/semantic_search.py` picks the model from the `SEMANTIC_SEARCH_MODEL` site setting:
+
+- **mobileclip_s2** (default) runs in the `tags` service, which already holds the MobileCLIP-S2 image tower for tagging: `/generate-tags` with `with_embedding` returns the raw image embedding of the tagging run, and `/clip-embeddings` and `/query-embeddings` follow the `clip_embeddings` service's contract. When it is the tagging model too, the tags job stores each photo's embedding and the scan's embedding job waits for it (`batch_calculate_clip_embedding(wait_for_tags=True)`, then once more when the tags job finishes).
+- **clip_vit_b32** runs in the `clip_embeddings` service (`service/clip_embeddings/clip_onnx.py`), OpenAI's CLIP ViT-B/32 as ONNX; these are the same weights the earlier sentence-transformers bundle wrapped. That service is only started when this is the search model.
+
+`Photo.clip_embeddings_model` records the model of each stored embedding (NULL means CLIP ViT-B/32, the model of everything stored before the column). The similarity index and similar photos use only the selected model's embeddings, with per-model inner-product thresholds (search 1.84 / 27, similar photos 0.71 / 90: the raw image norms are ~1 and ~10). `manage.py build_similarity_index` (container start) and a change of the setting queue `batch_calculate_clip_embedding` for every user with the other model's embeddings, which re-embeds them in place.
