@@ -167,6 +167,14 @@ class Photo(models.Model):
             # WHERE (last_modified, id) > (:c1, :c2) ORDER BY last_modified, id.
             # The UUID pk is the tie-break, same trap as PR #1935.
             models.Index(fields=["last_modified", "id"], name="photo_sync_keyset_idx"),
+            # The date list and the album counts read every photo of the
+            # owner with these flags: an index-only scan instead of the wide
+            # api_photo heap (from the Rust experiment's date list work).
+            models.Index(
+                fields=["owner", "id"],
+                include=["hidden", "in_trashcan"],
+                name="photo_owner_visible_idx",
+            ),
         ]
 
     def get_clip_embeddings(self):

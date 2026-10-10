@@ -132,6 +132,17 @@ class Thumbnail(models.Model):
     aspect_ratio = models.FloatField(blank=True, null=True)
     dominant_color = models.TextField(blank=True, null=True)
 
+    class Meta:
+        indexes = [
+            # "Has a thumbnail" (aspect_ratio set) is part of every visible
+            # photo filter; joined from the photo side as an index-only scan.
+            models.Index(
+                fields=["photo"],
+                condition=models.Q(aspect_ratio__isnull=False),
+                name="thumbnail_ready_idx",
+            ),
+        ]
+
     def _generate_thumbnail(self):
         try:
             # Use photo.image_hash for thumbnail paths for frontend compatibility
