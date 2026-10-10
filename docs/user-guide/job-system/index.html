@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.a1e92a76.css">
-<script src="/assets/js/runtime~main.5604ad5a.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.1e95bb29.js" defer="defer"></script>
 <script src="/assets/js/main.f4dc5e9c.js" defer="defer"></script>
 </head>
 <body>
@@ -34,7 +34,7 @@
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="scan-missing-photos">Scan Missing Photos<a href="#scan-missing-photos" class="hash-link" aria-label="Direct link to Scan Missing Photos" title="Direct link to Scan Missing Photos" translate="no">​</a></h3>
 <p>Goes through every photo in the database and flags the ones whose file can no longer be found on disk. It does not delete anything — use <strong>Delete Missing Photos</strong> for that. It runs automatically after a full scan and after any scan of your configured scan directory; it is skipped when you scan a different directory or only a specific list of files. See <a class="" href="/docs/user-guide/missing-photos">Missing Photos</a>.</p>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="calculate-clip-embeddings">Calculate Clip Embeddings<a href="#calculate-clip-embeddings" class="hash-link" aria-label="Direct link to Calculate Clip Embeddings" title="Direct link to Calculate Clip Embeddings" translate="no">​</a></h3>
-<p>Calculates the CLIP value for all images. This is used for semantic search and for finding similar images.</p>
+<p>Calculates the search embedding of every photo that has none from the selected <strong>Semantic Search Model</strong>, then rebuilds the similarity index. This is used for semantic search and for finding similar images. With MobileCLIP-S2 as both the tagging and the search model, <strong>Generate Tags</strong> stores the embeddings as it tags, and this job only fills the gaps. After the search model changes, it re-embeds the photos of the other model in place.</p>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="generate-tags">Generate Tags<a href="#generate-tags" class="hash-link" aria-label="Direct link to Generate Tags" title="Direct link to Generate Tags" translate="no">​</a></h3>
 <p>Runs the configured tagging model over your photos to produce the scene and content tags used for search. It runs automatically after each scan; a normal scan only tags photos added since the last successful run, while a full scan re-tags everything.</p>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="add-geolocation">Add Geolocation<a href="#add-geolocation" class="hash-link" aria-label="Direct link to Add Geolocation" title="Direct link to Add Geolocation" translate="no">​</a></h3>
