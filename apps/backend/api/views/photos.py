@@ -485,6 +485,8 @@ class PhotoViewSet(viewsets.ModelViewSet):
 
             # May raise a permission denied
             self.check_object_permissions(self.request, obj)
+            if self.action == "retrieve":
+                return self._with_detail_relations(obj)
             return obj
 
         return super().get_object()
@@ -563,16 +565,23 @@ class PhotoViewSet(viewsets.ModelViewSet):
         own = Photo.objects.owned_by(user).filter(
             removed=False, thumbnail__aspect_ratio__isnull=False
         )
-        queryset = (
+        return (
             (Photo.visible.visible_to(user) | own)
             .distinct()
             .prefetch_related("stacks")
             .order_by("-exif_timestamp")
         )
-        if self.action == "retrieve":
-            # Everything PhotoSerializer reads, in a few queries instead of one
-            # per relation (and three per face for its people).
-            queryset = queryset.select_related(
+
+    def _with_detail_relations(self, photo):
+        """*photo* again, with everything PhotoSerializer reads.
+
+        A second query by primary key: joined onto the visibility queryset
+        above (an OR of two filters under DISTINCT), the relations took
+        Postgres ~70 ms to plan for a 1 ms query. This way the detail costs
+        8 queries instead of one per relation (and three per face).
+        """
+        return (
+            Photo.objects.select_related(
                 "owner",
                 "thumbnail",
                 "main_file",
@@ -580,7 +589,9 @@ class PhotoViewSet(viewsets.ModelViewSet):
                 "search_instance",
                 "metadata",
                 "ocr",
-            ).prefetch_related(
+            )
+            .prefetch_related(
+                "stacks",
                 Prefetch(
                     "faces",
                     # By id: the order the unprefetched relation came back in.
@@ -591,7 +602,8 @@ class PhotoViewSet(viewsets.ModelViewSet):
                 "files",
                 "main_file__embedded_media",
             )
-        return queryset
+            .get(pk=photo.pk)
+        )
 
     def retrieve(self, *args, **kwargs):
         return super().retrieve(*args, **kwargs)
