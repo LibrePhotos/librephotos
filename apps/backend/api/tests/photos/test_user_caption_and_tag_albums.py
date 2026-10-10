@@ -294,3 +294,25 @@ class UpdateTagAlbumThingsTest(TestCase):
 
     def test_returns_none(self):
         self.assertIsNone(self._update(["natural"]))
+
+    def test_counts_covers_and_sync_bumps_follow_a_retag(self):
+        other = create_test_photo(owner=self.user)
+        PhotoCaption.objects.create(photo=other)._update_tag_album_things(
+            {"tags": ["beach"]}, "mobileclip_s2"
+        )
+        self._update(["beach", "natural"])
+        beach = AlbumThing.objects.get(title="beach", owner=self.user)
+        natural = AlbumThing.objects.get(title="natural", owner=self.user)
+        self.assertEqual(beach.photo_count, 2)
+        self.assertEqual(natural.photo_count, 1)
+        self.assertEqual(set(beach.cover_photos.all()), {self.photo, other})
+        before = AlbumThing.objects.get(pk=natural.pk).last_modified
+
+        self._update(["beach", "beach"])  # natural goes, a repeat counts once
+
+        natural.refresh_from_db()
+        beach.refresh_from_db()
+        self.assertEqual(natural.photo_count, 0)
+        self.assertGreater(natural.last_modified, before)  # the delta sync sees it
+        self.assertEqual(beach.photo_count, 2)
+        self.assertEqual(self._titles(), {"beach"})

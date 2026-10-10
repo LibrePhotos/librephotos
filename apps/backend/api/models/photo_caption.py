@@ -326,8 +326,7 @@ class PhotoCaption(models.Model):
         thing_type = tag_thing_type(tagging_model)
         tags = (tag_result or {}).get("tags", [])
 
-        self._detach_photo_from_album_things([thing_type])
-        self._attach_photo_to_album_things(tags, thing_type)
+        api.models.album_thing.set_photo_album_things(self.photo, tags, thing_type)
 
     # Backward-compatible alias
     def generate_places365_captions(self, commit=True):
