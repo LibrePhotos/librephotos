@@ -1,9 +1,11 @@
 import logging
 
-import numpy as np
 from django.db import connection
 
 from api.models import Person
+from api.lazy_import import LazyModule
+
+np = LazyModule("numpy")
 
 logger = logging.getLogger(__name__)
 

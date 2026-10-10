@@ -1,13 +1,20 @@
+from __future__ import annotations
+
 import logging
 import os
 import subprocess
 
-import numpy as np
-import pyvips
 from django.conf import settings
 
-from api import binaries, image_decoding, sidecars, video_color
+from api import binaries, sidecars, video_color
+from api.lazy_import import LazyModule
 from api.models.file import is_raw
+
+np = LazyModule("numpy")
+
+# Loaded on first render: the API server imports this module but never renders.
+pyvips = LazyModule("pyvips")
+image_decoding = LazyModule("api.image_decoding")
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +66,7 @@ def _apply_local_orientation(
 # keywords, and a public photo link (which only serves the big thumbnail)
 # handed them out whatever the owner's share_location setting said. The ICC
 # profile stays, or a wide-gamut photo would render with the wrong colours.
-WEBP = {"Q": 95, "effort": 2, "keep": pyvips.enums.ForeignKeep.ICC}
+WEBP = {"Q": 95, "effort": 2, "keep": "icc"}  # pyvips.enums.ForeignKeep.ICC
 
 
 # Formats whose thumbnail follows an EXIF Orientation that exiftool writes into

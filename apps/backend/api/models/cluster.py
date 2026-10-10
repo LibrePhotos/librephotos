@@ -1,11 +1,15 @@
+from __future__ import annotations
+
 import logging
 
-import numpy as np
 from django.core.exceptions import MultipleObjectsReturned
 from django.db import models
 
 from api.models.person import Person
 from api.models.user import User, get_deleted_user
+from api.lazy_import import LazyModule
+
+np = LazyModule("numpy")
 
 logger = logging.getLogger(__name__)
 

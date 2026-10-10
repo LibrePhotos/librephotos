@@ -10,8 +10,13 @@ Uses pHash (perceptual hash) algorithm which is robust to:
 
 import logging
 
-import imagehash
 from PIL import Image
+
+from api.lazy_import import LazyModule
+
+# imagehash brings numpy and scipy along; only the scan and duplicate
+# detection hash, not the API server that imports this module.
+imagehash = LazyModule("imagehash")
 
 logger = logging.getLogger(__name__)
 

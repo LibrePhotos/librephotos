@@ -1,6 +1,5 @@
 import os
 
-import numpy as np
 from django.db import models
 from django.dispatch import receiver
 
@@ -8,6 +7,9 @@ from api.face_recognition import get_face_encodings
 from api.models.cluster import Cluster
 from api.models.person import Person
 from api.models.photo import Photo
+from api.lazy_import import LazyModule
+
+np = LazyModule("numpy")
 
 
 class Face(models.Model):

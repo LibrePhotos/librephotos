@@ -3,7 +3,6 @@ import os
 from collections import Counter
 from datetime import datetime
 
-import numpy as np
 from django.db import connection
 from django.db.models import Avg, Count, Max, Min, Q, Sum
 from django.db.models.functions import TruncMonth
@@ -26,6 +25,9 @@ from api.models import (
     User,
 )
 from api.models.user import get_deleted_user
+from api.lazy_import import LazyModule
+
+np = LazyModule("numpy")
 
 logger = logging.getLogger(__name__)
 

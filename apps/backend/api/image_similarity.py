@@ -1,13 +1,15 @@
 import logging
 from datetime import datetime
 
-import numpy as np
 import requests
 from django.core.paginator import Paginator
 
 from api import sidecars
 from api.http_timeouts import SIMILARITY
 from api.models import Photo
+from api.lazy_import import LazyModule
+
+np = LazyModule("numpy")
 
 logger = logging.getLogger(__name__)
 

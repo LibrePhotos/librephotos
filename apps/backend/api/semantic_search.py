@@ -1,8 +1,10 @@
-import numpy as np
 from django.conf import settings
 
 from api import sidecars
 from api.http_timeouts import CLIP_EMBED
+from api.lazy_import import LazyModule
+
+np = LazyModule("numpy")
 
 dir_clip_ViT_B_32_model = settings.CLIP_ROOT
 

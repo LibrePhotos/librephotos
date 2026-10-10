@@ -5,7 +5,6 @@ import os
 from django.conf import settings
 from django.db import models, transaction
 
-from api import image_decoding
 from api.mime import sniffed_mime_type
 
 logger = logging.getLogger(__name__)
@@ -316,6 +315,10 @@ def is_valid_media(path, user) -> bool:
     if is_raw(path=path):
         return True
     try:
+        # Imported here: it loads libvips, Pillow's HEIC/JXL plugins and
+        # LibRaw, which the API server never needs.
+        from api import image_decoding
+
         if image_decoding.can_decode(path):
             return True
         logger.info(f"Could not handle {path}: no loader recognises it")

@@ -1,24 +1,47 @@
+from __future__ import annotations
+
 import datetime
 import logging
 import uuid
 
-import numpy as np
 from bulk_update.helper import bulk_update
 from django.conf import settings
 from django.core.paginator import Paginator
 from django.db.models import Q
 from django_q.tasks import AsyncTask
-from hdbscan import HDBSCAN
-from sklearn.decomposition import PCA
-from sklearn.neural_network import MLPClassifier
 
 from api.cluster_manager import ClusterManager
 from api.color_palettes import hex_palette
+from api.lazy_import import LazyModule
 from api.models import Face, LongRunningJob, Person
 from api.models.cluster import UNKNOWN_CLUSTER_ID, Cluster, get_unknown_cluster
 from api.models.user import User, get_deleted_user
 
+np = LazyModule("numpy")
+
 logger = logging.getLogger(__name__)
+
+
+# hdbscan and scikit-learn (with scipy) take 1.6 s and ~100 MB to import, and
+# this module is imported by the API server, which never clusters. They load
+# on first use; the names stay module attributes so tests can patch them.
+def PCA(*args, **kwargs):
+    from sklearn.decomposition import PCA
+
+    return PCA(*args, **kwargs)
+
+
+def HDBSCAN(*args, **kwargs):
+    from hdbscan import HDBSCAN
+
+    return HDBSCAN(*args, **kwargs)
+
+
+def MLPClassifier(*args, **kwargs):
+    from sklearn.neural_network import MLPClassifier
+
+    return MLPClassifier(*args, **kwargs)
+
 
 FACE_CLASSIFY_COLUMNS = [
     "person",
@@ -164,7 +187,7 @@ def resolve_min_cluster_size(user: User, target_count: int) -> int:
     return 2
 
 
-def build_clusterer(user: User, target_count: int) -> HDBSCAN:
+def build_clusterer(user: User, target_count: int):
     return HDBSCAN(
         min_cluster_size=resolve_min_cluster_size(user, target_count),
         min_samples=user.min_samples if user.min_samples > 0 else 1,
@@ -272,7 +295,7 @@ def filter_data(encodings, ids):
     return np.array(valid_encodings), np.array(valid_ids)
 
 
-def fit_mlp(encodings, ids) -> MLPClassifier:
+def fit_mlp(encodings, ids):
     return MLPClassifier(solver="adam", alpha=1e-5, random_state=1, max_iter=1000).fit(
         encodings, ids
     )
