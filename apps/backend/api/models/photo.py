@@ -120,6 +120,10 @@ class Photo(models.Model):
     clip_embeddings = models.JSONField(blank=True, null=True)
 
     clip_embeddings_magnitude = models.FloatField(blank=True, null=True)
+    # The model behind clip_embeddings (api.semantic_search): "mobileclip_s2" or
+    # "clip_vit_b32"; NULL for embeddings stored before the column, which are
+    # all CLIP ViT-B/32.
+    clip_embeddings_model = models.CharField(max_length=32, blank=True, null=True)
     last_modified = models.DateTimeField(auto_now=True)
 
     # Perceptual hash for duplicate detection (pHash algorithm)

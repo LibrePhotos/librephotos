@@ -6,8 +6,15 @@ from django.core.paginator import Paginator
 
 from api import sidecars
 from api.http_timeouts import SIMILARITY
-from api.models import Photo
 from api.lazy_import import LazyModule
+from api.models import Photo
+from api.semantic_search import (
+    embedding_model_of,
+    produced_by,
+    search_threshold,
+    semantic_search_model,
+    similar_threshold,
+)
 
 np = LazyModule("numpy")
 
@@ -17,7 +24,11 @@ logger = logging.getLogger(__name__)
 INDEX_PAGE_SIZE = 5000
 
 
-def search_similar_embedding(user, emb, result_count=100, threshold=27):
+def search_similar_embedding(user, emb, result_count=100, threshold=None):
+    """Hashes of the user's photos closest to ``emb``, an embedding of the
+    selected model; ``threshold`` defaults to that model's search cut."""
+    if threshold is None:
+        threshold = search_threshold()
     if isinstance(user, int):
         user_id = user
     else:
@@ -46,7 +57,12 @@ def search_similar_embedding(user, emb, result_count=100, threshold=27):
     return res.json()["result"]
 
 
-def search_similar_image(user, photo, threshold=27):
+def search_similar_image(user, photo, threshold=None):
+    """The user's photos similar to ``photo``, by the selected model.
+
+    A photo whose embedding comes from the other model (not converted yet)
+    has none: its vector cannot be compared with the index.
+    """
     if isinstance(user, int):
         user_id = user
     else:
@@ -55,6 +71,11 @@ def search_similar_image(user, photo, threshold=27):
     clip_embeddings = photo.get_clip_embeddings()
     if clip_embeddings is None:
         return []
+    model = semantic_search_model()
+    if embedding_model_of(photo) != model:
+        return []
+    if threshold is None:
+        threshold = similar_threshold(model)
 
     image_embedding = np.array(clip_embeddings, dtype=np.float32)
 
@@ -84,6 +105,10 @@ class SimilarityIndexError(RuntimeError):
 def build_image_similarity_index(user):
     """Rebuild the user's similarity index from their CLIP embeddings.
 
+    Only the selected model's embeddings go in (api.semantic_search): while a
+    library is being converted to the other model, the photos not converted
+    yet are left out rather than mixed in.
+
     The pages go to the sidecar as one rebuild: the first carries ``begin``,
     the last ``commit``, and the sidecar swaps the new index in only after
     the last one, so searches keep answering from the old index meanwhile and
@@ -96,6 +121,7 @@ def build_image_similarity_index(user):
         Photo.objects.owned_by(user)
         .filter(hidden=False)
         .exclude(clip_embeddings=None)
+        .filter(produced_by(semantic_search_model()))
         .only("clip_embeddings", "image_hash")
         .order_by("image_hash")
         .all()

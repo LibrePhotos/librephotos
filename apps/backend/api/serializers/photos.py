@@ -610,7 +610,7 @@ class PhotoSerializer(serializers.ModelSerializer):
         return {"text": ocr.text or "", "blocks": blocks}
 
     def get_similar_photos(self, obj) -> list:
-        res = search_similar_image(obj.owner, obj, threshold=90)
+        res = search_similar_image(obj.owner, obj)
         arr = []
         if len(res) > 0:
             [arr.append(e) for e in res["result"]]

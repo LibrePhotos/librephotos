@@ -168,6 +168,51 @@ class GenerateTagsTestCase(SimpleTestCase):
         self.assertEqual(self.siglip_cls.call_count, 1)
         self.assertEqual(set(tags_main.tagger_instances), {"mobileclip_s2", "siglip2"})
 
+    # ------------------------------------------------------ semantic search
+    def test_with_embedding_reaches_mobileclip_only(self):
+        self.mobileclip_cls.return_value.predict.return_value = {"tags": []}
+        self.siglip_cls.return_value.predict.return_value = {"tags": []}
+
+        self._post(image_path="/a.jpg", with_embedding=True)
+        self._post(image_path="/b.jpg", tagging_model="siglip2", with_embedding=True)
+
+        self.mobileclip_cls.return_value.predict.assert_called_once_with(
+            "/a.jpg", threshold=0.02, max_tags=10, with_embedding=True
+        )
+        self.siglip_cls.return_value.predict.assert_called_once_with(
+            "/b.jpg", threshold=0.05, max_tags=10
+        )
+
+    def test_image_embeddings_keep_a_slot_per_path(self):
+        import numpy as np
+
+        def embed(path):
+            if path == "/bad.jpg":
+                raise OSError("cannot identify image file")
+            return np.array([[3.0, 4.0]], dtype=np.float32)
+
+        self.mobileclip_cls.return_value.embed_image_raw.side_effect = embed
+        response = self.client.post(
+            "/clip-embeddings", json={"imgs": ["/a.jpg", "/bad.jpg"]}
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.get_json(),
+            {"imgs_emb": [[3.0, 4.0], None], "magnitudes": [5.0, None]},
+        )
+
+    def test_query_embeddings(self):
+        import numpy as np
+
+        self.mobileclip_cls.return_value.embed_text_raw.return_value = np.array(
+            [0.0, 2.0], dtype=np.float32
+        )
+        response = self.client.post("/query-embeddings", json={"query": "a dog"})
+
+        self.assertEqual(response.get_json(), {"emb": [0.0, 2.0], "magnitude": 2.0})
+        self.mobileclip_cls.return_value.embed_text_raw.assert_called_once_with("a dog")
+
     # -------------------------------------------------------------- errors
     def test_missing_file_is_a_400_that_keeps_the_loaded_model(self):
         self.mobileclip_cls.return_value.predict.return_value = {"tags": []}

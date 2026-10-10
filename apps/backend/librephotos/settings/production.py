@@ -297,6 +297,17 @@ CONSTANCE_ADDITIONAL_FIELDS = {
             ),
         },
     ],
+    "semantic_search_model": [
+        "django.forms.fields.ChoiceField",
+        {
+            "widget": "django.forms.Select",
+            # api.semantic_search.SEMANTIC_SEARCH_MODELS.
+            "choices": (
+                ("mobileclip_s2", "MobileCLIP-S2 (default, shared with tagging)"),
+                ("clip_vit_b32", "CLIP ViT-B/32"),
+            ),
+        },
+    ],
     "ocr_model": [
         "django.forms.fields.ChoiceField",
         {
@@ -375,6 +386,12 @@ CONSTANCE_CONFIG = {
         "captioning_model",
     ),
     "TAGGING_MODEL": ("mobileclip_s2", "Tagging model", "tagging_model"),
+    "SEMANTIC_SEARCH_MODEL": (
+        "mobileclip_s2",
+        "Semantic search model. Switching re-embeds every photo with the new"
+        " model in the background.",
+        "semantic_search_model",
+    ),
     "OCR_MODEL": (
         "None",
         "OCR model. OCR extracts ALL readable text from photos into the database"

@@ -22,6 +22,7 @@ from django_q.tasks import AsyncTask, Chain
 from api.metadata.reader import get_sidecar_files_in_priority_order
 from api import video_color
 from api.batch_jobs import batch_calculate_clip_embedding
+from api.semantic_search import semantic_shares_tagger
 from api.models import LongRunningJob, Photo, Thumbnail
 from api.models.file import VIDEO_EXTENSIONS, is_metadata
 from api.photo_files import detach_missing_files
@@ -356,7 +357,12 @@ def _queue_followup_jobs(user, full_scan, scan_missing):
 
     # The scan faces job will have issues if the embeddings haven't been generated before it runs
     chain = Chain()
-    chain.append(batch_calculate_clip_embedding, user)
+    # When the tags job stores the search embeddings too, this run leaves the
+    # photos it is about to tag to it (its end queues the rest).
+    if semantic_shares_tagger():
+        chain.append(batch_calculate_clip_embedding, user, wait_for_tags=True)
+    else:
+        chain.append(batch_calculate_clip_embedding, user)
     if settings.FEATURE_FACE_DETECTION:
         chain.append(scan_faces, user, uuid.uuid4(), full_scan)
     chain.run()

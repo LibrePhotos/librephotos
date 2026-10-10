@@ -56,7 +56,8 @@ def build_ocr_search_q(search_term, vendor):
 
 class SemanticSearchFilter(filters.SearchFilter):
     def _semantic_matches(self, request):
-        """Hashes of the requester's photos closest to the query, by CLIP."""
+        """Hashes of the requester's photos closest to the query, by the
+        semantic search model (api.semantic_search), at its threshold."""
         query = request.query_params.get("search")
         start = datetime.datetime.now()
         emb, magnitude = calculate_query_embeddings(query)
@@ -64,7 +65,7 @@ class SemanticSearchFilter(filters.SearchFilter):
         logger.info("finished calculating query embedding - took %.2f seconds", elapsed)
         start = datetime.datetime.now()
         image_hashes = search_similar_embedding(
-            request.user.id, emb, request.user.semantic_search_topk, threshold=27
+            request.user.id, emb, request.user.semantic_search_topk
         )
         elapsed = (datetime.datetime.now() - start).total_seconds()
         logger.info("search similar embedding - took %.2f seconds", elapsed)
