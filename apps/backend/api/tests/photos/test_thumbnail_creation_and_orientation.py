@@ -254,8 +254,9 @@ class CreateThumbnailRawTests(SimpleTestCase):
         self.pyvips.Image.thumbnail.assert_called_once_with(
             big, 10000, height=200, size=self.pyvips.enums.Size.DOWN
         )
+        # A square: smaller WebP quality than the big thumbnail.
         self.pyvips.Image.thumbnail.return_value.write_to_file.assert_called_once_with(
-            expected, **WEBP
+            expected, **{**WEBP, "Q": 80}
         )
 
     def test_small_raw_thumbnail_ignores_local_orientation(self):

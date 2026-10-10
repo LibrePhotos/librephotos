@@ -67,6 +67,32 @@ class CreateStaticThumbnailsTest(SimpleTestCase):
         self.assertEqual(_size(self.path("square_thumbnails")), (375, 500))
         self.assertEqual(_size(self.path("square_thumbnails_small")), (188, 250))
 
+    def test_squares_use_the_square_quality_and_the_big_one_stays_at_95(self):
+        # A noisy image, so WebP quality shows in the size.
+        noise = Image.effect_noise((2000, 1500), 80).convert("RGB")
+        noise.save(self.source)
+        written = {}
+        real_write = pyvips.Image.write_to_file
+
+        def record(image, path, **options):
+            written[os.path.basename(os.path.dirname(path))] = options["Q"]
+            return real_write(image, path, **options)
+
+        with (
+            override_settings(SQUARE_THUMBNAIL_QUALITY=60),
+            mock.patch.object(pyvips.Image, "write_to_file", record),
+        ):
+            create_static_thumbnails(self.source, "h", ALL_SIZES)
+
+        self.assertEqual(
+            written,
+            {
+                "thumbnails_big": 95,
+                "square_thumbnails": 60,
+                "square_thumbnails_small": 60,
+            },
+        )
+
     def test_small_original_is_not_enlarged(self):
         Image.new("RGB", (400, 300)).save(self.source)
 

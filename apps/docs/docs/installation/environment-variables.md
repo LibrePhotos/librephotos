@@ -238,6 +238,16 @@ Unlike the cached copy, the live conversion is **not** niced: somebody is watchi
 
 `TRANSCODE_LIVE_CPU_FRACTION` is a divisor, so a **larger** number means fewer cores: `4` is stricter than `2`. Raising it, or lowering the readrate, makes a busy server more responsive while a video is playing; going the other way favours the person watching. If a video stutters on a slow machine, set `TRANSCODE_LIVE_CPU_FRACTION` to `1` first: a stutter means the conversion cannot keep ahead of playback, and it is the core cap that decides how fast it can go — the readrate is a ceiling it never reached. For scale, one core converts 1080p to 720p at about 1.5x real time, and two at about 2x, so a machine with few cores has little margin at 1080p and none to spare for a second viewer.
 
+### Thumbnail quality
+
+Every photo gets three WebP thumbnails: a big one, 1080 px high, which the lightbox shows and the duplicate detection and machine learning read, and two squares of 500 and 250 px, which the timeline and album grids show by the hundreds. The big one is encoded at quality 95. The squares are encoded at 80 since 1.3.0 (95 before): they come out 60–70 % smaller and encode a third faster, so a grid loads fewer bytes and the server sends more of them per second, for a difference that is hard to see at their size.
+
+| Variable | `.env` key | Default | What it does |
+| --- | --- | --- | --- |
+| `SQUARE_THUMBNAIL_QUALITY` | `squareThumbnailQuality` | `80` | WebP quality (1–100) of the 500 and 250 px square thumbnails. `95` brings back the old size and look. |
+
+It applies to thumbnails rendered from then on, such as those of newly scanned or rotated photos. Existing thumbnails keep their quality until they are rendered again.
+
 ### Internal service address
 
 The backend talks to its helper services (thumbnails, metadata, faces, tags, captions, OCR, search) over HTTP inside the container. They have no authentication, so they listen on `127.0.0.1` only and cannot be reached from outside the container.

@@ -69,6 +69,22 @@ def _apply_local_orientation(
 WEBP = {"Q": 95, "effort": 2, "keep": "icc"}  # pyvips.enums.ForeignKeep.ICC
 
 
+def _square_webp():
+    """WEBP for the 500 and 250 px squares the grids show.
+
+    They are the bulk of what a timeline downloads, and at Q95 they cost a
+    third of the big thumbnail's bytes. At SQUARE_THUMBNAIL_QUALITY (80 by
+    default, as in the Rust experiment) they shrink by 60-70 % and encode a
+    third faster for an SSIM of ~0.95 against the source; the big thumbnail,
+    which the lightbox shows and pHash and the ML models read, stays at 95.
+    """
+    return {**WEBP, "Q": settings.SQUARE_THUMBNAIL_QUALITY}
+
+
+def _webp_for(output_path):
+    return WEBP if "thumbnails_big" in output_path else _square_webp()
+
+
 # Formats whose thumbnail follows an EXIF Orientation that exiftool writes into
 # the file afterwards, measured through ``image_decoding.thumbnail`` with the
 # pip-installed libvips and Pillow plugins (#2068). HEIC and AVIF keep the
@@ -162,7 +178,7 @@ def _resize_big_thumbnail(output_height, complete_path, hash, file_type):
     )
     # The big thumbnail already has EXIF auto-rotation and any
     # local_orientation applied, so we only resize here.
-    x.write_to_file(complete_path, **WEBP)
+    x.write_to_file(complete_path, **_square_webp())
     return complete_path
 
 
@@ -178,9 +194,11 @@ def _decode_thumbnail(input_path, output_height, local_orientation):
     )
 
 
-def _render_thumbnail(input_path, output_height, complete_path, local_orientation):
+def _render_thumbnail(
+    input_path, output_height, complete_path, local_orientation, webp=WEBP
+):
     x = _decode_thumbnail(input_path, output_height, local_orientation)
-    x.write_to_file(complete_path, **WEBP)
+    x.write_to_file(complete_path, **webp)
     return complete_path
 
 
@@ -249,7 +267,11 @@ def create_thumbnail(
         complete_path = _media_path(output_path, hash, file_type)
         if not raw:
             return _render_thumbnail(
-                input_path, output_height, complete_path, local_orientation
+                input_path,
+                output_height,
+                complete_path,
+                local_orientation,
+                _webp_for(output_path),
             )
         if "thumbnails_big" in output_path:
             return _render_raw_thumbnail(
@@ -295,7 +317,9 @@ def create_static_thumbnails(input_path, hash, output_paths, local_orientation=1
                 height=STATIC_THUMBNAIL_HEIGHTS[output_path],
                 size=pyvips.enums.Size.DOWN,
             )
-            small.write_to_file(_media_path(output_path, hash, ".webp"), **WEBP)
+            small.write_to_file(
+                _media_path(output_path, hash, ".webp"), **_square_webp()
+            )
     except Exception as e:
         logger.error(f"Could not create thumbnail for file {input_path}")
         raise e

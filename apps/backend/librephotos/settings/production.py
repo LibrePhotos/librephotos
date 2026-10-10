@@ -129,6 +129,12 @@ def _env_int(name, default):
         ) from None
 
 
+# WebP quality (1-100) of the 500 and 250 px square thumbnails the photo grids
+# show; the big 1080 px thumbnail stays at 95. Applies to thumbnails rendered
+# from now on (a scan of new photos, a rotate, "Generate thumbnails").
+SQUARE_THUMBNAIL_QUALITY = min(100, max(1, _env_int("SQUARE_THUMBNAIL_QUALITY", 80)))
+
+
 def _env_list(name, default=()):
     """Read a comma-separated list from the environment, dropping blank entries."""
     value = os.environ.get(name)

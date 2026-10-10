@@ -88,6 +88,7 @@ services:
       - TRANSCODE_LIVE_CPU_FRACTION=${transcodeLiveCpuFraction:-2}
       - TRANSCODE_LIVE_READRATE=${transcodeLiveReadrate:-2}
       - TRANSCODE_LIVE_BURST_SECONDS=${transcodeLiveBurstSeconds:-30}
+      - SQUARE_THUMBNAIL_QUALITY=${squareThumbnailQuality:-80}
       - DEBUG=0
     depends_on:
       db:
