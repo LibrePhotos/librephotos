@@ -11,10 +11,10 @@ class DirectoryWatcherFixTest(TestCase):
 
     def test_generate_tags_query_works(self):
         """Test that the generate_tags query works with the new PhotoCaption model"""
-        # Create a photo without mobileclip_s2 captions
+        # Create a photo without openclip_vitb32 captions
         photo = create_test_photo(owner=self.user)
 
-        # Add some caption data to the photo (but NOT mobileclip_s2)
+        # Add some caption data to the photo (but NOT openclip_vitb32)
         from api.models.photo_caption import PhotoCaption
 
         caption_instance, created = PhotoCaption.objects.get_or_create(photo=photo)
@@ -30,35 +30,35 @@ class DirectoryWatcherFixTest(TestCase):
             & (
                 Q(caption_instance__isnull=True)
                 | Q(caption_instance__captions_json__isnull=True)
-                | Q(caption_instance__captions_json__mobileclip_s2__isnull=True)
+                | Q(caption_instance__captions_json__openclip_vitb32__isnull=True)
             )
         )
 
-        # Should find the photo since it has no mobileclip_s2 captions
+        # Should find the photo since it has no openclip_vitb32 captions
         self.assertEqual(existing_photos.count(), 1)
         self.assertEqual(existing_photos.first(), photo)
 
-    def test_generate_tags_query_excludes_photos_with_mobileclip_s2(self):
-        """Test that photos with mobileclip_s2 captions are excluded"""
-        # Create a photo with mobileclip_s2 captions
+    def test_generate_tags_query_excludes_photos_with_openclip_vitb32(self):
+        """Test that photos with openclip_vitb32 captions are excluded"""
+        # Create a photo with openclip_vitb32 captions
         photo = create_test_photo(owner=self.user)
         from api.models.photo_caption import PhotoCaption
 
         caption_instance, created = PhotoCaption.objects.get_or_create(photo=photo)
         caption_instance.captions_json = {
-            "mobileclip_s2": {"tags": ["outdoor", "sunny"]}
+            "openclip_vitb32": {"tags": ["outdoor", "sunny"]}
         }
         caption_instance.save()
 
-        # This query should exclude the photo since it has mobileclip_s2 captions
+        # This query should exclude the photo since it has openclip_vitb32 captions
         existing_photos = Photo.objects.filter(
             Q(owner=self.user.id)
             & (
                 Q(caption_instance__isnull=True)
                 | Q(caption_instance__captions_json__isnull=True)
-                | Q(caption_instance__captions_json__mobileclip_s2__isnull=True)
+                | Q(caption_instance__captions_json__openclip_vitb32__isnull=True)
             )
         )
 
-        # Should not find the photo since it has mobileclip_s2 captions
+        # Should not find the photo since it has openclip_vitb32 captions
         self.assertEqual(existing_photos.count(), 0)

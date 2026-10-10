@@ -1,24 +1,27 @@
-"""The semantic search model (site setting SEMANTIC_SEARCH_MODEL).
+"""Semantic search on OpenCLIP, the one image-text model.
 
-MobileCLIP-S2 by default, in the tags sidecar, with the tags job storing the
-embedding of its own run; CLIP ViT-B/32 in the clip_embeddings sidecar on
-request. Embeddings record their model, and the other model's are re-embedded
-in place, never dropped.
+It runs in the tags sidecar, the tags job stores the embedding of its own run,
+embeddings record their model, and those of earlier models are re-embedded in
+place (and re-tagged from the same run), never dropped.
 """
 
 from unittest.mock import MagicMock, patch
 
-from constance.test import override_config
 from django.core.management import call_command
 from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
 
 from api import semantic_search
+from api.batch_jobs import store_clip_embeddings
 from api.directory_watcher import utils as watcher_utils
 from api.image_similarity import search_similar_image
 from api.models import LongRunningJob, Photo
+from api.models.album_thing import AlbumThing
 from api.models.photo_caption import PhotoCaption
 from api.tests.utils import create_test_photo, create_test_user
+
+OPENCLIP = semantic_search.OPENCLIP
+EARLIER_MODEL = "an-earlier-model"
 
 
 def _reply(body):
@@ -31,59 +34,85 @@ def _reply(body):
 
 class RoutingAndThresholdsTest(TestCase):
     @patch("api.sidecars.http.post")
-    def test_mobileclip_runs_in_the_tags_sidecar(self, post):
+    def test_queries_run_in_the_tags_sidecar(self, post):
         post.return_value = _reply({"emb": [1.0], "magnitude": 1.0})
 
         semantic_search.calculate_query_embeddings("a dog")
 
-        url = post.call_args.args[0]
-        self.assertIn(":8011/query-embeddings", url)  # tags
+        self.assertIn(":8011/query-embeddings", post.call_args.args[0])  # tags
         self.assertEqual(post.call_args.kwargs["json"], {"query": "a dog"})
 
-    @override_config(SEMANTIC_SEARCH_MODEL="clip_vit_b32")
     @patch("api.sidecars.http.post")
-    def test_clip_vit_b32_runs_in_its_own_sidecar(self, post):
-        post.return_value = _reply({"imgs_emb": [[1.0]], "magnitudes": [1.0]})
-
-        semantic_search.create_clip_embeddings(["/a.webp"])
-
-        self.assertIn(":8006/clip-embeddings", post.call_args.args[0])
-        self.assertEqual(
-            post.call_args.kwargs["json"]["model"],
-            semantic_search.dir_clip_ViT_B_32_model,
+    def test_images_run_in_the_tags_sidecar(self, post):
+        post.return_value = _reply(
+            {"imgs_emb": [[1.0], None], "magnitudes": [1.0, None]}
         )
 
-    def test_thresholds_follow_the_model(self):
-        self.assertEqual(semantic_search.search_threshold(), 1.84)
-        self.assertEqual(semantic_search.similar_threshold(), 0.71)
-        self.assertEqual(semantic_search.search_threshold("clip_vit_b32"), 27.0)
-        self.assertEqual(semantic_search.similar_threshold("clip_vit_b32"), 90.0)
+        embeddings, magnitudes, tags = semantic_search.create_clip_embeddings(
+            ["/a.webp", "/b.webp"]
+        )
 
-    @override_config(SEMANTIC_SEARCH_MODEL="something else")
-    def test_an_unknown_value_is_the_default(self):
-        self.assertEqual(semantic_search.semantic_search_model(), "mobileclip_s2")
+        self.assertIn(":8011/clip-embeddings", post.call_args.args[0])
+        self.assertEqual(
+            post.call_args.kwargs["json"], {"imgs": ["/a.webp", "/b.webp"]}
+        )
+        self.assertEqual(embeddings[0].tolist(), [1.0])
+        self.assertIsNone(embeddings[1])
+        self.assertEqual(magnitudes, [1.0, None])
+        self.assertIsNone(tags)
 
-    def test_null_means_clip_vit_b32(self):
+    @patch("api.sidecars.http.post")
+    def test_images_with_the_tags_of_the_same_run(self, post):
+        post.return_value = _reply(
+            {"imgs_emb": [[1.0]], "magnitudes": [1.0], "tags": [["cat"]]}
+        )
+
+        _, _, tags = semantic_search.create_clip_embeddings(["/a.webp"], with_tags=True)
+
+        self.assertTrue(post.call_args.kwargs["json"]["with_tags"])
+        self.assertEqual(tags, [["cat"]])
+
+    def test_thresholds_are_openclips(self):
+        self.assertEqual(semantic_search.SEARCH_THRESHOLD, 31.3)
+        self.assertEqual(semantic_search.SIMILAR_THRESHOLD, 138.9)
+
+    def test_only_openclip_rows_are_current(self):
         user = create_test_user()
         legacy = create_test_photo(owner=user)
         legacy.clip_embeddings = [1.0]
-        legacy.save()
-        converted = create_test_photo(owner=user)
-        converted.clip_embeddings = [1.0]
-        converted.clip_embeddings_model = "mobileclip_s2"
-        converted.save()
+        legacy.save()  # NULL: CLIP ViT-B/32
+        earlier = create_test_photo(owner=user)
+        earlier.clip_embeddings = [1.0]
+        earlier.clip_embeddings_model = EARLIER_MODEL
+        earlier.save()
+        current = create_test_photo(owner=user)
+        current.clip_embeddings = [1.0]
+        current.clip_embeddings_model = OPENCLIP
+        current.save()
 
-        for model, expected in (("clip_vit_b32", legacy), ("mobileclip_s2", converted)):
-            with self.subTest(model=model):
-                self.assertEqual(
-                    list(Photo.objects.filter(semantic_search.produced_by(model))),
-                    [expected],
-                )
+        self.assertEqual(
+            list(Photo.objects.filter(semantic_search.produced_by_openclip())),
+            [current],
+        )
+        self.assertEqual(
+            {
+                p.pk
+                for p in Photo.objects.exclude(semantic_search.produced_by_openclip())
+            },
+            {legacy.pk, earlier.pk},
+        )
+        self.assertEqual(
+            [
+                semantic_search.is_current_embedding(p)
+                for p in (legacy, earlier, current)
+            ],
+            [False, False, True],
+        )
 
 
 class SimilarPhotosTest(TestCase):
     @patch("api.sidecars.http.post")
-    def test_a_photo_of_the_other_model_has_none_yet(self, post):
+    def test_a_photo_of_an_earlier_model_has_none_yet(self, post):
         photo = create_test_photo(owner=create_test_user())
         photo.clip_embeddings = [0.5] * 4  # CLIP ViT-B/32, not converted
         photo.save()
@@ -92,20 +121,19 @@ class SimilarPhotosTest(TestCase):
         post.assert_not_called()
 
     @patch("api.sidecars.http.post")
-    def test_the_selected_models_threshold_is_sent(self, post):
+    def test_openclips_threshold_is_sent(self, post):
         photo = create_test_photo(owner=create_test_user())
         photo.clip_embeddings = [0.5] * 4
-        photo.clip_embeddings_model = "mobileclip_s2"
+        photo.clip_embeddings_model = OPENCLIP
         photo.save()
         post.return_value = _reply({"status": True, "result": []})
 
         search_similar_image(photo.owner, photo)
 
-        self.assertEqual(post.call_args.kwargs["json"]["threshold"], 0.71)
+        self.assertEqual(post.call_args.kwargs["json"]["threshold"], 138.9)
 
 
 @override_settings(FEATURE_SCENE_CLASSIFICATION=True)
-@override_config(TAGGING_MODEL="mobileclip_s2", SEMANTIC_SEARCH_MODEL="mobileclip_s2")
 class TagsStoreTheEmbeddingTest(TestCase):
     def setUp(self):
         self.photo = create_test_photo(owner=create_test_user())
@@ -122,26 +150,33 @@ class TagsStoreTheEmbeddingTest(TestCase):
     def test_one_run_gives_the_tags_and_the_search_embedding(self):
         post = self._tag({"tags": {"tags": ["beach"], "embedding": [3.0, 4.0]}})
 
-        self.assertTrue(post.call_args.kwargs["json"]["with_embedding"])
+        sent = post.call_args.kwargs["json"]
+        self.assertTrue(sent["with_embedding"])
+        self.assertEqual(sent["tagging_model"], OPENCLIP)
         self.photo.refresh_from_db()
         self.assertEqual(self.photo.clip_embeddings, [3.0, 4.0])
         self.assertEqual(self.photo.clip_embeddings_magnitude, 5.0)
-        self.assertEqual(self.photo.clip_embeddings_model, "mobileclip_s2")
+        self.assertEqual(self.photo.clip_embeddings_model, OPENCLIP)
         caption = PhotoCaption.objects.get(photo=self.photo)
         # The vector is not kept with the tags.
-        self.assertEqual(caption.captions_json["mobileclip_s2"], {"tags": ["beach"]})
+        self.assertEqual(caption.captions_json[OPENCLIP], {"tags": ["beach"]})
+        self.assertEqual(
+            list(
+                AlbumThing.objects.filter(photos=self.photo).values_list(
+                    "title", "thing_type"
+                )
+            ),
+            [("beach", semantic_search.TAG_THING_TYPE)],
+        )
 
-    @override_config(SEMANTIC_SEARCH_MODEL="clip_vit_b32")
-    def test_not_asked_for_when_another_model_searches(self):
-        post = self._tag({"tags": {"tags": ["beach"]}})
-
-        self.assertNotIn("with_embedding", post.call_args.kwargs["json"])
-        self.photo.refresh_from_db()
-        self.assertIsNone(self.photo.clip_embeddings_model)
+    @override_settings(FEATURE_SCENE_CLASSIFICATION=False)
+    def test_tagging_off_tags_nothing(self):
+        with patch("api.models.photo_caption.sidecars.post") as post:
+            self.caption.generate_tag_captions(commit=True)
+        post.assert_not_called()
 
 
 @override_settings(FEATURE_SCENE_CLASSIFICATION=True)
-@override_config(TAGGING_MODEL="mobileclip_s2", SEMANTIC_SEARCH_MODEL="mobileclip_s2")
 class EmbeddingsAfterTagsTest(TestCase):
     def _finish_tags_job(self):
         user = create_test_user()
@@ -155,7 +190,7 @@ class EmbeddingsAfterTagsTest(TestCase):
             watcher_utils.finish_job_if_complete(job.job_id)
         return user, task
 
-    def test_the_tags_job_queues_the_embedding_job_when_it_shares_the_model(self):
+    def test_the_tags_job_queues_the_embedding_job(self):
         from api.batch_jobs import batch_calculate_clip_embedding
 
         user, task = self._finish_tags_job()
@@ -163,8 +198,8 @@ class EmbeddingsAfterTagsTest(TestCase):
         task.assert_called_once_with(batch_calculate_clip_embedding, user)
         task.return_value.run.assert_called_once()
 
-    @override_config(SEMANTIC_SEARCH_MODEL="clip_vit_b32")
-    def test_nothing_to_do_otherwise(self):
+    @override_settings(FEATURE_SCENE_CLASSIFICATION=False)
+    def test_nothing_to_do_without_tagging(self):
         _, task = self._finish_tags_job()
 
         task.assert_not_called()
@@ -175,14 +210,19 @@ class ConversionTest(TestCase):
         self.legacy_user = create_test_user()
         photo = create_test_photo(owner=self.legacy_user)
         photo.clip_embeddings = [1.0]
-        photo.save()  # CLIP ViT-B/32
+        photo.save()  # NULL: CLIP ViT-B/32
+        self.earlier_user = create_test_user()
+        photo = create_test_photo(owner=self.earlier_user)
+        photo.clip_embeddings = [1.0]
+        photo.clip_embeddings_model = EARLIER_MODEL
+        photo.save()
         self.current_user = create_test_user()
         photo = create_test_photo(owner=self.current_user)
         photo.clip_embeddings = [1.0]
-        photo.clip_embeddings_model = "mobileclip_s2"
+        photo.clip_embeddings_model = OPENCLIP
         photo.save()
 
-    def test_startup_re_embeds_only_libraries_of_the_other_model(self):
+    def test_startup_re_embeds_only_libraries_of_earlier_models(self):
         from api.batch_jobs import batch_calculate_clip_embedding
         from api.image_similarity import build_image_similarity_index
 
@@ -194,46 +234,99 @@ class ConversionTest(TestCase):
         ):
             call_command("build_similarity_index")
 
-        task.assert_called_once_with(batch_calculate_clip_embedding, self.legacy_user)
+        self.assertEqual(
+            {call.args for call in task.call_args_list},
+            {
+                (batch_calculate_clip_embedding, self.legacy_user),
+                (batch_calculate_clip_embedding, self.earlier_user),
+            },
+        )
         indexed = {call.args[1] for call in index_task.call_args_list}
         self.assertIn(self.current_user, indexed)
         self.assertNotIn(self.legacy_user, indexed)
+        self.assertNotIn(self.earlier_user, indexed)
         for call in index_task.call_args_list:
             self.assertIs(call.args[0], build_image_similarity_index)
 
-    def test_switching_the_model_converts_every_library(self):
-        admin = create_test_user(is_admin=True)
-        client = APIClient()
-        client.force_authenticate(admin)
 
-        with (
-            patch("api.views.site_settings.do_all_models_exist", return_value=True),
-            patch("api.views.site_settings.queue_semantic_search_conversion") as queue,
-        ):
-            response = client.post(
-                "/api/sitesettings",
-                {"semantic_search_model": "clip_vit_b32"},
-                format="json",
-            )
-            # The same value again: nothing new to do.
-            client.post(
-                "/api/sitesettings",
-                {"semantic_search_model": "clip_vit_b32"},
-                format="json",
-            )
+class ConversionReTagsTest(TestCase):
+    """Re-embedding a photo files the tags of the same image-tower run."""
 
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data["semantic_search_model"], "clip_vit_b32")
-        queue.assert_called_once_with()
+    def setUp(self):
+        self.user = create_test_user()
+        self.untagged = create_test_photo(owner=self.user)
+        self.tagged = create_test_photo(owner=self.user)
+        PhotoCaption.objects.update_or_create(
+            photo=self.tagged, defaults={"captions_json": {OPENCLIP: {"tags": ["dog"]}}}
+        )
+        for photo in (self.untagged, self.tagged):
+            photo.clip_embeddings = [1.0]
+            photo.clip_embeddings_model = EARLIER_MODEL
+            photo.save()
 
-    def test_an_unknown_model_is_refused(self):
-        admin = create_test_user(is_admin=True)
-        client = APIClient()
-        client.force_authenticate(admin)
+    def _store(self, tags):
+        reply = {
+            "imgs_emb": [[3.0, 4.0], [0.0, 1.0]],
+            "magnitudes": [5.0, 1.0],
+            "tags": tags,
+        }
+        objs = [
+            Photo.objects.select_related("thumbnail").get(pk=p.pk)
+            for p in (self.untagged, self.tagged)
+        ]
+        with patch("api.sidecars.http.post") as post:
+            post.return_value = _reply(reply)
+            store_clip_embeddings(objs, with_tags=True)
+        return post
 
-        with self.assertRaises(Exception):
-            client.post(
-                "/api/sitesettings",
-                {"semantic_search_model": "resnet"},
-                format="json",
-            )
+    def test_untagged_photos_get_the_tags_and_tagged_ones_keep_theirs(self):
+        post = self._store([["cat", "sofa"], ["bird"]])
+
+        self.assertTrue(post.call_args.kwargs["json"]["with_tags"])
+        for photo in (self.untagged, self.tagged):
+            photo.refresh_from_db()
+            self.assertEqual(photo.clip_embeddings_model, OPENCLIP)
+        self.assertEqual(self.untagged.clip_embeddings, [3.0, 4.0])
+        self.assertEqual(
+            PhotoCaption.objects.get(photo=self.untagged).captions_json[OPENCLIP],
+            {"tags": ["cat", "sofa"]},
+        )
+        self.assertEqual(
+            PhotoCaption.objects.get(photo=self.tagged).captions_json[OPENCLIP],
+            {"tags": ["dog"]},
+        )
+        self.assertEqual(
+            set(
+                AlbumThing.objects.filter(
+                    thing_type=semantic_search.TAG_THING_TYPE, photos=self.untagged
+                ).values_list("title", flat=True)
+            ),
+            {"cat", "sofa"},
+        )
+        self.assertIn("cat", self.untagged.search_instance.search_captions.split())
+
+    def test_a_photo_without_tags_in_the_reply_is_left_untagged(self):
+        self._store([None, None])
+
+        self.assertFalse(
+            PhotoCaption.objects.filter(
+                photo=self.untagged, captions_json__has_key=OPENCLIP
+            ).exists()
+        )
+
+
+class SiteSettingsTest(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.client.force_authenticate(create_test_user(is_admin=True))
+
+    def test_the_tagging_model_is_reported_read_only(self):
+        response = self.client.get("/api/sitesettings")
+
+        self.assertEqual(response.data["tagging_model"], OPENCLIP)
+        self.assertNotIn("semantic_search_model", response.data)
+
+    def test_the_model_cannot_be_chosen(self):
+        for key in ("tagging_model", "semantic_search_model"):
+            with self.subTest(key=key), self.assertRaises(Exception):
+                self.client.post("/api/sitesettings", {key: OPENCLIP}, format="json")

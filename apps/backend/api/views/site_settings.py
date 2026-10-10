@@ -3,22 +3,15 @@
 import jsonschema
 from constance import config as site_config
 from constance import settings as constance_settings
-from django_q.tasks import Chain
 from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from api.mail import email_is_configured
-from api.batch_jobs import queue_semantic_search_conversion
-from api.ml_models import (
-    do_all_models_exist,
-    download_models,
-    model_download_running,
-    start_model_download,
-)
+from api.ml_models import do_all_models_exist, start_model_download
 from api.models import User
 from api.schemas.site_settings import site_settings_schema
-from api.semantic_search import semantic_search_model
+from api.semantic_search import OPENCLIP
 
 
 def _site_config(*keys):
@@ -54,8 +47,6 @@ class SiteSettingsView(APIView):
             "MAP_API_KEY",
             "MAP_TILE_PROVIDER",
             "CAPTIONING_MODEL",
-            "TAGGING_MODEL",
-            "SEMANTIC_SEARCH_MODEL",
             "OCR_MODEL",
             "FACE_RECOGNITION_MODEL",
             "NEXTCLOUD_ENABLED",
@@ -76,8 +67,9 @@ class SiteSettingsView(APIView):
         out["captioning_model"] = config["CAPTIONING_MODEL"]
         # There is no LLM any more; older mobile clients still expect the key.
         out["llm_model"] = "None"
-        out["tagging_model"] = config["TAGGING_MODEL"]
-        out["semantic_search_model"] = config["SEMANTIC_SEARCH_MODEL"]
+        # One tagging model, not a setting: the web client reads it to find
+        # the tags in captions_json.
+        out["tagging_model"] = OPENCLIP
         out["ocr_model"] = config["OCR_MODEL"]
         out["face_recognition_model"] = config["FACE_RECOGNITION_MODEL"]
         out["nextcloud_enabled"] = config["NEXTCLOUD_ENABLED"]
@@ -101,13 +93,6 @@ class SiteSettingsView(APIView):
             site_config.MAP_TILE_PROVIDER = request.data["map_tile_provider"]
         if "captioning_model" in request.data.keys():
             site_config.CAPTIONING_MODEL = request.data["captioning_model"]
-        if "tagging_model" in request.data.keys():
-            site_config.TAGGING_MODEL = request.data["tagging_model"]
-        search_model_changed = False
-        if "semantic_search_model" in request.data.keys():
-            new_model = request.data["semantic_search_model"]
-            search_model_changed = new_model != semantic_search_model()
-            site_config.SEMANTIC_SEARCH_MODEL = new_model
         if "ocr_model" in request.data.keys():
             site_config.OCR_MODEL = request.data["ocr_model"]
         if "face_recognition_model" in request.data.keys():
@@ -119,25 +104,10 @@ class SiteSettingsView(APIView):
                 "auto_create_user_directory"
             ]
         admin = User.objects.get(id=request.user.id)
-        if (
-            search_model_changed
-            and not do_all_models_exist()
-            and not model_download_running()
-        ):
-            # Re-embed with the new model once its files are there.
-            chain = Chain()
-            chain.append(download_models, admin)
-            chain.append(queue_semantic_search_conversion)
-            chain.run()
-        else:
-            if not do_all_models_exist():
-                # Not a new job per save: the settings form saves on every
-                # toggle and blur, often while the first download is still
-                # running, and parallel downloads write the same partial file.
-                start_model_download(admin)
-            if search_model_changed:
-                # Every library's embeddings are re-made with the new model,
-                # in place, with search following as they are converted.
-                queue_semantic_search_conversion()
+        if not do_all_models_exist():
+            # Not a new job per save: the settings form saves on every
+            # toggle and blur, often while the first download is still
+            # running, and parallel downloads write the same partial file.
+            start_model_download(admin)
 
         return self.get(request, format=format)

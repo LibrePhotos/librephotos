@@ -22,7 +22,7 @@ class BusySidecarTest(SimpleTestCase):
     def test_a_timeout_counts_the_same_way(self, get):
         get.side_effect = requests.Timeout("slow")
         with patch("api.services._service_process_running", return_value=True):
-            self.assertTrue(services.is_healthy("clip_embeddings"))
+            self.assertTrue(services.is_healthy("image_similarity"))
 
 
 class ProcessLookupTest(SimpleTestCase):

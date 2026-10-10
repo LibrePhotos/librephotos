@@ -1,5 +1,5 @@
 captions_json = {
-    "mobileclip_s2": {
+    "openclip_vitb32": {
         "tags": [
             "phone booth",
             "ticket booth",

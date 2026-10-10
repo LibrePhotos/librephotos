@@ -28,8 +28,6 @@ DATA_ROOT = PHOTOS
 # if you run a rebuilt proxy whose nginx uses different ids.
 WEBSERVER_UID = int(os.environ.get("WEBSERVER_UID", "101"))
 WEBSERVER_GID = int(os.environ.get("WEBSERVER_GID", "101"))
-# CLIP ViT-B/32 (ONNX) for semantic search; see api/ml_models.py.
-CLIP_ROOT = os.path.join(MEDIA_ROOT, "data_models", "clip_vit_b32")
 
 # Videos in a container or codec the browser cannot decode are converted on the
 # fly, and every video is converted for users who turn on "Always transcode
@@ -287,27 +285,6 @@ CONSTANCE_ADDITIONAL_FIELDS = {
             ),
         },
     ],
-    "tagging_model": [
-        "django.forms.fields.ChoiceField",
-        {
-            "widget": "django.forms.Select",
-            "choices": (
-                ("mobileclip_s2", "MobileCLIP-S2 (fast, default)"),
-                ("siglip2", "SigLIP 2 (most accurate)"),
-            ),
-        },
-    ],
-    "semantic_search_model": [
-        "django.forms.fields.ChoiceField",
-        {
-            "widget": "django.forms.Select",
-            # api.semantic_search.SEMANTIC_SEARCH_MODELS.
-            "choices": (
-                ("mobileclip_s2", "MobileCLIP-S2 (default, shared with tagging)"),
-                ("clip_vit_b32", "CLIP ViT-B/32"),
-            ),
-        },
-    ],
     "ocr_model": [
         "django.forms.fields.ChoiceField",
         {
@@ -384,13 +361,6 @@ CONSTANCE_CONFIG = {
         "lfm2_vl_450m",
         "Captioning model",
         "captioning_model",
-    ),
-    "TAGGING_MODEL": ("mobileclip_s2", "Tagging model", "tagging_model"),
-    "SEMANTIC_SEARCH_MODEL": (
-        "mobileclip_s2",
-        "Semantic search model. Switching re-embeds every photo with the new"
-        " model in the background.",
-        "semantic_search_model",
     ),
     "OCR_MODEL": (
         "None",

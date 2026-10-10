@@ -23,14 +23,16 @@ BACKEND_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 HTTP_OK = 200
 
 # The feature flag each service serves; None means core scan/search, always on.
+# The tags service runs OpenCLIP, which also makes the semantic-search
+# embeddings and query embeddings, so it is core: FEATURE_SCENE_CLASSIFICATION
+# only decides whether photos get tags (api.semantic_search).
 SERVICE_FEATURE_FLAGS = {
     "image_similarity": None,
     "thumbnail": None,
     "face_recognition": "FEATURE_FACE_DETECTION",
-    "clip_embeddings": None,
     "image_captioning": "FEATURE_IMAGE_CAPTIONING",
     "exif": None,
-    "tags": "FEATURE_SCENE_CLASSIFICATION",
+    "tags": None,
     "ocr": None,
 }
 
@@ -58,43 +60,12 @@ def _ocr_model_selected():
         return True
 
 
-def _semantic_search_model():
-    """The semantic search model, or None when the configuration is unreadable
-    (a database that is not up yet must not be able to take a service away)."""
-    try:
-        from constance import config as site_config
-
-        from api.semantic_search import (
-            DEFAULT_SEMANTIC_SEARCH_MODEL,
-            SEMANTIC_SEARCH_MODELS,
-        )
-
-        value = str(site_config.SEMANTIC_SEARCH_MODEL or "").strip()
-    except Exception:
-        return None
-    return value if value in SEMANTIC_SEARCH_MODELS else DEFAULT_SEMANTIC_SEARCH_MODEL
-
-
-def _clip_is_search_model():
-    """clip_embeddings runs CLIP ViT-B/32, needed only as the search model;
-    MobileCLIP-S2 searches through the tags service (api.semantic_search)."""
-    return _semantic_search_model() in (None, "clip_vit_b32")
-
-
-def _tags_serve_search():
-    return _semantic_search_model() in (None, "mobileclip_s2")
-
-
 # Services whose switch is a site setting rather than an environment flag. The
 # per-minute watchdog re-reads these, so selecting an OCR model starts the
 # sidecar without a restart.
 SERVICE_SITE_GATES = {
     "ocr": _ocr_model_selected,
-    "clip_embeddings": _clip_is_search_model,
 }
-
-# Services needed for something else even with their feature flag off.
-SERVICE_ALSO_NEEDED = {"tags": _tags_serve_search}
 
 
 def is_service_enabled(service):
@@ -111,10 +82,7 @@ def is_service_enabled(service):
     flag = SERVICE_FEATURE_FLAGS.get(service)
     if flag is None:
         return True
-    if bool(getattr(settings, flag, True)):
-        return True
-    also_needed = SERVICE_ALSO_NEEDED.get(service)
-    return bool(also_needed and also_needed())
+    return bool(getattr(settings, flag, True))
 
 
 def disabled_reason(service):
@@ -122,8 +90,6 @@ def disabled_reason(service):
     flag = SERVICE_FEATURE_FLAGS.get(service)
     if flag is not None and not bool(getattr(settings, flag, True)):
         return f"{flag} is disabled"
-    if service == "clip_embeddings":
-        return "semantic search runs on MobileCLIP-S2 in the tags service"
     return "no model is selected for it in the site settings"
 
 

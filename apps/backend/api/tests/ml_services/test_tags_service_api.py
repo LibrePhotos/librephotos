@@ -1,35 +1,32 @@
-"""Tests for ``service/tags/main.py::generate_tags``.
+"""Tests for ``service/tags/main.py``: tags, image and query embeddings.
 
 ``service/tags/main.py`` is a standalone Flask microservice. It is never
-imported by the Django app, and its top-level imports (``from
-mobileclip.mobileclip import MobileCLIP`` / ``from siglip2.siglip2 import
-SigLIP2``) only resolve when ``service/tags`` itself is on ``sys.path`` *and*
-onnxruntime / tokenizers / sentencepiece are importable. So the module is
-loaded here by file path with both tagger packages stubbed into
-``sys.modules``. Flask and gevent are the real packages; no model, no
-network, no ML.
+imported by the Django app, and its top-level import (``from openclip.openclip
+import ...``) only resolves when ``service/tags`` itself is on ``sys.path``. So
+the module is loaded here by file path with that package stubbed into
+``sys.modules``. Flask and gevent are the real packages; no model, no network,
+no ML.
 
 Behaviour pinned here:
 
 Request parsing (the ``400`` branch)
   * ``image_path`` is required; a missing key, a non-object body or a
     request without a JSON content type yields an **empty body with 400**.
-  * ``tagging_model`` defaults to ``"mobileclip_s2"`` (also when sent as
-    ``null``); ``confidence`` is accepted for compatibility and ignored.
+  * ``tagging_model`` defaults to OpenCLIP (also when sent as ``null``); any
+    other model name is a 400 with an error, and no model is built.
+    ``confidence`` is accepted for compatibility and ignored.
   * ``last_request_time`` is stamped *before* parsing, so even a 400 updates it.
 
-Dispatch
-  * ``"siglip2"`` -> ``SigLIP2().predict(path, threshold=0.05, max_tags=10)``.
-  * ``"mobileclip_s2"`` -> ``MobileCLIP().predict(path, threshold=0.02, max_tags=10)``.
-  * Any other model name -> ``{"error": ...}`` with 400, no tagger built.
-  * Taggers are built once and cached per model; a tagger that raises is
-    dropped from the cache so the next request retries from scratch.
+Tagging
+  * ``OpenCLIP().predict(path, threshold=MIN_PROBABILITY, max_tags=10,
+    with_embedding=...)``; the model is built once and kept; a model that
+    raises is dropped so the next request builds it again; a missing file is a
+    400 that keeps the loaded model.
 
-Responses
-  * Success -> ``{"tags": <the tagger's return value>}`` with status **200**.
-  * Any exception from the tagger -> ``{"error": "Failed to process image"}``
-    with status **500**.
-  * ``/health`` (service._common) reports ``last_request_time`` (float or None).
+Embeddings
+  * ``/clip-embeddings`` keeps a slot per path (``null`` for an unreadable
+    one) and, with ``with_tags``, adds the tags of the same run.
+  * ``/query-embeddings`` returns the raw text embedding and its norm.
 """
 
 import importlib.util
@@ -38,6 +35,7 @@ import sys
 import types
 from unittest.mock import MagicMock, patch
 
+import numpy as np
 from django.test import SimpleTestCase
 
 MAIN_PATH = os.path.join(
@@ -49,33 +47,29 @@ MAIN_PATH = os.path.join(
     "main.py",
 )
 
-
-_STUB_NAMES = (
-    ("mobileclip", "mobileclip.mobileclip", "MobileCLIP"),
-    ("siglip2", "siglip2.siglip2", "SigLIP2"),
-)
+MODEL_NAME = "openclip_vitb32"
+_STUB_NAMES = ("openclip", "openclip.openclip")
 
 
-def _install_stub_packages():
-    for pkg_name, mod_name, attr in _STUB_NAMES:
-        pkg = types.ModuleType(pkg_name)
-        pkg.__path__ = []
-        sub = types.ModuleType(mod_name)
-        setattr(sub, attr, MagicMock(name=attr))
-        setattr(pkg, pkg_name, sub)
-        sys.modules[pkg_name] = pkg
-        sys.modules[mod_name] = sub
+def _install_stub_package():
+    pkg = types.ModuleType("openclip")
+    pkg.__path__ = []
+    sub = types.ModuleType("openclip.openclip")
+    sub.OpenCLIP = MagicMock(name="OpenCLIP")
+    sub.MODEL_NAME = MODEL_NAME
+    sub.DEFAULT_MIN_PROBABILITY = 0.0075
+    sub.DEFAULT_MAX_TAGS = 10
+    pkg.openclip = sub
+    sys.modules["openclip"] = pkg
+    sys.modules["openclip.openclip"] = sub
 
 
 def _load_tags_main():
-    # The stubs exist only so main.py's top-level imports resolve; leaving them
-    # in sys.modules would shadow the real packages for later test modules, so
+    # The stub exists only so main.py's top-level import resolves; leaving it
+    # in sys.modules would shadow the real package for later test modules, so
     # restore the previous entries once the module is loaded.
-    saved = {}
-    for pkg_name, mod_name, _ in _STUB_NAMES:
-        for name in (pkg_name, mod_name):
-            saved[name] = sys.modules.get(name)
-    _install_stub_packages()
+    saved = {name: sys.modules.get(name) for name in _STUB_NAMES}
+    _install_stub_package()
     try:
         spec = importlib.util.spec_from_file_location(
             "service_tags_main_test", MAIN_PATH
@@ -95,103 +89,82 @@ def _load_tags_main():
 tags_main = _load_tags_main()
 
 
-class GenerateTagsTestCase(SimpleTestCase):
+class TagsServiceTestCase(SimpleTestCase):
     def setUp(self):
         tags_main.app.config["TESTING"] = False
         self.client = tags_main.app.test_client()
         tags_main.tagger_instances.clear()
         tags_main.app.extensions["librephotos_sidecar"].last_request_time = None
-        self.mobileclip_cls = MagicMock(name="MobileCLIP")
-        self.siglip_cls = MagicMock(name="SigLIP2")
-        tags_main.TAGGERS = {
-            "siglip2": (self.siglip_cls, 0.05),
-            "mobileclip_s2": (self.mobileclip_cls, 0.02),
-        }
+        self.model_cls = MagicMock(name="OpenCLIP")
+        patcher = patch.object(tags_main, "OpenCLIP", self.model_cls)
+        patcher.start()
+        self.addCleanup(patcher.stop)
         exists = patch.object(tags_main, "image_exists", return_value=True)
         self.image_exists = exists.start()
         self.addCleanup(exists.stop)
+        self.model = self.model_cls.return_value
 
     def _post(self, **body):
         return self.client.post("/generate-tags", json=body)
 
-    # ------------------------------------------------------------ dispatch
-    def test_mobileclip_is_the_default_model(self):
-        instance = self.mobileclip_cls.return_value
-        instance.predict.return_value = {"tags": ["beach", "ocean"]}
+    # ------------------------------------------------------------- tagging
+    def test_tags_come_from_openclip_at_its_cut_off(self):
+        self.model.predict.return_value = {"tags": ["beach", "ocean"]}
 
         response = self._post(image_path="/a/b.jpg")
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.get_json(), {"tags": {"tags": ["beach", "ocean"]}})
-        instance.predict.assert_called_once_with(
-            "/a/b.jpg", threshold=0.02, max_tags=10
-        )
-        self.siglip_cls.assert_not_called()
-
-    def test_null_tagging_model_falls_back_to_the_default(self):
-        self.mobileclip_cls.return_value.predict.return_value = {"tags": []}
-        response = self._post(image_path="/a/b.jpg", tagging_model=None)
-        self.assertEqual(response.status_code, 200)
-        self.mobileclip_cls.assert_called_once()
-
-    def test_siglip2_dispatch_and_threshold(self):
-        instance = self.siglip_cls.return_value
-        instance.predict.return_value = {"tags": ["cat"]}
-
-        response = self._post(
-            image_path="/a/b.jpg", tagging_model="siglip2", confidence=0.9
+        self.model.predict.assert_called_once_with(
+            "/a/b.jpg",
+            threshold=tags_main.MIN_PROBABILITY,
+            max_tags=10,
+            with_embedding=False,
         )
 
-        self.assertEqual(response.status_code, 200)
-        instance.predict.assert_called_once_with(
-            "/a/b.jpg", threshold=0.05, max_tags=10
-        )
-        self.mobileclip_cls.assert_not_called()
+    def test_null_or_own_model_name_is_accepted(self):
+        self.model.predict.return_value = {"tags": []}
+        for name in (None, MODEL_NAME):
+            with self.subTest(tagging_model=name):
+                response = self._post(image_path="/a/b.jpg", tagging_model=name)
+                self.assertEqual(response.status_code, 200)
 
-    def test_unknown_model_is_a_400_without_building_anything(self):
-        response = self._post(image_path="/a/b.jpg", tagging_model="places365")
+    def test_other_model_names_are_a_400_without_building_anything(self):
+        for name in ("places365", "a-retired-tagger"):
+            with self.subTest(tagging_model=name):
+                response = self._post(image_path="/a/b.jpg", tagging_model=name)
+                self.assertEqual(response.status_code, 400)
+                self.assertIn(name, response.get_json()["error"])
+        self.model_cls.assert_not_called()
 
-        self.assertEqual(response.status_code, 400)
-        self.assertIn("places365", response.get_json()["error"])
-        self.mobileclip_cls.assert_not_called()
-        self.siglip_cls.assert_not_called()
-
-    def test_taggers_are_cached_per_model(self):
-        self.mobileclip_cls.return_value.predict.return_value = {"tags": []}
-        self.siglip_cls.return_value.predict.return_value = {"tags": []}
+    def test_the_model_is_built_once(self):
+        self.model.predict.return_value = {"tags": []}
 
         self._post(image_path="/1.jpg")
         self._post(image_path="/2.jpg")
-        self._post(image_path="/3.jpg", tagging_model="siglip2")
 
-        self.assertEqual(self.mobileclip_cls.call_count, 1)
-        self.assertEqual(self.siglip_cls.call_count, 1)
-        self.assertEqual(set(tags_main.tagger_instances), {"mobileclip_s2", "siglip2"})
+        self.assertEqual(self.model_cls.call_count, 1)
+        self.assertEqual(set(tags_main.tagger_instances), {MODEL_NAME})
 
-    # ------------------------------------------------------ semantic search
-    def test_with_embedding_reaches_mobileclip_only(self):
-        self.mobileclip_cls.return_value.predict.return_value = {"tags": []}
-        self.siglip_cls.return_value.predict.return_value = {"tags": []}
+    def test_with_embedding_reaches_the_model(self):
+        self.model.predict.return_value = {"tags": [], "embedding": [1.0]}
 
-        self._post(image_path="/a.jpg", with_embedding=True)
-        self._post(image_path="/b.jpg", tagging_model="siglip2", with_embedding=True)
+        response = self._post(image_path="/a.jpg", with_embedding=True)
 
-        self.mobileclip_cls.return_value.predict.assert_called_once_with(
-            "/a.jpg", threshold=0.02, max_tags=10, with_embedding=True
-        )
-        self.siglip_cls.return_value.predict.assert_called_once_with(
-            "/b.jpg", threshold=0.05, max_tags=10
+        self.assertEqual(response.get_json()["tags"]["embedding"], [1.0])
+        self.model.predict.assert_called_once_with(
+            "/a.jpg",
+            threshold=tags_main.MIN_PROBABILITY,
+            max_tags=10,
+            with_embedding=True,
         )
 
+    # ---------------------------------------------------------- embeddings
     def test_image_embeddings_keep_a_slot_per_path(self):
-        import numpy as np
-
-        def embed(path):
-            if path == "/bad.jpg":
-                raise OSError("cannot identify image file")
-            return np.array([[3.0, 4.0]], dtype=np.float32)
-
-        self.mobileclip_cls.return_value.embed_image_raw.side_effect = embed
+        self.model.embed_images_raw.return_value = [
+            np.array([3.0, 4.0], dtype=np.float32),
+            None,
+        ]
         response = self.client.post(
             "/clip-embeddings", json={"imgs": ["/a.jpg", "/bad.jpg"]}
         )
@@ -201,47 +174,62 @@ class GenerateTagsTestCase(SimpleTestCase):
             response.get_json(),
             {"imgs_emb": [[3.0, 4.0], None], "magnitudes": [5.0, None]},
         )
+        self.model.embed_images_raw.assert_called_once_with(["/a.jpg", "/bad.jpg"])
+        self.model.tags_for.assert_not_called()
+
+    def test_image_embeddings_with_the_tags_of_the_same_run(self):
+        first = np.array([3.0, 4.0], dtype=np.float32)
+        self.model.embed_images_raw.return_value = [first, None]
+        self.model.tags_for.return_value = ["cat"]
+
+        response = self.client.post(
+            "/clip-embeddings",
+            json={"imgs": ["/a.jpg", "/bad.jpg"], "with_tags": True},
+        )
+
+        self.assertEqual(response.get_json()["tags"], [["cat"], None])
+        ((embedding,), kwargs) = self.model.tags_for.call_args
+        self.assertIs(embedding, first)
+        self.assertEqual(
+            kwargs, {"threshold": tags_main.MIN_PROBABILITY, "max_tags": 10}
+        )
 
     def test_query_embeddings(self):
-        import numpy as np
-
-        self.mobileclip_cls.return_value.embed_text_raw.return_value = np.array(
-            [0.0, 2.0], dtype=np.float32
-        )
+        self.model.embed_text_raw.return_value = np.array([0.0, 2.0], np.float32)
         response = self.client.post("/query-embeddings", json={"query": "a dog"})
 
         self.assertEqual(response.get_json(), {"emb": [0.0, 2.0], "magnitude": 2.0})
-        self.mobileclip_cls.return_value.embed_text_raw.assert_called_once_with("a dog")
+        self.model.embed_text_raw.assert_called_once_with("a dog")
 
     # -------------------------------------------------------------- errors
     def test_missing_file_is_a_400_that_keeps_the_loaded_model(self):
-        self.mobileclip_cls.return_value.predict.return_value = {"tags": []}
+        self.model.predict.return_value = {"tags": []}
         self._post(image_path="/a/b.jpg")
         self.image_exists.return_value = False
 
         response = self._post(image_path="/gone.jpg")
 
         self.assertEqual(response.status_code, 400)
-        self.assertIn("mobileclip_s2", tags_main.tagger_instances)
-        self.assertEqual(self.mobileclip_cls.call_count, 1)
+        self.assertIn(MODEL_NAME, tags_main.tagger_instances)
+        self.assertEqual(self.model_cls.call_count, 1)
 
-    def test_tagger_exception_is_a_500_and_evicts_the_instance(self):
-        self.mobileclip_cls.return_value.predict.side_effect = RuntimeError("boom")
+    def test_model_exception_is_a_500_and_evicts_the_instance(self):
+        self.model.predict.side_effect = RuntimeError("boom")
 
         response = self._post(image_path="/a/b.jpg")
 
         self.assertEqual(response.status_code, 500)
         self.assertEqual(response.get_json(), {"error": "Failed to process image"})
-        self.assertNotIn("mobileclip_s2", tags_main.tagger_instances)
+        self.assertNotIn(MODEL_NAME, tags_main.tagger_instances)
 
-        # The next request builds a fresh tagger.
-        self.mobileclip_cls.return_value.predict.side_effect = None
-        self.mobileclip_cls.return_value.predict.return_value = {"tags": ["ok"]}
+        # The next request builds a fresh model.
+        self.model.predict.side_effect = None
+        self.model.predict.return_value = {"tags": ["ok"]}
         self.assertEqual(self._post(image_path="/a/b.jpg").status_code, 200)
-        self.assertEqual(self.mobileclip_cls.call_count, 2)
+        self.assertEqual(self.model_cls.call_count, 2)
 
     def test_missing_image_path_is_an_empty_400(self):
-        response = self._post(tagging_model="siglip2")
+        response = self._post(tagging_model=MODEL_NAME)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.data, b"")
 
@@ -261,3 +249,12 @@ class GenerateTagsTestCase(SimpleTestCase):
         self._post()
         stamped = self.client.get("/health").get_json()["last_request_time"]
         self.assertIsInstance(stamped, float)
+
+    def test_unload_drops_the_model(self):
+        self.model.predict.return_value = {"tags": []}
+        self._post(image_path="/a.jpg")
+        self.assertTrue(self.client.get("/health").get_json()["model_loaded"])
+
+        self.assertEqual(self.client.post("/unload-model").status_code, 200)
+
+        self.assertFalse(self.client.get("/health").get_json()["model_loaded"])

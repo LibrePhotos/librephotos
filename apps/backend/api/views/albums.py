@@ -184,10 +184,10 @@ def with_album_user_list_relations(queryset):
 
 
 def _get_active_tag_thing_types():
-    """Return the AlbumThing thing_type values for the active tagging model."""
-    from constance import config as site_config
+    """Return the AlbumThing thing_type values of the tagger's albums."""
+    from api.semantic_search import TAG_THING_TYPE
 
-    return [f"{site_config.TAGGING_MODEL}_tag"]
+    return [TAG_THING_TYPE]
 
 
 def _thing_has_visible_photo():

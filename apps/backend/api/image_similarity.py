@@ -9,11 +9,10 @@ from api.http_timeouts import SIMILARITY
 from api.lazy_import import LazyModule
 from api.models import Photo
 from api.semantic_search import (
-    embedding_model_of,
-    produced_by,
-    search_threshold,
-    semantic_search_model,
-    similar_threshold,
+    SEARCH_THRESHOLD,
+    SIMILAR_THRESHOLD,
+    is_current_embedding,
+    produced_by_openclip,
 )
 
 np = LazyModule("numpy")
@@ -25,10 +24,10 @@ INDEX_PAGE_SIZE = 5000
 
 
 def search_similar_embedding(user, emb, result_count=100, threshold=None):
-    """Hashes of the user's photos closest to ``emb``, an embedding of the
-    selected model; ``threshold`` defaults to that model's search cut."""
+    """Hashes of the user's photos closest to ``emb``, a query embedding;
+    ``threshold`` defaults to the search cut."""
     if threshold is None:
-        threshold = search_threshold()
+        threshold = SEARCH_THRESHOLD
     if isinstance(user, int):
         user_id = user
     else:
@@ -58,9 +57,9 @@ def search_similar_embedding(user, emb, result_count=100, threshold=None):
 
 
 def search_similar_image(user, photo, threshold=None):
-    """The user's photos similar to ``photo``, by the selected model.
+    """The user's photos similar to ``photo``.
 
-    A photo whose embedding comes from the other model (not converted yet)
+    A photo whose embedding comes from an earlier model (not converted yet)
     has none: its vector cannot be compared with the index.
     """
     if isinstance(user, int):
@@ -71,11 +70,10 @@ def search_similar_image(user, photo, threshold=None):
     clip_embeddings = photo.get_clip_embeddings()
     if clip_embeddings is None:
         return []
-    model = semantic_search_model()
-    if embedding_model_of(photo) != model:
+    if not is_current_embedding(photo):
         return []
     if threshold is None:
-        threshold = similar_threshold(model)
+        threshold = SIMILAR_THRESHOLD
 
     image_embedding = np.array(clip_embeddings, dtype=np.float32)
 
@@ -105,9 +103,9 @@ class SimilarityIndexError(RuntimeError):
 def build_image_similarity_index(user):
     """Rebuild the user's similarity index from their CLIP embeddings.
 
-    Only the selected model's embeddings go in (api.semantic_search): while a
-    library is being converted to the other model, the photos not converted
-    yet are left out rather than mixed in.
+    Only OpenCLIP's embeddings go in (api.semantic_search): while a library
+    is being converted from an earlier model, the photos not converted yet are
+    left out rather than mixed in.
 
     The pages go to the sidecar as one rebuild: the first carries ``begin``,
     the last ``commit``, and the sidecar swaps the new index in only after
@@ -121,7 +119,7 @@ def build_image_similarity_index(user):
         Photo.objects.owned_by(user)
         .filter(hidden=False)
         .exclude(clip_embeddings=None)
-        .filter(produced_by(semantic_search_model()))
+        .filter(produced_by_openclip())
         .only("clip_embeddings", "image_hash")
         .order_by("image_hash")
         .all()

@@ -38,13 +38,15 @@ DOCKER_MODELS_ROOT = os.path.join(os.sep, "protected_media", "data_models")
 def _load_fresh(relative_path, environ):
     """Execute a service module from its file with ``environ`` as os.environ.
 
-    ``BASE_DATA`` is removed first, so passing an environment without it
-    exercises the fallback rather than whatever the test runner inherited.
+    ``BASE_DATA`` (and the OpenCLIP override) is removed first, so passing an
+    environment without it exercises the fallback rather than whatever the
+    test runner inherited.
     """
     path = os.path.join(SERVICE_DIR, *relative_path.split("/"))
     name = f"sidecar_probe_{uuid.uuid4().hex}"
     with patch.dict(os.environ, environ, clear=False):
         os.environ.pop("BASE_DATA", None)
+        os.environ.pop("OPENCLIP_MODEL_DIR", None)
         os.environ.update(environ)
         spec = importlib.util.spec_from_file_location(name, path)
         module = importlib.util.module_from_spec(spec)
@@ -87,42 +89,33 @@ class SidecarModelRootFollowsBaseDataTest(SimpleTestCase):
         module = _load_fresh("image_captioning/lfm2_vl.py", {})
         self.assertEqual(module.MODELS_ROOT, DOCKER_MODELS_ROOT)
 
-    def test_mobileclip_model_dir(self):
+    def test_openclip_model_dir(self):
+        module = _load_fresh("tags/openclip/openclip.py", {"BASE_DATA": self.base_data})
+        expected = os.path.join(self.models_root, "openclip_vitb32")
+        self.assertEqual(module.MODEL_DIR, expected)
+        self.assertEqual(module.VISUAL_PATH, os.path.join(expected, "visual.onnx"))
+        self.assertEqual(module.TEXTUAL_PATH, os.path.join(expected, "textual.onnx"))
+        self.assertEqual(
+            module.PREPROCESS_PATH, os.path.join(expected, "preprocess.json")
+        )
+        self.assertEqual(
+            module.EMBEDDINGS_CACHE, os.path.join(expected, "tag_embeddings.npy")
+        )
+
+    def test_openclip_defaults_to_docker_layout(self):
+        module = _load_fresh("tags/openclip/openclip.py", {})
+        self.assertEqual(
+            module.MODEL_DIR, os.path.join(DOCKER_MODELS_ROOT, "openclip_vitb32")
+        )
+
+    def test_openclip_model_dir_override_wins(self):
         module = _load_fresh(
-            "tags/mobileclip/mobileclip.py", {"BASE_DATA": self.base_data}
+            "tags/openclip/openclip.py",
+            {"BASE_DATA": self.base_data, "OPENCLIP_MODEL_DIR": "/exports/openclip"},
         )
-        expected = os.path.join(self.models_root, "mobileclip_s2")
-        self.assertEqual(module.MOBILECLIP_MODEL_DIR, expected)
+        self.assertEqual(module.MODEL_DIR, "/exports/openclip")
         self.assertEqual(
-            module.MOBILECLIP_VISION_PATH, os.path.join(expected, "vision_model.onnx")
-        )
-        self.assertEqual(
-            module.MOBILECLIP_EMBEDDINGS_CACHE,
-            os.path.join(expected, "tag_embeddings.npy"),
-        )
-
-    def test_mobileclip_defaults_to_docker_layout(self):
-        module = _load_fresh("tags/mobileclip/mobileclip.py", {})
-        self.assertEqual(
-            module.MOBILECLIP_MODEL_DIR,
-            os.path.join(DOCKER_MODELS_ROOT, "mobileclip_s2"),
-        )
-
-    def test_siglip2_model_dir(self):
-        module = _load_fresh("tags/siglip2/siglip2.py", {"BASE_DATA": self.base_data})
-        expected = os.path.join(self.models_root, "siglip2")
-        self.assertEqual(module.SIGLIP2_MODEL_DIR, expected)
-        self.assertEqual(
-            module.SIGLIP2_TEXT_PATH, os.path.join(expected, "text_model.onnx")
-        )
-        self.assertEqual(
-            module.SIGLIP2_TOKENIZER_PATH, os.path.join(expected, "tokenizer.model")
-        )
-
-    def test_siglip2_defaults_to_docker_layout(self):
-        module = _load_fresh("tags/siglip2/siglip2.py", {})
-        self.assertEqual(
-            module.SIGLIP2_MODEL_DIR, os.path.join(DOCKER_MODELS_ROOT, "siglip2")
+            module.VISUAL_PATH, os.path.join("/exports/openclip", "visual.onnx")
         )
 
     def test_ocr_default_bundle_dir(self):

@@ -27,7 +27,7 @@ FRONTEND = BACKEND.parent / "frontend"
 ENTRY = BACKEND / "librephotos_standalone.py"
 DIST_NAME = "librephotos"
 
-# The sidecars import their neighbours by bare name (``from clip_onnx import
+# The sidecars import their neighbours by bare name (``from openclip.openclip import
 # ...``) because api.services runs them as scripts with their own directory as
 # sys.path[0]. Putting those directories on the compile-time path makes Nuitka
 # compile the neighbours as the same top-level modules, so the imports resolve
@@ -35,7 +35,6 @@ DIST_NAME = "librephotos"
 SIDECAR_DIRS = [
     BACKEND / "service" / name
     for name in (
-        "clip_embeddings",
         "exif",
         "face_recognition",
         "image_captioning",
@@ -210,7 +209,7 @@ def nuitka_command(output_dir, jobs, version):
     for directory in SIDECAR_DIRS:
         module = directory.relative_to(BACKEND).as_posix().replace("/", ".")
         command.append(f"--include-module={module}.main")
-    # Shared by the ML sidecars' top-level neighbours (clip_onnx, lfm2_vl, ...)
+    # Shared by the ML sidecars' top-level neighbours (openclip, lfm2_vl, ...)
     # and by every sidecar's main.py (the Flask app, /health, serve); named so
     # the binary never depends on Nuitka following those imports.
     command.append("--include-module=service.onnx_session")

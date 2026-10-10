@@ -82,7 +82,7 @@ class AlbumDetailNotFoundTest(TestCase):
             self.client.get(f"/api/albums/place/{album.id}/").status_code, 404
         )
 
-    def test_a_thing_of_an_inactive_tagging_model_is_not_found(self):
+    def test_a_thing_of_a_retired_tagging_model_is_not_found(self):
         album = self._thing(self.user, thing_type="some_old_model_tag")
         self.assertEqual(
             self.client.get(f"/api/albums/thing/{album.id}/").status_code, 404

@@ -29,10 +29,10 @@ class PhotoSearch(models.Model):
     def recreate_search_captions(self):
         """Recreate search captions from all caption sources.
 
-        Only tags from the active TAGGING_MODEL are indexed into search_captions.
-        This allows instant switching of tag visibility without re-inference.
+        Only OpenCLIP's tags are indexed into search_captions: tags an earlier
+        tagger left under its own key are not.
         """
-        from constance import config as site_config
+        from api.semantic_search import OPENCLIP
 
         search_captions = ""
 
@@ -40,10 +40,8 @@ class PhotoSearch(models.Model):
         if hasattr(self.photo, "caption_instance") and self.photo.caption_instance:
             captions_json = self.photo.caption_instance.captions_json
             if captions_json:
-                # Index tags from the active tagging model only. Every tagger
-                # stores {"tags": [...]} under its own key.
-                tagging_model = site_config.TAGGING_MODEL
-                tags = (captions_json.get(tagging_model) or {}).get("tags", [])
+                # The tagger stores {"tags": [...]} under its model's key.
+                tags = (captions_json.get(OPENCLIP) or {}).get("tags", [])
                 if tags:
                     search_captions += " ".join(tags) + " "
 

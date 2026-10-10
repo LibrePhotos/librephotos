@@ -238,11 +238,11 @@ class GetServerStatsPerUserTest(ServerStatsBaseTest):
     def test_caption_counters(self):
         create_test_photo(
             owner=self.user,
-            captions_json={"user_caption": "hi", "mobileclip_s2": {"tags": []}},
+            captions_json={"user_caption": "hi", "openclip_vitb32": {"tags": []}},
         )
         create_test_photo(owner=self.user, captions_json={"im2txt": "a dog"})
         create_test_photo(
-            owner=self.user, captions_json={"mobileclip_s2": {"tags": []}}
+            owner=self.user, captions_json={"openclip_vitb32": {"tags": []}}
         )
         create_test_photo(owner=self.user)
         entry = self._user_stats()
@@ -311,7 +311,7 @@ class GetServerStatsPerUserTest(ServerStatsBaseTest):
         place = AlbumPlace.objects.create(title="Berlin", owner=self.user)
         place.photos.add(photo, video)
         thing = AlbumThing.objects.create(
-            title="dog", thing_type="mobileclip_s2_tag", owner=self.user
+            title="dog", thing_type="openclip_vitb32_tag", owner=self.user
         )
         thing.photos.add(photo)
         event = AlbumAuto.objects.create(

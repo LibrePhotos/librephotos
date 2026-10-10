@@ -1,9 +1,9 @@
 """ONNX Runtime sessions for the ML sidecars: which device, how many threads.
 
-Every model the sidecars run (CLIP, MobileCLIP, SigLIP 2, LFM2-VL, PP-OCR,
-insightface) used to pin CPUExecutionProvider, so the GPU image installed
-onnxruntime-gpu and never used it. The providers now come from what the
-installed onnxruntime offers, CUDA first:
+Every model the sidecars run (OpenCLIP, LFM2-VL, PP-OCR, insightface) used
+to pin CPUExecutionProvider, so the GPU image installed onnxruntime-gpu and
+never used it. The providers now come from what the installed onnxruntime
+offers, CUDA first:
 
 ``ONNX_PROVIDERS``
     Comma-separated execution providers in order of preference, e.g.

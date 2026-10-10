@@ -3,20 +3,20 @@
 Pure, side-effect-free classification of a photo as a *document* (receipt,
 invoice, business card, book page, ...). Nothing here reads a file, hits the
 network or touches the ORM: the inputs are the already-extracted OCR text, the
-OCR text-area fraction and the set of SigLIP 2 tag labels attached to the photo.
+OCR text-area fraction and the set of tag labels OpenCLIP attached to the photo.
 The wiring that gathers those inputs lives in
 :mod:`api.directory_watcher.processing_jobs`.
 
 The heuristic combines four kinds of evidence:
 
-* **STRONG** — a high-precision SigLIP label (``receipt``, ``document``,
+* **STRONG** — a high-precision tag label (``receipt``, ``document``,
   ``invoice``, ``business card``, ``identity document``, ``book page``). Any one
   of these on its own is enough.
 * **MEDIUM — dense text** — a large fraction of the frame is text *and* the OCR
   actually recovered a meaningful amount of it.
 * **MEDIUM — receipt fingerprint** — the text carries a currency amount *and* a
   per-language "total" keyword (the shape of a till receipt / invoice).
-* **WEAK** — a secondary SigLIP label (``ticket``, ``menu``, ``whiteboard``,
+* **WEAK** — a secondary tag label (``ticket``, ``menu``, ``whiteboard``,
   ``handwritten note``) or a moderate amount of text.
 
 Decision rule: a STRONG signal alone classifies the photo as a document;
@@ -39,8 +39,8 @@ DENSE_TEXT_MIN_CHARS = 40
 MODERATE_TEXT_AREA_FRACTION = 0.08
 MODERATE_TEXT_MIN_CHARS = 20
 
-# High-precision SigLIP labels: any one is sufficient on its own.
-STRONG_SIGLIP_LABELS = frozenset(
+# High-precision tag labels: any one is sufficient on its own.
+STRONG_TAG_LABELS = frozenset(
     {
         "receipt",
         "document",
@@ -50,8 +50,8 @@ STRONG_SIGLIP_LABELS = frozenset(
         "book page",
     }
 )
-# Secondary SigLIP labels: suggestive but not sufficient alone.
-WEAK_SIGLIP_LABELS = frozenset(
+# Secondary tag labels: suggestive but not sufficient alone.
+WEAK_TAG_LABELS = frozenset(
     {
         "ticket",
         "menu",
@@ -114,25 +114,25 @@ class DocumentSignals:
     """
 
     __slots__ = (
-        "strong_siglip",
+        "strong_tag",
         "dense_text",
         "receipt_fingerprint",
-        "weak_siglip",
+        "weak_tag",
         "moderate_text",
     )
 
     def __init__(
         self,
-        strong_siglip: bool,
+        strong_tag: bool,
         dense_text: bool,
         receipt_fingerprint: bool,
-        weak_siglip: bool,
+        weak_tag: bool,
         moderate_text: bool,
     ):
-        self.strong_siglip = strong_siglip
+        self.strong_tag = strong_tag
         self.dense_text = dense_text
         self.receipt_fingerprint = receipt_fingerprint
-        self.weak_siglip = weak_siglip
+        self.weak_tag = weak_tag
         self.moderate_text = moderate_text
 
     def secondary_count(self) -> int:
@@ -141,7 +141,7 @@ class DocumentSignals:
             (
                 self.dense_text,
                 self.receipt_fingerprint,
-                self.weak_siglip,
+                self.weak_tag,
                 self.moderate_text,
             )
         )
@@ -154,7 +154,7 @@ class DocumentSignals:
 def document_signals(
     ocr_text: str | None,
     text_area_fraction: float | None,
-    siglip_labels: set[str],
+    tag_labels: set[str],
 ) -> DocumentSignals:
     """Compute the individual document signals for the given evidence.
 
@@ -162,13 +162,13 @@ def document_signals(
         ocr_text: Plaintext recovered by OCR (may be ``None``/empty).
         text_area_fraction: Fraction of the frame covered by text, in ``[0, 1]``
             (may be ``None`` when unknown).
-        siglip_labels: Lower-cased SigLIP 2 tag labels attached to the photo.
+        tag_labels: Lower-cased tag labels attached to the photo.
     """
-    labels = {label.lower() for label in siglip_labels} if siglip_labels else set()
+    labels = {label.lower() for label in tag_labels} if tag_labels else set()
     fraction = text_area_fraction or 0.0
     content_chars = _content_length(ocr_text)
 
-    strong_siglip = bool(labels & STRONG_SIGLIP_LABELS)
+    strong_tag = bool(labels & STRONG_TAG_LABELS)
 
     dense_text = (
         fraction >= DENSE_TEXT_AREA_FRACTION and content_chars >= DENSE_TEXT_MIN_CHARS
@@ -176,7 +176,7 @@ def document_signals(
 
     receipt_fingerprint = has_currency_amount(ocr_text) and has_total_keyword(ocr_text)
 
-    weak_siglip = bool(labels & WEAK_SIGLIP_LABELS)
+    weak_tag = bool(labels & WEAK_TAG_LABELS)
 
     # Moderate text is a strictly weaker text tier; suppress it when the dense
     # tier already fired so a single dense-text page does not count as two.
@@ -187,10 +187,10 @@ def document_signals(
     )
 
     return DocumentSignals(
-        strong_siglip=strong_siglip,
+        strong_tag=strong_tag,
         dense_text=dense_text,
         receipt_fingerprint=receipt_fingerprint,
-        weak_siglip=weak_siglip,
+        weak_tag=weak_tag,
         moderate_text=moderate_text,
     )
 
@@ -198,15 +198,15 @@ def document_signals(
 def classify_document(
     ocr_text: str | None,
     text_area_fraction: float | None,
-    siglip_labels: set[str],
+    tag_labels: set[str],
 ) -> bool:
     """Return ``True`` if the evidence classifies the photo as a document.
 
-    A STRONG SigLIP label alone is sufficient; otherwise any two distinct
+    A STRONG tag label alone is sufficient; otherwise any two distinct
     (medium/weak) signals are required. See the module docstring for the full
     rationale.
     """
-    signals = document_signals(ocr_text, text_area_fraction, siglip_labels)
-    if signals.strong_siglip:
+    signals = document_signals(ocr_text, text_area_fraction, tag_labels)
+    if signals.strong_tag:
         return True
     return signals.secondary_count() >= 2

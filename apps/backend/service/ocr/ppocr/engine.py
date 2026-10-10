@@ -1,4 +1,4 @@
-"""PP-OCRv6 engine: lazy singleton loaded once, mirrors the SigLIP2 shape.
+"""PP-OCRv6 engine: lazy singleton loaded once, like the other model wrappers.
 
 ``load`` / ``unload`` / ``predict`` match the other sidecar model wrappers so
 main.py can hold a single lazily-created instance.  ``predict`` is the whole

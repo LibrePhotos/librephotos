@@ -72,7 +72,7 @@ class FaceEmbeddingScopeTest(TestCase):
         self.assertFalse(LongRunningJob.objects.exists())
 
 
-@override_config(TAGGING_MODEL="mobileclip_s2", OCR_MODEL="ppocrv6_small")
+@override_config(OCR_MODEL="ppocrv6_small")
 class QueuedTasksCarryPrimaryKeysTest(TestCase):
     """The queue holds photo ids, never pickled model instances."""
 
@@ -102,7 +102,7 @@ class QueuedTasksCarryPrimaryKeysTest(TestCase):
         self.assertEqual(payload, self.photo.pk)
 
 
-@override_config(TAGGING_MODEL="mobileclip_s2", OCR_MODEL="ppocrv6_small")
+@override_config(OCR_MODEL="ppocrv6_small")
 class CancelledJobWorkerTest(TestCase):
     """A task still in the queue when its job is cancelled does nothing."""
 

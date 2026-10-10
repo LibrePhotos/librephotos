@@ -57,7 +57,7 @@ class PhotoCaptionModelTest(TestCase):
 
         # Pre-populate tags for the default tagging model
         caption.captions_json = {
-            "mobileclip_s2": {"tags": ["outdoor", "landscape", "natural", "sunny"]}
+            "openclip_vitb32": {"tags": ["outdoor", "landscape", "natural", "sunny"]}
         }
         caption.save()
 
@@ -65,7 +65,7 @@ class PhotoCaptionModelTest(TestCase):
         caption.generate_tag_captions(commit=True)
         caption.refresh_from_db()
 
-        self.assertIn("mobileclip_s2", caption.captions_json)
+        self.assertIn("openclip_vitb32", caption.captions_json)
 
     def test_recreate_search_captions_delegates_to_photo_search(self):
         """Test that recreate_search_captions delegates to PhotoSearch"""
@@ -115,13 +115,13 @@ class PhotoCaptionModelTest(TestCase):
             captions_json={
                 "user_caption": "My photo",
                 "im2txt": "a photo of a landscape",
-                "mobileclip_s2": {"tags": ["outdoor", "natural"]},
+                "openclip_vitb32": {"tags": ["outdoor", "natural"]},
             },
         )
 
         self.assertEqual(caption.captions_json["user_caption"], "My photo")
         self.assertEqual(caption.captions_json["im2txt"], "a photo of a landscape")
-        self.assertIn("tags", caption.captions_json["mobileclip_s2"])
+        self.assertIn("tags", caption.captions_json["openclip_vitb32"])
 
     def test_update_existing_captions(self):
         """Test updating existing captions"""

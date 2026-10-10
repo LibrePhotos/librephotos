@@ -53,7 +53,9 @@ class PhotoSearchModelTest(TestCase):
         PhotoCaption.objects.create(
             photo=self.photo,
             captions_json={
-                "mobileclip_s2": {"tags": ["natural", "sunny", "outdoor", "landscape"]}
+                "openclip_vitb32": {
+                    "tags": ["natural", "sunny", "outdoor", "landscape"]
+                }
             },
         )
 
@@ -184,7 +186,7 @@ class PhotoSearchModelTest(TestCase):
             captions_json={
                 "user_caption": "My vacation",
                 "im2txt": "a beautiful landscape",
-                "mobileclip_s2": {"tags": ["natural", "sunny", "outdoor"]},
+                "openclip_vitb32": {"tags": ["natural", "sunny", "outdoor"]},
             },
         )
 
@@ -226,7 +228,7 @@ class PhotoSearchModelTest(TestCase):
         """Test handling of an empty tag result from the active tagging model"""
         PhotoCaption.objects.create(
             photo=self.photo,
-            captions_json={"mobileclip_s2": {"tags": []}},
+            captions_json={"openclip_vitb32": {"tags": []}},
         )
 
         search = PhotoSearch.objects.create(photo=self.photo)

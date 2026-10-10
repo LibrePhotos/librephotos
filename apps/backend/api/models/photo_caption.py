@@ -11,14 +11,9 @@ import api.models
 from api import sidecars
 from api.image_captioning import generate_caption
 from api.models.user import User
-from api.semantic_search import MOBILECLIP_S2, semantic_shares_tagger
+from api.semantic_search import OPENCLIP, TAG_THING_TYPE, semantic_shares_tagger
 
 logger = logging.getLogger(__name__)
-
-
-def tag_thing_type(tagging_model):
-    """The AlbumThing.thing_type a tagging model files its tags under."""
-    return f"{tagging_model}_tag"
 
 
 class PhotoCaption(models.Model):
@@ -248,26 +243,23 @@ class PhotoCaption(models.Model):
         search_instance.save()
 
     def generate_tag_captions(self, commit=True):
-        """Generate tags with the active tagging model (MobileCLIP-S2 or SigLIP 2).
+        """Tag the photo with OpenCLIP (api.semantic_search).
 
-        Tags are stored per-model in captions_json and are never deleted when
-        switching models -- only the active model's tags are generated / visible.
+        The tags go to ``captions_json[OPENCLIP]`` and the photo's tag albums.
+        When tagging feeds semantic search too (``semantic_shares_tagger``),
+        the same image-tower run gives the photo's search embedding.
         """
         if not settings.FEATURE_SCENE_CLASSIFICATION:
             logger.info("Scene classification is disabled")
             return
 
-        from constance import config as site_config
-
-        tagging_model = site_config.TAGGING_MODEL
-
         if not self.photo.thumbnail or not self.photo.thumbnail.thumbnail_big:
             return
 
-        # Skip if this photo already has tags from the active model
+        # Skip if this photo already has OpenCLIP tags
         if (
             self.captions_json is not None
-            and self.captions_json.get(tagging_model) is not None
+            and self.captions_json.get(OPENCLIP) is not None
         ):
             return
 
@@ -281,10 +273,8 @@ class PhotoCaption(models.Model):
             json_data = {
                 "image_path": image_path,
                 "confidence": confidence,
-                "tagging_model": tagging_model,
+                "tagging_model": OPENCLIP,
             }
-            # One image-tower run for the tags and the search embedding when
-            # MobileCLIP-S2 is both models (api.semantic_search).
             shares_embedding = semantic_shares_tagger()
             if shares_embedding:
                 json_data["with_embedding"] = True
@@ -318,23 +308,27 @@ class PhotoCaption(models.Model):
             )
             if shares_embedding and embedding:
                 self._store_search_embedding(embedding)
-            if self.captions_json is None:
-                self.captions_json = {}
 
-            # Store under the model-specific key
-            self.captions_json[tagging_model] = tags_result
-            self.recreate_search_captions()
-            self._update_tag_album_things(tags_result, tagging_model)
-
-            if commit:
-                self.save()
-            logger.info(f"generated {tagging_model} tags for image {image_path}.")
+            self.store_tags((tags_result or {}).get("tags", []), commit=commit)
+            logger.info(f"generated {OPENCLIP} tags for image {image_path}.")
         except Exception as e:
             logger.exception(
                 f"could not generate tags for image "
                 f"{self.photo.main_file.path if self.photo.main_file else 'no main file'}"
             )
             raise e
+
+    def store_tags(self, tags, commit=True):
+        """File OpenCLIP's tags for this photo: ``captions_json``, the search
+        captions and the photo's tag albums."""
+        if self.captions_json is None:
+            self.captions_json = {}
+        tags_result = {"tags": list(tags)}
+        self.captions_json[OPENCLIP] = tags_result
+        self.recreate_search_captions()
+        self._update_tag_album_things(tags_result)
+        if commit:
+            self.save()
 
     def _store_search_embedding(self, embedding):
         """Store the tagger's image embedding as the photo's search embedding.
@@ -346,7 +340,7 @@ class PhotoCaption(models.Model):
         fields = {
             "clip_embeddings": embedding,
             "clip_embeddings_magnitude": magnitude,
-            "clip_embeddings_model": MOBILECLIP_S2,
+            "clip_embeddings_model": OPENCLIP,
         }
         api.models.Photo.objects.filter(pk=self.photo.pk).update(
             **fields, last_modified=timezone.now()
@@ -354,12 +348,10 @@ class PhotoCaption(models.Model):
         for name, value in fields.items():
             setattr(self.photo, name, value)
 
-    def _update_tag_album_things(self, tag_result, tagging_model):
-        """Replace this photo's AlbumThing memberships for one tagging model."""
-        thing_type = tag_thing_type(tagging_model)
+    def _update_tag_album_things(self, tag_result):
+        """Replace this photo's OpenCLIP tag-album memberships."""
         tags = (tag_result or {}).get("tags", [])
-
-        api.models.album_thing.set_photo_album_things(self.photo, tags, thing_type)
+        api.models.album_thing.set_photo_album_things(self.photo, tags, TAG_THING_TYPE)
 
     # Backward-compatible alias
     def generate_places365_captions(self, commit=True):

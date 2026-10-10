@@ -13,13 +13,13 @@ import uuid
 from datetime import timedelta
 from unittest.mock import patch
 
-from constance.test import override_config
 from django.test import TestCase
 from django.utils import timezone
 
 from api.directory_watcher import processing_jobs
 from api.directory_watcher.processing_jobs import generate_tags, scan_faces
 from api.models import LongRunningJob, Photo
+from api.semantic_search import OPENCLIP
 from api.tests.utils import create_test_photo, create_test_user
 
 
@@ -36,7 +36,6 @@ class GenerateTagsCharacterizationTest(TestCase):
 
     # ---- happy path -------------------------------------------------
 
-    @override_config(TAGGING_MODEL="mobileclip_s2")
     def test_queues_one_async_task_per_untagged_photo(self):
         photos = [create_test_photo(owner=self.user) for _ in range(3)]
 
@@ -62,7 +61,6 @@ class GenerateTagsCharacterizationTest(TestCase):
         self.assertFalse(job.finished)
         self.assertFalse(job.failed)
 
-    @override_config(TAGGING_MODEL="mobileclip_s2")
     def test_no_matching_photos_completes_job_with_zero_target(self):
         with patch.object(processing_jobs, "AsyncTask") as async_task:
             generate_tags(self.user, self.job_id)
@@ -75,37 +73,34 @@ class GenerateTagsCharacterizationTest(TestCase):
         self.assertIsNotNone(job.finished_at)
         self.assertFalse(job.failed)
 
-    @override_config(TAGGING_MODEL="mobileclip_s2")
     def test_photo_already_tagged_with_active_model_is_skipped(self):
         create_test_photo(
-            owner=self.user, captions_json={"mobileclip_s2": {"tags": []}}
+            owner=self.user, captions_json={"openclip_vitb32": {"tags": []}}
         )
         pending = create_test_photo(owner=self.user, captions_json={"im2txt": "a cat"})
 
         with patch.object(processing_jobs, "AsyncTask") as async_task:
             generate_tags(self.user, self.job_id)
 
-        # Only the photo missing a "mobileclip_s2" key is queued: a caption row
-        # for a *different* model does not count as tagged.
+        # Only the photo missing an OpenCLIP key is queued: a caption row
+        # without its tags does not count as tagged.
         self.assertEqual(async_task.call_count, 1)
         self.assertEqual(async_task.call_args.args[1], pending.pk)
         self.assertEqual(_job(self.job_id).progress_target, 1)
 
-    @override_config(TAGGING_MODEL="siglip2")
-    def test_active_tagging_model_selects_which_photos_are_pending(self):
-        """Switching TAGGING_MODEL flips which photos are considered done."""
-        places = create_test_photo(
-            owner=self.user, captions_json={"mobileclip_s2": {"tags": []}}
+    def test_tags_of_an_earlier_tagger_do_not_count(self):
+        """Only OpenCLIP's key marks a photo as tagged."""
+        earlier = create_test_photo(
+            owner=self.user, captions_json={"an_earlier_tagger": {"tags": ["x"]}}
         )
-        create_test_photo(owner=self.user, captions_json={"siglip2": {"tags": []}})
+        create_test_photo(owner=self.user, captions_json={OPENCLIP: {"tags": []}})
 
         with patch.object(processing_jobs, "AsyncTask") as async_task:
             generate_tags(self.user, self.job_id)
 
         self.assertEqual(async_task.call_count, 1)
-        self.assertEqual(async_task.call_args.args[1], places.pk)
+        self.assertEqual(async_task.call_args.args[1], earlier.pk)
 
-    @override_config(TAGGING_MODEL="mobileclip_s2")
     def test_other_users_photos_are_not_touched(self):
         other = create_test_user()
         create_test_photo(owner=other)
@@ -119,7 +114,6 @@ class GenerateTagsCharacterizationTest(TestCase):
 
     # ---- incremental vs full scan -----------------------------------
 
-    @override_config(TAGGING_MODEL="mobileclip_s2")
     def test_incremental_scan_only_processes_photos_added_after_last_scan(self):
         now = timezone.now()
         last = LongRunningJob.create_job(
@@ -142,7 +136,6 @@ class GenerateTagsCharacterizationTest(TestCase):
         self.assertEqual(async_task.call_count, 1)
         self.assertEqual(async_task.call_args.args[1], new.pk)
 
-    @override_config(TAGGING_MODEL="mobileclip_s2")
     def test_full_scan_ignores_last_scan_cutoff(self):
         now = timezone.now()
         last = LongRunningJob.create_job(
@@ -163,7 +156,6 @@ class GenerateTagsCharacterizationTest(TestCase):
 
         self.assertEqual(async_task.call_count, 2)
 
-    @override_config(TAGGING_MODEL="mobileclip_s2")
     def test_unfinished_previous_job_is_not_treated_as_last_scan(self):
         LongRunningJob.create_job(
             user=self.user,
@@ -179,7 +171,6 @@ class GenerateTagsCharacterizationTest(TestCase):
 
     # ---- cancellation / error ---------------------------------------
 
-    @override_config(TAGGING_MODEL="mobileclip_s2")
     def test_cancelled_job_returns_before_queuing_any_task(self):
         create_test_photo(owner=self.user)
 
@@ -197,7 +188,6 @@ class GenerateTagsCharacterizationTest(TestCase):
         self.assertFalse(job.finished)
         self.assertFalse(job.failed)
 
-    @override_config(TAGGING_MODEL="mobileclip_s2")
     def test_unexpected_error_marks_job_failed_and_is_swallowed(self):
         create_test_photo(owner=self.user)
 
@@ -217,7 +207,6 @@ class GenerateTagsCharacterizationTest(TestCase):
         self.assertTrue(job.finished)
         self.assertEqual(job.result, {"status": "failed", "error": "boom"})
 
-    @override_config(TAGGING_MODEL="mobileclip_s2")
     def test_reuses_existing_job_row_for_same_job_id(self):
         existing = LongRunningJob.create_job(
             user=self.user,

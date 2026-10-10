@@ -24,6 +24,7 @@ from api.models.album_thing import AlbumThing
 from api.models.photo_caption import PhotoCaption
 from api.models.photo_ocr import PhotoOcr
 from api.photo_faces import extract_faces
+from api.semantic_search import OPENCLIP, TAG_THING_TYPE
 from api.directory_watcher.utils import (
     CANCELLATION_CHECK_INTERVAL,
     is_job_cancelled,
@@ -157,15 +158,11 @@ def _record_photo_error(photo: Photo, err: Exception) -> str:
 
 
 def _untagged_photos(user):
-    """Photos of ``user`` that carry no caption for the active tagging model."""
-    from constance import config as site_config
-
-    tagging_model = site_config.TAGGING_MODEL
-
+    """Photos of ``user`` that carry no OpenCLIP tags."""
     return Photo.objects.owned_by(user).filter(
         Q(caption_instance__isnull=True)
         | Q(caption_instance__captions_json__isnull=True)
-        | Q(**{f"caption_instance__captions_json__{tagging_model}__isnull": True})
+        | Q(**{f"caption_instance__captions_json__{OPENCLIP}__isnull": True})
     )
 
 
@@ -377,17 +374,17 @@ def _get_photo_ocr(photo: Photo):
         return None
 
 
-def _siglip_labels_for_photo(photo: Photo) -> set[str]:
-    """Return the lower-cased SigLIP 2 tag labels attached to ``photo``.
+def _tag_labels_for_photo(photo: Photo) -> set[str]:
+    """Return the lower-cased OpenCLIP tag labels attached to ``photo``.
 
-    SigLIP tags are stored as :class:`~api.models.album_thing.AlbumThing` rows
-    (``thing_type="siglip2_tag"``) linked to the photo through the ``photos``
+    Tags are stored as :class:`~api.models.album_thing.AlbumThing` rows
+    (``thing_type=TAG_THING_TYPE``) linked to the photo through the ``photos``
     M2M. Only the labels the document detector cares about are relevant, but we
     return them all lower-cased and let the detector intersect -- the set is
     tiny (a handful of tags per photo).
     """
     titles = AlbumThing.objects.filter(
-        photos=photo, thing_type="siglip2_tag"
+        photos=photo, thing_type=TAG_THING_TYPE
     ).values_list("title", flat=True)
     return {title.lower() for title in titles if title}
 
@@ -397,7 +394,7 @@ def detect_media_category(photo: Photo) -> tuple[bool, bool | None]:
 
     Both are DB-only heuristics: :func:`api.screenshot_detection.classify` and,
     for a photo with an OCR row, :func:`classify_document` over its OCR text
-    and SigLIP labels. ``is_document`` is ``None`` without an OCR row: there is
+    and tag labels. ``is_document`` is ``None`` without an OCR row: there is
     no evidence either way. No service call, no file read.
     """
     from api.screenshot_detection import classify
@@ -411,7 +408,7 @@ def detect_document(photo: Photo) -> bool | None:
     if ocr is None:
         return None
     return classify_document(
-        ocr.text, ocr.text_area_fraction, _siglip_labels_for_photo(photo)
+        ocr.text, ocr.text_area_fraction, _tag_labels_for_photo(photo)
     )
 
 
@@ -429,7 +426,7 @@ def _derive_is_document(
         return photo.is_document
 
     new_value = classify_document(
-        ocr_text, text_area_fraction, _siglip_labels_for_photo(photo)
+        ocr_text, text_area_fraction, _tag_labels_for_photo(photo)
     )
     if new_value != photo.is_document:
         photo.is_document = new_value
@@ -490,7 +487,7 @@ def _run_ocr_for_photo(photo: Photo):
         },
     )
 
-    # Derive the document category from the fresh OCR evidence + SigLIP labels
+    # Derive the document category from the fresh OCR evidence + tag labels
     # (unless the user has pinned the category). The text cap (20k chars) never
     # affects the decision -- the thresholds are tens of chars -- so the raw
     # service text is safe to classify on.

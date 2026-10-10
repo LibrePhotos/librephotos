@@ -26,6 +26,7 @@ from api.models import (
 )
 from api.models.user import get_deleted_user
 from api.lazy_import import LazyModule
+from api.semantic_search import OPENCLIP
 
 np = LazyModule("numpy")
 
@@ -386,9 +387,9 @@ class _LabelTally:
         )[:limit]
 
 
-def _tag_labels(captions_json, tagging_model):
-    """The active tagging model's tags for one photo, as word-cloud labels."""
-    tag_result = (captions_json or {}).get(tagging_model) or {}
+def _tag_labels(captions_json):
+    """OpenCLIP's tags for one photo, as word-cloud labels."""
+    tag_result = (captions_json or {}).get(OPENCLIP) or {}
     values = tag_result.get("tags", []) if isinstance(tag_result, dict) else []
     if not isinstance(values, list):
         return []
@@ -423,10 +424,7 @@ def get_searchterms_wordcloud(user):
     # Python fallbacks (SQLite): stream and aggregate
     order_index = 0
 
-    # Things: the active tagging model's tags from captions_json
-    from constance import config as site_config
-
-    tagging_model = site_config.TAGGING_MODEL
+    # Things: OpenCLIP's tags from captions_json
     captions = _LabelTally()
     captions_iter = (
         Photo.objects.owned_by(user)
@@ -436,7 +434,7 @@ def get_searchterms_wordcloud(user):
     )
     for caps in captions_iter:
         try:
-            labels = _tag_labels(caps, tagging_model)
+            labels = _tag_labels(caps)
         except Exception:
             continue
         for label in labels:
