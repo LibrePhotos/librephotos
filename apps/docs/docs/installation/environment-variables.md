@@ -140,6 +140,12 @@ services:
 
 Each machine learning service is a separate process, and by default each model in it may use one thread per physical core. With several of them busy during a scan they compete for the same cores. `ONNX_INTRA_OP_THREADS` caps every model at that many threads (`0` or unset keeps the default), which pairs well with a `cpus:` limit: set it to the number of cores you give the container, or fewer. The face recognition models are the exception, because the library that loads them does not pass the setting through.
 
+#### Memory the models keep between photos
+
+ONNX Runtime keeps a memory arena per model: once a model has needed a buffer, it holds on to it for as long as the model stays loaded. For text recognition (OCR) and captioning, whose input sizes change from photo to photo, that kept the memory of the largest photo they ever saw, several hundred MB each. Since 1.3.0 those two run without the arena, which costs a few percent of their speed; the other models keep it. `ONNX_CPU_ARENA=1` gives every model the arena again, `ONNX_CPU_ARENA=0` takes it from every model. The face recognition models keep their default either way.
+
+The services also start with `OPENBLAS_NUM_THREADS=1` unless you set it: they do their heavy work in ONNX Runtime, and otherwise every one of them reserved buffers for a thread per core.
+
 :::warning
 Do not cap the container so hard that the first scan cannot finish. Face detection and captioning load sizeable models; below roughly 2 GB of memory the backend will be killed by the kernel — and *that* really is an out-of-memory kill.
 :::
