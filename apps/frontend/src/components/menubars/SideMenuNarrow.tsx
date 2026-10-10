@@ -14,12 +14,14 @@ import {
   IconBook as Book,
   IconChevronRight as ChevronRight,
   IconCloud as Cloud,
+  IconCopy as Copy,
   IconHeart as Heart,
   IconInfoCircle as InfoCircle,
 } from "@tabler/icons-react";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useDuplicateStatsQuery } from "../../api_client/duplicates";
 import { useFetchImageTagQuery, useFetchStorageStatsQuery } from "../../api_client/server";
 import { useAuth } from "../../hooks/useAuth";
 import { DOCUMENTATION_LINK, SUPPORT_LINK } from "../../ui-constants";
@@ -44,6 +46,9 @@ export function SideMenuNarrow(): JSX.Element {
   const [active, setActive] = useState("/");
   const { data: storageStats, isLoading } = useFetchStorageStatsQuery();
   const { data: imageInfos } = useFetchImageTagQuery();
+  // The card is a nudge, not a live counter: the duplicate pages and their
+  // mutations refresh these stats when it matters.
+  const { data: duplicateStats } = useDuplicateStatsQuery({ staleTime: 5 * 60 * 1000 });
   const { colors } = useMantineTheme();
   const computedTheme = useComputedColorScheme("light");
   const defaultIconColor = computedTheme === "dark" ? colors.gray[3] : colors.dark[9];
@@ -150,6 +155,9 @@ export function SideMenuNarrow(): JSX.Element {
     return link;
   });
 
+  const pendingDuplicates = duplicateStats?.pending_duplicates ?? 0;
+  const showCleanupCard = isAuthenticated && pendingDuplicates > 0 && !active.startsWith("/organizing");
+
   const usedStoragePercent = storageStats?.total_storage
     ? (storageStats.used_storage / storageStats.total_storage) * 100
     : 0;
@@ -161,6 +169,29 @@ export function SideMenuNarrow(): JSX.Element {
     <nav className={classes.nav}>
       <div className={classes.links}>{links}</div>
       <div className={classes.bottom_links}>
+        {showCleanupCard && (
+          <a
+            className={classes.cleanup}
+            href="/organizing/duplicates"
+            onClick={event => {
+              if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) {
+                return;
+              }
+              event.preventDefault();
+              navigate({ to: "/organizing/$tab", params: { tab: "duplicates" } });
+            }}
+          >
+            <Text size="sm" fw={500} className={classes.cleanup_title}>
+              <Copy size={16} />
+              {t("sidemenu.cleanup.title", { count: pendingDuplicates })}
+            </Text>
+            {duplicateStats && duplicateStats.potential_savings_bytes > 0 && (
+              <Text size="xs">
+                {t("sidemenu.cleanup.savings", { size: formatBytes(duplicateStats.potential_savings_bytes, 1) })}
+              </Text>
+            )}
+          </a>
+        )}
         <div className={classes.link} data-hover="no">
           <ActionIcon component="span" className={classes.link_icon} variant="transparent" color={defaultIconColor}>
             <Cloud />

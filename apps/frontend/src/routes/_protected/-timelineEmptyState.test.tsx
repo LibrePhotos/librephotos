@@ -51,6 +51,8 @@ vi.mock("../../api_client/user/hooks", () => ({
   useSaveDefaultTimelineFilterMutation: () => ({ mutate: () => {}, isPending: false }),
 }));
 vi.mock("../../hooks/useWorkerStatus", () => ({ useWorkerStatus: () => ({ workerRunningJob: null }) }));
+// Pulls in the slideshow and its lightbox, which these tests never open.
+vi.mock("../../components/memories/MemoriesStrip", () => ({ MemoriesStrip: () => null }));
 vi.mock("../../components/photolist/PhotoListView", () => ({
   PhotoListView: ({ emptyStateConfig }: { emptyStateConfig?: { description: string; actionLink?: string } }) => {
     stubs.emptyStateConfig = emptyStateConfig;

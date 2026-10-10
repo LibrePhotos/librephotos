@@ -49,10 +49,11 @@ export const useFetchDuplicateQuery = (duplicateId: string) =>
   });
 
 // Fetch duplicate stats
-export const useFetchDuplicateStatsQuery = () =>
+export const useFetchDuplicateStatsQuery = (options?: { staleTime?: number }) =>
   useQuery({
     queryKey: DuplicatesQueryKeys.stats(),
     queryFn: () => fetchClient.get<DuplicateStats>("/duplicates/stats"),
+    staleTime: options?.staleTime,
   });
 
 // Detect duplicates mutation

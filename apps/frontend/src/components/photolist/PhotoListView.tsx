@@ -128,6 +128,8 @@ type Props = Readonly<{
   // options (the main timeline's Filter button). Shown even when the view is
   // empty, so a filter that matches nothing can always be changed back.
   headerActions?: React.ReactNode;
+  // Scrolls away above the grid, unlike the sticky header (the timeline's memories).
+  banner?: React.ReactNode;
 }>;
 
 // SelectionState is now imported from api_client/photos/types
@@ -156,6 +158,7 @@ function PhotoListViewComponent({
   photosetQuery,
   mediaType,
   headerActions,
+  banner,
 }: Props) {
   const { t } = useTranslation();
   const { height } = useViewportSize();
@@ -809,6 +812,7 @@ function PhotoListViewComponent({
           </Box>
         )}
       </Box>
+      {banner}
       {!isLoading && photos && photos.length > 0 ? (
         <ScrollScrubber
           scrollPositions={dataForScrollIndicator}

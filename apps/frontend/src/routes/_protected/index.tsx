@@ -5,6 +5,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchDateAlbumQuery, useFetchDateAlbumsQuery } from "../../api_client/albums/hooks";
 import { Photoset, PigPhoto } from "../../api_client/photos/types";
+import { MemoriesStrip } from "../../components/memories/MemoriesStrip";
 import { NO_PHOTO_GROUP, type PhotoGroup } from "../../components/photolist/photoGroup";
 import { EmptyStateConfig, PhotoListView } from "../../components/photolist/PhotoListView";
 import {
@@ -167,6 +168,9 @@ function TimestampPhotos() {
     [filter, savedFilter, setFilter, resetFilter, saveAsDefault, savingDefault, filterReady]
   );
 
+  // Stable, so the memoised PhotoListView does not re-render for it.
+  const memoriesStrip = useMemo(() => <MemoriesStrip />, []);
+
   return (
     <PhotoListView
       title={t("photos.photos")}
@@ -180,6 +184,7 @@ function TimestampPhotos() {
       photosetQuery={photosetQuery}
       additionalSubHeader={filterSummary}
       headerActions={filterButton}
+      banner={memoriesStrip}
     />
   );
 }
