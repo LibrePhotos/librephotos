@@ -18,6 +18,7 @@ from api.models import (
     Photo,
 )
 from api.models.photo import HEAVY_PHOTO_COLUMNS, visible_photo_q
+from api.models.photo_stack import PhotoStack
 from api.serializers.album_date import (
     AlbumDateSerializer,
     IncompleteAlbumDateSerializer,
@@ -635,9 +636,21 @@ class AlbumDateListViewSet(ListViewSet):
         # Non-primary photos are hidden in the timeline but accessible via stack expansion
         # NOTE: Duplicates are handled separately via the Duplicate model and are not filtered here
         if not self.request.query_params.get("show_all_stack_photos"):
+            # As subqueries, not LEFT JOINs: a join multiplied the rows of a
+            # photo in several stacks, which is what made the count DISTINCT
+            # (a sort of every row on the timeline's hottest query).
+            in_no_stack = ~Exists(
+                Photo.stacks.through.objects.filter(photo_id=OuterRef("pk"))
+            )
+            is_primary = Exists(
+                PhotoStack.objects.filter(primary_photo_id=OuterRef("pk"))
+            )
             filter.append(
-                Q(photos__stacks__isnull=True)
-                | Q(photos__primary_in_stack__isnull=False)
+                Q(
+                    photos__in=Photo.objects.filter(in_no_stack | is_primary).values(
+                        "pk"
+                    )
+                )
             )
 
         # Filter by folder path if provided
@@ -684,9 +697,16 @@ class AlbumDateListViewSet(ListViewSet):
                 )
             )
 
+        # Only these reach a photo's many files or faces, or the search fields,
+        # through a join that repeats the photo; otherwise each row is one
+        # day's photo and a plain count is exact.
+        params = self.request.query_params
+        repeats_photos = bool(
+            params.get("folder") or params.get("person") or params.get("search")
+        )
         qs = (
             AlbumDate.objects.filter(*filter)
-            .annotate(photo_count=Count("photos", distinct=True))
+            .annotate(photo_count=Count("photos", distinct=repeats_photos))
             .filter(Q(photo_count__gt=0))
             .order_by(F("date").desc(nulls_last=True))
         )
