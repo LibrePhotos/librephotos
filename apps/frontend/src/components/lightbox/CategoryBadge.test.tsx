@@ -1,6 +1,6 @@
 /**
- * The lightbox's Category control (issue #2130): Photo / Screenshot / Document,
- * who set it, where the item shows up, an Undo, and owner-only.
+ * The lightbox's Category badge (issue #2130): Photo / Screenshot / Document
+ * from its menu, who set it, where the item shows up, an Undo, and owner-only.
  */
 import "@mantine/core/styles.css";
 import { MantineProvider } from "@mantine/core";
@@ -13,7 +13,7 @@ import type { Photo } from "../../api_client/photos/types";
 import type { User } from "../../api_client/user/types";
 import i18n from "../../i18n";
 import { defined } from "../../util/defined.test-utils";
-import { CategorySection } from "./CategorySection";
+import { CategoryBadge } from "./CategoryBadge";
 import { makePhoto } from "./photoFixture.test-utils";
 
 /** The part of the signed-in user the section reads. */
@@ -54,12 +54,6 @@ beforeAll(async () => {
     removeEventListener: () => {},
     dispatchEvent: () => false,
   });
-  // jsdom has no ResizeObserver, SegmentedControl needs it
-  globalThis.ResizeObserver = class ResizeObserverStub implements ResizeObserver {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-  };
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   await i18n.changeLanguage("en");
 });
@@ -92,7 +86,7 @@ async function renderSection(photo: Photo = screenshot) {
     await act(async () => {
       root.render(
         <MantineProvider env="test">
-          <CategorySection photoDetail={next} />
+          <CategoryBadge photoDetail={next} />
         </MantineProvider>
       );
     });
@@ -114,34 +108,63 @@ async function clickUndo(call: number) {
   });
 }
 
-function radio(container: HTMLElement, label: string) {
-  const input = Array.from(container.querySelectorAll<HTMLInputElement>("input[type=radio]")).find(
-    candidate => candidate.value === label
-  );
-  if (!input) throw new Error(`no option ${label}`);
-  return input;
+function badge(container: HTMLElement) {
+  return container.querySelector<HTMLButtonElement>('button[aria-label^="Category:"]');
 }
 
-describe("CategorySection", () => {
+/** Opens the badge's menu (if it is not open yet); returns the dropdown's text. */
+async function openMenu(container: HTMLElement) {
+  if (!document.querySelector("[role=menu]")) {
+    await act(async () => {
+      defined(badge(container)).click();
+    });
+  }
+  return defined(document.querySelector("[role=menu]")).textContent;
+}
+
+async function item(container: HTMLElement, label: string) {
+  await openMenu(container);
+  const found = Array.from(document.querySelectorAll<HTMLButtonElement>("[role=menuitem]")).find(
+    candidate => candidate.textContent === label
+  );
+  if (!found) throw new Error(`no option ${label}`);
+  return found;
+}
+
+async function pick(container: HTMLElement, label: string) {
+  const option = await item(container, label);
+  await act(async () => {
+    option.click();
+  });
+}
+
+async function current(container: HTMLElement) {
+  await openMenu(container);
+  return defined(document.querySelector("[role=menuitem][aria-current=true]")).textContent;
+}
+
+describe("CategoryBadge", () => {
   it("shows the detected category and where the item appears", async () => {
     const container = await renderSection();
-    expect(radio(container, "screenshot").checked).toBe(true);
-    expect(container.textContent).toContain("Detected automatically");
-    expect(container.textContent).toContain("Shown in Screenshots. Hidden from your timeline by your filter.");
-    expect(container.textContent).toContain("Your choice is kept");
+    expect(badge(container)?.textContent).toBe("Screenshot");
+    const menu = await openMenu(container);
+    expect(await current(container)).toBe("Screenshot");
+    expect(menu).toContain("Detected automatically");
+    expect(menu).toContain("Shown in Screenshots. Hidden from your timeline by your filter.");
+    expect(menu).toContain("Your choice is kept");
   });
 
   it("marks the photo with the user's choice and offers an undo", async () => {
     const container = await renderSection();
-    await act(async () => {
-      radio(container, "photo").click();
-    });
+    await pick(container, "Photo");
     expect(stubs.mutate).toHaveBeenCalledTimes(1);
     const [request, callbacks] = stubs.mutate.mock.calls[0];
     expect(request).toEqual({ image_hashes: ["abc"], category: "photo", notify: false });
     // Shown at once, before the photo detail refetches.
-    expect(container.textContent).toContain("Set by you");
-    expect(container.textContent).toContain("Shown in your timeline.");
+    expect(badge(container)?.textContent).toBe("Photo");
+    const menu = await openMenu(container);
+    expect(menu).toContain("Set by you");
+    expect(menu).toContain("Shown in your timeline.");
 
     await act(async () => {
       callbacks.onSuccess();
@@ -154,14 +177,13 @@ describe("CategorySection", () => {
       { image_hashes: ["abc"], category: "auto", notify: false },
       expect.anything()
     );
-    expect(container.textContent).toContain("Detected automatically");
+    expect(badge(container)?.textContent).toBe("Screenshot");
+    expect(await openMenu(container)).toContain("Detected automatically");
   });
 
   it("undoes to the user's earlier choice when there was one", async () => {
     const container = await renderSection({ ...screenshot, category_source: "user" });
-    await act(async () => {
-      radio(container, "document").click();
-    });
+    await pick(container, "Document");
     await act(async () => {
       stubs.mutate.mock.calls[0][1].onSuccess();
     });
@@ -177,30 +199,25 @@ describe("CategorySection", () => {
     // child would; Undo in A's toast must still target A, and B must keep
     // showing its own category.
     const container = await renderSection();
-    await act(async () => {
-      radio(container, "document").click();
-    });
+    await pick(container, "Document");
     await act(async () => {
       stubs.mutate.mock.calls[0][1].onSuccess();
     });
     const photoB: Photo = { ...screenshot, image_hash: "def", is_screenshot: false, category_source: "user" };
     await container.rerender(photoB);
-    expect(radio(container, "photo").checked).toBe(true);
+    expect(badge(container)?.textContent).toBe("Photo");
 
     await clickUndo(0);
     expect(stubs.mutate).toHaveBeenLastCalledWith(
       { image_hashes: ["abc"], category: "auto", notify: false },
       expect.anything()
     );
-    expect(radio(container, "photo").checked).toBe(true);
-    expect(container.textContent).toContain("Set by you");
+    expect(badge(container)?.textContent).toBe("Photo");
+    expect(await openMenu(container)).toContain("Set by you");
   });
 
   it("replaces the previous toast instead of stacking Undo buttons", async () => {
-    const container = await renderSection();
-    await act(async () => {
-      radio(container, "photo").click();
-    });
+    await pick(await renderSection(), "Photo");
     await act(async () => {
       stubs.mutate.mock.calls[0][1].onSuccess();
     });
@@ -213,37 +230,38 @@ describe("CategorySection", () => {
     // it too.
     stubs.user = { ...stubs.user, default_timeline_filter: { hide_documents: true } };
     const container = await renderSection({ ...screenshot, is_document: true });
-    expect(radio(container, "screenshot").checked).toBe(true);
-    expect(container.textContent).toContain("Shown in Screenshots. Hidden from your timeline by your filter.");
+    expect(badge(container)?.textContent).toBe("Screenshot");
+    expect(await openMenu(container)).toContain("Shown in Screenshots. Hidden from your timeline by your filter.");
   });
 
   it("is not offered for a video, unless it carries a wrong flag to clear", async () => {
     const plainVideo = await renderSection({ ...screenshot, is_screenshot: false, video: true });
-    expect(plainVideo.querySelector("input[type=radio]")).toBeNull();
+    expect(badge(plainVideo)).toBeNull();
 
     // A screen recording detected as a screenshot: only Photo is offered.
     const flagged = await renderSection({ ...screenshot, video: true });
-    expect(radio(flagged, "screenshot").checked).toBe(true);
-    expect(radio(flagged, "photo").disabled).toBe(false);
-    expect(radio(flagged, "document").disabled).toBe(true);
+    expect(await current(flagged)).toBe("Screenshot");
+    expect((await item(flagged, "Photo")).disabled).toBe(false);
+    expect((await item(flagged, "Document")).disabled).toBe(true);
   });
 
   it("says a trashed item is not in the timeline", async () => {
     const container = await renderSection({ ...screenshot, in_trashcan: true });
-    expect(container.textContent).toContain("Items in the trash are not shown in your timeline.");
+    expect(await openMenu(container)).toContain("Items in the trash are not shown in your timeline.");
   });
 
   it("says when the item is in the timeline", async () => {
     const container = await renderSection({ ...screenshot, is_screenshot: false, category_source: "user" });
-    expect(radio(container, "photo").checked).toBe(true);
-    expect(container.textContent).toContain("Set by you");
-    expect(container.textContent).toContain("Shown in your timeline.");
+    expect(badge(container)?.textContent).toBe("Photo");
+    const menu = await openMenu(container);
+    expect(menu).toContain("Set by you");
+    expect(menu).toContain("Shown in your timeline.");
   });
 
   it("is not offered on someone else's photo", async () => {
     stubs.userId = 2;
     const container = await renderSection();
-    expect(container.querySelector("input[type=radio]")).toBeNull();
-    expect(container.textContent).not.toContain("Category");
+    expect(badge(container)).toBeNull();
+    expect(container.textContent).not.toContain("Screenshot");
   });
 });
