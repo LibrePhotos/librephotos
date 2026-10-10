@@ -7,7 +7,6 @@ import { ColorModeSwitch } from "./ColorModeSwitch";
 import { ProfileButton } from "./ProfileButton";
 import classes from "./TopMenu.module.css";
 import { TopMenuLogo } from "./TopMenuLogo";
-import { WorkerIndicator } from "./WorkerIndicator";
 
 export function TopMenu(): React.ReactNode {
   // Centre both groups in the header instead of nudging them with margins, so
@@ -26,9 +25,6 @@ export function TopMenu(): React.ReactNode {
             <ColorModeSwitch />
           </Box>
           <ChunkedUploadButton />
-          <Box visibleFrom="sm" display="flex">
-            <WorkerIndicator />
-          </Box>
           <Box visibleFrom="sm" display="flex">
             <ProfileButton />
           </Box>

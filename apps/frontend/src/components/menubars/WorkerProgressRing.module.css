@@ -1,0 +1,40 @@
+.ring {
+  position: absolute;
+  inset: -3px;
+  pointer-events: none;
+  transform: rotate(-90deg);
+}
+
+.track {
+  stroke: var(--mantine-color-default-border);
+}
+
+.arc {
+  stroke: var(--mantine-primary-color-filled);
+  transition: stroke-dashoffset 0.4s ease;
+}
+
+/* No progress to show (a job owned by someone else, or one that has not
+   reported a target yet): spin a quarter arc instead. */
+.indeterminate {
+  animation: spin 1.2s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(-90deg);
+  }
+  to {
+    transform: rotate(270deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .indeterminate {
+    animation: none;
+  }
+
+  .arc {
+    transition: none;
+  }
+}
