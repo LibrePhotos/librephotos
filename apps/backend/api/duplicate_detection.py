@@ -8,18 +8,11 @@ Handles two types of duplicates:
 This is separate from stack detection (RAW+JPEG pairs, bursts, etc.)
 because duplicates are about storage cleanup, not photo organization.
 
-Optimized with BK-Tree for efficient visual duplicate detection.
-
-Memory Optimizations (v2):
 - detect_exact_copies: Uses database aggregation (GROUP BY) instead of loading
   all photos into memory. Only photo IDs are loaded, not full objects.
-- detect_visual_duplicates: Processes photos in configurable batches (default 10k).
-  Uses two-pass algorithm: within-batch BK-Tree search, then cross-batch linear scan.
-  Memory usage: O(batch_size) instead of O(total_photos).
-
-With 300k photos:
-- Old: ~10GB+ RAM (all photos + files + large BK-Tree)
-- New: ~100-200MB RAM (batch + hash list only)
+- detect_visual_duplicates: compares every pair of 64-bit perceptual hashes
+  in numpy (XOR + population count, ~32 MB per step) and groups them with
+  union-find; other hash lengths go through a BK-tree.
 """
 
 import logging
@@ -27,11 +20,18 @@ from collections import defaultdict
 
 from django.db.models import Q
 
+from api.lazy_import import LazyModule
 from api.models import Photo
 from api.models.duplicate import Duplicate
 from api.models.file import File
 from api.models.long_running_job import LongRunningJob
-from api.perceptual_hash import DEFAULT_HAMMING_THRESHOLD, hamming_distance
+from api.perceptual_hash import (
+    DEFAULT_HAMMING_THRESHOLD,
+    HEX64_HASH,
+    hamming_distance,
+)
+
+np = LazyModule("numpy")
 
 logger = logging.getLogger(__name__)
 
@@ -274,29 +274,80 @@ def detect_exact_copies(user, progress_callback=None):
     return duplicates_created
 
 
+# Comparisons per numpy step (rows x all later hashes): ~32 MB of uint64.
+_PAIR_BLOCK_ELEMENTS = 4_000_000
+
+
+def _hash_ints(hashes):
+    """The hashes as ints, or None unless every one is a 64-bit (16 hex digit) hash."""
+    if not all(HEX64_HASH.fullmatch(value) for value in hashes):
+        return None
+    return [int(value, 16) for value in hashes]
+
+
+def _popcount(values):
+    if hasattr(np, "bitwise_count"):  # numpy >= 2.0
+        return np.bitwise_count(values)
+    as_bytes = values.view(np.uint8).reshape(values.shape + (8,))
+    return np.unpackbits(as_bytes, axis=-1).sum(axis=-1)
+
+
+def similar_pairs(hashes, threshold):
+    """Index pairs ``(i, j)``, ``i < j``, of hashes at most *threshold* bits apart.
+
+    Every pair is compared, so the result is exact for any threshold, but in
+    numpy: an XOR and a population count per pair, against two imagehash
+    objects per pair before (~75 us, about a day for 50k photos; the Rust
+    experiment got the same groups in seconds). Returns None when a hash is
+    not 64 bits; :func:`_similar_pairs_bktree` handles those.
+    """
+    ints = _hash_ints(hashes)
+    if ints is None:
+        return None
+    values = np.array(ints, dtype=np.uint64)
+    n = len(values)
+    rows = max(1, _PAIR_BLOCK_ELEMENTS // max(n, 1))
+    pairs = []
+    for start in range(0, n, rows):
+        block = values[start : start + rows]
+        # Columns from the block's first row on: every later hash once.
+        distances = _popcount(np.bitwise_xor(block[:, None], values[None, start:]))
+        i, j = np.nonzero(distances <= threshold)
+        i += start
+        j += start
+        keep = j > i
+        pairs.extend(zip(i[keep].tolist(), j[keep].tolist()))
+    return pairs
+
+
+def _similar_pairs_bktree(hashes, threshold):
+    """:func:`similar_pairs` for hashes of any length, through a BK-tree."""
+    tree = BKTree(hamming_distance)
+    for index, phash in enumerate(hashes):
+        tree.add(index, phash)
+    pairs = []
+    for index, phash in enumerate(hashes):
+        for other, _distance in tree.search(phash, threshold):
+            if other > index:
+                pairs.append((index, other))
+    return pairs
+
+
 def detect_visual_duplicates(
     user, threshold=DEFAULT_HAMMING_THRESHOLD, progress_callback=None, batch_size=10000
 ):
     """
     Detect visually similar photos using perceptual hash.
 
-    Memory optimized: Processes photos in batches to avoid loading all data into memory.
-    Uses a two-pass approach for complete duplicate detection with bounded memory.
-
-    Algorithm:
-    1. First pass: Build BKTree in batches, find within-batch duplicates
-    2. Second pass: Compare each batch against all previous batches using linear scan
-
-    The linear scan in pass 2 is acceptable because:
-    - We only store (id, hash) tuples, not full Photo objects
-    - Hamming distance is very fast to compute
-    - With 300k photos, we have ~300k comparisons per batch, which is fast
+    Loads every candidate's (id, hash), finds all pairs within *threshold*
+    bits (:func:`similar_pairs`, numpy) and groups them with union-find, so a
+    group is a connected component of similar photos.
 
     Args:
         user: The user whose photos to analyze
         threshold: Hamming distance threshold (default: 10)
         progress_callback: Optional callback(current, total, found) for progress
-        batch_size: Number of photos to process per batch (default: 10000)
+        batch_size: Unused; kept for callers
 
     Returns:
         Number of duplicate groups created
@@ -319,111 +370,32 @@ def detect_visual_duplicates(
     if total < 2:
         return 0
 
-    logger.info(
-        f"Processing {total} photos in batches of {batch_size} (user: {user.username})"
-    )
+    logger.info(f"Processing {total} photos (user: {user.username})")
 
-    # Union-Find for grouping across all batches
+    # Every photo's (id, hash); ~30 bytes each, so 300k photos stay in the
+    # tens of MB. One query: slicing the unordered queryset in batches gave
+    # Postgres no order to page by.
+    all_photo_hashes = [
+        (photo_id, phash)
+        for photo_id, phash in photos_queryset.values_list("id", "perceptual_hash")
+        if phash
+    ]
+    hashes = [phash for _, phash in all_photo_hashes]
+    if progress_callback:
+        progress_callback(total // 2, total, 0)
+
+    pairs = similar_pairs(hashes, threshold)
+    if pairs is None:
+        logger.info("Perceptual hashes of other lengths: comparing them one by one")
+        pairs = _similar_pairs_bktree(hashes, threshold)
+
     uf = UnionFind()
-    pairs_found = 0
-    processed = 0
-
-    # Store all photo hashes as (id, hash) tuples for cross-batch comparison
-    # Memory efficient: 300k photos × ~28 bytes = ~8.4MB theoretical
-    # In practice, Python overhead means ~25-40MB for list + objects
-    all_photo_hashes = []
-
-    # Calculate number of batches
-    num_batches = (total + batch_size - 1) // batch_size
-
-    # Pass 1: Process each batch internally and build the complete hash list
-    for batch_idx in range(num_batches):
-        offset = batch_idx * batch_size
-
-        # Get current batch using slicing (memory efficient)
-        batch_photos = list(
-            photos_queryset[offset : offset + batch_size].values(
-                "id", "perceptual_hash"
-            )
-        )
-
-        if not batch_photos:
-            break
-
-        logger.info(
-            f"Pass 1: Processing batch {batch_idx + 1}/{num_batches} ({len(batch_photos)} photos)"
-        )
-
-        # Build temporary BK-Tree for current batch (for efficient within-batch search)
-        batch_tree = BKTree(hamming_distance)
-        batch_hashes = []
-
-        for photo in batch_photos:
-            photo_id = photo["id"]
-            phash = photo["perceptual_hash"]
-
-            if phash:
-                batch_tree.add(photo_id, phash)
-                batch_hashes.append((photo_id, phash))
-
-        # Find duplicates within current batch using BK-Tree
-        for photo_id, phash in batch_hashes:
-            similar = batch_tree.search(phash, threshold)
-
-            for similar_id, distance in similar:
-                if similar_id != photo_id:
-                    uf.union(photo_id, similar_id)
-                    pairs_found += 1
-
-        # Add batch to the complete list for cross-batch comparison
-        all_photo_hashes.extend(batch_hashes)
-
-        processed += len(batch_photos)
-
-        if progress_callback:
-            # Report progress for pass 1 (first 50% of total work)
-            progress_callback(processed // 2, total, pairs_found)
-
-    logger.info(
-        f"Pass 1 complete. Found {pairs_found} within-batch pairs. Starting cross-batch comparison."
-    )
-
-    # Pass 2: Compare each batch against all previous photos (linear scan)
-    # This ensures we don't miss duplicates between distant batches
-    processed = 0
-
-    for batch_idx in range(num_batches):
-        start_idx = batch_idx * batch_size
-        end_idx = min(start_idx + batch_size, len(all_photo_hashes))
-
-        if start_idx >= end_idx:
-            break
-
-        batch_hashes = all_photo_hashes[start_idx:end_idx]
-
-        logger.info(
-            f"Pass 2: Comparing batch {batch_idx + 1}/{num_batches} against previous photos"
-        )
-
-        # Compare current batch against all previous photos
-        # Store the previous photos slice once to avoid repeated slicing
-        previous_hashes = all_photo_hashes[:start_idx] if start_idx > 0 else []
-
-        for photo_id, phash in batch_hashes:
-            # Only compare against photos in previous batches (avoid duplicate comparisons)
-            for prev_id, prev_hash in previous_hashes:
-                distance = hamming_distance(phash, prev_hash)
-                if distance <= threshold:
-                    uf.union(photo_id, prev_id)
-                    pairs_found += 1
-
-        processed += len(batch_hashes)
-
-        if progress_callback:
-            # Report progress for pass 2 (second 50% of total work)
-            progress_callback(total // 2 + processed // 2, total, pairs_found)
-
-    logger.info(f"Pass 2 complete. Total pairs found: {pairs_found}")
+    for i, j in pairs:
+        uf.union(all_photo_hashes[i][0], all_photo_hashes[j][0])
+    pairs_found = len(pairs)
+    if progress_callback:
+        progress_callback(total, total, pairs_found)
+    logger.info(f"Found {pairs_found} similar pairs among {len(hashes)} photos")
 
     # Create duplicate groups from Union-Find groups
     groups = uf.get_groups()
