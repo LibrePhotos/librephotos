@@ -226,6 +226,12 @@ def _service_environment():
     if os.environ.get("PYTHONPATH"):
         pythonpath.append(os.environ["PYTHONPATH"])
     return {
+        # numpy's OpenBLAS starts a thread per core in every process that
+        # imports it and reserves a buffer for each: ~350 MB of committed
+        # memory per sidecar on a 12-thread machine. The sidecars do their
+        # heavy maths in ONNX Runtime, which has its own threads, and use
+        # numpy only for pre- and post-processing. Unless set already.
+        "OPENBLAS_NUM_THREADS": "1",
         **os.environ,
         "BASE_DATA": settings.BASE_DATA,
         "BASE_LOGS": settings.LOGS_ROOT,

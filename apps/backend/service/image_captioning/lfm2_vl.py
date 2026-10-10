@@ -118,7 +118,10 @@ class Lfm2VlCaptioner:
 
     def load(self):
         self.sessions = {
-            key: inference_session(os.path.join(self.model_dir, filename))
+            # Image tiles and a growing token sequence: changing input sizes.
+            key: inference_session(
+                os.path.join(self.model_dir, filename), variable_shapes=True
+            )
             for key, filename in SESSION_FILES.items()
         }
         self.tokenizer = Tokenizer.from_file(

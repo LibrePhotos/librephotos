@@ -209,3 +209,18 @@ class ServiceEnvironmentPythonPathTest(SimpleTestCase):
                 text=True,
             )
         self.assertEqual(result.returncode, 0, result.stderr)
+
+
+class ServiceEnvironmentOpenBlasTest(SimpleTestCase):
+    """The sidecars get a one-thread OpenBLAS unless the host chose otherwise."""
+
+    def test_one_thread_by_default(self):
+        with patch.dict(os.environ):
+            os.environ.pop("OPENBLAS_NUM_THREADS", None)
+            env = _service_environment()
+        self.assertEqual(env["OPENBLAS_NUM_THREADS"], "1")
+
+    def test_an_explicit_setting_wins(self):
+        with patch.dict(os.environ, {"OPENBLAS_NUM_THREADS": "4"}):
+            env = _service_environment()
+        self.assertEqual(env["OPENBLAS_NUM_THREADS"], "4")

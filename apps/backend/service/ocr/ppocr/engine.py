@@ -135,8 +135,13 @@ class PPOCREngine:
 
     def load(self):
         self.config = OCRConfig(self._model_dir)
-        self.det_session = inference_session(self.config.det_model_path)
-        self.rec_session = inference_session(self.config.rec_model_path)
+        # Every photo and every text line is a different input size.
+        self.det_session = inference_session(
+            self.config.det_model_path, variable_shapes=True
+        )
+        self.rec_session = inference_session(
+            self.config.rec_model_path, variable_shapes=True
+        )
 
         self.det_input_name = self.det_session.get_inputs()[0].name
         rec_input_name = self.rec_session.get_inputs()[0].name

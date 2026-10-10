@@ -160,8 +160,9 @@ class Lfm2VlCaptionerTest(SimpleTestCase):
         self.decoder = FakeDecoder([ord(c) for c in '"a cat"'])
         self.tokenizer = FakeTokenizer()
 
-        def make_session(path):
+        def make_session(path, variable_shapes=False):
             self.assertTrue(path.startswith(self.tmp.name))
+            self.assertTrue(variable_shapes)
             return {
                 "vision_encoder_q4.onnx": self.vision,
                 "embed_tokens_q4.onnx": self.embed,
