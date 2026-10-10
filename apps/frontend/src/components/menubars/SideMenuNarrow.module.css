@@ -16,10 +16,12 @@
 }
 
 .bottom_links {
+  padding-top: var(--mantine-spacing-xs);
   padding-bottom: var(--mantine-spacing-sm);
-  border-top-width: 1px;
-  border-top-style: solid;
-  border-top-color: light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-4));
+  /* Same token as the navbar's own edge, so the divider reads as part of the
+     shell. A light-dark() colour fell back to black (currentColor) wherever
+     the browser does not support light-dark(). */
+  border-top: 1px solid var(--mantine-color-default-border);
 }
 
 .link {
@@ -52,5 +54,6 @@
 }
 
 .progress {
-  margin: 10px;
+  /* Line up with the link rows (icon edge) instead of a fixed 10px inset. */
+  margin: 0 var(--mantine-spacing-sm) var(--mantine-spacing-xs);
 }
