@@ -17,7 +17,7 @@ from api.models import (
     Person,
     Photo,
 )
-from api.models.photo import visible_photo_q
+from api.models.photo import HEAVY_PHOTO_COLUMNS, visible_photo_q
 from api.serializers.album_date import (
     AlbumDateSerializer,
     IncompleteAlbumDateSerializer,
@@ -162,16 +162,23 @@ def with_album_user_list_relations(queryset):
     default, so every album on the page costs four extra round trips and the
     cover grid only appears once the last of them has come back (issue #618).
     """
-    return queryset.select_related("owner", "cover_photo", "share").prefetch_related(
-        "shared_to",
-        # Fallback cover for albums without an explicit one. ``.first()`` on the
-        # unordered m2m orders by pk, so the prefetch has to do the same. Only
-        # a photo the album detail shows, not a hidden or trashed one.
-        Prefetch(
-            "photos",
-            queryset=Photo.visible.order_by("pk")[:1],
-            to_attr="first_photos",
-        ),
+    return (
+        queryset.select_related("owner", "cover_photo", "share")
+        # The cover renders six photo columns; the embedding and EXIF blobs
+        # of every album's cover were read for nothing.
+        .defer(*(f"cover_photo__{name}" for name in HEAVY_PHOTO_COLUMNS))
+        .prefetch_related(
+            "shared_to",
+            # Fallback cover for albums without an explicit one. ``.first()`` on
+            # the unordered m2m orders by pk, so the prefetch has to do the
+            # same. Only a photo the album detail shows, not a hidden or
+            # trashed one.
+            Prefetch(
+                "photos",
+                queryset=Photo.visible.defer(*HEAVY_PHOTO_COLUMNS).order_by("pk")[:1],
+                to_attr="first_photos",
+            ),
+        )
     )
 
 
@@ -338,11 +345,9 @@ class AlbumPlaceListViewSet(ListViewSet):
 
         return (
             AlbumPlace.objects.filter(owner=self.request.user)
-            .annotate(
-                photo_count=Count(
-                    "photos", filter=visible_photo_q("photos__"), distinct=True
-                )
-            )
+            # No DISTINCT: a place holds a photo once and the thumbnail join is
+            # one-to-one, and COUNT(DISTINCT) sorted every place link.
+            .annotate(photo_count=Count("photos", filter=visible_photo_q("photos__")))
             .prefetch_related(
                 Prefetch(
                     "photos", queryset=cover_photos_query[:4], to_attr="cover_photos"
@@ -428,11 +433,9 @@ class AlbumUserListViewSet(ListViewSet):
             return AlbumUser.objects.none()
         return with_album_user_list_relations(
             AlbumUser.objects.filter(owner=self.request.user)
-            .annotate(
-                photo_count=Count(
-                    "photos", filter=visible_photo_q("photos__"), distinct=True
-                )
-            )
+            # No DISTINCT: an album holds a photo once and the thumbnail join
+            # is one-to-one, and COUNT(DISTINCT) sorted every album link.
+            .annotate(photo_count=Count("photos", filter=visible_photo_q("photos__")))
             .filter(Q(photo_count__gt=0) & Q(owner=self.request.user))
             .order_by("title")
         )

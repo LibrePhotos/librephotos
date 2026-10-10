@@ -33,6 +33,11 @@ class PhotoQuerySet(models.QuerySet):
         return self.filter(q)
 
 
+# Large per-photo columns that list endpoints never render: defer them when a
+# query loads whole photos only to show a cover or a hash.
+HEAVY_PHOTO_COLUMNS = ("clip_embeddings", "exif_json", "geolocation_json")
+
+
 def visible_photo_q(prefix=""):
     """The photos ``Photo.visible`` keeps, as a ``Q``.
 

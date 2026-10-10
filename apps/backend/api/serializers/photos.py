@@ -16,6 +16,7 @@ from api.models.album_place import get_album_place
 from api.models.photo_metadata import PhotoMetadata
 from api.models.photo_ocr import PhotoOcr
 from api.models.photo_stack import PhotoStack
+from api.serializers.fields import shared_serializer
 from api.serializers.photo_metadata import PhotoMetadataSummarySerializer
 from api.serializers.simple import SimpleUserSerializer
 
@@ -199,7 +200,8 @@ class GroupedPhotosSerializer(serializers.ModelSerializer):
         return obj.location
 
     def get_items(self, obj) -> PhotoSummarySerializer(many=True):
-        return PhotoSummarySerializer(obj.photos, many=True).data
+        summary = shared_serializer(self, PhotoSummarySerializer)
+        return [summary.to_representation(photo) for photo in obj.photos]
 
 
 def with_photo_summary_relations(queryset):
@@ -750,11 +752,12 @@ class PhotoSerializer(serializers.ModelSerializer):
         embedded_media = obj.main_file.embedded_media.all()
         if len(embedded_media) == 0:
             return []
-        return list(
-            map(
-                serialize_file, embedded_media.filter(type__in=[File.VIDEO, File.IMAGE])
-            )
-        )
+        # Filtered in Python: the files are prefetched for the detail view.
+        return [
+            serialize_file(file)
+            for file in embedded_media
+            if file.type in (File.VIDEO, File.IMAGE)
+        ]
 
     def get_metadata(self, obj: Photo) -> dict | None:
         """
@@ -824,8 +827,9 @@ class PhotoSerializer(serializers.ModelSerializer):
             PhotoStack.StackType.RAW_JPEG_PAIR,
             PhotoStack.StackType.LIVE_PHOTO,
         ]
-        stacks = obj.stacks.filter(stack_type__in=valid_stack_types)
-        if not stacks.exists():
+        # Filtered in Python: the detail view prefetches the stacks.
+        stacks = [s for s in obj.stacks.all() if s.stack_type in valid_stack_types]
+        if not stacks:
             return None
 
         result = []

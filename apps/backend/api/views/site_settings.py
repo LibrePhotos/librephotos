@@ -2,6 +2,7 @@
 
 import jsonschema
 from constance import config as site_config
+from constance import settings as constance_settings
 from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -10,6 +11,21 @@ from api.mail import email_is_configured
 from api.ml_models import do_all_models_exist, start_model_download
 from api.models import User
 from api.schemas.site_settings import site_settings_schema
+
+
+def _site_config(*keys):
+    """The current values of several constance settings in one query.
+
+    ``site_config.KEY`` costs a query per key, and the login page and every
+    client start read this endpoint.
+    """
+    stored = site_config._backend.mget(keys)
+    return {
+        key: stored[key]
+        if stored.get(key) is not None
+        else constance_settings.CONFIG[key][0]
+        for key in keys
+    }
 
 
 class SiteSettingsView(APIView):
@@ -22,26 +38,40 @@ class SiteSettingsView(APIView):
         return super(SiteSettingsView, self).get_permissions()
 
     def get(self, request, format=None):
+        config = _site_config(
+            "ALLOW_REGISTRATION",
+            "ALLOW_UPLOAD",
+            "SKIP_PATTERNS",
+            "MAP_API_PROVIDER",
+            "MAP_API_KEY",
+            "MAP_TILE_PROVIDER",
+            "CAPTIONING_MODEL",
+            "TAGGING_MODEL",
+            "OCR_MODEL",
+            "FACE_RECOGNITION_MODEL",
+            "NEXTCLOUD_ENABLED",
+            "AUTO_CREATE_USER_DIRECTORY",
+        )
         out = {}
-        out["allow_registration"] = site_config.ALLOW_REGISTRATION
-        out["allow_upload"] = site_config.ALLOW_UPLOAD
-        out["skip_patterns"] = site_config.SKIP_PATTERNS
+        out["allow_registration"] = config["ALLOW_REGISTRATION"]
+        out["allow_upload"] = config["ALLOW_UPLOAD"]
+        out["skip_patterns"] = config["SKIP_PATTERNS"]
         out["heavyweight_process"] = 0
-        out["map_api_provider"] = site_config.MAP_API_PROVIDER
+        out["map_api_provider"] = config["MAP_API_PROVIDER"]
         # This GET is anonymous (the login page reads it), but the key is the
         # admin's credential for a paid geocoding provider that only the
         # backend and the admin's own settings form use. Blank rather than
         # absent so clients that require the field keep parsing.
-        out["map_api_key"] = site_config.MAP_API_KEY if request.user.is_staff else ""
-        out["map_tile_provider"] = site_config.MAP_TILE_PROVIDER
-        out["captioning_model"] = site_config.CAPTIONING_MODEL
+        out["map_api_key"] = config["MAP_API_KEY"] if request.user.is_staff else ""
+        out["map_tile_provider"] = config["MAP_TILE_PROVIDER"]
+        out["captioning_model"] = config["CAPTIONING_MODEL"]
         # There is no LLM any more; older mobile clients still expect the key.
         out["llm_model"] = "None"
-        out["tagging_model"] = site_config.TAGGING_MODEL
-        out["ocr_model"] = site_config.OCR_MODEL
-        out["face_recognition_model"] = site_config.FACE_RECOGNITION_MODEL
-        out["nextcloud_enabled"] = site_config.NEXTCLOUD_ENABLED
-        out["auto_create_user_directory"] = site_config.AUTO_CREATE_USER_DIRECTORY
+        out["tagging_model"] = config["TAGGING_MODEL"]
+        out["ocr_model"] = config["OCR_MODEL"]
+        out["face_recognition_model"] = config["FACE_RECOGNITION_MODEL"]
+        out["nextcloud_enabled"] = config["NEXTCLOUD_ENABLED"]
+        out["auto_create_user_directory"] = config["AUTO_CREATE_USER_DIRECTORY"]
         out["email_configured"] = email_is_configured()
         return Response(out)
 

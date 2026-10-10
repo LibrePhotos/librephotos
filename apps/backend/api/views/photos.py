@@ -3,7 +3,7 @@ import uuid
 from collections import defaultdict
 
 from django.conf import settings
-from django.db.models import Q
+from django.db.models import Prefetch, Q
 from django.utils import timezone
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework import filters, status, viewsets
@@ -16,7 +16,7 @@ from rest_framework.views import APIView
 from api.mime import mime_type
 from api.metadata.jobs import queue_rating_write
 from api.ml_models import captioning_model_exists, start_model_download
-from api.models import AlbumUser, Photo, User
+from api.models import AlbumUser, Face, Photo, User
 from api.models.album_thing import (
     album_thing_ids_for_photos,
     refresh_album_thing_photo_counts,
@@ -563,12 +563,35 @@ class PhotoViewSet(viewsets.ModelViewSet):
         own = Photo.objects.owned_by(user).filter(
             removed=False, thumbnail__aspect_ratio__isnull=False
         )
-        return (
+        queryset = (
             (Photo.visible.visible_to(user) | own)
             .distinct()
             .prefetch_related("stacks")
             .order_by("-exif_timestamp")
         )
+        if self.action == "retrieve":
+            # Everything PhotoSerializer reads, in a few queries instead of one
+            # per relation (and three per face for its people).
+            queryset = queryset.select_related(
+                "owner",
+                "thumbnail",
+                "main_file",
+                "caption_instance",
+                "search_instance",
+                "metadata",
+                "ocr",
+            ).prefetch_related(
+                Prefetch(
+                    "faces",
+                    # By id: the order the unprefetched relation came back in.
+                    queryset=Face.objects.select_related(
+                        "person", "cluster_person", "classification_person"
+                    ).order_by("id"),
+                ),
+                "files",
+                "main_file__embedded_media",
+            )
+        return queryset
 
     def retrieve(self, *args, **kwargs):
         return super().retrieve(*args, **kwargs)
@@ -906,6 +929,7 @@ class FileVariantDownloadView(APIView):
     def get(self, request, image_hash, file_hash):
         """Download a specific file variant by hash."""
         import os
+
         from django.http import FileResponse
 
         photo = _get_owned_photo(image_hash, request.user)

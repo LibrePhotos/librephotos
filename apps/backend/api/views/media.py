@@ -23,6 +23,7 @@ from api.authentication import JWTCookieAuthentication
 from api.http_range import file_size, ranged_response
 from api.mime import mime_type
 from api.models import AlbumUser, Photo
+from api.models.photo import HEAVY_PHOTO_COLUMNS
 
 logger = logging.getLogger(__name__)
 
@@ -666,16 +667,17 @@ class UnifiedMediaAccessView(APIView):
         the image_hash lookup stays for legacy/backward compatibility. Returns
         None when nothing the requester could be shown matches.
         """
+        # The thumbnail row comes along (every derived path reads it); the
+        # embedding and EXIF blobs are never read here.
+        photos = Photo.objects.select_related("thumbnail").defer(*HEAVY_PHOTO_COLUMNS)
         try:
             if allow_uuid and self._is_uuid_format(image_hash):
-                return Photo.objects.get(pk=image_hash)
-            return Photo.objects.get(image_hash=image_hash)
+                return photos.get(pk=image_hash)
+            return photos.get(image_hash=image_hash)
         except Photo.DoesNotExist:
             return None
         except Photo.MultipleObjectsReturned:
-            return self._pick_visible_photo(
-                Photo.objects.filter(image_hash=image_hash), user
-            )
+            return self._pick_visible_photo(photos.filter(image_hash=image_hash), user)
 
     def _serve_zip(self, request, path, fname, use_proxy):
         user = self._requester(request)
@@ -799,6 +801,18 @@ class UnifiedMediaAccessView(APIView):
         photo = self._lookup_photo(image_hash, user, allow_uuid=True)
         if photo is None:
             return self._refuse(user)
+
+        # The owner's own thumbnails, the bulk of all media requests: the
+        # public-album branch below would serve the very same response (the
+        # transcoding setting only matters for a video), one query later.
+        if (
+            user is not None
+            and photo.owner_id == user.id
+            and not (photo.video and user.transcode_videos)
+        ):
+            return self._generate_response(
+                photo, path, fname, user.transcode_videos, use_proxy
+            )
 
         if self._in_public_album(photo):
             return self._generate_response(photo, path, fname, False, use_proxy)
