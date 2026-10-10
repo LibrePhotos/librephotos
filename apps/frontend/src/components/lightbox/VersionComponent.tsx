@@ -36,16 +36,26 @@ function getVariantBadgeProps(variant: FileVariant): { color: string; label: str
  * Basic photo information (filename, dimensions, file size)
  * Includes file variants with a dedicated toggle
  */
-function PhotoInfoSection({ photoDetail, t }: { photoDetail: PhotoType; t: TFunction }) {
+function PhotoInfoSection({
+  photoDetail,
+  category,
+  t,
+}: {
+  photoDetail: PhotoType;
+  category: React.ReactNode;
+  t: TFunction;
+}) {
   const [showVariants, setShowVariants] = useState(false);
   const fileVariants = photoDetail.file_variants || [];
   const nonMainVariants = fileVariants.filter(v => !v.is_main);
   const hasVariants = nonMainVariants.length > 0;
 
   return (
-    <Stack gap="xs">
-      <Group justify="space-between">
-        <Group justify="flex-start">
+    // Full width, so the category badge lines up with the edit icons of the
+    // rows around it.
+    <Stack gap="xs" w="100%">
+      <Group justify="space-between" align="flex-start" wrap="nowrap">
+        <Group justify="flex-start" wrap="nowrap">
           <Photo />
           <div>
             <Anchor href={`${serverAddress}/media/photos/${photoDetail.image_hash}`} target="_blank">
@@ -77,6 +87,7 @@ function PhotoInfoSection({ photoDetail, t }: { photoDetail: PhotoType; t: TFunc
             </Group>
           </div>
         </Group>
+        {category}
       </Group>
 
       {/* File variants shown when toggled */}
@@ -191,8 +202,15 @@ function DuplicatesSection({ duplicates, t }: { duplicates: string[]; t: TFuncti
   );
 }
 
-export function VersionComponent(props: Readonly<{ photoDetail: PhotoType; isPublic: boolean }>) {
-  const { photoDetail, isPublic } = props;
+export function VersionComponent(
+  props: Readonly<{
+    photoDetail: PhotoType;
+    isPublic: boolean;
+    /** Shown at the end of the file name row: the owner's category badge. */
+    category?: React.ReactNode;
+  }>
+) {
+  const { photoDetail, isPublic, category } = props;
 
   const [showMore, setShowMore] = useState(false);
   const [otherVersions] = useState<PhotoType[]>([]);
@@ -213,7 +231,7 @@ export function VersionComponent(props: Readonly<{ photoDetail: PhotoType; isPub
     <div>
       <Stack align="flex-start">
         {/* Basic photo information with file variants toggle */}
-        <PhotoInfoSection photoDetail={photoDetail} t={t} />
+        <PhotoInfoSection photoDetail={photoDetail} category={category} t={t} />
 
         {/* Camera equipment and settings */}
         <CameraInfoSection photoDetail={photoDetail} />

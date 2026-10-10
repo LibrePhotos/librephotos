@@ -1,8 +1,9 @@
-import { Badge, Button, Center, Group, SegmentedControl, Stack, Text, Title } from "@mantine/core";
+import { Badge, Box, Button, Group, Menu, Text } from "@mantine/core";
 import { hideNotification, showNotification } from "@mantine/notifications";
 import {
+  IconCheck as Check,
+  IconChevronDown as ChevronDown,
   IconFileText as FileText,
-  IconInfoCircle as InfoCircle,
   IconPhoto as Photo,
   IconScreenshot as Screenshot,
 } from "@tabler/icons-react";
@@ -34,21 +35,16 @@ type Props = Readonly<{
 
 const CATEGORIES: readonly PhotoCategory[] = ["photo", "screenshot", "document"];
 
-/** SegmentedControl reports its value as a plain string. */
-function isPhotoCategory(value: string): value is PhotoCategory {
-  return CATEGORIES.some(category => category === value);
-}
-
 const ICONS: Record<PhotoCategory, typeof Photo> = {
   photo: Photo,
   screenshot: Screenshot,
   document: FileText,
 };
 
-const ICON_COLORS: Record<PhotoCategory, string> = {
-  photo: "var(--mantine-color-blue-6)",
-  screenshot: "var(--mantine-color-violet-6)",
-  document: "var(--mantine-color-orange-7)",
+const COLORS: Record<PhotoCategory, string> = {
+  photo: "blue",
+  screenshot: "violet",
+  document: "orange",
 };
 
 // One undo toast at a time: a newer change replaces the older one's Undo.
@@ -86,10 +82,12 @@ function pickedState(imageHash: string, category: PhotoCategory): CategoryState 
 }
 
 // Photo / Screenshot / Document, for fixing a wrong automatic category
-// (issue #2130). Owner-only: the endpoint only ever touches the requester's
-// photos, so the control is not offered on anyone else's. A video gets it
-// only to clear a wrong flag: it can never become a screenshot or document.
-export function CategorySection({ photoDetail }: Props) {
+// (issue #2130): a badge on the file row that opens a menu, so a control most
+// photos never need stays out of the way. Owner-only: the endpoint only ever
+// touches the requester's photos, so the control is not offered on anyone
+// else's. A video gets it only to clear a wrong flag: it can never become a
+// screenshot or document.
+export function CategoryBadge({ photoDetail }: Props) {
   const { t } = useTranslation();
   const { userId } = useAuth();
   const { data: user } = useCurrentUserSelfDetailsQuery();
@@ -163,44 +161,55 @@ export function CategorySection({ photoDetail }: Props) {
     );
   };
 
+  const Icon = ICONS[state.category];
   return (
-    <Stack gap="xs">
-      <Group justify="space-between">
-        <Title order={5}>{t("lightbox.category.title")}</Title>
-        <Badge variant="light" color={state.source === "user" ? "blue" : "gray"}>
-          {state.source === "user" ? t("lightbox.category.setbyyou") : t("lightbox.category.detected")}
+    <Menu position="bottom-end" width={260} shadow="md">
+      <Menu.Target>
+        <Badge
+          component="button"
+          type="button"
+          variant="light"
+          color={COLORS[state.category]}
+          leftSection={<Icon size={12} />}
+          rightSection={<ChevronDown size={12} />}
+          aria-label={t("lightbox.category.change", { category: t(`lightbox.category.${state.category}`) })}
+          disabled={setCategory.isPending}
+          style={{ flex: "none", cursor: "pointer" }}
+        >
+          {t(`lightbox.category.${state.category}`)}
         </Badge>
-      </Group>
-      <SegmentedControl
-        fullWidth
-        aria-label={t("lightbox.category.title")}
-        value={state.category}
-        onChange={value => {
-          if (isPhotoCategory(value)) apply(pickedState(state.imageHash, value), state);
-        }}
-        disabled={setCategory.isPending}
-        data={CATEGORIES.map(category => {
-          const Icon = ICONS[category];
-          return {
-            value: category,
-            // The server never makes a video a screenshot or a document.
-            disabled: photoDetail.video && category !== "photo",
-            label: (
-              <Center style={{ gap: 6 }}>
-                <Icon size={16} color={ICON_COLORS[category]} />
-                <span>{t(`lightbox.category.${category}`)}</span>
-              </Center>
-            ),
-          };
+      </Menu.Target>
+      <Menu.Dropdown>
+        <Menu.Label>
+          {state.source === "user" ? t("lightbox.category.setbyyou") : t("lightbox.category.detected")}
+        </Menu.Label>
+        {CATEGORIES.map(category => {
+          const ItemIcon = ICONS[category];
+          const current = category === state.category;
+          return (
+            <Menu.Item
+              key={category}
+              leftSection={<ItemIcon size={16} color={`var(--mantine-color-${COLORS[category]}-6)`} />}
+              rightSection={current ? <Check size={14} /> : null}
+              aria-current={current || undefined}
+              // The server never makes a video a screenshot or a document.
+              disabled={photoDetail.video && category !== "photo"}
+              onClick={() => {
+                if (!current) apply(pickedState(state.imageHash, category), state);
+              }}
+            >
+              {t(`lightbox.category.${category}`)}
+            </Menu.Item>
+          );
         })}
-      />
-      <Group gap={6} wrap="nowrap" align="flex-start">
-        <InfoCircle size={16} style={{ flex: "none", marginTop: 2 }} color="var(--mantine-color-dimmed)" />
-        <Text size="sm">{t(whereKey(state, shownInTimeline, photoDetail))}</Text>
-      </Group>
-      <Text size="xs" c="dimmed">
-        {t("lightbox.category.kept")}
-      </Text>
-    </Stack>
+        <Menu.Divider />
+        <Box px="sm" py={6}>
+          <Text size="xs">{t(whereKey(state, shownInTimeline, photoDetail))}</Text>
+          <Text size="xs" c="dimmed" mt={4}>
+            {t("lightbox.category.kept")}
+          </Text>
+        </Box>
+      </Menu.Dropdown>
+    </Menu>
   );
 }

@@ -724,7 +724,7 @@
       "formatnoconversion": "The file arrived intact, so this is a format your browser cannot decode, and it cannot be converted for playback here. Try opening it in a different browser."
     },
     "category": {
-      "title": "Category",
+      "change": "Category: {{category}}. Change category",
       "photo": "Photo",
       "screenshot": "Screenshot",
       "document": "Document",
