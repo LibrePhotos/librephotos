@@ -54,9 +54,8 @@ def path_to_dict(path, recurse=2):
 
 
 def get_search_term_examples(user):
-    from constance import config as site_config
+    from api.semantic_search import OPENCLIP
 
-    tagging_model = site_config.TAGGING_MODEL
     default_search_terms = [
         "for people",
         "for places",
@@ -115,7 +114,7 @@ def get_search_term_examples(user):
             ]
         terms_things = ""
         if p.caption_instance and p.caption_instance.captions_json:
-            tag_result = p.caption_instance.captions_json.get(tagging_model)
+            tag_result = p.caption_instance.captions_json.get(OPENCLIP)
             if tag_result is not None:
                 terms_things = tag_result.get("tags", [])
 

@@ -40,13 +40,13 @@ class GetSearchTermExamples(TestCase):
                 5,
                 owner=self.admin,
                 geolocation_json={},
-                captions_json={"mobileclip_s2": None},
+                captions_json={"openclip_vitb32": None},
             )
             + create_test_photos_with_faces(
                 5,
                 owner=self.admin,
                 geolocation_json=expectations[0],
-                captions_json={"mobileclip_s2": None},
+                captions_json={"openclip_vitb32": None},
             )
         )
         self._original__random_random = random.random
@@ -142,7 +142,7 @@ class SearchTermExamplesTest(TestCase):
 
         caption_instance, created = PhotoCaption.objects.get_or_create(photo=photo)
         caption_instance.captions_json = {
-            "mobileclip_s2": {"tags": ["outdoor", "nature", "sunny", "green"]},
+            "openclip_vitb32": {"tags": ["outdoor", "nature", "sunny", "green"]},
             "im2txt": "A beautiful landscape",
             "user_caption": "My vacation photo",
         }
@@ -174,7 +174,7 @@ class SearchTermExamplesTest(TestCase):
 
         caption_instance, created = PhotoCaption.objects.get_or_create(photo=photo)
         caption_instance.captions_json = {
-            "mobileclip_s2": {"tags": []},
+            "openclip_vitb32": {"tags": []},
             "im2txt": "",
             "user_caption": "",
         }
@@ -200,7 +200,7 @@ class SearchTermExamplesTest(TestCase):
 
         caption_instance, created = PhotoCaption.objects.get_or_create(photo=photo)
         caption_instance.captions_json = {
-            "mobileclip_s2": {"tags": ["outdoor", "sunny"]}
+            "openclip_vitb32": {"tags": ["outdoor", "sunny"]}
         }
         caption_instance.save()
 

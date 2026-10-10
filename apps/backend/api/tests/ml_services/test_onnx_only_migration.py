@@ -1,7 +1,7 @@
 """The 0138 data migration moves site settings off the retired models.
 
 Exercised through the migration module's functions with the live app
-registry: what matters is the mapping (Places365 -> MobileCLIP-S2, every
+registry: what matters is the mapping (Places365 -> its successor, every
 retired captioner -> LFM2.5-VL, the LLM slot dropped), that other
 values are left alone, and that the retired taggers' AlbumThing rows are
 removed while everything else stays.
@@ -38,7 +38,7 @@ class OnnxOnlyMigrationTest(TestCase):
         migration.forwards(apps, None)
 
         self.assertEqual(_get("CAPTIONING_MODEL"), "lfm2_vl_450m")
-        self.assertEqual(_get("TAGGING_MODEL"), "mobileclip_s2")
+        self.assertEqual(_get("TAGGING_MODEL"), migration.NEW_TAGGING_MODEL)
 
     def test_every_retired_captioner_is_mapped(self):
         for old in ("im2txt", "florence2_base", "florence2_base_int8", "moondream"):
@@ -74,12 +74,12 @@ class OnnxOnlyMigrationTest(TestCase):
 
     def test_other_selections_are_left_alone(self):
         _set("CAPTIONING_MODEL", "none")
-        _set("TAGGING_MODEL", "siglip2")
+        _set("TAGGING_MODEL", "another_tagger")
 
         migration.forwards(apps, None)
 
         self.assertEqual(_get("CAPTIONING_MODEL"), "none")
-        self.assertEqual(_get("TAGGING_MODEL"), "siglip2")
+        self.assertEqual(_get("TAGGING_MODEL"), "another_tagger")
 
     def test_missing_keys_are_not_created(self):
         migration.forwards(apps, None)
@@ -89,7 +89,7 @@ class OnnxOnlyMigrationTest(TestCase):
         for thing_type in (
             "places365_attribute",
             "places365_category",
-            "siglip2_tag",
+            "another_tagger_tag",
             "hashtag_attribute",
         ):
             AlbumThing.objects.create(
@@ -100,12 +100,12 @@ class OnnxOnlyMigrationTest(TestCase):
 
         self.assertEqual(
             set(AlbumThing.objects.values_list("thing_type", flat=True)),
-            {"siglip2_tag", "hashtag_attribute"},
+            {"another_tagger_tag", "hashtag_attribute"},
         )
 
     def test_backwards_restores_the_old_selections(self):
         _set("CAPTIONING_MODEL", "lfm2_vl_450m")
-        _set("TAGGING_MODEL", "mobileclip_s2")
+        _set("TAGGING_MODEL", migration.NEW_TAGGING_MODEL)
 
         migration.backwards(apps, None)
 

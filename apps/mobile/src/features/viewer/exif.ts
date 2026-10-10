@@ -111,9 +111,15 @@ export function captureSummary(photo: Partial<CaptureSettings>): string | null {
 }
 
 /**
- * Scene labels the server derived from the photo, flattened from whichever
- * captioning model produced them. `places365` splits attributes from
- * categories; `siglip2` is a flat tag list.
+ * The server's one tagging model (OpenCLIP ViT-B/32): its tags live under
+ * this key of `captions_json` (the site settings' `tagging_model`).
+ */
+export const TAGGING_MODEL = "openclip_vitb32";
+
+/**
+ * Scene labels the server derived from the photo, flattened. `places365`
+ * (from servers that still carry its old labels) splits attributes from
+ * categories; the tagging model's entry is a flat tag list.
  */
 export type SceneLabels = { attributes: string[]; categories: string[]; tags: string[] };
 
@@ -121,11 +127,12 @@ export function sceneLabels(captionsJson: unknown): SceneLabels {
   const empty: SceneLabels = { attributes: [], categories: [], tags: [] };
   if (!isRecord(captionsJson)) return empty;
   const places = isRecord(captionsJson.places365) ? captionsJson.places365 : undefined;
-  const siglip = isRecord(captionsJson.siglip2) ? captionsJson.siglip2 : undefined;
+  const tagged = captionsJson[TAGGING_MODEL];
+  const tagger = isRecord(tagged) ? tagged : undefined;
   return {
     attributes: stringArray(places?.attributes),
     categories: stringArray(places?.categories),
-    tags: stringArray(siglip?.tags),
+    tags: stringArray(tagger?.tags),
   };
 }
 

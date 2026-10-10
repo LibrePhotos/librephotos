@@ -34,7 +34,7 @@ Goes through every photo in the database and flags the ones whose file can no lo
 
 ### Calculate Clip Embeddings
 
-Calculates the search embedding of every photo that has none from the selected **Semantic Search Model**, then rebuilds the similarity index. This is used for semantic search and for finding similar images. With MobileCLIP-S2 as both the tagging and the search model, **Generate Tags** stores the embeddings as it tags, and this job only fills the gaps. After the search model changes, it re-embeds the photos of the other model in place.
+Calculates the OpenCLIP search embedding of every photo that has none, then rebuilds the similarity index. This is used for semantic search and for finding similar images. **Generate Tags** stores the embeddings as it tags, so with tagging on this job only fills the gaps. After an upgrade from a release with another model, it re-embeds those photos in place and gives them their tags from the same run.
 
 ### Generate Tags
 

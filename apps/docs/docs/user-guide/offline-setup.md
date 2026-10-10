@@ -10,15 +10,13 @@ To enable LibrePhotos to run its machine learning features offline, you can manu
 
 Manually download the necessary models from their respective URLs. Below is a list of models used by LibrePhotos, along with their download links:
 
-1. **clip_vit_b32** (Semantic search)
-   - Vision model: `https://huggingface.co/Xenova/clip-vit-base-patch32/resolve/main/onnx/vision_model.onnx`
-   - Text model: `https://huggingface.co/Xenova/clip-vit-base-patch32/resolve/main/onnx/text_model.onnx`
-   - Tokenizer: `https://huggingface.co/Xenova/clip-vit-base-patch32/resolve/main/tokenizer.json`
-2. **mobileclip_s2** (Tagging — default model)
-   - Vision model: `https://huggingface.co/Xenova/mobileclip_s2/resolve/main/onnx/vision_model.onnx`
-   - Text model: `https://huggingface.co/Xenova/mobileclip_s2/resolve/main/onnx/text_model.onnx`
-   - Tokenizer: `https://huggingface.co/Xenova/mobileclip_s2/resolve/main/tokenizer.json`
-3. **lfm2_vl_450m** (Captioning)
+1. **openclip_vitb32** (Tags, semantic search and similar photos)
+   - `https://huggingface.co/derneuere/librephotos_models/resolve/main/openclip_vitb32/visual.onnx`
+   - `https://huggingface.co/derneuere/librephotos_models/resolve/main/openclip_vitb32/textual.onnx`
+   - `https://huggingface.co/derneuere/librephotos_models/resolve/main/openclip_vitb32/tokenizer.json`
+   - `https://huggingface.co/derneuere/librephotos_models/resolve/main/openclip_vitb32/preprocess.json`
+   - `https://huggingface.co/derneuere/librephotos_models/resolve/main/openclip_vitb32/LICENSE`
+2. **lfm2_vl_450m** (Captioning)
    - `https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/onnx/vision_encoder_q4.onnx`
    - `https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/onnx/vision_encoder_q4.onnx_data`
    - `https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/onnx/embed_tokens_q4.onnx`
@@ -26,11 +24,7 @@ Manually download the necessary models from their respective URLs. Below is a li
    - `https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/onnx/decoder_model_merged_q4.onnx`
    - `https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/onnx/decoder_model_merged_q4.onnx_data`
    - Tokenizer: `https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/tokenizer.json`
-4. **siglip2** (Tagging) (optional — only if using SigLIP 2 tagging model)
-   - Vision model: `https://huggingface.co/onnx-community/siglip2-base-patch16-384-ONNX/resolve/main/onnx/vision_model.onnx`
-   - Text model: `https://huggingface.co/onnx-community/siglip2-base-patch16-384-ONNX/resolve/main/onnx/text_model.onnx`
-   - Tokenizer: `https://huggingface.co/onnx-community/siglip2-base-patch16-384-ONNX/resolve/main/tokenizer.model`
-5. **buffalo_sc** (Face recognition — default model)
+3. **buffalo_sc** (Face recognition — default model)
    - URL: `https://github.com/deepinsight/insightface/releases/download/v0.7/buffalo_sc.zip`
    - Only download the model selected in **Site Settings → Face Recognition Model**. The other options use the same release, e.g. `buffalo_s.zip`, `buffalo_m.zip`, `buffalo_l.zip`, `antelopev2.zip`.
 
@@ -44,12 +38,8 @@ Once the models are downloaded, place them in the following directory:
 
 `MEDIA_ROOT` is not something you set directly — it is derived from `BASE_DATA` (default `/`), so inside the container it is always `/protected_media`. On the host it is whichever directory you mounted to `/protected_media`. With the standard docker-compose install that is `${data}/protected_media`, which defaults to `./librephotos/data/protected_media/`, so the models go in `./librephotos/data/protected_media/data_models/`.
 
-- **clip_vit_b32** files -> Place as `<MEDIA_ROOT>/data_models/clip_vit_b32/vision_model.onnx`, `.../text_model.onnx` and `.../tokenizer.json`
-- **mobileclip_s2** files -> Place as `<MEDIA_ROOT>/data_models/mobileclip_s2/vision_model.onnx`, `.../text_model.onnx` and `.../tokenizer.json`
+- **openclip_vitb32** files -> Place all five in `<MEDIA_ROOT>/data_models/openclip_vitb32/` under their own names
 - **lfm2_vl_450m** files -> Place all seven in `<MEDIA_ROOT>/data_models/lfm2_vl_450m/` under their own names. The `.onnx_data` files hold the weights the small `.onnx` graphs point at, so the names must not change.
-- **siglip2 vision_model.onnx** -> Place as `<MEDIA_ROOT>/data_models/siglip2/vision_model.onnx`
-- **siglip2 text_model.onnx** -> Place as `<MEDIA_ROOT>/data_models/siglip2/text_model.onnx`
-- **siglip2 tokenizer.model** -> Place as `<MEDIA_ROOT>/data_models/siglip2/tokenizer.model`
 - **buffalo_sc.zip** -> Unpack into `<MEDIA_ROOT>/data_models/face_recognition/models/buffalo_sc/` (the folder should contain the `.onnx` files)
 
 ### Step 3: Verify Model Placement
@@ -58,14 +48,12 @@ Ensure that all models are correctly placed and unpacked in their respective dir
 
 ```
 data_models/
-    ├── clip_vit_b32/
-    │   ├── vision_model.onnx
-    │   ├── text_model.onnx
-    │   └── tokenizer.json
-    ├── mobileclip_s2/
-    │   ├── vision_model.onnx
-    │   ├── text_model.onnx
-    │   └── tokenizer.json
+    ├── openclip_vitb32/
+    │   ├── visual.onnx
+    │   ├── textual.onnx
+    │   ├── tokenizer.json
+    │   ├── preprocess.json
+    │   └── LICENSE
     ├── lfm2_vl_450m/
     │   ├── vision_encoder_q4.onnx
     │   ├── vision_encoder_q4.onnx_data
@@ -74,10 +62,6 @@ data_models/
     │   ├── decoder_model_merged_q4.onnx
     │   ├── decoder_model_merged_q4.onnx_data
     │   └── tokenizer.json
-    ├── siglip2/
-    │   ├── vision_model.onnx
-    │   ├── text_model.onnx
-    │   └── tokenizer.model
     └── face_recognition/
         └── models/
             └── buffalo_sc/

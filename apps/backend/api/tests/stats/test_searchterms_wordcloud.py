@@ -15,8 +15,8 @@ from api.stats import get_searchterms_wordcloud
 from api.tests.utils import create_test_face, create_test_photo, create_test_user
 
 
-def _caps(tags=None, extra=None, model="mobileclip_s2"):
-    """captions_json with the given tags stored under the tagging model's key."""
+def _caps(tags=None, extra=None, model="openclip_vitb32"):
+    """captions_json with the given tags stored under a tagger's key."""
     caps = {model: {"tags": tags} if tags is not None else {}}
     if extra:
         caps.update(extra)
@@ -124,9 +124,9 @@ class SearchtermsWordcloudCaptionsTests(TestCase):
         out = get_searchterms_wordcloud(self.user)
         self.assertEqual(_labels(out["captions"]), ["forest"])
 
-    def test_only_the_active_tagging_model_counts(self):
+    def test_only_openclips_tags_count(self):
         create_test_photo(
-            owner=self.user, captions_json=_caps(["beach"], model="siglip2")
+            owner=self.user, captions_json=_caps(["beach"], model="an_earlier_tagger")
         )
         create_test_photo(owner=self.user, captions_json=_caps(["forest"]))
         out = get_searchterms_wordcloud(self.user)
@@ -139,7 +139,7 @@ class SearchtermsWordcloudCaptionsTests(TestCase):
 
     def test_malformed_captions_json_is_swallowed(self):
         # the tag result is not a dict -> skipped
-        create_test_photo(owner=self.user, captions_json={"mobileclip_s2": "nope"})
+        create_test_photo(owner=self.user, captions_json={"openclip_vitb32": "nope"})
         # captions_json is a list -> .get() raises -> skipped
         create_test_photo(owner=self.user, captions_json=["not", "a", "dict"])
         # a good photo still contributes

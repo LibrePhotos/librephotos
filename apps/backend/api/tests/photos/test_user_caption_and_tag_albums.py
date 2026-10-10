@@ -12,6 +12,7 @@ from django.test import TestCase
 
 from api.models import PhotoCaption
 from api.models.album_thing import AlbumThing, get_album_thing
+from api.semantic_search import TAG_THING_TYPE
 from api.tests.utils import create_test_photo, create_test_user
 
 
@@ -161,7 +162,7 @@ class SaveUserCaptionTest(TestCase):
 
     def test_non_hashtag_album_types_untouched(self):
         tag_album = get_album_thing(
-            title="beach", owner=self.user, thing_type="mobileclip_s2_tag"
+            title="beach", owner=self.user, thing_type=TAG_THING_TYPE
         )
         tag_album.photos.add(self.photo)
 
@@ -193,39 +194,33 @@ class SaveUserCaptionTest(TestCase):
 
 
 class UpdateTagAlbumThingsTest(TestCase):
-    """``_update_tag_album_things`` files the photo under ``<model>_tag`` albums."""
+    """``_update_tag_album_things`` files the photo under OpenCLIP's tag albums."""
 
     def setUp(self):
         self.user = create_test_user()
         self.photo = create_test_photo(owner=self.user)
         self.caption = PhotoCaption.objects.create(photo=self.photo)
 
-    def _titles(self, thing_type="mobileclip_s2_tag"):
+    def _titles(self, thing_type=TAG_THING_TYPE):
         return set(
             AlbumThing.objects.filter(
                 thing_type=thing_type, owner=self.user, photos=self.photo
             ).values_list("title", flat=True)
         )
 
-    def _update(self, tags, model="mobileclip_s2"):
-        return self.caption._update_tag_album_things({"tags": tags}, model)
+    def _update(self, tags):
+        return self.caption._update_tag_album_things({"tags": tags})
 
     def test_creates_one_album_per_tag_typed_by_model(self):
         self._update(["beach", "coast"])
 
         self.assertEqual(self._titles(), {"beach", "coast"})
         for thing in AlbumThing.objects.filter(owner=self.user):
-            self.assertEqual(thing.thing_type, "mobileclip_s2_tag")
-
-    def test_model_name_decides_the_thing_type(self):
-        self._update(["beach"], model="siglip2")
-
-        self.assertEqual(self._titles("siglip2_tag"), {"beach"})
-        self.assertEqual(self._titles("mobileclip_s2_tag"), set())
+            self.assertEqual(thing.thing_type, "openclip_vitb32_tag")
 
     def test_missing_tags_key_and_empty_list_create_nothing(self):
-        self.caption._update_tag_album_things({}, "mobileclip_s2")
-        self.caption._update_tag_album_things(None, "mobileclip_s2")
+        self.caption._update_tag_album_things({})
+        self.caption._update_tag_album_things(None)
         self._update([])
 
         self.assertEqual(AlbumThing.objects.count(), 0)
@@ -244,7 +239,7 @@ class UpdateTagAlbumThingsTest(TestCase):
         self._update(["natural", "beach"])
 
         album = AlbumThing.objects.get(
-            title="natural", thing_type="mobileclip_s2_tag", owner=self.user
+            title="natural", thing_type=TAG_THING_TYPE, owner=self.user
         )
         self.assertEqual(album.photos.count(), 1)
         self.assertEqual(
@@ -254,7 +249,7 @@ class UpdateTagAlbumThingsTest(TestCase):
     def test_other_photos_keep_their_associations(self):
         other_photo = create_test_photo(owner=self.user)
         shared = get_album_thing(
-            title="natural", owner=self.user, thing_type="mobileclip_s2_tag"
+            title="natural", owner=self.user, thing_type=TAG_THING_TYPE
         )
         shared.photos.add(other_photo)
 
@@ -266,7 +261,7 @@ class UpdateTagAlbumThingsTest(TestCase):
     def test_other_owners_albums_untouched(self):
         other = create_test_user()
         foreign = get_album_thing(
-            title="natural", owner=other, thing_type="mobileclip_s2_tag"
+            title="natural", owner=other, thing_type=TAG_THING_TYPE
         )
         foreign.photos.add(self.photo)
 
@@ -280,17 +275,17 @@ class UpdateTagAlbumThingsTest(TestCase):
             title="#sun", owner=self.user, thing_type="hashtag_attribute"
         )
         hashtag_album.photos.add(self.photo)
-        siglip_album = get_album_thing(
-            title="dog", owner=self.user, thing_type="siglip2_tag"
+        earlier_album = get_album_thing(
+            title="dog", owner=self.user, thing_type="an_earlier_tagger_tag"
         )
-        siglip_album.photos.add(self.photo)
+        earlier_album.photos.add(self.photo)
 
         self._update(["natural"])
 
         hashtag_album.refresh_from_db()
-        siglip_album.refresh_from_db()
+        earlier_album.refresh_from_db()
         self.assertEqual(hashtag_album.photos.count(), 1)
-        self.assertEqual(siglip_album.photos.count(), 1)
+        self.assertEqual(earlier_album.photos.count(), 1)
 
     def test_returns_none(self):
         self.assertIsNone(self._update(["natural"]))
@@ -298,7 +293,7 @@ class UpdateTagAlbumThingsTest(TestCase):
     def test_counts_covers_and_sync_bumps_follow_a_retag(self):
         other = create_test_photo(owner=self.user)
         PhotoCaption.objects.create(photo=other)._update_tag_album_things(
-            {"tags": ["beach"]}, "mobileclip_s2"
+            {"tags": ["beach"]}
         )
         self._update(["beach", "natural"])
         beach = AlbumThing.objects.get(title="beach", owner=self.user)

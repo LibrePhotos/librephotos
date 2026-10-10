@@ -106,12 +106,11 @@ You need to have the **CLIP embedding** calculation job completed for semantic s
 
 ### Which model searches
 
-The **Semantic Search Model** in the Admin Area's site settings picks the model that turns photos and queries into embeddings:
+One model turns photos and queries into embeddings and tags your photos: [OpenCLIP](https://huggingface.co/laion/CLIP-ViT-B-32-DataComp.XL-s13B-b90K) ViT-B/32, trained by LAION on DataComp-XL and released under the MIT licence. Tagging a photo yields its search embedding from the same run, so a scan runs one vision model per photo. There is nothing to choose in the settings.
 
-- **MobileCLIP-S2** (the default since 1.3.0) is also the default tagging model. When it does both, tagging a photo yields its search embedding from the same run, so a scan runs one vision model per photo instead of two, and the 600 MB CLIP ViT-B/32 model is never downloaded or loaded.
-- **CLIP ViT-B/32** is the model LibrePhotos used before.
-
-Each photo's embedding remembers which model made it. After you switch, or after upgrading from a release that used CLIP ViT-B/32, a **Calculate Clip Embeddings** job re-embeds every photo with the selected model in the background; nothing is deleted first. While it runs, semantic search and similar photos cover the photos converted so far, and the index catches up every 2,000 photos.
+:::note Upgrading to 1.3.0 (unreleased)
+Releases up to 1.2.x searched with CLIP ViT-B/32 and tagged with another model. After the upgrade a **Calculate Clip Embeddings** job re-embeds every photo with OpenCLIP in the background and gives it new tags from the same run; nothing is deleted first. While it runs, semantic search and similar photos cover the photos converted so far (the index catches up every 2,000 photos), and the Things albums fill up again as photos are re-tagged. It happens once.
+:::
 
 ### How It Works
 

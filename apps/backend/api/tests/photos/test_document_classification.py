@@ -28,6 +28,7 @@ from api.document_detection import (
 )
 from api.models import LongRunningJob, PhotoOcr
 from api.models.album_thing import AlbumThing
+from api.models.photo_caption import PhotoCaption
 from api.models.photo_search import PhotoSearch
 from api.tests.utils import create_test_photo, create_test_user
 
@@ -132,7 +133,7 @@ class ClassifyDocumentTest(SimpleTestCase):
         self.assertFalse(classify_document("", 0.0, set()))
 
     # --- STRONG: sufficient alone ---
-    def test_strong_siglip_alone_true(self):
+    def test_strong_tag_alone_true(self):
         for label in [
             "receipt",
             "document",
@@ -144,7 +145,7 @@ class ClassifyDocumentTest(SimpleTestCase):
             with self.subTest(label=label):
                 self.assertTrue(classify_document(None, None, {label}))
 
-    def test_strong_siglip_case_insensitive(self):
+    def test_strong_tag_case_insensitive(self):
         self.assertTrue(classify_document(None, None, {"Receipt"}))
 
     # --- each non-strong signal individually insufficient ---
@@ -155,10 +156,10 @@ class ClassifyDocumentTest(SimpleTestCase):
         self.assertFalse(classify_document(DENSE_PROSE, 0.20, set()))
 
     def test_receipt_fingerprint_alone_false(self):
-        # Currency + total keyword, but tiny text area and no siglip label.
+        # Currency + total keyword, but tiny text area and no tag label.
         self.assertFalse(classify_document("TOTAL $9.99", 0.01, set()))
 
-    def test_weak_siglip_alone_false(self):
+    def test_weak_tag_alone_false(self):
         for label in ["ticket", "menu", "whiteboard", "handwritten note"]:
             with self.subTest(label=label):
                 self.assertFalse(classify_document(None, None, {label}))
@@ -176,13 +177,13 @@ class ClassifyDocumentTest(SimpleTestCase):
         text = "MARKET STORE\nItem A 4,00\nItem B 6,00\nTOTAL 10,00 €\nThank you"
         self.assertTrue(classify_document(text, 0.30, set()))
 
-    def test_dense_text_plus_weak_siglip(self):
+    def test_dense_text_plus_weak_tag(self):
         self.assertTrue(classify_document(DENSE_PROSE, 0.20, {"whiteboard"}))
 
-    def test_receipt_fingerprint_plus_weak_siglip(self):
+    def test_receipt_fingerprint_plus_weak_tag(self):
         self.assertTrue(classify_document("TOTAL $9.99", 0.01, {"ticket"}))
 
-    def test_moderate_text_plus_weak_siglip(self):
+    def test_moderate_text_plus_weak_tag(self):
         text = "Twenty five chars here!"
         self.assertTrue(classify_document(text, 0.10, {"menu"}))
 
@@ -206,17 +207,17 @@ class OcrDerivesDocumentTest(TestCase):
     def setUp(self):
         self.user = create_test_user()
 
-    def _add_siglip(self, photo, *labels):
+    def _add_tags(self, photo, *labels):
         for label in labels:
             at = AlbumThing.objects.create(
-                title=label, thing_type="siglip2_tag", owner=self.user
+                title=label, thing_type="openclip_vitb32_tag", owner=self.user
             )
             at.photos.add(photo)
 
     @patch("api.sidecars.http.post")
     def test_receipt_fingerprint_and_tag_sets_document(self, mock_post):
         photo = create_test_photo(owner=self.user)
-        self._add_siglip(photo, "receipt")
+        self._add_tags(photo, "receipt")
         mock_post.return_value = _ok_response(text="STORE\nTOTAL 12,50 €", area=0.30)
         job_id = uuid.uuid4()
         _make_job(self.user, job_id, target=1)
@@ -227,6 +228,36 @@ class OcrDerivesDocumentTest(TestCase):
         self.assertTrue(photo.is_document)
         # Sanity: OCR row was written too.
         self.assertTrue(PhotoOcr.objects.filter(photo=photo).exists())
+
+    @patch("api.sidecars.http.post")
+    def test_receipt_tagged_by_the_tagger_is_a_document(self, mock_post):
+        """The tags the tagger files are the labels the detector reads."""
+        photo = create_test_photo(owner=self.user)
+        caption, _ = PhotoCaption.objects.get_or_create(photo=photo)
+        caption.store_tags(["receipt", "table", "paper"])
+        mock_post.return_value = _ok_response(text="hello", area=0.01)
+        job_id = uuid.uuid4()
+        _make_job(self.user, job_id, target=1)
+
+        generate_ocr_job(photo, job_id)
+
+        photo.refresh_from_db()
+        self.assertTrue(photo.is_document)
+
+    @patch("api.sidecars.http.post")
+    def test_labels_of_a_retired_tagger_do_not_count(self, mock_post):
+        photo = create_test_photo(owner=self.user)
+        AlbumThing.objects.create(
+            title="receipt", thing_type="a_retired_tagger_tag", owner=self.user
+        ).photos.add(photo)
+        mock_post.return_value = _ok_response(text="hello", area=0.01)
+        job_id = uuid.uuid4()
+        _make_job(self.user, job_id, target=1)
+
+        generate_ocr_job(photo, job_id)
+
+        photo.refresh_from_db()
+        self.assertFalse(photo.is_document)
 
     @patch("api.sidecars.http.post")
     def test_plain_photo_not_document(self, mock_post):
@@ -245,7 +276,7 @@ class OcrDerivesDocumentTest(TestCase):
         photo = create_test_photo(
             owner=self.user, category_source="user", is_document=False
         )
-        self._add_siglip(photo, "receipt")  # would be STRONG -> True if derived
+        self._add_tags(photo, "receipt")  # would be STRONG -> True if derived
         mock_post.return_value = _ok_response(text="STORE\nTOTAL 12,50 €", area=0.30)
         job_id = uuid.uuid4()
         _make_job(self.user, job_id, target=1)
@@ -276,10 +307,10 @@ class ClassifyMediaDocumentBackfillTest(TestCase):
     def setUp(self):
         self.user = create_test_user()
 
-    def _add_siglip(self, photo, *labels):
+    def _add_tags(self, photo, *labels):
         for label in labels:
             at = AlbumThing.objects.create(
-                title=label, thing_type="siglip2_tag", owner=self.user
+                title=label, thing_type="openclip_vitb32_tag", owner=self.user
             )
             at.photos.add(photo)
 
@@ -292,7 +323,7 @@ class ClassifyMediaDocumentBackfillTest(TestCase):
         # Photo with OCR + strong tag -> becomes a document.
         doc = create_test_photo(owner=self.user)
         self._ocr(doc, "STORE\nTOTAL 12,50 €", 0.30)
-        self._add_siglip(doc, "receipt")
+        self._add_tags(doc, "receipt")
 
         # Photo with OCR but no document evidence -> stays non-document.
         non_doc = create_test_photo(owner=self.user)
@@ -325,7 +356,7 @@ class ClassifyMediaDocumentBackfillTest(TestCase):
             owner=self.user, category_source="user", is_document=False
         )
         self._ocr(photo, "STORE\nTOTAL 12,50 €", 0.30)
-        self._add_siglip(photo, "receipt")
+        self._add_tags(photo, "receipt")
 
         classify_media(self.user, uuid.uuid4())
 

@@ -202,7 +202,7 @@ class PhotoModelIntegrationTest(TestCase):
         # 2. Add tags from the default tagging model directly
         caption_instance.captions_json = {
             "user_caption": "My vacation photo",
-            "mobileclip_s2": {"tags": ["outdoor", "beach", "sunny", "natural"]},
+            "openclip_vitb32": {"tags": ["outdoor", "beach", "sunny", "natural"]},
         }
         caption_instance.save()
 

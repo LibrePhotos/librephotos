@@ -1,6 +1,6 @@
 """Image captioning with Liquid AI's LFM2.5-VL-450M, on ONNX Runtime.
 
-A small vision-language model: a SigLIP2 NaFlex image tower feeding a 450M
+A small vision-language model: a SigLIP 2 NaFlex image tower feeding a 450M
 parameter LFM2 language model. Unlike a fixed captioner it takes a prompt, so
 the caption can be steered with what LibrePhotos already knows about the
 photo, a recognised person's name or the place it was taken.

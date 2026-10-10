@@ -12,7 +12,6 @@ from django.conf import settings
 
 from api.http_timeouts import MODEL_DOWNLOAD
 from api.models.long_running_job import LongRunningJob
-from api.semantic_search import semantic_search_model
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +20,6 @@ class MlTypes:
     CAPTIONING = "captioning"
     FACE_RECOGNITION = "face_recognition"
     CLIP = "clip"
-    TAGGING = "tagging"
     OCR = "ocr"
 
 
@@ -35,49 +33,39 @@ class ModelChecksumError(Exception):
 
 ML_MODELS = [
     {
-        # OpenAI CLIP ViT-B/32 for semantic search: the same weights the
-        # sentence-transformers clip-ViT-B-32 bundle used to wrap, exported to
-        # ONNX, so embeddings already in the database stay comparable.
-        "id": 2,
-        "name": "clip_vit_b32",
-        "url": "https://huggingface.co/Xenova/clip-vit-base-patch32/resolve/main/onnx/vision_model.onnx",
+        # OpenCLIP ViT-B/32 trained by LAION on DataComp-XL (MIT licence):
+        # the one image-text model, for tags, semantic search and similar
+        # photos alike. Exported to ONNX by scripts/build_openclip_onnx.py
+        # (image tower fp32, text tower as its README says) and mirrored to
+        # the LibrePhotos Hugging Face repository; preprocess.json carries the
+        # preprocessing and logit scale the runtime reads.
+        "id": 19,
+        "name": "openclip_vitb32",
+        "url": "https://huggingface.co/derneuere/librephotos_models/resolve/main/openclip_vitb32/visual.onnx",
         "type": MlTypes.CLIP,
         "unpack-command": None,
-        "target-dir": "clip_vit_b32/vision_model.onnx",
-        "sha256": "fd6e1402a588279d1723c7534d4bcba5bc0b14b47dfab0e46f8c47b8270d7d40",
+        "target-dir": "openclip_vitb32/visual.onnx",
+        "sha256": "c9d49b8b6977dfae6a8fb1a97737ef1584438d3c35a1dbde639cbfc4c7d49041",
         "additional_files": [
             {
-                "url": "https://huggingface.co/Xenova/clip-vit-base-patch32/resolve/main/onnx/text_model.onnx",
-                "target": "clip_vit_b32/text_model.onnx",
-                "sha256": "3f6571f5bad13a97c469c1622e1cfc4d9aef78b79fdbfcff804ca357bfada8cc",
+                "url": "https://huggingface.co/derneuere/librephotos_models/resolve/main/openclip_vitb32/textual.onnx",
+                "target": "openclip_vitb32/textual.onnx",
+                "sha256": "4cfa3147fdae9f0b5254fe54e85e523f91650059f04f5236ddd1449f3632e306",
             },
             {
-                "url": "https://huggingface.co/Xenova/clip-vit-base-patch32/resolve/main/tokenizer.json",
-                "target": "clip_vit_b32/tokenizer.json",
-                "sha256": "f7f3b7af117d467b58374797691a6438d3e6b9e9cef800dfd5dced7f697a90cd",
-            },
-        ],
-    },
-    {
-        # Apple MobileCLIP-S2 (ONNX export by Xenova): the lightweight zero-shot
-        # tagger, about the cost of the old Places365 CNN.
-        "id": 3,
-        "name": "mobileclip_s2",
-        "url": "https://huggingface.co/Xenova/mobileclip_s2/resolve/main/onnx/vision_model.onnx",
-        "type": MlTypes.TAGGING,
-        "unpack-command": None,
-        "target-dir": "mobileclip_s2/vision_model.onnx",
-        "sha256": "d28b92d7a3a6ba99bd000cce5c91678c0e279dc934c887a3785908a811872a6c",
-        "additional_files": [
-            {
-                "url": "https://huggingface.co/Xenova/mobileclip_s2/resolve/main/onnx/text_model.onnx",
-                "target": "mobileclip_s2/text_model.onnx",
-                "sha256": "ff82e945c6c652c51df687e10f102a8e43c87d37c9108ff692468be3732f3710",
+                "url": "https://huggingface.co/derneuere/librephotos_models/resolve/main/openclip_vitb32/tokenizer.json",
+                "target": "openclip_vitb32/tokenizer.json",
+                "sha256": "d8b124290bc4bcd18cd3f72747f525e2a1d8c266cf3089e52da38ee417564ac5",
             },
             {
-                "url": "https://huggingface.co/Xenova/mobileclip_s2/resolve/main/tokenizer.json",
-                "target": "mobileclip_s2/tokenizer.json",
-                "sha256": "72ed5c96db5729294468543e4bc75fce14ca63f58e37300290189ba1c1e52b85",
+                "url": "https://huggingface.co/derneuere/librephotos_models/resolve/main/openclip_vitb32/preprocess.json",
+                "target": "openclip_vitb32/preprocess.json",
+                "sha256": "7e9f33c6d9036d44b4642ea97ca172a681a01e34dbbb48f3bcda9b94b4b3c2cc",
+            },
+            {
+                "url": "https://huggingface.co/derneuere/librephotos_models/resolve/main/openclip_vitb32/LICENSE",
+                "target": "openclip_vitb32/LICENSE",
+                "sha256": "a1e0d3617ef5ee0da38a319f086f8c8a3a9e919a0d0e4a061226b4858bb10029",
             },
         ],
     },
@@ -163,27 +151,6 @@ ML_MODELS = [
         "sha256": "d98264bd8f2dc75cbc2ddce2a14e636e02bb857b3051c234b737bf3b614edca9",
     },
     {
-        "id": 11,
-        "name": "siglip2",
-        "url": "https://huggingface.co/derneuere/librephotos_models/resolve/main/siglip2/vision_model.onnx",
-        "type": MlTypes.TAGGING,
-        "unpack-command": None,
-        "target-dir": "siglip2/vision_model.onnx",
-        "sha256": "49ae4958b1098ca995e929d646f7be05a69c65e6344beae07d58c6598ffc5210",
-        "additional_files": [
-            {
-                "url": "https://huggingface.co/derneuere/librephotos_models/resolve/main/siglip2/text_model.onnx",
-                "target": "siglip2/text_model.onnx",
-                "sha256": "d28c21c7f12c38b0ec43aacb7ce2228fba6bd6b20641802ef2b29809ece46af8",
-            },
-            {
-                "url": "https://huggingface.co/derneuere/librephotos_models/resolve/main/siglip2/tokenizer.model",
-                "target": "siglip2/tokenizer.model",
-                "sha256": "61a7b147390c64585d6c3543dd6fc636906c9af3865a5548f27f31aee1d4c8e2",
-            },
-        ],
-    },
-    {
         "id": 12,
         "name": "buffalo_l",
         "url": "https://github.com/deepinsight/insightface/releases/download/v0.7/buffalo_l.zip",
@@ -241,14 +208,9 @@ def _is_model_selected(model):
         # The one captioner is always kept available: it is small, and turning
         # captioning on should never wait for a download.
         return True
-    if model_type == MlTypes.TAGGING:
-        # MobileCLIP-S2 also serves semantic search (api.semantic_search).
-        return model["name"] == site_config.TAGGING_MODEL or (
-            model["name"] == semantic_search_model()
-        )
     if model_type == MlTypes.CLIP:
-        # Only needed when it is the semantic search model.
-        return model["name"] == semantic_search_model()
+        # Tags, semantic search and similar photos: always needed.
+        return True
     if model_type == MlTypes.FACE_RECOGNITION:
         return model["name"] == site_config.FACE_RECOGNITION_MODEL
     if model_type == MlTypes.OCR:

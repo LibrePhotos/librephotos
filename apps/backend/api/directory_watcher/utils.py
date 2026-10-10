@@ -275,9 +275,9 @@ def _on_job_finished(job_id):
 def _queue_embeddings_after_tags(job_id, user_id):
     """Fill the gaps the tags job left in the search embeddings.
 
-    When MobileCLIP-S2 tags and searches, the tags job stores each photo's
-    search embedding, and the scan's own embedding job left those photos to
-    it. This run embeds the photos it could not tag and rebuilds the index.
+    When tagging is on, the tags job stores each photo's search embedding,
+    and the scan's own embedding job left those photos to it. This run embeds
+    the photos it could not tag and rebuilds the index.
     """
     from api.semantic_search import semantic_shares_tagger
 

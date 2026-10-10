@@ -49,6 +49,21 @@ LFM_FILES = (
 )
 
 
+OPENCLIP_FILES = (
+    "visual.onnx",
+    "textual.onnx",
+    "tokenizer.json",
+    "preprocess.json",
+    "LICENSE",
+)
+
+
+def _create_openclip(model_root: Path):
+    (model_root / "openclip_vitb32").mkdir(parents=True, exist_ok=True)
+    for filename in OPENCLIP_FILES:
+        (model_root / "openclip_vitb32" / filename).write_bytes(b"model")
+
+
 def _create_captioner(model_root: Path):
     (model_root / "lfm2_vl_450m").mkdir(parents=True, exist_ok=True)
     for filename in LFM_FILES:
@@ -57,15 +72,11 @@ def _create_captioner(model_root: Path):
 
 class MlModelsTest(TestCase):
     def _create_required_models(self, model_root: Path):
-        for name in ("clip_vit_b32", "mobileclip_s2"):
-            (model_root / name).mkdir(parents=True)
-            for filename in ("vision_model.onnx", "text_model.onnx", "tokenizer.json"):
-                (model_root / name / filename).write_bytes(b"model")
+        _create_openclip(model_root)
         _create_captioner(model_root)
 
     @override_config(
         CAPTIONING_MODEL="lfm2_vl_450m",
-        TAGGING_MODEL="mobileclip_s2",
         FACE_RECOGNITION_MODEL="buffalo_sc",
     )
     def test_do_all_models_exist_only_requires_selected_face_model(self):
@@ -84,7 +95,6 @@ class MlModelsTest(TestCase):
 
     @override_config(
         CAPTIONING_MODEL="lfm2_vl_450m",
-        TAGGING_MODEL="mobileclip_s2",
         FACE_RECOGNITION_MODEL="buffalo_l",
     )
     def test_do_all_models_exist_requires_active_face_model(self):
@@ -102,22 +112,36 @@ class MlModelsTest(TestCase):
                 self.assertFalse(do_all_models_exist())
 
 
-class SemanticSearchModelSelectionTest(TestCase):
-    """The search model's files are required; CLIP ViT-B/32 only as that."""
+class ImageTextModelTest(TestCase):
+    """OpenCLIP is the one image-text model, always required."""
 
     def _model(self, name):
         return next(m for m in ML_MODELS if m["name"] == name)
 
-    @override_config(TAGGING_MODEL="siglip2", SEMANTIC_SEARCH_MODEL="mobileclip_s2")
-    def test_mobileclip_is_kept_for_search_when_siglip_tags(self):
-        self.assertTrue(_is_model_selected(self._model("mobileclip_s2")))
-        self.assertTrue(_is_model_selected(self._model("siglip2")))
-        self.assertFalse(_is_model_selected(self._model("clip_vit_b32")))
+    def test_openclip_is_the_only_image_text_model(self):
+        self.assertEqual(
+            [m["name"] for m in ML_MODELS if m["type"] == MlTypes.CLIP],
+            ["openclip_vitb32"],
+        )
 
-    @override_config(TAGGING_MODEL="siglip2", SEMANTIC_SEARCH_MODEL="clip_vit_b32")
-    def test_clip_is_needed_only_as_the_search_model(self):
-        self.assertTrue(_is_model_selected(self._model("clip_vit_b32")))
-        self.assertFalse(_is_model_selected(self._model("mobileclip_s2")))
+    @override_settings(FEATURE_SCENE_CLASSIFICATION=False)
+    def test_openclip_is_always_selected(self):
+        self.assertTrue(_is_model_selected(self._model("openclip_vitb32")))
+
+    def test_openclip_needs_every_file_of_its_bundle(self):
+        model = self._model("openclip_vitb32")
+        with tempfile.TemporaryDirectory() as tmp:
+            model_root = Path(tmp)
+            self.assertFalse(_model_target_exists(model_root, model))
+            _create_openclip(model_root)
+            self.assertTrue(_model_target_exists(model_root, model))
+            (model_root / "openclip_vitb32" / "preprocess.json").unlink()
+            self.assertFalse(_model_target_exists(model_root, model))
+
+    def test_the_next_free_id(self):
+        ids = [m["id"] for m in ML_MODELS]
+        self.assertEqual(len(ids), len(set(ids)))
+        self.assertEqual(self._model("openclip_vitb32")["id"], 19)
 
 
 class OcrModelSelectionTest(TestCase):
@@ -295,7 +319,7 @@ class DownloadModelsJobTest(TestCase):
 
         def fake_download_model(model):
             attempted.append(model["name"])
-            if model["name"] == "mobileclip_s2":
+            if model["name"] == "openclip_vitb32":
                 raise requests.HTTPError("404 Error")
 
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -310,7 +334,7 @@ class DownloadModelsJobTest(TestCase):
         job = LongRunningJob.objects.get(job_type=LongRunningJob.JOB_DOWNLOAD_MODELS)
         self.assertTrue(job.failed)
         self.assertTrue(job.finished)
-        self.assertIn("mobileclip_s2", job.result["error"])
+        self.assertIn("openclip_vitb32", job.result["error"])
         self.assertEqual(len(ML_MODELS), job.progress_current)
 
     def test_job_completes_when_every_model_downloads(self):
@@ -323,12 +347,7 @@ class DownloadModelsJobTest(TestCase):
         self.assertFalse(job.failed)
         self.assertTrue(job.finished)
 
-    # CLIP ViT-B/32 searches, so MobileCLIP-S2 is needed only once it tags.
-    @override_config(
-        TAGGING_MODEL="siglip2",
-        FACE_RECOGNITION_MODEL="buffalo_sc",
-        SEMANTIC_SEARCH_MODEL="clip_vit_b32",
-    )
+    @override_config(FACE_RECOGNITION_MODEL="buffalo_sc")
     def test_a_model_picked_while_it_runs_is_fetched_by_the_same_job(self):
         """Site Settings queue no second job while this one runs."""
         fetched = []
@@ -338,8 +357,8 @@ class DownloadModelsJobTest(TestCase):
                 return
             fetched.append(model["name"])
             if model["name"] == "lfm2_vl_450m":
-                # Switched once the loop has passed the tagging model's entry.
-                site_config.TAGGING_MODEL = "mobileclip_s2"
+                # Switched once the loop has passed the face model's entry.
+                site_config.FACE_RECOGNITION_MODEL = "buffalo_s"
 
         with tempfile.TemporaryDirectory() as temp_dir:
             with override_settings(MEDIA_ROOT=str(Path(temp_dir) / "protected_media")):
@@ -348,8 +367,8 @@ class DownloadModelsJobTest(TestCase):
                 ):
                     download_models(self.user)
 
-        self.assertEqual(fetched[-1], "mobileclip_s2")
-        self.assertNotIn("siglip2", fetched)
+        self.assertEqual(fetched[-1], "buffalo_s")
+        self.assertEqual(fetched.count("buffalo_s"), 1)
         job = LongRunningJob.objects.get(job_type=LongRunningJob.JOB_DOWNLOAD_MODELS)
         self.assertFalse(job.failed)
 
@@ -406,12 +425,10 @@ class ModelSourceUrlTest(TestCase):
     def test_mirrored_models_point_at_librephotos_mirror(self):
         mirror = "huggingface.co/derneuere/librephotos_models"
 
-        siglip2 = self._model("siglip2")
+        openclip = self._model("openclip_vitb32")
 
-        expected_mirrored = [
-            siglip2["url"],
-            siglip2["additional_files"][0]["url"],
-            siglip2["additional_files"][1]["url"],
+        expected_mirrored = [openclip["url"]] + [
+            extra["url"] for extra in openclip["additional_files"]
         ]
 
         for url in expected_mirrored:
@@ -502,17 +519,13 @@ class MlModelSelectionTest(TestCase):
         return [model["name"] for model in _iter_required_models()]
 
     def _create_required_models(self, model_root: Path):
-        for name in ("clip_vit_b32", "mobileclip_s2"):
-            (model_root / name).mkdir(parents=True)
-            for filename in ("vision_model.onnx", "text_model.onnx", "tokenizer.json"):
-                (model_root / name / filename).write_bytes(b"model")
+        _create_openclip(model_root)
         selected_face_model = model_root / "face_recognition" / "models" / "buffalo_sc"
         selected_face_model.mkdir(parents=True)
         (selected_face_model / "w600k_mbf.onnx").write_bytes(b"model")
 
     @override_config(
         CAPTIONING_MODEL="none",
-        TAGGING_MODEL="mobileclip_s2",
         FACE_RECOGNITION_MODEL="buffalo_sc",
     )
     def test_captioner_is_required_even_when_captioning_is_off(self):
@@ -522,7 +535,6 @@ class MlModelSelectionTest(TestCase):
 
     @override_config(
         CAPTIONING_MODEL="none",
-        TAGGING_MODEL="mobileclip_s2",
         FACE_RECOGNITION_MODEL="buffalo_sc",
     )
     def test_captioning_model_exists_needs_every_file(self):

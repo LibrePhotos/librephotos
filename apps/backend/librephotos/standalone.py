@@ -56,7 +56,6 @@ PROCESS_NAMES = {
     "thumbnail": "librephotos-thumbnails",
     "exif": "librephotos-metadata",
     "face_recognition": "librephotos-faces",
-    "clip_embeddings": "librephotos-search",
     "image_similarity": "librephotos-similarity",
     "image_captioning": "librephotos-captions",
     "tags": "librephotos-tags",
@@ -327,7 +326,7 @@ def run_service(name):
     """Run one sidecar in this process, as ``python service/<name>/main.py`` would.
 
     The sidecars are plain Flask scripts that import their siblings by bare
-    name (``from clip_onnx import ...``); scripts/build_standalone.py compiles
+    name (``from openclip.openclip import ...``); scripts/build_standalone.py compiles
     those siblings as top-level modules so the imports resolve the same way.
     """
     module = importlib.import_module(service_module_name(name))

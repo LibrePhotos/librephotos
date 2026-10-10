@@ -88,7 +88,7 @@ Pick the deployment that fits your setup. Step-by-step guides are in the [docume
 - **Face detection:** [InsightFace](https://github.com/deepinsight/insightface)
 - **Face classification/clustering:** [scikit-learn](https://scikit-learn.org/) and [hdbscan](https://github.com/scikit-learn-contrib/hdbscan)
 - **Image captioning:** [LFM2.5-VL](https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX), prompted with the recognised people and the place
-- **Tagging:** [MobileCLIP-S2](https://huggingface.co/Xenova/mobileclip_s2) or [SigLIP 2](https://huggingface.co/onnx-community/siglip2-base-patch16-384-ONNX)
+- **Tagging, semantic search and similar photos:** [OpenCLIP ViT-B/32](https://huggingface.co/laion/CLIP-ViT-B-32-DataComp.XL-s13B-b90K) (DataComp-XL, MIT licence)
 - **Semantic search:** [CLIP ViT-B/32](https://huggingface.co/Xenova/clip-vit-base-patch32) with [FAISS](https://github.com/facebookresearch/faiss)
 - **ML runtime:** [ONNX Runtime](https://onnxruntime.ai/) for every model, no PyTorch
 - **Reverse geocoding:** [geopy](https://github.com/geopy/geopy)

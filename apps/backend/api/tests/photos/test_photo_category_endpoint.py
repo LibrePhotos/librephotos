@@ -76,7 +76,7 @@ class SetPhotosCategoryTest(TestCase):
             photo=photo, text="STORE\nTOTAL 12,50 EUR", text_area_fraction=0.30
         )
         tag = AlbumThing.objects.create(
-            title="receipt", thing_type="siglip2_tag", owner=self.user
+            title="receipt", thing_type="openclip_vitb32_tag", owner=self.user
         )
         tag.photos.add(photo)
         self._post({"image_hashes": [photo.image_hash], "category": "photo"})

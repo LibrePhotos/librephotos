@@ -86,11 +86,11 @@ py-cpuinfo==9.0.0
 psutil==7.2.2
 concurrent-log-handler==0.9.30
 
-# Tokenizers for the ONNX models: CLIP BPE (semantic search, MobileCLIP tags)
-# and the LFM2 tokenizer (captions). The Rust package alone, no transformers.
+# Tokenizers for the ONNX models: CLIP BPE (OpenCLIP tags and search) and the
+# LFM2 tokenizer (captions). The Rust package alone, no transformers.
 tokenizers==0.23.3
 argon2-cffi==25.1.0
-# Dependencies for SigLIP 2 ONNX inference
+# ONNX Runtime runs every model.
 # On the GPU image (Python 3.10) the Dockerfile swaps this for
 # onnxruntime-gpu==<same version>. 1.26.0+ has no Python 3.10 wheel; 1.23.2 is the
 # last release with a cp310 wheel for both onnxruntime and onnxruntime-gpu, and is
@@ -98,8 +98,6 @@ argon2-cffi==25.1.0
 # python_version < "3.11" pin at 1.23.2. Renovate is disabled for it (see renovate.json).
 onnxruntime==1.27.0; python_version >= "3.11"
 onnxruntime==1.23.2; python_version < "3.11"
-# SentencePiece tokenizer for SigLIP 2
-sentencepiece==0.2.2
 # pyclipper: polygon offsetting for the PP-OCRv6 detector's DBPostProcess
 # (unclip step). 1.4.0 ships cp310 AND cp311 wheels for manylinux2014_x86_64 and
 # win_amd64, so both the GPU image (Python 3.10) and the standard image build.

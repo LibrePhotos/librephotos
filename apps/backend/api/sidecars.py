@@ -38,7 +38,6 @@ SERVICES = {
     "image_similarity": 8002,
     "thumbnail": 8003,
     "face_recognition": 8005,
-    "clip_embeddings": 8006,
     "image_captioning": 8007,
     "exif": 8010,
     "tags": 8011,

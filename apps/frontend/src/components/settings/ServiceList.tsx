@@ -16,11 +16,10 @@ const SERVICE_LABELS: Record<string, string> = {
   image_similarity: "Image Similarity",
   thumbnail: "Thumbnail",
   face_recognition: "Face Recognition",
-  clip_embeddings: "CLIP Embeddings",
   llm: "LLM",
   image_captioning: "Image Captioning",
   exif: "EXIF",
-  tags: "Tags",
+  tags: "Tags and Search",
   ocr: "OCR",
 };
 
