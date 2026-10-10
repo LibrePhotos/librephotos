@@ -6,8 +6,11 @@
 
 # LibrePhotos
 
-![](https://github.com/LibrePhotos/librephotos/blob/dev/screenshots/mockups_main_fhd.png?raw=true)
-<sub>Mockup designed by rawpixel.com / Freepik</sub>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../docs/static/img/shots/timeline-dark.webp">
+  <img alt="The LibrePhotos timeline, with photos grouped by day and place" src="../docs/static/img/shots/timeline-light.webp">
+</picture>
+<sub>Sample photos from Pexels, see the <a href="../docs/static/img/shots/CREDITS.md">credits</a>.</sub>
 
 A self-hosted, open-source photo management service with automatic face recognition, object detection, and semantic search — powered by modern machine learning.
 
