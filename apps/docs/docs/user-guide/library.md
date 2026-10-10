@@ -26,9 +26,9 @@ In the **Scan Library** row, click **Scan** to scan your configured scan directo
 3. Creates thumbnails
 4. Extracts EXIF metadata
 5. Runs face detection
-6. Generates AI tags (MobileCLIP-S2 or SigLIP 2, depending on your Tagging Model setting)
+6. Generates AI tags with OpenCLIP, which also gives each photo its semantic-search embedding
 7. Performs reverse geocoding
-8. Calculates CLIP embeddings for semantic search
+8. Calculates the search embeddings the tagging could not
 
 The scan imports images, videos, RAW files and XMP sidecars. Any other file in your folders, such as an editor sidecar (`.pp3`, `.aae`), a Google Takeout `.json` or `Thumbs.db`, is skipped and does not count as an error. A file that looks like a photo or video but cannot be read, such as an empty `.jpg` or one whose header is damaged, is still listed in the scan job's errors (see [Job System](./job-system.md)).
 
@@ -102,10 +102,9 @@ LibrePhotos runs several background ML services. Administrators can monitor and 
 | **image_similarity** | CLIP-based image similarity index |
 | **thumbnail** | Thumbnail generation |
 | **face_recognition** | Face detection and recognition |
-| **clip_embeddings** | CLIP embedding computation |
 | **image_captioning** | Image caption generation |
 | **exif** | EXIF metadata extraction |
-| **tags** | Photo tag generation (MobileCLIP-S2 or SigLIP 2 depending on your Tagging Model setting) |
+| **tags** | Tags and semantic-search embeddings (OpenCLIP); always runs, because search needs it |
 
 For each service, you can:
 

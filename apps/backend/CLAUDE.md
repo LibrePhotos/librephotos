@@ -122,11 +122,10 @@ Frontend against that backend: `cd apps/frontend`, copy `.env.development.exampl
 - `feature/` - Feature extraction utilities
 
 ### `service/` - Microservices
-- `clip_embeddings/` - CLIP ViT-B/32 (ONNX) embeddings for semantic search
 - `face_recognition/` - Face detection and recognition
 - `image_captioning/` - Image captioning (LFM2.5-VL, ONNX; prompted with names and places)
 - `thumbnail/` - Thumbnail generation
-- `tags/` - Zero-shot tagging (MobileCLIP-S2, SigLIP 2; ONNX)
+- `tags/` - OpenCLIP ViT-B/32 (ONNX): zero-shot tags, semantic-search and query embeddings, one model
 - `exif/` - EXIF metadata extraction
 
 ### `image_similarity/` - Similarity Search
@@ -162,6 +161,13 @@ Key environment variables (set in Docker or `.env`):
 1. Define task function in `api/all_tasks.py` or relevant module
 2. Use `@shared_task` decorator for django-q2
 3. Queue with `async_task()` or schedule in admin
+
+### The image-text model
+OpenCLIP ViT-B/32 (`service/tags/openclip/`, registry entry `openclip_vitb32`) is the only
+one: tags, search embeddings and similar photos. Its ONNX bundle is built by
+`scripts/build_openclip_onnx.py` (throwaway torch venv, never in requirements) and the tag
+cut-off and search thresholds by `scripts/calibrate_openclip.py`. `OPENCLIP_MODEL_DIR` points
+the sidecar (and the golden tests) at a local bundle.
 
 ### Adding a New ML Model
 1. Add model loading in `api/ml_models.py`

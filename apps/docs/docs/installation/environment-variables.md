@@ -163,7 +163,7 @@ Accepted "on" values are `true`, `1`, `yes` and `on` (any capitalisation); anyth
 | `FEATURE_FACE_CLUSTER` | `featureFaceCluster` | Faces are still detected, but never grouped into people to label. Clustering is skipped at the end of a face scan and **Train faces** reports an error. |
 | `FEATURE_IMAGE_CAPTIONING` | `featureImageCaptioning` | No automatic captions are generated, neither during a scan nor from the "Generate caption" button on a photo. Captions you typed yourself are unaffected. The captioning service is not started. |
 | `FEATURE_REVERSE_GEOCODING` | `featureReverseGeocoding` | GPS coordinates are no longer turned into place names, so no requests go to your map provider. Photos keep their coordinates and still show up on the map of an album and of a single photo, but without a place name they do not appear on the Places page, get no Places album, and cannot be searched by place. Searching for a place in the search bar still works. |
-| `FEATURE_SCENE_CLASSIFICATION` | `featureSceneClassification` | Photos are no longer tagged by what is in them (beach, kitchen, sunset, ...), so the "Things" albums stay empty for new photos. The tagging service is not started, so no tagging model is ever loaded. |
+| `FEATURE_SCENE_CLASSIFICATION` | `featureSceneClassification` | Photos are no longer tagged by what is in them (beach, kitchen, sunset, ...), so the "Things" albums stay empty for new photos. The tags service keeps running: the same model makes the semantic-search embeddings. |
 | `FEATURE_PROCESS_EMBEDDED_MEDIA` | `featureProcessEmbeddedMedia` | The short video stored inside a "live photo" or motion photo is no longer extracted, so those files stay ordinary stills. `FEATURE_VIDEO` has to be on as well for extraction to happen. See [Feature Toggles](../user-guide/feature-toggles.md) for the one way this switch differs from the others. |
 
 Turning a feature off never deletes anything that was already generated - the existing captions, faces and place names stay in the database and remain visible. Turning it back on picks up where the scan left off.
@@ -203,9 +203,8 @@ The backend runs its heavy models in separate sidecar processes, and a watchdog 
 | --- | --- |
 | `FEATURE_FACE_DETECTION` | `face_recognition` |
 | `FEATURE_IMAGE_CAPTIONING` | `image_captioning` |
-| `FEATURE_SCENE_CLASSIFICATION` | `tags` |
 
-The remaining services — `exif`, `thumbnail`, `clip_embeddings` and `image_similarity` — carry the scanning and search that the rest of LibrePhotos is built on, so they have no switch and always run. The other feature flags (`FEATURE_VIDEO`, `FEATURE_FACE_CLUSTER`, `FEATURE_REVERSE_GEOCODING`, `FEATURE_PROCESS_EMBEDDED_MEDIA`) gate work that happens inside the backend itself and have no service of their own to stop.
+The remaining services — `exif`, `thumbnail`, `tags` and `image_similarity` — carry the scanning and search that the rest of LibrePhotos is built on, so they have no switch and always run. `tags` runs OpenCLIP, which makes the tags and the semantic-search embeddings alike, so `FEATURE_SCENE_CLASSIFICATION` stops the tagging but not the service (since 1.3.0, unreleased). The other feature flags (`FEATURE_VIDEO`, `FEATURE_FACE_CLUSTER`, `FEATURE_REVERSE_GEOCODING`, `FEATURE_PROCESS_EMBEDDED_MEDIA`) gate work that happens inside the backend itself and have no service of their own to stop.
 
 `ocr` has no environment variable either, but it is not always on: it follows the **OCR model** choice in Site Settings, which ships with nothing selected. The service starts once a model is picked, and stops being started if the choice is set back to none — the watchdog re-reads the setting every minute, so neither direction needs a restart. A configuration the backend cannot read counts as a model being selected, so a database that is still starting can never take the service away.
 

@@ -36,7 +36,7 @@ Three interactive word clouds generated from your photo library:
 | Cloud | Based on |
 |-------|----------|
 | **Places** | Place names from reverse geocoding (postcodes and points of interest are skipped) |
-| **Things** | The auto-tags of the active Tagging Model (MobileCLIP-S2 or SigLIP 2). These are also what populate your Things albums. |
+| **Things** | The auto-tags OpenCLIP gave your photos. These are also what populate your Things albums. |
 | **People** | Names of recognized people in your photos |
 
 Each cloud shows at most the top 100 terms, and larger words appear more frequently in your library. **Click on any word** to search for photos matching that term.

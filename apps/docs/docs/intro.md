@@ -45,7 +45,6 @@ Unlike commercial service that store your photos in the cloud and scan/index the
 - **Face detection:** [InsightFace](https://github.com/deepinsight/insightface) (SCRFD detector + ArcFace embeddings)
 - **Face classification/clusterization:** [scikit-learn](https://scikit-learn.org/) and [hdbscan](https://github.com/scikit-learn-contrib/hdbscan)
 - **Image captioning:** [LFM2.5-VL](https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX), a small vision-language model that also takes the recognised people and the place into account
-- **Scene classification / tagging:** [MobileCLIP-S2](https://huggingface.co/Xenova/mobileclip_s2) (default) or [SigLIP 2](https://huggingface.co/onnx-community/siglip2-base-patch16-384-ONNX), selectable in the admin site settings
-- **Semantic search:** [MobileCLIP-S2](https://huggingface.co/Xenova/mobileclip_s2) (default, shared with tagging) or [CLIP ViT-B/32](https://huggingface.co/Xenova/clip-vit-base-patch32), with embeddings indexed by [FAISS](https://github.com/facebookresearch/faiss) (also powers similar-photo suggestions)
+- **Tags, semantic search and similar photos:** [OpenCLIP](https://github.com/mlfoundations/open_clip) ViT-B/32 trained by LAION on DataComp-XL ([model card](https://huggingface.co/laion/CLIP-ViT-B-32-DataComp.XL-s13B-b90K), MIT licence), one model for all three, with embeddings indexed by [FAISS](https://github.com/facebookresearch/faiss)
 - **ML runtime:** every model above runs on [ONNX Runtime](https://onnxruntime.ai/); there is no PyTorch or llama.cpp in the image
 - **Reverse geocoding:** [Nominatim](https://nominatim.openstreetmap.org/) (default) and other providers (Mapbox, MapTiler, OpenCage, TomTom)
