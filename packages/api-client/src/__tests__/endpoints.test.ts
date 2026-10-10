@@ -125,6 +125,25 @@ describe("public link endpoints", () => {
   });
 });
 
+describe("photo rating endpoint", () => {
+  // PATCH /photos/edit/{hash}/ ignores `rating` and still answers 200.
+  it("posts the rating to /photosedit/rating/ for one hash", async () => {
+    const { client, calls } = harness({ status: true, count: 1, updated_hashes: ["h1"], not_updated_hashes: [] });
+    const res = await endpoints.setPhotoRating(client, "h1", 3);
+    const call = defined(calls[0]);
+    expect(call.url).toBe("https://demo.example.com/api/photosedit/rating/");
+    expect(defined(call.init).method).toBe("POST");
+    expect(JSON.parse(String(defined(call.init).body))).toEqual({ image_hashes: ["h1"], rating: 3 });
+    expect(res.updated_hashes).toEqual(["h1"]);
+  });
+
+  it("sends 0 to clear the rating", async () => {
+    const { client, calls } = harness({ status: true, count: 1 });
+    await endpoints.setPhotoRating(client, "h1", 0);
+    expect(JSON.parse(String(defined(defined(calls[0]).init).body))).toEqual({ image_hashes: ["h1"], rating: 0 });
+  });
+});
+
 describe("faces endpoints", () => {
   it("builds the faces list query with defaults", async () => {
     const { client, calls } = harness({ count: 0, next: null, previous: null, results: [] });

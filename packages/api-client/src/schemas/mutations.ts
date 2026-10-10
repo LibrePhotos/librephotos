@@ -8,7 +8,7 @@ import { z } from "zod";
  * pull, so we never depend on the exact mutation-response body.
  */
 
-/** `/photosedit/{favorite,hide,setdeleted}/` — bulk flag toggles. */
+/** `/photosedit/{favorite,rating,hide,setdeleted}/` — bulk flag/rating updates. */
 export const BulkPhotoMutationResponse = z
   .object({
     status: z.boolean().optional(),
@@ -22,7 +22,7 @@ export const BulkPhotoMutationResponse = z
   .passthrough();
 export type BulkPhotoMutationResponse = z.infer<typeof BulkPhotoMutationResponse>;
 
-/** `PATCH /photos/edit/{hash}/` — single-photo field edit (rating, etc.). */
+/** `PATCH /photos/edit/{hash}/` — single-photo field edit (timestamp, GPS). */
 export const PhotoEditResponse = z
   .object({
     image_hash: z.string().optional(),

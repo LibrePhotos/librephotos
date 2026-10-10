@@ -62,6 +62,9 @@ class EditPhotoDetailsTest(TestCase):
         self.assertEqual(200, response.status_code)
         self.assertNotEqual(payload["timestamp"], data["timestamp"])
         self.assertNotEqual(payload["image_hash"], data["image_hash"])
+        # Deliberately ignored: ratings go through /api/photosedit/rating/, which
+        # bumps last_modified for the mobile delta sync and writes the rating to
+        # disk like a favorite (test_photo_rating_endpoint).
         self.assertNotEqual(payload["rating"], data["rating"])
         self.assertNotEqual(payload["hidden"], data["hidden"])
         self.assertNotEqual(payload["in_trashcan"], data["in_trashcan"])
