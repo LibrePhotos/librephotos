@@ -1,3 +1,5 @@
+import os
+
 from mobileclip.mobileclip import MobileCLIP
 from siglip2.siglip2 import SigLIP2
 
@@ -34,6 +36,10 @@ def parse_tag_request():
     return image_path, confidence, tagging_model or DEFAULT_TAGGING_MODEL
 
 
+def image_exists(image_path):
+    return isinstance(image_path, str) and os.path.isfile(image_path)
+
+
 def get_tagger(tagging_model):
     """The cached tagger for a model, built on first use; None for an unknown model."""
     if tagging_model not in TAGGERS:
@@ -51,6 +57,13 @@ def generate_tags():
     tagger = get_tagger(tagging_model)
     if tagger is None:
         return {"error": f"Unknown tagging model {tagging_model!r}"}, 400
+
+    # A missing file is bad input, not a broken model: answered before the
+    # handler below, which drops the model and makes the next photo reload
+    # it (~0.4 s) after any failure.
+    if not image_exists(image_path):
+        log(f"image not found: {image_path}")
+        return {"error": "Image not found"}, 400
 
     _, threshold = TAGGERS[tagging_model]
     try:

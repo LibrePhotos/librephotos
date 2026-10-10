@@ -36,7 +36,7 @@ import importlib.util
 import os
 import sys
 import types
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from django.test import SimpleTestCase
 
@@ -107,6 +107,9 @@ class GenerateTagsTestCase(SimpleTestCase):
             "siglip2": (self.siglip_cls, 0.05),
             "mobileclip_s2": (self.mobileclip_cls, 0.02),
         }
+        exists = patch.object(tags_main, "image_exists", return_value=True)
+        self.image_exists = exists.start()
+        self.addCleanup(exists.stop)
 
     def _post(self, **body):
         return self.client.post("/generate-tags", json=body)
@@ -166,6 +169,17 @@ class GenerateTagsTestCase(SimpleTestCase):
         self.assertEqual(set(tags_main.tagger_instances), {"mobileclip_s2", "siglip2"})
 
     # -------------------------------------------------------------- errors
+    def test_missing_file_is_a_400_that_keeps_the_loaded_model(self):
+        self.mobileclip_cls.return_value.predict.return_value = {"tags": []}
+        self._post(image_path="/a/b.jpg")
+        self.image_exists.return_value = False
+
+        response = self._post(image_path="/gone.jpg")
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("mobileclip_s2", tags_main.tagger_instances)
+        self.assertEqual(self.mobileclip_cls.call_count, 1)
+
     def test_tagger_exception_is_a_500_and_evicts_the_instance(self):
         self.mobileclip_cls.return_value.predict.side_effect = RuntimeError("boom")
 
