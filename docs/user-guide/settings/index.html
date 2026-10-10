@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.a1e92a76.css">
-<script src="/assets/js/runtime~main.b7bb491a.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.a6cdca5c.js" defer="defer"></script>
 <script src="/assets/js/main.f4dc5e9c.js" defer="defer"></script>
 </head>
 <body>
@@ -120,14 +120,6 @@
 </li>
 <li class="">
 <p><code>Captioning Model</code> <code>LFM2.5-VL</code> (the default) or <code>None</code> to turn automatic captioning off. See <a class="" href="/docs/user-guide/image-captioning">Image Captioning</a>.</p>
-</li>
-<li class="">
-<p><code>Tagging Model</code> Select which AI model to use for auto-tagging photos. Options:</p>
-<ul>
-<li class=""><strong>MobileCLIP-S2</strong> — Apple&#x27;s small vision-language model (default). Zero-shot classification against a curated vocabulary of 900+ real-world photo tags; about 125 ms per photo on a desktop CPU and a few hundred MB of RAM. Returns up to 10 tags.</li>
-<li class=""><strong>SigLIP 2</strong> — Google&#x27;s larger vision-language model using the same vocabulary. More accurate, about six times slower and roughly twice the RAM. Returns the top 10 most relevant tags.</li>
-</ul>
-<p>Switching models does not delete previously generated tags. Each model&#x27;s tags are stored independently, so you can switch back and forth without rescanning.</p>
 </li>
 <li class="">
 <p><code>Face Recognition Model</code> Select which <a href="https://github.com/deepinsight/insightface" target="_blank" rel="noopener noreferrer" class="">InsightFace</a> model is used to detect and recognise faces. Options:</p>

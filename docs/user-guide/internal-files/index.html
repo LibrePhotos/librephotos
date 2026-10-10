@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.a1e92a76.css">
-<script src="/assets/js/runtime~main.b7bb491a.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.a6cdca5c.js" defer="defer"></script>
 <script src="/assets/js/main.f4dc5e9c.js" defer="defer"></script>
 </head>
 <body>
@@ -39,7 +39,7 @@
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="faces">/faces<a href="#faces" class="hash-link" aria-label="Direct link to /faces" title="Direct link to /faces" translate="no">​</a></h3>
 <p>Here we save the thumbnails of all the faces, so that viewing them is faster.</p>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="data_models">/data_models<a href="#data_models" class="hash-link" aria-label="Direct link to /data_models" title="Direct link to /data_models" translate="no">​</a></h3>
-<p>All the machine learning models live here: the LFM2.5-VL captioning model, tagging and semantic search (MobileCLIP-S2, SigLIP 2, and CLIP ViT-B/32 when it is the semantic search model) and the InsightFace face recognition models. Rather than being baked into the image, they are downloaded by the &quot;Download Models&quot; job, or when you pick a new model in the <code>Admin Area</code> (for example the <code>Captioning Model</code> setting). Because of that, this folder only grows as you enable features, but it is usually by far the largest folder in <code>/protected_media</code> — several GB in total.</p>
+<p>All the machine learning models live here: the LFM2.5-VL captioning model, OpenCLIP ViT-B/32 for tags and semantic search, and the InsightFace face recognition models. Rather than being baked into the image, they are downloaded by the &quot;Download Models&quot; job, or when you pick a new model in the <code>Admin Area</code> (for example the <code>Captioning Model</code> setting). Because of that, this folder only grows as you enable features, but it is usually by far the largest folder in <code>/protected_media</code> — several GB in total.</p>
 <p>Deleting it is safe: the models are simply downloaded again the next time they are needed. If your server has no Internet access, see <a class="" href="/docs/user-guide/offline-setup">Offline Usage</a> for how to place the files by hand.</p>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="embedded_media">/embedded_media<a href="#embedded_media" class="hash-link" aria-label="Direct link to /embedded_media" title="Direct link to /embedded_media" translate="no">​</a></h3>
 <p>Some phones store a short video inside the JPEG of a motion photo (Google and Samsung both do this). When such a file is scanned, LibrePhotos extracts that video and saves it here as <code>&lt;hash&gt;_motion.mp4</code> — this is what plays when you view the motion photo, while the original JPEG still keeps its embedded copy. This is controlled by the <code>FEATURE_PROCESS_EMBEDDED_MEDIA</code> setting, which is on by default.</p>

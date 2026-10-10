@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.a1e92a76.css">
-<script src="/assets/js/runtime~main.b7bb491a.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.a6cdca5c.js" defer="defer"></script>
 <script src="/assets/js/main.f4dc5e9c.js" defer="defer"></script>
 </head>
 <body>
@@ -37,9 +37,9 @@
 <li class="">Creates thumbnails</li>
 <li class="">Extracts EXIF metadata</li>
 <li class="">Runs face detection</li>
-<li class="">Generates AI tags (MobileCLIP-S2 or SigLIP 2, depending on your Tagging Model setting)</li>
+<li class="">Generates AI tags with OpenCLIP, which also gives each photo its semantic-search embedding</li>
 <li class="">Performs reverse geocoding</li>
-<li class="">Calculates CLIP embeddings for semantic search</li>
+<li class="">Calculates the search embeddings the tagging could not</li>
 </ol>
 <p>The scan imports images, videos, RAW files and XMP sidecars. Any other file in your folders, such as an editor sidecar (<code>.pp3</code>, <code>.aae</code>), a Google Takeout <code>.json</code> or <code>Thumbs.db</code>, is skipped and does not count as an error. A file that looks like a photo or video but cannot be read, such as an empty <code>.jpg</code> or one whose header is damaged, is still listed in the scan job&#x27;s errors (see <a class="" href="/docs/user-guide/job-system">Job System</a>).</p>
 <p>To re-process all existing photos, open the dropdown next to <strong>Scan</strong> (the chevron) and choose <strong>Rescan</strong>.</p>
@@ -71,7 +71,7 @@
 <p>If LibrePhotos detects photos that are no longer on disk, a red <strong>N Missing Photos</strong> badge appears next to the <strong>Photos</strong> heading. Click it to open the <strong>Remove missing photos</strong> dialog and confirm removal of those database entries. The badge is hidden when nothing is missing.</p>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="service-management">Service Management<a href="#service-management" class="hash-link" aria-label="Direct link to Service Management" title="Direct link to Service Management" translate="no">​</a></h2>
 <p>LibrePhotos runs several background ML services. Administrators can monitor and control them from the <strong>Admin Area</strong>:</p>
-<table><thead><tr><th>Service</th><th>Description</th></tr></thead><tbody><tr><td><strong>image_similarity</strong></td><td>CLIP-based image similarity index</td></tr><tr><td><strong>thumbnail</strong></td><td>Thumbnail generation</td></tr><tr><td><strong>face_recognition</strong></td><td>Face detection and recognition</td></tr><tr><td><strong>clip_embeddings</strong></td><td>CLIP embedding computation</td></tr><tr><td><strong>image_captioning</strong></td><td>Image caption generation</td></tr><tr><td><strong>exif</strong></td><td>EXIF metadata extraction</td></tr><tr><td><strong>tags</strong></td><td>Photo tag generation (MobileCLIP-S2 or SigLIP 2 depending on your Tagging Model setting)</td></tr></tbody></table>
+<table><thead><tr><th>Service</th><th>Description</th></tr></thead><tbody><tr><td><strong>image_similarity</strong></td><td>CLIP-based image similarity index</td></tr><tr><td><strong>thumbnail</strong></td><td>Thumbnail generation</td></tr><tr><td><strong>face_recognition</strong></td><td>Face detection and recognition</td></tr><tr><td><strong>image_captioning</strong></td><td>Image caption generation</td></tr><tr><td><strong>exif</strong></td><td>EXIF metadata extraction</td></tr><tr><td><strong>tags</strong></td><td>Tags and semantic-search embeddings (OpenCLIP); always runs, because search needs it</td></tr></tbody></table>
 <p>For each service, you can:</p>
 <ul>
 <li class="">View <strong>health status</strong></li>

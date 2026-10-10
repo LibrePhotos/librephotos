@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.a1e92a76.css">
-<script src="/assets/js/runtime~main.b7bb491a.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.a6cdca5c.js" defer="defer"></script>
 <script src="/assets/js/main.f4dc5e9c.js" defer="defer"></script>
 </head>
 <body>
@@ -23,18 +23,13 @@
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="step-1-download-the-models-manually">Step 1: Download the Models Manually<a href="#step-1-download-the-models-manually" class="hash-link" aria-label="Direct link to Step 1: Download the Models Manually" title="Direct link to Step 1: Download the Models Manually" translate="no">​</a></h3>
 <p>Manually download the necessary models from their respective URLs. Below is a list of models used by LibrePhotos, along with their download links:</p>
 <ol>
-<li class=""><strong>clip_vit_b32</strong> (Semantic search)<!-- -->
+<li class=""><strong>openclip_vitb32</strong> (Tags, semantic search and similar photos)<!-- -->
 <ul>
-<li class="">Vision model: <code>https://huggingface.co/Xenova/clip-vit-base-patch32/resolve/main/onnx/vision_model.onnx</code></li>
-<li class="">Text model: <code>https://huggingface.co/Xenova/clip-vit-base-patch32/resolve/main/onnx/text_model.onnx</code></li>
-<li class="">Tokenizer: <code>https://huggingface.co/Xenova/clip-vit-base-patch32/resolve/main/tokenizer.json</code></li>
-</ul>
-</li>
-<li class=""><strong>mobileclip_s2</strong> (Tagging — default model)<!-- -->
-<ul>
-<li class="">Vision model: <code>https://huggingface.co/Xenova/mobileclip_s2/resolve/main/onnx/vision_model.onnx</code></li>
-<li class="">Text model: <code>https://huggingface.co/Xenova/mobileclip_s2/resolve/main/onnx/text_model.onnx</code></li>
-<li class="">Tokenizer: <code>https://huggingface.co/Xenova/mobileclip_s2/resolve/main/tokenizer.json</code></li>
+<li class=""><code>https://huggingface.co/derneuere/librephotos_models/resolve/main/openclip_vitb32/visual.onnx</code></li>
+<li class=""><code>https://huggingface.co/derneuere/librephotos_models/resolve/main/openclip_vitb32/textual.onnx</code></li>
+<li class=""><code>https://huggingface.co/derneuere/librephotos_models/resolve/main/openclip_vitb32/tokenizer.json</code></li>
+<li class=""><code>https://huggingface.co/derneuere/librephotos_models/resolve/main/openclip_vitb32/preprocess.json</code></li>
+<li class=""><code>https://huggingface.co/derneuere/librephotos_models/resolve/main/openclip_vitb32/LICENSE</code></li>
 </ul>
 </li>
 <li class=""><strong>lfm2_vl_450m</strong> (Captioning)<!-- -->
@@ -46,13 +41,6 @@
 <li class=""><code>https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/onnx/decoder_model_merged_q4.onnx</code></li>
 <li class=""><code>https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/onnx/decoder_model_merged_q4.onnx_data</code></li>
 <li class="">Tokenizer: <code>https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/tokenizer.json</code></li>
-</ul>
-</li>
-<li class=""><strong>siglip2</strong> (Tagging) (optional — only if using SigLIP 2 tagging model)<!-- -->
-<ul>
-<li class="">Vision model: <code>https://huggingface.co/onnx-community/siglip2-base-patch16-384-ONNX/resolve/main/onnx/vision_model.onnx</code></li>
-<li class="">Text model: <code>https://huggingface.co/onnx-community/siglip2-base-patch16-384-ONNX/resolve/main/onnx/text_model.onnx</code></li>
-<li class="">Tokenizer: <code>https://huggingface.co/onnx-community/siglip2-base-patch16-384-ONNX/resolve/main/tokenizer.model</code></li>
 </ul>
 </li>
 <li class=""><strong>buffalo_sc</strong> (Face recognition — default model)<!-- -->
@@ -67,17 +55,13 @@
 <div class="language-text codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_QJqH"><pre tabindex="0" class="prism-code language-text codeBlock_bY9V thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_e6Vv"><div class="token-line" style="color:#393A34"><span class="token plain">&lt;LibrePhotos Media Root Directory&gt;/data_models/</span><br></div></code></pre></div></div>
 <p><code>MEDIA_ROOT</code> is not something you set directly — it is derived from <code>BASE_DATA</code> (default <code>/</code>), so inside the container it is always <code>/protected_media</code>. On the host it is whichever directory you mounted to <code>/protected_media</code>. With the standard docker-compose install that is <code>${data}/protected_media</code>, which defaults to <code>./librephotos/data/protected_media/</code>, so the models go in <code>./librephotos/data/protected_media/data_models/</code>.</p>
 <ul>
-<li class=""><strong>clip_vit_b32</strong> files -&gt; Place as <code>&lt;MEDIA_ROOT&gt;/data_models/clip_vit_b32/vision_model.onnx</code>, <code>.../text_model.onnx</code> and <code>.../tokenizer.json</code></li>
-<li class=""><strong>mobileclip_s2</strong> files -&gt; Place as <code>&lt;MEDIA_ROOT&gt;/data_models/mobileclip_s2/vision_model.onnx</code>, <code>.../text_model.onnx</code> and <code>.../tokenizer.json</code></li>
+<li class=""><strong>openclip_vitb32</strong> files -&gt; Place all five in <code>&lt;MEDIA_ROOT&gt;/data_models/openclip_vitb32/</code> under their own names</li>
 <li class=""><strong>lfm2_vl_450m</strong> files -&gt; Place all seven in <code>&lt;MEDIA_ROOT&gt;/data_models/lfm2_vl_450m/</code> under their own names. The <code>.onnx_data</code> files hold the weights the small <code>.onnx</code> graphs point at, so the names must not change.</li>
-<li class=""><strong>siglip2 vision_model.onnx</strong> -&gt; Place as <code>&lt;MEDIA_ROOT&gt;/data_models/siglip2/vision_model.onnx</code></li>
-<li class=""><strong>siglip2 text_model.onnx</strong> -&gt; Place as <code>&lt;MEDIA_ROOT&gt;/data_models/siglip2/text_model.onnx</code></li>
-<li class=""><strong>siglip2 tokenizer.model</strong> -&gt; Place as <code>&lt;MEDIA_ROOT&gt;/data_models/siglip2/tokenizer.model</code></li>
 <li class=""><strong>buffalo_sc.zip</strong> -&gt; Unpack into <code>&lt;MEDIA_ROOT&gt;/data_models/face_recognition/models/buffalo_sc/</code> (the folder should contain the <code>.onnx</code> files)</li>
 </ul>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="step-3-verify-model-placement">Step 3: Verify Model Placement<a href="#step-3-verify-model-placement" class="hash-link" aria-label="Direct link to Step 3: Verify Model Placement" title="Direct link to Step 3: Verify Model Placement" translate="no">​</a></h3>
 <p>Ensure that all models are correctly placed and unpacked in their respective directories. The structure should look something like this:</p>
-<div class="language-text codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_QJqH"><pre tabindex="0" class="prism-code language-text codeBlock_bY9V thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_e6Vv"><div class="token-line" style="color:#393A34"><span class="token plain">data_models/</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    ├── clip_vit_b32/</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    │   ├── vision_model.onnx</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    │   ├── text_model.onnx</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    │   └── tokenizer.json</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    ├── mobileclip_s2/</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    │   ├── vision_model.onnx</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    │   ├── text_model.onnx</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    │   └── tokenizer.json</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    ├── lfm2_vl_450m/</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    │   ├── vision_encoder_q4.onnx</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    │   ├── vision_encoder_q4.onnx_data</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    │   ├── embed_tokens_q4.onnx</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    │   ├── embed_tokens_q4.onnx_data</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    │   ├── decoder_model_merged_q4.onnx</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    │   ├── decoder_model_merged_q4.onnx_data</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    │   └── tokenizer.json</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    ├── siglip2/</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    │   ├── vision_model.onnx</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    │   ├── text_model.onnx</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    │   └── tokenizer.model</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    └── face_recognition/</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">        └── models/</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">            └── buffalo_sc/</span><br></div></code></pre></div></div>
+<div class="language-text codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_QJqH"><pre tabindex="0" class="prism-code language-text codeBlock_bY9V thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_e6Vv"><div class="token-line" style="color:#393A34"><span class="token plain">data_models/</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    ├── openclip_vitb32/</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    │   ├── visual.onnx</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    │   ├── textual.onnx</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    │   ├── tokenizer.json</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    │   ├── preprocess.json</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    │   └── LICENSE</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    ├── lfm2_vl_450m/</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    │   ├── vision_encoder_q4.onnx</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    │   ├── vision_encoder_q4.onnx_data</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    │   ├── embed_tokens_q4.onnx</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    │   ├── embed_tokens_q4.onnx_data</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    │   ├── decoder_model_merged_q4.onnx</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    │   ├── decoder_model_merged_q4.onnx_data</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    │   └── tokenizer.json</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    └── face_recognition/</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">        └── models/</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">            └── buffalo_sc/</span><br></div></code></pre></div></div>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="step-4-turn-off-the-online-map-services">Step 4: Turn Off the Online Map Services<a href="#step-4-turn-off-the-online-map-services" class="hash-link" aria-label="Direct link to Step 4: Turn Off the Online Map Services" title="Direct link to Step 4: Turn Off the Online Map Services" translate="no">​</a></h3>
 <p>Even with every model stored locally, two settings still reach the Internet by default:</p>
 <ul>
