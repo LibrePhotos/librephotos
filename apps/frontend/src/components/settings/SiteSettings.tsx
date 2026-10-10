@@ -9,7 +9,7 @@ import type { SiteSettings as SiteSettingsType } from "../../api_client/settings
 import { EmailSettings } from "./EmailSettings";
 
 /** What an option's label says about it, after the product name; translated at render time. */
-type OptionHint = "default" | "fast_default" | "lightweight_default" | "fastest" | "most_accurate";
+type OptionHint = "default" | "lightweight_default" | "fastest" | "most_accurate";
 
 type ModelOption = { value: string; label: string; hint?: OptionHint };
 
@@ -37,19 +37,6 @@ const CAPTIONING_MODELS: ModelOption[] = [
 ];
 
 const DEFAULT_CAPTIONING_MODEL = "lfm2_vl_450m";
-const DEFAULT_TAGGING_MODEL = "mobileclip_s2";
-
-const TAGGING_MODELS: ModelOption[] = [
-  { value: "mobileclip_s2", label: "MobileCLIP-S2", hint: "fast_default" },
-  { value: "siglip2", label: "SigLIP 2", hint: "most_accurate" },
-];
-
-const DEFAULT_SEMANTIC_SEARCH_MODEL = "mobileclip_s2";
-
-const SEMANTIC_SEARCH_MODELS: ModelOption[] = [
-  { value: "mobileclip_s2", label: "MobileCLIP-S2", hint: "fast_default" },
-  { value: "clip_vit_b32", label: "CLIP ViT-B/32" },
-];
 
 const OCR_MODELS: ModelOption[] = [
   { value: "none", label: "" },
@@ -104,8 +91,6 @@ export function SiteSettings() {
   const [nextcloudEnabled, setNextcloudEnabled] = useState(false);
   const [autoCreateUserDirectory, setAutoCreateUserDirectory] = useState(false);
   const [captioningModel, setCaptioningModel] = useState(DEFAULT_CAPTIONING_MODEL);
-  const [taggingModel, setTaggingModel] = useState(DEFAULT_TAGGING_MODEL);
-  const [semanticSearchModel, setSemanticSearchModel] = useState(DEFAULT_SEMANTIC_SEARCH_MODEL);
   const [ocrModel, setOcrModel] = useState(OCR_DISABLED);
   // Restored when the user backs out of the OCR confirmation dialog.
   const [previousOcrModel, setPreviousOcrModel] = useState(OCR_DISABLED);
@@ -169,8 +154,6 @@ export function SiteSettings() {
       setNextcloudEnabled(settings.nextcloud_enabled);
       setAutoCreateUserDirectory(settings.auto_create_user_directory ?? false);
       setCaptioningModel(settings.captioning_model);
-      setTaggingModel(settings.tagging_model);
-      setSemanticSearchModel(settings.semantic_search_model);
       setOcrModel(normalizeOcrModel(settings.ocr_model));
       setPreviousOcrModel(normalizeOcrModel(settings.ocr_model));
       setFaceRecognitionModel(settings.face_recognition_model);
@@ -337,48 +320,6 @@ export function SiteSettings() {
                   if (!model) return;
                   save({ captioning_model: model });
                   setCaptioningModel(model);
-                }}
-              />
-            </Grid.Col>
-            <Grid.Col span={LABEL_SPAN}>
-              <Stack gap={0}>
-                <Text>{t("sitesettings.tagging_model_header")}</Text>
-                <Text fz="sm" c="dimmed">
-                  {t("sitesettings.tagging_model_description")}
-                </Text>
-              </Stack>
-            </Grid.Col>
-            <Grid.Col span={CONTROL_SPAN}>
-              <Select
-                searchable
-                allowDeselect={false}
-                data={translateOptions(TAGGING_MODELS, t, t("sitesettings.model_none"))}
-                value={taggingModel}
-                onChange={model => {
-                  const value = model ?? DEFAULT_TAGGING_MODEL;
-                  save({ tagging_model: value });
-                  setTaggingModel(value);
-                }}
-              />
-            </Grid.Col>
-            <Grid.Col span={LABEL_SPAN}>
-              <Stack gap={0}>
-                <Text>{t("sitesettings.semantic_search_model_header")}</Text>
-                <Text fz="sm" c="dimmed">
-                  {t("sitesettings.semantic_search_model_description")}
-                </Text>
-              </Stack>
-            </Grid.Col>
-            <Grid.Col span={CONTROL_SPAN}>
-              <Select
-                searchable
-                allowDeselect={false}
-                data={translateOptions(SEMANTIC_SEARCH_MODELS, t, t("sitesettings.model_none"))}
-                value={semanticSearchModel}
-                onChange={model => {
-                  const value = model ?? DEFAULT_SEMANTIC_SEARCH_MODEL;
-                  save({ semantic_search_model: value });
-                  setSemanticSearchModel(value);
                 }}
               />
             </Grid.Col>

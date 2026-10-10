@@ -10,7 +10,7 @@ const siteSettingsResponse = {
   map_tile_provider: "photoprism",
   captioning_model: "lfm2_vl_450m",
   llm_model: "None",
-  tagging_model: "mobileclip_s2",
+  tagging_model: "openclip_vitb32",
   ocr_model: "ppocrv6_small",
   face_recognition_model: "buffalo_sc",
   nextcloud_enabled: false,

@@ -51,7 +51,7 @@ function CaptionEditor(props: Props) {
   // public visitor's request for them is refused anyway.
   const { data: thingAlbums } = useFetchThingsAlbumsQuery(isPublic);
   const { data: siteSettings } = useGetSettingsQuery();
-  const taggingModel = siteSettings?.tagging_model ?? "mobileclip_s2";
+  const taggingModel = siteSettings?.tagging_model ?? "openclip_vitb32";
   const navigate = useNavigate();
 
   // Every tagging model stores { tags: string[] } under its own key.

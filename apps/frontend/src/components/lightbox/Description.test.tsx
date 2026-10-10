@@ -180,7 +180,7 @@ describe("Description", () => {
 
   it("searches for an auto tag, encoded, and leaves a public page's tags as labels", async () => {
     // No site settings in the test: the default tagging model's key.
-    const tagged = photo("a", "", { mobileclip_s2: { tags: ["rock & roll"] } });
+    const tagged = photo("a", "", { openclip_vitb32: { tags: ["rock & roll"] } });
     const { container, root } = mount();
     await render(root, tagged);
     const badge = () => defined([...container.querySelectorAll<HTMLElement>(".mantine-Badge-root")].at(-1));
