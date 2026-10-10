@@ -312,7 +312,23 @@ class SetPhotosDeleted(BulkPhotoMutationView):
             logger.info(f"Reset {len(stack_ids)} photo stacks to pending after restore")
 
 
-class SetPhotosFavorite(BulkPhotoMutationView):
+class RatingMutationView(BulkPhotoMutationView):
+    """A bulk mutation that sets ``rating``, and so writes it to disk."""
+
+    def apply(self, user, photos, value):
+        # Photo.save() writes a changed rating to the file or sidecar; this
+        # UPDATE skips save(), so the same write is queued as a job. The ids
+        # are taken first: afterwards a filter on the old rating no longer
+        # matches.
+        photo_ids = []
+        if user.save_metadata_to_disk != User.SaveMetadata.OFF:
+            photo_ids = list(photos.values_list("id", flat=True))
+        count = super().apply(user, photos, value)
+        queue_rating_write(user, photo_ids)
+        return count
+
+
+class SetPhotosFavorite(RatingMutationView):
     value_field = "favorite"
     flag_name = "favorite"
     past_tense = {True: "added to favorites", False: "removed from favorites"}
@@ -326,16 +342,42 @@ class SetPhotosFavorite(BulkPhotoMutationView):
     def new_values(self, user, value):
         return {"rating": user.favorite_min_rating if value else 0}
 
-    def apply(self, user, photos, value):
-        # Photo.save() writes a changed rating to the file or sidecar; this
-        # UPDATE skips save(), so the same write is queued as a job. The ids
-        # are taken first: afterwards the rating filter no longer matches.
-        photo_ids = []
-        if user.save_metadata_to_disk != User.SaveMetadata.OFF:
-            photo_ids = list(photos.values_list("id", flat=True))
-        count = super().apply(user, photos, value)
-        queue_rating_write(user, photo_ids)
-        return count
+
+class SetPhotosRating(RatingMutationView):
+    """Give photos a star rating from 0 (none) to 5.
+
+    The mobile app's star row sets any rating, which ``favorite`` (the
+    favorite threshold or 0) cannot express, and ``PATCH /photos/edit/``
+    ignores ``rating`` on purpose. Takes ``image_hashes`` only: no client
+    rates a whole query at once.
+    """
+
+    value_field = "rating"
+    flag_name = "rating"
+    past_tense = {True: "rated", False: "unrated"}
+    MAX_RATING = 5
+
+    def parse_value(self, data):
+        rating = data.get(self.value_field)
+        # bool is an int subclass: true must not read as one star.
+        if (
+            isinstance(rating, bool)
+            or not isinstance(rating, int)
+            or not 0 <= rating <= self.MAX_RATING
+        ):
+            raise ValidationError(
+                {self.value_field: f"Expected an integer from 0 to {self.MAX_RATING}."}
+            )
+        return rating
+
+    def check_select_all(self, value):
+        raise ValidationError({"select_all": "Rating takes image_hashes only."})
+
+    def differs(self, user, value):
+        return ~Q(rating=value)
+
+    def new_values(self, user, value):
+        return {"rating": value}
 
 
 class SetPhotosHidden(BulkPhotoMutationView):

@@ -51,9 +51,22 @@ means you can open the app in airplane mode and still:
   albums.
 
 Changes you make offline are saved immediately and **queued**. The next time the
-app is online it sends them to the server automatically. Full-resolution
-originals are fetched on demand when you open a photo, so viewing an original
-still needs a connection unless it is a photo already on your device.
+app is online it sends them to the server automatically. A star rating is
+written to the photo's file or XMP sidecar when
+[Synchronize metadata to disk](../exif-data.md) is on, the same as a favorite
+set on the web.
+
+:::note Star ratings (unreleased)
+Until this fix, a star rating set in the app showed on the phone but never
+reached the server. Saving ratings needs an updated app and a server newer than
+1.2.1; an older server rejects the rating and the app shows an error. Ratings
+set before the fix exist only on that phone, so set them again once both are
+updated.
+:::
+
+Full-resolution originals are fetched on demand when you open a photo, so
+viewing an original still needs a connection unless it is a photo already on
+your device.
 
 ## Backup setup
 

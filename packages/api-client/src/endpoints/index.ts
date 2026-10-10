@@ -546,21 +546,33 @@ export async function setPhotosDeleted(
   return parseResponse(S.BulkPhotoMutationResponse, res, "set deleted");
 }
 
-/** Set an arbitrary star rating on one photo (keyed by image hash). */
+/**
+ * Set a 0–5 star rating on one photo (keyed by image hash).
+ *
+ * `/photosedit/rating/` is the favorite toggle's sibling (the web app has no
+ * star row, so only mobile calls it): owner-scoped, bumps the photo's
+ * `last_modified` so the next delta pull carries the rating, and writes it to
+ * the file or sidecar when the user syncs metadata to disk. Not
+ * `PATCH /photos/edit/{hash}/`: that endpoint ignores `rating` and still
+ * answers 200, so every rating was silently dropped.
+ */
 export async function setPhotoRating(
   client: ApiClient,
   imageHash: string,
   rating: number
-): Promise<S.PhotoEditResponse> {
-  const res = await client.patch<unknown>(`/photos/edit/${imageHash}/`, { rating });
-  return parseResponse(S.PhotoEditResponse, res, "set rating");
+): Promise<S.BulkPhotoMutationResponse> {
+  const res = await client.post<unknown>("/photosedit/rating/", {
+    image_hashes: [imageHash],
+    rating,
+  });
+  return parseResponse(S.BulkPhotoMutationResponse, res, "set rating");
 }
 
 /**
  * Set (or clear) one photo's EXIF capture timestamp.
  *
- * Same `PATCH /photos/edit/{hash}/` the rating uses; the backend expects a
- * naive `YYYY-MM-DDTHH:mm:ss` local timestamp, and `null` to mark the photo as
+ * `PATCH /photos/edit/{hash}/`. The backend expects a naive
+ * `YYYY-MM-DDTHH:mm:ss` local timestamp, and `null` to mark the photo as
  * having no timestamp at all. Deliberately **not** an outbox mutation: the
  * timestamp drives timeline ordering and day/month bucketing, so an optimistic
  * offline write would reshuffle a client's whole timeline against a change the
