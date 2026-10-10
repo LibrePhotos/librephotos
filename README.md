@@ -3,8 +3,11 @@
 
 # LibrePhotos
 
-![](https://github.com/LibrePhotos/librephotos/blob/dev/apps/backend/screenshots/mockups_main_fhd.png?raw=true)
-<sub>Mockup designed by rawpixel.com / Freepik</sub>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="apps/docs/static/img/shots/timeline-dark.webp">
+  <img alt="The LibrePhotos timeline, with photos grouped by day and place" src="apps/docs/static/img/shots/timeline-light.webp">
+</picture>
+<sub>Sample photos from Pexels, see the <a href="apps/docs/static/img/shots/CREDITS.md">credits</a>.</sub>
 
 A self-hosted, open-source photo management service with automatic face recognition, object detection, and semantic search — powered by modern machine learning.
 
@@ -24,7 +27,13 @@ Commit history from all five repositories is preserved — `git log --follow app
 
 ## Installation
 
-Step-by-step installation instructions are available in our [documentation](https://docs.librephotos.com/docs/installation/standard-install).
+Pick the deployment that fits your setup. Step-by-step guides are in the [documentation](https://docs.librephotos.com/docs/installation/).
+
+- [Single container](https://docs.librephotos.com/docs/installation/unified-deployment): one image serves the API and the web app, recommended for most people
+- [Docker Compose](https://docs.librephotos.com/docs/installation/standard-install): separate backend, frontend and proxy containers, with optional NVIDIA GPU acceleration
+- [Kubernetes](deploy/k8s/): Kustomize manifests in `deploy/k8s`
+- [Unraid](https://docs.librephotos.com/docs/installation/unraid)
+- [Windows standalone](https://docs.librephotos.com/docs/installation/windows-standalone): one folder with `librephotos.exe`, no Docker or Python
 
 ### System Requirements
 
@@ -33,23 +42,25 @@ Step-by-step installation instructions are available in our [documentation](http
 | RAM      | 4 GB    | 8 GB+       |
 | Storage  | 10 GB (plus your photo library) | SSD recommended |
 | CPU      | 2 cores | 4+ cores    |
-| OS       | Any Docker-compatible OS | Linux |
+| OS       | Any Docker-compatible OS, or Windows | Linux |
 
 > **Note:** Machine learning features (face recognition, scene classification, image captioning) are memory-intensive. 8 GB+ RAM is strongly recommended for smooth operation.
 
 ## Features
 
-  - Support for all types of photos including raw photos
-  - Support for videos
-  - Timeline view
-  - Scans pictures on the file system
-  - Multiuser support
-  - Generate albums based on events like "Thursday in Berlin"
-  - Face recognition / Face classification
-  - Reverse geocoding
-  - Object / Scene detection
-  - Semantic image search
-  - Search by metadata
+  - Photos in all common formats, including RAW, HEIC and JPEG XL
+  - Videos and live photos
+  - Timeline grouped by day and place, plus favorites, recent additions and memories
+  - Scans your existing folders and accepts uploads from the web and mobile apps
+  - Multiple users, shared albums and public links
+  - Albums generated from events, like "Saturday in Lisbon"
+  - Face detection and clustering: name a person once and the rest is suggested
+  - Places and a map from reverse geocoding
+  - Tags and generated captions for every photo
+  - Semantic search ("dog on a beach") and search by metadata
+  - RAW+JPEG pairs kept as one photo, burst and bracket stacks, and duplicate detection
+  - Single sign-on through OpenID Connect
+  - Expo mobile app for Android and iOS
 
 ## Tech Stack
 
