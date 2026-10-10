@@ -340,7 +340,6 @@
   },
   "topmenu": {
     "running": "Running",
-    "available": "Worker available! You can start scanning more photos, infer face labels, auto create event albums, or regenerate auto event album titles.",
     "busy": "Busy...",
     "loggedin": "Logged in as",
     "logout": "Log out",
@@ -349,9 +348,7 @@
     "library": "Library",
     "adminarea": "Admin Area",
     "jobs": "My Jobs",
-    "viewalljobs": "View all jobs",
     "accountmenu": "Account menu",
-    "workerstatusavailable": "Worker status: available",
     "workerstatusbusy": "Worker status: busy"
   },
   "jobs": {
