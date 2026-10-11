@@ -56,10 +56,10 @@ written to the photo's file or XMP sidecar when
 [Synchronize metadata to disk](../exif-data.md) is on, the same as a favorite
 set on the web.
 
-:::note Star ratings (unreleased)
+:::note Star ratings (since 1.3.0)
 Until this fix, a star rating set in the app showed on the phone but never
 reached the server. Saving ratings needs an updated app and a server newer than
-1.2.1; an older server rejects the rating and the app shows an error. Ratings
+1.2.1 (1.3.0 or later); an older server rejects the rating and the app shows an error. Ratings
 set before the fix exist only on that phone, so set them again once both are
 updated.
 :::
