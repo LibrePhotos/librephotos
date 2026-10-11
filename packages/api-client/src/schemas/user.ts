@@ -44,7 +44,9 @@ export const User = z.object({
   // stripped the field, and the Edit User dialog showed an empty upload folder.
   upload_directory: z.string().nullish(),
   confidence: z.number(),
-  confidence_person: z.number(),
+  // Unused since #2196 and no longer editable; the server still sends it, and a
+  // client must not fail a user over it, so it is optional.
+  confidence_person: z.number().optional(),
   transcode_videos: z.boolean(),
   semantic_search_topk: z.number(),
   first_name: z.string(),
@@ -74,7 +76,8 @@ export const User = z.object({
   password: z.string().optional(),
   is_superuser: z.boolean().optional(),
   public_sharing: z.boolean(),
-  confidence_unknown_face: z.number(),
+  // Unused since #2196 (see confidence_person).
+  confidence_unknown_face: z.number().optional(),
   min_cluster_size: z.number(),
   min_samples: z.number(),
   cluster_selection_epsilon: z.number(),

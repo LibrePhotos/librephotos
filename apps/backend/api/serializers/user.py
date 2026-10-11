@@ -36,7 +36,6 @@ USER_UPDATE_FIELDS = (
     ("nextcloud_app_password", None),
     ("nextcloud_scan_directory", None),
     ("confidence", "Updated confidence for user {value}"),
-    ("confidence_person", "Updated person album confidence for user {value}"),
     ("semantic_search_topk", "Updated semantic_search_topk for user {value}"),
     ("favorite_min_rating", "Updated favorite_min_rating for user {value}"),
     ("save_metadata_to_disk", "Updated save_metadata_to_disk for user {value}"),
@@ -52,7 +51,6 @@ USER_UPDATE_FIELDS = (
     ("default_timezone", "Updated default_timezone for user {value}"),
     ("public_sharing", None),
     ("min_cluster_size", None),
-    ("confidence_unknown_face", None),
     ("min_samples", None),
     ("cluster_selection_epsilon", None),
     ("llm_settings", None),
@@ -360,7 +358,11 @@ class UserSerializer(serializers.ModelSerializer):
             # the DATA_ROOT and overlap checks.
             "upload_directory": {"read_only": True},
             "confidence": {"required": False},
-            "confidence_person": {"required": False},
+            # Read-only since #2196: nothing reads these any more, and the
+            # fields stay in the output so released mobile builds keep parsing.
+            # The model columns are dropped in a later release.
+            "confidence_person": {"read_only": True},
+            "confidence_unknown_face": {"read_only": True},
             "semantic_search_topk": {"required": False},
             "nextcloud_server_address": {"required": False},
             "nextcloud_username": {"required": False},

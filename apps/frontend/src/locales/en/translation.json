@@ -143,9 +143,6 @@
       "low": "Low",
       "none": "None"
     },
-    "inferredfacesconfidence": "Inferred faces confidence",
-    "inferredfacesconfidencehelp": "Enter a confidence level between 0 and 1. For albums that display a person, inferred faces with a confidence level higher than this value will appear.",
-    "albumoptions": "Album Options",
     "semanticsearchheader": "Semantic search max results",
     "semanticsearch": {
       "placeholder": "Semantic search results",
@@ -240,8 +237,6 @@
       "veryhigh": "Very High",
       "off": "Off"
     },
-    "unknown_faces_confidence": "Confidence when Matching Unknown - Other Faces",
-    "unknown_faces_confidence_help": "Enter a confidence level between 0 and 1. Faces from 'Unknown - Other' will be matched to other persons if the confidence level is higher than this value. 0 means that this feature is disabled.",
     "min_samples": "Minimum Samples",
     "min_samples_help": "Changes how conservative clusters are. A smaller value means less conservative.",
     "cluster_selection_epsilon": "Cluster Selection Epsilon",
