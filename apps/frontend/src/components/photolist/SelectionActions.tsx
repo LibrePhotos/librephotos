@@ -42,6 +42,7 @@ import {
   useRemoveFromStackMutation,
 } from "../../api_client/stacks";
 import { useAuth } from "../../hooks/useAuth";
+import { ICON_SIZE, TOOLBAR_ACTION_SIZE } from "../../ui-constants";
 import { copyToClipboard } from "../../util/util";
 import { ModalDownloadOptions } from "../modals/ModalDownloadOptions";
 
@@ -192,8 +193,14 @@ export function SelectionActions(props: Readonly<Props>) {
       />
       <Menu width={200}>
         <Menu.Target>
-          <ActionIcon variant="subtle" color="gray" disabled={!hasSelection} aria-label={t("selectionactions.addto")}>
-            <Plus />
+          <ActionIcon
+            variant="subtle"
+            color="gray"
+            size={TOOLBAR_ACTION_SIZE}
+            disabled={!hasSelection}
+            aria-label={t("selectionactions.addto")}
+          >
+            <Plus size={ICON_SIZE.toolbar} />
           </ActionIcon>
         </Menu.Target>
 
@@ -205,13 +212,13 @@ export function SelectionActions(props: Readonly<Props>) {
 
           <Menu.Divider />
 
-          <Menu.Item leftSection={<Album size={14} />} onClick={() => hasSelection && onAddToAlbum()}>
+          <Menu.Item leftSection={<Album size={ICON_SIZE.menu} />} onClick={() => hasSelection && onAddToAlbum()}>
             {t("selectionactions.album")}
           </Menu.Item>
 
           <Tooltip label={t("selectionactions.tagdescription")} position="left">
             <Menu.Item
-              leftSection={<Tag size={14} />}
+              leftSection={<Tag size={ICON_SIZE.menu} />}
               rightSection={
                 <Text size="xs" c="dimmed">
                   t
@@ -228,8 +235,13 @@ export function SelectionActions(props: Readonly<Props>) {
 
       <Menu width={200}>
         <Menu.Target>
-          <ActionIcon variant="subtle" color="gray" aria-label={t("selectionactions.photoactions")}>
-            <DotsVertical />
+          <ActionIcon
+            variant="subtle"
+            color="gray"
+            size={TOOLBAR_ACTION_SIZE}
+            aria-label={t("selectionactions.photoactions")}
+          >
+            <DotsVertical size={ICON_SIZE.toolbar} />
           </ActionIcon>
         </Menu.Target>
 
@@ -242,7 +254,7 @@ export function SelectionActions(props: Readonly<Props>) {
           <Menu.Divider />
 
           <Menu.Item
-            leftSection={<Star size={14} />}
+            leftSection={<Star size={ICON_SIZE.menu} />}
             disabled={!hasSelection}
             onClick={() => {
               if (selectAllMode) {
@@ -265,7 +277,7 @@ export function SelectionActions(props: Readonly<Props>) {
           </Menu.Item>
 
           <Menu.Item
-            leftSection={<StarOff size={14} />}
+            leftSection={<StarOff size={ICON_SIZE.menu} />}
             disabled={!hasSelection}
             onClick={() => {
               if (selectAllMode) {
@@ -290,7 +302,7 @@ export function SelectionActions(props: Readonly<Props>) {
           <Menu.Divider />
 
           <Menu.Item
-            leftSection={<EyeOff size={14} />}
+            leftSection={<EyeOff size={ICON_SIZE.menu} />}
             disabled={!hasSelection}
             onClick={() => {
               if (selectAllMode) {
@@ -313,7 +325,7 @@ export function SelectionActions(props: Readonly<Props>) {
           </Menu.Item>
 
           <Menu.Item
-            leftSection={<Eye size={14} />}
+            leftSection={<Eye size={ICON_SIZE.menu} />}
             disabled={!hasSelection}
             onClick={() => {
               if (selectAllMode) {
@@ -337,26 +349,34 @@ export function SelectionActions(props: Readonly<Props>) {
 
           <Menu.Divider />
 
-          <Menu.Item leftSection={<Photo size={14} />} disabled={!hasSelection} onClick={() => markAs("photo")}>
+          <Menu.Item
+            leftSection={<Photo size={ICON_SIZE.menu} />}
+            disabled={!hasSelection}
+            onClick={() => markAs("photo")}
+          >
             {t("selectionactions.markasphoto")}
           </Menu.Item>
 
           <Menu.Item
-            leftSection={<Screenshot size={14} />}
+            leftSection={<Screenshot size={ICON_SIZE.menu} />}
             disabled={!hasSelection}
             onClick={() => markAs("screenshot")}
           >
             {t("selectionactions.markasscreenshot")}
           </Menu.Item>
 
-          <Menu.Item leftSection={<FileText size={14} />} disabled={!hasSelection} onClick={() => markAs("document")}>
+          <Menu.Item
+            leftSection={<FileText size={ICON_SIZE.menu} />}
+            disabled={!hasSelection}
+            onClick={() => markAs("document")}
+          >
             {t("selectionactions.markasdocument")}
           </Menu.Item>
 
           <Menu.Divider />
 
           <Menu.Item
-            leftSection={<Globe size={14} />}
+            leftSection={<Globe size={ICON_SIZE.menu} />}
             disabled={!hasSelection}
             onClick={() => {
               if (selectAllMode) {
@@ -386,7 +406,7 @@ export function SelectionActions(props: Readonly<Props>) {
           </Menu.Item>
 
           <Menu.Item
-            leftSection={<Key size={14} />}
+            leftSection={<Key size={ICON_SIZE.menu} />}
             disabled={!hasSelection}
             onClick={() => {
               if (selectAllMode) {
@@ -411,7 +431,7 @@ export function SelectionActions(props: Readonly<Props>) {
           <Menu.Divider />
 
           <Menu.Item
-            leftSection={<Download size={14} />}
+            leftSection={<Download size={ICON_SIZE.menu} />}
             disabled={!hasSelection}
             onClick={() => setIsDownloadModalOpen(true)}
           >
@@ -421,7 +441,7 @@ export function SelectionActions(props: Readonly<Props>) {
           <Menu.Divider />
 
           <Menu.Item
-            leftSection={<Trash size={14} />}
+            leftSection={<Trash size={ICON_SIZE.menu} />}
             disabled={!hasSelection}
             onClick={() => {
               if (selectAllMode) {
@@ -446,7 +466,7 @@ export function SelectionActions(props: Readonly<Props>) {
           <Menu.Divider />
 
           <Menu.Item
-            leftSection={<Share size={14} />}
+            leftSection={<Share size={ICON_SIZE.menu} />}
             disabled={!hasSelection}
             onClick={() => {
               if (hasSelection) {
@@ -463,7 +483,7 @@ export function SelectionActions(props: Readonly<Props>) {
           <Menu.Label>{t("selectionactions.stackactions", "Stack Actions")}</Menu.Label>
 
           <Menu.Item
-            leftSection={<IconStack2 size={14} />}
+            leftSection={<IconStack2 size={ICON_SIZE.menu} />}
             disabled={!hasSelection || selectAllMode || selectedItems.length < 2}
             onClick={() => {
               if (!selectAllMode && selectedItems.length >= 2) {
@@ -482,7 +502,7 @@ export function SelectionActions(props: Readonly<Props>) {
           </Menu.Item>
 
           <Menu.Item
-            leftSection={<IconLayersLinked size={14} />}
+            leftSection={<IconLayersLinked size={ICON_SIZE.menu} />}
             disabled={!hasSelection || selectAllMode || !hasPhotosInManualStacks()}
             onClick={() => {
               if (!selectAllMode && hasPhotosInManualStacks()) {
@@ -501,7 +521,7 @@ export function SelectionActions(props: Readonly<Props>) {
           </Menu.Item>
 
           <Menu.Item
-            leftSection={<IconLayersSubtract size={14} />}
+            leftSection={<IconLayersSubtract size={ICON_SIZE.menu} />}
             disabled={!hasSelection || selectAllMode || !hasPhotosInManualStacks()}
             onClick={() => {
               if (!selectAllMode && hasPhotosInManualStacks()) {
@@ -545,7 +565,7 @@ export function SelectionActions(props: Readonly<Props>) {
               >
                 <Menu.Item
                   disabled={selectedItems.length > 1 || selectAllMode}
-                  leftSection={<Photo size={14} />}
+                  leftSection={<Photo size={ICON_SIZE.menu} />}
                   onClick={() => {
                     if (location.pathname.startsWith("/album/persons/")) {
                       setAlbumCover("person");
@@ -565,12 +585,12 @@ export function SelectionActions(props: Readonly<Props>) {
 
               {location.pathname.startsWith("/album/user/") && (
                 <>
-                  <Menu.Item leftSection={<Share size={14} />} onClick={onShareAlbum}>
+                  <Menu.Item leftSection={<Share size={ICON_SIZE.menu} />} onClick={onShareAlbum}>
                     {t("selectionactions.sharing")}
                   </Menu.Item>
 
                   <Menu.Item
-                    leftSection={<FileMinus size={14} />}
+                    leftSection={<FileMinus size={ICON_SIZE.menu} />}
                     disabled={!hasSelection || selectAllMode || albumLocked}
                     onClick={() => {
                       // Remove from album doesn't support selectAll mode

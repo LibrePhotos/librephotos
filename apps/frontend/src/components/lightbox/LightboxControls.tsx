@@ -42,6 +42,7 @@ import {
   useSetPhotosHiddenMutation,
 } from "../../api_client/photos/hooks";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
+import { FAVORITE_COLOR, ICON_SIZE } from "../../ui-constants";
 import { PhotoShareLinkModal } from "../sharing/PhotoShareLinkModal";
 import { copyKeyLabel } from "./lightbox.hotkeys";
 import type { LightboxControlsProps } from "./lightbox.types";
@@ -180,9 +181,13 @@ export function LightboxControls({
     if (!photoDetail) return;
     setPhotosHidden.mutate({ image_hashes: [photoDetail.image_hash], hidden: !photoDetail.hidden });
   };
-  const hideIcon = photoDetail?.hidden ? <EyeOff size={18} color="var(--mantine-color-red-6)" /> : <Eye size={18} />;
-  const shareIcon = <Globe size={18} color={isShared ? "var(--mantine-color-green-6)" : undefined} />;
-  const trashIcon = inTrash ? <Restore size={18} /> : <Trash size={18} />;
+  const hideIcon = photoDetail?.hidden ? (
+    <EyeOff size={ICON_SIZE.lightbox} color="var(--mantine-color-red-6)" />
+  ) : (
+    <Eye size={ICON_SIZE.lightbox} />
+  );
+  const shareIcon = <Globe size={ICON_SIZE.lightbox} color={isShared ? "var(--mantine-color-green-6)" : undefined} />;
+  const trashIcon = inTrash ? <Restore size={ICON_SIZE.lightbox} /> : <Trash size={ICON_SIZE.lightbox} />;
   // Copy and fullscreen join the menu on a phone too, to leave room for it.
   const actionsInMenu = !!isNarrow && !isPublic;
   const canZoom = enableZoom && type === "photo";
@@ -229,7 +234,7 @@ export function LightboxControls({
               aria-label={slideshowLabel}
               style={{ zIndex: 1 }}
             >
-              {isSlideshowActive ? <Pause size={18} /> : <Play size={18} />}
+              {isSlideshowActive ? <Pause size={ICON_SIZE.lightbox} /> : <Play size={ICON_SIZE.lightbox} />}
             </ActionIcon>
           </div>
         </Tooltip>
@@ -281,7 +286,7 @@ export function LightboxControls({
                 size={28}
                 aria-label={liveTextLabel}
               >
-                <TextRecognition size={18} />
+                <TextRecognition size={ICON_SIZE.lightbox} />
               </ActionIcon>
             </Tooltip>
           )}
@@ -298,7 +303,7 @@ export function LightboxControls({
                 // read out twice.
                 aria-pressed={isZoomed}
               >
-                {isZoomed ? <ZoomOut size={18} /> : <ZoomIn size={18} />}
+                {isZoomed ? <ZoomOut size={ICON_SIZE.lightbox} /> : <ZoomIn size={ICON_SIZE.lightbox} />}
               </ActionIcon>
             </Tooltip>
           )}
@@ -312,7 +317,7 @@ export function LightboxControls({
                 size={28}
                 aria-label={copyLabel}
               >
-                <Copy size={18} />
+                <Copy size={ICON_SIZE.lightbox} />
               </ActionIcon>
             </Tooltip>
           )}
@@ -325,7 +330,7 @@ export function LightboxControls({
                 size={28}
                 aria-label={fullscreenLabel}
               >
-                {isFullscreen ? <Minimize size={18} /> : <Maximize size={18} />}
+                {isFullscreen ? <Minimize size={ICON_SIZE.lightbox} /> : <Maximize size={ICON_SIZE.lightbox} />}
               </ActionIcon>
             </Tooltip>
           )}
@@ -339,7 +344,7 @@ export function LightboxControls({
           <Group gap={4} align="center">
             {isPhotoDetailsLoading && (
               <ActionIcon loading variant="transparent" size={28}>
-                <Loader size={16} color="grey" />
+                <Loader size={ICON_SIZE.inline} color="grey" />
               </ActionIcon>
             )}
             {!isPhotoDetailsLoading && photoDetail && !actionsInMenu && (
@@ -360,7 +365,11 @@ export function LightboxControls({
                     setFavoritePhotos.mutate({ image_hashes: [photoDetail.image_hash], favorite: !isFavorite });
                   }}
                 >
-                  {isFavorite ? <StarFilled size={18} color="var(--mantine-color-yellow-5)" /> : <Star size={18} />}
+                  {isFavorite ? (
+                    <StarFilled size={ICON_SIZE.lightbox} color={FAVORITE_COLOR} />
+                  ) : (
+                    <Star size={ICON_SIZE.lightbox} />
+                  )}
                 </ActionIcon>
               </Tooltip>
             )}
@@ -393,7 +402,7 @@ export function LightboxControls({
                   aria-label={t("lightbox.toolbar.rotateCCW")}
                   onClick={() => onRotate(-90)}
                 >
-                  <RotateCCW size={18} />
+                  <RotateCCW size={ICON_SIZE.lightbox} />
                 </ActionIcon>
               </Tooltip>
             )}
@@ -406,7 +415,7 @@ export function LightboxControls({
                   aria-label={t("lightbox.toolbar.rotateCW")}
                   onClick={() => onRotate(90)}
                 >
-                  <RotateCW size={18} />
+                  <RotateCW size={ICON_SIZE.lightbox} />
                 </ActionIcon>
               </Tooltip>
             )}
@@ -415,7 +424,7 @@ export function LightboxControls({
               <Menu position="bottom-end" withinPortal={false}>
                 <Menu.Target>
                   <ActionIcon variant="subtle" color="gray" size={28} aria-label={t("lightbox.toolbar.moreActions")}>
-                    <Dots size={18} />
+                    <Dots size={ICON_SIZE.lightbox} />
                   </ActionIcon>
                 </Menu.Target>
                 <Menu.Dropdown>
@@ -435,22 +444,24 @@ export function LightboxControls({
                     </Menu.Item>
                   )}
                   {photoDetail && canRotate && (
-                    <Menu.Item leftSection={<RotateCCW size={18} />} onClick={() => onRotate(-90)}>
+                    <Menu.Item leftSection={<RotateCCW size={ICON_SIZE.lightbox} />} onClick={() => onRotate(-90)}>
                       {t("lightbox.toolbar.rotateCCW")}
                     </Menu.Item>
                   )}
                   {photoDetail && canRotate && (
-                    <Menu.Item leftSection={<RotateCW size={18} />} onClick={() => onRotate(90)}>
+                    <Menu.Item leftSection={<RotateCW size={ICON_SIZE.lightbox} />} onClick={() => onRotate(90)}>
                       {t("lightbox.toolbar.rotateCW")}
                     </Menu.Item>
                   )}
                   {onCopyToClipboard && (
-                    <Menu.Item leftSection={<Copy size={18} />} onClick={onCopyToClipboard}>
+                    <Menu.Item leftSection={<Copy size={ICON_SIZE.lightbox} />} onClick={onCopyToClipboard}>
                       {copyLabel}
                     </Menu.Item>
                   )}
                   <Menu.Item
-                    leftSection={isFullscreen ? <Minimize size={18} /> : <Maximize size={18} />}
+                    leftSection={
+                      isFullscreen ? <Minimize size={ICON_SIZE.lightbox} /> : <Maximize size={ICON_SIZE.lightbox} />
+                    }
                     onClick={toggleFullscreen}
                   >
                     {fullscreenLabel}
@@ -476,7 +487,7 @@ export function LightboxControls({
             aria-label={infoLabel}
             onClick={() => setLightBoxSidebarShow(!lightboxSidebarShow)}
           >
-            <InfoCircle size={18} />
+            <InfoCircle size={ICON_SIZE.lightbox} />
           </ActionIcon>
         </Tooltip>
         <Tooltip label={t("lightbox.controls.close")} position="bottom" withArrow>
@@ -487,7 +498,7 @@ export function LightboxControls({
             aria-label={t("lightbox.controls.close")}
             onClick={onCloseRequest}
           >
-            <X size={18} />
+            <X size={ICON_SIZE.lightbox} />
           </ActionIcon>
         </Tooltip>
       </Group>

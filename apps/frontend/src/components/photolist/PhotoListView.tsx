@@ -30,7 +30,7 @@ import {
   useUpdateUserMutation,
 } from "../../api_client/user/hooks";
 import type { User } from "../../api_client/user/types";
-import { TOP_MENU_HEIGHT } from "../../ui-constants";
+import { ICON_SIZE, TOOLBAR_ACTION_SIZE, TOP_MENU_HEIGHT } from "../../ui-constants";
 import { formatDateForPhotoGroups } from "../../util/util";
 import { EmptyState } from "../common/EmptyState";
 import { Lightbox } from "../lightbox/Lightbox";
@@ -612,17 +612,12 @@ function PhotoListViewComponent({
                   {!isLoading && getNumPhotos() > 0 && isAlbumPubliclyShared && isUserAlbum && (
                     <Tooltip label={t("sidemenu.sharing")} position="bottom">
                       <ActionIcon
-                        variant="subtle"
-                        color="gray"
-                        size="lg"
+                        variant="default"
+                        size={TOOLBAR_ACTION_SIZE}
                         aria-label={t("sidemenu.sharing")}
                         onClick={() => setModalAlbumShareOpen(true)}
-                        style={{
-                          backgroundColor: "rgba(128, 128, 128, 0.3)",
-                          borderRadius: theme.radius.sm,
-                        }}
                       >
-                        <IconLink size={20} />
+                        <IconLink size={ICON_SIZE.toolbar} />
                       </ActionIcon>
                     </Tooltip>
                   )}
@@ -638,16 +633,11 @@ function PhotoListViewComponent({
                         {/* Hidden while the menu is open: it would sit over the menu's first label. */}
                         <Tooltip label={t("photodisplay.settings")} position="bottom" disabled={displayMenuOpened}>
                           <ActionIcon
-                            variant="subtle"
-                            color="gray"
-                            size="lg"
+                            variant="default"
+                            size={TOOLBAR_ACTION_SIZE}
                             aria-label={t("photodisplay.settings")}
-                            style={{
-                              backgroundColor: colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[0],
-                              borderRadius: theme.radius.sm,
-                            }}
                           >
-                            <IconSettings size={20} />
+                            <IconSettings size={ICON_SIZE.toolbar} />
                           </ActionIcon>
                         </Tooltip>
                       </Menu.Target>
