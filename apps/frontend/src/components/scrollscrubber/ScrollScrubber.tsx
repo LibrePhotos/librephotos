@@ -199,7 +199,7 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
   // is rebuilt every render and only reads these values.
   useEffect(() => {
     determinePositionsCoordinates();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-run when the marker layout inputs change; the helper is rebuilt on every render
   }, [scrollPositions, targetHeight, targetClientHeight, height, type]);
 
   const debouncedResize = useMemo(
@@ -320,7 +320,7 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
 
   // detectScrolling only reads scrollerIsVisible (everything else it touches is
   // a setter or a ref), so rebuilding the throttle on that change is enough.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- detectScrolling reads only scrollerIsVisible; the other values it touches are setters or refs
   const throttledDetectScrolling = useMemo(() => throttle(detectScrolling, 1000), [scrollerIsVisible]);
 
   const debouncedUpdateCurrentPosMarker = useMemo(() => throttle(setCurrentScrollPosMarkerY, 250), []);
@@ -337,7 +337,7 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
     }
     // Deliberately keyed on the scroll offsets read at render time: this re-syncs
     // the position marker on any render after a scroll, without its own listener.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-sync the marker on any render after a scroll; the offsets are read at render time
   }, [window.scrollY, targetRef.current?.scrollTop]);
 
   // Plain functions, not useCallback: they are called during render, so memoising

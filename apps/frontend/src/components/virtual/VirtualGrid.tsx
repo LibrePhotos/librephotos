@@ -95,7 +95,7 @@ export const VirtualGrid = forwardRef<VirtualGridHandle, VirtualGridProps>(funct
   );
   // The virtualizer caches row offsets until one of its measurement options changes, and the
   // key function is one of them: a new one per rowHeight makes a resize re-lay-out every row.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- unnecessary dependency, kept for now; the key is index-only (see the comment above)
   const getItemKey = useCallback((index: number) => index, [estimateSize]);
 
   const virtualizer = useVirtualizer({

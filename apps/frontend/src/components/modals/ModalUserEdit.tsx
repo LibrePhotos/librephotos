@@ -128,7 +128,7 @@ export function ModalUserEdit(props: Props) {
     // Reset the form only when a different user is opened. `form` is a new object
     // every render and `userPassword` changes while typing; either would wipe the
     // fields the admin is editing.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reset only when a different user is opened; form and userPassword change while typing
   }, [userToEdit, t]);
 
   useEffect(() => {

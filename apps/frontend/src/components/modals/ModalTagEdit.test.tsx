@@ -161,12 +161,10 @@ async function renderModal(options: RenderOptions = {}) {
     async type(line: string) {
       const segments = line.split(",");
       for (let index = 0; index < segments.length; index += 1) {
-        // eslint-disable-next-line no-await-in-loop
         await act(async () => {
           setInputValue(tagInput(), segments[index]);
         });
         if (index < segments.length - 1) {
-          // eslint-disable-next-line no-await-in-loop
           await act(async () => {
             pressKey(",");
           });

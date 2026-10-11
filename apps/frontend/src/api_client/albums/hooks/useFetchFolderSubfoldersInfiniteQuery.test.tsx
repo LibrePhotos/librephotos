@@ -65,7 +65,6 @@ async function mount() {
 // Lets the queries answer, up to a second, until `done` holds
 async function settle(done: () => boolean) {
   for (let i = 0; i < 100 && !done(); i += 1) {
-    // eslint-disable-next-line no-await-in-loop
     await act(async () => {
       await new Promise(resolve => setTimeout(resolve, 10));
     });

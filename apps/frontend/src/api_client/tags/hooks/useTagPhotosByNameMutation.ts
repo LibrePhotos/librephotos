@@ -41,9 +41,7 @@ export const useTagPhotosByNameMutation = () =>
       // constraint, and a library-wide add is heavy enough server-side that
       // firing them in parallel only moves the queue.
       for (const name of names) {
-        // eslint-disable-next-line no-await-in-loop
         const { tag } = await resolveTag(name, cached);
-        // eslint-disable-next-line no-await-in-loop
         await fetchClient.post(`/tags/${tag.id}/add/`, payload);
         applied.push(tag.name);
       }

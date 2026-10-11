@@ -127,7 +127,7 @@ export function useSearch() {
   // options for the query the user is typing with the unfiltered list.
   useEffect(() => {
     if (!isLoading) filterOptions("");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- seed once when loading finishes; filterOptions changes on refetch and must not reset the list
   }, [isLoading]);
 
   return {

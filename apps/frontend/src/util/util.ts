@@ -1,4 +1,4 @@
-/* eslint no-plusplus: ["error", { "allowForLoopAfterthoughts": true }] */
+/* eslint no-plusplus: ["error", { "allowForLoopAfterthoughts": true }] -- no ++ outside for-loop updates */
 import { escapeRegExp } from "lodash-es";
 import { DateTime } from "luxon";
 import type { DirTree } from "../api_client/folders/types";

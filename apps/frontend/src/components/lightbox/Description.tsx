@@ -104,7 +104,6 @@ function CaptionEditor(props: Props) {
       }),
     ],
     content: imageCaption,
-    // eslint-disable-next-line @typescript-eslint/no-shadow
     onUpdate({ editor }) {
       setImageCaption(editor.getText());
     },

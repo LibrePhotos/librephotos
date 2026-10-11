@@ -149,7 +149,7 @@ export function LocationPickerModal({ imageHash, onClose, initialLat, initialLon
     }
     // Mount only: a coarse "near you" pan when the photo has no location yet.
     // Re-running on every picked position would yank the map away from the pick.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount only; re-running on every picked position would move the map away from the pick
   }, []);
 
   const searchOptions = searchResults?.map(result => (
