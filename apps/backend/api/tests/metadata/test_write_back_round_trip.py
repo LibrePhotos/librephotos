@@ -24,8 +24,8 @@ from api.metadata.jobs import queue_rating_write, write_photo_ratings
 from api.metadata.photo_datetime import extract_date_time
 from api.metadata.photo_writer import write_photo_metadata
 from api.metadata.reader import get_metadata
-from api.metadata.writer import write_metadata
 from api.metadata.tags import Tags
+from api.metadata.writer import write_metadata
 from api.models.person import Person
 from api.models.photo import Photo
 from api.models.user import User

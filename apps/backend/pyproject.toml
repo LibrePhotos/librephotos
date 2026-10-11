@@ -62,6 +62,10 @@ ignore = [
   "PLC0415",
 ]
 
+[tool.ruff.lint.pep8-naming]
+# Custom assertions on a TestCase follow unittest's camelCase (assertEqual).
+extend-ignore-names = ["assert*"]
+
 [tool.ruff.lint.flake8-annotations]
 # `*args: Any, **kwargs: Any` on pass-through overrides (DRF views, Django
 # managers) is the one place where `Any` is the honest type.
