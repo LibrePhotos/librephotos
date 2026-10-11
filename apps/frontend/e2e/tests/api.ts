@@ -4,7 +4,8 @@ import { APIRequestContext, expect } from "@playwright/test";
 
 /** A property of a parsed JSON value, or undefined when the value is not an object that has it. */
 function field(value: unknown, key: string): unknown {
-  return typeof value === "object" && value !== null && key in value ? value[key] : undefined;
+  if (typeof value !== "object" || value === null) return undefined;
+  return Object.getOwnPropertyDescriptor(value, key)?.value;
 }
 
 export async function obtainToken(request: APIRequestContext, username: string, password: string): Promise<string> {
