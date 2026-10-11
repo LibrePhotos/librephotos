@@ -27,22 +27,6 @@ from api.tests.utils import create_test_photo, create_test_user
 
 EXIFTOOL = shutil.which("exiftool")
 
-# Only the tags LibrePhotos actually writes. Plenty of entries in ``Tags`` are
-# legitimately read-only (Composite:GPSLatitude, File:FileSize, ImageHeight,
-# ...), so this is deliberately not a blanket sweep over the class.
-WRITTEN_TAGS = [
-    Tags.RATING,
-    Tags.DATE_CREATED,
-    Tags.REGION_INFO_WRITE,
-    Tags.SUBJECT,
-]
-
-# What ExifTool says when it does not know a tag name.
-UNKNOWN_TAG_MARKERS = (
-    "doesn't exist or isn't writable",
-    "is not defined",
-)
-
 TIMESTAMP = datetime.datetime(2019, 8, 15, 7, 45, 0, tzinfo=datetime.timezone.utc)
 TIMESTAMP_EXIFTOOL = "2019:08:15 07:45:00"
 
@@ -64,25 +48,17 @@ def make_jpeg(directory, name="test.jpg"):
 
 @unittest.skipUnless(EXIFTOOL, "exiftool binary not available")
 class ExifToolTagNameTest(SimpleTestCase):
-    """Every tag name LibrePhotos writes must be one ExifTool knows."""
+    """The date tags LibrePhotos reads and writes, against the real binary.
+
+    Whether every tag a write path emits is one ExifTool knows *and* stores in
+    the file it is aimed at is checked by ``WriteTargetGuardTest`` in
+    ``test_write_back_round_trip``, from the tags the write paths actually emit.
+    """
 
     def setUp(self):
         self.directory = tempfile.mkdtemp(prefix="librephotos-tagnames")
         self.addCleanup(shutil.rmtree, self.directory, True)
         self.image = make_jpeg(self.directory)
-
-    def test_written_tags_are_writable(self):
-        for tag in WRITTEN_TAGS:
-            with self.subTest(tag=tag):
-                # An empty value is a delete, which is enough to make ExifTool
-                # resolve the name without caring about value formatting.
-                result = run_exiftool(f"-{tag}=", "-overwrite_original", self.image)
-                for marker in UNKNOWN_TAG_MARKERS:
-                    self.assertNotIn(
-                        marker,
-                        result.stderr,
-                        f"exiftool does not know the tag {tag!r}: {result.stderr}",
-                    )
 
     def test_date_time_tag_reads_back_modify_date(self):
         """``Tags.DATE_TIME`` must name the EXIF tag exiftool calls ModifyDate.

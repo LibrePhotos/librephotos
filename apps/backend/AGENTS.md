@@ -43,6 +43,9 @@ test makes `--parallel` runs crash with "cannot pickle 'traceback'"; rerun that 
   `@shared_task`.
 - Logging: `logger = logging.getLogger(__name__)`, lazy `%` arguments, never f-strings; carry the job id,
   user id or `image_hash`, never usernames, paths or captions above DEBUG. Details: `CONTRIBUTING.md`.
+- Metadata write-back is tested against real ExifTool, not a mocked `write_metadata`: a new caller of
+  it needs a round-trip test on `RealExifToolTestCase` (`api/tests/metadata/exiftool_harness.py`) in
+  `api/tests/metadata/test_write_back_round_trip.py`, whose guard fails until it is listed there.
 - Migrations 0001-0100 are squashed into `0001_squashed_0100`. Keep its `replaces` and depend on it,
   not on the old names.
 - Configuration: app code reads `django.conf.settings`. Settings modules read variables through

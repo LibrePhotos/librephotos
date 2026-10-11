@@ -1,102 +1,44 @@
 import os
 import shutil
-import tempfile
-import unittest
 
-import requests
-from django.conf import settings
-from django.test import TestCase
-from django.utils import timezone
-from faker import Faker
-from rest_framework.test import APIClient
+from django.test import override_settings
 
-from api.models import File, Person, Photo
+from api.models import Person
 from api.photo_faces import extract_faces
+from api.tests.metadata.exiftool_harness import RealExifToolTestCase
 from api.tests.utils import create_test_user
 
-
-EXIF_SERVICE_URL = "http://127.0.0.1:8010/"
-
-
-def _exif_service_available():
-    """Check if the EXIF metadata service is reachable."""
-    try:
-        requests.get(EXIF_SERVICE_URL, timeout=1)
-        return True
-    except Exception:
-        return False
+FIXTURES = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "fixtures"
+)
 
 
-class ReadFacesFromPhotosTest(TestCase):
-    def setUp(self):
-        self.client = APIClient()
-        self.user1 = create_test_user(favorite_min_rating=1)
-        self.client.force_authenticate(user=self.user1)
+@override_settings(FEATURE_FACE_DETECTION=True)
+class ReadFacesFromPhotosTest(RealExifToolTestCase):
+    """A face region in an XMP sidecar becomes a named face on import.
 
-    @unittest.skipUnless(
-        _exif_service_available(),
-        "EXIF metadata service at 127.0.0.1:8010 is not available",
-    )
+    Runs against real ExifTool through the exif service's own code
+    (``RealExifToolTestCase``), so it no longer needs a running exif service
+    and is not skipped in CI.
+    """
+
     def test_reading_from_photo(self):
-        fixtures = os.path.join(
-            os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "fixtures"
+        user = create_test_user(favorite_min_rating=1)
+        photo_path = os.path.join(self.directory, "niaz.jpg")
+        shutil.copyfile(os.path.join(FIXTURES, "niaz.jpg"), photo_path)
+        # The sidecar has to sit next to the photo under the same basename.
+        shutil.copyfile(
+            os.path.join(FIXTURES, "niaz.xmp"), os.path.join(self.directory, "niaz.xmp")
         )
-        file = os.path.join(fixtures, "niaz.jpg")
-        exif_file = os.path.join(fixtures, "niaz.xmp")
-
-        import uuid
-
-        pk = uuid.uuid4()
-        pk_str = str(pk)
-        # shutil + tempfile + MEDIA_ROOT rather than os.system("cp") into
-        # hardcoded /tmp and /protected_media: those are the container's paths,
-        # so on any other host this silently copied nothing (os.system swallows
-        # the failure) and the test blew up several frames later on a file that
-        # was never there.
-        scratch = tempfile.mkdtemp(prefix="librephotos-exif-test-")
-        self.addCleanup(shutil.rmtree, scratch, True)
-        photo_path = os.path.join(scratch, pk_str + ".jpg")
-        shutil.copyfile(file, photo_path)
-        # the sidecar has to sit next to the photo under the same basename
-        shutil.copyfile(exif_file, os.path.join(scratch, pk_str + ".xmp"))
-        # we need a thumbnail in the thumbnails_big folder
-        thumbnails_big = os.path.join(settings.MEDIA_ROOT, "thumbnails_big")
-        os.makedirs(thumbnails_big, exist_ok=True)
-        shutil.copyfile(file, os.path.join(thumbnails_big, pk_str + ".jpg"))
-
-        fake = Faker()
-        image_hash = fake.md5()
-        photo = Photo(pk=pk, image_hash=image_hash, owner=self.user1)
-        fileObject = File.create(photo_path, self.user1)
-        photo.main_file = fileObject
-        photo.added_on = timezone.now()
-        photo.save()
-
-        # Create thumbnail for the photo
-        from api.models.thumbnail import Thumbnail
-
-        Thumbnail.objects.create(
-            photo=photo,
-            thumbnail_big="thumbnails_big/" + pk_str + ".jpg",
-            aspect_ratio=1.0,
-        )
+        photo = self.photo_for(photo_path, user, thumbnails=True)
 
         extract_faces(photo)
 
-        # To Debug Face Extraction: Look at the actual produced thumbnail
-        # Thumbnail is wrong at the moment, need to create a correct face tag first, where I know the face is correct
-        # output_file = (
-        #        os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        #        + "/fixtures/niaz_face.jpg"
-        # )
-        # os.system("cp " + "/protected_media/faces/" + str(photo.pk) + "_0.jpg" + " " + output_file)
-
-        self.assertEqual(1, len(photo.faces.all()))
-        # One Niaz Faridani-Rad
-        self.assertEqual(1, len(Person.objects.all()))
-        # There has to be a face encoding
-        self.assertIsNotNone(photo.faces.all()[0].encoding)
+        faces = list(photo.faces.all())
+        self.assertEqual(1, len(faces))
         self.assertEqual(
-            "Niaz Faridani-Rad",
-            Person.objects.filter(name="Niaz Faridani-Rad").first().name,
+            ["Niaz Faridani-Rad"], list(Person.objects.values_list("name", flat=True))
         )
+        self.assertEqual("Niaz Faridani-Rad", faces[0].person.name)
+        # An XMP region has no encoding until generate_face_embeddings runs.
+        self.assertIsNotNone(faces[0].encoding)
