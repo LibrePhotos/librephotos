@@ -242,7 +242,8 @@ class JWTBridgeTest(TestCase):
 
         access = resp.cookies["access"].value
         self.assertEqual(int(AccessToken(access)["user_id"]), self.user.pk)
-        # The SPA reads `jwt` and `access` interchangeably; keep them in step.
+        # The web sends `access` as a bearer header and media requests send
+        # `jwt`; they carry the same token.
         self.assertEqual(resp.cookies["jwt"].value, access)
 
     def test_the_allauth_session_does_not_outlive_the_handoff(self):
