@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { defined } from "../../util/defined.test-utils";
 import { locationTimelineChart, stayForSeries } from "./locationTimelineChart";
 
 // The shape of the backend's location timeline test fixture: home, two trips
@@ -17,14 +18,14 @@ describe("locationTimelineChart", () => {
 
     expect(new Set(series.map(s => s.name)).size).toBe(5);
     expect(series.map(s => s.label)).toEqual(["Germany", "Canada", "France", "Canada", "France"]);
-    expect(series.map(s => data[0][s.name])).toEqual([22208418, 9413609, 20648022, 6132785, 79828]);
+    expect(series.map(s => data[0]?.[s.name])).toEqual([22208418, 9413609, 20648022, 6132785, 79828]);
   });
 
   it("finds the stay behind a hovered segment", () => {
     const { series } = locationTimelineChart(timeline);
 
-    expect(stayForSeries(timeline, series[1].name).start).toBe(2);
-    expect(stayForSeries(timeline, series[3].name).start).toBe(6);
+    expect(stayForSeries(timeline, defined(series[1]).name)?.start).toBe(2);
+    expect(stayForSeries(timeline, defined(series[3]).name)?.start).toBe(6);
   });
 
   it("has no data row without stays", () => {

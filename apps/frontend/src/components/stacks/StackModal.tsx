@@ -74,7 +74,7 @@ function getFileExtension(filePath: string | null): string | null {
   if (!filePath) return null;
   const parts = filePath.split(".");
   if (parts.length > 1) {
-    return parts[parts.length - 1].toUpperCase();
+    return parts[parts.length - 1]?.toUpperCase() ?? null;
   }
   return null;
 }

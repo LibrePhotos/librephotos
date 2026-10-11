@@ -105,10 +105,10 @@ function AlbumPeople() {
       return null;
     }
     const index = rowIndex * entriesPerRow + columnIndex;
-    if (index >= albums.length) {
+    const album = albums[index];
+    if (!album) {
       return <div key={key} style={style} />;
     }
-    const album = albums[index];
     return (
       <div key={key} style={style}>
         <div className={gridClasses.cell}>

@@ -1,4 +1,5 @@
 import { describe, expect, test } from "vitest";
+import { defined } from "../../util/defined.test-utils";
 import { FetchMemoriesResponse, MemoryType } from "./types";
 
 /**
@@ -50,7 +51,7 @@ describe("FetchMemoriesResponse", () => {
       ],
     });
 
-    const [memory] = parsed.results;
+    const memory = defined(parsed.results[0]);
     expect(memory.type).toBe(MemoryType.YEARS_AGO);
     expect(memory.years_ago).toBe(1);
     expect(memory.location).toBe("Rome, Italy");
@@ -81,7 +82,7 @@ describe("FetchMemoriesResponse", () => {
       ],
     });
 
-    expect(parsed.results[0].type).toBe(MemoryType.MONTH_YEARS_AGO);
+    expect(parsed.results[0]?.type).toBe(MemoryType.MONTH_YEARS_AGO);
   });
 
   test("parses an empty day", () => {

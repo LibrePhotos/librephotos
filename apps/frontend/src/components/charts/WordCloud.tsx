@@ -146,7 +146,7 @@ function layoutWords(words: WordItem[], containerWidth: number, containerHeight:
             y,
             width,
             height,
-            color: COLORS[i % COLORS.length],
+            color: COLORS[i % COLORS.length] ?? "#6366f1",
           });
           placed = true;
         }

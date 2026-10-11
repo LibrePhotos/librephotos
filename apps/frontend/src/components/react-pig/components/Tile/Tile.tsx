@@ -189,12 +189,14 @@ function TileComponent<T extends ImageItem>({
               setTimeout(() => {
                 // Grid videos carry the thumbnail class too.
                 const thumbnails = document.querySelectorAll(`.${styles.pigThumbnail}`);
+                const loadedClass = styles.pigThumbnailLoaded;
                 thumbnails.forEach(thumbnail => {
                   if (
                     (thumbnail instanceof HTMLImageElement || thumbnail instanceof HTMLMediaElement) &&
-                    thumbnail.src.includes(url.split(";")[0])
+                    thumbnail.src.includes(url.split(";")[0] ?? url) &&
+                    loadedClass !== undefined
                   ) {
-                    thumbnail.classList.add(styles.pigThumbnailLoaded);
+                    thumbnail.classList.add(loadedClass);
                   }
                 });
               }, 50);

@@ -91,20 +91,20 @@ describe("issue #1888 — non-admin user list popup", () => {
     expect(() => UserListResponse.parse(envelope([publicSafeUser]))).not.toThrow();
     const parsed = UserListResponse.parse(envelope([publicSafeUser]));
     expect(parsed.results).toHaveLength(1);
-    expect(parsed.results[0].username).toBe("alice");
+    expect(parsed.results[0]?.username).toBe("alice");
   });
 
   test("the user-list response still accepts the full admin payload", () => {
     expect(() => UserListResponse.parse(envelope([fullUser]))).not.toThrow();
     const parsed = UserListResponse.parse(envelope([fullUser]));
-    expect(parsed.results[0].email).toBe("alice@example.com");
+    expect(parsed.results[0]?.email).toBe("alice@example.com");
   });
 
   // zod strips unknown keys: without the field in the schema the Edit User
   // dialog showed an empty upload folder for a user who had one.
   test("keeps an admin row's upload folder", () => {
     const parsed = UserListResponse.parse(envelope([{ ...fullUser, upload_directory: "/data/alice/inbox" }]));
-    expect(parsed.results[0].upload_directory).toBe("/data/alice/inbox");
+    expect(parsed.results[0]?.upload_directory).toBe("/data/alice/inbox");
     expect(User.parse({ ...fullUser, upload_directory: null }).upload_directory).toBeNull();
   });
 });

@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { Memory, MemoryType } from "../../api_client/memories";
 import type { PigPhoto } from "../../api_client/photos/types";
+import { defined } from "../../util/defined.test-utils";
 import { tempPigPhoto } from "../../util/util";
 import { memoriesAreCapped, memoriesPhotoCount, memoriesToFlatItems, memoriesToPhotoGroups } from "./memoryPhotoset";
 
@@ -33,15 +34,15 @@ describe("memoriesToPhotoGroups", () => {
     ]);
 
     expect(groups.map(group => group.id)).toEqual(["years_ago-2024", "years_ago-2021"]);
-    expect(groups[1].date).toBe("2021-08-25");
-    expect(groups[1].location).toBe("Rome, Italy");
+    expect(groups[1]?.date).toBe("2021-08-25");
+    expect(groups[1]?.location).toBe("Rome, Italy");
     expect(groups.every(group => group.incomplete === false)).toBe(true);
   });
 
   test("counts a group by the photos it carries, not by the memory's size", () => {
     // A group that claims more than it holds makes the grid reserve space for
     // photos that were never sent.
-    const [group] = memoriesToPhotoGroups([memory({ numberOfItems: 400, items: [photo("a"), photo("b")] })]);
+    const group = defined(memoriesToPhotoGroups([memory({ numberOfItems: 400, items: [photo("a"), photo("b")] })])[0]);
     expect(group.numberOfItems).toBe(2);
     expect(group.items).toHaveLength(2);
   });

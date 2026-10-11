@@ -155,7 +155,7 @@ describe("an unnamed face in the lightbox sidebar", () => {
     const container = await renderRow(unnamedFace);
 
     await act(async () => {
-      buttons(container)[0].click();
+      defined(buttons(container)[0]).click();
     });
 
     expect(onPersonEdit).toHaveBeenCalledWith(unnamedFace.face_id, unnamedFace.face_url);
@@ -197,7 +197,7 @@ describe("a face the algorithms did name", () => {
     const container = await renderRow(inferredFace);
 
     await act(async () => {
-      buttons(container)[0].click();
+      defined(buttons(container)[0]).click();
     });
 
     expect(stubs.navigate).toHaveBeenCalledWith({ to: "/search/Alice" });
@@ -207,7 +207,7 @@ describe("a face the algorithms did name", () => {
     const container = await renderRow({ ...inferredFace, name: "Anna & Bo" });
 
     await act(async () => {
-      buttons(container)[0].click();
+      defined(buttons(container)[0]).click();
     });
 
     expect(stubs.navigate).toHaveBeenCalledWith({ to: "/search/Anna%20%26%20Bo" });

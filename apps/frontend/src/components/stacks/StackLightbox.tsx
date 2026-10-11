@@ -79,6 +79,8 @@ export function StackLightbox({ photos, initialPhotoHash, onClose, isPublic = fa
     return "photo";
   };
 
+  if (!currentPhoto) return null;
+
   return (
     <ContentViewer
       mainSrc={currentPhoto.id}

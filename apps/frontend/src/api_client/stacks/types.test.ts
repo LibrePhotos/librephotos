@@ -38,14 +38,14 @@ describe("legacy RAW + JPEG and Live Photo stacks", () => {
       aspectRatio: 1.5,
       stacks: [{ id: stackId, type, photo_count: 2, is_primary: true }],
     });
-    expect(item.stacks?.[0].type).toBe(type);
+    expect(item.stacks?.[0]?.type).toBe(type);
   });
 
   it("parse in a photo's stack details", () => {
     const stacks = Photo.shape.stacks.parse([
       { id: stackId, type: "live_photo", type_display: "Live Photo", photo_count: 2, is_primary: true, photos: [] },
     ]);
-    expect(stacks?.[0].type).toBe("live_photo");
+    expect(stacks?.[0]?.type).toBe("live_photo");
   });
 
   it("parse as a stack detail, and have a label", () => {
