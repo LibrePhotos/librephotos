@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.a1e92a76.css">
-<script src="/assets/js/runtime~main.e93d2eaa.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.c944ded9.js" defer="defer"></script>
 <script src="/assets/js/main.f4dc5e9c.js" defer="defer"></script>
 </head>
 <body>
@@ -62,6 +62,7 @@
 </ul>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="behind-a-reverse-proxy">Behind a reverse proxy<a href="#behind-a-reverse-proxy" class="hash-link" aria-label="Direct link to Behind a reverse proxy" title="Direct link to Behind a reverse proxy" translate="no">​</a></h2>
 <p>If you put this container behind an HTTPS reverse proxy (Traefik, Caddy, a cloud load balancer), add <code>-e CSRF_TRUSTED_ORIGINS=https://photos.example.com</code> (comma-separated for several origins; each must include the scheme and match the browser-visible address exactly). The unified image starts with an empty trusted-origin list, so without it the Django admin at <code>/api/django-admin/</code> rejects logins with a CSRF error. The photo app itself is unaffected — it authenticates with JWT and its API endpoints are CSRF-exempt.</p>
+<p>Also add <code>-e NUM_PROXIES=1</code>, so the sign-in rate limits count each client by the address your proxy passes on instead of counting everyone as the proxy (see <a class="" href="/docs/installation/environment-variables#sign-in-rate-limits">Sign-in rate limits</a>).</p>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="next-steps">Next Steps<a href="#next-steps" class="hash-link" aria-label="Direct link to Next Steps" title="Direct link to Next Steps" translate="no">​</a></h2>
 <p>Once LibrePhotos is running, you&#x27;ll be guided through a <strong>First Time Setup Wizard</strong> that will help you:</p>
 <ol>
