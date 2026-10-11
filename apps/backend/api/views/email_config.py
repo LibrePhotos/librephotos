@@ -2,10 +2,12 @@ import logging
 
 from django.core.mail import send_mail
 from rest_framework.permissions import IsAdminUser
+from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from api.models.email_config import PROVIDER_PRESETS, EmailConfig
+from api.request_user import request_user
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +22,7 @@ _WRITABLE_FIELDS = (
 )
 
 
-def _serialize(config):
+def _serialize(config: EmailConfig) -> dict[str, object]:
     """Non-secret representation of the config. The stored secret is NEVER
     returned; only whether one is set."""
     return {
@@ -42,12 +44,13 @@ class EmailConfigView(APIView):
 
     permission_classes = (IsAdminUser,)
 
-    def get(self, request, format=None):
+    def get(self, request: Request, format: str | None = None) -> Response:
         return Response(_serialize(EmailConfig.load()))
 
-    def post(self, request, format=None):
+    def post(self, request: Request, format: str | None = None) -> Response:
         config = EmailConfig.load()
         data = request.data
+        assert isinstance(data, dict)
 
         for field in _WRITABLE_FIELDS:
             if field in data:
@@ -70,14 +73,16 @@ class EmailTestView(APIView):
 
     permission_classes = (IsAdminUser,)
 
-    def post(self, request, format=None):
+    def post(self, request: Request, format: str | None = None) -> Response:
         config = EmailConfig.load()
         if not config.is_configured:
             return Response(
                 {"status": False, "message": "Email is not configured."}, status=400
             )
 
-        recipient = (request.data.get("to") or request.user.email or "").strip()
+        data = request.data
+        assert isinstance(data, dict)
+        recipient = (data.get("to") or request_user(request).email or "").strip()
         if not recipient:
             return Response(
                 {

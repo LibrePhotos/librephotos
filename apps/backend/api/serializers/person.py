@@ -1,14 +1,19 @@
 import logging
+from collections.abc import Callable
+from typing import Any, TypeVar
 
 from django.core.exceptions import ValidationError as DjangoValidationError
-from django.db.models import Q
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
-from api.models import Person, Photo
+from api.models import Face, Person, Photo, User
+from api.request_user import request_user
 from api.serializers.photos import GroupedPhotosSerializer
 from api.serializers.PhotosGroupedByDate import get_photos_ordered_by_date
 
 logger = logging.getLogger(__name__)
+
+_T = TypeVar("_T")
 
 
 class GroupedPersonPhotosSerializer(serializers.ModelSerializer):
@@ -23,16 +28,19 @@ class GroupedPersonPhotosSerializer(serializers.ModelSerializer):
             "grouped_photos",
         )
 
-    def get_id(self, obj) -> str:
+    def get_id(self, obj: Person) -> str:
         return str(obj.id)
 
-    def get_grouped_photos(self, obj) -> GroupedPhotosSerializer(many=True):
-        user = None
-        request = self.context.get("request")
-        if request and hasattr(request, "user"):
-            user = request.user
+    @extend_schema_field(GroupedPhotosSerializer(many=True))
+    def get_grouped_photos(self, obj: Person) -> list[dict[str, Any]]:
+        # AlbumPersonViewSet runs behind IsAuthenticated.
+        user = request_user(self.context["request"])
         grouped_photos = get_photos_ordered_by_date(obj.get_photos(user))
-        res = GroupedPhotosSerializer(grouped_photos, many=True).data
+        # ``.data`` of a many=True serializer is a ReturnList; build it through
+        # ListSerializer so the static type matches the runtime value.
+        res = serializers.ListSerializer(
+            child=GroupedPhotosSerializer(), instance=grouped_photos
+        ).data
         return res
 
 
@@ -61,7 +69,12 @@ class PersonSerializer(serializers.ModelSerializer):
             "cover_photo",
         )
 
-    def _first_face_value(self, obj, annotation, resolve):
+    def _first_face_value(
+        self,
+        obj: Person,
+        annotation: str,
+        resolve: Callable[[Face], _T],
+    ) -> _T | None:
         """Value taken from the person's first face, without a query per person.
 
         ``PersonViewSet`` annotates the values this serializer needs off the
@@ -71,21 +84,24 @@ class PersonSerializer(serializers.ModelSerializer):
         (issue #618). Serializers instantiated on a plain (unannotated) person
         still work, they just pay for the lookup.
         """
-        value = getattr(obj, annotation, _UNANNOTATED)
+        value: Any = getattr(obj, annotation, _UNANNOTATED)
         if value is not _UNANNOTATED:
             return value
         face = obj.faces.first()
         return resolve(face) if face else None
 
-    def get_face_url(self, obj) -> str:
+    def get_face_url(self, obj: Person) -> str:
         if obj.cover_face:
-            return "/media/" + obj.cover_face.image.name
+            name = obj.cover_face.image.name
+            # A face with a cover always has its image stored.
+            assert name is not None
+            return "/media/" + name
         image = self._first_face_value(
             obj, "first_face_image", lambda face: face.image.name
         )
         return "/media/" + image if image else ""
 
-    def get_face_photo_url(self, obj) -> str:
+    def get_face_photo_url(self, obj: Person) -> str:
         if obj.cover_photo:
             return obj.cover_photo.image_hash
         image_hash = self._first_face_value(
@@ -95,7 +111,7 @@ class PersonSerializer(serializers.ModelSerializer):
         )
         return image_hash or ""
 
-    def get_video(self, obj) -> bool:
+    def get_video(self, obj: Person) -> bool:
         if obj.cover_photo:
             return bool(obj.cover_photo.video)
         video = self._first_face_value(
@@ -107,10 +123,11 @@ class PersonSerializer(serializers.ModelSerializer):
         # strictly, so one person without faces would empty it (#2151).
         return bool(video)
 
-    def _requester(self):
-        return getattr(self.context.get("request"), "user", None)
+    def _requester(self) -> User:
+        # PersonViewSet runs behind IsAuthenticated, so the request has a user.
+        return request_user(self.context["request"])
 
-    def create(self, validated_data):
+    def create(self, validated_data: dict[str, Any]) -> Person:
         name = validated_data.pop("name")
         if len(name.strip()) == 0:
             raise serializers.ValidationError("Name cannot be empty")
@@ -127,7 +144,7 @@ class PersonSerializer(serializers.ModelSerializer):
             logger.info(f"created person {new_person.id}")
             return new_person
 
-    def update(self, instance, validated_data):
+    def update(self, instance: Person, validated_data: dict[str, Any]) -> Person:
         if "newPersonName" in validated_data.keys():
             new_name = validated_data.pop("newPersonName")
             instance.name = new_name
@@ -158,37 +175,6 @@ class PersonSerializer(serializers.ModelSerializer):
             return instance
         return instance
 
-    def delete(self, validated_data, id):
+    def delete(self, validated_data: dict[str, Any], id: int) -> None:
         person = Person.objects.filter(id=id).get()
         person.delete()
-
-
-class AlbumPersonListSerializer(serializers.ModelSerializer):
-    photo_count = serializers.SerializerMethodField()
-    cover_photo_url = serializers.SerializerMethodField()
-
-    class Meta:
-        model = Person
-        fields = (
-            "name",
-            "photo_count",
-            "cover_photo_url",
-            "id",
-        )
-
-    def get_photo_count(self, obj) -> int:
-        return obj.filter(Q(person__is_null=False)).faces.count()
-
-    def get_cover_photo_url(self, obj) -> str:
-        first_face = obj.faces.filter(Q(person__is_null=False)).first()
-        if first_face:
-            return first_face.photo.thumbnail.square_thumbnail.url
-        else:
-            return None
-
-    def get_face_photo_url(self, obj) -> str:
-        first_face = obj.faces.filter(Q(person__is_null=False)).first()
-        if first_face:
-            return first_face.photo.image.url
-        else:
-            return None

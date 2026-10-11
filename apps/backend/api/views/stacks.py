@@ -14,20 +14,43 @@ Stacks are for organization, duplicates are for storage cleanup.
 
 import logging
 from collections import Counter
+from typing import Any
 
+from django.core.exceptions import ObjectDoesNotExist
 from django.core.paginator import Paginator
 from django.db.models import Count
 from django_q.tasks import async_task
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from api.models import Photo
+from api.models import Photo, PhotoMetadata
 from api.models.photo_stack import PhotoStack
+from api.request_user import request_user
 
 logger = logging.getLogger(__name__)
+
+
+def _request_body(request: Request) -> dict[str, Any]:
+    """The JSON object in the request body.
+
+    A body that is not an object (a JSON list, say) has always failed in these
+    views with an AttributeError, i.e. a 500; the assert keeps that failure.
+    """
+    body = request.data
+    assert isinstance(body, dict)
+    return body
+
+
+def _metadata_or_none(photo: Photo) -> PhotoMetadata | None:
+    """The photo's metadata row, or None when it has none (reverse one-to-one)."""
+    try:
+        return photo.metadata
+    except ObjectDoesNotExist:
+        return None
 
 
 class PhotoStackListView(APIView):
@@ -54,7 +77,8 @@ class PhotoStackListView(APIView):
             ),
         ],
     )
-    def get(self, request):
+    def get(self, request: Request) -> Response:
+        user = request_user(request)
         stack_type_filter = request.query_params.get("stack_type", None)
 
         # Safely parse pagination parameters with defaults for invalid input
@@ -72,9 +96,7 @@ class PhotoStackListView(APIView):
         valid_stack_types = PhotoStack.VALID_STACK_TYPES
 
         stacks = (
-            PhotoStack.objects.filter(
-                owner=request.user, stack_type__in=valid_stack_types
-            )
+            PhotoStack.objects.filter(owner=user, stack_type__in=valid_stack_types)
             .prefetch_related("photos__thumbnail", "primary_photo__thumbnail")
             .annotate(photos_count=Count("photos"))
             .order_by("-created_at")
@@ -94,15 +116,18 @@ class PhotoStackListView(APIView):
         page_obj = paginator.get_page(page)
 
         # Serialize manually to include nested photo data
-        results = []
+        results: list[dict[str, object]] = []
         for stack in page_obj.object_list:
             photos = stack.photos.all()[:4]  # Preview first 4 photos
+            # photos_count is the Count() annotated in the queryset above; the
+            # type checker does not see annotated attributes.
+            photos_count: int = getattr(stack, "photos_count")
             results.append(
                 {
                     "id": str(stack.id),
                     "stack_type": stack.stack_type,
                     "stack_type_display": stack.get_stack_type_display(),
-                    "photo_count": stack.photos_count,
+                    "photo_count": photos_count,
                     "sequence_start": stack.sequence_start,
                     "sequence_end": stack.sequence_end,
                     "created_at": stack.created_at,
@@ -146,7 +171,8 @@ class PhotoStackDetailView(APIView):
 
     permission_classes = [IsAuthenticated]
 
-    def get(self, request, stack_id):
+    def get(self, request: Request, stack_id: str) -> Response:
+        user = request_user(request)
         # Use model-defined valid stack types (excludes deprecated RAW_JPEG_PAIR, LIVE_PHOTO)
         # Also include deprecated types for viewing existing stacks during migration
         all_stack_types = PhotoStack.VALID_STACK_TYPES + [
@@ -156,7 +182,7 @@ class PhotoStackDetailView(APIView):
 
         try:
             stack = PhotoStack.objects.annotate(photos_count=Count("photos")).get(
-                id=stack_id, owner=request.user, stack_type__in=all_stack_types
+                id=stack_id, owner=user, stack_type__in=all_stack_types
             )
         except PhotoStack.DoesNotExist:
             return Response(
@@ -175,10 +201,11 @@ class PhotoStackDetailView(APIView):
             width = None
             height = None
             camera = None
-            if hasattr(p, "metadata") and p.metadata:
-                width = p.metadata.width
-                height = p.metadata.height
-                camera = p.metadata.camera_model
+            metadata = _metadata_or_none(p)
+            if metadata is not None:
+                width = metadata.width
+                height = metadata.height
+                camera = metadata.camera_model
 
             # Get all file variants for this photo
             file_variants = []
@@ -222,7 +249,7 @@ class PhotoStackDetailView(APIView):
                 "id": str(stack.id),
                 "stack_type": stack.stack_type,
                 "stack_type_display": stack.get_stack_type_display(),
-                "photo_count": stack.photos_count,
+                "photo_count": getattr(stack, "photos_count"),
                 "sequence_start": stack.sequence_start,
                 "sequence_end": stack.sequence_end,
                 "created_at": stack.created_at,
@@ -234,10 +261,11 @@ class PhotoStackDetailView(APIView):
             }
         )
 
-    def delete(self, request, stack_id):
+    def delete(self, request: Request, stack_id: str) -> Response:
         """Delete a stack (unlinks photos but doesn't delete them)."""
+        user = request_user(request)
         try:
-            stack = PhotoStack.objects.get(id=stack_id, owner=request.user)
+            stack = PhotoStack.objects.get(id=stack_id, owner=user)
         except PhotoStack.DoesNotExist:
             return Response(
                 {"error": "Photo stack not found"}, status=status.HTTP_404_NOT_FOUND
@@ -261,9 +289,10 @@ class PhotoStackDeleteView(APIView):
 
     permission_classes = [IsAuthenticated]
 
-    def delete(self, request, stack_id):
+    def delete(self, request: Request, stack_id: str) -> Response:
+        user = request_user(request)
         try:
-            stack = PhotoStack.objects.get(id=stack_id, owner=request.user)
+            stack = PhotoStack.objects.get(id=stack_id, owner=user)
         except PhotoStack.DoesNotExist:
             return Response(
                 {"error": "Photo stack not found"}, status=status.HTTP_404_NOT_FOUND
@@ -287,15 +316,16 @@ class PhotoStackSetPrimaryView(APIView):
 
     permission_classes = [IsAuthenticated]
 
-    def post(self, request, stack_id):
+    def post(self, request: Request, stack_id: str) -> Response:
+        user = request_user(request)
         try:
-            stack = PhotoStack.objects.get(id=stack_id, owner=request.user)
+            stack = PhotoStack.objects.get(id=stack_id, owner=user)
         except PhotoStack.DoesNotExist:
             return Response(
                 {"error": "Photo stack not found"}, status=status.HTTP_404_NOT_FOUND
             )
 
-        photo_hash = request.data.get("photo_hash")
+        photo_hash = _request_body(request).get("photo_hash")
         if not photo_hash:
             return Response(
                 {"error": "photo_hash is required"}, status=status.HTTP_400_BAD_REQUEST
@@ -336,20 +366,21 @@ class DetectStacksView(APIView):
             ),
         ],
     )
-    def post(self, request):
+    def post(self, request: Request) -> Response:
         from api.stack_detection import batch_detect_stacks
 
+        user = request_user(request)
         # RAW+JPEG and Live Photos are now file variants, not stacks
         # Only burst/bracket detection is done here
         options = {
-            "detect_bursts": request.data.get("detect_bursts", True),
+            "detect_bursts": _request_body(request).get("detect_bursts", True),
         }
 
         # Queue background job
-        async_task(batch_detect_stacks, request.user, options)
+        async_task(batch_detect_stacks, user, options)
 
         logger.info(
-            f"Stack detection queued for user {request.user.username} with options: {options}"
+            f"Stack detection queued for user {user.username} with options: {options}"
         )
         return Response(
             {
@@ -379,10 +410,11 @@ class PhotoStackStatsView(APIView):
         PhotoStack.StackType.LIVE_PHOTO,
     ]
 
-    def get(self, request):
+    def get(self, request: Request) -> Response:
+        user = request_user(request)
         listed = (
             PhotoStack.objects.filter(
-                owner=request.user, stack_type__in=PhotoStack.VALID_STACK_TYPES
+                owner=user, stack_type__in=PhotoStack.VALID_STACK_TYPES
             )
             .annotate(photos_count=Count("photos"))
             .filter(photos_count__gte=2)
@@ -394,23 +426,21 @@ class PhotoStackStatsView(APIView):
             for stack_type in PhotoStack.VALID_STACK_TYPES
         }
         deprecated = PhotoStack.objects.filter(
-            owner=request.user, stack_type__in=self.DEPRECATED_STACK_TYPES
+            owner=user, stack_type__in=self.DEPRECATED_STACK_TYPES
         )
         for stack_type in self.DEPRECATED_STACK_TYPES:
             by_type[stack_type] = deprecated.filter(stack_type=stack_type).count()
 
         # A photo can be in several stacks (ManyToMany): count it once.
         photos_in_stacks = (
-            Photo.objects.owned_by(request.user)
+            Photo.objects.owned_by(user)
             .filter(stacks__in=listed.values("pk"))
             .distinct()
             .count()
         )
 
         total_photos = (
-            Photo.objects.owned_by(request.user)
-            .filter(hidden=False, in_trashcan=False)
-            .count()
+            Photo.objects.owned_by(user).filter(hidden=False, in_trashcan=False).count()
         )
 
         return Response(
@@ -428,8 +458,9 @@ class CreateManualStackView(APIView):
 
     permission_classes = [IsAuthenticated]
 
-    def post(self, request):
-        photo_hashes = request.data.get("photo_hashes", [])
+    def post(self, request: Request) -> Response:
+        user = request_user(request)
+        photo_hashes = _request_body(request).get("photo_hashes", [])
 
         # De-duplicate the input to handle repeated hashes
         unique_hashes = list(dict.fromkeys(photo_hashes))  # Preserves order
@@ -441,9 +472,7 @@ class CreateManualStackView(APIView):
             )
 
         # Verify all photos exist and belong to user
-        photos = Photo.objects.owned_by(request.user).filter(
-            image_hash__in=unique_hashes
-        )
+        photos = Photo.objects.owned_by(user).filter(image_hash__in=unique_hashes)
 
         if photos.count() != len(unique_hashes):
             return Response(
@@ -451,7 +480,7 @@ class CreateManualStackView(APIView):
             )
 
         # Check if any photo is already in a manual stack
-        existing_stack = None
+        existing_stack: PhotoStack | None = None
         for photo in photos:
             manual_stack = photo.stacks.filter(
                 stack_type=PhotoStack.StackType.MANUAL
@@ -469,7 +498,7 @@ class CreateManualStackView(APIView):
         else:
             # Create new manual stack
             stack = PhotoStack.objects.create(
-                owner=request.user,
+                owner=user,
                 stack_type=PhotoStack.StackType.MANUAL,
             )
             for photo in photos:
@@ -495,24 +524,23 @@ class AddToStackView(APIView):
 
     permission_classes = [IsAuthenticated]
 
-    def post(self, request, stack_id):
+    def post(self, request: Request, stack_id: str) -> Response:
+        user = request_user(request)
         try:
-            stack = PhotoStack.objects.get(id=stack_id, owner=request.user)
+            stack = PhotoStack.objects.get(id=stack_id, owner=user)
         except PhotoStack.DoesNotExist:
             return Response(
                 {"error": "Photo stack not found"}, status=status.HTTP_404_NOT_FOUND
             )
 
-        photo_hashes = request.data.get("photo_hashes", [])
+        photo_hashes = _request_body(request).get("photo_hashes", [])
         if not photo_hashes:
             return Response(
                 {"error": "photo_hashes is required"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        photos = Photo.objects.owned_by(request.user).filter(
-            image_hash__in=photo_hashes
-        )
+        photos = Photo.objects.owned_by(user).filter(image_hash__in=photo_hashes)
 
         added_count = 0
         for photo in photos:
@@ -535,24 +563,23 @@ class RemoveFromStackView(APIView):
 
     permission_classes = [IsAuthenticated]
 
-    def post(self, request, stack_id):
+    def post(self, request: Request, stack_id: str) -> Response:
+        user = request_user(request)
         try:
-            stack = PhotoStack.objects.get(id=stack_id, owner=request.user)
+            stack = PhotoStack.objects.get(id=stack_id, owner=user)
         except PhotoStack.DoesNotExist:
             return Response(
                 {"error": "Photo stack not found"}, status=status.HTTP_404_NOT_FOUND
             )
 
-        photo_hashes = request.data.get("photo_hashes", [])
+        photo_hashes = _request_body(request).get("photo_hashes", [])
         if not photo_hashes:
             return Response(
                 {"error": "photo_hashes is required"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        photos = Photo.objects.owned_by(request.user).filter(
-            image_hash__in=photo_hashes
-        )
+        photos = Photo.objects.owned_by(user).filter(image_hash__in=photo_hashes)
 
         removed_count = 0
         for photo in photos:
@@ -594,8 +621,9 @@ class MergeStacksView(APIView):
 
     permission_classes = [IsAuthenticated]
 
-    def post(self, request):
-        photo_hashes = request.data.get("photo_hashes", [])
+    def post(self, request: Request) -> Response:
+        user = request_user(request)
+        photo_hashes = _request_body(request).get("photo_hashes", [])
 
         if not photo_hashes:
             return Response(
@@ -607,9 +635,7 @@ class MergeStacksView(APIView):
         unique_hashes = list(dict.fromkeys(photo_hashes))  # Preserves order
 
         # Verify all photos exist and belong to user
-        photos = Photo.objects.owned_by(request.user).filter(
-            image_hash__in=unique_hashes
-        )
+        photos = Photo.objects.owned_by(user).filter(image_hash__in=unique_hashes)
 
         if photos.count() != len(unique_hashes):
             return Response(
@@ -621,7 +647,7 @@ class MergeStacksView(APIView):
         # potentially inconsistent ordering
         manual_stacks = list(
             PhotoStack.objects.filter(
-                owner=request.user,
+                owner=user,
                 stack_type=PhotoStack.StackType.MANUAL,
                 photos__in=photos,
             ).distinct()

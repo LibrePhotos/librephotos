@@ -1,14 +1,16 @@
-from django.db.models import Count, Min, Prefetch, Q
+from django.db.models import Count, Min, Prefetch, Q, QuerySet
 from django_q.tasks import AsyncTask
 from drf_spectacular.utils import extend_schema
 from rest_framework import filters, viewsets
 from rest_framework.decorators import action
+from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from api.autoalbum import generate_event_albums, regenerate_event_titles
-from api.models import AlbumAuto, Person, Photo
+from api.models import AlbumAuto, Person, Photo, User
 from api.models.photo import visible_photo_q
+from api.request_user import request_user
 from api.serializers.album_auto import AlbumAutoListSerializer, AlbumAutoSerializer
 from api.views.custom_api_view import ListViewSet
 from api.views.pagination import StandardResultsSetPagination
@@ -20,8 +22,9 @@ class AlbumAutoViewSet(viewsets.ModelViewSet):
     serializer_class = AlbumAutoSerializer
     pagination_class = StandardResultsSetPagination
 
-    def get_queryset(self):
-        if self.request.user.is_anonymous:
+    def get_queryset(self) -> QuerySet[AlbumAuto]:
+        user = self.request.user
+        if not isinstance(user, User):
             return AlbumAuto.objects.none()
 
         return (
@@ -53,13 +56,13 @@ class AlbumAutoViewSet(viewsets.ModelViewSet):
                 ),
             )
             .annotate(photo_count=Count(("photos"), distinct=True))
-            .filter(Q(photo_count__gt=0) & Q(owner=self.request.user))
+            .filter(Q(photo_count__gt=0) & Q(owner=user))
             .order_by("-timestamp")
         )
 
     @action(detail=False, methods=["post"])
-    def delete_all(self, request):
-        AlbumAuto.objects.filter(owner=request.user).all().delete()
+    def delete_all(self, request: Request) -> Response:
+        AlbumAuto.objects.filter(owner=request_user(request)).all().delete()
         return Response("success")
 
 
@@ -74,7 +77,7 @@ class AlbumAutoListViewSet(ListViewSet):
         "photos__faces__person__name",
     ]
 
-    def get_queryset(self):
+    def get_queryset(self) -> QuerySet[AlbumAuto]:
         # Count and cover with the photos the album detail shows.
         cover_photo_query = Photo.visible.all()
         return (
@@ -86,7 +89,7 @@ class AlbumAutoListViewSet(ListViewSet):
                 # 11h59m before the first photo (api/autoalbum.py).
                 start=Min("photos__exif_timestamp", filter=visible_photo_q("photos__")),
             )
-            .filter(Q(photo_count__gt=0) & Q(owner=self.request.user))
+            .filter(Q(photo_count__gt=0) & Q(owner=request_user(self.request)))
             .prefetch_related(
                 Prefetch(
                     "photos", queryset=cover_photo_query[:1], to_attr="cover_photo"
@@ -101,17 +104,18 @@ class RegenerateAutoAlbumTitles(APIView):
         deprecated=True,
         description="Use POST method to re-generate auto album titles.",
     )
-    def get(self, request, format=None):
+    def get(self, request: Request, format: str | None = None) -> Response:
         return self._schedule_auto_album_title_regeneration(request)
 
-    def post(self, request, format=None):
+    def post(self, request: Request, format: str | None = None) -> Response:
         return self._schedule_auto_album_title_regeneration(request)
 
-    def _schedule_auto_album_title_regeneration(self, request, format=None):
+    def _schedule_auto_album_title_regeneration(
+        self, request: Request, format: str | None = None
+    ) -> Response:
+        user = request_user(request)
         return start_job(
-            lambda job_id: AsyncTask(
-                regenerate_event_titles, request.user, job_id
-            ).run(),
+            lambda job_id: AsyncTask(regenerate_event_titles, user, job_id).run(),
             "the auto album title regeneration",
         )
 
@@ -121,14 +125,15 @@ class AutoAlbumGenerateView(APIView):
         deprecated=True,
         description="Use POST method to re-generate auto albums.",
     )
-    def get(self, request, format=None):
+    def get(self, request: Request, format: str | None = None) -> Response:
         return self._schedule_auto_album_regeneration(request)
 
-    def post(self, request, format=None):
+    def post(self, request: Request, format: str | None = None) -> Response:
         return self._schedule_auto_album_regeneration(request)
 
-    def _schedule_auto_album_regeneration(self, request):
+    def _schedule_auto_album_regeneration(self, request: Request) -> Response:
+        user = request_user(request)
         return start_job(
-            lambda job_id: AsyncTask(generate_event_albums, request.user, job_id).run(),
+            lambda job_id: AsyncTask(generate_event_albums, user, job_id).run(),
             "the auto album generation",
         )

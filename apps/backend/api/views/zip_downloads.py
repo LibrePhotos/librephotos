@@ -6,16 +6,18 @@ import uuid
 
 from django.conf import settings
 from django.db.models import Sum
+from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from api.all_tasks import create_download_job, delete_zip_file, zip_file_name
 from api.models import LongRunningJob, Photo
+from api.request_user import request_user
 
 logger = logging.getLogger(__name__)
 
 
-def _free_space_for_archives():
+def _free_space_for_archives() -> int:
     """Free bytes on the file system the archive is written to.
 
     That is MEDIA_ROOT's, which in the images is a volume of its own rather
@@ -28,11 +30,14 @@ def _free_space_for_archives():
 
 
 class ZipListPhotosView_V2(APIView):
-    def post(self, request):
+    def post(self, request: Request) -> Response:
         from api.views.photo_filters import build_photo_queryset
 
+        user = request_user(request)
         free_storage = _free_space_for_archives()
         data = request.data
+        # A JSON array body has no .get, and never did: that stays a server error.
+        assert isinstance(data, dict)
 
         include_stacked = data.get("include_stacked_photos", False)
         if isinstance(include_stacked, (list, tuple)):
@@ -46,7 +51,7 @@ class ZipListPhotosView_V2(APIView):
             )
         include_stacked = bool(include_stacked)
 
-        photo_query = Photo.objects.owned_by(self.request.user)
+        photo_query = Photo.objects.owned_by(user)
 
         # Two payload shapes are accepted, mirroring the other bulk mutations
         # (SetPhotosDeleted, SetFavoritePhotos, SetPhotosHidden, SetPhotosPublic):
@@ -61,7 +66,7 @@ class ZipListPhotosView_V2(APIView):
             if isinstance(excluded_hashes, str):
                 excluded_hashes = [excluded_hashes]
 
-            photos = build_photo_queryset(self.request.user, query_params)
+            photos = build_photo_queryset(user, query_params)
             if excluded_hashes:
                 photos = photos.exclude(image_hash__in=excluded_hashes)
         else:
@@ -99,11 +104,11 @@ class ZipListPhotosView_V2(APIView):
         if free_storage < total_file_size:
             return Response(data={"status": "Insufficient Storage"}, status=507)
         file_uuid = uuid.uuid4()
-        filename = zip_file_name(file_uuid, self.request.user.id)
+        filename = zip_file_name(file_uuid, user.id)
 
         job_id = create_download_job(
             LongRunningJob.JOB_DOWNLOAD_PHOTOS,
-            user=self.request.user,
+            user=user,
             photos=list(photos),
             filename=filename,
         )
@@ -111,13 +116,13 @@ class ZipListPhotosView_V2(APIView):
 
         return Response(data=response, status=200)
 
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         job_id = request.GET.get("job_id")
         if not job_id:
             return Response(data={"error": "job_id is required"}, status=400)
         # Only the user who started the download may poll it (see api/views/jobs.py).
         job = LongRunningJob.objects.filter(
-            job_id=job_id, started_by=request.user
+            job_id=job_id, started_by=request_user(request)
         ).first()
         if job is None:
             return Response(status=404)
@@ -135,10 +140,10 @@ class ZipListPhotosView_V2(APIView):
 
 
 class DeleteZipView(APIView):
-    def delete(self, request, fname):
+    def delete(self, request: Request, fname: str) -> Response:
         # The archive is named after the authenticated requester, so a user can
         # only ever name their own file; fname itself must be the job's UUID.
-        filename = zip_file_name(fname, request.user.id)
+        filename = zip_file_name(fname, request_user(request).id)
         if filename is None:
             return Response(status=404)
         try:

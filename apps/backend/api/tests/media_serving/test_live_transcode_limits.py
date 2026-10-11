@@ -352,3 +352,27 @@ class GenTest(SimpleTestCase):
             list(media.gen(transcoder))
         logger.warning.assert_called_once()
         self.assertIn("Invalid data found", logger.warning.call_args.args[2])
+
+
+class VideoTranscoderFailedStartTest(SimpleTestCase):
+    def test_collecting_a_conversion_that_never_started_is_quiet(self):
+        """ffmpeg cannot start: __init__ raises before self.process is set.
+
+        __del__ still runs on that half-built instance. It used to call kill()
+        on the class default "" and print an AttributeError after the real error.
+        """
+        patches = (
+            mock.patch.object(
+                media.subprocess, "Popen", side_effect=OSError("ffmpeg not found")
+            ),
+            mock.patch.object(ffmpeg_budget, "_run", return_value=""),
+            mock.patch.object(media.video_color, "is_hdr", return_value=False),
+        )
+        with contextlib.ExitStack() as stack:
+            for patch in patches:
+                stack.enter_context(patch)
+            transcoder = media.VideoTranscoder.__new__(media.VideoTranscoder)
+            with self.assertRaises(OSError):
+                transcoder.__init__("/x.mp4")
+        self.assertIsNone(transcoder.process)
+        transcoder.__del__()

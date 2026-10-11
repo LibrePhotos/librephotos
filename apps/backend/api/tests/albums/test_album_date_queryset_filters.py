@@ -1,7 +1,7 @@
-"""Characterization tests for ``AlbumDateViewSet.get_queryset`` (CRAP unit 32).
+"""Characterization tests for ``AlbumDateViewSet._album_date_page`` (CRAP unit 32).
 
 These tests pin the *current* behaviour of the album-date detail queryset
-builder before it is refactored. ``get_queryset`` is unusual: it does not
+builder before it is refactored. ``_album_date_page`` (formerly ``get_queryset``) does not
 return a queryset at all, but the tuple ``(album_date, page, total_count)``
 where ``page`` is a ``django.core.paginator.Page``.
 
@@ -44,7 +44,7 @@ class AlbumDateGetQuerysetTestBase(TestCase):
     def run_queryset(self, user, album, **params):
         album_date, page, count = self.make_view(
             user, album.id, **params
-        ).get_queryset()
+        )._album_date_page()
         return album_date, list(page), count
 
     def ids(self, photos):
@@ -365,7 +365,7 @@ class AlbumDateGetQuerysetMissingAlbumTest(AlbumDateGetQuerysetTestBase):
         view = self.make_view(user, 999999)
 
         with self.assertRaises(Http404):
-            view.get_queryset()
+            view._album_date_page()
 
     def test_another_users_album_pk_raises_http404(self):
         """The album itself is scoped, not only its photos: see
@@ -375,4 +375,4 @@ class AlbumDateGetQuerysetMissingAlbumTest(AlbumDateGetQuerysetTestBase):
         view = self.make_view(create_test_user(), album.id)
 
         with self.assertRaises(Http404):
-            view.get_queryset()
+            view._album_date_page()

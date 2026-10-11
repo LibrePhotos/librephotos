@@ -1,10 +1,14 @@
 import logging
+from datetime import datetime
+from typing import Any
 
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
-from api.models import AlbumUser
+from api.models import AlbumUser, Photo
 from api.models.photo import visible_photo_q
 from api.models.user import get_default_public_sharing_settings
+from api.request_user import request_user
 from api.serializers.fields import OwnedPhotoField, shared_serializer
 from api.serializers.photos import (
     GroupedPhotosSerializer,
@@ -21,7 +25,9 @@ from api.views.photo_filters import build_photo_queryset
 logger = logging.getLogger(__name__)
 
 
-def _album_photos(serializer, album):
+def _album_photos(
+    serializer: serializers.BaseSerializer, album: AlbumUser
+) -> list[Photo]:
     """The album's photos the library lists, newest first, loaded once.
 
     Hidden and trashed photos stay out, as on every other album, also for the
@@ -68,44 +74,46 @@ class AlbumUserSerializer(serializers.ModelSerializer):
         )
 
     # To-Do: Legacy definition, should be a number instead
-    def get_id(self, obj) -> str:
+    def get_id(self, obj: AlbumUser) -> str:
         return str(obj.id)
 
-    def get_grouped_photos(self, obj) -> GroupedPhotosSerializer(many=True):
+    @extend_schema_field(GroupedPhotosSerializer(many=True))
+    def get_grouped_photos(self, obj: AlbumUser) -> list[dict[str, Any]]:
         photos = filter_photos_by_media_type(
             _album_photos(self, obj), self.context.get("request")
         )
         grouped_photos = get_photos_ordered_by_date(photos)
-        res = GroupedPhotosSerializer(grouped_photos, many=True).data
+        # ``.data`` of a many=True serializer is a ReturnList; build it through
+        # ListSerializer so the static type matches the runtime value.
+        res = serializers.ListSerializer(
+            child=GroupedPhotosSerializer(), instance=grouped_photos
+        ).data
         return res
 
-    def get_location(self, obj) -> str:
+    def get_location(self, obj: AlbumUser) -> str:
         for photo in _album_photos(self, obj):
-            if (
-                photo
-                and hasattr(photo, "search_instance")
-                and photo.search_instance
-                and photo.search_instance.search_location
-            ):
-                return photo.search_instance.search_location
+            # The reverse one-to-one raises AttributeError when the row is missing.
+            search = getattr(photo, "search_instance", None)
+            if search and search.search_location:
+                return search.search_location
         return ""
 
-    def get_date(self, obj) -> str:
+    def get_date(self, obj: AlbumUser) -> datetime | str:
         for photo in _album_photos(self, obj):
-            if photo and photo.exif_timestamp:
+            if photo.exif_timestamp:
                 return photo.exif_timestamp
         return ""
 
-    def get_public(self, obj) -> bool:
+    def get_public(self, obj: AlbumUser) -> bool:
         return bool(getattr(obj, "share", None) and obj.share.enabled)
 
-    def get_public_slug(self, obj) -> str:
+    def get_public_slug(self, obj: AlbumUser) -> str:
         return getattr(getattr(obj, "share", None), "slug", "") or ""
 
-    def get_public_expires_at(self, obj):
+    def get_public_expires_at(self, obj: AlbumUser) -> datetime | None:
         return getattr(getattr(obj, "share", None), "expires_at", None)
 
-    def get_public_sharing_options(self, obj) -> dict | None:
+    def get_public_sharing_options(self, obj: AlbumUser) -> dict | None:
         """Return the per-album sharing option overrides (None values = use default)."""
         share = getattr(obj, "share", None)
         if not share:
@@ -157,12 +165,16 @@ class AlbumUserEditSerializer(serializers.ModelSerializer):
             "excluded_hashes",
         )
 
-    def _resolve_new_photo_pks(self, validated_data):
-        """Resolve the photos to add: the explicit list, or the select-all query."""
+    def _resolve_new_photo_pks(self, validated_data: dict[str, Any]) -> list[Any]:
+        """Resolve the photos to add: the explicit list, or the select-all query.
+
+        The values are photo primary keys (UUIDs). django-stubs types the
+        many-to-many ``add()`` as taking ``Photo | int``, so the list is ``Any``.
+        """
         if validated_data.get("select_all"):
-            request = self.context.get("request")
             photos = build_photo_queryset(
-                request.user, validated_data.get("query") or {}
+                request_user(self.context["request"]),
+                validated_data.get("query") or {},
             )
             excluded_hashes = validated_data.get("excluded_hashes") or []
             if excluded_hashes:
@@ -170,13 +182,11 @@ class AlbumUserEditSerializer(serializers.ModelSerializer):
             return list(photos.values_list("id", flat=True))
         return [photo.id for photo in validated_data.get("photos", [])]
 
-    def create(self, validated_data):
+    def create(self, validated_data: dict[str, Any]) -> AlbumUser:
         title = validated_data["title"]
 
-        user = None
-        request = self.context.get("request")
-        if request and hasattr(request, "user"):
-            user = request.user
+        # AlbumUserEditViewSet runs behind IsAuthenticated.
+        user = request_user(self.context["request"])
 
         # check if an album exists with the given title and call the update method if it does
         # (update() refuses to change a locked album's photos)
@@ -193,7 +203,7 @@ class AlbumUserEditSerializer(serializers.ModelSerializer):
         logger.info(f"Created user album {instance.id} with {len(photo_pks)} photos")
         return instance
 
-    def update(self, instance, validated_data):
+    def update(self, instance: AlbumUser, validated_data: dict[str, Any]) -> AlbumUser:
         # A locked album is read-only for its photo set: adding or removing
         # photos is refused unless the same request unlocks it. Renaming, cover
         # changes and toggling the lock itself stay allowed. See issue #867.
@@ -275,7 +285,8 @@ class AlbumUserListSerializer(serializers.ModelSerializer):
             "public_sharing_options",
         )
 
-    def get_cover_photo(self, obj) -> PhotoSuperSimpleSerializer:
+    @extend_schema_field(PhotoSuperSimpleSerializer)
+    def get_cover_photo(self, obj: AlbumUser) -> dict[str, Any]:
         if obj.cover_photo:
             return shared_serializer(
                 self, PhotoSuperSimpleSerializer
@@ -292,22 +303,24 @@ class AlbumUserListSerializer(serializers.ModelSerializer):
             first_photos[0]
         )
 
-    def get_photo_count(self, obj) -> int:
+    def get_photo_count(self, obj: AlbumUser) -> int:
         try:
-            return obj.photo_count
+            # Annotated by the list view's queryset; not a model field.
+            count: int = getattr(obj, "photo_count")
+            return count
         except Exception:  # for when calling AlbumUserListSerializer(obj).data directly
             return obj.photos.count()
 
-    def get_public(self, obj) -> bool:
+    def get_public(self, obj: AlbumUser) -> bool:
         return bool(getattr(obj, "share", None) and obj.share.enabled)
 
-    def get_public_slug(self, obj) -> str:
+    def get_public_slug(self, obj: AlbumUser) -> str:
         return getattr(getattr(obj, "share", None), "slug", "") or ""
 
-    def get_public_expires_at(self, obj):
+    def get_public_expires_at(self, obj: AlbumUser) -> datetime | None:
         return getattr(getattr(obj, "share", None), "expires_at", None)
 
-    def get_public_sharing_options(self, obj) -> dict | None:
+    def get_public_sharing_options(self, obj: AlbumUser) -> dict | None:
         """Return the per-album sharing option overrides (None values = use default)."""
         share = getattr(obj, "share", None)
         if not share:
@@ -348,14 +361,14 @@ class AlbumUserPublicSerializer(serializers.ModelSerializer):
             "public_expires_at",
         )
 
-    def get_id(self, obj) -> str:
+    def get_id(self, obj: AlbumUser) -> str:
         return str(obj.id)
 
-    def _filtered_photos(self, obj):
+    def _filtered_photos(self, obj: AlbumUser) -> list[Photo]:
         # Public albums should not expose hidden or trash photos
         return _album_photos(self, obj)
 
-    def _sharing_settings(self, obj) -> dict:
+    def _sharing_settings(self, obj: AlbumUser) -> dict[str, bool]:
         # What the owner chose to publish. The grid used to ignore it and hand
         # every visitor the GPS position, place and capture time of each photo
         # even though location and timestamps are opt-in (all off by default).
@@ -364,7 +377,8 @@ class AlbumUserPublicSerializer(serializers.ModelSerializer):
             return get_default_public_sharing_settings()
         return share.get_effective_sharing_settings()
 
-    def get_grouped_photos(self, obj) -> GroupedPhotosSerializer(many=True):
+    @extend_schema_field(GroupedPhotosSerializer(many=True))
+    def get_grouped_photos(self, obj: AlbumUser) -> list[dict[str, Any]]:
         sharing = self._sharing_settings(obj)
         photos = filter_photos_by_media_type(
             self._filtered_photos(obj), self.context.get("request")
@@ -376,7 +390,11 @@ class AlbumUserPublicSerializer(serializers.ModelSerializer):
             # so without timestamps everything goes into one undated group.
             photos = list(photos)
             grouped_photos = [PhotosGroupedByDate("", None, photos)] if photos else []
-        groups = GroupedPhotosSerializer(grouped_photos, many=True).data
+        # ``.data`` of a many=True serializer is a ReturnList; build it through
+        # ListSerializer so the static type matches the runtime value.
+        groups = serializers.ListSerializer(
+            child=GroupedPhotosSerializer(), instance=grouped_photos
+        ).data
         for group in groups:
             for item in group["items"]:
                 if not sharing.get("share_location"):
@@ -388,23 +406,20 @@ class AlbumUserPublicSerializer(serializers.ModelSerializer):
                     item["birthTime"] = ""
         return groups
 
-    def get_location(self, obj) -> str:
+    def get_location(self, obj: AlbumUser) -> str:
         if not self._sharing_settings(obj).get("share_location"):
             return ""
         for photo in self._filtered_photos(obj):
-            if (
-                photo
-                and hasattr(photo, "search_instance")
-                and photo.search_instance
-                and photo.search_instance.search_location
-            ):
-                return photo.search_instance.search_location
+            # The reverse one-to-one raises AttributeError when the row is missing.
+            search = getattr(photo, "search_instance", None)
+            if search and search.search_location:
+                return search.search_location
         return ""
 
-    def get_date(self, obj) -> str:
+    def get_date(self, obj: AlbumUser) -> datetime | str:
         if not self._sharing_settings(obj).get("share_timestamps"):
             return ""
         for photo in self._filtered_photos(obj):
-            if photo and photo.exif_timestamp:
+            if photo.exif_timestamp:
                 return photo.exif_timestamp
         return ""

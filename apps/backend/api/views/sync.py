@@ -21,9 +21,13 @@ import base64
 import binascii
 from collections import defaultdict
 from datetime import datetime, timedelta
+from typing import Any, Generic, TypeVar
+from uuid import UUID
 
-from django.db.models import Count, Exists, OuterRef, Q
+from django.db import models
+from django.db.models import Count, Exists, OuterRef, Q, QuerySet
 from django.utils import timezone
+from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -39,6 +43,7 @@ from api.models import (
     Tag,
     User,
 )
+from api.request_user import request_user
 from api.serializers.sync import (
     AUTO_ALBUM_VALUES,
     PERSON_VALUES,
@@ -57,46 +62,56 @@ ENVELOPE_VERSION = 1
 DEFAULT_PAGE_SIZE = 500
 MAX_PAGE_SIZE = 1000
 
+# One ``.values()`` row of a feed.
+Row = dict[str, Any]
+
+ModelT = TypeVar("ModelT", bound=models.Model)
+
 
 # --------------------------------------------------------------------------- #
 # cursor helpers
 # --------------------------------------------------------------------------- #
-def encode_cursor(last_modified, pk):
+def encode_cursor(last_modified: datetime, pk: object) -> str:
     raw = f"{last_modified.isoformat()}|{pk}"
     return base64.urlsafe_b64encode(raw.encode()).decode()
 
 
-def decode_cursor(cursor):
+def decode_cursor(cursor: str) -> tuple[datetime, str]:
     """Return (datetime, pk_str). Raises ValueError on a malformed cursor."""
     raw = base64.urlsafe_b64decode(cursor.encode()).decode()
     iso, pk = raw.split("|", 1)
     return datetime.fromisoformat(iso), pk
 
 
-class BaseSyncView(APIView):
+class BaseSyncView(APIView, Generic[ModelT]):
     """Template for a single keyset-paginated delta feed."""
 
-    entity = None  # DeletionLog entity string; None disables tombstones
-    values_fields = ()
-    pk_field = "id"
+    entity: str | None = None  # DeletionLog entity string; None disables tombstones
+    values_fields: tuple[str, ...] = ()
+    pk_field: str = "id"
 
     # ---- per-entity hooks --------------------------------------------------
-    def scoped_queryset(self, user):
+    def scoped_queryset(self, user: User) -> QuerySet[ModelT]:
         """Model queryset (unordered, unpaginated) of rows this user may see."""
         raise NotImplementedError
 
-    def annotate(self, qs):
+    def annotate(self, qs: QuerySet[ModelT]) -> QuerySet[ModelT]:
         """Optional extra annotations before ``.values()``."""
         return qs
 
-    def serialize_page(self, rows, user):
+    def serialize_page(self, rows: list[Row], user: User) -> list[Row]:
         raise NotImplementedError
 
     # ---- shared machinery --------------------------------------------------
-    def _materialize(self, qs, limit):
+    def _materialize(self, qs: QuerySet[ModelT], limit: int) -> list[Row]:
         return list(self.annotate(qs).values(*self.values_fields)[:limit])
 
-    def _apply_keyset(self, qs, cursor_dt, cursor_pk):
+    def _apply_keyset(
+        self,
+        qs: QuerySet[ModelT],
+        cursor_dt: datetime | None,
+        cursor_pk: str | None,
+    ) -> QuerySet[ModelT]:
         if cursor_dt is None:
             return qs
         return qs.filter(
@@ -104,7 +119,7 @@ class BaseSyncView(APIView):
             | (Q(last_modified=cursor_dt) & Q(**{f"{self.pk_field}__gt": cursor_pk}))
         )
 
-    def get_tombstones(self, user, cursor_dt):
+    def get_tombstones(self, user: User, cursor_dt: datetime | None) -> list[str]:
         # On a seed pull the client starts empty, so tombstones are irrelevant.
         if self.entity is None or cursor_dt is None:
             return []
@@ -115,10 +130,10 @@ class BaseSyncView(APIView):
             ).values_list("entity_id", flat=True)
         ]
 
-    def get(self, request):
-        user = request.user
+    def get(self, request: Request) -> Response:
+        user = request_user(request)
 
-        cursor = request.GET.get("cursor") or None
+        cursor = request.query_params.get("cursor") or None
         cursor_dt = None
         cursor_pk = None
         if cursor:
@@ -131,7 +146,7 @@ class BaseSyncView(APIView):
                 return Response({"error": "cursor_expired"}, status=410)
 
         try:
-            page_size = int(request.GET.get("page_size", DEFAULT_PAGE_SIZE))
+            page_size = int(request.query_params.get("page_size", DEFAULT_PAGE_SIZE))
         except (TypeError, ValueError):
             page_size = DEFAULT_PAGE_SIZE
         page_size = max(1, min(page_size, MAX_PAGE_SIZE))
@@ -152,7 +167,7 @@ class BaseSyncView(APIView):
             last = rows[-1]
             next_cursor = encode_cursor(last["last_modified"], last[self.pk_field])
 
-        envelope = {
+        envelope: dict[str, object] = {
             "v": ENVELOPE_VERSION,
             "items": items,
             "tombstones": self.get_tombstones(user, cursor_dt),
@@ -167,50 +182,50 @@ class BaseSyncView(APIView):
 # --------------------------------------------------------------------------- #
 # Photos
 # --------------------------------------------------------------------------- #
-class SyncPhotosView(BaseSyncView):
+class SyncPhotosView(BaseSyncView[Photo]):
     entity = DeletionLog.ENTITY_PHOTO
     values_fields = PHOTO_VALUES + ("has_motion",)
 
-    def scoped_queryset(self, user):
+    def scoped_queryset(self, user: User) -> QuerySet[Photo]:
         return Photo.objects.filter(Q(owner=user) | Q(shared_to=user)).distinct()
 
-    def annotate(self, qs):
+    def annotate(self, qs: QuerySet[Photo]) -> QuerySet[Photo]:
         motion = File.objects.filter(
             pk=OuterRef("main_file"), embedded_media__isnull=False
         )
         return qs.annotate(has_motion=Exists(motion))
 
-    def serialize_page(self, rows, user):
+    def serialize_page(self, rows: list[Row], user: User) -> list[Row]:
         return [serialize_photo_row(r) for r in rows]
 
 
 # --------------------------------------------------------------------------- #
 # Persons (only USER-kind are mirrored: the People album grid)
 # --------------------------------------------------------------------------- #
-class SyncPersonsView(BaseSyncView):
+class SyncPersonsView(BaseSyncView[Person]):
     entity = DeletionLog.ENTITY_PERSON
     values_fields = PERSON_VALUES
 
-    def scoped_queryset(self, user):
+    def scoped_queryset(self, user: User) -> QuerySet[Person]:
         return Person.objects.filter(kind=Person.KIND_USER, cluster_owner=user)
 
-    def serialize_page(self, rows, user):
+    def serialize_page(self, rows: list[Row], user: User) -> list[Row]:
         return [serialize_person_row(r) for r in rows]
 
 
 # --------------------------------------------------------------------------- #
 # User albums (membership embedded)
 # --------------------------------------------------------------------------- #
-class SyncUserAlbumsView(BaseSyncView):
+class SyncUserAlbumsView(BaseSyncView[AlbumUser]):
     entity = DeletionLog.ENTITY_ALBUM_USER
     values_fields = USER_ALBUM_VALUES
 
-    def scoped_queryset(self, user):
+    def scoped_queryset(self, user: User) -> QuerySet[AlbumUser]:
         return AlbumUser.objects.filter(Q(owner=user) | Q(shared_to=user)).distinct()
 
-    def serialize_page(self, rows, user):
+    def serialize_page(self, rows: list[Row], user: User) -> list[Row]:
         ids = [r["id"] for r in rows]
-        membership = defaultdict(list)
+        membership: defaultdict[int, list[str]] = defaultdict(list)
         through = AlbumUser.photos.through
         for aid, pid in through.objects.filter(albumuser_id__in=ids).values_list(
             "albumuser_id", "photo_id"
@@ -230,16 +245,16 @@ class SyncUserAlbumsView(BaseSyncView):
 # --------------------------------------------------------------------------- #
 # Auto albums (membership embedded)
 # --------------------------------------------------------------------------- #
-class SyncAutoAlbumsView(BaseSyncView):
+class SyncAutoAlbumsView(BaseSyncView[AlbumAuto]):
     entity = DeletionLog.ENTITY_ALBUM_AUTO
     values_fields = AUTO_ALBUM_VALUES
 
-    def scoped_queryset(self, user):
+    def scoped_queryset(self, user: User) -> QuerySet[AlbumAuto]:
         return AlbumAuto.objects.filter(Q(owner=user) | Q(shared_to=user)).distinct()
 
-    def serialize_page(self, rows, user):
+    def serialize_page(self, rows: list[Row], user: User) -> list[Row]:
         ids = [r["id"] for r in rows]
-        membership = defaultdict(list)
+        membership: defaultdict[int, list[UUID]] = defaultdict(list)
         through = AlbumAuto.photos.through
         for aid, pid in through.objects.filter(albumauto_id__in=ids).values_list(
             "albumauto_id", "photo_id"
@@ -252,10 +267,11 @@ class SyncAutoAlbumsView(BaseSyncView):
                 "id", "image_hash"
             )
         )
-        out = []
+        out: list[Row] = []
         for r in rows:
             pids = membership[r["id"]]
-            cover = hash_by_id.get(first_photo.get(r["id"]))
+            first_pid = first_photo.get(r["id"])
+            cover = hash_by_id.get(first_pid) if first_pid is not None else None
             out.append(serialize_auto_album_row(r, [str(p) for p in pids], cover))
         return out
 
@@ -263,16 +279,16 @@ class SyncAutoAlbumsView(BaseSyncView):
 # --------------------------------------------------------------------------- #
 # Thing / Place / Tag albums (list mirrors, no membership)
 # --------------------------------------------------------------------------- #
-class SyncThingAlbumsView(BaseSyncView):
+class SyncThingAlbumsView(BaseSyncView[AlbumThing]):
     entity = DeletionLog.ENTITY_ALBUM_THING
     values_fields = ("id", "title", "photo_count", "last_modified")
 
-    def scoped_queryset(self, user):
+    def scoped_queryset(self, user: User) -> QuerySet[AlbumThing]:
         return AlbumThing.objects.filter(Q(owner=user) | Q(shared_to=user)).distinct()
 
-    def serialize_page(self, rows, user):
+    def serialize_page(self, rows: list[Row], user: User) -> list[Row]:
         ids = [r["id"] for r in rows]
-        covers = defaultdict(list)
+        covers: defaultdict[int, list[str]] = defaultdict(list)
         through = AlbumThing.cover_photos.through
         for aid, phash in through.objects.filter(albumthing_id__in=ids).values_list(
             "albumthing_id", "photo__image_hash"
@@ -282,24 +298,24 @@ class SyncThingAlbumsView(BaseSyncView):
         return [serialize_named_album_row(r, covers[r["id"]]) for r in rows]
 
 
-class SyncPlaceAlbumsView(BaseSyncView):
+class SyncPlaceAlbumsView(BaseSyncView[AlbumPlace]):
     entity = DeletionLog.ENTITY_ALBUM_PLACE
     values_fields = ("id", "title", "geolocation_level", "last_modified")
 
-    def scoped_queryset(self, user):
+    def scoped_queryset(self, user: User) -> QuerySet[AlbumPlace]:
         return AlbumPlace.objects.filter(Q(owner=user) | Q(shared_to=user)).distinct()
 
-    def serialize_page(self, rows, user):
+    def serialize_page(self, rows: list[Row], user: User) -> list[Row]:
         # AlbumPlace has no stored photo_count column; count membership for the
         # page in one grouped query.
         ids = [r["id"] for r in rows]
-        counts = dict(
+        grouped = (
             AlbumPlace.photos.through.objects.filter(albumplace_id__in=ids)
             .values("albumplace_id")
             .annotate(n=Count("photo_id"))
-            .values_list("albumplace_id", "n")
         )
-        out = []
+        counts = {row["albumplace_id"]: row["n"] for row in grouped}
+        out: list[Row] = []
         for r in rows:
             r = {**r, "photo_count": counts.get(r["id"], 0)}
             out.append(
@@ -310,33 +326,34 @@ class SyncPlaceAlbumsView(BaseSyncView):
         return out
 
 
-class SyncTagAlbumsView(BaseSyncView):
+class SyncTagAlbumsView(BaseSyncView[Tag]):
     entity = DeletionLog.ENTITY_TAG
     values_fields = ("id", "title", "photo_count", "last_modified")
 
-    def scoped_queryset(self, user):
+    def scoped_queryset(self, user: User) -> QuerySet[Tag]:
         # Tag.name is the title; alias via annotate-free values mapping below.
         return Tag.objects.filter(owner=user)
 
-    def _materialize(self, qs, limit):
-        rows = list(qs.values("id", "name", "photo_count", "last_modified")[:limit])
+    def _materialize(self, qs: QuerySet[Tag], limit: int) -> list[Row]:
+        fields = ("id", "name", "photo_count", "last_modified")
+        rows: list[Row] = list(qs.values(*fields)[:limit])
         for r in rows:
             r["title"] = r.pop("name")
         return rows
 
-    def serialize_page(self, rows, user):
+    def serialize_page(self, rows: list[Row], user: User) -> list[Row]:
         return [serialize_named_album_row(r, []) for r in rows]
 
 
 # --------------------------------------------------------------------------- #
 # Sharing surface (shared_user profiles)
 # --------------------------------------------------------------------------- #
-class SyncSharingView(BaseSyncView):
+class SyncSharingView(BaseSyncView[User]):
     entity = None  # user profiles are not tombstoned via DeletionLog
     values_fields = SHARED_USER_VALUES
 
-    def _relevant_user_ids(self, user):
-        ids = set()
+    def _relevant_user_ids(self, user: User) -> set[int]:
+        ids: set[int] = set()
         # People I share my photos/albums with.
         ids.update(
             Photo.shared_to.through.objects.filter(photo__owner=user).values_list(
@@ -365,10 +382,10 @@ class SyncSharingView(BaseSyncView):
         ids.discard(user.id)
         return ids
 
-    def scoped_queryset(self, user):
+    def scoped_queryset(self, user: User) -> QuerySet[User]:
         return User.objects.filter(id__in=self._relevant_user_ids(user))
 
-    def serialize_page(self, rows, user):
+    def serialize_page(self, rows: list[Row], user: User) -> list[Row]:
         return [serialize_shared_user_row(r) for r in rows]
 
 
@@ -376,8 +393,8 @@ class SyncSharingView(BaseSyncView):
 # Counts (client integrity check, doc 04 §5)
 # --------------------------------------------------------------------------- #
 class SyncCountsView(APIView):
-    def get(self, request):
-        user = request.user
+    def get(self, request: Request) -> Response:
+        user = request_user(request)
         owned_or_shared = Q(owner=user) | Q(shared_to=user)
         return Response(
             {

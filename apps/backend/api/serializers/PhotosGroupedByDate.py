@@ -14,7 +14,9 @@ class PhotosGroupedByDate:
     def __init__(
         self,
         location: str,
-        date: datetime | None,
+        # The search endpoint dates its undated group with the legacy label
+        # "No timestamp" instead of None.
+        date: datetime | str | None,
         photos: list[Photo],
     ) -> None:
         self.photos = photos
@@ -55,7 +57,7 @@ def filter_photos_by_media_type(
 
 def get_photos_ordered_by_date(
     photos: QuerySet[Photo] | list[Photo],
-    undated_date: datetime | None = None,
+    undated_date: datetime | str | None = None,
 ) -> list[PhotosGroupedByDate]:
     """
     Efficiently group photos by date using itertools.groupby.

@@ -1,17 +1,22 @@
 """The DRF exception handler named by ``REST_FRAMEWORK["EXCEPTION_HANDLER"]``."""
 
+from typing import Any
+
 from django.conf import settings
+from rest_framework.response import Response
 from rest_framework.views import exception_handler
 
 
-def custom_exception_handler(exc, context):
+def custom_exception_handler(
+    exc: Exception, context: dict[str, Any]
+) -> Response | None:
     # Call REST framework's default exception handler first,
     # to get the standard error response.
     response = exception_handler(exc, context)
 
     # Update the structure of the response data and enrich auth errors.
     if response is not None:
-        customized_response = {"errors": []}
+        customized_response: dict[str, list[dict[str, str]]] = {"errors": []}
 
         if isinstance(response.data, dict):
             for key, value in response.data.items():

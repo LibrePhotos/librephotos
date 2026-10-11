@@ -1,13 +1,15 @@
 from datetime import timedelta
 
-from django.db.models import Prefetch, Q
+from django.db.models import Prefetch, Q, QuerySet
 from django.utils import timezone
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
+from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from api.models import LongRunningJob, User
+from api.request_user import request_user
 from api.serializers.job import LongRunningJobSerializer
 from api.views.pagination import TinyResultsSetPagination
 
@@ -19,7 +21,7 @@ class LongRunningJobViewSet(viewsets.ModelViewSet):
     serializer_class = LongRunningJobSerializer
     pagination_class = TinyResultsSetPagination
 
-    def get_queryset(self):
+    def get_queryset(self) -> QuerySet[LongRunningJob]:
         # Scope jobs to the requesting user so one user cannot list, retrieve,
         # update, delete or cancel another user's jobs. Staff/superusers retain
         # the global view. See issue #1861. Object-level actions (cancel/destroy)
@@ -30,10 +32,10 @@ class LongRunningJobViewSet(viewsets.ModelViewSet):
                 queryset=User.objects.only("id", "username", "first_name", "last_name"),
             ),
         ).order_by("-started_at")
-        user = self.request.user
+        user = request_user(self.request)
         own_jobs = qs.filter(started_by=user)
 
-        if not (user.is_authenticated and (user.is_staff or user.is_superuser)):
+        if not (user.is_staff or user.is_superuser):
             # Non-staff are always confined to their own jobs. ?mine is not read
             # on this path on purpose: the parameter may only ever narrow a
             # queryset, never widen one, so no value of it — ?mine=false
@@ -48,7 +50,7 @@ class LongRunningJobViewSet(viewsets.ModelViewSet):
         return qs
 
     @action(detail=True, methods=["post"])
-    def cancel(self, request, pk=None):
+    def cancel(self, request: Request, pk: str | None = None) -> Response:
         """Cancel a running or queued job."""
         job = self.get_object()
 
@@ -89,7 +91,7 @@ class LongRunningJobViewSet(viewsets.ModelViewSet):
 
 
 class QueueAvailabilityView(APIView):
-    def get(self, request, format=None):
+    def get(self, request: Request, format: str | None = None) -> Response:
         job_detail = None
 
         # Ignore unfinished rows past the stuck-job threshold so orphaned jobs
@@ -109,8 +111,8 @@ class QueueAvailabilityView(APIView):
         # the job itself (type, progress, who started it) follows the #1861
         # rule above: its starter and staff see it, nobody else does.
         busy = running_job is not None
-        user = request.user
-        if busy and (
+        user = request_user(request)
+        if running_job is not None and (
             running_job.started_by_id == user.id or user.is_staff or user.is_superuser
         ):
             job_detail = LongRunningJobSerializer(running_job).data

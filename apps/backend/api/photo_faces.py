@@ -183,7 +183,7 @@ def save_detected_face(
     face_image: PIL.Image.Image,
     image_path: str,
     person: api.models.person.Person | None,
-    cluster: api.models.cluster.Cluster,
+    cluster: api.models.cluster.Cluster | None,
     location: tuple[int, int, int, int],
     encoding: npt.NDArray[float64] | None = None,
 ) -> api.models.face.Face:

@@ -1,10 +1,12 @@
 import logging
 
-from django.db.models import Count, Prefetch, Q
+from django.db.models import Count, Model, Prefetch, Q, QuerySet
+from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from api.models import AlbumUser, Photo, User
+from api.request_user import request_user
 from api.serializers.album_user import AlbumUserListSerializer
 from api.serializers.photos import (
     PhotoSummarySerializer,
@@ -22,11 +24,11 @@ class SharedToMePhotoSuperSimpleListViewSet(ListViewSet):
     serializer_class = PhotoSummarySerializer
     pagination_class = HugeResultsSetPagination
 
-    def get_queryset(self):
+    def get_queryset(self) -> QuerySet[Photo]:
         # PhotoSummarySerializer reads far more than the old "super simple"
         # columns: each deferred field and relation was a query per photo.
         return with_photo_summary_relations(
-            Photo.visible.filter(Q(shared_to__id__exact=self.request.user.id))
+            Photo.visible.filter(Q(shared_to__id__exact=request_user(self.request).id))
         ).order_by("exif_timestamp")
 
 
@@ -34,7 +36,7 @@ class SharedFromMePhotoSuperSimpleListViewSet(ListViewSet):
     serializer_class = SharedFromMePhotoThroughSerializer
     pagination_class = HugeResultsSetPagination
 
-    def get_queryset(self):
+    def get_queryset(self) -> QuerySet[Model]:
         ThroughModel = Photo.shared_to.through
 
         user_photos = Photo.visible.owned_by(self.request.user).only("image_hash")
@@ -65,10 +67,10 @@ class SharedToMeAlbumUserListViewSet(ListViewSet):
     serializer_class = AlbumUserListSerializer
     pagination_class = HugeResultsSetPagination
 
-    def get_queryset(self):
+    def get_queryset(self) -> QuerySet[AlbumUser]:
         return with_album_user_list_relations(
             AlbumUser.objects.filter(
-                shared_to__id__exact=self.request.user.id
+                shared_to__id__exact=request_user(self.request).id
             ).order_by("id")
         )
 
@@ -77,17 +79,18 @@ class SharedFromMeAlbumUserListViewSet(ListViewSet):
     serializer_class = AlbumUserListSerializer
     pagination_class = HugeResultsSetPagination
 
-    def get_queryset(self):
+    def get_queryset(self) -> QuerySet[AlbumUser]:
         return with_album_user_list_relations(
             AlbumUser.objects.annotate(shared_to_count=Count("shared_to"))
             .filter(shared_to_count__gt=0)
-            .filter(owner=self.request.user.id)
+            .filter(owner=request_user(self.request).id)
             .order_by("id")
         )
 
 
 class SetUserAlbumShared(APIView):
-    def post(self, request, format=None):
+    def post(self, request: Request, format: str | None = None) -> Response:
+        user = request_user(request)
         data = dict(request.data)
         shared = data["shared"]  # bool
         target_user_id = data["target_user_id"]  # user pk, int
@@ -109,9 +112,9 @@ class SetUserAlbumShared(APIView):
             )
             return Response({"status": False, "message": "No such album"}, status=400)
 
-        if user_album_to_share.owner != request.user:
+        if user_album_to_share.owner != user:
             logger.warning(
-                f"Cannot share album to user: source user_album_id {user_album_id} does not belong to user_id {request.user.id}"
+                f"Cannot share album to user: source user_album_id {user_album_id} does not belong to user_id {user.id}"
             )
             return Response(
                 {"status": False, "message": "You cannot share an album you don't own"},
@@ -121,12 +124,12 @@ class SetUserAlbumShared(APIView):
         if shared:
             user_album_to_share.shared_to.add(target_user)
             logger.info(
-                f"Shared user {request.user.id}'s album {user_album_id} to user {target_user_id}"
+                f"Shared user {user.id}'s album {user_album_id} to user {target_user_id}"
             )
         else:
             user_album_to_share.shared_to.remove(target_user)
             logger.info(
-                f"Unshared user {request.user.id}'s album {user_album_id} to user {target_user_id}"
+                f"Unshared user {user.id}'s album {user_album_id} to user {target_user_id}"
             )
 
         user_album_to_share.save()

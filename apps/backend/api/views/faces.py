@@ -1,7 +1,8 @@
 import logging
 import uuid
+from typing import Any
 
-import PIL
+import PIL.Image
 from django.conf import settings
 from django.db.models import (
     Case,
@@ -10,6 +11,7 @@ from django.db.models import (
     IntegerField,
     Prefetch,
     Q,
+    QuerySet,
     Value,
     When,
 )
@@ -18,6 +20,7 @@ from django_q.tasks import Chain
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import status
+from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -27,7 +30,9 @@ from api.ml_models import do_all_models_exist, download_models
 from api.models import Face, Photo, User
 from api.models.person import Person, get_or_create_person
 from api.models.photo_search import PhotoSearch
+from api.models.thumbnail import Thumbnail
 from api.photo_faces import overlaps_existing_face, save_detected_face
+from api.request_user import request_user
 from api.serializers.face import (
     FaceListSerializer,
     IncompletePersonFaceListSerializer,
@@ -41,29 +46,42 @@ from api.views.scan_triggers import start_job
 logger = logging.getLogger(__name__)
 
 
+def _request_body(request: Request) -> dict[str, Any]:
+    """The JSON object in the request body.
+
+    A body that is not an object (a JSON list, say) has always failed in these
+    views with an AttributeError, i.e. a 500; the assert keeps that failure.
+    """
+    body = request.data
+    assert isinstance(body, dict)
+    return body
+
+
 class ScanFacesView(APIView):
     @extend_schema(
         deprecated=True,
         description="Use POST method",
     )
-    def get(self, request, format=None):
+    def get(self, request: Request, format: str | None = None) -> Response:
         return self._scan_faces(request)
 
-    def post(self, request, format=None):
+    def post(self, request: Request, format: str | None = None) -> Response:
         return self._scan_faces(request)
 
-    def _scan_faces(self, request, format=None):
+    def _scan_faces(self, request: Request, format: str | None = None) -> Response:
         if not settings.FEATURE_FACE_DETECTION:
             return Response(
                 {"status": False, "message": "Face detection is disabled"},
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        def enqueue(job_id):
+        user = request_user(request)
+
+        def enqueue(job_id: uuid.UUID) -> None:
             chain = Chain()
             if not do_all_models_exist():
-                chain.append(download_models, request.user)
-            chain.append(scan_faces, request.user, job_id, True)
+                chain.append(download_models, user)
+            chain.append(scan_faces, user, job_id, True)
             chain.run()
 
         return start_job(enqueue, "the face scan")
@@ -71,26 +89,27 @@ class ScanFacesView(APIView):
 
 class TrainFaceView(APIView):
     @staticmethod
-    def _train_faces(request):
+    def _train_faces(request: Request) -> Response:
         if not settings.FEATURE_FACE_CLUSTER:
             return Response(
                 {"status": False, "message": "Face clustering is disabled"},
                 status=status.HTTP_403_FORBIDDEN,
             )
+        user = request_user(request)
         chain = Chain()
         if not do_all_models_exist():
-            chain.append(download_models, request.user)
+            chain.append(download_models, user)
         try:
             job_id = uuid.uuid4()
-            chain.append(generate_face_embeddings, request.user, uuid.uuid4())
-            chain.append(cluster_all_faces, request.user, job_id)
+            chain.append(generate_face_embeddings, user, uuid.uuid4())
+            chain.append(cluster_all_faces, user, job_id)
             chain.run()
             return Response({"status": True, "job_id": job_id})
         except Exception:
             logger.exception("Failed to queue face training")
             return Response({"status": False})
 
-    def post(self, request, format=None):
+    def post(self, request: Request, format: str | None = None) -> Response:
         return self._train_faces(request)
 
 
@@ -98,13 +117,15 @@ class FaceListView(ListViewSet):
     serializer_class = PersonFaceListSerializer
     pagination_class = RegularResultsSetPagination
 
-    def get_queryset(self):
-        personid = self.request.query_params.get("person", "0")
+    def get_queryset(self) -> QuerySet[Face]:
+        personid: str | None = self.request.query_params.get("person", "0")
 
         if personid == "0":
             personid = None
 
-        analysis_method = self.request.query_params.get("analysis_method", "clustering")
+        analysis_method: str | None = self.request.query_params.get(
+            "analysis_method", "clustering"
+        )
         min_confidence = float(self.request.query_params.get("min_confidence", 0))
 
         if (
@@ -160,7 +181,7 @@ class FaceListView(ListViewSet):
             OpenApiParameter("order_by", OpenApiTypes.STR),
         ],
     )
-    def list(self, *args, **kwargs):
+    def list(self, *args: Any, **kwargs: Any) -> Response:
         return super().list(*args, **kwargs)
 
 
@@ -168,12 +189,13 @@ class FaceIncompleteListViewSet(ListViewSet):
     serializer_class = IncompletePersonFaceListSerializer
     pagination_class = None
 
-    def get_queryset(self):
+    def get_queryset(self) -> QuerySet[Person]:
+        user = request_user(self.request)
         inferred = self.request.query_params.get("inferred", "").lower() == "true"
         analysis_method = self.request.query_params.get("analysis_method", "clustering")
         min_confidence = float(self.request.query_params.get("min_confidence", 0))
 
-        queryset = Person.objects.filter(cluster_owner=self.request.user)
+        queryset = Person.objects.filter(cluster_owner=user)
         # Every count below is scoped to the requester's own photos, because
         # FaceListView scopes its rows the same way (`photo__owner`). Without
         # it, a person shared with another user is counted across both
@@ -191,7 +213,7 @@ class FaceIncompleteListViewSet(ListViewSet):
                             & Q(
                                 classification_faces__classification_probability__gte=min_confidence
                             )
-                            & Q(classification_faces__photo__owner=self.request.user),
+                            & Q(classification_faces__photo__owner=user),
                             then=1,
                         ),
                         output_field=IntegerField(),
@@ -204,7 +226,7 @@ class FaceIncompleteListViewSet(ListViewSet):
                             Q(cluster_faces__deleted=False)
                             & Q(cluster_faces__person=None)
                             & Q(cluster_faces__cluster_probability__gte=min_confidence)
-                            & Q(cluster_faces__photo__owner=self.request.user),
+                            & Q(cluster_faces__photo__owner=user),
                             then=1,
                         ),
                         output_field=IntegerField(),
@@ -215,8 +237,7 @@ class FaceIncompleteListViewSet(ListViewSet):
             conditional_count = Count(
                 Case(
                     When(
-                        Q(faces__deleted=False)
-                        & Q(faces__photo__owner=self.request.user),
+                        Q(faces__deleted=False) & Q(faces__photo__owner=user),
                         then=1,
                     ),
                     output_field=IntegerField(),
@@ -236,7 +257,8 @@ class FaceIncompleteListViewSet(ListViewSet):
             OpenApiParameter("inferred", OpenApiTypes.BOOL),
         ],
     )
-    def list(self, *args, **kwargs):
+    def list(self, *args: Any, **kwargs: Any) -> Response:
+        user = request_user(self.request)
         queryset = self.get_queryset()
 
         serializer = self.get_serializer(queryset, many=True)
@@ -252,7 +274,7 @@ class FaceIncompleteListViewSet(ListViewSet):
                 unknown_faces_count = Face.objects.filter(
                     Q(deleted=False)
                     & Q(person=None)
-                    & Q(photo__owner=self.request.user)
+                    & Q(photo__owner=user)
                     & Q(classification_probability__lte=min_confidence),
                 ).count()
             else:
@@ -263,11 +285,11 @@ class FaceIncompleteListViewSet(ListViewSet):
                     )
                     & Q(deleted=False)
                     & Q(person=None)
-                    & Q(photo__owner=self.request.user),
+                    & Q(photo__owner=user),
                 ).count()
         else:
             unknown_faces_count = Face.objects.filter(
-                person=None, deleted=False, photo__owner=self.request.user
+                person=None, deleted=False, photo__owner=user
             ).count()
 
         if unknown_faces_count > 0:
@@ -283,11 +305,12 @@ class FaceIncompleteListViewSet(ListViewSet):
 
 
 class SetFacePersonLabel(APIView):
-    def post(self, request, format=None):
+    def post(self, request: Request, format: str | None = None) -> Response:
+        user = request_user(request)
         data = dict(request.data)
-        person = None
-        cluster_person = None
-        classification_person = None
+        person: Person | None = None
+        cluster_person: Person | None = None
+        classification_person: Person | None = None
         # Person.name carries a MinLengthValidator, but get_or_create() does not run
         # field validators, so a blank name would quietly create a nameless person
         # and an album to go with it. Surrounding whitespace is trimmed for the same
@@ -310,7 +333,7 @@ class SetFacePersonLabel(APIView):
             # these kinds; the photo's own face list had not.
             if Person.objects.filter(
                 name=person_name,
-                cluster_owner=self.request.user,
+                cluster_owner=user,
                 kind__in=(Person.KIND_CLUSTER, Person.KIND_UNKNOWN),
             ).exists():
                 return Response(
@@ -324,7 +347,7 @@ class SetFacePersonLabel(APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
             person = get_or_create_person(
-                name=person_name, owner=self.request.user, kind=Person.KIND_USER
+                name=person_name, owner=user, kind=Person.KIND_USER
             )
 
         # Everything the loop below touches is pulled in up front: the ownership
@@ -336,7 +359,7 @@ class SetFacePersonLabel(APIView):
         # not come back serialized in ``not_updated`` (it carried the photo id
         # and the face crop path of someone else's photo).
         faces = (
-            Face.objects.filter(photo__owner=request.user)
+            Face.objects.filter(photo__owner=user)
             .select_related(
                 "photo__owner",
                 "photo__main_file",
@@ -354,7 +377,7 @@ class SetFacePersonLabel(APIView):
         )
 
         updated = []
-        not_updated = []
+        not_updated: list[dict[str, object]] = []
         relabeled_faces = []
         affected_person_ids = set()
         for face in faces.values():
@@ -377,7 +400,11 @@ class SetFacePersonLabel(APIView):
 
         # Every photo we relabeled needs its captions rebuilt, not just the one
         # the loop happened to end on.
-        updated_photos = {face.photo.pk: face.photo for face in relabeled_faces}
+        updated_photos: dict[uuid.UUID, Photo] = {}
+        for face in relabeled_faces:
+            # Selected by photo__owner above, so every face has its photo.
+            assert face.photo is not None
+            updated_photos[face.photo.pk] = face.photo
 
         # The faces behind `photo.faces` were prefetched before the relabel, so
         # those cached rows still carry the old person. They are different
@@ -393,10 +420,8 @@ class SetFacePersonLabel(APIView):
         self._recreate_search_captions(list(updated_photos.values()))
 
         # Write face regions to image files if user preference is enabled
-        if request.user.save_face_tags_to_disk:
-            use_sidecar = (
-                request.user.save_metadata_to_disk == User.SaveMetadata.SIDECAR_FILE
-            )
+        if user.save_face_tags_to_disk:
+            use_sidecar = user.save_metadata_to_disk == User.SaveMetadata.SIDECAR_FILE
             for photo in updated_photos.values():
                 try:
                     photo._save_metadata(
@@ -418,7 +443,7 @@ class SetFacePersonLabel(APIView):
         )
 
     @staticmethod
-    def _recreate_search_captions(photos):
+    def _recreate_search_captions(photos: list[Photo]) -> None:
         """Rebuild the search captions of the given photos in one batch.
 
         Doing a ``get_or_create()`` and a ``save()`` per photo would put the
@@ -426,8 +451,8 @@ class SetFacePersonLabel(APIView):
         """
         search_instances = PhotoSearch.objects.in_bulk([photo.pk for photo in photos])
 
-        to_create = []
-        to_update = []
+        to_create: list[PhotoSearch] = []
+        to_update: list[PhotoSearch] = []
         for photo in photos:
             search_instance = search_instances.get(photo.pk)
             if search_instance:
@@ -473,8 +498,9 @@ class AddFaceView(APIView):
     # A box smaller than this in big-thumbnail pixels is a stray drag, not a face.
     MIN_SIDE_PIXELS = 12
 
-    def post(self, request, format=None):
-        person_name = (request.data.get("person_name") or "").strip()
+    def post(self, request: Request, format: str | None = None) -> Response:
+        user = request_user(request)
+        person_name = (_request_body(request).get("person_name") or "").strip()
         if not person_name:
             return self._error("person_name must not be empty")
         if person_name == Person.UNKNOWN_PERSON_NAME:
@@ -483,11 +509,11 @@ class AddFaceView(APIView):
                 f"'{Person.UNKNOWN_PERSON_NAME}' is what the algorithms use"
             )
 
-        photo_id = request.data.get("photo")
+        photo_id = _request_body(request).get("photo")
         if not photo_id:
             return self._error("photo is required")
         photo = (
-            Photo.objects.owned_by(request.user)
+            Photo.objects.owned_by(user)
             .filter(**_get_photo_filter_kwargs(str(photo_id)))
             .select_related(
                 "owner", "thumbnail", "main_file", "metadata", "caption_instance"
@@ -516,10 +542,14 @@ class AddFaceView(APIView):
 
         with big_thumbnail:
             box, error = self._box_in_pixels(
-                request.data.get("box"), big_thumbnail.width, big_thumbnail.height
+                _request_body(request).get("box"),
+                big_thumbnail.width,
+                big_thumbnail.height,
             )
             if error:
                 return self._error(error)
+            # _box_in_pixels returns a box whenever it reports no error.
+            assert box is not None
             top, right, bottom, left = box
 
             existing = photo.faces.filter(deleted=False).values_list(
@@ -537,7 +567,7 @@ class AddFaceView(APIView):
 
             face_image = big_thumbnail.crop((left, top, right, bottom))
             person = get_or_create_person(
-                name=person_name, owner=request.user, kind=Person.KIND_USER
+                name=person_name, owner=user, kind=Person.KIND_USER
             )
             face = save_detected_face(
                 photo,
@@ -567,10 +597,8 @@ class AddFaceView(APIView):
         photo.refresh_from_db()
         SetFacePersonLabel._recreate_search_captions([photo])
 
-        if request.user.save_face_tags_to_disk:
-            use_sidecar = (
-                request.user.save_metadata_to_disk == User.SaveMetadata.SIDECAR_FILE
-            )
+        if user.save_face_tags_to_disk:
+            use_sidecar = user.save_metadata_to_disk == User.SaveMetadata.SIDECAR_FILE
             try:
                 photo._save_metadata(
                     use_sidecar=use_sidecar, metadata_types=["face_tags"]
@@ -600,23 +628,26 @@ class AddFaceView(APIView):
         )
 
     @staticmethod
-    def _error(message):
+    def _error(message: str) -> Response:
         return Response(
             {"status": False, "message": message}, status=status.HTTP_400_BAD_REQUEST
         )
 
     @staticmethod
-    def _thumbnail_path(photo):
-        thumbnail = getattr(photo, "thumbnail", None)
+    def _thumbnail_path(photo: Photo) -> str | None:
+        thumbnail: Thumbnail | None = getattr(photo, "thumbnail", None)
         if thumbnail is None or not thumbnail.thumbnail_big:
             return None
         try:
-            return thumbnail.thumbnail_big.path
+            path: str = thumbnail.thumbnail_big.path
         except (ValueError, NotImplementedError):
             return None
+        return path
 
     @classmethod
-    def _box_in_pixels(cls, box, width, height):
+    def _box_in_pixels(
+        cls, box: object, width: int, height: int
+    ) -> tuple[tuple[int, int, int, int] | None, str | None]:
         """Turn a normalized box into big-thumbnail pixels.
 
         Returns ``((top, right, bottom, left), None)`` or ``(None, message)``.
@@ -624,7 +655,7 @@ class AddFaceView(APIView):
         if not isinstance(box, dict):
             return None, "box is required, with top, right, bottom and left"
 
-        sides = {}
+        sides: dict[str, float] = {}
         for side in ("top", "right", "bottom", "left"):
             try:
                 sides[side] = float(box[side])
@@ -658,12 +689,13 @@ class AddFaceView(APIView):
 
 
 class DeleteFaces(APIView):
-    def post(self, request, format=None):
+    def post(self, request: Request, format: str | None = None) -> Response:
+        user = request_user(request)
         data = dict(request.data)
-        faces = Face.objects.filter(photo__owner=request.user).in_bulk(data["face_ids"])
+        faces = Face.objects.filter(photo__owner=user).in_bulk(data["face_ids"])
 
-        deleted = []
-        not_deleted = []
+        deleted: list[str] = []
+        not_deleted: list[str] = []
         for face in faces.values():
             deleted.append(face.image.url)
             face.deleted = True
@@ -686,10 +718,14 @@ class DeleteFaces(APIView):
 
         # Search indexes the names of the people on a photo, so a deleted
         # face's person kept matching it until the next rescan.
-        labeled_photo_ids = {f.photo_id for f in faces.values() if f.person_id}
+        # Face.photo is nullable; Django ignores a null id in an __in lookup,
+        # so leaving it out does not change which photos are found.
+        labeled_photo_ids = {
+            f.photo_id for f in faces.values() if f.person_id and f.photo_id is not None
+        }
         if labeled_photo_ids:
             photos = (
-                Photo.objects.owned_by(request.user)
+                Photo.objects.owned_by(user)
                 .filter(pk__in=labeled_photo_ids)
                 .select_related("main_file", "metadata", "caption_instance")
                 .prefetch_related(

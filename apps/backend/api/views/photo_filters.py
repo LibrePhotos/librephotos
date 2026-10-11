@@ -5,14 +5,34 @@ This module provides reusable functions to build photo querysets from filter par
 enabling server-side "Select All" operations without sending individual photo IDs.
 """
 
-from django.db.models import Q
+from collections.abc import Mapping
+from typing import Any
+
+from django.contrib.auth.models import AnonymousUser
+from django.db.models import Q, QuerySet
+from rest_framework.request import Request
 
 from api.models import Photo
+from api.models.user import User
 from api.timeline_filter import timeline_filter_q
 from api.util import folder_path_q
 
 
-def build_photo_queryset(user, params: dict):
+def scope_user(request: Request) -> User | None:
+    """The requester as ``Photo.objects.owned_by`` and ``visible_to`` take it.
+
+    ``request.user`` is typed ``AbstractBaseUser | AnonymousUser``, which the
+    photo scopes do not accept. Both treat ``None`` exactly as an anonymous
+    user, so a view that serves anonymous readers (or whose schema is built
+    with an anonymous mock request) passes this instead of raising.
+    """
+    user = request.user
+    return user if isinstance(user, User) else None
+
+
+def build_photo_queryset(
+    user: User | AnonymousUser, params: Mapping[str, Any]
+) -> QuerySet[Photo]:
     """The user's own photos matching a select_all ``query`` payload.
 
     This is the write scope behind every server-side "Select All" mutation

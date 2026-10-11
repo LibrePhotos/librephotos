@@ -214,7 +214,7 @@ class GroupedPhotosSerializer(serializers.ModelSerializer):
         model = Photo
         fields = ("date", "location", "items")
 
-    def get_date(self, obj: PhotosGroupedByDate) -> datetime | None:
+    def get_date(self, obj: PhotosGroupedByDate) -> datetime | str | None:
         return obj.date
 
     def get_location(self, obj: PhotosGroupedByDate) -> str:

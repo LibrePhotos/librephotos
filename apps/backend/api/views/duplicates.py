@@ -11,20 +11,43 @@ Duplicates are separate from Stacks because they have different purposes:
 """
 
 import logging
+from typing import Any
 
+from django.core.exceptions import ObjectDoesNotExist
 from django.core.paginator import Paginator
 from django.db.models import Count, Sum
 from django_q.tasks import async_task
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from api.models import Photo
+from api.models import Photo, PhotoMetadata
 from api.models.duplicate import Duplicate
+from api.request_user import request_user
 
 logger = logging.getLogger(__name__)
+
+
+def _request_body(request: Request) -> dict[str, Any]:
+    """The JSON object in the request body.
+
+    A body that is not an object (a JSON list, say) has always failed in these
+    views with an AttributeError, i.e. a 500; the assert keeps that failure.
+    """
+    body = request.data
+    assert isinstance(body, dict)
+    return body
+
+
+def _metadata_or_none(photo: Photo) -> PhotoMetadata | None:
+    """The photo's metadata row, or None when it has none (reverse one-to-one)."""
+    try:
+        return photo.metadata
+    except ObjectDoesNotExist:
+        return None
 
 
 class DuplicateListView(APIView):
@@ -56,14 +79,15 @@ class DuplicateListView(APIView):
             ),
         ],
     )
-    def get(self, request):
+    def get(self, request: Request) -> Response:
+        user = request_user(request)
         duplicate_type_filter = request.query_params.get("duplicate_type", None)
         status_filter = request.query_params.get("status", None)
         page = max(1, int(request.query_params.get("page", 1)))
         page_size = max(1, min(int(request.query_params.get("page_size", 20)), 100))
 
         duplicates = (
-            Duplicate.objects.filter(owner=request.user)
+            Duplicate.objects.filter(owner=user)
             .prefetch_related("photos__thumbnail", "kept_photo__thumbnail")
             .annotate(photos_count=Count("photos"))
             .order_by("-created_at")
@@ -83,9 +107,12 @@ class DuplicateListView(APIView):
         page_obj = paginator.get_page(page)
 
         # Serialize manually to include nested photo data
-        results = []
+        results: list[dict[str, object]] = []
         for duplicate in page_obj.object_list:
             photos = duplicate.photos.all()[:4]  # Preview first 4 photos
+            # photos_count is the Count() annotated in the queryset above; the
+            # type checker does not see annotated attributes.
+            photos_count: int = getattr(duplicate, "photos_count")
             results.append(
                 {
                     "id": str(duplicate.id),
@@ -93,7 +120,7 @@ class DuplicateListView(APIView):
                     "duplicate_type_display": duplicate.get_duplicate_type_display(),
                     "review_status": duplicate.review_status,
                     "review_status_display": duplicate.get_review_status_display(),
-                    "photo_count": duplicate.photos_count,
+                    "photo_count": photos_count,
                     "potential_savings": duplicate.potential_savings,
                     "similarity_score": duplicate.similarity_score,
                     "created_at": duplicate.created_at,
@@ -137,10 +164,11 @@ class DuplicateDetailView(APIView):
 
     permission_classes = [IsAuthenticated]
 
-    def get(self, request, duplicate_id):
+    def get(self, request: Request, duplicate_id: str) -> Response:
+        user = request_user(request)
         try:
             duplicate = Duplicate.objects.annotate(photos_count=Count("photos")).get(
-                id=duplicate_id, owner=request.user
+                id=duplicate_id, owner=user
             )
         except Duplicate.DoesNotExist:
             return Response(
@@ -157,10 +185,11 @@ class DuplicateDetailView(APIView):
             width = None
             height = None
             camera = None
-            if hasattr(p, "metadata") and p.metadata:
-                width = p.metadata.width
-                height = p.metadata.height
-                camera = p.metadata.camera_model
+            metadata = _metadata_or_none(p)
+            if metadata is not None:
+                width = metadata.width
+                height = metadata.height
+                camera = metadata.camera_model
 
             data = {
                 "id": str(p.id),
@@ -193,7 +222,7 @@ class DuplicateDetailView(APIView):
                 "duplicate_type_display": duplicate.get_duplicate_type_display(),
                 "review_status": duplicate.review_status,
                 "review_status_display": duplicate.get_review_status_display(),
-                "photo_count": duplicate.photos_count,
+                "photo_count": getattr(duplicate, "photos_count"),
                 "potential_savings": duplicate.potential_savings,
                 "similarity_score": duplicate.similarity_score,
                 "created_at": duplicate.created_at,
@@ -214,16 +243,17 @@ class DuplicateResolveView(APIView):
 
     permission_classes = [IsAuthenticated]
 
-    def post(self, request, duplicate_id):
+    def post(self, request: Request, duplicate_id: str) -> Response:
+        user = request_user(request)
         try:
-            duplicate = Duplicate.objects.get(id=duplicate_id, owner=request.user)
+            duplicate = Duplicate.objects.get(id=duplicate_id, owner=user)
         except Duplicate.DoesNotExist:
             return Response(
                 {"error": "Duplicate group not found"}, status=status.HTTP_404_NOT_FOUND
             )
 
-        keep_photo_hash = request.data.get("keep_photo_hash")
-        trash_others = request.data.get("trash_others", True)
+        keep_photo_hash = _request_body(request).get("keep_photo_hash")
+        trash_others = _request_body(request).get("trash_others", True)
 
         if not keep_photo_hash:
             return Response(
@@ -260,9 +290,10 @@ class DuplicateDismissView(APIView):
 
     permission_classes = [IsAuthenticated]
 
-    def post(self, request, duplicate_id):
+    def post(self, request: Request, duplicate_id: str) -> Response:
+        user = request_user(request)
         try:
-            duplicate = Duplicate.objects.get(id=duplicate_id, owner=request.user)
+            duplicate = Duplicate.objects.get(id=duplicate_id, owner=user)
         except Duplicate.DoesNotExist:
             return Response(
                 {"error": "Duplicate group not found"}, status=status.HTTP_404_NOT_FOUND
@@ -279,9 +310,10 @@ class DuplicateRevertView(APIView):
 
     permission_classes = [IsAuthenticated]
 
-    def post(self, request, duplicate_id):
+    def post(self, request: Request, duplicate_id: str) -> Response:
+        user = request_user(request)
         try:
-            duplicate = Duplicate.objects.get(id=duplicate_id, owner=request.user)
+            duplicate = Duplicate.objects.get(id=duplicate_id, owner=user)
         except Duplicate.DoesNotExist:
             return Response(
                 {"error": "Duplicate group not found"}, status=status.HTTP_404_NOT_FOUND
@@ -306,9 +338,10 @@ class DuplicateDeleteView(APIView):
 
     permission_classes = [IsAuthenticated]
 
-    def delete(self, request, duplicate_id):
+    def delete(self, request: Request, duplicate_id: str) -> Response:
+        user = request_user(request)
         try:
-            duplicate = Duplicate.objects.get(id=duplicate_id, owner=request.user)
+            duplicate = Duplicate.objects.get(id=duplicate_id, owner=user)
         except Duplicate.DoesNotExist:
             return Response(
                 {"error": "Duplicate group not found"}, status=status.HTTP_404_NOT_FOUND
@@ -363,31 +396,34 @@ class DetectDuplicatesView(APIView):
             ),
         ],
     )
-    def post(self, request):
+    def post(self, request: Request) -> Response:
         from api.duplicate_detection import batch_detect_duplicates
 
+        user = request_user(request)
         # Validate and clamp batch_size to reasonable range
-        batch_size = int(request.data.get("batch_size", 10000))
+        batch_size = int(_request_body(request).get("batch_size", 10000))
         if batch_size < 100:
             batch_size = 100  # Minimum to avoid too many batches
         elif batch_size > 50000:
             batch_size = 50000  # Maximum to prevent memory issues
 
         options = {
-            "detect_exact_copies": request.data.get("detect_exact_copies", True),
-            "detect_visual_duplicates": request.data.get(
+            "detect_exact_copies": _request_body(request).get(
+                "detect_exact_copies", True
+            ),
+            "detect_visual_duplicates": _request_body(request).get(
                 "detect_visual_duplicates", True
             ),
-            "visual_threshold": int(request.data.get("visual_threshold", 10)),
-            "clear_pending": request.data.get("clear_pending", False),
+            "visual_threshold": int(_request_body(request).get("visual_threshold", 10)),
+            "clear_pending": _request_body(request).get("clear_pending", False),
             "batch_size": batch_size,
         }
 
         # Queue background job
-        async_task(batch_detect_duplicates, request.user, options)
+        async_task(batch_detect_duplicates, user, options)
 
         logger.info(
-            f"Duplicate detection queued for user {request.user.username} with options: {options}"
+            f"Duplicate detection queued for user {user.username} with options: {options}"
         )
         return Response(
             {
@@ -404,11 +440,12 @@ class DuplicateStatsView(APIView):
 
     permission_classes = [IsAuthenticated]
 
-    def get(self, request):
-        duplicates = Duplicate.objects.filter(owner=request.user)
+    def get(self, request: Request) -> Response:
+        user = request_user(request)
+        duplicates = Duplicate.objects.filter(owner=user)
 
         # Count by type
-        by_type = {}
+        by_type: dict[str, int] = {}
         for dup_type in Duplicate.DuplicateType.values:
             by_type[dup_type] = duplicates.filter(duplicate_type=dup_type).count()
 
@@ -433,16 +470,14 @@ class DuplicateStatsView(APIView):
 
         # Count photos in duplicate groups
         photos_in_duplicates = (
-            Photo.objects.owned_by(request.user)
+            Photo.objects.owned_by(user)
             .filter(duplicates__isnull=False)
             .distinct()
             .count()
         )
 
         total_photos = (
-            Photo.objects.owned_by(request.user)
-            .filter(hidden=False, in_trashcan=False)
-            .count()
+            Photo.objects.owned_by(user).filter(hidden=False, in_trashcan=False).count()
         )
 
         return Response(

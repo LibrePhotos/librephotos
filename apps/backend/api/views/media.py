@@ -6,15 +6,23 @@ import logging
 import os
 import subprocess
 import threading
+from collections.abc import Iterator
 from urllib.parse import quote
 
 from django.conf import settings
-from django.db.models import Q
-from django.http import HttpResponse, HttpResponseForbidden, StreamingHttpResponse
+from django.db.models import Q, QuerySet
+from django.db.models.fields.files import FieldFile
+from django.http import (
+    HttpResponse,
+    HttpResponseBase,
+    HttpResponseForbidden,
+    StreamingHttpResponse,
+)
 from django.utils import timezone
 from django.utils.encoding import iri_to_uri
 from rest_framework.authentication import BasicAuthentication
 from rest_framework.permissions import AllowAny
+from rest_framework.request import Request
 from rest_framework.views import APIView
 
 from api import binaries, ffmpeg_budget, transcode_cache, video_color
@@ -24,11 +32,12 @@ from api.http_range import file_size, ranged_response
 from api.mime import mime_type
 from api.models import AlbumUser, Photo
 from api.models.photo import HEAVY_PHOTO_COLUMNS
+from api.models.user import User
 
 logger = logging.getLogger(__name__)
 
 
-def _url_segment_traverses(*segments):
+def _url_segment_traverses(*segments: str) -> bool:
     """Whether any ``/media/`` URL segment tries to leave its directory.
 
     ``fname`` is meant to be a bare filename and ``path`` a forward-slash
@@ -50,7 +59,28 @@ def _url_segment_traverses(*segments):
     return False
 
 
-def _within_media_root(candidate):
+def _original_path(photo: Photo) -> str:
+    """Filesystem path of the photo's original file.
+
+    ``main_file`` is nullable. A photo whose original the scan has detached has
+    no path, and no serving route ever asked for one, so this is an assertion
+    rather than a branch: it fails exactly where the bare attribute access did.
+    """
+    assert photo.main_file is not None
+    return photo.main_file.path
+
+
+def _stored_name(field: FieldFile) -> str:
+    """The name ``field`` was saved under.
+
+    Only populated fields get here: an empty FileField is falsy and is turned
+    away before it is used, and a truthy one always has a name.
+    """
+    assert field.name is not None
+    return field.name
+
+
+def _within_media_root(candidate: str) -> bool:
     """Whether ``candidate`` resolves to ``MEDIA_ROOT`` itself or below it.
 
     Belt to the suspenders of :func:`_url_segment_traverses`: the path is
@@ -68,7 +98,7 @@ def _within_media_root(candidate):
         return False
 
 
-def build_live_command(path, transfer=None):
+def build_live_command(path: str, transfer: str | None = None) -> list[str]:
     """The conversion a viewer is waiting on, bounded so it cannot take the host.
 
     Unbounded, this is one person's playback against everybody else's: ffmpeg
@@ -161,23 +191,29 @@ class VideoTranscoder:
     # frame cannot grow it without bound.
     STDERR_TAIL_BYTES = 8192
 
-    process = ""
+    # None until the conversion has started. __init__ can raise before it is
+    # set (ffmpeg cannot be started), and __del__ still runs on that instance.
+    process: subprocess.Popen[bytes] | None = None
 
-    def __init__(self, path, transfer=None):
+    def __init__(self, path: str, transfer: str | None = None) -> None:
         self.process = subprocess.Popen(
             build_live_command(path, transfer),
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         )
-        self._stderr_tail = collections.deque(maxlen=self.STDERR_TAIL_BYTES)
+        self._stderr_tail: collections.deque[int] = collections.deque(
+            maxlen=self.STDERR_TAIL_BYTES
+        )
         self._drain = threading.Thread(target=self._read_stderr, daemon=True)
         self._drain.start()
 
-    def _read_stderr(self):
-        for chunk in iter(lambda: self.process.stderr.read(4096), b""):
+    def _read_stderr(self) -> None:
+        assert self.process is not None and self.process.stderr is not None
+        read = self.process.stderr.read
+        for chunk in iter(lambda: read(4096), b""):
             self._stderr_tail.extend(chunk)
 
-    def stderr_tail(self):
+    def stderr_tail(self) -> str:
         """What ffmpeg last said, once there is no more of it coming.
 
         The drain thread is joined first: a deque is safe to extend from
@@ -187,29 +223,34 @@ class VideoTranscoder:
         self._drain.join(timeout=5)
         return bytes(self._stderr_tail).decode("utf-8", "replace").strip()
 
-    def __del__(self):
-        self.process.kill()
+    def __del__(self) -> None:
+        if self.process is not None:
+            self.process.kill()
 
 
-def gen(transcoder):
+def gen(transcoder: VideoTranscoder) -> Iterator[bytes]:
     """Stream the conversion, and say so in the log if it ended badly.
 
     A failed transcode reaches the browser as a video that simply stops, so the
     only place the reason can land is here.
     """
-    yield from iter(transcoder.process.stdout.readline, b"")
-    if transcoder.process.wait() != 0:
+    process = transcoder.process
+    assert process is not None and process.stdout is not None  # set by __init__
+    yield from iter(process.stdout.readline, b"")
+    if process.wait() != 0:
         logger.warning(
             "live video transcode exited with %s: %s",
-            transcoder.process.returncode,
+            process.returncode,
             transcoder.stderr_tail() or "no output on stderr",
         )
 
 
-class UnifiedMediaAccessView(APIView):
-    """
-    Unified media access endpoint supporting both proxy and no-proxy setups,
-    and handling public album media access.
+class MediaServingView(APIView):
+    """Response builders for ``/media/`` and for the public photo-link route.
+
+    Subclasses bring their own ``get``, whose arguments come from their URL
+    pattern, so the shared helpers live here rather than on a class whose
+    ``get`` other routes would have to match.
     """
 
     permission_classes = (AllowAny,)
@@ -219,10 +260,10 @@ class UnifiedMediaAccessView(APIView):
     # JWTCookieAuthentication).
     authentication_classes = (JWTCookieAuthentication, BasicAuthentication)
 
-    def _should_use_proxy(self):
+    def _should_use_proxy(self) -> bool:
         return not getattr(settings, "SERVE_FRONTEND", False)
 
-    def _forbidden_unauthenticated(self):
+    def _forbidden_unauthenticated(self) -> HttpResponseForbidden:
         """403 because the caller has no usable session -- not because of the file.
 
         Both refusals reach the browser as a bare 403: this one, and the one
@@ -235,17 +276,17 @@ class UnifiedMediaAccessView(APIView):
         response["X-Media-Error"] = "authentication"
         return response
 
-    def _protected_media_url(self, path, fname):
+    def _protected_media_url(self, path: str, fname: str) -> str:
         path = path.lstrip("/")
         return f"/protected_media/{path}/{fname}"
 
-    def _file_content_type(self, file_path):
+    def _file_content_type(self, file_path: str) -> str:
         try:
             return mime_type(file_path)
         except Exception:
             return "application/octet-stream"
 
-    def _safe_media_join(self, path, fname, suffix=""):
+    def _safe_media_join(self, path: str, fname: str, suffix: str = "") -> str | None:
         """Join ``path``/``fname`` under ``MEDIA_ROOT``, or ``None`` if it escapes.
 
         The single choke point for every direct-mode join of URL-controlled
@@ -259,7 +300,9 @@ class UnifiedMediaAccessView(APIView):
         candidate = os.path.join(settings.MEDIA_ROOT, path, fname + suffix)
         return candidate if _within_media_root(candidate) else None
 
-    def _serve_file_direct(self, file_path, content_type=None):
+    def _serve_file_direct(
+        self, file_path: str, content_type: str | None = None
+    ) -> HttpResponseBase:
         if not os.path.exists(file_path):
             return HttpResponse(status=404)
         try:
@@ -289,7 +332,9 @@ class UnifiedMediaAccessView(APIView):
         except Exception:
             return HttpResponse(status=500)
 
-    def _transcoded_video_response(self, photo, use_proxy):
+    def _transcoded_video_response(
+        self, photo: Photo, use_proxy: bool
+    ) -> HttpResponseBase:
         """Hand out a playable mp4 for a video the browser cannot decode.
 
         Browsers cannot decode every container/codec we store, so those videos
@@ -310,7 +355,7 @@ class UnifiedMediaAccessView(APIView):
                 os.path.join(settings.MEDIA_ROOT, "")
             )
             if served_by_proxy:
-                response = HttpResponse()
+                response: HttpResponseBase = HttpResponse()
                 response["Content-Type"] = "video/mp4"
                 response["X-Accel-Redirect"] = self._protected_media_url(
                     os.path.dirname(os.path.relpath(cached, settings.MEDIA_ROOT)),
@@ -330,7 +375,7 @@ class UnifiedMediaAccessView(APIView):
 
         response = StreamingHttpResponse(
             self._cache_after_streaming(
-                gen(VideoTranscoder(photo.main_file.path, photo.video_color_transfer)),
+                gen(VideoTranscoder(_original_path(photo), photo.video_color_transfer)),
                 photo,
             ),
             content_type="video/mp4",
@@ -342,7 +387,9 @@ class UnifiedMediaAccessView(APIView):
         return response
 
     @staticmethod
-    def _cache_after_streaming(stream, photo):
+    def _cache_after_streaming(
+        stream: Iterator[bytes], photo: Photo
+    ) -> Iterator[bytes]:
         """Stream the live conversion, and only then start writing the copy.
 
         Not alongside it. The live conversion has to keep ahead of playback, and
@@ -360,7 +407,7 @@ class UnifiedMediaAccessView(APIView):
         finally:
             transcode_cache.ensure_cached(photo)
 
-    def _thumbnail_field_for(self, photo, path):
+    def _thumbnail_field_for(self, photo: Photo, path: str) -> FieldFile | None:
         """Return the ``FieldFile`` holding the thumbnail ``path`` asks for.
 
         The request filename cannot be turned into an on-disk name by string
@@ -386,7 +433,9 @@ class UnifiedMediaAccessView(APIView):
         # An empty FileField raises ValueError on .path/.name access downstream.
         return field if field else None
 
-    def _generate_response_proxy(self, photo, path, fname, transcode_videos):
+    def _generate_response_proxy(
+        self, photo: Photo, path: str, fname: str, transcode_videos: bool
+    ) -> HttpResponseBase:
         if "thumbnail" in path:
             response = HttpResponse()
             thumb = self._thumbnail_field_for(photo, path)
@@ -394,7 +443,9 @@ class UnifiedMediaAccessView(APIView):
             # thumbnails_big is a static image even for videos: .webp today,
             # .jpg on installs that predate the webp switch.
             if "thumbnails_big" in path:
-                name = os.path.basename(thumb.name) if thumb else fname + ".webp"
+                name = (
+                    os.path.basename(_stored_name(thumb)) if thumb else fname + ".webp"
+                )
                 response["Content-Type"] = (
                     "image/jpeg" if "jpg" in os.path.splitext(name)[1] else "image/webp"
                 )
@@ -412,8 +463,8 @@ class UnifiedMediaAccessView(APIView):
                 )
                 return response
 
-            ext = os.path.splitext(thumb.name)[1]
-            actual_name = os.path.basename(thumb.name)
+            ext = os.path.splitext(_stored_name(thumb))[1]
+            actual_name = os.path.basename(_stored_name(thumb))
             if "jpg" in ext:
                 response["Content-Type"] = "image/jpg"
                 big = self._thumbnail_field_for(photo, "thumbnails_big")
@@ -440,9 +491,9 @@ class UnifiedMediaAccessView(APIView):
             if transcode_videos:
                 return self._transcoded_video_response(photo, use_proxy=True)
             response = HttpResponse()
-            response["Content-Type"] = mime_type(photo.main_file.path)
+            response["Content-Type"] = mime_type(_original_path(photo))
             response["X-Accel-Redirect"] = iri_to_uri(
-                photo.main_file.path.replace(settings.DATA_ROOT, "/original")
+                _original_path(photo).replace(settings.DATA_ROOT, "/original")
             )
             return response
 
@@ -451,12 +502,16 @@ class UnifiedMediaAccessView(APIView):
         response["X-Accel-Redirect"] = self._protected_media_url(path, fname)
         return response
 
-    def _big_jpg_thumbnail_response(self, photo, fallback):
+    def _big_jpg_thumbnail_response(
+        self, photo: Photo, fallback: FieldFile
+    ) -> HttpResponseBase:
         """Serve the big jpg thumbnail, or ``fallback`` when it was never stored."""
         big = self._thumbnail_field_for(photo, "thumbnails_big")
         return self._serve_file_direct((big or fallback).path, "image/jpg")
 
-    def _stored_thumbnail_response(self, photo, path):
+    def _stored_thumbnail_response(
+        self, photo: Photo, path: str
+    ) -> HttpResponseBase | None:
         """Serve the thumbnail the model names, or ``None`` to fall back.
 
         Resolve from the model first: `fname` is the Photo UUID for
@@ -466,7 +521,7 @@ class UnifiedMediaAccessView(APIView):
         thumb = self._thumbnail_field_for(photo, path)
         if thumb is None:
             return None
-        ext = os.path.splitext(thumb.name)[1]
+        ext = os.path.splitext(_stored_name(thumb))[1]
         if "jpg" in ext:
             # Legacy jpg thumbnails: only the big variant is usable.
             return self._big_jpg_thumbnail_response(photo, thumb)
@@ -477,7 +532,9 @@ class UnifiedMediaAccessView(APIView):
             )
         return None
 
-    def _suffixed_thumbnail_response(self, path, fname):
+    def _suffixed_thumbnail_response(
+        self, path: str, fname: str
+    ) -> HttpResponseBase | None:
         """Serve ``fname`` with a thumbnail extension appended, if one is there."""
         for ext, content_type in ((".webp", "image/webp"), (".mp4", "video/mp4")):
             if fname.endswith(ext):
@@ -487,7 +544,9 @@ class UnifiedMediaAccessView(APIView):
                 return self._serve_file_direct(candidate, content_type)
         return None
 
-    def _thumbnail_response_direct(self, photo, path, fname):
+    def _thumbnail_response_direct(
+        self, photo: Photo, path: str, fname: str
+    ) -> HttpResponseBase:
         response = self._stored_thumbnail_response(photo, path)
         if response is not None:
             return response
@@ -502,11 +561,13 @@ class UnifiedMediaAccessView(APIView):
         # Legacy jpg installs may never have populated the small/square
         # variants; fall back to the big jpg for any of them, as before.
         square = self._thumbnail_field_for(photo, "square_thumbnails")
-        if square is not None and "jpg" in os.path.splitext(square.name)[1]:
+        if square is not None and "jpg" in os.path.splitext(_stored_name(square))[1]:
             return self._big_jpg_thumbnail_response(photo, square)
         return self._serve_file_direct(file_path)
 
-    def _generate_response_direct(self, photo, path, fname, transcode_videos):
+    def _generate_response_direct(
+        self, photo: Photo, path: str, fname: str, transcode_videos: bool
+    ) -> HttpResponseBase:
         if "thumbnail" in path:
             return self._thumbnail_response_direct(photo, path, fname)
 
@@ -519,7 +580,7 @@ class UnifiedMediaAccessView(APIView):
         if photo.video:
             if transcode_videos:
                 return self._transcoded_video_response(photo, use_proxy=False)
-            return self._serve_file_direct(photo.main_file.path)
+            return self._serve_file_direct(_original_path(photo))
 
         file_path = self._safe_media_join(path, fname)
         if file_path is None:
@@ -527,8 +588,12 @@ class UnifiedMediaAccessView(APIView):
         return self._serve_file_direct(file_path, "image/jpg")
 
     def _generate_response_original(
-        self, photo, use_proxy, transcode_videos, inline=False
-    ):
+        self,
+        photo: Photo,
+        use_proxy: bool,
+        transcode_videos: bool,
+        inline: bool = False,
+    ) -> HttpResponseBase:
         """Serve the untouched original file (path == "photos").
 
         Videos go through ffmpeg first when the requester enabled "Always
@@ -536,34 +601,34 @@ class UnifiedMediaAccessView(APIView):
         """
         if photo.video and transcode_videos:
             return self._transcoded_video_response(photo, use_proxy=use_proxy)
-        content_type = self._file_content_type(photo.main_file.path)
+        content_type = self._file_content_type(_original_path(photo))
 
         if use_proxy:
             response = HttpResponse()
             response["Content-Type"] = content_type if photo.video else "image/webp"
-            if photo.main_file.path.startswith("/nextcloud_media/"):
-                internal_path = "/nextcloud_original" + photo.main_file.path[21:]
-            elif photo.main_file.path.startswith(settings.PHOTOS):
+            if _original_path(photo).startswith("/nextcloud_media/"):
+                internal_path = "/nextcloud_original" + _original_path(photo)[21:]
+            elif _original_path(photo).startswith(settings.PHOTOS):
                 internal_path = (
-                    "/original" + photo.main_file.path[len(settings.PHOTOS) :]
+                    "/original" + _original_path(photo)[len(settings.PHOTOS) :]
                 )
             else:
-                internal_path = quote(photo.main_file.path)
+                internal_path = quote(_original_path(photo))
             if inline:
                 response["Content-Disposition"] = 'inline; filename="{}"'.format(
-                    photo.main_file.path.split("/")[-1]
+                    _original_path(photo).split("/")[-1]
                 )
             response["X-Accel-Redirect"] = iri_to_uri(internal_path)
             return response
-        return self._serve_file_direct(photo.main_file.path, content_type)
+        return self._serve_file_direct(_original_path(photo), content_type)
 
-    def _public_album_active_q(self):
+    def _public_album_active_q(self) -> Q:
         return Q(share__enabled=True) & (
             Q(share__expires_at__isnull=True) | Q(share__expires_at__gte=timezone.now())
         )
 
     @staticmethod
-    def _vouching_albums(photo):
+    def _vouching_albums(photo: Photo) -> QuerySet[AlbumUser]:
         """Albums whose shares may grant access to ``photo``: its owner's only.
 
         A photo that sits in someone else's album (GHSA-phvg-g65q-rhq3) must
@@ -571,14 +636,14 @@ class UnifiedMediaAccessView(APIView):
         """
         return photo.albumuser_set.filter(owner_id=photo.owner_id)
 
-    def _in_public_album(self, photo):
+    def _in_public_album(self, photo: Photo) -> bool:
         """Whether an active public share of one of its owner's albums vouches."""
         return (
             self._vouching_albums(photo).filter(self._public_album_active_q()).exists()
         )
 
     @staticmethod
-    def _is_public_photo(photo):
+    def _is_public_photo(photo: Photo) -> bool:
         """Whether ``photo`` is public in the sense the photo API uses.
 
         ``Photo.public`` alone is not enough: nothing clears it when the photo
@@ -600,7 +665,7 @@ class UnifiedMediaAccessView(APIView):
         return Photo.visible.visible_to(None).filter(pk=photo.pk).exists()
 
     @staticmethod
-    def _requester(request):
+    def _requester(request: Request) -> User | None:
         """The signed-in user, or None.
 
         None covers both "no credentials" and "credentials that no longer
@@ -610,9 +675,13 @@ class UnifiedMediaAccessView(APIView):
         ``_forbidden_unauthenticated``.
         """
         user = request.user
-        return user if user.is_authenticated else None
+        if not isinstance(user, User):
+            return None
+        return user
 
-    def _pick_visible_photo(self, photos, user):
+    def _pick_visible_photo(
+        self, photos: QuerySet[Photo], user: User | None
+    ) -> Photo | None:
         """Choose which row a shared ``image_hash`` resolves to.
 
         ``Photo.image_hash`` is meant to be unique per user, but two users who
@@ -639,7 +708,7 @@ class UnifiedMediaAccessView(APIView):
                 return p
         return candidates[0]
 
-    def _may_access(self, photo, user):
+    def _may_access(self, photo: Photo, user: User | None) -> bool:
         """Whether `user` may fetch `photo`: owner, direct share, or via album."""
         if user is None:
             return False
@@ -652,15 +721,24 @@ class UnifiedMediaAccessView(APIView):
         )
 
     @staticmethod
-    def _is_uuid_format(value):
+    def _is_uuid_format(value: str) -> bool:
         return len(value) == 36 and value.count("-") == 4
 
-    def _generate_response(self, photo, path, fname, transcode_videos, use_proxy):
+    def _generate_response(
+        self,
+        photo: Photo,
+        path: str,
+        fname: str,
+        transcode_videos: bool,
+        use_proxy: bool,
+    ) -> HttpResponseBase:
         if use_proxy:
             return self._generate_response_proxy(photo, path, fname, transcode_videos)
         return self._generate_response_direct(photo, path, fname, transcode_videos)
 
-    def _lookup_photo(self, image_hash, user, allow_uuid=False):
+    def _lookup_photo(
+        self, image_hash: str, user: User | None, allow_uuid: bool = False
+    ) -> Photo | None:
         """Resolve a request's hash (or, where allowed, UUID) to a single Photo.
 
         UUID lookups exist for new-style requests made after migration 0099;
@@ -679,7 +757,9 @@ class UnifiedMediaAccessView(APIView):
         except Photo.MultipleObjectsReturned:
             return self._pick_visible_photo(photos.filter(image_hash=image_hash), user)
 
-    def _serve_zip(self, request, path, fname, use_proxy):
+    def _serve_zip(
+        self, request: Request, path: str, fname: str, use_proxy: bool
+    ) -> HttpResponseBase:
         user = self._requester(request)
         if user is None:
             return self._forbidden_unauthenticated()
@@ -699,7 +779,9 @@ class UnifiedMediaAccessView(APIView):
         except Exception:
             return self._forbidden_unauthenticated()
 
-    def _serve_avatar(self, request, path, fname, use_proxy):
+    def _serve_avatar(
+        self, request: Request, path: str, fname: str, use_proxy: bool
+    ) -> HttpResponseBase:
         if self._requester(request) is None:
             return self._forbidden_unauthenticated()
         try:
@@ -715,7 +797,9 @@ class UnifiedMediaAccessView(APIView):
         except Exception:
             return HttpResponse(status=404)
 
-    def _serve_embedded_media(self, request, path, fname, use_proxy):
+    def _serve_embedded_media(
+        self, request: Request, path: str, fname: str, use_proxy: bool
+    ) -> HttpResponseBase:
         # Authorized like the photo itself: an owner-only filter refused the
         # people a motion photo was shared with, and a bare public=True kept
         # serving one that was hidden or trashed later.
@@ -742,7 +826,14 @@ class UnifiedMediaAccessView(APIView):
             return response
         return self._serve_file_direct(embedded_media_file.path, "video/mp4")
 
-    def _serve_shared_album_media(self, album_id, image_hash, path, fname, use_proxy):
+    def _serve_shared_album_media(
+        self,
+        album_id: str,
+        image_hash: str,
+        path: str,
+        fname: str,
+        use_proxy: bool,
+    ) -> HttpResponseBase:
         album = (
             AlbumUser.objects.filter(id=album_id)
             .filter(self._public_album_active_q())
@@ -768,21 +859,21 @@ class UnifiedMediaAccessView(APIView):
         if "thumbnail" in path or "thumbnails" in path or "faces" in path:
             return self._generate_response(photo, path, fname, False, use_proxy)
 
-        content_type = self._file_content_type(photo.main_file.path)
+        content_type = self._file_content_type(_original_path(photo))
         if not use_proxy:
             return self._serve_file_direct(
-                photo.main_file.path, content_type if photo.video else "image/webp"
+                _original_path(photo), content_type if photo.video else "image/webp"
             )
         response = HttpResponse()
         response["Content-Type"] = content_type if photo.video else "image/webp"
-        if photo.main_file.path.startswith(settings.PHOTOS):
-            internal_path = "/original" + photo.main_file.path[len(settings.PHOTOS) :]
+        if _original_path(photo).startswith(settings.PHOTOS):
+            internal_path = "/original" + _original_path(photo)[len(settings.PHOTOS) :]
         else:
-            internal_path = photo.main_file.path
+            internal_path = _original_path(photo)
         response["X-Accel-Redirect"] = iri_to_uri(internal_path)
         return response
 
-    def _refuse(self, user):
+    def _refuse(self, user: User | None) -> HttpResponseBase:
         """Refuse a photo the requester may not see, or a hash matching nothing.
 
         Both get the same answer: a sign-in refusal for an anonymous caller, a
@@ -794,7 +885,9 @@ class UnifiedMediaAccessView(APIView):
             return self._forbidden_unauthenticated()
         return HttpResponse(status=404)
 
-    def _serve_derived_media(self, request, image_hash, path, fname, use_proxy):
+    def _serve_derived_media(
+        self, request: Request, image_hash: str, path: str, fname: str, use_proxy: bool
+    ) -> HttpResponseBase:
         # The requester is resolved up front so that a hash shared by several
         # Photo rows can be resolved in their favour.
         user = self._requester(request)
@@ -833,7 +926,7 @@ class UnifiedMediaAccessView(APIView):
         return self._refuse(user)
 
     @staticmethod
-    def _transcode_for(user, request):
+    def _transcode_for(user: User, request: Request) -> bool:
         """Whether ``user``'s request for a video is to be converted.
 
         Always, with "Always transcode videos" on. Otherwise when the frontend
@@ -845,7 +938,9 @@ class UnifiedMediaAccessView(APIView):
         """
         return user.transcode_videos or request.GET.get("transcode") == "1"
 
-    def _serve_original_media(self, request, image_hash, use_proxy):
+    def _serve_original_media(
+        self, request: Request, image_hash: str, use_proxy: bool
+    ) -> HttpResponseBase:
         user = self._requester(request)
         photo = self._lookup_photo(image_hash, user)
         if photo is None:
@@ -873,7 +968,21 @@ class UnifiedMediaAccessView(APIView):
 
         return self._refuse(user)
 
-    def get(self, request, path, fname, album_id=None, format=None):
+
+class UnifiedMediaAccessView(MediaServingView):
+    """
+    Unified media access endpoint supporting both proxy and no-proxy setups,
+    and handling public album media access.
+    """
+
+    def get(
+        self,
+        request: Request,
+        path: str,
+        fname: str,
+        album_id: str | None = None,
+        format: str | None = None,
+    ) -> HttpResponseBase:
         # Refused before anything is joined onto MEDIA_ROOT or written into an
         # X-Accel-Redirect URI: a `..` component or a backslash in either URL
         # segment is always an attempt to leave the media directory, never a

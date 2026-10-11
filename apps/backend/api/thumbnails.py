@@ -119,9 +119,7 @@ def renders_exif_orientation(path: str) -> bool:
     return os.path.splitext(path)[1].lower() in _EXIF_ORIENTED_EXTENSIONS
 
 
-def _autorotated(
-    image: pyvips.Image, exif_orientation: int
-) -> pyvips.Image:
+def _autorotated(image: pyvips.Image, exif_orientation: int) -> pyvips.Image:
     tagged = image.copy()
     tagged.set_type(pyvips.GValue.gint_type, "orientation", exif_orientation)
     return tagged.autorot()

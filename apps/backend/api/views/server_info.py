@@ -3,15 +3,17 @@
 import functools
 import os
 import subprocess
+from typing import Any
 
 from django.conf import settings
 from rest_framework.permissions import AllowAny
+from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 
 class StorageStatsView(APIView):
-    def get(self, request, format=None):
+    def get(self, request: Request, format: str | None = None) -> Response:
         import shutil
 
         total_storage, used_storage, free_storage = shutil.disk_usage(
@@ -29,14 +31,14 @@ class StorageStatsView(APIView):
 class ApiHelpView(APIView):
     permission_classes = (AllowAny,)
 
-    def get(self, request, format=None):
+    def get(self, request: Request, format: str | None = None) -> Response:
         base = ""
         try:
             base = request.build_absolute_uri("/").rstrip("/")
         except Exception:
             base = ""
 
-        data = {
+        data: dict[str, Any] = {
             "about": "LibrePhotos API Help",
             "authentication": {
                 "default_authentication_classes": [
@@ -100,7 +102,7 @@ class ApiHelpView(APIView):
 
 
 @functools.lru_cache(maxsize=1)
-def read_git_hash():
+def read_git_hash() -> str:
     """The commit this backend was built from.
 
     The images are built without ``.git``, so ``GIT_HASH`` (a build argument of
@@ -138,7 +140,7 @@ def read_git_hash():
 
 
 class ImageTagView(APIView):
-    def get(self, request, format=None):
+    def get(self, request: Request, format: str | None = None) -> Response:
         return Response(
             {"image_tag": os.environ.get("IMAGE_TAG", ""), "git_hash": read_git_hash()}
         )

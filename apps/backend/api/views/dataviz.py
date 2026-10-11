@@ -5,21 +5,23 @@ import os
 from django.conf import settings
 from django.http import FileResponse, HttpResponseForbidden
 from drf_spectacular.utils import extend_schema
+from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from api.face_classify import cluster_faces
+from api.models.user import User
+from api.request_user import request_user
+from api.social_graph import build_social_graph
 from api.stats import (
     get_count_stats,
-    get_photo_month_counts,
-    get_searchterms_wordcloud,
-    get_server_stats,
     get_location_clusters,
     get_location_sunburst,
     get_location_timeline,
+    get_photo_month_counts,
+    get_searchterms_wordcloud,
+    get_server_stats,
 )
-
-from api.face_classify import cluster_faces
-from api.social_graph import build_social_graph
 from librephotos.logging_bootstrap import LOG_FILENAME
 
 logger = logging.getLogger(__name__)
@@ -30,30 +32,33 @@ class ClusterFaceView(APIView):
         deprecated=True,
         description="Use POST method",
     )
-    def get(self, request, format=None):
-        return self._cluster_faces(request.user)
+    def get(self, request: Request, format: str | None = None) -> Response:
+        return self._cluster_faces(request_user(request))
 
-    def post(self, request, format=None):
-        return self._cluster_faces(request.user)
+    def post(self, request: Request, format: str | None = None) -> Response:
+        return self._cluster_faces(request_user(request))
 
-    def _cluster_faces(self, user):
+    def _cluster_faces(self, user: User) -> Response:
         res = cluster_faces(user)
         return Response(res)
 
 
 class SocialGraphView(APIView):
-    def get(self, request, format=None):
+    def get(self, request: Request, format: str | None = None) -> Response:
+        user = request_user(request)
         try:
-            res = build_social_graph(request.user)
+            res = build_social_graph(user)
             return Response(res)
         except Exception:
-            logger.exception(f"Error in SocialGraphView for user {request.user.id}")
+            logger.exception(f"Error in SocialGraphView for user {user.id}")
             return Response({"error": "Failed to build social graph"}, status=500)
 
 
 class ServerLogsView(APIView):
-    def get(self, request, format=None):
-        if not (request.user and request.user.is_staff):
+    def get(
+        self, request: Request, format: str | None = None
+    ) -> FileResponse | HttpResponseForbidden | Response:
+        if not request_user(request).is_staff:
             return HttpResponseForbidden()
 
         log_file = os.path.join(settings.LOGS_ROOT, LOG_FILENAME)
@@ -67,8 +72,10 @@ class ServerLogsView(APIView):
 
 
 class ServerLogsViewerView(APIView):
-    def get(self, request, format=None):
-        if not (request.user and request.user.is_staff):
+    def get(
+        self, request: Request, format: str | None = None
+    ) -> HttpResponseForbidden | Response:
+        if not request_user(request).is_staff:
             return HttpResponseForbidden()
 
         try:
@@ -102,44 +109,46 @@ class ServerLogsViewerView(APIView):
 
 
 class ServerStatsView(APIView):
-    def get(self, request, format=None):
-        if not (request.user and request.user.is_staff):
+    def get(
+        self, request: Request, format: str | None = None
+    ) -> HttpResponseForbidden | Response:
+        if not request_user(request).is_staff:
             return HttpResponseForbidden()
         res = get_server_stats()
         return Response(res)
 
 
 class StatsView(APIView):
-    def get(self, request, format=None):
-        res = get_count_stats(user=request.user)
+    def get(self, request: Request, format: str | None = None) -> Response:
+        res = get_count_stats(user=request_user(request))
         return Response(res)
 
 
 class LocationClustersView(APIView):
-    def get(self, request, format=None):
-        res = get_location_clusters(request.user)
+    def get(self, request: Request, format: str | None = None) -> Response:
+        res = get_location_clusters(request_user(request))
         return Response(res)
 
 
 class LocationSunburst(APIView):
-    def get(self, request, format=None):
-        res = get_location_sunburst(request.user)
+    def get(self, request: Request, format: str | None = None) -> Response:
+        res = get_location_sunburst(request_user(request))
         return Response(res)
 
 
 class LocationTimeline(APIView):
-    def get(self, request, format=None):
-        res = get_location_timeline(request.user)
+    def get(self, request: Request, format: str | None = None) -> Response:
+        res = get_location_timeline(request_user(request))
         return Response(res)
 
 
 class PhotoMonthCountsView(APIView):
-    def get(self, request, format=None):
-        res = get_photo_month_counts(request.user)
+    def get(self, request: Request, format: str | None = None) -> Response:
+        res = get_photo_month_counts(request_user(request))
         return Response(res)
 
 
 class SearchTermWordCloudView(APIView):
-    def get(self, request, format=None):
-        res = get_searchterms_wordcloud(request.user)
+    def get(self, request: Request, format: str | None = None) -> Response:
+        res = get_searchterms_wordcloud(request_user(request))
         return Response(res)

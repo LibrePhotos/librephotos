@@ -9,10 +9,11 @@ Provides endpoints for:
 """
 
 from django.http import Http404
-from drf_spectacular.utils import extend_schema, OpenApiParameter
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.decorators import action
 from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ViewSet
@@ -20,6 +21,7 @@ from rest_framework.viewsets import ViewSet
 from api.models import Photo
 from api.models.photo_metadata import MetadataEdit, PhotoMetadata
 from api.models.tag import sync_tags_from_keywords
+from api.request_user import request_user
 from api.serializers.photo_metadata import (
     MetadataEditSerializer,
     PhotoMetadataSerializer,
@@ -40,21 +42,22 @@ class PhotoMetadataViewSet(ViewSet):
 
     permission_classes = [IsAuthenticated]
 
-    def _get_photo(self, request, photo_id: str) -> Photo:
+    def _get_photo(self, request: Request, photo_id: str) -> Photo:
         """Get photo by ID or image_hash, checking permissions."""
         # UUID format is 36 chars with 4 hyphens (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)
         # MD5 hashes are 32 hex chars without hyphens
         # Python's uuid.UUID() accepts both, so we need to check format explicitly
         is_uuid_format = len(photo_id) == 36 and photo_id.count("-") == 4
+        user = request_user(request)
 
         # Staff may read and edit any photo's metadata. Everyone else only
         # looks among their own photos, so another user's photo is a 404 like
         # an unknown one: a 403 would confirm it exists, and image_hash (the
         # file's MD5 plus the owner id) is computable by anyone with the file.
-        if request.user.is_staff:
+        if user.is_staff:
             photos = Photo.objects.all()
         else:
-            photos = Photo.objects.owned_by(request.user)
+            photos = Photo.objects.owned_by(user)
 
         if is_uuid_format:
             # DRF's get_object_or_404: a malformed UUID is a 404, not a 500.
@@ -63,7 +66,7 @@ class PhotoMetadataViewSet(ViewSet):
         # one), so .get() could raise MultipleObjectsReturned: prefer the
         # requester's own row.
         matches = photos.filter(image_hash=photo_id)
-        photo = matches.owned_by(request.user).first() or matches.first()
+        photo = matches.owned_by(user).first() or matches.first()
         if photo is None:
             raise Http404
         return photo
@@ -87,7 +90,7 @@ class PhotoMetadataViewSet(ViewSet):
         description="Get full structured metadata for a photo.",
         responses={200: PhotoMetadataSerializer},
     )
-    def retrieve(self, request, photo_id: str):
+    def retrieve(self, request: Request, photo_id: str) -> Response:
         """Get full metadata for a photo."""
         photo = self._get_photo(request, photo_id)
         metadata = self._get_or_create_metadata(photo)
@@ -99,7 +102,7 @@ class PhotoMetadataViewSet(ViewSet):
         request=PhotoMetadataUpdateSerializer,
         responses={200: PhotoMetadataSerializer},
     )
-    def partial_update(self, request, photo_id: str):
+    def partial_update(self, request: Request, photo_id: str) -> Response:
         """Update metadata with change tracking."""
         photo = self._get_photo(request, photo_id)
         metadata = self._get_or_create_metadata(photo)
@@ -118,7 +121,7 @@ class PhotoMetadataViewSet(ViewSet):
         responses={200: MetadataEditSerializer(many=True)},
     )
     @action(detail=True, methods=["get"], url_path="history")
-    def history(self, request, photo_id: str):
+    def history(self, request: Request, photo_id: str) -> Response:
         """Get edit history for a photo."""
         photo = self._get_photo(request, photo_id)
         # -id tiebreaks edits sharing a created_at so paging is stable; see
@@ -153,7 +156,7 @@ class PhotoMetadataViewSet(ViewSet):
         responses={200: PhotoMetadataSerializer},
     )
     @action(detail=True, methods=["post"], url_path=r"revert/(?P<edit_id>[^/.]+)")
-    def revert(self, request, photo_id: str, edit_id: str):
+    def revert(self, request: Request, photo_id: str, edit_id: str) -> Response:
         """Revert a specific metadata edit."""
         photo = self._get_photo(request, photo_id)
         edit = get_object_or_404(MetadataEdit, pk=edit_id, photo=photo)
@@ -169,7 +172,7 @@ class PhotoMetadataViewSet(ViewSet):
         # Create a new edit record for the revert
         MetadataEdit.objects.create(
             photo=photo,
-            user=request.user,
+            user=request_user(request),
             field_name=field_name,
             old_value=current_value,
             new_value=old_value,
@@ -190,16 +193,19 @@ class PhotoMetadataViewSet(ViewSet):
         responses={200: PhotoMetadataSerializer},
     )
     @action(detail=True, methods=["post"], url_path="revert-all")
-    def revert_all(self, request, photo_id: str):
+    def revert_all(self, request: Request, photo_id: str) -> Response:
         """Revert all edits and restore original metadata from file by re-extracting EXIF."""
         photo = self._get_photo(request, photo_id)
 
+        # extract_exif_data returns None only when the photo has no main file;
+        # that value goes to the serializer unchanged, as before.
+        metadata: PhotoMetadata | None
         try:
             metadata = photo.metadata
             # Record the revert
             MetadataEdit.objects.create(
                 photo=photo,
-                user=request.user,
+                user=request_user(request),
                 field_name="_all",
                 old_value={"action": "revert_all"},
                 new_value={"source": "embedded"},
@@ -239,7 +245,7 @@ class BulkMetadataView(APIView):
             ),
         ],
     )
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         """Get metadata summary for multiple photos."""
         photo_ids = request.query_params.get("photo_ids", "").split(",")
         photo_ids = [pid.strip() for pid in photo_ids if pid.strip()]
@@ -251,8 +257,9 @@ class BulkMetadataView(APIView):
             return Response({"error": "Maximum 100 photos per request"}, status=400)
 
         # Get photos (by UUID or image_hash)
-        from django.db.models import Q
         import uuid
+
+        from django.db.models import Q
 
         uuid_ids = []
         hash_ids = []
@@ -271,12 +278,12 @@ class BulkMetadataView(APIView):
                 hash_ids.append(pid)
 
         photos = (
-            Photo.objects.owned_by(request.user)
+            Photo.objects.owned_by(request_user(request))
             .filter(Q(pk__in=uuid_ids) | Q(image_hash__in=hash_ids))
             .select_related("metadata")
         )
 
-        results = {}
+        results: dict[str, dict[str, object]] = {}
         for photo in photos:
             try:
                 metadata = photo.metadata
@@ -302,10 +309,12 @@ class BulkMetadataView(APIView):
     @extend_schema(
         description="Update metadata for multiple photos.",
     )
-    def patch(self, request):
+    def patch(self, request: Request) -> Response:
         """Bulk update metadata for multiple photos."""
-        photo_ids = request.data.get("photo_ids", [])
-        updates = request.data.get("updates", {})
+        data = request.data
+        assert isinstance(data, dict)  # a JSON array body fails here, as it always has
+        photo_ids = data.get("photo_ids", [])
+        updates = data.get("updates", {})
 
         if not photo_ids:
             return Response({"error": "No photo_ids provided"}, status=400)
@@ -335,8 +344,9 @@ class BulkMetadataView(APIView):
             )
 
         # Get photos
-        from django.db.models import Q
         import uuid
+
+        from django.db.models import Q
 
         uuid_ids = []
         hash_ids = []
@@ -353,7 +363,8 @@ class BulkMetadataView(APIView):
             else:
                 hash_ids.append(pid)
 
-        photos = Photo.objects.owned_by(request.user).filter(
+        user = request_user(request)
+        photos = Photo.objects.owned_by(user).filter(
             Q(pk__in=uuid_ids) | Q(image_hash__in=hash_ids)
         )
 
@@ -367,7 +378,7 @@ class BulkMetadataView(APIView):
                 if old_value != new_value:
                     MetadataEdit.objects.create(
                         photo=photo,
-                        user=request.user,
+                        user=user,
                         field_name=field_name,
                         old_value=old_value,
                         new_value=new_value,
