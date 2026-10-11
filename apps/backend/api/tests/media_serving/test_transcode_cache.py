@@ -14,7 +14,9 @@ inside both of the ceilings it is given.
 
 import os
 import shlex
+import sys
 import tempfile
+import threading
 from unittest import mock
 
 from django.test import TestCase, override_settings
@@ -230,6 +232,45 @@ class RunTranscodeTest(CacheDirectoryTestCase):
         self.assertFalse(
             transcode_cache.run_transcode(self._command("true"), self.part, self.final)
         )
+        self.assertFalse(os.path.exists(self.final))
+
+    def _run_in_thread(self, command, seconds=30):
+        """run_transcode's answer, or None if it is still running after ``seconds``."""
+        answers = []
+        thread = threading.Thread(
+            target=lambda: answers.append(
+                transcode_cache.run_transcode(command, self.part, self.final)
+            ),
+            daemon=True,
+        )
+        thread.start()
+        thread.join(timeout=seconds)
+        return answers[0] if answers else None
+
+    def test_a_conversion_that_complains_a_lot_still_finishes(self):
+        """Its stderr was a pipe nobody read.
+
+        A file that decodes badly makes ffmpeg write an error line per frame,
+        even at -loglevel error. Past the pipe's capacity (64 KB on Linux, less
+        on Windows) ffmpeg blocked in write() for good, holding a transcode
+        slot and its part-file until the server restarted.
+        """
+        code = (
+            "import sys; sys.stderr.write('corrupt frame\\n' * 100000); "
+            f"open({self.part!r}, 'w').write('video')"
+        )
+        self.assertIs(self._run_in_thread([sys.executable, "-c", code]), True)
+        with open(self.final, "rb") as handle:
+            self.assertEqual(handle.read(), b"video")
+
+    def test_a_failed_conversion_says_why(self):
+        code = (
+            "import sys; sys.stderr.write('x' * 100000 + 'moov atom not found'); "
+            "sys.exit(1)"
+        )
+        with self.assertLogs("api.transcode_cache", "WARNING") as logs:
+            self.assertIs(self._run_in_thread([sys.executable, "-c", code]), False)
+        self.assertIn("moov atom not found", logs.output[0])
         self.assertFalse(os.path.exists(self.final))
 
     def test_a_command_that_cannot_even_start_is_survived(self):

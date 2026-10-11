@@ -31,10 +31,11 @@ from __future__ import annotations
 import logging
 import os
 import shutil
+import tempfile
 import threading
 import time
 from collections.abc import Callable
-from typing import TYPE_CHECKING
+from typing import IO, TYPE_CHECKING
 
 from django.conf import settings
 
@@ -293,30 +294,30 @@ def run_transcode(
     stops.
     """
     root = root or os.path.dirname(part)
-    try:
-        # The command may start with nice rather than ffmpeg (build_command).
-        process = binaries.start_tool(
-            command[0], command[1:], stdout=binaries.DEVNULL, stderr=binaries.PIPE
-        )
-    except binaries.ToolMissingError:
-        logger.warning("could not start a transcode for %s", final)
-        _remove(part)
-        return False
-
-    ran_out_of_room = False
-    while binaries.wait(process, SPACE_CHECK_SECONDS) is None:
-        if free_bytes(root) < _min_free_bytes():
-            ran_out_of_room = True
-            process.kill()
-            process.wait()
-            break
+    # Not a pipe: nobody reads it while ffmpeg runs, and a file that decodes
+    # badly makes ffmpeg write an error per frame even at -loglevel error, which
+    # filled a pipe and blocked it in write() for good. A file only keeps it.
+    with tempfile.TemporaryFile() as stderr:
+        try:
+            # The command may start with nice rather than ffmpeg (build_command).
+            process = binaries.start_tool(
+                command[0], command[1:], stdout=binaries.DEVNULL, stderr=stderr
+            )
+        except binaries.ToolMissingError:
+            logger.warning("could not start a transcode for %s", final)
+            _remove(part)
+            return False
+        ran_out_of_room = _wait_while_there_is_room(process, root)
+        complaint = _tail(stderr) if process.returncode != 0 else ""
 
     if ran_out_of_room:
         logger.info("abandoned caching %s: the disk is close to full", final)
         _remove(part)
         return False
     if process.returncode != 0:
-        logger.warning("transcode of %s failed (%s)", final, process.returncode)
+        logger.warning(
+            "transcode of %s failed (%s): %s", final, process.returncode, complaint
+        )
         _remove(part)
         return False
     try:
@@ -330,6 +331,23 @@ def run_transcode(
         return False
     logger.info("cached a seekable copy of %s", final)
     return True
+
+
+def _wait_while_there_is_room(process: binaries.Process, root: str) -> bool:
+    """Wait for ``process``; kill it and return True if the disk fills up first."""
+    while binaries.wait(process, SPACE_CHECK_SECONDS) is None:
+        if free_bytes(root) < _min_free_bytes():
+            process.kill()
+            process.wait()
+            return True
+    return False
+
+
+def _tail(stderr: IO[bytes]) -> str:
+    """The end of what ffmpeg wrote to ``stderr``, a file still open."""
+    size = stderr.seek(0, os.SEEK_END)
+    stderr.seek(max(0, size - binaries.STDERR_TAIL_CHARS))
+    return binaries.stderr_tail(stderr.read())
 
 
 def _remove(path: str) -> None:
