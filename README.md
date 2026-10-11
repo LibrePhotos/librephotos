@@ -18,7 +18,7 @@ This is a monorepo that consolidates what was previously five separate repositor
 | Path | What it is | Previous repo |
 |---|---|---|
 | [`apps/backend/`](apps/backend/) | Django 5 API, machine-learning pipelines, background jobs | `librephotos` |
-| [`apps/frontend/`](apps/frontend/) | React 18 + Vite web client, i18next localization | `librephotos-frontend` |
+| [`apps/frontend/`](apps/frontend/) | React 19 + Vite web client, i18next localization | `librephotos-frontend` |
 | [`apps/mobile/`](apps/mobile/) | Expo mobile app (Android and iOS), offline-first | `librephotos-mobile` |
 | [`apps/docs/`](apps/docs/) | Docusaurus site published to https://docs.librephotos.com | `librephotos.docs` |
 | [`deploy/`](deploy/) | Dockerfiles, Compose configs, proxy, Kubernetes manifests | `librephotos-docker` |
@@ -75,7 +75,7 @@ Pick the deployment that fits your setup. Step-by-step guides are in the [docume
 
 ### Frontend
 
-- **UI:** [React 18](https://react.dev/) with [TypeScript](https://www.typescriptlang.org/)
+- **UI:** [React 19](https://react.dev/) with [TypeScript](https://www.typescriptlang.org/)
 - **Build Tool:** [Vite](https://vite.dev/)
 - **Component Library:** [Mantine](https://mantine.dev/)
 - **Routing:** [TanStack Router](https://tanstack.com/router)

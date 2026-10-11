@@ -4,7 +4,7 @@ The web frontend's lightbox (`apps/frontend/src/components/lightbox/`, 29 files,
 ~4,500 lines) is the densest surface in LibrePhotos: a full-screen media viewer
 with a 400px metadata sidebar, eleven keyboard shortcuts, a slideshow, and
 fifteen editable sub-sections. The mobile viewer
-(`apps/mobile-v2/src/features/viewer/`) shipped as a pager + zoom + a five-row
+(`apps/mobile/src/features/viewer/`) shipped as a pager + zoom + a five-row
 detail box.
 
 This document decides, capability by capability, what mobile ships, what it

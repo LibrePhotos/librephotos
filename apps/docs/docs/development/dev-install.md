@@ -96,7 +96,7 @@ docker exec -it backend python manage.py createsuperuser
 
 ## Native Windows Setup (no Docker)
 
-Requires Python 3.11 and Node 22; everything else, ffmpeg included, comes from pip.
+Requires Python 3.11 and Node 24 (the version in `apps/frontend/.nvmrc`); everything else, ffmpeg included, comes from pip.
 
 ```powershell
 cd apps\backend
