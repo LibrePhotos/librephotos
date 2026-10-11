@@ -31,6 +31,7 @@ import { isPersonCell, useVirtualizedGrid, type GridCell } from "../components/f
 import i18n from "../i18n";
 import { defined } from "../util/defined.test-utils";
 import { calculateFaceGridCells } from "../util/gridUtils";
+import { STORAGE_KEYS } from "../util/storage";
 
 const stubs = vi.hoisted(() => ({
   noopMutation: { mutate: () => {}, mutateAsync: async () => {}, isPending: false },
@@ -347,7 +348,10 @@ describe("issue #405 - fold/unfold person groups on the faces page", () => {
   });
 
   it("restores folded groups from localStorage and writes toggles back", async () => {
-    localStorage.setItem("faceCollapsedPersons", JSON.stringify({ labeled: [7], inferred: [], unknown: [] }));
+    localStorage.setItem(
+      STORAGE_KEYS.facesCollapsedPersons,
+      JSON.stringify({ labeled: [7], inferred: [], unknown: [] })
+    );
     const view = await renderCollapsedPersons();
 
     expect(view.hook.collapsedPersons.labeled).toEqual(new Set([7]));
@@ -357,7 +361,7 @@ describe("issue #405 - fold/unfold person groups on the faces page", () => {
     });
 
     expect(view.hook.collapsedPersons.labeled).toEqual(new Set([7, 9]));
-    const stored: unknown = JSON.parse(localStorage.getItem("faceCollapsedPersons") ?? "{}");
+    const stored: unknown = JSON.parse(localStorage.getItem(STORAGE_KEYS.facesCollapsedPersons) ?? "{}");
     expect(stored).toEqual({
       labeled: [7, 9],
       inferred: [],
@@ -368,7 +372,7 @@ describe("issue #405 - fold/unfold person groups on the faces page", () => {
   });
 
   it("falls back to nothing folded when the stored value is not a list of person ids", async () => {
-    localStorage.setItem("faceCollapsedPersons", JSON.stringify({ labeled: 5 }));
+    localStorage.setItem(STORAGE_KEYS.facesCollapsedPersons, JSON.stringify({ labeled: 5 }));
     const view = await renderCollapsedPersons();
 
     expect(view.hook.collapsedPersons.labeled).toEqual(new Set());

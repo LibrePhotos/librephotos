@@ -1,12 +1,13 @@
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
 import { z } from "zod";
 import { FacesTab } from "../../../api_client/faces/types";
+import { STORAGE_KEYS, useStoredState } from "../../../util/storage";
 
 /** Each tab's saved scroll position; a tab without one is not scrolled when it opens. */
 type TabPositions = Partial<Record<FacesTab, number>>;
 
 // Default tab scroll positions
-const DEFAULT_TAB_POSITIONS = {
+const DEFAULT_TAB_POSITIONS: Record<FacesTab, number> = {
   [FacesTab.enum.labeled]: 0,
   [FacesTab.enum.inferred]: 0,
   [FacesTab.enum.unknown]: 0,
@@ -20,33 +21,20 @@ const StoredPositions = z
   .object({ labeled: StoredPosition, inferred: StoredPosition, unknown: StoredPosition })
   .catch({});
 
-function loadPositions(saved: string | null): TabPositions {
-  if (!saved) return { ...DEFAULT_TAB_POSITIONS };
-  return StoredPositions.parse(JSON.parse(saved));
-}
-
 // Custom hook to manage tab scroll positions in localStorage
 export function useTabScrollPositions() {
-  const [tabPositions, setTabPositions] = useState<TabPositions>(() => {
-    try {
-      return loadPositions(localStorage.getItem("faceTabScrollPositions"));
-    } catch (e) {
-      console.error("Error loading tab positions from localStorage:", e);
-      return { ...DEFAULT_TAB_POSITIONS };
-    }
-  });
+  const [tabPositions, updateTabPositions] = useStoredState<TabPositions>(
+    STORAGE_KEYS.facesTabScrollPositions,
+    StoredPositions,
+    DEFAULT_TAB_POSITIONS
+  );
 
-  const updatePosition = useCallback((tab: FacesTab, position: number) => {
-    setTabPositions(prev => {
-      const newPositions = { ...prev, [tab]: position };
-      try {
-        localStorage.setItem("faceTabScrollPositions", JSON.stringify(newPositions));
-      } catch (e) {
-        console.error("Error saving tab positions to localStorage:", e);
-      }
-      return newPositions;
-    });
-  }, []);
+  const updatePosition = useCallback(
+    (tab: FacesTab, position: number) => {
+      updateTabPositions(prev => ({ ...prev, [tab]: position }));
+    },
+    [updateTabPositions]
+  );
 
   return { tabPositions, updatePosition };
 }

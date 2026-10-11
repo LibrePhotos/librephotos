@@ -38,6 +38,7 @@ import {
   resolveRecentlyTaggedPeople,
   withMostRecentlyTagged,
 } from "../util/recentlyTaggedPeople";
+import { STORAGE_KEYS } from "../util/storage";
 
 const stubs = vi.hoisted(() => ({
   // Alphabetical, the way the query hands them over. Ids are strings here and
@@ -129,7 +130,7 @@ function setInputValue(input: HTMLInputElement, value: string) {
 
 async function renderModal(seededIds: string[]) {
   if (seededIds.length > 0) {
-    localStorage.setItem("recentlyTaggedPeople", JSON.stringify(seededIds));
+    localStorage.setItem(STORAGE_KEYS.recentlyTaggedPeople, JSON.stringify(seededIds));
   }
   const container = document.createElement("div");
   document.body.appendChild(container);
@@ -218,7 +219,7 @@ describe("issue 644 - recently tagged people in the face tagging popup", () => {
 
     it("survives a corrupted localStorage entry", () => {
       const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
-      localStorage.setItem("recentlyTaggedPeople", "{not json");
+      localStorage.setItem(STORAGE_KEYS.recentlyTaggedPeople, "{not json");
 
       expect(getRecentlyTaggedPeopleIds()).toEqual([]);
       consoleError.mockRestore();

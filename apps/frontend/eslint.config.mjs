@@ -67,6 +67,26 @@ const dateSyntaxBans = [
   },
 ];
 
+// Browser storage is read and written through util/storage, which owns the keys, the failure
+// handling and the one-time move from an old key. Tests may set stored values up directly.
+const storageMessage =
+  "Use util/storage (readStored, writeStored or useStoredState) for browser storage; it owns the keys and the failure handling.";
+const storageGlobalBans = [
+  { name: "localStorage", message: storageMessage },
+  { name: "sessionStorage", message: storageMessage },
+];
+const storagePropertyBans = ["window", "globalThis"].flatMap(object => [
+  { object, property: "localStorage", message: storageMessage },
+  { object, property: "sessionStorage", message: storageMessage },
+]);
+
+// Components talk through props or the lightbox commands (components/lightbox/lightboxCommands),
+// not through custom events on window.
+const eventMessage =
+  "Pass props or use the lightbox commands (components/lightbox/lightboxCommands) instead of custom window events.";
+const eventGlobalBans = [{ name: "CustomEvent", message: eventMessage }];
+const windowEventBan = { object: "window", property: "dispatchEvent", message: eventMessage };
+
 export default [
   {
     ignores: ["node_modules/**", "**/dist/**", "**/build/**", "coverage/**", ".tanstack/**"],
@@ -178,6 +198,8 @@ export default [
       "@typescript-eslint/no-empty-object-type": "error",
       "@typescript-eslint/no-wrapper-object-types": "error",
       "no-restricted-syntax": ["error", typedMockBan, openStateBan, ...dateSyntaxBans],
+      "no-restricted-globals": ["error", ...storageGlobalBans, ...eventGlobalBans],
+      "no-restricted-properties": ["error", ...storagePropertyBans, windowEventBan],
       // Dialogs are declarative components; the imperative @mantine/modals API is not used.
       // One entry: a second "no-restricted-imports" key in this object would silently replace this one.
       // dayjs is only Mantine's date-picker glue (its locales are loaded in i18n.ts); dates are luxon.
@@ -203,6 +225,24 @@ export default [
     files: ["src/routes/**/*.{ts,tsx}"],
     rules: {
       "no-restricted-syntax": ["error", typedMockBan, openStateBan, routeModalBan, ...dateSyntaxBans],
+    },
+  },
+  {
+    // The storage module is the one place browser storage is touched; the event bans still apply
+    // to it. An override replaces the options of a rule for its files, so they are listed again.
+    files: ["src/util/storage.ts"],
+    rules: {
+      "no-restricted-globals": ["error", ...eventGlobalBans],
+      "no-restricted-properties": ["error", windowEventBan],
+    },
+  },
+  {
+    // Tests set stored values up and may dispatch a native event on window (a resize). A custom
+    // event is still the in-app channel the rule is for, so CustomEvent stays banned in tests.
+    files: ["**/*.test.{ts,tsx}"],
+    rules: {
+      "no-restricted-globals": ["error", ...eventGlobalBans],
+      "no-restricted-properties": "off",
     },
   },
   {

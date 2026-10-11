@@ -1,6 +1,6 @@
+import { z } from "zod";
 import type { People } from "../api_client/albums/hooks/useFetchPeopleAlbumsQuery";
-
-const STORAGE_KEY = "recentlyTaggedPeople";
+import { readStored, STORAGE_KEYS, subscribeStored, writeStored } from "./storage";
 
 // How many people the "Recently tagged" shortcut keeps around.
 export const RECENTLY_TAGGED_PEOPLE_LIMIT = 5;
@@ -9,25 +9,19 @@ export const RECENTLY_TAGGED_PEOPLE_LIMIT = 5;
 // The MRU stores strings and normalizes at the boundary.
 export type RecentlyTaggedPersonId = string;
 
-const listeners = new Set<() => void>();
+// Anything but a list is no list, and entries that are not strings are left out.
+const StoredIds = z
+  .array(z.unknown())
+  .transform(ids => ids.filter((id): id is string => typeof id === "string"))
+  .catch([]);
 
 // Reads the MRU, most recently tagged person first.
 export function getRecentlyTaggedPeopleIds(): RecentlyTaggedPersonId[] {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    const parsed: unknown = saved ? JSON.parse(saved) : [];
-    return Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === "string") : [];
-  } catch (e) {
-    console.error("Error loading recently tagged people from localStorage:", e);
-    return [];
-  }
+  return readStored(STORAGE_KEYS.recentlyTaggedPeople, StoredIds, []);
 }
 
 export function subscribeToRecentlyTaggedPeople(listener: () => void) {
-  listeners.add(listener);
-  return () => {
-    listeners.delete(listener);
-  };
+  return subscribeStored(STORAGE_KEYS.recentlyTaggedPeople, listener);
 }
 
 // Moves `id` to the front, keeping the rest in order and dropping the oldest
@@ -46,12 +40,7 @@ export function recordRecentlyTaggedPerson(personId: string | number | null | un
   }
 
   const ids = withMostRecentlyTagged(getRecentlyTaggedPeopleIds(), personId.toString());
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(ids));
-  } catch (e) {
-    console.error("Error saving recently tagged people to localStorage:", e);
-  }
-  listeners.forEach(listener => listener());
+  writeStored(STORAGE_KEYS.recentlyTaggedPeople, ids);
 }
 
 // Resolves the stored ids against the people the server currently knows about.
