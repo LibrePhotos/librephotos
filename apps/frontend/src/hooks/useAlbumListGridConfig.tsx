@@ -1,7 +1,7 @@
-import { useMantineTheme } from "@mantine/core";
-import { useMediaQuery, useViewportSize } from "@mantine/hooks";
+import { useViewportSize } from "@mantine/hooks";
 import { useEffect, useState } from "react";
 import { FOOTER_HEIGHT, LEFT_MENU_WIDTH, TOP_MENU_HEIGHT } from "../ui-constants";
+import { useIsDesktopLayout } from "./useIsDesktopLayout";
 
 interface AlbumGridConfig {
   entriesPerRow: number;
@@ -56,12 +56,8 @@ function calculateGridValues(width: number, navbarShown: boolean): { entries: nu
 
 export function useAlbumListGridConfig(albums: readonly unknown[]): AlbumGridConfig {
   const { width, height } = useViewportSize();
-  const theme = useMantineTheme();
-  // The AppShell's own test for its navbar (and, below it, the phone footer). The sm breakpoint
-  // is in em, so a larger browser font size moves it above a fixed 768px.
-  const navbarShown = useMediaQuery(`(min-width: ${theme.breakpoints.sm})`, undefined, {
-    getInitialValueInEffect: false,
-  });
+  // The AppShell's own test for its navbar (and, below it, the phone footer)
+  const navbarShown = useIsDesktopLayout();
   const [entriesPerRow, setEntriesPerRow] = useState(0);
   const [entrySquareSize, setEntrySquareSize] = useState(200);
   const [gridHeight, setGridHeight] = useState(0);

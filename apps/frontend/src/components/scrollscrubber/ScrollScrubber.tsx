@@ -1,9 +1,10 @@
 import { Badge, Box, Group, useComputedColorScheme, useMantineTheme } from "@mantine/core";
-import { useElementSize, useMediaQuery, useMergedRef } from "@mantine/hooks";
+import { useElementSize, useMergedRef } from "@mantine/hooks";
 import { debounce, deburr, throttle } from "lodash-es";
 import { DateTime } from "luxon";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { MouseEvent, ReactNode } from "react";
+import { useIsDesktopLayout } from "../../hooks/useIsDesktopLayout";
 import { i18nResolvedLanguage } from "../../i18n";
 import "./ScrollScrubber.css";
 import { ScrollerData, ScrollerPosition, ScrollerType } from "./ScrollScrubberTypes.zod";
@@ -27,7 +28,7 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
   const ref = useRef<HTMLDivElement>(null);
   const scrubberRef = useMergedRef(sizeRef, ref);
   const scrollerVisibilityTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const matches = useMediaQuery("(min-width: 700px)");
+  const matches = useIsDesktopLayout();
   const [scrollerIsVisible, setScrollerIsVisible] = useState(false);
   const [positions, setPositions] = useState<ScrollerPosition[]>([]);
   const [markerPositions, setMarkerPositions] = useState<ScrollerPosition[]>([]);

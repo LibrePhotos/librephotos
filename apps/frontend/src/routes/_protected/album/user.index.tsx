@@ -4,6 +4,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchUserAlbumsQuery, useToggleUserAlbumLockedMutation } from "../../../api_client/albums/hooks";
+import gridClasses from "../../../components/album/AlbumGridCell.module.css";
 import { UserAlbumCard } from "../../../components/album/UserAlbumCard";
 import { DeleteUserAlbumModal, RenameUserAlbumModal } from "../../../components/album/UserAlbumModals";
 import { EmptyState } from "../../../components/common/EmptyState";
@@ -61,7 +62,7 @@ function AlbumUser() {
     const album = albums[index];
     return (
       <div key={key} style={style}>
-        <div style={{ padding: 5 }}>
+        <div className={gridClasses.cell}>
           <UserAlbumCard
             album={album}
             size={entrySquareSize - 10}

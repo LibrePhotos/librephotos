@@ -4,6 +4,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { useAllFolderSubfolders } from "../../../api_client/albums/hooks";
+import gridClasses from "../../../components/album/AlbumGridCell.module.css";
 import { EmptyState } from "../../../components/common/EmptyState";
 import { HeaderComponent } from "../../../components/HeaderComponent";
 import { VirtualGrid } from "../../../components/virtual/VirtualGrid";
@@ -29,7 +30,7 @@ function AlbumFolder() {
     const subfolder = subfolders[index];
     return (
       <div key={key} style={style}>
-        <div style={{ padding: 5 }}>
+        <div className={gridClasses.cell}>
           <Link to="/album/folder/$id" params={{ id: encodeURIComponent(subfolder.path) }}>
             <div className={classes.folderTile} style={{ width: entrySquareSize - 10, height: entrySquareSize - 10 }}>
               <Folder size={40} stroke={1.5} />

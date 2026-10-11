@@ -13,7 +13,13 @@ type PublicAlbumsGridProps = {
 };
 
 // The cover fills its column: a fixed 200px overflowed the two phone columns.
-const coverStyle = { width: "100%", height: "auto", aspectRatio: "1", objectFit: "cover", borderRadius: 8 } as const;
+const coverStyle = {
+  width: "100%",
+  height: "auto",
+  aspectRatio: "1",
+  objectFit: "cover",
+  borderRadius: "var(--mantine-radius-md)",
+} as const;
 
 export function PublicAlbumsGrid({ albums, onShare }: PublicAlbumsGridProps) {
   const { t } = useTranslation();

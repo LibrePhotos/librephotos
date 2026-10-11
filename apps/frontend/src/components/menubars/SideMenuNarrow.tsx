@@ -9,7 +9,6 @@ import {
   useComputedColorScheme,
   useMantineTheme,
 } from "@mantine/core";
-import { useMediaQuery } from "@mantine/hooks";
 import {
   IconBook as Book,
   IconChevronRight as ChevronRight,
@@ -24,6 +23,7 @@ import { useTranslation } from "react-i18next";
 import { useDuplicateStatsQuery } from "../../api_client/duplicates";
 import { useFetchImageTagQuery, useFetchStorageStatsQuery } from "../../api_client/server";
 import { useAuth } from "../../hooks/useAuth";
+import { useIsDesktopLayout } from "../../hooks/useIsDesktopLayout";
 import { DOCUMENTATION_LINK, SUPPORT_LINK } from "../../ui-constants";
 import { getNavigationItems, isNavItemActive } from "./navigation";
 import classes from "./SideMenuNarrow.module.css";
@@ -55,7 +55,7 @@ export function SideMenuNarrow(): React.JSX.Element {
   const location = useLocation();
 
   const { t } = useTranslation();
-  const matches = useMediaQuery("(min-width: 700px)");
+  const matches = useIsDesktopLayout();
 
   // Update active state when location changes
   useEffect(() => {

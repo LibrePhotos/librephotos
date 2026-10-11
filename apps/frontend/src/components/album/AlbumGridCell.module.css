@@ -1,0 +1,11 @@
+/* One cell of an album index grid. The 5px around the tile puts it 10px from the edge
+   (ALBUM_GRID_GUTTER in hooks/useAlbumListGridConfig.tsx). */
+.cell {
+  padding: 5px;
+}
+
+/* A square cover in an index grid takes the cover radius of the album hub and My Albums. */
+.cover {
+  border-radius: var(--mantine-radius-md);
+  overflow: hidden;
+}

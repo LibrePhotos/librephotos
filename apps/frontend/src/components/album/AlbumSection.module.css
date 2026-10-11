@@ -62,7 +62,7 @@
 .albumCover {
   width: 140px;
   height: 140px;
-  border-radius: 8px;
+  border-radius: var(--mantine-radius-md);
   overflow: hidden;
   background-color: var(--mantine-color-gray-1);
   display: flex;
@@ -168,7 +168,7 @@
   display: block;
   text-decoration: none;
   color: inherit;
-  border-radius: 12px;
+  border-radius: var(--mantine-radius-md);
   overflow: hidden;
   background-color: var(--mantine-color-gray-0);
   border: 2px solid var(--mantine-color-gray-2);
@@ -254,6 +254,6 @@
 }
 
 .cardLoading {
-  border-radius: 12px;
+  border-radius: var(--mantine-radius-md);
   overflow: hidden;
 }

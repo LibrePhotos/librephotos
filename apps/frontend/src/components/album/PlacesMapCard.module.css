@@ -2,7 +2,7 @@
   display: block;
   text-decoration: none;
   color: inherit;
-  border-radius: 12px;
+  border-radius: var(--mantine-radius-md);
   overflow: hidden;
   background-color: var(--mantine-color-gray-0);
   border: 2px solid var(--mantine-color-gray-2);

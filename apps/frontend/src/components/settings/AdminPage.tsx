@@ -14,7 +14,7 @@ import {
   Text,
   Title,
 } from "@mantine/core";
-import { useDisclosure, useMediaQuery } from "@mantine/hooks";
+import { useDisclosure } from "@mantine/hooks";
 import {
   IconAdjustments as Adjustments,
   IconEdit as Edit,
@@ -30,6 +30,7 @@ import { useFetchServerStatsQuery } from "../../api_client/server/hooks";
 import { useFetchUserListQuery } from "../../api_client/user/hooks";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import type { ListUser } from "../../api_client/user/types";
+import { useIsDesktopLayout } from "../../hooks/useIsDesktopLayout";
 import { i18nResolvedLanguage } from "../../i18n";
 import { EmptyState } from "../common/EmptyState";
 import { JobList } from "../job/JobList";
@@ -48,7 +49,7 @@ function UserTable() {
   const [userToDelete, setUserToDelete] = useState<Partial<ListUser>>({});
   const [createNewUser, setCreateNewUser] = useState(false);
   const { data: userList, isFetching } = useFetchUserListQuery();
-  const matches = useMediaQuery("(min-width: 700px)");
+  const matches = useIsDesktopLayout();
 
   return (
     <Card shadow="md">

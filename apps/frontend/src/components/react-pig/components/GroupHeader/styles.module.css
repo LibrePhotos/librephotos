@@ -1,3 +1,4 @@
+/* Breakpoints are the theme's em values (xs 36em, md 62em), so they follow the browser font size. */
 .headerPositioner {
   width: 100%;
   position: absolute;
@@ -36,7 +37,7 @@
   text-overflow: ellipsis;
 }
 
-@media (min-width: 600px) {
+@media (min-width: 36em) {
   .date {
     font-size: 32px;
   }
@@ -71,7 +72,7 @@
   font-size: 14px !important;
 }
 
-@media (min-width: 600px) {
+@media (min-width: 36em) {
   .large.date {
     font-size: 32px !important;
   }
@@ -126,7 +127,7 @@
   flex: 1;
 }
 
-@media (min-width: 600px) {
+@media (min-width: 36em) {
   /* These will be overridden by header size classes */
   .leftAligned .date,
   .rightAligned .date {
@@ -139,7 +140,7 @@
   }
 }
 
-@media (min-width: 1000px) {
+@media (min-width: 62em) {
   .leftAligned.headerInner {
     justify-content: flex-start;
   }

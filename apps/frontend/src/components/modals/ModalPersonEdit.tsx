@@ -13,13 +13,13 @@ import {
   useComputedColorScheme,
   useMantineTheme,
 } from "@mantine/core";
-import { useMediaQuery } from "@mantine/hooks";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchPeopleAlbumsQuery } from "../../api_client/albums/hooks";
 import type { Person } from "../../api_client/albums/hooks/useFetchPeopleAlbumsQuery";
 import { serverAddress } from "../../api_client/apiClient";
 import { useSetFacesPersonLabelMutation } from "../../api_client/faces";
+import { useIsDesktopLayout } from "../../hooks/useIsDesktopLayout";
 import { useRecentlyTaggedPeople } from "../../hooks/useRecentlyTaggedPeople";
 import { fuzzyMatch } from "../../util/util";
 import { modalTitleStyles } from "./modalTitleStyles";
@@ -89,7 +89,7 @@ export function ModalPersonEdit({
   prompt,
 }: Props) {
   const [newPersonName, setNewPersonName] = useState("");
-  const matches = useMediaQuery("(min-width: 700px)");
+  const matches = useIsDesktopLayout();
   const { data: people } = useFetchPeopleAlbumsQuery();
   const { mutate: setFacesPersonLabel } = useSetFacesPersonLabelMutation();
   const recentlyTaggedPeople = useRecentlyTaggedPeople(people);

@@ -10,7 +10,7 @@
 }
 
 .cover {
-  border-radius: 12px;
+  border-radius: var(--mantine-radius-md);
   overflow: hidden;
   background-color: var(--mantine-color-gray-1);
   display: flex;
@@ -26,7 +26,7 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  border-radius: 12px;
+  border-radius: var(--mantine-radius-md);
 }
 
 .actions {
