@@ -12,6 +12,7 @@ import { useTranslation } from "react-i18next";
 import { useDeleteAutoAlbumMutation, useFetchAutoAlbumsQuery } from "../../../api_client/albums/hooks";
 import type { AutoAlbumInfo } from "../../../api_client/albums/types";
 import { useGenerateAutoAlbumsMutation } from "../../../api_client/jobs/hooks";
+import gridClasses from "../../../components/album/AlbumGridCell.module.css";
 import { eventStartDate } from "../../../components/album/eventDate";
 import { EmptyState } from "../../../components/common/EmptyState";
 import { HeaderComponent } from "../../../components/HeaderComponent";
@@ -58,9 +59,10 @@ function AlbumAuto() {
 
     return (
       <div key={key} style={style}>
-        <div style={{ padding: 5 }}>
+        <div className={gridClasses.cell}>
           <Link key={album.id} to="/album/events/$id" params={{ id: String(album.id) }}>
             <Tile
+              className={gridClasses.cover}
               video={album.photos.video === true}
               height={entrySquareSize - 10}
               width={entrySquareSize - 10}

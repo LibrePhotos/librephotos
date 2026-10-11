@@ -10,6 +10,7 @@ import {
   useComputedColorScheme,
   useMantineTheme,
 } from "@mantine/core";
+import { useMediaQuery } from "@mantine/hooks";
 import { IconX as X } from "@tabler/icons-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -66,11 +67,14 @@ const sidebarStyles = {
 function SidebarPanel({ children }: { children: React.ReactNode }) {
   const theme = useMantineTheme();
   const colorScheme = useComputedColorScheme();
-
-  // Apply shadow only on mobile
+  // Below md the panel is a fixed overlay on the photo and needs the shadow. md is the
+  // same breakpoint the width and position styles below switch on.
+  const isSideBySide = useMediaQuery(`(min-width: ${theme.breakpoints.md})`, undefined, {
+    getInitialValueInEffect: false,
+  });
   const shadowStyle = {
     ...sidebarStyles.container,
-    boxShadow: window.innerWidth < 768 ? sidebarStyles.container.boxShadow : "none",
+    boxShadow: isSideBySide ? "none" : sidebarStyles.container.boxShadow,
   };
 
   return (

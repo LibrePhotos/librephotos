@@ -1,7 +1,8 @@
 .albums {
   overflow-y: scroll;
   height: 25vh;
-  @media (min-width: 700px) {
+  /* 48em is the theme's sm breakpoint (Mantine's default), the navbar switch */
+  @media (min-width: 48em) {
     /* 50vh creates scrollbar on the whole modal */
     height: 49vh;
   }

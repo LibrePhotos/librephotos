@@ -470,7 +470,6 @@ function SharingExplore() {
                       size={140}
                       kind="square_thumbnails"
                       className={classes.albumCoverImage}
-                      radius={0}
                     />
                   </div>
                 </Link>

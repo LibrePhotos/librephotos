@@ -4,6 +4,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchThingsAlbumsQuery } from "../../../api_client/albums/hooks";
+import gridClasses from "../../../components/album/AlbumGridCell.module.css";
 import { EmptyState } from "../../../components/common/EmptyState";
 import { HeaderComponent } from "../../../components/HeaderComponent";
 import { Tile } from "../../../components/Tile";
@@ -32,10 +33,11 @@ function AlbumThing() {
     const album = albums[index];
     return (
       <div key={key} style={style}>
-        <div style={{ padding: 5 }}>
+        <div className={gridClasses.cell}>
           {album.cover_photos.slice(0, 1).map(photo => (
             <Link key={album.id} to="/album/things/$id" params={{ id: album.id.toString() }}>
               <Tile
+                className={gridClasses.cover}
                 video={photo.video === true}
                 height={entrySquareSize - 10}
                 width={entrySquareSize - 10}

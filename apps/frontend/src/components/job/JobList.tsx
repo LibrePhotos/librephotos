@@ -1,11 +1,11 @@
 import { Alert, Card, Center, Flex, Group, Loader, Pagination, Table, Text, Title } from "@mantine/core";
-import { useMediaQuery } from "@mantine/hooks";
 import { IconAlertCircle as AlertCircle } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import { DateTime } from "luxon";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useJobsQuery } from "../../api_client/jobs/hooks";
+import { useIsDesktopLayout } from "../../hooks/useIsDesktopLayout";
 import { i18nResolvedLanguage } from "../../i18n";
 import { CancelJobButton } from "./CancelJobButton";
 import { DeleteJobButton } from "./DeleteJobButton";
@@ -29,7 +29,7 @@ type IJobList = Readonly<{
 export function JobList({ variant = "admin" }: IJobList) {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const matches = useMediaQuery("(min-width: 700px)");
+  const matches = useIsDesktopLayout();
   const [jobCount, setJobCount] = useState(0);
   const [activePage, setActivePage] = useState(1);
   const [pageSize] = useState(10);

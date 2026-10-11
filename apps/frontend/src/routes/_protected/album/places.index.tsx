@@ -21,6 +21,7 @@ import MapGL, {
 } from "react-map-gl/maplibre";
 import type { PlaceAlbumList } from "../../../api_client/albums/hooks";
 import { useFetchLocationClustersQuery, useFetchPlacesAlbumsQuery } from "../../../api_client/albums/hooks";
+import gridClasses from "../../../components/album/AlbumGridCell.module.css";
 import { EmptyState } from "../../../components/common/EmptyState";
 import { HeaderComponent } from "../../../components/HeaderComponent";
 import { clusterFeatureCollection, clusterPoints } from "../../../components/map/locationClusters";
@@ -218,10 +219,11 @@ function AlbumPlace({ height = 0 }: Props) {
     // Laid out like the other album grids: square cover, then a one-line title
     return (
       <div key={key} style={style}>
-        <div style={{ padding: 5 }}>
+        <div className={gridClasses.cell}>
           {place.cover_photos.slice(0, 1).map(photo => (
             <Link key={place.id} to="/album/places/$id" params={{ id: String(place.id) }}>
               <Tile
+                className={gridClasses.cover}
                 video={photo.video === true}
                 height={entrySquareSize - 10}
                 width={entrySquareSize - 10}

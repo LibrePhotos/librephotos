@@ -12,6 +12,7 @@ import {
   Text,
   TextInput,
   UnstyledButton,
+  useMantineTheme,
 } from "@mantine/core";
 import { useDisclosure, useMediaQuery } from "@mantine/hooks";
 import { IconFolder as Folder, IconArrowLeft, IconSearch } from "@tabler/icons-react";
@@ -284,9 +285,10 @@ function FolderDetail() {
   const folderPath = decodeFolderId(id);
   const { t } = useTranslation();
   const [photosFlat, setPhotosFlat] = useState<PigPhoto[]>([]);
-  // Responsive breakpoints
-  const isMobile = useMediaQuery("(max-width: 768px)");
-  const isSmallMobile = useMediaQuery("(max-width: 480px)");
+  // Responsive breakpoints, in the theme's em values so they follow the browser font size
+  const theme = useMantineTheme();
+  const isMobile = useMediaQuery(`(max-width: ${theme.breakpoints.sm})`);
+  const isSmallMobile = useMediaQuery(`(max-width: ${theme.breakpoints.xs})`);
 
   // Get photos from this folder using FOLDERS photoset
   const { data: photosGroupedByDate, isLoading } = useFetchDateAlbumsQuery({

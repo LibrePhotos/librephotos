@@ -16,6 +16,7 @@ import {
   useMergeTagsMutation,
   useRenameTagMutation,
 } from "../../../api_client/tags/hooks";
+import gridClasses from "../../../components/album/AlbumGridCell.module.css";
 import { EmptyState } from "../../../components/common/EmptyState";
 import { HeaderComponent } from "../../../components/HeaderComponent";
 import { Tile } from "../../../components/Tile";
@@ -75,10 +76,11 @@ function AlbumTag() {
     const cover = tag.cover_photos[0];
     return (
       <div key={key} style={style}>
-        <div style={{ padding: 5 }}>
+        <div className={gridClasses.cell}>
           {cover ? (
             <Link to="/album/tags/$id" params={{ id: String(tag.id) }}>
               <Tile
+                className={gridClasses.cover}
                 video={cover.video === true}
                 height={entrySquareSize - 10}
                 width={entrySquareSize - 10}

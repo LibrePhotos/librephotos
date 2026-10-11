@@ -17,6 +17,7 @@ import {
 } from "../../../api_client/albums/hooks";
 import type { Person } from "../../../api_client/albums/hooks";
 import { serverAddress } from "../../../api_client/apiClient";
+import gridClasses from "../../../components/album/AlbumGridCell.module.css";
 import { EmptyState } from "../../../components/common/EmptyState";
 import { HeaderComponent } from "../../../components/HeaderComponent";
 import { Tile } from "../../../components/Tile";
@@ -109,7 +110,7 @@ function AlbumPeople() {
     const album = albums[index];
     return (
       <div key={key} style={style}>
-        <div style={{ padding: 5 }}>
+        <div className={gridClasses.cell}>
           {getPersonIcon(album)}
           <div style={{ position: "absolute", top: 10, right: 10 }}>
             {/* Its items open dialogs: handing focus back to the trigger took it from the
