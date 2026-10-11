@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from api.models import AlbumUser, Photo, User
+from api.request_data import request_dict
 from api.request_user import request_user
 from api.serializers.album_user import AlbumUserListSerializer
 from api.serializers.photos import (
@@ -100,7 +101,7 @@ class SharedFromMeAlbumUserListViewSet(ListViewSet):
 class SetUserAlbumShared(APIView):
     def post(self, request: Request, format: str | None = None) -> Response:
         user = request_user(request)
-        data = dict(request.data)
+        data = dict(request_dict(request))
         shared = data["shared"]  # bool
         target_user_id = data["target_user_id"]  # user pk, int
         user_album_id = data["album_id"]

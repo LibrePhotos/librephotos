@@ -32,6 +32,7 @@ from api.models.person import Person, get_or_create_person
 from api.models.photo_search import PhotoSearch
 from api.models.thumbnail import Thumbnail
 from api.photo_faces import overlaps_existing_face, save_detected_face
+from api.request_data import request_dict
 from api.request_user import request_user
 from api.serializers.face import (
     FaceListSerializer,
@@ -44,17 +45,6 @@ from api.views.photos import _get_photo_filter_kwargs
 from api.views.scan_triggers import start_job
 
 logger = logging.getLogger(__name__)
-
-
-def _request_body(request: Request) -> dict[str, Any]:
-    """The JSON object in the request body.
-
-    A body that is not an object (a JSON list, say) has always failed in these
-    views with an AttributeError, i.e. a 500; the assert keeps that failure.
-    """
-    body = request.data
-    assert isinstance(body, dict)
-    return body
 
 
 class ScanFacesView(APIView):
@@ -307,7 +297,7 @@ class FaceIncompleteListViewSet(ListViewSet):
 class SetFacePersonLabel(APIView):
     def post(self, request: Request, format: str | None = None) -> Response:
         user = request_user(request)
-        data = dict(request.data)
+        data = dict(request_dict(request))
         person: Person | None = None
         cluster_person: Person | None = None
         classification_person: Person | None = None
@@ -500,7 +490,7 @@ class AddFaceView(APIView):
 
     def post(self, request: Request, format: str | None = None) -> Response:
         user = request_user(request)
-        person_name = (_request_body(request).get("person_name") or "").strip()
+        person_name = (request_dict(request).get("person_name") or "").strip()
         if not person_name:
             return self._error("person_name must not be empty")
         if person_name == Person.UNKNOWN_PERSON_NAME:
@@ -509,7 +499,7 @@ class AddFaceView(APIView):
                 f"'{Person.UNKNOWN_PERSON_NAME}' is what the algorithms use"
             )
 
-        photo_id = _request_body(request).get("photo")
+        photo_id = request_dict(request).get("photo")
         if not photo_id:
             return self._error("photo is required")
         photo = (
@@ -542,7 +532,7 @@ class AddFaceView(APIView):
 
         with big_thumbnail:
             box, error = self._box_in_pixels(
-                _request_body(request).get("box"),
+                request_dict(request).get("box"),
                 big_thumbnail.width,
                 big_thumbnail.height,
             )
@@ -691,7 +681,7 @@ class AddFaceView(APIView):
 class DeleteFaces(APIView):
     def post(self, request: Request, format: str | None = None) -> Response:
         user = request_user(request)
-        data = dict(request.data)
+        data = dict(request_dict(request))
         faces = Face.objects.filter(photo__owner=user).in_bulk(data["face_ids"])
 
         deleted: list[str] = []

@@ -14,7 +14,6 @@ Stacks are for organization, duplicates are for storage cleanup.
 
 import logging
 from collections import Counter
-from typing import Any
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.paginator import Paginator
@@ -29,20 +28,10 @@ from rest_framework.views import APIView
 
 from api.models import Photo, PhotoMetadata
 from api.models.photo_stack import PhotoStack
+from api.request_data import request_dict
 from api.request_user import request_user
 
 logger = logging.getLogger(__name__)
-
-
-def _request_body(request: Request) -> dict[str, Any]:
-    """The JSON object in the request body.
-
-    A body that is not an object (a JSON list, say) has always failed in these
-    views with an AttributeError, i.e. a 500; the assert keeps that failure.
-    """
-    body = request.data
-    assert isinstance(body, dict)
-    return body
 
 
 def _metadata_or_none(photo: Photo) -> PhotoMetadata | None:
@@ -325,7 +314,7 @@ class PhotoStackSetPrimaryView(APIView):
                 {"error": "Photo stack not found"}, status=status.HTTP_404_NOT_FOUND
             )
 
-        photo_hash = _request_body(request).get("photo_hash")
+        photo_hash = request_dict(request).get("photo_hash")
         if not photo_hash:
             return Response(
                 {"error": "photo_hash is required"}, status=status.HTTP_400_BAD_REQUEST
@@ -373,7 +362,7 @@ class DetectStacksView(APIView):
         # RAW+JPEG and Live Photos are now file variants, not stacks
         # Only burst/bracket detection is done here
         options = {
-            "detect_bursts": _request_body(request).get("detect_bursts", True),
+            "detect_bursts": request_dict(request).get("detect_bursts", True),
         }
 
         # Queue background job
@@ -460,7 +449,7 @@ class CreateManualStackView(APIView):
 
     def post(self, request: Request) -> Response:
         user = request_user(request)
-        photo_hashes = _request_body(request).get("photo_hashes", [])
+        photo_hashes = request_dict(request).get("photo_hashes", [])
 
         # De-duplicate the input to handle repeated hashes
         unique_hashes = list(dict.fromkeys(photo_hashes))  # Preserves order
@@ -533,7 +522,7 @@ class AddToStackView(APIView):
                 {"error": "Photo stack not found"}, status=status.HTTP_404_NOT_FOUND
             )
 
-        photo_hashes = _request_body(request).get("photo_hashes", [])
+        photo_hashes = request_dict(request).get("photo_hashes", [])
         if not photo_hashes:
             return Response(
                 {"error": "photo_hashes is required"},
@@ -572,7 +561,7 @@ class RemoveFromStackView(APIView):
                 {"error": "Photo stack not found"}, status=status.HTTP_404_NOT_FOUND
             )
 
-        photo_hashes = _request_body(request).get("photo_hashes", [])
+        photo_hashes = request_dict(request).get("photo_hashes", [])
         if not photo_hashes:
             return Response(
                 {"error": "photo_hashes is required"},
@@ -623,7 +612,7 @@ class MergeStacksView(APIView):
 
     def post(self, request: Request) -> Response:
         user = request_user(request)
-        photo_hashes = _request_body(request).get("photo_hashes", [])
+        photo_hashes = request_dict(request).get("photo_hashes", [])
 
         if not photo_hashes:
             return Response(

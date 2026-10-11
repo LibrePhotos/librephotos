@@ -14,6 +14,7 @@ from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
+from api.request_data import request_dict
 from api.models.user import User as AppUser
 from api.public_url import trusted_public_base_url
 
@@ -34,8 +35,7 @@ class PasswordResetView(APIView):
     throttle_scope = "password_reset"
 
     def post(self, request: Request, format: str | None = None) -> Response:
-        data = request.data
-        assert isinstance(data, dict)
+        data = request_dict(request)
         email = (data.get("email") or "").strip()
         if email:
             user = User.objects.filter(email__iexact=email).first()
@@ -97,8 +97,7 @@ class PasswordResetConfirmView(APIView):
     permission_classes = (AllowAny,)
 
     def post(self, request: Request, format: str | None = None) -> Response:
-        data = request.data
-        assert isinstance(data, dict)
+        data = request_dict(request)
         uid = data.get("uid")
         token = data.get("token")
         new_password = data.get("new_password")

@@ -11,6 +11,7 @@ from api import video_playback
 from api.models import Photo
 from api.models.photo_share import PhotoShare
 from api.models.user import User
+from api.request_data import request_dict
 from api.request_user import request_user
 from api.serializers.photos import PublicPhotoDetailSerializer
 from api.views.media import MediaServingView
@@ -100,9 +101,7 @@ class SetPhotoShare(APIView):
     """
 
     def post(self, request: Request, format: str | None = None) -> Response:
-        data = request.data
-        # A JSON array body has no .get, and never did: that stays a server error.
-        assert isinstance(data, dict)
+        data = request_dict(request)
         photo_id = data.get("photo_id")
         action = data.get("action") or "enable"
 

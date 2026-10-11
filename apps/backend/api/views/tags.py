@@ -14,6 +14,7 @@ from rest_framework.serializers import BaseSerializer
 
 from api.models import Photo, Tag
 from api.models.user import User
+from api.request_data import request_dict
 from api.request_user import request_user
 from api.serializers.tag import (
     GroupedTagPhotosSerializer,
@@ -102,8 +103,7 @@ class TagViewSet(viewsets.ModelViewSet):
         responses={200: TagSerializer, 201: TagSerializer},
     )
     def create(self, request: Request, *args: Any, **kwargs: Any) -> Response:
-        data = request.data
-        assert isinstance(data, dict)
+        data = request_dict(request)
         name = str(data.get("name") or "").strip()
         existing = Tag.objects.filter(name=name, owner=request_user(request)).first()
         if existing is not None:
@@ -125,8 +125,7 @@ class TagViewSet(viewsets.ModelViewSet):
         answering 200 for an empty queryset had the UI report a save that never
         happened.
         """
-        data = request.data
-        assert isinstance(data, dict)
+        data = request_dict(request)
         if data.get("select_all"):
             return self._select_all_photos(request)
 
@@ -157,8 +156,7 @@ class TagViewSet(viewsets.ModelViewSet):
 
     def _select_all_photos(self, request: Request) -> QuerySet[Photo]:
         """The photos behind a ``select_all`` payload, as a lazy queryset."""
-        data = request.data
-        assert isinstance(data, dict)
+        data = request_dict(request)
         query = data.get("query")
         excluded_hashes = data.get("excluded_hashes") or []
 
@@ -261,8 +259,7 @@ class TagViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["post"], url_path="merge")
     def merge(self, request: Request, pk: str | None = None) -> Response:
         tag = self.get_object()
-        data = request.data
-        assert isinstance(data, dict)
+        data = request_dict(request)
         source_id = data.get("tag")
         if source_id is None:
             return Response(

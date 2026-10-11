@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from api.models.email_config import PROVIDER_PRESETS, EmailConfig
+from api.request_data import request_dict
 from api.request_user import request_user
 
 logger = logging.getLogger(__name__)
@@ -49,8 +50,7 @@ class EmailConfigView(APIView):
 
     def post(self, request: Request, format: str | None = None) -> Response:
         config = EmailConfig.load()
-        data = request.data
-        assert isinstance(data, dict)
+        data = request_dict(request)
 
         for field in _WRITABLE_FIELDS:
             if field in data:
@@ -80,8 +80,7 @@ class EmailTestView(APIView):
                 {"status": False, "message": "Email is not configured."}, status=400
             )
 
-        data = request.data
-        assert isinstance(data, dict)
+        data = request_dict(request)
         recipient = (data.get("to") or request_user(request).email or "").strip()
         if not recipient:
             return Response(

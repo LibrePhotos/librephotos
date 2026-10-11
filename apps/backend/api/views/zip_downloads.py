@@ -12,6 +12,7 @@ from rest_framework.views import APIView
 
 from api.all_tasks import create_download_job, delete_zip_file, zip_file_name
 from api.models import LongRunningJob, Photo
+from api.request_data import request_dict
 from api.request_user import request_user
 
 logger = logging.getLogger(__name__)
@@ -35,9 +36,7 @@ class ZipListPhotosView_V2(APIView):
 
         user = request_user(request)
         free_storage = _free_space_for_archives()
-        data = request.data
-        # A JSON array body has no .get, and never did: that stays a server error.
-        assert isinstance(data, dict)
+        data = request_dict(request)
 
         include_stacked = data.get("include_stacked_photos", False)
         if isinstance(include_stacked, (list, tuple)):

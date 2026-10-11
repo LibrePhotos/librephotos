@@ -13,6 +13,7 @@ from rest_framework.views import APIView
 from api.mail import email_is_configured
 from api.ml_models import do_all_models_exist, start_model_download
 from api.models import User
+from api.request_data import request_dict
 from api.request_user import request_user
 from api.schemas.site_settings import site_settings_schema
 from api.semantic_search import OPENCLIP
@@ -83,11 +84,8 @@ class SiteSettingsView(APIView):
         return Response(out)
 
     def post(self, request: Request, format: str | None = None) -> Response:
-        jsonschema.validate(request.data, site_settings_schema)
-        # The schema only admits an object body; the assert narrows the type
-        # for the lookups below and never fires for a valid request.
-        data = request.data
-        assert isinstance(data, dict)
+        data = request_dict(request)
+        jsonschema.validate(data, site_settings_schema)
         if "allow_registration" in data.keys():
             site_config.ALLOW_REGISTRATION = data["allow_registration"]
         if "allow_upload" in data.keys():

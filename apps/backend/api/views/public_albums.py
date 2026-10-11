@@ -14,6 +14,7 @@ from rest_framework.views import APIView
 
 from api.models import AlbumUser
 from api.models.album_user_share import AlbumUserShare
+from api.request_data import request_dict
 from api.request_user import request_user
 from api.serializers.album_user import (
     AlbumUserListSerializer,
@@ -32,7 +33,7 @@ SHARING_OPTION_FIELDS = (
 
 class SetUserAlbumPublic(APIView):
     def post(self, request: Request, format: str | None = None) -> Response:
-        data = dict(request.data)
+        data = dict(request_dict(request))
         album_id = data.get("album_id")
         val_public = data.get("val_public")
 

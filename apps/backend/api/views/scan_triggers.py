@@ -4,7 +4,6 @@ import logging
 import os
 import uuid
 from collections.abc import Callable
-from typing import Any
 
 from django_q.tasks import AsyncTask, Chain
 from drf_spectacular.utils import extend_schema
@@ -16,20 +15,10 @@ from api.autoalbum import delete_missing_photos
 from api.directory_watcher import scan_photos
 from api.ml_models import do_all_models_exist, download_models
 from api.models.user import User
+from api.request_data import request_dict
 from api.request_user import request_user
 
 logger = logging.getLogger(__name__)
-
-
-def _request_body(request: Request) -> dict[str, Any]:
-    """The JSON object in the request body.
-
-    A body that is not an object (a JSON list, say) has always failed in these
-    views with an AttributeError, i.e. a 500; the assert keeps that failure.
-    """
-    body = request.data
-    assert isinstance(body, dict)
-    return body
 
 
 def _validate_scan_directory(user: User) -> Response | None:
@@ -168,7 +157,7 @@ class GenerateOcrView(APIView):
         from api.directory_watcher.processing_jobs import generate_ocr
 
         user = request_user(request)
-        full_scan = bool(_request_body(request).get("full_scan", False))
+        full_scan = bool(request_dict(request).get("full_scan", False))
         return start_job(
             lambda job_id: AsyncTask(generate_ocr, user, job_id, full_scan).run(),
             "text recognition",

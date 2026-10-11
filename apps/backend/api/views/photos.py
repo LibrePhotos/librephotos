@@ -30,6 +30,7 @@ from api.models.photo_caption import PhotoCaption
 from api.models.photo_stack import PhotoStack
 from api.models.tag import refresh_tag_photo_counts, tag_ids_for_photos
 from api.permissions import IsOwnerOrReadOnly, IsPhotoOrAlbumSharedTo
+from api.request_data import request_dict
 from api.request_user import request_user
 from api.serializers.album_user import AlbumUserListSerializer
 from api.serializers.photos import (
@@ -211,9 +212,7 @@ class BulkPhotoMutationView(APIView):
 
     def post(self, request: Request, format: str | None = None) -> Response:
         user = request_user(request)
-        data = request.data
-        if not isinstance(data, dict):
-            raise ValidationError("Expected a JSON object.")
+        data = request_dict(request)
         value = self.parse_value(data)
         select_all = data.get("select_all", False)
         if not isinstance(select_all, bool):
@@ -715,7 +714,7 @@ class SetPhotosShared(APIView):
         from api.views.photo_filters import build_photo_queryset
 
         user = request_user(request)
-        data = dict(request.data)
+        data = dict(request_dict(request))
         shared = data["val_shared"]  # bool
         target_user_id = data["target_user_id"]  # user pk, int
 
@@ -837,7 +836,7 @@ class GeneratePhotoCaption(APIView):
                 status=403,
             )
 
-        data = dict(request.data)
+        data = dict(request_dict(request))
         image_hash = data["image_hash"]
 
         # Anonymous callers get "photo not found" here, as they always did.
@@ -886,7 +885,7 @@ class SavePhotoCaption(APIView):
     permission_classes = (IsOwnerOrReadOnly,)
 
     def post(self, request: Request, format: str | None = None) -> Response:
-        data = dict(request.data)
+        data = dict(request_dict(request))
         image_hash = data["image_hash"]
         caption = data["caption"]
 
@@ -911,7 +910,7 @@ class DeletePhotos(APIView):
         from api.views.photo_filters import build_photo_queryset
 
         user = request_user(request)
-        data = dict(request.data)
+        data = dict(request_dict(request))
 
         # NEW: Support select_all mode for bulk operations
         if data.get("select_all"):
@@ -1062,8 +1061,7 @@ class SetMainFileView(APIView):
 
     def post(self, request: Request, image_hash: str) -> Response:
         """Set the main file for a photo."""
-        data = request.data
-        assert isinstance(data, dict)  # a JSON array body fails here, as it always has
+        data = request_dict(request)
         file_hash = data.get("file_hash")
 
         if not file_hash:
@@ -1107,8 +1105,7 @@ class SaveMetadataView(APIView):
         Defaults to ["ratings"] if not specified.
         """
         user = request_user(request)
-        data = request.data
-        assert isinstance(data, dict)  # a JSON array body fails here, as it always has
+        data = request_dict(request)
         metadata_types = data.get("types", ["ratings"])
         use_sidecar = user.save_metadata_to_disk == User.SaveMetadata.SIDECAR_FILE
 
@@ -1210,8 +1207,7 @@ class RotatePhotoView(APIView):
     """
 
     def post(self, request: Request, format: str | None = None) -> Response:
-        data = request.data
-        assert isinstance(data, dict)  # a JSON array body fails here, as it always has
+        data = request_dict(request)
         image_hash = data.get("image_hash")
         flip_horizontal = bool(data.get("flip_horizontal", False))
 

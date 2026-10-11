@@ -21,6 +21,7 @@ from rest_framework.viewsets import ViewSet
 from api.models import Photo
 from api.models.photo_metadata import MetadataEdit, PhotoMetadata
 from api.models.tag import sync_tags_from_keywords
+from api.request_data import request_dict
 from api.request_user import request_user
 from api.serializers.photo_metadata import (
     MetadataEditSerializer,
@@ -311,8 +312,7 @@ class BulkMetadataView(APIView):
     )
     def patch(self, request: Request) -> Response:
         """Bulk update metadata for multiple photos."""
-        data = request.data
-        assert isinstance(data, dict)  # a JSON array body fails here, as it always has
+        data = request_dict(request)
         photo_ids = data.get("photo_ids", [])
         updates = data.get("updates", {})
 

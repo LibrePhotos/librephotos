@@ -11,7 +11,6 @@ Duplicates are separate from Stacks because they have different purposes:
 """
 
 import logging
-from typing import Any
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.paginator import Paginator
@@ -26,20 +25,10 @@ from rest_framework.views import APIView
 
 from api.models import Photo, PhotoMetadata
 from api.models.duplicate import Duplicate
+from api.request_data import request_dict
 from api.request_user import request_user
 
 logger = logging.getLogger(__name__)
-
-
-def _request_body(request: Request) -> dict[str, Any]:
-    """The JSON object in the request body.
-
-    A body that is not an object (a JSON list, say) has always failed in these
-    views with an AttributeError, i.e. a 500; the assert keeps that failure.
-    """
-    body = request.data
-    assert isinstance(body, dict)
-    return body
 
 
 def _metadata_or_none(photo: Photo) -> PhotoMetadata | None:
@@ -252,8 +241,8 @@ class DuplicateResolveView(APIView):
                 {"error": "Duplicate group not found"}, status=status.HTTP_404_NOT_FOUND
             )
 
-        keep_photo_hash = _request_body(request).get("keep_photo_hash")
-        trash_others = _request_body(request).get("trash_others", True)
+        keep_photo_hash = request_dict(request).get("keep_photo_hash")
+        trash_others = request_dict(request).get("trash_others", True)
 
         if not keep_photo_hash:
             return Response(
@@ -401,21 +390,21 @@ class DetectDuplicatesView(APIView):
 
         user = request_user(request)
         # Validate and clamp batch_size to reasonable range
-        batch_size = int(_request_body(request).get("batch_size", 10000))
+        batch_size = int(request_dict(request).get("batch_size", 10000))
         if batch_size < 100:
             batch_size = 100  # Minimum to avoid too many batches
         elif batch_size > 50000:
             batch_size = 50000  # Maximum to prevent memory issues
 
         options = {
-            "detect_exact_copies": _request_body(request).get(
+            "detect_exact_copies": request_dict(request).get(
                 "detect_exact_copies", True
             ),
-            "detect_visual_duplicates": _request_body(request).get(
+            "detect_visual_duplicates": request_dict(request).get(
                 "detect_visual_duplicates", True
             ),
-            "visual_threshold": int(_request_body(request).get("visual_threshold", 10)),
-            "clear_pending": _request_body(request).get("clear_pending", False),
+            "visual_threshold": int(request_dict(request).get("visual_threshold", 10)),
+            "clear_pending": request_dict(request).get("clear_pending", False),
             "batch_size": batch_size,
         }
 
