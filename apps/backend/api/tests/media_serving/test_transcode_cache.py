@@ -22,8 +22,8 @@ from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from api import transcode_cache
-from api.views import media
 from api.tests.utils import create_test_file, create_test_photo, create_test_user
+from api.views import media
 
 GB = transcode_cache.BYTES_PER_GB
 

@@ -41,7 +41,7 @@ class Tag(models.Model):
         ]
 
     def __str__(self) -> str:
-        return "%d: %s" % (self.id or 0, self.name)
+        return f"{self.id or 0}: {self.name}"
 
 
 def update_tag_photo_count(

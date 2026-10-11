@@ -1000,7 +1000,7 @@ class UnifiedMediaAccessView(MediaServingView):
         if kind == "embedded_media":
             return self._serve_embedded_media(request, path, fname, use_proxy)
 
-        image_hash = fname.split(".")[0].split("_")[0]
+        image_hash = fname.split(".", maxsplit=1)[0].split("_", maxsplit=1)[0]
         if album_id is not None:
             return self._serve_shared_album_media(
                 album_id, image_hash, path, fname, use_proxy

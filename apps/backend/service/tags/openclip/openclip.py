@@ -243,7 +243,7 @@ class OpenCLIP:
     def load(self) -> None:
         """Load the image tower, the tag list and the (cached) tag embeddings."""
         self._load_vision()
-        with open(TAGS_FILE, "r", encoding="utf-8") as f:
+        with open(TAGS_FILE, encoding="utf-8") as f:
             tags = [line.strip() for line in f if line.strip()]
         self.tags = tags
         self._load_or_build_tag_embeddings(tags)

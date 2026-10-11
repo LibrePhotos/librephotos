@@ -22,7 +22,6 @@ no network, no exiftool.
 import datetime
 from unittest.mock import patch
 
-from chunked_upload.exceptions import ChunkedUploadError
 from constance.test import override_config
 from django.test import RequestFactory, TestCase
 from rest_framework_simplejwt.exceptions import InvalidToken
@@ -37,6 +36,7 @@ from api.views.upload import (
     authenticate_upload_request,
     validate_scan_directory,
 )
+from chunked_upload.exceptions import ChunkedUploadError
 
 
 def make_request(jwt=None):

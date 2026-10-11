@@ -1,6 +1,6 @@
 import uuid
-from typing import Any
 from collections.abc import Callable, Iterable
+from typing import Any
 
 from django.db.models import Prefetch, Q, QuerySet
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema

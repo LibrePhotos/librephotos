@@ -21,7 +21,7 @@ class AlbumPlace(models.Model):
         unique_together = ("title", "owner")
 
     def __str__(self) -> str:
-        return "%d: %s" % (self.id, self.title)
+        return f"{self.id}: {self.title}"
 
 
 def get_album_place(title: str, owner: User) -> AlbumPlace:

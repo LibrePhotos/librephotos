@@ -12,8 +12,8 @@ from django.test import TestCase, TransactionTestCase
 from rest_framework.test import APIClient, APITestCase
 
 from api.models.duplicate import Duplicate
-from api.models.photo_stack import PhotoStack
 from api.models.photo_metadata import PhotoMetadata
+from api.models.photo_stack import PhotoStack
 from api.tests.utils import create_test_photo, create_test_user
 
 

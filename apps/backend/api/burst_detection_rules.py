@@ -279,20 +279,19 @@ class BurstDetectionRule:
                     directory = os.path.dirname(photo.main_file.path)
                     group_key = f"filename_{directory}_{base}"
                     return True, group_key
-        else:
-            # Check specific pattern
-            if pattern_type in BURST_FILENAME_PATTERNS:
-                pattern, _ = BURST_FILENAME_PATTERNS[pattern_type]
-                if re.search(pattern, basename, re.IGNORECASE):
-                    base = re.sub(
-                        r"(_BURST\d+|_\d{3,}|\(\d+\)|_COVER)$",
-                        "",
-                        basename,
-                        flags=re.IGNORECASE,
-                    )
-                    directory = os.path.dirname(photo.main_file.path)
-                    group_key = f"filename_{directory}_{base}"
-                    return True, group_key
+        # Check specific pattern
+        elif pattern_type in BURST_FILENAME_PATTERNS:
+            pattern, _ = BURST_FILENAME_PATTERNS[pattern_type]
+            if re.search(pattern, basename, re.IGNORECASE):
+                base = re.sub(
+                    r"(_BURST\d+|_\d{3,}|\(\d+\)|_COVER)$",
+                    "",
+                    basename,
+                    flags=re.IGNORECASE,
+                )
+                directory = os.path.dirname(photo.main_file.path)
+                group_key = f"filename_{directory}_{base}"
+                return True, group_key
 
         return False, None
 
@@ -334,19 +333,18 @@ def check_filename_pattern(
                 )
                 group_key = f"filename_{directory}_{base}"
                 return True, group_key
-    else:
-        # Check specific pattern
-        if pattern_type in BURST_FILENAME_PATTERNS:
-            pattern, _ = BURST_FILENAME_PATTERNS[pattern_type]
-            if re.search(pattern, basename, re.IGNORECASE):
-                base = re.sub(
-                    r"(_BURST\d+|_\d{3,}|\(\d+\)|_COVER)$",
-                    "",
-                    basename,
-                    flags=re.IGNORECASE,
-                )
-                group_key = f"filename_{directory}_{base}"
-                return True, group_key
+    # Check specific pattern
+    elif pattern_type in BURST_FILENAME_PATTERNS:
+        pattern, _ = BURST_FILENAME_PATTERNS[pattern_type]
+        if re.search(pattern, basename, re.IGNORECASE):
+            base = re.sub(
+                r"(_BURST\d+|_\d{3,}|\(\d+\)|_COVER)$",
+                "",
+                basename,
+                flags=re.IGNORECASE,
+            )
+            group_key = f"filename_{directory}_{base}"
+            return True, group_key
 
     return False, None
 

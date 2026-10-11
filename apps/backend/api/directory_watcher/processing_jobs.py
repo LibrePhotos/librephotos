@@ -17,6 +17,11 @@ from django.db.models import Q, QuerySet
 from django_q.tasks import AsyncTask
 
 from api import sidecars, transcode_cache, video_color
+from api.directory_watcher.utils import (
+    CANCELLATION_CHECK_INTERVAL,
+    is_job_cancelled,
+    update_scan_counter,
+)
 from api.document_detection import classify_document
 from api.face_classify import cluster_all_faces
 from api.geocode.photo_location import add_location_to_album_dates, geolocate_photo
@@ -26,11 +31,6 @@ from api.models.photo_caption import PhotoCaption
 from api.models.photo_ocr import PhotoOcr
 from api.photo_faces import extract_faces
 from api.semantic_search import OPENCLIP, TAG_THING_TYPE
-from api.directory_watcher.utils import (
-    CANCELLATION_CHECK_INTERVAL,
-    is_job_cancelled,
-    update_scan_counter,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -453,7 +453,6 @@ def _run_ocr_for_photo(photo: Photo) -> None:
     failure (the job continues with the remaining photos).
     """
     import requests
-
     from constance import config as site_config
 
     from api.http_timeouts import OCR

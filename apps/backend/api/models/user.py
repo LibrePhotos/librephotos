@@ -7,8 +7,8 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django_cryptography.fields import encrypt
 
-from api.date_time_extractor import DEFAULT_RULES_JSON
 from api.burst_detection_rules import get_default_burst_detection_rules
+from api.date_time_extractor import DEFAULT_RULES_JSON
 
 
 def get_default_config_datetime_rules() -> str:  # This is a callable

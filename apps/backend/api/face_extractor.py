@@ -6,10 +6,10 @@ from typing import TYPE_CHECKING, Any
 import PIL
 
 from api.face_recognition import detect_faces
+from api.lazy_import import LazyModule
 from api.metadata.reader import get_metadata
 from api.metadata.tags import Tags
 from api.util import is_number
-from api.lazy_import import LazyModule
 
 if TYPE_CHECKING:
     from typing import TypeAlias, Unpack

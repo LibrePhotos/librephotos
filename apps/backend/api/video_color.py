@@ -39,9 +39,7 @@ import shutil
 import subprocess
 from typing import TYPE_CHECKING
 
-from api import binaries
-
-from api import ffmpeg_budget
+from api import binaries, ffmpeg_budget
 
 if TYPE_CHECKING:
     from api.models.photo import Photo

@@ -15,9 +15,9 @@ import shutil
 import tempfile
 import time
 import zipfile
+from unittest.mock import MagicMock, patch
 
 from django.test import TestCase, override_settings
-from unittest.mock import MagicMock, patch
 
 from api.all_tasks import zip_photos_task
 from api.models.long_running_job import LongRunningJob

@@ -2,12 +2,13 @@ import logging
 import uuid
 from collections.abc import Iterable
 from datetime import datetime, timedelta
+from typing import TYPE_CHECKING
 
 import pytz
-from typing import TYPE_CHECKING
 from django.db import transaction
 from django.db.models import Q
 
+from api.lazy_import import LazyModule
 from api.models import (
     AlbumAuto,
     AlbumThing,
@@ -17,7 +18,6 @@ from api.models import (
     User,
 )
 from api.models.tag import refresh_tag_photo_counts, tag_ids_for_photos
-from api.lazy_import import LazyModule
 
 if TYPE_CHECKING:
     import numpy as np

@@ -14,9 +14,9 @@ from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
-from api.request_data import request_dict
 from api.models.user import User as AppUser
 from api.public_url import trusted_public_base_url
+from api.request_data import request_dict
 from api.throttling import AuthRateThrottle
 
 logger = logging.getLogger(__name__)

@@ -10,9 +10,9 @@ Tests verify proper cleanup of:
 
 from django.test import TestCase
 
+from api.models.duplicate import Duplicate
 from api.models.file import File
 from api.models.photo_stack import PhotoStack
-from api.models.duplicate import Duplicate
 from api.tests.utils import create_test_photo, create_test_user
 
 
@@ -527,8 +527,8 @@ class SharedFileTestCase(TestCase):
 
     def test_delete_photo_removes_unshared_file(self):
         """Test that deleting a photo removes a file only used by that photo."""
-        import tempfile
         import os
+        import tempfile
 
         # Create a temp file to simulate a real file
         with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp:

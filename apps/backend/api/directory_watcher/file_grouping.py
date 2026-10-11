@@ -9,7 +9,6 @@ import os
 
 from api.models import File, Photo, User
 
-
 # JPEG/image extensions that RAW files can be paired with
 JPEG_EXTENSIONS = {".jpg", ".jpeg", ".heic", ".heif", ".png", ".tiff", ".tif"}
 

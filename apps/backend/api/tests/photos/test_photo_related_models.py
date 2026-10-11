@@ -1,12 +1,12 @@
+from django.core.exceptions import FieldDoesNotExist
 from django.test import TestCase
 from django.utils import timezone
-from django.core.exceptions import FieldDoesNotExist
 
 from api.geocode.photo_location import add_location_to_album_dates
-from api.models import Photo, AlbumDate
+from api.models import AlbumDate, Photo
 from api.models.photo_caption import PhotoCaption
 from api.models.photo_search import PhotoSearch
-from api.tests.utils import create_test_user, create_test_photo
+from api.tests.utils import create_test_photo, create_test_user
 
 
 class PhotoModelIntegrationTest(TestCase):

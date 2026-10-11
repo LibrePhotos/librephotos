@@ -19,16 +19,16 @@ from unittest.mock import patch
 
 from django.test import TestCase
 
+from api.directory_watcher import JPEG_EXTENSIONS
 from api.models.file import File
-from api.models.photo_stack import PhotoStack
 from api.models.long_running_job import LongRunningJob
+from api.models.photo_stack import PhotoStack
 from api.stack_detection import (
+    _create_burst_stack,
+    batch_detect_stacks,
     clear_stacks_of_type,
     detect_burst_sequences,
-    batch_detect_stacks,
-    _create_burst_stack,
 )
-from api.directory_watcher import JPEG_EXTENSIONS
 from api.tests.utils import create_test_photo, create_test_user
 
 

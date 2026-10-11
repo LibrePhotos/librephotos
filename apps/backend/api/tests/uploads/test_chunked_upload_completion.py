@@ -15,7 +15,6 @@ import shutil
 import tempfile
 from unittest.mock import MagicMock, patch
 
-from chunked_upload.exceptions import ChunkedUploadError
 from constance.test import override_config
 from django.test import RequestFactory, TestCase
 from rest_framework_simplejwt.tokens import AccessToken
@@ -23,6 +22,7 @@ from rest_framework_simplejwt.tokens import AccessToken
 from api.models import Photo
 from api.tests.utils import create_test_photo, create_test_user
 from api.views.upload import UploadPhotosChunked, UploadPhotosChunkedComplete
+from chunked_upload.exceptions import ChunkedUploadError
 
 
 def make_request(jwt=None, post=None):

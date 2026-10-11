@@ -15,8 +15,8 @@ from rest_framework.request import Request
 from rest_framework.views import APIView
 
 from api.image_similarity import search_similar_embedding
-from api.semantic_search import calculate_query_embeddings
 from api.request_user import request_user
+from api.semantic_search import calculate_query_embeddings
 from api.timeline_filter import timeline_filter_q
 
 # The filter is only used on photo lists, but DRF's BaseFilterBackend is generic

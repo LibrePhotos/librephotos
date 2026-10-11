@@ -20,12 +20,12 @@ from django.test import TestCase
 from django.utils import timezone
 from rest_framework.test import APIClient, APITestCase
 
-from api.models.duplicate import Duplicate
-from api.models.photo_stack import PhotoStack
-from api.models.file import File
-from api.tests.utils import create_test_photo, create_test_user
 from api.duplicate_detection import detect_exact_copies, detect_visual_duplicates
+from api.models.duplicate import Duplicate
+from api.models.file import File
+from api.models.photo_stack import PhotoStack
 from api.stack_detection import detect_burst_sequences
+from api.tests.utils import create_test_photo, create_test_user
 
 
 class DuplicateRedetectionTestCase(TestCase):

@@ -5,10 +5,6 @@ import shutil
 from collections.abc import Mapping
 from typing import cast
 
-from chunked_upload.constants import http_status
-from chunked_upload.exceptions import ChunkedUploadError
-from chunked_upload.models import ChunkedUpload
-from chunked_upload.views import ChunkedUploadCompleteView, ChunkedUploadView
 from constance import config as site_config
 from django.core.files.base import ContentFile
 from django.core.files.uploadedfile import UploadedFile
@@ -37,6 +33,10 @@ from api.models.photo_caption import PhotoCaption
 from api.models.user import User
 from api.photo_faces import extract_faces
 from api.request_user import request_user
+from chunked_upload.constants import http_status
+from chunked_upload.exceptions import ChunkedUploadError
+from chunked_upload.models import ChunkedUpload
+from chunked_upload.views import ChunkedUploadCompleteView, ChunkedUploadView
 
 logger = logging.getLogger(__name__)
 

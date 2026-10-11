@@ -46,7 +46,9 @@ BACKEND_TOPS = (
     "chunked_upload",
 )
 BACKEND_PATH = re.compile(
-    r"(?<![\w/.-])((?:%s)/[\w/.-]*?\.(?:py|sh))(?::(\d+))?\b" % "|".join(BACKEND_TOPS)
+    r"(?<![\w/.-])((?:{})/[\w/.-]*?\.(?:py|sh))(?::(\d+))?\b".format(
+        "|".join(BACKEND_TOPS)
+    )
 )
 
 

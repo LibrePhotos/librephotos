@@ -8,6 +8,8 @@ sets the cookies the SPA reads on boot, and redirects into the app — so an SSO
 login is indistinguishable from a password login everywhere downstream.
 """
 
+import logging
+
 from allauth.socialaccount.models import SocialApp
 from allauth.socialaccount.providers.oauth2.views import (
     OAuth2CallbackView,
@@ -20,7 +22,7 @@ from constance import config as site_config
 from django.contrib.auth import logout as django_logout
 from django.contrib.auth.decorators import login_not_required
 from django.http import Http404, HttpRequest, HttpResponseBase, HttpResponseRedirect
-from django.urls import reverse
+from django.urls import NoReverseMatch, reverse
 from rest_framework.permissions import AllowAny
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -29,6 +31,8 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from api.models.user import User
 from api.public_url import is_internal_base_url, public_base_url
+
+logger = logging.getLogger(__name__)
 
 
 class LibrePhotosOIDCAdapter(OpenIDConnectOAuth2Adapter):
@@ -168,8 +172,12 @@ class SSOConfigView(APIView):
                         "openid_connect_login",
                         kwargs={"provider_id": provider_id},
                     )
-                except Exception:
+                except NoReverseMatch:
                     # A misconfigured SocialApp shouldn't break the login screen.
+                    logger.warning(
+                        "SSO provider %s has no login URL; check its provider id",
+                        provider_id,
+                    )
                     continue
                 providers.append(
                     {"id": provider_id, "name": app.name, "login_url": login_url}

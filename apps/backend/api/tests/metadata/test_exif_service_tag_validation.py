@@ -13,10 +13,9 @@ from unittest.mock import patch
 
 from django.test import SimpleTestCase
 
+from api.tests.metadata.test_exif_service_get_tags import FakeExifTool
 from service.exif import main as exif_main
 from service.exif.tag_validation import is_safe_media_path, is_safe_tag_name
-
-from api.tests.metadata.test_exif_service_get_tags import FakeExifTool
 
 
 class GetTagsSecurityTest(SimpleTestCase):

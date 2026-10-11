@@ -36,7 +36,7 @@ TONEMAP = (
 
 def _ffprobe_saying(transfer):
     """An ffprobe that reports ``transfer``, in the shape the real one uses."""
-    payload = '{"streams": [{"color_transfer": "%s"}]}' % transfer
+    payload = f'{{"streams": [{{"color_transfer": "{transfer}"}}]}}'
     return mock.Mock(return_value=mock.Mock(stdout=payload))
 
 

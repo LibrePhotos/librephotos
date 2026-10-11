@@ -13,18 +13,18 @@ from constance.test import override_config
 from django.test import TestCase, override_settings
 
 from api.ml_models import (
-    captioning_model_exists,
-    start_model_download,
     ML_MODELS,
-    ModelChecksumError,
     MlTypes,
+    ModelChecksumError,
     _download_file,
     _is_model_selected,
     _iter_required_models,
     _model_target_exists,
+    captioning_model_exists,
     do_all_models_exist,
     download_model,
     download_models,
+    start_model_download,
 )
 from api.models.long_running_job import LongRunningJob
 from api.tests.utils import create_test_user

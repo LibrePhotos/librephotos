@@ -46,5 +46,5 @@ class Command(BaseCommand):
             # Deleting objects individually to call delete method explicitly
             chunked_upload.delete()
 
-        self.stdout.write("%i complete uploads were deleted." % count[COMPLETE])
-        self.stdout.write("%i incomplete uploads were deleted." % count[UPLOADING])
+        self.stdout.write(f"{count[COMPLETE]} complete uploads were deleted.")
+        self.stdout.write(f"{count[UPLOADING]} incomplete uploads were deleted.")

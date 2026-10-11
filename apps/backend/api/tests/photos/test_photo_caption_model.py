@@ -4,7 +4,7 @@ import requests
 from django.test import TestCase
 
 from api.models import PhotoCaption
-from api.tests.utils import create_test_user, create_test_photo
+from api.tests.utils import create_test_photo, create_test_user
 
 
 class PhotoCaptionModelTest(TestCase):

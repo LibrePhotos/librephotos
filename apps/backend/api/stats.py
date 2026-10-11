@@ -1,18 +1,17 @@
 import logging
+import random
+import re
 from collections import Counter
 from collections.abc import Iterable, Iterator
 from datetime import datetime
-from typing import Any, TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING, Any, TypedDict
 
 from django.conf import settings
 from django.db.models import Avg, Count, Max, Min, Model, Q, QuerySet, Sum
 from django.db.models.functions import TruncMonth
 
-import random
-import re
-
 from api.color_palettes import hex_palette
-
+from api.lazy_import import LazyModule
 from api.models import (
     AlbumAuto,
     AlbumDate,
@@ -26,7 +25,6 @@ from api.models import (
     User,
 )
 from api.models.user import get_deleted_user
-from api.lazy_import import LazyModule
 from api.semantic_search import OPENCLIP
 
 if TYPE_CHECKING:
@@ -237,8 +235,9 @@ def _get_user_stats(user: User) -> dict[str, Any]:
 
 
 def get_server_stats() -> dict[str, Any]:
-    import psutil
     import shutil
+
+    import psutil
 
     cpu_info = _get_cpu_info()
     available_ram = calc_megabytes(psutil.virtual_memory().total)
@@ -400,7 +399,9 @@ class _LabelTally:
 
 def _tag_labels(captions_json: dict[str, Any] | None) -> list[str]:
     """OpenCLIP's tags for one photo, as word-cloud labels."""
-    tag_result = (captions_json or {}).get(OPENCLIP) or {}
+    if not isinstance(captions_json, dict):
+        return []
+    tag_result = captions_json.get(OPENCLIP) or {}
     values = tag_result.get("tags", []) if isinstance(tag_result, dict) else []
     if not isinstance(values, list):
         return []
@@ -446,11 +447,7 @@ def get_searchterms_wordcloud(user: User) -> dict[str, list[dict[str, str | floa
         .iterator(chunk_size=2000)
     )
     for caps in captions_iter:
-        try:
-            labels = _tag_labels(caps)
-        except Exception:
-            continue
-        for label in labels:
+        for label in _tag_labels(caps):
             order_index = captions.add(label, order_index)
 
     # Locations: parse geolocation_json, ignore postcode and poi, one word per photo

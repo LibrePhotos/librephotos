@@ -9,8 +9,8 @@ binary so that class of bug fails loudly.
 """
 
 import datetime
-import re
 import os
+import re
 import shutil
 import subprocess
 import tempfile

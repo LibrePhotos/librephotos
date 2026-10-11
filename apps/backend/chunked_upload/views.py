@@ -2,19 +2,19 @@ import re
 from collections.abc import Mapping
 from typing import Any
 
-from django.views.generic import View
-from django.http import HttpRequest, HttpResponse
-from django.shortcuts import get_object_or_404
 from django.core.files.base import ContentFile
 from django.core.files.uploadedfile import UploadedFile
 from django.db.models import QuerySet
+from django.http import HttpRequest, HttpResponse
+from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from django.views.generic import View
 
-from .settings import MAX_BYTES
+from .constants import COMPLETE, UPLOADING, http_status
+from .exceptions import ChunkedUploadError
 from .models import ChunkedUpload
 from .response import Response
-from .constants import http_status, COMPLETE, UPLOADING
-from .exceptions import ChunkedUploadError
+from .settings import MAX_BYTES
 
 
 class ChunkedUploadBaseView(View):
@@ -262,7 +262,7 @@ class ChunkedUploadView(ChunkedUploadBaseView):
         if max_bytes is not None and total > max_bytes:
             raise ChunkedUploadError(
                 status=http_status.HTTP_400_BAD_REQUEST,
-                detail="Size of file exceeds the limit (%s bytes)" % max_bytes,
+                detail=f"Size of file exceeds the limit ({max_bytes} bytes)",
             )
         if chunked_upload.offset != start:
             raise ChunkedUploadError(

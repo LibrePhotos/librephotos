@@ -207,8 +207,8 @@ def detect_exact_copies(
             FROM api_file f
             INNER JOIN api_photo_files pf ON pf.file_id = f.hash
             INNER JOIN api_photo p ON p.id = pf.photo_id
-            WHERE p.owner_id = %s 
-                AND p.hidden = FALSE 
+            WHERE p.owner_id = %s
+                AND p.hidden = FALSE
                 AND p.in_trashcan = FALSE
                 AND p.removed = FALSE
                 AND f.type != %s

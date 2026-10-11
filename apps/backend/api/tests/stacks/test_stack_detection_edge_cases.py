@@ -29,15 +29,15 @@ from api.burst_detection_rules import (
     as_rules,
     get_default_burst_detection_rules,
 )
-from api.models.file import File
-from api.models.photo_stack import PhotoStack
 from api.models.duplicate import Duplicate
+from api.models.file import File
 from api.models.long_running_job import LongRunningJob
+from api.models.photo_stack import PhotoStack
 from api.stack_detection import (
+    _create_burst_stack,
+    batch_detect_stacks,
     clear_stacks_of_type,
     detect_burst_sequences,
-    batch_detect_stacks,
-    _create_burst_stack,
 )
 from api.tests.utils import create_test_photo, create_test_user
 
@@ -1045,6 +1045,7 @@ class TimestampProximityRuleTestCase(TestCase):
     def test_photos_within_threshold_grouped(self):
         """Test that photos within timestamp threshold are grouped."""
         from django.utils import timezone
+
         from api.stack_detection import _detect_bursts_soft_criteria
 
         base_time = timezone.make_aware(datetime(2024, 1, 1, 12, 0, 0))
@@ -1083,6 +1084,7 @@ class TimestampProximityRuleTestCase(TestCase):
     def test_photos_beyond_threshold_not_grouped(self):
         """Test that photos beyond timestamp threshold are not grouped."""
         from django.utils import timezone
+
         from api.stack_detection import _detect_bursts_soft_criteria
 
         base_time = timezone.make_aware(datetime(2024, 1, 1, 12, 0, 0))

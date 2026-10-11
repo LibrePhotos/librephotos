@@ -9,9 +9,9 @@ The photo lookup only consumes ``fname.split(".")[0].split("_")[0]`` as the
 image hash, so everything after the first ``_`` (or ``.``) in ``fname`` is
 free-form and reaches ``os.path.join(MEDIA_ROOT, path, fname)`` unchecked. On
 Windows a backslash is a directory separator, and ``os.path.join`` plus the
-filesystem collapse ``<hash>_\..\..\..\target`` lexically -- even through a
+filesystem collapse ``<hash>_\\..\\..\\..\target`` lexically -- even through a
 directory that does not exist -- straight out of ``MEDIA_ROOT``. Django decodes
-``%5C`` into ``\`` in ``PATH_INFO``, so an authenticated user who can see any
+``%5C`` into ``\\`` in ``PATH_INFO``, so an authenticated user who can see any
 one photo could read arbitrary files off the host (the JWT signing key, the DB
 config, ...).
 

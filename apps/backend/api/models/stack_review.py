@@ -136,7 +136,7 @@ class StackReview(models.Model):
         return False
 
     @classmethod
-    def create_for_stack(cls, stack: PhotoStack) -> "StackReview | None":
+    def create_for_stack(cls, stack: PhotoStack) -> StackReview | None:
         """
         Create a review record for a stack if it's a reviewable type.
         Returns None for non-reviewable stack types.

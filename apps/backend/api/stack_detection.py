@@ -28,20 +28,20 @@ from typing import TypedDict
 
 from django.db.models import Q
 
-from api.models import Photo
-from api.models.photo_stack import PhotoStack
-from api.models.long_running_job import LongRunningJob
-from api.models.user import User
 from api.burst_detection_rules import (
     BurstDetectionRule,
+    BurstRuleTypes,
     as_rules,
     get_enabled_rules,
     get_hard_rules,
     get_soft_rules,
     group_photos_by_timestamp,
     group_photos_by_visual_similarity,
-    BurstRuleTypes,
 )
+from api.models import Photo
+from api.models.long_running_job import LongRunningJob
+from api.models.photo_stack import PhotoStack
+from api.models.user import User
 
 logger = logging.getLogger(__name__)
 

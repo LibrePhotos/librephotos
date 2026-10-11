@@ -56,7 +56,7 @@ class AlbumThing(models.Model):
         update_default_cover_photo(self)
 
     def __str__(self) -> str:
-        return "%d: %s" % (self.id or 0, self.title)
+        return f"{self.id or 0}: {self.title}"
 
 
 def update_album_thing_photo_count(

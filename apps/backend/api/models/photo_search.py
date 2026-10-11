@@ -91,9 +91,8 @@ class PhotoSearch(models.Model):
                 search_captions += metadata.lens_display + " "
             if metadata.keywords:
                 search_captions += " ".join(str(k) for k in metadata.keywords) + " "
-        except Exception:
-            # PhotoMetadata may not exist yet
-            pass
+        except ObjectDoesNotExist:
+            pass  # no PhotoMetadata row yet
 
         self.search_captions = search_captions.strip()
 

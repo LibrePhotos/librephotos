@@ -39,8 +39,7 @@ from typing import TYPE_CHECKING
 
 from django.conf import settings
 
-from api import binaries
-from api import video_color
+from api import binaries, video_color
 
 if TYPE_CHECKING:
     # Not imported at run time: api.models reaches this module through

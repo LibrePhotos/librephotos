@@ -9,11 +9,11 @@ import pyvips
 from django.test import TestCase, override_settings
 from PIL import Image
 
+from api import binaries
 from api.directory_watcher.file_handlers import (
     create_file_record,
     group_files_into_photo,
 )
-from api import binaries
 from api.metadata.tags import Tags
 from api.metadata.writer import read_orientation, write_metadata
 from api.models import File, Person, Photo, Thumbnail, User

@@ -154,7 +154,6 @@ class ExtractDateTimeTest(TestCase):
 
         def call_getter(path, rules, exif_getter, *rest):
             exif_getter(["EXIF:DateTimeOriginal"])
-            return None
 
         with (
             patch(

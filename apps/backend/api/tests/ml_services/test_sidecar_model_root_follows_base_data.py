@@ -1,4 +1,4 @@
-"""The ML sidecars find their models under ``BASE_DATA``, not ``/``.
+r"""The ML sidecars find their models under ``BASE_DATA``, not ``/``.
 
 ``api.ml_models`` downloads every model to ``MEDIA_ROOT/data_models``, which
 is ``BASE_DATA/protected_media/data_models``. The sidecars never load Django,

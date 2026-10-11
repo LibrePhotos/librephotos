@@ -7,6 +7,7 @@ from django.http import HttpRequest
 from django_q.tasks import AsyncTask
 
 from api.util import FACE_OVERLAP_IOU_THRESHOLD, calculate_iou
+
 from .models import (
     AlbumAuto,
     AlbumDate,
@@ -19,10 +20,9 @@ from .models import (
     LongRunningJob,
     Person,
     Photo,
-    User,
     Thumbnail,
+    User,
 )
-
 
 # Photo ids are handed to django_q, which pickles them into the broker
 # payload, so a selection is split into chunks of this size to keep any

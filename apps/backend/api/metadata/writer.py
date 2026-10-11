@@ -5,7 +5,6 @@ from collections.abc import Mapping
 import exiftool
 
 from api import binaries
-
 from api.metadata.reader import get_sidecar_files_in_priority_order
 
 logger = logging.getLogger(__name__)
