@@ -25,6 +25,9 @@ class SharedToMePhotoSuperSimpleListViewSet(ListViewSet):
     pagination_class = HugeResultsSetPagination
 
     def get_queryset(self) -> QuerySet[Photo]:
+        # drf-spectacular asks with an anonymous request; request_user rejects it.
+        if getattr(self, "swagger_fake_view", False):
+            return Photo.objects.none()
         # PhotoSummarySerializer reads far more than the old "super simple"
         # columns: each deferred field and relation was a query per photo.
         return with_photo_summary_relations(
@@ -68,6 +71,9 @@ class SharedToMeAlbumUserListViewSet(ListViewSet):
     pagination_class = HugeResultsSetPagination
 
     def get_queryset(self) -> QuerySet[AlbumUser]:
+        # drf-spectacular asks with an anonymous request; request_user rejects it.
+        if getattr(self, "swagger_fake_view", False):
+            return AlbumUser.objects.none()
         return with_album_user_list_relations(
             AlbumUser.objects.filter(
                 shared_to__id__exact=request_user(self.request).id
@@ -80,6 +86,9 @@ class SharedFromMeAlbumUserListViewSet(ListViewSet):
     pagination_class = HugeResultsSetPagination
 
     def get_queryset(self) -> QuerySet[AlbumUser]:
+        # drf-spectacular asks with an anonymous request; request_user rejects it.
+        if getattr(self, "swagger_fake_view", False):
+            return AlbumUser.objects.none()
         return with_album_user_list_relations(
             AlbumUser.objects.annotate(shared_to_count=Count("shared_to"))
             .filter(shared_to_count__gt=0)
