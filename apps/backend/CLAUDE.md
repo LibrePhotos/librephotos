@@ -22,6 +22,7 @@
 - **Lint**: `ruff check .`
 - **Format**: `ruff format .`
 - **Lint + Fix**: `ruff check --fix .`
+- **Typecheck**: `python scripts/typecheck.py` (Windows: `.venv-win\Scripts\python scripts\typecheck.py`). mypy + django-stubs vs `mypy-baseline.txt`; every function annotated, no explicit `Any`, no bare `# type: ignore`, never `--update` to accept new errors
 
 ### Testing
 

@@ -484,7 +484,7 @@ if settings.DEBUG:
 # Configure media and frontend serving for no-proxy (SERVE_FRONTEND) mode
 if getattr(settings, "SERVE_FRONTEND", False):
     # Serve frontend assets and manifest directly
-    from django.views.static import serve as static_serve  # type: ignore
+    from django.views.static import serve as static_serve
 
     frontend_build_path = os.path.join(
         os.path.dirname(settings.BASE_DIR), "frontend_build"

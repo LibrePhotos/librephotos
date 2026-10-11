@@ -17,6 +17,32 @@ In order to keep the code consistently structured, the backend has a pre-commit 
 
 We use [ruff](https://docs.astral.sh/ruff/) for both linting and formatting, configured in `apps/backend/pyproject.toml`. You can also run it by hand with `ruff check .` and `ruff format .`.
 
+### Type checking
+
+The backend is type-checked with [mypy](https://mypy.readthedocs.io/) and the [django-stubs](https://github.com/typeddjango/django-stubs) and [djangorestframework-stubs](https://github.com/typeddjango/djangorestframework-stubs) plugins, which understand the ORM: a `null=True` field is `Optional`, custom managers and `<fk>_id` attributes are typed, and so are reverse relations. Run it from `apps/backend/`:
+
+```bash
+python scripts/typecheck.py                      # Linux, Docker (DEBUG=1 images)
+.venv-win\Scripts\python scripts\typecheck.py      # Windows
+```
+
+The config lives in `[tool.mypy]` in `apps/backend/pyproject.toml`. It pins `platform = "linux"`, so a Windows machine reports exactly what CI reports. Migrations and tests are not checked. The script compares the result with `apps/backend/mypy-baseline.txt`, a list of accepted errors that is empty today and only ever shrinks. The `django` job of the `test-backend` workflow runs the same check and fails when:
+
+- mypy reports an error that is not in the baseline. Errors are matched by file, code and message, not by line, so moving existing code around is fine;
+- a baseline entry no longer occurs. Run `python scripts/typecheck.py --update` and commit the smaller file;
+- the baseline grew compared with the target branch. The only exception is a pull request that changes `requirements*.txt` or the mypy config, because a new stub or library release can change the messages; the job then lists the new entries for the reviewer. This is also why Renovate never automerges the `backend type checking` group;
+- a strict module (see below) has a baseline entry.
+
+Rules for new code:
+
+- Every function is annotated, including `-> None` (`disallow_untyped_defs`).
+- No explicit `Any` in an annotation; use `object`, a `Protocol` or a `TypedDict` instead. Ruff's `ANN401` enforces this outside tests. `*args: Any, **kwargs: Any` on a pass-through override is allowed.
+- No bare `# type: ignore`. An ignore needs an error code, and an ignore that no longer suppresses anything is itself an error. Fix the type instead of ignoring it.
+- `typing.cast` only where the value really is narrower than the stubs say, with a comment saying why.
+- Never run `--update` to accept new errors.
+
+The second `[[tool.mypy.overrides]]` table lists the strict modules, which additionally forbid explicit `Any`, untyped calls and bare generics such as `dict`. The list only grows: when you add a new module or package, add it there in the same pull request.
+
 ## 🐛 Debugging
 
 Usually nothing goes as planned, and you need to debug your shiny new feature. In the next paragraph, I will explain to you the two tools we have for debugging:
