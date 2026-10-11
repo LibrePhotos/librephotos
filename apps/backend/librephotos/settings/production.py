@@ -1,9 +1,14 @@
 import datetime
 import os
-from collections.abc import Iterable
 
-from django.core.exceptions import ImproperlyConfigured
-
+from librephotos.env import (
+    env_flag,
+    env_float,
+    env_int,
+    env_list,
+    env_str,
+    export,
+)
 from librephotos.logging_bootstrap import (
     build_logging_config,
     ensure_logs_root,
@@ -11,9 +16,9 @@ from librephotos.logging_bootstrap import (
 )
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-BASE_LOGS = os.environ.get("BASE_LOGS", "/logs/")
-BASE_DATA = os.environ.get("BASE_DATA", "/")
-PHOTOS = os.environ.get("PHOTOS", os.path.join(BASE_DATA, "data"))
+BASE_LOGS = env_str("BASE_LOGS", "/logs/")
+BASE_DATA = env_str("BASE_DATA", "/")
+PHOTOS = env_str("PHOTOS", os.path.join(BASE_DATA, "data"))
 STATIC_URL = "api/static/"
 MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DATA, "protected_media")
@@ -27,8 +32,8 @@ DATA_ROOT = PHOTOS
 # scanner indexed fine can still 403 on playback. The media diagnostics use
 # these to explain such a failure instead of guessing at it; override them only
 # if you run a rebuilt proxy whose nginx uses different ids.
-WEBSERVER_UID = int(os.environ.get("WEBSERVER_UID", "101"))
-WEBSERVER_GID = int(os.environ.get("WEBSERVER_GID", "101"))
+WEBSERVER_UID = env_int("WEBSERVER_UID", 101)
+WEBSERVER_GID = env_int("WEBSERVER_GID", 101)
 
 # Videos in a container or codec the browser cannot decode are converted on the
 # fly, and every video is converted for users who turn on "Always transcode
@@ -41,15 +46,13 @@ WEBSERVER_GID = int(os.environ.get("WEBSERVER_GID", "101"))
 # which is shared with the thumbnails and (in the default layout) the database.
 # Set the size to 0 to switch caching off and keep only the live streaming.
 TRANSCODE_CACHE_ROOT = os.path.join(MEDIA_ROOT, "transcoded")
-TRANSCODE_CACHE_MAX_GB = float(os.environ.get("TRANSCODE_CACHE_MAX_GB", "10"))
-TRANSCODE_CACHE_MIN_FREE_GB = float(os.environ.get("TRANSCODE_CACHE_MIN_FREE_GB", "2"))
-TRANSCODE_CACHE_MAX_CONCURRENT = int(
-    os.environ.get("TRANSCODE_CACHE_MAX_CONCURRENT", "1")
-)
+TRANSCODE_CACHE_MAX_GB = env_float("TRANSCODE_CACHE_MAX_GB", 10)
+TRANSCODE_CACHE_MIN_FREE_GB = env_float("TRANSCODE_CACHE_MIN_FREE_GB", 2)
+TRANSCODE_CACHE_MAX_CONCURRENT = env_int("TRANSCODE_CACHE_MAX_CONCURRENT", 1)
 # How far the background conversion stands back from everything else. It is
 # niced and given half the cores, because playback, thumbnails and the scan all
 # matter more than a copy nobody is waiting for.
-TRANSCODE_CACHE_NICE = int(os.environ.get("TRANSCODE_CACHE_NICE", "10"))
+TRANSCODE_CACHE_NICE = env_int("TRANSCODE_CACHE_NICE", 10)
 
 # What the *live* conversion -- the one a viewer is waiting on -- is allowed to
 # take. Left alone ffmpeg uses every core and converts as fast as the hardware
@@ -61,13 +64,9 @@ TRANSCODE_CACHE_NICE = int(os.environ.get("TRANSCODE_CACHE_NICE", "10"))
 # TRANSCODE_LIVE_READRATE times real time after an initial burst of
 # TRANSCODE_LIVE_BURST_SECONDS, which keeps the start instant and gives the
 # browser a buffer. Set the readrate to 0 to convert as fast as the host can.
-TRANSCODE_LIVE_CPU_FRACTION = max(
-    1, int(os.environ.get("TRANSCODE_LIVE_CPU_FRACTION", "2"))
-)
-TRANSCODE_LIVE_READRATE = float(os.environ.get("TRANSCODE_LIVE_READRATE", "2"))
-TRANSCODE_LIVE_BURST_SECONDS = float(
-    os.environ.get("TRANSCODE_LIVE_BURST_SECONDS", "30")
-)
+TRANSCODE_LIVE_CPU_FRACTION = max(1, env_int("TRANSCODE_LIVE_CPU_FRACTION", 2))
+TRANSCODE_LIVE_READRATE = env_float("TRANSCODE_LIVE_READRATE", 2)
+TRANSCODE_LIVE_BURST_SECONDS = env_float("TRANSCODE_LIVE_BURST_SECONDS", 30)
 LOGS_ROOT = BASE_LOGS
 # Create the directory before anything in this module writes to it. secret.key
 # lives in there too and is written some 40 lines further down, so an install
@@ -82,12 +81,12 @@ ensure_logs_root(LOGS_ROOT)
 # font cache on *every* process start. Give it a directory we own instead. The
 # ML services are spawned with subprocess.Popen (see api/services.py), so they
 # inherit this.
-MPLCONFIGDIR = os.environ.get("MPLCONFIGDIR") or os.path.join(MEDIA_ROOT, "matplotlib")
+MPLCONFIGDIR = env_str("MPLCONFIGDIR") or os.path.join(MEDIA_ROOT, "matplotlib")
 try:
     os.makedirs(MPLCONFIGDIR, exist_ok=True)
 except OSError as e:
     print(f"could not create matplotlib cache directory {MPLCONFIGDIR}: {e}")
-os.environ["MPLCONFIGDIR"] = MPLCONFIGDIR
+export("MPLCONFIGDIR", MPLCONFIGDIR)
 
 WSGI_APPLICATION = "librephotos.wsgi.application"
 AUTH_USER_MODEL = "api.User"
@@ -99,74 +98,41 @@ SECRET_KEY_FILENAME = os.path.join(BASE_LOGS, "secret.key")
 SECRET_KEY = ""
 
 
-def _env_flag(name: str, default: bool = True, empty: bool = False) -> bool:
-    """Read an on/off switch from the environment (true/1/yes/on, any case).
-
-    Unset means ``default``. A blank value means ``empty``, which is off unless
-    a caller says otherwise: ``FEATURE_X=`` switches a feature off. Any other
-    value is off.
-    """
-    value = os.environ.get(name)
-    if value is None:
-        return default
-    value = value.strip()
-    if not value:
-        return empty
-    return value.lower() in ("true", "1", "yes", "on")
-
-
-def _env_int(name: str, default: int) -> int:
-    """Read a whole number from the environment; unset or blank means ``default``."""
-    value = os.environ.get(name, "").strip()
-    if not value:
-        return default
-    try:
-        return int(value)
-    except ValueError:
-        raise ImproperlyConfigured(
-            f"{name} must be a whole number, got {value!r}"
-        ) from None
-
-
 # WebP quality (1-100) of the 500 and 250 px square thumbnails the photo grids
 # show; the big 1080 px thumbnail stays at 95. Applies to thumbnails rendered
 # from now on (a scan of new photos, a rotate, "Generate thumbnails").
-SQUARE_THUMBNAIL_QUALITY = min(100, max(1, _env_int("SQUARE_THUMBNAIL_QUALITY", 80)))
-
-
-def _env_list(name: str, default: Iterable[str] = ()) -> list[str]:
-    """Read a comma-separated list from the environment, dropping blank entries."""
-    value = os.environ.get(name)
-    if value is None:
-        return list(default)
-    return [item.strip() for item in value.split(",") if item.strip()]
+SQUARE_THUMBNAIL_QUALITY = min(100, max(1, env_int("SQUARE_THUMBNAIL_QUALITY", 80)))
 
 
 # Demo mode ignores password changes (see api/serializers/user.py), so it is
 # strictly opt-in: DEMO_SITE=false, 0 or an empty value all leave it off.
-DEMO_SITE = _env_flag("DEMO_SITE", default=False)
+DEMO_SITE = env_flag("DEMO_SITE", default=False)
 
 
 # analyze files to detect embedded media (e.g. in motion photos)
-FEATURE_PROCESS_EMBEDDED_MEDIA = _env_flag("FEATURE_PROCESS_EMBEDDED_MEDIA")
+FEATURE_PROCESS_EMBEDDED_MEDIA = env_flag(
+    "FEATURE_PROCESS_EMBEDDED_MEDIA", default=True
+)
 
 # Deploy-time feature switches. They all default to on, so an upgrade changes
 # nothing; set one to false/0/no/off to stop that work from being done at all.
-FEATURE_VIDEO = _env_flag("FEATURE_VIDEO")
-FEATURE_FACE_DETECTION = _env_flag("FEATURE_FACE_DETECTION")
-FEATURE_FACE_CLUSTER = _env_flag("FEATURE_FACE_CLUSTER")
-FEATURE_IMAGE_CAPTIONING = _env_flag("FEATURE_IMAGE_CAPTIONING")
-FEATURE_REVERSE_GEOCODING = _env_flag("FEATURE_REVERSE_GEOCODING")
-FEATURE_SCENE_CLASSIFICATION = _env_flag("FEATURE_SCENE_CLASSIFICATION")
+FEATURE_VIDEO = env_flag("FEATURE_VIDEO", default=True)
+FEATURE_FACE_DETECTION = env_flag("FEATURE_FACE_DETECTION", default=True)
+FEATURE_FACE_CLUSTER = env_flag("FEATURE_FACE_CLUSTER", default=True)
+FEATURE_IMAGE_CAPTIONING = env_flag("FEATURE_IMAGE_CAPTIONING", default=True)
+FEATURE_REVERSE_GEOCODING = env_flag("FEATURE_REVERSE_GEOCODING", default=True)
+FEATURE_SCENE_CLASSIFICATION = env_flag("FEATURE_SCENE_CLASSIFICATION", default=True)
 
 # Whether a user's Nextcloud server address may resolve to a private network
 # address (LAN, Docker network, Tailscale). On by default because that is where
 # most self-hosted Nextcloud instances live; loopback, link-local and other
 # special addresses are refused either way. See nextcloud/server_address.py.
-NEXTCLOUD_ALLOW_PRIVATE_ADDRESSES = _env_flag("NEXTCLOUD_ALLOW_PRIVATE_ADDRESSES")
+NEXTCLOUD_ALLOW_PRIVATE_ADDRESSES = env_flag(
+    "NEXTCLOUD_ALLOW_PRIVATE_ADDRESSES", default=True
+)
 
-if os.environ.get("SECRET_KEY"):
-    SECRET_KEY = os.environ["SECRET_KEY"]
+if env_str("SECRET_KEY"):
+    SECRET_KEY = env_str("SECRET_KEY")
     print("use SECRET_KEY from env")
 
 if not SECRET_KEY and os.path.exists(SECRET_KEY_FILENAME):
@@ -184,13 +150,22 @@ if not SECRET_KEY:
         SECRET_KEY = f.read().strip()
         print("use SECRET_KEY from file")
 
-ALLOWED_HOSTS = ["localhost", os.environ.get("BACKEND_HOST", "backend")]
+# The name the proxy reaches the backend by. Requests carrying it (or the
+# compose service name) come from inside the deployment, so api/public_url.py
+# does not build public links from them.
+BACKEND_HOST = env_str("BACKEND_HOST", "backend")
+INTERNAL_HOSTS = frozenset({"backend", BACKEND_HOST})
+ALLOWED_HOSTS = ["localhost", BACKEND_HOST]
+
+# The build this process runs, as the images report it (deploy/docker sets both
+# at build time; librephotos/standalone.py from the release's build info). Blank
+# from a source checkout, where api/views/server_info.py asks git instead.
+IMAGE_TAG = env_str("IMAGE_TAG")
+GIT_HASH = env_str("GIT_HASH")
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": datetime.timedelta(minutes=5),
-    "REFRESH_TOKEN_LIFETIME": datetime.timedelta(
-        days=int(os.environ.get("REFRESH_TOKEN_DAYS", "7"))
-    ),
+    "REFRESH_TOKEN_LIFETIME": datetime.timedelta(days=env_int("REFRESH_TOKEN_DAYS", 7)),
 }
 
 INSTALLED_APPS = [
@@ -247,8 +222,9 @@ Q_CLUSTER = {
 # reports the *host's* cores even when the container is capped with a compose
 # `cpus:` limit - so the pool stays just as wide and the limit only starves it.
 # Setting this is the way to actually reduce LibrePhotos' CPU and RAM appetite.
-if os.environ.get("WORKER_CONCURRENCY"):
-    Q_CLUSTER["workers"] = int(os.environ["WORKER_CONCURRENCY"])
+_WORKER_CONCURRENCY = env_int("WORKER_CONCURRENCY", None)
+if _WORKER_CONCURRENCY is not None:
+    Q_CLUSTER["workers"] = _WORKER_CONCURRENCY
 
 CONSTANCE_BACKEND = "constance.backends.database.DatabaseBackend"
 CONSTANCE_ADDITIONAL_FIELDS = {
@@ -323,13 +299,15 @@ CONSTANCE_CONFIG = {
     "ALLOW_REGISTRATION": (False, "Publicly allow user registration", bool),
     "ALLOW_UPLOAD": (
         # A blank ALLOW_UPLOAD has always meant "on", like leaving it unset.
-        _env_flag("ALLOW_UPLOAD", default=True, empty=True),
+        env_flag("ALLOW_UPLOAD", default=True, empty=True),
         "Allow uploading files",
         bool,
     ),
     "NEXTCLOUD_ENABLED": (
-        os.environ.get("NEXTCLOUD_ENABLED", "").strip().lower()
-        in ("true", "1", "t", "yes", "on"),
+        # Off by default. Up to 1.3.0 the single letter "t" also switched it on;
+        # it is read like every other switch now (see librephotos/env.py), and
+        # "t" counts as off with a warning in the log.
+        env_flag("NEXTCLOUD_ENABLED", default=False),
         "Enable the Nextcloud integration",
         bool,
     ),
@@ -342,18 +320,18 @@ CONSTANCE_CONFIG = {
         bool,
     ),
     "SKIP_PATTERNS": (
-        os.environ.get("SKIP_PATTERNS", ""),
+        env_str("SKIP_PATTERNS", ""),
         "Comma delimited list of patterns to ignore (e.g. '@eaDir,#recycle' for synology devices)",
         str,
     ),
     "MAP_API_PROVIDER": (
-        os.environ.get("MAP_API_PROVIDER", "nominatim"),
+        env_str("MAP_API_PROVIDER", "nominatim"),
         "Map Provider",
         "map_api_provider",
     ),
-    "MAP_API_KEY": (os.environ.get("MAPBOX_API_KEY", ""), "Map Box API Key", str),
+    "MAP_API_KEY": (env_str("MAPBOX_API_KEY", ""), "Map Box API Key", str),
     "MAP_TILE_PROVIDER": (
-        os.environ.get("MAP_TILE_PROVIDER", "photoprism"),
+        env_str("MAP_TILE_PROVIDER", "photoprism"),
         "Map tile provider (map background shown behind photo pins)",
         "map_tile_provider",
     ),
@@ -444,7 +422,7 @@ REST_FRAMEWORK = {
     "EXCEPTION_HANDLER": "api.views.exception_handler.custom_exception_handler",
     "PAGE_SIZE": 20000,
     "DEFAULT_THROTTLE_RATES": {
-        "password_reset": os.environ.get("PASSWORD_RESET_THROTTLE_RATE", "5/hour"),
+        "password_reset": env_str("PASSWORD_RESET_THROTTLE_RATE", "5/hour"),
     },
 }
 
@@ -494,16 +472,17 @@ TEMPLATES = [
 # upgrade. The librephotos.W001 system check (api/checks.py) says so whenever
 # PostgreSQL is actually used with it, which `migrate` prints on every start.
 INSECURE_DEFAULT_DB_PASSWORD = "AaAa1234"
-DB_PASS_FROM_ENV = "DB_PASS" in os.environ
+_DB_PASS = env_str("DB_PASS", None)
+DB_PASS_FROM_ENV = _DB_PASS is not None
 
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.environ.get("DB_NAME", "db"),
-        "USER": os.environ.get("DB_USER", "docker"),
-        "PASSWORD": os.environ.get("DB_PASS", INSECURE_DEFAULT_DB_PASSWORD),
-        "HOST": os.environ.get("DB_HOST", "db"),
-        "PORT": os.environ.get("DB_PORT", "5432"),
+        "NAME": env_str("DB_NAME", "db"),
+        "USER": env_str("DB_USER", "docker"),
+        "PASSWORD": INSECURE_DEFAULT_DB_PASSWORD if _DB_PASS is None else _DB_PASS,
+        "HOST": env_str("DB_HOST", "db"),
+        "PORT": env_str("DB_PORT", "5432"),
         # Using persistent connections instead of pooling due to Django 5.2 pooling bugs
         # (type conversion issues with COUNT queries - see error with UUID returned as string)
         "CONN_MAX_AGE": 600,
@@ -545,7 +524,7 @@ USE_TZ = True
 # comma-separated list (each with its scheme, e.g. https://photos.example.com).
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000",
-    *_env_list("CSRF_TRUSTED_ORIGINS"),
+    *env_list("CSRF_TRUSTED_ORIGINS"),
 ]
 
 # The whole log configuration lives in librephotos/logging_bootstrap.py so the
@@ -557,14 +536,14 @@ CSRF_TRUSTED_ORIGINS = [
 # constance once the database is up (see api.util.reconfigure_logging).
 LOGGING = build_logging_config(
     logs_root=LOGS_ROOT,
-    level=os.environ.get("LOG_LEVEL"),
+    level=env_str("LOG_LEVEL", None),
     to_console=resolve_to_console(),
 )
 
 CHUNKED_UPLOAD_PATH = ""
 CHUNKED_UPLOAD_TO = os.path.join("chunked_uploads")
 
-DEFAULT_FAVORITE_MIN_RATING = _env_int("DEFAULT_FAVORITE_MIN_RATING", 4)
+DEFAULT_FAVORITE_MIN_RATING = env_int("DEFAULT_FAVORITE_MIN_RATING", 4)
 
 # Email / SMTP configuration.
 #
@@ -577,13 +556,11 @@ DEFAULT_FAVORITE_MIN_RATING = _env_int("DEFAULT_FAVORITE_MIN_RATING", 4)
 EMAIL_BACKEND = "api.mail.DynamicEmailBackend"
 # Fallback from-address when the admin has not set one; the stored config value
 # takes precedence (see EmailConfig.effective_from_email).
-DEFAULT_FROM_EMAIL = os.environ.get(
-    "DEFAULT_FROM_EMAIL", "LibrePhotos <no-reply@localhost>"
-)
+DEFAULT_FROM_EMAIL = env_str("DEFAULT_FROM_EMAIL", "LibrePhotos <no-reply@localhost>")
 
 # Base URL of the frontend, used to build the link in the password-reset email.
 # Falls back to the request's own origin when not set (see PasswordResetView).
-FRONTEND_BASE_URL = os.environ.get("FRONTEND_BASE_URL", "")
+FRONTEND_BASE_URL = env_str("FRONTEND_BASE_URL", "")
 
 # ---------------------------------------------------------------------------
 # django-allauth (OIDC / SSO) — see api/adapters.py and api/views/sso.py

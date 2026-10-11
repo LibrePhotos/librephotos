@@ -28,9 +28,9 @@ api.services puts the backend root on their PYTHONPATH so this module imports
 as ``service.onnx_session`` there as in the tests and the standalone build.
 """
 
-import os
-
 import onnxruntime as ort
+
+from librephotos.env import env_int, env_list, env_optional_flag
 
 CPU = "CPUExecutionProvider"
 CUDA = "CUDAExecutionProvider"
@@ -38,8 +38,7 @@ DEFAULT_PROVIDERS = (CUDA, CPU)
 
 
 def _requested_providers() -> list[str]:
-    value = os.environ.get("ONNX_PROVIDERS", "")
-    return [name.strip() for name in value.split(",") if name.strip()]
+    return env_list("ONNX_PROVIDERS")
 
 
 def execution_providers() -> list[str]:
@@ -58,7 +57,7 @@ def uses_gpu(providers: list[str] | None = None) -> bool:
 def intra_op_threads() -> int | None:
     """ONNX_INTRA_OP_THREADS as a positive int, or None for the ORT default."""
     try:
-        threads = int(os.environ.get("ONNX_INTRA_OP_THREADS", "") or 0)
+        threads = env_int("ONNX_INTRA_OP_THREADS", 0)
     except ValueError:
         return None
     return threads if threads > 0 else None
@@ -66,12 +65,8 @@ def intra_op_threads() -> int | None:
 
 def cpu_arena(variable_shapes: bool = False) -> bool:
     """Whether a session gets ONNX Runtime's CPU arena (see ONNX_CPU_ARENA)."""
-    value = os.environ.get("ONNX_CPU_ARENA", "").strip().lower()
-    if value in ("1", "true", "yes", "on"):
-        return True
-    if value in ("0", "false", "no", "off"):
-        return False
-    return not variable_shapes
+    value = env_optional_flag("ONNX_CPU_ARENA")
+    return (not variable_shapes) if value is None else value
 
 
 def session_options(variable_shapes: bool = False) -> ort.SessionOptions:

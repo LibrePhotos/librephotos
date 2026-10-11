@@ -9,6 +9,8 @@ already derived the database, media and log locations from the data directory.
 
 import os
 
+from librephotos.env import env_int, env_list
+
 from .production_noproxy import *  # noqa
 
 # BASE_DIR is <root>/librephotos both in the source tree and inside the Nuitka
@@ -22,13 +24,9 @@ STATIC_ROOT = os.path.join(_ROOT, "static")
 STATICFILES_DIRS = [os.path.join(_ROOT, "frontend_build")]
 
 # The browser talks to 127.0.0.1 and nothing rewrites Host on the way.
-CSRF_TRUSTED_ORIGINS = [
-    origin.strip()
-    for origin in os.environ.get(
-        "CSRF_TRUSTED_ORIGINS", "http://localhost:8000,http://127.0.0.1:8000"
-    ).split(",")
-    if origin.strip()
-]
+CSRF_TRUSTED_ORIGINS = env_list(
+    "CSRF_TRUSTED_ORIGINS", ["http://localhost:8000", "http://127.0.0.1:8000"]
+)
 
 # One person's desktop. Left alone django-q2 starts a worker per CPU core, and
 # every worker is a full copy of the backend: a dozen processes and several GB
@@ -36,5 +34,5 @@ CSRF_TRUSTED_ORIGINS = [
 # at a time anyway. WORKER_CONCURRENCY still overrides it.
 Q_CLUSTER = {  # noqa: F405
     **Q_CLUSTER,  # noqa: F405
-    "workers": int(os.environ.get("WORKER_CONCURRENCY", "2")),
+    "workers": env_int("WORKER_CONCURRENCY", 2),
 }

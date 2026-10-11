@@ -45,7 +45,11 @@ test makes `--parallel` runs crash with "cannot pickle 'traceback'"; rerun that 
   user id or `image_hash`, never usernames, paths or captions above DEBUG. Details: `CONTRIBUTING.md`.
 - Migrations 0001-0100 are squashed into `0001_squashed_0100`. Keep its `replaces` and depend on it,
   not on the old names.
-- Read environment variables in `librephotos/settings/` only, and document every user-facing one on
+- Configuration: app code reads `django.conf.settings`. Settings modules read variables through
+  `librephotos/env.py` (`env_str`, `env_flag`, `env_int`, `env_float`, `env_list`), and so do the
+  entry points and sidecars that have no settings and the one-off `ADMIN_PASSWORD` in management
+  commands. Ruff TID251 bans `os.environ` and `os.getenv` elsewhere (exceptions in `pyproject.toml`).
+  Document every user-facing variable on
   `apps/docs/docs/installation/environment-variables.md`.
 
 ## Layout

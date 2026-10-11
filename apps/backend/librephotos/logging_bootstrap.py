@@ -15,6 +15,8 @@ import os
 from collections.abc import Iterable
 from typing import Any
 
+from librephotos import env
+
 # Renamed to librephotos.log in a follow-up PR. Named once, here, so that rename
 # is a one-line change instead of a grep across settings, services and docs.
 LOG_FILENAME = "ownphotos.log"
@@ -66,8 +68,12 @@ _deferred_warnings: list[str] = []
 
 
 def take_deferred_warnings() -> list[str]:
-    """Return and clear the warnings recorded before logging was configured."""
-    messages = list(_deferred_warnings)
+    """Return and clear the warnings recorded before logging was configured.
+
+    That includes the environment values librephotos.env could not read while
+    the settings were being imported.
+    """
+    messages = [*_deferred_warnings, *env.take_warnings()]
     _deferred_warnings.clear()
     return messages
 
@@ -81,7 +87,7 @@ def resolve_level(raw: str | None = None) -> str:
     anywhere explaining why. Fall back and report it once logging works.
     """
     if raw is None:
-        raw = os.environ.get("LOG_LEVEL", "")
+        raw = env.env_str("LOG_LEVEL")
     level = str(raw).strip().upper()
     if not level:
         return DEFAULT_LOG_LEVEL
@@ -104,7 +110,7 @@ def resolve_logger_levels(raw: str | None = None) -> dict[str, str]:
     the same reason an unknown LOG_LEVEL is.
     """
     if raw is None:
-        raw = os.environ.get("LOG_LEVELS", "")
+        raw = env.env_str("LOG_LEVELS")
     levels: dict[str, str] = {}
     for entry in str(raw).split(","):
         entry = entry.strip()
@@ -130,19 +136,17 @@ def resolve_to_console(raw: bool | str | None = None) -> bool:
     stdout is the only copy of the log that outlives the pod.
     """
     if raw is None:
-        raw = os.environ.get("LOG_TO_CONSOLE")
-    if raw is None:
-        return True
+        return env.env_flag("LOG_TO_CONSOLE", default=True)
     if isinstance(raw, bool):
         return raw
-    return str(raw).strip().lower() in ("true", "1", "yes", "on")
+    return env.parse_flag("LOG_TO_CONSOLE", raw)
 
 
 def resolve_logs_root(explicit: str | None = None) -> str:
     """Directory the log files live in: the argument, else $BASE_LOGS."""
     if explicit:
         return explicit
-    return os.environ.get("BASE_LOGS") or DEFAULT_LOGS_ROOT
+    return env.env_str("BASE_LOGS") or DEFAULT_LOGS_ROOT
 
 
 def ensure_logs_root(path: str) -> str:

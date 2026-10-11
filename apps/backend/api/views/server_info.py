@@ -113,7 +113,7 @@ def read_git_hash() -> str:
     command, instead of appending another line to the global git config each
     time. Cached for the life of the process: the answer cannot change under it.
     """
-    git_hash = os.environ.get("GIT_HASH", "").strip()
+    git_hash = settings.GIT_HASH.strip()
     if git_hash:
         return git_hash
     backend_root = os.path.dirname(str(settings.BASE_DIR))
@@ -136,11 +136,9 @@ def read_git_hash() -> str:
             .decode("utf-8")
         )
     except Exception:
-        return os.environ.get("IMAGE_TAG") or "unknown"
+        return settings.IMAGE_TAG or "unknown"
 
 
 class ImageTagView(APIView):
     def get(self, request: Request, format: str | None = None) -> Response:
-        return Response(
-            {"image_tag": os.environ.get("IMAGE_TAG", ""), "git_hash": read_git_hash()}
-        )
+        return Response({"image_tag": settings.IMAGE_TAG, "git_hash": read_git_hash()})

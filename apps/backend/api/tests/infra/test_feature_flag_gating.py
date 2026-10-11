@@ -29,7 +29,7 @@ from api.tests.utils import (
     create_test_photo,
     create_test_user,
 )
-from librephotos.settings.production import _env_flag
+from librephotos.env import env_flag
 
 FEATURE_FLAGS = (
     "FEATURE_VIDEO",
@@ -44,18 +44,18 @@ FEATURE_FLAGS = (
 class EnvFlagTest(SimpleTestCase):
     def test_unset_variable_uses_the_default(self):
         with patch.dict(os.environ, {}, clear=True):
-            self.assertTrue(_env_flag("FEATURE_TEST"))
-            self.assertFalse(_env_flag("FEATURE_TEST", default=False))
+            self.assertTrue(env_flag("FEATURE_TEST", default=True))
+            self.assertFalse(env_flag("FEATURE_TEST", default=False))
 
     def test_truthy_values(self):
         for value in ("true", "True", "TRUE", "1", "yes", "on", " On "):
             with patch.dict(os.environ, {"FEATURE_TEST": value}):
-                self.assertTrue(_env_flag("FEATURE_TEST"), value)
+                self.assertTrue(env_flag("FEATURE_TEST", default=True), value)
 
     def test_falsy_values(self):
         for value in ("false", "False", "0", "no", "off", "", "nonsense"):
             with patch.dict(os.environ, {"FEATURE_TEST": value}):
-                self.assertFalse(_env_flag("FEATURE_TEST"), value)
+                self.assertFalse(env_flag("FEATURE_TEST", default=True), value)
 
 
 class FeatureFlagDefaultsTest(SimpleTestCase):

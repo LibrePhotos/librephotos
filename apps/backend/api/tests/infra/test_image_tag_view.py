@@ -8,10 +8,9 @@ falls back to asking git - with ``-c safe.directory=...``, which lasts for that
 one command.
 """
 
-import os
 from unittest.mock import patch
 
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
 
 from api.tests.utils import create_test_user
@@ -32,7 +31,7 @@ class ImageTagViewTest(TestCase):
 
     @patch("api.views.server_info.subprocess")
     def test_git_hash_from_env_skips_git(self, subprocess_mock):
-        with patch.dict(os.environ, {"IMAGE_TAG": "2026w38", "GIT_HASH": "abc1234"}):
+        with override_settings(IMAGE_TAG="2026w38", GIT_HASH="abc1234"):
             data = self._get()
         self.assertEqual({"image_tag": "2026w38", "git_hash": "abc1234"}, data)
         subprocess_mock.run.assert_not_called()
@@ -41,8 +40,7 @@ class ImageTagViewTest(TestCase):
     @patch("api.views.server_info.subprocess.check_output", return_value=b"def5678\n")
     @patch("api.views.server_info.subprocess.run")
     def test_git_fallback_never_mutates_global_config(self, run_mock, check_output):
-        environment = {k: v for k, v in os.environ.items() if k != "GIT_HASH"}
-        with patch.dict(os.environ, environment, clear=True):
+        with override_settings(GIT_HASH=""):
             data = self._get()
 
         self.assertEqual("def5678", data["git_hash"])
@@ -58,8 +56,6 @@ class ImageTagViewTest(TestCase):
         side_effect=FileNotFoundError("git"),
     )
     def test_no_git_falls_back_to_image_tag(self, _check_output):
-        environment = {k: v for k, v in os.environ.items() if k != "GIT_HASH"}
-        environment["IMAGE_TAG"] = "dev"
-        with patch.dict(os.environ, environment, clear=True):
+        with override_settings(GIT_HASH="", IMAGE_TAG="dev"):
             data = self._get()
         self.assertEqual({"image_tag": "dev", "git_hash": "dev"}, data)

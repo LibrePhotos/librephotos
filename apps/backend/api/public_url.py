@@ -12,22 +12,21 @@ So anything that hands a URL to the outside world (a link in an email, an OAuth
 than inferring it from the request.
 """
 
-import os
 from urllib.parse import urlsplit
 
 from django.conf import settings
 from django.http import HttpRequest
 
 
-def _internal_hosts() -> set[str]:
+def _internal_hosts() -> frozenset[str]:
     """Host names the proxy substitutes for ``/api/`` requests.
 
     A base URL pointing at one of these is reachable only from inside the Docker
     network, so it cannot be handed to a browser. ``localhost`` is deliberately
     *not* included: for a single-machine install it is a perfectly good public
-    origin.
+    origin. Settings derives them from ``BACKEND_HOST``.
     """
-    return {"backend", os.environ.get("BACKEND_HOST", "backend")}
+    return settings.INTERNAL_HOSTS
 
 
 def public_base_url(request: HttpRequest | None = None) -> str:

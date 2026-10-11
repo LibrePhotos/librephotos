@@ -12,7 +12,7 @@ can be checked for behavioral equivalence.
 import subprocess
 from unittest.mock import patch
 
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.utils import timezone
 
 from api.models import AlbumAuto, AlbumPlace, AlbumThing, AlbumUser, Person, Photo
@@ -97,11 +97,11 @@ class GetServerStatsShapeTest(ServerStatsBaseTest):
         self.assertTrue(type(deleted).objects.filter(pk=deleted.pk).exists())
 
     def test_image_tag_comes_from_environment(self):
-        with patch.dict("os.environ", {"IMAGE_TAG": "dev-1.2.3"}):
+        with override_settings(IMAGE_TAG="dev-1.2.3"):
             self.assertEqual(get_server_stats()["image_tag"], "dev-1.2.3")
 
     def test_image_tag_defaults_to_empty_string(self):
-        with patch.dict("os.environ", {}, clear=True):
+        with override_settings(IMAGE_TAG=""):
             self.assertEqual(get_server_stats()["image_tag"], "")
 
 
