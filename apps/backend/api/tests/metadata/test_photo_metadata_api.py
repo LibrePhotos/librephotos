@@ -11,7 +11,8 @@ Tests the following:
 """
 
 import uuid
-from datetime import timedelta
+from datetime import datetime, timedelta
+from datetime import timezone as dt_timezone
 from unittest.mock import patch
 
 from django.test import TestCase
@@ -222,6 +223,39 @@ class PhotoMetadataUpdateTestCase(APITestCase):
             format="json",
         )
         self.assertEqual(response.status_code, 404)
+
+    def test_update_metadata_date_taken_records_iso_strings(self):
+        """A datetime in the edit history used to fail json.dumps: a 500."""
+        response = self.client.patch(
+            f"/api/photos/{self.photo.pk}/metadata/",
+            {"date_taken": "2024-05-01T12:34:56Z"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200)
+
+        edit = MetadataEdit.objects.get(photo=self.photo, field_name="date_taken")
+        self.assertIsInstance(edit.new_value, str)
+        self.assertEqual(
+            datetime.fromisoformat(edit.new_value),
+            datetime(2024, 5, 1, 12, 34, 56, tzinfo=dt_timezone.utc),
+        )
+
+    def test_a_date_taken_edit_reverts_to_the_previous_date(self):
+        url = f"/api/photos/{self.photo.pk}/metadata/"
+        self.client.patch(url, {"date_taken": "2020-01-02T03:04:05Z"}, format="json")
+        self.client.patch(url, {"date_taken": "2024-05-01T12:34:56Z"}, format="json")
+        latest = MetadataEdit.objects.filter(
+            photo=self.photo, field_name="date_taken"
+        ).first()
+        assert latest is not None
+
+        response = self.client.post(f"{url}revert/{latest.id}/")
+
+        self.assertEqual(response.status_code, 200)
+        metadata = PhotoMetadata.objects.get(photo=self.photo)
+        self.assertEqual(
+            metadata.date_taken, datetime(2020, 1, 2, 3, 4, 5, tzinfo=dt_timezone.utc)
+        )
 
 
 class PhotoMetadataHistoryTestCase(APITestCase):
