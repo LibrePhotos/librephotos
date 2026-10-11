@@ -1,4 +1,4 @@
-import { ActionIcon, Button, Flex, Group, Menu, Modal, Stack, Text } from "@mantine/core";
+import { ActionIcon, Flex, Group, Menu, Text } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import {
   IconDotsVertical as DotsVertical,
@@ -13,6 +13,7 @@ import { useDeleteAutoAlbumMutation, useFetchAutoAlbumsQuery } from "../../../ap
 import type { AutoAlbumInfo } from "../../../api_client/albums/types";
 import { useGenerateAutoAlbumsMutation } from "../../../api_client/jobs/hooks";
 import gridClasses from "../../../components/album/AlbumGridCell.module.css";
+import { AutoAlbumDeleteModal } from "../../../components/album/AutoAlbumDeleteModal";
 import { eventStartDate } from "../../../components/album/eventDate";
 import { EmptyState } from "../../../components/common/EmptyState";
 import { PageHeader } from "../../../components/PageHeader";
@@ -133,26 +134,14 @@ function AlbumAuto() {
         />
       )}
 
-      <Modal opened={deleteDialogVisible} title={t("autoalbum.delete")} onClose={closeDeleteDialog}>
-        <Stack>
-          <Text fw={500}>{autoAlbumTitle}</Text>
-          <Text size="sm">{t("autoalbum.deleteexplanation")}</Text>
-          <Group justify="flex-end">
-            <Button variant="default" onClick={closeDeleteDialog}>
-              {t("cancel")}
-            </Button>
-            <Button
-              color="red"
-              onClick={() => {
-                deleteAutoAlbum({ id: autoAlbumID, albumTitle: autoAlbumTitle });
-                closeDeleteDialog();
-              }}
-            >
-              {t("delete")}
-            </Button>
-          </Group>
-        </Stack>
-      </Modal>
+      <AutoAlbumDeleteModal
+        opened={deleteDialogVisible}
+        onClose={closeDeleteDialog}
+        title={autoAlbumTitle}
+        onConfirm={() => {
+          deleteAutoAlbum({ id: autoAlbumID, albumTitle: autoAlbumTitle });
+        }}
+      />
     </div>
   );
 }
