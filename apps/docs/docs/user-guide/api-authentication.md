@@ -10,7 +10,7 @@ LibrePhotos secures most API endpoints and requires authentication by default. I
 
 ### Authentication methods
 
-- JWT (recommended): Obtain a short-lived access token via `/api/auth/token/obtain/` and present it as a Bearer token. The obtain and refresh endpoints also set a `jwt` cookie that the browser can reuse.
+- JWT (recommended): Obtain a short-lived access token via `/api/auth/token/obtain/` and present it as a Bearer token. The obtain and refresh endpoints also set an `HttpOnly` `jwt` cookie that the browser can reuse (see [Cookie flags](#cookie-flags)).
 - Basic authentication: For simple scripts or local testing, you can use HTTP Basic auth. Do not use Basic auth across untrusted networks.
 
 Session authentication is not enabled for API endpoints. The frontend uses JWT behind the scenes, not Django sessions.
@@ -58,6 +58,10 @@ curl -X POST "http://<backend>/api/auth/token/blacklist/" \
 
 No `Authorization` header is needed; the refresh token itself is the credential. On success you get HTTP 200 with an empty JSON body. Blacklisting stops the refresh token from minting new access tokens, but any access token it has already issued stays valid until it expires (5 minutes by default), so revocation is not instantaneous. This is the same endpoint the web frontend calls when you log out.
 
+The response also clears the `jwt`, `access` and `refresh` cookies, whatever the blacklist answers: a refresh token that is already blacklisted (401), expired, or missing from the body (400) still signs the browser out. The web app calls the endpoint on every logout, because the `jwt` cookie is `HttpOnly` and only the server can delete it. Clearing the cookie does not revoke the access token in it: a copy taken before logout keeps working until it expires.
+
+*Not released yet: up to 1.3.0, the endpoint only blacklisted the token and the web deleted the cookies itself.*
+
 ### Call APIs using the JWT access token
 
 Include the token in the `Authorization` header:
@@ -93,6 +97,21 @@ curl -b cookies.txt "http://<backend>/media/photos/<image_hash>" -o photo.jpg
 ```
 
 or send it explicitly with `-H "Cookie: jwt=<access_token>"`. The cookie carries the short-lived access token, so refresh it the same way you refresh the header token.
+
+### Cookie flags
+
+The backend sets these cookies:
+
+| Cookie | Set by | Flags |
+| --- | --- | --- |
+| `jwt` | `/api/auth/token/obtain/`, `/api/auth/token/refresh/`, the SSO login | `HttpOnly`, `SameSite=Lax`, `Path=/`, `Secure` (see below) |
+| `access`, `refresh` | the SSO login only (the web app sets them itself after a password login) | `SameSite=Lax`, `Path=/`, `Secure` (see below); not `HttpOnly`, because the web app reads them to send them as bearer tokens |
+
+`HttpOnly` keeps the `jwt` cookie away from scripts on the page; only the server reads it. `SameSite=Lax` still sends the cookies on top-level navigations and on `<img>` and `<video>` requests from the same site, which is all the media endpoints need, and keeps them off requests other sites trigger. Ports do not count, so a web app on `localhost:3000` and a backend on `localhost:8001` are the same site.
+
+The cookies are `Secure` (sent over HTTPS only) when the request reached the backend over HTTPS, or when `AUTH_COOKIE_SECURE` is on. Behind the bundled proxy the backend always sees plain HTTP, also when your own proxy in front of it terminates TLS: it does not trust a forwarded scheme (Django's `SECURE_PROXY_SSL_HEADER` is not set). If your users reach LibrePhotos only over HTTPS, set `AUTH_COOKIE_SECURE=1`; see [Secure auth cookies](../installation/environment-variables.md#secure-auth-cookies). Leave it off when the install is also reached over plain HTTP, such as on the LAN: browsers refuse a `Secure` cookie there, and media would stop loading.
+
+*Not released yet: up to 1.3.0, the cookies had no `HttpOnly`, `SameSite` or `Secure` flag.*
 
 ### Call APIs using Basic auth (optional)
 
