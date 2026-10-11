@@ -30,7 +30,8 @@ A self-hosted photo manager. This is a monorepo; each app has its own stack and 
 ## Commands
 
 - Backend (`apps/backend`): `python manage.py test api.tests`, `ruff check .`, `ruff format .`,
-  `python scripts/typecheck.py`. Details and the no-Docker setup: `apps/backend/AGENTS.md`.
+  `python scripts/typecheck.py`, `python scripts/check_dead_code.py`. Details and the no-Docker
+  setup: `apps/backend/AGENTS.md`.
 - Frontend (`apps/frontend`): `yarn install`, `yarn lint:error`, `yarn typecheck`, `yarn test`,
   `yarn build`, `yarn start`.
 - Mobile: `npm ci` once at the repo root (the root `package-lock.json` is the only lockfile), then

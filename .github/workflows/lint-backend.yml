@@ -31,3 +31,19 @@ jobs:
         run: ruff check apps/backend
       - name: ruff format --check
         run: ruff format --check apps/backend
+
+  dead-code:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+      # The vulture pin lives in requirements.dev.txt, so CI and a local
+      # `python scripts/check_dead_code.py` report the same findings.
+      - run: pip install "$(grep '^vulture==' apps/backend/requirements.dev.txt)"
+      - name: Unused functions, methods, classes and properties
+        working-directory: apps/backend
+        run: python scripts/check_dead_code.py

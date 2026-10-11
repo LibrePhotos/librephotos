@@ -43,6 +43,16 @@ Rules for new code:
 
 The second `[[tool.mypy.overrides]]` table lists the strict modules, which additionally forbid explicit `Any`, untyped calls and bare generics such as `dict`. The list only grows: when you add a new module or package, add it there in the same pull request.
 
+### Dead code
+
+The `dead-code` job of the `lint-backend` workflow runs [vulture](https://github.com/jendrikseipp/vulture) (pinned in `apps/backend/requirements.dev.txt`) and fails on a function, method, class or property that nothing references. Run the same check from `apps/backend/`:
+
+```bash
+python scripts/check_dead_code.py
+```
+
+Tests are not scanned, so code that only a test calls counts as dead. Framework entry points such as `@action` methods, signal receivers, serializer `get_<field>` and `validate_<field>` methods and management commands are recognised by the script. A name that only a string refers to, such as a dotted path in the settings or a django_q schedule, goes into `apps/backend/vulture_whitelist.py` with a comment naming the caller. That file only shrinks: when the check flags something, delete it rather than whitelisting it.
+
 ## 🐛 Debugging
 
 Usually nothing goes as planned, and you need to debug your shiny new feature. In the next paragraph, I will explain to you the two tools we have for debugging:

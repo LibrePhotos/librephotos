@@ -10,6 +10,7 @@ Run from `apps/backend`, normally inside the container (`docker exec -it backend
 - Tests: `python manage.py test api.tests nextcloud`; one module: `python manage.py test api.tests.metadata.test_photo_metadata`
 - Lint and format: `ruff check .` and `ruff format .` (ruff is pinned; use the version from `requirements.dev.txt`)
 - Types: `python scripts/typecheck.py` (mypy + django-stubs; `mypy-baseline.txt` is empty and must stay empty)
+- Dead code: `python scripts/check_dead_code.py` (vulture, pinned in `requirements.dev.txt`; runs in CI)
 - Migrations: `python manage.py makemigrations`, committed with the model change; `api/tests/migrations/test_migrations_in_sync.py` fails the suite while a model change has no migration
 
 Without Docker, install with `bash scripts/setup_test_env.sh` inside an activated venv and run tests with
@@ -41,6 +42,9 @@ test makes `--parallel` runs crash with "cannot pickle 'traceback'"; rerun that 
   `http_method_names` blocklist. Pin a new route's verbs in `ROUTER_VERBS`
   (`api/tests/infra/test_api_conventions.py`); a mutating one also needs a case in
   `api/tests/sharing_and_public/test_cross_tenant_writes.py`.
+- Delete unused code instead of keeping aliases or wrappers for compatibility, unless an external client
+  calls it. Code only tests call counts as dead; `vulture_whitelist.py` is for names called from outside
+  Python (settings dotted paths, django_q schedules) and only shrinks.
 - Errors use the DRF exception handler's shape, `{"errors": [{"field", "message"}]}`: raise DRF
   exceptions instead of building error bodies.
 - Background work: create the `LongRunningJob` row (`LongRunningJob.create_job`) and queue a plain
