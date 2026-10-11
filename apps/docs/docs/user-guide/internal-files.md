@@ -8,15 +8,21 @@ sidebar_position: 19
 
 There are a lot of log files in this folder. The most important one is "ownphotos.log". Here should be possible error traces you can report to the GitHub repository.
 
-## ⚠ DO NOT DELETE "secret.key"
-
-The `secret.key` file lives in the `/logs` folder described above: it is `/logs/secret.key` inside the backend container, which the shipped Docker Compose file maps to `${data}/logs/secret.key` on the host.
-
-In order to encrypt passwords in the database, Django uses a secret key. On the first boot, we create this file, which will then get used every time you start it. If you delete this file, you cannot log in anymore, and you have to reset the passwords of your users.
-
-If you set `shhhhKey` in your `.env` file, that value is used as the secret key instead and this file is never created or read.
+LibrePhotos 1.3.0 and older also keep `secret.key` here, so do not zip this whole folder for a bug report; see [secret.key](#secretkey) below.
 
 ## /protected_media
+
+### secret.key
+
+⚠ Do not delete this file, and do not share it.
+
+Django signs every session, login token and password-reset link with a secret key, and encrypts the SMTP password stored in the `Admin Area` with it. On the first start LibrePhotos generates the key and keeps it in this file, which is then used every time you start it: `/protected_media/secret.key` inside the backend container, which the shipped Docker Compose file maps to `${data}/protected_media/secret.key` on the host (`%LOCALAPPDATA%\LibrePhotos\protected_media\secret.key` for the [Windows standalone build](../installation/windows-standalone.md)). Back it up together with the rest of this folder.
+
+If you delete it, a new key is generated: every user is logged out and the SMTP password has to be entered again. Anyone who has a copy of the file can forge a login to your instance.
+
+If you set `shhhhKey` in your `.env` file (`SECRET_KEY` for the backend container), that value is used as the secret key instead and this file is never created or read.
+
+LibrePhotos 1.3.0 and older keep the file in `/logs` instead. The first start of a newer release moves it here and logs a warning saying so. If both files exist, the one in `/protected_media` is used, and the old one in `/logs` is left untouched with a warning in the log: delete it once you have checked that you can log in.
 
 ### /avatars
 

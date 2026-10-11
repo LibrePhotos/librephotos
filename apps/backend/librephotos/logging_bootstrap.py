@@ -67,6 +67,15 @@ THIRD_PARTY_LEVELS = {
 _deferred_warnings: list[str] = []
 
 
+def defer_warning(message: str) -> None:
+    """Hold ``message`` until logging is configured, then log it as a warning.
+
+    For code that runs while the settings module is still being imported, such
+    as librephotos.secret_key, and has no handler to log through yet.
+    """
+    _deferred_warnings.append(message)
+
+
 def take_deferred_warnings() -> list[str]:
     """Return and clear the warnings recorded before logging was configured.
 
@@ -153,10 +162,10 @@ def ensure_logs_root(path: str) -> str:
     """Create the log directory, or stop with a message that names it.
 
     Deliberately not the print-and-continue treatment MPLCONFIGDIR gets in
-    production.py: secret.key lives in this same directory and the settings
-    module writes it a few lines further down, so continuing here only turns a
-    diagnosable error into a bare FileNotFoundError from a line that says
-    nothing about logs at all.
+    production.py: the rotating file handler opens a file in this directory as
+    soon as logging is configured, so continuing here only turns a diagnosable
+    error into a bare FileNotFoundError from a line that says nothing about the
+    BASE_LOGS setting at all.
     """
     try:
         os.makedirs(path, exist_ok=True)

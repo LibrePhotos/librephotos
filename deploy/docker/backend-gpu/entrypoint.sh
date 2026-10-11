@@ -24,9 +24,9 @@ mpl_data_root="${BASE_DATA:-/}"
 export MPLCONFIGDIR="${MPLCONFIGDIR:-${mpl_data_root%/}/protected_media/matplotlib}"
 mkdir -p "$MPLCONFIGDIR" || echo "Could not create $MPLCONFIGDIR - matplotlib will rebuild its font cache on every start"
 
-# BASE_LOGS is what librephotos/settings/production.py derives LOGS_ROOT and
-# secret.key from. Export it so the tee targets below and Django's own log
-# handlers cannot drift apart; pinning the default here leaves the container's
+# BASE_LOGS is what librephotos/settings/production.py derives LOGS_ROOT from.
+# Export it so the tee targets below and Django's own log handlers cannot drift
+# apart; pinning the default here leaves the container's
 # behaviour unchanged for anyone who never sets it. LOG_LEVEL is read by the
 # LOGGING dictConfig. The %/ handles a value written with the trailing slash
 # the Python default uses, so "$logs_dir/x" does not become "//x".
@@ -34,9 +34,8 @@ export BASE_LOGS="${BASE_LOGS:-/logs}"
 export LOG_LEVEL="${LOG_LEVEL:-INFO}"
 logs_dir="${BASE_LOGS%/}"
 
-# Unlike the matplotlib cache above, this directory is not optional: without it
-# the backend dies on its first secret.key write, with a traceback that never
-# names the path it tried.
+# Unlike the matplotlib cache above, this directory is not optional: the
+# backend's log handler writes there, so stop here and name the path.
 if ! mkdir -p "$logs_dir"; then
     echo "Could not create $logs_dir - set BASE_LOGS to a writable directory" >&2
     exit 1

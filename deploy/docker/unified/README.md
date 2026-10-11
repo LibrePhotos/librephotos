@@ -52,8 +52,8 @@ Replace `/path/to/your/photos` with the actual path to your photo collection.
 
 **Directory Structure Created:**
 - `./librephotos-data/db/` - SQLite databases (`librephotos.sqlite3`, `cache.sqlite3`)
-- `./librephotos-data/protected_media/` - Processed images, thumbnails, and model data
-- `./librephotos-data/logs/` - Application logs, Secret Key
+- `./librephotos-data/protected_media/` - Processed images, thumbnails, model data and `secret.key` (unless you pass `SECRET_KEY`)
+- `./librephotos-data/logs/` - Application logs
 
 **Key environment variable:**
 ```bash

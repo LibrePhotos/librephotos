@@ -319,7 +319,9 @@ services:
 ```
 
 :::warning
-`secret.key` lives in `BASE_LOGS`, next to the log files. Zipping that whole folder for a bug report hands out your Django secret key, which is what every session and token on your instance is signed with. Attach `ownphotos.log` by itself instead. Deleting `secret.key` is not a fix either - it logs every user out and the passwords have to be reset.
+In 1.3.0 and older, `secret.key` lives in `BASE_LOGS`, next to the log files. Zipping that whole folder for a bug report hands out your Django secret key, which is what every session and token on your instance is signed with. Attach `ownphotos.log` by itself instead. Deleting `secret.key` is not a fix either: it logs every user out.
+
+Releases after 1.3.0 keep the key in `protected_media` instead and move an existing `BASE_LOGS/secret.key` there on their first start; see [Internal files](../user-guide/internal-files.md).
 :::
 
 ### Debug mode

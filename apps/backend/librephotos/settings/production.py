@@ -14,6 +14,7 @@ from librephotos.logging_bootstrap import (
     ensure_logs_root,
     resolve_to_console,
 )
+from librephotos.secret_key import load_or_create_secret_key
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BASE_LOGS = env_str("BASE_LOGS", "/logs/")
@@ -68,10 +69,9 @@ TRANSCODE_LIVE_CPU_FRACTION = max(1, env_int("TRANSCODE_LIVE_CPU_FRACTION", 2))
 TRANSCODE_LIVE_READRATE = env_float("TRANSCODE_LIVE_READRATE", 2)
 TRANSCODE_LIVE_BURST_SECONDS = env_float("TRANSCODE_LIVE_BURST_SECONDS", 30)
 LOGS_ROOT = BASE_LOGS
-# Create the directory before anything in this module writes to it. secret.key
-# lives in there too and is written some 40 lines further down, so an install
-# without a /logs volume used to die on that open() with a FileNotFoundError
-# that never mentioned logs. Fail here instead, naming the path.
+# Create the directory before the logging configuration below opens a file in
+# it, so an install without a /logs volume fails here, naming the path, rather
+# than with a FileNotFoundError that never mentions logs.
 ensure_logs_root(LOGS_ROOT)
 
 # Matplotlib comes along with insightface, which the face recognition service
@@ -94,8 +94,20 @@ ROOT_URLCONF = "librephotos.urls"
 DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
 DEBUG = False
 
-SECRET_KEY_FILENAME = os.path.join(BASE_LOGS, "secret.key")
-SECRET_KEY = ""
+# Without SECRET_KEY in the environment the key is generated once and kept on
+# the protected_media volume, which survives container recreation everywhere.
+# 1.3.0 and older kept it in BASE_LOGS, which people zip for bug reports; an
+# old file there is moved on start (librephotos/secret_key.py, #2381).
+SECRET_KEY_FILENAME = os.path.join(MEDIA_ROOT, "secret.key")
+LEGACY_SECRET_KEY_FILENAME = os.path.join(BASE_LOGS, "secret.key")
+SECRET_KEY = env_str("SECRET_KEY")
+if SECRET_KEY:
+    print("use SECRET_KEY from env")
+else:
+    SECRET_KEY = load_or_create_secret_key(
+        SECRET_KEY_FILENAME, legacy_path=LEGACY_SECRET_KEY_FILENAME
+    )
+    print("use SECRET_KEY from file")
 
 
 # WebP quality (1-100) of the 500 and 250 px square thumbnails the photo grids
@@ -130,25 +142,6 @@ FEATURE_SCENE_CLASSIFICATION = env_flag("FEATURE_SCENE_CLASSIFICATION", default=
 NEXTCLOUD_ALLOW_PRIVATE_ADDRESSES = env_flag(
     "NEXTCLOUD_ALLOW_PRIVATE_ADDRESSES", default=True
 )
-
-if env_str("SECRET_KEY"):
-    SECRET_KEY = env_str("SECRET_KEY")
-    print("use SECRET_KEY from env")
-
-if not SECRET_KEY and os.path.exists(SECRET_KEY_FILENAME):
-    with open(SECRET_KEY_FILENAME) as f:
-        SECRET_KEY = f.read().strip()
-        print("use SECRET_KEY from file")
-
-if not SECRET_KEY:
-    from django.core.management.utils import get_random_secret_key
-
-    with open(SECRET_KEY_FILENAME, "w") as f:
-        f.write(get_random_secret_key())
-        print("generate SECRET_KEY and save to file")
-    with open(SECRET_KEY_FILENAME) as f:
-        SECRET_KEY = f.read().strip()
-        print("use SECRET_KEY from file")
 
 # The name the proxy reaches the backend by. Requests carrying it (or the
 # compose service name) come from inside the deployment, so api/public_url.py
