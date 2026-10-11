@@ -24,12 +24,9 @@ Prettier through the `prettier/prettier` rule, so linting also flags unformatted
 `lint-frontend` CI workflow runs the lint, test and build steps on every pull request that touches
 `apps/frontend` and fails on anything unclean, so nothing un-linted gets merged.
 
-`yarn build` does not type-check, so run `yarn typecheck` as well. It runs `tsc --noEmit` and
-compares the errors against `apps/frontend/tsc-baseline.txt`, the backlog of errors that predate the
-check. Any error that is not in the baseline fails it, and so does the `typecheck-frontend` CI
-workflow. Errors are matched by file, code and message, not by line, so moving existing code around
-is fine. When you fix baseline errors the check tells you so; run `yarn typecheck:update` and commit
-the smaller baseline. Don't use `typecheck:update` to accept new errors — fix them instead.
+`yarn build` does not type-check, so run `yarn typecheck` as well. It runs `tsc --noEmit` over the app
+and `vite.config.ts`. The frontend has zero type errors and no baseline: any error fails it, and so
+does the `typecheck-frontend` CI workflow. Fix the type rather than working around it.
 
 The repository ships a `husky` pre-commit hook (`apps/frontend/.husky/pre-commit`, which runs
 `lint-staged`), but it is currently inactive in the monorepo: `yarn install` runs the `prepare`

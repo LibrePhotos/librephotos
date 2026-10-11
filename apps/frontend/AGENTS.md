@@ -8,9 +8,10 @@ generated) and TanStack Query, Mantine 9, i18next, zod. Node is the version in `
 Run from `apps/frontend`:
 
 - `yarn install --frozen-lockfile`
-- `yarn lint:error`: ESLint over src, e2e, scripts and the config files, zero warnings (`--max-warnings 0`), Prettier included; unused or undescribed disable comments fail too
+- `yarn lint:error`: ESLint over src, e2e and the config files, zero warnings (`--max-warnings 0`), Prettier included; unused or undescribed disable comments fail too
 - `yarn format:check`: Prettier over this app and `packages/api-client` (one config, `prettier.config.cjs`); `yarn format` fixes. Non-English locales are ignored
-- `yarn typecheck`: `tsc --noEmit` against `tsc-baseline.txt`, which is empty; any error fails
+- `yarn typecheck`: plain `tsc --noEmit` over `src/` (`tsconfig.json`) and `vite.config.ts` (`tsconfig.node.json`). Zero errors, no baseline; any error fails
+- `yarn typecheck:e2e`: `tsc --noEmit` over the Playwright suite (`e2e/tsconfig.json`); needs `e2e/` dependencies installed
 - `yarn test`: vitest
 - `yarn build`, `yarn start`
 

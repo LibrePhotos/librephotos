@@ -1,3 +1,0 @@
-# TypeScript error baseline for `yarn typecheck` (scripts/typecheck-ratchet.mjs).
-# Known errors, one per line as `file: TSxxxx message`, sorted. CI fails on any error not listed here.
-# Fixed some? Shrink this file with `yarn typecheck:update`. Do not add entries by hand.
