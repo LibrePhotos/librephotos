@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 import os
-import subprocess
 from typing import TYPE_CHECKING
 
 from django.conf import settings
@@ -356,7 +355,6 @@ def create_static_thumbnails(
 # A five-second clip of a 4K HEVC video takes a slow ARM box well under a
 # minute; ffmpeg still running after this is stuck on the file.
 FFMPEG_TIMEOUT = 300
-FFMPEG_STDERR_TAIL = 2000
 
 
 # ffmpeg copies the source's global metadata into its output, and with it a
@@ -368,35 +366,17 @@ class VideoThumbnailError(RuntimeError):
     """ffmpeg failed, or never finished, making a video thumbnail."""
 
 
-def _stderr_tail(stderr: bytes | None) -> str:
-    text = (stderr or b"").decode("utf-8", errors="replace").strip()
-    return text[-FFMPEG_STDERR_TAIL:] or "no output"
-
-
-def _run_ffmpeg(command: list[str], output: str) -> None:
+def _run_ffmpeg(args: list[str], output: str) -> None:
     """Run ffmpeg to write *output*; raise VideoThumbnailError if it fails.
 
     A failed or killed run can leave a truncated file behind, which the next
     thumbnail pass would take for a finished one, so it is removed.
     """
     try:
-        subprocess.run(
-            command,
-            stdin=subprocess.DEVNULL,
-            capture_output=True,
-            timeout=FFMPEG_TIMEOUT,
-            check=True,
-        )
-    except subprocess.CalledProcessError as e:
+        binaries.run_tool("ffmpeg", args, timeout=FFMPEG_TIMEOUT)
+    except binaries.ToolError as e:
         _remove_partial(output)
-        raise VideoThumbnailError(
-            f"ffmpeg exited with status {e.returncode}: {_stderr_tail(e.stderr)}"
-        ) from e
-    except subprocess.TimeoutExpired as e:
-        _remove_partial(output)
-        raise VideoThumbnailError(
-            f"ffmpeg did not finish within {FFMPEG_TIMEOUT} s: {_stderr_tail(e.stderr)}"
-        ) from e
+        raise VideoThumbnailError(str(e)) from e
 
 
 def _remove_partial(output: str) -> None:
@@ -417,7 +397,6 @@ def create_animated_thumbnail(
     try:
         output = os.path.join(settings.MEDIA_ROOT, output_path, hash + file_type)
         command = [
-            binaries.ffmpeg(),
             "-y",
             "-i",
             input_path,
@@ -453,7 +432,6 @@ def create_thumbnail_for_video(
     try:
         output = os.path.join(settings.MEDIA_ROOT, output_path, hash + file_type)
         command = [
-            binaries.ffmpeg(),
             "-y",
             "-i",
             input_path,

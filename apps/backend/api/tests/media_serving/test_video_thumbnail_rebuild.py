@@ -9,13 +9,12 @@ rotation still starts from nothing: its old thumbnails show the wrong turn.
 """
 
 import os
-import subprocess
 import tempfile
 from unittest import mock
 
 from django.test import TestCase, override_settings
 
-from api import thumbnails, transcode_cache, video_color
+from api import binaries, thumbnails, transcode_cache, video_color
 from api.directory_watcher import file_handlers, processing_jobs
 from api.models import LongRunningJob, Photo, Thumbnail
 from api.models.thumbnail import SET_ASIDE_SUFFIX, thumbnail_file_paths
@@ -36,15 +35,15 @@ def _ffmpeg_failing_on(fail_on):
     ``_run_ffmpeg`` to clean up.
     """
 
-    def run(command, **kwargs):
-        output = command[-1]
+    def run(tool, args, **kwargs):
+        output = args[-1]
         with open(output, "wb") as handle:
             handle.write(b"new")
         if any(name in output for name in fail_on):
-            raise subprocess.CalledProcessError(1, command, stderr=b"Invalid data")
+            raise binaries.ToolFailedError(tool, 1, "Invalid data")
         return mock.Mock(returncode=0)
 
-    return mock.patch.object(thumbnails.subprocess, "run", side_effect=run)
+    return mock.patch.object(thumbnails.binaries, "run_tool", side_effect=run)
 
 
 class _Killed(BaseException):
@@ -178,7 +177,7 @@ class ThumbnailRebuildTest(TestCase):
         with (
             mock.patch.object(video_color, "probe", return_value=HDR_PROBE),
             mock.patch.object(transcode_cache, "discard"),
-            mock.patch.object(thumbnails.subprocess, "run", side_effect=_Killed),
+            mock.patch.object(thumbnails.binaries, "run_tool", side_effect=_Killed),
             self.assertRaises(_Killed),
         ):
             processing_jobs.probe_videos(
@@ -240,7 +239,7 @@ class ThumbnailRebuildTest(TestCase):
         with (
             mock.patch.object(video_color, "probe", return_value=HDR_PROBE),
             mock.patch.object(transcode_cache, "discard"),
-            mock.patch.object(thumbnails.subprocess, "run", side_effect=_Killed),
+            mock.patch.object(thumbnails.binaries, "run_tool", side_effect=_Killed),
             self.assertRaises(_Killed),
         ):
             self._rescan()

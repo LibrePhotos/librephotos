@@ -8,6 +8,7 @@ falls back to asking git - with ``-c safe.directory=...``, which lasts for that
 one command.
 """
 
+from subprocess import CompletedProcess
 from unittest.mock import patch
 
 from django.test import TestCase, override_settings
@@ -29,33 +30,43 @@ class ImageTagViewTest(TestCase):
         self.assertEqual(200, response.status_code)
         return response.json()
 
-    @patch("api.views.server_info.subprocess")
-    def test_git_hash_from_env_skips_git(self, subprocess_mock):
+    @patch("api.views.server_info.binaries.run_tool")
+    def test_git_hash_from_env_skips_git(self, run_tool):
         with override_settings(IMAGE_TAG="2026w38", GIT_HASH="abc1234"):
             data = self._get()
         self.assertEqual({"image_tag": "2026w38", "git_hash": "abc1234"}, data)
-        subprocess_mock.run.assert_not_called()
-        subprocess_mock.check_output.assert_not_called()
+        run_tool.assert_not_called()
 
-    @patch("api.views.server_info.subprocess.check_output", return_value=b"def5678\n")
-    @patch("api.views.server_info.subprocess.run")
-    def test_git_fallback_never_mutates_global_config(self, run_mock, check_output):
+    @patch("api.views.server_info.binaries.available", return_value=True)
+    @patch(
+        "api.views.server_info.binaries.run_tool",
+        return_value=CompletedProcess([], 0, "def5678\n", ""),
+    )
+    def test_git_fallback_never_mutates_global_config(self, run_tool, _available):
         with override_settings(GIT_HASH=""):
             data = self._get()
 
         self.assertEqual("def5678", data["git_hash"])
-        run_mock.assert_not_called()
-        command = check_output.call_args.args[0]
-        self.assertNotIn("--global", command)
-        self.assertEqual("git", command[0])
-        self.assertEqual("-c", command[1])
-        self.assertTrue(command[2].startswith("safe.directory="))
+        run_tool.assert_called_once()
+        name, args = run_tool.call_args.args
+        self.assertEqual("git", name)
+        self.assertNotIn("--global", args)
+        self.assertEqual("-c", args[2])
+        self.assertTrue(args[3].startswith("safe.directory="))
+        self.assertIn("timeout", run_tool.call_args.kwargs)
 
+    @patch("api.views.server_info.binaries.available", return_value=False)
+    def test_no_git_falls_back_to_image_tag(self, _available):
+        with override_settings(GIT_HASH="", IMAGE_TAG="dev"):
+            data = self._get()
+        self.assertEqual({"image_tag": "dev", "git_hash": "dev"}, data)
+
+    @patch("api.views.server_info.binaries.available", return_value=True)
     @patch(
-        "api.views.server_info.subprocess.check_output",
-        side_effect=FileNotFoundError("git"),
+        "api.views.server_info.binaries.run_tool",
+        return_value=CompletedProcess([], 128, "", "fatal: not a git repository"),
     )
-    def test_no_git_falls_back_to_image_tag(self, _check_output):
+    def test_not_a_checkout_falls_back_to_image_tag(self, _run_tool, _available):
         with override_settings(GIT_HASH="", IMAGE_TAG="dev"):
             data = self._get()
         self.assertEqual({"image_tag": "dev", "git_hash": "dev"}, data)

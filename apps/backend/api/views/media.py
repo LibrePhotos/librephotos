@@ -4,7 +4,6 @@ avatars and embedded media, plus the live video transcoder behind them."""
 import collections
 import logging
 import os
-import subprocess
 import threading
 from collections.abc import Iterator
 from urllib.parse import quote
@@ -193,13 +192,14 @@ class VideoTranscoder:
 
     # None until the conversion has started. __init__ can raise before it is
     # set (ffmpeg cannot be started), and __del__ still runs on that instance.
-    process: subprocess.Popen[bytes] | None = None
+    process: binaries.Process | None = None
 
     def __init__(self, path: str, transfer: str | None = None) -> None:
-        self.process = subprocess.Popen(
-            build_live_command(path, transfer),
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+        command = build_live_command(path, transfer)
+        # No timeout: it runs as long as the video plays, and is killed when the
+        # client goes away (__del__, once the response drops the generator).
+        self.process = binaries.start_tool(
+            command[0], command[1:], stdout=binaries.PIPE, stderr=binaries.PIPE
         )
         self._stderr_tail: collections.deque[int] = collections.deque(
             maxlen=self.STDERR_TAIL_BYTES

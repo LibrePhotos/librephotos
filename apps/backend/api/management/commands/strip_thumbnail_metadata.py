@@ -2,6 +2,7 @@ from typing import Any
 
 from django.core.management.base import BaseCommand, CommandError, CommandParser
 
+from api import binaries
 from api.thumbnail_metadata import strip_thumbnail_metadata
 
 
@@ -20,9 +21,13 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args: Any, **options: Any) -> None:
-        result = strip_thumbnail_metadata(
-            dry_run=options["dry_run"], progress=self.stdout.write
-        )
+        try:
+            result = strip_thumbnail_metadata(
+                dry_run=options["dry_run"], progress=self.stdout.write
+            )
+        except binaries.ToolError as failure:
+            # ExifTool could not say which video thumbnails carry metadata.
+            raise CommandError(str(failure)) from failure
         self.stdout.write(
             f"Scanned {result.scanned} thumbnails, "
             f"{len(result.with_metadata)} carried metadata."

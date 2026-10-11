@@ -10,6 +10,7 @@ from django.conf import settings
 from django.db.models import Avg, Count, Max, Min, Model, Q, QuerySet, Sum
 from django.db.models.functions import TruncMonth
 
+from api import binaries
 from api.color_palettes import hex_palette
 from api.lazy_import import LazyModule
 from api.models import (
@@ -139,28 +140,30 @@ def _get_cpu_info() -> dict[str, Any]:
     return cpu_info
 
 
+# nvidia-smi answers at once, or hangs on a wedged driver.
+NVIDIA_SMI_TIMEOUT = 5
+
+
 def _get_gpu_info() -> tuple[str, int | str]:
     """(name, total memory in MB) of the first NVIDIA GPU, or two empty strings.
 
     Asks nvidia-smi, which the NVIDIA container toolkit mounts into a GPU
     container; a machine without it, or without a GPU, reports nothing.
     """
-    import subprocess
-
-    try:
-        output = subprocess.run(
-            [
-                "nvidia-smi",
-                "--query-gpu=name,memory.total",
-                "--format=csv,noheader,nounits",
-            ],
-            capture_output=True,
-            text=True,
-            timeout=5,
-            check=True,
-        ).stdout
-    except (OSError, subprocess.SubprocessError):
+    if not binaries.available("nvidia-smi"):
         return "", ""
+    try:
+        completed = binaries.run_tool(
+            "nvidia-smi",
+            ["--query-gpu=name,memory.total", "--format=csv,noheader,nounits"],
+            timeout=NVIDIA_SMI_TIMEOUT,
+            check=False,
+            text=True,
+        )
+    except binaries.ToolError:
+        return "", ""
+    # nvidia-smi without a usable GPU exits non-zero: nothing to report.
+    output = completed.stdout if completed.returncode == 0 else ""
 
     first_line = output.strip().splitlines()[0] if output.strip() else ""
     name, _, memory_mb = first_line.partition(",")

@@ -69,6 +69,10 @@ test makes `--parallel` runs crash with "cannot pickle 'traceback'"; rerun that 
   `refresh_*_photo_counts` helpers themselves. `api/tests/infra/test_signal_receivers.py` enforces this.
 - Logging: `logger = logging.getLogger(__name__)`, lazy `%` arguments, never f-strings; carry the job id,
   user id or `image_hash`, never usernames, paths or captions above DEBUG. Details: `CONTRIBUTING.md`.
+- External tools (ffmpeg, ffprobe, ExifTool, git, nvidia-smi) run only through `api.binaries`:
+  `run_tool(name, args, timeout=...)` (the timeout has no default; a hung tool fails the call, never
+  the worker) or `start_tool` for a long-running stream. Ruff TID251 bans `subprocess` elsewhere
+  (exceptions in `pyproject.toml`).
 - Metadata write-back is tested against real ExifTool, not a mocked `write_metadata`: a new caller of
   it needs a round-trip test on `RealExifToolTestCase` (`api/tests/metadata/exiftool_harness.py`) in
   `api/tests/metadata/test_write_back_round_trip.py`, whose guard fails until it is listed there.

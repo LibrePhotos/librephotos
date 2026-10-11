@@ -36,12 +36,14 @@ ffmpeg options, so their presence is probed rather than assumed.
 
 import logging
 import os
-import shutil
-import subprocess
 
 from api import binaries
 
 logger = logging.getLogger(__name__)
+
+# ffmpeg printing its option or filter list: well under a second, a few on a
+# cold start of a slow ARM box. This runs in the request of a live transcode.
+PROBE_TIMEOUT = 30
 
 # Probed once per process: asking ffmpeg for its full help costs a subprocess and
 # about a megabyte of text, and the answer cannot change under us. The help text
@@ -102,7 +104,7 @@ def supports_filter(name: str) -> bool:
 def _filters() -> str:
     global _filter_text
     if _filter_text is None:
-        _filter_text = _run([binaries.ffmpeg(), "-hide_banner", "-filters"])
+        _filter_text = _run(["-hide_banner", "-filters"])
     return _filter_text
 
 
@@ -114,24 +116,24 @@ def _full_help() -> str:
 
 
 def _read_full_help() -> str:
-    return _run([binaries.ffmpeg(), "-hide_banner", "-h", "full"])
+    return _run(["-hide_banner", "-h", "full"])
 
 
-def _run(command: list[str]) -> str:
+def _run(args: list[str]) -> str:
     """What ffmpeg says about itself, or "" if it will not say.
 
     A host without ffmpeg, or one whose ffmpeg cannot be asked, answers "no" to
     every question rather than raising: the conversion then runs with none of
     the optional arguments, which is what it did before any of them existed.
     """
-    if not shutil.which("ffmpeg"):
+    if not binaries.available("ffmpeg"):
         return ""
     try:
-        return subprocess.run(
-            command, capture_output=True, text=True, timeout=30
+        return binaries.run_tool(
+            "ffmpeg", args, timeout=PROBE_TIMEOUT, check=False, text=True
         ).stdout
-    except (OSError, subprocess.SubprocessError):
-        logger.warning("could not ask ffmpeg what it supports", exc_info=True)
+    except binaries.ToolError:
+        # run_tool has logged why.
         return ""
 
 

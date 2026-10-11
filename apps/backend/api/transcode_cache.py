@@ -31,11 +31,11 @@ from __future__ import annotations
 import logging
 import os
 import shutil
-import subprocess
+import tempfile
 import threading
 import time
 from collections.abc import Callable
-from typing import TYPE_CHECKING
+from typing import IO, TYPE_CHECKING
 
 from django.conf import settings
 
@@ -62,6 +62,14 @@ STALE_PART_SECONDS = 6 * 60 * 60
 # How often a conversion in progress re-checks that it is still welcome on the
 # disk. Sizes are estimates and something else may be filling the volume.
 SPACE_CHECK_SECONDS = 15
+
+# No single timeout fits a conversion: a two-hour HDR film on a two-core ARM
+# box can take hours. What a stuck one does not do is make progress, so it is
+# killed once its part-file has not changed for this long. A live conversion,
+# even niced on a busy host, writes every few seconds, and the faststart pass
+# that rewrites the file at the end keeps touching it too. Generous on purpose:
+# killing a slow but live conversion throws its work away.
+STALL_SECONDS = 30 * 60
 
 PART_SUFFIX = ".part"
 
@@ -291,39 +299,32 @@ def run_transcode(
     The rename is the commit: nothing serves a file until ffmpeg has exited
     cleanly, so a conversion cut short by a restart or a filling disk leaves
     only a part-file behind, never a truncated video that plays half way and
-    stops.
+    stops. A conversion that stops making progress is killed (STALL_SECONDS).
     """
     root = root or os.path.dirname(part)
-    try:
-        process = subprocess.Popen(
-            command,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.PIPE,
-            start_new_session=True,
-        )
-    except OSError:
-        logger.warning("could not start a transcode for %s", final, exc_info=True)
-        _remove(part)
-        return False
-
-    ran_out_of_room = False
-    while True:
+    # Not a pipe: nobody reads it while ffmpeg runs, and a file that decodes
+    # badly makes ffmpeg write an error per frame even at -loglevel error, which
+    # filled a pipe and blocked it in write() for good. A file only keeps it.
+    with tempfile.TemporaryFile() as stderr:
         try:
-            process.wait(timeout=SPACE_CHECK_SECONDS)
-            break
-        except subprocess.TimeoutExpired:
-            if free_bytes(root) < _min_free_bytes():
-                ran_out_of_room = True
-                process.kill()
-                process.wait()
-                break
+            # The command may start with nice rather than ffmpeg (build_command).
+            process = binaries.start_tool(
+                command[0], command[1:], stdout=binaries.DEVNULL, stderr=stderr
+            )
+        except binaries.ToolMissingError:
+            logger.warning("could not start a transcode for %s", final)
+            _remove(part)
+            return False
+        abandoned = _watch(process, part, root, final)
+        complaint = _tail(stderr) if process.returncode != 0 else ""
 
-    if ran_out_of_room:
-        logger.info("abandoned caching %s: the disk is close to full", final)
+    if abandoned:
         _remove(part)
         return False
     if process.returncode != 0:
-        logger.warning("transcode of %s failed (%s)", final, process.returncode)
+        logger.warning(
+            "transcode of %s failed (%s): %s", final, process.returncode, complaint
+        )
         _remove(part)
         return False
     try:
@@ -337,6 +338,49 @@ def run_transcode(
         return False
     logger.info("cached a seekable copy of %s", final)
     return True
+
+
+def _watch(process: binaries.Process, part: str, root: str, final: str) -> bool:
+    """Wait for ``process``; kill it and return True if it has to be abandoned.
+
+    It is abandoned when the disk gets close to full, or when its part-file
+    stops changing for STALL_SECONDS.
+    """
+    progress = _progress(part)
+    last_change = time.monotonic()
+    while binaries.wait(process, SPACE_CHECK_SECONDS) is None:
+        if free_bytes(root) < _min_free_bytes():
+            logger.info("abandoned caching %s: the disk is close to full", final)
+        else:
+            now = _progress(part)
+            if now != progress:
+                progress, last_change = now, time.monotonic()
+                continue
+            if time.monotonic() - last_change < STALL_SECONDS:
+                continue
+            logger.warning(
+                "abandoned caching %s: no progress for %s s", final, STALL_SECONDS
+            )
+        process.kill()
+        process.wait()
+        return True
+    return False
+
+
+def _progress(part: str) -> tuple[int, int] | None:
+    """Size and modification time of the part-file: what changes while ffmpeg works."""
+    try:
+        stat = os.stat(part)
+    except OSError:
+        return None
+    return stat.st_size, stat.st_mtime_ns
+
+
+def _tail(stderr: IO[bytes]) -> str:
+    """The end of what ffmpeg wrote to ``stderr``, a file still open."""
+    size = stderr.seek(0, os.SEEK_END)
+    stderr.seek(max(0, size - binaries.STDERR_TAIL_CHARS))
+    return binaries.stderr_tail(stderr.read())
 
 
 def _remove(path: str) -> None:

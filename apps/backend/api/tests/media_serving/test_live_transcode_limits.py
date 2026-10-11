@@ -22,7 +22,7 @@ from unittest import mock
 
 from django.test import SimpleTestCase, override_settings
 
-from api import ffmpeg_budget
+from api import binaries, ffmpeg_budget
 from api.views import media
 
 
@@ -64,17 +64,17 @@ class SupportsTest(SimpleTestCase):
     def _help(self, text):
         """An ffmpeg on PATH whose help output says ``text``.
 
-        which() is stubbed too: the suite also runs on hosts with no ffmpeg,
-        where the probe short-circuits before it would ever ask.
+        available() is stubbed too: the suite also runs on hosts with no
+        ffmpeg, where the probe short-circuits before it would ever ask.
         """
         which = mock.patch.object(
-            ffmpeg_budget.shutil, "which", return_value="/usr/bin/ffmpeg"
+            ffmpeg_budget.binaries, "available", return_value=True
         )
         which.start()
         self.addCleanup(which.stop)
         return mock.patch.object(
-            ffmpeg_budget.subprocess,
-            "run",
+            ffmpeg_budget.binaries,
+            "run_tool",
             return_value=subprocess.CompletedProcess([], 0, stdout=text, stderr=""),
         )
 
@@ -104,16 +104,16 @@ class SupportsTest(SimpleTestCase):
         self.assertEqual(run.call_count, 1)
 
     def test_no_ffmpeg_on_the_host_is_not_an_exception(self):
-        with mock.patch.object(ffmpeg_budget.shutil, "which", return_value=None):
+        with mock.patch.object(ffmpeg_budget.binaries, "available", return_value=False):
             self.assertFalse(ffmpeg_budget.supports("readrate"))
 
     def test_an_ffmpeg_that_will_not_answer_is_not_an_exception(self):
         with (
+            mock.patch.object(ffmpeg_budget.binaries, "available", return_value=True),
             mock.patch.object(
-                ffmpeg_budget.shutil, "which", return_value="/usr/bin/ffmpeg"
-            ),
-            mock.patch.object(
-                ffmpeg_budget.subprocess, "run", side_effect=OSError("boom")
+                ffmpeg_budget.binaries,
+                "run_tool",
+                side_effect=binaries.ToolFailedError("ffmpeg", None, "", timeout=30),
             ),
         ):
             self.assertFalse(ffmpeg_budget.supports("readrate"))
@@ -281,7 +281,7 @@ def _only_the_conversion_is_fake(process):
     is what these tests are about, so both are given directly.
     """
     return (
-        mock.patch.object(media.subprocess, "Popen", return_value=process),
+        mock.patch.object(binaries.subprocess, "Popen", return_value=process),
         mock.patch.object(ffmpeg_budget, "_run", return_value=""),
         mock.patch.object(media.video_color, "is_hdr", return_value=False),
     )
@@ -321,6 +321,7 @@ class VideoTranscoderStderrTest(SimpleTestCase):
             transcoder = media.VideoTranscoder("/x.mp4")
         transcoder._drain.join(timeout=5)
         self.assertEqual(popen.call_args.kwargs["stderr"], subprocess.PIPE)
+        self.assertEqual(popen.call_args.kwargs["stdout"], subprocess.PIPE)
 
     def test_what_ffmpeg_said_is_kept(self):
         transcoder = self._transcoder(FakePopen([b"No such file\n"], []))
@@ -376,7 +377,7 @@ class VideoTranscoderFailedStartTest(SimpleTestCase):
                 side_effect=original_del,
             ),
             mock.patch.object(
-                media.subprocess, "Popen", side_effect=OSError("ffmpeg not found")
+                binaries.subprocess, "Popen", side_effect=OSError("ffmpeg not found")
             ),
             mock.patch.object(ffmpeg_budget, "_run", return_value=""),
             mock.patch.object(media.video_color, "is_hdr", return_value=False),
@@ -384,7 +385,7 @@ class VideoTranscoderFailedStartTest(SimpleTestCase):
         )
         with contextlib.ExitStack() as stack:
             mocks = [stack.enter_context(patch) for patch in patches]
-            with self.assertRaises(OSError):
+            with self.assertRaises(binaries.ToolMissingError):
                 media.VideoTranscoder("/x.mp4")
             # assertRaises clears the traceback's frames, which dropped the
             # last reference to the instance; collect in case a cycle holds it.

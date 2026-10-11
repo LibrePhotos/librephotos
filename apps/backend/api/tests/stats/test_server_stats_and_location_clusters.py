@@ -15,6 +15,7 @@ from unittest.mock import patch
 from django.test import TestCase, override_settings
 from django.utils import timezone
 
+from api import binaries
 from api.models import AlbumAuto, AlbumPlace, AlbumThing, AlbumUser, Person, Photo
 from api.models.user import get_deleted_user
 from api.stats import get_location_clusters, get_server_stats
@@ -51,7 +52,13 @@ class ServerStatsBaseTest(TestCase):
         cpu_patch = patch("cpuinfo.get_cpu_info", return_value=dict(CPU_INFO))
         self.mock_cpu = cpu_patch.start()
         self.addCleanup(cpu_patch.stop)
-        smi_patch = patch("subprocess.run", side_effect=FileNotFoundError("nvidia-smi"))
+        available_patch = patch("api.stats.binaries.available", return_value=True)
+        available_patch.start()
+        self.addCleanup(available_patch.stop)
+        smi_patch = patch(
+            "api.stats.binaries.run_tool",
+            side_effect=binaries.ToolMissingError("nvidia-smi", "not found"),
+        )
         smi_patch.start()
         self.addCleanup(smi_patch.stop)
 
@@ -116,16 +123,25 @@ class GetServerStatsGpuBranchTest(ServerStatsBaseTest):
         completed = subprocess.CompletedProcess(
             args=["nvidia-smi"], returncode=0, stdout="Fake GPU, 8192\n", stderr=""
         )
-        with patch("subprocess.run", return_value=completed):
+        with patch("api.stats.binaries.run_tool", return_value=completed):
             stats = get_server_stats()
         self.assertEqual(stats["gpu_name"], "Fake GPU")
         self.assertEqual(stats["gpu_memory_in_mb"], 8192)
 
-    def test_nvidia_smi_failure_yields_empty_strings(self):
-        with patch(
-            "subprocess.run",
-            side_effect=subprocess.CalledProcessError(returncode=9, cmd="nvidia-smi"),
+    def test_a_host_without_nvidia_smi_does_not_run_it(self):
+        with (
+            patch("api.stats.binaries.available", return_value=False),
+            patch("api.stats.binaries.run_tool") as run_tool,
         ):
+            stats = get_server_stats()
+        run_tool.assert_not_called()
+        self.assertEqual(stats["gpu_name"], "")
+
+    def test_nvidia_smi_failure_yields_empty_strings(self):
+        completed = subprocess.CompletedProcess(
+            args=["nvidia-smi"], returncode=9, stdout="", stderr="no devices"
+        )
+        with patch("api.stats.binaries.run_tool", return_value=completed):
             stats = get_server_stats()
         self.assertEqual(stats["gpu_name"], "")
         self.assertEqual(stats["gpu_memory_in_mb"], "")

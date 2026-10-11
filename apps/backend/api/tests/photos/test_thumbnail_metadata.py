@@ -11,6 +11,7 @@ import stat
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from io import StringIO
 from unittest import mock
@@ -22,7 +23,8 @@ from django.core.management.base import CommandError
 from django.test import SimpleTestCase, override_settings
 from PIL import Image, ImageCms
 
-from api import binaries, thumbnails
+from api import binaries, thumbnail_metadata, thumbnails
+from api.tests.utils import write_hanging_tool
 from api.thumbnail_metadata import (
     strip_thumbnail_metadata,
     strip_webp_metadata,
@@ -304,6 +306,50 @@ class StripThumbnailMetadataTest(MediaRootTestCase):
         self.assertIn("4 errors (see above)", str(raised.exception))
         self.assertIn("locked", err.getvalue())
         self.assertNotIn("Stripped", out.getvalue())
+
+
+class HangingExifToolTest(MediaRootTestCase):
+    """ExifTool stuck on a video thumbnail fails the command instead of hanging it."""
+
+    def setUp(self):
+        super().setUp()
+        with open(self.path("square_thumbnails", "v.mp4"), "wb") as handle:
+            handle.write(b"not really a video")
+        tools = tempfile.mkdtemp(prefix="librephotos-tools")
+        self.addCleanup(shutil.rmtree, tools, True)
+        hanging = write_hanging_tool(tools)
+        resolve = binaries.resolve
+        for patch in (
+            mock.patch.object(
+                binaries,
+                "resolve",
+                side_effect=lambda name: (
+                    hanging if name == "exiftool" else resolve(name)
+                ),
+            ),
+            mock.patch.object(thumbnail_metadata, "EXIFTOOL_BATCH_TIMEOUT", 0.5),
+        ):
+            patch.start()
+            self.addCleanup(patch.stop)
+
+    def test_the_management_command_fails_on_the_timeout(self):
+        started = time.monotonic()
+        with (
+            self.assertLogs("api.binaries", "WARNING"),
+            self.assertRaises(CommandError) as raised,
+        ):
+            call_command("strip_thumbnail_metadata", stdout=StringIO())
+        self.assertIn("exiftool did not finish within 0.5 s", str(raised.exception))
+        self.assertLess(time.monotonic() - started, binaries.KILL_GRACE_SECONDS)
+
+    def test_a_stuck_strip_batch_is_an_error_not_a_hang(self):
+        errors = []
+        with self.assertLogs("api.binaries", "WARNING"):
+            thumbnail_metadata._strip_mp4s(
+                [self.path("square_thumbnails", "v.mp4")], errors
+            )
+        self.assertEqual(len(errors), 1)
+        self.assertIn("did not finish", errors[0])
 
 
 def _video_tools_available():

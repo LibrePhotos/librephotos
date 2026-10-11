@@ -2,7 +2,6 @@
 
 import functools
 import os
-import subprocess
 from typing import Any
 
 from django.conf import settings
@@ -10,6 +9,8 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
+
+from api import binaries
 
 
 class StorageStatsView(APIView):
@@ -116,26 +117,31 @@ def read_git_hash() -> str:
     if git_hash:
         return git_hash
     backend_root = os.path.dirname(str(settings.BASE_DIR))
+    fallback = settings.IMAGE_TAG or "unknown"
+    if not binaries.available("git"):
+        return fallback
     try:
-        return (
-            subprocess.check_output(
-                [
-                    "git",
-                    "-c",
-                    f"safe.directory={backend_root}",
-                    "rev-parse",
-                    "--short",
-                    "HEAD",
-                ],
-                cwd=backend_root,
-                stderr=subprocess.DEVNULL,
-                timeout=5,
-            )
-            .strip()
-            .decode("utf-8")
+        completed = binaries.run_tool(
+            "git",
+            [
+                "-C",
+                backend_root,
+                "-c",
+                f"safe.directory={backend_root}",
+                "rev-parse",
+                "--short",
+                "HEAD",
+            ],
+            # git answers at once; this runs in a request.
+            timeout=5,
+            check=False,
+            text=True,
         )
-    except Exception:
-        return settings.IMAGE_TAG or "unknown"
+    except binaries.ToolError:
+        return fallback
+    # Not a checkout (a source tarball): git exits non-zero.
+    git_hash = completed.stdout.strip() if completed.returncode == 0 else ""
+    return git_hash or fallback
 
 
 class ImageTagView(APIView):
