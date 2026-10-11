@@ -9,6 +9,7 @@ Run from `apps/frontend`:
 
 - `yarn install --frozen-lockfile`
 - `yarn lint:error`: ESLint over src, e2e, scripts and the config files, zero warnings (`--max-warnings 0`), Prettier included; unused or undescribed disable comments fail too
+- `yarn format:check`: Prettier over this app and `packages/api-client` (one config, `prettier.config.cjs`); `yarn format` fixes. Non-English locales are ignored
 - `yarn typecheck`: `tsc --noEmit` against `tsc-baseline.txt`, which is empty; any error fails
 - `yarn test`: vitest
 - `yarn build`, `yarn start`
