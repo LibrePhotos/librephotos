@@ -16,7 +16,12 @@ from api.models.tag import (
     link_tags_from_keywords,
     sync_tags_from_keywords,
 )
-from api.tests.utils import create_test_photo, create_test_photos, create_test_user
+from api.tests.utils import (
+    create_test_photo,
+    create_test_photos,
+    create_test_tag,
+    create_test_user,
+)
 from api.views.photo_filters import build_photo_queryset
 
 _migration = import_module("api.migrations.0130_tag")
@@ -35,12 +40,12 @@ class TagModelTest(TestCase):
         self.other_user = create_test_user()
 
     def test_same_name_allowed_for_different_owners(self):
-        Tag.objects.create(name="beach", owner=self.user)
-        Tag.objects.create(name="beach", owner=self.other_user)
+        create_test_tag(name="beach", owner=self.user)
+        create_test_tag(name="beach", owner=self.other_user)
         self.assertEqual(Tag.objects.filter(name="beach").count(), 2)
 
     def test_photo_count_tracks_added_photos(self):
-        tag = Tag.objects.create(name="beach", owner=self.user)
+        tag = create_test_tag(name="beach", owner=self.user)
         photos = create_test_photos(number_of_photos=3, owner=self.user)
 
         tag.photos.add(*photos)
@@ -49,7 +54,7 @@ class TagModelTest(TestCase):
         self.assertEqual(tag.photo_count, 3)
 
     def test_photo_count_tracks_removed_photos(self):
-        tag = Tag.objects.create(name="beach", owner=self.user)
+        tag = create_test_tag(name="beach", owner=self.user)
         photos = create_test_photos(number_of_photos=3, owner=self.user)
         tag.photos.add(*photos)
 
@@ -59,7 +64,7 @@ class TagModelTest(TestCase):
         self.assertEqual(tag.photo_count, 2)
 
     def test_photo_count_ignores_hidden_photos(self):
-        tag = Tag.objects.create(name="beach", owner=self.user)
+        tag = create_test_tag(name="beach", owner=self.user)
         visible = create_test_photo(owner=self.user)
         hidden = create_test_photo(owner=self.user, hidden=True)
 
@@ -69,7 +74,7 @@ class TagModelTest(TestCase):
         self.assertEqual(tag.photo_count, 1)
 
     def test_photo_count_ignores_trashed_and_removed_photos(self):
-        tag = Tag.objects.create(name="beach", owner=self.user)
+        tag = create_test_tag(name="beach", owner=self.user)
         visible = create_test_photo(owner=self.user)
         trashed = create_test_photo(owner=self.user, in_trashcan=True)
         removed = create_test_photo(owner=self.user, removed=True)
@@ -80,7 +85,7 @@ class TagModelTest(TestCase):
         self.assertEqual(tag.photo_count, 1)
 
     def test_photo_count_updated_from_the_photo_side(self):
-        tag = Tag.objects.create(name="beach", owner=self.user)
+        tag = create_test_tag(name="beach", owner=self.user)
         photo = create_test_photo(owner=self.user)
 
         photo.tags.add(tag)
@@ -105,7 +110,7 @@ class LinkTagsFromKeywordsTest(TestCase):
         self.assertEqual(photo.tags.count(), 2)
 
     def test_reuses_existing_tags(self):
-        existing = Tag.objects.create(name="beach", owner=self.user)
+        existing = create_test_tag(name="beach", owner=self.user)
         photo = create_test_photo(owner=self.user)
 
         link_tags_from_keywords(photo, ["beach"])
@@ -125,7 +130,7 @@ class LinkTagsFromKeywordsTest(TestCase):
 
     def test_is_additive_so_manual_tags_survive_a_rescan(self):
         photo = create_test_photo(owner=self.user)
-        manual = Tag.objects.create(name="favourite", owner=self.user)
+        manual = create_test_tag(name="favourite", owner=self.user)
         manual.photos.add(photo)
 
         link_tags_from_keywords(photo, ["beach"])
@@ -175,7 +180,7 @@ class SyncTagsFromKeywordsTest(TestCase):
 
     def test_hand_made_tags_are_not_touched(self):
         link_tags_from_keywords(self.photo, ["beach"])
-        manual = Tag.objects.create(name="favourite", owner=self.user)
+        manual = create_test_tag(name="favourite", owner=self.user)
         manual.photos.add(self.photo)
 
         sync_tags_from_keywords(self.photo, [], ["beach"])
@@ -234,7 +239,7 @@ class TagFromMetadataUpdateTest(TestCase):
         self.assertEqual(Tag.objects.get(name="sunset").photo_count, 0)
 
     def test_a_tag_added_by_hand_survives_a_keyword_edit(self):
-        tag = Tag.objects.create(name="favourite", owner=self.user)
+        tag = create_test_tag(name="favourite", owner=self.user)
         tag.photos.add(self.photo)
 
         self._patch_keywords(["beach"])
@@ -298,7 +303,7 @@ class TagApiTest(TestCase):
         self.assertTrue(Tag.objects.filter(name="beach", owner=self.user).exists())
 
     def test_create_duplicate_tag_returns_the_existing_one(self):
-        existing = Tag.objects.create(name="beach", owner=self.user)
+        existing = create_test_tag(name="beach", owner=self.user)
 
         response = self.client.post("/api/tags/", {"name": "beach"}, format="json")
 
@@ -307,7 +312,7 @@ class TagApiTest(TestCase):
         self.assertEqual(Tag.objects.filter(name="beach").count(), 1)
 
     def test_create_does_not_hand_out_another_users_tag(self):
-        Tag.objects.create(name="beach", owner=self.other_user)
+        create_test_tag(name="beach", owner=self.other_user)
 
         response = self.client.post("/api/tags/", {"name": "beach"}, format="json")
 
@@ -315,8 +320,8 @@ class TagApiTest(TestCase):
         self.assertEqual(Tag.objects.get(id=response.json()["id"]).owner, self.user)
 
     def test_list_only_returns_own_tags(self):
-        mine = Tag.objects.create(name="beach", owner=self.user)
-        theirs = Tag.objects.create(name="mountains", owner=self.other_user)
+        mine = create_test_tag(name="beach", owner=self.user)
+        theirs = create_test_tag(name="mountains", owner=self.other_user)
 
         ids = {row["id"] for row in _results(self.client.get("/api/tags/"))}
 
@@ -324,16 +329,16 @@ class TagApiTest(TestCase):
         self.assertNotIn(theirs.id, ids)
 
     def test_list_can_be_filtered_by_photo(self):
-        attached = Tag.objects.create(name="beach", owner=self.user)
+        attached = create_test_tag(name="beach", owner=self.user)
         attached.photos.add(self.photos[0])
-        Tag.objects.create(name="sunset", owner=self.user)
+        create_test_tag(name="sunset", owner=self.user)
 
         rows = _results(self.client.get(f"/api/tags/?photo={self.photos[0].id}"))
 
         self.assertEqual([row["name"] for row in rows], ["beach"])
 
     def test_list_can_be_filtered_by_image_hash(self):
-        attached = Tag.objects.create(name="beach", owner=self.user)
+        attached = create_test_tag(name="beach", owner=self.user)
         attached.photos.add(self.photos[0])
 
         rows = _results(
@@ -343,7 +348,7 @@ class TagApiTest(TestCase):
         self.assertEqual([row["name"] for row in rows], ["beach"])
 
     def test_list_includes_cover_photos_and_count(self):
-        tag = Tag.objects.create(name="beach", owner=self.user)
+        tag = create_test_tag(name="beach", owner=self.user)
         tag.photos.add(*self.photos)
 
         row = _results(self.client.get("/api/tags/"))[0]
@@ -352,7 +357,7 @@ class TagApiTest(TestCase):
         self.assertEqual(len(row["cover_photos"]), 2)
 
     def test_list_ignores_trashed_photos(self):
-        tag = Tag.objects.create(name="beach", owner=self.user)
+        tag = create_test_tag(name="beach", owner=self.user)
         trashed = create_test_photo(owner=self.user, in_trashcan=True)
         tag.photos.add(self.photos[0], trashed)
 
@@ -366,7 +371,7 @@ class TagApiTest(TestCase):
         )
 
     def test_rename_tag(self):
-        tag = Tag.objects.create(name="beach", owner=self.user)
+        tag = create_test_tag(name="beach", owner=self.user)
 
         response = self.client.patch(
             f"/api/tags/{tag.id}/", {"name": "seaside"}, format="json"
@@ -377,8 +382,8 @@ class TagApiTest(TestCase):
         self.assertEqual(tag.name, "seaside")
 
     def test_rename_to_an_existing_name_is_rejected(self):
-        tag = Tag.objects.create(name="beach", owner=self.user)
-        Tag.objects.create(name="seaside", owner=self.user)
+        tag = create_test_tag(name="beach", owner=self.user)
+        create_test_tag(name="seaside", owner=self.user)
 
         response = self.client.patch(
             f"/api/tags/{tag.id}/", {"name": "seaside"}, format="json"
@@ -389,7 +394,7 @@ class TagApiTest(TestCase):
         self.assertEqual(tag.name, "beach")
 
     def test_delete_tag(self):
-        tag = Tag.objects.create(name="beach", owner=self.user)
+        tag = create_test_tag(name="beach", owner=self.user)
         tag.photos.add(*self.photos)
 
         response = self.client.delete(f"/api/tags/{tag.id}/")
@@ -400,7 +405,7 @@ class TagApiTest(TestCase):
         self.assertEqual(Photo.objects.filter(owner=self.user).count(), 2)
 
     def test_add_photos(self):
-        tag = Tag.objects.create(name="beach", owner=self.user)
+        tag = create_test_tag(name="beach", owner=self.user)
 
         response = self.client.post(
             f"/api/tags/{tag.id}/add/",
@@ -413,7 +418,7 @@ class TagApiTest(TestCase):
         self.assertEqual(tag.photos.count(), 2)
 
     def test_add_photos_by_image_hash(self):
-        tag = Tag.objects.create(name="beach", owner=self.user)
+        tag = create_test_tag(name="beach", owner=self.user)
 
         self.client.post(
             f"/api/tags/{tag.id}/add/",
@@ -424,14 +429,14 @@ class TagApiTest(TestCase):
         self.assertEqual(list(tag.photos.all()), [self.photos[0]])
 
     def test_add_photos_without_a_payload_is_rejected(self):
-        tag = Tag.objects.create(name="beach", owner=self.user)
+        tag = create_test_tag(name="beach", owner=self.user)
 
         response = self.client.post(f"/api/tags/{tag.id}/add/", {}, format="json")
 
         self.assertEqual(response.status_code, 400)
 
     def test_add_an_unknown_photo_is_rejected(self):
-        tag = Tag.objects.create(name="beach", owner=self.user)
+        tag = create_test_tag(name="beach", owner=self.user)
 
         response = self.client.post(
             f"/api/tags/{tag.id}/add/",
@@ -443,7 +448,7 @@ class TagApiTest(TestCase):
         self.assertEqual(tag.photos.count(), 0)
 
     def test_remove_photos(self):
-        tag = Tag.objects.create(name="beach", owner=self.user)
+        tag = create_test_tag(name="beach", owner=self.user)
         tag.photos.add(*self.photos)
 
         response = self.client.post(
@@ -457,9 +462,9 @@ class TagApiTest(TestCase):
         self.assertEqual(list(tag.photos.all()), [self.photos[1]])
 
     def test_merge_moves_photos_and_deletes_the_source(self):
-        target = Tag.objects.create(name="beach", owner=self.user)
+        target = create_test_tag(name="beach", owner=self.user)
         target.photos.add(self.photos[0])
-        source = Tag.objects.create(name="seaside", owner=self.user)
+        source = create_test_tag(name="seaside", owner=self.user)
         source.photos.add(self.photos[1])
 
         response = self.client.post(
@@ -473,9 +478,9 @@ class TagApiTest(TestCase):
         self.assertEqual(target.photo_count, 2)
 
     def test_merge_of_overlapping_tags_does_not_duplicate_photos(self):
-        target = Tag.objects.create(name="beach", owner=self.user)
+        target = create_test_tag(name="beach", owner=self.user)
         target.photos.add(*self.photos)
-        source = Tag.objects.create(name="seaside", owner=self.user)
+        source = create_test_tag(name="seaside", owner=self.user)
         source.photos.add(self.photos[0])
 
         self.client.post(
@@ -487,7 +492,7 @@ class TagApiTest(TestCase):
         self.assertEqual(target.photo_count, 2)
 
     def test_merge_into_itself_is_rejected(self):
-        tag = Tag.objects.create(name="beach", owner=self.user)
+        tag = create_test_tag(name="beach", owner=self.user)
 
         response = self.client.post(
             f"/api/tags/{tag.id}/merge/", {"tag": tag.id}, format="json"
@@ -497,14 +502,14 @@ class TagApiTest(TestCase):
         self.assertTrue(Tag.objects.filter(id=tag.id).exists())
 
     def test_merge_without_a_payload_is_rejected(self):
-        tag = Tag.objects.create(name="beach", owner=self.user)
+        tag = create_test_tag(name="beach", owner=self.user)
 
         response = self.client.post(f"/api/tags/{tag.id}/merge/", {}, format="json")
 
         self.assertEqual(response.status_code, 400)
 
     def test_retrieve_returns_grouped_photos(self):
-        tag = Tag.objects.create(name="beach", owner=self.user)
+        tag = create_test_tag(name="beach", owner=self.user)
         tag.photos.add(*self.photos)
 
         response = self.client.get(f"/api/tags/{tag.id}/")
@@ -513,7 +518,7 @@ class TagApiTest(TestCase):
         self.assertEqual(response.json()["results"]["name"], "beach")
 
     def test_anonymous_users_are_rejected(self):
-        tag = Tag.objects.create(name="beach", owner=self.user)
+        tag = create_test_tag(name="beach", owner=self.user)
 
         response = APIClient().get(f"/api/tags/{tag.id}/")
 
@@ -534,7 +539,7 @@ class TagDetailQueryCountTest(TestCase):
         self.now = timezone.now()
 
     def _tag(self, number_of_photos):
-        tag = Tag.objects.create(name=f"beach-{number_of_photos}", owner=self.user)
+        tag = create_test_tag(name=f"beach-{number_of_photos}", owner=self.user)
         tag.photos.add(
             *[
                 create_test_photo(owner=self.user, video=False, exif_timestamp=self.now)
@@ -586,7 +591,7 @@ class TagIsolationTest(TestCase):
         self.client = APIClient()
         self.client.force_authenticate(user=self.attacker)
 
-        self.tag = Tag.objects.create(name="beach", owner=self.owner)
+        self.tag = create_test_tag(name="beach", owner=self.owner)
         self.photo = create_test_photo(owner=self.owner)
         self.tag.photos.add(self.photo)
 
@@ -620,7 +625,7 @@ class TagIsolationTest(TestCase):
         self.assertEqual(response.status_code, 404)
 
     def test_cannot_attach_another_users_photo_to_own_tag(self):
-        own_tag = Tag.objects.create(name="mine", owner=self.attacker)
+        own_tag = create_test_tag(name="mine", owner=self.attacker)
 
         response = self.client.post(
             f"/api/tags/{own_tag.id}/add/",
@@ -634,7 +639,7 @@ class TagIsolationTest(TestCase):
         self.assertEqual(own_tag.photos.count(), 0)
 
     def test_cannot_merge_another_users_tag_into_own_tag(self):
-        own_tag = Tag.objects.create(name="mine", owner=self.attacker)
+        own_tag = create_test_tag(name="mine", owner=self.attacker)
 
         response = self.client.post(
             f"/api/tags/{own_tag.id}/merge/", {"tag": self.tag.id}, format="json"
@@ -656,7 +661,7 @@ class TagPhotoFilterTest(TestCase):
     def setUp(self):
         self.user = create_test_user()
         self.photos = create_test_photos(number_of_photos=2, owner=self.user)
-        self.tag = Tag.objects.create(name="beach", owner=self.user)
+        self.tag = create_test_tag(name="beach", owner=self.user)
         self.tag.photos.add(self.photos[0])
 
     def test_filters_photos_by_tag(self):
@@ -686,7 +691,7 @@ class TagSearchTest(TestCase):
         self.client.force_authenticate(user=self.user)
         self.tagged = create_test_photo(owner=self.user, search_captions="")
         self.untagged = create_test_photo(owner=self.user, search_captions="")
-        tag = Tag.objects.create(name="pinniped", owner=self.user)
+        tag = create_test_tag(name="pinniped", owner=self.user)
         tag.photos.add(self.tagged)
 
     def test_photos_can_be_found_by_tag_name(self):
@@ -858,7 +863,7 @@ class TagSelectAllTest(TestCase):
         self.client = APIClient()
         self.client.force_authenticate(user=self.user)
         self.photos = create_test_photos(number_of_photos=3, owner=self.user)
-        self.tag = Tag.objects.create(name="beach", owner=self.user)
+        self.tag = create_test_tag(name="beach", owner=self.user)
 
     def test_select_all_attaches_every_photo_in_the_view(self):
         response = self.client.post(
@@ -972,7 +977,7 @@ class TagSelectAllTest(TestCase):
         for_three = len(queries.captured_queries)
 
         create_test_photos(number_of_photos=5, owner=self.user)
-        other_tag = Tag.objects.create(name="holiday", owner=self.user)
+        other_tag = create_test_tag(name="holiday", owner=self.user)
         with CaptureQueriesContext(connection) as queries:
             self.client.post(
                 f"/api/tags/{other_tag.id}/add/",
@@ -984,7 +989,7 @@ class TagSelectAllTest(TestCase):
         self.assertEqual(for_three, for_eight)
 
     def test_another_users_tag_stays_out_of_reach_in_select_all_mode(self):
-        theirs = Tag.objects.create(name="theirs", owner=self.other_user)
+        theirs = create_test_tag(name="theirs", owner=self.other_user)
 
         response = self.client.post(
             f"/api/tags/{theirs.id}/add/",

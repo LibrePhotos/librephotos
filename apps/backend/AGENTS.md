@@ -82,6 +82,15 @@ test makes `--parallel` runs crash with "cannot pickle 'traceback'"; rerun that 
   (`api/tests/infra/test_environment_variables_documented.py`); the suite fails otherwise. A value the
   process only sets for itself needs neither.
 
+## Tests
+
+- Build test rows with the factories in `api/tests/utils.py` (`create_test_photo`, `create_test_stack`,
+  `create_test_duplicate`, `create_test_tag`, ...), not `Model.objects.create` or a private `_make_*`
+  helper. A model without a factory gets one there, with a docstring. Keep the test-data rule in
+  `api/tests/infra/test_test_data_factories.py`: it fails on a new raw create, and
+  `api/tests/infra/test_data_baseline.txt` only shrinks (`python scripts/factory_baseline.py --update`).
+- A raw create that must stay raw (a constraint test) carries `# raw-create: <reason>` on its line.
+
 ## Layout
 
 - `api/`: models, serializers, views, `management/commands/`, `migrations/`, `tests/` (grouped by area,

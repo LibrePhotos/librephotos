@@ -15,6 +15,7 @@ Two defects are covered here:
 """
 
 import datetime
+import os
 
 from django.test import TestCase
 from django.utils import timezone
@@ -133,8 +134,8 @@ class DuplicateImageHashResolutionTest(TestCase):
         return resp["X-Accel-Redirect"]
 
     def test_each_owner_gets_their_own_row(self):
-        self.assertIn(self.alice_path.split("/")[-1], self._redirect_for(self.alice))
-        self.assertIn(self.bob_path.split("/")[-1], self._redirect_for(self.bob))
+        self.assertIn(os.path.basename(self.alice_path), self._redirect_for(self.alice))
+        self.assertIn(os.path.basename(self.bob_path), self._redirect_for(self.bob))
 
     def test_owner_of_second_row_is_not_denied(self):
         # Before the fix `.first()` could hand back Alice's row, leaving Bob

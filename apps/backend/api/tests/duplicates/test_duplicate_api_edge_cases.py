@@ -16,7 +16,11 @@ from rest_framework.test import APIClient
 
 from api.models.duplicate import Duplicate
 from api.models.photo_metadata import PhotoMetadata
-from api.tests.utils import create_test_photo, create_test_user
+from api.tests.utils import (
+    create_test_duplicate,
+    create_test_photo,
+    create_test_user,
+)
 
 
 class DuplicateResolveEdgeCasesTestCase(TestCase):
@@ -32,7 +36,7 @@ class DuplicateResolveEdgeCasesTestCase(TestCase):
         photo1 = create_test_photo(owner=self.user)
         photo2 = create_test_photo(owner=self.user)
 
-        duplicate = Duplicate.objects.create(
+        duplicate = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
             review_status=Duplicate.ReviewStatus.RESOLVED,
@@ -57,7 +61,7 @@ class DuplicateResolveEdgeCasesTestCase(TestCase):
         photo1 = create_test_photo(owner=self.user)
         photo2 = create_test_photo(owner=self.user, in_trashcan=True)
 
-        duplicate = Duplicate.objects.create(
+        duplicate = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
@@ -84,7 +88,7 @@ class DuplicateResolveEdgeCasesTestCase(TestCase):
         photo1 = create_test_photo(owner=self.user)
         photo2 = create_test_photo(owner=self.user)
 
-        duplicate = Duplicate.objects.create(
+        duplicate = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
@@ -112,7 +116,7 @@ class DuplicateResolveEdgeCasesTestCase(TestCase):
         photo1 = create_test_photo(owner=self.user)
         photo2 = create_test_photo(owner=self.user)
 
-        duplicate = Duplicate.objects.create(
+        duplicate = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
@@ -131,7 +135,7 @@ class DuplicateResolveEdgeCasesTestCase(TestCase):
         photo1 = create_test_photo(owner=self.user)
         photo2 = create_test_photo(owner=self.user)
 
-        duplicate = Duplicate.objects.create(
+        duplicate = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
@@ -158,7 +162,7 @@ class DuplicateRevertEdgeCasesTestCase(TestCase):
         photo1 = create_test_photo(owner=self.user)
         photo2 = create_test_photo(owner=self.user)
 
-        duplicate = Duplicate.objects.create(
+        duplicate = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
             review_status=Duplicate.ReviewStatus.PENDING,
@@ -175,7 +179,7 @@ class DuplicateRevertEdgeCasesTestCase(TestCase):
         photo1 = create_test_photo(owner=self.user)
         photo2 = create_test_photo(owner=self.user)
 
-        duplicate = Duplicate.objects.create(
+        duplicate = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
             review_status=Duplicate.ReviewStatus.DISMISSED,
@@ -192,7 +196,7 @@ class DuplicateRevertEdgeCasesTestCase(TestCase):
         photo1 = create_test_photo(owner=self.user)
         photo2 = create_test_photo(owner=self.user)
 
-        duplicate = Duplicate.objects.create(
+        duplicate = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
@@ -223,7 +227,7 @@ class DuplicateRevertEdgeCasesTestCase(TestCase):
         photo1 = create_test_photo(owner=self.user)
         photo2 = create_test_photo(owner=self.user)
 
-        duplicate = Duplicate.objects.create(
+        duplicate = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
@@ -257,7 +261,7 @@ class DuplicateDeleteEdgeCasesTestCase(TestCase):
         """Test that deleting a duplicate unlinks ALL photos."""
         photos = [create_test_photo(owner=self.user) for _ in range(5)]
 
-        duplicate = Duplicate.objects.create(
+        duplicate = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
@@ -287,7 +291,7 @@ class DuplicateDeleteEdgeCasesTestCase(TestCase):
         """Test deleting a duplicate with many photos."""
         photos = [create_test_photo(owner=self.user) for _ in range(20)]
 
-        duplicate = Duplicate.objects.create(
+        duplicate = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
@@ -304,7 +308,7 @@ class DuplicateDeleteEdgeCasesTestCase(TestCase):
         photo1 = create_test_photo(owner=self.user)
         photo2 = create_test_photo(owner=self.user)
 
-        duplicate = Duplicate.objects.create(
+        duplicate = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
             review_status=Duplicate.ReviewStatus.RESOLVED,
@@ -328,7 +332,7 @@ class DuplicateDeleteEdgeCasesTestCase(TestCase):
         photo1 = create_test_photo(owner=other_user)
         photo2 = create_test_photo(owner=other_user)
 
-        duplicate = Duplicate.objects.create(
+        duplicate = create_test_duplicate(
             owner=other_user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
@@ -356,7 +360,7 @@ class DuplicateDetailEdgeCasesTestCase(TestCase):
         # Ensure no metadata exists
         PhotoMetadata.objects.filter(photo__in=[photo1, photo2]).delete()
 
-        duplicate = Duplicate.objects.create(
+        duplicate = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.VISUAL_DUPLICATE,
         )
@@ -378,7 +382,7 @@ class DuplicateDetailEdgeCasesTestCase(TestCase):
         photo1.main_file = None
         photo1.save()
 
-        duplicate = Duplicate.objects.create(
+        duplicate = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
@@ -394,7 +398,7 @@ class DuplicateDetailEdgeCasesTestCase(TestCase):
         photo1 = create_test_photo(owner=self.user)
         photo2 = create_test_photo(owner=self.user)
 
-        duplicate = Duplicate.objects.create(
+        duplicate = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
             review_status=Duplicate.ReviewStatus.RESOLVED,
@@ -430,7 +434,7 @@ class DuplicateListEdgeCasesTestCase(TestCase):
         """Test that list excludes duplicates with only 1 photo."""
         photo1 = create_test_photo(owner=self.user)
 
-        duplicate = Duplicate.objects.create(
+        duplicate = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
@@ -451,7 +455,7 @@ class DuplicateListEdgeCasesTestCase(TestCase):
         photo2 = create_test_photo(owner=self.user)
         photo3 = create_test_photo(owner=self.user)
 
-        duplicate = Duplicate.objects.create(
+        duplicate = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
             review_status=Duplicate.ReviewStatus.RESOLVED,
@@ -475,7 +479,7 @@ class DuplicateListEdgeCasesTestCase(TestCase):
         for i in range(5):
             photo1 = create_test_photo(owner=self.user)
             photo2 = create_test_photo(owner=self.user)
-            dup = Duplicate.objects.create(
+            dup = create_test_duplicate(
                 owner=self.user,
                 duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
             )
@@ -502,7 +506,7 @@ class DuplicateAutoSelectBestEdgeCasesTestCase(TestCase):
 
     def test_auto_select_with_no_photos(self):
         """Test auto_select_best_photo with empty duplicate group."""
-        duplicate = Duplicate.objects.create(
+        duplicate = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
@@ -519,7 +523,7 @@ class DuplicateAutoSelectBestEdgeCasesTestCase(TestCase):
         photo1.save()
         photo2.save()
 
-        duplicate = Duplicate.objects.create(
+        duplicate = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
@@ -537,7 +541,7 @@ class DuplicateAutoSelectBestEdgeCasesTestCase(TestCase):
         # Delete any metadata
         PhotoMetadata.objects.filter(photo__in=[photo1, photo2]).delete()
 
-        duplicate = Duplicate.objects.create(
+        duplicate = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.VISUAL_DUPLICATE,
         )
@@ -561,7 +565,7 @@ class DuplicateDismissEdgeCasesTestCase(TestCase):
         photo1 = create_test_photo(owner=self.user)
         photo2 = create_test_photo(owner=self.user)
 
-        duplicate = Duplicate.objects.create(
+        duplicate = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
             review_status=Duplicate.ReviewStatus.DISMISSED,
@@ -579,7 +583,7 @@ class DuplicateDismissEdgeCasesTestCase(TestCase):
         photo1 = create_test_photo(owner=self.user)
         photo2 = create_test_photo(owner=self.user)
 
-        duplicate = Duplicate.objects.create(
+        duplicate = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
             review_status=Duplicate.ReviewStatus.RESOLVED,
@@ -623,14 +627,14 @@ class DuplicateStatsEdgeCasesTestCase(TestCase):
         photo4 = create_test_photo(owner=self.user)
 
         # Create exact copy duplicate
-        dup1 = Duplicate.objects.create(
+        dup1 = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
         dup1.photos.add(photo1, photo2)
 
         # Create visual duplicate
-        dup2 = Duplicate.objects.create(
+        dup2 = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.VISUAL_DUPLICATE,
         )
@@ -648,7 +652,7 @@ class DuplicateStatsEdgeCasesTestCase(TestCase):
         photos = [create_test_photo(owner=self.user) for _ in range(6)]
 
         # Pending
-        dup1 = Duplicate.objects.create(
+        dup1 = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
             review_status=Duplicate.ReviewStatus.PENDING,
@@ -656,7 +660,7 @@ class DuplicateStatsEdgeCasesTestCase(TestCase):
         dup1.photos.add(photos[0], photos[1])
 
         # Resolved
-        dup2 = Duplicate.objects.create(
+        dup2 = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
             review_status=Duplicate.ReviewStatus.RESOLVED,
@@ -664,7 +668,7 @@ class DuplicateStatsEdgeCasesTestCase(TestCase):
         dup2.photos.add(photos[2], photos[3])
 
         # Dismissed
-        dup3 = Duplicate.objects.create(
+        dup3 = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
             review_status=Duplicate.ReviewStatus.DISMISSED,
@@ -683,7 +687,7 @@ class DuplicateStatsEdgeCasesTestCase(TestCase):
         photo1 = create_test_photo(owner=self.user)
         photo2 = create_test_photo(owner=self.user)
 
-        dup = Duplicate.objects.create(
+        dup = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
             review_status=Duplicate.ReviewStatus.PENDING,
@@ -702,14 +706,14 @@ class DuplicateStatsEdgeCasesTestCase(TestCase):
         photos = [create_test_photo(owner=self.user) for _ in range(5)]
 
         # Create duplicate with 3 photos
-        dup1 = Duplicate.objects.create(
+        dup1 = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
         dup1.photos.add(photos[0], photos[1], photos[2])
 
         # Create another duplicate with 2 photos (one overlapping)
-        dup2 = Duplicate.objects.create(
+        dup2 = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.VISUAL_DUPLICATE,
         )
@@ -728,7 +732,7 @@ class DuplicateStatsEdgeCasesTestCase(TestCase):
         # Create duplicate for other user
         other_photo1 = create_test_photo(owner=other_user)
         other_photo2 = create_test_photo(owner=other_user)
-        dup = Duplicate.objects.create(
+        dup = create_test_duplicate(
             owner=other_user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
