@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 from django.db import connection
 
 from api.lazy_import import LazyModule
-from api.models import Person, User
+from api.models import User
 
 if TYPE_CHECKING:
     import numpy.typing as npt
@@ -147,19 +147,3 @@ def build_social_graph(user: User) -> dict[str, list[dict[str, str | float]]]:
     except Exception:
         logger.exception(f"Error building social graph for user {user.id}")
         raise
-
-
-def build_ego_graph(person_id: int) -> dict[str, list[dict[str, str]]]:
-    G = _Graph()
-    person = Person.objects.prefetch_related("faces__photo__faces__person").filter(
-        id=person_id
-    )[0]
-    for this_person_face in person.faces.all():
-        assert this_person_face.photo is not None
-        for other_person_face in this_person_face.photo.faces.all():
-            assert other_person_face.person is not None
-            G.add_edge(person.name, other_person_face.person.name)
-    nodes = [{"id": node} for node in G.nodes()]
-    links = [{"source": pair[0], "target": pair[1]} for pair in G.edges()]
-    res = {"nodes": nodes, "links": links}
-    return res
