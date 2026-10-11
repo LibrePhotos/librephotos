@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.a1e92a76.css">
-<script src="/assets/js/runtime~main.f76ea9a7.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.aa828614.js" defer="defer"></script>
 <script src="/assets/js/main.f4dc5e9c.js" defer="defer"></script>
 </head>
 <body>
@@ -34,12 +34,9 @@ your changes and <code>yarn lint:error:fix</code> to apply the automatic fixes �
 Prettier through the <code>prettier/prettier</code> rule, so linting also flags unformatted code. The
 <code>lint-frontend</code> CI workflow runs the lint, test and build steps on every pull request that touches
 <code>apps/frontend</code> and fails on anything unclean, so nothing un-linted gets merged.</p>
-<p><code>yarn build</code> does not type-check, so run <code>yarn typecheck</code> as well. It runs <code>tsc --noEmit</code> and
-compares the errors against <code>apps/frontend/tsc-baseline.txt</code>, the backlog of errors that predate the
-check. Any error that is not in the baseline fails it, and so does the <code>typecheck-frontend</code> CI
-workflow. Errors are matched by file, code and message, not by line, so moving existing code around
-is fine. When you fix baseline errors the check tells you so; run <code>yarn typecheck:update</code> and commit
-the smaller baseline. Don&#x27;t use <code>typecheck:update</code> to accept new errors — fix them instead.</p>
+<p><code>yarn build</code> does not type-check, so run <code>yarn typecheck</code> as well. It runs <code>tsc --noEmit</code> over the app
+and <code>vite.config.ts</code>. The frontend has zero type errors and no baseline: any error fails it, and so
+does the <code>typecheck-frontend</code> CI workflow. Fix the type rather than working around it.</p>
 <p>The repository ships a <code>husky</code> pre-commit hook (<code>apps/frontend/.husky/pre-commit</code>, which runs
 <code>lint-staged</code>), but it is currently inactive in the monorepo: <code>yarn install</code> runs the <code>prepare</code>
 script — <code>husky</code> — with the working directory set to <code>apps/frontend</code>, which has no <code>.git</code> of
