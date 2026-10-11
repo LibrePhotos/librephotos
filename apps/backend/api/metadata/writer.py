@@ -10,6 +10,20 @@ from api.metadata.reader import get_sidecar_files_in_priority_order
 logger = logging.getLogger(__name__)
 
 
+def _argument(tag, value):
+    """One ``-TAG=value`` argument for the ExifTool process.
+
+    PyExifTool drives ``exiftool -stay_open True -@ -``, which reads one
+    argument per line, so a line break inside a value would end this argument
+    and start another one (``-if <perl>`` runs code). Callers pass single-line
+    values (face_regions flattens person names); this is the backstop.
+    """
+    argument = f"-{tag}={value}"
+    if "\n" in argument or "\r" in argument:
+        raise ValueError(f"refusing to write {tag}: the value contains a line break")
+    return os.fsencode(argument)
+
+
 def write_metadata(media_file, tags, use_sidecar=True):
     et = exiftool.ExifTool(binaries.exiftool())
     terminate_et = False
@@ -26,11 +40,8 @@ def write_metadata(media_file, tags, use_sidecar=True):
         logger.info(f"Writing {tags} to {file_path}")
         params = []
         for tag, value in tags.items():
-            if isinstance(value, list):
-                for item in value:
-                    params.append(os.fsencode(f"-{tag}={item}"))
-            else:
-                params.append(os.fsencode(f"-{tag}={value}"))
+            values = value if isinstance(value, list) else [value]
+            params.extend(_argument(tag, item) for item in values)
         params.append(b"-overwrite_original")
         params.append(os.fsencode(file_path))
         et.execute(*params)

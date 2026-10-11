@@ -1,4 +1,5 @@
 import logging
+import unicodedata
 
 import PIL
 
@@ -82,6 +83,15 @@ def _escape_exiftool_value(value):
     return value
 
 
+def _single_line(name):
+    """The name with control characters (line breaks, tabs) turned into spaces.
+
+    Names are user input, and ExifTool reads its arguments one per line: a
+    line break in a name would start a new ExifTool argument.
+    """
+    return "".join(" " if unicodedata.category(ch) == "Cc" else ch for ch in name)
+
+
 def build_face_region_exiftool_args(face_regions, image_width=None, image_height=None):
     """Build exiftool args dict for writing XMP-mwg-rs:RegionInfo and XMP:Subject.
 
@@ -96,7 +106,8 @@ def build_face_region_exiftool_args(face_regions, image_width=None, image_height
     region_parts = []
     person_names = []
     for region in face_regions:
-        name = _escape_exiftool_value(region["name"])
+        single_line = _single_line(region["name"])
+        name = _escape_exiftool_value(single_line)
         x = f"{region['x']:.6f}"
         y = f"{region['y']:.6f}"
         w = f"{region['w']:.6f}"
@@ -105,8 +116,8 @@ def build_face_region_exiftool_args(face_regions, image_width=None, image_height
             f"{{Area={{X={x},Y={y},W={w},H={h},Unit=normalized}}"
             f",Name={name},Type=Face}}"
         )
-        if region["name"]:
-            person_names.append(region["name"])
+        if single_line:
+            person_names.append(single_line)
 
     region_list = ",".join(region_parts)
 
