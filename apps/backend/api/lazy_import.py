@@ -5,23 +5,27 @@ LibRaw and Pillow's HEIC/JXL plugins are only used by the scan and the
 workers. Holding them behind a :class:`LazyModule` keeps them out of every
 server process (memory, start-up time) without changing the call sites, and
 the name stays a module attribute that tests can patch.
+
+The type checker sees the real module instead::
+
+    if TYPE_CHECKING:
+        import numpy as np
+    else:
+        np = LazyModule("numpy")
 """
 
 import importlib
-from typing import Any
 
 
 class LazyModule:
     """Stands in for module *name*; imports it on the first attribute access."""
 
+    _lazy_name: str
+
     def __init__(self, name: str) -> None:
         self.__dict__["_lazy_name"] = name
 
-    # The attributes are whatever the lazily imported module defines, and there
-    # is no static type for them short of importing it, which is what this
-    # class exists to avoid. ``object`` would make every ``np.mean(...)`` at the
-    # call sites an error.
-    def __getattr__(self, attr: str) -> Any:  # noqa: ANN401
+    def __getattr__(self, attr: str) -> object:
         return getattr(importlib.import_module(self._lazy_name), attr)
 
     def __repr__(self) -> str:

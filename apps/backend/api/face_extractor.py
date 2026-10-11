@@ -14,7 +14,10 @@ from api.lazy_import import LazyModule
 if TYPE_CHECKING:
     from api.models.user import User
 
-np = LazyModule("numpy")
+if TYPE_CHECKING:
+    import numpy as np
+else:
+    np = LazyModule("numpy")
 
 logger = logging.getLogger(__name__)
 

@@ -11,6 +11,7 @@ Uses pHash (perceptual hash) algorithm which is robust to:
 import logging
 import re
 from collections.abc import Sequence
+from typing import TYPE_CHECKING
 
 from PIL import Image
 
@@ -18,7 +19,10 @@ from api.lazy_import import LazyModule
 
 # imagehash brings numpy and scipy along; only the scan and duplicate
 # detection hash, not the API server that imports this module.
-imagehash = LazyModule("imagehash")
+if TYPE_CHECKING:
+    import imagehash
+else:
+    imagehash = LazyModule("imagehash")
 
 logger = logging.getLogger(__name__)
 
@@ -93,6 +97,8 @@ def hamming_distance(hash1: str | None, hash2: str | None) -> int:
         # search paid.
         return (int(hash1, 16) ^ int(hash2, 16)).bit_count()
     try:
+        if hash1 is None or hash2 is None:
+            raise ValueError("a hash is missing")
         h1 = imagehash.hex_to_hash(hash1)
         h2 = imagehash.hex_to_hash(hash2)
         return int(

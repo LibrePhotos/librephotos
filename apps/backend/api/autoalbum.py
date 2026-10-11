@@ -4,6 +4,7 @@ from collections.abc import Iterable
 from datetime import datetime, timedelta
 
 import pytz
+from typing import TYPE_CHECKING
 from django.db import transaction
 from django.db.models import Q
 
@@ -18,7 +19,10 @@ from api.models import (
 from api.models.tag import refresh_tag_photo_counts, tag_ids_for_photos
 from api.lazy_import import LazyModule
 
-np = LazyModule("numpy")
+if TYPE_CHECKING:
+    import numpy as np
+else:
+    np = LazyModule("numpy")
 
 logger = logging.getLogger(__name__)
 

@@ -1,7 +1,7 @@
 import logging
 from collections.abc import Sequence
 from datetime import datetime
-from typing import TypedDict
+from typing import TYPE_CHECKING, TypedDict
 
 import requests
 from django.core.paginator import Paginator
@@ -17,7 +17,10 @@ from api.semantic_search import (
     produced_by_openclip,
 )
 
-np = LazyModule("numpy")
+if TYPE_CHECKING:
+    import numpy as np
+else:
+    np = LazyModule("numpy")
 
 logger = logging.getLogger(__name__)
 

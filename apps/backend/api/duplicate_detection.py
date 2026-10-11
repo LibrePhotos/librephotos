@@ -41,7 +41,10 @@ if TYPE_CHECKING:
     import numpy.typing as npt
     from numpy import integer, uint64
 
-np = LazyModule("numpy")
+if TYPE_CHECKING:
+    import numpy as np
+else:
+    np = LazyModule("numpy")
 
 logger = logging.getLogger(__name__)
 

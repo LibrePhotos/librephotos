@@ -26,7 +26,10 @@ if TYPE_CHECKING:
     from sklearn.decomposition import PCA as _PCA
     from sklearn.neural_network import MLPClassifier as _MLPClassifier
 
-np = LazyModule("numpy")
+if TYPE_CHECKING:
+    import numpy as np
+else:
+    np = LazyModule("numpy")
 
 logger = logging.getLogger(__name__)
 

@@ -3,7 +3,7 @@ import os
 from collections import Counter
 from collections.abc import Iterable, Iterator
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import Any, TYPE_CHECKING, TypedDict
 
 from django.db import connection
 from django.db.models import Avg, Count, Max, Min, Model, Q, QuerySet, Sum
@@ -30,7 +30,10 @@ from api.models.user import get_deleted_user
 from api.lazy_import import LazyModule
 from api.semantic_search import OPENCLIP
 
-np = LazyModule("numpy")
+if TYPE_CHECKING:
+    import numpy as np
+else:
+    np = LazyModule("numpy")
 
 logger = logging.getLogger(__name__)
 

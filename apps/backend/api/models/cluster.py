@@ -14,7 +14,10 @@ if TYPE_CHECKING:
     import numpy.typing as npt
     from numpy import float64
 
-np = LazyModule("numpy")
+if TYPE_CHECKING:
+    import numpy as np
+else:
+    np = LazyModule("numpy")
 
 logger = logging.getLogger(__name__)
 
@@ -70,7 +73,7 @@ class Cluster(models.Model):
     def calculate_mean_face_encoding(
         all_encodings: npt.ArrayLike,
     ) -> npt.NDArray[float64]:
-        return np.mean(a=all_encodings, axis=0, dtype=np.float64)
+        return np.asarray(all_encodings, dtype=np.float64).mean(axis=0)
 
 
 def get_unknown_cluster(user: User) -> Cluster:

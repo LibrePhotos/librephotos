@@ -29,7 +29,10 @@ if TYPE_CHECKING:
 
     from api.models import Photo
 
-np = LazyModule("numpy")
+if TYPE_CHECKING:
+    import numpy as np
+else:
+    np = LazyModule("numpy")
 
 logger = logging.getLogger(__name__)
 
@@ -106,8 +109,7 @@ def _detect_and_save_faces(
         # The face service sends each encoding as a numpy array (face_recognition.detect_faces).
         assert encoding_array is None or isinstance(encoding_array, np.ndarray)
 
-        face_image = big_thumbnail_image[top:bottom, left:right]
-        face_image = PIL.Image.fromarray(face_image)
+        face_image = PIL.Image.fromarray(big_thumbnail_image[top:bottom, left:right])
 
         image_path = photo.image_hash + "_" + str(idx_face) + ".jpg"
 

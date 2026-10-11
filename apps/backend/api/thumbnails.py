@@ -12,14 +12,19 @@ from api.lazy_import import LazyModule
 from api.models.file import is_raw
 
 if TYPE_CHECKING:
-    # The annotations' pyvips. At runtime the name pyvips is the lazy module below.
-    import pyvips as pyvips_types
-
-np = LazyModule("numpy")
+    import numpy as np
+else:
+    np = LazyModule("numpy")
 
 # Loaded on first render: the API server imports this module but never renders.
-pyvips = LazyModule("pyvips")
-image_decoding = LazyModule("api.image_decoding")
+if TYPE_CHECKING:
+    import pyvips
+else:
+    pyvips = LazyModule("pyvips")
+if TYPE_CHECKING:
+    from api import image_decoding
+else:
+    image_decoding = LazyModule("api.image_decoding")
 
 logger = logging.getLogger(__name__)
 
@@ -36,8 +41,8 @@ _ORIENTATION_TRANSFORMS = {
 
 
 def _apply_local_orientation(
-    image: pyvips_types.Image, local_orientation: int
-) -> pyvips_types.Image:
+    image: pyvips.Image, local_orientation: int
+) -> pyvips.Image:
     """Apply a user-specified orientation transform to an already-upright pyvips image.
 
     ``local_orientation`` follows the EXIF Orientation convention (1-8).
@@ -115,8 +120,8 @@ def renders_exif_orientation(path: str) -> bool:
 
 
 def _autorotated(
-    image: pyvips_types.Image, exif_orientation: int
-) -> pyvips_types.Image:
+    image: pyvips.Image, exif_orientation: int
+) -> pyvips.Image:
     tagged = image.copy()
     tagged.set_type(pyvips.GValue.gint_type, "orientation", exif_orientation)
     return tagged.autorot()
@@ -197,7 +202,7 @@ def _resize_big_thumbnail(
     return complete_path
 
 
-def _oriented(image: pyvips_types.Image, local_orientation: int) -> pyvips_types.Image:
+def _oriented(image: pyvips.Image, local_orientation: int) -> pyvips.Image:
     if local_orientation and local_orientation != 1:
         return _apply_local_orientation(image, local_orientation)
     return image
@@ -205,7 +210,7 @@ def _oriented(image: pyvips_types.Image, local_orientation: int) -> pyvips_types
 
 def _decode_thumbnail(
     input_path: str, output_height: int, local_orientation: int
-) -> pyvips_types.Image:
+) -> pyvips.Image:
     return _oriented(
         image_decoding.thumbnail(input_path, output_height), local_orientation
     )
@@ -238,7 +243,7 @@ def _render_raw_thumbnail(
 
 def _render_big_thumbnail(
     input_path: str, complete_path: str, local_orientation: int
-) -> pyvips_types.Image | None:
+) -> pyvips.Image | None:
     """Write the big thumbnail; return it in memory when it was rendered here."""
     height = STATIC_THUMBNAIL_HEIGHTS["thumbnails_big"]
     if is_raw(input_path):
@@ -253,7 +258,7 @@ def _render_big_thumbnail(
     return image
 
 
-def _load_big_thumbnail(complete_path: str) -> pyvips_types.Image:
+def _load_big_thumbnail(complete_path: str) -> pyvips.Image:
     # From bytes: on Windows a file libvips has opened stays open, and a
     # thumbnail that is regenerated later could not be deleted.
     with open(complete_path, "rb") as handle:
@@ -338,7 +343,7 @@ def create_static_thumbnails(
     """
     big_path = _media_path("thumbnails_big", hash, ".webp")
     try:
-        big: pyvips_types.Image | None = None
+        big: pyvips.Image | None = None
         if "thumbnails_big" in output_paths:
             big = _render_big_thumbnail(input_path, big_path, local_orientation)
         smaller = [path for path in output_paths if path != "thumbnails_big"]

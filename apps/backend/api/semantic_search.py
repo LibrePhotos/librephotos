@@ -36,7 +36,10 @@ if TYPE_CHECKING:
 
     from api.models.photo import Photo
 
-np = LazyModule("numpy")
+if TYPE_CHECKING:
+    import numpy as np
+else:
+    np = LazyModule("numpy")
 
 # The model's name: Photo.clip_embeddings_model of its embeddings, the
 # captions_json key of its tags and the prefix of its tag albums' thing_type.
