@@ -7,7 +7,6 @@ import { useTranslation } from "react-i18next";
 import { serverAddress } from "../../api_client/apiClient";
 import { useFetchSharedPhotoQuery } from "../../api_client/photos/hooks";
 import { usePublicPageTitle } from "../../components/sharing/usePublicPageTitle";
-import { i18nResolvedLanguage } from "../../i18n";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
 import { parsePhotoTimestamp } from "../../util/dateUtils";
 import { needsConversion } from "../../util/videoPlayback";
@@ -66,7 +65,7 @@ function PublicPhotoBySlug() {
 
   const thumbnailUrl = `${serverAddress}${photo.thumbnail_url}`;
   const timestamp = photo.exif_timestamp
-    ? parsePhotoTimestamp(photo.exif_timestamp).setLocale(i18nResolvedLanguage()).toLocaleString(DateTime.DATETIME_MED)
+    ? parsePhotoTimestamp(photo.exif_timestamp).toLocaleString(DateTime.DATETIME_MED)
     : "";
   const camera = [photo.camera, photo.lens].filter(Boolean).join(" · ");
   const people = (photo.people ?? []).map(person => person.name).join(", ");

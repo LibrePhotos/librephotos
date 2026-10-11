@@ -22,7 +22,6 @@ import {
   IconPlus as Plus,
   IconTrash as Trash,
 } from "@tabler/icons-react";
-import { DateTime } from "luxon";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useDeleteAllAutoAlbumsMutation } from "../../api_client/albums/hooks";
@@ -31,7 +30,7 @@ import { useFetchUserListQuery } from "../../api_client/user/hooks";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import type { ListUser } from "../../api_client/user/types";
 import { useIsDesktopLayout } from "../../hooks/useIsDesktopLayout";
-import { i18nResolvedLanguage } from "../../i18n";
+import { parseInstant } from "../../util/dateUtils";
 import { EmptyState } from "../common/EmptyState";
 import { JobList } from "../job/JobList";
 import { ModalUserDelete } from "../modals/ModalUserDelete";
@@ -118,11 +117,7 @@ function UserTable() {
                 {matches && <Table.Td>{user.confidence ? user.confidence : t("adminarea.notset")}</Table.Td>}
                 {matches && <Table.Td>{user.photo_count}</Table.Td>}
                 {matches && (
-                  <Table.Td>
-                    {user.date_joined
-                      ? DateTime.fromISO(user.date_joined).setLocale(i18nResolvedLanguage()).toRelative()
-                      : null}
-                  </Table.Td>
+                  <Table.Td>{user.date_joined ? parseInstant(user.date_joined).toRelative() : null}</Table.Td>
                 )}
               </Table.Tr>
             ))}

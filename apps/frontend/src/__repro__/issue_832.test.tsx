@@ -19,12 +19,12 @@
  * The wall-clock time must be shown verbatim, whatever zone the viewer sits in.
  */
 import { MantineProvider } from "@mantine/core";
-import i18n from "i18next";
 import { Settings } from "luxon";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { TimestampItem } from "../components/lightbox/TimestampItem";
+import i18n from "../i18n";
 
 // The component only uses this to PATCH edits; irrelevant to rendering, and
 // mocking it keeps react-query's provider out of the picture.

@@ -1,12 +1,11 @@
 import { Alert, Card, Center, Flex, Group, Loader, Pagination, Table, Text, Title } from "@mantine/core";
 import { IconAlertCircle as AlertCircle } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
-import { DateTime } from "luxon";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useJobsQuery } from "../../api_client/jobs/hooks";
 import { useIsDesktopLayout } from "../../hooks/useIsDesktopLayout";
-import { i18nResolvedLanguage } from "../../i18n";
+import { parseInstant } from "../../util/dateUtils";
 import { CancelJobButton } from "./CancelJobButton";
 import { DeleteJobButton } from "./DeleteJobButton";
 import { JobDuration } from "./JobDuration";
@@ -108,14 +107,8 @@ export function JobList({ variant = "admin" }: IJobList) {
                 </Table.Td>
                 {matches && (
                   <>
-                    <Table.Td>
-                      {DateTime.fromISO(job.queued_at).setLocale(i18nResolvedLanguage()).toRelative()}
-                    </Table.Td>
-                    <Table.Td>
-                      {job.started_at
-                        ? DateTime.fromISO(job.started_at).setLocale(i18nResolvedLanguage()).toRelative()
-                        : ""}
-                    </Table.Td>
+                    <Table.Td>{parseInstant(job.queued_at).toRelative()}</Table.Td>
+                    <Table.Td>{job.started_at ? parseInstant(job.started_at).toRelative() : ""}</Table.Td>
                   </>
                 )}
 

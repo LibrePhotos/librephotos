@@ -1,5 +1,6 @@
 import { DateTime } from "luxon";
 import { Memory, MemoryType } from "../../api_client/memories";
+import { parseInstant } from "../../util/dateUtils";
 
 /** What the labels read off a memory. */
 type DatedMemory = Readonly<Pick<Memory, "type" | "date">>;
@@ -10,18 +11,18 @@ type DatedMemory = Readonly<Pick<Memory, "type" | "date">>;
  * day out underneath instead. Both return null for the other kind, so the card
  * can pick whichever applies without repeating the same date twice.
  */
-export function memoryMonthLabel(memory: DatedMemory, locale: string): string | null {
+export function memoryMonthLabel(memory: DatedMemory): string | null {
   if (memory.type !== MemoryType.MONTH_YEARS_AGO) {
     return null;
   }
-  const date = DateTime.fromISO(memory.date).setLocale(locale);
+  const date = parseInstant(memory.date);
   return date.isValid ? date.toLocaleString({ month: "long", year: "numeric" }) : null;
 }
 
-export function memoryDayLabel(memory: DatedMemory, locale: string): string | null {
+export function memoryDayLabel(memory: DatedMemory): string | null {
   if (memory.type !== MemoryType.YEARS_AGO) {
     return null;
   }
-  const date = DateTime.fromISO(memory.date).setLocale(locale);
+  const date = parseInstant(memory.date);
   return date.isValid ? date.toLocaleString(DateTime.DATE_MED) : null;
 }

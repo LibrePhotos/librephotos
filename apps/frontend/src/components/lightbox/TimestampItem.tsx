@@ -12,7 +12,6 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useUpdatePhotoMutation } from "../../api_client/photos/hooks";
 import { Photo } from "../../api_client/photos/types";
-import { i18nResolvedLanguage } from "../../i18n";
 import {
   parsePhotoTimestamp,
   parsePickerDate,
@@ -47,7 +46,6 @@ function TimestampEditor({ photoDetail, isPublic }: Props) {
   const { mutate: updatePhoto } = useUpdatePhotoMutation();
 
   const { t } = useTranslation();
-  const lang = i18nResolvedLanguage();
 
   const onChangeDate = (date: Date | string | null) => {
     if (!date) {
@@ -72,7 +70,8 @@ function TimestampEditor({ photoDetail, isPublic }: Props) {
     if (!timestamp) return;
 
     const [hours, minutes, seconds] = event.target.value.split(":").map(Number);
-    const newDate = new Date(timestamp);
+    const newDate = parsePickerDate(timestamp);
+    if (!newDate) return;
     newDate.setHours(hours || 0);
     newDate.setMinutes(minutes || 0);
     newDate.setSeconds(seconds || 0);
@@ -102,7 +101,7 @@ function TimestampEditor({ photoDetail, isPublic }: Props) {
   const getDateTimeLabel = () => {
     if (!photoDetail.exif_timestamp) return t("lightbox.sidebar.withouttimestamp");
 
-    const photoDateTime = parsePhotoTimestamp(photoDetail.exif_timestamp).setLocale(lang);
+    const photoDateTime = parsePhotoTimestamp(photoDetail.exif_timestamp);
     if (photoDateTime.isValid) {
       const date = photoDateTime.toLocaleString(DateTime.DATE_MED);
       const dayOfWeek = photoDateTime.toFormat("cccc");
@@ -133,11 +132,9 @@ function TimestampEditor({ photoDetail, isPublic }: Props) {
     setTimestamp(savedTimestamp);
   };
 
-  const formatTimeForInput = (date: Date | string | null) => {
-    if (!date) return "";
-    const d = date instanceof Date ? date : new Date(date);
-    if (Number.isNaN(d.getTime())) return "";
-    return `${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}:${d.getSeconds().toString().padStart(2, "0")}`;
+  const formatTimeForInput = (date: Date | null) => {
+    if (!date || Number.isNaN(date.getTime())) return "";
+    return `${date.getHours().toString().padStart(2, "0")}:${date.getMinutes().toString().padStart(2, "0")}:${date.getSeconds().toString().padStart(2, "0")}`;
   };
 
   return (

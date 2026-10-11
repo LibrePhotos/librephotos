@@ -37,7 +37,6 @@ import { TagsSection } from "../../components/lightbox/TagsSection";
 import { TimestampItem } from "../../components/lightbox/TimestampItem";
 import { ModalPersonEdit } from "../../components/modals/ModalPersonEdit";
 import { PageHeader } from "../../components/PageHeader";
-import { i18nResolvedLanguage } from "../../i18n";
 import { notification } from "../../service/notifications";
 import { parsePhotoTimestamp } from "../../util/dateUtils";
 
@@ -101,9 +100,7 @@ function SinglePhotoView() {
   const firstImagePath = photoDetail.image_path?.[0];
   const fileName = firstImagePath !== undefined ? firstImagePath.split(/[\\/]/).pop() : t("photopage.unknownfilename");
   const timestamp = photoDetail.exif_timestamp
-    ? parsePhotoTimestamp(photoDetail.exif_timestamp)
-        .setLocale(i18nResolvedLanguage())
-        .toLocaleString(DateTime.DATETIME_MED)
+    ? parsePhotoTimestamp(photoDetail.exif_timestamp).toLocaleString(DateTime.DATETIME_MED)
     : t("lightbox.sidebar.withouttimestamp");
 
   const notThisPerson = (faceId: number) => {

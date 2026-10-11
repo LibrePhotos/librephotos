@@ -2,8 +2,6 @@ import { ActionIcon, Button, Checkbox, Group, Paper, Stack, Text, TextInput, Tit
 import { DateTimePicker } from "@mantine/dates";
 import { IconCopy as CopyIcon, IconLink as LinkIcon } from "@tabler/icons-react";
 import { useQuery } from "@tanstack/react-query";
-import dayjs from "dayjs";
-import customParseFormat from "dayjs/plugin/customParseFormat";
 import React, { useCallback, useEffect, useEffectEvent, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useToggleUserAlbumPublicMutation, type PublicSharingOptions } from "../../api_client/albums/hooks";
@@ -12,9 +10,8 @@ import { ApiError, fetchClient } from "../../api_client/api";
 import { shareAddress } from "../../api_client/apiClient";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import { type PublicSharingDefaults } from "../../api_client/user/types";
+import { fromPickerValue, pickerValueDaysFromNow, toPickerValue } from "../../util/dateUtils";
 import { copyToClipboard } from "../../util/util";
-
-dayjs.extend(customParseFormat);
 
 type SlugMeta = { valid: boolean; available: boolean; checking: boolean };
 type SlugProps = Readonly<{
@@ -88,19 +85,18 @@ function ExpiresSetting({ value, onChange }: ExpiresProps) {
         placeholder={t("sharing.pickExpiration")}
         withSeconds
         clearable
-        value={value ? dayjs(value).format("YYYY-MM-DD HH:mm:ss") : ""}
+        value={toPickerValue(value)}
         onChange={v => {
           if (!v) {
             onChange("");
             return;
           }
-          const parsed = dayjs(v, "YYYY-MM-DD HH:mm:ss");
-          onChange(parsed.isValid() ? parsed.toDate().toISOString() : "");
+          onChange(fromPickerValue(v) ?? "");
         }}
         presets={[
-          { value: dayjs().add(7, "day").format("YYYY-MM-DD HH:mm:ss"), label: t("sharing.days7") },
-          { value: dayjs().add(30, "day").format("YYYY-MM-DD HH:mm:ss"), label: t("sharing.days30") },
-          { value: dayjs().add(90, "day").format("YYYY-MM-DD HH:mm:ss"), label: t("sharing.days90") },
+          { value: pickerValueDaysFromNow(7), label: t("sharing.days7") },
+          { value: pickerValueDaysFromNow(30), label: t("sharing.days30") },
+          { value: pickerValueDaysFromNow(90), label: t("sharing.days90") },
         ]}
       />
       <Group gap="xs">

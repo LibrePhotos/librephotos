@@ -2,7 +2,7 @@ import { Table } from "@mantine/core";
 import { DateTime, Duration } from "luxon";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { i18nResolvedLanguage } from "../../i18n";
+import { parseInstant } from "../../util/dateUtils";
 
 type IJobDuration = Readonly<{
   matches: boolean;
@@ -17,13 +17,12 @@ type IJobDuration = Readonly<{
  * they read "2 min, 58 sec" instead of listing milliseconds as well.
  */
 export function formatJobDuration(startedAt: string, finishedAt?: string | null): string {
-  const end = finishedAt ? DateTime.fromISO(finishedAt) : DateTime.now();
-  const ms = Math.max(0, end.diff(DateTime.fromISO(startedAt)).as("milliseconds"));
-  const locale = i18nResolvedLanguage();
+  const end = finishedAt ? parseInstant(finishedAt) : DateTime.now();
+  const ms = Math.max(0, end.diff(parseInstant(startedAt)).as("milliseconds"));
   const duration =
     ms < 1000
-      ? Duration.fromObject({ milliseconds: Math.round(ms) }, { locale })
-      : Duration.fromObject({ seconds: Math.round(ms / 1000) }, { locale }).rescale();
+      ? Duration.fromObject({ milliseconds: Math.round(ms) })
+      : Duration.fromObject({ seconds: Math.round(ms / 1000) }).rescale();
   return duration.toHuman({ unitDisplay: "short" });
 }
 

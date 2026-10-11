@@ -21,7 +21,6 @@ import { Tile } from "../../../components/Tile";
 import { VirtualGrid } from "../../../components/virtual/VirtualGrid";
 import type { GridCellProps } from "../../../components/virtual/VirtualGrid";
 import { ALBUM_GRID_GUTTER, useAlbumListGridConfig } from "../../../hooks/useAlbumListGridConfig";
-import { i18nResolvedLanguage } from "../../../i18n";
 
 export const Route = createFileRoute("/_protected/album/events/")({
   component: AlbumAuto,
@@ -54,9 +53,7 @@ function AlbumAuto() {
       return <div key={key} style={style} />;
     }
     const start = eventStartDate(album);
-    const dateTimeLabel = start.isValid
-      ? start.setLocale(i18nResolvedLanguage()).toLocaleString(DateTime.DATE_MED)
-      : null;
+    const dateTimeLabel = start.isValid ? start.toLocaleString(DateTime.DATE_MED) : null;
 
     return (
       <div key={key} style={style}>

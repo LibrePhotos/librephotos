@@ -12,7 +12,6 @@ import {
   Title,
 } from "@mantine/core";
 import { IconShare as Share, IconShareOff as ShareOff } from "@tabler/icons-react";
-import { DateTime } from "luxon";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { serverAddress } from "../../api_client/apiClient";
@@ -20,7 +19,7 @@ import { useUpdatePhotoSharingMutation } from "../../api_client/photos/hooks";
 import type { BulkPhotoQuery } from "../../api_client/photos/types";
 import { useFetchUserListQuery } from "../../api_client/user/hooks";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
-import { i18nResolvedLanguage } from "../../i18n";
+import { parseInstant } from "../../util/dateUtils";
 import { avatarSrc } from "./avatarSrc";
 import filterUsers from "./utils";
 
@@ -117,8 +116,7 @@ export function ModalPhotosShare(props: Props) {
                         <Title order={4}>{displayName}</Title>
                         {item.date_joined && (
                           <Text size="sm" c="dimmed">
-                            {t("modalphotosshare.joined")}{" "}
-                            {DateTime.fromISO(item.date_joined).setLocale(i18nResolvedLanguage()).toRelative()}
+                            {t("modalphotosshare.joined")} {parseInstant(item.date_joined).toRelative()}
                           </Text>
                         )}
                       </div>

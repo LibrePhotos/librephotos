@@ -1,11 +1,10 @@
 import { Badge, Box, Group, useComputedColorScheme, useMantineTheme } from "@mantine/core";
 import { useElementSize, useMergedRef } from "@mantine/hooks";
 import { debounce, deburr, throttle } from "lodash-es";
-import { DateTime } from "luxon";
 import React, { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import type { MouseEvent, ReactNode } from "react";
 import { useIsDesktopLayout } from "../../hooks/useIsDesktopLayout";
-import { i18nResolvedLanguage } from "../../i18n";
+import { parseInstant } from "../../util/dateUtils";
 import "./ScrollScrubber.css";
 import { ScrollerData, ScrollerPosition, ScrollerType } from "./ScrollScrubberTypes.zod";
 
@@ -194,9 +193,10 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
         if (type === ScrollerType.enum.date) {
           pos.year = item.year;
           if (item.year && item.month) {
-            pos.month = DateTime.fromISO(`${item.year}-${item.month.toString().padStart(2, "0")}-01`)
-              .setLocale(i18nResolvedLanguage())
-              .toLocaleString({ year: "numeric", month: "short" });
+            pos.month = parseInstant(`${item.year}-${item.month.toString().padStart(2, "0")}-01`).toLocaleString({
+              year: "numeric",
+              month: "short",
+            });
           }
         }
         newPositions.push(pos);

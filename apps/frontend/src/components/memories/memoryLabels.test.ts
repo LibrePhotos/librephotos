@@ -1,4 +1,5 @@
-import { describe, expect, test } from "vitest";
+import { Settings } from "luxon";
+import { afterEach, describe, expect, test } from "vitest";
 import { Memory, MemoryType } from "../../api_client/memories";
 import { memoryDayLabel, memoryMonthLabel } from "./memoryLabels";
 
@@ -21,31 +22,40 @@ const dayMemory = {
 
 const monthMemory = { ...dayMemory, type: MemoryType.MONTH_YEARS_AGO, date: "2019-08-03" };
 
+const originalLocale = Settings.defaultLocale;
+
+afterEach(() => {
+  Settings.defaultLocale = originalLocale;
+});
+
 describe("memoryMonthLabel", () => {
   test("names a month memory by its month", () => {
-    expect(memoryMonthLabel(monthMemory, "en")).toBe("August 2019");
+    Settings.defaultLocale = "en";
+    expect(memoryMonthLabel(monthMemory)).toBe("August 2019");
   });
 
   test("leaves a day memory to the caller", () => {
-    expect(memoryMonthLabel(dayMemory, "en")).toBeNull();
+    expect(memoryMonthLabel(dayMemory)).toBeNull();
   });
 
   test("follows the interface language", () => {
-    expect(memoryMonthLabel(monthMemory, "de")).toBe("August 2019");
-    expect(memoryMonthLabel({ ...monthMemory, date: "2019-05-03" }, "de")).toBe("Mai 2019");
+    Settings.defaultLocale = "de";
+    expect(memoryMonthLabel(monthMemory)).toBe("August 2019");
+    expect(memoryMonthLabel({ ...monthMemory, date: "2019-05-03" })).toBe("Mai 2019");
   });
 });
 
 describe("memoryDayLabel", () => {
   test("spells out the day of a day memory", () => {
-    expect(memoryDayLabel(dayMemory, "en")).toBe("Aug 24, 2019");
+    Settings.defaultLocale = "en";
+    expect(memoryDayLabel(dayMemory)).toBe("Aug 24, 2019");
   });
 
   test("says nothing for a month memory, which is already named by its month", () => {
-    expect(memoryDayLabel(monthMemory, "en")).toBeNull();
+    expect(memoryDayLabel(monthMemory)).toBeNull();
   });
 
   test("degrades to no label rather than to Invalid DateTime", () => {
-    expect(memoryDayLabel({ ...dayMemory, date: "not-a-date" }, "en")).toBeNull();
+    expect(memoryDayLabel({ ...dayMemory, date: "not-a-date" })).toBeNull();
   });
 });

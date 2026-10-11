@@ -1,7 +1,10 @@
 // What `new Date(date)` holds: null is the epoch, undefined an invalid date.
+// Not util/dateUtils: this module also runs outside the app (under node), and
+// sorting only needs the instant, so it reads the Date directly.
 function timeOf(date: string | null | undefined): number {
   if (date === null) return 0;
   if (date === undefined) return Number.NaN;
+  // eslint-disable-next-line no-restricted-syntax -- sorting reads the instant here; this module runs under node too, so it cannot use dateUtils
   return new Date(date).getTime();
 }
 

@@ -4,7 +4,6 @@ import { t } from "i18next";
 import { DateTime } from "luxon";
 import React from "react";
 import { FacesTab } from "../../api_client/faces";
-import { i18nResolvedLanguage } from "../../i18n";
 import { parsePhotoTimestamp } from "../../util/dateUtils";
 
 type Props = Readonly<{
@@ -35,9 +34,7 @@ export function FaceTooltip({ tooltipOpened, probability, timestamp, tab, childr
 
   // The face's timestamp is its photo's exif_timestamp: a wall clock, not an instant
   const photoTime = timestamp ? parsePhotoTimestamp(timestamp) : null;
-  const dateTimeLabel = photoTime?.isValid
-    ? photoTime.setLocale(i18nResolvedLanguage()).toLocaleString(DateTime.DATETIME_MED)
-    : null;
+  const dateTimeLabel = photoTime?.isValid ? photoTime.toLocaleString(DateTime.DATETIME_MED) : null;
 
   const tooltipIsEmpty = confidencePercentageLabel === null && dateTimeLabel === null;
   const tooltipLabel = () => {
