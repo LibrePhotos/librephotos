@@ -241,10 +241,19 @@ class PhotoCaption(models.Model):
                 album_thing.save()
 
     def recreate_search_captions(self) -> None:
-        """Recreate search captions - directly access PhotoSearch model"""
+        """Rebuild the photo's search index with this caption row's captions.
+
+        ``PhotoSearch.recreate_search_captions`` reads ``photo.caption_instance``
+        of its own ``photo``. An existing search row loads that photo, and so
+        the caption, from the database, which still holds the caption being
+        replaced; both are pointed at this instance instead.
+        """
         from api.models.photo_search import PhotoSearch
 
-        search_instance, created = PhotoSearch.objects.get_or_create(photo=self.photo)
+        photo = self.photo
+        photo.caption_instance = self
+        search_instance, created = PhotoSearch.objects.get_or_create(photo=photo)
+        search_instance.photo = photo
         search_instance.recreate_search_captions()
         search_instance.save()
 

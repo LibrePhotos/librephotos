@@ -9,9 +9,11 @@ exception swallowing, etc.) rather than aspirational behavior.
 from unittest.mock import patch
 
 from django.test import TestCase
+from rest_framework.test import APIClient
 
 from api.models import PhotoCaption
 from api.models.album_thing import AlbumThing, get_album_thing
+from api.models.photo_search import PhotoSearch
 from api.semantic_search import TAG_THING_TYPE
 from api.tests.utils import create_test_photo, create_test_user
 
@@ -311,3 +313,35 @@ class UpdateTagAlbumThingsTest(TestCase):
         self.assertGreater(natural.last_modified, before)  # the delta sync sees it
         self.assertEqual(beach.photo_count, 2)
         self.assertEqual(self._titles(), {"beach"})
+
+
+class CaptionSearchIndexTest(TestCase):
+    """Changing a caption that already exists reindexes the new text.
+
+    The search row rebuilds the index from its own ``photo``, loaded from the
+    database, so it read the caption still stored there, not the one being
+    saved: the old caption stayed searchable and the new one was not, until
+    something else rebuilt the index.
+    """
+
+    def test_a_changed_caption_replaces_the_old_one_in_search(self):
+        user = create_test_user()
+        # A scanned photo has its search row already.
+        photo = create_test_photo(
+            owner=user,
+            captions_json={"user_caption": "old words"},
+            search_captions="old words",
+        )
+        client = APIClient()
+        client.force_authenticate(user=user)
+
+        response = client.post(
+            "/api/photosedit/savecaption/",
+            {"image_hash": photo.image_hash, "caption": "new words"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        search_captions = PhotoSearch.objects.get(photo=photo).search_captions
+        self.assertIn("new words", search_captions)
+        self.assertNotIn("old words", search_captions)
