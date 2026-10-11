@@ -11,7 +11,7 @@ class ApiConfig(AppConfig):
     name = "api"
     verbose_name = "LibrePhotos"
 
-    def ready(self):
+    def ready(self) -> None:
         # This is the first point in the boot where logging is fully configured,
         # so anything the settings module noticed while building that
         # configuration gets reported here rather than lost.
@@ -58,7 +58,7 @@ class ApiConfig(AppConfig):
 
         self._install_oidc_adapter()
 
-    def _install_oidc_adapter(self):
+    def _install_oidc_adapter(self) -> None:
         """Point allauth's OIDC provider at our callback-URL-aware adapter.
 
         ``oauth2_adapter_class`` is the attribute allauth expects a provider to

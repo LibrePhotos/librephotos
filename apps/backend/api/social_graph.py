@@ -1,9 +1,16 @@
+from __future__ import annotations
+
 import logging
+from typing import TYPE_CHECKING
 
 from django.db import connection
 
-from api.models import Person
 from api.lazy_import import LazyModule
+from api.models import Person, User
+
+if TYPE_CHECKING:
+    import numpy.typing as npt
+    from numpy import float64
 
 np = LazyModule("numpy")
 
@@ -13,10 +20,10 @@ logger = logging.getLogger(__name__)
 class _Graph:
     """Minimal undirected graph used in place of networkx.Graph."""
 
-    def __init__(self):
-        self._adj: dict = {}
+    def __init__(self) -> None:
+        self._adj: dict[str, set[str]] = {}
 
-    def add_edge(self, u, v):
+    def add_edge(self, u: str, v: str) -> None:
         if u not in self._adj:
             self._adj[u] = set()
         if v not in self._adj:
@@ -24,12 +31,12 @@ class _Graph:
         self._adj[u].add(v)
         self._adj[v].add(u)
 
-    def nodes(self):
+    def nodes(self) -> list[str]:
         return list(self._adj.keys())
 
-    def edges(self):
-        seen: set = set()
-        result = []
+    def edges(self) -> list[tuple[str, str]]:
+        seen: set[tuple[str, str]] = set()
+        result: list[tuple[str, str]] = []
         for u, neighbors in self._adj.items():
             for v in neighbors:
                 key = (min(u, v), max(u, v))
@@ -39,7 +46,12 @@ class _Graph:
         return result
 
 
-def _spring_layout(G, k=None, scale=1.0, iterations=50):
+def _spring_layout(
+    G: _Graph,
+    k: float | None = None,
+    scale: float | None = 1.0,
+    iterations: int = 50,
+) -> dict[str, npt.NDArray[float64]]:
     """Fruchterman-Reingold force-directed layout (vendored from NetworkX).
 
     Returns a dict mapping each node to a numpy array [x, y].
@@ -96,7 +108,7 @@ def _spring_layout(G, k=None, scale=1.0, iterations=50):
     return {node: pos[node_index[node]] for node in nodes}
 
 
-def build_social_graph(user):
+def build_social_graph(user: User) -> dict[str, list[dict[str, str | float]]]:
     try:
         query = """
             WITH face AS (
@@ -134,13 +146,15 @@ def build_social_graph(user):
         raise
 
 
-def build_ego_graph(person_id):
+def build_ego_graph(person_id: int) -> dict[str, list[dict[str, str]]]:
     G = _Graph()
     person = Person.objects.prefetch_related("faces__photo__faces__person").filter(
         id=person_id
     )[0]
     for this_person_face in person.faces.all():
+        assert this_person_face.photo is not None
         for other_person_face in this_person_face.photo.faces.all():
+            assert other_person_face.person is not None
             G.add_edge(person.name, other_person_face.person.name)
     nodes = [{"id": node} for node in G.nodes()]
     links = [{"source": pair[0], "target": pair[1]} for pair in G.edges()]

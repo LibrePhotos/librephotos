@@ -26,14 +26,16 @@ Policy (per the maintainer's steer on issue #401):
 from allauth.account.adapter import DefaultAccountAdapter
 from allauth.core.exceptions import ImmediateHttpResponse
 from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
+from allauth.socialaccount.models import SocialLogin
 from constance import config as site_config
-from django.http import HttpResponseRedirect
+from django.forms import BaseForm
+from django.http import HttpRequest, HttpResponseRedirect
 
 from api.mail import email_is_configured
 from api.models import User
 
 
-def _login_error_redirect(reason):
+def _login_error_redirect(reason: str) -> ImmediateHttpResponse:
     """Bounce back to the SPA login screen with a machine-readable reason.
 
     Relative URL on purpose: the browser resolves it against the origin it is
@@ -43,7 +45,7 @@ def _login_error_redirect(reason):
     return ImmediateHttpResponse(HttpResponseRedirect(f"/login?sso_error={reason}"))
 
 
-def _extract_email(sociallogin):
+def _extract_email(sociallogin: SocialLogin) -> tuple[str, bool]:
     """Return (email, is_verified) for the incoming social login.
 
     Prefers allauth's parsed EmailAddress list (which reflects the provider's
@@ -70,19 +72,21 @@ class NoLocalSignupAccountAdapter(DefaultAccountAdapter):
     OIDC. This closes the door on allauth ever creating a local account.
     """
 
-    def is_open_for_signup(self, request):
+    def is_open_for_signup(self, request: HttpRequest) -> bool:
         return False
 
 
 class SSOSocialAccountAdapter(DefaultSocialAccountAdapter):
-    def _provisioning_allowed(self):
+    def _provisioning_allowed(self) -> bool:
         """Whether a first-time SSO login may create a new LibrePhotos account."""
         return bool(site_config.OIDC_ALLOW_SIGNUP) and email_is_configured()
 
-    def is_open_for_signup(self, request, sociallogin):
+    def is_open_for_signup(
+        self, request: HttpRequest, sociallogin: SocialLogin
+    ) -> bool:
         return self._provisioning_allowed()
 
-    def pre_social_login(self, request, sociallogin):
+    def pre_social_login(self, request: HttpRequest, sociallogin: SocialLogin) -> None:
         """Enforce the linking/provisioning policy before allauth commits.
 
         Runs after the IdP round-trip but before a user is logged in or created.
@@ -118,7 +122,12 @@ class SSOSocialAccountAdapter(DefaultSocialAccountAdapter):
             raise _login_error_redirect("email_not_verified")
         # Fall through: allauth proceeds to save_user() below.
 
-    def save_user(self, request, sociallogin, form=None):
+    def save_user(
+        self,
+        request: HttpRequest,
+        sociallogin: SocialLogin,
+        form: BaseForm | None = None,
+    ) -> User:
         """Create the LibrePhotos account, forced non-privileged.
 
         Even during first-time setup (no superuser yet) an SSO-provisioned user

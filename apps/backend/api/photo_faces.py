@@ -6,8 +6,12 @@ already found. Moved out of ``Photo``; every function taking a photo takes it
 as its first argument.
 """
 
+from __future__ import annotations
+
 import logging
+from collections.abc import Iterable
 from io import BytesIO
+from typing import TYPE_CHECKING
 
 import PIL
 from django.conf import settings
@@ -19,12 +23,24 @@ from api import face_extractor
 from api.util import FACE_OVERLAP_IOU_THRESHOLD, calculate_iou
 from api.lazy_import import LazyModule
 
+if TYPE_CHECKING:
+    import numpy.typing as npt
+    from numpy import float64
+
+    from api.models import Photo
+
 np = LazyModule("numpy")
 
 logger = logging.getLogger(__name__)
 
 
-def overlaps_existing_face(existing_face_locations, top, right, bottom, left):
+def overlaps_existing_face(
+    existing_face_locations: Iterable[tuple[int, int, int, int]],
+    top: int,
+    right: int,
+    bottom: int,
+    left: int,
+) -> bool:
     """Return True if a new face region overlaps significantly with any
     existing face (IoU >= FACE_OVERLAP_IOU_THRESHOLD).
 
@@ -39,7 +55,7 @@ def overlaps_existing_face(existing_face_locations, top, right, bottom, left):
     return False
 
 
-def extract_faces(photo, second_try=False):
+def extract_faces(photo: Photo, second_try: bool = False) -> None:
     """Detect the photo's faces and save the new ones.
 
     An ``IntegrityError`` (two workers saving at once) is retried exactly once
@@ -61,9 +77,12 @@ def extract_faces(photo, second_try=False):
         raise e
 
 
-def _detect_and_save_faces(photo, unknown_cluster):
+def _detect_and_save_faces(
+    photo: Photo, unknown_cluster: api.models.cluster.Cluster
+) -> None:
     big_thumbnail_image = np.array(PIL.Image.open(photo.thumbnail.thumbnail_big.path))
 
+    assert photo.main_file is not None
     face_locations = face_extractor.extract(
         photo.main_file.path, photo.thumbnail.thumbnail_big.path, photo.owner
     )
@@ -83,6 +102,9 @@ def _detect_and_save_faces(photo, unknown_cluster):
         # get one later from generate_face_embeddings.
         top, right, bottom, left, person_name, *encoding = face_location
         person = _get_or_create_named_person(photo, person_name)
+        encoding_array = encoding[0] if encoding else None
+        # The face service sends each encoding as a numpy array (face_recognition.detect_faces).
+        assert encoding_array is None or isinstance(encoding_array, np.ndarray)
 
         face_image = big_thumbnail_image[top:bottom, left:right]
         face_image = PIL.Image.fromarray(face_image)
@@ -103,16 +125,18 @@ def _detect_and_save_faces(photo, unknown_cluster):
             person,
             unknown_cluster,
             (top, right, bottom, left),
-            encoding[0] if encoding else None,
+            encoding_array,
         )
-        if person_name:
+        if person is not None:
             person._calculate_face_count()
             person._set_default_cover_photo()
         existing_face_locations.append((top, right, bottom, left))
     logger.info(f"image {photo.image_hash}: {len(face_locations)} face(s) saved")
 
 
-def _get_or_create_named_person(photo, person_name):
+def _get_or_create_named_person(
+    photo: Photo, person_name: str | None
+) -> api.models.person.Person | None:
     if not person_name:
         return None
     person = api.models.person.get_or_create_person(
@@ -124,7 +148,12 @@ def _get_or_create_named_person(photo, person_name):
     return person
 
 
-def _reconcile_xmp_face_name(photo, person, person_name, location):
+def _reconcile_xmp_face_name(
+    photo: Photo,
+    person: api.models.person.Person,
+    person_name: str | None,
+    location: tuple[int, int, int, int],
+) -> None:
     top, right, bottom, left = location
     for existing_face in api.models.face.Face.objects.filter(photo=photo):
         existing_location = (
@@ -148,8 +177,14 @@ def _reconcile_xmp_face_name(photo, person, person_name, location):
 
 
 def save_detected_face(
-    photo, face_image, image_path, person, cluster, location, encoding=None
-):
+    photo: Photo,
+    face_image: PIL.Image.Image,
+    image_path: str,
+    person: api.models.person.Person | None,
+    cluster: api.models.cluster.Cluster,
+    location: tuple[int, int, int, int],
+    encoding: npt.NDArray[float64] | None = None,
+) -> api.models.face.Face:
     """Save ``face_image`` (a PIL crop) as a new ``Face`` of ``photo``."""
     top, right, bottom, left = location
     face = api.models.face.Face(
@@ -173,14 +208,16 @@ def save_detected_face(
     return face
 
 
-def _retry_face_extraction(photo, second_try):
+def _retry_face_extraction(photo: Photo, second_try: bool) -> None:
     # When using multiple processes, then we can save at the same time, which leads to this error
     if photo.files.exists():
         # print out the location of the image only if we have a path
+        assert photo.main_file is not None
         logger.info(f"image {photo.main_file.path}: rescan face failed")
     if not second_try:
         extract_faces(photo, True)
     elif photo.files.exists():
+        assert photo.main_file is not None
         logger.error(f"image {photo.main_file.path}: rescan face failed")
     else:
         logger.error(f"image {photo}: rescan face failed")

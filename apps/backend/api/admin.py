@@ -1,6 +1,9 @@
+import uuid
 from collections import defaultdict
 
 from django.contrib import admin
+from django.db.models import QuerySet
+from django.http import HttpRequest
 from django_q.tasks import AsyncTask
 
 from api.util import FACE_OVERLAP_IOU_THRESHOLD, calculate_iou
@@ -27,8 +30,8 @@ from .models import (
 DEDUPLICATE_FACES_CHUNK_SIZE = 500
 
 
-def deduplicate_faces_function(photo_ids):
-    faces_by_photo = defaultdict(list)
+def deduplicate_faces_function(photo_ids: list[uuid.UUID]) -> None:
+    faces_by_photo: defaultdict[uuid.UUID | None, list[Face]] = defaultdict(list)
     # `encoding` holds a face vector per row, so it is deliberately left out.
     for face in (
         Face.objects.filter(photo_id__in=photo_ids)
@@ -44,7 +47,7 @@ def deduplicate_faces_function(photo_ids):
     ):
         faces_by_photo[face.photo_id].append(face)
 
-    to_delete = set()
+    to_delete: set[int] = set()
     for faces in faces_by_photo.values():
         for i, face_a in enumerate(faces):
             if face_a.id in to_delete:
@@ -103,7 +106,9 @@ class PhotoAdmin(admin.ModelAdmin):
     list_filter = ["owner"]
 
     @admin.action(description="Deduplicate faces")
-    def deduplicate_faces(self, request, queryset):
+    def deduplicate_faces(
+        self, request: HttpRequest, queryset: QuerySet[Photo]
+    ) -> None:
         # Only the ids travel to the worker. Passing the queryset itself would
         # make django_q pickle every selected row into the broker payload, in
         # this request thread, which defeats the point of the async task.

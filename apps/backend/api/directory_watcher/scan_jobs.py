@@ -10,6 +10,8 @@ import logging
 import os
 import uuid
 from collections import defaultdict
+from collections.abc import Callable
+from typing import Any
 from uuid import UUID
 
 import pytz
@@ -23,7 +25,7 @@ from api.metadata.reader import get_sidecar_files_in_priority_order
 from api import video_color
 from api.batch_jobs import batch_calculate_clip_embedding
 from api.semantic_search import semantic_shares_tagger
-from api.models import LongRunningJob, Photo, Thumbnail
+from api.models import LongRunningJob, Photo, Thumbnail, User
 from api.models.file import VIDEO_EXTENSIONS, is_metadata
 from api.photo_files import detach_missing_files
 
@@ -59,17 +61,28 @@ logger = logging.getLogger(__name__)
 # (well under 2 MB) regardless of total library size.
 _PATH_PREFETCH_BATCH = 10000
 
+# A file group: its (directory, basename) key and the paths in it.
+_FileGroup = tuple[tuple[str, str], list[str]]
 
-def _file_was_modified_after(filepath, time):
+
+def _file_was_modified_after(filepath: str, time: datetime.datetime | None) -> bool:
     """Check if a file was modified after a given time."""
     try:
         modified = os.path.getmtime(filepath)
     except OSError:
         return False
+    # Callers pass the finished_at of a finished scan. A None would have made
+    # the comparison below raise TypeError, so it is an invariant violation.
+    assert time is not None
     return datetime.datetime.fromtimestamp(modified).replace(tzinfo=pytz.utc) > time
 
 
-def _group_needs_processing(paths, existing_paths, full_scan, last_scan):
+def _group_needs_processing(
+    paths: list[str],
+    existing_paths: set[str],
+    full_scan: bool,
+    last_scan: LongRunningJob | None,
+) -> bool:
     """Return True if any file in a (directory, basename) group must be processed.
 
     This mirrors the original per-file decision exactly, but takes a set of
@@ -95,8 +108,12 @@ def _group_needs_processing(paths, existing_paths, full_scan, last_scan):
 
 
 def _select_groups_to_process(
-    group_items, known_paths_for, full_scan, last_scan, batch_size=_PATH_PREFETCH_BATCH
-):
+    group_items: list[_FileGroup],
+    known_paths_for: Callable[[list[str]], set[str]],
+    full_scan: bool,
+    last_scan: LongRunningJob | None,
+    batch_size: int = _PATH_PREFETCH_BATCH,
+) -> list[_FileGroup]:
     """Pick the file groups that need processing, resolving known paths in batches.
 
     ``group_items`` is ``list(file_groups.items())`` — (group_key, paths) pairs.
@@ -114,7 +131,7 @@ def _select_groups_to_process(
         # known-path lookup is never consulted — skip the DB queries entirely.
         return list(group_items)
 
-    groups_to_process: list[tuple[tuple[str, str], list[str]]] = []
+    groups_to_process: list[_FileGroup] = []
     for start in range(0, len(group_items), batch_size):
         batch = group_items[start : start + batch_size]
         batch_paths = [path for _, paths in batch for path in paths]
@@ -125,7 +142,7 @@ def _select_groups_to_process(
     return groups_to_process
 
 
-def _last_finished_scan(user):
+def _last_finished_scan(user: User) -> LongRunningJob | None:
     """Most recent finished photo scan for ``user``, used as the change baseline."""
     return (
         LongRunningJob.objects.filter(finished=True)
@@ -136,7 +153,13 @@ def _last_finished_scan(user):
     )
 
 
-def photo_scanner(user, last_scan, full_scan, path, job_id):
+def photo_scanner(
+    user: User,
+    last_scan: LongRunningJob | None,
+    full_scan: bool,
+    path: str,
+    job_id: UUID | str,
+) -> None:
     """
     Check if a single file needs processing and queue it.
 
@@ -159,7 +182,7 @@ def photo_scanner(user, last_scan, full_scan, path, job_id):
         update_scan_counter(job_id)
 
 
-def backfill_missing_aspect_ratios(user):
+def backfill_missing_aspect_ratios(user: User) -> int:
     """Recalculate aspect ratios for photos that have a thumbnail but no ratio.
 
     Every grid view filters on ``thumbnail__aspect_ratio__isnull=False``, so a
@@ -199,9 +222,9 @@ def backfill_missing_aspect_ratios(user):
     return still_missing
 
 
-def _discover_scan_paths(scan_directory, scan_files):
+def _discover_scan_paths(scan_directory: str, scan_files: list[str]) -> list[str]:
     """Collect every candidate file path, either from an explicit list or a walk."""
-    photo_list = []
+    photo_list: list[str] = []
     if scan_files:
         walk_files(scan_files, photo_list)
     else:
@@ -209,7 +232,9 @@ def _discover_scan_paths(scan_directory, scan_files):
     return photo_list
 
 
-def _partition_scan_paths(photo_list):
+def _partition_scan_paths(
+    photo_list: list[str],
+) -> tuple[dict[tuple[str, str], list[str]], list[str]]:
     """Split discovered paths into (directory, basename) file groups and metadata.
 
     Grouping RAW+JPEG variants together is what lets Phase 2 create one Photo per
@@ -238,7 +263,7 @@ def _partition_scan_paths(photo_list):
     return file_groups, metadata_paths
 
 
-def _known_paths(batch_paths):
+def _known_paths(batch_paths: list[str]) -> set[str]:
     return set(
         Photo.objects.filter(files__path__in=batch_paths).values_list(
             "files__path", flat=True
@@ -246,11 +271,11 @@ def _known_paths(batch_paths):
     )
 
 
-def _has_video(paths):
+def _has_video(paths: list[str]) -> bool:
     return any(os.path.splitext(path)[1].lower() in VIDEO_EXTENSIONS for path in paths)
 
 
-def _videos_first(groups):
+def _videos_first(groups: list[_FileGroup]) -> list[_FileGroup]:
     """The file groups with a video first, otherwise in walk order.
 
     A video takes far longer than a photo (ffmpeg thumbnails, probing, often
@@ -262,8 +287,13 @@ def _videos_first(groups):
 
 
 def _queue_scan_work(
-    user, groups_to_process, metadata_paths, full_scan, last_scan, job_id
-):
+    user: User,
+    groups_to_process: list[_FileGroup],
+    metadata_paths: list[str],
+    full_scan: bool,
+    last_scan: LongRunningJob | None,
+    job_id: UUID | str,
+) -> None:
     """Queue the file groups and the sidecars whose photo is not in this scan.
 
     Sidecars of photos in this scan travel inside their file group, so the
@@ -293,9 +323,15 @@ def _queue_scan_work(
 _FOLLOWUPS_KEY = "followups"
 
 
-def _remember_followups(lrj, user, full_scan, scan_directory, scan_files):
+def _remember_followups(
+    lrj: LongRunningJob,
+    user: User,
+    full_scan: bool,
+    scan_directory: str,
+    scan_files: list[str],
+) -> None:
     """Store what the follow-up jobs need; call before any scan work is queued."""
-    result = dict(lrj.result) if isinstance(lrj.result, dict) else {}
+    result: dict[str, Any] = dict(lrj.result) if isinstance(lrj.result, dict) else {}
     result[_FOLLOWUPS_KEY] = {
         "full_scan": bool(full_scan),
         # if the scan type is not the default user scan directory, or if it is
@@ -309,7 +345,7 @@ def _remember_followups(lrj, user, full_scan, scan_directory, scan_files):
     lrj.set_result(result)
 
 
-def queue_scan_followups(job_id):
+def queue_scan_followups(job_id: UUID | str) -> None:
     """Queue a finished scan's follow-up jobs.
 
     Called once, by whoever finished the scan job (see
@@ -317,9 +353,10 @@ def queue_scan_followups(job_id):
     they start, so starting them while photos were still being ingested left
     those photos for the next scan.
     """
-    options = {}
+    # Read back from the job's JSON result, so the values stay untyped here.
+    options: dict[str, Any] = {}
 
-    def take_options(result, job):
+    def take_options(result: dict[str, Any], job: LongRunningJob) -> None:
         options.clear()
         options.update(result.pop(_FOLLOWUPS_KEY, None) or {})
 
@@ -336,7 +373,7 @@ def queue_scan_followups(job_id):
     _queue_followup_jobs(user, options["full_scan"], options["scan_missing_photos"])
 
 
-def _queue_followup_jobs(user, full_scan, scan_missing):
+def _queue_followup_jobs(user: User, full_scan: bool, scan_missing: bool) -> None:
     """Queue the jobs that run once the scan's own work is done."""
     if scan_missing:
         AsyncTask(scan_missing_photos, user, uuid.uuid4()).run()
@@ -368,7 +405,13 @@ def _queue_followup_jobs(user, full_scan, scan_missing):
     chain.run()
 
 
-def scan_photos(user, full_scan, job_id, scan_directory="", scan_files=None):
+def scan_photos(
+    user: User,
+    full_scan: bool,
+    job_id: UUID | str,
+    scan_directory: str = "",
+    scan_files: list[str] | None = None,
+) -> None:
     """
     Two-phase scan to avoid race conditions with RAW+JPEG grouping.
 
@@ -469,7 +512,7 @@ def scan_photos(user, full_scan, job_id, scan_directory="", scan_files=None):
         lrj.fail(error=e)
 
 
-def scan_missing_photos(user, job_id: UUID):
+def scan_missing_photos(user: User, job_id: UUID) -> None:
     """
     Scan for photos whose files no longer exist on disk.
 

@@ -11,8 +11,10 @@ under DEBUG, so reset links are still visible in dev logs).
 """
 
 import logging
+from collections.abc import Sequence
 
 from django.conf import settings
+from django.core.mail import EmailMessage
 from django.core.mail.backends.base import BaseEmailBackend
 from django.core.mail.backends.console import EmailBackend as ConsoleBackend
 from django.core.mail.backends.smtp import EmailBackend as SMTPBackend
@@ -20,7 +22,7 @@ from django.core.mail.backends.smtp import EmailBackend as SMTPBackend
 logger = logging.getLogger(__name__)
 
 
-def email_is_configured():
+def email_is_configured() -> bool:
     """Whether this instance can send mail. Safe to call before migrations."""
     try:
         from api.models.email_config import EmailConfig
@@ -31,7 +33,7 @@ def email_is_configured():
 
 
 class DynamicEmailBackend(BaseEmailBackend):
-    def _delegate(self):
+    def _delegate(self) -> BaseEmailBackend | None:
         from api.models.email_config import EmailConfig
 
         config = EmailConfig.load()
@@ -44,7 +46,7 @@ class DynamicEmailBackend(BaseEmailBackend):
             return ConsoleBackend(fail_silently=self.fail_silently)
         return None
 
-    def send_messages(self, email_messages):
+    def send_messages(self, email_messages: Sequence[EmailMessage]) -> int:
         if not email_messages:
             return 0
         backend = self._delegate()

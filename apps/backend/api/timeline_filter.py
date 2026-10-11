@@ -30,10 +30,19 @@ used to be read by truthiness, so ``?is_screenshot=false`` returned *only*
 screenshots.
 """
 
+from __future__ import annotations
+
+from collections.abc import Mapping
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from django.conf import settings
 from django.db.models import Q
+
+if TYPE_CHECKING:
+    from django.contrib.auth.models import AnonymousUser
+
+    from api.models import User
 
 MEDIA_CHOICES = ("all", "photos", "videos")
 
@@ -48,7 +57,7 @@ DEFAULT_FILTER_KEYS = {
 _FALSE_WORDS = {"false", "0", "no", "off"}
 
 
-def parse_tristate(value):
+def parse_tristate(value: object) -> bool | None:
     """``True``, ``False`` or ``None`` (absent) for a query-string or JSON flag.
 
     Only a false word (``false``, ``0``, ``no``, ``off``) is false. Any other
@@ -77,7 +86,7 @@ class TimelineFilter:
     documents: str = "any"
     favorites: bool = False
 
-    def q(self, user, prefix=""):
+    def q(self, user: User | AnonymousUser, prefix: str = "") -> list[Q]:
         """Positive ``Q`` objects for this filter on ``<prefix>`` photo fields.
 
         Pass them to the same ``.filter()`` call as the rest of the photo
@@ -86,7 +95,7 @@ class TimelineFilter:
         holds a single screenshot; ``Q(photos__is_screenshot=False)`` keeps
         the day and its other photos.
         """
-        filters = []
+        filters: list[Q] = []
         if self.media in ("photos", "none"):
             filters.append(Q(**{f"{prefix}video": False}))
         if self.media in ("videos", "none"):
@@ -107,7 +116,7 @@ class TimelineFilter:
         return filters
 
 
-def saved_default(user):
+def saved_default(user: User | AnonymousUser) -> TimelineFilter:
     """The user's saved default as a ``TimelineFilter``; invalid keys ignored.
 
     The serializer validates what is saved, but a value written past it (the
@@ -125,9 +134,9 @@ def saved_default(user):
     )
 
 
-def _media_override(params):
+def _media_override(params: Mapping[str, object]) -> str | None:
     media = params.get("media")
-    if media in MEDIA_CHOICES:
+    if isinstance(media, str) and media in MEDIA_CHOICES:
         return media
     # The older params narrow the media types allowed; both together leave
     # none, as two filters on the same photo always did on the timeline.
@@ -143,7 +152,9 @@ def _media_override(params):
     return allowed.pop() if allowed else "none"
 
 
-def _category_override(params, only_param, hide_param):
+def _category_override(
+    params: Mapping[str, object], only_param: str, hide_param: str
+) -> str | None:
     only = parse_tristate(params.get(only_param))
     if only is not None:
         return "only" if only else "hide"
@@ -153,7 +164,9 @@ def _category_override(params, only_param, hide_param):
     return None
 
 
-def resolve_timeline_filter(user, params):
+def resolve_timeline_filter(
+    user: User | AnonymousUser, params: Mapping[str, object]
+) -> TimelineFilter:
     """The filter for ``params`` (query params or a select-all ``query``)."""
     # Read ``public`` exactly as the date-album views do (any non-empty value,
     # "false" included, makes them a public view), so the default is never
@@ -176,12 +189,14 @@ def resolve_timeline_filter(user, params):
     )
 
 
-def timeline_filter_q(user, params, prefix=""):
+def timeline_filter_q(
+    user: User | AnonymousUser, params: Mapping[str, object], prefix: str = ""
+) -> list[Q]:
     """Shorthand: the ``Q`` filters for ``params``; see ``TimelineFilter.q``."""
     return resolve_timeline_filter(user, params).q(user, prefix=prefix)
 
 
-def validate_default_timeline_filter(value):
+def validate_default_timeline_filter(value: object) -> dict[str, object]:
     """Return ``value`` if it is a valid saved default; raise ``ValueError``.
 
     Every key is optional, unknown keys and values are refused, and flags must

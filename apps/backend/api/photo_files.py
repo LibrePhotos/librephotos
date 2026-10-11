@@ -4,15 +4,21 @@ together with the files only it uses.
 Moved out of ``Photo``; every function takes the photo as its first argument.
 """
 
+from __future__ import annotations
+
 import logging
 import os
+from typing import TYPE_CHECKING
 
 from api import transcode_cache
+
+if TYPE_CHECKING:
+    from api.models.photo import Photo
 
 logger = logging.getLogger(__name__)
 
 
-def detach_missing_files(photo):
+def detach_missing_files(photo: Photo) -> None:
     """Unlink files that are gone from disk and flag them missing.
 
     The scan runs this over every photo in the library, from rows it loaded
@@ -35,12 +41,11 @@ def detach_missing_files(photo):
         photo.save(save_metadata=False, update_fields=["last_modified"])
 
 
-def remove_photo(photo):
+def remove_photo(photo: Photo) -> None:
     """Delete the photo's unshared files from disk and mark it removed.
 
     Files another photo still uses are only unlinked. Stacks and duplicate
-    groups left with one photo or none are dissolved. Returns what
-    ``photo.save()`` returned.
+    groups left with one photo or none are dissolved.
     """
     # Store stack references before cleanup (ManyToMany)
     photo_stacks = list(photo.stacks.all())
@@ -82,7 +87,7 @@ def remove_photo(photo):
     # Clear all duplicate group references from this photo (ManyToMany)
     photo.duplicates.clear()
 
-    result = photo.save()
+    photo.save()
 
     # Clean up stacks if they're now empty or have only one photo left
     for photo_stack in photo_stacks:
@@ -109,5 +114,3 @@ def remove_photo(photo):
             for remaining_photo in duplicate.photos.all():
                 remaining_photo.duplicates.remove(duplicate)
             duplicate.delete()
-
-    return result

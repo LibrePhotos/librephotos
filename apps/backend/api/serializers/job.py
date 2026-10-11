@@ -28,5 +28,5 @@ class LongRunningJobSerializer(serializers.ModelSerializer):
             "id",
         )
 
-    def get_job_type_str(self, obj) -> str:
+    def get_job_type_str(self, obj: LongRunningJob) -> str:
         return dict(LongRunningJob.JOB_TYPES)[obj.job_type]

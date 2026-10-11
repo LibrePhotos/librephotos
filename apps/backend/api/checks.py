@@ -5,15 +5,21 @@ run, which includes the ``manage.py migrate`` every entrypoint runs on start;
 checks tagged ``database`` run there too, before any migration is loaded.
 """
 
+from collections.abc import Collection, Sequence
 from importlib import import_module
+from typing import Any
 
+from django.apps import AppConfig
 from django.conf import settings
 from django.core import checks
+from django.core.checks import CheckMessage
 from django.db import DatabaseError, connections, router
 from django.db.migrations.recorder import MigrationRecorder
 
 
-def check_default_db_password(app_configs, **kwargs):
+def check_default_db_password(
+    app_configs: Sequence[AppConfig] | None, **kwargs: Any
+) -> list[CheckMessage]:
     """Warn when PostgreSQL is reached with the fallback password.
 
     ``DB_PASS`` falls back to the password shipped in librephotos.env so that
@@ -23,7 +29,7 @@ def check_default_db_password(app_configs, **kwargs):
     if getattr(settings, "DB_PASS_FROM_ENV", True):
         return []
     database = settings.DATABASES.get("default", {})
-    if "postgresql" not in database.get("ENGINE", ""):
+    if "postgresql" not in str(database.get("ENGINE", "")):
         return []
     if database.get("PASSWORD") != getattr(
         settings, "INSECURE_DEFAULT_DB_PASSWORD", None
@@ -55,7 +61,11 @@ UPGRADE_DOCS_URL = (
 )
 
 
-def check_squashed_migration_history(app_configs, databases=None, **kwargs):
+def check_squashed_migration_history(
+    app_configs: Sequence[AppConfig] | None,
+    databases: Collection[str] | None = None,
+    **kwargs: Any,
+) -> list[CheckMessage]:
     """Stop ``migrate`` on a database older than the squashed migrations.
 
     A database with some, but not all, of the migrations 0001_squashed_0100
@@ -73,7 +83,7 @@ def check_squashed_migration_history(app_configs, databases=None, **kwargs):
     squashed = import_module(f"api.migrations.{SQUASHED_MIGRATION}").Migration
     replaced = {name for app_label, name in squashed.replaces}
 
-    errors = []
+    errors: list[CheckMessage] = []
     for alias in databases:
         if not router.allow_migrate(alias, "api"):
             continue

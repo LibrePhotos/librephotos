@@ -3,6 +3,8 @@ from __future__ import annotations
 import datetime
 import logging
 import uuid
+from collections.abc import Sequence
+from typing import TYPE_CHECKING, Any, TypedDict
 
 from bulk_update.helper import bulk_update
 from django.conf import settings
@@ -17,27 +19,41 @@ from api.models import Face, LongRunningJob, Person
 from api.models.cluster import UNKNOWN_CLUSTER_ID, Cluster, get_unknown_cluster
 from api.models.user import User, get_deleted_user
 
+if TYPE_CHECKING:
+    import numpy.typing as npt
+    from hdbscan import HDBSCAN as _HDBSCAN
+    from numpy import float64, intp
+    from sklearn.decomposition import PCA as _PCA
+    from sklearn.neural_network import MLPClassifier as _MLPClassifier
+
 np = LazyModule("numpy")
 
 logger = logging.getLogger(__name__)
 
 
+class _FaceData(TypedDict):
+    """Encodings and their ids: a face id, or the id of the person it is labelled with."""
+
+    encoding: list[npt.NDArray[float64]]
+    id: list[int]
+
+
 # hdbscan and scikit-learn (with scipy) take 1.6 s and ~100 MB to import, and
 # this module is imported by the API server, which never clusters. They load
 # on first use; the names stay module attributes so tests can patch them.
-def PCA(*args, **kwargs):
+def PCA(*args: Any, **kwargs: Any) -> _PCA:
     from sklearn.decomposition import PCA
 
     return PCA(*args, **kwargs)
 
 
-def HDBSCAN(*args, **kwargs):
+def HDBSCAN(*args: Any, **kwargs: Any) -> _HDBSCAN:
     from hdbscan import HDBSCAN
 
     return HDBSCAN(*args, **kwargs)
 
 
-def MLPClassifier(*args, **kwargs):
+def MLPClassifier(*args: Any, **kwargs: Any) -> _MLPClassifier:
     from sklearn.neural_network import MLPClassifier
 
     return MLPClassifier(*args, **kwargs)
@@ -54,13 +70,15 @@ FACE_CLASSIFY_COLUMNS = [
 ]
 
 
-def build_person_color_map(user) -> dict:
+def build_person_color_map(user: User) -> dict[int, str]:
     """Map each person appearing in the user's faces to a palette color"""
     persons = [p.id for p in Person.objects.filter(faces__photo__owner=user).distinct()]
     return dict(zip(persons, hex_palette(n_colors=len(persons))))
 
 
-def collect_visualizable_faces(user, inferred: bool) -> tuple[list, list]:
+def collect_visualizable_faces(
+    user: User, inferred: bool
+) -> tuple[list[npt.NDArray[float64]], list[Face]]:
     """The user's non-deleted faces that carry an encoding, paired with those
     encodings. Labeled faces are only included when inferred ones are wanted."""
     face_encoding = []
@@ -77,7 +95,9 @@ def collect_visualizable_faces(user, inferred: bool) -> tuple[list, list]:
     return face_encoding, faces_with_encoding
 
 
-def build_scatter_point(face: Face, vis, p2c: dict) -> dict:
+def build_scatter_point(
+    face: Face, vis: npt.NDArray[float64], p2c: dict[int, str]
+) -> dict[str, object]:
     person = face.person
     person_id = person.id if person else UNKNOWN_CLUSTER_ID
     return {
@@ -90,7 +110,7 @@ def build_scatter_point(face: Face, vis, p2c: dict) -> dict:
     }
 
 
-def cluster_faces(user, inferred=True):
+def cluster_faces(user: User, inferred: bool = True) -> dict[str, object]:
     p2c = build_person_color_map(user)
     face_encoding, faces_with_encoding = collect_visualizable_faces(user, inferred)
 
@@ -107,7 +127,7 @@ def cluster_faces(user, inferred=True):
     return {"status": True, "data": res}
 
 
-def cluster_all_faces(user, job_id) -> bool:
+def cluster_all_faces(user: User, job_id: uuid.UUID | str) -> bool:
     """Groups all faces into clusters for ease of labeling. It first deletes all
     existing clusters, then regenerates them all. It will split clusters that have
     more than one kind of labeled face.
@@ -187,7 +207,7 @@ def resolve_min_cluster_size(user: User, target_count: int) -> int:
     return 2
 
 
-def build_clusterer(user: User, target_count: int):
+def build_clusterer(user: User, target_count: int) -> _HDBSCAN:
     return HDBSCAN(
         min_cluster_size=resolve_min_cluster_size(user, target_count),
         min_samples=user.min_samples if user.min_samples > 0 else 1,
@@ -196,11 +216,13 @@ def build_clusterer(user: User, target_count: int):
     )
 
 
-def group_indexes_by_label(labels: np.ndarray) -> dict[int, np.ndarray]:
+def group_indexes_by_label(
+    labels: npt.NDArray[intp],
+) -> dict[int, npt.NDArray[intp]]:
     return {label: np.where(labels == label)[0] for label in np.unique(labels)}
 
 
-def create_all_clusters(user: User, lrj: LongRunningJob = None) -> int:
+def create_all_clusters(user: User, lrj: LongRunningJob | None = None) -> int:
     """Generate Cluster records for each different clustering of people
     :param user: the current user
     :param lrj: LongRunningJob to update, if needed
@@ -235,8 +257,10 @@ def create_all_clusters(user: User, lrj: LongRunningJob = None) -> int:
             clusterId = labelID
         face_id_list = [data["id"][i] for i in sortedIndexes[labelID]]
         count = count + len(face_id_list)
-        face_array = Face.objects.filter(
-            Q(pk__in=face_id_list) & Q(encoding__isnull=False) & Q(deleted=False)
+        face_array = list(
+            Face.objects.filter(
+                Q(pk__in=face_id_list) & Q(encoding__isnull=False) & Q(deleted=False)
+            )
         )
         all_clusters.extend(
             ClusterManager.try_add_cluster(user, clusterId, face_array, maxLen)
@@ -252,13 +276,13 @@ def create_all_clusters(user: User, lrj: LongRunningJob = None) -> int:
     return target_count
 
 
-def delete_persons_without_faces():
+def delete_persons_without_faces() -> None:
     """Delete all existing Person records that have no associated Face records"""
     print("[INFO] Deleting all people without faces")
     Person.objects.filter(faces=None, kind=Person.KIND_USER).delete()
 
 
-def delete_clusters(user: User):
+def delete_clusters(user: User) -> None:
     """Delete all existing Cluster records"""
     print("[INFO] Deleting all clusters")
     Cluster.objects.filter(Q(owner=user)).delete()
@@ -266,7 +290,7 @@ def delete_clusters(user: User):
     Cluster.objects.filter(Q(owner=get_deleted_user())).delete()
 
 
-def delete_clustered_people(user: User):
+def delete_clustered_people(user: User) -> None:
     """Delete all existing Person records of type CLUSTER"""
     print("[INFO] Deleting all clustered people")
     Person.objects.filter(kind=Person.KIND_CLUSTER, cluster_owner=user).delete()
@@ -276,9 +300,11 @@ def delete_clustered_people(user: User):
 
 
 # Function to filter data based on a desired shape
-def filter_data(encodings, ids):
-    valid_encodings = []
-    valid_ids = []
+def filter_data(
+    encodings: list[npt.NDArray[float64]], ids: list[int]
+) -> tuple[npt.NDArray[float64], npt.NDArray[intp]]:
+    valid_encodings: list[npt.NDArray[float64]] = []
+    valid_ids: list[int] = []
     expected_shape = (
         len(encodings[0]) if encodings else 0
     )  # Set expected shape from first entry
@@ -295,17 +321,17 @@ def filter_data(encodings, ids):
     return np.array(valid_encodings), np.array(valid_ids)
 
 
-def fit_mlp(encodings, ids):
+def fit_mlp(encodings: npt.NDArray[float64], ids: npt.NDArray[intp]) -> _MLPClassifier:
     return MLPClassifier(solver="adam", alpha=1e-5, random_state=1, max_iter=1000).fit(
         encodings, ids
     )
 
 
-def split_faces_by_label(user: User) -> tuple[dict, dict]:
+def split_faces_by_label(user: User) -> tuple[_FaceData, _FaceData]:
     """Sort the user's faces into person-labeled ones and unlabeled ones. Two dicts,
     so that the known one can be thrown out once it is no longer used."""
-    data_known = {"encoding": [], "id": []}
-    data_unknown = {"encoding": [], "id": []}
+    data_known: _FaceData = {"encoding": [], "id": []}
+    data_unknown: _FaceData = {"encoding": [], "id": []}
     face: Face
     for face in Face.objects.filter(
         Q(photo__owner=user)
@@ -322,7 +348,7 @@ def split_faces_by_label(user: User) -> tuple[dict, dict]:
     return data_known, data_unknown
 
 
-def add_cluster_centroids(user: User, data_known: dict) -> None:
+def add_cluster_centroids(user: User, data_known: _FaceData) -> None:
     """Pretend all unknown face clusters are known and add their mean encoding. This
     allows us to predict the likelihood of other unknown faces belonging to those
     simulated clusters. For the "Unknown - Other"-type cluster, we can still try to
@@ -336,7 +362,9 @@ def add_cluster_centroids(user: User, data_known: dict) -> None:
             data_known["id"].append(cluster.person.id)
 
 
-def most_probable_class(classes, probabilities):
+def most_probable_class(
+    classes: Sequence[int], probabilities: Sequence[float] | npt.NDArray[float64]
+) -> tuple[int, float]:
     """The last class whose probability equals the highest one, and that probability"""
     highest_probability = max(probabilities)
     highest_class = 0
@@ -348,11 +376,11 @@ def most_probable_class(classes, probabilities):
 
 def assign_face_predictions(
     face: Face,
-    cluster_probabilities,
-    classification_probabilities,
-    cluster_classifier,
-    classifier,
-    unknown_cluster,
+    cluster_probabilities: Sequence[float] | npt.NDArray[float64],
+    classification_probabilities: Sequence[float] | npt.NDArray[float64],
+    cluster_classifier: _MLPClassifier,
+    classifier: _MLPClassifier | None,
+    unknown_cluster: Cluster,
 ) -> None:
     face.cluster_probability = 0.0
     face.classification_probability = 0.0
@@ -381,15 +409,16 @@ def assign_face_predictions(
 
 def classify_face_page(
     user: User,
-    page_encodings: list,
+    page_encodings: list[npt.NDArray[float64]],
     page_id: list[int],
-    classifier,
-    cluster_classifier,
+    classifier: _MLPClassifier | None,
+    cluster_classifier: _MLPClassifier,
     lrj: LongRunningJob,
     target_count: int,
 ) -> None:
-    pages_of_faces = Face.objects.filter(id__in=page_id).all()
-    pages_of_faces = sorted(pages_of_faces, key=lambda x: page_id.index(x.id))
+    pages_of_faces: list[Face] = sorted(
+        Face.objects.filter(id__in=page_id).all(), key=lambda x: page_id.index(x.id)
+    )
     face_encodings_unknown_np = np.array(page_encodings)
     cluster_probs = cluster_classifier.predict_proba(face_encodings_unknown_np)
     if classifier:
@@ -425,7 +454,7 @@ def classify_face_page(
     bulk_update(face_stack, update_fields=FACE_CLASSIFY_COLUMNS)
 
 
-def train_faces(user: User, job_id) -> bool:
+def train_faces(user: User, job_id: uuid.UUID | str) -> bool:
     """Given existing Cluster records for all faces, determines the probability
     that unknown faces belong to those Clusters. It takes any known, labeled faces
     and adds the centroids of "unknown" clusters, assuming that those clusters

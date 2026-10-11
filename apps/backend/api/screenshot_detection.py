@@ -18,8 +18,15 @@ EXIF ``UserComment`` / ``Software`` heuristics are deliberately out of scope for
 v1.
 """
 
+from __future__ import annotations
+
 import os
 import re
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from api.models.photo import Photo
+    from api.models.photo_metadata import PhotoMetadata
 
 # Screenshot filename prefixes across the locales LibrePhotos users commonly
 # hit. Compared case-insensitively, with ``_``/``-`` normalised to spaces so
@@ -70,7 +77,7 @@ def _is_png(path: str) -> bool:
     return os.path.splitext(path)[1].lower() == ".png"
 
 
-def _get_metadata(photo):
+def _get_metadata(photo: Photo) -> PhotoMetadata | None:
     """Return the photo's PhotoMetadata, or ``None`` if it has none.
 
     The reverse one-to-one accessor raises when no row exists, so it is guarded
@@ -82,7 +89,7 @@ def _get_metadata(photo):
         return None
 
 
-def _has_camera_metadata(metadata) -> bool:
+def _has_camera_metadata(metadata: PhotoMetadata | None) -> bool:
     if metadata is None:
         return False
     return bool(
@@ -93,7 +100,7 @@ def _has_camera_metadata(metadata) -> bool:
     )
 
 
-def _has_gps(photo, metadata) -> bool:
+def _has_gps(photo: Photo, metadata: PhotoMetadata | None) -> bool:
     if photo.exif_gps_lat is not None or photo.exif_gps_lon is not None:
         return True
     if metadata is not None and (
@@ -103,7 +110,7 @@ def _has_gps(photo, metadata) -> bool:
     return False
 
 
-def classify(photo) -> bool:
+def classify(photo: Photo) -> bool:
     """Return ``True`` if *photo* looks like a screenshot.
 
     Operates purely on the photo's file path and its PhotoMetadata; it neither

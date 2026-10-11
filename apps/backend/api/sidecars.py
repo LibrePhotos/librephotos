@@ -26,10 +26,14 @@ from it.
 """
 
 import os
+from types import TracebackType
+from typing import Any, Self
 
 import requests
 from requests.adapters import HTTPAdapter
+from urllib3.connectionpool import ConnectionPool
 from urllib3.exceptions import ReadTimeoutError
+from urllib3.response import BaseHTTPResponse
 from urllib3.util.retry import Retry
 
 SIDECAR_HOST = "http://127.0.0.1"
@@ -52,7 +56,7 @@ RETRY_BACKOFF = 0.5
 RETRY_STATUSES = (503,)
 
 
-def sidecar_url(service, path=""):
+def sidecar_url(service: str, path: str = "") -> str:
     """The URL of *path* on the sidecar named *service* (a key of SERVICES)."""
     try:
         port = SERVICES[service]
@@ -64,17 +68,30 @@ def sidecar_url(service, path=""):
 class _SidecarRetry(Retry):
     """Retry connection failures and 503s, never a read that timed out."""
 
-    def increment(self, method=None, url=None, response=None, error=None, **kwargs):
+    def increment(
+        self,
+        method: str | None = None,
+        url: str | None = None,
+        response: BaseHTTPResponse | None = None,
+        error: Exception | None = None,
+        _pool: ConnectionPool | None = None,
+        _stacktrace: TracebackType | None = None,
+    ) -> Self:
         if isinstance(error, ReadTimeoutError):
             # Raised as-is, requests reports it as ReadTimeout, as it would
             # without a retry policy.
             raise error
         return super().increment(
-            method=method, url=url, response=response, error=error, **kwargs
+            method=method,
+            url=url,
+            response=response,
+            error=error,
+            _pool=_pool,
+            _stacktrace=_stacktrace,
         )
 
 
-def _retry_policy():
+def _retry_policy() -> _SidecarRetry:
     return _SidecarRetry(
         total=MAX_RETRIES,
         connect=MAX_RETRIES,
@@ -101,11 +118,11 @@ class _Client:
     processes, so a child builds its own session.
     """
 
-    def __init__(self):
-        self._session = None
-        self._pid = None
+    def __init__(self) -> None:
+        self._session: requests.Session | None = None
+        self._pid: int | None = None
 
-    def session(self):
+    def session(self) -> requests.Session:
         if self._session is None or self._pid != os.getpid():
             session = requests.Session()
             adapter = HTTPAdapter(max_retries=_retry_policy())
@@ -114,38 +131,46 @@ class _Client:
             self._pid = os.getpid()
         return self._session
 
-    def request(self, method, url, **kwargs):
+    def request(self, method: str, url: str, **kwargs: Any) -> requests.Response:
         return self.session().request(method, url, **kwargs)
 
-    def get(self, url, **kwargs):
+    def get(self, url: str, **kwargs: Any) -> requests.Response:
         return self.request("GET", url, **kwargs)
 
-    def post(self, url, **kwargs):
+    def post(self, url: str, **kwargs: Any) -> requests.Response:
         return self.request("POST", url, **kwargs)
 
-    def delete(self, url, **kwargs):
+    def delete(self, url: str, **kwargs: Any) -> requests.Response:
         return self.request("DELETE", url, **kwargs)
 
 
 http = _Client()
 
 
-def _checked(response):
+def _checked(response: requests.Response) -> requests.Response:
     response.raise_for_status()
     return response
 
 
-def post(service, path, *, json, timeout):
+def post(
+    service: str,
+    path: str,
+    *,
+    json: object,
+    timeout: float | tuple[float, float],
+) -> requests.Response:
     """POST *json* to a sidecar; the response, or HTTPError for an error status."""
     return _checked(http.post(sidecar_url(service, path), json=json, timeout=timeout))
 
 
-def get(service, path, *, timeout):
+def get(
+    service: str, path: str, *, timeout: float | tuple[float, float]
+) -> requests.Response:
     """GET from a sidecar; the response, or HTTPError for an error status."""
     return _checked(http.get(sidecar_url(service, path), timeout=timeout))
 
 
-def error_detail(error):
+def error_detail(error: Exception) -> str:
     """The sidecar's own reason for a failed call, else the error itself.
 
     The sidecars answer a failure with ``{"error": "..."}``; that message is

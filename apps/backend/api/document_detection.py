@@ -146,7 +146,7 @@ class DocumentSignals:
             )
         )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         fired = [name for name in self.__slots__ if getattr(self, name)]
         return f"DocumentSignals({', '.join(fired) or 'none'})"
 

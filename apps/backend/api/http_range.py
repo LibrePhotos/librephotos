@@ -10,19 +10,26 @@ that no video in one of those installs could be sought.
 
 import os
 import re
+from collections.abc import Iterator
+from typing import BinaryIO, Final
 
-from django.http import FileResponse, HttpResponse, StreamingHttpResponse
+from django.http import (
+    FileResponse,
+    HttpResponse,
+    HttpResponseBase,
+    StreamingHttpResponse,
+)
 
 #: Returned by :func:`parse_byte_range` when the range names bytes the file
 #: does not have, which HTTP answers with 416 rather than the whole file.
-UNSATISFIABLE = "unsatisfiable"
+UNSATISFIABLE: Final = "unsatisfiable"
 
 CHUNK_SIZE = 64 * 1024
 
 _RANGE = re.compile(r"^bytes=(\d*)-(\d*)$")
 
 
-def parse_byte_range(header, size):
+def parse_byte_range(header: str | None, size: int) -> tuple[int, int] | str | None:
     """Resolve a ``Range`` header against a file of ``size`` bytes.
 
     Returns an inclusive ``(start, end)`` pair, :data:`UNSATISFIABLE`, or None
@@ -57,7 +64,7 @@ def parse_byte_range(header, size):
     return start, end
 
 
-def _read_range(handle, start, length):
+def _read_range(handle: BinaryIO, start: int, length: int) -> Iterator[bytes]:
     remaining = length
     try:
         handle.seek(start)
@@ -71,7 +78,12 @@ def _read_range(handle, start, length):
         handle.close()
 
 
-def ranged_response(handle, size, range_header, content_type=None):
+def ranged_response(
+    handle: BinaryIO,
+    size: int,
+    range_header: str | None,
+    content_type: str | None = None,
+) -> HttpResponseBase:
     """Serve an open file, honouring a single byte range if one was asked for.
 
     Takes the open handle rather than a path so that the caller keeps the one
@@ -80,32 +92,34 @@ def ranged_response(handle, size, range_header, content_type=None):
     """
     parsed = parse_byte_range(range_header, size)
 
-    if parsed is UNSATISFIABLE:
+    # parse_byte_range returns UNSATISFIABLE (a str) for the one case that is
+    # not a span, so a str here means exactly that.
+    if isinstance(parsed, str):
         handle.close()
-        response = HttpResponse(status=416)
-        response["Content-Range"] = f"bytes */{size}"
-        response["Accept-Ranges"] = "bytes"
-        return response
+        unsatisfiable = HttpResponse(status=416)
+        unsatisfiable["Content-Range"] = f"bytes */{size}"
+        unsatisfiable["Accept-Ranges"] = "bytes"
+        return unsatisfiable
 
     if parsed is None:
-        response = FileResponse(handle)
+        whole = FileResponse(handle)
         if content_type:
-            response["Content-Type"] = content_type
-        response["Accept-Ranges"] = "bytes"
-        return response
+            whole["Content-Type"] = content_type
+        whole["Accept-Ranges"] = "bytes"
+        return whole
 
     start, end = parsed
     length = end - start + 1
-    response = StreamingHttpResponse(
+    partial = StreamingHttpResponse(
         _read_range(handle, start, length),
         status=206,
         content_type=content_type or "application/octet-stream",
     )
-    response["Content-Range"] = f"bytes {start}-{end}/{size}"
-    response["Content-Length"] = length
-    response["Accept-Ranges"] = "bytes"
-    return response
+    partial["Content-Range"] = f"bytes {start}-{end}/{size}"
+    partial["Content-Length"] = length
+    partial["Accept-Ranges"] = "bytes"
+    return partial
 
 
-def file_size(handle):
+def file_size(handle: BinaryIO) -> int:
     return os.fstat(handle.fileno()).st_size

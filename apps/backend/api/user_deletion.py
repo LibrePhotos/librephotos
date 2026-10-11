@@ -10,7 +10,7 @@ transaction, so a delete that fails leaves everything as it was.
 Registered from :meth:`api.apps.ApiConfig.ready`.
 """
 
-import itertools
+from typing import Any, TypeAlias
 
 from django.db.models.signals import pre_delete
 from django.utils import timezone
@@ -29,6 +29,16 @@ from api.models import (
 )
 from api.models.user import get_deleted_user
 
+# The models of GENERATED_ALBUMS plus the two that are handed over with them.
+OwnedRowModel: TypeAlias = (
+    type[AlbumAuto]
+    | type[AlbumDate]
+    | type[AlbumPlace]
+    | type[AlbumThing]
+    | type[AlbumUser]
+    | type[Tag]
+)
+
 # Unique per owner: the second user deleted with, say, an album for a day the
 # first one also had collided with the row ``deleted`` already held, and the
 # whole delete failed.
@@ -43,7 +53,12 @@ GENERATED_ALBUMS = (
 MERGE_BATCH_SIZE = 2000
 
 
-def _colliding(model, fields, user, deleted_user):
+def _colliding(
+    model: OwnedRowModel,
+    fields: tuple[str, ...],
+    user: User,
+    deleted_user: User,
+) -> list[tuple[Any, Any]]:
     """``(pk, held_pk)`` for each of ``user``'s rows whose key ``deleted_user`` holds.
 
     A key with a null part never collides, as in the database.
@@ -59,19 +74,23 @@ def _colliding(model, fields, user, deleted_user):
     ]
 
 
-def _free_album_title(title, user, deleted_user):
+def _free_album_title(title: str, user: User, deleted_user: User) -> str:
     """``title`` with the owner's name added, free for both accounts."""
     max_length = AlbumUser._meta.get_field("title").max_length
-    for n in itertools.count(1):
+    # AlbumUser.title is declared with a max_length, so the field always has one.
+    assert max_length is not None
+    n = 1
+    while True:
         suffix = f" ({user.username})" if n == 1 else f" ({user.username} {n})"
         candidate = title[: max_length - len(suffix)] + suffix
         if not AlbumUser.objects.filter(
             owner__in=(user, deleted_user), title=candidate
         ).exists():
             return candidate
+        n += 1
 
 
-def _hand_over_unique_rows(user, deleted_user):
+def _hand_over_unique_rows(user: User, deleted_user: User) -> None:
     """Give ``deleted_user`` the rows of ``user`` that are unique per owner.
 
     Merging two albums would show either user's photos to whoever the other
@@ -95,15 +114,16 @@ def _hand_over_unique_rows(user, deleted_user):
     for pk, held_pk in _colliding(Tag, ("name",), user, deleted_user):
         source = Tag.objects.get(pk=pk)
         target = Tag.objects.get(pk=held_pk)
-        photo_pks = list(source.photos.values_list("pk", flat=True))
-        for start in range(0, len(photo_pks), MERGE_BATCH_SIZE):
-            target.photos.add(*photo_pks[start : start + MERGE_BATCH_SIZE])
+        # Whole rows, reduced to the id: add() takes the photo instances.
+        photos = list(source.photos.only("id"))
+        for start in range(0, len(photos), MERGE_BATCH_SIZE):
+            target.photos.add(*photos[start : start + MERGE_BATCH_SIZE])
         source.delete()
-    for model in (*(model for model, _ in GENERATED_ALBUMS), AlbumUser, Tag):
-        model.objects.filter(owner=user).update(owner=deleted_user)
+    for owned_model in (*(model for model, _ in GENERATED_ALBUMS), AlbumUser, Tag):
+        owned_model.objects.filter(owner=user).update(owner=deleted_user)
 
 
-def _turn_off_public_links(user):
+def _turn_off_public_links(user: User) -> None:
     """Turn off all of ``user``'s photos and albums that open without an account.
 
     Nobody can sign in as ``deleted``, so a link left on could never be turned
@@ -118,7 +138,7 @@ def _turn_off_public_links(user):
     photos.filter(public=True).update(public=False, last_modified=timezone.now())
 
 
-def _drop_others_photos_from_albums(user):
+def _drop_others_photos_from_albums(user: User) -> None:
     """Take the photos ``user`` does not own out of ``user``'s albums.
 
     An album only vouches for its owner's photos (GHSA-phvg-g65q-rhq3,
@@ -143,7 +163,7 @@ def _drop_others_photos_from_albums(user):
     albums.filter(pk__in=album_pks).update(last_modified=now)
 
 
-def prepare_user_deletion(sender, instance, **kwargs):
+def prepare_user_deletion(sender: type[User], instance: User, **kwargs: Any) -> None:
     # Not the placeholder itself: its rows would be handed to itself.
     if instance.username == "deleted":
         return
@@ -152,7 +172,7 @@ def prepare_user_deletion(sender, instance, **kwargs):
     _hand_over_unique_rows(instance, get_deleted_user())
 
 
-def register():
+def register() -> None:
     pre_delete.connect(
         prepare_user_deletion, sender=User, dispatch_uid="prepare_user_deletion"
     )

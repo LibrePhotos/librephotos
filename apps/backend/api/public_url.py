@@ -16,9 +16,10 @@ import os
 from urllib.parse import urlsplit
 
 from django.conf import settings
+from django.http import HttpRequest
 
 
-def _internal_hosts():
+def _internal_hosts() -> set[str]:
     """Host names the proxy substitutes for ``/api/`` requests.
 
     A base URL pointing at one of these is reachable only from inside the Docker
@@ -29,7 +30,7 @@ def _internal_hosts():
     return {"backend", os.environ.get("BACKEND_HOST", "backend")}
 
 
-def public_base_url(request=None):
+def public_base_url(request: HttpRequest | None = None) -> str:
     """Return the public base URL (no trailing slash), or ``""`` if unknown.
 
     Prefers the explicitly configured ``FRONTEND_BASE_URL``. Falls back to the
@@ -45,7 +46,7 @@ def public_base_url(request=None):
     return request.build_absolute_uri("/").rstrip("/")
 
 
-def trusted_public_base_url(request):
+def trusted_public_base_url(request: HttpRequest | None) -> str:
     """Like ``public_base_url``, minus any origin the caller could have chosen.
 
     The request fallback is the Host header, and the unified and standalone
@@ -71,7 +72,7 @@ def trusted_public_base_url(request):
     return ""
 
 
-def is_internal_base_url(base_url):
+def is_internal_base_url(base_url: str) -> bool:
     """Whether ``base_url`` points somewhere only the Docker network can reach."""
     if not base_url:
         return True

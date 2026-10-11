@@ -1,8 +1,12 @@
+from collections.abc import Collection
+from typing import Any
+
 from django.db import ProgrammingError, models
 from django.db.models.constants import LOOKUP_SEP
 from django.db.models.query import normalize_prefetch_lookups
 from rest_framework import serializers
 from rest_framework.utils import model_meta
+from rest_framework.utils.model_meta import FieldInfo
 
 
 class OptimizeRelatedModelViewSetMetaclass(type):
@@ -18,13 +22,15 @@ class OptimizeRelatedModelViewSetMetaclass(type):
     """
 
     @classmethod
-    def get_many_to_many_rel(cls, info, meta_fields):
+    def get_many_to_many_rel(
+        cls, info: FieldInfo, meta_fields: Collection[str]
+    ) -> list[str]:
         many_to_many_fields = [
             field_name
             for field_name, relation_info in info.relations.items()
             if relation_info.to_many
         ]
-        many_to_many_lookups = []
+        many_to_many_lookups: list[str] = []
         for lookup_name, lookup in cls.get_lookups(meta_fields):
             if lookup_name in many_to_many_fields:
                 many_to_many_lookups.append(lookup)
@@ -32,14 +38,18 @@ class OptimizeRelatedModelViewSetMetaclass(type):
         return many_to_many_lookups
 
     @classmethod
-    def get_lookups(cls, fields, strict=False):
+    def get_lookups(
+        cls, fields: Collection[str], strict: bool = False
+    ) -> list[tuple[str, str]]:
         field_lookups = [(lookup.split(LOOKUP_SEP, 1)[0], lookup) for lookup in fields]
         if strict:
             field_lookups = [f for f in field_lookups if LOOKUP_SEP in f[1]]
         return field_lookups
 
     @classmethod
-    def get_many_to_one_rel(cls, info, meta_fields):
+    def get_many_to_one_rel(
+        cls, info: FieldInfo, meta_fields: Collection[str]
+    ) -> list[str]:
         try:
             fields = {
                 field_name
@@ -55,7 +65,9 @@ class OptimizeRelatedModelViewSetMetaclass(type):
         ]
 
     @classmethod
-    def get_forward_rel(cls, info, meta_fields):
+    def get_forward_rel(
+        cls, info: FieldInfo, meta_fields: Collection[str]
+    ) -> list[str]:
         return [
             field_name
             for field_name, relation_info in info.forward_relations.items()
@@ -64,8 +76,12 @@ class OptimizeRelatedModelViewSetMetaclass(type):
 
     @classmethod
     def collect_declared_fields(
-        cls, serializer_class, base_forward_rel, many_to_many_fields, many_to_one_fields
-    ):
+        cls,
+        serializer_class: type[serializers.ModelSerializer] | None,
+        base_forward_rel: list[str],
+        many_to_many_fields: list[str],
+        many_to_one_fields: list[str],
+    ) -> FieldInfo | None:
         """Extend the given field lists in place and return the model info, if any."""
         if not serializer_class or not issubclass(
             serializer_class, serializers.ModelSerializer
@@ -93,8 +109,12 @@ class OptimizeRelatedModelViewSetMetaclass(type):
 
     @classmethod
     def optimize_queryset(
-        cls, attrs, many_to_many_fields, many_to_one_fields, related_fields
-    ):
+        cls,
+        attrs: dict[str, Any],
+        many_to_many_fields: list[str],
+        many_to_one_fields: list[str],
+        related_fields: list[str],
+    ) -> None:
         queryset = attrs.get("queryset", None)
         try:
             if not queryset:
@@ -102,7 +122,7 @@ class OptimizeRelatedModelViewSetMetaclass(type):
             if many_to_many_fields:
                 queryset = queryset.prefetch_related(
                     *normalize_prefetch_lookups(
-                        set(many_to_many_fields + many_to_one_fields)
+                        list(set(many_to_many_fields + many_to_one_fields))
                     ),
                 )
             if related_fields:
@@ -111,8 +131,11 @@ class OptimizeRelatedModelViewSetMetaclass(type):
         except ProgrammingError:
             pass
 
-    def __new__(cls, name, bases, attrs):
-        many_to_many_fields = many_to_one_fields = related_fields = []
+    def __new__(cls, name: str, bases: tuple[type, ...], attrs: dict[str, Any]) -> type:
+        # One list object bound to all three names, as before: the aliasing is
+        # pinned by test_shared_list_aliasing_leaks_fields_across_categories.
+        shared_fields: list[str] = []
+        many_to_many_fields = many_to_one_fields = related_fields = shared_fields
         base_forward_rel = list(attrs.pop("_base_forward_rel", ()))
 
         for base in reversed(bases):

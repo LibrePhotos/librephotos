@@ -1,5 +1,7 @@
 import logging
+from collections.abc import Sequence
 from datetime import datetime
+from typing import TypedDict
 
 import requests
 from django.core.paginator import Paginator
@@ -7,7 +9,7 @@ from django.core.paginator import Paginator
 from api import sidecars
 from api.http_timeouts import SIMILARITY
 from api.lazy_import import LazyModule
-from api.models import Photo
+from api.models import Photo, User
 from api.semantic_search import (
     SEARCH_THRESHOLD,
     SIMILAR_THRESHOLD,
@@ -19,11 +21,24 @@ np = LazyModule("numpy")
 
 logger = logging.getLogger(__name__)
 
+
+class SimilarPhotosReply(TypedDict):
+    """The sidecar's JSON answer to a successful /search/: hashes in result."""
+
+    status: bool
+    result: list[str]
+
+
 # Embeddings per request of an index rebuild.
 INDEX_PAGE_SIZE = 5000
 
 
-def search_similar_embedding(user, emb, result_count=100, threshold=None):
+def search_similar_embedding(
+    user: User | int,
+    emb: Sequence[float],
+    result_count: int = 100,
+    threshold: float | None = None,
+) -> list[str]:
     """Hashes of the user's photos closest to ``emb``, a query embedding;
     ``threshold`` defaults to the search cut."""
     if threshold is None:
@@ -56,7 +71,9 @@ def search_similar_embedding(user, emb, result_count=100, threshold=None):
     return res.json()["result"]
 
 
-def search_similar_image(user, photo, threshold=None):
+def search_similar_image(
+    user: User | int, photo: Photo, threshold: float | None = None
+) -> SimilarPhotosReply | list[str]:
     """The user's photos similar to ``photo``.
 
     A photo whose embedding comes from an earlier model (not converted yet)
@@ -100,7 +117,7 @@ class SimilarityIndexError(RuntimeError):
     """The similarity sidecar did not take a page of the index rebuild."""
 
 
-def build_image_similarity_index(user):
+def build_image_similarity_index(user: User) -> int:
     """Rebuild the user's similarity index from their CLIP embeddings.
 
     Only OpenCLIP's embeddings go in (api.semantic_search): while a library
@@ -131,8 +148,8 @@ def build_image_similarity_index(user):
 
     index_size = 0
     for page in range(1, last_page + 1):
-        image_hashes = []
-        image_embeddings = []
+        image_hashes: list[str] = []
+        image_embeddings: list[list[float]] = []
         for photo in paginator.page(page).object_list:
             clip_embeddings = photo.get_clip_embeddings()
             if clip_embeddings is not None:
@@ -155,7 +172,9 @@ def build_image_similarity_index(user):
     return index_size
 
 
-def _post_build_page(user, page, last_page, post_data):
+def _post_build_page(
+    user: User, page: int, last_page: int, post_data: dict[str, object]
+) -> int:
     where = f"page {page} of {last_page} of the similarity index of {user.username}"
     try:
         body = sidecars.post(

@@ -7,6 +7,17 @@ from django.db import models
 from django_cryptography.fields import encrypt
 
 
+class SmtpKwargs(TypedDict):
+    """Keyword arguments for Django's SMTP ``EmailBackend``."""
+
+    host: str
+    port: int
+    username: str
+    password: str
+    use_tls: bool
+    use_ssl: bool
+
+
 class ProviderPreset(TypedDict, total=False):
     label: str
     host: str
@@ -134,7 +145,7 @@ class EmailConfig(models.Model):
     def effective_from_email(self) -> str:
         return self.from_email or getattr(settings, "DEFAULT_FROM_EMAIL", "")
 
-    def resolve_smtp_kwargs(self) -> dict[str, str | int | bool]:
+    def resolve_smtp_kwargs(self) -> SmtpKwargs:
         """Effective SMTP connection settings, merging any provider preset with
         the stored values (stored values win)."""
         preset: ProviderPreset = PROVIDER_PRESETS.get(self.provider, {})

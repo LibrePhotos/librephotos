@@ -20,7 +20,13 @@ from the 8-bit kind, and H.264 High 10 from the High profile everything plays.
 The level is a representative one; ``canPlayType`` decides on the profile.
 """
 
+from __future__ import annotations
+
 import re
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from api.models import Photo
 
 # Where the chroma and the bit depth sit in an ffmpeg pixel format name:
 # yuv420p, yuvj420p, yuv420p10le, p010le, nv12, yuv422p10le, yuv444p12le.
@@ -50,7 +56,7 @@ _FIXED_CODEC_STRINGS = {
 _WEBM_CODECS = {"vp8", "vp9", "av1"}
 
 
-def _format_class(pixel_format):
+def _format_class(pixel_format: str | None) -> int:
     """Which column of ``_CODEC_STRINGS`` a pixel format belongs to."""
     chroma = _CHROMA.search(pixel_format or "")
     if chroma and chroma.group(1) == "422":
@@ -60,7 +66,7 @@ def _format_class(pixel_format):
     return 1 if _HIGH_DEPTH.search(pixel_format or "") else 0
 
 
-def _mime_type(container, codec):
+def _mime_type(container: str | None, codec: str) -> str:
     """The MIME type ``canPlayType`` should hear for this container."""
     families = (container or "").split(",")
     if "mp4" in families or "mov" in families:
@@ -75,7 +81,7 @@ def _mime_type(container, codec):
     return f"video/{families[0]}" if families[0] else "video/mp4"
 
 
-def playback_type(photo):
+def playback_type(photo: Photo) -> str | None:
     """The ``canPlayType`` argument for ``photo``, or ``None`` when unknown.
 
     ``None`` for anything that is not a probed video. An unknown codec is still

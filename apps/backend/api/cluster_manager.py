@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from typing import TYPE_CHECKING
 
 
 from api.models.cluster import UNKNOWN_CLUSTER_ID, Cluster, get_unknown_cluster
@@ -8,6 +9,10 @@ from api.models.face import Face
 from api.models.person import Person, get_or_create_person
 from api.models.user import User
 from api.lazy_import import LazyModule
+
+if TYPE_CHECKING:
+    import numpy.typing as npt
+    from numpy import float64
 
 np = LazyModule("numpy")
 
@@ -39,7 +44,10 @@ class ClusterManager:
             )
 
         for new_cluster in added_clusters:
-            new_cluster.set_metadata(encoding_by_person[new_cluster.person.id])
+            # Both helpers above always attach a person to every new cluster.
+            person = new_cluster.person
+            assert person is not None
+            new_cluster.set_metadata(encoding_by_person[person.id])
             new_cluster.save()
 
         return added_clusters
@@ -62,7 +70,7 @@ class ClusterManager:
     @staticmethod
     def _create_cluster_person(
         user: User, cluster_id: int, unknown_faces: list[Face], padLen: int
-    ) -> tuple[list[Cluster], dict[int, list[np.ndarray]]]:
+    ) -> tuple[list[Cluster], dict[int, list[npt.NDArray[float64]]]]:
         new_person = get_or_create_person(
             name="Unknown " + str(cluster_id).zfill(padLen),
             owner=user,
@@ -86,26 +94,29 @@ class ClusterManager:
     @staticmethod
     def _split_by_person(
         user: User, cluster_id: int, known_faces: list[Face]
-    ) -> tuple[list[Cluster], dict[int, list[np.ndarray]]]:
+    ) -> tuple[list[Cluster], dict[int, list[npt.NDArray[float64]]]]:
         added_clusters: list[Cluster] = []
         clusters_by_person: dict[int, Cluster] = dict()
-        encoding_by_person: dict[int, list[np.ndarray]] = dict()
+        encoding_by_person: dict[int, list[npt.NDArray[float64]]] = dict()
         face_ids_by_cluster: dict[int, list[int]] = dict()
 
         for face in known_faces:
-            new_cluster = clusters_by_person.get(face.person.id)
+            person = face.person
+            # known_faces only holds faces that have a person (see try_add_cluster).
+            assert person is not None
+            new_cluster = clusters_by_person.get(person.id)
             if new_cluster is None:
                 new_cluster = Cluster.get_or_create_cluster_by_name(
                     user,
                     "Cluster " + str(cluster_id) + "-" + str(len(added_clusters) + 1),
                 )
                 new_cluster.cluster_id = cluster_id
-                new_cluster.person = face.person
-                clusters_by_person[face.person.id] = new_cluster
+                new_cluster.person = person
+                clusters_by_person[person.id] = new_cluster
                 added_clusters.append(new_cluster)
-                encoding_by_person[face.person.id] = []
+                encoding_by_person[person.id] = []
                 face_ids_by_cluster[new_cluster.id] = []
-            encoding_by_person[face.person.id].append(face.get_encoding_array())
+            encoding_by_person[person.id].append(face.get_encoding_array())
             face_ids_by_cluster[new_cluster.id].append(face.id)
 
         for new_cluster in added_clusters:

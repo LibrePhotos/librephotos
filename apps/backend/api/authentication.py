@@ -14,12 +14,20 @@ triggers, too. That is why this class is not in
 header and is ``csrf_exempt`` already).
 """
 
+from typing import cast
+
+from django.http import HttpRequest
 from django.utils.translation import gettext_lazy as _
+from rest_framework import HTTP_HEADER_ENCODING
+from rest_framework.request import Request
 from rest_framework_simplejwt.authentication import (
     AUTH_HEADER_TYPE_BYTES,
+    AuthUser,
     JWTAuthentication,
 )
 from rest_framework_simplejwt.exceptions import AuthenticationFailed
+from rest_framework_simplejwt.settings import api_settings
+from rest_framework_simplejwt.tokens import Token
 
 JWT_COOKIE_NAME = "jwt"
 
@@ -43,7 +51,7 @@ class JWTCookieAuthentication(JWTAuthentication):
 
     cookie_name = JWT_COOKIE_NAME
 
-    def get_raw_token(self, header):
+    def get_raw_token(self, header: bytes) -> bytes | None:
         """As simplejwt's, but the scheme is matched case-insensitively.
 
         RFC 7235 makes the scheme case-insensitive, and the upload endpoints
@@ -54,36 +62,50 @@ class JWTCookieAuthentication(JWTAuthentication):
             return None
         if len(parts) != 2:
             raise AuthenticationFailed(
-                _("Authorization header must contain two space-delimited values"),
+                str(_("Authorization header must contain two space-delimited values")),
                 code="bad_authorization_header",
             )
         return parts[1]
 
-    def header_token(self, request):
-        """The raw bearer token in ``Authorization``, or None."""
-        header = self.get_header(request)
+    def header_token(self, request: HttpRequest) -> bytes | None:
+        """The raw bearer token in ``Authorization``, or None.
+
+        Reads META the way simplejwt's ``get_header`` does. That method is typed
+        for DRF's ``Request``, and ``authenticate_strict`` gets a plain Django
+        request from the chunked upload, which has the same META.
+        """
+        header = request.META.get(api_settings.AUTH_HEADER_NAME)
         if header is None:
             return None
+        if isinstance(header, str):
+            # Work around django test client oddness
+            header = header.encode(HTTP_HEADER_ENCODING)
         return self.get_raw_token(header)
 
-    def cookie_token(self, request):
+    def cookie_token(self, request: HttpRequest) -> bytes | None:
         """The raw token in the ``jwt`` cookie, or None when there is no cookie.
 
-        An empty cookie is returned as ``""``, not None: it was sent, it just
-        cannot be used.
+        An empty cookie is returned as ``b""``, not None: it was sent, it just
+        cannot be used. The token is encoded here because simplejwt types its
+        tokens as bytes; PyJWT encodes a str token the same way, so the decoded
+        claims are unchanged.
         """
-        return request.COOKIES.get(self.cookie_name)
+        value = request.COOKIES.get(self.cookie_name)
+        return None if value is None else value.encode()
 
-    def authenticate_token(self, raw_token):
+    def authenticate_token(self, raw_token: bytes) -> tuple[AuthUser, Token]:
         """``(user, validated_token)`` for ``raw_token``, or raise.
 
         Raises ``InvalidToken`` when the token itself is unusable and
         ``AuthenticationFailed`` when the user it names is missing or inactive.
         """
         validated_token = self.get_validated_token(raw_token)
-        return self.get_user(validated_token), validated_token
+        # simplejwt's get_user is typed for either user class, and mypy checks
+        # this generic body once per class. Here it is always a model instance.
+        user: object = self.get_user(validated_token)
+        return cast(AuthUser, user), validated_token
 
-    def authenticate(self, request):
+    def authenticate(self, request: Request) -> tuple[AuthUser, Token] | None:
         raw_token = self.header_token(request)
         if raw_token is not None:
             return self.authenticate_token(raw_token)
@@ -95,7 +117,9 @@ class JWTCookieAuthentication(JWTAuthentication):
         except AuthenticationFailed:
             return None
 
-    def authenticate_strict(self, request):
+    def authenticate_strict(
+        self, request: HttpRequest
+    ) -> tuple[AuthUser, Token] | None:
         """Like ``authenticate``, but an unusable cookie raises too.
 
         For callers outside DRF's view machinery that report bad credentials

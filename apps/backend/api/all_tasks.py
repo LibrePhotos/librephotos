@@ -3,17 +3,22 @@ import os
 import time
 import uuid
 import zipfile
+from collections.abc import Collection, Sequence
+from datetime import timedelta
 
 from django.conf import settings
 from django.utils import timezone
 from django_q.tasks import AsyncTask, schedule
 
+from api.models.file import File
 from api.models.long_running_job import LongRunningJob
+from api.models.photo import Photo
+from api.models.user import User
 
 logger = logging.getLogger(__name__)
 
 
-def zip_file_name(file_uuid, user_id):
+def zip_file_name(file_uuid: uuid.UUID | str, user_id: int) -> str | None:
     """Name of the archive a download job writes: ``<uuid><user id>.zip``.
 
     ``file_uuid`` comes from the client on the delete and serve routes, so it
@@ -30,7 +35,9 @@ def zip_file_name(file_uuid, user_id):
     return f"{canonical}{int(user_id)}.zip"
 
 
-def create_download_job(job_type, user, photos, filename):
+def create_download_job(
+    job_type: int, user: User, photos: list[Photo], filename: str | None
+) -> str:
     lrj = LongRunningJob.create_job(
         user=user,
         job_type=job_type,
@@ -47,19 +54,20 @@ def create_download_job(job_type, user, photos, filename):
     return lrj.job_id
 
 
-def _photo_own_files(photo):
+def _photo_own_files(photo: Photo) -> list[File]:
     # NOTE: main_file is not guaranteed to be included in Photo.files.
-    files = []
-    if getattr(photo, "main_file", None) is not None:
-        files.append(photo.main_file)
+    files: list[File] = []
+    main_file = getattr(photo, "main_file", None)
+    if main_file is not None:
+        files.append(main_file)
     files.extend(list(photo.files.all()))
     return files
 
 
-def _stacked_variant_files(photo):
+def _stacked_variant_files(photo: Photo) -> list[File]:
     # Back-compat: some datasets may still represent RAW+JPEG / Live Photo variants
     # as deprecated stacks. Include those stack members' files too.
-    files = []
+    files: list[File] = []
     try:
         variant_stacks = photo.stacks.filter(
             stack_type__in=["raw_jpeg", "live_photo"]
@@ -73,8 +81,8 @@ def _stacked_variant_files(photo):
     return files
 
 
-def _embedded_media_files(files):
-    embedded = []
+def _embedded_media_files(files: Sequence[File | None]) -> list[File]:
+    embedded: list[File] = []
     for file_obj in files:
         try:
             if file_obj and file_obj.embedded_media.exists():
@@ -84,7 +92,7 @@ def _embedded_media_files(files):
     return embedded
 
 
-def _unique_arcname(file_name, taken_names):
+def _unique_arcname(file_name: str, taken_names: Collection[str]) -> str:
     if file_name not in taken_names:
         return file_name
     base_name, ext = os.path.splitext(file_name)
@@ -94,7 +102,7 @@ def _unique_arcname(file_name, taken_names):
     return f"{base_name}_{counter}{ext}"
 
 
-def _zippable_path(file_obj, files_added):
+def _zippable_path(file_obj: File | None, files_added: dict[str, str]) -> str | None:
     if not file_obj or not file_obj.path:
         return None
     if not os.path.exists(file_obj.path):
@@ -105,7 +113,9 @@ def _zippable_path(file_obj, files_added):
     return file_obj.path
 
 
-def _add_photo_files_to_zip(photo, zf, files_added):
+def _add_photo_files_to_zip(
+    photo: Photo, zf: zipfile.ZipFile, files_added: dict[str, str]
+) -> None:
     all_files = _photo_own_files(photo) + _stacked_variant_files(photo)
     all_files.extend(_embedded_media_files(list(all_files)))
 
@@ -120,7 +130,7 @@ def _add_photo_files_to_zip(photo, zf, files_added):
         zf.write(path, arcname=file_name)
 
 
-def _remove_partial_zip(path):
+def _remove_partial_zip(path: str) -> None:
     try:
         os.remove(path)
     except FileNotFoundError:
@@ -129,7 +139,7 @@ def _remove_partial_zip(path):
         logger.error(f"Could not remove partial zip {path}: {e}")
 
 
-def _remove_abandoned_partial_zips(output_directory):
+def _remove_abandoned_partial_zips(output_directory: str) -> None:
     """Remove the partial archives of zip jobs whose worker was killed.
 
     A container restart mid-archive leaves its ``.part`` behind, and
@@ -150,7 +160,9 @@ def _remove_abandoned_partial_zips(output_directory):
             _remove_partial_zip(entry.path)
 
 
-def zip_photos_task(job_id, user, photos, filename):
+def zip_photos_task(
+    job_id: str, user: User, photos: list[Photo], filename: str
+) -> str | None:
     lrj = LongRunningJob.objects.get(job_id=job_id)
     lrj.start()
     count = len(photos)
@@ -165,7 +177,7 @@ def zip_photos_task(job_id, user, photos, filename):
         if not os.path.exists(output_directory):
             os.mkdir(output_directory)
         _remove_abandoned_partial_zips(output_directory)
-        files_added = {}  # Track files by path to avoid duplicates
+        files_added: dict[str, str] = {}  # Track files by path to avoid duplicates
 
         with zipfile.ZipFile(
             partial_path, mode="w", compression=zipfile.ZIP_DEFLATED
@@ -185,25 +197,25 @@ def zip_photos_task(job_id, user, photos, filename):
 
     lrj.complete()
     # scheduling a task to delete the zip file after a day
-    execution_time = timezone.now() + timezone.timedelta(days=1)
+    execution_time = timezone.now() + timedelta(days=1)
     schedule("api.all_tasks.delete_zip_file", filename, next_run=execution_time)
     return output_path
 
 
-def delete_zip_file(filename):
+def delete_zip_file(filename: str) -> Exception | None:
     zip_dir = os.path.realpath(os.path.join(settings.MEDIA_ROOT, "zip"))
     file_path = os.path.realpath(os.path.join(zip_dir, filename))
     if os.path.dirname(file_path) != zip_dir:
         logger.error(f"Refusing to delete zip outside {zip_dir}: {filename!r}")
-        return
+        return None
     try:
         if not os.path.exists(file_path):
             logger.error(f"Error while deleting file not found at : {file_path}")
-            return
+            return None
         else:
             os.remove(file_path)
             logger.info(f"file deleted sucessfully at path : {file_path}")
-            return
+            return None
 
     except Exception as e:
         logger.error(f"Error while deleting file: {e}")

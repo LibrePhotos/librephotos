@@ -14,13 +14,20 @@ Rules are divided into two categories:
 By default, only hard criteria rules are enabled.
 """
 
+from __future__ import annotations
+
 import json
 import logging
 import os
 import re
+from collections.abc import Sequence
 from datetime import timedelta
+from typing import TYPE_CHECKING, Any
 
 from api.metadata.tags import Tags
+
+if TYPE_CHECKING:
+    from api.models.photo import Photo
 
 logger = logging.getLogger(__name__)
 
@@ -84,7 +91,7 @@ class BurstDetectionRule:
     - condition_exif: Format: "TAG_NAME//regex_pattern"
     """
 
-    def __init__(self, params):
+    def __init__(self, params: dict[str, Any]) -> None:
         self.id = params.get("id")
         self.name = params.get("name", "Unnamed rule")
         self.rule_type = params["rule_type"]
@@ -93,9 +100,9 @@ class BurstDetectionRule:
         self.is_default = params.get("is_default", True)
         self.params = params
 
-    def get_required_exif_tags(self):
+    def get_required_exif_tags(self) -> set[str]:
         """Return set of EXIF tags needed by this rule."""
-        tags = set()
+        tags: set[str] = set()
 
         # Add condition tag if present
         condition_exif = self.params.get("condition_exif")
@@ -114,14 +121,14 @@ class BurstDetectionRule:
 
         return tags
 
-    def _check_condition_path(self, path):
+    def _check_condition_path(self, path: str) -> bool:
         """Check if path matches condition_path regex."""
         condition = self.params.get("condition_path")
         if condition:
             return re.search(condition, path) is not None
         return True
 
-    def _check_condition_filename(self, path):
+    def _check_condition_filename(self, path: str) -> bool:
         """Check if filename matches condition_filename regex."""
         condition = self.params.get("condition_filename")
         if condition:
@@ -129,7 +136,7 @@ class BurstDetectionRule:
             return re.search(condition, filename) is not None
         return True
 
-    def _check_condition_exif(self, exif_tags):
+    def _check_condition_exif(self, exif_tags: dict[str, Any]) -> bool:
         """Check if EXIF tag value matches condition_exif pattern."""
         condition = self.params.get("condition_exif")
         if not condition:
@@ -146,7 +153,7 @@ class BurstDetectionRule:
             return False
         return re.search(pattern, str(tag_value)) is not None
 
-    def check_conditions(self, path, exif_tags):
+    def check_conditions(self, path: str, exif_tags: dict[str, Any]) -> bool:
         """Check all conditions for this rule."""
         return (
             self._check_condition_path(path)
@@ -154,7 +161,9 @@ class BurstDetectionRule:
             and self._check_condition_exif(exif_tags)
         )
 
-    def is_burst_photo(self, photo, exif_tags):
+    def is_burst_photo(
+        self, photo: Photo, exif_tags: dict[str, Any]
+    ) -> tuple[bool, str | None]:
         """
         Check if a photo is part of a burst sequence according to this rule.
 
@@ -184,7 +193,9 @@ class BurstDetectionRule:
             # Soft rules don't use is_burst_photo - they use group_by_proximity
             return False, None
 
-    def _check_exif_burst_mode(self, photo, exif_tags):
+    def _check_exif_burst_mode(
+        self, photo: Photo, exif_tags: dict[str, Any]
+    ) -> tuple[bool, str | None]:
         """Check if EXIF BurstMode or ContinuousDrive indicates burst."""
         burst_mode = exif_tags.get(Tags.BURST_MODE)
         continuous_drive = exif_tags.get(Tags.CONTINUOUS_DRIVE)
@@ -210,7 +221,9 @@ class BurstDetectionRule:
 
         return False, None
 
-    def _check_exif_sequence_number(self, photo, exif_tags):
+    def _check_exif_sequence_number(
+        self, photo: Photo, exif_tags: dict[str, Any]
+    ) -> tuple[bool, str | None]:
         """Check if photo has sequence number indicating burst."""
         sequence_num = exif_tags.get(Tags.SEQUENCE_NUMBER)
 
@@ -232,7 +245,9 @@ class BurstDetectionRule:
 
         return False, None
 
-    def _check_filename_pattern(self, photo, exif_tags):
+    def _check_filename_pattern(
+        self, photo: Photo, exif_tags: dict[str, Any]
+    ) -> tuple[bool, str | None]:
         """Check if filename matches burst pattern."""
         if not photo.main_file:
             return False, None
@@ -282,7 +297,9 @@ class BurstDetectionRule:
         return False, None
 
 
-def check_filename_pattern(photo, pattern_type="any"):
+def check_filename_pattern(
+    photo: Photo, pattern_type: str = "any"
+) -> tuple[bool, str | None]:
     """
     Check if a photo's filename matches a burst pattern.
 
@@ -334,7 +351,9 @@ def check_filename_pattern(photo, pattern_type="any"):
     return False, None
 
 
-def group_photos_by_timestamp(photos, interval_ms=2000, require_same_camera=True):
+def group_photos_by_timestamp(
+    photos: Sequence[Photo], interval_ms: int = 2000, require_same_camera: bool = True
+) -> list[list[Photo]]:
     """
     Group photos by timestamp proximity (soft criterion).
 
@@ -350,18 +369,22 @@ def group_photos_by_timestamp(photos, interval_ms=2000, require_same_camera=True
         return []
 
     interval = timedelta(milliseconds=interval_ms)
-    groups = []
-    current_group = []
-    prev_photo = None
-    prev_camera = None
+    groups: list[list[Photo]] = []
+    current_group: list[Photo] = []
+    prev_photo: Photo | None = None
+    prev_camera: str | None = None
 
     for photo in photos:
         if not photo.exif_timestamp:
             continue
 
         # Get camera info for same-camera check
-        camera = None
-        if require_same_camera and hasattr(photo, "metadata") and photo.metadata:
+        camera: str | None = None
+        if (
+            require_same_camera
+            and hasattr(photo, "metadata")
+            and photo.metadata is not None
+        ):
             camera = f"{photo.metadata.camera_make or ''}_{photo.metadata.camera_model or ''}"
 
         if prev_photo is None:
@@ -370,7 +393,8 @@ def group_photos_by_timestamp(photos, interval_ms=2000, require_same_camera=True
             prev_camera = camera
             continue
 
-        # Check time difference
+        # Check time difference. prev_photo was kept only because it had a timestamp.
+        assert prev_photo.exif_timestamp is not None
         time_diff = photo.exif_timestamp - prev_photo.exif_timestamp
 
         # Check if same camera (if required)
@@ -398,7 +422,9 @@ def group_photos_by_timestamp(photos, interval_ms=2000, require_same_camera=True
     return groups
 
 
-def group_photos_by_visual_similarity(photos, similarity_threshold=15):
+def group_photos_by_visual_similarity(
+    photos: Sequence[Photo], similarity_threshold: int = 15
+) -> list[list[Photo]]:
     """
     Group photos by visual similarity (soft criterion).
 
@@ -423,7 +449,7 @@ def group_photos_by_visual_similarity(photos, similarity_threshold=15):
         return []
 
     # Simple clustering: group consecutive similar photos
-    groups = []
+    groups: list[list[Photo]] = []
     current_group = [photos_with_hash[0]]
 
     for i in range(1, len(photos_with_hash)):
@@ -447,7 +473,7 @@ def group_photos_by_visual_similarity(photos, similarity_threshold=15):
 
 # Default rules configuration
 # Hard criteria rules (enabled by default)
-DEFAULT_HARD_RULES = [
+DEFAULT_HARD_RULES: list[dict[str, Any]] = [
     {
         "id": 1,
         "name": "EXIF Burst Mode Tag",
@@ -479,7 +505,7 @@ DEFAULT_HARD_RULES = [
 ]
 
 # Soft criteria rules (disabled by default)
-DEFAULT_SOFT_RULES = [
+DEFAULT_SOFT_RULES: list[dict[str, Any]] = [
     {
         "id": 101,
         "name": "Timestamp Proximity",
@@ -504,7 +530,7 @@ DEFAULT_SOFT_RULES = [
 ]
 
 # Other available rules (not included by default)
-OTHER_RULES = [
+OTHER_RULES: list[dict[str, Any]] = [
     {
         "id": 4,
         "name": "Filename Burst Suffix Only",
@@ -540,17 +566,17 @@ OTHER_RULES = [
 ]
 
 
-def get_default_burst_detection_rules():
+def get_default_burst_detection_rules() -> list[dict[str, Any]]:
     """Get default burst detection rules as JSON-serializable list."""
     return DEFAULT_HARD_RULES + DEFAULT_SOFT_RULES
 
 
-def get_all_predefined_burst_rules():
+def get_all_predefined_burst_rules() -> list[dict[str, Any]]:
     """Get all predefined burst detection rules (default + optional)."""
     return DEFAULT_HARD_RULES + DEFAULT_SOFT_RULES + OTHER_RULES
 
 
-def _as_json(configs):
+def _as_json(configs: list[dict[str, Any]]) -> str:
     """Convert rule configs to JSON string."""
     return json.dumps(configs, default=lambda x: x.__dict__)
 
@@ -560,21 +586,21 @@ DEFAULT_RULES_JSON = _as_json(get_default_burst_detection_rules())
 PREDEFINED_RULES_JSON = _as_json(get_all_predefined_burst_rules())
 
 
-def as_rules(configs):
+def as_rules(configs: list[dict[str, Any]]) -> list[BurstDetectionRule]:
     """Convert list of rule configs to list of BurstDetectionRule objects."""
     return [BurstDetectionRule(config) for config in configs]
 
 
-def get_hard_rules(rules):
+def get_hard_rules(rules: list[BurstDetectionRule]) -> list[BurstDetectionRule]:
     """Filter to only hard criteria rules."""
     return [r for r in rules if r.category == BurstRuleCategory.HARD and r.enabled]
 
 
-def get_soft_rules(rules):
+def get_soft_rules(rules: list[BurstDetectionRule]) -> list[BurstDetectionRule]:
     """Filter to only soft criteria rules."""
     return [r for r in rules if r.category == BurstRuleCategory.SOFT and r.enabled]
 
 
-def get_enabled_rules(rules):
+def get_enabled_rules(rules: list[BurstDetectionRule]) -> list[BurstDetectionRule]:
     """Filter to only enabled rules."""
     return [r for r in rules if r.enabled]

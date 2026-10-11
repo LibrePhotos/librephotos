@@ -9,13 +9,13 @@ due to race conditions in previous scans.
 import logging
 from uuid import UUID
 
-from api.models import File, LongRunningJob, Photo
+from api.models import File, LongRunningJob, Photo, User
 from api.directory_watcher.file_grouping import find_matching_jpeg_photo
 
 logger = logging.getLogger(__name__)
 
 
-def _promote_image_main_file(raw_photo) -> bool:
+def _promote_image_main_file(raw_photo: Photo) -> bool:
     image_file = raw_photo.files.filter(type=File.IMAGE).first()
     if not image_file:
         return False
@@ -26,7 +26,10 @@ def _promote_image_main_file(raw_photo) -> bool:
     return True
 
 
-def _merge_raw_into_jpeg_photo(raw_photo, user, job_id: UUID) -> bool:
+def _merge_raw_into_jpeg_photo(raw_photo: Photo, user: User, job_id: UUID) -> bool:
+    # Only called for photos picked by ``main_file__type=RAW_FILE``, which
+    # requires a main file.
+    assert raw_photo.main_file is not None
     jpeg_photo = find_matching_jpeg_photo(raw_photo.main_file.path, user)
     if not jpeg_photo or jpeg_photo.id == raw_photo.id:
         return False
@@ -43,7 +46,7 @@ def _merge_raw_into_jpeg_photo(raw_photo, user, job_id: UUID) -> bool:
     return True
 
 
-def repair_ungrouped_file_variants(user, job_id: UUID):
+def repair_ungrouped_file_variants(user: User, job_id: UUID) -> None:
     """
     Post-scan job to fix any ungrouped file variants.
 

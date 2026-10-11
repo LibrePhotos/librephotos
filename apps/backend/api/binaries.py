@@ -8,17 +8,17 @@ can still pick up a stray copy there; resolving with shutil.which honours PATH o
 import shutil
 
 
-def resolve(name):
+def resolve(name: str) -> str:
     return shutil.which(name) or name
 
 
-def ffmpeg():
+def ffmpeg() -> str:
     return resolve("ffmpeg")
 
 
-def ffprobe():
+def ffprobe() -> str:
     return resolve("ffprobe")
 
 
-def exiftool():
+def exiftool() -> str:
     return resolve("exiftool")

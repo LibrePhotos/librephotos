@@ -46,13 +46,13 @@ logger = logging.getLogger(__name__)
 # Probed once per process: asking ffmpeg for its full help costs a subprocess and
 # about a megabyte of text, and the answer cannot change under us. The help text
 # is cached rather than each answer, so asking about a second option is free.
-_help_text = None
+_help_text: str | None = None
 
 # The filter list is a second, much smaller question, cached the same way.
-_filter_text = None
+_filter_text: str | None = None
 
 
-def cpu_share(fraction=2):
+def cpu_share(fraction: int = 2) -> int:
     """Cores to allow, as a fraction of what the machine has. Never fewer than one.
 
     A fraction below one is read as "no limit worth applying" rather than as a
@@ -65,7 +65,7 @@ def cpu_share(fraction=2):
     return max(1, cores // fraction)
 
 
-def supports(option):
+def supports(option: str) -> bool:
     """Whether this ffmpeg understands ``option``, e.g. ``"readrate"``.
 
     ``-readrate`` arrived in ffmpeg 5.0 and ``-readrate_initial_burst`` in 6.1,
@@ -84,7 +84,7 @@ def supports(option):
     )
 
 
-def supports_filter(name):
+def supports_filter(name: str) -> bool:
     """Whether this ffmpeg was built with the filter ``name``, e.g. ``"zscale"``.
 
     Same hazard as :func:`supports` and the same answer: naming a filter the
@@ -99,25 +99,25 @@ def supports_filter(name):
     )
 
 
-def _filters():
+def _filters() -> str:
     global _filter_text
     if _filter_text is None:
         _filter_text = _run([binaries.ffmpeg(), "-hide_banner", "-filters"])
     return _filter_text
 
 
-def _full_help():
+def _full_help() -> str:
     global _help_text
     if _help_text is None:
         _help_text = _read_full_help()
     return _help_text
 
 
-def _read_full_help():
+def _read_full_help() -> str:
     return _run([binaries.ffmpeg(), "-hide_banner", "-h", "full"])
 
 
-def _run(command):
+def _run(command: list[str]) -> str:
     """What ffmpeg says about itself, or "" if it will not say.
 
     A host without ffmpeg, or one whose ffmpeg cannot be asked, answers "no" to
@@ -135,7 +135,7 @@ def _run(command):
         return ""
 
 
-def reset_probe_cache():
+def reset_probe_cache() -> None:
     """Forget what was probed. For tests, which vary the ffmpeg they pretend to have."""
     global _help_text, _filter_text
     _help_text = None

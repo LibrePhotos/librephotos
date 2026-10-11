@@ -19,12 +19,22 @@ others in place: an upgrade never drops an embedding, and search keeps working
 on the photos already converted.
 """
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from django.conf import settings
 from django.db.models import Q
 
 from api import sidecars
 from api.http_timeouts import CLIP_EMBED
 from api.lazy_import import LazyModule
+
+if TYPE_CHECKING:
+    import numpy.typing as npt
+    from numpy import float64
+
+    from api.models.photo import Photo
 
 np = LazyModule("numpy")
 
@@ -40,29 +50,33 @@ SIMILAR_THRESHOLD = 138.9
 SIDECAR = "tags"
 
 
-def semantic_shares_tagger():
+def semantic_shares_tagger() -> bool:
     """Whether the tags job also produces the search embeddings."""
     return bool(settings.FEATURE_SCENE_CLASSIFICATION)
 
 
-def produced_by_openclip(prefix=""):
+def produced_by_openclip(prefix: str = "") -> Q:
     """A ``Q`` for photos whose stored embedding comes from this model."""
     return Q(**{f"{prefix}clip_embeddings_model": OPENCLIP})
 
 
-def is_current_embedding(photo):
+def is_current_embedding(photo: Photo) -> bool:
     """Whether a photo's stored embedding can be compared with the index."""
     return photo.clip_embeddings_model == OPENCLIP
 
 
-def create_clip_embeddings(imgs, with_tags=False):
+def create_clip_embeddings(
+    imgs: list[str], with_tags: bool = False
+) -> tuple[
+    list[npt.NDArray[float64] | None], list[float | None], list[list[str] | None] | None
+]:
     """Embeddings for image paths, one slot per path, their magnitudes, and
     (``with_tags``) the tags of the same run, else None.
 
     Raises ``requests.HTTPError`` when the sidecar answers with an error, rather
     than a ``KeyError`` from reading its error reply as embeddings.
     """
-    body = {"imgs": imgs}
+    body: dict[str, object] = {"imgs": imgs}
     if with_tags:
         body["with_tags"] = True
     clip_embeddings = sidecars.post(
@@ -79,7 +93,7 @@ def create_clip_embeddings(imgs, with_tags=False):
     return imgs_emb, magnitudes, clip_embeddings.get("tags")
 
 
-def calculate_query_embeddings(query):
+def calculate_query_embeddings(query: str | None) -> tuple[list[float], float]:
     query_embedding = sidecars.post(
         SIDECAR, "/query-embeddings", json={"query": query}, timeout=CLIP_EMBED
     ).json()

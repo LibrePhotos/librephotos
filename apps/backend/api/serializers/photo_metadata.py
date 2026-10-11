@@ -7,11 +7,14 @@ These serializers provide:
 - Backwards-compatible field names for existing API consumers
 """
 
+from typing import Any
+
 from rest_framework import serializers
 
-from api.models import Photo
+from api.models import Photo, User
 from api.models.photo_metadata import MetadataEdit, MetadataFile, PhotoMetadata
 from api.models.tag import sync_tags_from_keywords
+from api.request_user import request_user
 
 
 class MetadataFileSerializer(serializers.ModelSerializer):
@@ -51,9 +54,10 @@ class MetadataEditSerializer(serializers.ModelSerializer):
         )
         read_only_fields = fields
 
-    def get_user_name(self, obj) -> str:
-        if obj.user:
-            return obj.user.username
+    def get_user_name(self, obj: MetadataEdit) -> str:
+        user: User | None = obj.user
+        if user:
+            return user.username
         return "Unknown"
 
 
@@ -148,19 +152,25 @@ class PhotoMetadataSerializer(serializers.ModelSerializer):
             "updated_at",
         )
 
-    def get_edit_history(self, obj) -> list:
+    def get_edit_history(self, obj: PhotoMetadata) -> list:
         """Get recent edit history for this photo."""
         # -id tiebreaks edits sharing a created_at so the slice is stable; see
         # MetadataEdit.Meta.
         edits = MetadataEdit.objects.filter(photo=obj.photo).order_by(
             "-created_at", "-id"
         )[:10]
-        return MetadataEditSerializer(edits, many=True).data
+        # Same output as MetadataEditSerializer(edits, many=True).data; built via
+        # ListSerializer so the static type is the list it really returns.
+        return serializers.ListSerializer(
+            child=MetadataEditSerializer(), instance=edits
+        ).data
 
-    def get_sidecar_files(self, obj) -> list:
+    def get_sidecar_files(self, obj: PhotoMetadata) -> list:
         """Get sidecar files for this photo."""
         files = MetadataFile.objects.filter(photo=obj.photo)
-        return MetadataFileSerializer(files, many=True).data
+        return serializers.ListSerializer(
+            child=MetadataFileSerializer(), instance=files
+        ).data
 
 
 class PhotoMetadataUpdateSerializer(serializers.ModelSerializer):
@@ -193,9 +203,13 @@ class PhotoMetadataUpdateSerializer(serializers.ModelSerializer):
             "timezone_offset",
         )
 
-    def update(self, instance, validated_data):
+    def update(
+        self, instance: PhotoMetadata, validated_data: dict[str, Any]
+    ) -> PhotoMetadata:
         """Update metadata and create edit history records."""
-        user = self.context.get("request").user if self.context.get("request") else None
+        # The metadata views require authentication (IsAuthenticated).
+        request = self.context.get("request")
+        user = request_user(request) if request else None
         previous_keywords = instance.keywords
 
         for field_name, new_value in validated_data.items():
@@ -203,6 +217,8 @@ class PhotoMetadataUpdateSerializer(serializers.ModelSerializer):
 
             # Only track actual changes
             if old_value != new_value:
+                # MetadataEdit.user is non-nullable: a write needs a user.
+                assert user is not None
                 # Create edit history record
                 MetadataEdit.objects.create(
                     photo=instance.photo,
@@ -272,7 +288,7 @@ class PhotoMetadataSummarySerializer(serializers.ModelSerializer):
         )
         read_only_fields = fields
 
-    def get_has_edits(self, obj) -> bool:
+    def get_has_edits(self, obj: PhotoMetadata) -> bool:
         """Check if this photo has any metadata edits."""
         return MetadataEdit.objects.filter(photo=obj.photo).exists()
 

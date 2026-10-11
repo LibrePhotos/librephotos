@@ -3,6 +3,7 @@ import os
 import subprocess
 import time
 from datetime import timedelta
+from typing import Any
 
 import requests
 from django.conf import settings
@@ -37,7 +38,7 @@ SERVICE_FEATURE_FLAGS = {
 }
 
 
-def _ocr_model_selected():
+def _ocr_model_selected() -> bool:
     """Whether an admin has picked an OCR model in the site settings.
 
     OCR's switch is a site setting rather than an environment variable, and it
@@ -68,7 +69,7 @@ SERVICE_SITE_GATES = {
 }
 
 
-def is_service_enabled(service):
+def is_service_enabled(service: str) -> bool:
     """Whether this deployment's configuration calls for the service to run.
 
     A flag the settings module does not define counts as enabled, so an
@@ -85,7 +86,7 @@ def is_service_enabled(service):
     return bool(getattr(settings, flag, True))
 
 
-def disabled_reason(service):
+def disabled_reason(service: str) -> str:
     """Why is_service_enabled turned the service down, for a log or an error."""
     flag = SERVICE_FEATURE_FLAGS.get(service)
     if flag is not None and not bool(getattr(settings, flag, True)):
@@ -96,10 +97,10 @@ def disabled_reason(service):
 # The Popen handle of every sidecar this process started. The watchdog runs
 # in whichever django-q worker picks up the schedule, and a child that is
 # killed stays a zombie until its parent waits for it.
-_processes = {}
+_processes: dict[str, subprocess.Popen[bytes]] = {}
 
 # The last /health body of each sidecar, for the idle check that follows it.
-_last_health = {}
+_last_health: dict[str, dict[str, Any]] = {}
 
 # A sidecar with a model loaded and no request for this long is asked to
 # unload it: the memory goes back without losing the process.
@@ -109,7 +110,7 @@ IDLE_UNLOAD_SECONDS = 120
 STOP_GRACE_SECONDS = 5
 
 
-def check_services():
+def check_services() -> None:
     _reap_exited()
     for service in SERVICES.keys():
         if not is_service_enabled(service):
@@ -125,7 +126,7 @@ def check_services():
             unload_idle_model(service)
 
 
-def is_healthy(service):
+def is_healthy(service: str) -> bool:
     """Whether the sidecar answers its health check (or is busy, see below).
 
     An idle sidecar is healthy: its memory is reclaimed by unload_idle_model,
@@ -164,7 +165,7 @@ def is_healthy(service):
         return False
 
 
-def unload_idle_model(service):
+def unload_idle_model(service: str) -> bool:
     """Ask a sidecar idle for IDLE_UNLOAD_SECONDS to unload its model.
 
     Reads the /health answer is_healthy just got; a sidecar that holds no
@@ -191,7 +192,7 @@ def unload_idle_model(service):
     return True
 
 
-def _reap_exited():
+def _reap_exited() -> None:
     """Collect the exit status of sidecars this process started that ended."""
     for service, process in list(_processes.items()):
         returncode = process.poll()
@@ -200,7 +201,7 @@ def _reap_exited():
             logger.info(f"Service '{service}' (PID {process.pid}) exited: {returncode}")
 
 
-def _service_process_running(service):
+def _service_process_running(service: str) -> bool:
     import psutil
 
     for process in psutil.process_iter(["pid", "cmdline"]):
@@ -209,7 +210,7 @@ def _service_process_running(service):
     return False
 
 
-def _service_environment():
+def _service_environment() -> dict[str, str]:
     """Environment for the spawned service processes.
 
     They never load Django, so they configure their logging from BASE_LOGS and
@@ -244,13 +245,13 @@ def _service_environment():
     }
 
 
-def _service_script(service):
+def _service_script(service: str) -> str:
     if service == "image_similarity":
         return "image_similarity/main.py"
     return f"service/{service}/main.py"
 
 
-def _service_command(service):
+def _service_command(service: str) -> list[str]:
     """argv that starts the sidecar.
 
     From source that is the script under the interpreter on PATH, as the
@@ -263,7 +264,7 @@ def _service_command(service):
     return ["python", _service_script(service)]
 
 
-def _is_service_process(cmdline, service):
+def _is_service_process(cmdline: list[str] | None, service: str) -> bool:
     """Whether a process command line is one _service_command would produce."""
     if not cmdline or len(cmdline) < 2:
         return False
@@ -274,7 +275,7 @@ def _is_service_process(cmdline, service):
     return script.endswith(_service_script(service)) and "python" in interpreter
 
 
-def start_service(service):
+def start_service(service: str) -> bool:
     if not is_service_enabled(service):
         logger.info("Service '%s' not started: %s", service, disabled_reason(service))
         return False
@@ -291,7 +292,7 @@ def start_service(service):
     return True
 
 
-def stop_service(service):
+def stop_service(service: str) -> bool:
     """Stop every process running the sidecar: SIGTERM, then SIGKILL for any
     still there after STOP_GRACE_SECONDS.
 
@@ -345,7 +346,7 @@ def stop_service(service):
     return bool(processes)
 
 
-def cleanup_deleted_photos():
+def cleanup_deleted_photos() -> None:
     deleted_photos = Photo.objects.filter(
         Q(removed=True) & Q(last_modified__lte=timezone.now() - timedelta(days=30))
     )
@@ -353,7 +354,7 @@ def cleanup_deleted_photos():
         photo.delete()
 
 
-def prune_deletion_log():
+def prune_deletion_log() -> int:
     """Drop tombstones past the mobile-v2 sync horizon (doc 04 §2).
 
     A client whose cursor predates the oldest surviving tombstone can no longer

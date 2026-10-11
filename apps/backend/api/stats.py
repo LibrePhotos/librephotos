@@ -1,10 +1,12 @@
 import logging
 import os
 from collections import Counter
+from collections.abc import Iterable, Iterator
 from datetime import datetime
+from typing import Any, TypedDict
 
 from django.db import connection
-from django.db.models import Avg, Count, Max, Min, Q, Sum
+from django.db.models import Avg, Count, Max, Min, Model, Q, QuerySet, Sum
 from django.db.models.functions import TruncMonth
 
 import random
@@ -33,11 +35,22 @@ np = LazyModule("numpy")
 logger = logging.getLogger(__name__)
 
 
+class SunburstNode(TypedDict, total=False):
+    """A node of the location sunburst: a place with children, or a leaf with a value."""
+
+    name: str
+    value: int
+    hex: str
+    children: list["SunburstNode"]
+
+
 def _is_sqlite() -> bool:
     return connection.vendor == "sqlite"
 
 
-def jump_by_month(start_date, end_date, month_step=1):
+def jump_by_month(
+    start_date: datetime, end_date: datetime, month_step: int = 1
+) -> Iterator[datetime]:
     current_date = start_date
     yield current_date
     while current_date < end_date:
@@ -49,12 +62,12 @@ def jump_by_month(start_date, end_date, month_step=1):
         yield current_date
 
 
-def median_value(queryset, term):
+def median_value(queryset: QuerySet[Model], term: str) -> object:
     from decimal import Decimal
 
     count = queryset.count()
     if count == 0:
-        return
+        return None
     values = queryset.values_list(term, flat=True).order_by(term)
     if count % 2 == 1:
         return values[count // 2]
@@ -62,13 +75,13 @@ def median_value(queryset, term):
         return sum(values[count // 2 - 1 : count // 2 + 1]) / Decimal(2.0)
 
 
-def calc_megabytes(bytes):
+def calc_megabytes(bytes: int | None) -> int:
     if bytes == 0 or bytes is None:
         return 0
     return round((bytes / 1024) / 1024)
 
 
-def _coerce_cache_size(value):
+def _coerce_cache_size(value: object) -> int | None:
     """Normalize a py-cpuinfo cache-size field to an int (bytes), or None.
 
     py-cpuinfo returns these as ints on most CPUs, but ``_friendly_bytes_to_int``
@@ -108,7 +121,7 @@ def _coerce_cache_size(value):
     return None
 
 
-def _get_cpu_info():
+def _get_cpu_info() -> dict[str, Any]:
     # CPU architecture, Speed, Number of Cores, 64bit / 32 Bits
     import cpuinfo
 
@@ -130,7 +143,7 @@ def _get_cpu_info():
     return cpu_info
 
 
-def _get_gpu_info():
+def _get_gpu_info() -> tuple[str, int | str]:
     """(name, total memory in MB) of the first NVIDIA GPU, or two empty strings.
 
     Asks nvidia-smi, which the NVIDIA container toolkit mounts into a GPU
@@ -163,7 +176,9 @@ def _get_gpu_info():
         return name.strip(), ""
 
 
-def _aggregate_stats(queryset, related, photo_filter=None):
+def _aggregate_stats(
+    queryset: QuerySet[Model], related: str, photo_filter: Q | None = None
+) -> dict[str, Any]:
     annotated = queryset.annotate(count=Count(related, filter=photo_filter))
     return {
         "min": annotated.aggregate(Min("count"))["count__min"] or None,
@@ -173,21 +188,21 @@ def _aggregate_stats(queryset, related, photo_filter=None):
     }
 
 
-def _photo_group_stats(queryset):
-    stats = {"count": queryset.count()}
+def _photo_group_stats(queryset: QuerySet[Model]) -> dict[str, Any]:
+    stats: dict[str, Any] = {"count": queryset.count()}
     stats.update(_aggregate_stats(queryset, "photos"))
     videos = _aggregate_stats(queryset, "photos", Q(photos__video=True))
     stats.update({f"{key}_videos": value for key, value in videos.items()})
     return stats
 
 
-def _person_group_stats(queryset):
-    stats = {"count": queryset.count()}
+def _person_group_stats(queryset: QuerySet[Model]) -> dict[str, Any]:
+    stats: dict[str, Any] = {"count": queryset.count()}
     stats.update(_aggregate_stats(queryset, "faces"))
     return stats
 
 
-def _get_user_stats(user):
+def _get_user_stats(user: User) -> dict[str, Any]:
     owned = Q(owner=user)
     photos = Photo.objects.filter(owned)
     return {
@@ -223,7 +238,7 @@ def _get_user_stats(user):
     }
 
 
-def get_server_stats():
+def get_server_stats() -> dict[str, Any]:
     import psutil
     import shutil
 
@@ -246,7 +261,7 @@ def get_server_stats():
     }
 
 
-def get_count_stats(user):
+def get_count_stats(user: User) -> dict[str, int]:
     num_photos = Photo.visible.owned_by(user).distinct().count()
     num_screenshots = (
         Photo.visible.owned_by(user).filter(is_screenshot=True).distinct().count()
@@ -323,7 +338,7 @@ def get_count_stats(user):
     return res
 
 
-def get_photo_month_counts(user):
+def get_photo_month_counts(user: User) -> list[dict[str, str | int]]:
     counts = (
         Photo.objects.owned_by(user)
         .exclude(exif_timestamp=None)
@@ -344,16 +359,14 @@ def get_photo_month_counts(user):
         last_month = max(all_months)
 
         month_span = jump_by_month(first_month, last_month)
-        counts = sorted(counts, key=lambda k: k["month"])
+        ordered_counts = sorted(counts, key=lambda k: k["month"])
 
-        res = []
-        for count in counts:
+        res: dict[str, int] = {}
+        for count in ordered_counts:
             key = "-".join([str(count["month"].year), str(count["month"].month)])
-            count = count["c"]
-            res.append([key, count])
-        res = dict(res)
+            res[key] = count["c"]
 
-        out = []
+        out: list[dict[str, str | int]] = []
         for month in month_span:
             m = "-".join([str(month.year), str(month.month)])
             if m in res.keys():
@@ -369,25 +382,25 @@ def get_photo_month_counts(user):
 class _LabelTally:
     """Counts labels and remembers the order in which they were first seen."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.counts: Counter[str] = Counter()
         self.first_seen: dict[str, int] = {}
 
-    def add(self, label, order_index, first_seen=None):
+    def add(self, label: str, order_index: int, first_seen: int | None = None) -> int:
         self.counts[label] += 1
         if label in self.first_seen:
             return order_index
         self.first_seen[label] = order_index if first_seen is None else first_seen
         return order_index + 1
 
-    def top(self, limit=100):
+    def top(self, limit: int = 100) -> list[tuple[str, int]]:
         return sorted(
             self.counts.items(),
             key=lambda kv: (-kv[1], self.first_seen.get(kv[0], 1_000_000)),
         )[:limit]
 
 
-def _tag_labels(captions_json):
+def _tag_labels(captions_json: dict[str, Any] | None) -> list[str]:
     """OpenCLIP's tags for one photo, as word-cloud labels."""
     tag_result = (captions_json or {}).get(OPENCLIP) or {}
     values = tag_result.get("tags", []) if isinstance(tag_result, dict) else []
@@ -396,12 +409,12 @@ def _tag_labels(captions_json):
     return [str(value) for value in values if value]
 
 
-def _location_texts(geolocation_json):
+def _location_texts(geolocation_json: dict[str, Any] | None) -> set[str]:
     try:
         features = (geolocation_json or {}).get("features", [])
     except Exception:
         features = []
-    texts = set()
+    texts: set[str] = set()
     for feature in features:
         if not isinstance(feature, dict):
             continue
@@ -416,11 +429,13 @@ def _location_texts(geolocation_json):
     return texts
 
 
-def _wordcloud_entries(pairs):
+def _wordcloud_entries(
+    pairs: Iterable[tuple[str, int]],
+) -> list[dict[str, str | float]]:
     return [{"label": label, "y": float(np.log(count))} for label, count in pairs]
 
 
-def get_searchterms_wordcloud(user):
+def get_searchterms_wordcloud(user: User) -> dict[str, list[dict[str, str | float]]]:
     # Python fallbacks (SQLite): stream and aggregate
     order_index = 0
 
@@ -472,12 +487,12 @@ def get_searchterms_wordcloud(user):
     }
 
 
-def get_location_sunburst(user):
-    levels = []
+def get_location_sunburst(user: User) -> SunburstNode:
+    levels: list[list[Any]] = []
 
     from collections import Counter
 
-    counter = Counter()
+    counter: Counter[tuple[Any, Any, Any]] = Counter()
     # Stream results to avoid caching entire queryset in memory
     photo_geo_iter = (
         Photo.objects.owned_by(user)
@@ -504,7 +519,7 @@ def get_location_sunburst(user):
     levels = [[k[0], k[1], k[2], v] for k, v in counter.items()]
     levels = sorted(levels, key=lambda x: (x[0], x[1], x[2]))
 
-    data_structure = {"name": "Places I've visited", "children": []}
+    data_structure: SunburstNode = {"name": "Places I've visited", "children": []}
     palette = hex_palette("hls", 10)
 
     for data in levels:
@@ -537,7 +552,7 @@ def get_location_sunburst(user):
 _NUMERIC_LOCATION_NAME = re.compile(r"^(-)?[0-9]+$")
 
 
-def _location_cluster_row(feature):
+def _location_cluster_row(feature: object) -> list[Any] | None:
     if not isinstance(feature, dict):
         return None
     location_text = feature.get("text")
@@ -552,10 +567,10 @@ def _location_cluster_row(feature):
         return None
 
 
-def get_location_clusters(user):
+def get_location_clusters(user: User) -> list[list[Any]]:
     start = datetime.now()
     # Build clusters in Python from JSON fields (works for both SQLite and Postgres)
-    results_by_location = {}
+    results_by_location: dict[Any, list[Any]] = {}
     # Stream results to avoid large memory usage
     photo_geo_iter = (
         Photo.objects.owned_by(user)
@@ -581,9 +596,9 @@ def get_location_clusters(user):
     return res
 
 
-def get_location_timeline(user):
+def get_location_timeline(user: User) -> list[dict[str, Any]]:
     # Python fallback: iterate photos ordered by timestamp and build contiguous location spans
-    def extract_location(geo: dict) -> str | None:
+    def extract_location(geo: object) -> str | None:
         if not geo or not isinstance(geo, dict):
             return None
         features = geo.get("features", [])
@@ -618,7 +633,9 @@ def get_location_timeline(user):
         if loc == current_loc:
             last_time = ts
             continue
-        # location changed → close previous span
+        # location changed → close previous span. run_start and last_time are
+        # set together with current_loc, so they are never None here.
+        assert run_start is not None and last_time is not None
         spans.append((current_loc, run_start, last_time))
         current_loc = loc
         run_start = ts
@@ -628,7 +645,7 @@ def get_location_timeline(user):
         spans.append((current_loc, run_start, last_time))
 
     # Coalesce: set each span's end to next span's begin (like SQL LEAD(begin))
-    city_start_end_duration = []
+    city_start_end_duration: list[tuple[str, datetime, datetime, float]] = []
     for idx, (loc, begin, end) in enumerate(spans):
         new_end = spans[idx + 1][1] if idx + 1 < len(spans) else end
         duration_sec = (new_end - begin).total_seconds()
@@ -636,7 +653,7 @@ def get_location_timeline(user):
 
     colors = hex_palette("Paired", len(city_start_end_duration))
 
-    data = []
+    data: list[dict[str, Any]] = []
     for idx, sted in enumerate(city_start_end_duration):
         data.append(
             {

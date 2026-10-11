@@ -1,17 +1,28 @@
+from __future__ import annotations
+
 import datetime
 import logging
 import operator
 from functools import reduce
+from typing import TypeVar, cast
 
 import requests
 from django.contrib.postgres.search import SearchQuery, SearchVector
 from django.db import connection
-from django.db.models import Q
+from django.db.models import Model, Q, QuerySet
 from rest_framework import filters
+from rest_framework.request import Request
+from rest_framework.views import APIView
 
 from api.image_similarity import search_similar_embedding
 from api.semantic_search import calculate_query_embeddings
+from api.request_user import request_user
 from api.timeline_filter import timeline_filter_q
+
+# The filter is only used on photo lists, but DRF's BaseFilterBackend is generic
+# in the model, and an override has to accept every queryset the base accepts.
+_ModelT = TypeVar("_ModelT", bound=Model)
+_RowT = TypeVar("_RowT")
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +33,9 @@ logger = logging.getLogger(__name__)
 OCR_SEARCH_CONFIG = "simple"
 
 
-def annotate_ocr_search(queryset):
+def annotate_ocr_search(
+    queryset: QuerySet[_ModelT, _RowT],
+) -> QuerySet[_ModelT, _RowT]:
     """Add the ``ocr_search`` tsvector annotation used by the Postgres OCR match.
 
     Only meaningful on Postgres; other backends use the ``icontains`` fallback
@@ -30,12 +43,16 @@ def annotate_ocr_search(queryset):
     OneToOne reverse relation, so the LEFT JOIN it introduces cannot fan out
     rows (at most one OCR row per photo).
     """
-    return queryset.annotate(
-        ocr_search=SearchVector("ocr__text", config=OCR_SEARCH_CONFIG)
+    # annotate keeps the model and row types; the stubs widen the model to Model.
+    return cast(
+        QuerySet[_ModelT, _RowT],
+        queryset.annotate(
+            ocr_search=SearchVector("ocr__text", config=OCR_SEARCH_CONFIG)
+        ),
     )
 
 
-def build_ocr_search_q(search_term, vendor):
+def build_ocr_search_q(search_term: str, vendor: str) -> Q:
     """Return a ``Q`` matching a photo whose OCR text contains ``search_term``.
 
     The branch is selected purely from ``vendor`` (``connection.vendor``) so it
@@ -55,23 +72,27 @@ def build_ocr_search_q(search_term, vendor):
 
 
 class SemanticSearchFilter(filters.SearchFilter):
-    def _semantic_matches(self, request):
+    def _semantic_matches(self, request: Request) -> list[str]:
         """Hashes of the requester's photos closest to the query, by the
         semantic search model (api.semantic_search), at its threshold."""
+        user = request_user(request)
         query = request.query_params.get("search")
         start = datetime.datetime.now()
         emb, magnitude = calculate_query_embeddings(query)
         elapsed = (datetime.datetime.now() - start).total_seconds()
         logger.info("finished calculating query embedding - took %.2f seconds", elapsed)
         start = datetime.datetime.now()
-        image_hashes = search_similar_embedding(
-            request.user.id, emb, request.user.semantic_search_topk
-        )
+        image_hashes = search_similar_embedding(user.id, emb, user.semantic_search_topk)
         elapsed = (datetime.datetime.now() - start).total_seconds()
         logger.info("search similar embedding - took %.2f seconds", elapsed)
         return image_hashes
 
-    def filter_queryset(self, request, queryset, view):
+    def filter_queryset(
+        self,
+        request: Request,
+        queryset: QuerySet[_ModelT, _RowT],
+        view: APIView,
+    ) -> QuerySet[_ModelT, _RowT]:
         # Narrow by media type and category (video/photo, is_screenshot,
         # is_document) independent of the search term, parsed like the
         # album-date endpoints do (tri-state). Search never applies the saved
@@ -105,7 +126,7 @@ class SemanticSearchFilter(filters.SearchFilter):
         ]
 
         image_hashes = None
-        if request.user.semantic_search_topk > 0:
+        if request_user(request).semantic_search_topk > 0:
             try:
                 image_hashes = self._semantic_matches(request)
             except (requests.RequestException, KeyError, ValueError) as error:
