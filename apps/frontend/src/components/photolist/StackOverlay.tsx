@@ -1,6 +1,7 @@
 import { IconLayersLinked, IconStack2 as Stack } from "@tabler/icons-react";
 import React from "react";
 import { PigPhoto } from "../../api_client/photos/types";
+import { ICON_SIZE } from "../../ui-constants";
 import { TileBadge } from "./TileBadge";
 
 function RawBadge() {
@@ -46,7 +47,7 @@ export function StackOverlay({ item }: { item: PigPhoto }) {
       {showRawBadge && <RawBadge />}
       {hasActiveStacks && (
         <div style={{ display: "flex", alignItems: "center" }}>
-          <Icon size={18} strokeWidth={2.5} />
+          <Icon size={ICON_SIZE.overlay} strokeWidth={2.5} />
           {hasMultipleActiveStacks ? (
             <span style={{ marginLeft: 2, fontSize: 12, fontWeight: 600 }}>{activeStacks.length}</span>
           ) : (

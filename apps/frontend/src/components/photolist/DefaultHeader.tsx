@@ -39,6 +39,7 @@ import { useDuplicateStatsQuery } from "../../api_client/duplicates";
 import { useFetchUserListQuery, useFetchUserSelfDetailsQuery } from "../../api_client/user/hooks";
 import type { User } from "../../api_client/user/types";
 import { i18nResolvedLanguage } from "../../i18n";
+import { FAVORITE_COLOR } from "../../ui-constants";
 import { ModalUserEdit } from "../modals/ModalUserEdit";
 
 type Props = Readonly<{
@@ -289,7 +290,7 @@ export function DefaultHeader(props: Props) {
                     </Menu.Item>
 
                     <Menu.Item
-                      leftSection={<Star color={theme.colors.yellow[6]} size={14} />}
+                      leftSection={<Star color={FAVORITE_COLOR} size={14} />}
                       rightSection={currentView("/favorites")}
                       onClick={() => navigate({ to: "/favorites" })}
                     >

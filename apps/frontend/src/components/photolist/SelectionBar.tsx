@@ -3,6 +3,7 @@ import { IconCheck as Check, IconChecks as Checks } from "@tabler/icons-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { BulkPhotoQuery, PigPhoto, SelectionState } from "../../api_client/photos/types";
+import { ICON_SIZE, TOOLBAR_ACTION_SIZE, TOOLBAR_CONTROL_HEIGHT } from "../../ui-constants";
 
 type Props = {
   selectMode: boolean;
@@ -43,6 +44,7 @@ export function SelectionBar(props: Readonly<Props>) {
             onMouseEnter={() => setOpenedAll(true)}
             onMouseLeave={() => setOpenedAll(false)}
             variant="light"
+            size={TOOLBAR_ACTION_SIZE}
             aria-label={isAllSelected ? t("selectionbar.deselect") : t("selectionbar.select")}
             onClick={() => {
               if (isAllSelected) {
@@ -77,7 +79,7 @@ export function SelectionBar(props: Readonly<Props>) {
               }
             }}
           >
-            <Checks color={isAllSelected ? "green" : "gray"} />
+            <Checks size={ICON_SIZE.toolbar} color={isAllSelected ? "green" : "gray"} />
           </ActionIcon>
         </Popover.Target>
         <Popover.Dropdown>
@@ -92,7 +94,8 @@ export function SelectionBar(props: Readonly<Props>) {
               onMouseLeave={() => setOpenedSelect(false)}
               variant="light"
               size="xs"
-              leftSection={<Check color={selectMode ? "green" : "gray"} />}
+              h={TOOLBAR_CONTROL_HEIGHT}
+              leftSection={<Check size={ICON_SIZE.toolbar} color={selectMode ? "green" : "gray"} />}
               color={selectMode ? "blue" : "gray"}
               onClick={() => {
                 if (selectMode) {
