@@ -63,18 +63,26 @@ class AlbumThing(models.Model):
 @receiver(m2m_changed, sender=AlbumThing.photos.through)
 def update_photo_count(
     sender: type[models.Model],
-    instance: AlbumThing,
+    instance: AlbumThing | Photo,
     action: str,
     reverse: bool,
     model: type[models.Model],
     pk_set: set[int] | None,
     **kwargs: Any,
 ) -> None:
-    if action == "post_add" or (action == "post_remove" and not reverse):
-        count = instance.photos.filter(**COUNTED_PHOTO_FILTER).count()
-        instance.photo_count = count
-        instance.save(update_fields=["photo_count"])
-        instance.update_default_cover_photo()
+    if action not in ("post_add", "post_remove"):
+        return
+    # From photo.albumthing_set the instance is the Photo and pk_set holds the
+    # albums.
+    albums: Iterable[AlbumThing] = (
+        [instance]
+        if isinstance(instance, AlbumThing)
+        else AlbumThing.objects.filter(pk__in=pk_set or [])
+    )
+    for album in albums:
+        album.photo_count = album.photos.filter(**COUNTED_PHOTO_FILTER).count()
+        album.save(update_fields=["photo_count"])
+        album.update_default_cover_photo()
 
 
 def album_thing_ids_for_photos(photos: QuerySet[Photo]) -> list[int]:
