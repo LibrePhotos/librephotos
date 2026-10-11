@@ -136,15 +136,6 @@ export const PhotoMetadata = z.object({
 });
 export type PhotoMetadata = z.infer<typeof PhotoMetadata>;
 
-// History response
-export const MetadataHistoryResponse = z.object({
-  results: MetadataEdit.array(),
-  count: z.number(),
-  page: z.number(),
-  page_size: z.number(),
-});
-export type MetadataHistoryResponse = z.infer<typeof MetadataHistoryResponse>;
-
 // Selection state for photolist components
 export type SelectionState = {
   selectedItems: PigPhoto[];
