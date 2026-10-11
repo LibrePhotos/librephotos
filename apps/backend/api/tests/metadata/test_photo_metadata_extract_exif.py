@@ -173,7 +173,6 @@ class ExtractExifDataHappyPathTestCase(ExtractExifDataBaseTestCase):
         self.assertEqual(metadata.width, 6000)
         self.assertEqual(metadata.height, 4000)
         self.assertEqual(metadata.focal_length_35mm, 50)
-        self.assertEqual(metadata.rating, 4)
         self.assertEqual(metadata.date_taken_subsec, "123")
         self.assertEqual(metadata.source, PhotoMetadata.Source.EMBEDDED)
 
@@ -243,7 +242,6 @@ class ExtractExifDataTypeGuardTestCase(ExtractExifDataBaseTestCase):
         self.assertIsNone(metadata.width)
         self.assertIsNone(metadata.height)
         self.assertIsNone(metadata.focal_length_35mm)
-        self.assertIsNone(metadata.rating)
 
     def test_non_string_camera_and_lens_are_ignored(self):
         metadata = self.extract(camera=12345, lens=["a", "b"])
@@ -278,7 +276,6 @@ class ExtractExifDataTypeGuardTestCase(ExtractExifDataBaseTestCase):
         self.assertIsNone(metadata.width)
         self.assertIsNone(metadata.height)
         self.assertIsNone(metadata.focal_length_35mm)
-        self.assertEqual(metadata.rating, 0)
 
     def test_zero_shutter_speed_is_dropped(self):
         metadata = self.extract(shutter_speed=0)
@@ -494,7 +491,6 @@ class ExtractExifDataAllNoneTestCase(ExtractExifDataBaseTestCase):
             "width",
             "height",
             "focal_length_35mm",
-            "rating",
             "date_taken_subsec",
             "keywords",
         ):

@@ -76,6 +76,10 @@ test makes `--parallel` runs crash with "cannot pickle 'traceback'"; rerun that 
 - Metadata write-back is tested against real ExifTool, not a mocked `write_metadata`: a new caller of
   it needs a round-trip test on `RealExifToolTestCase` (`api/tests/metadata/exiftool_harness.py`) in
   `api/tests/metadata/test_write_back_round_trip.py`, whose guard fails until it is listed there.
+- A user's edit of date, location, rating, caption, keywords, title, copyright or creator goes through
+  `api/metadata/edits.py`, which writes the field's one store (`Photo`, `PhotoCaption`, `PhotoMetadata`),
+  records the `MetadataEdit`, refreshes search and queues the write-back; `EditPathGuardTest`
+  (`api/tests/metadata/test_metadata_edits.py`) fails on a new caller that skips it.
 - Migrations 0001-0100 are squashed into `0001_squashed_0100`. Keep its `replaces` and depend on it,
   not on the old names.
 - Configuration: app code reads `django.conf.settings`. Settings modules read variables through

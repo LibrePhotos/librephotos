@@ -11,14 +11,14 @@ Tests the following:
 """
 
 import uuid
-from datetime import datetime, timedelta
-from datetime import timezone as dt_timezone
+from datetime import timedelta
 from unittest.mock import patch
 
 from django.test import TestCase
 from django.utils import timezone
 from rest_framework.test import APIClient, APITestCase
 
+from api.models.photo_caption import PhotoCaption
 from api.models.photo_metadata import MetadataEdit, PhotoMetadata
 from api.tests.utils import create_test_photo, create_test_user
 
@@ -181,8 +181,8 @@ class PhotoMetadataUpdateTestCase(APITestCase):
         )
         self.assertEqual(response.status_code, 200)
 
-        metadata = PhotoMetadata.objects.get(photo=self.photo)
-        self.assertEqual(metadata.rating, 5)
+        self.photo.refresh_from_db()
+        self.assertEqual(self.photo.rating, 5)
 
     def test_update_metadata_caption(self):
         """Test updating photo caption."""
@@ -193,8 +193,10 @@ class PhotoMetadataUpdateTestCase(APITestCase):
         )
         self.assertEqual(response.status_code, 200)
 
-        metadata = PhotoMetadata.objects.get(photo=self.photo)
-        self.assertEqual(metadata.caption, "A beautiful sunset over the mountains")
+        captions = PhotoCaption.objects.get(photo=self.photo).captions_json
+        self.assertEqual(
+            captions["user_caption"], "A beautiful sunset over the mountains"
+        )
 
     def test_update_metadata_version_increments(self):
         """Test that metadata version increments on update."""
@@ -223,39 +225,6 @@ class PhotoMetadataUpdateTestCase(APITestCase):
             format="json",
         )
         self.assertEqual(response.status_code, 404)
-
-    def test_update_metadata_date_taken_records_iso_strings(self):
-        """A datetime in the edit history used to fail json.dumps: a 500."""
-        response = self.client.patch(
-            f"/api/photos/{self.photo.pk}/metadata/",
-            {"date_taken": "2024-05-01T12:34:56Z"},
-            format="json",
-        )
-        self.assertEqual(response.status_code, 200)
-
-        edit = MetadataEdit.objects.get(photo=self.photo, field_name="date_taken")
-        self.assertIsInstance(edit.new_value, str)
-        self.assertEqual(
-            datetime.fromisoformat(edit.new_value),
-            datetime(2024, 5, 1, 12, 34, 56, tzinfo=dt_timezone.utc),
-        )
-
-    def test_a_date_taken_edit_reverts_to_the_previous_date(self):
-        url = f"/api/photos/{self.photo.pk}/metadata/"
-        self.client.patch(url, {"date_taken": "2020-01-02T03:04:05Z"}, format="json")
-        self.client.patch(url, {"date_taken": "2024-05-01T12:34:56Z"}, format="json")
-        latest = MetadataEdit.objects.filter(
-            photo=self.photo, field_name="date_taken"
-        ).first()
-        assert latest is not None
-
-        response = self.client.post(f"{url}revert/{latest.id}/")
-
-        self.assertEqual(response.status_code, 200)
-        metadata = PhotoMetadata.objects.get(photo=self.photo)
-        self.assertEqual(
-            metadata.date_taken, datetime(2020, 1, 2, 3, 4, 5, tzinfo=dt_timezone.utc)
-        )
 
 
 class PhotoMetadataHistoryTestCase(APITestCase):
@@ -578,9 +547,13 @@ class PhotoMetadataRevertAllTestCase(APITestCase):
         initial_count = MetadataEdit.objects.filter(photo=self.photo).count()
 
         # The file carries no metadata; the exif service is not running here.
-        with patch(
-            "api.models.photo_metadata.get_metadata",
-            side_effect=lambda path, tags, **kwargs: [None] * len(tags),
+        def no_metadata(path, tags, **kwargs):
+            return [None] * len(tags)
+
+        with (
+            patch("api.models.photo_metadata.get_metadata", side_effect=no_metadata),
+            patch("api.metadata.edits.get_metadata", side_effect=no_metadata),
+            patch("api.metadata.photo_datetime.get_metadata", side_effect=no_metadata),
         ):
             self.client.post(f"/api/photos/{self.photo.pk}/metadata/revert-all/")
 
@@ -832,22 +805,6 @@ class PhotoMetadataModelTestCase(TestCase):
             metadata.save()
             metadata.refresh_from_db()
             self.assertEqual(metadata.source, source)
-
-    def test_has_location_property(self):
-        """Test has_location computed property."""
-        metadata, _ = PhotoMetadata.objects.get_or_create(photo=self.photo)
-
-        # No location
-        metadata.gps_latitude = None
-        metadata.gps_longitude = None
-        metadata.save()
-        self.assertFalse(metadata.has_location)
-
-        # With location
-        metadata.gps_latitude = 40.7128
-        metadata.gps_longitude = -74.0060
-        metadata.save()
-        self.assertTrue(metadata.has_location)
 
     def test_camera_display_property(self):
         """Test camera_display computed property."""

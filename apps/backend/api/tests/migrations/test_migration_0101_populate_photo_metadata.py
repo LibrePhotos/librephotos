@@ -104,7 +104,7 @@ class Migration0101TestCase(TestCase):
             captions_json = photo.captions_data
             PhotoMetadata.objects.create(
                 photo=photo,
-                caption=captions_json.get("user_caption") if captions_json else None,
+                title=captions_json.get("user_caption") if captions_json else None,
                 keywords=list(captions_json.get("keywords", []))
                 if captions_json
                 else [],
@@ -118,10 +118,10 @@ class Migration0101TestCase(TestCase):
 
         # Verify caption data was correctly populated
         metadata1 = PhotoMetadata.objects.get(photo=photo1)
-        self.assertEqual(metadata1.caption, "First photo")
+        self.assertEqual(metadata1.title, "First photo")
 
         metadata2 = PhotoMetadata.objects.get(photo=photo2)
-        self.assertEqual(metadata2.caption, "Second photo")
+        self.assertEqual(metadata2.title, "Second photo")
         self.assertEqual(metadata2.keywords, ["tag1", "tag2"])
 
     def test_batch_processing_without_iterator(self):
@@ -149,7 +149,7 @@ class Migration0101TestCase(TestCase):
         PhotoMetadata.objects.filter(photo=photo_already_done).delete()
         existing_meta = PhotoMetadata.objects.create(
             photo=photo_already_done,
-            caption="pre-existing",
+            title="pre-existing",
             source="embedded",
             version=1,
         )
@@ -177,7 +177,7 @@ class Migration0101TestCase(TestCase):
                 batch.append(
                     PhotoMetadata(
                         photo=photo,
-                        caption=captions_json.get("user_caption")
+                        title=captions_json.get("user_caption")
                         if captions_json
                         else None,
                         keywords=list(captions_json.get("keywords", []))
@@ -196,15 +196,15 @@ class Migration0101TestCase(TestCase):
         self.assertTrue(PhotoMetadata.objects.filter(photo=photo3).exists())
 
         m1 = PhotoMetadata.objects.get(photo=photo1)
-        self.assertEqual(m1.caption, "Batch photo 1")
+        self.assertEqual(m1.title, "Batch photo 1")
         self.assertEqual(m1.keywords, ["a"])
 
         m2 = PhotoMetadata.objects.get(photo=photo2)
-        self.assertEqual(m2.caption, "Batch photo 2")
+        self.assertEqual(m2.title, "Batch photo 2")
         self.assertEqual(m2.keywords, ["b", "c"])
 
         m3 = PhotoMetadata.objects.get(photo=photo3)
-        self.assertIsNone(m3.caption)
+        self.assertIsNone(m3.title)
         self.assertEqual(m3.keywords, [])
 
         # photo_already_done must NOT have been re-processed — exactly one record,
@@ -213,7 +213,7 @@ class Migration0101TestCase(TestCase):
             PhotoMetadata.objects.filter(photo=photo_already_done).count(), 1
         )
         existing_meta.refresh_from_db()
-        self.assertEqual(existing_meta.caption, "pre-existing")
+        self.assertEqual(existing_meta.title, "pre-existing")
 
     def test_batch_processing_is_idempotent(self):
         """
@@ -242,7 +242,7 @@ class Migration0101TestCase(TestCase):
                 batch.append(
                     PhotoMetadata(
                         photo=p,
-                        caption=captions_json.get("user_caption")
+                        title=captions_json.get("user_caption")
                         if captions_json
                         else None,
                         keywords=list(captions_json.get("keywords", []))

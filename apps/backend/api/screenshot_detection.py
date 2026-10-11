@@ -100,14 +100,8 @@ def _has_camera_metadata(metadata: PhotoMetadata | None) -> bool:
     )
 
 
-def _has_gps(photo: Photo, metadata: PhotoMetadata | None) -> bool:
-    if photo.exif_gps_lat is not None or photo.exif_gps_lon is not None:
-        return True
-    if metadata is not None and (
-        metadata.gps_latitude is not None or metadata.gps_longitude is not None
-    ):
-        return True
-    return False
+def _has_gps(photo: Photo) -> bool:
+    return photo.exif_gps_lat is not None or photo.exif_gps_lon is not None
 
 
 def classify(photo: Photo) -> bool:
@@ -134,6 +128,6 @@ def classify(photo: Photo) -> bool:
     metadata = _get_metadata(photo)
     if _has_camera_metadata(metadata):
         return False
-    if _has_gps(photo, metadata):
+    if _has_gps(photo):
         return False
     return True

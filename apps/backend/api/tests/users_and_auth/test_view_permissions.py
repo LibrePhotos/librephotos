@@ -7,8 +7,6 @@ signs out on. The caption endpoints listed an object-only permission that
 never ran, so anonymous requests reached their bodies.
 """
 
-from unittest.mock import patch
-
 from django.test import TestCase
 from rest_framework.test import APIClient
 
@@ -111,15 +109,15 @@ class CaptionEndpointsTest(TestCase):
 
     def test_the_owner_still_reaches_the_caption_save(self):
         self.client.force_authenticate(user=self.owner)
-        with patch.object(PhotoCaption, "save_user_caption", return_value=True) as save:
-            response = self.client.post(
-                "/api/photosedit/savecaption",
-                {"image_hash": self.photo.image_hash, "caption": "A dog"},
-                format="json",
-            )
+        response = self.client.post(
+            "/api/photosedit/savecaption",
+            {"image_hash": self.photo.image_hash, "caption": "A dog"},
+            format="json",
+        )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"status": True})
-        save.assert_called_once_with("A dog")
+        captions = PhotoCaption.objects.get(photo=self.photo).captions_json
+        self.assertEqual(captions["user_caption"], "A dog")
 
     def test_another_user_still_gets_photo_not_found(self):
         self.client.force_authenticate(user=create_test_user())

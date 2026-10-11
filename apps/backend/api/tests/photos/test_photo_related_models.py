@@ -62,13 +62,10 @@ class PhotoModelIntegrationTest(TestCase):
     def test_photo_caption_methods_work_directly(self):
         """Test that PhotoCaption methods work directly with the photo"""
 
-        # Test save_user_caption method directly on PhotoCaption
         caption_instance, created = PhotoCaption.objects.get_or_create(photo=self.photo)
-        result = caption_instance.save_user_caption(caption="My test caption")
+        result = caption_instance.apply_user_caption("My test caption")
 
-        # The method succeeds because create_test_photo creates a Thumbnail
-        # with a thumbnail_big path (even though the file doesn't exist on disk)
-        self.assertTrue(result)
+        self.assertEqual(result, "My test caption")
         self.assertTrue(PhotoCaption.objects.filter(photo=self.photo).exists())
 
     def test_photo_search_methods_work_directly(self):
@@ -197,7 +194,7 @@ class PhotoModelIntegrationTest(TestCase):
         # 1. Add user caption (will fail due to thumbnail but creates instance)
 
         caption_instance, created = PhotoCaption.objects.get_or_create(photo=self.photo)
-        caption_instance.save_user_caption(caption="My vacation photo")
+        caption_instance.apply_user_caption("My vacation photo")
 
         # 2. Add tags from the default tagging model directly
         caption_instance.captions_json = {

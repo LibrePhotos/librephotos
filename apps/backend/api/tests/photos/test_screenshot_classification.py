@@ -34,8 +34,6 @@ def _meta(**overrides):
         aperture=None,
         iso=None,
         focal_length=None,
-        gps_latitude=None,
-        gps_longitude=None,
     )
     fields.update(overrides)
     return SimpleNamespace(**fields)
@@ -138,16 +136,6 @@ class ScreenshotClassifyRule2Test(SimpleTestCase):
     def test_png_with_focal_length_is_not_screenshot(self):
         self.assertFalse(
             classify(_photo("/a/random.png", metadata=_meta(focal_length=35.0)))
-        )
-
-    def test_png_with_metadata_gps_is_not_screenshot(self):
-        self.assertFalse(
-            classify(
-                _photo(
-                    "/a/random.png",
-                    metadata=_meta(gps_latitude=52.5, gps_longitude=13.4),
-                )
-            )
         )
 
     def test_png_with_photo_gps_is_not_screenshot(self):

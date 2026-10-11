@@ -1,36 +1,22 @@
 """
-Serializers for PhotoMetadata, MetadataFile, and MetadataEdit models.
+Serializers for PhotoMetadata and MetadataEdit.
 
-These serializers provide:
-- Structured metadata access (replacing exif_json blob)
-- Edit history tracking
+Capture date, location, rating and caption are shown under their old
+``PhotoMetadata`` names but read from their one store, ``Photo`` /
+``PhotoCaption`` (#2252), so ``metadata.*`` keeps its shape for the clients.
 """
 
 from typing import Any
 
+from django.core.exceptions import ObjectDoesNotExist
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
+from api.metadata.edits import MAX_RATING
 from api.models import User
-from api.models.photo_metadata import MetadataEdit, MetadataFile, PhotoMetadata
-from api.models.tag import sync_tags_from_keywords
-from api.request_user import request_user
-
-
-class MetadataFileSerializer(serializers.ModelSerializer):
-    """Serializer for XMP sidecars and other metadata files."""
-
-    class Meta:
-        model = MetadataFile
-        fields = (
-            "id",
-            "file_type",
-            "source",
-            "priority",
-            "creator_software",
-            "created_at",
-            "updated_at",
-        )
-        read_only_fields = ("id", "created_at", "updated_at")
+from api.models.photo import Photo
+from api.models.photo_metadata import MetadataEdit, PhotoMetadata
 
 
 class MetadataEditSerializer(serializers.ModelSerializer):
@@ -60,22 +46,46 @@ class MetadataEditSerializer(serializers.ModelSerializer):
         return "Unknown"
 
 
+def _has_location(photo: Photo) -> bool:
+    return photo.exif_gps_lat is not None and photo.exif_gps_lon is not None
+
+
 class PhotoMetadataSerializer(serializers.ModelSerializer):
     """
-    Full metadata serializer with all structured fields.
+    Full metadata of one photo, for ``GET``/``PATCH /api/photos/{id}/metadata``.
 
-    Used for the detailed metadata view and editing.
+    Read-only: edits go through ``PhotoMetadataUpdateSerializer`` and
+    ``api.metadata.edits``.
     """
 
     # Computed properties
     resolution = serializers.ReadOnlyField()
     megapixels = serializers.ReadOnlyField()
-    has_location = serializers.ReadOnlyField()
     camera_display = serializers.ReadOnlyField()
     lens_display = serializers.ReadOnlyField()
 
+    # Read from Photo / PhotoCaption, their one store (#2252).
+    date_taken = serializers.DateTimeField(
+        source="photo.exif_timestamp", read_only=True, allow_null=True
+    )
+    gps_latitude = serializers.FloatField(
+        source="photo.exif_gps_lat", read_only=True, allow_null=True
+    )
+    gps_longitude = serializers.FloatField(
+        source="photo.exif_gps_lon", read_only=True, allow_null=True
+    )
+    has_location = serializers.SerializerMethodField()
+    # The geocoder's address; the place is not split into these parts anywhere.
+    location_country = serializers.SerializerMethodField(method_name="get_no_value")
+    location_state = serializers.SerializerMethodField(method_name="get_no_value")
+    location_city = serializers.SerializerMethodField(method_name="get_no_value")
+    location_address = serializers.SerializerMethodField()
+    caption = serializers.SerializerMethodField()
+    rating = serializers.IntegerField(source="photo.rating", read_only=True)
+
     # Related data
     edit_history = serializers.SerializerMethodField()
+    # MetadataFile was never filled in and is gone; kept for the clients.
     sidecar_files = serializers.SerializerMethodField()
 
     class Meta:
@@ -139,17 +149,30 @@ class PhotoMetadataSerializer(serializers.ModelSerializer):
             "edit_history",
             "sidecar_files",
         )
-        read_only_fields = (
-            "id",
-            "resolution",
-            "megapixels",
-            "has_location",
-            "camera_display",
-            "lens_display",
-            "version",
-            "created_at",
-            "updated_at",
-        )
+        read_only_fields = fields
+
+    def get_has_location(self, obj: PhotoMetadata) -> bool:
+        return _has_location(obj.photo)
+
+    @extend_schema_field(OpenApiTypes.STR)
+    def get_no_value(self, obj: PhotoMetadata) -> str | None:
+        return None
+
+    def get_location_address(self, obj: PhotoMetadata) -> str | None:
+        geolocation = obj.photo.geolocation_json
+        if isinstance(geolocation, dict):
+            address = geolocation.get("address")
+            if isinstance(address, str) and address:
+                return address
+        return None
+
+    def get_caption(self, obj: PhotoMetadata) -> str | None:
+        try:
+            captions = obj.photo.caption_instance.captions_json
+        except ObjectDoesNotExist:
+            return None
+        caption = (captions or {}).get("user_caption")
+        return caption if isinstance(caption, str) and caption else None
 
     def get_edit_history(self, obj: PhotoMetadata) -> list:
         """Get recent edit history for this photo."""
@@ -164,83 +187,72 @@ class PhotoMetadataSerializer(serializers.ModelSerializer):
             child=MetadataEditSerializer(), instance=edits
         ).data
 
-    def get_sidecar_files(self, obj: PhotoMetadata) -> list:
-        """Get sidecar files for this photo."""
-        files = MetadataFile.objects.filter(photo=obj.photo)
-        return serializers.ListSerializer(
-            child=MetadataFileSerializer(), instance=files
-        ).data
+    @extend_schema_field(serializers.ListField(child=serializers.DictField()))
+    def get_sidecar_files(self, obj: PhotoMetadata) -> list[dict[str, object]]:
+        return []
 
 
-class PhotoMetadataUpdateSerializer(serializers.ModelSerializer):
+class PhotoMetadataUpdateSerializer(serializers.Serializer):
+    """The fields the metadata API edits, single and bulk.
+
+    Each goes to its one store through ``api.metadata.edits``: ``rating`` to
+    ``Photo.rating``, ``caption`` to the lightbox caption, ``keywords``,
+    ``title``, ``copyright`` and ``creator`` to ``PhotoMetadata``. The date and
+    the location are edited through ``PATCH /api/photos/edit/{image_hash}/``;
+    sending them here is a 400 rather than an edit nobody sees.
     """
-    Serializer for updating metadata with change tracking.
 
-    Only allows editing specific fields and automatically
-    creates MetadataEdit records for history.
-    """
+    # The fields this endpoint used to accept and wrote where nothing read
+    # them (#2252).
+    MOVED_FIELDS = (
+        "date_taken",
+        "timezone_offset",
+        "gps_latitude",
+        "gps_longitude",
+        "location_country",
+        "location_state",
+        "location_city",
+        "location_address",
+    )
 
-    class Meta:
-        model = PhotoMetadata
-        fields = (
-            # Editable fields
-            "title",
-            "caption",
-            "keywords",
-            "rating",
-            "copyright",
-            "creator",
-            # Location (can be user-corrected)
-            "gps_latitude",
-            "gps_longitude",
-            "location_country",
-            "location_state",
-            "location_city",
-            "location_address",
-            # Timestamp (can be user-corrected)
-            "date_taken",
-            "timezone_offset",
-        )
+    title = serializers.CharField(
+        max_length=500, required=False, allow_null=True, allow_blank=True
+    )
+    caption = serializers.CharField(
+        required=False, allow_null=True, allow_blank=True, trim_whitespace=False
+    )
+    keywords = serializers.ListField(
+        child=serializers.CharField(), required=False, allow_null=True
+    )
+    rating = serializers.IntegerField(
+        min_value=0, max_value=MAX_RATING, required=False, allow_null=True
+    )
+    copyright = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+    creator = serializers.CharField(
+        max_length=200, required=False, allow_null=True, allow_blank=True
+    )
 
-    def update(
-        self, instance: PhotoMetadata, validated_data: dict[str, Any]
-    ) -> PhotoMetadata:
-        """Update metadata and create edit history records."""
-        # The metadata views require authentication (IsAuthenticated).
-        request = self.context.get("request")
-        user = request_user(request) if request else None
-        previous_keywords = instance.keywords
-
-        for field_name, new_value in validated_data.items():
-            old_value = getattr(instance, field_name)
-
-            # Only track actual changes
-            if old_value != new_value:
-                # MetadataEdit.user is non-nullable: a write needs a user.
-                assert user is not None
-                # Create edit history record
-                MetadataEdit.objects.create(
-                    photo=instance.photo,
-                    user=user,
-                    field_name=field_name,
-                    old_value=old_value,
-                    new_value=new_value,
+    def to_internal_value(self, data: object) -> dict[str, Any]:
+        if isinstance(data, dict):
+            moved = [field for field in self.MOVED_FIELDS if field in data]
+            if moved:
+                raise serializers.ValidationError(
+                    {
+                        field: (
+                            "Not editable here: set the date and the location "
+                            "with PATCH /api/photos/edit/{image_hash}/."
+                        )
+                        for field in moved
+                    }
                 )
-
-                # Update the field
-                setattr(instance, field_name, new_value)
-
-        # Update source to user_edit and increment version
-        instance.source = PhotoMetadata.Source.USER_EDIT
-        instance.version += 1
-        instance.save()
-
-        if "keywords" in validated_data:
-            sync_tags_from_keywords(
-                instance.photo, instance.keywords, previous_keywords
-            )
-
-        return instance
+        validated: dict[str, Any] = super().to_internal_value(data)
+        # Photo.rating has no null: no rating is 0. The lightbox caption has
+        # no null either: no caption is the empty string.
+        if "rating" in validated and validated["rating"] is None:
+            validated["rating"] = 0
+        if "caption" in validated and validated["caption"] is None:
+            validated["caption"] = ""
+        return validated
 
 
 class PhotoMetadataSummarySerializer(serializers.ModelSerializer):
@@ -255,7 +267,13 @@ class PhotoMetadataSummarySerializer(serializers.ModelSerializer):
     lens_display = serializers.ReadOnlyField()
     resolution = serializers.ReadOnlyField()
     megapixels = serializers.ReadOnlyField()
-    has_location = serializers.ReadOnlyField()
+
+    # Read from Photo, their one store (#2252).
+    date_taken = serializers.DateTimeField(
+        source="photo.exif_timestamp", read_only=True, allow_null=True
+    )
+    has_location = serializers.SerializerMethodField()
+    rating = serializers.IntegerField(source="photo.rating", read_only=True)
 
     # SerializerMethodField for cross-model query
     has_edits = serializers.SerializerMethodField()
@@ -286,6 +304,9 @@ class PhotoMetadataSummarySerializer(serializers.ModelSerializer):
             "has_edits",
         )
         read_only_fields = fields
+
+    def get_has_location(self, obj: PhotoMetadata) -> bool:
+        return _has_location(obj.photo)
 
     def get_has_edits(self, obj: PhotoMetadata) -> bool:
         """Check if this photo has any metadata edits."""

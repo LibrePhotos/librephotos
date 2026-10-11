@@ -16,6 +16,7 @@ import ast
 import datetime
 import os
 import unittest
+from unittest.mock import patch
 
 from rest_framework.test import APIClient
 
@@ -46,6 +47,16 @@ MODES = (SIDECAR, MEDIA_FILE)
 IMAGE_FORMATS = (".jpg", ".png", ".tif", ".heic")
 
 TIMESTAMP = datetime.datetime(2019, 8, 15, 7, 45, 0, tzinfo=datetime.timezone.utc)
+
+
+class RunNow:
+    """Stand-in for django_q's AsyncTask that runs the job right away."""
+
+    def __init__(self, func, *args):
+        self.func, self.args = func, args
+
+    def run(self):
+        self.func(*self.args)
 
 
 class RatingRoundTripTest(RealExifToolTestCase):
@@ -103,6 +114,24 @@ class RatingRoundTripTest(RealExifToolTestCase):
             queue_rating_write(photo.owner, [photo.id])
             photo.rating = 5
             photo.save()
+
+    def test_a_metadata_api_rating_reaches_the_sidecar(self):
+        # #2252: the metadata PATCH used to write PhotoMetadata.rating, which
+        # neither the app nor the write-back read.
+        path = self.make_image(".jpg")
+        photo = self._rated_photo(path, SIDECAR, rating=1)
+        client = APIClient()
+        client.force_authenticate(user=photo.owner)
+
+        with patch("api.metadata.jobs.AsyncTask", RunNow):
+            response = client.patch(
+                f"/api/photos/{photo.pk}/metadata/", {"rating": 5}, format="json"
+            )
+
+        self.assertEqual(200, response.status_code, response.content)
+        self.assertEqual(5, self._read_rating(path))
+        self.assertWritesLanded(expected=1)
+        self.assertEqual(self.sidecar_of(path), self.exiftool.writes[0].target)
 
 
 class DateRoundTripTest(RealExifToolTestCase):

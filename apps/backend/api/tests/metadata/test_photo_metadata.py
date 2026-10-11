@@ -3,7 +3,6 @@ Comprehensive tests for PhotoMetadata model and API.
 
 Tests cover:
 - PhotoMetadata model fields and properties
-- MetadataFile model
 - MetadataEdit model for change tracking
 - API endpoints (retrieve, update, history, revert)
 - Bulk metadata operations
@@ -22,7 +21,6 @@ from rest_framework.test import APIClient
 from api.models.photo_metadata import (
     EXIF_VALUE_NAMES,
     MetadataEdit,
-    MetadataFile,
     PhotoMetadata,
 )
 from api.tests.utils import create_test_photo, create_test_user
@@ -99,34 +97,6 @@ class PhotoMetadataModelTestCase(TestCase):
 
         self.assertIsNone(metadata.megapixels)
 
-    def test_has_location_property_with_gps(self):
-        """Test has_location with GPS data."""
-        metadata = PhotoMetadata.objects.create(
-            photo=self.photo,
-            gps_latitude=40.7128,
-            gps_longitude=-74.0060,
-        )
-
-        self.assertTrue(metadata.has_location)
-
-    def test_has_location_property_without_gps(self):
-        """Test has_location without GPS data."""
-        metadata = PhotoMetadata.objects.create(
-            photo=self.photo,
-        )
-
-        self.assertFalse(metadata.has_location)
-
-    def test_has_location_partial_gps(self):
-        """Test has_location with only latitude."""
-        metadata = PhotoMetadata.objects.create(
-            photo=self.photo,
-            gps_latitude=40.7128,
-            gps_longitude=None,
-        )
-
-        self.assertFalse(metadata.has_location)
-
     def test_camera_display_make_and_model(self):
         """Test camera_display with both make and model."""
         metadata = PhotoMetadata.objects.create(
@@ -193,21 +163,6 @@ class PhotoMetadataModelTestCase(TestCase):
         metadata.refresh_from_db()
         self.assertEqual(metadata.version, 2)
 
-    def test_raw_data_json_fields(self):
-        """Test raw EXIF/XMP/IPTC JSON fields."""
-        raw_data = {
-            "EXIF:Make": "Canon",
-            "EXIF:Model": "EOS R5",
-            "EXIF:ISO": 100,
-        }
-
-        metadata = PhotoMetadata.objects.create(
-            photo=self.photo,
-            raw_exif=raw_data,
-        )
-
-        self.assertEqual(metadata.raw_exif, raw_data)
-
     def test_keywords_json_field(self):
         """Test keywords JSON field stores list."""
         keywords = ["landscape", "sunset", "nature"]
@@ -242,7 +197,6 @@ class PhotoMetadataModelTestCase(TestCase):
             width=6000,
             height=4000,
             focal_length_35mm=50,
-            rating=5,
             xmp_subject=["vacation", "beach"],
             iptc_keywords=["beach", "sunset", "travel"],
         )
@@ -287,29 +241,7 @@ class PhotoMetadataModelTestCase(TestCase):
             metadata = PhotoMetadata.extract_exif_data(self.photo, commit=True)
 
         self.assertIsNotNone(metadata)
-        self.assertIsNone(metadata.caption)
-
-
-class MetadataFileModelTestCase(TestCase):
-    """Tests for MetadataFile model."""
-
-    def setUp(self):
-        self.user = create_test_user()
-        self.photo = create_test_photo(owner=self.user)
-
-    def test_file_type_choices(self):
-        """Test file type choices exist."""
-        self.assertEqual(MetadataFile.FileType.XMP, "xmp")
-        self.assertEqual(MetadataFile.FileType.JSON, "json")
-        self.assertEqual(MetadataFile.FileType.EXIF, "exif")
-        self.assertEqual(MetadataFile.FileType.OTHER, "other")
-
-    def test_source_choices(self):
-        """Test source choices exist."""
-        self.assertEqual(MetadataFile.Source.ORIGINAL, "original")
-        self.assertEqual(MetadataFile.Source.SOFTWARE, "software")
-        self.assertEqual(MetadataFile.Source.LIBREPHOTOS, "librephotos")
-        self.assertEqual(MetadataFile.Source.USER, "user")
+        self.assertIsNone(metadata.keywords)
 
 
 class MetadataEditModelTestCase(TestCase):
@@ -440,7 +372,8 @@ class PhotoMetadataAPITestCase(TestCase):
 
         self.metadata.refresh_from_db()
         self.assertEqual(self.metadata.title, "My Beautiful Photo")
-        self.assertEqual(self.metadata.rating, 5)
+        self.photo.refresh_from_db()
+        self.assertEqual(self.photo.rating, 5)
 
     def test_update_creates_edit_history(self):
         """Test updating metadata creates edit history."""
@@ -563,14 +496,10 @@ class BulkMetadataAPITestCase(TestCase):
         self.photo3 = create_test_photo(owner=self.user)
 
         self.meta1 = PhotoMetadata.objects.create(
-            photo=self.photo1,
-            camera_model="Canon R5",
-            rating=3,
+            photo=self.photo1, camera_model="Canon R5"
         )
         self.meta2 = PhotoMetadata.objects.create(
-            photo=self.photo2,
-            camera_model="Nikon Z9",
-            rating=4,
+            photo=self.photo2, camera_model="Nikon Z9"
         )
 
     def test_bulk_get_metadata(self):
@@ -615,10 +544,10 @@ class BulkMetadataAPITestCase(TestCase):
         data = response.json()
         self.assertEqual(data["updated_count"], 2)
 
-        self.meta1.refresh_from_db()
-        self.meta2.refresh_from_db()
-        self.assertEqual(self.meta1.rating, 5)
-        self.assertEqual(self.meta2.rating, 5)
+        self.photo1.refresh_from_db()
+        self.photo2.refresh_from_db()
+        self.assertEqual(self.photo1.rating, 5)
+        self.assertEqual(self.photo2.rating, 5)
 
     def test_bulk_update_no_photo_ids(self):
         """Test bulk update without photo_ids returns error."""
@@ -652,7 +581,7 @@ class BulkMetadataAPITestCase(TestCase):
         )
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("Invalid fields", response.json()["error"])
+        self.assertEqual(response.json()["errors"][0]["field"], "iso")
 
     def test_bulk_update_creates_edit_history(self):
         """Test bulk update creates edit history for each photo."""
@@ -703,24 +632,24 @@ class PhotoMetadataEdgeCasesTestCase(TestCase):
         metadata = PhotoMetadata.objects.create(
             photo=self.photo,
             title="Photo with émojis 📷 and ünïcödé",
-            caption="<script>alert('xss')</script>",
+            copyright="<script>alert('xss')</script>",
         )
 
         metadata.refresh_from_db()
         self.assertIn("émojis", metadata.title)
         self.assertIn("📷", metadata.title)
-        self.assertIn("<script>", metadata.caption)
+        self.assertIn("<script>", metadata.copyright)
 
-    def test_metadata_with_very_long_caption(self):
-        """Test metadata handles long captions."""
-        long_caption = "x" * 10000
+    def test_metadata_with_very_long_copyright(self):
+        """Test metadata handles long text."""
+        long_text = "x" * 10000
         metadata = PhotoMetadata.objects.create(
             photo=self.photo,
-            caption=long_caption,
+            copyright=long_text,
         )
 
         metadata.refresh_from_db()
-        self.assertEqual(len(metadata.caption), 10000)
+        self.assertEqual(len(metadata.copyright), 10000)
 
     def test_metadata_with_null_values(self):
         """Test metadata handles null values correctly."""
@@ -742,23 +671,10 @@ class PhotoMetadataEdgeCasesTestCase(TestCase):
             photo=self.photo,
             iso=0,
             focal_length=0,
-            rating=0,
         )
 
         self.assertEqual(metadata.iso, 0)
         self.assertEqual(metadata.focal_length, 0)
-        self.assertEqual(metadata.rating, 0)
-
-    def test_metadata_with_negative_gps(self):
-        """Test metadata handles negative GPS coordinates."""
-        metadata = PhotoMetadata.objects.create(
-            photo=self.photo,
-            gps_latitude=-33.8688,
-            gps_longitude=151.2093,
-        )
-
-        self.assertEqual(metadata.gps_latitude, -33.8688)
-        self.assertTrue(metadata.has_location)
 
     def test_one_to_one_relationship_enforced(self):
         """Test only one PhotoMetadata per photo."""
@@ -807,14 +723,27 @@ class PhotoMetadataEdgeCasesTestCase(TestCase):
 
     def test_revert_all_records_action(self):
         """Test revert_all creates a special edit record."""
-        metadata = PhotoMetadata.objects.create(
+        PhotoMetadata.objects.create(
             photo=self.photo,
             title="Modified",
             source=PhotoMetadata.Source.USER_EDIT,
         )
 
-        # Mock the extract_exif_data to avoid file operations
-        with patch.object(PhotoMetadata, "extract_exif_data", return_value=metadata):
+        # The file carries no metadata; the exif service is not running here.
+        with (
+            patch(
+                "api.models.photo_metadata.get_metadata",
+                side_effect=lambda path, tags, **kwargs: [None] * len(tags),
+            ),
+            patch(
+                "api.metadata.edits.get_metadata",
+                side_effect=lambda path, tags, **kwargs: [None] * len(tags),
+            ),
+            patch(
+                "api.metadata.photo_datetime.get_metadata",
+                side_effect=lambda path, tags, **kwargs: [None] * len(tags),
+            ),
+        ):
             response = self.client.post(
                 f"/api/photos/{self.photo.id}/metadata/revert-all"
             )

@@ -323,10 +323,6 @@ class MissingThumbnailRowTest(TestCase):
         self.assertFalse(self.caption.generate_captions_im2txt(commit=False))
         mock_generate_caption.assert_not_called()
 
-    def test_save_user_caption_returns_false(self):
-        self.assertFalse(self.caption.save_user_caption("typed", commit=False))
-        self.assertIsNone(self.caption.captions_json)
-
     @patch("api.models.photo_caption.sidecars.post")
     def test_generate_tag_captions_skips_the_sidecar(self, mock_post):
         self.caption.generate_tag_captions(commit=False)

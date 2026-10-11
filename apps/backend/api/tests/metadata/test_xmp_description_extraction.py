@@ -123,11 +123,14 @@ class XMPDescriptionIntegrationTest(TestCase):
             self.assertIsNone(et.get_tag("XMP:Description", self.tmp_path))
 
     def test_extract_exif_data_reads_description_from_sidecar(self):
-        """The sidecar's dc:description lands in PhotoMetadata.caption."""
-        metadata = self._extract_with_real_exiftool()
+        """The sidecar's dc:description is the caption the metadata API shows."""
+        self._extract_with_real_exiftool()
+        client = APIClient()
+        client.force_authenticate(user=self.user)
 
-        self.assertIsNotNone(metadata)
-        self.assertEqual(metadata.caption, EXPECTED_DESCRIPTION)
+        response = client.get(f"/api/photos/{self.photo.id}/metadata")
+
+        self.assertEqual(response.json()["caption"], EXPECTED_DESCRIPTION)
 
     def test_description_seeds_the_lightbox_caption(self):
         """The description also reaches the caption the lightbox renders."""
@@ -181,7 +184,8 @@ class XMPDescriptionIntegrationTest(TestCase):
         metadata = self._extract_with_real_exiftool()
 
         metadata.refresh_from_db()
-        self.assertEqual(metadata.caption, "my own words")
+        caption_instance = PhotoCaption.objects.get(photo=self.photo)
+        self.assertEqual(caption_instance.captions_json["user_caption"], "my own words")
         self.assertEqual(metadata.source, PhotoMetadata.Source.USER_EDIT)
 
     def test_revert_all_brings_the_file_description_back(self):
@@ -195,21 +199,33 @@ class XMPDescriptionIntegrationTest(TestCase):
             format="json",
         )
 
-        with patch(
-            "api.models.photo_metadata.get_metadata",
-            side_effect=_exiftool_get_metadata,
+        with (
+            patch(
+                "api.models.photo_metadata.get_metadata",
+                side_effect=_exiftool_get_metadata,
+            ),
+            patch(
+                "api.metadata.edits.get_metadata", side_effect=_exiftool_get_metadata
+            ),
+            patch(
+                "api.metadata.photo_datetime.get_metadata",
+                side_effect=_exiftool_get_metadata,
+            ),
         ):
             response = client.post(f"/api/photos/{self.photo.id}/metadata/revert-all")
         self.assertEqual(response.status_code, 200)
 
-        metadata = PhotoMetadata.objects.get(photo=self.photo)
-        self.assertEqual(metadata.caption, EXPECTED_DESCRIPTION)
+        caption_instance = PhotoCaption.objects.get(photo=self.photo)
+        self.assertEqual(
+            caption_instance.captions_json["user_caption"], EXPECTED_DESCRIPTION
+        )
+        self.assertEqual(response.json()["caption"], EXPECTED_DESCRIPTION)
 
     def test_cleared_caption_stays_cleared_on_rescan(self):
         """Clearing the imported lightbox caption is not undone by a rescan."""
         self._extract_with_real_exiftool()
         caption_instance = PhotoCaption.objects.get(photo=self.photo)
-        self.assertTrue(caption_instance.save_user_caption(""))
+        caption_instance.apply_user_caption("")
 
         self._extract_with_real_exiftool()
 
@@ -240,9 +256,8 @@ class DescriptionToCaptionTest(TestCase):
 
     def test_numeric_description_is_stored_as_text(self):
         """ExifTool returns a description of "2024" as the int 2024."""
-        metadata = self._extract(description=2024)
+        self._extract(description=2024)
 
-        self.assertEqual(metadata.caption, "2024")
         self.assertEqual(self._user_caption(), "2024")
         # This used to TypeError on every rescan (str += int).
         search = PhotoSearch.objects.get(photo=self.photo)
@@ -250,26 +265,24 @@ class DescriptionToCaptionTest(TestCase):
         self.assertIn("2024", search.search_captions)
 
     def test_blank_description_is_ignored(self):
-        metadata = self._extract(description="   ")
+        self._extract(description="   ")
 
-        self.assertIsNone(metadata.caption)
         self.assertFalse(PhotoCaption.objects.filter(photo=self.photo).exists())
 
     def test_description_is_stripped(self):
-        metadata = self._extract(description="  a dog on a beach \n")
+        self._extract(description="  a dog on a beach \n")
 
-        self.assertEqual(metadata.caption, "a dog on a beach")
         self.assertEqual(self._user_caption(), "a dog on a beach")
 
     def test_language_entry_is_the_fallback(self):
-        metadata = self._extract(any_language="Ein Hund am Strand")
+        self._extract(any_language="Ein Hund am Strand")
 
-        self.assertEqual(metadata.caption, "Ein Hund am Strand")
+        self.assertEqual(self._user_caption(), "Ein Hund am Strand")
 
     def test_x_default_wins_over_a_language_entry(self):
-        metadata = self._extract(description="A dog", any_language="Ein Hund")
+        self._extract(description="A dog", any_language="Ein Hund")
 
-        self.assertEqual(metadata.caption, "A dog")
+        self.assertEqual(self._user_caption(), "A dog")
 
     def test_hashtags_in_the_description_become_hashtag_albums(self):
         """An imported caption behaves like a typed one, #hashtags included."""
@@ -351,6 +364,9 @@ class LangAltWithoutDefaultTest(TestCase):
             "api.models.photo_metadata.get_metadata",
             side_effect=_exiftool_get_metadata,
         ):
-            metadata = PhotoMetadata.extract_exif_data(self.photo, commit=True)
+            PhotoMetadata.extract_exif_data(self.photo, commit=True)
 
-        self.assertEqual(metadata.caption, "Ein Hund am Strand")
+        caption_instance = PhotoCaption.objects.get(photo=self.photo)
+        self.assertEqual(
+            caption_instance.captions_json["user_caption"], "Ein Hund am Strand"
+        )
