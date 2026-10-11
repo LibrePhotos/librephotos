@@ -10,7 +10,7 @@ import {
   useComputedColorScheme,
   useMantineTheme,
 } from "@mantine/core";
-import { useMediaQuery } from "@mantine/hooks";
+import { useDisclosure, useMediaQuery } from "@mantine/hooks";
 import { IconX as X } from "@tabler/icons-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -131,7 +131,7 @@ export function Sidebar({
   addFaceBlockedReason,
 }: SidebarProps) {
   const { t } = useTranslation();
-  const [personEditOpen, setPersonEditOpen] = useState(false);
+  const [personEditOpen, { open: openPersonEdit, close: closePersonEdit }] = useDisclosure(false);
   const [selectedFaces, setSelectedFaces] = useState<SelectedFace[]>([]);
 
   // Skip photo details query on public pages - use public API instead
@@ -284,11 +284,11 @@ export function Sidebar({
 
   const handlePersonEdit = (faceId: number, faceUrl: string) => {
     setSelectedFaces([{ face_id: faceId, face_url: faceUrl }]);
-    setPersonEditOpen(true);
+    openPersonEdit();
   };
 
   const handleModalClose = () => {
-    setPersonEditOpen(false);
+    closePersonEdit();
     setSelectedFaces([]);
   };
 

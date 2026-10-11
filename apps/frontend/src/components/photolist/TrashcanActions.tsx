@@ -1,7 +1,8 @@
 import { ActionIcon, Button, Group, Modal, Space, Stack, Text, Tooltip } from "@mantine/core";
+import { useDisclosure } from "@mantine/hooks";
 import { IconArrowBackUp as ArrowBackUp, IconTrash as Trash } from "@tabler/icons-react";
 import { useLocation } from "@tanstack/react-router";
-import React, { useState } from "react";
+import React from "react";
 import { useTranslation } from "react-i18next";
 import { useMarkPhotosDeletedMutation, usePurgeDeletedPhotosMutation } from "../../api_client/photos/hooks";
 import { BulkPhotoQuery, PigPhoto, SelectionState } from "../../api_client/photos/types";
@@ -15,16 +16,12 @@ type Props = {
 };
 
 export function TrashcanActions(props: Readonly<Props>) {
-  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+  const [deleteDialogOpen, { open: openDeleteDialog, close: closeDeleteDialog }] = useDisclosure(false);
   const { selectedItems, selectAllMode = false, selectAllQuery, totalCount, updateSelectionState } = props;
   const { t } = useTranslation();
   const location = useLocation();
   const markPhotosDeleted = useMarkPhotosDeletedMutation();
   const purgeDeletedPhotos = usePurgeDeletedPhotosMutation();
-
-  const closeDialog = () => {
-    setOpenDeleteDialog(false);
-  };
 
   // Helper to get excluded hashes for selectAll mode
   const getExcludedHashes = () => selectedItems.map(i => i.image_hash);
@@ -54,7 +51,7 @@ export function TrashcanActions(props: Readonly<Props>) {
               selectedItems: [],
               selectAllQuery: undefined,
             });
-            closeDialog();
+            closeDeleteDialog();
           },
         }
       );
@@ -69,7 +66,7 @@ export function TrashcanActions(props: Readonly<Props>) {
               selectedItems: [],
               selectAllQuery: undefined,
             });
-            closeDialog();
+            closeDeleteDialog();
           },
         }
       );
@@ -146,7 +143,7 @@ export function TrashcanActions(props: Readonly<Props>) {
               color="red"
               aria-label={deleteLabel}
               onClick={() => {
-                setOpenDeleteDialog(true);
+                openDeleteDialog();
               }}
             >
               <Trash />
@@ -156,8 +153,8 @@ export function TrashcanActions(props: Readonly<Props>) {
       )}
 
       <Modal
-        opened={openDeleteDialog}
-        onClose={closeDialog}
+        opened={deleteDialogOpen}
+        onClose={() => closeDeleteDialog()}
         centered
         size="md"
         // Plain text, styled by the app's Modal theme like every other dialog's title
@@ -171,7 +168,7 @@ export function TrashcanActions(props: Readonly<Props>) {
           </Text>
 
           <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "16px" }}>
-            <Button variant="default" onClick={closeDialog}>
+            <Button variant="default" onClick={closeDeleteDialog}>
               {t("cancel")}
             </Button>
             <Space w="md" />

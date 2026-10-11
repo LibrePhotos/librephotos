@@ -1,4 +1,5 @@
 import { RemoveScroll, Stack } from "@mantine/core";
+import { useDisclosure } from "@mantine/hooks";
 import { IconFaceId } from "@tabler/icons-react";
 import { getRouteApi, useNavigate } from "@tanstack/react-router";
 import { debounce } from "lodash-es";
@@ -45,7 +46,7 @@ export function FaceDashboard() {
   const { collapsedPersons, toggleCollapsed, setCollapsedForTab } = useCollapsedPersons();
 
   // State
-  const [modalPersonEditOpen, setModalPersonEditOpen] = useState(false);
+  const [modalPersonEditOpen, { open: openModalPersonEdit, close: closeModalPersonEdit }] = useDisclosure(false);
   const [scrollTo, setScrollTo] = useState<number | null>(null);
   const [groups, setGroups] = useState<
     Array<{
@@ -57,7 +58,7 @@ export function FaceDashboard() {
   >([]);
 
   // Simple lightbox state management
-  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxOpen, { open: openLightbox, close: hideLightbox }] = useDisclosure(false);
   const [lightboxImageId, setLightboxImageId] = useState("");
 
   const { lists, fetchingLabeledFacesList, fetchingInferredFacesList, idx2hash } = useFaceDataFetching(
@@ -68,17 +69,20 @@ export function FaceDashboard() {
     minConfidence
   );
 
-  const showLightbox = useCallback((imageId: string, isValid: boolean) => {
-    if (isValid) {
-      setLightboxImageId(imageId);
-      setLightboxOpen(true);
-    }
-  }, []);
+  const showLightbox = useCallback(
+    (imageId: string, isValid: boolean) => {
+      if (isValid) {
+        setLightboxImageId(imageId);
+        openLightbox();
+      }
+    },
+    [openLightbox]
+  );
 
   const closeLightbox = useCallback(() => {
-    setLightboxOpen(false);
+    hideLightbox();
     setLightboxImageId("");
-  }, []);
+  }, [hideLightbox]);
 
   // Mutations
   const { mutate: deleteFacesMutate } = useDeleteFacesMutation();
@@ -269,7 +273,7 @@ export function FaceDashboard() {
           selectMode={selectedFaces.length > 0}
           selectedFaces={selectedFaces}
           changeSelectMode={clearSelection}
-          addFaces={() => selectedFaces.length > 0 && setModalPersonEditOpen(true)}
+          addFaces={() => selectedFaces.length > 0 && openModalPersonEdit()}
           deleteFaces={deleteSelectedFaces}
           notThisPerson={notThisPersonFunc}
           allCollapsed={allCollapsed}
@@ -304,7 +308,7 @@ export function FaceDashboard() {
         <ModalPersonEdit
           isOpen={modalPersonEditOpen}
           onRequestClose={() => {
-            setModalPersonEditOpen(false);
+            closeModalPersonEdit();
             clearSelection();
           }}
           selectedFaces={selectedFaces}

@@ -43,8 +43,8 @@ import { SiteSettings } from "./SiteSettings";
 
 function UserTable() {
   const { t } = useTranslation();
-  const [userModalOpen, setUserModalOpen] = useState(false);
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [userModalOpen, { open: openUserModal, close: closeUserModal }] = useDisclosure(false);
+  const [deleteModalOpen, { open: openDeleteModal, close: closeDeleteModal }] = useDisclosure(false);
   // Empty until a row is picked, and for a new user.
   const [userToEdit, setUserToEdit] = useState<Partial<ListUser>>({});
   const [userToDelete, setUserToDelete] = useState<Partial<ListUser>>({});
@@ -88,7 +88,7 @@ function UserTable() {
                       onClick={() => {
                         setUserToEdit(user);
                         setCreateNewUser(false);
-                        setUserModalOpen(true);
+                        openUserModal();
                       }}
                     >
                       <Edit />
@@ -103,7 +103,7 @@ function UserTable() {
                       aria-label={user.is_superuser ? t("adminarea.cannotdeleteadmin") : t("delete")}
                       onClick={() => {
                         setUserToDelete(user);
-                        setDeleteModalOpen(true);
+                        openDeleteModal();
                       }}
                     >
                       <Trash />
@@ -138,7 +138,7 @@ function UserTable() {
           onClick={() => {
             setCreateNewUser(true);
             setUserToEdit({});
-            setUserModalOpen(true);
+            openUserModal();
           }}
         >
           {t("adminarea.addnewuser")}
@@ -147,7 +147,7 @@ function UserTable() {
 
       <ModalUserEdit
         onRequestClose={() => {
-          setUserModalOpen(false);
+          closeUserModal();
         }}
         userToEdit={userToEdit}
         userList={userList ?? []}
@@ -156,7 +156,7 @@ function UserTable() {
       />
       <ModalUserDelete
         onRequestClose={() => {
-          setDeleteModalOpen(false);
+          closeDeleteModal();
         }}
         isOpen={deleteModalOpen}
         userToDelete={userToDelete}

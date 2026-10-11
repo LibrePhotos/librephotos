@@ -1,4 +1,4 @@
-import { ActionIcon, Button, Flex, Group, Menu, Modal, Select, Stack, Text, TextInput } from "@mantine/core";
+import { ActionIcon, Flex, Group, Menu, Text } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import {
   IconArrowMerge as ArrowMerge,
@@ -17,6 +17,9 @@ import {
   useRenameTagMutation,
 } from "../../../api_client/tags/hooks";
 import gridClasses from "../../../components/album/AlbumGridCell.module.css";
+import { TagDeleteModal } from "../../../components/album/TagDeleteModal";
+import { TagMergeModal } from "../../../components/album/TagMergeModal";
+import { TagRenameModal } from "../../../components/album/TagRenameModal";
 import { EmptyState } from "../../../components/common/EmptyState";
 import { PageHeader } from "../../../components/PageHeader";
 import { Tile } from "../../../components/Tile";
@@ -39,23 +42,17 @@ function AlbumTag() {
   const mergeTags = useMergeTagsMutation();
 
   const [selectedTag, setSelectedTag] = useState<{ id: number; name: string } | null>(null);
-  const [newName, setNewName] = useState("");
-  const [mergeSource, setMergeSource] = useState<string | null>(null);
   const [isRenameOpen, { open: openRename, close: closeRename }] = useDisclosure(false);
   const [isMergeOpen, { open: openMerge, close: closeMerge }] = useDisclosure(false);
   const [isDeleteOpen, { open: openDelete, close: closeDelete }] = useDisclosure(false);
 
-  const nameTaken = (tags ?? []).some(tag => tag.name.toLowerCase().trim() === newName.toLowerCase().trim());
-
   function startRename(tag: { id: number; name: string }) {
     setSelectedTag(tag);
-    setNewName("");
     openRename();
   }
 
   function startMerge(tag: { id: number; name: string }) {
     setSelectedTag(tag);
-    setMergeSource(null);
     openMerge();
   }
 
@@ -159,94 +156,44 @@ function AlbumTag() {
         />
       )}
 
-      <Modal size="sm" opened={isRenameOpen} onClose={closeRename} title={t("tagalbum.renametag")}>
-        <Stack>
-          <TextInput
-            label={selectedTag?.name}
-            error={nameTaken ? t("tagalbum.tagalreadyexists", { name: newName.trim() }) : ""}
-            value={newName}
-            onChange={event => setNewName(event.currentTarget.value)}
-            placeholder={t("tagalbum.tagplaceholder")}
-          />
-          <Group justify="flex-end">
-            <Button variant="default" onClick={closeRename}>
-              {t("cancel")}
-            </Button>
-            <Button
-              color="green"
-              disabled={!newName.trim() || nameTaken}
-              onClick={() => {
-                if (selectedTag) {
-                  renameTag.mutate({ id: selectedTag.id, name: selectedTag.name, newName: newName.trim() });
-                }
-                closeRename();
-              }}
-            >
-              {t("rename")}
-            </Button>
-          </Group>
-        </Stack>
-      </Modal>
+      <TagRenameModal
+        opened={isRenameOpen}
+        onClose={closeRename}
+        tagName={selectedTag?.name}
+        existingNames={(tags ?? []).map(tag => tag.name)}
+        onSubmit={newName => {
+          if (selectedTag) {
+            renameTag.mutate({ id: selectedTag.id, name: selectedTag.name, newName });
+          }
+        }}
+      />
 
-      <Modal size="sm" opened={isMergeOpen} onClose={closeMerge} title={t("tagalbum.mergetag")}>
-        <Stack>
-          <Text>{t("tagalbum.mergeexplanation", { name: selectedTag?.name ?? "" })}</Text>
-          <Select
-            searchable
-            value={mergeSource}
-            onChange={setMergeSource}
-            placeholder={t("tagalbum.tagplaceholder")}
-            data={(tags ?? [])
-              .filter(tag => tag.id !== selectedTag?.id)
-              .map(tag => ({ value: `${tag.id}`, label: tag.name }))}
-          />
-          <Group justify="flex-end">
-            <Button variant="default" onClick={closeMerge}>
-              {t("cancel")}
-            </Button>
-            <Button
-              color="green"
-              disabled={!mergeSource}
-              onClick={() => {
-                const source = (tags ?? []).find(tag => `${tag.id}` === mergeSource);
-                if (selectedTag && source) {
-                  mergeTags.mutate({
-                    id: selectedTag.id,
-                    name: selectedTag.name,
-                    sourceId: source.id,
-                    sourceName: source.name,
-                  });
-                }
-                closeMerge();
-              }}
-            >
-              {t("tagalbum.merge")}
-            </Button>
-          </Group>
-        </Stack>
-      </Modal>
+      <TagMergeModal
+        opened={isMergeOpen}
+        onClose={closeMerge}
+        target={selectedTag}
+        tags={tags ?? []}
+        onSubmit={source => {
+          if (selectedTag) {
+            mergeTags.mutate({
+              id: selectedTag.id,
+              name: selectedTag.name,
+              sourceId: source.id,
+              sourceName: source.name,
+            });
+          }
+        }}
+      />
 
-      <Modal opened={isDeleteOpen} onClose={closeDelete} title={t("delete")}>
-        <Stack>
-          <Text>{t("tagalbum.deleteexplanation")}</Text>
-          <Group justify="flex-end">
-            <Button variant="default" onClick={closeDelete}>
-              {t("cancel")}
-            </Button>
-            <Button
-              color="red"
-              onClick={() => {
-                if (selectedTag) {
-                  deleteTag.mutate({ id: selectedTag.id, name: selectedTag.name });
-                }
-                closeDelete();
-              }}
-            >
-              {t("confirm")}
-            </Button>
-          </Group>
-        </Stack>
-      </Modal>
+      <TagDeleteModal
+        opened={isDeleteOpen}
+        onClose={closeDelete}
+        onConfirm={() => {
+          if (selectedTag) {
+            deleteTag.mutate({ id: selectedTag.id, name: selectedTag.name });
+          }
+        }}
+      />
     </div>
   );
 }

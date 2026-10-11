@@ -1,4 +1,4 @@
-import { ActionIcon, Avatar, Button, Flex, Group, Image, Menu, Modal, Stack, Text, TextInput } from "@mantine/core";
+import { ActionIcon, Button, Flex, Group, Image, Menu, Text } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import {
   IconDotsVertical as DotsVertical,
@@ -16,8 +16,9 @@ import {
   useRenamePersonAlbumMutation,
 } from "../../../api_client/albums/hooks";
 import type { Person } from "../../../api_client/albums/hooks";
-import { serverAddress } from "../../../api_client/apiClient";
 import gridClasses from "../../../components/album/AlbumGridCell.module.css";
+import { PersonDeleteModal } from "../../../components/album/PersonDeleteModal";
+import { PersonRenameModal } from "../../../components/album/PersonRenameModal";
 import { EmptyState } from "../../../components/common/EmptyState";
 import { PageHeader } from "../../../components/PageHeader";
 import { Tile } from "../../../components/Tile";
@@ -42,7 +43,6 @@ function AlbumPeople() {
     face_photo_url: "",
     face_url: "",
   });
-  const [newPersonName, setNewPersonName] = useState("");
   // The ⋮ button the dialogs were opened from. Their menu items are gone when they close,
   // so the Modal's own focus return dropped focus on the page body: it goes back here instead
   const menuTrigger = useRef<HTMLButtonElement | null>(null);
@@ -52,8 +52,6 @@ function AlbumPeople() {
   const renamePersonMutation = useRenamePersonAlbumMutation();
   const deletePersonMutation = useDeletePersonAlbumMutation();
   const hasAlbums = albums && albums.length > 0;
-  const trimmedPersonName = newPersonName.trim();
-  const personNameTaken = !!albums?.some(el => el.name.toLowerCase().trim() === trimmedPersonName.toLowerCase());
 
   function openDeleteDialog(album: Person) {
     setSelectedAlbum(album);
@@ -62,7 +60,6 @@ function AlbumPeople() {
 
   function openRenameDialog(album: Person) {
     setSelectedAlbum(album);
-    setNewPersonName("");
     showRenameDialog();
   }
 
@@ -200,79 +197,26 @@ function AlbumPeople() {
         />
       )}
 
-      <Modal
-        title={t("personalbum.renamepersonheader", { name: selectedAlbum.name })}
-        onClose={closeRenameDialog}
+      <PersonRenameModal
         opened={renameDialogVisible}
-        returnFocus={false}
-      >
-        {/* A form, so Enter renames too */}
-        <form
-          onSubmit={e => {
-            e.preventDefault();
-            // The backend rejects a blank name, and nothing would report that
-            if (!trimmedPersonName || personNameTaken) return;
-            closeRenameDialog();
-            renamePersonMutation.mutate({
-              id: selectedAlbum.id,
-              personName: selectedAlbum.name,
-              newPersonName: trimmedPersonName,
-            });
-          }}
-        >
-          <Stack>
-            <TextInput
-              data-autofocus
-              label={t("personalbum.nameplaceholder")}
-              leftSection={
-                <Avatar
-                  src={selectedAlbum.face_url ? `${serverAddress}${selectedAlbum.face_url}` : undefined}
-                  alt={selectedAlbum.name}
-                  radius="xl"
-                  size={24}
-                />
-              }
-              error={personNameTaken ? t("personalbum.personalreadyexists", { name: trimmedPersonName }) : false}
-              onChange={e => {
-                setNewPersonName(e.currentTarget.value);
-              }}
-              placeholder={selectedAlbum.name}
-            />
-            <Group justify="flex-end">
-              <Button variant="default" onClick={closeRenameDialog}>
-                {t("cancel")}
-              </Button>
-              <Button disabled={!trimmedPersonName || personNameTaken} type="submit">
-                {t("rename")}
-              </Button>
-            </Group>
-          </Stack>
-        </form>
-      </Modal>
-      <Modal
+        onClose={closeRenameDialog}
+        person={selectedAlbum}
+        existingNames={(albums ?? []).map(album => album.name)}
+        onSubmit={newPersonName => {
+          renamePersonMutation.mutate({
+            id: selectedAlbum.id,
+            personName: selectedAlbum.name,
+            newPersonName,
+          });
+        }}
+      />
+      <PersonDeleteModal
         opened={deleteDialogVisible}
-        title={t("personalbum.deleteperson")}
         onClose={closeDeleteDialog}
-        returnFocus={false}
-      >
-        <Stack>
-          <Text size="sm">{t("personalbum.deletepersondescription")}</Text>
-          <Group justify="flex-end">
-            <Button variant="default" onClick={closeDeleteDialog}>
-              {t("cancel")}
-            </Button>
-            <Button
-              color="red"
-              onClick={() => {
-                deletePersonMutation.mutate(selectedAlbum.id);
-                closeDeleteDialog();
-              }}
-            >
-              {t("delete")}
-            </Button>
-          </Group>
-        </Stack>
-      </Modal>
+        onConfirm={() => {
+          deletePersonMutation.mutate(selectedAlbum.id);
+        }}
+      />
     </>
   );
 }

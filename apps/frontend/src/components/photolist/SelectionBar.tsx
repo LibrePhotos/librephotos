@@ -1,6 +1,7 @@
 import { ActionIcon, Button, Group, Popover, Text } from "@mantine/core";
+import { useDisclosure } from "@mantine/hooks";
 import { IconCheck as Check, IconChecks as Checks } from "@tabler/icons-react";
-import React, { useState } from "react";
+import React from "react";
 import { useTranslation } from "react-i18next";
 import type { BulkPhotoQuery, PigPhoto, SelectionState } from "../../api_client/photos/types";
 import { ICON_SIZE, TOOLBAR_ACTION_SIZE, TOOLBAR_CONTROL_HEIGHT } from "../../ui-constants";
@@ -18,8 +19,8 @@ type Props = {
 export function SelectionBar(props: Readonly<Props>) {
   const { t } = useTranslation();
   const { selectMode, selectAllMode, updateSelectionState, selectedItems, idx2hash, photosetQuery, totalCount } = props;
-  const [openedAll, setOpenedAll] = useState(false);
-  const [openedSelect, setOpenedSelect] = useState(false);
+  const [openedAll, { open: openAll, close: closeAll }] = useDisclosure(false);
+  const [openedSelect, { open: openSelect, close: closeSelect }] = useDisclosure(false);
 
   // Calculate display count based on mode
   const getDisplayText = () => {
@@ -41,8 +42,8 @@ export function SelectionBar(props: Readonly<Props>) {
       <Popover opened={openedAll} withArrow withinPortal>
         <Popover.Target>
           <ActionIcon
-            onMouseEnter={() => setOpenedAll(true)}
-            onMouseLeave={() => setOpenedAll(false)}
+            onMouseEnter={() => openAll()}
+            onMouseLeave={() => closeAll()}
             variant="light"
             size={TOOLBAR_ACTION_SIZE}
             aria-label={isAllSelected ? t("selectionbar.deselect") : t("selectionbar.select")}
@@ -90,8 +91,8 @@ export function SelectionBar(props: Readonly<Props>) {
         <Popover opened={openedSelect} withArrow>
           <Popover.Target>
             <Button
-              onMouseEnter={() => setOpenedSelect(true)}
-              onMouseLeave={() => setOpenedSelect(false)}
+              onMouseEnter={() => openSelect()}
+              onMouseLeave={() => closeSelect()}
               variant="light"
               size="xs"
               h={TOOLBAR_CONTROL_HEIGHT}

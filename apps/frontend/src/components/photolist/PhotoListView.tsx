@@ -13,7 +13,7 @@ import {
   useComputedColorScheme,
   useMantineTheme,
 } from "@mantine/core";
-import { useDebouncedCallback, useHotkeys, useViewportSize } from "@mantine/hooks";
+import { useDebouncedCallback, useDisclosure, useHotkeys, useViewportSize } from "@mantine/hooks";
 import { IconLink, IconSettings, type TablerIcon } from "@tabler/icons-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "@tanstack/react-router";
@@ -163,11 +163,11 @@ function PhotoListViewComponent({
   const { t } = useTranslation();
   const { height } = useViewportSize();
   const pigRef = useRef<PigHandle<PigPhoto>>(null);
-  const [modalAddToAlbumOpen, setModalAddToAlbumOpen] = useState(false);
-  const [modalTagOpen, setModalTagOpen] = useState(false);
-  const [modalSharePhotosOpen, setModalSharePhotosOpen] = useState(false);
-  const [modalAlbumShareOpen, setModalAlbumShareOpen] = useState(false);
-  const [modalCoverPickerOpen, setModalCoverPickerOpen] = useState(false);
+  const [modalAddToAlbumOpen, { open: openAddToAlbum, close: closeAddToAlbum }] = useDisclosure(false);
+  const [modalTagOpen, { open: openTag, close: closeTag }] = useDisclosure(false);
+  const [modalSharePhotosOpen, { open: openSharePhotos, close: closeSharePhotos }] = useDisclosure(false);
+  const [modalAlbumShareOpen, { open: openAlbumShare, close: closeAlbumShare }] = useDisclosure(false);
+  const [modalCoverPickerOpen, { open: openCoverPicker, close: closeCoverPicker }] = useDisclosure(false);
   const [coverPickerAlbumType, setCoverPickerAlbumType] = useState<AlbumCoverType | null>(null);
   const [selectionState, setSelectionState] = useState<SelectionState>({
     selectedItems: [],
@@ -205,26 +205,29 @@ function PhotoListViewComponent({
   const [localImageScale, setLocalImageScale] = useState(imageScale);
   const [localTextAlignment, setLocalTextAlignment] = useState<"left" | "right">(textAlignment);
   const [localHeaderSize, setLocalHeaderSize] = useState<HeaderSize>(headerSize);
-  const [displayMenuOpened, setDisplayMenuOpened] = useState(false);
+  const [displayMenuOpened, { open: openDisplayMenu, close: closeDisplayMenu }] = useDisclosure(false);
 
   const currentImageIndexRef = useRef(0);
   const navigate = useNavigate();
 
   // Simple lightbox state management
-  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxOpen, { open: openLightbox, close: hideLightbox }] = useDisclosure(false);
   const [lightboxImageId, setLightboxImageId] = useState("");
 
-  const showLightbox = useCallback((imageId: string, isValid: boolean) => {
-    if (isValid) {
-      setLightboxImageId(imageId);
-      setLightboxOpen(true);
-    }
-  }, []);
+  const showLightbox = useCallback(
+    (imageId: string, isValid: boolean) => {
+      if (isValid) {
+        setLightboxImageId(imageId);
+        openLightbox();
+      }
+    },
+    [openLightbox]
+  );
 
   const closeLightbox = useCallback(() => {
-    setLightboxOpen(false);
+    hideLightbox();
     setLightboxImageId("");
-  }, []);
+  }, [hideLightbox]);
 
   const handleLightboxIndexChange = useCallback(
     (currentIndex?: number) => {
@@ -390,7 +393,7 @@ function PhotoListViewComponent({
       () => {
         const { selectMode, selectAllMode, selectedItems } = selectionStateRef.current;
         if (!isPublic && (selectAllMode || (selectMode && selectedItems.length > 0))) {
-          setModalTagOpen(true);
+          openTag();
         }
       },
     ],
@@ -615,7 +618,7 @@ function PhotoListViewComponent({
                         variant="default"
                         size={TOOLBAR_ACTION_SIZE}
                         aria-label={t("sidemenu.sharing")}
-                        onClick={() => setModalAlbumShareOpen(true)}
+                        onClick={() => openAlbumShare()}
                       >
                         <IconLink size={ICON_SIZE.toolbar} />
                       </ActionIcon>
@@ -627,7 +630,7 @@ function PhotoListViewComponent({
                       width={240}
                       position="bottom-end"
                       opened={displayMenuOpened}
-                      onChange={setDisplayMenuOpened}
+                      onChange={isOpen => (isOpen ? openDisplayMenu() : closeDisplayMenu())}
                     >
                       <Menu.Target>
                         {/* Hidden while the menu is open: it would sit over the menu's first label. */}
@@ -780,14 +783,14 @@ function PhotoListViewComponent({
                       } else if (selectionState.selectedItems.length === 0) {
                         // No selection - open modal picker
                         setCoverPickerAlbumType(actionType);
-                        setModalCoverPickerOpen(true);
+                        openCoverPicker();
                       }
                       // Multiple selected: action is disabled at menu level
                     }}
-                    onSharePhotos={() => setModalSharePhotosOpen(true)}
-                    onShareAlbum={() => setModalAlbumShareOpen(true)}
-                    onAddToAlbum={() => setModalAddToAlbumOpen(true)}
-                    onAddTags={() => setModalTagOpen(true)}
+                    onSharePhotos={() => openSharePhotos()}
+                    onShareAlbum={() => openAlbumShare()}
+                    onAddToAlbum={() => openAddToAlbum()}
+                    onAddTags={() => openTag()}
                     updateSelectionState={updateSelectionState}
                   />
                 )}
@@ -885,7 +888,7 @@ function PhotoListViewComponent({
         <AlbumEditModal
           isOpen={modalAddToAlbumOpen}
           onRequestClose={() => {
-            setModalAddToAlbumOpen(false);
+            closeAddToAlbum();
             updateSelectionState({
               selectedItems: [],
               selectMode: false,
@@ -903,7 +906,7 @@ function PhotoListViewComponent({
         <ModalTagEdit
           isOpen={modalTagOpen}
           onRequestClose={() => {
-            setModalTagOpen(false);
+            closeTag();
             updateSelectionState({
               selectedItems: [],
               selectMode: false,
@@ -921,7 +924,7 @@ function PhotoListViewComponent({
         <ModalPhotosShare
           isOpen={modalSharePhotosOpen}
           onRequestClose={() => {
-            setModalSharePhotosOpen(false);
+            closeSharePhotos();
           }}
           selectedImageHashes={selectionState.selectedItems.map(i => i.image_hash)}
           selectAllMode={selectionState.selectAllMode}
@@ -932,7 +935,7 @@ function PhotoListViewComponent({
         <ModalAlbumShare
           isOpen={modalAlbumShareOpen}
           onRequestClose={() => {
-            setModalAlbumShareOpen(false);
+            closeAlbumShare();
           }}
           albumID={albumID ?? ""}
         />
@@ -941,7 +944,7 @@ function PhotoListViewComponent({
         <AlbumCoverPickerModal
           isOpen={modalCoverPickerOpen}
           onRequestClose={() => {
-            setModalCoverPickerOpen(false);
+            closeCoverPicker();
             setCoverPickerAlbumType(null);
           }}
           photos={idx2hash}

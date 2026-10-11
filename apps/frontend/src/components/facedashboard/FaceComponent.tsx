@@ -1,8 +1,9 @@
 import { ActionIcon, Avatar, Box, Indicator } from "@mantine/core";
+import { useDisclosure } from "@mantine/hooks";
 import { IconPhoto as Photo } from "@tabler/icons-react";
 import { getRouteApi } from "@tanstack/react-router";
 import { reverse } from "lodash-es";
-import React, { useState } from "react";
+import React from "react";
 import { useTranslation } from "react-i18next";
 import { serverAddress } from "../../api_client/apiClient";
 import classes from "./FaceComponent.module.css";
@@ -44,7 +45,7 @@ export function FaceComponent({
   handleShowClick,
 }: Props) {
   const { t } = useTranslation();
-  const [tooltipOpened, setTooltipOpened] = useState(false);
+  const [tooltipOpened, { open: openTooltip, close: closeTooltip }] = useDisclosure(false);
   const entrySize = entrySquareSize - (selectMode ? 30 : 10);
   const labelProbabilityColor = calculateProbabiltyColor(cell.person_label_probability);
   const { tab: activeTab } = routeApi.useSearch();
@@ -65,8 +66,8 @@ export function FaceComponent({
             offset={10}
             withBorder
             color={labelProbabilityColor}
-            onMouseEnter={() => setTooltipOpened(true)}
-            onMouseLeave={() => setTooltipOpened(false)}
+            onMouseEnter={() => openTooltip()}
+            onMouseLeave={() => closeTooltip()}
             disabled={activeTab === "labeled"}
             size={15}
           >

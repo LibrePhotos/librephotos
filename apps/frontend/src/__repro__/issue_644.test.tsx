@@ -22,8 +22,9 @@
 import "@mantine/core/styles.css";
 import type { ApiClient } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
+import { useDisclosure } from "@mantine/hooks";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import React, { act, useState } from "react";
+import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { useSetFacesPersonLabelMutation } from "../api_client/faces/hooks/useSetFacesPersonLabelMutation";
@@ -137,7 +138,7 @@ async function renderModal(seededIds: string[]) {
   // flip `isOpen`, so whatever the user typed outlives a close.
   let setOpen: (open: boolean) => void = () => {};
   function Harness() {
-    const [isOpen, setIsOpen] = useState(true);
+    const [isOpen, { set: setIsOpen }] = useDisclosure(true);
     setOpen = setIsOpen;
     return (
       <ModalPersonEdit

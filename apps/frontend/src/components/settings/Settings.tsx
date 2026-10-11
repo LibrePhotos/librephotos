@@ -1,4 +1,5 @@
 import { Card, Container, Flex, Group, Radio, Select, Space, Stack, Switch, Text, Title } from "@mantine/core";
+import { useDisclosure } from "@mantine/hooks";
 import { IconSettings as SettingIcon } from "@tabler/icons-react";
 import { useQueryClient } from "@tanstack/react-query";
 import React, { useEffect, useState } from "react";
@@ -45,7 +46,7 @@ function withLlmSwitch(settings: unknown, key: LlmSwitch, value: boolean): Recor
 }
 
 export function Settings() {
-  const [isOpenUpdateDialog, setIsOpenUpdateDialog] = useState(false);
+  const [isOpenUpdateDialog, { open: openUpdateDialog, close: closeUpdateDialog }] = useDisclosure(false);
   const { data: auth } = useAccessToken();
   const { data: userSelfDetails } = useFetchUserSelfDetailsQuery(auth?.access?.user_id.toString() ?? "");
   const [editedUserDetails, setEditedUserDetails] = useState(userSelfDetails);
@@ -57,11 +58,11 @@ export function Settings() {
   // open update dialog, when user was edited
   useEffect(() => {
     if (userSelfDetails && editedUserDetails && JSON.stringify(userSelfDetails) !== JSON.stringify(editedUserDetails)) {
-      setIsOpenUpdateDialog(true);
+      openUpdateDialog();
     } else {
-      setIsOpenUpdateDialog(false);
+      closeUpdateDialog();
     }
-  }, [userSelfDetails, editedUserDetails]);
+  }, [userSelfDetails, editedUserDetails, openUpdateDialog, closeUpdateDialog]);
 
   useEffect(() => {
     if (auth?.access?.user_id) {
@@ -465,13 +466,13 @@ export function Settings() {
           delete newUserData.avatar;
           // Keep the dialog open when the server rejects the save, so the edits can be fixed.
           updateUser.mutate(newUserData, {
-            onSuccess: () => setIsOpenUpdateDialog(false),
+            onSuccess: () => closeUpdateDialog(),
             onError: reportUserSaveError,
           });
         }}
         onCancel={() => {
           setEditedUserDetails(userSelfDetails);
-          setIsOpenUpdateDialog(false);
+          closeUpdateDialog();
         }}
       />
     </Container>

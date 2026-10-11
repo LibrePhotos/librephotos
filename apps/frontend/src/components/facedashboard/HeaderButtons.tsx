@@ -1,4 +1,5 @@
 import { ActionIcon, Button, Divider, Group, Modal, NumberInput, Select, Stack, Text, Tooltip } from "@mantine/core";
+import { useDisclosure } from "@mantine/hooks";
 import {
   IconBarbell as Barbell,
   IconCheck as Check,
@@ -43,7 +44,7 @@ export function HeaderButtons({
   canCollapse,
 }: Props) {
   const [jobType, setJobType] = useState("");
-  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+  const [deleteDialogOpen, { open: openDeleteDialog, close: closeDeleteDialog }] = useDisclosure(false);
   const [queueCanAcceptJob, setQueueCanAcceptJob] = useState(false);
   const navigate = useNavigate();
   const trainFacesMutation = useTrainFacesMutation();
@@ -181,7 +182,7 @@ export function HeaderButtons({
               color="red"
               disabled={selectedFaces.length === 0}
               aria-label={t("facesdashboard.explanationdeleting")}
-              onClick={() => setOpenDeleteDialog(true)}
+              onClick={() => openDeleteDialog()}
             >
               <Trash />
             </ActionIcon>
@@ -200,14 +201,14 @@ export function HeaderButtons({
           </Tooltip>
         </Group>
       </Group>
-      <Modal opened={openDeleteDialog} onClose={() => setOpenDeleteDialog(false)} title={t("deleteface")}>
+      <Modal opened={deleteDialogOpen} onClose={() => closeDeleteDialog()} title={t("deleteface")}>
         <Stack>
           <Text size="sm">{t("deletefaceexplanation")}</Text>
           <Group justify="flex-end">
             <Button
               variant="default"
               onClick={() => {
-                setOpenDeleteDialog(false);
+                closeDeleteDialog();
               }}
             >
               {t("cancel")}
@@ -216,7 +217,7 @@ export function HeaderButtons({
               color="red"
               onClick={() => {
                 deleteFaces();
-                setOpenDeleteDialog(false);
+                closeDeleteDialog();
               }}
             >
               {t("confirm")}

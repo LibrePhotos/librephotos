@@ -1,4 +1,5 @@
 import { ActionIcon, Group, Menu, Text, Tooltip } from "@mantine/core";
+import { useDisclosure } from "@mantine/hooks";
 import {
   IconAlbum as Album,
   IconDotsVertical as DotsVertical,
@@ -22,7 +23,7 @@ import {
   IconTrash as Trash,
 } from "@tabler/icons-react";
 import { useLocation } from "@tanstack/react-router";
-import React, { useState } from "react";
+import React from "react";
 import { useTranslation } from "react-i18next";
 import { useRemovePhotoFromUserAlbumMutation } from "../../api_client/albums/hooks";
 import { shareAddress } from "../../api_client/apiClient";
@@ -154,7 +155,7 @@ export function SelectionActions(props: Readonly<Props>) {
   };
 
   // Download modal state
-  const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
+  const [isDownloadModalOpen, { open: openDownloadModal, close: closeDownloadModal }] = useDisclosure(false);
 
   // In select-all mode the modal can only show an upper bound, because the
   // server-side query is the source of truth and the excluded set may contain
@@ -188,7 +189,7 @@ export function SelectionActions(props: Readonly<Props>) {
       <ModalDownloadOptions
         isOpen={isDownloadModalOpen}
         photoCount={downloadPhotoCount}
-        onRequestClose={() => setIsDownloadModalOpen(false)}
+        onRequestClose={() => closeDownloadModal()}
         onConfirm={handleDownloadConfirm}
       />
       <Menu width={200}>
@@ -433,7 +434,7 @@ export function SelectionActions(props: Readonly<Props>) {
           <Menu.Item
             leftSection={<Download size={ICON_SIZE.menu} />}
             disabled={!hasSelection}
-            onClick={() => setIsDownloadModalOpen(true)}
+            onClick={() => openDownloadModal()}
           >
             {t("selectionactions.download")}
           </Menu.Item>

@@ -86,11 +86,13 @@ function BadgeIcon(details: User, isSuccess: boolean, isError: boolean, isFetchi
 
 export function Library() {
   const [isOpen, { open, close }] = useDisclosure(false);
-  const [isOpenUpdateDialog, setIsOpenUpdateDialog] = useState(false);
-  const [isScanHelpOpen, setIsScanHelpOpen] = useState(false);
+  const [isOpenUpdateDialog, { open: openUpdateDialog, close: closeUpdateDialog }] = useDisclosure(false);
+  const [isScanHelpOpen, { toggle: toggleScanHelp }] = useDisclosure(false);
   const [avatarImgSrc, setAvatarImgSrc] = useState("/unknown_user.jpg");
-  const [modalNextcloudScanDirectoryOpen, setModalNextcloudScanDirectoryOpen] = useState(false);
-  const [scanDirectorySetupOpen, setScanDirectorySetupOpen] = useState(false);
+  const [modalNextcloudScanDirectoryOpen, { open: openNextcloudScanDirectory, close: closeNextcloudScanDirectory }] =
+    useDisclosure(false);
+  const [scanDirectorySetupOpen, { open: openScanDirectorySetup, close: closeScanDirectorySetup }] =
+    useDisclosure(false);
   const { data: userSelfDetails } = useCurrentUserSelfDetailsQuery();
   const { data: auth } = useAccessToken();
   const { data: userList } = useFetchUserListQuery();
@@ -141,7 +143,7 @@ export function Library() {
       return;
     }
     if (isAdmin) {
-      setScanDirectorySetupOpen(true);
+      openScanDirectorySetup();
     } else {
       notification.scanDirectoryRequired();
     }
@@ -150,11 +152,11 @@ export function Library() {
   // open update dialog, when user was edited
   useEffect(() => {
     if (JSON.stringify(editedUser) !== JSON.stringify(userSelfDetails)) {
-      setIsOpenUpdateDialog(true);
+      openUpdateDialog();
     } else {
-      setIsOpenUpdateDialog(false);
+      closeUpdateDialog();
     }
-  }, [editedUser, userSelfDetails]);
+  }, [editedUser, userSelfDetails, openUpdateDialog, closeUpdateDialog]);
 
   useEffect(() => {
     if (userSelfDetails) {
@@ -208,7 +210,7 @@ export function Library() {
       // Keep the dialog open when the server rejects the save (an unsafe Nextcloud address, for
       // example), so the edits can be fixed.
       updateUser.mutate(newUserData, {
-        onSuccess: () => setIsOpenUpdateDialog(false),
+        onSuccess: () => closeUpdateDialog(),
         onError: reportUserSaveError,
       });
     }
@@ -227,7 +229,7 @@ export function Library() {
     if (userSelfDetails) {
       setEditedUser(userSelfDetails);
     }
-    setIsOpenUpdateDialog(false);
+    closeUpdateDialog();
   };
 
   if (!userSelfDetails) {
@@ -293,7 +295,7 @@ export function Library() {
                       aria-label={t("settings.scanhelp")}
                       aria-expanded={isScanHelpOpen}
                       aria-controls="scan-library-help"
-                      onClick={() => setIsScanHelpOpen(open => !open)}
+                      onClick={toggleScanHelp}
                     >
                       <QuestionMark size={14} />
                     </ActionIcon>
@@ -674,7 +676,7 @@ export function Library() {
                         leftSection={<Folder />}
                         disabled={isNextcloudError || isNextcloudFetching || !userSelfDetails.nextcloud_server_address}
                         onClick={() => {
-                          setModalNextcloudScanDirectoryOpen(true);
+                          openNextcloudScanDirectory();
                         }}
                         variant="outline"
                         fullWidth
@@ -706,7 +708,7 @@ export function Library() {
                   isOpen={modalNextcloudScanDirectoryOpen}
                   onChange={path => setEditedUser(prev => (prev ? { ...prev, nextcloud_scan_directory: path } : prev))}
                   onClose={() => {
-                    setModalNextcloudScanDirectoryOpen(false);
+                    closeNextcloudScanDirectory();
                   }}
                 />
               </>
@@ -715,7 +717,7 @@ export function Library() {
         </Card>
 
         <ModalUserEdit
-          onRequestClose={() => setScanDirectorySetupOpen(false)}
+          onRequestClose={() => closeScanDirectorySetup()}
           userToEdit={userSelfDetails}
           isOpen={scanDirectorySetupOpen}
           updateAndScan

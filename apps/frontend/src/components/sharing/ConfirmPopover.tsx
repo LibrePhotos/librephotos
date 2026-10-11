@@ -1,5 +1,6 @@
 import { Button, Group, Popover, Stack, Text, Tooltip } from "@mantine/core";
-import React, { cloneElement, useState } from "react";
+import { useDisclosure } from "@mantine/hooks";
+import React, { cloneElement } from "react";
 import type { MouseEvent, ReactElement } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -28,12 +29,12 @@ type Props = Readonly<{
  */
 export function ConfirmPopover({ message, confirmLabel, color, tooltip, onConfirm, children }: Props) {
   const { t } = useTranslation();
-  const [opened, setOpened] = useState(false);
+  const [opened, { open, close, toggle }] = useDisclosure(false);
   // The roles are set here rather than by Popover (withRoles): Popover.Target
   // hands them to its direct child, which is the Tooltip when there is one, and
   // the Tooltip would pass them on to its own bubble instead of the control.
   const trigger = cloneElement(children, {
-    onClick: () => setOpened(o => !o),
+    onClick: () => toggle(),
     "aria-haspopup": "dialog",
     "aria-expanded": opened,
   });
@@ -41,7 +42,7 @@ export function ConfirmPopover({ message, confirmLabel, color, tooltip, onConfir
   return (
     <Popover
       opened={opened}
-      onChange={setOpened}
+      onChange={isOpen => (isOpen ? open() : close())}
       withRoles={false}
       withArrow
       trapFocus
@@ -66,7 +67,7 @@ export function ConfirmPopover({ message, confirmLabel, color, tooltip, onConfir
               on window first and closes the whole dialog unless the focused
               element opts out; it should only close this popover. */}
           <Group justify="flex-end" gap="xs">
-            <Button size="xs" variant="default" onClick={() => setOpened(false)} data-mantine-stop-propagation>
+            <Button size="xs" variant="default" onClick={() => close()} data-mantine-stop-propagation>
               {t("cancel")}
             </Button>
             <Button
@@ -74,7 +75,7 @@ export function ConfirmPopover({ message, confirmLabel, color, tooltip, onConfir
               color={color}
               data-mantine-stop-propagation
               onClick={() => {
-                setOpened(false);
+                close();
                 onConfirm();
               }}
             >
