@@ -108,7 +108,7 @@ You need to have the **CLIP embedding** calculation job completed for semantic s
 
 One model turns photos and queries into embeddings and tags your photos: [OpenCLIP](https://huggingface.co/laion/CLIP-ViT-B-32-DataComp.XL-s13B-b90K) ViT-B/32, trained by LAION on DataComp-XL and released under the MIT licence. Tagging a photo yields its search embedding from the same run, so a scan runs one vision model per photo. There is nothing to choose in the settings.
 
-:::note Upgrading to 1.3.0 (unreleased)
+:::note Upgrading to 1.3.0
 Releases up to 1.2.x searched with CLIP ViT-B/32 and tagged with another model. After the upgrade a **Calculate Clip Embeddings** job re-embeds every photo with OpenCLIP in the background and gives it new tags from the same run; nothing is deleted first. While it runs, semantic search and similar photos cover the photos converted so far (the index catches up every 2,000 photos), and the Things albums fill up again as photos are re-tagged. It happens once.
 :::
 

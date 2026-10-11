@@ -183,7 +183,7 @@ To remove photos from a User Album:
 This only removes the photos from the album. The original photos remain in your library.
 :::
 
-## Locking user albums (unreleased)
+## Locking user albums (since 1.3.0)
 
 In the user album list, open an album’s three-dot menu and choose **Lock album**. A lock icon marks locked albums. Choose **Unlock album** from the same menu to allow changes again.
 
