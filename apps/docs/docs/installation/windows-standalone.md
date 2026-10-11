@@ -105,7 +105,7 @@ py -3.11 -m venv .venv
 .\.venv\Scripts\python scripts\build_standalone.py --zip
 ```
 
-This builds the frontend (Node 22 and Yarn on PATH; `--skip-frontend` reuses `apps/frontend/dist`),
+This builds the frontend (Node 24 and Yarn on PATH; `--skip-frontend` reuses `apps/frontend/dist`),
 collects the static files and compiles the backend; Nuitka needs Visual Studio's C++ build tools and
 downloads the rest itself. Expect the first build to take well over an hour, later ones are much
 faster thanks to Nuitka's cache. The result lands in `apps\backend\build\standalone\librephotos\`.

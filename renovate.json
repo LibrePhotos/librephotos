@@ -148,7 +148,7 @@
       "groupName": "docs docusaurus major"
     },
     {
-      "description": "Frontend majors are split so the safe ones can merge alone. React 19 and Mantine 9 have to ship together (with recharts, which only @mantine/charts uses). Still pinned to React 18 by react-avatar-editor 13, @visx/* 3 and @welldone-software/why-did-you-render 8, whose peer ranges stop at 18.",
+      "description": "Frontend majors are split so the safe ones can merge alone. React 19 and Mantine 9 have to ship together (with recharts, which only @mantine/charts uses). Both landed in #2171.",
       "matchFileNames": ["apps/frontend/**"],
       "matchUpdateTypes": ["major"],
       "matchPackageNames": ["react", "react-dom", "@types/react", "@types/react-dom", "/^@mantine\\//", "recharts", "@welldone-software/why-did-you-render"],
@@ -186,7 +186,7 @@
       "groupName": "frontend zod"
     },
     {
-      "description": "PR CI does not run the Cypress suite, so keep its updates apart from the app's.",
+      "description": "PR CI does not run the Playwright suite, so keep its updates apart from the app's.",
       "matchFileNames": ["apps/frontend/e2e/**"],
       "groupName": "frontend e2e dependencies"
     }

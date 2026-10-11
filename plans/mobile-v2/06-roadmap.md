@@ -6,7 +6,7 @@ Each phase ships something usable; sync sophistication grows underneath a
 working app. Backend and mobile tracks can proceed in parallel from Phase 2.
 
 ### Phase 0 — Foundations
-- Scaffold `apps/mobile-v2` (Expo, Router, NativeWind, Drizzle, CI, EAS dev builds).
+- Scaffold `apps/mobile` (Expo, Router, NativeWind, Drizzle, CI, EAS dev builds).
 - Extract `packages/api-client` from the two existing `api_client` trees
   (zod schemas + query hooks; frontend keeps its copy until Phase 5).
 - Auth flow: server URL + JWT login, secure-store, token refresh interceptor.
@@ -115,4 +115,4 @@ prerequisite for the P2 row in doc 05), #973 (web responsive), #911
   flows green in CI.
 - Play Store, App Store, F-Droid builds from the same commit.
 - Docs: user-facing setup page in `apps/docs`, developer README in
-  `apps/mobile-v2`.
+  `apps/mobile`.

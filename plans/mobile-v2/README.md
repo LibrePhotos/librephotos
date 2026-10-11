@@ -1,5 +1,7 @@
 # LibrePhotos Mobile v2 — Expo + Offline-First Sync
 
+> **Status:** merged in #1952. The app lives in `apps/mobile`; these documents describe the plan as it was written. `PR_BODY.md` is the historical PR text.
+
 Plan for rebuilding the LibrePhotos mobile app on Expo with an offline-first,
 device-mirrored database and Immich-style sync. Target: feature parity with the
 web frontend for everything that makes sense on a phone, plus mobile-only
@@ -20,7 +22,7 @@ superpowers (camera-roll backup, offline browsing).
 ## Executive summary
 
 - **Framework**: Expo (latest SDK, New Architecture), TypeScript, Expo Router,
-  built as `apps/mobile-v2` in the monorepo. The old `apps/mobile` (bare RN
+  built as `apps/mobile` in the monorepo. The old `apps/mobile` (bare RN
   0.72 + NativeBase) is retired, not migrated in place.
 - **Offline model**: the app renders synced content from a local SQLite mirror
   of the server DB (photos, albums, people, sharing). The network is only used
@@ -39,7 +41,7 @@ superpowers (camera-roll backup, offline browsing).
   already has an indexed `last_modified` (auto_now), so the biggest table is
   nearly sync-ready today.
 - **API sharing**: a new `packages/api-client` package (zod schemas +
-  TanStack Query v5 hooks) shared between `apps/frontend` and `apps/mobile-v2`
+  TanStack Query v5 hooks) shared between `apps/frontend` and `apps/mobile`
   — both already use react-query v5 + zod, and their `src/api_client` trees are
   ~90% duplicated today.
 - **Biggest cost center**: the backend sync API (doc 04). The mobile client is

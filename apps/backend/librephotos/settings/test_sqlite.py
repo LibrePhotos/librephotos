@@ -2,7 +2,7 @@
 Test settings that use SQLite instead of PostgreSQL.
 
 Usage:
-    DJANGO_SETTINGS_MODULE=librephotos.settings.test_sqlite python manage.py test api.tests.test_migration_0099
+    DJANGO_SETTINGS_MODULE=librephotos.settings.test_sqlite python manage.py test api.tests.migrations
 """
 
 from .test import *  # noqa

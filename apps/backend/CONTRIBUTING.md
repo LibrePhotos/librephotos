@@ -20,7 +20,7 @@ Thank you for your interest in contributing to LibrePhotos! This guide will help
 
 - **Git** - for version control
 - **Docker** and **Docker Compose** - for running the development environment
-- **Node.js 22** and **Yarn** - for frontend development (optional, if developing outside Docker)
+- **Node.js 24** (the version in `apps/frontend/.nvmrc`) and **Yarn** - for frontend development (optional, if developing outside Docker)
 - **Python 3.11+** - for backend development (optional, if developing outside Docker)
 
 ### Step 1: Clone the Monorepo
@@ -249,7 +249,6 @@ yarn lint:warning:fix  # Fix linting issues
 - Use Prettier for formatting (configured in `prettier.config.cjs`)
 - Prefer TypeScript types over interfaces (project convention)
 - Use functional components with hooks
-- Follow the slice pattern for Redux state management
 
 ### Pull Request Checklist
 
@@ -301,7 +300,7 @@ The rule a reviewer actually applies: **`INFO` volume must be O(number of jobs/r
   logger.info(f"job {job_id}: scan finished, {count} photos added")      # no
   ```
 
-- **Always carry the identifier** somebody would need to follow the line: the job id, the `image_hash`, the user id. `api/api_util.py:88` and the `"job %s: ..."` lines in `api/autoalbum.py` are the shape to copy.
+- **Always carry the identifier** somebody would need to follow the line: the job id, the `image_hash`, the user id. The `"job %s: ..."` lines in `api/autoalbum.py` are the shape to copy.
 
 - **No personal data above `DEBUG`.** Usernames, absolute media paths, captions, LLM prompts, addresses and search terms do not belong at `INFO` or above - log the user id and the `image_hash` instead. Plenty of existing code predates this rule; do not add more.
 
@@ -402,7 +401,6 @@ Press `Ctrl+P` followed by `Ctrl+Q` to detach without stopping the container.
 **Frontend (React):**
 
 - Use React DevTools browser extension
-- Use Redux DevTools for state debugging
 - Enable [WDYR](https://github.com/welldone-software/why-did-you-render), which logs why each
   component re-rendered, by setting `VITE_APP_WDYR=true` in `deploy/compose/.env` and restarting
   the frontend container. The value must be the lowercase string `true`.

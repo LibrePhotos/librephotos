@@ -7,15 +7,15 @@
 
 The web frontend for [LibrePhotos](https://github.com/LibrePhotos/librephotos) — a self-hosted, open-source photo management service.
 
-Built with **React 18**, **TypeScript**, and **Vite**.
+Built with **React 19**, **TypeScript**, and **Vite**.
 
 ## Tech Stack
 
 | Category             | Technology                                                                                     |
 | -------------------- | ---------------------------------------------------------------------------------------------- |
-| UI Framework         | [React 18](https://react.dev/) with [TypeScript](https://www.typescriptlang.org/)              |
+| UI Framework         | [React 19](https://react.dev/) with [TypeScript](https://www.typescriptlang.org/)              |
 | Build Tool           | [Vite](https://vite.dev/)                                                                      |
-| Component Library    | [Mantine 8](https://mantine.dev/)                                                              |
+| Component Library    | [Mantine 9](https://mantine.dev/)                                                              |
 | Routing              | [TanStack Router](https://tanstack.com/router)                                                 |
 | Data Fetching        | [TanStack Query](https://tanstack.com/query)                                                   |
 | Maps                 | [MapLibre GL](https://maplibre.org/) via [react-map-gl](https://visgl.github.io/react-map-gl/) |
