@@ -35,8 +35,6 @@ from __future__ import annotations
 import json
 import logging
 import os
-import shutil
-import subprocess
 from typing import TYPE_CHECKING
 
 from api import binaries, ffmpeg_budget
@@ -119,9 +117,14 @@ PROBED_FIELDS = {
 }
 
 
+# ffprobe reads a container's headers: under a second, longer for a file on a
+# disk that has to spin up or a slow network mount. Past this it is stuck.
+PROBE_TIMEOUT = 30
+
+
 def can_probe() -> bool:
     """Whether this host has an ffprobe to ask."""
-    return bool(shutil.which("ffprobe"))
+    return binaries.available("ffprobe")
 
 
 def probe(path: str) -> dict[str, str] | None:
@@ -147,9 +150,9 @@ def probe(path: str) -> dict[str, str] | None:
     if not can_probe():
         return None
     try:
-        completed = subprocess.run(
+        completed = binaries.run_tool(
+            "ffprobe",
             [
-                binaries.ffprobe(),
                 "-v",
                 "error",
                 "-select_streams",
@@ -160,23 +163,26 @@ def probe(path: str) -> dict[str, str] | None:
                 "json",
                 path,
             ],
-            capture_output=True,
+            timeout=PROBE_TIMEOUT,
+            check=False,
             text=True,
-            timeout=30,
         )
-        if completed.returncode != 0:
-            logger.warning(
-                "could not probe %s: %s", path, (completed.stderr or "").strip()
-            )
-            if os.path.isfile(path):
-                return dict.fromkeys(PROBED_FIELDS, "")
-            return None
+    except binaries.ToolError:
+        # Not started, or stuck on the file: run_tool has logged it, and the
+        # backfill asks again on the next scan.
+        return None
+    if completed.returncode != 0:
+        logger.warning("could not probe %s: %s", path, completed.stderr.strip())
+        if os.path.isfile(path):
+            return dict.fromkeys(PROBED_FIELDS, "")
+        return None
+    try:
         output = json.loads(completed.stdout)
         sections = {
             "streams": (output.get("streams") or [{}])[0],
             "format": output.get("format") or {},
         }
-    except (OSError, subprocess.SubprocessError, ValueError, AttributeError):
+    except (ValueError, AttributeError):
         logger.warning("could not probe %s", path, exc_info=True)
         return None
     values = {}
@@ -240,12 +246,12 @@ def transfer_characteristics(path: str) -> str:
     read that as "not HDR", which is the behaviour that was there before, so a
     failure here leaves the video converted exactly as it always was.
     """
-    if not shutil.which("ffprobe"):
+    if not can_probe():
         return ""
     try:
-        output = subprocess.run(
+        output = binaries.run_tool(
+            "ffprobe",
             [
-                binaries.ffprobe(),
                 "-v",
                 "error",
                 "-select_streams",
@@ -256,13 +262,15 @@ def transfer_characteristics(path: str) -> str:
                 "json",
                 path,
             ],
-            capture_output=True,
+            timeout=PROBE_TIMEOUT,
             text=True,
-            timeout=30,
         ).stdout
+    except binaries.ToolError:
+        return ""  # run_tool has logged why
+    try:
         streams = json.loads(output).get("streams") or [{}]
         return streams[0].get("color_transfer") or ""
-    except (OSError, subprocess.SubprocessError, ValueError, AttributeError):
+    except (ValueError, AttributeError):
         logger.warning("could not probe the colour of %s", path, exc_info=True)
         return ""
 

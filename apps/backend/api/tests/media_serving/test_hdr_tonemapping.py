@@ -20,7 +20,7 @@ from unittest import mock
 
 from django.test import SimpleTestCase
 
-from api import ffmpeg_budget, transcode_cache, video_color
+from api import binaries, ffmpeg_budget, transcode_cache, video_color
 from api.views import media
 
 # The whole point of the exercise, in the order the filters have to run.
@@ -50,14 +50,14 @@ def _filter_arg(command):
 class TransferProbeTest(SimpleTestCase):
     def setUp(self):
         self.which = mock.patch.object(
-            video_color.shutil, "which", return_value="/usr/bin/ffprobe"
+            video_color.binaries, "available", return_value=True
         )
         self.which.start()
         self.addCleanup(self.which.stop)
 
     def test_reads_the_transfer_curve_out_of_ffprobe(self):
         with mock.patch.object(
-            video_color.subprocess, "run", _ffprobe_saying("smpte2084")
+            video_color.binaries, "run_tool", _ffprobe_saying("smpte2084")
         ):
             self.assertEqual(
                 video_color.transfer_characteristics("/v.mov"), "smpte2084"
@@ -66,10 +66,10 @@ class TransferProbeTest(SimpleTestCase):
     def test_asks_only_about_the_first_video_stream(self):
         """A file's audio and subtitle streams have no colour to report."""
         run = _ffprobe_saying("bt709")
-        with mock.patch.object(video_color.subprocess, "run", run):
+        with mock.patch.object(video_color.binaries, "run_tool", run):
             video_color.transfer_characteristics("/v.mov")
-        argv = run.call_args[0][0]
-        self.assertTrue(argv[0].endswith(("ffprobe", "ffprobe.EXE", "ffprobe.exe")))
+        name, argv = run.call_args[0]
+        self.assertEqual(name, "ffprobe")
         self.assertIn("-select_streams", argv)
         self.assertEqual(argv[argv.index("-select_streams") + 1], "v:0")
         self.assertEqual(argv[-1], "/v.mov")
@@ -77,22 +77,22 @@ class TransferProbeTest(SimpleTestCase):
     def test_pq_and_hlg_are_the_hdr_ones(self):
         for transfer in ("smpte2084", "arib-std-b67"):
             with mock.patch.object(
-                video_color.subprocess, "run", _ffprobe_saying(transfer)
+                video_color.binaries, "run_tool", _ffprobe_saying(transfer)
             ):
                 self.assertTrue(video_color.is_hdr("/v.mov"), transfer)
 
     def test_ordinary_sdr_video_is_not_hdr(self):
         for transfer in ("bt709", "smpte170m", "iec61966-2-1", "unknown", ""):
             with mock.patch.object(
-                video_color.subprocess, "run", _ffprobe_saying(transfer)
+                video_color.binaries, "run_tool", _ffprobe_saying(transfer)
             ):
                 self.assertFalse(video_color.is_hdr("/v.mov"), transfer)
 
     def test_a_file_that_does_not_say_is_treated_as_sdr(self):
         """ffprobe omits the key entirely rather than reporting an empty one."""
         with mock.patch.object(
-            video_color.subprocess,
-            "run",
+            video_color.binaries,
+            "run_tool",
             mock.Mock(return_value=mock.Mock(stdout='{"streams": [{}]}')),
         ):
             self.assertEqual(video_color.transfer_characteristics("/v.mov"), "")
@@ -101,21 +101,23 @@ class TransferProbeTest(SimpleTestCase):
         """Whatever ffprobe does, the video still has to convert."""
         for stdout in ("", "not json at all", '{"streams": []}'):
             with mock.patch.object(
-                video_color.subprocess,
-                "run",
+                video_color.binaries,
+                "run_tool",
                 mock.Mock(return_value=mock.Mock(stdout=stdout)),
             ):
                 self.assertEqual(video_color.transfer_characteristics("/v.mov"), "")
 
     def test_ffprobe_blowing_up_is_read_as_sdr(self):
         with mock.patch.object(
-            video_color.subprocess, "run", side_effect=OSError("boom")
+            video_color.binaries,
+            "run_tool",
+            side_effect=binaries.ToolMissingError("ffprobe", "boom"),
         ):
             self.assertFalse(video_color.is_hdr("/v.mov"))
 
     def test_a_host_without_ffprobe_converts_the_way_it_always_did(self):
-        with mock.patch.object(video_color.shutil, "which", return_value=None):
-            with mock.patch.object(video_color.subprocess, "run") as run:
+        with mock.patch.object(video_color.binaries, "available", return_value=False):
+            with mock.patch.object(video_color.binaries, "run_tool") as run:
                 self.assertFalse(video_color.is_hdr("/v.mov"))
             run.assert_not_called()
 
@@ -194,7 +196,7 @@ class SupportsFilterTest(SimpleTestCase):
         self.assertEqual(run.call_count, 1)
 
     def test_a_host_without_ffmpeg_claims_no_filters(self):
-        with mock.patch.object(ffmpeg_budget.shutil, "which", return_value=None):
+        with mock.patch.object(ffmpeg_budget.binaries, "available", return_value=False):
             self.assertFalse(ffmpeg_budget.supports_filter("zscale"))
 
 
@@ -252,25 +254,27 @@ class ConversionSitesTest(SimpleTestCase):
         from api import thumbnails
 
         with self._hdr(), self._zscale():
-            with mock.patch.object(thumbnails.subprocess, "run") as popen:
+            with mock.patch.object(thumbnails.binaries, "run_tool") as run_tool:
                 thumbnails.create_animated_thumbnail("/v.mov", 720, "out", "h", ".mp4")
-        self.assertEqual(_filter_arg(popen.call_args[0][0]), "scale=-2:720," + TONEMAP)
+        self.assertEqual(
+            _filter_arg(run_tool.call_args[0][1]), "scale=-2:720," + TONEMAP
+        )
 
     def test_the_poster_frame_tonemaps_an_hdr_source(self):
         from api import thumbnails
 
         with self._hdr(), self._zscale():
-            with mock.patch.object(thumbnails.subprocess, "run") as popen:
+            with mock.patch.object(thumbnails.binaries, "run_tool") as run_tool:
                 thumbnails.create_thumbnail_for_video("/v.mov", "out", "h", ".webp")
-        self.assertEqual(_filter_arg(popen.call_args[0][0]), TONEMAP)
+        self.assertEqual(_filter_arg(run_tool.call_args[0][1]), TONEMAP)
 
     def test_the_poster_frame_of_an_sdr_video_gains_no_filter(self):
         from api import thumbnails
 
         with self._hdr(False), self._zscale():
-            with mock.patch.object(thumbnails.subprocess, "run") as popen:
+            with mock.patch.object(thumbnails.binaries, "run_tool") as run_tool:
                 thumbnails.create_thumbnail_for_video("/v.mov", "out", "h", ".webp")
-        self.assertIsNone(_filter_arg(popen.call_args[0][0]))
+        self.assertIsNone(_filter_arg(run_tool.call_args[0][1]))
 
 
 def _real_ffmpeg_with_zscale():

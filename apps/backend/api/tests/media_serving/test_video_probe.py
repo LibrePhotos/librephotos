@@ -20,7 +20,7 @@ from unittest import mock
 
 from django.test import SimpleTestCase, TestCase, override_settings
 
-from api import ffmpeg_budget, thumbnails, transcode_cache, video_color
+from api import binaries, ffmpeg_budget, thumbnails, transcode_cache, video_color
 from api.directory_watcher import file_handlers, processing_jobs, scan_jobs
 from api.models import LongRunningJob, Photo, Thumbnail
 from api.serializers.photos import PhotoSummarySerializer
@@ -36,7 +36,7 @@ PQ_PROBE = {
 
 
 def _ffprobe(payload, returncode=0, stderr=""):
-    """An ffprobe answering ``payload``, in the shape ``subprocess.run`` returns."""
+    """An ffprobe answering ``payload``, in the shape ``binaries.run_tool`` returns."""
     stdout = payload if isinstance(payload, str) else json.dumps(payload)
     return mock.Mock(
         return_value=mock.Mock(stdout=stdout, returncode=returncode, stderr=stderr)
@@ -54,14 +54,12 @@ def _after(command, flag):
 
 class ProbeTest(SimpleTestCase):
     def setUp(self):
-        which = mock.patch.object(
-            video_color.shutil, "which", return_value="/usr/bin/ffprobe"
-        )
+        which = mock.patch.object(video_color.binaries, "available", return_value=True)
         which.start()
         self.addCleanup(which.stop)
 
     def test_records_codec_pixel_format_transfer_and_container(self):
-        with mock.patch.object(video_color.subprocess, "run", _ffprobe(PQ_PROBE)):
+        with mock.patch.object(video_color.binaries, "run_tool", _ffprobe(PQ_PROBE)):
             values = video_color.probe("/v.mov")
         self.assertEqual(
             values,
@@ -75,10 +73,11 @@ class ProbeTest(SimpleTestCase):
 
     def test_one_ffprobe_asks_for_all_of_it(self):
         run = _ffprobe(PQ_PROBE)
-        with mock.patch.object(video_color.subprocess, "run", run):
+        with mock.patch.object(video_color.binaries, "run_tool", run):
             video_color.probe("/v.mov")
         run.assert_called_once()
-        argv = run.call_args.args[0]
+        name, argv = run.call_args.args
+        self.assertEqual(name, "ffprobe")
         self.assertEqual(_after(argv, "-select_streams"), "v:0")
         entries = _after(argv, "-show_entries")
         for entry in ("codec_name", "pix_fmt", "color_transfer", "format_name"):
@@ -88,7 +87,7 @@ class ProbeTest(SimpleTestCase):
     def test_an_untagged_video_is_an_answer_not_a_failure(self):
         """ffprobe leaves the key out; stored as "", so it is never probed again."""
         payload = {"streams": [{"codec_name": "h264", "pix_fmt": "yuv420p"}]}
-        with mock.patch.object(video_color.subprocess, "run", _ffprobe(payload)):
+        with mock.patch.object(video_color.binaries, "run_tool", _ffprobe(payload)):
             values = video_color.probe("/v.mp4")
         self.assertEqual(values["video_color_transfer"], "")
         self.assertEqual(values["video_container"], "")
@@ -96,20 +95,20 @@ class ProbeTest(SimpleTestCase):
 
     def test_unknown_is_stored_as_saying_nothing(self):
         payload = {"streams": [{"codec_name": "h264", "color_transfer": "unknown"}]}
-        with mock.patch.object(video_color.subprocess, "run", _ffprobe(payload)):
+        with mock.patch.object(video_color.binaries, "run_tool", _ffprobe(payload)):
             self.assertEqual(video_color.probe("/v.mp4")["video_color_transfer"], "")
 
     def test_a_file_ffprobe_cannot_read_has_no_answer_yet(self):
         """The drive may just not be mounted: None, so it is tried again."""
         run = _ffprobe("{\n\n}", returncode=1, stderr="Invalid data found")
-        with mock.patch.object(video_color.subprocess, "run", run):
+        with mock.patch.object(video_color.binaries, "run_tool", run):
             with mock.patch.object(video_color.os.path, "isfile", return_value=False):
                 self.assertIsNone(video_color.probe("/v.mov"))
 
     def test_a_file_that_is_there_but_unreadable_is_settled_as_untagged(self):
         """Retrying a broken file only fails again, and requeues the backfill."""
         run = _ffprobe("{\n\n}", returncode=1, stderr="moov atom not found")
-        with mock.patch.object(video_color.subprocess, "run", run):
+        with mock.patch.object(video_color.binaries, "run_tool", run):
             with mock.patch.object(video_color.os.path, "isfile", return_value=True):
                 self.assertEqual(
                     video_color.probe("/v.mov"),
@@ -118,21 +117,21 @@ class ProbeTest(SimpleTestCase):
 
     def test_ffprobe_blowing_up_has_no_answer(self):
         for side_effect in (
-            OSError("boom"),
-            subprocess.TimeoutExpired("ffprobe", 30),
+            binaries.ToolMissingError("ffprobe", "boom"),
+            binaries.ToolFailedError("ffprobe", None, "", timeout=30),
         ):
             with mock.patch.object(
-                video_color.subprocess, "run", side_effect=side_effect
+                video_color.binaries, "run_tool", side_effect=side_effect
             ):
                 self.assertIsNone(video_color.probe("/v.mov"), side_effect)
 
     def test_output_that_is_not_json_has_no_answer(self):
-        with mock.patch.object(video_color.subprocess, "run", _ffprobe("nope")):
+        with mock.patch.object(video_color.binaries, "run_tool", _ffprobe("nope")):
             self.assertIsNone(video_color.probe("/v.mov"))
 
     def test_a_host_without_ffprobe_has_no_answer(self):
-        with mock.patch.object(video_color.shutil, "which", return_value=None):
-            with mock.patch.object(video_color.subprocess, "run") as run:
+        with mock.patch.object(video_color.binaries, "available", return_value=False):
+            with mock.patch.object(video_color.binaries, "run_tool") as run:
                 self.assertIsNone(video_color.probe("/v.mov"))
         run.assert_not_called()
 

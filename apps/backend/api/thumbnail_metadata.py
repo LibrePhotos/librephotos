@@ -16,7 +16,6 @@ rewritten, so a second run just reads.
 import json
 import os
 import stat
-import subprocess
 import tempfile
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
@@ -34,6 +33,11 @@ VP8X_XMP_FLAG = 0x04
 
 # ExifTool is started once per batch; the paths go through an argument file.
 BATCH_SIZE = 500
+# Reading or rewriting a small video thumbnail takes ExifTool well under a
+# tenth of a second, so a batch is about a minute on a slow ARM box. Ten times
+# that is a file ExifTool hangs on, which fails the batch instead of the
+# command waiting for ever.
+EXIFTOOL_BATCH_TIMEOUT = 600
 # What a video thumbnail can carry from its source, by ExifTool group. ffmpeg
 # itself writes ItemList:Encoder into every file it makes, which is harmless.
 MP4_METADATA_GROUPS = ["-UserData:all", "-ItemList:all", "-Keys:all", "-XMP:all"]
@@ -108,26 +112,29 @@ def strip_webp_metadata(path: str) -> bool:
     return True
 
 
-def _exiftool(
-    arguments: list[str], paths: list[str]
-) -> subprocess.CompletedProcess[str]:
-    """Run ExifTool on ``paths`` (passed in an argument file); return the process."""
+def _exiftool(arguments: list[str], paths: list[str]) -> tuple[int, str, str]:
+    """Run ExifTool on ``paths`` (passed in an argument file).
+
+    Returns its exit status, stdout and stderr; raises binaries.ToolError when
+    it cannot be started or runs past EXIFTOOL_BATCH_TIMEOUT.
+    """
     with tempfile.NamedTemporaryFile(
         "w", suffix=".args", delete=False, encoding="utf-8"
     ) as argfile:
         argfile.write("\n".join(paths) + "\n")
     try:
-        return subprocess.run(
-            [binaries.exiftool(), "-charset", "filename=utf8", *arguments]
-            + ["-@", argfile.name],
-            stdin=subprocess.DEVNULL,
-            capture_output=True,
+        # A non-zero exit is not fatal: ExifTool still answers for the other
+        # files of the batch, and the callers check what it wrote.
+        process = binaries.run_tool(
+            "exiftool",
+            ["-charset", "filename=utf8", *arguments, "-@", argfile.name],
+            timeout=EXIFTOOL_BATCH_TIMEOUT,
+            check=False,
             text=True,
-            encoding="utf-8",
-            errors="replace",
         )
     finally:
         os.remove(argfile.name)
+    return process.returncode, process.stdout, process.stderr
 
 
 def _batches(paths: list[str]) -> Iterator[list[str]]:
@@ -139,8 +146,8 @@ def mp4s_with_metadata(paths: list[str]) -> list[str]:
     """The video thumbnails in ``paths`` that carry metadata from their source."""
     found: list[str] = []
     for batch in _batches(paths):
-        result = _exiftool(["-j", "-G1", "-a", *MP4_METADATA_GROUPS], batch)
-        for entry in json.loads(result.stdout or "[]"):
+        _, stdout, _ = _exiftool(["-j", "-G1", "-a", *MP4_METADATA_GROUPS], batch)
+        for entry in json.loads(stdout or "[]"):
             # ExifTool:Error / Warning describe the file, they are not in it.
             tags = {tag for tag in entry if not tag.startswith("ExifTool:")}
             if tags - HARMLESS_MP4_TAGS:
@@ -150,11 +157,15 @@ def mp4s_with_metadata(paths: list[str]) -> list[str]:
 
 def _strip_mp4s(paths: list[str], errors: list[str]) -> None:
     for batch in _batches(paths):
-        process = _exiftool(["-overwrite_original", "-q", "-q", "-all="], batch)
-        if process.returncode != 0:
-            errors.append(
-                process.stderr.strip() or f"exiftool exit {process.returncode}"
+        try:
+            returncode, _, stderr = _exiftool(
+                ["-overwrite_original", "-q", "-q", "-all="], batch
             )
+        except binaries.ToolError as error:
+            errors.append(str(error))
+            continue
+        if returncode != 0:
+            errors.append(stderr.strip() or f"exiftool exit {returncode}")
 
 
 def _thumbnail_files(media_root: str) -> tuple[list[str], list[str]]:

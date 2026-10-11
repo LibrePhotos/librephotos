@@ -8,23 +8,22 @@ so the next pass does not take it for a finished thumbnail.
 """
 
 import os
-import subprocess
 import tempfile
 from unittest import mock
 
 from django.test import SimpleTestCase, override_settings
 
-from api import thumbnails
+from api import binaries, thumbnails
 
 
 def _failed_run(*args, **kwargs):
-    raise subprocess.CalledProcessError(
-        1, args[0], stderr=b"...\n[mov] moov atom not found\nInvalid data found"
+    raise binaries.ToolFailedError(
+        "ffmpeg", 1, "...\n[mov] moov atom not found\nInvalid data found"
     )
 
 
 def _hung_run(*args, **kwargs):
-    raise subprocess.TimeoutExpired(args[0], kwargs["timeout"], stderr=b"frame=  12")
+    raise binaries.ToolFailedError("ffmpeg", None, "frame=  12", kwargs["timeout"])
 
 
 class VideoThumbnailFfmpegTest(SimpleTestCase):
@@ -43,21 +42,20 @@ class VideoThumbnailFfmpegTest(SimpleTestCase):
         self.output = os.path.join(self.media.name, "out", "h.webp")
 
     def test_ffmpeg_runs_with_a_timeout_and_its_status_checked(self):
-        with mock.patch.object(thumbnails.subprocess, "run") as run:
+        with mock.patch.object(thumbnails.binaries, "run_tool") as run:
             thumbnails.create_thumbnail_for_video("/v.mov", "out", "h", ".webp")
 
-        command = run.call_args.args[0]
-        self.assertEqual(command[0], thumbnails.binaries.ffmpeg())
+        name, command = run.call_args.args
+        self.assertEqual(name, "ffmpeg")
         self.assertEqual(command[-1], self.output)
         self.assertIn("-y", command)
         self.assertEqual(run.call_args.kwargs["timeout"], thumbnails.FFMPEG_TIMEOUT)
-        self.assertIs(run.call_args.kwargs["check"], True)
-        self.assertIs(run.call_args.kwargs["capture_output"], True)
-        self.assertIs(run.call_args.kwargs["stdin"], subprocess.DEVNULL)
+        # run_tool checks the exit status unless told not to.
+        self.assertNotIn("check", run.call_args.kwargs)
 
     def test_a_failed_run_raises_with_the_end_of_stderr(self):
         with (
-            mock.patch.object(thumbnails.subprocess, "run", side_effect=_failed_run),
+            mock.patch.object(thumbnails.binaries, "run_tool", side_effect=_failed_run),
             self.assertLogs("api.thumbnails", "ERROR") as logs,
         ):
             with self.assertRaises(thumbnails.VideoThumbnailError) as raised:
@@ -75,7 +73,7 @@ class VideoThumbnailFfmpegTest(SimpleTestCase):
 
         with (
             mock.patch.object(
-                thumbnails.subprocess, "run", side_effect=hang_after_writing
+                thumbnails.binaries, "run_tool", side_effect=hang_after_writing
             ),
             self.assertLogs("api.thumbnails", "ERROR"),
         ):
@@ -86,7 +84,7 @@ class VideoThumbnailFfmpegTest(SimpleTestCase):
 
     def test_the_animated_thumbnail_fails_the_same_way(self):
         with (
-            mock.patch.object(thumbnails.subprocess, "run", side_effect=_failed_run),
+            mock.patch.object(thumbnails.binaries, "run_tool", side_effect=_failed_run),
             self.assertLogs("api.thumbnails", "ERROR"),
         ):
             with self.assertRaises(thumbnails.VideoThumbnailError):

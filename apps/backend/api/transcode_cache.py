@@ -31,7 +31,6 @@ from __future__ import annotations
 import logging
 import os
 import shutil
-import subprocess
 import threading
 import time
 from collections.abc import Callable
@@ -295,28 +294,22 @@ def run_transcode(
     """
     root = root or os.path.dirname(part)
     try:
-        process = subprocess.Popen(
-            command,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.PIPE,
-            start_new_session=True,
+        # The command may start with nice rather than ffmpeg (build_command).
+        process = binaries.start_tool(
+            command[0], command[1:], stdout=binaries.DEVNULL, stderr=binaries.PIPE
         )
-    except OSError:
-        logger.warning("could not start a transcode for %s", final, exc_info=True)
+    except binaries.ToolMissingError:
+        logger.warning("could not start a transcode for %s", final)
         _remove(part)
         return False
 
     ran_out_of_room = False
-    while True:
-        try:
-            process.wait(timeout=SPACE_CHECK_SECONDS)
+    while binaries.wait(process, SPACE_CHECK_SECONDS) is None:
+        if free_bytes(root) < _min_free_bytes():
+            ran_out_of_room = True
+            process.kill()
+            process.wait()
             break
-        except subprocess.TimeoutExpired:
-            if free_bytes(root) < _min_free_bytes():
-                ran_out_of_room = True
-                process.kill()
-                process.wait()
-                break
 
     if ran_out_of_room:
         logger.info("abandoned caching %s: the disk is close to full", final)

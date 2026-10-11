@@ -12,6 +12,7 @@ import datetime
 import os
 import secrets
 import shutil
+import sys
 import tempfile
 import uuid
 from typing import Any
@@ -412,3 +413,24 @@ def patch_nextcloud_dns(resolves=None, default=PUBLIC_TEST_IP):
     return mock.patch(
         "nextcloud.server_address.socket.getaddrinfo", side_effect=fake_getaddrinfo
     )
+
+
+def write_hanging_tool(directory: str, seconds: int = 60) -> str:
+    """An executable in ``directory`` that ignores its arguments and sleeps.
+
+    It sleeps in a child process, holding the tool's stdout and stderr, as the
+    Windows exiftool.exe launcher does with its perl.exe: killing only the tool
+    would leave the pipes open. Returns its path, for a patched binaries.resolve.
+    """
+    if os.name == "nt":
+        path = os.path.join(directory, "hanging_tool.bat")
+        with open(path, "w", encoding="utf-8") as handle:
+            handle.write(
+                f'@"{sys.executable}" -c "import time; time.sleep({seconds})"\r\n'
+            )
+        return path
+    path = os.path.join(directory, "hanging_tool")
+    with open(path, "w", encoding="utf-8") as handle:
+        handle.write(f"#!/bin/sh\nsleep {seconds}\n")
+    os.chmod(path, 0o755)
+    return path

@@ -129,6 +129,22 @@ class NewCodeRulesTests(unittest.TestCase):
         source = "import datetime\n\nNOW = datetime.datetime.now(datetime.UTC)\n"
         self.assertIn("TID251", lint(source, "api/_ruff_probe.py"))
 
+    def test_subprocess_is_banned_outside_the_tool_runner(self):
+        # Issue #2338: tools run through api.binaries, which demands a timeout.
+        for source in (
+            "import subprocess\n\nsubprocess.run(['ffmpeg'], check=True)\n",
+            "from subprocess import Popen\n\nPopen(['ffmpeg'])\n",
+        ):
+            self.assertIn("TID251", lint(source, "api/views/_ruff_probe.py"))
+            for exempt in (
+                "api/binaries.py",
+                "api/services.py",
+                "librephotos/standalone.py",
+                "scripts/_ruff_probe.py",
+                "api/tests/_ruff_probe.py",
+            ):
+                self.assertNotIn("TID251", lint(source, exempt), exempt)
+
     def test_console_tools_may_print(self):
         source = 'print("hello")\n'
         self.assertIn("T201", lint(source, "api/_ruff_probe.py"))
