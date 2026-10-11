@@ -6,6 +6,7 @@ import uuid
 
 from django.conf import settings
 from django.db.models import Sum
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -31,6 +32,8 @@ def _free_space_for_archives() -> int:
 
 
 class ZipListPhotosView_V2(APIView):
+    permission_classes = (IsAuthenticated,)
+
     def post(self, request: Request) -> Response:
         from api.views.photo_filters import build_photo_queryset
 
@@ -139,6 +142,8 @@ class ZipListPhotosView_V2(APIView):
 
 
 class DeleteZipView(APIView):
+    permission_classes = (IsAuthenticated,)
+
     def delete(self, request: Request, fname: str) -> Response:
         # The archive is named after the authenticated requester, so a user can
         # only ever name their own file; fname itself must be the job's UUID.

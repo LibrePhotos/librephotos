@@ -107,6 +107,8 @@ Set `DB_HOST` to match your database:
 
 If you put this container behind an HTTPS reverse proxy (Traefik, Caddy, a cloud load balancer), add `-e CSRF_TRUSTED_ORIGINS=https://photos.example.com` (comma-separated for several origins; each must include the scheme and match the browser-visible address exactly). The unified image starts with an empty trusted-origin list, so without it the Django admin at `/api/django-admin/` rejects logins with a CSRF error. The photo app itself is unaffected — it authenticates with JWT and its API endpoints are CSRF-exempt.
 
+Also add `-e NUM_PROXIES=1`, so the sign-in rate limits count each client by the address your proxy passes on instead of counting everyone as the proxy (see [Sign-in rate limits](environment-variables.md#sign-in-rate-limits)).
+
 ## Next Steps
 
 Once LibrePhotos is running, you'll be guided through a **First Time Setup Wizard** that will help you:

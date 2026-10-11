@@ -4,6 +4,7 @@ from django.db.models import Prefetch, Q, QuerySet
 from django.utils import timezone
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -22,6 +23,8 @@ class LongRunningJobViewSet(
     mixins.DestroyModelMixin,
     viewsets.GenericViewSet,
 ):
+    permission_classes = (IsAuthenticated,)
+
     # Declared for router basename inference only; real access is scoped per-user
     # in get_queryset() below.
     queryset = LongRunningJob.objects.all()
@@ -98,6 +101,8 @@ class LongRunningJobViewSet(
 
 
 class QueueAvailabilityView(APIView):
+    permission_classes = (IsAuthenticated,)
+
     def get(self, request: Request, format: str | None = None) -> Response:
         job_detail = None
 

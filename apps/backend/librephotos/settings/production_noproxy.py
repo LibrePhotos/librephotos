@@ -24,7 +24,7 @@ import os
 
 from django.core.exceptions import ImproperlyConfigured
 
-from librephotos.env import env_list, env_str
+from librephotos.env import env_int, env_list, env_str
 
 from ._sqlite import sqlite_database
 from .production import *  # noqa
@@ -64,6 +64,14 @@ CORS_ALLOW_ALL_ORIGINS = True
 # means nothing in this deployment. Take the operator's own origins instead, as
 # a comma-separated list.
 CSRF_TRUSTED_ORIGINS = env_list("CSRF_TRUSTED_ORIGINS")
+
+# No bundled proxy appends the client address to X-Forwarded-For here, so the
+# throttles take the TCP peer and ignore whatever a client sends in that
+# header. Behind the operator's own reverse proxy, NUM_PROXIES=1.
+REST_FRAMEWORK = {
+    **REST_FRAMEWORK,  # noqa
+    "NUM_PROXIES": max(0, env_int("NUM_PROXIES", 0)),
+}
 
 # Headers NGINX adds for us in the split deployment.
 SECURE_CONTENT_TYPE_NOSNIFF = True

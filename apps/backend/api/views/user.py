@@ -4,9 +4,15 @@ from typing import Any
 from django.conf import settings
 from django.db.models import QuerySet
 from rest_framework import mixins, serializers, status, viewsets
-from rest_framework.permissions import AllowAny, BasePermission, IsAdminUser
+from rest_framework.permissions import (
+    AllowAny,
+    BasePermission,
+    IsAdminUser,
+    IsAuthenticated,
+)
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.throttling import BaseThrottle
 from rest_framework.views import APIView
 
 from api.api_util import path_to_dict
@@ -18,7 +24,11 @@ from api.burst_detection_rules import (
 )
 from api.date_time_extractor import DEFAULT_RULES_JSON, PREDEFINED_RULES_JSON
 from api.models import User
-from api.permissions import IsAdminOrFirstTimeSetupOrRegistrationAllowed, IsAdminOrSelf
+from api.permissions import (
+    IsAdminOrFirstTimeSetupOrRegistrationAllowed,
+    IsAdminOrSelf,
+    IsSuperUser,
+)
 from api.serializers.user import (
     DeleteUserSerializer,
     ManageUserSerializer,
@@ -26,6 +36,7 @@ from api.serializers.user import (
     SignupUserSerializer,
     UserSerializer,
 )
+from api.throttling import AuthRateThrottle
 from api.util import is_valid_path
 from api.views.mixins import PartialUpdateModelMixin
 
@@ -33,12 +44,16 @@ logger = logging.getLogger(__name__)
 
 
 class DefaultRulesView(APIView):
+    permission_classes = (IsAuthenticated,)
+
     def get(self, request: Request, format: str | None = None) -> Response:
         res = DEFAULT_RULES_JSON
         return Response(res)
 
 
 class PredefinedRulesView(APIView):
+    permission_classes = (IsAuthenticated,)
+
     def get(self, request: Request, format: str | None = None) -> Response:
         res = PREDEFINED_RULES_JSON
         return Response(res)
@@ -47,6 +62,8 @@ class PredefinedRulesView(APIView):
 class DefaultBurstRulesView(APIView):
     """Get default burst detection rules."""
 
+    permission_classes = (IsAuthenticated,)
+
     def get(self, request: Request, format: str | None = None) -> Response:
         res = BURST_DEFAULT_RULES_JSON
         return Response(res)
@@ -54,6 +71,8 @@ class DefaultBurstRulesView(APIView):
 
 class PredefinedBurstRulesView(APIView):
     """Get all predefined burst detection rules (default + optional)."""
+
+    permission_classes = (IsAuthenticated,)
 
     def get(self, request: Request, format: str | None = None) -> Response:
         res = BURST_PREDEFINED_RULES_JSON
@@ -153,6 +172,13 @@ class UserViewSet(
         # get_permissions (IsAdminOrSelf) and needs the full serializer.
         return UserSerializer
 
+    def get_throttles(self) -> list[BaseThrottle]:
+        # Sign-up and first-time setup are open to anonymous callers; an admin
+        # adding users in the user editor is not held to the sign-in rate.
+        if self.action == "create" and not self.request.user.is_staff:
+            return [AuthRateThrottle()]
+        return super().get_throttles()
+
     def get_permissions(self) -> list[BasePermission]:
         permission_classes: list[type[BasePermission]] = [IsAdminUser]
         if self.action == "create":
@@ -172,11 +198,11 @@ class DeleteUserViewSet(mixins.DestroyModelMixin, viewsets.GenericViewSet):
     # Listing and editing users goes through /api/manage/user/.
     queryset = User.objects.all().order_by("id")
     serializer_class = DeleteUserSerializer
-    permission_classes = (IsAdminUser,)
+    # Staff and superuser both, as before; a staff user who is not a superuser
+    # now gets a 403 instead of the 401 that signed the web client out.
+    permission_classes = (IsAdminUser, IsSuperUser)
 
     def destroy(self, request: Request, *args: Any, **kwargs: Any) -> Response:
-        if not request.user.is_superuser:
-            return Response(status=status.HTTP_401_UNAUTHORIZED)
         instance = self.get_object()
 
         # Nor the ``deleted`` placeholder: its rows would be handed to itself,

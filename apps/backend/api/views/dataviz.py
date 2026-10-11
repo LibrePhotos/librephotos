@@ -3,8 +3,9 @@ import logging
 import os
 
 from django.conf import settings
-from django.http import FileResponse, HttpResponseForbidden
+from django.http import FileResponse
 from drf_spectacular.utils import extend_schema
+from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -28,6 +29,8 @@ logger = logging.getLogger(__name__)
 
 
 class ClusterFaceView(APIView):
+    permission_classes = (IsAuthenticated,)
+
     @extend_schema(
         deprecated=True,
         description="Use POST method",
@@ -44,6 +47,8 @@ class ClusterFaceView(APIView):
 
 
 class SocialGraphView(APIView):
+    permission_classes = (IsAuthenticated,)
+
     def get(self, request: Request, format: str | None = None) -> Response:
         user = request_user(request)
         try:
@@ -55,12 +60,11 @@ class SocialGraphView(APIView):
 
 
 class ServerLogsView(APIView):
+    permission_classes = (IsAdminUser,)
+
     def get(
         self, request: Request, format: str | None = None
-    ) -> FileResponse | HttpResponseForbidden | Response:
-        if not request_user(request).is_staff:
-            return HttpResponseForbidden()
-
+    ) -> FileResponse | Response:
         log_file = os.path.join(settings.LOGS_ROOT, LOG_FILENAME)
 
         if os.path.exists(log_file):
@@ -72,12 +76,9 @@ class ServerLogsView(APIView):
 
 
 class ServerLogsViewerView(APIView):
-    def get(
-        self, request: Request, format: str | None = None
-    ) -> HttpResponseForbidden | Response:
-        if not request_user(request).is_staff:
-            return HttpResponseForbidden()
+    permission_classes = (IsAdminUser,)
 
+    def get(self, request: Request, format: str | None = None) -> Response:
         try:
             num_lines = int(request.query_params.get("lines", 100))
         except (ValueError, TypeError):
@@ -109,46 +110,56 @@ class ServerLogsViewerView(APIView):
 
 
 class ServerStatsView(APIView):
-    def get(
-        self, request: Request, format: str | None = None
-    ) -> HttpResponseForbidden | Response:
-        if not request_user(request).is_staff:
-            return HttpResponseForbidden()
+    permission_classes = (IsAdminUser,)
+
+    def get(self, request: Request, format: str | None = None) -> Response:
         res = get_server_stats()
         return Response(res)
 
 
 class StatsView(APIView):
+    permission_classes = (IsAuthenticated,)
+
     def get(self, request: Request, format: str | None = None) -> Response:
         res = get_count_stats(user=request_user(request))
         return Response(res)
 
 
 class LocationClustersView(APIView):
+    permission_classes = (IsAuthenticated,)
+
     def get(self, request: Request, format: str | None = None) -> Response:
         res = get_location_clusters(request_user(request))
         return Response(res)
 
 
 class LocationSunburst(APIView):
+    permission_classes = (IsAuthenticated,)
+
     def get(self, request: Request, format: str | None = None) -> Response:
         res = get_location_sunburst(request_user(request))
         return Response(res)
 
 
 class LocationTimeline(APIView):
+    permission_classes = (IsAuthenticated,)
+
     def get(self, request: Request, format: str | None = None) -> Response:
         res = get_location_timeline(request_user(request))
         return Response(res)
 
 
 class PhotoMonthCountsView(APIView):
+    permission_classes = (IsAuthenticated,)
+
     def get(self, request: Request, format: str | None = None) -> Response:
         res = get_photo_month_counts(request_user(request))
         return Response(res)
 
 
 class SearchTermWordCloudView(APIView):
+    permission_classes = (IsAuthenticated,)
+
     def get(self, request: Request, format: str | None = None) -> Response:
         res = get_searchterms_wordcloud(request_user(request))
         return Response(res)

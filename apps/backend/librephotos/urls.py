@@ -26,6 +26,7 @@ from django.urls import include, re_path
 from django.http import HttpRequest, HttpResponse
 from django.views.generic import TemplateView
 from rest_framework import routers
+from rest_framework.permissions import AllowAny, BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework_simplejwt.serializers import (
@@ -41,6 +42,7 @@ from rest_framework_simplejwt.views import (
 )
 
 from api.models import User
+from api.throttling import SignInRateThrottle, TokenRefreshRateThrottle
 from api.views import (
     album_auto,
     album_folder,
@@ -102,6 +104,11 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
+    throttle_classes = (SignInRateThrottle,)
+
+    def get_permissions(self) -> list[BasePermission]:
+        # Anyone: the username and password in the body are the credentials.
+        return [AllowAny()]
 
     def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         response = super().post(request, *args, **kwargs)
@@ -112,6 +119,11 @@ class CustomTokenObtainPairView(TokenObtainPairView):
 
 class CustomTokenRefreshView(TokenRefreshView):
     serializer_class = TokenRefreshSerializer
+    throttle_classes = (TokenRefreshRateThrottle,)
+
+    def get_permissions(self) -> list[BasePermission]:
+        # Anyone: the refresh token in the body is the credential.
+        return [AllowAny()]
 
     def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         response = super().post(request, *args, **kwargs)

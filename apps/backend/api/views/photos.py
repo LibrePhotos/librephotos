@@ -86,6 +86,7 @@ def _detect_content_type(path: str) -> str:
 
 
 class RecentlyAddedPhotoListViewSet(ListViewSet):
+    permission_classes = (IsAuthenticated,)
     serializer_class = PhotoSummarySerializer
     pagination_class = HugeResultsSetPagination
 
@@ -121,6 +122,7 @@ class RecentlyAddedPhotoListViewSet(ListViewSet):
 
 
 class NoTimestampPhotoViewSet(ListViewSet):
+    permission_classes = (IsAuthenticated,)
     serializer_class = PhotoSummarySerializer
     pagination_class = RegularResultsSetPagination
     filter_backends = (filters.SearchFilter,)
@@ -158,6 +160,8 @@ class BulkPhotoMutationView(APIView):
     a full ``PhotoSerializer`` payload per photo, whose ``similar_photos`` asks
     the similarity sidecar over HTTP: one call per photo, inside the request.
     """
+
+    permission_classes = (IsAuthenticated,)
 
     #: Request key carrying the new value. Each subclass sets it.
     value_field: str
@@ -689,6 +693,7 @@ class PhotoEditViewSet(
     mixins.DestroyModelMixin,
     viewsets.GenericViewSet,
 ):
+    permission_classes = (IsAuthenticated,)
     serializer_class = PhotoEditSerializer
     pagination_class = StandardResultsSetPagination
 
@@ -728,6 +733,8 @@ class PhotoEditViewSet(
 
 
 class SetPhotosShared(APIView):
+    permission_classes = (IsAuthenticated,)
+
     def post(self, request: Request, format: str | None = None) -> Response:
         from api.views.photo_filters import build_photo_queryset
 
@@ -845,7 +852,10 @@ class SetPhotosShared(APIView):
 
 
 class GeneratePhotoCaption(APIView):
-    permission_classes = (IsOwnerOrReadOnly,)
+    # Ownership is the owned_by() lookup below; IsOwnerOrReadOnly listed here
+    # never ran (it only has has_object_permission, and nothing calls
+    # check_object_permissions), so anonymous callers reached the body.
+    permission_classes = (IsAuthenticated,)
 
     def post(self, request: Request, format: str | None = None) -> Response:
         if not settings.FEATURE_IMAGE_CAPTIONING:
@@ -857,9 +867,8 @@ class GeneratePhotoCaption(APIView):
         data = dict(request_dict(request))
         image_hash = data["image_hash"]
 
-        # Anonymous callers get "photo not found" here, as they always did.
         photo = (
-            Photo.objects.owned_by(scope_user(request))
+            Photo.objects.owned_by(request_user(request))
             .filter(image_hash=image_hash)
             .first()
         )
@@ -874,7 +883,6 @@ class GeneratePhotoCaption(APIView):
             # install (or a model switch) can be asked for a caption before
             # the download ran. Start it and tell the user to try again;
             # a 200 so the client can read the reason.
-            # Only reached with a photo, so the requester is signed in.
             start_model_download(request_user(request))
             return Response(
                 {
@@ -900,7 +908,7 @@ class GeneratePhotoCaption(APIView):
 
 
 class SavePhotoCaption(APIView):
-    permission_classes = (IsOwnerOrReadOnly,)
+    permission_classes = (IsAuthenticated,)
 
     def post(self, request: Request, format: str | None = None) -> Response:
         data = dict(request_dict(request))
@@ -908,7 +916,7 @@ class SavePhotoCaption(APIView):
         caption = data["caption"]
 
         photo = (
-            Photo.objects.owned_by(scope_user(request))
+            Photo.objects.owned_by(request_user(request))
             .filter(image_hash=image_hash)
             .first()
         )
@@ -924,6 +932,8 @@ class SavePhotoCaption(APIView):
 
 
 class DeletePhotos(APIView):
+    permission_classes = (IsAuthenticated,)
+
     def delete(self, request: Request) -> Response:
         from api.views.photo_filters import build_photo_queryset
 
@@ -1013,6 +1023,8 @@ class FileVariantDownloadView(APIView):
     associated with a Photo entity (PhotoPrism-like file variant model).
     """
 
+    permission_classes = (IsAuthenticated,)
+
     @extend_schema(
         parameters=[
             OpenApiParameter(
@@ -1068,6 +1080,8 @@ class SetMainFileView(APIView):
     Useful when a photo has multiple variants (RAW, JPEG, etc.).
     """
 
+    permission_classes = (IsAuthenticated,)
+
     def post(self, request: Request, image_hash: str) -> Response:
         """Set the main file for a photo."""
         data = request_dict(request)
@@ -1107,6 +1121,8 @@ class SetMainFileView(APIView):
 
 
 class SaveMetadataView(APIView):
+    permission_classes = (IsAuthenticated,)
+
     def post(self, request: Request, format: str | None = None) -> Response:
         """Bulk-write metadata to image files for the authenticated user's photos.
 
@@ -1214,6 +1230,8 @@ class RotatePhotoView(APIView):
             "last_modified": "2024-01-01T00:00:00Z"  // for client cache-busting
         }
     """
+
+    permission_classes = (IsAuthenticated,)
 
     def post(self, request: Request, format: str | None = None) -> Response:
         data = request_dict(request)

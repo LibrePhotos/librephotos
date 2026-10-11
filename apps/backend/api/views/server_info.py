@@ -6,13 +6,15 @@ import subprocess
 from typing import Any
 
 from django.conf import settings
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 
 class StorageStatsView(APIView):
+    permission_classes = (IsAuthenticated,)
+
     def get(self, request: Request, format: str | None = None) -> Response:
         import shutil
 
@@ -140,5 +142,7 @@ def read_git_hash() -> str:
 
 
 class ImageTagView(APIView):
+    permission_classes = (IsAuthenticated,)
+
     def get(self, request: Request, format: str | None = None) -> Response:
         return Response({"image_tag": settings.IMAGE_TAG, "git_hash": read_git_hash()})

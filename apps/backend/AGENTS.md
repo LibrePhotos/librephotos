@@ -33,6 +33,11 @@ test makes `--parallel` runs crash with "cannot pickle 'traceback'"; rerun that 
 - Scope photo queries through the manager: `Photo.objects.owned_by(user)` to write,
   `Photo.visible.visible_to(user)` to read. An inline `owner=` filter or a `Photo.objects.all()`
   queryset on a related field is a cross-tenant leak waiting to happen.
+- Every API view sets `permission_classes` or `get_permissions()` itself or in a project base class
+  it names; the `IsAuthenticated` default is only a safety net. A role is a permission class
+  (`IsAdminUser`, `IsSuperUser` from `api/permissions.py`), never an `is_staff` check that returns a
+  response. An anonymous endpoint that takes credentials gets a throttle from `api/throttling.py`.
+  `api/tests/infra/test_api_conventions.py` enforces all three.
 - In views, get the user with `api.request_user.request_user(request)` (401 if anonymous) and a JSON
   body with `api.request_data.request_dict(request)` (400 if it is not an object). Where anonymous
   access is allowed, narrow with `isinstance(request.user, User)`. A `get_queryset` that needs a

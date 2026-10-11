@@ -14,6 +14,13 @@ class IsAdminOrSelf(permissions.BasePermission):
         return bool(bool(request.user) and request.user.is_staff or obj == request.user)
 
 
+class IsSuperUser(permissions.BasePermission):
+    """Only superusers. List it after IsAdminUser where staff is required too."""
+
+    def has_permission(self, request: Request, view: APIView) -> bool:
+        return bool(request.user.is_superuser)
+
+
 class IsAdminOrFirstTimeSetupOrRegistrationAllowed(permissions.BasePermission):
     def has_permission(self, request: Request, view: APIView) -> bool:
         if request.method in permissions.SAFE_METHODS:

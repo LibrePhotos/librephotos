@@ -17,6 +17,7 @@ from rest_framework.views import APIView
 from api.request_data import request_dict
 from api.models.user import User as AppUser
 from api.public_url import trusted_public_base_url
+from api.throttling import AuthRateThrottle
 
 logger = logging.getLogger(__name__)
 
@@ -95,6 +96,7 @@ class PasswordResetConfirmView(APIView):
     """Complete a password reset using the token from the emailed link."""
 
     permission_classes = (AllowAny,)
+    throttle_classes = (AuthRateThrottle,)
 
     def post(self, request: Request, format: str | None = None) -> Response:
         data = request_dict(request)

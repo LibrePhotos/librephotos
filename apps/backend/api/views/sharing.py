@@ -1,6 +1,7 @@
 import logging
 
 from django.db.models import Count, Model, Prefetch, Q, QuerySet
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -22,6 +23,7 @@ logger = logging.getLogger(__name__)
 
 
 class SharedToMePhotoSuperSimpleListViewSet(ListViewSet):
+    permission_classes = (IsAuthenticated,)
     serializer_class = PhotoSummarySerializer
     pagination_class = HugeResultsSetPagination
 
@@ -37,6 +39,7 @@ class SharedToMePhotoSuperSimpleListViewSet(ListViewSet):
 
 
 class SharedFromMePhotoSuperSimpleListViewSet(ListViewSet):
+    permission_classes = (IsAuthenticated,)
     serializer_class = SharedFromMePhotoThroughSerializer
     pagination_class = HugeResultsSetPagination
 
@@ -68,6 +71,7 @@ class SharedFromMePhotoSuperSimpleListViewSet(ListViewSet):
 
 
 class SharedToMeAlbumUserListViewSet(ListViewSet):
+    permission_classes = (IsAuthenticated,)
     serializer_class = AlbumUserListSerializer
     pagination_class = HugeResultsSetPagination
 
@@ -83,6 +87,7 @@ class SharedToMeAlbumUserListViewSet(ListViewSet):
 
 
 class SharedFromMeAlbumUserListViewSet(ListViewSet):
+    permission_classes = (IsAuthenticated,)
     serializer_class = AlbumUserListSerializer
     pagination_class = HugeResultsSetPagination
 
@@ -99,6 +104,8 @@ class SharedFromMeAlbumUserListViewSet(ListViewSet):
 
 
 class SetUserAlbumShared(APIView):
+    permission_classes = (IsAuthenticated,)
+
     def post(self, request: Request, format: str | None = None) -> Response:
         user = request_user(request)
         data = dict(request_dict(request))

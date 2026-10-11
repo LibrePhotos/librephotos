@@ -3,6 +3,7 @@ from django_q.tasks import AsyncTask
 from drf_spectacular.utils import extend_schema
 from rest_framework import filters, mixins, viewsets
 from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -23,6 +24,7 @@ from api.views.scan_triggers import start_job
 class AlbumAutoViewSet(
     mixins.RetrieveModelMixin, mixins.DestroyModelMixin, viewsets.GenericViewSet
 ):
+    permission_classes = (IsAuthenticated,)
     serializer_class = AlbumAutoSerializer
     pagination_class = StandardResultsSetPagination
 
@@ -72,6 +74,7 @@ class AlbumAutoViewSet(
 
 # TODO: Add custom covers for auto album
 class AlbumAutoListViewSet(ListViewSet):
+    permission_classes = (IsAuthenticated,)
     serializer_class = AlbumAutoListSerializer
     pagination_class = StandardResultsSetPagination
     filter_backends = (filters.SearchFilter,)
@@ -104,6 +107,8 @@ class AlbumAutoListViewSet(ListViewSet):
 
 
 class RegenerateAutoAlbumTitles(APIView):
+    permission_classes = (IsAuthenticated,)
+
     @extend_schema(
         deprecated=True,
         description="Use POST method to re-generate auto album titles.",
@@ -125,6 +130,8 @@ class RegenerateAutoAlbumTitles(APIView):
 
 
 class AutoAlbumGenerateView(APIView):
+    permission_classes = (IsAuthenticated,)
+
     @extend_schema(
         deprecated=True,
         description="Use POST method to re-generate auto albums.",

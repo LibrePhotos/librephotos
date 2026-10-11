@@ -410,6 +410,13 @@ CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = ["http://localhost:3000"]
 
+DEFAULT_THROTTLE_RATES: dict[str, str] = {
+    "password_reset": env_str("PASSWORD_RESET_THROTTLE_RATE", "5/hour"),
+    # Sign-in (per address and username), sign-up, password reset confirm.
+    "auth": env_str("AUTH_THROTTLE_RATE", "10/minute"),
+    "token_refresh": env_str("TOKEN_REFRESH_THROTTLE_RATE", "60/minute"),
+}
+
 REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
     "DEFAULT_AUTHENTICATION_CLASSES": (
@@ -421,9 +428,14 @@ REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",
     "EXCEPTION_HANDLER": "api.views.exception_handler.custom_exception_handler",
     "PAGE_SIZE": 20000,
-    "DEFAULT_THROTTLE_RATES": {
-        "password_reset": env_str("PASSWORD_RESET_THROTTLE_RATE", "5/hour"),
-    },
+    # How many reverse proxies in front of the backend append the client
+    # address to X-Forwarded-For; the throttles count per address
+    # (api/throttling.py). 1 is the bundled proxy; 0 when clients connect
+    # directly, so a client-sent header is ignored; 2 for a proxy in front of
+    # the bundled one. DRF's own default, None, trusted the whole header, which
+    # let every request pick its own counter.
+    "NUM_PROXIES": max(0, env_int("NUM_PROXIES", 1)),
+    "DEFAULT_THROTTLE_RATES": DEFAULT_THROTTLE_RATES,
 }
 
 MIDDLEWARE = [

@@ -74,6 +74,7 @@ class PersonViewSet(
     mixins.DestroyModelMixin,
     viewsets.GenericViewSet,
 ):
+    permission_classes = (IsAuthenticated,)
     serializer_class = PersonSerializer
     pagination_class = StandardResultsSetPagination
     filter_backends = (filters.SearchFilter,)
@@ -171,6 +172,7 @@ def _thing_has_visible_photo() -> Exists:
 # Retrieve only: the list is AlbumThingListViewSet, and thing albums are made
 # by the tagger, never through the API.
 class AlbumThingViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet):
+    permission_classes = (IsAuthenticated,)
     serializer_class = AlbumThingSerializer
     pagination_class = StandardResultsSetPagination
 
@@ -212,6 +214,7 @@ class AlbumThingViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet):
 
 # To-Do: Could be literally the list command in AlbumThingViewSet
 class AlbumThingListViewSet(ListViewSet):
+    permission_classes = (IsAuthenticated,)
     serializer_class = AlbumThingListSerializer
     pagination_class = StandardResultsSetPagination
     filter_backends = (filters.SearchFilter,)
@@ -244,6 +247,7 @@ class AlbumThingListViewSet(ListViewSet):
 # Retrieve only: the list is AlbumPlaceListViewSet, and place albums are made
 # by reverse geocoding, never through the API.
 class AlbumPlaceViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet):
+    permission_classes = (IsAuthenticated,)
     serializer_class = AlbumPlaceSerializer
     pagination_class = StandardResultsSetPagination
 
@@ -298,6 +302,7 @@ class AlbumPlaceViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet):
 
 # To-Do: Could be literally the list command in AlbumPlaceViewSet
 class AlbumPlaceListViewSet(ListViewSet):
+    permission_classes = (IsAuthenticated,)
     serializer_class = AlbumPlaceListSerializer
     pagination_class = StandardResultsSetPagination
     filter_backends = (filters.SearchFilter,)
@@ -387,6 +392,7 @@ class AlbumUserViewSet(
 
 # To-Do: Could be the list command in AlbumUserViewSet
 class AlbumUserListViewSet(ListViewSet):
+    permission_classes = (IsAuthenticated,)
     serializer_class = AlbumUserListSerializer
     pagination_class = StandardResultsSetPagination
     filter_backends = (filters.SearchFilter,)
@@ -728,6 +734,7 @@ class AlbumUserEditViewSet(
     PartialUpdateModelMixin[AlbumUser],
     viewsets.GenericViewSet,
 ):
+    permission_classes = (IsAuthenticated,)
     serializer_class = AlbumUserEditSerializer
     pagination_class = StandardResultsSetPagination
 
