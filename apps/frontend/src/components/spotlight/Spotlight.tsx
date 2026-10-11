@@ -109,6 +109,14 @@ export function SpotlightProvider() {
         // Only then: a scrollable palette is always its full max height.
         limit={query.trim() ? 7 : Infinity}
         scrollable={!query.trim()}
+        // Mantine 9 no longer puts the Spotlight root/content/body classes on the modal it
+        // renders, so the rules that cap a scrollable palette at maxHeight never matched
+        // and it grew to the full window height. Hand the classes back.
+        classNames={{
+          root: MantineSpotlight.classes.root,
+          content: MantineSpotlight.classes.content,
+          body: MantineSpotlight.classes.body,
+        }}
         // One width for icons and avatars, so every label starts at the same x
         styles={{
           actionSection: {
