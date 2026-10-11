@@ -4,6 +4,8 @@ description: "Here are a couple of advanced tips"
 sidebar_position: 4
 ---
 
+This page is the reference for the environment variables LibrePhotos reads and what each one does. The bundled `.env` file names most of them in lowerCamelCase (the `.env` key); with the Compose setup you set the `.env` key, and the variable is the name the backend container receives. Where a variable has no `.env` key, pass it to the container directly, as the examples below show.
+
 ### PostgreSQL v18+ Volume Mount Change
 
 :::warning Breaking Change
@@ -92,7 +94,7 @@ services:
 
 On its own this usually backfires. A `cpus:` limit throttles the container, but it does not change how many workers LibrePhotos starts — the worker pool is sized from the number of cores the *host* reports, which a `cpus:` limit does not change. You end up with just as many workers competing for a fraction of the CPU, and the API gets slow along with them.
 
-So set the worker count instead. In your `.env`:
+So set the worker count instead, with `workerConcurrency` in your `.env` (the variable it fills in is `WORKER_CONCURRENCY`):
 
 ```bash
 # One background worker instead of one per core
@@ -149,6 +151,15 @@ The services also start with `OPENBLAS_NUM_THREADS=1` unless you set it: they do
 :::warning
 Do not cap the container so hard that the first scan cannot finish. Face detection and captioning load sizeable models; below roughly 2 GB of memory the backend will be killed by the kernel — and *that* really is an out-of-memory kill.
 :::
+
+#### Requests at the same time
+
+Two settings size the web API, separately from the background workers. `WEB_CONCURRENCY` is the number of uvicorn worker processes that answer requests. The bundled `.env` sets it through `gunniWorkers` (default `2`); the backend image defaults to `1` and the single-container image to `4`. `WEB_THREADS` (default `16`) is how many requests each worker serves at once, each holding a thread while it runs.
+
+| Variable | `.env` key | Default | What it does |
+| --- | --- | --- | --- |
+| `WEB_CONCURRENCY` | `gunniWorkers` | `1` (backend image) | Number of uvicorn worker processes. In the backend image, above `1` each worker is recycled after 50 requests, so a recycled one never takes the whole API down. |
+| `WEB_THREADS` | _(none)_ | `16` | Requests one uvicorn worker serves at the same time; further requests wait for a free thread. |
 
 ### Turning features off
 
@@ -311,6 +322,27 @@ services:
 `secret.key` lives in `BASE_LOGS`, next to the log files. Zipping that whole folder for a bug report hands out your Django secret key, which is what every session and token on your instance is signed with. Attach `ownphotos.log` by itself instead. Deleting `secret.key` is not a fix either - it logs every user out and the passwords have to be reset.
 :::
 
+### Debug mode
+
+| Variable | Default | What it does |
+| --- | --- | --- |
+| `DEBUG` | _(off)_ | Set to exactly `1` to run the development settings (`librephotos.settings.development`), with Django's debug mode on, which shows tracebacks to whoever gets an error, and uvicorn with `--reload`. `true` does not count. The bundled Compose file sets `DEBUG=0`. |
+
+This is for working on LibrePhotos, not for a server other people use.
+
+### Data directory
+
+| Variable | Default | What it does |
+| --- | --- | --- |
+| `BASE_DATA` | `/` | The root of the data LibrePhotos keeps: `protected_media/` (thumbnails, converted videos and the machine learning models) and, with SQLite, `db/`. The containers use `/`; the Windows standalone app points it at its data folder. |
+| `PHOTOS` | `$BASE_DATA/data` | The top folder a library may be scanned from: scan directories must be inside it. The Windows standalone app uses your home folder unless you pass `--photos`. |
+
+### Secret key
+
+| Variable | `.env` key | Default | What it does |
+| --- | --- | --- | --- |
+| `SECRET_KEY` | `shhhhKey` | _(generated)_ | The Django secret key that signs sessions and tokens. Set it and LibrePhotos uses it. Leave it unset and the backend generates one and keeps it in `secret.key` in the logs directory (see [Internal files](../user-guide/internal-files.md)). Changing the key signs every user out. |
+
 ### Telling LibrePhotos its own public address
 
 `FRONTEND_BASE_URL` is the URL your users actually browse to, for example `https://photos.example.com` (no trailing slash). Leave it unset and LibrePhotos falls back to the origin each request appears to have arrived on.
@@ -321,6 +353,15 @@ So set this whenever LibrePhotos has to hand a URL to something outside the cont
 
 - **Password-reset emails** — the link in the email. Without it the fallback can produce a link pointing at `http://backend/...`, which no mail recipient can open. The unified and standalone images accept any `Host` header, so there the request's origin is only used when it is listed in `CSRF_TRUSTED_ORIGINS`; otherwise no reset email is sent and the backend log asks for `FRONTEND_BASE_URL`. A link built from a `Host` header the requester chose would hand the reset token to whatever site they named.
 - **Single sign-on** — the OAuth `redirect_uri` sent to your identity provider, which the browser has to follow and the provider has to recognise. SSO refuses to start rather than send a broken one, so this is effectively required for [OIDC](../user-guide/settings/single-sign-on.md).
+
+### Outgoing email
+
+The mail server itself is set in the app, under Admin area → Site Settings → Email. The two variables here only supply defaults.
+
+| Variable | Default | What it does |
+| --- | --- | --- |
+| `DEFAULT_FROM_EMAIL` | `LibrePhotos <no-reply@localhost>` | The sender address for mail when the Email settings have no From address. A From address saved there takes precedence. |
+| `PASSWORD_RESET_THROTTLE_RATE` | `5/hour` | How often the password-reset endpoint accepts a request, in Django REST framework's rate format, for example `5/hour` or `20/day`. |
 
 ### Trusted origins for the Django admin
 
@@ -339,6 +380,26 @@ Releases before 1.2.0 treated the whole value as a single origin, so a comma-sep
 ### Database password
 
 `DB_PASS` (`dbPass` in `.env`) is the password of the PostgreSQL user in `DB_USER`. The bundled Compose file, the unified image instructions and the Kubernetes manifests all pass it. If it is missing, the backend still falls back to the old built-in default password so existing installs keep starting, but it now logs a `librephotos.W001` warning on every start (in the `migrate` output). Set `DB_PASS` explicitly to silence it; the fallback may be removed in a future release.
+
+### Database connection
+
+These describe the PostgreSQL server. The bundled `.env` sets the first three; `DB_PORT` is not in it.
+
+| Variable | `.env` key | Default | What it does |
+| --- | --- | --- | --- |
+| `DB_HOST` | `dbHost` | `db` | Host name of the PostgreSQL server. The bundled Compose file uses the `db` service. |
+| `DB_PORT` | _(none)_ | `5432` | Port of the PostgreSQL server. |
+| `DB_NAME` | `dbName` | `db` | Name of the database. |
+| `DB_USER` | `dbUser` | `docker` | The user the backend connects as. Its password is `DB_PASS`. |
+
+### Single-container image
+
+The single-container image (see [Unified deployment](unified-deployment.md)) has two variables of its own. The Compose stack sets `DB_BACKEND=postgresql` and leaves `SERVE_FRONTEND` unset.
+
+| Variable | Default | What it does |
+| --- | --- | --- |
+| `SERVE_FRONTEND` | _(off)_ | `true` makes the image serve the web app from Django on port 8001, with no proxy in front. Its entrypoint then uses the no-proxy settings. |
+| `DB_BACKEND` | `sqlite` | `sqlite` keeps the database in `BASE_DATA/db`; `postgresql` connects with the `DB_*` variables above. The Compose stack always uses PostgreSQL. |
 
 ### Demo mode
 
@@ -394,6 +455,14 @@ They are separate from the **service** names — the `proxy:`, `db:`, `frontend:
 Older guides mention a `make rename` helper that rewrote these names from your `.env` file. It was removed together with `deploy/Makefile`; edit `docker-compose.yml` directly instead.
 :::
 
+### Backend host name and proxy user IDs
+
+| Variable | Default | What it does |
+| --- | --- | --- |
+| `BACKEND_HOST` | `backend` | The host name the bundled proxy gives the backend in the `Host` header. Django accepts it in `ALLOWED_HOSTS`, and requests carrying it count as coming from inside the deployment. Change it only together with the `backend` service name, which the proxy resolves. |
+| `WEBSERVER_UID` | `101` | The user ID the proxy's nginx runs as inside its container. The media diagnostics use it to explain why a file cannot be served. |
+| `WEBSERVER_GID` | `101` | The group ID, as `WEBSERVER_UID`. Set both only if you rebuilt the proxy to run as another user. The Kubernetes config sets `65534`, the user the Pod runs as. |
+
 ### Old environment variables
 
 These are now site settings: setting them here only supplies the default used on the first set-up, after which the value lives in the site settings and any change you make there takes precedence.
@@ -408,6 +477,20 @@ allowUpload=true
 # needs no key.
 mapApiKey=
 ```
+
+The same settings have environment variables, which set the first-run default in the same way:
+
+| Variable | `.env` key | Default | What it does on the first set-up |
+| --- | --- | --- | --- |
+| `SKIP_PATTERNS` | `skipPatterns` | _(empty)_ | The patterns of files and folders to ignore, as in the example above. |
+| `ALLOW_UPLOAD` | `allowUpload` | `true` | Whether uploads are allowed. An empty value leaves them allowed. |
+| `MAPBOX_API_KEY` | `mapApiKey` | _(empty)_ | The key for the geocoding provider, as in the example above. |
+| `MAP_API_PROVIDER` | _(none)_ | `nominatim` | The geocoding provider: `nominatim` (no key needed), `mapbox`, `maptiler`, `tomtom` or `opencage`. |
+| `MAP_TILE_PROVIDER` | _(none)_ | `photoprism` | The map background behind the photo pins. You can change it afterwards in Site Settings, without a restart. |
+
+### Removed variables
+
+Not released yet: `DEFAULT_FAVORITE_MIN_RATING` no longer exists as a variable. Up to 1.3.0 it set the rating a photo needs to count as a favourite for users created afterwards (default `4`). It is now always `4`, and a value you set is ignored. Users who already exist keep their own value, which they change under Settings, in **Minimum image rating to interpret as favorite** (see [Settings](../user-guide/settings/index.md)). If your `.env` sets it, you can remove the line. A value other than `4` also made the models disagree with the database migrations; that no longer happens.
 
 ### Admin account variables
 

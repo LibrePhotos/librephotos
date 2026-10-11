@@ -542,7 +542,11 @@ LOGGING = build_logging_config(
 CHUNKED_UPLOAD_PATH = ""
 CHUNKED_UPLOAD_TO = os.path.join("chunked_uploads")
 
-DEFAULT_FAVORITE_MIN_RATING = env_int("DEFAULT_FAVORITE_MIN_RATING", 4)
+# The rating a photo needs to count as a favourite, for a user created from now on
+# (User.favorite_min_rating defaults to it). A constant, not an environment
+# variable: the field default is in the migrations, so an install that changed it
+# had models that no longer matched them. Each user sets their own in Settings.
+DEFAULT_FAVORITE_MIN_RATING = 4
 
 # Email / SMTP configuration.
 #

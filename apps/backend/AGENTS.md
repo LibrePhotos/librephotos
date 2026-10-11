@@ -61,8 +61,10 @@ test makes `--parallel` runs crash with "cannot pickle 'traceback'"; rerun that 
   `librephotos/env.py` (`env_str`, `env_flag`, `env_int`, `env_float`, `env_list`), and so do the
   entry points and sidecars that have no settings and the one-off `ADMIN_PASSWORD` in management
   commands. Ruff TID251 bans `os.environ` and `os.getenv` elsewhere (exceptions in `pyproject.toml`).
-  Document every user-facing variable on
-  `apps/docs/docs/installation/environment-variables.md`.
+  Every variable read here, in the entrypoints or in `deploy/k8s`, is named on
+  `apps/docs/docs/installation/environment-variables.md` or listed with a reason in `INTERNAL_ENV_VARS`
+  (`api/tests/infra/test_environment_variables_documented.py`); the suite fails otherwise. A value the
+  process only sets for itself needs neither.
 
 ## Layout
 

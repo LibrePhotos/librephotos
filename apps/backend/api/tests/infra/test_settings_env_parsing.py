@@ -7,7 +7,8 @@ Several settings parsed the environment by hand, each in its own way:
   and demo mode silently drops every password change (serializers/user.py).
 * ``ALLOW_UPLOAD`` had a third private list of "off" spellings.
 * ``DEFAULT_FAVORITE_MIN_RATING`` was an ``int`` by default but a ``str``
-  whenever it came from the environment.
+  whenever it came from the environment. It is a constant now, so the
+  environment cannot change it (the model default is in the migrations).
 * ``CSRF_TRUSTED_ORIGINS`` appended the raw value, so a comma-separated list
   became one bogus origin.
 * ``DB_PASS`` fell back to a hardcoded password without saying so.
@@ -89,22 +90,22 @@ class AllowUploadParsingTest(_ReloadMixin, SimpleTestCase):
                 self.assertTrue(self._allow_upload(ALLOW_UPLOAD=value))
 
 
-class FavoriteMinRatingParsingTest(_ReloadMixin, SimpleTestCase):
-    def test_default_is_int(self):
+class FavoriteMinRatingTest(_ReloadMixin, SimpleTestCase):
+    """The default is a constant: the environment no longer changes it (#2373)."""
+
+    def test_default_is_four(self):
         self.assertEqual(4, self._reload().DEFAULT_FAVORITE_MIN_RATING)
 
-    def test_env_value_is_int(self):
-        value = self._reload(
-            DEFAULT_FAVORITE_MIN_RATING="3"
-        ).DEFAULT_FAVORITE_MIN_RATING
-        self.assertEqual(3, value)
-        self.assertIsInstance(value, int)
-
-    def test_garbage_names_the_variable(self):
-        # librephotos.env is Django-free, so this is its own ValueError rather
-        # than ImproperlyConfigured; the message still names the variable.
-        with self.assertRaisesMessage(env.EnvError, "DEFAULT_FAVORITE_MIN_RATING"):
-            self._reload(DEFAULT_FAVORITE_MIN_RATING="three")
+    def test_environment_value_is_ignored(self):
+        self.assertEqual(
+            4, self._reload(DEFAULT_FAVORITE_MIN_RATING="3").DEFAULT_FAVORITE_MIN_RATING
+        )
+        self.assertEqual(
+            4,
+            self._reload(
+                DEFAULT_FAVORITE_MIN_RATING="three"
+            ).DEFAULT_FAVORITE_MIN_RATING,
+        )
 
 
 class CsrfTrustedOriginsParsingTest(_ReloadMixin, SimpleTestCase):
