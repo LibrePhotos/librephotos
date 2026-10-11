@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.a1e92a76.css">
-<script src="/assets/js/runtime~main.34871acb.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.453e9c57.js" defer="defer"></script>
 <script src="/assets/js/main.f4dc5e9c.js" defer="defer"></script>
 </head>
 <body>
@@ -39,7 +39,7 @@
 </ol>
 <p><strong>Notes:</strong></p>
 <ul>
-<li class=""><strong>Secret key</strong>: Optional - if not provided, one will be generated and saved to <code>/logs/secret.key</code>. Do not delete this file (see <a class="" href="/docs/user-guide/internal-files">Internal files</a>). To supply your own, pass <code>-e SECRET_KEY=...</code></li>
+<li class=""><strong>Secret key</strong>: Optional - if not provided, one will be generated and saved to <code>/protected_media/secret.key</code> (<code>/logs/secret.key</code> in 1.3.0 and older; a newer release moves it on its first start). Do not delete this file (see <a class="" href="/docs/user-guide/internal-files">Internal files</a>). To supply your own, pass <code>-e SECRET_KEY=...</code></li>
 <li class=""><strong>Database</strong>: SQLite file will be created automatically in the <code>/db</code> directory</li>
 <li class=""><strong>Photos</strong>: You can mount your photo directory read-only (<code>-v /path/to/photos:/data:ro</code>), but this disables uploading, deleting photos, and writing metadata back to files — uploads are otherwise written to an <code>uploads/</code> folder inside <code>/data</code>. Uploads are on by default, so if you use <code>:ro</code>, also pass <code>-e ALLOW_UPLOAD=false</code> (or turn off &quot;Allow Upload&quot; in the setup wizard). See <a class="" href="/docs/user-guide/faq#why-is-the-scan-directory-not-mounted-read-only">Why is the scan directory not mounted read-only?</a></li>
 </ul>
