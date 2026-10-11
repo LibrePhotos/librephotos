@@ -504,19 +504,19 @@
   integrity sha512-dXn3FZhPv0US+7dtJsIi2R+c7qWYiReoEh5zUntWCf4oSpMNib8FDhSoed6m3QyZdx5hK7iLFkYk3rNxwt8vTA==
 
 "@mantine/carousel@^9.7.1":
-  version "9.7.1"
-  resolved "https://registry.yarnpkg.com/@mantine/carousel/-/carousel-9.7.1.tgz#884d75a3a6cbd95c0dda1569e21a3b97932a2568"
-  integrity sha512-lEa4BjqsrCUp4xJ4pJyaOCvcXGyqRfSYUumUvY/Q1KHrkqTdReiZCdURcsX+OHjqrju1KruddWH/0qNzAYJ9Ew==
+  version "9.7.2"
+  resolved "https://registry.yarnpkg.com/@mantine/carousel/-/carousel-9.7.2.tgz#adcaef7074d8b5402126beaccee6f3f0fd2cebe6"
+  integrity sha512-qjBcEh2Hd1EenToNIc+vE5+C3/HFpKoAEcG0CP68QbsKyJA/R43NtXEoR+sodkz33E9FlZk7O8YJz6GvuLYrbQ==
 
 "@mantine/charts@^9.7.1":
-  version "9.7.1"
-  resolved "https://registry.yarnpkg.com/@mantine/charts/-/charts-9.7.1.tgz#aecea556f527b6d697d151b15f4a987e738d55c1"
-  integrity sha512-bSuKFm8L7zr9y2n96JF/kcwU1/F2NvZk9+7QaWxQH1y1IpdpQWGniGBZfB9yBzjiKIoDQIAqhvWLrLESBV0azQ==
+  version "9.7.2"
+  resolved "https://registry.yarnpkg.com/@mantine/charts/-/charts-9.7.2.tgz#33b5da45b986b72d04cdce0250eb371940bd1e1a"
+  integrity sha512-biwAZ4RDSmhy2dqeyqBK1XlFg3+eZGYyt3bEDuTBu/at/fbAguhIsmFTbqYjqMcTpWNyX9BNxJ+mhMFslee1eQ==
 
 "@mantine/core@^9.7.1":
-  version "9.7.1"
-  resolved "https://registry.yarnpkg.com/@mantine/core/-/core-9.7.1.tgz#f5db858b22a32cf150cba88e30971bc94af1830a"
-  integrity sha512-SU1xklOfdEDzpPhw35ti9rF4QRE9HUongCe37C+xCO2Ea8MLJkAzreCrMxb8qcCij+gnF7SQbtTCBa1r+pKxYA==
+  version "9.7.2"
+  resolved "https://registry.yarnpkg.com/@mantine/core/-/core-9.7.2.tgz#ea212055db0dcc4944d39212d7bde41f17638c45"
+  integrity sha512-+cggJDD0PO057SwZU/dKlWPjp0LaAn1nEM9W1m/Ia4Cjb/Hy9DjZ4I7R7xirp/eZ6xnV7OqeGmPFSJ8zeGa5kQ==
   dependencies:
     "@floating-ui/react" "^0.27.20"
     clsx "^2.1.1"
@@ -525,50 +525,50 @@
     type-fest "^5.10.0"
 
 "@mantine/dates@^9.7.1":
-  version "9.7.1"
-  resolved "https://registry.yarnpkg.com/@mantine/dates/-/dates-9.7.1.tgz#93bae3004f35b4444f96e391c9f8300a0b6383db"
-  integrity sha512-oFQf8b0cW2ArcdP6r0ATMA4gJN3D8Nc29J7wE4E2xM5mI1+nW6k47L0E45uKwxFb9CqdhXaN+XA9lbrkWkMfsg==
+  version "9.7.2"
+  resolved "https://registry.yarnpkg.com/@mantine/dates/-/dates-9.7.2.tgz#fe9d2b5b3aeab932dec53b2b55e86339ab784590"
+  integrity sha512-z57sziOW1/hyGlR43I1kBE78hvfKvEWzRqznK0qTeKADLBflzGxUsZRL0GMQ1LUbQCp+Jog6MQnzgRFV3FHwsg==
   dependencies:
     clsx "^2.1.1"
 
 "@mantine/form@^9.7.1":
-  version "9.7.1"
-  resolved "https://registry.yarnpkg.com/@mantine/form/-/form-9.7.1.tgz#5c5c1bf168898871e5e3fc9d649e24ecf47408fb"
-  integrity sha512-fVjWYdiMBw21z/bqUkFghyV1MsANHoqCZaXji0k4KJaRCHh7cD3qhBuLIVhc2hUCKXQ3cHiJTHLz3ayoE/mRZg==
+  version "9.7.2"
+  resolved "https://registry.yarnpkg.com/@mantine/form/-/form-9.7.2.tgz#b517d0036e4cdab5553e97243ab5eaef6bcef98d"
+  integrity sha512-+EskrnXLI0tzLzYh634pD3gcwZsaos5PjfxNW0Kpg7O15gugescdJnFcm4CCrNX57Saw/6fZn9IEqPx8/AcvRQ==
   dependencies:
     "@standard-schema/spec" "^1.1.0"
     fast-deep-equal "^3.1.3"
     klona "^2.0.6"
 
 "@mantine/hooks@^9.7.1":
-  version "9.7.1"
-  resolved "https://registry.yarnpkg.com/@mantine/hooks/-/hooks-9.7.1.tgz#08247cee0069b03840d9080de7ca2f83c21c1a8d"
-  integrity sha512-C1xD4A3bfB87nUsLHr42WqOabnK4G+fCyEf8FN14EEiZAcKjdcWJbK63qxhIXFKuHCc3acLbpm2ts9UqmLASTw==
+  version "9.7.2"
+  resolved "https://registry.yarnpkg.com/@mantine/hooks/-/hooks-9.7.2.tgz#d12c22f9e14aa33537a69ec5e71d1253f1ba7890"
+  integrity sha512-11emsRp/Mg+vfaKVyoMwiMdCHmO/15XOL6JG9fACkclVZnLPBVvRIaDdRBudsR3ALGZ5iTzrArPJDjjoeO6X4w==
 
 "@mantine/notifications@^9.7.1":
-  version "9.7.1"
-  resolved "https://registry.yarnpkg.com/@mantine/notifications/-/notifications-9.7.1.tgz#541ac2474ca1a86484cbcf85963376361d5f7609"
-  integrity sha512-gmN+rTrjwYFJqaIqDQtQfoTJ/OR0wSxqxIihOHD5/S/sYUycVi9wDqK4tub5y8x0HeQH4kNkehPMN4l1Uk0A6A==
+  version "9.7.2"
+  resolved "https://registry.yarnpkg.com/@mantine/notifications/-/notifications-9.7.2.tgz#1331c4922e290b2b8fea5ce150b583e224f9b5de"
+  integrity sha512-Lf/oS2bpWgalgJ7Uy2Gh2V/kqnIIM3zkeWYy+GZKunfbiQGyuDBasOGd/4RYu5ga7b8vxJzC/zINi/UdpFuxoQ==
   dependencies:
-    "@mantine/store" "9.7.1"
+    "@mantine/store" "9.7.2"
     react-transition-group "4.4.5"
 
 "@mantine/spotlight@^9.7.1":
-  version "9.7.1"
-  resolved "https://registry.yarnpkg.com/@mantine/spotlight/-/spotlight-9.7.1.tgz#6487b49570cb9bfa5e30727011f1693cb5128b1e"
-  integrity sha512-ICfB5/Q1I2mYhnSZmnwmmihW2ecSSGrL0mV0YdDnWCaKxbRm7OsbDPmCEmPJfKfCf1K2mwsY6Wz2bq9e/cRYKw==
+  version "9.7.2"
+  resolved "https://registry.yarnpkg.com/@mantine/spotlight/-/spotlight-9.7.2.tgz#837c3b12116827c600292610c7fbac475abe21a7"
+  integrity sha512-QvpxQ0Axy1Pa3pWuAMyNK8mhzR0/PqhSsz9tA7iTpi5zUgVAqODFP36FyPk6ajRL9hvlF094Pjj5b/UKHLKk+w==
   dependencies:
-    "@mantine/store" "9.7.1"
+    "@mantine/store" "9.7.2"
 
-"@mantine/store@9.7.1":
-  version "9.7.1"
-  resolved "https://registry.yarnpkg.com/@mantine/store/-/store-9.7.1.tgz#cbb8862189abd9fada59843846077a22779910d2"
-  integrity sha512-CYCQHWt7zFrUe2kVQmFAWnQaZbiDUoN2VeMJBI/vf1XybGj+itTEB6cnvoX4C8yOrln3sXe4BIoIf46pUhnEhA==
+"@mantine/store@9.7.2":
+  version "9.7.2"
+  resolved "https://registry.yarnpkg.com/@mantine/store/-/store-9.7.2.tgz#c24a6c022316392e9fd6e5d0144055f5cddc2e12"
+  integrity sha512-ERjk46CbQeSqytWTq5cAzT4o9MBAzzvVXpPlD36B5NwB5hmbjQfdUKcr0PlZfG04a/PDPdLPvAiVp7Eeh0tk8A==
 
 "@mantine/tiptap@^9.7.1":
-  version "9.7.1"
-  resolved "https://registry.yarnpkg.com/@mantine/tiptap/-/tiptap-9.7.1.tgz#d898e29b878166bc8e456a3e4234899b6770847d"
-  integrity sha512-6y3sT8jzMR/HxrZjN+XTtRpF8JSWfl95kjqR6j9Jn33w3RNjJEIDd8o7DPR+lBJGFeOwoyIZ8whcoBmNLPNSsA==
+  version "9.7.2"
+  resolved "https://registry.yarnpkg.com/@mantine/tiptap/-/tiptap-9.7.2.tgz#0ff1100f40069f3621a2d6adb4ac7b6ad9f6e0ad"
+  integrity sha512-PfermZfjDEtP5GyuE2PK/dxM6mdvdCkiwuZA31sMgUlDngJ0aehNONQyK9zQ53yjh9yM0dHo0u4wsUfVRiWeew==
 
 "@mapbox/jsonlint-lines-primitives@^2.0.3", "@mapbox/jsonlint-lines-primitives@~2.0.2":
   version "2.0.3"
@@ -816,11 +816,11 @@
     use-sync-external-store "^1.6.0"
 
 "@tanstack/react-virtual@^3.14.13":
-  version "3.14.14"
-  resolved "https://registry.yarnpkg.com/@tanstack/react-virtual/-/react-virtual-3.14.14.tgz#e2b79d024e8f1176f0c212b25d6f99f84e226046"
-  integrity sha512-eo/arVIpYi9rGJXR5y4fDoTiz+BBOc4HKVBKQMoPRswxJtP6HV8iupW/DkBE9TRh+PjzikIDHw2h7aV25g0Z4w==
+  version "3.14.15"
+  resolved "https://registry.yarnpkg.com/@tanstack/react-virtual/-/react-virtual-3.14.15.tgz#47e72ca5fae5cad92f706aed0241563b66a12668"
+  integrity sha512-FXU72FW6a3yRtOpn7ollcsmPSi7ShMJECiqTpnCG2n2R8FIPrZrPYPAUmETGO8OCojATFbpLSDMuYuXX9mUAjg==
   dependencies:
-    "@tanstack/virtual-core" "3.18.0"
+    "@tanstack/virtual-core" "3.19.0"
 
 "@tanstack/router-core@1.171.35":
   version "1.171.35"
@@ -880,10 +880,10 @@
   resolved "https://registry.yarnpkg.com/@tanstack/store/-/store-0.11.2.tgz#cea02e554a483c7334a64a3ca2c0e4b703ba8531"
   integrity sha512-sJ4mjol8uQsHV0gOJzzjwXfh2Fwm+Sz0+8deqiTm4jGbMdjzNSW+xZCFm0kUa870uhd8yi+DpKnZb5Kc4apa0Q==
 
-"@tanstack/virtual-core@3.18.0":
-  version "3.18.0"
-  resolved "https://registry.yarnpkg.com/@tanstack/virtual-core/-/virtual-core-3.18.0.tgz#3ff49fa19ca281696a859780b491c40ed4afb3c3"
-  integrity sha512-8frWsyfyBwLGoDQ6wN6Lq3CoT8j4BPJUzE6nH4P9mruLhxPOamk82prC3JxRMLJzYnNa9ISaZ8NtfxEiOGkHEQ==
+"@tanstack/virtual-core@3.19.0":
+  version "3.19.0"
+  resolved "https://registry.yarnpkg.com/@tanstack/virtual-core/-/virtual-core-3.19.0.tgz#64ee995cf4615928c238a3db2038657c0b7f9116"
+  integrity sha512-6k6+BXoM01iJTfqH5hvih0Kj49x130wRzty1muE1hBJJm5/P8h3aEYEtQPa4iYE239nF4i6UL/KIIuQI3zG4sw==
 
 "@tanstack/virtual-file-routes@1.162.0":
   version "1.162.0"
@@ -3407,9 +3407,9 @@ magicast@^0.5.4:
     source-map-js "^1.2.1"
 
 maplibre-gl@^6.0.0:
-  version "6.13.0"
-  resolved "https://registry.yarnpkg.com/maplibre-gl/-/maplibre-gl-6.13.0.tgz#ad47efaf0e9838f6ba581a4f0f88745d9772fe55"
-  integrity sha512-ELXk4h+xl0URFQEnVbAN6MGn61P6jq4amUWHiskLVsvHCaKdf1Zq6G8UNOD0AQ3UaXoL5ECc8ovz8yqYEBGPKw==
+  version "6.14.0"
+  resolved "https://registry.yarnpkg.com/maplibre-gl/-/maplibre-gl-6.14.0.tgz#ee35e9db1d0214d423d432bfda4ffc519674e176"
+  integrity sha512-L7U9y9TyPJ3P/JJbW+eH+A3FzdPq+3fnZFqqeCwf/S6cRGganHwVI5b/C8/zOYzreUzsloDPZVVaMQA94wOt4A==
   dependencies:
     "@mapbox/point-geometry" "^1.1.0"
     "@mapbox/tiny-sdf" "^2.2.0"
