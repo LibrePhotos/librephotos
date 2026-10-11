@@ -1,203 +1,117 @@
-import { showNotification } from "@mantine/notifications";
 import i18n from "../../i18n";
+import { toast } from "./toast";
 
 function togglePhotoDelete(isDeleted: boolean, numberOfPhotos: number) {
   const notificationMessage = isDeleted
     ? i18n.t("toasts.deletephoto", { numberOfPhotos })
     : i18n.t("toasts.recoverphoto", { numberOfPhotos });
-  showNotification({
-    message: notificationMessage,
-    title: i18n.t("toasts.setdeletetitle"),
-    color: "teal",
-  });
+  toast.success(notificationMessage, { title: i18n.t("toasts.setdeletetitle") });
 }
 
 function removePhotos(numberOfPhotos: number) {
-  showNotification({
-    message: i18n.t("toasts.finaldeletephoto", { numberOfPhotos }),
+  toast.success(i18n.t("toasts.finaldeletephoto", { numberOfPhotos }), {
     title: i18n.t("toasts.finaldeletephototitle"),
-    color: "teal",
   });
 }
 
 function downloadStarting() {
-  showNotification({
-    message: i18n.t("toasts.downloadstarting"),
-    title: i18n.t("toasts.downloadstart"),
-    color: "teal",
-  });
+  toast.success(i18n.t("toasts.downloadstarting"), { title: i18n.t("toasts.downloadstart") });
 }
 
 function downloadCompleted() {
-  showNotification({
-    message: i18n.t("toasts.downloadcompleted"),
-    title: i18n.t("toasts.downloadcomplete"),
-    color: "teal",
-  });
+  toast.success(i18n.t("toasts.downloadcompleted"), { title: i18n.t("toasts.downloadcomplete") });
 }
 
 function downloadFailed() {
-  showNotification({
-    message: i18n.t("toasts.downloadfailed"),
-    title: i18n.t("toasts.downloaderror"),
-    color: "red",
-  });
+  toast.error(i18n.t("toasts.downloadfailed"), { title: i18n.t("toasts.downloaderror") });
 }
 
 function togglePhotoSharing(username: string, numberOfPhotos: number, isShared: boolean) {
   const notificationMessage = isShared
     ? i18n.t("toasts.sharephoto", { username, numberOfPhotos })
     : i18n.t("toasts.unsharephoto", { username, numberOfPhotos });
-  showNotification({
-    message: notificationMessage,
-    title: i18n.t("toasts.sharephototitle"),
-    color: "teal",
-  });
+  toast.success(notificationMessage, { title: i18n.t("toasts.sharephototitle") });
 }
 
 function togglePhotosPublic(numberOfPhotos: number, isPublic: boolean) {
   const notificationMessage = isPublic
     ? i18n.t("toasts.addpublicphoto", { numberOfPhotos })
     : i18n.t("toasts.removepublicphoto", { numberOfPhotos });
-  showNotification({
-    message: notificationMessage,
-    title: i18n.t("toasts.setpublicphotostitle"),
-    color: "teal",
-  });
+  toast.success(notificationMessage, { title: i18n.t("toasts.setpublicphotostitle") });
 }
 
 function togglePhotosFavorite(numberOfPhotos: number, isFavorite: boolean) {
   const notificationMessage = isFavorite
     ? i18n.t("toasts.favoritephoto", { numberOfPhotos })
     : i18n.t("toasts.unfavoritephoto", { numberOfPhotos });
-  showNotification({
-    message: notificationMessage,
-    title: i18n.t("toasts.setfavoritestitle"),
-    color: "teal",
-  });
+  toast.success(notificationMessage, { title: i18n.t("toasts.setfavoritestitle") });
 }
 
 function togglePhotosHidden(numberOfPhotos: number, isHidden: boolean) {
   const notificationMessage = isHidden
     ? i18n.t("toasts.hidephoto", { numberOfPhotos })
     : i18n.t("toasts.unhidephoto", { numberOfPhotos });
-  showNotification({
-    message: notificationMessage,
-    title: i18n.t("toasts.sethidetitle"),
-    color: "teal",
-  });
+  toast.success(notificationMessage, { title: i18n.t("toasts.sethidetitle") });
 }
 
 function setPhotosCategory(numberOfPhotos: number, category: "photo" | "screenshot" | "document") {
-  showNotification({
-    message: i18n.t(`toasts.setcategory.${category}`, { count: numberOfPhotos }),
+  toast.success(i18n.t(`toasts.setcategory.${category}`, { count: numberOfPhotos }), {
     title: i18n.t("toasts.setcategorytitle"),
-    color: "teal",
   });
 }
 
 function startPhotoScan() {
-  showNotification({
-    message: i18n.t("toasts.scanphotos"),
-    title: i18n.t("toasts.scanphotostitle"),
-    color: "teal",
-  });
+  toast.success(i18n.t("toasts.scanphotos"), { title: i18n.t("toasts.scanphotostitle") });
 }
 
 function startFullPhotoScan() {
-  showNotification({
-    message: i18n.t("toasts.fullscanphotos"),
-    title: i18n.t("toasts.fullscanphotostitle"),
-    color: "teal",
-  });
+  toast.success(i18n.t("toasts.fullscanphotos"), { title: i18n.t("toasts.fullscanphotostitle") });
 }
 
 function startOcrScan() {
-  showNotification({
-    message: i18n.t("toasts.ocrscan"),
-    title: i18n.t("toasts.ocrscantitle"),
-    color: "teal",
-  });
+  toast.success(i18n.t("toasts.ocrscan"), { title: i18n.t("toasts.ocrscantitle") });
 }
 
 function startFullOcrScan() {
-  showNotification({
-    message: i18n.t("toasts.fullocrscan"),
-    title: i18n.t("toasts.ocrscantitle"),
-    color: "teal",
-  });
+  toast.success(i18n.t("toasts.fullocrscan"), { title: i18n.t("toasts.ocrscantitle") });
 }
 
 function startNextcloudPhotoScan() {
-  showNotification({
-    message: i18n.t("toasts.scannextcloudphotos"),
-    title: i18n.t("toasts.scannextcloudphotostitle"),
-    color: "teal",
-  });
+  toast.success(i18n.t("toasts.scannextcloudphotos"), { title: i18n.t("toasts.scannextcloudphotostitle") });
 }
 
 function savePhotoCaptions() {
-  showNotification({
-    message: i18n.t("toasts.savecaptions"),
-    title: i18n.t("toasts.captionupdate"),
-    color: "teal",
-  });
+  toast.success(i18n.t("toasts.savecaptions"), { title: i18n.t("toasts.captionupdate") });
 }
 
 function updatePhoto() {
-  showNotification({
-    message: i18n.t("toasts.editphoto"),
-    title: i18n.t("toasts.editphototitle"),
-    color: "teal",
-  });
+  toast.success(i18n.t("toasts.editphoto"), { title: i18n.t("toasts.editphototitle") });
 }
 
 function rotatePhotos(numberOfPhotos: number, rotation: number) {
-  showNotification({
-    message: i18n.t("toasts.rotatephoto", { numberOfPhotos, rotation }),
+  toast.success(i18n.t("toasts.rotatephoto", { numberOfPhotos, rotation }), {
     title: i18n.t("toasts.rotatephototitle"),
-    color: "teal",
   });
 }
 
 function deleteMissingPhotos() {
-  showNotification({
-    message: i18n.t("toasts.deletemissingphotos"),
-    title: i18n.t("toasts.deletemissingphotostitle"),
-    color: "teal",
-  });
+  toast.success(i18n.t("toasts.deletemissingphotos"), { title: i18n.t("toasts.deletemissingphotostitle") });
 }
 
 function copyPhotoToClipboard() {
-  showNotification({
-    message: i18n.t("toasts.copyphoto"),
-    title: i18n.t("toasts.copyphototitle"),
-    color: "teal",
-  });
+  toast.success(i18n.t("toasts.copyphoto"), { title: i18n.t("toasts.copyphototitle") });
 }
 
 function copyPhotoToClipboardFailed() {
-  showNotification({
-    message: i18n.t("toasts.copyphotofailed"),
-    title: i18n.t("toasts.copyphototitle"),
-    color: "red",
-  });
+  toast.error(i18n.t("toasts.copyphotofailed"), { title: i18n.t("toasts.copyphototitle") });
 }
 
 function captionModelDownloading() {
-  showNotification({
-    message: i18n.t("toasts.captionmodeldownloading"),
-    title: i18n.t("toasts.captionupdate"),
-    color: "orange",
-  });
+  toast.warning(i18n.t("toasts.captionmodeldownloading"), { title: i18n.t("toasts.captionupdate") });
 }
 
 function scanDirectoryRequired() {
-  showNotification({
-    message: i18n.t("toasts.scan_directory_required"),
-    title: i18n.t("toasts.scanphotostitle"),
-    color: "red",
-  });
+  toast.error(i18n.t("toasts.scan_directory_required"), { title: i18n.t("toasts.scanphotostitle") });
 }
 
 export const photos = {

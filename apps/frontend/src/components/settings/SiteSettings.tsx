@@ -1,11 +1,11 @@
 import { Button, Card, Grid, Group, Modal, Select, Stack, Switch, Text, TextInput, Title } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { showNotification } from "@mantine/notifications";
 import type { TFunction } from "i18next";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useGetSettingsQuery, useUpdateSettingsMutation } from "../../api_client/settings/hooks";
 import type { SiteSettings as SiteSettingsType } from "../../api_client/settings/types";
+import { notification } from "../../service/notifications";
 import { EmailSettings } from "./EmailSettings";
 
 /** What an option's label says about it, after the product name; translated at render time. */
@@ -105,13 +105,7 @@ export function SiteSettings() {
   // quick run of toggles from stacking up toasts.
   const save = (input: Partial<SiteSettingsType>) => {
     saveSettings(input, {
-      onSuccess: () =>
-        showNotification({
-          id: "site-settings-saved",
-          message: t("sitesettings.saved"),
-          color: "teal",
-          autoClose: 1500,
-        }),
+      onSuccess: () => notification.success(t("sitesettings.saved"), { id: "site-settings-saved", autoClose: 1500 }),
     });
   };
 

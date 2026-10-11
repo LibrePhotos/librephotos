@@ -4,7 +4,6 @@
  */
 import "@mantine/core/styles.css";
 import { MantineProvider } from "@mantine/core";
-import type { NotificationData } from "@mantine/notifications";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -12,6 +11,7 @@ import type { SetPhotosCategoryRequest } from "../../api_client/photos/hooks/use
 import type { Photo } from "../../api_client/photos/types";
 import type { User } from "../../api_client/user/types";
 import i18n from "../../i18n";
+import type { ToastOptions } from "../../service/notifications/toast";
 import { defined } from "../../util/defined.test-utils";
 import { CategoryBadge } from "./CategoryBadge";
 import { makePhoto } from "./photoFixture.test-utils";
@@ -24,8 +24,8 @@ const stubs = vi.hoisted(() => {
   const state: { userId: number | null; user: UserStub } = { userId: 1, user };
   return Object.assign(state, {
     mutate: vi.fn<(request: SetPhotosCategoryRequest, options: { onSuccess: () => void }) => void>(),
-    showNotification: vi.fn<(notification: NotificationData) => string>(),
-    hideNotification: vi.fn<(id: string) => void>(),
+    success: vi.fn<(message: React.ReactNode, options?: ToastOptions) => void>(),
+    hide: vi.fn<(id: string) => void>(),
   });
 });
 
@@ -37,10 +37,7 @@ vi.mock("../../api_client/user/hooks/useCurrentUserSelfDetailsQuery", () => ({
   useCurrentUserSelfDetailsQuery: () => ({ data: stubs.user }),
 }));
 vi.mock("../../hooks/useAuth", () => ({ useAuth: () => ({ userId: stubs.userId }) }));
-vi.mock("@mantine/notifications", () => ({
-  showNotification: stubs.showNotification,
-  hideNotification: stubs.hideNotification,
-}));
+vi.mock("../../service/notifications", () => ({ notification: { success: stubs.success, hide: stubs.hide } }));
 
 beforeAll(async () => {
   // jsdom has no matchMedia, MantineProvider needs it
@@ -61,8 +58,8 @@ beforeAll(async () => {
 beforeEach(() => {
   document.body.innerHTML = "";
   stubs.mutate.mockReset();
-  stubs.showNotification.mockReset();
-  stubs.hideNotification.mockReset();
+  stubs.success.mockReset();
+  stubs.hide.mockReset();
   stubs.user = { id: 1, favorite_min_rating: 4, default_timeline_filter: { hide_screenshots: true } };
   stubs.userId = 1;
 });
@@ -97,7 +94,7 @@ async function renderSection(photo: Photo = screenshot) {
 
 // Renders a toast's message the way Mantine would and clicks its Undo.
 async function clickUndo(call: number) {
-  const { message } = defined(stubs.showNotification.mock.calls[call], "the notification call")[0];
+  const [message] = defined(stubs.success.mock.calls[call], "the notification call");
   const toast = document.createElement("div");
   document.body.appendChild(toast);
   await act(async () => {
@@ -169,7 +166,7 @@ describe("CategoryBadge", () => {
     await act(async () => {
       callbacks.onSuccess();
     });
-    expect(stubs.showNotification).toHaveBeenCalledTimes(1);
+    expect(stubs.success).toHaveBeenCalledTimes(1);
 
     // The category was detected: Undo hands the photo back to the detectors.
     await clickUndo(0);
@@ -221,8 +218,11 @@ describe("CategoryBadge", () => {
     await act(async () => {
       defined(stubs.mutate.mock.calls[0], "the mutate call")[1].onSuccess();
     });
-    expect(stubs.hideNotification).toHaveBeenCalledWith("photo-category-undo");
-    expect(defined(stubs.showNotification.mock.calls[0], "the notification call")[0].id).toBe("photo-category-undo");
+    expect(stubs.hide).toHaveBeenCalledWith("photo-category-undo");
+    expect(defined(stubs.success.mock.calls[0], "the notification call")[1]).toMatchObject({
+      id: "photo-category-undo",
+      autoClose: 10000,
+    });
   });
 
   it("says where it shows from the real flags, not the displayed category", async () => {

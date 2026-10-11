@@ -26,6 +26,9 @@ green CI run. To develop against a local backend, copy `.env.development.example
   with its zod schema. In tests, use `defined()` from `src/util/defined.test-utils.ts` when a value
   must be there.
 - Type mocks: `vi.fn<(arg: T) => R>()` or `vi.fn(implementation)`, never a bare `vi.fn()`.
+- Toasts go through `notification.success|error|warning|hide` from `src/service/notifications`, never
+  `@mantine/notifications` (lint bans it; the colours live in `toast.ts`). A message shown from two
+  places gets a named helper there.
 - No `@ts-ignore`, `@ts-expect-error` or `@ts-nocheck`; fix the type.
 - `tsconfig.json` is strict with `noImplicitReturns`, `noImplicitOverride` and `noUncheckedIndexedAccess`
   (an index read is `T | undefined`: guard it, use `?.`, or `defined()` in tests). `allowJs` is off.

@@ -38,13 +38,12 @@ const stubs = vi.hoisted(() => {
     scan: vi.fn<() => void>(),
     rescan: vi.fn<() => void>(),
     scanDirectoryRequired: vi.fn<() => void>(),
-    showNotification: vi.fn<(notification: { message: string }) => void>(),
+    warning: vi.fn<(message: string, options?: { title?: string }) => void>(),
     ...state,
   };
 });
 
 vi.mock("@tanstack/react-router", () => ({ useNavigate: () => stubs.navigate }));
-vi.mock("@mantine/notifications", () => ({ showNotification: stubs.showNotification }));
 vi.mock("../../api_client/api", () => ({ fetchClient: { get: vi.fn<(endpoint: string) => Promise<unknown>>() } }));
 vi.mock("../../api_client/auth", () => ({
   useAccessToken: () => ({ data: { access: { user_id: "1", is_admin: stubs.isAdmin } } }),
@@ -66,7 +65,7 @@ vi.mock("../../api_client/user/hooks/useCurrentUserSelfDetailsQuery", () => ({
 }));
 vi.mock("../../hooks/useAuth", () => ({ useAuth: () => ({ isAuthenticated: true }) }));
 vi.mock("../../service/notifications", () => ({
-  notification: { scanDirectoryRequired: stubs.scanDirectoryRequired },
+  notification: { scanDirectoryRequired: stubs.scanDirectoryRequired, warning: stubs.warning },
 }));
 vi.mock("../../service/use-search", async importOriginal => ({
   ...(await importOriginal<typeof import("../../service/use-search")>()),
@@ -190,9 +189,9 @@ describe("scanning", () => {
 
     expect(stubs.rescan).not.toHaveBeenCalled();
     expect(stubs.navigate).toHaveBeenCalledWith({ to: "/library" });
-    expect(stubs.showNotification).toHaveBeenCalledWith(
-      expect.objectContaining({ message: i18n.t("toasts.scan_directory_setup") })
-    );
+    expect(stubs.warning).toHaveBeenCalledWith(i18n.t("toasts.scan_directory_setup"), {
+      title: i18n.t("toasts.scanphotostitle"),
+    });
   });
 
   it("does nothing while the user details are still loading", async () => {
@@ -203,7 +202,7 @@ describe("scanning", () => {
 
     expect(stubs.scan).not.toHaveBeenCalled();
     expect(stubs.navigate).not.toHaveBeenCalled();
-    expect(stubs.showNotification).not.toHaveBeenCalled();
+    expect(stubs.warning).not.toHaveBeenCalled();
     expect(stubs.scanDirectoryRequired).not.toHaveBeenCalled();
   });
 });

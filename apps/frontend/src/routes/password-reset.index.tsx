@@ -11,7 +11,6 @@ import {
   useComputedColorScheme,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
-import { showNotification } from "@mantine/notifications";
 import { IconMail as Mail } from "@tabler/icons-react";
 import { createFileRoute } from "@tanstack/react-router";
 import React, { useState } from "react";
@@ -19,6 +18,7 @@ import type { FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { useRequestPasswordResetMutation } from "../api_client/auth";
 import { passwordResetError } from "../api_client/auth/passwordResetErrors";
+import { notification } from "../service/notifications";
 import { EMAIL_REGEX } from "../util/util";
 import classes from "./auth.module.css";
 
@@ -58,10 +58,9 @@ function PasswordResetRequestPage(): React.JSX.Element {
           if (reason.kind === "reported") {
             return;
           }
-          showNotification({
-            message: t(reason.kind === "throttled" ? "passwordreset.errorthrottled" : "passwordreset.errorgeneric"),
-            color: "red",
-          });
+          notification.error(
+            t(reason.kind === "throttled" ? "passwordreset.errorthrottled" : "passwordreset.errorgeneric")
+          );
         },
       }
     );

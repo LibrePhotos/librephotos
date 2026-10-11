@@ -152,6 +152,28 @@ export default [
           ],
         },
       ],
+      // Toasts have one colour and one entry point; see service/notifications/toast.ts.
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["@mantine/notifications", "@mantine/notifications/*"],
+              message:
+                "Toasts go through service/notifications (notification.success, error, warning or hide), not @mantine/notifications.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    // The toast layer itself and the app shell (the Notifications provider and its styles) are the
+    // only places that import @mantine/notifications. A later block replaces a rule's options for the
+    // files it matches, so this turns the rule off for those files only.
+    files: ["src/service/notifications/**/*.{ts,tsx}", "src/App.tsx"],
+    rules: {
+      "no-restricted-imports": "off",
     },
   },
   {

@@ -1,5 +1,4 @@
 import { Badge, Box, Button, Group, Menu, Text } from "@mantine/core";
-import { hideNotification, showNotification } from "@mantine/notifications";
 import {
   IconCheck as Check,
   IconChevronDown as ChevronDown,
@@ -17,6 +16,7 @@ import {
 import type { Photo as PhotoType } from "../../api_client/photos/types";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import { useAuth } from "../../hooks/useAuth";
+import { notification } from "../../service/notifications";
 import { savedTimelineFilter, timelineFilterShows } from "../photolist/timelineFilter";
 
 // What the control shows for one photo: the category, who set it, and the
@@ -132,30 +132,25 @@ export function CategoryBadge({ photoDetail }: Props) {
       {
         onError: () => setOptimistic(null),
         onSuccess: () => {
-          hideNotification(UNDO_NOTIFICATION_ID);
+          notification.hide(UNDO_NOTIFICATION_ID);
           if (!undo) return;
-          showNotification({
-            id: UNDO_NOTIFICATION_ID,
-            color: "teal",
-            // Long enough to reach the Undo button; the app default is 3 s.
-            autoClose: 10000,
-            title: t("toasts.setcategorytitle"),
-            message: (
-              <Group justify="space-between" wrap="nowrap">
-                <Text size="sm">{t(`lightbox.category.marked.${next.category}`)}</Text>
-                <Button
-                  size="compact-sm"
-                  variant="subtle"
-                  onClick={() => {
-                    hideNotification(UNDO_NOTIFICATION_ID);
-                    apply(undo, null);
-                  }}
-                >
-                  {t("lightbox.category.undo")}
-                </Button>
-              </Group>
-            ),
-          });
+          // Long enough to reach the Undo button; the app default is 3 s.
+          notification.success(
+            <Group justify="space-between" wrap="nowrap">
+              <Text size="sm">{t(`lightbox.category.marked.${next.category}`)}</Text>
+              <Button
+                size="compact-sm"
+                variant="subtle"
+                onClick={() => {
+                  notification.hide(UNDO_NOTIFICATION_ID);
+                  apply(undo, null);
+                }}
+              >
+                {t("lightbox.category.undo")}
+              </Button>
+            </Group>,
+            { id: UNDO_NOTIFICATION_ID, autoClose: 10000, title: t("toasts.setcategorytitle") }
+          );
         },
       }
     );

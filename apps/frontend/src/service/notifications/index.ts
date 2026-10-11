@@ -5,6 +5,7 @@ import { people } from "./people";
 import { photos } from "./photos";
 import { services } from "./services";
 import { tags } from "./tags";
+import { toast } from "./toast";
 import { user } from "./user";
 import { worker } from "./worker";
 
@@ -18,4 +19,6 @@ export const notification = {
   ...tags,
   ...user,
   ...worker,
+  // For a message that has no named helper: success, warning, error and hide.
+  ...toast,
 };

@@ -6,11 +6,15 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { notification } from ".";
 import i18n from "../../i18n";
+import { toast } from "./toast";
 
-type Shown = { title?: string; message?: string };
+type Shown = { title?: string; message?: string; color?: string; id?: string; autoClose?: number | false };
 
-const { showNotification } = vi.hoisted(() => ({ showNotification: vi.fn<(notification: Shown) => void>() }));
-vi.mock("@mantine/notifications", () => ({ showNotification }));
+const { showNotification, hideNotification } = vi.hoisted(() => ({
+  showNotification: vi.fn<(notification: Shown) => void>(),
+  hideNotification: vi.fn<(id: string) => void>(),
+}));
+vi.mock("@mantine/notifications", () => ({ showNotification, hideNotification }));
 
 const lastShown = (): Shown => {
   const shown = showNotification.mock.calls.at(-1)?.[0];
@@ -24,10 +28,14 @@ beforeAll(async () => {
 
 beforeEach(() => {
   showNotification.mockReset();
+  hideNotification.mockReset();
 });
 
 describe("notifications", () => {
-  it.each(Object.entries(notification))("%s fills in every placeholder", (_name, show) => {
+  // The primitives take any message, so they are tested on their own below.
+  const helpers = Object.entries(notification).filter(([name]) => !(name in toast));
+
+  it.each(helpers)("%s fills in every placeholder", (_name, show) => {
     // An array stands in for both a name and a list of names (taggedPhotos). The arguments
     // fit no notifier's parameters on purpose, so the call is made through Reflect.apply.
     Reflect.apply(show, undefined, [["A"], 2, true]);
@@ -60,5 +68,48 @@ describe("notifications", () => {
     expect(lastShown().title).toBe("Server error");
     expect(lastShown().message).toContain("/photos/");
     expect(lastShown().message).not.toContain("developer tools");
+  });
+});
+
+describe("notification primitives", () => {
+  it.each([
+    ["success", "teal"],
+    ["warning", "orange"],
+    ["error", "red"],
+  ] as const)("%s shows a %s toast", (kind, color) => {
+    notification[kind]("Saved");
+
+    expect(lastShown()).toMatchObject({ message: "Saved", color });
+  });
+
+  it("passes the title, id and autoClose through", () => {
+    notification.success("Moved to Trash", { title: "Photos", id: "photo-undo", autoClose: 10000 });
+
+    expect(lastShown()).toMatchObject({ title: "Photos", id: "photo-undo", autoClose: 10000 });
+  });
+
+  it("keeps a toast open when autoClose is false", () => {
+    notification.error("Upload failed", { autoClose: false });
+
+    expect(lastShown().autoClose).toBe(false);
+  });
+
+  it("leaves the title, id and autoClose out when they are not given", () => {
+    notification.warning("Heads up");
+
+    expect(lastShown()).toEqual({
+      message: "Heads up",
+      color: "orange",
+      title: undefined,
+      id: undefined,
+      autoClose: undefined,
+    });
+  });
+
+  it("hides the toast with the given id", () => {
+    notification.hide("photo-undo");
+
+    expect(hideNotification).toHaveBeenCalledWith("photo-undo");
+    expect(showNotification).not.toHaveBeenCalled();
   });
 });
