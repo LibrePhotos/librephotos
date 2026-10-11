@@ -537,17 +537,24 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
     def _photo_filters(self) -> list[Q]:
         params = self.request.query_params
 
-        # last_modified deliberately replaces every other filter
-        if params.get("last_modified"):
+        last_modified = params.get("last_modified")
+        # For the owner, last_modified deliberately replaces every other
+        # filter. Only reached signed in: get_permissions requires it unless
+        # ``public`` is set.
+        if last_modified and not params.get("public"):
             return [
                 Q(owner=request_user(self.request)),
-                Q(exif_timestamp__gte=params.get("last_modified")),
+                Q(exif_timestamp__gte=last_modified),
             ]
-        return (
+        filters = (
             self._ownership_filters()
             + self._media_flag_filters()
             + self._grouping_filters()
         )
+        # The public view, anonymous or not, stays scoped to public photos.
+        if last_modified:
+            filters.append(Q(exif_timestamp__gte=last_modified))
+        return filters
 
     def _paginate_photos(self, photo_qs: QuerySet[Photo]) -> tuple[Page[Photo], int]:
         size = self.request.query_params.get("size") or 100
@@ -711,18 +718,19 @@ class AlbumDateListViewSet(ListViewSet):
                     photos__faces__deleted=False,
                 )
             )
-        if self.request.query_params.get("last_modified"):
+        last_modified = self.request.query_params.get("last_modified")
+        if last_modified and self.request.query_params.get("public"):
+            # The public view, anonymous or not, stays scoped to public photos.
+            filter.append(Q(photos__last_modified__gte=last_modified))
+        elif last_modified:
+            # For the owner it deliberately replaces every other filter. Only
+            # reached signed in: get_permissions requires it unless ``public``
+            # is set.
             owner = request_user(self.request)
             filter = []
             filter.append(Q(owner=owner))
             filter.append(Q(photos__owner=owner))
-            filter.append(
-                Q(
-                    photos__last_modified__gte=self.request.query_params.get(
-                        "last_modified"
-                    )
-                )
-            )
+            filter.append(Q(photos__last_modified__gte=last_modified))
 
         # Only these reach a photo's many files or faces, or the search fields,
         # through a join that repeats the photo; otherwise each row is one
