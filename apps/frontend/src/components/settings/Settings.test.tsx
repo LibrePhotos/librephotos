@@ -1,6 +1,10 @@
 /**
  * The Settings page no longer offers the two face confidence inputs (#2196):
  * nothing on the server read them. The face options card stays.
+ *
+ * The Caption Context card reads its title and main switch from the
+ * settings.captioncontext* keys (#2219), so translations made for the old
+ * "Large Language Model" wording no longer show up there.
  */
 import { MantineProvider } from "@mantine/core";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -106,5 +110,13 @@ describe("Settings face options", () => {
 
   it("no longer offers the unknown - other faces confidence input", () => {
     expect(container.textContent).not.toContain("Confidence when Matching Unknown - Other Faces");
+  });
+});
+
+describe("Settings caption context", () => {
+  it("labels the card and its main switch with the caption context strings", () => {
+    expect(container.textContent).toContain("Caption Context");
+    expect(container.textContent).toContain("Tell the captioning model what LibrePhotos knows about a photo");
+    expect(container.textContent).not.toContain("settings.");
   });
 });

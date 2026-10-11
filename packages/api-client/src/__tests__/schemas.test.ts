@@ -43,10 +43,18 @@ describe("schema parsing against fixtures", () => {
     const parsed = User.parse(userFixture);
     expect(parsed.username).toBe("admin");
     // schema defaults for fields the fixture omits
-    expect(parsed.stack_raw_jpeg).toBe(true);
     expect(parsed.text_alignment).toBe("right");
     expect(parsed.duplicate_sensitivity).toBe("normal");
     expect(parsed.default_timeline_filter).toEqual({});
+  });
+
+  // #2219: read-only and unused; the server stops sending them once the
+  // columns are dropped, so they get no default and may be missing.
+  it("parses a user record with and without the deprecated RAW flags", () => {
+    expect(User.parse(userFixture).stack_raw_jpeg).toBeUndefined();
+    const withFlags = User.parse({ ...userFixture, skip_raw_files: false, stack_raw_jpeg: true });
+    expect(withFlags.skip_raw_files).toBe(false);
+    expect(withFlags.stack_raw_jpeg).toBe(true);
   });
 
   // #2196: the server stops sending these once the fields are dropped; a

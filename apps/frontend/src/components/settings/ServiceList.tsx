@@ -16,7 +16,6 @@ const SERVICE_LABELS: Record<string, string> = {
   image_similarity: "Image Similarity",
   thumbnail: "Thumbnail",
   face_recognition: "Face Recognition",
-  llm: "LLM",
   image_captioning: "Image Captioning",
   exif: "EXIF",
   tags: "Tags and Search",
