@@ -221,9 +221,8 @@ class RouterVerbsTest(SimpleTestCase):
 
         planted = routers.DefaultRouter()
         for prefix, viewset, basename in router.registry:
-            if viewset is AlbumThingViewSet:
-                viewset = PlantedViewSet
-            planted.register(prefix, viewset, basename=basename)
+            served = PlantedViewSet if viewset is AlbumThingViewSet else viewset
+            planted.register(prefix, served, basename=basename)
 
         problems = router_verb_drift(planted, ROUTER_VERBS)
 
