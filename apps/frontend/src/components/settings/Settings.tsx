@@ -1,17 +1,4 @@
-import {
-  Card,
-  Container,
-  Flex,
-  Group,
-  NumberInput,
-  Radio,
-  Select,
-  Space,
-  Stack,
-  Switch,
-  Text,
-  Title,
-} from "@mantine/core";
+import { Card, Container, Flex, Group, Radio, Select, Space, Stack, Switch, Text, Title } from "@mantine/core";
 import { IconSettings as SettingIcon } from "@tabler/icons-react";
 import { useQueryClient } from "@tanstack/react-query";
 import React, { useEffect, useState } from "react";
@@ -186,24 +173,6 @@ export function Settings() {
         </Card>
         <Card shadow="md">
           <Title order={4} mb={16}>
-            {t("settings.albumoptions")}
-          </Title>
-          <NumberInput
-            label={t("settings.inferredfacesconfidence")}
-            description={t("settings.inferredfacesconfidencehelp")}
-            min={0}
-            max={1.0}
-            placeholder="0.90"
-            decimalScale={2}
-            value={typeof editedUserDetails.confidence_person === "number" ? editedUserDetails.confidence_person : 0}
-            hideControls
-            onChange={value => {
-              setEditedUserDetails({ ...editedUserDetails, confidence_person: typeof value === "number" ? value : 0 });
-            }}
-          />
-        </Card>
-        <Card shadow="md">
-          <Title order={4} mb={16}>
             {t("settings.face_options")}
           </Title>
           <Stack gap="md">
@@ -259,26 +228,6 @@ export function Settings() {
                 <Radio value="0.2" label={t("settings.size.veryhigh")} />
               </Group>
             </Radio.Group>
-            <NumberInput
-              label={t("settings.unknown_faces_confidence")}
-              description={t("settings.unknown_faces_confidence_help")}
-              min={0}
-              max={1.0}
-              placeholder="0.50"
-              decimalScale={2}
-              value={
-                typeof editedUserDetails.confidence_unknown_face === "number"
-                  ? editedUserDetails.confidence_unknown_face
-                  : 0
-              }
-              hideControls
-              onChange={value => {
-                setEditedUserDetails({
-                  ...editedUserDetails,
-                  confidence_unknown_face: typeof value === "number" ? value : 0,
-                });
-              }}
-            />
             <Switch
               label={t("settings.save_face_tags_to_disk")}
               description={t("settings.save_face_tags_to_disk_help")}

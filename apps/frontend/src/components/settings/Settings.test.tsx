@@ -1,0 +1,110 @@
+/**
+ * The Settings page no longer offers the two face confidence inputs (#2196):
+ * nothing on the server read them. The face options card stays.
+ */
+import { MantineProvider } from "@mantine/core";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import React, { act } from "react";
+import { createRoot } from "react-dom/client";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import i18n from "../../i18n";
+import { Settings } from "./Settings";
+
+const mocks = vi.hoisted(() => ({
+  user: {} as Record<string, unknown>,
+  mutate: vi.fn<(user: unknown) => void>(),
+}));
+
+vi.mock("../../api_client/auth", () => ({
+  useAccessToken: () => ({ data: { access: { user_id: 1 } } }),
+}));
+vi.mock("../../api_client/settings", () => ({
+  useFetchTimezonesQuery: () => ({ data: ["UTC"] }),
+}));
+vi.mock("../../api_client/user/hooks", () => ({
+  UserSelfDetailsQueryKeys: ["user-self-details"],
+  useFetchUserSelfDetailsQuery: () => ({ data: mocks.user }),
+  useUpdateUserMutation: () => ({ mutate: mocks.mutate, isPending: false }),
+}));
+vi.mock("./ConfigBurstDetection", () => ({ ConfigBurstDetection: () => null }));
+vi.mock("./ConfigDateTime", () => ({ ConfigDateTime: () => null }));
+vi.mock("./SaveChangesDialog", () => ({ SaveChangesDialog: () => null }));
+
+beforeAll(async () => {
+  globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+  // The assertions read the English labels.
+  await i18n.changeLanguage("en");
+  window.matchMedia = (query: string): MediaQueryList => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => false,
+  });
+  // jsdom has no ResizeObserver, Mantine's ScrollArea needs it
+  globalThis.ResizeObserver = class ResizeObserverStub implements ResizeObserver {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  };
+});
+
+let container: HTMLDivElement;
+let root: ReturnType<typeof createRoot>;
+
+beforeEach(async () => {
+  mocks.mutate.mockReset();
+  mocks.user = {
+    id: 1,
+    username: "admin",
+    email: "admin@example.com",
+    confidence: 0.1,
+    confidence_person: 0.9,
+    confidence_unknown_face: 0.5,
+    min_cluster_size: 0,
+    min_samples: 1,
+    cluster_selection_epsilon: 0.1,
+    save_face_tags_to_disk: false,
+    llm_settings: {},
+    default_timezone: "UTC",
+    default_timeline_filter: {},
+  };
+  container = document.createElement("div");
+  document.body.appendChild(container);
+  root = createRoot(container);
+  await act(async () => {
+    root.render(
+      <QueryClientProvider client={new QueryClient()}>
+        <MantineProvider>
+          <Settings />
+        </MantineProvider>
+      </QueryClientProvider>
+    );
+  });
+});
+
+afterEach(async () => {
+  await act(async () => {
+    root.unmount();
+  });
+  container.remove();
+});
+
+describe("Settings face options", () => {
+  it("still renders the face options card", () => {
+    expect(container.textContent).toContain("Minimum Samples");
+    expect(container.textContent).toContain("Cluster Selection Epsilon");
+  });
+
+  it("no longer offers the inferred faces confidence input", () => {
+    expect(container.textContent).not.toContain("Inferred faces confidence");
+    expect(container.textContent).not.toContain("Album Options");
+  });
+
+  it("no longer offers the unknown - other faces confidence input", () => {
+    expect(container.textContent).not.toContain("Confidence when Matching Unknown - Other Faces");
+  });
+});

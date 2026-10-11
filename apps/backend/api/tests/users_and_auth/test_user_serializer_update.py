@@ -30,6 +30,7 @@ from unittest.mock import MagicMock, patch
 
 from django.test import TestCase, override_settings
 from rest_framework.exceptions import ValidationError
+from rest_framework.test import APIClient
 
 from api.models import User
 from api.serializers.user import ManageUserSerializer, UserSerializer
@@ -125,19 +126,47 @@ class UserSerializerUpdateTest(TestCase):
     def test_face_and_clustering_fields_are_saved(self):
         self._update(
             confidence=0.42,
-            confidence_person=0.55,
             min_cluster_size=7,
-            confidence_unknown_face=0.33,
             min_samples=3,
             cluster_selection_epsilon=0.11,
         )
         reloaded = User.objects.get(id=self.user.id)
         self.assertAlmostEqual(reloaded.confidence, 0.42)
-        self.assertAlmostEqual(reloaded.confidence_person, 0.55)
         self.assertEqual(reloaded.min_cluster_size, 7)
-        self.assertAlmostEqual(reloaded.confidence_unknown_face, 0.33)
         self.assertEqual(reloaded.min_samples, 3)
         self.assertAlmostEqual(reloaded.cluster_selection_epsilon, 0.11)
+
+    def test_unused_face_confidence_fields_are_not_written(self):
+        # #2196: nothing reads confidence_person or confidence_unknown_face,
+        # so the serializer ignores them even when they are passed in.
+        before = User.objects.get(id=self.user.id)
+        self._update(confidence_person=0.12, confidence_unknown_face=0.87)
+        reloaded = User.objects.get(id=self.user.id)
+        self.assertEqual(reloaded.confidence_person, before.confidence_person)
+        self.assertEqual(
+            reloaded.confidence_unknown_face, before.confidence_unknown_face
+        )
+
+    def test_patch_leaves_unused_face_confidence_fields_unchanged(self):
+        # Through the API, where read-only fields are dropped during validation.
+        client = APIClient()
+        client.force_authenticate(user=self.user)
+        before = User.objects.get(id=self.user.id)
+        response = client.patch(
+            f"/api/user/{self.user.id}/",
+            data={"confidence_person": 0.12, "confidence_unknown_face": 0.87},
+            format="json",
+        )
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(response.json()["confidence_person"], before.confidence_person)
+        self.assertEqual(
+            response.json()["confidence_unknown_face"], before.confidence_unknown_face
+        )
+        reloaded = User.objects.get(id=self.user.id)
+        self.assertEqual(reloaded.confidence_person, before.confidence_person)
+        self.assertEqual(
+            reloaded.confidence_unknown_face, before.confidence_unknown_face
+        )
 
     def test_display_and_disk_fields_are_saved(self):
         self._update(

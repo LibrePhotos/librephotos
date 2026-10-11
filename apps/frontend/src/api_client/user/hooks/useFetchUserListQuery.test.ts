@@ -69,7 +69,6 @@ describe("issue #1888 — non-admin user list popup", () => {
         expect.arrayContaining([
           "email",
           "confidence",
-          "confidence_person",
           "transcode_videos",
           "semantic_search_topk",
           "date_joined",
@@ -79,7 +78,6 @@ describe("issue #1888 — non-admin user list popup", () => {
           "save_metadata_to_disk",
           "datetime_rules",
           "default_timezone",
-          "confidence_unknown_face",
           "min_cluster_size",
           "min_samples",
           "cluster_selection_epsilon",

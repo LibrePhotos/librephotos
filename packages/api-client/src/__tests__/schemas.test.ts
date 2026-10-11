@@ -49,6 +49,18 @@ describe("schema parsing against fixtures", () => {
     expect(parsed.default_timeline_filter).toEqual({});
   });
 
+  // #2196: the server stops sending these once the fields are dropped; a
+  // released mobile build must still parse the user.
+  it("parses a user record without the unused face confidence fields", () => {
+    const withoutFaceFields: Record<string, unknown> = { ...userFixture };
+    delete withoutFaceFields.confidence_person;
+    delete withoutFaceFields.confidence_unknown_face;
+    const parsed = User.parse(withoutFaceFields);
+    expect(parsed.username).toBe("admin");
+    expect(parsed.confidence_person).toBeUndefined();
+    expect(parsed.confidence_unknown_face).toBeUndefined();
+  });
+
   it("keeps the valid keys of a saved timeline filter and drops the rest", () => {
     const parsed = User.parse({
       ...userFixture,

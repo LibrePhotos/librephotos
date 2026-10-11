@@ -73,18 +73,13 @@ See [Image Captioning](../image-captioning.md) for the captioning model itself.
 
 - `Slideshow interval` sets the time in seconds between photos when using slideshow mode in the lightbox.
 
-### Album Options
-
-- `Inferred faces confidence` set the value, which inferred faces need to have to be shown in person albums.
-
 ### Face Options
 
-Most of these settings control how [face clustering](../face-recognition.md) groups the faces in your library, which is what you work with when labelling people.
+Most of these settings control how [face clustering](../face-recognition.md) groups the faces in your library, which is what you work with when labelling people. How sure a suggested match must be is set on the face dashboard with its **% confident** filter, not here.
 
 - `Minimum Cluster Size` changes how clusters form; a smaller value results in more clusters. Options are `Auto`, `2`, `4`, `8` and `16`. Default `Auto`, which lets LibrePhotos choose for you.
 - `Minimum Samples` changes how conservative clustering is; a smaller value is less conservative. Options are `1`, `2`, `4`, `8` and `16`. Default `1`
 - `Cluster Selection Epsilon` determines which clusters get merged; a higher value merges more clusters. Options are `Off` (0), `Small` (0.025), `Normal` (0.05), `High` (0.1) and `Very High` (0.2). Default `Normal`
-- `Confidence when Matching Unknown - Other Faces` a confidence level between 0 and 1. Faces in the "Unknown - Other" group are matched to a named person only when the confidence is higher than this value; `0` disables the feature. Default `0.50`
 - `Write face tags to image files` when enabled, face labels are written as XMP MWG-RS region tags to your image files (or to a sidecar file, depending on `Synchronize metadata to disk`) whenever you label a face, so face data stays portable across apps like Lightroom, digiKam and XnView. Default `Off`
 
 ### Public Sharing Defaults
