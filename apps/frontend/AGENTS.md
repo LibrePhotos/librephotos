@@ -35,3 +35,4 @@ green CI run. To develop against a local backend, copy `.env.development.example
   locales; Weblate fills them in.
 - Colours come from the Mantine theme or CSS variables so dark mode works.
 - Every page header is `components/PageHeader` (the page's one `h1`); `PageHeader.test.tsx` fails on any other `order={1}` or `<h1` in source.
+- Dialogs are components: a `*Modal.tsx` with `opened` and `onClose` props (under `components/modals` when shared, next to its feature otherwise), opened by its parent with `useDisclosure` from `@mantine/hooks`. Lint bans `<Modal` in `src/routes`, `useState` for open state and `@mantine/modals`, so there is one way to open a dialog.

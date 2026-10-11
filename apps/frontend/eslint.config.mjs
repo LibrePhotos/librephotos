@@ -7,6 +7,27 @@ import react from "eslint-plugin-react";
 import reactHooks from "eslint-plugin-react-hooks";
 import globals from "globals";
 
+// Restrictions shared by the ban rules below. Rule options are per rule, and a later config object
+// for the same files replaces them, so the lists are built from these constants.
+const typedMockBan = {
+  // vi.fn() is a Mock<(...args: any[]) => any>; give it the signature it stands in for.
+  selector:
+    "CallExpression[callee.object.name='vi'][callee.property.name='fn'][arguments.length=0]:not([typeArguments])",
+  message: "Type the mock: vi.fn<(arg: T) => R>() or vi.fn(implementation).",
+};
+
+const openStateBan = {
+  // Open state (a dialog, popover, menu, tooltip or lightbox) is a useDisclosure, one model throughout.
+  selector:
+    "VariableDeclarator[id.type='ArrayPattern'][id.elements.0.name=/(open|opened|modal|dialog)$/i][init.callee.name='useState']",
+  message: "Open state is useDisclosure: const [isOpen, { open, close }] = useDisclosure(false).",
+};
+
+const routeModalBan = {
+  selector: "JSXOpeningElement[name.name='Modal']",
+  message: "Move the dialog into a *Modal component (components/album or components/modals) and open it with useDisclosure.",
+};
+
 export default [
   {
     ignores: ["node_modules/**", "**/dist/**", "**/build/**", "coverage/**", ".tanstack/**"],
@@ -117,15 +138,28 @@ export default [
       "@typescript-eslint/no-unsafe-function-type": "error",
       "@typescript-eslint/no-empty-object-type": "error",
       "@typescript-eslint/no-wrapper-object-types": "error",
-      "no-restricted-syntax": [
+      "no-restricted-syntax": ["error", typedMockBan, openStateBan],
+      // Dialogs are declarative components; the imperative @mantine/modals API is not used.
+      "no-restricted-imports": [
         "error",
         {
-          // vi.fn() is a Mock<(...args: any[]) => any>; give it the signature it stands in for.
-          selector:
-            "CallExpression[callee.object.name='vi'][callee.property.name='fn'][arguments.length=0]:not([typeArguments])",
-          message: "Type the mock: vi.fn<(arg: T) => R>() or vi.fn(implementation).",
+          paths: [
+            {
+              name: "@mantine/modals",
+              message: "Dialogs are components opened with useDisclosure, not imperative modals.open*().",
+            },
+          ],
         },
       ],
+    },
+  },
+  {
+    // A route file holds no dialog: the Modal, its form and its state move to a *Modal component
+    // (components/album next to the feature, or components/modals when shared). An override
+    // replaces the options of a rule, so it lists the other restrictions again.
+    files: ["src/routes/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-syntax": ["error", typedMockBan, openStateBan, routeModalBan],
     },
   },
   {
