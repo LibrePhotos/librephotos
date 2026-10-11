@@ -137,11 +137,11 @@ class BuildIndexForUserGuardTests(TestCase):
         # The index was still created before the failure.
         self.assertIn(7, self.index.indices)
 
-    def test_non_int_user_id_raises_type_error_on_happy_path(self):
-        # The trailing log line uses "%d" % user_id.
-        with self.assertRaises(TypeError):
-            self.index.build_index_for_user("bob", ["h1"], [vec(1.0)])
-        # ... but the embedding was already added before the log call.
+    def test_non_int_user_id_does_not_break_the_log_line(self):
+        # The trailing log line used to format eagerly ("%d" % user_id) and
+        # raised TypeError after the embedding was added; it now passes lazy
+        # arguments to the logger.
+        self.index.build_index_for_user("bob", ["h1"], [vec(1.0)])
         self.assertEqual(self.index.indices["bob"].ntotal, 1)
         self.assertEqual(self.index.image_hashes["bob"], ["h1"])
 
