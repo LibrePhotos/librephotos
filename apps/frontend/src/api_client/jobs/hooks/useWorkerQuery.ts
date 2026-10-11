@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient } from "../../api";
+import { pollWhile } from "../../polling";
 import { WorkerAvailabilityResponse } from "../types";
 
 export const WorkerQueryKeys = ["worker"] as const;
@@ -16,6 +17,8 @@ export const useWorkerQuery = (options: UseWorkerQueryOptions = {}) =>
       const response = await fetchClient.get("/rqavailable/");
       return parseWithNotification(WorkerAvailabilityResponse, response, "Failed to parse worker availability");
     },
-    refetchInterval: 2000, // Poll every 2 seconds
+    // Every two seconds while a job runs (the progress ring follows it); otherwise only often enough
+    // to notice a job started elsewhere.
+    refetchInterval: pollWhile<WorkerAvailabilityResponse>(worker => !worker.queue_can_accept_job),
     enabled: options.enabled ?? true,
   });

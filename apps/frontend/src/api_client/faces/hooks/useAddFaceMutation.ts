@@ -8,6 +8,7 @@ import { parseWithNotification } from "../../../util/zodUtils";
 import { PeopleAlbumsQueryKeys } from "../../albums/hooks/useFetchPeopleAlbumsQuery";
 import { ApiError, fetchClient, queryClient } from "../../api";
 import { PhotoDetailsQueryKeys } from "../../photos/hooks/useFetchPhotoDetailsQuery";
+import { invalidateAfter } from "../../polling";
 import { CountStatsQueryKeys } from "../../stats/hooks/useFetchCountStatsQuery";
 import { FacesQueryKeys } from "./useFetchFacesQuery";
 import { IncompleteFacesQueryKeys } from "./useFetchIncompleteFacesQuery";
@@ -85,12 +86,12 @@ export const useAddFaceMutation = () =>
 
       // Same delay the other face mutations use, for the writes that follow the
       // response (face count, cover photo, search captions).
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: IncompleteFacesQueryKeys });
-        queryClient.invalidateQueries({ queryKey: FacesQueryKeys });
-        queryClient.invalidateQueries({ queryKey: PeopleAlbumsQueryKeys });
-        queryClient.invalidateQueries({ queryKey: CountStatsQueryKeys });
-        queryClient.invalidateQueries({ queryKey: PhotoDetailsQueryKeys });
-      }, 100);
+      invalidateAfter(queryClient, [
+        IncompleteFacesQueryKeys,
+        FacesQueryKeys,
+        PeopleAlbumsQueryKeys,
+        CountStatsQueryKeys,
+        PhotoDetailsQueryKeys,
+      ]);
     },
   });

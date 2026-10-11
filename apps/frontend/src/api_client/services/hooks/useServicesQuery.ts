@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient } from "../../api";
+import { POLL_IDLE_MS } from "../../polling";
 import { ServiceHealthResponse, ServicesListResponse } from "../types";
 
 export const ServicesQueryKeys = ["services"] as const;
@@ -31,6 +32,6 @@ export const useServicesHealthQuery = (serviceNames: string[], options?: { enabl
       await Promise.all(healthChecks);
       return results;
     },
-    refetchInterval: 15000,
+    refetchInterval: POLL_IDLE_MS,
     enabled: (options?.enabled ?? true) && serviceNames.length > 0,
   });

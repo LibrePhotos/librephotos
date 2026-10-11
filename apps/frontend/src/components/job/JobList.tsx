@@ -34,7 +34,7 @@ export function JobList({ variant = "admin" }: IJobList) {
   const [pageSize] = useState(10);
   const mine = variant === "mine";
 
-  const { data: jobs, isLoading } = useJobsQuery({ page: activePage, pageSize, mine }, { pollingInterval: 2000 });
+  const { data: jobs, isLoading } = useJobsQuery({ page: activePage, pageSize, mine });
 
   useEffect(() => {
     if (!jobs) {

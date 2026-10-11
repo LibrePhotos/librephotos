@@ -71,6 +71,19 @@ const dateSyntaxBans = [
     message: "Parse dates through util/dateUtils, not new Date(value).",
   },
 ];
+// A poll cadence is a named interval from api_client/polling.ts. A number inside the property's
+// value counts too, so `q => (busy ? 2000 : false)` is caught as well.
+const pollIntervalBan = {
+  selector: "Property[key.name=/^(refetchInterval|pollingInterval)$/] Literal[raw=/^[0-9]/]",
+  message: "Poll with pollWhile(...) or a POLL_*_MS constant from api_client/polling.ts, not a number.",
+};
+
+// Timers in src/api_client belong to the polling module (pollUntil, invalidateAfter).
+const apiClientTimerBan = {
+  selector:
+    "CallExpression[callee.name=/^(setTimeout|setInterval)$/], CallExpression[callee.object.name='window'][callee.property.name=/^(setTimeout|setInterval)$/]",
+  message: "Use pollUntil or invalidateAfter from api_client/polling.ts instead of a raw timer.",
+};
 
 // Browser storage is read and written through util/storage, which owns the keys, the failure
 // handling and the one-time move from an old key. Tests may set stored values up directly.
@@ -202,7 +215,7 @@ export default [
       "@typescript-eslint/no-unsafe-function-type": "error",
       "@typescript-eslint/no-empty-object-type": "error",
       "@typescript-eslint/no-wrapper-object-types": "error",
-      "no-restricted-syntax": ["error", typedMockBan, openStateBan, ...dateSyntaxBans],
+      "no-restricted-syntax": ["error", typedMockBan, openStateBan, pollIntervalBan, ...dateSyntaxBans],
       "no-restricted-globals": ["error", ...storageGlobalBans, ...eventGlobalBans],
       "no-restricted-properties": ["error", ...storagePropertyBans, windowEventBan],
       // Dialogs are declarative components; the imperative @mantine/modals API is not used.
@@ -240,7 +253,23 @@ export default [
     // replaces the options of a rule, so it lists the other restrictions again.
     files: ["src/routes/**/*.{ts,tsx}"],
     rules: {
-      "no-restricted-syntax": ["error", typedMockBan, openStateBan, routeModalBan, ...dateSyntaxBans],
+      "no-restricted-syntax": ["error", typedMockBan, openStateBan, pollIntervalBan, routeModalBan, ...dateSyntaxBans],
+    },
+  },
+  {
+    // The polling module is the one place that sets timers. Tests may wait on real timers; the
+    // polling tests use fake ones. Restates the options of the rules it matches, like the route block.
+    files: ["src/api_client/**/*.{ts,tsx}"],
+    ignores: ["src/api_client/polling.ts", "src/api_client/**/*.test.{ts,tsx}"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        typedMockBan,
+        openStateBan,
+        pollIntervalBan,
+        apiClientTimerBan,
+        ...dateSyntaxBans,
+      ],
     },
   },
   {
