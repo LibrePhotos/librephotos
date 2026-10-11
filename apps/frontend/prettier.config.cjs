@@ -8,8 +8,6 @@ module.exports = {
   arrowParens: "avoid",
   plugins: [require.resolve("@ianvs/prettier-plugin-sort-imports")],
   importOrder: ["wdyr", "<THIRD_PARTY_MODULES>", "^[./]"],
-  importOrderSeparation: true,
-  importOrderSortSpecifiers: true,
   overrides: [
     {
       files: "*.{json,css,scss}",

@@ -2,8 +2,9 @@
   position: relative;
   padding: 0;
   overflow: hidden;
-  background: linear-gradient(135deg, 
-    var(--mantine-color-dark-8) 0%, 
+  background: linear-gradient(
+    135deg,
+    var(--mantine-color-dark-8) 0%,
     var(--mantine-color-dark-7) 50%,
     color-mix(in srgb, var(--mantine-color-blue-9) 15%, var(--mantine-color-dark-7)) 100%
   );
@@ -12,8 +13,9 @@
 }
 
 [data-mantine-color-scheme="light"] .container {
-  background: linear-gradient(135deg, 
-    var(--mantine-color-gray-0) 0%, 
+  background: linear-gradient(
+    135deg,
+    var(--mantine-color-gray-0) 0%,
     var(--mantine-color-gray-1) 50%,
     color-mix(in srgb, var(--mantine-color-blue-1) 30%, var(--mantine-color-gray-1)) 100%
   );
@@ -35,7 +37,7 @@
   border: 1px solid color-mix(in srgb, var(--mantine-color-dark-4) 60%, transparent);
   border-radius: 999px;
   padding: 6px 10px;
-  box-shadow: 
+  box-shadow:
     0 4px 24px rgba(0, 0, 0, 0.3),
     0 1px 2px rgba(0, 0, 0, 0.2),
     inset 0 1px 0 rgba(255, 255, 255, 0.05);
@@ -44,7 +46,7 @@
 [data-mantine-color-scheme="light"] .controlsToolbar {
   background: color-mix(in srgb, white 92%, transparent);
   border-color: color-mix(in srgb, var(--mantine-color-gray-3) 80%, transparent);
-  box-shadow: 
+  box-shadow:
     0 4px 24px rgba(0, 0, 0, 0.08),
     0 1px 3px rgba(0, 0, 0, 0.06),
     inset 0 1px 0 rgba(255, 255, 255, 0.8);
@@ -91,7 +93,7 @@
   border: 1px solid color-mix(in srgb, var(--mantine-color-dark-4) 60%, transparent);
   border-radius: 24px;
   padding: 6px;
-  box-shadow: 
+  box-shadow:
     0 4px 24px rgba(0, 0, 0, 0.3),
     0 1px 2px rgba(0, 0, 0, 0.2),
     inset 0 1px 0 rgba(255, 255, 255, 0.05);
@@ -100,7 +102,7 @@
 [data-mantine-color-scheme="light"] .zoomControls {
   background: color-mix(in srgb, white 92%, transparent);
   border-color: color-mix(in srgb, var(--mantine-color-gray-3) 80%, transparent);
-  box-shadow: 
+  box-shadow:
     0 4px 24px rgba(0, 0, 0, 0.08),
     0 1px 3px rgba(0, 0, 0, 0.06),
     inset 0 1px 0 rgba(255, 255, 255, 0.8);
@@ -274,7 +276,7 @@
   border: 1px solid color-mix(in srgb, var(--mantine-color-dark-4) 60%, transparent);
   border-radius: 12px;
   padding: 10px 14px;
-  box-shadow: 
+  box-shadow:
     0 8px 32px rgba(0, 0, 0, 0.35),
     0 2px 8px rgba(0, 0, 0, 0.2),
     inset 0 1px 0 rgba(255, 255, 255, 0.05);
@@ -297,7 +299,7 @@
 [data-mantine-color-scheme="light"] .tooltip {
   background: color-mix(in srgb, white 95%, transparent);
   border-color: color-mix(in srgb, var(--mantine-color-gray-3) 80%, transparent);
-  box-shadow: 
+  box-shadow:
     0 8px 32px rgba(0, 0, 0, 0.12),
     0 2px 8px rgba(0, 0, 0, 0.06),
     inset 0 1px 0 rgba(255, 255, 255, 0.9);
@@ -337,4 +339,3 @@
 [data-mantine-color-scheme="light"] .tooltipHint {
   border-top-color: color-mix(in srgb, var(--mantine-color-gray-3) 60%, transparent);
 }
-

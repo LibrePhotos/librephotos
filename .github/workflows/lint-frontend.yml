@@ -39,6 +39,10 @@ jobs:
           cache-dependency-path: apps/frontend/yarn.lock
       - name: install dependencies
         run: yarn install --frozen-lockfile --network-timeout 1000000
+      # Prettier over the web app and packages/api-client (one config for both).
+      # Runs before the e2e install so e2e/node_modules does not exist yet.
+      - name: format
+        run: yarn run format:check
       # lint:error also lints e2e/, whose types come from its own dependencies.
       - name: install e2e dependencies
         run: yarn --cwd e2e install --frozen-lockfile --network-timeout 1000000
