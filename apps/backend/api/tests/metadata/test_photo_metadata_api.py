@@ -424,9 +424,7 @@ class PhotoMetadataRevertTestCase(APITestCase):
         )
 
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(
-            MetadataEdit.objects.filter(photo=self.photo).count(), before
-        )
+        self.assertEqual(MetadataEdit.objects.filter(photo=self.photo).count(), before)
 
     def test_reverting_an_edit_of_a_non_editable_field_is_refused(self):
         edit = MetadataEdit.objects.create(
@@ -445,6 +443,89 @@ class PhotoMetadataRevertTestCase(APITestCase):
         self.assertFalse(
             MetadataEdit.objects.filter(photo=self.photo).exclude(pk=edit.pk).exists()
         )
+
+    def _keyword_edits(self) -> tuple[MetadataEdit, MetadataEdit]:
+        """Two keyword edits, the second one a minute after the first."""
+        older = MetadataEdit.objects.create(
+            photo=self.photo,
+            user=self.user,
+            field_name="keywords",
+            old_value=[],
+            new_value=["beach"],
+        )
+        newer = MetadataEdit.objects.create(
+            photo=self.photo,
+            user=self.user,
+            field_name="keywords",
+            old_value=["beach"],
+            new_value=["beach", "sunset"],
+        )
+        # Spell the order out: two creates can share a clock tick.
+        now = timezone.now()
+        MetadataEdit.objects.filter(pk=older.pk).update(
+            created_at=now - timedelta(minutes=1)
+        )
+        MetadataEdit.objects.filter(pk=newer.pk).update(created_at=now)
+        self.metadata.keywords = ["beach", "sunset"]
+        self.metadata.save()
+        return older, newer
+
+    def test_reverting_an_edit_superseded_by_a_later_one_is_a_conflict(self):
+        """Reverting the older edit would silently drop the newer one."""
+        older, _ = self._keyword_edits()
+        before = MetadataEdit.objects.filter(photo=self.photo).count()
+
+        response = self.client.post(
+            f"/api/photos/{self.photo.pk}/metadata/revert/{older.id}/"
+        )
+
+        self.assertEqual(response.status_code, 409)
+        self.metadata.refresh_from_db()
+        self.assertEqual(self.metadata.keywords, ["beach", "sunset"])
+        self.assertEqual(MetadataEdit.objects.filter(photo=self.photo).count(), before)
+
+    def test_force_reverts_a_superseded_edit(self):
+        older, _ = self._keyword_edits()
+
+        response = self.client.post(
+            f"/api/photos/{self.photo.pk}/metadata/revert/{older.id}/?force=1"
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.metadata.refresh_from_db()
+        self.assertEqual(self.metadata.keywords, [])
+
+    def test_reverting_the_latest_edit_of_a_field_needs_no_force(self):
+        _, newer = self._keyword_edits()
+
+        response = self.client.post(
+            f"/api/photos/{self.photo.pk}/metadata/revert/{newer.id}/"
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.metadata.refresh_from_db()
+        self.assertEqual(self.metadata.keywords, ["beach"])
+
+    def test_a_later_edit_of_another_field_is_no_conflict(self):
+        older, newer = self._keyword_edits()
+        MetadataEdit.objects.filter(pk=newer.pk).update(field_name="title")
+
+        response = self.client.post(
+            f"/api/photos/{self.photo.pk}/metadata/revert/{older.id}/"
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+    def test_a_later_revert_all_supersedes_the_edit(self):
+        """Restore-from-file replaced the value the edit wrote."""
+        older, newer = self._keyword_edits()
+        MetadataEdit.objects.filter(pk=newer.pk).update(field_name="_all")
+
+        response = self.client.post(
+            f"/api/photos/{self.photo.pk}/metadata/revert/{older.id}/"
+        )
+
+        self.assertEqual(response.status_code, 409)
 
 
 class PhotoMetadataRevertAllTestCase(APITestCase):
