@@ -1,8 +1,8 @@
-"""Tests for the migration that drops two unused leftovers (0155).
+"""Tests for the migration that drops two unused leftovers (0156).
 
-The test database already ran 0155, so each test first takes the schema back
-to 0154 with the real migration executor, puts rows into it as an install
-would have them, and then runs 0155 forward. Migrating needs a real schema
+The test database already ran 0156, so each test first takes the schema back
+to 0155 with the real migration executor, puts rows into it as an install
+would have them, and then runs 0156 forward. Migrating needs a real schema
 editor, which SQLite will not open inside a ``TestCase`` transaction, hence
 ``TransactionTestCase``. Nothing here is specific to one database, so the same
 tests cover PostgreSQL when the suite runs on it.
@@ -12,8 +12,8 @@ from django.db import connection
 from django.db.migrations.executor import MigrationExecutor
 from django.test import TransactionTestCase
 
-BEFORE = ("api", "0154_metadata_edit_json_encoder")
-AFTER = ("api", "0155_drop_user_face_recognition_model_and_stackreview")
+BEFORE = ("api", "0155_photo_metadata_one_store")
+AFTER = ("api", "0156_drop_user_face_recognition_model_and_stackreview")
 
 
 def table_names() -> set[str]:
@@ -38,10 +38,15 @@ class DropUnusedLeftoversMigrationTest(TransactionTestCase):
         # A fresh executor, so the next caller sees the graph as applied now.
         return MigrationExecutor(connection)
 
+    def _migrate_to_latest(self) -> None:
+        executor = MigrationExecutor(connection)
+        executor.migrate(executor.loader.graph.leaf_nodes("api"))
+
     def setUp(self) -> None:
         super().setUp()
         # Whatever happens below, leave the schema the rest of the suite expects.
-        self.addCleanup(self.migrate, AFTER)
+        # Back to the latest migrations, not AFTER, so a later one is not left unapplied.
+        self.addCleanup(self._migrate_to_latest)
         executor = self.migrate(BEFORE)
         self.old_apps = executor.loader.project_state(BEFORE).apps
 
@@ -49,14 +54,14 @@ class DropUnusedLeftoversMigrationTest(TransactionTestCase):
         User = self.old_apps.get_model("api", "User")
         PhotoStack = self.old_apps.get_model("api", "PhotoStack")
         StackReview = self.old_apps.get_model("api", "StackReview")
-        # Historical models as of 0154, which the factories cannot build.
-        user = User.objects.create(  # raw-create: historical model at 0154
+        # Historical models as of 0155, which the factories cannot build.
+        user = User.objects.create(  # raw-create: historical model at 0155
             username="old", face_recognition_model="CNN"
         )
-        stack = PhotoStack.objects.create(  # raw-create: historical model at 0154
+        stack = PhotoStack.objects.create(  # raw-create: historical model at 0155
             owner=user, stack_type="manual"
         )
-        StackReview.objects.create(  # raw-create: historical model at 0154
+        StackReview.objects.create(  # raw-create: historical model at 0155
             stack=stack, reviewer=user
         )
         self.assertIn("api_stackreview", table_names())

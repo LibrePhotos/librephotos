@@ -16,7 +16,7 @@ from django.db import migrations
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("api", "0154_metadata_edit_json_encoder"),
+        ("api", "0155_photo_metadata_one_store"),
     ]
 
     operations = [
