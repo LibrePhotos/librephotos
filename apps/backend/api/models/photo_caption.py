@@ -69,8 +69,8 @@ class PhotoCaption(models.Model):
 
     def _caption_context(
         self, llm_settings: Mapping[str, object]
-    ) -> tuple[str | None, str | None, bool] | None:
-        """(person name, location, keywords flag) for prompting, or None if off.
+    ) -> tuple[str | None, str | None] | None:
+        """(person name, location) for prompting, or None if off.
 
         The user's caption-context switches (``llm_settings``, a historical
         name) decide what the caption may know about the photo. The captioning
@@ -98,15 +98,15 @@ class PhotoCaption(models.Model):
             if search_instance and search_instance.search_location:
                 location = search_instance.search_location
 
-        return person_name, location, bool(llm_settings["add_keywords"])
+        return person_name, location
 
     @staticmethod
-    def _caption_prompt(context: tuple[str | None, str | None, bool] | None) -> str:
+    def _caption_prompt(context: tuple[str | None, str | None] | None) -> str:
         """The prompt for the vision-language captioner, with what we know."""
         if context is None:
             return "Describe this image in a short, natural image caption."
 
-        person_name, location, add_keywords = context
+        person_name, location = context
         person = ""
         if person_name is not None:
             person = (
@@ -115,8 +115,7 @@ class PhotoCaption(models.Model):
                 f"Keep the caption casual and to the point, like a friend tagging a photo."
             )
         place = f" This photo was taken at {location}." if location is not None else ""
-        keywords = " Include relevant tags and keywords." if add_keywords else ""
-        return "Write a short, natural image caption." + person + place + keywords
+        return "Write a short, natural image caption." + person + place
 
     def _store_generated_caption(
         self, captions: dict[str, object], caption: str, commit: bool

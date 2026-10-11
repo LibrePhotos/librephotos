@@ -14,6 +14,7 @@ from constance.test import override_config
 from django.test import TestCase, override_settings
 
 from api.models import Photo, PhotoCaption, PhotoSearch, Thumbnail
+from api.models.user import get_default_llm_settings
 from api.tests.utils import (
     create_test_face,
     create_test_person,
@@ -27,13 +28,6 @@ def _llm_settings(**overrides):
         "enabled": False,
         "add_person": False,
         "add_location": False,
-        "add_keywords": False,
-        "add_camera": False,
-        "add_lens": False,
-        "add_album": False,
-        "sentiment": 0,
-        "custom_prompt": "",
-        "custom_prompt_enabled": False,
     }
     base.update(overrides)
     return base
@@ -180,6 +174,14 @@ class Im2txtGenerationTest(TestCase):
         self.assertIn("a photo of a cat", search.search_captions)
 
 
+class DefaultCaptionContextTest(TestCase):
+    def test_defaults_hold_only_the_switches_the_settings_page_shows(self):
+        self.assertEqual(
+            get_default_llm_settings(),
+            {"enabled": True, "add_person": True, "add_location": True},
+        )
+
+
 @override_settings(FEATURE_IMAGE_CAPTIONING=True)
 class CaptionPromptTest(TestCase):
     """What the captioning sidecar is asked, given the user's caption settings."""
@@ -187,7 +189,7 @@ class CaptionPromptTest(TestCase):
     def setUp(self):
         self.user = create_test_user()
         self.user.llm_settings = _llm_settings(
-            enabled=True, add_person=True, add_location=True, add_keywords=True
+            enabled=True, add_person=True, add_location=True
         )
         self.user.save()
         self.photo = create_test_photo(owner=self.user, search_location="Berlin")
@@ -196,7 +198,7 @@ class CaptionPromptTest(TestCase):
 
     @override_config(CAPTIONING_MODEL="lfm2_vl_450m")
     @patch("api.models.photo_caption.generate_caption")
-    def test_full_prompt_carries_person_place_and_keywords(self, mock_caption):
+    def test_full_prompt_carries_person_and_place(self, mock_caption):
         """Names and places reach the captioner directly."""
         mock_caption.return_value = "Anna in Berlin"
 
@@ -207,8 +209,30 @@ class CaptionPromptTest(TestCase):
         self.assertIn("The person in the photo is named Anna.", prompt)
         self.assertIn("Use the name 'Anna' directly in the caption", prompt)
         self.assertIn("This photo was taken at Berlin.", prompt)
-        self.assertIn("Include relevant tags and keywords.", prompt)
         self.assertEqual(self.caption.captions_json["im2txt"], "Anna in Berlin")
+
+    @override_config(CAPTIONING_MODEL="lfm2_vl_450m")
+    @patch("api.models.photo_caption.generate_caption")
+    def test_keys_stored_by_older_versions_are_ignored(self, mock_caption):
+        """add_keywords and the LLM-era keys stay in old rows; nothing reads them."""
+        self.user.llm_settings = _llm_settings(
+            enabled=True,
+            add_person=True,
+            add_location=True,
+            add_keywords=True,
+            add_camera=True,
+            custom_prompt="Write a haiku.",
+            custom_prompt_enabled=True,
+        )
+        self.user.save()
+        mock_caption.return_value = "caption"
+
+        self.assertTrue(self.caption.generate_captions_im2txt(commit=False))
+
+        prompt = mock_caption.call_args.kwargs["prompt"]
+        self.assertNotIn("keywords", prompt)
+        self.assertNotIn("haiku", prompt)
+        self.assertIn("This photo was taken at Berlin.", prompt)
 
     @override_config(CAPTIONING_MODEL="lfm2_vl_450m")
     @patch("api.models.photo_caption.generate_caption")
@@ -221,7 +245,6 @@ class CaptionPromptTest(TestCase):
         prompt = mock_caption.call_args.kwargs["prompt"]
         self.assertNotIn("Anna", prompt)
         self.assertIn("This photo was taken at Berlin.", prompt)
-        self.assertNotIn("Include relevant tags", prompt)
 
     @override_config(CAPTIONING_MODEL="lfm2_vl_450m")
     @patch("api.models.photo_caption.generate_caption")

@@ -6,9 +6,9 @@ files in the same folder with the same base name are grouped. Each test runs
 a real entry point with stack_raw_jpeg off, so gating one of them on the
 setting again fails here.
 
-User.stack_raw_jpeg is read by nothing. Its column stays, to avoid a
-column-drop migration, and the user API still returns and stores it, as it
-does skip_raw_files.
+User.stack_raw_jpeg is read by nothing. Since #2219 the user API returns it
+read-only, like skip_raw_files, so released clients keep parsing the user
+object; the column is dropped in a later release.
 """
 
 import os
@@ -111,11 +111,13 @@ class RawJpegAlwaysGroupedTestCase(TestCase):
         create_new_image(self.user, self.raw_path)
         self.assert_one_photo_with_a_raw_variant()
 
-    def test_the_api_still_returns_and_stores_it(self):
+    def test_the_api_returns_it_but_no_longer_stores_it(self):
         client = APIClient()
         client.force_authenticate(user=self.user)
         for url in (f"/api/user/{self.user.id}/", f"/api/manage/user/{self.user.id}/"):
             with self.subTest(url):
                 response = client.patch(url, {"stack_raw_jpeg": True}, format="json")
                 self.assertEqual(200, response.status_code)
-                self.assertTrue(response.json()["stack_raw_jpeg"])
+                self.assertFalse(response.json()["stack_raw_jpeg"])
+                self.user.refresh_from_db()
+                self.assertFalse(self.user.stack_raw_jpeg)
