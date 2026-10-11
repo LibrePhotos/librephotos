@@ -81,6 +81,7 @@ FRAMEWORK_METHODS = frozenset(
         "has_object_permission",
         "authenticate",
         "authenticate_header",
+        "get_cache_key",  # throttles
         "list",
         "retrieve",
         "create",
