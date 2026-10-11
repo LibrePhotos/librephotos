@@ -51,4 +51,3 @@ _.are_duplicates  # function in api/perceptual_hash.py
 _.find_similar_hashes  # function in api/perceptual_hash.py
 _.create_thumbnail  # function in api/thumbnails.py
 _.is_safe_server_address  # function in nextcloud/server_address.py
-_.SelectiveScanPhotosView  # class in api/views/scan_triggers.py (no route; #2220)
