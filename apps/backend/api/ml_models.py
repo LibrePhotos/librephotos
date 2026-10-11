@@ -519,14 +519,15 @@ def download_models(user: User) -> None:
     for idx, model in enumerate(ML_MODELS):
         if not _is_model_selected(model):
             passed_over.append(model)
-        try:
-            download_model(model)
-        except Exception as error:
-            # download_models is chained ahead of scans and setup steps, so a
-            # single unavailable model must not take the rest of the chain -
-            # or the job status - down with it.
-            logger.exception(f"Failed to download model {model['name']}")
-            failures.append(f"{model['name']}: {error}")
+        else:
+            try:
+                download_model(model)
+            except Exception as error:
+                # download_models is chained ahead of scans and setup steps, so
+                # a single unavailable model must not take the rest of the
+                # chain - or the job status - down with it.
+                logger.exception(f"Failed to download model {model['name']}")
+                failures.append(f"{model['name']}: {error}")
         lrj.update_progress(current=idx + 1)
 
     # A model picked in Site Settings while this ran, after the loop had passed
