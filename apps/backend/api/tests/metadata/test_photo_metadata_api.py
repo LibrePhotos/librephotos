@@ -403,6 +403,49 @@ class PhotoMetadataRevertTestCase(APITestCase):
         )
         self.assertEqual(response.status_code, 404)
 
+    def test_reverting_a_revert_all_marker_is_refused(self):
+        """An ``_all`` row is a "restore from file" marker, not a field edit.
+
+        Reverting it used to setattr(metadata, "_all", ...) and record a new
+        ``_all`` row, which _user_edited takes as a fresh revert boundary
+        although nothing was re-read from the file.
+        """
+        marker = MetadataEdit.objects.create(
+            photo=self.photo,
+            user=self.user,
+            field_name="_all",
+            old_value={"action": "revert_all"},
+            new_value={"source": "embedded"},
+        )
+        before = MetadataEdit.objects.filter(photo=self.photo).count()
+
+        response = self.client.post(
+            f"/api/photos/{self.photo.pk}/metadata/revert/{marker.id}/"
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            MetadataEdit.objects.filter(photo=self.photo).count(), before
+        )
+
+    def test_reverting_an_edit_of_a_non_editable_field_is_refused(self):
+        edit = MetadataEdit.objects.create(
+            photo=self.photo,
+            user=self.user,
+            field_name="source",
+            old_value="embedded",
+            new_value="user_edit",
+        )
+
+        response = self.client.post(
+            f"/api/photos/{self.photo.pk}/metadata/revert/{edit.id}/"
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(
+            MetadataEdit.objects.filter(photo=self.photo).exclude(pk=edit.pk).exists()
+        )
+
 
 class PhotoMetadataRevertAllTestCase(APITestCase):
     """Test revert-all endpoint."""

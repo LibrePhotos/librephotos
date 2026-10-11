@@ -11,6 +11,7 @@ Provides endpoints for:
 from django.http import Http404
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError
 from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
@@ -162,11 +163,20 @@ class PhotoMetadataViewSet(ViewSet):
         photo = self._get_photo(request, photo_id)
         edit = get_object_or_404(MetadataEdit, pk=edit_id, photo=photo)
 
+        # Only edits of a field the metadata API can write are revertible. An
+        # "_all" row is the revert-all marker: "reverting" it would setattr a
+        # non-field and record a new "_all" row, which _user_edited would take
+        # as a fresh restore-from-file boundary without re-reading the file.
+        field_name = edit.field_name
+        if field_name not in PhotoMetadataUpdateSerializer.Meta.fields:
+            raise ValidationError(
+                {"field_name": f"An edit of '{field_name}' cannot be reverted."}
+            )
+
         # Get or create metadata
         metadata = self._get_or_create_metadata(photo)
 
         # Restore the old value
-        field_name = edit.field_name
         old_value = edit.old_value
         current_value = getattr(metadata, field_name, None)
 
