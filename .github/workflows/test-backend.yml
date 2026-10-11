@@ -63,6 +63,21 @@ jobs:
           assert "codec_name=h264" in out, out
           PY
 
+      - name: Django system checks
+        # Same env as the test step below. Under the test settings DEBUG is on
+        # while silk is not installed, which used to stop the checks from
+        # importing at all (the silk guard in librephotos/urls.py fixes that).
+        # --fail-level WARNING makes any system check warning fail the job.
+        working-directory: apps/backend
+        env:
+          BASE_LOGS: /tmp/librephotos/logs
+          BASE_DATA: /tmp/librephotos
+          SECRET_KEY: test-secret-key
+          DJANGO_SETTINGS_MODULE: librephotos.settings.test_sqlite
+        run: |
+          . .venv/bin/activate
+          python manage.py check --fail-level WARNING
+
       - name: Run tests
         working-directory: apps/backend
         env:
