@@ -1,4 +1,8 @@
+import atexit
+import os
 import secrets
+import shutil
+import tempfile
 import uuid
 from typing import Any
 
@@ -9,6 +13,11 @@ from faker import Faker
 from api.models import Cluster, Face, File, Person, Photo, User
 
 fake = Faker()
+
+# Where the files of test photos are written: one directory per test process,
+# removed when the process exits. Never /tmp itself.
+TEST_MEDIA_ROOT = tempfile.mkdtemp(prefix="librephotos-test-media-")
+atexit.register(shutil.rmtree, TEST_MEDIA_ROOT, ignore_errors=True)
 
 ONE_PIXEL_PNG = (
     b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x02\x00\x00\x00\xb1\x1e\x28"
@@ -117,8 +126,13 @@ def create_test_photo(**kwargs):
 
     # Use proper UUID for primary key (Photo model now uses UUIDField)
     pk = uuid.uuid4()
-    # Use MD5 for image_hash (content hash for deduplication)
-    image_hash = fake.md5()
+    # Use unique content per photo so each File gets a unique hash (primary key)
+    unique_content = ONE_PIXEL_PNG + pk.bytes
+    main_file = create_test_file(
+        os.path.join(TEST_MEDIA_ROOT, f"{pk.hex}.png"), kwargs["owner"], unique_content
+    )
+    # image_hash is the content hash of the main file, as the scanner sets it
+    image_hash = main_file.hash
 
     # Extract fields that are no longer part of Photo model
     aspect_ratio = kwargs.pop("aspect_ratio", 1)
@@ -175,10 +189,7 @@ def create_test_photo(**kwargs):
 
     # Create the photo with remaining kwargs
     photo = Photo(pk=pk, image_hash=image_hash, **kwargs)
-    # Use unique content per photo so each File gets a unique hash (primary key)
-    unique_content = ONE_PIXEL_PNG + pk.bytes
-    file = create_test_file(f"/tmp/{image_hash}.png", photo.owner, unique_content)
-    photo.main_file = file
+    photo.main_file = main_file
     if "added_on" not in kwargs.keys():
         photo.added_on = timezone.now()
     photo.save()
