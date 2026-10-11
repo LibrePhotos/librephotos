@@ -9,6 +9,7 @@ import pyvips
 from django.test import TestCase, override_settings
 from PIL import Image
 
+import api.image_decoding  # noqa: F401  registers the HEIF opener _write_image(format="HEIF") needs
 from api import binaries
 from api.directory_watcher.file_handlers import (
     create_file_record,
