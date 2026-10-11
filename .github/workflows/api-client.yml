@@ -1,0 +1,63 @@
+name: api-client
+
+# packages/api-client is shared by the web app (compiled from source) and the
+# mobile app (npm workspace). Its tooling follows apps/frontend: same
+# TypeScript, ESLint and vitest majors; formatting is checked by
+# lint-frontend.yml (`yarn format:check` covers this package).
+
+on:
+  push:
+    branches: [dev]
+    paths:
+      - 'packages/api-client/**'
+      - 'package.json'
+      # The root lockfile, and any nested one the guard below rejects.
+      - '**/package-lock.json'
+      - '.github/workflows/api-client.yml'
+  pull_request:
+    paths:
+      - 'packages/api-client/**'
+      - 'package.json'
+      # The root lockfile, and any nested one the guard below rejects.
+      - '**/package-lock.json'
+      - '.github/workflows/api-client.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  api-client:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      # npm ignores a lockfile inside a workspace, but Renovate still edits it
+      # and it drifts. The root package-lock.json is the only npm lockfile.
+      - name: no nested package-lock.json
+        run: |
+          nested=$(git ls-files '*package-lock.json' | grep -vx 'package-lock.json' || true)
+          if [ -n "$nested" ]; then
+            echo "::error::Only the root package-lock.json may be committed. Remove: $nested"
+            exit 1
+          fi
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: package-lock.json
+      # Only this workspace's dependencies, from the root lockfile; the mobile
+      # app's (and the root's Expo pins) are not needed here.
+      - name: install (root lockfile, api-client workspace)
+        run: npm ci --workspace packages/api-client --ignore-scripts
+      - name: typecheck
+        run: npm run typecheck --workspace packages/api-client
+      - name: lint
+        run: npm run lint --workspace packages/api-client
+      - name: test (vitest)
+        run: npm run test --workspace packages/api-client

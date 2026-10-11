@@ -3,6 +3,9 @@
 # Dependencies (npm workspaces install into the root node_modules; the
 # root package-lock.json is tracked for reproducible installs).
 node_modules/
+# npm ignores a lockfile inside a workspace; api-client.yml fails if one is committed.
+packages/*/package-lock.json
+apps/mobile/package-lock.json
 
 # OS
 .DS_Store
