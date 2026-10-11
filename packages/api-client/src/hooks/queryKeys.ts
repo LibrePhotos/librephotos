@@ -27,7 +27,6 @@ export const queryKeys = {
   sharedPhotosWithMe: () => ["sharedPhotosWithMe"] as const,
   sharedAlbumsByMe: () => ["sharedAlbumsByMe"] as const,
   sharedAlbumsWithMe: () => ["sharedAlbumsWithMe"] as const,
-  faces: (person: number, inferred: boolean, page: number) =>
-    ["faces", person, inferred, page] as const,
+  faces: (person: number, inferred: boolean, page: number) => ["faces", person, inferred, page] as const,
   incompleteFaces: (inferred: boolean) => ["incompleteFaces", inferred] as const,
 };

@@ -33,7 +33,10 @@ export function useLoginMutation(options?: { onSuccess?: () => void }) {
   });
 }
 
-export function useLogoutMutation(options?: { getRefreshToken: () => Promise<string | null> | string | null; onSuccess?: () => void }) {
+export function useLogoutMutation(options?: {
+  getRefreshToken: () => Promise<string | null> | string | null;
+  onSuccess?: () => void;
+}) {
   const client = useApiClient();
   const queryClient = useQueryClient();
   return useMutation({
@@ -271,10 +274,7 @@ export function useSharedAlbumsWithMeQuery(enabled = true) {
 
 /* ---- faces ------------------------------------------------------------- */
 
-export function useFacesQuery(
-  params: { person?: number; inferred?: boolean; page?: number } = {},
-  enabled = true
-) {
+export function useFacesQuery(params: { person?: number; inferred?: boolean; page?: number } = {}, enabled = true) {
   const client = useApiClient();
   return useQuery({
     queryKey: queryKeys.faces(params.person ?? 0, params.inferred ?? false, params.page ?? 1),

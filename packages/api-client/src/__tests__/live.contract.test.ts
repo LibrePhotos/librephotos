@@ -12,7 +12,6 @@
  * (or LIBREPHOTOS_LIVE_USER / LIBREPHOTOS_LIVE_PASSWORD instead of the token).
  */
 import { describe, expect, it } from "vitest";
-
 import { createApiClient, endpoints } from "../index";
 import { defined } from "./defined";
 

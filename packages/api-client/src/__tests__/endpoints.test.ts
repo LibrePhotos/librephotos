@@ -1,14 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
+import * as endpoints from "../endpoints";
 import { createApiClient } from "../transport";
 import type { TokenSupplier } from "../transport";
-import * as endpoints from "../endpoints";
 import { ResponseParseError } from "../util/parse";
 import { defined } from "./defined";
 
 const FUTURE_JWT =
-  "eyJhbGciOiJIUzI1NiJ9." +
-  Buffer.from(JSON.stringify({ exp: 9999999999, user_id: 1 })).toString("base64url") +
-  ".sig";
+  "eyJhbGciOiJIUzI1NiJ9." + Buffer.from(JSON.stringify({ exp: 9999999999, user_id: 1 })).toString("base64url") + ".sig";
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
@@ -80,7 +78,9 @@ describe("album media filters", () => {
     const { client, calls } = harness({ id: "9", title: "T", owner, date: "2024", location: null, grouped_photos: [] });
     await endpoints.fetchUserAlbum(client, 9, { photo: true, public: true, username: "ann" });
     await endpoints.fetchUserAlbum(client, 9);
-    expect(defined(calls[0]).url).toBe("https://demo.example.com/api/albums/user/9/?photo=true&public=true&username=ann");
+    expect(defined(calls[0]).url).toBe(
+      "https://demo.example.com/api/albums/user/9/?photo=true&public=true&username=ann"
+    );
     expect(defined(calls[1]).url).toBe("https://demo.example.com/api/albums/user/9/");
   });
 });
@@ -121,7 +121,10 @@ describe("public link endpoints", () => {
     const { client, calls } = harness({ status: true });
     await endpoints.setPhotosPublic(client, ["h1"], true);
     expect(defined(calls[0]).url).toBe("https://demo.example.com/api/photosedit/makepublic/");
-    expect(JSON.parse(String(defined(defined(calls[0]).init).body))).toEqual({ image_hashes: ["h1"], val_public: true });
+    expect(JSON.parse(String(defined(defined(calls[0]).init).body))).toEqual({
+      image_hashes: ["h1"],
+      val_public: true,
+    });
   });
 });
 
@@ -158,7 +161,10 @@ describe("faces endpoints", () => {
     const { client, calls } = harness({ status: true, results: [], updated: [], not_updated: [] });
     await endpoints.labelFaces(client, [1, 2], "Alice");
     expect(defined(calls[0]).url).toBe("https://demo.example.com/api/labelfaces");
-    expect(JSON.parse(String(defined(defined(calls[0]).init).body))).toEqual({ face_ids: [1, 2], person_name: "Alice" });
+    expect(JSON.parse(String(defined(defined(calls[0]).init).body))).toEqual({
+      face_ids: [1, 2],
+      person_name: "Alice",
+    });
   });
 
   it("deletes faces", async () => {

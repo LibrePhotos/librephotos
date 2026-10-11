@@ -1,23 +1,23 @@
 import { describe, expect, it } from "vitest";
-import dateAlbumsList from "./fixtures/dateAlbumsList.json";
-import loginResponse from "./fixtures/loginResponse.json";
-import userFixture from "./fixtures/user.json";
+import { photosetToFilter } from "../endpoints";
 import {
   AutoAlbum,
   FetchDateAlbumsListResponse,
   FetchThingAlbumsListResponse,
+  imageHashOf,
   LoginResponse,
   Media,
   Photo,
-  PhotosWithoutTimestampResponse,
   Photoset,
+  PhotosWithoutTimestampResponse,
   SearchPhotos,
   User,
   UserAlbum,
-  imageHashOf,
 } from "../schemas";
-import { photosetToFilter } from "../endpoints";
 import { defined } from "./defined";
+import dateAlbumsList from "./fixtures/dateAlbumsList.json";
+import loginResponse from "./fixtures/loginResponse.json";
+import userFixture from "./fixtures/user.json";
 
 describe("schema parsing against fixtures", () => {
   it("parses a date-albums (timeline) list", () => {
@@ -159,7 +159,15 @@ describe("fields shared with the web frontend", () => {
           photo_count: 1,
           is_primary: true,
           photos: [
-            { id: uuid(1), image_hash: "h1", is_primary: true, thumbnail_url: null, size: 1, width: null, height: null },
+            {
+              id: uuid(1),
+              image_hash: "h1",
+              is_primary: true,
+              thumbnail_url: null,
+              size: 1,
+              width: null,
+              height: null,
+            },
           ],
         },
       ],

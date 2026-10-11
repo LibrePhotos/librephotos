@@ -13,7 +13,10 @@ export default tseslint.config(
     rules: {
       "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],
       // Fix the type error instead of silencing it.
-      "@typescript-eslint/ban-ts-comment": ["error", { "ts-ignore": true, "ts-expect-error": true, "ts-nocheck": true }],
+      "@typescript-eslint/ban-ts-comment": [
+        "error",
+        { "ts-ignore": true, "ts-expect-error": true, "ts-nocheck": true },
+      ],
       // No `any`: neither written out nor flowing in from a library (res.json(), JSON.parse,
       // an untyped mock), and no assertion that claims more than the value is, a non-null `!`
       // included (tests use defined() from __tests__/defined). Responses are `unknown` until

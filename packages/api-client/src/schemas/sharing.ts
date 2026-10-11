@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { PigPhoto, SimpleUser } from "./common";
 import { UserAlbumInfo } from "./albums";
+import { PigPhoto, SimpleUser } from "./common";
 
 /** Photos shared WITH me — a bare PigPhoto list carrying the owner. */
 export const SharedToMePhotosResponse = z.object({
