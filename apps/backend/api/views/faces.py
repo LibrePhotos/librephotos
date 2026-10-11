@@ -108,6 +108,9 @@ class FaceListView(ListViewSet):
     pagination_class = RegularResultsSetPagination
 
     def get_queryset(self) -> QuerySet[Face]:
+        # drf-spectacular asks with an anonymous request; photo__owner rejects it.
+        if getattr(self, "swagger_fake_view", False):
+            return Face.objects.none()
         personid: str | None = self.request.query_params.get("person", "0")
 
         if personid == "0":
@@ -180,6 +183,9 @@ class FaceIncompleteListViewSet(ListViewSet):
     pagination_class = None
 
     def get_queryset(self) -> QuerySet[Person]:
+        # drf-spectacular asks with an anonymous request; request_user rejects it.
+        if getattr(self, "swagger_fake_view", False):
+            return Person.objects.none()
         user = request_user(self.request)
         inferred = self.request.query_params.get("inferred", "").lower() == "true"
         analysis_method = self.request.query_params.get("analysis_method", "clustering")
