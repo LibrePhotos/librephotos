@@ -523,7 +523,7 @@ function DuplicateCard({
             top: 8,
             left: 8,
             zIndex: 10,
-            backgroundColor: "rgba(255, 255, 255, 0.9)",
+            backgroundColor: "color-mix(in srgb, var(--mantine-color-body) 90%, transparent)",
             borderRadius: "4px",
             padding: "2px",
           }}

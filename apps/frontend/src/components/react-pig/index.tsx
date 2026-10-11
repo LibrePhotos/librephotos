@@ -110,7 +110,7 @@ function Pig<T extends ImageItem>(
     sortFunc = null,
     expandedSize = 1000,
     thumbnailSize = 20,
-    bgColor = "#fff",
+    bgColor = "inherit",
     handleClick: propHandleClick = null,
     selectable = false,
     handleSelection: propHandleSelection = null,
@@ -197,11 +197,9 @@ function Pig<T extends ImageItem>(
 
     // Check grouping ability
     if (groupByDate && imageDataRef.current.length > 0 && !("items" in imageDataRef.current[0])) {
-      // eslint-disable-next-line no-console
       console.error(`Data provided is not grouped yet. Please check the docs, you'll need to use groupify.js`);
     }
     if (!groupByDate && imageDataRef.current.length > 0 && "items" in imageDataRef.current[0]) {
-      // eslint-disable-next-line no-console
       console.error(`Data provided is grouped, please include the groupByDate prop`);
     }
   }, [sortFunc, propSortByDate, groupByDate]);

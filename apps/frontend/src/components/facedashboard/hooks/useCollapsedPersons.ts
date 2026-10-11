@@ -8,7 +8,6 @@ function save(collapsed: Record<FacesTab, number[]>) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(collapsed));
   } catch (e) {
-    // eslint-disable-next-line no-console
     console.error("Error saving collapsed persons to localStorage:", e);
   }
   return collapsed;
@@ -30,7 +29,6 @@ function load(): Record<FacesTab, number[]> {
     const saved = localStorage.getItem(STORAGE_KEY);
     parsed = saved ? JSON.parse(saved) : null;
   } catch (e) {
-    // eslint-disable-next-line no-console
     console.error("Error loading collapsed persons from localStorage:", e);
   }
   return StoredCollapsed.parse(parsed);

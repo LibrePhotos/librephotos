@@ -118,7 +118,7 @@ export function ServerLogsCard() {
           <Box
             p="md"
             style={{
-              backgroundColor: "#1a1b1e",
+              backgroundColor: "var(--mantine-color-dark-7)",
               minHeight: 400,
             }}
           >

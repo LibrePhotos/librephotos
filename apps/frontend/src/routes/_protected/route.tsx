@@ -25,8 +25,6 @@ function AppShellProtected() {
   }
 
   if (!isAuthenticated && !isLoading) {
-    // eslint-disable-next-line no-console
-    console.log("Redirecting to login");
     return <Navigate to="/login" search={{ redirect: pathname + search }} replace />;
   }
 

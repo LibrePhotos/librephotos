@@ -25,6 +25,7 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { serverAddress } from "../../api_client/apiClient";
 import type { Photo, PhotoStackDetail, StackTypeEnum } from "../../api_client/photos/types";
+import { PLACEHOLDER_IMAGE } from "../../util/placeholderImage";
 import { StackModal } from "../stacks/StackModal";
 
 interface StackSectionProps {
@@ -130,7 +131,7 @@ function SingleStackCard({ stack, photoId, t, isCompact = false, onPhotoSelect }
                         alt=""
                         h={60}
                         fit="cover"
-                        fallbackSrc="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='60' height='60'><rect fill='%23ddd' width='60' height='60'/></svg>"
+                        fallbackSrc={PLACEHOLDER_IMAGE}
                       />
                     </Card>
                   </Tooltip>
@@ -285,7 +286,7 @@ export function StackSection({ photoDetail, onPhotoSelect }: StackSectionProps) 
                                 alt=""
                                 h={60}
                                 fit="cover"
-                                fallbackSrc="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='60' height='60'><rect fill='%23ddd' width='60' height='60'/></svg>"
+                                fallbackSrc={PLACEHOLDER_IMAGE}
                               />
                             </Card>
                           </Tooltip>

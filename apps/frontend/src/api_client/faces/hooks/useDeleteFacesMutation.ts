@@ -41,7 +41,6 @@ export const useDeleteFacesMutation = () =>
       }, 100);
     },
     onError: error => {
-      // eslint-disable-next-line no-console
       console.error("Delete faces mutation error:", error);
     },
   });

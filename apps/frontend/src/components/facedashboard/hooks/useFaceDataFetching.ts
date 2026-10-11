@@ -156,7 +156,6 @@ export function useFaceDataFetching(
             );
           }
         } catch (error) {
-          // eslint-disable-next-line no-console
           console.error("Error fetching faces:", error);
         }
       }

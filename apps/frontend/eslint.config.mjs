@@ -74,6 +74,8 @@ export default [
       "no-unused-vars": "off", // handled by @typescript-eslint/no-unused-vars
       "no-redeclare": "off", // handled by TypeScript (Zod pattern: const X = z.object(); type X = z.infer<typeof X>)
       "no-undef": "off", // handled by TypeScript compiler
+      // Debug logging stays out of the app; console.warn and console.error report real failures.
+      "no-console": ["error", { allow: ["warn", "error"] }],
     },
   },
   {
