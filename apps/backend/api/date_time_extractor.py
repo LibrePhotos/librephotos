@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import logging
 import math
 import os
@@ -13,6 +12,7 @@ from typing import Any
 import pytz
 
 from api.metadata.tags import Tags
+from api.util import rules_json
 
 logger = logging.getLogger(__name__)
 
@@ -609,13 +609,9 @@ PREDEFINED_RULES_PARAMS = list(map(set_as_default_rule, DEFAULT_RULES_PARAMS)) +
 )
 
 
-def _as_json(configs: object) -> str:
-    return json.dumps(configs, default=lambda x: x.__dict__)
-
-
-DEFAULT_RULES_JSON = _as_json(DEFAULT_RULES_PARAMS)
-PREDEFINED_RULES_JSON = _as_json(PREDEFINED_RULES_PARAMS)
-ALL_TIME_ZONES_JSON = _as_json(ALL_TIME_ZONES)
+DEFAULT_RULES_JSON = rules_json(DEFAULT_RULES_PARAMS)
+PREDEFINED_RULES_JSON = rules_json(PREDEFINED_RULES_PARAMS)
+ALL_TIME_ZONES_JSON = rules_json(ALL_TIME_ZONES)
 
 
 def as_rules(configs: list[dict[str, Any]]) -> list[TimeExtractionRule]:

@@ -1,9 +1,9 @@
 import logging
 import os
 import random
-import stat
 from typing import TypedDict, TypeVar
 
+from api.directory_watcher.utils import is_hidden
 from api.models import (
     Photo,
     User,
@@ -23,21 +23,6 @@ class PathNode(TypedDict):
 def shuffle(items: list[_T]) -> list[_T]:
     random.shuffle(items)
     return items
-
-
-def is_hidden(filepath: str) -> bool:
-    name = os.path.basename(os.path.abspath(filepath))
-    return name.startswith(".") or has_hidden_attribute(filepath)
-
-
-def has_hidden_attribute(filepath: str) -> bool:
-    try:
-        # st_file_attributes only exists on Windows; elsewhere the attribute is
-        # absent and the old AttributeError path returned False, which 0 does too.
-        attributes: int = getattr(os.stat(filepath), "st_file_attributes", 0)
-        return bool(attributes & stat.FILE_ATTRIBUTE_HIDDEN)
-    except Exception:
-        return False
 
 
 def list_subdirectories(path: str) -> list[str]:

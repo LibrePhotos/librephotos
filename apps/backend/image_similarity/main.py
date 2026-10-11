@@ -24,12 +24,10 @@ from flask.typing import ResponseReturnValue
 from retrieval_index import IndexBuildError, RetrievalIndex
 from utils import logger
 
-from librephotos.env import env_str
+from librephotos.env import protected_media_root
 from service._common import create_app, json_fields, serve_forever
 
-# The sidecars never load Django, so the data root comes in as BASE_DATA (see
-# api.services._service_environment). Unset, this is the Docker layout under /.
-INDEX_ROOT = os.path.join(env_str("BASE_DATA", os.sep), "protected_media", "similarity")
+INDEX_ROOT = os.path.join(protected_media_root(), "similarity")
 
 app = create_app("image_similarity")
 index = RetrievalIndex(store_dir=INDEX_ROOT)

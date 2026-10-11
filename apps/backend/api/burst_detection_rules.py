@@ -16,7 +16,6 @@ By default, only hard criteria rules are enabled.
 
 from __future__ import annotations
 
-import json
 import logging
 import os
 import re
@@ -25,6 +24,7 @@ from datetime import timedelta
 from typing import TYPE_CHECKING, Any
 
 from api.metadata.tags import Tags
+from api.util import rules_json
 
 if TYPE_CHECKING:
     from api.models.photo import Photo
@@ -574,14 +574,9 @@ def get_all_predefined_burst_rules() -> list[dict[str, Any]]:
     return DEFAULT_HARD_RULES + DEFAULT_SOFT_RULES + OTHER_RULES
 
 
-def _as_json(configs: list[dict[str, Any]]) -> str:
-    """Convert rule configs to JSON string."""
-    return json.dumps(configs, default=lambda x: x.__dict__)
-
-
 # Pre-computed JSON strings for API responses
-DEFAULT_RULES_JSON = _as_json(get_default_burst_detection_rules())
-PREDEFINED_RULES_JSON = _as_json(get_all_predefined_burst_rules())
+DEFAULT_RULES_JSON = rules_json(get_default_burst_detection_rules())
+PREDEFINED_RULES_JSON = rules_json(get_all_predefined_burst_rules())
 
 
 def as_rules(configs: list[dict[str, Any]]) -> list[BurstDetectionRule]:

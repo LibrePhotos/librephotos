@@ -19,7 +19,7 @@ from unittest.mock import patch
 
 from django.test import TestCase
 
-from api.directory_watcher import JPEG_EXTENSIONS
+from api.mime import RAW_PAIR_EXTENSIONS
 from api.models.file import File
 from api.models.long_running_job import LongRunningJob
 from api.models.photo_stack import PhotoStack
@@ -355,11 +355,13 @@ class FileExtensionsTestCase(TestCase):
         """Test JPEG and HEIC extensions are included."""
         expected = [".jpg", ".jpeg", ".heic", ".heif"]
         for ext in expected:
-            self.assertIn(ext, JPEG_EXTENSIONS, f"{ext} should be in JPEG_EXTENSIONS")
+            self.assertIn(
+                ext, RAW_PAIR_EXTENSIONS, f"{ext} should be in RAW_PAIR_EXTENSIONS"
+            )
 
     def test_extensions_are_lowercase(self):
-        """Test all JPEG extensions are lowercase."""
-        for ext in JPEG_EXTENSIONS:
+        """Test all RAW pairing extensions are lowercase."""
+        for ext in RAW_PAIR_EXTENSIONS:
             self.assertEqual(ext, ext.lower(), f"{ext} should be lowercase")
 
 

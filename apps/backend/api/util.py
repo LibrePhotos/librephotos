@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import os.path
@@ -138,6 +139,15 @@ def folder_path_q(lookup: str, folder_path: str) -> Q:
     for prefix in folder_path_prefixes(folder_path):
         query |= Q(**{f"{lookup}__startswith": prefix})
     return query
+
+
+def rules_json(configs: object) -> str:
+    """A rule list as JSON for the API: the date/time and burst rule settings.
+
+    A value the encoder does not know (a rule object) is written as its
+    attributes.
+    """
+    return json.dumps(configs, default=lambda x: x.__dict__)
 
 
 def is_number(s: float | str | None) -> bool:

@@ -16,7 +16,6 @@ Phase 2: Process each group, creating one Photo per group
 # File grouping utilities
 from api.directory_watcher.file_grouping import (
     FILE_TYPE_PRIORITY,
-    JPEG_EXTENSIONS,
     find_matching_image_for_video,
     find_matching_jpeg_photo,
     get_file_grouping_key,
@@ -78,7 +77,6 @@ __all__ = [
     "handle_new_image",
     "handle_file_group",
     # File grouping
-    "JPEG_EXTENSIONS",
     "FILE_TYPE_PRIORITY",
     "get_file_grouping_key",
     "select_main_file",

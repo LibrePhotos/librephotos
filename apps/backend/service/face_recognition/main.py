@@ -8,7 +8,7 @@ import numpy.typing as npt
 from flask.typing import ResponseReturnValue
 from PIL import Image
 
-from librephotos.env import env_str
+from librephotos.env import data_models_root
 from service._common import create_app, json_fields, logger, serve_forever
 from service.onnx_session import execution_providers, uses_gpu
 
@@ -22,14 +22,7 @@ DEFAULT_MODEL_NAME = "buffalo_sc"
 # detected face to take its embedding. A drawn box is looser than the
 # detector's, so this is well below 1; a neighbour's face shares far less.
 MIN_FACE_MATCH_IOU = 0.3
-# The sidecars never load Django, so the data root comes in as BASE_DATA (see
-# api.services._service_environment). Unset, this is the Docker layout under /.
-FACE_MODEL_ROOT = os.path.join(
-    env_str("BASE_DATA", os.sep),
-    "protected_media",
-    "data_models",
-    "face_recognition",
-)
+FACE_MODEL_ROOT = os.path.join(data_models_root(), "face_recognition")
 SUPPORTED_FACE_MODELS = {
     "antelopev2",
     "buffalo_l",

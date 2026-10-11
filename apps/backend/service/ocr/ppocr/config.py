@@ -20,21 +20,13 @@ import os
 
 import numpy as np
 
-from librephotos.env import env_str
+from librephotos.env import data_models_root, env_str
 
 # Production install location.  Bundles ship to ``<models>/ocr/ppocrv6_<tier>``
-# under the protected media data_models root.  The sidecars never load Django,
-# so the data root comes in as BASE_DATA (see api.services._service_environment)
-# and, unset, this is the Docker layout under /.  Tests point ``OCR_MODEL_DIR``
-# at the extracted test bundle instead.
+# under librephotos.env.data_models_root().  Tests point ``OCR_MODEL_DIR`` at
+# the extracted test bundle instead.
 MODEL_DIR_ENV = "OCR_MODEL_DIR"
-DEFAULT_MODEL_DIR = os.path.join(
-    env_str("BASE_DATA", os.sep),
-    "protected_media",
-    "data_models",
-    "ocr",
-    "ppocrv6_small",
-)
+DEFAULT_MODEL_DIR = os.path.join(data_models_root(), "ocr", "ppocrv6_small")
 
 
 def resolve_model_dir(model_dir: str | None = None) -> str:

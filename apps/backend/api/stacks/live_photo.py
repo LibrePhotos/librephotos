@@ -18,7 +18,7 @@ from typing import TYPE_CHECKING
 
 from django.conf import settings
 
-from api.mime import mime_type
+from api.mime import LIVE_PHOTO_VIDEO_EXTENSIONS, mime_type
 from api.models.file import File
 from api.models.photo_stack import PhotoStack
 
@@ -33,9 +33,6 @@ if TYPE_CHECKING:
 JPEG_EOI_MARKER = b"\xff\xd9"
 GOOGLE_PIXEL_MP4_SIGNATURES = [b"ftypmp42", b"ftypisom", b"ftypiso2"]
 SAMSUNG_MOTION_MARKER = b"MotionPhoto_Data"
-
-# Apple Live Photo video extensions
-APPLE_LIVE_PHOTO_EXTENSIONS = [".mov", ".MOV"]
 
 
 def _locate_google_embedded_video(data: bytes | mmap) -> int:
@@ -180,7 +177,14 @@ def find_apple_live_photo_video(image_path: str) -> str | None:
     stem = base_path.stem
     parent = base_path.parent
 
-    for ext in APPLE_LIVE_PHOTO_EXTENSIONS:
+    # The lookup is on disk, so on a case-sensitive file system each spelling
+    # is tried, lower case first.
+    spellings = [
+        spelling
+        for ext in sorted(LIVE_PHOTO_VIDEO_EXTENSIONS)
+        for spelling in (ext, ext.upper())
+    ]
+    for ext in spellings:
         video_path = parent / f"{stem}{ext}"
         if video_path.exists():
             return str(_path_as_stored(video_path))

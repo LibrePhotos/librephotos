@@ -6,7 +6,7 @@
 
 [lint.per-file-ignores]
 "api/all_tasks.py" = ["BLE001", "G004"]
-"api/api_util.py" = ["BLE001", "G004", "PLR0912", "PLR0915", "PLW0108"]
+"api/api_util.py" = ["G004", "PLR0912", "PLR0915", "PLW0108"]
 "api/autoalbum.py" = ["G004", "N806", "PLR0915"]
 "api/batch_jobs.py" = ["BLE001", "G004", "N806"]
 "api/burst_detection_rules.py" = ["G004", "PLR1714"]

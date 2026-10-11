@@ -17,6 +17,7 @@ from django.conf import settings
 from api.http_timeouts import MODEL_DOWNLOAD
 from api.models.long_running_job import LongRunningJob
 from api.models.user import User
+from librephotos.env import data_models_root
 
 logger = logging.getLogger(__name__)
 
@@ -325,13 +326,22 @@ def _flatten_wrapper_dir(target_dir: Path | str) -> None:
     wrapper.rmdir()
 
 
+def _models_folder() -> Path:
+    """Where every model is downloaded; the sidecars load them from the same place.
+
+    Read from ``settings.MEDIA_ROOT`` on each call, so an overridden media root
+    moves the models with it.
+    """
+    return Path(data_models_root(settings.MEDIA_ROOT))
+
+
 def download_model(model: MlModel) -> None:
     model = model.copy()
     if not _is_model_selected(model):
         logger.info(f"Skipping unselected model {model['name']}")
         return
 
-    model_folder = Path(settings.MEDIA_ROOT) / "data_models"
+    model_folder = _models_folder()
 
     if model["unpack-command"] == "zip":
         # Repairs installs unpacked before the wrapper folder was flattened,
@@ -511,7 +521,7 @@ def download_models(user: User) -> None:
     )
     lrj.update_progress(current=0, target=len(ML_MODELS))
 
-    model_folder = Path(settings.MEDIA_ROOT) / "data_models"
+    model_folder = _models_folder()
     model_folder.mkdir(parents=True, exist_ok=True)
 
     failures: list[str] = []
@@ -550,7 +560,7 @@ def download_models(user: User) -> None:
 
 
 def do_all_models_exist() -> bool:
-    model_folder = Path(settings.MEDIA_ROOT) / "data_models"
+    model_folder = _models_folder()
     for model in _iter_required_models():
         if not _model_target_exists(model_folder, model):
             return False
@@ -563,7 +573,7 @@ def captioning_model_exists() -> bool:
     A caption request that reaches the sidecar without them fails inside
     ONNX Runtime; the caller checks here first and starts the download.
     """
-    model_folder = Path(settings.MEDIA_ROOT) / "data_models"
+    model_folder = _models_folder()
     return all(
         _model_target_exists(model_folder, model)
         for model in ML_MODELS

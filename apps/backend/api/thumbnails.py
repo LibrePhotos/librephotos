@@ -9,6 +9,7 @@ from django.conf import settings
 
 from api import binaries, sidecars, video_color
 from api.lazy_import import LazyModule
+from api.mime import EXIF_ORIENTED_EXTENSIONS, extension
 from api.models.file import is_raw
 
 if TYPE_CHECKING:
@@ -99,24 +100,11 @@ def _webp_for(output_path: str) -> dict[str, object]:
     return WEBP if "thumbnails_big" in output_path else _square_webp()
 
 
-# Formats whose thumbnail follows an EXIF Orientation that exiftool writes into
-# the file afterwards, measured through ``image_decoding.thumbnail`` with the
-# pip-installed libvips and Pillow plugins (#2068). HEIC and AVIF keep the
-# picture unrotated (libheif applies its own irot/imir and the EXIF tag is
-# ignored), exiftool cannot write EXIF into a bare JPEG XL codestream, BMP or
-# GIF, and RAW files go through LibRaw in the thumbnail service, which is
-# unverified. Everything not listed here keeps the rotation in
-# ``local_orientation``.
-_EXIF_ORIENTED_EXTENSIONS = frozenset(
-    {".jpg", ".jpeg", ".jpe", ".jfif", ".tif", ".tiff", ".png", ".webp"}
-)
-
-
 def renders_exif_orientation(path: str) -> bool:
     """Whether rotating ``path`` through its EXIF Orientation rotates its thumbnail."""
     if is_raw(path):
         return False
-    return os.path.splitext(path)[1].lower() in _EXIF_ORIENTED_EXTENSIONS
+    return extension(path) in EXIF_ORIENTED_EXTENSIONS
 
 
 def _autorotated(image: pyvips.Image, exif_orientation: int) -> pyvips.Image:

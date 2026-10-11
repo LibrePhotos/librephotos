@@ -81,6 +81,10 @@ test makes `--parallel` runs crash with "cannot pickle 'traceback'"; rerun that 
   `apps/docs/docs/installation/environment-variables.md` or listed with a reason in `INTERNAL_ENV_VARS`
   (`api/tests/infra/test_environment_variables_documented.py`); the suite fails otherwise. A value the
   process only sets for itself needs neither.
+- File types and data paths have one home each: media extension sets and their named subsets in
+  `api/mime.py` (compare `extension(path)`, lower case), `protected_media` and `data_models` paths from
+  `protected_media_root()`/`data_models_root()` in `librephotos/env.py`, which the sidecars import too.
+  A copied literal drifts; `api/tests/infra/test_single_definitions.py` fails on one.
 
 ## Tests
 
