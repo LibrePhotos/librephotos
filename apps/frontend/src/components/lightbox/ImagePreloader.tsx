@@ -41,7 +41,6 @@ export function ImagePreloader({ prevSrc, mainSrc, nextSrc }: ImagePreloaderProp
     // Cleanup function: cancel loading and release references
     return () => {
       // Cancel any pending image loads and release references
-      /* eslint-disable no-param-reassign */
       preloadedImagesRef.current.forEach(img => {
         img.src = ""; // Cancel loading
         img.onload = null; // Remove any load handlers

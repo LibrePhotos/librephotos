@@ -39,6 +39,11 @@ jobs:
           cache-dependency-path: apps/frontend/yarn.lock
       - name: install dependencies
         run: yarn install --frozen-lockfile --network-timeout 1000000
+      # lint:error also lints e2e/, whose types come from its own dependencies.
+      - name: install e2e dependencies
+        run: yarn --cwd e2e install --frozen-lockfile --network-timeout 1000000
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
       - name: lint
         run: yarn run lint:error
       - name: test

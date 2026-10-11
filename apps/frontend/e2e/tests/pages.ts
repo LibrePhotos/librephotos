@@ -76,8 +76,5 @@ export class Header {
 
 /** Whether an <img> finished loading real pixels (not a broken or empty image). */
 export async function isImageLoaded(image: Locator) {
-  return image.evaluate(el => {
-    const img = el as HTMLImageElement;
-    return img.complete && img.naturalWidth > 0;
-  });
+  return image.evaluate(el => el instanceof HTMLImageElement && el.complete && el.naturalWidth > 0);
 }

@@ -54,7 +54,7 @@ export function PasswordEntry(props: Props): React.JSX.Element {
   // are not stale, just not triggers.
   useEffect(() => {
     validateAndUpdatePassword(newPassword, newPasswordConfirm, closing);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-validate on mode changes only; keystrokes validate in the input onChange handlers
   }, [createNew, closing, editPasswordMode, touched]);
 
   return (

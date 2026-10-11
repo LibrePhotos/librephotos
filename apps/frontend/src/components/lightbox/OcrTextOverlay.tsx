@@ -86,7 +86,6 @@ export function OcrTextOverlay({ blocks, aspectRatio }: OcrTextOverlayProps) {
       }}
     >
       {placed.map((block, index) => (
-        // eslint-disable-next-line react/no-array-index-key
         <g key={index} transform={`translate(${block.x} ${block.y}) rotate(${block.angle})`}>
           {/* Faint backdrop marking the block as selectable, like Live Text's glow */}
           <rect

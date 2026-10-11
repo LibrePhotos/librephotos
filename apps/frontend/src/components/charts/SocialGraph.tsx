@@ -91,7 +91,6 @@ function ForceGraph({ data, width, height }: { data: PersonDataPointList; width:
         drag<SVGCircleElement, GraphNode>()
           .on("start", (event: NodeDragEvent, d) => {
             if (!event.active) simulation.alphaTarget(0.3).restart();
-            /* eslint-disable no-param-reassign -- d3-force requires mutating node properties */
             d.fx = d.x;
             d.fy = d.y;
           })
@@ -103,7 +102,6 @@ function ForceGraph({ data, width, height }: { data: PersonDataPointList; width:
             if (!event.active) simulation.alphaTarget(0);
             d.fx = null;
             d.fy = null;
-            /* eslint-enable no-param-reassign */
           })
       );
 

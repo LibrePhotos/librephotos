@@ -44,7 +44,6 @@ let container: HTMLDivElement;
 const tick = () => act(() => new Promise<void>(resolve => setTimeout(resolve, 0)));
 const settle = async () => {
   for (let i = 0; i < 50 && latest.isUploading; i += 1) {
-    // eslint-disable-next-line no-await-in-loop
     await tick();
   }
   expect(latest.isUploading).toBe(false);

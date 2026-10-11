@@ -345,7 +345,6 @@ function Pig<T extends ImageItem>(
     window.addEventListener("scroll", throttledScroll);
     window.addEventListener("resize", debouncedResize);
 
-    // eslint-disable-next-line consistent-return
     return () => {
       window.removeEventListener("scroll", throttledScroll);
       window.removeEventListener("resize", debouncedResize);

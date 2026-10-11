@@ -232,7 +232,6 @@ export function ContentViewer({
       }
     }, progressInterval);
 
-    // eslint-disable-next-line consistent-return
     return () => clearInterval(progressTimer);
   }, [isSlideshowActive, type, mainSrc, slideshowInterval, nextSrc, onMoveNextRequest]);
 
@@ -323,7 +322,6 @@ export function ContentViewer({
     };
 
     embla.on("select", onSlideChange);
-    // eslint-disable-next-line consistent-return
     return () => {
       embla.off("select", onSlideChange);
     };

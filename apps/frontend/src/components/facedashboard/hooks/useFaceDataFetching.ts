@@ -94,7 +94,6 @@ export function useFaceDataFetching(
 
     (async () => {
       // TODO(sickelap): find a better way to do this
-      // eslint-disable-next-line no-restricted-syntax
       for (const element of groups) {
         if (cancelled) return;
 
@@ -110,7 +109,6 @@ export function useFaceDataFetching(
         // name a person that has no faces left at all. The backend answers that
         // with 404 "Invalid page", which the dashboard shows as an error.
         if (!person || (element.page - 1) * PAGE_SIZE >= person.faces.length) {
-          // eslint-disable-next-line no-continue
           continue;
         }
 
@@ -126,7 +124,6 @@ export function useFaceDataFetching(
 
           // Fetch face data
           // TODO(sickelap): related to the above. optimize by using prefetchQuery and checking if data is already in cache
-          // eslint-disable-next-line no-await-in-loop
           const data = await queryClient.fetchQuery({
             queryKey: [...FacesQueryKeys, queryParams],
             queryFn: () => fetchFaces(queryParams),
