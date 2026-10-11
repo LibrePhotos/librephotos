@@ -65,7 +65,9 @@ import { ModalUserEdit } from "../modals/ModalUserEdit";
 import { SaveChangesDialog } from "./SaveChangesDialog";
 
 // The action buttons share one minimum width so they line up; longer translations still grow.
-const ACTION_MIN_WIDTH = 160;
+// Mantine 9 spaces Grid columns with a gap instead of padding inside each column, so this
+// is the button's own width (it was 160 including 2 × 8px column padding).
+const ACTION_MIN_WIDTH = 144;
 
 function BadgeIcon(details: User, isSuccess: boolean, isError: boolean, isFetching: boolean) {
   const { nextcloud_server_address: server } = details;
@@ -307,7 +309,7 @@ export function Library() {
                     </Text>
                   )}
                   {/* In the description column, so the collapsed help adds no gap to the rows. */}
-                  <Collapse in={isScanHelpOpen} id="scan-library-help">
+                  <Collapse expanded={isScanHelpOpen} id="scan-library-help">
                     <Stack gap={0} mt="xs">
                       <Text>{t("settings.scanhelpheading")}</Text>
                       <List>

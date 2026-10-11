@@ -87,16 +87,18 @@ export function LocationDurationStackedBar() {
             // tick and the bar stopped short of the right edge.
             xAxisProps={{ domain: [0, "dataMax"] }}
             gridAxis="none"
-            barProps={{
+            // One <Bar> per series, so the hovered segment is the series the
+            // props were built for. Recharts 3 no longer passes the
+            // tooltipPayload this used to read the name from.
+            barProps={segment => ({
               radius: 4,
-              onMouseMove: (data: { tooltipPayload?: Array<{ name?: string }> }) => {
-                const segmentName = data?.tooltipPayload?.[0]?.name;
-                if (segmentName && segmentName !== hoveredSegment) {
-                  setHoveredSegment(segmentName);
+              onMouseMove: () => {
+                if (segment.name !== hoveredSegment) {
+                  setHoveredSegment(segment.name);
                 }
               },
               onMouseLeave: () => setHoveredSegment(null),
-            }}
+            })}
             tooltipAnimationDuration={200}
             // Mantine 8.3 forwards cursorFill to the DOM (React warning); the CSS variable is the same setting
             vars={() => ({ root: { "--chart-cursor-fill": "var(--mantine-color-gray-light)" } })}

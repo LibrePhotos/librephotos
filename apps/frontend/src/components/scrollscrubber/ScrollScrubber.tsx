@@ -21,10 +21,11 @@ type Props = Readonly<{
 }>;
 
 export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY, children }: Props) {
-  // ref and size of scrollscrubber
-  const { ref, width, height } = useElementSize<HTMLDivElement>();
-  // Mantine types its ref for React 19 (RefObject<T | null>); a callback ref fills the same object.
-  const scrubberRef = useMergedRef(ref);
+  // ref and size of scrollscrubber. Mantine 9's useElementSize hands back a ref
+  // callback rather than a ref object, so keep our own handle on the node.
+  const { ref: sizeRef, width, height } = useElementSize<HTMLDivElement>();
+  const ref = useRef<HTMLDivElement>(null);
+  const scrubberRef = useMergedRef(sizeRef, ref);
   const scrollerVisibilityTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const matches = useMediaQuery("(min-width: 700px)");
   const [scrollerIsVisible, setScrollerIsVisible] = useState(false);

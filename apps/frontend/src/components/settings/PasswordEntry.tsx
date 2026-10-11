@@ -10,7 +10,7 @@ type Props = Readonly<{
   closing?: boolean;
 }>;
 
-export function PasswordEntry(props: Props): JSX.Element {
+export function PasswordEntry(props: Props): React.JSX.Element {
   const { closing = false, createNew = false, onValidate } = props;
 
   const [editPasswordMode, setEditPasswordMode] = useState(false);

@@ -27,7 +27,7 @@ export function formatJobDuration(startedAt: string, finishedAt?: string | null)
   return duration.toHuman({ unitDisplay: "short" });
 }
 
-export function JobDuration({ matches, finished, finishedAt, startedAt }: IJobDuration): JSX.Element | null {
+export function JobDuration({ matches, finished, finishedAt, startedAt }: IJobDuration): React.JSX.Element | null {
   const { t } = useTranslation();
 
   // The Duration column only exists on wide screens. A cell here on a phone

@@ -7,9 +7,8 @@
  * cached "logged in" answer, so /login sent the user straight back into the app.
  */
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import React, { useEffect } from "react";
+import React, { act, useEffect } from "react";
 import { createRoot } from "react-dom/client";
-import { act } from "react-dom/test-utils";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { useLogoutMutation } from "./useLogoutMutation";
 
