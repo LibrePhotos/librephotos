@@ -9,10 +9,16 @@ from rest_framework.test import APIClient
 
 from api import autoalbum
 from api.autoalbum import delete_missing_photos
-from api.models import AlbumDate, AlbumPlace, File, LongRunningJob, Photo, Thumbnail
+from api.models import AlbumPlace, File, LongRunningJob, Photo, Thumbnail
 from api.models.album_thing import AlbumThing
 from api.models.tag import Tag
-from api.tests.utils import create_test_photo, create_test_user
+from api.tests.utils import (
+    create_test_album_date,
+    create_test_file,
+    create_test_photo,
+    create_test_tag,
+    create_test_user,
+)
 
 
 class DeleteMissingPhotosAsyncTaskTest(TestCase):
@@ -197,18 +203,8 @@ class DeleteMissingPhotosCorrectnessTest(TestCase):
         user = create_test_user()
         other = create_test_user()
 
-        mine = File.objects.create(
-            hash=f"deadbeef{user.id}",
-            path=f"/tmp/mine-{user.id}.png",
-            type=File.IMAGE,
-            missing=True,
-        )
-        theirs = File.objects.create(
-            hash=f"deadbeef{other.id}",
-            path=f"/tmp/theirs-{other.id}.png",
-            type=File.IMAGE,
-            missing=True,
-        )
+        mine = create_test_file(f"/tmp/mine-{user.id}.png", user, missing=True)
+        theirs = create_test_file(f"/tmp/theirs-{other.id}.png", other, missing=True)
 
         delete_missing_photos(user, str(uuid.uuid4()))
 
@@ -342,7 +338,7 @@ class DeleteMissingPhotosCascadeTest(TestCase):
         kept.files.add(kept.main_file)
         missing = [create_test_photo(owner=user) for _ in range(3)]
 
-        album_date = AlbumDate.objects.create(owner=user)
+        album_date = create_test_album_date(owner=user)
         album_date.photos.add(kept, *missing)
 
         delete_missing_photos(user, str(uuid.uuid4()))
@@ -420,7 +416,7 @@ class DeleteMissingPhotosTagTest(TestCase):
     """
 
     def _make_tag(self, owner, photos, name="beach"):
-        tag = Tag.objects.create(name=name, owner=owner)
+        tag = create_test_tag(name=name, owner=owner)
         tag.photos.add(*photos)
         return tag
 

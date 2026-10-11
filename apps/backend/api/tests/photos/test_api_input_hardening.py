@@ -14,15 +14,17 @@ Tests designed to break the API with:
 import uuid
 
 from django.test import TestCase
-from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
 
 from api.models.duplicate import Duplicate
-from api.models.file import File
-from api.models.photo import Photo
 from api.models.photo_stack import PhotoStack
-from api.models.user import User
+from api.tests.utils import (
+    create_test_duplicate,
+    create_test_photo,
+    create_test_stack,
+    create_test_user,
+)
 
 
 class DuplicatesAPIRobustnessTestCase(TestCase):
@@ -30,17 +32,14 @@ class DuplicatesAPIRobustnessTestCase(TestCase):
 
     def setUp(self):
         """Create test user and authenticate."""
-        self.user = User.objects.create_user(
-            username="robusttest",
-            password="testpass123",
-        )
+        self.user = create_test_user(username="robusttest")
         self.client = APIClient()
         self.client.force_authenticate(user=self.user)
 
     def test_resolve_with_empty_body(self):
         """Should handle empty request body gracefully."""
         # Create a duplicate
-        duplicate = Duplicate.objects.create(
+        duplicate = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
@@ -55,7 +54,7 @@ class DuplicatesAPIRobustnessTestCase(TestCase):
 
     def test_resolve_with_invalid_photo_id(self):
         """Should handle invalid photo ID gracefully."""
-        duplicate = Duplicate.objects.create(
+        duplicate = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
@@ -69,7 +68,7 @@ class DuplicatesAPIRobustnessTestCase(TestCase):
 
     def test_resolve_with_nonexistent_photo(self):
         """Should handle nonexistent photo ID."""
-        duplicate = Duplicate.objects.create(
+        duplicate = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
@@ -127,7 +126,7 @@ class DuplicatesAPIRobustnessTestCase(TestCase):
 
     def test_null_bytes_in_request(self):
         """Should handle null bytes in request data."""
-        duplicate = Duplicate.objects.create(
+        duplicate = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
@@ -145,26 +144,9 @@ class StacksAPIRobustnessTestCase(TestCase):
 
     def setUp(self):
         """Create test user and authenticate."""
-        self.user = User.objects.create_user(
-            username="stackrobust",
-            password="testpass123",
-        )
+        self.user = create_test_user(username="stackrobust")
         self.client = APIClient()
         self.client.force_authenticate(user=self.user)
-
-    def _create_photo(self, suffix):
-        """Create a test photo."""
-        file = File.objects.create(
-            hash=f"robust{suffix}" + "a" * 26,
-            path=f"/photos/robust_{suffix}.jpg",
-            type=File.IMAGE,
-        )
-        return Photo.objects.create(
-            owner=self.user,
-            main_file=file,
-            image_hash=f"robust{suffix}" + "b" * 26,
-            added_on=timezone.now(),
-        )
 
     def test_create_manual_stack_with_empty_photos(self):
         """Should reject creating stack with no photos."""
@@ -178,7 +160,7 @@ class StacksAPIRobustnessTestCase(TestCase):
 
     def test_create_manual_stack_with_single_photo(self):
         """Should reject creating stack with only one photo."""
-        photo = self._create_photo("1")
+        photo = create_test_photo(owner=self.user)
 
         response = self.client.post(
             "/api/stacks/manual",
@@ -210,22 +192,9 @@ class StacksAPIRobustnessTestCase(TestCase):
 
     def test_create_manual_stack_with_other_user_photos(self):
         """Should reject using another user's photos."""
-        other_user = User.objects.create_user(
-            username="otheruser",
-            password="testpass123",
-        )
-        other_file = File.objects.create(
-            hash="other" + "a" * 28,
-            path="/photos/other.jpg",
-            type=File.IMAGE,
-        )
-        other_photo = Photo.objects.create(
-            owner=other_user,
-            main_file=other_file,
-            image_hash="other" + "b" * 28,
-            added_on=timezone.now(),
-        )
-        my_photo = self._create_photo("2")
+        other_user = create_test_user(username="otheruser")
+        other_photo = create_test_photo(owner=other_user)
+        my_photo = create_test_photo(owner=self.user)
 
         response = self.client.post(
             "/api/stacks/manual",
@@ -237,11 +206,11 @@ class StacksAPIRobustnessTestCase(TestCase):
 
     def test_set_primary_with_photo_not_in_stack(self):
         """Should reject setting primary to photo not in stack."""
-        photo1 = self._create_photo("3")
-        photo2 = self._create_photo("4")
-        photo3 = self._create_photo("5")
+        photo1 = create_test_photo(owner=self.user)
+        photo2 = create_test_photo(owner=self.user)
+        photo3 = create_test_photo(owner=self.user)
 
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -259,7 +228,7 @@ class StacksAPIRobustnessTestCase(TestCase):
 
     def test_add_photo_to_nonexistent_stack(self):
         """Should return 404 for adding to nonexistent stack."""
-        photo = self._create_photo("6")
+        photo = create_test_photo(owner=self.user)
         fake_uuid = str(uuid.uuid4())
 
         # Actual URL is /api/stacks/<id>/add (no trailing slash)
@@ -272,10 +241,10 @@ class StacksAPIRobustnessTestCase(TestCase):
 
     def test_remove_all_photos_from_stack(self):
         """Should handle removing all photos (stack should be deleted or empty)."""
-        photo1 = self._create_photo("7")
-        photo2 = self._create_photo("8")
+        photo1 = create_test_photo(owner=self.user)
+        photo2 = create_test_photo(owner=self.user)
 
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -302,10 +271,10 @@ class StacksAPIRobustnessTestCase(TestCase):
 
     def test_merge_single_stack(self):
         """Should reject merging with only one stack."""
-        photo1 = self._create_photo("9")
-        photo2 = self._create_photo("10")
+        photo1 = create_test_photo(owner=self.user)
+        photo2 = create_test_photo(owner=self.user)
 
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -330,24 +299,11 @@ class PhotoMetadataAPIRobustnessTestCase(TestCase):
 
     def setUp(self):
         """Create test user, photo, and authenticate."""
-        self.user = User.objects.create_user(
-            username="metarobust",
-            password="testpass123",
-        )
+        self.user = create_test_user(username="metarobust")
         self.client = APIClient()
         self.client.force_authenticate(user=self.user)
 
-        file = File.objects.create(
-            hash="meta" + "a" * 28,
-            path="/photos/meta.jpg",
-            type=File.IMAGE,
-        )
-        self.photo = Photo.objects.create(
-            owner=self.user,
-            main_file=file,
-            image_hash="meta" + "b" * 28,
-            added_on=timezone.now(),
-        )
+        self.photo = create_test_photo(owner=self.user)
 
     def test_update_with_invalid_field_types(self):
         """Test behavior with invalid field types - API may accept string and try to convert."""
@@ -391,21 +347,8 @@ class PhotoMetadataAPIRobustnessTestCase(TestCase):
 
     def test_update_other_user_photo_metadata(self):
         """Should reject updating another user's photo metadata."""
-        other_user = User.objects.create_user(
-            username="othermetauser",
-            password="testpass123",
-        )
-        other_file = File.objects.create(
-            hash="othermeta" + "a" * 23,
-            path="/photos/othermeta.jpg",
-            type=File.IMAGE,
-        )
-        other_photo = Photo.objects.create(
-            owner=other_user,
-            main_file=other_file,
-            image_hash="othermeta" + "b" * 23,
-            added_on=timezone.now(),
-        )
+        other_user = create_test_user(username="othermetauser")
+        other_photo = create_test_photo(owner=other_user)
 
         response = self.client.patch(
             f"/api/photos/{other_photo.pk}/metadata/",
@@ -429,10 +372,7 @@ class AuthenticationRobustnessTestCase(TestCase):
 
     def setUp(self):
         """Create test user."""
-        self.user = User.objects.create_user(
-            username="authtest",
-            password="testpass123",
-        )
+        self.user = create_test_user(username="authtest")
         self.client = APIClient()
 
     def test_unauthenticated_access_to_duplicates(self):
@@ -461,30 +401,13 @@ class ConcurrentOperationsTestCase(TestCase):
 
     def setUp(self):
         """Create test user and authenticate."""
-        self.user = User.objects.create_user(
-            username="concurrent",
-            password="testpass123",
-        )
+        self.user = create_test_user(username="concurrent")
         self.client = APIClient()
         self.client.force_authenticate(user=self.user)
 
-    def _create_photo(self, suffix):
-        """Create a test photo."""
-        file = File.objects.create(
-            hash=f"conc{suffix}" + "a" * 27,
-            path=f"/photos/concurrent_{suffix}.jpg",
-            type=File.IMAGE,
-        )
-        return Photo.objects.create(
-            owner=self.user,
-            main_file=file,
-            image_hash=f"conc{suffix}" + "b" * 27,
-            added_on=timezone.now(),
-        )
-
     def test_delete_already_deleted_duplicate(self):
         """Should handle deleting an already-deleted duplicate."""
-        duplicate = Duplicate.objects.create(
+        duplicate = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
@@ -499,8 +422,8 @@ class ConcurrentOperationsTestCase(TestCase):
 
     def test_delete_already_deleted_stack(self):
         """Should handle deleting an already-deleted stack."""
-        photo = self._create_photo("1")
-        stack = PhotoStack.objects.create(
+        photo = create_test_photo(owner=self.user)
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -516,10 +439,10 @@ class ConcurrentOperationsTestCase(TestCase):
 
     def test_resolve_already_resolved_duplicate(self):
         """Should handle resolving an already-resolved duplicate."""
-        photo1 = self._create_photo("2")
-        photo2 = self._create_photo("3")
+        photo1 = create_test_photo(owner=self.user)
+        photo2 = create_test_photo(owner=self.user)
 
-        duplicate = Duplicate.objects.create(
+        duplicate = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
@@ -544,10 +467,7 @@ class BoundaryConditionsTestCase(TestCase):
 
     def setUp(self):
         """Create test user and authenticate."""
-        self.user = User.objects.create_user(
-            username="boundary",
-            password="testpass123",
-        )
+        self.user = create_test_user(username="boundary")
         self.client = APIClient()
         self.client.force_authenticate(user=self.user)
 
@@ -591,10 +511,7 @@ class MalformedRequestTestCase(TestCase):
 
     def setUp(self):
         """Create test user and authenticate."""
-        self.user = User.objects.create_user(
-            username="malformed",
-            password="testpass123",
-        )
+        self.user = create_test_user(username="malformed")
         self.client = APIClient()
         self.client.force_authenticate(user=self.user)
 

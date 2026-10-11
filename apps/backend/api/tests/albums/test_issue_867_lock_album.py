@@ -4,7 +4,7 @@ from django.test import TestCase
 from rest_framework.test import APIClient
 
 from api.models import AlbumUser
-from api.tests.utils import create_test_photo, create_test_user
+from api.tests.utils import create_test_album_user, create_test_photo, create_test_user
 
 
 class LockAlbumTestCase(TestCase):
@@ -14,7 +14,7 @@ class LockAlbumTestCase(TestCase):
         self.client.force_authenticate(self.user)
         self.p1 = create_test_photo(owner=self.user)
         self.p2 = create_test_photo(owner=self.user)
-        self.album = AlbumUser.objects.create(title="Trip", owner=self.user)
+        self.album = create_test_album_user(title="Trip", owner=self.user)
         self.album.photos.add(self.p1)
         self.url = f"/api/albums/user/edit/{self.album.id}/"
 

@@ -16,8 +16,7 @@ share recipients and public links keep working.
 from django.test import TestCase
 from rest_framework.test import APIClient, APIRequestFactory
 
-from api.models import AlbumUser
-from api.tests.utils import create_test_photo, create_test_user
+from api.tests.utils import create_test_album_user, create_test_photo, create_test_user
 from api.views.media import UnifiedMediaAccessView
 
 UNKNOWN_HASH = "0000000000000000000000000000beef"
@@ -36,7 +35,7 @@ class PhotoAlbumsLookupOracleTest(TestCase):
         self.owner = create_test_user()
         self.stranger = create_test_user()
         self.photo = create_test_photo(owner=self.owner)
-        self.album = AlbumUser.objects.create(title="Private", owner=self.owner)
+        self.album = create_test_album_user(title="Private", owner=self.owner)
         self.album.photos.add(self.photo)
         self.client = APIClient()
 

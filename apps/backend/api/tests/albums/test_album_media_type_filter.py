@@ -14,10 +14,15 @@ from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 from rest_framework.test import APIClient
 
-from api.models import AlbumPlace, AlbumThing, AlbumUser, Tag
+from api.models import AlbumPlace, AlbumThing
 from api.models.album_user_share import AlbumUserShare
 from api.serializers.PhotosGroupedByDate import filter_photos_by_media_type
-from api.tests.utils import create_test_photo, create_test_user
+from api.tests.utils import (
+    create_test_album_user,
+    create_test_photo,
+    create_test_tag,
+    create_test_user,
+)
 
 
 class FilterPhotosByMediaTypeHelperTest(SimpleTestCase):
@@ -134,12 +139,12 @@ class AlbumMediaTypeFilterEndpointTest(TestCase):
         )
 
     def test_user_album(self):
-        album = AlbumUser.objects.create(title="My Album", owner=self.user)
+        album = create_test_album_user(title="My Album", owner=self.user)
         album.photos.add(*self.media)
         self._assert_filtering(f"/api/albums/user/{album.id}/")
 
     def test_user_album_public(self):
-        album = AlbumUser.objects.create(title="Shared Album", owner=self.user)
+        album = create_test_album_user(title="Shared Album", owner=self.user)
         album.photos.add(*self.media)
         AlbumUserShare.objects.create(album=album, enabled=True)
         anon = APIClient()
@@ -166,7 +171,7 @@ class AlbumMediaTypeFilterEndpointTest(TestCase):
         # viewer's language. (Search still sends the literal; see
         # api/views/search.py.)
         undated = create_test_photo(owner=self.user, exif_timestamp=None)
-        album = AlbumUser.objects.create(title="My Album", owner=self.user)
+        album = create_test_album_user(title="My Album", owner=self.user)
         album.photos.add(self.photo1, undated)
         last = self._groups(self.client.get(f"/api/albums/user/{album.id}/"))[-1]
         self.assertIsNone(last["date"])
@@ -187,7 +192,7 @@ class AlbumMediaTypeFilterEndpointTest(TestCase):
         self._assert_filtering(f"/api/albums/thing/{album.id}/")
 
     def test_tag_album(self):
-        tag = Tag.objects.create(name="beach", owner=self.user)
+        tag = create_test_tag(name="beach", owner=self.user)
         tag.photos.add(*self.media)
         url = f"/api/tags/{tag.id}/"
         # ?photo=true is what the web app sends for the Photos filter; the
@@ -196,9 +201,9 @@ class AlbumMediaTypeFilterEndpointTest(TestCase):
         self._assert_filtering(url)
 
     def test_tag_list_still_takes_photo_as_a_photo(self):
-        tag = Tag.objects.create(name="beach", owner=self.user)
+        tag = create_test_tag(name="beach", owner=self.user)
         tag.photos.add(self.photo1)
-        Tag.objects.create(name="other", owner=self.user).photos.add(self.photo2)
+        create_test_tag(name="other", owner=self.user).photos.add(self.photo2)
         response = self.client.get("/api/tags/", {"photo": self.photo1.image_hash})
         self.assertEqual([row["name"] for row in response.json()["results"]], ["beach"])
 

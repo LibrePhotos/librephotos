@@ -16,8 +16,8 @@ from django.test import SimpleTestCase, TestCase
 from django.utils import timezone
 from rest_framework.test import APIClient
 
-from api.models import AlbumDate, Photo
-from api.tests.utils import create_test_photo, create_test_user
+from api.models import Photo
+from api.tests.utils import create_test_album_date, create_test_photo, create_test_user
 from api.timeline_filter import (
     TimelineFilter,
     parse_tristate,
@@ -202,7 +202,7 @@ class TimelineEndpointsTest(TestCase):
         self.client.force_authenticate(user=self.user)
         now = timezone.now()
         self.day = now.date()
-        self.mixed = AlbumDate.objects.create(owner=self.user, date=self.day)
+        self.mixed = create_test_album_date(owner=self.user, date=self.day)
         self.plain = create_test_photo(owner=self.user, exif_timestamp=now)
         self.video = create_test_photo(owner=self.user, exif_timestamp=now, video=True)
         self.screenshot = create_test_photo(
@@ -214,7 +214,7 @@ class TimelineEndpointsTest(TestCase):
         self.mixed.photos.add(self.plain, self.video, self.screenshot, self.document)
 
         earlier = now - timezone.timedelta(days=3)
-        self.shots_only = AlbumDate.objects.create(owner=self.user, date=earlier.date())
+        self.shots_only = create_test_album_date(owner=self.user, date=earlier.date())
         self.shots_only.photos.add(
             create_test_photo(
                 owner=self.user, exif_timestamp=earlier, is_screenshot=True
@@ -285,7 +285,7 @@ class PublicTimelineIgnoresViewerDefaultTest(TestCase):
         alice = create_test_user()
         bob = create_test_user(default_timeline_filter={"hide_screenshots": True})
         now = timezone.now()
-        day = AlbumDate.objects.create(owner=alice, date=now.date())
+        day = create_test_album_date(owner=alice, date=now.date())
         shot = create_test_photo(
             owner=alice, exif_timestamp=now, is_screenshot=True, public=True
         )

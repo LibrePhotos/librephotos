@@ -19,12 +19,13 @@ from django.utils import timezone
 from rest_framework.request import Request
 from rest_framework.test import APIRequestFactory
 
-from api.models import AlbumDate
 from api.models.photo_stack import PhotoStack
 from api.tests.utils import (
+    create_test_album_date,
     create_test_face,
     create_test_person,
     create_test_photo,
+    create_test_stack,
     create_test_user,
 )
 from api.views.albums import AlbumDateViewSet
@@ -56,9 +57,7 @@ class AlbumDateGetQuerysetFilterTest(AlbumDateGetQuerysetTestBase):
         self.user = create_test_user()
         self.other = create_test_user()
         self.timestamp = timezone.now()
-        self.album = AlbumDate.objects.create(
-            owner=self.user, date=self.timestamp.date()
-        )
+        self.album = create_test_album_date(owner=self.user, date=self.timestamp.date())
 
     def photo(self, owner=None, **kwargs):
         kwargs.setdefault("exif_timestamp", self.timestamp)
@@ -219,7 +218,7 @@ class AlbumDateGetQuerysetFilterTest(AlbumDateGetQuerysetTestBase):
         primary = self.photo()
         secondary = self.photo()
         unstacked = self.photo()
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
             primary_photo=primary,
@@ -300,7 +299,7 @@ class AlbumDateGetQuerysetPaginationTest(AlbumDateGetQuerysetTestBase):
     def setUp(self):
         self.user = create_test_user()
         base = timezone.now()
-        self.album = AlbumDate.objects.create(owner=self.user, date=base.date())
+        self.album = create_test_album_date(owner=self.user, date=base.date())
         self.photos = []
         for index in range(5):
             photo = create_test_photo(
@@ -348,9 +347,7 @@ class AlbumDateGetQuerysetPaginationTest(AlbumDateGetQuerysetTestBase):
         self.assertEqual([str(p.pk) for p in photos], [str(self.photos[4].pk)])
 
     def test_empty_album_still_returns_a_page_and_zero_count(self):
-        empty = AlbumDate.objects.create(
-            owner=self.user, date=datetime.date(1999, 1, 1)
-        )
+        empty = create_test_album_date(owner=self.user, date=datetime.date(1999, 1, 1))
 
         album_date, photos, count = self.run_queryset(self.user, empty)
 
@@ -371,7 +368,7 @@ class AlbumDateGetQuerysetMissingAlbumTest(AlbumDateGetQuerysetTestBase):
         """The album itself is scoped, not only its photos: see
         test_album_date_detail_owner_scope."""
         owner = create_test_user()
-        album = AlbumDate.objects.create(owner=owner, date=datetime.date(2000, 1, 1))
+        album = create_test_album_date(owner=owner, date=datetime.date(2000, 1, 1))
         view = self.make_view(create_test_user(), album.id)
 
         with self.assertRaises(Http404):

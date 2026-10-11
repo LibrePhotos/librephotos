@@ -21,7 +21,7 @@ from api.models.photo_metadata import PhotoMetadata
 from api.models.photo_search import PhotoSearch
 from api.models.photo_stack import PhotoStack
 from api.serializers.photos import PhotoEditSerializer, PhotoSerializer
-from api.tests.utils import create_test_photo, create_test_user
+from api.tests.utils import create_test_photo, create_test_stack, create_test_user
 
 GEO_RESULT = {
     "features": [
@@ -302,7 +302,7 @@ class PhotoSerializerGetStacksTestCase(TestCase):
         self.serializer = PhotoSerializer()
 
     def _stack(self, stack_type=PhotoStack.StackType.MANUAL, primary=None, photos=()):
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user, stack_type=stack_type, primary_photo=primary
         )
         for photo in photos:
@@ -315,7 +315,7 @@ class PhotoSerializerGetStacksTestCase(TestCase):
 
     def test_stack_with_unknown_type_is_filtered_out(self):
         photo = create_test_photo(owner=self.user)
-        stack = PhotoStack.objects.create(owner=self.user, stack_type="mystery")
+        stack = create_test_stack(owner=self.user, stack_type="mystery")
         stack.photos.add(photo)
 
         self.assertIsNone(self.serializer.get_stacks(photo))
@@ -432,7 +432,7 @@ class PhotoSerializerGetStacksTestCase(TestCase):
         valid = self._stack(
             stack_type=PhotoStack.StackType.EXPOSURE_BRACKET, photos=[photo]
         )
-        bogus = PhotoStack.objects.create(owner=self.user, stack_type="mystery")
+        bogus = create_test_stack(owner=self.user, stack_type="mystery")
         bogus.photos.add(photo)
 
         result = self.serializer.get_stacks(photo)

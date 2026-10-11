@@ -39,8 +39,10 @@ from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 from rest_framework.test import APIClient
 
-from api.models import AlbumAuto, AlbumDate, AlbumPlace, AlbumThing, AlbumUser
+from api.models import AlbumAuto, AlbumPlace, AlbumThing
 from api.tests.utils import (
+    create_test_album_date,
+    create_test_album_user,
     create_test_face,
     create_test_person,
     create_test_photo,
@@ -123,7 +125,7 @@ class AlbumUserListQueryCountTest(AlbumListQueryCountTestMixin, TestCase):
     URL = "/api/albums/user/list/"
 
     def _make_album(self, index):
-        album = AlbumUser.objects.create(title=f"album-{index:03d}", owner=self.user)
+        album = create_test_album_user(title=f"album-{index:03d}", owner=self.user)
         album.photos.add(self._photo())
 
 
@@ -165,7 +167,7 @@ class AlbumDateListQueryCountTest(AlbumListQueryCountTestMixin, TestCase):
 
     def _make_album(self, index):
         timestamp = self.now - timezone.timedelta(days=index)
-        album = AlbumDate.objects.create(
+        album = create_test_album_date(
             date=timestamp.date(), owner=self.user, location={"places": ["Lisbon"]}
         )
         album.photos.add(
@@ -247,7 +249,7 @@ class AlbumUserListCoverFallbackTest(TestCase):
         return {entry["title"]: entry for entry in response.json()["results"]}
 
     def test_album_without_cover_uses_first_photo(self):
-        album = AlbumUser.objects.create(title="no-cover", owner=self.user)
+        album = create_test_album_user(title="no-cover", owner=self.user)
         first = create_test_photo(owner=self.user, video=False)
         album.photos.add(first, create_test_photo(owner=self.user, video=False))
 
@@ -259,7 +261,7 @@ class AlbumUserListCoverFallbackTest(TestCase):
         self.assertEqual(entry["photo_count"], 2)
 
     def test_album_with_cover_uses_cover(self):
-        album = AlbumUser.objects.create(title="has-cover", owner=self.user)
+        album = create_test_album_user(title="has-cover", owner=self.user)
         other = create_test_photo(owner=self.user, video=False)
         cover = create_test_photo(owner=self.user, video=False)
         album.photos.add(other, cover)

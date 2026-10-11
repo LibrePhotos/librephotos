@@ -12,13 +12,12 @@ dirs and tiny files are created).  No ML, no network, no exiftool.
 import os
 import shutil
 import tempfile
-import uuid
 
 from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
 
 from api.models import File
-from api.tests.utils import create_test_photo, create_test_user
+from api.tests.utils import create_test_file, create_test_photo, create_test_user
 
 URL = "/api/folders/subfolders/"
 
@@ -44,10 +43,8 @@ class SubfoldersTestBase(TestCase):
     def add_photo_in(self, owner, folder_path, filename="pic.jpg"):
         """Attach a Photo owned by ``owner`` with a File under ``folder_path``."""
         photo = create_test_photo(owner=owner)
-        file = File.objects.create(
-            hash=uuid.uuid4().hex,
-            path=os.path.join(folder_path, filename),
-            type=File.IMAGE,
+        file = create_test_file(
+            os.path.join(folder_path, filename), owner, file_type=File.IMAGE
         )
         photo.files.add(file)
         return photo
@@ -285,10 +282,8 @@ class SubfoldersListingTests(SubfoldersTestBase):
         # A second file of the SAME photo must not inflate the count
         # (the aggregate is distinct on the photo pk).
         photo.files.add(
-            File.objects.create(
-                hash=uuid.uuid4().hex,
-                path=os.path.join(folder, "a.xmp"),
-                type=File.METADATA_FILE,
+            create_test_file(
+                os.path.join(folder, "a.xmp"), admin, file_type=File.METADATA_FILE
             )
         )
         self.add_photo_in(admin, folder, "b.jpg")
@@ -447,9 +442,7 @@ class SubfoldersSiblingPrefixTests(SubfoldersTestBase):
             r"C:/data\test2\d.jpg",
         ):
             photo = create_test_photo(owner=admin)
-            photo.files.add(
-                File.objects.create(hash=uuid.uuid4().hex, path=path, type=File.IMAGE)
-            )
+            photo.files.add(create_test_file(path, admin, file_type=File.IMAGE))
 
         def count(folder):
             return (

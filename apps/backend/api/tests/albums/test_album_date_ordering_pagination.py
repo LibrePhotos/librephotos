@@ -2,8 +2,7 @@ from django.test import TestCase
 from django.utils import timezone
 from rest_framework.test import APIClient
 
-from api.models import AlbumDate
-from api.tests.utils import create_test_photo, create_test_user
+from api.tests.utils import create_test_album_date, create_test_photo, create_test_user
 
 
 class AlbumDatePhotoOrderingTest(TestCase):
@@ -20,7 +19,7 @@ class AlbumDatePhotoOrderingTest(TestCase):
             photo.main_file.save(update_fields=["path"])
             self.photos_by_filename[filename] = photo
 
-        self.album = AlbumDate.objects.create(
+        self.album = create_test_album_date(
             date=timestamp.date(),
             owner=self.user,
         )

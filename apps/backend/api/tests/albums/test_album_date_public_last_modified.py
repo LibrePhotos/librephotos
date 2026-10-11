@@ -16,8 +16,7 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 
 from api.models import Photo
-from api.models.album_date import AlbumDate
-from api.tests.utils import create_test_photo, create_test_user
+from api.tests.utils import create_test_album_date, create_test_photo, create_test_user
 
 
 class AlbumDatePublicLastModifiedTest(TestCase):
@@ -25,16 +24,16 @@ class AlbumDatePublicLastModifiedTest(TestCase):
         self.owner = create_test_user(public_sharing=True)
         self.viewer = create_test_user()
         self.taken = timezone.now()
-        self.day = AlbumDate.objects.create(owner=self.owner, date=self.taken.date())
+        self.day = create_test_album_date(owner=self.owner, date=self.taken.date())
         self.public_photo = self._photo(self.day, public=True)
         self.private_photo = self._photo(self.day, public=False)
         # A day of the owner's holding nothing public.
-        self.private_day = AlbumDate.objects.create(
+        self.private_day = create_test_album_date(
             owner=self.owner, date=(self.taken - datetime.timedelta(days=3)).date()
         )
         self._photo(self.private_day, public=False)
         # The signed-in viewer's own private day.
-        self.viewer_day = AlbumDate.objects.create(
+        self.viewer_day = create_test_album_date(
             owner=self.viewer, date=self.taken.date()
         )
         self._photo(self.viewer_day, owner=self.viewer, public=False)

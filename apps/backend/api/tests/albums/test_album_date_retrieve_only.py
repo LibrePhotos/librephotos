@@ -13,7 +13,7 @@ from django.test import TestCase
 from rest_framework.test import APIClient
 
 from api.models import AlbumDate
-from api.tests.utils import create_test_photo, create_test_user
+from api.tests.utils import create_test_album_date, create_test_photo, create_test_user
 
 
 class AlbumDateRetrieveOnlyTest(TestCase):
@@ -22,7 +22,7 @@ class AlbumDateRetrieveOnlyTest(TestCase):
         self.client = APIClient()
         self.client.raise_request_exception = False
         self.client.force_authenticate(user=self.user)
-        self.album = AlbumDate.objects.create(
+        self.album = create_test_album_date(
             owner=self.user, date=datetime.date(2021, 3, 4)
         )
         self.album.photos.add(create_test_photo(owner=self.user))

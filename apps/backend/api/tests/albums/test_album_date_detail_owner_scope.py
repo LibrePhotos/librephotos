@@ -19,8 +19,7 @@ import datetime
 from django.test import TestCase
 from rest_framework.test import APIClient
 
-from api.models import AlbumDate
-from api.tests.utils import create_test_photo, create_test_user
+from api.tests.utils import create_test_album_date, create_test_photo, create_test_user
 
 SECRET_PLACE = "Secret Clinic Town"
 
@@ -30,7 +29,7 @@ class AlbumDateDetailOwnerScopeTest(TestCase):
         self.victim = create_test_user()
         self.attacker = create_test_user()
         self.day = datetime.date(2021, 3, 4)
-        self.victim_day = AlbumDate.objects.create(
+        self.victim_day = create_test_album_date(
             owner=self.victim,
             date=self.day,
             location={"places": [SECRET_PLACE]},
