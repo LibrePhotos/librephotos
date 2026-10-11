@@ -27,6 +27,8 @@ green CI run. To develop against a local backend, copy `.env.development.example
   must be there.
 - Type mocks: `vi.fn<(arg: T) => R>()` or `vi.fn(implementation)`, never a bare `vi.fn()`.
 - No `@ts-ignore`, `@ts-expect-error` or `@ts-nocheck`; fix the type.
+- `tsconfig.json` is strict with `noImplicitReturns`, `noImplicitOverride` and `noUncheckedIndexedAccess`
+  (an index read is `T | undefined`: guard it, use `?.`, or `defined()` in tests). `allowJs` is off.
 - Server data goes through `src/api_client` (and, where a domain has moved, `packages/api-client`):
   requests, zod schemas and React Query hooks live there, not in components.
 - User-visible text uses `t()` with a key in `src/locales/en/translation.json`. Never edit the other

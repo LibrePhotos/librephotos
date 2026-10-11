@@ -18,6 +18,7 @@
     "noFallthroughCasesInSwitch": true,
     "noImplicitReturns": true,
     "noImplicitOverride": true,
+    "noUncheckedIndexedAccess": true,
     // The shared API client (packages/api-client) is consumed as TypeScript
     // source, not as an installed package; vite.config.ts carries the same
     // alias. Its peer dependencies are pinned to THIS app's node_modules: the
