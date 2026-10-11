@@ -30,9 +30,9 @@ from api.thumbnail_metadata import (
 )
 from api.thumbnails import (
     WEBP,
-    _reorient_file_in_place,
     _render_raw_thumbnail,
     _render_thumbnail,
+    _reorient_file_in_place,
     create_animated_thumbnail,
     create_static_thumbnails,
     create_thumbnail_for_video,

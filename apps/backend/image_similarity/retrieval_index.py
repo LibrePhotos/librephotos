@@ -204,8 +204,9 @@ class RetrievalIndex:
 
         elapsed = (datetime.datetime.now() - start).total_seconds()
         logger.info(
-            "finished building index for user %d - took %.2f seconds"
-            % (user_id, elapsed)
+            "finished building index for user %d - took %.2f seconds",
+            user_id,
+            elapsed,
         )
 
     def _add_embeddings(
@@ -256,7 +257,9 @@ class RetrievalIndex:
                 res.append(self.image_hashes[user_id][idx])
         elapsed = (datetime.datetime.now() - start).total_seconds()
         logger.info(
-            "searched for %d images for user %d - took %.2f seconds"
-            % (n, user_id, elapsed)
+            "searched for %d images for user %d - took %.2f seconds",
+            n,
+            user_id,
+            elapsed,
         )
         return res

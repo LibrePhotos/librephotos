@@ -3,19 +3,19 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-from django.db import models
 from django.conf import settings
 from django.core.files.uploadedfile import UploadedFile
+from django.db import models
 from django.utils import timezone
 
-from .settings import (
-    EXPIRATION_DELTA,
-    UPLOAD_TO,
-    STORAGE,
-    DEFAULT_MODEL_USER_FIELD_NULL,
-    DEFAULT_MODEL_USER_FIELD_BLANK,
-)
 from .constants import CHUNKED_UPLOAD_CHOICES, UPLOADING
+from .settings import (
+    DEFAULT_MODEL_USER_FIELD_BLANK,
+    DEFAULT_MODEL_USER_FIELD_NULL,
+    EXPIRATION_DELTA,
+    STORAGE,
+    UPLOAD_TO,
+)
 
 
 def generate_upload_id() -> str:
@@ -70,18 +70,13 @@ class AbstractChunkedUpload(models.Model):
     ) -> tuple[int, dict[str, int]]:
         if self.file:
             storage, path = self.file.storage, self.file.path
-        result = super(AbstractChunkedUpload, self).delete(*args, **kwargs)
+        result = super().delete(*args, **kwargs)
         if self.file and delete_file:
             storage.delete(path)
         return result
 
     def __str__(self) -> str:
-        return "<%s - upload_id: %s - bytes: %s - status: %s>" % (
-            self.filename,
-            self.upload_id,
-            self.offset,
-            self.status,
-        )
+        return f"<{self.filename} - upload_id: {self.upload_id} - bytes: {self.offset} - status: {self.status}>"
 
     def append_chunk(
         self, chunk: UploadedFile, chunk_size: int | None = None, save: bool = True

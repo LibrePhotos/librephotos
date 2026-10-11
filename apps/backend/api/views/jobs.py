@@ -1,3 +1,4 @@
+import logging
 from datetime import timedelta
 
 from django.db.models import Prefetch, Q, QuerySet
@@ -13,6 +14,8 @@ from api.models import LongRunningJob, User
 from api.request_user import request_user
 from api.serializers.job import LongRunningJobSerializer
 from api.views.pagination import TinyResultsSetPagination
+
+logger = logging.getLogger(__name__)
 
 
 # Jobs are written by the workers only: the API lists, opens, deletes and
@@ -88,9 +91,13 @@ class LongRunningJobViewSet(
                     if any(str(arg) == job_id_str for arg in task_args):
                         queued.delete()
                 except Exception:
-                    continue  # Skip unparseable entries
+                    # Skip unparseable entries
+                    logger.debug("Skipping queued task %s", queued.id, exc_info=True)
         except Exception:
-            pass  # Non-critical; cooperative cancellation handles running tasks
+            # Non-critical; cooperative cancellation handles running tasks
+            logger.warning(
+                "Could not remove the queued tasks of job %s", job.job_id, exc_info=True
+            )
 
         return Response(
             {

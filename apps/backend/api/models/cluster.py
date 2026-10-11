@@ -6,9 +6,9 @@ from typing import TYPE_CHECKING
 from django.core.exceptions import MultipleObjectsReturned
 from django.db import models
 
+from api.lazy_import import LazyModule
 from api.models.person import Person
 from api.models.user import User, get_deleted_user
-from api.lazy_import import LazyModule
 
 if TYPE_CHECKING:
     import numpy.typing as npt
@@ -42,7 +42,7 @@ class Cluster(models.Model):
     )
 
     def __str__(self) -> str:
-        return "%d" % self.id
+        return str(self.id)
 
     def get_mean_encoding_array(self) -> npt.NDArray[float64]:
         return np.frombuffer(bytes.fromhex(self.mean_face_encoding))

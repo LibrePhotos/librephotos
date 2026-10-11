@@ -24,7 +24,7 @@ def dominant_hex(raw: str | None) -> str | None:
     try:
         inner = raw[1:-1]
         r, g, b = (int(x) for x in inner.split(", "))
-        return "#%02x%02x%02x" % (r, g, b)
+        return f"#{r:02x}{g:02x}{b:02x}"
     except (ValueError, TypeError, IndexError):
         return None
 

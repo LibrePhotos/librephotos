@@ -88,17 +88,14 @@ class ApiHelpView(APIView):
         }
 
         # Add schema links in DEBUG mode if available
-        try:
-            if settings.DEBUG:
-                data.setdefault("useful_endpoints", {}).update(
-                    {
-                        "openapi_schema": f"{base}/api/schema",
-                        "swagger_ui": f"{base}/api/swagger",
-                        "redoc": f"{base}/api/redoc",
-                    }
-                )
-        except Exception:
-            pass
+        if settings.DEBUG:
+            data.setdefault("useful_endpoints", {}).update(
+                {
+                    "openapi_schema": f"{base}/api/schema",
+                    "swagger_ui": f"{base}/api/swagger",
+                    "redoc": f"{base}/api/redoc",
+                }
+            )
 
         return Response(data)
 

@@ -1,17 +1,18 @@
 import logging
 import os
+
+from django.conf import settings
+from django.db.models import Count
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
-from django.conf import settings
-from django.db.models import Count
 
-from api.request_user import request_user
-from api.util import folder_path_q, is_valid_path
 from api.models.photo import Photo
 from api.models.user import User
+from api.request_user import request_user
+from api.util import folder_path_q, is_valid_path
 
 logger = logging.getLogger(__name__)
 

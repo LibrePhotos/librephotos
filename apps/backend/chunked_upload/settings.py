@@ -1,11 +1,11 @@
-import time
 import os.path
+import time
 from datetime import timedelta
 from typing import Any, Protocol
 
+from django.conf import settings
 from django.core.serializers.json import DjangoJSONEncoder
 from django.utils.module_loading import import_string
-from django.conf import settings
 
 # How long after creation the upload will expire
 DEFAULT_EXPIRATION_DELTA = timedelta(days=1)

@@ -16,14 +16,15 @@ Including another URLconf
 
 """
 
+import os
 from typing import Any
 
 from constance import config as site_config
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
-from django.urls import include, re_path
 from django.http import HttpRequest, HttpResponse
+from django.urls import include, re_path
 from django.views.generic import TemplateView
 from rest_framework import routers
 from rest_framework.permissions import AllowAny, BasePermission
@@ -78,7 +79,6 @@ from api.views import (
     zip_downloads,
 )
 from nextcloud import views as nextcloud_views
-import os
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):

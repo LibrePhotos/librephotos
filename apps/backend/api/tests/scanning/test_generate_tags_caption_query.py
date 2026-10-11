@@ -1,5 +1,5 @@
-from django.test import TestCase
 from django.db.models import Q
+from django.test import TestCase
 
 from api.models import Photo
 from api.tests.utils import create_test_photo, create_test_user

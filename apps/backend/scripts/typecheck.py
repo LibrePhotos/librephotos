@@ -33,10 +33,11 @@ import re
 import subprocess
 import sys
 import tempfile
-import tomllib
 from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
+
+import tomllib
 
 ROOT = Path(__file__).resolve().parent.parent
 BASELINE = ROOT / "mypy-baseline.txt"

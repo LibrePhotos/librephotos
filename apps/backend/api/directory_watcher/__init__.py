@@ -13,55 +13,54 @@ Phase 2: Process each group, creating one Photo per group
 """
 
 # Main scan functions
-from api.directory_watcher.scan_jobs import (
-    scan_photos,
-    scan_missing_photos,
-    photo_scanner,
+# File grouping utilities
+from api.directory_watcher.file_grouping import (
+    FILE_TYPE_PRIORITY,
+    JPEG_EXTENSIONS,
+    find_matching_image_for_video,
+    find_matching_jpeg_photo,
+    get_file_grouping_key,
+    select_main_file,
 )
 
 # File handling
 from api.directory_watcher.file_handlers import (
-    create_new_image,
     create_file_record,
+    create_new_image,
     group_files_into_photo,
-    handle_new_image,
     handle_file_group,
-)
-
-# File grouping utilities
-from api.directory_watcher.file_grouping import (
-    JPEG_EXTENSIONS,
-    FILE_TYPE_PRIORITY,
-    get_file_grouping_key,
-    select_main_file,
-    find_matching_jpeg_photo,
-    find_matching_image_for_video,
+    handle_new_image,
 )
 
 # Processing jobs
 from api.directory_watcher.processing_jobs import (
-    generate_tags,
-    generate_tag_job,
+    add_geolocation,
+    generate_face_embeddings,
     generate_ocr,
     generate_ocr_job,
-    add_geolocation,
+    generate_tag_job,
+    generate_tags,
     geolocation_job,
     scan_faces,
-    generate_face_embeddings,
 )
 
 # Repair jobs
 from api.directory_watcher.repair_jobs import (
     repair_ungrouped_file_variants,
 )
+from api.directory_watcher.scan_jobs import (
+    photo_scanner,
+    scan_missing_photos,
+    scan_photos,
+)
 
 # Utilities
 from api.directory_watcher.utils import (
     is_hidden,
     should_skip,
+    update_scan_counter,
     walk_directory,
     walk_files,
-    update_scan_counter,
 )
 
 # Re-export from api.models.file for backwards compatibility

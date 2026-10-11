@@ -8,12 +8,11 @@ from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from api import video_color, video_playback
-from api.geocode.geocode import reverse_geocode
 from api.geocode import GEOCODE_VERSION
+from api.geocode.geocode import reverse_geocode
 from api.geocode.photo_location import find_album_places
-from api.metadata.photo_datetime import extract_date_time
-
 from api.image_similarity import search_similar_image
+from api.metadata.photo_datetime import extract_date_time
 from api.models import AlbumDate, File, Photo, User
 from api.models.album_place import AlbumPlace, get_album_place
 from api.models.photo_caption import PhotoCaption
@@ -133,7 +132,8 @@ class PhotoSummarySerializer(serializers.ModelSerializer):
     def get_dominantColor(self, obj: Photo) -> str:
         if obj.thumbnail.dominant_color:
             dominant_color = obj.thumbnail.dominant_color[1:-1]
-            return "#%02x%02x%02x" % tuple(map(int, dominant_color.split(", ")))
+            r, g, b = (int(x) for x in dominant_color.split(", "))
+            return f"#{r:02x}{g:02x}{b:02x}"
         else:
             return ""
 

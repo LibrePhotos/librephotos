@@ -316,6 +316,7 @@ class RealExifToolTestCase(TestCase):
                 path,
             ],
             capture_output=True,
+            check=False,
         )
         if result.returncode != 0:
             raise unittest.SkipTest(

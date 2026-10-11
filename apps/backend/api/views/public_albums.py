@@ -118,8 +118,8 @@ class SetUserAlbumPublic(APIView):
         if expires_at is not None:
             try:
                 share.expires_at = parse_datetime(expires_at)
-            except Exception:
-                pass
+            except (TypeError, ValueError):
+                pass  # not an ISO date: keep the current expiry
 
         # Each option can be True, False, or None (use default)
         sharing_options = data.get("sharing_options") or {}

@@ -84,7 +84,7 @@ def _describe_span(timestamps: list[datetime], when: str) -> str:
     first = min(timestamps)
     last = max(timestamps)
     if (last - first).days >= 3:
-        when = "%d days" % ((last - first).days)
+        when = f"{(last - first).days} days"
     if (
         last.weekday() in WEEKEND
         and first.weekday() in WEEKEND
@@ -152,4 +152,4 @@ class AlbumAuto(models.Model):
             self.save()
 
     def __str__(self) -> str:
-        return "%d: %s" % (self.id, self.title)
+        return f"{self.id}: {self.title}"

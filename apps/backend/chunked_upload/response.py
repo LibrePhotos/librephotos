@@ -2,7 +2,7 @@ from typing import Any
 
 from django.http import HttpResponse
 
-from .settings import ENCODER, CONTENT_TYPE
+from .settings import CONTENT_TYPE, ENCODER
 
 
 class Response(HttpResponse):
@@ -13,7 +13,7 @@ class Response(HttpResponse):
     def __init__(
         self, content: object, status: int | None = None, **kwargs: Any
     ) -> None:
-        super(Response, self).__init__(
+        super().__init__(
             content=ENCODER(content),
             content_type=CONTENT_TYPE,
             status=status,

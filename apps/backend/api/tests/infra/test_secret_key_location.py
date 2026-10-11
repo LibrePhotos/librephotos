@@ -12,6 +12,7 @@ import subprocess
 import sys
 import tempfile
 import threading
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from unittest import mock
 
@@ -147,29 +148,21 @@ class LoadOrCreateSecretKeyTest(SimpleTestCase):
     def _load_in_threads(self, link_works: bool) -> list[str]:
         threads_count = 8
         barrier = threading.Barrier(threads_count)
-        keys: list[str] = []
-        errors: list[BaseException] = []
 
-        def start() -> None:
+        def start() -> str:
             barrier.wait()
-            try:
-                keys.append(self.load())
-            except BaseException as error:  # reported by the assertion below
-                errors.append(error)
+            return self.load()
 
         patcher = (
             contextlib.nullcontext()
             if link_works
             else mock.patch.object(secret_key.os, "link", side_effect=OSError("no"))
         )
-        with patcher:
-            threads = [threading.Thread(target=start) for _ in range(threads_count)]
-            for thread in threads:
-                thread.start()
-            for thread in threads:
-                thread.join()
-        self.assertEqual(errors, [])
-        return keys
+        # One worker per call, so all of them wait at the barrier together;
+        # result() re-raises a failure from a worker in the test thread.
+        with patcher, ThreadPoolExecutor(max_workers=threads_count) as pool:
+            futures = [pool.submit(start) for _ in range(threads_count)]
+            return [future.result() for future in futures]
 
 
 class SettingsSecretKeyTest(SimpleTestCase):

@@ -7,10 +7,11 @@ image_hash (not the UUID) in their stored paths.
 """
 
 from unittest import mock
+
 from django.test import TestCase
 
 from api.models import Thumbnail
-from api.tests.utils import create_test_user, create_test_photo
+from api.tests.utils import create_test_photo, create_test_user
 
 
 class ThumbnailNamingTest(TestCase):

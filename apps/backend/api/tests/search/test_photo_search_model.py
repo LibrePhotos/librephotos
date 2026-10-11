@@ -11,13 +11,13 @@ at the bottom is the post-refactor smoke suite: it pins the reverse accessors
 
 from django.test import TestCase
 
-from api.models import PhotoSearch, PhotoCaption
+from api.models import PhotoCaption, PhotoSearch
 from api.models.photo_metadata import PhotoMetadata
 from api.tests.utils import (
-    create_test_user,
-    create_test_photo,
     create_test_face,
     create_test_person,
+    create_test_photo,
+    create_test_user,
 )
 
 

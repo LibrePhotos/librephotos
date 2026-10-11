@@ -15,8 +15,8 @@ from rest_framework.test import APIClient, APITestCase
 from api.models import Photo
 from api.models.duplicate import Duplicate
 from api.models.photo_stack import PhotoStack
+from api.stats import calc_megabytes, get_count_stats, median_value
 from api.tests.utils import create_test_photo, create_test_user
-from api.stats import get_count_stats, calc_megabytes, median_value
 
 
 class DuplicateStatsAccuracyTestCase(APITestCase):

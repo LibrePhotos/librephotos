@@ -104,12 +104,10 @@ def backend_python_files() -> Iterator[Path]:
             yield path
 
 
-def python_env_reads(source: str, where: str) -> list[EnvRead]:
-    """The variables a module reads: (name, location), name None when not a literal."""
-    tree = ast.parse(source, filename=where)
-    constants: dict[str, str] = {}
-    helpers: set[str] = set()  # local names bound to an env helper
-    env_modules: set[str] = set()  # local names bound to librephotos.env
+def _env_bindings(tree: ast.AST) -> tuple[set[str], set[str]]:
+    """Local names bound to an env helper, and local names bound to librephotos.env."""
+    helpers: set[str] = set()
+    env_modules: set[str] = set()
     for node in ast.walk(tree):
         if isinstance(node, ast.ImportFrom) and node.module == ENV_MODULE:
             helpers.update(
@@ -129,6 +127,12 @@ def python_env_reads(source: str, where: str) -> list[EnvRead]:
                 for alias in node.names
                 if alias.name == ENV_MODULE and alias.asname
             )
+    return helpers, env_modules
+
+
+def _string_constants(tree: ast.Module) -> dict[str, str]:
+    """Module-level `NAME = "literal"` assignments."""
+    constants: dict[str, str] = {}
     for node in tree.body:
         if (
             isinstance(node, ast.Assign)
@@ -138,6 +142,59 @@ def python_env_reads(source: str, where: str) -> list[EnvRead]:
             and isinstance(node.value.value, str)
         ):
             constants[node.targets[0].id] = node.value.value
+    return constants
+
+
+def _is_name(node: ast.expr, name: str) -> bool:
+    return isinstance(node, ast.Name) and node.id == name
+
+
+def _is_os_environ(node: ast.expr) -> bool:
+    return (
+        isinstance(node, ast.Attribute)
+        and node.attr == "environ"
+        and _is_name(node.value, "os")
+    )
+
+
+def _is_env_call(func: ast.expr, helpers: set[str], env_modules: set[str]) -> bool:
+    """env_str(...), env.env_str(...), os.environ.get(...) or os.getenv(...)."""
+    if isinstance(func, ast.Name):
+        return func.id in helpers
+    if not isinstance(func, ast.Attribute):
+        return False
+    if func.attr in ENV_HELPERS and isinstance(func.value, ast.Name):
+        return func.value.id in env_modules
+    if func.attr == "get":
+        return _is_os_environ(func.value)
+    return func.attr == "getenv" and _is_name(func.value, "os")
+
+
+def _read_name_node(
+    node: ast.AST, helpers: set[str], env_modules: set[str]
+) -> ast.expr | None:
+    """The expression naming the variable when `node` reads the environment."""
+    if isinstance(node, ast.Call):
+        if node.args and _is_env_call(node.func, helpers, env_modules):
+            return node.args[0]
+    elif isinstance(node, ast.Subscript):
+        if isinstance(node.ctx, ast.Load) and _is_os_environ(node.value):
+            return node.slice
+    elif isinstance(node, ast.Compare):
+        if (
+            len(node.ops) == 1
+            and isinstance(node.ops[0], (ast.In, ast.NotIn))
+            and _is_os_environ(node.comparators[0])
+        ):
+            return node.left
+    return None
+
+
+def python_env_reads(source: str, where: str) -> list[EnvRead]:
+    """The variables a module reads: (name, location), name None when not a literal."""
+    tree = ast.parse(source, filename=where)
+    helpers, env_modules = _env_bindings(tree)
+    constants = _string_constants(tree)
 
     def literal(arg: ast.expr) -> str | None:
         if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
@@ -146,55 +203,11 @@ def python_env_reads(source: str, where: str) -> list[EnvRead]:
             return constants.get(arg.id)
         return None
 
-    def is_os_environ(node: ast.expr) -> bool:
-        return (
-            isinstance(node, ast.Attribute)
-            and node.attr == "environ"
-            and isinstance(node.value, ast.Name)
-            and node.value.id == "os"
-        )
-
     reads: list[EnvRead] = []
     for node in ast.walk(tree):
-        if not isinstance(node, (ast.Call, ast.Subscript, ast.Compare)):
-            continue
-        location = f"{where}:{node.lineno}"
-        if isinstance(node, ast.Call) and node.args:
-            func = node.func
-            if isinstance(func, ast.Name) and func.id in helpers:
-                pass
-            elif (
-                isinstance(func, ast.Attribute)
-                and func.attr in ENV_HELPERS
-                and isinstance(func.value, ast.Name)
-                and func.value.id in env_modules
-            ):
-                pass
-            elif isinstance(func, ast.Attribute) and (
-                (func.attr == "get" and is_os_environ(func.value))
-                or (
-                    func.attr == "getenv"
-                    and isinstance(func.value, ast.Name)
-                    and func.value.id == "os"
-                )
-            ):
-                pass
-            else:
-                continue
-            reads.append((literal(node.args[0]), location))
-        elif (
-            isinstance(node, ast.Subscript)
-            and isinstance(node.ctx, ast.Load)
-            and is_os_environ(node.value)
-        ):
-            reads.append((literal(node.slice), location))
-        elif (
-            isinstance(node, ast.Compare)
-            and len(node.ops) == 1
-            and isinstance(node.ops[0], (ast.In, ast.NotIn))
-            and is_os_environ(node.comparators[0])
-        ):
-            reads.append((literal(node.left), location))
+        name_node = _read_name_node(node, helpers, env_modules)
+        if name_node is not None:
+            reads.append((literal(name_node), f"{where}:{getattr(node, 'lineno', 0)}"))
     return reads
 
 

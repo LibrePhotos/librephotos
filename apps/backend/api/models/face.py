@@ -10,10 +10,10 @@ from django.db import models, transaction
 from django.db.models.signals import post_delete
 
 from api.face_recognition import get_face_encodings
+from api.lazy_import import LazyModule
 from api.models.cluster import Cluster
 from api.models.person import Person
 from api.models.photo import Photo
-from api.lazy_import import LazyModule
 
 if TYPE_CHECKING:
     import numpy.typing as npt
@@ -76,7 +76,7 @@ class Face(models.Model):
         return self.photo.exif_timestamp if self.photo else None
 
     def __str__(self) -> str:
-        return "%d" % self.id
+        return str(self.id)
 
     def generate_encoding(self) -> None:
         photo = self.photo

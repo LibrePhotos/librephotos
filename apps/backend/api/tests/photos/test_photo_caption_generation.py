@@ -14,8 +14,12 @@ from constance.test import override_config
 from django.test import TestCase, override_settings
 
 from api.models import Photo, PhotoCaption, PhotoSearch, Thumbnail
-from api.tests.utils import create_test_face, create_test_person, create_test_photo
-from api.tests.utils import create_test_user
+from api.tests.utils import (
+    create_test_face,
+    create_test_person,
+    create_test_photo,
+    create_test_user,
+)
 
 
 def _llm_settings(**overrides):

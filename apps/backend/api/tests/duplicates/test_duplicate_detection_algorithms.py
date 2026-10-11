@@ -20,16 +20,16 @@ from unittest.mock import patch
 
 from django.test import TestCase
 
-from api.models.duplicate import Duplicate
-from api.models.file import File
-from api.models.long_running_job import LongRunningJob
 from api.duplicate_detection import (
     BKTree,
     UnionFind,
+    batch_detect_duplicates,
     detect_exact_copies,
     detect_visual_duplicates,
-    batch_detect_duplicates,
 )
+from api.models.duplicate import Duplicate
+from api.models.file import File
+from api.models.long_running_job import LongRunningJob
 from api.tests.utils import create_test_photo, create_test_user
 
 

@@ -20,8 +20,8 @@ from django.db.utils import IntegrityError
 
 import api.models
 from api import face_extractor
-from api.util import FACE_OVERLAP_IOU_THRESHOLD, calculate_iou
 from api.lazy_import import LazyModule
+from api.util import FACE_OVERLAP_IOU_THRESHOLD, calculate_iou
 
 if TYPE_CHECKING:
     import numpy.typing as npt

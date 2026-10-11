@@ -26,6 +26,7 @@ The local scanner does this correctly: in
 created lives inside the ``try`` and the ``except`` marks the job failed.
 """
 
+import contextlib
 import uuid
 from unittest import mock
 
@@ -65,10 +66,8 @@ class NextcloudScanFailureLeavesQueueBlockedTest(TestCase):
         with mock.patch(
             "nextcloud.server_address.GuardedClient", return_value=fake_client
         ):
-            try:
+            with contextlib.suppress(Exception):
                 nextcloud_scan_photos(self.user, job_id)
-            except Exception:
-                pass
 
     def test_failed_nextcloud_scan_marks_job_finished(self):
         job_id = uuid.uuid4()

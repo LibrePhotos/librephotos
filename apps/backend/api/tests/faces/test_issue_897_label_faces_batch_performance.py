@@ -87,11 +87,9 @@ class TagManyFacesTest(TestCase):
         self.assertLessEqual(
             extra_queries,
             extra_faces,
-            "labelling {} extra faces cost {} extra queries ({:.1f} per face); "
+            f"labelling {extra_faces} extra faces cost {extra_queries} extra queries ({extra_queries / extra_faces:.1f} per face); "
             "a face only needs its own UPDATE, the photo/owner rows should come "
-            "from a single select_related/bulk read".format(
-                extra_faces, extra_queries, extra_queries / extra_faces
-            ),
+            "from a single select_related/bulk read",
         )
 
     def test_every_tagged_photo_gets_its_search_captions_refreshed(self):
@@ -115,7 +113,5 @@ class TagManyFacesTest(TestCase):
         self.assertEqual(
             missing,
             [],
-            "search captions were not rebuilt for {} of 3 tagged photos".format(
-                len(missing)
-            ),
+            f"search captions were not rebuilt for {len(missing)} of 3 tagged photos",
         )

@@ -51,6 +51,8 @@ from api.serializers.album_user import (
 from api.serializers.person import PersonSerializer
 from api.serializers.photos import (
     PhotoSummarySerializer,
+)
+from api.serializers.photos import (
     # Kept under its old name for the views that import it from here.
     with_photo_summary_relations as _with_photo_summary_relations,
 )

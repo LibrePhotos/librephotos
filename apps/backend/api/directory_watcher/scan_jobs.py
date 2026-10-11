@@ -21,22 +21,16 @@ from django.core.paginator import Paginator
 from django.db.models import Q
 from django_q.tasks import AsyncTask, Chain
 
-from api.metadata.reader import get_sidecar_files_in_priority_order
 from api import video_color
 from api.batch_jobs import batch_calculate_clip_embedding
-from api.semantic_search import semantic_shares_tagger
-from api.models import LongRunningJob, Photo, Thumbnail, User
-from api.models.file import VIDEO_EXTENSIONS, is_metadata
-from api.photo_files import detach_missing_files
-
 from api.directory_watcher.file_grouping import (
     get_file_grouping_key,
     get_sidecar_grouping_keys,
 )
-from api.directory_watcher.file_handlers import handle_new_image, handle_file_group
+from api.directory_watcher.file_handlers import handle_file_group, handle_new_image
 from api.directory_watcher.processing_jobs import (
-    generate_tags,
     add_geolocation,
+    generate_tags,
     probe_videos,
     scan_faces,
     videos_to_probe,
@@ -44,12 +38,17 @@ from api.directory_watcher.processing_jobs import (
 from api.directory_watcher.repair_jobs import repair_ungrouped_file_variants
 from api.directory_watcher.utils import (
     finish_job_if_complete,
-    walk_directory,
-    walk_files,
     is_job_cancelled,
     update_job_result,
     update_scan_counter,
+    walk_directory,
+    walk_files,
 )
+from api.metadata.reader import get_sidecar_files_in_priority_order
+from api.models import LongRunningJob, Photo, Thumbnail, User
+from api.models.file import VIDEO_EXTENSIONS, is_metadata
+from api.photo_files import detach_missing_files
+from api.semantic_search import semantic_shares_tagger
 
 logger = logging.getLogger(__name__)
 

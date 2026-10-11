@@ -17,11 +17,11 @@ After merging and deduplication the expected keywords are:
 import os
 import shutil
 import uuid
+from unittest.mock import patch
 
 import exiftool
 from django.test import TestCase
 from django.utils import timezone
-from unittest.mock import patch
 
 from api.models import File, Photo
 from api.models.photo_metadata import PhotoMetadata

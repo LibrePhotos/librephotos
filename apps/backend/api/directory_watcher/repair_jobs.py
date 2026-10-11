@@ -9,8 +9,8 @@ due to race conditions in previous scans.
 import logging
 from uuid import UUID
 
-from api.models import File, LongRunningJob, Photo, User
 from api.directory_watcher.file_grouping import find_matching_jpeg_photo
+from api.models import File, LongRunningJob, Photo, User
 
 logger = logging.getLogger(__name__)
 

@@ -8,13 +8,14 @@ Tests cover:
 - Edge cases with null/missing data
 """
 
-from django.test import TestCase
-from django.utils import timezone
 from datetime import timedelta
 
-from api.models.photo_stack import PhotoStack
+from django.test import TestCase
+from django.utils import timezone
+
 from api.models.duplicate import Duplicate
 from api.models.photo_metadata import PhotoMetadata
+from api.models.photo_stack import PhotoStack
 from api.tests.utils import create_test_photo, create_test_user
 
 

@@ -63,8 +63,7 @@ class _ExplodingResponse(_FakeResponse):
     """Yields a chunk, then blows up mid-stream."""
 
     def iter_content(self, chunk_size=1):
-        for chunk in self._chunks:
-            yield chunk
+        yield from self._chunks
         raise requests.ConnectionError("connection reset mid-stream")
 
 

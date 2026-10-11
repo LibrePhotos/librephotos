@@ -77,7 +77,11 @@ def _stacked_variant_files(photo: Photo) -> list[File]:
                 files.extend(_photo_own_files(stack_photo))
     except Exception:
         # If stacks aren't available for some reason, just proceed with variants.
-        pass
+        logger.warning(
+            "Could not read the variant stacks of photo %s",
+            photo.image_hash,
+            exc_info=True,
+        )
     return files
 
 
@@ -88,7 +92,11 @@ def _embedded_media_files(files: Sequence[File | None]) -> list[File]:
             if file_obj and file_obj.embedded_media.exists():
                 embedded.extend(list(file_obj.embedded_media.all()))
         except Exception:
-            continue
+            logger.warning(
+                "Could not list the embedded media of file %s",
+                getattr(file_obj, "hash", None),
+                exc_info=True,
+            )
     return embedded
 
 

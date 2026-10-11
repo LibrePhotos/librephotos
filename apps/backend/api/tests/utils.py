@@ -110,10 +110,10 @@ def create_test_user(is_admin=False, public_sharing=False, **kwargs):
 
 
 def create_test_photo(**kwargs):
-    from api.models.thumbnail import Thumbnail
     from api.models.photo_caption import PhotoCaption
-    from api.models.photo_search import PhotoSearch
     from api.models.photo_metadata import PhotoMetadata
+    from api.models.photo_search import PhotoSearch
+    from api.models.thumbnail import Thumbnail
 
     # Use proper UUID for primary key (Photo model now uses UUIDField)
     pk = uuid.uuid4()

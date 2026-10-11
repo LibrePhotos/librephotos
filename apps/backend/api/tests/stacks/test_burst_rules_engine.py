@@ -21,11 +21,11 @@ from django.utils import timezone
 
 from api.burst_detection_rules import (
     BURST_FILENAME_PATTERNS,
+    DEFAULT_HARD_RULES,
+    DEFAULT_SOFT_RULES,
     BurstDetectionRule,
     BurstRuleCategory,
     BurstRuleTypes,
-    DEFAULT_HARD_RULES,
-    DEFAULT_SOFT_RULES,
     as_rules,
     check_filename_pattern,
     get_all_predefined_burst_rules,

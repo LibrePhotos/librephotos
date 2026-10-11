@@ -43,9 +43,9 @@ from rest_framework.views import APIView
 
 from api.models import AlbumAuto, AlbumDate, AlbumPlace, AlbumThing, AlbumUser, Tag
 from api.models.long_running_job import LongRunningJob
+from api.permissions import IsSuperUser
 from api.serializers.job import LongRunningJobSerializer
 from api.serializers.tag import TagSerializer
-from api.permissions import IsSuperUser
 from api.tests.infra.routes import ApiRoute, api_routes, router_verbs
 from api.tests.utils import create_test_person, create_test_photo, create_test_user
 from api.views.albums import AlbumThingViewSet
@@ -221,9 +221,8 @@ class RouterVerbsTest(SimpleTestCase):
 
         planted = routers.DefaultRouter()
         for prefix, viewset, basename in router.registry:
-            if viewset is AlbumThingViewSet:
-                viewset = PlantedViewSet
-            planted.register(prefix, viewset, basename=basename)
+            served = PlantedViewSet if viewset is AlbumThingViewSet else viewset
+            planted.register(prefix, served, basename=basename)
 
         problems = router_verb_drift(planted, ROUTER_VERBS)
 

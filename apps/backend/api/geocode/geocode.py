@@ -1,5 +1,4 @@
 import logging
-from typing import List
 
 import geopy
 from constance import config as site_config
@@ -39,7 +38,7 @@ class Geocode:
         location = self._geocoder.reverse(f"{lat},{lon}")
         return self._parser(location)
 
-    def search(self, query: str, limit: int = 5) -> List[dict]:
+    def search(self, query: str, limit: int = 5) -> list[dict]:
         """Forward geocoding: search for locations by name/address."""
         if self._missing_api_key():
             return []
@@ -69,7 +68,7 @@ def reverse_geocode(lat: float, lon: float) -> dict:
         return {}
 
 
-def search_location(query: str, limit: int = 5) -> List[dict]:
+def search_location(query: str, limit: int = 5) -> list[dict]:
     """Search for locations by name/address using the configured map provider."""
     provider = site_config.MAP_API_PROVIDER
     wait_for_provider(provider)

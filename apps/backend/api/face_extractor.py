@@ -6,13 +6,22 @@ from typing import TYPE_CHECKING, Any
 import PIL
 
 from api.face_recognition import detect_faces
+from api.lazy_import import LazyModule
 from api.metadata.reader import get_metadata
 from api.metadata.tags import Tags
 from api.util import is_number
-from api.lazy_import import LazyModule
 
 if TYPE_CHECKING:
+    from typing import TypeAlias, Unpack
+
     from api.models.user import User
+
+    # (top, right, bottom, left, person name or None, *optional encoding).
+    # Unpack[...] instead of `*tuple[...]`: a star expression in a subscript is
+    # Python 3.11 syntax, and the backend-gpu image runs 3.10.
+    FaceLocation: TypeAlias = tuple[
+        int, int, int, int, str | None, Unpack[tuple[object, ...]]
+    ]
 
 if TYPE_CHECKING:
     import numpy as np
@@ -20,9 +29,6 @@ else:
     np = LazyModule("numpy")
 
 logger = logging.getLogger(__name__)
-
-# (top, right, bottom, left, person name or None, *optional encoding)
-FaceLocation = tuple[int, int, int, int, str | None, *tuple[object, ...]]
 
 
 ORIENTATION_TRANSFORMS = {

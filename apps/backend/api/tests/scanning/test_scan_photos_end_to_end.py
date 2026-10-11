@@ -71,7 +71,7 @@ class ScanPhotosTestCase(TestCase):
         # make sure user can retrieve each auto album
         for album in auto_album_list_res.json()["results"]:
             auto_album_retrieve_res = self.client_admin.get(
-                "/api/albums/auto/%d/" % album["id"]
+                f"/api/albums/auto/{album['id']}/"
             )
             self.assertEqual(auto_album_retrieve_res.status_code, 200)
             self.assertGreater(len(auto_album_retrieve_res.json()["photos"]), 0)
@@ -93,7 +93,7 @@ class ScanPhotosTestCase(TestCase):
 
         for album in place_album_list_res.json()["results"]:
             place_album_retrieve_res = self.client_admin.get(
-                "/api/albums/place/%d/" % album["id"]
+                f"/api/albums/place/{album['id']}/"
             )
             self.assertEqual(place_album_retrieve_res.status_code, 200)
 
@@ -105,6 +105,6 @@ class ScanPhotosTestCase(TestCase):
 
         for album in thing_album_list_res.json()["results"]:
             thing_album_retrieve_res = self.client_admin.get(
-                "/api/albums/thing/%d/" % album["id"]
+                f"/api/albums/thing/{album['id']}/"
             )
             self.assertEqual(thing_album_retrieve_res.status_code, 200)

@@ -119,7 +119,7 @@ class File(models.Model):
             # Re-raise if we can't find the conflicting record
             raise
 
-    def rekey(self, new_hash: str) -> "File":
+    def rekey(self, new_hash: str) -> File:
         """Move this row onto ``new_hash``, carrying its relations across.
 
         The hash is the primary key, so the row has to be recreated rather
