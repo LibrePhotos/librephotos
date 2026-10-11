@@ -70,15 +70,16 @@ REGEXP_GROUP_MAPPINGS = {
 def _datetime_from_parts(parts: list[int | None]) -> datetime:
     """datetime() of the parsed parts, year first; the time parts default to zero.
 
-    datetime() has always refused a missing year, month or day, and more than
-    its seven positional arguments, with a TypeError. The caller does not catch
-    that, so it is raised here the same way.
+    A user's custom regexp can yield fewer than three or more than seven parts,
+    or leave the year, month or day unmatched. That is raised as a ValueError,
+    like an out-of-range part, so the rule counts as not matching instead of
+    aborting the photo's scan.
     """
     if not 3 <= len(parts) <= 7:
-        raise TypeError(f"datetime takes 3 to 7 arguments: {parts}")
+        raise ValueError(f"datetime takes 3 to 7 arguments: {parts}")
     year, month, day = parts[0], parts[1], parts[2]
     if year is None or month is None or day is None:
-        raise TypeError(f"datetime arguments are missing: {parts}")
+        raise ValueError(f"datetime arguments are missing: {parts}")
     time_parts = [0 if part is None else part for part in parts[3:]] + [0, 0, 0, 0]
     hour, minute, second, microsecond = time_parts[:4]
     return datetime(year, month, day, hour, minute, second, microsecond)
@@ -96,9 +97,9 @@ def _extract_no_tz_datetime_from_str(
     if not match:
         return None
     g = match.groups()
-    datetime_args: list[int | None]
+    datetime_args: list[int | None] | tuple[str | None, ...]
     if group_mapping is None:
-        datetime_args = list(map(int, g))
+        datetime_args = g
     else:
         if len(g) > len(group_mapping):
             raise ValueError(
@@ -124,7 +125,9 @@ def _extract_no_tz_datetime_from_str(
                 datetime_args[ind] = int(value)
 
     try:
-        parsed_datetime = _datetime_from_parts(datetime_args)
+        parsed_datetime = _datetime_from_parts(
+            [None if part is None else int(part) for part in datetime_args]
+        )
         delta = parsed_datetime - datetime.now()
         if delta.days > 30:
             logger.error(
