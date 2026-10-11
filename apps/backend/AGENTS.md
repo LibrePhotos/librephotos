@@ -36,6 +36,11 @@ test makes `--parallel` runs crash with "cannot pickle 'traceback'"; rerun that 
   body with `api.request_data.request_dict(request)` (400 if it is not an object). Where anonymous
   access is allowed, narrow with `isinstance(request.user, User)`. A `get_queryset` that needs a
   user returns `Model.objects.none()` when `getattr(self, "swagger_fake_view", False)`.
+- A viewset is `viewsets.GenericViewSet` plus only the mixins of the actions a client calls (PATCH
+  alone: `PartialUpdateModelMixin` from `api/views/mixins.py`), never `ModelViewSet` or an
+  `http_method_names` blocklist. Pin a new route's verbs in `ROUTER_VERBS`
+  (`api/tests/infra/test_api_conventions.py`); a mutating one also needs a case in
+  `api/tests/sharing_and_public/test_cross_tenant_writes.py`.
 - Errors use the DRF exception handler's shape, `{"errors": [{"field", "message"}]}`: raise DRF
   exceptions instead of building error bodies.
 - Background work: create the `LongRunningJob` row (`LongRunningJob.create_job`) and queue a plain

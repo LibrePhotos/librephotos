@@ -2,7 +2,7 @@ from datetime import timedelta
 
 from django.db.models import Prefetch, Q, QuerySet
 from django.utils import timezone
-from rest_framework import status, viewsets
+from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -14,7 +14,14 @@ from api.serializers.job import LongRunningJobSerializer
 from api.views.pagination import TinyResultsSetPagination
 
 
-class LongRunningJobViewSet(viewsets.ModelViewSet):
+# Jobs are written by the workers only: the API lists, opens, deletes and
+# cancels them. A PATCH used to let the caller rewrite their own job row.
+class LongRunningJobViewSet(
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    mixins.DestroyModelMixin,
+    viewsets.GenericViewSet,
+):
     # Declared for router basename inference only; real access is scoped per-user
     # in get_queryset() below.
     queryset = LongRunningJob.objects.all()
@@ -23,7 +30,7 @@ class LongRunningJobViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self) -> QuerySet[LongRunningJob]:
         # Scope jobs to the requesting user so one user cannot list, retrieve,
-        # update, delete or cancel another user's jobs. Staff/superusers retain
+        # delete or cancel another user's jobs. Staff/superusers retain
         # the global view. See issue #1861. Object-level actions (cancel/destroy)
         # inherit this via get_object().
         qs = LongRunningJob.objects.prefetch_related(

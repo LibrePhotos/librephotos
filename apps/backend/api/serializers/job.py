@@ -27,6 +27,8 @@ class LongRunningJobSerializer(serializers.ModelSerializer):
             "result",
             "id",
         )
+        # Workers write jobs; the API only reports them.
+        read_only_fields = fields
 
     def get_job_type_str(self, obj: LongRunningJob) -> str:
         return dict(LongRunningJob.JOB_TYPES)[obj.job_type]

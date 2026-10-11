@@ -13,8 +13,6 @@ from rest_framework.test import APIClient
 
 from api.models import AlbumThing
 from api.tests.utils import (
-    create_test_face,
-    create_test_person,
     create_test_photo,
     create_test_user,
     share_test_photos,
@@ -47,29 +45,6 @@ class GroupedAlbumVisiblePhotosTest(TestCase):
             owner=self.user, exif_timestamp=now, in_trashcan=True, removed=True
         )
         self.photos = [self.kept, self.no_ratio, self.trashed, self.removed]
-
-    def test_person_album_returns_only_visible_photos(self):
-        person = create_test_person(name="Ana", cluster_owner=self.user)
-        for photo in self.photos:
-            create_test_face(photo=photo, person=person)
-
-        response = self.client.get(f"/api/albums/person/{person.id}/")
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(
-            _grouped_hashes(response.json()["results"]), {self.kept.image_hash}
-        )
-
-    def test_person_without_visible_photos_is_not_listed(self):
-        person = create_test_person(name="Bo", cluster_owner=self.user)
-        for photo in self.photos[1:]:
-            create_test_face(photo=photo, person=person)
-
-        response = self.client.get("/api/albums/person/")
-
-        self.assertEqual(response.status_code, 200)
-        ids = [row["id"] for row in response.json()["results"]]
-        self.assertNotIn(str(person.id), ids)
 
     def test_thing_album_returns_only_visible_photos(self):
         album = AlbumThing.objects.create(

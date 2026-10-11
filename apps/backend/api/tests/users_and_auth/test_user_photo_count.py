@@ -28,9 +28,8 @@ class UserPhotoCountTest(TestCase):
         rows = response.json()["results"]
         return next(u for u in rows if u["id"] == self.user.id)["photo_count"]
 
-    def test_the_admin_user_list(self):
-        self.assertEqual(self._count("/api/manage/user/"), 1)
-
+    # The Users table reads /api/user/, which staff get with the full
+    # serializer. /api/manage/user/ only takes PATCH since #2328.
     def test_the_user_list(self):
         self.assertEqual(self._count("/api/user/"), 1)
 
@@ -38,4 +37,4 @@ class UserPhotoCountTest(TestCase):
         client = APIClient()
         client.force_authenticate(user=self.user)
         stats = client.get("/api/stats/").json()
-        self.assertEqual(stats["num_photos"], self._count("/api/manage/user/"))
+        self.assertEqual(stats["num_photos"], self._count("/api/user/"))

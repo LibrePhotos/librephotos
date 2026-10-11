@@ -3,45 +3,14 @@ from collections.abc import Callable
 from typing import Any, TypeVar
 
 from django.core.exceptions import ValidationError as DjangoValidationError
-from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from api.models import Face, Person, Photo, User
 from api.request_user import request_user
-from api.serializers.photos import GroupedPhotosSerializer
-from api.serializers.PhotosGroupedByDate import get_photos_ordered_by_date
 
 logger = logging.getLogger(__name__)
 
 _T = TypeVar("_T")
-
-
-class GroupedPersonPhotosSerializer(serializers.ModelSerializer):
-    id = serializers.SerializerMethodField()
-    grouped_photos = serializers.SerializerMethodField()
-
-    class Meta:
-        model = Person
-        fields = (
-            "id",
-            "name",
-            "grouped_photos",
-        )
-
-    def get_id(self, obj: Person) -> str:
-        return str(obj.id)
-
-    @extend_schema_field(GroupedPhotosSerializer(many=True))
-    def get_grouped_photos(self, obj: Person) -> list[dict[str, Any]]:
-        # AlbumPersonViewSet runs behind IsAuthenticated.
-        user = request_user(self.context["request"])
-        grouped_photos = get_photos_ordered_by_date(obj.get_photos(user))
-        # ``.data`` of a many=True serializer is a ReturnList; build it through
-        # ListSerializer so the static type matches the runtime value.
-        res = serializers.ListSerializer(
-            child=GroupedPhotosSerializer(), instance=grouped_photos
-        ).data
-        return res
 
 
 # Sentinel telling ``PersonSerializer`` that the queryset did not carry the

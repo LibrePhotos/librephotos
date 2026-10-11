@@ -9,7 +9,7 @@ from django.db.models import Prefetch, Q, QuerySet
 from django.http import FileResponse
 from django.utils import timezone
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
-from rest_framework import filters, status, viewsets
+from rest_framework import filters, mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.permissions import BasePermission, IsAuthenticated
@@ -509,7 +509,16 @@ class SetPhotosCategory(BulkPhotoMutationView):
         return len(reset)
 
 
-class PhotoViewSet(viewsets.ModelViewSet):
+class PhotoViewSet(
+    # Every verb ModelViewSet gave it; trimming them to what the clients call
+    # is a change of its own (#2328 only made them explicit).
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    mixins.CreateModelMixin,
+    mixins.UpdateModelMixin,
+    mixins.DestroyModelMixin,
+    viewsets.GenericViewSet,
+):
     serializer_class = PhotoSerializer
     pagination_class = HugeResultsSetPagination
     filter_backends = (filters.SearchFilter,)
@@ -670,7 +679,16 @@ class PhotoViewSet(viewsets.ModelViewSet):
         return super().list(*args, **kwargs)
 
 
-class PhotoEditViewSet(viewsets.ModelViewSet):
+class PhotoEditViewSet(
+    # Every verb ModelViewSet gave it; trimming them to what the clients call
+    # is a change of its own (#2328 only made them explicit).
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    mixins.CreateModelMixin,
+    mixins.UpdateModelMixin,
+    mixins.DestroyModelMixin,
+    viewsets.GenericViewSet,
+):
     serializer_class = PhotoEditSerializer
     pagination_class = StandardResultsSetPagination
 

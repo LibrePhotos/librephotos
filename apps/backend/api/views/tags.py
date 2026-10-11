@@ -4,7 +4,7 @@ from collections.abc import Callable, Iterable
 
 from django.db.models import Prefetch, Q, QuerySet
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
-from rest_framework import filters, status, viewsets
+from rest_framework import filters, mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound
 from rest_framework.permissions import IsAuthenticated
@@ -22,6 +22,7 @@ from api.serializers.tag import (
     TagSerializer,
 )
 from api.views.albums import _with_photo_summary_relations
+from api.views.mixins import PartialUpdateModelMixin
 from api.views.pagination import StandardResultsSetPagination
 from api.views.photo_filters import build_photo_queryset
 from api.views.photos import _get_photo_filter_kwargs
@@ -32,7 +33,14 @@ from api.views.photos import _get_photo_filter_kwargs
 PHOTO_LINK_BATCH_SIZE = 2000
 
 
-class TagViewSet(viewsets.ModelViewSet):
+class TagViewSet(
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    mixins.CreateModelMixin,
+    PartialUpdateModelMixin[Tag],
+    mixins.DestroyModelMixin,
+    viewsets.GenericViewSet,
+):
     """List, create, rename, delete and merge user-defined tags.
 
     Every queryset is scoped to ``request.user``: another account's tag id has

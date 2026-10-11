@@ -29,7 +29,7 @@ from django.core import serializers as dj_serializers
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
 from django.test import TestCase
-from django.urls import get_resolver, resolve
+from django.urls import resolve
 from django.utils import timezone
 from rest_framework.test import APIClient
 
@@ -38,6 +38,7 @@ from api.models.duplicate import Duplicate
 from api.models.photo_share import PhotoShare
 from api.models.photo_stack import PhotoStack
 from api.models.tag import Tag
+from api.tests.infra.routes import mutating_api_routes, normalise
 from api.tests.utils import (
     create_test_face,
     create_test_person,
@@ -373,11 +374,7 @@ class CrossTenantWriteTest(TestCase):
                 for action in ("enable", "rotate", "disable")
             ),
             # other album kinds
-            ("post", "/api/albums/user/", {"title": "Loot 4", "photos": self._ids()}),
-            ("post", "/api/albums/auto/", {"title": "Loot 5", "photos": self._ids()}),
             ("post", "/api/albums/auto/delete_all/", {}),
-            ("post", "/api/albums/thing/", {"title": "cat", "photos": self._ids()}),
-            ("post", "/api/albums/place/", {"title": "Berlin", "photos": self._ids()}),
             ("post", "/api/photos/", {"image_hash": self.v_pub.image_hash}),
             (
                 "post",
@@ -398,7 +395,6 @@ class CrossTenantWriteTest(TestCase):
             ("delete", f"/api/albums/date/{self.v_date.pk}/", None),
             # people and faces
             ("post", "/api/persons/", {"name": self.v_person.name}),
-            ("post", "/api/albums/person/", {"name": self.v_person.name}),
             (
                 "patch",
                 f"/api/persons/{self.a_person.pk}/",
@@ -412,9 +408,6 @@ class CrossTenantWriteTest(TestCase):
             ("patch", f"/api/persons/{self.v_person.pk}/", {"newPersonName": "pwned"}),
             ("put", f"/api/persons/{self.v_person.pk}/", {"name": "pwned"}),
             ("delete", f"/api/persons/{self.v_person.pk}/", None),
-            ("patch", f"/api/albums/person/{self.v_person.pk}/", {"name": "pwned"}),
-            ("put", f"/api/albums/person/{self.v_person.pk}/", {"name": "pwned"}),
-            ("delete", f"/api/albums/person/{self.v_person.pk}/", None),
             (
                 "post",
                 "/api/labelfaces",
@@ -549,10 +542,10 @@ class CrossTenantWriteTest(TestCase):
         covered = set()
         for method, url, data in self.cases():
             if method != "get":
-                covered.add(_normalise(resolve(url).route))
+                covered.add(normalise(resolve(url).route))
 
         missing = []
-        for route, methods in _mutating_api_routes().items():
+        for route, methods in mutating_api_routes().items():
             if route in covered:
                 continue
             if any(route.startswith(prefix) for prefix in NOT_PHOTO_SCOPED):
@@ -599,41 +592,3 @@ class CrossTenantWriteTest(TestCase):
             "api.Duplicate",
         ):
             self.assertIn(label, owned)
-
-
-def _normalise(route):
-    return (
-        route.lstrip("^").lstrip("/").rstrip("$").replace("\\.", ".").replace("/?", "/")
-    )
-
-
-def _mutating_api_routes():
-    """Every api/ route whose view answers POST, PUT, PATCH or DELETE."""
-    routes = {}
-
-    def walk(patterns, prefix):
-        for pattern in patterns:
-            route = prefix + str(pattern.pattern).lstrip("^")
-            if hasattr(pattern, "url_patterns"):
-                walk(pattern.url_patterns, route)
-                continue
-            callback = pattern.callback
-            view = getattr(callback, "cls", None) or getattr(
-                callback, "view_class", None
-            )
-            if view is None or "(?P<format>" in route:
-                continue
-            actions = getattr(callback, "actions", None)
-            if actions:
-                methods = set(actions)
-            else:
-                methods = {
-                    m for m in ("post", "put", "patch", "delete") if hasattr(view, m)
-                }
-            methods &= {"post", "put", "patch", "delete"}
-            normalised = _normalise(route)
-            if methods and normalised.startswith("api/"):
-                routes[normalised] = methods
-
-    walk(get_resolver().url_patterns, "")
-    return routes
