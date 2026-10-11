@@ -25,7 +25,8 @@ const openStateBan = {
 
 const routeModalBan = {
   selector: "JSXOpeningElement[name.name='Modal']",
-  message: "Move the dialog into a *Modal component (components/album or components/modals) and open it with useDisclosure.",
+  message:
+    "Move the dialog into a *Modal component (components/album or components/modals) and open it with useDisclosure.",
 };
 
 export default [
