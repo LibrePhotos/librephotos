@@ -325,12 +325,12 @@ def register() -> None:
             _make_photos_bump(parent_model),
             sender=through,
             weak=False,
-            dispatch_uid=f"sync_photos_bump_{parent_model.__name__}",
+            dispatch_uid=f"api.sync_signals.photos_bump_{parent_model.__name__}",
         )
     m2m_changed.connect(
         _album_thing_cover_bump,
         sender=AlbumThing.cover_photos.through,
-        dispatch_uid="sync_album_thing_cover_bump",
+        dispatch_uid="api.sync_signals.album_thing_cover_bump",
     )
 
     # shared_to bumps + tombstones
@@ -339,46 +339,50 @@ def register() -> None:
             _make_share_handler(entity, parent_model),
             sender=through,
             weak=False,
-            dispatch_uid=f"sync_share_{entity}",
+            dispatch_uid=f"api.sync_signals.share_{entity}",
         )
 
     # Photo.shared_to
     m2m_changed.connect(
         _photo_share_handler,
         sender=Photo.shared_to.through,
-        dispatch_uid="sync_photo_share",
+        dispatch_uid="api.sync_signals.photo_share",
     )
 
     # hard-delete tombstones
     pre_delete.connect(
-        _capture_viewers, sender=Photo, dispatch_uid="sync_capture_photo_viewers"
+        _capture_viewers,
+        sender=Photo,
+        dispatch_uid="api.sync_signals.capture_photo_viewers",
     )
     post_delete.connect(
         _make_owned_tombstone(DeletionLog.ENTITY_PHOTO, shared=True),
         sender=Photo,
         weak=False,
-        dispatch_uid="sync_tombstone_photo",
+        dispatch_uid="api.sync_signals.tombstone_photo",
     )
 
     for entity, (parent_model, _through) in _SHARE_PARENTS.items():
         pre_delete.connect(
             _capture_viewers,
             sender=parent_model,
-            dispatch_uid=f"sync_capture_viewers_{entity}",
+            dispatch_uid=f"api.sync_signals.capture_viewers_{entity}",
         )
         post_delete.connect(
             _make_owned_tombstone(entity, shared=True),
             sender=parent_model,
             weak=False,
-            dispatch_uid=f"sync_tombstone_{entity}",
+            dispatch_uid=f"api.sync_signals.tombstone_{entity}",
         )
 
     pre_delete.connect(
-        _person_tombstone, sender=Person, dispatch_uid="sync_tombstone_person"
+        _person_tombstone,
+        sender=Person,
+        dispatch_uid="api.sync_signals.tombstone_person",
     )
     post_delete.connect(
         _make_owned_tombstone(DeletionLog.ENTITY_TAG),
         sender=Tag,
         weak=False,
-        dispatch_uid="sync_tombstone_tag",
+        dispatch_uid="api.sync_signals.tombstone_tag",
     )

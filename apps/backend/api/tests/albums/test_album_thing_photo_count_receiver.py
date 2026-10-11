@@ -1,4 +1,4 @@
-"""``api.models.album_thing.update_photo_count`` from both sides of the m2m.
+"""``update_album_thing_photo_count`` from both sides of the m2m.
 
 On the reverse side (``photo.albumthing_set``) Django hands the receiver the
 Photo as ``instance`` and the album pks in ``pk_set``. The receiver read

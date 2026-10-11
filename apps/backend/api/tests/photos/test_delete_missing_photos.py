@@ -236,9 +236,10 @@ class DeleteMissingPhotosAlbumThingTest(TestCase):
     """Guards the AlbumThing photo_count refresh path.
 
     The original loop removed each missing photo from every AlbumThing it
-    belonged to one at a time, and the ``update_photo_count`` ``m2m_changed``
-    receiver fired a fresh ``COUNT(*)`` join on every removal. A library with
-    hundreds of thousands of missing photos took hours under that pattern.
+    belonged to one at a time, and the ``update_album_thing_photo_count``
+    ``m2m_changed`` receiver fired a fresh ``COUNT(*)`` join on every removal.
+    A library with hundreds of thousands of missing photos took hours under
+    that pattern.
     The fix snapshots the affected AlbumThing ids before deletion, lets the
     through-rows cascade away with the photos, and refreshes
     ``photo_count`` / ``cover_photos`` once per AlbumThing afterwards.

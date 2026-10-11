@@ -50,6 +50,11 @@ test makes `--parallel` runs crash with "cannot pickle 'traceback'"; rerun that 
 - Background work: create the `LongRunningJob` row (`LongRunningJob.create_job`) and queue a plain
   function with `django_q.tasks.AsyncTask` or `Chain` (example: `api/all_tasks.py`). There is no
   `@shared_task`.
+- Signals: a module with receivers exposes `register()`, listed in `SIGNAL_MODULES` (`api/apps.py`), that
+  connects each one with `dispatch_uid="<module>.<name>"` (a factory-built closure also `weak=False`, or it
+  is garbage collected outside DEBUG); no `@receiver`. File removal goes through `transaction.on_commit`.
+  Queryset `update()`/`delete()` and `bulk_create` send no signals, so callers run the
+  `refresh_*_photo_counts` helpers themselves. `api/tests/infra/test_signal_receivers.py` enforces this.
 - Logging: `logger = logging.getLogger(__name__)`, lazy `%` arguments, never f-strings; carry the job id,
   user id or `image_hash`, never usernames, paths or captions above DEBUG. Details: `CONTRIBUTING.md`.
 - Migrations 0001-0100 are squashed into `0001_squashed_0100`. Keep its `replaces` and depend on it,

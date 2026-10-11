@@ -56,7 +56,7 @@ class UpdateDefaultCoverPhotoTest(TestCase):
         user = create_test_user()
         photos = [create_test_photo(owner=user) for _ in range(6)]
         thing = self._make_thing(user, photos)
-        # The update_photo_count receiver fires during thing.photos.add(...)
+        # update_album_thing_photo_count fires during thing.photos.add(...)
         # and pre-fills cover_photos non-deterministically; use .set() to
         # force a known full state before re-invoking the helper.
         thing.cover_photos.set(photos[:4])

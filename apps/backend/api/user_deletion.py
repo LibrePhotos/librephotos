@@ -174,5 +174,7 @@ def prepare_user_deletion(sender: type[User], instance: User, **kwargs: Any) -> 
 
 def register() -> None:
     pre_delete.connect(
-        prepare_user_deletion, sender=User, dispatch_uid="prepare_user_deletion"
+        prepare_user_deletion,
+        sender=User,
+        dispatch_uid="api.user_deletion.prepare_user_deletion",
     )
