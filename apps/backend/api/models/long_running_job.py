@@ -105,19 +105,6 @@ class LongRunningJob(models.Model):
         )
         return f"Job {self.job_id} - {self.get_job_type_display()} - {status}"
 
-    @property
-    def is_running(self) -> bool:
-        """Check if job is currently running (started but not finished)."""
-        return self.started_at is not None and not self.finished
-
-    @property
-    def duration(self) -> float | None:
-        """Return job duration in seconds, or None if not started."""
-        if not self.started_at:
-            return None
-        end = self.finished_at or timezone.now()
-        return (end - self.started_at).total_seconds()
-
     def start(self) -> None:
         """Mark job as started."""
         self.started_at = timezone.now()

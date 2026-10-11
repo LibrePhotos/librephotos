@@ -78,17 +78,6 @@ class Person(models.Model):
             self.save()
 
 
-# TODO: Should be removed in the future, as it is not used, only in migrations
-def get_unknown_person(owner: User | None = None) -> Person:
-    unknown_person: Person = Person.objects.get_or_create(
-        name=Person.UNKNOWN_PERSON_NAME, cluster_owner=owner, kind=Person.KIND_UNKNOWN
-    )[0]
-    if unknown_person.kind != Person.KIND_UNKNOWN:
-        unknown_person.kind = Person.KIND_UNKNOWN
-        unknown_person.save()
-    return unknown_person
-
-
 def get_or_create_person(
     name: str, owner: User | None = None, kind: str = Person.KIND_UNKNOWN
 ) -> Person:

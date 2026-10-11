@@ -13,6 +13,8 @@ setuptools==84.0.0
 pyfakefs==6.2.0
 pytest==9.1.1
 ruff==0.15.22
+# Dead-code check (scripts/check_dead_code.py); lint-backend.yml installs this pin.
+vulture==2.16
 # Type checking (scripts/typecheck.py). django-stubs and djangorestframework-stubs
 # require Python >= 3.11, and the backend-gpu image (DEBUG=1) runs 3.10. mypy stays
 # below 2.4 because djangorestframework-stubs 3.18.1 declares mypy<2.4.

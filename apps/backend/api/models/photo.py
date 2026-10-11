@@ -211,10 +211,6 @@ class Photo(models.Model):
 
         return self.clip_embeddings
 
-    def set_clip_embeddings(self, embeddings: list[float] | None) -> None:
-        """Set clip embeddings, automatically handling storage format"""
-        self.clip_embeddings = embeddings if embeddings else None
-
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         # The row as loaded from the database, which save() diffs against to

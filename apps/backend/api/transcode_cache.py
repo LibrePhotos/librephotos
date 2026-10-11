@@ -95,11 +95,6 @@ def final_path(image_hash: str | None) -> str | None:
     return os.path.join(root, f"{image_hash}.mp4")
 
 
-def media_name(image_hash: str) -> str:
-    """The name the finished file is served under, relative to the media root."""
-    return f"{image_hash}.mp4"
-
-
 def cached_path(photo: Photo) -> str | None:
     """The finished transcode of ``photo``, or None. Marks it as just used.
 

@@ -1,4 +1,3 @@
-import json
 import logging
 from datetime import datetime
 from typing import Any
@@ -718,12 +717,6 @@ class PhotoSerializer(serializers.ModelSerializer):
 
     def get_big_thumbnail_url(self, obj: Photo) -> str:
         return obj.thumbnail.thumbnail_big.url if obj.thumbnail.thumbnail_big else ""
-
-    def get_geolocation(self, obj: Photo) -> dict | None:
-        if obj.geolocation_json:
-            return json.loads(obj.geolocation_json)
-        else:
-            return None
 
     def get_people(self, obj: Photo) -> list:
         return [

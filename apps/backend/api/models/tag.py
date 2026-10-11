@@ -105,14 +105,6 @@ def refresh_tag_photo_counts(tag_ids: Collection[int]) -> int:
     )
 
 
-def refresh_tags_for_photos(photos: QuerySet[Photo]) -> int:
-    """Refresh the counts of every tag holding one of ``photos``.
-
-    For a queryset whose photos are only changing visibility, not going away.
-    """
-    return refresh_tag_photo_counts(tag_ids_for_photos(photos))
-
-
 def get_tag(name: str, owner: User) -> Tag:
     return Tag.objects.get_or_create(name=name, owner=owner)[0]
 

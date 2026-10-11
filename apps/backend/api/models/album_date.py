@@ -1,7 +1,6 @@
 import datetime
 
 from django.db import connection, models, transaction
-from django.db.models import QuerySet
 
 from api.models.photo import Photo
 from api.models.user import User, get_deleted_user
@@ -24,9 +23,6 @@ class AlbumDate(models.Model):
 
     def __str__(self) -> str:
         return str(self.date) + " (" + str(self.owner) + ")"
-
-    def ordered_photos(self) -> QuerySet[Photo]:
-        return self.photos.all().order_by("-exif_timestamp")
 
 
 # pg_advisory_xact_lock(namespace, owner id) for the undated album.
@@ -72,7 +68,3 @@ def get_album_date(date: datetime.date | None, owner: User) -> AlbumDate | None:
         return AlbumDate.objects.get(date=date, owner=owner)
     except Exception:
         return None
-
-
-def get_album_nodate(owner: User) -> AlbumDate:
-    return _get_or_create_undated_album(owner)

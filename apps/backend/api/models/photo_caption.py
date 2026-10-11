@@ -219,23 +219,6 @@ class PhotoCaption(models.Model):
             & Q(owner=self.photo.owner)
         ).all()
 
-    def _detach_photo_from_album_things(self, thing_types: Iterable[str]) -> None:
-        for album_thing in self._photo_album_things(thing_types):
-            album_thing.photos.remove(self.photo)
-            album_thing.save()
-
-    def _attach_photo_to_album_things(
-        self, titles: Iterable[str], thing_type: str
-    ) -> None:
-        for title in titles:
-            album_thing = api.models.album_thing.get_album_thing(
-                title=title,
-                owner=self.photo.owner,
-                thing_type=thing_type,
-            )
-            album_thing.photos.add(self.photo)
-            album_thing.save()
-
     def _sync_hashtag_album_things(self, caption: str) -> None:
         """Add album things for hashtags in the caption, drop the ones gone from it"""
         hashtags = [
@@ -381,7 +364,3 @@ class PhotoCaption(models.Model):
         """Replace this photo's OpenCLIP tag-album memberships."""
         tags = (tag_result or {}).get("tags", [])
         api.models.album_thing.set_photo_album_things(self.photo, tags, TAG_THING_TYPE)
-
-    # Backward-compatible alias
-    def generate_places365_captions(self, commit: bool = True) -> None:
-        self.generate_tag_captions(commit=commit)

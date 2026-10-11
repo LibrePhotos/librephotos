@@ -21,8 +21,7 @@ it is rejected here as defense in depth.
 
 This module has no Django or Flask dependency on purpose: the sidecar imports
 it as ``service.exif.tag_validation`` and so does ``api`` when it validates
-saved rules, so both sides apply exactly the same rule. Mirror of the Rust
-port's ``is_safe_tag`` (apps/backend-rs .../jobs/exif.rs).
+saved rules, so both sides apply exactly the same rule.
 """
 
 import re
