@@ -40,13 +40,14 @@ class AlbumUserShareIsReadOnlyTest(TestCase):
 
     def test_recipient_cannot_rename_the_shared_album(self):
         client = self.client_for(self.recipient)
-        for method in ("patch", "put"):
+        # PUT is no verb of this route any more (#2328): 405 before any lookup.
+        for method, status in (("patch", 404), ("put", 405)):
             with self.subTest(method=method):
                 response = getattr(client, method)(
                     self.url, {"title": "pwned"}, format="json"
                 )
 
-                self.assertEqual(response.status_code, 404)
+                self.assertEqual(response.status_code, status)
                 self.album.refresh_from_db()
                 self.assertEqual(self.album.title, "Family")
 
