@@ -211,4 +211,26 @@ describe("ModalUserEdit", () => {
 
     expect(document.body.textContent).not.toContain("/data/bob/inbox/web");
   });
+
+  it("keeps the admin's edits while the dialog re-renders, and resets for another user", () => {
+    const user = { ...bob };
+    renderModal(user, true);
+    const type = (element: HTMLInputElement, value: string) =>
+      act(() => {
+        setInputValue?.call(element, value);
+        element.dispatchEvent(new Event("input", { bubbles: true }));
+      });
+    type(input("email"), "robert@example.com");
+    // A matching password pair hands the dialog a new password, which must not reset the form
+    type(input("password"), "s3cret");
+    type(input("passwordConfirm"), "s3cret");
+    expect(input("email").value).toBe("robert@example.com");
+
+    // The parent re-rendering with the same user is not "another user"
+    renderModal(user, true);
+    expect(input("email").value).toBe("robert@example.com");
+
+    renderModal({ ...bob }, true);
+    expect(input("email").value).toBe("bob@example.com");
+  });
 });

@@ -2,7 +2,7 @@ import { Badge, Box, Group, useComputedColorScheme, useMantineTheme } from "@man
 import { useElementSize, useMergedRef } from "@mantine/hooks";
 import { debounce, deburr, throttle } from "lodash-es";
 import { DateTime } from "luxon";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import type { MouseEvent, ReactNode } from "react";
 import { useIsDesktopLayout } from "../../hooks/useIsDesktopLayout";
 import { i18nResolvedLanguage } from "../../i18n";
@@ -44,20 +44,26 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
   const theme = useMantineTheme();
   const colorScheme = useComputedColorScheme();
 
-  const targetYToScrollerY = (y: number): number => {
-    if (targetHeight > 0) return Math.min((y * height) / (targetHeight - targetClientHeight), height);
-    return NaN;
-  };
+  const targetYToScrollerY = useCallback(
+    (y: number): number => {
+      if (targetHeight > 0) return Math.min((y * height) / (targetHeight - targetClientHeight), height);
+      return NaN;
+    },
+    [targetHeight, targetClientHeight, height]
+  );
 
   const scrollerYToTargetY = (y: number): number => {
     if (height > 0) return (y * (targetHeight - targetClientHeight)) / height;
     return NaN;
   };
 
-  const targetYToScrollerYPercentage = (y: number): number => {
-    if (targetHeight > 0) return Math.min((y * 100) / (targetHeight - targetClientHeight), 100);
-    return NaN;
-  };
+  const targetYToScrollerYPercentage = useCallback(
+    (y: number): number => {
+      if (targetHeight > 0) return Math.min((y * 100) / (targetHeight - targetClientHeight), 100);
+      return NaN;
+    },
+    [targetHeight, targetClientHeight]
+  );
 
   const scrollerYToScrollerYPercentage = (y: number): number => {
     if (height > 0) return Math.min((y * 100) / height, 100);
@@ -169,7 +175,9 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
     else setMarkerPositions(getLabelsMarkers());
   }, [positions, type, getAlphabetMarkers, getDateMarkers, getLabelsMarkers]);
 
-  const determinePositionsCoordinates = () => {
+  // Lay the markers out again when the positions or the scale they are mapped with change: a
+  // grid that grows without new scroll positions needs its markers moved to its new height.
+  useEffect(() => {
     const newPositions: ScrollerPosition[] = [];
     if (scrollPositions.length > 0) {
       scrollPositions.forEach(item => {
@@ -193,15 +201,7 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
       newPositions.sort((a, b) => (a.targetY > b.targetY ? 1 : -1));
     }
     setPositions(newPositions);
-  };
-
-  // targetHeight was missing here, so a grid that grew without new scroll
-  // positions kept markers computed against its old height. The function itself
-  // is rebuilt every render and only reads these values.
-  useEffect(() => {
-    determinePositionsCoordinates();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-run when the marker layout inputs change; the helper is rebuilt on every render
-  }, [scrollPositions, targetHeight, targetClientHeight, height, type]);
+  }, [scrollPositions, type, targetYToScrollerY, targetYToScrollerYPercentage]);
 
   const debouncedResize = useMemo(
     () =>
@@ -228,19 +228,19 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
 
   useEffect(() => () => debouncedResize.cancel(), [debouncedResize]);
 
-  const hideScrollScrubber = () => {
+  const hideScrollScrubber = useCallback(() => {
     if (scrollerVisibilityTimerRef.current) {
       clearTimeout(scrollerVisibilityTimerRef.current);
       scrollerVisibilityTimerRef.current = null;
     }
     setScrollerIsVisible(false);
-  };
+  }, []);
 
-  const startScrollerVisibilityTimer = () => {
+  const startScrollerVisibilityTimer = useCallback(() => {
     if (scrollerVisibilityTimerRef.current === null) {
       scrollerVisibilityTimerRef.current = setTimeout(hideScrollScrubber, 2500);
     }
-  };
+  }, [hideScrollScrubber]);
 
   const resetScrollerVisibilityTimer = useMemo(
     () =>
@@ -250,7 +250,7 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
           scrollerVisibilityTimerRef.current = setTimeout(hideScrollScrubber, 2500);
         }
       }, 1000),
-    []
+    [hideScrollScrubber]
   );
 
   useEffect(() => {
@@ -264,14 +264,15 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
     };
   }, []);
 
-  const showScrollerScrubber = () => {
+  // Changes only with scrollerIsVisible: the timers it calls are stable.
+  const showScrollerScrubber = useCallback(() => {
     if (!scrollerIsVisible) {
       setScrollerIsVisible(true);
       startScrollerVisibilityTimer();
     } else {
       resetScrollerVisibilityTimer();
     }
-  };
+  }, [scrollerIsVisible, startScrollerVisibilityTimer, resetScrollerVisibilityTimer]);
 
   const handleMouseEnter = () => {
     showScrollerScrubber();
@@ -305,28 +306,22 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
     }
   };
 
-  const detectScrolling = (y: number, previousY: number) => {
-    if (!Number.isNaN(previousY)) {
-      const delta = Math.abs(previousY - y);
-      if (delta > 600) {
-        if (!scrollerIsVisible) {
+  // A new throttle only when scrollerIsVisible changes, through showScrollerScrubber.
+  const throttledDetectScrolling = useMemo(
+    () =>
+      throttle((y: number, previousY: number) => {
+        // A jump of more than 600px shows the scrubber, or keeps it shown.
+        if (!Number.isNaN(previousY) && Math.abs(previousY - y) > 600) {
           showScrollerScrubber();
-        } else {
-          resetScrollerVisibilityTimer();
         }
-      }
-    }
-    previousScrollPosition.current = y;
-  };
-
-  // detectScrolling only reads scrollerIsVisible (everything else it touches is
-  // a setter or a ref), so rebuilding the throttle on that change is enough.
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- detectScrolling reads only scrollerIsVisible; the other values it touches are setters or refs
-  const throttledDetectScrolling = useMemo(() => throttle(detectScrolling, 1000), [scrollerIsVisible]);
+        previousScrollPosition.current = y;
+      }, 1000),
+    [showScrollerScrubber]
+  );
 
   const debouncedUpdateCurrentPosMarker = useMemo(() => throttle(setCurrentScrollPosMarkerY, 250), []);
 
-  useEffect(() => {
+  const syncCurrentScrollPosMarker = useEffectEvent(() => {
     if (window.scrollY > 0) {
       debouncedUpdateCurrentPosMarker(targetYToScrollerY(window.scrollY));
       throttledDetectScrolling(window.scrollY, previousScrollPosition.current);
@@ -336,10 +331,14 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
     } else {
       debouncedUpdateCurrentPosMarker(0);
     }
-    // Deliberately keyed on the scroll offsets read at render time: this re-syncs
-    // the position marker on any render after a scroll, without its own listener.
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-sync the marker on any render after a scroll; the offsets are read at render time
-  }, [window.scrollY, targetRef.current?.scrollTop]);
+  });
+  // Deliberately keyed on the scroll offsets read at render time: this re-syncs the position
+  // marker on any render after a scroll, without its own listener.
+  const renderScrollY = window.scrollY;
+  const renderTargetScrollTop = targetRef.current?.scrollTop;
+  useEffect(() => {
+    syncCurrentScrollPosMarker();
+  }, [renderScrollY, renderTargetScrollTop]);
 
   // Plain functions, not useCallback: they are called during render, so memoising
   // them saved nothing and left colour-scheme and scrollToY changes stale.

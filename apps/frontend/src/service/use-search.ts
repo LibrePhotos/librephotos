@@ -1,5 +1,5 @@
 import type { PlaceAlbumInfo, ThingAlbumInfo } from "@librephotos/api-client";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useEffectEvent, useState } from "react";
 import {
   useFetchPeopleAlbumsQuery,
   useFetchPlacesAlbumsQuery,
@@ -125,9 +125,9 @@ export function useSearch() {
   // Seed the unfiltered options once everything has loaded. Deliberately not
   // re-run when filterOptions changes (any refetch): that would replace the
   // options for the query the user is typing with the unfiltered list.
+  const seedOptions = useEffectEvent(() => filterOptions(""));
   useEffect(() => {
-    if (!isLoading) filterOptions("");
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- seed once when loading finishes; filterOptions changes on refetch and must not reset the list
+    if (!isLoading) seedOptions();
   }, [isLoading]);
 
   return {

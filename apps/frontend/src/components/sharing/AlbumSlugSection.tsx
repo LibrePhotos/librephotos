@@ -4,7 +4,7 @@ import { IconCopy as CopyIcon, IconLink as LinkIcon } from "@tabler/icons-react"
 import { useQuery } from "@tanstack/react-query";
 import dayjs from "dayjs";
 import customParseFormat from "dayjs/plugin/customParseFormat";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useEffectEvent, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useToggleUserAlbumPublicMutation, type PublicSharingOptions } from "../../api_client/albums/hooks";
 import { UserAlbum } from "../../api_client/albums/types";
@@ -207,17 +207,19 @@ export function AlbumSlugSection({ albumID, album, isPublic, showSettings, refet
   const effectiveSlug = slugDirty ? customSlug : album?.public_slug || "";
   const effectiveExpires = expiresDirty ? expiresAt : album?.public_expires_at || "";
 
-  // initialize from album when it changes (unless user started editing)
-  useEffect(() => {
+  // Initialize from the album, but never over a field the user is editing: the dirty flags
+  // are guards here, not triggers.
+  const syncFromServer = useEffectEvent(() => {
     if (!album) return;
     if (!slugDirty) setCustomSlug(album.public_slug || "");
     if (!expiresDirty) setExpiresAt(album.public_expires_at || "");
     if (!sharingOptionsDirty && album.public_sharing_options) {
       setSharingOptions(album.public_sharing_options);
     }
-    // Sync from the server copy whenever it changes, but never over a field the
-    // user is editing: the dirty flags are guards here, not triggers.
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- sync from the server copy only; the dirty flags are guards, not triggers
+  });
+  // Sync whenever the server copy of these fields changes.
+  useEffect(() => {
+    syncFromServer();
   }, [album?.public_slug, album?.public_expires_at, album?.public_sharing_options]);
 
   // validation handled in SlugSetting; availability via query in that component updates parent through setters

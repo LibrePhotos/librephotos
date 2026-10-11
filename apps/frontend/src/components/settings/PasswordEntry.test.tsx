@@ -114,4 +114,26 @@ describe("PasswordEntry", () => {
     expect(findLock()).toBeNull();
     expect(inputs().every(input => !input.disabled)).toBe(true);
   });
+
+  it("re-validates on a mode change with the typed password, not on every render", async () => {
+    const { inputs, draw, onValidate } = await render({ createNew: true });
+    // React tracks the previous value on the node itself, so a plain assignment is swallowed.
+    const setValue = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+    for (const input of inputs()) {
+      await act(async () => {
+        setValue?.call(input, "s3cret");
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+      });
+    }
+    expect(onValidate).toHaveBeenLastCalledWith("s3cret", true);
+    onValidate.mockClear();
+
+    // A parent re-render is not a mode change
+    await draw({ createNew: true });
+    expect(onValidate).not.toHaveBeenCalled();
+
+    await draw({ createNew: true, closing: true });
+    expect(onValidate).toHaveBeenCalledTimes(1);
+    expect(onValidate).toHaveBeenLastCalledWith("s3cret", true);
+  });
 });
