@@ -27,7 +27,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 
 from django.db import models
-from django.db.models import Model, QuerySet
+from django.db.models import Model
 
 from api.models.user import User, get_deleted_user
 
@@ -128,13 +128,6 @@ class PhotoStack(models.Model):
     def photo_count(self) -> int:
         """Number of photos in this stack."""
         return self.photos.count()
-
-    def get_photos_ordered_by_quality(self) -> QuerySet[Photo]:
-        """
-        Returns photos in the stack ordered by quality metrics.
-        Higher resolution and larger file size are considered better quality.
-        """
-        return self.photos.order_by("-metadata__width", "-metadata__height", "-size")
 
     def auto_select_primary(self) -> Photo | None:
         """

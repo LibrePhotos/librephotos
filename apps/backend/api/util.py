@@ -2,9 +2,7 @@ import logging
 import os
 import os.path
 import re
-from collections.abc import Sequence
 from types import ModuleType
-from typing import Protocol
 
 from django.db.models import Q
 
@@ -151,26 +149,6 @@ def is_number(s: float | str | None) -> bool:
         return True
     except Exception:
         return False
-
-
-class _Ratio(Protocol):
-    """An EXIF rational, as exifread gives it: a numerator and a denominator."""
-
-    num: int
-    den: int
-
-
-def convert_to_degrees(values: Sequence[_Ratio]) -> float:
-    """Helper function to convert the GPS coordinates stored in the EXIF to degrees in float format
-    :param value:
-    :type value: exifread.utils.Ratio
-    :rtype: float
-    """
-    d = float(values[0].num) / float(values[0].den)
-    m = float(values[1].num) / float(values[1].den)
-    s = float(values[2].num) / float(values[2].den)
-
-    return d + (m / 60.0) + (s / 3600.0)
 
 
 weekdays = {

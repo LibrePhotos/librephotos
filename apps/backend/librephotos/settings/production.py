@@ -435,7 +435,6 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "api.middleware.FingerPrintMiddleware",
     # Required by allauth (>=0.56): rebuilds request state for the account flow.
     "allauth.account.middleware.AccountMiddleware",
 ]

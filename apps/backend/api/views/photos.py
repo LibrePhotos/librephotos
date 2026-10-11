@@ -1068,15 +1068,6 @@ class SetMainFileView(APIView):
     Useful when a photo has multiple variants (RAW, JPEG, etc.).
     """
 
-    @staticmethod
-    def _get_owned_photo(image_hash: str, user: User) -> Photo | None:
-        try:
-            return Photo.objects.owned_by(user).get(image_hash=image_hash)
-        except Photo.DoesNotExist:
-            return None
-        except Photo.MultipleObjectsReturned:
-            return Photo.objects.owned_by(user).filter(image_hash=image_hash).first()
-
     def post(self, request: Request, image_hash: str) -> Response:
         """Set the main file for a photo."""
         data = request_dict(request)
@@ -1087,7 +1078,7 @@ class SetMainFileView(APIView):
                 {"error": "file_hash is required"}, status=status.HTTP_400_BAD_REQUEST
             )
 
-        photo = self._get_owned_photo(image_hash, request_user(request))
+        photo = _get_owned_photo(image_hash, request_user(request))
         if not photo:
             return Response(
                 {"error": "Photo not found"}, status=status.HTTP_404_NOT_FOUND

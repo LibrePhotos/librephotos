@@ -4,14 +4,13 @@ Serializers for PhotoMetadata, MetadataFile, and MetadataEdit models.
 These serializers provide:
 - Structured metadata access (replacing exif_json blob)
 - Edit history tracking
-- Backwards-compatible field names for existing API consumers
 """
 
 from typing import Any
 
 from rest_framework import serializers
 
-from api.models import Photo, User
+from api.models import User
 from api.models.photo_metadata import MetadataEdit, MetadataFile, PhotoMetadata
 from api.models.tag import sync_tags_from_keywords
 from api.request_user import request_user
@@ -291,46 +290,3 @@ class PhotoMetadataSummarySerializer(serializers.ModelSerializer):
     def get_has_edits(self, obj: PhotoMetadata) -> bool:
         """Check if this photo has any metadata edits."""
         return MetadataEdit.objects.filter(photo=obj.photo).exists()
-
-
-def get_backwards_compatible_metadata(photo: Photo) -> dict:
-    """
-    Generate backwards-compatible metadata dict from PhotoMetadata.
-
-    This function returns metadata in the same format as the original
-    Photo model fields for API backwards compatibility.
-
-    Note: Metadata fields have been fully migrated to PhotoMetadata model.
-    If no PhotoMetadata exists, return None/empty values.
-    """
-    try:
-        metadata = photo.metadata
-        return {
-            "camera": metadata.camera_display,
-            "lens": metadata.lens_display,
-            "fstop": metadata.aperture,
-            "focal_length": metadata.focal_length,
-            "iso": metadata.iso,
-            "shutter_speed": metadata.shutter_speed,
-            "width": metadata.width,
-            "height": metadata.height,
-            "focalLength35Equivalent": metadata.focal_length_35mm,
-            "digitalZoomRatio": None,  # Not stored in PhotoMetadata
-            "subjectDistance": None,  # Not stored in PhotoMetadata
-        }
-    except PhotoMetadata.DoesNotExist:
-        # No PhotoMetadata exists - return None/empty values
-        # Metadata will be populated on next photo scan
-        return {
-            "camera": None,
-            "lens": None,
-            "fstop": None,
-            "focal_length": None,
-            "iso": None,
-            "shutter_speed": None,
-            "width": 0,
-            "height": 0,
-            "focalLength35Equivalent": None,
-            "digitalZoomRatio": None,
-            "subjectDistance": None,
-        }

@@ -3,7 +3,6 @@ from __future__ import annotations
 import hashlib
 import logging
 import os
-from typing import IO
 
 from django.conf import settings
 from django.db import models, transaction
@@ -343,11 +342,3 @@ def calculate_hash(user: User, path: str) -> str:
     except Exception as e:
         logger.error(f"Could not calculate hash for file {path}")
         raise e
-
-
-def calculate_hash_b64(user: User, content: IO[bytes]) -> str:
-    hash_md5 = hashlib.md5()
-    with content as f:
-        for chunk in iter(lambda: f.read(BUFFER_SIZE), b""):
-            hash_md5.update(chunk)
-    return hash_md5.hexdigest() + str(user.id)

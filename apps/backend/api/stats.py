@@ -5,7 +5,6 @@ from datetime import datetime
 from typing import Any, TYPE_CHECKING, TypedDict
 
 from django.conf import settings
-from django.db import connection
 from django.db.models import Avg, Count, Max, Min, Model, Q, QuerySet, Sum
 from django.db.models.functions import TruncMonth
 
@@ -45,10 +44,6 @@ class SunburstNode(TypedDict, total=False):
     value: int
     hex: str
     children: list["SunburstNode"]
-
-
-def _is_sqlite() -> bool:
-    return connection.vendor == "sqlite"
 
 
 def jump_by_month(

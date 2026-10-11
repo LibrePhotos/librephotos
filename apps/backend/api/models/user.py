@@ -170,10 +170,6 @@ class User(AbstractUser):
         return os.path.join(self.scan_directory, "uploads")
 
 
-def get_admin_user() -> User:
-    return User.objects.get(is_superuser=True)
-
-
 def get_deleted_user() -> User:
     deleted_user: User = User.objects.get_or_create(username="deleted")[0]
     if deleted_user.is_active is not False:

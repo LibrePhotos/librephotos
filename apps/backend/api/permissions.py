@@ -41,19 +41,6 @@ class IsOwnerOrReadOnly(permissions.BasePermission):
         return obj.owner == request.user
 
 
-class IsUserOrReadOnly(permissions.BasePermission):
-    """Custom permission to only allow owners of an object to edit it."""
-
-    def has_object_permission(self, request: Request, view: APIView, obj: User) -> bool:
-        # Read permissions are allowed to any request,
-        # so we'll always allow GET, HEAD or OPTIONS requests.
-        if request.method in permissions.SAFE_METHODS:
-            return True
-
-        # Write permissions are only allowed to the owner of the snippet.
-        return obj == request.user
-
-
 class IsPhotoOrAlbumSharedTo(permissions.BasePermission):
     """Custom permission to only allow owners of an object to edit it."""
 
@@ -71,13 +58,6 @@ class IsPhotoOrAlbumSharedTo(permissions.BasePermission):
                 return True
 
         return False
-
-
-class IsRegistrationAllowed(permissions.BasePermission):
-    """Custom permission to only allow if registration is allowed globally."""
-
-    def has_permission(self, request: Request, view: APIView) -> bool:
-        return bool(site_config.ALLOW_REGISTRATION)
 
 
 class IsNextcloudEnabled(permissions.BasePermission):

@@ -175,10 +175,6 @@ def ensure_logs_root(path: str) -> str:
     return path
 
 
-def get_log_file_path(logs_root: str | None = None) -> str:
-    return os.path.join(resolve_logs_root(logs_root), LOG_FILENAME)
-
-
 def _more_restrictive(level_a: str, level_b: str) -> str:
     return (
         level_a if getattr(logging, level_a) >= getattr(logging, level_b) else level_b
