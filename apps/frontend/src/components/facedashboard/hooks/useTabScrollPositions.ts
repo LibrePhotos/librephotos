@@ -31,7 +31,6 @@ export function useTabScrollPositions() {
     try {
       return loadPositions(localStorage.getItem("faceTabScrollPositions"));
     } catch (e) {
-      // eslint-disable-next-line no-console
       console.error("Error loading tab positions from localStorage:", e);
       return { ...DEFAULT_TAB_POSITIONS };
     }
@@ -43,7 +42,6 @@ export function useTabScrollPositions() {
       try {
         localStorage.setItem("faceTabScrollPositions", JSON.stringify(newPositions));
       } catch (e) {
-        // eslint-disable-next-line no-console
         console.error("Error saving tab positions to localStorage:", e);
       }
       return newPositions;

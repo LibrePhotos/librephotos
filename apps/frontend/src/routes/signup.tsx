@@ -22,6 +22,7 @@ import { useGetSettingsQuery } from "../api_client/settings";
 import { notification } from "../service/notifications";
 import { reportSignupError } from "../util/apiErrors";
 import { EMAIL_REGEX } from "../util/util";
+import classes from "./auth.module.css";
 
 export const Route = createFileRoute("/signup")({
   component: SignupPage,
@@ -71,7 +72,7 @@ function SignupPage(): React.JSX.Element {
         </span>
       </Group>
 
-      <div className="login-form">
+      <div className={classes.loginForm}>
         <Card>
           <Stack>
             <Title order={3}>{t("login.signup")}</Title>

@@ -18,7 +18,6 @@ export function getRecentlyTaggedPeopleIds(): RecentlyTaggedPersonId[] {
     const parsed: unknown = saved ? JSON.parse(saved) : [];
     return Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === "string") : [];
   } catch (e) {
-    // eslint-disable-next-line no-console
     console.error("Error loading recently tagged people from localStorage:", e);
     return [];
   }
@@ -50,7 +49,6 @@ export function recordRecentlyTaggedPerson(personId: string | number | null | un
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(ids));
   } catch (e) {
-    // eslint-disable-next-line no-console
     console.error("Error saving recently tagged people to localStorage:", e);
   }
   listeners.forEach(listener => listener());

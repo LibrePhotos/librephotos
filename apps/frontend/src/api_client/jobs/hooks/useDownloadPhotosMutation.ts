@@ -81,7 +81,6 @@ export const useDownloadPhotosMutation = () =>
   useMutation({
     mutationFn: async (args: DownloadMutationArgs) => {
       const { userId, includeStackedPhotos = false } = args;
-      console.log("[Download] Starting download process", { args });
       notification.downloadStarting();
 
       if (!userId) {
@@ -102,7 +101,6 @@ export const useDownloadPhotosMutation = () =>
             include_stacked_photos: includeStackedPhotos,
           };
       const { job_id: jobId, url: filename } = await startDownloadProcess(downloadRequest);
-      console.log("[Download] Job started", { jobId, filename });
 
       // One check at a time, the next scheduled only after the previous one
       // settled. With setInterval a thrown check (network error, 404) left the
@@ -117,16 +115,12 @@ export const useDownloadPhotosMutation = () =>
           return;
         }
         const { status } = response;
-        console.log("[Download] Status check", { jobId, status });
         switch (status) {
           case "SUCCESS": {
-            console.log("[Download] Job succeeded, downloading file", { filename });
             try {
               await downloadFile(filename);
-              console.log("[Download] File downloaded, deleting zip", { filename });
               await fetchClient.delete(`/delete/zip/${filename}`);
               notification.downloadCompleted();
-              console.log("[Download] Complete");
             } catch (err) {
               console.error("[Download] Error during file download or cleanup", err);
               notification.downloadFailed();

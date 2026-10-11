@@ -8,6 +8,7 @@ import type { FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { useConfirmPasswordResetMutation } from "../api_client/auth";
 import { passwordResetError } from "../api_client/auth/passwordResetErrors";
+import classes from "./auth.module.css";
 
 export const Route = createFileRoute("/password-reset/confirm/$uid/$token")({
   component: PasswordResetConfirmPage,
@@ -71,7 +72,7 @@ function PasswordResetConfirmPage(): React.JSX.Element {
           <b>{t("login.name")}</b>
         </span>
       </Group>
-      <div className="login-form">
+      <div className={classes.loginForm}>
         <Card>
           <Stack>
             <Title order={3}>{t("passwordreset.choosetitle")}</Title>

@@ -1,0 +1,5 @@
+/* Width of the card on the sign-in, sign-up and password-reset pages. */
+.loginForm {
+  width: min(500px, 90%);
+  margin: auto;
+}
