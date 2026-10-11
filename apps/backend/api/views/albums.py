@@ -4,7 +4,7 @@ from typing import Any
 from django.core.paginator import EmptyPage, Page, PageNotAnInteger, Paginator
 from django.db.models import Count, Exists, F, OuterRef, Prefetch, Q, QuerySet, Subquery
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
-from rest_framework import filters, serializers, viewsets
+from rest_framework import filters, mixins, serializers, viewsets
 from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import (
     SAFE_METHODS,
@@ -485,7 +485,9 @@ DATE_ALBUM_FILTER_PARAMETERS = [
 ]
 
 
-class AlbumDateViewSet(viewsets.ModelViewSet):
+# Retrieve only: there is no queryset, so the list, create, update and destroy
+# a ModelViewSet adds all failed with a 500. The day list is AlbumDateListViewSet.
+class AlbumDateViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet):
     serializer_class = AlbumDateSerializer
     pagination_class = RegularResultsSetPagination
 
