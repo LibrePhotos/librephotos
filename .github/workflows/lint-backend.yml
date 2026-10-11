@@ -31,6 +31,18 @@ jobs:
         run: ruff check apps/backend
       - name: ruff format --check
         run: ruff format --check apps/backend
+      # ruff check above already fails on findings the baseline does not list;
+      # this also fails on stale entries (fixed findings still listed) and,
+      # against the PR's base branch, on entries added with --update.
+      - name: ruff baseline (only shrinks)
+        working-directory: apps/backend
+        run: |
+          BASE=""
+          if [ -n "$GITHUB_BASE_REF" ]; then
+            git fetch --no-tags --depth=1 origin "$GITHUB_BASE_REF"
+            BASE="--base-ref origin/$GITHUB_BASE_REF"
+          fi
+          python scripts/ruff_baseline.py --check $BASE
 
   dead-code:
     runs-on: ubuntu-latest

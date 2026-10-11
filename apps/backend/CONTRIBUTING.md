@@ -217,7 +217,27 @@ cd /code
 pip install "$(grep ^ruff== requirements.dev.txt)"
 ruff check .
 ruff format .
+python scripts/ruff_baseline.py
 ```
+
+Every rule selected in `pyproject.toml` applies to new code straight away. Findings
+that existed when a rule was turned on are listed per file in `ruff-baseline.toml`,
+which `scripts/ruff_baseline.py` generates; do not edit it by hand. The baseline
+only shrinks:
+
+- fixed the last finding of a code in a file? Run
+  `python scripts/ruff_baseline.py --update` and commit the smaller file (CI fails
+  while a fixed entry is still listed);
+- never run `--update` to absorb a new finding: CI compares the baseline with the
+  target branch and fails when it gained an entry (except in a pull request that
+  changes the ruff config, which lists the new entries for review);
+- no `# noqa` comments to silence a baselined rule.
+
+Permanent exceptions (tests, console scripts) and the banned APIs (`TID251`) live in
+`pyproject.toml`. Put exceptions under `[tool.ruff.lint.extend-per-file-ignores]`:
+a plain `per-file-ignores` table there would replace the baseline instead of adding
+to it. `target-version` is `py310`, the Python of the backend-gpu image, so ruff
+reports syntax that Python 3.10 cannot parse.
 
 **Pre-commit Hooks:**
 
@@ -293,7 +313,7 @@ The rule a reviewer actually applies: **`INFO` volume must be O(number of jobs/r
 
 ### Writing the line
 
-- **Lazy `%` args, never f-strings.** The arguments are only formatted if the line is actually written, so a `DEBUG` call costs nothing when `LOG_LEVEL` is `INFO`. Ruff's `G` rules are on and already reject `.format()`, `+` concatenation and `exc_info=True`; the f-string rule `G004` is the one exception, muted in `pyproject.toml` because ~257 call sites predate it and get converted area by area. Do not add new ones.
+- **Lazy `%` args, never f-strings.** The arguments are only formatted if the line is actually written, so a `DEBUG` call costs nothing when `LOG_LEVEL` is `INFO`. Ruff's `G` rules are on and already reject `.format()`, `+` concatenation and `exc_info=True`; the f-string rule `G004` is on as well, with the call sites that predate it listed in `ruff-baseline.toml` until they are converted area by area. Do not add new ones.
 
   ```python
   logger.info("job %s: scan finished, %s photos added", job_id, count)   # yes

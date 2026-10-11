@@ -8,7 +8,8 @@ background jobs on django-q2, and ML in separate Flask sidecars running ONNX Run
 Run from `apps/backend`, normally inside the container (`docker exec -it backend bash`).
 
 - Tests: `python manage.py test api.tests nextcloud`; one module: `python manage.py test api.tests.metadata.test_photo_metadata`
-- Lint and format: `ruff check .` and `ruff format .` (ruff is pinned; use the version from `requirements.dev.txt`)
+- Lint and format: `ruff check .` and `ruff format .` (ruff is pinned; use the version from `requirements.dev.txt`),
+  then `python scripts/ruff_baseline.py` (fails on stale entries in `ruff-baseline.toml`)
 - Types: `python scripts/typecheck.py` (mypy + django-stubs; `mypy-baseline.txt` is empty and must stay empty)
 - Dead code: `python scripts/check_dead_code.py` (vulture, pinned in `requirements.dev.txt`; runs in CI)
 - Migrations: `python manage.py makemigrations`, committed with the model change; `api/tests/migrations/test_migrations_in_sync.py` fails the suite while a model change has no migration
@@ -30,6 +31,11 @@ test makes `--parallel` runs crash with "cannot pickle 'traceback'"; rerun that 
 - Type everything. Every function is annotated; no `# type: ignore`, no bare `Any` in an annotation
   (ruff ANN401), `cast` only with a comment saying why the stubs are wrong. Never run
   `scripts/typecheck.py --update` to accept new errors.
+- Ruff findings that predate a rule live in the generated `ruff-baseline.toml`, which only shrinks: run
+  `python scripts/ruff_baseline.py --update` after a fix, never to absorb a new finding, and add no `# noqa`
+  for a baselined code. Exceptions and banned APIs (TID251) go in `pyproject.toml` under
+  `extend-per-file-ignores` (a `per-file-ignores` table there would drop the baseline).
+- Code must run on Python 3.10, the backend-gpu image (ruff `target-version = "py310"`).
 - Scope photo queries through the manager: `Photo.objects.owned_by(user)` to write,
   `Photo.visible.visible_to(user)` to read. An inline `owner=` filter or a `Photo.objects.all()`
   queryset on a related field is a cross-tenant leak waiting to happen.
