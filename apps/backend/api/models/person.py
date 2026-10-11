@@ -1,14 +1,8 @@
-import datetime
-
-import pytz
 from django.core.validators import MinLengthValidator
 from django.db import models
-from django.db.models import Prefetch
 
 from api.models.photo import Photo
 from api.models.user import User
-
-utc = pytz.UTC
 
 
 class Person(models.Model):
@@ -82,42 +76,6 @@ class Person(models.Model):
             self.cover_photo = first_face.photo
             self.cover_face = first_face
             self.save()
-
-    def get_photos(self, owner: User) -> list[Photo]:
-        faces = list(
-            self.faces.prefetch_related(
-                Prefetch(
-                    "photo",
-                    # Only photos the grid shows: one without an aspect
-                    # ratio would serialize aspectRatio as null.
-                    queryset=Photo.visible.owned_by(owner)
-                    .exclude(image_hash=None)
-                    .order_by("-exif_timestamp")
-                    .only(
-                        "image_hash",
-                        "exif_timestamp",
-                        "rating",
-                        "owner__id",
-                        "public",
-                        "hidden",
-                        "video",
-                        "video_color_transfer",
-                    )
-                    .prefetch_related("owner"),
-                )
-            )
-        )
-
-        photos: list[Photo] = [
-            face.photo
-            for face in faces
-            if face.photo is not None and hasattr(face.photo, "owner")
-        ]
-        photos.sort(
-            key=lambda x: x.exif_timestamp or utc.localize(datetime.datetime.min),
-            reverse=True,
-        )
-        return photos
 
 
 # TODO: Should be removed in the future, as it is not used, only in migrations

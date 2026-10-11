@@ -27,6 +27,7 @@ from api.serializers.user import (
     UserSerializer,
 )
 from api.util import is_valid_path
+from api.views.mixins import PartialUpdateModelMixin
 
 logger = logging.getLogger(__name__)
 
@@ -98,14 +99,18 @@ class IsFirstTimeSetupView(APIView):
 
 # Users are deleted through /api/delete/user/ only, which refuses to delete a
 # superuser (the last one would put the instance back into first-time setup).
-# The two full viewsets below would otherwise delete anyone for any staff user.
-NO_DELETE = ["get", "post", "put", "patch", "head", "options"]
+# Neither viewset below has a destroy, so they cannot delete anyone.
 
 
 # To-Do: This executes multiple querys per users
-class UserViewSet(viewsets.ModelViewSet):
-    http_method_names = NO_DELETE
-
+# List and open users, sign up (create), and edit one's own settings (PATCH).
+class UserViewSet(
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    mixins.CreateModelMixin,
+    PartialUpdateModelMixin[User],
+    viewsets.GenericViewSet,
+):
     def get_queryset(self) -> QuerySet[User]:
         queryset = (
             User.objects.exclude(is_active=False)
@@ -144,8 +149,8 @@ class UserViewSet(viewsets.ModelViewSet):
                 return UserSerializer
             return PublicUserSerializer
 
-        # update / partial_update are already restricted to self-or-admin by
-        # get_permissions (IsAdminOrSelf) and need the full serializer.
+        # partial_update is already restricted to self-or-admin by
+        # get_permissions (IsAdminOrSelf) and needs the full serializer.
         return UserSerializer
 
     def get_permissions(self) -> list[BasePermission]:
@@ -154,7 +159,7 @@ class UserViewSet(viewsets.ModelViewSet):
             permission_classes = [IsAdminOrFirstTimeSetupOrRegistrationAllowed]
         elif self.action in ["list", "retrieve"]:
             permission_classes = [AllowAny]
-        elif self.action in ["update", "partial_update"]:
+        elif self.action == "partial_update":
             permission_classes = [IsAdminOrSelf]
         return [p() for p in permission_classes]
 
@@ -184,14 +189,9 @@ class DeleteUserViewSet(mixins.DestroyModelMixin, viewsets.GenericViewSet):
         return super().destroy(request, *args, **kwargs)
 
 
-class ManageUserViewSet(viewsets.ModelViewSet):
-    http_method_names = NO_DELETE
+# PATCH only: the admin user editor (scan directory, quotas, roles). Users are
+# listed and opened through /api/user/, which gives staff the full serializer.
+class ManageUserViewSet(PartialUpdateModelMixin[User], viewsets.GenericViewSet):
     queryset = User.objects.all().order_by("id")
     serializer_class = ManageUserSerializer
     permission_classes = (IsAdminUser,)
-
-    def retrieve(self, *args: Any, **kwargs: Any) -> Response:
-        return super().retrieve(*args, **kwargs)
-
-    def list(self, *args: Any, **kwargs: Any) -> Response:
-        return super().list(*args, **kwargs)

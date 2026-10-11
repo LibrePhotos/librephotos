@@ -184,9 +184,6 @@ router.register(r"api/albums/auto", album_auto.AlbumAutoViewSet, basename="album
 router.register(
     r"api/folders", album_folder.FolderNavigationViewSet, basename="folder_navigation"
 )
-router.register(
-    r"api/albums/person", albums.AlbumPersonViewSet, basename="album_person"
-)
 router.register(r"api/albums/date", albums.AlbumDateViewSet, basename="album_date")
 router.register(r"api/albums/thing", albums.AlbumThingViewSet, basename="album_thing")
 router.register(r"api/albums/place", albums.AlbumPlaceViewSet, basename="album_place")

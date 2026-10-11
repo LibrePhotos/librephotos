@@ -48,7 +48,7 @@ from api.serializers.album_user import (
     AlbumUserPublicSerializer,
     AlbumUserSerializer,
 )
-from api.serializers.person import GroupedPersonPhotosSerializer, PersonSerializer
+from api.serializers.person import PersonSerializer
 from api.serializers.photos import (
     PhotoSummarySerializer,
     # Kept under its old name for the views that import it from here.
@@ -57,6 +57,7 @@ from api.serializers.photos import (
 from api.timeline_filter import timeline_filter_q
 from api.util import folder_path_q
 from api.views.custom_api_view import ListViewSet
+from api.views.mixins import PartialUpdateModelMixin
 from api.views.pagination import (
     RegularResultsSetPagination,
     StandardResultsSetPagination,
@@ -65,61 +66,14 @@ from api.views.pagination import (
 logger = logging.getLogger(__name__)
 
 
-# To-Do: Not used as far as I can tell, only in mobile app
-@extend_schema(
-    deprecated=True,
-    description="This endpoint is deprecated. Use /api/persons instead.",
-)
-class AlbumPersonViewSet(viewsets.ModelViewSet):
-    serializer_class = GroupedPersonPhotosSerializer
-
-    def get_queryset(self) -> QuerySet[Person]:
-        user = self.request.user
-        if not isinstance(user, User):
-            return Person.objects.none()
-
-        return (
-            Person.objects.filter(cluster_owner=user)
-            .annotate(
-                photo_count=Count(
-                    "faces", filter=visible_photo_q("faces__photo__"), distinct=True
-                )
-            )
-            .filter(Q(photo_count__gt=0))
-            .prefetch_related(
-                Prefetch(
-                    "faces",
-                    queryset=Face.objects.filter(Q(person__isnull=False)),
-                )
-            )
-            .prefetch_related(
-                Prefetch(
-                    "faces__photo",
-                    queryset=Photo.objects.owned_by(user)
-                    .filter(faces__photo__hidden=False)
-                    .distinct()
-                    .order_by("-exif_timestamp")
-                    .only("image_hash", "exif_timestamp", "rating", "public", "hidden"),
-                )
-            )
-        )
-
-    def retrieve(self, *args: Any, **kwargs: Any) -> Response:
-        album = get_object_or_404(self.get_queryset(), pk=self.kwargs["pk"])
-        serializer = GroupedPersonPhotosSerializer(
-            album, context={"request": self.request}
-        )
-        return Response({"results": serializer.data})
-
-    def list(self, *args: Any, **kwargs: Any) -> Response:
-        queryset = self.get_queryset()
-        serializer = GroupedPersonPhotosSerializer(
-            queryset, many=True, context={"request": self.request}
-        )
-        return Response({"results": serializer.data})
-
-
-class PersonViewSet(viewsets.ModelViewSet):
+# Retrieve has no client yet; #2207 (person detail page) needs it.
+class PersonViewSet(
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    PartialUpdateModelMixin[Person],
+    mixins.DestroyModelMixin,
+    viewsets.GenericViewSet,
+):
     serializer_class = PersonSerializer
     pagination_class = StandardResultsSetPagination
     filter_backends = (filters.SearchFilter,)
@@ -214,7 +168,9 @@ def _thing_has_visible_photo() -> Exists:
     )
 
 
-class AlbumThingViewSet(viewsets.ModelViewSet):
+# Retrieve only: the list is AlbumThingListViewSet, and thing albums are made
+# by the tagger, never through the API.
+class AlbumThingViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet):
     serializer_class = AlbumThingSerializer
     pagination_class = StandardResultsSetPagination
 
@@ -253,13 +209,6 @@ class AlbumThingViewSet(viewsets.ModelViewSet):
         )
         return Response({"results": serializer.data})
 
-    def list(self, *args: Any, **kwargs: Any) -> Response:
-        queryset = self.get_queryset()
-        serializer = GroupedThingPhotosSerializer(
-            queryset, many=True, context={"request": self.request}
-        )
-        return Response({"results": serializer.data})
-
 
 # To-Do: Could be literally the list command in AlbumThingViewSet
 class AlbumThingListViewSet(ListViewSet):
@@ -292,7 +241,9 @@ class AlbumThingListViewSet(ListViewSet):
         return queryset
 
 
-class AlbumPlaceViewSet(viewsets.ModelViewSet):
+# Retrieve only: the list is AlbumPlaceListViewSet, and place albums are made
+# by reverse geocoding, never through the API.
+class AlbumPlaceViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet):
     serializer_class = AlbumPlaceSerializer
     pagination_class = StandardResultsSetPagination
 
@@ -373,22 +324,24 @@ class AlbumPlaceListViewSet(ListViewSet):
         )
 
 
-class AlbumUserViewSet(viewsets.ModelViewSet):
+# Albums are created and their photos edited through AlbumUserEditViewSet;
+# this one opens an album (also through its public link), renames and deletes
+# it.
+class AlbumUserViewSet(
+    mixins.RetrieveModelMixin,
+    PartialUpdateModelMixin[AlbumUser],
+    mixins.DestroyModelMixin,
+    viewsets.GenericViewSet,
+):
     serializer_class = AlbumUserSerializer
     pagination_class = StandardResultsSetPagination
 
-    def perform_create(self, serializer: serializers.BaseSerializer[AlbumUser]) -> None:
-        serializer.save(owner=request_user(self.request))
-
     def get_queryset(self) -> QuerySet[AlbumUser]:
         # Support public access when explicitly requested. Public access is
-        # READ-ONLY: only honor ?public for the safe list/retrieve actions, so a
+        # READ-ONLY: only honor ?public for the retrieve action, so a
         # public album id can't be mutated or deleted through this unscoped
         # queryset. See issue #1861.
-        if self.request.query_params.get("public") and self.action in (
-            "list",
-            "retrieve",
-        ):
+        if self.request.query_params.get("public") and self.action == "retrieve":
             # Anyone can view a public album if the album itself is marked public and active (not expired)
             username = self.request.query_params.get("username")
             from django.utils import timezone
@@ -409,31 +362,25 @@ class AlbumUserViewSet(viewsets.ModelViewSet):
         if not isinstance(user, User):
             return AlbumUser.objects.none()
         # A share is read-only: recipients may open the album, but renaming
-        # (PATCH/PUT) and deleting it stay with the owner.
+        # (PATCH) and deleting it stay with the owner.
         visible = Q(owner=user)
         if self.request.method in SAFE_METHODS:
             visible |= Q(shared_to__exact=user.id)
         return AlbumUser.objects.filter(visible).distinct().order_by("-id")
 
     def get_permissions(self) -> list[BasePermission]:
-        # Anonymous public access is allowed only for read actions. Write actions
-        # (create/update/partial_update/destroy) always require authentication,
+        # Anonymous public access is allowed only for retrieve. Write actions
+        # (partial_update/destroy) always require authentication,
         # even when ?public is present. See issue #1861.
         permission_classes: list[type[BasePermission]]
-        if self.request.query_params.get("public") and self.action in (
-            "list",
-            "retrieve",
-        ):
+        if self.request.query_params.get("public") and self.action == "retrieve":
             permission_classes = [AllowAny]
         else:
             permission_classes = [IsAuthenticated]
         return [permission() for permission in permission_classes]
 
     def get_serializer_class(self) -> type[serializers.BaseSerializer[AlbumUser]]:
-        if self.request.query_params.get("public") and self.action in (
-            "list",
-            "retrieve",
-        ):
+        if self.request.query_params.get("public") and self.action == "retrieve":
             return AlbumUserPublicSerializer
         return super().get_serializer_class()
 
@@ -774,27 +721,15 @@ class AlbumDateListViewSet(ListViewSet):
         return Response({"results": serializer.data})
 
 
-class AlbumUserEditViewSet(viewsets.ModelViewSet):
+# Create an album, or PATCH its title, photos, cover or lock. Opening one goes
+# through AlbumUserViewSet.
+class AlbumUserEditViewSet(
+    mixins.CreateModelMixin,
+    PartialUpdateModelMixin[AlbumUser],
+    viewsets.GenericViewSet,
+):
     serializer_class = AlbumUserEditSerializer
     pagination_class = StandardResultsSetPagination
-
-    # get_permissions comes before list/retrieve: its ``list[...]`` annotation is
-    # evaluated when the class body runs, and a ``list`` method defined above it
-    # would shadow the builtin there.
-    def get_permissions(self) -> list[BasePermission]:
-        if self.action in ["list", "retrieve"]:
-            self.permission_classes = (IsAuthenticated,)
-        else:
-            self.permission_classes = (IsAuthenticated,)
-
-        # The body of APIView.get_permissions, which this override replaces.
-        return [permission() for permission in self.permission_classes]
-
-    def retrieve(self, *args: Any, **kwargs: Any) -> Response:
-        return super().retrieve(*args, **kwargs)
-
-    def list(self, *args: Any, **kwargs: Any) -> Response:
-        return super().list(*args, **kwargs)
 
     def get_queryset(self) -> QuerySet[AlbumUser]:
         user = self.request.user

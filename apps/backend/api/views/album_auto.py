@@ -1,7 +1,7 @@
 from django.db.models import Count, Min, Prefetch, Q, QuerySet
 from django_q.tasks import AsyncTask
 from drf_spectacular.utils import extend_schema
-from rest_framework import filters, viewsets
+from rest_framework import filters, mixins, viewsets
 from rest_framework.decorators import action
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -18,7 +18,11 @@ from api.views.scan_triggers import start_job
 
 
 # TODO: This is a fetches with too many queries. We need to optimize this.
-class AlbumAutoViewSet(viewsets.ModelViewSet):
+# Open, delete, or delete every event album. They are made by the auto album
+# job, and the list is AlbumAutoListViewSet.
+class AlbumAutoViewSet(
+    mixins.RetrieveModelMixin, mixins.DestroyModelMixin, viewsets.GenericViewSet
+):
     serializer_class = AlbumAutoSerializer
     pagination_class = StandardResultsSetPagination
 
