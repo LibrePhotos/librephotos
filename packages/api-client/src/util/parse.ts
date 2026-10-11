@@ -4,7 +4,9 @@
  * schemas have this safeParse, which hands back the parsed value with its type.
  */
 type SafeParser<T> = {
-  safeParse(data: unknown):
+  safeParse(
+    data: unknown
+  ):
     | { success: true; data: T }
     | { success: false; error: { issues: ReadonlyArray<{ path: ReadonlyArray<PropertyKey>; message: string }> } };
 };

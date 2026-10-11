@@ -32,10 +32,13 @@ A self-hosted photo manager. This is a monorepo; each app has its own stack and 
 - Backend (`apps/backend`): `python manage.py test api.tests`, `ruff check .`, `ruff format .`,
   `python scripts/typecheck.py`, `python scripts/check_dead_code.py`. Details and the no-Docker
   setup: `apps/backend/AGENTS.md`.
-- Frontend (`apps/frontend`): `yarn install`, `yarn lint:error`, `yarn typecheck`, `yarn test`,
-  `yarn build`, `yarn start`.
+- Frontend (`apps/frontend`): `yarn install`, `yarn lint:error`, `yarn format:check`, `yarn typecheck`,
+  `yarn test`, `yarn build`, `yarn start`.
 - Mobile: `npm ci` once at the repo root (the root `package-lock.json` is the only lockfile), then
-  `npm run check --workspace apps/mobile`. API client: `npm run test --workspace packages/api-client`.
+  `npm run check --workspace apps/mobile`.
+- API client (`packages/api-client`): `npm run typecheck|lint|test --workspace packages/api-client`
+  (CI: `api-client.yml`). Its TypeScript, ESLint and vitest majors follow `apps/frontend`, which
+  compiles it; its formatting is the web app's `yarn format:check`. No `package-lock.json` but the root one.
 - Docs (`apps/docs`): `yarn install --frozen-lockfile`, `yarn build`.
 
 ## History

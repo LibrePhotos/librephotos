@@ -5,9 +5,7 @@ import { defined } from "./defined";
 
 /** A non-expiring JWT (exp far in the future) so the proactive refresh path is skipped. */
 const FUTURE_JWT =
-  "eyJhbGciOiJIUzI1NiJ9." +
-  Buffer.from(JSON.stringify({ exp: 9999999999, user_id: 1 })).toString("base64url") +
-  ".sig";
+  "eyJhbGciOiJIUzI1NiJ9." + Buffer.from(JSON.stringify({ exp: 9999999999, user_id: 1 })).toString("base64url") + ".sig";
 /** An already-expired JWT (exp in the past) to trigger proactive refresh. */
 const EXPIRED_JWT =
   "eyJhbGciOiJIUzI1NiJ9." + Buffer.from(JSON.stringify({ exp: 1, user_id: 1 })).toString("base64url") + ".sig";

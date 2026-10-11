@@ -1,5 +1,5 @@
 @property --angle {
-  syntax: '<angle>';
+  syntax: "<angle>";
   initial-value: 0deg;
   inherits: false;
 }
@@ -13,16 +13,7 @@
   position: relative;
   cursor: pointer;
   transition: all 0.3s ease;
-  background: conic-gradient(
-    from var(--angle),
-    #8b45ff,
-    #3b82f6,
-    #06b6d4,
-    #10b981,
-    #f59e0b,
-    #ef4444,
-    #8b45ff
-  );
+  background: conic-gradient(from var(--angle), #8b45ff, #3b82f6, #06b6d4, #10b981, #f59e0b, #ef4444, #8b45ff);
   animation: borderRotate 3s linear infinite;
 }
 .aiSuggestionButton::before {
@@ -44,7 +35,9 @@
 .aiSuggestionButton:hover {
   transform: translateY(-1px);
   filter: brightness(1.1);
-  box-shadow: 0 8px 25px rgba(139, 69, 255, 0.4), 0 0 20px rgba(139, 69, 255, 0.3);
+  box-shadow:
+    0 8px 25px rgba(139, 69, 255, 0.4),
+    0 0 20px rgba(139, 69, 255, 0.3);
   animation: borderRotate 1.5s linear infinite;
 }
 
@@ -91,4 +84,4 @@
     border: 2px solid;
     border-image: linear-gradient(45deg, #8b45ff, #3b82f6, #06b6d4, #10b981) 1;
   }
-} 
+}

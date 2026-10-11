@@ -5,7 +5,7 @@
   -ms-overflow-style: none;
   position: relative;
 }
- 
+
 .scrollscrubbertarget::-webkit-scrollbar {
   display: none;
 }
@@ -13,7 +13,7 @@
 .scrollscrubber {
   width: 28px;
   right: 0;
-  position: fixed!important;
+  position: fixed !important;
   user-select: none;
   margin-top: 10px;
   margin-bottom: 10px;
@@ -26,7 +26,7 @@
 .scrollscrubber-background-layer {
   width: 28px;
   right: 0;
-  position: fixed!important;
+  position: fixed !important;
   opacity: 0.9;
   z-index: 100;
 }

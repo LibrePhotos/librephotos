@@ -6,6 +6,8 @@
   "scripts": {
     "lint:error": "eslint --cache --max-warnings 0 .",
     "lint:error:fix": "eslint --max-warnings 0 . --fix",
+    "format": "prettier --config ./prettier.config.cjs --write . ../../packages/api-client",
+    "format:check": "prettier --config ./prettier.config.cjs --check . ../../packages/api-client",
     "typecheck": "node scripts/typecheck-ratchet.mjs",
     "typecheck:update": "node scripts/typecheck-ratchet.mjs --update",
     "start": "vite",

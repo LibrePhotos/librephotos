@@ -14,3 +14,7 @@ coverage/
 # Logs
 *.log
 
+
+# Translations other than English are written by Weblate; never reformat them by hand.
+src/locales/*/
+!src/locales/en/

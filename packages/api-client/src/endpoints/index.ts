@@ -1,7 +1,7 @@
-import type { ApiClient } from "../transport/types";
 import * as S from "../schemas";
-import { buildQuery, parseResponse } from "../util/parse";
 import { Photoset } from "../schemas";
+import type { ApiClient } from "../transport/types";
+import { buildQuery, parseResponse } from "../util/parse";
 
 /* ---------------------------------------------------------------------- *
  * Thin, platform-agnostic endpoint wrappers. Each takes an ApiClient and
@@ -348,11 +348,7 @@ export async function setUserAlbumShared(
 /* ---- public links ------------------------------------------------------ */
 
 /** Make photos public (creates their public-gallery visibility) or private. */
-export async function setPhotosPublic(
-  client: ApiClient,
-  imageHashes: string[],
-  isPublic: boolean
-): Promise<unknown> {
+export async function setPhotosPublic(client: ApiClient, imageHashes: string[], isPublic: boolean): Promise<unknown> {
   return client.post("/photosedit/makepublic/", {
     image_hashes: imageHashes,
     val_public: isPublic,
@@ -458,22 +454,34 @@ export async function syncPersons(client: ApiClient, params: SyncPullParams = {}
   return parseResponse(S.SyncPersonsResponse, res, "sync persons");
 }
 
-export async function syncUserAlbums(client: ApiClient, params: SyncPullParams = {}): Promise<S.SyncUserAlbumsResponse> {
+export async function syncUserAlbums(
+  client: ApiClient,
+  params: SyncPullParams = {}
+): Promise<S.SyncUserAlbumsResponse> {
   const res = await client.get<unknown>(`/sync/albums/user/${syncQuery(params)}`);
   return parseResponse(S.SyncUserAlbumsResponse, res, "sync user albums");
 }
 
-export async function syncAutoAlbums(client: ApiClient, params: SyncPullParams = {}): Promise<S.SyncAutoAlbumsResponse> {
+export async function syncAutoAlbums(
+  client: ApiClient,
+  params: SyncPullParams = {}
+): Promise<S.SyncAutoAlbumsResponse> {
   const res = await client.get<unknown>(`/sync/albums/auto/${syncQuery(params)}`);
   return parseResponse(S.SyncAutoAlbumsResponse, res, "sync auto albums");
 }
 
-export async function syncThingAlbums(client: ApiClient, params: SyncPullParams = {}): Promise<S.SyncThingAlbumsResponse> {
+export async function syncThingAlbums(
+  client: ApiClient,
+  params: SyncPullParams = {}
+): Promise<S.SyncThingAlbumsResponse> {
   const res = await client.get<unknown>(`/sync/albums/thing/${syncQuery(params)}`);
   return parseResponse(S.SyncThingAlbumsResponse, res, "sync thing albums");
 }
 
-export async function syncPlaceAlbums(client: ApiClient, params: SyncPullParams = {}): Promise<S.SyncPlaceAlbumsResponse> {
+export async function syncPlaceAlbums(
+  client: ApiClient,
+  params: SyncPullParams = {}
+): Promise<S.SyncPlaceAlbumsResponse> {
   const res = await client.get<unknown>(`/sync/albums/place/${syncQuery(params)}`);
   return parseResponse(S.SyncPlaceAlbumsResponse, res, "sync place albums");
 }
@@ -625,19 +633,11 @@ export async function removePhotosFromUserAlbum(
 }
 
 /** Rename a user album. */
-export async function renameUserAlbum(
-  client: ApiClient,
-  albumId: number,
-  title: string
-): Promise<unknown> {
+export async function renameUserAlbum(client: ApiClient, albumId: number, title: string): Promise<unknown> {
   return client.patch(`/albums/user/${albumId}/`, { title });
 }
 
 /** Rename a person. */
-export async function renamePerson(
-  client: ApiClient,
-  personId: number,
-  newPersonName: string
-): Promise<unknown> {
+export async function renamePerson(client: ApiClient, personId: number, newPersonName: string): Promise<unknown> {
   return client.patch(`/persons/${personId}/`, { newPersonName });
 }
