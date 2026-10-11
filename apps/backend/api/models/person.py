@@ -88,9 +88,10 @@ class Person(models.Model):
             self.faces.prefetch_related(
                 Prefetch(
                     "photo",
-                    queryset=Photo.objects.owned_by(owner)
+                    # Only photos the grid shows: one without an aspect
+                    # ratio would serialize aspectRatio as null.
+                    queryset=Photo.visible.owned_by(owner)
                     .exclude(image_hash=None)
-                    .filter(hidden=False)
                     .order_by("-exif_timestamp")
                     .only(
                         "image_hash",

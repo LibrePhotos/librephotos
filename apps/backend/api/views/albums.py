@@ -82,7 +82,7 @@ class AlbumPersonViewSet(viewsets.ModelViewSet):
             Person.objects.filter(cluster_owner=user)
             .annotate(
                 photo_count=Count(
-                    "faces", filter=Q(faces__photo__hidden=False), distinct=True
+                    "faces", filter=visible_photo_q("faces__photo__"), distinct=True
                 )
             )
             .filter(Q(photo_count__gt=0))
