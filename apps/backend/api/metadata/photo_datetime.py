@@ -54,7 +54,11 @@ def extract_date_time(photo: Photo, commit: bool = True) -> None:
     def exif_getter(tags: list[str]) -> list[Any]:
         return get_metadata(main_file_path, tags=tags, try_sidecar=True)
 
-    datetime_config = json.loads(photo.owner.datetime_rules)
+    # Stored as the JSON string the settings page sends (and the default is),
+    # but PATCH /api/user/ also accepts the list itself.
+    datetime_config = photo.owner.datetime_rules
+    if isinstance(datetime_config, str):
+        datetime_config = json.loads(datetime_config)
     extracted_local_time = date_time_extractor.extract_local_date_time(
         main_file_path,
         date_time_extractor.as_rules(datetime_config),
