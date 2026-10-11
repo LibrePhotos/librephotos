@@ -78,7 +78,7 @@ class RawJpegAlwaysGroupedTestCase(TestCase):
         raw = File.create(self.raw_path, self.user)
         for number, file in enumerate([raw, jpeg] if raw_first else [jpeg, raw], 1):
             photo = Photo.objects.create(
-                pk=uuid.UUID(int=number),
+                pk=uuid.UUID(int=number),  # raw-create: the test fixes the pk order
                 owner=self.user,
                 image_hash=file.hash,
                 main_file=file,
