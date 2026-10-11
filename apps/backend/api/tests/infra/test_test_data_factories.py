@@ -57,7 +57,10 @@ class RawCreateBaselineTest(SimpleTestCase):
                 )
 
     def test_the_factories_module_is_not_counted(self):
-        paths = {path.relative_to(BACKEND).as_posix() for path in factory_baseline.iter_test_modules(BACKEND)}
+        paths = {
+            path.relative_to(BACKEND).as_posix()
+            for path in factory_baseline.iter_test_modules(BACKEND)
+        }
         self.assertNotIn(factory_baseline.UTILS, paths)
         self.assertIn("api/tests/infra/test_test_data_factories.py", paths)
 
@@ -69,7 +72,9 @@ class RawCreateScannerTest(SimpleTestCase):
             "stack = PhotoStack.objects.create(owner=user)\n",
             "api/tests/stacks/test_planted.py",
         )
-        self.assertEqual([(h.line, h.model, h.method) for h in hits], [(2, "PhotoStack", "create")])
+        self.assertEqual(
+            [(h.line, h.model, h.method) for h in hits], [(2, "PhotoStack", "create")]
+        )
         self.assertFalse(hits[0].accepted)
 
     def test_bulk_and_get_or_create_are_counted(self):
@@ -79,11 +84,15 @@ class RawCreateScannerTest(SimpleTestCase):
             "User.objects.create_user('x')\n"
         )
         hits = factory_baseline.find_raw_creates(source, "api/tests/test_x.py")
-        self.assertEqual([h.method for h in hits], ["get_or_create", "bulk_create", "create_user"])
+        self.assertEqual(
+            [h.method for h in hits], ["get_or_create", "bulk_create", "create_user"]
+        )
 
     def test_models_without_a_factory_are_not_counted(self):
         source = "Thumbnail.objects.create(photo=p)\nPhoto.visible.create()\nmodels.objects.create()\n"
-        self.assertEqual(factory_baseline.find_raw_creates(source, "api/tests/test_x.py"), [])
+        self.assertEqual(
+            factory_baseline.find_raw_creates(source, "api/tests/test_x.py"), []
+        )
 
     def test_a_reason_comment_on_any_line_of_the_call_accepts_it(self):
         source = (
@@ -137,14 +146,14 @@ class BaselineComparisonTest(SimpleTestCase):
         self.assertEqual(len(found), 1)
 
     def test_a_matching_baseline_passes(self):
-        self.assertEqual(
-            factory_baseline.problems({"a.py": 2}, {"a.py": 2}), []
-        )
+        self.assertEqual(factory_baseline.problems({"a.py": 2}, {"a.py": 2}), [])
 
     def test_render_and_read_round_trip(self):
         with tempfile.TemporaryDirectory() as root_name:
             path = Path(root_name) / "baseline.txt"
-            text = factory_baseline.render_baseline({"b/test_b.py": 2, "a/test_a.py": 1, "c.py": 0})
+            text = factory_baseline.render_baseline(
+                {"b/test_b.py": 2, "a/test_a.py": 1, "c.py": 0}
+            )
             path.write_text(text, encoding="utf-8")
             self.assertEqual(
                 factory_baseline.read_baseline(path),

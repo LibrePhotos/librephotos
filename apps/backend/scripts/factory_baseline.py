@@ -149,9 +149,7 @@ def problems(actual: Mapping[str, int], baseline: Mapping[str, int]) -> list[str
         have = actual.get(path, 0)
         listed = baseline.get(path, 0)
         if have > listed:
-            out.append(
-                f"{path}: {have} raw creates, baseline allows {listed}"
-            )
+            out.append(f"{path}: {have} raw creates, baseline allows {listed}")
         elif have < listed:
             out.append(
                 f"{path}: baseline lists {listed} but the file has {have}; "
@@ -164,8 +162,13 @@ def main(argv: list[str]) -> int:
     hits = collect()
     counts = count_by_file(hits)
     if "--update" in argv:
-        listed = read_baseline() if BASELINE.exists() else {}
-        grown = sorted(path for path, count in counts.items() if count > listed.get(path, 0))
+        # The first write has no baseline to grow from; afterwards it may only shrink.
+        listed = read_baseline() if BASELINE.exists() else None
+        grown = sorted(
+            path
+            for path, count in counts.items()
+            if listed is not None and count > listed.get(path, 0)
+        )
         if grown:
             print("factory_baseline: refusing to grow the baseline:", file=sys.stderr)
             for path in grown:
@@ -179,7 +182,9 @@ def main(argv: list[str]) -> int:
         return 0
     found = problems(counts, read_baseline())
     if not found:
-        print(f"factory_baseline: {sum(counts.values())} raw creates, matches the baseline")
+        print(
+            f"factory_baseline: {sum(counts.values())} raw creates, matches the baseline"
+        )
         return 0
     for line in found:
         print(line)

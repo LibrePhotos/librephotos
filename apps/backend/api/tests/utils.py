@@ -185,6 +185,11 @@ def create_test_cluster(owner: User, **kwargs: Any) -> Cluster:
 
 
 def create_test_photo(**kwargs):
+    """A photo owned by ``kwargs["owner"]``, with a main file, a thumbnail and the given fields.
+
+    ``image_hash`` is the main file's hash. The file is written to TEST_MEDIA_ROOT.
+    Caption, search and metadata fields are split into their own models.
+    """
     from api.models.photo_caption import PhotoCaption
     from api.models.photo_metadata import PhotoMetadata
     from api.models.photo_search import PhotoSearch
