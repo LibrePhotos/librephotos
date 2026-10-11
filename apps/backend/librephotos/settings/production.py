@@ -8,6 +8,7 @@ from librephotos.env import (
     env_list,
     env_str,
     export,
+    protected_media_root,
 )
 from librephotos.logging_bootstrap import (
     build_logging_config,
@@ -22,7 +23,7 @@ BASE_DATA = env_str("BASE_DATA", "/")
 PHOTOS = env_str("PHOTOS", os.path.join(BASE_DATA, "data"))
 STATIC_URL = "api/static/"
 MEDIA_URL = "/media/"
-MEDIA_ROOT = os.path.join(BASE_DATA, "protected_media")
+MEDIA_ROOT = protected_media_root(BASE_DATA)
 STATIC_ROOT = os.path.join(BASE_DIR, "static")
 DATA_ROOT = PHOTOS
 

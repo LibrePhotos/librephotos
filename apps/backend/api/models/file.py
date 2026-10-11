@@ -7,7 +7,14 @@ import os
 from django.conf import settings
 from django.db import models, transaction
 
-from api.mime import sniffed_mime_type
+from api.mime import (
+    IMAGE_EXTENSIONS,
+    METADATA_EXTENSIONS,
+    RAW_EXTENSIONS,
+    VIDEO_EXTENSIONS,
+    extension,
+    sniffed_mime_type,
+)
 from api.models.user import User
 
 logger = logging.getLogger(__name__)
@@ -192,104 +199,11 @@ def is_video(path: str) -> bool:
 
 
 def is_raw(path: str) -> bool:
-    fileextension = os.path.splitext(path)[1]
-    rawformats = [
-        ".RWZ",
-        ".CR2",
-        ".NRW",
-        ".EIP",
-        ".RAF",
-        ".ERF",
-        ".RW2",
-        ".NEF",
-        ".ARW",
-        ".K25",
-        ".DNG",
-        ".SRF",
-        ".DCR",
-        ".RAW",
-        ".CRW",
-        ".BAY",
-        ".3FR",
-        ".CS1",
-        ".MEF",
-        ".ORF",
-        ".ARI",
-        ".SR2",
-        ".KDC",
-        ".MOS",
-        ".MFW",
-        ".FFF",
-        ".CR3",
-        ".SRW",
-        ".RWL",
-        ".J6I",
-        ".KC2",
-        ".X3F",
-        ".MRW",
-        ".IIQ",
-        ".PEF",
-        ".CXI",
-        ".MDC",
-    ]
-    return fileextension.upper() in rawformats
+    return extension(path) in RAW_EXTENSIONS
 
 
 def is_metadata(path: str) -> bool:
-    fileextension = os.path.splitext(path)[1]
-    rawformats = [
-        ".XMP",
-    ]
-    return fileextension.upper() in rawformats
-
-
-# Image and video extensions, for files the scanner cannot load. RAW and XMP
-# extensions live in is_raw / is_metadata. The image set covers the partial
-# lists elsewhere (file_grouping.JPEG_EXTENSIONS, thumbnails'
-# _EXIF_ORIENTED_EXTENSIONS, processing_jobs.CV2_DECODABLE_EXTENSIONS) plus the
-# formats image_decoding's libvips and Pillow plugins load.
-IMAGE_EXTENSIONS = frozenset(
-    {
-        ".avif",
-        ".bmp",
-        ".gif",
-        ".heic",
-        ".heif",
-        ".hif",
-        ".j2k",
-        ".jfif",
-        ".jp2",
-        ".jpe",
-        ".jpeg",
-        ".jpg",
-        ".jxl",
-        ".png",
-        ".tif",
-        ".tiff",
-        ".webp",
-    }
-)
-VIDEO_EXTENSIONS = frozenset(
-    {
-        ".3g2",
-        ".3gp",
-        ".asf",
-        ".avi",
-        ".flv",
-        ".m2ts",
-        ".m4v",
-        ".mkv",
-        ".mov",
-        ".mp4",
-        ".mpeg",
-        ".mpg",
-        ".mts",
-        ".ogv",
-        ".vob",
-        ".webm",
-        ".wmv",
-    }
-)
+    return extension(path) in METADATA_EXTENSIONS
 
 
 def looks_like_media(path: str) -> bool:
@@ -300,8 +214,7 @@ def looks_like_media(path: str) -> bool:
     that looks like media but does not load (a corrupt JPEG) as a failure, and
     ignores everything else (``.pp3``, ``.aae``, ``.json``, ``Thumbs.db``).
     """
-    extension = os.path.splitext(path)[1].lower()
-    if extension in IMAGE_EXTENSIONS or extension in VIDEO_EXTENSIONS:
+    if extension(path) in IMAGE_EXTENSIONS | VIDEO_EXTENSIONS:
         return True
     if is_raw(path) or is_metadata(path):
         return True

@@ -31,14 +31,10 @@ import onnxruntime as ort
 from PIL import Image
 from tokenizers import Tokenizer
 
-from librephotos.env import env_str
+from librephotos.env import data_models_root
 from service.onnx_session import inference_session
 
-# The sidecars never load Django, so the data root comes in as BASE_DATA (see
-# api.services._service_environment). Unset, this is the Docker layout under /.
-MODELS_ROOT = os.path.join(
-    env_str("BASE_DATA", os.sep), "protected_media", "data_models"
-)
+MODELS_ROOT = data_models_root()
 MODEL_NAME = "lfm2_vl_450m"
 MODEL_DIR = os.path.join(MODELS_ROOT, MODEL_NAME)
 

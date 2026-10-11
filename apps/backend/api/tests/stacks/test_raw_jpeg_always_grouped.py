@@ -19,6 +19,7 @@ from unittest.mock import patch
 
 import pyvips
 from django.test import TestCase
+from django.utils import timezone
 from rest_framework.test import APIClient
 
 from api.directory_watcher.file_handlers import create_new_image, handle_file_group
@@ -65,6 +66,44 @@ class RawJpegAlwaysGroupedTestCase(TestCase):
         handle_file_group(self.user, [self.jpeg_path], "job")
         handle_file_group(self.user, [self.raw_path], "job")
         repair_ungrouped_file_variants(self.user, uuid.uuid4())
+        self.assert_one_photo_with_a_raw_variant()
+
+    def split_pair(self, raw_first):
+        """The JPEG and its RAW as two photos, as an upload of the RAW first leaves them.
+
+        ``raw_first`` gives the RAW's photo the lower pk, the one the database
+        tends to return first.
+        """
+        jpeg = File.create(self.jpeg_path, self.user)
+        raw = File.create(self.raw_path, self.user)
+        for number, file in enumerate([raw, jpeg] if raw_first else [jpeg, raw], 1):
+            photo = Photo.objects.create(
+                pk=uuid.UUID(int=number),  # raw-create: the test fixes the pk order
+                owner=self.user,
+                image_hash=file.hash,
+                main_file=file,
+                added_on=timezone.now(),
+                geolocation_json={},
+            )
+            photo.files.add(file)
+
+    def full_rescan(self):
+        groups, _ = _partition_scan_paths([self.raw_path, self.jpeg_path])
+        for paths in groups.values():
+            handle_file_group(self.user, paths, "job")
+        repair_ungrouped_file_variants(self.user, uuid.uuid4())
+
+    # A full rescan before the next repair job groups the two files again and
+    # must adopt into the JPEG's photo: adopting into the RAW's photo made it a
+    # second photo of the JPEG, which the repair job no longer touches.
+    def test_a_full_rescan_of_a_split_pair_raw_photo_first(self):
+        self.split_pair(raw_first=True)
+        self.full_rescan()
+        self.assert_one_photo_with_a_raw_variant()
+
+    def test_a_full_rescan_of_a_split_pair_jpeg_photo_first(self):
+        self.split_pair(raw_first=False)
+        self.full_rescan()
         self.assert_one_photo_with_a_raw_variant()
 
     def test_a_raw_uploaded_after_its_jpeg(self):

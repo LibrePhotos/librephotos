@@ -465,11 +465,14 @@ def group_files_into_photo(
     # reappearing file would spawn a duplicate Photo with the same image_hash.
     # Sidecars are left out of the match: File rows are keyed by content hash,
     # so byte-identical XMPs of two different photos share a single row.
-    existing_photo = (
-        Photo.objects.owned_by(user)
-        .filter(Q(files__in=non_metadata_files) | Q(main_file__in=non_metadata_files))
-        .first()
+    # When an earlier run left the group as several photos (a RAW uploaded
+    # before its JPEG), the one whose main file is the group's wins: adopting
+    # into the RAW's photo would make it a second photo of the JPEG, which
+    # the repair job no longer touches. The repair job merges the rest.
+    matching = Photo.objects.owned_by(user).filter(
+        Q(files__in=non_metadata_files) | Q(main_file__in=non_metadata_files)
     )
+    existing_photo = matching.filter(main_file=main_file).first() or matching.first()
 
     if existing_photo:
         _adopt_files_into_photo(existing_photo, files, main_file, job_id)

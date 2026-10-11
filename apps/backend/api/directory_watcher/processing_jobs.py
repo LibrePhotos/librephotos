@@ -6,7 +6,6 @@ metadata like location information, image tags, and face detection.
 """
 
 import logging
-import os
 import traceback
 import uuid
 from collections.abc import Callable
@@ -25,6 +24,7 @@ from api.directory_watcher.utils import (
 from api.document_detection import classify_document
 from api.face_classify import cluster_all_faces
 from api.geocode.photo_location import add_location_to_album_dates, geolocate_photo
+from api.mime import CV2_DECODABLE_EXTENSIONS, extension
 from api.models import Face, LongRunningJob, Photo, User
 from api.models.album_thing import AlbumThing
 from api.models.photo_caption import PhotoCaption
@@ -236,20 +236,6 @@ def generate_tag_job(photo_id: UUID | Photo, job_id: str) -> None:
     update_scan_counter(job_id, failed, error)
 
 
-# Extensions cv2 can decode directly from the original file. Anything else
-# (RAW: .cr2/.arw/.nef/.dng..., HEIC/HEIF) is not readable by cv2.imread, so we
-# OCR the pre-rendered big thumbnail instead. A dedicated higher-resolution OCR
-# render is a possible follow-up; we do not build render infrastructure here.
-CV2_DECODABLE_EXTENSIONS = {
-    ".jpg",
-    ".jpeg",
-    ".png",
-    ".webp",
-    ".bmp",
-    ".tif",
-    ".tiff",
-}
-
 # Minimum per-block confidence handed to the OCR sidecar (its contract default).
 OCR_MIN_CONFIDENCE = 0.6
 
@@ -264,8 +250,7 @@ def ocr_image_source(photo: Photo) -> str | None:
     """
     main_file = photo.main_file
     if main_file and main_file.path:
-        ext = os.path.splitext(main_file.path)[1].lower()
-        if ext in CV2_DECODABLE_EXTENSIONS:
+        if extension(main_file.path) in CV2_DECODABLE_EXTENSIONS:
             return main_file.path
     try:
         return photo.thumbnail.thumbnail_big.path

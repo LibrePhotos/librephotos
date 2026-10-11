@@ -45,8 +45,9 @@ from api.directory_watcher.utils import (
     walk_files,
 )
 from api.metadata.reader import get_sidecar_files_in_priority_order
+from api.mime import VIDEO_EXTENSIONS, extension
 from api.models import LongRunningJob, Photo, Thumbnail, User
-from api.models.file import VIDEO_EXTENSIONS, is_metadata
+from api.models.file import is_metadata
 from api.photo_files import detach_missing_files
 from api.semantic_search import semantic_shares_tagger
 
@@ -271,7 +272,7 @@ def _known_paths(batch_paths: list[str]) -> set[str]:
 
 
 def _has_video(paths: list[str]) -> bool:
-    return any(os.path.splitext(path)[1].lower() in VIDEO_EXTENSIONS for path in paths)
+    return any(extension(path) in VIDEO_EXTENSIONS for path in paths)
 
 
 def _videos_first(groups: list[_FileGroup]) -> list[_FileGroup]:

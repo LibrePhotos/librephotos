@@ -39,18 +39,14 @@ import onnxruntime as ort
 from PIL import Image
 from tokenizers import Tokenizer
 
-from librephotos.env import env_str
+from librephotos.env import data_models_root, env_str
 from service.onnx_session import inference_session
 
 MODEL_NAME = "openclip_vitb32"
 
-# The sidecars never load Django, so the data root comes in as BASE_DATA (see
-# api.services._service_environment). Unset, this is the Docker layout under /.
 # OPENCLIP_MODEL_DIR points somewhere else entirely (a local export, a test).
 MODEL_DIR_ENV = "OPENCLIP_MODEL_DIR"
-DEFAULT_MODEL_DIR = os.path.join(
-    env_str("BASE_DATA", os.sep), "protected_media", "data_models", MODEL_NAME
-)
+DEFAULT_MODEL_DIR = os.path.join(data_models_root(), MODEL_NAME)
 MODEL_DIR = env_str(MODEL_DIR_ENV) or DEFAULT_MODEL_DIR
 VISUAL_PATH = os.path.join(MODEL_DIR, "visual.onnx")
 TEXTUAL_PATH = os.path.join(MODEL_DIR, "textual.onnx")

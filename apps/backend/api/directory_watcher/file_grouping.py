@@ -7,10 +7,8 @@ Live Photos, etc.) so they can be processed together as a single Photo.
 
 import os
 
+from api.mime import LIVE_PHOTO_VIDEO_EXTENSIONS, RAW_PAIR_EXTENSIONS, extension
 from api.models import File, Photo, User
-
-# JPEG/image extensions that RAW files can be paired with
-JPEG_EXTENSIONS = {".jpg", ".jpeg", ".heic", ".heif", ".png", ".tiff", ".tif"}
 
 # File type priority for main_file selection (lower number = higher priority)
 # JPEG/processed images should be main_file, RAW/video variants are secondary
@@ -77,6 +75,31 @@ def select_main_file(files: list[File]) -> File | None:
     return min(files, key=lambda f: (FILE_TYPE_PRIORITY.get(f.type, 999), f.path))
 
 
+def _find_image_sibling_photo(path: str, user: User) -> Photo | None:
+    """The user's Photo whose main file is an image sibling of ``path``.
+
+    A sibling sits in the same directory under exactly the same stem, with an
+    extension from ``RAW_PAIR_EXTENSIONS`` in lower or upper case
+    (``IMG_1.CR2`` pairs with ``IMG_1.jpg``, ``IMG_1.JPG`` and ``IMG_1.HIF``).
+    The spellings are listed rather than matched case-insensitively so the
+    lookup stays one indexed ``IN`` query: the repair job after every scan
+    runs it for each RAW-only photo. When several match, the first by path
+    wins, so the choice does not depend on set order.
+    """
+    base = os.path.splitext(path)[0]
+    siblings = [
+        base + spelling
+        for ext in sorted(RAW_PAIR_EXTENSIONS)
+        for spelling in (ext, ext.upper())
+    ]
+    return (
+        Photo.objects.owned_by(user)
+        .filter(main_file__path__in=siblings)
+        .order_by("main_file__path")
+        .first()
+    )
+
+
 def find_matching_jpeg_photo(raw_path: str, user: User) -> Photo | None:
     """
     Find an existing Photo with a matching JPEG/image file for a RAW file.
@@ -92,21 +115,7 @@ def find_matching_jpeg_photo(raw_path: str, user: User) -> Photo | None:
     Returns:
         Matching Photo if found, None otherwise
     """
-    raw_dir = os.path.dirname(raw_path)
-    raw_basename = os.path.splitext(os.path.basename(raw_path))[0]
-
-    # Look for matching JPEG/image file in same directory
-    for jpeg_ext in JPEG_EXTENSIONS:
-        # Try both lowercase and uppercase extensions
-        for ext in [jpeg_ext, jpeg_ext.upper()]:
-            jpeg_path = os.path.join(raw_dir, raw_basename + ext)
-            photo = (
-                Photo.objects.owned_by(user).filter(main_file__path=jpeg_path).first()
-            )
-            if photo:
-                return photo
-
-    return None
+    return _find_image_sibling_photo(raw_path, user)
 
 
 def find_matching_image_for_video(video_path: str, user: User) -> Photo | None:
@@ -123,23 +132,6 @@ def find_matching_image_for_video(video_path: str, user: User) -> Photo | None:
     Returns:
         Matching Photo if found, None otherwise
     """
-    video_dir = os.path.dirname(video_path)
-    video_basename = os.path.splitext(os.path.basename(video_path))[0]
-    video_ext_lower = os.path.splitext(video_path)[1].lower()
-
-    # Only match .mov files (Apple Live Photos) with same base name
-    if video_ext_lower not in [".mov"]:
+    if extension(video_path) not in LIVE_PHOTO_VIDEO_EXTENSIONS:
         return None
-
-    # Look for matching image file with same base name
-    image_extensions = list(JPEG_EXTENSIONS) + [".heic", ".HEIC"]
-    for img_ext in image_extensions:
-        for ext in [img_ext, img_ext.upper()]:
-            image_path = os.path.join(video_dir, video_basename + ext)
-            photo = (
-                Photo.objects.owned_by(user).filter(main_file__path=image_path).first()
-            )
-            if photo:
-                return photo
-
-    return None
+    return _find_image_sibling_photo(video_path, user)

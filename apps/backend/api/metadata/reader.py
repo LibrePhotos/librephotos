@@ -5,6 +5,7 @@ from typing import Any
 import requests
 
 from api import sidecars
+from api.mime import METADATA_EXTENSIONS
 
 
 class MetadataReadError(RuntimeError):
@@ -17,11 +18,14 @@ def get_sidecar_files_in_priority_order(media_file: str) -> list[str]:
 
     """
     image_basename = os.path.splitext(media_file)[0]
-    return [
-        image_basename + ".xmp",
-        image_basename + ".XMP",
-        media_file + ".xmp",
-        media_file + ".XMP",
+    # Looked up on disk, so each spelling is tried, lower case first.
+    spellings = [
+        spelling
+        for extension in sorted(METADATA_EXTENSIONS)
+        for spelling in (extension, extension.upper())
+    ]
+    return [image_basename + spelling for spelling in spellings] + [
+        media_file + spelling for spelling in spellings
     ]
 
 

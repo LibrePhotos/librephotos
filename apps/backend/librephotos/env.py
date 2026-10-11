@@ -162,3 +162,28 @@ def env_list(name: str, default: Iterable[str] = ()) -> list[str]:
 def export(name: str, value: str) -> None:
     """Set ``name`` for this process and every child it starts afterwards."""
     os.environ[name] = value
+
+
+def protected_media_root(base_data: str | None = None) -> str:
+    """``BASE_DATA/protected_media``: thumbnails, caches and the models live here.
+
+    Django calls it ``settings.MEDIA_ROOT`` and passes its own ``BASE_DATA``.
+    The sidecars never load Django, so they call it without one and read
+    ``BASE_DATA`` from the environment api.services._service_environment hands
+    them; unset, this is the Docker layout under the filesystem root.
+    """
+    if base_data is None:
+        base_data = env_str("BASE_DATA", os.sep)
+    return os.path.join(base_data, "protected_media")
+
+
+def data_models_root(media_root: str | None = None) -> str:
+    """``<protected media>/data_models``, where api.ml_models downloads every model.
+
+    The backend passes ``settings.MEDIA_ROOT`` (so a test overriding it moves
+    the models too); a sidecar passes nothing and gets the directory under
+    ``protected_media_root()``.
+    """
+    if media_root is None:
+        media_root = protected_media_root()
+    return os.path.join(media_root, "data_models")

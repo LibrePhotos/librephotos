@@ -16,12 +16,12 @@ from unittest.mock import MagicMock, Mock, patch
 
 from django.test import TestCase, override_settings
 
+from api.mime import LIVE_PHOTO_VIDEO_EXTENSIONS
 from api.models.file import File
 from api.models.photo import Photo
 from api.models.photo_stack import PhotoStack
 from api.models.user import User
 from api.stacks.live_photo import (
-    APPLE_LIVE_PHOTO_EXTENSIONS,
     GOOGLE_PIXEL_MP4_SIGNATURES,
     JPEG_EOI_MARKER,
     SAMSUNG_MOTION_MARKER,
@@ -232,7 +232,7 @@ class FindAppleLivePhotoVideoTestCase(TestCase):
         Path(video_uppercase).touch()
 
         result = find_apple_live_photo_video(image_path)
-        # Should find .mov first (lowercase is first in APPLE_LIVE_PHOTO_EXTENSIONS)
+        # Should find .mov first: the lower-case spelling is tried first
         self.assertEqual(result, video_lowercase)
 
     def test_handles_different_image_extensions(self):
@@ -615,9 +615,8 @@ class ConstantsTestCase(TestCase):
         self.assertEqual(SAMSUNG_MOTION_MARKER, b"MotionPhoto_Data")
 
     def test_apple_extensions(self):
-        """Apple Live Photo extensions should include .mov variants."""
-        self.assertIn(".mov", APPLE_LIVE_PHOTO_EXTENSIONS)
-        self.assertIn(".MOV", APPLE_LIVE_PHOTO_EXTENSIONS)
+        """Apple Live Photo videos are .mov files (any case is tried on disk)."""
+        self.assertIn(".mov", LIVE_PHOTO_VIDEO_EXTENSIONS)
 
 
 class EdgeCasesTestCase(TestCase):
