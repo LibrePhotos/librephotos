@@ -14,7 +14,6 @@ export * from "./hooks/useSetPhotosCategoryMutation";
 export * from "./hooks/useUpdatePhotoMutation";
 export * from "./hooks/useUpdatePhotoSharingMutation";
 export * from "./hooks/useSavePhotoCaptionMutation";
-export * from "./hooks/useDeleteDuplicatePhotoMutation";
 export * from "./hooks/useDeleteMissingPhotosMutation";
 // Photo Metadata hooks
 export * from "./hooks/useFetchPhotoMetadataQuery";

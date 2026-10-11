@@ -104,14 +104,6 @@ function startPhotoScan() {
   });
 }
 
-function startUploadedPhotoScan() {
-  showNotification({
-    message: i18n.t("toasts.scanuploadedphotos"),
-    title: i18n.t("toasts.scanuploadedphotostitle"),
-    color: "teal",
-  });
-}
-
 function startFullPhotoScan() {
   showNotification({
     message: i18n.t("toasts.fullscanphotos"),
@@ -226,7 +218,6 @@ export const photos = {
   startNextcloudPhotoScan,
   startOcrScan,
   startPhotoScan,
-  startUploadedPhotoScan,
   togglePhotoDelete,
   togglePhotoSharing,
   togglePhotosFavorite,

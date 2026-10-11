@@ -434,13 +434,6 @@ export async function trainFaces(client: ApiClient): Promise<S.JobTriggerRespons
   return parseResponse(S.JobTriggerResponse, res, "train faces");
 }
 
-/* ---- upload / exists --------------------------------------------------- */
-
-export async function existsByHash(client: ApiClient, hashes: string[]): Promise<S.ExistsResponse> {
-  const res = await client.post<unknown>("/photosonsale/exists", { hashes } satisfies S.ExistsRequest);
-  return parseResponse(S.ExistsResponse, res, "exists check");
-}
-
 /* ---- delta sync (mobile app, backend api/views/sync.py) ----------------- */
 
 /** Pull parameters for a keyset-paginated delta feed. */
