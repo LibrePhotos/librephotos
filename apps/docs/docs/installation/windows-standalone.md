@@ -93,8 +93,9 @@ the backend, a few hundred MB of RAM).
 
 The [environment variables](environment-variables.md) of the Docker images work too, set in the
 console before starting `librephotos.exe`; the data directory options above only fill in `BASE_DATA`,
-`BASE_LOGS` and `PHOTOS` when they are not set. A default `SECRET_KEY` is generated and kept in the
-logs directory.
+`BASE_LOGS` and `PHOTOS` when they are not set. A default `SECRET_KEY` is generated and kept in
+`protected_media\secret.key` in the data directory (releases after 1.3.0; 1.3.0 and older kept it in
+the logs directory, and a newer release moves it on its first start).
 
 ## Building it yourself
 

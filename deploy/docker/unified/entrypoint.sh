@@ -15,7 +15,7 @@ mpl_data_root="${BASE_DATA:-/}"
 export MPLCONFIGDIR="${MPLCONFIGDIR:-${mpl_data_root%/}/protected_media/matplotlib}"
 mkdir -p "$MPLCONFIGDIR" || echo "Could not create $MPLCONFIGDIR - matplotlib will rebuild its font cache on every start"
 
-# BASE_LOGS is what the settings module derives LOGS_ROOT and secret.key from.
+# BASE_LOGS is what the settings module derives LOGS_ROOT from.
 # Export it so the tee targets below and Django's own log
 # handlers cannot drift apart; pinning the default here leaves the container's
 # behaviour unchanged for anyone who never sets it. LOG_LEVEL is read by the
@@ -26,7 +26,7 @@ export LOG_LEVEL="${LOG_LEVEL:-INFO}"
 logs_dir="${BASE_LOGS%/}"
 
 # This image never created the directory at all, so a plain `docker run` with no
-# /logs volume died on the first secret.key write. Unlike the matplotlib cache
+# /logs volume died on the first write to it. Unlike the matplotlib cache
 # above the directory is not optional, so name the path instead of continuing.
 if ! mkdir -p "$logs_dir"; then
     echo "Could not create $logs_dir - set BASE_LOGS to a writable directory" >&2

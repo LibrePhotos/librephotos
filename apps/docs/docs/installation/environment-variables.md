@@ -319,7 +319,9 @@ services:
 ```
 
 :::warning
-`secret.key` lives in `BASE_LOGS`, next to the log files. Zipping that whole folder for a bug report hands out your Django secret key, which is what every session and token on your instance is signed with. Attach `ownphotos.log` by itself instead. Deleting `secret.key` is not a fix either - it logs every user out and the passwords have to be reset.
+In 1.3.0 and older, `secret.key` lives in `BASE_LOGS`, next to the log files. Zipping that whole folder for a bug report hands out your Django secret key, which is what every session and token on your instance is signed with. Attach `ownphotos.log` by itself instead. Deleting `secret.key` is not a fix either: it logs every user out.
+
+Releases after 1.3.0 keep the key in `protected_media` instead and move an existing `BASE_LOGS/secret.key` there on their first start; see [Internal files](../user-guide/internal-files.md).
 :::
 
 ### Debug mode
@@ -341,7 +343,7 @@ This is for working on LibrePhotos, not for a server other people use.
 
 | Variable | `.env` key | Default | What it does |
 | --- | --- | --- | --- |
-| `SECRET_KEY` | `shhhhKey` | _(generated)_ | The Django secret key that signs sessions and tokens. Set it and LibrePhotos uses it. Leave it unset and the backend generates one and keeps it in `secret.key` in the logs directory (see [Internal files](../user-guide/internal-files.md)). Changing the key signs every user out. |
+| `SECRET_KEY` | `shhhhKey` | _(generated)_ | The Django secret key that signs sessions and tokens. Set it and LibrePhotos uses it. Leave it unset and the backend generates one and keeps it in `secret.key` in `protected_media` (in the logs directory in 1.3.0 and older; a newer release moves it on its first start, see [Internal files](../user-guide/internal-files.md)). Changing the key signs every user out. |
 
 ### Telling LibrePhotos its own public address
 
