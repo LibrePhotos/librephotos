@@ -15,7 +15,9 @@ run long enough to fill it.
 """
 
 import contextlib
+import gc
 import subprocess
+import sys
 from unittest import mock
 
 from django.test import SimpleTestCase, override_settings
@@ -360,19 +362,34 @@ class VideoTranscoderFailedStartTest(SimpleTestCase):
 
         __del__ still runs on that half-built instance. It used to call kill()
         on the class default "" and print an AttributeError after the real error.
+        An exception in __del__ never propagates: Python hands it to
+        sys.unraisablehook, which is where this test looks for it.
         """
+        unraisable = []
+        original_del = media.VideoTranscoder.__del__
         patches = (
+            # Counts the calls, so the test cannot pass by __del__ never running.
+            mock.patch.object(
+                media.VideoTranscoder,
+                "__del__",
+                autospec=True,
+                side_effect=original_del,
+            ),
             mock.patch.object(
                 media.subprocess, "Popen", side_effect=OSError("ffmpeg not found")
             ),
             mock.patch.object(ffmpeg_budget, "_run", return_value=""),
             mock.patch.object(media.video_color, "is_hdr", return_value=False),
+            mock.patch.object(sys, "unraisablehook", unraisable.append),
         )
         with contextlib.ExitStack() as stack:
-            for patch in patches:
-                stack.enter_context(patch)
-            transcoder = media.VideoTranscoder.__new__(media.VideoTranscoder)
+            mocks = [stack.enter_context(patch) for patch in patches]
             with self.assertRaises(OSError):
-                transcoder.__init__("/x.mp4")
-        self.assertIsNone(transcoder.process)
-        transcoder.__del__()
+                media.VideoTranscoder("/x.mp4")
+            # assertRaises clears the traceback's frames, which dropped the
+            # last reference to the instance; collect in case a cycle holds it.
+            gc.collect()
+        self.assertEqual(1, mocks[0].call_count)
+        self.assertEqual(
+            [], [f"{hook.exc_type.__name__}: {hook.exc_value}" for hook in unraisable]
+        )
