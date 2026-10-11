@@ -45,7 +45,7 @@ function extractPhotoHashFromFaceUrl(faceUrl: string): string | null {
   if (!faceUrl) return null;
   // face_url format: /media/faces/bb6685821c52c994cf7bbe9ebfd5eb7e1_2_fpZqB0S.jpg
   const match = faceUrl.match(/\/media\/faces\/([a-f0-9]+)_/);
-  return match ? match[1] : null;
+  return match?.[1] ?? null;
 }
 
 // Beautiful color palette for face clusters
@@ -105,7 +105,7 @@ function getColorForPerson(personName: string, index: number): string {
   if (personName === "unknown" || !personName) {
     return "rgba(100, 100, 100, 0.4)";
   }
-  return CLUSTER_COLORS[index % CLUSTER_COLORS.length];
+  return CLUSTER_COLORS[index % CLUSTER_COLORS.length] ?? "rgba(100, 100, 100, 0.4)";
 }
 
 export function FaceClusterGraph({ height }: Props) {

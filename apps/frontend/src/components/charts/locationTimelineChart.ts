@@ -13,7 +13,7 @@ export function locationTimelineChart(locationTimeline: LocationTimeline) {
   const series = locationTimeline.map((el, i) => {
     const name = `stay${i}`;
     const [duration] = el.data;
-    data[name] = duration;
+    if (duration !== undefined) data[name] = duration;
     return { name, label: el.loc, color: el.color };
   });
   return { data: locationTimeline.length > 0 ? [data] : [], series };

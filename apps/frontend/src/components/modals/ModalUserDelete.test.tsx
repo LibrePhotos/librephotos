@@ -7,6 +7,7 @@ import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../../api_client/api";
+import { defined } from "../../util/defined.test-utils";
 import { ModalUserDelete } from "./ModalUserDelete";
 
 /** The callbacks the dialog hands to the delete mutation. */
@@ -54,7 +55,7 @@ function renderAndConfirm() {
   // The confirm button is the last one in the dialog (after Cancel).
   const buttons = Array.from(document.querySelectorAll<HTMLButtonElement>(".mantine-Modal-body button"));
   act(() => {
-    buttons[buttons.length - 1].click();
+    defined(buttons[buttons.length - 1], "the confirm button").click();
   });
 }
 
@@ -77,7 +78,7 @@ describe("ModalUserDelete", () => {
     expect(stubs.deleteUser).toHaveBeenCalledWith(5, expect.anything());
     expect(onRequestClose).not.toHaveBeenCalled();
 
-    act(() => stubs.deleteUser.mock.calls[0][1].onSuccess());
+    act(() => defined(stubs.deleteUser.mock.calls[0], "the delete call")[1].onSuccess());
     expect(onRequestClose).toHaveBeenCalledTimes(1);
     expect(stubs.deletedToast).toHaveBeenCalledWith("mara");
   });
@@ -85,7 +86,11 @@ describe("ModalUserDelete", () => {
   it("stays open and reports a refused deletion", () => {
     renderAndConfirm();
 
-    act(() => stubs.deleteUser.mock.calls[0][1].onError(new ApiError("Bad Request", 400, "Cannot delete this user")));
+    act(() =>
+      defined(stubs.deleteUser.mock.calls[0], "the delete call")[1].onError(
+        new ApiError("Bad Request", 400, "Cannot delete this user")
+      )
+    );
 
     expect(onRequestClose).not.toHaveBeenCalled();
     expect(stubs.requestFailed).toHaveBeenCalledWith(expect.any(String), "Cannot delete this user");
@@ -94,7 +99,7 @@ describe("ModalUserDelete", () => {
   it("leaves a 401 to the fetch client", () => {
     renderAndConfirm();
 
-    act(() => stubs.deleteUser.mock.calls[0][1].onError(new ApiError("Unauthorized", 401)));
+    act(() => defined(stubs.deleteUser.mock.calls[0], "the delete call")[1].onError(new ApiError("Unauthorized", 401)));
 
     expect(stubs.requestFailed).not.toHaveBeenCalled();
   });

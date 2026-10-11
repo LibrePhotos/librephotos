@@ -187,7 +187,7 @@ describe("the main timeline filter", () => {
     await act(async () => {
       popoverProps().onSaveDefault();
     });
-    const [request, callbacks] = stubs.saveDefault.mock.calls[0];
+    const [request, callbacks] = defined(stubs.saveDefault.mock.calls[0], "the save call");
     expect(request).toEqual({
       userId: 1,
       filter: { media: "all", hide_screenshots: true, hide_documents: true, favorites: false },

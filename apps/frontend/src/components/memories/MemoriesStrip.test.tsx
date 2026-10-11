@@ -6,6 +6,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite
 import { MemoryType, type Memory } from "../../api_client/memories";
 import type { PigPhoto } from "../../api_client/photos/types";
 import i18n from "../../i18n";
+import { defined } from "../../util/defined.test-utils";
 import { tempPigPhoto } from "../../util/util";
 import { MemoriesStrip } from "./MemoriesStrip";
 
@@ -82,7 +83,7 @@ function memory(id: string, yearsAgo: number, items: PigPhoto[]): Memory {
     end_date: `${2026 - yearsAgo}-10-10`,
     location: "",
     numberOfItems: items.length,
-    cover: items[0],
+    cover: defined(items[0], "the cover photo"),
     items,
   };
 }
@@ -122,7 +123,7 @@ describe("MemoriesStrip", () => {
     stubs.memories = { results: [memory("a", 1, [photo("a1")]), memory("b", 3, second)] };
     await renderStrip();
     const buttons = container.querySelectorAll<HTMLButtonElement>('button[title="Play this memory"]');
-    await act(async () => buttons[1].click());
+    await act(async () => defined(buttons[1], "the second memory button").click());
     expect(stubs.slideshowItems).toEqual(second);
   });
 });

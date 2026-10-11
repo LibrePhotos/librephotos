@@ -55,7 +55,7 @@ const FolderButton = memo(({ subfolder, folderSearch, onClose }: FolderButtonPro
     if (path.length <= maxLength) return path;
     // Try to break at folder separators
     const parts = path.split("/");
-    let result = parts[parts.length - 1]; // Start with filename
+    let result = parts[parts.length - 1] ?? path; // Start with filename
 
     for (let i = parts.length - 2; i >= 0; i -= 1) {
       const newResult = `${parts[i]}/${result}`;
@@ -317,8 +317,8 @@ function FolderDetail() {
   const getAlbums = (visibleGroups: PigVisibleGroup<PigPhoto>[]) => {
     visibleGroups.reverse().forEach(photoGroup => {
       const visibleImages = photoGroup.items;
-      if (visibleImages.filter(i => i.isTemp).length > 0) {
-        const firstTempObject = visibleImages.filter(i => i.isTemp)[0];
+      const firstTempObject = visibleImages.find(i => i.isTemp);
+      if (firstTempObject) {
         const page = Math.ceil((parseInt(firstTempObject.id, 10) + 1) / 100);
 
         setGroup({ id: photoGroup.id, page });

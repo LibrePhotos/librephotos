@@ -7,6 +7,7 @@ import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { defined } from "../../util/defined.test-utils";
 import { PasswordEntry } from "./PasswordEntry";
 
 vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
@@ -93,8 +94,9 @@ describe("PasswordEntry", () => {
     expect(container.textContent).not.toContain("settings.password.errorcannotbeblank");
 
     await act(async () => {
-      inputs()[0].focus();
-      inputs()[0].blur();
+      const input = defined(inputs()[0], "the password input");
+      input.focus();
+      input.blur();
     });
     expect(container.textContent).toContain("settings.password.errorcannotbeblank");
   });

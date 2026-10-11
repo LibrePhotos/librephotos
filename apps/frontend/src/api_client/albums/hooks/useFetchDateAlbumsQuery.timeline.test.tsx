@@ -7,6 +7,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, describe, expect, it, vi } from "vitest";
+import { defined } from "../../../util/defined.test-utils";
 import { Photoset } from "../../photos/types";
 
 const stubs = await vi.hoisted(async () => {
@@ -50,7 +51,7 @@ describe("date-album queries with a timeline filter", () => {
     }
     await render(<List />);
 
-    const url = new URL(stubs.get.mock.calls[0][0], "http://x");
+    const url = new URL(defined(stubs.get.mock.calls[0], "the request")[0], "http://x");
     expect(url.pathname).toBe("/albums/date/list/");
     expect(Object.fromEntries(url.searchParams)).toEqual({ media: "photos", hide_screenshots: "true" });
     const keys = stubs.queryClient
@@ -77,7 +78,7 @@ describe("date-album queries with a timeline filter", () => {
     }
     await render(<Day />);
 
-    const url = new URL(stubs.get.mock.calls[0][0], "http://x");
+    const url = new URL(defined(stubs.get.mock.calls[0], "the request")[0], "http://x");
     // Slashed: without it Django answers every day page with a 301.
     expect(url.pathname).toBe("/albums/date/1/");
     expect(Object.fromEntries(url.searchParams)).toEqual({ media: "photos", hide_screenshots: "true", page: "2" });

@@ -2,6 +2,7 @@ import { Settings } from "luxon";
 import type { DirTree } from "../api_client/folders/types";
 import type { DatePhotosGroup } from "../api_client/photos/types";
 import i18n from "../i18n";
+import { defined } from "./defined.test-utils";
 import {
   EMAIL_REGEX,
   formatDateForPhotoGroups,
@@ -222,12 +223,12 @@ describe("adjust date for photo list group", () => {
       },
     ];
     const actual = formatDateForPhotoGroups(photoGroups);
-    expect(actual[0].date).toEqual("Friday, March 3, 2023");
-    expect(actual[0].year).toEqual(2023);
-    expect(actual[0].month).toEqual(3);
-    expect(actual[1].date).toEqual("Saturday, May 6, 2023");
-    expect(actual[1].year).toEqual(2023);
-    expect(actual[1].month).toEqual(5);
+    expect(defined(actual[0], "the first group").date).toEqual("Friday, March 3, 2023");
+    expect(defined(actual[0], "the first group").year).toEqual(2023);
+    expect(defined(actual[0], "the first group").month).toEqual(3);
+    expect(defined(actual[1], "the second group").date).toEqual("Saturday, May 6, 2023");
+    expect(defined(actual[1], "the second group").year).toEqual(2023);
+    expect(defined(actual[1], "the second group").month).toEqual(5);
   });
 
   it("keeps the camera's day for viewers east of UTC", () => {
@@ -237,8 +238,8 @@ describe("adjust date for photo list group", () => {
     Settings.defaultZone = "Europe/Berlin";
     try {
       const actual = formatDateForPhotoGroups([{ date: "2024-04-02T23:05:00Z", location: "", items: [] }]);
-      expect(actual[0].date).toEqual("Tuesday, April 2, 2024");
-      expect(actual[0].month).toEqual(4);
+      expect(defined(actual[0], "the first group").date).toEqual("Tuesday, April 2, 2024");
+      expect(defined(actual[0], "the first group").month).toEqual(4);
     } finally {
       Settings.defaultZone = previousZone;
     }
@@ -265,15 +266,15 @@ describe("adjust date for photo list group", () => {
       },
     ];
     const actual = formatDateForPhotoGroups(photoGroups);
-    expect(actual[0].date).toEqual(i18n.t("sidemenu.withouttimestamp"));
+    expect(defined(actual[0], "the first group").date).toEqual(i18n.t("sidemenu.withouttimestamp"));
   });
 
   // Search still sends this English literal for installed mobile apps; it was
   // shown as is, in every language and unlike "Without Timestamp" elsewhere.
   it("labels the search endpoint's legacy undated group the same way", () => {
     const actual = formatDateForPhotoGroups([{ date: LEGACY_UNDATED_GROUP_DATE, location: "", items: [] }]);
-    expect(actual[0].date).toEqual(i18n.t("sidemenu.withouttimestamp"));
-    expect(actual[0].year).toBeUndefined();
+    expect(defined(actual[0], "the first group").date).toEqual(i18n.t("sidemenu.withouttimestamp"));
+    expect(defined(actual[0], "the first group").year).toBeUndefined();
   });
 });
 

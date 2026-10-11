@@ -66,8 +66,10 @@ export const useFetchDateAlbumQuery = (options: AlbumDateOption, queryOptions?: 
         const newData = [...oldData];
         const indexToReplace = newData.findIndex(group => group.id === options.album_date_id);
 
-        if (indexToReplace !== -1) {
-          const groupToChange = { ...newData[indexToReplace] };
+        const existingGroup = newData[indexToReplace];
+
+        if (indexToReplace !== -1 && existingGroup !== undefined) {
+          const groupToChange = { ...existingGroup };
           const { items } = groupToChange;
 
           groupToChange.items = items

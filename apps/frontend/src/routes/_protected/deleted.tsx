@@ -32,8 +32,8 @@ function DeletedPhotos() {
   const getAlbums = (visibleGroups: PigVisibleGroup<PigPhoto>[]) => {
     visibleGroups.reverse().forEach(photoGroup => {
       const visibleImages = photoGroup.items;
-      if (visibleImages.filter(i => i.isTemp).length > 0) {
-        const firstTempObject = visibleImages.filter(i => i.isTemp)[0];
+      const firstTempObject = visibleImages.find(i => i.isTemp);
+      if (firstTempObject) {
         const page = Math.ceil((parseInt(firstTempObject.id, 10) + 1) / 100);
 
         setGroup({ id: photoGroup.id, page });

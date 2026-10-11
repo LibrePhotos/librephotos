@@ -97,7 +97,7 @@ async function renderSection(photo: Photo = screenshot) {
 
 // Renders a toast's message the way Mantine would and clicks its Undo.
 async function clickUndo(call: number) {
-  const { message } = stubs.showNotification.mock.calls[call][0];
+  const { message } = defined(stubs.showNotification.mock.calls[call], "the notification call")[0];
   const toast = document.createElement("div");
   document.body.appendChild(toast);
   await act(async () => {
@@ -158,7 +158,7 @@ describe("CategoryBadge", () => {
     const container = await renderSection();
     await pick(container, "Photo");
     expect(stubs.mutate).toHaveBeenCalledTimes(1);
-    const [request, callbacks] = stubs.mutate.mock.calls[0];
+    const [request, callbacks] = defined(stubs.mutate.mock.calls[0], "the mutate call");
     expect(request).toEqual({ image_hashes: ["abc"], category: "photo", notify: false });
     // Shown at once, before the photo detail refetches.
     expect(badge(container)?.textContent).toBe("Photo");
@@ -185,7 +185,7 @@ describe("CategoryBadge", () => {
     const container = await renderSection({ ...screenshot, category_source: "user" });
     await pick(container, "Document");
     await act(async () => {
-      stubs.mutate.mock.calls[0][1].onSuccess();
+      defined(stubs.mutate.mock.calls[0], "the mutate call")[1].onSuccess();
     });
     await clickUndo(0);
     expect(stubs.mutate).toHaveBeenLastCalledWith(
@@ -201,7 +201,7 @@ describe("CategoryBadge", () => {
     const container = await renderSection();
     await pick(container, "Document");
     await act(async () => {
-      stubs.mutate.mock.calls[0][1].onSuccess();
+      defined(stubs.mutate.mock.calls[0], "the mutate call")[1].onSuccess();
     });
     const photoB: Photo = { ...screenshot, image_hash: "def", is_screenshot: false, category_source: "user" };
     await container.rerender(photoB);
@@ -219,10 +219,10 @@ describe("CategoryBadge", () => {
   it("replaces the previous toast instead of stacking Undo buttons", async () => {
     await pick(await renderSection(), "Photo");
     await act(async () => {
-      stubs.mutate.mock.calls[0][1].onSuccess();
+      defined(stubs.mutate.mock.calls[0], "the mutate call")[1].onSuccess();
     });
     expect(stubs.hideNotification).toHaveBeenCalledWith("photo-category-undo");
-    expect(stubs.showNotification.mock.calls[0][0].id).toBe("photo-category-undo");
+    expect(defined(stubs.showNotification.mock.calls[0], "the notification call")[0].id).toBe("photo-category-undo");
   });
 
   it("says where it shows from the real flags, not the displayed category", async () => {
