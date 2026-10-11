@@ -17,7 +17,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from api.metadata.jobs import queue_rating_write
+from api.metadata import edits
 from api.mime import mime_type
 from api.ml_models import captioning_model_exists, start_model_download
 from api.models import AlbumUser, Face, Photo, User
@@ -327,19 +327,13 @@ class SetPhotosDeleted(BulkPhotoMutationView):
 
 
 class RatingMutationView(BulkPhotoMutationView):
-    """A bulk mutation that sets ``rating``, and so writes it to disk."""
+    """A bulk mutation that sets ``rating``: through ``edits.set_rating``,
+    which records the edit history and writes the rating to disk."""
 
     def apply(self, user: User, photos: QuerySet[Photo], value: object) -> int:
-        # Photo.save() writes a changed rating to the file or sidecar; this
-        # UPDATE skips save(), so the same write is queued as a job. The ids
-        # are taken first: afterwards a filter on the old rating no longer
-        # matches.
-        photo_ids: list[uuid.UUID] = []
-        if user.save_metadata_to_disk != User.SaveMetadata.OFF:
-            photo_ids = list(photos.values_list("id", flat=True))
-        count = super().apply(user, photos, value)
-        queue_rating_write(user, photo_ids)
-        return count
+        rating = self.new_values(user, value)["rating"]
+        assert isinstance(rating, int)
+        return edits.set_rating(photos, rating, user)
 
 
 class SetPhotosFavorite(RatingMutationView):
@@ -911,9 +905,13 @@ class SavePhotoCaption(APIView):
     permission_classes = (IsAuthenticated,)
 
     def post(self, request: Request, format: str | None = None) -> Response:
-        data = dict(request_dict(request))
-        image_hash = data["image_hash"]
-        caption = data["caption"]
+        data = request_dict(request)
+        image_hash = data.get("image_hash")
+        caption = data.get("caption")
+        if not isinstance(image_hash, str):
+            raise ValidationError({"image_hash": "Expected a photo's image hash."})
+        if not isinstance(caption, str):
+            raise ValidationError({"caption": "Expected text."})
 
         photo = (
             Photo.objects.owned_by(request_user(request))
@@ -926,9 +924,8 @@ class SavePhotoCaption(APIView):
                 status=404,
             )
 
-        caption_instance, created = PhotoCaption.objects.get_or_create(photo=photo)
-        res = caption_instance.save_user_caption(caption)
-        return Response({"status": res})
+        edits.set_caption(photo, caption, request_user(request))
+        return Response({"status": True})
 
 
 class DeletePhotos(APIView):

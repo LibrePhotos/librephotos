@@ -120,7 +120,7 @@ class PhotoEditSerializerTimestampTestCase(TestCase):
         self.user = create_test_user()
         self.photo = create_test_photo(owner=self.user)
 
-    @patch("api.serializers.photos.extract_date_time")
+    @patch("api.metadata.edits.extract_date_time")
     def test_exif_timestamp_is_written_to_timestamp_field(self, extract):
         result = _edit(self.photo, {"exif_timestamp": "2020-01-02T03:04:05Z"})
 
@@ -132,12 +132,12 @@ class PhotoEditSerializerTimestampTestCase(TestCase):
         self.photo.refresh_from_db()
         self.assertEqual(self.photo.timestamp.year, 2020)
 
-    @patch("api.serializers.photos.extract_date_time")
+    @patch("api.metadata.edits.extract_date_time")
     def test_exif_timestamp_absent_does_not_call_extractor(self, extract):
         _edit(self.photo, {"is_screenshot": True})
         extract.assert_not_called()
 
-    @patch("api.serializers.photos.extract_date_time")
+    @patch("api.metadata.edits.extract_date_time")
     def test_exif_timestamp_none_is_accepted_and_clears_timestamp(self, extract):
         """exif_timestamp is nullable, so an explicit null flows through."""
         result = _edit(self.photo, {"exif_timestamp": None})
@@ -151,7 +151,7 @@ class PhotoEditSerializerGpsTestCase(TestCase):
         self.user = create_test_user()
         self.photo = create_test_photo(owner=self.user)
 
-    @patch("api.serializers.photos.reverse_geocode", return_value=dict(GEO_RESULT))
+    @patch("api.metadata.edits.reverse_geocode", return_value=dict(GEO_RESULT))
     def test_happy_path_sets_coordinates_geolocation_and_album_places(self, geocode):
         result = _edit(self.photo, {"exif_gps_lat": "52.5", "exif_gps_lon": "13.4"})
 
@@ -175,7 +175,7 @@ class PhotoEditSerializerGpsTestCase(TestCase):
         )
         self.assertEqual(names, ["Berlin", "Germany"])
 
-    @patch("api.serializers.photos.reverse_geocode", return_value=dict(GEO_RESULT))
+    @patch("api.metadata.edits.reverse_geocode", return_value=dict(GEO_RESULT))
     def test_geolocation_level_is_reverse_feature_index(self, _geocode):
         _edit(self.photo, {"exif_gps_lat": "52.5", "exif_gps_lon": "13.4"})
 
@@ -185,7 +185,7 @@ class PhotoEditSerializerGpsTestCase(TestCase):
         self.assertEqual(germany.geolocation_level, 1)
 
     @patch(
-        "api.serializers.photos.reverse_geocode",
+        "api.metadata.edits.reverse_geocode",
         return_value={
             "features": [{"text": "12345"}, {"no_text": 1}, {"text": "Rome"}]
         },
@@ -198,7 +198,7 @@ class PhotoEditSerializerGpsTestCase(TestCase):
         )
         self.assertEqual(titles, ["Rome"])
 
-    @patch("api.serializers.photos.reverse_geocode", return_value=dict(GEO_RESULT))
+    @patch("api.metadata.edits.reverse_geocode", return_value=dict(GEO_RESULT))
     def test_previous_album_places_are_removed(self, _geocode):
         old_place = get_album_place("Paris", owner=self.user)
         old_place.photos.add(self.photo)
@@ -212,7 +212,7 @@ class PhotoEditSerializerGpsTestCase(TestCase):
         )
         self.assertEqual(titles, ["Berlin", "Germany"])
 
-    @patch("api.serializers.photos.reverse_geocode", return_value=None)
+    @patch("api.metadata.edits.reverse_geocode", return_value=None)
     def test_empty_geocode_result_still_persists_coordinates(self, geocode):
         result = _edit(self.photo, {"exif_gps_lat": "52.5", "exif_gps_lon": "13.4"})
 
@@ -226,7 +226,7 @@ class PhotoEditSerializerGpsTestCase(TestCase):
         self.assertFalse(AlbumPlace.objects.filter(photos=self.photo).exists())
         self.assertIs(result, self.photo)
 
-    @patch("api.serializers.photos.reverse_geocode", return_value={"places": ["X"]})
+    @patch("api.metadata.edits.reverse_geocode", return_value={"places": ["X"]})
     def test_geocode_result_without_features_key_skips_album_places(self, _geocode):
         _edit(self.photo, {"exif_gps_lat": "52.5", "exif_gps_lon": "13.4"})
 
@@ -235,7 +235,7 @@ class PhotoEditSerializerGpsTestCase(TestCase):
         self.assertFalse(AlbumPlace.objects.filter(photos=self.photo).exists())
 
     @patch(
-        "api.serializers.photos.reverse_geocode",
+        "api.metadata.edits.reverse_geocode",
         side_effect=RuntimeError("geocoder exploded"),
     )
     def test_geocode_exception_is_swallowed_but_coordinates_survive(self, _geocode):
@@ -247,7 +247,7 @@ class PhotoEditSerializerGpsTestCase(TestCase):
         self.assertEqual(float(self.photo.exif_gps_lat), 52.5)
         self.assertEqual(float(self.photo.exif_gps_lon), 13.4)
 
-    @patch("api.serializers.photos.reverse_geocode")
+    @patch("api.metadata.edits.reverse_geocode")
     def test_latitude_only_is_ignored_entirely(self, geocode):
         """QUIRK: a partial coordinate pair is popped and dropped - the photo's
         latitude is NOT updated and no geocoding happens."""
@@ -258,7 +258,7 @@ class PhotoEditSerializerGpsTestCase(TestCase):
         self.photo.refresh_from_db()
         self.assertIsNone(self.photo.exif_gps_lat)
 
-    @patch("api.serializers.photos.reverse_geocode")
+    @patch("api.metadata.edits.reverse_geocode")
     def test_longitude_only_is_ignored_entirely(self, geocode):
         _edit(self.photo, {"exif_gps_lon": "13.4"})
 
@@ -266,13 +266,13 @@ class PhotoEditSerializerGpsTestCase(TestCase):
         self.photo.refresh_from_db()
         self.assertIsNone(self.photo.exif_gps_lon)
 
-    @patch("api.serializers.photos.reverse_geocode")
+    @patch("api.metadata.edits.reverse_geocode")
     def test_no_gps_fields_does_not_geocode(self, geocode):
         _edit(self.photo, {"is_screenshot": True})
         geocode.assert_not_called()
 
-    @patch("api.serializers.photos.reverse_geocode", return_value=dict(GEO_RESULT))
-    @patch("api.serializers.photos.extract_date_time")
+    @patch("api.metadata.edits.reverse_geocode", return_value=dict(GEO_RESULT))
+    @patch("api.metadata.edits.extract_date_time")
     def test_category_timestamp_and_gps_can_be_combined(self, extract, geocode):
         result = _edit(
             self.photo,

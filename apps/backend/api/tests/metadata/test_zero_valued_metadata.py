@@ -66,9 +66,8 @@ class ZeroRatingAndImageNumberTestCase(TestCase):
         mock_values[15] = 0  # IMAGE_NUMBER (first frame of a burst)
 
         with patch("api.models.photo_metadata.get_metadata", return_value=mock_values):
-            metadata = PhotoMetadata.extract_exif_data(self.photo, commit=True)
+            PhotoMetadata.extract_exif_data(self.photo, commit=True)
 
         self.photo.refresh_from_db()
         self.assertEqual(self.photo.image_sequence_number, 0)
         self.assertEqual(self.photo.rating, 0)
-        self.assertEqual(metadata.rating, 0)

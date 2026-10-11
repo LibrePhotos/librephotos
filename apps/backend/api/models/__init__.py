@@ -14,7 +14,7 @@ from api.models.long_running_job import LongRunningJob
 from api.models.person import Person
 from api.models.photo import Photo
 from api.models.photo_caption import PhotoCaption
-from api.models.photo_metadata import MetadataEdit, MetadataFile, PhotoMetadata
+from api.models.photo_metadata import MetadataEdit, PhotoMetadata
 from api.models.photo_ocr import PhotoOcr
 from api.models.photo_search import PhotoSearch
 from api.models.photo_share import PhotoShare
@@ -38,7 +38,6 @@ __all__ = [
     "Face",
     "LongRunningJob",
     "MetadataEdit",
-    "MetadataFile",
     "Person",
     "Photo",
     "PhotoCaption",

@@ -42,14 +42,12 @@ class PhotoCaptionModelTest(TestCase):
         result = caption.generate_captions_im2txt(commit=False)
         self.assertFalse(result)
 
-    def test_save_user_caption(self):
+    def test_apply_user_caption(self):
         """Test saving user captions"""
         caption = PhotoCaption.objects.create(photo=self.photo)
 
-        # create_test_photo creates a Thumbnail with a thumbnail_big path,
-        # so save_user_caption succeeds even though the actual file doesn't exist
-        result = caption.save_user_caption("My beautiful photo", commit=True)
-        self.assertTrue(result)
+        result = caption.apply_user_caption("My beautiful photo", commit=True)
+        self.assertEqual(result, "My beautiful photo")
 
     def test_generate_tag_captions_skips_existing(self):
         """Test that generate_tag_captions skips if active model tags already exist"""
@@ -129,7 +127,7 @@ class PhotoCaptionModelTest(TestCase):
             photo=self.photo, captions_json={"user_caption": "Original caption"}
         )
 
-        # Update the caption directly (since save_user_caption requires thumbnails)
+        # Update the caption directly
         caption.captions_json["user_caption"] = "Updated caption"
         caption.save()
         caption.refresh_from_db()
@@ -143,7 +141,7 @@ class PhotoCaptionModelTest(TestCase):
         # Should handle empty dict gracefully
         caption.recreate_search_captions()
 
-        # Test direct assignment since save_user_caption requires thumbnails
+        # Test direct assignment
         caption.captions_json = {"user_caption": ""}
         caption.save()
         self.assertEqual(caption.captions_json["user_caption"], "")

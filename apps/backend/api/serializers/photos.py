@@ -8,19 +8,16 @@ from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from api import video_color, video_playback
-from api.geocode import GEOCODE_VERSION
-from api.geocode.geocode import reverse_geocode
-from api.geocode.photo_location import find_album_places
 from api.image_similarity import search_similar_image
-from api.metadata.photo_datetime import extract_date_time
+from api.metadata import edits
 from api.models import AlbumDate, File, Photo, User
-from api.models.album_place import AlbumPlace, get_album_place
 from api.models.photo_caption import PhotoCaption
 from api.models.photo_metadata import PhotoMetadata
 from api.models.photo_ocr import PhotoOcr
 from api.models.photo_search import PhotoSearch
 from api.models.photo_stack import PhotoStack
 from api.models.thumbnail import Thumbnail
+from api.request_user import request_user
 from api.serializers.fields import shared_serializer
 from api.serializers.photo_metadata import PhotoMetadataSummarySerializer
 from api.serializers.PhotosGroupedByDate import PhotosGroupedByDate
@@ -313,12 +310,18 @@ class PhotoEditSerializer(serializers.ModelSerializer):
 
     def update(self, instance: Photo, validated_data: dict[str, Any]) -> Photo:
         self._apply_category_override(instance, validated_data)
-        self._apply_exif_timestamp(instance, validated_data)
+        # The view only hands out the requester's own photos; without a
+        # request (a direct call) the edit is the owner's.
+        request = self.context.get("request")
+        user = request_user(request) if request is not None else instance.owner
+
+        if "exif_timestamp" in validated_data:
+            edits.set_capture_time(instance, validated_data.pop("exif_timestamp"), user)
 
         lat = validated_data.pop("exif_gps_lat", None)
         lon = validated_data.pop("exif_gps_lon", None)
         if lat is not None and lon is not None:
-            self._apply_gps_location(instance, lat, lon)
+            edits.set_location(instance, lat, lon, user)
         return instance
 
     def _apply_category_override(
@@ -338,74 +341,6 @@ class PhotoEditSerializer(serializers.ModelSerializer):
             setattr(instance, field, validated_data.pop(field))
         instance.category_source = "user"
         instance.save(update_fields=[*category_fields, "category_source"])
-
-    def _apply_exif_timestamp(
-        self, instance: Photo, validated_data: dict[str, Any]
-    ) -> None:
-        if "exif_timestamp" not in validated_data:
-            return
-        instance.timestamp = validated_data.pop("exif_timestamp")
-        instance.save()
-        extract_date_time(instance)
-
-    def _apply_gps_location(self, instance: Photo, lat: float, lon: float) -> None:
-        try:
-            # Track old places to update album place relations
-            old_album_places = find_album_places(instance)
-
-            instance.exif_gps_lat = float(lat)
-            instance.exif_gps_lon = float(lon)
-            instance.save()
-
-            geocode_result = reverse_geocode(
-                instance.exif_gps_lat, instance.exif_gps_lon
-            )
-            if not geocode_result:
-                logger.warning(
-                    "Reverse geocoding returned no result for provided coordinates"
-                )
-                return
-
-            geocode_result["_v"] = GEOCODE_VERSION
-            instance.geolocation_json = geocode_result
-            self._update_search_location(instance, geocode_result)
-            self._rebuild_album_places(instance, geocode_result, old_album_places)
-            instance.save()
-        except Exception as e:
-            logger.warning(e)
-            logger.warning("Failed to update GPS location for photo")
-
-    def _update_search_location(
-        self, instance: Photo, geocode_result: dict[str, Any]
-    ) -> None:
-        search_instance, _created = PhotoSearch.objects.get_or_create(photo=instance)
-        search_instance.update_search_location(geocode_result)
-        search_instance.save()
-
-    def _rebuild_album_places(
-        self,
-        instance: Photo,
-        geocode_result: dict[str, Any],
-        old_album_places: QuerySet[AlbumPlace] | None,
-    ) -> None:
-        if old_album_places is not None:
-            for old_album_place in old_album_places:
-                old_album_place.photos.remove(instance)
-                old_album_place.save()
-
-        if "features" not in geocode_result:
-            return
-
-        features = geocode_result["features"]
-
-        for geolocation_level, feature in enumerate(features):
-            if "text" not in feature.keys() or str(feature["text"]).isnumeric():
-                continue
-            album_place = get_album_place(feature["text"], owner=instance.owner)
-            if album_place.photos.filter(image_hash=instance.image_hash).count() == 0:
-                album_place.geolocation_level = len(features) - geolocation_level
-            album_place.photos.add(instance)
-            album_place.save()
 
 
 class PhotoHashListSerializer(serializers.ModelSerializer):

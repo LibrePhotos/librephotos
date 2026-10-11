@@ -1,4 +1,4 @@
-"""Characterization tests for PhotoCaption.save_user_caption and
+"""Characterization tests for PhotoCaption.apply_user_caption and
 PhotoCaption._update_tag_album_things.
 
 These tests pin the CURRENT observed behavior before refactoring. They
@@ -18,7 +18,7 @@ from api.semantic_search import TAG_THING_TYPE
 from api.tests.utils import create_test_photo, create_test_user
 
 
-class SaveUserCaptionTest(TestCase):
+class ApplyUserCaptionTest(TestCase):
     def setUp(self):
         self.user = create_test_user()
         self.photo = create_test_photo(owner=self.user)
@@ -31,43 +31,29 @@ class SaveUserCaptionTest(TestCase):
             ).values_list("title", flat=True)
         )
 
-    # ---------- thumbnail guard ----------
-
-    def test_returns_false_when_thumbnail_big_missing(self):
-        """No thumbnail_big -> early return False, captions_json untouched."""
-        thumb = self.photo.thumbnail
-        thumb.thumbnail_big = ""
-        thumb.save()
-        self.photo.refresh_from_db()
-
-        result = self.caption.save_user_caption("hello", commit=True)
-
-        self.assertFalse(result)
-        self.assertIsNone(self.caption.captions_json)
-
     # ---------- happy path ----------
 
-    def test_saves_caption_and_returns_true(self):
-        result = self.caption.save_user_caption("My beautiful photo", commit=True)
+    def test_saves_caption_and_returns_it(self):
+        result = self.caption.apply_user_caption("My beautiful photo", commit=True)
 
-        self.assertTrue(result)
+        self.assertEqual(result, "My beautiful photo")
         self.caption.refresh_from_db()
         self.assertEqual(
             self.caption.captions_json["user_caption"], "My beautiful photo"
         )
 
     def test_strips_start_end_markers_and_whitespace(self):
-        result = self.caption.save_user_caption(
+        result = self.caption.apply_user_caption(
             "  <start> a dog on grass <end>  ", commit=False
         )
 
-        self.assertTrue(result)
+        self.assertEqual(result, "a dog on grass")
         self.assertEqual(self.caption.captions_json["user_caption"], "a dog on grass")
 
     def test_commit_false_does_not_persist_but_mutates_instance(self):
-        result = self.caption.save_user_caption("not committed", commit=False)
+        result = self.caption.apply_user_caption("not committed", commit=False)
 
-        self.assertTrue(result)
+        self.assertEqual(result, "not committed")
         self.assertEqual(self.caption.captions_json["user_caption"], "not committed")
         fresh = PhotoCaption.objects.get(photo=self.photo)
         self.assertIsNone(fresh.captions_json)
@@ -76,28 +62,28 @@ class SaveUserCaptionTest(TestCase):
         self.caption.captions_json = {"im2txt": "a machine caption"}
         self.caption.save()
 
-        self.caption.save_user_caption("human caption", commit=True)
+        self.caption.apply_user_caption("human caption", commit=True)
 
         self.caption.refresh_from_db()
         self.assertEqual(self.caption.captions_json["im2txt"], "a machine caption")
         self.assertEqual(self.caption.captions_json["user_caption"], "human caption")
 
     def test_empty_caption_is_saved_as_empty_string(self):
-        result = self.caption.save_user_caption("   ", commit=True)
+        result = self.caption.apply_user_caption("   ", commit=True)
 
-        self.assertTrue(result)
+        self.assertEqual(result, "")
         self.caption.refresh_from_db()
         self.assertEqual(self.caption.captions_json["user_caption"], "")
 
     def test_recreate_search_captions_is_called(self):
         with patch.object(PhotoCaption, "recreate_search_captions") as mock_recreate:
-            self.caption.save_user_caption("something", commit=False)
+            self.caption.apply_user_caption("something", commit=False)
         mock_recreate.assert_called_once_with()
 
     # ---------- hashtags ----------
 
     def test_hashtags_create_album_things(self):
-        self.caption.save_user_caption("beach day #sun #sea", commit=True)
+        self.caption.apply_user_caption("beach day #sun #sea", commit=True)
 
         self.assertEqual(self._hashtag_albums(), {"#sun", "#sea"})
         for title in ("#sun", "#sea"):
@@ -108,18 +94,18 @@ class SaveUserCaptionTest(TestCase):
 
     def test_bare_hash_is_not_treated_as_hashtag(self):
         """A lone '#' (len == 1) is filtered out."""
-        self.caption.save_user_caption("just a # here", commit=True)
+        self.caption.apply_user_caption("just a # here", commit=True)
 
         self.assertEqual(self._hashtag_albums(), set())
 
     def test_hashtag_must_start_the_word(self):
         """Mid-word hashes are not hashtags (split on whitespace, startswith)."""
-        self.caption.save_user_caption("foo#bar baz", commit=True)
+        self.caption.apply_user_caption("foo#bar baz", commit=True)
 
         self.assertEqual(self._hashtag_albums(), set())
 
     def test_repeated_hashtag_added_only_once(self):
-        self.caption.save_user_caption("#sun and more #sun", commit=True)
+        self.caption.apply_user_caption("#sun and more #sun", commit=True)
 
         album = AlbumThing.objects.get(
             title="#sun", thing_type="hashtag_attribute", owner=self.user
@@ -127,8 +113,8 @@ class SaveUserCaptionTest(TestCase):
         self.assertEqual(album.photos.count(), 1)
 
     def test_hashtag_removed_when_no_longer_in_caption(self):
-        self.caption.save_user_caption("#sun #sea", commit=True)
-        self.caption.save_user_caption("#sun only", commit=True)
+        self.caption.apply_user_caption("#sun #sea", commit=True)
+        self.caption.apply_user_caption("#sun only", commit=True)
 
         sun = AlbumThing.objects.get(
             title="#sun", thing_type="hashtag_attribute", owner=self.user
@@ -142,8 +128,8 @@ class SaveUserCaptionTest(TestCase):
 
     def test_removal_uses_substring_match_not_token_match(self):
         """QUIRK: '#sun' survives because it is a substring of '#sunset'."""
-        self.caption.save_user_caption("#sun", commit=True)
-        self.caption.save_user_caption("#sunset", commit=True)
+        self.caption.apply_user_caption("#sun", commit=True)
+        self.caption.apply_user_caption("#sunset", commit=True)
 
         sun = AlbumThing.objects.get(
             title="#sun", thing_type="hashtag_attribute", owner=self.user
@@ -157,7 +143,7 @@ class SaveUserCaptionTest(TestCase):
         )
         other_album.photos.add(self.photo)
 
-        self.caption.save_user_caption("nothing tagged", commit=True)
+        self.caption.apply_user_caption("nothing tagged", commit=True)
 
         other_album.refresh_from_db()
         self.assertEqual(other_album.photos.count(), 1)
@@ -168,31 +154,10 @@ class SaveUserCaptionTest(TestCase):
         )
         tag_album.photos.add(self.photo)
 
-        self.caption.save_user_caption("no tags here", commit=True)
+        self.caption.apply_user_caption("no tags here", commit=True)
 
         tag_album.refresh_from_db()
         self.assertEqual(tag_album.photos.count(), 1)
-
-    # ---------- error branch ----------
-
-    def test_returns_false_when_caption_is_not_a_string(self):
-        """AttributeError inside the try block is swallowed -> False."""
-        result = self.caption.save_user_caption(None, commit=True)
-
-        self.assertFalse(result)
-        self.assertIsNone(self.caption.captions_json)
-
-    def test_returns_false_when_inner_call_raises(self):
-        with patch.object(
-            PhotoCaption, "recreate_search_captions", side_effect=RuntimeError("boom")
-        ):
-            result = self.caption.save_user_caption("hello", commit=True)
-
-        self.assertFalse(result)
-        # The mutation before the raise is still present on the instance.
-        self.assertEqual(self.caption.captions_json["user_caption"], "hello")
-        fresh = PhotoCaption.objects.get(photo=self.photo)
-        self.assertIsNone(fresh.captions_json)
 
 
 class UpdateTagAlbumThingsTest(TestCase):

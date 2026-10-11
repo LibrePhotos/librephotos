@@ -238,8 +238,6 @@ def create_test_photo(**kwargs):
         "width": "width",
         "height": "height",
         "orientation": "orientation",
-        "gps_lat": "gps_latitude",
-        "gps_lon": "gps_longitude",
         "gps_altitude": "gps_altitude",
         # Also support new field names directly
         "camera_make": "camera_make",
@@ -248,9 +246,16 @@ def create_test_photo(**kwargs):
         "lens_model": "lens_model",
         "aperture": "aperture",
         "focal_length_35mm": "focal_length_35mm",
-        "gps_latitude": "gps_latitude",
-        "gps_longitude": "gps_longitude",
     }
+    # The coordinates live on the photo itself (#2252).
+    for old_name, photo_field in (
+        ("gps_lat", "exif_gps_lat"),
+        ("gps_latitude", "exif_gps_lat"),
+        ("gps_lon", "exif_gps_lon"),
+        ("gps_longitude", "exif_gps_lon"),
+    ):
+        if old_name in kwargs:
+            kwargs[photo_field] = kwargs.pop(old_name)
     metadata_fields = {}
     for old_name, new_name in metadata_field_mapping.items():
         if old_name in kwargs:

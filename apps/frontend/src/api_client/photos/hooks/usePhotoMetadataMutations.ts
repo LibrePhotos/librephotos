@@ -2,9 +2,29 @@
  * React Query mutation hooks for photo metadata operations
  */
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { TagsQueryKeys } from "../../tags/hooks/useFetchTagsQuery";
+import { invalidatePhotoLists } from "../invalidatePhotoLists";
 import { bulkUpdateMetadata, updatePhotoMetadata, type MetadataUpdateFields } from "../metadata";
+import { PhotoDetailsQueryKeys } from "./useFetchPhotoDetailsQuery";
+
+/**
+ * Refresh everything a metadata edit can change.
+ *
+ * The backend writes each field to the store the app reads (#2252): a rating
+ * is the photo's rating (favorites, the grid star), a caption is the lightbox
+ * caption (search, hashtag albums), keywords are tags and search terms. So
+ * besides the metadata itself, the photo details, every photo grid (search
+ * included) and the tags are refetched.
+ */
+function invalidateAfterMetadataEdit(queryClient: QueryClient, photoIds: string[]) {
+  photoIds.forEach(photoId => {
+    queryClient.invalidateQueries({ queryKey: ["photoMetadata", photoId] });
+  });
+  queryClient.invalidateQueries({ queryKey: [...PhotoDetailsQueryKeys] });
+  queryClient.invalidateQueries({ queryKey: [...TagsQueryKeys] });
+  invalidatePhotoLists();
+}
 
 /**
  * Update metadata for a photo (changes are tracked in history)
@@ -19,12 +39,7 @@ export function useUpdatePhotoMetadataMutation() {
     mutationFn: ({ photoId, updates }: { photoId: string; updates: MetadataUpdateFields }) =>
       updatePhotoMetadata(photoId, updates),
     onSuccess: (data, { photoId }) => {
-      // Invalidate metadata queries
-      queryClient.invalidateQueries({ queryKey: ["photoMetadata", photoId] });
-      // Also invalidate photo details since it includes metadata summary
-      queryClient.invalidateQueries({ queryKey: ["photoDetails"] });
-      // Keyword edits are projected into tags server-side
-      queryClient.invalidateQueries({ queryKey: [...TagsQueryKeys] });
+      invalidateAfterMetadataEdit(queryClient, [photoId]);
     },
   });
 }
@@ -39,12 +54,7 @@ export function useBulkUpdateMetadataMutation() {
     mutationFn: ({ photoIds, updates }: { photoIds: string[]; updates: MetadataUpdateFields }) =>
       bulkUpdateMetadata(photoIds, updates),
     onSuccess: (data, { photoIds }) => {
-      // Invalidate all affected photo metadata queries
-      photoIds.forEach(photoId => {
-        queryClient.invalidateQueries({ queryKey: ["photoMetadata", photoId] });
-      });
-      queryClient.invalidateQueries({ queryKey: ["photoDetails"] });
-      queryClient.invalidateQueries({ queryKey: [...TagsQueryKeys] });
+      invalidateAfterMetadataEdit(queryClient, photoIds);
     },
   });
 }

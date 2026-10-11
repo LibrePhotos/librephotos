@@ -172,31 +172,14 @@ class PhotoCaption(models.Model):
             logger.exception(f"could not generate caption for image {image_path}")
             return False
 
-    def save_user_caption(self, caption: str, commit: bool = True) -> bool:
-        """Save user-provided caption"""
-        image_path = self._resolve_thumbnail_path()
-        if image_path is None:
-            return False
-
-        try:
-            caption = self.apply_user_caption(caption, commit=commit)
-            logger.info(
-                f"saved captions for image {image_path}. caption: {caption}. captions_json: {self.captions_json}."
-            )
-            return True
-        except Exception:
-            logger.exception(f"could not save captions for image {image_path}")
-            return False
-
     def apply_user_caption(self, caption: str, commit: bool = True) -> str:
         """Set ``user_caption`` and everything that hangs off it.
 
         The single code path for the lightbox caption, whether the user typed it
-        (``save_user_caption``) or it was imported from the file's description
-        (``PhotoMetadata.extract_exif_data``): either way it is reindexed for
-        search and its #hashtags are synced to hashtag albums. Unlike
-        ``save_user_caption`` it needs no thumbnail and does not swallow
-        errors. Returns the caption as stored.
+        (``api.metadata.edits.set_caption``) or it was imported from the file's
+        description (``PhotoMetadata.extract_exif_data``): either way it is
+        reindexed for search and its #hashtags are synced to hashtag albums.
+        Returns the caption as stored.
         """
         caption = caption.replace("<start>", "").replace("<end>", "").strip()
 
