@@ -52,7 +52,8 @@ test makes `--parallel` runs crash with "cannot pickle 'traceback'"; rerun that 
   alone: `PartialUpdateModelMixin` from `api/views/mixins.py`), never `ModelViewSet` or an
   `http_method_names` blocklist. Pin a new route's verbs in `ROUTER_VERBS`
   (`api/tests/infra/test_api_conventions.py`); a mutating one also needs a case in
-  `api/tests/sharing_and_public/test_cross_tenant_writes.py`.
+  `api/tests/sharing_and_public/test_cross_tenant_writes.py`, or its exact route in `NOT_PHOTO_SCOPED`
+  with the reason (a prefix entry never covers the routes below it).
 - Delete unused code instead of keeping aliases or wrappers for compatibility, unless an external client
   calls it. Code only tests call counts as dead; `vulture_whitelist.py` is for names called from outside
   Python (settings dotted paths, django_q schedules) and only shrinks.

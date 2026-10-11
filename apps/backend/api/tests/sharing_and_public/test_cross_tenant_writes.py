@@ -13,14 +13,17 @@ endpoint accepts it. Two properties are asserted for each request:
   this file), is unchanged;
 * the response body does not carry a victim photo id or image hash.
 
-A third test walks the URL router and fails on any mutating ``api/`` route
-that is neither exercised here nor listed in ``NOT_PHOTO_SCOPED``. Adding
-an endpoint therefore means adding a case, or saying out loud that the
-endpoint cannot reference photos.
+A third test walks the URL router and fails on any route it does not hold to
+a rule: a mutating class-based ``api/`` route, or any function view under
+``api/``, that is neither exercised here nor named exactly in
+``NOT_PHOTO_SCOPED``. Adding an endpoint therefore means adding a case, or
+naming the route and saying out loud that it cannot reference photos.
 """
 
 import json
 import uuid
+from collections.abc import Iterable, Mapping
+from collections.abc import Set as AbstractSet
 from unittest.mock import patch
 
 from django.apps import apps
@@ -28,17 +31,30 @@ from django.contrib.auth import get_user_model
 from django.core import serializers as dj_serializers
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
-from django.test import TestCase
+from django.http import HttpRequest, HttpResponse
+from django.test import SimpleTestCase, TestCase
 from django.urls import resolve
 from django.utils import timezone
+from rest_framework.request import Request
+from rest_framework.response import Response
 from rest_framework.test import APIClient
+from rest_framework.views import APIView
 
 from api.models import AlbumAuto, AlbumDate, AlbumPlace, AlbumThing, AlbumUser, Photo
 from api.models.duplicate import Duplicate
 from api.models.photo_share import PhotoShare
 from api.models.photo_stack import PhotoStack
 from api.models.tag import Tag
-from api.tests.infra.routes import mutating_api_routes, normalise
+from api.tests.infra.routes import (
+    MUTATING_METHODS,
+    ApiRoute,
+    FunctionRoute,
+    Route,
+    api_routes,
+    drop_verified_format_twins,
+    function_routes,
+    normalise,
+)
 from api.tests.utils import (
     create_test_face,
     create_test_person,
@@ -46,20 +62,31 @@ from api.tests.utils import (
     create_test_user,
 )
 
-# Mutating api/ routes that cannot reference a photo, an album, a tag, a
-# stack, a duplicate group, a face or a person belonging to someone else.
-# A route listed here is exempt from the cross-tenant cases; keep the reason
+# URLconfs LibrePhotos does not write (Django admin, allauth). A route under
+# one of these prefixes is out of scope, unless its view lives in the api
+# package: those are ours and must be named below like any other route.
+THIRD_PARTY_PREFIXES = ("api/django-admin/", "api/accounts/")
+
+# Routes that cannot reference a photo, an album, a tag, a stack, a duplicate
+# group, a face or a person belonging to someone else. Each key is the exact
+# normalised route the walker reports, so an entry covers that route and no
+# other: a route added below it needs its own case or its own entry. A key
+# that matches no mutating or function route fails the test. Keep the reason
 # next to each entry.
 NOT_PHOTO_SCOPED = {
-    "api/user/": "profile settings of the requester",
-    "api/manage/user": "admin-only user management",
-    "api/delete/user": "admin-only user deletion",
-    "api/jobs": "the requester's own job rows",
-    "api/services": "admin-only service control",
-    "api/exists": "upload dedup check on the requester's own hash",
-    "api/upload/": "chunked upload into the requester's library",
+    "api/user/": "sign-up creates a new account; touches no existing rows",
+    "api/user/(?P<pk>[^/.]+)/": "PATCH is IsAdminOrSelf: staff or the account itself",
+    "api/manage/user/(?P<pk>[^/.]+)/": "admin-only user management",
+    "api/delete/user/(?P<pk>[^/.]+)/": "admin and superuser only: user deletion",
+    "api/jobs/(?P<pk>[^/.]+)/": "the requester's own job rows (get_queryset)",
+    "api/jobs/(?P<pk>[^/.]+)/cancel/": "the requester's own job rows (get_queryset)",
+    "api/services/(?P<pk>[^/.]+)/start/": "admin-only service control",
+    "api/services/(?P<pk>[^/.]+)/stop/": "admin-only service control",
     "api/sitesettings": "admin-only site config",
-    "api/email-config": "admin-only mail config",
+    "api/email-config/": "admin-only mail config",
+    "api/email-config/test/": "admin-only mail config",
+    "api/upload/": "chunked upload into the requester's library",
+    "api/upload/complete/": "completes only the requester's own upload",
     "api/savemetadata": "writes the requester's own photos' metadata to disk",
     "api/trainfaces": "queues a job on the requester's own faces",
     "api/clusterfaces": "queues a job on the requester's own faces",
@@ -72,15 +99,83 @@ NOT_PHOTO_SCOPED = {
     "api/generateocr": "queues a job on the requester's own photos",
     "api/autoalbumgen": "queues a job on the requester's own photos",
     "api/autoalbumtitlegen": "queues a job on the requester's own albums",
-    "api/stacks/detect": "queues a job on the requester's own photos",
+    "api/stacks/detect/": "queues a job on the requester's own photos",
     "api/duplicates/detect": "queues a job on the requester's own photos",
-    "api/auth/": "authentication",
-    "api/nextcloud/": "the requester's own Nextcloud credentials",
-    "api/geocode/search": "stateless lookup",
-    "api/delete/zip/": "only the requester's own <uuid><user id>.zip (test_zip_and_photo_scope)",
-    "api/django-admin/": "Django admin, staff only",
-    "api/accounts/": "allauth account pages",
+    "api/auth/token/obtain/": "authentication: the body's credentials are the caller's",
+    "api/auth/token/refresh/": "authentication: refreshes the token in the body",
+    "api/auth/token/blacklist/": "authentication: revokes the token in the body",
+    "api/auth/password/reset/": "authentication: same answer for every address",
+    "api/auth/password/reset/confirm/": "authentication: needs the emailed token",
+    "api/auth/sso/finish/": "authentication: mints a JWT for the session's user",
+    "api/accounts/oidc/(?P<provider_id>[^/]+)/login/": "authentication: OIDC start",
+    "api/accounts/oidc/(?P<provider_id>[^/]+)/login/callback/": "authentication: OIDC",
+    "api/nextcloud/scanphotos": "the requester's own Nextcloud credentials",
+    "api/delete/zip/(?P<fname>[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})/": "only the requester's own <uuid><user id>.zip (test_zip_and_photo_scope)",
+    "api/static/(?P<path>.*)": "Django's serve() for STATIC_URL; GET only",
 }
+
+
+# Routed only with DEBUG (django.conf.urls.static adds it then), so absent
+# under the test runner, which runs with DEBUG off.
+DEBUG_ONLY_ROUTES = frozenset({"api/static/(?P<path>.*)"})
+
+
+def _in_scope(route: Route) -> bool:
+    """Whether the walk must account for ``route``.
+
+    A class-based route is in scope when its view answers a mutating method.
+    A function view always is: the URLconf does not say what it accepts.
+    """
+    return isinstance(route, FunctionRoute) or bool(route.methods & MUTATING_METHODS)
+
+
+def _describe(route: Route) -> str:
+    if isinstance(route, FunctionRoute):
+        name = getattr(route.callback, "__qualname__", repr(route.callback))
+        return f"{route.route} [function] {name}"
+    methods = ", ".join(sorted(m.upper() for m in route.methods & MUTATING_METHODS))
+    return f"{route.route} [{methods}] {route.view.__qualname__}"
+
+
+def uncovered_routes(
+    routes: Iterable[Route],
+    covered: AbstractSet[str],
+    exempt: Mapping[str, str],
+    third_party: tuple[str, ...],
+) -> list[str]:
+    """In-scope routes that are neither exercised nor exempt by exact name.
+
+    A route under a third-party prefix is skipped when its view is not from
+    the api package. Prefixes are only a scope rule here, never an exemption.
+    """
+    return [
+        _describe(route)
+        for route in routes
+        if _in_scope(route)
+        and route.route not in covered
+        and route.route not in exempt
+        and not (
+            route.route.startswith(third_party)
+            and route.module.split(".", 1)[0] != "api"
+        )
+    ]
+
+
+def stale_exemptions(
+    routes: list[Route],
+    exempt: Iterable[str],
+    debug_only: AbstractSet[str] = frozenset(),
+) -> list[str]:
+    """Exempt keys that name no route the walk holds to the rules.
+
+    A ``debug_only`` key may be absent: its route is only routed with DEBUG.
+    """
+    live = {route.route for route in routes if _in_scope(route)}
+    return [key for key in exempt if key not in live and key not in debug_only]
+
+
+def _walked_routes() -> list[Route]:
+    return [*api_routes(), *function_routes()]
 
 
 def _fields(obj):
@@ -544,19 +639,25 @@ class CrossTenantWriteTest(TestCase):
             if method != "get":
                 covered.add(normalise(resolve(url).route))
 
-        missing = []
-        for route, methods in mutating_api_routes().items():
-            if route in covered:
-                continue
-            if any(route.startswith(prefix) for prefix in NOT_PHOTO_SCOPED):
-                continue
-            missing.append(f"{route} [{', '.join(sorted(methods))}]")
+        missing = uncovered_routes(
+            _walked_routes(), covered, NOT_PHOTO_SCOPED, THIRD_PARTY_PREFIXES
+        )
 
         self.assertFalse(
             missing,
-            "Mutating routes with no cross-tenant case. Add one to cases(), or "
-            "list the route in NOT_PHOTO_SCOPED with the reason it cannot "
-            "reference another user's data:\n  " + "\n  ".join(missing),
+            "Routes with no cross-tenant case and no exact NOT_PHOTO_SCOPED "
+            "entry. Add a case to cases(), or name the exact route in "
+            "NOT_PHOTO_SCOPED with the reason it cannot reference another "
+            "user's data (a prefix does not count):\n  " + "\n  ".join(missing),
+        )
+
+    def test_every_exemption_names_a_live_route(self):
+        stale = stale_exemptions(_walked_routes(), NOT_PHOTO_SCOPED, DEBUG_ONLY_ROUTES)
+        self.assertEqual(
+            stale,
+            [],
+            "NOT_PHOTO_SCOPED entries that match no mutating or function route:\n  "
+            + "\n  ".join(stale),
         )
 
     def test_the_fixture_actually_gives_the_victim_every_kind_of_row(self):
@@ -592,3 +693,85 @@ class CrossTenantWriteTest(TestCase):
             "api.Duplicate",
         ):
             self.assertIn(label, owned)
+
+
+class PlantedView(APIView):
+    def post(self, request: Request) -> Response:
+        return Response({})
+
+
+def planted_function_view(request: HttpRequest) -> HttpResponse:
+    return HttpResponse()
+
+
+class RouteWalkRulesTest(SimpleTestCase):
+    """The walk's rules, checked on planted routes rather than the real URLconf."""
+
+    def uncovered(self, routes: list[Route]) -> list[str]:
+        return uncovered_routes(routes, set(), NOT_PHOTO_SCOPED, THIRD_PARTY_PREFIXES)
+
+    def test_a_route_below_an_exempt_route_is_not_exempt(self):
+        below = ApiRoute("api/user/planted/", PlantedView, frozenset({"post"}))
+        self.assertEqual(
+            self.uncovered([below]), ["api/user/planted/ [POST] PlantedView"]
+        )
+
+    def test_the_exact_exempt_route_stays_exempt(self):
+        exact = ApiRoute("api/user/", PlantedView, frozenset({"post"}))
+        self.assertEqual(self.uncovered([exact]), [])
+
+    def test_a_planted_function_view_under_api_is_reported(self):
+        planted = FunctionRoute("api/planted/", planted_function_view)
+        self.assertEqual(
+            self.uncovered([planted]),
+            ["api/planted/ [function] planted_function_view"],
+        )
+
+    def test_a_project_view_under_a_third_party_prefix_is_reported(self):
+        ours = ApiRoute("api/accounts/planted/", PlantedView, frozenset({"post"}))
+        vendored = ApiRoute("api/accounts/planted/", APIView, frozenset({"post"}))
+        self.assertEqual(
+            self.uncovered([ours, vendored]),
+            ["api/accounts/planted/ [POST] PlantedView"],
+        )
+
+    def test_a_read_only_route_is_not_in_scope(self):
+        read = ApiRoute("api/planted/", PlantedView, frozenset({"get"}))
+        self.assertEqual(self.uncovered([read]), [])
+
+    def test_a_format_route_without_a_plain_twin_is_reported(self):
+        copy = ApiRoute(
+            "api/planted.(?P<format>[a-z0-9]+)/", PlantedView, frozenset({"post"})
+        )
+        self.assertEqual(
+            self.uncovered(drop_verified_format_twins([copy])),
+            ["api/planted.(?P<format>[a-z0-9]+)/ [POST] PlantedView"],
+        )
+
+    def test_a_format_route_with_a_plain_twin_is_skipped(self):
+        plain = ApiRoute("api/planted/", PlantedView, frozenset({"post"}))
+        copy = ApiRoute(
+            "api/planted.(?P<format>[a-z0-9]+)/", PlantedView, frozenset({"post"})
+        )
+        self.assertEqual(drop_verified_format_twins([plain, copy]), [plain])
+
+    def test_a_format_route_whose_twin_serves_another_view_is_kept(self):
+        plain = ApiRoute("api/planted/", PlantedView, frozenset({"post"}))
+        copy = ApiRoute(
+            "api/planted.(?P<format>[a-z0-9]+)/", APIView, frozenset({"post"})
+        )
+        self.assertEqual(drop_verified_format_twins([plain, copy]), [plain, copy])
+
+    def test_a_stale_exemption_fails(self):
+        self.assertEqual(stale_exemptions([], {"api/gone/": "reason"}), ["api/gone/"])
+
+    def test_an_exemption_for_a_read_only_route_is_stale(self):
+        read = ApiRoute("api/geocode/search", PlantedView, frozenset({"get"}))
+        self.assertEqual(
+            stale_exemptions([read], {"api/geocode/search": "stateless"}),
+            ["api/geocode/search"],
+        )
+
+    def test_an_exemption_for_a_live_route_is_not_stale(self):
+        live = ApiRoute("api/planted/", PlantedView, frozenset({"post"}))
+        self.assertEqual(stale_exemptions([live], {"api/planted/": "reason"}), [])
