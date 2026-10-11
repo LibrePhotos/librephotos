@@ -3,20 +3,25 @@
 import logging
 import os
 import uuid
+from collections.abc import Callable
 
 from django_q.tasks import AsyncTask, Chain
 from drf_spectacular.utils import extend_schema
+from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from api.autoalbum import delete_missing_photos
 from api.directory_watcher import scan_photos
 from api.ml_models import do_all_models_exist, download_models
+from api.models.user import User
+from api.request_data import request_dict
+from api.request_user import request_user
 
 logger = logging.getLogger(__name__)
 
 
-def _validate_scan_directory(user):
+def _validate_scan_directory(user: User) -> Response | None:
     if not user.scan_directory or user.scan_directory.strip() == "":
         return Response(
             {
@@ -38,7 +43,7 @@ def _validate_scan_directory(user):
     return None
 
 
-def start_job(enqueue, description):
+def start_job(enqueue: Callable[[uuid.UUID], object], description: str) -> Response:
     """Queue a background job for a request and answer that request.
 
     ``enqueue(job_id)`` hands the work to django-q2. When that fails (the
@@ -57,8 +62,8 @@ def start_job(enqueue, description):
     return Response({"status": True, "job_id": job_id})
 
 
-def _start_photo_scan(user, directory, full_scan=False):
-    def enqueue(job_id):
+def _start_photo_scan(user: User, directory: str, full_scan: bool = False) -> Response:
+    def enqueue(job_id: uuid.UUID) -> None:
         chain = Chain()
         if not do_all_models_exist():
             chain.append(download_models, user)
@@ -69,85 +74,91 @@ def _start_photo_scan(user, directory, full_scan=False):
 
 
 class ScanPhotosView(APIView):
-    def post(self, request, format=None):
+    def post(self, request: Request, format: str | None = None) -> Response:
         return self._scan_photos(request)
 
     @extend_schema(
         deprecated=True,
         description="Use POST method instead",
     )
-    def get(self, request, format=None):
+    def get(self, request: Request, format: str | None = None) -> Response:
         return self._scan_photos(request)
 
-    def _scan_photos(self, request):
-        return _validate_scan_directory(request.user) or _start_photo_scan(
-            request.user, request.user.scan_directory
+    def _scan_photos(self, request: Request) -> Response:
+        user = request_user(request)
+        return _validate_scan_directory(user) or _start_photo_scan(
+            user, user.scan_directory
         )
 
 
 # To-Do: Allow for custom paths
 class SelectiveScanPhotosView(APIView):
-    def get(self, request, format=None):
+    def get(self, request: Request, format: str | None = None) -> Response:
         # To-Do: Sanatize the scan_directory
-        return _validate_scan_directory(request.user) or _start_photo_scan(
-            request.user,
-            os.path.join(request.user.upload_root(), "web"),
+        user = request_user(request)
+        return _validate_scan_directory(user) or _start_photo_scan(
+            user,
+            os.path.join(user.upload_root(), "web"),
         )
 
 
 class FullScanPhotosView(APIView):
-    def post(self, request, format=None):
+    def post(self, request: Request, format: str | None = None) -> Response:
         return self._scan_photos(request)
 
     @extend_schema(
         deprecated=True,
         description="Use POST method instead",
     )
-    def get(self, request, format=None):
+    def get(self, request: Request, format: str | None = None) -> Response:
         return self._scan_photos(request)
 
-    def _scan_photos(self, request):
-        return _validate_scan_directory(request.user) or _start_photo_scan(
-            request.user, request.user.scan_directory, full_scan=True
+    def _scan_photos(self, request: Request) -> Response:
+        user = request_user(request)
+        return _validate_scan_directory(user) or _start_photo_scan(
+            user, user.scan_directory, full_scan=True
         )
 
 
 class DeleteMissingPhotosView(APIView):
-    def post(self, request, format=None):
+    def post(self, request: Request, format: str | None = None) -> Response:
         return self._delete_missing_photos(request, format)
 
     @extend_schema(
         deprecated=True,
         description="Use POST method instead",
     )
-    def get(self, request, format=None):
+    def get(self, request: Request, format: str | None = None) -> Response:
         return self._delete_missing_photos(request, format)
 
-    def _delete_missing_photos(self, request, format=None):
+    def _delete_missing_photos(
+        self, request: Request, format: str | None = None
+    ) -> Response:
+        user = request_user(request)
         return start_job(
-            lambda job_id: AsyncTask(delete_missing_photos, request.user, job_id).run(),
+            lambda job_id: AsyncTask(delete_missing_photos, user, job_id).run(),
             "the missing-photo cleanup",
         )
 
 
 class ClassifyMediaView(APIView):
-    def post(self, request, format=None):
+    def post(self, request: Request, format: str | None = None) -> Response:
         from api.directory_watcher.processing_jobs import classify_media
 
+        user = request_user(request)
         return start_job(
-            lambda job_id: AsyncTask(classify_media, request.user, job_id).run(),
+            lambda job_id: AsyncTask(classify_media, user, job_id).run(),
             "media classification",
         )
 
 
 class GenerateOcrView(APIView):
-    def post(self, request, format=None):
+    def post(self, request: Request, format: str | None = None) -> Response:
         from api.directory_watcher.processing_jobs import generate_ocr
 
-        full_scan = bool(request.data.get("full_scan", False))
+        user = request_user(request)
+        full_scan = bool(request_dict(request).get("full_scan", False))
         return start_job(
-            lambda job_id: AsyncTask(
-                generate_ocr, request.user, job_id, full_scan
-            ).run(),
+            lambda job_id: AsyncTask(generate_ocr, user, job_id, full_scan).run(),
             "text recognition",
         )

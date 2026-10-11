@@ -7,7 +7,7 @@ Live Photos, etc.) so they can be processed together as a single Photo.
 
 import os
 
-from api.models import File, Photo
+from api.models import File, Photo, User
 
 
 # JPEG/image extensions that RAW files can be paired with
@@ -78,7 +78,7 @@ def select_main_file(files: list[File]) -> File | None:
     return min(files, key=lambda f: (FILE_TYPE_PRIORITY.get(f.type, 999), f.path))
 
 
-def find_matching_jpeg_photo(raw_path: str, user) -> Photo | None:
+def find_matching_jpeg_photo(raw_path: str, user: User) -> Photo | None:
     """
     Find an existing Photo with a matching JPEG/image file for a RAW file.
 
@@ -110,7 +110,7 @@ def find_matching_jpeg_photo(raw_path: str, user) -> Photo | None:
     return None
 
 
-def find_matching_image_for_video(video_path: str, user) -> Photo | None:
+def find_matching_image_for_video(video_path: str, user: User) -> Photo | None:
     """
     Find an existing Photo with a matching image file for a Live Photo video.
 

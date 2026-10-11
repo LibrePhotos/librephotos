@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 
 from django.core.management.base import BaseCommand
 from django_q.models import Schedule
@@ -10,7 +11,7 @@ logger = logging.getLogger(__name__)
 class Command(BaseCommand):
     help = "Start the cleanup service."
 
-    def handle(self, *args, **kwargs):
+    def handle(self, *args: Any, **kwargs: Any) -> None:
         if not Schedule.objects.filter(
             func="api.services.cleanup_deleted_photos"
         ).exists():

@@ -37,25 +37,25 @@ CUDA = "CUDAExecutionProvider"
 DEFAULT_PROVIDERS = (CUDA, CPU)
 
 
-def _requested_providers():
+def _requested_providers() -> list[str]:
     value = os.environ.get("ONNX_PROVIDERS", "")
     return [name.strip() for name in value.split(",") if name.strip()]
 
 
-def execution_providers():
+def execution_providers() -> list[str]:
     """The providers to create sessions with, most preferred first."""
     available = ort.get_available_providers()
-    preferred = _requested_providers() or DEFAULT_PROVIDERS
+    preferred = _requested_providers() or list(DEFAULT_PROVIDERS)
     providers = [name for name in preferred if name in available]
     return providers or [CPU]
 
 
-def uses_gpu(providers=None):
+def uses_gpu(providers: list[str] | None = None) -> bool:
     """Whether sessions will run on CUDA (insightface wants a ctx_id for it)."""
     return CUDA in (execution_providers() if providers is None else providers)
 
 
-def intra_op_threads():
+def intra_op_threads() -> int | None:
     """ONNX_INTRA_OP_THREADS as a positive int, or None for the ORT default."""
     try:
         threads = int(os.environ.get("ONNX_INTRA_OP_THREADS", "") or 0)
@@ -64,7 +64,7 @@ def intra_op_threads():
     return threads if threads > 0 else None
 
 
-def cpu_arena(variable_shapes=False):
+def cpu_arena(variable_shapes: bool = False) -> bool:
     """Whether a session gets ONNX Runtime's CPU arena (see ONNX_CPU_ARENA)."""
     value = os.environ.get("ONNX_CPU_ARENA", "").strip().lower()
     if value in ("1", "true", "yes", "on"):
@@ -74,7 +74,7 @@ def cpu_arena(variable_shapes=False):
     return not variable_shapes
 
 
-def session_options(variable_shapes=False):
+def session_options(variable_shapes: bool = False) -> ort.SessionOptions:
     options = ort.SessionOptions()
     threads = intra_op_threads()
     if threads is not None:
@@ -83,7 +83,7 @@ def session_options(variable_shapes=False):
     return options
 
 
-def inference_session(path, variable_shapes=False):
+def inference_session(path: str, variable_shapes: bool = False) -> ort.InferenceSession:
     """An InferenceSession for *path* on the configured providers.
 
     ``variable_shapes``: the model is fed inputs of changing sizes (text boxes,

@@ -16,24 +16,31 @@ Including another URLconf
 
 """
 
+from typing import Any
+
 from constance import config as site_config
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, re_path
-from django.http import HttpResponse
+from django.http import HttpRequest, HttpResponse
 from django.views.generic import TemplateView
 from rest_framework import routers
+from rest_framework.request import Request
+from rest_framework.response import Response
 from rest_framework_simplejwt.serializers import (
+    AuthUser,
     TokenObtainPairSerializer,
     TokenRefreshSerializer,
 )
+from rest_framework_simplejwt.tokens import Token
 from rest_framework_simplejwt.views import (
     TokenBlacklistView,
     TokenObtainPairView,
     TokenRefreshView,
 )
 
+from api.models import User
 from api.views import (
     album_auto,
     album_folder,
@@ -74,9 +81,11 @@ import os
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
-    def get_token(cls, user):
+    def get_token(cls, user: AuthUser) -> Token:
         token = super(TokenObtainPairSerializer, cls).get_token(user)
 
+        # The custom claims below are api.User fields; every caller passes one.
+        assert isinstance(user, User)
         token["name"] = user.get_username()
         token["is_admin"] = user.is_superuser
         token["first_name"] = user.first_name
@@ -94,7 +103,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
 
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         response = super().post(request, *args, **kwargs)
         response.set_cookie("jwt", response.data["access"])
         response["Access-Control-Allow-Credentials"] = "true"
@@ -104,7 +113,7 @@ class CustomTokenObtainPairView(TokenObtainPairView):
 class CustomTokenRefreshView(TokenRefreshView):
     serializer_class = TokenRefreshSerializer
 
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         response = super().post(request, *args, **kwargs)
         response.set_cookie("jwt", response.data["access"])
         response["Access-Control-Allow-Credentials"] = "true"
@@ -116,7 +125,7 @@ class FrontendView(TemplateView):
     Serves the frontend index.html for all non-API routes (no-proxy compatibility)
     """
 
-    def get(self, request, *args, **kwargs):
+    def get(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
         try:
             # The frontend_build is at /code/frontend_build, but BASE_DIR is /code/librephotos
             # So we need to go up one level from BASE_DIR
@@ -484,7 +493,7 @@ if settings.DEBUG:
 # Configure media and frontend serving for no-proxy (SERVE_FRONTEND) mode
 if getattr(settings, "SERVE_FRONTEND", False):
     # Serve frontend assets and manifest directly
-    from django.views.static import serve as static_serve  # type: ignore
+    from django.views.static import serve as static_serve
 
     frontend_build_path = os.path.join(
         os.path.dirname(settings.BASE_DIR), "frontend_build"

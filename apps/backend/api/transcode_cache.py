@@ -26,17 +26,26 @@ the video simply is not cached: playback falls back to streaming it live, which
 is what happens today anyway.
 """
 
+from __future__ import annotations
+
 import logging
 import os
 import shutil
 import subprocess
 import threading
 import time
+from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 from django.conf import settings
 
 from api import binaries
 from api import video_color
+
+if TYPE_CHECKING:
+    # Not imported at run time: api.models reaches this module through
+    # api.photo_files, so the import would be circular.
+    from api.models.photo import Photo
 
 logger = logging.getLogger(__name__)
 
@@ -58,40 +67,40 @@ SPACE_CHECK_SECONDS = 15
 PART_SUFFIX = ".part"
 
 
-def _root():
+def _root() -> str:
     return getattr(settings, "TRANSCODE_CACHE_ROOT", "") or ""
 
 
-def _max_bytes():
+def _max_bytes() -> float:
     return float(getattr(settings, "TRANSCODE_CACHE_MAX_GB", 0)) * BYTES_PER_GB
 
 
-def _min_free_bytes():
+def _min_free_bytes() -> float:
     return float(getattr(settings, "TRANSCODE_CACHE_MIN_FREE_GB", 0)) * BYTES_PER_GB
 
 
-def _max_concurrent():
+def _max_concurrent() -> int:
     return max(1, int(getattr(settings, "TRANSCODE_CACHE_MAX_CONCURRENT", 1)))
 
 
-def is_enabled():
+def is_enabled() -> bool:
     """Caching is off when it has nowhere to write or no room to write in."""
     return bool(_root()) and _max_bytes() > 0
 
 
-def final_path(image_hash):
+def final_path(image_hash: str | None) -> str | None:
     root = _root()
     if not root or not image_hash:
         return None
     return os.path.join(root, f"{image_hash}.mp4")
 
 
-def media_name(image_hash):
+def media_name(image_hash: str) -> str:
     """The name the finished file is served under, relative to the media root."""
     return f"{image_hash}.mp4"
 
 
-def cached_path(photo):
+def cached_path(photo: Photo) -> str | None:
     """The finished transcode of ``photo``, or None. Marks it as just used.
 
     ``mtime`` is the cache's idea of "last served", which is why it is stamped
@@ -100,7 +109,7 @@ def cached_path(photo):
     """
     if not is_enabled():
         return None
-    path = final_path(getattr(photo, "image_hash", None))
+    path = final_path(photo.image_hash)
     if not path or not os.path.isfile(path):
         return None
     try:
@@ -110,7 +119,7 @@ def cached_path(photo):
     return path
 
 
-def discard(image_hash):
+def discard(image_hash: str | None) -> None:
     """Forget a video: called when the photo it belongs to is deleted."""
     path = final_path(image_hash)
     for candidate in [path, (path + PART_SUFFIX) if path else None]:
@@ -121,26 +130,29 @@ def discard(image_hash):
                 logger.warning("could not remove cached transcode %s", candidate)
 
 
-def estimated_size(photo):
+def estimated_size(photo: Photo) -> int:
     """How large the conversion is likely to be, from the stored duration.
 
     Videos with no duration recorded are assumed to be worth a guess of one
     minute rather than skipped: the running check on free space is what
     actually protects the disk, and this only decides whether to begin.
     """
-    length = getattr(photo, "video_length", None)
-    try:
-        seconds = float(length)
-    except (TypeError, ValueError):
-        seconds = 0.0
+    # A missing duration (None) and one that is not a number both count as
+    # unknown, which is what the float() failure used to say.
+    seconds = 0.0
+    if photo.video_length is not None:
+        try:
+            seconds = float(photo.video_length)
+        except ValueError:
+            seconds = 0.0
     if seconds <= 0:
         seconds = 60.0
     return int(seconds * ESTIMATED_BYTES_PER_SECOND)
 
 
-def _entries(root):
+def _entries(root: str) -> list[tuple[str, float, int]]:
     """Finished cache files as (path, mtime, size), oldest use first."""
-    entries = []
+    entries: list[tuple[str, float, int]] = []
     try:
         names = os.listdir(root)
     except OSError:
@@ -159,14 +171,14 @@ def _entries(root):
     return entries
 
 
-def _in_flight(root):
+def _in_flight(root: str) -> int:
     try:
         return len([n for n in os.listdir(root) if n.endswith(PART_SUFFIX)])
     except OSError:
         return 0
 
 
-def _drop_stale_parts(root, now=None):
+def _drop_stale_parts(root: str, now: float | None = None) -> None:
     """Remove part-files whose writer is long gone.
 
     ffmpeg touches its output continuously, so a part-file that has not grown
@@ -191,14 +203,14 @@ def _drop_stale_parts(root, now=None):
             continue
 
 
-def free_bytes(root):
+def free_bytes(root: str) -> int:
     try:
         return shutil.disk_usage(root).free
     except OSError:
         return 0
 
 
-def make_room(root, wanted):
+def make_room(root: str, wanted: int) -> bool:
     """Free up ``wanted`` bytes of headroom, evicting least recently served.
 
     Returns False when the room cannot be had, which is not an error: the
@@ -224,7 +236,7 @@ def make_room(root, wanted):
     return used + wanted <= budget and free_bytes(root) - wanted >= reserve
 
 
-def _background_threads():
+def _background_threads() -> int:
     """Leave at least half the machine to whoever is using it.
 
     ffmpeg helps itself to every core by default, which is the right answer for
@@ -234,7 +246,9 @@ def _background_threads():
     return max(1, (os.cpu_count() or 2) // 2)
 
 
-def build_command(source, destination, transfer=None):
+def build_command(
+    source: str, destination: str, transfer: str | None = None
+) -> list[str]:
     """The conversion that produces a seekable file.
 
     Three deliberate differences from the live stream, all of them because
@@ -275,7 +289,9 @@ def build_command(source, destination, transfer=None):
     return command + ["-movflags", "+faststart", "-f", "mp4", destination]
 
 
-def run_transcode(command, part, final, root=None):
+def run_transcode(
+    command: list[str], part: str, final: str, root: str | None = None
+) -> bool:
     """Convert into ``part`` and publish it as ``final`` if it worked out.
 
     The rename is the commit: nothing serves a file until ffmpeg has exited
@@ -329,14 +345,16 @@ def run_transcode(command, part, final, root=None):
     return True
 
 
-def _remove(path):
+def _remove(path: str) -> None:
     try:
         os.remove(path)
     except OSError:
         pass
 
 
-def _start_background(command, part, final, root):
+def _start_background(
+    command: list[str], part: str, final: str, root: str
+) -> threading.Thread:
     thread = threading.Thread(
         target=run_transcode,
         args=(command, part, final, root),
@@ -347,7 +365,10 @@ def _start_background(command, part, final, root):
     return thread
 
 
-def ensure_cached(photo, start=None):
+def ensure_cached(
+    photo: Photo,
+    start: Callable[[list[str], str, str, str], object] | None = None,
+) -> bool:
     """Begin caching ``photo`` if it is not cached and there is room for it.
 
     Returns whether a conversion was started. Every reason not to start one is
@@ -357,7 +378,7 @@ def ensure_cached(photo, start=None):
     if not is_enabled():
         return False
     source = photo.main_file.path if photo.main_file else None
-    final = final_path(getattr(photo, "image_hash", None))
+    final = final_path(photo.image_hash)
     if not source or not final or os.path.isfile(final):
         return False
 
@@ -387,6 +408,6 @@ def ensure_cached(photo, start=None):
         logger.warning("cannot write to the transcode cache at %s", root)
         return False
 
-    command = build_command(source, part, getattr(photo, "video_color_transfer", None))
+    command = build_command(source, part, photo.video_color_transfer)
     (start or _start_background)(command, part, final, root)
     return True

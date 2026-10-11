@@ -1,19 +1,35 @@
+from __future__ import annotations
+
 import logging
 import os
 import uuid
+from collections.abc import Mapping
+from typing import TYPE_CHECKING, Protocol
 
 from django.conf import settings
 
 from api.directory_watcher import handle_new_image
 from api.image_similarity import build_image_similarity_index
-from api.models import LongRunningJob
+from api.models import LongRunningJob, User
 from api.models.file import is_metadata, is_raw
 from nextcloud.server_address import connect
+
+if TYPE_CHECKING:
+    import owncloud
 
 logger = logging.getLogger(__name__)
 
 
-def isValidNCMedia(file_obj):
+class _RemoteFile(Protocol):
+    """The part of a pyocclient ``FileInfo`` the scan reads."""
+
+    path: str
+    attributes: Mapping[str, str]
+
+    def is_dir(self) -> bool: ...
+
+
+def isValidNCMedia(file_obj: _RemoteFile) -> bool:
     """Tell whether a remote file is something librephotos can index.
 
     A remote file is only known by its WebDAV metadata, so the decision is made
@@ -39,7 +55,7 @@ def isValidNCMedia(file_obj):
         return False
 
 
-def collect_photos(nc, path, photos):
+def collect_photos(nc: owncloud.Client, path: str, photos: list[str]) -> None:
     for x in nc.list(path):
         if not x.is_dir() and isValidNCMedia(x):
             photos.append(x.path)
@@ -47,7 +63,7 @@ def collect_photos(nc, path, photos):
             collect_photos(nc, x.path, photos)
 
 
-def user_media_root(user):
+def user_media_root(user: User) -> str:
     """The directory a user's Nextcloud files are downloaded into."""
     base = os.path.join(settings.DATA_ROOT, "nextcloud_media")
     root = os.path.join(base, user.username)
@@ -58,7 +74,7 @@ def user_media_root(user):
     return root
 
 
-def local_path_for(root, remote_path):
+def local_path_for(root: str, remote_path: str) -> str | None:
     """Map a remote path to its download location, or None if that leaves root.
 
     Remote paths come from the server's WebDAV listing, so a server that answers
@@ -82,7 +98,7 @@ def local_path_for(root, remote_path):
     return candidate if inside else None
 
 
-def download(nc, remote_path, local_path):
+def download(nc: owncloud.Client, remote_path: str, local_path: str) -> bool:
     """Download to a temporary file next to ``local_path``, then move it there.
 
     ``local_path`` only ever appears complete, so an interrupted download is
@@ -102,11 +118,11 @@ def download(nc, remote_path, local_path):
             os.remove(temp_path)
 
 
-def scan_photos(user, job_id):
+def scan_photos(user: User, job_id: uuid.UUID) -> dict[str, bool]:
     lrj = LongRunningJob.get_or_create_job(
         user=user,
         job_type=LongRunningJob.JOB_SCAN_PHOTOS,
-        job_id=job_id,
+        job_id=str(job_id),
     )
 
     # Everything the scan does - logging in, listing the remote directory and
@@ -118,9 +134,9 @@ def scan_photos(user, job_id):
         root = user_media_root(user)
         nc = connect(user)
 
-        photos = []
+        photos: list[str] = []
 
-        paths = []
+        paths: list[str] = []
 
         collect_photos(nc, user.nextcloud_scan_directory, photos)
 

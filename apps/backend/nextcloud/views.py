@@ -5,10 +5,12 @@ import requests
 from django_q.tasks import AsyncTask
 from drf_spectacular.utils import extend_schema
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from api.permissions import IsNextcloudEnabled
+from api.request_user import request_user
 from api.views.scan_triggers import start_job
 from nextcloud.directory_watcher import scan_photos
 from nextcloud.server_address import (
@@ -20,26 +22,27 @@ from nextcloud.server_address import (
 logger = logging.getLogger(__name__)
 
 
-def _rejected_address(error):
+def _rejected_address(error: UnsafeServerAddress) -> Response:
     return Response({"status": False, "message": str(error)}, status=400)
 
 
 class ListDir(APIView):
     permission_classes = (IsAuthenticated, IsNextcloudEnabled)
 
-    def get(self, request, format=None):
+    def get(self, request: Request, format: str | None = None) -> Response:
         if not request.query_params.get("fpath"):
             return Response([])
         path = request.query_params["fpath"]
 
-        if not request.user.nextcloud_server_address:
+        user = request_user(request)
+        if not user.nextcloud_server_address:
             return Response([])
 
         # Logging in has to happen inside the try as well: it is the call
         # nextcloud answers with an HTTP error when the app password is wrong,
         # and it is the first one to fail when the server is unreachable.
         try:
-            nc = connect(request.user)
+            nc = connect(user)
             return Response(
                 [
                     {
@@ -71,22 +74,23 @@ class ListDir(APIView):
 class ScanPhotosView(APIView):
     permission_classes = (IsAuthenticated, IsNextcloudEnabled)
 
-    def post(self, request, format=None):
+    def post(self, request: Request, format: str | None = None) -> Response:
         return self._scan_photos(request)
 
     @extend_schema(
         deprecated=True,
         description="Use POST method instead",
     )
-    def get(self, request, format=None):
+    def get(self, request: Request, format: str | None = None) -> Response:
         return self._scan_photos(request)
 
-    def _scan_photos(self, request):
+    def _scan_photos(self, request: Request) -> Response:
+        user = request_user(request)
         try:
-            validate_server_address(request.user.nextcloud_server_address)
+            validate_server_address(user.nextcloud_server_address)
         except UnsafeServerAddress as e:
             return _rejected_address(e)
         return start_job(
-            lambda job_id: AsyncTask(scan_photos, request.user, job_id).run(),
+            lambda job_id: AsyncTask(scan_photos, user, job_id).run(),
             "the Nextcloud scan",
         )

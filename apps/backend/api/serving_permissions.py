@@ -23,6 +23,7 @@ correct and SELinux is the one saying no.
 
 import os
 import stat
+from typing import TypedDict
 
 from django.conf import settings
 
@@ -69,7 +70,58 @@ REMEDY_LABELS = "labels"
 PROC_MOUNTS = "/proc/mounts"
 
 
-def webserver_ids():
+class MountInfo(TypedDict):
+    """One /proc/mounts entry, with its fields unescaped."""
+
+    source: str
+    point: str
+    type: str
+    options: list[str]
+
+
+class MountSummary(TypedDict):
+    """The mount backing a path, as the diagnostic reports it."""
+
+    point: str
+    type: str
+    options: list[str]
+    read_only: bool
+    permissions_from_mount: bool
+    network: bool
+
+
+class Blocking(TypedDict, total=False):
+    """The path component the mode bits (or the stat) stopped the web server at.
+
+    ``mode``, ``uid`` and ``gid`` are only known when the component was stat'ed.
+    """
+
+    path: str
+    kind: str
+    mode: str
+    uid: int
+    gid: int
+
+
+class WebServerIds(TypedDict):
+    uid: int
+    gid: int
+
+
+class Diagnosis(TypedDict):
+    """What diagnose_media_path returns."""
+
+    path: str
+    exists: bool
+    readable_by_webserver: bool
+    cause: str
+    blocking: Blocking | None
+    webserver: WebServerIds
+    mount: MountSummary | None
+    remedies: list[str]
+
+
+def webserver_ids() -> tuple[int, int]:
     """The uid/gid nginx serves originals as, as far as this install knows."""
     return (
         int(getattr(settings, "WEBSERVER_UID", 101)),
@@ -77,7 +129,14 @@ def webserver_ids():
     )
 
 
-def _permits(st, uid, gid, user_bit, group_bit, other_bit):
+def _permits(
+    st: os.stat_result,
+    uid: int,
+    gid: int,
+    user_bit: int,
+    group_bit: int,
+    other_bit: int,
+) -> bool:
     """Does ``st`` grant this bit to ``uid``/``gid`` under POSIX rules?
 
     Owner is checked first, then group, and neither falls through to the class
@@ -94,15 +153,15 @@ def _permits(st, uid, gid, user_bit, group_bit, other_bit):
     return bool(st.st_mode & other_bit)
 
 
-def _can_traverse(st, uid, gid):
+def _can_traverse(st: os.stat_result, uid: int, gid: int) -> bool:
     return _permits(st, uid, gid, stat.S_IXUSR, stat.S_IXGRP, stat.S_IXOTH)
 
 
-def _can_read(st, uid, gid):
+def _can_read(st: os.stat_result, uid: int, gid: int) -> bool:
     return _permits(st, uid, gid, stat.S_IRUSR, stat.S_IRGRP, stat.S_IROTH)
 
 
-def _ancestors(path):
+def _ancestors(path: str) -> list[str]:
     """``/data/a/b.mp4`` -> ``["/", "/data", "/data/a"]``, outermost first.
 
     Every one of these has to be traversable, not just the directory the file
@@ -111,7 +170,7 @@ def _ancestors(path):
     would miss the actual culprit.
     """
     parent = os.path.dirname(os.path.normpath(path))
-    chain = []
+    chain: list[str] = []
     while True:
         chain.append(parent)
         nxt = os.path.dirname(parent)
@@ -121,7 +180,7 @@ def _ancestors(path):
     return list(reversed(chain))
 
 
-def _unescape_mount_field(value):
+def _unescape_mount_field(value: str) -> str:
     """Undo the octal escaping the kernel applies to /proc/mounts fields."""
     for escaped, raw in (
         ("\\040", " "),
@@ -133,14 +192,14 @@ def _unescape_mount_field(value):
     return value
 
 
-def _read_mounts():
+def _read_mounts() -> list[MountInfo]:
     try:
         with open(PROC_MOUNTS, encoding="utf-8", errors="replace") as handle:
             lines = handle.readlines()
     except OSError:
         return []
 
-    mounts = []
+    mounts: list[MountInfo] = []
     for line in lines:
         fields = line.split()
         if len(fields) < 4:
@@ -156,7 +215,7 @@ def _read_mounts():
     return mounts
 
 
-def describe_mount(path):
+def describe_mount(path: str) -> MountSummary | None:
     """The mount backing ``path``: the entry with the longest matching prefix.
 
     This is what lets the diagnostic tell a local ext4 library apart from a NAS
@@ -164,7 +223,7 @@ def describe_mount(path):
     that works and advice that quietly does nothing.
     """
     path = os.path.normpath(path)
-    best = None
+    best: MountInfo | None = None
     for mount in _read_mounts():
         point = os.path.normpath(mount["point"])
         if path == point or path.startswith(point.rstrip("/") + "/") or point == "/":
@@ -184,7 +243,7 @@ def describe_mount(path):
     }
 
 
-def _describe_component(path, st, kind):
+def _describe_component(path: str, st: os.stat_result, kind: str) -> Blocking:
     return {
         "path": path,
         "kind": kind,
@@ -194,7 +253,9 @@ def _describe_component(path, st, kind):
     }
 
 
-def _remedies(cause, blocking, mount):
+def _remedies(
+    cause: str, blocking: Blocking | None, mount: MountSummary | None
+) -> list[str]:
     """Order the remedies worth trying, most applicable first.
 
     Deliberately conservative: the aim is to name the class of fix the evidence
@@ -209,7 +270,7 @@ def _remedies(cause, blocking, mount):
     if cause != CAUSE_MODE_BITS:
         return []
 
-    remedies = []
+    remedies: list[str] = []
     data_root = os.path.normpath(getattr(settings, "DATA_ROOT", "/data"))
     if blocking and os.path.normpath(blocking["path"]) in (data_root, "/"):
         # The library root itself, or something above it, is closed. Opening up
@@ -232,7 +293,7 @@ def _remedies(cause, blocking, mount):
     return remedies
 
 
-def diagnose_media_path(path):
+def diagnose_media_path(path: str) -> Diagnosis:
     """Report why the web server cannot serve ``path``.
 
     Returns a description rather than a verdict: ``cause`` says what the
@@ -243,7 +304,7 @@ def diagnose_media_path(path):
     """
     uid, gid = webserver_ids()
     path = os.path.normpath(path)
-    result = {
+    result: Diagnosis = {
         "path": path,
         "exists": True,
         "readable_by_webserver": False,

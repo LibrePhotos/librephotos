@@ -1,10 +1,14 @@
+from __future__ import annotations
+
 import hashlib
 import logging
 import math
 import os
 import tarfile
 import zipfile
+from collections.abc import Iterator
 from pathlib import Path
+from typing import TypedDict
 
 import requests
 from constance import config as site_config
@@ -12,6 +16,7 @@ from django.conf import settings
 
 from api.http_timeouts import MODEL_DOWNLOAD
 from api.models.long_running_job import LongRunningJob
+from api.models.user import User
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +36,31 @@ class ModelChecksumError(Exception):
     """
 
 
-ML_MODELS = [
+class AdditionalModelFile(TypedDict, total=False):
+    url: str
+    target: str
+    sha256: str
+
+
+# Keys are read by the download code below; "unpack-command" and "target-dir"
+# are not identifiers, hence the functional form.
+MlModel = TypedDict(
+    "MlModel",
+    {
+        "id": int,
+        "name": str,
+        "url": str,
+        "type": str,
+        "unpack-command": str | None,
+        "target-dir": str,
+        "sha256": str,
+        "additional_files": list[AdditionalModelFile],
+    },
+    total=False,
+)
+
+
+ML_MODELS: list[MlModel] = [
     {
         # OpenCLIP ViT-B/32 trained by LAION on DataComp-XL (MIT licence):
         # the one image-text model, for tags, semantic search and similar
@@ -198,11 +227,11 @@ ML_MODELS = [
 ]
 
 
-def _is_model_not_selected(value):
+def _is_model_not_selected(value: object) -> bool:
     return not value or str(value).strip().lower() == "none"
 
 
-def _is_model_selected(model):
+def _is_model_selected(model: MlModel) -> bool:
     model_type = model["type"]
     if model_type == MlTypes.CAPTIONING:
         # The one captioner is always kept available: it is small, and turning
@@ -220,13 +249,13 @@ def _is_model_selected(model):
     return True
 
 
-def _iter_required_models():
+def _iter_required_models() -> Iterator[MlModel]:
     for model in ML_MODELS:
         if _is_model_selected(model):
             yield model
 
 
-def _get_download_target(model_folder, model):
+def _get_download_target(model_folder: Path, model: MlModel) -> Path:
     if model["unpack-command"] == "tar -zxC":
         return model_folder / (model["target-dir"] + ".tar.gz")
     if model["unpack-command"] == "tar -xvf":
@@ -236,7 +265,7 @@ def _get_download_target(model_folder, model):
     return model_folder / model["target-dir"]
 
 
-def _model_target_exists(model_folder, model):
+def _model_target_exists(model_folder: Path, model: MlModel) -> bool:
     target_dir = model_folder / model["target-dir"]
     if not target_dir.exists():
         return False
@@ -260,7 +289,7 @@ def _model_target_exists(model_folder, model):
     return True
 
 
-def _unpack_archive(archive_path, model_folder, model):
+def _unpack_archive(archive_path: Path, model_folder: Path, model: MlModel) -> None:
     unpack_command = model["unpack-command"]
     if unpack_command == "tar -zxC":
         with tarfile.open(archive_path, mode="r:gz") as tar:
@@ -276,7 +305,7 @@ def _unpack_archive(archive_path, model_folder, model):
         _flatten_wrapper_dir(target_dir)
 
 
-def _flatten_wrapper_dir(target_dir):
+def _flatten_wrapper_dir(target_dir: Path | str) -> None:
     """Lift the files out of a zip's lone top-level folder into target_dir.
 
     Most InsightFace bundles are flat, but antelopev2.zip and buffalo_m.zip
@@ -296,7 +325,7 @@ def _flatten_wrapper_dir(target_dir):
     wrapper.rmdir()
 
 
-def download_model(model):
+def download_model(model: MlModel) -> None:
     model = model.copy()
     if not _is_model_selected(model):
         logger.info(f"Skipping unselected model {model['name']}")
@@ -329,7 +358,7 @@ def download_model(model):
     _download_missing_additional_files(model_folder, model)
 
 
-def _download_missing_additional_files(model_folder, model):
+def _download_missing_additional_files(model_folder: Path, model: MlModel) -> None:
     for additional_file in model.get("additional_files") or []:
         additional_target = model_folder / additional_file["target"]
         if additional_target.exists():
@@ -343,8 +372,8 @@ def _download_missing_additional_files(model_folder, model):
 
 
 def _log_download_progress(
-    model_name, current_progress, total_size, previous_percentage
-):
+    model_name: str, current_progress: int, total_size: int, previous_percentage: int
+) -> int:
     if total_size <= 0:
         return previous_percentage
     percentage = math.floor((current_progress / total_size) * 100)
@@ -355,7 +384,12 @@ def _log_download_progress(
     return percentage
 
 
-def _stream_to_partial(response, partial_path, model_name, hasher):
+def _stream_to_partial(
+    response: requests.Response,
+    partial_path: Path,
+    model_name: str,
+    hasher: hashlib._Hash | None,
+) -> tuple[int, int]:
     total_size = int(response.headers.get("content-length", 0))
     block_size = 1024
     current_progress = 0
@@ -376,10 +410,17 @@ def _stream_to_partial(response, partial_path, model_name, hasher):
     return current_progress, total_size
 
 
-def _verify_checksum(hasher, expected_sha256, model_name, url):
+def _verify_checksum(
+    hasher: hashlib._Hash | None,
+    expected_sha256: str | None,
+    model_name: str,
+    url: str,
+) -> None:
     if hasher is None:
         logger.debug(f"No sha256 pin for {model_name}; skipping verification")
         return
+    # A hasher only exists when a digest is pinned (see _download_file).
+    assert expected_sha256 is not None
 
     actual_sha256 = hasher.hexdigest()
     expected = expected_sha256.lower()
@@ -396,7 +437,12 @@ def _verify_checksum(hasher, expected_sha256, model_name, url):
     raise ModelChecksumError(message)
 
 
-def _download_file(url, target_path, model_name, expected_sha256=None):
+def _download_file(
+    url: str,
+    target_path: Path | str,
+    model_name: str,
+    expected_sha256: str | None = None,
+) -> None:
     """Download a single file with progress tracking.
 
     The download is streamed to a temporary sibling and only moved into place
@@ -457,7 +503,7 @@ def _download_file(url, target_path, model_name, expected_sha256=None):
         raise
 
 
-def download_models(user):
+def download_models(user: User) -> None:
     lrj = LongRunningJob.create_job(
         user=user,
         job_type=LongRunningJob.JOB_DOWNLOAD_MODELS,
@@ -468,19 +514,20 @@ def download_models(user):
     model_folder = Path(settings.MEDIA_ROOT) / "data_models"
     model_folder.mkdir(parents=True, exist_ok=True)
 
-    failures = []
-    passed_over = []
+    failures: list[str] = []
+    passed_over: list[MlModel] = []
     for idx, model in enumerate(ML_MODELS):
         if not _is_model_selected(model):
             passed_over.append(model)
-        try:
-            download_model(model)
-        except Exception as error:
-            # download_models is chained ahead of scans and setup steps, so a
-            # single unavailable model must not take the rest of the chain -
-            # or the job status - down with it.
-            logger.exception(f"Failed to download model {model['name']}")
-            failures.append(f"{model['name']}: {error}")
+        else:
+            try:
+                download_model(model)
+            except Exception as error:
+                # download_models is chained ahead of scans and setup steps, so
+                # a single unavailable model must not take the rest of the
+                # chain - or the job status - down with it.
+                logger.exception(f"Failed to download model {model['name']}")
+                failures.append(f"{model['name']}: {error}")
         lrj.update_progress(current=idx + 1)
 
     # A model picked in Site Settings while this ran, after the loop had passed
@@ -502,7 +549,7 @@ def download_models(user):
     lrj.complete()
 
 
-def do_all_models_exist():
+def do_all_models_exist() -> bool:
     model_folder = Path(settings.MEDIA_ROOT) / "data_models"
     for model in _iter_required_models():
         if not _model_target_exists(model_folder, model):
@@ -510,7 +557,7 @@ def do_all_models_exist():
     return True
 
 
-def captioning_model_exists():
+def captioning_model_exists() -> bool:
     """Whether every file of the captioner is on disk.
 
     A caption request that reaches the sidecar without them fails inside
@@ -524,13 +571,13 @@ def captioning_model_exists():
     )
 
 
-def model_download_running():
+def model_download_running() -> bool:
     return LongRunningJob.objects.filter(
         job_type=LongRunningJob.JOB_DOWNLOAD_MODELS, finished=False
     ).exists()
 
 
-def start_model_download(user):
+def start_model_download(user: User) -> bool:
     """Queue a Download Models job unless one is already running.
 
     Returns True when a download is now running (just queued or already

@@ -9,17 +9,18 @@ import logging
 import os
 import traceback
 import uuid
+from collections.abc import Callable
 from uuid import UUID
 
 from django import db
-from django.db.models import Q
+from django.db.models import Q, QuerySet
 from django_q.tasks import AsyncTask
 
 from api import sidecars, transcode_cache, video_color
 from api.document_detection import classify_document
 from api.face_classify import cluster_all_faces
 from api.geocode.photo_location import add_location_to_album_dates, geolocate_photo
-from api.models import Face, LongRunningJob, Photo
+from api.models import Face, LongRunningJob, Photo, User
 from api.models.album_thing import AlbumThing
 from api.models.photo_caption import PhotoCaption
 from api.models.photo_ocr import PhotoOcr
@@ -34,7 +35,7 @@ from api.directory_watcher.utils import (
 logger = logging.getLogger(__name__)
 
 
-def _encode_face(face: Face, job_id: UUID):
+def _encode_face(face: Face, job_id: UUID | str) -> None:
     failed = False
     error = None
     try:
@@ -46,12 +47,12 @@ def _encode_face(face: Face, job_id: UUID):
     update_scan_counter(job_id, failed, error)
 
 
-def _faces_missing_encoding(user):
+def _faces_missing_encoding(user: User) -> QuerySet[Face]:
     """Faces on ``user``'s photos that have no encoding yet."""
     return Face.objects.filter(photo__in=Photo.objects.owned_by(user), encoding="")
 
 
-def generate_face_embeddings(user, job_id: UUID):
+def generate_face_embeddings(user: User, job_id: UUID) -> None:
     """
     Generate face embeddings for faces that don't have them yet.
 
@@ -85,7 +86,12 @@ def generate_face_embeddings(user, job_id: UUID):
         lrj.fail(error=err)
 
 
-def _limit_to_photos_added_since_last_scan(existing_photos, user, job_type, full_scan):
+def _limit_to_photos_added_since_last_scan(
+    existing_photos: QuerySet[Photo],
+    user: User,
+    job_type: int,
+    full_scan: bool,
+) -> QuerySet[Photo]:
     """Narrow ``existing_photos`` to the photos an incremental run should cover."""
     if full_scan:
         return existing_photos
@@ -101,7 +107,7 @@ def _limit_to_photos_added_since_last_scan(existing_photos, user, job_type, full
     return existing_photos.filter(added_on__gt=last_scan.started_at)
 
 
-def _begin_photo_scan(lrj, existing_photos) -> bool:
+def _begin_photo_scan(lrj: LongRunningJob, existing_photos: QuerySet[Photo]) -> bool:
     """Publish the job's target and report whether there is any work to do."""
     target = existing_photos.count()
     lrj.update_progress(current=0, target=target)
@@ -112,7 +118,7 @@ def _begin_photo_scan(lrj, existing_photos) -> bool:
     return True
 
 
-def _scan_cancelled(idx: int, job_id, message: str) -> bool:
+def _scan_cancelled(idx: int, job_id: UUID | str, message: str) -> bool:
     """Periodic cancellation check for the per-photo loops."""
     if idx % CANCELLATION_CHECK_INTERVAL == 0 and is_job_cancelled(job_id):
         logger.info(message)
@@ -120,7 +126,12 @@ def _scan_cancelled(idx: int, job_id, message: str) -> bool:
     return False
 
 
-def _queue_per_photo_tasks(task, photos, job_id, cancelled_message: str):
+def _queue_per_photo_tasks(
+    task: Callable[..., object],
+    photos: QuerySet[Photo],
+    job_id: UUID | str,
+    cancelled_message: str,
+) -> None:
     """Queue ``task(photo_id, job_id)`` for each photo.
 
     The queue gets primary keys, not pickled ``Photo`` instances: the payload
@@ -133,7 +144,7 @@ def _queue_per_photo_tasks(task, photos, job_id, cancelled_message: str):
         AsyncTask(task, photo_id, job_id).run()
 
 
-def _photo_for_task(photo_id, job_id) -> Photo | None:
+def _photo_for_task(photo_id: UUID | Photo, job_id: UUID | str) -> Photo | None:
     """Load the photo a queued per-photo task is for, or ``None`` to skip it.
 
     Cancelling a job only stops more tasks from being queued, so a task still
@@ -144,7 +155,8 @@ def _photo_for_task(photo_id, job_id) -> Photo | None:
     if is_job_cancelled(job_id):
         return None
     # Tasks queued before the switch to ids carry the Photo itself.
-    photo_id = getattr(photo_id, "pk", photo_id)
+    if isinstance(photo_id, Photo):
+        photo_id = photo_id.pk
     photo = Photo.objects.filter(pk=photo_id).first()
     if photo is None:
         logger.info(f"Photo {photo_id} is gone, nothing to do for job {job_id}")
@@ -157,7 +169,7 @@ def _record_photo_error(photo: Photo, err: Exception) -> str:
     return f"Photo {photo.image_hash}: {str(err)}\n{traceback.format_exc()}"
 
 
-def _untagged_photos(user):
+def _untagged_photos(user: User) -> QuerySet[Photo]:
     """Photos of ``user`` that carry no OpenCLIP tags."""
     return Photo.objects.owned_by(user).filter(
         Q(caption_instance__isnull=True)
@@ -166,7 +178,7 @@ def _untagged_photos(user):
     )
 
 
-def generate_tags(user, job_id: UUID, full_scan=False):
+def generate_tags(user: User, job_id: UUID, full_scan: bool = False) -> None:
     """
     Generate image tags with the active tagging model for photos.
 
@@ -200,7 +212,7 @@ def generate_tags(user, job_id: UUID, full_scan=False):
         lrj.fail(error=err)
 
 
-def generate_tag_job(photo_id, job_id: str):
+def generate_tag_job(photo_id: UUID | Photo, job_id: str) -> None:
     """
     Worker task to generate tags for a single photo.
 
@@ -242,7 +254,7 @@ CV2_DECODABLE_EXTENSIONS = {
 OCR_MIN_CONFIDENCE = 0.6
 
 
-def ocr_image_source(photo: Photo):
+def ocr_image_source(photo: Photo) -> str | None:
     """Return the best local image path to feed the OCR sidecar for ``photo``.
 
     Prefer the original file when its extension is directly cv2-decodable
@@ -261,7 +273,7 @@ def ocr_image_source(photo: Photo):
         return None
 
 
-def generate_ocr(user, job_id: UUID, full_scan=False):
+def generate_ocr(user: User, job_id: UUID, full_scan: bool = False) -> None:
     """
     Extract text (OCR) from photos via the OCR sidecar.
 
@@ -339,7 +351,7 @@ def generate_ocr(user, job_id: UUID, full_scan=False):
         lrj.fail(error=err)
 
 
-def generate_ocr_job(photo_id, job_id: str):
+def generate_ocr_job(photo_id: UUID | Photo, job_id: str) -> None:
     """
     Worker task to run OCR for a single photo and store the result.
 
@@ -362,7 +374,7 @@ def generate_ocr_job(photo_id, job_id: str):
     update_scan_counter(job_id, failed, error)
 
 
-def _get_photo_ocr(photo: Photo):
+def _get_photo_ocr(photo: Photo) -> PhotoOcr | None:
     """Return the photo's :class:`PhotoOcr`, or ``None`` if it has none.
 
     The reverse one-to-one accessor raises when no row exists, so it is guarded.
@@ -434,7 +446,7 @@ def _derive_is_document(
     return new_value
 
 
-def _run_ocr_for_photo(photo: Photo):
+def _run_ocr_for_photo(photo: Photo) -> None:
     """Call the OCR sidecar for ``photo`` and persist the result.
 
     Raises on a non-OK service response so the caller records a per-photo
@@ -464,6 +476,9 @@ def _run_ocr_for_photo(photo: Photo):
             timeout=OCR,
         )
     except requests.HTTPError as error:
+        # sidecars.post raises through raise_for_status(), which always attaches
+        # the response to the error.
+        assert error.response is not None
         raise RuntimeError(
             f"OCR service returned status {error.response.status_code} "
             f"for {image_path}: {sidecars.error_detail(error)}"
@@ -501,7 +516,7 @@ def _run_ocr_for_photo(photo: Photo):
     )
 
 
-def classify_media(user, job_id: UUID):
+def classify_media(user: User, job_id: UUID) -> None:
     """
     Backfill media-category flags (screenshot/document) for a user's photos.
 
@@ -551,10 +566,10 @@ def classify_media(user, job_id: UUID):
         # Two accumulators: is_document is only ever written for photos whose
         # value actually changed (which implies they have OCR), so OCR-less
         # photos' is_document column is never touched.
-        pending_screenshot = []
-        pending_document = []
+        pending_screenshot: list[Photo] = []
+        pending_document: list[Photo] = []
 
-        def flush():
+        def flush() -> None:
             if pending_screenshot:
                 Photo.objects.bulk_update(pending_screenshot, ["is_screenshot"])
                 pending_screenshot.clear()
@@ -600,7 +615,7 @@ def classify_media(user, job_id: UUID):
         lrj.fail(error=err)
 
 
-def videos_to_probe(user):
+def videos_to_probe(user: User) -> QuerySet[Photo]:
     """The user's videos the scan has never probed: indexed before #2045.
 
     A file flagged missing is left out: probing it can only fail, and counting
@@ -615,7 +630,7 @@ def videos_to_probe(user):
     )
 
 
-def _repair_probed_video(photo, fields):
+def _repair_probed_video(photo: Photo, fields: list[str]) -> None:
     """Rebuild what was made from ``photo`` wrongly, then save its probe.
 
     ``fields`` are the probed values :func:`video_color.apply_probe` set on the
@@ -641,7 +656,7 @@ def _repair_probed_video(photo, fields):
     photo.save(save_metadata=False, update_fields=fields)
 
 
-def probe_videos(user, job_id: UUID):
+def probe_videos(user: User, job_id: UUID) -> None:
     """Probe the videos indexed before the scan stored what they are.
 
     New videos are probed as they are scanned. Older ones would never be: the
@@ -697,7 +712,7 @@ def probe_videos(user, job_id: UUID):
         lrj.fail(error=err)
 
 
-def add_geolocation(user, job_id: UUID, full_scan=False):
+def add_geolocation(user: User, job_id: UUID, full_scan: bool = False) -> None:
     """
     Add geolocation data to photos based on GPS coordinates.
 
@@ -731,7 +746,7 @@ def add_geolocation(user, job_id: UUID, full_scan=False):
         lrj.fail(error=err)
 
 
-def geolocation_job(photo_id, job_id: UUID):
+def geolocation_job(photo_id: UUID | Photo, job_id: UUID) -> None:
     """
     Worker task to add geolocation for a single photo.
 
@@ -755,7 +770,7 @@ def geolocation_job(photo_id, job_id: UUID):
     update_scan_counter(job_id, failed, error)
 
 
-def _extract_faces_for_photo(photo: Photo, job_id: UUID):
+def _extract_faces_for_photo(photo: Photo, job_id: UUID) -> None:
     failed = False
     error = None
     try:
@@ -766,7 +781,7 @@ def _extract_faces_for_photo(photo: Photo, job_id: UUID):
     update_scan_counter(job_id, failed, error)
 
 
-def scan_faces(user, job_id: UUID, full_scan=False):
+def scan_faces(user: User, job_id: UUID, full_scan: bool = False) -> None:
     """
     Detect and extract faces from photos.
 

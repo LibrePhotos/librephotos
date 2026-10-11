@@ -38,7 +38,7 @@ SAMSUNG_MOTION_MARKER = b"MotionPhoto_Data"
 APPLE_LIVE_PHOTO_EXTENSIONS = [".mov", ".MOV"]
 
 
-def _locate_google_embedded_video(data: bytes) -> int:
+def _locate_google_embedded_video(data: bytes | mmap) -> int:
     """Find position of embedded MP4 in Google Motion Photo."""
     for signature in GOOGLE_PIXEL_MP4_SIGNATURES:
         position = data.find(signature)
@@ -48,7 +48,7 @@ def _locate_google_embedded_video(data: bytes) -> int:
     return -1
 
 
-def _locate_samsung_embedded_video(data: bytes) -> int:
+def _locate_samsung_embedded_video(data: bytes | mmap) -> int:
     """Find position of embedded video in Samsung Motion Photo."""
     position = data.find(SAMSUNG_MOTION_MARKER)
     if position != -1:
@@ -228,6 +228,8 @@ def _create_embedded_live_photo_stack(
         logger.debug("Embedded media processing disabled")
         return None
 
+    # detect_live_photo returns early for a photo without a main file.
+    assert photo.main_file is not None
     image_path = photo.main_file.path
     video_path = extract_embedded_motion_video(image_path, photo.main_file.hash)
 
@@ -269,6 +271,8 @@ def _create_apple_live_photo_stack(
     """Create stack for Apple Live Photo with companion video."""
     from api.models.photo import Photo
 
+    # detect_live_photo returns early for a photo without a main file.
+    assert photo.main_file is not None
     # Check if video is already a known photo/file
     video_file = File.objects.filter(path=video_path).first()
 

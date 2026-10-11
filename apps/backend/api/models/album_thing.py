@@ -1,5 +1,10 @@
+from __future__ import annotations
+
+from collections.abc import Collection, Iterable
+from typing import Any
+
 from django.db import models
-from django.db.models import Count
+from django.db.models import Count, QuerySet
 from django.db.models.signals import m2m_changed
 from django.dispatch import receiver
 from django.utils import timezone
@@ -12,7 +17,7 @@ from api.models.user import User, get_deleted_user
 COUNTED_PHOTO_FILTER = {"hidden": False, "in_trashcan": False, "removed": False}
 
 
-def update_default_cover_photo(instance):
+def update_default_cover_photo(instance: AlbumThing) -> None:
     current = instance.cover_photos.count()
     if current < 4:
         listed = instance.photos.filter(**COUNTED_PHOTO_FILTER)
@@ -45,26 +50,42 @@ class AlbumThing(models.Model):
             )
         ]
 
-    def save(self, *args, **kwargs):
+    def save(self, *args: Any, **kwargs: Any) -> None:
         super().save(*args, **kwargs)
 
-    def update_default_cover_photo(self):
+    def update_default_cover_photo(self) -> None:
         update_default_cover_photo(self)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "%d: %s" % (self.id or 0, self.title)
 
 
 @receiver(m2m_changed, sender=AlbumThing.photos.through)
-def update_photo_count(sender, instance, action, reverse, model, pk_set, **kwargs):
-    if action == "post_add" or (action == "post_remove" and not reverse):
-        count = instance.photos.filter(**COUNTED_PHOTO_FILTER).count()
-        instance.photo_count = count
-        instance.save(update_fields=["photo_count"])
-        instance.update_default_cover_photo()
+def update_photo_count(
+    sender: type[models.Model],
+    instance: AlbumThing | Photo,
+    action: str,
+    reverse: bool,
+    model: type[models.Model],
+    pk_set: set[int] | None,
+    **kwargs: Any,
+) -> None:
+    if action not in ("post_add", "post_remove"):
+        return
+    # From photo.albumthing_set the instance is the Photo and pk_set holds the
+    # albums.
+    albums: Iterable[AlbumThing] = (
+        [instance]
+        if isinstance(instance, AlbumThing)
+        else AlbumThing.objects.filter(pk__in=pk_set or [])
+    )
+    for album in albums:
+        album.photo_count = album.photos.filter(**COUNTED_PHOTO_FILTER).count()
+        album.save(update_fields=["photo_count"])
+        album.update_default_cover_photo()
 
 
-def album_thing_ids_for_photos(photos):
+def album_thing_ids_for_photos(photos: QuerySet[Photo]) -> list[int]:
     """The ids of every thing album holding one of ``photos``.
 
     Taken before the photos change, like ``tag_ids_for_photos``.
@@ -76,7 +97,7 @@ def album_thing_ids_for_photos(photos):
     )
 
 
-def refresh_album_thing_photo_counts(album_ids):
+def refresh_album_thing_photo_counts(album_ids: Collection[int]) -> int:
     """Recompute ``photo_count`` for ``album_ids``.
 
     The receiver above runs only when photos join or leave the album, not when
@@ -87,7 +108,7 @@ def refresh_album_thing_photo_counts(album_ids):
     if not album_ids:
         return 0
 
-    counts = dict(
+    grouped = (
         AlbumThing.photos.through.objects.filter(
             albumthing_id__in=album_ids,
             **{
@@ -97,8 +118,8 @@ def refresh_album_thing_photo_counts(album_ids):
         )
         .values("albumthing_id")
         .annotate(total=Count("pk"))
-        .values_list("albumthing_id", "total")
     )
+    counts = {row["albumthing_id"]: row["total"] for row in grouped}
     albums = list(AlbumThing.objects.filter(pk__in=album_ids).only("pk"))
     # bulk_update skips auto_now; the mobile sync mirrors photo_count by
     # last_modified, so it is bumped by hand.
@@ -110,7 +131,9 @@ def refresh_album_thing_photo_counts(album_ids):
     return len(albums)
 
 
-def set_photo_album_things(photo, titles, thing_type):
+def set_photo_album_things(
+    photo: Photo, titles: Iterable[str], thing_type: str
+) -> None:
     """File *photo* under exactly the thing albums *titles* of *thing_type*.
 
     The state removing it from each of its albums of that type and adding it to
@@ -167,18 +190,20 @@ def set_photo_album_things(photo, titles, thing_type):
     # each of them: count, last_modified, and covers for those short of four.
     touched = current | wanted
     refresh_album_thing_photo_counts(list(touched))
-    covers = dict(
+    covers_grouped = (
         AlbumThing.cover_photos.through.objects.filter(albumthing_id__in=touched)
         .values("albumthing_id")
         .annotate(total=Count("pk"))
-        .values_list("albumthing_id", "total")
     )
+    covers = {row["albumthing_id"]: row["total"] for row in covers_grouped}
     short = [pk for pk in touched if covers.get(pk, 0) < 4]
     for album in AlbumThing.objects.filter(pk__in=short):
         update_default_cover_photo(album)
 
 
-def get_album_thing(title, owner, thing_type=None):
+def get_album_thing(
+    title: str, owner: User, thing_type: str | None = None
+) -> AlbumThing:
     return AlbumThing.objects.get_or_create(
         title=title, owner=owner, thing_type=thing_type
     )[0]

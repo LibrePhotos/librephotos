@@ -1,17 +1,22 @@
 import logging
+from typing import Any
 
 from django.conf import settings
-from rest_framework import mixins, status, viewsets
-from rest_framework.permissions import AllowAny, IsAdminUser
+from django.db.models import QuerySet
+from rest_framework import mixins, serializers, status, viewsets
+from rest_framework.permissions import AllowAny, BasePermission, IsAdminUser
+from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from api.api_util import path_to_dict
-from api.date_time_extractor import DEFAULT_RULES_JSON, PREDEFINED_RULES_JSON
 from api.burst_detection_rules import (
     DEFAULT_RULES_JSON as BURST_DEFAULT_RULES_JSON,
+)
+from api.burst_detection_rules import (
     PREDEFINED_RULES_JSON as BURST_PREDEFINED_RULES_JSON,
 )
+from api.date_time_extractor import DEFAULT_RULES_JSON, PREDEFINED_RULES_JSON
 from api.models import User
 from api.permissions import IsAdminOrFirstTimeSetupOrRegistrationAllowed, IsAdminOrSelf
 from api.serializers.user import (
@@ -27,13 +32,13 @@ logger = logging.getLogger(__name__)
 
 
 class DefaultRulesView(APIView):
-    def get(self, request, format=None):
+    def get(self, request: Request, format: str | None = None) -> Response:
         res = DEFAULT_RULES_JSON
         return Response(res)
 
 
 class PredefinedRulesView(APIView):
-    def get(self, request, format=None):
+    def get(self, request: Request, format: str | None = None) -> Response:
         res = PREDEFINED_RULES_JSON
         return Response(res)
 
@@ -41,7 +46,7 @@ class PredefinedRulesView(APIView):
 class DefaultBurstRulesView(APIView):
     """Get default burst detection rules."""
 
-    def get(self, request, format=None):
+    def get(self, request: Request, format: str | None = None) -> Response:
         res = BURST_DEFAULT_RULES_JSON
         return Response(res)
 
@@ -49,7 +54,7 @@ class DefaultBurstRulesView(APIView):
 class PredefinedBurstRulesView(APIView):
     """Get all predefined burst detection rules (default + optional)."""
 
-    def get(self, request, format=None):
+    def get(self, request: Request, format: str | None = None) -> Response:
         res = BURST_PREDEFINED_RULES_JSON
         return Response(res)
 
@@ -57,7 +62,7 @@ class PredefinedBurstRulesView(APIView):
 class RootPathTreeView(APIView):
     permission_classes = (IsAdminUser,)
 
-    def get(self, request, format=None):
+    def get(self, request: Request, format: str | None = None) -> Response:
         try:
             path = self.request.query_params.get("path")
             base_path = settings.DATA_ROOT
@@ -85,7 +90,7 @@ class RootPathTreeView(APIView):
 class IsFirstTimeSetupView(APIView):
     permission_classes = (AllowAny,)
 
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         return Response(
             {"isFirstTimeSetup": not User.objects.filter(is_superuser=True).exists()}
         )
@@ -101,7 +106,7 @@ NO_DELETE = ["get", "post", "put", "patch", "head", "options"]
 class UserViewSet(viewsets.ModelViewSet):
     http_method_names = NO_DELETE
 
-    def get_queryset(self):
+    def get_queryset(self) -> QuerySet[User]:
         queryset = (
             User.objects.exclude(is_active=False)
             # Every field the serializers read is loaded with the row: an
@@ -114,7 +119,7 @@ class UserViewSet(viewsets.ModelViewSet):
             return queryset.exclude(public_sharing=False)
         return queryset
 
-    def get_serializer_class(self):
+    def get_serializer_class(self) -> type[serializers.BaseSerializer[User]]:
         if self.action == "create":
             if self.request.user.is_authenticated and self.request.user.is_superuser:
                 return UserSerializer
@@ -143,8 +148,8 @@ class UserViewSet(viewsets.ModelViewSet):
         # get_permissions (IsAdminOrSelf) and need the full serializer.
         return UserSerializer
 
-    def get_permissions(self):
-        permission_classes = [IsAdminUser]
+    def get_permissions(self) -> list[BasePermission]:
+        permission_classes: list[type[BasePermission]] = [IsAdminUser]
         if self.action == "create":
             permission_classes = [IsAdminOrFirstTimeSetupOrRegistrationAllowed]
         elif self.action in ["list", "retrieve"]:
@@ -164,7 +169,7 @@ class DeleteUserViewSet(mixins.DestroyModelMixin, viewsets.GenericViewSet):
     serializer_class = DeleteUserSerializer
     permission_classes = (IsAdminUser,)
 
-    def destroy(self, request, *args, **kwargs):
+    def destroy(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         if not request.user.is_superuser:
             return Response(status=status.HTTP_401_UNAUTHORIZED)
         instance = self.get_object()
@@ -185,8 +190,8 @@ class ManageUserViewSet(viewsets.ModelViewSet):
     serializer_class = ManageUserSerializer
     permission_classes = (IsAdminUser,)
 
-    def retrieve(self, *args, **kwargs):
+    def retrieve(self, *args: Any, **kwargs: Any) -> Response:
         return super().retrieve(*args, **kwargs)
 
-    def list(self, *args, **kwargs):
+    def list(self, *args: Any, **kwargs: Any) -> Response:
         return super().list(*args, **kwargs)

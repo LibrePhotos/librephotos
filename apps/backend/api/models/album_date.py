@@ -1,4 +1,7 @@
+import datetime
+
 from django.db import connection, models, transaction
+from django.db.models import QuerySet
 
 from api.models.photo import Photo
 from api.models.user import User, get_deleted_user
@@ -19,10 +22,10 @@ class AlbumDate(models.Model):
     class Meta:
         unique_together = ("date", "owner")
 
-    def __str__(self):
+    def __str__(self) -> str:
         return str(self.date) + " (" + str(self.owner) + ")"
 
-    def ordered_photos(self):
+    def ordered_photos(self) -> QuerySet[Photo]:
         return self.photos.all().order_by("-exif_timestamp")
 
 
@@ -30,7 +33,7 @@ class AlbumDate(models.Model):
 _UNDATED_ALBUM_LOCK = 0x4C500001
 
 
-def _get_or_create_undated_album(owner):
+def _get_or_create_undated_album(owner: User) -> AlbumDate:
     """The owner's album for photos without a date, created once.
 
     unique_together does not hold for ``date=NULL`` (NULLs are distinct), so
@@ -52,21 +55,24 @@ def _get_or_create_undated_album(owner):
     return album
 
 
-def get_or_create_album_date(date, owner):
+def get_or_create_album_date(date: datetime.date | None, owner: User) -> AlbumDate:
     if date is None:
         return _get_or_create_undated_album(owner)
     try:
         return AlbumDate.objects.get_or_create(date=date, owner=owner)[0]
     except AlbumDate.MultipleObjectsReturned:
-        return AlbumDate.objects.filter(date=date, owner=owner).first()
+        album = AlbumDate.objects.filter(date=date, owner=owner).first()
+        # MultipleObjectsReturned just showed rows for this date and owner.
+        assert album is not None
+        return album
 
 
-def get_album_date(date, owner):
+def get_album_date(date: datetime.date | None, owner: User) -> AlbumDate | None:
     try:
         return AlbumDate.objects.get(date=date, owner=owner)
     except Exception:
         return None
 
 
-def get_album_nodate(owner):
+def get_album_nodate(owner: User) -> AlbumDate:
     return _get_or_create_undated_album(owner)

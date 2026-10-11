@@ -1,4 +1,7 @@
-from django.core.management.base import BaseCommand
+from typing import Any
+
+from django.core.management.base import BaseCommand, CommandParser
+from django.db.models import QuerySet
 
 from api.models import Photo, User
 
@@ -6,7 +9,7 @@ from api.models import Photo, User
 class Command(BaseCommand):
     help = "Save metadata to image files (or XMP sidecar files)"
 
-    def add_arguments(self, parser):
+    def add_arguments(self, parser: CommandParser) -> None:
         parser.add_argument(
             "--types",
             nargs="+",
@@ -36,7 +39,9 @@ class Command(BaseCommand):
             help="Only show what would be written, don't actually write",
         )
 
-    def select_photos(self, username, metadata_types):
+    def select_photos(
+        self, username: str | None, metadata_types: list[str]
+    ) -> QuerySet[Photo] | None:
         photos = Photo.objects.all()
 
         if username:
@@ -55,7 +60,13 @@ class Command(BaseCommand):
 
         return photos
 
-    def write_photos(self, photos, total, use_sidecar, metadata_types):
+    def write_photos(
+        self,
+        photos: QuerySet[Photo],
+        total: int,
+        use_sidecar: bool,
+        metadata_types: list[str],
+    ) -> tuple[int, int]:
         written = 0
         errors = 0
         for i, photo in enumerate(photos.iterator(), 1):
@@ -75,7 +86,7 @@ class Command(BaseCommand):
 
         return written, errors
 
-    def handle(self, *args, **options):
+    def handle(self, *args: Any, **options: Any) -> None:
         metadata_types = options["types"]
 
         photos = self.select_photos(options["user"], metadata_types)

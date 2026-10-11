@@ -3,19 +3,22 @@ import os
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.request import Request
 from rest_framework.response import Response
 from django.conf import settings
 from django.db.models import Count
 
+from api.request_user import request_user
 from api.util import folder_path_q, is_valid_path
 from api.models.photo import Photo
+from api.models.user import User
 
 logger = logging.getLogger(__name__)
 
 PAGE_SIZE = 100
 
 
-def _requested_page(request):
+def _requested_page(request: Request) -> int:
     try:
         page = int(request.query_params.get("page", 1))
     except (ValueError, TypeError):
@@ -23,17 +26,19 @@ def _requested_page(request):
     return page if page >= 1 else 1
 
 
-def _user_scan_directory(user):
+def _user_scan_directory(user: User) -> str | None:
     if not hasattr(user, "scan_directory"):
         return None
     return user.scan_directory or None
 
 
-def _default_path(request, is_admin):
+def _default_path(
+    request: Request, is_admin: bool
+) -> tuple[str | None, Response | None]:
     """Return (path, error_response); exactly one of them is set."""
     if is_admin:
         return settings.DATA_ROOT, None
-    scan_directory = _user_scan_directory(request.user)
+    scan_directory = _user_scan_directory(request_user(request))
     if not scan_directory:
         return None, Response(
             {"error": "User scan directory not configured"}, status=403
@@ -41,7 +46,7 @@ def _default_path(request, is_admin):
     return scan_directory, None
 
 
-def _validate_path(base_path):
+def _validate_path(base_path: str) -> Response | None:
     if not os.path.exists(base_path):
         return Response({"error": "Path does not exist"}, status=400)
     if not os.path.isdir(base_path):
@@ -49,13 +54,13 @@ def _validate_path(base_path):
     return None
 
 
-def _check_access(request, base_path, is_admin):
+def _check_access(request: Request, base_path: str, is_admin: bool) -> Response | None:
     if is_admin:
         if not is_valid_path(base_path, settings.DATA_ROOT):
             return Response({"error": "Access denied"}, status=403)
         return None
 
-    scan_directory = _user_scan_directory(request.user)
+    scan_directory = _user_scan_directory(request_user(request))
     if not scan_directory:
         return Response({"error": "User scan directory not configured"}, status=403)
     if not os.path.exists(scan_directory):
@@ -73,13 +78,13 @@ def _check_access(request, base_path, is_admin):
     return None
 
 
-def _parent_path(request, base_path, is_admin):
-    root = settings.DATA_ROOT if is_admin else request.user.scan_directory
+def _parent_path(request: Request, base_path: str, is_admin: bool) -> str | None:
+    root = settings.DATA_ROOT if is_admin else request_user(request).scan_directory
     return os.path.dirname(base_path) if base_path != root else None
 
 
-def _scan_folder_entries(base_path):
-    entries = []
+def _scan_folder_entries(base_path: str) -> list[tuple[str, str, float]]:
+    entries: list[tuple[str, str, float]] = []
     for item in os.scandir(base_path):
         if item.is_dir() and not item.name.startswith("."):
             entries.append((item.name, item.path, os.path.getmtime(item.path)))
@@ -87,7 +92,7 @@ def _scan_folder_entries(base_path):
     return entries
 
 
-def _photo_counts(user, entries):
+def _photo_counts(user: User, entries: list[tuple[str, str, float]]) -> list[int]:
     aggregates = {
         f"count_{idx}": Count(
             "pk",
@@ -103,7 +108,9 @@ def _photo_counts(user, entries):
     return [counts.get(f"count_{idx}", 0) or 0 for idx in range(len(entries))]
 
 
-def _folder_listing(user, entries):
+def _folder_listing(
+    user: User, entries: list[tuple[str, str, float]]
+) -> list[dict[str, str | int | float]]:
     counts = _photo_counts(user, entries)
     return [
         {
@@ -117,7 +124,13 @@ def _folder_listing(user, entries):
     ]
 
 
-def _folder_response(base_path, parent_path, subfolders, page, total_folders):
+def _folder_response(
+    base_path: str | None,
+    parent_path: str | None,
+    subfolders: list[dict[str, str | int | float]],
+    page: int,
+    total_folders: int,
+) -> Response:
     total_pages = (total_folders + PAGE_SIZE - 1) // PAGE_SIZE
     return Response(
         {
@@ -155,17 +168,18 @@ class FolderNavigationViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
 
     @action(detail=False, methods=["get"])
-    def subfolders(self, request):
+    def subfolders(self, request: Request) -> Response:
         """Get subfolders for a given path with pagination."""
         page = _requested_page(request)
-        is_admin = request.user.is_staff if request.user else False
+        user = request_user(request)
+        is_admin = user.is_staff
 
         # No scan directory is the normal state of a user who only sees shared
         # albums: an empty listing, not a denial. An explicit path is still
         # refused below.
         if (
             not is_admin
-            and not _user_scan_directory(request.user)
+            and not _user_scan_directory(user)
             and "path" not in request.query_params
         ):
             return _folder_response(None, None, [], page, 0)
@@ -173,6 +187,8 @@ class FolderNavigationViewSet(viewsets.ViewSet):
         default_path, error = _default_path(request, is_admin)
         if error:
             return error
+        # _default_path returns a path whenever it returns no error.
+        assert default_path is not None
 
         base_path = request.query_params.get("path", default_path)
 
@@ -197,7 +213,7 @@ class FolderNavigationViewSet(viewsets.ViewSet):
             return _folder_response(
                 base_path,
                 parent_path,
-                _folder_listing(request.user, paginated_entries),
+                _folder_listing(user, paginated_entries),
                 page,
                 len(folder_entries),
             )

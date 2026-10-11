@@ -6,15 +6,18 @@ by a module-level function. No per-row DB access, no N+1. The output columns
 mirror the client's ``remote_*`` tables (doc 02 §1).
 """
 
+from datetime import datetime
+from typing import Any
 
-def to_ms(dt):
+
+def to_ms(dt: datetime | None) -> int | None:
     """UTC datetime -> integer milliseconds since epoch, or None."""
     if dt is None:
         return None
     return int(dt.timestamp() * 1000)
 
 
-def dominant_hex(raw):
+def dominant_hex(raw: str | None) -> str | None:
     """Thumbnail.dominant_color is stored as ``"[r, g, b]"``; emit ``#rrggbb``."""
     if not raw:
         return None
@@ -26,7 +29,7 @@ def dominant_hex(raw):
         return None
 
 
-def _video_length_ms(raw):
+def _video_length_ms(raw: str | None) -> int | None:
     if not raw:
         return None
     try:
@@ -63,7 +66,7 @@ PHOTO_VALUES = (
 )
 
 
-def serialize_photo_row(row):
+def serialize_photo_row(row: dict[str, Any]) -> dict[str, Any]:
     """Turn one ``.values()`` dict (annotated with ``has_motion``) into a
     flat wire dict matching the client's ``remote_photo`` columns."""
     min_rating = row.get("owner__favorite_min_rating") or 0
@@ -117,7 +120,7 @@ PERSON_VALUES = (
 )
 
 
-def serialize_person_row(row):
+def serialize_person_row(row: dict[str, Any]) -> dict[str, Any]:
     return {
         "id": row["id"],
         "name": row["name"],
@@ -142,7 +145,9 @@ USER_ALBUM_VALUES = (
 )
 
 
-def serialize_user_album_row(row, photo_ids, shared):
+def serialize_user_album_row(
+    row: dict[str, Any], photo_ids: list[str], shared: bool
+) -> dict[str, Any]:
     return {
         "id": row["id"],
         "title": row["title"],
@@ -166,7 +171,9 @@ AUTO_ALBUM_VALUES = (
 )
 
 
-def serialize_auto_album_row(row, photo_ids, cover_hash):
+def serialize_auto_album_row(
+    row: dict[str, Any], photo_ids: list[str], cover_hash: str | None
+) -> dict[str, Any]:
     return {
         "id": row["id"],
         "title": row["title"],
@@ -181,8 +188,12 @@ def serialize_auto_album_row(row, photo_ids, cover_hash):
 
 # Thing / place / tag: mirror only the list (photo_count + cover hashes), not
 # membership (doc 02 §1).
-def serialize_named_album_row(row, cover_hashes, extra=None):
-    out = {
+def serialize_named_album_row(
+    row: dict[str, Any],
+    cover_hashes: list[str],
+    extra: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    out: dict[str, Any] = {
         "id": row["id"],
         "title": row["title"],
         "photo_count": row["photo_count"],
@@ -207,7 +218,7 @@ SHARED_USER_VALUES = (
 )
 
 
-def serialize_shared_user_row(row):
+def serialize_shared_user_row(row: dict[str, Any]) -> dict[str, Any]:
     avatar = row.get("avatar")
     return {
         "id": row["id"],

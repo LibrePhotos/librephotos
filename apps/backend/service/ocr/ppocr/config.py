@@ -35,7 +35,7 @@ DEFAULT_MODEL_DIR = os.path.join(
 )
 
 
-def resolve_model_dir(model_dir=None):
+def resolve_model_dir(model_dir: str | None = None) -> str:
     """Resolve the bundle directory: explicit arg > env override > default."""
     if model_dir:
         return model_dir
@@ -49,7 +49,7 @@ class OCRConfigError(RuntimeError):
 class OCRConfig:
     """Parsed ``config.json`` + ``charset.txt`` for one bundle."""
 
-    def __init__(self, model_dir=None):
+    def __init__(self, model_dir: str | None = None) -> None:
         self.model_dir = resolve_model_dir(model_dir)
         self.config_path = os.path.join(self.model_dir, "config.json")
         self.charset_path = os.path.join(self.model_dir, "charset.txt")
@@ -57,7 +57,7 @@ class OCRConfig:
         self.rec_model_path = os.path.join(self.model_dir, "rec.onnx")
         self._load()
 
-    def _load(self):
+    def _load(self) -> None:
         with open(self.config_path, encoding="utf-8") as f:
             raw = json.load(f)
 
@@ -91,7 +91,7 @@ class OCRConfig:
         if not self.charset:
             raise OCRConfigError(f"empty charset at {self.charset_path}")
 
-    def _load_charset(self):
+    def _load_charset(self) -> list[str]:
         """Load charset preserving order and interior spaces.
 
         Only the trailing newline of each entry is stripped - a charset entry
@@ -106,7 +106,7 @@ class OCRConfig:
             charset = charset[:-1]
         return charset
 
-    def build_decode_charset(self, rec_output_dim):
+    def build_decode_charset(self, rec_output_dim: int) -> list[str]:
         """Build the CTC index -> string table and validate against the model.
 
         Index 0 is the CTC blank.  Indices ``1..len(charset)`` map to the
@@ -137,7 +137,7 @@ class OCRConfig:
             decode.append(" ")
         return decode
 
-    def _note_space_class_mismatch(self, n_extra):
+    def _note_space_class_mismatch(self, n_extra: int) -> None:
         """Report a use_space_char flag that disagrees with the model geometry.
 
         The model geometry is authoritative; ``config.json``'s use_space_char

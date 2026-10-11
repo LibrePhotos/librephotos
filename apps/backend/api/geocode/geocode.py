@@ -12,35 +12,36 @@ logger = logging.getLogger(__name__)
 
 
 class Geocode:
-    def __init__(self, provider):
+    def __init__(self, provider: str) -> None:
         self._provider_config = get_provider_config(provider)
         self._parser = get_provider_parser(provider)
         self._geocoder = geopy.get_geocoder_for_service(provider)(
             **self._provider_config
         )
 
-    def reverse(self, lat: float, lon: float) -> dict:
-        if (
-            "geocode_args" in self._provider_config
-            and "api_key" in self._provider_config["geocode_args"]
-            and self._provider_config["geocode_args"]["api_key"] is None
-        ):
+    def _missing_api_key(self) -> bool:
+        """True (and warn) when the provider needs a key and MAP_API_KEY is unset.
+
+        The constance default for MAP_API_KEY is "", so an unset key is falsy
+        rather than None. Without this check geopy sends the request with an
+        empty key and the provider rejects it.
+        """
+        if "api_key" in self._provider_config and not self._provider_config["api_key"]:
             logger.warning(
                 "No API key found for map provider. Please set MAP_API_KEY in the admin panel or switch map provider."
             )
+            return True
+        return False
+
+    def reverse(self, lat: float, lon: float) -> dict:
+        if self._missing_api_key():
             return {}
         location = self._geocoder.reverse(f"{lat},{lon}")
         return self._parser(location)
 
     def search(self, query: str, limit: int = 5) -> List[dict]:
         """Forward geocoding: search for locations by name/address."""
-        if (
-            "api_key" in self._provider_config
-            and self._provider_config["api_key"] is None
-        ):
-            logger.warning(
-                "No API key found for map provider. Please set MAP_API_KEY in the admin panel or switch map provider."
-            )
+        if self._missing_api_key():
             return []
         locations = self._geocoder.geocode(query, exactly_one=False, limit=limit)
         if not locations:

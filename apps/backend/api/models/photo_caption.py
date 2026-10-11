@@ -1,5 +1,9 @@
+from __future__ import annotations
+
 import logging
 import math
+from collections.abc import Iterable, Mapping, Sequence
+from typing import TYPE_CHECKING
 
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
@@ -12,6 +16,11 @@ from api import sidecars
 from api.image_captioning import generate_caption
 from api.models.user import User
 from api.semantic_search import OPENCLIP, TAG_THING_TYPE, semantic_shares_tagger
+
+if TYPE_CHECKING:
+    from django.db.models import QuerySet
+
+    from api.models.album_thing import AlbumThing
 
 logger = logging.getLogger(__name__)
 
@@ -33,24 +42,34 @@ class PhotoCaption(models.Model):
     class Meta:
         db_table = "api_photo_caption"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"Captions for {self.photo.image_hash}"
 
-    def _resolve_thumbnail_path(self):
+    def _resolve_thumbnail_path(self) -> str | None:
         """Path of the big thumbnail, or None when it is missing or unreadable"""
-        if not self.photo.thumbnail or not self.photo.thumbnail.thumbnail_big:
+        # The reverse one-to-one raises when the photo has no Thumbnail row; that
+        # is the "missing" case, not an error.
+        try:
+            thumbnail = self.photo.thumbnail
+        except ObjectDoesNotExist:
+            logger.warning(f"No thumbnail available for photo {self.photo.image_hash}")
+            return None
+
+        if not thumbnail.thumbnail_big:
             logger.warning(f"No thumbnail available for photo {self.photo.image_hash}")
             return None
 
         try:
-            return self.photo.thumbnail.thumbnail_big.path
+            return thumbnail.thumbnail_big.path
         except Exception:
             logger.warning(
                 f"Cannot access thumbnail path for photo {self.photo.image_hash}"
             )
             return None
 
-    def _caption_context(self, llm_settings):
+    def _caption_context(
+        self, llm_settings: Mapping[str, object]
+    ) -> tuple[str | None, str | None, bool] | None:
         """(person name, location, keywords flag) for prompting, or None if off.
 
         The user's caption-context switches (``llm_settings``, a historical
@@ -60,16 +79,16 @@ class PhotoCaption(models.Model):
         if not llm_settings["enabled"]:
             return None
 
-        person_name = None
+        person_name: str | None = None
         if llm_settings["add_person"]:
             face = (
                 api.models.Face.objects.filter(photo=self.photo, person__isnull=False)
                 .select_related("person")
                 .first()
             )
-            person_name = face.person.name if face else None
+            person_name = face.person.name if face and face.person is not None else None
 
-        location = None
+        location: str | None = None
         if llm_settings["add_location"]:
             # A photo that has not been through the scan yet has no search row.
             try:
@@ -79,10 +98,10 @@ class PhotoCaption(models.Model):
             if search_instance and search_instance.search_location:
                 location = search_instance.search_location
 
-        return person_name, location, llm_settings["add_keywords"]
+        return person_name, location, bool(llm_settings["add_keywords"])
 
     @staticmethod
-    def _caption_prompt(context):
+    def _caption_prompt(context: tuple[str | None, str | None, bool] | None) -> str:
         """The prompt for the vision-language captioner, with what we know."""
         if context is None:
             return "Describe this image in a short, natural image caption."
@@ -99,7 +118,9 @@ class PhotoCaption(models.Model):
         keywords = " Include relevant tags and keywords." if add_keywords else ""
         return "Write a short, natural image caption." + person + place + keywords
 
-    def _store_generated_caption(self, captions, caption, commit):
+    def _store_generated_caption(
+        self, captions: dict[str, object], caption: str, commit: bool
+    ) -> None:
         # Historical key: every generated caption, whichever model wrote it,
         # lives under "im2txt" so the search index and the clients keep
         # finding it.
@@ -109,7 +130,7 @@ class PhotoCaption(models.Model):
         if commit:
             self.save()
 
-    def generate_captions_im2txt(self, commit=True):
+    def generate_captions_im2txt(self, commit: bool = True) -> bool:
         """Generate a caption for the photo with the captioning sidecar.
 
         The name is historical (im2txt was the first model). The prompt
@@ -151,7 +172,7 @@ class PhotoCaption(models.Model):
             logger.exception(f"could not generate caption for image {image_path}")
             return False
 
-    def save_user_caption(self, caption, commit=True):
+    def save_user_caption(self, caption: str, commit: bool = True) -> bool:
         """Save user-provided caption"""
         image_path = self._resolve_thumbnail_path()
         if image_path is None:
@@ -167,7 +188,7 @@ class PhotoCaption(models.Model):
             logger.exception(f"could not save captions for image {image_path}")
             return False
 
-    def apply_user_caption(self, caption, commit=True):
+    def apply_user_caption(self, caption: str, commit: bool = True) -> str:
         """Set ``user_caption`` and everything that hangs off it.
 
         The single code path for the lightbox caption, whether the user typed it
@@ -190,7 +211,7 @@ class PhotoCaption(models.Model):
         self._sync_hashtag_album_things(caption)
         return caption
 
-    def _photo_album_things(self, thing_types):
+    def _photo_album_things(self, thing_types: Iterable[str]) -> QuerySet[AlbumThing]:
         """AlbumThings of the given types that own this photo, for this owner"""
         return api.models.album_thing.AlbumThing.objects.filter(
             Q(photos__in=[self.photo])
@@ -198,12 +219,14 @@ class PhotoCaption(models.Model):
             & Q(owner=self.photo.owner)
         ).all()
 
-    def _detach_photo_from_album_things(self, thing_types):
+    def _detach_photo_from_album_things(self, thing_types: Iterable[str]) -> None:
         for album_thing in self._photo_album_things(thing_types):
             album_thing.photos.remove(self.photo)
             album_thing.save()
 
-    def _attach_photo_to_album_things(self, titles, thing_type):
+    def _attach_photo_to_album_things(
+        self, titles: Iterable[str], thing_type: str
+    ) -> None:
         for title in titles:
             album_thing = api.models.album_thing.get_album_thing(
                 title=title,
@@ -213,7 +236,7 @@ class PhotoCaption(models.Model):
             album_thing.photos.add(self.photo)
             album_thing.save()
 
-    def _sync_hashtag_album_things(self, caption):
+    def _sync_hashtag_album_things(self, caption: str) -> None:
         """Add album things for hashtags in the caption, drop the ones gone from it"""
         hashtags = [
             word for word in caption.split() if word.startswith("#") and len(word) > 1
@@ -234,7 +257,7 @@ class PhotoCaption(models.Model):
                 album_thing.photos.remove(self.photo)
                 album_thing.save()
 
-    def recreate_search_captions(self):
+    def recreate_search_captions(self) -> None:
         """Recreate search captions - directly access PhotoSearch model"""
         from api.models.photo_search import PhotoSearch
 
@@ -242,7 +265,7 @@ class PhotoCaption(models.Model):
         search_instance.recreate_search_captions()
         search_instance.save()
 
-    def generate_tag_captions(self, commit=True):
+    def generate_tag_captions(self, commit: bool = True) -> None:
         """Tag the photo with OpenCLIP (api.semantic_search).
 
         The tags go to ``captions_json[OPENCLIP]`` and the photo's tag albums.
@@ -253,7 +276,11 @@ class PhotoCaption(models.Model):
             logger.info("Scene classification is disabled")
             return
 
-        if not self.photo.thumbnail or not self.photo.thumbnail.thumbnail_big:
+        try:
+            thumbnail = self.photo.thumbnail
+        except ObjectDoesNotExist:
+            return
+        if not thumbnail.thumbnail_big:
             return
 
         # Skip if this photo already has OpenCLIP tags
@@ -283,6 +310,8 @@ class PhotoCaption(models.Model):
                     "tags", "/generate-tags", json=json_data, timeout=TAGS
                 )
             except requests.HTTPError as error:
+                # raise_for_status() always attaches the response it checked.
+                assert error.response is not None
                 logger.warning(
                     f"Tag service returned status {error.response.status_code} "
                     f"for image {image_path}: {sidecars.error_detail(error)}"
@@ -318,7 +347,7 @@ class PhotoCaption(models.Model):
             )
             raise e
 
-    def store_tags(self, tags, commit=True):
+    def store_tags(self, tags: Iterable[str], commit: bool = True) -> None:
         """File OpenCLIP's tags for this photo: ``captions_json``, the search
         captions and the photo's tag albums."""
         if self.captions_json is None:
@@ -330,14 +359,14 @@ class PhotoCaption(models.Model):
         if commit:
             self.save()
 
-    def _store_search_embedding(self, embedding):
+    def _store_search_embedding(self, embedding: Sequence[float]) -> None:
         """Store the tagger's image embedding as the photo's search embedding.
 
         A queryset update of the embedding columns only: the photo row was
         read before the sidecar call, and a save would write all of it back.
         """
         magnitude = math.sqrt(sum(value * value for value in embedding))
-        fields = {
+        fields: dict[str, object] = {
             "clip_embeddings": embedding,
             "clip_embeddings_magnitude": magnitude,
             "clip_embeddings_model": OPENCLIP,
@@ -348,11 +377,11 @@ class PhotoCaption(models.Model):
         for name, value in fields.items():
             setattr(self.photo, name, value)
 
-    def _update_tag_album_things(self, tag_result):
+    def _update_tag_album_things(self, tag_result: dict[str, list[str]] | None) -> None:
         """Replace this photo's OpenCLIP tag-album memberships."""
         tags = (tag_result or {}).get("tags", [])
         api.models.album_thing.set_photo_album_things(self.photo, tags, TAG_THING_TYPE)
 
     # Backward-compatible alias
-    def generate_places365_captions(self, commit=True):
-        return self.generate_tag_captions(commit=commit)
+    def generate_places365_captions(self, commit: bool = True) -> None:
+        self.generate_tag_captions(commit=commit)

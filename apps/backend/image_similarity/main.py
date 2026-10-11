@@ -20,6 +20,7 @@ forgets them until the next Calculate CLIP embeddings job.
 
 import os
 
+from flask.typing import ResponseReturnValue
 from retrieval_index import IndexBuildError, RetrievalIndex
 from utils import logger
 
@@ -35,20 +36,20 @@ app = create_app("image_similarity")
 index = RetrievalIndex(store_dir=INDEX_ROOT)
 
 
-def _user_id(value):
+def _user_id(value: object) -> int:
     # The id names a file under INDEX_ROOT, so nothing but an integer will do.
     if isinstance(value, bool) or not isinstance(value, int):
         raise ValueError(f"user_id must be an integer, not {value!r}")
     return value
 
 
-def _failed(message, status=400):
+def _failed(message: str, status: int = 400) -> tuple[dict[str, object], int]:
     logger.error(message)
     return {"status": False, "error": message}, status
 
 
 @app.route("/build/", methods=["POST"])
-def build_index():
+def build_index() -> ResponseReturnValue:
     user_id, image_hashes, image_embeddings, begin, commit = json_fields(
         "user_id", "image_hashes", "image_embeddings", begin=False, commit=False
     )
@@ -76,7 +77,7 @@ def build_index():
 
 
 @app.route("/build/", methods=["DELETE"])
-def delete_index():
+def delete_index() -> ResponseReturnValue:
     (user_id,) = json_fields("user_id")
     try:
         index.remove_user(_user_id(user_id))
@@ -86,7 +87,7 @@ def delete_index():
 
 
 @app.route("/search/", methods=["POST"])
-def search_index():
+def search_index() -> ResponseReturnValue:
     user_id, image_embedding, n, threshold = json_fields(
         "user_id", "image_embedding", n=100, threshold=27.0
     )
@@ -104,7 +105,7 @@ def search_index():
     return {"status": True, "result": result}
 
 
-def serve():
+def serve() -> None:
     serve_forever(app, "image_similarity")
 
 

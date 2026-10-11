@@ -1,6 +1,32 @@
+from __future__ import annotations
+
+from typing import Any, TypedDict
+
 from django.conf import settings
 from django.db import models
 from django_cryptography.fields import encrypt
+
+
+class SmtpKwargs(TypedDict):
+    """Keyword arguments for Django's SMTP ``EmailBackend``."""
+
+    host: str
+    port: int
+    username: str
+    password: str
+    use_tls: bool
+    use_ssl: bool
+
+
+class ProviderPreset(TypedDict, total=False):
+    label: str
+    host: str
+    port: int
+    use_tls: bool
+    use_ssl: bool
+    default_username: str
+    help_url: str
+
 
 # Provider presets. Selecting one of these in the UI pre-fills the SMTP host /
 # port / TLS fields, so the administrator only has to supply the credential
@@ -11,7 +37,7 @@ from django_cryptography.fields import encrypt
 # to the Gmail / Microsoft 365 "basic auth" deprecation. `default_username`, if
 # present, is the fixed username the provider mandates (e.g. SendGrid's literal
 # "apikey"); otherwise the admin supplies the username.
-PROVIDER_PRESETS = {
+PROVIDER_PRESETS: dict[str, ProviderPreset] = {
     "sendgrid": {
         "label": "SendGrid",
         "host": "smtp.sendgrid.net",
@@ -102,27 +128,27 @@ class EmailConfig(models.Model):
         verbose_name = "Email configuration"
         verbose_name_plural = "Email configuration"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"EmailConfig(provider={self.provider})"
 
-    def save(self, *args, **kwargs):
+    def save(self, *args: Any, **kwargs: Any) -> None:
         # Enforce the singleton: there is only ever one configuration row.
         self.pk = 1
         super().save(*args, **kwargs)
 
     @classmethod
-    def load(cls):
+    def load(cls) -> EmailConfig:
         obj, _ = cls.objects.get_or_create(pk=1)
         return obj
 
     @property
-    def effective_from_email(self):
+    def effective_from_email(self) -> str:
         return self.from_email or getattr(settings, "DEFAULT_FROM_EMAIL", "")
 
-    def resolve_smtp_kwargs(self):
+    def resolve_smtp_kwargs(self) -> SmtpKwargs:
         """Effective SMTP connection settings, merging any provider preset with
         the stored values (stored values win)."""
-        preset = PROVIDER_PRESETS.get(self.provider, {})
+        preset: ProviderPreset = PROVIDER_PRESETS.get(self.provider, {})
         return {
             "host": self.host or preset.get("host", ""),
             "port": self.port or preset.get("port", 587),
@@ -133,7 +159,7 @@ class EmailConfig(models.Model):
         }
 
     @property
-    def is_configured(self):
+    def is_configured(self) -> bool:
         """True when this instance can actually send mail."""
         if self.provider == "disabled":
             return False

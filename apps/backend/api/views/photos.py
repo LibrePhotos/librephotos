@@ -1,31 +1,37 @@
 import logging
+import os
 import uuid
 from collections import defaultdict
+from typing import Any, TypeGuard
 
 from django.conf import settings
-from django.db.models import Prefetch, Q
+from django.db.models import Prefetch, Q, QuerySet
+from django.http import FileResponse
 from django.utils import timezone
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound, ValidationError
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import BasePermission, IsAuthenticated
+from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from api.mime import mime_type
 from api.metadata.jobs import queue_rating_write
+from api.mime import mime_type
 from api.ml_models import captioning_model_exists, start_model_download
 from api.models import AlbumUser, Face, Photo, User
 from api.models.album_thing import (
     album_thing_ids_for_photos,
     refresh_album_thing_photo_counts,
 )
-from api.models.photo_stack import PhotoStack
 from api.models.person import Person
 from api.models.photo_caption import PhotoCaption
+from api.models.photo_stack import PhotoStack
 from api.models.tag import refresh_tag_photo_counts, tag_ids_for_photos
 from api.permissions import IsOwnerOrReadOnly, IsPhotoOrAlbumSharedTo
+from api.request_data import request_dict
+from api.request_user import request_user
 from api.serializers.album_user import AlbumUserListSerializer
 from api.serializers.photos import (
     PhotoDetailsSummarySerializer,
@@ -40,11 +46,12 @@ from api.views.pagination import (
     RegularResultsSetPagination,
     StandardResultsSetPagination,
 )
+from api.views.photo_filters import scope_user
 
 logger = logging.getLogger(__name__)
 
 
-def _get_photo_filter_kwargs(lookup_value):
+def _get_photo_filter_kwargs(lookup_value: str) -> dict[str, str]:
     """Return filter kwargs for looking up a photo by UUID or image_hash.
 
     UUID format is 36 chars with 4 hyphens (e.g. 123e4567-e89b-12d3-a456-426614174000).
@@ -60,7 +67,7 @@ def _get_photo_filter_kwargs(lookup_value):
     return {"image_hash": lookup_value}
 
 
-def _get_owned_photo(image_hash, user):
+def _get_owned_photo(image_hash: str, user: User) -> Photo | None:
     """Return the user's photo for ``image_hash``, or None if there is none."""
     try:
         return Photo.objects.owned_by(user).get(image_hash=image_hash)
@@ -70,7 +77,7 @@ def _get_owned_photo(image_hash, user):
         return Photo.objects.owned_by(user).filter(image_hash=image_hash).first()
 
 
-def _detect_content_type(path):
+def _detect_content_type(path: str) -> str:
     """Return the MIME type of a file, falling back to a generic binary type."""
     try:
         return mime_type(path)
@@ -82,30 +89,30 @@ class RecentlyAddedPhotoListViewSet(ListViewSet):
     serializer_class = PhotoSummarySerializer
     pagination_class = HugeResultsSetPagination
 
-    def get_queryset(self):
+    def get_queryset(self) -> QuerySet[Photo]:
         latest_photo = self._get_latest_photo()
         if latest_photo is None:
             return Photo.objects.none()
         latest_date = latest_photo.added_on
 
         return with_photo_summary_relations(
-            Photo.visible.owned_by(self.request.user).filter(
+            Photo.visible.owned_by(scope_user(self.request)).filter(
                 Q(thumbnail__aspect_ratio__isnull=False)
                 & Q(added_on__date=latest_date.date())
             )
         ).order_by("-added_on")
 
-    def list(self, *args, **kwargs):
+    def list(self, *args: Any, **kwargs: Any) -> Response:
         queryset = self.get_queryset()
         latest_photo = self._get_latest_photo()
         latest_date = latest_photo.added_on if latest_photo else None
         serializer = PhotoSummarySerializer(queryset, many=True)
         return Response({"date": latest_date, "results": serializer.data})
 
-    def _get_latest_photo(self):
+    def _get_latest_photo(self) -> Photo | None:
         if not hasattr(self, "_latest_photo"):
             self._latest_photo = (
-                Photo.visible.owned_by(self.request.user)
+                Photo.visible.owned_by(scope_user(self.request))
                 .only("added_on")
                 .order_by("-added_on")
                 .first()
@@ -123,16 +130,16 @@ class NoTimestampPhotoViewSet(ListViewSet):
         "faces__person__name",
     ]
 
-    def get_queryset(self):
+    def get_queryset(self) -> QuerySet[Photo]:
         return with_photo_summary_relations(
-            Photo.visible.owned_by(self.request.user).filter(exif_timestamp=None)
+            Photo.visible.owned_by(scope_user(self.request)).filter(exif_timestamp=None)
         ).order_by("added_on")
 
-    def list(self, *args, **kwargs):
+    def list(self, *args: Any, **kwargs: Any) -> Response:
         return super().list(*args, **kwargs)
 
 
-def _is_list_of_strings(value):
+def _is_list_of_strings(value: object) -> TypeGuard[list[str]]:
     return isinstance(value, list) and all(isinstance(item, str) for item in value)
 
 
@@ -152,10 +159,10 @@ class BulkPhotoMutationView(APIView):
     the similarity sidecar over HTTP: one call per photo, inside the request.
     """
 
-    #: Request key carrying the new value.
-    value_field = None
+    #: Request key carrying the new value. Each subclass sets it.
+    value_field: str
     #: The flag's name in the missing-photo warning ("set photo X to ...").
-    flag_name = None
+    flag_name: str
     #: What happened to a photo, by new value, for log lines.
     past_tense = {True: "changed", False: "changed"}
     #: Hiding or trashing a photo takes it out of its tags' and thing albums'
@@ -165,18 +172,18 @@ class BulkPhotoMutationView(APIView):
     #: differs rather than every photo the query matches.
     select_all_only_changed = False
 
-    def differs(self, user, value):
+    def differs(self, user: User, value: object) -> Q:
         """A ``Q`` matching the photos that ``value`` would change."""
         raise NotImplementedError
 
-    def new_values(self, user, value):
+    def new_values(self, user: User, value: object) -> dict[str, object]:
         """The columns to UPDATE, besides ``last_modified``."""
         raise NotImplementedError
 
-    def before_update(self, user, photos, value):
+    def before_update(self, user: User, photos: QuerySet[Photo], value: object) -> None:
         """Hook run on the photos about to change, before the UPDATE."""
 
-    def apply(self, user, photos, value):
+    def apply(self, user: User, photos: QuerySet[Photo], value: object) -> int:
         """UPDATE ``photos`` to ``value``; return the number of rows changed."""
         if self.refreshes_tag_counts:
             affected_tag_ids = tag_ids_for_photos(photos)
@@ -190,7 +197,7 @@ class BulkPhotoMutationView(APIView):
             refresh_album_thing_photo_counts(affected_thing_ids)
         return count
 
-    def parse_value(self, data):
+    def parse_value(self, data: dict[str, Any]) -> object:
         """The new value from the request body: a JSON boolean.
 
         Raise ``ValidationError`` (a 400) for a missing or malformed value. A
@@ -203,10 +210,9 @@ class BulkPhotoMutationView(APIView):
             raise ValidationError({self.value_field: "Expected true or false."})
         return value
 
-    def post(self, request, format=None):
-        data = request.data
-        if not isinstance(data, dict):
-            raise ValidationError("Expected a JSON object.")
+    def post(self, request: Request, format: str | None = None) -> Response:
+        user = request_user(request)
+        data = request_dict(request)
         value = self.parse_value(data)
         select_all = data.get("select_all", False)
         if not isinstance(select_all, bool):
@@ -217,19 +223,21 @@ class BulkPhotoMutationView(APIView):
                 raise ValidationError({"query": "Expected an object."})
             if not _is_list_of_strings(data.get("excluded_hashes", [])):
                 raise ValidationError({"excluded_hashes": "Expected a list of hashes."})
-            return self._post_select_all(request.user, data, value)
+            return self._post_select_all(user, data, value)
         image_hashes = data.get("image_hashes")
         if not _is_list_of_strings(image_hashes):
             raise ValidationError(
                 {"image_hashes": "Expected a list of hashes, or select_all."}
             )
-        return self._post_hashes(request.user, image_hashes, value)
+        return self._post_hashes(user, image_hashes, value)
 
-    def check_select_all(self, value):
+    def check_select_all(self, value: object) -> None:
         """Hook: raise ``ValidationError`` if ``value`` may not be applied by
         select_all."""
 
-    def _post_select_all(self, user, data, value):
+    def _post_select_all(
+        self, user: User, data: dict[str, Any], value: object
+    ) -> Response:
         from api.views.photo_filters import build_photo_queryset
 
         photos = build_photo_queryset(user, data.get("query", {}))
@@ -246,7 +254,9 @@ class BulkPhotoMutationView(APIView):
         )
         return Response({"status": True, "count": count})
 
-    def _post_hashes(self, user, image_hashes, value):
+    def _post_hashes(
+        self, user: User, image_hashes: list[str], value: object
+    ) -> Response:
         owned = Photo.objects.owned_by(user).filter(image_hash__in=image_hashes)
         found = set(owned.values_list("image_hash", flat=True))
         changing = set(
@@ -288,13 +298,13 @@ class SetPhotosDeleted(BulkPhotoMutationView):
     past_tense = {True: "moved to trash", False: "restored from trash"}
     refreshes_tag_counts = True
 
-    def differs(self, user, value):
+    def differs(self, user: User, value: object) -> Q:
         return ~Q(in_trashcan=value)
 
-    def new_values(self, user, value):
+    def new_values(self, user: User, value: object) -> dict[str, object]:
         return {"in_trashcan": value}
 
-    def before_update(self, user, photos, value):
+    def before_update(self, user: User, photos: QuerySet[Photo], value: object) -> None:
         if value:
             return
         # A restored photo re-enters its stacks: reset those to pending so
@@ -315,12 +325,12 @@ class SetPhotosDeleted(BulkPhotoMutationView):
 class RatingMutationView(BulkPhotoMutationView):
     """A bulk mutation that sets ``rating``, and so writes it to disk."""
 
-    def apply(self, user, photos, value):
+    def apply(self, user: User, photos: QuerySet[Photo], value: object) -> int:
         # Photo.save() writes a changed rating to the file or sidecar; this
         # UPDATE skips save(), so the same write is queued as a job. The ids
         # are taken first: afterwards a filter on the old rating no longer
         # matches.
-        photo_ids = []
+        photo_ids: list[uuid.UUID] = []
         if user.save_metadata_to_disk != User.SaveMetadata.OFF:
             photo_ids = list(photos.values_list("id", flat=True))
         count = super().apply(user, photos, value)
@@ -334,12 +344,12 @@ class SetPhotosFavorite(RatingMutationView):
     past_tense = {True: "added to favorites", False: "removed from favorites"}
     select_all_only_changed = True
 
-    def differs(self, user, value):
+    def differs(self, user: User, value: object) -> Q:
         if value:
             return Q(rating__lt=user.favorite_min_rating)
         return Q(rating__gte=user.favorite_min_rating)
 
-    def new_values(self, user, value):
+    def new_values(self, user: User, value: object) -> dict[str, object]:
         return {"rating": user.favorite_min_rating if value else 0}
 
 
@@ -357,7 +367,7 @@ class SetPhotosRating(RatingMutationView):
     past_tense = {True: "rated", False: "unrated"}
     MAX_RATING = 5
 
-    def parse_value(self, data):
+    def parse_value(self, data: dict[str, Any]) -> object:
         rating = data.get(self.value_field)
         # bool is an int subclass: true must not read as one star.
         if (
@@ -370,13 +380,13 @@ class SetPhotosRating(RatingMutationView):
             )
         return rating
 
-    def check_select_all(self, value):
+    def check_select_all(self, value: object) -> None:
         raise ValidationError({"select_all": "Rating takes image_hashes only."})
 
-    def differs(self, user, value):
+    def differs(self, user: User, value: object) -> Q:
         return ~Q(rating=value)
 
-    def new_values(self, user, value):
+    def new_values(self, user: User, value: object) -> dict[str, object]:
         return {"rating": value}
 
 
@@ -386,10 +396,10 @@ class SetPhotosHidden(BulkPhotoMutationView):
     past_tense = {True: "set hidden", False: "set unhidden"}
     refreshes_tag_counts = True
 
-    def differs(self, user, value):
+    def differs(self, user: User, value: object) -> Q:
         return ~Q(hidden=value)
 
-    def new_values(self, user, value):
+    def new_values(self, user: User, value: object) -> dict[str, object]:
         return {"hidden": value}
 
 
@@ -398,10 +408,10 @@ class SetPhotosPublic(BulkPhotoMutationView):
     flag_name = "public"
     past_tense = {True: "set public", False: "set private"}
 
-    def differs(self, user, value):
+    def differs(self, user: User, value: object) -> Q:
         return ~Q(public=value)
 
-    def new_values(self, user, value):
+    def new_values(self, user: User, value: object) -> dict[str, object]:
         return {"public": value}
 
 
@@ -429,7 +439,7 @@ class SetPhotosCategory(BulkPhotoMutationView):
         "document": (False, True),
     }
 
-    def parse_value(self, data):
+    def parse_value(self, data: dict[str, Any]) -> object:
         category = data.get(self.value_field)
         if not isinstance(category, str) or (
             category not in self.CATEGORY_FLAGS and category != self.AUTO
@@ -442,7 +452,10 @@ class SetPhotosCategory(BulkPhotoMutationView):
             )
         return category
 
-    def new_values(self, user, value):
+    def new_values(self, user: User, value: object) -> dict[str, object]:
+        # parse_value only lets category names through, and new_values is never
+        # called for "auto".
+        assert isinstance(value, str)
         is_screenshot, is_document = self.CATEGORY_FLAGS[value]
         return {
             "is_screenshot": is_screenshot,
@@ -450,7 +463,7 @@ class SetPhotosCategory(BulkPhotoMutationView):
             "category_source": "user",
         }
 
-    def check_select_all(self, value):
+    def check_select_all(self, value: object) -> None:
         # The reset runs the detectors per photo, inside the request: fine for
         # the lightbox's Undo of one photo, not for a whole library.
         if value == self.AUTO:
@@ -458,7 +471,7 @@ class SetPhotosCategory(BulkPhotoMutationView):
                 {self.value_field: '"auto" takes image_hashes, not select_all.'}
             )
 
-    def differs(self, user, value):
+    def differs(self, user: User, value: object) -> Q:
         if value == self.AUTO:
             # A photo still on automatic already has the detectors' flags.
             return ~Q(category_source="auto")
@@ -471,7 +484,7 @@ class SetPhotosCategory(BulkPhotoMutationView):
             changes &= Q(video=False)
         return changes
 
-    def apply(self, user, photos, value):
+    def apply(self, user: User, photos: QuerySet[Photo], value: object) -> int:
         if value != self.AUTO:
             return super().apply(user, photos, value)
         # Per photo, as Classify Media does it: both detectors are DB-only
@@ -480,7 +493,7 @@ class SetPhotosCategory(BulkPhotoMutationView):
         from api.directory_watcher.processing_jobs import detect_media_category
 
         now = timezone.now()
-        reset = []
+        reset: list[Photo] = []
         for photo in photos.select_related("ocr", "main_file", "metadata").iterator():
             is_screenshot, is_document = detect_media_category(photo)
             photo.is_screenshot = is_screenshot
@@ -509,7 +522,7 @@ class PhotoViewSet(viewsets.ModelViewSet):
         "main_file__path",
     ]
 
-    def get_object(self):
+    def get_object(self) -> Photo:
         """
         Override get_object to support lookup by both UUID (pk) and image_hash.
         This provides backward compatibility with existing URLs using image_hash.
@@ -539,12 +552,14 @@ class PhotoViewSet(viewsets.ModelViewSet):
         name="summary",
         serializer_class=PhotoDetailsSummarySerializer,
     )
-    def summary(self, request, pk):
+    def summary(self, request: Request, pk: str) -> Response:
         # Use Photo.objects instead of get_queryset() to include processing photos
         filter_kwargs = _get_photo_filter_kwargs(pk)
         # Owner, shared to the requester, or public; anything else is a 404.
         queryset = (
-            Photo.objects.visible_to(request.user).filter(**filter_kwargs).distinct()
+            Photo.objects.visible_to(scope_user(request))
+            .filter(**filter_kwargs)
+            .distinct()
         )
 
         if not queryset.exists():
@@ -560,7 +575,7 @@ class PhotoViewSet(viewsets.ModelViewSet):
         name="albums",
         serializer_class=AlbumUserListSerializer,
     )
-    def albums(self, request, pk):
+    def albums(self, request: Request, pk: str) -> Response:
         """Return user albums that contain this photo."""
         filter_kwargs = _get_photo_filter_kwargs(pk)
         user = request.user
@@ -568,7 +583,7 @@ class PhotoViewSet(viewsets.ModelViewSet):
         # them, public, or in one of their own or shared-to-them albums. An
         # unscoped lookup answered 200 for anyone's hash and 404 for an unknown
         # one, telling strangers which files others have (GHSA-hq2w-x39h-8wmp).
-        if user.is_authenticated:
+        if isinstance(user, User):
             user_albums = AlbumUser.objects.filter(Q(owner=user) | Q(shared_to=user))
             candidates = Photo.objects.visible_to(user) | Photo.objects.filter(
                 albumuser__in=user_albums
@@ -584,10 +599,11 @@ class PhotoViewSet(viewsets.ModelViewSet):
         serializer = AlbumUserListSerializer(albums, many=True)
         return Response({"results": serializer.data})
 
-    def get_permissions(self):
+    def get_permissions(self) -> list[BasePermission]:
         # Not "list": no client uses it, and anonymously it rendered the full
         # detail serializer (a similarity-sidecar call each) for every public
         # photo of every user, up to 5000 a page.
+        permission_classes: list[type[BasePermission]]
         if self.action in ("retrieve", "summary", "albums"):
             permission_classes = [IsPhotoOrAlbumSharedTo]
         else:
@@ -599,9 +615,9 @@ class PhotoViewSet(viewsets.ModelViewSet):
             permission_classes = [IsAuthenticated, IsOwnerOrReadOnly]
         return [permission() for permission in permission_classes]
 
-    def get_queryset(self):
+    def get_queryset(self) -> QuerySet[Photo]:
         # Photos in shared albums are handled by the permission class.
-        user = self.request.user
+        user = scope_user(self.request)
         # Others see only what the library lists; the owner also opens their
         # own hidden and trashed photos, from the Hidden and Trash pages.
         own = Photo.objects.owned_by(user).filter(
@@ -614,7 +630,7 @@ class PhotoViewSet(viewsets.ModelViewSet):
             .order_by("-exif_timestamp")
         )
 
-    def _with_detail_relations(self, photo):
+    def _with_detail_relations(self, photo: Photo) -> Photo:
         """*photo* again, with everything PhotoSerializer reads.
 
         A second query by primary key: joined onto the visibility queryset
@@ -647,10 +663,10 @@ class PhotoViewSet(viewsets.ModelViewSet):
             .get(pk=photo.pk)
         )
 
-    def retrieve(self, *args, **kwargs):
+    def retrieve(self, *args: Any, **kwargs: Any) -> Response:
         return super().retrieve(*args, **kwargs)
 
-    def list(self, *args, **kwargs):  # pragma: no cover - unused
+    def list(self, *args: Any, **kwargs: Any) -> Response:  # pragma: no cover - unused
         return super().list(*args, **kwargs)
 
 
@@ -658,11 +674,11 @@ class PhotoEditViewSet(viewsets.ModelViewSet):
     serializer_class = PhotoEditSerializer
     pagination_class = StandardResultsSetPagination
 
-    def get_queryset(self):
+    def get_queryset(self) -> QuerySet[Photo]:
         # Hidden and trashed photos keep an editable date and location.
-        return Photo.objects.owned_by(self.request.user).filter(removed=False)
+        return Photo.objects.owned_by(scope_user(self.request)).filter(removed=False)
 
-    def get_object(self):
+    def get_object(self) -> Photo:
         """
         Override get_object to support lookup by both UUID (pk) and image_hash.
         """
@@ -682,22 +698,23 @@ class PhotoEditViewSet(viewsets.ModelViewSet):
 
         return super().get_object()
 
-    def retrieve(
-        self, *args, **kwargs
-    ):  # pragma: no cover TODO(sickelap): remove unused code
+    def retrieve(  # pragma: no cover TODO(sickelap): remove unused code
+        self, *args: Any, **kwargs: Any
+    ) -> Response:
         return super().retrieve(*args, **kwargs)
 
-    def list(
-        self, *args, **kwargs
-    ):  # pragma: no cover TODO(sickelap): remove unused code
+    def list(  # pragma: no cover TODO(sickelap): remove unused code
+        self, *args: Any, **kwargs: Any
+    ) -> Response:
         return super().list(*args, **kwargs)
 
 
 class SetPhotosShared(APIView):
-    def post(self, request, format=None):
+    def post(self, request: Request, format: str | None = None) -> Response:
         from api.views.photo_filters import build_photo_queryset
 
-        data = dict(request.data)
+        user = request_user(request)
+        data = dict(request_dict(request))
         shared = data["val_shared"]  # bool
         target_user_id = data["target_user_id"]  # user pk, int
 
@@ -708,7 +725,7 @@ class SetPhotosShared(APIView):
             query_params = data.get("query", {})
             excluded_hashes = data.get("excluded_hashes", [])
 
-            photos_qs = build_photo_queryset(request.user, query_params)
+            photos_qs = build_photo_queryset(user, query_params)
             if excluded_hashes:
                 photos_qs = photos_qs.exclude(image_hash__in=excluded_hashes)
 
@@ -738,7 +755,7 @@ class SetPhotosShared(APIView):
         # user could add an arbitrary target_user_id to the shared_to of someone else's
         # private photos (cross-user IDOR). See issue #1860.
         photos = (
-            Photo.objects.owned_by(request.user)
+            Photo.objects.owned_by(user)
             .filter(image_hash__in=image_hashes)
             .only("id", "image_hash")
         )
@@ -780,11 +797,12 @@ class SetPhotosShared(APIView):
                     owner_id=target_user_id,
                 ).delete()
             logger.info(
-                f"Shared {request.user.id}'s {len(res)} images to user {target_user_id}"
+                f"Shared {user.id}'s {len(res)} images to user {target_user_id}"
             )
             res_count = len(res)
         else:
-            res = through_model.objects.filter(
+            # delete() returns (count, per-model counts): only the count matters.
+            res_count, _ = through_model.objects.filter(
                 user_id=target_user_id, photo_id__in=photo_ids
             ).delete()
             if photo_ids:
@@ -802,9 +820,8 @@ class SetPhotosShared(APIView):
                     ]
                 )
             logger.info(
-                f"Unshared {request.user.id}'s {len(res)} images to user {target_user_id}"
+                f"Unshared {user.id}'s {res_count} images to user {target_user_id}"
             )
-            res_count = res[0]
 
         return Response({"status": True, "count": res_count})
 
@@ -812,18 +829,21 @@ class SetPhotosShared(APIView):
 class GeneratePhotoCaption(APIView):
     permission_classes = (IsOwnerOrReadOnly,)
 
-    def post(self, request, format=None):
+    def post(self, request: Request, format: str | None = None) -> Response:
         if not settings.FEATURE_IMAGE_CAPTIONING:
             return Response(
                 {"status": False, "message": "Image captioning is disabled"},
                 status=403,
             )
 
-        data = dict(request.data)
+        data = dict(request_dict(request))
         image_hash = data["image_hash"]
 
+        # Anonymous callers get "photo not found" here, as they always did.
         photo = (
-            Photo.objects.owned_by(request.user).filter(image_hash=image_hash).first()
+            Photo.objects.owned_by(scope_user(request))
+            .filter(image_hash=image_hash)
+            .first()
         )
         if photo is None:
             return Response(
@@ -836,7 +856,8 @@ class GeneratePhotoCaption(APIView):
             # install (or a model switch) can be asked for a caption before
             # the download ran. Start it and tell the user to try again;
             # a 200 so the client can read the reason.
-            start_model_download(request.user)
+            # Only reached with a photo, so the requester is signed in.
+            start_model_download(request_user(request))
             return Response(
                 {
                     "status": False,
@@ -863,13 +884,15 @@ class GeneratePhotoCaption(APIView):
 class SavePhotoCaption(APIView):
     permission_classes = (IsOwnerOrReadOnly,)
 
-    def post(self, request, format=None):
-        data = dict(request.data)
+    def post(self, request: Request, format: str | None = None) -> Response:
+        data = dict(request_dict(request))
         image_hash = data["image_hash"]
         caption = data["caption"]
 
         photo = (
-            Photo.objects.owned_by(request.user).filter(image_hash=image_hash).first()
+            Photo.objects.owned_by(scope_user(request))
+            .filter(image_hash=image_hash)
+            .first()
         )
         if photo is None:
             return Response(
@@ -883,10 +906,11 @@ class SavePhotoCaption(APIView):
 
 
 class DeletePhotos(APIView):
-    def delete(self, request):
+    def delete(self, request: Request) -> Response:
         from api.views.photo_filters import build_photo_queryset
 
-        data = dict(request.data)
+        user = request_user(request)
+        data = dict(request_dict(request))
 
         # NEW: Support select_all mode for bulk operations
         if data.get("select_all"):
@@ -897,7 +921,7 @@ class DeletePhotos(APIView):
             # Override query to filter for trashcan photos only
             query_params["in_trashcan"] = True
 
-            photos_qs = build_photo_queryset(request.user, query_params)
+            photos_qs = build_photo_queryset(user, query_params)
             if excluded_hashes:
                 photos_qs = photos_qs.exclude(image_hash__in=excluded_hashes)
 
@@ -917,7 +941,7 @@ class DeletePhotos(APIView):
                     deleted_count += 1
 
             logger.info(
-                f"{deleted_count} photos were permanently deleted via select_all for user {request.user.id}."
+                f"{deleted_count} photos were permanently deleted via select_all for user {user.id}."
             )
 
             return Response(
@@ -929,14 +953,14 @@ class DeletePhotos(APIView):
         # reported as not deleted, all alike. image_hash is not unique, so
         # every matching row of the requester's is deleted.
         image_hashes = list(dict.fromkeys(data["image_hashes"]))
-        photos_by_hash = defaultdict(list)
-        for photo in Photo.objects.owned_by(request.user).filter(
+        photos_by_hash: defaultdict[str, list[Photo]] = defaultdict(list)
+        for photo in Photo.objects.owned_by(user).filter(
             image_hash__in=image_hashes, in_trashcan=True
         ):
             photos_by_hash[photo.image_hash].append(photo)
 
-        deleted = []
-        not_deleted = []
+        deleted: list[str] = []
+        not_deleted: list[str] = []
         for image_hash in image_hashes:
             photos = photos_by_hash.get(image_hash)
             if not photos:
@@ -980,13 +1004,11 @@ class FileVariantDownloadView(APIView):
             ),
         ],
     )
-    def get(self, request, image_hash, file_hash):
+    def get(
+        self, request: Request, image_hash: str, file_hash: str
+    ) -> Response | FileResponse:
         """Download a specific file variant by hash."""
-        import os
-
-        from django.http import FileResponse
-
-        photo = _get_owned_photo(image_hash, request.user)
+        photo = _get_owned_photo(image_hash, request_user(request))
         if not photo:
             return Response(
                 {"error": "Photo not found"}, status=status.HTTP_404_NOT_FOUND
@@ -1029,7 +1051,7 @@ class SetMainFileView(APIView):
     """
 
     @staticmethod
-    def _get_owned_photo(image_hash, user):
+    def _get_owned_photo(image_hash: str, user: User) -> Photo | None:
         try:
             return Photo.objects.owned_by(user).get(image_hash=image_hash)
         except Photo.DoesNotExist:
@@ -1037,16 +1059,17 @@ class SetMainFileView(APIView):
         except Photo.MultipleObjectsReturned:
             return Photo.objects.owned_by(user).filter(image_hash=image_hash).first()
 
-    def post(self, request, image_hash):
+    def post(self, request: Request, image_hash: str) -> Response:
         """Set the main file for a photo."""
-        file_hash = request.data.get("file_hash")
+        data = request_dict(request)
+        file_hash = data.get("file_hash")
 
         if not file_hash:
             return Response(
                 {"error": "file_hash is required"}, status=status.HTTP_400_BAD_REQUEST
             )
 
-        photo = self._get_owned_photo(image_hash, request.user)
+        photo = self._get_owned_photo(image_hash, request_user(request))
         if not photo:
             return Response(
                 {"error": "Photo not found"}, status=status.HTTP_404_NOT_FOUND
@@ -1075,18 +1098,18 @@ class SetMainFileView(APIView):
 
 
 class SaveMetadataView(APIView):
-    def post(self, request, format=None):
+    def post(self, request: Request, format: str | None = None) -> Response:
         """Bulk-write metadata to image files for the authenticated user's photos.
 
         Accepts {"types": ["ratings", "face_tags"]} to control what gets written.
         Defaults to ["ratings"] if not specified.
         """
-        metadata_types = request.data.get("types", ["ratings"])
-        use_sidecar = (
-            request.user.save_metadata_to_disk == User.SaveMetadata.SIDECAR_FILE
-        )
+        user = request_user(request)
+        data = request_dict(request)
+        metadata_types = data.get("types", ["ratings"])
+        use_sidecar = user.save_metadata_to_disk == User.SaveMetadata.SIDECAR_FILE
 
-        photos = Photo.objects.owned_by(request.user)
+        photos = Photo.objects.owned_by(user)
 
         # When writing face tags, only include photos that have labeled faces
         if "face_tags" in metadata_types and metadata_types == ["face_tags"]:
@@ -1112,12 +1135,18 @@ class SaveMetadataView(APIView):
         return Response({"status": True, "written": written, "errors": errors})
 
 
-def _rotation_error(message, status_code=status.HTTP_400_BAD_REQUEST):
+def _rotation_error(
+    message: str, status_code: int = status.HTTP_400_BAD_REQUEST
+) -> Response:
     return Response({"status": False, "message": message}, status=status_code)
 
 
-def _parse_rotation_angle(raw_angle):
+def _parse_rotation_angle(raw_angle: object) -> tuple[int | None, str | None]:
     """Return ``(angle, error_message)`` for a requested rotation angle."""
+    # int() takes only these JSON values; for anything else (null, a list, an
+    # object) it raised TypeError, which gave the same message.
+    if not isinstance(raw_angle, (str, int, float)):
+        return None, "angle must be an integer"
     try:
         angle = int(raw_angle)
     except (TypeError, ValueError):
@@ -1129,8 +1158,8 @@ def _parse_rotation_angle(raw_angle):
     return angle, None
 
 
-def _get_rotatable_photo(image_hash, user):
-    """Return ``(photo, error_response)`` for a photo that may be rotated."""
+def _get_rotatable_photo(image_hash: str, user: User) -> Photo | Response:
+    """Return the photo that may be rotated, or the error response to send."""
     # first(), as in _get_owned_photo: byte-identical files can give one user
     # two photos with the same hash, and get() turned that into a 500.
     photo = (
@@ -1140,12 +1169,12 @@ def _get_rotatable_photo(image_hash, user):
         .first()
     )
     if photo is None:
-        return None, _rotation_error("photo not found", status.HTTP_404_NOT_FOUND)
+        return _rotation_error("photo not found", status.HTTP_404_NOT_FOUND)
 
     if photo.video:
-        return None, _rotation_error("rotation is not supported for videos")
+        return _rotation_error("rotation is not supported for videos")
 
-    return photo, None
+    return photo
 
 
 class RotatePhotoView(APIView):
@@ -1177,20 +1206,22 @@ class RotatePhotoView(APIView):
         }
     """
 
-    def post(self, request, format=None):
-        image_hash = request.data.get("image_hash")
-        flip_horizontal = bool(request.data.get("flip_horizontal", False))
+    def post(self, request: Request, format: str | None = None) -> Response:
+        data = request_dict(request)
+        image_hash = data.get("image_hash")
+        flip_horizontal = bool(data.get("flip_horizontal", False))
 
         if not image_hash:
             return _rotation_error("image_hash is required")
 
-        angle, angle_error = _parse_rotation_angle(request.data.get("angle", 0))
-        if angle_error:
-            return _rotation_error(angle_error)
+        angle, angle_error = _parse_rotation_angle(data.get("angle", 0))
+        if angle is None:
+            return _rotation_error(angle_error or "angle must be an integer")
 
-        photo, photo_error = _get_rotatable_photo(image_hash, request.user)
-        if photo_error:
-            return photo_error
+        photo_or_error = _get_rotatable_photo(image_hash, request_user(request))
+        if isinstance(photo_or_error, Response):
+            return photo_or_error
+        photo = photo_or_error
 
         try:
             photo.rotate(angle=angle, flip_horizontal=flip_horizontal)

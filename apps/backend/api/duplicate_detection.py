@@ -15,8 +15,13 @@ because duplicates are about storage cleanup, not photo organization.
   union-find; other hash lengths go through a BK-tree.
 """
 
+from __future__ import annotations
+
 import logging
 from collections import defaultdict
+from collections.abc import Callable
+from typing import TYPE_CHECKING, TypedDict
+from uuid import UUID
 
 from django.db.models import Q
 
@@ -25,15 +30,40 @@ from api.models import Photo
 from api.models.duplicate import Duplicate
 from api.models.file import File
 from api.models.long_running_job import LongRunningJob
+from api.models.user import User
 from api.perceptual_hash import (
     DEFAULT_HAMMING_THRESHOLD,
     HEX64_HASH,
     hamming_distance,
 )
 
-np = LazyModule("numpy")
+if TYPE_CHECKING:
+    import numpy.typing as npt
+    from numpy import integer, uint64
+
+if TYPE_CHECKING:
+    import numpy as np
+else:
+    np = LazyModule("numpy")
 
 logger = logging.getLogger(__name__)
+
+# Called with (current, total, found) as the detection goes.
+ProgressCallback = Callable[[int, int, int], None]
+
+
+class DuplicateDetectionOptions(TypedDict, total=False):
+    detect_exact_copies: bool
+    detect_visual_duplicates: bool
+    visual_threshold: int
+    clear_pending: bool
+    batch_size: int
+
+
+class _BKNode(TypedDict):
+    id: int
+    hash: str
+    children: dict[int, _BKNode]
 
 
 class BKTree:
@@ -43,12 +73,12 @@ class BKTree:
     Achieves O(log n) average case by pruning branches using triangle inequality.
     """
 
-    def __init__(self, distance_func):
+    def __init__(self, distance_func: Callable[[str, str], int]) -> None:
         self.distance = distance_func
-        self.root = None
+        self.root: _BKNode | None = None
         self.size = 0
 
-    def add(self, item_id, item_hash):
+    def add(self, item_id: int, item_hash: str) -> None:
         """Add an item (id, hash) to the tree."""
         self.size += 1
         if self.root is None:
@@ -68,13 +98,13 @@ class BKTree:
                 }
                 break
 
-    def search(self, query_hash, threshold):
+    def search(self, query_hash: str, threshold: int) -> list[tuple[int, int]]:
         """Find all items within threshold Hamming distance of query."""
         if self.root is None:
             return []
 
-        results = []
-        candidates = [self.root]
+        results: list[tuple[int, int]] = []
+        candidates: list[_BKNode] = [self.root]
 
         while candidates:
             node = candidates.pop()
@@ -96,11 +126,11 @@ class BKTree:
 class UnionFind:
     """Union-Find with path compression and union by rank."""
 
-    def __init__(self):
-        self.parent = {}
-        self.rank = {}
+    def __init__(self) -> None:
+        self.parent: dict[UUID, UUID] = {}
+        self.rank: dict[UUID, int] = {}
 
-    def find(self, x):
+    def find(self, x: UUID) -> UUID:
         if x not in self.parent:
             self.parent[x] = x
             self.rank[x] = 0
@@ -109,7 +139,7 @@ class UnionFind:
             self.parent[x] = self.find(self.parent[x])
         return self.parent[x]
 
-    def union(self, x, y):
+    def union(self, x: UUID, y: UUID) -> None:
         px, py = self.find(x), self.find(y)
         if px == py:
             return
@@ -119,14 +149,16 @@ class UnionFind:
         if self.rank[px] == self.rank[py]:
             self.rank[px] += 1
 
-    def get_groups(self):
-        groups = defaultdict(list)
+    def get_groups(self) -> list[list[UUID]]:
+        groups: defaultdict[UUID, list[UUID]] = defaultdict(list)
         for item in self.parent:
             groups[self.find(item)].append(item)
         return [group for group in groups.values() if len(group) > 1]
 
 
-def detect_exact_copies(user, progress_callback=None):
+def detect_exact_copies(
+    user: User, progress_callback: ProgressCallback | None = None
+) -> int:
     """
     Detect exact file copies for a user.
 
@@ -278,21 +310,21 @@ def detect_exact_copies(user, progress_callback=None):
 _PAIR_BLOCK_ELEMENTS = 4_000_000
 
 
-def _hash_ints(hashes):
+def _hash_ints(hashes: list[str]) -> list[int] | None:
     """The hashes as ints, or None unless every one is a 64-bit (16 hex digit) hash."""
     if not all(HEX64_HASH.fullmatch(value) for value in hashes):
         return None
     return [int(value, 16) for value in hashes]
 
 
-def _popcount(values):
+def _popcount(values: npt.NDArray[uint64]) -> npt.NDArray[integer]:
     if hasattr(np, "bitwise_count"):  # numpy >= 2.0
         return np.bitwise_count(values)
     as_bytes = values.view(np.uint8).reshape(values.shape + (8,))
     return np.unpackbits(as_bytes, axis=-1).sum(axis=-1)
 
 
-def similar_pairs(hashes, threshold):
+def similar_pairs(hashes: list[str], threshold: int) -> list[tuple[int, int]] | None:
     """Index pairs ``(i, j)``, ``i < j``, of hashes at most *threshold* bits apart.
 
     Every pair is compared, so the result is exact for any threshold, but in
@@ -307,7 +339,7 @@ def similar_pairs(hashes, threshold):
     values = np.array(ints, dtype=np.uint64)
     n = len(values)
     rows = max(1, _PAIR_BLOCK_ELEMENTS // max(n, 1))
-    pairs = []
+    pairs: list[tuple[int, int]] = []
     for start in range(0, n, rows):
         block = values[start : start + rows]
         # Columns from the block's first row on: every later hash once.
@@ -320,12 +352,12 @@ def similar_pairs(hashes, threshold):
     return pairs
 
 
-def _similar_pairs_bktree(hashes, threshold):
+def _similar_pairs_bktree(hashes: list[str], threshold: int) -> list[tuple[int, int]]:
     """:func:`similar_pairs` for hashes of any length, through a BK-tree."""
     tree = BKTree(hamming_distance)
     for index, phash in enumerate(hashes):
         tree.add(index, phash)
-    pairs = []
+    pairs: list[tuple[int, int]] = []
     for index, phash in enumerate(hashes):
         for other, _distance in tree.search(phash, threshold):
             if other > index:
@@ -334,8 +366,11 @@ def _similar_pairs_bktree(hashes, threshold):
 
 
 def detect_visual_duplicates(
-    user, threshold=DEFAULT_HAMMING_THRESHOLD, progress_callback=None, batch_size=10000
-):
+    user: User,
+    threshold: int = DEFAULT_HAMMING_THRESHOLD,
+    progress_callback: ProgressCallback | None = None,
+    batch_size: int = 10000,
+) -> int:
     """
     Detect visually similar photos using perceptual hash.
 
@@ -424,7 +459,9 @@ def detect_visual_duplicates(
     return duplicates_created
 
 
-def batch_detect_duplicates(user, options=None):
+def batch_detect_duplicates(
+    user: User, options: DuplicateDetectionOptions | None = None
+) -> None:
     """
     Run batch duplicate detection for a user.
 
@@ -466,7 +503,7 @@ def batch_detect_duplicates(user, options=None):
         # Detect exact copies
         if detect_exact:
 
-            def progress_exact(current, total, found):
+            def progress_exact(current: int, total: int, found: int) -> None:
                 job.set_result(
                     {
                         "stage": "exact_copies",
@@ -482,7 +519,7 @@ def batch_detect_duplicates(user, options=None):
         # Detect visual duplicates
         if detect_visual:
 
-            def progress_visual(current, total, found):
+            def progress_visual(current: int, total: int, found: int) -> None:
                 job.set_result(
                     {
                         "stage": "visual_duplicates",

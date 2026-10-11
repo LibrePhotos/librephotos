@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 
 from django.core.management.base import BaseCommand
 from django_q.models import Schedule
@@ -10,7 +11,7 @@ logger = logging.getLogger(__name__)
 class Command(BaseCommand):
     help = "Start the job cleanup service to mark stuck jobs as failed and remove old completed jobs."
 
-    def handle(self, *args, **kwargs):
+    def handle(self, *args: Any, **kwargs: Any) -> None:
         # Schedule hourly cleanup of stuck jobs (running for more than 24 hours)
         if not Schedule.objects.filter(
             func="api.models.long_running_job.LongRunningJob.cleanup_stuck_jobs"

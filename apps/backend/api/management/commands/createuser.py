@@ -1,8 +1,10 @@
 import os
 import sys
+from typing import Any
 
-from django.core.management.base import BaseCommand, CommandError
-from django.core.validators import ValidationError, validate_email
+from django.core.exceptions import ValidationError
+from django.core.management.base import BaseCommand, CommandError, CommandParser
+from django.core.validators import validate_email
 from django.utils.crypto import get_random_string
 
 from api.models import User
@@ -15,7 +17,7 @@ GENERATED_PASSWORD_LENGTH = 32
 class Command(BaseCommand):
     help = "Create a LibrePhotos user"
 
-    def add_arguments(self, parser):
+    def add_arguments(self, parser: CommandParser) -> None:
         parser.add_argument("username", help="Username to create")
         parser.add_argument("email", help="Email address of the new user")
         parser.add_argument(
@@ -44,7 +46,7 @@ class Command(BaseCommand):
             "ADMIN_PASSWORD is not set"
         )
 
-    def handle(self, *args, **options):
+    def handle(self, *args: Any, **options: Any) -> None:
         self._validate_email(options["email"])
 
         username = options["username"].lower()
@@ -57,24 +59,26 @@ class Command(BaseCommand):
         else:
             raise CommandError("Specified user already exists")
 
-    def _validate_email(self, email):
+    def _validate_email(self, email: str) -> None:
         try:
             validate_email(email)
         except ValidationError as err:
             raise CommandError(err.message)
 
-    def _resolve_password(self, options):
+    def _resolve_password(self, options: dict[str, Any]) -> str:
         if options["admin"] and "ADMIN_PASSWORD" in os.environ:
             options["password"] = os.environ["ADMIN_PASSWORD"]
         if not options["password"]:
             options["password"] = get_random_string(GENERATED_PASSWORD_LENGTH)
         return options["password"]
 
-    def _create_user(self, username, email, password, admin):
+    def _create_user(
+        self, username: str, email: str, password: str, admin: bool
+    ) -> None:
         create = User.objects.create_superuser if admin else User.objects.create_user
         create(username, email, password)
 
-    def _update_password(self, username, email, password):
+    def _update_password(self, username: str, email: str, password: str) -> None:
         print("Warning: ignoring provided email " + email, file=sys.stderr)
         user = User.objects.get(username=username)
         user.set_password(password)

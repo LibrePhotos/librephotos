@@ -13,3 +13,13 @@ setuptools==84.0.0
 pyfakefs==6.2.0
 pytest==9.1.1
 ruff==0.15.22
+# Type checking (scripts/typecheck.py). django-stubs and djangorestframework-stubs
+# require Python >= 3.11, and the backend-gpu image (DEBUG=1) runs 3.10. mypy stays
+# below 2.4 because djangorestframework-stubs 3.18.1 declares mypy<2.4.
+mypy==2.3.1; python_version >= "3.11"
+django-stubs==6.1.2; python_version >= "3.11"
+djangorestframework-stubs==3.18.1; python_version >= "3.11"
+types-pytz==2026.5.0.20261006; python_version >= "3.11"
+types-psutil==7.2.2.20260906; python_version >= "3.11"
+types-jsonschema==4.26.0.20261006; python_version >= "3.11"
+types-gevent==26.9.0.20261006; python_version >= "3.11"

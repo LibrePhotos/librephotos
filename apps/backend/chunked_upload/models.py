@@ -1,5 +1,7 @@
 import hashlib
 import uuid
+from datetime import datetime
+from typing import Any
 
 from django.db import models
 from django.conf import settings
@@ -16,7 +18,7 @@ from .settings import (
 from .constants import CHUNKED_UPLOAD_CHOICES, UPLOADING
 
 
-def generate_upload_id():
+def generate_upload_id() -> str:
     return uuid.uuid4().hex
 
 
@@ -39,31 +41,41 @@ class AbstractChunkedUpload(models.Model):
     )
     completed_on = models.DateTimeField(null=True, blank=True)
 
+    # md5 cache, not a database field. None until md5 is first computed, and
+    # reset whenever a chunk is appended.
+    _md5: str | None = None
+
     @property
-    def expires_on(self):
+    def expires_on(self) -> datetime:
         return self.created_on + EXPIRATION_DELTA
 
     @property
-    def expired(self):
+    def expired(self) -> bool:
         return self.expires_on <= timezone.now()
 
     @property
-    def md5(self):
-        if getattr(self, "_md5", None) is None:
+    def md5(self) -> str:
+        if self._md5 is None:
             md5 = hashlib.md5()
             for chunk in self.file.chunks():
                 md5.update(chunk)
             self._md5 = md5.hexdigest()
         return self._md5
 
-    def delete(self, delete_file=True, *args, **kwargs):
+    # delete_file is keyword-only: Model.delete takes (using, keep_parents) as
+    # positionals, so a positional delete_file would be passed on as `using`.
+    # The Model.delete result is returned, as the override of it must.
+    def delete(
+        self, *args: Any, delete_file: bool = True, **kwargs: Any
+    ) -> tuple[int, dict[str, int]]:
         if self.file:
             storage, path = self.file.storage, self.file.path
-        super(AbstractChunkedUpload, self).delete(*args, **kwargs)
+        result = super(AbstractChunkedUpload, self).delete(*args, **kwargs)
         if self.file and delete_file:
             storage.delete(path)
+        return result
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "<%s - upload_id: %s - bytes: %s - status: %s>" % (
             self.filename,
             self.upload_id,
@@ -71,7 +83,9 @@ class AbstractChunkedUpload(models.Model):
             self.status,
         )
 
-    def append_chunk(self, chunk, chunk_size=None, save=True):
+    def append_chunk(
+        self, chunk: UploadedFile, chunk_size: int | None = None, save: bool = True
+    ) -> None:
         self.file.close()
         with open(self.file.path, mode="ab") as file_obj:  # mode = append+binary
             file_obj.write(
@@ -81,6 +95,8 @@ class AbstractChunkedUpload(models.Model):
         if chunk_size is not None:
             self.offset += chunk_size
         elif hasattr(chunk, "size"):
+            # Uploaded chunks always carry their size.
+            assert chunk.size is not None
             self.offset += chunk.size
         else:
             self.offset = self.file.size
@@ -89,7 +105,7 @@ class AbstractChunkedUpload(models.Model):
             self.save()
         self.file.close()  # Flush
 
-    def get_uploaded_file(self):
+    def get_uploaded_file(self) -> UploadedFile:
         self.file.close()
         self.file.open(mode="rb")  # mode = read+binary
         return UploadedFile(file=self.file, name=self.filename, size=self.offset)

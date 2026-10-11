@@ -4,14 +4,21 @@ and the day album that follows from it.
 Moved out of ``Photo``; every function takes the photo as its first argument.
 """
 
+from __future__ import annotations
+
 import json
+from typing import TYPE_CHECKING, Any
 
 import api.models
 from api import date_time_extractor
 from api.metadata.reader import get_metadata
 
+if TYPE_CHECKING:
+    from api.models.album_date import AlbumDate
+    from api.models.photo import Photo
 
-def find_album_date(photo):
+
+def find_album_date(photo: Photo) -> AlbumDate | None:
     """The day album the photo currently sits in, or None."""
     old_album_date = None
     if photo.exif_timestamp:
@@ -39,15 +46,21 @@ def find_album_date(photo):
     return old_album_date
 
 
-def extract_date_time(photo, commit=True):
+def extract_date_time(photo: Photo, commit: bool = True) -> None:
     """Set ``exif_timestamp`` from the file and move the photo to its day album."""
+    assert photo.main_file is not None
+    main_file_path = photo.main_file.path
 
-    def exif_getter(tags):
-        return get_metadata(photo.main_file.path, tags=tags, try_sidecar=True)
+    def exif_getter(tags: list[str]) -> list[Any]:
+        return get_metadata(main_file_path, tags=tags, try_sidecar=True)
 
-    datetime_config = json.loads(photo.owner.datetime_rules)
+    # Stored as the JSON string the settings page sends (and the default is),
+    # but PATCH /api/user/ also accepts the list itself.
+    datetime_config = photo.owner.datetime_rules
+    if isinstance(datetime_config, str):
+        datetime_config = json.loads(datetime_config)
     extracted_local_time = date_time_extractor.extract_local_date_time(
-        photo.main_file.path,
+        main_file_path,
         date_time_extractor.as_rules(datetime_config),
         exif_getter,
         photo.exif_gps_lat,

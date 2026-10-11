@@ -1,4 +1,6 @@
-from django.core.management.base import BaseCommand, CommandError
+from typing import Any
+
+from django.core.management.base import BaseCommand, CommandError, CommandParser
 
 from api.thumbnail_metadata import strip_thumbnail_metadata
 
@@ -10,14 +12,14 @@ class Command(BaseCommand):
         "ICC colour profile are kept; files without metadata are not touched."
     )
 
-    def add_arguments(self, parser):
+    def add_arguments(self, parser: CommandParser) -> None:
         parser.add_argument(
             "--dry-run",
             action="store_true",
             help="Only count the thumbnails that still carry metadata",
         )
 
-    def handle(self, *args, **options):
+    def handle(self, *args: Any, **options: Any) -> None:
         result = strip_thumbnail_metadata(
             dry_run=options["dry_run"], progress=self.stdout.write
         )

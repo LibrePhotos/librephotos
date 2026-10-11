@@ -1,4 +1,8 @@
+from collections.abc import Callable
+from typing import TypedDict
+
 from constance import config as settings
+from geopy.location import Location
 
 from .parsers.mapbox import parse as parse_mapbox
 from .parsers.nominatim import parse as parse_nominatim
@@ -12,7 +16,12 @@ which is too aggressive against public nominatim under any load and turns
 every reverse_geocode call into a near-guaranteed ReadTimeoutError."""
 
 
-def _get_config():
+class _ProviderConfig(TypedDict):
+    geocode_args: dict[str, object]
+    parser: Callable[[Location], dict[str, object]]
+
+
+def _get_config() -> dict[str, _ProviderConfig]:
     return {
         "mapbox": {
             "geocode_args": {
@@ -52,14 +61,14 @@ def _get_config():
     }
 
 
-def get_provider_config(provider) -> dict:
+def get_provider_config(provider: str) -> dict[str, object]:
     config = _get_config()
     if provider not in config:
         raise Exception(f"Map provider not found: {provider}.")
     return config[provider]["geocode_args"]
 
 
-def get_provider_parser(provider) -> callable:
+def get_provider_parser(provider: str) -> Callable[[Location], dict[str, object]]:
     config = _get_config()
     if provider not in config:
         raise Exception(f"Map provider not found: {provider}.")

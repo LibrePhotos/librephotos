@@ -1,7 +1,15 @@
 """Perspective-crop a detected quad into an axis-aligned text image."""
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import cv2
 import numpy as np
+import numpy.typing as npt
+
+if TYPE_CHECKING:
+    from cv2.typing import MatLike
 
 # A crop taller than it is wide by this ratio is text written top-to-bottom in
 # the crop's frame; rotate it 90 degrees so the recognizer sees a horizontal
@@ -9,7 +17,7 @@ import numpy as np
 ROTATE_ASPECT_THRESHOLD = 1.5
 
 
-def get_rotate_crop_image(img, points):
+def get_rotate_crop_image(img: MatLike, points: npt.ArrayLike) -> MatLike:
     """Warp the quad ``points`` out of ``img`` into an upright rectangle.
 
     ``points`` is a (4, 2) array ordered clockwise from the top-left.  The output

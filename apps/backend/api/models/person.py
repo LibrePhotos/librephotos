@@ -46,7 +46,7 @@ class Person(models.Model):
     # Delta-sync ordering key (mobile v2, doc 04). Bumped on every save.
     last_modified = models.DateTimeField(auto_now=True, db_index=True)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return (
             self.name
             + " ("
@@ -60,7 +60,9 @@ class Person(models.Model):
             + ")"
         )
 
-    def _calculate_face_count(self):
+    def _calculate_face_count(self) -> None:
+        # The count is scoped to the owner's photos, so there must be an owner.
+        assert self.cluster_owner is not None
         self.face_count = self.faces.filter(
             deleted=False,
             photo__hidden=False,
@@ -69,7 +71,7 @@ class Person(models.Model):
         ).count()
         self.save()
 
-    def _set_default_cover_photo(self):
+    def _set_default_cover_photo(self) -> None:
         # A deleted face keeps its person, but is no cover for it. Only a face
         # on the owner's own photos, as in _calculate_face_count: a face from
         # another user's photo would leak that photo's hash (#2047).
@@ -81,14 +83,15 @@ class Person(models.Model):
             self.cover_face = first_face
             self.save()
 
-    def get_photos(self, owner):
+    def get_photos(self, owner: User) -> list[Photo]:
         faces = list(
             self.faces.prefetch_related(
                 Prefetch(
                     "photo",
-                    queryset=Photo.objects.owned_by(owner)
+                    # Only photos the grid shows: one without an aspect
+                    # ratio would serialize aspectRatio as null.
+                    queryset=Photo.visible.owned_by(owner)
                     .exclude(image_hash=None)
-                    .filter(hidden=False)
                     .order_by("-exif_timestamp")
                     .only(
                         "image_hash",
@@ -105,7 +108,11 @@ class Person(models.Model):
             )
         )
 
-        photos = [face.photo for face in faces if hasattr(face.photo, "owner")]
+        photos: list[Photo] = [
+            face.photo
+            for face in faces
+            if face.photo is not None and hasattr(face.photo, "owner")
+        ]
         photos.sort(
             key=lambda x: x.exif_timestamp or utc.localize(datetime.datetime.min),
             reverse=True,
@@ -114,7 +121,7 @@ class Person(models.Model):
 
 
 # TODO: Should be removed in the future, as it is not used, only in migrations
-def get_unknown_person(owner: User = None):
+def get_unknown_person(owner: User | None = None) -> Person:
     unknown_person: Person = Person.objects.get_or_create(
         name=Person.UNKNOWN_PERSON_NAME, cluster_owner=owner, kind=Person.KIND_UNKNOWN
     )[0]
@@ -124,5 +131,7 @@ def get_unknown_person(owner: User = None):
     return unknown_person
 
 
-def get_or_create_person(name, owner: User = None, kind: str = Person.KIND_UNKNOWN):
+def get_or_create_person(
+    name: str, owner: User | None = None, kind: str = Person.KIND_UNKNOWN
+) -> Person:
     return Person.objects.get_or_create(name=name, cluster_owner=owner, kind=kind)[0]

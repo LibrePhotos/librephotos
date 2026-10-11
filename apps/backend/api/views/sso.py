@@ -19,12 +19,15 @@ from allauth.socialaccount.providers.openid_connect.views import (
 from constance import config as site_config
 from django.contrib.auth import logout as django_logout
 from django.contrib.auth.decorators import login_not_required
-from django.http import Http404, HttpResponseRedirect
+from django.http import Http404, HttpRequest, HttpResponseBase, HttpResponseRedirect
 from django.urls import reverse
 from rest_framework.permissions import AllowAny
+from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework_simplejwt.tokens import RefreshToken
 
+from api.models.user import User
 from api.public_url import is_internal_base_url, public_base_url
 
 
@@ -43,7 +46,7 @@ class LibrePhotosOIDCAdapter(OpenIDConnectOAuth2Adapter):
     by domain would otherwise produce a mismatch).
     """
 
-    def get_callback_url(self, request, app):
+    def get_callback_url(self, request: HttpRequest, app: SocialApp) -> str:
         base = public_base_url(request)
         path = reverse(
             "openid_connect_callback", kwargs={"provider_id": self.provider_id}
@@ -51,7 +54,11 @@ class LibrePhotosOIDCAdapter(OpenIDConnectOAuth2Adapter):
         return f"{base}{path}"
 
 
-def _oidc_view(view_class, request, provider_id):
+def _oidc_view(
+    view_class: type[OAuth2LoginView] | type[OAuth2CallbackView],
+    request: HttpRequest,
+    provider_id: str,
+) -> HttpResponseBase:
     """Run one of allauth's OAuth2 views against our adapter subclass.
 
     allauth's own ``oidc/<id>/login/`` and ``.../callback/`` views hardcode the
@@ -78,7 +85,7 @@ def _oidc_view(view_class, request, provider_id):
 
 
 @login_not_required
-def oidc_login(request, provider_id):
+def oidc_login(request: HttpRequest, provider_id: str) -> HttpResponseBase:
     """Start the OIDC redirect, refusing early if we have no public URL to give.
 
     Without this guard allauth would happily send the browser to the IdP with
@@ -91,11 +98,11 @@ def oidc_login(request, provider_id):
 
 
 @login_not_required
-def oidc_callback(request, provider_id):
+def oidc_callback(request: HttpRequest, provider_id: str) -> HttpResponseBase:
     return _oidc_view(OAuth2CallbackView, request, provider_id)
 
 
-def _mint_jwt_for(user):
+def _mint_jwt_for(user: User) -> tuple[str, str]:
     """Issue a LibrePhotos access/refresh pair with the standard custom claims.
 
     Imported lazily from the root URLconf to reuse the exact claim logic the
@@ -104,10 +111,15 @@ def _mint_jwt_for(user):
     from librephotos.urls import CustomTokenObtainPairSerializer
 
     refresh = CustomTokenObtainPairSerializer.get_token(user)
+    # The serializer's token_class is RefreshToken (the stubs only say Token),
+    # and only RefreshToken has access_token.
+    assert isinstance(refresh, RefreshToken)
     return str(refresh.access_token), str(refresh)
 
 
-def _set_auth_cookies(response, access, refresh):
+def _set_auth_cookies(
+    response: HttpResponseBase, access: str, refresh: str
+) -> HttpResponseBase:
     # Mirror CustomTokenObtainPairView: the SPA reads these cookies (via
     # react-cookie) to boot already authenticated. Not HttpOnly, matching the
     # existing password-login behaviour so the client can read them.
@@ -118,12 +130,13 @@ def _set_auth_cookies(response, access, refresh):
     return response
 
 
-def sso_finish(request):
+def sso_finish(request: HttpRequest) -> HttpResponseRedirect:
     """allauth's post-login landing: mint the JWT and hand off to the SPA."""
-    if not request.user.is_authenticated:
+    user = request.user
+    if not isinstance(user, User) or not user.is_authenticated:
         return HttpResponseRedirect("/login?sso_error=not_authenticated")
 
-    access, refresh = _mint_jwt_for(request.user)
+    access, refresh = _mint_jwt_for(user)
 
     # The Django session was only a vehicle for the allauth handshake; the app
     # runs on JWT, so drop it to avoid leaving a second, session-based auth path.
@@ -142,11 +155,11 @@ class SSOConfigView(APIView):
     permission_classes = (AllowAny,)
     authentication_classes = ()
 
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         from allauth.socialaccount.models import SocialApp
 
         enabled = bool(site_config.OIDC_ENABLED)
-        providers = []
+        providers: list[dict[str, str]] = []
         if enabled:
             for app in SocialApp.objects.filter(provider="openid_connect"):
                 provider_id = app.provider_id or app.client_id

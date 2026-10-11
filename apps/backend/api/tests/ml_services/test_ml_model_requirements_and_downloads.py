@@ -329,7 +329,9 @@ class DownloadModelsJobTest(TestCase):
                 ):
                     download_models(self.user)
 
-        self.assertEqual([m["name"] for m in ML_MODELS], attempted)
+        self.assertEqual(
+            [m["name"] for m in ML_MODELS if _is_model_selected(m)], attempted
+        )
 
         job = LongRunningJob.objects.get(job_type=LongRunningJob.JOB_DOWNLOAD_MODELS)
         self.assertTrue(job.failed)
@@ -346,6 +348,27 @@ class DownloadModelsJobTest(TestCase):
         job = LongRunningJob.objects.get(job_type=LongRunningJob.JOB_DOWNLOAD_MODELS)
         self.assertFalse(job.failed)
         self.assertTrue(job.finished)
+
+    @override_config(OCR_MODEL="ppocrv6_small")
+    def test_models_not_selected_are_not_handed_to_download_model(self):
+        handed = []
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            with override_settings(MEDIA_ROOT=str(Path(temp_dir) / "protected_media")):
+                with patch(
+                    "api.ml_models.download_model",
+                    side_effect=lambda model: handed.append(model["name"]),
+                ):
+                    download_models(self.user)
+
+        self.assertIn(_ocr_model("small")["name"], handed)
+        self.assertNotIn(_ocr_model("tiny")["name"], handed)
+        self.assertNotIn(_ocr_model("medium")["name"], handed)
+        self.assertEqual(
+            [m["name"] for m in ML_MODELS if _is_model_selected(m)], handed
+        )
+        job = LongRunningJob.objects.get(job_type=LongRunningJob.JOB_DOWNLOAD_MODELS)
+        self.assertEqual(len(ML_MODELS), job.progress_current)
 
     @override_config(FACE_RECOGNITION_MODEL="buffalo_sc")
     def test_a_model_picked_while_it_runs_is_fetched_by_the_same_job(self):

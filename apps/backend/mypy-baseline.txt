@@ -1,0 +1,3 @@
+# mypy error baseline for scripts/typecheck.py.
+# Known errors, one per line as `path: [code] message`, sorted. CI fails on any error not listed here.
+# Fixed some? Shrink this file with `python scripts/typecheck.py --update`. Do not add entries by hand.

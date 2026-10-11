@@ -1,12 +1,15 @@
 import json
 import logging
 import os
+from collections.abc import Mapping
+from typing import Any
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import identify_hasher
 from django.contrib.auth.validators import UnicodeUsernameValidator
 from django_q.tasks import Chain
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
@@ -74,7 +77,7 @@ USER_UPDATE_FIELDS = (
 )
 
 
-def validate_rule_exif_tag_names(value, field_label):
+def validate_rule_exif_tag_names(value: object, field_label: str) -> object:
     """Reject a rules payload whose ExifTool tag names are not safe.
 
     ``datetime_rules`` and ``burst_detection_rules`` are editable by any
@@ -101,7 +104,7 @@ def validate_rule_exif_tag_names(value, field_label):
     for rule in rules:
         if not isinstance(rule, dict):
             continue
-        tag_names = []
+        tag_names: list[str] = []
         condition_exif = rule.get("condition_exif")
         if isinstance(condition_exif, str) and condition_exif:
             tag_names.append(condition_exif.split("//", maxsplit=1)[0])
@@ -119,19 +122,21 @@ def validate_rule_exif_tag_names(value, field_label):
     return value
 
 
-def set_password_if_allowed(instance, validated_data):
+def set_password_if_allowed(instance: User, validated_data: dict[str, Any]) -> None:
     password = validated_data.pop("password")
     if password != "" and not settings.DEMO_SITE:
         instance.set_password(password)
 
 
-def assign_fields(instance, validated_data, fields):
+def assign_fields(
+    instance: User, validated_data: dict[str, Any], fields: tuple[str, ...]
+) -> None:
     for field in fields:
         if field in validated_data:
             setattr(instance, field, validated_data.pop(field))
 
 
-def comparable_path(path):
+def comparable_path(path: str) -> str:
     """Spell ``path`` the way the filesystem tells directories apart.
 
     ``realpath`` folds a symlink onto its target, so a link into another
@@ -143,15 +148,18 @@ def comparable_path(path):
     return os.path.normcase(os.path.realpath(path))
 
 
-def directories_overlap(one, other):
+def directories_overlap(one: str, other: str) -> bool:
     """True when two directories are the same or one contains the other."""
     one, other = comparable_path(one), comparable_path(other)
     return is_valid_path(one, other) or is_valid_path(other, one)
 
 
 def reject_overlap_with_another_user(
-    abs_scan_directory, user, label="Scan directory", field="scan_directory"
-):
+    abs_scan_directory: str,
+    user: User | None,
+    label: str = "Scan directory",
+    field: str = "scan_directory",
+) -> None:
     """Refuse a directory that reaches into a tree another user owns.
 
     A photo has exactly one owner, so two users pointed at overlapping trees
@@ -200,8 +208,11 @@ def reject_overlap_with_another_user(
 
 
 def normalize_scan_directory(
-    scan_directory, user=None, label="Scan directory", field="scan_directory"
-):
+    scan_directory: str,
+    user: User | None = None,
+    label: str = "Scan directory",
+    field: str = "scan_directory",
+) -> str | None:
     """Return ``scan_directory`` as a usable absolute library root.
 
     Returns ``None`` when nothing was supplied, so callers can leave the
@@ -232,7 +243,7 @@ def normalize_scan_directory(
     return abs_scan_directory
 
 
-def auto_create_user_directory(user, claim_existing=False):
+def auto_create_user_directory(user: User, claim_existing: bool = False) -> None:
     """Give ``user`` its own folder under ``DATA_ROOT``, when that is enabled.
 
     Off unless the ``AUTO_CREATE_USER_DIRECTORY`` site setting is on. A
@@ -263,7 +274,7 @@ def auto_create_user_directory(user, claim_existing=False):
     if not site_config.AUTO_CREATE_USER_DIRECTORY or user.scan_directory:
         return
 
-    def refuse(reason):
+    def refuse(reason: str) -> None:
         logger.warning(
             f"Not creating a data folder for user {user.username}: {reason}. "
             f"The account was created without a scan directory; assign one "
@@ -279,7 +290,9 @@ def auto_create_user_directory(user, claim_existing=False):
     try:
         reject_overlap_with_another_user(candidate, user)
     except ValidationError as error:
-        refuse(f"{candidate} is not available. {' '.join(error.detail)}")
+        # error.detail is a list of messages here: the reason is a plain string.
+        reasons = " ".join(str(detail) for detail in error.detail)
+        refuse(f"{candidate} is not available. {reasons}")
         return
 
     if os.path.lexists(candidate):
@@ -321,7 +334,7 @@ class AvatarField(serializers.ImageField):
     "unchanged" and the field is left out.
     """
 
-    def get_value(self, dictionary):
+    def get_value(self, dictionary: Mapping[str, Any]) -> object:
         value = super().get_value(dictionary)
         if isinstance(value, str):
             return serializers.empty
@@ -413,10 +426,10 @@ class UserSerializer(serializers.ModelSerializer):
             "default_timeline_filter",
         )
 
-    def validate_nextcloud_app_password(self, value):
+    def validate_nextcloud_app_password(self, value: str) -> str:
         return value
 
-    def validate_nextcloud_server_address(self, value):
+    def validate_nextcloud_server_address(self, value: str) -> str:
         value = (value or "").strip()
         # The settings page sends the whole profile back on every save, so an
         # address that was stored before is not re-checked here: it is checked
@@ -433,19 +446,19 @@ class UserSerializer(serializers.ModelSerializer):
             raise ValidationError(str(e)) from e
         return value
 
-    def validate_datetime_rules(self, value):
+    def validate_datetime_rules(self, value: object) -> object:
         return validate_rule_exif_tag_names(value, "datetime_rules")
 
-    def validate_burst_detection_rules(self, value):
+    def validate_burst_detection_rules(self, value: object) -> object:
         return validate_rule_exif_tag_names(value, "burst_detection_rules")
 
-    def validate_default_timeline_filter(self, value):
+    def validate_default_timeline_filter(self, value: object) -> dict[str, object]:
         try:
             return validate_default_timeline_filter(value)
         except ValueError as error:
             raise ValidationError(f"default_timeline_filter {error}.") from error
 
-    def create(self, validated_data):
+    def create(self, validated_data: dict[str, Any]) -> User:
         if "scan_directory" in validated_data.keys():
             if (
                 not self.context["request"].user.is_superuser
@@ -484,7 +497,7 @@ class UserSerializer(serializers.ModelSerializer):
         auto_create_user_directory(user, claim_existing=True)
         return user
 
-    def update(self, instance, validated_data):
+    def update(self, instance: User, validated_data: dict[str, Any]) -> User:
         # user can only update the following
         if "password" in validated_data:
             set_password_if_allowed(instance, validated_data)
@@ -501,7 +514,9 @@ class UserSerializer(serializers.ModelSerializer):
 
         return instance
 
-    def queue_semantic_search_jobs(self, instance, new_semantic_search_topk):
+    def queue_semantic_search_jobs(
+        self, instance: User, new_semantic_search_topk: int
+    ) -> None:
         if instance.semantic_search_topk != 0 or new_semantic_search_topk <= 0:
             return
         chain = Chain()
@@ -510,21 +525,25 @@ class UserSerializer(serializers.ModelSerializer):
         chain.append(batch_calculate_clip_embedding, User.objects.get(id=instance.id))
         chain.run()
 
-    def get_photo_count(self, obj) -> int:
+    def get_photo_count(self, obj: User) -> int:
         # As in ManageUserSerializer: the count the Library page shows.
         return Photo.visible.owned_by(obj).count()
 
-    def get_public_photo_count(self, obj) -> int:
+    def get_public_photo_count(self, obj: User) -> int:
         # Photo.visible: ``public`` is never cleared when a photo is hidden,
         # trashed or removed later, and those are not served to visitors.
         return Photo.visible.owned_by(obj).filter(public=True).count()
 
-    def get_public_photo_samples(self, obj) -> PhotoSuperSimpleSerializer(many=True):
-        return PhotoSuperSimpleSerializer(
-            Photo.visible.owned_by(obj).filter(public=True)[:10], many=True
+    @extend_schema_field(PhotoSuperSimpleSerializer(many=True))
+    def get_public_photo_samples(self, obj: User) -> list[dict[str, Any]]:
+        # ``.data`` of a many=True serializer is a ReturnList; build it through
+        # ListSerializer so the static type matches the runtime value.
+        return serializers.ListSerializer(
+            child=PhotoSuperSimpleSerializer(),
+            instance=Photo.visible.owned_by(obj).filter(public=True)[:10],
         ).data
 
-    def get_avatar_url(self, obj) -> str or None:
+    def get_avatar_url(self, obj: User) -> str | None:
         try:
             return obj.avatar.url
         except Exception:
@@ -554,23 +573,27 @@ class PublicUserSerializer(serializers.ModelSerializer):
             "public_sharing",
         )
 
-    def get_public_photo_count(self, obj) -> int:
+    def get_public_photo_count(self, obj: User) -> int:
         # As in UserSerializer: only what a visitor can open.
         return Photo.visible.owned_by(obj).filter(public=True).count()
 
-    def get_public_photo_samples(self, obj) -> PhotoSuperSimpleSerializer(many=True):
-        return PhotoSuperSimpleSerializer(
-            Photo.visible.owned_by(obj).filter(public=True)[:10], many=True
+    @extend_schema_field(PhotoSuperSimpleSerializer(many=True))
+    def get_public_photo_samples(self, obj: User) -> list[dict[str, Any]]:
+        # ``.data`` of a many=True serializer is a ReturnList; build it through
+        # ListSerializer so the static type matches the runtime value.
+        return serializers.ListSerializer(
+            child=PhotoSuperSimpleSerializer(),
+            instance=Photo.visible.owned_by(obj).filter(public=True)[:10],
         ).data
 
-    def get_avatar_url(self, obj) -> str or None:
+    def get_avatar_url(self, obj: User) -> str | None:
         try:
             return obj.avatar.url
         except ValueError:
             return None
 
 
-def is_abandoned_signup(user):
+def is_abandoned_signup(user: User) -> bool:
     """Is this account the leftover of a first-time setup that failed halfway?
 
     Sign-up used to insert the row before hashing its password, so a failing
@@ -619,7 +642,7 @@ class SignupUserSerializer(serializers.ModelSerializer):
             "is_superuser",
         )
 
-    def validate_username(self, value):
+    def validate_username(self, value: str) -> str:
         existing = User.objects.filter(username=value).first()
         if existing is not None and not is_abandoned_signup(existing):
             raise ValidationError(
@@ -627,7 +650,7 @@ class SignupUserSerializer(serializers.ModelSerializer):
             )
         return value
 
-    def create(self, validated_data):
+    def create(self, validated_data: dict[str, Any]) -> User:
         # One INSERT, with the password already hashed. The row used to be
         # saved first and hashed afterwards, so a failure in between (a missing
         # hasher library did it) left an account behind that held the password
@@ -693,12 +716,12 @@ class ManageUserSerializer(serializers.ModelSerializer):
             "stack_raw_jpeg": {"required": False},
         }
 
-    def get_photo_count(self, obj) -> int:
+    def get_photo_count(self, obj: User) -> int:
         # The count the user's Library page shows: counting hidden, trashed and
         # missing photos too made the admin's user list disagree with it.
         return Photo.visible.owned_by(obj).count()
 
-    def update(self, instance: User, validated_data):
+    def update(self, instance: User, validated_data: dict[str, Any]) -> User:
         if "password" in validated_data:
             set_password_if_allowed(instance, validated_data)
 
@@ -720,7 +743,7 @@ class ManageUserSerializer(serializers.ModelSerializer):
         instance.save()
         return instance
 
-    def apply_scan_directory(self, instance: User, new_scan_directory):
+    def apply_scan_directory(self, instance: User, new_scan_directory: str) -> None:
         abs_new_scan_directory = normalize_scan_directory(
             new_scan_directory, user=instance
         )
@@ -730,7 +753,7 @@ class ManageUserSerializer(serializers.ModelSerializer):
         instance.scan_directory = abs_new_scan_directory
         logger.info(f"Updated scan directory for user {instance.scan_directory}")
 
-    def apply_upload_directory(self, instance: User, new_upload_directory):
+    def apply_upload_directory(self, instance: User, new_upload_directory: str) -> None:
         """Set where web uploads go; an empty value restores the default.
 
         The folder passes the same checks as a scan directory: it must exist
@@ -754,13 +777,15 @@ class ManageUserSerializer(serializers.ModelSerializer):
             )
         except ValidationError as e:
             raise ValidationError({"upload_directory": e.detail}) from e
+        # The value is non-empty here, so normalize_scan_directory returns a path.
+        assert abs_upload_directory is not None
         instance.upload_directory = abs_upload_directory
         logger.info(
             f"Updated upload directory for user {instance.username} "
             f"to {abs_upload_directory}"
         )
 
-    def apply_username(self, instance: User, username):
+    def apply_username(self, instance: User, username: str) -> None:
         if username != "":
             other_user = User.objects.filter(username=username).first()
             if other_user is not None and other_user != instance:

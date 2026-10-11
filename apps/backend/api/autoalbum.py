@@ -1,7 +1,10 @@
 import logging
+import uuid
+from collections.abc import Iterable
 from datetime import datetime, timedelta
 
 import pytz
+from typing import TYPE_CHECKING
 from django.db import transaction
 from django.db.models import Q
 
@@ -11,11 +14,15 @@ from api.models import (
     File,
     LongRunningJob,
     Photo,
+    User,
 )
 from api.models.tag import refresh_tag_photo_counts, tag_ids_for_photos
 from api.lazy_import import LazyModule
 
-np = LazyModule("numpy")
+if TYPE_CHECKING:
+    import numpy as np
+else:
+    np = LazyModule("numpy")
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +33,33 @@ logger = logging.getLogger(__name__)
 _DELETE_MISSING_BATCH_SIZE = 200
 
 
-def regenerate_event_titles(user, job_id):
+def _taken_at(photo: Photo) -> datetime:
+    """The photo's capture time. Every photo handed here has one (see the query)."""
+    assert photo.exif_timestamp is not None
+    return photo.exif_timestamp
+
+
+def _group_photos(
+    photos: Iterable[Photo], dt: timedelta = timedelta(hours=6)
+) -> list[list[Photo]]:
+    photos_with_timestamp = sorted(photos, key=_taken_at)
+    groups: list[list[Photo]] = []
+    for photo in photos_with_timestamp:
+        if len(groups) == 0:
+            groups.append([])
+            groups[-1].append(photo)
+        # Photos are sorted by timestamp, so we can just check the last photo of the last group
+        # to see if it is within the time delta
+        elif _taken_at(photo) - _taken_at(groups[-1][-1]) < dt:
+            groups[-1].append(photo)
+        # If the photo is not within the time delta, we create a new group
+        else:
+            groups.append([])
+            groups[-1].append(photo)
+    return groups
+
+
+def regenerate_event_titles(user: User, job_id: uuid.UUID | str) -> int:
     lrj = LongRunningJob.get_or_create_job(
         user=user,
         job_type=LongRunningJob.JOB_GENERATE_AUTO_ALBUM_TITLES,
@@ -51,7 +84,7 @@ def regenerate_event_titles(user, job_id):
     return 1
 
 
-def generate_event_albums(user, job_id):
+def generate_event_albums(user: User, job_id: uuid.UUID | str) -> int:
     lrj = LongRunningJob.get_or_create_job(
         user=user,
         job_type=LongRunningJob.JOB_GENERATE_AUTO_ALBUMS,
@@ -65,36 +98,19 @@ def generate_event_albums(user, job_id):
             .only("exif_timestamp", "exif_gps_lat", "exif_gps_lon")
         )
 
-        def group(photos, dt=timedelta(hours=6)):
-            photos_with_timestamp = sorted(photos, key=lambda p: p.exif_timestamp)
-            groups = []
-            for idx, photo in enumerate(photos_with_timestamp):
-                if len(groups) == 0:
-                    groups.append([])
-                    groups[-1].append(photo)
-                # Photos are sorted by timestamp, so we can just check the last photo of the last group
-                # to see if it is within the time delta
-                elif photo.exif_timestamp - groups[-1][-1].exif_timestamp < dt:
-                    groups[-1].append(photo)
-                # If the photo is not within the time delta, we create a new group
-                else:
-                    groups.append([])
-                    groups[-1].append(photo)
-            return groups
-
         # Group images that are on the same 1 day and 12 hours interval
-        groups = group(photos, dt=timedelta(days=1, hours=12))
+        groups = _group_photos(photos, dt=timedelta(days=1, hours=12))
         target_count = len(groups)
         logger.info(
             f"job {job_id}: made {target_count} groups out of {len(photos)} images"
         )
 
-        album_locations = []
+        album_locations: list[object] = []
 
         date_format = "%Y:%m:%d %H:%M:%S"
         for idx, group in enumerate(groups):
-            key = group[0].exif_timestamp - timedelta(hours=11, minutes=59)
-            lastKey = group[-1].exif_timestamp + timedelta(hours=11, minutes=59)
+            key = _taken_at(group[0]) - timedelta(hours=11, minutes=59)
+            lastKey = _taken_at(group[-1]) + timedelta(hours=11, minutes=59)
             logger.info("%s - %s", key.date, lastKey.date)
             logger.info(
                 "job %s: processing auto album with date: %s to %s",
@@ -126,14 +142,14 @@ def generate_event_albums(user, job_id):
                     .filter(
                         Q(
                             photos__exif_timestamp__range=(
-                                group[0].exif_timestamp,
-                                group[-1].exif_timestamp,
+                                _taken_at(group[0]),
+                                _taken_at(group[-1]),
                             )
                         )
                         | Q(timestamp=key)
                     )
-                    .exclude(photos__exif_timestamp__lt=group[0].exif_timestamp)
-                    .exclude(photos__exif_timestamp__gt=group[-1].exif_timestamp)
+                    .exclude(photos__exif_timestamp__lt=_taken_at(group[0]))
+                    .exclude(photos__exif_timestamp__gt=_taken_at(group[-1]))
                     .distinct()
                     .order_by("created_on", "id")
                 )
@@ -151,9 +167,7 @@ def generate_event_albums(user, job_id):
                             f"into {album.id}"
                         )
                         with transaction.atomic():
-                            album.photos.add(
-                                *duplicate.photos.values_list("pk", flat=True)
-                            )
+                            album.photos.add(*duplicate.photos.all())
                             # The merged album carries user state that only
                             # exists on it, so move it over before it is gone.
                             album.favorited = album.favorited or duplicate.favorited
@@ -218,7 +232,7 @@ def generate_event_albums(user, job_id):
 
 
 # To-Do: This does not belong here
-def delete_missing_photos(user, job_id):
+def delete_missing_photos(user: User, job_id: uuid.UUID | str) -> int:
     lrj = LongRunningJob.get_or_create_job(
         user=user,
         job_type=LongRunningJob.JOB_DELETE_MISSING_PHOTOS,

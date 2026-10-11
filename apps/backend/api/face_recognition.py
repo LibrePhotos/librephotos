@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 import html
 import re
 from html.parser import HTMLParser
+from typing import TYPE_CHECKING, Any
 
 import requests
 from constance import config as site_config
@@ -8,24 +11,31 @@ from constance import config as site_config
 from api import sidecars
 from api.lazy_import import LazyModule
 
-np = LazyModule("numpy")
+if TYPE_CHECKING:
+    import numpy.typing as npt
+    from numpy import float64
+
+if TYPE_CHECKING:
+    import numpy as np
+else:
+    np = LazyModule("numpy")
 
 
 class _HTMLTextExtractor(HTMLParser):
     """Minimal HTML parser that collects visible text content."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
-        self._parts = []
+        self._parts: list[str] = []
 
-    def handle_data(self, data):
+    def handle_data(self, data: str) -> None:
         self._parts.append(data)
 
-    def get_text(self):
+    def get_text(self) -> str:
         return " ".join(part.strip() for part in self._parts if part.strip())
 
 
-def _strip_html(text):
+def _strip_html(text: str) -> str:
     """Strip HTML tags and decode entities, returning plain text."""
     parser = _HTMLTextExtractor()
     parser.feed(text)
@@ -35,7 +45,7 @@ def _strip_html(text):
     return html.unescape(plain) if plain else text.strip()
 
 
-def _get_response_preview(response, max_length=500):
+def _get_response_preview(response: requests.Response, max_length: int = 500) -> str:
     """Return a trimmed face-service response body preview for error messages.
 
     HTML responses (e.g. Flask error pages) are converted to plain text so
@@ -59,7 +69,7 @@ def _get_response_preview(response, max_length=500):
     return response_text
 
 
-def _get_error_detail(response):
+def _get_error_detail(response: requests.Response) -> str:
     """Return the most useful error detail from a failed response.
 
     Prefers the ``error`` field from a JSON body (as returned by the face
@@ -74,7 +84,7 @@ def _get_error_detail(response):
     return _get_response_preview(response)
 
 
-def _post_to_face_service(path, payload):
+def _post_to_face_service(path: str, payload: dict[str, object]) -> dict[str, Any]:
     """POST to the face service and raise errors with response details.
 
     The sidecar can drop the connection while a scan saturates the box; the
@@ -89,12 +99,14 @@ def _post_to_face_service(path, payload):
     try:
         response = sidecars.post("face_recognition", path, json=payload, timeout=FACE)
     except requests.HTTPError as exc:
-        response = exc.response
+        failed = exc.response
+        # raise_for_status always attaches the reply it failed on.
+        assert failed is not None
         raise requests.HTTPError(
             "Face recognition service request failed for "
-            f"{url} with status {response.status_code}: "
-            f"{_get_error_detail(response)}",
-            response=response,
+            f"{url} with status {failed.status_code}: "
+            f"{_get_error_detail(failed)}",
+            response=failed,
         ) from exc
 
     try:
@@ -107,7 +119,9 @@ def _post_to_face_service(path, payload):
         ) from exc
 
 
-def get_face_encodings(image_path, known_face_locations):
+def get_face_encodings(
+    image_path: str, known_face_locations: list[tuple[int, int, int, int]]
+) -> list[npt.NDArray[float64] | None]:
     payload = {
         "source": image_path,
         "face_locations": known_face_locations,
@@ -122,7 +136,9 @@ def get_face_encodings(image_path, known_face_locations):
     ]
 
 
-def detect_faces(image_path):
+def detect_faces(
+    image_path: str,
+) -> list[tuple[list[int], npt.NDArray[float64] | None]]:
     """Every face in the picture: [(location, encoding)], encoding None if not sent.
 
     The sidecar computes the encodings while detecting; a sidecar from before
@@ -143,5 +159,5 @@ def detect_faces(image_path):
     ]
 
 
-def get_face_locations(image_path):
+def get_face_locations(image_path: str) -> list[list[int]]:
     return [location for location, _ in detect_faces(image_path)]

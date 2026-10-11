@@ -1,17 +1,32 @@
-import pytz
+from datetime import datetime
 from itertools import groupby
+
+import pytz
+from django.db.models import QuerySet
+from rest_framework.request import Request
+
+from api.models import Photo
 
 utc = pytz.UTC
 
 
 class PhotosGroupedByDate:
-    def __init__(self, location, date, photos):
+    def __init__(
+        self,
+        location: str,
+        # The search endpoint dates its undated group with the legacy label
+        # "No timestamp" instead of None.
+        date: datetime | str | None,
+        photos: list[Photo],
+    ) -> None:
         self.photos = photos
         self.date = date
         self.location = location
 
 
-def filter_photos_by_media_type(photos, request):
+def filter_photos_by_media_type(
+    photos: QuerySet[Photo] | list[Photo], request: Request | None
+) -> QuerySet[Photo] | list[Photo]:
     """Narrow *photos* per the request's media-type query.
 
     Mirrors the convention used by the search and album-date endpoints
@@ -40,7 +55,10 @@ def filter_photos_by_media_type(photos, request):
     return photos
 
 
-def get_photos_ordered_by_date(photos, undated_date=None):
+def get_photos_ordered_by_date(
+    photos: QuerySet[Photo] | list[Photo],
+    undated_date: datetime | str | None = None,
+) -> list[PhotosGroupedByDate]:
     """
     Efficiently group photos by date using itertools.groupby.
     Assumes photos are already ordered by exif_timestamp.
@@ -51,10 +69,10 @@ def get_photos_ordered_by_date(photos, undated_date=None):
     if hasattr(photos, "_result_cache") and photos._result_cache is None:
         photos = list(photos)
 
-    result = []
-    no_timestamp_photos = []
+    result: list[PhotosGroupedByDate] = []
+    no_timestamp_photos: list[Photo] = []
 
-    def date_key(photo):
+    def date_key(photo: Photo) -> str | None:
         """Key function for grouping photos by date"""
         if photo.exif_timestamp:
             return photo.exif_timestamp.date().strftime("%Y-%m-%d")

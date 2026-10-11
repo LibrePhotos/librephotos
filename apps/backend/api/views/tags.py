@@ -1,14 +1,21 @@
 import uuid
+from typing import Any
+from collections.abc import Callable, Iterable
 
-from django.db.models import Prefetch, Q
+from django.db.models import Prefetch, Q, QuerySet
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.serializers import BaseSerializer
 
 from api.models import Photo, Tag
+from api.models.user import User
+from api.request_data import request_dict
+from api.request_user import request_user
 from api.serializers.tag import (
     GroupedTagPhotosSerializer,
     TagListSerializer,
@@ -38,11 +45,12 @@ class TagViewSet(viewsets.ModelViewSet):
     filter_backends = (filters.SearchFilter,)
     search_fields = ["name"]
 
-    def get_queryset(self):
-        if self.request.user.is_anonymous:
+    def get_queryset(self) -> QuerySet[Tag]:
+        user = self.request.user
+        if not isinstance(user, User):
             return Tag.objects.none()
 
-        queryset = Tag.objects.filter(owner=self.request.user)
+        queryset = Tag.objects.filter(owner=user)
 
         if self.action == "list":
             # "Tags of this photo" on the list only: on a tag album's detail
@@ -75,7 +83,11 @@ class TagViewSet(viewsets.ModelViewSet):
 
         return queryset.order_by("name")
 
-    def get_serializer_class(self):
+    def get_serializer_class(
+        self,
+    ) -> (
+        type[TagListSerializer] | type[GroupedTagPhotosSerializer] | type[TagSerializer]
+    ):
         if self.action == "list":
             return TagListSerializer
         if self.action == "retrieve":
@@ -90,17 +102,18 @@ class TagViewSet(viewsets.ModelViewSet):
         ),
         responses={200: TagSerializer, 201: TagSerializer},
     )
-    def create(self, request, *args, **kwargs):
-        name = str(request.data.get("name") or "").strip()
-        existing = Tag.objects.filter(name=name, owner=request.user).first()
+    def create(self, request: Request, *args: Any, **kwargs: Any) -> Response:
+        data = request_dict(request)
+        name = str(data.get("name") or "").strip()
+        existing = Tag.objects.filter(name=name, owner=request_user(request)).first()
         if existing is not None:
             return Response(TagSerializer(existing).data)
         return super().create(request, *args, **kwargs)
 
-    def perform_create(self, serializer):
-        serializer.save(owner=self.request.user)
+    def perform_create(self, serializer: BaseSerializer[Tag]) -> None:
+        serializer.save(owner=request_user(self.request))
 
-    def _resolve_photos(self, request):
+    def _resolve_photos(self, request: Request) -> list[Photo] | QuerySet[Photo] | None:
         """Resolve the request's photos to the ones the user owns.
 
         Either an explicit list of ids/hashes, or ``select_all=True`` plus the
@@ -112,10 +125,11 @@ class TagViewSet(viewsets.ModelViewSet):
         answering 200 for an empty queryset had the UI report a save that never
         happened.
         """
-        if request.data.get("select_all"):
+        data = request_dict(request)
+        if data.get("select_all"):
             return self._select_all_photos(request)
 
-        identifiers = request.data.get("photos")
+        identifiers = data.get("photos")
         if not isinstance(identifiers, list) or not identifiers:
             return None
 
@@ -129,7 +143,7 @@ class TagViewSet(viewsets.ModelViewSet):
                 hashes.add(filter_kwargs["image_hash"])
 
         photos = list(
-            Photo.objects.owned_by(request.user).filter(
+            Photo.objects.owned_by(request_user(request)).filter(
                 Q(pk__in=ids) | Q(image_hash__in=hashes)
             )
         )
@@ -140,25 +154,30 @@ class TagViewSet(viewsets.ModelViewSet):
 
         return photos
 
-    def _select_all_photos(self, request):
+    def _select_all_photos(self, request: Request) -> QuerySet[Photo]:
         """The photos behind a ``select_all`` payload, as a lazy queryset."""
-        query = request.data.get("query")
-        excluded_hashes = request.data.get("excluded_hashes") or []
+        data = request_dict(request)
+        query = data.get("query")
+        excluded_hashes = data.get("excluded_hashes") or []
 
         photos = build_photo_queryset(
-            request.user, query if isinstance(query, dict) else {}
+            request_user(request), query if isinstance(query, dict) else {}
         )
         if excluded_hashes:
             photos = photos.exclude(image_hash__in=excluded_hashes)
         return photos
 
     @staticmethod
-    def _link_photos(relation_method, photos):
+    def _link_photos(
+        relation_method: Callable[..., None],
+        photos: list[Photo] | QuerySet[Photo],
+    ) -> None:
         """Add or remove ``photos`` on a tag's m2m, a batch at a time.
 
         Takes primary keys rather than instances so a select-all edit never
         loads the whole photoset into memory.
         """
+        pks: Iterable[object]
         if isinstance(photos, list):
             pks = [photo.pk for photo in photos]
         else:
@@ -166,7 +185,7 @@ class TagViewSet(viewsets.ModelViewSet):
                 chunk_size=PHOTO_LINK_BATCH_SIZE
             )
 
-        batch = []
+        batch: list[object] = []
         for pk in pks:
             batch.append(pk)
             if len(batch) == PHOTO_LINK_BATCH_SIZE:
@@ -182,10 +201,10 @@ class TagViewSet(viewsets.ModelViewSet):
             "only get the tags attached to that photo."
         ),
     )
-    def list(self, *args, **kwargs):
+    def list(self, *args: Any, **kwargs: Any) -> Response:
         return super().list(*args, **kwargs)
 
-    def retrieve(self, request, *args, **kwargs):
+    def retrieve(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         serializer = GroupedTagPhotosSerializer(
             self.get_object(), context={"request": request}
         )
@@ -200,7 +219,7 @@ class TagViewSet(viewsets.ModelViewSet):
         responses={200: TagSerializer},
     )
     @action(detail=True, methods=["post"], url_path="add")
-    def add_photos(self, request, pk=None):
+    def add_photos(self, request: Request, pk: str | None = None) -> Response:
         tag = self.get_object()
         photos = self._resolve_photos(request)
         if photos is None:
@@ -219,7 +238,7 @@ class TagViewSet(viewsets.ModelViewSet):
         responses={200: TagSerializer},
     )
     @action(detail=True, methods=["post"], url_path="remove")
-    def remove_photos(self, request, pk=None):
+    def remove_photos(self, request: Request, pk: str | None = None) -> Response:
         tag = self.get_object()
         photos = self._resolve_photos(request)
         if photos is None:
@@ -238,16 +257,19 @@ class TagViewSet(viewsets.ModelViewSet):
         responses={200: TagSerializer},
     )
     @action(detail=True, methods=["post"], url_path="merge")
-    def merge(self, request, pk=None):
+    def merge(self, request: Request, pk: str | None = None) -> Response:
         tag = self.get_object()
-        source_id = request.data.get("tag")
+        data = request_dict(request)
+        source_id = data.get("tag")
         if source_id is None:
             return Response(
                 {"error": "No tag provided"}, status=status.HTTP_400_BAD_REQUEST
             )
 
         try:
-            source = Tag.objects.filter(pk=source_id, owner=request.user).first()
+            source = Tag.objects.filter(
+                pk=source_id, owner=request_user(request)
+            ).first()
         except (TypeError, ValueError):
             source = None
         if source is None:

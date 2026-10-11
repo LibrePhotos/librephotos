@@ -1,12 +1,15 @@
+from collections.abc import Iterable
 from functools import reduce
+
+from geopy.location import Location
 
 from api.geocode import GEOCODE_VERSION
 
 
-def _dedup(iterable):
-    unique_items = set()
+def _dedup(iterable: Iterable[str]) -> list[str]:
+    unique_items: set[str] = set()
 
-    def reducer(acc, item):
+    def reducer(acc: list[str], item: str) -> list[str]:
         if item not in unique_items:
             unique_items.add(item)
             acc.append(item)
@@ -15,7 +18,7 @@ def _dedup(iterable):
     return reduce(reducer, iterable, [])
 
 
-def parse(location):
+def parse(location: Location) -> dict[str, object]:
     data = location.raw["address"]
     address = location.address
     center = list(map(lambda x: float(x), location.raw["position"].split(",")))

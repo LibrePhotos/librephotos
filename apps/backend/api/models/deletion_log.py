@@ -46,5 +46,5 @@ class DeletionLog(models.Model):
             ),
         ]
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.entity}:{self.entity_id} for user {self.owner_id}"

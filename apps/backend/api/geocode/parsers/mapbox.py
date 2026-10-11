@@ -1,7 +1,9 @@
+from geopy.location import Location
+
 from api.geocode import GEOCODE_VERSION
 
 
-def parse(location):
+def parse(location: Location) -> dict[str, object]:
     context = location.raw["context"]
     center = [location.raw["center"][1], location.raw["center"][0]]
     local_name = location.raw["text"]

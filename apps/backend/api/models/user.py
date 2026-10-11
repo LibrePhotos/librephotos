@@ -1,4 +1,5 @@
 import os
+from typing import Any
 
 import pytz
 from django.conf import settings
@@ -10,15 +11,16 @@ from api.date_time_extractor import DEFAULT_RULES_JSON
 from api.burst_detection_rules import get_default_burst_detection_rules
 
 
-def get_default_config_datetime_rules():  # This is a callable
+def get_default_config_datetime_rules() -> str:  # This is a callable
     return DEFAULT_RULES_JSON
 
 
-def get_default_config_burst_detection_rules():  # This is a callable
+def get_default_config_burst_detection_rules() -> list[dict[str, Any]]:
+    # This is a callable
     return get_default_burst_detection_rules()
 
 
-def get_default_llm_settings():
+def get_default_llm_settings() -> dict[str, bool | int | str]:
     """Caption context: what a generated caption may know about the photo.
 
     The field keeps its historical name; the switches used to feed a separate
@@ -39,7 +41,7 @@ def get_default_llm_settings():
     }
 
 
-def get_default_public_sharing_settings():
+def get_default_public_sharing_settings() -> dict[str, bool]:
     """Default settings for what metadata to share in public albums.
 
     All options default to False (opt-in) for privacy-first approach.
@@ -161,18 +163,18 @@ class User(AbstractUser):
     # as a "shared_user" row.
     last_modified = models.DateTimeField(auto_now=True, db_index=True)
 
-    def upload_root(self):
+    def upload_root(self) -> str:
         """Folder that web uploads go to, one subfolder per uploading device."""
         if self.upload_directory:
             return self.upload_directory
         return os.path.join(self.scan_directory, "uploads")
 
 
-def get_admin_user():
+def get_admin_user() -> User:
     return User.objects.get(is_superuser=True)
 
 
-def get_deleted_user():
+def get_deleted_user() -> User:
     deleted_user: User = User.objects.get_or_create(username="deleted")[0]
     if deleted_user.is_active is not False:
         deleted_user.is_active = False

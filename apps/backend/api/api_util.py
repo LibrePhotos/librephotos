@@ -2,32 +2,45 @@ import logging
 import os
 import random
 import stat
+from typing import TypedDict, TypeVar
 
 from api.models import (
     Photo,
+    User,
 )
 
 logger = logging.getLogger(__name__)
 
-
-def shuffle(list):
-    random.shuffle(list)
-    return list
+_T = TypeVar("_T")
 
 
-def is_hidden(filepath):
+class PathNode(TypedDict):
+    title: str
+    absolute_path: str
+    children: list["PathNode"]
+
+
+def shuffle(items: list[_T]) -> list[_T]:
+    random.shuffle(items)
+    return items
+
+
+def is_hidden(filepath: str) -> bool:
     name = os.path.basename(os.path.abspath(filepath))
     return name.startswith(".") or has_hidden_attribute(filepath)
 
 
-def has_hidden_attribute(filepath):
+def has_hidden_attribute(filepath: str) -> bool:
     try:
-        return bool(os.stat(filepath).st_file_attributes & stat.FILE_ATTRIBUTE_HIDDEN)
+        # st_file_attributes only exists on Windows; elsewhere the attribute is
+        # absent and the old AttributeError path returned False, which 0 does too.
+        attributes: int = getattr(os.stat(filepath), "st_file_attributes", 0)
+        return bool(attributes & stat.FILE_ATTRIBUTE_HIDDEN)
     except Exception:
         return False
 
 
-def list_subdirectories(path):
+def list_subdirectories(path: str) -> list[str]:
     try:
         with os.scandir(path) as entries:
             children = [os.path.join(path, x) for x in entries]
@@ -40,8 +53,8 @@ def list_subdirectories(path):
     return [x for x in children if os.path.isdir(x) and not is_hidden(x)]
 
 
-def path_to_dict(path, recurse=2):
-    d = {"title": os.path.basename(path), "absolute_path": path}
+def path_to_dict(path: str, recurse: int = 2) -> PathNode:
+    d = PathNode(title=os.path.basename(path), absolute_path=path, children=[])
     if recurse > 0:
         d["children"] = [
             path_to_dict(x, recurse - 1) for x in list_subdirectories(path)
@@ -53,7 +66,7 @@ def path_to_dict(path, recurse=2):
     return d
 
 
-def get_search_term_examples(user):
+def get_search_term_examples(user: User) -> list[str]:
     from api.semantic_search import OPENCLIP
 
     default_search_terms = [
@@ -87,13 +100,13 @@ def get_search_term_examples(user):
     except ValueError:
         return default_search_terms
 
-    search_data = []
-    search_terms = default_search_terms
+    search_data: list[dict[str, list[str]]] = []
+    search_terms: list[str] = default_search_terms
     logger.info("Getting search terms for user %s", user.id)
     logger.info("Found %s photos", len(samples))
     for p in samples:
         faces = p.faces.all()
-        terms_loc = ""
+        terms_loc: list[str] = []
         if (
             p.geolocation_json
             and p.geolocation_json != {}
@@ -104,7 +117,7 @@ def get_search_term_examples(user):
                 for f in p.geolocation_json["features"][-5:]
                 if "text" in f and not f["text"].isdigit()
             ]
-        terms_time = ""
+        terms_time: list[str] = []
         if p.exif_timestamp:
             terms_time = [str(p.exif_timestamp.year)]
         terms_people = []
@@ -112,8 +125,10 @@ def get_search_term_examples(user):
             terms_people = [
                 f.person.name.split(" ")[0] if f.person else "" for f in faces
             ]
-        terms_things = ""
-        if p.caption_instance and p.caption_instance.captions_json:
+        terms_things: list[str] = []
+        # caption_instance is a reverse one-to-one; the queryset above excludes
+        # photos without captions, so the accessor never raises here.
+        if p.caption_instance.captions_json:
             tag_result = p.caption_instance.captions_json.get(OPENCLIP)
             if tag_result is not None:
                 terms_things = tag_result.get("tags", [])

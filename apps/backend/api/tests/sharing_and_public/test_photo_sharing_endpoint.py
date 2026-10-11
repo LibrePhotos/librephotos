@@ -69,6 +69,28 @@ class SharePhotosTest(TestCase):
         )
         self.assertEqual(0, len(shared_photos))
 
+    def test_unshare_logs_the_number_of_unshared_photos(self):
+        """The log named len() of delete()'s (count, per-model) tuple: always 2."""
+        photos = create_test_photos(number_of_photos=3, owner=self.user1)
+        image_hashes = [p.image_hash for p in photos]
+        share_test_photos(image_hashes, self.user2)
+
+        with self.assertLogs("api.views.photos", level="INFO") as logs:
+            self.client.post(
+                "/api/photosedit/share/",
+                format="json",
+                data={
+                    "image_hashes": image_hashes,
+                    "val_shared": False,
+                    "target_user_id": self.user2.id,
+                },
+            )
+
+        self.assertIn(
+            f"Unshared {self.user1.id}'s 3 images to user {self.user2.id}",
+            "\n".join(logs.output),
+        )
+
     def test_share_other_user_photos(self):
         # IDOR guard (#1860): user1 (authenticated) must NOT be able to share
         # user2's photos -- to themselves or anyone -- since they don't own them.

@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import os
 import subprocess
+from typing import TYPE_CHECKING
 
 from django.conf import settings
 
@@ -10,11 +11,20 @@ from api import binaries, sidecars, video_color
 from api.lazy_import import LazyModule
 from api.models.file import is_raw
 
-np = LazyModule("numpy")
+if TYPE_CHECKING:
+    import numpy as np
+else:
+    np = LazyModule("numpy")
 
 # Loaded on first render: the API server imports this module but never renders.
-pyvips = LazyModule("pyvips")
-image_decoding = LazyModule("api.image_decoding")
+if TYPE_CHECKING:
+    import pyvips
+else:
+    pyvips = LazyModule("pyvips")
+if TYPE_CHECKING:
+    from api import image_decoding
+else:
+    image_decoding = LazyModule("api.image_decoding")
 
 logger = logging.getLogger(__name__)
 
@@ -66,10 +76,14 @@ def _apply_local_orientation(
 # keywords, and a public photo link (which only serves the big thumbnail)
 # handed them out whatever the owner's share_location setting said. The ICC
 # profile stays, or a wide-gamut photo would render with the wrong colours.
-WEBP = {"Q": 95, "effort": 2, "keep": "icc"}  # pyvips.enums.ForeignKeep.ICC
+WEBP: dict[str, object] = {
+    "Q": 95,
+    "effort": 2,
+    "keep": "icc",
+}  # pyvips.enums.ForeignKeep.ICC
 
 
-def _square_webp():
+def _square_webp() -> dict[str, object]:
     """WEBP for the 500 and 250 px squares the grids show.
 
     They are the bulk of what a timeline downloads, and at Q95 they cost a
@@ -81,7 +95,7 @@ def _square_webp():
     return {**WEBP, "Q": settings.SQUARE_THUMBNAIL_QUALITY}
 
 
-def _webp_for(output_path):
+def _webp_for(output_path: str) -> dict[str, object]:
     return WEBP if "thumbnails_big" in output_path else _square_webp()
 
 
@@ -98,7 +112,7 @@ _EXIF_ORIENTED_EXTENSIONS = frozenset(
 )
 
 
-def renders_exif_orientation(path) -> bool:
+def renders_exif_orientation(path: str) -> bool:
     """Whether rotating ``path`` through its EXIF Orientation rotates its thumbnail."""
     if is_raw(path):
         return False
@@ -136,11 +150,11 @@ def exif_orientation_showing(exif_orientation: int, local_orientation: int) -> i
     )
 
 
-def _media_path(output_path, hash, file_type):
+def _media_path(output_path: str, hash: str, file_type: str) -> str:
     return os.path.join(settings.MEDIA_ROOT, output_path, hash + file_type)
 
 
-def _reorient_file_in_place(complete_path, local_orientation):
+def _reorient_file_in_place(complete_path: str, local_orientation: int) -> None:
     if not local_orientation or local_orientation == 1:
         return
     x = pyvips.Image.new_from_file(complete_path)
@@ -149,7 +163,9 @@ def _reorient_file_in_place(complete_path, local_orientation):
     x.write_to_file(complete_path, **WEBP)
 
 
-def _request_raw_thumbnail(input_path, output_height, complete_path, local_orientation):
+def _request_raw_thumbnail(
+    input_path: str, output_height: int, complete_path: str, local_orientation: int
+) -> str:
     json = {
         "source": input_path,
         "destination": complete_path,
@@ -165,7 +181,9 @@ def _request_raw_thumbnail(input_path, output_height, complete_path, local_orien
     return response["thumbnail"]
 
 
-def _resize_big_thumbnail(output_height, complete_path, hash, file_type):
+def _resize_big_thumbnail(
+    output_height: int, complete_path: str, hash: str, file_type: str
+) -> str:
     # only encode raw image in worse case, smaller thumbnails can get created from the big thumbnail instead
     big_thumbnail_path = os.path.join(
         settings.MEDIA_ROOT, "thumbnails_big", hash + file_type
@@ -182,27 +200,35 @@ def _resize_big_thumbnail(output_height, complete_path, hash, file_type):
     return complete_path
 
 
-def _oriented(image, local_orientation):
+def _oriented(image: pyvips.Image, local_orientation: int) -> pyvips.Image:
     if local_orientation and local_orientation != 1:
         return _apply_local_orientation(image, local_orientation)
     return image
 
 
-def _decode_thumbnail(input_path, output_height, local_orientation):
+def _decode_thumbnail(
+    input_path: str, output_height: int, local_orientation: int
+) -> pyvips.Image:
     return _oriented(
         image_decoding.thumbnail(input_path, output_height), local_orientation
     )
 
 
 def _render_thumbnail(
-    input_path, output_height, complete_path, local_orientation, webp=WEBP
-):
+    input_path: str,
+    output_height: int,
+    complete_path: str,
+    local_orientation: int,
+    webp: dict[str, object] = WEBP,
+) -> str:
     x = _decode_thumbnail(input_path, output_height, local_orientation)
     x.write_to_file(complete_path, **webp)
     return complete_path
 
 
-def _render_raw_thumbnail(input_path, output_height, complete_path, local_orientation):
+def _render_raw_thumbnail(
+    input_path: str, output_height: int, complete_path: str, local_orientation: int
+) -> str:
     """A RAW's thumbnail from its embedded preview, or else the RAW service."""
     preview = image_decoding.raw_preview(input_path, output_height)
     if preview is None:
@@ -213,7 +239,9 @@ def _render_raw_thumbnail(input_path, output_height, complete_path, local_orient
     return complete_path
 
 
-def _render_big_thumbnail(input_path, complete_path, local_orientation):
+def _render_big_thumbnail(
+    input_path: str, complete_path: str, local_orientation: int
+) -> pyvips.Image | None:
     """Write the big thumbnail; return it in memory when it was rendered here."""
     height = STATIC_THUMBNAIL_HEIGHTS["thumbnails_big"]
     if is_raw(input_path):
@@ -228,14 +256,19 @@ def _render_big_thumbnail(input_path, complete_path, local_orientation):
     return image
 
 
-def _load_big_thumbnail(complete_path):
+def _load_big_thumbnail(complete_path: str) -> pyvips.Image:
     # From bytes: on Windows a file libvips has opened stays open, and a
     # thumbnail that is regenerated later could not be deleted.
     with open(complete_path, "rb") as handle:
         return pyvips.Image.new_from_buffer(handle.read(), "")
 
 
-def render_big_thumbnail_to(input_path, output_path, local_orientation=1, legacy=False):
+def render_big_thumbnail_to(
+    input_path: str,
+    output_path: str,
+    local_orientation: int = 1,
+    legacy: bool = False,
+) -> str:
     """Render the big thumbnail of ``input_path`` to an arbitrary file.
 
     Same image ``create_thumbnail`` would put in ``thumbnails_big``, RAW files
@@ -260,8 +293,13 @@ def render_big_thumbnail_to(input_path, output_path, local_orientation=1, legacy
 
 
 def create_thumbnail(
-    input_path, output_height, output_path, hash, file_type, local_orientation=1
-):
+    input_path: str,
+    output_height: int,
+    output_path: str,
+    hash: str,
+    file_type: str,
+    local_orientation: int = 1,
+) -> str:
     try:
         raw = is_raw(input_path)
         complete_path = _media_path(output_path, hash, file_type)
@@ -291,7 +329,9 @@ STATIC_THUMBNAIL_HEIGHTS = {
 }
 
 
-def create_static_thumbnails(input_path, hash, output_paths, local_orientation=1):
+def create_static_thumbnails(
+    input_path: str, hash: str, output_paths: list[str], local_orientation: int = 1
+) -> None:
     """Write the static thumbnails in ``output_paths`` from a single decode.
 
     Decoding the original is most of a thumbnail's cost, and it used to be
@@ -301,7 +341,7 @@ def create_static_thumbnails(input_path, hash, output_paths, local_orientation=1
     """
     big_path = _media_path("thumbnails_big", hash, ".webp")
     try:
-        big = None
+        big: pyvips.Image | None = None
         if "thumbnails_big" in output_paths:
             big = _render_big_thumbnail(input_path, big_path, local_orientation)
         smaller = [path for path in output_paths if path != "thumbnails_big"]
@@ -340,12 +380,12 @@ class VideoThumbnailError(RuntimeError):
     """ffmpeg failed, or never finished, making a video thumbnail."""
 
 
-def _stderr_tail(stderr):
+def _stderr_tail(stderr: bytes | None) -> str:
     text = (stderr or b"").decode("utf-8", errors="replace").strip()
     return text[-FFMPEG_STDERR_TAIL:] or "no output"
 
 
-def _run_ffmpeg(command, output):
+def _run_ffmpeg(command: list[str], output: str) -> None:
     """Run ffmpeg to write *output*; raise VideoThumbnailError if it fails.
 
     A failed or killed run can leave a truncated file behind, which the next
@@ -371,7 +411,7 @@ def _run_ffmpeg(command, output):
         ) from e
 
 
-def _remove_partial(output):
+def _remove_partial(output: str) -> None:
     try:
         os.remove(output)
     except FileNotFoundError:
@@ -379,8 +419,13 @@ def _remove_partial(output):
 
 
 def create_animated_thumbnail(
-    input_path, output_height, output_path, hash, file_type, transfer=None
-):
+    input_path: str,
+    output_height: int,
+    output_path: str,
+    hash: str,
+    file_type: str,
+    transfer: str | None = None,
+) -> None:
     try:
         output = os.path.join(settings.MEDIA_ROOT, output_path, hash + file_type)
         command = [
@@ -410,7 +455,13 @@ def create_animated_thumbnail(
         raise e
 
 
-def create_thumbnail_for_video(input_path, output_path, hash, file_type, transfer=None):
+def create_thumbnail_for_video(
+    input_path: str,
+    output_path: str,
+    hash: str,
+    file_type: str,
+    transfer: str | None = None,
+) -> None:
     try:
         output = os.path.join(settings.MEDIA_ROOT, output_path, hash + file_type)
         command = [
@@ -437,11 +488,11 @@ def create_thumbnail_for_video(input_path, output_path, hash, file_type, transfe
         raise e
 
 
-def does_static_thumbnail_exist(output_path, hash):
+def does_static_thumbnail_exist(output_path: str, hash: str) -> bool:
     return os.path.exists(
         os.path.join(settings.MEDIA_ROOT, output_path, hash + ".webp")
     )
 
 
-def does_video_thumbnail_exist(output_path, hash):
+def does_video_thumbnail_exist(output_path: str, hash: str) -> bool:
     return os.path.exists(os.path.join(settings.MEDIA_ROOT, output_path, hash + ".mp4"))

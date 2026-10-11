@@ -10,6 +10,7 @@ search query into an embedding (``/query-embeddings``).
 import os
 
 import numpy as np
+from flask.typing import ResponseReturnValue
 from openclip.openclip import (
     DEFAULT_MAX_TAGS,
     DEFAULT_MIN_PROBABILITY,
@@ -22,29 +23,29 @@ from service._common import create_app, json_fields, logger, serve_forever
 MAX_TAGS = DEFAULT_MAX_TAGS
 MIN_PROBABILITY = DEFAULT_MIN_PROBABILITY
 
-tagger_instances = {}
+tagger_instances: dict[str, OpenCLIP] = {}
 log = logger("tags")
 
 
-def unload_tagger():
+def unload_tagger() -> None:
     tagger_instances.clear()
 
 
 app = create_app("tags", unload=unload_tagger, is_loaded=lambda: bool(tagger_instances))
 
 
-def parse_tag_request():
+def parse_tag_request() -> tuple[object, object, bool]:
     image_path, _confidence, tagging_model, with_embedding = json_fields(
         "image_path", confidence=0.4, tagging_model=None, with_embedding=False
     )
     return image_path, tagging_model or MODEL_NAME, bool(with_embedding)
 
 
-def image_exists(image_path):
+def image_exists(image_path: object) -> bool:
     return isinstance(image_path, str) and os.path.isfile(image_path)
 
 
-def get_tagger():
+def get_tagger() -> OpenCLIP:
     """The model, built on first use and kept until /unload-model."""
     if MODEL_NAME not in tagger_instances:
         tagger_instances[MODEL_NAME] = OpenCLIP()
@@ -52,7 +53,7 @@ def get_tagger():
 
 
 @app.route("/generate-tags", methods=["POST"])
-def generate_tags():
+def generate_tags() -> ResponseReturnValue:
     image_path, tagging_model, with_embedding = parse_tag_request()
 
     if tagging_model != MODEL_NAME:
@@ -83,14 +84,14 @@ def generate_tags():
 
 
 @app.route("/clip-embeddings", methods=["POST"])
-def image_embeddings():
+def image_embeddings() -> ResponseReturnValue:
     """``{"imgs": [paths], "with_tags": bool}`` -> ``{"imgs_emb", "magnitudes"}``
     (and ``"tags"``), raw, one slot per path and ``null`` where the image
     cannot be read. The tags come from the same image-tower run."""
     imgs, with_tags = json_fields("imgs", with_tags=False)
     tagger = get_tagger()
     embeddings = tagger.embed_images_raw(imgs)
-    body = {
+    body: dict[str, object] = {
         "imgs_emb": [None if e is None else e.tolist() for e in embeddings],
         "magnitudes": [
             None if e is None else float(np.linalg.norm(e)) for e in embeddings
@@ -107,14 +108,14 @@ def image_embeddings():
 
 
 @app.route("/query-embeddings", methods=["POST"])
-def query_embeddings():
+def query_embeddings() -> ResponseReturnValue:
     """``{"query"}`` -> ``{"emb", "magnitude"}``, the raw text embedding."""
     (query,) = json_fields("query")
     embedding = get_tagger().embed_text_raw(str(query))
     return {"emb": embedding.tolist(), "magnitude": float(np.linalg.norm(embedding))}
 
 
-def serve():
+def serve() -> None:
     serve_forever(app, "tags")
 
 

@@ -1,3 +1,4 @@
+from django.db.models import QuerySet
 from rest_framework import serializers
 
 from api.models import Photo
@@ -13,13 +14,16 @@ class OwnedPhotoField(serializers.PrimaryKeyRelatedField):
     a serializer instantiated without a request accepts nothing.
     """
 
-    def get_queryset(self):
+    def get_queryset(self) -> QuerySet[Photo]:
         return Photo.objects.owned_by(
             getattr(self.context.get("request"), "user", None)
         )
 
 
-def shared_serializer(parent, serializer_class):
+def shared_serializer(
+    parent: serializers.BaseSerializer,
+    serializer_class: type[serializers.BaseSerializer],
+) -> serializers.BaseSerializer:
     """One *serializer_class* instance per *parent* serializer.
 
     For ``get_*`` methods that render one related object per row: building a

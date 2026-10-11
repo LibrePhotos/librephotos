@@ -6,6 +6,9 @@ import copy
 import logging
 import os
 import stat
+from collections.abc import Callable
+from typing import Any
+from uuid import UUID
 
 from constance import config as site_config
 from django.db.models import F, Q
@@ -42,7 +45,7 @@ def _exceeds_failure_threshold(error_count: int, target: int) -> bool:
     return error_count > threshold
 
 
-def _skip_patterns():
+def _skip_patterns() -> list[str]:
     """Parse the ``SKIP_PATTERNS`` site setting (one DB read)."""
     skip_patterns = site_config.SKIP_PATTERNS
     if not skip_patterns:
@@ -50,7 +53,7 @@ def _skip_patterns():
     return [pattern.strip() for pattern in skip_patterns.split(",")]
 
 
-def should_skip(path, skip_list=None):
+def should_skip(path: str, skip_list: list[str] | None = None) -> bool:
     """Check if a path should be skipped based on configured patterns.
 
     ``skip_list`` is the parsed setting; a directory walk passes it in so the
@@ -66,7 +69,7 @@ def should_skip(path, skip_list=None):
 _IS_WINDOWS = os.name == "nt"
 
 
-def is_hidden(path):
+def is_hidden(path: str) -> bool:
     """Check if a file is hidden.
 
     A dot-file is hidden everywhere; on Windows so is anything carrying the
@@ -77,16 +80,20 @@ def is_hidden(path):
     return _IS_WINDOWS and _has_hidden_attribute(path)
 
 
-def _has_hidden_attribute(path):
+def _has_hidden_attribute(path: str) -> bool:
     """Check if file has the Windows hidden attribute."""
     try:
-        attributes = os.stat(path).st_file_attributes
-    except (OSError, AttributeError):
+        # st_file_attributes only exists on Windows. It is read by name, with
+        # 0 as the default, because mypy checks this module as Linux, where
+        # the attribute is not declared; a missing attribute reads as "not
+        # hidden", as the AttributeError branch used to.
+        attributes: int = getattr(os.stat(path), "st_file_attributes", 0)
+    except OSError:
         return False
     return bool(attributes & stat.FILE_ATTRIBUTE_HIDDEN)
 
 
-def walk_directory(directory, callback):
+def walk_directory(directory: str, callback: list[str]) -> None:
     """
     Recursively walk a directory and collect file paths.
 
@@ -104,7 +111,7 @@ def walk_directory(directory, callback):
     _walk_directory(directory, callback, _skip_patterns(), set())
 
 
-def _directory_identity(path):
+def _directory_identity(path: str) -> tuple[int, int] | str:
     """Identify a directory by what it resolves to, not by the path taken to it."""
     st = os.stat(path)
     if st.st_ino:
@@ -113,7 +120,12 @@ def _directory_identity(path):
     return os.path.normcase(os.path.realpath(path))
 
 
-def _walk_directory(directory, callback, skip_list, ancestors):
+def _walk_directory(
+    directory: str,
+    callback: list[str],
+    skip_list: list[str],
+    ancestors: set[tuple[int, int] | str],
+) -> None:
     identity = _directory_identity(directory)
     if identity in ancestors:
         logger.warning(
@@ -139,7 +151,7 @@ def _walk_directory(directory, callback, skip_list, ancestors):
         ancestors.discard(identity)
 
 
-def walk_files(scan_files, callback):
+def walk_files(scan_files: list[str], callback: list[str]) -> None:
     """
     Walk a list of specific files.
 
@@ -152,7 +164,7 @@ def walk_files(scan_files, callback):
             callback.append(fpath)
 
 
-def is_job_cancelled(job_id) -> bool:
+def is_job_cancelled(job_id: UUID | str) -> bool:
     """
     Check if a long-running job has been cancelled.
 
@@ -169,7 +181,10 @@ def is_job_cancelled(job_id) -> bool:
     return LongRunningJob.objects.filter(job_id=job_id, cancelled=True).exists()
 
 
-def update_job_result(job_id, mutate):
+def update_job_result(
+    job_id: UUID | str,
+    mutate: Callable[[dict[str, Any], LongRunningJob], dict[str, Any] | None],
+) -> LongRunningJob | None:
     """Apply ``mutate`` to a job's ``result`` JSON without losing concurrent writes.
 
     Many workers report into one job row at once. A plain read-modify-write
@@ -188,7 +203,7 @@ def update_job_result(job_id, mutate):
         if job is None or job.cancelled:
             return None
         read = job.result
-        result = copy.deepcopy(read) if isinstance(read, dict) else {}
+        result: dict[str, Any] = copy.deepcopy(read) if isinstance(read, dict) else {}
         other_fields = mutate(result, job) or {}
         unchanged = Q(result__isnull=True) if read is None else Q(result=read)
         written = LongRunningJob.objects.filter(
@@ -203,7 +218,7 @@ def update_job_result(job_id, mutate):
     return None
 
 
-def _record_error(result, error, target):
+def _record_error(result: dict[str, Any], error: str | None, target: int) -> bool:
     """Add one failed item to ``result``; return whether the job counts as failed.
 
     ``error_count`` tracks the aggregate (uncapped); the ``errors`` list itself
@@ -230,7 +245,7 @@ def _record_error(result, error, target):
     return job_failed
 
 
-def finish_job_if_complete(job_id) -> bool:
+def finish_job_if_complete(job_id: UUID | str) -> bool:
     """Mark the job finished once its progress has reached the target.
 
     The conditional UPDATE is the whole transition, so it happens exactly once:
@@ -250,14 +265,16 @@ def finish_job_if_complete(job_id) -> bool:
     return True
 
 
-def _on_job_finished(job_id):
+def _on_job_finished(job_id: UUID | str) -> None:
     """Start whatever had to wait for this job's work to be done."""
     job = (
         LongRunningJob.objects.filter(job_id=job_id)
         .values("job_type", "started_by_id")
         .first()
     )
-    job_type = job and job["job_type"]
+    if job is None:
+        return
+    job_type = job["job_type"]
     if job_type == LongRunningJob.JOB_GENERATE_TAGS:
         _queue_embeddings_after_tags(job_id, job["started_by_id"])
         return
@@ -272,7 +289,7 @@ def _on_job_finished(job_id):
         logger.exception(f"job {job_id}: could not queue the scan follow-ups")
 
 
-def _queue_embeddings_after_tags(job_id, user_id):
+def _queue_embeddings_after_tags(job_id: UUID | str, user_id: int | None) -> None:
     """Fill the gaps the tags job left in the search embeddings.
 
     When tagging is on, the tags job stores each photo's search embedding,
@@ -297,7 +314,9 @@ def _queue_embeddings_after_tags(job_id, user_id):
         logger.exception(f"job {job_id}: could not queue the search embeddings")
 
 
-def update_scan_counter(job_id, failed=False, error=None):
+def update_scan_counter(
+    job_id: UUID | str, failed: bool = False, error: str | None = None
+) -> None:
     """
     Update the progress counter for a long-running job.
 
@@ -315,7 +334,7 @@ def update_scan_counter(job_id, failed=False, error=None):
 
     if failed or error:
 
-        def add_error(result, job):
+        def add_error(result: dict[str, Any], job: LongRunningJob) -> dict[str, bool]:
             return {"failed": _record_error(result, error, job.progress_target)}
 
         if update_job_result(job_id, add_error) is None:

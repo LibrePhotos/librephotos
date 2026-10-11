@@ -39,25 +39,23 @@ class PhotoSimpleSerializer(serializers.ModelSerializer):
             "is_hdr",
         )
 
-    def get_square_thumbnail(self, obj) -> str:
-        return (
-            obj.thumbnail.square_thumbnail.url
-            if obj.thumbnail and obj.thumbnail.square_thumbnail
-            else ""
-        )
+    def get_square_thumbnail(self, obj: Photo) -> str:
+        # ``obj.thumbnail`` raises when the photo has no thumbnail row, as before.
+        thumbnail = obj.thumbnail
+        return thumbnail.square_thumbnail.url if thumbnail.square_thumbnail else ""
 
-    def get_aspectRatio(self, obj) -> float | None:
+    def get_aspectRatio(self, obj: Photo) -> float | None:
         thumbnail = getattr(obj, "thumbnail", None)
         return thumbnail.aspect_ratio if thumbnail else None
 
-    def get_dominantColor(self, obj) -> str:
+    def get_dominantColor(self, obj: Photo) -> str:
         thumbnail = getattr(obj, "thumbnail", None)
         return dominant_hex(thumbnail and thumbnail.dominant_color) or ""
 
-    def get_video_length(self, obj) -> str:
+    def get_video_length(self, obj: Photo) -> str:
         return obj.video_length or ""
 
-    def get_is_hdr(self, obj) -> bool:
+    def get_is_hdr(self, obj: Photo) -> bool:
         return bool(obj.video and obj.video_color_transfer in video_color.HDR_TRANSFERS)
 
 

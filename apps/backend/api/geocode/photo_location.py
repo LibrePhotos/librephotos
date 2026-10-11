@@ -5,9 +5,12 @@ Moved out of ``Photo`` so the model does not make network calls. Every function
 takes the photo as its first argument.
 """
 
-import logging
+from __future__ import annotations
 
-from django.db.models import Q
+import logging
+from typing import TYPE_CHECKING
+
+from django.db.models import Q, QuerySet
 
 import api.models
 from api.geocode import GEOCODE_VERSION
@@ -16,10 +19,14 @@ from api.metadata.photo_datetime import find_album_date
 from api.metadata.reader import get_metadata
 from api.metadata.tags import Tags
 
+if TYPE_CHECKING:
+    from api.models.album_place import AlbumPlace
+    from api.models.photo import Photo
+
 logger = logging.getLogger(__name__)
 
 
-def _has_usable_coordinates(lat, lon):
+def _has_usable_coordinates(lat: float | None, lon: float | None) -> bool:
     """Reject missing coordinates and the (0, 0) "null island" default that
     cameras write when there is no fix. A single zero axis (the equator or the
     prime meridian) is a valid location and must be kept.
@@ -29,11 +36,11 @@ def _has_usable_coordinates(lat, lon):
     return not (float(lat) == 0.0 and float(lon) == 0.0)
 
 
-def find_album_places(photo):
+def find_album_places(photo: Photo) -> QuerySet[AlbumPlace]:
     return api.models.album_place.AlbumPlace.objects.filter(Q(photos__in=[photo])).all()
 
 
-def geolocate_photo(photo, commit=True):
+def geolocate_photo(photo: Photo, commit: bool = True) -> None:
     """Read the GPS fix from the file, reverse geocode it and file the photo
     under the matching Places albums.
 
@@ -48,6 +55,7 @@ def geolocate_photo(photo, commit=True):
     """
     old_gps_lat = photo.exif_gps_lat
     old_gps_lon = photo.exif_gps_lon
+    assert photo.main_file is not None
     new_gps_lat, new_gps_lon = get_metadata(
         photo.main_file.path,
         tags=[Tags.LATITUDE, Tags.LONGITUDE],
@@ -80,7 +88,7 @@ def geolocate_photo(photo, commit=True):
         photo.save(update_fields=["geolocation_json", "last_modified"])
 
 
-def _has_current_geolocation(photo):
+def _has_current_geolocation(photo: Photo) -> bool:
     return bool(
         photo.geolocation_json
         and "_v" in photo.geolocation_json
@@ -88,7 +96,7 @@ def _has_current_geolocation(photo):
     )
 
 
-def _reverse_geocode_safely(lat, lon):
+def _reverse_geocode_safely(lat: float, lon: float) -> dict[str, object] | None:
     try:
         return reverse_geocode(lat, lon)
     except Exception as e:
@@ -97,7 +105,7 @@ def _reverse_geocode_safely(lat, lon):
         return None
 
 
-def _update_search_location(photo, res):
+def _update_search_location(photo: Photo, res: dict[str, object]) -> None:
     from api.models.photo_search import PhotoSearch
 
     search_instance, _ = PhotoSearch.objects.get_or_create(photo=photo)
@@ -105,13 +113,15 @@ def _update_search_location(photo, res):
     search_instance.save()
 
 
-def _move_to_album_places(photo, old_album_places):
+def _move_to_album_places(photo: Photo, old_album_places: QuerySet[AlbumPlace]) -> None:
     # Delete photo from album places if location has changed
     if old_album_places is not None:
         for old_album_place in old_album_places:
             old_album_place.photos.remove(photo)
             old_album_place.save()
 
+    # geolocate_photo sets geolocation_json before it calls this.
+    assert photo.geolocation_json is not None
     features = photo.geolocation_json["features"]
     for geolocation_level, feature in enumerate(features):
         if "text" not in feature.keys() or feature["text"].isnumeric():
@@ -125,13 +135,16 @@ def _move_to_album_places(photo, old_album_places):
         album_place.save()
 
 
-def add_location_to_album_dates(photo):
+def add_location_to_album_dates(photo: Photo) -> None:
     """Add the photo's city to the location of the day album it is in."""
     places = (photo.geolocation_json or {}).get("places") or []
     if len(places) < 2:
         return
 
     album_date = find_album_date(photo)
+    # find_album_date returns None when the photo is in no day album. That
+    # crashed here before the typing too (AttributeError), so it still does.
+    assert album_date is not None
     city_name = places[-2]
     if album_date.location and len(album_date.location) > 0:
         prev_value = album_date.location

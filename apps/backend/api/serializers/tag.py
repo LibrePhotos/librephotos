@@ -1,3 +1,6 @@
+from typing import Any
+
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from api.models import Tag
@@ -17,7 +20,7 @@ class TagSerializer(serializers.ModelSerializer):
         fields = ("id", "name", "photo_count")
         read_only_fields = ("id", "photo_count")
 
-    def validate_name(self, value):
+    def validate_name(self, value: str) -> str:
         name = value.strip()
         if not name:
             raise serializers.ValidationError("Tag name may not be empty.")
@@ -47,9 +50,14 @@ class GroupedTagPhotosSerializer(serializers.ModelSerializer):
         model = Tag
         fields = ("id", "name", "grouped_photos")
 
-    def get_grouped_photos(self, obj) -> GroupedPhotosSerializer(many=True):
+    @extend_schema_field(GroupedPhotosSerializer(many=True))
+    def get_grouped_photos(self, obj: Tag) -> list[dict[str, Any]]:
         photos = filter_photos_by_media_type(
             obj.photos.all(), self.context.get("request")
         )
         grouped_photos = get_photos_ordered_by_date(photos)
-        return GroupedPhotosSerializer(grouped_photos, many=True).data
+        # ``.data`` of a many=True serializer is a ReturnList; build it through
+        # ListSerializer so the static type matches the runtime value.
+        return serializers.ListSerializer(
+            child=GroupedPhotosSerializer(), instance=grouped_photos
+        ).data

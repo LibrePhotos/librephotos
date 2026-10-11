@@ -4,13 +4,14 @@ from django.db import connections
 from django_q.brokers import get_broker
 from rest_framework import status
 from rest_framework.permissions import AllowAny
+from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 logger = logging.getLogger(__name__)
 
 
-def _check_postgresql():
+def _check_postgresql() -> dict[str, str]:
     """Round-trip the cheapest possible statement to prove the database answers."""
     try:
         with connections["default"].cursor() as cursor:
@@ -22,7 +23,7 @@ def _check_postgresql():
     return {"status": "ok"}
 
 
-def _check_queue():
+def _check_queue() -> dict[str, str]:
     """Count the queued tasks. django-q2 keeps its queue in the database (ORM broker),
     so this covers both the broker configuration and the django_q tables. The count
     itself stays out of the response: these endpoints are unauthenticated, and a
@@ -35,7 +36,7 @@ def _check_queue():
     return {"status": "ok"}
 
 
-def _http_status(*results):
+def _http_status(*results: dict[str, str]) -> int:
     if all(result["status"] == "ok" for result in results):
         return status.HTTP_200_OK
     return status.HTTP_503_SERVICE_UNAVAILABLE
@@ -54,18 +55,18 @@ class HealthzView(HealthCheckView):
     """Liveness. 200 as long as the process can serve a request. Deliberately does
     not touch the database: a database outage must not get the pod killed."""
 
-    def get(self, request, format=None):
+    def get(self, request: Request, format: str | None = None) -> Response:
         return Response({"status": "ok"})
 
 
 class HealthzPostgresqlView(HealthCheckView):
-    def get(self, request, format=None):
+    def get(self, request: Request, format: str | None = None) -> Response:
         result = _check_postgresql()
         return Response(result, status=_http_status(result))
 
 
 class HealthzQueueView(HealthCheckView):
-    def get(self, request, format=None):
+    def get(self, request: Request, format: str | None = None) -> Response:
         result = _check_queue()
         return Response(result, status=_http_status(result))
 
@@ -73,7 +74,7 @@ class HealthzQueueView(HealthCheckView):
 class HealthzReadyView(HealthCheckView):
     """Readiness. 200 only once every dependency answers."""
 
-    def get(self, request, format=None):
+    def get(self, request: Request, format: str | None = None) -> Response:
         checks = {
             "postgresql": _check_postgresql(),
             "queue": _check_queue(),

@@ -3,7 +3,7 @@ from unittest.mock import patch
 from constance.test import override_config
 from django.test import TestCase
 
-from api.geocode.geocode import reverse_geocode
+from api.geocode.geocode import reverse_geocode, search_location
 from api.geocode.parsers.mapbox import parse as parse_mapbox
 from api.geocode.parsers.nominatim import parse as parse_nominatim
 from api.geocode.parsers.opencage import parse as parse_opencage
@@ -102,9 +102,10 @@ def fake_geocoder(response):
 
 
 class TestGeocoder(TestCase):
-    @override_config(MAP_API_PROVIDER="mapbox")
+    @override_config(MAP_API_PROVIDER="mapbox", MAP_API_KEY="test-key")
+    @patch("api.geocode.geocode.wait_for_provider")
     @patch("geopy.get_geocoder_for_service", autospec=True)
-    def test_reverse_geocode(self, get_geocoder_for_service_mock):
+    def test_reverse_geocode(self, get_geocoder_for_service_mock, _wait_mock):
         get_geocoder_for_service_mock.return_value = fake_geocoder(mapbox_responses[1])
         result = reverse_geocode(0, 0)
         self.assertEqual(result, mapbox_expectations[1])
@@ -114,3 +115,45 @@ class TestGeocoder(TestCase):
     def test_reverse_geocode_no_api_key(self):
         result = reverse_geocode(0, 0)
         self.assertEqual(result, {})
+
+
+@patch("api.geocode.geocode.wait_for_provider")
+@patch("geopy.geocoders.base.Geocoder._call_geocoder", autospec=True)
+class TestGeocoderMissingApiKey(TestCase):
+    """Key-based providers without MAP_API_KEY must not hit the network.
+
+    The constance default for MAP_API_KEY is "", so an unset key is the empty
+    string, not None.
+    """
+
+    def _assert_skipped(self, call_geocoder_mock, logs, result, expected):
+        self.assertEqual(result, expected)
+        call_geocoder_mock.assert_not_called()
+        self.assertTrue(any("No API key found" in line for line in logs.output))
+
+    def test_reverse_skips_request_for_every_key_provider(
+        self, call_geocoder_mock, _wait_mock
+    ):
+        for provider in ["mapbox", "maptiler", "tomtom", "opencage"]:
+            with self.subTest(provider=provider):
+                call_geocoder_mock.reset_mock()
+                with (
+                    override_config(MAP_API_PROVIDER=provider, MAP_API_KEY=""),
+                    self.assertLogs("api.geocode.geocode", "WARNING") as logs,
+                ):
+                    result = reverse_geocode(52.52, 13.40)
+                self._assert_skipped(call_geocoder_mock, logs, result, {})
+
+    def test_search_skips_request_without_key(self, call_geocoder_mock, _wait_mock):
+        with (
+            override_config(MAP_API_PROVIDER="mapbox", MAP_API_KEY=""),
+            self.assertLogs("api.geocode.geocode", "WARNING") as logs,
+        ):
+            result = search_location("Berlin")
+        self._assert_skipped(call_geocoder_mock, logs, result, [])
+
+    def test_nominatim_needs_no_key(self, call_geocoder_mock, _wait_mock):
+        call_geocoder_mock.return_value = None
+        with override_config(MAP_API_PROVIDER="nominatim", MAP_API_KEY=""):
+            search_location("Berlin")
+        call_geocoder_mock.assert_called_once()

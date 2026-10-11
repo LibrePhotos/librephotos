@@ -13,10 +13,14 @@ Benefits over current approach:
 - Clear separation between camera metadata and derived metadata
 """
 
+from __future__ import annotations
+
 import logging
 import numbers
 import uuid
+from collections.abc import Mapping
 from fractions import Fraction
+from typing import TYPE_CHECKING
 
 from django.db import models
 
@@ -24,6 +28,9 @@ from api.metadata.reader import get_metadata
 from api.metadata.tags import Tags
 from api.models.tag import link_tags_from_keywords
 from api.models.user import User, get_deleted_user
+
+if TYPE_CHECKING:
+    from api.models.photo import Photo
 
 logger = logging.getLogger(__name__)
 
@@ -83,22 +90,22 @@ EXIF_TAGS = [
 IMPORTED_DESCRIPTION_KEY = "imported_description"
 
 
-def _assign_nonzero_number(target, field, value):
+def _assign_nonzero_number(target: object, field: str, value: object) -> None:
     if value and isinstance(value, numbers.Number):
         setattr(target, field, value)
 
 
-def _assign_number(target, field, value):
+def _assign_number(target: object, field: str, value: object) -> None:
     if value is not None and isinstance(value, numbers.Number):
         setattr(target, field, value)
 
 
-def _assign_string(target, field, value):
+def _assign_string(target: object, field: str, value: object) -> None:
     if value and isinstance(value, str):
         setattr(target, field, value)
 
 
-def _text_value(value):
+def _text_value(value: object) -> str | None:
     """A free-text tag value as a stripped string, or None when empty.
 
     ExifTool's JSON output turns a text value that looks like a number into a
@@ -114,14 +121,14 @@ def _text_value(value):
     return value.strip() or None
 
 
-def _description(values):
+def _description(values: Mapping[str, object]) -> str | None:
     """The file's description: x-default first, else any language entry."""
     return _text_value(values.get("xmp_description")) or _text_value(
         values.get("xmp_description_any_language")
     )
 
 
-def _merge_keywords(*values):
+def _merge_keywords(*values: object) -> list[str]:
     """Merge XMP:Subject / IPTC:Keywords entries as sorted, unique text."""
     merged = set()
     for value in values:
@@ -208,7 +215,7 @@ class MetadataFile(models.Model):
         verbose_name = "Metadata File"
         verbose_name_plural = "Metadata Files"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.file_type} sidecar for {self.photo_id}"
 
 
@@ -358,30 +365,30 @@ class PhotoMetadata(models.Model):
             models.Index(fields=["location_country", "location_city"]),
         ]
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"Metadata for {self.photo_id}"
 
     @property
-    def resolution(self):
+    def resolution(self) -> str | None:
         """Returns resolution as 'WxH' string."""
         if self.width and self.height:
             return f"{self.width}x{self.height}"
         return None
 
     @property
-    def megapixels(self):
+    def megapixels(self) -> float | None:
         """Returns megapixel count."""
         if self.width and self.height:
             return round((self.width * self.height) / 1_000_000, 1)
         return None
 
     @property
-    def has_location(self):
+    def has_location(self) -> bool:
         """Check if GPS coordinates are available."""
         return self.gps_latitude is not None and self.gps_longitude is not None
 
     @property
-    def camera_display(self):
+    def camera_display(self) -> str | None:
         """Returns a human-readable camera name."""
         if self.camera_make and self.camera_model:
             # Avoid duplicating make in model
@@ -391,7 +398,7 @@ class PhotoMetadata(models.Model):
         return self.camera_model or self.camera_make
 
     @property
-    def lens_display(self):
+    def lens_display(self) -> str | None:
         """Returns a human-readable lens name."""
         if self.lens_make and self.lens_model:
             if self.lens_model.startswith(self.lens_make):
@@ -400,7 +407,9 @@ class PhotoMetadata(models.Model):
         return self.lens_model or self.lens_make
 
     @classmethod
-    def extract_exif_data(cls, photo, commit=True):
+    def extract_exif_data(
+        cls, photo: Photo, commit: bool = True
+    ) -> PhotoMetadata | None:
         """
         Extract EXIF data from a photo's main file and update PhotoMetadata.
 
@@ -420,7 +429,7 @@ class PhotoMetadata(models.Model):
 
         # Every name gets a key even if get_metadata comes back short, so the
         # appliers below can index values[...] without a KeyError.
-        values = dict.fromkeys(EXIF_VALUE_NAMES)
+        values: dict[str, object] = dict.fromkeys(EXIF_VALUE_NAMES)
         values.update(
             zip(
                 EXIF_VALUE_NAMES,
@@ -446,7 +455,7 @@ class PhotoMetadata(models.Model):
         return metadata
 
     @staticmethod
-    def _apply_to_photo(photo, values):
+    def _apply_to_photo(photo: Photo, values: Mapping[str, object]) -> None:
         """Update the Photo fields that are still stored outside PhotoMetadata."""
         _assign_nonzero_number(photo, "size", values["size"])
         # MP4/MOV carry QuickTime:Duration, MKV/WebM Matroska:Duration.
@@ -464,11 +473,15 @@ class PhotoMetadata(models.Model):
             photo.exif_timestamp_subsec = str(subsec_time_original)[:10]
 
         image_number = values["image_number"]
-        if image_number is not None and isinstance(image_number, numbers.Number):
+        # ExifTool's JSON holds only ints and floats here; the narrower check
+        # is what lets int() and Fraction() below type-check.
+        if image_number is not None and isinstance(image_number, int | float):
             photo.image_sequence_number = int(image_number)
 
     @staticmethod
-    def _apply_to_metadata(metadata, values):
+    def _apply_to_metadata(
+        metadata: PhotoMetadata, values: Mapping[str, object]
+    ) -> None:
         """Populate the PhotoMetadata columns from the extracted EXIF values."""
         for field, name in (
             ("aperture", "fstop"),
@@ -485,7 +498,7 @@ class PhotoMetadata(models.Model):
         _assign_number(metadata, "rating", values["rating"])
 
         shutter_speed = values["shutter_speed"]
-        if shutter_speed and isinstance(shutter_speed, numbers.Number):
+        if shutter_speed and isinstance(shutter_speed, int | float):
             metadata.shutter_speed = str(
                 Fraction(shutter_speed).limit_denominator(1000)
             )
@@ -503,7 +516,7 @@ class PhotoMetadata(models.Model):
             metadata.caption = description
 
     @staticmethod
-    def _import_description_to_caption(photo, description):
+    def _import_description_to_caption(photo: Photo, description: str | None) -> None:
         """Carry a newly found file description over to the lightbox caption.
 
         ``PhotoMetadata.caption`` is the structured field; the caption a user
@@ -550,7 +563,7 @@ class PhotoMetadata(models.Model):
             )
 
 
-def _user_edited(metadata, field_name):
+def _user_edited(metadata: PhotoMetadata, field_name: str) -> bool:
     """Whether the user changed *field_name* through the metadata API.
 
     Such an edit sets ``source`` to USER_EDIT and leaves a MetadataEdit row;
@@ -620,5 +633,5 @@ class MetadataEdit(models.Model):
             models.Index(fields=["photo", "-created_at"]),
         ]
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"Edit {self.field_name} on {self.photo_id}"

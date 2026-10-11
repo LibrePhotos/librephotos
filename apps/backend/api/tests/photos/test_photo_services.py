@@ -7,6 +7,7 @@ The datetime rules and exiftool are mocked; no network, no ML models.
 """
 
 import datetime
+import json
 import os
 from unittest.mock import patch
 
@@ -14,6 +15,7 @@ import numpy as np
 import PIL
 from django.test import TestCase
 
+from api.date_time_extractor import DEFAULT_RULES_JSON
 from api.geocode.photo_location import find_album_places
 from api.metadata.photo_datetime import extract_date_time, find_album_date
 from api.models import Face, Photo
@@ -130,6 +132,22 @@ class ExtractDateTimeTest(TestCase):
         args = extract.call_args.args
         self.assertEqual(args[0], photo.main_file.path)
         self.assertEqual(args[3:], (52.5, 13.4, self.user.default_timezone, JUNE_1))
+
+    def test_rules_saved_as_a_list_are_read_like_the_json_string(self):
+        # The settings page saves datetime_rules as a JSON string (as the
+        # default is), but PATCH /api/user/ also accepts the list itself.
+        rules = json.loads(DEFAULT_RULES_JSON)
+        self.user.datetime_rules = rules
+        self.user.save(update_fields=["datetime_rules"])
+        photo = create_test_photo(owner=self.user)
+
+        with _extracted(JULY_4) as extract:
+            extract_date_time(photo)
+
+        self.assertEqual(
+            [rule.params["id"] for rule in extract.call_args.args[1]],
+            [rule["id"] for rule in rules],
+        )
 
     def test_exif_getter_reads_the_main_file_with_sidecars(self):
         photo = create_test_photo(owner=self.user)

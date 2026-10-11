@@ -1,11 +1,14 @@
 import logging
 import os
+import uuid
+from collections.abc import Iterable
 
-from django.db.models import Q
+from django.db.models import Q, QuerySet
 
 from api.image_similarity import build_image_similarity_index
 from api.models.long_running_job import LongRunningJob
 from api.models.photo import Photo
+from api.models.user import User
 from api.semantic_search import (
     OPENCLIP,
     create_clip_embeddings,
@@ -20,7 +23,7 @@ logger = logging.getLogger(__name__)
 INDEX_REBUILD_EVERY = 2000
 
 
-def photos_missing_clip_embeddings(user):
+def photos_missing_clip_embeddings(user: User) -> QuerySet[Photo]:
     """The user's photos without an OpenCLIP embedding.
 
     That includes photos embedded by an earlier model: they are re-embedded in
@@ -31,7 +34,7 @@ def photos_missing_clip_embeddings(user):
     )
 
 
-def photos_with_existing_thumbnail(objs):
+def photos_with_existing_thumbnail(objs: Iterable[Photo]) -> list[Photo]:
     # Thumbnail could have been deleted, or never made (no Thumbnail row)
     return [
         obj
@@ -42,7 +45,7 @@ def photos_with_existing_thumbnail(objs):
     ]
 
 
-def _store_tags_if_missing(photo, tags):
+def _store_tags_if_missing(photo: Photo, tags: Iterable[str]) -> None:
     """File the tags of the embedding run for a photo the tagger has not done.
 
     Re-embedding after an upgrade re-tags the library in the same image-tower
@@ -56,7 +59,7 @@ def _store_tags_if_missing(photo, tags):
     caption.store_tags(tags)
 
 
-def store_clip_embeddings(objs, with_tags=False):
+def store_clip_embeddings(objs: list[Photo], with_tags: bool = False) -> None:
     imgs = [obj.thumbnail.thumbnail_big.path for obj in objs]
     imgs_emb, magnitudes, tags = create_clip_embeddings(imgs, with_tags=with_tags)
     tags = tags or [None] * len(objs)
@@ -89,7 +92,7 @@ def store_clip_embeddings(objs, with_tags=False):
                 logger.exception(f"Could not store the tags of {obj.image_hash}")
 
 
-def _rebuild_index_while_converting(user):
+def _rebuild_index_while_converting(user: User) -> None:
     try:
         build_image_similarity_index(user)
     except Exception as e:
@@ -97,7 +100,7 @@ def _rebuild_index_while_converting(user):
         logger.error(f"Error rebuilding the similarity index mid-run: {e}")
 
 
-def batch_calculate_clip_embedding(user, wait_for_tags=False):
+def batch_calculate_clip_embedding(user: User, wait_for_tags: bool = False) -> None:
     """Embed the user's photos that lack an OpenCLIP embedding.
 
     With ``wait_for_tags`` (the scan's follow-up, when the tags job stores the
@@ -133,7 +136,7 @@ def batch_calculate_clip_embedding(user, wait_for_tags=False):
 
     BATCH_SIZE = 64
     done_count = 0
-    last_pk = None
+    last_pk: uuid.UUID | None = None
     while done_count < count:
         batch = missing if last_pk is None else missing.filter(pk__gt=last_pk)
         objs = list(batch[:BATCH_SIZE])
@@ -170,7 +173,7 @@ def batch_calculate_clip_embedding(user, wait_for_tags=False):
     lrj.complete()
 
 
-def queue_semantic_search_conversion():
+def queue_semantic_search_conversion() -> list[int]:
     """Queue the embedding job for every user with an earlier model's embeddings.
 
     After an upgrade from a release with another search model (migration
@@ -179,9 +182,7 @@ def queue_semantic_search_conversion():
     """
     from django_q.tasks import AsyncTask
 
-    from api.models import User
-
-    user_ids = list(
+    user_ids: list[int] = list(
         Photo.objects.filter(clip_embeddings__isnull=False)
         .exclude(produced_by_openclip())
         .values_list("owner_id", flat=True)

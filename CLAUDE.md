@@ -28,7 +28,7 @@ deploy/
 ## Commands (summary — see per-app CLAUDE.md for details)
 
 ### Backend (apps/backend/)
-- Lint: `ruff check apps/backend/` • Format: `ruff format apps/backend/`
+- Lint: `ruff check apps/backend/` • Format: `ruff format apps/backend/` • Typecheck: `cd apps/backend && python scripts/typecheck.py` (mypy, ratchet vs `mypy-baseline.txt`)
 - Test: `cd apps/backend && python manage.py test api.tests`
 - Normally run inside the backend container: `docker exec -it backend bash`.
 

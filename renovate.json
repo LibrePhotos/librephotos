@@ -37,6 +37,17 @@
       "addLabels": ["backend"]
     },
     {
+      "description": "Type checking (apps/backend/scripts/typecheck.py). A mypy or stub release changes the reported errors, so the PR has to fix them (or regenerate mypy-baseline.txt with --update) before it can merge: one group, never automerged. djangorestframework-stubs 3.18.1 declares mypy<2.4.",
+      "matchFileNames": ["apps/backend/**"],
+      "matchPackageNames": ["mypy", "django-stubs", "django-stubs-ext", "djangorestframework-stubs", "/^types-/"],
+      "groupName": "backend type checking",
+      "automerge": false
+    },
+    {
+      "matchPackageNames": ["mypy"],
+      "allowedVersions": "<2.4"
+    },
+    {
       "matchFileNames": ["apps/frontend/**"],
       "groupName": "frontend dependencies",
       "addLabels": ["frontend"]

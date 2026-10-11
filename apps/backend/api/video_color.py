@@ -30,15 +30,21 @@ probed, and only then is the file asked again, so a library scanned before the
 value existed keeps working until the backfill reaches it.
 """
 
+from __future__ import annotations
+
 import json
 import logging
 import os
 import shutil
 import subprocess
+from typing import TYPE_CHECKING
 
 from api import binaries
 
 from api import ffmpeg_budget
+
+if TYPE_CHECKING:
+    from api.models.photo import Photo
 
 logger = logging.getLogger(__name__)
 
@@ -115,12 +121,12 @@ PROBED_FIELDS = {
 }
 
 
-def can_probe():
+def can_probe() -> bool:
     """Whether this host has an ffprobe to ask."""
     return bool(shutil.which("ffprobe"))
 
 
-def probe(path):
+def probe(path: str) -> dict[str, str] | None:
     """What the browser-support and tonemapping decisions need about ``path``.
 
     One ffprobe, run by the scan, answering for the life of the file: the first
@@ -183,12 +189,14 @@ def probe(path):
     return values
 
 
-def apply_probe(photo):
+def apply_probe(photo: Photo) -> list[str] | None:
     """Probe ``photo``'s video and set the answer on it, without saving it.
 
     Returns the names of the fields set, or ``None`` when there was no answer,
     in which case they are left as they were.
     """
+    # Only photos that have a video file have anything to probe.
+    assert photo.main_file is not None
     values = probe(photo.main_file.path)
     if values is None:
         return None
@@ -197,7 +205,7 @@ def apply_probe(photo):
     return list(values)
 
 
-def record(photo):
+def record(photo: Photo) -> bool:
     """Probe ``photo``'s video and store the answer on it.
 
     Returns whether there was an answer. Without one the fields are left as they
@@ -211,7 +219,7 @@ def record(photo):
     return True
 
 
-def converted_wrongly_before(photo):
+def converted_wrongly_before(photo: Photo) -> bool:
     """Whether what was made from ``photo`` before it was probed is unusable.
 
     Thumbnails and the cached copy made before every conversion was tonemapped
@@ -226,7 +234,7 @@ def converted_wrongly_before(photo):
     return bool(pixel_format) and pixel_format not in BROWSER_PIXEL_FORMATS
 
 
-def transfer_characteristics(path):
+def transfer_characteristics(path: str) -> str:
     """The transfer curve ffprobe reports for ``path``'s first video stream.
 
     An empty string whenever the answer cannot be had: no ffprobe on the host,
@@ -261,19 +269,21 @@ def transfer_characteristics(path):
         return ""
 
 
-def is_hdr(path):
+def is_hdr(path: str) -> bool:
     """Whether ``path`` carries a transfer curve that SDR cannot show as it is."""
     return transfer_characteristics(path) in HDR_TRANSFERS
 
 
-def _is_hdr(path, transfer):
+def _is_hdr(path: str, transfer: str | None) -> bool:
     """The stored answer when there is one, the file's own otherwise."""
     if transfer is None:
         return is_hdr(path)
     return transfer in HDR_TRANSFERS
 
 
-def _filter_chain(path, scale, transfer):
+def _filter_chain(
+    path: str, scale: str | None, transfer: str | None
+) -> tuple[list[str], bool]:
     """The filter steps, and whether they include the tonemap."""
     steps = [scale] if scale else []
     if not _is_hdr(path, transfer):
@@ -286,7 +296,9 @@ def _filter_chain(path, scale, transfer):
     return steps, False
 
 
-def video_filter(path, scale=None, transfer=None):
+def video_filter(
+    path: str, scale: str | None = None, transfer: str | None = None
+) -> str | None:
     """The ``-filter:v`` argument for converting ``path``, tonemapped if need be.
 
     ``scale`` is whatever resizing the caller already wanted, kept first so that
@@ -299,7 +311,9 @@ def video_filter(path, scale=None, transfer=None):
     return ",".join(steps) or None
 
 
-def h264_video_args(path, scale=None, transfer=None):
+def h264_video_args(
+    path: str, scale: str | None = None, transfer: str | None = None
+) -> list[str]:
     """Everything a libx264 conversion of ``path`` needs to come out playable.
 
     The filter from :func:`video_filter`, a pixel format a browser decodes, and

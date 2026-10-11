@@ -1,11 +1,15 @@
+from __future__ import annotations
+
 import hashlib
 import logging
 import os
+from typing import IO
 
 from django.conf import settings
 from django.db import models, transaction
 
 from api.mime import sniffed_mime_type
+from api.models.user import User
 
 logger = logging.getLogger(__name__)
 
@@ -53,11 +57,11 @@ class File(models.Model):
     missing = models.BooleanField(default=False)
     embedded_media = models.ManyToManyField("self", symmetrical=False)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.path + " " + self._find_out_type()
 
     @staticmethod
-    def create(path: str, user, hash_value: str | None = None):
+    def create(path: str, user: User, hash_value: str | None = None) -> File:
         """
         Create or retrieve a File record for the given path.
 
@@ -162,12 +166,13 @@ class File(models.Model):
 
         return new_file
 
-    def _find_out_type(self):
+    def _find_out_type(self) -> str:
         self.type = detect_file_type(self.path)
         self.save()
+        return dict(File.FILE_TYPES)[self.type]
 
 
-def detect_file_type(path) -> int:
+def detect_file_type(path: str) -> int:
     file_type = File.IMAGE
     if is_raw(path):
         file_type = File.RAW_FILE
@@ -178,7 +183,7 @@ def detect_file_type(path) -> int:
     return file_type
 
 
-def is_video(path):
+def is_video(path: str) -> bool:
     try:
         # Sniffed only: a corrupt file with a video extension must not become a video.
         return (sniffed_mime_type(path) or "").find("video") != -1
@@ -187,7 +192,7 @@ def is_video(path):
         return False
 
 
-def is_raw(path):
+def is_raw(path: str) -> bool:
     fileextension = os.path.splitext(path)[1]
     rawformats = [
         ".RWZ",
@@ -231,7 +236,7 @@ def is_raw(path):
     return fileextension.upper() in rawformats
 
 
-def is_metadata(path):
+def is_metadata(path: str) -> bool:
     fileextension = os.path.splitext(path)[1]
     rawformats = [
         ".XMP",
@@ -288,7 +293,7 @@ VIDEO_EXTENSIONS = frozenset(
 )
 
 
-def looks_like_media(path) -> bool:
+def looks_like_media(path: str) -> bool:
     """Whether ``path`` is meant to be a photo or video, loadable or not.
 
     True when the extension is a known image, video, RAW or XMP one, or when
@@ -304,7 +309,7 @@ def looks_like_media(path) -> bool:
     return (sniffed_mime_type(path) or "").startswith(("image/", "video/"))
 
 
-def is_valid_media(path, user) -> bool:
+def is_valid_media(path: str, user: User | None) -> bool:
     if is_video(path=path):
         if not settings.FEATURE_VIDEO:
             logger.info(f"Video support is disabled, skipping {path}")
@@ -328,7 +333,7 @@ def is_valid_media(path, user) -> bool:
         return False
 
 
-def calculate_hash(user, path):
+def calculate_hash(user: User, path: str) -> str:
     try:
         hash_md5 = hashlib.md5()
         with open(path, "rb") as f:
@@ -340,7 +345,7 @@ def calculate_hash(user, path):
         raise e
 
 
-def calculate_hash_b64(user, content):
+def calculate_hash_b64(user: User, content: IO[bytes]) -> str:
     hash_md5 = hashlib.md5()
     with content as f:
         for chunk in iter(lambda: f.read(BUFFER_SIZE), b""):

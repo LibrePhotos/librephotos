@@ -20,13 +20,13 @@ pillow_heif.register_heif_opener()
 Image.MAX_IMAGE_PIXELS = 250_000_000
 
 
-def _pillow_to_vips(path):
+def _pillow_to_vips(path: str) -> pyvips.Image:
     with Image.open(path) as image:
-        image = ImageOps.exif_transpose(image).convert("RGB")
-        return pyvips.Image.new_from_array(np.asarray(image))
+        rgb = ImageOps.exif_transpose(image).convert("RGB")
+        return pyvips.Image.new_from_array(np.asarray(rgb))
 
 
-def thumbnail(path, height):
+def thumbnail(path: str, height: int) -> pyvips.Image:
     """A pyvips image of at most `height` pixels high, auto-rotated, from any supported file."""
     try:
         # libvips caches loads by file name and hands back the pixels this
@@ -51,13 +51,13 @@ _FLIP_TO_ORIENTATION = {3: 3, 5: 8, 6: 6}
 _ANY = 100_000
 
 
-def _same_shape(width, height, other_width, other_height):
+def _same_shape(width: int, height: int, other_width: int, other_height: int) -> bool:
     return abs(width / height - other_width / other_height) <= 0.02 * (
         other_width / other_height
     )
 
 
-def raw_preview(path, height):
+def raw_preview(path: str, height: int) -> pyvips.Image | None:
     """The camera's own JPEG preview of a RAW file, `height` pixels high, or None.
 
     Rendering the sensor data (the thumbnail service) takes ~0.6 s a photo, and
@@ -108,7 +108,7 @@ def raw_preview(path, height):
     return image
 
 
-def can_decode(path):
+def can_decode(path: str) -> bool:
     """Whether some loader recognises the file, from its header alone (no pixel decode)."""
     try:
         pyvips.Image.new_from_file(path)

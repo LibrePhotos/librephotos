@@ -10,6 +10,8 @@ Uses pHash (perceptual hash) algorithm which is robust to:
 
 import logging
 import re
+from collections.abc import Sequence
+from typing import TYPE_CHECKING
 
 from PIL import Image
 
@@ -17,7 +19,10 @@ from api.lazy_import import LazyModule
 
 # imagehash brings numpy and scipy along; only the scan and duplicate
 # detection hash, not the API server that imports this module.
-imagehash = LazyModule("imagehash")
+if TYPE_CHECKING:
+    import imagehash
+else:
+    imagehash = LazyModule("imagehash")
 
 logger = logging.getLogger(__name__)
 
@@ -43,12 +48,13 @@ def calculate_perceptual_hash(image_path: str, hash_size: int = 8) -> str | None
     try:
         with Image.open(image_path) as img:
             # Convert to RGB if necessary (handles RGBA, palette images, etc.)
+            source: Image.Image = img
             if img.mode not in ("RGB", "L"):
-                img = img.convert("RGB")
+                source = img.convert("RGB")
 
             # Calculate pHash - uses DCT (Discrete Cosine Transform)
             # More robust than average hash or difference hash
-            phash = imagehash.phash(img, hash_size=hash_size)
+            phash = imagehash.phash(source, hash_size=hash_size)
             return str(phash)
     except Exception as e:
         logger.error(f"Failed to calculate perceptual hash for {image_path}: {e}")
@@ -69,7 +75,7 @@ def calculate_hash_from_thumbnail(thumbnail_path: str) -> str | None:
     return calculate_perceptual_hash(thumbnail_path)
 
 
-def hamming_distance(hash1: str, hash2: str) -> int:
+def hamming_distance(hash1: str | None, hash2: str | None) -> int:
     """
     Calculate the Hamming distance between two perceptual hashes.
 
@@ -91,6 +97,8 @@ def hamming_distance(hash1: str, hash2: str) -> int:
         # search paid.
         return (int(hash1, 16) ^ int(hash2, 16)).bit_count()
     try:
+        if hash1 is None or hash2 is None:
+            raise ValueError("a hash is missing")
         h1 = imagehash.hex_to_hash(hash1)
         h2 = imagehash.hex_to_hash(hash2)
         return int(
@@ -102,7 +110,7 @@ def hamming_distance(hash1: str, hash2: str) -> int:
 
 
 def are_duplicates(
-    hash1: str, hash2: str, threshold: int = DEFAULT_HAMMING_THRESHOLD
+    hash1: str | None, hash2: str | None, threshold: int = DEFAULT_HAMMING_THRESHOLD
 ) -> bool:
     """
     Determine if two images are duplicates based on their perceptual hashes.
@@ -121,8 +129,8 @@ def are_duplicates(
 
 
 def find_similar_hashes(
-    target_hash: str,
-    hash_list: list[tuple[str, str]],
+    target_hash: str | None,
+    hash_list: Sequence[tuple[str, str | None]],
     threshold: int = DEFAULT_HAMMING_THRESHOLD,
 ) -> list[tuple[str, int]]:
     """

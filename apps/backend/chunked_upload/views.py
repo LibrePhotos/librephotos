@@ -1,8 +1,13 @@
 import re
+from collections.abc import Mapping
+from typing import Any
 
 from django.views.generic import View
+from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404
 from django.core.files.base import ContentFile
+from django.core.files.uploadedfile import UploadedFile
+from django.db.models import QuerySet
 from django.utils import timezone
 
 from .settings import MAX_BYTES
@@ -21,7 +26,7 @@ class ChunkedUploadBaseView(View):
     model = ChunkedUpload
     user_field_name = "user"  # the field name that point towards the AUTH_USER in ChunkedUpload class or its subclasses
 
-    def get_queryset(self, request):
+    def get_queryset(self, request: HttpRequest) -> QuerySet[ChunkedUpload]:
         """
         Get (and filter) ChunkedUpload queryset.
         By default, users can only continue uploading their own uploads.
@@ -35,39 +40,47 @@ class ChunkedUploadBaseView(View):
             queryset = queryset.filter(**{self.user_field_name: request.user})
         return queryset
 
-    def validate(self, request):
+    def validate(self, request: HttpRequest) -> None:
         """
         Placeholder method to define extra validation.
         Must raise ChunkedUploadError if validation fails.
         """
 
-    def get_response_data(self, chunked_upload, request):
+    def get_response_data(
+        self, chunked_upload: ChunkedUpload, request: HttpRequest
+    ) -> Mapping[str, object]:
         """
         Data for the response. Should return a dictionary-like object.
         Called *only* if POST is successful.
         """
         return {}
 
-    def pre_save(self, chunked_upload, request, new=False):
+    def pre_save(
+        self, chunked_upload: ChunkedUpload, request: HttpRequest, new: bool = False
+    ) -> None:
         """
         Placeholder method for calling before saving an object.
         May be used to set attributes on the object that are implicit
         in either the request, or the url.
         """
 
-    def save(self, chunked_upload, request, new=False):
+    def save(
+        self, chunked_upload: ChunkedUpload, request: HttpRequest, new: bool = False
+    ) -> None:
         """
         Method that calls save(). Overriding may be useful is save() needs
         special args or kwargs.
         """
         chunked_upload.save()
 
-    def post_save(self, chunked_upload, request, new=False):
+    def post_save(
+        self, chunked_upload: ChunkedUpload, request: HttpRequest, new: bool = False
+    ) -> None:
         """
         Placeholder method for calling after saving an object.
         """
 
-    def _save(self, chunked_upload):
+    def _save(self, chunked_upload: ChunkedUpload) -> None:
         """
         Wraps save() method.
         """
@@ -76,7 +89,7 @@ class ChunkedUploadBaseView(View):
         self.save(chunked_upload, self.request, new=new)
         self.post_save(chunked_upload, self.request, new=new)
 
-    def check_permissions(self, request):
+    def check_permissions(self, request: HttpRequest) -> None:
         """
         Grants permission to start/continue an upload based on the request.
         """
@@ -86,10 +99,10 @@ class ChunkedUploadBaseView(View):
                 detail="Authentication credentials were not provided",
             )
 
-    def _post(self, request, *args, **kwargs):
+    def _post(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
         raise NotImplementedError
 
-    def post(self, request, *args, **kwargs):
+    def post(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
         """
         Handle POST requests.
         """
@@ -117,12 +130,12 @@ class ChunkedUploadView(ChunkedUploadBaseView):
     # Upload behavior (doesn't send header if the file is smaller than chunk)
     fail_if_no_header = False
 
-    def get_extra_attrs(self, request):
+    def get_extra_attrs(self, request: HttpRequest) -> Mapping[str, object]:
         """
         Extra attribute values to be passed to the new ChunkedUpload instance.
         Should return a dictionary-like object.
         """
-        attrs = {}
+        attrs: dict[str, object] = {}
         if (
             hasattr(self.model, self.user_field_name)
             and hasattr(request, "user")
@@ -131,7 +144,7 @@ class ChunkedUploadView(ChunkedUploadBaseView):
             attrs[self.user_field_name] = request.user
         return attrs
 
-    def get_max_bytes(self, request):
+    def get_max_bytes(self, request: HttpRequest) -> int | None:
         """
         Used to limit the max amount of data that can be uploaded. `None` means
         no limit.
@@ -141,7 +154,9 @@ class ChunkedUploadView(ChunkedUploadBaseView):
 
         return self.max_bytes
 
-    def create_chunked_upload(self, save=False, **attrs):
+    def create_chunked_upload(
+        self, save: bool = False, **attrs: object
+    ) -> ChunkedUpload:
         """
         Creates new chunked upload instance. Called if no 'upload_id' is
         found in the POST data.
@@ -151,7 +166,7 @@ class ChunkedUploadView(ChunkedUploadBaseView):
         chunked_upload.file.save(name="", content=ContentFile(""), save=save)
         return chunked_upload
 
-    def is_valid_chunked_upload(self, chunked_upload):
+    def is_valid_chunked_upload(self, chunked_upload: ChunkedUpload) -> None:
         """
         Check if chunked upload has already expired or is already complete.
         """
@@ -165,7 +180,9 @@ class ChunkedUploadView(ChunkedUploadBaseView):
                 status=http_status.HTTP_400_BAD_REQUEST, detail=error_msg % "complete"
             )
 
-    def get_response_data(self, chunked_upload, request):
+    def get_response_data(
+        self, chunked_upload: ChunkedUpload, request: HttpRequest
+    ) -> Mapping[str, object]:
         """
         Data for the response. Should return a dictionary-like object.
         """
@@ -175,7 +192,7 @@ class ChunkedUploadView(ChunkedUploadBaseView):
             "expires": chunked_upload.expires_on,
         }
 
-    def get_chunk(self, request):
+    def get_chunk(self, request: HttpRequest) -> UploadedFile:
         """
         Returns the submitted chunk file, failing if none was provided.
         """
@@ -187,13 +204,15 @@ class ChunkedUploadView(ChunkedUploadBaseView):
             )
         return chunk
 
-    def get_chunked_upload(self, request, chunk):
+    def get_chunked_upload(
+        self, request: HttpRequest, chunk: UploadedFile
+    ) -> ChunkedUpload:
         """
         Resumes the upload referenced by 'upload_id', or creates a new one.
         """
         upload_id = request.POST.get("upload_id")
         if not upload_id:
-            attrs = {"filename": chunk.name}
+            attrs: dict[str, object] = {"filename": chunk.name}
             attrs.update(self.get_extra_attrs(request))
             return self.create_chunked_upload(save=False, **attrs)
 
@@ -203,7 +222,9 @@ class ChunkedUploadView(ChunkedUploadBaseView):
         self.is_valid_chunked_upload(chunked_upload)
         return chunked_upload
 
-    def get_content_range(self, request, chunk):
+    def get_content_range(
+        self, request: HttpRequest, chunk: UploadedFile
+    ) -> tuple[int, int, int]:
         """
         Returns the (start, end, total) byte range covered by this chunk.
         """
@@ -221,9 +242,19 @@ class ChunkedUploadView(ChunkedUploadBaseView):
                 detail="Error in request headers",
             )
         # Use the whole size when HTTP_CONTENT_RANGE is not provided
-        return 0, chunk.size - 1, chunk.size
+        size = chunk.size
+        assert size is not None  # uploaded chunks always carry their size
+        return 0, size - 1, size
 
-    def check_chunk(self, request, chunked_upload, chunk, start, total, chunk_size):
+    def check_chunk(
+        self,
+        request: HttpRequest,
+        chunked_upload: ChunkedUpload,
+        chunk: UploadedFile,
+        start: int,
+        total: int,
+        chunk_size: int,
+    ) -> None:
         """
         Check the chunk against the upload limits and the expected offset.
         """
@@ -245,7 +276,7 @@ class ChunkedUploadView(ChunkedUploadBaseView):
                 detail="File size doesn't match headers",
             )
 
-    def _post(self, request, *args, **kwargs):
+    def _post(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
         chunk = self.get_chunk(request)
         self.validate(request)
 
@@ -275,12 +306,14 @@ class ChunkedUploadCompleteView(ChunkedUploadBaseView):
     # impacting your performance. Proceed at your own risk.
     do_md5_check = True
 
-    def on_completion(self, uploaded_file, request):
+    def on_completion(
+        self, uploaded_file: UploadedFile, request: HttpRequest
+    ) -> HttpResponse | None:
         """
         Placeholder method to define what to do when upload is complete.
         """
 
-    def is_valid_chunked_upload(self, chunked_upload):
+    def is_valid_chunked_upload(self, chunked_upload: ChunkedUpload) -> None:
         """
         Check if chunked upload is already complete.
         """
@@ -290,7 +323,7 @@ class ChunkedUploadCompleteView(ChunkedUploadBaseView):
                 status=http_status.HTTP_400_BAD_REQUEST, detail=error_msg
             )
 
-    def md5_check(self, chunked_upload, md5):
+    def md5_check(self, chunked_upload: ChunkedUpload, md5: str | None) -> None:
         """
         Verify if md5 checksum sent by client matches generated md5.
         """
@@ -300,7 +333,9 @@ class ChunkedUploadCompleteView(ChunkedUploadBaseView):
                 detail="md5 checksum does not match",
             )
 
-    def get_required_params(self, request):
+    def get_required_params(
+        self, request: HttpRequest
+    ) -> tuple[str | None, str | None]:
         """
         Returns the (upload_id, md5) pair required to complete an upload.
         """
@@ -320,7 +355,7 @@ class ChunkedUploadCompleteView(ChunkedUploadBaseView):
             )
         return upload_id, md5
 
-    def _post(self, request, *args, **kwargs):
+    def _post(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
         upload_id, md5 = self.get_required_params(request)
 
         chunked_upload = get_object_or_404(

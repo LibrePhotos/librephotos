@@ -20,9 +20,9 @@ class AlbumPlace(models.Model):
     class Meta:
         unique_together = ("title", "owner")
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "%d: %s" % (self.id, self.title)
 
 
-def get_album_place(title, owner):
+def get_album_place(title: str, owner: User) -> AlbumPlace:
     return AlbumPlace.objects.get_or_create(title=title, owner=owner)[0]

@@ -1,3 +1,6 @@
+from typing import Any
+
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from api.models import AlbumPlace
@@ -22,15 +25,20 @@ class GroupedPlacePhotosSerializer(serializers.ModelSerializer):
         )
 
     # To-Do: Remove legacy stuff
-    def get_id(self, obj) -> str:
+    def get_id(self, obj: AlbumPlace) -> str:
         return str(obj.id)
 
-    def get_grouped_photos(self, obj) -> GroupedPhotosSerializer(many=True):
+    @extend_schema_field(GroupedPhotosSerializer(many=True))
+    def get_grouped_photos(self, obj: AlbumPlace) -> list[dict[str, Any]]:
         photos = filter_photos_by_media_type(
             obj.photos.all(), self.context.get("request")
         )
         grouped_photos = get_photos_ordered_by_date(photos)
-        res = GroupedPhotosSerializer(grouped_photos, many=True).data
+        # ``.data`` of a many=True serializer is a ReturnList; build it through
+        # ListSerializer so the static type matches the runtime value.
+        res = serializers.ListSerializer(
+            child=GroupedPhotosSerializer(), instance=grouped_photos
+        ).data
         return res
 
 
@@ -50,5 +58,7 @@ class AlbumPlaceListSerializer(serializers.ModelSerializer):
         model = AlbumPlace
         fields = ("id", "geolocation_level", "cover_photos", "title", "photo_count")
 
-    def get_photo_count(self, obj) -> int:
-        return obj.photo_count
+    def get_photo_count(self, obj: AlbumPlace) -> int:
+        # Annotated by the list view's queryset; not a model field.
+        count: int = getattr(obj, "photo_count")
+        return count

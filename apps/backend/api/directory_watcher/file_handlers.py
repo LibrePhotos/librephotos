@@ -10,11 +10,12 @@ import logging
 import os
 import tempfile
 from functools import partial
+from uuid import UUID
 
 import pytz
 from django.conf import settings
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Q, QuerySet
 
 from api import transcode_cache, video_color
 from api.directory_watcher.file_grouping import (
@@ -27,7 +28,7 @@ from api.directory_watcher.file_grouping import (
 )
 from api.directory_watcher.utils import update_scan_counter
 from api.metadata.photo_datetime import extract_date_time
-from api.models import File, LongRunningJob, Person, Photo, Thumbnail
+from api.models import File, LongRunningJob, Person, Photo, Thumbnail, User
 from api.models.file import (
     calculate_hash,
     content_hash,
@@ -120,9 +121,9 @@ def _picture_verdict(photo: Photo | None, path: str) -> str:
     (``api.metadata.photo_writer._fold_rotation_into_file``), so those photos do take the
     comparison.
     """
-    stored = photo.perceptual_hash if photo else None
-    if not stored or photo.local_orientation != 1:
+    if photo is None or not photo.perceptual_hash or photo.local_orientation != 1:
         return UNCOMPARABLE
+    stored = photo.perceptual_hash
     candidate = _rendered_perceptual_hash(path, photo.local_orientation)
     if candidate == stored:
         return SAME_PICTURE
@@ -136,7 +137,9 @@ def _picture_verdict(photo: Photo | None, path: str) -> str:
     return NEW_PICTURE
 
 
-def _photo_to_compare(affected, user, old_hash) -> Photo | None:
+def _photo_to_compare(
+    affected: QuerySet[Photo], user: User, old_hash: str
+) -> Photo | None:
     """The photo whose perceptual hash answers for this file.
 
     The scanning user's own row first. A file can be indexed by one user and
@@ -250,7 +253,7 @@ def _regenerate_thumbnails(photo: Photo) -> None:
         )
 
 
-def reindex_replaced_file(user, path, hash_value) -> Photo | None:
+def reindex_replaced_file(user: User, path: str, hash_value: str) -> Photo | None:
     """Re-point the rows of ``path`` at its new content after an in-place change.
 
     ``File.create`` matches on path alone, so a file whose bytes changed under
@@ -309,8 +312,8 @@ def reindex_replaced_file(user, path, hash_value) -> Photo | None:
     verdict = _picture_verdict(_photo_to_compare(affected, user, old_hash), path)
     logger.info(f"content of {path} changed ({verdict}), re-keying as {hash_value}")
 
-    main_photo = None
-    rebuild_photo_ids = []
+    main_photo: Photo | None = None
+    rebuild_photo_ids: list[UUID] = []
     with transaction.atomic():
         if verdict == NEW_PICTURE:
             _discard_embedded_media(existing)
@@ -345,7 +348,7 @@ def reindex_replaced_file(user, path, hash_value) -> Photo | None:
     return main_photo
 
 
-def create_file_record(user, path) -> File | None:
+def create_file_record(user: User, path: str) -> File | None:
     """
     Phase 1: Create a File record for a path without creating/grouping Photos.
 
@@ -380,7 +383,7 @@ def create_file_record(user, path) -> File | None:
     return file
 
 
-def _attach_embedded_motion_video(user, photo: Photo, file: File) -> File | None:
+def _attach_embedded_motion_video(user: User, photo: Photo, file: File) -> File | None:
     """Extract a Google/Samsung Live Photo motion video and attach it as a variant."""
     if not (
         has_embedded_motion_video(file.path)
@@ -399,7 +402,9 @@ def _attach_embedded_motion_video(user, photo: Photo, file: File) -> File | None
     return em_file
 
 
-def _adopt_files_into_photo(photo: Photo, files: list[File], main_file: File, job_id):
+def _adopt_files_into_photo(
+    photo: Photo, files: list[File], main_file: File, job_id: UUID | str
+) -> None:
     """Attach missing files to an existing Photo and upgrade its main_file."""
     for f in files:
         if not photo.files.filter(hash=f.hash).exists():
@@ -417,7 +422,9 @@ def _adopt_files_into_photo(photo: Photo, files: list[File], main_file: File, jo
         photo.save(update_fields=["main_file"])
 
 
-def group_files_into_photo(user, files: list[File], job_id) -> Photo | None:
+def group_files_into_photo(
+    user: User, files: list[File], job_id: UUID | str
+) -> Photo | None:
     """
     Phase 2: Group a list of related files into a single Photo.
 
@@ -493,7 +500,7 @@ def group_files_into_photo(user, files: list[File], job_id) -> Photo | None:
     return photo
 
 
-def _find_photo_for_sidecar(user, path) -> Photo | None:
+def _find_photo_for_sidecar(user: User, path: str) -> Photo | None:
     """The user's Photo holding the media file an XMP sidecar describes.
 
     Same directory and exactly the same stem, any extension - the scan's
@@ -514,7 +521,7 @@ def _find_photo_for_sidecar(user, path) -> Photo | None:
     return None
 
 
-def _attach_metadata_sidecar(user, path) -> None:
+def _attach_metadata_sidecar(user: User, path: str) -> None:
     """Attach an XMP sidecar to the Photo it describes, if one exists."""
     photo = _find_photo_for_sidecar(user, path)
 
@@ -526,7 +533,9 @@ def _attach_metadata_sidecar(user, path) -> None:
     photo.save()
 
 
-def _attach_file_variant(user, path, photo: Photo, label, keep_image=False) -> Photo:
+def _attach_file_variant(
+    user: User, path: str, photo: Photo, label: str, keep_image: bool = False
+) -> Photo:
     """Attach a sibling file to an existing Photo as a variant."""
     if not photo.files.filter(path=path).exists():
         photo.files.add(File.create(path, user))
@@ -537,7 +546,7 @@ def _attach_file_variant(user, path, photo: Photo, label, keep_image=False) -> P
     return photo
 
 
-def _adopt_as_variant(user, path) -> Photo | None:
+def _adopt_as_variant(user: User, path: str) -> Photo | None:
     """
     Attach RAW files and Live Photo videos to the image Photo they belong to.
 
@@ -558,7 +567,7 @@ def _adopt_as_variant(user, path) -> Photo | None:
     return None
 
 
-def create_new_image(user, path) -> Photo | None:
+def create_new_image(user: User, path: str) -> Photo | None:
     """
     Creates a new Photo object based on user input and file path.
 
@@ -616,7 +625,11 @@ def create_new_image(user, path) -> Photo | None:
     return photo
 
 
-def apply_device_timestamp_fallback(photo, device_created_at, device_modified_at=None):
+def apply_device_timestamp_fallback(
+    photo: Photo | None,
+    device_created_at: datetime.datetime | None,
+    device_modified_at: datetime.datetime | None = None,
+) -> Photo | None:
     """Fallback timestamp for EXIF-less uploads (doc 04 §5, issue #614).
 
     Mobile clients know when a photo was taken even when the file carries no
@@ -644,7 +657,9 @@ def apply_device_timestamp_fallback(photo, device_created_at, device_modified_at
     return photo
 
 
-def handle_new_image(user, path, job_id, photo=None):
+def handle_new_image(
+    user: User, path: str, job_id: UUID | str, photo: Photo | None = None
+) -> None:
     """
     Handles the creation and all the processing of the photo needed for it to be displayed.
 
@@ -679,9 +694,9 @@ def handle_new_image(user, path, job_id, photo=None):
         update_scan_counter(job_id, failed=error is not None, error=error)
 
 
-def _collect_file_records(user, file_paths: list[str]) -> list[File]:
+def _collect_file_records(user: User, file_paths: list[str]) -> list[File]:
     """Create File records for every valid path in a group."""
-    files = []
+    files: list[File] = []
     for path in file_paths:
         file = create_file_record(user, path)
         if file:
@@ -689,14 +704,16 @@ def _collect_file_records(user, file_paths: list[str]) -> list[File]:
     return files
 
 
-def _describe_failure(path, error: Exception) -> str:
+def _describe_failure(path: str, error: Exception) -> str:
     # The path is part of the text because update_scan_counter de-duplicates
     # the errors list by exact string, and one dropped mount reports the same
     # errno for every file it swallowed.
     return f"{path}: {error}"
 
 
-def _log_file_group_failure(job_id, file_paths, error: Exception):
+def _log_file_group_failure(
+    job_id: UUID | str, file_paths: list[str], error: Exception
+) -> None:
     try:
         logger.exception(
             f"job {job_id}: could not process file group {file_paths}. reason: {str(error)}"
@@ -705,7 +722,7 @@ def _log_file_group_failure(job_id, file_paths, error: Exception):
         logger.exception(f"job {job_id}: could not process file group")
 
 
-def handle_file_group(user, file_paths: list[str], job_id):
+def handle_file_group(user: User, file_paths: list[str], job_id: UUID | str) -> None:
     """
     Phase 2 handler: Process a group of related files into a single Photo.
 
@@ -756,14 +773,20 @@ def handle_file_group(user, file_paths: list[str], job_id):
         update_scan_counter(job_id, failed=error is not None, error=error)
 
 
-def _probe_videos_unfinished(user) -> bool:
+def _probe_videos_unfinished(user: User) -> bool:
     """Whether a Probe Videos job of ``user``'s is running, or was killed."""
     return LongRunningJob.objects.filter(
         started_by=user, job_type=LongRunningJob.JOB_PROBE_VIDEOS, finished=False
     ).exists()
 
 
-def _rebuild_made_before_probe(photo, thumbnail, fields, job_id, path):
+def _rebuild_made_before_probe(
+    photo: Photo,
+    thumbnail: Thumbnail,
+    fields: list[str],
+    job_id: UUID | str,
+    path: str,
+) -> None:
     """Rebuild a video's thumbnails made before it was probed, then save the probe.
 
     ``fields`` are the probed values set on ``photo`` but not saved yet. Saved
@@ -785,7 +808,9 @@ def _rebuild_made_before_probe(photo, thumbnail, fields, job_id, path):
     photo.save(save_metadata=False, update_fields=fields)
 
 
-def _process_photo(photo: Photo, path: str, job_id, start: datetime.datetime):
+def _process_photo(
+    photo: Photo, path: str, job_id: UUID | str, start: datetime.datetime
+) -> None:
     """
     Process a photo: generate thumbnails, extract EXIF, calculate hashes, etc.
 

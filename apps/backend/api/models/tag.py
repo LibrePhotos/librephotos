@@ -1,5 +1,8 @@
+from collections.abc import Collection, Iterable
+from typing import Any
+
 from django.db import models
-from django.db.models import Count, IntegerField, OuterRef, Subquery
+from django.db.models import Count, IntegerField, OuterRef, QuerySet, Subquery
 from django.db.models.functions import Coalesce
 from django.db.models.signals import m2m_changed
 from django.dispatch import receiver
@@ -38,12 +41,20 @@ class Tag(models.Model):
             models.UniqueConstraint(fields=["name", "owner"], name="unique Tag")
         ]
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "%d: %s" % (self.id or 0, self.name)
 
 
 @receiver(m2m_changed, sender=Tag.photos.through)
-def update_photo_count(sender, instance, action, reverse, model, pk_set, **kwargs):
+def update_photo_count(
+    sender: type[models.Model],
+    instance: Tag,
+    action: str,
+    reverse: bool,
+    model: type[models.Model],
+    pk_set: set[int] | None,
+    **kwargs: Any,
+) -> None:
     if action not in ("post_add", "post_remove"):
         return
     tags = Tag.objects.filter(pk__in=pk_set or []) if reverse else [instance]
@@ -52,7 +63,7 @@ def update_photo_count(sender, instance, action, reverse, model, pk_set, **kwarg
         tag.save(update_fields=["photo_count"])
 
 
-def tag_ids_for_photos(photos):
+def tag_ids_for_photos(photos: QuerySet[Photo]) -> list[int]:
     """The ids of every tag holding one of ``photos``.
 
     Snapshot these *before* deleting the photos: the through-rows go with them,
@@ -63,7 +74,7 @@ def tag_ids_for_photos(photos):
     )
 
 
-def refresh_tag_photo_counts(tag_ids):
+def refresh_tag_photo_counts(tag_ids: Collection[int]) -> int:
     """Recompute ``photo_count`` for ``tag_ids``, in one statement.
 
     The ``m2m_changed`` receiver above only fires when a photo is attached to
@@ -80,15 +91,12 @@ def refresh_tag_photo_counts(tag_ids):
     if not tag_ids:
         return 0
 
+    # Counted from the photo side: the same join and filters as the through
+    # table, which the type checker cannot follow through an annotate().
     visible_count = (
-        Tag.photos.through.objects.filter(
-            tag_id=OuterRef("pk"),
-            **{
-                f"photo__{field}": value
-                for field, value in VISIBLE_PHOTO_FILTER.items()
-            },
-        )
-        .values("tag_id")
+        Photo.objects.filter(tags=OuterRef("pk"), **VISIBLE_PHOTO_FILTER)
+        .order_by()
+        .values("tags")
         .annotate(total=Count("pk"))
         .values("total")
     )
@@ -97,7 +105,7 @@ def refresh_tag_photo_counts(tag_ids):
     )
 
 
-def refresh_tags_for_photos(photos):
+def refresh_tags_for_photos(photos: QuerySet[Photo]) -> int:
     """Refresh the counts of every tag holding one of ``photos``.
 
     For a queryset whose photos are only changing visibility, not going away.
@@ -105,11 +113,11 @@ def refresh_tags_for_photos(photos):
     return refresh_tag_photo_counts(tag_ids_for_photos(photos))
 
 
-def get_tag(name, owner):
+def get_tag(name: str, owner: User) -> Tag:
     return Tag.objects.get_or_create(name=name, owner=owner)[0]
 
 
-def tag_names(keywords):
+def tag_names(keywords: Iterable[object] | None) -> set[str]:
     """The tag names a keyword list stands for: trimmed, deduped and clipped.
 
     ``PhotoMetadata.keywords`` is an unbounded JSON blob while a tag name is a
@@ -123,7 +131,9 @@ def tag_names(keywords):
     }
 
 
-def link_tags_from_keywords(photo, keywords):
+def link_tags_from_keywords(
+    photo: Photo, keywords: Iterable[object] | None
+) -> list[Tag]:
     """Create and link a Tag for every keyword found on ``photo``.
 
     Additive on purpose: a re-scan must not silently drop tags the user added
@@ -133,7 +143,7 @@ def link_tags_from_keywords(photo, keywords):
     if photo.owner_id is None:
         return []
 
-    tags = []
+    tags: list[Tag] = []
     for name in sorted(tag_names(keywords)):
         tag = get_tag(name, photo.owner)
         tag.photos.add(photo)
@@ -141,7 +151,11 @@ def link_tags_from_keywords(photo, keywords):
     return tags
 
 
-def sync_tags_from_keywords(photo, keywords, previous_keywords):
+def sync_tags_from_keywords(
+    photo: Photo,
+    keywords: Iterable[object] | None,
+    previous_keywords: Iterable[object] | None,
+) -> list[Tag]:
     """Project a deliberate keyword edit onto ``photo``'s tags in both directions.
 
     A keyword the user just deleted takes the tag it stood for with it,

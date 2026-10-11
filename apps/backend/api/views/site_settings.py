@@ -1,20 +1,26 @@
 """The admin-editable site settings endpoint (``/api/sitesettings``)."""
 
+from typing import Any
+
 import jsonschema
 from constance import config as site_config
 from constance import settings as constance_settings
-from rest_framework.permissions import AllowAny, IsAdminUser
+from rest_framework.exceptions import ValidationError
+from rest_framework.permissions import AllowAny, BasePermission, IsAdminUser
+from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from api.mail import email_is_configured
 from api.ml_models import do_all_models_exist, start_model_download
 from api.models import User
+from api.request_data import request_dict
+from api.request_user import request_user
 from api.schemas.site_settings import site_settings_schema
 from api.semantic_search import OPENCLIP
 
 
-def _site_config(*keys):
+def _site_config(*keys: str) -> dict[str, Any]:
     """The current values of several constance settings in one query.
 
     ``site_config.KEY`` costs a query per key, and the login page and every
@@ -30,15 +36,16 @@ def _site_config(*keys):
 
 
 class SiteSettingsView(APIView):
-    def get_permissions(self):
+    def get_permissions(self) -> list[BasePermission]:
         if self.request.method == "GET":
             self.permission_classes = (AllowAny,)
         else:
             self.permission_classes = (IsAdminUser,)
 
-        return super(SiteSettingsView, self).get_permissions()
+        # What APIView.get_permissions does, typed as a list of instances.
+        return [permission() for permission in self.permission_classes]
 
-    def get(self, request, format=None):
+    def get(self, request: Request, format: str | None = None) -> Response:
         config = _site_config(
             "ALLOW_REGISTRATION",
             "ALLOW_UPLOAD",
@@ -52,7 +59,7 @@ class SiteSettingsView(APIView):
             "NEXTCLOUD_ENABLED",
             "AUTO_CREATE_USER_DIRECTORY",
         )
-        out = {}
+        out: dict[str, object] = {}
         out["allow_registration"] = config["ALLOW_REGISTRATION"]
         out["allow_upload"] = config["ALLOW_UPLOAD"]
         out["skip_patterns"] = config["SKIP_PATTERNS"]
@@ -77,33 +84,36 @@ class SiteSettingsView(APIView):
         out["email_configured"] = email_is_configured()
         return Response(out)
 
-    def post(self, request, format=None):
-        jsonschema.validate(request.data, site_settings_schema)
-        if "allow_registration" in request.data.keys():
-            site_config.ALLOW_REGISTRATION = request.data["allow_registration"]
-        if "allow_upload" in request.data.keys():
-            site_config.ALLOW_UPLOAD = request.data["allow_upload"]
-        if "skip_patterns" in request.data.keys():
-            site_config.SKIP_PATTERNS = request.data["skip_patterns"]
-        if "map_api_provider" in request.data.keys():
-            site_config.MAP_API_PROVIDER = request.data["map_api_provider"]
-        if "map_api_key" in request.data.keys():
-            site_config.MAP_API_KEY = request.data["map_api_key"]
-        if "map_tile_provider" in request.data.keys():
-            site_config.MAP_TILE_PROVIDER = request.data["map_tile_provider"]
-        if "captioning_model" in request.data.keys():
-            site_config.CAPTIONING_MODEL = request.data["captioning_model"]
-        if "ocr_model" in request.data.keys():
-            site_config.OCR_MODEL = request.data["ocr_model"]
-        if "face_recognition_model" in request.data.keys():
-            site_config.FACE_RECOGNITION_MODEL = request.data["face_recognition_model"]
-        if "nextcloud_enabled" in request.data.keys():
-            site_config.NEXTCLOUD_ENABLED = request.data["nextcloud_enabled"]
-        if "auto_create_user_directory" in request.data.keys():
-            site_config.AUTO_CREATE_USER_DIRECTORY = request.data[
-                "auto_create_user_directory"
-            ]
-        admin = User.objects.get(id=request.user.id)
+    def post(self, request: Request, format: str | None = None) -> Response:
+        data = request_dict(request)
+        try:
+            jsonschema.validate(data, site_settings_schema)
+        except jsonschema.ValidationError as error:
+            field = ".".join(str(part) for part in error.absolute_path)
+            raise ValidationError({field or "non_field_errors": error.message})
+        if "allow_registration" in data.keys():
+            site_config.ALLOW_REGISTRATION = data["allow_registration"]
+        if "allow_upload" in data.keys():
+            site_config.ALLOW_UPLOAD = data["allow_upload"]
+        if "skip_patterns" in data.keys():
+            site_config.SKIP_PATTERNS = data["skip_patterns"]
+        if "map_api_provider" in data.keys():
+            site_config.MAP_API_PROVIDER = data["map_api_provider"]
+        if "map_api_key" in data.keys():
+            site_config.MAP_API_KEY = data["map_api_key"]
+        if "map_tile_provider" in data.keys():
+            site_config.MAP_TILE_PROVIDER = data["map_tile_provider"]
+        if "captioning_model" in data.keys():
+            site_config.CAPTIONING_MODEL = data["captioning_model"]
+        if "ocr_model" in data.keys():
+            site_config.OCR_MODEL = data["ocr_model"]
+        if "face_recognition_model" in data.keys():
+            site_config.FACE_RECOGNITION_MODEL = data["face_recognition_model"]
+        if "nextcloud_enabled" in data.keys():
+            site_config.NEXTCLOUD_ENABLED = data["nextcloud_enabled"]
+        if "auto_create_user_directory" in data.keys():
+            site_config.AUTO_CREATE_USER_DIRECTORY = data["auto_create_user_directory"]
+        admin = User.objects.get(id=request_user(request).id)
         if not do_all_models_exist():
             # Not a new job per save: the settings form saves on every
             # toggle and blur, often while the first download is still

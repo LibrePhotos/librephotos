@@ -19,15 +19,21 @@ Burst detection uses a rules-based system with two categories:
 - Soft criteria: Estimation (timestamp proximity, visual similarity)
 """
 
+from __future__ import annotations
+
 import logging
 from collections import defaultdict
+from collections.abc import Callable
+from typing import TypedDict
 
 from django.db.models import Q
 
 from api.models import Photo
 from api.models.photo_stack import PhotoStack
 from api.models.long_running_job import LongRunningJob
+from api.models.user import User
 from api.burst_detection_rules import (
+    BurstDetectionRule,
     as_rules,
     get_enabled_rules,
     get_hard_rules,
@@ -39,8 +45,15 @@ from api.burst_detection_rules import (
 
 logger = logging.getLogger(__name__)
 
+# Called with (current, total, found) as the detection goes.
+ProgressCallback = Callable[[int, int, int], None]
 
-def clear_stacks_of_type(user, stack_type):
+
+class StackDetectionOptions(TypedDict, total=False):
+    detect_bursts: bool
+
+
+def clear_stacks_of_type(user: User, stack_type: str) -> int:
     """
     Clear all stacks of a specific type for a user before re-detection.
     This ensures we start fresh and don't create duplicate stacks.
@@ -71,8 +84,11 @@ def clear_stacks_of_type(user, stack_type):
 
 
 def detect_burst_sequences(
-    user, interval_ms=2000, use_visual_similarity=True, progress_callback=None
-):
+    user: User,
+    interval_ms: int = 2000,
+    use_visual_similarity: bool = True,
+    progress_callback: ProgressCallback | None = None,
+) -> int:
     """
     Detect burst sequences using user's configured rules.
 
@@ -131,7 +147,11 @@ def detect_burst_sequences(
     return stacks_created
 
 
-def _detect_bursts_hard_criteria(user, hard_rules, progress_callback=None):
+def _detect_bursts_hard_criteria(
+    user: User,
+    hard_rules: list[BurstDetectionRule],
+    progress_callback: ProgressCallback | None = None,
+) -> int:
     """
     Detect bursts using hard criteria (EXIF tags, filename patterns).
 
@@ -152,13 +172,13 @@ def _detect_bursts_hard_criteria(user, hard_rules, progress_callback=None):
         return 0
 
     # Collect required EXIF tags from all rules
-    required_tags = set()
+    required_tag_names: set[str] = set()
     for rule in hard_rules:
-        required_tags.update(rule.get_required_exif_tags())
-    required_tags = list(required_tags)
+        required_tag_names.update(rule.get_required_exif_tags())
+    required_tags = list(required_tag_names)
 
     # Group photos by burst group_key
-    burst_groups = defaultdict(list)
+    burst_groups: defaultdict[str, list[Photo]] = defaultdict(list)
 
     for i, photo in enumerate(photos):
         if not photo.main_file:
@@ -202,12 +222,12 @@ def _detect_bursts_hard_criteria(user, hard_rules, progress_callback=None):
 
 
 def _detect_bursts_soft_criteria(
-    user,
-    soft_rules,
-    default_interval_ms=2000,
-    default_use_visual=True,
-    progress_callback=None,
-):
+    user: User,
+    soft_rules: list[BurstDetectionRule],
+    default_interval_ms: int = 2000,
+    default_use_visual: bool = True,
+    progress_callback: ProgressCallback | None = None,
+) -> int:
     """
     Detect bursts using soft criteria (timestamp proximity, visual similarity).
 
@@ -281,7 +301,7 @@ def _detect_bursts_soft_criteria(
     return stacks_created
 
 
-def _create_burst_stack(user, photos):
+def _create_burst_stack(user: User, photos: list[Photo]) -> PhotoStack | None:
     """Helper to create a burst stack from a list of photos."""
     if len(photos) < 2:
         return None
@@ -316,7 +336,9 @@ def _create_burst_stack(user, photos):
     return stack
 
 
-def batch_detect_stacks(user, options=None):
+def batch_detect_stacks(
+    user: User, options: StackDetectionOptions | None = None
+) -> None:
     """
     Run batch stack detection for a user.
 
@@ -348,7 +370,7 @@ def batch_detect_stacks(user, options=None):
         # Detect burst sequences (uses user's burst_detection_rules)
         if detect_bursts:
 
-            def progress_burst(current, total, found):
+            def progress_burst(current: int, total: int, found: int) -> None:
                 job.set_result(
                     {
                         "stage": "burst_sequences",

@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import logging
 import unicodedata
+from typing import TYPE_CHECKING, TypedDict
 
 import PIL
 
@@ -8,10 +11,28 @@ from api.metadata.tags import Tags
 from api.models.face import Face
 from api.models.person import Person
 
+if TYPE_CHECKING:
+    from api.models.photo import Photo
+
 logger = logging.getLogger(__name__)
 
 
-def thumbnail_coords_to_normalized(top, right, bottom, left, thumb_width, thumb_height):
+class _FaceRegion(TypedDict):
+    name: str
+    x: float
+    y: float
+    w: float
+    h: float
+
+
+def thumbnail_coords_to_normalized(
+    top: float,
+    right: float,
+    bottom: float,
+    left: float,
+    thumb_width: float,
+    thumb_height: float,
+) -> tuple[float, float, float, float]:
     """Convert Face model pixel coords (in big thumbnail space) to MWG-RS
     normalized center-based coords."""
     center_x = (left + right) / 2.0 / thumb_width
@@ -21,7 +42,9 @@ def thumbnail_coords_to_normalized(top, right, bottom, left, thumb_width, thumb_
     return center_x, center_y, w, h
 
 
-def reverse_orientation_transform(x, y, w, h, orientation):
+def reverse_orientation_transform(
+    x: float, y: float, w: float, h: float, orientation: str | None
+) -> tuple[float, float, float, float]:
     """Invert the orientation transforms from face_extractor.py lines 54-80.
 
     The read path applies a forward transform from XMP coords to display coords.
@@ -71,7 +94,7 @@ def reverse_orientation_transform(x, y, w, h, orientation):
     return x, y, w, h
 
 
-def _escape_exiftool_value(value):
+def _escape_exiftool_value(value: str) -> str:
     """Escape special characters in a string value for exiftool structured data.
 
     ExifTool uses commas, equals, braces in its structured value syntax,
@@ -83,7 +106,7 @@ def _escape_exiftool_value(value):
     return value
 
 
-def _single_line(name):
+def _single_line(name: str) -> str:
     """The name with control characters (line breaks, tabs) turned into spaces.
 
     Names are user input, and ExifTool reads its arguments one per line: a
@@ -92,7 +115,11 @@ def _single_line(name):
     return "".join(" " if unicodedata.category(ch) == "Cc" else ch for ch in name)
 
 
-def build_face_region_exiftool_args(face_regions, image_width=None, image_height=None):
+def build_face_region_exiftool_args(
+    face_regions: list[_FaceRegion],
+    image_width: int | None = None,
+    image_height: int | None = None,
+) -> dict[str, str | list[str]]:
     """Build exiftool args dict for writing XMP-mwg-rs:RegionInfo and XMP:Subject.
 
     Args:
@@ -103,8 +130,8 @@ def build_face_region_exiftool_args(face_regions, image_width=None, image_height
     Returns:
         dict of tag -> value suitable for write_metadata()
     """
-    region_parts = []
-    person_names = []
+    region_parts: list[str] = []
+    person_names: list[str] = []
     for region in face_regions:
         single_line = _single_line(region["name"])
         name = _escape_exiftool_value(single_line)
@@ -131,7 +158,7 @@ def build_face_region_exiftool_args(face_regions, image_width=None, image_height
 
     value = f"{{{applied_to}RegionList=[{region_list}]}}"
 
-    tags = {Tags.REGION_INFO_WRITE: value}
+    tags: dict[str, str | list[str]] = {Tags.REGION_INFO_WRITE: value}
 
     # Add person names as XMP:Subject keywords for Lightroom compatibility
     if person_names:
@@ -140,7 +167,7 @@ def build_face_region_exiftool_args(face_regions, image_width=None, image_height
     return tags
 
 
-def get_face_region_tags(photo):
+def get_face_region_tags(photo: Photo) -> dict[str, str | list[str]]:
     """Build face region exiftool tags dict for a photo.
 
     Returns a dict of tags suitable for merging into _save_metadata()'s tags_to_write,
@@ -173,6 +200,7 @@ def get_face_region_tags(photo):
         return {}
 
     # Get EXIF orientation and original image dimensions
+    assert photo.main_file is not None
     (orientation, image_width, image_height) = get_metadata(
         photo.main_file.path,
         tags=[Tags.ORIENTATION, Tags.IMAGE_WIDTH, Tags.IMAGE_HEIGHT],
@@ -180,7 +208,7 @@ def get_face_region_tags(photo):
     )
 
     # Convert each face's coordinates
-    face_regions = []
+    face_regions: list[_FaceRegion] = []
     for face in faces:
         x, y, w, h = thumbnail_coords_to_normalized(
             face.location_top,

@@ -5,13 +5,17 @@ from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.tokens import default_token_generator
 from django.core.exceptions import ValidationError
 from django.core.mail import send_mail
+from django.http import HttpRequest
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from rest_framework.permissions import AllowAny
+from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
+from api.request_data import request_dict
+from api.models.user import User as AppUser
 from api.public_url import trusted_public_base_url
 
 logger = logging.getLogger(__name__)
@@ -30,8 +34,9 @@ class PasswordResetView(APIView):
     throttle_classes = (ScopedRateThrottle,)
     throttle_scope = "password_reset"
 
-    def post(self, request, format=None):
-        email = (request.data.get("email") or "").strip()
+    def post(self, request: Request, format: str | None = None) -> Response:
+        data = request_dict(request)
+        email = (data.get("email") or "").strip()
         if email:
             user = User.objects.filter(email__iexact=email).first()
             if user is not None and user.email:
@@ -44,7 +49,7 @@ class PasswordResetView(APIView):
             }
         )
 
-    def _send_reset_email(self, request, user):
+    def _send_reset_email(self, request: HttpRequest, user: AppUser) -> None:
         base = trusted_public_base_url(request)
         if not base:
             # The only other source for the link is the Host header, which the
@@ -91,10 +96,11 @@ class PasswordResetConfirmView(APIView):
 
     permission_classes = (AllowAny,)
 
-    def post(self, request, format=None):
-        uid = request.data.get("uid")
-        token = request.data.get("token")
-        new_password = request.data.get("new_password")
+    def post(self, request: Request, format: str | None = None) -> Response:
+        data = request_dict(request)
+        uid = data.get("uid")
+        token = data.get("token")
+        new_password = data.get("new_password")
 
         if not uid or not token or not new_password:
             return Response(
@@ -119,7 +125,7 @@ class PasswordResetConfirmView(APIView):
         user.save()
         return Response({"status": True, "message": "Password has been reset"})
 
-    def _user_from_uid(self, uid):
+    def _user_from_uid(self, uid: str) -> AppUser | None:
         try:
             pk = force_str(urlsafe_base64_decode(uid))
             return User.objects.get(pk=pk)

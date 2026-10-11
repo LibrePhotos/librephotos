@@ -1,7 +1,9 @@
+from geopy.location import Location
+
 from api.geocode import GEOCODE_VERSION
 
 
-def parse(location):
+def parse(location: Location) -> dict[str, object]:
     data = location.raw["address"]
     props = [
         "road",

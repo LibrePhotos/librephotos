@@ -1,28 +1,39 @@
-import uuid
+from __future__ import annotations
 
+import uuid
+from collections.abc import Collection, Iterable
+from typing import TYPE_CHECKING, Any, Self
+
+from django.contrib.auth.models import AnonymousUser
 from django.db import models
-from django.db.models import Q
+from django.db.models import Q, QuerySet
+from django.db.models.base import ModelBase
 
 from api import photo_files
 from api.metadata.photo_writer import write_orientation_to_disk, write_photo_metadata
+from api.models.duplicate import Duplicate
 from api.models.file import File
+from api.models.photo_stack import PhotoStack
 from api.models.user import User, get_deleted_user
 
+if TYPE_CHECKING:
+    from django.db.models.fetch_modes import FetchMode
 
-class PhotoQuerySet(models.QuerySet):
+
+class PhotoQuerySet(QuerySet["Photo"]):
     """The two per-user scopes every view and serializer goes through.
 
     ``owned_by`` is the write scope and ``visible_to`` the read scope. Spell
     ``owner=request.user`` here, once, rather than at each call site.
     """
 
-    def owned_by(self, user):
+    def owned_by(self, user: User | AnonymousUser | None) -> Self:
         """Photos ``user`` may mutate: their own, and nothing else."""
         if user is None or not getattr(user, "is_authenticated", False):
             return self.none()
         return self.filter(owner=user)
 
-    def visible_to(self, user):
+    def visible_to(self, user: User | AnonymousUser | None) -> Self:
         """Photos ``user`` may read: their own, shared directly to them, public.
 
         Album shares are resolved by the media views, not here.
@@ -38,7 +49,7 @@ class PhotoQuerySet(models.QuerySet):
 HEAVY_PHOTO_COLUMNS = ("clip_embeddings", "exif_json", "geolocation_json")
 
 
-def visible_photo_q(prefix=""):
+def visible_photo_q(prefix: str = "") -> Q:
     """The photos ``Photo.visible`` keeps, as a ``Q``.
 
     ``prefix`` reaches them through a relation, e.g. ``"photos__"`` for an
@@ -52,8 +63,11 @@ def visible_photo_q(prefix=""):
     )
 
 
-class VisiblePhotoManager(models.Manager.from_queryset(PhotoQuerySet)):
-    def get_queryset(self):
+_PhotoManagerBase = models.Manager.from_queryset(PhotoQuerySet)
+
+
+class VisiblePhotoManager(_PhotoManagerBase["Photo"]):
+    def get_queryset(self) -> QuerySet[Photo]:
         return super().get_queryset().filter(visible_photo_q())
 
 
@@ -134,7 +148,7 @@ class Photo(models.Model):
     # Organizational photo stacks (RAW+JPEG pairs, bursts, brackets, live photos, manual)
     # A photo can belong to multiple stacks of different types simultaneously
     stacks = models.ManyToManyField(
-        "PhotoStack",
+        PhotoStack,
         blank=True,
         related_name="photos",
     )
@@ -142,7 +156,7 @@ class Photo(models.Model):
     # Duplicate groups (exact copies, visual duplicates)
     # Separate from stacks because duplicates are about cleanup, not organization
     duplicates = models.ManyToManyField(
-        "Duplicate",
+        Duplicate,
         blank=True,
         related_name="photos",
     )
@@ -181,7 +195,7 @@ class Photo(models.Model):
             ),
         ]
 
-    def get_clip_embeddings(self):
+    def get_clip_embeddings(self) -> list[float] | None:
         """Get clip embeddings as a list, regardless of storage format"""
         if not self.clip_embeddings:
             return None
@@ -197,31 +211,40 @@ class Photo(models.Model):
 
         return self.clip_embeddings
 
-    def set_clip_embeddings(self, embeddings):
+    def set_clip_embeddings(self, embeddings: list[float] | None) -> None:
         """Set clip embeddings, automatically handling storage format"""
         self.clip_embeddings = embeddings if embeddings else None
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         # The row as loaded from the database, which save() diffs against to
         # find the fields to write to disk. Per instance: from_db() fills it,
         # and an instance built in memory has nothing to diff against.
-        self._loaded_values = {}
+        self._loaded_values: dict[str, object] = {}
 
     @classmethod
-    def from_db(cls, db, field_names, values):
+    def from_db(
+        cls,
+        db: str | None,
+        field_names: Collection[str],
+        values: Collection[object],
+        *,
+        fetch_mode: FetchMode | None = None,
+    ) -> Self:
+        # fetch_mode exists only in the Django the stubs describe; the runtime
+        # Django (5.2) takes no such argument, so it is not forwarded.
         instance = super().from_db(db, field_names, values)
         instance._loaded_values = dict(zip(field_names, values))
         return instance
 
     def save(
         self,
-        force_insert=False,
-        force_update=False,
-        using=None,
-        update_fields=None,
-        save_metadata=True,
-    ):
+        force_insert: bool | tuple[ModelBase, ...] = False,
+        force_update: bool = False,
+        using: str | None = None,
+        update_fields: Iterable[str] | None = None,
+        save_metadata: bool = True,
+    ) -> None:
         modified_fields = [
             field_name
             for field_name, value in self._loaded_values.items()
@@ -233,7 +256,7 @@ class Photo(models.Model):
                 self._save_metadata(
                     modified_fields, mode == User.SaveMetadata.SIDECAR_FILE
                 )
-        return super().save(
+        super().save(
             force_insert=force_insert,
             force_update=force_update,
             using=using,
@@ -241,8 +264,11 @@ class Photo(models.Model):
         )
 
     def _save_metadata(
-        self, modified_fields=None, use_sidecar=True, metadata_types=None
-    ):
+        self,
+        modified_fields: list[str] | None = None,
+        use_sidecar: bool = True,
+        metadata_types: list[str] | None = None,
+    ) -> None:
         """Write metadata tags to the photo's file or sidecar.
 
         Kept for its many callers; see
@@ -255,7 +281,7 @@ class Photo(models.Model):
             metadata_types=metadata_types,
         )
 
-    def manual_delete(self):
+    def manual_delete(self) -> None:
         """Delete the files only this photo uses and mark it removed.
 
         Kept for its many callers; see ``api.photo_files.remove_photo``.
@@ -307,7 +333,7 @@ class Photo(models.Model):
 
         write_orientation_to_disk(self, angle, flip_horizontal)
 
-    def __str__(self):
+    def __str__(self) -> str:
         main_file_path = (
             self.main_file.path if self.main_file is not None else "No main file"
         )

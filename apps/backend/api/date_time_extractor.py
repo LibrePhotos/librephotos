@@ -1,10 +1,14 @@
+from __future__ import annotations
+
 import json
 import logging
 import math
 import os
 import pathlib
 import re
-from datetime import datetime
+from collections.abc import Callable, Sequence
+from datetime import datetime, tzinfo
+from typing import Any
 
 import pytz
 
@@ -13,7 +17,7 @@ from api.metadata.tags import Tags
 logger = logging.getLogger(__name__)
 
 
-def _regexp_group_range(a, b):
+def _regexp_group_range(a: int, b: int) -> str:
     return "(" + "|".join(f"{i:02}" for i in range(a, b)) + ")"
 
 
@@ -47,7 +51,7 @@ REGEXP_NO_TZ = re.compile(
 REGEXP_WHATSAPP = re.compile(r"^(?:IMG|VID)[-_](\d{4})(\d{2})(\d{2})(?:[-_]WA(\d+))?")
 REGEXP_WHATSAPP_GROUP_MAPPING = ["year", "month", "day", "microsecond"]
 
-PREDEFINED_REGEXPS = {
+PREDEFINED_REGEXPS: dict[str, tuple[re.Pattern[str], list[str] | None]] = {
     "default": (REGEXP_NO_TZ, None),
     "whatsapp": (REGEXP_WHATSAPP, REGEXP_WHATSAPP_GROUP_MAPPING),
 }
@@ -63,7 +67,29 @@ REGEXP_GROUP_MAPPINGS = {
 }
 
 
-def _extract_no_tz_datetime_from_str(x, regexp=REGEXP_NO_TZ, group_mapping=None):
+def _datetime_from_parts(parts: list[int | None]) -> datetime:
+    """datetime() of the parsed parts, year first; the time parts default to zero.
+
+    A user's custom regexp can yield fewer than three or more than seven parts,
+    or leave the year, month or day unmatched. That is raised as a ValueError,
+    like an out-of-range part, so the rule counts as not matching instead of
+    aborting the photo's scan.
+    """
+    if not 3 <= len(parts) <= 7:
+        raise ValueError(f"datetime takes 3 to 7 arguments: {parts}")
+    year, month, day = parts[0], parts[1], parts[2]
+    if year is None or month is None or day is None:
+        raise ValueError(f"datetime arguments are missing: {parts}")
+    time_parts = [0 if part is None else part for part in parts[3:]] + [0, 0, 0, 0]
+    hour, minute, second, microsecond = time_parts[:4]
+    return datetime(year, month, day, hour, minute, second, microsecond)
+
+
+def _extract_no_tz_datetime_from_str(
+    x: object,
+    regexp: str | re.Pattern[str] = REGEXP_NO_TZ,
+    group_mapping: list[str] | None = None,
+) -> datetime | None:
     # exiftool can hand back non-string tag values (e.g. a numeric Rating or
     # ISO), so coerce before matching - otherwise re.search raises TypeError,
     # which is not the ValueError handled below.
@@ -71,8 +97,9 @@ def _extract_no_tz_datetime_from_str(x, regexp=REGEXP_NO_TZ, group_mapping=None)
     if not match:
         return None
     g = match.groups()
+    datetime_args: list[int | None] | tuple[str | None, ...]
     if group_mapping is None:
-        datetime_args = list(map(int, g))
+        datetime_args = g
     else:
         if len(g) > len(group_mapping):
             raise ValueError(
@@ -98,7 +125,9 @@ def _extract_no_tz_datetime_from_str(x, regexp=REGEXP_NO_TZ, group_mapping=None)
                 datetime_args[ind] = int(value)
 
     try:
-        parsed_datetime = datetime(*datetime_args)
+        parsed_datetime = _datetime_from_parts(
+            [None if part is None else int(part) for part in datetime_args]
+        )
         delta = parsed_datetime - datetime.now()
         if delta.days > 30:
             logger.error(
@@ -226,33 +255,35 @@ class TimeExtractionRule:
             }
     """
 
-    def __init__(self, params):
+    def __init__(self, params: dict[str, Any]) -> None:
         self.rule_type = params["rule_type"]
         self.params = params
 
-    def get_required_exif_tags(self):
+    def get_required_exif_tags(self) -> set[str]:
         condition_tag, pattern = self._get_condition_exif()
-        res = set()
+        res: set[str] = set()
         if condition_tag is not None:
             res.add(condition_tag)
         if self.rule_type == RuleTypes.EXIF:
             res.add(self.params["exif_tag"])
         return res
 
-    def _get_no_tz_dt_from_tag(self, tag_name, exif_tags):
+    def _get_no_tz_dt_from_tag(
+        self, tag_name: str, exif_tags: dict[str, object]
+    ) -> datetime | None:
         tag_val = exif_tags.get(tag_name)
         if not tag_val:
             return None
         dt = _extract_no_tz_datetime_from_str(tag_val)
         return dt
 
-    def _check_condition_path(self, path):
+    def _check_condition_path(self, path: str) -> bool:
         if "condition_path" in self.params:
             return re.search(self.params["condition_path"], path) is not None
         else:
             return True
 
-    def _check_condition_filename(self, path):
+    def _check_condition_filename(self, path: str) -> bool:
         if "condition_filename" in self.params:
             return (
                 re.search(self.params["condition_filename"], pathlib.Path(path).name)
@@ -261,7 +292,7 @@ class TimeExtractionRule:
         else:
             return True
 
-    def _get_condition_exif(self):
+    def _get_condition_exif(self) -> tuple[str | None, str | None]:
         val = self.params.get("condition_exif")
         if val is None:
             return None, None
@@ -273,9 +304,9 @@ class TimeExtractionRule:
         tag, pattern = tag_and_pattern
         return tag, pattern
 
-    def _check_condition_exif(self, exif_tags):
+    def _check_condition_exif(self, exif_tags: dict[str, object]) -> bool:
         tag, pattern = self._get_condition_exif()
-        if tag:
+        if tag and pattern is not None:
             tag_value = exif_tags.get(tag)
             if not tag_value:
                 return False
@@ -284,7 +315,13 @@ class TimeExtractionRule:
         else:
             return True
 
-    def _check_conditions(self, path, exif_tags, gps_lat, gps_lon):
+    def _check_conditions(
+        self,
+        path: str,
+        exif_tags: dict[str, object],
+        gps_lat: float | None,
+        gps_lon: float | None,
+    ) -> bool:
         return (
             self._check_condition_exif(exif_tags)
             and self._check_condition_path(path)
@@ -292,8 +329,14 @@ class TimeExtractionRule:
         )
 
     def apply(
-        self, path, exif_tags, gps_lat, gps_lon, user_default_tz, user_defined_timestamp
-    ):
+        self,
+        path: str,
+        exif_tags: dict[str, object],
+        gps_lat: float | None,
+        gps_lon: float | None,
+        user_default_tz: str,
+        user_defined_timestamp: datetime | None,
+    ) -> datetime | None:
         if not self._check_conditions(path, exif_tags, gps_lat, gps_lon):
             return None
         if self.rule_type == RuleTypes.EXIF:
@@ -307,7 +350,13 @@ class TimeExtractionRule:
         else:
             raise ValueError(f"Unknown rule type {self.rule_type}")
 
-    def _get_tz(self, description, gps_lat, gps_lon, user_default_tz):
+    def _get_tz(
+        self,
+        description: str,
+        gps_lat: float | None,
+        gps_lon: float | None,
+        user_default_tz: str,
+    ) -> tuple[bool, tzinfo | None]:
         """None is a valid timezone returned here (meaning that we want to use server local time).
         This is why this function returns a tuple with the first element specifying success of
         determining the timezone, and the second element - the timezone itself.
@@ -324,7 +373,13 @@ class TimeExtractionRule:
             return (True, pytz.timezone(description[5:]))
         raise ValueError(f"Unknown tz description {description}")
 
-    def _transform_tz(self, dt, gps_lat, gps_lon, user_default_tz):
+    def _transform_tz(
+        self,
+        dt: datetime | None,
+        gps_lat: float | None,
+        gps_lon: float | None,
+        user_default_tz: str,
+    ) -> datetime | None:
         if not dt:
             return None
         if self.params.get("transform_tz"):
@@ -345,11 +400,23 @@ class TimeExtractionRule:
             )
         return dt.replace(tzinfo=pytz.utc)
 
-    def _apply_exif(self, exif_tags, gps_lat, gps_lon, user_default_tz):
+    def _apply_exif(
+        self,
+        exif_tags: dict[str, object],
+        gps_lat: float | None,
+        gps_lon: float | None,
+        user_default_tz: str,
+    ) -> datetime | None:
         dt = self._get_no_tz_dt_from_tag(self.params["exif_tag"], exif_tags)
         return self._transform_tz(dt, gps_lat, gps_lon, user_default_tz)
 
-    def _apply_path(self, path, gps_lat, gps_lon, user_default_tz):
+    def _apply_path(
+        self,
+        path: str,
+        gps_lat: float | None,
+        gps_lon: float | None,
+        user_default_tz: str,
+    ) -> datetime | None:
         path_part = self.params.get("path_part")
         if path_part is None or path_part == "filename":
             source = pathlib.Path(path).name
@@ -358,7 +425,7 @@ class TimeExtractionRule:
         else:
             raise ValueError(f"Unknown path_part {path_part}")
 
-        group_mapping = None
+        group_mapping: list[str] | None = None
         regexp = self.params.get("custom_regexp")
         if not regexp:
             predefined_regexp_type = self.params.get("predefined_regexp", "default")
@@ -370,7 +437,13 @@ class TimeExtractionRule:
         dt = _extract_no_tz_datetime_from_str(source, regexp, group_mapping)
         return self._transform_tz(dt, gps_lat, gps_lon, user_default_tz)
 
-    def _apply_filesystem(self, path, gps_lat, gps_lon, user_default_tz):
+    def _apply_filesystem(
+        self,
+        path: str,
+        gps_lat: float | None,
+        gps_lon: float | None,
+        user_default_tz: str,
+    ) -> datetime | None:
         file_property = self.params.get("file_property")
         if file_property == "mtime":
             dt = datetime.fromtimestamp(os.path.getmtime(path), pytz.utc)
@@ -381,8 +454,8 @@ class TimeExtractionRule:
         return self._transform_tz(dt, gps_lat, gps_lon, user_default_tz)
 
 
-def _get_gps_tz(lat, lon):
-    if not _check_gps_ok(lat, lon):
+def _get_gps_tz(lat: float | None, lon: float | None) -> tuple[bool, tzinfo | None]:
+    if lat is None or lon is None or not _check_gps_ok(lat, lon):
         return (False, None)
     from timezonefinder import TimezoneFinder
 
@@ -390,7 +463,7 @@ def _get_gps_tz(lat, lon):
     return (True, pytz.timezone(tz_name)) if tz_name else (False, None)
 
 
-def _check_gps_ok(lat, lon):
+def _check_gps_ok(lat: float | None, lon: float | None) -> bool:
     return (
         lat is not None
         and lon is not None
@@ -402,7 +475,7 @@ def _check_gps_ok(lat, lon):
 
 ALL_TIME_ZONES = pytz.all_timezones
 
-DEFAULT_RULES_PARAMS = [
+DEFAULT_RULES_PARAMS: list[dict[str, Any]] = [
     {
         "id": 14,
         "name": "Timestamp set by user",
@@ -466,7 +539,7 @@ DEFAULT_RULES_PARAMS = [
     },
 ]
 
-OTHER_RULES_PARAMS = [
+OTHER_RULES_PARAMS: list[dict[str, Any]] = [
     {
         "id": 6,
         "name": "Video creation datetime in UTC timezone (can't find out actual timezone)",
@@ -521,12 +594,12 @@ OTHER_RULES_PARAMS = [
 ]
 
 
-def set_as_default_rule(rule):
+def set_as_default_rule(rule: dict[str, Any]) -> dict[str, Any]:
     rule["is_default"] = True
     return rule
 
 
-def set_as_other_rule(rule):
+def set_as_other_rule(rule: dict[str, Any]) -> dict[str, Any]:
     rule["is_default"] = False
     return rule
 
@@ -536,7 +609,7 @@ PREDEFINED_RULES_PARAMS = list(map(set_as_default_rule, DEFAULT_RULES_PARAMS)) +
 )
 
 
-def _as_json(configs):
+def _as_json(configs: object) -> str:
     return json.dumps(configs, default=lambda x: x.__dict__)
 
 
@@ -545,19 +618,25 @@ PREDEFINED_RULES_JSON = _as_json(PREDEFINED_RULES_PARAMS)
 ALL_TIME_ZONES_JSON = _as_json(ALL_TIME_ZONES)
 
 
-def as_rules(configs):
+def as_rules(configs: list[dict[str, Any]]) -> list[TimeExtractionRule]:
     return list(map(TimeExtractionRule, configs))
 
 
 def extract_local_date_time(
-    path, rules, exif_getter, gps_lat, gps_lon, user_default_tz, user_defined_timestamp
-):
-    required_tags = set()
+    path: str,
+    rules: list[TimeExtractionRule],
+    exif_getter: Callable[[list[str]], Sequence[object]],
+    gps_lat: float | None,
+    gps_lon: float | None,
+    user_default_tz: str,
+    user_defined_timestamp: datetime | None,
+) -> datetime | None:
+    required_tags: set[str] = set()
     for rule in rules:
         required_tags.update(rule.get_required_exif_tags())
-    required_tags = list(required_tags)
-    exif_values = exif_getter(required_tags)
-    exif_tags = {k: v for k, v in zip(required_tags, exif_values)}
+    tag_names = list(required_tags)
+    exif_values = exif_getter(tag_names)
+    exif_tags = {k: v for k, v in zip(tag_names, exif_values)}
     for rule in rules:
         res = rule.apply(
             path, exif_tags, gps_lat, gps_lon, user_default_tz, user_defined_timestamp

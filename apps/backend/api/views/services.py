@@ -1,6 +1,7 @@
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAdminUser
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from api.services import (
@@ -17,10 +18,10 @@ from api.services import (
 class ServiceViewSet(viewsets.ViewSet):
     permission_classes = [IsAdminUser]
 
-    def list(self, request):
+    def list(self, request: Request) -> Response:
         return Response({"services": SERVICES})
 
-    def retrieve(self, request, pk=None):
+    def retrieve(self, request: Request, pk: str | None = None) -> Response:
         service_name = pk
 
         if service_name not in SERVICES:
@@ -43,7 +44,7 @@ class ServiceViewSet(viewsets.ViewSet):
         )
 
     @action(detail=True, methods=["post"])
-    def start(self, request, pk=None):
+    def start(self, request: Request, pk: str | None = None) -> Response:
         service_name = pk
 
         if service_name not in SERVICES:
@@ -77,7 +78,7 @@ class ServiceViewSet(viewsets.ViewSet):
             )
 
     @action(detail=True, methods=["post"])
-    def stop(self, request, pk=None):
+    def stop(self, request: Request, pk: str | None = None) -> Response:
         service_name = pk
 
         if service_name not in SERVICES:

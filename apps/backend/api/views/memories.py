@@ -18,16 +18,20 @@ lookup covers a small window of days around the anniversary, and falls back to
 """
 
 import datetime
+import uuid
+from typing import TypedDict
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from django.db.models import Count, Min, Q
+from django.db.models import Count, Min, Q, QuerySet
 from django.utils import timezone
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from api.models import AlbumDate, Photo
+from api.models import AlbumDate, Photo, User
+from api.request_user import request_user
 from api.serializers.photos import PhotoSummarySerializer
 from api.views.albums import _with_photo_summary_relations
 from api.views.photo_filters import build_photo_queryset
@@ -49,24 +53,39 @@ MAX_ITEMS_PER_MEMORY = 200
 TYPE_YEARS_AGO = "years_ago"
 TYPE_MONTH_YEARS_AGO = "month_years_ago"
 
+# (years_ago, anchor, start, end): one candidate window of days for a memory.
+Window = tuple[int, datetime.date, datetime.date, datetime.date]
 
-def parse_date(value):
+
+class _PlannedMemory(TypedDict):
+    years_ago: int
+    anchor: datetime.date
+    days: list[datetime.date]
+    count: int
+    photo_ids: list[uuid.UUID]
+
+
+def parse_date(value: str | None) -> datetime.date | None:
     """Return ``value`` (an ISO ``YYYY-MM-DD`` string) as a date, else None."""
+    if value is None:
+        return None
     try:
         return datetime.date.fromisoformat(value)
     except (TypeError, ValueError):
         return None
 
 
-def parse_flag(value, default):
+def parse_flag(value: str | None, default: bool) -> bool:
     """Read a query-parameter flag that has a meaningful default of its own."""
     if value is None:
         return default
     return value.strip().lower() not in ("false", "0", "f", "no", "off")
 
 
-def clamp_int(value, default, minimum, maximum):
+def clamp_int(value: str | None, default: int, minimum: int, maximum: int) -> int:
     """Return ``value`` as an int inside [minimum, maximum], else ``default``."""
+    if value is None:
+        return default
     try:
         number = int(value)
     except (TypeError, ValueError):
@@ -74,13 +93,14 @@ def clamp_int(value, default, minimum, maximum):
     return max(minimum, min(maximum, number))
 
 
-def today_for_user(user):
+def today_for_user(user: User) -> datetime.date:
     """Today as the user's own wall clock sees it.
 
     ``AlbumDate.date`` is a local calendar day, so the anniversary has to be
     taken from the user's calendar too -- otherwise memories flip over at the
     server's midnight instead of theirs.
     """
+    tzinfo: datetime.tzinfo
     try:
         tzinfo = ZoneInfo(user.default_timezone or "UTC")
     except (ZoneInfoNotFoundError, ValueError):
@@ -88,7 +108,7 @@ def today_for_user(user):
     return timezone.now().astimezone(tzinfo).date()
 
 
-def anniversary(year, month, day):
+def anniversary(year: int, month: int, day: int) -> datetime.date:
     """The same month/day in ``year``, pulling 29 February back to the 28th."""
     try:
         return datetime.date(year, month, day)
@@ -96,7 +116,9 @@ def anniversary(year, month, day):
         return datetime.date(year, month, day - 1)
 
 
-def day_windows(reference, first_year, window_days):
+def day_windows(
+    reference: datetime.date, first_year: int, window_days: int
+) -> list[Window]:
     """One window of days per year before ``reference``, nearest year first.
 
     Each entry is ``(years_ago, anniversary, start, end)``. The current year is
@@ -118,7 +140,7 @@ def day_windows(reference, first_year, window_days):
     return windows
 
 
-def month_windows(reference, first_year):
+def month_windows(reference: datetime.date, first_year: int) -> list[Window]:
     """One window per year covering the whole of ``reference``'s month.
 
     The fallback for libraries too sparse to have anything on the anniversary
@@ -138,7 +160,7 @@ def month_windows(reference, first_year):
     return windows
 
 
-def album_date_place(location):
+def album_date_place(location: object) -> str:
     """The place name stored on an ``AlbumDate``, or "" when there is none.
 
     ``AlbumDate.location`` is written by the geolocation job and is only ever
@@ -147,13 +169,15 @@ def album_date_place(location):
     """
     if not isinstance(location, dict):
         return ""
-    places = location.get("places")
-    if isinstance(places, list) and places and isinstance(places[0], str):
-        return places[0]
+    places: object = location.get("places")
+    if isinstance(places, list) and places:
+        first: object = places[0]
+        if isinstance(first, str):
+            return first
     return ""
 
 
-def pick_cover(photos):
+def pick_cover(photos: list[Photo]) -> Photo:
     """The photo that best represents a memory.
 
     Favourites (which are ratings, see ``User.favorite_min_rating``) win, stills
@@ -163,7 +187,7 @@ def pick_cover(photos):
     return min(photos, key=lambda photo: (photo.video, -(photo.rating or 0)))
 
 
-def memory_candidates(user):
+def memory_candidates(user: User) -> QuerySet[Photo]:
     """Photos eligible to appear in a memory.
 
     ``build_photo_queryset`` gives the same set the timeline shows -- the user's
@@ -172,9 +196,10 @@ def memory_candidates(user):
     documents are dropped on top of that: they are photos the user took, but a
     screenshot from four years ago is not a memory of anything.
     """
-    return build_photo_queryset(
+    candidates: QuerySet[Photo] = build_photo_queryset(
         user, {"hide_screenshots": True, "hide_documents": True}
     ).filter(removed=False)
+    return candidates
 
 
 class MemoriesView(APIView):
@@ -220,8 +245,8 @@ class MemoriesView(APIView):
             "``type``, ``years_ago`` and dates instead of a sentence."
         ),
     )
-    def get(self, request, format=None):
-        user = request.user
+    def get(self, request: Request, format: str | None = None) -> Response:
+        user = request_user(request)
         reference = parse_date(request.query_params.get("date")) or today_for_user(user)
         window_days = clamp_int(
             request.query_params.get("window"), DEFAULT_WINDOW_DAYS, 0, MAX_WINDOW_DAYS
@@ -238,7 +263,7 @@ class MemoriesView(APIView):
             Min("date")
         )["date__min"]
 
-        results = []
+        results: list[dict[str, object]] = []
         if first_date is not None:
             results = self.memories(
                 user,
@@ -262,7 +287,9 @@ class MemoriesView(APIView):
             }
         )
 
-    def memories(self, user, windows, size, memory_type):
+    def memories(
+        self, user: User, windows: list[Window], size: int, memory_type: str
+    ) -> list[dict[str, object]]:
         """Build one memory per window that has any photos in it."""
         if not windows:
             return []
@@ -281,10 +308,11 @@ class MemoriesView(APIView):
         if not day_rows:
             return []
 
-        places = {}
+        places: dict[datetime.date, str] = {}
         for day, location in day_rows:
             place = album_date_place(location)
-            if place:
+            # The date__range filter never returns a NULL date; the check narrows.
+            if place and day is not None:
                 places.setdefault(day, place)
 
         candidates = memory_candidates(user)
@@ -298,7 +326,7 @@ class MemoriesView(APIView):
             .annotate(total=Count("id", distinct=True))
         )
 
-        planned = []
+        planned: list[_PlannedMemory] = []
         for years_ago, anchor, start, end in windows:
             days_in_window = sorted(
                 day for day, total in counts.items() if start <= day <= end and total
@@ -338,7 +366,7 @@ class MemoriesView(APIView):
             )
         }
 
-        results = []
+        results: list[dict[str, object]] = []
         for memory in planned:
             items = [
                 photos[photo_id]

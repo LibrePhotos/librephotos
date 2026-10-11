@@ -4,12 +4,15 @@ import tempfile
 
 import faiss
 import numpy as np
+import numpy.typing as npt
 from utils import logger
 
 embedding_size = 512
 
 
-def _reshaped_embeddings(embeddings_array, user_id):
+def _reshaped_embeddings(
+    embeddings_array: npt.NDArray[np.float32], user_id: int
+) -> npt.NDArray[np.float32] | None:
     """Return the array shaped as (n_vectors, embedding_size), or None if invalid."""
     if embeddings_array.size == 0:
         logger.warning(f"Empty embeddings array for user {user_id}")
@@ -45,18 +48,20 @@ class RetrievalIndex:
     ``os.replace``, then swaps it in memory.
     """
 
-    def __init__(self, store_dir=None):
-        self.indices = {}
-        self.image_hashes = {}
+    def __init__(self, store_dir: str | None = None) -> None:
+        self.indices: dict[int, faiss.Index] = {}
+        self.image_hashes: dict[int, list[str]] = {}
         self.store_dir = store_dir
-        self._staging = {}
-        self._warned_missing = set()
+        self._staging: dict[int, tuple[faiss.Index, list[str]]] = {}
+        self._warned_missing: set[int] = set()
 
     # ---------------------------------------------------------- persistence
-    def _path(self, user_id):
+    def _path(self, user_id: int) -> str:
+        # Only reached with a store_dir: every caller checks for None first.
+        assert self.store_dir is not None
         return os.path.join(self.store_dir, f"{int(user_id)}.npz")
 
-    def _save(self, user_id, index, image_hashes):
+    def _save(self, user_id: int, index: faiss.Index, image_hashes: list[str]) -> None:
         if self.store_dir is None:
             return
         os.makedirs(self.store_dir, exist_ok=True)
@@ -80,7 +85,7 @@ class RetrievalIndex:
                 pass
             raise
 
-    def _load(self, user_id):
+    def _load(self, user_id: int) -> bool:
         if self.store_dir is None:
             return False
         path = self._path(user_id)
@@ -104,12 +109,12 @@ class RetrievalIndex:
         logger.info(f"loaded the similarity index of user {user_id} ({index.ntotal})")
         return True
 
-    def _live(self, user_id):
+    def _live(self, user_id: int) -> faiss.Index | None:
         if user_id in self.indices or self._load(user_id):
             return self.indices[user_id]
         return None
 
-    def remove_user(self, user_id):
+    def remove_user(self, user_id: int) -> None:
         self.indices.pop(user_id, None)
         self.image_hashes.pop(user_id, None)
         self._staging.pop(user_id, None)
@@ -120,20 +125,22 @@ class RetrievalIndex:
                 pass
 
     # -------------------------------------------------------------- rebuild
-    def rebuilding(self, user_id):
+    def rebuilding(self, user_id: int) -> bool:
         return user_id in self._staging
 
-    def staged_size(self, user_id):
+    def staged_size(self, user_id: int) -> int:
         return self._staging[user_id][0].ntotal
 
-    def abandon_rebuild(self, user_id):
+    def abandon_rebuild(self, user_id: int) -> None:
         self._staging.pop(user_id, None)
 
-    def begin_rebuild(self, user_id):
+    def begin_rebuild(self, user_id: int) -> None:
         logger.info(f"rebuilding the similarity index of user {user_id}")
         self._staging[user_id] = (faiss.IndexFlatIP(embedding_size), [])
 
-    def add_to_rebuild(self, user_id, image_hashes, image_embeddings):
+    def add_to_rebuild(
+        self, user_id: int, image_hashes: list[str], image_embeddings: list[list[float]]
+    ) -> None:
         if user_id not in self._staging:
             raise IndexBuildError(f"no rebuild in progress for user {user_id}")
         if not image_embeddings:
@@ -152,7 +159,7 @@ class RetrievalIndex:
         index.add(embeddings_array)
         hashes.extend(image_hashes)
 
-    def commit_rebuild(self, user_id):
+    def commit_rebuild(self, user_id: int) -> int:
         if user_id not in self._staging:
             raise IndexBuildError(f"no rebuild in progress for user {user_id}")
         index, image_hashes = self._staging.pop(user_id)
@@ -164,7 +171,9 @@ class RetrievalIndex:
         return index.ntotal
 
     # ---------------------------------------------------------- incremental
-    def build_index_for_user(self, user_id, image_hashes, image_embeddings):
+    def build_index_for_user(
+        self, user_id: int, image_hashes: list[str], image_embeddings: list[list[float]]
+    ) -> None:
         logger.info(
             f"building index for user {user_id} - got {len(image_hashes)} photos to process"
         )
@@ -199,7 +208,12 @@ class RetrievalIndex:
             % (user_id, elapsed)
         )
 
-    def _add_embeddings(self, user_id, image_hashes, embeddings_array):
+    def _add_embeddings(
+        self,
+        user_id: int,
+        image_hashes: list[str],
+        embeddings_array: npt.NDArray[np.float32],
+    ) -> bool:
         try:
             self.indices[user_id].add(embeddings_array)
             self.image_hashes[user_id].extend(image_hashes)
@@ -211,7 +225,13 @@ class RetrievalIndex:
         return True
 
     # --------------------------------------------------------------- search
-    def search_similar(self, user_id, in_embedding, n=100, thres=27.0):
+    def search_similar(
+        self,
+        user_id: int,
+        in_embedding: list[float],
+        n: int = 100,
+        thres: float = 27.0,
+    ) -> list[str]:
         """Image hashes of the user's photos closest to the embedding.
 
         A user without an index (never built, or built before the index was
@@ -229,7 +249,7 @@ class RetrievalIndex:
 
         start = datetime.datetime.now()
         dist, res_indices = index.search(np.array([in_embedding], dtype=np.float32), n)
-        res = []
+        res: list[str] = []
         for distance, idx in sorted(zip(dist[0], res_indices[0]), reverse=True):
             # FAISS pads a result shorter than n with -1.
             if idx >= 0 and distance >= thres:

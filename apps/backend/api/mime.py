@@ -3,7 +3,7 @@ import mimetypes
 import filetype
 
 
-def _is_mpeg_ts(path):
+def _is_mpeg_ts(path: str) -> bool:
     """filetype has no MPEG transport stream matcher; AVCHD camcorders (.MTS) need one.
 
     Plain TS packets are 188 bytes with the 0x47 sync byte first; AVCHD/Blu-ray
@@ -20,7 +20,7 @@ def _is_mpeg_ts(path):
     )
 
 
-def sniffed_mime_type(path):
+def sniffed_mime_type(path: str) -> str | None:
     """MIME type from the file's magic bytes, or None when nothing recognises them."""
     try:
         sniffed = filetype.guess_mime(path)
@@ -31,7 +31,7 @@ def sniffed_mime_type(path):
     return sniffed
 
 
-def mime_type(path):
+def mime_type(path: str) -> str:
     """MIME type from the file's magic bytes, else its extension, else octet-stream."""
     return (
         sniffed_mime_type(path)

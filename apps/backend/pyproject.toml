@@ -30,6 +30,7 @@ extend-select = [
   "LOG",     # flake8-logging
   "PLE1205", # too many arguments for the logging format string
   "PLE1206", # too few arguments for the logging format string
+  "ANN401",  # no explicit `Any` in annotations: use object, a Protocol or a TypedDict
 ]
 ignore = [
   "E501",
@@ -40,7 +41,57 @@ ignore = [
   "G004",
 ]
 
+[tool.ruff.lint.flake8-annotations]
+# `*args: Any, **kwargs: Any` on pass-through overrides (DRF views, Django
+# managers) is the one place where `Any` is the honest type.
+allow-star-arg-any = true
+
+[tool.ruff.lint.per-file-ignores]
+# Tests are not type-checked yet (see [tool.mypy] exclude).
+"**/tests/**" = ["ANN401"]
+"**/test/**" = ["ANN401"]
+"**/tests.py" = ["ANN401"]
+
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
 line-ending = "lf"
+
+[tool.mypy]
+# Run through scripts/typecheck.py, which compares the result with
+# mypy-baseline.txt. See docs/development/contribution/backend.
+python_version = "3.14"          # = the Python CI installs packages for: their stubs (numpy) use newer syntax
+platform = "linux"               # Windows dev boxes report exactly what CI reports
+plugins = ["mypy_django_plugin.main", "mypy_drf_plugin.main"]
+files = ["api", "librephotos", "service", "nextcloud", "chunked_upload", "image_similarity", "scripts/typecheck.py"]
+exclude = ['/migrations/', '/tests?/', '/tests\.py$']
+check_untyped_defs = true
+disallow_untyped_defs = true     # every function must be annotated
+disallow_incomplete_defs = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+enable_error_code = ["ignore-without-code", "truthy-bool", "redundant-expr"]
+
+[[tool.mypy.overrides]]          # untyped third-party packages and sidecar-local imports
+module = ["allauth.*", "bulk_update.*", "constance.*", "cpuinfo.*", "diskcache.*", "django_q.*",
+          "exiftool.*", "filetype.*", "geopy.*", "hdbscan.*", "insightface.*", "onnxruntime.*",
+          "owncloud.*", "pyclipper.*", "pystray.*", "pyvips.*", "sklearn.*", "tokenizers.*",
+          "lfm2_vl", "openclip.*", "ppocr.*", "retrieval_index", "utils"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]          # strict modules: this list only grows (scripts/typecheck.py enforces it)
+# Explicit flags instead of `strict = true`: inside an override, `strict` turns
+# the strict flags on for every module, not just the listed ones.
+module = ["api.color_palettes", "api.metadata.tags", "api.http_timeouts",
+          "api.views.pagination", "api.schemas.site_settings", "typecheck"]
+disallow_any_generics = true
+disallow_untyped_calls = true
+disallow_any_explicit = true
+disallow_any_unimported = true
+warn_return_any = true
+strict_equality = true
+no_implicit_reexport = true
+extra_checks = true
+
+[tool.django-stubs]
+django_settings_module = "librephotos.settings.test_sqlite"

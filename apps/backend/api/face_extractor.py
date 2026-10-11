@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import logging
+from typing import TYPE_CHECKING, Any
 
 import PIL
 
@@ -8,9 +11,18 @@ from api.metadata.tags import Tags
 from api.util import is_number
 from api.lazy_import import LazyModule
 
-np = LazyModule("numpy")
+if TYPE_CHECKING:
+    from api.models.user import User
+
+if TYPE_CHECKING:
+    import numpy as np
+else:
+    np = LazyModule("numpy")
 
 logger = logging.getLogger(__name__)
+
+# (top, right, bottom, left, person name or None, *optional encoding)
+FaceLocation = tuple[int, int, int, int, str | None, *tuple[object, ...]]
 
 
 ORIENTATION_TRANSFORMS = {
@@ -24,19 +36,24 @@ ORIENTATION_TRANSFORMS = {
 }
 
 
-def has_normalized_area(area, applied_to_dimensions):
-    return (area and area.get("Unit") == "normalized") or (
+def has_normalized_area(
+    area: dict[str, Any] | None, applied_to_dimensions: dict[str, Any] | None
+) -> bool:
+    return bool(area and area.get("Unit") == "normalized") or bool(
         applied_to_dimensions and applied_to_dimensions.get("Unit") == "pixel"
     )
 
 
-def to_face_box(area, orientation, image_width, image_height):
-    values = [area.get(key) for key in ("X", "Y", "W", "H")]
+def to_face_box(
+    area: dict[str, Any], orientation: str | None, image_width: int, image_height: int
+) -> tuple[int, int, int, int] | None:
+    # Values may be missing (None); the is_number check below rules that out.
+    values: list[Any] = [area.get(key) for key in ("X", "Y", "W", "H")]
     if not all(is_number(value) for value in values):
         return None
 
     x, y, w, h = (float(value) for value in values)
-    transform = ORIENTATION_TRANSFORMS.get(orientation)
+    transform = None if orientation is None else ORIENTATION_TRANSFORMS.get(orientation)
     if transform:
         x, y, w, h = transform(x, y, w, h)
 
@@ -50,7 +67,9 @@ def to_face_box(area, orientation, image_width, image_height):
     )
 
 
-def extract_from_exif(image_path, big_thumbnail_image_path):
+def extract_from_exif(
+    image_path: str, big_thumbnail_image_path: str
+) -> list[FaceLocation] | None:
     (region_info, orientation) = get_metadata(
         image_path,
         tags=[Tags.REGION_INFO, Tags.ORIENTATION],
@@ -58,10 +77,10 @@ def extract_from_exif(image_path, big_thumbnail_image_path):
         struct=True,
     )
     if not region_info:
-        return
+        return None
     logger.debug(f"Extracted region_info for {image_path}")
     logger.debug(f"region_info: {region_info}")
-    face_locations = []
+    face_locations: list[FaceLocation] = []
     for region in region_info["RegionList"]:
         if region.get("Type") != "Face":
             continue
@@ -87,8 +106,11 @@ def extract_from_exif(image_path, big_thumbnail_image_path):
     return face_locations
 
 
-def extract_from_face_service(image_path, big_thumbnail_path):
+def extract_from_face_service(
+    image_path: str, big_thumbnail_path: str
+) -> list[FaceLocation]:
     """Detected faces as (top, right, bottom, left, None, encoding)."""
+    faces: list[tuple[Any, Any]]
     try:
         faces = detect_faces(big_thumbnail_path)
     except Exception:
@@ -98,7 +120,9 @@ def extract_from_face_service(image_path, big_thumbnail_path):
     return [(*location, None, encoding) for location, encoding in faces]
 
 
-def extract(image_path, big_thumbnail_path, owner):
+def extract(
+    image_path: str, big_thumbnail_path: str, owner: User
+) -> list[FaceLocation]:
     exif = extract_from_exif(image_path, big_thumbnail_path)
     if not exif:
         return extract_from_face_service(image_path, big_thumbnail_path)

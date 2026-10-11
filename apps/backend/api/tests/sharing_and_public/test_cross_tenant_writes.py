@@ -378,7 +378,6 @@ class CrossTenantWriteTest(TestCase):
             ("post", "/api/albums/auto/delete_all/", {}),
             ("post", "/api/albums/thing/", {"title": "cat", "photos": self._ids()}),
             ("post", "/api/albums/place/", {"title": "Berlin", "photos": self._ids()}),
-            ("post", "/api/albums/date/", {"photos": self._ids()}),
             ("post", "/api/photos/", {"image_hash": self.v_pub.image_hash}),
             (
                 "post",

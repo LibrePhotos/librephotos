@@ -2,6 +2,9 @@ import logging
 import os
 import os.path
 import re
+from collections.abc import Sequence
+from types import ModuleType
+from typing import Protocol
 
 from django.db.models import Q
 
@@ -18,7 +21,7 @@ class LoggingNotConfiguredError(RuntimeError):
     """Raised when the rotating file handler is missing from the root logger."""
 
 
-def get_file_handler():
+def get_file_handler() -> logging.Handler | None:
     """Return the live rotating file handler installed by the LOGGING config.
 
     The handler is owned by the dictConfig in settings.LOGGING - this only looks
@@ -37,7 +40,7 @@ def get_file_handler():
 FILE_HANDLER = get_file_handler()
 
 
-def reconfigure_logging():
+def reconfigure_logging() -> None:
     """Apply the constance log rotation settings to the live file handler.
 
     Called once per process from ``ApiConfig.ready()``, which is as early as
@@ -70,11 +73,13 @@ def reconfigure_logging():
         # Constance is not readable yet; keep what the handler already has.
         return
 
-    handler.maxBytes = max_bytes
-    handler.backupCount = backup_count
+    # The handler is a ConcurrentRotatingFileHandler (concurrent_log_handler,
+    # untyped), which keeps its rotation limits as plain attributes.
+    setattr(handler, "maxBytes", max_bytes)
+    setattr(handler, "backupCount", backup_count)
 
 
-def is_valid_path(path, root_path):
+def is_valid_path(path: str, root_path: str) -> bool:
     """Return True when ``path`` is ``root_path`` itself or lies inside it.
 
     Both paths are made absolute and normalised first, so ``..`` segments
@@ -88,7 +93,7 @@ def is_valid_path(path, root_path):
     return _is_within(path, root_path, os.path)
 
 
-def _is_within(path, root_path, pathmod):
+def _is_within(path: str, root_path: str, pathmod: ModuleType) -> bool:
     # pathmod is os.path in production; tests pass ntpath/posixpath to pin the
     # Windows and POSIX behaviour on whichever OS runs the suite.
     abs_path = pathmod.normcase(pathmod.abspath(path))
@@ -106,7 +111,7 @@ def _is_within(path, root_path, pathmod):
 _WINDOWS_PATH = re.compile(r"^(?:[A-Za-z]:(?:[\\/]|$)|\\\\)")
 
 
-def folder_path_prefixes(folder_path):
+def folder_path_prefixes(folder_path: str) -> tuple[str, ...]:
     r"""Return the prefixes that match files stored inside ``folder_path``.
 
     A bare ``path__startswith=folder_path`` also matches a sibling whose name
@@ -129,7 +134,7 @@ def folder_path_prefixes(folder_path):
     return (stripped + "/",)
 
 
-def folder_path_q(lookup, folder_path):
+def folder_path_q(lookup: str, folder_path: str) -> Q:
     """``Q`` matching ``<lookup>__startswith`` any prefix of ``folder_path``."""
     query = Q()
     for prefix in folder_path_prefixes(folder_path):
@@ -137,7 +142,10 @@ def folder_path_q(lookup, folder_path):
     return query
 
 
-def is_number(s):
+def is_number(s: float | str | None) -> bool:
+    if s is None:
+        # float(None) raises TypeError, which is "not a number" below.
+        return False
     try:
         float(s)
         return True
@@ -145,7 +153,14 @@ def is_number(s):
         return False
 
 
-def convert_to_degrees(values):
+class _Ratio(Protocol):
+    """An EXIF rational, as exifread gives it: a numerator and a denominator."""
+
+    num: int
+    den: int
+
+
+def convert_to_degrees(values: Sequence[_Ratio]) -> float:
     """Helper function to convert the GPS coordinates stored in the EXIF to degrees in float format
     :param value:
     :type value: exifread.utils.Ratio
@@ -170,15 +185,15 @@ weekdays = {
 
 
 def calculate_iou(
-    box1_top,
-    box1_right,
-    box1_bottom,
-    box1_left,
-    box2_top,
-    box2_right,
-    box2_bottom,
-    box2_left,
-):
+    box1_top: float,
+    box1_right: float,
+    box1_bottom: float,
+    box1_left: float,
+    box2_top: float,
+    box2_right: float,
+    box2_bottom: float,
+    box2_left: float,
+) -> float:
     """Calculate Intersection over Union (IoU) of two bounding boxes.
 
     Each box is defined by (top, right, bottom, left) pixel coordinates,

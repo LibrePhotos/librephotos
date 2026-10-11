@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 import logging
 import os
 from functools import partial
+from typing import Any
 
 from django.conf import settings
 from django.db import models, transaction
@@ -15,31 +18,31 @@ logger = logging.getLogger(__name__)
 # api.thumbnails loads libvips and numpy; the models load with every process,
 # the API server included, which never renders. These forward on first use and
 # stay module attributes, so tests can patch them here.
-def create_animated_thumbnail(*args, **kwargs):
+def create_animated_thumbnail(*args: Any, **kwargs: Any) -> None:
     from api import thumbnails
 
-    return thumbnails.create_animated_thumbnail(*args, **kwargs)
+    thumbnails.create_animated_thumbnail(*args, **kwargs)
 
 
-def create_static_thumbnails(*args, **kwargs):
+def create_static_thumbnails(*args: Any, **kwargs: Any) -> None:
     from api import thumbnails
 
-    return thumbnails.create_static_thumbnails(*args, **kwargs)
+    thumbnails.create_static_thumbnails(*args, **kwargs)
 
 
-def create_thumbnail_for_video(*args, **kwargs):
+def create_thumbnail_for_video(*args: Any, **kwargs: Any) -> None:
     from api import thumbnails
 
-    return thumbnails.create_thumbnail_for_video(*args, **kwargs)
+    thumbnails.create_thumbnail_for_video(*args, **kwargs)
 
 
-def does_static_thumbnail_exist(*args, **kwargs):
+def does_static_thumbnail_exist(*args: Any, **kwargs: Any) -> bool:
     from api import thumbnails
 
     return thumbnails.does_static_thumbnail_exist(*args, **kwargs)
 
 
-def does_video_thumbnail_exist(*args, **kwargs):
+def does_video_thumbnail_exist(*args: Any, **kwargs: Any) -> bool:
     from api import thumbnails
 
     return thumbnails.does_video_thumbnail_exist(*args, **kwargs)
@@ -78,7 +81,7 @@ def delete_thumbnail_files(photo_hash: str) -> None:
                 logger.error(f"could not remove thumbnail {path}")
 
 
-def _put_back(set_aside):
+def _put_back(set_aside: list[tuple[str, str]]) -> None:
     """Return set-aside thumbnails to their places, over anything made since."""
     for path, previous in set_aside:
         try:
@@ -102,7 +105,7 @@ def _set_aside_thumbnail_files(photo_hash: str) -> list[tuple[str, str]]:
     to that job, which skips the ones probed since it listed them, but two
     Probe Videos jobs at once are not kept apart.
     """
-    set_aside = []
+    set_aside: list[tuple[str, str]] = []
     for path in thumbnail_file_paths(photo_hash):
         previous = path + SET_ASIDE_SUFFIX
         if os.path.exists(previous):
@@ -143,7 +146,13 @@ class Thumbnail(models.Model):
             ),
         ]
 
-    def _generate_thumbnail(self):
+    def _main_file_path(self) -> str:
+        """Path of the photo's main file, which every thumbnail is made from."""
+        main_file = self.photo.main_file
+        assert main_file is not None, "thumbnails are only made for a photo's main file"
+        return main_file.path
+
+    def _generate_thumbnail(self) -> None:
         try:
             # Use photo.image_hash for thumbnail paths for frontend compatibility
             photo_hash = self.photo.image_hash
@@ -156,14 +165,14 @@ class Thumbnail(models.Model):
                 ]
                 if missing:
                     create_static_thumbnails(
-                        input_path=self.photo.main_file.path,
+                        input_path=self._main_file_path(),
                         hash=photo_hash,
                         output_paths=missing,
                         local_orientation=local_orientation,
                     )
             elif not does_static_thumbnail_exist("thumbnails_big", photo_hash):
                 create_thumbnail_for_video(
-                    input_path=self.photo.main_file.path,
+                    input_path=self._main_file_path(),
                     output_path="thumbnails_big",
                     hash=photo_hash,
                     file_type=".webp",
@@ -174,7 +183,7 @@ class Thumbnail(models.Model):
                 "square_thumbnails", photo_hash
             ):
                 create_animated_thumbnail(
-                    input_path=self.photo.main_file.path,
+                    input_path=self._main_file_path(),
                     output_height=500,
                     output_path="square_thumbnails",
                     hash=photo_hash,
@@ -186,7 +195,7 @@ class Thumbnail(models.Model):
                 "square_thumbnails_small", photo_hash
             ):
                 create_animated_thumbnail(
-                    input_path=self.photo.main_file.path,
+                    input_path=self._main_file_path(),
                     output_height=250,
                     output_path="square_thumbnails_small",
                     hash=photo_hash,
@@ -208,7 +217,7 @@ class Thumbnail(models.Model):
             self.save()
         except Exception as e:
             logger.exception(
-                f"could not generate thumbnail for image {self.photo.main_file.path}"
+                f"could not generate thumbnail for image {self._main_file_path()}"
             )
             raise e
 
@@ -278,7 +287,7 @@ class Thumbnail(models.Model):
         self.photo.perceptual_hash = phash
         self.photo.save(save_metadata=False, update_fields=["perceptual_hash"])
 
-    def _calculate_aspect_ratio(self):
+    def _calculate_aspect_ratio(self) -> None:
         try:
             # Relies on big thumbnail for correct aspect ratio. The thumbnail is
             # a file we generated ourselves, so read its dimensions directly
@@ -306,7 +315,7 @@ class Thumbnail(models.Model):
                 f"could not calculate aspect ratio for image {self.thumbnail_big.path}"
             )
 
-    def _get_dominant_color(self, palette_size=16):
+    def _get_dominant_color(self, palette_size: int = 16) -> None:
         # Skip if it's already calculated
         if self.dominant_color:
             return
@@ -321,20 +330,29 @@ class Thumbnail(models.Model):
                 img.thumbnail((100, 100))
 
                 # Reduce colors (uses k-means internally)
-                paletted = img.convert("P", palette=Image.ADAPTIVE, colors=palette_size)
+                paletted = img.convert(
+                    "P", palette=Image.Palette.ADAPTIVE, colors=palette_size
+                )
 
-            # Find the color that occurs most often
+            # Find the color that occurs most often. A "P" image always has a
+            # palette and, with at most palette_size colours, its colour list.
             palette = paletted.getpalette()
-            color_counts = sorted(paletted.getcolors(), reverse=True)
+            colors = paletted.getcolors()
+            assert palette is not None and colors is not None
+            color_counts = sorted(colors, reverse=True)
             palette_index = color_counts[0][1]
+            # A "P" image counts its colours by palette index.
+            assert isinstance(palette_index, int)
             dominant_color = palette[palette_index * 3 : palette_index * 3 + 3]
-            self.dominant_color = dominant_color
+            # Stored as the text of the RGB list, e.g. "[12, 34, 56]"; the
+            # serializers read it back that way.
+            self.dominant_color = str(dominant_color)
             self.save()
         except Exception:
             logger.info(f"Cannot calculate dominant color {self} object")
 
 
-def _delete_orphaned_thumbnail_files(file_names):
+def _delete_orphaned_thumbnail_files(file_names: list[str]) -> None:
     """Delete the thumbnail files of a deleted Thumbnail nothing else uses.
 
     Thumbnail files are named by ``image_hash`` and are not owned by a single
@@ -359,7 +377,9 @@ def _delete_orphaned_thumbnail_files(file_names):
 
 
 @receiver(models.signals.post_delete, sender=Thumbnail)
-def delete_orphaned_thumbnail_files(sender, instance, using, **kwargs):
+def delete_orphaned_thumbnail_files(
+    sender: type[Thumbnail], instance: Thumbnail, using: str, **kwargs: Any
+) -> None:
     """Remove a deleted Thumbnail's files once nothing else references them.
 
     Deferred to on_commit so a rolled-back delete keeps its files, and so the

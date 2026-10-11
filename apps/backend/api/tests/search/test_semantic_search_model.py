@@ -328,5 +328,8 @@ class SiteSettingsTest(TestCase):
 
     def test_the_model_cannot_be_chosen(self):
         for key in ("tagging_model", "semantic_search_model"):
-            with self.subTest(key=key), self.assertRaises(Exception):
-                self.client.post("/api/sitesettings", {key: OPENCLIP}, format="json")
+            with self.subTest(key=key):
+                response = self.client.post(
+                    "/api/sitesettings", {key: OPENCLIP}, format="json"
+                )
+                self.assertEqual(response.status_code, 400)

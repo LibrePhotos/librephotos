@@ -1,16 +1,20 @@
 import uuid
 
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseBase
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework.permissions import AllowAny
+from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from api import video_playback
 from api.models import Photo
 from api.models.photo_share import PhotoShare
+from api.models.user import User
+from api.request_data import request_dict
+from api.request_user import request_user
 from api.serializers.photos import PublicPhotoDetailSerializer
-from api.views.media import UnifiedMediaAccessView
+from api.views.media import MediaServingView
 
 SHARE_ACTIONS = ("enable", "rotate", "disable")
 
@@ -32,11 +36,11 @@ _HASH_DERIVED_FIELDS = (
 )
 
 
-def shared_photo_media_url(slug, kind):
+def shared_photo_media_url(slug: str, kind: str) -> str:
     return f"/api/public/photo/{slug}/media/{kind}/"
 
 
-def active_photo_share(slug):
+def active_photo_share(slug: str | None) -> PhotoShare | None:
     """The live share for ``slug``, or None.
 
     A share stops resolving as soon as it is revoked or rotated (the slug is
@@ -57,7 +61,7 @@ def active_photo_share(slug):
     )
 
 
-def _owned_photo(user, photo_id):
+def _owned_photo(user: User, photo_id: str) -> Photo | None:
     """Resolve ``photo_id`` (a Photo UUID or an image_hash) among ``user``'s photos.
 
     An image_hash is an md5 plus the owner's id, so it is not a UUID and must
@@ -75,7 +79,7 @@ def _owned_photo(user, photo_id):
     return photos.filter(image_hash=photo_id).first()
 
 
-def _share_payload(share):
+def _share_payload(share: PhotoShare | None) -> dict[str, object]:
     if share is None or not share.is_active():
         return {"enabled": False, "slug": None, "url": None}
     return {
@@ -96,9 +100,10 @@ class SetPhotoShare(APIView):
     Sharing a photo this way does not touch ``Photo.public``.
     """
 
-    def post(self, request, format=None):
-        photo_id = request.data.get("photo_id")
-        action = request.data.get("action") or "enable"
+    def post(self, request: Request, format: str | None = None) -> Response:
+        data = request_dict(request)
+        photo_id = data.get("photo_id")
+        action = data.get("action") or "enable"
 
         if not isinstance(photo_id, str) or not photo_id:
             return Response(
@@ -110,7 +115,7 @@ class SetPhotoShare(APIView):
 
         # Someone else's photo is reported exactly like a missing one, so the
         # endpoint cannot be used to probe which hashes exist.
-        photo = _owned_photo(request.user, photo_id)
+        photo = _owned_photo(request_user(request), photo_id)
         if photo is None:
             return Response({"status": False, "message": "No such photo"}, status=404)
 
@@ -138,10 +143,10 @@ class SetPhotoShare(APIView):
 class PhotoShareList(APIView):
     """List the caller's active photo shares, newest first."""
 
-    def get(self, request, format=None):
+    def get(self, request: Request, format: str | None = None) -> Response:
         shares = (
             PhotoShare.objects.filter(
-                photo__in=Photo.objects.owned_by(request.user),
+                photo__in=Photo.objects.owned_by(request_user(request)),
                 enabled=True,
                 slug__isnull=False,
             )
@@ -166,10 +171,11 @@ class PublicPhotoBySlug(APIView):
         parameters=[OpenApiParameter("slug", OpenApiTypes.STR)],
         description="Returns a publicly shared photo by share slug if active",
     )
-    def get(self, request, slug):
+    def get(self, request: Request, slug: str) -> Response:
         share = active_photo_share(slug)
         if share is None:
             return Response(status=404)
+        assert share.slug is not None  # active_photo_share matched on this slug
 
         photo = share.photo
         sharing_settings = share.get_effective_sharing_settings()
@@ -194,7 +200,7 @@ class PublicPhotoBySlug(APIView):
         return Response({"results": data, "sharing_settings": sharing_settings})
 
 
-class PublicPhotoMediaBySlug(UnifiedMediaAccessView):
+class PublicPhotoMediaBySlug(MediaServingView):
     """Media for a shared photo, addressed by the share's slug.
 
     The grant lives in the URL, not in the photo: replacing or revoking the
@@ -202,7 +208,9 @@ class PublicPhotoMediaBySlug(UnifiedMediaAccessView):
     photo's hash-addressed /media/ URLs keep requiring a login.
     """
 
-    def get(self, request, slug, kind, format=None):
+    def get(
+        self, request: Request, slug: str, kind: str, format: str | None = None
+    ) -> HttpResponseBase:
         share = active_photo_share(slug)
         if share is None or kind not in SHARED_MEDIA_KINDS:
             return HttpResponse(status=404)

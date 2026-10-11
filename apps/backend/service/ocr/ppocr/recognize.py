@@ -4,16 +4,27 @@ Crops are normalized to the model's fixed [C, H, W], batched (sorted by aspect
 ratio for throughput), run through the ONNX recognizer, and CTC-decoded.
 """
 
+from __future__ import annotations
+
 import math
+from collections.abc import Sequence
+from typing import TYPE_CHECKING
 
 import cv2
 import numpy as np
+import numpy.typing as npt
+
+if TYPE_CHECKING:
+    import onnxruntime as ort
+    from cv2.typing import MatLike
 
 DEFAULT_REC_BATCH_SIZE = 8
 CTC_BLANK_INDEX = 0
 
 
-def resize_norm_img(img_bgr, rec_image_shape):
+def resize_norm_img(
+    img_bgr: MatLike, rec_image_shape: tuple[int, ...]
+) -> npt.NDArray[np.float32]:
     """Resize a crop to the model input and normalize to [-1, 1].
 
     Keeps aspect ratio at height H, caps width at W, right-pads with zeros.
@@ -28,18 +39,21 @@ def resize_norm_img(img_bgr, rec_image_shape):
     else:
         resized_w = max(1, int(math.ceil(img_h * ratio)))
 
-    resized = cv2.resize(img_bgr, (resized_w, img_h))
-    resized = resized.astype(np.float32)
-    resized = resized.transpose(2, 0, 1) / 255.0
-    resized -= 0.5
-    resized /= 0.5
+    resized = cv2.resize(img_bgr, (resized_w, img_h)).astype(np.float32)
+    scaled = resized.transpose(2, 0, 1) / 255.0
+    scaled -= 0.5
+    scaled /= 0.5
 
     padded = np.zeros((img_c, img_h, img_w), dtype=np.float32)
-    padded[:, :, :resized_w] = resized
+    padded[:, :, :resized_w] = scaled
     return padded
 
 
-def ctc_greedy_decode(probs, decode_charset, blank_index=CTC_BLANK_INDEX):
+def ctc_greedy_decode(
+    probs: npt.ArrayLike,
+    decode_charset: Sequence[str],
+    blank_index: int = CTC_BLANK_INDEX,
+) -> tuple[str, float]:
     """Greedy CTC decode of a single sequence.
 
     ``probs`` is (T, C) of per-timestep class probabilities.  Standard CTC
@@ -53,8 +67,8 @@ def ctc_greedy_decode(probs, decode_charset, blank_index=CTC_BLANK_INDEX):
     indices = probs.argmax(axis=-1)
     max_probs = probs.max(axis=-1)
 
-    chars = []
-    confidences = []
+    chars: list[str] = []
+    confidences: list[float] = []
     previous = -1
     for t in range(len(indices)):
         cls = int(indices[t])
@@ -78,19 +92,19 @@ class Recognizer:
 
     def __init__(
         self,
-        session,
-        input_name,
-        decode_charset,
-        rec_image_shape,
-        batch_size=DEFAULT_REC_BATCH_SIZE,
-    ):
+        session: ort.InferenceSession,
+        input_name: str,
+        decode_charset: Sequence[str],
+        rec_image_shape: tuple[int, ...],
+        batch_size: int = DEFAULT_REC_BATCH_SIZE,
+    ) -> None:
         self.session = session
         self.input_name = input_name
         self.decode_charset = decode_charset
         self.rec_image_shape = rec_image_shape
         self.batch_size = batch_size
 
-    def recognize(self, crops):
+    def recognize(self, crops: Sequence[MatLike]) -> list[tuple[str, float]]:
         """Recognize a list of BGR crops, returning [(text, confidence), ...].
 
         Results are aligned with the input order.  Crops are processed sorted by
@@ -98,7 +112,7 @@ class Recognizer:
         where the batched throughput comes from.
         """
         n = len(crops)
-        results = [("", 0.0)] * n
+        results: list[tuple[str, float]] = [("", 0.0)] * n
         if n == 0:
             return results
 

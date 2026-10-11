@@ -150,3 +150,65 @@ class DefaultRulesOrderTest(TestCase):
             user_defined_timestamp=user_timestamp,
         )
         self.assertEqual(user_timestamp, result)
+
+
+class BrokenCustomRegexpRuleTest(TestCase):
+    """A user's path rule whose custom_regexp does not yield year, month, day
+    (and up to four time parts) is a rule that does not match: it must log,
+    return None and let the next rule run, not raise out of the scan.
+    """
+
+    EXIF_DATE = "2005:01:02 03:04:05"
+
+    def _extract_with(self, custom_regexp):
+        rules = as_rules(
+            [
+                {
+                    "rule_type": "path",
+                    "path_part": "full_path",
+                    "custom_regexp": custom_regexp,
+                },
+                {"rule_type": "exif", "exif_tag": Tags.DATE_TIME_ORIGINAL},
+            ]
+        )
+
+        def exif_getter(tags):
+            return [
+                self.EXIF_DATE if tag == Tags.DATE_TIME_ORIGINAL else None
+                for tag in tags
+            ]
+
+        return extract_local_date_time(
+            path="/photos/2020/01/02/03/04/05/06/07/IMG_abc.jpg",
+            rules=rules,
+            exif_getter=exif_getter,
+            gps_lat=None,
+            gps_lon=None,
+            user_default_tz="UTC",
+            user_defined_timestamp=None,
+        )
+
+    def _assert_falls_through(self, custom_regexp):
+        with self.assertLogs("api.date_time_extractor", "WARNING"):
+            result = self._extract_with(custom_regexp)
+        self.assertEqual(
+            datetime.datetime(2005, 1, 2, 3, 4, 5, tzinfo=pytz.utc), result
+        )
+
+    def test_more_than_seven_groups(self):
+        self._assert_falls_through(
+            r"(\d{4})/(\d\d)/(\d\d)/(\d\d)/(\d\d)/(\d\d)/(\d\d)/(\d\d)"
+        )
+
+    def test_fewer_than_three_groups(self):
+        self._assert_falls_through(r"(\d{4})/(\d\d)/")
+
+    def test_unmatched_optional_date_group(self):
+        self._assert_falls_through(r"(\d{4})/(\d\d)/(x\d)?")
+
+    def test_non_numeric_group(self):
+        self._assert_falls_through(r"(\d{4})/(\d\d)/(\d\d)/.*IMG_(\w+)")
+
+    def test_unmatched_optional_time_group_defaults_to_zero(self):
+        result = self._extract_with(r"(\d{4})/(\d\d)/(\d\d)/(x\d)?")
+        self.assertEqual(datetime.datetime(2020, 1, 2, tzinfo=pytz.utc), result)

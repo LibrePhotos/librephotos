@@ -1,11 +1,16 @@
+from typing import Any
+
 from django.core.cache import cache
+from django.db.models import QuerySet
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
+from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from api.api_util import get_search_term_examples
 from api.filters import SemanticSearchFilter
 from api.models import Photo
+from api.request_user import request_user
 from api.serializers.photos import (
     GroupedPhotosSerializer,
     PhotoSummarySerializer,
@@ -14,6 +19,7 @@ from api.serializers.photos import (
 from api.serializers.PhotosGroupedByDate import get_photos_ordered_by_date
 from api.views.custom_api_view import ListViewSet
 from api.views.pagination import HugeResultsSetPagination
+from api.views.photo_filters import scope_user
 
 # The date of the undated group in search results. The other grouped lists send
 # null, but the web and mobile search schemas require a string here, and null
@@ -34,8 +40,10 @@ class SearchListViewSet(ListViewSet):
         "exif_timestamp",
     ]
 
-    def get_queryset(self):
-        return Photo.visible.owned_by(self.request.user).order_by("-exif_timestamp")
+    def get_queryset(self) -> QuerySet[Photo]:
+        return Photo.visible.owned_by(scope_user(self.request)).order_by(
+            "-exif_timestamp"
+        )
 
     @extend_schema(
         parameters=[
@@ -50,11 +58,12 @@ class SearchListViewSet(ListViewSet):
             "or photo=true to return only photos."
         ),
     )
-    def list(self, request):
+    def list(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         # The helper loads the stacks, files and local_orientation the summary
         # serializer reads; without them every match cost three more queries.
-        photos = with_photo_summary_relations(Photo.visible.owned_by(request.user))
-        if request.user.semantic_search_topk == 0:
+        user = request_user(request)
+        photos = with_photo_summary_relations(Photo.visible.owned_by(user))
+        if user.semantic_search_topk == 0:
             queryset = self.filter_queryset(photos.order_by("-exif_timestamp"))
             grouped_photos = get_photos_ordered_by_date(
                 queryset, undated_date=LEGACY_UNDATED_DATE
@@ -63,23 +72,24 @@ class SearchListViewSet(ListViewSet):
             return Response({"results": serializer.data})
         else:
             queryset = self.filter_queryset(photos)
-            serializer = PhotoSummarySerializer(queryset, many=True)
-            return Response({"results": serializer.data})
+            summary_serializer = PhotoSummarySerializer(queryset, many=True)
+            return Response({"results": summary_serializer.data})
 
 
 SEARCH_TERM_EXAMPLES_CACHE_SECONDS = 60 * 60 * 2
 
 
 class SearchTermExamples(APIView):
-    def get(self, request, format=None):
+    def get(self, request: Request, format: str | None = None) -> Response:
         # The examples are built from the caller's own photos, people and places,
         # so the cache is keyed on the user. cache_page + vary_on_cookie keyed
         # it on the request instead, which says nothing about who a
         # header-authenticated client is.
-        cache_key = f"search_term_examples:{request.user.pk}"
+        user = request_user(request)
+        cache_key = f"search_term_examples:{user.pk}"
         search_term_examples = cache.get(cache_key)
         if search_term_examples is None:
-            search_term_examples = get_search_term_examples(request.user)
+            search_term_examples = get_search_term_examples(user)
             cache.set(
                 cache_key, search_term_examples, SEARCH_TERM_EXAMPLES_CACHE_SECONDS
             )

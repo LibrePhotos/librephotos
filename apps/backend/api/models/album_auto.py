@@ -1,5 +1,7 @@
 import logging
 from collections import Counter
+from collections.abc import Iterable
+from datetime import datetime
 
 from django.db import models
 
@@ -19,7 +21,7 @@ TIME_OF_DAY = (
 WEEKEND = [5, 6]
 
 
-def _time_of_day(hour):
+def _time_of_day(hour: int) -> str:
     if hour <= 0:
         return ""
     for until, label in TIME_OF_DAY:
@@ -28,15 +30,22 @@ def _time_of_day(hour):
     return ""
 
 
-def _collect_photo_details(photos):
-    places = []
-    people = []
-    timestamps = []
+def _collect_photo_details(
+    photos: Iterable[Photo],
+) -> tuple[list[str], list[str], list[datetime]]:
+    places: list[str] = []
+    people: list[str] = []
+    timestamps: list[datetime] = []
     for photo in photos:
         geolocation = photo.geolocation_json
         if geolocation and len(geolocation.get("places", [])) > 0:
             places = geolocation["places"]
-        timestamps.append(photo.exif_timestamp)
+        timestamp = photo.exif_timestamp
+        # Only called from _generate_title(), which turns any exception into the
+        # fallback title. A photo without a time always ended there: min() and
+        # the span arithmetic raise on None.
+        assert timestamp is not None, "photo has no exif_timestamp"
+        timestamps.append(timestamp)
         for face in photo.faces.all():
             # Most faces in a library are unnamed, and a deleted one should not
             # name an album. Dereferencing face.person.name for those raised
@@ -48,13 +57,13 @@ def _collect_photo_details(photos):
     return places, people, timestamps
 
 
-def _describe_places(places):
+def _describe_places(places: list[str]) -> str:
     if not places:
         return ""
     return "in " + " and ".join(dict(Counter(places).most_common(2)).keys())
 
 
-def _describe_people(people):
+def _describe_people(people: list[str]) -> str:
     if not people:
         return ""
     names = dict(
@@ -69,7 +78,7 @@ def _describe_people(people):
     return "with " + " and ".join(names)
 
 
-def _describe_span(timestamps, when):
+def _describe_span(timestamps: list[datetime], when: str) -> str:
     if not timestamps:
         return when
     first = min(timestamps)
@@ -106,7 +115,7 @@ class AlbumAuto(models.Model):
     class Meta:
         unique_together = ("timestamp", "owner")
 
-    def _generate_title(self):
+    def _generate_title(self) -> None:
         try:
             places, people, timestamps = _collect_photo_details(self.photos.all())
 
@@ -119,7 +128,7 @@ class AlbumAuto(models.Model):
             anchor = min(timestamps) if timestamps else self.timestamp
             weekday = ""
             time = ""
-            if anchor:
+            if anchor is not None:
                 weekday = util.weekdays[anchor.isoweekday()]
                 time = _time_of_day(anchor.hour)
 
@@ -142,5 +151,5 @@ class AlbumAuto(models.Model):
             self.title = f"Album from {self.timestamp.strftime('%Y-%m-%d')}"
             self.save()
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "%d: %s" % (self.id, self.title)

@@ -1,4 +1,8 @@
+from __future__ import annotations
+
 import os
+from datetime import datetime
+from typing import TYPE_CHECKING, Any
 
 from django.db import models
 from django.dispatch import receiver
@@ -9,7 +13,14 @@ from api.models.person import Person
 from api.models.photo import Photo
 from api.lazy_import import LazyModule
 
-np = LazyModule("numpy")
+if TYPE_CHECKING:
+    import numpy.typing as npt
+    from numpy import float64
+
+if TYPE_CHECKING:
+    import numpy as np
+else:
+    np = LazyModule("numpy")
 
 
 class Face(models.Model):
@@ -57,15 +68,17 @@ class Face(models.Model):
     encoding = models.TextField()
 
     @property
-    def timestamp(self):
+    def timestamp(self) -> datetime | None:
         return self.photo.exif_timestamp if self.photo else None
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "%d" % self.id
 
-    def generate_encoding(self):
+    def generate_encoding(self) -> None:
+        photo = self.photo
+        assert photo is not None
         encodings = get_face_encodings(
-            self.photo.thumbnail.thumbnail_big.path,
+            photo.thumbnail.thumbnail_big.path,
             [
                 (
                     self.location_top,
@@ -84,18 +97,20 @@ class Face(models.Model):
         self.encoding = encodings[0].tobytes().hex()
         self.save()
 
-    def get_encoding_array(self):
+    def get_encoding_array(self) -> npt.NDArray[float64]:
         return np.frombuffer(bytes.fromhex(self.encoding))
 
 
 @receiver(models.signals.post_delete, sender=Person)
-def reset_person(sender, instance, **kwargs):
+def reset_person(sender: type[Person], instance: Person, **kwargs: Any) -> None:
     instance.faces.update(person=None)
 
 
 # From: https://stackoverflow.com/questions/16041232/django-delete-filefield
 @receiver(models.signals.post_delete, sender=Face)
-def auto_delete_file_on_delete(sender, instance, **kwargs):
+def auto_delete_file_on_delete(
+    sender: type[Face], instance: Face, **kwargs: Any
+) -> None:
     if instance.image:
         if os.path.isfile(instance.image.path):
             os.remove(instance.image.path)

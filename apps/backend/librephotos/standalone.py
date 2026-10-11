@@ -18,6 +18,8 @@ The same module runs from source too (python librephotos_standalone.py), which
 is how it is tested; only the paths differ.
 """
 
+from __future__ import annotations
+
 import argparse
 import importlib
 import json
@@ -27,6 +29,15 @@ import sys
 import threading
 import time
 import webbrowser
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    # Only for annotations: the GUI and the server modules are imported lazily
+    # inside the functions that use them.
+    import pystray
+    import uvicorn
+    from PIL import Image
 
 APP_DIR_NAME = "LibrePhotos"
 DEFAULT_PORT = 8000
@@ -73,7 +84,7 @@ STARTUP_COMMANDS = (
 )
 
 
-def standalone_executable():
+def standalone_executable() -> str | None:
     """Absolute path of the compiled binary, or None when running from source.
 
     Nuitka's standalone mode leaves sys.executable pointing at a python.exe
@@ -91,7 +102,7 @@ def standalone_executable():
     return os.path.abspath(getattr(compiled, "original_argv0", None) or sys.argv[0])
 
 
-def named_executable(role):
+def named_executable(role: str | None) -> str | None:
     """The binary under the name PROCESS_NAMES gives the role, or the binary
     itself when it has no name or the link cannot be made (read-only install
     directory, a file system without hard links). None when running from source.
@@ -101,7 +112,7 @@ def named_executable(role):
     while it is the same file.
     """
     executable = standalone_executable()
-    name = PROCESS_NAMES.get(role)
+    name = PROCESS_NAMES.get(role) if role is not None else None
     if executable is None or name is None:
         return executable
     target = os.path.join(
@@ -121,7 +132,7 @@ def named_executable(role):
     return target
 
 
-def _has_console_window():
+def _has_console_window() -> bool:
     if sys.platform != "win32":
         return True
     import ctypes
@@ -132,19 +143,19 @@ def _has_console_window():
     return bool(kernel32.GetConsoleWindow())
 
 
-def _output_is_discarded():
+def _output_is_discarded() -> bool:
     """Started without a console and without redirection (a double-click from
     Explorer, or a child of such a process): the binary is a Windows GUI
     program, and Nuitka then binds stdout and stderr to NUL."""
     return getattr(sys.stdout, "name", None) in (None, "NUL:", "nul")
 
 
-def _redirect_output(path, mode):
+def _redirect_output(path: str, mode: str) -> None:
     stream = open(path, mode, encoding="utf-8", errors="replace", buffering=1)  # noqa: SIM115
     sys.stdout = sys.stderr = stream
 
 
-def _repair_standard_handles():
+def _repair_standard_handles() -> list[str]:
     """Point standard handles that are missing or invalid at NUL.
 
     A Windows GUI process started without a console has no usable stdin,
@@ -156,6 +167,10 @@ def _repair_standard_handles():
     have been next. Valid handles - a console, a pipe, a file - are left as
     they are.
     """
+    # Windows-only: bootstrap_process calls this only on win32, so nothing was
+    # repaired anywhere else.
+    if sys.platform != "win32":
+        return []
     import ctypes
     import msvcrt
     from ctypes import wintypes
@@ -169,7 +184,7 @@ def _repair_standard_handles():
     kernel32.GetFileType.argtypes = [wintypes.HANDLE]
     file_type_unknown = 0
 
-    repaired = []
+    repaired: list[str] = []
     for name, number in (("stdin", -10), ("stdout", -11), ("stderr", -12)):
         number &= 0xFFFFFFFF
         handle = kernel32.GetStdHandle(number)
@@ -182,7 +197,7 @@ def _repair_standard_handles():
     return repaired
 
 
-def _hide_child_consoles():
+def _hide_child_consoles() -> None:
     """Start child processes without a console window of their own.
 
     A process that has no console gives every console program it starts a
@@ -191,22 +206,28 @@ def _hide_child_consoles():
     and some are in third-party code, so the default is changed once here
     rather than at each of them.
     """
+    # Windows-only, and called only from bootstrap_process on win32.
+    if sys.platform != "win32":
+        return
     original = subprocess.Popen.__init__
     if getattr(original, "_no_console_window", False):
         return
     own_console = subprocess.CREATE_NEW_CONSOLE | subprocess.DETACHED_PROCESS
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self: subprocess.Popen[Any], *args: Any, **kwargs: Any) -> None:
         flags = kwargs.get("creationflags", 0)
         if not flags & own_console:
             kwargs["creationflags"] = flags | subprocess.CREATE_NO_WINDOW
         original(self, *args, **kwargs)
 
-    __init__._no_console_window = True
-    subprocess.Popen.__init__ = __init__
+    # setattr rather than assignment: this is a deliberate monkeypatch of
+    # subprocess.Popen.__init__ and of a marker attribute on the replacement
+    # function, which a type checker rejects as a plain assignment.
+    setattr(__init__, "_no_console_window", True)
+    setattr(subprocess.Popen, "__init__", __init__)
 
 
-def bootstrap_process():
+def bootstrap_process() -> None:
     """Per-process setup of the compiled build.
 
     librephotos_standalone.py calls this at import, which is the one place
@@ -225,7 +246,7 @@ def bootstrap_process():
         _redirect_output(console_log, "a")
 
 
-def install_root():
+def install_root() -> str:
     """Where the distribution (or, from source, the backend) lives."""
     executable = standalone_executable()
     if executable is None:
@@ -233,7 +254,7 @@ def install_root():
     return os.path.dirname(executable)
 
 
-def default_data_dir():
+def default_data_dir() -> str:
     """Per-user application data directory, following each platform's habit."""
     home = os.path.expanduser("~")
     if sys.platform == "win32":
@@ -245,7 +266,7 @@ def default_data_dir():
     return os.path.join(base, APP_DIR_NAME)
 
 
-def apply_build_info(root):
+def apply_build_info(root: str) -> None:
     """Report the release this distribution was built as, like an image does.
 
     The version endpoint reads IMAGE_TAG and GIT_HASH, which only the Docker
@@ -265,7 +286,9 @@ def apply_build_info(root):
             os.environ.setdefault(variable, value)
 
 
-def prepare_environment(data_dir=None, photos_dir=None):
+def prepare_environment(
+    data_dir: str | None = None, photos_dir: str | None = None
+) -> str:
     """Point the settings at the data directory and the bundled binaries.
 
     Must run before Django's settings are imported: production.py reads
@@ -301,7 +324,7 @@ def prepare_environment(data_dir=None, photos_dir=None):
     return data
 
 
-def run_manage(argv):
+def run_manage(argv: list[str]) -> None:
     """Run a manage.py command in this process."""
     from django.core.management import execute_from_command_line
 
@@ -316,13 +339,13 @@ def run_manage(argv):
     execute_from_command_line(["manage.py", *argv])
 
 
-def service_module_name(name):
+def service_module_name(name: str) -> str:
     if name == "image_similarity":
         return "image_similarity.main"
     return f"service.{name}.main"
 
 
-def run_service(name):
+def run_service(name: str) -> None:
     """Run one sidecar in this process, as ``python service/<name>/main.py`` would.
 
     The sidecars are plain Flask scripts that import their siblings by bare
@@ -333,7 +356,7 @@ def run_service(name):
     module.serve()
 
 
-def child_command(*args, role=None):
+def child_command(*args: str, role: str | None = None) -> list[str]:
     """argv that runs this program again with the given arguments, under the
     executable name of ``role`` (see PROCESS_NAMES) when compiled."""
     executable = named_executable(role)
@@ -343,7 +366,7 @@ def child_command(*args, role=None):
     return [executable, *args]
 
 
-def _open_browser_when_up(url, timeout=120):
+def _open_browser_when_up(url: str, timeout: float = 120) -> None:
     import requests
 
     deadline = time.monotonic() + timeout
@@ -357,7 +380,7 @@ def _open_browser_when_up(url, timeout=120):
     webbrowser.open(url)
 
 
-def _take_children_down_with_us():
+def _take_children_down_with_us() -> None:
     """Put this process in a Windows job that kills its descendants with it.
 
     Closing the console, Task Manager and a crash all end this process without
@@ -448,7 +471,7 @@ def _take_children_down_with_us():
     # The handle is deliberately never closed: closing it is what kills the job.
 
 
-def _already_running(url):
+def _already_running(url: str) -> bool:
     import requests
 
     try:
@@ -457,7 +480,7 @@ def _already_running(url):
         return False
 
 
-def _tray_image():
+def _tray_image() -> Image.Image:
     from PIL import Image
 
     candidates = (
@@ -470,17 +493,21 @@ def _tray_image():
     return Image.new("RGB", (64, 64), (30, 120, 200))
 
 
-def _start_tray(url, server):
+def _start_tray(url: str, server: uvicorn.Server) -> pystray.Icon | None:
     """An icon in the notification area: the application's only surface once
     there is no console window. Returns the icon, or None when it cannot be
     shown (pystray missing, no desktop session); the server runs either way."""
+    # Windows-only (os.startfile, the notification area); run_server calls this
+    # only on win32, and there is no icon anywhere else.
+    if sys.platform != "win32":
+        return None
     try:
         import pystray
 
-        def open_folder(path):
+        def open_folder(path: str) -> Callable[[object, object], None]:
             return lambda icon, item: os.startfile(path)
 
-        def quit_app(icon, item):
+        def quit_app(icon: pystray.Icon, item: pystray.MenuItem) -> None:
             server.should_exit = True
             icon.stop()
 
@@ -509,7 +536,7 @@ def _start_tray(url, server):
         return None
 
 
-def _report_failure(message):
+def _report_failure(message: str) -> None:
     """Say why the start failed. Without a console there is nowhere to read
     it, and an application that silently does nothing is the worst outcome."""
     print(message, flush=True)
@@ -522,14 +549,14 @@ def _report_failure(message):
         )
 
 
-def _set_console_title(title):
+def _set_console_title(title: str) -> None:
     if sys.platform == "win32":
         import ctypes
 
         ctypes.windll.kernel32.SetConsoleTitleW(title)
 
 
-def run_server(host, port, open_browser, tray=True):
+def run_server(host: str, port: int, open_browser: bool, tray: bool = True) -> None:
     """migrate, start the sidecars, the job cluster and the API server.
 
     The cluster is a child process (django-q2 forks workers of its own) so
@@ -600,7 +627,7 @@ def run_server(host, port, open_browser, tray=True):
         _shutdown(cluster)
 
 
-def _shutdown(cluster):
+def _shutdown(cluster: subprocess.Popen[bytes]) -> None:
     from api.services import SERVICES, stop_service
 
     for service in SERVICES:
@@ -613,7 +640,7 @@ def _shutdown(cluster):
             cluster.kill()
 
 
-def build_parser():
+def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="librephotos", description="LibrePhotos standalone"
     )
@@ -645,7 +672,7 @@ def build_parser():
     return parser
 
 
-def parse_args(argv):
+def parse_args(argv: list[str]) -> argparse.Namespace:
     """`librephotos.exe` and `librephotos.exe --data-dir X` both mean run."""
     argv = list(argv)
     if not any(arg in SUBCOMMANDS for arg in argv):
@@ -653,7 +680,7 @@ def parse_args(argv):
     return build_parser().parse_args(argv)
 
 
-def main(argv=None):
+def main(argv: list[str] | None = None) -> None:
     args = parse_args(sys.argv[1:] if argv is None else argv)
     prepare_environment(args.data_dir, args.photos)
 

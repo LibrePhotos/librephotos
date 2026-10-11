@@ -18,6 +18,7 @@ import os
 import stat
 import subprocess
 import tempfile
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
 
 from django.conf import settings
@@ -42,13 +43,13 @@ HARMLESS_MP4_TAGS = {"SourceFile", "ItemList:Encoder"}
 @dataclass
 class StripResult:
     scanned: int = 0
-    with_metadata: list = field(default_factory=list)
+    with_metadata: list[str] = field(default_factory=list)
     stripped: int = 0
-    still_with_metadata: list = field(default_factory=list)
-    errors: list = field(default_factory=list)
+    still_with_metadata: list[str] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
 
 
-def _webp_chunks(data):
+def _webp_chunks(data: bytes) -> list[tuple[bytes, bytes]] | None:
     """The RIFF chunks of a WebP file as (fourcc, bytes) pairs, or None if it is not one."""
     if len(data) < 12 or data[:4] != b"RIFF" or data[8:12] != b"WEBP":
         return None
@@ -63,14 +64,14 @@ def _webp_chunks(data):
     return chunks
 
 
-def webp_has_metadata(path):
+def webp_has_metadata(path: str) -> bool:
     """Whether the WebP at ``path`` has an EXIF or XMP chunk."""
     with open(path, "rb") as handle:
         chunks = _webp_chunks(handle.read())
     return any(fourcc in METADATA_CHUNKS for fourcc, _ in chunks or ())
 
 
-def strip_webp_metadata(path):
+def strip_webp_metadata(path: str) -> bool:
     """Drop the EXIF and XMP chunks of the WebP at ``path``; return whether it changed.
 
     The file is replaced atomically, so a reader never sees half of it.
@@ -79,19 +80,21 @@ def strip_webp_metadata(path):
         chunks = _webp_chunks(handle.read())
     if not chunks or not any(fourcc in METADATA_CHUNKS for fourcc, _ in chunks):
         return False
-    kept = []
+    kept: list[bytes] = []
     for fourcc, chunk in chunks:
         if fourcc in METADATA_CHUNKS:
             continue
         if fourcc == b"VP8X":
-            chunk = bytearray(chunk)
-            chunk[8] &= ~(VP8X_EXIF_FLAG | VP8X_XMP_FLAG) & 0xFF
-        kept.append(bytes(chunk))
+            header = bytearray(chunk)
+            header[8] &= ~(VP8X_EXIF_FLAG | VP8X_XMP_FLAG) & 0xFF
+            kept.append(bytes(header))
+        else:
+            kept.append(chunk)
     body = b"WEBP" + b"".join(kept)
     original = os.stat(path)
-    handle, temporary = tempfile.mkstemp(dir=os.path.dirname(path), suffix=".tmp")
+    fd, temporary = tempfile.mkstemp(dir=os.path.dirname(path), suffix=".tmp")
     try:
-        with os.fdopen(handle, "wb") as out:
+        with os.fdopen(fd, "wb") as out:
             out.write(b"RIFF" + len(body).to_bytes(4, "little") + body)
         # mkstemp makes the file private to this user; the proxy serving
         # protected_media may run as another one.
@@ -105,7 +108,9 @@ def strip_webp_metadata(path):
     return True
 
 
-def _exiftool(arguments, paths):
+def _exiftool(
+    arguments: list[str], paths: list[str]
+) -> subprocess.CompletedProcess[str]:
     """Run ExifTool on ``paths`` (passed in an argument file); return the process."""
     with tempfile.NamedTemporaryFile(
         "w", suffix=".args", delete=False, encoding="utf-8"
@@ -125,14 +130,14 @@ def _exiftool(arguments, paths):
         os.remove(argfile.name)
 
 
-def _batches(paths):
+def _batches(paths: list[str]) -> Iterator[list[str]]:
     for start in range(0, len(paths), BATCH_SIZE):
         yield paths[start : start + BATCH_SIZE]
 
 
-def mp4s_with_metadata(paths):
+def mp4s_with_metadata(paths: list[str]) -> list[str]:
     """The video thumbnails in ``paths`` that carry metadata from their source."""
-    found = []
+    found: list[str] = []
     for batch in _batches(paths):
         result = _exiftool(["-j", "-G1", "-a", *MP4_METADATA_GROUPS], batch)
         for entry in json.loads(result.stdout or "[]"):
@@ -143,7 +148,7 @@ def mp4s_with_metadata(paths):
     return found
 
 
-def _strip_mp4s(paths, errors):
+def _strip_mp4s(paths: list[str], errors: list[str]) -> None:
     for batch in _batches(paths):
         process = _exiftool(["-overwrite_original", "-q", "-q", "-all="], batch)
         if process.returncode != 0:
@@ -152,8 +157,9 @@ def _strip_mp4s(paths, errors):
             )
 
 
-def _thumbnail_files(media_root):
-    webps, mp4s = [], []
+def _thumbnail_files(media_root: str) -> tuple[list[str], list[str]]:
+    webps: list[str] = []
+    mp4s: list[str] = []
     for directory in THUMBNAIL_DIRS:
         folder = os.path.join(media_root, directory)
         if not os.path.isdir(folder):
@@ -169,7 +175,12 @@ def _thumbnail_files(media_root):
     return webps, mp4s
 
 
-def _webps(paths, action, errors, progress):
+def _webps(
+    paths: list[str],
+    action: Callable[[str], bool],
+    errors: list[str],
+    progress: Callable[[str], object] | None,
+) -> list[str]:
     """The ``paths`` for which ``action`` returned true; failures go to ``errors``."""
     found = []
     for index, path in enumerate(paths, 1):
@@ -183,7 +194,11 @@ def _webps(paths, action, errors, progress):
     return found
 
 
-def strip_thumbnail_metadata(media_root=None, dry_run=False, progress=None):
+def strip_thumbnail_metadata(
+    media_root: str | None = None,
+    dry_run: bool = False,
+    progress: Callable[[str], object] | None = None,
+) -> StripResult:
     """Remove EXIF, XMP and video metadata from every thumbnail under ``media_root``."""
     media_root = media_root or settings.MEDIA_ROOT
     result = StripResult()

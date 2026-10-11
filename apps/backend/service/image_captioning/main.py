@@ -1,19 +1,20 @@
+from flask.typing import ResponseReturnValue
 from lfm2_vl import Lfm2VlCaptioner
 
 from service._common import create_app, json_fields, logger, serve_forever
 
-captioner = None
+captioner: Lfm2VlCaptioner | None = None
 log = logger("image_captioning")
 
 
-def get_captioner():
+def get_captioner() -> Lfm2VlCaptioner:
     global captioner
     if captioner is None:
         captioner = Lfm2VlCaptioner()
     return captioner
 
 
-def unload_captioner():
+def unload_captioner() -> None:
     global captioner
     if captioner is not None:
         captioner.unload()
@@ -28,7 +29,7 @@ app = create_app(
 
 
 @app.route("/generate-caption", methods=["POST"])
-def generate_caption():
+def generate_caption() -> ResponseReturnValue:
     """A caption for ``image_path``, steered by the optional ``prompt``."""
     image_path, prompt = json_fields("image_path", prompt=None)
 
@@ -44,7 +45,7 @@ def generate_caption():
         return {"error": f"{type(e).__name__}: {e}"}, 500
 
 
-def serve():
+def serve() -> None:
     serve_forever(app, "image_captioning")
 
 

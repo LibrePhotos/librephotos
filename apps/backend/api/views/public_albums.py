@@ -1,3 +1,5 @@
+from typing import Any
+
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_slug
 from django.db import IntegrityError, transaction
@@ -6,17 +8,19 @@ from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework.permissions import AllowAny
+from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from api.models import AlbumUser
 from api.models.album_user_share import AlbumUserShare
+from api.request_data import request_dict
+from api.request_user import request_user
 from api.serializers.album_user import (
     AlbumUserListSerializer,
     AlbumUserPublicSerializer,
 )
 from api.serializers.photos import PublicPhotoDetailSerializer
-
 
 SHARING_OPTION_FIELDS = (
     "share_location",
@@ -28,8 +32,8 @@ SHARING_OPTION_FIELDS = (
 
 
 class SetUserAlbumPublic(APIView):
-    def post(self, request, format=None):
-        data = dict(request.data)
+    def post(self, request: Request, format: str | None = None) -> Response:
+        data = dict(request_dict(request))
         album_id = data.get("album_id")
         val_public = data.get("val_public")
 
@@ -43,7 +47,7 @@ class SetUserAlbumPublic(APIView):
         except AlbumUser.DoesNotExist:
             return Response({"status": False, "message": "No such album"}, status=404)
 
-        if album.owner != request.user:
+        if album.owner != request_user(request):
             return Response(
                 {"status": False, "message": "You are not the owner of this album"},
                 status=403,
@@ -76,10 +80,10 @@ class SetUserAlbumPublic(APIView):
         return Response({"status": True, "album": AlbumUserListSerializer(album).data})
 
     @staticmethod
-    def _slug_taken():
+    def _slug_taken() -> Response:
         return Response({"status": False, "message": "Slug already in use"}, status=409)
 
-    def _slug_refusal(self, album, slug):
+    def _slug_refusal(self, album: AlbumUser, slug: str) -> Response | None:
         """A 400 for a slug that is not one, a 409 for one another album holds.
 
         save() does not run the SlugField's validators, and the UI's
@@ -89,7 +93,10 @@ class SetUserAlbumPublic(APIView):
         """
         try:
             validate_slug(slug)
-            valid = len(slug) <= AlbumUserShare._meta.get_field("slug").max_length
+            max_length = AlbumUserShare._meta.get_field("slug").max_length
+            # The slug field is declared with max_length=64, so never None.
+            assert max_length is not None
+            valid = len(slug) <= max_length
         except ValidationError:
             valid = False
         if not valid:
@@ -98,7 +105,9 @@ class SetUserAlbumPublic(APIView):
             return self._slug_taken()
         return None
 
-    def _apply_share_settings(self, share, data):
+    def _apply_share_settings(
+        self, share: AlbumUserShare, data: dict[str, Any]
+    ) -> None:
         slug = data.get("slug")
         if slug is not None:
             share.slug = slug or None
@@ -124,7 +133,7 @@ class PublicAlbumBySlug(APIView):
         parameters=[OpenApiParameter("slug", OpenApiTypes.STR)],
         description="Returns a public user album by slug if active",
     )
-    def get(self, request, slug):
+    def get(self, request: Request, slug: str) -> Response:
         album = (
             AlbumUser.objects.filter(Q(share__enabled=True) & Q(share__slug=slug))
             .filter(
@@ -163,7 +172,7 @@ class PublicPhotoDetailBySlug(APIView):
         ],
         description="Returns photo details for a photo in a public album, filtered by sharing settings",
     )
-    def get(self, request, slug, photo_id):
+    def get(self, request: Request, slug: str, photo_id: str) -> Response:
         # Find the public album
         album = (
             AlbumUser.objects.filter(Q(share__enabled=True) & Q(share__slug=slug))

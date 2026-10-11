@@ -230,7 +230,7 @@ pre-commit install
 
 **Code Style:**
 - Line length: 88 characters
-- Use type hints where practical
+- Annotate every function; `python scripts/typecheck.py` (mypy) must pass. See the [type checking section](https://docs.librephotos.com/docs/development/contribution/backend#type-checking) of the contributor docs
 - Follow PEP 8 naming conventions
 - Write docstrings for public functions
 
