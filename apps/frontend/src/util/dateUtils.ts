@@ -1,24 +1,41 @@
+/* eslint-disable no-restricted-syntax -- this module is the one place that parses dates; the bans send everyone else here */
 import { DateTime } from "luxon";
 
 /**
- * Helpers for reading and writing `exif_timestamp`.
+ * The date helpers. Parse and format dates only through this module: the UI
+ * language is set once, in i18n.ts (luxon's default locale), so formatting needs
+ * no `.setLocale()`, and the parsers below say which kind of timestamp a value is.
  *
- * A photo's `exif_timestamp` is *local wall-clock time* — the time the camera
+ * `exif_timestamp` is *local wall-clock time* — the time the camera
  * showed when the shot was taken — which the backend deliberately stores tagged
  * as UTC (`dt.replace(tzinfo=pytz.utc)` in `api/date_time_extractor.py`). A
  * photo taken at 14:00 in Tokyo and one taken at 14:00 in Berlin both come back
  * as `...T14:00:00Z`, because the timestamp says "14:00 where the camera was",
  * not "this instant in time".
  *
- * Parsing that with `DateTime.fromISO(ts)` or `new Date(ts)` re-interprets it as
- * a real instant and renders it in the *viewer's* zone, shifting every photo by
- * the viewer's own UTC offset. Reading it back in UTC returns the wall clock
+ * Parsing that with `parseInstant` re-interprets it as a real instant and renders
+ * it in the *viewer's* zone, shifting every photo by the viewer's own UTC offset.
+ * Reading it back in UTC (`parsePhotoTimestamp`) returns the wall clock
  * unchanged, for every viewer, which is what the date rules promise.
  */
 
 /** Parse an `exif_timestamp` into the wall-clock time the camera recorded. */
 export function parsePhotoTimestamp(timestamp: string): DateTime {
   return DateTime.fromISO(timestamp, { zone: "utc" });
+}
+
+/**
+ * Parse a timestamp that is a real instant (`queued_at`, `date_joined`,
+ * `created_on`, memory dates), in the viewer's zone. A date-only string gives
+ * local midnight.
+ */
+export function parseInstant(iso: string): DateTime {
+  return DateTime.fromISO(iso);
+}
+
+/** A timestamp in seconds since the epoch, such as the location timeline's segment bounds. */
+export function fromUnixSeconds(seconds: number): DateTime {
+  return DateTime.fromSeconds(seconds);
 }
 
 /**
@@ -79,3 +96,31 @@ export function pickerDateToPhotoTimestamp(date: Date): string | null {
     { zone: "utc" }
   ).toISO();
 }
+
+// The string a DateTimePicker with `withSeconds` reads and writes: local wall clock, no zone.
+const PICKER_FORMAT = "yyyy-MM-dd HH:mm:ss";
+
+/**
+ * A stored instant (an album link's expiry) as the local wall clock a
+ * DateTimePicker shows. Empty string when there is no usable instant.
+ */
+export function toPickerValue(iso: string): string {
+  const parsed = parseInstant(iso);
+  return parsed.isValid ? parsed.toFormat(PICKER_FORMAT) : "";
+}
+
+/**
+ * A DateTimePicker value (local wall clock, as the user picked it) as an
+ * instant in UTC, ISO 8601 with `Z`. Null when it does not parse.
+ */
+export function fromPickerValue(value: string): string | null {
+  const parsed = DateTime.fromFormat(value, PICKER_FORMAT);
+  return parsed.isValid ? parsed.toUTC().toISO() : null;
+}
+
+/** The picker value `days` calendar days from now, in the viewer's zone, for the presets. */
+export function pickerValueDaysFromNow(days: number): string {
+  return DateTime.now().plus({ days }).toFormat(PICKER_FORMAT);
+}
+
+/* eslint-enable no-restricted-syntax */

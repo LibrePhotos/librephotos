@@ -1,5 +1,6 @@
 import i18n, { type BackendModule, type ResourceKey } from "i18next";
 import LanguageDetector from "i18next-browser-languagedetector";
+import { Settings } from "luxon";
 import { initReactI18next } from "react-i18next";
 import translationEn from "./locales/en/translation.json";
 
@@ -113,9 +114,13 @@ export function loadDayjsLocale(language: string | undefined): Promise<string> {
   );
 }
 
-// Keep <html lang> in step with the UI language (screen-reader pronunciation,
-// hyphenation). Registered before init, so the initial detection counts too.
+// Keep the UI language in step everywhere it is read: luxon formats dates in
+// its default locale (util/dateUtils is the only place that parses or formats
+// them, so nothing sets a locale per call), and <html lang> drives
+// screen-reader pronunciation and hyphenation. Registered before init, so the
+// initial detection counts too.
 i18n.on("languageChanged", () => {
+  Settings.defaultLocale = i18nResolvedLanguage();
   if (typeof document !== "undefined") {
     document.documentElement.lang = i18nResolvedLanguage();
   }
