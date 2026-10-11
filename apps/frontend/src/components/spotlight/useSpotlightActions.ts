@@ -1,6 +1,5 @@
 import { Avatar, useComputedColorScheme, useMantineColorScheme } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { showNotification } from "@mantine/notifications";
 import type { SpotlightActionData } from "@mantine/spotlight";
 import {
   IconAlbum,
@@ -461,11 +460,7 @@ export function useSpotlightActions(query: string = "") {
       } else if (isAdmin) {
         navigate({ to: "/library" });
         // The Library page opens the setup from its own Scan button, so say why the scan did not start
-        showNotification({
-          title: t("toasts.scanphotostitle"),
-          message: t("toasts.scan_directory_setup"),
-          color: "orange",
-        });
+        notification.warning(t("toasts.scan_directory_setup"), { title: t("toasts.scanphotostitle") });
       } else {
         notification.scanDirectoryRequired();
       }

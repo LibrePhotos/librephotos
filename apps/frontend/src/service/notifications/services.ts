@@ -1,12 +1,8 @@
-import { showNotification } from "@mantine/notifications";
 import i18n from "../../i18n";
+import { toast } from "./toast";
 
 function serviceActionSuccess(message: string) {
-  showNotification({
-    message,
-    title: i18n.t("services.name"),
-    color: "teal",
-  });
+  toast.success(message, { title: i18n.t("services.name") });
 }
 
 export const services = {

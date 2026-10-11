@@ -1,7 +1,7 @@
-import { showNotification } from "@mantine/notifications";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import i18n from "../../../i18n";
+import { notification } from "../../../service/notifications";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient, queryClient } from "../../api";
 import { serverAddress } from "../../apiClient";
@@ -41,11 +41,7 @@ export const usePhotoShareMutation = () =>
       queryClient.invalidateQueries({ queryKey: [...PhotoSharesQueryKeys] });
     },
     onError: () => {
-      showNotification({
-        title: i18n.t("sharing.photoLink"),
-        message: i18n.t("sharing.photoLinkFailed"),
-        color: "red",
-      });
+      notification.error(i18n.t("sharing.photoLinkFailed"), { title: i18n.t("sharing.photoLink") });
     },
   });
 

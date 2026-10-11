@@ -27,12 +27,13 @@ const mocks = vi.hoisted(() => {
   return {
     ApiError,
     save: vi.fn<(config: EmailConfigUpdate, options?: SaveOptions) => void>(),
-    showNotification: vi.fn<(notification: { message: string; color: string }) => void>(),
+    error: vi.fn<(message: string) => void>(),
+    success: vi.fn<(message: string) => void>(),
   };
 });
 
 vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
-vi.mock("@mantine/notifications", () => ({ showNotification: mocks.showNotification }));
+vi.mock("../../service/notifications", () => ({ notification: { error: mocks.error, success: mocks.success } }));
 vi.mock("../../api_client/api", () => ({ ApiError: mocks.ApiError }));
 vi.mock("../../api_client/settings/hooks/useEmailConfig", () => ({
   useGetEmailConfigQuery: () => ({
@@ -81,7 +82,8 @@ let root: ReturnType<typeof createRoot>;
 
 beforeEach(async () => {
   mocks.save.mockReset();
-  mocks.showNotification.mockReset();
+  mocks.error.mockReset();
+  mocks.success.mockReset();
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
@@ -117,18 +119,18 @@ describe("EmailSettings save errors", () => {
   it("shows the server's message", async () => {
     await clearSecretFailingWith(new mocks.ApiError("API error: 400", 400, "Unknown provider."));
 
-    expect(mocks.showNotification).toHaveBeenCalledWith({ message: "Unknown provider.", color: "red" });
+    expect(mocks.error).toHaveBeenCalledWith("Unknown provider.");
   });
 
   it("falls back to the translated message when the server sent none", async () => {
     await clearSecretFailingWith(new mocks.ApiError("Internal Server Error", 500, null));
 
-    expect(mocks.showNotification).toHaveBeenCalledWith({ message: "emailsettings.savefailed", color: "red" });
+    expect(mocks.error).toHaveBeenCalledWith("emailsettings.savefailed");
   });
 
   it("leaves a 401 to the auth handling", async () => {
     await clearSecretFailingWith(new mocks.ApiError("Authentication failed", 401, null));
 
-    expect(mocks.showNotification).not.toHaveBeenCalled();
+    expect(mocks.error).not.toHaveBeenCalled();
   });
 });

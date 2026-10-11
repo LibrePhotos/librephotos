@@ -13,7 +13,6 @@ import {
   TextInput,
   Title,
 } from "@mantine/core";
-import { showNotification } from "@mantine/notifications";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ApiError } from "../../api_client/api";
@@ -23,6 +22,7 @@ import {
   useSendTestEmailMutation,
   useUpdateEmailConfigMutation,
 } from "../../api_client/settings/hooks/useEmailConfig";
+import { notification } from "../../service/notifications";
 
 // "disabled" and "custom" are labelled with translated text at render time.
 const PROVIDERS = [
@@ -104,10 +104,7 @@ export function EmailSettings(): React.JSX.Element {
     if (error instanceof ApiError && error.status === 401) {
       return;
     }
-    showNotification({
-      message: (error instanceof ApiError && error.serverMessage) || t("emailsettings.savefailed"),
-      color: "red",
-    });
+    notification.error((error instanceof ApiError && error.serverMessage) || t("emailsettings.savefailed"));
   };
 
   const onSave = () => {
@@ -130,7 +127,7 @@ export function EmailSettings(): React.JSX.Element {
       onSuccess: () => {
         setSecret("");
         setHasSecret(!!secret || hasSecret);
-        showNotification({ message: t("emailsettings.saved"), color: "teal" });
+        notification.success(t("emailsettings.saved"));
       },
       onError: reportSaveError,
     });
