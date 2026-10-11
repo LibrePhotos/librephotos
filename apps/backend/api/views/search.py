@@ -3,6 +3,7 @@ from typing import Any
 from django.core.cache import cache
 from django.db.models import QuerySet
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -29,6 +30,7 @@ LEGACY_UNDATED_DATE = "No timestamp"
 
 
 class SearchListViewSet(ListViewSet):
+    permission_classes = (IsAuthenticated,)
     serializer_class = GroupedPhotosSerializer
     pagination_class = HugeResultsSetPagination
     filter_backends = (SemanticSearchFilter,)
@@ -80,6 +82,8 @@ SEARCH_TERM_EXAMPLES_CACHE_SECONDS = 60 * 60 * 2
 
 
 class SearchTermExamples(APIView):
+    permission_classes = (IsAuthenticated,)
+
     def get(self, request: Request, format: str | None = None) -> Response:
         # The examples are built from the caller's own photos, people and places,
         # so the cache is keyed on the user. cache_page + vary_on_cookie keyed

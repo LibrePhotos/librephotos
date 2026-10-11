@@ -27,6 +27,7 @@ from uuid import UUID
 from django.db import models
 from django.db.models import Count, Exists, OuterRef, Q, QuerySet
 from django.utils import timezone
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -85,6 +86,8 @@ def decode_cursor(cursor: str) -> tuple[datetime, str]:
 
 class BaseSyncView(APIView, Generic[ModelT]):
     """Template for a single keyset-paginated delta feed."""
+
+    permission_classes = (IsAuthenticated,)
 
     entity: str | None = None  # DeletionLog entity string; None disables tombstones
     values_fields: tuple[str, ...] = ()
@@ -393,6 +396,8 @@ class SyncSharingView(BaseSyncView[User]):
 # Counts (client integrity check, doc 04 §5)
 # --------------------------------------------------------------------------- #
 class SyncCountsView(APIView):
+    permission_classes = (IsAuthenticated,)
+
     def get(self, request: Request) -> Response:
         user = request_user(request)
         owned_or_shared = Q(owner=user) | Q(shared_to=user)

@@ -7,7 +7,7 @@ from django.db.models import Q
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -32,6 +32,8 @@ SHARING_OPTION_FIELDS = (
 
 
 class SetUserAlbumPublic(APIView):
+    permission_classes = (IsAuthenticated,)
+
     def post(self, request: Request, format: str | None = None) -> Response:
         data = dict(request_dict(request))
         album_id = data.get("album_id")

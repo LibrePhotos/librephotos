@@ -20,6 +20,7 @@ from django_q.tasks import Chain
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -48,6 +49,8 @@ logger = logging.getLogger(__name__)
 
 
 class ScanFacesView(APIView):
+    permission_classes = (IsAuthenticated,)
+
     @extend_schema(
         deprecated=True,
         description="Use POST method",
@@ -78,6 +81,8 @@ class ScanFacesView(APIView):
 
 
 class TrainFaceView(APIView):
+    permission_classes = (IsAuthenticated,)
+
     @staticmethod
     def _train_faces(request: Request) -> Response:
         if not settings.FEATURE_FACE_CLUSTER:
@@ -104,6 +109,7 @@ class TrainFaceView(APIView):
 
 
 class FaceListView(ListViewSet):
+    permission_classes = (IsAuthenticated,)
     serializer_class = PersonFaceListSerializer
     pagination_class = RegularResultsSetPagination
 
@@ -179,6 +185,7 @@ class FaceListView(ListViewSet):
 
 
 class FaceIncompleteListViewSet(ListViewSet):
+    permission_classes = (IsAuthenticated,)
     serializer_class = IncompletePersonFaceListSerializer
     pagination_class = None
 
@@ -301,6 +308,8 @@ class FaceIncompleteListViewSet(ListViewSet):
 
 
 class SetFacePersonLabel(APIView):
+    permission_classes = (IsAuthenticated,)
+
     def post(self, request: Request, format: str | None = None) -> Response:
         user = request_user(request)
         data = dict(request_dict(request))
@@ -490,6 +499,8 @@ class AddFaceView(APIView):
     ``KIND_USER`` and no cluster, so classification trains on it like any other
     face the user named, but it never seeds a cluster of its own.
     """
+
+    permission_classes = (IsAuthenticated,)
 
     # A box smaller than this in big-thumbnail pixels is a stray drag, not a face.
     MIN_SIDE_PIXELS = 12
@@ -685,6 +696,8 @@ class AddFaceView(APIView):
 
 
 class DeleteFaces(APIView):
+    permission_classes = (IsAuthenticated,)
+
     def post(self, request: Request, format: str | None = None) -> Response:
         user = request_user(request)
         data = dict(request_dict(request))

@@ -11,27 +11,52 @@ alone), or ``ReadOnlyModelViewSet``. Never ``ModelViewSet``, never an
 ``http_method_names`` blocklist. ``ROUTER_VERBS`` pins what every router
 prefix serves; a new prefix, or a new verb on an old one, fails until it is
 added there on purpose.
+
+Every DRF view under ``api/`` says who may call it (#2329): its class, or a
+project base class it names, sets ``permission_classes`` or overrides
+``get_permissions()``; the ``IsAuthenticated`` default is a safety net, not a
+declaration. Role requirements are permission classes (``IsAdminUser``,
+``api.permissions.IsSuperUser``), never an ``is_staff`` check in the body that
+builds its own 401 or 403. The endpoints that take credentials without a
+session are throttled (``api/throttling.py``).
 """
 
 import ast
 import datetime
+import types
 import uuid
+from collections.abc import Iterable
 from pathlib import Path
 
 from django.conf import settings
-from django.test import SimpleTestCase, TestCase
+from django.http import HttpResponseBase
+from django.test import SimpleTestCase, TestCase, override_settings
+from django.urls import re_path
 from django.utils import timezone
 from rest_framework import mixins, routers, viewsets
-from rest_framework.test import APIClient
+from rest_framework.generics import GenericAPIView
+from rest_framework.permissions import BasePermission, IsAdminUser
+from rest_framework.request import Request
+from rest_framework.response import Response
+from rest_framework.test import APIClient, APIRequestFactory, force_authenticate
+from rest_framework.views import APIView
 
 from api.models import AlbumAuto, AlbumDate, AlbumPlace, AlbumThing, AlbumUser, Tag
 from api.models.long_running_job import LongRunningJob
 from api.serializers.job import LongRunningJobSerializer
 from api.serializers.tag import TagSerializer
-from api.tests.infra.routes import router_verbs
+from api.permissions import IsSuperUser
+from api.tests.infra.routes import ApiRoute, api_routes, router_verbs
 from api.tests.utils import create_test_person, create_test_photo, create_test_user
 from api.views.albums import AlbumThingViewSet
-from librephotos.urls import router
+from api.views.password_reset import PasswordResetConfirmView, PasswordResetView
+from api.views.user import UserViewSet
+from librephotos import urls as project_urls
+from librephotos.urls import (
+    CustomTokenObtainPairView,
+    CustomTokenRefreshView,
+    router,
+)
 
 # Every router prefix and the "METHOD action" pairs it serves. Adding a
 # viewset or a verb means adding it here, and a mutating one also needs a
@@ -215,17 +240,32 @@ class RouterVerbsTest(SimpleTestCase):
         )
 
 
+def view_source_files() -> list[tuple[str, Path]]:
+    """Every module under VIEW_SOURCES: (path relative to the backend, path)."""
+    root = Path(settings.BASE_DIR).parent
+    files = []
+    for tree in VIEW_SOURCES:
+        for path in sorted((root / tree).rglob("*.py")):
+            relative = path.relative_to(root).as_posix()
+            if "/tests/" in f"/{relative}" or "/migrations/" in relative:
+                continue
+            files.append((relative, path))
+    return files
+
+
 class NoModelViewSetTest(SimpleTestCase):
+    def test_the_source_walk_reaches_the_view_modules(self):
+        # settings.BASE_DIR is apps/backend/librephotos, not apps/backend: a
+        # walk from there found no files and the check below passed on nothing.
+        scanned = {relative for relative, _ in view_source_files()}
+        self.assertIn("api/views/photos.py", scanned)
+        self.assertIn("nextcloud/views.py", scanned)
+
     def test_no_view_subclasses_model_viewset_or_blocklists_methods(self):
-        root = Path(settings.BASE_DIR)
         problems = []
-        for tree in VIEW_SOURCES:
-            for path in sorted((root / tree).rglob("*.py")):
-                relative = path.relative_to(root).as_posix()
-                if "/tests/" in f"/{relative}" or "/migrations/" in relative:
-                    continue
-                source = path.read_text(encoding="utf-8")
-                problems += forbidden_viewset_patterns(source, relative)
+        for relative, path in view_source_files():
+            source = path.read_text(encoding="utf-8")
+            problems += forbidden_viewset_patterns(source, relative)
         self.assertEqual(problems, [], "\n".join(problems))
 
     def test_the_source_check_catches_both_patterns(self):
@@ -416,3 +456,391 @@ class JobSerializerReadOnlyTest(SimpleTestCase):
             if not field.read_only
         ]
         self.assertEqual(writable, [])
+
+
+# --- Permissions and throttles (#2329) ---------------------------------------
+
+PROJECT_PACKAGES = ("api", "nextcloud", "librephotos")
+
+# Routed DRF views from other packages. They keep their own access rules.
+THIRD_PARTY_VIEWS: dict[str, str] = {
+    "rest_framework_simplejwt.views.TokenBlacklistView": (
+        "revokes the refresh token in its body; open upstream "
+        "(permission_classes = ()), the token is the credential"
+    ),
+    "drf_spectacular.views.SpectacularAPIView": "the OpenAPI schema",
+    "drf_spectacular.views.SpectacularRedocView": "schema UI",
+    "drf_spectacular.views.SpectacularSwaggerView": "schema UI",
+}
+
+# Routed only with DEBUG (librephotos/urls.py), so absent under the test runner.
+DEBUG_ONLY_VIEWS = {
+    "api.views.server_info.ApiHelpView",
+    "drf_spectacular.views.SpectacularAPIView",
+    "drf_spectacular.views.SpectacularRedocView",
+    "drf_spectacular.views.SpectacularSwaggerView",
+}
+
+# Views an anonymous caller gets past the permission check of, for at least one
+# of their methods. Every other view under api/ answers 401 before its body runs.
+ANONYMOUS_VIEWS: dict[str, str] = {
+    "api.views.health.HealthzView": "health probe",
+    "api.views.health.HealthzPostgresqlView": "health probe",
+    "api.views.health.HealthzQueueView": "health probe",
+    "api.views.health.HealthzReadyView": "health probe",
+    "api.views.password_reset.PasswordResetView": "requests a reset mail",
+    "api.views.password_reset.PasswordResetConfirmView": "sets the new password",
+    "api.views.public_albums.PublicAlbumBySlug": "public album links",
+    "api.views.public_albums.PublicPhotoDetailBySlug": "public album links",
+    "api.views.public_photos.PublicPhotoBySlug": "public photo links",
+    "api.views.public_photos.PublicPhotoMediaBySlug": "public photo links",
+    "api.views.server_info.ApiHelpView": "API overview",
+    "api.views.site_settings.SiteSettingsView": "GET: read before sign-in",
+    "api.views.sso.SSOConfigView": "which SSO buttons the sign-in page shows",
+    "api.views.user.IsFirstTimeSetupView": "read before sign-in",
+    "api.views.user.UserViewSet": (
+        "list/retrieve of public users; create for first-time setup and sign-up"
+    ),
+    "api.views.photos.PhotoViewSet": (
+        "retrieve/summary/albums of a public or shared photo"
+    ),
+    "librephotos.urls.CustomTokenObtainPairView": "sign-in",
+    "librephotos.urls.CustomTokenRefreshView": "the refresh token is the credential",
+    **THIRD_PARTY_VIEWS,
+}
+
+# Views whose static permission_classes require staff. Dropping IsAdminUser
+# from one of them, or adding a new staff-only view, fails until it is here.
+STAFF_ONLY_VIEWS = {
+    "api.views.dataviz.ServerLogsView",
+    "api.views.dataviz.ServerLogsViewerView",
+    "api.views.dataviz.ServerStatsView",
+    "api.views.email_config.EmailConfigView",
+    "api.views.email_config.EmailTestView",
+    "api.views.services.ServiceViewSet",
+    "api.views.serving_diagnostics.MediaPermissionDiagnosticsView",
+    "api.views.user.DeleteUserViewSet",
+    "api.views.user.ManageUserViewSet",
+    "api.views.user.RootPathTreeView",
+}
+
+# Unauthenticated endpoints that accept credentials or send mail. Each one sets
+# throttle_classes or overrides get_throttles().
+THROTTLED_AUTH_VIEWS: tuple[type[APIView], ...] = (
+    CustomTokenObtainPairView,
+    CustomTokenRefreshView,
+    PasswordResetView,
+    PasswordResetConfirmView,
+    UserViewSet,  # create: sign-up and first-time setup
+)
+
+# What a view must not build itself: a role check is a permission class, and
+# the exception handler writes the error body.
+BANNED_RESPONSE_NAMES = frozenset({"HttpResponseForbidden", "HTTP_401_UNAUTHORIZED"})
+BANNED_RESPONSE_EXEMPTIONS: dict[str, frozenset[str]] = {
+    # The media endpoints' bodiless 403 carries X-Media-Error, which tells the
+    # web client a refused file apart from an expired session (#2325).
+    "api/views/media.py": frozenset({"HttpResponseForbidden"}),
+}
+
+
+def qualname(view: type) -> str:
+    return f"{view.__module__}.{view.__qualname__}"
+
+
+def permission_declarer(view: type) -> type | None:
+    """The class whose permission_classes or get_permissions the view runs."""
+    return next(
+        (
+            klass
+            for klass in view.__mro__
+            if "permission_classes" in vars(klass) or "get_permissions" in vars(klass)
+        ),
+        None,
+    )
+
+
+def _project_class(klass: type | None) -> bool:
+    return klass is not None and klass.__module__.split(".")[0] in PROJECT_PACKAGES
+
+
+def drf_views(routes: Iterable[ApiRoute]) -> dict[type, ApiRoute]:
+    """Each DRF view class under api/ with the first route that serves it."""
+    views: dict[type, ApiRoute] = {}
+    for route in routes:
+        if issubclass(route.view, APIView):
+            views.setdefault(route.view, route)
+    return views
+
+
+def undeclared_permission_views(routes: Iterable[ApiRoute]) -> list[str]:
+    """Views that run a permission policy no project class chose."""
+    problems = []
+    for view, route in drf_views(routes).items():
+        if qualname(view) in THIRD_PARTY_VIEWS:
+            continue
+        declarer = permission_declarer(view)
+        if not _project_class(declarer):
+            inherited = qualname(declarer) if declarer else "nothing"
+            problems.append(
+                f"{route.route} {qualname(view)}: declares no permission_classes "
+                f"or get_permissions (runs {inherited}'s)"
+            )
+    return problems
+
+
+def static_permissions(view: type) -> list[object]:
+    """permission_classes, or [] when a project get_permissions() decides."""
+    declarer = permission_declarer(view)
+    if declarer is None or "get_permissions" in vars(declarer):
+        return []
+    return list(getattr(view, "permission_classes", ()))
+
+
+def object_only_permissions_on_plain_views(routes: Iterable[ApiRoute]) -> list[str]:
+    """Object-level permission classes on views that never call get_object()."""
+    problems = []
+    for view, route in drf_views(routes).items():
+        if issubclass(view, GenericAPIView):
+            continue
+        for permission in static_permissions(view):
+            if not (
+                isinstance(permission, type) and issubclass(permission, BasePermission)
+            ):
+                continue
+            object_only = (
+                permission.has_permission is BasePermission.has_permission
+                and permission.has_object_permission
+                is not BasePermission.has_object_permission
+            )
+            if object_only:
+                problems.append(
+                    f"{route.route} {qualname(view)}: {permission.__name__} only "
+                    "checks objects and this view has no get_object(), so it "
+                    "never runs"
+                )
+    return problems
+
+
+def hand_built_auth_responses(
+    source: str, filename: str, allowed: frozenset[str] = frozenset()
+) -> list[str]:
+    """Places in ``source`` that build a 401 or an HttpResponseForbidden."""
+    problems = []
+    for node in ast.walk(ast.parse(source, filename)):
+        name = None
+        if isinstance(node, ast.Name):
+            name = node.id
+        elif isinstance(node, ast.Attribute):
+            name = node.attr
+        elif isinstance(node, ast.alias):
+            name = node.name.rsplit(".", 1)[-1]
+        if name in BANNED_RESPONSE_NAMES and name not in allowed:
+            problems.append(f"{filename}:{node.lineno} uses {name}")
+        if (
+            isinstance(node, ast.keyword)
+            and node.arg == "status"
+            and isinstance(node.value, ast.Constant)
+            and node.value.value == 401
+        ):
+            problems.append(f"{filename}:{node.lineno} builds a 401 response")
+    return sorted(problems, key=lambda p: int(p.split(":")[1].split()[0]))
+
+
+def _planted_urlconf(view: type[APIView]) -> types.ModuleType:
+    """The project URLconf with ``view`` routed at api/planted/."""
+    planted = types.ModuleType("planted_urls")
+    planted.__dict__["urlpatterns"] = [
+        re_path(r"^api/planted/$", view.as_view()),
+        *project_urls.urlpatterns,
+    ]
+    return planted
+
+
+class PermissionDeclarationTest(SimpleTestCase):
+    def test_every_api_view_declares_its_permissions(self):
+        problems = undeclared_permission_views(api_routes())
+        self.assertEqual(
+            problems,
+            [],
+            "Say who may call each view: permission_classes = (IsAuthenticated,) "
+            "or the stricter class, in the view or a project base class it "
+            "names.\n  " + "\n  ".join(problems),
+        )
+
+    def test_a_planted_view_without_permissions_is_caught(self):
+        class PlantedView(APIView):
+            def get(self, request: Request) -> Response:
+                return Response({})
+
+        with override_settings(ROOT_URLCONF=_planted_urlconf(PlantedView)):
+            problems = undeclared_permission_views(api_routes())
+
+        self.assertEqual(len(problems), 1, problems)
+        self.assertIn("api/planted/", problems[0])
+        self.assertIn("runs rest_framework.views.APIView's", problems[0])
+
+    def test_the_third_party_exemptions_are_still_routed(self):
+        routed = {qualname(view) for view in drf_views(api_routes())}
+        self.assertEqual(set(THIRD_PARTY_VIEWS) - routed - DEBUG_ONLY_VIEWS, set())
+
+    def test_object_only_permissions_sit_on_views_that_fetch_objects(self):
+        self.assertEqual(object_only_permissions_on_plain_views(api_routes()), [])
+
+    def test_an_inert_object_permission_is_caught(self):
+        class OwnerOnly(BasePermission):
+            def has_object_permission(
+                self, request: Request, view: APIView, obj: object
+            ) -> bool:
+                return False
+
+        class PlantedView(APIView):
+            permission_classes = (OwnerOnly,)
+
+            def post(self, request: Request) -> Response:
+                return Response({})
+
+        with override_settings(ROOT_URLCONF=_planted_urlconf(PlantedView)):
+            problems = object_only_permissions_on_plain_views(api_routes())
+
+        self.assertEqual(len(problems), 1, problems)
+        self.assertIn("OwnerOnly only checks objects", problems[0])
+
+    def test_staff_only_views_are_pinned(self):
+        staff_only = {
+            qualname(view)
+            for view in drf_views(api_routes())
+            if IsAdminUser in static_permissions(view)
+        }
+        self.assertEqual(staff_only, STAFF_ONLY_VIEWS)
+
+
+class HandBuiltAuthResponseTest(SimpleTestCase):
+    def test_no_view_builds_its_own_401_or_forbidden_response(self):
+        problems = []
+        for relative, source_path in view_source_files():
+            problems += hand_built_auth_responses(
+                source_path.read_text(encoding="utf-8"),
+                relative,
+                BANNED_RESPONSE_EXEMPTIONS.get(relative, frozenset()),
+            )
+        self.assertEqual(
+            problems,
+            [],
+            "Refuse with a permission class, or raise NotAuthenticated or "
+            "PermissionDenied:\n  " + "\n  ".join(problems),
+        )
+
+    def test_the_source_check_catches_each_form(self):
+        source = (
+            "from django.http import HttpResponseForbidden\n"
+            "from rest_framework import status\n"
+            "def a(request):\n"
+            "    return HttpResponseForbidden()\n"
+            "def b(request):\n"
+            "    return Response(status=status.HTTP_401_UNAUTHORIZED)\n"
+            "def c(request):\n"
+            "    return HttpResponse(status=401)\n"
+        )
+
+        problems = hand_built_auth_responses(source, "planted.py")
+
+        self.assertEqual(
+            problems,
+            [
+                "planted.py:1 uses HttpResponseForbidden",
+                "planted.py:4 uses HttpResponseForbidden",
+                "planted.py:6 uses HTTP_401_UNAUTHORIZED",
+                "planted.py:8 builds a 401 response",
+            ],
+        )
+
+    def test_the_media_exemption_covers_only_its_forbidden_response(self):
+        source = "x = HttpResponseForbidden()\ny = Response(status=401)\n"
+
+        problems = hand_built_auth_responses(
+            source,
+            "api/views/media.py",
+            BANNED_RESPONSE_EXEMPTIONS["api/views/media.py"],
+        )
+
+        self.assertEqual(problems, ["api/views/media.py:2 builds a 401 response"])
+
+
+class ThrottledAuthViewsTest(SimpleTestCase):
+    def test_each_credential_endpoint_has_a_throttle(self):
+        unthrottled = [
+            qualname(view)
+            for view in THROTTLED_AUTH_VIEWS
+            if not view.throttle_classes
+            and not any(
+                "get_throttles" in vars(klass) and _project_class(klass)
+                for klass in view.__mro__
+            )
+        ]
+        self.assertEqual(unthrottled, [])
+
+    def test_each_one_is_routed(self):
+        routed = set(drf_views(api_routes()))
+        self.assertEqual(
+            [qualname(view) for view in THROTTLED_AUTH_VIEWS if view not in routed],
+            [],
+        )
+
+
+class AccessByRoleTest(TestCase):
+    """Every route refuses the roles its permission classes leave out.
+
+    Calls each view function directly, the way the resolver would, so the
+    permission check answers before any handler runs.
+    """
+
+    def call(
+        self, route: ApiRoute, method: str, user: object | None = None
+    ) -> HttpResponseBase:
+        request = APIRequestFactory().generic(method.upper(), f"/{route.route}")
+        if user is not None:
+            force_authenticate(request, user=user)
+        assert route.callback is not None
+        response = route.callback(request, **{name: "0" for name in route.kwargs})
+        assert isinstance(response, HttpResponseBase)
+        return response
+
+    def test_anonymous_callers_get_401_outside_the_open_views(self):
+        for view, route in drf_views(api_routes()).items():
+            if qualname(view) in ANONYMOUS_VIEWS:
+                continue
+            for method in sorted(route.methods):
+                with self.subTest(f"{method.upper()} {route.route}"):
+                    self.assertEqual(self.call(route, method).status_code, 401)
+
+    def test_the_open_views_are_still_routed(self):
+        routed = {qualname(view) for view in drf_views(api_routes())}
+        self.assertEqual(set(ANONYMOUS_VIEWS) - routed - DEBUG_ONLY_VIEWS, set())
+
+    def test_staff_only_views_refuse_a_signed_in_user(self):
+        user = create_test_user()
+        for view, route in drf_views(api_routes()).items():
+            if qualname(view) not in STAFF_ONLY_VIEWS:
+                continue
+            for method in sorted(route.methods):
+                with self.subTest(f"{method.upper()} {route.route}"):
+                    self.assertEqual(self.call(route, method, user).status_code, 403)
+
+    def test_superuser_only_views_refuse_staff(self):
+        staff = create_test_user()
+        staff.is_staff = True
+        staff.save()
+        superuser_only = [
+            (view, route)
+            for view, route in drf_views(api_routes()).items()
+            if IsSuperUser in static_permissions(view)
+        ]
+        self.assertEqual(
+            [qualname(view) for view, _ in superuser_only],
+            ["api.views.user.DeleteUserViewSet"],
+        )
+        for _view, route in superuser_only:
+            for method in sorted(route.methods):
+                with self.subTest(f"{method.upper()} {route.route}"):
+                    self.assertEqual(self.call(route, method, staff).status_code, 403)

@@ -2,7 +2,7 @@ import uuid
 
 from django.http import HttpResponse, HttpResponseBase
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -100,6 +100,8 @@ class SetPhotoShare(APIView):
     Sharing a photo this way does not touch ``Photo.public``.
     """
 
+    permission_classes = (IsAuthenticated,)
+
     def post(self, request: Request, format: str | None = None) -> Response:
         data = request_dict(request)
         photo_id = data.get("photo_id")
@@ -142,6 +144,8 @@ class SetPhotoShare(APIView):
 
 class PhotoShareList(APIView):
     """List the caller's active photo shares, newest first."""
+
+    permission_classes = (IsAuthenticated,)
 
     def get(self, request: Request, format: str | None = None) -> Response:
         shares = (

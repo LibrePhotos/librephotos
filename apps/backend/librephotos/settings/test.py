@@ -25,3 +25,16 @@ LOGGING = build_logging_config(
     # A developer's LOG_LEVELS must not switch loggers back on mid-suite.
     logger_levels={},
 )
+
+# The suite signs in and signs up from 127.0.0.1 many times a minute in each
+# process, so the throttles get a rate it never reaches. The throttle tests
+# (api/tests/users_and_auth/test_auth_throttling.py) set their own and clear
+# the cache.
+REST_FRAMEWORK = {
+    **REST_FRAMEWORK,  # noqa: F405
+    "DEFAULT_THROTTLE_RATES": {
+        **DEFAULT_THROTTLE_RATES,  # noqa: F405
+        "auth": "100000/minute",
+        "token_refresh": "100000/minute",
+    },
+}

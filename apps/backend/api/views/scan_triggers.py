@@ -7,6 +7,7 @@ from collections.abc import Callable
 
 from django_q.tasks import AsyncTask, Chain
 from drf_spectacular.utils import extend_schema
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -74,6 +75,8 @@ def _start_photo_scan(user: User, directory: str, full_scan: bool = False) -> Re
 
 
 class ScanPhotosView(APIView):
+    permission_classes = (IsAuthenticated,)
+
     def post(self, request: Request, format: str | None = None) -> Response:
         return self._scan_photos(request)
 
@@ -92,6 +95,8 @@ class ScanPhotosView(APIView):
 
 
 class FullScanPhotosView(APIView):
+    permission_classes = (IsAuthenticated,)
+
     def post(self, request: Request, format: str | None = None) -> Response:
         return self._scan_photos(request)
 
@@ -110,6 +115,8 @@ class FullScanPhotosView(APIView):
 
 
 class DeleteMissingPhotosView(APIView):
+    permission_classes = (IsAuthenticated,)
+
     def post(self, request: Request, format: str | None = None) -> Response:
         return self._delete_missing_photos(request, format)
 
@@ -131,6 +138,8 @@ class DeleteMissingPhotosView(APIView):
 
 
 class ClassifyMediaView(APIView):
+    permission_classes = (IsAuthenticated,)
+
     def post(self, request: Request, format: str | None = None) -> Response:
         from api.directory_watcher.processing_jobs import classify_media
 
@@ -142,6 +151,8 @@ class ClassifyMediaView(APIView):
 
 
 class GenerateOcrView(APIView):
+    permission_classes = (IsAuthenticated,)
+
     def post(self, request: Request, format: str | None = None) -> Response:
         from api.directory_watcher.processing_jobs import generate_ocr
 

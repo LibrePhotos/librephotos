@@ -22,6 +22,7 @@ from django.utils.text import get_valid_filename
 from django.views.decorators.csrf import csrf_exempt
 from django_q.tasks import Chain
 from rest_framework import viewsets
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework_simplejwt.exceptions import AuthenticationFailed, InvalidToken
@@ -140,6 +141,8 @@ def validate_scan_directory(user: User) -> None:
 
 
 class UploadPhotoExists(viewsets.ViewSet):
+    permission_classes = (IsAuthenticated,)
+
     def retrieve(self, request: Request, pk: str) -> Response:
         # Only the requester's own library counts: answering for other users'
         # hashes would tell anyone which files someone else has uploaded.

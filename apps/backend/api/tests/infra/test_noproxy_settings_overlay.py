@@ -38,8 +38,15 @@ print(json.dumps({
     "noproxy_constance": sorted(noproxy.CONSTANCE_CONFIG),
     "prod_fields": sorted(prod.CONSTANCE_ADDITIONAL_FIELDS),
     "noproxy_fields": sorted(noproxy.CONSTANCE_ADDITIONAL_FIELDS),
-    "prod_rest_framework": repr(prod.REST_FRAMEWORK),
-    "noproxy_rest_framework": repr(noproxy.REST_FRAMEWORK),
+    # NUM_PROXIES is the one key the overlay changes on purpose.
+    "prod_rest_framework": repr(
+        {k: v for k, v in prod.REST_FRAMEWORK.items() if k != "NUM_PROXIES"}
+    ),
+    "noproxy_rest_framework": repr(
+        {k: v for k, v in noproxy.REST_FRAMEWORK.items() if k != "NUM_PROXIES"}
+    ),
+    "prod_num_proxies": prod.REST_FRAMEWORK["NUM_PROXIES"],
+    "noproxy_num_proxies": noproxy.REST_FRAMEWORK["NUM_PROXIES"],
     "prod_databases": repr(prod.DATABASES),
     "noproxy_databases": repr(noproxy.DATABASES),
     "serve_frontend": noproxy.SERVE_FRONTEND,
@@ -57,6 +64,7 @@ def load_noproxy_settings(**env):
     with tempfile.TemporaryDirectory() as tmp:
         environ = dict(os.environ)
         environ.pop("DB_BACKEND", None)
+        environ.pop("NUM_PROXIES", None)
         environ.update(
             {
                 "BASE_DATA": tmp,
@@ -93,6 +101,15 @@ class NoProxySettingsTest(SimpleTestCase):
             loaded["noproxy_rest_framework"], loaded["prod_rest_framework"]
         )
         self.assertEqual(loaded["email_backend"], "api.mail.DynamicEmailBackend")
+
+    def test_trusts_no_forwarded_header_unless_told_of_a_proxy(self):
+        # production sits behind the bundled proxy; this image is reached
+        # directly unless the operator puts a proxy in front and says so.
+        loaded = load_noproxy_settings()
+        self.assertEqual(loaded["prod_num_proxies"], 1)
+        self.assertEqual(loaded["noproxy_num_proxies"], 0)
+        behind_proxy = load_noproxy_settings(NUM_PROXIES="1")
+        self.assertEqual(behind_proxy["noproxy_num_proxies"], 1)
 
     def test_serves_the_frontend(self):
         loaded = load_noproxy_settings()

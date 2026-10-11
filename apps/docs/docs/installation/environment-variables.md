@@ -356,12 +356,37 @@ So set this whenever LibrePhotos has to hand a URL to something outside the cont
 
 ### Outgoing email
 
-The mail server itself is set in the app, under Admin area → Site Settings → Email. The two variables here only supply defaults.
+The mail server itself is set in the app, under Admin area → Site Settings → Email. The variable here only supplies a default. The password-reset rate limit is under [Sign-in rate limits](#sign-in-rate-limits).
 
 | Variable | Default | What it does |
 | --- | --- | --- |
 | `DEFAULT_FROM_EMAIL` | `LibrePhotos <no-reply@localhost>` | The sender address for mail when the Email settings have no From address. A From address saved there takes precedence. |
-| `PASSWORD_RESET_THROTTLE_RATE` | `5/hour` | How often the password-reset endpoint accepts a request, in Django REST framework's rate format, for example `5/hour` or `20/day`. |
+
+### Sign-in rate limits
+
+Not released yet: up to 1.3.0, only the password-reset request was rate limited.
+
+Signing in, refreshing a token, setting a new password from a reset link and signing up are rate limited per client. A client that goes over a limit gets `429 Too Many Requests` with a `Retry-After` header until its counter runs out. Sign-in counts per client address and username together, so people who share an address (a household behind one router) only use up each other's attempts at the same account, and someone guessing passwords for one account does not lock the others out. An admin adding users in the user editor is not limited.
+
+| Variable | Default | What it limits |
+| --- | --- | --- |
+| `AUTH_THROTTLE_RATE` | `10/minute` | Sign-in (`/api/auth/token/obtain/`), per address and username; setting the new password from a reset link; sign-up and first-time setup. |
+| `TOKEN_REFRESH_THROTTLE_RATE` | `60/minute` | `/api/auth/token/refresh/`, per address. Every open tab and the mobile app refresh their token every few minutes, and a refused refresh signs the web app out, so keep this well above the number of devices behind one address. |
+| `PASSWORD_RESET_THROTTLE_RATE` | `5/hour` | Requesting a password-reset email, per address. |
+| `NUM_PROXIES` | `1` (Compose, Kubernetes); `0` ([unified image](unified-deployment.md), [Windows standalone](windows-standalone.md)) | How many reverse proxies in front of the backend append the client address to `X-Forwarded-For`. See below. |
+
+A rate is a number, a slash and `second`, `minute`, `hour` or `day` (only the first letter counts, so `10/m` works too).
+
+The backend counts per client address, which it takes from the `X-Forwarded-For` header: the entry the proxy closest to it added, `NUM_PROXIES` entries from the end. Entries before that were written by the client and are ignored, so a client cannot pick its own address. Set it to match your setup:
+
+- **Bundled Compose setup**: `1`, the default. The proxy container appends the client address.
+- **Your own reverse proxy (Traefik, Caddy, nginx, a load balancer) in front of the bundled proxy**: `2`, as long as your proxy also appends to `X-Forwarded-For` (they all do by default). The Kubernetes manifests set `2` for the ingress controller in front of the proxy container.
+- **Unified image or Windows standalone reached directly**: `0`, their default. The address of the connection is used and the header is ignored.
+- **Unified image behind your own reverse proxy**: `1`.
+
+With a value that is too low, every client shows up with your proxy's address and shares its counters, so the limits are reached sooner; sign-in still counts each username separately. With a value that is too high, clients can choose the address they are counted under and get around the limits.
+
+The counters are kept in the memory of each backend process. With `WEB_CONCURRENCY` above 1, each process counts on its own, so a client gets up to that many times the rate before every process refuses it, and a restart of the backend starts every counter again.
 
 ### Trusted origins for the Django admin
 
