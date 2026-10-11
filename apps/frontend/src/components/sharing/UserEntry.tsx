@@ -1,11 +1,10 @@
 import { Avatar, Group, Switch, Text, Title } from "@mantine/core";
-import { DateTime } from "luxon";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchUserAlbumQuery, useShareUserAlbumMutation } from "../../api_client/albums/hooks";
 import type { UserAlbum } from "../../api_client/albums/types";
 import type { ListUser } from "../../api_client/user/types";
-import { i18nResolvedLanguage } from "../../i18n";
+import { parseInstant } from "../../util/dateUtils";
 import { avatarSrc } from "./avatarSrc";
 
 type UserEntryProps = Readonly<{
@@ -37,8 +36,7 @@ export function UserEntry(props: UserEntryProps) {
           <Title order={4}>{getDisplayName(user)}</Title>
           {user.date_joined && (
             <Text size="sm" c="dimmed">
-              {t("modalphotosshare.joined")}{" "}
-              {DateTime.fromISO(user.date_joined).setLocale(i18nResolvedLanguage()).toRelative()}
+              {t("modalphotosshare.joined")} {parseInstant(user.date_joined).toRelative()}
             </Text>
           )}
         </div>

@@ -27,7 +27,7 @@ import { DateTime } from "luxon";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { useJobQuery } from "../../api_client/jobs/hooks";
-import { i18nResolvedLanguage } from "../../i18n";
+import { parseInstant } from "../../util/dateUtils";
 import { EmptyState } from "../common/EmptyState";
 import { PageHeader } from "../PageHeader";
 import { formatJobDuration } from "./JobDuration";
@@ -118,8 +118,7 @@ export function JobDetailView({ jobId, backTo }: IJobDetailView) {
     completed: t("joblist.completed"),
   };
 
-  const formatTime = (iso: string) =>
-    DateTime.fromISO(iso).setLocale(i18nResolvedLanguage()).toLocaleString(DateTime.DATETIME_MED);
+  const formatTime = (iso: string) => parseInstant(iso).toLocaleString(DateTime.DATETIME_MED);
 
   const resultCode = (
     <Code block style={{ whiteSpace: "pre-wrap", wordBreak: "break-word", maxHeight: "400px", overflow: "auto" }}>

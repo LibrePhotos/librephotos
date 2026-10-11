@@ -13,6 +13,10 @@ const modalsImportBan = {
   name: "@mantine/modals",
   message: "Dialogs are components opened with useDisclosure, not imperative modals.open*().",
 };
+const dayjsImportBan = {
+  group: ["dayjs", "dayjs/*"],
+  message: "dayjs is only for Mantine's date pickers. Use util/dateUtils (luxon) for dates.",
+};
 // Toasts have one colour and one entry point; see service/notifications/toast.ts.
 const notificationsImportBan = {
   group: ["@mantine/notifications", "@mantine/notifications/*"],
@@ -39,6 +43,29 @@ const routeModalBan = {
   message:
     "Move the dialog into a *Modal component (components/album or components/modals) and open it with useDisclosure.",
 };
+
+// Dates: util/dateUtils is the one module that parses and formats them (AGENTS.md).
+const dateSyntaxBans = [
+  {
+    // Parsing a wall-clock exif_timestamp as an instant shifts it by the viewer's offset; the
+    // parsers in util/dateUtils say which kind of timestamp a value is.
+    selector:
+      "MemberExpression[object.name='DateTime'][property.name=/^(fromISO|fromSQL|fromHTTP|fromRFC2822|fromSeconds|fromMillis|fromJSDate|fromFormat)$/]",
+    message:
+      "Parse dates through util/dateUtils (parseInstant, parsePhotoTimestamp, fromUnixSeconds, the picker helpers), not DateTime.from*.",
+  },
+  {
+    // The UI locale is luxon's default, set once in i18n.ts; a per-call locale drifts from it.
+    selector: "CallExpression[callee.property.name='setLocale']",
+    message: "The UI locale is set once in i18n.ts (luxon's default locale). Format without .setLocale().",
+  },
+  {
+    // new Date(value) parses a string by the engine's own rules; dateUtils owns parsing.
+    // Multi-argument forms build a local Date from parts and are not parsing.
+    selector: "NewExpression[callee.name='Date'][arguments.length=1]",
+    message: "Parse dates through util/dateUtils, not new Date(value).",
+  },
+];
 
 export default [
   {
@@ -150,19 +177,23 @@ export default [
       "@typescript-eslint/no-unsafe-function-type": "error",
       "@typescript-eslint/no-empty-object-type": "error",
       "@typescript-eslint/no-wrapper-object-types": "error",
-      "no-restricted-syntax": ["error", typedMockBan, openStateBan],
+      "no-restricted-syntax": ["error", typedMockBan, openStateBan, ...dateSyntaxBans],
       // Dialogs are declarative components; the imperative @mantine/modals API is not used.
       // One entry: a second "no-restricted-imports" key in this object would silently replace this one.
-      "no-restricted-imports": ["error", { paths: [modalsImportBan], patterns: [notificationsImportBan] }],
+      // dayjs is only Mantine's date-picker glue (its locales are loaded in i18n.ts); dates are luxon.
+      "no-restricted-imports": [
+        "error",
+        { paths: [modalsImportBan], patterns: [notificationsImportBan, dayjsImportBan] },
+      ],
     },
   },
   {
     // The toast layer itself and the app shell (the Notifications provider and its styles) are the
     // only places that import @mantine/notifications. A later block replaces a rule's options for the
-    // files it matches, so this turns the rule off for those files only.
+    // files it matches, so this keeps the other import bans for those files.
     files: ["src/service/notifications/**/*.{ts,tsx}", "src/App.tsx"],
     rules: {
-      "no-restricted-imports": ["error", { paths: [modalsImportBan] }],
+      "no-restricted-imports": ["error", { paths: [modalsImportBan], patterns: [dayjsImportBan] }],
     },
   },
   {
@@ -171,7 +202,7 @@ export default [
     // replaces the options of a rule, so it lists the other restrictions again.
     files: ["src/routes/**/*.{ts,tsx}"],
     rules: {
-      "no-restricted-syntax": ["error", typedMockBan, openStateBan, routeModalBan],
+      "no-restricted-syntax": ["error", typedMockBan, openStateBan, routeModalBan, ...dateSyntaxBans],
     },
   },
   {

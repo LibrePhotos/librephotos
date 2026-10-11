@@ -1,9 +1,8 @@
 import { Group, Text } from "@mantine/core";
-import { DateTime } from "luxon";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import type { UserAlbumInfo } from "../../api_client/albums/types";
-import { i18nResolvedLanguage } from "../../i18n";
+import { parseInstant } from "../../util/dateUtils";
 import { Tile } from "../Tile";
 import classes from "./AlbumListItem.module.css";
 
@@ -37,7 +36,7 @@ export function AlbumListItem({ album, showUpdatedTime = false }: AlbumListItemP
               <br />
               {/* The list only knows when the album was created, not when it last changed */}
               {t("modalalbum.created", {
-                duration: DateTime.fromISO(album.created_on).setLocale(i18nResolvedLanguage()).toRelative(),
+                duration: parseInstant(album.created_on).toRelative(),
               })}
             </>
           )}

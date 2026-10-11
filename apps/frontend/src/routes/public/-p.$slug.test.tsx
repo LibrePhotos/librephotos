@@ -43,9 +43,12 @@ vi.mock("../../api_client/photos/hooks", () => ({
 vi.mock("../../i18n", () => ({ i18nResolvedLanguage: () => "en" }));
 
 const defaultZone = Settings.defaultZone;
+const defaultLocale = Settings.defaultLocale;
 
 beforeAll(async () => {
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+  // i18n.ts sets luxon's locale to the UI language, and this test mocks that module out.
+  Settings.defaultLocale = "en";
   window.matchMedia = (query: string): MediaQueryList => ({
     matches: false,
     media: query,
@@ -61,6 +64,7 @@ beforeAll(async () => {
 
 afterAll(() => {
   Settings.defaultZone = defaultZone;
+  Settings.defaultLocale = defaultLocale;
 });
 
 const mounted: Array<() => Promise<void>> = [];

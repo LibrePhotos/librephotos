@@ -4,7 +4,6 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { Memory } from "../../api_client/memories";
 import { Media } from "../../api_client/photos/types";
-import { i18nResolvedLanguage } from "../../i18n";
 import { Tile } from "../Tile";
 import { memoryDayLabel, memoryMonthLabel } from "./memoryLabels";
 
@@ -16,9 +15,8 @@ type Props = {
 
 export function MemoryCard({ memory, size, onPlay }: Props) {
   const { t } = useTranslation();
-  const locale = i18nResolvedLanguage();
-  const title = memoryMonthLabel(memory, locale) ?? t("memories.yearsago", { count: memory.years_ago });
-  const details = [memoryDayLabel(memory, locale), memory.location || null].filter(Boolean).join(" · ");
+  const title = memoryMonthLabel(memory) ?? t("memories.yearsago", { count: memory.years_ago });
+  const details = [memoryDayLabel(memory), memory.location || null].filter(Boolean).join(" · ");
 
   return (
     <Stack gap={2} style={{ width: size }}>

@@ -3,7 +3,7 @@ import { escapeRegExp } from "lodash-es";
 import { DateTime } from "luxon";
 import type { DirTree } from "../api_client/folders/types";
 import { Media, type DatePhotosGroup, type IncompleteDatePhotosGroup, type PigPhoto } from "../api_client/photos/types";
-import i18n, { i18nResolvedLanguage } from "../i18n";
+import i18n from "../i18n";
 import { parsePhotoTimestamp } from "./dateUtils";
 
 export const EMAIL_REGEX = /^\w+([-.]?\w+){0,2}(\+?\w+([-.]?\w+){0,2})?@(\w+-?\w+\.){1,9}[a-z]{2,}$/;
@@ -39,7 +39,7 @@ export function formatDateForPhotoGroups(photoGroups: DatePhotosGroup[]): DatePh
         ...photoGroup,
         year: date.year,
         month: date.month,
-        date: date.setLocale(i18nResolvedLanguage()).toLocaleString(DateTime.DATE_HUGE),
+        date: date.toLocaleString(DateTime.DATE_HUGE),
       };
     }
     return photoGroup;

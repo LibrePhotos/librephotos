@@ -5,7 +5,6 @@ import { DateTime } from "luxon";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchPhotoMonthCountQuery } from "../../api_client/stats/hooks";
-import { i18nResolvedLanguage } from "../../i18n";
 import { EmptyState } from "../common/EmptyState";
 
 /** One bar: the month as the locale writes it, and its photo count. */
@@ -32,9 +31,7 @@ export function EventCountMonthGraph() {
           // Parse the month string (format: "YYYY-M") and format by locale
           const [year, month] = el.month.split("-");
           const date = DateTime.fromObject({ year: parseInt(year ?? "", 10), month: parseInt(month ?? "", 10) });
-          const formattedMonth = date
-            .setLocale(i18nResolvedLanguage())
-            .toLocaleString({ year: "2-digit", month: "short" });
+          const formattedMonth = date.toLocaleString({ year: "2-digit", month: "short" });
 
           return {
             month: formattedMonth,

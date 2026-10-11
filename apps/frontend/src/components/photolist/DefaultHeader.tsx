@@ -39,8 +39,8 @@ import { useAccessToken } from "../../api_client/auth/hooks";
 import { useDuplicateStatsQuery } from "../../api_client/duplicates";
 import { useFetchUserListQuery, useFetchUserSelfDetailsQuery } from "../../api_client/user/hooks";
 import type { User } from "../../api_client/user/types";
-import { i18nResolvedLanguage } from "../../i18n";
 import { FAVORITE_COLOR, ICON_SIZE } from "../../ui-constants";
+import { parseInstant } from "../../util/dateUtils";
 import { ModalUserEdit } from "../modals/ModalUserEdit";
 import { PageHeader } from "../PageHeader";
 
@@ -344,9 +344,7 @@ export function DefaultHeader(props: Props) {
           <Text style={{ whiteSpace: "nowrap" }}>
             <b>
               {dayHeaderPrefix}
-              {DateTime.fromISO(date).isValid
-                ? DateTime.fromISO(date).setLocale(i18nResolvedLanguage()).toLocaleString(DateTime.DATE_HUGE)
-                : date}
+              {parseInstant(date).isValid ? parseInstant(date).toLocaleString(DateTime.DATE_HUGE) : date}
             </b>
           </Text>
         ) : undefined

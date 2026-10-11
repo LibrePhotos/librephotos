@@ -1,9 +1,14 @@
+// eslint-disable-next-line no-restricted-imports -- this test checks the dayjs locale loader that Mantine's pickers use
 import dayjs from "dayjs";
+import { Settings } from "luxon";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import translationDa from "./locales/da/translation.json";
 import translationDe from "./locales/de/translation.json";
 import translationEn from "./locales/en/translation.json";
 import translationFr from "./locales/fr/translation.json";
+import { parseInstant } from "./util/dateUtils";
+
+const originalDefaultLocale = Settings.defaultLocale;
 
 // i18n.ts initialises i18next as a side effect of being imported, so each test
 // loads a fresh copy after arranging the saved language in localStorage.
@@ -21,6 +26,35 @@ describe("i18n lazy locale loading", () => {
 
   afterEach(() => {
     window.localStorage.removeItem("i18nextLng");
+    Settings.defaultLocale = originalDefaultLocale;
+  });
+
+  it("sets luxon's default locale to the UI language on start-up", async () => {
+    window.localStorage.setItem("i18nextLng", "de-DE");
+    await loadI18n();
+
+    expect(Settings.defaultLocale).toBe("de");
+    expect(parseInstant("2024-03-15T10:00:00Z").toLocaleString({ month: "long" })).toBe("März");
+  });
+
+  it("follows the UI language when the user switches, with no per-call locale", async () => {
+    window.localStorage.setItem("i18nextLng", "en");
+    const i18n = await loadI18n();
+    expect(parseInstant("2024-03-15T10:00:00Z").toLocaleString({ month: "long" })).toBe("March");
+
+    await i18n.changeLanguage("de");
+
+    expect(Settings.defaultLocale).toBe("de");
+    expect(parseInstant("2024-03-15T10:00:00Z").toLocaleString({ month: "long" })).toBe("März");
+  });
+
+  it("sets the locale tag luxon expects for a language with a script subtag", async () => {
+    window.localStorage.setItem("i18nextLng", "en");
+    const i18n = await loadI18n();
+
+    await i18n.changeLanguage("nb_NO");
+
+    expect(Settings.defaultLocale).toBe("nb-NO");
   });
 
   it("bundles English and leaves other locales unloaded until needed", async () => {

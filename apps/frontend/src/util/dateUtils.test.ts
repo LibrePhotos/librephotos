@@ -1,17 +1,26 @@
 import { Settings } from "luxon";
 import { afterEach, describe, expect, test } from "vitest";
 import {
+  fromPickerValue,
+  fromUnixSeconds,
+  parseInstant,
   parsePhotoTimestamp,
   parsePickerDate,
   photoTimestampToPickerDate,
   pickerDateToPhotoTimestamp,
+  pickerValueDaysFromNow,
+  toPickerValue,
 } from "./dateUtils";
 import { defined } from "./defined.test-utils";
 
 const originalZone = Settings.defaultZone;
+const originalLocale = Settings.defaultLocale;
+const originalNow = Settings.now;
 
 afterEach(() => {
   Settings.defaultZone = originalZone;
+  Settings.defaultLocale = originalLocale;
+  Settings.now = originalNow;
 });
 
 // The bug in #1025: a viewer in UTC+3 saw every photo shifted three hours
@@ -77,6 +86,7 @@ describe("parsePickerDate", () => {
 
   test("returns null for unusable input", () => {
     expect(parsePickerDate("not a date")).toBeNull();
+    // eslint-disable-next-line no-restricted-syntax -- an invalid Date is the input under test
     expect(parsePickerDate(new Date(Number.NaN))).toBeNull();
   });
 });
@@ -94,6 +104,106 @@ describe("pickerDateToPhotoTimestamp", () => {
   });
 
   test("returns null for an invalid Date", () => {
+    // eslint-disable-next-line no-restricted-syntax -- an invalid Date is the input under test
     expect(pickerDateToPhotoTimestamp(new Date(Number.NaN))).toBeNull();
+  });
+});
+
+describe("parseInstant", () => {
+  test("reads an instant in the viewer's zone", () => {
+    Settings.defaultZone = "Asia/Kolkata";
+    const parsed = parseInstant("2023-09-21T14:30:00Z");
+    expect(parsed.isValid).toBe(true);
+    expect([parsed.hour, parsed.minute]).toEqual([20, 0]);
+  });
+
+  test("keeps the same instant in every zone", () => {
+    zones.forEach(zone => {
+      Settings.defaultZone = zone;
+      expect(parseInstant("2023-09-21T14:30:00Z").toMillis()).toBe(Date.UTC(2023, 8, 21, 14, 30));
+    });
+  });
+
+  test("formats month names in the default locale", () => {
+    const march = "2024-03-15T10:00:00Z";
+    Settings.defaultLocale = "de";
+    expect(parseInstant(march).toLocaleString({ month: "long" })).toBe("März");
+    Settings.defaultLocale = "en";
+    expect(parseInstant(march).toLocaleString({ month: "long" })).toBe("March");
+  });
+
+  test("keeps the wall clock of a DST boundary instant", () => {
+    // Berlin springs forward on 2023-03-26 at 02:00 CET, so 01:30Z is 03:30 CEST.
+    Settings.defaultZone = "Europe/Berlin";
+    const before = parseInstant("2023-03-26T00:59:59Z");
+    const after = parseInstant("2023-03-26T01:30:00Z");
+    expect([before.hour, before.minute]).toEqual([1, 59]);
+    expect([after.hour, after.minute]).toEqual([3, 30]);
+    expect(after.offset).toBe(120);
+  });
+
+  test("flags an unparseable timestamp as invalid", () => {
+    expect(parseInstant("not a timestamp").isValid).toBe(false);
+  });
+});
+
+describe("fromUnixSeconds", () => {
+  test("reads seconds since the epoch as an instant", () => {
+    Settings.defaultZone = "UTC";
+    expect(fromUnixSeconds(1695306600).toISO()).toBe("2023-09-21T14:30:00.000Z");
+  });
+
+  test("uses the viewer's zone for the wall clock", () => {
+    Settings.defaultZone = "Europe/Moscow";
+    expect(fromUnixSeconds(1695306600).hour).toBe(17);
+  });
+});
+
+describe("toPickerValue", () => {
+  test("shows the stored instant as the viewer's local wall clock", () => {
+    Settings.defaultZone = "Europe/Moscow";
+    expect(toPickerValue("2023-09-21T14:30:00.000Z")).toBe("2023-09-21 17:30:00");
+  });
+
+  test("shows the wall clock across a DST boundary", () => {
+    Settings.defaultZone = "Europe/Berlin";
+    expect(toPickerValue("2023-03-26T01:30:00.000Z")).toBe("2023-03-26 03:30:00");
+  });
+
+  test("returns an empty value for an unparseable timestamp", () => {
+    expect(toPickerValue("nope")).toBe("");
+  });
+});
+
+describe("fromPickerValue", () => {
+  test("turns the picked local wall clock into a UTC instant", () => {
+    Settings.defaultZone = "Europe/Moscow";
+    expect(fromPickerValue("2023-09-21 17:30:00")).toBe("2023-09-21T14:30:00.000Z");
+  });
+
+  test("converts a DST-boundary wall clock with the offset in force then", () => {
+    Settings.defaultZone = "Europe/Berlin";
+    expect(fromPickerValue("2023-03-26 03:30:00")).toBe("2023-03-26T01:30:00.000Z");
+  });
+
+  test("round-trips with toPickerValue", () => {
+    Settings.defaultZone = "America/New_York";
+    const iso = "2023-07-01T12:00:00.000Z";
+    expect(fromPickerValue(toPickerValue(iso))).toBe(iso);
+  });
+
+  test("returns null for a value that does not parse", () => {
+    expect(fromPickerValue("")).toBeNull();
+    expect(fromPickerValue("21 September")).toBeNull();
+  });
+});
+
+describe("pickerValueDaysFromNow", () => {
+  test("adds calendar days in the viewer's zone, keeping the wall clock across DST", () => {
+    Settings.defaultZone = "Europe/Berlin";
+    // 2023-03-25 12:30 CET (11:30Z), the day before the clocks change.
+    Settings.now = () => Date.UTC(2023, 2, 25, 11, 30);
+    expect(pickerValueDaysFromNow(1)).toBe("2023-03-26 12:30:00");
+    expect(pickerValueDaysFromNow(7)).toBe("2023-04-01 12:30:00");
   });
 });

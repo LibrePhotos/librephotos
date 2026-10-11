@@ -66,7 +66,7 @@ function TileComponent<T extends ImageItem>({
   bottomleftoverlay = null,
   bottomrightoverlay = null,
 }: TileProps<T>) {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const isTemp = !!item.isTemp;
   // A placeholder has no address yet; a loaded tile always has one.
   const url = item.url ?? "";
@@ -115,18 +115,15 @@ function TileComponent<T extends ImageItem>({
 
   // Every image in the tile is decorative (alt=""), so the button itself says
   // what it opens: the kind of media and, when known, when it was taken.
-  const language = i18n.resolvedLanguage;
   const label = useMemo(() => {
     // exif_timestamp is the camera's wall clock tagged as UTC: read it in UTC.
     const taken = item.date ? parsePhotoTimestamp(item.date) : null;
-    const date = taken?.isValid
-      ? taken.setLocale((language ?? "en").replace("_", "-")).toLocaleString(DateTime.DATETIME_MED)
-      : null;
+    const date = taken?.isValid ? taken.toLocaleString(DateTime.DATETIME_MED) : null;
     // The HDR badge is hidden from assistive tech, so the label says it.
     if (isVideo && item.is_hdr) return date ? t("phototile.hdrvideotaken", { date }) : t("phototile.hdrvideolabel");
     if (isVideo) return date ? t("phototile.videotaken", { date }) : t("phototile.video");
     return date ? t("phototile.phototaken", { date }) : t("phototile.photo");
-  }, [item.date, item.is_hdr, isVideo, language, t]);
+  }, [item.date, item.is_hdr, isVideo, t]);
 
   // The wrapper carries the position and animation; the button and the
   // selection checkbox sit side by side in it, because a checkbox inside a

@@ -1,11 +1,10 @@
 import { BarChart } from "@mantine/charts";
 import { Loader, ScrollArea, Stack, Title } from "@mantine/core";
 import { IconMapPin } from "@tabler/icons-react";
-import { DateTime } from "luxon";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocationTimelineQuery } from "../../api_client/stats/hooks";
-import { i18nResolvedLanguage } from "../../i18n";
+import { fromUnixSeconds } from "../../util/dateUtils";
 import { EmptyState } from "../common/EmptyState";
 import { locationTimelineChart, stayForSeries } from "./locationTimelineChart";
 
@@ -23,12 +22,8 @@ export function LocationDurationStackedBar() {
     if (!locData) return null;
 
     const segmentColor = locData.color;
-    const startDate = DateTime.fromSeconds(locData.start)
-      .setLocale(i18nResolvedLanguage())
-      .toLocaleString({ year: "numeric", month: "short" });
-    const endDate = DateTime.fromSeconds(locData.end)
-      .setLocale(i18nResolvedLanguage())
-      .toLocaleString({ year: "numeric", month: "short" });
+    const startDate = fromUnixSeconds(locData.start).toLocaleString({ year: "numeric", month: "short" });
+    const endDate = fromUnixSeconds(locData.end).toLocaleString({ year: "numeric", month: "short" });
 
     return (
       <div
