@@ -13,10 +13,13 @@ from django.test import TestCase
 from django.utils import timezone
 
 from api.models.duplicate import Duplicate
-from api.models.file import File
-from api.models.photo import Photo
 from api.models.photo_stack import PhotoStack
-from api.models.user import User
+from api.tests.utils import (
+    create_test_duplicate,
+    create_test_photo,
+    create_test_stack,
+    create_test_user,
+)
 
 
 class PhotoInBothStackAndDuplicateTestCase(TestCase):
@@ -24,24 +27,15 @@ class PhotoInBothStackAndDuplicateTestCase(TestCase):
 
     def setUp(self):
         """Create test user and photos."""
-        self.user = User.objects.create(username="integrationtest")
+        self.user = create_test_user(username="integrationtest")
         self.photos = self._create_photos(4)
 
     def _create_photos(self, count):
         """Helper to create multiple photos."""
         photos = []
         for i in range(count):
-            file = File.objects.create(
-                hash=f"integ{i}" + "a" * 27,
-                path=f"/photos/integration_{i}.jpg",
-                type=File.IMAGE,
-            )
-            photo = Photo.objects.create(
-                owner=self.user,
-                main_file=file,
-                image_hash=f"integ{i}" + "b" * 27,
-                added_on=timezone.now(),
-                in_trashcan=False,
+            photo = create_test_photo(
+                owner=self.user, added_on=timezone.now(), in_trashcan=False
             )
             photos.append(photo)
         return photos
@@ -49,7 +43,7 @@ class PhotoInBothStackAndDuplicateTestCase(TestCase):
     def test_photo_can_be_in_stack_and_duplicate_simultaneously(self):
         """Photo should be able to belong to both a stack and duplicate group."""
         # Create stack with first two photos
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.BURST_SEQUENCE,
         )
@@ -57,7 +51,7 @@ class PhotoInBothStackAndDuplicateTestCase(TestCase):
         self.photos[1].stacks.add(stack)
 
         # Create duplicate group with first and third photos
-        duplicate = Duplicate.objects.create(
+        duplicate = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.VISUAL_DUPLICATE,
         )
@@ -75,7 +69,7 @@ class PhotoInBothStackAndDuplicateTestCase(TestCase):
     def test_resolving_duplicate_trashes_stacked_photo(self):
         """Resolving duplicate should trash photo even if it's in a stack."""
         # Photo 0 and 1 are in a stack
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.BURST_SEQUENCE,
             primary_photo=self.photos[0],
@@ -84,7 +78,7 @@ class PhotoInBothStackAndDuplicateTestCase(TestCase):
         self.photos[1].stacks.add(stack)
 
         # Photo 0 and 2 are duplicates
-        duplicate = Duplicate.objects.create(
+        duplicate = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
@@ -107,7 +101,7 @@ class PhotoInBothStackAndDuplicateTestCase(TestCase):
     def test_resolving_duplicate_trashes_stack_primary(self):
         """What happens when duplicate resolution trashes the stack's primary photo."""
         # Photo 0 is stack primary
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.BURST_SEQUENCE,
             primary_photo=self.photos[0],
@@ -116,7 +110,7 @@ class PhotoInBothStackAndDuplicateTestCase(TestCase):
         self.photos[1].stacks.add(stack)
 
         # Photo 0 and 2 are duplicates
-        duplicate = Duplicate.objects.create(
+        duplicate = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
@@ -135,13 +129,13 @@ class PhotoInBothStackAndDuplicateTestCase(TestCase):
     def test_deleting_stack_does_not_affect_duplicate(self):
         """Deleting a stack should not affect duplicate group membership."""
         # Photo in both stack and duplicate
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
         self.photos[0].stacks.add(stack)
 
-        duplicate = Duplicate.objects.create(
+        duplicate = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.VISUAL_DUPLICATE,
         )
@@ -159,14 +153,14 @@ class PhotoInBothStackAndDuplicateTestCase(TestCase):
     def test_dismissing_duplicate_does_not_affect_stack(self):
         """Dismissing duplicate group should not affect stack membership."""
         # Photo in both
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.BURST_SEQUENCE,
         )
         self.photos[0].stacks.add(stack)
         self.photos[1].stacks.add(stack)
 
-        duplicate = Duplicate.objects.create(
+        duplicate = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.VISUAL_DUPLICATE,
         )
@@ -187,28 +181,18 @@ class PhotoDeletionCascadeTestCase(TestCase):
 
     def setUp(self):
         """Create test user and photos."""
-        self.user = User.objects.create(username="deletiontest")
+        self.user = create_test_user(username="deletiontest")
 
     def _create_photo(self, suffix):
         """Create a single photo."""
-        file = File.objects.create(
-            hash=f"del{suffix}" + "a" * 28,
-            path=f"/photos/delete_{suffix}.jpg",
-            type=File.IMAGE,
-        )
-        return Photo.objects.create(
-            owner=self.user,
-            main_file=file,
-            image_hash=f"del{suffix}" + "b" * 28,
-            added_on=timezone.now(),
-        )
+        return create_test_photo(owner=self.user, added_on=timezone.now())
 
     def test_deleting_photo_removes_from_stack(self):
         """Deleting photo should remove it from associated stacks."""
         photo1 = self._create_photo("1")
         photo2 = self._create_photo("2")
 
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -229,7 +213,7 @@ class PhotoDeletionCascadeTestCase(TestCase):
         photo1 = self._create_photo("3")
         photo2 = self._create_photo("4")
 
-        duplicate = Duplicate.objects.create(
+        duplicate = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
@@ -249,7 +233,7 @@ class PhotoDeletionCascadeTestCase(TestCase):
         photo1 = self._create_photo("5")
         photo2 = self._create_photo("6")
 
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
             primary_photo=photo1,
@@ -269,7 +253,7 @@ class PhotoDeletionCascadeTestCase(TestCase):
         photo1 = self._create_photo("7")
         photo2 = self._create_photo("8")
 
-        duplicate = Duplicate.objects.create(
+        duplicate = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
             kept_photo=photo1,
@@ -289,29 +273,19 @@ class MultiUserIsolationTestCase(TestCase):
 
     def setUp(self):
         """Create two test users."""
-        self.user1 = User.objects.create(username="user1")
-        self.user2 = User.objects.create(username="user2")
+        self.user1 = create_test_user(username="user1")
+        self.user2 = create_test_user(username="user2")
 
     def _create_photo_for_user(self, user, suffix):
         """Create a photo for a specific user."""
-        file = File.objects.create(
-            hash=f"usr{suffix}" + "a" * 28,
-            path=f"/photos/user_{suffix}.jpg",
-            type=File.IMAGE,
-        )
-        return Photo.objects.create(
-            owner=user,
-            main_file=file,
-            image_hash=f"usr{suffix}" + "b" * 28,
-            added_on=timezone.now(),
-        )
+        return create_test_photo(owner=user, added_on=timezone.now())
 
     def test_users_cannot_share_stacks(self):
         """Users should not be able to add photos to another user's stack."""
         photo1 = self._create_photo_for_user(self.user1, "1")
         photo2 = self._create_photo_for_user(self.user2, "2")
 
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user1,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -330,7 +304,7 @@ class MultiUserIsolationTestCase(TestCase):
         """Duplicate groups should be scoped to owner."""
         photo1 = self._create_photo_for_user(self.user1, "3")
 
-        dup1 = Duplicate.objects.create(
+        dup1 = create_test_duplicate(
             owner=self.user1,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
@@ -338,7 +312,7 @@ class MultiUserIsolationTestCase(TestCase):
 
         # User2's duplicates should be separate
         photo2 = self._create_photo_for_user(self.user2, "4")
-        dup2 = Duplicate.objects.create(
+        dup2 = create_test_duplicate(
             owner=self.user2,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
@@ -354,26 +328,16 @@ class StackMergeWithDuplicatesTestCase(TestCase):
 
     def setUp(self):
         """Create test user and photos."""
-        self.user = User.objects.create(username="mergetest")
+        self.user = create_test_user(username="mergetest")
         self.photos = []
         for i in range(4):
-            file = File.objects.create(
-                hash=f"mrg{i}" + "a" * 28,
-                path=f"/photos/merge_{i}.jpg",
-                type=File.IMAGE,
-            )
-            photo = Photo.objects.create(
-                owner=self.user,
-                main_file=file,
-                image_hash=f"mrg{i}" + "b" * 28,
-                added_on=timezone.now(),
-            )
+            photo = create_test_photo(owner=self.user, added_on=timezone.now())
             self.photos.append(photo)
 
     def test_merging_stacks_preserves_duplicate_membership(self):
         """Merging stacks should not affect duplicate group membership."""
         # Stack 1 with photo 0, 1
-        stack1 = PhotoStack.objects.create(
+        stack1 = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -381,7 +345,7 @@ class StackMergeWithDuplicatesTestCase(TestCase):
         self.photos[1].stacks.add(stack1)
 
         # Stack 2 with photo 2, 3
-        stack2 = PhotoStack.objects.create(
+        stack2 = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -389,7 +353,7 @@ class StackMergeWithDuplicatesTestCase(TestCase):
         self.photos[3].stacks.add(stack2)
 
         # Photo 1 and 2 are duplicates
-        duplicate = Duplicate.objects.create(
+        duplicate = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.VISUAL_DUPLICATE,
         )
@@ -413,31 +377,21 @@ class PhotoInMultipleStacksTestCase(TestCase):
 
     def setUp(self):
         """Create test user and photos."""
-        self.user = User.objects.create(username="multistacktest")
+        self.user = create_test_user(username="multistacktest")
 
     def _create_photo(self, suffix):
         """Create a single photo."""
-        file = File.objects.create(
-            hash=f"multi{suffix}" + "a" * 26,
-            path=f"/photos/multi_{suffix}.jpg",
-            type=File.IMAGE,
-        )
-        return Photo.objects.create(
-            owner=self.user,
-            main_file=file,
-            image_hash=f"multi{suffix}" + "b" * 26,
-            added_on=timezone.now(),
-        )
+        return create_test_photo(owner=self.user, added_on=timezone.now())
 
     def test_photo_can_be_in_multiple_stacks(self):
         """Photo should be able to belong to multiple stacks."""
         photo = self._create_photo("1")
 
-        stack1 = PhotoStack.objects.create(
+        stack1 = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.RAW_JPEG_PAIR,
         )
-        stack2 = PhotoStack.objects.create(
+        stack2 = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.BURST_SEQUENCE,
         )
@@ -451,12 +405,12 @@ class PhotoInMultipleStacksTestCase(TestCase):
         """Photo can be primary photo for multiple stacks."""
         photo = self._create_photo("2")
 
-        stack1 = PhotoStack.objects.create(
+        stack1 = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.RAW_JPEG_PAIR,
             primary_photo=photo,
         )
-        stack2 = PhotoStack.objects.create(
+        stack2 = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.BURST_SEQUENCE,
             primary_photo=photo,
@@ -472,11 +426,11 @@ class PhotoInMultipleStacksTestCase(TestCase):
         """Removing from one stack should not affect other stacks."""
         photo = self._create_photo("3")
 
-        stack1 = PhotoStack.objects.create(
+        stack1 = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
-        stack2 = PhotoStack.objects.create(
+        stack2 = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -497,26 +451,16 @@ class DuplicateMergeWithStacksTestCase(TestCase):
 
     def setUp(self):
         """Create test user and photos."""
-        self.user = User.objects.create(username="dupmergetest")
+        self.user = create_test_user(username="dupmergetest")
         self.photos = []
         for i in range(4):
-            file = File.objects.create(
-                hash=f"dpm{i}" + "a" * 28,
-                path=f"/photos/dupmerge_{i}.jpg",
-                type=File.IMAGE,
-            )
-            photo = Photo.objects.create(
-                owner=self.user,
-                main_file=file,
-                image_hash=f"dpm{i}" + "b" * 28,
-                added_on=timezone.now(),
-            )
+            photo = create_test_photo(owner=self.user, added_on=timezone.now())
             self.photos.append(photo)
 
     def test_merging_duplicates_preserves_stack_membership(self):
         """Merging duplicate groups should not affect stack membership."""
         # Photo 0, 1 are in a stack
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.BURST_SEQUENCE,
         )
@@ -524,7 +468,7 @@ class DuplicateMergeWithStacksTestCase(TestCase):
         self.photos[1].stacks.add(stack)
 
         # Dup1: photo 0, 2
-        dup1 = Duplicate.objects.create(
+        dup1 = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
@@ -532,7 +476,7 @@ class DuplicateMergeWithStacksTestCase(TestCase):
         self.photos[2].duplicates.add(dup1)
 
         # Dup2: photo 1, 3
-        dup2 = Duplicate.objects.create(
+        dup2 = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
@@ -553,29 +497,19 @@ class EdgeCasesTestCase(TestCase):
 
     def setUp(self):
         """Create test user."""
-        self.user = User.objects.create(username="edgecasetest")
+        self.user = create_test_user(username="edgecasetest")
 
     def _create_photo(self, suffix):
         """Create a single photo."""
-        file = File.objects.create(
-            hash=f"edge{suffix}" + "a" * 26,
-            path=f"/photos/edge_{suffix}.jpg",
-            type=File.IMAGE,
-        )
-        return Photo.objects.create(
-            owner=self.user,
-            main_file=file,
-            image_hash=f"edge{suffix}" + "b" * 26,
-            added_on=timezone.now(),
-        )
+        return create_test_photo(owner=self.user, added_on=timezone.now())
 
     def test_empty_stack_and_duplicate(self):
         """Empty stack and duplicate should exist without photos."""
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
-        duplicate = Duplicate.objects.create(
+        duplicate = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.VISUAL_DUPLICATE,
         )
@@ -587,13 +521,13 @@ class EdgeCasesTestCase(TestCase):
         """Single photo can be only member of both stack and duplicate."""
         photo = self._create_photo("1")
 
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
         photo.stacks.add(stack)
 
-        duplicate = Duplicate.objects.create(
+        duplicate = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.VISUAL_DUPLICATE,
         )
@@ -607,7 +541,7 @@ class EdgeCasesTestCase(TestCase):
         photo1 = self._create_photo("2")
         photo2 = self._create_photo("3")
 
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -628,11 +562,11 @@ class EdgeCasesTestCase(TestCase):
         """Photo can be in multiple duplicate groups."""
         photo = self._create_photo("4")
 
-        dup1 = Duplicate.objects.create(
+        dup1 = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
-        dup2 = Duplicate.objects.create(
+        dup2 = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.VISUAL_DUPLICATE,
         )
@@ -649,14 +583,14 @@ class EdgeCasesTestCase(TestCase):
         photo3 = self._create_photo("7")
 
         # photo1 is in two duplicate groups
-        dup1 = Duplicate.objects.create(
+        dup1 = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
         photo1.duplicates.add(dup1)
         photo2.duplicates.add(dup1)
 
-        dup2 = Duplicate.objects.create(
+        dup2 = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.VISUAL_DUPLICATE,
         )
@@ -677,7 +611,7 @@ class EdgeCasesTestCase(TestCase):
         photo2 = self._create_photo("9")
 
         # Create complex relationship
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.BURST_SEQUENCE,
             primary_photo=photo1,
@@ -685,7 +619,7 @@ class EdgeCasesTestCase(TestCase):
         photo1.stacks.add(stack)
         photo2.stacks.add(stack)
 
-        duplicate = Duplicate.objects.create(
+        duplicate = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
             kept_photo=photo1,

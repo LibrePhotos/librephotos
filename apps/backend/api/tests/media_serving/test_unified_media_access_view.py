@@ -396,11 +396,19 @@ class UnifiedThumbnailAccessTest(TestCase):
                 self.assertEqual(via_album.status_code, 200)
                 self.assertEqual(via_public.status_code, 200)
                 self.assertEqual(via_public["Content-Type"], via_album["Content-Type"])
+                # The redirect names the file, and the file is named after the
+                # photo's own key, so swap that too, not only the image hash.
+                album_file = os.path.splitext(
+                    os.path.basename(album_video.main_file.path)
+                )[0]
+                public_file = os.path.splitext(
+                    os.path.basename(public_video.main_file.path)
+                )[0]
                 self.assertEqual(
                     via_public["X-Accel-Redirect"],
-                    via_album["X-Accel-Redirect"].replace(
-                        album_video.image_hash, public_video.image_hash
-                    ),
+                    via_album["X-Accel-Redirect"]
+                    .replace(album_video.image_hash, public_video.image_hash)
+                    .replace(album_file, public_file),
                 )
 
     def test_duplicate_hash_resolves_in_favour_of_the_public_row(self):

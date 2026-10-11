@@ -19,7 +19,11 @@ from django.test import TestCase
 from rest_framework.test import APIClient
 
 from api.models.photo_stack import PhotoStack
-from api.tests.utils import create_test_photo, create_test_user
+from api.tests.utils import (
+    create_test_photo,
+    create_test_stack,
+    create_test_user,
+)
 
 
 class ManualStackCreationAPITestCase(TestCase):
@@ -136,7 +140,7 @@ class AddRemovePhotosAPITestCase(TestCase):
         photo2 = create_test_photo(owner=self.user)
         photo3 = create_test_photo(owner=self.user)
 
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -157,7 +161,7 @@ class AddRemovePhotosAPITestCase(TestCase):
         photo1 = create_test_photo(owner=self.user)
         photo2 = create_test_photo(owner=self.user)
 
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -180,7 +184,7 @@ class AddRemovePhotosAPITestCase(TestCase):
         photo2 = create_test_photo(owner=self.user)
         photo3 = create_test_photo(owner=self.user)
 
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -201,7 +205,7 @@ class AddRemovePhotosAPITestCase(TestCase):
         photo1 = create_test_photo(owner=self.user)
         photo2 = create_test_photo(owner=self.user)
 
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -224,7 +228,7 @@ class AddRemovePhotosAPITestCase(TestCase):
         photo2 = create_test_photo(owner=self.user)
         photo3 = create_test_photo(owner=self.user)
 
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -253,7 +257,7 @@ class SetPrimaryPhotoAPITestCase(TestCase):
         photo1 = create_test_photo(owner=self.user)
         photo2 = create_test_photo(owner=self.user)
 
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
             primary_photo=photo1,
@@ -276,7 +280,7 @@ class SetPrimaryPhotoAPITestCase(TestCase):
         photo2 = create_test_photo(owner=self.user)
         photo3 = create_test_photo(owner=self.user)
 
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -296,7 +300,7 @@ class SetPrimaryPhotoAPITestCase(TestCase):
         photo1 = create_test_photo(owner=self.user)
         photo2 = create_test_photo(owner=self.user)
 
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -324,13 +328,13 @@ class MergeStacksAPITestCase(TestCase):
         photos1 = [create_test_photo(owner=self.user) for _ in range(2)]
         photos2 = [create_test_photo(owner=self.user) for _ in range(2)]
 
-        stack1 = PhotoStack.objects.create(
+        stack1 = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
         stack1.photos.add(*photos1)
 
-        stack2 = PhotoStack.objects.create(
+        stack2 = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -389,19 +393,19 @@ class StackStatsAPITestCase(TestCase):
         photos = [create_test_photo(owner=self.user) for _ in range(6)]
 
         # Create different stack types
-        burst_stack = PhotoStack.objects.create(
+        burst_stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.BURST_SEQUENCE,
         )
         burst_stack.photos.add(photos[0], photos[1])
 
-        raw_stack = PhotoStack.objects.create(
+        raw_stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.RAW_JPEG_PAIR,
         )
         raw_stack.photos.add(photos[2], photos[3])
 
-        manual_stack = PhotoStack.objects.create(
+        manual_stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -424,16 +428,16 @@ class StackStatsAPITestCase(TestCase):
     def test_stats_count_what_the_list_returns(self):
         """A badge must not promise stacks the list endpoint leaves out."""
         photos = [create_test_photo(owner=self.user) for _ in range(5)]
-        burst = PhotoStack.objects.create(
+        burst = create_test_stack(
             owner=self.user, stack_type=PhotoStack.StackType.BURST_SEQUENCE
         )
         burst.photos.add(photos[0], photos[1])
         # Listed nowhere: a stack of one, and a deprecated type.
-        single = PhotoStack.objects.create(
+        single = create_test_stack(
             owner=self.user, stack_type=PhotoStack.StackType.MANUAL
         )
         single.photos.add(photos[2])
-        live = PhotoStack.objects.create(
+        live = create_test_stack(
             owner=self.user, stack_type=PhotoStack.StackType.LIVE_PHOTO
         )
         live.photos.add(photos[3], photos[4])
@@ -452,14 +456,14 @@ class StackStatsAPITestCase(TestCase):
         """Test stats counts photos in stacks correctly."""
         photos = [create_test_photo(owner=self.user) for _ in range(5)]
 
-        stack1 = PhotoStack.objects.create(
+        stack1 = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
         stack1.photos.add(photos[0], photos[1], photos[2])
 
         # Create another stack with overlapping photo
-        stack2 = PhotoStack.objects.create(
+        stack2 = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.BURST_SEQUENCE,
         )
@@ -478,7 +482,7 @@ class StackStatsAPITestCase(TestCase):
         # Create stack for other user
         other_photo1 = create_test_photo(owner=other_user)
         other_photo2 = create_test_photo(owner=other_user)
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=other_user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -503,7 +507,7 @@ class StackDeleteAPITestCase(TestCase):
         photo1 = create_test_photo(owner=self.user)
         photo2 = create_test_photo(owner=self.user)
 
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -531,7 +535,7 @@ class StackDeleteAPITestCase(TestCase):
         photo1 = create_test_photo(owner=other_user)
         photo2 = create_test_photo(owner=other_user)
 
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=other_user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -556,7 +560,7 @@ class StackDetailAPITestCase(TestCase):
         photo1 = create_test_photo(owner=self.user)
         photo2 = create_test_photo(owner=self.user)
 
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
             primary_photo=photo1,
@@ -575,7 +579,7 @@ class StackDetailAPITestCase(TestCase):
         photo2 = create_test_photo(owner=self.user)
         photo3 = create_test_photo(owner=self.user)
 
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
             primary_photo=photo1,
@@ -607,13 +611,13 @@ class StackListAPITestCase(TestCase):
         """Test listing all stacks."""
         photos = [create_test_photo(owner=self.user) for _ in range(4)]
 
-        stack1 = PhotoStack.objects.create(
+        stack1 = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
         stack1.photos.add(photos[0], photos[1])
 
-        stack2 = PhotoStack.objects.create(
+        stack2 = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.BURST_SEQUENCE,
         )
@@ -628,13 +632,13 @@ class StackListAPITestCase(TestCase):
         """Test filtering stacks by type."""
         photos = [create_test_photo(owner=self.user) for _ in range(4)]
 
-        manual_stack = PhotoStack.objects.create(
+        manual_stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
         manual_stack.photos.add(photos[0], photos[1])
 
-        burst_stack = PhotoStack.objects.create(
+        burst_stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.BURST_SEQUENCE,
         )
@@ -651,7 +655,7 @@ class StackListAPITestCase(TestCase):
         """Test that list excludes stacks with only 1 photo."""
         photo = create_test_photo(owner=self.user)
 
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -736,7 +740,7 @@ class DuplicatePhotoHashesTestCase(TestCase):
         photo2 = create_test_photo(owner=self.user)
         photo3 = create_test_photo(owner=self.user)
 
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -758,7 +762,7 @@ class DuplicatePhotoHashesTestCase(TestCase):
         """Test removing photos with duplicate hashes."""
         photos = [create_test_photo(owner=self.user) for _ in range(4)]
 
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -793,13 +797,13 @@ class MergeStacksDuplicateHashesTestCase(TestCase):
         photos1 = [create_test_photo(owner=self.user) for _ in range(2)]
         photos2 = [create_test_photo(owner=self.user) for _ in range(2)]
 
-        stack1 = PhotoStack.objects.create(
+        stack1 = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
         stack1.photos.add(*photos1)
 
-        stack2 = PhotoStack.objects.create(
+        stack2 = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -840,7 +844,7 @@ class ListStacksWithNullThumbnailTestCase(TestCase):
         photo1 = create_test_photo(owner=self.user)
         photo2 = create_test_photo(owner=self.user)
 
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
             primary_photo=photo1,
@@ -865,7 +869,7 @@ class ListStacksWithNullThumbnailTestCase(TestCase):
         photo1 = create_test_photo(owner=self.user)
         photo2 = create_test_photo(owner=self.user)
 
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
             primary_photo=photo1,
@@ -893,7 +897,7 @@ class RemoveFromStackPrimaryPhotoTestCase(TestCase):
         photo2 = create_test_photo(owner=self.user)
         photo3 = create_test_photo(owner=self.user)
 
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
             primary_photo=photo1,
@@ -920,7 +924,7 @@ class RemoveFromStackPrimaryPhotoTestCase(TestCase):
         photo2 = create_test_photo(owner=self.user)
         photo3 = create_test_photo(owner=self.user)
 
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
             primary_photo=photo1,
@@ -954,7 +958,7 @@ class EmptyInputTestCase(TestCase):
         photo1 = create_test_photo(owner=self.user)
         photo2 = create_test_photo(owner=self.user)
 
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -974,7 +978,7 @@ class EmptyInputTestCase(TestCase):
         photo1 = create_test_photo(owner=self.user)
         photo2 = create_test_photo(owner=self.user)
 
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -993,7 +997,7 @@ class EmptyInputTestCase(TestCase):
         photo1 = create_test_photo(owner=self.user)
         photo2 = create_test_photo(owner=self.user)
 
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -1012,7 +1016,7 @@ class EmptyInputTestCase(TestCase):
         photo1 = create_test_photo(owner=self.user)
         photo2 = create_test_photo(owner=self.user)
 
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -1058,7 +1062,7 @@ class StackListPaginationEdgeCasesTestCase(TestCase):
         # Create 5 stacks
         for i in range(5):
             photos = [create_test_photo(owner=self.user) for _ in range(2)]
-            stack = PhotoStack.objects.create(
+            stack = create_test_stack(
                 owner=self.user,
                 stack_type=PhotoStack.StackType.MANUAL,
             )

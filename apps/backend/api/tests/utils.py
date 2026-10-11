@@ -1,4 +1,18 @@
+"""Factories for the test database: one place that builds the rows tests need.
+
+Every factory takes the owner the way the app does, fills what the model
+requires, and passes other keyword arguments straight to the model. A test
+module builds rows with these rather than ``Model.objects.create``; the guard in
+api/tests/infra/test_test_data_factories.py enforces it. A row that must be
+built raw (a constraint test) says why with ``# raw-create: <reason>``.
+"""
+
+import atexit
+import datetime
+import os
 import secrets
+import shutil
+import tempfile
 import uuid
 from typing import Any
 
@@ -7,8 +21,19 @@ from django.utils import timezone
 from faker import Faker
 
 from api.models import Cluster, Face, File, Person, Photo, User
+from api.models.album_date import AlbumDate
+from api.models.album_user import AlbumUser
+from api.models.duplicate import Duplicate
+from api.models.long_running_job import LongRunningJob
+from api.models.photo_stack import PhotoStack
+from api.models.tag import Tag
 
 fake = Faker()
+
+# Where the files of test photos are written: one directory per test process,
+# removed when the process exits. Never /tmp itself.
+TEST_MEDIA_ROOT = tempfile.mkdtemp(prefix="librephotos-test-media-")
+atexit.register(shutil.rmtree, TEST_MEDIA_ROOT, ignore_errors=True)
 
 ONE_PIXEL_PNG = (
     b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x02\x00\x00\x00\xb1\x1e\x28"
@@ -91,25 +116,80 @@ def create_test_face(
     )
 
 
-def create_test_user(is_admin=False, public_sharing=False, **kwargs):
-    import uuid
-
+def create_test_user(is_admin=False, public_sharing=False, **kwargs: Any) -> User:
+    """A user with random details; any User field can be given by keyword."""
     # Ensure unique username by appending UUID
     username = fake.user_name() + str(uuid.uuid4())[:8]
-    return User.objects.create(
-        username=username,
-        first_name=fake.first_name(),
-        last_name=fake.last_name(),
-        email=fake.email(),
-        password=create_password(),
-        public_sharing=public_sharing,
-        is_superuser=is_admin,
-        is_staff=is_admin,
-        **kwargs,
+    fields: dict[str, Any] = {
+        "username": username,
+        "first_name": fake.first_name(),
+        "last_name": fake.last_name(),
+        "email": fake.email(),
+        "password": create_password(),
+        "public_sharing": public_sharing,
+        "is_superuser": is_admin,
+        "is_staff": is_admin,
+    }
+    fields.update(kwargs)
+    return User.objects.create(**fields)
+
+
+def create_test_stack(owner: User, **kwargs: Any) -> PhotoStack:
+    """A photo stack for ``owner``. Add its photos with ``stack.photos.add``."""
+    return PhotoStack.objects.create(owner=owner, **kwargs)
+
+
+def create_test_duplicate(owner: User, **kwargs: Any) -> Duplicate:
+    """A duplicate group for ``owner``. Add its photos with ``duplicate.photos.add``."""
+    return Duplicate.objects.create(owner=owner, **kwargs)
+
+
+def create_test_tag(owner: User, name: str | None = None, **kwargs: Any) -> Tag:
+    """A tag for ``owner``. Names are unique per owner, so the default is random."""
+    name = name or f"{fake.word()}-{uuid.uuid4().hex[:8]}"
+    return Tag.objects.create(owner=owner, name=name, **kwargs)
+
+
+def create_test_album_user(
+    owner: User, title: str | None = None, **kwargs: Any
+) -> AlbumUser:
+    """A user album for ``owner``. Titles are unique per owner, so the default is random."""
+    title = title or f"{fake.catch_phrase()} {uuid.uuid4().hex[:8]}"
+    return AlbumUser.objects.create(owner=owner, title=title, **kwargs)
+
+
+def create_test_album_date(
+    owner: User, date: datetime.date | None = None, **kwargs: Any
+) -> AlbumDate:
+    """A date album for ``owner``. Without a date it is undated (NULL dates may repeat)."""
+    return AlbumDate.objects.create(owner=owner, date=date, **kwargs)
+
+
+def create_test_job(
+    started_by: User,
+    job_type: int = LongRunningJob.JOB_SCAN_PHOTOS,
+    **kwargs: Any,
+) -> LongRunningJob:
+    """A background job started by ``started_by``, queued now, with a fresh job id."""
+    kwargs.setdefault("job_id", str(uuid.uuid4()))
+    kwargs.setdefault("queued_at", timezone.now())
+    return LongRunningJob.objects.create(
+        started_by=started_by, job_type=job_type, **kwargs
     )
 
 
+def create_test_cluster(owner: User, **kwargs: Any) -> Cluster:
+    """A face cluster for ``owner``, with a random 128-dimension mean encoding."""
+    kwargs.setdefault("mean_face_encoding", np.random.rand(128).tobytes().hex())
+    return Cluster.objects.create(owner=owner, **kwargs)
+
+
 def create_test_photo(**kwargs):
+    """A photo owned by ``kwargs["owner"]``, with a main file, a thumbnail and the given fields.
+
+    ``image_hash`` is the main file's hash. The file is written to TEST_MEDIA_ROOT.
+    Caption, search and metadata fields are split into their own models.
+    """
     from api.models.photo_caption import PhotoCaption
     from api.models.photo_metadata import PhotoMetadata
     from api.models.photo_search import PhotoSearch
@@ -117,8 +197,13 @@ def create_test_photo(**kwargs):
 
     # Use proper UUID for primary key (Photo model now uses UUIDField)
     pk = uuid.uuid4()
-    # Use MD5 for image_hash (content hash for deduplication)
-    image_hash = fake.md5()
+    # Use unique content per photo so each File gets a unique hash (primary key)
+    unique_content = ONE_PIXEL_PNG + pk.bytes
+    main_file = create_test_file(
+        os.path.join(TEST_MEDIA_ROOT, f"{pk.hex}.png"), kwargs["owner"], unique_content
+    )
+    # image_hash is the content hash of the main file, as the scanner sets it
+    image_hash = main_file.hash
 
     # Extract fields that are no longer part of Photo model
     aspect_ratio = kwargs.pop("aspect_ratio", 1)
@@ -175,10 +260,7 @@ def create_test_photo(**kwargs):
 
     # Create the photo with remaining kwargs
     photo = Photo(pk=pk, image_hash=image_hash, **kwargs)
-    # Use unique content per photo so each File gets a unique hash (primary key)
-    unique_content = ONE_PIXEL_PNG + pk.bytes
-    file = create_test_file(f"/tmp/{image_hash}.png", photo.owner, unique_content)
-    photo.main_file = file
+    photo.main_file = main_file
     if "added_on" not in kwargs.keys():
         photo.added_on = timezone.now()
     photo.save()
@@ -222,7 +304,34 @@ def create_test_photos_with_faces(number_of_photos=1, **kwargs):
     return photos
 
 
-def create_test_file(path: str, user: User, content: bytes):
+def create_test_file(
+    path: str | None,
+    user: User,
+    content: bytes | None = None,
+    *,
+    on_disk: bool = False,
+    file_type: int = File.IMAGE,
+    missing: bool = False,
+) -> File:
+    """A File row for ``user``, hashed the way the app hashes a file (MD5 plus the owner id).
+
+    Without ``content`` and ``on_disk`` only the row is created, at ``path``
+    (default ``/photos/<random>.jpg``), with a random content hash; ``file_type``
+    and ``missing`` apply to this form only. With ``content``, or with
+    ``on_disk=True`` (which writes distinct bytes), the bytes are written to
+    ``path`` (default: a new file in TEST_MEDIA_ROOT) and the row takes their hash.
+    """
+    if content is None and not on_disk:
+        return File.objects.create(
+            path=path or f"/photos/{uuid.uuid4().hex}.jpg",
+            hash=f"{secrets.token_hex(16)}{user.id}",
+            type=file_type,
+            missing=missing,
+        )
+    if path is None:
+        path = os.path.join(TEST_MEDIA_ROOT, f"{uuid.uuid4().hex}.jpg")
+    if content is None:
+        content = ONE_PIXEL_PNG + secrets.token_bytes(16)
     with open(path, "wb+") as f:
         f.write(content)
     return File.create(path, user)

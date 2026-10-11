@@ -111,7 +111,7 @@ class PhotoOcrModelTest(TestCase):
 
     def test_cascade_delete_with_photo(self):
         PhotoOcr.objects.create(photo=self.photo, engine=ACTIVE_MODEL)
-        photo_id = self.photo.image_hash
+        photo_id = self.photo.pk
         self.photo.delete()
         with self.assertRaises(PhotoOcr.DoesNotExist):
             PhotoOcr.objects.get(photo_id=photo_id)

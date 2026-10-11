@@ -134,7 +134,7 @@ class PhotoModelIntegrationTest(TestCase):
         self.assertTrue(PhotoCaption.objects.filter(photo=self.photo).exists())
         self.assertTrue(PhotoSearch.objects.filter(photo=self.photo).exists())
 
-        photo_id = self.photo.image_hash
+        photo_id = self.photo.pk
         self.photo.delete()
 
         # Verify instances are deleted when photo is deleted

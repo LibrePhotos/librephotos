@@ -101,7 +101,7 @@ class PhotoCaptionModelTest(TestCase):
     def test_cascade_delete_with_photo(self):
         """Test that PhotoCaption is deleted when Photo is deleted"""
         PhotoCaption.objects.create(photo=self.photo)
-        photo_id = self.photo.image_hash
+        photo_id = self.photo.pk
 
         self.photo.delete()
 

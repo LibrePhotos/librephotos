@@ -171,7 +171,7 @@ class PhotoSearchModelTest(TestCase):
     def test_cascade_delete_with_photo(self):
         """Test that PhotoSearch is deleted when Photo is deleted"""
         PhotoSearch.objects.create(photo=self.photo)
-        photo_id = self.photo.image_hash
+        photo_id = self.photo.pk
 
         self.photo.delete()
 

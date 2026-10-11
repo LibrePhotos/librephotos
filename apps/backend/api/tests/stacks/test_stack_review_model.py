@@ -22,11 +22,14 @@ from datetime import timedelta
 from django.test import TestCase
 from django.utils import timezone
 
-from api.models.file import File
 from api.models.photo import Photo
 from api.models.photo_stack import PhotoStack
 from api.models.stack_review import StackReview
-from api.models.user import User
+from api.tests.utils import (
+    create_test_photo,
+    create_test_stack,
+    create_test_user,
+)
 
 
 class StackReviewModelTestCase(TestCase):
@@ -34,8 +37,8 @@ class StackReviewModelTestCase(TestCase):
 
     def setUp(self):
         """Create test user and stack."""
-        self.user = User.objects.create(username="reviewtest")
-        self.stack = PhotoStack.objects.create(
+        self.user = create_test_user(username="reviewtest")
+        self.stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -74,7 +77,7 @@ class StackReviewModelTestCase(TestCase):
 
     def test_uuid_is_unique_per_review(self):
         """Each review should get its own UUID."""
-        stack2 = PhotoStack.objects.create(
+        stack2 = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -112,7 +115,7 @@ class StackReviewModelTestCase(TestCase):
         """All decision choices should be valid."""
         for decision, label in StackReview.Decision.choices:
             review = StackReview.objects.create(
-                stack=PhotoStack.objects.create(
+                stack=create_test_stack(
                     owner=self.user,
                     stack_type=PhotoStack.StackType.MANUAL,
                 ),
@@ -132,7 +135,7 @@ class StackReviewModelTestCase(TestCase):
 
     def test_ordering_by_created_at_descending(self):
         """Reviews should be ordered by created_at descending."""
-        stack2 = PhotoStack.objects.create(
+        stack2 = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -172,7 +175,7 @@ class StackReviewModelTestCase(TestCase):
         """
         reviews = []
         for _ in range(5):
-            stack = PhotoStack.objects.create(
+            stack = create_test_stack(
                 owner=self.user,
                 stack_type=PhotoStack.StackType.MANUAL,
             )
@@ -192,7 +195,7 @@ class StackReviewModelTestCase(TestCase):
         a second query, so an unstable sort is what lets a row repeat or vanish.
         """
         for _ in range(5):
-            stack = PhotoStack.objects.create(
+            stack = create_test_stack(
                 owner=self.user,
                 stack_type=PhotoStack.StackType.MANUAL,
             )
@@ -267,12 +270,12 @@ class CreateForStackTestCase(TestCase):
 
     def setUp(self):
         """Create test user."""
-        self.user = User.objects.create(username="createtest")
+        self.user = create_test_user(username="createtest")
 
     def test_returns_none_for_all_stack_types(self):
         """Should return None for all stack types (none are reviewable)."""
         for stack_type in PhotoStack.StackType.values:
-            stack = PhotoStack.objects.create(
+            stack = create_test_stack(
                 owner=self.user,
                 stack_type=stack_type,
             )
@@ -283,7 +286,7 @@ class CreateForStackTestCase(TestCase):
 
     def test_returns_none_for_manual_stack(self):
         """Should return None for manual stacks."""
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -292,7 +295,7 @@ class CreateForStackTestCase(TestCase):
 
     def test_returns_none_for_burst_stack(self):
         """Should return None for burst stacks."""
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.BURST_SEQUENCE,
         )
@@ -305,27 +308,18 @@ class ResolveTestCase(TestCase):
 
     def setUp(self):
         """Create test user, photos, and stack."""
-        self.user = User.objects.create(username="resolvetest")
+        self.user = create_test_user(username="resolvetest")
 
         # Create photos with files
         self.photos = []
         for i in range(3):
-            file = File.objects.create(
-                hash=f"resolve{i}" + "a" * 25,
-                path=f"/photos/img_{i}.jpg",
-                type=File.IMAGE,
-            )
-            photo = Photo.objects.create(
-                owner=self.user,
-                main_file=file,
-                image_hash=f"resolve{i}" + "b" * 25,
-                added_on=timezone.now(),
-                in_trashcan=False,
+            photo = create_test_photo(
+                owner=self.user, added_on=timezone.now(), in_trashcan=False
             )
             self.photos.append(photo)
 
         # Create stack with photos
-        self.stack = PhotoStack.objects.create(
+        self.stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -408,26 +402,16 @@ class DismissTestCase(TestCase):
 
     def setUp(self):
         """Create test user, photos, and stack."""
-        self.user = User.objects.create(username="dismisstest")
+        self.user = create_test_user(username="dismisstest")
 
         # Create photos
         self.photos = []
         for i in range(2):
-            file = File.objects.create(
-                hash=f"dismiss{i}" + "a" * 26,
-                path=f"/photos/dismiss_{i}.jpg",
-                type=File.IMAGE,
-            )
-            photo = Photo.objects.create(
-                owner=self.user,
-                main_file=file,
-                image_hash=f"dismiss{i}" + "b" * 26,
-                added_on=timezone.now(),
-            )
+            photo = create_test_photo(owner=self.user, added_on=timezone.now())
             self.photos.append(photo)
 
         # Create stack
-        self.stack = PhotoStack.objects.create(
+        self.stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -485,27 +469,18 @@ class RevertTestCase(TestCase):
 
     def setUp(self):
         """Create test user, photos, and resolved review."""
-        self.user = User.objects.create(username="reverttest")
+        self.user = create_test_user(username="reverttest")
 
         # Create photos
         self.photos = []
         for i in range(3):
-            file = File.objects.create(
-                hash=f"revert{i}" + "a" * 26,
-                path=f"/photos/revert_{i}.jpg",
-                type=File.IMAGE,
-            )
-            photo = Photo.objects.create(
-                owner=self.user,
-                main_file=file,
-                image_hash=f"revert{i}" + "b" * 26,
-                added_on=timezone.now(),
-                in_trashcan=False,
+            photo = create_test_photo(
+                owner=self.user, added_on=timezone.now(), in_trashcan=False
             )
             self.photos.append(photo)
 
         # Create stack
-        self.stack = PhotoStack.objects.create(
+        self.stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -578,7 +553,7 @@ class RevertTestCase(TestCase):
     def test_revert_does_nothing_if_not_resolved(self):
         """Should do nothing if decision is not RESOLVED."""
         # Create pending review
-        stack2 = PhotoStack.objects.create(
+        stack2 = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -611,22 +586,12 @@ class EdgeCasesTestCase(TestCase):
 
     def setUp(self):
         """Create test user."""
-        self.user = User.objects.create(username="edgetest")
+        self.user = create_test_user(username="edgetest")
 
     def test_resolve_with_single_photo_stack(self):
         """Should handle stack with only one photo."""
-        file = File.objects.create(
-            hash="single" + "a" * 26,
-            path="/photos/single.jpg",
-            type=File.IMAGE,
-        )
-        photo = Photo.objects.create(
-            owner=self.user,
-            main_file=file,
-            image_hash="single" + "b" * 26,
-            added_on=timezone.now(),
-        )
-        stack = PhotoStack.objects.create(
+        photo = create_test_photo(owner=self.user, added_on=timezone.now())
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -644,7 +609,7 @@ class EdgeCasesTestCase(TestCase):
 
     def test_dismiss_empty_stack(self):
         """Should handle stack with no photos."""
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -661,19 +626,10 @@ class EdgeCasesTestCase(TestCase):
 
     def test_revert_when_photos_already_restored(self):
         """Should handle reverting when photos are already not in trash."""
-        file = File.objects.create(
-            hash="restored" + "a" * 24,
-            path="/photos/restored.jpg",
-            type=File.IMAGE,
+        photo = create_test_photo(
+            owner=self.user, added_on=timezone.now(), in_trashcan=False
         )
-        photo = Photo.objects.create(
-            owner=self.user,
-            main_file=file,
-            image_hash="restored" + "b" * 24,
-            added_on=timezone.now(),
-            in_trashcan=False,
-        )
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -693,7 +649,7 @@ class EdgeCasesTestCase(TestCase):
 
     def test_stack_cascade_delete(self):
         """Review should be deleted when stack is deleted."""
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -709,8 +665,8 @@ class EdgeCasesTestCase(TestCase):
 
     def test_user_set_to_deleted_on_reviewer_delete(self):
         """Reviewer should be set to deleted user when user is deleted."""
-        temp_user = User.objects.create(username="temp_reviewer")
-        stack = PhotoStack.objects.create(
+        temp_user = create_test_user(username="temp_reviewer")
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -726,7 +682,7 @@ class EdgeCasesTestCase(TestCase):
 
     def test_review_with_note(self):
         """Should store user's note."""
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -743,7 +699,7 @@ class EdgeCasesTestCase(TestCase):
         """Index on reviewer+decision should exist for efficient queries."""
         # Create multiple reviews with different decisions
         for decision in StackReview.Decision.values:
-            stack = PhotoStack.objects.create(
+            stack = create_test_stack(
                 owner=self.user,
                 stack_type=PhotoStack.StackType.MANUAL,
             )
