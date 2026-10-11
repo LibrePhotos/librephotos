@@ -6,7 +6,6 @@ import "@mantine/spotlight/styles.css";
 import { createRouter, RouterProvider } from "@tanstack/react-router";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import "./App.css";
 import notificationClasses from "./App.module.css";
 import { NotFoundPage, RouteErrorPage } from "./components/common/RouteFallbacks";
 import { modalTitleStyles } from "./components/modals/modalTitleStyles";

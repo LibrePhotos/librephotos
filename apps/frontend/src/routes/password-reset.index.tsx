@@ -20,6 +20,7 @@ import { useTranslation } from "react-i18next";
 import { useRequestPasswordResetMutation } from "../api_client/auth";
 import { passwordResetError } from "../api_client/auth/passwordResetErrors";
 import { EMAIL_REGEX } from "../util/util";
+import classes from "./auth.module.css";
 
 export const Route = createFileRoute("/password-reset/")({
   component: PasswordResetRequestPage,
@@ -74,7 +75,7 @@ function PasswordResetRequestPage(): React.JSX.Element {
           <b>{t("login.name")}</b>
         </span>
       </Group>
-      <div className="login-form">
+      <div className={classes.loginForm}>
         <Card>
           <Stack>
             <Title order={3}>{t("passwordreset.title")}</Title>

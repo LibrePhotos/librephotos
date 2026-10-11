@@ -45,6 +45,7 @@ import { reportSignupError, reportUserSaveError } from "../util/apiErrors";
 import { ssoErrorMessageKey } from "../util/ssoErrors";
 import { isStringEmpty } from "../util/stringUtils";
 import { EMAIL_REGEX } from "../util/util";
+import classes from "./auth.module.css";
 
 /**
  * The protected shell sends a signed-out visitor here with `?redirect=<path>`.
@@ -124,7 +125,7 @@ function LoginPage(): React.JSX.Element {
           <b>{t("login.name")}</b>
         </span>
       </Group>
-      <div className="login-form">
+      <div className={classes.loginForm}>
         <Card>
           <Stack>
             <Title order={3}>{t("login.login")}</Title>
