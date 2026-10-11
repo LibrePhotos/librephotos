@@ -1,7 +1,8 @@
 import { ActionIcon, Avatar, Button, Group, Indicator, Text, Tooltip } from "@mantine/core";
+import { useDisclosure } from "@mantine/hooks";
 import { IconEdit, IconTrash, IconUserCheck, IconUserOff, IconUserQuestion } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
-import React, { useState } from "react";
+import React from "react";
 import { useTranslation } from "react-i18next";
 import { serverAddress } from "../../api_client/apiClient";
 import { useDeleteFacesMutation, useSetFacesPersonLabelMutation } from "../../api_client/faces";
@@ -22,7 +23,7 @@ type Props = {
 
 export function PersonDetail({ person, isPublic, setFaceLocation, onPersonEdit, notThisPerson }: Props) {
   const { t } = useTranslation();
-  const [tooltipOpened, setTooltipOpened] = useState(false);
+  const [tooltipOpened, { open: openTooltip, close: closeTooltip }] = useDisclosure(false);
   const { mutate: setFacesPersonLabel } = useSetFacesPersonLabelMutation();
   const { mutate: deleteFaces } = useDeleteFacesMutation();
   const navigate = useNavigate();
@@ -47,8 +48,8 @@ export function PersonDetail({ person, isPublic, setFaceLocation, onPersonEdit, 
       <Indicator
         color={calculateProbabiltyColor(person.probability)}
         disabled={person.type === "user" || isUnnamed}
-        onMouseEnter={() => person.type !== "user" && !isUnnamed && setTooltipOpened(true)}
-        onMouseLeave={() => setTooltipOpened(false)}
+        onMouseEnter={() => person.type !== "user" && !isUnnamed && openTooltip()}
+        onMouseLeave={() => closeTooltip()}
         size={12}
         offset={4}
       >

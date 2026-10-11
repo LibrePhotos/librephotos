@@ -11,6 +11,7 @@ import {
   TextInput,
   Title,
 } from "@mantine/core";
+import { useDisclosure } from "@mantine/hooks";
 import { IconPhoto as Photo, IconUpload as Upload, IconUser as User } from "@tabler/icons-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { isEqual } from "lodash-es";
@@ -34,7 +35,7 @@ import { PasswordEntry } from "./PasswordEntry";
 import { SaveChangesDialog } from "./SaveChangesDialog";
 
 export function Profile() {
-  const [isOpenUpdateDialog, setIsOpenUpdateDialog] = useState(false);
+  const [isOpenUpdateDialog, { open: openUpdateDialog, close: closeUpdateDialog }] = useDisclosure(false);
   const [avatarImgSrc, setAvatarImgSrc] = useState("/unknown_user.jpg");
   const { data: auth } = useAccessToken();
   const { data: userSelfDetails } = useFetchUserSelfDetailsQuery(auth?.access?.user_id ?? "");
@@ -69,11 +70,11 @@ export function Profile() {
   // open update dialog, when user was edited
   useEffect(() => {
     if (!isEqual(userSelfDetails, editedUserDetails)) {
-      setIsOpenUpdateDialog(true);
+      openUpdateDialog();
     } else {
-      setIsOpenUpdateDialog(false);
+      closeUpdateDialog();
     }
-  }, [userSelfDetails, editedUserDetails]);
+  }, [userSelfDetails, editedUserDetails, openUpdateDialog, closeUpdateDialog]);
 
   useEffect(() => {
     if (auth?.access?.user_id) {
@@ -397,13 +398,13 @@ export function Profile() {
             // Keep the dialog open when the server rejects the save (an invalid email address,
             // for example), so the edits can be fixed.
             updateUser.mutate(newUserData, {
-              onSuccess: () => setIsOpenUpdateDialog(false),
+              onSuccess: () => closeUpdateDialog(),
               onError: reportUserSaveError,
             });
           }}
           onCancel={() => {
             setEditedUserDetails(userSelfDetails);
-            setIsOpenUpdateDialog(false);
+            closeUpdateDialog();
           }}
         />
       </Stack>

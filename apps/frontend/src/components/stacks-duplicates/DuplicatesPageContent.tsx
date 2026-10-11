@@ -691,17 +691,17 @@ export function DuplicatesPageContent() {
   // Groups waiting for the delete confirmation. Kept after closing so the
   // dialog title does not change while it fades out.
   const [pendingDeleteIds, setPendingDeleteIds] = useState<string[]>([]);
-  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteConfirmOpen, { open: openDeleteConfirm, close: closeDeleteConfirm }] = useDisclosure(false);
 
   const askToDelete = (ids: string[]) => {
     setPendingDeleteIds(ids);
-    setDeleteConfirmOpen(true);
+    openDeleteConfirm();
   };
 
   const confirmDelete = () => {
     pendingDeleteIds.forEach(id => deleteDuplicate(id));
     setSelectedDuplicateIds(prev => new Set([...prev].filter(id => !pendingDeleteIds.includes(id))));
-    setDeleteConfirmOpen(false);
+    closeDeleteConfirm();
   };
 
   // Reset page and selection when a filter changes: Select All and Delete
@@ -964,14 +964,14 @@ export function DuplicatesPageContent() {
       {/* Removing a group cannot be undone, and for a resolved one it also drops the Revert history */}
       <Modal
         opened={deleteConfirmOpen}
-        onClose={() => setDeleteConfirmOpen(false)}
+        onClose={() => closeDeleteConfirm()}
         title={t("duplicates.deleteconfirmtitle", { count: pendingDeleteIds.length })}
         centered
       >
         <Stack>
           <Text size="sm">{t("duplicates.deleteconfirmdescription")}</Text>
           <Group justify="flex-end">
-            <Button variant="default" onClick={() => setDeleteConfirmOpen(false)}>
+            <Button variant="default" onClick={() => closeDeleteConfirm()}>
               {t("cancel")}
             </Button>
             <Button color="red" onClick={confirmDelete}>

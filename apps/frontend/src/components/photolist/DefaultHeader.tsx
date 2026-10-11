@@ -13,6 +13,7 @@ import {
   UnstyledButton,
   useMantineTheme,
 } from "@mantine/core";
+import { useDisclosure } from "@mantine/hooks";
 import {
   IconCalendar as Calendar,
   IconCheck as Check,
@@ -84,7 +85,7 @@ function DuplicatesMenuItem({ onClick }: Readonly<{ onClick: () => void }>) {
 }
 
 export function DefaultHeader(props: Props) {
-  const [modalOpen, setModalOpen] = useState(false);
+  const [modalOpen, { open: openModal, close: closeModal }] = useDisclosure(false);
   const [userToEdit, setUserToEdit] = useState<Partial<User>>({});
   const navigate = useNavigate();
   const router = useRouter();
@@ -198,14 +199,14 @@ export function DefaultHeader(props: Props) {
             leftSection={<Photo size={18} />}
             onClick={() => {
               setUserToEdit({ ...userSelfDetails });
-              setModalOpen(true);
+              openModal();
             }}
           >
             {t("defaultheader.gettingstarted")}
           </Button>
           <ModalUserEdit
             onRequestClose={() => {
-              setModalOpen(false);
+              closeModal();
             }}
             userToEdit={userToEdit}
             isOpen={modalOpen}

@@ -14,6 +14,7 @@ import {
   Tooltip,
   useComputedColorScheme,
 } from "@mantine/core";
+import { useDisclosure } from "@mantine/hooks";
 import { IconMoodSmile, IconUser, IconUserQuestion } from "@tabler/icons-react";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import useDimensions from "react-cool-dimensions";
@@ -112,7 +113,7 @@ export function FaceClusterGraph({ height }: Props) {
   const [hoveredPoint, setHoveredPoint] = useState<FacePoint | null>(null);
   const [selectedPerson, setSelectedPerson] = useState<string | null>(null);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
-  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxOpen, { open: openLightbox, close: hideLightbox }] = useDisclosure(false);
   const [lightboxImageId, setLightboxImageId] = useState("");
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -362,16 +363,16 @@ export function FaceClusterGraph({ height }: Props) {
 
       if (clickedPoint && clickedPoint.photo) {
         setLightboxImageId(clickedPoint.photo);
-        setLightboxOpen(true);
+        openLightbox();
       }
     },
-    [points, selectedPerson, toCanvasCoords, canvasWidth, canvasHeight]
+    [points, selectedPerson, toCanvasCoords, canvasWidth, canvasHeight, openLightbox]
   );
 
   const closeLightbox = useCallback(() => {
-    setLightboxOpen(false);
+    hideLightbox();
     setLightboxImageId("");
-  }, []);
+  }, [hideLightbox]);
 
   const handleLightboxImageChange = useCallback((imageId: string) => {
     setLightboxImageId(imageId);

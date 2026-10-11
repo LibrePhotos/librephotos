@@ -1,4 +1,5 @@
 import { Avatar, useComputedColorScheme, useMantineColorScheme } from "@mantine/core";
+import { useDisclosure } from "@mantine/hooks";
 import { showNotification } from "@mantine/notifications";
 import type { SpotlightActionData } from "@mantine/spotlight";
 import {
@@ -41,7 +42,7 @@ import {
   IconVideo,
 } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { fetchClient } from "../../api_client/api";
 import { serverAddress } from "../../api_client/apiClient";
@@ -170,7 +171,8 @@ export function useSpotlightActions(query: string = "") {
   const { mutate: generateAutoAlbums } = useGenerateAutoAlbumsMutation();
   const trainFaces = useTrainFacesMutation();
   // Deleting missing photos drops their records for good, so it asks first, as on the Library page
-  const [deleteMissingConfirmOpen, setDeleteMissingConfirmOpen] = useState(false);
+  const [deleteMissingConfirmOpen, { open: openDeleteMissingConfirm, close: closeDeleteMissingConfirm }] =
+    useDisclosure(false);
 
   // Navigation actions
   const navigationActions: SpotlightAction[] = useMemo(
@@ -544,7 +546,7 @@ export function useSpotlightActions(query: string = "") {
         leftSection: React.createElement(IconPhotoX, iconProps),
         onClick: () => {
           if (workerAvailable) {
-            setDeleteMissingConfirmOpen(true);
+            openDeleteMissingConfirm();
           }
         },
         disabled: !workerAvailable,
@@ -562,6 +564,7 @@ export function useSpotlightActions(query: string = "") {
     isUserSelfDetailsPending,
     isAdmin,
     navigate,
+    openDeleteMissingConfirm,
   ]);
 
   // Quick actions
@@ -644,7 +647,7 @@ export function useSpotlightActions(query: string = "") {
     isLoading: isSearchLoading,
     deleteMissingConfirm: {
       opened: deleteMissingConfirmOpen,
-      close: () => setDeleteMissingConfirmOpen(false),
+      close: () => closeDeleteMissingConfirm(),
     },
   };
 }
