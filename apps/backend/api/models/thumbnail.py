@@ -7,7 +7,7 @@ from typing import Any
 
 from django.conf import settings
 from django.db import models, transaction
-from django.dispatch import receiver
+from django.db.models.signals import post_delete
 from PIL import Image
 
 from api.models.photo import Photo
@@ -376,7 +376,6 @@ def _delete_orphaned_thumbnail_files(file_names: list[str]) -> None:
             delete_thumbnail_files(photo_hash)
 
 
-@receiver(models.signals.post_delete, sender=Thumbnail)
 def delete_orphaned_thumbnail_files(
     sender: type[Thumbnail], instance: Thumbnail, using: str, **kwargs: Any
 ) -> None:
@@ -398,3 +397,11 @@ def delete_orphaned_thumbnail_files(
         transaction.on_commit(
             partial(_delete_orphaned_thumbnail_files, file_names), using=using
         )
+
+
+def register() -> None:
+    post_delete.connect(
+        delete_orphaned_thumbnail_files,
+        sender=Thumbnail,
+        dispatch_uid="api.models.thumbnail.delete_orphaned_thumbnail_files",
+    )

@@ -5,7 +5,6 @@ from django.db import models
 from django.db.models import Count, IntegerField, OuterRef, QuerySet, Subquery
 from django.db.models.functions import Coalesce
 from django.db.models.signals import m2m_changed
-from django.dispatch import receiver
 
 from api.models.photo import Photo
 from api.models.user import User, get_deleted_user
@@ -45,8 +44,7 @@ class Tag(models.Model):
         return "%d: %s" % (self.id or 0, self.name)
 
 
-@receiver(m2m_changed, sender=Tag.photos.through)
-def update_photo_count(
+def update_tag_photo_count(
     sender: type[models.Model],
     instance: Tag,
     action: str,
@@ -61,6 +59,14 @@ def update_photo_count(
     for tag in tags:
         tag.photo_count = tag.photos.filter(**VISIBLE_PHOTO_FILTER).count()
         tag.save(update_fields=["photo_count"])
+
+
+def register() -> None:
+    m2m_changed.connect(
+        update_tag_photo_count,
+        sender=Tag.photos.through,
+        dispatch_uid="api.models.tag.update_tag_photo_count",
+    )
 
 
 def tag_ids_for_photos(photos: QuerySet[Photo]) -> list[int]:

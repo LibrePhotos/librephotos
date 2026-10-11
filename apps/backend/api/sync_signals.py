@@ -302,6 +302,9 @@ def _make_owned_tombstone(
 def _person_tombstone(sender: type[Person], instance: Person, **kwargs: Any) -> None:
     # Only USER-kind persons are mirrored (People album grid), so only they
     # need tombstones; cluster/unknown persons churn on every clustering run.
+    # Runs on pre_delete: the people list deletes an instance loaded with
+    # .only(), and reading the deferred kind after the row is gone raised
+    # DoesNotExist. Same transaction as the delete, so a rollback drops it.
     if instance.kind == Person.KIND_USER and instance.cluster_owner_id:
         _write_tombstones(
             DeletionLog.ENTITY_PERSON, instance.pk, [instance.cluster_owner_id]
@@ -312,17 +315,22 @@ def _person_tombstone(sender: type[Person], instance: Person, **kwargs: Any) -> 
 # registration
 # --------------------------------------------------------------------------- #
 def register() -> None:
+    # weak=False for the handlers the factories build: nothing else references
+    # those closures, and a weakly held one is collected as soon as connect()
+    # returns. Only DEBUG's lru-cached signature check kept them alive, so
+    # they worked in the test suite and nowhere else.
     # photos membership bumps
     for parent_model, through in _PHOTO_MEMBERSHIP_PARENTS.items():
         m2m_changed.connect(
             _make_photos_bump(parent_model),
             sender=through,
-            dispatch_uid=f"sync_photos_bump_{parent_model.__name__}",
+            weak=False,
+            dispatch_uid=f"api.sync_signals.photos_bump_{parent_model.__name__}",
         )
     m2m_changed.connect(
         _album_thing_cover_bump,
         sender=AlbumThing.cover_photos.through,
-        dispatch_uid="sync_album_thing_cover_bump",
+        dispatch_uid="api.sync_signals.album_thing_cover_bump",
     )
 
     # shared_to bumps + tombstones
@@ -330,43 +338,51 @@ def register() -> None:
         m2m_changed.connect(
             _make_share_handler(entity, parent_model),
             sender=through,
-            dispatch_uid=f"sync_share_{entity}",
+            weak=False,
+            dispatch_uid=f"api.sync_signals.share_{entity}",
         )
 
     # Photo.shared_to
     m2m_changed.connect(
         _photo_share_handler,
         sender=Photo.shared_to.through,
-        dispatch_uid="sync_photo_share",
+        dispatch_uid="api.sync_signals.photo_share",
     )
 
     # hard-delete tombstones
     pre_delete.connect(
-        _capture_viewers, sender=Photo, dispatch_uid="sync_capture_photo_viewers"
+        _capture_viewers,
+        sender=Photo,
+        dispatch_uid="api.sync_signals.capture_photo_viewers",
     )
     post_delete.connect(
         _make_owned_tombstone(DeletionLog.ENTITY_PHOTO, shared=True),
         sender=Photo,
-        dispatch_uid="sync_tombstone_photo",
+        weak=False,
+        dispatch_uid="api.sync_signals.tombstone_photo",
     )
 
     for entity, (parent_model, _through) in _SHARE_PARENTS.items():
         pre_delete.connect(
             _capture_viewers,
             sender=parent_model,
-            dispatch_uid=f"sync_capture_viewers_{entity}",
+            dispatch_uid=f"api.sync_signals.capture_viewers_{entity}",
         )
         post_delete.connect(
             _make_owned_tombstone(entity, shared=True),
             sender=parent_model,
-            dispatch_uid=f"sync_tombstone_{entity}",
+            weak=False,
+            dispatch_uid=f"api.sync_signals.tombstone_{entity}",
         )
 
-    post_delete.connect(
-        _person_tombstone, sender=Person, dispatch_uid="sync_tombstone_person"
+    pre_delete.connect(
+        _person_tombstone,
+        sender=Person,
+        dispatch_uid="api.sync_signals.tombstone_person",
     )
     post_delete.connect(
         _make_owned_tombstone(DeletionLog.ENTITY_TAG),
         sender=Tag,
-        dispatch_uid="sync_tombstone_tag",
+        weak=False,
+        dispatch_uid="api.sync_signals.tombstone_tag",
     )

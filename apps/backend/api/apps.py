@@ -1,10 +1,31 @@
 import logging
+from importlib import import_module
 
 from django.apps import AppConfig
 
 from librephotos.logging_bootstrap import take_deferred_warnings
 
 logger = logging.getLogger(__name__)
+
+# Every module that connects model signal receivers, which is every place
+# that runs code when a row is saved or deleted. Each exposes register(),
+# connecting its receivers with a "<module>.<name>" dispatch_uid; ready()
+# calls them in this order, once all models are loaded.
+# api/tests/infra/test_signal_receivers.py enforces the list.
+SIGNAL_MODULES = (
+    # Photo counts and covers of thing albums and tags.
+    "api.models.album_thing",
+    "api.models.tag",
+    # File clean-up, deferred to on_commit.
+    "api.models.face",
+    "api.models.thumbnail",
+    # Delta-sync bookkeeping: last_modified bumps + tombstone writers
+    # (mobile v2, doc 04).
+    "api.sync_signals",
+    # Before a user is deleted, however that happens: turn off their public
+    # links and make room for their albums and tags in ``deleted``.
+    "api.user_deletion",
+)
 
 
 class ApiConfig(AppConfig):
@@ -29,17 +50,8 @@ class ApiConfig(AppConfig):
         checks.register(check_default_db_password, checks.Tags.security)
         checks.register(check_squashed_migration_history, checks.Tags.database)
 
-        # Delta-sync bookkeeping: last_modified bumps + tombstone writers
-        # (mobile v2, doc 04). Registered here so all models are loaded first.
-        from api import sync_signals
-
-        sync_signals.register()
-
-        # Before a user is deleted, however that happens: turn off their public
-        # links and make room for their albums and tags in ``deleted``.
-        from api import user_deletion
-
-        user_deletion.register()
+        for module in SIGNAL_MODULES:
+            import_module(module).register()
 
         try:
             reconfigure_logging()

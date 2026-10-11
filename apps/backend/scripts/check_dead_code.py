@@ -10,8 +10,8 @@ those four kinds.
 Tests are not scanned: code that only a test calls is dead too. Framework
 entry points that nothing in the code calls by name are skipped here:
 
-  - decorators that register the function (``@action``, ``@receiver``,
-    ``@admin.register``, Flask ``@app.route`` and friends);
+  - decorators that register the function (``@action``, ``@admin.register``,
+    Flask ``@app.route`` and friends);
   - nested ``Meta`` classes and the ``Command`` class of a management command;
   - DRF ``get_<field>`` methods backing a ``SerializerMethodField`` and
     ``validate_<field>`` methods on serializers;
@@ -52,7 +52,6 @@ MIN_CONFIDENCE = 60
 REPORTED_TYPES = frozenset({"function", "method", "class", "property"})
 IGNORE_DECORATORS = (
     "@action",
-    "@receiver",
     "@admin.register",
     "@app.route",
     "@app.get",

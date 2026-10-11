@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import logging
 import os
 from datetime import datetime
+from functools import partial
 from typing import TYPE_CHECKING, Any
 
-from django.db import models
-from django.dispatch import receiver
+from django.db import models, transaction
+from django.db.models.signals import post_delete
 
 from api.face_recognition import get_face_encodings
 from api.models.cluster import Cluster
@@ -22,6 +24,8 @@ if TYPE_CHECKING:
 else:
     np = LazyModule("numpy")
 
+logger = logging.getLogger(__name__)
+
 
 class Face(models.Model):
     photo = models.ForeignKey(
@@ -30,7 +34,7 @@ class Face(models.Model):
     image = models.ImageField(upload_to="faces", null=True)
 
     person = models.ForeignKey(
-        Person, on_delete=models.DO_NOTHING, related_name="faces", null=True
+        Person, on_delete=models.SET_NULL, related_name="faces", null=True
     )
 
     classification_person = models.ForeignKey(
@@ -101,16 +105,32 @@ class Face(models.Model):
         return np.frombuffer(bytes.fromhex(self.encoding))
 
 
-@receiver(models.signals.post_delete, sender=Person)
-def reset_person(sender: type[Person], instance: Person, **kwargs: Any) -> None:
-    instance.faces.update(person=None)
+def _remove_face_crop(face_id: int, path: str) -> None:
+    try:
+        if os.path.isfile(path):
+            os.remove(path)
+    except OSError:
+        # The face row is gone either way; a crop left behind is only disk.
+        logger.warning("Could not remove the crop of deleted face %s", face_id)
 
 
-# From: https://stackoverflow.com/questions/16041232/django-delete-filefield
-@receiver(models.signals.post_delete, sender=Face)
-def auto_delete_file_on_delete(
-    sender: type[Face], instance: Face, **kwargs: Any
+def delete_face_crop_file(
+    sender: type[Face], instance: Face, using: str, **kwargs: Any
 ) -> None:
+    """Remove a deleted face's crop file once the delete commits.
+
+    Deferred to on_commit, as the thumbnail files are, so a rolled-back delete
+    keeps the crop its restored row points at.
+    """
     if instance.image:
-        if os.path.isfile(instance.image.path):
-            os.remove(instance.image.path)
+        transaction.on_commit(
+            partial(_remove_face_crop, instance.pk, instance.image.path), using=using
+        )
+
+
+def register() -> None:
+    post_delete.connect(
+        delete_face_crop_file,
+        sender=Face,
+        dispatch_uid="api.models.face.delete_face_crop_file",
+    )

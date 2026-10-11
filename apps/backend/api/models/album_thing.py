@@ -6,7 +6,6 @@ from typing import Any
 from django.db import models
 from django.db.models import Count, QuerySet
 from django.db.models.signals import m2m_changed
-from django.dispatch import receiver
 from django.utils import timezone
 
 from api.models.photo import Photo
@@ -60,8 +59,7 @@ class AlbumThing(models.Model):
         return "%d: %s" % (self.id or 0, self.title)
 
 
-@receiver(m2m_changed, sender=AlbumThing.photos.through)
-def update_photo_count(
+def update_album_thing_photo_count(
     sender: type[models.Model],
     instance: AlbumThing | Photo,
     action: str,
@@ -83,6 +81,14 @@ def update_photo_count(
         album.photo_count = album.photos.filter(**COUNTED_PHOTO_FILTER).count()
         album.save(update_fields=["photo_count"])
         album.update_default_cover_photo()
+
+
+def register() -> None:
+    m2m_changed.connect(
+        update_album_thing_photo_count,
+        sender=AlbumThing.photos.through,
+        dispatch_uid="api.models.album_thing.update_album_thing_photo_count",
+    )
 
 
 def album_thing_ids_for_photos(photos: QuerySet[Photo]) -> list[int]:
