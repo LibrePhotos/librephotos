@@ -11,7 +11,11 @@ from django.test import TestCase
 from rest_framework.test import APIClient
 
 from api.models import Photo
-from api.tests.utils import create_test_photos, create_test_user
+from api.tests.utils import (
+    create_test_album_user,
+    create_test_photos,
+    create_test_user,
+)
 from api.views.photo_filters import build_photo_queryset
 
 logger = logging.getLogger(__name__)
@@ -638,10 +642,9 @@ class UserAlbumSelectAllTest(TestCase):
 
     def test_add_to_album_select_all_with_exclusions(self):
         """PATCHing an album with select_all adds the query result minus exclusions."""
-        from api.models import AlbumUser
 
         photos = create_test_photos(number_of_photos=5, owner=self.user1)
-        album = AlbumUser.objects.create(title="existing", owner=self.user1)
+        album = create_test_album_user(title="existing", owner=self.user1)
         album.photos.add(photos[0])
 
         payload = {

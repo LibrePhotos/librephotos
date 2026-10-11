@@ -13,7 +13,13 @@ from django.test import TestCase
 from api.models.duplicate import Duplicate
 from api.models.file import File
 from api.models.photo_stack import PhotoStack
-from api.tests.utils import create_test_photo, create_test_user
+from api.tests.utils import (
+    create_test_duplicate,
+    create_test_file,
+    create_test_photo,
+    create_test_stack,
+    create_test_user,
+)
 
 
 class PhotoDeletionStackCleanupTestCase(TestCase):
@@ -28,7 +34,7 @@ class PhotoDeletionStackCleanupTestCase(TestCase):
         photo2 = create_test_photo(owner=self.user)
         photo3 = create_test_photo(owner=self.user)
 
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.BURST_SEQUENCE,
         )
@@ -54,7 +60,7 @@ class PhotoDeletionStackCleanupTestCase(TestCase):
         photo1 = create_test_photo(owner=self.user)
         photo2 = create_test_photo(owner=self.user)
 
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.BURST_SEQUENCE,
         )
@@ -78,7 +84,7 @@ class PhotoDeletionStackCleanupTestCase(TestCase):
         photo1 = create_test_photo(owner=self.user)
         photo2 = create_test_photo(owner=self.user)
 
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.BURST_SEQUENCE,
         )
@@ -113,7 +119,7 @@ class PhotoDeletionDuplicateCleanupTestCase(TestCase):
         photo2 = create_test_photo(owner=self.user)
         photo3 = create_test_photo(owner=self.user)
 
-        duplicate = Duplicate.objects.create(
+        duplicate = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
@@ -146,7 +152,7 @@ class PhotoDeletionDuplicateCleanupTestCase(TestCase):
         photo1 = create_test_photo(owner=self.user)
         photo2 = create_test_photo(owner=self.user)
 
-        duplicate = Duplicate.objects.create(
+        duplicate = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
@@ -173,7 +179,7 @@ class PhotoDeletionDuplicateCleanupTestCase(TestCase):
         photo1 = create_test_photo(owner=self.user)
         photo2 = create_test_photo(owner=self.user)
 
-        duplicate = Duplicate.objects.create(
+        duplicate = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
@@ -207,7 +213,7 @@ class PhotoTrashRestoreTestCase(TestCase):
         photo1 = create_test_photo(owner=self.user)
         photo2 = create_test_photo(owner=self.user)
 
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.BURST_SEQUENCE,
         )
@@ -229,7 +235,7 @@ class PhotoTrashRestoreTestCase(TestCase):
         photo1 = create_test_photo(owner=self.user)
         photo2 = create_test_photo(owner=self.user)
 
-        duplicate = Duplicate.objects.create(
+        duplicate = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
@@ -271,14 +277,14 @@ class PhotoInMultipleGroupsTestCase(TestCase):
         photo3 = create_test_photo(owner=self.user)
 
         # Photo1 is in a burst stack with photo2
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.BURST_SEQUENCE,
         )
         stack.photos.add(photo1, photo2)
 
         # Photo1 is also in a duplicate group with photo3
-        duplicate = Duplicate.objects.create(
+        duplicate = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
@@ -316,14 +322,14 @@ class PhotoInMultipleGroupsTestCase(TestCase):
         photo3 = create_test_photo(owner=self.user)
 
         # Stack 1: Burst with photo1 and photo2
-        stack1 = PhotoStack.objects.create(
+        stack1 = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.BURST_SEQUENCE,
         )
         stack1.photos.add(photo1, photo2)
 
         # Stack 2: Manual with photo1 and photo3
-        stack2 = PhotoStack.objects.create(
+        stack2 = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -354,7 +360,7 @@ class DuplicateResolutionCleanupTestCase(TestCase):
         photo2 = create_test_photo(owner=self.user)
         photo3 = create_test_photo(owner=self.user)
 
-        duplicate = Duplicate.objects.create(
+        duplicate = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
@@ -378,7 +384,7 @@ class DuplicateResolutionCleanupTestCase(TestCase):
         photo1 = create_test_photo(owner=self.user)
         photo2 = create_test_photo(owner=self.user)
 
-        duplicate = Duplicate.objects.create(
+        duplicate = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
             review_status=Duplicate.ReviewStatus.PENDING,
@@ -429,7 +435,7 @@ class EdgeCasesTestCase(TestCase):
         photo2 = create_test_photo(owner=self.user)
         photo3 = create_test_photo(owner=self.user)
 
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.BURST_SEQUENCE,
             primary_photo=photo1,
@@ -454,7 +460,7 @@ class EdgeCasesTestCase(TestCase):
         photo1 = create_test_photo(owner=self.user)
         photo2 = create_test_photo(owner=self.user)
 
-        duplicate = Duplicate.objects.create(
+        duplicate = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
             review_status=Duplicate.ReviewStatus.RESOLVED,
@@ -484,11 +490,7 @@ class SharedFileTestCase(TestCase):
     def test_delete_photo_preserves_shared_file(self):
         """Test that deleting a photo does not delete a file shared with another photo."""
         # Create a shared file
-        shared_file = File.objects.create(
-            hash="shared_file_hash" + "a" * 17,
-            path="/photos/shared_image.jpg",
-            type=File.IMAGE,
-        )
+        shared_file = create_test_file("/photos/shared_image.jpg", self.user)
 
         # Create two photos that share the same file
         photo1 = create_test_photo(owner=self.user)
@@ -537,11 +539,7 @@ class SharedFileTestCase(TestCase):
 
         try:
             # Create a file that's only used by one photo
-            unique_file = File.objects.create(
-                hash="unique_file_hash" + "a" * 18,
-                path=temp_path,
-                type=File.IMAGE,
-            )
+            unique_file = create_test_file(temp_path, self.user)
 
             photo = create_test_photo(owner=self.user)
             photo.files.add(unique_file)
@@ -574,17 +572,11 @@ class SharedFileTestCase(TestCase):
     def test_delete_photo_with_shared_main_file_different_from_files(self):
         """Test deleting when main_file is shared but files M2M has unique files."""
         # Shared main_file
-        shared_main = File.objects.create(
-            hash="shared_main_hash" + "a" * 18,
-            path="/photos/main.jpg",
-            type=File.IMAGE,
-        )
+        shared_main = create_test_file("/photos/main.jpg", self.user)
 
         # Unique sidecar file for photo1 only
-        unique_sidecar = File.objects.create(
-            hash="unique_sidecar_hash" + "a" * 15,
-            path="/photos/sidecar.xmp",
-            type=File.METADATA_FILE,
+        unique_sidecar = create_test_file(
+            "/photos/sidecar.xmp", self.user, file_type=File.METADATA_FILE
         )
 
         photo1 = create_test_photo(owner=self.user)
@@ -616,11 +608,7 @@ class SharedFileTestCase(TestCase):
 
     def test_delete_last_photo_using_shared_file(self):
         """Test that file is deleted when the last photo using it is deleted."""
-        shared_file = File.objects.create(
-            hash="eventually_orphan" + "a" * 17,
-            path="/photos/shared.jpg",
-            type=File.IMAGE,
-        )
+        shared_file = create_test_file("/photos/shared.jpg", self.user)
 
         photo1 = create_test_photo(owner=self.user)
         photo2 = create_test_photo(owner=self.user)

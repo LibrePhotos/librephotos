@@ -28,7 +28,12 @@ from api.models.album_place import AlbumPlace, get_album_place
 from api.models.cluster import UNKNOWN_CLUSTER_ID
 from api.models.photo_search import PhotoSearch
 from api.photo_faces import extract_faces
-from api.tests.utils import create_test_face, create_test_photo, create_test_user
+from api.tests.utils import (
+    create_test_face,
+    create_test_person,
+    create_test_photo,
+    create_test_user,
+)
 
 GEO_RESULT = {
     "_v": "1",
@@ -486,7 +491,7 @@ class ExtractFacesCharacterizationTest(TestCase):
     @patch("api.photo_faces.PIL.Image.open", return_value=_thumb_image())
     @patch("api.photo_faces.face_extractor")
     def test_existing_face_with_person_is_not_reassigned(self, extractor, _open):
-        keeper = Person.objects.create(name="Grace Hopper", kind=Person.KIND_USER)
+        keeper = create_test_person(name="Grace Hopper", kind=Person.KIND_USER)
         existing = create_test_face(
             photo=self.photo,
             person=keeper,

@@ -3,19 +3,6 @@
 # have a factory in api/tests/utils.py (FACTORIES in scripts/factory_baseline.py). Sorted by path.
 # It only shrinks: move a file to its factories, then regenerate. A raw create that must stay raw
 # carries `# raw-create: <reason>` on its line and is not listed here.
-api/tests/albums/test_album_date_detail_owner_scope.py 1
-api/tests/albums/test_album_date_list_filters.py 1
-api/tests/albums/test_album_date_ordering_pagination.py 1
-api/tests/albums/test_album_date_public_last_modified.py 3
-api/tests/albums/test_album_date_public_location.py 1
-api/tests/albums/test_album_date_queryset_filters.py 5
-api/tests/albums/test_album_date_retrieve_only.py 1
-api/tests/albums/test_album_media_type_filter.py 6
-api/tests/albums/test_album_user_share_is_read_only.py 1
-api/tests/albums/test_folder_navigation_subfolders.py 3
-api/tests/albums/test_issue_618_album_list_query_counts.py 4
-api/tests/albums/test_issue_619_album_detail_query_counts.py 2
-api/tests/albums/test_issue_867_lock_album.py 1
 api/tests/duplicates/test_duplicate_and_stack_redetection.py 18
 api/tests/duplicates/test_duplicate_detection_algorithms.py 8
 api/tests/duplicates/test_duplicate_list_filters.py 14
@@ -45,20 +32,6 @@ api/tests/migrations/test_migration_0144_sqlite_restore_foreign_keys.py 5
 api/tests/migrations/test_migration_0149_turn_off_public_links_of_deleted_users.py 1
 api/tests/ml_services/test_service_feature_flags.py 1
 api/tests/ocr/test_ocr_job_and_model.py 2
-api/tests/photos/test_album_user_photo_owner_scope.py 6
-api/tests/photos/test_api_input_hardening.py 29
-api/tests/photos/test_bulk_select_all_operations.py 1
-api/tests/photos/test_delete_missing_photos.py 4
-api/tests/photos/test_document_classification.py 1
-api/tests/photos/test_media_category_filtering.py 2
-api/tests/photos/test_photo_delete_and_trash_cleanup.py 21
-api/tests/photos/test_photo_edit_serializer_and_stacks.py 3
-api/tests/photos/test_photo_file_variant_download_and_rotate.py 1
-api/tests/photos/test_photo_geolocate_and_extract_faces.py 1
-api/tests/photos/test_photo_hash_existence_oracle.py 1
-api/tests/photos/test_photo_related_models.py 2
-api/tests/photos/test_set_main_file_view.py 1
-api/tests/photos/test_timeline_filter.py 3
 api/tests/scanning/test_file_handlers.py 1
 api/tests/scanning/test_file_path_uniqueness.py 17
 api/tests/scanning/test_file_str.py 1

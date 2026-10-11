@@ -37,7 +37,7 @@ from rest_framework import status
 from rest_framework.test import APIRequestFactory, APITestCase, force_authenticate
 
 from api.models import File, Photo
-from api.tests.utils import create_test_photo, create_test_user
+from api.tests.utils import create_test_file, create_test_photo, create_test_user
 from api.views.photos import FileVariantDownloadView, RotatePhotoView
 
 # ---------------------------------------------------------------------------
@@ -60,9 +60,7 @@ class FileVariantDownloadViewTest(APITestCase):
         path = os.path.join(self.tmpdir, name)
         with open(path, "wb") as handle:
             handle.write(content)
-        variant = File.objects.create(
-            hash=f"aaaa{len(File.objects.all())}{name}", path=path, type=File.RAW_FILE
-        )
+        variant = create_test_file(path, self.user, file_type=File.RAW_FILE)
         self.photo.files.add(variant)
         return variant
 

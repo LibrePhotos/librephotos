@@ -37,9 +37,10 @@ from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 from rest_framework.test import APIClient
 
-from api.models import AlbumAuto, AlbumPlace, AlbumThing, AlbumUser
+from api.models import AlbumAuto, AlbumPlace, AlbumThing
 from api.models.album_user_share import AlbumUserShare
 from api.tests.utils import (
+    create_test_album_user,
     create_test_face,
     create_test_person,
     create_test_photo,
@@ -193,9 +194,7 @@ class AlbumUserDetailQueryCountTest(AlbumDetailQueryCountTestMixin, TestCase):
     KIND = "user"
 
     def _make_album(self, photos):
-        album = AlbumUser.objects.create(
-            title=f"Holiday {len(photos)}", owner=self.user
-        )
+        album = create_test_album_user(title=f"Holiday {len(photos)}", owner=self.user)
         album.photos.add(*photos)
         return album
 
@@ -245,7 +244,7 @@ class AlbumUserHiddenAndTrashedPhotosTest(TestCase):
         self.visible = create_test_photo(owner=self.owner)
         self.hidden = create_test_photo(owner=self.owner, hidden=True)
         self.trashed = create_test_photo(owner=self.owner, in_trashcan=True)
-        self.album = AlbumUser.objects.create(title="Mixed", owner=self.owner)
+        self.album = create_test_album_user(title="Mixed", owner=self.owner)
         self.album.photos.add(self.visible, self.hidden, self.trashed)
         self.album.shared_to.add(self.recipient)
 

@@ -34,7 +34,7 @@ from rest_framework import status
 from rest_framework.test import APIRequestFactory, APITestCase, force_authenticate
 
 from api.models import File, Photo
-from api.tests.utils import create_test_photo, create_test_user
+from api.tests.utils import create_test_file, create_test_photo, create_test_user
 from api.views.photos import SetMainFileView
 
 
@@ -55,11 +55,7 @@ class SetMainFileViewTest(APITestCase):
         path = os.path.join(self.tmpdir, name)
         with open(path, "wb") as handle:
             handle.write(b"raw-bytes")
-        variant = File.objects.create(
-            hash=f"u34-{len(File.objects.all())}-{name}",
-            path=path,
-            type=File.RAW_FILE,
-        )
+        variant = create_test_file(path, self.user, file_type=File.RAW_FILE)
         if attach:
             self.photo.files.add(variant)
         return variant

@@ -30,25 +30,13 @@ from api.models import LongRunningJob, PhotoOcr
 from api.models.album_thing import AlbumThing
 from api.models.photo_caption import PhotoCaption
 from api.models.photo_search import PhotoSearch
-from api.tests.utils import create_test_photo, create_test_user
+from api.tests.utils import create_test_job, create_test_photo, create_test_user
 
 ACTIVE_MODEL = "ppocrv6_small"
 
 # A block of prose long enough to clear both the dense (>=40) and moderate
 # (>=20) content-char bars without carrying any receipt fingerprint.
 DENSE_PROSE = "The quick brown fox jumps over the lazy dog and then keeps on running."
-
-
-def _make_job(user, job_id, target=1):
-    from django.utils import timezone
-
-    return LongRunningJob.objects.create(
-        started_by=user,
-        job_id=str(job_id),
-        job_type=LongRunningJob.JOB_GENERATE_OCR,
-        queued_at=timezone.now(),
-        progress_target=target,
-    )
 
 
 def _ok_response(text="hello world", area=0.12):
@@ -220,7 +208,12 @@ class OcrDerivesDocumentTest(TestCase):
         self._add_tags(photo, "receipt")
         mock_post.return_value = _ok_response(text="STORE\nTOTAL 12,50 €", area=0.30)
         job_id = uuid.uuid4()
-        _make_job(self.user, job_id, target=1)
+        create_test_job(
+            self.user,
+            job_id=str(job_id),
+            job_type=LongRunningJob.JOB_GENERATE_OCR,
+            progress_target=1,
+        )
 
         generate_ocr_job(photo, job_id)
 
@@ -237,7 +230,12 @@ class OcrDerivesDocumentTest(TestCase):
         caption.store_tags(["receipt", "table", "paper"])
         mock_post.return_value = _ok_response(text="hello", area=0.01)
         job_id = uuid.uuid4()
-        _make_job(self.user, job_id, target=1)
+        create_test_job(
+            self.user,
+            job_id=str(job_id),
+            job_type=LongRunningJob.JOB_GENERATE_OCR,
+            progress_target=1,
+        )
 
         generate_ocr_job(photo, job_id)
 
@@ -252,7 +250,12 @@ class OcrDerivesDocumentTest(TestCase):
         ).photos.add(photo)
         mock_post.return_value = _ok_response(text="hello", area=0.01)
         job_id = uuid.uuid4()
-        _make_job(self.user, job_id, target=1)
+        create_test_job(
+            self.user,
+            job_id=str(job_id),
+            job_type=LongRunningJob.JOB_GENERATE_OCR,
+            progress_target=1,
+        )
 
         generate_ocr_job(photo, job_id)
 
@@ -264,7 +267,12 @@ class OcrDerivesDocumentTest(TestCase):
         photo = create_test_photo(owner=self.user)
         mock_post.return_value = _ok_response(text="hello world", area=0.02)
         job_id = uuid.uuid4()
-        _make_job(self.user, job_id, target=1)
+        create_test_job(
+            self.user,
+            job_id=str(job_id),
+            job_type=LongRunningJob.JOB_GENERATE_OCR,
+            progress_target=1,
+        )
 
         generate_ocr_job(photo, job_id)
 
@@ -279,7 +287,12 @@ class OcrDerivesDocumentTest(TestCase):
         self._add_tags(photo, "receipt")  # would be STRONG -> True if derived
         mock_post.return_value = _ok_response(text="STORE\nTOTAL 12,50 €", area=0.30)
         job_id = uuid.uuid4()
-        _make_job(self.user, job_id, target=1)
+        create_test_job(
+            self.user,
+            job_id=str(job_id),
+            job_type=LongRunningJob.JOB_GENERATE_OCR,
+            progress_target=1,
+        )
 
         generate_ocr_job(photo, job_id)
 
@@ -293,7 +306,12 @@ class OcrDerivesDocumentTest(TestCase):
         photo = create_test_photo(owner=self.user)
         mock_post.return_value = _ok_response(text="hello world", area=0.02)
         job_id = uuid.uuid4()
-        _make_job(self.user, job_id, target=1)
+        create_test_job(
+            self.user,
+            job_id=str(job_id),
+            job_type=LongRunningJob.JOB_GENERATE_OCR,
+            progress_target=1,
+        )
 
         with patch.object(processing_jobs.Photo, "save", autospec=True) as mock_save:
             processing_jobs._derive_is_document(photo, "hello world", 0.02)

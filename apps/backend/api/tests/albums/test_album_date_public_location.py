@@ -18,8 +18,7 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 
 from api.geocode.photo_location import add_location_to_album_dates
-from api.models.album_date import AlbumDate
-from api.tests.utils import create_test_photo, create_test_user
+from api.tests.utils import create_test_album_date, create_test_photo, create_test_user
 
 
 def geolocation(city):
@@ -30,7 +29,7 @@ class AlbumDatePublicLocationTest(TestCase):
     def setUp(self):
         self.owner = create_test_user(public_sharing=True)
         taken = timezone.make_aware(datetime.datetime(2021, 6, 5, 14, 30))
-        self.day = AlbumDate.objects.create(
+        self.day = create_test_album_date(
             owner=self.owner, date=datetime.date(2021, 6, 5)
         )
         self.private_photo = create_test_photo(

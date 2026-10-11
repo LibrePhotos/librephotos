@@ -20,7 +20,12 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from api.models import AlbumUser
 from api.models.album_user_share import AlbumUserShare
-from api.tests.utils import create_test_photo, create_test_photos, create_test_user
+from api.tests.utils import (
+    create_test_album_user,
+    create_test_photo,
+    create_test_photos,
+    create_test_user,
+)
 from api.views.media import UnifiedMediaAccessView
 
 EDIT_URL = "/api/albums/user/edit/"
@@ -96,7 +101,7 @@ class AlbumUserEditPhotoOwnerScopeTest(TestCase):
         self.assertEqual(self._attacker_album_photo_ids(), {p.id for p in own_photos})
 
     def test_update_rejects_other_users_photo_ids(self):
-        album = AlbumUser.objects.create(title="Existing", owner=self.attacker)
+        album = create_test_album_user(title="Existing", owner=self.attacker)
         victim_photo = create_test_photo(owner=self.victim, public=False)
 
         response = self.client.patch(
@@ -109,7 +114,7 @@ class AlbumUserEditPhotoOwnerScopeTest(TestCase):
         self.assertEqual(album.photos.count(), 0)
 
     def test_update_still_accepts_own_photo_ids(self):
-        album = AlbumUser.objects.create(title="Existing", owner=self.attacker)
+        album = create_test_album_user(title="Existing", owner=self.attacker)
         own_photo = create_test_photo(owner=self.attacker)
 
         response = self.client.patch(
@@ -142,7 +147,7 @@ class AlbumUserEditPhotoOwnerScopeTest(TestCase):
         self.assertEqual(self._attacker_album_photo_ids(), {p.id for p in own_photos})
 
     def test_select_all_on_update_public_query_only_adds_own_photos(self):
-        album = AlbumUser.objects.create(title="Existing", owner=self.attacker)
+        album = create_test_album_user(title="Existing", owner=self.attacker)
         create_test_photos(number_of_photos=3, owner=self.victim, public=True)
         own_photos = create_test_photos(
             number_of_photos=2, owner=self.attacker, public=True
@@ -183,7 +188,7 @@ class AlbumUserEditPhotoOwnerScopeTest(TestCase):
         )
 
     def test_cover_photo_rejects_other_users_photo(self):
-        album = AlbumUser.objects.create(title="Existing", owner=self.attacker)
+        album = create_test_album_user(title="Existing", owner=self.attacker)
         victim_photo = create_test_photo(owner=self.victim, public=False)
 
         response = self.client.patch(
@@ -197,7 +202,7 @@ class AlbumUserEditPhotoOwnerScopeTest(TestCase):
         self.assertIsNone(album.cover_photo)
 
     def test_cover_photo_still_accepts_own_photo(self):
-        album = AlbumUser.objects.create(title="Existing", owner=self.attacker)
+        album = create_test_album_user(title="Existing", owner=self.attacker)
         own_photo = create_test_photo(owner=self.attacker)
 
         response = self.client.patch(
@@ -233,7 +238,7 @@ class ForeignPhotoInSharedAlbumMediaAccessTest(TestCase):
         self.attacker = create_test_user()
         self.bystander = create_test_user()
         self.victim_photo = create_test_photo(owner=self.victim, public=False)
-        self.album = AlbumUser.objects.create(title="Loot", owner=self.attacker)
+        self.album = create_test_album_user(title="Loot", owner=self.attacker)
         self.album.photos.add(self.victim_photo)
 
     def _paths(self):

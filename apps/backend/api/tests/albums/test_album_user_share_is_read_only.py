@@ -15,14 +15,14 @@ from django.test import TestCase
 from rest_framework.test import APIClient
 
 from api.models import AlbumUser
-from api.tests.utils import create_test_photo, create_test_user
+from api.tests.utils import create_test_album_user, create_test_photo, create_test_user
 
 
 class AlbumUserShareIsReadOnlyTest(TestCase):
     def setUp(self):
         self.owner = create_test_user()
         self.recipient = create_test_user()
-        self.album = AlbumUser.objects.create(title="Family", owner=self.owner)
+        self.album = create_test_album_user(title="Family", owner=self.owner)
         self.album.photos.add(create_test_photo(owner=self.owner))
         self.album.shared_to.add(self.recipient)
         self.url = f"/api/albums/user/{self.album.id}/"

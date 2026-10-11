@@ -3,10 +3,10 @@ from django.test import TestCase
 from django.utils import timezone
 
 from api.geocode.photo_location import add_location_to_album_dates
-from api.models import AlbumDate, Photo
+from api.models import Photo
 from api.models.photo_caption import PhotoCaption
 from api.models.photo_search import PhotoSearch
-from api.tests.utils import create_test_photo, create_test_user
+from api.tests.utils import create_test_album_date, create_test_photo, create_test_user
 
 
 class PhotoModelIntegrationTest(TestCase):
@@ -315,7 +315,7 @@ class PhotoModelIntegrationTest(TestCase):
         search_instance.save()
 
         # Create an album date and add the photo to it
-        album_date = AlbumDate.objects.create(
+        album_date = create_test_album_date(
             date=self.photo.exif_timestamp.date()
             if self.photo.exif_timestamp
             else timezone.now().date(),
@@ -376,7 +376,7 @@ class AddLocationToAlbumDatesTest(TestCase):
         add_location_to_album_dates(self.photo)
 
     def test_writes_city_to_album_date_location(self):
-        album_date = AlbumDate.objects.create(
+        album_date = create_test_album_date(
             date=self.photo.exif_timestamp.date(), owner=self.user
         )
         album_date.photos.add(self.photo)

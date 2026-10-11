@@ -20,10 +20,14 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 
 from api.directory_watcher.processing_jobs import classify_media
-from api.models import AlbumDate
 from api.models.photo_search import PhotoSearch
 from api.stats import get_count_stats
-from api.tests.utils import create_test_photo, create_test_photos, create_test_user
+from api.tests.utils import (
+    create_test_album_date,
+    create_test_photo,
+    create_test_photos,
+    create_test_user,
+)
 from api.views.photo_filters import build_photo_queryset
 
 
@@ -121,7 +125,7 @@ class AlbumDateMediaCategoryFilterTest(TestCase):
             owner=self.user, is_screenshot=True, exif_timestamp=now
         )
         self.plain = create_test_photo(owner=self.user, exif_timestamp=now)
-        self.album = AlbumDate.objects.create(owner=self.user, date=now.date())
+        self.album = create_test_album_date(owner=self.user, date=now.date())
         self.album.photos.add(self.screenshot, self.plain)
 
     @staticmethod
@@ -145,7 +149,7 @@ class AlbumDateMediaCategoryFilterTest(TestCase):
         # An album that only contains a non-screenshot must drop out of the
         # is_screenshot=true listing.
         other_date = (timezone.now() - timezone.timedelta(days=30)).date()
-        plain_only = AlbumDate.objects.create(owner=self.user, date=other_date)
+        plain_only = create_test_album_date(owner=self.user, date=other_date)
         plain_only.photos.add(create_test_photo(owner=self.user))
 
         resp = self.client.get("/api/albums/date/list/")

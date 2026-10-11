@@ -20,7 +20,12 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 
 from api.models.album_date import AlbumDate
-from api.tests.utils import create_test_photo, create_test_photos, create_test_user
+from api.tests.utils import (
+    create_test_album_date,
+    create_test_photo,
+    create_test_photos,
+    create_test_user,
+)
 
 
 class AlbumDateListPublicFilterTest(TestCase):
@@ -46,7 +51,7 @@ class AlbumDateListPublicFilterTest(TestCase):
 
     @staticmethod
     def _album(owner, date, photo):
-        album = AlbumDate.objects.create(owner=owner, date=date)
+        album = create_test_album_date(owner=owner, date=date)
         album.photos.add(photo)
         return album
 
