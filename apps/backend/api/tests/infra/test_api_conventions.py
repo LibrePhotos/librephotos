@@ -215,17 +215,32 @@ class RouterVerbsTest(SimpleTestCase):
         )
 
 
+def view_source_files() -> list[tuple[str, Path]]:
+    """Every module under VIEW_SOURCES: (path relative to the backend, path)."""
+    root = Path(settings.BASE_DIR).parent
+    files = []
+    for tree in VIEW_SOURCES:
+        for path in sorted((root / tree).rglob("*.py")):
+            relative = path.relative_to(root).as_posix()
+            if "/tests/" in f"/{relative}" or "/migrations/" in relative:
+                continue
+            files.append((relative, path))
+    return files
+
+
 class NoModelViewSetTest(SimpleTestCase):
+    def test_the_source_walk_reaches_the_view_modules(self):
+        # settings.BASE_DIR is apps/backend/librephotos, not apps/backend: a
+        # walk from there found no files and the check below passed on nothing.
+        scanned = {relative for relative, _ in view_source_files()}
+        self.assertIn("api/views/photos.py", scanned)
+        self.assertIn("nextcloud/views.py", scanned)
+
     def test_no_view_subclasses_model_viewset_or_blocklists_methods(self):
-        root = Path(settings.BASE_DIR)
         problems = []
-        for tree in VIEW_SOURCES:
-            for path in sorted((root / tree).rglob("*.py")):
-                relative = path.relative_to(root).as_posix()
-                if "/tests/" in f"/{relative}" or "/migrations/" in relative:
-                    continue
-                source = path.read_text(encoding="utf-8")
-                problems += forbidden_viewset_patterns(source, relative)
+        for relative, path in view_source_files():
+            source = path.read_text(encoding="utf-8")
+            problems += forbidden_viewset_patterns(source, relative)
         self.assertEqual(problems, [], "\n".join(problems))
 
     def test_the_source_check_catches_both_patterns(self):
