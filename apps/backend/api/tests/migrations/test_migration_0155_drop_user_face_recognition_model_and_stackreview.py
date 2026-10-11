@@ -49,9 +49,16 @@ class DropUnusedLeftoversMigrationTest(TransactionTestCase):
         User = self.old_apps.get_model("api", "User")
         PhotoStack = self.old_apps.get_model("api", "PhotoStack")
         StackReview = self.old_apps.get_model("api", "StackReview")
-        user = User.objects.create(username="old", face_recognition_model="CNN")
-        stack = PhotoStack.objects.create(owner=user, stack_type="manual")
-        StackReview.objects.create(stack=stack, reviewer=user)
+        # Historical models as of 0154, which the factories cannot build.
+        user = User.objects.create(  # raw-create: historical model at 0154
+            username="old", face_recognition_model="CNN"
+        )
+        stack = PhotoStack.objects.create(  # raw-create: historical model at 0154
+            owner=user, stack_type="manual"
+        )
+        StackReview.objects.create(  # raw-create: historical model at 0154
+            stack=stack, reviewer=user
+        )
         self.assertIn("api_stackreview", table_names())
         self.assertIn("face_recognition_model", user_columns())
 
