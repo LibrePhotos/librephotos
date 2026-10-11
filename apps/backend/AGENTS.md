@@ -10,7 +10,7 @@ Run from `apps/backend`, normally inside the container (`docker exec -it backend
 - Tests: `python manage.py test api.tests nextcloud`; one module: `python manage.py test api.tests.metadata.test_photo_metadata`
 - Lint and format: `ruff check .` and `ruff format .` (ruff is pinned; use the version from `requirements.dev.txt`)
 - Types: `python scripts/typecheck.py` (mypy + django-stubs; `mypy-baseline.txt` is empty and must stay empty)
-- Migrations: `python manage.py makemigrations`, then commit the migration with the model change
+- Migrations: `python manage.py makemigrations`, committed with the model change; `api/tests/migrations/test_migrations_in_sync.py` fails the suite while a model change has no migration
 
 Without Docker, install with `bash scripts/setup_test_env.sh` inside an activated venv and run tests with
 `BASE_LOGS=/tmp/librephotos/logs BASE_DATA=/tmp/librephotos SECRET_KEY=x DJANGO_SETTINGS_MODULE=librephotos.settings.test_sqlite`.
