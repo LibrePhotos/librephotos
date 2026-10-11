@@ -482,7 +482,10 @@ if settings.DEBUG:
         SpectacularSwaggerView,
     )
 
-    urlpatterns += [re_path(r"^api/silk/", include("silk.urls", namespace="silk"))]
+    # silk is only installed in development.py. Under the test settings DEBUG is
+    # on but silk is not, and importing silk.urls then fails the system checks.
+    if "silk" in settings.INSTALLED_APPS:
+        urlpatterns += [re_path(r"^api/silk/", include("silk.urls", namespace="silk"))]
     urlpatterns += [
         re_path(r"^api/schema", SpectacularAPIView.as_view(), name="schema"),
         re_path(r"^api/swagger", SpectacularSwaggerView.as_view(), name="swagger-ui"),
