@@ -36,7 +36,6 @@ backend root on their PYTHONPATH, so this module imports as
 """
 
 import gc
-import os
 import sys
 import time
 from collections.abc import Callable
@@ -45,6 +44,8 @@ from typing import Any
 from flask import Flask, request
 from flask.typing import ResponseReturnValue
 from werkzeug.exceptions import HTTPException
+
+from librephotos.env import env_str
 
 DEFAULT_HOST = "127.0.0.1"
 
@@ -184,5 +185,5 @@ def serve_forever(app: Flask, name: str) -> None:
     from api.sidecars import SERVICES
 
     logger(name)("service starting")
-    host = os.environ.get("SERVICE_HOST", DEFAULT_HOST)
+    host = env_str("SERVICE_HOST", DEFAULT_HOST)
     WSGIServer((host, SERVICES[name]), app).serve_forever()

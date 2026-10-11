@@ -1,10 +1,10 @@
 import logging
-import os
 from collections import Counter
 from collections.abc import Iterable, Iterator
 from datetime import datetime
 from typing import Any, TYPE_CHECKING, TypedDict
 
+from django.conf import settings
 from django.db import connection
 from django.db.models import Avg, Count, Max, Min, Model, Q, QuerySet, Sum
 from django.db.models.functions import TruncMonth
@@ -252,7 +252,7 @@ def get_server_stats() -> dict[str, Any]:
     real_users = User.objects.filter(~Q(id=get_deleted_user().id))
     return {
         "cpu_info": cpu_info,
-        "image_tag": os.environ.get("IMAGE_TAG", ""),
+        "image_tag": settings.IMAGE_TAG,
         "available_ram_in_mb": available_ram,
         "gpu_name": gpu_name,
         "gpu_memory_in_mb": gpu_memory,

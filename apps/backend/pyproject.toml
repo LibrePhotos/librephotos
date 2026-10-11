@@ -31,6 +31,7 @@ extend-select = [
   "PLE1205", # too many arguments for the logging format string
   "PLE1206", # too few arguments for the logging format string
   "ANN401",  # no explicit `Any` in annotations: use object, a Protocol or a TypedDict
+  "TID251",  # banned APIs, see [tool.ruff.lint.flake8-tidy-imports.banned-api]
 ]
 ignore = [
   "E501",
@@ -51,6 +52,31 @@ allow-star-arg-any = true
 "**/tests/**" = ["ANN401"]
 "**/test/**" = ["ANN401"]
 "**/tests.py" = ["ANN401"]
+
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+# The environment is read in one place (issue #2337): the Django process reads
+# django.conf.settings, and the settings modules, entry points and sidecars read
+# through librephotos/env.py, which parses every on/off switch and number the
+# same way and names the variable when a value is wrong.
+"os.environ".msg = "Read configuration through django.conf.settings; settings and sidecars use librephotos/env.py."
+"os.getenv".msg = "Read configuration through django.conf.settings; settings and sidecars use librephotos/env.py."
+
+[tool.ruff.lint.extend-per-file-ignores]
+# Files that may touch os.environ directly. Ruff ignores by code, so each entry
+# lifts every banned API in that file: keep this list short.
+# The parser itself.
+"librephotos/env.py" = ["TID251"]
+# They build the environment of the child processes they start.
+"librephotos/standalone.py" = ["TID251"]
+"api/services.py" = ["TID251"]
+# They pick DJANGO_SETTINGS_MODULE from DEBUG before any settings exist.
+"manage.py" = ["TID251"]
+"librephotos/wsgi.py" = ["TID251"]
+# Build and maintenance tools, run outside the server.
+"scripts/**" = ["TID251"]
+# Tests set up the environment the code under test reads.
+"**/tests/**" = ["TID251"]
+"**/tests.py" = ["TID251"]
 
 [tool.ruff.format]
 quote-style = "double"
@@ -83,7 +109,8 @@ ignore_missing_imports = true
 # Explicit flags instead of `strict = true`: inside an override, `strict` turns
 # the strict flags on for every module, not just the listed ones.
 module = ["api.color_palettes", "api.metadata.tags", "api.http_timeouts",
-          "api.views.pagination", "api.schemas.site_settings", "typecheck"]
+          "api.views.pagination", "api.schemas.site_settings", "librephotos.env",
+          "typecheck"]
 disallow_any_generics = true
 disallow_untyped_calls = true
 disallow_any_explicit = true

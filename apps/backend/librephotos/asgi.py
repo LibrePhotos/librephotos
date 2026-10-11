@@ -11,7 +11,6 @@ socket closed it under gunicorn.
 """
 
 import asyncio
-import os
 from concurrent.futures import Future, ThreadPoolExecutor
 from typing import cast
 
@@ -26,6 +25,7 @@ from a2wsgi.wsgi_typing import (
     WSGIApp,
 )
 
+from librephotos.env import env_int
 from librephotos.wsgi import application as wsgi_application
 
 
@@ -100,5 +100,5 @@ application = Middleware(
     # HttpResponseBase result. At runtime the environ is the dict a2wsgi builds
     # and the response iterates as bytes, which is all the WSGI contract needs.
     cast(WSGIApp, wsgi_application),
-    workers=int(os.environ.get("WEB_THREADS", "16")),
+    workers=env_int("WEB_THREADS", 16),
 )

@@ -8,6 +8,7 @@ import numpy.typing as npt
 from flask.typing import ResponseReturnValue
 from PIL import Image
 
+from librephotos.env import env_str
 from service._common import create_app, json_fields, logger, serve_forever
 from service.onnx_session import execution_providers, uses_gpu
 
@@ -24,7 +25,7 @@ MIN_FACE_MATCH_IOU = 0.3
 # The sidecars never load Django, so the data root comes in as BASE_DATA (see
 # api.services._service_environment). Unset, this is the Docker layout under /.
 FACE_MODEL_ROOT = os.path.join(
-    os.environ.get("BASE_DATA", os.sep),
+    env_str("BASE_DATA", os.sep),
     "protected_media",
     "data_models",
     "face_recognition",

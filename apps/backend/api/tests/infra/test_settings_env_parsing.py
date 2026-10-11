@@ -17,10 +17,10 @@ import importlib
 import os
 from unittest.mock import patch
 
-from django.core.exceptions import ImproperlyConfigured
 from django.test import SimpleTestCase, override_settings
 
 from api.checks import check_default_db_password
+from librephotos import env
 from librephotos.settings import production
 
 _TOUCHED = (
@@ -101,9 +101,9 @@ class FavoriteMinRatingParsingTest(_ReloadMixin, SimpleTestCase):
         self.assertIsInstance(value, int)
 
     def test_garbage_names_the_variable(self):
-        with self.assertRaisesMessage(
-            ImproperlyConfigured, "DEFAULT_FAVORITE_MIN_RATING"
-        ):
+        # librephotos.env is Django-free, so this is its own ValueError rather
+        # than ImproperlyConfigured; the message still names the variable.
+        with self.assertRaisesMessage(env.EnvError, "DEFAULT_FAVORITE_MIN_RATING"):
             self._reload(DEFAULT_FAVORITE_MIN_RATING="three")
 
 
@@ -175,17 +175,19 @@ class DefaultDbPasswordCheckTest(SimpleTestCase):
 
 
 class EnvHelpersTest(SimpleTestCase):
+    """The helpers moved from production.py to librephotos/env.py (#2337)."""
+
     def test_env_flag_blank_is_off_unless_told_otherwise(self):
         """FEATURE_X= switches a feature off (see test_feature_flag_gating)."""
         with patch.dict(os.environ, {"X_FLAG": "  "}):
-            self.assertFalse(production._env_flag("X_FLAG", default=True))
-            self.assertTrue(production._env_flag("X_FLAG", default=True, empty=True))
+            self.assertFalse(env.env_flag("X_FLAG", default=True))
+            self.assertTrue(env.env_flag("X_FLAG", default=True, empty=True))
 
     def test_env_int_blank_is_default(self):
         with patch.dict(os.environ, {"X_INT": ""}):
-            self.assertEqual(7, production._env_int("X_INT", 7))
+            self.assertEqual(7, env.env_int("X_INT", 7))
 
     def test_env_list_unset_is_default(self):
         with patch.dict(os.environ, {}, clear=True):
-            self.assertEqual([], production._env_list("X_LIST"))
-            self.assertEqual(["a"], production._env_list("X_LIST", ["a"]))
+            self.assertEqual([], env.env_list("X_LIST"))
+            self.assertEqual(["a"], env.env_list("X_LIST", ["a"]))

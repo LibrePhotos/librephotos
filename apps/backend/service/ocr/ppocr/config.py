@@ -20,6 +20,8 @@ import os
 
 import numpy as np
 
+from librephotos.env import env_str
+
 # Production install location.  Bundles ship to ``<models>/ocr/ppocrv6_<tier>``
 # under the protected media data_models root.  The sidecars never load Django,
 # so the data root comes in as BASE_DATA (see api.services._service_environment)
@@ -27,7 +29,7 @@ import numpy as np
 # at the extracted test bundle instead.
 MODEL_DIR_ENV = "OCR_MODEL_DIR"
 DEFAULT_MODEL_DIR = os.path.join(
-    os.environ.get("BASE_DATA", os.sep),
+    env_str("BASE_DATA", os.sep),
     "protected_media",
     "data_models",
     "ocr",
@@ -39,7 +41,7 @@ def resolve_model_dir(model_dir: str | None = None) -> str:
     """Resolve the bundle directory: explicit arg > env override > default."""
     if model_dir:
         return model_dir
-    return os.environ.get(MODEL_DIR_ENV, DEFAULT_MODEL_DIR)
+    return env_str(MODEL_DIR_ENV, DEFAULT_MODEL_DIR)
 
 
 class OCRConfigError(RuntimeError):

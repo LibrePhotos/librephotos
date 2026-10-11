@@ -154,7 +154,9 @@ Do not cap the container so hard that the first scan cannot finish. Face detecti
 
 Every part of the library scan that costs real CPU, memory or network can be switched off at deploy time with a `FEATURE_*` environment variable. All of them default to **on**, so an upgrade changes nothing until you set one.
 
-Accepted "on" values are `true`, `1`, `yes` and `on` (any capitalisation); anything else counts as off. An empty value (`FEATURE_VIDEO=`) also counts as off. `DEMO_SITE` is read the same way; `ALLOW_UPLOAD` too, except that an empty value leaves uploads on, as it always has.
+Accepted "on" values are `true`, `1`, `yes` and `on`, and "off" values `false`, `0`, `no` and `off` (any capitalisation). Anything else counts as off too, and the backend log says so with a warning that names the variable. An empty value (`FEATURE_VIDEO=`) also counts as off. Every on/off variable on this page is read the same way, `DEMO_SITE`, `NEXTCLOUD_ENABLED` and `LOG_TO_CONSOLE` included; `ALLOW_UPLOAD` too, except that an empty value leaves uploads on, as it always has. (Not released yet: up to 1.3.0, `NEXTCLOUD_ENABLED=t` also switched the Nextcloud integration on. It now counts as off, so write `true`.)
+
+Number variables (worker counts, the `TRANSCODE_*` limits, `REFRESH_TOKEN_DAYS` and the like) fall back to their default when empty. A value that is not a number stops the backend at startup with a message that names the variable.
 
 | Variable | `.env` key | What turning it off stops |
 | --- | --- | --- |

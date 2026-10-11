@@ -4,6 +4,7 @@ import pyvips
 import rawpy
 from flask.typing import ResponseReturnValue
 
+from librephotos.env import env_str
 from service._common import create_app, json_fields, logger, serve_forever
 
 app = create_app("thumbnail")
@@ -12,7 +13,7 @@ log = logger("thumbnail")
 # Thumbnails are written only under the media root the backend serves them
 # from. The sidecars never load Django, so the data root comes in as BASE_DATA
 # (see api.services._service_environment). Unset, this is the Docker layout.
-MEDIA_ROOT = os.path.join(os.environ.get("BASE_DATA", os.sep), "protected_media")
+MEDIA_ROOT = os.path.join(env_str("BASE_DATA", os.sep), "protected_media")
 
 
 def render_raw(source: str, destination: str, height: int) -> None:

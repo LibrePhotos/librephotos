@@ -39,6 +39,7 @@ import onnxruntime as ort
 from PIL import Image
 from tokenizers import Tokenizer
 
+from librephotos.env import env_str
 from service.onnx_session import inference_session
 
 MODEL_NAME = "openclip_vitb32"
@@ -48,9 +49,9 @@ MODEL_NAME = "openclip_vitb32"
 # OPENCLIP_MODEL_DIR points somewhere else entirely (a local export, a test).
 MODEL_DIR_ENV = "OPENCLIP_MODEL_DIR"
 DEFAULT_MODEL_DIR = os.path.join(
-    os.environ.get("BASE_DATA", os.sep), "protected_media", "data_models", MODEL_NAME
+    env_str("BASE_DATA", os.sep), "protected_media", "data_models", MODEL_NAME
 )
-MODEL_DIR = os.environ.get(MODEL_DIR_ENV) or DEFAULT_MODEL_DIR
+MODEL_DIR = env_str(MODEL_DIR_ENV) or DEFAULT_MODEL_DIR
 VISUAL_PATH = os.path.join(MODEL_DIR, "visual.onnx")
 TEXTUAL_PATH = os.path.join(MODEL_DIR, "textual.onnx")
 TOKENIZER_PATH = os.path.join(MODEL_DIR, "tokenizer.json")

@@ -24,6 +24,9 @@ import os
 
 from django.core.exceptions import ImproperlyConfigured
 
+from librephotos.env import env_list, env_str
+
+from ._sqlite import sqlite_database
 from .production import *  # noqa
 
 # librephotos/urls.py hangs the SPA catch-all off this, and api/views/media.py
@@ -60,11 +63,7 @@ CORS_ALLOW_ALL_ORIGINS = True
 # production seeds this with the split dev setup's http://localhost:3000, which
 # means nothing in this deployment. Take the operator's own origins instead, as
 # a comma-separated list.
-CSRF_TRUSTED_ORIGINS = [
-    origin.strip()
-    for origin in os.environ.get("CSRF_TRUSTED_ORIGINS", "").split(",")
-    if origin.strip()
-]
+CSRF_TRUSTED_ORIGINS = env_list("CSRF_TRUSTED_ORIGINS")
 
 # Headers NGINX adds for us in the split deployment.
 SECURE_CONTENT_TYPE_NOSNIFF = True
@@ -74,29 +73,13 @@ X_FRAME_OPTIONS = "DENY"
 # Database backend, chosen with DB_BACKEND. SQLite is the default so a plain
 # `docker run` needs no companion service; PostgreSQL keeps production's
 # configuration verbatim.
-DB_BACKEND = os.environ.get("DB_BACKEND", "sqlite").lower()
+DB_BACKEND = env_str("DB_BACKEND", "sqlite").lower()
 
 if DB_BACKEND == "sqlite":
-    # Production-oriented pragmas, following
-    # https://alldjango.com/articles/definitive-guide-to-using-django-sqlite-in-production
     db_dir = os.path.join(BASE_DATA, "db")  # noqa
     os.makedirs(db_dir, exist_ok=True)
     DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": os.path.join(db_dir, "librephotos.sqlite3"),
-            "OPTIONS": {
-                "transaction_mode": "IMMEDIATE",
-                "timeout": 5,  # seconds
-                "init_command": """
-                    PRAGMA journal_mode=WAL;
-                    PRAGMA synchronous=NORMAL;
-                    PRAGMA mmap_size=134217728;
-                    PRAGMA journal_size_limit=27103364;
-                    PRAGMA cache_size=2000;
-                """,
-            },
-        },
+        "default": sqlite_database(os.path.join(db_dir, "librephotos.sqlite3"))
     }
     # django.contrib.postgres registers PostgreSQL-only lookups and operations,
     # so it comes back out of the app list when the database is not PostgreSQL.
