@@ -23,11 +23,10 @@ function AlbumFolder() {
 
   function renderCell({ columnIndex, key, rowIndex, style }: GridCellProps) {
     const index = rowIndex * entriesPerRow + columnIndex;
-    if (index >= subfolders.length) {
+    const subfolder = subfolders[index];
+    if (subfolder === undefined) {
       return <div key={key} style={style} />;
     }
-
-    const subfolder = subfolders[index];
     return (
       <div key={key} style={style}>
         <div className={gridClasses.cell}>

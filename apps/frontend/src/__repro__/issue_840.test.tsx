@@ -44,6 +44,7 @@ import i18n from "../i18n";
 // which has no time limit. Otherwise i18n's lazy backend fetches the locale
 // module in the middle of the test.
 import translationFr from "../locales/fr/translation.json";
+import { defined } from "../util/defined.test-utils";
 
 const stubs = vi.hoisted(() => ({
   noopMutation: { mutate: () => {}, mutateAsync: async () => {}, isPending: false },
@@ -133,8 +134,8 @@ function reservedWidthOf(button: HTMLElement): string {
     .filter(css => css.includes(`.${generatedClass}{`))
     .join("");
   // last declaration wins: the one inside the `@media (min-width: 48em)` block
-  const widths = [...rules.matchAll(/--col-max-width:([^;}]+)/g)].map(m => m[1].trim());
-  return widths.length ? widths[widths.length - 1] : "auto";
+  const widths = [...rules.matchAll(/--col-max-width:([^;}]+)/g)].map(m => defined(m[1]).trim());
+  return widths[widths.length - 1] ?? "auto";
 }
 
 function collectActionButtons(container: HTMLElement): ActionButton[] {
@@ -185,7 +186,7 @@ describe("issue #840 - library dashboard buttons in long languages", () => {
     // clipped can only ever show as much text as the English label needed. Anything
     // longer is cut off - the "buttons are too small" symptom from the issue.
     const truncated = french
-      .map((fr, i) => ({ french: fr.label, english: english[i].label, box: fr }))
+      .map((fr, i) => ({ french: fr.label, english: defined(english[i]).label, box: fr }))
       .filter(
         ({ french: frLabel, english: enLabel, box }) =>
           frLabel.length > enLabel.length && box.clipsOverflow && box.reservedWidth.endsWith("%")

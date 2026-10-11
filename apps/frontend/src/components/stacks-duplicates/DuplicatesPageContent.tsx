@@ -316,7 +316,9 @@ function DuplicateModal({
         if (aRes !== bRes) return bRes - aRes;
         return b.size - a.size;
       })[0];
-      setSelectedPhoto(best.image_hash);
+      if (best !== undefined) {
+        setSelectedPhoto(best.image_hash);
+      }
     }
   }, [duplicate, selectedPhoto]);
 

@@ -77,8 +77,8 @@ describe("the no-timestamp page", () => {
       root.render(<NoTimestamp />);
     });
     expect(stubs.photoset).toHaveLength(250);
-    expect(stubs.photoset[0].id).toBe("p1-0");
-    expect(stubs.photoset[100].isTemp).toBe(true);
+    expect(defined(stubs.photoset[0]).id).toBe("p1-0");
+    expect(defined(stubs.photoset[100]).isTemp).toBe(true);
 
     // Scrolling reaches the placeholders of page 2, which is still loading
     stubs.pages[2] = { data: page1, isPlaceholderData: true };
@@ -86,7 +86,7 @@ describe("the no-timestamp page", () => {
       defined(stubs.updateItems)([tempPigPhoto("temp-150")]);
     });
     expect(stubs.requestedPages.at(-1)).toBe(2);
-    expect(stubs.photoset[100].isTemp).toBe(true);
+    expect(defined(stubs.photoset[100]).isTemp).toBe(true);
     expect(stubs.photoset.filter(photo => photo.id === "p1-0")).toHaveLength(1);
 
     // Page 2 arrives
@@ -95,10 +95,10 @@ describe("the no-timestamp page", () => {
       root.render(<NoTimestamp />);
     });
     expect(stubs.photoset).toHaveLength(250);
-    expect(stubs.photoset[0].id).toBe("p1-0");
-    expect(stubs.photoset[100].id).toBe("p2-0");
-    expect(stubs.photoset[199].id).toBe("p2-99");
-    expect(stubs.photoset[200].isTemp).toBe(true);
+    expect(defined(stubs.photoset[0]).id).toBe("p1-0");
+    expect(defined(stubs.photoset[100]).id).toBe("p2-0");
+    expect(defined(stubs.photoset[199]).id).toBe("p2-99");
+    expect(defined(stubs.photoset[200]).isTemp).toBe(true);
 
     await act(async () => {
       root.unmount();

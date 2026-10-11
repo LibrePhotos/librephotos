@@ -19,6 +19,7 @@ import { createRoot } from "react-dom/client";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { Media, type BulkPhotoQuery } from "../../api_client/photos/types";
 import i18n from "../../i18n";
+import { defined } from "../../util/defined.test-utils";
 import { ModalTagEdit } from "./ModalTagEdit";
 
 const stubs = vi.hoisted(() => ({
@@ -162,7 +163,7 @@ async function renderModal(options: RenderOptions = {}) {
       const segments = line.split(",");
       for (let index = 0; index < segments.length; index += 1) {
         await act(async () => {
-          setInputValue(tagInput(), segments[index]);
+          setInputValue(tagInput(), defined(segments[index], "the tag segment"));
         });
         if (index < segments.length - 1) {
           await act(async () => {

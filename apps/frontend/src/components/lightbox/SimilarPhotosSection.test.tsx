@@ -9,6 +9,7 @@ import { createRoot } from "react-dom/client";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { Media } from "../../api_client/photos/types";
 import i18n from "../../i18n";
+import { defined } from "../../util/defined.test-utils";
 import { SimilarPhotosSection } from "./SimilarPhotosSection";
 
 const navigations: string[] = [];
@@ -84,9 +85,10 @@ async function renderSection() {
 function clickLink(container: HTMLElement) {
   const links = container.querySelectorAll("a");
   expect(links).toHaveLength(1); // the current photo is left out
-  expect(links[0].getAttribute("href")).toBe("/photo/other");
+  const link = defined(links[0]);
+  expect(link.getAttribute("href")).toBe("/photo/other");
   act(() => {
-    links[0].dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, button: 0 }));
+    link.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, button: 0 }));
   });
 }
 

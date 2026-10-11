@@ -31,7 +31,7 @@ export function EventCountMonthGraph() {
       ? photoMonthCounts.map(el => {
           // Parse the month string (format: "YYYY-M") and format by locale
           const [year, month] = el.month.split("-");
-          const date = DateTime.fromObject({ year: parseInt(year, 10), month: parseInt(month, 10) });
+          const date = DateTime.fromObject({ year: parseInt(year ?? "", 10), month: parseInt(month ?? "", 10) });
           const formattedMonth = date
             .setLocale(i18nResolvedLanguage())
             .toLocaleString({ year: "2-digit", month: "short" });

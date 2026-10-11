@@ -106,11 +106,11 @@ describe("issue 630: lightbox 'Time taken' date picker", () => {
     );
     expect(actionIcons.length, "cancel + submit action icons").toBe(2);
     await act(async () => {
-      actionIcons[1].click();
+      defined(actionIcons[1]).click();
     });
 
     expect(updatePhoto).toHaveBeenCalledTimes(1);
-    const sent = String(updatePhoto.mock.calls[0][0].data.exif_timestamp);
+    const sent = String(defined(updatePhoto.mock.calls[0])[0].data.exif_timestamp);
 
     // exif_timestamp carries the photo's local wall clock, so what leaves the
     // browser must still read 2022-05-21 00:30:00 - the user picked 21 May and

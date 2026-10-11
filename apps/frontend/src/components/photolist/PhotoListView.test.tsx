@@ -329,7 +329,7 @@ describe("PhotoListView throttled callbacks", () => {
 });
 
 describe("PhotoListView range selection", () => {
-  const four = ["a", "b", "c", "d"].map(id => photo(id));
+  const four: [PigPhoto, PigPhoto, PigPhoto, PigPhoto] = [photo("a"), photo("b"), photo("c"), photo("d")];
   const placeholder = photo("0", { isTemp: true });
 
   async function shiftClick(item: PigPhoto) {
@@ -390,7 +390,7 @@ describe("PhotoListView photo page", () => {
     await render({});
 
     const event = click({ ctrlKey: true });
-    await act(async () => defined(lastPigProps().handleClick)(event, items[0]));
+    await act(async () => defined(lastPigProps().handleClick)(event, defined(items[0])));
 
     expect(navigate).toHaveBeenCalledWith({ to: "/photo/$id", params: { id: "a" } });
   });
@@ -434,7 +434,7 @@ describe("PhotoListView display preferences", () => {
 
     // Both changes arrive in one debounced save, and nothing else is sent.
     expect(userHooks.mutate).toHaveBeenCalledTimes(1);
-    expect(userHooks.mutate.mock.calls[0][0]).toEqual({ id: 1, text_alignment: "left", header_size: "small" });
+    expect(defined(userHooks.mutate.mock.calls[0])[0]).toEqual({ id: 1, text_alignment: "left", header_size: "small" });
     // The saves are silent, so tweaking the grid does not pop an "Update user" toast.
     expect(vi.mocked(useUpdateUserMutation)).toHaveBeenCalledWith({ silent: true });
   });

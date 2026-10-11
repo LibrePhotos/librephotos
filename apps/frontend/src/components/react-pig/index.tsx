@@ -196,10 +196,11 @@ function Pig<T extends ImageItem>(
     else if (propSortByDate) imageDataRef.current = sortByDate(imageDataRef.current);
 
     // Check grouping ability
-    if (groupByDate && imageDataRef.current.length > 0 && !("items" in imageDataRef.current[0])) {
+    const firstImage = imageDataRef.current[0];
+    if (groupByDate && firstImage !== undefined && !("items" in firstImage)) {
       console.error(`Data provided is not grouped yet. Please check the docs, you'll need to use groupify.js`);
     }
-    if (!groupByDate && imageDataRef.current.length > 0 && "items" in imageDataRef.current[0]) {
+    if (!groupByDate && firstImage !== undefined && "items" in firstImage) {
       console.error(`Data provided is grouped, please include the groupByDate prop`);
     }
   }, [sortFunc, propSortByDate, groupByDate]);

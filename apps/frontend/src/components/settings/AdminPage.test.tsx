@@ -7,6 +7,7 @@ import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { defined } from "../../util/defined.test-utils";
 import { AdminPage } from "./AdminPage";
 
 type SelfDetailsResult = { data: { is_superuser: boolean } | undefined; isPending: boolean };
@@ -104,7 +105,7 @@ describe("AdminPage", () => {
     mocks.selfDetails = { data: { is_superuser: true }, isPending: false };
     await render();
 
-    const [trigger] = buttonByText("adminarea.delete");
+    const trigger = defined(buttonByText("adminarea.delete")[0], "the delete button");
     await act(async () => {
       trigger.click();
     });

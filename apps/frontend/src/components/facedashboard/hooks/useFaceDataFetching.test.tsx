@@ -9,6 +9,7 @@ import type {
   PersonFaceList,
   PersonFaceListRequest,
 } from "../../../api_client/faces";
+import { defined } from "../../../util/defined.test-utils";
 import { useFaceDataFetching } from "./useFaceDataFetching";
 
 // The part of useFetchIncompleteFacesQuery's result the hook reads
@@ -60,7 +61,7 @@ const seedPerson = (faceCount: number) => {
 const firstCachedFace = () => {
   const people = queryClient.getQueryData<CompletePersonFaceList>(INFERRED_KEY);
   if (!people?.length) throw new Error("no person in the incomplete-faces cache");
-  return people[0].faces[0];
+  return defined(people[0]?.faces[0], "the first cached face");
 };
 
 let root: Root;
