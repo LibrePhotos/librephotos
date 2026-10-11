@@ -312,11 +312,16 @@ def _person_tombstone(sender: type[Person], instance: Person, **kwargs: Any) -> 
 # registration
 # --------------------------------------------------------------------------- #
 def register() -> None:
+    # weak=False for the handlers the factories build: nothing else references
+    # those closures, and a weakly held one is collected as soon as connect()
+    # returns. Only DEBUG's lru-cached signature check kept them alive, so
+    # they worked in the test suite and nowhere else.
     # photos membership bumps
     for parent_model, through in _PHOTO_MEMBERSHIP_PARENTS.items():
         m2m_changed.connect(
             _make_photos_bump(parent_model),
             sender=through,
+            weak=False,
             dispatch_uid=f"sync_photos_bump_{parent_model.__name__}",
         )
     m2m_changed.connect(
@@ -330,6 +335,7 @@ def register() -> None:
         m2m_changed.connect(
             _make_share_handler(entity, parent_model),
             sender=through,
+            weak=False,
             dispatch_uid=f"sync_share_{entity}",
         )
 
@@ -347,6 +353,7 @@ def register() -> None:
     post_delete.connect(
         _make_owned_tombstone(DeletionLog.ENTITY_PHOTO, shared=True),
         sender=Photo,
+        weak=False,
         dispatch_uid="sync_tombstone_photo",
     )
 
@@ -359,6 +366,7 @@ def register() -> None:
         post_delete.connect(
             _make_owned_tombstone(entity, shared=True),
             sender=parent_model,
+            weak=False,
             dispatch_uid=f"sync_tombstone_{entity}",
         )
 
@@ -368,5 +376,6 @@ def register() -> None:
     post_delete.connect(
         _make_owned_tombstone(DeletionLog.ENTITY_TAG),
         sender=Tag,
+        weak=False,
         dispatch_uid="sync_tombstone_tag",
     )
