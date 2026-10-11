@@ -8,7 +8,7 @@ generated) and TanStack Query, Mantine 9, i18next, zod. Node is the version in `
 Run from `apps/frontend`:
 
 - `yarn install --frozen-lockfile`
-- `yarn lint:error`: ESLint, which also enforces Prettier (`prettier/prettier`)
+- `yarn lint:error`: ESLint over src, e2e, scripts and the config files, zero warnings (`--max-warnings 0`), Prettier included; unused or undescribed disable comments fail too
 - `yarn typecheck`: `tsc --noEmit` against `tsc-baseline.txt`, which is empty; any error fails
 - `yarn test`: vitest
 - `yarn build`, `yarn start`
