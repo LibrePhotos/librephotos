@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from typing import TYPE_CHECKING
 
 from django.core.exceptions import MultipleObjectsReturned
 from django.db import models
@@ -8,6 +9,10 @@ from django.db import models
 from api.models.person import Person
 from api.models.user import User, get_deleted_user
 from api.lazy_import import LazyModule
+
+if TYPE_CHECKING:
+    import numpy.typing as npt
+    from numpy import float64
 
 np = LazyModule("numpy")
 
@@ -33,33 +38,38 @@ class Cluster(models.Model):
         User, on_delete=models.SET(get_deleted_user), default=None, null=True
     )
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "%d" % self.id
 
-    def get_mean_encoding_array(self) -> np.ndarray:
+    def get_mean_encoding_array(self) -> npt.NDArray[float64]:
         return np.frombuffer(bytes.fromhex(self.mean_face_encoding))
 
-    def set_metadata(self, all_vectors):
+    def set_metadata(self, all_vectors: npt.ArrayLike) -> None:
         self.mean_face_encoding = (
             Cluster.calculate_mean_face_encoding(all_vectors).tobytes().hex()
         )
 
     @staticmethod
-    def get_or_create_cluster_by_name(user: User, name):
+    def get_or_create_cluster_by_name(user: User, name: str) -> Cluster:
         return Cluster.objects.get_or_create(owner=user, name=name)[0]
 
     @staticmethod
-    def get_or_create_cluster_by_id(user: User, cluster_id: int):
+    def get_or_create_cluster_by_id(user: User, cluster_id: int) -> Cluster:
         try:
             return Cluster.objects.get_or_create(owner=user, cluster_id=cluster_id)[0]
         except MultipleObjectsReturned:
             logger.error(
                 "Multiple clusters found with id %d. Choosing first one", cluster_id
             )
-            return Cluster.objects.filter(owner=user, cluster_id=cluster_id).first()
+            cluster = Cluster.objects.filter(owner=user, cluster_id=cluster_id).first()
+            # MultipleObjectsReturned just showed rows for this id and owner.
+            assert cluster is not None
+            return cluster
 
     @staticmethod
-    def calculate_mean_face_encoding(all_encodings):
+    def calculate_mean_face_encoding(
+        all_encodings: npt.ArrayLike,
+    ) -> npt.NDArray[float64]:
         return np.mean(a=all_encodings, axis=0, dtype=np.float64)
 
 

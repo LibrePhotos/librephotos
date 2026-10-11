@@ -1,3 +1,5 @@
+from typing import Any
+
 from django.db import models
 
 
@@ -40,16 +42,16 @@ class PhotoOcr(models.Model):
     class Meta:
         db_table = "api_photo_ocr"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"OCR data for {self.photo.image_hash}"
 
-    def apply_caps(self):
+    def apply_caps(self) -> None:
         """Truncate ``text`` and ``blocks`` to their storage bounds in place."""
         if self.text and len(self.text) > self.MAX_TEXT_LENGTH:
             self.text = self.text[: self.MAX_TEXT_LENGTH]
         if isinstance(self.blocks, list) and len(self.blocks) > self.MAX_BLOCKS:
             self.blocks = self.blocks[: self.MAX_BLOCKS]
 
-    def save(self, *args, **kwargs):
+    def save(self, *args: Any, **kwargs: Any) -> None:
         self.apply_caps()
         super().save(*args, **kwargs)

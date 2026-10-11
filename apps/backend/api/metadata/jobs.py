@@ -6,14 +6,21 @@ rating with a single queryset ``update()``, which skips ``save()``; they queue
 ``write_photo_ratings`` instead so the file ends up the same either way.
 """
 
+from __future__ import annotations
+
 import logging
+import uuid
+from typing import TYPE_CHECKING
 
 from django_q.tasks import AsyncTask
+
+if TYPE_CHECKING:
+    from api.models import User
 
 logger = logging.getLogger(__name__)
 
 
-def queue_rating_write(user, photo_ids):
+def queue_rating_write(user: User, photo_ids: list[uuid.UUID]) -> None:
     """Queue the rating write ``Photo.save()`` would have done for these photos.
 
     Follows the owner's ``save_metadata_to_disk`` setting as ``save()`` does:
@@ -36,7 +43,7 @@ def queue_rating_write(user, photo_ids):
         )
 
 
-def write_photo_ratings(photo_ids, use_sidecar):
+def write_photo_ratings(photo_ids: list[uuid.UUID], use_sidecar: bool) -> None:
     """Write each photo's current rating to disk, as ``Photo.save()`` does."""
     from api.models import Photo
 

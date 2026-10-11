@@ -4,18 +4,27 @@ Ratings, capture dates, face regions and rotations. Moved out of ``Photo``;
 every function takes the photo as its first argument.
 """
 
+from __future__ import annotations
+
 import logging
+from typing import TYPE_CHECKING
 
 from api.metadata.tags import Tags
-from api.metadata.writer import write_metadata
+from api.metadata.writer import TagValue, write_metadata
 from api.models.user import User
+
+if TYPE_CHECKING:
+    from api.models.photo import Photo
 
 logger = logging.getLogger(__name__)
 
 
 def write_photo_metadata(
-    photo, modified_fields=None, use_sidecar=True, metadata_types=None
-):
+    photo: Photo,
+    modified_fields: list[str] | None = None,
+    use_sidecar: bool = True,
+    metadata_types: list[str] | None = None,
+) -> None:
     """Write metadata tags to the photo's file or sidecar.
 
     Args:
@@ -26,7 +35,7 @@ def write_photo_metadata(
             ["ratings", "face_tags"]. When None, uses default behavior
             (ratings/timestamps only, for backward compatibility).
     """
-    tags_to_write = {}
+    tags_to_write: dict[str, TagValue] = {}
 
     write_ratings = metadata_types is None or "ratings" in metadata_types
     write_face_tags = metadata_types is not None and "face_tags" in metadata_types
@@ -52,10 +61,11 @@ def write_photo_metadata(
         tags_to_write.update(get_face_region_tags(photo))
 
     if tags_to_write:
+        assert photo.main_file is not None
         write_metadata(photo.main_file.path, tags_to_write, use_sidecar=use_sidecar)
 
 
-def write_orientation_to_disk(photo, angle: int, flip_horizontal: bool) -> None:
+def write_orientation_to_disk(photo: Photo, angle: int, flip_horizontal: bool) -> None:
     """Write the combined orientation to the file / sidecar when the user
     has opted into persisting metadata to disk.
 
@@ -86,6 +96,7 @@ def write_orientation_to_disk(photo, angle: int, flip_horizontal: bool) -> None:
         delta_angle_cw=angle,
         flip_h=flip_horizontal,
     )
+    assert photo.main_file is not None
     write_metadata(
         photo.main_file.path,
         {Tags.ORIENTATION: combined},
@@ -93,7 +104,7 @@ def write_orientation_to_disk(photo, angle: int, flip_horizontal: bool) -> None:
     )
 
 
-def _fold_rotation_into_file(photo) -> bool:
+def _fold_rotation_into_file(photo: Photo) -> bool:
     """Move the rotation into the file's own EXIF Orientation (#2050).
 
     Once the file carries the rotation, the renderer applies it by itself,
@@ -123,6 +134,7 @@ def _fold_rotation_into_file(photo) -> bool:
     from api.metadata.writer import read_orientation
     from api.thumbnails import exif_orientation_showing, renders_exif_orientation
 
+    assert photo.main_file is not None
     path = photo.main_file.path
     if not renders_exif_orientation(path):
         return False
@@ -145,7 +157,7 @@ def _fold_rotation_into_file(photo) -> bool:
     return True
 
 
-def _adopt_written_orientation(photo, combined: int) -> None:
+def _adopt_written_orientation(photo: Photo, combined: int) -> None:
     """Fold a confirmed media-file orientation write back into the DB.
 
     The file's own EXIF now carries the whole rotation: ``local_orientation``

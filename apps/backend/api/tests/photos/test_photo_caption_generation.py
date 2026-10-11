@@ -13,7 +13,7 @@ from unittest.mock import PropertyMock, patch
 from constance.test import override_config
 from django.test import TestCase, override_settings
 
-from api.models import PhotoCaption
+from api.models import Photo, PhotoCaption, PhotoSearch, Thumbnail
 from api.tests.utils import create_test_face, create_test_person, create_test_photo
 from api.tests.utils import create_test_user
 
@@ -292,3 +292,48 @@ class CaptionPromptTest(TestCase):
 
         self.assertFalse(self.caption.generate_captions_im2txt(commit=False))
         mock_caption.assert_not_called()
+
+
+@override_settings(FEATURE_IMAGE_CAPTIONING=True, FEATURE_SCENE_CLASSIFICATION=True)
+class MissingThumbnailRowTest(TestCase):
+    """A photo with no Thumbnail row is "no thumbnail", not an exception.
+
+    The reverse one-to-one raises when the row is missing, so the captioning
+    entry points used to crash on it instead of taking their "no thumbnail"
+    path.
+    """
+
+    def setUp(self):
+        self.user = create_test_user()
+        photo = create_test_photo(owner=self.user)
+        Thumbnail.objects.filter(photo=photo).delete()
+        # A fresh instance, so no cached thumbnail hides the missing row.
+        self.photo = Photo.objects.get(pk=photo.pk)
+        self.caption = PhotoCaption.objects.create(photo=self.photo)
+
+    def test_resolve_thumbnail_path_is_none(self):
+        self.assertIsNone(self.caption._resolve_thumbnail_path())
+
+    @patch("api.models.photo_caption.generate_caption")
+    def test_generate_captions_returns_false(self, mock_generate_caption):
+        self.assertFalse(self.caption.generate_captions_im2txt(commit=False))
+        mock_generate_caption.assert_not_called()
+
+    def test_save_user_caption_returns_false(self):
+        self.assertFalse(self.caption.save_user_caption("typed", commit=False))
+        self.assertIsNone(self.caption.captions_json)
+
+    @patch("api.models.photo_caption.sidecars.post")
+    def test_generate_tag_captions_skips_the_sidecar(self, mock_post):
+        self.caption.generate_tag_captions(commit=False)
+        mock_post.assert_not_called()
+        self.assertIsNone(self.caption.captions_json)
+
+    def test_search_captions_recreate_without_caption_row(self):
+        # The photo has no caption row either; search indexing still works.
+        PhotoSearch.objects.get_or_create(photo=self.photo)
+        self.caption.delete()
+
+        search = PhotoSearch.objects.get(photo=self.photo)
+        search.recreate_search_captions()
+        self.assertIsInstance(search.search_captions, str)

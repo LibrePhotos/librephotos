@@ -5,9 +5,20 @@ model (see api/tests/test_ocr_geometry.py).  Constants come from OCRConfig,
 never hardcoded.
 """
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import cv2
 import numpy as np
+import numpy.typing as npt
 import pyclipper
+
+if TYPE_CHECKING:
+    import onnxruntime as ort
+    from cv2.typing import MatLike
+
+    from .config import OCRConfig
 
 # minAreaRect boxes with a shorter side below this many pixels are discarded.
 MIN_BOX_SIDE = 3
@@ -24,22 +35,22 @@ class OCRDecodeError(ValueError):
 # --------------------------------------------------------------------------- #
 # Pure geometry helpers (unit-tested without models)
 # --------------------------------------------------------------------------- #
-def polygon_area(points):
+def polygon_area(points: npt.ArrayLike) -> float:
     """Absolute polygon area via the shoelace formula. points: (N, 2)."""
     pts = np.asarray(points, dtype=np.float64)
     x = pts[:, 0]
     y = pts[:, 1]
-    return 0.5 * np.abs(np.dot(x, np.roll(y, -1)) - np.dot(y, np.roll(x, -1)))
+    return float(0.5 * np.abs(np.dot(x, np.roll(y, -1)) - np.dot(y, np.roll(x, -1))))
 
 
-def polygon_perimeter(points):
+def polygon_perimeter(points: npt.ArrayLike) -> float:
     """Closed-polygon perimeter (sum of edge lengths). points: (N, 2)."""
     pts = np.asarray(points, dtype=np.float64)
     diffs = pts - np.roll(pts, -1, axis=0)
     return float(np.sqrt((diffs**2).sum(axis=1)).sum())
 
 
-def unclip_distance(points, unclip_ratio):
+def unclip_distance(points: npt.ArrayLike, unclip_ratio: float) -> float:
     """DB unclip offset distance: area * ratio / perimeter."""
     perimeter = polygon_perimeter(points)
     if perimeter <= 0:
@@ -47,7 +58,9 @@ def unclip_distance(points, unclip_ratio):
     return polygon_area(points) * float(unclip_ratio) / perimeter
 
 
-def unclip(box, unclip_ratio):
+def unclip(
+    box: npt.NDArray[np.floating], unclip_ratio: float
+) -> npt.NDArray[np.float64] | None:
     """Expand a quad outward by the DB unclip distance.
 
     Returns the offset polygon as an (M, 2) float array, or None if the offset
@@ -66,7 +79,7 @@ def unclip(box, unclip_ratio):
     return np.array(expanded[0], dtype=np.float64)
 
 
-def order_points_clockwise(pts):
+def order_points_clockwise(pts: npt.ArrayLike) -> npt.NDArray[np.float32]:
     """Order points clockwise starting at the top-left corner.
 
     Sorts by angle around the centroid, which in image coordinates (y pointing
@@ -83,7 +96,7 @@ def order_points_clockwise(pts):
     return np.roll(ordered, -start, axis=0).astype(np.float32)
 
 
-def get_mini_boxes(contour):
+def get_mini_boxes(contour: MatLike) -> tuple[npt.NDArray[np.float32], float]:
     """minAreaRect of a contour, returned as clockwise TL,TR,BR,BL + short side.
 
     Mirrors PaddleOCR's DBPostProcess.get_mini_boxes so downstream ordering is
@@ -108,7 +121,7 @@ def get_mini_boxes(contour):
     return box, min(bounding_box[1])
 
 
-def box_score_fast(prob_map, box):
+def box_score_fast(prob_map: npt.NDArray[np.floating], box: npt.ArrayLike) -> float:
     """Mean probability inside a quad (fillPoly mask over its bounding rect)."""
     h, w = prob_map.shape[:2]
     box = np.asarray(box, dtype=np.float32).copy()
@@ -125,14 +138,14 @@ def box_score_fast(prob_map, box):
     return float(cv2.mean(region.astype(np.float32), mask)[0])
 
 
-def round_up_to_multiple(value, multiple):
+def round_up_to_multiple(value: int, multiple: int) -> int:
     """Smallest multiple of ``multiple`` that is >= value, and >= ``multiple``."""
     value = max(int(value), 1)
     n = -(-value // multiple)  # ceil division
     return max(multiple, n * multiple)
 
 
-def compute_resize(h, w, max_side, multiple):
+def compute_resize(h: int, w: int, max_side: int, multiple: int) -> tuple[int, int]:
     """Target (height, width) for detection input.
 
     Downscale so the longest side is <= ``max_side`` (never upscale), then round
@@ -150,7 +163,7 @@ def compute_resize(h, w, max_side, multiple):
 # --------------------------------------------------------------------------- #
 # Image loading
 # --------------------------------------------------------------------------- #
-def to_uint8(img):
+def to_uint8(img: MatLike) -> MatLike:
     """Coerce a decoded array to 8-bit samples (uint8 input passes through)."""
     if img.dtype == np.uint16:
         return (img.astype(np.float32) / 257.0).astype(np.uint8)
@@ -163,7 +176,7 @@ def to_uint8(img):
 _BGR_CONVERSIONS = {1: cv2.COLOR_GRAY2BGR, 4: cv2.COLOR_BGRA2BGR}
 
 
-def to_bgr_3channel(img):
+def to_bgr_3channel(img: MatLike) -> MatLike:
     """Coerce any decoded array to 8-bit 3-channel BGR."""
     img = to_uint8(img)
 
@@ -181,7 +194,7 @@ def to_bgr_3channel(img):
     return np.ascontiguousarray(img[:, :, :3])
 
 
-def read_image(image_path, max_pixels=MAX_INPUT_PIXELS):
+def read_image(image_path: str, max_pixels: int = MAX_INPUT_PIXELS) -> MatLike:
     """Read an image file into an 8-bit BGR array, capping total pixels.
 
     A missing or unreadable path is surfaced as OCRDecodeError so the endpoint
@@ -216,7 +229,7 @@ def read_image(image_path, max_pixels=MAX_INPUT_PIXELS):
 # --------------------------------------------------------------------------- #
 # Preprocess / postprocess
 # --------------------------------------------------------------------------- #
-def normalize_image(img_bgr, config):
+def normalize_image(img_bgr: MatLike, config: OCRConfig) -> npt.NDArray[np.float32]:
     """Scale + mean/std normalize, HWC->CHW, add batch dim, float32.
 
     The image is BGR (cv2 decode).  The mean/std in config are RGB-ordered in
@@ -240,7 +253,9 @@ def normalize_image(img_bgr, config):
     return np.ascontiguousarray(x, dtype=np.float32)
 
 
-def quad_from_contour(contour, prob_map, config):
+def quad_from_contour(
+    contour: MatLike, prob_map: npt.NDArray[np.floating], config: OCRConfig
+) -> npt.NDArray[np.float32] | None:
     """Unclipped quad for one contour, or None if it fails a DB reject gate."""
     points, sside = get_mini_boxes(contour)
     if sside < MIN_BOX_SIDE:
@@ -260,7 +275,11 @@ def quad_from_contour(contour, prob_map, config):
     return order_points_clockwise(box)
 
 
-def rescale_quad(box, size, dest_size):
+def rescale_quad(
+    box: npt.NDArray[np.float32],
+    size: tuple[int, int],
+    dest_size: tuple[int, int],
+) -> npt.NDArray[np.int32]:
     """Map a quad from (width, height) to (dest_width, dest_height), clipped."""
     width, height = size
     dest_width, dest_height = dest_size
@@ -269,7 +288,12 @@ def rescale_quad(box, size, dest_size):
     return box.astype(np.int32)
 
 
-def boxes_from_bitmap(prob_map, config, dest_width, dest_height):
+def boxes_from_bitmap(
+    prob_map: npt.NDArray[np.floating],
+    config: OCRConfig,
+    dest_width: int,
+    dest_height: int,
+) -> list[npt.NDArray[np.int32]]:
     """DBPostProcess: probability map -> list of quads in original coordinates.
 
     Returns a list of (4, 2) int32 boxes ordered clockwise from the top-left,
@@ -281,7 +305,7 @@ def boxes_from_bitmap(prob_map, config, dest_width, dest_height):
     contours, _ = cv2.findContours(bitmap * 255, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
     num_contours = max(0, min(len(contours), config.det_max_candidates))
 
-    boxes = []
+    boxes: list[npt.NDArray[np.int32]] = []
     for contour in contours[:num_contours]:
         box = quad_from_contour(contour, prob_map, config)
         if box is not None:
@@ -290,7 +314,13 @@ def boxes_from_bitmap(prob_map, config, dest_width, dest_height):
     return boxes
 
 
-def detect(session, input_name, img_bgr, config, max_side):
+def detect(
+    session: ort.InferenceSession,
+    input_name: str,
+    img_bgr: MatLike,
+    config: OCRConfig,
+    max_side: int,
+) -> tuple[list[npt.NDArray[np.int32]], npt.NDArray[np.float32]]:
     """Run detection, returning (boxes, prob_map).
 
     boxes are (4, 2) int32 quads in original image coordinates.

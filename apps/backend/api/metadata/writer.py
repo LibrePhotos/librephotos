@@ -1,5 +1,6 @@
 import logging
 import os
+from collections.abc import Mapping
 
 import exiftool
 
@@ -9,8 +10,11 @@ from api.metadata.reader import get_sidecar_files_in_priority_order
 
 logger = logging.getLogger(__name__)
 
+# One tag's value: a list writes one argument per item.
+TagValue = str | int | list[str]
 
-def _argument(tag, value):
+
+def _argument(tag: str, value: str | int) -> bytes:
     """One ``-TAG=value`` argument for the ExifTool process.
 
     PyExifTool drives ``exiftool -stay_open True -@ -``, which reads one
@@ -24,7 +28,9 @@ def _argument(tag, value):
     return os.fsencode(argument)
 
 
-def write_metadata(media_file, tags, use_sidecar=True):
+def write_metadata(
+    media_file: str, tags: Mapping[str, TagValue], use_sidecar: bool = True
+) -> None:
     et = exiftool.ExifTool(binaries.exiftool())
     terminate_et = False
     if not et.running:
@@ -38,9 +44,11 @@ def write_metadata(media_file, tags, use_sidecar=True):
 
     try:
         logger.info(f"Writing {tags} to {file_path}")
-        params = []
+        params: list[bytes] = []
         for tag, value in tags.items():
-            values = value if isinstance(value, list) else [value]
+            values: list[str | int] = (
+                list(value) if isinstance(value, list) else [value]
+            )
             params.extend(_argument(tag, item) for item in values)
         params.append(b"-overwrite_original")
         params.append(os.fsencode(file_path))
@@ -50,7 +58,7 @@ def write_metadata(media_file, tags, use_sidecar=True):
             et.terminate()
 
 
-def read_orientation(media_file):
+def read_orientation(media_file: str) -> int | None:
     """The EXIF Orientation stored in *media_file* itself.
 
     Reads the media file with exiftool directly, never a sidecar and never the

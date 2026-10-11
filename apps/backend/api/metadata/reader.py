@@ -1,5 +1,6 @@
 import os
 import os.path
+from typing import Any
 
 import requests
 
@@ -10,7 +11,7 @@ class MetadataReadError(RuntimeError):
     """The exif service could not read a file's metadata."""
 
 
-def get_sidecar_files_in_priority_order(media_file):
+def get_sidecar_files_in_priority_order(media_file: str) -> list[str]:
     """Returns a list of possible XMP sidecar files for *media_file*, ordered
     by priority.
 
@@ -24,7 +25,9 @@ def get_sidecar_files_in_priority_order(media_file):
     ]
 
 
-def _get_existing_metadata_files_reversed(media_file, include_sidecar_files):
+def _get_existing_metadata_files_reversed(
+    media_file: str, include_sidecar_files: bool
+) -> list[str]:
     if include_sidecar_files:
         files = [
             file
@@ -36,7 +39,9 @@ def _get_existing_metadata_files_reversed(media_file, include_sidecar_files):
     return [media_file]
 
 
-def get_metadata(media_file, tags, try_sidecar=True, struct=False):
+def get_metadata(
+    media_file: str, tags: list[str], try_sidecar: bool = True, struct: bool = False
+) -> list[Any]:
     """Get values for each metadata tag in *tags* from *media_file*.
     If *try_sidecar* is `True`, use the value set in any XMP sidecar file
     stored alongside *media_file*.

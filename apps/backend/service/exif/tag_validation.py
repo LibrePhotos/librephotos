@@ -36,11 +36,11 @@ import re
 _TAG_NAME = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9_:*?#-]{0,127}$")
 
 
-def is_safe_tag_name(tag):
+def is_safe_tag_name(tag: object) -> bool:
     """True when *tag* is a plain ExifTool tag name safe to pass as ``-<tag>``."""
     return isinstance(tag, str) and _TAG_NAME.match(tag) is not None
 
 
-def is_safe_media_path(path):
+def is_safe_media_path(path: object) -> bool:
     """True when *path* carries no line break that would inject an argument."""
     return isinstance(path, str) and "\n" not in path and "\r" not in path

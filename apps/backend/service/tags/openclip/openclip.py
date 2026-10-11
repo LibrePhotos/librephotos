@@ -25,11 +25,17 @@ end of text, cut to the context length with the end token kept last, padded
 with 0 (the text tower pools at the end token, so the padding is never read).
 """
 
+from __future__ import annotations
+
 import html
 import json
 import os
+from collections.abc import Sequence
+from typing import Any
 
 import numpy as np
+import numpy.typing as npt
+import onnxruntime as ort
 from PIL import Image
 from tokenizers import Tokenizer
 
@@ -68,7 +74,10 @@ PAD_TOKEN_ID = 0
 DEFAULT_MIN_PROBABILITY = 0.0075
 DEFAULT_MAX_TAGS = 10
 
-_RESAMPLING = {"bicubic": Image.BICUBIC, "bilinear": Image.BILINEAR}
+_RESAMPLING = {
+    "bicubic": Image.Resampling.BICUBIC,
+    "bilinear": Image.Resampling.BILINEAR,
+}
 
 
 class PreprocessError(ValueError):
@@ -80,14 +89,14 @@ class Preprocess:
 
     def __init__(
         self,
-        size,
-        mean,
-        std,
-        interpolation="bicubic",
-        resize_mode="shortest",
-        logit_scale=100.0,
-        context_length=77,
-    ):
+        size: int,
+        mean: Sequence[float],
+        std: Sequence[float],
+        interpolation: str = "bicubic",
+        resize_mode: str = "shortest",
+        logit_scale: float = 100.0,
+        context_length: int = 77,
+    ) -> None:
         if resize_mode != "shortest":
             raise PreprocessError(f"unsupported resize_mode {resize_mode!r}")
         if interpolation not in _RESAMPLING:
@@ -103,7 +112,7 @@ class Preprocess:
         self.context_length = int(context_length)
 
     @classmethod
-    def from_dict(cls, data):
+    def from_dict(cls, data: dict[str, Any]) -> Preprocess:
         size = data["image_size"]
         if isinstance(size, (list, tuple)):
             if len(size) != 2 or size[0] != size[1]:
@@ -120,12 +129,12 @@ class Preprocess:
         )
 
     @classmethod
-    def from_file(cls, path=None):
+    def from_file(cls, path: str | None = None) -> Preprocess:
         with open(path or PREPROCESS_PATH, encoding="utf-8") as f:
             return cls.from_dict(json.load(f))
 
 
-def resized_size(width, height, size):
+def resized_size(width: int, height: int, size: int) -> tuple[int, int]:
     """The shortest-edge resize of torchvision's ``Resize(int)``.
 
     The short edge becomes ``size`` and the long edge
@@ -136,14 +145,16 @@ def resized_size(width, height, size):
     return int(size * width / height), size
 
 
-def crop_box(width, height, size):
+def crop_box(width: int, height: int, size: int) -> tuple[int, int, int, int]:
     """The centre crop of torchvision's ``CenterCrop``: offsets are rounded."""
     left = int(round((width - size) / 2.0))
     top = int(round((height - size) / 2.0))
     return left, top, left + size, top + size
 
 
-def prepare_image(image, preprocess):
+def prepare_image(
+    image: Image.Image, preprocess: Preprocess
+) -> npt.NDArray[np.float32]:
     """RGB, resize, centre crop, normalise: a (1, 3, size, size) float32 batch."""
     image = image.convert("RGB")
     size = preprocess.size
@@ -156,18 +167,18 @@ def prepare_image(image, preprocess):
     return np.ascontiguousarray(arr.transpose(2, 0, 1))[np.newaxis, :]
 
 
-def _l2_normalize(embeddings):
+def _l2_normalize(embeddings: npt.NDArray[np.floating]) -> npt.NDArray[np.floating]:
     norms = np.linalg.norm(embeddings, axis=-1, keepdims=True)
     return embeddings / np.maximum(norms, 1e-8)
 
 
-def _softmax(scores):
+def _softmax(scores: npt.NDArray[np.floating]) -> npt.NDArray[np.floating]:
     shifted = scores - scores.max(axis=-1, keepdims=True)
     exp = np.exp(shifted)
     return exp / exp.sum(axis=-1, keepdims=True)
 
 
-def _stale_cache_reason(cache, tag_count):
+def _stale_cache_reason(cache: npt.NDArray[np.generic], tag_count: int) -> str | None:
     """Why a cached tag-embedding array cannot be used, or None if it can."""
     if cache.ndim != 2:
         return f"cache has wrong shape {cache.shape}"
@@ -181,18 +192,25 @@ def _stale_cache_reason(cache, tag_count):
 class ClipTokenizer:
     """The CLIP BPE, laid out as open_clip's ``tokenize`` lays it out."""
 
-    def __init__(self, path, context_length):
+    def __init__(self, path: str, context_length: int) -> None:
         self.tokenizer = Tokenizer.from_file(path)
         # Our own padding and truncation below; never the file's.
         self.tokenizer.no_padding()
         self.tokenizer.no_truncation()
         self.context_length = context_length
-        self.start_id = self.tokenizer.token_to_id(START_TOKEN)
-        self.end_id = self.tokenizer.token_to_id(END_TOKEN)
+        start_id = self.tokenizer.token_to_id(START_TOKEN)
+        end_id = self.tokenizer.token_to_id(END_TOKEN)
+        # A CLIP tokenizer file always has both; without them no prompt can be
+        # laid out, so refuse the file here rather than fail on the first text.
+        assert start_id is not None and end_id is not None, (
+            "tokenizer file has no start or end token"
+        )
+        self.start_id = start_id
+        self.end_id = end_id
 
-    def __call__(self, texts):
+    def __call__(self, texts: Sequence[str]) -> npt.NDArray[np.int64]:
         """(n, context_length) int64 ids."""
-        rows = []
+        rows: list[list[int]] = []
         for text in texts:
             # open_clip unescapes HTML entities (twice) before the BPE; the
             # tokenizer file's normaliser does the rest of its cleaning.
@@ -212,24 +230,25 @@ class ClipTokenizer:
 
 
 class OpenCLIP:
-    def __init__(self):
-        self.vision_session = None
-        self.text_session = None
-        self.tokenizer = None
-        self.preprocess = None
-        self.tags = None
-        self.tag_embeddings = None
+    def __init__(self) -> None:
+        self.vision_session: ort.InferenceSession | None = None
+        self.text_session: ort.InferenceSession | None = None
+        self.tokenizer: ClipTokenizer | None = None
+        self.preprocess: Preprocess | None = None
+        self.tags: list[str] | None = None
+        self.tag_embeddings: npt.NDArray[np.floating] | None = None
         self.is_loaded = False
 
-    def load(self):
+    def load(self) -> None:
         """Load the image tower, the tag list and the (cached) tag embeddings."""
         self._load_vision()
         with open(TAGS_FILE, "r", encoding="utf-8") as f:
-            self.tags = [line.strip() for line in f if line.strip()]
-        self._load_or_build_tag_embeddings()
+            tags = [line.strip() for line in f if line.strip()]
+        self.tags = tags
+        self._load_or_build_tag_embeddings(tags)
         self.is_loaded = True
 
-    def unload(self):
+    def unload(self) -> None:
         self.vision_session = None
         self.text_session = None
         self.tokenizer = None
@@ -238,36 +257,39 @@ class OpenCLIP:
         self.tag_embeddings = None
         self.is_loaded = False
 
-    def _load_preprocess(self):
+    def _load_preprocess(self) -> Preprocess:
         if self.preprocess is None:
             self.preprocess = Preprocess.from_file(PREPROCESS_PATH)
         return self.preprocess
 
-    def _load_vision(self):
+    def _load_vision(self) -> ort.InferenceSession:
         self._load_preprocess()
         if self.vision_session is None:
             self.vision_session = inference_session(VISUAL_PATH)
+        return self.vision_session
 
     # ------------------------------------------------------------------ text
-    def _tokenize(self, texts):
+    def _tokenize(self, texts: Sequence[str]) -> npt.NDArray[np.int64]:
         if self.tokenizer is None:
             self.tokenizer = ClipTokenizer(
                 TOKENIZER_PATH, self._load_preprocess().context_length
             )
         return self.tokenizer(texts)
 
-    def _run_text(self, session, texts):
+    def _run_text(
+        self, session: ort.InferenceSession, texts: Sequence[str]
+    ) -> npt.NDArray[np.float32]:
         input_name = session.get_inputs()[0].name
         (raw,) = session.run(None, {input_name: self._tokenize(texts)})
         return raw.astype(np.float32)
 
-    def _build_tag_embeddings(self):
+    def _build_tag_embeddings(self, tags: list[str]) -> None:
         """Embed every prompted tag with the text tower and cache the result."""
         print(f"{MODEL_NAME}: building tag embeddings (first run only)...")
         # A session of its own unless queries already loaded the text tower:
         # it is dropped again once the tags are embedded.
         session = self.text_session or inference_session(TEXTUAL_PATH)
-        prompts = [PROMPT_TEMPLATE.format(tag=tag) for tag in self.tags]
+        prompts = [PROMPT_TEMPLATE.format(tag=tag) for tag in tags]
         embeddings = [
             _l2_normalize(
                 self._run_text(session, prompts[start : start + TEXT_BATCH_SIZE])
@@ -279,24 +301,24 @@ class OpenCLIP:
         self.tag_embeddings = np.concatenate(embeddings, axis=0)
         os.makedirs(os.path.dirname(EMBEDDINGS_CACHE), exist_ok=True)
         np.save(EMBEDDINGS_CACHE, self.tag_embeddings)
-        print(f"{MODEL_NAME}: cached {len(self.tags)} tag embeddings")
+        print(f"{MODEL_NAME}: cached {len(tags)} tag embeddings")
 
-    def _load_or_build_tag_embeddings(self):
+    def _load_or_build_tag_embeddings(self, tags: list[str]) -> None:
         if not os.path.exists(EMBEDDINGS_CACHE):
-            self._build_tag_embeddings()
+            self._build_tag_embeddings(tags)
             return
 
         cache = np.load(EMBEDDINGS_CACHE)
-        reason = _stale_cache_reason(cache, len(self.tags))
+        reason = _stale_cache_reason(cache, len(tags))
         if reason is not None:
             print(f"{MODEL_NAME}: {reason}, rebuilding...")
             os.remove(EMBEDDINGS_CACHE)
-            self._build_tag_embeddings()
+            self._build_tag_embeddings(tags)
             return
 
         self.tag_embeddings = cache
 
-    def embed_text_raw(self, text):
+    def embed_text_raw(self, text: str) -> npt.NDArray[np.float32]:
         """A search query through the text tower, unnormalised, shape (dim,).
 
         The text tower is a session of its own, loaded with the first query
@@ -307,13 +329,15 @@ class OpenCLIP:
         return self._run_text(self.text_session, [text])[0]
 
     # ----------------------------------------------------------------- image
-    def _run_vision(self, pixel_values):
-        self._load_vision()
-        input_name = self.vision_session.get_inputs()[0].name
-        (raw,) = self.vision_session.run(None, {input_name: pixel_values})
+    def _run_vision(
+        self, pixel_values: npt.NDArray[np.float32]
+    ) -> npt.NDArray[np.float32]:
+        session = self._load_vision()
+        input_name = session.get_inputs()[0].name
+        (raw,) = session.run(None, {input_name: pixel_values})
         return raw.astype(np.float32)
 
-    def embed_image_raw(self, image_path):
+    def embed_image_raw(self, image_path: str) -> npt.NDArray[np.float32]:
         """The image tower's output as it is, shape (1, dim).
 
         Unnormalised, as semantic search stores it: the similarity index ranks
@@ -325,7 +349,9 @@ class OpenCLIP:
             pixel_values = prepare_image(image, preprocess)
         return self._run_vision(pixel_values)
 
-    def embed_images_raw(self, image_paths):
+    def embed_images_raw(
+        self, image_paths: Sequence[str]
+    ) -> list[npt.NDArray[np.float32] | None]:
         """One raw embedding (dim,) per path, in order; None where unreadable.
 
         Keeping the slot of a bad image lets the caller line the results up
@@ -333,8 +359,8 @@ class OpenCLIP:
         tower IMAGE_BATCH_SIZE at a time.
         """
         preprocess = self._load_preprocess()
-        results = [None] * len(image_paths)
-        pending = []
+        results: list[npt.NDArray[np.float32] | None] = [None] * len(image_paths)
+        pending: list[tuple[int, npt.NDArray[np.float32]]] = []
         for index, path in enumerate(image_paths):
             try:
                 with Image.open(path) as image:
@@ -353,10 +379,10 @@ class OpenCLIP:
     # ------------------------------------------------------------------ tags
     def tags_for(
         self,
-        raw_embedding,
-        threshold=DEFAULT_MIN_PROBABILITY,
-        max_tags=DEFAULT_MAX_TAGS,
-    ):
+        raw_embedding: npt.ArrayLike,
+        threshold: float = DEFAULT_MIN_PROBABILITY,
+        max_tags: int = DEFAULT_MAX_TAGS,
+    ) -> list[str]:
         """The most likely tags for a raw image embedding, most likely first.
 
         ``threshold`` is a probability under the softmax over all tags at the
@@ -364,13 +390,19 @@ class OpenCLIP:
         """
         if not self.is_loaded:
             self.load()
+        # load() sets all three; is_loaded is only ever True after it.
+        assert (
+            self.tags is not None
+            and self.tag_embeddings is not None
+            and self.preprocess is not None
+        )
         image = _l2_normalize(
             np.asarray(raw_embedding, dtype=np.float32).reshape(1, -1)
         )
         similarities = (image @ self.tag_embeddings.T)[0]
         probabilities = _softmax(self.preprocess.logit_scale * similarities)
 
-        tags = []
+        tags: list[str] = []
         for idx in np.argsort(probabilities)[::-1]:
             if probabilities[idx] < threshold or len(tags) >= max_tags:
                 break
@@ -379,11 +411,11 @@ class OpenCLIP:
 
     def predict(
         self,
-        image_path,
-        threshold=DEFAULT_MIN_PROBABILITY,
-        max_tags=DEFAULT_MAX_TAGS,
-        with_embedding=False,
-    ):
+        image_path: str,
+        threshold: float = DEFAULT_MIN_PROBABILITY,
+        max_tags: int = DEFAULT_MAX_TAGS,
+        with_embedding: bool = False,
+    ) -> dict[str, object]:
         """``{"tags": [...]}`` for a photo, most likely first; with
         ``with_embedding`` also ``"embedding"``, the raw image embedding of the
         same run, which semantic search stores: one image-tower run serves both.
@@ -391,7 +423,7 @@ class OpenCLIP:
         if not self.is_loaded:
             self.load()
         raw = self.embed_image_raw(image_path)
-        result = {"tags": self.tags_for(raw[0], threshold, max_tags)}
+        result: dict[str, object] = {"tags": self.tags_for(raw[0], threshold, max_tags)}
         if with_embedding:
             result["embedding"] = raw[0].tolist()
         return result

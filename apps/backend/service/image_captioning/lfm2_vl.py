@@ -19,10 +19,15 @@ model was benchmarked at, a thumbnail carries no detail a tiling would find,
 and it bounds both the time and the memory a caption can take.
 """
 
+from __future__ import annotations
+
 import math
 import os
+from typing import Any
 
 import numpy as np
+import numpy.typing as npt
+import onnxruntime as ort
 from PIL import Image
 from tokenizers import Tokenizer
 
@@ -61,7 +66,7 @@ DEFAULT_PROMPT = "Describe this image in a short, natural image caption."
 DEFAULT_MAX_NEW_TOKENS = 64
 
 
-def smart_resize(height, width):
+def smart_resize(height: int, width: int) -> tuple[int, int]:
     """The (height, width) to resize to: multiples of 32 within the token budget."""
     h_bar = max(RESIZE_FACTOR, round(height / RESIZE_FACTOR) * RESIZE_FACTOR)
     w_bar = max(RESIZE_FACTOR, round(width / RESIZE_FACTOR) * RESIZE_FACTOR)
@@ -80,12 +85,14 @@ def smart_resize(height, width):
     return h_bar, w_bar
 
 
-def prepare_image(image):
+def prepare_image(
+    image: Image.Image,
+) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.int64], npt.NDArray[np.int64]]:
     """(pixel_values, spatial_shapes, pixel_attention_mask) for one image."""
     image = image.convert("RGB")
     width, height = image.size
     new_h, new_w = smart_resize(height, width)
-    image = image.resize((new_w, new_h), Image.BILINEAR)
+    image = image.resize((new_w, new_h), Image.Resampling.BILINEAR)
 
     arr = (np.asarray(image, dtype=np.float32) / 255.0 - IMAGE_MEAN) / IMAGE_STD
     patches_h, patches_w = new_h // PATCH_SIZE, new_w // PATCH_SIZE
@@ -101,7 +108,7 @@ def prepare_image(image):
     )
 
 
-def clean_caption(text):
+def clean_caption(text: str) -> str:
     """Strip the quotation marks the model likes to wrap a caption in."""
     text = text.strip()
     if len(text) >= 2 and text[0] == text[-1] and text[0] in "\"'":
@@ -110,13 +117,20 @@ def clean_caption(text):
 
 
 class Lfm2VlCaptioner:
-    def __init__(self, model_dir=MODEL_DIR):
+    # Set by load(); None until the sessions are loaded and again after unload().
+    sessions: dict[str, ort.InferenceSession] | None
+    tokenizer: Tokenizer | None
+    decoder_inputs: dict[str, ort.NodeArg]
+    decoder_output_names: list[str]
+    cache_dtype: type[np.float16] | type[np.float32]
+
+    def __init__(self, model_dir: str = MODEL_DIR) -> None:
         self.model_dir = model_dir
         self.sessions = None
         self.tokenizer = None
         self.is_loaded = False
 
-    def load(self):
+    def load(self) -> None:
         self.sessions = {
             # Image tiles and a growing token sequence: changing input sizes.
             key: inference_session(
@@ -139,18 +153,22 @@ class Lfm2VlCaptioner:
         self.cache_dtype = np.float16 if "float16" in any_kv.type else np.float32
         self.is_loaded = True
 
-    def unload(self):
+    def unload(self) -> None:
         self.sessions = None
         self.tokenizer = None
         self.is_loaded = False
 
     # -------------------------------------------------------------- pipeline
-    def _embed(self, token_ids):
+    # The sessions exist whenever is_loaded is set (load() sets both, unload()
+    # clears both), and caption() loads them before any of these runs.
+    def _embed(self, token_ids: list[list[int]]) -> npt.NDArray[np.float32]:
+        assert self.sessions is not None
         return self.sessions["embed"].run(
             None, {"input_ids": np.asarray(token_ids, dtype=np.int64)}
         )[0]
 
-    def _image_features(self, image_path):
+    def _image_features(self, image_path: str) -> npt.NDArray[np.float32]:
+        assert self.sessions is not None
         pixel_values, spatial_shapes, mask = prepare_image(Image.open(image_path))
         return self.sessions["vision"].run(
             None,
@@ -161,8 +179,11 @@ class Lfm2VlCaptioner:
             },
         )[0]  # (image_tokens, hidden)
 
-    def _prompt_embeddings(self, image_features, prompt):
+    def _prompt_embeddings(
+        self, image_features: npt.NDArray[np.float32], prompt: str
+    ) -> npt.NDArray[np.float32]:
         """The chat-formatted prompt with the image tokens swapped in."""
+        assert self.tokenizer is not None
         n_image = image_features.shape[0]
         text = (
             f"{BOS_TOKEN}<|im_start|>user\n"
@@ -179,8 +200,8 @@ class Lfm2VlCaptioner:
         embeds[0, slots, :] = image_features
         return embeds
 
-    def _empty_cache(self):
-        cache = {}
+    def _empty_cache(self) -> dict[str, npt.NDArray[np.floating]]:
+        cache: dict[str, npt.NDArray[np.floating]] = {}
         for name, inp in self.decoder_inputs.items():
             if name.startswith("past_conv."):
                 cache[name] = np.zeros(
@@ -192,16 +213,19 @@ class Lfm2VlCaptioner:
                 )
         return cache
 
-    def _decode(self, embeds, max_new_tokens):
+    def _decode(
+        self, embeds: npt.NDArray[np.float32], max_new_tokens: int
+    ) -> list[int]:
         """Greedy decoding from the prompt embeddings; returns the generated ids."""
+        assert self.sessions is not None
         decoder = self.sessions["decoder"]
         cache = self._empty_cache()
         total = embeds.shape[1]
-        generated = []
-        current = embeds
+        generated: list[int] = []
+        current: npt.NDArray[np.float32] = embeds
 
         for _ in range(max_new_tokens):
-            feed = {
+            feed: dict[str, npt.NDArray[Any]] = {
                 "inputs_embeds": current,
                 "attention_mask": np.ones((1, total), dtype=np.int64),
             }
@@ -227,10 +251,16 @@ class Lfm2VlCaptioner:
 
         return generated
 
-    def caption(self, image_path, prompt=None, max_new_tokens=DEFAULT_MAX_NEW_TOKENS):
+    def caption(
+        self,
+        image_path: str,
+        prompt: str | None = None,
+        max_new_tokens: int = DEFAULT_MAX_NEW_TOKENS,
+    ) -> str:
         if not self.is_loaded:
             self.load()
         prompt = prompt or DEFAULT_PROMPT
         embeds = self._prompt_embeddings(self._image_features(image_path), prompt)
         token_ids = self._decode(embeds, max_new_tokens)
+        assert self.tokenizer is not None
         return clean_caption(self.tokenizer.decode(token_ids, skip_special_tokens=True))

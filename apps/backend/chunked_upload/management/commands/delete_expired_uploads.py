@@ -1,4 +1,6 @@
-from django.core.management.base import BaseCommand
+from typing import Any
+
+from django.core.management.base import BaseCommand, CommandParser
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
@@ -15,7 +17,7 @@ class Command(BaseCommand):
 
     help = "Deletes chunked uploads that have already expired."
 
-    def add_arguments(self, parser):
+    def add_arguments(self, parser: CommandParser) -> None:
         parser.add_argument(
             "--interactive",
             action="store_true",
@@ -24,7 +26,7 @@ class Command(BaseCommand):
             help="Prompt confirmation before each deletion.",
         )
 
-    def handle(self, *args, **options):
+    def handle(self, *args: Any, **options: Any) -> None:
         interactive = options.get("interactive")
 
         count = {UPLOADING: 0, COMPLETE: 0}

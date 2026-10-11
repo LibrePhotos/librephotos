@@ -2,6 +2,7 @@ import os
 
 import pyvips
 import rawpy
+from flask.typing import ResponseReturnValue
 
 from service._common import create_app, json_fields, logger, serve_forever
 
@@ -14,7 +15,7 @@ log = logger("thumbnail")
 MEDIA_ROOT = os.path.join(os.environ.get("BASE_DATA", os.sep), "protected_media")
 
 
-def render_raw(source, destination, height):
+def render_raw(source: str, destination: str, height: int) -> None:
     """Decode a RAW file with LibRaw and save a WebP thumbnail of the given height."""
     with rawpy.imread(source) as raw:
         # Half-size demosaic is 4x faster and still above the target height.
@@ -28,7 +29,7 @@ def render_raw(source, destination, height):
     thumbnail.webpsave(destination, Q=95, keep=pyvips.enums.ForeignKeep.NONE)
 
 
-def _inside_media_root(destination):
+def _inside_media_root(destination: str) -> bool:
     """Whether *destination*, symlinks and ``..`` resolved, is under MEDIA_ROOT."""
     root = os.path.realpath(MEDIA_ROOT)
     try:
@@ -40,7 +41,7 @@ def _inside_media_root(destination):
 
 
 @app.route("/", methods=["POST"])
-def create_thumbnail():
+def create_thumbnail() -> ResponseReturnValue:
     source, destination, height = json_fields("source", "destination", "height")
     # Anything that reaches the port could otherwise overwrite any file the
     # service can write to.
@@ -58,7 +59,7 @@ def create_thumbnail():
     return {"thumbnail": destination}, 201
 
 
-def serve():
+def serve() -> None:
     serve_forever(app, "thumbnail")
 
 

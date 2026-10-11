@@ -26,7 +26,7 @@ class AlbumUser(models.Model):
     # membership / sharing changes via m2m_changed receivers (api/sync_signals.py).
     last_modified = models.DateTimeField(auto_now=True, db_index=True)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.title} ({self.owner.username})"
 
     class Meta:

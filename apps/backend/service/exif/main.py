@@ -1,6 +1,8 @@
 import shutil
+from typing import Any
 
 import exiftool
+from flask.typing import ResponseReturnValue
 
 from service._common import (
     MalformedRequest,
@@ -17,7 +19,7 @@ static_et = exiftool.ExifTool(EXIFTOOL)
 static_struct_et = exiftool.ExifTool(EXIFTOOL, common_args=["-struct"])
 
 
-def stop_exiftools():
+def stop_exiftools() -> None:
     """Stop both ExifTool processes; the next request starts the one it needs.
 
     Each is a Perl interpreter of ~30-40 MB (plus a console host on Windows)
@@ -39,22 +41,24 @@ app = create_app(
 log = logger("exif")
 
 
-def parse_get_tags_request():
+def parse_get_tags_request() -> tuple[Any, ...] | None:
     try:
         return json_fields("files_by_reverse_priority", "tags", "struct")
     except MalformedRequest:
         return None
 
 
-def running_exiftool(struct):
+def running_exiftool(struct: object) -> exiftool.ExifTool:
     et = static_struct_et if struct else static_et
     if not et.running:
         et.start()
     return et
 
 
-def highest_priority_value(et, tag, files_by_reverse_priority):
-    value = None
+def highest_priority_value(
+    et: exiftool.ExifTool, tag: str, files_by_reverse_priority: list[str]
+) -> object:
+    value: object = None
     for file in files_by_reverse_priority:
         retrieved_value = et.get_tag(tag, file)
         if retrieved_value is not None:
@@ -62,12 +66,12 @@ def highest_priority_value(et, tag, files_by_reverse_priority):
     return value
 
 
-def _split_tag(tag):
+def _split_tag(tag: str) -> tuple[str, str]:
     group, _, name = tag.rpartition(":")
     return group.lower(), name.lower()
 
 
-def _group_matches(requested, returned):
+def _group_matches(requested: str, returned: str) -> bool:
     # ExifTool reports the family 0 group ("XMP") even when a family 1 group
     # ("XMP-dc") was asked for; an ungrouped key (no -G) cannot be checked.
     return (
@@ -78,7 +82,7 @@ def _group_matches(requested, returned):
     )
 
 
-def _name_matches(requested, returned):
+def _name_matches(requested: str, returned: str) -> bool:
     # "Description-*" asks for every language entry of a lang-alt tag
     # (Description-de, Description-fr, ...); ExifTool answers with those keys.
     if requested.endswith("-*"):
@@ -86,7 +90,7 @@ def _name_matches(requested, returned):
     return requested == returned
 
 
-def _attribute(data, tags):
+def _attribute(data: dict[str, object], tags: list[str]) -> tuple[list[object], bool]:
     """Map one file's batched output back to the requested tags.
 
     Returns the values in tag order, with None for an unresolved tag, and
@@ -96,11 +100,11 @@ def _attribute(data, tags):
     only a command of its own can say which.
     """
     keys = [key for key in data if key != "SourceFile"]
-    claimed = set()
-    values = []
+    claimed: set[str] = set()
+    values: list[object] = []
     for tag in tags:
         group, name = _split_tag(tag)
-        value = None
+        value: object = None
         for key in keys:
             key_group, key_name = _split_tag(key)
             if _name_matches(name, key_name) and _group_matches(group, key_group):
@@ -114,7 +118,9 @@ def _attribute(data, tags):
     return values, len(claimed) == len(keys)
 
 
-def _file_values(et, tags, file, data):
+def _file_values(
+    et: exiftool.ExifTool, tags: list[str], file: str, data: dict[str, object]
+) -> list[object]:
     values, complete = _attribute(data, tags)
     if complete:
         return values
@@ -124,7 +130,9 @@ def _file_values(et, tags, file, data):
     ]
 
 
-def highest_priority_values(et, tags, files_by_reverse_priority):
+def highest_priority_values(
+    et: exiftool.ExifTool, tags: list[str], files_by_reverse_priority: list[str]
+) -> list[object]:
     """Every requested tag from every file in one ExifTool command.
 
     A command costs ExifTool ~15 ms whether it reads one tag or thirty, so
@@ -138,7 +146,7 @@ def highest_priority_values(et, tags, files_by_reverse_priority):
         return [
             highest_priority_value(et, tag, files_by_reverse_priority) for tag in tags
         ]
-    values = [None] * len(tags)
+    values: list[object] = [None] * len(tags)
     for file, data in zip(files_by_reverse_priority, per_file):
         for index, value in enumerate(_file_values(et, tags, file, data)):
             if value is not None:
@@ -147,7 +155,7 @@ def highest_priority_values(et, tags, files_by_reverse_priority):
 
 
 @app.route("/get-tags", methods=["POST"])
-def get_tags():
+def get_tags() -> ResponseReturnValue:
     payload = parse_get_tags_request()
     if payload is None:
         return "", 400
@@ -189,12 +197,12 @@ def get_tags():
         return {"error": str(exc)}, 500
 
     # Splice the safe-tag values back into the full requested order.
-    safe_values = iter(safe_values)
-    values = [next(safe_values) if ok else None for ok in safe]
+    safe_value_iter = iter(safe_values)
+    values = [next(safe_value_iter) if ok else None for ok in safe]
     return {"values": values}, 200
 
 
-def serve():
+def serve() -> None:
     serve_forever(app, "exif")
 
 

@@ -15,7 +15,7 @@ CORS_ALLOW_ALL_ORIGINS = True
 SERVE_FRONTEND = True
 
 
-def _opt_in(name):
+def _opt_in(name: str) -> bool:
     return os.environ.get(name, "").strip().lower() in ("true", "1", "yes", "on")
 
 

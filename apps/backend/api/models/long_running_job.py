@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import uuid
 from datetime import datetime, timedelta
+from typing import Any
 
 from django.db import models
 from django.utils import timezone
@@ -88,7 +91,7 @@ class LongRunningJob(models.Model):
         verbose_name = "Long Running Job"
         verbose_name_plural = "Long Running Jobs"
 
-    def __str__(self):
+    def __str__(self) -> str:
         status = (
             "failed"
             if self.failed
@@ -103,24 +106,24 @@ class LongRunningJob(models.Model):
         return f"Job {self.job_id} - {self.get_job_type_display()} - {status}"
 
     @property
-    def is_running(self):
+    def is_running(self) -> bool:
         """Check if job is currently running (started but not finished)."""
         return self.started_at is not None and not self.finished
 
     @property
-    def duration(self):
+    def duration(self) -> float | None:
         """Return job duration in seconds, or None if not started."""
         if not self.started_at:
             return None
         end = self.finished_at or timezone.now()
         return (end - self.started_at).total_seconds()
 
-    def start(self):
+    def start(self) -> None:
         """Mark job as started."""
         self.started_at = timezone.now()
         self.save(update_fields=["started_at"])
 
-    def complete(self, result=None):
+    def complete(self, result: dict[str, Any] | None = None) -> None:
         """Mark job as successfully completed."""
         self.finished = True
         self.finished_at = timezone.now()
@@ -128,7 +131,7 @@ class LongRunningJob(models.Model):
             self.result = result
         self.save(update_fields=["finished", "finished_at", "result"])
 
-    def fail(self, error=None):
+    def fail(self, error: BaseException | str | None = None) -> None:
         """Mark job as failed with optional error message."""
         self.failed = True
         self.finished = True
@@ -137,7 +140,7 @@ class LongRunningJob(models.Model):
             self.result = {"status": "failed", "error": str(error)}
         self.save(update_fields=["failed", "finished", "finished_at", "result"])
 
-    def cancel(self):
+    def cancel(self) -> None:
         """Mark job as cancelled and finished."""
         self.cancelled = True
         self.finished = True
@@ -145,7 +148,9 @@ class LongRunningJob(models.Model):
         self.result = {"status": "cancelled"}
         self.save(update_fields=["cancelled", "finished", "finished_at", "result"])
 
-    def update_progress(self, current, target=None, step=None):
+    def update_progress(
+        self, current: int, target: int | None = None, step: str | None = None
+    ) -> None:
         """Update job progress counters and optional step description."""
         update_fields = ["progress_current"]
         self.progress_current = current
@@ -157,13 +162,19 @@ class LongRunningJob(models.Model):
             update_fields.append("progress_step")
         self.save(update_fields=update_fields)
 
-    def set_result(self, result):
+    def set_result(self, result: dict[str, Any]) -> None:
         """Update the job result/progress data."""
         self.result = result
         self.save(update_fields=["result"])
 
     @classmethod
-    def create_job(cls, user, job_type, job_id=None, start_now=False):
+    def create_job(
+        cls,
+        user: User,
+        job_type: int,
+        job_id: uuid.UUID | str | None = None,
+        start_now: bool = False,
+    ) -> LongRunningJob:
         """
         Factory method to create a new job with proper defaults.
 
@@ -189,7 +200,9 @@ class LongRunningJob(models.Model):
         return job
 
     @classmethod
-    def get_or_create_job(cls, user, job_type, job_id):
+    def get_or_create_job(
+        cls, user: User, job_type: int, job_id: uuid.UUID | str
+    ) -> LongRunningJob:
         """
         Get an existing job by job_id or create a new one.
 
@@ -213,7 +226,7 @@ class LongRunningJob(models.Model):
         )
 
     @classmethod
-    def cleanup_stuck_jobs(cls, hours=None):
+    def cleanup_stuck_jobs(cls, hours: int | None = None) -> int:
         """
         Mark jobs as failed if they've been running (or queued) for too long.
 
@@ -246,7 +259,7 @@ class LongRunningJob(models.Model):
         return count
 
     @classmethod
-    def cleanup_old_jobs(cls, days=30):
+    def cleanup_old_jobs(cls, days: int = 30) -> int:
         """
         Delete completed/failed jobs older than specified days, but always keep
         the most recent finished job of each (user, job_type).
@@ -269,7 +282,7 @@ class LongRunningJob(models.Model):
         # Preserve the most recent finished job of each (user, job_type) — the
         # incremental-scan baseline — at any age. The number of groups is
         # bounded by users x job types, so this loop is cheap.
-        keep_ids = set()
+        keep_ids: set[int] = set()
         groups = (
             cls.objects.filter(finished=True, finished_at__isnull=False)
             .values_list("started_by_id", "job_type")

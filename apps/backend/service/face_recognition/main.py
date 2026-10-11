@@ -1,12 +1,21 @@
+from __future__ import annotations
+
 import os
+from typing import TYPE_CHECKING
 
 import numpy as np
+import numpy.typing as npt
+from flask.typing import ResponseReturnValue
 from PIL import Image
 
 from service._common import create_app, json_fields, logger, serve_forever
 from service.onnx_session import execution_providers, uses_gpu
 
-face_analysis_models = {}
+if TYPE_CHECKING:
+    from insightface.app import FaceAnalysis
+    from insightface.app.common import Face
+
+face_analysis_models: dict[str, FaceAnalysis] = {}
 DEFAULT_MODEL_NAME = "buffalo_sc"
 # How much a requested region (drawn by hand, or read from XMP) must overlap a
 # detected face to take its embedding. A drawn box is looser than the
@@ -36,13 +45,13 @@ app = create_app(
 )
 
 
-def _normalize_model_name(model_name):
-    if model_name in SUPPORTED_FACE_MODELS:
+def _normalize_model_name(model_name: str | None) -> str:
+    if model_name is not None and model_name in SUPPORTED_FACE_MODELS:
         return model_name
     return DEFAULT_MODEL_NAME
 
 
-def _get_face_analysis(model_name):
+def _get_face_analysis(model_name: str | None) -> FaceAnalysis:
     model_name = _normalize_model_name(model_name)
     if model_name not in face_analysis_models:
         from insightface.app import FaceAnalysis
@@ -61,7 +70,7 @@ def _get_face_analysis(model_name):
     return face_analysis_models[model_name]
 
 
-def _to_face_location(bbox):
+def _to_face_location(bbox: npt.NDArray[np.floating]) -> tuple[int, int, int, int]:
     left, top, right, bottom = bbox
     return (
         int(round(top)),
@@ -71,7 +80,10 @@ def _to_face_location(bbox):
     )
 
 
-def _iou(face_location, detected_location):
+def _iou(
+    face_location: tuple[int, int, int, int],
+    detected_location: tuple[int, int, int, int],
+) -> float:
     top = max(face_location[0], detected_location[0])
     right = min(face_location[1], detected_location[1])
     bottom = min(face_location[2], detected_location[2])
@@ -96,18 +108,20 @@ def _iou(face_location, detected_location):
     return intersection / union
 
 
-def _find_best_face_match(face_locations, detected_faces):
+def _find_best_face_match(
+    face_locations: list[tuple[int, int, int, int]], detected_faces: list[Face]
+) -> list[Face | None]:
     """The detected face at each requested location, None where there is none.
 
     One entry per location, in order. A location no detected face overlaps by
     MIN_FACE_MATCH_IOU is left unmatched rather than handed whichever face is
     left: its embedding would file the region under somebody else.
     """
-    matches = []
+    matches: list[Face | None] = []
     remaining_indices = set(range(len(detected_faces)))
 
     for face_location in face_locations:
-        best_index = None
+        best_index: int | None = None
         best_score = MIN_FACE_MATCH_IOU
         for detected_index in remaining_indices:
             score = _iou(
@@ -128,7 +142,7 @@ def _find_best_face_match(face_locations, detected_faces):
 
 
 @app.route("/face-encodings", methods=["POST"])
-def create_face_encodings():
+def create_face_encodings() -> ResponseReturnValue:
     source, face_locations, model_name = json_fields(
         "source", "face_locations", model_name=None
     )
@@ -151,7 +165,7 @@ def create_face_encodings():
 
 
 @app.route("/face-locations", methods=["POST"])
-def create_face_locations():
+def create_face_locations() -> ResponseReturnValue:
     source, model_name = json_fields("source", model_name=None)
 
     try:
@@ -171,7 +185,7 @@ def create_face_locations():
     return {"face_locations": face_locations, "encodings": face_encodings}, 200
 
 
-def serve():
+def serve() -> None:
     serve_forever(app, "face_recognition")
 
 

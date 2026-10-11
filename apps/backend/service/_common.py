@@ -39,8 +39,11 @@ import gc
 import os
 import sys
 import time
+from collections.abc import Callable
+from typing import Any
 
 from flask import Flask, request
+from flask.typing import ResponseReturnValue
 from werkzeug.exceptions import HTTPException
 
 DEFAULT_HOST = "127.0.0.1"
@@ -51,19 +54,23 @@ class MalformedRequest(Exception):
 
 
 class _State:
-    def __init__(self):
-        self.last_request_time = None
-        self.in_flight = 0
+    def __init__(self) -> None:
+        self.last_request_time: float | None = None
+        self.in_flight: int = 0
 
 
-def logger(name):
-    def log(message):
+def logger(name: str) -> Callable[[str], None]:
+    def log(message: str) -> None:
         print(f"{name}: {message}", flush=True)
 
     return log
 
 
-def create_app(name, unload=None, is_loaded=None):
+def create_app(
+    name: str,
+    unload: Callable[[], object] | None = None,
+    is_loaded: Callable[[], object] | None = None,
+) -> Flask:
     """The sidecar's Flask app.
 
     ``unload`` releases the models the sidecar holds (registers
@@ -75,28 +82,28 @@ def create_app(name, unload=None, is_loaded=None):
     app.extensions["librephotos_sidecar"] = state
     log = logger(name)
 
-    def counts(endpoint):
+    def counts(endpoint: str | None) -> bool:
         return endpoint not in ("health", "unload_model")
 
     @app.before_request
-    def stamp_request_start():
+    def stamp_request_start() -> None:
         # At the start, not the end: a long inference is not idleness.
         if counts(request.endpoint):
             state.last_request_time = time.time()
             state.in_flight += 1
 
     @app.teardown_request
-    def end_request(_error):
+    def end_request(_error: BaseException | None) -> None:
         if counts(request.endpoint):
             state.in_flight -= 1
 
     @app.errorhandler(MalformedRequest)
-    def malformed_request(error):
+    def malformed_request(error: MalformedRequest) -> ResponseReturnValue:
         log(f"malformed request: {error}")
         return "", 400
 
     @app.errorhandler(Exception)
-    def unexpected_error(error):
+    def unexpected_error(error: Exception) -> ResponseReturnValue:
         if isinstance(error, HTTPException):
             return error
         # JSON with the reason rather than Flask's HTML page: the backend
@@ -105,7 +112,7 @@ def create_app(name, unload=None, is_loaded=None):
         return {"error": f"{type(error).__name__}: {error}"}, 500
 
     @app.get("/health", strict_slashes=False)
-    def health():
+    def health() -> ResponseReturnValue:
         return {
             "status": "OK",
             "service": name,
@@ -117,7 +124,7 @@ def create_app(name, unload=None, is_loaded=None):
     if unload is not None:
 
         @app.route("/unload-model", methods=["GET", "POST"])
-        def unload_model():
+        def unload_model() -> ResponseReturnValue:
             if state.in_flight:
                 # A request that started long ago may still be using it.
                 return {"status": "busy"}, 409
@@ -129,14 +136,18 @@ def create_app(name, unload=None, is_loaded=None):
     return app
 
 
-def last_request_time(app):
-    return app.extensions["librephotos_sidecar"].last_request_time
+def last_request_time(app: Flask) -> float | None:
+    state: _State = app.extensions["librephotos_sidecar"]
+    return state.last_request_time
 
 
-def json_fields(*required, **optional):
+def json_fields(*required: str, **optional: object) -> tuple[Any, ...]:
     """The request's JSON fields: *required* in order, then *optional* (with
     their defaults) in keyword order. Raises MalformedRequest (an empty 400)
     for a body that is not a JSON object or lacks a required field.
+
+    The values are whatever the client sent, so they come back as ``Any``:
+    each route narrows them where it uses them.
     """
     data = request.get_json(silent=True)
     if not isinstance(data, dict):
@@ -144,12 +155,12 @@ def json_fields(*required, **optional):
     missing = [key for key in required if key not in data]
     if missing:
         raise MalformedRequest(f"missing {', '.join(missing)}")
-    values = [data[key] for key in required]
+    values: list[Any] = [data[key] for key in required]
     values += [data.get(key, default) for key, default in optional.items()]
     return tuple(values)
 
 
-def release_memory():
+def release_memory() -> None:
     """Hand freed memory back to the operating system.
 
     Dropping the last reference to an ONNX Runtime session frees its arena,
@@ -167,7 +178,7 @@ def release_memory():
             pass
 
 
-def serve_forever(app, name):
+def serve_forever(app: Flask, name: str) -> None:
     from gevent.pywsgi import WSGIServer
 
     from api.sidecars import SERVICES

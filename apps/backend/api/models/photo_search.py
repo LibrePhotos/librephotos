@@ -1,5 +1,7 @@
 import logging
+from typing import Any
 
+from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
 
 logger = logging.getLogger(__name__)
@@ -23,10 +25,10 @@ class PhotoSearch(models.Model):
     class Meta:
         db_table = "api_photo_search"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"Search data for {self.photo.image_hash}"
 
-    def recreate_search_captions(self):
+    def recreate_search_captions(self) -> None:
         """Recreate search captions from all caption sources.
 
         Only OpenCLIP's tags are indexed into search_captions: tags an earlier
@@ -36,9 +38,14 @@ class PhotoSearch(models.Model):
 
         search_captions = ""
 
-        # Get captions from the PhotoCaption model
-        if hasattr(self.photo, "caption_instance") and self.photo.caption_instance:
-            captions_json = self.photo.caption_instance.captions_json
+        # Get captions from the PhotoCaption model. A photo without a caption row
+        # raises on the reverse one-to-one; that means there is nothing to add.
+        try:
+            caption_instance = self.photo.caption_instance
+        except ObjectDoesNotExist:
+            caption_instance = None
+        if caption_instance:
+            captions_json = caption_instance.captions_json
             if captions_json:
                 # The tagger stores {"tags": [...]} under its model's key.
                 tags = (captions_json.get(OPENCLIP) or {}).get("tags", [])
@@ -92,7 +99,7 @@ class PhotoSearch(models.Model):
 
         logger.debug(f"Recreated search captions for image {self.photo.image_hash}.")
 
-    def update_search_location(self, geolocation_json):
+    def update_search_location(self, geolocation_json: dict[str, Any] | None) -> None:
         """Update search location from geolocation data"""
         if geolocation_json and "address" in geolocation_json:
             self.search_location = geolocation_json["address"]

@@ -19,11 +19,22 @@ compatibility but are deprecated and will be converted to file variants.
 Inspired by PhotoPrism's file variant model and Immich's stacking system.
 """
 
+from __future__ import annotations
+
 import uuid
+from collections.abc import Iterable
+from datetime import datetime
+from typing import TYPE_CHECKING
 
 from django.db import models
+from django.db.models import Model, QuerySet
 
 from api.models.user import User, get_deleted_user
+
+if TYPE_CHECKING:
+    from django.db.models.fields.related_descriptors import ManyRelatedManager
+
+    from api.models.photo import Photo
 
 
 class PhotoStack(models.Model):
@@ -66,6 +77,10 @@ class PhotoStack(models.Model):
         StackType.MANUAL,
     ]
 
+    # Reverse side of Photo.stacks (related_name="photos"). Annotation only:
+    # Django installs the manager at class creation; this tells mypy its type.
+    photos: ManyRelatedManager[Photo, Model]
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
     owner = models.ForeignKey(
@@ -106,22 +121,22 @@ class PhotoStack(models.Model):
             models.Index(fields=["owner", "stack_type"]),
         ]
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"PhotoStack {self.id} - {self.stack_type} - {self.owner.username}"
 
     @property
-    def photo_count(self):
+    def photo_count(self) -> int:
         """Number of photos in this stack."""
         return self.photos.count()
 
-    def get_photos_ordered_by_quality(self):
+    def get_photos_ordered_by_quality(self) -> QuerySet[Photo]:
         """
         Returns photos in the stack ordered by quality metrics.
         Higher resolution and larger file size are considered better quality.
         """
         return self.photos.order_by("-metadata__width", "-metadata__height", "-size")
 
-    def auto_select_primary(self):
+    def auto_select_primary(self) -> Photo | None:
         """
         Automatically selects the best photo as primary based on stack type.
 
@@ -169,7 +184,7 @@ class PhotoStack(models.Model):
 
         return best
 
-    def merge_with(self, other_stack: "PhotoStack"):
+    def merge_with(self, other_stack: PhotoStack) -> None:
         """
         Merge another stack into this one.
         All photos from the other stack are moved to this stack,
@@ -194,8 +209,13 @@ class PhotoStack(models.Model):
 
     @classmethod
     def create_or_merge(
-        cls, owner, stack_type, photos, sequence_start=None, sequence_end=None
-    ):
+        cls,
+        owner: User,
+        stack_type: str,
+        photos: Iterable[Photo],
+        sequence_start: datetime | None = None,
+        sequence_end: datetime | None = None,
+    ) -> PhotoStack | None:
         """
         Create a new stack or merge into existing if any photo is already stacked.
 
@@ -223,6 +243,8 @@ class PhotoStack(models.Model):
         if existing_stacks.exists():
             # Merge all into the first existing stack
             target_stack = existing_stacks.first()
+            # exists() just returned True for this same queryset.
+            assert target_stack is not None
             for stack in existing_stacks[1:]:
                 target_stack.merge_with(stack)
 

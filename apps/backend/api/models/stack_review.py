@@ -12,13 +12,19 @@ This separation allows:
 - Historical tracking of review decisions
 """
 
+from __future__ import annotations
+
 import uuid
+from typing import TYPE_CHECKING
 
 from django.db import models
 from django.utils import timezone
 
 from api.models.photo_stack import PhotoStack
 from api.models.user import User, get_deleted_user
+
+if TYPE_CHECKING:
+    from api.models.photo import Photo
 
 
 class StackReview(models.Model):
@@ -109,7 +115,7 @@ class StackReview(models.Model):
             models.Index(fields=["reviewer", "decision"]),
         ]
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"Review for {self.stack.id} - {self.decision}"
 
     @classmethod
@@ -147,7 +153,7 @@ class StackReview(models.Model):
         )
         return review
 
-    def resolve(self, kept_photo, trash_others: bool = True):
+    def resolve(self, kept_photo: Photo, trash_others: bool = True) -> StackReview:
         """
         Mark the review as resolved by selecting a photo to keep.
 
@@ -187,7 +193,7 @@ class StackReview(models.Model):
         self.save()
         return self
 
-    def dismiss(self):
+    def dismiss(self) -> StackReview:
         """Mark as 'not actually duplicates' and unlink photos from stack."""
         from django.utils import timezone
 
@@ -201,7 +207,7 @@ class StackReview(models.Model):
         self.save()
         return self
 
-    def revert(self):
+    def revert(self) -> StackReview | int:
         """Revert a resolved review, restoring trashed photos."""
         if self.decision != self.Decision.RESOLVED:
             return self

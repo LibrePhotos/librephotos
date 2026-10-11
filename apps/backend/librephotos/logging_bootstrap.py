@@ -12,6 +12,8 @@ they are supposed to produce records of the same shape.
 import logging
 import logging.config
 import os
+from collections.abc import Iterable
+from typing import Any
 
 # Renamed to librephotos.log in a follow-up PR. Named once, here, so that rename
 # is a one-line change instead of a grep across settings, services and docs.
@@ -70,7 +72,7 @@ def take_deferred_warnings() -> list[str]:
     return messages
 
 
-def resolve_level(raw=None) -> str:
+def resolve_level(raw: str | None = None) -> str:
     """Validate a level name, falling back to INFO for anything unrecognised.
 
     dictConfig raises ValueError on an unknown level, and it does so while the
@@ -92,7 +94,7 @@ def resolve_level(raw=None) -> str:
     return level
 
 
-def resolve_logger_levels(raw=None) -> dict[str, str]:
+def resolve_logger_levels(raw: str | None = None) -> dict[str, str]:
     """Parse per-logger level overrides from ``LOG_LEVELS``.
 
     The format is a comma-separated list of ``logger=LEVEL`` pairs, for
@@ -103,7 +105,7 @@ def resolve_logger_levels(raw=None) -> dict[str, str]:
     """
     if raw is None:
         raw = os.environ.get("LOG_LEVELS", "")
-    levels = {}
+    levels: dict[str, str] = {}
     for entry in str(raw).split(","):
         entry = entry.strip()
         if not entry:
@@ -121,7 +123,7 @@ def resolve_logger_levels(raw=None) -> dict[str, str]:
     return levels
 
 
-def resolve_to_console(raw=None) -> bool:
+def resolve_to_console(raw: bool | str | None = None) -> bool:
     """Whether to mirror the log to stdout as well as to the file.
 
     On by default: on Kubernetes the log directory is usually an emptyDir, so
@@ -136,14 +138,14 @@ def resolve_to_console(raw=None) -> bool:
     return str(raw).strip().lower() in ("true", "1", "yes", "on")
 
 
-def resolve_logs_root(explicit=None) -> str:
+def resolve_logs_root(explicit: str | None = None) -> str:
     """Directory the log files live in: the argument, else $BASE_LOGS."""
     if explicit:
         return explicit
     return os.environ.get("BASE_LOGS") or DEFAULT_LOGS_ROOT
 
 
-def ensure_logs_root(path) -> str:
+def ensure_logs_root(path: str) -> str:
     """Create the log directory, or stop with a message that names it.
 
     Deliberately not the print-and-continue treatment MPLCONFIGDIR gets in
@@ -169,7 +171,7 @@ def ensure_logs_root(path) -> str:
     return path
 
 
-def get_log_file_path(logs_root=None) -> str:
+def get_log_file_path(logs_root: str | None = None) -> str:
     return os.path.join(resolve_logs_root(logs_root), LOG_FILENAME)
 
 
@@ -179,19 +181,19 @@ def _more_restrictive(level_a: str, level_b: str) -> str:
     )
 
 
-def _most_verbose(levels) -> str:
+def _most_verbose(levels: Iterable[str]) -> str:
     return min(levels, key=lambda name: getattr(logging, name))
 
 
 def build_logging_config(
-    logs_root=None,
-    level=None,
-    to_console=True,
-    max_bytes=DEFAULT_LOG_MAX_BYTES,
-    backup_count=DEFAULT_LOG_BACKUP_COUNT,
-    filename=None,
-    logger_levels=None,
-):
+    logs_root: str | None = None,
+    level: str | None = None,
+    to_console: bool = True,
+    max_bytes: int = DEFAULT_LOG_MAX_BYTES,
+    backup_count: int = DEFAULT_LOG_BACKUP_COUNT,
+    filename: str | None = None,
+    logger_levels: dict[str, str] | None = None,
+) -> dict[str, Any]:
     """Build the dictConfig every LibrePhotos process is configured from.
 
     The rotating file handler hangs off the *root* logger, so third-party
@@ -257,14 +259,14 @@ def build_logging_config(
 
 
 def configure_standalone(
-    logger_name,
-    filename=None,
-    logs_root=None,
-    level=None,
-    to_console=None,
-    max_bytes=DEFAULT_LOG_MAX_BYTES,
-    backup_count=DEFAULT_LOG_BACKUP_COUNT,
-):
+    logger_name: str,
+    filename: str | None = None,
+    logs_root: str | None = None,
+    level: str | None = None,
+    to_console: bool | str | None = None,
+    max_bytes: int = DEFAULT_LOG_MAX_BYTES,
+    backup_count: int = DEFAULT_LOG_BACKUP_COUNT,
+) -> logging.Logger:
     """Configure logging for a process that never loads Django, and return its
     logger.
 

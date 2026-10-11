@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 class Geocode:
-    def __init__(self, provider):
+    def __init__(self, provider: str) -> None:
         self._provider_config = get_provider_config(provider)
         self._parser = get_provider_parser(provider)
         self._geocoder = geopy.get_geocoder_for_service(provider)(
@@ -20,10 +20,11 @@ class Geocode:
         )
 
     def reverse(self, lat: float, lon: float) -> dict:
+        geocode_args = self._provider_config.get("geocode_args")
         if (
-            "geocode_args" in self._provider_config
-            and "api_key" in self._provider_config["geocode_args"]
-            and self._provider_config["geocode_args"]["api_key"] is None
+            isinstance(geocode_args, dict)
+            and "api_key" in geocode_args
+            and geocode_args["api_key"] is None
         ):
             logger.warning(
                 "No API key found for map provider. Please set MAP_API_KEY in the admin panel or switch map provider."

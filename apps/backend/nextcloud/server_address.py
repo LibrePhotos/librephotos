@@ -24,8 +24,11 @@ a DNS answer that changes between the check and the connection is not caught.
 Redirects are checked hop by hop by ``GuardedClient``.
 """
 
+from __future__ import annotations
+
 import ipaddress
 import socket
+from typing import TYPE_CHECKING, Any
 from urllib.parse import urljoin, urlparse
 
 import owncloud as nextcloud
@@ -33,10 +36,17 @@ from django.conf import settings
 from urllib3.exceptions import LocationParseError
 from urllib3.util import parse_url
 
+if TYPE_CHECKING:
+    import requests
+
+    from api.models.user import User
+
 _ALLOWED_SCHEMES = {"http", "https"}
 _NAT64 = ipaddress.ip_network("64:ff9b::/96")
 # 0.0.0.0/8 is "this network"; Linux connects 0.0.0.0 to the local host.
 _THIS_NETWORK = ipaddress.ip_network("0.0.0.0/8")
+
+_IPAddress = ipaddress.IPv4Address | ipaddress.IPv6Address
 
 
 class UnsafeServerAddress(ValueError):
@@ -47,9 +57,9 @@ def private_addresses_allowed() -> bool:
     return bool(getattr(settings, "NEXTCLOUD_ALLOW_PRIVATE_ADDRESSES", True))
 
 
-def _embedded_ipv4(addr):
+def _embedded_ipv4(addr: _IPAddress) -> ipaddress.IPv4Address | None:
     """Return the IPv4 address an IPv6 address carries, if it carries one."""
-    if addr.version != 6:
+    if not isinstance(addr, ipaddress.IPv6Address):
         return None
     if addr.ipv4_mapped is not None:
         return addr.ipv4_mapped
@@ -60,7 +70,7 @@ def _embedded_ipv4(addr):
     return None
 
 
-def _refusal(addr, allow_private: bool):
+def _refusal(addr: _IPAddress, allow_private: bool) -> str | None:
     """Name the kind of address ``addr`` is if it must be refused, else None."""
     addr = _embedded_ipv4(addr) or addr
     if addr.is_unspecified or (addr.version == 4 and addr in _THIS_NETWORK):
@@ -78,14 +88,14 @@ def _refusal(addr, allow_private: bool):
     return None
 
 
-def _resolve(host: str, port):
+def _resolve(host: str, port: int) -> list[_IPAddress]:
     try:
         infos = socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)
     except (OSError, UnicodeError) as e:
         raise UnsafeServerAddress(
             f"The Nextcloud server address could not be resolved: {host}"
         ) from e
-    addresses = []
+    addresses: list[_IPAddress] = []
     for info in infos:
         try:
             addresses.append(ipaddress.ip_address(info[4][0]))
@@ -169,7 +179,9 @@ def is_safe_server_address(url: str) -> bool:
     return True
 
 
-def _refuse_unsafe_redirect(response, *args, **kwargs):
+def _refuse_unsafe_redirect(
+    response: requests.Response, *args: Any, **kwargs: Any
+) -> requests.Response:
     # Every hop gets the full check, including the urlparse/urllib3 comparison.
     if response.is_redirect:
         try:
@@ -193,17 +205,17 @@ class GuardedClient(nextcloud.Client):
     """
 
     @property
-    def _session(self):
+    def _session(self) -> requests.Session | None:
         return self.__dict__.get("_guarded_session")
 
     @_session.setter
-    def _session(self, session):
+    def _session(self, session: requests.Session | None) -> None:
         if session is not None:
             session.hooks["response"].append(_refuse_unsafe_redirect)
         self.__dict__["_guarded_session"] = session
 
 
-def connect(user) -> nextcloud.Client:
+def connect(user: User) -> nextcloud.Client:
     """Log in to ``user``'s Nextcloud after checking the server address."""
     address = (user.nextcloud_server_address or "").strip()
     validate_server_address(address)

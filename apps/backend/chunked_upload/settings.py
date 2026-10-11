@@ -1,19 +1,11 @@
 import time
 import os.path
 from datetime import timedelta
+from typing import Any, Protocol
+
+from django.core.serializers.json import DjangoJSONEncoder
 from django.utils.module_loading import import_string
 from django.conf import settings
-
-try:
-    from django.core.serializers.json import DjangoJSONEncoder
-except ImportError:
-    try:
-        # Deprecated class name (for backwards compatibility purposes)
-        from django.core.serializers.json import (
-            DateTimeAwareJSONEncoder as DjangoJSONEncoder,
-        )
-    except ImportError:
-        raise ImportError("Dude! what version of Django are you using?")
 
 # How long after creation the upload will expire
 DEFAULT_EXPIRATION_DELTA = timedelta(days=1)
@@ -26,8 +18,12 @@ DEFAULT_UPLOAD_PATH = "chunked_uploads/%Y/%m/%d"
 UPLOAD_PATH = getattr(settings, "CHUNKED_UPLOAD_PATH", DEFAULT_UPLOAD_PATH)
 
 
+class _HasUploadId(Protocol):
+    upload_id: str
+
+
 # upload_to function to be used in the FileField
-def default_upload_to(instance, filename):
+def default_upload_to(instance: _HasUploadId, filename: str) -> str:
     filename = os.path.join(UPLOAD_PATH, instance.upload_id + ".part")
     return time.strftime(filename)
 
@@ -36,13 +32,13 @@ UPLOAD_TO = getattr(settings, "CHUNKED_UPLOAD_TO", default_upload_to)
 
 # Storage system
 
-
+# The setting is either a zero-argument factory or a dotted path to one; which
+# one it is only shows up when calling it fails, hence the try/except below.
+_storage_setting: Any = getattr(settings, "CHUNKED_UPLOAD_STORAGE_CLASS", lambda: None)
 try:
-    STORAGE = getattr(settings, "CHUNKED_UPLOAD_STORAGE_CLASS", lambda: None)()
+    STORAGE = _storage_setting()
 except TypeError:
-    STORAGE = import_string(
-        getattr(settings, "CHUNKED_UPLOAD_STORAGE_CLASS", lambda: None)
-    )()
+    STORAGE = import_string(_storage_setting)()
 
 # Function used to encode response data. Receives a dict and return a string
 DEFAULT_ENCODER = DjangoJSONEncoder().encode

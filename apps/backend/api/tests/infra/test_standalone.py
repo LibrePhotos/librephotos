@@ -85,7 +85,9 @@ class ArgumentsTest(SimpleTestCase):
                 standalone.BACKEND_ROOT, *module.split(".")[:-1], "main.py"
             )
             with open(path, encoding="utf-8") as handle:
-                self.assertIn("def serve():", handle.read(), module)
+                self.assertRegex(
+                    handle.read(), r"(?m)^def serve\(\)( -> None)?:", module
+                )
 
 
 class PrepareEnvironmentTest(SimpleTestCase):

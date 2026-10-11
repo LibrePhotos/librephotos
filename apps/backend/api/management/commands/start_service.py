@@ -1,4 +1,6 @@
-from django.core.management.base import BaseCommand
+from typing import Any
+
+from django.core.management.base import BaseCommand, CommandParser
 from django_q.models import Schedule
 from django_q.tasks import schedule
 
@@ -14,7 +16,7 @@ class Command(BaseCommand):
     help = "Start one of the services."
 
     # Define all the services that can be started
-    def add_arguments(self, parser):
+    def add_arguments(self, parser: CommandParser) -> None:
         parser.add_argument(
             "service",
             type=str,
@@ -22,7 +24,7 @@ class Command(BaseCommand):
             choices=[*SERVICES, "all"],
         )
 
-    def handle(self, *args, **kwargs):
+    def handle(self, *args: Any, **kwargs: Any) -> None:
         service = kwargs["service"]
         if service == "all":
             for svc in SERVICES.keys():

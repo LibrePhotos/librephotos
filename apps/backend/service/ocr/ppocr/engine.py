@@ -9,7 +9,13 @@ The reading-order and text-area helpers are pure functions, unit-tested without
 any model.
 """
 
+from __future__ import annotations
+
+from collections.abc import Sequence
+from typing import TYPE_CHECKING, TypedDict
+
 import numpy as np
+import numpy.typing as npt
 
 from service.onnx_session import inference_session
 
@@ -18,18 +24,47 @@ from .crop import get_rotate_crop_image
 from .detect import detect, polygon_area, read_image
 from .recognize import Recognizer
 
+if TYPE_CHECKING:
+    import onnxruntime as ort
+
 # A block is kept only if the recognizer is at least this confident AND it has
 # at least this many characters (junk suppression).  Both are overridable per
 # request via min_confidence; MIN_BLOCK_CHARS is fixed policy.
 MIN_BLOCK_CHARS = 2
 
 
-def box_area(box):
+class TextBlock(TypedDict):
+    """One recognized line: its text, its quad in image pixels, its confidence."""
+
+    text: str
+    box: list[list[int]]
+    confidence: float
+
+
+class _Placed(TypedDict):
+    """A block placed on the page for reading-order sorting."""
+
+    block: TextBlock
+    cy: float
+    left: float
+    height: float
+
+
+class _Row(TypedDict):
+    """A reading-order row: the running centre height and the blocks in it."""
+
+    cy: float
+    items: list[_Placed]
+
+
+def box_area(box: npt.ArrayLike) -> float:
     """Area of a (4, 2) quad."""
     return float(polygon_area(box))
 
 
-def text_area_fraction(boxes, image_height, image_width):
+def text_area_fraction(
+    boxes: Sequence[npt.NDArray[np.int32]], image_height: int, image_width: int
+) -> float:
     """Sum of detected box areas over image area, clamped to [0, 1].
 
     Computed from ALL detected boxes, before any confidence/length filtering -
@@ -42,13 +77,17 @@ def text_area_fraction(boxes, image_height, image_width):
     return float(min(1.0, total / image_area))
 
 
-def build_blocks(boxes, recognized, min_confidence):
+def build_blocks(
+    boxes: Sequence[npt.NDArray[np.int32]],
+    recognized: Sequence[tuple[str, float]],
+    min_confidence: float,
+) -> list[TextBlock]:
     """Pair boxes with their recognition results, dropping low-quality ones.
 
     A block survives only if the recognizer was confident enough and the text
     still has at least ``MIN_BLOCK_CHARS`` characters once stripped.
     """
-    blocks = []
+    blocks: list[TextBlock] = []
     for box, (text, confidence) in zip(boxes, recognized):
         stripped = text.strip()
         if confidence < min_confidence or len(stripped) < MIN_BLOCK_CHARS:
@@ -63,14 +102,16 @@ def build_blocks(boxes, recognized, min_confidence):
     return blocks
 
 
-def mean_confidence(blocks):
+def mean_confidence(blocks: Sequence[TextBlock]) -> float:
     """Average recognition confidence over ``blocks``, 0.0 when there are none."""
     if not blocks:
         return 0.0
     return float(np.mean([block["confidence"] for block in blocks]))
 
 
-def reading_order_sort(blocks, row_tolerance=None):
+def reading_order_sort(
+    blocks: Sequence[TextBlock], row_tolerance: float | None = None
+) -> list[TextBlock]:
     """Order blocks top-to-bottom, then left-to-right within a row.
 
     Blocks whose vertical centers fall within ``row_tolerance`` of a running row
@@ -81,7 +122,7 @@ def reading_order_sort(blocks, row_tolerance=None):
     if not blocks:
         return []
 
-    items = []
+    items: list[_Placed] = []
     for block in blocks:
         box = np.asarray(block["box"], dtype=np.float64)
         ys = box[:, 1]
@@ -101,7 +142,7 @@ def reading_order_sort(blocks, row_tolerance=None):
 
     items.sort(key=lambda it: it["cy"])
 
-    rows = []
+    rows: list[_Row] = []
     for item in items:
         placed = False
         for row in rows:
@@ -114,7 +155,7 @@ def reading_order_sort(blocks, row_tolerance=None):
             rows.append({"cy": item["cy"], "items": [item]})
 
     rows.sort(key=lambda row: row["cy"])
-    ordered = []
+    ordered: list[TextBlock] = []
     for row in rows:
         row["items"].sort(key=lambda it: it["left"])
         ordered.extend(it["block"] for it in row["items"])
@@ -124,43 +165,42 @@ def reading_order_sort(blocks, row_tolerance=None):
 class PPOCREngine:
     """Lazily-loaded detection + recognition pipeline."""
 
-    def __init__(self, model_dir=None):
+    def __init__(self, model_dir: str | None = None) -> None:
         self._model_dir = model_dir
-        self.config = None
-        self.det_session = None
-        self.rec_session = None
-        self.recognizer = None
-        self.det_input_name = None
+        self.config: OCRConfig | None = None
+        self.det_session: ort.InferenceSession | None = None
+        self.rec_session: ort.InferenceSession | None = None
+        self.recognizer: Recognizer | None = None
+        self.det_input_name: str | None = None
         self.is_loaded = False
 
-    def load(self):
-        self.config = OCRConfig(self._model_dir)
+    def load(self) -> None:
+        config = OCRConfig(self._model_dir)
+        self.config = config
         # Every photo and every text line is a different input size.
-        self.det_session = inference_session(
-            self.config.det_model_path, variable_shapes=True
-        )
-        self.rec_session = inference_session(
-            self.config.rec_model_path, variable_shapes=True
-        )
+        det_session = inference_session(config.det_model_path, variable_shapes=True)
+        self.det_session = det_session
+        rec_session = inference_session(config.rec_model_path, variable_shapes=True)
+        self.rec_session = rec_session
 
-        self.det_input_name = self.det_session.get_inputs()[0].name
-        rec_input_name = self.rec_session.get_inputs()[0].name
+        self.det_input_name = det_session.get_inputs()[0].name
+        rec_input_name = rec_session.get_inputs()[0].name
 
         # Validate the charset against the model's recognition width before we
         # ever decode: a mismatch shifts every character by one.  This raises
         # OCRConfigError and refuses to finish loading on mismatch.
-        rec_output_dim = self.rec_session.get_outputs()[0].shape[-1]
-        decode_charset = self.config.build_decode_charset(rec_output_dim)
+        rec_output_dim = rec_session.get_outputs()[0].shape[-1]
+        decode_charset = config.build_decode_charset(rec_output_dim)
 
         self.recognizer = Recognizer(
-            self.rec_session,
+            rec_session,
             rec_input_name,
             decode_charset,
-            self.config.rec_input_shape,
+            config.rec_input_shape,
         )
         self.is_loaded = True
 
-    def unload(self):
+    def unload(self) -> None:
         del self.det_session
         del self.rec_session
         del self.recognizer
@@ -171,7 +211,13 @@ class PPOCREngine:
         self.det_input_name = None
         self.is_loaded = False
 
-    def predict(self, image_path, min_confidence=0.6, max_side=None, det_only=False):
+    def predict(
+        self,
+        image_path: str,
+        min_confidence: float = 0.6,
+        max_side: int | None = None,
+        det_only: bool = False,
+    ) -> dict[str, object]:
         """Run the pipeline on one image.
 
         Returns a dict following the /ocr endpoint contract.  In ``det_only``
@@ -180,6 +226,12 @@ class PPOCREngine:
         """
         if not self.is_loaded:
             self.load()
+        # load() sets all three; is_loaded is only ever True after it.
+        assert (
+            self.config is not None
+            and self.det_input_name is not None
+            and self.recognizer is not None
+        )
 
         if max_side is None:
             max_side = self.config.det_max_side

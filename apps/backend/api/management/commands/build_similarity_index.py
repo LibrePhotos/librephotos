@@ -1,3 +1,5 @@
+from typing import Any
+
 from django.core.management.base import BaseCommand
 from django_q.tasks import AsyncTask
 
@@ -12,7 +14,7 @@ class Command(BaseCommand):
         "users whose embeddings come from another semantic search model"
     )
 
-    def handle(self, *args, **kwargs):
+    def handle(self, *args: Any, **kwargs: Any) -> None:
         converting = set(queue_semantic_search_conversion())
         for user in User.objects.exclude(pk__in=converting):
             AsyncTask(build_image_similarity_index, user).run()

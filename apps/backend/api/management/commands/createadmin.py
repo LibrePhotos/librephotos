@@ -1,8 +1,10 @@
 import os
 import sys
+from typing import Any
 
-from django.core.management.base import BaseCommand, CommandError
-from django.core.validators import ValidationError, validate_email
+from django.core.exceptions import ValidationError
+from django.core.management.base import BaseCommand, CommandError, CommandParser
+from django.core.validators import validate_email
 from django.utils.crypto import get_random_string
 
 from api.models import User
@@ -15,7 +17,7 @@ GENERATED_PASSWORD_LENGTH = 32
 class Command(BaseCommand):
     help = "Create a LibrePhotos user with administrative permissions"
 
-    def add_arguments(self, parser):
+    def add_arguments(self, parser: CommandParser) -> None:
         parser.add_argument("admin_username", help="Username to create")
         parser.add_argument("admin_email", help="Email address of the new user")
         parser.add_argument(
@@ -35,7 +37,7 @@ class Command(BaseCommand):
             "ADMIN_PASSWORD is not set"
         )
 
-    def handle(self, *args, **options):
+    def handle(self, *args: Any, **options: Any) -> None:
         try:
             validate_email(options["admin_email"])
         except ValidationError as err:

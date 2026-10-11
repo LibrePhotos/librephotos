@@ -15,12 +15,22 @@ This separation allows:
 - Clearer data model with appropriate fields for each concept
 """
 
+from __future__ import annotations
+
 import uuid
+from collections.abc import Iterable
+from typing import TYPE_CHECKING, Self
 
 from django.db import models
+from django.db.models import Model, QuerySet
 from django.utils import timezone
 
 from api.models.user import User, get_deleted_user
+
+if TYPE_CHECKING:
+    from django.db.models.fields.related_descriptors import ManyRelatedManager
+
+    from api.models.photo import Photo
 
 
 class Duplicate(models.Model):
@@ -44,6 +54,10 @@ class Duplicate(models.Model):
         RESOLVED = "resolved", "Resolved"
         # User marked as "not actually duplicates"
         DISMISSED = "dismissed", "Dismissed"
+
+    # Reverse side of Photo.duplicates (related_name="photos"). Annotation only:
+    # Django installs the manager at class creation; this tells mypy its type.
+    photos: ManyRelatedManager[Photo, Model]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
@@ -102,15 +116,15 @@ class Duplicate(models.Model):
             models.Index(fields=["owner", "review_status"]),
         ]
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"Duplicate {self.id} - {self.duplicate_type} - {self.owner.username}"
 
     @property
-    def photo_count(self):
+    def photo_count(self) -> int:
         """Number of photos in this duplicate group."""
         return self.photos.count()
 
-    def get_photos_ordered_by_quality(self):
+    def get_photos_ordered_by_quality(self) -> QuerySet[Photo]:
         """
         Returns photos ordered by quality metrics.
         Higher resolution and larger file size are considered better quality.
@@ -119,7 +133,7 @@ class Duplicate(models.Model):
             "-metadata__width", "-metadata__height", "-size"
         )
 
-    def auto_select_best_photo(self):
+    def auto_select_best_photo(self) -> Photo | None:
         """
         Automatically selects the best quality photo as the kept photo.
         Used as a suggestion for the user.
@@ -147,7 +161,7 @@ class Duplicate(models.Model):
 
         return best
 
-    def calculate_potential_savings(self):
+    def calculate_potential_savings(self) -> int:
         """
         Calculate how much storage could be saved if non-best photos
         are removed from disk.
@@ -169,7 +183,7 @@ class Duplicate(models.Model):
         self.save(update_fields=["potential_savings", "updated_at"])
         return self.potential_savings
 
-    def resolve(self, kept_photo, trash_others: bool = True):
+    def resolve(self, kept_photo: Photo, trash_others: bool = True) -> Self:
         """
         Mark the duplicate as resolved by selecting a photo to keep.
 
@@ -203,7 +217,7 @@ class Duplicate(models.Model):
         self.save()
         return self
 
-    def dismiss(self):
+    def dismiss(self) -> Self:
         """Mark as 'not actually duplicates' and unlink photos from group."""
         self.review_status = self.ReviewStatus.DISMISSED
         self.reviewed_at = timezone.now()
@@ -215,7 +229,7 @@ class Duplicate(models.Model):
         self.save()
         return self
 
-    def revert(self):
+    def revert(self) -> int:
         """Revert a resolved duplicate, restoring trashed photos."""
         if self.review_status != self.ReviewStatus.RESOLVED:
             return 0
@@ -234,7 +248,7 @@ class Duplicate(models.Model):
         self.save()
         return restored_count
 
-    def merge_with(self, other_duplicate: "Duplicate"):
+    def merge_with(self, other_duplicate: Duplicate) -> None:
         """
         Merge another duplicate group into this one.
         All photos from the other group are moved here,
@@ -254,7 +268,13 @@ class Duplicate(models.Model):
         other_duplicate.delete()
 
     @classmethod
-    def create_or_merge(cls, owner, duplicate_type, photos, similarity_score=None):
+    def create_or_merge(
+        cls,
+        owner: User,
+        duplicate_type: str,
+        photos: Iterable[Photo],
+        similarity_score: float | None = None,
+    ) -> Duplicate | None:
         """
         Create a new duplicate group or merge into existing if any photo is already grouped.
 
@@ -281,6 +301,8 @@ class Duplicate(models.Model):
         if existing_duplicates.exists():
             # Merge all into the first existing duplicate group
             target_duplicate = existing_duplicates.first()
+            # exists() just returned True for this same queryset.
+            assert target_duplicate is not None
             for duplicate in existing_duplicates[1:]:
                 target_duplicate.merge_with(duplicate)
 

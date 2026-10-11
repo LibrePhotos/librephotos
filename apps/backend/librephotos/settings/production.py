@@ -1,5 +1,6 @@
 import datetime
 import os
+from collections.abc import Iterable
 
 from django.core.exceptions import ImproperlyConfigured
 
@@ -98,7 +99,7 @@ SECRET_KEY_FILENAME = os.path.join(BASE_LOGS, "secret.key")
 SECRET_KEY = ""
 
 
-def _env_flag(name, default=True, empty=False):
+def _env_flag(name: str, default: bool = True, empty: bool = False) -> bool:
     """Read an on/off switch from the environment (true/1/yes/on, any case).
 
     Unset means ``default``. A blank value means ``empty``, which is off unless
@@ -114,7 +115,7 @@ def _env_flag(name, default=True, empty=False):
     return value.lower() in ("true", "1", "yes", "on")
 
 
-def _env_int(name, default):
+def _env_int(name: str, default: int) -> int:
     """Read a whole number from the environment; unset or blank means ``default``."""
     value = os.environ.get(name, "").strip()
     if not value:
@@ -133,7 +134,7 @@ def _env_int(name, default):
 SQUARE_THUMBNAIL_QUALITY = min(100, max(1, _env_int("SQUARE_THUMBNAIL_QUALITY", 80)))
 
 
-def _env_list(name, default=()):
+def _env_list(name: str, default: Iterable[str] = ()) -> list[str]:
     """Read a comma-separated list from the environment, dropping blank entries."""
     value = os.environ.get(name)
     if value is None:

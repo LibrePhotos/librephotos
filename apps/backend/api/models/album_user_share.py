@@ -1,4 +1,6 @@
 import uuid
+from typing import Any
+
 from django.db import models
 from django.utils import timezone
 
@@ -43,7 +45,7 @@ class AlbumUserShare(models.Model):
             return True
         return self.expires_at >= timezone.now()
 
-    def save(self, *args, **kwargs):
+    def save(self, *args: Any, **kwargs: Any) -> None:
         if self.enabled and not self.slug:
             self.ensure_slug()
         super().save(*args, **kwargs)

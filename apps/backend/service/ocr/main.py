@@ -8,19 +8,20 @@ is fully testable via ppocr.* without touching Flask/gevent.
 
 import os
 
+from flask.typing import ResponseReturnValue
 from ppocr.detect import OCRDecodeError
 from ppocr.engine import PPOCREngine
 
 from service._common import create_app, json_fields, logger, serve_forever
 
-ocr_engine = None
+ocr_engine: PPOCREngine | None = None
 
 DEFAULT_MIN_CONFIDENCE = 0.6
 
 log = logger("ocr")
 
 
-def _unload_engine():
+def _unload_engine() -> None:
     global ocr_engine
     ocr_engine = None
 
@@ -28,7 +29,7 @@ def _unload_engine():
 app = create_app("ocr", unload=_unload_engine, is_loaded=lambda: ocr_engine is not None)
 
 
-def _get_engine():
+def _get_engine() -> PPOCREngine:
     global ocr_engine
     if ocr_engine is None:
         ocr_engine = PPOCREngine()
@@ -36,7 +37,7 @@ def _get_engine():
 
 
 @app.route("/ocr", methods=["POST"])
-def ocr():
+def ocr() -> ResponseReturnValue:
     image_path, min_confidence, max_side, det_only = json_fields(
         "image_path",
         min_confidence=DEFAULT_MIN_CONFIDENCE,
@@ -78,7 +79,7 @@ def ocr():
         return {"error": "Failed to process image"}, 500
 
 
-def serve():
+def serve() -> None:
     serve_forever(app, "ocr")
 
 
