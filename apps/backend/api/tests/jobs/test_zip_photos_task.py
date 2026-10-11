@@ -76,6 +76,7 @@ class FakeStacks:
 
 class FakePhoto:
     def __init__(self, main_file=None, files=None, stacks=None):
+        self.image_hash = "fakehash"
         self.main_file = main_file
         self.files = FakeRelated(files)
         self.stacks = stacks if stacks is not None else FakeStacks()
@@ -356,6 +357,10 @@ class ZipPhotosTaskStacksTest(ZipPhotosTaskTestBase):
 
         result, job = self.run_task([photo])
 
+        warning = self.mock_logger.warning.call_args
+        self.assertIn("variant stacks", warning.args[0])
+        self.assertEqual(warning.args[1], "fakehash")
+        self.assertTrue(warning.kwargs["exc_info"])
         self.assertEqual(self.zip_names(result), ["a.jpg"])
         self.assertTrue(job.finished)
         self.assertFalse(job.failed)
