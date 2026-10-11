@@ -9,6 +9,17 @@ import globals from "globals";
 
 // Restrictions shared by the ban rules below. Rule options are per rule, and a later config object
 // for the same files replaces them, so the lists are built from these constants.
+const modalsImportBan = {
+  name: "@mantine/modals",
+  message: "Dialogs are components opened with useDisclosure, not imperative modals.open*().",
+};
+// Toasts have one colour and one entry point; see service/notifications/toast.ts.
+const notificationsImportBan = {
+  group: ["@mantine/notifications", "@mantine/notifications/*"],
+  message:
+    "Toasts go through service/notifications (notification.success, error, warning or hide), not @mantine/notifications.",
+};
+
 const typedMockBan = {
   // vi.fn() is a Mock<(...args: any[]) => any>; give it the signature it stands in for.
   selector:
@@ -141,30 +152,8 @@ export default [
       "@typescript-eslint/no-wrapper-object-types": "error",
       "no-restricted-syntax": ["error", typedMockBan, openStateBan],
       // Dialogs are declarative components; the imperative @mantine/modals API is not used.
-      "no-restricted-imports": [
-        "error",
-        {
-          paths: [
-            {
-              name: "@mantine/modals",
-              message: "Dialogs are components opened with useDisclosure, not imperative modals.open*().",
-            },
-          ],
-        },
-      ],
-      // Toasts have one colour and one entry point; see service/notifications/toast.ts.
-      "no-restricted-imports": [
-        "error",
-        {
-          patterns: [
-            {
-              group: ["@mantine/notifications", "@mantine/notifications/*"],
-              message:
-                "Toasts go through service/notifications (notification.success, error, warning or hide), not @mantine/notifications.",
-            },
-          ],
-        },
-      ],
+      // One entry: a second "no-restricted-imports" key in this object would silently replace this one.
+      "no-restricted-imports": ["error", { paths: [modalsImportBan], patterns: [notificationsImportBan] }],
     },
   },
   {
@@ -173,7 +162,7 @@ export default [
     // files it matches, so this turns the rule off for those files only.
     files: ["src/service/notifications/**/*.{ts,tsx}", "src/App.tsx"],
     rules: {
-      "no-restricted-imports": "off",
+      "no-restricted-imports": ["error", { paths: [modalsImportBan] }],
     },
   },
   {
