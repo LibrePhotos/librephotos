@@ -17,18 +17,3 @@ export const UploadResponse = z.object({
   offset: z.number().optional(),
 });
 export type UploadResponse = z.infer<typeof UploadResponse>;
-
-/**
- * POST /api/photosonsale/exists (md5+userid hash existence check) — the join key
- * for local-to-remote camera-roll matching (see plan doc 03). Kept minimal;
- * the concrete response shape is finalized when the sync backend lands.
- */
-export const ExistsRequest = z.object({
-  hashes: z.string().array(),
-});
-export type ExistsRequest = z.infer<typeof ExistsRequest>;
-
-export const ExistsResponse = z.object({
-  exists: z.record(z.string(), z.boolean()),
-});
-export type ExistsResponse = z.infer<typeof ExistsResponse>;

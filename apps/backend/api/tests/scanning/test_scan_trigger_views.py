@@ -4,12 +4,6 @@ Pins the CURRENT behaviour of:
 
 * ``api.views.scan_triggers.ScanPhotosView._scan_photos`` (reached via both GET and
   POST on ``/api/scanphotos``)
-* ``api.views.scan_triggers.SelectiveScanPhotosView.get``
-
-The two bodies are near-identical copies; the only difference is the
-directory handed to ``scan_photos``: the plain view passes
-``user.scan_directory``, the selective view passes
-``<scan_directory>/uploads/web``.
 
 Nothing heavy runs: ``Chain``, ``scan_photos``, ``do_all_models_exist`` and
 ``download_models`` are all patched at their import site in
@@ -26,7 +20,7 @@ from django.test import TestCase
 from rest_framework.test import APIRequestFactory, force_authenticate
 
 from api.tests.utils import create_test_user
-from api.views.scan_triggers import ScanPhotosView, SelectiveScanPhotosView
+from api.views.scan_triggers import ScanPhotosView
 
 MODULE = "api.views.scan_triggers"
 
@@ -238,70 +232,6 @@ class ScanPhotosViewErrorPathTest(ScanViewTestBase):
         # ``except Exception``: KeyboardInterrupt/SystemExit propagate.
         with self.assertRaises(KeyboardInterrupt):
             self.call_view(ScanPhotosView, run_error=KeyboardInterrupt())
-
-
-class SelectiveScanPhotosViewTest(ScanViewTestBase):
-    """``SelectiveScanPhotosView.get`` -- same guards, different directory."""
-
-    def test_scans_the_uploads_web_subdirectory(self):
-        response = self.call_view(SelectiveScanPhotosView)
-
-        self.assertEqual(response.status_code, 200)
-        self.assertTrue(response.data["status"])
-        args, _ = self.chain.appended[0]
-        self.assertIs(args[0], self.scan_photos_mock)
-        self.assertEqual(args[1], self.user)
-        self.assertFalse(args[2])
-        self.assertEqual(args[3], response.data["job_id"])
-        self.assertEqual(args[4], os.path.join(self.scan_directory, "uploads", "web"))
-
-    def test_uploads_web_subdirectory_need_not_exist(self):
-        # Quirk: only the *parent* scan_directory existence is validated; the
-        # uploads/web path is passed through unchecked.
-        self.assertFalse(
-            os.path.exists(os.path.join(self.scan_directory, "uploads", "web"))
-        )
-        response = self.call_view(SelectiveScanPhotosView)
-        self.assertTrue(response.data["status"])
-
-    def test_missing_scan_directory_returns_400(self):
-        user = create_test_user(scan_directory="")
-        response = self.call_view(SelectiveScanPhotosView, user=user)
-
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.data, {"status": False, "message": NO_DIR_MESSAGE})
-        self.assertEqual(RecordingChain.instances, [])
-
-    def test_nonexistent_scan_directory_returns_400(self):
-        missing = os.path.join(self.scan_directory, "nope")
-        user = create_test_user(scan_directory=missing)
-        response = self.call_view(SelectiveScanPhotosView, user=user)
-
-        self.assertEqual(response.status_code, 400)
-        self.assertIn(missing, response.data["message"])
-        self.assertEqual(RecordingChain.instances, [])
-
-    def test_missing_models_prepends_download_models(self):
-        self.call_view(SelectiveScanPhotosView, models_exist=False)
-
-        chain = self.chain
-        self.assertEqual(len(chain.appended), 2)
-        self.assertIs(chain.appended[0][0][0], self.download_models_mock)
-
-    def test_chain_run_failure_returns_500(self):
-        response = self.call_view(
-            SelectiveScanPhotosView, run_error=RuntimeError("boom")
-        )
-
-        self.assertEqual(response.status_code, 500)
-        self.assertFalse(response.data["status"])
-        self.logger_mock.exception.assert_called_once_with(
-            "Could not start the photo scan"
-        )
-
-    def test_view_only_exposes_get(self):
-        # No POST handler exists on this view (unlike ScanPhotosView).
-        self.assertFalse(hasattr(SelectiveScanPhotosView, "post"))
 
 
 class ScanPhotosViewAuthTest(TestCase):

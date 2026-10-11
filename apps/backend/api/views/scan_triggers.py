@@ -91,17 +91,6 @@ class ScanPhotosView(APIView):
         )
 
 
-# To-Do: Allow for custom paths
-class SelectiveScanPhotosView(APIView):
-    def get(self, request: Request, format: str | None = None) -> Response:
-        # To-Do: Sanatize the scan_directory
-        user = request_user(request)
-        return _validate_scan_directory(user) or _start_photo_scan(
-            user,
-            os.path.join(user.upload_root(), "web"),
-        )
-
-
 class FullScanPhotosView(APIView):
     def post(self, request: Request, format: str | None = None) -> Response:
         return self._scan_photos(request)
