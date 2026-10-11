@@ -16,7 +16,6 @@ These tests specifically target:
 """
 
 import json
-import uuid
 from datetime import datetime, timedelta
 from unittest.mock import patch
 
@@ -39,7 +38,13 @@ from api.stack_detection import (
     clear_stacks_of_type,
     detect_burst_sequences,
 )
-from api.tests.utils import create_test_photo, create_test_user
+from api.tests.utils import (
+    create_test_duplicate,
+    create_test_file,
+    create_test_photo,
+    create_test_stack,
+    create_test_user,
+)
 
 
 class CreateOrMergeQuerysetOrderingTestCase(TestCase):
@@ -67,13 +72,13 @@ class CreateOrMergeQuerysetOrderingTestCase(TestCase):
         photo4 = create_test_photo(owner=self.user)
 
         # Create two separate stacks
-        stack1 = PhotoStack.objects.create(
+        stack1 = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.BURST_SEQUENCE,
         )
         stack1.photos.add(photo1, photo2)
 
-        stack2 = PhotoStack.objects.create(
+        stack2 = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.BURST_SEQUENCE,
         )
@@ -116,19 +121,19 @@ class CreateOrMergeQuerysetOrderingTestCase(TestCase):
         photos = [create_test_photo(owner=self.user) for _ in range(6)]
 
         # Create three separate stacks with 2 photos each
-        stack1 = PhotoStack.objects.create(
+        stack1 = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.BURST_SEQUENCE,
         )
         stack1.photos.add(photos[0], photos[1])
 
-        stack2 = PhotoStack.objects.create(
+        stack2 = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.BURST_SEQUENCE,
         )
         stack2.photos.add(photos[2], photos[3])
 
-        stack3 = PhotoStack.objects.create(
+        stack3 = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.BURST_SEQUENCE,
         )
@@ -168,13 +173,13 @@ class DuplicateCreateOrMergeOrderingTestCase(TestCase):
         photos = [create_test_photo(owner=self.user) for _ in range(4)]
 
         # Create two duplicate groups
-        dup1 = Duplicate.objects.create(
+        dup1 = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
         dup1.photos.add(photos[0], photos[1])
 
-        dup2 = Duplicate.objects.create(
+        dup2 = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
@@ -221,10 +226,10 @@ class HardCriteriaBurstDetectionEdgeCasesTestCase(TestCase):
 
     def _create_file(self, path, file_type=File.IMAGE):
         """Helper to create a File object."""
-        return File.objects.create(
-            hash=str(uuid.uuid4())[:32],
+        return create_test_file(
             path=path,
-            type=file_type,
+            file_type=file_type,
+            user=self.user,
         )
 
     def _create_photo_with_file(self, path, **kwargs):
@@ -282,10 +287,10 @@ class SoftCriteriaBurstDetectionEdgeCasesTestCase(TestCase):
 
     def _create_file(self, path, file_type=File.IMAGE):
         """Helper to create a File object."""
-        return File.objects.create(
-            hash=str(uuid.uuid4())[:32],
+        return create_test_file(
             path=path,
-            type=file_type,
+            file_type=file_type,
+            user=self.user,
         )
 
     def _create_photo_with_timestamp(self, timestamp, perceptual_hash=None, **kwargs):
@@ -420,7 +425,7 @@ class SoftCriteriaBurstDetectionEdgeCasesTestCase(TestCase):
         photo2 = self._create_photo_with_timestamp(base_time + timedelta(seconds=1))
 
         # Pre-create a burst stack with both photos
-        existing_stack = PhotoStack.objects.create(
+        existing_stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.BURST_SEQUENCE,
         )
@@ -446,10 +451,10 @@ class FileVariantEdgeCasesTestCase(TestCase):
 
     def _create_file(self, path, file_type=File.IMAGE):
         """Helper to create a File object."""
-        return File.objects.create(
-            hash=str(uuid.uuid4())[:32],
+        return create_test_file(
             path=path,
-            type=file_type,
+            file_type=file_type,
+            user=self.user,
         )
 
     def test_multiple_raw_files_same_photo(self):
@@ -680,14 +685,14 @@ class ClearStacksEdgeCasesTestCase(TestCase):
         photo = create_test_photo(owner=self.user)
 
         # Add photo to burst stack
-        burst_stack = PhotoStack.objects.create(
+        burst_stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.BURST_SEQUENCE,
         )
         burst_stack.photos.add(photo)
 
         # Add same photo to manual stack
-        manual_stack = PhotoStack.objects.create(
+        manual_stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -705,7 +710,7 @@ class ClearStacksEdgeCasesTestCase(TestCase):
         """Test clearing a large number of stacks."""
         # Create 100 stacks
         for i in range(100):
-            stack = PhotoStack.objects.create(
+            stack = create_test_stack(
                 owner=self.user,
                 stack_type=PhotoStack.StackType.BURST_SEQUENCE,
             )
@@ -811,10 +816,10 @@ class FilenamePatternEdgeCasesTestCase(TestCase):
 
     def _create_file(self, path, file_type=File.IMAGE):
         """Helper to create a File object."""
-        return File.objects.create(
-            hash=str(uuid.uuid4())[:32],
+        return create_test_file(
             path=path,
-            type=file_type,
+            file_type=file_type,
+            user=self.user,
         )
 
     def _create_photo_with_file(self, path, **kwargs):
@@ -855,10 +860,10 @@ class FilenamePatternEdgeCasesTestCase(TestCase):
     def test_empty_filename(self):
         """Test handling of empty filename (edge case)."""
         # Create photo with empty filename component
-        file = File.objects.create(
-            hash=str(uuid.uuid4())[:32],
-            path="/photos/",  # Just directory, no filename
-            type=File.IMAGE,
+        file = create_test_file(
+            path="/photos/",
+            file_type=File.IMAGE,
+            user=self.user,
         )
         photo = create_test_photo(owner=self.user)
         photo.main_file = file
@@ -1261,7 +1266,7 @@ class MultiUserDetectionIsolationTestCase(TestCase):
         for user in [self.user1, self.user2]:
             photo1 = create_test_photo(owner=user)
             photo2 = create_test_photo(owner=user)
-            stack = PhotoStack.objects.create(
+            stack = create_test_stack(
                 owner=user,
                 stack_type=PhotoStack.StackType.BURST_SEQUENCE,
             )

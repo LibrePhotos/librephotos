@@ -22,9 +22,8 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from api.models import AlbumUser
 from api.models.album_user_share import AlbumUserShare
-from api.tests.utils import create_test_photo, create_test_user
+from api.tests.utils import create_test_album_user, create_test_photo, create_test_user
 
 
 def _client_for(user):
@@ -43,7 +42,7 @@ class AlbumShareMediaAccessTest(TestCase):
         self.recipient = create_test_user()
         self.stranger = create_test_user()
         self.photo = create_test_photo(owner=self.owner)
-        self.album = AlbumUser.objects.create(title="Holiday", owner=self.owner)
+        self.album = create_test_album_user(title="Holiday", owner=self.owner)
         self.album.photos.add(self.photo)
         self.album.shared_to.add(self.recipient)
 
@@ -83,7 +82,7 @@ class PublicAlbumShareMediaAccessTest(TestCase):
         self.owner = create_test_user()
         self.stranger = create_test_user()
         self.photo = create_test_photo(owner=self.owner)
-        self.album = AlbumUser.objects.create(title="Public", owner=self.owner)
+        self.album = create_test_album_user(title="Public", owner=self.owner)
         self.album.photos.add(self.photo)
         self.share = AlbumUserShare.objects.create(album=self.album, enabled=True)
 

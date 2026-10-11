@@ -13,6 +13,7 @@ from rest_framework.test import APIClient
 
 from api.mail import DynamicEmailBackend, email_is_configured
 from api.models.email_config import EmailConfig
+from api.tests.utils import create_test_user
 
 User = get_user_model()
 
@@ -89,12 +90,12 @@ class DynamicEmailBackendTest(TestCase):
 class EmailConfigApiTest(TestCase):
     def setUp(self):
         self.client = APIClient()
-        self.admin = User.objects.create(username="admin", email="admin@example.org")
+        self.admin = create_test_user(username="admin", email="admin@example.org")
         self.admin.set_password("pw")
         self.admin.is_staff = True
         self.admin.is_superuser = True
         self.admin.save()
-        self.user = User.objects.create(username="bob", email="bob@example.org")
+        self.user = create_test_user(username="bob", email="bob@example.org")
         self.user.set_password("pw")
         self.user.save()
 

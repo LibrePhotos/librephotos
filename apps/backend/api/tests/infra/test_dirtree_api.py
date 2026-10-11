@@ -5,16 +5,20 @@ from django.test import TestCase
 from pyfakefs.fake_filesystem_unittest import Patcher
 from rest_framework.test import APIClient
 
-from api.models import User
-from api.tests.utils import create_password
+from api.tests.utils import create_password, create_test_user
 
 
 class DirTreeTest(TestCase):
     def setUp(self):
-        self.admin = User.objects.create_superuser(
-            "admin", "admin@test.com", create_password()
+        self.admin = create_test_user(
+            username="admin",
+            email="admin@test.com",
+            password=create_password(),
+            is_admin=True,
         )
-        self.user = User.objects.create_user("user", "user@test.com", create_password())
+        self.user = create_test_user(
+            username="user", email="user@test.com", password=create_password()
+        )
         self.client = APIClient()
 
     def test_admin_should_allow_to_retrieve_dirtree(self):

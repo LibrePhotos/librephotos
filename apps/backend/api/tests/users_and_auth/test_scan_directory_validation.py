@@ -9,7 +9,7 @@ from rest_framework.test import APIClient
 
 from api.models import User
 from api.serializers.user import directories_overlap
-from api.tests.utils import create_password
+from api.tests.utils import create_password, create_test_user
 
 
 class SetupDirectoryTestCase(TestCase):
@@ -17,8 +17,11 @@ class SetupDirectoryTestCase(TestCase):
 
     def setUp(self):
         self.client = APIClient()
-        self.admin = User.objects.create_superuser(
-            "test_admin", "test_admin@test.com", create_password()
+        self.admin = create_test_user(
+            username="test_admin",
+            email="test_admin@test.com",
+            password=create_password(),
+            is_admin=True,
         )
 
     def test_setup_directory(self):
@@ -60,8 +63,11 @@ class CreateUserScanDirectoryTestCase(TestCase):
 
     def setUp(self):
         self.client = APIClient()
-        self.admin = User.objects.create_superuser(
-            "create_admin", "create_admin@test.com", create_password()
+        self.admin = create_test_user(
+            username="create_admin",
+            email="create_admin@test.com",
+            password=create_password(),
+            is_admin=True,
         )
         self.client.force_authenticate(user=self.admin)
         os.makedirs(settings.DATA_ROOT, exist_ok=True)
@@ -113,7 +119,9 @@ class CreateUserScanDirectoryTestCase(TestCase):
         """The custom exception handler used to ``str()`` the whole ErrorDetail
         list, so the response carried its Python repr. Now that the frontend
         shows these messages, they have to be readable."""
-        User.objects.create_user("taken", "taken@test.com", create_password())
+        create_test_user(
+            username="taken", email="taken@test.com", password=create_password()
+        )
         response = self._create("taken", settings.DATA_ROOT)
         self.assertEqual(response.status_code, 400)
         errors = response.json()["errors"]
@@ -134,16 +142,23 @@ class OverlappingScanDirectoryTestCase(TestCase):
 
     def setUp(self):
         self.client = APIClient()
-        self.admin = User.objects.create_superuser(
-            "overlap_admin", "overlap_admin@test.com", create_password()
+        self.admin = create_test_user(
+            username="overlap_admin",
+            email="overlap_admin@test.com",
+            password=create_password(),
+            is_admin=True,
         )
         self.client.force_authenticate(user=self.admin)
 
-        self.owner = User.objects.create_user(
-            "overlap_owner", "overlap_owner@test.com", create_password()
+        self.owner = create_test_user(
+            username="overlap_owner",
+            email="overlap_owner@test.com",
+            password=create_password(),
         )
-        self.other = User.objects.create_user(
-            "overlap_other", "overlap_other@test.com", create_password()
+        self.other = create_test_user(
+            username="overlap_other",
+            email="overlap_other@test.com",
+            password=create_password(),
         )
 
         # abspath, because that is the form the serializer stores.
@@ -327,8 +342,11 @@ class UploadDirectoryTestCase(TestCase):
 
     def setUp(self):
         self.client = APIClient()
-        self.admin = User.objects.create_superuser(
-            "upload_admin", "upload_admin@test.com", create_password()
+        self.admin = create_test_user(
+            username="upload_admin",
+            email="upload_admin@test.com",
+            password=create_password(),
+            is_admin=True,
         )
         self.client.force_authenticate(user=self.admin)
         self.library = os.path.abspath(os.path.join(settings.DATA_ROOT, "upload-lib"))
@@ -342,13 +360,17 @@ class UploadDirectoryTestCase(TestCase):
         for name in ("upload-lib", "upload-elsewhere", "upload-taken"):
             self.addCleanup(shutil.rmtree, os.path.join(settings.DATA_ROOT, name), True)
 
-        self.user = User.objects.create_user(
-            "upload_user", "upload_user@test.com", create_password()
+        self.user = create_test_user(
+            username="upload_user",
+            email="upload_user@test.com",
+            password=create_password(),
         )
         self.user.scan_directory = self.library
         self.user.save()
-        neighbour = User.objects.create_user(
-            "upload_neighbour", "upload_neighbour@test.com", create_password()
+        neighbour = create_test_user(
+            username="upload_neighbour",
+            email="upload_neighbour@test.com",
+            password=create_password(),
         )
         neighbour.scan_directory = self.taken
         neighbour.save()
@@ -475,8 +497,11 @@ class UploadFolderOwnershipTestCase(TestCase):
 
     def setUp(self):
         self.client = APIClient()
-        self.admin = User.objects.create_superuser(
-            "uofolder_admin", "uofolder_admin@test.com", create_password()
+        self.admin = create_test_user(
+            username="uofolder_admin",
+            email="uofolder_admin@test.com",
+            password=create_password(),
+            is_admin=True,
         )
         self.client.force_authenticate(user=self.admin)
 
@@ -495,14 +520,18 @@ class UploadFolderOwnershipTestCase(TestCase):
         for name in ("uofolder-lib-a", "uofolder-lib-b", "uofolder-inboxes"):
             self.addCleanup(shutil.rmtree, os.path.join(settings.DATA_ROOT, name), True)
 
-        self.alice = User.objects.create_user(
-            "uofolder_alice", "uofolder_alice@test.com", create_password()
+        self.alice = create_test_user(
+            username="uofolder_alice",
+            email="uofolder_alice@test.com",
+            password=create_password(),
         )
         self.alice.scan_directory = self.library_a
         self.alice.upload_directory = self.inbox_a
         self.alice.save()
-        self.bob = User.objects.create_user(
-            "uofolder_bob", "uofolder_bob@test.com", create_password()
+        self.bob = create_test_user(
+            username="uofolder_bob",
+            email="uofolder_bob@test.com",
+            password=create_password(),
         )
 
     def _patch(self, user, **data):

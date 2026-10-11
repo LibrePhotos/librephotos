@@ -12,6 +12,7 @@ import tempfile
 from django.test import TestCase
 
 from api.models.file import File
+from api.tests.utils import create_test_file
 
 
 class FileStrTest(TestCase):
@@ -22,7 +23,9 @@ class FileStrTest(TestCase):
         with open(self.path, "wb") as handle:
             handle.write(b"not really raw")
         # Stored with the wrong type: str() detects and saves the right one.
-        self.file = File.objects.create(hash="a" * 32, path=self.path, type=File.IMAGE)
+        self.file = create_test_file(
+            hash_value="a" * 32, path=self.path, file_type=File.IMAGE
+        )
 
     def test_str_names_path_and_detected_type(self):
         self.assertEqual(f"{self.path} Raw File", str(self.file))

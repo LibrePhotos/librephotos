@@ -16,7 +16,7 @@ from django.db import IntegrityError, transaction
 from django.test import TestCase, TransactionTestCase
 
 from api.models.file import File
-from api.tests.utils import create_test_photo, create_test_user
+from api.tests.utils import create_test_file, create_test_photo, create_test_user
 
 
 class FilePathUniqueConstraintTestCase(TestCase):
@@ -30,7 +30,7 @@ class FilePathUniqueConstraintTestCase(TestCase):
         path = "/photos/test_image.jpg"
 
         # Create first file
-        _file1 = File.objects.create(
+        _file1 = File.objects.create(  # raw-create: the unique path constraint is the thing under test
             hash="hash1" + "a" * 28,
             path=path,
             type=File.IMAGE,
@@ -39,7 +39,7 @@ class FilePathUniqueConstraintTestCase(TestCase):
         # Attempting to create second file with same path should fail
         with self.assertRaises(IntegrityError):
             with transaction.atomic():
-                File.objects.create(
+                File.objects.create(  # raw-create: the unique path constraint is the thing under test
                     hash="hash2" + "b" * 28,
                     path=path,
                     type=File.IMAGE,
@@ -47,15 +47,15 @@ class FilePathUniqueConstraintTestCase(TestCase):
 
     def test_unique_constraint_allows_different_paths(self):
         """Test that different paths are allowed."""
-        file1 = File.objects.create(
-            hash="hash1" + "a" * 28,
+        file1 = create_test_file(
+            hash_value="hash1" + "a" * 28,
             path="/photos/image1.jpg",
-            type=File.IMAGE,
+            file_type=File.IMAGE,
         )
-        file2 = File.objects.create(
-            hash="hash2" + "b" * 28,
+        file2 = create_test_file(
+            hash_value="hash2" + "b" * 28,
             path="/photos/image2.jpg",
-            type=File.IMAGE,
+            file_type=File.IMAGE,
         )
 
         self.assertEqual(File.objects.count(), 2)
@@ -64,7 +64,7 @@ class FilePathUniqueConstraintTestCase(TestCase):
     def test_empty_paths_are_unique(self):
         """Test that empty paths are subject to unique constraint."""
         # First empty path file
-        _file1 = File.objects.create(
+        _file1 = File.objects.create(  # raw-create: the unique path constraint is the thing under test
             hash="hash1" + "a" * 28,
             path="",
             type=File.IMAGE,
@@ -73,7 +73,7 @@ class FilePathUniqueConstraintTestCase(TestCase):
         # Second empty path should fail
         with self.assertRaises(IntegrityError):
             with transaction.atomic():
-                File.objects.create(
+                File.objects.create(  # raw-create: the unique path constraint is the thing under test
                     hash="hash2" + "b" * 28,
                     path="",
                     type=File.IMAGE,
@@ -195,16 +195,16 @@ class MigrationDeduplicationTestCase(TestCase):
         This tests the scoring logic that the migration uses.
         """
         # Create two files to simulate pre-migration state
-        file_missing = File.objects.create(
-            hash="hash_missing" + "a" * 21,
+        file_missing = create_test_file(
+            hash_value="hash_missing" + "a" * 21,
             path="/photos/missing_file.jpg",
-            type=File.IMAGE,
+            file_type=File.IMAGE,
             missing=True,
         )
-        file_ok = File.objects.create(
-            hash="hash_ok" + "a" * 25,
+        file_ok = create_test_file(
+            hash_value="hash_ok" + "a" * 25,
             path="/photos/ok_file.jpg",
-            type=File.IMAGE,
+            file_type=File.IMAGE,
             missing=False,
         )
 
@@ -223,15 +223,15 @@ class MigrationDeduplicationTestCase(TestCase):
         _path = "/photos/popular.jpg"
 
         # Create two files
-        file_popular = File.objects.create(
-            hash="hash_popular" + "a" * 20,
+        file_popular = create_test_file(
+            hash_value="hash_popular" + "a" * 20,
             path="/photos/popular1.jpg",
-            type=File.IMAGE,
+            file_type=File.IMAGE,
         )
-        file_lonely = File.objects.create(
-            hash="hash_lonely" + "a" * 21,
+        file_lonely = create_test_file(
+            hash_value="hash_lonely" + "a" * 21,
             path="/photos/lonely1.jpg",
-            type=File.IMAGE,
+            file_type=File.IMAGE,
         )
 
         # Link popular file to multiple photos
@@ -352,15 +352,15 @@ class FilePathLookupTestCase(TestCase):
 
     def test_filter_by_path_is_exact(self):
         """Test that filtering by path is exact match."""
-        file1 = File.objects.create(
-            hash="hash1" + "a" * 28,
+        file1 = create_test_file(
+            hash_value="hash1" + "a" * 28,
             path="/photos/image.jpg",
-            type=File.IMAGE,
+            file_type=File.IMAGE,
         )
-        _file2 = File.objects.create(
-            hash="hash2" + "b" * 28,
+        _file2 = create_test_file(
+            hash_value="hash2" + "b" * 28,
             path="/photos/image2.jpg",
-            type=File.IMAGE,
+            file_type=File.IMAGE,
         )
 
         # Exact match should find only one
@@ -370,15 +370,15 @@ class FilePathLookupTestCase(TestCase):
 
     def test_photo_files_path_lookup(self):
         """Test that Photo.files.filter(path=...) works correctly."""
-        file1 = File.objects.create(
-            hash="hash1" + "a" * 28,
+        file1 = create_test_file(
+            hash_value="hash1" + "a" * 28,
             path="/photos/image1.jpg",
-            type=File.IMAGE,
+            file_type=File.IMAGE,
         )
-        file2 = File.objects.create(
-            hash="hash2" + "b" * 28,
+        file2 = create_test_file(
+            hash_value="hash2" + "b" * 28,
             path="/photos/image2.jpg",
-            type=File.IMAGE,
+            file_type=File.IMAGE,
         )
 
         photo = create_test_photo(owner=self.user)
@@ -397,10 +397,10 @@ class PhotoFileAssociationTestCase(TestCase):
 
     def test_multiple_photos_can_share_same_file(self):
         """Test that multiple Photos can reference the same File."""
-        file = File.objects.create(
-            hash="shared_hash" + "a" * 23,
+        file = create_test_file(
+            hash_value="shared_hash" + "a" * 23,
             path="/photos/shared_image.jpg",
-            type=File.IMAGE,
+            file_type=File.IMAGE,
         )
 
         photo1 = create_test_photo(owner=self.user)
@@ -420,15 +420,15 @@ class PhotoFileAssociationTestCase(TestCase):
 
     def test_photo_with_multiple_file_variants(self):
         """Test Photo with multiple file variants (JPEG + RAW)."""
-        jpeg_file = File.objects.create(
-            hash="jpeg_hash" + "a" * 24,
+        jpeg_file = create_test_file(
+            hash_value="jpeg_hash" + "a" * 24,
             path="/photos/image.jpg",
-            type=File.IMAGE,
+            file_type=File.IMAGE,
         )
-        raw_file = File.objects.create(
-            hash="raw_hash" + "a" * 25,
+        raw_file = create_test_file(
+            hash_value="raw_hash" + "a" * 25,
             path="/photos/image.CR2",
-            type=File.RAW_FILE,
+            file_type=File.RAW_FILE,
         )
 
         photo = create_test_photo(owner=self.user)

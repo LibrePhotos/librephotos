@@ -12,7 +12,7 @@ from django.test import TestCase
 
 from api.directory_watcher.file_handlers import handle_file_group, handle_new_image
 from api.models import LongRunningJob, Photo
-from api.tests.utils import create_test_user
+from api.tests.utils import create_test_job, create_test_user
 
 MODULE = "api.directory_watcher.file_handlers"
 
@@ -36,7 +36,7 @@ class ScanSurvivesPerFileErrorsTests(TestCase):
         return os.path.join(self.tmpdir, name)
 
     def _make_job(self, target: int) -> LongRunningJob:
-        return LongRunningJob.objects.create(
+        return create_test_job(
             started_by=self.user,
             job_id=self.job_id,
             queued_at="2021-02-11T13:52:53Z",

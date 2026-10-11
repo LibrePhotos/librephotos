@@ -27,8 +27,7 @@ from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
 
 from api.api_util import path_to_dict
-from api.models import User
-from api.tests.utils import create_password
+from api.tests.utils import create_password, create_test_user
 
 REAL_SCANDIR = os.scandir
 
@@ -47,8 +46,11 @@ def deny_scandir(denied_path):
 
 class Issue833ForeignOwnedFolderTest(TestCase):
     def setUp(self):
-        self.admin = User.objects.create_superuser(
-            "admin833", "admin833@test.com", create_password()
+        self.admin = create_test_user(
+            username="admin833",
+            email="admin833@test.com",
+            password=create_password(),
+            is_admin=True,
         )
         self.client = APIClient()
         self.client.force_authenticate(user=self.admin)

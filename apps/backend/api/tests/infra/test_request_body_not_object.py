@@ -15,7 +15,7 @@ from rest_framework.views import APIView
 
 from api.models import Tag
 from api.request_data import request_dict
-from api.tests.utils import create_test_user
+from api.tests.utils import create_test_tag, create_test_user
 
 EXPECTED = {
     "errors": [
@@ -95,7 +95,7 @@ class RequestBodyNotObjectTest(TestCase):
 
     def test_tag_actions_reject_a_json_array(self):
         self.client.force_authenticate(user=self.user)
-        tag = Tag.objects.create(name="trip", owner=self.user)
+        tag = create_test_tag(name="trip", owner=self.user)
         for action in ("add", "remove", "merge"):
             with self.subTest(action=action):
                 self._assert_rejected("post", f"/api/tags/{tag.pk}/{action}/", [])

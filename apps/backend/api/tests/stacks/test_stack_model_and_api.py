@@ -18,7 +18,7 @@ from rest_framework.test import APIClient
 
 from api.models import Photo
 from api.models.photo_stack import PhotoStack
-from api.tests.utils import create_test_photo, create_test_user
+from api.tests.utils import create_test_photo, create_test_stack, create_test_user
 
 
 class PhotoStackModelTestCase(TestCase):
@@ -32,7 +32,7 @@ class PhotoStackModelTestCase(TestCase):
 
     def test_create_stack_basic(self):
         """Test basic stack creation."""
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -46,7 +46,7 @@ class PhotoStackModelTestCase(TestCase):
     def test_stack_types(self):
         """Test all stack types can be created."""
         for stack_type, display_name in PhotoStack.StackType.choices:
-            stack = PhotoStack.objects.create(
+            stack = create_test_stack(
                 owner=self.user,
                 stack_type=stack_type,
             )
@@ -55,7 +55,7 @@ class PhotoStackModelTestCase(TestCase):
 
     def test_auto_select_primary_for_manual_stack(self):
         """Test auto-selecting primary for manual stack picks highest resolution."""
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -70,7 +70,7 @@ class PhotoStackModelTestCase(TestCase):
 
     def test_auto_select_primary_empty_stack(self):
         """Test auto_select_primary returns None for empty stack."""
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -82,11 +82,11 @@ class PhotoStackModelTestCase(TestCase):
 
     def test_merge_with_another_stack(self):
         """Test merging two stacks."""
-        stack1 = PhotoStack.objects.create(
+        stack1 = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
-        stack2 = PhotoStack.objects.create(
+        stack2 = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -109,7 +109,7 @@ class PhotoStackModelTestCase(TestCase):
 
     def test_merge_with_self_does_nothing(self):
         """Test merging a stack with itself is a no-op."""
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -148,7 +148,7 @@ class PhotoStackModelTestCase(TestCase):
     def test_create_or_merge_merges_existing_stacks(self):
         """Test create_or_merge merges when photos already in stack."""
         # Create existing stack with photo1
-        existing_stack = PhotoStack.objects.create(
+        existing_stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -168,11 +168,11 @@ class PhotoStackModelTestCase(TestCase):
 
     def test_photo_can_be_in_multiple_stacks_of_different_types(self):
         """Test a photo can be in stacks of different types."""
-        raw_jpeg_stack = PhotoStack.objects.create(
+        raw_jpeg_stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.RAW_JPEG_PAIR,
         )
-        manual_stack = PhotoStack.objects.create(
+        manual_stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -198,7 +198,7 @@ class PhotoStackAPITestCase(TestCase):
         self.photo3 = create_test_photo(owner=self.user)
 
         # Create a test stack
-        self.stack = PhotoStack.objects.create(
+        self.stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -223,7 +223,7 @@ class PhotoStackAPITestCase(TestCase):
         # Create stack for other user
         other_photo = create_test_photo(owner=self.other_user)
         other_photo2 = create_test_photo(owner=self.other_user)
-        other_stack = PhotoStack.objects.create(
+        other_stack = create_test_stack(
             owner=self.other_user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -239,7 +239,7 @@ class PhotoStackAPITestCase(TestCase):
     def test_list_stacks_excludes_stacks_with_less_than_2_photos(self):
         """Test listing excludes stacks with <2 photos."""
         # Create stack with only 1 photo
-        single_photo_stack = PhotoStack.objects.create(
+        single_photo_stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -253,7 +253,7 @@ class PhotoStackAPITestCase(TestCase):
     def test_list_stacks_filter_by_type(self):
         """Test filtering stacks by type."""
         # Create burst stack
-        burst_stack = PhotoStack.objects.create(
+        burst_stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.BURST_SEQUENCE,
         )
@@ -302,7 +302,7 @@ class PhotoStackAPITestCase(TestCase):
         """Test getting other user's stack returns 404."""
         other_photo = create_test_photo(owner=self.other_user)
         other_photo2 = create_test_photo(owner=self.other_user)
-        other_stack = PhotoStack.objects.create(
+        other_stack = create_test_stack(
             owner=self.other_user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -519,7 +519,7 @@ class ManualStackCreationTestCase(TestCase):
     def test_create_manual_stack_adds_to_existing_if_already_stacked(self):
         """Test creating stack adds to existing stack if photo already in manual stack."""
         # Create existing manual stack
-        existing_stack = PhotoStack.objects.create(
+        existing_stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -557,14 +557,14 @@ class MergeStacksTestCase(TestCase):
     def test_merge_stacks(self):
         """Test merging multiple stacks."""
         # Create two separate stacks
-        stack1 = PhotoStack.objects.create(
+        stack1 = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
         self.photo1.stacks.add(stack1)
         self.photo2.stacks.add(stack1)
 
-        stack2 = PhotoStack.objects.create(
+        stack2 = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -606,7 +606,7 @@ class MergeStacksTestCase(TestCase):
 
     def test_merge_single_stack_no_merge_needed(self):
         """Test merging when only one stack found returns no_merge_needed."""
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -702,14 +702,14 @@ class StackStatsTestCase(TestCase):
     def test_get_stack_stats(self):
         """Test getting stack statistics."""
         # Create some stacks
-        manual_stack = PhotoStack.objects.create(
+        manual_stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
         self.photo1.stacks.add(manual_stack)
         self.photo2.stacks.add(manual_stack)
 
-        burst_stack = PhotoStack.objects.create(
+        burst_stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.BURST_SEQUENCE,
         )
@@ -756,7 +756,7 @@ class StackEdgeCasesTestCase(TestCase):
 
     def test_stack_with_deleted_photo_handles_gracefully(self):
         """Test stack behavior when a photo is deleted."""
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -801,7 +801,7 @@ class StackEdgeCasesTestCase(TestCase):
         """Test removing primary photo auto-selects a new primary."""
         photo3 = create_test_photo(owner=self.user)
 
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )

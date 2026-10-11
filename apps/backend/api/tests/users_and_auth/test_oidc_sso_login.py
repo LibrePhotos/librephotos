@@ -25,6 +25,7 @@ from rest_framework_simplejwt.tokens import AccessToken
 
 from api.adapters import SSOSocialAccountAdapter
 from api.public_url import is_internal_base_url, public_base_url
+from api.tests.utils import create_test_user
 from api.views.sso import LibrePhotosOIDCAdapter
 
 User = get_user_model()
@@ -220,7 +221,7 @@ class JWTBridgeTest(TestCase):
     """sso_finish is what makes an external login a LibrePhotos credential."""
 
     def setUp(self):
-        self.user = User.objects.create(username="ssouser", email="sso@example.com")
+        self.user = create_test_user(username="ssouser", email="sso@example.com")
 
     def test_unauthenticated_request_mints_nothing(self):
         resp = self.client.get(FINISH_URL)
@@ -281,7 +282,7 @@ class AdapterLinkingPolicyTest(TestCase):
         return None
 
     def test_verified_email_links_to_the_matching_account(self):
-        user = User.objects.create(username="alice", email="sso@example.com")
+        user = create_test_user(username="alice", email="sso@example.com")
         sociallogin = _make_social_login(email="sso@example.com", verified=True)
 
         self.assertIsNone(self._run(sociallogin))
@@ -289,13 +290,13 @@ class AdapterLinkingPolicyTest(TestCase):
 
     def test_unverified_email_cannot_claim_an_existing_account(self):
         """The account-takeover guard: anyone can register an address at some IdP."""
-        User.objects.create(username="alice", email="sso@example.com")
+        create_test_user(username="alice", email="sso@example.com")
         sociallogin = _make_social_login(email="sso@example.com", verified=False)
 
         self.assertEqual(self._run(sociallogin), "email_not_verified")
 
     def test_email_match_is_case_insensitive(self):
-        user = User.objects.create(username="alice", email="Alice@Example.com")
+        user = create_test_user(username="alice", email="Alice@Example.com")
         sociallogin = _make_social_login(email="alice@example.com", verified=True)
 
         self.assertIsNone(self._run(sociallogin))
@@ -309,21 +310,21 @@ class AdapterLinkingPolicyTest(TestCase):
 
     def test_ambiguous_email_never_links(self):
         """Two accounts share the address: linking either one is a guess."""
-        User.objects.create(username="alice", email="shared@example.com")
-        User.objects.create(username="bob", email="shared@example.com")
+        create_test_user(username="alice", email="shared@example.com")
+        create_test_user(username="bob", email="shared@example.com")
         sociallogin = _make_social_login(email="shared@example.com", verified=True)
 
         self.assertEqual(self._run(sociallogin), "signup_disabled")
 
     def test_blank_idp_email_never_links(self):
         """Many LibrePhotos accounts have no email; none of them is a match."""
-        User.objects.create(username="alice", email="")
+        create_test_user(username="alice", email="")
         sociallogin = _make_social_login(email="", verified=True)
 
         self.assertEqual(self._run(sociallogin), "signup_disabled")
 
     def test_already_linked_account_skips_the_policy(self):
-        user = User.objects.create(username="alice", email="sso@example.com")
+        user = create_test_user(username="alice", email="sso@example.com")
         SocialAccount.objects.create(user=user, provider="keycloak", uid="idp-sub-1")
         sociallogin = _make_social_login(email="other@example.com", verified=False)
         sociallogin.user = user

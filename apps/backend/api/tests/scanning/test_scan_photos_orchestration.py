@@ -25,7 +25,7 @@ from api.directory_watcher import scan_jobs
 from api.directory_watcher.scan_jobs import scan_photos
 from api.directory_watcher.utils import update_scan_counter
 from api.models import LongRunningJob, Photo
-from api.tests.utils import create_test_photo, create_test_user
+from api.tests.utils import create_test_job, create_test_photo, create_test_user
 
 
 class TaskRecorder:
@@ -330,7 +330,7 @@ class ProgressAndCompletionTest(ScanPhotosCharacterizationBase):
         self.assertIsNotNone(job.started_at)
 
     def test_existing_job_row_is_reused(self):
-        LongRunningJob.objects.create(
+        create_test_job(
             started_by=self.user,
             job_id=self.job_id,
             job_type=LongRunningJob.JOB_SCAN_PHOTOS,
@@ -346,7 +346,7 @@ class ProgressAndCompletionTest(ScanPhotosCharacterizationBase):
 
 class LastScanBaselineTest(ScanPhotosCharacterizationBase):
     def test_selector_receives_latest_finished_scan_as_baseline(self):
-        older = LongRunningJob.objects.create(
+        older = create_test_job(
             started_by=self.user,
             job_id=str(uuid.uuid4()),
             job_type=LongRunningJob.JOB_SCAN_PHOTOS,
@@ -354,7 +354,7 @@ class LastScanBaselineTest(ScanPhotosCharacterizationBase):
             finished=True,
             finished_at=timezone.now() - datetime.timedelta(days=2),
         )
-        newest = LongRunningJob.objects.create(
+        newest = create_test_job(
             started_by=self.user,
             job_id=str(uuid.uuid4()),
             job_type=LongRunningJob.JOB_SCAN_PHOTOS,
@@ -373,7 +373,7 @@ class LastScanBaselineTest(ScanPhotosCharacterizationBase):
         self.assertIsNone(res["select"].call_args[0][3])
 
     def test_unfinished_previous_scan_is_not_a_baseline(self):
-        LongRunningJob.objects.create(
+        create_test_job(
             started_by=self.user,
             job_id=str(uuid.uuid4()),
             job_type=LongRunningJob.JOB_SCAN_PHOTOS,
@@ -385,7 +385,7 @@ class LastScanBaselineTest(ScanPhotosCharacterizationBase):
 
     def test_other_users_finished_scan_is_not_a_baseline(self):
         other_user = create_test_user()
-        LongRunningJob.objects.create(
+        create_test_job(
             started_by=other_user,
             job_id=str(uuid.uuid4()),
             job_type=LongRunningJob.JOB_SCAN_PHOTOS,

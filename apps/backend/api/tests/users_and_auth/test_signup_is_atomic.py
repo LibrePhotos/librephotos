@@ -13,6 +13,7 @@ from django.test import TestCase
 from rest_framework.test import APIClient
 
 from api.models import User
+from api.tests.utils import create_test_user
 
 SIGNUP = {
     "username": "admin",
@@ -62,7 +63,7 @@ class AbandonedSignupTest(TestCase):
     def setUp(self):
         self.client = APIClient()
         # What the old code left behind: inserted, never hashed, not an admin.
-        self.leftover = User.objects.create(
+        self.leftover = User.objects.create(  # raw-create: the unhashed row the old code wrote is the state under test
             username="admin", password="typed in plain text", email="old@example.com"
         )
 
@@ -97,7 +98,12 @@ class AbandonedSignupTest(TestCase):
         )
 
     def test_nothing_is_taken_over_once_an_admin_exists(self):
-        User.objects.create_superuser("boss", "boss@example.com", "boss password")
+        create_test_user(
+            username="boss",
+            email="boss@example.com",
+            password="boss password",
+            is_admin=True,
+        )
         from constance.test import override_config
 
         with override_config(ALLOW_REGISTRATION=True):

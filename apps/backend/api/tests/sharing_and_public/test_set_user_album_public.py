@@ -11,9 +11,8 @@ from django.test import TestCase
 from django.utils import timezone
 from rest_framework.test import APIClient
 
-from api.models import AlbumUser
 from api.models.album_user_share import AlbumUserShare
-from api.tests.utils import create_test_photo, create_test_user
+from api.tests.utils import create_test_album_user, create_test_photo, create_test_user
 
 URL = "/api/useralbum/makepublic/"
 
@@ -25,7 +24,7 @@ class SetUserAlbumPublicTestBase(TestCase):
         self.other = create_test_user()
         self.client.force_authenticate(user=self.owner)
         self.photo = create_test_photo(owner=self.owner)
-        self.album = AlbumUser.objects.create(title="album-a", owner=self.owner)
+        self.album = create_test_album_user(title="album-a", owner=self.owner)
         self.album.photos.add(self.photo)
 
     def post(self, payload):
@@ -172,7 +171,7 @@ class SetUserAlbumPublicEnableTest(SetUserAlbumPublicTestBase):
         self.assertEqual("keep-me", AlbumUserShare.objects.get(album=self.album).slug)
 
     def _other_album_share(self, **share_kwargs):
-        other_album = AlbumUser.objects.create(title="album-b", owner=self.other)
+        other_album = create_test_album_user(title="album-b", owner=self.other)
         return AlbumUserShare.objects.create(album=other_album, **share_kwargs)
 
     def test_a_slug_held_by_an_expired_share_is_taken(self):
@@ -500,7 +499,7 @@ class SetUserAlbumPublicIdempotencyTest(SetUserAlbumPublicTestBase):
         )
 
     def test_second_album_gets_its_own_share(self):
-        album2 = AlbumUser.objects.create(title="album-b", owner=self.owner)
+        album2 = create_test_album_user(title="album-b", owner=self.owner)
 
         self.post({"album_id": self.album.id, "val_public": True})
         self.post({"album_id": album2.id, "val_public": True})

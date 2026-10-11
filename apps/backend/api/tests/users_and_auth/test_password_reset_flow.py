@@ -14,6 +14,8 @@ from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 from rest_framework.test import APIClient
 
+from api.tests.utils import create_test_user
+
 User = get_user_model()
 
 REQUEST_URL = "/api/auth/password/reset/"
@@ -21,7 +23,7 @@ CONFIRM_URL = "/api/auth/password/reset/confirm/"
 
 
 def _make_user(email="alice@example.com", password="oldpassword123"):
-    user = User.objects.create(username=email, email=email)
+    user = create_test_user(username=email, email=email)
     user.set_password(password)
     user.save()
     return user

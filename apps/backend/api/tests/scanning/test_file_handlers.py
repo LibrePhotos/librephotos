@@ -21,7 +21,7 @@ from api.directory_watcher import file_handlers
 from api.directory_watcher.file_handlers import create_new_image, handle_file_group
 from api.models import File, LongRunningJob, Photo
 from api.models.file import calculate_hash, looks_like_media
-from api.tests.utils import create_test_user
+from api.tests.utils import create_test_job, create_test_user
 
 MODULE = "api.directory_watcher.file_handlers"
 
@@ -339,7 +339,7 @@ class HandleFileGroupTests(FileHandlerTestBase):
         self.addCleanup(patcher.stop)
 
     def _make_job(self, target=2):
-        return LongRunningJob.objects.create(
+        return create_test_job(
             started_by=self.user,
             job_id=self.job_id,
             job_type=LongRunningJob.JOB_SCAN_PHOTOS,

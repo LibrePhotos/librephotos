@@ -23,7 +23,13 @@ from api.models import (
     Tag,
     User,
 )
-from api.tests.utils import create_test_photo, create_test_user
+from api.tests.utils import (
+    create_test_album_date,
+    create_test_album_user,
+    create_test_photo,
+    create_test_tag,
+    create_test_user,
+)
 
 
 class DeleteUserEndpointTest(TestCase):
@@ -150,14 +156,14 @@ class DeleteUsersWithOverlappingAlbumsTest(TestCase):
             AlbumAuto.objects.create(
                 owner=owner, timestamp=self.when, created_on=self.when
             ),
-            AlbumDate.objects.create(owner=owner, date=self.when.date()),
-            AlbumDate.objects.create(owner=owner, date=None),
+            create_test_album_date(owner=owner, date=self.when.date()),
+            create_test_album_date(owner=owner, date=None),
             AlbumPlace.objects.create(owner=owner, title="Lisbon"),
             AlbumThing.objects.create(
                 owner=owner, title="beach", thing_type="places365_attribute"
             ),
-            AlbumUser.objects.create(owner=owner, title="Holiday"),
-            Tag.objects.create(owner=owner, name="family"),
+            create_test_album_user(owner=owner, title="Holiday"),
+            create_test_tag(owner=owner, name="family"),
         ]
         for row in rows:
             row.photos.add(photo)
@@ -210,7 +216,7 @@ class DeleteUsersWithOverlappingAlbumsTest(TestCase):
         self.assertEqual(tag.photo_count, 2)
 
     def test_a_renamed_album_does_not_take_another_albums_title(self):
-        AlbumUser.objects.create(
+        create_test_album_user(
             owner=self.second, title=f"Holiday ({self.second.username})"
         )
         self._delete(self.first)
@@ -284,7 +290,7 @@ class DeletedUsersPublicLinksTest(TestCase):
         when = timezone.now()
 
         self.album_photo = create_test_photo(owner=self.owner)
-        album = AlbumUser.objects.create(owner=self.owner, title="Trip")
+        album = create_test_album_user(owner=self.owner, title="Trip")
         album.photos.add(self.album_photo)
         album.shared_to.add(self.viewer)
         AlbumUserShare.objects.create(album=album, enabled=True, slug="trip")
@@ -292,7 +298,7 @@ class DeletedUsersPublicLinksTest(TestCase):
         self.public_photo = create_test_photo(
             owner=self.owner, public=True, exif_timestamp=when
         )
-        AlbumDate.objects.create(owner=self.owner, date=when.date()).photos.add(
+        create_test_album_date(owner=self.owner, date=when.date()).photos.add(
             self.public_photo
         )
 
@@ -381,7 +387,7 @@ class DeletedUsersAlbumsOfOthersPhotosTest(TestCase):
         self.photo = create_test_photo(owner=self.photo_owner)
         self.photo.shared_to.add(self.album_owner)
         self.own_photo = create_test_photo(owner=self.album_owner)
-        self.album = AlbumUser.objects.create(
+        self.album = create_test_album_user(
             owner=self.album_owner, title="Mixed", cover_photo=self.photo
         )
         self.album.photos.add(self.photo, self.own_photo)
