@@ -22,6 +22,7 @@ from collections.abc import Mapping
 from fractions import Fraction
 from typing import TYPE_CHECKING
 
+from django.core.serializers.json import DjangoJSONEncoder
 from django.db import models
 
 from api.metadata.reader import get_metadata
@@ -610,9 +611,12 @@ class MetadataEdit(models.Model):
     # Which field was edited
     field_name = models.CharField(max_length=100)
 
-    # JSON-serialized old and new values
-    old_value = models.JSONField(null=True, blank=True)
-    new_value = models.JSONField(null=True, blank=True)
+    # JSON-serialized old and new values. DjangoJSONEncoder stores a
+    # date_taken edit's datetime as an ISO string (plain json.dumps raises
+    # TypeError, a 500); the revert endpoint hands that string back to the
+    # DateTimeField, which parses it.
+    old_value = models.JSONField(null=True, blank=True, encoder=DjangoJSONEncoder)
+    new_value = models.JSONField(null=True, blank=True, encoder=DjangoJSONEncoder)
 
     # Whether this edit has been written back to the file
     synced_to_file = models.BooleanField(default=False)

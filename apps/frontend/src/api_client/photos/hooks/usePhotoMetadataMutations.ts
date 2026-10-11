@@ -4,13 +4,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { TagsQueryKeys } from "../../tags/hooks/useFetchTagsQuery";
-import {
-  bulkUpdateMetadata,
-  revertAllMetadataEdits,
-  revertMetadataEdit,
-  updatePhotoMetadata,
-  type MetadataUpdateFields,
-} from "../metadata";
+import { bulkUpdateMetadata, updatePhotoMetadata, type MetadataUpdateFields } from "../metadata";
 
 /**
  * Update metadata for a photo (changes are tracked in history)
@@ -27,44 +21,9 @@ export function useUpdatePhotoMetadataMutation() {
     onSuccess: (data, { photoId }) => {
       // Invalidate metadata queries
       queryClient.invalidateQueries({ queryKey: ["photoMetadata", photoId] });
-      queryClient.invalidateQueries({ queryKey: ["metadataHistory", photoId] });
       // Also invalidate photo details since it includes metadata summary
       queryClient.invalidateQueries({ queryKey: ["photoDetails"] });
       // Keyword edits are projected into tags server-side
-      queryClient.invalidateQueries({ queryKey: [...TagsQueryKeys] });
-    },
-  });
-}
-
-/**
- * Revert a specific metadata edit
- */
-export function useRevertMetadataEditMutation() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({ photoId, editId }: { photoId: string; editId: string }) => revertMetadataEdit(photoId, editId),
-    onSuccess: (data, { photoId }) => {
-      queryClient.invalidateQueries({ queryKey: ["photoMetadata", photoId] });
-      queryClient.invalidateQueries({ queryKey: ["metadataHistory", photoId] });
-      queryClient.invalidateQueries({ queryKey: ["photoDetails"] });
-      queryClient.invalidateQueries({ queryKey: [...TagsQueryKeys] });
-    },
-  });
-}
-
-/**
- * Revert all edits and restore original embedded metadata
- */
-export function useRevertAllMetadataEditsMutation() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (photoId: string) => revertAllMetadataEdits(photoId),
-    onSuccess: (data, photoId) => {
-      queryClient.invalidateQueries({ queryKey: ["photoMetadata", photoId] });
-      queryClient.invalidateQueries({ queryKey: ["metadataHistory", photoId] });
-      queryClient.invalidateQueries({ queryKey: ["photoDetails"] });
       queryClient.invalidateQueries({ queryKey: [...TagsQueryKeys] });
     },
   });
@@ -83,7 +42,6 @@ export function useBulkUpdateMetadataMutation() {
       // Invalidate all affected photo metadata queries
       photoIds.forEach(photoId => {
         queryClient.invalidateQueries({ queryKey: ["photoMetadata", photoId] });
-        queryClient.invalidateQueries({ queryKey: ["metadataHistory", photoId] });
       });
       queryClient.invalidateQueries({ queryKey: ["photoDetails"] });
       queryClient.invalidateQueries({ queryKey: [...TagsQueryKeys] });

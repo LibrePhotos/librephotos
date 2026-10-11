@@ -1,7 +1,7 @@
 import { RecentlyAddedPhotosResponse } from "@librephotos/api-client";
 import { describe, expect, test } from "vitest";
 import { z } from "zod";
-import { MetadataHistoryResponse, Photo, PhotoMetadata, PhotoOcrData, Photoset, PigPhoto } from "./types";
+import { Photo, PhotoMetadata, PhotoOcrData, Photoset, PigPhoto } from "./types";
 
 /**
  * Regression coverage for the PhotoMetadata zod schema drifting from the
@@ -250,20 +250,6 @@ describe("Photo OCR (live text) schema", () => {
     expect(schema.parse({ video: false })).toEqual({ video: false });
     expect(schema.parse({ video: false, ocr: null }).ocr).toBeNull();
     expect(schema.parse({ video: false, ocr: ocrPayload }).ocr?.text).toBe("TOTAL 12.34");
-  });
-});
-
-describe("MetadataHistoryResponse schema", () => {
-  test("accepts the paginated envelope the history endpoint returns", () => {
-    const payload = {
-      results: fullMetadata.edit_history,
-      count: 1,
-      page: 1,
-      page_size: 20,
-    };
-
-    expect(() => MetadataHistoryResponse.parse(payload)).not.toThrow();
-    expect(MetadataHistoryResponse.parse(payload).results[0].field_name).toBe("title");
   });
 });
 

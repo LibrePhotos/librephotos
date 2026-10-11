@@ -8,9 +8,11 @@ Provides endpoints for:
 - Viewing edit history
 """
 
+from django.db.models import Q
 from django.http import Http404
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.decorators import action
+from rest_framework.exceptions import APIException, ValidationError
 from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
@@ -28,6 +30,17 @@ from api.serializers.photo_metadata import (
     PhotoMetadataSerializer,
     PhotoMetadataUpdateSerializer,
 )
+
+
+class EditSuperseded(APIException):
+    """The edit to revert is no longer the latest change of its field."""
+
+    status_code = 409
+    default_detail = (
+        "This field was changed again after this edit; reverting it would "
+        "discard the later change. Retry with ?force=1 to revert anyway."
+    )
+    default_code = "edit_superseded"
 
 
 class PhotoMetadataViewSet(ViewSet):
@@ -153,7 +166,18 @@ class PhotoMetadataViewSet(ViewSet):
         )
 
     @extend_schema(
-        description="Revert a specific metadata edit.",
+        description=(
+            "Revert a specific metadata edit. 400 if the edit is not of an "
+            "editable field (e.g. the revert-all marker); 409 if the field was "
+            "changed again afterwards, unless ?force=1."
+        ),
+        parameters=[
+            OpenApiParameter(
+                "force",
+                str,
+                description="1 to revert even if the field was changed again later",
+            ),
+        ],
         responses={200: PhotoMetadataSerializer},
     )
     @action(detail=True, methods=["post"], url_path=r"revert/(?P<edit_id>[^/.]+)")
@@ -162,11 +186,32 @@ class PhotoMetadataViewSet(ViewSet):
         photo = self._get_photo(request, photo_id)
         edit = get_object_or_404(MetadataEdit, pk=edit_id, photo=photo)
 
+        # Only edits of a field the metadata API can write are revertible. An
+        # "_all" row is the revert-all marker: "reverting" it would setattr a
+        # non-field and record a new "_all" row, which _user_edited would take
+        # as a fresh restore-from-file boundary without re-reading the file.
+        field_name = edit.field_name
+        if field_name not in PhotoMetadataUpdateSerializer.Meta.fields:
+            raise ValidationError(
+                {"field_name": f"An edit of '{field_name}' cannot be reverted."}
+            )
+
+        # Reverting an older edit overwrites every later change of the same
+        # field, including a revert-all that restored the file's value: refuse
+        # unless the caller says so.
+        force = request.query_params.get("force", "").lower() in {"1", "true"}
+        superseded = (
+            MetadataEdit.objects.filter(photo=photo, created_at__gt=edit.created_at)
+            .filter(Q(field_name=field_name) | Q(field_name="_all"))
+            .exists()
+        )
+        if superseded and not force:
+            raise EditSuperseded()
+
         # Get or create metadata
         metadata = self._get_or_create_metadata(photo)
 
         # Restore the old value
-        field_name = edit.field_name
         old_value = edit.old_value
         current_value = getattr(metadata, field_name, None)
 
