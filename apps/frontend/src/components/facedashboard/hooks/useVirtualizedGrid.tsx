@@ -1,5 +1,5 @@
 import { flatten, uniqBy } from "lodash-es";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import { FaceAnalysisMethod, FacesTab } from "../../../api_client/faces";
 import type { CompletePersonFace, CompletePersonFaceList, PersonFace } from "../../../api_client/faces";
 import { calculateFaceGridCells, calculateFaceGridCellSize } from "../../../util/gridUtils";
@@ -191,7 +191,7 @@ export function useVirtualizedGrid(
   // The Grid memoizes onSectionRendered on the overscan index range, and folding a group moves
   // other people's cells into that unchanged range instead of moving the range. Replay the last
   // section ourselves so the faces a fold reveals are still paged in.
-  useEffect(() => {
+  const replayLastSection = useEffectEvent(() => {
     const section = lastRenderedSection.current;
     const rowCount = getCellContentsForTab(activeTab).length;
     if (!section || rowCount === 0) return;
@@ -201,9 +201,12 @@ export function useVirtualizedGrid(
       rowOverscanStartIndex: Math.min(section.rowOverscanStartIndex, rowCount - 1),
       rowOverscanStopIndex: Math.min(section.rowOverscanStopIndex, rowCount - 1),
     });
-    // Only a fold changes the cells behind a fixed range - a scroll moves the range and the Grid
-    // reports it, and reacting to data arriving here would re-request the pages that just landed
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- only a fold changes the cells behind a fixed range; scrolls are reported by the Grid
+  });
+  // Only a fold changes the cells behind a fixed range: a scroll moves the range and the Grid
+  // reports it, and reacting to data arriving here would re-request the pages that just landed.
+  // So collapsedPersons is the only trigger; the replay reads the current cells and tab.
+  useEffect(() => {
+    replayLastSection();
   }, [collapsedPersons]);
 
   // Get flattened cell contents for cell range selection

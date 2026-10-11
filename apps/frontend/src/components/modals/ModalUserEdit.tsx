@@ -2,7 +2,7 @@ import { Box, Button, Group, Modal, ScrollArea, SimpleGrid, Space, Text, TextInp
 import { useForm } from "@mantine/form";
 import { IconUser, IconMail as Mail } from "@tabler/icons-react";
 import type { FormEvent } from "react";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useEffectEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSignUpMutation } from "../../api_client/auth";
 import { useScanPhotosMutation } from "../../api_client/jobs";
@@ -103,10 +103,11 @@ export function ModalUserEdit(props: Props) {
     },
   });
 
-  useEffect(() => {
-    if (userToEdit) {
-      if (userToEdit.scan_directory) {
-        setScanDirectoryPlaceholder(userToEdit.scan_directory);
+  // Reads the form and the typed password at reset time; neither is a trigger (see below).
+  const resetFromUser = useEffectEvent((user: Readonly<Partial<User>>) => {
+    if (user) {
+      if (user.scan_directory) {
+        setScanDirectoryPlaceholder(user.scan_directory);
       } else {
         setScanDirectoryPlaceholder(t("modalscandirectoryedit.notset"));
       }
@@ -114,21 +115,23 @@ export function ModalUserEdit(props: Props) {
       // undefined value turned the inputs uncontrolled, so they kept showing
       // the last edited user while the form itself was empty.
       form.setValues({
-        username: userToEdit.username ?? "",
-        email: userToEdit.email ?? "",
-        first_name: userToEdit.first_name ?? "",
-        last_name: userToEdit.last_name ?? "",
-        scan_directory: userToEdit.scan_directory ?? "",
-        upload_directory: userToEdit.upload_directory ?? "",
+        username: user.username ?? "",
+        email: user.email ?? "",
+        first_name: user.first_name ?? "",
+        last_name: user.last_name ?? "",
+        scan_directory: user.scan_directory ?? "",
+        upload_directory: user.upload_directory ?? "",
         password: userPassword || "",
       });
     } else {
       setScanDirectoryPlaceholder(t("modalscandirectoryedit.notset"));
     }
-    // Reset the form only when a different user is opened. `form` is a new object
-    // every render and `userPassword` changes while typing; either would wipe the
-    // fields the admin is editing.
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- reset only when a different user is opened; form and userPassword change while typing
+  });
+  // Reset the form only when a different user is opened (or the language changes, for the
+  // placeholder). `form` is a new object every render and `userPassword` changes while typing;
+  // either as a trigger would wipe the fields the admin is editing.
+  useEffect(() => {
+    resetFromUser(userToEdit);
   }, [userToEdit, t]);
 
   useEffect(() => {

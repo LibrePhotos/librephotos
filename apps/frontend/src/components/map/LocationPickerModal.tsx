@@ -61,6 +61,8 @@ export function LocationPickerModal({ imageHash, onClose, initialLat, initialLon
 
   // Only the first position centres the map; later picks move the marker, not the view.
   const [initialCenter] = useState<[number, number]>(() => position ?? [48.8566, 2.3522]);
+  // Fixed at mount like initialCenter: whether to pan to a rough "near you" view.
+  const [openedWithoutPosition] = useState(() => position === null);
   const initialZoom = position ? 13 : 3;
 
   const { mutateAsync, isPending } = useUpdatePhotoMutation();
@@ -133,9 +135,10 @@ export function LocationPickerModal({ imageHash, onClose, initialLat, initialLon
     );
   }, [t]);
 
-  // Try to get user's location on mount if no initial position
+  // Try to get user's location on mount if no initial position. Keyed on the mount-time
+  // value, not position: re-running on every pick would yank the map away from the pick.
   useEffect(() => {
-    if (!position && navigator.geolocation) {
+    if (openedWithoutPosition && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         pos => {
           const { latitude, longitude } = pos.coords;
@@ -147,10 +150,7 @@ export function LocationPickerModal({ imageHash, onClose, initialLat, initialLon
         { enableHighAccuracy: false, timeout: 5000, maximumAge: 300000 }
       );
     }
-    // Mount only: a coarse "near you" pan when the photo has no location yet.
-    // Re-running on every picked position would yank the map away from the pick.
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount only; re-running on every picked position would move the map away from the pick
-  }, []);
+  }, [openedWithoutPosition]);
 
   const searchOptions = searchResults?.map(result => (
     <Combobox.Option value={`${result.lat},${result.lon}`} key={`${result.lat}-${result.lon}`}>

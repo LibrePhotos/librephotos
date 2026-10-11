@@ -8,11 +8,18 @@ import { createRoot } from "react-dom/client";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { isSearchExample, SearchOptionType, useSearch } from "./use-search";
 
+const examplesQuery = vi.hoisted(() => ({
+  data: ["for things", "for people", "beach"],
+  isLoading: false,
+}));
+
 vi.mock("../api_client/search/hooks/useSearchExamplesQuery", () => ({
-  useSearchExamplesQuery: () => ({ data: ["for things", "for people", "beach"], isLoading: false }),
+  useSearchExamplesQuery: () => ({ data: examplesQuery.data, isLoading: examplesQuery.isLoading }),
 }));
 vi.mock("../api_client/albums/hooks", () => {
-  const none = () => ({ data: [], isLoading: false });
+  // One array for every render, as a query hands out until it refetches
+  const empty: never[] = [];
+  const none = () => ({ data: empty, isLoading: false });
   return {
     useFetchPeopleAlbumsQuery: none,
     useFetchPlacesAlbumsQuery: none,
@@ -51,10 +58,16 @@ describe("useSearch", () => {
 
   afterEach(async () => {
     await act(async () => root.unmount());
+    examplesQuery.data = ["for things", "for people", "beach"];
+    examplesQuery.isLoading = false;
   });
 
   async function render() {
     root = createRoot(document.createElement("div"));
+    await act(async () => root.render(React.createElement(Probe)));
+  }
+
+  async function rerender() {
     await act(async () => root.render(React.createElement(Probe)));
   }
 
@@ -70,5 +83,30 @@ describe("useSearch", () => {
     await act(async () => search.filterOptions("for"));
 
     expect(examples()).toEqual([]);
+  });
+
+  it("seeds the unfiltered options once loading finishes", async () => {
+    examplesQuery.isLoading = true;
+    await render();
+    expect(search.options).toEqual([]);
+
+    examplesQuery.isLoading = false;
+    await rerender();
+
+    expect(examples()).toEqual(["beach"]);
+  });
+
+  it("keeps the options for the typed query when the data is refetched", async () => {
+    examplesQuery.data = ["for things", "beach", "mountain"];
+    await render();
+    expect(examples()).toEqual(["beach", "mountain"]);
+    await act(async () => search.filterOptions("mount"));
+    expect(examples()).toEqual(["mountain"]);
+
+    // A refetch hands out a new array, so a new filterOptions, but loading did not change
+    examplesQuery.data = [...examplesQuery.data];
+    await rerender();
+
+    expect(examples()).toEqual(["mountain"]);
   });
 });

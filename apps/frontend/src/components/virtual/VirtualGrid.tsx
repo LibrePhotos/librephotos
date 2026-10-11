@@ -1,5 +1,13 @@
 import { useVirtualizer, type Rect } from "@tanstack/react-virtual";
-import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useRef } from "react";
+import React, {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+} from "react";
 import type { CSSProperties, ReactNode, UIEvent } from "react";
 
 export type GridCellProps = Readonly<{
@@ -48,6 +56,17 @@ type VirtualGridProps = Readonly<{
 }>;
 
 /**
+ * The rows' key function for one row-size function. The key is the index, but the virtualizer
+ * caches row offsets until one of its measurement options changes, and estimateSize is not one
+ * of them while the key function is: a new key function per row-size function makes a row
+ * height change re-lay-out every row in the same render. (`virtualizer.measure()` would do it
+ * one render later, after the old range had already been reported.)
+ */
+function indexKeyFor(_estimateSize: (index: number) => number): (index: number) => number {
+  return (index: number) => index;
+}
+
+/**
  * A row-virtualized grid of absolutely positioned cells, the shape the album and face pages
  * were built around with react-virtualized's Grid: the caller sizes the viewport and renders
  * one cell per (row, column) with the style it is handed. Rows are virtualized, columns are
@@ -93,10 +112,7 @@ export const VirtualGrid = forwardRef<VirtualGridHandle, VirtualGridProps>(funct
     (index: number) => (typeof rowHeight === "number" ? rowHeight : rowHeight({ index })),
     [rowHeight]
   );
-  // The virtualizer caches row offsets until one of its measurement options changes, and the
-  // key function is one of them: a new one per rowHeight makes a resize re-lay-out every row.
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- unnecessary dependency, kept for now; the key is index-only (see the comment above)
-  const getItemKey = useCallback((index: number) => index, [estimateSize]);
+  const getItemKey = useMemo(() => indexKeyFor(estimateSize), [estimateSize]);
 
   const virtualizer = useVirtualizer({
     count: rowCount,

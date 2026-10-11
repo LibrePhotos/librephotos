@@ -1,6 +1,6 @@
 import { ActionIcon, Group, PasswordInput, Stack, Text } from "@mantine/core";
 import { IconLock as Lock, IconLockOpen as LockOpen } from "@tabler/icons-react";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useEffectEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 type Props = Readonly<{
@@ -49,12 +49,14 @@ export function PasswordEntry(props: Props): React.JSX.Element {
     onValidate(validPassword, isValid);
   };
 
-  // Re-validate when the mode changes; keystrokes validate in the inputs'
-  // onChange handlers. The effect reads this render's password values, so they
-  // are not stale, just not triggers.
+  // Reads the current password values, which are not triggers: keystrokes validate in the
+  // inputs' onChange handlers.
+  const revalidate = useEffectEvent((isClosing: boolean) => {
+    validateAndUpdatePassword(newPassword, newPasswordConfirm, isClosing);
+  });
+  // Re-validate when the mode changes.
   useEffect(() => {
-    validateAndUpdatePassword(newPassword, newPasswordConfirm, closing);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-validate on mode changes only; keystrokes validate in the input onChange handlers
+    revalidate(closing);
   }, [createNew, closing, editPasswordMode, touched]);
 
   return (

@@ -1,38 +1,37 @@
+/**
+ * - The markers are laid out against the target's height: a grid that grows without new
+ *   scroll positions moves them.
+ * - A jump of more than 600px shows the scrubber, which hides again 2.5 s after the last one.
+ */
+import "@mantine/core/styles.css";
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { ScrollScrubber } from "./ScrollScrubber";
-import { ScrollerType } from "./ScrollScrubberTypes.zod";
+import type { ScrollerData } from "./ScrollScrubberTypes.zod";
+
+// jsdom lays nothing out: give the scrubber a fixed size
+vi.mock(import("@mantine/hooks"), async importOriginal => {
+  const actual = await importOriginal();
+  return { ...actual, useElementSize: () => ({ ref: () => {}, width: 40, height: 500 }) };
+});
 
 let root: Root;
 let container: HTMLDivElement;
 
 beforeAll(() => {
-  // jsdom has no matchMedia. This one answers min-width queries from innerWidth at a 16px
-  // root font size, which is how the browser resolves the theme's em breakpoints.
-  window.matchMedia = (query: string): MediaQueryList => {
-    const minWidth = /min-width:\s*([\d.]+)em/.exec(query);
-    return {
-      matches: minWidth ? window.innerWidth >= Number(minWidth[1]) * 16 : false,
-      media: query,
-      onchange: null,
-      addListener: () => {},
-      removeListener: () => {},
-      addEventListener: () => {},
-      removeEventListener: () => {},
-      dispatchEvent: () => false,
-    };
-  };
-  // useElementSize observes the scrubber's size; jsdom has no layout to report
-  vi.stubGlobal(
-    "ResizeObserver",
-    class {
-      observe() {}
-      unobserve() {}
-      disconnect() {}
-    }
-  );
+  // jsdom has no matchMedia, MantineProvider needs it
+  window.matchMedia = (query: string): MediaQueryList => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => false,
+  });
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 });
 
@@ -43,73 +42,103 @@ beforeEach(() => {
   root = createRoot(container);
 });
 
-afterEach(async () => {
-  await act(async () => {
-    root.unmount();
-  });
+afterEach(() => {
+  act(() => root.unmount());
   container.remove();
   vi.useRealTimers();
+  Reflect.deleteProperty(window, "scrollY");
 });
 
-const positions = [
-  { label: "2021", targetY: 0 },
-  { label: "2022", targetY: 1000 },
-  { label: "2023", targetY: 2000 },
+const positions: ScrollerData[] = [
+  { label: "A", targetY: 0 },
+  { label: "B", targetY: 1000 },
 ];
 
-/** Renders the scrubber at a viewport width, once its debounced resize has set the target height. */
-const renderAt = async (width: number) => {
-  window.innerWidth = width;
-  await act(async () => {
+function render(targetHeight: number) {
+  act(() => {
     root.render(
       <MantineProvider>
-        <ScrollScrubber
-          type={ScrollerType.enum.labels}
-          scrollPositions={positions}
-          targetHeight={3000}
-          scrollToY={() => {}}
-        >
-          <div>photos</div>
+        <ScrollScrubber type="labels" scrollPositions={positions} targetHeight={targetHeight} scrollToY={() => {}}>
+          <div />
         </ScrollScrubber>
       </MantineProvider>
     );
   });
-  await act(async () => {
-    await vi.advanceTimersByTimeAsync(500);
-  });
-};
+}
 
-const layer = (selector: string): HTMLElement => {
-  const element = container.querySelector<HTMLElement>(selector);
-  if (!element) throw new Error(`no ${selector} rendered`);
+// The scrubber measures the window after a 500 ms debounce
+function renderMeasured(targetHeight: number) {
+  render(targetHeight);
+  act(() => vi.advanceTimersByTime(500));
+}
+
+const scrubber = () => {
+  const element = container.querySelector<HTMLElement>(".scrollscrubber");
+  if (!element) throw new Error("the scrubber is not rendered");
   return element;
 };
 
+const markerTops = () =>
+  [...container.querySelectorAll<HTMLElement>(".scrollscrubber-marker-dot")].map(dot => parseFloat(dot.style.top));
+
+function scrollWindowTo(y: number, targetHeight: number) {
+  Object.defineProperty(window, "scrollY", { configurable: true, value: y });
+  render(targetHeight);
+}
+
 describe("ScrollScrubber", () => {
-  it("runs to the bottom of the page on desktop, where the navbar is shown", async () => {
-    await renderAt(1024);
+  it("lays the markers out again when the target grows", () => {
+    const viewport = window.innerHeight;
+    renderMeasured(2000);
+    act(() => scrubber().dispatchEvent(new MouseEvent("mouseover", { bubbles: true })));
 
-    expect(layer(".scrollscrubber").style.bottom).toBe("0px");
-    expect(layer(".scrollscrubber-background-layer").style.bottom).toBe("0px");
+    expect(markerTops()).toHaveLength(2);
+    expect(markerTops()[1]).toBeCloseTo((1000 * 100) / (2000 - viewport));
+
+    render(4000);
+
+    expect(markerTops()[1]).toBeCloseTo((1000 * 100) / (4000 - viewport));
   });
 
-  it("stops above the phone footer below the sm breakpoint", async () => {
-    // 740px is past the old 700px cut-off but still below the theme's sm (48em, 768px)
-    await renderAt(740);
+  it("shows itself on a long scroll and hides again", () => {
+    renderMeasured(5000);
+    expect(scrubber().style.opacity).toBe("0");
 
-    expect(layer(".scrollscrubber").style.bottom).toBe("50px");
-    expect(layer(".scrollscrubber-background-layer").style.bottom).toBe("50px");
+    scrollWindowTo(100, 5000);
+    // Throttled to one check a second: the jump is picked up on the trailing call
+    scrollWindowTo(1000, 5000);
+    expect(scrubber().style.opacity).toBe("0");
+    act(() => vi.advanceTimersByTime(1000));
+    expect(scrubber().style.opacity).toBe("1");
+
+    act(() => vi.advanceTimersByTime(2500));
+    expect(scrubber().style.opacity).toBe("0");
   });
 
-  it("switches exactly at the theme's sm breakpoint", async () => {
-    await renderAt(767);
-    expect(layer(".scrollscrubber").style.bottom).toBe("50px");
+  it("stays up while the long scrolls go on", () => {
+    renderMeasured(5000);
+    scrollWindowTo(100, 5000);
+    scrollWindowTo(1000, 5000);
+    act(() => vi.advanceTimersByTime(1000));
+    expect(scrubber().style.opacity).toBe("1");
 
-    await act(async () => {
-      root.unmount();
-    });
-    root = createRoot(container);
-    await renderAt(768);
-    expect(layer(".scrollscrubber").style.bottom).toBe("0px");
+    // Another jump while it is shown restarts the 2.5 s countdown
+    act(() => vi.advanceTimersByTime(1500));
+    scrollWindowTo(2000, 5000);
+    act(() => vi.advanceTimersByTime(1500));
+    expect(scrubber().style.opacity).toBe("1");
+
+    act(() => vi.advanceTimersByTime(1000));
+    expect(scrubber().style.opacity).toBe("0");
+  });
+
+  it("stays hidden on a short scroll", () => {
+    renderMeasured(5000);
+
+    scrollWindowTo(100, 5000);
+    scrollWindowTo(500, 5000);
+    act(() => vi.advanceTimersByTime(1000));
+
+    expect(scrubber().style.opacity).toBe("0");
   });
 });
