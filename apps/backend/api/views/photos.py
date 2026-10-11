@@ -802,8 +802,8 @@ class SetPhotosShared(APIView):
             )
             res_count = len(res)
         else:
-            # (count, per-model counts): a tuple, unlike the list above.
-            deleted = through_model.objects.filter(
+            # delete() returns (count, per-model counts): only the count matters.
+            res_count, _ = through_model.objects.filter(
                 user_id=target_user_id, photo_id__in=photo_ids
             ).delete()
             if photo_ids:
@@ -821,9 +821,8 @@ class SetPhotosShared(APIView):
                     ]
                 )
             logger.info(
-                f"Unshared {user.id}'s {len(deleted)} images to user {target_user_id}"
+                f"Unshared {user.id}'s {res_count} images to user {target_user_id}"
             )
-            res_count = deleted[0]
 
         return Response({"status": True, "count": res_count})
 
