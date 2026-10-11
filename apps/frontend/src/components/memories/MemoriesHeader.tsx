@@ -3,6 +3,7 @@ import { IconPlayerPlay as PlayerPlay, IconSparkles as Sparkles } from "@tabler/
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { MAX_MEMORY_ITEMS } from "../../api_client/memories";
+import { ICON_SIZE } from "../../ui-constants";
 import { PageHeader } from "../PageHeader";
 
 export type MemoriesView = "tiles" | "gallery";
@@ -44,7 +45,7 @@ export function MemoriesHeader({ view, onViewChange, onPlayAll, photoCount, capp
       actions={
         <>
           <Button
-            leftSection={<PlayerPlay size={16} />}
+            leftSection={<PlayerPlay size={ICON_SIZE.toolbar} />}
             variant="light"
             disabled={photoCount === 0}
             loading={loading}

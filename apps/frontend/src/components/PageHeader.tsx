@@ -1,10 +1,7 @@
 import { Group, Loader, Stack, Text, Title } from "@mantine/core";
 import type { TablerIcon } from "@tabler/icons-react";
 import type { ReactNode } from "react";
-
-// Every page header's icon, in px. Between the 50px album icons and the 35px settings icons,
-// so the same icon reads the same size on every page.
-export const PAGE_HEADER_ICON_SIZE = 40;
+import { PAGE_HEADER_ICON_SIZE } from "../ui-constants";
 
 type Props = Readonly<{
   icon: TablerIcon;

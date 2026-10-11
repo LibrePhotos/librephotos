@@ -39,7 +39,7 @@ import { useDuplicateStatsQuery } from "../../api_client/duplicates";
 import { useFetchUserListQuery, useFetchUserSelfDetailsQuery } from "../../api_client/user/hooks";
 import type { User } from "../../api_client/user/types";
 import { i18nResolvedLanguage } from "../../i18n";
-import { FAVORITE_COLOR } from "../../ui-constants";
+import { FAVORITE_COLOR, ICON_SIZE } from "../../ui-constants";
 import { ModalUserEdit } from "../modals/ModalUserEdit";
 import { PageHeader } from "../PageHeader";
 
@@ -68,7 +68,7 @@ function DuplicatesMenuItem({ onClick }: Readonly<{ onClick: () => void }>) {
 
   return (
     <Menu.Item
-      leftSection={<Copy color={theme.colors.yellow[6]} size={14} />}
+      leftSection={<Copy color={theme.colors.yellow[6]} size={ICON_SIZE.menu} />}
       rightSection={
         pending > 0 ? (
           <Badge size="sm" variant="light" color="yellow" circle={pending < 10}>
@@ -131,7 +131,7 @@ export function DefaultHeader(props: Props) {
   const isScanView = () => location.pathname === "/";
 
   // The view switcher marks the view the user is on.
-  const currentView = (to: string) => (location.pathname === to ? <Check size={14} /> : null);
+  const currentView = (to: string) => (location.pathname === to ? <Check size={ICON_SIZE.menu} /> : null);
 
   function getPhotoCounter() {
     if (loading) {
@@ -226,13 +226,13 @@ export function DefaultHeader(props: Props) {
         {/* A real button, so the view switcher is reachable from the keyboard. */}
         <Menu.Target>
           <UnstyledButton style={{ fontSize: "inherit" }}>
-            {title} <ChevronDown size={20} style={{ verticalAlign: "middle" }} />
+            {title} <ChevronDown size={ICON_SIZE.toolbar} style={{ verticalAlign: "middle" }} />
           </UnstyledButton>
         </Menu.Target>
 
         <Menu.Dropdown>
           <Menu.Item
-            leftSection={<Calendar color={theme.colors.green[6]} size={14} />}
+            leftSection={<Calendar color={theme.colors.green[6]} size={ICON_SIZE.menu} />}
             rightSection={currentView("/")}
             onClick={() => navigate({ to: "/" })}
           >
@@ -240,7 +240,7 @@ export function DefaultHeader(props: Props) {
           </Menu.Item>
 
           <Menu.Item
-            leftSection={<Calendar color={theme.colors.red[6]} size={14} />}
+            leftSection={<Calendar color={theme.colors.red[6]} size={ICON_SIZE.menu} />}
             rightSection={currentView("/notimestamp")}
             onClick={() => navigate({ to: "/notimestamp" })}
           >
@@ -250,7 +250,7 @@ export function DefaultHeader(props: Props) {
           <Menu.Divider />
 
           <Menu.Item
-            leftSection={<Clock size={14} />}
+            leftSection={<Clock size={ICON_SIZE.menu} />}
             rightSection={currentView("/recent")}
             onClick={() => navigate({ to: "/recent" })}
           >
@@ -258,7 +258,7 @@ export function DefaultHeader(props: Props) {
           </Menu.Item>
 
           <Menu.Item
-            leftSection={<Sparkles color={theme.colors.grape[6]} size={14} />}
+            leftSection={<Sparkles color={theme.colors.grape[6]} size={ICON_SIZE.menu} />}
             onClick={() => navigate({ to: "/memories" })}
           >
             {t("sidemenu.memories")}
@@ -267,7 +267,7 @@ export function DefaultHeader(props: Props) {
           <Menu.Divider />
 
           <Menu.Item
-            leftSection={<EyeOff color={theme.colors.red[6]} size={14} />}
+            leftSection={<EyeOff color={theme.colors.red[6]} size={ICON_SIZE.menu} />}
             rightSection={currentView("/hidden")}
             onClick={() => navigate({ to: "/hidden" })}
           >
@@ -275,7 +275,7 @@ export function DefaultHeader(props: Props) {
           </Menu.Item>
 
           <Menu.Item
-            leftSection={<Star color={FAVORITE_COLOR} size={14} />}
+            leftSection={<Star color={FAVORITE_COLOR} size={ICON_SIZE.menu} />}
             rightSection={currentView("/favorites")}
             onClick={() => navigate({ to: "/favorites" })}
           >
@@ -283,7 +283,7 @@ export function DefaultHeader(props: Props) {
           </Menu.Item>
 
           <Menu.Item
-            leftSection={<Photo color={theme.colors.blue[6]} size={14} />}
+            leftSection={<Photo color={theme.colors.blue[6]} size={ICON_SIZE.menu} />}
             rightSection={currentView("/photos")}
             onClick={() => navigate({ to: "/photos" })}
           >
@@ -291,7 +291,7 @@ export function DefaultHeader(props: Props) {
           </Menu.Item>
 
           <Menu.Item
-            leftSection={<Video color={theme.colors.pink[6]} size={14} />}
+            leftSection={<Video color={theme.colors.pink[6]} size={ICON_SIZE.menu} />}
             rightSection={currentView("/videos")}
             onClick={() => navigate({ to: "/videos" })}
           >
@@ -299,7 +299,7 @@ export function DefaultHeader(props: Props) {
           </Menu.Item>
 
           <Menu.Item
-            leftSection={<Screenshot color={theme.colors.violet[6]} size={14} />}
+            leftSection={<Screenshot color={theme.colors.violet[6]} size={ICON_SIZE.menu} />}
             rightSection={currentView("/screenshots")}
             onClick={() => navigate({ to: "/screenshots" })}
           >
@@ -307,7 +307,7 @@ export function DefaultHeader(props: Props) {
           </Menu.Item>
 
           <Menu.Item
-            leftSection={<Globe color={theme.colors.green[6]} size={14} />}
+            leftSection={<Globe color={theme.colors.green[6]} size={ICON_SIZE.menu} />}
             disabled={!auth?.access}
             onClick={() =>
               navigate(auth?.access ? { to: "/public/$users", params: { users: auth.access.name } } : { to: "/" })
@@ -322,7 +322,7 @@ export function DefaultHeader(props: Props) {
           <DuplicatesMenuItem onClick={() => navigate({ to: "/organizing/$tab", params: { tab: "duplicates" } })} />
 
           <Menu.Item
-            leftSection={<Stacks color={theme.colors.yellow[6]} size={14} />}
+            leftSection={<Stacks color={theme.colors.yellow[6]} size={ICON_SIZE.menu} />}
             onClick={() => navigate({ to: "/organizing/$tab", params: { tab: "stacks" } })}
           >
             {t("sidemenu.stacks")}

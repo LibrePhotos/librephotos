@@ -24,6 +24,7 @@ import { Tile } from "../../../components/Tile";
 import { VirtualGrid } from "../../../components/virtual/VirtualGrid";
 import type { GridCellProps } from "../../../components/virtual/VirtualGrid";
 import { ALBUM_GRID_GUTTER, useAlbumListGridConfig } from "../../../hooks/useAlbumListGridConfig";
+import { ICON_SIZE } from "../../../ui-constants";
 
 export const Route = createFileRoute("/_protected/album/persons/")({
   component: AlbumPeople,
@@ -169,7 +170,7 @@ function AlbumPeople() {
         })}
         actions={
           <Button
-            leftSection={<FaceId size={18} />}
+            leftSection={<FaceId size={ICON_SIZE.toolbar} />}
             variant="light"
             color="orange"
             onClick={() => navigate({ to: "/faces" })}
