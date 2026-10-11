@@ -2,7 +2,6 @@ import {
   ActionIcon,
   Button,
   Card,
-  Center,
   Container,
   Flex,
   Group,
@@ -32,6 +31,7 @@ import type { ListUser } from "../../api_client/user/types";
 import { useIsDesktopLayout } from "../../hooks/useIsDesktopLayout";
 import { parseInstant } from "../../util/dateUtils";
 import { EmptyState } from "../common/EmptyState";
+import { PageLoader } from "../common/PageLoader";
 import { JobList } from "../job/JobList";
 import { ModalUserDelete } from "../modals/ModalUserDelete";
 import { ModalUserEdit } from "../modals/ModalUserEdit";
@@ -254,11 +254,7 @@ export function AdminPage() {
   const { t } = useTranslation();
 
   if (isPending) {
-    return (
-      <Center py={80}>
-        <Loader />
-      </Center>
-    );
+    return <PageLoader />;
   }
 
   if (!currentUser?.is_superuser) {

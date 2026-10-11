@@ -1,5 +1,7 @@
+import { Modal } from "@mantine/core";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useFetchPhotoDetailsQuery } from "../../api_client/photos/hooks";
+import { FeatureBoundary, FeatureFallback } from "../common/FeatureBoundary";
 import { ContentViewer } from "./ContentViewer";
 import type { LightboxItem, LightBoxProps } from "./lightbox.types";
 
@@ -26,7 +28,28 @@ function usePrevious<T>(value: T): T | undefined {
   return ref.current;
 }
 
+/**
+ * A render error inside the viewer (video player, carousel, gestures, caption
+ * editor) shows a small dialog with Retry instead of replacing the page behind
+ * it. Closing the lightbox unmounts the boundary, so the next open starts clean.
+ */
 export function Lightbox(props: ExtendedLightBoxProps) {
+  const { onCloseRequest } = props;
+  return (
+    <FeatureBoundary
+      name="lightbox"
+      fallback={({ reset }) => (
+        <Modal opened onClose={onCloseRequest} centered>
+          <FeatureFallback reset={reset} />
+        </Modal>
+      )}
+    >
+      <LightboxViewer {...props} />
+    </FeatureBoundary>
+  );
+}
+
+function LightboxViewer(props: ExtendedLightBoxProps) {
   const {
     idx2hash,
     isPublic,

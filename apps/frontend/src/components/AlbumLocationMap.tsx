@@ -2,6 +2,7 @@ import React, { useMemo } from "react";
 import MapGL, { AttributionControl, Marker, NavigationControl } from "react-map-gl/maplibre";
 import { useMapStyle } from "../util/mapStyle";
 import { getAveragedCoordinates, PartialPhotoWithLocation } from "../util/util";
+import { FeatureBoundary } from "./common/FeatureBoundary";
 import { MapDisabledPlaceholder } from "./map/MapDisabledPlaceholder";
 import { ignoreMissingStyleImages } from "./map/mapImages";
 
@@ -40,21 +41,23 @@ export function AlbumLocationMap({ photos }: Readonly<Props>) {
   if (photosWithGPS.length > 0 && mapStyle !== null) {
     return (
       <div style={{ padding: 0 }}>
-        <MapGL
-          ref={ignoreMissingStyleImages}
-          initialViewState={{
-            longitude: avgLon,
-            latitude: avgLat,
-            zoom: 6,
-          }}
-          style={{ width: "100%", height: "300px" }}
-          mapStyle={mapStyle}
-          attributionControl={false}
-        >
-          <NavigationControl position="top-right" />
-          <AttributionControl compact={true} />
-          {markers}
-        </MapGL>
+        <FeatureBoundary name="map">
+          <MapGL
+            ref={ignoreMissingStyleImages}
+            initialViewState={{
+              longitude: avgLon,
+              latitude: avgLat,
+              zoom: 6,
+            }}
+            style={{ width: "100%", height: "300px" }}
+            mapStyle={mapStyle}
+            attributionControl={false}
+          >
+            <NavigationControl position="top-right" />
+            <AttributionControl compact={true} />
+            {markers}
+          </MapGL>
+        </FeatureBoundary>
       </div>
     );
   }

@@ -1,4 +1,4 @@
-import { Loader, Stack, Tabs, Text } from "@mantine/core";
+import { Stack, Tabs, Text } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { IconLink } from "@tabler/icons-react";
 import { createFileRoute } from "@tanstack/react-router";
@@ -8,6 +8,7 @@ import { z } from "zod";
 import { useFetchDateAlbumsQuery, useFetchUserAlbumsQuery } from "../../../api_client/albums/hooks";
 import { useFetchPhotoSharesQuery } from "../../../api_client/photos/hooks";
 import { Photoset, PigPhoto } from "../../../api_client/photos/types";
+import { PageLoader } from "../../../components/common/PageLoader";
 import { PageHeader } from "../../../components/PageHeader";
 import { PhotoListView } from "../../../components/photolist/PhotoListView";
 import { ModalAlbumShare } from "../../../components/sharing/ModalAlbumShare";
@@ -90,10 +91,7 @@ function PublicLinksPage() {
 
         <Tabs.Panel value="albums" keepMounted={false}>
           {isLoadingAlbums ? (
-            <Stack align="center" mt="xl">
-              <Loader />
-              <Text>{t("loading", "Loading...")}</Text>
-            </Stack>
+            <PageLoader label={t("loading", "Loading...")} />
           ) : publicAlbums.length === 0 ? (
             <Stack align="center" mt="xl">
               <Text c="dimmed">{t("sharing.noPublicAlbums", "No albums have been made public via link")}</Text>
@@ -107,10 +105,7 @@ function PublicLinksPage() {
           <Stack gap="md" pt="md">
             <PhotoSharesSection />
             {isLoadingPhotos || isLoadingShares ? (
-              <Stack align="center" mt="xl">
-                <Loader />
-                <Text>{t("loading", "Loading...")}</Text>
-              </Stack>
+              <PageLoader label={t("loading", "Loading...")} />
             ) : totalPhotos === 0 ? (
               photoShares.length === 0 && (
                 <Stack align="center" mt="xl">

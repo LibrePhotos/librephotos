@@ -27,6 +27,7 @@ import { invalidatePlaces } from "../../api_client/albums/invalidatePlaces";
 import { useGeocodeSearchQuery } from "../../api_client/geocode";
 import { useUpdatePhotoMutation } from "../../api_client/photos/hooks/useUpdatePhotoMutation";
 import { useMapStyle } from "../../util/mapStyle";
+import { FeatureBoundary } from "../common/FeatureBoundary";
 import { ignoreMissingStyleImages } from "./mapImages";
 
 type Props = Readonly<{
@@ -236,30 +237,32 @@ export function LocationPickerModal({ imageHash, onClose, initialLat, initialLon
 
       {mapStyle !== null && (
         <Box style={{ height: 350 }}>
-          <MapGL
-            ref={setMapRef}
-            initialViewState={{
-              longitude: initialCenter[1],
-              latitude: initialCenter[0],
-              zoom: initialZoom,
-            }}
-            style={{ width: "100%", height: 350 }}
-            mapStyle={mapStyle}
-            onClick={handleMapClick}
-            attributionControl={false}
-          >
-            <NavigationControl position="top-right" />
-            <AttributionControl compact={true} />
-            {position && (
-              <Marker
-                longitude={position[1]}
-                latitude={position[0]}
-                anchor="bottom"
-                draggable
-                onDragEnd={handleMarkerDragEnd}
-              />
-            )}
-          </MapGL>
+          <FeatureBoundary name="map">
+            <MapGL
+              ref={setMapRef}
+              initialViewState={{
+                longitude: initialCenter[1],
+                latitude: initialCenter[0],
+                zoom: initialZoom,
+              }}
+              style={{ width: "100%", height: 350 }}
+              mapStyle={mapStyle}
+              onClick={handleMapClick}
+              attributionControl={false}
+            >
+              <NavigationControl position="top-right" />
+              <AttributionControl compact={true} />
+              {position && (
+                <Marker
+                  longitude={position[1]}
+                  latitude={position[0]}
+                  anchor="bottom"
+                  draggable
+                  onDragEnd={handleMarkerDragEnd}
+                />
+              )}
+            </MapGL>
+          </FeatureBoundary>
         </Box>
       )}
 

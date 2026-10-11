@@ -1,4 +1,4 @@
-import { Loader, Title } from "@mantine/core";
+import { Title } from "@mantine/core";
 import { IconCloud } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import React, { useMemo, useState } from "react";
@@ -6,6 +6,7 @@ import useDimensions from "react-cool-dimensions";
 import { useTranslation } from "react-i18next";
 import { useFetchWordCloudQuery } from "../../api_client/stats/hooks";
 import { EmptyState } from "../common/EmptyState";
+import { PageLoader } from "../common/PageLoader";
 
 type WordItem = {
   label: string;
@@ -209,7 +210,7 @@ export function WordCloud(props: Props) {
   const hasData = words.length > 0;
 
   if (isLoading) {
-    return <Loader />;
+    return <PageLoader />;
   }
 
   if (!wordCloud || !hasData) {

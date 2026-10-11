@@ -4,7 +4,6 @@ import {
   Box,
   Card,
   Group,
-  Loader,
   Paper,
   RemoveScroll,
   ScrollArea,
@@ -22,6 +21,7 @@ import { useTranslation } from "react-i18next";
 import { serverAddress } from "../../api_client/apiClient";
 import { useClusterFacesQuery } from "../../api_client/faces/hooks/useClusterFacesQuery";
 import { EmptyState } from "../common/EmptyState";
+import { PageLoader } from "../common/PageLoader";
 import { Lightbox } from "../lightbox";
 
 type Props = Readonly<{
@@ -401,12 +401,7 @@ export function FaceClusterGraph({ height }: Props) {
   const hasData = points.length > 0;
 
   if (clustering) {
-    return (
-      <Stack align="center" justify="center" h={height}>
-        <Loader size="lg" />
-        <Text c="dimmed">{t("faceclusterloading")}</Text>
-      </Stack>
-    );
+    return <PageLoader label={t("faceclusterloading")} />;
   }
 
   if (clustered && hasData) {

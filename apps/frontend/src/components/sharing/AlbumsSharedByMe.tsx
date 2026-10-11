@@ -1,4 +1,4 @@
-import { Anchor, Avatar, Loader, Stack, Text } from "@mantine/core";
+import { Anchor, Avatar, Stack, Text } from "@mantine/core";
 import { useDisclosure, useElementSize, useMergedRef, useViewportSize } from "@mantine/hooks";
 import { IconShare, IconPolaroid as Polaroid } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
@@ -8,6 +8,7 @@ import { useFetchSharedAlbumsByMeQuery, type UserAlbumsGroupedByUserId } from ".
 import type { UserAlbumInfo } from "../../api_client/albums/types";
 import { useFetchUserListQuery } from "../../api_client/user/hooks";
 import { calculateGridCellSize, calculateSharedAlbumGridCells, type GroupedGridRows } from "../../util/gridUtils";
+import { PageLoader } from "../common/PageLoader";
 import { Tile } from "../Tile";
 import { VirtualGrid } from "../virtual/VirtualGrid";
 import type { GridCellProps } from "../virtual/VirtualGrid";
@@ -143,12 +144,7 @@ export function AlbumsSharedByMe() {
     <div ref={containerRef}>
       {/* Only before the first answer: a background refetch kept stacking a
           loader above the grid. */}
-      {isFetching && !isSuccess && (
-        <Stack align="center" mt="xl">
-          <Loader />
-          {t("sharing.loadingAlbumsSharedByYou")}
-        </Stack>
-      )}
+      {isFetching && !isSuccess && <PageLoader label={t("sharing.loadingAlbumsSharedByYou")} />}
 
       {albumGridContents.length === 0 && isSuccess && (
         <Stack align="center" mt="xl">
