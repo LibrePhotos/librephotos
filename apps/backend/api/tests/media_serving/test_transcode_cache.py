@@ -263,6 +263,33 @@ class RunTranscodeTest(CacheDirectoryTestCase):
         with open(self.final, "rb") as handle:
             self.assertEqual(handle.read(), b"video")
 
+    def _quick_watch(self):
+        for name, value in (("SPACE_CHECK_SECONDS", 0.1), ("STALL_SECONDS", 1)):
+            patch = mock.patch.object(transcode_cache, name, value)
+            patch.start()
+            self.addCleanup(patch.stop)
+
+    def test_a_conversion_that_stops_making_progress_is_killed(self):
+        """A stuck ffmpeg used to hold its slot and part-file until a restart."""
+        self._quick_watch()
+        code = f"open({self.part!r}, 'w').write('half'); import time; time.sleep(60)"
+        with self.assertLogs("api.transcode_cache", "WARNING") as logs:
+            self.assertIs(self._run_in_thread([sys.executable, "-c", code]), False)
+        self.assertIn("no progress", logs.output[0])
+        self.assertFalse(os.path.exists(self.part))
+        self.assertFalse(os.path.exists(self.final))
+
+    def test_a_slow_conversion_that_keeps_writing_is_left_alone(self):
+        self._quick_watch()
+        code = (
+            "import time\n"
+            f"with open({self.part!r}, 'w') as out:\n"
+            "    for _ in range(25):\n"
+            "        out.write('frame'); out.flush(); time.sleep(0.1)\n"
+        )
+        self.assertIs(self._run_in_thread([sys.executable, "-c", code]), True)
+        self.assertTrue(os.path.exists(self.final))
+
     def test_a_failed_conversion_says_why(self):
         code = (
             "import sys; sys.stderr.write('x' * 100000 + 'moov atom not found'); "

@@ -63,6 +63,14 @@ STALE_PART_SECONDS = 6 * 60 * 60
 # disk. Sizes are estimates and something else may be filling the volume.
 SPACE_CHECK_SECONDS = 15
 
+# No single timeout fits a conversion: a two-hour HDR film on a two-core ARM
+# box can take hours. What a stuck one does not do is make progress, so it is
+# killed once its part-file has not changed for this long. A live conversion,
+# even niced on a busy host, writes every few seconds, and the faststart pass
+# that rewrites the file at the end keeps touching it too. Generous on purpose:
+# killing a slow but live conversion throws its work away.
+STALL_SECONDS = 30 * 60
+
 PART_SUFFIX = ".part"
 
 
@@ -291,7 +299,7 @@ def run_transcode(
     The rename is the commit: nothing serves a file until ffmpeg has exited
     cleanly, so a conversion cut short by a restart or a filling disk leaves
     only a part-file behind, never a truncated video that plays half way and
-    stops.
+    stops. A conversion that stops making progress is killed (STALL_SECONDS).
     """
     root = root or os.path.dirname(part)
     # Not a pipe: nobody reads it while ffmpeg runs, and a file that decodes
@@ -307,11 +315,10 @@ def run_transcode(
             logger.warning("could not start a transcode for %s", final)
             _remove(part)
             return False
-        ran_out_of_room = _wait_while_there_is_room(process, root)
+        abandoned = _watch(process, part, root, final)
         complaint = _tail(stderr) if process.returncode != 0 else ""
 
-    if ran_out_of_room:
-        logger.info("abandoned caching %s: the disk is close to full", final)
+    if abandoned:
         _remove(part)
         return False
     if process.returncode != 0:
@@ -333,14 +340,40 @@ def run_transcode(
     return True
 
 
-def _wait_while_there_is_room(process: binaries.Process, root: str) -> bool:
-    """Wait for ``process``; kill it and return True if the disk fills up first."""
+def _watch(process: binaries.Process, part: str, root: str, final: str) -> bool:
+    """Wait for ``process``; kill it and return True if it has to be abandoned.
+
+    It is abandoned when the disk gets close to full, or when its part-file
+    stops changing for STALL_SECONDS.
+    """
+    progress = _progress(part)
+    last_change = time.monotonic()
     while binaries.wait(process, SPACE_CHECK_SECONDS) is None:
         if free_bytes(root) < _min_free_bytes():
-            process.kill()
-            process.wait()
-            return True
+            logger.info("abandoned caching %s: the disk is close to full", final)
+        else:
+            now = _progress(part)
+            if now != progress:
+                progress, last_change = now, time.monotonic()
+                continue
+            if time.monotonic() - last_change < STALL_SECONDS:
+                continue
+            logger.warning(
+                "abandoned caching %s: no progress for %s s", final, STALL_SECONDS
+            )
+        process.kill()
+        process.wait()
+        return True
     return False
+
+
+def _progress(part: str) -> tuple[int, int] | None:
+    """Size and modification time of the part-file: what changes while ffmpeg works."""
+    try:
+        stat = os.stat(part)
+    except OSError:
+        return None
+    return stat.st_size, stat.st_mtime_ns
 
 
 def _tail(stderr: IO[bytes]) -> str:
