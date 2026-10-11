@@ -102,9 +102,11 @@ async function handleUnauthorized(endpoint: string, response: Response): Promise
     }
     loggingOut = true;
   }
-  // Logout the user by blacklisting the refresh token
+  // Log out: the server blacklists the refresh token, if there still is one,
+  // and clears the HttpOnly jwt cookie, which this script cannot delete. A
+  // rejected sign-in or sign-up ends no session, unless a stale token is left.
   const refreshToken = getAuthCookie("refresh");
-  if (refreshToken) {
+  if (refreshToken || !staysOnPage) {
     try {
       await fetch(`${API_BASE_URL}/auth/token/blacklist/`, {
         method: "POST",

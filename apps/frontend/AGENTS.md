@@ -35,6 +35,9 @@ green CI run. To develop against a local backend, copy `.env.development.example
 - Dates: parse and format only through `src/util/dateUtils.ts` (luxon). Pick the parser by what the value is: `parsePhotoTimestamp` for an `exif_timestamp` (wall clock tagged UTC), `parseInstant` for a real instant, `fromUnixSeconds` for epoch seconds, the picker helpers for DateTimePicker values. No `.setLocale()`: the UI language is luxon's default, set in `i18n.ts`. dayjs is only Mantine's picker glue. `no-restricted-syntax` and `no-restricted-imports` in `eslint.config.mjs` enforce it.
 - Server data goes through `src/api_client` (and, where a domain has moved, `packages/api-client`):
   requests, zod schemas and React Query hooks live there, not in components.
+- Cookies go through `src/api_client/authCookies.ts` (`getAuthCookie`, `setAuthCookie`, `clearAuthCookies`),
+  which gives them their flags (path `/`, SameSite=Lax, Secure on HTTPS); lint bans `react-cookie` elsewhere.
+  The `jwt` cookie is HttpOnly and the server clears it on logout (`/api/auth/token/blacklist/`).
 - User-visible text uses `t()` with a key in `src/locales/en/translation.json`. Never edit the other
   locales; Weblate fills them in.
 - Colours come from the Mantine theme or CSS variables so dark mode works.
