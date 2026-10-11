@@ -61,7 +61,7 @@ PyExifTool==0.4.9  # pinned: 0.5.x changes break metadata extraction; do not bum
 # loaders; api/image_decoding.py falls back to Pillow with these two plugins.
 pyvips[binary]==3.2.0
 pyvips-binary==8.18.7
-pillow-heif==1.8.0
+pillow-heif==1.8.1
 pillow-jxl-plugin==1.3.8
 # scikit-learn: the backend-gpu image runs Python 3.10 (CUDA/ubuntu22.04), but
 # scikit-learn 1.8.0+ require Python >= 3.11. Keep the python_version < "3.11"
