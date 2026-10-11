@@ -32,7 +32,7 @@ function RecentlyAddedPhotos() {
     <PhotoListView
       title={t("photos.recentlyadded")}
       loading={status === "pending"}
-      icon={<Clock size={50} />}
+      icon={Clock}
       date={recentlyAddedPhotosDate}
       photoset={photosFlat}
       idx2hash={photosFlat}

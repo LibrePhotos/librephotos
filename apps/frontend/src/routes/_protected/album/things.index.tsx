@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import { useFetchThingsAlbumsQuery } from "../../../api_client/albums/hooks";
 import gridClasses from "../../../components/album/AlbumGridCell.module.css";
 import { EmptyState } from "../../../components/common/EmptyState";
-import { HeaderComponent } from "../../../components/HeaderComponent";
+import { PageHeader } from "../../../components/PageHeader";
 import { Tile } from "../../../components/Tile";
 import { VirtualGrid } from "../../../components/virtual/VirtualGrid";
 import type { GridCellProps } from "../../../components/virtual/VirtualGrid";
@@ -60,10 +60,10 @@ function AlbumThing() {
 
   return (
     <div>
-      <HeaderComponent
-        icon={<Tags size={50} />}
+      <PageHeader
+        icon={Tags}
         title={t("things")}
-        fetching={isFetching}
+        loading={isFetching}
         subtitle={t("thingalbum.showingthings", {
           count: albums?.length ?? 0,
           number: albums?.length ?? 0,

@@ -25,6 +25,7 @@ import {
 } from "../../api_client/user/hooks";
 import { PublicSharingDefaults, User } from "../../api_client/user/types";
 import { reportUserSaveError } from "../../util/apiErrors";
+import { PageHeader } from "../PageHeader";
 import { ConfigBurstDetection } from "./ConfigBurstDetection";
 import { ConfigDateTime } from "./ConfigDateTime";
 import { SaveChangesDialog } from "./SaveChangesDialog";
@@ -97,10 +98,7 @@ export function Settings() {
 
   return (
     <Container>
-      <Group gap="xs" mt={{ base: 20, sm: 40 }} mb={{ base: 10, sm: 20 }}>
-        <SettingIcon size={35} />
-        <Title order={1}>{t("settings.header")}</Title>
-      </Group>
+      <PageHeader icon={SettingIcon} title={t("settings.header")} />
       <Stack>
         <Card shadow="md">
           <Title order={4} mb={16}>

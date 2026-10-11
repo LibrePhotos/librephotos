@@ -62,6 +62,7 @@ import { reportUserSaveError } from "../../util/apiErrors";
 import { CountStats } from "../CountStats";
 import { ModalNextcloudScanDirectoryEdit } from "../modals/ModalNextcloudScanDirectoryEdit";
 import { ModalUserEdit } from "../modals/ModalUserEdit";
+import { PageHeader } from "../PageHeader";
 import { SaveChangesDialog } from "./SaveChangesDialog";
 
 // The action buttons share one minimum width so they line up; longer translations still grow.
@@ -235,10 +236,7 @@ export function Library() {
 
   return (
     <Container>
-      <Group gap="xs" mt={{ base: 20, sm: 40 }} mb={{ base: 10, sm: 20 }}>
-        <Book size={35} />
-        <Title order={1}>{t("settings.library")}</Title>
-      </Group>
+      <PageHeader icon={Book} title={t("settings.library")} />
 
       <Stack>
         <CountStats />

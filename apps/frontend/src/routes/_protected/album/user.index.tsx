@@ -8,7 +8,7 @@ import gridClasses from "../../../components/album/AlbumGridCell.module.css";
 import { UserAlbumCard } from "../../../components/album/UserAlbumCard";
 import { DeleteUserAlbumModal, RenameUserAlbumModal } from "../../../components/album/UserAlbumModals";
 import { EmptyState } from "../../../components/common/EmptyState";
-import { HeaderComponent } from "../../../components/HeaderComponent";
+import { PageHeader } from "../../../components/PageHeader";
 import { ModalAlbumShare } from "../../../components/sharing/ModalAlbumShare";
 import { VirtualGrid } from "../../../components/virtual/VirtualGrid";
 import type { GridCellProps } from "../../../components/virtual/VirtualGrid";
@@ -79,10 +79,10 @@ function AlbumUser() {
 
   return (
     <div>
-      <HeaderComponent
-        icon={<Bookmark size={50} />}
+      <PageHeader
+        icon={Bookmark}
         title={t("myalbums")}
-        fetching={isFetching}
+        loading={isFetching}
         subtitle={t("useralbum.numberof", {
           count: albums?.length ?? 0,
           number: albums?.length ?? 0,

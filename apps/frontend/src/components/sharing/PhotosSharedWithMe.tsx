@@ -86,7 +86,7 @@ export function PhotosSharedWithMe() {
           key={group.userId}
           title={t("sidemenu.photos")}
           loading={false}
-          icon={<Photo size={50} />}
+          icon={Photo}
           photoset={group.photos}
           idx2hash={group.photos}
           isPublic

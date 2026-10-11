@@ -11,7 +11,6 @@ import {
   Paper,
   Stack,
   Text,
-  Title,
   useMantineTheme,
 } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
@@ -37,6 +36,7 @@ import { SimilarPhotosSection } from "../../components/lightbox/SimilarPhotosSec
 import { TagsSection } from "../../components/lightbox/TagsSection";
 import { TimestampItem } from "../../components/lightbox/TimestampItem";
 import { ModalPersonEdit } from "../../components/modals/ModalPersonEdit";
+import { PageHeader } from "../../components/PageHeader";
 import { i18nResolvedLanguage } from "../../i18n";
 import { notification } from "../../service/notifications";
 import { parsePhotoTimestamp } from "../../util/dateUtils";
@@ -119,16 +119,14 @@ function SinglePhotoView() {
         <Stack gap={isMobile ? "xs" : "md"}>
           {/* Header Section */}
           <Stack gap="xs">
-            <Group justify="space-between" align="flex-start" wrap="nowrap">
-              <Group gap="xs" wrap="nowrap" style={{ maxWidth: "100%" }}>
-                <IconPhoto size={isMobile ? 30 : 45} />
+            <PageHeader
+              icon={IconPhoto}
+              title={
                 <Anchor href={`${serverAddress}/media/photos/${photoDetail.image_hash}`} target="_blank">
-                  <Title size={isMobile ? "h3" : "h2"} fw={800} lineClamp={1}>
-                    {fileName}
-                  </Title>
+                  {fileName}
                 </Anchor>
-              </Group>
-            </Group>
+              }
+            />
 
             <Group>
               <FileInfoComponent info={`${photoDetail.width} × ${photoDetail.height}`} size="sm" />

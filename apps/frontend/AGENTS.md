@@ -30,3 +30,4 @@ green CI run. To develop against a local backend, copy `.env.development.example
 - User-visible text uses `t()` with a key in `src/locales/en/translation.json`. Never edit the other
   locales; Weblate fills them in.
 - Colours come from the Mantine theme or CSS variables so dark mode works.
+- Every page header is `components/PageHeader` (the page's one `h1`); `PageHeader.test.tsx` fails on any other `order={1}` or `<h1` in source.

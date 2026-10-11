@@ -15,6 +15,7 @@
  * details panel never showed when or where a photo was taken.
  */
 import { MantineProvider } from "@mantine/core";
+import { IconPhoto } from "@tabler/icons-react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { UseNavigateResult } from "@tanstack/react-router";
 import React, { act } from "react";
@@ -176,7 +177,7 @@ async function render(props: Partial<PhotoListViewProps>) {
           <PhotoListView
             title="Photos"
             loading={false}
-            icon={<span />}
+            icon={IconPhoto}
             photoset={photoset}
             idx2hash={items}
             selectable

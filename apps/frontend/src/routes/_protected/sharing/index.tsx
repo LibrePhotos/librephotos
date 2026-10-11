@@ -19,11 +19,11 @@ import { Photoset } from "../../../api_client/photos/types";
 import { useFetchUserListQuery } from "../../../api_client/user/hooks";
 import type { ListUserList } from "../../../api_client/user/types";
 import classes from "../../../components/album/AlbumSection.module.css";
+import { PageHeader } from "../../../components/PageHeader";
 import { AlbumShareButton } from "../../../components/sharing/AlbumShareButton";
 import { avatarSrc } from "../../../components/sharing/avatarSrc";
 import { ModalAlbumShare } from "../../../components/sharing/ModalAlbumShare";
 import { ShareThumbnail } from "../../../components/sharing/ShareThumbnail";
-import { SharingPageHeader } from "../../../components/sharing/SharingPageHeader";
 import { Tile } from "../../../components/Tile";
 import { getPhotosFlatFromGroupedByDate } from "../../../util/util";
 
@@ -103,7 +103,7 @@ function SharingExplore() {
 
   return (
     <Box p="md">
-      <SharingPageHeader
+      <PageHeader
         icon={IconUsers}
         title={t("sidemenu.sharing")}
         subtitle={t("sharing.subtitle", "Photos and albums shared with others")}

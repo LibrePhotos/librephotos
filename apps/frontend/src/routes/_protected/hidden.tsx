@@ -63,7 +63,7 @@ function HiddenPhotos() {
     <PhotoListView
       title={t("photos.hidden")}
       loading={isLoading}
-      icon={<EyeOff size={50} />}
+      icon={EyeOff}
       photoset={photosGroupedByDate ?? []}
       updateGroups={getAlbums}
       idx2hash={photosFlat}

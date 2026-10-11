@@ -54,7 +54,7 @@ function DeletedPhotos() {
     <PhotoListView
       title={t("photos.deleted")}
       loading={isLoading}
-      icon={<Trash size={50} />}
+      icon={Trash}
       photoset={photosGroupedByDate ?? []}
       updateGroups={getAlbums}
       idx2hash={photosFlat}

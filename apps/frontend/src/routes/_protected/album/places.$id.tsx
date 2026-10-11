@@ -27,7 +27,7 @@ function AlbumPlaceGallery() {
       title={album?.title ?? (notFound ? t("places") : t("loading"))}
       loading={isLoading}
       emptyStateConfig={notFound ? albumNotFoundState(t, <Map size={40} />, "/album/places") : undefined}
-      icon={<Map size={50} />}
+      icon={Map}
       photoset={album?.grouped_photos ?? []}
       idx2hash={album?.grouped_photos.flatMap(el => el.items) ?? []}
       // No photo filter for an album that is not there

@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import { useAllFolderSubfolders } from "../../../api_client/albums/hooks";
 import gridClasses from "../../../components/album/AlbumGridCell.module.css";
 import { EmptyState } from "../../../components/common/EmptyState";
-import { HeaderComponent } from "../../../components/HeaderComponent";
+import { PageHeader } from "../../../components/PageHeader";
 import { VirtualGrid } from "../../../components/virtual/VirtualGrid";
 import type { GridCellProps } from "../../../components/virtual/VirtualGrid";
 import { ALBUM_GRID_GUTTER, useAlbumListGridConfig } from "../../../hooks/useAlbumListGridConfig";
@@ -49,10 +49,10 @@ function AlbumFolder() {
 
   return (
     <div>
-      <HeaderComponent
-        icon={<Folder size={50} />}
+      <PageHeader
+        icon={Folder}
         title={t("folders")}
-        fetching={isFetching}
+        loading={isFetching}
         subtitle={t("folders_count", { count: subfolders.length })}
       />
 

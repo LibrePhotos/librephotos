@@ -18,7 +18,7 @@ import {
 } from "../../../api_client/tags/hooks";
 import gridClasses from "../../../components/album/AlbumGridCell.module.css";
 import { EmptyState } from "../../../components/common/EmptyState";
-import { HeaderComponent } from "../../../components/HeaderComponent";
+import { PageHeader } from "../../../components/PageHeader";
 import { Tile } from "../../../components/Tile";
 import { VirtualGrid } from "../../../components/virtual/VirtualGrid";
 import type { GridCellProps } from "../../../components/virtual/VirtualGrid";
@@ -133,10 +133,10 @@ function AlbumTag() {
 
   return (
     <div>
-      <HeaderComponent
-        icon={<Tag size={50} />}
+      <PageHeader
+        icon={Tag}
         title={t("tags")}
-        fetching={isFetching}
+        loading={isFetching}
         subtitle={t("tagalbum.showingtags", { count: tags?.length ?? 0, number: tags?.length ?? 0 })}
       />
       {!isFetching && !hasTags ? (

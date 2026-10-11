@@ -5,9 +5,9 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchSharedAlbumsWithMeQuery } from "../../../api_client/albums/hooks";
 import { useFetchSharedPhotosWithMeQuery } from "../../../api_client/photos/hooks";
+import { PageHeader } from "../../../components/PageHeader";
 import { AlbumsSharedWithMe } from "../../../components/sharing/AlbumsSharedWithMe";
 import { PhotosSharedWithMe } from "../../../components/sharing/PhotosSharedWithMe";
-import { SharingPageHeader } from "../../../components/sharing/SharingPageHeader";
 
 export const Route = createFileRoute("/_protected/sharing/withme/$tab")({
   component: SharedWithMe,
@@ -46,9 +46,9 @@ function SharedWithMe() {
 
   return (
     <Stack p="md" gap={0}>
-      <SharingPageHeader
+      <PageHeader
         icon={IconDownload}
-        color="var(--mantine-color-green-6)"
+        iconColor="var(--mantine-color-green-6)"
         title={tab === "photos" ? t("sharing.photosOthersShared") : t("sharing.albumsOthersShared")}
         subtitle={getSubHeader(tab)}
       />

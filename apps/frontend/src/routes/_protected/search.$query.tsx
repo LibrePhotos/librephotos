@@ -48,7 +48,7 @@ function SearchView() {
       // No trailing "...": the header shows its own loading state.
       title={t("search.resultsfor", { query: searchQuery })}
       loading={isPending}
-      icon={<Search size={50} />}
+      icon={Search}
       photoset={currentUser?.semantic_search_topk ? photosFlat : photosGroupedByDate}
       idx2hash={photosFlat}
       mediaType={mediaType}

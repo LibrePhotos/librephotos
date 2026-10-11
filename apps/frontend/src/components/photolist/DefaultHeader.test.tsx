@@ -4,6 +4,7 @@
  * switcher was an h2 that could only be opened with a mouse.
  */
 import { MantineProvider } from "@mantine/core";
+import { IconPhoto } from "@tabler/icons-react";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import type { Root } from "react-dom/client";
@@ -41,7 +42,7 @@ async function render(props: Partial<React.ComponentProps<typeof DefaultHeader>>
           loading={false}
           numPhotosetItems={1}
           numPhotos={1}
-          icon={<span />}
+          icon={IconPhoto}
           title="Photos"
           additionalSubHeader={null}
           dayHeaderPrefix=""
@@ -98,7 +99,7 @@ describe("DefaultHeader counter", () => {
 describe("DefaultHeader view switcher", () => {
   it("opens from a button inside the heading, so the keyboard can reach it", async () => {
     const el = await render({});
-    const heading = defined(el.querySelector("h2"));
+    const heading = defined(el.querySelector("h1"));
     const button = heading.querySelector("button");
 
     expect(button).not.toBeNull();

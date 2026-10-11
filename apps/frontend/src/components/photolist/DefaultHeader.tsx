@@ -28,10 +28,10 @@ import {
   IconLayersSubtract as Stacks,
   IconStar as Star,
   IconVideo as Video,
+  type TablerIcon,
 } from "@tabler/icons-react";
 import { useNavigate, useRouter } from "@tanstack/react-router";
 import { DateTime } from "luxon";
-import type { ReactElement } from "react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAccessToken } from "../../api_client/auth/hooks";
@@ -39,14 +39,15 @@ import { useDuplicateStatsQuery } from "../../api_client/duplicates";
 import { useFetchUserListQuery, useFetchUserSelfDetailsQuery } from "../../api_client/user/hooks";
 import type { User } from "../../api_client/user/types";
 import { i18nResolvedLanguage } from "../../i18n";
-import { FAVORITE_COLOR } from "../../ui-constants";
+import { FAVORITE_COLOR, ICON_SIZE } from "../../ui-constants";
 import { ModalUserEdit } from "../modals/ModalUserEdit";
+import { PageHeader } from "../PageHeader";
 
 type Props = Readonly<{
   loading: boolean;
   numPhotosetItems: number;
   numPhotos: number;
-  icon: ReactElement;
+  icon: TablerIcon;
   title: string;
   additionalSubHeader: React.ReactNode;
   dayHeaderPrefix?: string;
@@ -67,7 +68,7 @@ function DuplicatesMenuItem({ onClick }: Readonly<{ onClick: () => void }>) {
 
   return (
     <Menu.Item
-      leftSection={<Copy color={theme.colors.yellow[6]} size={14} />}
+      leftSection={<Copy color={theme.colors.yellow[6]} size={ICON_SIZE.menu} />}
       rightSection={
         pending > 0 ? (
           <Badge size="sm" variant="light" color="yellow" circle={pending < 10}>
@@ -130,7 +131,7 @@ export function DefaultHeader(props: Props) {
   const isScanView = () => location.pathname === "/";
 
   // The view switcher marks the view the user is on.
-  const currentView = (to: string) => (location.pathname === to ? <Check size={14} /> : null);
+  const currentView = (to: string) => (location.pathname === to ? <Check size={ICON_SIZE.menu} /> : null);
 
   function getPhotoCounter() {
     if (loading) {
@@ -218,159 +219,137 @@ export function DefaultHeader(props: Props) {
     );
   }
 
+  // The view switcher on the views that have one; otherwise the plain title
+  const titleNode =
+    auth?.access && isMenuView() ? (
+      <Menu>
+        {/* A real button, so the view switcher is reachable from the keyboard. */}
+        <Menu.Target>
+          <UnstyledButton style={{ fontSize: "inherit" }}>
+            {title} <ChevronDown size={ICON_SIZE.toolbar} style={{ verticalAlign: "middle" }} />
+          </UnstyledButton>
+        </Menu.Target>
+
+        <Menu.Dropdown>
+          <Menu.Item
+            leftSection={<Calendar color={theme.colors.green[6]} size={ICON_SIZE.menu} />}
+            rightSection={currentView("/")}
+            onClick={() => navigate({ to: "/" })}
+          >
+            {t("sidemenu.photos")}
+          </Menu.Item>
+
+          <Menu.Item
+            leftSection={<Calendar color={theme.colors.red[6]} size={ICON_SIZE.menu} />}
+            rightSection={currentView("/notimestamp")}
+            onClick={() => navigate({ to: "/notimestamp" })}
+          >
+            {t("sidemenu.withouttimestamp")}
+          </Menu.Item>
+
+          <Menu.Divider />
+
+          <Menu.Item
+            leftSection={<Clock size={ICON_SIZE.menu} />}
+            rightSection={currentView("/recent")}
+            onClick={() => navigate({ to: "/recent" })}
+          >
+            {t("sidemenu.recentlyadded")}
+          </Menu.Item>
+
+          <Menu.Item
+            leftSection={<Sparkles color={theme.colors.grape[6]} size={ICON_SIZE.menu} />}
+            onClick={() => navigate({ to: "/memories" })}
+          >
+            {t("sidemenu.memories")}
+          </Menu.Item>
+
+          <Menu.Divider />
+
+          <Menu.Item
+            leftSection={<EyeOff color={theme.colors.red[6]} size={ICON_SIZE.menu} />}
+            rightSection={currentView("/hidden")}
+            onClick={() => navigate({ to: "/hidden" })}
+          >
+            {t("sidemenu.hidden")}
+          </Menu.Item>
+
+          <Menu.Item
+            leftSection={<Star color={FAVORITE_COLOR} size={ICON_SIZE.menu} />}
+            rightSection={currentView("/favorites")}
+            onClick={() => navigate({ to: "/favorites" })}
+          >
+            {t("sidemenu.favorites")}
+          </Menu.Item>
+
+          <Menu.Item
+            leftSection={<Photo color={theme.colors.blue[6]} size={ICON_SIZE.menu} />}
+            rightSection={currentView("/photos")}
+            onClick={() => navigate({ to: "/photos" })}
+          >
+            {t("mediafilter.photos")}
+          </Menu.Item>
+
+          <Menu.Item
+            leftSection={<Video color={theme.colors.pink[6]} size={ICON_SIZE.menu} />}
+            rightSection={currentView("/videos")}
+            onClick={() => navigate({ to: "/videos" })}
+          >
+            {t("sidemenu.videos")}
+          </Menu.Item>
+
+          <Menu.Item
+            leftSection={<Screenshot color={theme.colors.violet[6]} size={ICON_SIZE.menu} />}
+            rightSection={currentView("/screenshots")}
+            onClick={() => navigate({ to: "/screenshots" })}
+          >
+            {t("sidemenu.screenshots")}
+          </Menu.Item>
+
+          <Menu.Item
+            leftSection={<Globe color={theme.colors.green[6]} size={ICON_SIZE.menu} />}
+            disabled={!auth?.access}
+            onClick={() =>
+              navigate(auth?.access ? { to: "/public/$users", params: { users: auth.access.name } } : { to: "/" })
+            }
+          >
+            {t("sidemenu.mypublicphotos")}
+          </Menu.Item>
+
+          <Menu.Divider />
+          <Menu.Label>{t("sidemenu.organizing")}</Menu.Label>
+
+          <DuplicatesMenuItem onClick={() => navigate({ to: "/organizing/$tab", params: { tab: "duplicates" } })} />
+
+          <Menu.Item
+            leftSection={<Stacks color={theme.colors.yellow[6]} size={ICON_SIZE.menu} />}
+            onClick={() => navigate({ to: "/organizing/$tab", params: { tab: "stacks" } })}
+          >
+            {t("sidemenu.stacks")}
+          </Menu.Item>
+        </Menu.Dropdown>
+      </Menu>
+    ) : (
+      title
+    );
+
   return (
-    <div>
-      <Group justify="space-between">
-        {/* nowrap + minWidth 0: a long title wraps next to the icon instead of
-            dropping the whole text column below it. A tall subheader (folder
-            chips, people) keeps the icon at the top; otherwise it stays centred
-            on the title. */}
-        <Group
-          justify="flex-start"
-          align={additionalSubHeader ? "flex-start" : "center"}
-          wrap="nowrap"
-          style={{ flex: "1 1 auto", minWidth: 0 }}
-        >
-          {/* The text column takes the free space (flex: 1) and the icon never
-              shrinks, or a long title squeezed the icon to a sliver. */}
-          <Box style={{ flexShrink: 0, display: "flex" }}>{icon}</Box>
-          <div style={{ minWidth: 0, flex: 1 }}>
-            {auth?.access && isMenuView() ? (
-              <Title ta="left" order={2}>
-                <Menu>
-                  {/* A real button, so the view switcher is reachable from the keyboard. */}
-                  <Menu.Target>
-                    <UnstyledButton style={{ fontSize: "inherit" }}>
-                      {title} <ChevronDown size={20} style={{ verticalAlign: "middle" }} />
-                    </UnstyledButton>
-                  </Menu.Target>
-
-                  <Menu.Dropdown>
-                    <Menu.Item
-                      leftSection={<Calendar color={theme.colors.green[6]} size={14} />}
-                      rightSection={currentView("/")}
-                      onClick={() => navigate({ to: "/" })}
-                    >
-                      {t("sidemenu.photos")}
-                    </Menu.Item>
-
-                    <Menu.Item
-                      leftSection={<Calendar color={theme.colors.red[6]} size={14} />}
-                      rightSection={currentView("/notimestamp")}
-                      onClick={() => navigate({ to: "/notimestamp" })}
-                    >
-                      {t("sidemenu.withouttimestamp")}
-                    </Menu.Item>
-
-                    <Menu.Divider />
-
-                    <Menu.Item
-                      leftSection={<Clock size={14} />}
-                      rightSection={currentView("/recent")}
-                      onClick={() => navigate({ to: "/recent" })}
-                    >
-                      {t("sidemenu.recentlyadded")}
-                    </Menu.Item>
-
-                    <Menu.Item
-                      leftSection={<Sparkles color={theme.colors.grape[6]} size={14} />}
-                      onClick={() => navigate({ to: "/memories" })}
-                    >
-                      {t("sidemenu.memories")}
-                    </Menu.Item>
-
-                    <Menu.Divider />
-
-                    <Menu.Item
-                      leftSection={<EyeOff color={theme.colors.red[6]} size={14} />}
-                      rightSection={currentView("/hidden")}
-                      onClick={() => navigate({ to: "/hidden" })}
-                    >
-                      {t("sidemenu.hidden")}
-                    </Menu.Item>
-
-                    <Menu.Item
-                      leftSection={<Star color={FAVORITE_COLOR} size={14} />}
-                      rightSection={currentView("/favorites")}
-                      onClick={() => navigate({ to: "/favorites" })}
-                    >
-                      {t("sidemenu.favorites")}
-                    </Menu.Item>
-
-                    <Menu.Item
-                      leftSection={<Photo color={theme.colors.blue[6]} size={14} />}
-                      rightSection={currentView("/photos")}
-                      onClick={() => navigate({ to: "/photos" })}
-                    >
-                      {t("mediafilter.photos")}
-                    </Menu.Item>
-
-                    <Menu.Item
-                      leftSection={<Video color={theme.colors.pink[6]} size={14} />}
-                      rightSection={currentView("/videos")}
-                      onClick={() => navigate({ to: "/videos" })}
-                    >
-                      {t("sidemenu.videos")}
-                    </Menu.Item>
-
-                    <Menu.Item
-                      leftSection={<Screenshot color={theme.colors.violet[6]} size={14} />}
-                      rightSection={currentView("/screenshots")}
-                      onClick={() => navigate({ to: "/screenshots" })}
-                    >
-                      {t("sidemenu.screenshots")}
-                    </Menu.Item>
-
-                    <Menu.Item
-                      leftSection={<Globe color={theme.colors.green[6]} size={14} />}
-                      disabled={!auth?.access}
-                      onClick={() =>
-                        navigate(
-                          auth?.access ? { to: "/public/$users", params: { users: auth.access.name } } : { to: "/" }
-                        )
-                      }
-                    >
-                      {t("sidemenu.mypublicphotos")}
-                    </Menu.Item>
-
-                    <Menu.Divider />
-                    <Menu.Label>{t("sidemenu.organizing")}</Menu.Label>
-
-                    <DuplicatesMenuItem
-                      onClick={() => navigate({ to: "/organizing/$tab", params: { tab: "duplicates" } })}
-                    />
-
-                    <Menu.Item
-                      leftSection={<Stacks color={theme.colors.yellow[6]} size={14} />}
-                      onClick={() => navigate({ to: "/organizing/$tab", params: { tab: "stacks" } })}
-                    >
-                      {t("sidemenu.stacks")}
-                    </Menu.Item>
-                  </Menu.Dropdown>
-                </Menu>
-              </Title>
-            ) : (
-              // Long album names and search queries can be one unbroken word.
-              <Title ta="left" order={2} style={{ overflowWrap: "anywhere" }}>
-                {title}
-              </Title>
-            )}
-            {getPhotoCounter()}
-          </div>
-        </Group>
-        {(!hasEmptyState || numPhotosetItems > 0) && date && (
-          <Group justify="flex-end" wrap="nowrap">
-            <Text style={{ whiteSpace: "nowrap" }}>
-              <b>
-                {dayHeaderPrefix}
-                {DateTime.fromISO(date).isValid
-                  ? DateTime.fromISO(date).setLocale(i18nResolvedLanguage()).toLocaleString(DateTime.DATE_HUGE)
-                  : date}
-              </b>
-            </Text>
-          </Group>
-        )}
-      </Group>
-    </div>
+    <PageHeader
+      icon={icon}
+      title={titleNode}
+      subtitle={getPhotoCounter()}
+      actions={
+        (!hasEmptyState || numPhotosetItems > 0) && date ? (
+          <Text style={{ whiteSpace: "nowrap" }}>
+            <b>
+              {dayHeaderPrefix}
+              {DateTime.fromISO(date).isValid
+                ? DateTime.fromISO(date).setLocale(i18nResolvedLanguage()).toLocaleString(DateTime.DATE_HUGE)
+                : date}
+            </b>
+          </Text>
+        ) : undefined
+      }
+    />
   );
 }

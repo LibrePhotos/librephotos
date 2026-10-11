@@ -18,5 +18,9 @@ export const TOOLBAR_ACTION_SIZE = "lg";
 // Height of a text button in the same toolbar row (matches the lg ActionIcon).
 export const TOOLBAR_CONTROL_HEIGHT = "var(--ai-size-lg)";
 
+// Icon size (px) of the page header (components/PageHeader.tsx): between the 50px album icons
+// and the 35px settings icons, so one page-title icon reads the same size on every page.
+export const PAGE_HEADER_ICON_SIZE = 40;
+
 // Colour of the favourite star everywhere it appears.
 export const FAVORITE_COLOR = "var(--mantine-color-yellow-5)";

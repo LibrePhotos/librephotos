@@ -175,7 +175,7 @@ function TimestampPhotos() {
     <PhotoListView
       title={t("photos.photos")}
       loading={isLoading || !filterReady}
-      icon={<Photo size={50} />}
+      icon={Photo}
       photoset={photosGroupedByDate ?? []}
       idx2hash={photosFlat}
       updateGroups={getAlbums}

@@ -5,8 +5,8 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import type { ListUserList } from "../../../api_client/user";
 import { useFetchUserListQuery } from "../../../api_client/user/hooks";
+import { PageHeader } from "../../../components/PageHeader";
 import { avatarSrc } from "../../../components/sharing/avatarSrc";
-import { SharingPageHeader } from "../../../components/sharing/SharingPageHeader";
 
 export const Route = createFileRoute("/_protected/sharing/public")({
   component: PublicUserList,
@@ -24,7 +24,7 @@ function PublicUserList() {
   return (
     <Stack p="md" gap={0}>
       {/* Named like the section on the sharing overview that links here. */}
-      <SharingPageHeader
+      <PageHeader
         icon={IconWorld}
         title={t("sidemenu.publicphotos")}
         subtitle={isLoading ? undefined : t("sharing.userCount", { count: list.length })}
