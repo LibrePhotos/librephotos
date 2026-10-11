@@ -98,10 +98,8 @@ function SinglePhotoView() {
   }
 
   // Either separator: a library on Windows stores backslashed paths.
-  const fileName =
-    photoDetail.image_path && photoDetail.image_path.length > 0
-      ? photoDetail.image_path[0].split(/[\\/]/).pop()
-      : t("photopage.unknownfilename");
+  const firstImagePath = photoDetail.image_path?.[0];
+  const fileName = firstImagePath !== undefined ? firstImagePath.split(/[\\/]/).pop() : t("photopage.unknownfilename");
   const timestamp = photoDetail.exif_timestamp
     ? parsePhotoTimestamp(photoDetail.exif_timestamp)
         .setLocale(i18nResolvedLanguage())
@@ -136,9 +134,9 @@ function SinglePhotoView() {
                 <FileInfoComponent info={`${Math.round((photoDetail.size / 1024 / 1024) * 100) / 100} MB`} size="sm" />
               )}
               <FileInfoComponent info={timestamp} size="sm" />
-              {photoDetail.image_path && photoDetail.image_path.length > 0 && (
+              {firstImagePath !== undefined && (
                 <BreadcrumbPath
-                  fullPath={photoDetail.image_path[0].replace(/\\/g, "/").split("/").slice(0, -1).join("/")}
+                  fullPath={firstImagePath.replace(/\\/g, "/").split("/").slice(0, -1).join("/")}
                   size="sm"
                 />
               )}

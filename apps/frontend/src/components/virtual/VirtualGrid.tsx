@@ -144,8 +144,8 @@ export const VirtualGrid = forwardRef<VirtualGridHandle, VirtualGridProps>(funct
   // react-virtualized rendered every column index below it, and so does this.
   const renderedColumns = Math.max(0, Math.ceil(columnCount));
   const rows = virtualizer.getVirtualItems();
-  const firstRow = rows.length > 0 ? rows[0].index : -1;
-  const lastRow = rows.length > 0 ? rows[rows.length - 1].index : -1;
+  const firstRow = rows[0]?.index ?? -1;
+  const lastRow = rows[rows.length - 1]?.index ?? -1;
 
   const sectionCallback = useRef(onSectionRendered);
   sectionCallback.current = onSectionRendered;

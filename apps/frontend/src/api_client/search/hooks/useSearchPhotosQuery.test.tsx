@@ -144,7 +144,7 @@ describe("useSearchPhotosQuery", () => {
     await settle(() => result.isSuccess || result.isError);
 
     expect(result.isSuccess).toBe(true);
-    expect(result.data?.photosGroupedByDate[1].date).toBe(date);
+    expect(result.data?.photosGroupedByDate[1]?.date).toBe(date);
     expect(result.data?.photosFlat).toHaveLength(2);
     expect(stubs.parseError).not.toHaveBeenCalled();
   });

@@ -112,7 +112,8 @@ export function Profile() {
                 noClick
                 ref={dropzoneRef}
                 onDrop={accepted => {
-                  setAvatarImgSrc(URL.createObjectURL(accepted[0]));
+                  const [avatarFile] = accepted;
+                  if (avatarFile) setAvatarImgSrc(URL.createObjectURL(avatarFile));
                 }}
               >
                 {({ getRootProps, getInputProps }) => (

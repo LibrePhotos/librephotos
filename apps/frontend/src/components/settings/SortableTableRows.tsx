@@ -26,7 +26,7 @@ const INTERACTIVE = "button, input, textarea, select, option, a[href], label, [c
  * control, never the start of a drag - react-beautiful-dnd behaved the same way.
  */
 class RowPointerSensor extends PointerSensor {
-  static activators = [
+  static override activators = [
     {
       eventName: "onPointerDown" as const,
       handler: ({ nativeEvent: event }: PointerEvent) =>

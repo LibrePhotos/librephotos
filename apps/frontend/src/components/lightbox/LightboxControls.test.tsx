@@ -140,7 +140,7 @@ describe("LightboxControls", () => {
     });
 
     expect(stubs.markDeleted).toHaveBeenCalledWith({ image_hashes: ["h1"], deleted: true }, expect.anything());
-    stubs.markDeleted.mock.calls[0][1].onSuccess();
+    defined(stubs.markDeleted.mock.calls[0])[1].onSuccess();
     expect(onAfterTrashToggle).toHaveBeenCalledTimes(1);
   });
 

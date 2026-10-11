@@ -1,8 +1,9 @@
 name: typecheck-frontend
 
-# `vite build` does not type-check. This runs `tsc --noEmit` through a ratchet
-# (apps/frontend/scripts/typecheck-ratchet.mjs): errors already recorded in
-# apps/frontend/tsc-baseline.txt are tolerated, any new error fails the job.
+# `vite build` does not type-check. This runs plain `tsc --noEmit` over src/ and
+# vite.config.ts (`yarn typecheck`): the frontend has zero errors and no baseline,
+# so any error fails the job. The e2e suite is checked in lint-frontend.yml, after
+# its dependencies are installed.
 
 on:
   push:
@@ -44,5 +45,5 @@ jobs:
           cache-dependency-path: apps/frontend/yarn.lock
       - name: install dependencies
         run: yarn install --frozen-lockfile --network-timeout 1000000
-      - name: typecheck (no new errors vs tsc-baseline.txt)
+      - name: typecheck (zero errors)
         run: yarn run typecheck

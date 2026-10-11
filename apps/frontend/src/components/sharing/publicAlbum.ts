@@ -5,5 +5,5 @@
  * have dates. Such an album is shown as a flat grid instead.
  */
 export function isUndatedShare(groups: ReadonlyArray<{ date?: string | null }>): boolean {
-  return groups.length === 1 && !groups[0].date;
+  return groups.length === 1 && !groups[0]?.date;
 }

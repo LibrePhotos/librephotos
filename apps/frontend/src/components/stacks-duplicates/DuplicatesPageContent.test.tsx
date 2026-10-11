@@ -149,7 +149,7 @@ describe("deleting duplicate groups", () => {
     const cardMenus = Array.from(container.querySelectorAll<HTMLButtonElement>("button[aria-haspopup=menu]")).filter(
       target => !target.textContent
     );
-    await click(cardMenus[0]);
+    await click(rendered(cardMenus[0], "the first card menu"));
     await click(button("Delete Group"));
 
     expect(stubs.deleteDuplicate).not.toHaveBeenCalled();

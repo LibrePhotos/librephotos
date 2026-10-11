@@ -154,8 +154,8 @@ function stubPlayhead(video: HTMLVideoElement, ranges: [number, number][], start
     configurable: true,
     get: () => ({
       length: ranges.length,
-      start: (index: number) => ranges[index][0],
-      end: (index: number) => ranges[index][1],
+      start: (index: number) => defined(ranges[index])[0],
+      end: (index: number) => defined(ranges[index])[1],
     }),
   });
   return () => time;
@@ -569,7 +569,7 @@ describe("VideoPlayer conversion fallback", () => {
     });
 
     // Whole lines: the converted URL starts with the original one.
-    const lines = copied.mock.calls[0][0].split("\n");
+    const lines = defined(copied.mock.calls[0])[0].split("\n");
     expect(lines).toContain(converted);
     expect(lines).not.toContain(original);
     await unmount();
@@ -625,7 +625,7 @@ describe("VideoPlayer copy button", () => {
     });
 
     expect(copied).toHaveBeenCalledTimes(1);
-    const report = copied.mock.calls[0][0];
+    const report = defined(copied.mock.calls[0])[0];
     // The offending path and the remedy are the whole reason to copy this.
     expect(report).toContain("/data/SomeUser");
     expect(report).toContain("lightbox.videoerror.remedychmod");
@@ -648,7 +648,7 @@ describe("VideoPlayer copy button", () => {
       defined(container.querySelector<HTMLButtonElement>('[aria-label="lightbox.videoerror.copy"]')).click();
     });
 
-    const report = copied.mock.calls[0][0];
+    const report = defined(copied.mock.calls[0])[0];
     const facts = [
       factToText({
         label: "lightbox.videoerror.blockeddirectory",
@@ -673,7 +673,7 @@ describe("VideoPlayer copy button", () => {
       defined(container.querySelector<HTMLButtonElement>('[aria-label="lightbox.videoerror.copy"]')).click();
     });
 
-    const report = copied.mock.calls[0][0];
+    const report = defined(copied.mock.calls[0])[0];
     expect(report).toContain("lightbox.videoerror.permissionuser");
     // A regular user never receives filesystem detail, so none can leak here.
     expect(report).not.toContain("/data/");

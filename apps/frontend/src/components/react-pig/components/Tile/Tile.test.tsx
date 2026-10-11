@@ -158,8 +158,8 @@ describe("react-pig Tile accessibility", () => {
     });
 
     expect(handleClick).toHaveBeenCalledTimes(1);
-    expect(handleClick.mock.calls[0][0].shiftKey).toBe(true);
-    expect(handleClick.mock.calls[0][1]).toEqual(expect.objectContaining({ id: "photo-1" }));
+    expect(defined(handleClick.mock.calls[0], "the click call")[0].shiftKey).toBe(true);
+    expect(defined(handleClick.mock.calls[0], "the click call")[1]).toEqual(expect.objectContaining({ id: "photo-1" }));
     expect(handleSelection).not.toHaveBeenCalled();
   });
 

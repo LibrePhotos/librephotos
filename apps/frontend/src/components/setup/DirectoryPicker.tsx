@@ -70,7 +70,11 @@ export function DirectoryPicker(props: DirectoryPickerProps) {
       if (prev.length === 0) {
         return directoryTree;
       }
-      const tree = mergeDirTree(prev, directoryTree[0]);
+      const branch = directoryTree[0];
+      if (branch === undefined) {
+        return prev;
+      }
+      const tree = mergeDirTree(prev, branch);
       return [...tree];
     });
   }, [directoryTree]);

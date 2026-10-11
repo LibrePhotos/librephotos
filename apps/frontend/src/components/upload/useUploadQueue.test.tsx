@@ -1,6 +1,7 @@
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { defined } from "../../util/defined.test-utils";
 import { useUploadQueue, type UploadQueue } from "./useUploadQueue";
 
 const stubs = vi.hoisted(() => ({
@@ -92,10 +93,10 @@ describe("useUploadQueue", () => {
       ["dup.jpg", "duplicate", 100],
     ]);
     expect(stubs.uploadChunk).toHaveBeenCalledTimes(2);
-    expect(stubs.uploadChunk.mock.calls[0][0].form_data.get("upload_id")).toBeNull();
-    expect(stubs.uploadChunk.mock.calls[1][0].form_data.get("upload_id")).toBe("u1");
+    expect(defined(stubs.uploadChunk.mock.calls[0], "the first chunk call")[0].form_data.get("upload_id")).toBeNull();
+    expect(defined(stubs.uploadChunk.mock.calls[1], "the second chunk call")[0].form_data.get("upload_id")).toBe("u1");
     expect(stubs.uploadFinished).toHaveBeenCalledTimes(1);
-    const finished = stubs.uploadFinished.mock.calls[0][0];
+    const finished = defined(stubs.uploadFinished.mock.calls[0], "the finished call")[0];
     expect(finished.shouldInvalidate).toBe(false);
     expect(finished.formData.get("md5")).toBe("md5-fresh.jpg");
     expect(finished.formData.get("filename")).toBe("fresh.jpg");
@@ -111,8 +112,8 @@ describe("useUploadQueue", () => {
     });
     await settle();
 
-    expect(latest.items[0].status).toBe("error");
-    expect(latest.items[0].error).toBe("Network down");
+    expect(latest.items[0]?.status).toBe("error");
+    expect(latest.items[0]?.error).toBe("Network down");
     expect(stubs.invalidate).not.toHaveBeenCalled();
 
     await act(async () => {
@@ -121,7 +122,7 @@ describe("useUploadQueue", () => {
     await settle();
 
     expect(latest.items).toHaveLength(1);
-    expect(latest.items[0].status).toBe("done");
+    expect(latest.items[0]?.status).toBe("done");
     expect(stubs.invalidate).toHaveBeenCalledTimes(1);
   });
 
@@ -211,7 +212,7 @@ describe("useUploadQueue", () => {
       ["empty.jpg", "error"],
       ["ok.jpg", "done"],
     ]);
-    expect(latest.items[0].error).toBeTruthy();
+    expect(latest.items[0]?.error).toBeTruthy();
     expect(stubs.uploadFinished).toHaveBeenCalledTimes(1);
   });
 });

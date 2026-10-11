@@ -43,7 +43,9 @@ export function hydrateGroupsFromCachedPages<T>(groups: HydratableGroup<T>[], pa
     // page from before a deletion could otherwise resurrect photos.
     const end = Math.min(start + items.length, group.numberOfItems);
     for (let i = start; i < end; i++) {
-      group.items[i] = items[i - start];
+      const item = items[i - start];
+      if (item === undefined) continue;
+      group.items[i] = item;
     }
   });
 }

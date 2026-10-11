@@ -50,6 +50,9 @@ jobs:
           PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
       - name: lint
         run: yarn run lint:error
+      # tsc over the e2e suite, with the e2e dependencies installed above.
+      - name: typecheck e2e
+        run: yarn run typecheck:e2e
       - name: test
         run: yarn run test
       - name: build

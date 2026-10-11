@@ -1,4 +1,5 @@
 import { describe, expect, test } from "vitest";
+import { defined } from "../../util/defined.test-utils";
 import { Tag, TagAlbumResponse, TagListResponse } from "./types";
 
 const envelope = (results: unknown[]) => ({ count: results.length, next: null, previous: null, results });
@@ -18,15 +19,15 @@ describe("tag schemas", () => {
     const parsed = TagListResponse.parse(envelope([tagRow]));
 
     expect(parsed.results).toHaveLength(1);
-    expect(parsed.results[0].name).toBe("beach");
-    expect(parsed.results[0].cover_photos).toHaveLength(2);
+    expect(defined(parsed.results[0]).name).toBe("beach");
+    expect(defined(parsed.results[0]).cover_photos).toHaveLength(2);
   });
 
   test("a tag without photos still parses", () => {
     const parsed = TagListResponse.parse(envelope([{ id: 8, name: "empty", photo_count: 0, cover_photos: [] }]));
 
-    expect(parsed.results[0].photo_count).toBe(0);
-    expect(parsed.results[0].cover_photos).toEqual([]);
+    expect(defined(parsed.results[0]).photo_count).toBe(0);
+    expect(defined(parsed.results[0]).cover_photos).toEqual([]);
   });
 
   test("the create response parses into a Tag with its new id", () => {
@@ -64,6 +65,6 @@ describe("tag schemas", () => {
       },
     });
 
-    expect(parsed.results.grouped_photos[0].items).toHaveLength(1);
+    expect(defined(parsed.results.grouped_photos[0]).items).toHaveLength(1);
   });
 });

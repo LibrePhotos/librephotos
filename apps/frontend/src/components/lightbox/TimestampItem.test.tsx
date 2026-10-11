@@ -93,7 +93,7 @@ describe("TimestampItem", () => {
     await click(dayCell(container, "10"));
     await click(button(container, "Save"));
     expect(updatePhoto).toHaveBeenCalledTimes(1);
-    const { id, data } = updatePhoto.mock.calls[0][0];
+    const { id, data } = defined(updatePhoto.mock.calls[0])[0];
     expect(id).toBe("photoB");
     expect(data.exif_timestamp?.slice(0, 19)).toBe("2019-11-10T19:40:00");
   });

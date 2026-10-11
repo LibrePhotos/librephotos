@@ -22,14 +22,15 @@ function fileNameOf(path: string): string {
  * Get file variant type badge color and label
  */
 function getVariantBadgeProps(variant: FileVariant): { color: string; label: string } {
+  const unknownBadge = { color: "gray", label: "FILE" };
   const typeMap: Record<string, { color: string; label: string }> = {
     image: { color: "blue", label: "JPG" },
     raw: { color: "gray", label: "RAW" },
     video: { color: "grape", label: "VIDEO" },
     metadata: { color: "gray", label: "META" },
-    unknown: { color: "gray", label: "FILE" },
+    unknown: unknownBadge,
   };
-  return typeMap[variant.type] || typeMap.unknown;
+  return typeMap[variant.type] || unknownBadge;
 }
 
 /**
@@ -49,6 +50,7 @@ function PhotoInfoSection({
   const fileVariants = photoDetail.file_variants || [];
   const nonMainVariants = fileVariants.filter(v => !v.is_main);
   const hasVariants = nonMainVariants.length > 0;
+  const firstImagePath = photoDetail.image_path?.[0];
 
   return (
     // Full width, so the category badge lines up with the edit icons of the
@@ -60,9 +62,7 @@ function PhotoInfoSection({
           <div>
             <Anchor href={`${serverAddress}/media/photos/${photoDetail.image_hash}`} target="_blank">
               <Text fw={800} lineClamp={1} style={{ maxWidth: 225 }}>
-                {photoDetail.image_path && photoDetail.image_path.length > 0
-                  ? fileNameOf(photoDetail.image_path[0])
-                  : t("exif.unknownFilename")}
+                {firstImagePath !== undefined ? fileNameOf(firstImagePath) : t("exif.unknownFilename")}
               </Text>
             </Anchor>
             <Group gap="xs">
@@ -154,14 +154,15 @@ function AdditionalInfoSection({
   isPublic: boolean;
   t: TFunction;
 }) {
+  const firstImagePath = photoDetail.image_path?.[0];
   return (
     <Stack>
-      {!isPublic && photoDetail.image_path && photoDetail.image_path.length > 0 && (
+      {!isPublic && firstImagePath !== undefined && (
         <Group>
           <Text size="xs" c="dimmed">
             {t("exif.filepath")}
           </Text>
-          <BreadcrumbPath fullPath={photoDetail.image_path[0].replace(/\\/g, "/").split("/").slice(0, -1).join("/")} />
+          <BreadcrumbPath fullPath={firstImagePath.replace(/\\/g, "/").split("/").slice(0, -1).join("/")} />
         </Group>
       )}
       <FileInfoComponent description={t("exif.subjectdistance")} info={`${photoDetail.subjectDistance} m`} />

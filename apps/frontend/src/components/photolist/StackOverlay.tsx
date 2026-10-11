@@ -15,13 +15,14 @@ export function StackOverlay({ item }: { item: PigPhoto }) {
   const hasRawVariant = hasRawVariantProp === true;
 
   // Check for legacy RAW+JPEG stack (deprecated, for backwards compatibility)
-  const isRawJpegStack = stacks && stacks.length === 1 && stacks[0].type === "raw_jpeg";
+  const isRawJpegStack = stacks && stacks.length === 1 && stacks[0]?.type === "raw_jpeg";
 
   // Show RAW badge if photo has RAW variant (new model) or is in RAW+JPEG stack (legacy)
   const showRawBadge = hasRawVariant || isRawJpegStack;
 
   // Filter out deprecated stack types for stack indicator
   const activeStacks = stacks?.filter(s => s.type !== "raw_jpeg" && s.type !== "live_photo") || [];
+  const firstActiveStack = activeStacks[0];
   const hasActiveStacks = activeStacks.length > 0;
   const hasMultipleActiveStacks = activeStacks.length > 1;
 
@@ -51,8 +52,9 @@ export function StackOverlay({ item }: { item: PigPhoto }) {
           {hasMultipleActiveStacks ? (
             <span style={{ marginLeft: 2, fontSize: 12, fontWeight: 600 }}>{activeStacks.length}</span>
           ) : (
-            activeStacks[0].photo_count > 1 && (
-              <span style={{ marginLeft: 2, fontSize: 12, fontWeight: 600 }}>{activeStacks[0].photo_count}</span>
+            firstActiveStack &&
+            firstActiveStack.photo_count > 1 && (
+              <span style={{ marginLeft: 2, fontSize: 12, fontWeight: 600 }}>{firstActiveStack.photo_count}</span>
             )
           )}
         </div>

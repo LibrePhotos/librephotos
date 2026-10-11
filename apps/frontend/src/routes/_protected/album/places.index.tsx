@@ -128,8 +128,8 @@ function AlbumPlace({ height = 0 }: Props) {
   const initialViewState = useMemo(() => {
     const coordinates = geojsonData.features.map(feature => feature.geometry.coordinates);
     if (coordinates.length === 0) return WORLD_VIEW;
-    const longitudes = coordinates.map(([lng]) => lng);
-    const latitudes = coordinates.map(([, lat]) => lat);
+    const longitudes = coordinates.flatMap(([lng]) => (lng === undefined ? [] : [lng]));
+    const latitudes = coordinates.flatMap(([, lat]) => (lat === undefined ? [] : [lat]));
     const bounds: [[number, number], [number, number]] = [
       [Math.min(...longitudes), Math.min(...latitudes)],
       [Math.max(...longitudes), Math.max(...latitudes)],
@@ -180,20 +180,23 @@ function AlbumPlace({ height = 0 }: Props) {
       layers: ["clusters"],
     });
 
-    if (features.length > 0) {
-      const clusterId: unknown = features[0].properties?.cluster_id;
+    const feature = features[0];
+    if (feature !== undefined) {
+      const clusterId: unknown = feature.properties?.cluster_id;
       // The clustered GeoJSON source declared below
       const mapboxSource = mapRef.current.getSource("locations");
 
       if (isGeoJSONSource(mapboxSource) && typeof clusterId === "number") {
         try {
           const zoom = await mapboxSource.getClusterExpansionZoom(clusterId);
-          const { geometry } = features[0];
+          const { geometry } = feature;
 
           // A cluster is always a point
           if (geometry.type === "Point") {
             const [lng, lat] = geometry.coordinates;
-            mapRef.current.easeTo({ center: [lng, lat], zoom });
+            if (lng !== undefined && lat !== undefined) {
+              mapRef.current.easeTo({ center: [lng, lat], zoom });
+            }
           }
         } catch (err) {
           console.error("Error getting cluster expansion zoom:", err);
@@ -212,10 +215,10 @@ function AlbumPlace({ height = 0 }: Props) {
       return null;
     }
     const index = rowIndex * entriesPerRow + columnIndex;
-    if (index >= shownAlbums.length) {
+    const place = shownAlbums[index];
+    if (place === undefined) {
       return <div key={key} style={style} />;
     }
-    const place = shownAlbums[index];
     // Laid out like the other album grids: square cover, then a one-line title
     return (
       <div key={key} style={style}>

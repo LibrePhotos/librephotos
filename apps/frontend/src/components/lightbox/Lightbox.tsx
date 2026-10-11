@@ -112,7 +112,9 @@ export function Lightbox(props: ExtendedLightBoxProps) {
     const { idx2hash: effectiveIdx2hash } = getEffectiveNavigation();
     const currentIndex = effectiveIdx2hash.findIndex(image => image.id === lightboxImageId);
     const prevIndex = (currentIndex + effectiveIdx2hash.length - 1) % effectiveIdx2hash.length;
-    const newImageId = effectiveIdx2hash[prevIndex].id;
+    const newImage = effectiveIdx2hash[prevIndex];
+    if (!newImage) return;
+    const newImageId = newImage.id;
 
     setLightboxImageId(newImageId);
     onImageChange?.(newImageId);
@@ -122,7 +124,9 @@ export function Lightbox(props: ExtendedLightBoxProps) {
     const { idx2hash: effectiveIdx2hash } = getEffectiveNavigation();
     const currentIndex = effectiveIdx2hash.findIndex(image => image.id === lightboxImageId);
     const nextIndex = (currentIndex + effectiveIdx2hash.length + 1) % effectiveIdx2hash.length;
-    const newImageId = effectiveIdx2hash[nextIndex].id;
+    const newImage = effectiveIdx2hash[nextIndex];
+    if (!newImage) return;
+    const newImageId = newImage.id;
 
     setLightboxImageId(newImageId);
     onImageChange?.(newImageId);

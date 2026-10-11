@@ -29,6 +29,7 @@ import { HeaderComponent } from "../components/facedashboard/HeaderComponent";
 import { useCollapsedPersons } from "../components/facedashboard/hooks/useCollapsedPersons";
 import { isPersonCell, useVirtualizedGrid, type GridCell } from "../components/facedashboard/hooks/useVirtualizedGrid";
 import i18n from "../i18n";
+import { defined } from "../util/defined.test-utils";
 import { calculateFaceGridCells } from "../util/gridUtils";
 
 const stubs = vi.hoisted(() => ({
@@ -86,6 +87,7 @@ const ITEMS_PER_ROW = 4;
 // calculateFaceGridCellSize puts ITEMS_PER_ROW faces in a row at this width
 const GRID_WIDTH = 700;
 const PEOPLE = [person(1, "Alice", 9), person(2, "Bob", 5)];
+const ALICE = defined(PEOPLE[0], "Alice");
 const LISTS = { labeled: PEOPLE, inferred: [], unknown: [] };
 const NOTHING_COLLAPSED: Record<FacesTab, ReadonlySet<number>> = {
   labeled: new Set<number>(),
@@ -95,7 +97,7 @@ const NOTHING_COLLAPSED: Record<FacesTab, ReadonlySet<number>> = {
 
 type HeaderProps = React.ComponentProps<typeof HeaderComponent>;
 
-const nameOf = (cell: GridCell) => (isPersonCell(cell) ? cell.name : undefined);
+const nameOf = (cell: GridCell | undefined) => (cell && isPersonCell(cell) ? cell.name : undefined);
 const isPlaceholderFace = (cell: GridCell): cell is PersonFace => !isPersonCell(cell) && cell.isTemp === true;
 
 async function renderHeader(
@@ -239,8 +241,8 @@ describe("issue #405 - fold/unfold person groups on the faces page", () => {
 
     expect(cellContents).toHaveLength(1 + 1 + Math.ceil(5 / ITEMS_PER_ROW));
     // Bob's header follows Alice's immediately - no empty rows left behind
-    expect(nameOf(cellContents[0][0])).toBe("Alice");
-    expect(nameOf(cellContents[1][0])).toBe("Bob");
+    expect(nameOf(cellContents[0]?.[0])).toBe("Alice");
+    expect(nameOf(cellContents[1]?.[0])).toBe("Bob");
   });
 
   it("keeps every person reachable when all groups are collapsed", () => {
@@ -261,7 +263,7 @@ describe("issue #405 - fold/unfold person groups on the faces page", () => {
 
   it("shows the face count and an expandable toggle while collapsed", async () => {
     const toggled: number[] = [];
-    const { toggle, text, cleanup } = await renderHeader(PEOPLE[0], true, () => toggled.push(PEOPLE[0].id));
+    const { toggle, text, cleanup } = await renderHeader(ALICE, true, () => toggled.push(ALICE.id));
 
     // Collapsed, the count is the only remaining signal of how big the group is
     expect(text).toContain("9 Faces");
@@ -271,13 +273,13 @@ describe("issue #405 - fold/unfold person groups on the faces page", () => {
     await act(async () => {
       toggle?.click();
     });
-    expect(toggled).toEqual([PEOPLE[0].id]);
+    expect(toggled).toEqual([ALICE.id]);
 
     await cleanup();
   });
 
   it("labels the toggle as collapsible while expanded", async () => {
-    const { toggle, cleanup } = await renderHeader(PEOPLE[0], false, () => {});
+    const { toggle, cleanup } = await renderHeader(ALICE, false, () => {});
 
     expect(toggle?.getAttribute("aria-expanded")).toBe("true");
     expect(toggle?.getAttribute("aria-label")).toBe("Collapse Alice");
@@ -289,7 +291,12 @@ describe("issue #405 - fold/unfold person groups on the faces page", () => {
     // A group whose first face arrived, while the rest are still placeholders carrying their
     // index as id - selecting those would act on whatever real faces own ids 1 and 2
     const alice = person(1, "Alice", 3);
-    alice.faces[0] = { ...alice.faces[0], id: 4711, face_url: "/media/faces/4711.jpg", isTemp: false };
+    alice.faces[0] = {
+      ...defined(alice.faces[0], "the first face"),
+      id: 4711,
+      face_url: "/media/faces/4711.jpg",
+      isTemp: false,
+    };
     const selections: Parameters<HeaderProps["setSelectedFaces"]>[0][] = [];
     const { selectAll, cleanup } = await renderHeader(
       alice,
@@ -326,7 +333,7 @@ describe("issue #405 - fold/unfold person groups on the faces page", () => {
     });
 
     expect(requests).toHaveLength(1);
-    expect(requests[0].map(request => request.person)).toEqual([1]);
+    expect(defined(requests[0], "the first request batch").map(request => request.person)).toEqual([1]);
 
     // Folding Alice pulls Bob's faces into those same rows without moving the row range
     await view.render({ ...NOTHING_COLLAPSED, labeled: new Set([1]) });
@@ -334,7 +341,7 @@ describe("issue #405 - fold/unfold person groups on the faces page", () => {
     expect(view.grid.getCellContentsForTab(FacesTab.enum.labeled)).toHaveLength(1 + 1 + Math.ceil(5 / ITEMS_PER_ROW));
     expect(view.grid.gridHeight).toBe(4 * (GRID_WIDTH / ITEMS_PER_ROW));
     expect(requests).toHaveLength(2);
-    expect(requests[1].map(request => request.person)).toEqual([2]);
+    expect(defined(requests[1], "the second request batch").map(request => request.person)).toEqual([2]);
 
     await view.cleanup();
   });

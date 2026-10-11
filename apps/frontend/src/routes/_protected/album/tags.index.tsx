@@ -69,10 +69,10 @@ function AlbumTag() {
       return null;
     }
     const index = rowIndex * entriesPerRow + columnIndex;
-    if (index >= tags.length) {
+    const tag = tags[index];
+    if (tag === undefined) {
       return <div key={key} style={style} />;
     }
-    const tag = tags[index];
     const cover = tag.cover_photos[0];
     return (
       <div key={key} style={style}>

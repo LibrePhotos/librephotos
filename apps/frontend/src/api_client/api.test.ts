@@ -4,6 +4,7 @@
  * actually send a readable message. See issue #492.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { defined } from "../util/defined.test-utils";
 import { ApiError, fetchClient } from "./api";
 
 vi.mock("../service/notifications", () => ({
@@ -111,7 +112,7 @@ function setCookie(name: string, value: string) {
 
 function clearCookies() {
   document.cookie.split(";").forEach(cookie => {
-    const name = cookie.split("=")[0].trim();
+    const name = cookie.split("=")[0]?.trim();
     if (name) document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
   });
 }
@@ -279,8 +280,8 @@ describe("FetchClient request bodies", () => {
 
     await fetchClient.post("/upload/", form);
 
-    expect(calls[0].init.body).toBe(form);
-    expect(new Headers(calls[0].init.headers).has("Content-Type")).toBe(false);
+    expect(defined(calls[0], "the request").init.body).toBe(form);
+    expect(new Headers(defined(calls[0], "the request").init.headers).has("Content-Type")).toBe(false);
   });
 
   it("sends a JSON Content-Type for a string body that mentions FormData", async () => {
@@ -288,7 +289,7 @@ describe("FetchClient request bodies", () => {
 
     await fetchClient.request("/photos/edit/", { method: "POST", body: JSON.stringify({ caption: "FormData" }) });
 
-    expect(new Headers(calls[0].init.headers).get("Content-Type")).toBe("application/json");
+    expect(new Headers(defined(calls[0], "the request").init.headers).get("Content-Type")).toBe("application/json");
   });
 
   it("serializes plain objects as JSON", async () => {
@@ -296,8 +297,8 @@ describe("FetchClient request bodies", () => {
 
     await fetchClient.post("/photos/edit/", { caption: "hi" });
 
-    expect(calls[0].init.body).toBe(JSON.stringify({ caption: "hi" }));
-    expect(new Headers(calls[0].init.headers).get("Content-Type")).toBe("application/json");
+    expect(defined(calls[0], "the request").init.body).toBe(JSON.stringify({ caption: "hi" }));
+    expect(new Headers(defined(calls[0], "the request").init.headers).get("Content-Type")).toBe("application/json");
   });
 });
 
@@ -346,7 +347,7 @@ describe("FetchClient response types", () => {
 
     await fetchClient.getBlob("/serverlogs");
 
-    expect(calls[0].url).toBe("/api/serverlogs");
-    expect(calls[0].init).not.toHaveProperty("responseType");
+    expect(defined(calls[0], "the request").url).toBe("/api/serverlogs");
+    expect(defined(calls[0], "the request").init).not.toHaveProperty("responseType");
   });
 });

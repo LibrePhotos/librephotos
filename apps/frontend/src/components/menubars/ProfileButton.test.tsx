@@ -66,7 +66,7 @@ const avatarButton = () => {
   return found;
 };
 const ring = () => container.querySelector('[data-testid="worker-progress-ring"]');
-const arcOffset = () => ring()?.querySelectorAll("circle")[1].getAttribute("stroke-dashoffset");
+const arcOffset = () => ring()?.querySelectorAll("circle")[1]?.getAttribute("stroke-dashoffset");
 const openMenu = async () => act(async () => avatarButton().click());
 const jobSection = () => container.querySelector('[data-testid="worker-job-section"]');
 

@@ -1,6 +1,7 @@
 import { RecentlyAddedPhotosResponse } from "@librephotos/api-client";
 import { describe, expect, test } from "vitest";
 import { z } from "zod";
+import { defined } from "../../util/defined.test-utils";
 import { Photo, PhotoMetadata, PhotoOcrData, Photoset, PigPhoto } from "./types";
 
 /**
@@ -175,14 +176,16 @@ describe("PhotoMetadata schema vs. PhotoMetadataSerializer", () => {
     const parsed = PhotoMetadata.parse(fullMetadata);
 
     expect(parsed.edit_history).toHaveLength(1);
-    expect(parsed.edit_history[0].id).toBe("b1d4e7a2-5c36-4f88-9e10-7a2b3c4d5e6f");
-    expect(parsed.edit_history[0].user_name).toBe("derneuere");
-    expect(parsed.edit_history[0].synced_at).toBeNull();
+    const edit = defined(parsed.edit_history[0]);
+    expect(edit.id).toBe("b1d4e7a2-5c36-4f88-9e10-7a2b3c4d5e6f");
+    expect(edit.user_name).toBe("derneuere");
+    expect(edit.synced_at).toBeNull();
 
     expect(parsed.sidecar_files).toHaveLength(1);
-    expect(parsed.sidecar_files[0].id).toBe("c9e8f7a6-1b2c-4d3e-8f90-a1b2c3d4e5f6");
-    expect(parsed.sidecar_files[0].file_type).toBe("xmp");
-    expect(parsed.sidecar_files[0].source).toBe("software");
+    const sidecar = defined(parsed.sidecar_files[0]);
+    expect(sidecar.id).toBe("c9e8f7a6-1b2c-4d3e-8f90-a1b2c3d4e5f6");
+    expect(sidecar.file_type).toBe("xmp");
+    expect(sidecar.source).toBe("software");
   });
 
   test("rejects a numeric id, so the schema cannot silently drift back", () => {
@@ -232,8 +235,9 @@ describe("Photo OCR (live text) schema", () => {
 
   test("accepts the serializer payload", () => {
     const parsed = PhotoOcrData.parse(ocrPayload);
-    expect(parsed.blocks[0].box).toHaveLength(4);
-    expect(parsed.blocks[0].box[1]).toEqual([0.6, 0.1]);
+    const block = defined(parsed.blocks[0]);
+    expect(block.box).toHaveLength(4);
+    expect(block.box[1]).toEqual([0.6, 0.1]);
   });
 
   test("accepts a legacy row: text without blocks", () => {

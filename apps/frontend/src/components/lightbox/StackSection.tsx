@@ -150,7 +150,8 @@ export function StackSection({ photoDetail, onPhotoSelect }: StackSectionProps) 
   const { stacks } = photoDetail;
   const [selectedStackId, setSelectedStackId] = useState<string | null>(null);
 
-  if (!stacks || stacks.length === 0) {
+  const firstStack = stacks?.[0];
+  if (!stacks || firstStack === undefined) {
     return null;
   }
 
@@ -170,13 +171,13 @@ export function StackSection({ photoDetail, onPhotoSelect }: StackSectionProps) 
                 color="gray"
                 size="sm"
                 aria-label={t("lightbox.sidebar.openStack", "View full stack")}
-                onClick={() => setSelectedStackId(stacks[0].id)}
+                onClick={() => setSelectedStackId(firstStack.id)}
               >
                 <IconExternalLink size={16} />
               </ActionIcon>
             </Tooltip>
           </Group>
-          <SingleStackCard stack={stacks[0]} photoId={photoDetail.id} t={t} onPhotoSelect={onPhotoSelect} />
+          <SingleStackCard stack={firstStack} photoId={photoDetail.id} t={t} onPhotoSelect={onPhotoSelect} />
         </Stack>
 
         {selectedStackId && (
@@ -204,7 +205,7 @@ export function StackSection({ photoDetail, onPhotoSelect }: StackSectionProps) 
           {t("lightbox.sidebar.multipleStacksInfo", "This photo belongs to multiple groupings")}
         </Text>
 
-        <Accordion variant="separated" radius="sm" defaultValue={stacks[0].type}>
+        <Accordion variant="separated" radius="sm" defaultValue={firstStack.type}>
           {stacks.map(stack => {
             const icon = stackTypeIcons[stack.type];
             const color = stackTypeColors[stack.type];

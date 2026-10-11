@@ -1,4 +1,5 @@
 import { describe, expect, test } from "vitest";
+import { defined } from "../../../util/defined.test-utils";
 import { addTempElementsToGroups, tempPigPhoto } from "../../../util/util";
 import { IncompleteDatePhotosGroup, Photoset, PigPhoto } from "../../photos/types";
 import {
@@ -102,9 +103,9 @@ describe("hydrateGroupsFromCachedPages", () => {
 
     hydrateGroupsFromCachedPages(groups, [{ albumDateId: "2026-08-05", page: 1, items: [photo("a"), photo("b")] }]);
 
-    expect(groups[0].items.map(i => i.id)).toEqual(["a", "b", "2"]);
-    expect(groups[0].items[2].isTemp).toBe(true);
-    expect(groups[1].items.every(i => i.isTemp)).toBe(true);
+    expect(groups[0]?.items.map(i => i.id)).toEqual(["a", "b", "2"]);
+    expect(defined(groups[0]?.items[2]).isTemp).toBe(true);
+    expect(groups[1]?.items.every(i => i.isTemp)).toBe(true);
   });
 
   test("places later pages at their page offset", () => {
@@ -112,8 +113,8 @@ describe("hydrateGroupsFromCachedPages", () => {
 
     hydrateGroupsFromCachedPages(groups, [{ albumDateId: "d", page: 2, items: [photo("last")] }]);
 
-    expect(groups[0].items[DATE_ALBUM_PAGE_SIZE].id).toBe("last");
-    expect(groups[0].items.slice(0, DATE_ALBUM_PAGE_SIZE).every(i => i.isTemp)).toBe(true);
+    expect(groups[0]?.items[DATE_ALBUM_PAGE_SIZE]?.id).toBe("last");
+    expect(groups[0]?.items.slice(0, DATE_ALBUM_PAGE_SIZE).every(i => i.isTemp)).toBe(true);
   });
 
   test("does not grow a group past the server-reported count", () => {
@@ -121,7 +122,7 @@ describe("hydrateGroupsFromCachedPages", () => {
 
     hydrateGroupsFromCachedPages(groups, [{ albumDateId: "d", page: 1, items: [photo("a"), photo("deleted")] }]);
 
-    expect(groups[0].items.map(i => i.id)).toEqual(["a"]);
+    expect(groups[0]?.items.map(i => i.id)).toEqual(["a"]);
   });
 
   test("ignores pages of days that are no longer in the list", () => {
@@ -129,6 +130,6 @@ describe("hydrateGroupsFromCachedPages", () => {
 
     hydrateGroupsFromCachedPages(groups, [{ albumDateId: "gone", page: 1, items: [photo("x")] }]);
 
-    expect(groups[0].items[0].isTemp).toBe(true);
+    expect(defined(groups[0]?.items[0]).isTemp).toBe(true);
   });
 });

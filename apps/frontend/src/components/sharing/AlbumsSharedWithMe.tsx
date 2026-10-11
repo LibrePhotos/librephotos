@@ -43,15 +43,17 @@ export function AlbumsSharedWithMe() {
   }, [albumsSharedToMe, isSuccess, numEntrySquaresPerRow]);
 
   const rowHeight = useCallback(
-    ({ index }: { index: number }) =>
+    ({ index }: { index: number }) => {
+      const firstCell = albumGridContents[index]?.[0];
       // a sharer header row, or a row of album covers with their title and count
-      "user_id" in albumGridContents[index][0] ? DAY_HEADER_HEIGHT : entrySquareSize + CAPTION_HEIGHT,
+      return firstCell !== undefined && "user_id" in firstCell ? DAY_HEADER_HEIGHT : entrySquareSize + CAPTION_HEIGHT;
+    },
     [albumGridContents, entrySquareSize]
   );
 
   const cellRenderer = ({ columnIndex, key, rowIndex, style }: GridCellProps) => {
-    if (albumGridContents[rowIndex][columnIndex]) {
-      const cell = albumGridContents[rowIndex][columnIndex];
+    const cell = albumGridContents[rowIndex]?.[columnIndex];
+    if (cell) {
       if ("user_id" in cell) {
         // sharer info header
         const owner = users?.filter(e => e.id === cell.user_id)[0];

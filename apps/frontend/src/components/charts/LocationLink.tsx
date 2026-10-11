@@ -59,7 +59,7 @@ type TreeLinkProps = {
   strokeWidth: number;
   strokeLinecap: "round";
   fill: string;
-  className: string;
+  className?: string;
 };
 
 // visx types LinkRadial's angle and radius as required, but they default to the node's x and y

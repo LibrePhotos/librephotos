@@ -83,7 +83,7 @@ describe("locked album selection actions", () => {
         );
       });
       await act(async () => {
-        container.querySelectorAll("button")[1].click();
+        defined(container.querySelectorAll("button")[1], "the second button").click();
       });
       await act(async () => {
         await new Promise(resolve => setTimeout(resolve, 250));

@@ -8,6 +8,7 @@
  * first would pass every other test here and fail on every Mac.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { defined } from "./defined.test-utils";
 import { canCopyImagesToClipboard, copyImageToClipboard } from "./imageClipboard";
 
 type Deferred<T> = { promise: Promise<T>; resolve: (value: T) => void; reject: (reason: unknown) => void };
@@ -138,7 +139,7 @@ describe("copyImageToClipboard", () => {
 
     // Nothing has been fetched yet, and the write is already issued.
     expect(stubs.write).toHaveBeenCalledTimes(1);
-    const [item] = stubs.write.mock.calls[0][0];
+    const item = defined(defined(stubs.write.mock.calls[0])[0][0]);
     expect(item.data["image/png"]).toBeInstanceOf(Promise);
 
     respondWith(webp);
@@ -168,7 +169,7 @@ describe("copyImageToClipboard", () => {
     await pending;
 
     expect(createImageBitmap).not.toHaveBeenCalled();
-    const [item] = stubs.write.mock.calls[0][0];
+    const item = defined(defined(stubs.write.mock.calls[0])[0][0]);
     await expect(item.data["image/png"]).resolves.toBe(png);
   });
 

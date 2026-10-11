@@ -745,6 +745,7 @@ function PhotoListViewComponent({
                     albumLocked={albumLocked}
                     title={title}
                     setAlbumCover={(actionType, photoId) => {
+                      const onlySelected = selectionState.selectedItems[0];
                       // If photoId is provided (from modal), use it directly
                       if (photoId) {
                         if (actionType === "person") {
@@ -763,17 +764,17 @@ function PhotoListViewComponent({
                       }
 
                       // If exactly 1 item selected, use it
-                      if (selectionState.selectedItems.length === 1) {
+                      if (selectionState.selectedItems.length === 1 && onlySelected) {
                         if (actionType === "person") {
                           setPersonAlbumCover.mutate({
                             id: `${albumID}`,
-                            cover_photo: selectionState.selectedItems[0].image_hash,
+                            cover_photo: onlySelected.image_hash,
                           });
                         }
                         if (actionType === "useralbum") {
                           setUserAlbumCover.mutate({
                             id: `${albumID}`,
-                            photo: selectionState.selectedItems[0].id,
+                            photo: onlySelected.id,
                           });
                         }
                       } else if (selectionState.selectedItems.length === 0) {

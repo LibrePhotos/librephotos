@@ -52,14 +52,14 @@ const suggestion: Pick<SuggestionOptions<string, MentionNodeAttrs>, "char" | "re
           return;
         }
 
-        popup?.[0].setProps({
+        popup?.[0]?.setProps({
           getReferenceClientRect: anchoredTo(props.clientRect),
         });
       },
 
       onKeyDown(props) {
         if (props.event.key === "Escape") {
-          popup?.[0].hide();
+          popup?.[0]?.hide();
 
           return true;
         }
@@ -68,7 +68,7 @@ const suggestion: Pick<SuggestionOptions<string, MentionNodeAttrs>, "char" | "re
       },
 
       onExit() {
-        popup?.[0].destroy();
+        popup?.[0]?.destroy();
         reactRenderer?.destroy();
       },
     };

@@ -12,6 +12,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { useSetPhotosCategoryMutation } from "../../api_client/photos/hooks";
 import { PigPhoto } from "../../api_client/photos/types";
 import i18n from "../../i18n";
+import { defined } from "../../util/defined.test-utils";
 import { addTempElementsToFlatList } from "../../util/util";
 import { SelectionActions } from "./SelectionActions";
 
@@ -66,7 +67,7 @@ function photo(n: number, imageHash: string, extra: Partial<PigPhoto> = {}) {
 }
 
 // The grid's stand-in for a photo of a page not loaded yet: it has no hash.
-const [placeholder] = addTempElementsToFlatList(1);
+const placeholder = defined(addTempElementsToFlatList(1)[0], "the placeholder");
 
 async function markAs(props: Partial<React.ComponentProps<typeof SelectionActions>>, label: string) {
   const container = document.createElement("div");
@@ -92,7 +93,7 @@ async function markAs(props: Partial<React.ComponentProps<typeof SelectionAction
   // The second menu (the dots) holds the photo actions.
   const menuButtons = container.querySelectorAll("button");
   await act(async () => {
-    menuButtons[menuButtons.length - 1].click();
+    defined(menuButtons[menuButtons.length - 1]).click();
   });
   const item = Array.from(document.body.querySelectorAll("button")).find(
     button => button.textContent?.trim() === label

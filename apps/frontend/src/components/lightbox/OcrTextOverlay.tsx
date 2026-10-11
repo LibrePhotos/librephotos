@@ -26,8 +26,9 @@ type PlacedBlock = {
 // baseline direction and the left edge the line height.
 export function placeBlock(block: PhotoOcrBlock, viewHeight: number): PlacedBlock | null {
   if (!block.text || !Array.isArray(block.box) || block.box.length !== 4) return null;
-  const corners = block.box.map(([nx, ny]) => ({ x: nx * VIEW_WIDTH, y: ny * viewHeight }));
+  const corners = block.box.map(([nx = NaN, ny = NaN]) => ({ x: nx * VIEW_WIDTH, y: ny * viewHeight }));
   const [topLeft, topRight, , bottomLeft] = corners;
+  if (!topLeft || !topRight || !bottomLeft) return null;
   const width = Math.hypot(topRight.x - topLeft.x, topRight.y - topLeft.y);
   const height = Math.hypot(bottomLeft.x - topLeft.x, bottomLeft.y - topLeft.y);
   if (width <= 0 || height <= 0) return null;

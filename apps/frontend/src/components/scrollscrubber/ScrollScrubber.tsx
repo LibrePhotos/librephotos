@@ -72,8 +72,9 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
 
   const getLabelForScrollerY = (y: number): string => {
     for (let i = positions.length - 1; i >= 0; i -= 1) {
-      if (y >= positions[i].scrollerY) {
-        return positions[i].label;
+      const position = positions[i];
+      if (position && y >= position.scrollerY) {
+        return position.label;
       }
     }
     return "";
@@ -82,7 +83,8 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
   const getLabelsMarkers = useCallback((): ScrollerPosition[] => {
     const markers: ScrollerPosition[] = [];
     positions.forEach(item => {
-      if (markers.length < 1 || item.scrollerY - markers.slice(-1)[0].scrollerY > MIN_MARKER_GAP) {
+      const lastMarker = markers.at(-1);
+      if (lastMarker === undefined || item.scrollerY - lastMarker.scrollerY > MIN_MARKER_GAP) {
         markers.push({
           label: item.label,
           targetY: item.targetY,
@@ -118,7 +120,8 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
         currentLetter = letter;
         const label = item.label === "Unknown - Other" ? item.label : currentLetter;
         // Only display letter if there is enough space with preivous letter
-        if (alphabet.length < 1 || item.scrollerY - alphabet.slice(-1)[0].scrollerY > MIN_MARKER_GAP) {
+        const lastLetter = alphabet.at(-1);
+        if (lastLetter === undefined || item.scrollerY - lastLetter.scrollerY > MIN_MARKER_GAP) {
           alphabet.push({
             label,
             targetY: item.targetY,
@@ -147,7 +150,8 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
         if (label !== currentDate) {
           currentDate = label;
           countDifferentValues += 1;
-          if (dates.length < 1 || item.scrollerY - dates.slice(-1)[0].scrollerY > MIN_MARKER_GAP) {
+          const lastDate = dates.at(-1);
+          if (lastDate === undefined || item.scrollerY - lastDate.scrollerY > MIN_MARKER_GAP) {
             dates.push({
               label: currentDate,
               targetY: item.targetY,

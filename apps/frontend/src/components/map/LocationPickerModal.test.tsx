@@ -9,6 +9,7 @@ import type { FlyToOptions } from "maplibre-gl";
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { defined } from "../../util/defined.test-utils";
 import { LocationPickerModal } from "./LocationPickerModal";
 
 const stubs = vi.hoisted(() => ({ flyTo: vi.fn<(options: FlyToOptions) => void>() }));
@@ -129,7 +130,7 @@ describe("LocationPickerModal", () => {
     render();
     expect(getCurrentPosition).toHaveBeenCalledTimes(1);
 
-    const [onPosition] = getCurrentPosition.mock.calls[0];
+    const [onPosition] = defined(getCurrentPosition.mock.calls[0], "the geolocation request");
     act(() => onPosition(positionAt(52.5, 13.4)));
     expect(stubs.flyTo).toHaveBeenCalledTimes(1);
     expect(stubs.flyTo).toHaveBeenLastCalledWith({ center: [13.4, 52.5], zoom: 5 });

@@ -17,6 +17,7 @@ import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { User } from "../../api_client/user";
+import { defined } from "../../util/defined.test-utils";
 import type { DirectoryPicker } from "../setup/DirectoryPicker";
 import { ModalUserEdit } from "./ModalUserEdit";
 
@@ -116,7 +117,7 @@ function submit() {
 const input = (name: string) => found(document.querySelector<HTMLInputElement>(`input[name="${name}"]`), name);
 const picker = (name: string) =>
   found(document.querySelector<HTMLInputElement>(`input[aria-label="${name}"]`), `the ${name} picker`);
-const sentUser = () => stubs.updateUser.mock.calls[0][0];
+const sentUser = () => defined(stubs.updateUser.mock.calls[0])[0];
 // React tracks the previous value on the node itself, so a plain assignment is swallowed.
 const setInputValue = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
 

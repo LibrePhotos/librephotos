@@ -14,7 +14,7 @@ import { PigPhoto } from "../../api_client/photos/types";
 export function useSlideshowSelection(items: readonly Pick<PigPhoto, "id">[]) {
   const [shownId, setShownId] = useState<string | null>(null);
 
-  const first = items.length > 0 ? items[0].id : null;
+  const first = items[0]?.id ?? null;
   // A photo that is not in the list -- the previous memory's, or one deleted
   // from under us -- gives way to the first, rather than leaving the lightbox
   // pinned to an id it cannot find.

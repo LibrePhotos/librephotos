@@ -167,6 +167,7 @@ export function LocationPickerModal({ imageHash, onClose, initialLat, initialLon
           store={combobox}
           onOptionSubmit={val => {
             const [lat, lon] = val.split(",").map(Number);
+            if (lat === undefined || lon === undefined) return;
             handleSelectLocation(lat, lon);
           }}
         >

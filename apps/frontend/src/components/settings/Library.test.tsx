@@ -15,6 +15,7 @@ import { createRoot } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { User } from "../../api_client/user/types";
 import i18n from "../../i18n";
+import { defined } from "../../util/defined.test-utils";
 import { Library } from "./Library";
 
 /** The mutate options Library passes when it saves the profile. */
@@ -208,7 +209,7 @@ describe("Library Nextcloud settings", () => {
     await click(buttonByText("dialog-save"));
 
     expect(mocks.mutate).toHaveBeenCalledTimes(1);
-    expect(mocks.mutate.mock.calls[0][0]).toMatchObject({
+    expect(defined(mocks.mutate.mock.calls[0])[0]).toMatchObject({
       nextcloud_server_address: "https://cloud.example.com",
       nextcloud_username: "mara",
       nextcloud_app_password: "app-secret",
