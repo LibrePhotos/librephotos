@@ -1,8 +1,9 @@
-import { Button, Group, SegmentedControl, Stack, Text, Title } from "@mantine/core";
+import { Button, SegmentedControl } from "@mantine/core";
 import { IconPlayerPlay as PlayerPlay, IconSparkles as Sparkles } from "@tabler/icons-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { MAX_MEMORY_ITEMS } from "../../api_client/memories";
+import { PageHeader } from "../PageHeader";
 
 export type MemoriesView = "tiles" | "gallery";
 
@@ -26,18 +27,22 @@ export function MemoriesHeader({ view, onViewChange, onPlayAll, photoCount, capp
   const { t } = useTranslation();
 
   return (
-    <Stack gap="xs" mb={10} p={10}>
-      <Group justify="space-between" align="flex-start" wrap="wrap">
-        <Group gap="sm">
-          <Sparkles size={50} />
-          <Stack gap={0}>
-            <Title order={2}>{t("memories.title")}</Title>
-            <Text c="dimmed" size="sm">
-              {t("memories.subtitle")}
-            </Text>
-          </Stack>
-        </Group>
-        <Group gap="sm">
+    <PageHeader
+      icon={Sparkles}
+      title={t("memories.title")}
+      subtitle={
+        <>
+          <div>{t("memories.subtitle")}</div>
+          {photoCount > 0 ? (
+            <div>
+              {t("memories.photocount", { count: photoCount })}
+              {capped ? ` · ${t("memories.capped", { count: MAX_MEMORY_ITEMS })}` : ""}
+            </div>
+          ) : null}
+        </>
+      }
+      actions={
+        <>
           <Button
             leftSection={<PlayerPlay size={16} />}
             variant="light"
@@ -57,14 +62,8 @@ export function MemoriesHeader({ view, onViewChange, onPlayAll, photoCount, capp
               { value: "gallery", label: t("memories.gallery") },
             ]}
           />
-        </Group>
-      </Group>
-      {photoCount > 0 ? (
-        <Text c="dimmed" size="sm">
-          {t("memories.photocount", { count: photoCount })}
-          {capped ? ` · ${t("memories.capped", { count: MAX_MEMORY_ITEMS })}` : ""}
-        </Text>
-      ) : null}
-    </Stack>
+        </>
+      }
+    />
   );
 }

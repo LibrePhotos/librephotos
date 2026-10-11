@@ -5,10 +5,10 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchSharedAlbumsByMeQuery } from "../../../api_client/albums/hooks";
 import { useFetchSharedPhotosByMeQuery } from "../../../api_client/photos/hooks";
+import { PageHeader } from "../../../components/PageHeader";
 import { AlbumsSharedByMe } from "../../../components/sharing/AlbumsSharedByMe";
 import { PhotoSharesSection } from "../../../components/sharing/PhotoSharesSection";
 import { PhotosSharedByMe } from "../../../components/sharing/PhotosSharedByMe";
-import { SharingPageHeader } from "../../../components/sharing/SharingPageHeader";
 
 export const Route = createFileRoute("/_protected/sharing/byme/$tab")({
   component: SharedByMe,
@@ -42,9 +42,9 @@ function SharedByMe() {
 
   return (
     <Stack p="md" gap={0}>
-      <SharingPageHeader
+      <PageHeader
         icon={IconUpload}
-        color="var(--mantine-color-red-6)"
+        iconColor="var(--mantine-color-red-6)"
         title={tab === "photos" ? t("sharing.photosYouShared") : t("sharing.albumsYouShared")}
         subtitle={getSubHeader(tab)}
       />

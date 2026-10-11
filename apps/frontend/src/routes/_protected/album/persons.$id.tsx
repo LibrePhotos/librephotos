@@ -70,7 +70,7 @@ function AlbumPersonGallery(): React.JSX.Element {
     <PhotoListView
       title={personname || t("loading")}
       loading={isLoading}
-      icon={<User size={50} />}
+      icon={User}
       photoset={photosGroupedByDate ?? []}
       idx2hash={photosFlat}
       updateGroups={getAlbums}

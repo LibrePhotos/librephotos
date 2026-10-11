@@ -1,4 +1,4 @@
-import { Group, Tabs, Text, Title } from "@mantine/core";
+import { Tabs } from "@mantine/core";
 import {
   IconChartBar,
   IconChartLine,
@@ -9,6 +9,7 @@ import {
 } from "@tabler/icons-react";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
+import { PageHeader } from "../PageHeader";
 
 type StatisticsNavProps = {
   children: React.ReactNode;
@@ -29,36 +30,36 @@ export function StatisticsNav({ children }: StatisticsNavProps) {
   const currentPath = location.pathname;
 
   return (
-    <div style={{ padding: 10 }}>
-      <Group gap="sm" align="center" mb="md">
-        <IconChartLine size={32} color="var(--mantine-color-yellow-6)" strokeWidth={1.5} />
-        <div>
-          <Title order={1} style={{ lineHeight: 1.1 }}>
-            {t("statistics.title", "Statistics")}
-          </Title>
-          <Text size="sm" c="dimmed">
-            {t("countstats.explorecharts", "Explore charts")}
-          </Text>
-        </div>
-      </Group>
+    <>
+      <PageHeader
+        icon={IconChartLine}
+        iconColor="var(--mantine-color-yellow-6)"
+        title={t("statistics.title", "Statistics")}
+        subtitle={t("countstats.explorecharts", "Explore charts")}
+      />
 
-      <Tabs value={currentPath} onChange={value => value && navigate({ to: value })} color="yellow" variant="default">
-        <Tabs.List mb="md">
-          {views.map(view => (
-            <Tabs.Tab
-              key={view.path}
-              value={view.path}
-              leftSection={
-                <view.icon size={18} color={currentPath === view.path ? "var(--mantine-color-yellow-6)" : undefined} />
-              }
-            >
-              {t(view.labelKey)}
-            </Tabs.Tab>
-          ))}
-        </Tabs.List>
-      </Tabs>
+      <div style={{ padding: 10 }}>
+        <Tabs value={currentPath} onChange={value => value && navigate({ to: value })} color="yellow" variant="default">
+          <Tabs.List mb="md">
+            {views.map(view => (
+              <Tabs.Tab
+                key={view.path}
+                value={view.path}
+                leftSection={
+                  <view.icon
+                    size={18}
+                    color={currentPath === view.path ? "var(--mantine-color-yellow-6)" : undefined}
+                  />
+                }
+              >
+                {t(view.labelKey)}
+              </Tabs.Tab>
+            ))}
+          </Tabs.List>
+        </Tabs>
 
-      {children}
-    </div>
+        {children}
+      </div>
+    </>
   );
 }

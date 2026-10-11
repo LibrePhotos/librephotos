@@ -88,7 +88,7 @@ function Memories() {
           header={header}
           title={t("memories.title")}
           loading={isFetching && items.length === 0}
-          icon={<Sparkles size={50} />}
+          icon={Sparkles}
           photoset={memoriesToPhotoGroups(memories)}
           idx2hash={items}
           numberOfItems={items.length}

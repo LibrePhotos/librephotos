@@ -15,7 +15,7 @@ import { useGenerateAutoAlbumsMutation } from "../../../api_client/jobs/hooks";
 import gridClasses from "../../../components/album/AlbumGridCell.module.css";
 import { eventStartDate } from "../../../components/album/eventDate";
 import { EmptyState } from "../../../components/common/EmptyState";
-import { HeaderComponent } from "../../../components/HeaderComponent";
+import { PageHeader } from "../../../components/PageHeader";
 import { Tile } from "../../../components/Tile";
 import { VirtualGrid } from "../../../components/virtual/VirtualGrid";
 import type { GridCellProps } from "../../../components/virtual/VirtualGrid";
@@ -103,10 +103,10 @@ function AlbumAuto() {
 
   return (
     <div>
-      <HeaderComponent
-        icon={<SettingsAutomation size={50} />}
+      <PageHeader
+        icon={SettingsAutomation}
         title={t("events")}
-        fetching={isFetching}
+        loading={isFetching}
         subtitle={t("autoalbum.subtitle", {
           count: albums?.length ?? 0,
           autoalbumlength: albums?.length ?? 0,

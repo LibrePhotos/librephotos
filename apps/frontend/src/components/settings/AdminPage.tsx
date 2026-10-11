@@ -36,6 +36,7 @@ import { EmptyState } from "../common/EmptyState";
 import { JobList } from "../job/JobList";
 import { ModalUserDelete } from "../modals/ModalUserDelete";
 import { ModalUserEdit } from "../modals/ModalUserEdit";
+import { PageHeader } from "../PageHeader";
 import { ServerLogsCard } from "./ServerLogsCard";
 import { ServiceList } from "./ServiceList";
 import { SiteSettings } from "./SiteSettings";
@@ -280,10 +281,7 @@ export function AdminPage() {
   return (
     <Container>
       {/* Outside the Stack, so the first card starts where it does on the other settings pages. */}
-      <Group gap="xs" mt={{ base: 20, sm: 40 }} mb={{ base: 10, sm: 20 }}>
-        <Adjustments size={35} />
-        <Title order={1}>{t("adminarea.header")}</Title>
-      </Group>
+      <PageHeader icon={Adjustments} title={t("adminarea.header")} />
       <Stack>
         <SiteSettings />
 

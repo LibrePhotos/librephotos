@@ -55,7 +55,7 @@ function AlbumUserGallery() {
       additionalSubHeader={getSubheader(isPublic)}
       loading={isLoading}
       emptyStateConfig={notFound ? albumNotFoundState(t, <Bookmark size={40} />, "/album/user") : undefined}
-      icon={<Bookmark size={50} />}
+      icon={Bookmark}
       photoset={groupedPhotos}
       idx2hash={flatPhotos}
       isPublic={isPublic}

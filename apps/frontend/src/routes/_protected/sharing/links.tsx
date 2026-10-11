@@ -8,11 +8,11 @@ import { z } from "zod";
 import { useFetchDateAlbumsQuery, useFetchUserAlbumsQuery } from "../../../api_client/albums/hooks";
 import { useFetchPhotoSharesQuery } from "../../../api_client/photos/hooks";
 import { Photoset, PigPhoto } from "../../../api_client/photos/types";
+import { PageHeader } from "../../../components/PageHeader";
 import { PhotoListView } from "../../../components/photolist/PhotoListView";
 import { ModalAlbumShare } from "../../../components/sharing/ModalAlbumShare";
 import { PhotoSharesSection } from "../../../components/sharing/PhotoSharesSection";
 import { PublicAlbumsGrid } from "../../../components/sharing/PublicAlbumsGrid";
-import { SharingPageHeader } from "../../../components/sharing/SharingPageHeader";
 import { getPhotosFlatFromGroupedByDate } from "../../../util/util";
 
 const PublicLinksTab = z.enum(["albums", "photos"]);
@@ -68,9 +68,9 @@ function PublicLinksPage() {
 
   return (
     <Stack p="md" gap={0}>
-      <SharingPageHeader
+      <PageHeader
         icon={IconLink}
-        color="var(--mantine-color-violet-6)"
+        iconColor="var(--mantine-color-violet-6)"
         title={t("sharing.publicLinks", "Public Links")}
         subtitle={t("sharing.publicLinksDescription", "Albums and photos you've made public via shareable link")}
       />
@@ -121,7 +121,7 @@ function PublicLinksPage() {
               <PhotoListView
                 title={t("sharing.publicPhotos", "Public Photos")}
                 loading={isLoadingPhotos}
-                icon={<IconLink size={50} />}
+                icon={IconLink}
                 photoset={publicPhotosGrouped ?? []}
                 idx2hash={photosFlat}
                 selectable

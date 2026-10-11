@@ -30,7 +30,7 @@ function AlbumAutoGalleryView() {
       <PhotoListView
         title={isError ? t("events") : t("loading")}
         loading={isLoading}
-        icon={<SettingsAutomation size={50} />}
+        icon={SettingsAutomation}
         photoset={[]}
         idx2hash={[]}
         emptyStateConfig={
@@ -142,7 +142,7 @@ function AlbumAutoGalleryView() {
       <PhotoListView
         title={album.title}
         loading={false}
-        icon={<SettingsAutomation size={50} />}
+        icon={SettingsAutomation}
         photoset={groupedPhotos}
         // The grid's own items in its order: the photos are sorted by time, so the days are too
         idx2hash={groupedPhotos.flatMap(group => group.items)}

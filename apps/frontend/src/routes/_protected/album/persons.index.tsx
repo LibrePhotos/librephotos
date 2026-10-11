@@ -19,7 +19,7 @@ import type { Person } from "../../../api_client/albums/hooks";
 import { serverAddress } from "../../../api_client/apiClient";
 import gridClasses from "../../../components/album/AlbumGridCell.module.css";
 import { EmptyState } from "../../../components/common/EmptyState";
-import { HeaderComponent } from "../../../components/HeaderComponent";
+import { PageHeader } from "../../../components/PageHeader";
 import { Tile } from "../../../components/Tile";
 import { VirtualGrid } from "../../../components/virtual/VirtualGrid";
 import type { GridCellProps } from "../../../components/virtual/VirtualGrid";
@@ -159,28 +159,25 @@ function AlbumPeople() {
 
   return (
     <>
-      <Group justify="space-between" align="flex-start" pr="md">
-        <HeaderComponent
-          icon={<Users size={50} />}
-          title={t("people")}
-          fetching={isFetching}
-          subtitle={t("personalbum.numberofpeople", {
-            count: albums?.length ?? 0,
-            peoplelength: albums?.length ?? 0,
-          })}
-        />
-        {/* Level with the title row: below the header's 10px padding, the 36px button is about as
-            tall as the 35px h2 line. The header centres its icon on title + subtitle, not on this row. */}
-        <Button
-          mt={10}
-          leftSection={<FaceId size={18} />}
-          variant="light"
-          color="orange"
-          onClick={() => navigate({ to: "/faces" })}
-        >
-          {t("personalbum.managefaces")}
-        </Button>
-      </Group>
+      <PageHeader
+        icon={Users}
+        title={t("people")}
+        loading={isFetching}
+        subtitle={t("personalbum.numberofpeople", {
+          count: albums?.length ?? 0,
+          peoplelength: albums?.length ?? 0,
+        })}
+        actions={
+          <Button
+            leftSection={<FaceId size={18} />}
+            variant="light"
+            color="orange"
+            onClick={() => navigate({ to: "/faces" })}
+          >
+            {t("personalbum.managefaces")}
+          </Button>
+        }
+      />
       {!isFetching && !hasAlbums ? (
         <EmptyState
           icon={<Users size={40} />}

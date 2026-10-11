@@ -14,7 +14,7 @@ import {
   useMantineTheme,
 } from "@mantine/core";
 import { useDebouncedCallback, useHotkeys, useViewportSize } from "@mantine/hooks";
-import { IconLink, IconSettings } from "@tabler/icons-react";
+import { IconLink, IconSettings, type TablerIcon } from "@tabler/icons-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import { throttle } from "lodash-es";
@@ -98,7 +98,7 @@ export type EmptyStateConfig = {
 type Props = Readonly<{
   title: string;
   loading: boolean;
-  icon: React.ReactElement;
+  icon: TablerIcon;
   photoset: DatePhotosGroup[] | PigPhoto[];
   idx2hash: PigPhoto[];
   selectable: boolean;

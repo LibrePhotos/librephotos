@@ -15,6 +15,7 @@ import { TOP_MENU_HEIGHT } from "../../ui-constants";
 import { EmptyState } from "../common/EmptyState";
 import { Lightbox } from "../lightbox";
 import { ModalPersonEdit } from "../modals/ModalPersonEdit";
+import { PageHeader } from "../PageHeader";
 import { useContentBoxSize } from "../virtual/useContentBoxSize";
 import { HeaderButtons } from "./HeaderButtons";
 import { useCollapsedPersons } from "./hooks/useCollapsedPersons";
@@ -259,6 +260,7 @@ export function FaceDashboard() {
   return (
     <RemoveScroll enabled={lightboxOpen}>
       <Stack h={`calc(100vh - ${TOP_MENU_HEIGHT}px)`}>
+        <PageHeader icon={IconFaceId} title={t("sidemenu.facerecognition")} />
         <TabComponent
           fetchingLabeledFacesList={fetchingLabeledFacesList}
           fetchingInferredFacesList={fetchingInferredFacesList}

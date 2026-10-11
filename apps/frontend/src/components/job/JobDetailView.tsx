@@ -6,7 +6,6 @@ import {
   Center,
   Code,
   Container,
-  Group,
   Loader,
   Space,
   Stack,
@@ -30,6 +29,7 @@ import { useTranslation } from "react-i18next";
 import { useJobQuery } from "../../api_client/jobs/hooks";
 import { i18nResolvedLanguage } from "../../i18n";
 import { EmptyState } from "../common/EmptyState";
+import { PageHeader } from "../PageHeader";
 import { formatJobDuration } from "./JobDuration";
 import { JobProgress } from "./JobProgress";
 import { JOB_OUTCOME_COLOR, jobOutcome } from "./jobStatus";
@@ -132,10 +132,7 @@ export function JobDetailView({ jobId, backTo }: IJobDetailView) {
       <Stack>
         {backButton}
         {/* Same header as the job list it was opened from */}
-        <Group gap="xs" mb={20} wrap="nowrap">
-          <StatusIcon size={35} color={color} style={{ flexShrink: 0 }} />
-          <Title order={1}>{t(job.job_type_str)}</Title>
-        </Group>
+        <PageHeader icon={StatusIcon} iconColor={color} title={t(job.job_type_str)} />
 
         <Card shadow="md">
           <Title order={4} mb={16}>

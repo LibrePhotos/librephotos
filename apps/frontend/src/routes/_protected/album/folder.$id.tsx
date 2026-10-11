@@ -442,7 +442,7 @@ function FolderDetail() {
       title={folderName(folderPath) || t("folder", { defaultValue: "Folder" })}
       additionalSubHeader={getSubheader()}
       loading={isLoading}
-      icon={<Folder size={50} />}
+      icon={Folder}
       photoset={photosGroupedByDate ?? []}
       updateGroups={getAlbums}
       idx2hash={photosFlat}

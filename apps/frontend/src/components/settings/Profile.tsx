@@ -29,6 +29,7 @@ import {
 } from "../../api_client/user/hooks";
 import { UserSelfDetailsQueryKeys } from "../../api_client/user/hooks/useFetchUserSelfDetailsQuery";
 import { reportUserSaveError } from "../../util/apiErrors";
+import { PageHeader } from "../PageHeader";
 import { PasswordEntry } from "./PasswordEntry";
 import { SaveChangesDialog } from "./SaveChangesDialog";
 
@@ -98,10 +99,7 @@ export function Profile() {
 
   return (
     <Container>
-      <Group gap="xs" mt={{ base: 20, sm: 40 }} mb={{ base: 10, sm: 20 }}>
-        <User size={35} />
-        <Title order={1}>{t("settings.profile")}</Title>
-      </Group>
+      <PageHeader icon={User} title={t("settings.profile")} />
       <Stack>
         <Card shadow="md">
           <Title order={4} mb={10}>

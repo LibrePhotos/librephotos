@@ -67,7 +67,7 @@ function PublicAlbumBySlug() {
     <PhotoListView
       title={album ? album.title : t("loading")}
       loading={isLoading}
-      icon={<Globe size={50} />}
+      icon={Globe}
       // PhotoListView shows a flat grid when photoset is the idx2hash array
       // itself: no made-up "Without Timestamp" day for hidden dates.
       photoset={album ? (isUndatedShare(album.grouped_photos) ? flat : album.grouped_photos) : []}

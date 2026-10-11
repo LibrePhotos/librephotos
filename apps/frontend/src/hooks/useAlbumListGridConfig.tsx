@@ -12,11 +12,11 @@ interface AlbumGridConfig {
 
 /**
  * Left padding the album grids give their scroll container. Each cell pads its tile by 5px,
- * so the tiles sit 10px from the edges, in line with HeaderComponent's p={10}.
+ * so the tiles sit 10px from the edges, in line with PageHeader's p={10}.
  */
 export const ALBUM_GRID_GUTTER = 5;
 
-// HeaderComponent above each grid: a 50px icon beside the title and subtitle, 10px padding
+// PageHeader above each grid: an icon beside the title and subtitle, 10px padding
 // and 10px margin. The grid fills the rest, so the page itself does not scroll as well.
 const PAGE_HEADER_HEIGHT = 90;
 

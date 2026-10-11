@@ -23,10 +23,10 @@ import type { PlaceAlbumList } from "../../../api_client/albums/hooks";
 import { useFetchLocationClustersQuery, useFetchPlacesAlbumsQuery } from "../../../api_client/albums/hooks";
 import gridClasses from "../../../components/album/AlbumGridCell.module.css";
 import { EmptyState } from "../../../components/common/EmptyState";
-import { HeaderComponent } from "../../../components/HeaderComponent";
 import { clusterFeatureCollection, clusterPoints } from "../../../components/map/locationClusters";
 import { MapDisabledPlaceholder } from "../../../components/map/MapDisabledPlaceholder";
 import { ignoreMissingStyleImages } from "../../../components/map/mapImages";
+import { PageHeader } from "../../../components/PageHeader";
 import { Tile } from "../../../components/Tile";
 import { VirtualGrid } from "../../../components/virtual/VirtualGrid";
 import type { GridCellProps } from "../../../components/virtual/VirtualGrid";
@@ -258,10 +258,10 @@ function AlbumPlace({ height = 0 }: Props) {
 
   return (
     <div>
-      <HeaderComponent
-        icon={<Map2 size={50} />}
+      <PageHeader
+        icon={Map2}
         title={t("places")}
-        fetching={isFetchingLocationClusters || isFetchingAlbums}
+        loading={isFetchingLocationClusters || isFetchingAlbums}
         // Without a map nothing filters the list, so there is no "on the map" to speak of
         subtitle={t(mapsDisabled ? "placealbum.placecount" : "placealbum.showingplaces", {
           count: shownAlbums.length,
