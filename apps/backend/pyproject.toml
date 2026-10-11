@@ -60,7 +60,7 @@ line-ending = "lf"
 [tool.mypy]
 # Run through scripts/typecheck.py, which compares the result with
 # mypy-baseline.txt. See docs/development/contribution/backend.
-python_version = "3.11"          # = ruff target-version; 3.10 degrades the stubs (no typing.Self)
+python_version = "3.14"          # = the Python CI installs packages for: their stubs (numpy) use newer syntax
 platform = "linux"               # Windows dev boxes report exactly what CI reports
 plugins = ["mypy_django_plugin.main", "mypy_drf_plugin.main"]
 files = ["api", "librephotos", "service", "nextcloud", "chunked_upload", "image_similarity", "scripts/typecheck.py"]
