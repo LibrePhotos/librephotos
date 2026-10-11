@@ -5,6 +5,7 @@ from typing import Any
 import jsonschema
 from constance import config as site_config
 from constance import settings as constance_settings
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny, BasePermission, IsAdminUser
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -85,7 +86,11 @@ class SiteSettingsView(APIView):
 
     def post(self, request: Request, format: str | None = None) -> Response:
         data = request_dict(request)
-        jsonschema.validate(data, site_settings_schema)
+        try:
+            jsonschema.validate(data, site_settings_schema)
+        except jsonschema.ValidationError as error:
+            field = ".".join(str(part) for part in error.absolute_path)
+            raise ValidationError({field or "non_field_errors": error.message})
         if "allow_registration" in data.keys():
             site_config.ALLOW_REGISTRATION = data["allow_registration"]
         if "allow_upload" in data.keys():

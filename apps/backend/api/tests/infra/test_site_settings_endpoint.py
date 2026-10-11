@@ -74,3 +74,32 @@ class SiteSettingsTest(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         run.assert_called_once_with()
+
+
+class SiteSettingsSchemaViolationTest(TestCase):
+    """A body that breaks the settings schema is a 400, not a 500."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.client.force_authenticate(user=create_test_user(is_admin=True))
+
+    def test_wrong_value_type_is_a_bad_request(self):
+        response = self.client.post(
+            "/api/sitesettings",
+            data={"allow_registration": "yes please"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 400)
+        [error] = response.json()["errors"]
+        self.assertIn("allow_registration", error["field"] + error["message"])
+
+    def test_nothing_is_saved_when_the_body_is_rejected(self):
+        with override_config(ALLOW_REGISTRATION=False):
+            self.client.post(
+                "/api/sitesettings",
+                data={"allow_registration": True, "allow_upload": "no"},
+                format="json",
+            )
+            from constance import config
+
+            self.assertFalse(config.ALLOW_REGISTRATION)
