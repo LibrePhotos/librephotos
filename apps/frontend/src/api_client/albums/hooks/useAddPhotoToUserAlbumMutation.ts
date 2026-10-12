@@ -1,3 +1,4 @@
+import { endpoints } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
 import { apiClient, queryClient } from "../../api";
@@ -16,10 +17,8 @@ export const useAddPhotoToUserAlbumMutation = () =>
       excluded_hashes,
       photoCount,
     }: AddPhotoFromUserAlbumParams) => {
-      const body = select_all
-        ? { title, photos: [], select_all: true, query: query ?? {}, excluded_hashes: excluded_hashes ?? [] }
-        : { title, photos };
-      await apiClient.patch(`/albums/user/edit/${id}/`, body);
+      const selectAll = select_all ? { query, excludedHashes: excluded_hashes } : undefined;
+      await endpoints.addPhotosToUserAlbum(apiClient, id, title, photos, selectAll);
       notification.addPhotosToAlbum(title, photoCount ?? photos.length);
     },
     onSuccess: (_, { id }) => {

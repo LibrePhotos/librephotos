@@ -4,13 +4,14 @@ import { addTempElementsToGroups, tempPigPhoto } from "../../../util/util";
 import type { IncompleteDatePhotosGroup, PigPhoto } from "../../photos/types";
 import { Photoset } from "../../photos/types";
 import {
-  buildDateAlbumFilterParams,
+  buildDateAlbumFilter,
   DATE_ALBUM_PAGE_SIZE,
+  dateAlbumRequestFilter,
   hydrateGroupsFromCachedPages,
 } from "./useFetchDateAlbumsQuery";
 
 /**
- * `buildDateAlbumFilterParams` is the shared param-builder for the date-album
+ * `buildDateAlbumFilter` is the shared param-builder for the date-album
  * list and detail queries. It maps the active Photoset plus the independent
  * per-view media-type toggle onto the backend's boolean query params.
  *
@@ -19,67 +20,81 @@ import {
  * revision handled screenshots only via `photosetType`, so the Screenshots
  * toggle no-opped on those surfaces.
  */
-describe("buildDateAlbumFilterParams — photosetType", () => {
+describe("buildDateAlbumFilter — photosetType", () => {
   test("VIDEOS sets only video", () => {
-    expect(buildDateAlbumFilterParams(Photoset.VIDEOS)).toEqual({
+    expect(buildDateAlbumFilter(Photoset.VIDEOS)).toEqual({
       favorite: undefined,
       public: undefined,
       hidden: undefined,
       in_trashcan: undefined,
       photo: undefined,
-      video: "true",
+      video: true,
       is_screenshot: undefined,
     });
   });
 
   test("SCREENSHOTS sets only is_screenshot", () => {
-    expect(buildDateAlbumFilterParams(Photoset.SCREENSHOTS)).toEqual({
+    expect(buildDateAlbumFilter(Photoset.SCREENSHOTS)).toEqual({
       favorite: undefined,
       public: undefined,
       hidden: undefined,
       in_trashcan: undefined,
       photo: undefined,
       video: undefined,
-      is_screenshot: "true",
+      is_screenshot: true,
     });
   });
 
   test("FAVORITES sets only favorite, leaving media flags untouched", () => {
-    const params = buildDateAlbumFilterParams(Photoset.FAVORITES);
-    expect(params.favorite).toBe("true");
+    const params = buildDateAlbumFilter(Photoset.FAVORITES);
+    expect(params.favorite).toBe(true);
     expect(params.photo).toBeUndefined();
     expect(params.video).toBeUndefined();
     expect(params.is_screenshot).toBeUndefined();
   });
 });
 
-describe("buildDateAlbumFilterParams — mediaType toggle layered on a neutral surface", () => {
+describe("buildDateAlbumFilter — mediaType toggle layered on a neutral surface", () => {
   test("mediaType 'photos' sets photo", () => {
-    const params = buildDateAlbumFilterParams(Photoset.PERSON, "photos");
-    expect(params.photo).toBe("true");
+    const params = buildDateAlbumFilter(Photoset.PERSON, "photos");
+    expect(params.photo).toBe(true);
     expect(params.video).toBeUndefined();
     expect(params.is_screenshot).toBeUndefined();
   });
 
   test("mediaType 'videos' sets video", () => {
-    const params = buildDateAlbumFilterParams(Photoset.PERSON, "videos");
-    expect(params.video).toBe("true");
+    const params = buildDateAlbumFilter(Photoset.PERSON, "videos");
+    expect(params.video).toBe(true);
     expect(params.photo).toBeUndefined();
     expect(params.is_screenshot).toBeUndefined();
   });
 
   test("mediaType 'screenshots' sets is_screenshot (the fixed regression)", () => {
-    const params = buildDateAlbumFilterParams(Photoset.PERSON, "screenshots");
-    expect(params.is_screenshot).toBe("true");
+    const params = buildDateAlbumFilter(Photoset.PERSON, "screenshots");
+    expect(params.is_screenshot).toBe(true);
     expect(params.photo).toBeUndefined();
     expect(params.video).toBeUndefined();
   });
 
   test("mediaType 'all' / undefined sets no media flag", () => {
-    expect(buildDateAlbumFilterParams(Photoset.PERSON, "all").is_screenshot).toBeUndefined();
-    expect(buildDateAlbumFilterParams(Photoset.PERSON).is_screenshot).toBeUndefined();
-    expect(buildDateAlbumFilterParams(Photoset.PERSON, "all").photo).toBeUndefined();
-    expect(buildDateAlbumFilterParams(Photoset.PERSON, "all").video).toBeUndefined();
+    expect(buildDateAlbumFilter(Photoset.PERSON, "all").is_screenshot).toBeUndefined();
+    expect(buildDateAlbumFilter(Photoset.PERSON).is_screenshot).toBeUndefined();
+    expect(buildDateAlbumFilter(Photoset.PERSON, "all").photo).toBeUndefined();
+    expect(buildDateAlbumFilter(Photoset.PERSON, "all").video).toBeUndefined();
+  });
+});
+
+describe("dateAlbumRequestFilter", () => {
+  test("the timeline filter adds what it turns on and keeps the photoset's favorite", () => {
+    const timelineFilter = { media: "all" as const, hide_screenshots: true, hide_documents: false, favorites: false };
+    expect(dateAlbumRequestFilter({ photosetType: Photoset.FAVORITES, timelineFilter, username: "Ann" })).toEqual({
+      favorite: true,
+      hide_screenshots: true,
+      username: "Ann",
+    });
+    expect(
+      dateAlbumRequestFilter({ photosetType: Photoset.NONE, timelineFilter: { ...timelineFilter, favorites: true } })
+    ).toEqual({ favorite: true, hide_screenshots: true });
   });
 });
 

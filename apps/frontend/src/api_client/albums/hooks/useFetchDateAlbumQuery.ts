@@ -1,13 +1,11 @@
+import { endpoints } from "@librephotos/api-client";
 import { useQuery } from "@tanstack/react-query";
 import { type MediaType } from "../../../components/photolist/mediaTypeFilter";
-import { timelineFilterToParams, type TimelineFilter } from "../../../components/photolist/timelineFilter";
-import { definedSearchParams } from "../../../util/util";
-import { parseWithNotification } from "../../../util/zodUtils";
+import { type TimelineFilter } from "../../../components/photolist/timelineFilter";
 import { apiClient, queryClient } from "../../api";
 import { photoGridKeys } from "../../photos/keys";
 import type { IncompleteDatePhotosGroup, Photoset } from "../../photos/types";
-import { FetchDateAlbumResponse } from "../types";
-import { buildDateAlbumFilterParams, dateAlbumsListKey } from "./useFetchDateAlbumsQuery";
+import { dateAlbumRequestFilter, dateAlbumsListKey } from "./useFetchDateAlbumsQuery";
 
 type AlbumDateOption = {
   photosetType: Photoset;
@@ -25,23 +23,8 @@ export const useFetchDateAlbumQuery = (options: AlbumDateOption, queryOptions?: 
   useQuery({
     queryKey: photoGridKeys.dateAlbumDay(dateAlbumsListKey(options), options.album_date_id, options.page),
     queryFn: async () => {
-      const params = {
-        ...buildDateAlbumFilterParams(options.photosetType, options.mediaType),
-        ...timelineFilterToParams(options.timelineFilter),
-        page: options.page.toString(),
-        person: options.person_id?.toString(),
-        username: options.username?.toLowerCase(),
-        folder: options.folder,
-      };
-
-      // The trailing slash matters: without it Django answers every day page
-      // with a 301 to the slashed URL.
-      const response = await apiClient.get(
-        `/albums/date/${options.album_date_id}/?${definedSearchParams(params).toString()}`
-      );
-
-      const parsed = parseWithNotification(FetchDateAlbumResponse, response, "Failed to load photos");
-      const result = parsed.results;
+      const filter = dateAlbumRequestFilter(options);
+      const result = await endpoints.fetchDateAlbum(apiClient, options.album_date_id, options.page, filter);
 
       // Get the current data from cache
       const dateAlbumsQueryKey = photoGridKeys.dateAlbumList(dateAlbumsListKey(options));

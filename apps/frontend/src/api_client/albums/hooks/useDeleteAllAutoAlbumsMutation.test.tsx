@@ -58,7 +58,7 @@ async function deleteAll() {
 
 describe("useDeleteAllAutoAlbumsMutation", () => {
   it("confirms and refetches the event albums once the server deleted them", async () => {
-    stubs.post.mockResolvedValue({});
+    stubs.post.mockResolvedValue("success");
 
     await deleteAll();
 
