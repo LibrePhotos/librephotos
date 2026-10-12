@@ -81,6 +81,8 @@ export function Settings() {
   }
 
   const llmEnabled = llmSwitchOf(editedUserDetails.llm_settings, "enabled");
+  // Face tags are written where the metadata sync writes, so not at all while it is Off (#2293).
+  const metadataSyncOff = (editedUserDetails.save_metadata_to_disk ?? "OFF") === "OFF";
   // The server always sends the defaults; all off is what it assumes when they are missing.
   const sharingDefaults = editedUserDetails.public_sharing_defaults ?? PublicSharingDefaults.parse({});
 
@@ -231,8 +233,13 @@ export function Settings() {
             </Radio.Group>
             <Switch
               label={t("settings.save_face_tags_to_disk")}
-              description={t("settings.save_face_tags_to_disk_help")}
+              description={
+                metadataSyncOff
+                  ? t("settings.save_face_tags_to_disk_needs_sync")
+                  : t("settings.save_face_tags_to_disk_help")
+              }
               checked={editedUserDetails.save_face_tags_to_disk || false}
+              disabled={metadataSyncOff}
               onChange={event => {
                 setEditedUserDetails({
                   ...editedUserDetails,

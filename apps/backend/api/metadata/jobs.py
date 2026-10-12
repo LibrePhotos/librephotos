@@ -28,12 +28,11 @@ def queue_rating_write(user: User, photo_ids: list[uuid.UUID]) -> None:
     failure to queue is logged and swallowed; the database change it follows
     has already been made and is what the request reports.
     """
-    from api.models import User
+    from api.metadata.photo_writer import write_target
 
-    mode = user.save_metadata_to_disk
-    if not photo_ids or mode == User.SaveMetadata.OFF:
+    use_sidecar = write_target(user)
+    if not photo_ids or use_sidecar is None:
         return
-    use_sidecar = mode == User.SaveMetadata.SIDECAR_FILE
     try:
         AsyncTask(write_photo_ratings, list(photo_ids), use_sidecar).run()
     except Exception:

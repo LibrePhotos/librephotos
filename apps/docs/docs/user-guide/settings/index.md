@@ -80,7 +80,7 @@ Most of these settings control how [face clustering](../face-recognition.md) gro
 - `Minimum Cluster Size` changes how clusters form; a smaller value results in more clusters. Options are `Auto`, `2`, `4`, `8` and `16`. Default `Auto`, which lets LibrePhotos choose for you.
 - `Minimum Samples` changes how conservative clustering is; a smaller value is less conservative. Options are `1`, `2`, `4`, `8` and `16`. Default `1`
 - `Cluster Selection Epsilon` determines which clusters get merged; a higher value merges more clusters. Options are `Off` (0), `Small` (0.025), `Normal` (0.05), `High` (0.1) and `Very High` (0.2). Default `Normal`
-- `Write face tags to image files` when enabled, face labels are written as XMP MWG-RS region tags to your image files (or to a sidecar file, depending on `Synchronize metadata to disk`) whenever you label a face, so face data stays portable across apps like Lightroom, digiKam and XnView. Default `Off`
+- `Write face tags to image files` when enabled, face labels are written as XMP MWG-RS region tags to a sidecar file or to your image files, as chosen under `Synchronize metadata to disk`, whenever you label a face (with that setting `Off` the switch is disabled and nothing is written), so face data stays portable across apps like Lightroom, digiKam and XnView. Default `Off`
 
 ### Public Sharing Defaults
 

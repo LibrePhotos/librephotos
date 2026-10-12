@@ -28,8 +28,9 @@ from rest_framework.views import APIView
 from api.directory_watcher import generate_face_embeddings, scan_faces
 from api.exceptions import Conflict
 from api.face_classify import cluster_all_faces
+from api.metadata.photo_writer import write_target
 from api.ml_models import do_all_models_exist, download_models
-from api.models import Face, Photo, User
+from api.models import Face, Photo
 from api.models.person import Person, get_or_create_person
 from api.models.photo_search import PhotoSearch
 from api.models.thumbnail import Thumbnail
@@ -400,9 +401,10 @@ class SetFacePersonLabel(APIView):
 
         self._recreate_search_captions(list(updated_photos.values()))
 
-        # Write face regions to image files if user preference is enabled
-        if user.save_face_tags_to_disk:
-            use_sidecar = user.save_metadata_to_disk == User.SaveMetadata.SIDECAR_FILE
+        # Write face regions to the sidecar or the file if the user opted in to
+        # both face tags and syncing metadata to disk (#2293).
+        use_sidecar = write_target(user)
+        if user.save_face_tags_to_disk and use_sidecar is not None:
             for photo in updated_photos.values():
                 try:
                     photo._save_metadata(
@@ -570,8 +572,8 @@ class AddFaceView(APIView):
         photo.refresh_from_db()
         SetFacePersonLabel._recreate_search_captions([photo])
 
-        if user.save_face_tags_to_disk:
-            use_sidecar = user.save_metadata_to_disk == User.SaveMetadata.SIDECAR_FILE
+        use_sidecar = write_target(user)
+        if user.save_face_tags_to_disk and use_sidecar is not None:
             try:
                 photo._save_metadata(
                     use_sidecar=use_sidecar, metadata_types=["face_tags"]

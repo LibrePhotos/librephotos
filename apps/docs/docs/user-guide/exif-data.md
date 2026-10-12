@@ -159,7 +159,7 @@ sidebar_position: 18
         <td>Faces</td>
         <td>✔️</td>
         <td>✔️</td>
-        <td>Faces and people are read from XMP:RegionInfo. Writing is opt-in via the "Write face tags to image files" setting (off by default); when enabled, labelling a face writes MWG regions as XMP-mwg-rs:RegionInfo (with AppliedToDimensions and normalized areas) to the image file or XMP sidecar. Only manually labelled people are given a name; auto-detected faces are written as unnamed regions.</td>
+        <td>Faces and people are read from XMP:RegionInfo. Writing is opt-in via the "Write face tags to image files" setting (off by default); when enabled and "Synchronize metadata to disk" is set to a sidecar or the media file, labelling a face writes MWG regions as XMP-mwg-rs:RegionInfo (with AppliedToDimensions and normalized areas) to the image file or XMP sidecar. Only manually labelled people are given a name; auto-detected faces are written as unnamed regions.</td>
     </tr>
     <tr>
         <td>XMP:Subject</td>
@@ -204,5 +204,7 @@ rules read `MakerNotes:BurstMode`, `MakerNotes:ContinuousDrive` and
 in your settings.
 
 To back-fill an existing library with face tags, run
-`python manage.py save_metadata --types face_tags` (add `--media-file` to write into the
-images instead of XMP sidecars).
+`python manage.py save_metadata --types face_tags`. Each photo is written where its owner's
+"Synchronize metadata to disk" setting says (XMP sidecar or media file), and photos of users
+who have it Off are skipped. `--sidecar` or `--media-file` overrides the setting for the one
+user named with `--user`.

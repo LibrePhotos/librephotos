@@ -120,3 +120,33 @@ describe("Settings caption context", () => {
     expect(container.textContent).not.toContain("settings.");
   });
 });
+
+describe("Settings face tags write-back", () => {
+  function inputLabelled(text: string): HTMLInputElement {
+    // A Mantine Switch's <label> also holds its description, so match the text
+    // on the label or any element inside it.
+    const labelled = Array.from(container.querySelectorAll("label, label *")).find(
+      element => element.textContent === text
+    );
+    const label = labelled?.closest("label");
+    const input = label?.htmlFor ? document.getElementById(label.htmlFor) : label?.querySelector("input");
+    if (!(input instanceof HTMLInputElement)) {
+      throw new Error(`no input labelled "${text}"`);
+    }
+    return input;
+  }
+
+  it("disables the face tags switch while metadata sync is Off (#2293)", () => {
+    expect(inputLabelled("Write face tags to image files").disabled).toBe(true);
+    expect(container.textContent).toContain('Needs "Save to sidecar" or "Save to media file"');
+  });
+
+  it("enables the face tags switch once metadata is synced to a sidecar", async () => {
+    await act(async () => {
+      inputLabelled("Save to sidecar").click();
+    });
+
+    expect(inputLabelled("Write face tags to image files").disabled).toBe(false);
+    expect(container.textContent).not.toContain('Needs "Save to sidecar"');
+  });
+});

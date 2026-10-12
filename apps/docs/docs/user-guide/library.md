@@ -161,7 +161,9 @@ python manage.py scan -n
 # Build similarity index for all users
 python manage.py build_similarity_index
 
-# Save metadata to image files or XMP sidecars
+# Save metadata to XMP sidecars or image files, as each owner's "Synchronize
+# metadata to disk" setting says (users with it Off are skipped; --sidecar or
+# --media-file overrides it for the one user named with --user)
 python manage.py save_metadata
 
 # Start all ML services (individual services are managed from the Admin Area)

@@ -24,6 +24,7 @@ from rest_framework.views import APIView
 
 from api.exceptions import ServiceUnavailable
 from api.metadata import edits
+from api.metadata.photo_writer import write_target
 from api.mime import mime_type
 from api.ml_models import captioning_model_exists, start_model_download
 from api.models import AlbumUser, Face, Photo, User
@@ -1051,11 +1052,18 @@ class SaveMetadataView(APIView):
         """Bulk-write metadata to image files for the authenticated user's photos.
 
         Accepts {"types": ["ratings", "face_tags"]} to control what gets written.
-        Defaults to ["ratings"] if not specified.
+        Defaults to ["ratings"] if not specified. Writes to the sidecar or the
+        media file as the user's "Synchronize metadata to disk" says, and is a
+        400 while that is Off (#2293).
         """
         user = request_user(request)
         metadata_types = parse_body(request, SaveMetadataRequest)["types"]
-        use_sidecar = user.save_metadata_to_disk == User.SaveMetadata.SIDECAR_FILE
+        use_sidecar = write_target(user)
+        if use_sidecar is None:
+            raise ValidationError(
+                "Synchronize metadata to disk is Off: choose 'Save to sidecar' "
+                "or 'Save to media file' in the settings first."
+            )
 
         photos = Photo.objects.owned_by(user)
 

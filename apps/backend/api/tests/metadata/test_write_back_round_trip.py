@@ -16,6 +16,7 @@ import ast
 import datetime
 import os
 import unittest
+from contextlib import contextmanager
 from unittest.mock import patch
 
 from rest_framework.test import APIClient
@@ -324,14 +325,50 @@ class FaceTagRoundTripTest(RealExifToolTestCase):
         )
         self.assertEqual(200, response.status_code, response.content)
 
+    def _draw_face(self, photo):
+        client = APIClient()
+        client.force_authenticate(user=photo.owner)
+        # Clear of FACE_LANDSCAPE, in the bottom right of the thumbnail.
+        box = {"top": 0.45, "right": 0.95, "bottom": 0.95, "left": 0.55}
+        with patch("api.models.face.get_face_encodings", return_value=[[0.0] * 512]):
+            response = client.post(
+                "/api/addface",
+                {"photo": photo.image_hash, "person_name": "Carol", "box": box},
+                format="json",
+            )
+        self.assertEqual(201, response.status_code, response.content)
+
+    @contextmanager
+    def _original_untouched(self, path):
+        with open(path, "rb") as handle:
+            before = handle.read()
+        yield
+        with open(path, "rb") as handle:
+            self.assertEqual(before, handle.read(), f"{path} was rewritten")
+
     def test_labelling_writes_the_face_tags(self):
         path = self.make_image(".jpg")
         photo = self._face_photo(path, SIDECAR, FACE_LANDSCAPE)
 
-        self._label_face(photo)
+        with self._original_untouched(path):
+            self._label_face(photo)
 
         self.assertWritesLanded(expected=1)
+        self.assertEqual(self.sidecar_of(path), self.exiftool.writes[0].target)
         self.assertEqual(["Bob"], [face[4] for face in self._faces_read_back(photo)])
+
+    def test_drawing_a_face_writes_the_face_tags(self):
+        path = self.make_image(".jpg")
+        photo = self._face_photo(path, SIDECAR, FACE_LANDSCAPE)
+
+        with self._original_untouched(path):
+            self._draw_face(photo)
+
+        self.assertWritesLanded(expected=1)
+        self.assertEqual(self.sidecar_of(path), self.exiftool.writes[0].target)
+        self.assertCountEqual(
+            ["Alice", "Carol"], [face[4] for face in self._faces_read_back(photo)]
+        )
 
     def test_nothing_is_written_with_the_face_tag_switch_off(self):
         path = self.make_image(".jpg")
@@ -342,15 +379,49 @@ class FaceTagRoundTripTest(RealExifToolTestCase):
         with self.assertUntouched(path):
             self._label_face(photo)
 
-    # #2293: the face-tag write derives "sidecar" from the mode and writes the
-    # original whenever the mode is not SIDECAR_FILE, Off included.
-    @unittest.expectedFailure
+    # #2293: the face-tag write used to derive "sidecar" from the mode and
+    # wrote the original whenever the mode was not SIDECAR_FILE, Off included.
     def test_nothing_is_written_when_off(self):
         path = self.make_image(".jpg")
         photo = self._face_photo(path, OFF, FACE_LANDSCAPE)
 
         with self.assertUntouched(path):
             self._label_face(photo)
+
+    def test_drawing_a_face_writes_nothing_when_off(self):
+        path = self.make_image(".jpg")
+        photo = self._face_photo(path, OFF, FACE_LANDSCAPE)
+
+        with self.assertUntouched(path):
+            self._draw_face(photo)
+
+    def _save_metadata_request(self, photo):
+        client = APIClient()
+        client.force_authenticate(user=photo.owner)
+        return client.post(
+            "/api/savemetadata", {"types": ["ratings", "face_tags"]}, format="json"
+        )
+
+    def test_save_metadata_endpoint_writes_the_sidecar(self):
+        path = self.make_image(".jpg")
+        photo = self._face_photo(path, SIDECAR, FACE_LANDSCAPE)
+
+        with self._original_untouched(path):
+            response = self._save_metadata_request(photo)
+
+        self.assertEqual(200, response.status_code, response.content)
+        self.assertWritesLanded(expected=1)
+        self.assertEqual(self.sidecar_of(path), self.exiftool.writes[0].target)
+        self.assertEqual(["Alice"], [face[4] for face in self._faces_read_back(photo)])
+
+    def test_save_metadata_endpoint_refuses_when_off(self):
+        path = self.make_image(".jpg")
+        photo = self._face_photo(path, OFF, FACE_LANDSCAPE)
+
+        with self.assertUntouched(path):
+            response = self._save_metadata_request(photo)
+
+        self.assertEqual(400, response.status_code, response.content)
 
 
 # The web app's clockwise button sends -90 (``Photo.rotate`` counts its angle

@@ -19,6 +19,22 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def write_target(user: User) -> bool | None:
+    """Where ``user``'s edits are written back: None when they are not.
+
+    None for "Synchronize metadata to disk: Off" (the default, which keeps
+    LibrePhotos away from the user's files), else ``use_sidecar``: True for
+    the XMP sidecar, False for the media file. Every write path asks this
+    instead of reading ``save_metadata_to_disk`` itself (#2293).
+    """
+    mode = user.save_metadata_to_disk
+    if mode == User.SaveMetadata.SIDECAR_FILE:
+        return True
+    if mode == User.SaveMetadata.MEDIA_FILE:
+        return False
+    return None
+
+
 def write_photo_metadata(
     photo: Photo,
     modified_fields: list[str] | None = None,
@@ -73,11 +89,10 @@ def write_orientation_to_disk(photo: Photo, angle: int, flip_horizontal: bool) -
     ``_fold_rotation_into_file``). Anything else keeps the rotation in
     ``local_orientation`` and writes the tag for other viewers only.
     """
-    user = photo.owner
-    if user.save_metadata_to_disk == User.SaveMetadata.OFF:
+    use_sidecar = write_target(photo.owner)
+    if use_sidecar is None:
         return
 
-    use_sidecar = user.save_metadata_to_disk == User.SaveMetadata.SIDECAR_FILE
     if not use_sidecar and _fold_rotation_into_file(photo):
         return
 
