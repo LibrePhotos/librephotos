@@ -150,11 +150,11 @@ def create_face_encodings() -> ResponseReturnValue:
             None if face is None else face.embedding.tolist() for face in matched_faces
         ]
     except Exception as exc:
-        log(f"error creating face_encodings for {source}: {exc}")
+        log.error("error creating face_encodings for %s: %s", source, exc)
         return {"error": str(exc)}, 500
 
     matched = sum(encoding is not None for encoding in face_encodings_list)
-    log(f"created face_encodings={matched}/{len(face_encodings_list)}")
+    log.info("created face_encodings=%s/%s", matched, len(face_encodings_list))
     return {"encodings": face_encodings_list}, 200
 
 
@@ -172,10 +172,10 @@ def create_face_locations() -> ResponseReturnValue:
         # which ran detection and recognition over the whole picture again.
         face_encodings = [face.embedding.tolist() for face in faces]
     except Exception as exc:
-        log(f"error creating face_locations for {source}: {exc}")
+        log.error("error creating face_locations for %s: %s", source, exc)
         return {"error": str(exc)}, 500
 
-    log(f"created face_location={face_locations}")
+    log.info("created face_location=%s", face_locations)
     return {"face_locations": face_locations, "encodings": face_encodings}, 200
 
 

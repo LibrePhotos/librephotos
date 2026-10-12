@@ -6,12 +6,14 @@ standalone service processes cannot drift apart.
 
 This module must stay importable *without* Django: image_similarity/main.py and
 the service/*/main.py processes are plain Python and never load settings, and
-they are supposed to produce records of the same shape.
+they produce records of the same shape (configure_standalone, reached through
+service._common.logger).
 """
 
 import logging
 import logging.config
 import os
+import sys
 from collections.abc import Iterable
 from typing import Any
 
@@ -60,31 +62,39 @@ THIRD_PARTY_LEVELS = {
     "pyvips": "WARNING",
 }
 
-# Problems noticed while the configuration is still being built - at that point
-# there is no handler to report them through, and the settings module is halfway
-# through its import. They are held here until someone can log them properly;
-# see api.apps.ApiConfig.ready and configure_standalone.
-_deferred_warnings: list[str] = []
+# Messages from before logging is configured: the settings modules and
+# librephotos.secret_key run while the configuration is still being built, when
+# there is no handler to report through yet. They are held here, with their
+# level, until someone can log them properly; see api.apps.ApiConfig.ready and
+# service._common.serve_forever.
+_deferred: list[tuple[int, str]] = []
+
+
+def defer(level: int, message: str) -> None:
+    """Hold ``message`` until logging is configured, then log it at ``level``.
+
+    The settings modules use this instead of print(): a print there lands on the
+    stdout of every process that imports them, management commands included,
+    before logging exists.
+    """
+    _deferred.append((level, message))
 
 
 def defer_warning(message: str) -> None:
-    """Hold ``message`` until logging is configured, then log it as a warning.
-
-    For code that runs while the settings module is still being imported, such
-    as librephotos.secret_key, and has no handler to log through yet.
-    """
-    _deferred_warnings.append(message)
+    """``defer(logging.WARNING, message)``."""
+    defer(logging.WARNING, message)
 
 
-def take_deferred_warnings() -> list[str]:
-    """Return and clear the warnings recorded before logging was configured.
+def take_deferred() -> list[tuple[int, str]]:
+    """Return and clear the ``(level, message)`` pairs recorded before logging
+    was configured.
 
     That includes the environment values librephotos.env could not read while
-    the settings were being imported.
+    the settings were being imported, as warnings.
     """
-    messages = [*_deferred_warnings, *env.take_warnings()]
-    _deferred_warnings.clear()
-    return messages
+    records = [*_deferred, *((logging.WARNING, m) for m in env.take_warnings())]
+    _deferred.clear()
+    return records
 
 
 def resolve_level(raw: str | None = None) -> str:
@@ -101,7 +111,7 @@ def resolve_level(raw: str | None = None) -> str:
     if not level:
         return DEFAULT_LOG_LEVEL
     if level not in VALID_LEVELS:
-        _deferred_warnings.append(
+        defer_warning(
             f"unknown LOG_LEVEL {raw!r}, using {DEFAULT_LOG_LEVEL} instead; "
             f"expected one of {', '.join(VALID_LEVELS)}"
         )
@@ -129,7 +139,7 @@ def resolve_logger_levels(raw: str | None = None) -> dict[str, str]:
         name = name.strip()
         level = level.strip().upper()
         if not sep or not name or level not in VALID_LEVELS:
-            _deferred_warnings.append(
+            defer_warning(
                 f"ignoring LOG_LEVELS entry {entry!r}; expected logger=LEVEL "
                 f"with LEVEL one of {', '.join(VALID_LEVELS)}"
             )
@@ -161,7 +171,7 @@ def resolve_logs_root(explicit: str | None = None) -> str:
 def ensure_logs_root(path: str) -> str:
     """Create the log directory, or stop with a message that names it.
 
-    Deliberately not the print-and-continue treatment MPLCONFIGDIR gets in
+    Deliberately not the warn-and-continue treatment MPLCONFIGDIR gets in
     production.py: the rotating file handler opens a file in this directory as
     soon as logging is configured, so continuing here only turns a diagnosable
     error into a bare FileNotFoundError from a line that says nothing about the
@@ -267,35 +277,26 @@ def build_logging_config(
     }
 
 
-def configure_standalone(
-    logger_name: str,
-    filename: str | None = None,
-    logs_root: str | None = None,
-    level: str | None = None,
-    to_console: bool | str | None = None,
-    max_bytes: int = DEFAULT_LOG_MAX_BYTES,
-    backup_count: int = DEFAULT_LOG_BACKUP_COUNT,
-) -> logging.Logger:
-    """Configure logging for a process that never loads Django, and return its
-    logger.
+def configure_standalone(logger_name: str, level: str | None = None) -> logging.Logger:
+    """The logger of a process that never loads Django (a sidecar), set up to
+    write to stdout only.
 
-    ``filename`` defaults to the shared log file; the services that keep their
-    own file (image_similarity, for one) pass their own name and still get the
-    same formatter, the same rotation and the same level handling.
+    Records get the backend's format and LOG_LEVEL (or the logger's LOG_LEVELS
+    entry); stdout is where api.services leaves the sidecars' output, so it ends
+    up in the container log. Only the named logger is touched, never the root:
+    the sidecar modules are imported by the Django test process as well, whose
+    logging the settings configured. A second call returns the same logger
+    without adding another handler. service._common.logger is the one caller.
     """
-    logs_root = resolve_logs_root(logs_root)
-    ensure_logs_root(logs_root)
-    logging.config.dictConfig(
-        build_logging_config(
-            logs_root=logs_root,
-            level=level,
-            to_console=resolve_to_console(to_console),
-            max_bytes=max_bytes,
-            backup_count=backup_count,
-            filename=filename,
-        )
-    )
     logger = logging.getLogger(logger_name)
-    for message in take_deferred_warnings():
-        logger.warning(message)
+    if any(h.get_name() == CONSOLE_HANDLER_NAME for h in logger.handlers):
+        return logger
+    handler = logging.StreamHandler(sys.stdout)
+    handler.set_name(CONSOLE_HANDLER_NAME)
+    handler.setFormatter(logging.Formatter(LOG_FORMAT))
+    logger.addHandler(handler)
+    logger.setLevel(resolve_logger_levels().get(logger_name) or resolve_level(level))
+    # Nothing above it would write the record to stdout a second time in the
+    # sidecar; in the test process it keeps the record out of the log file.
+    logger.propagate = False
     return logger

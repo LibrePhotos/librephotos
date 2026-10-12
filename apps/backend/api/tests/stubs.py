@@ -2,7 +2,7 @@
 
 Some code cannot be imported as a package. The sidecars under ``service/`` and
 ``image_similarity/`` run as scripts and import their siblings by bare name
-(``utils``, ``retrieval_index``, ``lfm2_vl``), so a test that loads them has to
+(``retrieval_index``, ``lfm2_vl``), so a test that loads them has to
 put a stand-in under that name first.
 
 ``stub_modules`` puts the stand-ins in ``sys.modules`` for the duration of a
@@ -17,7 +17,6 @@ write anywhere else in the test tree.
 
 import contextlib
 import importlib.util
-import logging
 import sys
 import types
 import uuid
@@ -47,17 +46,6 @@ def stub_modules(modules: Mapping[str, types.ModuleType]) -> Iterator[None]:
                 sys.modules.pop(name, None)
             else:
                 sys.modules[name] = previous
-
-
-def sidecar_utils_stub(logger_name: str) -> types.ModuleType:
-    """A stand-in for a sidecar's ``utils`` module, which only provides ``logger``.
-
-    The real ``utils`` reconfigures the process's logging when it is imported
-    (``configure_standalone``), which would break the log-rotation tests.
-    """
-    stub = types.ModuleType("utils")
-    stub.logger = logging.getLogger(logger_name)
-    return stub
 
 
 def load_backend_file(

@@ -111,7 +111,6 @@ allow-star-arg-any = true
 # Console entry points that print to the terminal on purpose; standalone.py
 # also builds the environment of the child processes it starts.
 "librephotos/standalone.py" = ["T20", "TID251"]
-"service/_common.py" = ["T20"]
 # Files that may touch os.environ (issue #2337) or subprocess (issue #2338)
 # directly; keep this list short. An entry lifts every banned API in the file.
 # The parser itself.

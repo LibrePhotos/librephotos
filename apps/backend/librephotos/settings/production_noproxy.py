@@ -20,11 +20,13 @@ deploy/docker/unified/entrypoint.sh selects this module by exporting
 DJANGO_SETTINGS_MODULE when SERVE_FRONTEND is set.
 """
 
+import logging
 import os
 
 from django.core.exceptions import ImproperlyConfigured
 
 from librephotos.env import env_int, env_list, env_str
+from librephotos.logging_bootstrap import defer
 
 from ._sqlite import sqlite_database
 from .production import *  # noqa
@@ -96,10 +98,10 @@ if DB_BACKEND == "sqlite":
         for app in INSTALLED_APPS  # noqa
         if app != "django.contrib.postgres"
     ]
-    print("Using production-optimized SQLite database")
+    defer(logging.INFO, "Using production-optimized SQLite database")
 elif DB_BACKEND == "postgresql":
     # DATABASES and django.contrib.postgres are inherited from production.
-    print("Using PostgreSQL database")
+    defer(logging.INFO, "Using PostgreSQL database")
 else:
     raise ImproperlyConfigured(
         f"Unsupported DB_BACKEND: {DB_BACKEND}. Use 'postgresql' or 'sqlite'"

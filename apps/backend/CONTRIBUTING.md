@@ -299,6 +299,15 @@ logger = logging.getLogger(__name__)
 
 Every module gets its own logger this way; do not import another module's `logger`. The logger name is the module path (`api.directory_watcher.scan_jobs`), so one module or a whole package can be turned up or down on its own with `LOG_LEVELS` (see below). The records still propagate to the root logger, which owns the handlers, so they land in `ownphotos.log` and on the console like everything else.
 
+### Where there is no module logger
+
+Ruff's `T20` rejects `print()` in the backend. The places that cannot simply log:
+
+- **Settings modules** run before logging is configured. Hand the message to `librephotos.logging_bootstrap.defer(level, message)`; `ApiConfig.ready()` logs it once the handlers exist.
+- **Management commands** write their output with `self.stdout.write` / `self.stderr.write`, so `call_command(..., stdout=...)` captures it.
+- **Sidecars** (`service/`, `image_similarity/`) log through `service._common.logger(name)`: the backend's line format and `LOG_LEVEL`, written to the sidecar's stdout (the container log) only. A module there that must not import Flask uses `logging.getLogger(name)` with the sidecar's name and goes through the same handler.
+- `scripts/` and the `librephotos/standalone.py` launcher are console tools and may print.
+
 ### Levels
 
 The rule a reviewer actually applies: **`INFO` volume must be O(number of jobs/requests), never O(number of photos).** Per-photo, per-file and per-request detail is `DEBUG`.
@@ -315,7 +324,7 @@ The rule a reviewer actually applies: **`INFO` volume must be O(number of jobs/r
 
 ### Writing the line
 
-- **Lazy `%` args, never f-strings.** The arguments are only formatted if the line is actually written, so a `DEBUG` call costs nothing when `LOG_LEVEL` is `INFO`. Ruff's `G` rules are on and already reject `.format()`, `+` concatenation and `exc_info=True`; the f-string rule `G004` is on as well, with the call sites that predate it listed in `ruff-baseline.toml` until they are converted area by area. Do not add new ones.
+- **Lazy `%` args, never f-strings.** The arguments are only formatted if the line is actually written, so a `DEBUG` call costs nothing when `LOG_LEVEL` is `INFO`. Ruff's `G` rules reject f-strings (`G004`), `.format()`, `+` concatenation and `exc_info=True`.
 
   ```python
   logger.info("job %s: scan finished, %s photos added", job_id, count)   # yes

@@ -22,12 +22,13 @@ import os
 
 from flask.typing import ResponseReturnValue
 from retrieval_index import IndexBuildError, RetrievalIndex
-from utils import logger
 
 from librephotos.env import protected_media_root
-from service._common import create_app, json_fields, serve_forever
+from service._common import create_app, json_fields, logger, serve_forever
 
 INDEX_ROOT = os.path.join(protected_media_root(), "similarity")
+
+log = logger("image_similarity")
 
 app = create_app("image_similarity")
 index = RetrievalIndex(store_dir=INDEX_ROOT)
@@ -41,7 +42,7 @@ def _user_id(value: object) -> int:
 
 
 def _failed(message: str, status: int = 400) -> tuple[dict[str, object], int]:
-    logger.error(message)
+    log.error(message)
     return {"status": False, "error": message}, status
 
 
@@ -97,7 +98,7 @@ def search_index() -> ResponseReturnValue:
     try:
         result = index.search_similar(user_id, image_embedding, n, threshold)
     except Exception as e:
-        logger.error("search for user %s failed: %s", user_id, e)
+        log.error("search for user %s failed: %s", user_id, e)
         return {"status": False, "result": [], "error": str(e)}, 500
     return {"status": True, "result": result}
 

@@ -14,7 +14,6 @@ out in a comment so the refactorer knows they are deliberate.
 
 import io
 import uuid
-from contextlib import redirect_stdout
 from unittest.mock import patch
 
 from django.core.management import CommandError, call_command
@@ -34,12 +33,8 @@ class ScanCommandBaseTest(TestCase):
         self.deleted_user = get_deleted_user()
 
     def call_scan(self, *args, **options):
-        # ``nextcloud_scan`` uses bare ``print``, not ``self.stdout``, so the
-        # command's stdout kwarg does not capture it -- redirect the real
-        # stdout as well.
         out = io.StringIO()
-        with redirect_stdout(out):
-            call_command("scan", *args, stdout=out, stderr=out, **options)
+        call_command("scan", *args, stdout=out, stderr=out, **options)
         return out.getvalue()
 
 

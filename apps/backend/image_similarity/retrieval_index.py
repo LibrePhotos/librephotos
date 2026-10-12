@@ -1,11 +1,14 @@
 import datetime
+import logging
 import os
 import tempfile
 
 import faiss
 import numpy as np
 import numpy.typing as npt
-from utils import logger
+
+# image_similarity/main.py points this logger at stdout (service._common.logger).
+logger = logging.getLogger("image_similarity")
 
 embedding_size = 512
 

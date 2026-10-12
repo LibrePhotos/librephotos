@@ -166,8 +166,9 @@ def get_tags() -> ResponseReturnValue:
     # break means something is wrong; refuse the whole request rather than
     # silently reading a different file.
     if any(not is_safe_media_path(file) for file in files_by_reverse_priority):
-        log(
-            f"refusing a request with a line break in a path: {files_by_reverse_priority}"
+        log.warning(
+            "refusing a request with a line break in a path: %s",
+            files_by_reverse_priority,
         )
         return {"error": "media path contains a line break"}, 400
 
@@ -182,7 +183,7 @@ def get_tags() -> ResponseReturnValue:
     safe = [is_safe_tag_name(tag) for tag in tags]
     if not all(safe):
         dropped = [tag for tag, ok in zip(tags, safe) if not ok]
-        log(f"ignoring unsafe tag name(s): {dropped}")
+        log.warning("ignoring unsafe tag name(s): %s", dropped)
     safe_tags = [tag for tag, ok in zip(tags, safe) if ok]
 
     if not safe_tags or not files_by_reverse_priority:
@@ -193,7 +194,7 @@ def get_tags() -> ResponseReturnValue:
     except Exception as exc:
         # Not an empty answer: that reads as "no tags", and the photo would be
         # stored without a date or location that a rescan never comes back for.
-        log(f"error reading tags from {files_by_reverse_priority}: {exc}")
+        log.error("error reading tags from %s: %s", files_by_reverse_priority, exc)
         return {"error": str(exc)}, 500
 
     # Splice the safe-tag values back into the full requested order.

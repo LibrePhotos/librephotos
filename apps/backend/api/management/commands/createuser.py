@@ -1,4 +1,3 @@
-import sys
 from typing import Any
 
 from django.core.exceptions import ValidationError
@@ -81,7 +80,7 @@ class Command(BaseCommand):
         create(username, email, password)
 
     def _update_password(self, username: str, email: str, password: str) -> None:
-        print("Warning: ignoring provided email " + email, file=sys.stderr)
+        self.stderr.write("Warning: ignoring provided email " + email)
         user = User.objects.get(username=username)
         user.set_password(password)
         user.save()

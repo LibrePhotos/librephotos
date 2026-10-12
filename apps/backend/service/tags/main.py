@@ -63,7 +63,7 @@ def generate_tags() -> ResponseReturnValue:
     # handler below, which drops the model and makes the next photo reload
     # it after any failure.
     if not image_exists(image_path):
-        log(f"image not found: {image_path}")
+        log.warning("image not found: %s", image_path)
         return {"error": "Image not found"}, 400
 
     tagger = get_tagger()
@@ -79,7 +79,7 @@ def generate_tags() -> ResponseReturnValue:
     except Exception as e:
         # A model that failed half-way through loading must not be reused.
         tagger_instances.pop(MODEL_NAME, None)
-        log(f"Error processing image {image_path}: {e}")
+        log.error("Error processing image %s: %s", image_path, e)
         return {"error": "Failed to process image"}, 500
 
 

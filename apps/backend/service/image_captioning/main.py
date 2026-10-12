@@ -39,7 +39,7 @@ def generate_caption() -> ResponseReturnValue:
         # A captioner that failed half-way through loading must not be reused.
         global captioner
         captioner = None
-        log(f"error captioning {image_path}: {e!r}")
+        log.error("error captioning %s: %r", image_path, e)
         # The backend logs this message; it is the only place the reason
         # for a failed caption is visible without the sidecar's stdout.
         return {"error": f"{type(e).__name__}: {e}"}, 500
