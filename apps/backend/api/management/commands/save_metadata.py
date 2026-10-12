@@ -1,13 +1,22 @@
 from typing import Any
 
-from django.core.management.base import BaseCommand, CommandParser
+from django.core.management.base import BaseCommand, CommandError, CommandParser
 from django.db.models import QuerySet
 
+from api.metadata.photo_writer import write_target
 from api.models import Photo, User
+
+# The modes in which a user's edits are written to disk (write_target is not
+# None); photos of everyone else are skipped.
+SYNCING_MODES = (User.SaveMetadata.SIDECAR_FILE, User.SaveMetadata.MEDIA_FILE)
 
 
 class Command(BaseCommand):
-    help = "Save metadata to image files (or XMP sidecar files)"
+    help = (
+        "Save metadata to XMP sidecar files or image files, as each photo's "
+        "owner has chosen under 'Synchronize metadata to disk'. Photos of "
+        "users who have it Off are skipped."
+    )
 
     def add_arguments(self, parser: CommandParser) -> None:
         parser.add_argument(
@@ -22,16 +31,22 @@ class Command(BaseCommand):
             type=str,
             help="Only process photos owned by this username",
         )
-        parser.add_argument(
+        target = parser.add_mutually_exclusive_group()
+        target.add_argument(
             "--sidecar",
             action="store_true",
-            default=True,
-            help="Write to XMP sidecar files (default)",
+            help=(
+                "Write to XMP sidecar files whatever the user's setting says "
+                "(needs --user)"
+            ),
         )
-        parser.add_argument(
+        target.add_argument(
             "--media-file",
             action="store_true",
-            help="Write directly to media files instead of sidecars",
+            help=(
+                "Write into the media files whatever the user's setting says "
+                "(needs --user)"
+            ),
         )
         parser.add_argument(
             "--dry-run",
@@ -58,18 +73,24 @@ class Command(BaseCommand):
                 faces__deleted=False,
             ).distinct()
 
-        return photos
+        return photos.select_related("owner", "main_file")
 
     def write_photos(
         self,
         photos: QuerySet[Photo],
         total: int,
-        use_sidecar: bool,
+        override: bool | None,
         metadata_types: list[str],
     ) -> tuple[int, int]:
+        """Write each photo to its owner's target, or to ``override``'s."""
         written = 0
         errors = 0
         for i, photo in enumerate(photos.iterator(), 1):
+            use_sidecar = (
+                override if override is not None else write_target(photo.owner)
+            )
+            if use_sidecar is None:
+                continue  # handle() keeps only the photos of owners who sync
             try:
                 photo._save_metadata(
                     use_sidecar=use_sidecar, metadata_types=metadata_types
@@ -86,12 +107,39 @@ class Command(BaseCommand):
 
         return written, errors
 
+    @staticmethod
+    def target_override(options: dict[str, Any]) -> bool | None:
+        """``use_sidecar`` forced by --sidecar / --media-file, or None."""
+        if options["media_file"]:
+            override = False
+        elif options["sidecar"]:
+            override = True
+        else:
+            return None
+        if not options["user"]:
+            raise CommandError(
+                "--sidecar and --media-file override a user's 'Synchronize "
+                "metadata to disk' setting; name that user with --user"
+            )
+        return override
+
     def handle(self, *args: Any, **options: Any) -> None:
         metadata_types = options["types"]
+        override = self.target_override(options)
 
         photos = self.select_photos(options["user"], metadata_types)
         if photos is None:
             return
+
+        if override is None:
+            skipped = photos.exclude(owner__save_metadata_to_disk__in=SYNCING_MODES)
+            skipped_count = skipped.count()
+            if skipped_count:
+                self.stdout.write(
+                    f"Skipping {skipped_count} photos of users with "
+                    "'Synchronize metadata to disk' Off"
+                )
+            photos = photos.filter(owner__save_metadata_to_disk__in=SYNCING_MODES)
 
         total = photos.count()
         self.stdout.write(f"Found {total} photos to process (types: {metadata_types})")
@@ -100,9 +148,7 @@ class Command(BaseCommand):
             self.stdout.write("Dry run — no files will be modified")
             return
 
-        written, errors = self.write_photos(
-            photos, total, not options["media_file"], metadata_types
-        )
+        written, errors = self.write_photos(photos, total, override, metadata_types)
 
         self.stdout.write(
             self.style.SUCCESS(

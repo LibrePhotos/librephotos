@@ -10,7 +10,11 @@ from django.db.models import Q, QuerySet
 from django.db.models.base import ModelBase
 
 from api import photo_files
-from api.metadata.photo_writer import write_orientation_to_disk, write_photo_metadata
+from api.metadata.photo_writer import (
+    write_orientation_to_disk,
+    write_photo_metadata,
+    write_target,
+)
 from api.models.duplicate import Duplicate
 from api.models.file import File
 from api.models.photo_stack import PhotoStack
@@ -250,11 +254,9 @@ class Photo(models.Model):
             if value != getattr(self, field_name)
         ]
         if save_metadata:
-            mode = self.owner.save_metadata_to_disk
-            if mode != User.SaveMetadata.OFF:
-                self._save_metadata(
-                    modified_fields, mode == User.SaveMetadata.SIDECAR_FILE
-                )
+            use_sidecar = write_target(self.owner)
+            if use_sidecar is not None:
+                self._save_metadata(modified_fields, use_sidecar)
         super().save(
             force_insert=force_insert,
             force_update=force_update,

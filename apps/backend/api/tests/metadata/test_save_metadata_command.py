@@ -1,8 +1,9 @@
-"""Characterization tests for the ``save_metadata`` management command.
+"""Tests for the ``save_metadata`` management command.
 
-These pin the CURRENT behavior of ``Command.handle`` in
-``api/management/commands/save_metadata.py`` before it is refactored.
-Nothing here asserts what the command *should* do -- only what it does today.
+Each photo is written to its owner's target ("Synchronize metadata to disk":
+sidecar or media file); photos of owners who have it Off are skipped (#2293).
+``--sidecar`` / ``--media-file`` override the owner's setting and need
+``--user``.
 
 ``Photo._save_metadata`` is always mocked so no exiftool binary, sidecar file
 or media file is ever touched.
@@ -12,9 +13,10 @@ from io import StringIO
 from unittest.mock import MagicMock, patch
 
 from django.core.management import call_command
+from django.core.management.base import CommandError
 from django.test import TestCase
 
-from api.models import Photo
+from api.models import Photo, User
 from api.tests.utils import create_test_face, create_test_photo, create_test_user
 
 
@@ -26,10 +28,28 @@ def run_command(*args):
     return out.getvalue(), err.getvalue(), save_mock
 
 
+def fake_queryset(count, photos):
+    """A stand-in for the photo queryset: ``count()`` and ``iterator()``.
+
+    Filtering returns it unchanged and it reports no skipped photos.
+    """
+    queryset = MagicMock()
+    queryset.select_related.return_value = queryset
+    queryset.filter.return_value = queryset
+    queryset.exclude.return_value.count.return_value = 0
+    queryset.count.return_value = count
+    queryset.iterator.return_value = iter(photos)
+    return queryset
+
+
 class SaveMetadataCommandTest(TestCase):
     def setUp(self):
-        self.user = create_test_user()
-        self.other_user = create_test_user()
+        self.user = create_test_user(
+            save_metadata_to_disk=User.SaveMetadata.SIDECAR_FILE
+        )
+        self.other_user = create_test_user(
+            save_metadata_to_disk=User.SaveMetadata.SIDECAR_FILE
+        )
 
     # ------------------------------------------------------------------
     # happy path
@@ -43,7 +63,7 @@ class SaveMetadataCommandTest(TestCase):
         self.assertIn("Done. 3 written, 0 errors out of 3 photos.", out)
         self.assertEqual(err, "")
         self.assertEqual(save_mock.call_count, 3)
-        # default: sidecar is used (``--media-file`` not given) and only ratings
+        # the owner syncs to the sidecar, and only ratings are written
         for call in save_mock.call_args_list:
             self.assertEqual(call.args, ())
             self.assertEqual(
@@ -51,24 +71,71 @@ class SaveMetadataCommandTest(TestCase):
             )
         self.assertEqual(len(photos), 3)
 
-    def test_media_file_flag_disables_sidecar(self):
+    def test_follows_each_owners_target(self):
+        media_user = create_test_user(
+            save_metadata_to_disk=User.SaveMetadata.MEDIA_FILE
+        )
+        sidecar_photo = create_test_photo(owner=self.user)
+        media_photo = create_test_photo(owner=media_user)
+
+        out = StringIO()
+        with patch.object(Photo, "_save_metadata", autospec=True) as save_mock:
+            call_command("save_metadata", stdout=out, stderr=StringIO())
+
+        targets = {
+            call.args[0].pk: call.kwargs["use_sidecar"]
+            for call in save_mock.call_args_list
+        }
+        self.assertEqual({sidecar_photo.pk: True, media_photo.pk: False}, targets)
+
+    def test_skips_owners_with_sync_off(self):
+        off_user = create_test_user(save_metadata_to_disk=User.SaveMetadata.OFF)
+        create_test_photo(owner=off_user)
+        create_test_photo(owner=off_user)
         create_test_photo(owner=self.user)
 
-        _, _, save_mock = run_command("--media-file")
+        out, err, save_mock = run_command()
+
+        self.assertIn("Skipping 2 photos of users with", out)
+        self.assertIn("Found 1 photos to process", out)
+        self.assertEqual(save_mock.call_count, 1)
+        self.assertEqual(err, "")
+
+    def test_user_with_sync_off_is_skipped_without_an_override(self):
+        off_user = create_test_user(save_metadata_to_disk=User.SaveMetadata.OFF)
+        create_test_photo(owner=off_user)
+
+        out, _, save_mock = run_command("--user", off_user.username)
+
+        self.assertIn("Skipping 1 photos", out)
+        self.assertEqual(save_mock.call_count, 0)
+
+    def test_media_file_flag_overrides_the_users_setting(self):
+        create_test_photo(owner=self.user)
+
+        _, _, save_mock = run_command("--media-file", "--user", self.user.username)
 
         self.assertEqual(save_mock.call_args.kwargs["use_sidecar"], False)
 
-    def test_sidecar_flag_is_a_no_op_with_media_file(self):
-        """``--sidecar`` is ignored entirely; only ``--media-file`` matters.
+    def test_sidecar_flag_overrides_sync_off(self):
+        off_user = create_test_user(save_metadata_to_disk=User.SaveMetadata.OFF)
+        create_test_photo(owner=off_user)
 
-        Passing both leaves ``use_sidecar`` False -- pinning today's behavior,
-        not endorsing it.
-        """
+        out, _, save_mock = run_command("--sidecar", "--user", off_user.username)
+
+        self.assertNotIn("Skipping", out)
+        self.assertEqual(save_mock.call_args.kwargs["use_sidecar"], True)
+
+    def test_an_override_needs_a_user(self):
         create_test_photo(owner=self.user)
 
-        _, _, save_mock = run_command("--sidecar", "--media-file")
+        for flag in ("--sidecar", "--media-file"):
+            with self.subTest(flag=flag), self.assertRaises(CommandError):
+                run_command(flag)
 
-        self.assertEqual(save_mock.call_args.kwargs["use_sidecar"], False)
+    def test_sidecar_and_media_file_are_exclusive(self):
+        with self.assertRaises(CommandError):
+            run_command("--sidecar", "--media-file", "--user", self.user.username)
 
     def test_types_option_is_passed_through(self):
         photo = create_test_photo(owner=self.user)
@@ -213,11 +280,10 @@ class SaveMetadataCommandTest(TestCase):
         for i in range(250):
             p = MagicMock()
             p.image_hash = f"hash{i}"
+            p.owner = self.user
             fake_photos.append(p)
 
-        queryset = MagicMock()
-        queryset.count.return_value = 250
-        queryset.iterator.return_value = iter(fake_photos)
+        queryset = fake_queryset(250, fake_photos)
 
         out, err = StringIO(), StringIO()
         with patch("api.management.commands.save_metadata.Photo") as photo_cls:
@@ -236,9 +302,9 @@ class SaveMetadataCommandTest(TestCase):
 
     def test_total_is_counted_before_iteration(self):
         """``total`` in the summary comes from ``count()``, not the loop."""
-        queryset = MagicMock()
-        queryset.count.return_value = 7  # deliberately disagrees with iterator
-        queryset.iterator.return_value = iter([MagicMock(), MagicMock()])
+        photos = [MagicMock(owner=self.user), MagicMock(owner=self.user)]
+        # 7 deliberately disagrees with the iterator
+        queryset = fake_queryset(7, photos)
 
         out, err = StringIO(), StringIO()
         with patch("api.management.commands.save_metadata.Photo") as photo_cls:
@@ -252,7 +318,5 @@ class SaveMetadataCommandTest(TestCase):
     # argument parsing
     # ------------------------------------------------------------------
     def test_invalid_type_choice_is_rejected(self):
-        from django.core.management.base import CommandError
-
         with self.assertRaises(CommandError):
             call_command("save_metadata", "--types", "captions")

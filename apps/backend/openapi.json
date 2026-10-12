@@ -5351,7 +5351,7 @@
     "/api/savemetadata/": {
       "post": {
         "operationId": "api_savemetadata_create",
-        "description": "Bulk-write metadata to image files for the authenticated user's photos.\n\nAccepts {\"types\": [\"ratings\", \"face_tags\"]} to control what gets written.\nDefaults to [\"ratings\"] if not specified.",
+        "description": "Bulk-write metadata to image files for the authenticated user's photos.\n\nAccepts {\"types\": [\"ratings\", \"face_tags\"]} to control what gets written.\nDefaults to [\"ratings\"] if not specified. Writes to the sidecar or the\nmedia file as the user's \"Synchronize metadata to disk\" says, and is a\n400 while that is Off (#2293).",
         "tags": [
           "api"
         ],
