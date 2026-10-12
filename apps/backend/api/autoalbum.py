@@ -69,7 +69,7 @@ def regenerate_event_titles(user: User, job_id: uuid.UUID | str) -> int:
         aus = AlbumAuto.objects.filter(owner=user).prefetch_related("photos")
         target_count = len(aus)
         for idx, au in enumerate(aus):
-            logger.info("job %s: %s", job_id, idx)
+            logger.debug("job %s: %s", job_id, idx)
             au._generate_title()
             au.save()
             lrj.update_progress(current=idx + 1, target=target_count)

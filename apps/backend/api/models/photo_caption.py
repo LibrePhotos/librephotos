@@ -158,7 +158,7 @@ class PhotoCaption(models.Model):
             llm_settings = User.objects.get(username=self.photo.owner).llm_settings
             context = self._caption_context(llm_settings)
             prompt = self._caption_prompt(context)
-            logger.info("Caption prompt: %s", prompt)
+            logger.debug("Caption prompt: %s", prompt)
 
             caption = generate_caption(image_path=image_path, prompt=prompt)
             caption = caption.replace("<start>", "").replace("<end>", "").strip()

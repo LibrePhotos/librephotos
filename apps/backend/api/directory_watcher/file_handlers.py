@@ -868,18 +868,18 @@ def _process_photo(
         elif fields:
             photo.save(save_metadata=False, update_fields=fields)
         elapsed = (datetime.datetime.now() - start).total_seconds()
-        logger.info("job %s: probe video: %s, elapsed: %s", job_id, path, elapsed)
+        logger.debug("job %s: probe video: %s, elapsed: %s", job_id, path, elapsed)
 
     if rebuild_fields:
         _rebuild_made_before_probe(photo, thumbnail, rebuild_fields, job_id, path)
     else:
         thumbnail._generate_thumbnail()
     elapsed = (datetime.datetime.now() - start).total_seconds()
-    logger.info("job %s: generate thumbnails: %s, elapsed: %s", job_id, path, elapsed)
+    logger.debug("job %s: generate thumbnails: %s, elapsed: %s", job_id, path, elapsed)
 
     thumbnail._calculate_aspect_ratio()
     elapsed = (datetime.datetime.now() - start).total_seconds()
-    logger.info(
+    logger.debug(
         "job %s: calculate aspect ratio: %s, elapsed: %s", job_id, path, elapsed
     )
 
@@ -890,7 +890,7 @@ def _process_photo(
             photo.perceptual_hash = phash
             photo.save(update_fields=["perceptual_hash"])
             elapsed = (datetime.datetime.now() - start).total_seconds()
-            logger.info(
+            logger.debug(
                 "job %s: calculate perceptual hash: %s, elapsed: %s",
                 job_id,
                 path,
@@ -901,7 +901,7 @@ def _process_photo(
 
     PhotoMetadata.extract_exif_data(photo, commit=True)
     elapsed = (datetime.datetime.now() - start).total_seconds()
-    logger.info("job %s: extract exif data: %s, elapsed: %s", job_id, path, elapsed)
+    logger.debug("job %s: extract exif data: %s, elapsed: %s", job_id, path, elapsed)
 
     # Categorise the photo (screenshot/document) from the freshly extracted
     # metadata. A manual correction ("user") is never overwritten by a rescan.
@@ -914,16 +914,16 @@ def _process_photo(
 
     extract_date_time(photo, True)
     elapsed = (datetime.datetime.now() - start).total_seconds()
-    logger.info("job %s: extract date time: %s, elapsed: %s", job_id, path, elapsed)
+    logger.debug("job %s: extract date time: %s, elapsed: %s", job_id, path, elapsed)
 
     thumbnail._get_dominant_color()
     elapsed = (datetime.datetime.now() - start).total_seconds()
-    logger.info("job %s: get dominant color: %s, elapsed: %s", job_id, path, elapsed)
+    logger.debug("job %s: get dominant color: %s, elapsed: %s", job_id, path, elapsed)
 
     search_instance, created = PhotoSearch.objects.get_or_create(photo=photo)
     search_instance.recreate_search_captions()
     search_instance.save()
     elapsed = (datetime.datetime.now() - start).total_seconds()
-    logger.info(
+    logger.debug(
         "job %s: search caption recreated: %s, elapsed: %s", job_id, path, elapsed
     )
