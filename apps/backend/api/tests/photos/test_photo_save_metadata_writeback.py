@@ -1,6 +1,8 @@
 """``Photo.save()``: the diff it takes against the loaded row and the owner's
 ``save_metadata_to_disk`` setting that decides whether that diff is written to
-disk. ``Photo._save_metadata`` is mocked, so no exiftool is needed.
+disk. Only a save with ``save_metadata=True`` (a user's edit) writes; the
+default writes nothing (#2295). ``Photo._save_metadata`` is mocked, so no
+exiftool is needed.
 """
 
 from unittest.mock import patch
@@ -22,6 +24,7 @@ class SaveMetadataSettingTest(TestCase):
         User.objects.filter(pk=self.user.pk).update(save_metadata_to_disk=mode)
         loaded = Photo.objects.select_related("owner").get(pk=self.photo.pk)
         loaded.rating = 4
+        save_kwargs.setdefault("save_metadata", True)
         with patch.object(Photo, "_save_metadata") as write:
             loaded.save(**save_kwargs)
         return write
@@ -41,6 +44,18 @@ class SaveMetadataSettingTest(TestCase):
         write = self._save_with(User.SaveMetadata.SIDECAR_FILE, save_metadata=False)
         write.assert_not_called()
 
+    def test_a_plain_save_writes_nothing(self):
+        # #2295: a scan's save of a rating read from the file wrote it back.
+        User.objects.filter(pk=self.user.pk).update(
+            save_metadata_to_disk=User.SaveMetadata.SIDECAR_FILE
+        )
+        loaded = Photo.objects.select_related("owner").get(pk=self.photo.pk)
+        loaded.rating = 4
+        with patch.object(Photo, "_save_metadata") as write:
+            loaded.save()
+
+        write.assert_not_called()
+
     def test_owner_is_not_looked_up_again(self):
         """The setting is read from the ``owner`` FK, not by a second query for
         the user by username on every save."""
@@ -53,7 +68,7 @@ class SaveMetadataSettingTest(TestCase):
             patch.object(Photo, "_save_metadata"),
             CaptureQueriesContext(connection) as queries,
         ):
-            loaded.save()
+            loaded.save(save_metadata=True)
 
         user_table = User._meta.db_table
         user_reads = [
@@ -102,14 +117,14 @@ class LoadedValuesChangeTrackingTest(TestCase):
         loaded = Photo.objects.get(pk=self.photo.pk)
         loaded.rating = 5
         with patch.object(Photo, "_save_metadata") as write:
-            loaded.save()
+            loaded.save(save_metadata=True)
 
         write.assert_called_once_with(["rating"], True)
 
     def test_unchanged_loaded_instance_writes_an_empty_diff(self):
         loaded = Photo.objects.get(pk=self.photo.pk)
         with patch.object(Photo, "_save_metadata") as write:
-            loaded.save()
+            loaded.save(save_metadata=True)
 
         write.assert_called_once_with([], True)
 
@@ -121,7 +136,7 @@ class LoadedValuesChangeTrackingTest(TestCase):
             rating=5,
         )
         with patch.object(Photo, "_save_metadata") as write:
-            fresh.save()
+            fresh.save(save_metadata=True)
 
         write.assert_called_once_with([], True)
 

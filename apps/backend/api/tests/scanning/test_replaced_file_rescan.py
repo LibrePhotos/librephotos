@@ -311,7 +311,7 @@ class MetadataWriteIsNotAReplacementTest(ReplacedFileTestCase):
         loaded = Photo.objects.get(pk=photo.pk)
         with patch("api.metadata.photo_writer.write_metadata", write_metadata_mock):
             loaded.rating = 4
-            loaded.save()
+            loaded.save(save_metadata=True)
         return loaded
 
     def test_rescan_after_our_own_write_only_rekeys_the_file(self):

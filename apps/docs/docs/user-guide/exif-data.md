@@ -19,7 +19,7 @@ sidebar_position: 18
         <td>Favorites</td>
         <td>✔️</td>
         <td>✔️</td>
-        <td>Settable via "Minimum image rating to interpret as favorite". Written back when you change a rating or favorite a photo, but only if "Synchronize metadata to disk" is enabled. Favoriting a selection writes the ratings in the background, so the files can lag the library by a moment.</td>
+        <td>Settable via "Minimum image rating to interpret as favorite". Written back when you change a rating or favorite a photo, but only if "Synchronize metadata to disk" is enabled. Favoriting a selection writes the ratings in the background, so the files can lag the library by a moment. A scan only reads the rating and never writes it back. <em>Not released yet: up to 1.3.0, a scan wrote a rating it found in the file back to disk, which in sidecar mode created an <code>.xmp</code> holding just that rating; such sidecars are harmless unless the rating is later changed in the original by another app.</em></td>
     </tr>
     <tr>
         <td>ImageHeight</td>

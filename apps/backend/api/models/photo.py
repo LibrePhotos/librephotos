@@ -246,8 +246,16 @@ class Photo(models.Model):
         force_update: bool = False,
         using: str | None = None,
         update_fields: Iterable[str] | None = None,
-        save_metadata: bool = True,
+        save_metadata: bool = False,
     ) -> None:
+        """Save the row; with ``save_metadata``, also write the edit to disk.
+
+        A write to the user's files is never a side effect: only the paths
+        that apply a user's edit pass ``save_metadata=True`` (#2295). Scans,
+        jobs and repairs save what they read from the file and write nothing.
+        The changed rating and capture date are then written to the sidecar
+        or the media file, as the owner's "Synchronize metadata to disk" says.
+        """
         modified_fields = [
             field_name
             for field_name, value in self._loaded_values.items()
