@@ -178,7 +178,7 @@ export function SceneSection({
         <Note testID="viewer-scene-empty" text={t("viewer.noScene")} />
       ) : (
         <View style={{ gap: 10 }}>
-          <LabelGroup title={t("viewer.tags")} labels={labels.tags} onSearch={onSearch} idPrefix="tag" />
+          <LabelGroup title={t("viewer.things")} labels={labels.tags} onSearch={onSearch} idPrefix="tag" />
           <LabelGroup
             title={t("viewer.attributes")}
             labels={labels.attributes}

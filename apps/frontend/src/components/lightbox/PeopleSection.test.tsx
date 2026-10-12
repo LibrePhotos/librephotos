@@ -10,7 +10,7 @@ import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import type { People } from "../../api_client/photos/types";
+import type { PhotoPerson } from "../../api_client/photos/types";
 import i18n from "../../i18n";
 import { defined } from "../../util/defined.test-utils";
 import { PeopleSection } from "./PeopleSection";
@@ -54,7 +54,7 @@ beforeEach(() => {
 
 async function renderSection(
   overrides: Partial<React.ComponentProps<typeof PeopleSection>> = {},
-  people: People[] = []
+  people: PhotoPerson[] = []
 ) {
   const container = document.createElement("div");
   document.body.appendChild(container);

@@ -178,7 +178,7 @@ describe("Description", () => {
     expect(container.querySelector('button[aria-label="Save"]')).toBeNull();
   });
 
-  it("searches for an auto tag, encoded, and leaves a public page's tags as labels", async () => {
+  it("searches for a thing, encoded, and leaves a public page's tags as labels", async () => {
     // No site settings in the test: the default tagging model's key.
     const tagged = photo("a", "", { openclip_vitb32: { tags: ["rock & roll"] } });
     const { container, root } = mount();

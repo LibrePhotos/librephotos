@@ -59,11 +59,12 @@ export const en = {
     caption: "Caption",
     noCaption: "No caption yet",
     editCaption: "Edit caption",
-    // Scene labels (the server's own captioning model)
+    // Scene labels (the server's own captioning model). Its OpenCLIP labels
+    // are Things, as on the web; "Tags" are the user's own (see the glossary).
     scene: "Scene",
     attributes: "Attributes",
     categories: "Categories",
-    tags: "Tags",
+    things: "Things",
     noScene: "No scene labels",
     // People
     people: "People",

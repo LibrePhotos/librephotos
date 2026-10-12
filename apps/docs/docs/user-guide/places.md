@@ -88,7 +88,7 @@ Navigate to **Albums → Places** to see your photos on the map.
 Once your photos have location data:
 
 - **Search by location**: Search for photos by place name (e.g., "Paris", "beach")
-- **Auto-albums with places**: Automatically created albums include location in their titles
+- **Events with places**: Event titles include the location
 - **Location timeline**: See where you've been over time
 - **Place tree**: Hierarchical view of all your locations
 - **Photo info**: Individual photos show their location on a mini-map (when map display is enabled), and you can set or correct a photo's location from there

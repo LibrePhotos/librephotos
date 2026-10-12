@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { Media, PigPhoto, SimpleUser, StackTypeEnum, UuidString } from "./common";
 
-export const People = z.object({
+/** One face entry in `Photo.people`: a face on this photo, with the name of its person. */
+export const PhotoPerson = z.object({
   name: z.string(),
   type: z.string(),
   probability: z.number(),
@@ -9,7 +10,11 @@ export const People = z.object({
   face_url: z.string(),
   face_id: z.number(),
 });
-export type People = z.infer<typeof People>;
+export type PhotoPerson = z.infer<typeof PhotoPerson>;
+/** @deprecated Use `PhotoPerson`; kept for one release while apps/mobile moves. */
+export const People = PhotoPerson;
+/** @deprecated Use `PhotoPerson`. */
+export type People = PhotoPerson;
 
 export const MetadataSourceEnum = z.enum(["embedded", "sidecar", "user_edit", "computed"]);
 export type MetadataSourceEnum = z.infer<typeof MetadataSourceEnum>;
@@ -110,7 +115,7 @@ export const Photo = z.object({
   // The reverse geocoder's answer (features, places, ...), stored as it came.
   geolocation_json: z.unknown(),
   exif_json: z.unknown(),
-  people: People.array(),
+  people: PhotoPerson.array(),
   image_hash: z.string(),
   image_path: z.string().array(),
   rating: z.number(),

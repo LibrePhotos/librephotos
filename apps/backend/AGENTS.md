@@ -71,6 +71,10 @@ test makes `--parallel` runs crash with "cannot pickle 'traceback'"; rerun that 
   two. CI (`test-backend.yml`) fails on a stale `openapi.json` and on a new drf-spectacular report
   (`openapi-baseline.txt` only shrinks); `api/tests/infra/test_serializer_method_annotations.py` fails on
   a shapeless getter.
+- Names follow `apps/docs/docs/development/glossary.md`: JSON keys (serializer fields, dict keys, query
+  parameters) are snake_case, a new route takes a photo as `Photo.id` in a `photo_id` argument (never
+  `image_hash`), and "tag" means the user's `Tag` while OpenCLIP output is a "thing".
+  `api/tests/infra/test_api_naming.py` fails on a new camelCase key or `image_hash` route; its legacy lists only shrink.
 - A viewset is `viewsets.GenericViewSet` plus only the mixins of the actions a client calls (PATCH
   alone: `PartialUpdateModelMixin` from `api/views/mixins.py`), never `ModelViewSet` or an
   `http_method_names` blocklist. Pin a new route's verbs in `ROUTER_VERBS`
