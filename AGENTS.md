@@ -40,6 +40,9 @@ A self-hosted photo manager. This is a monorepo; each app has its own stack and 
 - API client (`packages/api-client`): `npm run typecheck|lint|test --workspace packages/api-client`
   (CI: `api-client.yml`). Its TypeScript, ESLint and vitest majors follow `apps/frontend`, which
   compiles it; its formatting is the web app's `yarn format:check`. No `package-lock.json` but the root one.
+  Both apps run its schemas on their own zod 4, so use zod 4 APIs only (lint: `no-deprecated`), and
+  bump zod or React Query in the web, mobile, package and root manifests together:
+  `node scripts/check-shared-deps.mjs` (CI) fails on a peer-range or zod-major mismatch.
 - Docs (`apps/docs`): `yarn install --frozen-lockfile`, `yarn build`.
 
 ## History

@@ -43,6 +43,7 @@ green CI run. To develop against a local backend, copy `.env.development.example
   `refetchInterval`/`pollingInterval` and a raw `setTimeout`/`setInterval` in `src/api_client`.
 - A failed request rejects with `ApiError`: branch on its `status` or `serverCode` (the backend's
   `errors[0].code`), never on message text; show only `serverMessage`, never `message`.
+- `packages/api-client` runs on this app's zod and React Query (`resolve.dedupe`, tsconfig `paths`) and on the mobile app's: shared schemas use zod 4 APIs only, and a zod or React Query bump here moves `apps/mobile`, the package and the root `package.json` too (`scripts/check-shared-deps.mjs` fails otherwise). `yarn test` runs the package's suite as the `api-client` vitest project.
 - User-visible text uses `t()` with a key in `src/locales/en/translation.json`. Never edit the other
   locales; Weblate fills them in.
 - Colours come from the Mantine theme or CSS variables so dark mode works.

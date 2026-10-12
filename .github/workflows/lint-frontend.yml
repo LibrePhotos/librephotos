@@ -7,12 +7,14 @@ on:
       - 'apps/frontend/**'
       # The frontend compiles the shared API client from source.
       - 'packages/api-client/**'
+      - 'scripts/check-shared-deps*.mjs'
       - '.github/workflows/lint-frontend.yml'
   pull_request:
     paths:
       - 'apps/frontend/**'
       # The frontend compiles the shared API client from source.
       - 'packages/api-client/**'
+      - 'scripts/check-shared-deps*.mjs'
       - '.github/workflows/lint-frontend.yml'
 
 concurrency:
@@ -37,6 +39,14 @@ jobs:
           node-version-file: apps/frontend/.nvmrc
           cache: yarn
           cache-dependency-path: apps/frontend/yarn.lock
+      # packages/api-client's peer ranges against the zod, React and React Query
+      # this app and the mobile app install (no install needed). api-client.yml
+      # runs the same check.
+      - name: shared dependency versions
+        working-directory: .
+        run: |
+          node --test scripts/check-shared-deps.test.mjs
+          node scripts/check-shared-deps.mjs
       - name: install dependencies
         run: yarn install --frozen-lockfile --network-timeout 1000000
       # Prettier over the web app and packages/api-client (one config for both).
@@ -53,6 +63,9 @@ jobs:
       # tsc over the e2e suite, with the e2e dependencies installed above.
       - name: typecheck e2e
         run: yarn run typecheck:e2e
+      # Two vitest projects: the web app's suite, and packages/api-client's
+      # suite under this app's zod and React Query (api-client.yml runs it under
+      # the mobile app's).
       - name: test
         run: yarn run test
       - name: build

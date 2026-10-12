@@ -4,6 +4,10 @@ name: api-client
 # mobile app (npm workspace). Its tooling follows apps/frontend: same
 # TypeScript, ESLint and vitest majors; formatting is checked by
 # lint-frontend.yml (`yarn format:check` covers this package).
+#
+# This job tests the package against the root lockfile, i.e. the mobile app's
+# zod, React and React Query; lint-frontend.yml runs the same tests against the
+# web app's. scripts/check-shared-deps.mjs keeps both inside the peer ranges.
 
 on:
   push:
@@ -11,6 +15,10 @@ on:
     paths:
       - 'packages/api-client/**'
       - 'package.json'
+      # Read by the shared dependency check below (lint-frontend.yml runs it on
+      # web changes).
+      - 'apps/mobile/package.json'
+      - 'scripts/check-shared-deps*.mjs'
       # The root lockfile, and any nested one the guard below rejects.
       - '**/package-lock.json'
       - '.github/workflows/api-client.yml'
@@ -18,6 +26,10 @@ on:
     paths:
       - 'packages/api-client/**'
       - 'package.json'
+      # Read by the shared dependency check below (lint-frontend.yml runs it on
+      # web changes).
+      - 'apps/mobile/package.json'
+      - 'scripts/check-shared-deps*.mjs'
       # The root lockfile, and any nested one the guard below rejects.
       - '**/package-lock.json'
       - '.github/workflows/api-client.yml'
@@ -51,6 +63,12 @@ jobs:
           node-version: '24'
           cache: npm
           cache-dependency-path: package-lock.json
+      # The package's peer ranges against the zod, React and React Query the web
+      # and mobile apps install (no install needed). lint-frontend.yml runs it too.
+      - name: shared dependency versions
+        run: |
+          node --test scripts/check-shared-deps.test.mjs
+          node scripts/check-shared-deps.mjs
       # Only this workspace's dependencies, from the root lockfile; the mobile
       # app's (and the root's Expo pins) are not needed here.
       - name: install (root lockfile, api-client workspace)
