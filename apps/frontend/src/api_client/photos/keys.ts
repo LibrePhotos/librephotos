@@ -51,7 +51,7 @@ export const photoGridKeys = {
    * One page of one day of the list `listKey`. The layout after the photoset is read back by
    * useFetchDateAlbumsQuery (getCachedDateAlbumPages): day id, page, then the list's filters.
    */
-  dateAlbumDay: ([photoset, ...filters]: DateAlbumsListKey, albumDateId: string, page: number) =>
+  dateAlbumDay: ([photoset, ...filters]: DateAlbumsListKey, albumDateId: number, page: number) =>
     [...photoGridKeys.dateAlbumDays(photoset), albumDateId, page, ...filters] as const,
   recentlyAdded: () => gridKind("recentlyAdded"),
   /** Every view of one user album. */

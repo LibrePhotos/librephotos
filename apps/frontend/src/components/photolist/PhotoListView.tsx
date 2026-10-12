@@ -73,10 +73,10 @@ const isHeaderSize = (value: string): value is HeaderSize =>
 const isDateGroupList = (photoset: DatePhotosGroup[] | PigPhoto[]): photoset is DatePhotosGroup[] =>
   photoset.every(entry => "items" in entry);
 
-// Only the paginated date lists' groups carry the cursor id that names the
+// Only the paginated date lists' groups carry the date album id that names the
 // page still to load; the others have nothing to fetch.
 const hasCursor = (group: GroupedImageItem<PigPhoto>): group is PigVisibleGroup<PigPhoto> =>
-  typeof group.id === "string";
+  typeof group.id === "number";
 
 export type { PhotoGroup } from "./photoGroup";
 // The pages that load their own date groups read the visible ones in the shape Pig reports.

@@ -1,4 +1,9 @@
-import { PhotoHash, UserAlbumInfo as SharedUserAlbumInfo, type BulkPhotoQuery } from "@librephotos/api-client";
+import {
+  IntegerId,
+  PhotoHash,
+  UserAlbumInfo as SharedUserAlbumInfo,
+  type BulkPhotoQuery,
+} from "@librephotos/api-client";
 import { z } from "zod";
 
 // The album schemas are shared with the mobile app and live in
@@ -23,6 +28,11 @@ export const UserAlbumListResponse = z.object({
 });
 
 export type UserAlbumList = z.infer<typeof UserAlbumList>;
+
+/** GET /public/albums/s/{slug}/, read only for the id of the album that holds the slug. */
+export const SlugOwnerResponse = z.object({
+  results: z.object({ id: IntegerId }),
+});
 
 export type DeleteUserAlbumParams = {
   id: string;

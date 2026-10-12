@@ -21,8 +21,13 @@ const item = (id: string, rating = 0, date: string | null = "2024-01-02T10:00:00
   has_raw_variant: false,
 });
 
+/** Date album ids of the fixture's buckets: two on the timeline, one hidden. */
+const B1 = 1;
+const B2 = 2;
+const H1 = 3;
+
 /** One date bucket as the paginated date-album endpoints return it. */
-function bucket(id: string, items: PigPhoto[], numberOfItems: number, incomplete: boolean): IncompleteDatePhotosGroup {
+function bucket(id: number, items: PigPhoto[], numberOfItems: number, incomplete: boolean): IncompleteDatePhotosGroup {
   return { id, date: "2024-01-02", location: null, items, incomplete, numberOfItems };
 }
 
@@ -33,16 +38,16 @@ function noAlbum(id: number): Promise<never> {
 
 /** A fake source with two timeline buckets, one hidden bucket, and small lists. */
 function makeSource(overrides: Partial<SeedSource> = {}): SeedSource {
-  const bucketItems: Record<string, PigPhoto[]> = {
-    b1: [item("p1", 5), item("p2", 0)],
-    b2: [item("p3", 0)],
-    h1: [item("p4", 0)],
+  const bucketItems: Record<number, PigPhoto[]> = {
+    [B1]: [item("p1", 5), item("p2", 0)],
+    [B2]: [item("p3", 0)],
+    [H1]: [item("p4", 0)],
   };
   return {
     dateAlbumsList: async (filter) => {
-      if (filter.hidden) return [bucket("h1", [], 1, true)];
+      if (filter.hidden) return [bucket(H1, [], 1, true)];
       if (filter.in_trashcan) return [];
-      return [bucket("b1", [], 2, true), bucket("b2", [], 1, true)];
+      return [bucket(B1, [], 2, true), bucket(B2, [], 1, true)];
     },
     dateAlbum: async (id, page) => {
       const items = page === 1 ? (bucketItems[id] ?? []) : [];
@@ -102,23 +107,23 @@ describe("seeder", () => {
   });
 
   it("resumes an interrupted seed: only un-ingested buckets are re-fetched", async () => {
-    const fetched: string[] = [];
-    const bucketItems = (id: string): PigPhoto[] =>
-      id === "b1" ? [item("p1", 5), item("p2")] : id === "b2" ? [item("p3")] : [item("p4")];
+    const fetched: number[] = [];
+    const bucketItems = (id: number): PigPhoto[] =>
+      id === B1 ? [item("p1", 5), item("p2")] : id === B2 ? [item("p3")] : [item("p4")];
 
     // First run fails while fetching b2 — b1 is ingested and recorded, status
     // stays "running" (interrupted).
     const failing = makeSource({
       dateAlbum: async (id, page) => {
         fetched.push(id);
-        if (id === "b2") throw new Error("network drop");
+        if (id === B2) throw new Error("network drop");
         const items = page === 1 ? bucketItems(id) : [];
         return bucket(id, items, items.length, false);
       },
     });
     await expect(seedPhotos(t.db, failing, OPTS)).rejects.toThrow("network drop");
     expect(getSyncState(t.db, "photo")?.status).toBe("running");
-    expect(fetched).toContain("b1");
+    expect(fetched).toContain(B1);
 
     // Resume: b1 is recorded done and must NOT be re-fetched; b2 onward is.
     fetched.length = 0;
@@ -130,8 +135,8 @@ describe("seeder", () => {
       },
     });
     await seedPhotos(t.db, ok, OPTS);
-    expect(fetched).not.toContain("b1");
-    expect(fetched).toContain("b2");
+    expect(fetched).not.toContain(B1);
+    expect(fetched).toContain(B2);
     const count = t.db.get(sql`SELECT COUNT(*) AS c FROM remote_photo`) as { c: number };
     expect(count.c).toBe(4);
   });

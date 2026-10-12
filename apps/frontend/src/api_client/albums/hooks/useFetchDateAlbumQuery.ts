@@ -11,7 +11,7 @@ import { buildDateAlbumFilterParams, dateAlbumsListKey } from "./useFetchDateAlb
 
 type AlbumDateOption = {
   photosetType: Photoset;
-  album_date_id: string;
+  album_date_id: number;
   page: number;
   username?: string;
   person_id?: number;

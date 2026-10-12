@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { DatePhotosGroup, IncompleteDatePhotosGroup, PhotoHash, SimpleUser, UuidString } from "./common";
+import { DatePhotosGroup, IncompleteDatePhotosGroup, IntegerId, PhotoHash, SimpleUser, UuidString } from "./common";
 import { Person } from "./persons";
 
 /* ---- Date albums (the timeline) ---------------------------------------- */
@@ -61,7 +61,7 @@ export const FetchUserAlbumsListResponse = z.object({
 export type FetchUserAlbumsListResponse = z.infer<typeof FetchUserAlbumsListResponse>;
 
 const UserAlbumDetails = z.object({
-  id: z.string(),
+  id: IntegerId,
   title: z.string(),
   owner: SimpleUser,
   // Public album responses omit the lock flag; they are already read-only.
@@ -164,7 +164,7 @@ export const FetchThingAlbumsListResponse = z.object({
 export type FetchThingAlbumsListResponse = z.infer<typeof FetchThingAlbumsListResponse>;
 
 export const ThingAlbum = z.object({
-  id: z.string(),
+  id: IntegerId,
   title: z.string(),
   grouped_photos: DatePhotosGroup.array(),
 });
@@ -186,7 +186,7 @@ export const FetchPlaceAlbumsListResponse = z.object({
 export type FetchPlaceAlbumsListResponse = z.infer<typeof FetchPlaceAlbumsListResponse>;
 
 export const PlaceAlbum = z.object({
-  id: z.string(),
+  id: IntegerId,
   title: z.string(),
   grouped_photos: DatePhotosGroup.array(),
 });

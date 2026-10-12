@@ -86,7 +86,7 @@ export async function fetchDateAlbumsList(
 
 export async function fetchDateAlbum(
   client: ApiClient,
-  albumDateId: string,
+  albumDateId: number,
   page: number,
   filter: DateAlbumFilter = {}
 ): Promise<S.IncompleteDatePhotosGroup> {

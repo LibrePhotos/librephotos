@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { IntegerId } from "./common";
 
 export const LoginPost = z.object({
   username: z.string(),
@@ -24,7 +25,8 @@ export const TokenClaims = z.object({
   token_type: z.string().optional(),
   exp: z.number(),
   jti: z.string().optional(),
-  user_id: z.union([z.number(), z.string()]),
+  // simplejwt writes it as a string since 5.5.0, as a number before.
+  user_id: IntegerId,
   name: z.string().optional(),
   is_admin: z.boolean().optional(),
   first_name: z.string().optional(),

@@ -90,8 +90,8 @@ describe("buildDateAlbumFilterParams — mediaType toggle layered on a neutral s
  * loaded days with temp placeholders that nothing re-requested, leaving the
  * timeline as bare date headers.
  */
-function tempGroup(id: string, numberOfItems: number): IncompleteDatePhotosGroup {
-  const group: IncompleteDatePhotosGroup = { id, date: id, location: "", incomplete: true, numberOfItems, items: [] };
+function tempGroup(id: number, numberOfItems: number): IncompleteDatePhotosGroup {
+  const group: IncompleteDatePhotosGroup = { id, date: null, location: "", incomplete: true, numberOfItems, items: [] };
   addTempElementsToGroups([group]);
   return group;
 }
@@ -100,9 +100,9 @@ const photo = (id: string): PigPhoto => ({ ...tempPigPhoto(id), aspectRatio: 1.5
 
 describe("hydrateGroupsFromCachedPages", () => {
   test("replaces placeholders of a loaded page and keeps the rest temp", () => {
-    const groups = [tempGroup("2026-08-05", 3), tempGroup("2026-06-17", 2)];
+    const groups = [tempGroup(5, 3), tempGroup(17, 2)];
 
-    hydrateGroupsFromCachedPages(groups, [{ albumDateId: "2026-08-05", page: 1, items: [photo("a"), photo("b")] }]);
+    hydrateGroupsFromCachedPages(groups, [{ albumDateId: 5, page: 1, items: [photo("a"), photo("b")] }]);
 
     expect(groups[0]?.items.map(i => i.id)).toEqual(["a", "b", "2"]);
     expect(defined(groups[0]?.items[2]).isTemp).toBe(true);
@@ -110,26 +110,26 @@ describe("hydrateGroupsFromCachedPages", () => {
   });
 
   test("places later pages at their page offset", () => {
-    const groups = [tempGroup("d", DATE_ALBUM_PAGE_SIZE + 1)];
+    const groups = [tempGroup(4, DATE_ALBUM_PAGE_SIZE + 1)];
 
-    hydrateGroupsFromCachedPages(groups, [{ albumDateId: "d", page: 2, items: [photo("last")] }]);
+    hydrateGroupsFromCachedPages(groups, [{ albumDateId: 4, page: 2, items: [photo("last")] }]);
 
     expect(groups[0]?.items[DATE_ALBUM_PAGE_SIZE]?.id).toBe("last");
     expect(groups[0]?.items.slice(0, DATE_ALBUM_PAGE_SIZE).every(i => i.isTemp)).toBe(true);
   });
 
   test("does not grow a group past the server-reported count", () => {
-    const groups = [tempGroup("d", 1)];
+    const groups = [tempGroup(4, 1)];
 
-    hydrateGroupsFromCachedPages(groups, [{ albumDateId: "d", page: 1, items: [photo("a"), photo("deleted")] }]);
+    hydrateGroupsFromCachedPages(groups, [{ albumDateId: 4, page: 1, items: [photo("a"), photo("deleted")] }]);
 
     expect(groups[0]?.items.map(i => i.id)).toEqual(["a"]);
   });
 
   test("ignores pages of days that are no longer in the list", () => {
-    const groups = [tempGroup("d", 1)];
+    const groups = [tempGroup(4, 1)];
 
-    hydrateGroupsFromCachedPages(groups, [{ albumDateId: "gone", page: 1, items: [photo("x")] }]);
+    hydrateGroupsFromCachedPages(groups, [{ albumDateId: 99, page: 1, items: [photo("x")] }]);
 
     expect(defined(groups[0]?.items[0]).isTemp).toBe(true);
   });

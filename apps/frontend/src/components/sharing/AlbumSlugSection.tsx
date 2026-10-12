@@ -22,12 +22,11 @@ import { makeAlbumLinkSchema } from "./AlbumSlugSection.schema";
  * Whether another album already holds `slug`, asked of the public endpoint while `enabled` (the
  * link is public and the slug has the right shape).
  */
-function useSlugTaken(slug: string, enabled: boolean, albumId: string | undefined) {
+function useSlugTaken(slug: string, enabled: boolean, albumId: number | undefined) {
   const { data: existingId, isFetching } = useSlugAvailabilityQuery(slug, enabled);
 
   // No answer yet (undefined) is not "taken": saving waits for the check through `checking`.
-  const taken =
-    enabled && existingId !== undefined && existingId !== null && String(existingId) !== String(albumId ?? "");
+  const taken = enabled && existingId !== undefined && existingId !== null && existingId !== albumId;
   return { taken, checking: isFetching };
 }
 

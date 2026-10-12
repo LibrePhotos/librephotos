@@ -80,7 +80,7 @@ function FolderDetail() {
   }, [photosGroupedByDate]);
 
   // No group to fetch until the grid asks for one
-  const [group, setGroup] = useState<PhotoGroup>({ id: "", page: 0 });
+  const [group, setGroup] = useState<PhotoGroup>({ id: 0, page: 0 });
 
   useFetchDateAlbumQuery(
     { album_date_id: group.id, page: group.page, photosetType: Photoset.NONE, folder: folderPath },

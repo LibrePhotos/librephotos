@@ -38,8 +38,12 @@ export type ImageItem = {
 
 /** A date group of tiles, for `groupByDate`. */
 export type GroupedImageItem<T extends ImageItem = ImageItem> = {
-  /** The date-album cursor; only the paginated date lists have one. */
-  id?: string;
+  /**
+   * A number is the date album's id, the cursor of a paginated date list's day
+   * still to load; a string is a client-side group key (e.g. the sharing page's
+   * per-user groups), which has nothing to load.
+   */
+  id?: number | string;
   date: string | null;
   items: T[];
   numberOfItems?: number;

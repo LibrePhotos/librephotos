@@ -59,7 +59,7 @@ describe("date album endpoints", () => {
     const { client, calls } = harness({
       results: { id: "12", date: "2024-04-02", location: "", items: [], incomplete: false, numberOfItems: 0 },
     });
-    await endpoints.fetchDateAlbum(client, "12", 2, { video: true });
+    await endpoints.fetchDateAlbum(client, 12, 2, { video: true });
     expect(defined(calls[0]).url).toBe("https://demo.example.com/api/albums/date/12/?video=true&page=2");
   });
 });

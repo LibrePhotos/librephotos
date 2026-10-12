@@ -56,7 +56,7 @@ describe.skipIf(!baseUrl)("live backend contract", () => {
   it("timeline: date album list, one date album, photo detail", async () => {
     const groups = await endpoints.fetchDateAlbumsList(client);
     expect(groups.length).toBeGreaterThan(0);
-    const group = await endpoints.fetchDateAlbum(client, String(defined(groups[0]).id), 1);
+    const group = await endpoints.fetchDateAlbum(client, defined(groups[0]).id, 1);
     expect(group.items.length).toBeGreaterThan(0);
     await endpoints.fetchPhotoDetails(client, defined(group.items[0]).id);
     await endpoints.fetchRecentlyAddedPhotos(client);

@@ -111,4 +111,56 @@ describe("the comparison itself", () => {
       "T/Item thumb: missing-in-zod",
     ]);
   });
+
+  describe("keys sent as strings (issue #389)", () => {
+    const keyComponents = {
+      Keys: {
+        type: "object",
+        properties: {
+          id: { type: "string" },
+          album: { type: "string" },
+          title: { type: "string" },
+          count: { type: "integer" },
+          photo: { type: "object", properties: { id: { type: "string", format: "uuid" } }, required: ["id"] },
+        },
+        required: ["id", "album", "title", "count", "photo"],
+      },
+    };
+    const keyServer = toShape({ $ref: "#/components/schemas/Keys" }, keyComponents);
+    const keyDifferences = (schema: z.ZodType) =>
+      compareShapes(
+        "T/Keys",
+        { ...toShape(zodToNode(schema, new Map()), {}), zodName: undefined },
+        keyServer,
+        () => false
+      )
+        .map(difference => difference.key)
+        .sort();
+
+    it("compares IntegerId as a number, and flags every key the server sends as a string", () => {
+      const schema = z.object({
+        id: S.IntegerId,
+        album: S.IntegerId,
+        title: z.string(),
+        count: S.IntegerId.nullable(),
+        photo: z.object({ id: z.string() }),
+      });
+      expect(keyDifferences(schema)).toEqual([
+        "T/Keys album: string-id",
+        "T/Keys count: null-in-zod-only",
+        "T/Keys id: string-id",
+      ]);
+    });
+
+    it("flags a non-UUID string id even when zod reads it as a string", () => {
+      const schema = z.object({
+        id: z.string(),
+        album: z.string(),
+        title: z.string(),
+        count: z.number(),
+        photo: z.object({ id: z.string() }),
+      });
+      expect(keyDifferences(schema)).toEqual(["T/Keys id: string-id"]);
+    });
+  });
 });
