@@ -42,9 +42,9 @@ import {
 import { DirectoryPicker } from "../components/setup/DirectoryPicker";
 import { uploadLocation } from "../components/setup/uploadLocation";
 import { reportSignupError, reportUserSaveError } from "../util/apiErrors";
+import { email } from "../util/formSchemas";
 import { ssoErrorMessageKey } from "../util/ssoErrors";
 import { isStringEmpty } from "../util/stringUtils";
-import { EMAIL_REGEX } from "../util/util";
 import classes from "./auth.module.css";
 
 /**
@@ -285,7 +285,7 @@ function FirstTimeSetupPage({ onComplete }: FirstTimeSetupProps): React.JSX.Elem
 
     validate: {
       passwordConfirm: (value, values) => (value !== values.password ? t("settings.password.errormustmatch") : null),
-      email: value => (!EMAIL_REGEX.test(value) ? t("modaluseredit.errorinvalidemail") : null),
+      email: value => email(t("modaluseredit.errorinvalidemail")).safeParse(value).error?.issues[0]?.message ?? null,
     },
   });
 

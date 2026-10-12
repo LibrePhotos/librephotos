@@ -19,7 +19,7 @@ import { useTranslation } from "react-i18next";
 import { useRequestPasswordResetMutation } from "../api_client/auth";
 import { passwordResetError } from "../api_client/auth/passwordResetErrors";
 import { notification } from "../service/notifications";
-import { EMAIL_REGEX } from "../util/util";
+import { email } from "../util/formSchemas";
 import classes from "./auth.module.css";
 
 export const Route = createFileRoute("/password-reset/")({
@@ -35,7 +35,7 @@ function PasswordResetRequestPage(): React.JSX.Element {
   const form = useForm({
     initialValues: { email: "" },
     validate: {
-      email: value => (!EMAIL_REGEX.test(value) ? t("passwordreset.erroremail") : null),
+      email: value => email(t("passwordreset.erroremail")).safeParse(value).error?.issues[0]?.message ?? null,
     },
   });
 

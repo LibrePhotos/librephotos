@@ -195,4 +195,12 @@ describe("the sign-up page", () => {
     expect(container.textContent).toContain(i18n.t("modaluseredit.errorinvalidemail"));
     expect(container.textContent).toContain(i18n.t("settings.password.errormustmatch"));
   });
+
+  // #695: the hand-written pattern refused these (upper-case TLD, one-letter label, two hyphens).
+  it.each(["John@Example.COM", "a@b.co", "x@my-long-domain.example.org"])("accepts %s", async email => {
+    await renderPage();
+    await fillAndSubmitWith({ ...ALICE, email });
+
+    expect(stubs.signup).toHaveBeenCalledWith(expect.objectContaining({ email }), expect.anything());
+  });
 });

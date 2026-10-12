@@ -323,4 +323,14 @@ describe("ModalUserEdit validation", () => {
 
     expect(sentUser()).toMatchObject({ id: 3 });
   });
+
+  // #695: the hand-written pattern refused these (upper-case TLD, one-letter label, two hyphens).
+  it.each(["John@Example.COM", "a@b.co", "x@my-long-domain.example.org"])("accepts %s", email => {
+    renderModal(alice);
+    type(input("email"), email);
+
+    submit();
+
+    expect(sentUser()).toMatchObject({ email });
+  });
 });

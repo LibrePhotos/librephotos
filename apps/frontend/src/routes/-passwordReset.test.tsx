@@ -125,6 +125,14 @@ describe("requesting a password reset", () => {
     expect(stubs.requestReset).not.toHaveBeenCalled();
     expect(container.textContent).toContain(i18n.t("passwordreset.erroremail"));
   });
+
+  // #695: the hand-written pattern refused these (upper-case TLD, one-letter label, two hyphens).
+  it.each(["John@Example.COM", "a@b.co", "x@my-long-domain.example.org"])("accepts %s", async email => {
+    await renderRoute("/password-reset/");
+    await fillAndSubmit({ email });
+
+    expect(stubs.requestReset).toHaveBeenCalledWith({ email }, expect.anything());
+  });
 });
 
 describe("choosing the new password", () => {

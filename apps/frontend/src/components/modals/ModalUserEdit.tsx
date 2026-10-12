@@ -11,7 +11,7 @@ import type { ListUser, User } from "../../api_client/user";
 import { useManageUpdateUserMutation } from "../../api_client/user/hooks";
 import { notification } from "../../service/notifications";
 import { reportUserSaveError } from "../../util/apiErrors";
-import { EMAIL_REGEX } from "../../util/util";
+import { optionalEmail } from "../../util/formSchemas";
 import { PasswordEntry } from "../settings/PasswordEntry";
 import { DirectoryPicker } from "../setup/DirectoryPicker";
 import { uploadLocation } from "../setup/uploadLocation";
@@ -68,12 +68,8 @@ export function ModalUserEdit(props: Props) {
     return null;
   };
 
-  const validateEmail = (email: string) => {
-    if (email && !EMAIL_REGEX.test(email)) {
-      return t("modaluseredit.errorinvalidemail");
-    }
-    return null;
-  };
+  const validateEmail = (email: string) =>
+    optionalEmail(t("modaluseredit.errorinvalidemail")).safeParse(email).error?.issues[0]?.message ?? null;
 
   const validatePath = (scanDirectory: string) => {
     if (firstTimeSetup && !scanDirectory) {

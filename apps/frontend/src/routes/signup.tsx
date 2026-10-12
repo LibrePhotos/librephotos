@@ -21,7 +21,7 @@ import { useLoginMutation, useSignUpMutation } from "../api_client/auth";
 import { useGetSettingsQuery } from "../api_client/settings";
 import { notification } from "../service/notifications";
 import { reportSignupError } from "../util/apiErrors";
-import { EMAIL_REGEX } from "../util/util";
+import { email } from "../util/formSchemas";
 import classes from "./auth.module.css";
 
 export const Route = createFileRoute("/signup")({
@@ -54,7 +54,7 @@ function SignupPage(): React.JSX.Element {
 
     validate: {
       passwordConfirm: (value, values) => (value !== values.password ? t("settings.password.errormustmatch") : null),
-      email: value => (!EMAIL_REGEX.test(value) ? t("modaluseredit.errorinvalidemail") : null),
+      email: value => email(t("modaluseredit.errorinvalidemail")).safeParse(value).error?.issues[0]?.message ?? null,
       username: value => validateUsername(value),
     },
   });
