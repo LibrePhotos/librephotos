@@ -102,3 +102,74 @@ def volume_target(spec: str) -> str:
             current += char
     fields.append(current)
     return fields[1] if len(fields) > 1 else fields[0]
+
+
+DOCKER_DIR = DEPLOY_DIR / "docker"
+# The one entrypoint of the backend, GPU and unified images.
+BACKEND_ENTRYPOINT = DOCKER_DIR / "backend" / "entrypoint.sh"
+
+_HEREDOC = re.compile(r"<<-?\s*['\"]?([A-Za-z_][A-Za-z0-9_]*)['\"]?")
+
+
+def dockerfile_instructions(text: str) -> list[tuple[str, str]]:
+    """A Dockerfile as ``(KEYWORD, arguments)`` pairs.
+
+    Continuation lines are joined, comment lines dropped (also inside a
+    continuation, as Docker does) and a heredoc body (``RUN python - <<'PY'``)
+    is kept with its instruction, so its lines are not read as instructions.
+    """
+    lines = text.splitlines()
+    instructions: list[tuple[str, str]] = []
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        i += 1
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
+        parts = [line]
+        while parts[-1].rstrip().endswith("\\") and i < len(lines):
+            following = lines[i]
+            i += 1
+            if not following.lstrip().startswith("#"):
+                parts.append(following)
+        joined = " ".join(part.rstrip().removesuffix("\\").strip() for part in parts)
+        for marker in _HEREDOC.findall(joined):
+            body: list[str] = []
+            while i < len(lines) and lines[i].strip() != marker:
+                body.append(lines[i])
+                i += 1
+            i += 1
+            joined += "\n" + "\n".join(body)
+        keyword, _, arguments = joined.partition(" ")
+        instructions.append((keyword.upper(), arguments.strip()))
+    return instructions
+
+
+def dockerfile_stages(text: str) -> list[tuple[str, str, list[tuple[str, str]]]]:
+    """Each build stage as ``(image, alias, instructions after its FROM)``.
+
+    Instructions before the first FROM (global ``ARG``s) belong to no stage.
+    """
+    stages: list[tuple[str, str, list[tuple[str, str]]]] = []
+    for keyword, arguments in dockerfile_instructions(text):
+        if keyword == "FROM":
+            words = [w for w in arguments.split() if not w.startswith("--platform")]
+            alias = words[2] if len(words) > 2 and words[1].lower() == "as" else ""
+            stages.append((words[0], alias, []))
+        elif stages:
+            stages[-1][2].append((keyword, arguments))
+    return stages
+
+
+def image_tag(reference: str) -> str | None:
+    """The tag of an image reference, or None when it has none.
+
+    A digest (``name@sha256:...``) counts as a tag. The colon of a registry
+    port (``host:5000/name``) does not.
+    """
+    if "@" in reference:
+        return reference.split("@", 1)[1]
+    name = reference.rsplit("/", 1)[-1]
+    if ":" not in name:
+        return None
+    return name.split(":", 1)[1]
