@@ -1,4 +1,4 @@
-import { ActionIcon, Button, Chip, Divider, Group, Menu, Modal, Stack, Text, TextInput, Tooltip } from "@mantine/core";
+import { ActionIcon, Button, Chip, Divider, Group, Menu, Modal, Stack, Text, Tooltip } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import {
   IconChevronDown as ChevronDown,
@@ -19,6 +19,7 @@ import {
 } from "../../api_client/albums/hooks";
 import { useSetFacesPersonLabelMutation } from "../../api_client/faces/hooks";
 import type { CompletePersonFace } from "../../api_client/faces/types";
+import { PersonRenameForm } from "../album/PersonRenameModal";
 import classes from "./HeaderComponent.module.css";
 import { isLoadedFace } from "./hooks/useVirtualizedGrid";
 import type { FaceSelection } from "./hooks/useVirtualizedGrid";
@@ -53,7 +54,6 @@ export function HeaderComponent({
   const { data: albums } = useFetchPeopleAlbumsQuery();
   const [personID, setPersonID] = useState("");
   const [personName, setPersonName] = useState("");
-  const [newPersonName, setNewPersonName] = useState("");
   // The dialogs open from menu items that are gone when they close, so the Modal's own
   // focus return dropped focus on the page body: it goes back to the ⋮ button instead
   const menuTrigger = useRef<HTMLButtonElement>(null);
@@ -76,12 +76,8 @@ export function HeaderComponent({
   function openRenameDialog(id: string, name: string) {
     setPersonID(id);
     setPersonName(name);
-    setNewPersonName("");
     showRenameDialog();
   }
-
-  const trimmedName = newPersonName.trim();
-  const nameTaken = !!albums?.some(el => el.name.toLowerCase().trim() === trimmedName.toLowerCase());
 
   // Faces that have not been paged in yet carry their index as id, so acting on them would hit
   // whatever real faces happen to have those ids
@@ -188,36 +184,15 @@ export function HeaderComponent({
         opened={renameDialogVisible}
         returnFocus={false}
       >
-        {/* A form, so Enter renames too */}
-        <form
-          onSubmit={e => {
-            e.preventDefault();
-            // The backend rejects a blank name, and nothing would report that
-            if (!trimmedName || nameTaken) return;
-            renamePerson({ id: personID, personName, newPersonName: trimmedName });
+        <PersonRenameForm
+          existingNames={albums?.map(album => album.name) ?? []}
+          placeholder={personName}
+          onSubmit={newPersonName => {
+            renamePerson({ id: personID, personName, newPersonName });
             closeRenameDialog();
           }}
-        >
-          <Stack>
-            <TextInput
-              data-autofocus
-              label={t("personalbum.nameplaceholder")}
-              error={nameTaken ? t("personalbum.personalreadyexists", { name: trimmedName }) : false}
-              onChange={e => {
-                setNewPersonName(e.currentTarget.value);
-              }}
-              placeholder={personName}
-            />
-            <Group justify="flex-end">
-              <Button variant="default" onClick={closeRenameDialog}>
-                {t("cancel")}
-              </Button>
-              <Button disabled={!trimmedName || nameTaken} type="submit">
-                {t("rename")}
-              </Button>
-            </Group>
-          </Stack>
-        </form>
+          onCancel={closeRenameDialog}
+        />
       </Modal>
       <Modal
         opened={deleteDialogVisible}

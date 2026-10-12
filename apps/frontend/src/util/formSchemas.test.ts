@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
-import { email, optionalEmail, uniqueName, withMatchingPasswords } from "./formSchemas";
+import { email, newName, optionalEmail, uniqueName, withMatchingPasswords, withNewPassword } from "./formSchemas";
 
 const messages = (result: z.ZodSafeParseResult<unknown>) => result.error?.issues.map(issue => issue.message) ?? [];
 
@@ -99,6 +99,28 @@ describe("uniqueName", () => {
   it("accepts a new name", () => {
     expect(schema.safeParse("Alicia").success).toBe(true);
   });
+
+  it("builds the message from the trimmed name it refuses", () => {
+    const named = uniqueName(["Alice"], name => `${name} is taken`);
+
+    expect(messages(named.safeParse("  ALICE "))).toEqual(["ALICE is taken"]);
+  });
+});
+
+describe("newName", () => {
+  const schema = newName(["Alice"], { blank: "blank", taken: name => `${name} taken` });
+
+  it("refuses a blank name, and only says so", () => {
+    expect(messages(schema.safeParse("   "))).toEqual(["blank"]);
+  });
+
+  it("refuses a taken name", () => {
+    expect(messages(schema.safeParse(" alice "))).toEqual(["alice taken"]);
+  });
+
+  it("hands a new name on trimmed", () => {
+    expect(schema.parse("  Alicia ")).toBe("Alicia");
+  });
 });
 
 describe("withMatchingPasswords", () => {
@@ -118,5 +140,50 @@ describe("withMatchingPasswords", () => {
 
   it("accepts the same password twice", () => {
     expect(schema.safeParse({ email: "a@b.co", password: "one", passwordConfirm: "one" }).success).toBe(true);
+  });
+});
+
+describe("withNewPassword", () => {
+  const schema = (required = false) =>
+    withNewPassword(
+      z.object({
+        email: email("invalid"),
+        password: z.string(),
+        passwordConfirm: z.string(),
+        changePassword: z.boolean(),
+      }),
+      { blank: "blank", retype: "retype", mismatch: "mismatch" },
+      { required }
+    );
+  const errors = (result: z.ZodSafeParseResult<unknown>) =>
+    result.error?.issues.map(issue => [issue.path.join("."), issue.message]) ?? [];
+  const values = (password: string, passwordConfirm: string, changePassword = true) => ({
+    email: "a@b.co",
+    password,
+    passwordConfirm,
+    changePassword,
+  });
+
+  it("does not check locked fields", () => {
+    expect(schema().safeParse(values("", "", false)).success).toBe(true);
+  });
+
+  it("wants a password while the fields are unlocked, or one is required", () => {
+    expect(errors(schema().safeParse(values("", "")))).toEqual([["password", "blank"]]);
+    expect(errors(schema(true).safeParse(values("", "", false)))).toEqual([["password", "blank"]]);
+  });
+
+  it("wants the password typed twice, alike", () => {
+    expect(errors(schema().safeParse(values("one", "")))).toEqual([["passwordConfirm", "retype"]]);
+    expect(errors(schema().safeParse(values("one", "two")))).toEqual([["passwordConfirm", "mismatch"]]);
+    expect(errors(schema().safeParse(values("", "two")))).toEqual([["passwordConfirm", "mismatch"]]);
+    expect(schema().safeParse(values("one", "one")).success).toBe(true);
+  });
+
+  it("reports the password next to the other fields' errors", () => {
+    expect(errors(schema().safeParse({ ...values("one", "two"), email: "a@" }))).toEqual([
+      ["email", "invalid"],
+      ["passwordConfirm", "mismatch"],
+    ]);
   });
 });

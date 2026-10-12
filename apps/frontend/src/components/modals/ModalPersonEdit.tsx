@@ -13,7 +13,8 @@ import {
   useComputedColorScheme,
   useMantineTheme,
 } from "@mantine/core";
-import React, { useState } from "react";
+import { schemaResolver, useForm } from "@mantine/form";
+import React from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchPeopleAlbumsQuery } from "../../api_client/albums/hooks";
 import type { Person } from "../../api_client/albums/hooks/useFetchPeopleAlbumsQuery";
@@ -22,6 +23,7 @@ import { useSetFacesPersonLabelMutation } from "../../api_client/faces";
 import { useIsDesktopLayout } from "../../hooks/useIsDesktopLayout";
 import { useRecentlyTaggedPeople } from "../../hooks/useRecentlyTaggedPeople";
 import { fuzzyMatch } from "../../util/util";
+import { makePersonNameSchema } from "../album/personName.schema";
 import { modalTitleStyles } from "./modalTitleStyles";
 
 /** A face the dialog labels: its id, and its crop for the preview row. */
@@ -88,13 +90,26 @@ export function ModalPersonEdit({
   onPersonChosen,
   prompt,
 }: Props) {
-  const [newPersonName, setNewPersonName] = useState("");
   const matches = useIsDesktopLayout();
   const { data: people } = useFetchPeopleAlbumsQuery();
   const { mutate: setFacesPersonLabel } = useSetFacesPersonLabelMutation();
   const recentlyTaggedPeople = useRecentlyTaggedPeople(people);
 
   const { t } = useTranslation();
+  // The new person's name, which also filters the list of people below it.
+  const form = useForm({
+    initialValues: { name: "" },
+    validate: schemaResolver(
+      makePersonNameSchema(
+        t,
+        (people ?? []).map(person => person.name)
+      ),
+      { sync: true }
+    ),
+    validateInputOnChange: ["name"],
+    transformValues: ({ name }) => ({ name: name.trim() }),
+  });
+  const newPersonName = form.values.name;
 
   let filteredPeopleList = people;
 
@@ -108,10 +123,6 @@ export function ModalPersonEdit({
   const selectedImageIDs = selectedFaces.map(face => face.face_url);
   const selectedFaceIDs = selectedFaces.map(face => face.face_id);
 
-  function personExist(name: string) {
-    return people?.map(person => person.name.toLowerCase().trim()).includes(name.toLowerCase().trim());
-  }
-
   function applyPersonName(personName: string) {
     if (onPersonChosen) {
       onPersonChosen(personName);
@@ -119,7 +130,7 @@ export function ModalPersonEdit({
       setFacesPersonLabel({ faceIds: selectedFaceIDs, personName });
     }
     onRequestClose();
-    setNewPersonName("");
+    form.reset();
   }
 
   function labelSelectedFacesAs(person: Person) {
@@ -134,7 +145,7 @@ export function ModalPersonEdit({
       title={t("personedit.labelfaces")}
       onClose={() => {
         onRequestClose();
-        setNewPersonName("");
+        form.reset();
       }}
     >
       <Stack>
@@ -157,24 +168,16 @@ export function ModalPersonEdit({
         <Divider />
         <Title order={5}>{t("personedit.newperson")}</Title>
         <Group>
-          <TextInput
-            error={
-              personExist(newPersonName) ? t("personalbum.personalreadyexists", { name: newPersonName.trim() }) : ""
-            }
-            value={newPersonName}
-            onChange={v => {
-              setNewPersonName(v.currentTarget.value);
-            }}
-            placeholder={t("personedit.personname")}
-          />
+          <TextInput placeholder={t("personedit.personname")} {...form.getInputProps("name")} />
+          {/* No <form>, as before: the field also filters the list, so Enter does not create a person */}
           <Button
-            onClick={() => {
-              applyPersonName(newPersonName.trim());
-              if (resetGroups) {
+            onClick={() =>
+              form.onSubmit(({ name }) => {
+                applyPersonName(name);
                 resetGroups();
-              }
-            }}
-            disabled={personExist(newPersonName) || newPersonName.trim().length === 0}
+              })()
+            }
+            disabled={!form.isValid()}
             type="submit"
           >
             {t("personedit.addperson")}

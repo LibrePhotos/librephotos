@@ -9,13 +9,7 @@
  */
 import { describe, expect, it } from "vitest";
 
-const ALLOW_LIST = new Set([
-  "/src/components/album/PersonRenameModal.tsx",
-  "/src/components/album/UserAlbumModals.tsx",
-  "/src/components/facedashboard/HeaderComponent.tsx",
-  "/src/components/modals/AlbumEdit/AlbumEditModal.tsx",
-  "/src/components/modals/ModalPersonEdit.tsx",
-]);
+const ALLOW_LIST = new Set<string>([]);
 
 const SUBMITS = /type=(\{\s*)?["']submit["']|<form[\s>]|component=["']form["']/;
 const USES_FORM = /\buseForm\(/;
