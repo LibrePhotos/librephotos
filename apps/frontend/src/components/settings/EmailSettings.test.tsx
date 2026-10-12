@@ -35,6 +35,21 @@ const mocks = vi.hoisted(() => {
     sendTest: vi.fn<(to: string | undefined, options?: TestOptions) => void>(),
     error: vi.fn<(message: string) => void>(),
     success: vi.fn<(message: string) => void>(),
+    configQuery: {
+      isLoading: false,
+      data: {
+        provider: "custom",
+        from_email: "photos@example.com",
+        host: "smtp.example.com",
+        port: 587,
+        use_tls: true,
+        use_ssl: false,
+        username: "photos",
+        has_secret: true,
+        is_configured: true,
+        presets: {},
+      },
+    },
   };
 });
 
@@ -42,21 +57,8 @@ vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => k
 vi.mock("../../service/notifications", () => ({ notification: { error: mocks.error, success: mocks.success } }));
 vi.mock("../../api_client/api", () => ({ ApiError: mocks.ApiError }));
 vi.mock("../../api_client/settings/hooks/useEmailConfig", () => ({
-  useGetEmailConfigQuery: () => ({
-    isLoading: false,
-    data: {
-      provider: "custom",
-      from_email: "photos@example.com",
-      host: "smtp.example.com",
-      port: 587,
-      use_tls: true,
-      use_ssl: false,
-      username: "photos",
-      has_secret: true,
-      is_configured: true,
-      presets: {},
-    },
-  }),
+  // One object, as React Query hands out: a new one per render would reset the form every render.
+  useGetEmailConfigQuery: () => mocks.configQuery,
   useUpdateEmailConfigMutation: () => ({ mutate: mocks.save, isPending: false }),
   useSendTestEmailMutation: () => ({ mutate: mocks.sendTest, isPending: false }),
 }));
@@ -173,5 +175,80 @@ describe("EmailSettings test email", () => {
     await sendTestEmail(options => options?.onSuccess?.({ status: true, message: "Test email sent to a@b.c." }));
 
     expect(container.textContent).toContain("Test email sent to a@b.c.");
+  });
+});
+
+// React tracks the previous value on the node itself, so a plain assignment is swallowed.
+const setInputValue = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+
+function field(selector: string): HTMLInputElement {
+  const input = container.querySelector<HTMLInputElement>(selector);
+  if (!input) throw new Error(`no input matches ${selector}`);
+  return input;
+}
+
+async function type(selector: string, value: string) {
+  const input = field(selector);
+  await act(async () => {
+    setInputValue?.call(input, value);
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+}
+
+function saveButton(): HTMLButtonElement {
+  const save = [...container.querySelectorAll("button")].find(button => button.textContent?.trim() === "save");
+  if (!save) throw new Error("no Save button");
+  return save;
+}
+
+async function save() {
+  await act(async () => {
+    saveButton().click();
+  });
+  const call = mocks.save.mock.calls[0];
+  if (!call) throw new Error("Save sent nothing");
+  return call;
+}
+
+const HOST = 'input[placeholder="smtp.example.org"]';
+
+describe("EmailSettings save", () => {
+  it("only offers Save once a field differs from the stored settings", async () => {
+    expect(saveButton().disabled).toBe(true);
+
+    await type(HOST, "smtp2.example.com");
+    expect(saveButton().disabled).toBe(false);
+
+    await type(HOST, "smtp.example.com");
+    expect(saveButton().disabled).toBe(true);
+  });
+
+  it("sends every setting with the edits and leaves the stored credential alone", async () => {
+    await type(HOST, "smtp2.example.com");
+    await type('input[type="number"]', "2525");
+
+    const [payload] = await save();
+
+    expect(payload).toEqual({
+      provider: "custom",
+      from_email: "photos@example.com",
+      host: "smtp2.example.com",
+      port: 2525,
+      use_tls: true,
+      use_ssl: false,
+      username: "photos",
+    });
+  });
+
+  it("sends a typed credential and empties the field once it is saved", async () => {
+    await type('input[type="password"]', "hunter2");
+
+    const [payload, options] = await save();
+    expect(payload.secret).toBe("hunter2");
+
+    await act(async () => options?.onSuccess?.());
+    expect(field('input[type="password"]').value).toBe("");
+    expect(saveButton().disabled).toBe(true);
+    expect(mocks.success).toHaveBeenCalledWith("emailsettings.saved");
   });
 });

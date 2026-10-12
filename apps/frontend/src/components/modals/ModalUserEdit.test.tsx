@@ -17,6 +17,7 @@ import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { User } from "../../api_client/user";
+import i18n from "../../i18n";
 import { defined } from "../../util/defined.test-utils";
 import type { DirectoryPicker } from "../setup/DirectoryPicker";
 import { ModalUserEdit } from "./ModalUserEdit";
@@ -50,7 +51,7 @@ vi.mock("../setup/DirectoryPicker", () => ({
   ),
 }));
 
-beforeAll(() => {
+beforeAll(async () => {
   // jsdom has no matchMedia, MantineProvider needs it
   window.matchMedia = (query: string): MediaQueryList => ({
     matches: false,
@@ -69,6 +70,7 @@ beforeAll(() => {
     disconnect() {}
   };
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+  await i18n.changeLanguage("en");
 });
 
 const bob = {
@@ -82,13 +84,14 @@ const bob = {
 
 let root: Root;
 
-function renderModal(userToEdit: Partial<User>, createNew = false) {
+function renderModal(userToEdit: Partial<User>, createNew = false, firstTimeSetup = false) {
   act(() => {
     root.render(
       <MantineProvider>
         <ModalUserEdit
           isOpen
           createNew={createNew}
+          firstTimeSetup={firstTimeSetup}
           userToEdit={userToEdit}
           userList={[bob]}
           onRequestClose={() => {}}
@@ -233,5 +236,91 @@ describe("ModalUserEdit", () => {
 
     renderModal({ ...bob }, true);
     expect(input("email").value).toBe("bob@example.com");
+  });
+});
+
+describe("ModalUserEdit validation", () => {
+  const type = (element: HTMLInputElement, value: string) =>
+    act(() => {
+      setInputValue?.call(element, value);
+      element.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+  const markInvalid = (name: string) =>
+    act(() => {
+      found(document.querySelector<HTMLButtonElement>(`button[data-invalid="${name}"]`), `the ${name} check`).click();
+    });
+  const alice = { id: 3, username: "alice", email: "", first_name: "", last_name: "", scan_directory: "/data/alice" };
+
+  // The input is `required`, so a click on Save stops at the browser's own check; the form
+  // still refuses a submit that gets past it.
+  it("refuses a blank username", () => {
+    renderModal(alice);
+    type(input("username"), "");
+
+    const form = found(document.querySelector("form"), "the form");
+    act(() => {
+      form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+    });
+
+    expect(stubs.updateUser).not.toHaveBeenCalled();
+    expect(document.body.textContent).toContain(i18n.t("modaluseredit.errorusernamecannotbeblank"));
+  });
+
+  it("refuses another user's name, whatever its case", () => {
+    renderModal(alice);
+    type(input("username"), "BOB");
+
+    submit();
+
+    expect(stubs.updateUser).not.toHaveBeenCalled();
+    expect(document.body.textContent).toContain(i18n.t("modaluseredit.errorusernameexists"));
+  });
+
+  it("refuses an invalid address but saves without one", () => {
+    renderModal(alice);
+    type(input("email"), "alice@");
+
+    submit();
+
+    expect(stubs.updateUser).not.toHaveBeenCalled();
+    expect(document.body.textContent).toContain(i18n.t("modaluseredit.errorinvalidemail"));
+
+    type(input("email"), "");
+    submit();
+
+    expect(sentUser()).toMatchObject({ id: 3, username: "alice", email: "" });
+  });
+
+  // The picker shows its own "does not exist" message; the form only refuses to save.
+  it("refuses a scan directory that does not exist", () => {
+    renderModal(alice);
+    markInvalid("scan_directory");
+
+    submit();
+
+    expect(stubs.updateUser).not.toHaveBeenCalled();
+  });
+
+  it("refuses an upload folder that does not exist", () => {
+    renderModal({ ...alice, upload_directory: "/data/alice/missing" });
+    markInvalid("upload_directory");
+
+    submit();
+
+    expect(stubs.updateUser).not.toHaveBeenCalled();
+  });
+
+  // The picker's input is `required` there, so the browser asks for it before the form does.
+  it("refuses to save without a scan directory during the first-run setup", () => {
+    renderModal({ ...alice, scan_directory: "" }, false, true);
+
+    submit();
+
+    expect(stubs.updateUser).not.toHaveBeenCalled();
+
+    renderModal({ ...alice, scan_directory: "" }, false, false);
+    submit();
+
+    expect(sentUser()).toMatchObject({ id: 3 });
   });
 });

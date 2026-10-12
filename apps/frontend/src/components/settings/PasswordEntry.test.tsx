@@ -138,4 +138,32 @@ describe("PasswordEntry", () => {
     expect(onValidate).toHaveBeenCalledTimes(1);
     expect(onValidate).toHaveBeenLastCalledWith("s3cret", true);
   });
+
+  it("reports no password, and a valid form, while the fields stay locked", async () => {
+    const { onValidate } = await render();
+
+    expect(onValidate).toHaveBeenLastCalledWith("", true);
+  });
+
+  it("says the passwords must match, and asks for the retype on submit", async () => {
+    const { container, inputs, draw, onValidate } = await render({ createNew: true });
+    const setValue = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+    const type = async (input: HTMLInputElement | undefined, value: string) => {
+      await act(async () => {
+        setValue?.call(defined(input), value);
+        defined(input).dispatchEvent(new Event("input", { bubbles: true }));
+      });
+    };
+
+    await type(inputs()[0], "s3cret");
+    expect(onValidate).toHaveBeenLastCalledWith("", false);
+    expect(container.textContent).not.toContain("settings.password.errormustretype");
+
+    await draw({ createNew: true, closing: true });
+    expect(container.textContent).toContain("settings.password.errormustretype");
+
+    await type(inputs()[1], "s3crex");
+    expect(container.textContent).toContain("settings.password.errormustmatch");
+    expect(onValidate).toHaveBeenLastCalledWith("", false);
+  });
 });
