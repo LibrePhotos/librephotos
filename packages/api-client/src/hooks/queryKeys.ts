@@ -19,7 +19,7 @@ export const queryKeys = {
   tagAlbum: (id: string | number) => ["tagAlbum", id] as const,
   peopleAlbums: () => ["peopleAlbums"] as const,
   photosWithoutTimestamp: (page: number) => ["photosWithoutTimestamp", page] as const,
-  searchPhotos: (term: string) => ["searchPhotos", term] as const,
+  searchPhotos: (term: string, semantic = false) => ["searchPhotos", term, semantic] as const,
   siteSettings: () => ["siteSettings"] as const,
   jobs: () => ["jobs"] as const,
   jobList: (page: number, pageSize: number) => [...queryKeys.jobs(), "list", page, pageSize] as const,

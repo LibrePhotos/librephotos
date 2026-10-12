@@ -201,13 +201,18 @@ export function usePeopleAlbumsQuery() {
 
 /* ---- search ------------------------------------------------------------ */
 
-export function useSearchPhotosQuery(searchTerm: string, semantic = false) {
-  const client = useApiClient();
-  return useQuery({
-    queryKey: queryKeys.searchPhotos(searchTerm),
+/** A photo search. A semantic search answers with a flat list, a plain one with date groups. */
+export function searchPhotosQueryOptions(client: ApiClient, searchTerm: string, semantic = false) {
+  return queryOptions({
+    queryKey: queryKeys.searchPhotos(searchTerm, semantic),
     queryFn: () => endpoints.searchPhotos(client, searchTerm, semantic),
     enabled: searchTerm.length > 0,
   });
+}
+
+export function useSearchPhotosQuery(searchTerm: string, semantic = false) {
+  const client = useApiClient();
+  return useQuery(searchPhotosQueryOptions(client, searchTerm, semantic));
 }
 
 /* ---- settings / jobs --------------------------------------------------- */
