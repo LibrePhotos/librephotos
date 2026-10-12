@@ -168,4 +168,23 @@ describe("Profile", () => {
     expect(sentUser()).toMatchObject({ first_name: "Marlene" });
     expect(sentUser()).not.toHaveProperty("password");
   });
+
+  // #2197: Cancel dropped the password from the pending save but left it on screen, unlocked.
+  it("locks and empties the password fields on Cancel", async () => {
+    await typeNewPassword("s3cret!!");
+    await act(async () => dialogButton("Cancel").click());
+
+    expect(passwordInputs().map(input => input.value)).toEqual(["", ""]);
+    expect(passwordInputs().every(input => input.disabled)).toBe(true);
+    expect(lock().getAttribute("aria-pressed")).toBe("false");
+  });
+
+  it("locks and empties the password fields after a save", async () => {
+    stubs.updateUser.mockImplementation((_user, callbacks) => callbacks.onSuccess?.());
+    await typeNewPassword("s3cret!!");
+    await act(async () => dialogButton("Update").click());
+
+    expect(passwordInputs().map(input => input.value)).toEqual(["", ""]);
+    expect(passwordInputs().every(input => input.disabled)).toBe(true);
+  });
 });

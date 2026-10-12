@@ -41,6 +41,8 @@ export function Profile() {
   const { data: auth } = useAccessToken();
   const { data: userSelfDetails } = useFetchUserSelfDetailsQuery(auth?.access?.user_id ?? "");
   const [editedUserDetails, setEditedUserDetails] = useState(userSelfDetails);
+  // Bumped by Cancel and a save: the password fields start over, locked and empty (#2197).
+  const [passwordEntryKey, setPasswordEntryKey] = useState(0);
   const { t, i18n } = useTranslation();
   const updateAvatar = useUpdateAvatarMutation();
   const updateUser = useUpdateUserMutation();
@@ -195,7 +197,7 @@ export function Profile() {
 
         <Card shadow="md">
           <Title order={4}>{t("settings.security")}</Title>
-          <PasswordEntry onValidate={onPasswordValidate} createNew={false} />
+          <PasswordEntry key={passwordEntryKey} onValidate={onPasswordValidate} createNew={false} />
         </Card>
 
         <Card shadow="md">
@@ -399,12 +401,16 @@ export function Profile() {
             // Keep the dialog open when the server rejects the save (an invalid email address,
             // for example), so the edits can be fixed.
             updateUser.mutate(newUserData, {
-              onSuccess: () => closeUpdateDialog(),
+              onSuccess: () => {
+                setPasswordEntryKey(key => key + 1);
+                closeUpdateDialog();
+              },
               onError: reportUserSaveError,
             });
           }}
           onCancel={() => {
             setEditedUserDetails(userSelfDetails);
+            setPasswordEntryKey(key => key + 1);
             closeUpdateDialog();
           }}
         />
