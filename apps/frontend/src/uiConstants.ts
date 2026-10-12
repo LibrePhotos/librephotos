@@ -15,8 +15,10 @@ export const ICON_SIZE = {
 
 // ActionIcon size for grid and header toolbars (34 px). Its icons use ICON_SIZE.toolbar.
 export const TOOLBAR_ACTION_SIZE = "lg";
-// Height of a text button in the same toolbar row (matches the lg ActionIcon).
-export const TOOLBAR_CONTROL_HEIGHT = "var(--ai-size-lg)";
+// Height of a text button in the same toolbar row: the lg ActionIcon size from Mantine.
+// Not var(--ai-size-lg): ActionIcon defines that variable on its own root only, so on a
+// Button it is undefined and the height falls back to auto (22 px for an xs button).
+export const TOOLBAR_CONTROL_HEIGHT = "calc(2.125rem * var(--mantine-scale))";
 
 // Icon size (px) of the page header (components/PageHeader.tsx): between the 50px album icons
 // and the 35px settings icons, so one page-title icon reads the same size on every page.

@@ -23,7 +23,7 @@ import {
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { i18nResolvedLanguage } from "../../i18n";
-import { FAVORITE_COLOR } from "../../uiConstants";
+import { FAVORITE_COLOR, TOOLBAR_CONTROL_HEIGHT } from "../../uiConstants";
 import {
   countActiveFilters,
   describeTimelineFilter,
@@ -100,6 +100,7 @@ export function TimelineFilterPopover({
           <Button
             variant={active > 0 ? "light" : "subtle"}
             color={active > 0 ? "blue" : "gray"}
+            h={TOOLBAR_CONTROL_HEIGHT}
             leftSection={<Filter size={18} />}
             disabled={!ready}
             rightSection={

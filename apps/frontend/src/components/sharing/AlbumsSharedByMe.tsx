@@ -8,6 +8,7 @@ import { useFetchSharedAlbumsByMeQuery, type UserAlbumsGroupedByUserId } from ".
 import type { UserAlbumInfo } from "../../api_client/albums/types";
 import { useFetchUserListQuery } from "../../api_client/user/hooks";
 import { calculateGridCellSize, calculateSharedAlbumGridCells, type GroupedGridRows } from "../../util/gridUtils";
+import gridClasses from "../album/AlbumGridCell.module.css";
 import { PageLoader } from "../common/PageLoader";
 import { Tile } from "../Tile";
 import { VirtualGrid } from "../virtual/VirtualGrid";
@@ -103,6 +104,7 @@ export function AlbumsSharedByMe() {
           >
             {cell.cover_photo ? (
               <Tile
+                className={gridClasses.cover}
                 style={{ objectFit: "cover" }}
                 width={entrySquareSize - 2}
                 height={entrySquareSize - 2}
@@ -111,6 +113,7 @@ export function AlbumsSharedByMe() {
               />
             ) : (
               <div
+                className={gridClasses.cover}
                 style={{
                   width: entrySquareSize - 2,
                   height: entrySquareSize - 2,
