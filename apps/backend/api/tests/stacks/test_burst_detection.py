@@ -22,7 +22,7 @@ from api.mime import RAW_PAIR_EXTENSIONS
 from api.models.file import File
 from api.models.long_running_job import LongRunningJob
 from api.models.photo_stack import PhotoStack
-from api.stack_detection import (
+from api.stacks.detection import (
     _create_burst_stack,
     batch_detect_stacks,
     clear_stacks_of_type,
@@ -293,7 +293,7 @@ class BatchDetectStacksTestCase(TestCase):
         self.user.burst_detection_rules = json.dumps([])
         self.user.save()
 
-    @patch("api.stack_detection.detect_burst_sequences")
+    @patch("api.stacks.detection.detect_burst_sequences")
     def test_calls_burst_detector_by_default(self, mock_burst):
         """Test burst detector called with default options."""
         mock_burst.return_value = 3
@@ -302,7 +302,7 @@ class BatchDetectStacksTestCase(TestCase):
 
         mock_burst.assert_called_once()
 
-    @patch("api.stack_detection.detect_burst_sequences")
+    @patch("api.stacks.detection.detect_burst_sequences")
     def test_respects_options(self, mock_burst):
         """Test options control which detectors run."""
         mock_burst.return_value = 0
@@ -316,7 +316,7 @@ class BatchDetectStacksTestCase(TestCase):
 
         mock_burst.assert_not_called()
 
-    @patch("api.stack_detection.detect_burst_sequences")
+    @patch("api.stacks.detection.detect_burst_sequences")
     def test_creates_job(self, mock_burst):
         """Test LongRunningJob created for tracking."""
         mock_burst.return_value = 0
@@ -329,7 +329,7 @@ class BatchDetectStacksTestCase(TestCase):
         ).first()
         self.assertIsNotNone(job)
 
-    @patch("api.stack_detection.detect_burst_sequences")
+    @patch("api.stacks.detection.detect_burst_sequences")
     def test_handles_exception(self, mock_burst):
         """Test exception handling during detection."""
         mock_burst.side_effect = Exception("Detection failed")

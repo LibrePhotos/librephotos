@@ -20,7 +20,7 @@ from unittest.mock import patch
 
 from django.test import TestCase
 
-from api.duplicate_detection import (
+from api.duplicates.detection import (
     BKTree,
     UnionFind,
     batch_detect_duplicates,
@@ -487,8 +487,8 @@ class BatchDetectDuplicatesTestCase(TestCase):
     def setUp(self):
         self.user = create_test_user()
 
-    @patch("api.duplicate_detection.detect_exact_copies")
-    @patch("api.duplicate_detection.detect_visual_duplicates")
+    @patch("api.duplicates.detection.detect_exact_copies")
+    @patch("api.duplicates.detection.detect_visual_duplicates")
     def test_calls_both_detectors_by_default(self, mock_visual, mock_exact):
         """Test both detectors called with default options."""
         mock_exact.return_value = 5
@@ -499,8 +499,8 @@ class BatchDetectDuplicatesTestCase(TestCase):
         mock_exact.assert_called_once()
         mock_visual.assert_called_once()
 
-    @patch("api.duplicate_detection.detect_exact_copies")
-    @patch("api.duplicate_detection.detect_visual_duplicates")
+    @patch("api.duplicates.detection.detect_exact_copies")
+    @patch("api.duplicates.detection.detect_visual_duplicates")
     def test_respects_options(self, mock_visual, mock_exact):
         """Test options control which detectors run."""
         mock_exact.return_value = 0
@@ -517,8 +517,8 @@ class BatchDetectDuplicatesTestCase(TestCase):
         mock_exact.assert_not_called()
         mock_visual.assert_called_once()
 
-    @patch("api.duplicate_detection.detect_exact_copies")
-    @patch("api.duplicate_detection.detect_visual_duplicates")
+    @patch("api.duplicates.detection.detect_exact_copies")
+    @patch("api.duplicates.detection.detect_visual_duplicates")
     def test_passes_visual_threshold(self, mock_visual, mock_exact):
         """Test visual threshold passed to detector."""
         mock_exact.return_value = 0
@@ -535,8 +535,8 @@ class BatchDetectDuplicatesTestCase(TestCase):
         args, kwargs = mock_visual.call_args
         self.assertEqual(args[1], 15)  # threshold argument
 
-    @patch("api.duplicate_detection.detect_exact_copies")
-    @patch("api.duplicate_detection.detect_visual_duplicates")
+    @patch("api.duplicates.detection.detect_exact_copies")
+    @patch("api.duplicates.detection.detect_visual_duplicates")
     def test_creates_job(self, mock_visual, mock_exact):
         """Test LongRunningJob created for tracking."""
         mock_exact.return_value = 0
@@ -550,8 +550,8 @@ class BatchDetectDuplicatesTestCase(TestCase):
         ).first()
         self.assertIsNotNone(job)
 
-    @patch("api.duplicate_detection.detect_exact_copies")
-    @patch("api.duplicate_detection.detect_visual_duplicates")
+    @patch("api.duplicates.detection.detect_exact_copies")
+    @patch("api.duplicates.detection.detect_visual_duplicates")
     def test_clear_pending_option(self, mock_visual, mock_exact):
         """Test clear_pending option clears pending duplicates."""
         mock_exact.return_value = 0
@@ -580,7 +580,7 @@ class BatchDetectDuplicatesTestCase(TestCase):
         """Test batch detection with an empty options dict."""
         batch_detect_duplicates(self.user, {})
 
-    @patch("api.duplicate_detection.detect_exact_copies")
+    @patch("api.duplicates.detection.detect_exact_copies")
     def test_handles_exception(self, mock_exact):
         """Test exception handling during detection."""
         mock_exact.side_effect = Exception("Detection failed")

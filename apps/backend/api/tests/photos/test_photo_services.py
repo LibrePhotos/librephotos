@@ -15,8 +15,8 @@ import numpy as np
 import PIL
 from django.test import TestCase
 
-from api.date_time_extractor import DEFAULT_RULES_JSON
 from api.geocode.photo_location import find_album_places
+from api.metadata.datetime_rules import DEFAULT_RULES_JSON, RuleContext
 from api.metadata.photo_datetime import extract_date_time, find_album_date
 from api.models import Face, Photo
 from api.models.album_date import AlbumDate, get_or_create_album_date
@@ -31,7 +31,7 @@ JULY_4 = datetime.datetime(2021, 7, 4, 9, 30, tzinfo=datetime.timezone.utc)
 
 def _extracted(value):
     return patch(
-        "api.metadata.photo_datetime.date_time_extractor.extract_local_date_time",
+        "api.metadata.photo_datetime.datetime_rules.extract_local_date_time",
         return_value=value,
     )
 
@@ -131,7 +131,9 @@ class ExtractDateTimeTest(TestCase):
 
         args = extract.call_args.args
         self.assertEqual(args[0], photo.main_file.path)
-        self.assertEqual(args[3:], (52.5, 13.4, self.user.default_timezone, JUNE_1))
+        self.assertEqual(
+            args[3], RuleContext(52.5, 13.4, self.user.default_timezone, JUNE_1)
+        )
 
     def test_rules_saved_as_a_list_are_read_like_the_json_string(self):
         # The settings page saves datetime_rules as a JSON string (as the
@@ -157,7 +159,7 @@ class ExtractDateTimeTest(TestCase):
 
         with (
             patch(
-                "api.metadata.photo_datetime.date_time_extractor.extract_local_date_time",
+                "api.metadata.photo_datetime.datetime_rules.extract_local_date_time",
                 side_effect=call_getter,
             ),
             patch(

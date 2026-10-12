@@ -318,7 +318,7 @@ class DetectDuplicatesView(APIView):
 
     @extend_schema(request=DetectDuplicatesRequest)
     def post(self, request: Request) -> Response:
-        from api.duplicate_detection import batch_detect_duplicates
+        from api.duplicates.detection import batch_detect_duplicates
 
         user = request_user(request)
         # batch_size is clamped to 100..50000: fewer would make too many

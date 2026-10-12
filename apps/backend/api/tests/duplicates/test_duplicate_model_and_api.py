@@ -611,8 +611,8 @@ class BKTreeTest(TestCase):
 
     def test_bk_tree_basic_operations(self):
         """Test BK-Tree add and search operations."""
-        from api.duplicate_detection import BKTree
-        from api.perceptual_hash import hamming_distance
+        from api.duplicates.detection import BKTree
+        from api.duplicates.perceptual_hash import hamming_distance
 
         tree = BKTree(hamming_distance)
         tree.add("photo1", "0000000000000000")
@@ -628,8 +628,8 @@ class BKTreeTest(TestCase):
 
     def test_bk_tree_empty_search(self):
         """Test BK-Tree search on empty tree."""
-        from api.duplicate_detection import BKTree
-        from api.perceptual_hash import hamming_distance
+        from api.duplicates.detection import BKTree
+        from api.duplicates.perceptual_hash import hamming_distance
 
         tree = BKTree(hamming_distance)
         results = tree.search("0000000000000000", 5)
@@ -641,7 +641,7 @@ class UnionFindTest(TestCase):
 
     def test_union_find_basic(self):
         """Test Union-Find basic operations."""
-        from api.duplicate_detection import UnionFind
+        from api.duplicates.detection import UnionFind
 
         uf = UnionFind()
         uf.union("a", "b")
@@ -653,7 +653,7 @@ class UnionFindTest(TestCase):
 
     def test_union_find_get_groups(self):
         """Test Union-Find get_groups returns correct groups."""
-        from api.duplicate_detection import UnionFind
+        from api.duplicates.detection import UnionFind
 
         uf = UnionFind()
         uf.union("a", "b")
@@ -668,7 +668,7 @@ class UnionFindTest(TestCase):
 
     def test_union_find_single_elements_not_returned(self):
         """Test Union-Find doesn't return single-element groups."""
-        from api.duplicate_detection import UnionFind
+        from api.duplicates.detection import UnionFind
 
         uf = UnionFind()
         uf.find("a")  # Creates single element

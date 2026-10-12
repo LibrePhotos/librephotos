@@ -12,6 +12,7 @@ Run from `apps/backend`, normally inside the container (`docker exec -it backend
   then `python scripts/ruff_baseline.py` (fails on stale entries in `ruff-baseline.toml`)
 - Types: `python scripts/typecheck.py` (mypy + django-stubs; `mypy-baseline.txt` is empty and must stay empty)
 - Dead code: `python scripts/check_dead_code.py` (vulture, pinned in `requirements.dev.txt`; runs in CI)
+- Import layers: `lint-imports` (import-linter, pinned in `requirements.dev.txt`; runs in CI), see Layout
 - Migrations: `python manage.py makemigrations`, committed with the model change; `api/tests/migrations/test_migrations_in_sync.py` fails the suite while a model change has no migration
 
 Without Docker, install with `bash scripts/setup_test_env.sh` inside an activated venv and run tests with
@@ -172,9 +173,19 @@ test makes `--parallel` runs crash with "cannot pickle 'traceback'"; rerun that 
 
 ## Layout
 
-- `api/`: models, serializers, views, `management/commands/`, `migrations/`, `tests/` (grouped by area,
-  e.g. `api/tests/metadata/`), plus domain modules (`directory_watcher/` is the scan pipeline,
-  `geocode/`, `metadata/`, `stacks/`).
+- `api/`: `views/`, `serializers/`, `models/`, `management/commands/`, `migrations/`, `tests/` (grouped by
+  area, e.g. `api/tests/metadata/`) and the domain packages: `directory_watcher/` (the scan pipeline),
+  `duplicates/`, `geocode/`, `jobs/` (the queue), `metadata/` (read, write, date rules), `stacks/`
+  (bursts, brackets, Motion Photo video).
+- No new flat `api/` module: new code goes into a domain package. The flat modules left are listed in
+  `api/tests/infra/test_module_layout.py` with the package each moves to; the list only shrinks. A move
+  updates every import and `mock.patch("api.<old>...")` string and keeps no re-export shim (a patch on a
+  shim misses the code under test); a moved scheduled function ships a migration rewriting `Schedule.func`.
+- Imports go down only: `api.views`/`nextcloud.views`, then `api.serializers`, the domain packages, then
+  `api.models`; views never import `api.sidecars` directly, and `service/`, `image_similarity/` and
+  `api.sidecars` never import Django. `lint-imports` (CI) checks these contracts, `[tool.importlinter]` in
+  `pyproject.toml`; a new package joins the domain layer, and each contract's `ignore_imports` only
+  shrinks (`scripts/import_contracts_baseline.py`).
 - `librephotos/`: `urls.py` and the settings modules `production` (Docker), `production_noproxy`,
   `development`, `dev_windows`, `standalone`, `test` and `test_sqlite`.
 - `service/`: the sidecars `thumbnail`, `face_recognition`, `image_captioning`, `exif`, `tags`

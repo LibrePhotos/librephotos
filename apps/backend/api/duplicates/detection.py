@@ -25,17 +25,17 @@ from uuid import UUID
 
 from django.db.models import Q
 
+from api.duplicates.perceptual_hash import (
+    DEFAULT_HAMMING_THRESHOLD,
+    HEX64_HASH,
+    hamming_distance,
+)
 from api.lazy_import import LazyModule
 from api.models import Photo
 from api.models.duplicate import Duplicate
 from api.models.file import File
 from api.models.long_running_job import LongRunningJob
 from api.models.user import User
-from api.perceptual_hash import (
-    DEFAULT_HAMMING_THRESHOLD,
-    HEX64_HASH,
-    hamming_distance,
-)
 
 if TYPE_CHECKING:
     import numpy.typing as npt

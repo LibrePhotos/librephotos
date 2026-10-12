@@ -1,0 +1,261 @@
+"""Backend code lives in a domain package under ``api/``, not in a flat module.
+
+Issue #2335: a new flat ``api/*.py`` module fails here. The flat modules that
+exist are listed below, and the list only shrinks: a module moved into its
+package must leave the list in the same pull request, or the test fails on the
+stale entry. ``STAYS_FLAT`` are the Django and project conventions; every other
+entry names the package it moves to, in the order of the remaining moves.
+
+A move updates every import and every ``mock.patch("api.<old>...")`` string and
+leaves no re-export shim behind: a test that patches a shim no longer patches
+the code under test.
+
+The domain packages are also a layer of the import contracts in
+``pyproject.toml`` (``[tool.importlinter]``, checked by ``lint-imports``): a
+new package under ``api/`` is added there, which this test checks too.
+"""
+
+import sys
+import unittest
+from pathlib import Path
+
+from django.test import SimpleTestCase
+
+from api.tests.stubs import BACKEND_ROOT, load_backend_file, unique_module_name
+
+if sys.version_info >= (3, 11):
+    import tomllib
+
+API = BACKEND_ROOT / "api"
+
+# Django and project conventions: these stay flat.
+STAYS_FLAT = {
+    "__init__",
+    "admin",
+    "apps",
+    "checks",
+    "lazy_import",
+    "mime",
+    "sync_signals",  # where it ends up is #2342
+}
+
+# Flat module -> the package it moves to, in the order of the remaining moves.
+# Remove a module's line in the pull request that moves it.
+TO_MOVE = {
+    # Video.
+    "video_color": "api/video/",
+    "video_playback": "api/video/",
+    "transcode_cache": "api/video/",
+    "ffmpeg_budget": "api/video/",
+    # Classification.
+    "image_captioning": "api/classification/",
+    "document_detection": "api/classification/",
+    "screenshot_detection": "api/classification/",
+    # Albums.
+    "autoalbum": "api/albums/",
+    "timeline_filter": "api/albums/",
+    # Thumbnails.
+    "thumbnails": "api/thumbnails/",
+    "thumbnail_metadata": "api/thumbnails/",
+    "image_decoding": "api/thumbnails/",
+    # Search (with api_util.get_search_term_examples).
+    "semantic_search": "api/search/",
+    "image_similarity": "api/search/",
+    "batch_jobs": "api/search/",
+    "filters": "api/search/",
+    # Faces.
+    "face_recognition": "api/faces/",
+    "face_extractor": "api/faces/",
+    "photo_faces": "api/faces/",
+    "face_classify": "api/faces/",
+    "cluster_manager": "api/faces/",
+    "social_graph": "api/faces/",
+    # Serving.
+    "http_range": "api/serving/",
+    "serving_permissions": "api/serving/",
+    # Dataviz.
+    "stats": "api/dataviz/",
+    "color_palettes": "api/dataviz/",
+    # Accounts.
+    "authentication": "api/accounts/",
+    "auth_cookies": "api/accounts/",
+    "permissions": "api/accounts/",
+    "throttling": "api/accounts/",
+    "adapters": "api/accounts/",
+    "user_deletion": "api/accounts/",
+    "public_url": "api/accounts/",
+    "mail": "api/accounts/",
+    # DRF plumbing the views and serializers share.
+    "request_data": "api/drf/",
+    "request_user": "api/drf/",
+    "exceptions": "api/drf/",
+    "pagination": "api/drf/",
+    "openapi": "api/drf/",
+    # Photos (with services.cleanup_deleted_photos, services.prune_deletion_log
+    # and views/photo_filters.build_photo_queryset; Schedule.func migration).
+    "photo_files": "api/photos/",
+    "media_files": "api/photos/",
+    "file_cleanup": "api/photos/",
+    "all_tasks": "api/photos/",
+    # Split by content: log handler to librephotos/logging_bootstrap.py, path
+    # checks to api/photos/paths.py, geometry to api/faces/, directory tree to
+    # api/serving/, search term examples to api/search/.
+    "util": "split",
+    "api_util": "split",
+    # The sidecar platform, last (Schedule.func migration; service/_common.py and
+    # librephotos/standalone.py import it). api/runtime/__init__.py imports
+    # nothing, so api.runtime.sidecars stays Django-free.
+    "sidecars": "api/runtime/",
+    "http_timeouts": "api/runtime/",
+    "services": "api/runtime/",
+    "ml_models": "api/runtime/",
+    "binaries": "api/runtime/",
+}
+
+# Packages under api/ that are not domain packages: the layers above and below
+# them, and Django's own directories.
+NOT_DOMAIN_PACKAGES = {
+    "views",
+    "serializers",
+    "models",
+    "migrations",
+    "management",
+    "tests",
+}
+
+HAS_TOMLLIB = sys.version_info >= (3, 11)
+needs_tomllib = unittest.skipUnless(HAS_TOMLLIB, "reading pyproject.toml needs 3.11+")
+
+
+def flat_modules(api_dir: Path) -> set[str]:
+    return {path.stem for path in api_dir.glob("*.py")}
+
+
+def layout_problems(found: set[str]) -> list[str]:
+    allowed = STAYS_FLAT | set(TO_MOVE)
+    problems = [
+        f"api/{name}.py is a new flat module: put it in a domain package "
+        "(see 'Layout' in apps/backend/AGENTS.md)"
+        for name in sorted(found - allowed)
+    ]
+    problems += [
+        f"api/{name}.py is gone: remove it from TO_MOVE in {Path(__file__).name}"
+        for name in sorted(set(TO_MOVE) - found)
+    ]
+    return problems
+
+
+def domain_packages(api_dir: Path) -> set[str]:
+    return {
+        f"api.{path.parent.name}"
+        for path in api_dir.glob("*/__init__.py")
+        if path.parent.name not in NOT_DOMAIN_PACKAGES
+    }
+
+
+class ModuleLayoutTest(SimpleTestCase):
+    def test_no_new_flat_module_and_no_stale_entry(self):
+        self.assertEqual(layout_problems(flat_modules(API)), [])
+
+    def test_a_planted_flat_module_fails(self):
+        found = STAYS_FLAT | set(TO_MOVE) | {"new_module"}
+        self.assertEqual(
+            [problem.split(" ")[0] for problem in layout_problems(found)],
+            ["api/new_module.py"],
+        )
+
+    def test_a_moved_module_still_listed_fails(self):
+        found = (STAYS_FLAT | set(TO_MOVE)) - {"stats"}
+        self.assertEqual(
+            [problem.split(" ")[0] for problem in layout_problems(found)],
+            ["api/stats.py"],
+        )
+
+    def test_conventions_and_moves_do_not_overlap(self):
+        self.assertEqual(STAYS_FLAT & set(TO_MOVE), set())
+
+
+@needs_tomllib
+class ImportContractsTest(SimpleTestCase):
+    def _contracts(self) -> dict[str, dict[str, object]]:
+        config = tomllib.loads(
+            (BACKEND_ROOT / "pyproject.toml").read_text(encoding="utf-8")
+        )
+        return {c["id"]: c for c in config["tool"]["importlinter"]["contracts"]}
+
+    def test_every_domain_package_is_a_layer(self):
+        layers = self._contracts()["layers"]["layers"]
+        assert isinstance(layers, list)
+        domain_layer = {name.strip() for name in layers[2].split(":")}
+        self.assertEqual(domain_layer, domain_packages(API))
+
+
+@needs_tomllib
+class ImportContractsBaselineTest(SimpleTestCase):
+    """scripts/import_contracts_baseline.py: an ignore_imports entry is only removed."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        super().setUpClass()
+        ruff_baseline = load_backend_file(
+            "scripts/ruff_baseline.py", name=unique_module_name("_ruff_baseline")
+        )
+        cls.script = load_backend_file(
+            "scripts/import_contracts_baseline.py",
+            name=unique_module_name("_import_contracts_baseline"),
+            stubs={"ruff_baseline": ruff_baseline},
+        )
+
+    PYPROJECT = """
+[tool.importlinter]
+root_packages = ["api"]
+
+[[tool.importlinter.contracts]]
+id = "layers"
+name = "Layers"
+type = "layers"
+layers = ["api.views", "api.models"]
+ignore_imports = [{entries}]
+"""
+
+    def _parse(self, *entries: str, layers: str = '"api.views", "api.models"'):
+        text = self.PYPROJECT.format(entries=", ".join(f'"{e}"' for e in entries))
+        return self.script.parse_contracts(
+            text.replace('"api.views", "api.models"', layers)
+        )
+
+    def test_a_new_entry_is_growth_and_a_removed_one_is_not(self):
+        old, _ = self._parse(
+            "api.models.a -> api.views.b", "api.models.c -> api.views.d"
+        )
+        current, _ = self._parse(
+            "api.models.a -> api.views.b", "api.models.e->api.views.f"
+        )
+        self.assertEqual(
+            self.script.grown_entries(current, old, {}),
+            [("layers", "api.models.e -> api.views.f")],
+        )
+
+    def test_a_moved_module_keeps_its_entry(self):
+        old, _ = self._parse("api.models.user -> api.date_time_extractor")
+        current, _ = self._parse("api.models.user -> api.metadata.datetime_rules")
+        renames = self.script.renamed_modules(
+            {"api/metadata/datetime_rules.py": "api/date_time_extractor.py"}
+        )
+        self.assertEqual(self.script.grown_entries(current, old, renames), [])
+
+    def test_a_renamed_package_renames_its_modules(self):
+        renames = self.script.renamed_modules({"api/runtime/__init__.py": "api/x.py"})
+        self.assertEqual(
+            self.script.old_module("api.runtime.sidecars", renames), "api.x.sidecars"
+        )
+        self.assertEqual(
+            self.script.old_module("api.runtimes", renames), "api.runtimes"
+        )
+
+    def test_a_changed_contract_definition_is_reported(self):
+        _, old = self._parse()
+        _, same = self._parse()
+        _, changed = self._parse(layers='"api.views", "api.photos", "api.models"')
+        self.assertEqual(old, same)
+        self.assertNotEqual(old, changed)

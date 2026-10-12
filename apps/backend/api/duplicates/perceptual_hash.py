@@ -56,7 +56,9 @@ def calculate_perceptual_hash(image_path: str, hash_size: int = 8) -> str | None
             # More robust than average hash or difference hash
             phash = imagehash.phash(source, hash_size=hash_size)
             return str(phash)
-    except Exception as e:
+    # OSError covers a missing, unreadable or unidentified file; ValueError a
+    # mode or size the conversion or the DCT cannot take.
+    except (OSError, ValueError, Image.DecompressionBombError) as e:
         logger.error("Failed to calculate perceptual hash for %s: %s", image_path, e)
         return None
 
@@ -104,7 +106,9 @@ def hamming_distance(hash1: str | None, hash2: str | None) -> int:
         return int(
             h1 - h2
         )  # imagehash overloads subtraction to return Hamming distance
-    except Exception as e:
+    # ValueError: not a hex string, or not a square hash; TypeError: two
+    # hashes of different sizes.
+    except (ValueError, TypeError) as e:
         logger.error("Failed to calculate Hamming distance: %s", e)
         return 64  # Maximum distance (completely different)
 

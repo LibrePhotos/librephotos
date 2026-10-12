@@ -69,7 +69,7 @@ export const PredefinedBurstRules = z.array(BurstDetectionRule);
 export type PredefinedBurstRules = z.infer<typeof PredefinedBurstRules>;
 
 // A rule in a user's burst_detection_rules. The predefined rules always have these keys, but the
-// backend (BurstDetectionRule.__init__ in api/burst_detection_rules.py) fills in a missing name,
+// backend (BurstDetectionRule.__init__ in api/stacks/burst_rules.py) fills in a missing name,
 // category, enabled and is_default, so a rule saved through the API without them still applies
 // and the list keeps it.
 const SavedRuleDefaults = {

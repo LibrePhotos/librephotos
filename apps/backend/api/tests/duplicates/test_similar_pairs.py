@@ -6,9 +6,9 @@ from unittest.mock import patch
 import imagehash
 from django.test import SimpleTestCase
 
-from api import duplicate_detection
-from api.duplicate_detection import _similar_pairs_bktree, similar_pairs
-from api.perceptual_hash import hamming_distance
+from api.duplicates import detection
+from api.duplicates.detection import _similar_pairs_bktree, similar_pairs
+from api.duplicates.perceptual_hash import hamming_distance
 
 
 def _brute_force(hashes, threshold):
@@ -48,7 +48,7 @@ class SimilarPairsTest(SimpleTestCase):
     def test_small_blocks_cover_every_pair(self):
         hashes = _library(150)
         # One row per step.
-        with patch.object(duplicate_detection, "_PAIR_BLOCK_ELEMENTS", 1):
+        with patch.object(detection, "_PAIR_BLOCK_ELEMENTS", 1):
             pairs = similar_pairs(hashes, 10)
         self.assertEqual(set(pairs), _brute_force(hashes, 10))
         self.assertEqual(len(pairs), len(set(pairs)))

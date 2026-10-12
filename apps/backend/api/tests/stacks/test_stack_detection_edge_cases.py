@@ -21,18 +21,19 @@ from unittest.mock import patch
 
 from django.test import TestCase
 
-from api.burst_detection_rules import (
+from api.metadata.reader import MetadataReadError
+from api.models.duplicate import Duplicate
+from api.models.file import File
+from api.models.long_running_job import LongRunningJob
+from api.models.photo_stack import PhotoStack
+from api.stacks.burst_rules import (
     BurstDetectionRule,
     BurstRuleCategory,
     BurstRuleTypes,
     as_rules,
     get_default_burst_detection_rules,
 )
-from api.models.duplicate import Duplicate
-from api.models.file import File
-from api.models.long_running_job import LongRunningJob
-from api.models.photo_stack import PhotoStack
-from api.stack_detection import (
+from api.stacks.detection import (
     _create_burst_stack,
     batch_detect_stacks,
     clear_stacks_of_type,
@@ -251,7 +252,7 @@ class HardCriteriaBurstDetectionEdgeCasesTestCase(TestCase):
         _photo1 = self._create_photo_with_file("/photos/IMG_001.jpg")
         _photo2 = self._create_photo_with_file("/photos/IMG_002.jpg")
 
-        mock_get_metadata.side_effect = Exception("EXIF read failed")
+        mock_get_metadata.side_effect = MetadataReadError("EXIF read failed")
 
         # Should handle gracefully without crashing
         count = detect_burst_sequences(self.user)
@@ -647,7 +648,7 @@ class BatchDetectionEdgeCasesTestCase(TestCase):
         # Only specify some options
         options = {"detect_bursts": False}
 
-        with patch("api.stack_detection.detect_burst_sequences") as mock_burst:
+        with patch("api.stacks.detection.detect_burst_sequences") as mock_burst:
             mock_burst.return_value = 0
 
             batch_detect_stacks(self.user, options=options)
@@ -657,7 +658,7 @@ class BatchDetectionEdgeCasesTestCase(TestCase):
 
     def test_empty_options_dict(self):
         """Test batch detection with empty options dict."""
-        with patch("api.stack_detection.detect_burst_sequences") as mock_burst:
+        with patch("api.stacks.detection.detect_burst_sequences") as mock_burst:
             mock_burst.return_value = 0
 
             batch_detect_stacks(self.user, options={})
@@ -665,7 +666,7 @@ class BatchDetectionEdgeCasesTestCase(TestCase):
             # Burst should be called with defaults (True)
             mock_burst.assert_called_once()
 
-    @patch("api.stack_detection.detect_burst_sequences")
+    @patch("api.stacks.detection.detect_burst_sequences")
     def test_exception_in_detector(self, mock_burst):
         """Test that exception in detector fails job properly."""
         mock_burst.side_effect = Exception("Burst detection crashed")
@@ -987,7 +988,7 @@ class BurstDetectionEdgeCasesTestCase(TestCase):
 
     def test_detection_with_no_photos(self):
         """Test burst detection with empty library."""
-        from api.stack_detection import detect_burst_sequences
+        from api.stacks.detection import detect_burst_sequences
 
         stacks_created = detect_burst_sequences(self.user)
 
@@ -995,7 +996,7 @@ class BurstDetectionEdgeCasesTestCase(TestCase):
 
     def test_detection_with_all_rules_disabled(self):
         """Test burst detection when all rules are disabled."""
-        from api.stack_detection import detect_burst_sequences
+        from api.stacks.detection import detect_burst_sequences
 
         # Create some photos
         for i in range(3):
@@ -1019,7 +1020,7 @@ class BurstDetectionEdgeCasesTestCase(TestCase):
 
     def test_detection_with_trashed_photos_excluded(self):
         """Test that trashed photos are excluded from detection."""
-        from api.stack_detection import detect_burst_sequences
+        from api.stacks.detection import detect_burst_sequences
 
         # Create photos, some in trash
         _photo1 = create_test_photo(owner=self.user)
@@ -1047,7 +1048,7 @@ class TimestampProximityRuleTestCase(TestCase):
         """Test that photos within timestamp threshold are grouped."""
         from django.utils import timezone
 
-        from api.stack_detection import _detect_bursts_soft_criteria
+        from api.stacks.detection import _detect_bursts_soft_criteria
 
         base_time = timezone.make_aware(datetime(2024, 1, 1, 12, 0, 0))
 
@@ -1086,7 +1087,7 @@ class TimestampProximityRuleTestCase(TestCase):
         """Test that photos beyond timestamp threshold are not grouped."""
         from django.utils import timezone
 
-        from api.stack_detection import _detect_bursts_soft_criteria
+        from api.stacks.detection import _detect_bursts_soft_criteria
 
         base_time = timezone.make_aware(datetime(2024, 1, 1, 12, 0, 0))
 
@@ -1119,7 +1120,7 @@ class TimestampProximityRuleTestCase(TestCase):
 
     def test_photos_without_timestamp_skipped(self):
         """Test that photos without timestamp are skipped."""
-        from api.stack_detection import _detect_bursts_soft_criteria
+        from api.stacks.detection import _detect_bursts_soft_criteria
 
         # Create photo without timestamp
         photo1 = create_test_photo(owner=self.user)
@@ -1155,7 +1156,7 @@ class DetectionProgressCallbackTestCase(TestCase):
 
     def test_burst_detection_calls_progress(self):
         """Test that burst detection calls progress callback."""
-        from api.stack_detection import detect_burst_sequences
+        from api.stacks.detection import detect_burst_sequences
 
         # Create some photos
         for i in range(3):
@@ -1181,7 +1182,7 @@ class BatchDetectionSmokeTestCase(TestCase):
 
     def test_batch_detection_all_types(self):
         """Test batch detection with all detection types enabled."""
-        from api.stack_detection import batch_detect_stacks
+        from api.stacks.detection import batch_detect_stacks
 
         options = {
             "detect_raw_jpeg": True,
@@ -1200,7 +1201,7 @@ class BatchDetectionSmokeTestCase(TestCase):
 
     def test_batch_detection_none_enabled(self):
         """Test batch detection with no detection types enabled."""
-        from api.stack_detection import batch_detect_stacks
+        from api.stacks.detection import batch_detect_stacks
 
         options = {
             "detect_raw_jpeg": False,
@@ -1219,7 +1220,7 @@ class BatchDetectionSmokeTestCase(TestCase):
 
     def test_batch_detection_with_null_options(self):
         """Test batch detection with None options."""
-        from api.stack_detection import batch_detect_stacks
+        from api.stacks.detection import batch_detect_stacks
 
         # Should use defaults and not crash
         try:
@@ -1240,7 +1241,7 @@ class MultiUserDetectionIsolationTestCase(TestCase):
 
     def test_detection_only_affects_own_photos(self):
         """Test that detection only creates stacks for user's own photos."""
-        from api.stack_detection import detect_burst_sequences
+        from api.stacks.detection import detect_burst_sequences
 
         # Create photos for both users
         for i in range(3):
@@ -1256,7 +1257,7 @@ class MultiUserDetectionIsolationTestCase(TestCase):
 
     def test_clearing_stacks_only_affects_own(self):
         """Test that clearing stacks only affects user's own stacks."""
-        from api.stack_detection import clear_stacks_of_type
+        from api.stacks.detection import clear_stacks_of_type
 
         # Create stacks for both users
         for user in [self.user1, self.user2]:

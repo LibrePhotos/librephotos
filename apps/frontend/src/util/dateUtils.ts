@@ -7,7 +7,7 @@ import { DateTime } from "luxon";
  *
  * `exif_timestamp` is *local wall-clock time* — the time the camera
  * showed when the shot was taken — which the backend deliberately stores tagged
- * as UTC (`dt.replace(tzinfo=pytz.utc)` in `api/date_time_extractor.py`). A
+ * as UTC (`dt.replace(tzinfo=pytz.utc)` in `api/metadata/datetime_rules.py`). A
  * photo taken at 14:00 in Tokyo and one taken at 14:00 in Berlin both come back
  * as `...T14:00:00Z`, because the timestamp says "14:00 where the camera was",
  * not "this instant in time".

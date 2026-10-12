@@ -19,7 +19,7 @@ import { TimestampItem } from "./TimestampItem";
  * timestamp as a browser-local `Date` and serialises it with
  * `timestamp.toISOString()`, which shifts it by the browser's UTC offset.
  * `exif_timestamp` is, by the backend's own convention
- * (apps/backend/api/date_time_extractor.py: "local time + timezone equal to
+ * (apps/backend/api/metadata/datetime_rules.py: "local time + timezone equal to
  * UTC"), the photo's *local wall clock*, so the offset must not be applied.
  * For any UTC+ browser the wall clock is moved backwards, and whenever the
  * time of day is inside the offset window the calendar date rolls back a day.

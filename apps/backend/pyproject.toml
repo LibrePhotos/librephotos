@@ -140,7 +140,8 @@ python_version = "3.14"          # = the Python CI installs packages for: their 
 platform = "linux"               # Windows dev boxes report exactly what CI reports
 plugins = ["mypy_django_plugin.main", "mypy_drf_plugin.main"]
 files = ["api", "librephotos", "service", "nextcloud", "chunked_upload", "image_similarity", "scripts/typecheck.py",
-         "scripts/check_dead_code.py", "scripts/ruff_baseline.py", "scripts/openapi_schema.py"]
+         "scripts/check_dead_code.py", "scripts/ruff_baseline.py", "scripts/openapi_schema.py",
+         "scripts/import_contracts_baseline.py"]
 exclude = ['/migrations/', '/tests?/', '/tests\.py$']
 check_untyped_defs = true
 disallow_untyped_defs = true     # every function must be annotated
@@ -173,3 +174,67 @@ extra_checks = true
 
 [tool.django-stubs]
 django_settings_module = "librephotos.settings.test_sqlite"
+
+# Import contracts (issue #2335), checked by import-linter: `lint-imports` from
+# apps/backend (pinned in requirements.dev.txt, run by lint-backend.yml). It
+# reads the code without importing it and follows imports inside functions too.
+# Each contract's ignore_imports lists the violations that predate it: the list
+# only shrinks (scripts/import_contracts_baseline.py fails CI on a new entry,
+# and lint-imports on an entry that no longer matches an import). A move PR
+# adds its new package to the domain layer below.
+[tool.importlinter]
+root_packages = ["api", "nextcloud", "librephotos", "service", "image_similarity"]
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+id = "layers"
+name = "Views over serializers over domain packages over models"
+type = "layers"
+layers = [
+  "api.views : nextcloud.views",
+  "api.serializers",
+  "api.directory_watcher : api.duplicates : api.geocode : api.jobs : api.metadata : api.stacks",
+  "api.models",
+]
+ignore_imports = [
+  # The rule modules give User its JSON field defaults; migrations reference
+  # those defaults by path in api.models.user, so they stay there.
+  "api.models.user -> api.metadata.datetime_rules",
+  "api.models.user -> api.stacks.burst_rules",
+  # The photo query builder, still in a view module.
+  "api.serializers.album_user -> api.views.photo_filters",
+  # Request parsing helpers (ClampedIntegerField and friends) in api/views/params.py.
+  "api.serializers.album_date -> api.views.params",
+  "api.serializers.album_user -> api.views.params",
+  "api.serializers.duplicate -> api.views.params",
+  "api.serializers.face -> api.views.params",
+  "api.serializers.geocode -> api.views.params",
+  "api.serializers.job -> api.views.params",
+  "api.serializers.media -> api.views.params",
+  "api.serializers.memories -> api.views.params",
+  "api.serializers.photo_metadata -> api.views.params",
+  "api.serializers.photos -> api.views.params",
+  "api.serializers.server -> api.views.params",
+  "api.serializers.site_settings -> api.views.params",
+  "api.serializers.stack -> api.views.params",
+  "api.serializers.sync -> api.views.params",
+  "api.serializers.tag -> api.views.params",
+  "api.serializers.zip_download -> api.views.params",
+]
+
+[[tool.importlinter.contracts]]
+id = "views-no-sidecars"
+name = "Views reach the sidecars only through a domain module"
+type = "forbidden"
+source_modules = ["api.views"]
+forbidden_modules = ["api.sidecars"]
+# Through a domain module is the point; only a direct import breaks it.
+allow_indirect_imports = true
+
+[[tool.importlinter.contracts]]
+id = "django-free"
+name = "Sidecars and the sidecar client never import Django"
+type = "forbidden"
+# The sidecars read their ports from api.sidecars, and run without Django.
+source_modules = ["service", "image_similarity", "api.sidecars"]
+forbidden_modules = ["django"]

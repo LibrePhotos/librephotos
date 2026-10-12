@@ -308,7 +308,7 @@ class DetectStacksView(APIView):
 
     @extend_schema(request=DetectStacksRequest)
     def post(self, request: Request) -> Response:
-        from api.stack_detection import batch_detect_stacks
+        from api.stacks.detection import batch_detect_stacks
 
         user = request_user(request)
         # RAW+JPEG and Live Photos are now file variants, not stacks

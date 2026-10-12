@@ -9,8 +9,8 @@ dropped it: reordering, disabling or removing a rule was lost on reload.
 from django.test import TestCase
 from rest_framework.test import APIClient
 
-from api.burst_detection_rules import get_default_burst_detection_rules
 from api.models import User
+from api.stacks.burst_rules import get_default_burst_detection_rules
 from api.tests.utils import create_test_user
 
 

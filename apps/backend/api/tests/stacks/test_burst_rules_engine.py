@@ -19,7 +19,9 @@ from unittest.mock import MagicMock, patch
 from django.test import TestCase
 from django.utils import timezone
 
-from api.burst_detection_rules import (
+from api.models import Photo
+from api.models.photo_stack import PhotoStack
+from api.stacks.burst_rules import (
     BURST_FILENAME_PATTERNS,
     DEFAULT_HARD_RULES,
     DEFAULT_SOFT_RULES,
@@ -36,8 +38,6 @@ from api.burst_detection_rules import (
     group_photos_by_timestamp,
     group_photos_by_visual_similarity,
 )
-from api.models import Photo
-from api.models.photo_stack import PhotoStack
 from api.tests.utils import create_test_photo, create_test_user
 
 
@@ -729,7 +729,7 @@ class GroupPhotosByVisualSimilarityTestCase(TestCase):
         photo.perceptual_hash = phash
         return photo
 
-    @patch("api.perceptual_hash.hamming_distance")
+    @patch("api.duplicates.perceptual_hash.hamming_distance")
     def test_group_similar_photos(self, mock_hamming):
         """Test grouping visually similar photos."""
         # All photos are similar (distance <= 15)
@@ -746,7 +746,7 @@ class GroupPhotosByVisualSimilarityTestCase(TestCase):
         self.assertEqual(len(groups), 1)
         self.assertEqual(len(groups[0]), 3)
 
-    @patch("api.perceptual_hash.hamming_distance")
+    @patch("api.duplicates.perceptual_hash.hamming_distance")
     def test_separate_dissimilar_photos(self, mock_hamming):
         """Test dissimilar photos form separate groups."""
         # Distance alternates between similar and dissimilar
@@ -773,7 +773,7 @@ class GroupPhotosByVisualSimilarityTestCase(TestCase):
         ]
 
         # Mock hamming distance for the remaining two
-        with patch("api.perceptual_hash.hamming_distance", return_value=5):
+        with patch("api.duplicates.perceptual_hash.hamming_distance", return_value=5):
             groups = group_photos_by_visual_similarity(photos)
 
         self.assertEqual(len(groups), 1)
@@ -1165,7 +1165,7 @@ class BurstDetectionIntegrationTestCase(TestCase):
 
     def test_detect_burst_creates_stack(self):
         """Test that detecting a burst creates a stack."""
-        from api.stack_detection import detect_burst_sequences
+        from api.stacks.detection import detect_burst_sequences
 
         base_time = timezone.now()
         photos = []

@@ -233,14 +233,41 @@ def _is_type_checking(test: ast.expr) -> bool:
     )
 
 
+def _version_guard(test: ast.expr) -> Version | None:
+    """The version in an ``if sys.version_info >= (3, 11):`` test, else None."""
+    if not (
+        isinstance(test, ast.Compare)
+        and len(test.ops) == 1
+        and isinstance(test.ops[0], ast.GtE)
+        and isinstance(test.left, ast.Attribute)
+        and test.left.attr == "version_info"
+        and isinstance(test.comparators[0], ast.Tuple)
+    ):
+        return None
+    parts = [e.value for e in test.comparators[0].elts if isinstance(e, ast.Constant)]
+    if len(parts) != 2 or not all(isinstance(part, int) for part in parts):
+        return None
+    return (parts[0], parts[1])
+
+
 def newer_stdlib_imports(source: str, floor: Version) -> list[str]:
-    """Run-time imports of standard-library names the floor Python lacks."""
+    """Run-time imports of standard-library names the floor Python lacks.
+
+    The body of an ``if sys.version_info >= (3, 11):`` test only runs on 3.11+.
+    """
     found: list[str] = []
 
-    def visit(node: ast.AST) -> None:
+    def visit(node: ast.AST, floor: Version) -> None:
         if isinstance(node, ast.If) and _is_type_checking(node.test):
             for child in node.orelse:
-                visit(child)
+                visit(child, floor)
+            return
+        guard = _version_guard(node.test) if isinstance(node, ast.If) else None
+        if isinstance(node, ast.If) and guard is not None:
+            for child in node.body:
+                visit(child, max(floor, guard))
+            for child in node.orelse:
+                visit(child, floor)
             return
         if isinstance(node, ast.ImportFrom) and node.module and not node.level:
             added = NEWER_STDLIB.get(node.module, {})
@@ -260,9 +287,9 @@ def newer_stdlib_imports(source: str, floor: Version) -> list[str]:
                         f"line {node.lineno}: import {alias.name} ({_format(version)}+)"
                     )
         for child in ast.iter_child_nodes(node):
-            visit(child)
+            visit(child, floor)
 
-    visit(ast.parse(source))
+    visit(ast.parse(source), floor)
     return found
 
 
@@ -418,6 +445,22 @@ class PlantedViolationTests(unittest.TestCase):
             ["line 1", "line 2", "line 6", "line 8"],
         )
         self.assertEqual(newer_stdlib_imports(source, (3, 13)), [])
+
+    def test_imports_behind_a_version_check_need_that_version_only(self):
+        source = "\n".join(
+            [
+                "import sys",
+                "if sys.version_info >= (3, 11):",
+                "    import tomllib",
+                "    from typing import override",
+                "else:",
+                "    import tomllib",
+            ]
+        )
+        self.assertEqual(
+            [line.split(":")[0] for line in newer_stdlib_imports(source, (3, 10))],
+            ["line 4", "line 6"],
+        )
 
     def test_range_parsing(self):
         self.assertEqual(

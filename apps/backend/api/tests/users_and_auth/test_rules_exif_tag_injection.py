@@ -13,9 +13,9 @@ import json
 from django.test import TestCase
 from rest_framework.test import APIClient
 
-from api.burst_detection_rules import get_default_burst_detection_rules
-from api.date_time_extractor import DEFAULT_RULES_JSON
+from api.metadata.datetime_rules import DEFAULT_RULES_JSON
 from api.models import User
+from api.stacks.burst_rules import get_default_burst_detection_rules
 from api.tests.utils import create_test_user
 
 
