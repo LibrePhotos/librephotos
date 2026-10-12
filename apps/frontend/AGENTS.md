@@ -49,10 +49,9 @@ green CI run. To develop against a local backend, copy `.env.development.example
 - `tsconfig.json` is strict with `noImplicitReturns`, `noImplicitOverride` and `noUncheckedIndexedAccess`
   (an index read is `T | undefined`: guard it, use `?.`, or `defined()` in tests). `allowJs` is off.
 - Dates: parse and format only through `src/util/dateUtils.ts` (luxon). Pick the parser by what the value is: `parsePhotoTimestamp` for an `exif_timestamp` (wall clock tagged UTC), `parseInstant` for a real instant, `fromUnixSeconds` for epoch seconds, the picker helpers for DateTimePicker values. No `.setLocale()`: the UI language is luxon's default, set in `i18n.ts`. dayjs is only Mantine's picker glue. The `ban/date-*` and `ban/dayjs` lint rules enforce it.
-- Server data goes through `src/api_client` (and, where a domain has moved, `packages/api-client`):
-  requests, zod schemas and React Query hooks live there, not in components. A component, route, `hooks/`
-  or `util/` module never fetches: add a hook or function in `src/api_client/<domain>` (lint bans `fetch`
-  and importing `apiClient` outside the API layer). Media URLs come from `mediaUrl` and media files from
+- Server data goes through the API layer (see "API layer" below), not components. A component, route,
+  `hooks/` or `util/` module never fetches: add a hook or function in `src/api_client/<domain>` (lint bans
+  `fetch` and importing `apiClient` outside the API layer). Media URLs come from `mediaUrl` and media files from
   `fetchMedia`/`probeMedia` (`src/api_client/media/mediaUrl.ts`, `ban/media-url` on a `/media/` string), so
   paths, cookies and errors are handled in one place.
 - React Query keys come from the domain's factory in `src/api_client/<domain>/keys.ts`, and every photo grid's
@@ -92,6 +91,22 @@ green CI run. To develop against a local backend, copy `.env.development.example
 - Components talk through props or context (the lightbox's `useLightboxCommands`), not `window` custom events: lint bans `CustomEvent` and `window.dispatchEvent`, since any listener on the page would receive them.
 - Loading and errors: a page or section's first load is `src/components/common/PageLoader.tsx` (a refetch keeps an inline `<Loader size="xs" />`), no data is `EmptyState`, and a component that wraps a third-party renderer (lightbox, maps, statistics charts) puts `FeatureBoundary.tsx` inside itself so its render error does not replace the page. Lint bans a returned `<Loader />`, `Center`/`Stack` + `Loader` and `componentDidCatch` outside those two files.
 - Lists and grids: photo layouts render through `components/photolist/PhotoListView` (react-pig is its engine) and fixed-size tiles through `components/virtual/TileGrid` (the faces grid on `VirtualGrid` is the one exception); lint bans other imports of react-pig, `@tanstack/react-virtual` and `VirtualGrid`, and `rowIndex *` cell math. A plain `.map()` is only for a list bounded by a server page size or a hard cap of at most 100 items; anything that grows with the library uses one of the two, or a long list mounts thousands of nodes.
+
+## API layer
+
+- Decided in #2347: `packages/api-client` owns every request. One endpoint function per call in
+  `packages/api-client/src/endpoints` parses the answer with its zod schema (`src/schemas`) and returns
+  the parsed type, so web and mobile share one typed copy. `src/api_client/<domain>` keeps thin hooks:
+  `useQuery`/`useMutation` around `endpoints.<name>(apiClient, ...)`, keys from `keys.ts`, invalidation
+  and toasts; its `types.ts` only re-exports package types.
+- A new call: schema (plus its `contract-map.ts` entry), endpoint and a fixture test in
+  `packages/api-client/src/__tests__`, then the hook. Run the package's and `apps/mobile`'s checks too: the
+  package ships to mobile. A parse failure throws `ResponseParseError`, which the QueryClient in `api.ts`
+  reports, so a hook adds no parse handling of its own.
+- Lint: `ban/api-client-method` (an `apiClient.<method>` call outside `api.ts` and tests), `ban/api-client-zod`
+  and `ban/api-client-zod-utils` (zod or `util/zodUtils` in `src/api_client`). Domains not moved yet sit in
+  `eslint-suppressions.json`, which only shrinks. `endpointReturnTypes.test.ts` in the package fails on an
+  endpoint returning `Promise<unknown>`; its allow-list only shrinks.
 
 ## Styling
 
