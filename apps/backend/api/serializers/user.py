@@ -794,3 +794,7 @@ class ManageUserSerializer(serializers.ModelSerializer):
                 raise ValidationError("User name is already taken")
 
         instance.username = username
+
+
+class PasswordResetRequest(serializers.Serializer[None]):
+    email = serializers.CharField(default="", allow_blank=True, allow_null=True)

@@ -12,8 +12,10 @@ from rest_framework.views import APIView
 
 from api.permissions import IsNextcloudEnabled
 from api.request_user import request_user
+from api.views.params import parse_query
 from api.views.scan_triggers import start_job
 from nextcloud.directory_watcher import scan_photos
+from nextcloud.serializers import ListDirQuery
 from nextcloud.server_address import (
     UnsafeServerAddress,
     connect,
@@ -27,9 +29,9 @@ class ListDir(APIView):
     permission_classes = (IsAuthenticated, IsNextcloudEnabled)
 
     def get(self, request: Request, format: str | None = None) -> Response:
-        if not request.query_params.get("fpath"):
+        path = parse_query(request, ListDirQuery)["fpath"]
+        if not path:
             return Response([])
-        path = request.query_params["fpath"]
 
         user = request_user(request)
         if not user.nextcloud_server_address:

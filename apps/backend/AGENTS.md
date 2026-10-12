@@ -50,10 +50,16 @@ test makes `--parallel` runs crash with "cannot pickle 'traceback'"; rerun that 
   `clear_auth_cookies` in `api/auth_cookies.py`, so they keep one set of flags (HttpOnly `jwt`,
   SameSite=Lax, Secure on HTTPS or `AUTH_COOKIE_SECURE`); CORS headers are django-cors-headers' job.
   `api/tests/infra/test_auth_cookies.py` fails on `set_cookie`/`delete_cookie` anywhere else.
-- In views, get the user with `api.request_user.request_user(request)` (401 if anonymous) and a JSON
-  body with `api.request_data.request_dict(request)` (400 if it is not an object). Where anonymous
+- In views, get the user with `api.request_user.request_user(request)` (401 if anonymous). Where anonymous
   access is allowed, narrow with `isinstance(request.user, User)`. A `get_queryset` that needs a
   user returns `Model.objects.none()` when `getattr(self, "swagger_fake_view", False)`.
+- A view reads its input only through a serializer: a `*Query`/`*Request` `serializers.Serializer` in
+  `api/serializers/`, read with `parse_query(request, XQuery)` or `parse_body(request, XRequest)` from
+  `api/views/params.py` (a missing or malformed field is a 400 naming it, never a 500), and the same
+  class in `@extend_schema(parameters=[XQuery])` / `request=XRequest`. Clamp page sizes with its
+  `ClampedIntegerField`; example: `DuplicateListView` and `DetectDuplicatesView` in `api/views/duplicates.py`.
+  `RequestParsingGuardTest` (`api/tests/infra/test_api_conventions.py`) fails on a hand read of
+  `request.data`/`query_params`/`GET`/`POST`; `request_parsing_baseline.json` next to it only shrinks.
 - A viewset is `viewsets.GenericViewSet` plus only the mixins of the actions a client calls (PATCH
   alone: `PartialUpdateModelMixin` from `api/views/mixins.py`), never `ModelViewSet` or an
   `http_method_names` blocklist. Pin a new route's verbs in `ROUTER_VERBS`

@@ -2,10 +2,9 @@
 
 from typing import Any
 
-import jsonschema
 from constance import config as site_config
 from constance import settings as constance_settings
-from rest_framework.exceptions import ValidationError
+from drf_spectacular.utils import extend_schema
 from rest_framework.permissions import AllowAny, BasePermission, IsAdminUser
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -14,10 +13,10 @@ from rest_framework.views import APIView
 from api.mail import email_is_configured
 from api.ml_models import do_all_models_exist, start_model_download
 from api.models import User
-from api.request_data import request_dict
 from api.request_user import request_user
-from api.schemas.site_settings import site_settings_schema
 from api.semantic_search import OPENCLIP
+from api.serializers.site_settings import SiteSettingsRequest
+from api.views.params import parse_body
 
 
 def _site_config(*keys: str) -> dict[str, Any]:
@@ -84,35 +83,12 @@ class SiteSettingsView(APIView):
         out["email_configured"] = email_is_configured()
         return Response(out)
 
+    @extend_schema(request=SiteSettingsRequest)
     def post(self, request: Request, format: str | None = None) -> Response:
-        data = request_dict(request)
-        try:
-            jsonschema.validate(data, site_settings_schema)
-        except jsonschema.ValidationError as error:
-            field = ".".join(str(part) for part in error.absolute_path)
-            raise ValidationError({field or "non_field_errors": error.message})
-        if "allow_registration" in data.keys():
-            site_config.ALLOW_REGISTRATION = data["allow_registration"]
-        if "allow_upload" in data.keys():
-            site_config.ALLOW_UPLOAD = data["allow_upload"]
-        if "skip_patterns" in data.keys():
-            site_config.SKIP_PATTERNS = data["skip_patterns"]
-        if "map_api_provider" in data.keys():
-            site_config.MAP_API_PROVIDER = data["map_api_provider"]
-        if "map_api_key" in data.keys():
-            site_config.MAP_API_KEY = data["map_api_key"]
-        if "map_tile_provider" in data.keys():
-            site_config.MAP_TILE_PROVIDER = data["map_tile_provider"]
-        if "captioning_model" in data.keys():
-            site_config.CAPTIONING_MODEL = data["captioning_model"]
-        if "ocr_model" in data.keys():
-            site_config.OCR_MODEL = data["ocr_model"]
-        if "face_recognition_model" in data.keys():
-            site_config.FACE_RECOGNITION_MODEL = data["face_recognition_model"]
-        if "nextcloud_enabled" in data.keys():
-            site_config.NEXTCLOUD_ENABLED = data["nextcloud_enabled"]
-        if "auto_create_user_directory" in data.keys():
-            site_config.AUTO_CREATE_USER_DIRECTORY = data["auto_create_user_directory"]
+        data = parse_body(request, SiteSettingsRequest)
+        # Each request field is the lower-case name of its constance key.
+        for key, value in data.items():
+            setattr(site_config, key.upper(), value)
         admin = User.objects.get(id=request_user(request).id)
         if not do_all_models_exist():
             # Not a new job per save: the settings form saves on every

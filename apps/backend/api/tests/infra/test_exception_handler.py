@@ -2,6 +2,7 @@
 
 from django.http import Http404
 from django.test import SimpleTestCase
+from rest_framework import serializers
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.response import Response
 
@@ -14,6 +15,10 @@ from api.exceptions import (
     UpstreamError,
 )
 from api.views.exception_handler import custom_exception_handler
+
+
+class IdsRequest(serializers.Serializer[None]):
+    ids = serializers.ListField(child=serializers.IntegerField())
 
 
 def render(exc: Exception) -> Response:
@@ -64,6 +69,24 @@ class ExceptionHandlerTest(SimpleTestCase):
         self.assertEqual(
             response.data["errors"],
             [{"field": "name", "message": "Too short. Taken.", "code": "invalid"}],
+        )
+
+    def test_item_errors_of_a_list_field_name_the_item(self):
+        serializer = IdsRequest(data={"ids": [1, "x", "y"]})
+        serializer.is_valid()
+
+        response = render(ValidationError(serializer.errors))
+
+        self.assertEqual(
+            response.data["errors"],
+            [
+                {
+                    "field": "ids",
+                    "message": "1: A valid integer is required. "
+                    "2: A valid integer is required.",
+                    "code": "invalid",
+                }
+            ],
         )
 
     def test_a_detail_error_carries_the_exception_code(self):

@@ -1,0 +1,8 @@
+{
+  "api/views/albums.py": 26,
+  "api/views/email_config.py": 2,
+  "api/views/password_reset.py": 1,
+  "api/views/public_albums.py": 1,
+  "api/views/public_photos.py": 1,
+  "api/views/zip_downloads.py": 2
+}

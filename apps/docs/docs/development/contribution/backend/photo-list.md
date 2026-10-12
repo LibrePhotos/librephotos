@@ -38,7 +38,7 @@ Returns the actual images, for a given day in chunks of 100 images by default.
 #### Parameters:
 
 - `?page=1` - Give me the first page of the album
-- `?size=<n>` - Change the chunk size (default 100). This endpoint paginates manually, so the parameter is `size`, not the `page_size` used by the paginated endpoints, and the value is passed straight to the paginator without an upper bound.
+- `?size=<n>` - Change the chunk size (default 100). This endpoint paginates manually, so the parameter is `size`, not the `page_size` used by the paginated endpoints. A value below 1 counts as 1 and there is no upper bound; a value that is not a number is a 400.
 - `?favorite=true` - Give me the list for favorite images
 - `?public=true` - Give me the list for public images. Here `username` is optional: `?public=true` on its own returns the day's public images regardless of owner.
 - `?username=<name>` - Restrict the public images to this owner (only takes effect together with `?public=true`)

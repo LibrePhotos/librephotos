@@ -33,6 +33,8 @@ from api.mime import mime_type
 from api.models import AlbumUser, Photo
 from api.models.photo import HEAVY_PHOTO_COLUMNS
 from api.models.user import User
+from api.serializers.media import MediaQuery
+from api.views.params import parse_query
 
 logger = logging.getLogger(__name__)
 
@@ -937,7 +939,7 @@ class MediaServingView(APIView):
         since a conversion is the most expensive thing anyone can make this
         server do, and nobody is signed in to be accountable for it.
         """
-        return user.transcode_videos or request.GET.get("transcode") == "1"
+        return user.transcode_videos or parse_query(request, MediaQuery)["transcode"]
 
     def _serve_original_media(
         self, request: Request, image_hash: str, use_proxy: bool

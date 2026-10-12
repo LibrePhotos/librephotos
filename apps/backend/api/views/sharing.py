@@ -1,6 +1,7 @@
 import logging
 
 from django.db.models import Count, Model, Prefetch, Q, QuerySet
+from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
@@ -8,9 +9,11 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from api.models import AlbumUser, Photo, User
-from api.request_data import request_dict
 from api.request_user import request_user
-from api.serializers.album_user import AlbumUserListSerializer
+from api.serializers.album_user import (
+    AlbumUserListSerializer,
+    SetUserAlbumSharedRequest,
+)
 from api.serializers.photos import (
     PhotoSummarySerializer,
     SharedFromMePhotoThroughSerializer,
@@ -19,6 +22,7 @@ from api.serializers.photos import (
 from api.views.albums import with_album_user_list_relations
 from api.views.custom_api_view import ListViewSet
 from api.views.pagination import HugeResultsSetPagination
+from api.views.params import parse_body
 
 logger = logging.getLogger(__name__)
 
@@ -107,11 +111,12 @@ class SharedFromMeAlbumUserListViewSet(ListViewSet):
 class SetUserAlbumShared(APIView):
     permission_classes = (IsAuthenticated,)
 
+    @extend_schema(request=SetUserAlbumSharedRequest)
     def post(self, request: Request, format: str | None = None) -> Response:
         user = request_user(request)
-        data = dict(request_dict(request))
-        shared = data["shared"]  # bool
-        target_user_id = data["target_user_id"]  # user pk, int
+        data = parse_body(request, SetUserAlbumSharedRequest)
+        shared = data["shared"]
+        target_user_id = data["target_user_id"]
         user_album_id = data["album_id"]
 
         try:

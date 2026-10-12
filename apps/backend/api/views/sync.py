@@ -53,6 +53,7 @@ from api.serializers.sync import (
     PHOTO_VALUES,
     SHARED_USER_VALUES,
     USER_ALBUM_VALUES,
+    SyncQuery,
     serialize_auto_album_row,
     serialize_named_album_row,
     serialize_person_row,
@@ -60,10 +61,9 @@ from api.serializers.sync import (
     serialize_shared_user_row,
     serialize_user_album_row,
 )
+from api.views.params import parse_query
 
 ENVELOPE_VERSION = 1
-DEFAULT_PAGE_SIZE = 500
-MAX_PAGE_SIZE = 1000
 
 # One ``.values()`` row of a feed.
 Row = dict[str, Any]
@@ -138,7 +138,8 @@ class BaseSyncView(APIView, Generic[ModelT]):
     def get(self, request: Request) -> Response:
         user = request_user(request)
 
-        cursor = request.query_params.get("cursor") or None
+        params = parse_query(request, SyncQuery)
+        cursor = params.get("cursor") or None
         cursor_dt = None
         cursor_pk = None
         if cursor:
@@ -157,11 +158,7 @@ class BaseSyncView(APIView, Generic[ModelT]):
                     code="cursor_expired",
                 )
 
-        try:
-            page_size = int(request.query_params.get("page_size", DEFAULT_PAGE_SIZE))
-        except (TypeError, ValueError):
-            page_size = DEFAULT_PAGE_SIZE
-        page_size = max(1, min(page_size, MAX_PAGE_SIZE))
+        page_size = params["page_size"]
 
         qs = self.scoped_queryset(user)
         qs = self._apply_keyset(qs, cursor_dt, cursor_pk)

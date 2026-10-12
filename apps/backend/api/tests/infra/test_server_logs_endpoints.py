@@ -92,11 +92,17 @@ class ServerLogsViewerTest(ServerLogsViewTestBase):
         response = self.client.get(VIEWER_URL)
         self.assertEqual(response.json()["count"], 100)
 
-    def test_non_numeric_lines_falls_back_to_the_default(self):
+    def test_lines_default_to_one_hundred(self):
         self.client.force_authenticate(user=self.admin)
-        response = self.client.get(VIEWER_URL, {"lines": "all of them"})
+        response = self.client.get(VIEWER_URL)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["count"], 100)
+
+    def test_non_numeric_lines_are_a_400(self):
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.get(VIEWER_URL, {"lines": "all of them"})
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()["errors"][0]["field"], "lines")
 
     def test_lines_is_clamped_to_at_most_one_thousand(self):
         self.client.force_authenticate(user=self.admin)

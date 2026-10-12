@@ -20,6 +20,7 @@ from api.serializers.PhotosGroupedByDate import (
     get_photos_ordered_by_date,
 )
 from api.serializers.simple import PhotoSuperSimpleSerializer, SimpleUserSerializer
+from api.views.params import JsonBooleanField
 from api.views.photo_filters import build_photo_queryset
 
 logger = logging.getLogger(__name__)
@@ -423,3 +424,9 @@ class AlbumUserPublicSerializer(serializers.ModelSerializer):
             if photo.exif_timestamp:
                 return photo.exif_timestamp
         return ""
+
+
+class SetUserAlbumSharedRequest(serializers.Serializer[None]):
+    shared = JsonBooleanField(help_text="true shares, false unshares")
+    target_user_id = serializers.IntegerField()
+    album_id = serializers.IntegerField()

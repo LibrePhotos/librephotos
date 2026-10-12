@@ -326,10 +326,11 @@ class SubfoldersPaginationTests(SubfoldersTestBase):
         _mkdirs(self.root, *names)
         return names
 
-    def test_non_numeric_page_falls_back_to_one(self):
+    def test_non_numeric_page_is_a_400(self):
         admin = create_test_user(is_admin=True)
-        body = self.client_for(admin).get(URL, {"page": "abc"}).json()
-        self.assertEqual(body["pagination"]["page"], 1)
+        response = self.client_for(admin).get(URL, {"page": "abc"})
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()["errors"][0]["field"], "page")
 
     def test_page_zero_and_negative_clamp_to_one(self):
         admin = create_test_user(is_admin=True)

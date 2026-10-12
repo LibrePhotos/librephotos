@@ -17,6 +17,7 @@ from api.metadata.edits import MAX_RATING
 from api.models import User
 from api.models.photo import Photo
 from api.models.photo_metadata import MetadataEdit, PhotoMetadata
+from api.views.params import ClampedIntegerField, JsonStringField, QueryFlagField
 
 
 class MetadataEditSerializer(serializers.ModelSerializer):
@@ -311,3 +312,54 @@ class PhotoMetadataSummarySerializer(serializers.ModelSerializer):
     def get_has_edits(self, obj: PhotoMetadata) -> bool:
         """Check if this photo has any metadata edits."""
         return MetadataEdit.objects.filter(photo=obj.photo).exists()
+
+
+class MetadataHistoryQuery(serializers.Serializer[None]):
+    page = ClampedIntegerField(default=1, lowest=1, help_text="Page number")
+    page_size = ClampedIntegerField(
+        default=20, lowest=1, highest=100, help_text="Edits per page (max 100)"
+    )
+
+
+class MetadataRevertQuery(serializers.Serializer[None]):
+    force = QueryFlagField(
+        true_values={"1", "true"},
+        help_text="1 to revert even if the field was changed again later",
+    )
+
+
+class BulkMetadataQuery(serializers.Serializer[None]):
+    photo_ids = serializers.CharField(
+        default="",
+        allow_blank=True,
+        help_text="Comma-separated photo IDs or image hashes (at most 100)",
+    )
+
+
+MAX_BULK_METADATA_PHOTOS = 100
+
+
+class BulkMetadataUpdateRequest(serializers.Serializer[None]):
+    photo_ids = serializers.ListField(
+        child=JsonStringField(),
+        allow_empty=False,
+        max_length=MAX_BULK_METADATA_PHOTOS,
+        error_messages={
+            "required": "No photo_ids provided.",
+            "empty": "No photo_ids provided.",
+            "not_a_list": "Expected a list of photo ids.",
+            "null": "Expected a list of photo ids.",
+            "max_length": f"Maximum {MAX_BULK_METADATA_PHOTOS} photos per request.",
+        },
+        help_text="Photo ids or image hashes",
+    )
+    updates = serializers.DictField(
+        allow_empty=False,
+        error_messages={
+            "required": "No updates provided.",
+            "empty": "No updates provided.",
+            "not_a_dict": "No updates provided.",
+            "null": "No updates provided.",
+        },
+        help_text="The fields of PhotoMetadataUpdateSerializer to set",
+    )

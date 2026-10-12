@@ -56,6 +56,27 @@ class PasswordResetRequestTest(TestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(len(mail.outbox), 0)
 
+    def test_blank_or_null_email_returns_200_without_sending(self):
+        for email in ("", "   ", None):
+            with self.subTest(email=email):
+                resp = self.client.post(REQUEST_URL, {"email": email}, format="json")
+                self.assertEqual(resp.status_code, 200)
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_surrounding_whitespace_is_trimmed(self):
+        resp = self.client.post(
+            REQUEST_URL, {"email": f"  {self.user.email} "}, format="json"
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(len(mail.outbox), 1)
+
+    def test_an_email_that_is_not_text_is_a_400(self):
+        # It was .strip() on a list: a 500.
+        resp = self.client.post(REQUEST_URL, {"email": ["a@b.c"]}, format="json")
+        self.assertEqual(resp.status_code, 400)
+        self.assertEqual(resp.json()["errors"][0]["field"], "email")
+        self.assertEqual(len(mail.outbox), 0)
+
     @override_settings(FRONTEND_BASE_URL="https://photos.example.org")
     def test_link_uses_configured_frontend_base_url(self):
         self.client.post(REQUEST_URL, {"email": self.user.email})

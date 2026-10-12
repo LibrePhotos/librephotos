@@ -2,6 +2,7 @@ from rest_framework import serializers
 
 from api.models import LongRunningJob
 from api.serializers.simple import SimpleUserSerializer
+from api.views.params import QueryFlagField
 
 
 class LongRunningJobSerializer(serializers.ModelSerializer):
@@ -32,3 +33,16 @@ class LongRunningJobSerializer(serializers.ModelSerializer):
 
     def get_job_type_str(self, obj: LongRunningJob) -> str:
         return dict(LongRunningJob.JOB_TYPES)[obj.job_type]
+
+
+class JobListQuery(serializers.Serializer[None]):
+    mine = QueryFlagField(
+        true_values={"true"},
+        help_text="true narrows a staff member's list to their own jobs",
+    )
+
+
+class GenerateOcrRequest(serializers.Serializer[None]):
+    full_scan = serializers.BooleanField(
+        default=False, help_text="Read text again on photos that have it"
+    )

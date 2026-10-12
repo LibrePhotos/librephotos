@@ -30,6 +30,7 @@ from api.permissions import (
     IsAdminOrSelf,
     IsSuperUser,
 )
+from api.serializers.folders import FolderPathQuery
 from api.serializers.user import (
     DeleteUserSerializer,
     ManageUserSerializer,
@@ -40,6 +41,7 @@ from api.serializers.user import (
 from api.throttling import AuthRateThrottle
 from api.util import is_valid_path
 from api.views.mixins import PartialUpdateModelMixin
+from api.views.params import parse_query
 
 logger = logging.getLogger(__name__)
 
@@ -84,7 +86,7 @@ class RootPathTreeView(APIView):
     permission_classes = (IsAdminUser,)
 
     def get(self, request: Request, format: str | None = None) -> Response:
-        path = self.request.query_params.get("path")
+        path = parse_query(request, FolderPathQuery).get("path")
         base_path = settings.DATA_ROOT
 
         # Default to root directory if no path is provided

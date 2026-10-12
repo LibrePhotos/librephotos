@@ -17,19 +17,13 @@ from rest_framework.response import Response
 from api.models.photo import Photo
 from api.models.user import User
 from api.request_user import request_user
+from api.serializers.folders import SubfoldersQuery
 from api.util import folder_path_q, is_valid_path
+from api.views.params import parse_query
 
 logger = logging.getLogger(__name__)
 
 PAGE_SIZE = 100
-
-
-def _requested_page(request: Request) -> int:
-    try:
-        page = int(request.query_params.get("page", 1))
-    except (ValueError, TypeError):
-        return 1
-    return page if page >= 1 else 1
 
 
 def _user_scan_directory(user: User) -> str | None:
@@ -167,21 +161,21 @@ class FolderNavigationViewSet(viewsets.ViewSet):
     @action(detail=False, methods=["get"])
     def subfolders(self, request: Request) -> Response:
         """Get subfolders for a given path with pagination."""
-        page = _requested_page(request)
+        params = parse_query(request, SubfoldersQuery)
+        page = params["page"]
         user = request_user(request)
         is_admin = user.is_staff
 
         # No scan directory is the normal state of a user who only sees shared
         # albums: an empty listing, not a denial. An explicit path is still
         # refused below.
-        if (
-            not is_admin
-            and not _user_scan_directory(user)
-            and "path" not in request.query_params
-        ):
+        if not is_admin and not _user_scan_directory(user) and "path" not in params:
             return _folder_response(None, None, [], page, 0)
 
-        base_path = request.query_params.get("path", _default_path(request, is_admin))
+        # The default is worked out even when a path is given: a user without a
+        # scan directory is refused here for an explicit path too.
+        default_path = _default_path(request, is_admin)
+        base_path = params.get("path", default_path)
 
         # Access first: validating first answered "does not exist" or "is not
         # a directory" for paths the caller may not see, which made this an

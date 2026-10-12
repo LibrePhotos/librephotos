@@ -28,6 +28,7 @@ from api.models.photo import HEAVY_PHOTO_COLUMNS, visible_photo_q
 from api.models.photo_stack import PhotoStack
 from api.request_user import request_user
 from api.serializers.album_date import (
+    AlbumDatePageQuery,
     AlbumDateSerializer,
     IncompleteAlbumDateSerializer,
     prefetch_public_photos,
@@ -64,6 +65,7 @@ from api.views.pagination import (
     RegularResultsSetPagination,
     StandardResultsSetPagination,
 )
+from api.views.params import parse_query
 
 logger = logging.getLogger(__name__)
 
@@ -514,11 +516,11 @@ class AlbumDateViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet):
         return filters
 
     def _paginate_photos(self, photo_qs: QuerySet[Photo]) -> tuple[Page[Photo], int]:
-        size = self.request.query_params.get("size") or 100
-        paginator = Paginator(photo_qs, int(size))
+        params = parse_query(self.request, AlbumDatePageQuery)
+        paginator = Paginator(photo_qs, params["size"])
         # A missing page is page 1: the same page the PageNotAnInteger branch
         # below falls back to.
-        page = self.request.query_params.get("page", "1")
+        page = params["page"]
 
         try:
             photos = paginator.page(page)

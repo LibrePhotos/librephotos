@@ -2,7 +2,7 @@ import logging
 import os
 import uuid
 from collections import defaultdict
-from typing import Any, TypeGuard
+from typing import Any
 
 from django.conf import settings
 from django.db.models import Prefetch, Q, QuerySet
@@ -35,14 +35,26 @@ from api.models.person import Person
 from api.models.photo_caption import PhotoCaption
 from api.models.tag import refresh_tag_photo_counts, tag_ids_for_photos
 from api.permissions import IsOwnerOrReadOnly, IsPhotoOrAlbumSharedTo
-from api.request_data import request_dict
 from api.request_user import request_user
 from api.serializers.album_user import AlbumUserListSerializer
 from api.serializers.photos import (
+    PhotoCaptionRequest,
     PhotoDetailsSummarySerializer,
     PhotoEditSerializer,
+    PhotoSelectionRequest,
     PhotoSerializer,
     PhotoSummarySerializer,
+    RotatePhotoRequest,
+    SaveMetadataRequest,
+    SavePhotoCaptionRequest,
+    SetMainFileRequest,
+    SetPhotosCategoryRequest,
+    SetPhotosDeletedRequest,
+    SetPhotosFavoriteRequest,
+    SetPhotosHiddenRequest,
+    SetPhotosPublicRequest,
+    SetPhotosRatingRequest,
+    SetPhotosSharedRequest,
     with_photo_summary_relations,
 )
 from api.views.custom_api_view import ListViewSet
@@ -51,6 +63,7 @@ from api.views.pagination import (
     RegularResultsSetPagination,
     StandardResultsSetPagination,
 )
+from api.views.params import parse_body
 from api.views.photo_filters import scope_user
 
 logger = logging.getLogger(__name__)
@@ -150,10 +163,6 @@ class NoTimestampPhotoViewSet(ListViewSet):
         return super().list(*args, **kwargs)
 
 
-def _is_list_of_strings(value: object) -> TypeGuard[list[str]]:
-    return isinstance(value, list) and all(isinstance(item, str) for item in value)
-
-
 class BulkPhotoMutationView(APIView):
     """Set one flag on many of the requester's photos in a single UPDATE.
 
@@ -172,6 +181,9 @@ class BulkPhotoMutationView(APIView):
 
     permission_classes = (IsAuthenticated,)
 
+    #: The body: the photo selection plus ``value_field``. drf-spectacular
+    #: documents the request from it.
+    serializer_class: type[PhotoSelectionRequest]
     #: Request key carrying the new value. Each subclass sets it.
     value_field: str
     #: The flag's name in the missing-photo warning ("set photo X to ...").
@@ -206,39 +218,18 @@ class BulkPhotoMutationView(APIView):
             refresh_album_thing_photo_counts(affected_thing_ids)
         return count
 
-    def parse_value(self, data: dict[str, Any]) -> object:
-        """The new value from the request body: a JSON boolean.
-
-        Raise ``ValidationError`` (a 400) for a missing or malformed value. A
-        string is refused rather than read by truthiness: ``"false"`` would
-        otherwise trash or hide photos. A subclass whose value is more than a
-        flag checks it here.
-        """
-        value = data.get(self.value_field)
-        if not isinstance(value, bool):
-            raise ValidationError({self.value_field: "Expected true or false."})
-        return value
-
+    @extend_schema(responses={200: OpenApiTypes.OBJECT})
     def post(self, request: Request, format: str | None = None) -> Response:
         user = request_user(request)
-        data = request_dict(request)
-        value = self.parse_value(data)
-        select_all = data.get("select_all", False)
-        if not isinstance(select_all, bool):
-            raise ValidationError({"select_all": "Expected true or false."})
-        if select_all:
+        # The value is a JSON boolean unless the subclass's serializer says
+        # otherwise: a string is refused rather than read by truthiness, since
+        # "false" would otherwise trash or hide photos.
+        data = parse_body(request, self.serializer_class)
+        value = data[self.value_field]
+        if data["select_all"]:
             self.check_select_all(value)
-            if not isinstance(data.get("query", {}), dict):
-                raise ValidationError({"query": "Expected an object."})
-            if not _is_list_of_strings(data.get("excluded_hashes", [])):
-                raise ValidationError({"excluded_hashes": "Expected a list of hashes."})
             return self._post_select_all(user, data, value)
-        image_hashes = data.get("image_hashes")
-        if not _is_list_of_strings(image_hashes):
-            raise ValidationError(
-                {"image_hashes": "Expected a list of hashes, or select_all."}
-            )
-        return self._post_hashes(user, image_hashes, value)
+        return self._post_hashes(user, data["image_hashes"], value)
 
     def check_select_all(self, value: object) -> None:
         """Hook: raise ``ValidationError`` if ``value`` may not be applied by
@@ -249,8 +240,8 @@ class BulkPhotoMutationView(APIView):
     ) -> Response:
         from api.views.photo_filters import build_photo_queryset
 
-        photos = build_photo_queryset(user, data.get("query", {}))
-        excluded_hashes = data.get("excluded_hashes", [])
+        photos = build_photo_queryset(user, data["query"])
+        excluded_hashes = data["excluded_hashes"]
         if excluded_hashes:
             photos = photos.exclude(image_hash__in=excluded_hashes)
         if self.select_all_only_changed:
@@ -302,6 +293,7 @@ class BulkPhotoMutationView(APIView):
 
 
 class SetPhotosDeleted(BulkPhotoMutationView):
+    serializer_class = SetPhotosDeletedRequest
     value_field = "deleted"
     flag_name = "deleted"
     past_tense = {True: "moved to trash", False: "restored from trash"}
@@ -325,6 +317,7 @@ class RatingMutationView(BulkPhotoMutationView):
 
 
 class SetPhotosFavorite(RatingMutationView):
+    serializer_class = SetPhotosFavoriteRequest
     value_field = "favorite"
     flag_name = "favorite"
     past_tense = {True: "added to favorites", False: "removed from favorites"}
@@ -348,23 +341,11 @@ class SetPhotosRating(RatingMutationView):
     rates a whole query at once.
     """
 
+    serializer_class = SetPhotosRatingRequest
     value_field = "rating"
     flag_name = "rating"
     past_tense = {True: "rated", False: "unrated"}
     MAX_RATING = 5
-
-    def parse_value(self, data: dict[str, Any]) -> object:
-        rating = data.get(self.value_field)
-        # bool is an int subclass: true must not read as one star.
-        if (
-            isinstance(rating, bool)
-            or not isinstance(rating, int)
-            or not 0 <= rating <= self.MAX_RATING
-        ):
-            raise ValidationError(
-                {self.value_field: f"Expected an integer from 0 to {self.MAX_RATING}."}
-            )
-        return rating
 
     def check_select_all(self, value: object) -> None:
         raise ValidationError({"select_all": "Rating takes image_hashes only."})
@@ -377,6 +358,7 @@ class SetPhotosRating(RatingMutationView):
 
 
 class SetPhotosHidden(BulkPhotoMutationView):
+    serializer_class = SetPhotosHiddenRequest
     value_field = "hidden"
     flag_name = "hidden"
     past_tense = {True: "set hidden", False: "set unhidden"}
@@ -390,6 +372,7 @@ class SetPhotosHidden(BulkPhotoMutationView):
 
 
 class SetPhotosPublic(BulkPhotoMutationView):
+    serializer_class = SetPhotosPublicRequest
     value_field = "val_public"
     flag_name = "public"
     past_tense = {True: "set public", False: "set private"}
@@ -413,6 +396,7 @@ class SetPhotosCategory(BulkPhotoMutationView):
     never taken from the client.
     """
 
+    serializer_class = SetPhotosCategoryRequest
     value_field = "category"
     flag_name = "category"
     past_tense = {True: "recategorized", False: "recategorized"}
@@ -425,21 +409,8 @@ class SetPhotosCategory(BulkPhotoMutationView):
         "document": (False, True),
     }
 
-    def parse_value(self, data: dict[str, Any]) -> object:
-        category = data.get(self.value_field)
-        if not isinstance(category, str) or (
-            category not in self.CATEGORY_FLAGS and category != self.AUTO
-        ):
-            raise ValidationError(
-                {
-                    self.value_field: "Expected one of "
-                    f"{', '.join([*self.CATEGORY_FLAGS, self.AUTO])}."
-                }
-            )
-        return category
-
     def new_values(self, user: User, value: object) -> dict[str, object]:
-        # parse_value only lets category names through, and new_values is never
+        # The serializer only lets category names through, and new_values is never
         # called for "auto".
         assert isinstance(value, str)
         is_screenshot, is_document = self.CATEGORY_FLAGS[value]
@@ -717,20 +688,20 @@ class PhotoEditViewSet(
 class SetPhotosShared(APIView):
     permission_classes = (IsAuthenticated,)
 
+    @extend_schema(request=SetPhotosSharedRequest)
     def post(self, request: Request, format: str | None = None) -> Response:
         from api.views.photo_filters import build_photo_queryset
 
         user = request_user(request)
-        data = dict(request_dict(request))
-        shared = data["val_shared"]  # bool
-        target_user_id = data["target_user_id"]  # user pk, int
+        data = parse_body(request, SetPhotosSharedRequest)
+        shared = data["val_shared"]
+        target_user_id = data["target_user_id"]
 
         through_model = Photo.shared_to.through
 
-        # NEW: Support select_all mode for bulk operations
-        if data.get("select_all"):
-            query_params = data.get("query", {})
-            excluded_hashes = data.get("excluded_hashes", [])
+        if data["select_all"]:
+            query_params = data["query"]
+            excluded_hashes = data["excluded_hashes"]
 
             photos_qs = build_photo_queryset(user, query_params)
             if excluded_hashes:
@@ -839,12 +810,12 @@ class GeneratePhotoCaption(APIView):
     # check_object_permissions), so anonymous callers reached the body.
     permission_classes = (IsAuthenticated,)
 
+    @extend_schema(request=PhotoCaptionRequest)
     def post(self, request: Request, format: str | None = None) -> Response:
         if not settings.FEATURE_IMAGE_CAPTIONING:
             raise PermissionDenied("Image captioning is disabled")
 
-        data = dict(request_dict(request))
-        image_hash = data["image_hash"]
+        image_hash = parse_body(request, PhotoCaptionRequest)["image_hash"]
 
         photo = (
             Photo.objects.owned_by(request_user(request))
@@ -879,14 +850,11 @@ class GeneratePhotoCaption(APIView):
 class SavePhotoCaption(APIView):
     permission_classes = (IsAuthenticated,)
 
+    @extend_schema(request=SavePhotoCaptionRequest)
     def post(self, request: Request, format: str | None = None) -> Response:
-        data = request_dict(request)
-        image_hash = data.get("image_hash")
-        caption = data.get("caption")
-        if not isinstance(image_hash, str):
-            raise ValidationError({"image_hash": "Expected a photo's image hash."})
-        if not isinstance(caption, str):
-            raise ValidationError({"caption": "Expected text."})
+        data = parse_body(request, SavePhotoCaptionRequest)
+        image_hash = data["image_hash"]
+        caption = data["caption"]
 
         photo = (
             Photo.objects.owned_by(request_user(request))
@@ -903,16 +871,16 @@ class SavePhotoCaption(APIView):
 class DeletePhotos(APIView):
     permission_classes = (IsAuthenticated,)
 
+    @extend_schema(request=PhotoSelectionRequest)
     def delete(self, request: Request) -> Response:
         from api.views.photo_filters import build_photo_queryset
 
         user = request_user(request)
-        data = dict(request_dict(request))
+        data = parse_body(request, PhotoSelectionRequest)
 
-        # NEW: Support select_all mode for bulk operations
-        if data.get("select_all"):
-            query_params = data.get("query", {})
-            excluded_hashes = data.get("excluded_hashes", [])
+        if data["select_all"]:
+            query_params = data["query"]
+            excluded_hashes = data["excluded_hashes"]
 
             # For delete, we need to ensure photos are in trashcan
             # Override query to filter for trashcan photos only
@@ -1042,13 +1010,10 @@ class SetMainFileView(APIView):
 
     permission_classes = (IsAuthenticated,)
 
+    @extend_schema(request=SetMainFileRequest)
     def post(self, request: Request, image_hash: str) -> Response:
         """Set the main file for a photo."""
-        data = request_dict(request)
-        file_hash = data.get("file_hash")
-
-        if not file_hash:
-            raise ValidationError({"file_hash": "file_hash is required"})
+        file_hash = parse_body(request, SetMainFileRequest)["file_hash"]
 
         photo = _get_owned_photo(image_hash, request_user(request))
         if not photo:
@@ -1076,6 +1041,7 @@ class SetMainFileView(APIView):
 class SaveMetadataView(APIView):
     permission_classes = (IsAuthenticated,)
 
+    @extend_schema(request=SaveMetadataRequest)
     def post(self, request: Request, format: str | None = None) -> Response:
         """Bulk-write metadata to image files for the authenticated user's photos.
 
@@ -1083,8 +1049,7 @@ class SaveMetadataView(APIView):
         Defaults to ["ratings"] if not specified.
         """
         user = request_user(request)
-        data = request_dict(request)
-        metadata_types = data.get("types", ["ratings"])
+        metadata_types = parse_body(request, SaveMetadataRequest)["types"]
         use_sidecar = user.save_metadata_to_disk == User.SaveMetadata.SIDECAR_FILE
 
         photos = Photo.objects.owned_by(user)
@@ -1111,23 +1076,6 @@ class SaveMetadataView(APIView):
                 )
 
         return Response({"status": True, "written": written, "errors": errors})
-
-
-def _parse_rotation_angle(raw_angle: object) -> int:
-    """The requested rotation angle; a 400 unless it is a multiple of 90."""
-    # int() takes only these JSON values; for anything else (null, a list, an
-    # object) it raised TypeError, which gave the same message.
-    if not isinstance(raw_angle, (str, int, float)):
-        raise ValidationError({"angle": "angle must be an integer"})
-    try:
-        angle = int(raw_angle)
-    except (TypeError, ValueError) as error:
-        raise ValidationError({"angle": "angle must be an integer"}) from error
-
-    if angle % 90 != 0:
-        raise ValidationError({"angle": "angle must be a multiple of 90 degrees"})
-
-    return angle
 
 
 def _get_rotatable_photo(image_hash: str, user: User) -> Photo:
@@ -1180,15 +1128,12 @@ class RotatePhotoView(APIView):
 
     permission_classes = (IsAuthenticated,)
 
+    @extend_schema(request=RotatePhotoRequest)
     def post(self, request: Request, format: str | None = None) -> Response:
-        data = request_dict(request)
-        image_hash = data.get("image_hash")
-        flip_horizontal = bool(data.get("flip_horizontal", False))
-
-        if not image_hash:
-            raise ValidationError({"image_hash": "image_hash is required"})
-
-        angle = _parse_rotation_angle(data.get("angle", 0))
+        data = parse_body(request, RotatePhotoRequest)
+        image_hash = data["image_hash"]
+        flip_horizontal = data["flip_horizontal"]
+        angle = data["angle"]
         photo = _get_rotatable_photo(image_hash, request_user(request))
 
         try:
