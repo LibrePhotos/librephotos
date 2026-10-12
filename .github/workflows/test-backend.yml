@@ -79,6 +79,9 @@ jobs:
           python manage.py check --fail-level WARNING
 
       - name: Run tests
+        # manage.py measures coverage while the suite runs unless NO_COVERAGE is
+        # set (it is not, here), and saves it to apps/backend/.coverage. Running
+        # the suite under `coverage run` as well would only double the tracing.
         working-directory: apps/backend
         env:
           BASE_LOGS: /tmp/librephotos/logs
@@ -88,6 +91,15 @@ jobs:
         run: |
           . .venv/bin/activate
           python manage.py test api.tests nextcloud
+
+      - name: Coverage gate (fail_under in apps/backend/.coveragerc)
+        # Reads the data file the test step saved; no tests run here. Exits
+        # non-zero when the total is below fail_under. The step is skipped when
+        # the tests fail, since there is then no data file to report on.
+        working-directory: apps/backend
+        run: |
+          . .venv/bin/activate
+          coverage report
 
       - name: Type check (no new errors vs mypy-baseline.txt)
         # Runs even when tests failed, so type errors and test failures report

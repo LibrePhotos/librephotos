@@ -1,5 +1,18 @@
 [run]
 branch = True
+# The application code. A total over the whole tree would count the tests and
+# the vendored chunked_upload app; the report reads the same source and omit.
+source =
+    api
+    librephotos
+    nextcloud
+    service
+    image_similarity
+omit =
+    */tests/*
+    */tests.py
+    */migrations/*
+    */chunked_upload/*
 
 [report]
 skip_covered = True

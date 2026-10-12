@@ -103,6 +103,15 @@ test makes `--parallel` runs crash with "cannot pickle 'traceback'"; rerun that 
   `api/tests/infra/test_test_data_factories.py`: it fails on a new raw create, and
   `api/tests/infra/test_data_baseline.txt` only shrinks (`python scripts/factory_baseline.py --update`).
 - A raw create that must stay raw (a constraint test) carries `# raw-create: <reason>` on its line.
+- Test modules live under `api/tests/<area>/` (or `nextcloud/`): CI runs only `manage.py test api.tests nextcloud`,
+  so a `test*.py` anywhere else never runs. `api/tests/infra/test_test_suite_layout.py` fails on one and on any
+  `pytest` import; the runner is Django's.
+- Stub a module name or load a sidecar file only through `api/tests/stubs.py` (`stub_modules`,
+  `load_backend_file`, `sidecar_utils_stub`). They put back exactly what they changed; a direct `sys.modules`
+  write in a test module fails the layout test (`patch.dict(sys.modules)` also drops modules imported inside it).
+- Coverage: `manage.py test` records it unless `NO_COVERAGE` is set. CI's `coverage report` step fails below
+  `fail_under` in `.coveragerc`. Raise the floor when the total clears it by a whole point; never lower it
+  without saying why in the PR.
 
 ## Layout
 
