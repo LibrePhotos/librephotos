@@ -358,7 +358,9 @@ describe("eslint.config.mjs size limits", () => {
   });
 
   it("fails a file in the baseline that grows", async () => {
-    const file = "src/components/photolist/PhotoListView.tsx";
+    // The largest file the baseline still holds: a file that is back under the limits has no entry.
+    const file = Object.keys(sizeBaseline).find(name => sizeBaseline[name]?.lines > SIZE_LIMITS.lines);
+    expect(file).toBeDefined();
     expect(sizeBaseline[file]?.lines).toBeGreaterThan(SIZE_LIMITS.lines);
     const source = readFileSync(path.join(cwd, file), "utf8");
     expect(await lint(source, file)).toEqual([]);
