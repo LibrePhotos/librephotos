@@ -43,30 +43,34 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
   const theme = useMantineTheme();
   const colorScheme = useComputedColorScheme();
 
+  // How far the target can scroll. 0 when it fits on screen, and every scale below divides by it,
+  // so a zero range maps every position to the top of the scrubber instead of producing NaN.
+  const scrollRange = Math.max(targetHeight - targetClientHeight, 0);
+
   const targetYToScrollerY = useCallback(
     (y: number): number => {
-      if (targetHeight > 0) return Math.min((y * height) / (targetHeight - targetClientHeight), height);
-      return NaN;
+      if (scrollRange > 0) return Math.min((y * height) / scrollRange, height);
+      return 0;
     },
-    [targetHeight, targetClientHeight, height]
+    [scrollRange, height]
   );
 
   const scrollerYToTargetY = (y: number): number => {
-    if (height > 0) return (y * (targetHeight - targetClientHeight)) / height;
-    return NaN;
+    if (height > 0) return (y * scrollRange) / height;
+    return 0;
   };
 
   const targetYToScrollerYPercentage = useCallback(
     (y: number): number => {
-      if (targetHeight > 0) return Math.min((y * 100) / (targetHeight - targetClientHeight), 100);
-      return NaN;
+      if (scrollRange > 0) return Math.min((y * 100) / scrollRange, 100);
+      return 0;
     },
-    [targetHeight, targetClientHeight]
+    [scrollRange]
   );
 
   const scrollerYToScrollerYPercentage = (y: number): number => {
     if (height > 0) return Math.min((y * 100) / height, 100);
-    return NaN;
+    return 0;
   };
 
   const getLabelForScrollerY = (y: number): string => {
@@ -443,8 +447,8 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
     );
   };
 
-  // do not display Scrollscubber if there is less than 2 positions (this is useless in this case)
-  if (targetClientHeight === 0 || scrollPositions.length < 2) {
+  // do not display Scrollscubber if there is less than 2 positions, or nothing to scroll (this is useless in these cases)
+  if (targetClientHeight === 0 || scrollPositions.length < 2 || scrollRange === 0) {
     return <div>{children}</div>;
   }
 
