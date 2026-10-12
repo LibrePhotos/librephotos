@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.a1e92a76.css">
-<script src="/assets/js/runtime~main.27689b32.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.21c5e430.js" defer="defer"></script>
 <script src="/assets/js/main.f4dc5e9c.js" defer="defer"></script>
 </head>
 <body>
@@ -28,7 +28,7 @@
 <p>Django signs every session, login token and password-reset link with a secret key, and encrypts the SMTP password stored in the <code>Admin Area</code> with it. On the first start LibrePhotos generates the key and keeps it in this file, which is then used every time you start it: <code>/protected_media/secret.key</code> inside the backend container, which the shipped Docker Compose file maps to <code>${data}/protected_media/secret.key</code> on the host (<code>%LOCALAPPDATA%\LibrePhotos\protected_media\secret.key</code> for the <a class="" href="/docs/installation/windows-standalone">Windows standalone build</a>). Back it up together with the rest of this folder.</p>
 <p>If you delete it, a new key is generated: every user is logged out and the SMTP password has to be entered again. Anyone who has a copy of the file can forge a login to your instance.</p>
 <p>If you set <code>shhhhKey</code> in your <code>.env</code> file (<code>SECRET_KEY</code> for the backend container), that value is used as the secret key instead and this file is never created or read.</p>
-<p>LibrePhotos 1.3.0 and older keep the file in <code>/logs</code> instead. The first start of a newer release moves it here and logs a warning saying so. If both files exist, the one in <code>/protected_media</code> is used, and the old one in <code>/logs</code> is left untouched with a warning in the log: delete it once you have checked that you can log in.</p>
+<p>LibrePhotos 1.3.0 and older keep the file in <code>/logs</code> instead. The first start of a newer release moves it here and logs a warning saying so. If both files exist, the one in <code>/protected_media</code> is used. An old file holding the same key is the rest of an unfinished move and is removed; one holding a different key is left untouched with a warning in the log: delete it once you have checked that you can log in.</p>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="avatars">/avatars<a href="#avatars" class="hash-link" aria-label="Direct link to /avatars" title="Direct link to /avatars" translate="no">​</a></h3>
 <p>When you upload an avatar for a user, you can find it in this folder.</p>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="square_thumbnails_small">/square_thumbnails_small<a href="#square_thumbnails_small" class="hash-link" aria-label="Direct link to /square_thumbnails_small" title="Direct link to /square_thumbnails_small" translate="no">​</a></h3>
