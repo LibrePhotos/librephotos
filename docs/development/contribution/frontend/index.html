@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.a1e92a76.css">
-<script src="/assets/js/runtime~main.b7f9a525.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.a08d8fbd.js" defer="defer"></script>
 <script src="/assets/js/main.c4dc47cd.js" defer="defer"></script>
 </head>
 <body>
@@ -100,14 +100,23 @@ never edit it by hand.</li>
 <a href="https://github.com/LibrePhotos/librephotos/tree/dev/apps/frontend/src/components" target="_blank" rel="noopener noreferrer" class="">components</a>,
 grouped by feature.</li>
 <li class=""><a href="https://github.com/LibrePhotos/librephotos/tree/dev/apps/frontend/src/api_client" target="_blank" rel="noopener noreferrer" class="">api_client</a>
-is the API layer, and every request starts there. <code>api.ts</code> sets up <code>apiClient</code>, the shared client
-from <code>packages/api-client</code> with the web&#x27;s policy around it: it attaches the access token, refreshes
-it on a 401, logs out when that fails, and rejects a failed request with <code>ApiError</code>. Around it, one
-folder per domain (<code>photos</code>, <code>albums</code>, <code>faces</code>, …) exports the TanStack Query hooks the components
-actually call, named <code>useFetch…Query</code> and <code>use…Mutation</code>. Files under <code>/media/</code> (thumbnails,
-originals, videos) get their URLs from <code>mediaUrl</code> and are fetched with <code>fetchMedia</code>, both in
-<code>api_client/media/mediaUrl.ts</code>. A component never calls <code>apiClient</code> or <code>fetch</code> itself: when it needs
-a request, add a hook to the domain&#x27;s folder. Lint enforces this.</li>
+is the web side of the API layer, and every request starts there. The requests themselves live in
+<a href="https://github.com/LibrePhotos/librephotos/tree/dev/packages/api-client" target="_blank" rel="noopener noreferrer" class="">packages/api-client</a>,
+which the mobile app uses too: one endpoint function per call in <code>src/endpoints</code>, each parsing the
+answer with its zod schema from <code>src/schemas</code> and returning the parsed type. <code>api.ts</code> sets up
+<code>apiClient</code>, the shared client with the web&#x27;s policy around it: it attaches the access token,
+refreshes it on a 401, logs out when that fails, rejects a failed request with <code>ApiError</code>, and
+shows a &quot;please report this&quot; notification when an answer does not match its schema. Around it,
+one folder per domain (<code>photos</code>, <code>albums</code>, <code>faces</code>, …) holds the TanStack Query hooks the
+components actually call (<code>useFetch…Query</code>, <code>use…Mutation</code>): each wraps an
+<code>endpoints.&lt;name&gt;(apiClient, …)</code> call and adds the web&#x27;s cache invalidation and notifications, with
+keys from the domain&#x27;s <code>keys.ts</code>. Files under <code>/media/</code> (thumbnails, originals, videos) get their
+URLs from <code>mediaUrl</code> and are fetched with <code>fetchMedia</code>, both in <code>api_client/media/mediaUrl.ts</code>. A
+component never calls <code>apiClient</code> or <code>fetch</code> itself: when it needs a request, add the endpoint and
+its schema (with a fixture test) to <code>packages/api-client</code>, then a hook to the domain&#x27;s folder. Lint
+enforces this; domains that still call <code>apiClient</code> directly or define their own zod schemas are
+listed in <code>eslint-suppressions.json</code> and are moving over one at a time
+(<a href="https://github.com/LibrePhotos/librephotos/issues/2347" target="_blank" rel="noopener noreferrer" class="">#2347</a>).</li>
 <li class=""><a href="https://github.com/LibrePhotos/librephotos/tree/dev/apps/frontend/src/hooks" target="_blank" rel="noopener noreferrer" class="">hooks</a> and
 <a href="https://github.com/LibrePhotos/librephotos/tree/dev/apps/frontend/src/service" target="_blank" rel="noopener noreferrer" class="">service</a> contain
 cross-cutting hooks and helpers, such as authentication and notifications.</li>
