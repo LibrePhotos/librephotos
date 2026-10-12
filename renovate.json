@@ -58,7 +58,7 @@
       "addLabels": ["mobile"]
     },
     {
-      "description": "The root package.json is the npm workspace for apps/mobile and packages/*, and pins Expo, expo-router and React to move in lockstep with apps/mobile; packages/* are only consumed by the mobile app. Exact root paths, so apps/frontend and apps/docs manifests are not caught.",
+      "description": "The root package.json is the npm workspace for apps/mobile and packages/*, and pins Expo, expo-router, React and zod to move in lockstep with apps/mobile. packages/api-client is installed through this workspace, so its tooling updates land here too, although the web app also compiles it (its zod and React Query move with the shared client runtime group below). Exact root paths, so apps/frontend and apps/docs manifests are not caught.",
       "matchFileNames": ["package.json", "package-lock.json", "packages/**"],
       "groupName": "mobile dependencies",
       "addLabels": ["mobile"]
@@ -179,11 +179,11 @@
       "groupName": "frontend maps"
     },
     {
-      "description": "zod 4 touches about 70 files; keep it out of the general frontend group.",
-      "matchFileNames": ["apps/frontend/**"],
-      "matchUpdateTypes": ["major"],
-      "matchPackageNames": ["zod"],
-      "groupName": "frontend zod"
+      "description": "packages/api-client's zod schemas and React Query hooks run inside both apps, on each app's copy, so zod and React Query move in one PR across the web app, the mobile app, the package and the root workspace pin; scripts/check-shared-deps.mjs (run by lint-frontend.yml and api-client.yml) fails while a consumer is outside the package's peer range or the apps' zod majors differ. React is left out: the Expo SDK pins the mobile app's React (rule above).",
+      "matchFileNames": ["apps/frontend/package.json", "apps/mobile/package.json", "packages/api-client/package.json", "package.json"],
+      "matchPackageNames": ["zod", "@tanstack/react-query"],
+      "groupName": "shared client runtime",
+      "addLabels": ["frontend", "mobile"]
     },
     {
       "description": "PR CI does not run the Playwright suite, so keep its updates apart from the app's.",

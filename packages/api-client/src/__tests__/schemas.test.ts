@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { photosetToFilter } from "../endpoints";
 import {
   AutoAlbum,
+  CreateUserAlbumResponse,
   FetchDateAlbumsListResponse,
   FetchThingAlbumsListResponse,
   imageHashOf,
@@ -12,6 +13,8 @@ import {
   PhotosWithoutTimestampResponse,
   PigPhoto,
   SearchPhotos,
+  SetFacesLabelResponse,
+  SyncPhotosResponse,
   User,
   UserAlbum,
 } from "../schemas";
@@ -259,5 +262,63 @@ describe("fields shared with the web frontend", () => {
       public_sharing_options: { share_location: false, share_faces: null },
     });
     expect(album.public_sharing_options).toEqual({ share_location: false, share_faces: null });
+  });
+});
+
+describe("loose objects keep the fields a newer server adds", () => {
+  const photoRow = {
+    id: "3f2c1a4e-0b5d-4c7e-9a1f-2d3e4f5a6b7c",
+    image_hash: "abc123",
+    owner_id: 1,
+    timestamp: 1718409600000,
+    added_on: 1718409600000,
+    last_modified: 1718409600000,
+    type: "image",
+    video_length_ms: null,
+    rating: 0,
+    is_favorite: false,
+    hidden: false,
+    in_trashcan: false,
+    removed: false,
+    is_public: false,
+    aspect_ratio: 1.5,
+    latitude: null,
+    longitude: null,
+    search_location: null,
+    dominant_color: null,
+  };
+
+  it("keeps unknown keys on a sync envelope and its items", () => {
+    const parsed = SyncPhotosResponse.parse({
+      v: 1,
+      items: [{ ...photoRow, future_field: "kept" }],
+      tombstones: [42],
+      next_cursor: null,
+      server_time: "2024-06-15T00:00:00Z",
+      future_envelope_field: true,
+    });
+    expect(defined(parsed.items[0]).future_field).toBe("kept");
+    expect(parsed.future_envelope_field).toBe(true);
+    // numeric tombstones are coerced to the string ids the client stores
+    expect(parsed.tombstones).toEqual(["42"]);
+  });
+
+  it("keeps unknown keys on face and mutation responses", () => {
+    const faces = SetFacesLabelResponse.parse({ status: true, results: [{ id: 7, cluster: 3 }], extra: "x" });
+    expect(faces.extra).toBe("x");
+    expect(defined(faces.results[0]).cluster).toBe(3);
+    expect(faces.updated).toEqual([]);
+    expect(CreateUserAlbumResponse.parse({ id: 9, photos: [] }).photos).toEqual([]);
+  });
+
+  it("still rejects a sync payload with the wrong version", () => {
+    expect(() => SyncPhotosResponse.parse({ v: 2, items: [], next_cursor: null, server_time: "" })).toThrow();
+  });
+
+  it("reads a photo's media type, defaults it to image and rejects an unknown one", () => {
+    const tile = { id: "3f2c1a4e-0b5d-4c7e-9a1f-2d3e4f5a6b7c", image_hash: "abc", aspectRatio: 1 };
+    expect(PigPhoto.parse({ ...tile, type: "motion_photo" }).type).toBe(Media.MOTION_PHOTO);
+    expect(PigPhoto.parse(tile).type).toBe(Media.IMAGE);
+    expect(PigPhoto.safeParse({ ...tile, type: "hologram" }).success).toBe(false);
   });
 });
