@@ -1,4 +1,5 @@
-import { z, ZodError } from "zod";
+import type { z } from "zod";
+import { ZodError } from "zod";
 import { notification } from "../service/notifications";
 
 /** The issues of a failed parse as one line: each message with the path it is at. */
