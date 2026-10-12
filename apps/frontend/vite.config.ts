@@ -78,16 +78,37 @@ export default defineConfig(({ mode }) => {
     worker: { format: "es" },
     test: {
       globals: true,
-      environment: "jsdom",
-      setupFiles: "./src/setupTests.ts",
-      // e2e/ is the Playwright suite, run by its own runner against a live stack.
-      exclude: [...configDefaults.exclude, "e2e/**"],
-      css: true,
-      // lodash-es ships ~650 one-function ES modules, so every test file that
-      // imports it had Node resolve, stat and load all of them. Across a
-      // parallel run that costs 1-4 s per file. Pre-bundling it into a single
-      // module brings that down to ~0.1 s.
-      deps: { optimizer: { client: { enabled: true, include: ["lodash-es"] } } },
+      projects: [
+        {
+          extends: true,
+          test: {
+            name: "web",
+            environment: "jsdom",
+            setupFiles: "./src/setupTests.ts",
+            // e2e/ is the Playwright suite, run by its own runner against a live stack.
+            exclude: [...configDefaults.exclude, "e2e/**"],
+            css: true,
+            // lodash-es ships ~650 one-function ES modules, so every test file that
+            // imports it had Node resolve, stat and load all of them. Across a
+            // parallel run that costs 1-4 s per file. Pre-bundling it into a single
+            // module brings that down to ~0.1 s.
+            deps: { optimizer: { client: { enabled: true, include: ["lodash-es"] } } },
+          },
+        },
+        {
+          // packages/api-client's own suite (node tests, no React, no jsdom setup),
+          // run against this app's zod and React Query: `resolve.dedupe` above
+          // sends the package's bare imports here. Its own CI job (api-client.yml)
+          // runs the same files against the mobile app's versions.
+          extends: true,
+          test: {
+            name: "api-client",
+            environment: "node",
+            dir: apiClientSrc,
+            include: ["**/*.test.ts"],
+          },
+        },
+      ],
       reporters: ["verbose"],
       coverage: {
         reporter: ["text", "json", "html"],
