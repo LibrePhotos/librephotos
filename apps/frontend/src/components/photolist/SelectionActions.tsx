@@ -26,8 +26,8 @@ import { useLocation } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { useRemovePhotoFromUserAlbumMutation } from "../../api_client/albums/hooks";
-import { shareAddress } from "../../api_client/urls";
 import { useDownloadPhotosMutation } from "../../api_client/jobs";
+import { shareMediaUrl } from "../../api_client/media/mediaUrl";
 import {
   useMarkPhotosDeletedMutation,
   useSetFavoritePhotosMutation,
@@ -393,10 +393,10 @@ export function SelectionActions(props: Readonly<Props>) {
                   image_hashes: getImageHashes(),
                   val_public: true,
                 });
-                // Absolute links (shareAddress is the origin plus the subpath), and
+                // Absolute links (shareMediaUrl: the origin plus the subpath), and
                 // no ".jpg": the same link serves videos too.
                 const linksToCopy = getImageHashes()
-                  .map(ih => `${shareAddress}/media/photos/${ih}`)
+                  .map(ih => shareMediaUrl.photo(ih))
                   .join("\n");
                 copyToClipboard(linksToCopy);
               }

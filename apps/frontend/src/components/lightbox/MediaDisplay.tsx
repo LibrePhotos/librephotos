@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { serverAddress } from "../../api_client/urls";
 import type { NormalizedFaceBox } from "../../api_client/faces/hooks/useAddFaceMutation";
+import { mediaUrl } from "../../api_client/media/mediaUrl";
 import { generatedCaptionOf, userCaptionOf } from "../../api_client/photos/captions";
 import type { Photo, PhotoOcrBlock } from "../../api_client/photos/types";
 import { convertedUrl, needsConversion } from "../../util/videoPlayback";
@@ -126,7 +126,7 @@ export function MediaDisplay({
   // height cannot shape one, since they ignore a phone video's rotation.
   const videoContainerHeight = fullHeight ? "auto" : LIGHTBOX_VIDEO_HEIGHT;
   const videoMaxHeight = fullHeight ? PAGE_VIDEO_MAX_HEIGHT : undefined;
-  const thumbnailUrl = `${serverAddress}/media/thumbnails_big/${mediaHash}`;
+  const thumbnailUrl = mediaUrl.bigThumbnail(mediaHash);
 
   if (currentType === "video" || currentType === "embedded") {
     // Backend strips extension via fname.split(".")[0], so .mp4 suffix is safe
@@ -136,13 +136,13 @@ export function MediaDisplay({
     // transcode videos" on, otherwise when asked with ?transcode=1 -- which is
     // done up front for a video this browser says it cannot play, and as a
     // fallback for one it turns out not to.
-    const originalUrl = `${serverAddress}/media/photos/${mediaHash}.mp4`;
+    const originalUrl = mediaUrl.video(mediaHash);
     const videoUrl =
       currentType === "video"
         ? needsConversion(photoDetails?.video_playback_type)
           ? convertedUrl(originalUrl)
           : originalUrl
-        : `${serverAddress}/media/embedded_media/${mediaHash}`;
+        : mediaUrl.embedded(mediaHash);
     // Not on a public page: the server answers ?transcode=1 there with the same
     // original, so the retry could only fail again and blame a conversion that
     // never ran.
@@ -172,8 +172,8 @@ export function MediaDisplay({
   const cacheBustingParam = imageCacheKey ? `?v=${imageCacheKey}` : "";
   const imageUrl =
     isGif() && isMainContent
-      ? `${serverAddress}/media/photos/${mediaHash}${cacheBustingParam}`
-      : `${serverAddress}/media/thumbnails_big/${mediaHash}${cacheBustingParam}`;
+      ? `${mediaUrl.photo(mediaHash)}${cacheBustingParam}`
+      : `${mediaUrl.bigThumbnail(mediaHash)}${cacheBustingParam}`;
 
   const handleLoad = (event: React.SyntheticEvent<HTMLImageElement>) => {
     const { naturalWidth, naturalHeight } = event.currentTarget;

@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { useMemo } from "react";
-import { serverAddress } from "../api_client/urls";
+import { mediaUrl } from "../api_client/media/mediaUrl";
 import { notification } from "../service/notifications";
 import { canCopyImagesToClipboard, copyImageToClipboard } from "../util/imageClipboard";
 
@@ -27,7 +27,7 @@ export function useCopyPhotoToClipboard() {
   const mutation = useMutation({
     mutationFn: ({ imageHash, cacheKey }: CopyPhotoArgs) => {
       const version = cacheKey ? `?v=${cacheKey}` : "";
-      return copyImageToClipboard(`${serverAddress}/media/thumbnails_big/${imageHash}${version}`);
+      return copyImageToClipboard(`${mediaUrl.bigThumbnail(imageHash)}${version}`);
     },
     onSuccess: () => notification.copyPhotoToClipboard(),
     onError: () => notification.copyPhotoToClipboardFailed(),

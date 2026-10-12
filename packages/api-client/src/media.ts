@@ -16,6 +16,7 @@ const MEDIA = {
   photo: "photos",
   embedded: "embedded_media",
   face: "faces",
+  zip: "zip",
 } as const;
 
 function join(serverAddress: string, ...parts: string[]): string {
@@ -46,6 +47,21 @@ export function photoUrl(serverAddress: string, imageHash: string): string {
 /** Video stream (the `.mp4` suffix is cosmetic; backend strips the extension). */
 export function videoUrl(serverAddress: string, imageHash: string): string {
   return `${join(serverAddress, MEDIA.photo, imageHash)}.mp4`;
+}
+
+/** A motion photo's embedded clip, served as stored. */
+export function embeddedMediaUrl(serverAddress: string, imageHash: string): string {
+  return join(serverAddress, MEDIA.embedded, imageHash);
+}
+
+/** A face crop, by the file name of its stored image (the last segment of the face's image path). */
+export function faceUrl(serverAddress: string, fileName: string): string {
+  return join(serverAddress, MEDIA.face, fileName);
+}
+
+/** A finished download archive, by the name the download job returned; the backend appends the user id and `.zip`. */
+export function zipUrl(serverAddress: string, fileName: string): string {
+  return join(serverAddress, MEDIA.zip, fileName);
 }
 
 /** Auth headers to attach to an image request on platforms without a cookie jar. */

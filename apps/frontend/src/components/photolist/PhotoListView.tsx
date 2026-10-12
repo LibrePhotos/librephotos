@@ -21,8 +21,8 @@ import { throttle } from "lodash-es";
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSetPersonAlbumCoverMutation, useSetUserAlbumCoverMutation } from "../../api_client/albums/hooks";
-import { serverAddress } from "../../api_client/urls";
 import { useAccessToken } from "../../api_client/auth/hooks";
+import { mediaUrl } from "../../api_client/media/mediaUrl";
 import type { BulkPhotoQuery, DatePhotosGroup, PigPhoto, SelectionState } from "../../api_client/photos/types";
 import { useCurrentUserSelfDetailsQuery, useUpdateUserMutation } from "../../api_client/user/hooks";
 import { userKeys } from "../../api_client/user/keys";
@@ -369,10 +369,10 @@ function PhotoListViewComponent({
   // Pig passes a tile's `image_hash`.
   const getUrl = useCallback((imageHash: string, pxHeight: number) => {
     if (pxHeight < 250) {
-      return `${serverAddress}/media/square_thumbnails_small/${imageHash}`;
+      return mediaUrl.squareThumbnailSmall(imageHash);
     }
     // Always use the highest quality thumbnails for better image quality
-    return `${serverAddress}/media/square_thumbnails/${imageHash}`;
+    return mediaUrl.squareThumbnail(imageHash);
   }, []);
 
   // Merge into the ref, not the render-time `selectionState`: callers such as

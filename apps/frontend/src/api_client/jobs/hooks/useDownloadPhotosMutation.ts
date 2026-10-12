@@ -2,7 +2,7 @@ import { POLL_ARCHIVE_MS, pollUntil } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
 import { apiClient } from "../../api";
-import { serverAddress } from "../../urls";
+import { fetchMedia, mediaUrl } from "../../media/mediaUrl";
 import type { BulkPhotoQuery } from "../../photos/types";
 
 type StatusResponse = { status: string };
@@ -50,13 +50,7 @@ async function downloadFile(fileUuid: string, signal: AbortSignal) {
   // requester's user id and ".zip" itself. It works behind the proxy (X-Accel)
   // and without it; the old nginx-only /api/downloads/ route 404ed on the
   // unified image, the Windows build and native dev.
-  const response = await fetch(`${serverAddress}/media/zip/${fileUuid}`, {
-    credentials: "include",
-    signal,
-  });
-  if (!response.ok) {
-    throw new Error(`Failed to download file: ${response.status} ${response.statusText}`);
-  }
+  const response = await fetchMedia(mediaUrl.zip(fileUuid), { signal });
   const blob = await response.blob();
   const downloadUrl = window.URL.createObjectURL(blob);
   const link = document.createElement("a");

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { serverAddress } from "../../api_client/urls";
+import { mediaUrl } from "../../api_client/media/mediaUrl";
 
 type ImagePreloaderProps = {
   prevSrc: string | null;
@@ -21,12 +21,12 @@ export function ImagePreloader({ prevSrc, mainSrc, nextSrc }: ImagePreloaderProp
 
       // Preload big thumbnail for lightbox
       const bigImg = new Image();
-      bigImg.src = `${serverAddress}/media/thumbnails_big/${id}`;
+      bigImg.src = mediaUrl.bigThumbnail(id);
       preloadImages.push(bigImg);
 
       // Preload square thumbnail for preview
       const squareImg = new Image();
-      squareImg.src = `${serverAddress}/media/square_thumbnails/${id}`;
+      squareImg.src = mediaUrl.squareThumbnail(id);
       preloadImages.push(squareImg);
     };
 

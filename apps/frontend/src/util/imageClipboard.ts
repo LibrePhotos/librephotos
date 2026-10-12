@@ -17,6 +17,8 @@
  *   Firefox 127+ accept the promise form too.
  */
 
+import { fetchMedia } from "../api_client/media/mediaUrl";
+
 /**
  * Whether this page can put images on the clipboard at all.
  *
@@ -35,10 +37,7 @@ export function canCopyImagesToClipboard(): boolean {
 
 /** Fetch `url` and return its bytes as a PNG, re-encoding if they are not one already. */
 async function fetchAsPng(url: string): Promise<Blob> {
-  const response = await fetch(url, { credentials: "include" });
-  if (!response.ok) {
-    throw new Error(`Fetching the image failed with HTTP ${response.status}`);
-  }
+  const response = await fetchMedia(url);
   const source = await response.blob();
   if (source.type === "image/png") {
     return source;

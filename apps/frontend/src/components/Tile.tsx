@@ -1,7 +1,7 @@
 import { Image } from "@mantine/core";
 import type { CSSProperties } from "react";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { serverAddress } from "../api_client/urls";
+import { mediaUrl } from "../api_client/media/mediaUrl";
 
 type DefaultProps = {
   style: CSSProperties;
@@ -28,7 +28,7 @@ function stopPreview(element: HTMLVideoElement) {
 
 export function Tile({ video, width, height, style, image_hash, className }: Props) {
   const [videoFailed, setVideoFailed] = useState(false);
-  const src = `${serverAddress}/media/square_thumbnails/${image_hash}`;
+  const src = mediaUrl.squareThumbnail(image_hash);
   const videoNode = useRef<HTMLVideoElement | null>(null);
 
   // Deliberately never cleared: React detaches refs before it runs effect

@@ -2,10 +2,9 @@ import { ActionIcon, Avatar, Box, Indicator } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { IconPhoto as Photo } from "@tabler/icons-react";
 import { getRouteApi } from "@tanstack/react-router";
-import { reverse } from "lodash-es";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { serverAddress } from "../../api_client/urls";
+import { mediaUrl } from "../../api_client/media/mediaUrl";
 import classes from "./FaceComponent.module.css";
 import { FaceTooltip } from "./FaceTooltip";
 import type { FaceCell } from "./hooks/useVirtualizedGrid";
@@ -31,8 +30,8 @@ const routeApi = getRouteApi("/_protected/faces");
 
 function getFaceImageUrl(image: string): string {
   // image is a URL, e.g. http://backend/path/to/file.jpg
-  const fileName = reverse(image.split("/"))[0];
-  return `${serverAddress}/media/faces/${fileName}`;
+  const fileName = image.split("/").at(-1) ?? "";
+  return mediaUrl.face(fileName);
 }
 
 export function FaceComponent({

@@ -3,7 +3,7 @@ import { IconCamera as Camera, IconPhoto as Photo } from "@tabler/icons-react";
 import type { TFunction } from "i18next";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { serverAddress } from "../../api_client/urls";
+import { mediaUrl } from "../../api_client/media/mediaUrl";
 import type { FileVariant, Photo as PhotoType } from "../../api_client/photos/types";
 import { BreadcrumbPath } from "../common/BreadcrumbPath";
 import { FileInfoComponent } from "./FileInfoComponent";
@@ -59,7 +59,7 @@ function PhotoInfoSection({
         <Group justify="flex-start" wrap="nowrap">
           <Photo />
           <div>
-            <Anchor href={`${serverAddress}/media/photos/${photoDetail.image_hash}`} target="_blank">
+            <Anchor href={mediaUrl.photo(photoDetail.image_hash)} target="_blank">
               <Text fw={800} lineClamp={1} style={{ maxWidth: 225 }}>
                 {firstImagePath !== undefined ? fileNameOf(firstImagePath) : t("exif.unknownFilename")}
               </Text>
@@ -100,7 +100,7 @@ function PhotoInfoSection({
                   <Badge size="xs" color={color} variant="filled">
                     {label}
                   </Badge>
-                  <Anchor href={`${serverAddress}/media/photos/${variant.hash}`} target="_blank" size="xs" c="dimmed">
+                  <Anchor href={mediaUrl.photo(variant.hash)} target="_blank" size="xs" c="dimmed">
                     {variant.filename || fileNameOf(variant.path)}
                   </Anchor>
                 </Group>
