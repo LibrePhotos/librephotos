@@ -4,6 +4,7 @@ import owncloud as nextcloud
 import requests
 from django_q.tasks import AsyncTask
 from drf_spectacular.utils import extend_schema
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -20,10 +21,6 @@ from nextcloud.server_address import (
 )
 
 logger = logging.getLogger(__name__)
-
-
-def _rejected_address(error: UnsafeServerAddress) -> Response:
-    return Response({"status": False, "message": str(error)}, status=400)
 
 
 class ListDir(APIView):
@@ -55,20 +52,15 @@ class ListDir(APIView):
                 ]
             )
         except UnsafeServerAddress as e:
-            return _rejected_address(e)
+            raise ValidationError(str(e)) from e
         except nextcloud.ResponseError as e:
             logger.warning(f"Nextcloud responded with an error: {e}")
-            return Response({"status": False, "message": str(e)}, status=400)
+            raise ValidationError(str(e)) from e
         except requests.exceptions.RequestException as e:
             logger.warning(f"Could not reach the nextcloud server: {e}")
-            return Response(
-                {
-                    "status": False,
-                    "message": "Could not reach the nextcloud server. Check the "
-                    "server address.",
-                },
-                status=400,
-            )
+            raise ValidationError(
+                "Could not reach the nextcloud server. Check the server address."
+            ) from e
 
 
 class ScanPhotosView(APIView):
@@ -89,7 +81,7 @@ class ScanPhotosView(APIView):
         try:
             validate_server_address(user.nextcloud_server_address)
         except UnsafeServerAddress as e:
-            return _rejected_address(e)
+            raise ValidationError(str(e)) from e
         return start_job(
             lambda job_id: AsyncTask(scan_photos, user, job_id).run(),
             "the Nextcloud scan",

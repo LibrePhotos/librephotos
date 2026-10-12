@@ -2,6 +2,8 @@ import uuid
 
 from django.http import HttpResponse, HttpResponseBase
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
+from rest_framework import status
+from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -108,18 +110,16 @@ class SetPhotoShare(APIView):
         action = data.get("action") or "enable"
 
         if not isinstance(photo_id, str) or not photo_id:
-            return Response(
-                {"status": False, "message": "Missing parameters"}, status=400
-            )
+            raise ValidationError("Missing parameters")
         if not isinstance(action, str) or action.lower() not in SHARE_ACTIONS:
-            return Response({"status": False, "message": "Unknown action"}, status=400)
+            raise ValidationError("Unknown action")
         action = action.lower()
 
         # Someone else's photo is reported exactly like a missing one, so the
         # endpoint cannot be used to probe which hashes exist.
         photo = _owned_photo(request_user(request), photo_id)
         if photo is None:
-            return Response({"status": False, "message": "No such photo"}, status=404)
+            raise NotFound("No such photo")
 
         if action == "disable":
             share = PhotoShare.objects.filter(photo=photo).first()
@@ -178,7 +178,7 @@ class PublicPhotoBySlug(APIView):
     def get(self, request: Request, slug: str) -> Response:
         share = active_photo_share(slug)
         if share is None:
-            return Response(status=404)
+            raise NotFound()
         assert share.slug is not None  # active_photo_share matched on this slug
 
         photo = share.photo
@@ -217,7 +217,7 @@ class PublicPhotoMediaBySlug(MediaServingView):
     ) -> HttpResponseBase:
         share = active_photo_share(slug)
         if share is None or kind not in SHARED_MEDIA_KINDS:
-            return HttpResponse(status=404)
+            return HttpResponse(status=status.HTTP_404_NOT_FOUND)
 
         photo = share.photo
         use_proxy = self._should_use_proxy()
@@ -228,7 +228,7 @@ class PublicPhotoMediaBySlug(MediaServingView):
         elif photo.video:
             response = self._generate_response_original(photo, use_proxy, False)
         else:
-            return HttpResponse(status=404)
+            return HttpResponse(status=status.HTTP_404_NOT_FOUND)
 
         # Browsers may keep a copy but must ask again before reusing it, so a
         # revoked link does not live on in their caches.

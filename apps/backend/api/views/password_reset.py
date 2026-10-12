@@ -3,11 +3,12 @@ import logging
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.tokens import default_token_generator
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.mail import send_mail
 from django.http import HttpRequest
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -105,23 +106,21 @@ class PasswordResetConfirmView(APIView):
         new_password = data.get("new_password")
 
         if not uid or not token or not new_password:
-            return Response(
-                {"status": False, "message": "Missing parameters"}, status=400
-            )
+            raise ValidationError("Missing parameters", code="missing_parameters")
 
+        # The web client tells these two 400s apart by their codes.
         user = self._user_from_uid(uid)
         if user is None or not default_token_generator.check_token(user, token):
-            return Response(
-                {"status": False, "message": "Invalid or expired reset link"},
-                status=400,
+            raise ValidationError(
+                "Invalid or expired reset link", code="invalid_reset_link"
             )
 
         try:
             validate_password(new_password, user)
-        except ValidationError as exc:
-            return Response(
-                {"status": False, "message": " ".join(exc.messages)}, status=400
-            )
+        except DjangoValidationError as exc:
+            raise ValidationError(
+                {"new_password": " ".join(exc.messages)}, code="weak_password"
+            ) from exc
 
         user.set_password(new_password)
         user.save()

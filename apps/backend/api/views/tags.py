@@ -4,9 +4,9 @@ from typing import Any
 
 from django.db.models import Prefetch, Q, QuerySet
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
-from rest_framework import filters, mixins, status, viewsets
+from rest_framework import filters, mixins, viewsets
 from rest_framework.decorators import action
-from rest_framework.exceptions import NotFound
+from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -231,9 +231,7 @@ class TagViewSet(
         tag = self.get_object()
         photos = self._resolve_photos(request)
         if photos is None:
-            return Response(
-                {"error": "No photos provided"}, status=status.HTTP_400_BAD_REQUEST
-            )
+            raise ValidationError("No photos provided")
 
         self._link_photos(tag.photos.add, photos)
         return Response(TagSerializer(tag).data)
@@ -250,9 +248,7 @@ class TagViewSet(
         tag = self.get_object()
         photos = self._resolve_photos(request)
         if photos is None:
-            return Response(
-                {"error": "No photos provided"}, status=status.HTTP_400_BAD_REQUEST
-            )
+            raise ValidationError("No photos provided")
 
         self._link_photos(tag.photos.remove, photos)
         return Response(TagSerializer(tag).data)
@@ -270,9 +266,7 @@ class TagViewSet(
         data = request_dict(request)
         source_id = data.get("tag")
         if source_id is None:
-            return Response(
-                {"error": "No tag provided"}, status=status.HTTP_400_BAD_REQUEST
-            )
+            raise ValidationError("No tag provided")
 
         try:
             source = Tag.objects.filter(
@@ -281,12 +275,9 @@ class TagViewSet(
         except (TypeError, ValueError):
             source = None
         if source is None:
-            return Response(status=status.HTTP_404_NOT_FOUND)
+            raise NotFound()
         if source.pk == tag.pk:
-            return Response(
-                {"error": "A tag cannot be merged into itself"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            raise ValidationError("A tag cannot be merged into itself")
 
         tag.photos.add(*source.photos.all())
         source.delete()

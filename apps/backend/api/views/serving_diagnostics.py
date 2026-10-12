@@ -1,4 +1,4 @@
-from rest_framework import status
+from rest_framework.exceptions import NotFound
 from rest_framework.permissions import IsAdminUser
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -33,10 +33,7 @@ class MediaPermissionDiagnosticsView(APIView):
             .first()
         )
         if photo is None:
-            return Response(
-                {"detail": "No photo matches that identifier."},
-                status=status.HTTP_404_NOT_FOUND,
-            )
+            raise NotFound("No photo matches that identifier.")
         if photo.main_file is None:
             # The scan has already detached this one; there is no path left to
             # inspect and permissions are not the story.

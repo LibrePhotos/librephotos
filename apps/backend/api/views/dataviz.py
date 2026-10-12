@@ -5,6 +5,7 @@ import os
 from django.conf import settings
 from django.http import FileResponse
 from drf_spectacular.utils import extend_schema
+from rest_framework.exceptions import APIException, NotFound
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -54,9 +55,9 @@ class SocialGraphView(APIView):
         try:
             res = build_social_graph(user)
             return Response(res)
-        except Exception:
+        except Exception as error:
             logger.exception(f"Error in SocialGraphView for user {user.id}")
-            return Response({"error": "Failed to build social graph"}, status=500)
+            raise APIException("Failed to build social graph") from error
 
 
 class ServerLogsView(APIView):
@@ -72,7 +73,7 @@ class ServerLogsView(APIView):
                 open(log_file, "rb"), as_attachment=True, filename=LOG_FILENAME
             )
         else:
-            return Response({"error": "Log file not found"}, status=404)
+            raise NotFound("Log file not found")
 
 
 class ServerLogsViewerView(APIView):
@@ -92,21 +93,16 @@ class ServerLogsViewerView(APIView):
             # falls back to a placeholder on a failed request, but an empty
             # string is a perfectly valid log body to it, so a 200 renders a
             # blank panel with nothing saying why.
-            return Response(
-                {"logs": "", "count": 0, "error": "Log file not found"}, status=404
-            )
+            raise NotFound("Log file not found")
 
         try:
             with open(log_file, "rb") as f:
                 lines = collections.deque(f, maxlen=num_lines)
             log_text = b"".join(lines).decode("utf-8", errors="replace")
             return Response({"logs": log_text, "count": len(lines)})
-        except Exception:
+        except Exception as error:
             logger.exception("Error reading log file")
-            return Response(
-                {"logs": "", "count": 0, "error": "Failed to read log file"},
-                status=500,
-            )
+            raise APIException("Failed to read log file") from error
 
 
 class ServerStatsView(APIView):

@@ -21,7 +21,7 @@ from api.services import (
     is_service_enabled,
     start_service,
 )
-from api.tests.utils import create_test_user
+from api.tests.utils import api_error, create_test_user
 
 # The site settings that have to say yes before the services they gate are
 # started at all; the flag tests are about the environment, not about these.
@@ -340,8 +340,8 @@ class ServiceAdminApiTest(TestCase):
         response = self.client.post("/api/services/image_captioning/start/")
 
         self.assertEqual(409, response.status_code)
-        self.assertEqual("FEATURE_IMAGE_CAPTIONING", response.json()["feature_flag"])
-        self.assertIn("FEATURE_IMAGE_CAPTIONING", response.json()["error"])
+        self.assertEqual("service_disabled", api_error(response)["code"])
+        self.assertIn("FEATURE_IMAGE_CAPTIONING", api_error(response)["message"])
         start_mock.assert_not_called()
 
     @patch("api.views.services.start_service", return_value=True)

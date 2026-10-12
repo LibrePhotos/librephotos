@@ -132,6 +132,34 @@ These routes are only registered when the backend runs with `DEBUG=1` (developme
 
 For the same reason, the extra `auth` hint that development builds append to a 401/403 error body is not present on a production install, so a production 401 will not point you at `/api/help`.
 
+### Error responses
+
+Every API error (a status of 400 or above) has the same JSON body:
+
+```json
+{
+  "errors": [{ "field": "new_password", "message": "This password is too short.", "code": "weak_password" }]
+}
+```
+
+- `field` names the request field at fault, or is `non_field_errors` or `detail` when the error is about the request as a whole.
+- `message` is meant for people and may change between releases. Do not compare it in code.
+- `code` is meant for programs. Most errors carry DRF's generic codes (`invalid`, `not_found`, `permission_denied`, `not_authenticated`, `parse_error`, `throttled`); the ones a client is expected to act on have their own:
+
+| Code                 | Status | Endpoint                                                    | Meaning                                                                          |
+| -------------------- | ------ | ----------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `invalid_cursor`     | 400    | `/api/sync/*`                                               | The `cursor` cannot be decoded.                                                  |
+| `cursor_expired`     | 410    | `/api/sync/*`                                               | The cursor is older than the deletion log; pull again without one.               |
+| `weak_password`      | 400    | `/api/auth/password/reset/confirm/`                         | The password validators refused the new password; the link is still good.        |
+| `invalid_reset_link` | 400    | `/api/auth/password/reset/confirm/`                         | The link was used already, expired or was mangled.                               |
+| `model_downloading`  | 503    | `/api/photosedit/generateim2txt/`                           | The captioning model is being downloaded; retry after the `Retry-After` seconds. |
+| `email_send_failed`  | 502    | `/api/email-config/test/`                                   | The mail server refused the test email; `message` is its own answer.             |
+| `job_start_failed`   | 500    | job endpoints (`/api/scanphotos/`, `/api/trainfaces/`, ...) | The background job could not be queued.                                          |
+
+Development builds append an extra entry with `field` `auth` (code `authentication_help`) to a 401 or 403; read the first entry. Media file requests (`/media/...`) are the exception: they answer without a body, as described above.
+
+Not released yet: before the release after 1.3.0, many endpoints answered errors as `{"error": "..."}` or `{"status": false, "message": "..."}`, entries had no `code`, and three failures (face training that could not be queued, the captioning model download and a refused test email) answered with a 200.
+
 ### Troubleshooting 401/403
 
 - Ensure you are including `Authorization: Bearer <access_token>` or using Basic auth.

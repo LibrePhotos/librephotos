@@ -22,6 +22,7 @@ EXPECTED = {
         {
             "field": "detail",
             "message": "Expected a JSON object as the request body.",
+            "code": "parse_error",
         }
     ]
 }

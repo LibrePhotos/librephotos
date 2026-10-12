@@ -61,8 +61,12 @@ test makes `--parallel` runs crash with "cannot pickle 'traceback'"; rerun that 
 - Delete unused code instead of keeping aliases or wrappers for compatibility, unless an external client
   calls it. Code only tests call counts as dead; `vulture_whitelist.py` is for names called from outside
   Python (settings dotted paths, django_q schedules) and only shrinks.
-- Errors use the DRF exception handler's shape, `{"errors": [{"field", "message"}]}`: raise DRF
-  exceptions instead of building error bodies.
+- Errors: raise a DRF exception (`ValidationError`, `NotFound`, `PermissionDenied`) or one from
+  `api/exceptions.py` (`Conflict`, `Gone`, `UpstreamError`, `ServiceUnavailable`, ...), with `code=` when
+  a client branches on it; never build an error body or a 2xx carrying `"status": False`. The handler
+  (`api/views/exception_handler.py`) writes `{"errors": [{"field", "message", "code"}]}`, and
+  `ErrorEnvelopeTest` (`api/tests/infra/test_api_conventions.py`) fails on an error `Response` or a
+  literal `status=`. Keep an endpoint's status codes: the mobile outbox retries 5xx and drops 4xx.
 - Background work: create the `LongRunningJob` row (`LongRunningJob.create_job`) and queue a plain
   function with `django_q.tasks.AsyncTask` or `Chain` (example: `api/all_tasks.py`). There is no
   `@shared_task`.

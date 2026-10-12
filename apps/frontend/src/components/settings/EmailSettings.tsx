@@ -149,8 +149,16 @@ export function EmailSettings(): React.JSX.Element {
   const onTest = () => {
     setTestResult(null);
     sendTest(undefined, {
-      onSuccess: result => setTestResult({ ok: result.status, message: result.message }),
-      onError: () => setTestResult({ ok: false, message: t("emailsettings.testfailed", "Test email failed to send.") }),
+      onSuccess: result => setTestResult({ ok: true, message: result.message }),
+      // A refused send is a 502 carrying the mail server's own words (code
+      // email_send_failed); a bad request says what is missing.
+      onError: error =>
+        setTestResult({
+          ok: false,
+          message:
+            (error instanceof ApiError && error.serverMessage) ||
+            t("emailsettings.testfailed", "Test email failed to send."),
+        }),
     });
   };
 

@@ -20,12 +20,14 @@ from django_q.tasks import Chain
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import status
+from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from api.directory_watcher import generate_face_embeddings, scan_faces
+from api.exceptions import Conflict
 from api.face_classify import cluster_all_faces
 from api.ml_models import do_all_models_exist, download_models
 from api.models import Face, Photo, User
@@ -63,10 +65,7 @@ class ScanFacesView(APIView):
 
     def _scan_faces(self, request: Request, format: str | None = None) -> Response:
         if not settings.FEATURE_FACE_DETECTION:
-            return Response(
-                {"status": False, "message": "Face detection is disabled"},
-                status=status.HTTP_403_FORBIDDEN,
-            )
+            raise PermissionDenied("Face detection is disabled")
 
         user = request_user(request)
 
@@ -86,23 +85,20 @@ class TrainFaceView(APIView):
     @staticmethod
     def _train_faces(request: Request) -> Response:
         if not settings.FEATURE_FACE_CLUSTER:
-            return Response(
-                {"status": False, "message": "Face clustering is disabled"},
-                status=status.HTTP_403_FORBIDDEN,
-            )
+            raise PermissionDenied("Face clustering is disabled")
         user = request_user(request)
-        chain = Chain()
-        if not do_all_models_exist():
-            chain.append(download_models, user)
-        try:
-            job_id = uuid.uuid4()
+
+        def enqueue(job_id: uuid.UUID) -> None:
+            chain = Chain()
+            if not do_all_models_exist():
+                chain.append(download_models, user)
             chain.append(generate_face_embeddings, user, uuid.uuid4())
             chain.append(cluster_all_faces, user, job_id)
             chain.run()
-            return Response({"status": True, "job_id": job_id})
-        except Exception:
-            logger.exception("Failed to queue face training")
-            return Response({"status": False})
+
+        # A failure to queue answers 500 (start_job); it used to be a 200
+        # with "status": false, which clients showed as "training started".
+        return start_job(enqueue, "the face training")
 
     def post(self, request: Request, format: str | None = None) -> Response:
         return self._train_faces(request)
@@ -322,10 +318,7 @@ class SetFacePersonLabel(APIView):
         # reason: " Bob " would otherwise become a second person next to "Bob".
         person_name = (data.get("person_name") or "").strip()
         if not person_name:
-            return Response(
-                {"status": False, "message": "person_name must not be empty"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            raise ValidationError({"person_name": "person_name must not be empty"})
         if person_name != Person.UNKNOWN_PERSON_NAME:
             # A cluster's label is not a person's name. Clustering backs every
             # unnamed cluster with a Person of kind CLUSTER called "Unknown NNN",
@@ -341,15 +334,13 @@ class SetFacePersonLabel(APIView):
                 cluster_owner=user,
                 kind__in=(Person.KIND_CLUSTER, Person.KIND_UNKNOWN),
             ).exists():
-                return Response(
+                raise ValidationError(
                     {
-                        "status": False,
-                        "message": (
+                        "person_name": (
                             f'"{person_name}" is the label of a face cluster, not a '
                             "person. Name the face instead of confirming the cluster."
-                        ),
-                    },
-                    status=status.HTTP_400_BAD_REQUEST,
+                        )
+                    }
                 )
             person = get_or_create_person(
                 name=person_name, owner=user, kind=Person.KIND_USER
@@ -509,16 +500,16 @@ class AddFaceView(APIView):
         user = request_user(request)
         person_name = (request_dict(request).get("person_name") or "").strip()
         if not person_name:
-            return self._error("person_name must not be empty")
+            raise self._error("person_name must not be empty")
         if person_name == Person.UNKNOWN_PERSON_NAME:
-            return self._error(
+            raise self._error(
                 "a face drawn by hand has to name someone; "
                 f"'{Person.UNKNOWN_PERSON_NAME}' is what the algorithms use"
             )
 
         photo_id = request_dict(request).get("photo")
         if not photo_id:
-            return self._error("photo is required")
+            raise self._error("photo is required")
         photo = (
             Photo.objects.owned_by(user)
             .filter(**_get_photo_filter_kwargs(str(photo_id)))
@@ -529,14 +520,11 @@ class AddFaceView(APIView):
             .first()
         )
         if photo is None:
-            return Response(
-                {"status": False, "message": "photo not found"},
-                status=status.HTTP_404_NOT_FOUND,
-            )
+            raise NotFound("photo not found")
 
         thumbnail_path = self._thumbnail_path(photo)
         if thumbnail_path is None:
-            return self._error(
+            raise self._error(
                 "this photo has no big thumbnail yet, so there is nothing to "
                 "measure the box against"
             )
@@ -545,7 +533,7 @@ class AddFaceView(APIView):
             big_thumbnail = PIL.Image.open(thumbnail_path)
         except OSError:
             logger.exception(f"Cannot open thumbnail for photo {photo.image_hash}")
-            return self._error("this photo's thumbnail cannot be read")
+            raise self._error("this photo's thumbnail cannot be read")
 
         with big_thumbnail:
             box, error = self._box_in_pixels(
@@ -554,7 +542,7 @@ class AddFaceView(APIView):
                 big_thumbnail.height,
             )
             if error:
-                return self._error(error)
+                raise self._error(error)
             # _box_in_pixels returns a box whenever it reports no error.
             assert box is not None
             top, right, bottom, left = box
@@ -563,13 +551,9 @@ class AddFaceView(APIView):
                 "location_top", "location_right", "location_bottom", "location_left"
             )
             if overlaps_existing_face(existing, top, right, bottom, left):
-                return Response(
-                    {
-                        "status": False,
-                        "message": "there is already a face here; label that one "
-                        "instead of adding a second face over it",
-                    },
-                    status=status.HTTP_409_CONFLICT,
+                raise Conflict(
+                    "there is already a face here; label that one "
+                    "instead of adding a second face over it"
                 )
 
             face_image = big_thumbnail.crop((left, top, right, bottom))
@@ -635,10 +619,8 @@ class AddFaceView(APIView):
         )
 
     @staticmethod
-    def _error(message: str) -> Response:
-        return Response(
-            {"status": False, "message": message}, status=status.HTTP_400_BAD_REQUEST
-        )
+    def _error(message: str) -> ValidationError:
+        return ValidationError(message)
 
     @staticmethod
     def _thumbnail_path(photo: Photo) -> str | None:

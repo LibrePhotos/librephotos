@@ -774,6 +774,164 @@ class HandBuiltAuthResponseTest(SimpleTestCase):
         self.assertEqual(problems, ["api/views/media.py:2 builds a 401 response"])
 
 
+# --- One error shape (#2325) ---------------------------------------------------
+
+# Calls that build a response a view hands back as is.
+RESPONSE_CALLS = frozenset({"Response", "JsonResponse"})
+# Django's error responses: a DRF view raises the matching exception instead.
+DJANGO_ERROR_RESPONSES = frozenset(
+    {"HttpResponseBadRequest", "HttpResponseNotFound", "HttpResponseForbidden"}
+)
+
+
+def _called_name(call: ast.Call) -> str | None:
+    if isinstance(call.func, ast.Name):
+        return call.func.id
+    if isinstance(call.func, ast.Attribute):
+        return call.func.attr
+    return None
+
+
+def _status_code(value: ast.expr) -> int | None:
+    """The HTTP status ``value`` spells: a literal or ``status.HTTP_<code>_*``."""
+    if isinstance(value, ast.Constant) and isinstance(value.value, int):
+        return value.value
+    if isinstance(value, ast.Attribute) and value.attr.startswith("HTTP_"):
+        code = value.attr.split("_")[1]
+        return int(code) if code.isdigit() else None
+    return None
+
+
+def _body_problems(body: ast.expr | None) -> list[str]:
+    if not isinstance(body, ast.Dict):
+        return []
+    problems = []
+    for key, value in zip(body.keys, body.values, strict=True):
+        if not isinstance(key, ast.Constant):
+            continue
+        if key.value == "error":
+            problems.append('an "error" key')
+        if (
+            key.value == "status"
+            and isinstance(value, ast.Constant)
+            and value.value is False
+        ):
+            problems.append('"status": False')
+    return problems
+
+
+def hand_built_error_bodies(
+    source: str, filename: str, allowed: frozenset[str] = frozenset()
+) -> list[str]:
+    """Places in ``source`` that answer an error themselves instead of raising."""
+    problems = []
+    for node in ast.walk(ast.parse(source, filename)):
+        if isinstance(node, ast.keyword) and node.arg == "status":
+            if isinstance(node.value, ast.Constant):
+                problems.append(
+                    f"{filename}:{node.value.lineno} passes status={node.value.value!r} "
+                    "(use a status.HTTP_* constant)"
+                )
+            continue
+        if not isinstance(node, ast.Call):
+            continue
+        name = _called_name(node)
+        if name in DJANGO_ERROR_RESPONSES and name not in allowed:
+            problems.append(f"{filename}:{node.lineno} builds {name}")
+        if name not in RESPONSE_CALLS:
+            continue
+        body = node.args[0] if node.args else None
+        for keyword in node.keywords:
+            if keyword.arg == "data":
+                body = keyword.value
+            if keyword.arg == "status":
+                code = _status_code(keyword.value)
+                if code is not None and code >= 400:
+                    problems.append(
+                        f"{filename}:{node.lineno} {name} with status {code}"
+                    )
+        for problem in _body_problems(body):
+            problems.append(f"{filename}:{node.lineno} {name} body has {problem}")
+    return sorted(problems, key=lambda p: (int(p.split(":")[1].split()[0]), p))
+
+
+class ErrorEnvelopeTest(SimpleTestCase):
+    """Views raise DRF exceptions; only the exception handler writes an error body.
+
+    Media file responses (``HttpResponse(status=404)`` for an ``<img>``) are not
+    API bodies and are not checked; the media views' bodiless 403 is exempt
+    through ``BANNED_RESPONSE_EXEMPTIONS``. Every view module is at zero, so
+    there is no baseline: a new hand-built error fails at once.
+    """
+
+    def test_no_view_builds_an_error_body(self):
+        problems = []
+        for relative, source_path in view_source_files():
+            problems += hand_built_error_bodies(
+                source_path.read_text(encoding="utf-8"),
+                relative,
+                BANNED_RESPONSE_EXEMPTIONS.get(relative, frozenset()),
+            )
+        self.assertEqual(
+            problems,
+            [],
+            "Raise a DRF exception (ValidationError, NotFound, PermissionDenied, "
+            "or one from api/exceptions.py) instead, with code= where a client "
+            "branches on it:\n  " + "\n  ".join(problems),
+        )
+
+    def test_the_source_check_catches_each_form(self):
+        source = (
+            "from django.http import HttpResponseBadRequest, JsonResponse\n"
+            "def a(request):\n"
+            '    return Response({"error": "x"}, status=400)\n'
+            "def b(request):\n"
+            "    return Response(status=404)\n"
+            "def c(request):\n"
+            '    return Response({"status": False, "message": "no"})\n'
+            "def d(request):\n"
+            "    return JsonResponse({}, status=status.HTTP_409_CONFLICT)\n"
+            "def e(request):\n"
+            "    return HttpResponseBadRequest()\n"
+            "def f(request):\n"
+            '    return Response(data={"error": "x"}, status=status.HTTP_200_OK)\n'
+        )
+
+        problems = hand_built_error_bodies(source, "planted.py")
+
+        self.assertEqual(
+            problems,
+            [
+                'planted.py:3 Response body has an "error" key',
+                "planted.py:3 Response with status 400",
+                "planted.py:3 passes status=400 (use a status.HTTP_* constant)",
+                "planted.py:5 Response with status 404",
+                "planted.py:5 passes status=404 (use a status.HTTP_* constant)",
+                'planted.py:7 Response body has "status": False',
+                "planted.py:9 JsonResponse with status 409",
+                "planted.py:11 builds HttpResponseBadRequest",
+                'planted.py:13 Response body has an "error" key',
+            ],
+        )
+
+    def test_successes_and_media_responses_pass(self):
+        source = (
+            "def a(request):\n"
+            '    return Response({"status": True}, status=status.HTTP_201_CREATED)\n'
+            "def b(request):\n"
+            "    return HttpResponse(status=status.HTTP_404_NOT_FOUND)\n"
+            "def c(request):\n"
+            "    return HttpResponseForbidden()\n"
+        )
+
+        self.assertEqual(
+            hand_built_error_bodies(
+                source, "api/views/media.py", frozenset({"HttpResponseForbidden"})
+            ),
+            [],
+        )
+
+
 class ThrottledAuthViewsTest(SimpleTestCase):
     def test_each_credential_endpoint_has_a_throttle(self):
         unthrottled = [

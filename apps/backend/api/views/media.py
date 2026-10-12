@@ -19,6 +19,7 @@ from django.http import (
 )
 from django.utils import timezone
 from django.utils.encoding import iri_to_uri
+from rest_framework import status
 from rest_framework.authentication import BasicAuthentication
 from rest_framework.permissions import AllowAny
 from rest_framework.request import Request
@@ -304,7 +305,7 @@ class MediaServingView(APIView):
         self, file_path: str, content_type: str | None = None
     ) -> HttpResponseBase:
         if not os.path.exists(file_path):
-            return HttpResponse(status=404)
+            return HttpResponse(status=status.HTTP_404_NOT_FOUND)
         try:
             handle = open(file_path, "rb")
             content_type = content_type or self._file_content_type(file_path)
@@ -320,7 +321,7 @@ class MediaServingView(APIView):
                 content_type,
             )
         except FileNotFoundError:
-            return HttpResponse(status=404)
+            return HttpResponse(status=status.HTTP_404_NOT_FOUND)
         except PermissionError:
             # Not a 404: the file is right there and we were refused. Reporting
             # "not found" sends the administrator hunting for a missing file
@@ -328,9 +329,9 @@ class MediaServingView(APIView):
             # frontend the one signal it has for telling those two apart -- a
             # <video> element exposes no HTTP status, so the status code is the
             # whole diagnosis.
-            return HttpResponse(status=403)
+            return HttpResponse(status=status.HTTP_403_FORBIDDEN)
         except Exception:
-            return HttpResponse(status=500)
+            return HttpResponse(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def _transcoded_video_response(
         self, photo: Photo, use_proxy: bool
@@ -553,7 +554,7 @@ class MediaServingView(APIView):
 
         file_path = self._safe_media_join(path, fname)
         if file_path is None:
-            return HttpResponse(status=404)
+            return HttpResponse(status=status.HTTP_404_NOT_FOUND)
         if not os.path.exists(file_path):
             response = self._suffixed_thumbnail_response(path, fname)
             if response is not None:
@@ -574,7 +575,7 @@ class MediaServingView(APIView):
         if "faces" in path:
             file_path = self._safe_media_join(path, fname)
             if file_path is None:
-                return HttpResponse(status=404)
+                return HttpResponse(status=status.HTTP_404_NOT_FOUND)
             return self._serve_file_direct(file_path, "image/jpg")
 
         if photo.video:
@@ -584,7 +585,7 @@ class MediaServingView(APIView):
 
         file_path = self._safe_media_join(path, fname)
         if file_path is None:
-            return HttpResponse(status=404)
+            return HttpResponse(status=status.HTTP_404_NOT_FOUND)
         return self._serve_file_direct(file_path, "image/jpg")
 
     def _generate_response_original(
@@ -766,7 +767,7 @@ class MediaServingView(APIView):
         try:
             filename = zip_file_name(fname, user.id)
             if filename is None:
-                return HttpResponse(status=404)
+                return HttpResponse(status=status.HTTP_404_NOT_FOUND)
             if use_proxy:
                 response = HttpResponse()
                 response["Content-Type"] = "application/x-zip-compressed"
@@ -774,7 +775,7 @@ class MediaServingView(APIView):
                 return response
             file_path = self._safe_media_join(path, filename)
             if file_path is None:
-                return HttpResponse(status=404)
+                return HttpResponse(status=status.HTTP_404_NOT_FOUND)
             return self._serve_file_direct(file_path, "application/x-zip-compressed")
         except Exception:
             return self._forbidden_unauthenticated()
@@ -792,10 +793,10 @@ class MediaServingView(APIView):
                 return response
             file_path = self._safe_media_join(path, fname)
             if file_path is None:
-                return HttpResponse(status=404)
+                return HttpResponse(status=status.HTTP_404_NOT_FOUND)
             return self._serve_file_direct(file_path, "image/png")
         except Exception:
-            return HttpResponse(status=404)
+            return HttpResponse(status=status.HTTP_404_NOT_FOUND)
 
     def _serve_embedded_media(
         self, request: Request, path: str, fname: str, use_proxy: bool
@@ -816,7 +817,7 @@ class MediaServingView(APIView):
             main_file.embedded_media.first() if main_file is not None else None
         )
         if not embedded_media_file:
-            return HttpResponse(status=404)
+            return HttpResponse(status=status.HTTP_404_NOT_FOUND)
         if use_proxy:
             response = HttpResponse()
             response["Content-Type"] = "video/mp4"
@@ -840,7 +841,7 @@ class MediaServingView(APIView):
             .first()
         )
         if album is None:
-            return HttpResponse(status=404)
+            return HttpResponse(status=status.HTTP_404_NOT_FOUND)
         try:
             photo = (
                 album.photos.filter(owner_id=album.owner_id)
@@ -854,7 +855,7 @@ class MediaServingView(APIView):
                 .get(image_hash=image_hash)
             )
         except Photo.DoesNotExist:
-            return HttpResponse(status=404)
+            return HttpResponse(status=status.HTTP_404_NOT_FOUND)
 
         if "thumbnail" in path or "thumbnails" in path or "faces" in path:
             return self._generate_response(photo, path, fname, False, use_proxy)
@@ -883,7 +884,7 @@ class MediaServingView(APIView):
         """
         if user is None:
             return self._forbidden_unauthenticated()
-        return HttpResponse(status=404)
+        return HttpResponse(status=status.HTTP_404_NOT_FOUND)
 
     def _serve_derived_media(
         self, request: Request, image_hash: str, path: str, fname: str, use_proxy: bool
@@ -988,7 +989,7 @@ class UnifiedMediaAccessView(MediaServingView):
         # segment is always an attempt to leave the media directory, never a
         # real request (see _url_segment_traverses).
         if _url_segment_traverses(path, fname):
-            return HttpResponse(status=404)
+            return HttpResponse(status=status.HTTP_404_NOT_FOUND)
 
         use_proxy = self._should_use_proxy()
         kind = path.lower()

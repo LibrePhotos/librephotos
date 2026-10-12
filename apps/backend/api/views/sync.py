@@ -27,11 +27,13 @@ from uuid import UUID
 from django.db import models
 from django.db.models import Count, Exists, OuterRef, Q, QuerySet
 from django.utils import timezone
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from api.exceptions import Gone
 from api.models import (
     AlbumAuto,
     AlbumPlace,
@@ -142,11 +144,18 @@ class BaseSyncView(APIView, Generic[ModelT]):
         if cursor:
             try:
                 cursor_dt, cursor_pk = decode_cursor(cursor)
-            except (ValueError, binascii.Error, UnicodeDecodeError):
-                return Response({"error": "invalid_cursor"}, status=400)
+            except (ValueError, binascii.Error, UnicodeDecodeError) as error:
+                raise ValidationError(
+                    {"cursor": "The sync cursor is not valid."}, code="invalid_cursor"
+                ) from error
             horizon = timezone.now() - timedelta(days=DeletionLog.PRUNE_HORIZON_DAYS)
             if cursor_dt < horizon:
-                return Response({"error": "cursor_expired"}, status=410)
+                # The mobile app re-seeds on this 410.
+                raise Gone(
+                    "The sync cursor is older than the deletion log; pull again "
+                    "without a cursor.",
+                    code="cursor_expired",
+                )
 
         try:
             page_size = int(request.query_params.get("page_size", DEFAULT_PAGE_SIZE))

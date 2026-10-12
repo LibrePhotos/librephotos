@@ -41,6 +41,8 @@ green CI run. To develop against a local backend, copy `.env.development.example
 - Follow a job or wait on a condition with `pollWhile`, `pollUntil` or `invalidateAfter` from
   `src/api_client/polling.ts`, with a `POLL_*_MS` name for the interval. Lint bans a number in
   `refetchInterval`/`pollingInterval` and a raw `setTimeout`/`setInterval` in `src/api_client`.
+- A failed request rejects with `ApiError`: branch on its `status` or `serverCode` (the backend's
+  `errors[0].code`), never on message text; show only `serverMessage`, never `message`.
 - User-visible text uses `t()` with a key in `src/locales/en/translation.json`. Never edit the other
   locales; Weblate fills them in.
 - Colours come from the Mantine theme or CSS variables so dark mode works.

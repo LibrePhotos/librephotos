@@ -3,7 +3,8 @@ from typing import Any
 
 from django.conf import settings
 from django.db.models import QuerySet
-from rest_framework import mixins, serializers, status, viewsets
+from rest_framework import mixins, serializers, viewsets
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.permissions import (
     AllowAny,
     BasePermission,
@@ -83,28 +84,22 @@ class RootPathTreeView(APIView):
     permission_classes = (IsAdminUser,)
 
     def get(self, request: Request, format: str | None = None) -> Response:
-        try:
-            path = self.request.query_params.get("path")
-            base_path = settings.DATA_ROOT
+        path = self.request.query_params.get("path")
+        base_path = settings.DATA_ROOT
 
-            # Default to root directory if no path is provided
-            if not path:
-                path = base_path
+        # Default to root directory if no path is provided
+        if not path:
+            path = base_path
 
-            # Validate the requested path
-            if not is_valid_path(path, base_path):
-                return Response(
-                    {
-                        "message": "Access denied. Path is outside the allowed directory."
-                    },
-                    status=403,
-                )
+        # Validate the requested path
+        if not is_valid_path(path, base_path):
+            raise PermissionDenied(
+                "Access denied. Path is outside the allowed directory."
+            )
 
-            res = [path_to_dict(path)]
-            return Response(res)
-        except Exception as e:
-            logger.exception(str(e))
-            return Response({"message": str(e)}, status=500)
+        # Anything else that fails is a 500 from the handler, logged there,
+        # without the exception text (it used to echo it, paths and all).
+        return Response([path_to_dict(path)])
 
 
 class IsFirstTimeSetupView(APIView):
@@ -208,7 +203,7 @@ class DeleteUserViewSet(mixins.DestroyModelMixin, viewsets.GenericViewSet):
         # Nor the ``deleted`` placeholder: its rows would be handed to itself,
         # and the delete failed with a 500.
         if instance.is_superuser or instance.username == "deleted":
-            return Response(status=status.HTTP_400_BAD_REQUEST)
+            raise ValidationError("This user cannot be deleted.")
 
         # api.user_deletion turns off the user's public links and makes room
         # for their albums and tags in ``deleted``, in the delete's transaction.

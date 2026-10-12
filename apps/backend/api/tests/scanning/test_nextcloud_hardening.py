@@ -204,7 +204,6 @@ class NextcloudViewsRefuseUnsafeAddressTest(TestCase):
             with mock.patch("nextcloud.server_address.GuardedClient") as client:
                 response = self.client.get(LISTDIR_URL)
             self.assertEqual(400, response.status_code, address)
-            self.assertFalse(response.json()["status"])
             client.assert_not_called()
 
     def test_scanphotos_refuses_unsafe_addresses_without_queueing(self):
@@ -213,7 +212,6 @@ class NextcloudViewsRefuseUnsafeAddressTest(TestCase):
             with mock.patch("nextcloud.views.AsyncTask") as async_task:
                 response = self.client.post(SCANPHOTOS_URL)
             self.assertEqual(400, response.status_code, address)
-            self.assertFalse(response.json()["status"])
             async_task.assert_not_called()
 
     def test_scanphotos_reports_a_job_that_could_not_start_as_an_error(self):
@@ -222,7 +220,7 @@ class NextcloudViewsRefuseUnsafeAddressTest(TestCase):
             async_task.return_value.run.side_effect = RuntimeError("broker down")
             response = self.client.post(SCANPHOTOS_URL)
         self.assertEqual(500, response.status_code)
-        self.assertFalse(response.json()["status"])
+        self.assertEqual("job_start_failed", response.json()["errors"][0]["code"])
 
 
 class UserSerializerServerAddressTest(TestCase):

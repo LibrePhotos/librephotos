@@ -23,6 +23,7 @@ from api.models import (
 )
 from api.services import prune_deletion_log
 from api.tests.utils import (
+    api_error,
     create_test_album_user,
     create_test_duplicate,
     create_test_person,
@@ -244,11 +245,12 @@ class SyncCursorExpiryTest(TestCase):
         cursor = base64.urlsafe_b64encode(raw.encode()).decode()
         resp = self.client.get(PHOTOS_URL, {"cursor": cursor})
         self.assertEqual(resp.status_code, 410)
-        self.assertEqual(resp.json()["error"], "cursor_expired")
+        self.assertEqual(api_error(resp)["code"], "cursor_expired")
 
     def test_malformed_cursor_returns_400(self):
         resp = self.client.get(PHOTOS_URL, {"cursor": "!!!not-base64!!!"})
         self.assertEqual(resp.status_code, 400)
+        self.assertEqual(api_error(resp)["code"], "invalid_cursor")
 
     def test_prune_deletion_log_drops_old_rows(self):
         photo = create_test_photo(owner=self.user)

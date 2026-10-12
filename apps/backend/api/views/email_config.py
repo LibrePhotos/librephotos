@@ -1,11 +1,13 @@
 import logging
 
 from django.core.mail import send_mail
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAdminUser
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from api.exceptions import UpstreamError
 from api.models.email_config import PROVIDER_PRESETS, EmailConfig
 from api.request_data import request_dict
 from api.request_user import request_user
@@ -76,20 +78,18 @@ class EmailTestView(APIView):
     def post(self, request: Request, format: str | None = None) -> Response:
         config = EmailConfig.load()
         if not config.is_configured:
-            return Response(
-                {"status": False, "message": "Email is not configured."}, status=400
+            raise ValidationError(
+                "Email is not configured.", code="email_not_configured"
             )
 
         data = request_dict(request)
         recipient = (data.get("to") or request_user(request).email or "").strip()
         if not recipient:
-            return Response(
+            raise ValidationError(
                 {
-                    "status": False,
-                    "message": "No recipient address; set an email on your account "
-                    "or provide one.",
-                },
-                status=400,
+                    "to": "No recipient address; set an email on your account "
+                    "or provide one."
+                }
             )
 
         try:
@@ -103,7 +103,8 @@ class EmailTestView(APIView):
             )
         except Exception as exc:
             logger.exception("Test email failed")
-            # 200 with the real error so the admin can see what went wrong.
-            return Response({"status": False, "message": str(exc)})
+            # The mail server refused: a 502 carrying its own words, so the
+            # admin (the only caller) can see what went wrong.
+            raise UpstreamError(str(exc), code="email_send_failed") from exc
 
         return Response({"status": True, "message": f"Test email sent to {recipient}."})

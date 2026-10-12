@@ -1,9 +1,11 @@
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import APIException, NotFound
 from rest_framework.permissions import IsAdminUser
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from api.exceptions import Conflict
 from api.services import (
     SERVICE_FEATURE_FLAGS,
     SERVICES,
@@ -25,10 +27,7 @@ class ServiceViewSet(viewsets.ViewSet):
         service_name = pk
 
         if service_name not in SERVICES:
-            return Response(
-                {"error": f"Service {service_name} not found"},
-                status=status.HTTP_404_NOT_FOUND,
-            )
+            raise NotFound(f"Service {service_name} not found")
 
         enabled = is_service_enabled(service_name)
         # A switched-off service is not probed, for the same reason the watchdog
@@ -48,21 +47,15 @@ class ServiceViewSet(viewsets.ViewSet):
         service_name = pk
 
         if service_name not in SERVICES:
-            return Response(
-                {"error": f"Service {service_name} not found"},
-                status=status.HTTP_404_NOT_FOUND,
-            )
+            raise NotFound(f"Service {service_name} not found")
 
         if not is_service_enabled(service_name):
-            return Response(
-                {
-                    "error": (
-                        f"Service {service_name} is not started: "
-                        f"{disabled_reason(service_name)}"
-                    ),
-                    "feature_flag": SERVICE_FEATURE_FLAGS.get(service_name),
-                },
-                status=status.HTTP_409_CONFLICT,
+            # The message names the flag; the list endpoint carries it as
+            # feature_flag for the settings page.
+            raise Conflict(
+                f"Service {service_name} is not started: "
+                f"{disabled_reason(service_name)}",
+                code="service_disabled",
             )
 
         start_result = start_service(service_name)
@@ -72,20 +65,14 @@ class ServiceViewSet(viewsets.ViewSet):
                 status=status.HTTP_200_OK,
             )
         else:
-            return Response(
-                {"error": f"Failed to start service {service_name}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
+            raise APIException(f"Failed to start service {service_name}")
 
     @action(detail=True, methods=["post"])
     def stop(self, request: Request, pk: str | None = None) -> Response:
         service_name = pk
 
         if service_name not in SERVICES:
-            return Response(
-                {"error": f"Service {service_name} not found"},
-                status=status.HTTP_404_NOT_FOUND,
-            )
+            raise NotFound(f"Service {service_name} not found")
 
         stop_result = stop_service(service_name)
         if stop_result:
@@ -94,7 +81,4 @@ class ServiceViewSet(viewsets.ViewSet):
                 status=status.HTTP_200_OK,
             )
         else:
-            return Response(
-                {"error": f"Failed to stop service {service_name}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
+            raise APIException(f"Failed to stop service {service_name}")

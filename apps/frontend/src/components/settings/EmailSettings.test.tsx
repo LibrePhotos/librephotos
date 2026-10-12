@@ -13,6 +13,11 @@ import { EmailSettings } from "./EmailSettings";
 
 /** The mutate options EmailSettings passes when it saves. */
 type SaveOptions = { onSuccess?: () => void; onError?: (error: unknown) => void };
+/** The mutate options EmailSettings passes when it sends a test email. */
+type TestOptions = {
+  onSuccess?: (result: { status: true; message: string }) => void;
+  onError?: (error: unknown) => void;
+};
 
 const mocks = vi.hoisted(() => {
   class ApiError extends Error {
@@ -27,6 +32,7 @@ const mocks = vi.hoisted(() => {
   return {
     ApiError,
     save: vi.fn<(config: EmailConfigUpdate, options?: SaveOptions) => void>(),
+    sendTest: vi.fn<(to: string | undefined, options?: TestOptions) => void>(),
     error: vi.fn<(message: string) => void>(),
     success: vi.fn<(message: string) => void>(),
   };
@@ -52,7 +58,7 @@ vi.mock("../../api_client/settings/hooks/useEmailConfig", () => ({
     },
   }),
   useUpdateEmailConfigMutation: () => ({ mutate: mocks.save, isPending: false }),
-  useSendTestEmailMutation: () => ({ mutate: () => {}, isPending: false }),
+  useSendTestEmailMutation: () => ({ mutate: mocks.sendTest, isPending: false }),
 }));
 
 beforeAll(() => {
@@ -82,6 +88,7 @@ let root: ReturnType<typeof createRoot>;
 
 beforeEach(async () => {
   mocks.save.mockReset();
+  mocks.sendTest.mockReset();
   mocks.error.mockReset();
   mocks.success.mockReset();
   container = document.createElement("div");
@@ -132,5 +139,39 @@ describe("EmailSettings save errors", () => {
     await clearSecretFailingWith(new mocks.ApiError("Authentication failed", 401, null));
 
     expect(mocks.error).not.toHaveBeenCalled();
+  });
+});
+
+/** Send a test email, the send ending the way `outcome` says. */
+async function sendTestEmail(outcome: (options?: TestOptions) => void) {
+  mocks.sendTest.mockImplementation((_to, options) => outcome(options));
+  const send = [...container.querySelectorAll("button")].find(
+    button => button.textContent?.trim() === "emailsettings.sendtest"
+  );
+  if (!send) throw new Error("no button sends a test email");
+  await act(async () => {
+    send.click();
+  });
+}
+
+describe("EmailSettings test email", () => {
+  it("shows the mail server's refusal from the 502", async () => {
+    await sendTestEmail(options =>
+      options?.onError?.(new mocks.ApiError("API error: 502", 502, "535 Authentication failed"))
+    );
+
+    expect(container.textContent).toContain("535 Authentication failed");
+  });
+
+  it("falls back to the translated message when the server sent none", async () => {
+    await sendTestEmail(options => options?.onError?.(new TypeError("Failed to fetch")));
+
+    expect(container.textContent).toContain("emailsettings.testfailed");
+  });
+
+  it("shows where a sent test went", async () => {
+    await sendTestEmail(options => options?.onSuccess?.({ status: true, message: "Test email sent to a@b.c." }));
+
+    expect(container.textContent).toContain("Test email sent to a@b.c.");
   });
 });

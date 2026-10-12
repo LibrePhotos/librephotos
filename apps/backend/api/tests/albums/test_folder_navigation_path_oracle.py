@@ -20,10 +20,18 @@ import tempfile
 from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
 
-from api.tests.utils import create_test_user
+from api.tests.utils import api_error, create_test_user
 
 URL = "/api/folders/subfolders/"
-DENIED = {"error": "Access denied - can only access folders within your scan directory"}
+DENIED = {
+    "errors": [
+        {
+            "field": "detail",
+            "message": "Access denied - can only access folders within your scan directory",
+            "code": "permission_denied",
+        }
+    ]
+}
 
 
 class FolderNavigationPathOracleTest(TestCase):
@@ -62,8 +70,8 @@ class FolderNavigationPathOracleTest(TestCase):
 
         missing = self.client.get(URL, {"path": os.path.join(self.scan_dir, "nope")})
         self.assertEqual(missing.status_code, 400)
-        self.assertEqual(missing.json(), {"error": "Path does not exist"})
+        self.assertEqual(api_error(missing)["message"], "Path does not exist")
 
         a_file = self.client.get(URL, {"path": os.path.join(self.scan_dir, "a.txt")})
         self.assertEqual(a_file.status_code, 400)
-        self.assertEqual(a_file.json(), {"error": "Path is not a directory"})
+        self.assertEqual(api_error(a_file)["message"], "Path is not a directory")

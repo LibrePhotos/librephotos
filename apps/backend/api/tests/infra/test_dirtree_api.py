@@ -44,7 +44,8 @@ class DirTreeTest(TestCase):
         data = response.json()
         self.assertEqual(403, response.status_code)
         self.assertEqual(
-            data["message"], "Access denied. Path is outside the allowed directory."
+            data["errors"][0]["message"],
+            "Access denied. Path is outside the allowed directory.",
         )
 
     def test_children_list_should_be_alphabetical_case_insensitive(self):

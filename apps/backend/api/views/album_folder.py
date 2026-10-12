@@ -5,6 +5,11 @@ from django.conf import settings
 from django.db.models import Count
 from rest_framework import viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import (
+    APIException,
+    PermissionDenied,
+    ValidationError,
+)
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -33,50 +38,41 @@ def _user_scan_directory(user: User) -> str | None:
     return user.scan_directory or None
 
 
-def _default_path(
-    request: Request, is_admin: bool
-) -> tuple[str | None, Response | None]:
-    """Return (path, error_response); exactly one of them is set."""
+def _default_path(request: Request, is_admin: bool) -> str:
+    """The folder a listing without ?path starts at; 403 if there is none."""
     if is_admin:
-        return settings.DATA_ROOT, None
+        return settings.DATA_ROOT
     scan_directory = _user_scan_directory(request_user(request))
     if not scan_directory:
-        return None, Response(
-            {"error": "User scan directory not configured"}, status=403
-        )
-    return scan_directory, None
+        raise PermissionDenied("User scan directory not configured")
+    return scan_directory
 
 
-def _validate_path(base_path: str) -> Response | None:
+def _validate_path(base_path: str) -> None:
     if not os.path.exists(base_path):
-        return Response({"error": "Path does not exist"}, status=400)
+        raise ValidationError("Path does not exist")
     if not os.path.isdir(base_path):
-        return Response({"error": "Path is not a directory"}, status=400)
-    return None
+        raise ValidationError("Path is not a directory")
 
 
-def _check_access(request: Request, base_path: str, is_admin: bool) -> Response | None:
+def _check_access(request: Request, base_path: str, is_admin: bool) -> None:
     if is_admin:
         if not is_valid_path(base_path, settings.DATA_ROOT):
-            return Response({"error": "Access denied"}, status=403)
-        return None
+            raise PermissionDenied("Access denied")
+        return
 
     scan_directory = _user_scan_directory(request_user(request))
     if not scan_directory:
-        return Response({"error": "User scan directory not configured"}, status=403)
+        raise PermissionDenied("User scan directory not configured")
     if not os.path.exists(scan_directory):
-        return Response({"error": "Scan directory does not exist"}, status=403)
+        raise PermissionDenied("Scan directory does not exist")
     # A plain startswith() let /data/alice reach the sibling /data/alice2, and
     # /data/alice/../bob reach anything; is_valid_path compares whole,
     # normalised path components.
     if not is_valid_path(base_path, scan_directory):
-        return Response(
-            {
-                "error": "Access denied - can only access folders within your scan directory"
-            },
-            status=403,
+        raise PermissionDenied(
+            "Access denied - can only access folders within your scan directory"
         )
-    return None
 
 
 def _parent_path(request: Request, base_path: str, is_admin: bool) -> str | None:
@@ -185,20 +181,13 @@ class FolderNavigationViewSet(viewsets.ViewSet):
         ):
             return _folder_response(None, None, [], page, 0)
 
-        default_path, error = _default_path(request, is_admin)
-        if error:
-            return error
-        # _default_path returns a path whenever it returns no error.
-        assert default_path is not None
-
-        base_path = request.query_params.get("path", default_path)
+        base_path = request.query_params.get("path", _default_path(request, is_admin))
 
         # Access first: validating first answered "does not exist" or "is not
         # a directory" for paths the caller may not see, which made this an
         # existence oracle for the whole filesystem.
-        error = _check_access(request, base_path, is_admin) or _validate_path(base_path)
-        if error:
-            return error
+        _check_access(request, base_path, is_admin)
+        _validate_path(base_path)
 
         try:
             folder_entries = _scan_folder_entries(base_path)
@@ -221,4 +210,4 @@ class FolderNavigationViewSet(viewsets.ViewSet):
 
         except Exception as e:
             logger.error(f"Error scanning directory {base_path}: {e}")
-            return Response({"error": "Error scanning directory"}, status=500)
+            raise APIException("Error scanning directory") from e

@@ -14,7 +14,7 @@ from django.db.models import Q
 from django.http import Http404
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.decorators import action
-from rest_framework.exceptions import APIException, ValidationError
+from rest_framework.exceptions import ValidationError
 from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
@@ -22,6 +22,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ViewSet
 
+from api.exceptions import EditSuperseded
 from api.metadata import edits
 from api.models import Photo
 from api.models.photo_metadata import MetadataEdit, PhotoMetadata
@@ -32,17 +33,6 @@ from api.serializers.photo_metadata import (
     PhotoMetadataSerializer,
     PhotoMetadataUpdateSerializer,
 )
-
-
-class EditSuperseded(APIException):
-    """The edit to revert is no longer the latest change of its field."""
-
-    status_code = 409
-    default_detail = (
-        "This field was changed again after this edit; reverting it would "
-        "discard the later change. Retry with ?force=1 to revert anyway."
-    )
-    default_code = "edit_superseded"
 
 
 class PhotoMetadataViewSet(ViewSet):
@@ -265,10 +255,10 @@ class BulkMetadataView(APIView):
         photo_ids = [pid.strip() for pid in photo_ids if pid.strip()]
 
         if not photo_ids:
-            return Response({"error": "No photo_ids provided"}, status=400)
+            raise ValidationError("No photo_ids provided")
 
         if len(photo_ids) > 100:
-            return Response({"error": "Maximum 100 photos per request"}, status=400)
+            raise ValidationError("Maximum 100 photos per request")
 
         # Get photos (by UUID or image_hash)
         uuid_ids = []

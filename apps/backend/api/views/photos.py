@@ -9,14 +9,20 @@ from django.db.models import Prefetch, Q, QuerySet
 from django.http import FileResponse
 from django.utils import timezone
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
-from rest_framework import filters, mixins, status, viewsets
+from rest_framework import filters, mixins, viewsets
 from rest_framework.decorators import action
-from rest_framework.exceptions import NotFound, ValidationError
+from rest_framework.exceptions import (
+    APIException,
+    NotFound,
+    PermissionDenied,
+    ValidationError,
+)
 from rest_framework.permissions import BasePermission, IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from api.exceptions import ServiceUnavailable
 from api.metadata import edits
 from api.mime import mime_type
 from api.ml_models import captioning_model_exists, start_model_download
@@ -48,6 +54,10 @@ from api.views.pagination import (
 from api.views.photo_filters import scope_user
 
 logger = logging.getLogger(__name__)
+
+# How long a client waits before asking for a caption again while the
+# captioning model downloads (the Retry-After of the 503).
+CAPTION_MODEL_RETRY_AFTER_SECONDS = 60
 
 
 def _get_photo_filter_kwargs(lookup_value: str) -> dict[str, str]:
@@ -548,7 +558,7 @@ class PhotoViewSet(
         )
 
         if not queryset.exists():
-            return Response(status=status.HTTP_404_NOT_FOUND)
+            raise NotFound()
 
         # Serializer expects a queryset (calls .get() internally)
         serializer = PhotoDetailsSummarySerializer(queryset, many=False)
@@ -579,7 +589,7 @@ class PhotoViewSet(
         photo = candidates.filter(**filter_kwargs).distinct().first()
 
         if not photo:
-            return Response(status=status.HTTP_404_NOT_FOUND)
+            raise NotFound()
         albums = user_albums.filter(photos=photo).distinct()
         serializer = AlbumUserListSerializer(albums, many=True)
         return Response({"results": serializer.data})
@@ -831,10 +841,7 @@ class GeneratePhotoCaption(APIView):
 
     def post(self, request: Request, format: str | None = None) -> Response:
         if not settings.FEATURE_IMAGE_CAPTIONING:
-            return Response(
-                {"status": False, "message": "Image captioning is disabled"},
-                status=403,
-            )
+            raise PermissionDenied("Image captioning is disabled")
 
         data = dict(request_dict(request))
         image_hash = data["image_hash"]
@@ -845,38 +852,28 @@ class GeneratePhotoCaption(APIView):
             .first()
         )
         if photo is None:
-            return Response(
-                {"status": False, "message": "photo not found"},
-                status=404,
-            )
+            raise NotFound("photo not found")
 
         if not captioning_model_exists():
             # The captioner is fetched with the other models, but a fresh
             # install (or a model switch) can be asked for a caption before
-            # the download ran. Start it and tell the user to try again;
-            # a 200 so the client can read the reason.
+            # the download ran. Start it and tell the client to try again.
             start_model_download(request_user(request))
-            return Response(
-                {
-                    "status": False,
-                    "reason": "model_downloading",
-                    "message": "The captioning model is being downloaded. Try again in a few minutes.",
-                }
+            raise ServiceUnavailable(
+                "The captioning model is being downloaded. Try again in a few minutes.",
+                code="model_downloading",
+                retry_after=CAPTION_MODEL_RETRY_AFTER_SECONDS,
             )
 
         caption_instance, created = PhotoCaption.objects.get_or_create(photo=photo)
         res = caption_instance.generate_captions_im2txt()
 
-        if res:
-            return Response({"status": True})
-        else:
-            return Response(
-                {
-                    "status": False,
-                    "message": "Failed to generate caption. Check service logs for details.",
-                },
-                status=500,
+        if not res:
+            raise APIException(
+                "Failed to generate caption. Check service logs for details.",
+                code="caption_failed",
             )
+        return Response({"status": True})
 
 
 class SavePhotoCaption(APIView):
@@ -897,10 +894,7 @@ class SavePhotoCaption(APIView):
             .first()
         )
         if photo is None:
-            return Response(
-                {"status": False, "message": "photo not found"},
-                status=404,
-            )
+            raise NotFound("photo not found")
 
         edits.set_caption(photo, caption, request_user(request))
         return Response({"status": True})
@@ -1015,20 +1009,14 @@ class FileVariantDownloadView(APIView):
         """Download a specific file variant by hash."""
         photo = _get_owned_photo(image_hash, request_user(request))
         if not photo:
-            return Response(
-                {"error": "Photo not found"}, status=status.HTTP_404_NOT_FOUND
-            )
+            raise NotFound("Photo not found")
 
         file_variant = photo.files.filter(hash=file_hash).first()
         if not file_variant:
-            return Response(
-                {"error": "File variant not found"}, status=status.HTTP_404_NOT_FOUND
-            )
+            raise NotFound("File variant not found")
 
         if not os.path.exists(file_variant.path):
-            return Response(
-                {"error": "File not found on disk"}, status=status.HTTP_404_NOT_FOUND
-            )
+            raise NotFound("File not found on disk")
 
         try:
             response = FileResponse(
@@ -1038,10 +1026,7 @@ class FileVariantDownloadView(APIView):
             )
         except (FileNotFoundError, PermissionError) as e:
             logger.error(f"Error serving file {file_variant.path}: {e}")
-            return Response(
-                {"error": "Could not read file"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
+            raise APIException("Could not read file") from e
 
         response["Content-Type"] = _detect_content_type(file_variant.path)
         return response
@@ -1063,23 +1048,16 @@ class SetMainFileView(APIView):
         file_hash = data.get("file_hash")
 
         if not file_hash:
-            return Response(
-                {"error": "file_hash is required"}, status=status.HTTP_400_BAD_REQUEST
-            )
+            raise ValidationError({"file_hash": "file_hash is required"})
 
         photo = _get_owned_photo(image_hash, request_user(request))
         if not photo:
-            return Response(
-                {"error": "Photo not found"}, status=status.HTTP_404_NOT_FOUND
-            )
+            raise NotFound("Photo not found")
 
         # Find the requested file variant
         file_variant = photo.files.filter(hash=file_hash).first()
         if not file_variant:
-            return Response(
-                {"error": "File variant not found in this photo"},
-                status=status.HTTP_404_NOT_FOUND,
-            )
+            raise NotFound("File variant not found in this photo")
 
         # Update main file
         photo.main_file = file_variant
@@ -1135,31 +1113,25 @@ class SaveMetadataView(APIView):
         return Response({"status": True, "written": written, "errors": errors})
 
 
-def _rotation_error(
-    message: str, status_code: int = status.HTTP_400_BAD_REQUEST
-) -> Response:
-    return Response({"status": False, "message": message}, status=status_code)
-
-
-def _parse_rotation_angle(raw_angle: object) -> tuple[int | None, str | None]:
-    """Return ``(angle, error_message)`` for a requested rotation angle."""
+def _parse_rotation_angle(raw_angle: object) -> int:
+    """The requested rotation angle; a 400 unless it is a multiple of 90."""
     # int() takes only these JSON values; for anything else (null, a list, an
     # object) it raised TypeError, which gave the same message.
     if not isinstance(raw_angle, (str, int, float)):
-        return None, "angle must be an integer"
+        raise ValidationError({"angle": "angle must be an integer"})
     try:
         angle = int(raw_angle)
-    except (TypeError, ValueError):
-        return None, "angle must be an integer"
+    except (TypeError, ValueError) as error:
+        raise ValidationError({"angle": "angle must be an integer"}) from error
 
     if angle % 90 != 0:
-        return None, "angle must be a multiple of 90 degrees"
+        raise ValidationError({"angle": "angle must be a multiple of 90 degrees"})
 
-    return angle, None
+    return angle
 
 
-def _get_rotatable_photo(image_hash: str, user: User) -> Photo | Response:
-    """Return the photo that may be rotated, or the error response to send."""
+def _get_rotatable_photo(image_hash: str, user: User) -> Photo:
+    """The photo that may be rotated; 404 when unknown, 400 for a video."""
     # first(), as in _get_owned_photo: byte-identical files can give one user
     # two photos with the same hash, and get() turned that into a 500.
     photo = (
@@ -1169,10 +1141,10 @@ def _get_rotatable_photo(image_hash: str, user: User) -> Photo | Response:
         .first()
     )
     if photo is None:
-        return _rotation_error("photo not found", status.HTTP_404_NOT_FOUND)
+        raise NotFound("photo not found")
 
     if photo.video:
-        return _rotation_error("rotation is not supported for videos")
+        raise ValidationError("rotation is not supported for videos")
 
     return photo
 
@@ -1214,24 +1186,16 @@ class RotatePhotoView(APIView):
         flip_horizontal = bool(data.get("flip_horizontal", False))
 
         if not image_hash:
-            return _rotation_error("image_hash is required")
+            raise ValidationError({"image_hash": "image_hash is required"})
 
-        angle, angle_error = _parse_rotation_angle(data.get("angle", 0))
-        if angle is None:
-            return _rotation_error(angle_error or "angle must be an integer")
-
-        photo_or_error = _get_rotatable_photo(image_hash, request_user(request))
-        if isinstance(photo_or_error, Response):
-            return photo_or_error
-        photo = photo_or_error
+        angle = _parse_rotation_angle(data.get("angle", 0))
+        photo = _get_rotatable_photo(image_hash, request_user(request))
 
         try:
             photo.rotate(angle=angle, flip_horizontal=flip_horizontal)
-        except Exception:
+        except Exception as error:
             logger.exception(f"Failed to rotate photo {image_hash}")
-            return _rotation_error(
-                "failed to rotate photo", status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+            raise APIException("failed to rotate photo") from error
 
         # Refresh from DB to get updated last_modified
         photo.refresh_from_db(fields=["local_orientation", "last_modified"])

@@ -18,6 +18,7 @@ from django.db.models import Count, Sum
 from django_q.tasks import async_task
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import status
+from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -160,9 +161,7 @@ class DuplicateDetailView(APIView):
                 id=duplicate_id, owner=user
             )
         except Duplicate.DoesNotExist:
-            return Response(
-                {"error": "Duplicate group not found"}, status=status.HTTP_404_NOT_FOUND
-            )
+            raise NotFound("Duplicate group not found")
 
         photos = duplicate.photos.select_related(
             "thumbnail", "main_file", "metadata"
@@ -237,27 +236,19 @@ class DuplicateResolveView(APIView):
         try:
             duplicate = Duplicate.objects.get(id=duplicate_id, owner=user)
         except Duplicate.DoesNotExist:
-            return Response(
-                {"error": "Duplicate group not found"}, status=status.HTTP_404_NOT_FOUND
-            )
+            raise NotFound("Duplicate group not found")
 
         keep_photo_hash = request_dict(request).get("keep_photo_hash")
         trash_others = request_dict(request).get("trash_others", True)
 
         if not keep_photo_hash:
-            return Response(
-                {"error": "keep_photo_hash is required"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            raise ValidationError("keep_photo_hash is required")
 
         # Verify photo exists in duplicate group
         try:
             keep_photo = duplicate.photos.get(image_hash=keep_photo_hash)
         except Photo.DoesNotExist:
-            return Response(
-                {"error": "Photo not found in this duplicate group"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            raise ValidationError("Photo not found in this duplicate group")
 
         # Resolve the duplicate
         duplicate.resolve(keep_photo, trash_others)
@@ -284,9 +275,7 @@ class DuplicateDismissView(APIView):
         try:
             duplicate = Duplicate.objects.get(id=duplicate_id, owner=user)
         except Duplicate.DoesNotExist:
-            return Response(
-                {"error": "Duplicate group not found"}, status=status.HTTP_404_NOT_FOUND
-            )
+            raise NotFound("Duplicate group not found")
 
         duplicate.dismiss()
 
@@ -304,15 +293,10 @@ class DuplicateRevertView(APIView):
         try:
             duplicate = Duplicate.objects.get(id=duplicate_id, owner=user)
         except Duplicate.DoesNotExist:
-            return Response(
-                {"error": "Duplicate group not found"}, status=status.HTTP_404_NOT_FOUND
-            )
+            raise NotFound("Duplicate group not found")
 
         if duplicate.review_status != Duplicate.ReviewStatus.RESOLVED:
-            return Response(
-                {"error": "Can only revert resolved duplicates"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            raise ValidationError("Can only revert resolved duplicates")
 
         restored_count = duplicate.revert()
 
@@ -332,9 +316,7 @@ class DuplicateDeleteView(APIView):
         try:
             duplicate = Duplicate.objects.get(id=duplicate_id, owner=user)
         except Duplicate.DoesNotExist:
-            return Response(
-                {"error": "Duplicate group not found"}, status=status.HTTP_404_NOT_FOUND
-            )
+            raise NotFound("Duplicate group not found")
 
         # Unlink photos from this duplicate group (ManyToMany)
         photo_count = duplicate.photos.count()

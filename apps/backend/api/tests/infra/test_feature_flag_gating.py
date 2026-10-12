@@ -201,7 +201,7 @@ class ImageCaptioningFeatureFlagTest(TestCase):
         )
 
         self.assertEqual(403, response.status_code)
-        self.assertFalse(response.json()["status"])
+        self.assertEqual("permission_denied", response.json()["errors"][0]["code"])
         generate_captions_mock.assert_not_called()
 
 
@@ -252,7 +252,7 @@ class FaceDetectionFeatureFlagTest(TestCase):
         response = self.client.post("/api/scanfaces/", format="json")
 
         self.assertEqual(403, response.status_code)
-        self.assertFalse(response.json()["status"])
+        self.assertEqual("permission_denied", response.json()["errors"][0]["code"])
         chain_mock.assert_not_called()
 
 
@@ -284,7 +284,7 @@ class FaceClusterFeatureFlagTest(TestCase):
         response = self.client.post("/api/trainfaces/", format="json")
 
         self.assertEqual(403, response.status_code)
-        self.assertFalse(response.json()["status"])
+        self.assertEqual("permission_denied", response.json()["errors"][0]["code"])
         chain_mock.assert_not_called()
 
 

@@ -23,7 +23,7 @@ from api.models.photo_metadata import (
     MetadataEdit,
     PhotoMetadata,
 )
-from api.tests.utils import create_test_photo, create_test_user
+from api.tests.utils import api_error, create_test_photo, create_test_user
 
 
 class PhotoMetadataModelTestCase(TestCase):
@@ -527,7 +527,7 @@ class BulkMetadataAPITestCase(TestCase):
         response = self.client.get(f"/api/photos/metadata/bulk?photo_ids={photo_ids}")
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("Maximum 100", response.json()["error"])
+        self.assertIn("Maximum 100", api_error(response)["message"])
 
     def test_bulk_update_metadata(self):
         """Test bulk updating metadata."""

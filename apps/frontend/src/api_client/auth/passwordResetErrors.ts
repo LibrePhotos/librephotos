@@ -1,3 +1,4 @@
+import { extractServerMessage } from "@librephotos/api-client";
 import { ApiError } from "../api";
 
 /**
@@ -17,11 +18,6 @@ export type PasswordResetError =
   | { kind: "reported" }
   | { kind: "other" };
 
-// What the confirm endpoint answers for a bad link. It sends every refusal as a
-// 400 with a `message`; this tells the link refusals from the validators' text
-// until it sends a `code` as well.
-const LINK_REFUSALS = new Set(["Invalid or expired reset link", "Missing parameters"]);
-
 export function passwordResetError(error: unknown): PasswordResetError {
   if (!(error instanceof ApiError)) {
     return { kind: "other" };
@@ -33,11 +29,12 @@ export function passwordResetError(error: unknown): PasswordResetError {
     return { kind: "throttled" };
   }
   if (error.status === 400) {
-    const body = typeof error.body === "object" && error.body !== null ? error.body : {};
-    const message = "message" in body && typeof body.message === "string" ? body.message : "";
-    const code = "code" in body ? body.code : undefined;
-    const weak = typeof code === "string" ? code === "weak_password" : !LINK_REFUSALS.has(message);
-    return weak && message ? { kind: "weakPassword", message } : { kind: "invalidLink" };
+    // The confirm endpoint answers `weak_password` when the validators refuse
+    // the new password, `invalid_reset_link` or `missing_parameters` otherwise.
+    const message = extractServerMessage(error.body);
+    return error.serverCode === "weak_password" && message
+      ? { kind: "weakPassword", message }
+      : { kind: "invalidLink" };
   }
   return { kind: "other" };
 }
