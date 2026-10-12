@@ -91,22 +91,28 @@ jobs:
 
       - name: Run tests
         # manage.py measures coverage while the suite runs unless NO_COVERAGE is
-        # set (it is not, here), and saves it to apps/backend/.coverage. Running
-        # the suite under `coverage run` as well would only double the tracing.
+        # set, and saves it to apps/backend/.coverage. Running the suite under
+        # `coverage run` as well would only double the tracing. Coverage is
+        # measured once, in the 3.12 job, which the gate below reads; the other
+        # jobs set NO_COVERAGE (manage.py only checks that it exists).
         working-directory: apps/backend
         env:
           BASE_LOGS: /tmp/librephotos/logs
           BASE_DATA: /tmp/librephotos
           SECRET_KEY: test-secret-key
           DJANGO_SETTINGS_MODULE: librephotos.settings.test_sqlite
+          PYTHON_VERSION: ${{ matrix.python }}
         run: |
           . .venv/bin/activate
+          if [ "$PYTHON_VERSION" != "3.12" ]; then export NO_COVERAGE=1; fi
           python manage.py test api.tests nextcloud
 
       - name: Coverage gate (fail_under in apps/backend/.coveragerc)
         # Reads the data file the test step saved; no tests run here. Exits
         # non-zero when the total is below fail_under. The step is skipped when
-        # the tests fail, since there is then no data file to report on.
+        # the tests fail, since there is then no data file to report on, and in
+        # every job but 3.12, which alone measures coverage.
+        if: ${{ matrix.python == '3.12' }}
         working-directory: apps/backend
         run: |
           . .venv/bin/activate
