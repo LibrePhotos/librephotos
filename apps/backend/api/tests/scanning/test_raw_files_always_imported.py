@@ -9,8 +9,9 @@ from unittest.mock import patch
 
 from django.test import TestCase
 
-from api.models import Photo, User
+from api.models import Photo
 from api.models.file import is_valid_media
+from api.tests.utils import create_test_user
 
 
 class StackRawJpegTestCase(TestCase):
@@ -18,10 +19,8 @@ class StackRawJpegTestCase(TestCase):
 
     def setUp(self):
         """Set up the test environment"""
-        self.user = User.objects.create_user(
-            username="testuser",
-            email="test@example.com",
-            password="testpass123",
+        self.user = create_test_user(
+            username="testuser", email="test@example.com", password="testpass123"
         )
         self.user.scan_directory = "/tmp/test_photos"
         self.user.save()

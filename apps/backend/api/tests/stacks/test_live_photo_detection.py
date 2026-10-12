@@ -18,9 +18,7 @@ from django.test import TestCase, override_settings
 
 from api.mime import LIVE_PHOTO_VIDEO_EXTENSIONS
 from api.models.file import File
-from api.models.photo import Photo
 from api.models.photo_stack import PhotoStack
-from api.models.user import User
 from api.stacks.live_photo import (
     GOOGLE_PIXEL_MP4_SIGNATURES,
     JPEG_EOI_MARKER,
@@ -34,6 +32,12 @@ from api.stacks.live_photo import (
     find_apple_live_photo_video,
     has_embedded_motion_video,
     process_live_photos_batch,
+)
+from api.tests.utils import (
+    create_test_file,
+    create_test_photo,
+    create_test_stack,
+    create_test_user,
 )
 
 
@@ -318,7 +322,7 @@ class DetectLivePhotoTestCase(TestCase):
     def setUp(self):
         """Create test user and temporary files."""
         self.temp_dir = tempfile.mkdtemp()
-        self.user = User.objects.create(username="livetest")
+        self.user = create_test_user(username="livetest")
 
     def tearDown(self):
         """Clean up."""
@@ -387,7 +391,7 @@ class CreateEmbeddedLivePhotoStackTestCase(TestCase):
 
     def setUp(self):
         """Create test user."""
-        self.user = User.objects.create(username="embedtest")
+        self.user = create_test_user(username="embedtest")
         self.temp_dir = tempfile.mkdtemp()
 
     def tearDown(self):
@@ -445,9 +449,8 @@ class CreateAppleLivePhotoStackTestCase(TestCase):
 
     def setUp(self):
         """Create test user and file."""
-        from django.utils import timezone
 
-        self.user = User.objects.create(username="appletest")
+        self.user = create_test_user(username="appletest")
         self.temp_dir = tempfile.mkdtemp()
 
         # Create a test file
@@ -455,19 +458,15 @@ class CreateAppleLivePhotoStackTestCase(TestCase):
         self.file_path = os.path.join(self.temp_dir, "test.jpg")
         Path(self.file_path).touch()
 
-        self.file = File.objects.create(
-            hash=self.file_hash,
+        self.file = create_test_file(
+            hash_value=self.file_hash,
             path=self.file_path,
-            type=File.IMAGE,
+            file_type=File.IMAGE,
+            user=self.user,
         )
 
         # Create a test photo with required fields
-        self.photo = Photo.objects.create(
-            owner=self.user,
-            main_file=self.file,
-            image_hash="b" * 32,
-            added_on=timezone.now(),
-        )
+        self.photo = create_test_photo(owner=self.user, main_file=self.file)
 
     def tearDown(self):
         """Clean up."""
@@ -481,10 +480,8 @@ class CreateAppleLivePhotoStackTestCase(TestCase):
         Path(video_path).touch()
 
         # Create a real video file to avoid foreign key issues
-        video_file = File.objects.create(
-            hash="c" * 32,
-            path=video_path,
-            type=File.VIDEO,
+        video_file = create_test_file(
+            hash_value="c" * 32, path=video_path, file_type=File.VIDEO, user=self.user
         )
 
         with patch("api.stacks.live_photo.File.create", return_value=video_file):
@@ -504,7 +501,7 @@ class CreateAppleLivePhotoStackTestCase(TestCase):
     def test_returns_existing_stack_if_present(self):
         """Should return existing stack if photo already has one."""
         # Create existing stack
-        existing_stack = PhotoStack.objects.create(
+        existing_stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.LIVE_PHOTO,
             primary_photo=self.photo,
@@ -515,10 +512,8 @@ class CreateAppleLivePhotoStackTestCase(TestCase):
         Path(video_path).touch()
 
         # Create a real video file
-        video_file = File.objects.create(
-            hash="d" * 32,
-            path=video_path,
-            type=File.VIDEO,
+        video_file = create_test_file(
+            hash_value="d" * 32, path=video_path, file_type=File.VIDEO, user=self.user
         )
 
         with patch("api.stacks.live_photo.File.create", return_value=video_file):
@@ -537,7 +532,7 @@ class ProcessLivePhotosBatchTestCase(TestCase):
 
     def setUp(self):
         """Create test user."""
-        self.user = User.objects.create(username="batchtest")
+        self.user = create_test_user(username="batchtest")
 
     @patch("api.stacks.live_photo.detect_live_photo")
     def test_processes_all_photos(self, mock_detect):

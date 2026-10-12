@@ -40,11 +40,8 @@ from rest_framework.response import Response
 from rest_framework.test import APIClient
 from rest_framework.views import APIView
 
-from api.models import AlbumAuto, AlbumDate, AlbumPlace, AlbumThing, AlbumUser, Photo
-from api.models.duplicate import Duplicate
+from api.models import AlbumAuto, AlbumPlace, AlbumThing, Photo
 from api.models.photo_share import PhotoShare
-from api.models.photo_stack import PhotoStack
-from api.models.tag import Tag
 from api.tests.infra.routes import (
     MUTATING_METHODS,
     ApiRoute,
@@ -56,9 +53,14 @@ from api.tests.infra.routes import (
     normalise,
 )
 from api.tests.utils import (
+    create_test_album_date,
+    create_test_album_user,
+    create_test_duplicate,
     create_test_face,
     create_test_person,
     create_test_photo,
+    create_test_stack,
+    create_test_tag,
     create_test_user,
 )
 
@@ -244,10 +246,10 @@ class CrossTenantWriteTest(TestCase):
         self.v_face = create_test_face(photo=self.v_pub, person=self.v_person)
         self.v_face2 = create_test_face(photo=self.v_priv, person=self.v_person)
 
-        self.v_tag = Tag.objects.create(name="victim-tag", owner=self.victim)
+        self.v_tag = create_test_tag(name="victim-tag", owner=self.victim)
         self.v_tag.photos.add(self.v_pub, self.v_priv)
 
-        self.v_album = AlbumUser.objects.create(title="Victim Trip", owner=self.victim)
+        self.v_album = create_test_album_user(title="Victim Trip", owner=self.victim)
         self.v_album.photos.add(self.v_pub, self.v_priv)
         self.v_auto = AlbumAuto.objects.create(
             title="Victim Event", owner=self.victim, timestamp=now, created_on=now
@@ -261,23 +263,23 @@ class CrossTenantWriteTest(TestCase):
             title="Berlin", geolocation_level=1, owner=self.victim
         )
         self.v_place.photos.add(self.v_pub, self.v_priv)
-        self.v_date = AlbumDate.objects.create(date=now.date(), owner=self.victim)
+        self.v_date = create_test_album_date(date=now.date(), owner=self.victim)
         self.v_date.photos.add(self.v_pub, self.v_priv)
 
-        self.v_stack = PhotoStack.objects.create(
+        self.v_stack = create_test_stack(
             owner=self.victim, stack_type="manual", primary_photo=self.v_pub
         )
         self.v_stack.photos.add(self.v_pub, self.v_priv)
-        self.v_dup = Duplicate.objects.create(owner=self.victim)
+        self.v_dup = create_test_duplicate(owner=self.victim)
         self.v_dup.photos.add(self.v_pub, self.v_priv)
         # A live link, so revoking or rotating someone else's share shows up.
         PhotoShare.objects.create(photo=self.v_pub, enabled=True)
 
         self.a_photo = create_test_photo(owner=self.attacker)
         self.a_photo2 = create_test_photo(owner=self.attacker)
-        self.a_tag = Tag.objects.create(name="attacker-tag", owner=self.attacker)
-        self.a_album = AlbumUser.objects.create(title="Loot", owner=self.attacker)
-        self.a_stack = PhotoStack.objects.create(
+        self.a_tag = create_test_tag(name="attacker-tag", owner=self.attacker)
+        self.a_album = create_test_album_user(title="Loot", owner=self.attacker)
+        self.a_stack = create_test_stack(
             owner=self.attacker, stack_type="manual", primary_photo=self.a_photo
         )
         self.a_stack.photos.add(self.a_photo, self.a_photo2)

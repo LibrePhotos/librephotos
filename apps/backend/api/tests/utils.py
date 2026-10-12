@@ -117,8 +117,17 @@ def create_test_face(
     )
 
 
-def create_test_user(is_admin=False, public_sharing=False, **kwargs: Any) -> User:
-    """A user with random details; any User field can be given by keyword."""
+def create_test_user(
+    is_admin=False,
+    public_sharing=False,
+    password: str | None = None,
+    **kwargs: Any,
+) -> User:
+    """A user with random details; any User field can be given by keyword.
+
+    A ``password`` is hashed, as ``User.objects.create_user`` does, so the user can
+    log in with it. Without one the stored value is random and nobody logs in as it.
+    """
     # Ensure unique username by appending UUID
     username = fake.user_name() + str(uuid.uuid4())[:8]
     fields: dict[str, Any] = {
@@ -132,7 +141,11 @@ def create_test_user(is_admin=False, public_sharing=False, **kwargs: Any) -> Use
         "is_staff": is_admin,
     }
     fields.update(kwargs)
-    return User.objects.create(**fields)
+    user = User(**fields)
+    if password is not None:
+        user.set_password(password)
+    user.save(force_insert=True)
+    return user
 
 
 def create_test_stack(owner: User, **kwargs: Any) -> PhotoStack:
@@ -188,7 +201,8 @@ def create_test_cluster(owner: User, **kwargs: Any) -> Cluster:
 def create_test_photo(**kwargs):
     """A photo owned by ``kwargs["owner"]``, with a main file, a thumbnail and the given fields.
 
-    ``image_hash`` is the main file's hash. The file is written to TEST_MEDIA_ROOT.
+    ``main_file`` (a File row) is used as the main file instead of a new one.
+    ``image_hash`` is the main file's hash. A new file is written to TEST_MEDIA_ROOT.
     Caption, search and metadata fields are split into their own models.
     """
     from api.models.photo_caption import PhotoCaption
@@ -198,11 +212,15 @@ def create_test_photo(**kwargs):
 
     # Use proper UUID for primary key (Photo model now uses UUIDField)
     pk = uuid.uuid4()
-    # Use unique content per photo so each File gets a unique hash (primary key)
-    unique_content = ONE_PIXEL_PNG + pk.bytes
-    main_file = create_test_file(
-        os.path.join(TEST_MEDIA_ROOT, f"{pk.hex}.png"), kwargs["owner"], unique_content
-    )
+    main_file: File | None = kwargs.pop("main_file", None)
+    if main_file is None:
+        # Use unique content per photo so each File gets a unique hash (primary key)
+        unique_content = ONE_PIXEL_PNG + pk.bytes
+        main_file = create_test_file(
+            os.path.join(TEST_MEDIA_ROOT, f"{pk.hex}.png"),
+            kwargs["owner"],
+            unique_content,
+        )
     # image_hash is the content hash of the main file, as the scanner sets it
     image_hash = main_file.hash
 
@@ -312,28 +330,34 @@ def create_test_photos_with_faces(number_of_photos=1, **kwargs):
 
 def create_test_file(
     path: str | None,
-    user: User,
+    user: User | None = None,
     content: bytes | None = None,
     *,
     on_disk: bool = False,
     file_type: int = File.IMAGE,
     missing: bool = False,
+    hash_value: str | None = None,
 ) -> File:
-    """A File row for ``user``, hashed the way the app hashes a file (MD5 plus the owner id).
+    """A File row, hashed the way the app hashes a file (MD5 plus the owner id).
 
     Without ``content`` and ``on_disk`` only the row is created, at ``path``
-    (default ``/photos/<random>.jpg``), with a random content hash; ``file_type``
+    (default ``/photos/<random>.jpg``), with a random content hash (``hash_value``
+    sets it, and ``user`` may then be None: the row has no owner); ``file_type``
     and ``missing`` apply to this form only. With ``content``, or with
     ``on_disk=True`` (which writes distinct bytes), the bytes are written to
-    ``path`` (default: a new file in TEST_MEDIA_ROOT) and the row takes their hash.
+    ``path`` (default: a new file in TEST_MEDIA_ROOT) and the row takes their hash;
+    these forms need ``user``.
     """
     if content is None and not on_disk:
+        owner_part = "" if user is None else str(user.id)
         return File.objects.create(
             path=path or f"/photos/{uuid.uuid4().hex}.jpg",
-            hash=f"{secrets.token_hex(16)}{user.id}",
+            hash=hash_value or f"{secrets.token_hex(16)}{owner_part}",
             type=file_type,
             missing=missing,
         )
+    if user is None:
+        raise ValueError("a File with content or on disk needs its owner")
     if path is None:
         path = os.path.join(TEST_MEDIA_ROOT, f"{uuid.uuid4().hex}.jpg")
     if content is None:

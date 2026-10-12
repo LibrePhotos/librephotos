@@ -36,7 +36,7 @@ from api import sync_signals
 from api.apps import SIGNAL_MODULES
 from api.models.deletion_log import DeletionLog
 from api.models.tag import Tag
-from api.tests.utils import create_test_photo, create_test_user
+from api.tests.utils import create_test_photo, create_test_tag, create_test_user
 
 BACKEND = Path(__file__).resolve().parents[3]
 SCANNED_PACKAGES = ("api", "nextcloud")
@@ -274,7 +274,7 @@ def sync_receivers_registered_without_debug() -> Iterator[None]:
 class SyncReceiversWithoutDebugTest(TestCase):
     def test_tag_delete_writes_a_tombstone(self) -> None:
         user = create_test_user()
-        tag = Tag.objects.create(name="beach", owner=user)
+        tag = create_test_tag(name="beach", owner=user)
         tag_id = tag.pk
 
         with sync_receivers_registered_without_debug():
@@ -288,7 +288,7 @@ class SyncReceiversWithoutDebugTest(TestCase):
 
     def test_photo_membership_bumps_the_tag(self) -> None:
         user = create_test_user()
-        tag = Tag.objects.create(name="beach", owner=user)
+        tag = create_test_tag(name="beach", owner=user)
         before = Tag.objects.get(pk=tag.pk).last_modified
         photo = create_test_photo(owner=user)
 

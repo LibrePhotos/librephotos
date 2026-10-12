@@ -13,7 +13,12 @@ from rest_framework.test import APIClient, APITestCase
 
 from api.models.duplicate import Duplicate
 from api.models.photo_stack import PhotoStack
-from api.tests.utils import create_test_photo, create_test_user
+from api.tests.utils import (
+    create_test_duplicate,
+    create_test_photo,
+    create_test_stack,
+    create_test_user,
+)
 
 
 class DuplicateUserIsolationTestCase(APITestCase):
@@ -32,7 +37,7 @@ class DuplicateUserIsolationTestCase(APITestCase):
         """Test that users can only see their own duplicates."""
         # Create duplicate for user2
         photos = [create_test_photo(owner=self.user2) for _ in range(2)]
-        dup = Duplicate.objects.create(
+        dup = create_test_duplicate(
             owner=self.user2,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
@@ -52,7 +57,7 @@ class DuplicateUserIsolationTestCase(APITestCase):
     def test_user_cannot_access_other_user_duplicate_detail(self):
         """Test that users cannot access other users' duplicate details."""
         photos = [create_test_photo(owner=self.user2) for _ in range(2)]
-        dup = Duplicate.objects.create(
+        dup = create_test_duplicate(
             owner=self.user2,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
@@ -66,7 +71,7 @@ class DuplicateUserIsolationTestCase(APITestCase):
     def test_user_cannot_resolve_other_user_duplicate(self):
         """Test that users cannot resolve other users' duplicates."""
         photos = [create_test_photo(owner=self.user2) for _ in range(2)]
-        dup = Duplicate.objects.create(
+        dup = create_test_duplicate(
             owner=self.user2,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
@@ -84,7 +89,7 @@ class DuplicateUserIsolationTestCase(APITestCase):
     def test_user_cannot_delete_other_user_duplicate(self):
         """Test that users cannot delete other users' duplicates."""
         photos = [create_test_photo(owner=self.user2) for _ in range(2)]
-        dup = Duplicate.objects.create(
+        dup = create_test_duplicate(
             owner=self.user2,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
@@ -103,7 +108,7 @@ class DuplicateUserIsolationTestCase(APITestCase):
         # Create duplicates for different users
         for user in [self.user1, self.user2]:
             photos = [create_test_photo(owner=user) for _ in range(2)]
-            dup = Duplicate.objects.create(
+            dup = create_test_duplicate(
                 owner=user,
                 duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
             )
@@ -127,7 +132,7 @@ class StackUserIsolationTestCase(APITestCase):
         """Test that users can only see their own stacks."""
         # Create stack for user2
         photos = [create_test_photo(owner=self.user2) for _ in range(2)]
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user2,
             stack_type=PhotoStack.StackType.BURST_SEQUENCE,
         )
@@ -144,7 +149,7 @@ class StackUserIsolationTestCase(APITestCase):
     def test_user_cannot_access_other_user_stack_detail(self):
         """Test that users cannot access other users' stack details."""
         photos = [create_test_photo(owner=self.user2) for _ in range(2)]
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user2,
             stack_type=PhotoStack.StackType.BURST_SEQUENCE,
         )
@@ -158,7 +163,7 @@ class StackUserIsolationTestCase(APITestCase):
     def test_user_cannot_modify_other_user_stack(self):
         """Test that users cannot modify other users' stacks."""
         photos = [create_test_photo(owner=self.user2) for _ in range(3)]
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user2,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -177,7 +182,7 @@ class StackUserIsolationTestCase(APITestCase):
     def test_user_cannot_delete_other_user_stack(self):
         """Test that users cannot delete other users' stacks."""
         photos = [create_test_photo(owner=self.user2) for _ in range(2)]
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user2,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -230,7 +235,7 @@ class SharedPhotoIsolationTestCase(TestCase):
 
         # Create a stack for user1
         photo2 = create_test_photo(owner=self.user1)
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user1,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -246,7 +251,7 @@ class SharedPhotoIsolationTestCase(TestCase):
         photos = [create_test_photo(owner=self.user1) for _ in range(2)]
 
         # Create duplicate group for user1
-        dup = Duplicate.objects.create(
+        dup = create_test_duplicate(
             owner=self.user1,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
@@ -263,7 +268,7 @@ class SharedPhotoIsolationTestCase(TestCase):
         """Test that user's own stacks aren't affected by sharing."""
         # Create stack for user1
         photos = [create_test_photo(owner=self.user1) for _ in range(3)]
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user1,
             stack_type=PhotoStack.StackType.BURST_SEQUENCE,
         )
@@ -342,7 +347,7 @@ class CrossUserOperationTestCase(APITestCase):
         own_photos = [create_test_photo(owner=self.user1) for _ in range(2)]
         other_photo = create_test_photo(owner=self.user2)
 
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user1,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -365,7 +370,7 @@ class CrossUserOperationTestCase(APITestCase):
         photos = [create_test_photo(owner=self.user1) for _ in range(2)]
         other_photo = create_test_photo(owner=self.user2)
 
-        dup = Duplicate.objects.create(
+        dup = create_test_duplicate(
             owner=self.user1,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
@@ -388,7 +393,7 @@ class CrossUserOperationTestCase(APITestCase):
         own_photos = [create_test_photo(owner=self.user1) for _ in range(2)]
         other_photo = create_test_photo(owner=self.user2)
 
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user1,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -421,7 +426,7 @@ class AdminAccessTestCase(APITestCase):
         """Test that admin can view aggregate stats."""
         # Create data for regular user
         photos = [create_test_photo(owner=self.user) for _ in range(2)]
-        dup = Duplicate.objects.create(
+        dup = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
@@ -436,7 +441,7 @@ class AdminAccessTestCase(APITestCase):
         """Test that regular users only see their own stats."""
         # Create data for admin
         admin_photos = [create_test_photo(owner=self.admin) for _ in range(2)]
-        admin_dup = Duplicate.objects.create(
+        admin_dup = create_test_duplicate(
             owner=self.admin,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
@@ -444,7 +449,7 @@ class AdminAccessTestCase(APITestCase):
 
         # Create data for user
         user_photos = [create_test_photo(owner=self.user) for _ in range(2)]
-        user_dup = Duplicate.objects.create(
+        user_dup = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )

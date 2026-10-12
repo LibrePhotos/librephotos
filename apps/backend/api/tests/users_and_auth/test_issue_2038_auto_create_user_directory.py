@@ -16,14 +16,17 @@ from rest_framework.test import APIClient
 from api.adapters import SSOSocialAccountAdapter
 from api.models import User
 from api.tests.users_and_auth.test_oidc_sso_login import _make_social_login, _request
-from api.tests.utils import create_password
+from api.tests.utils import create_password, create_test_user
 
 
 class AutoCreateUserDirectoryTestCase(TestCase):
     def setUp(self):
         self.client = APIClient()
-        self.admin = User.objects.create_superuser(
-            "autodir_admin", "autodir_admin@test.com", create_password()
+        self.admin = create_test_user(
+            username="autodir_admin",
+            email="autodir_admin@test.com",
+            password=create_password(),
+            is_admin=True,
         )
         self.client.force_authenticate(user=self.admin)
         os.makedirs(settings.DATA_ROOT, exist_ok=True)
@@ -122,8 +125,10 @@ class AutoCreateUserDirectoryTestCase(TestCase):
         # it must neither fail the account nor leave an empty folder behind.
         # This is the default layout, where the admin scans DATA_ROOT itself.
         site_config.AUTO_CREATE_USER_DIRECTORY = True
-        squatter = User.objects.create_user(
-            "autodir_squatter", "autodir_squatter@test.com", create_password()
+        squatter = create_test_user(
+            username="autodir_squatter",
+            email="autodir_squatter@test.com",
+            password=create_password(),
         )
         squatter.scan_directory = os.path.abspath(settings.DATA_ROOT)
         squatter.save()

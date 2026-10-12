@@ -16,7 +16,12 @@ from django.utils import timezone
 from api.models.duplicate import Duplicate
 from api.models.photo_metadata import PhotoMetadata
 from api.models.photo_stack import PhotoStack
-from api.tests.utils import create_test_photo, create_test_user
+from api.tests.utils import (
+    create_test_duplicate,
+    create_test_photo,
+    create_test_stack,
+    create_test_user,
+)
 
 
 class PhotoStackAutoSelectPrimaryTestCase(TestCase):
@@ -27,7 +32,7 @@ class PhotoStackAutoSelectPrimaryTestCase(TestCase):
 
     def test_auto_select_empty_stack(self):
         """Test auto_select on empty stack."""
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -39,7 +44,7 @@ class PhotoStackAutoSelectPrimaryTestCase(TestCase):
     def test_auto_select_single_photo(self):
         """Test auto_select with single photo."""
         photo = create_test_photo(owner=self.user)
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -56,7 +61,7 @@ class PhotoStackAutoSelectPrimaryTestCase(TestCase):
         photo1 = create_test_photo(owner=self.user)
         photo2 = create_test_photo(owner=self.user)
 
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.RAW_JPEG_PAIR,
         )
@@ -77,7 +82,7 @@ class PhotoStackAutoSelectPrimaryTestCase(TestCase):
         photo1 = create_test_photo(owner=self.user)
         photo2 = create_test_photo(owner=self.user)
 
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.RAW_JPEG_PAIR,
         )
@@ -101,7 +106,7 @@ class PhotoStackAutoSelectPrimaryTestCase(TestCase):
             photo.save()
             photos.append(photo)
 
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.BURST_SEQUENCE,
         )
@@ -120,7 +125,7 @@ class PhotoStackAutoSelectPrimaryTestCase(TestCase):
             photo.exif_timestamp = None
             photo.save()
 
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.BURST_SEQUENCE,
         )
@@ -151,7 +156,7 @@ class PhotoStackAutoSelectPrimaryTestCase(TestCase):
             photo=photo3, defaults={"width": 1280, "height": 720}
         )
 
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -167,7 +172,7 @@ class PhotoStackAutoSelectPrimaryTestCase(TestCase):
         """Test manual stack when photos have no metadata."""
         photos = [create_test_photo(owner=self.user) for _ in range(3)]
 
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -189,7 +194,7 @@ class DuplicateAutoSelectBestTestCase(TestCase):
 
     def test_auto_select_empty_duplicate(self):
         """Test auto_select on duplicate with no photos."""
-        dup = Duplicate.objects.create(
+        dup = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
@@ -212,7 +217,7 @@ class DuplicateAutoSelectBestTestCase(TestCase):
         photo1.main_file.refresh_from_db()
         photo2.main_file.refresh_from_db()
 
-        dup = Duplicate.objects.create(
+        dup = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
@@ -239,7 +244,7 @@ class DuplicateAutoSelectBestTestCase(TestCase):
             defaults={"width": 3840, "height": 2160},  # Higher resolution
         )
 
-        dup = Duplicate.objects.create(
+        dup = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.VISUAL_DUPLICATE,
         )
@@ -254,7 +259,7 @@ class DuplicateAutoSelectBestTestCase(TestCase):
         """Test visual duplicate when no metadata available."""
         photos = [create_test_photo(owner=self.user) for _ in range(3)]
 
-        dup = Duplicate.objects.create(
+        dup = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.VISUAL_DUPLICATE,
         )
@@ -277,7 +282,7 @@ class DuplicateAutoSelectBestTestCase(TestCase):
             photo=photo2, defaults={"width": 1920, "height": 1080}
         )
 
-        dup = Duplicate.objects.create(
+        dup = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.VISUAL_DUPLICATE,
         )
@@ -296,7 +301,7 @@ class DuplicatePotentialSavingsTestCase(TestCase):
 
     def test_savings_empty_duplicate(self):
         """Test potential savings for empty duplicate."""
-        dup = Duplicate.objects.create(
+        dup = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
@@ -311,7 +316,7 @@ class DuplicatePotentialSavingsTestCase(TestCase):
         photo.size = 1000000  # 1MB
         photo.save()
 
-        dup = Duplicate.objects.create(
+        dup = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
@@ -336,7 +341,7 @@ class DuplicatePotentialSavingsTestCase(TestCase):
         photo2.main_file.save()
         photo2.save()
 
-        dup = Duplicate.objects.create(
+        dup = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
@@ -360,7 +365,7 @@ class DuplicatePotentialSavingsTestCase(TestCase):
             photo.save()
             photos.append(photo)
 
-        dup = Duplicate.objects.create(
+        dup = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
@@ -388,7 +393,7 @@ class DuplicatePotentialSavingsTestCase(TestCase):
         photo2.main_file.save()
         photo2.save()
 
-        dup = Duplicate.objects.create(
+        dup = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
@@ -412,7 +417,7 @@ class DuplicatePotentialSavingsTestCase(TestCase):
         photo2.main_file.save()
         photo2.save()
 
-        dup = Duplicate.objects.create(
+        dup = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
             potential_savings=0,
@@ -439,7 +444,7 @@ class DuplicateResolveRevertTestCase(TestCase):
         photo1 = create_test_photo(owner=self.user)
         photo2 = create_test_photo(owner=self.user)
 
-        dup = Duplicate.objects.create(
+        dup = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
             review_status=Duplicate.ReviewStatus.PENDING,
@@ -458,7 +463,7 @@ class DuplicateResolveRevertTestCase(TestCase):
         photo2 = create_test_photo(owner=self.user)
         photo3 = create_test_photo(owner=self.user)
 
-        dup = Duplicate.objects.create(
+        dup = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
@@ -483,7 +488,7 @@ class DuplicateResolveRevertTestCase(TestCase):
         photo1 = create_test_photo(owner=self.user)
         photo2 = create_test_photo(owner=self.user)
 
-        dup = Duplicate.objects.create(
+        dup = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
@@ -501,7 +506,7 @@ class DuplicateResolveRevertTestCase(TestCase):
         photo1 = create_test_photo(owner=self.user)
         photo2 = create_test_photo(owner=self.user)
 
-        dup = Duplicate.objects.create(
+        dup = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
@@ -530,7 +535,7 @@ class DuplicateResolveRevertTestCase(TestCase):
         photo1 = create_test_photo(owner=self.user)
         photo2 = create_test_photo(owner=self.user)
 
-        dup = Duplicate.objects.create(
+        dup = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
@@ -556,7 +561,7 @@ class DuplicateDismissTestCase(TestCase):
         photo1 = create_test_photo(owner=self.user)
         photo2 = create_test_photo(owner=self.user)
 
-        dup = Duplicate.objects.create(
+        dup = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.VISUAL_DUPLICATE,
             review_status=Duplicate.ReviewStatus.PENDING,
@@ -573,7 +578,7 @@ class DuplicateDismissTestCase(TestCase):
         photo1 = create_test_photo(owner=self.user)
         photo2 = create_test_photo(owner=self.user)
 
-        dup = Duplicate.objects.create(
+        dup = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.VISUAL_DUPLICATE,
         )

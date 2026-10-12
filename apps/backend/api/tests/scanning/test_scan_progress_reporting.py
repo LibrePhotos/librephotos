@@ -6,15 +6,13 @@ from unittest.mock import MagicMock, patch
 from django.test import TestCase  # type: ignore
 
 from api.directory_watcher import handle_new_image, scan_photos
-from api.models import LongRunningJob, User
+from api.models import LongRunningJob
+from api.tests.utils import create_test_job, create_test_user
 
 
 class ScanPercentageProgressTestCase(TestCase):
     def setUp(self):
-        self.user = User.objects.create_user(
-            username="testuser",
-            password="testpass",
-        )
+        self.user = create_test_user(username="testuser", password="testpass")
         self.user.skip_raw_files = True
         self.user.save()
         self.job_id = uuid.uuid4()
@@ -62,7 +60,7 @@ class ScanPercentageProgressTestCase(TestCase):
         for path in files:
             ext = os.path.splitext(path)[1].lower()
             discovered_by_ext[ext] = discovered_by_ext.get(ext, 0) + 1
-        lrj = LongRunningJob.objects.create(
+        lrj = create_test_job(
             started_by=self.user,
             job_id=self.job_id,
             job_type=LongRunningJob.JOB_SCAN_PHOTOS,
@@ -143,9 +141,8 @@ class EmptyDirectoryScanTestCase(TestCase):
     """Test that scanning an empty directory completes correctly."""
 
     def setUp(self):
-        self.user = User.objects.create_user(
-            username="empty_scan_testuser",
-            password="testpass",
+        self.user = create_test_user(
+            username="empty_scan_testuser", password="testpass"
         )
         # Create a temporary empty directory for testing
         self.temp_dir = tempfile.mkdtemp()

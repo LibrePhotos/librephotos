@@ -72,8 +72,8 @@ class ThrottleTestCase(TestCase):
 class SignInThrottleTest(ThrottleTestCase):
     def setUp(self):
         super().setUp()
-        self.user = User.objects.create_user(username="alice", password="secret-pw-1")
-        User.objects.create_user(username="bob", password="secret-pw-2")
+        self.user = create_test_user(username="alice", password="secret-pw-1")
+        create_test_user(username="bob", password="secret-pw-2")
 
     def test_attempts_beyond_the_rate_answer_429(self):
         headers = via_proxy(CLIENT_A)

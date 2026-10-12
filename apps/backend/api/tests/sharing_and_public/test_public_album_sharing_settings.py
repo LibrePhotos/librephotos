@@ -17,9 +17,8 @@ import datetime
 from django.test import TestCase
 from rest_framework.test import APIClient
 
-from api.models import AlbumUser
 from api.models.album_user_share import AlbumUserShare
-from api.tests.utils import create_test_photo, create_test_user
+from api.tests.utils import create_test_album_user, create_test_photo, create_test_user
 
 LAT, LON = 52.520008, 13.404954
 PLACE = "Alexanderplatz, Berlin"
@@ -36,7 +35,7 @@ class PublicAlbumSharingSettingsTest(TestCase):
             exif_timestamp=TAKEN,
             search_location=PLACE,
         )
-        self.album = AlbumUser.objects.create(title="holiday", owner=self.owner)
+        self.album = create_test_album_user(title="holiday", owner=self.owner)
         self.album.photos.add(self.photo)
         self.share = AlbumUserShare.objects.create(album=self.album, enabled=True)
         self.anonymous = APIClient()

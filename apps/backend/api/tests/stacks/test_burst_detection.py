@@ -13,7 +13,6 @@ Tests cover:
 """
 
 import json
-import uuid
 from datetime import datetime, timedelta
 from unittest.mock import patch
 
@@ -29,7 +28,12 @@ from api.stack_detection import (
     clear_stacks_of_type,
     detect_burst_sequences,
 )
-from api.tests.utils import create_test_photo, create_test_user
+from api.tests.utils import (
+    create_test_file,
+    create_test_photo,
+    create_test_stack,
+    create_test_user,
+)
 
 
 class ClearStacksTestCase(TestCase):
@@ -47,13 +51,13 @@ class ClearStacksTestCase(TestCase):
         photo4 = create_test_photo(owner=self.user)
 
         # Create stacks of different types
-        burst_stack = PhotoStack.objects.create(
+        burst_stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.BURST_SEQUENCE,
         )
         burst_stack.photos.add(photo1, photo2)
 
-        manual_stack = PhotoStack.objects.create(
+        manual_stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -80,7 +84,7 @@ class ClearStacksTestCase(TestCase):
         photo1 = create_test_photo(owner=self.user)
         photo2 = create_test_photo(owner=self.user)
 
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.BURST_SEQUENCE,
         )
@@ -100,13 +104,13 @@ class ClearStacksTestCase(TestCase):
         other_photo1 = create_test_photo(owner=self.other_user)
         other_photo2 = create_test_photo(owner=self.other_user)
 
-        stack1 = PhotoStack.objects.create(
+        stack1 = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.BURST_SEQUENCE,
         )
         stack1.photos.add(photo1, photo2)
 
-        stack2 = PhotoStack.objects.create(
+        stack2 = create_test_stack(
             owner=self.other_user,
             stack_type=PhotoStack.StackType.BURST_SEQUENCE,
         )
@@ -154,10 +158,10 @@ class BurstDetectionTestCase(TestCase):
 
     def _create_file(self, path, file_type=File.IMAGE):
         """Helper to create a File object."""
-        return File.objects.create(
-            hash=str(uuid.uuid4())[:32],
+        return create_test_file(
             path=path,
-            type=file_type,
+            file_type=file_type,
+            user=self.user,
         )
 
     def _create_photo_with_timestamp(self, timestamp, **kwargs):
@@ -209,7 +213,7 @@ class BurstDetectionTestCase(TestCase):
         photo1 = create_test_photo(owner=self.user)
         photo2 = create_test_photo(owner=self.user)
 
-        old_stack = PhotoStack.objects.create(
+        old_stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.BURST_SEQUENCE,
         )
@@ -276,7 +280,7 @@ class CreateBurstStackTestCase(TestCase):
         photo3 = create_test_photo(owner=self.user)
 
         # Add photo1 to existing burst stack
-        existing_stack = PhotoStack.objects.create(
+        existing_stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.BURST_SEQUENCE,
         )
@@ -437,10 +441,10 @@ class FileVariantTestCase(TestCase):
 
     def _create_file(self, path, file_type=File.IMAGE):
         """Helper to create a File object."""
-        return File.objects.create(
-            hash=str(uuid.uuid4())[:32],
+        return create_test_file(
             path=path,
-            type=file_type,
+            file_type=file_type,
+            user=self.user,
         )
 
     def test_photo_with_raw_variant(self):
@@ -512,7 +516,7 @@ class FileVariantTestCase(TestCase):
         photo1.save()
 
         # Add photo1 and photo2 to a burst stack
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.BURST_SEQUENCE,
         )
@@ -567,10 +571,10 @@ class FileVariantTestCase(TestCase):
         )
         self.user.save()
 
-        file = File.objects.create(
-            hash=str(uuid.uuid4())[:32],
+        file = create_test_file(
             path="/photos/IMG_001.jpg",
-            type=File.IMAGE,
+            file_type=File.IMAGE,
+            user=self.user,
         )
         photo = create_test_photo(owner=self.user)
         photo.main_file = file

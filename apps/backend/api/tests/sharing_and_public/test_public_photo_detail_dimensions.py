@@ -8,15 +8,14 @@ whole info panel of that photo.
 from django.test import TestCase
 from rest_framework.test import APIClient
 
-from api.models import AlbumUser
 from api.models.album_user_share import AlbumUserShare
-from api.tests.utils import create_test_photo, create_test_user
+from api.tests.utils import create_test_album_user, create_test_photo, create_test_user
 
 
 class PublicPhotoDetailDimensionsTest(TestCase):
     def setUp(self):
         self.owner = create_test_user()
-        self.album = AlbumUser.objects.create(title="trip", owner=self.owner)
+        self.album = create_test_album_user(title="trip", owner=self.owner)
         AlbumUserShare.objects.create(
             album=self.album, enabled=True, slug="trip", share_camera_info=True
         )

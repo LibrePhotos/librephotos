@@ -47,7 +47,15 @@ from api.permissions import IsSuperUser
 from api.serializers.job import LongRunningJobSerializer
 from api.serializers.tag import TagSerializer
 from api.tests.infra.routes import ApiRoute, api_routes, router_verbs
-from api.tests.utils import create_test_person, create_test_photo, create_test_user
+from api.tests.utils import (
+    create_test_album_date,
+    create_test_album_user,
+    create_test_job,
+    create_test_person,
+    create_test_photo,
+    create_test_tag,
+    create_test_user,
+)
 from api.views.albums import AlbumThingViewSet
 from api.views.password_reset import PasswordResetConfirmView, PasswordResetView
 from api.views.user import UserViewSet
@@ -318,13 +326,13 @@ class RemovedVerbsTest(TestCase):
             "place": AlbumPlace.objects.create(
                 title="Berlin", geolocation_level=1, owner=admin
             ).pk,
-            "date": AlbumDate.objects.create(
+            "date": create_test_album_date(
                 date=datetime.date(2021, 3, 4), owner=admin
             ).pk,
-            "user_album": AlbumUser.objects.create(title="Trip", owner=admin).pk,
+            "user_album": create_test_album_user(title="Trip", owner=admin).pk,
             "person": create_test_person(name="Ana", cluster_owner=admin).pk,
-            "tag": Tag.objects.create(name="beach", owner=admin).pk,
-            "job": LongRunningJob.objects.create(
+            "tag": create_test_tag(name="beach", owner=admin).pk,
+            "job": create_test_job(
                 started_by=admin,
                 job_id=str(uuid.uuid4()),
                 job_type=LongRunningJob.JOB_SCAN_PHOTOS,

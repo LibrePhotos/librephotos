@@ -13,7 +13,7 @@ from rest_framework.test import APIClient
 
 from api.models import AlbumUser, LongRunningJob
 from api.models.album_user_share import AlbumUserShare
-from api.tests.utils import create_test_user
+from api.tests.utils import create_test_album_user, create_test_job, create_test_user
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +31,7 @@ class PublicAlbumWriteProtectionTest(TestCase):
     def setUp(self):
         self.owner = create_test_user()
         self.attacker = create_test_user()
-        self.album = AlbumUser.objects.create(title="Holiday", owner=self.owner)
+        self.album = create_test_album_user(title="Holiday", owner=self.owner)
         AlbumUserShare.objects.create(album=self.album, enabled=True)
         self.url = f"/api/albums/user/{self.album.id}/?public=1"
 
@@ -60,12 +60,12 @@ class JobScopingTest(TestCase):
         self.alice = create_test_user()
         self.bob = create_test_user()
         self.admin = create_test_user(is_admin=True)
-        self.alice_job = LongRunningJob.objects.create(
+        self.alice_job = create_test_job(
             started_by=self.alice,
             job_id=str(uuid.uuid4()),
             job_type=LongRunningJob.JOB_SCAN_PHOTOS,
         )
-        self.bob_job = LongRunningJob.objects.create(
+        self.bob_job = create_test_job(
             started_by=self.bob,
             job_id=str(uuid.uuid4()),
             job_type=LongRunningJob.JOB_SCAN_PHOTOS,
@@ -113,12 +113,12 @@ class JobMineParameterTest(TestCase):
         self.alice = create_test_user()
         self.bob = create_test_user()
         self.admin = create_test_user(is_admin=True)
-        self.alice_job = LongRunningJob.objects.create(
+        self.alice_job = create_test_job(
             started_by=self.alice,
             job_id=str(uuid.uuid4()),
             job_type=LongRunningJob.JOB_SCAN_PHOTOS,
         )
-        self.admin_job = LongRunningJob.objects.create(
+        self.admin_job = create_test_job(
             started_by=self.admin,
             job_id=str(uuid.uuid4()),
             job_type=LongRunningJob.JOB_SCAN_PHOTOS,

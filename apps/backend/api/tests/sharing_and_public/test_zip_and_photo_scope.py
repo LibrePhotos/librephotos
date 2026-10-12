@@ -24,7 +24,7 @@ from api.all_tasks import delete_zip_file
 from api.models import Photo
 from api.models.long_running_job import LongRunningJob
 from api.serializers.photos import PhotoSerializer
-from api.tests.utils import create_test_photo, create_test_user
+from api.tests.utils import create_test_job, create_test_photo, create_test_user
 
 
 def _client_for(user):
@@ -40,7 +40,7 @@ class ZipJobStatusScopeTest(TestCase):
     def setUp(self):
         self.owner = create_test_user()
         self.other = create_test_user()
-        self.job = LongRunningJob.objects.create(
+        self.job = create_test_job(
             started_by=self.owner,
             job_id=str(uuid.uuid4()),
             job_type=LongRunningJob.JOB_DOWNLOAD_PHOTOS,

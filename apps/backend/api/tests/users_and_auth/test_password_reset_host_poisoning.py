@@ -19,7 +19,7 @@ from django.core.cache import cache
 from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
 
-from api.models import User
+from api.tests.utils import create_test_user
 
 REQUEST_URL = "/api/auth/password/reset/"
 
@@ -28,7 +28,7 @@ class PasswordResetHostPoisoningTest(TestCase):
     def setUp(self):
         cache.clear()
         self.client = APIClient()
-        self.user = User.objects.create(username="alice", email="alice@example.com")
+        self.user = create_test_user(username="alice", email="alice@example.com")
         self.user.set_password("oldpassword123")
         self.user.save()
 
