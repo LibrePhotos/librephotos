@@ -13,6 +13,7 @@ import subprocess
 import sys
 import tempfile
 import threading
+import unittest
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from unittest import mock
@@ -108,8 +109,11 @@ class LoadOrCreateSecretKeyTest(SimpleTestCase):
     def test_old_file_that_cannot_be_removed_is_reported(self) -> None:
         self.legacy_file.write_text(OLD_KEY)
 
-        with mock.patch.object(
-            secret_key.os, "remove", side_effect=PermissionError("in use")
+        with (
+            mock.patch.object(secret_key, "REMOVE_RETRY_SECONDS", 0.1),
+            mock.patch.object(
+                secret_key.os, "remove", side_effect=PermissionError("in use")
+            ),
         ):
             self.assertEqual(self.load(), OLD_KEY)
 
@@ -118,6 +122,56 @@ class LoadOrCreateSecretKeyTest(SimpleTestCase):
         warnings = deferred_warnings()
         self.assertEqual(len(warnings), 1)
         self.assertIn("could not remove the old file", warnings[0])
+
+    def test_old_file_that_another_process_holds_open_is_removed_when_free(
+        self,
+    ) -> None:
+        # Windows refuses to delete a file another process has open (WinError
+        # 32): the processes starting together read the old file too.
+        self.legacy_file.write_text(OLD_KEY)
+        real_remove = os.remove
+        refusals = [PermissionError(32, "being used by another process")] * 2
+
+        def remove(path: str) -> None:
+            if refusals:
+                raise refusals.pop()
+            real_remove(path)
+
+        with mock.patch.object(secret_key.os, "remove", side_effect=remove):
+            self.assertEqual(self.load(), OLD_KEY)
+
+        self.assertFalse(self.legacy_file.exists())
+        warnings = deferred_warnings()
+        self.assertEqual(len(warnings), 1, warnings)
+        self.assertIn("Moved the Django secret key", warnings[0])
+
+    def test_next_start_finishes_a_move_that_left_the_old_file(self) -> None:
+        self.legacy_file.write_text(OLD_KEY)
+        with (
+            mock.patch.object(secret_key, "REMOVE_RETRY_SECONDS", 0.1),
+            mock.patch.object(
+                secret_key.os, "remove", side_effect=PermissionError("in use")
+            ),
+        ):
+            self.load()
+        deferred_warnings()
+
+        self.assertEqual(self.load(), OLD_KEY)
+
+        self.assertFalse(self.legacy_file.exists())
+        self.assertEqual(self.key_file.read_text(), OLD_KEY)
+        self.assertEqual(deferred_warnings(), [])
+
+    @unittest.skipUnless(os.name == "nt", "only Windows refuses to delete open files")
+    def test_old_file_open_in_another_process_is_still_removed(self) -> None:
+        self.legacy_file.write_text(OLD_KEY)
+        handle = open(self.legacy_file, encoding="utf-8")
+        self.addCleanup(handle.close)
+        threading.Timer(0.3, handle.close).start()
+
+        self.assertEqual(self.load(), OLD_KEY)
+
+        self.assertFalse(self.legacy_file.exists())
 
     def test_without_hard_links_the_key_is_created_exclusively(self) -> None:
         self.legacy_file.write_text(OLD_KEY)
