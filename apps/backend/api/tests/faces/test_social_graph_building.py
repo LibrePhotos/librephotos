@@ -5,7 +5,7 @@ Tests for social graph functionality.
 from django.test import TestCase
 from django.utils import timezone
 
-from api.social_graph import build_social_graph
+from api.faces.social_graph import build_social_graph
 from api.tests.utils import (
     create_test_face,
     create_test_person,

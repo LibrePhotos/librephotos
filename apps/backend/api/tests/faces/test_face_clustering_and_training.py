@@ -1,4 +1,4 @@
-"""Characterization tests for ``api.face_classify`` (unit 10).
+"""Characterization tests for ``api.faces.classify`` (unit 10).
 
 Pins the CURRENT behaviour of ``create_all_clusters`` and ``train_faces``
 (plus the small helper ``filter_data`` they share) before those functions are
@@ -20,8 +20,8 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 from django.test import TestCase
 
-from api import face_classify
-from api.face_classify import create_all_clusters, filter_data, train_faces
+from api.faces import classify
+from api.faces.classify import create_all_clusters, filter_data, train_faces
 from api.models import Face, LongRunningJob, Person
 from api.models.cluster import UNKNOWN_CLUSTER_ID, get_unknown_cluster
 from api.tests.utils import (
@@ -130,7 +130,7 @@ class CreateAllClustersTest(TestCase):
         return create_test_face(photo=self.photo, encoding=enc_hex(seed), **kwargs)
 
     def test_returns_zero_and_skips_clustering_without_faces(self):
-        with patch.object(face_classify, "HDBSCAN") as hdbscan:
+        with patch.object(classify, "make_hdbscan") as hdbscan:
             self.assertEqual(create_all_clusters(self.user), 0)
         hdbscan.assert_not_called()
 
@@ -138,7 +138,7 @@ class CreateAllClustersTest(TestCase):
         other = create_test_user()
         other_photo = create_test_photo(owner=other)
         create_test_face(photo=other_photo, encoding=enc_hex(1))
-        with patch.object(face_classify, "HDBSCAN") as hdbscan:
+        with patch.object(classify, "make_hdbscan") as hdbscan:
             self.assertEqual(create_all_clusters(self.user), 0)
         hdbscan.assert_not_called()
 
@@ -150,10 +150,8 @@ class CreateAllClustersTest(TestCase):
 
         cls, instance = fake_hdbscan([0, 0])
         with (
-            patch.object(face_classify, "HDBSCAN", cls),
-            patch.object(
-                face_classify.ClusterManager, "try_add_cluster", return_value=[]
-            ),
+            patch.object(classify, "make_hdbscan", cls),
+            patch.object(classify.ClusterManager, "try_add_cluster", return_value=[]),
         ):
             target = create_all_clusters(self.user)
 
@@ -168,10 +166,8 @@ class CreateAllClustersTest(TestCase):
 
         cls, instance = fake_hdbscan([0])
         with (
-            patch.object(face_classify, "HDBSCAN", cls),
-            patch.object(
-                face_classify.ClusterManager, "try_add_cluster", return_value=[]
-            ),
+            patch.object(classify, "make_hdbscan", cls),
+            patch.object(classify.ClusterManager, "try_add_cluster", return_value=[]),
         ):
             self.assertEqual(create_all_clusters(self.user), 1)
 
@@ -184,10 +180,8 @@ class CreateAllClustersTest(TestCase):
 
         cls, _ = fake_hdbscan([0])
         with (
-            patch.object(face_classify, "HDBSCAN", cls),
-            patch.object(
-                face_classify.ClusterManager, "try_add_cluster", return_value=[]
-            ),
+            patch.object(classify, "make_hdbscan", cls),
+            patch.object(classify.ClusterManager, "try_add_cluster", return_value=[]),
         ):
             create_all_clusters(self.user)
 
@@ -210,10 +204,8 @@ class CreateAllClustersTest(TestCase):
 
         cls, _ = fake_hdbscan([0])
         with (
-            patch.object(face_classify, "HDBSCAN", cls),
-            patch.object(
-                face_classify.ClusterManager, "try_add_cluster", return_value=[]
-            ),
+            patch.object(classify, "make_hdbscan", cls),
+            patch.object(classify.ClusterManager, "try_add_cluster", return_value=[]),
         ):
             create_all_clusters(self.user)
 
@@ -228,10 +220,8 @@ class CreateAllClustersTest(TestCase):
 
         cls, _ = fake_hdbscan([0])
         with (
-            patch.object(face_classify, "HDBSCAN", cls),
-            patch.object(
-                face_classify.ClusterManager, "try_add_cluster", return_value=[]
-            ),
+            patch.object(classify, "make_hdbscan", cls),
+            patch.object(classify.ClusterManager, "try_add_cluster", return_value=[]),
         ):
             create_all_clusters(self.user)
 
@@ -244,9 +234,9 @@ class CreateAllClustersTest(TestCase):
         # SQLite returns the faces in pk order, so labels line up with face_ids.
         cls, _ = fake_hdbscan([0, 0, 1, UNKNOWN_CLUSTER_ID])
         with (
-            patch.object(face_classify, "HDBSCAN", cls),
+            patch.object(classify, "make_hdbscan", cls),
             patch.object(
-                face_classify.ClusterManager, "try_add_cluster", return_value=[]
+                classify.ClusterManager, "try_add_cluster", return_value=[]
             ) as try_add,
         ):
             target = create_all_clusters(self.user)
@@ -271,9 +261,9 @@ class CreateAllClustersTest(TestCase):
 
         cls, _ = fake_hdbscan([0, 0])
         with (
-            patch.object(face_classify, "HDBSCAN", cls),
+            patch.object(classify, "make_hdbscan", cls),
             patch.object(
-                face_classify.ClusterManager, "try_add_cluster", return_value=[]
+                classify.ClusterManager, "try_add_cluster", return_value=[]
             ) as try_add,
         ):
             target = create_all_clusters(self.user)
@@ -292,9 +282,9 @@ class CreateAllClustersTest(TestCase):
 
         cls, _ = fake_hdbscan([0, 0, 0])
         with (
-            patch.object(face_classify, "HDBSCAN", cls),
+            patch.object(classify, "make_hdbscan", cls),
             patch.object(
-                face_classify.ClusterManager, "try_add_cluster", return_value=[cluster]
+                classify.ClusterManager, "try_add_cluster", return_value=[cluster]
             ),
         ):
             self.assertEqual(create_all_clusters(self.user), 3)
@@ -307,10 +297,8 @@ class CreateAllClustersTest(TestCase):
 
         cls, _ = fake_hdbscan([0])
         with (
-            patch.object(face_classify, "HDBSCAN", cls),
-            patch.object(
-                face_classify.ClusterManager, "try_add_cluster", return_value=[]
-            ),
+            patch.object(classify, "make_hdbscan", cls),
+            patch.object(classify.ClusterManager, "try_add_cluster", return_value=[]),
         ):
             create_all_clusters(self.user, lrj)
 
@@ -372,7 +360,7 @@ class TrainFacesTest(TrainFacesTestBase):
         self.make_face(1, person=self.p1)
         self.make_face(2, person=self.p2)
 
-        with patch.object(face_classify, "MLPClassifier", FakeMLP):
+        with patch.object(classify, "make_mlp_classifier", FakeMLP):
             self.assertTrue(train_faces(self.user, self.job_id))
 
         job = self.job()
@@ -392,7 +380,7 @@ class TrainFacesTest(TrainFacesTestBase):
         self.make_face(2, person=self.p2)
         unknown = self.make_face(3)
 
-        with patch.object(face_classify, "MLPClassifier", FakeMLP):
+        with patch.object(classify, "make_mlp_classifier", FakeMLP):
             self.assertTrue(train_faces(self.user, self.job_id))
 
         unknown.refresh_from_db()
@@ -412,7 +400,7 @@ class TrainFacesTest(TrainFacesTestBase):
         unknown = self.make_face(3)
 
         FakeMLP.PEAK_INDEX = 1  # second class -> p2
-        with patch.object(face_classify, "MLPClassifier", FakeMLP):
+        with patch.object(classify, "make_mlp_classifier", FakeMLP):
             train_faces(self.user, self.job_id)
 
         unknown.refresh_from_db()
@@ -425,7 +413,7 @@ class TrainFacesTest(TrainFacesTestBase):
         unknown_cluster = get_unknown_cluster(user=self.user)
         unknown = self.make_face(3, cluster=unknown_cluster)
 
-        with patch.object(face_classify, "MLPClassifier", FakeMLP):
+        with patch.object(classify, "make_mlp_classifier", FakeMLP):
             self.assertTrue(train_faces(self.user, self.job_id))
 
         unknown.refresh_from_db()
@@ -442,7 +430,7 @@ class TrainFacesTest(TrainFacesTestBase):
         Face.objects.filter(pk=blank.pk).update(encoding="")
         kept = self.make_face(5)
 
-        with patch.object(face_classify, "MLPClassifier", FakeMLP):
+        with patch.object(classify, "make_mlp_classifier", FakeMLP):
             self.assertTrue(train_faces(self.user, self.job_id))
 
         self.assertEqual(self.job().progress_target, 1)
@@ -460,7 +448,7 @@ class TrainFacesTest(TrainFacesTestBase):
         other_photo = create_test_photo(owner=other)
         foreign = create_test_face(photo=other_photo, encoding=enc_hex(9))
 
-        with patch.object(face_classify, "MLPClassifier", FakeMLP):
+        with patch.object(classify, "make_mlp_classifier", FakeMLP):
             self.assertTrue(train_faces(self.user, self.job_id))
 
         foreign.refresh_from_db()
@@ -488,7 +476,7 @@ class TrainFacesTest(TrainFacesTestBase):
             mean_face_encoding=enc_hex(43),
         )
 
-        with patch.object(face_classify, "MLPClassifier", FakeMLP):
+        with patch.object(classify, "make_mlp_classifier", FakeMLP):
             self.assertTrue(train_faces(self.user, self.job_id))
 
         first, second = FakeMLP.instances
@@ -504,7 +492,7 @@ class TrainFacesTest(TrainFacesTestBase):
         self.make_face(3)
 
         boom = MagicMock(side_effect=RuntimeError("boom"))
-        with patch.object(face_classify, "MLPClassifier", boom):
+        with patch.object(classify, "make_mlp_classifier", boom):
             self.assertFalse(train_faces(self.user, self.job_id))
 
         job = self.job()
@@ -519,7 +507,7 @@ class TrainFacesTest(TrainFacesTestBase):
         self.make_face(1, person=self.p1)
         self.make_face(2, person=self.p2)
 
-        with patch.object(face_classify, "MLPClassifier", FakeMLP):
+        with patch.object(classify, "make_mlp_classifier", FakeMLP):
             train_faces(self.user, self.job_id)
 
         self.assertEqual(LongRunningJob.objects.filter(job_id=self.job_id).count(), 1)

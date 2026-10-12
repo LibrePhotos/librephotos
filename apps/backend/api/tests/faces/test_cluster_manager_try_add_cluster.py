@@ -1,4 +1,4 @@
-"""Characterization tests for api.cluster_manager.ClusterManager.try_add_cluster.
+"""Characterization tests for api.faces.cluster_manager.ClusterManager.try_add_cluster.
 
 These tests pin the CURRENT behavior of try_add_cluster before refactoring.
 They intentionally assert observed behavior, including two quirks that look
@@ -10,7 +10,7 @@ like bugs (see the comments on
 import numpy as np
 from django.test import TestCase
 
-from api.cluster_manager import ClusterManager
+from api.faces.cluster_manager import ClusterManager
 from api.models.cluster import UNKNOWN_CLUSTER_ID, UNKNOWN_CLUSTER_NAME, Cluster
 from api.models.face import Face
 from api.models.person import Person
@@ -130,7 +130,7 @@ class TryAddClusterTestCase(TestCase):
 
     def test_pad_len_zero_fills_the_person_name(self):
         result = ClusterManager.try_add_cluster(
-            self.user, 5, [self._face(20)], padLen=4
+            self.user, 5, [self._face(20)], pad_len=4
         )
         self.assertEqual(result[0].person.name, "Unknown 0005")
         # cluster name is NOT padded

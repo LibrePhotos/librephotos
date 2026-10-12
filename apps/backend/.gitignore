@@ -73,6 +73,8 @@ survey/
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
+# Per-worker test databases of `manage.py test --parallel` on SQLite.
+default_*.sqlite3
 
 # Flask stuff:
 instance/

@@ -1,4 +1,4 @@
-"""Characterization tests for ``api.face_classify.cluster_faces`` (unit 11).
+"""Characterization tests for ``api.faces.classify.cluster_faces`` (unit 11).
 
 These pin the CURRENT behaviour of ``cluster_faces`` before it is refactored.
 
@@ -16,7 +16,7 @@ from unittest.mock import patch
 import numpy as np
 from django.test import TestCase
 
-from api.face_classify import cluster_faces
+from api.faces.classify import cluster_faces
 from api.models.cluster import UNKNOWN_CLUSTER_ID
 from api.tests.utils import (
     create_test_face,
@@ -120,7 +120,7 @@ class ClusterFacesUnknownFacesTest(TestCase):
             self.assertEqual(set(entry["value"]), {"x", "y", "size"})
 
     def test_value_keys_map_to_first_three_pca_components(self):
-        with patch("api.face_classify.PCA", FakePCA):
+        with patch("api.faces.classify.make_pca", FakePCA):
             result = cluster_faces(self.user)
         values = [e["value"] for e in result["data"]]
         self.assertEqual(
@@ -136,7 +136,7 @@ class ClusterFacesUnknownFacesTest(TestCase):
         self.assertEqual(len(FakePCA.last_input[0]), 128)
 
     def test_pca_is_requested_with_three_components(self):
-        with patch("api.face_classify.PCA", wraps=FakePCA) as pca_cls:
+        with patch("api.faces.classify.make_pca", wraps=FakePCA) as pca_cls:
             cluster_faces(self.user)
         pca_cls.assert_called_once_with(n_components=3)
 
@@ -157,7 +157,7 @@ class ClusterFacesLabeledFacesTest(TestCase):
             )
 
     def test_labeled_faces_get_person_data_and_palette_colour(self):
-        with patch("api.face_classify.PCA", FakePCA):
+        with patch("api.faces.classify.make_pca", FakePCA):
             result = cluster_faces(self.user)
         self.assertEqual(len(result["data"]), 3)
         for entry in result["data"]:
@@ -172,7 +172,7 @@ class ClusterFacesLabeledFacesTest(TestCase):
             create_test_face(
                 photo=self.photo, image="test.jpg", encoding=enc_hex(i + 30)
             )
-        with patch("api.face_classify.PCA", FakePCA):
+        with patch("api.faces.classify.make_pca", FakePCA):
             result = cluster_faces(self.user)
         self.assertEqual(len(result["data"]), 5)
         labeled = [e for e in result["data"] if e["person_id"] == self.person.id]
@@ -190,7 +190,7 @@ class ClusterFacesLabeledFacesTest(TestCase):
         other_photo = create_test_photo(owner=other)
         foreign = create_test_person(name="Bob", cluster_owner=other)
         create_test_face(photo=other_photo, person=foreign, encoding=enc_hex(40))
-        with patch("api.face_classify.PCA", FakePCA):
+        with patch("api.faces.classify.make_pca", FakePCA):
             result = cluster_faces(self.user)
         self.assertEqual({e["person_name"] for e in result["data"]}, {"Alice"})
 
@@ -203,7 +203,7 @@ class ClusterFacesLabeledFacesTest(TestCase):
                 person=second,
                 encoding=enc_hex(i + 50),
             )
-        with patch("api.face_classify.PCA", FakePCA):
+        with patch("api.faces.classify.make_pca", FakePCA):
             result = cluster_faces(self.user)
         colors = {e["person_name"]: e["color"] for e in result["data"]}
         self.assertEqual(len(colors), 2)
@@ -245,11 +245,11 @@ class ClusterFacesPaginationTest(TestCase):
             create_test_face(photo=self.photo, encoding=enc_hex(i + 80))
 
     def test_all_pages_are_walked(self):
-        with patch("api.face_classify.Paginator") as paginator_cls:
+        with patch("api.faces.classify.Paginator") as paginator_cls:
             from django.core.paginator import Paginator as RealPaginator
 
             paginator_cls.side_effect = lambda qs, per_page: RealPaginator(qs, 2)
-            with patch("api.face_classify.PCA", FakePCA):
+            with patch("api.faces.classify.make_pca", FakePCA):
                 result = cluster_faces(self.user)
         self.assertEqual(len(result["data"]), 6)
         paginator_cls.assert_called_once()

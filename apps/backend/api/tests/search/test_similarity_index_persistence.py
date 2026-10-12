@@ -18,13 +18,13 @@ import numpy as np
 import requests
 from django.test import SimpleTestCase, TestCase
 
-from api import batch_jobs
-from api.image_similarity import (
+from api.models.long_running_job import LongRunningJob
+from api.search import embedding_jobs
+from api.search.similarity import (
     SimilarityIndexError,
     build_image_similarity_index,
     search_similar_embedding,
 )
-from api.models.long_running_job import LongRunningJob
 from api.tests.stubs import load_backend_file
 from api.tests.utils import create_test_photos, create_test_user
 
@@ -318,7 +318,7 @@ class BuildImageSimilarityIndexTest(TestCase):
         self._with_embeddings(3)
         post.return_value = _build_reply()
 
-        with patch("api.image_similarity.INDEX_PAGE_SIZE", 1):
+        with patch("api.search.similarity.INDEX_PAGE_SIZE", 1):
             build_image_similarity_index(self.user)
 
         flags = [
@@ -381,13 +381,13 @@ class ClipJobFailsWithTheIndexTest(TestCase):
         user = create_test_user()
         with (
             patch.object(
-                batch_jobs,
+                embedding_jobs,
                 "build_image_similarity_index",
                 side_effect=SimilarityIndexError("page 1 of 1 was refused"),
             ),
             self.assertRaises(SimilarityIndexError),
         ):
-            batch_jobs.batch_calculate_clip_embedding(user)
+            embedding_jobs.batch_calculate_clip_embedding(user)
 
         job = LongRunningJob.objects.filter(started_by=user).latest("queued_at")
         self.assertTrue(job.failed)

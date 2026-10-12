@@ -17,8 +17,8 @@ import PIL
 from django.test import TestCase
 from rest_framework.test import APIClient
 
+from api.faces.photo_faces import extract_faces
 from api.models import Person
-from api.photo_faces import extract_faces
 from api.tests.utils import (
     create_test_face,
     create_test_person,
@@ -92,10 +92,10 @@ class FacelessPersonInPeopleListTest(TestCase):
         self.assertIs(rows[self.person_with_face.id]["video"], False)
 
     @patch(
-        "api.photo_faces.PIL.Image.open",
+        "api.faces.photo_faces.PIL.Image.open",
         return_value=PIL.Image.new("RGB", (200, 200)),
     )
-    @patch("api.photo_faces.face_extractor")
+    @patch("api.faces.photo_faces.extractor")
     def test_an_uncroppable_named_xmp_region_does_not_empty_the_list(
         self, extractor, _open
     ):

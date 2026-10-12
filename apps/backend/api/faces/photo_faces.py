@@ -1,6 +1,6 @@
 """Finding the faces in a photo and saving them as ``Face`` rows.
 
-``api.face_extractor`` locates faces (face service or XMP regions); this
+``api.faces.extractor`` locates faces (face service or XMP regions); this
 module crops and persists them for a photo, reconciling XMP names with faces
 already found. Moved out of ``Photo``; every function taking a photo takes it
 as its first argument.
@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Iterable
+from dataclasses import dataclass
 from io import BytesIO
 from typing import TYPE_CHECKING
 
@@ -19,8 +20,8 @@ from django.core.files.base import ContentFile
 from django.db.utils import IntegrityError
 
 import api.models
-from api import face_extractor
-from api.face_recognition import get_face_encodings
+from api.faces import extractor
+from api.faces.recognition import get_face_encodings
 from api.lazy_import import LazyModule
 from api.util import FACE_OVERLAP_IOU_THRESHOLD, calculate_iou
 
@@ -87,7 +88,7 @@ def _detect_and_save_faces(
     big_thumbnail_image = np.array(PIL.Image.open(photo.thumbnail.thumbnail_big.path))
 
     assert photo.main_file is not None
-    face_locations = face_extractor.extract(
+    face_locations = extractor.extract(
         photo.main_file.path, photo.thumbnail.thumbnail_big.path, photo.owner
     )
 
@@ -123,12 +124,10 @@ def _detect_and_save_faces(
 
         save_detected_face(
             photo,
-            face_image,
+            DetectedFace(face_image, (top, right, bottom, left), encoding_array),
             image_path,
             person,
             unknown_cluster,
-            (top, right, bottom, left),
-            encoding_array,
         )
         if person is not None:
             person._calculate_face_count()
@@ -180,17 +179,28 @@ def _reconcile_xmp_face_name(
         break
 
 
+@dataclass
+class DetectedFace:
+    """A face found in a photo: its crop, where it is, and its encoding."""
+
+    image: PIL.Image.Image
+    # (top, right, bottom, left) in the big thumbnail.
+    location: tuple[int, int, int, int]
+    # None until the face service encodes it (generate_face_encoding).
+    encoding: npt.NDArray[float64] | None = None
+
+
 def save_detected_face(
     photo: Photo,
-    face_image: PIL.Image.Image,
+    detected: DetectedFace,
     image_path: str,
     person: api.models.person.Person | None,
     cluster: api.models.cluster.Cluster | None,
-    location: tuple[int, int, int, int],
-    encoding: npt.NDArray[float64] | None = None,
 ) -> api.models.face.Face:
-    """Save ``face_image`` (a PIL crop) as a new ``Face`` of ``photo``."""
-    top, right, bottom, left = location
+    """Save the crop of ``detected`` as a new ``Face`` of ``photo``."""
+    top, right, bottom, left = detected.location
+    encoding = detected.encoding
+    face_image = detected.image
     face = api.models.face.Face(
         photo=photo,
         location_top=top,

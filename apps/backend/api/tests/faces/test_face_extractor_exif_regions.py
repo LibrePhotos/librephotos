@@ -1,4 +1,4 @@
-"""Characterization tests for ``api.face_extractor.extract_from_exif`` (unit 12).
+"""Characterization tests for ``api.faces.extractor.extract_from_exif`` (unit 12).
 
 These tests pin the CURRENT behaviour of ``extract_from_exif`` before it is
 refactored.  They assert what the code does *today*, quirks and bugs included
@@ -14,7 +14,7 @@ from unittest.mock import patch
 import numpy as np
 from django.test import TestCase
 
-from api import face_extractor
+from api.faces import extractor
 from api.metadata.tags import Tags
 
 IMAGE_PATH = "/photos/img.jpg"
@@ -44,18 +44,18 @@ class ExtractFromExifBaseTest(TestCase):
 
     def setUp(self):
         super().setUp()
-        meta_patcher = patch("api.face_extractor.get_metadata")
+        meta_patcher = patch("api.faces.extractor.get_metadata")
         self.mock_get_metadata = meta_patcher.start()
         self.addCleanup(meta_patcher.stop)
 
-        open_patcher = patch("api.face_extractor.PIL.Image.open")
+        open_patcher = patch("api.faces.extractor.PIL.Image.open")
         self.mock_open = open_patcher.start()
         self.mock_open.return_value = FAKE_THUMB
         self.addCleanup(open_patcher.stop)
 
     def run_extract(self, region_info, orientation=None):
         self.mock_get_metadata.return_value = (region_info, orientation)
-        return face_extractor.extract_from_exif(IMAGE_PATH, THUMB_PATH)
+        return extractor.extract_from_exif(IMAGE_PATH, THUMB_PATH)
 
 
 class ExtractFromExifMetadataTest(ExtractFromExifBaseTest):
@@ -226,22 +226,22 @@ class ExtractFromExifOrientationTest(ExtractFromExifBaseTest):
 class ExtractIntegrationTest(ExtractFromExifBaseTest):
     """``extract`` falls through to the face service when exif yields nothing."""
 
-    @patch("api.face_extractor.extract_from_face_service")
+    @patch("api.faces.extractor.extract_from_face_service")
     def test_empty_exif_list_falls_back_to_face_service(self, mock_service):
         # ``[]`` is falsy, so an exif result of "no faces found" is treated the
         # same as "no region info at all".
         mock_service.return_value = [(1, 2, 3, 4, None)]
         self.mock_get_metadata.return_value = ({"RegionList": []}, None)
-        result = face_extractor.extract(IMAGE_PATH, THUMB_PATH, owner=None)
+        result = extractor.extract(IMAGE_PATH, THUMB_PATH, owner=None)
         self.assertEqual(result, [(1, 2, 3, 4, None)])
         mock_service.assert_called_once_with(IMAGE_PATH, THUMB_PATH)
 
-    @patch("api.face_extractor.extract_from_face_service")
+    @patch("api.faces.extractor.extract_from_face_service")
     def test_exif_faces_win(self, mock_service):
         self.mock_get_metadata.return_value = (
             {"RegionList": [face_region(area=dict(AREA))]},
             None,
         )
-        result = face_extractor.extract(IMAGE_PATH, THUMB_PATH, owner=None)
+        result = extractor.extract(IMAGE_PATH, THUMB_PATH, owner=None)
         self.assertEqual(result, [(55, 70, 95, 30, "Alice")])
         mock_service.assert_not_called()

@@ -50,7 +50,7 @@ class _Graph:
 
 
 def _spring_layout(
-    G: _Graph,
+    graph: _Graph,
     k: float | None = None,
     scale: float | None = 1.0,
     iterations: int = 50,
@@ -59,7 +59,7 @@ def _spring_layout(
 
     Returns a dict mapping each node to a numpy array [x, y].
     """
-    nodes = G.nodes()
+    nodes = graph.nodes()
     n = len(nodes)
     if n == 0:
         return {}
@@ -75,7 +75,7 @@ def _spring_layout(
     t = max(n * 0.1, 0.1)
     dt = t / (iterations + 1)
 
-    edge_indices = [(node_index[u], node_index[v]) for u, v in G.edges()]
+    edge_indices = [(node_index[u], node_index[v]) for u, v in graph.edges()]
 
     for _ in range(iterations):
         # delta[i, j] = pos[i] - pos[j], shape (n, n, 2)
@@ -128,21 +128,21 @@ def build_social_graph(user: User) -> dict[str, list[dict[str, str | float]]]:
             WHERE f1.person_id != f2.person_id
             GROUP BY f1.name, f2.name
         """.replace("{}", str(user.id))
-        G = _Graph()
+        graph = _Graph()
         with connection.cursor() as cursor:
             cursor.execute(query)
             links = cursor.fetchall()
             if len(links) == 0:
                 return {"nodes": [], "links": []}
             for link in links:
-                G.add_edge(link[0], link[1])
-        pos = _spring_layout(G, k=1 / 2, scale=1000, iterations=20)
+                graph.add_edge(link[0], link[1])
+        pos = _spring_layout(graph, k=1 / 2, scale=1000, iterations=20)
         return {
             "nodes": [
                 {"id": node, "x": float(coords[0]), "y": float(coords[1])}
                 for node, coords in pos.items()
             ],
-            "links": [{"source": pair[0], "target": pair[1]} for pair in G.edges()],
+            "links": [{"source": pair[0], "target": pair[1]} for pair in graph.edges()],
         }
     except Exception:
         logger.exception("Error building social graph for user %s", user.id)

@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 class ClusterManager:
     @staticmethod
     def try_add_cluster(
-        user: User, cluster_id: int, faces: list[Face], padLen: int = 1
+        user: User, cluster_id: int, faces: list[Face], pad_len: int = 1
     ) -> list[Cluster]:
         unknown_cluster: Cluster = get_unknown_cluster(user=user)
         known_faces = [face for face in faces if face.person]
@@ -42,7 +42,7 @@ class ClusterManager:
             )
         else:
             added_clusters, encoding_by_person = ClusterManager._create_cluster_person(
-                user, cluster_id, unknown_faces, padLen
+                user, cluster_id, unknown_faces, pad_len
             )
 
         for new_cluster in added_clusters:
@@ -71,10 +71,10 @@ class ClusterManager:
 
     @staticmethod
     def _create_cluster_person(
-        user: User, cluster_id: int, unknown_faces: list[Face], padLen: int
+        user: User, cluster_id: int, unknown_faces: list[Face], pad_len: int
     ) -> tuple[list[Cluster], dict[int, list[npt.NDArray[float64]]]]:
         new_person = get_or_create_person(
-            name="Unknown " + str(cluster_id).zfill(padLen),
+            name="Unknown " + str(cluster_id).zfill(pad_len),
             owner=user,
             kind=Person.KIND_CLUSTER,
         )

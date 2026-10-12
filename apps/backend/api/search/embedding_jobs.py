@@ -5,23 +5,26 @@ from collections.abc import Iterable
 
 from django.db.models import Q, QuerySet
 
-from api.image_similarity import build_image_similarity_index
 from api.jobs.queue import enqueue_followup
 from api.models.long_running_job import LongRunningJob
 from api.models.photo import Photo
 from api.models.user import User
-from api.semantic_search import (
+from api.search.semantic import (
     OPENCLIP,
     create_clip_embeddings,
     produced_by_openclip,
     semantic_shares_tagger,
 )
+from api.search.similarity import SimilarityIndexError, build_image_similarity_index
 
 logger = logging.getLogger(__name__)
 
 # While a run re-embeds photos of an earlier model, the similarity index is
 # rebuilt after this many, so search covers the converted ones as it goes.
 INDEX_REBUILD_EVERY = 2000
+
+# Photos per sidecar request.
+BATCH_SIZE = 64
 
 
 def photos_missing_clip_embeddings(user: User) -> QuerySet[Photo]:
@@ -96,7 +99,7 @@ def store_clip_embeddings(objs: list[Photo], with_tags: bool = False) -> None:
 def _rebuild_index_while_converting(user: User) -> None:
     try:
         build_image_similarity_index(user)
-    except Exception as e:
+    except SimilarityIndexError as e:
         # The run goes on; the index is rebuilt again at its end.
         logger.error("Error rebuilding the similarity index mid-run: %s", e)
 
@@ -133,11 +136,10 @@ def batch_calculate_clip_embedding(
     # answers from OpenCLIP throughout.
     converting = missing.filter(clip_embeddings__isnull=False).exists()
     if converting:
-        logger.info("re-embedding photos of %s with %s", user.username, OPENCLIP)
+        logger.info("re-embedding photos of user %s with %s", user.id, OPENCLIP)
         _rebuild_index_while_converting(user)
     since_rebuild = 0
 
-    BATCH_SIZE = 64
     done_count = 0
     last_pk: uuid.UUID | None = None
     while done_count < count:
@@ -156,8 +158,10 @@ def batch_calculate_clip_embedding(
             valid_objs = photos_with_existing_thumbnail(objs)
             if valid_objs:
                 store_clip_embeddings(valid_objs, with_tags=with_tags)
-        except Exception as e:
-            logger.error("Error calculating clip embeddings: %s", e)
+        except Exception:
+            # One failed batch (the sidecar down, a bad reply) must not end
+            # the run; its photos stay missing and the next run retries them.
+            logger.exception("Error calculating clip embeddings")
 
         lrj.update_progress(current=done_count, target=count)
         since_rebuild += len(objs)

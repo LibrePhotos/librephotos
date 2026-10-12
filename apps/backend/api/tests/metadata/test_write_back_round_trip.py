@@ -23,7 +23,7 @@ from django.db import transaction
 from rest_framework.test import APIClient
 
 from api.directory_watcher.file_handlers import _process_photo
-from api.face_extractor import extract_from_exif
+from api.faces.extractor import extract_from_exif
 from api.metadata.jobs import queue_rating_write, write_photo_ratings
 from api.metadata.photo_datetime import extract_date_time
 from api.metadata.photo_reader import extract_exif_data
@@ -431,7 +431,9 @@ class FaceTagRoundTripTest(RealExifToolTestCase):
         client.force_authenticate(user=photo.owner)
         # Clear of FACE_LANDSCAPE, in the bottom right of the thumbnail.
         box = {"top": 0.45, "right": 0.95, "bottom": 0.95, "left": 0.55}
-        with patch("api.photo_faces.get_face_encodings", return_value=[[0.0] * 512]):
+        with patch(
+            "api.faces.photo_faces.get_face_encodings", return_value=[[0.0] * 512]
+        ):
             response = client.post(
                 "/api/addface",
                 {"photo": photo.image_hash, "person_name": "Carol", "box": box},

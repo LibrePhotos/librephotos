@@ -14,12 +14,12 @@ from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
 from api.albums.timeline_filter import validate_default_timeline_filter
-from api.batch_jobs import batch_calculate_clip_embedding
 from api.exceptions import JobAlreadyRunning
 from api.jobs.queue import enqueue_job
 from api.ml_models import missing_models_prerequisites
 from api.models import LongRunningJob, Photo, User
 from api.models.photo import visible_photo_q
+from api.search.embedding_jobs import batch_calculate_clip_embedding
 from api.serializers.fields import loaded_count, loaded_list
 from api.serializers.simple import PhotoSuperSimpleSerializer
 from api.util import is_valid_path

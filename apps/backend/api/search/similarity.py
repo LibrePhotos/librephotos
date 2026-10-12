@@ -10,7 +10,7 @@ from api import sidecars
 from api.http_timeouts import SIMILARITY
 from api.lazy_import import LazyModule
 from api.models import Photo, User
-from api.semantic_search import (
+from api.search.semantic import (
     SEARCH_THRESHOLD,
     SIMILAR_THRESHOLD,
     is_current_embedding,
@@ -126,7 +126,7 @@ class SimilarityIndexError(RuntimeError):
 def build_image_similarity_index(user: User) -> int:
     """Rebuild the user's similarity index from their CLIP embeddings.
 
-    Only OpenCLIP's embeddings go in (api.semantic_search): while a library
+    Only OpenCLIP's embeddings go in (api.search.semantic): while a library
     is being converted from an earlier model, the photos not converted yet are
     left out rather than mixed in.
 

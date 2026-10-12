@@ -24,10 +24,15 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from api import photo_faces
 from api.directory_watcher import generate_face_embeddings, scan_faces
 from api.exceptions import Conflict
-from api.face_classify import cluster_all_faces
+from api.faces import photo_faces
+from api.faces.classify import cluster_all_faces
+from api.faces.photo_faces import (
+    DetectedFace,
+    overlaps_existing_face,
+    save_detected_face,
+)
 from api.jobs.queue import JobStep
 from api.metadata.photo_writer import write_photo_metadata, write_target
 from api.ml_models import missing_models_prerequisites
@@ -36,7 +41,6 @@ from api.models.person import Person, get_or_create_person
 from api.models.photo_search import PhotoSearch
 from api.models.thumbnail import Thumbnail
 from api.pagination import DefaultPagination
-from api.photo_faces import overlaps_existing_face, save_detected_face
 from api.request_user import request_user
 from api.serializers.face import (
     AddFaceRequest,
@@ -564,11 +568,10 @@ class AddFaceView(APIView):
             )
             face = save_detected_face(
                 photo,
-                face_image,
+                DetectedFace(face_image, (top, right, bottom, left)),
                 f"{photo.image_hash}_manual_{uuid.uuid4().hex[:8]}.jpg",
                 person,
                 None,
-                (top, right, bottom, left),
             )
 
         # Without an encoding the face is still a valid label -- it just cannot be

@@ -298,13 +298,13 @@ def _queue_embeddings_after_tags(job_id: UUID | str, user_id: int | None) -> Non
     and the scan's own embedding job left those photos to it. This run embeds
     the photos it could not tag and rebuilds the index.
     """
-    from api.semantic_search import semantic_shares_tagger
+    from api.search.semantic import semantic_shares_tagger
 
     if user_id is None or not semantic_shares_tagger():
         return
-    from api.batch_jobs import batch_calculate_clip_embedding
     from api.jobs.queue import enqueue_followup
     from api.models import User
+    from api.search.embedding_jobs import batch_calculate_clip_embedding
 
     user = User.objects.filter(pk=user_id).first()
     if user is None:

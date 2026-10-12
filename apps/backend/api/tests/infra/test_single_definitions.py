@@ -45,7 +45,7 @@ MIME_MODULE = "api/mime.py"
 # looks for one format by name.
 EXTENSION_LITERALS_ALLOWED = {
     "api/models/thumbnail.py": {".webp", ".mp4"},
-    "api/photo_faces.py": {".jpg"},
+    "api/faces/photo_faces.py": {".jpg"},
     "api/classification/screenshots.py": {".png"},
     "api/thumbnails/metadata.py": {".webp", ".mp4"},
     "api/thumbnails/render.py": {".webp", ".mp4"},
@@ -205,9 +205,9 @@ class PlantedDuplicatesAreCaughtTest(SimpleTestCase):
         self.assertEqual(len(extension_literal_offenders(planted)), 2)
 
     def test_an_allowed_file_may_not_add_other_extensions(self) -> None:
-        planted = [("api/photo_faces.py", 'name = f"{hash}.jpg"\nOK = ".png"\n')]
+        planted = [("api/faces/photo_faces.py", 'name = f"{hash}.jpg"\nOK = ".png"\n')]
         self.assertEqual(
-            extension_literal_offenders(planted), ["api/photo_faces.py:2 '.png'"]
+            extension_literal_offenders(planted), ["api/faces/photo_faces.py:2 '.png'"]
         )
 
     def test_a_protected_media_path_in_a_sidecar(self) -> None:

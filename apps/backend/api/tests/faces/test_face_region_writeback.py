@@ -93,10 +93,10 @@ class TestReverseOrientationTransform(TestCase):
         self._test_round_trip("Mirror horizontal and rotate 90 CW")
 
     def _test_round_trip(self, orientation):
-        """Apply forward transform (from face_extractor) then reverse, verify identity."""
+        """Apply forward transform (from api.faces.extractor) then reverse, verify identity."""
         orig_x, orig_y, orig_w, orig_h = 0.4, 0.3, 0.2, 0.15
 
-        # Apply forward transform (same logic as face_extractor.py lines 54-80)
+        # Apply forward transform (ORIENTATION_TRANSFORMS in api/faces/extractor.py)
         correct_x, correct_y = orig_x, orig_y
         correct_w, correct_h = orig_w, orig_h
         if orientation == "Rotate 90 CW":
@@ -238,7 +238,7 @@ class TestRoundTripCoordinates(TestCase):
             thumb_height,
         )
 
-        # Step 2: Simulate read-back (face_extractor.py lines 82-90)
+        # Step 2: Simulate read-back (to_face_box in api/faces/extractor.py)
         half_width = (w * thumb_width) / 2
         half_height = (h * thumb_height) / 2
         read_top = int((y * thumb_height) - half_height)

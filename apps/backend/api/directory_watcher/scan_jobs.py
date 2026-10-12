@@ -20,7 +20,6 @@ from django.conf import settings
 from django.core.paginator import Paginator
 from django.db.models import Q
 
-from api.batch_jobs import batch_calculate_clip_embedding
 from api.directory_watcher.file_grouping import (
     get_file_grouping_key,
     get_sidecar_grouping_keys,
@@ -48,7 +47,8 @@ from api.metadata.reader import get_sidecar_files_in_priority_order
 from api.mime import VIDEO_EXTENSIONS, extension
 from api.models import LongRunningJob, Photo, Thumbnail, User
 from api.photo_files import detach_missing_files
-from api.semantic_search import semantic_shares_tagger
+from api.search.embedding_jobs import batch_calculate_clip_embedding
+from api.search.semantic import semantic_shares_tagger
 from api.thumbnails import render
 from api.video import color
 

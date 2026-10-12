@@ -32,9 +32,9 @@ from django.test import TestCase, override_settings
 from rest_framework.exceptions import ValidationError
 from rest_framework.test import APIClient
 
-from api.batch_jobs import batch_calculate_clip_embedding
 from api.ml_models import download_models
 from api.models import LongRunningJob, User
+from api.search.embedding_jobs import batch_calculate_clip_embedding
 from api.serializers.user import ManageUserSerializer, UserSerializer
 from api.tests.utils import create_test_job, create_test_user
 

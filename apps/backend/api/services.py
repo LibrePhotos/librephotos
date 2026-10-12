@@ -26,7 +26,7 @@ HTTP_OK = 200
 # The feature flag each service serves; None means core scan/search, always on.
 # The tags service runs OpenCLIP, which also makes the semantic-search
 # embeddings and query embeddings, so it is core: FEATURE_SCENE_CLASSIFICATION
-# only decides whether photos get tags (api.semantic_search).
+# only decides whether photos get tags (api.search.semantic).
 SERVICE_FEATURE_FLAGS = {
     "image_similarity": None,
     "thumbnail": None,

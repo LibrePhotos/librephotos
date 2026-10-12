@@ -11,17 +11,17 @@ from django.core.management import call_command
 from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
 
-from api import semantic_search
-from api.batch_jobs import store_clip_embeddings
 from api.directory_watcher import utils as watcher_utils
-from api.image_similarity import search_similar_image
 from api.models import LongRunningJob, Photo
 from api.models.album_thing import AlbumThing
 from api.models.photo_caption import PhotoCaption
-from api.semantic_search import generate_photo_tags
+from api.search import semantic
+from api.search.embedding_jobs import store_clip_embeddings
+from api.search.semantic import generate_photo_tags
+from api.search.similarity import search_similar_image
 from api.tests.utils import create_test_job, create_test_photo, create_test_user
 
-OPENCLIP = semantic_search.OPENCLIP
+OPENCLIP = semantic.OPENCLIP
 EARLIER_MODEL = "an-earlier-model"
 
 
@@ -38,7 +38,7 @@ class RoutingAndThresholdsTest(TestCase):
     def test_queries_run_in_the_tags_sidecar(self, post):
         post.return_value = _reply({"emb": [1.0], "magnitude": 1.0})
 
-        semantic_search.calculate_query_embeddings("a dog")
+        semantic.calculate_query_embeddings("a dog")
 
         self.assertIn(":8011/query-embeddings", post.call_args.args[0])  # tags
         self.assertEqual(post.call_args.kwargs["json"], {"query": "a dog"})
@@ -49,7 +49,7 @@ class RoutingAndThresholdsTest(TestCase):
             {"imgs_emb": [[1.0], None], "magnitudes": [1.0, None]}
         )
 
-        embeddings, magnitudes, tags = semantic_search.create_clip_embeddings(
+        embeddings, magnitudes, tags = semantic.create_clip_embeddings(
             ["/a.webp", "/b.webp"]
         )
 
@@ -68,14 +68,14 @@ class RoutingAndThresholdsTest(TestCase):
             {"imgs_emb": [[1.0]], "magnitudes": [1.0], "tags": [["cat"]]}
         )
 
-        _, _, tags = semantic_search.create_clip_embeddings(["/a.webp"], with_tags=True)
+        _, _, tags = semantic.create_clip_embeddings(["/a.webp"], with_tags=True)
 
         self.assertTrue(post.call_args.kwargs["json"]["with_tags"])
         self.assertEqual(tags, [["cat"]])
 
     def test_thresholds_are_openclips(self):
-        self.assertEqual(semantic_search.SEARCH_THRESHOLD, 31.3)
-        self.assertEqual(semantic_search.SIMILAR_THRESHOLD, 138.9)
+        self.assertEqual(semantic.SEARCH_THRESHOLD, 31.3)
+        self.assertEqual(semantic.SIMILAR_THRESHOLD, 138.9)
 
     def test_only_openclip_rows_are_current(self):
         user = create_test_user()
@@ -92,21 +92,15 @@ class RoutingAndThresholdsTest(TestCase):
         current.save()
 
         self.assertEqual(
-            list(Photo.objects.filter(semantic_search.produced_by_openclip())),
+            list(Photo.objects.filter(semantic.produced_by_openclip())),
             [current],
         )
         self.assertEqual(
-            {
-                p.pk
-                for p in Photo.objects.exclude(semantic_search.produced_by_openclip())
-            },
+            {p.pk for p in Photo.objects.exclude(semantic.produced_by_openclip())},
             {legacy.pk, earlier.pk},
         )
         self.assertEqual(
-            [
-                semantic_search.is_current_embedding(p)
-                for p in (legacy, earlier, current)
-            ],
+            [semantic.is_current_embedding(p) for p in (legacy, earlier, current)],
             [False, False, True],
         )
 
@@ -143,7 +137,7 @@ class TagsStoreTheEmbeddingTest(TestCase):
         self.caption.save()
 
     def _tag(self, body):
-        with patch("api.semantic_search.sidecars.post") as post:
+        with patch("api.search.semantic.sidecars.post") as post:
             post.return_value = _reply(body)
             generate_photo_tags(self.caption, commit=True)
         return post
@@ -167,12 +161,12 @@ class TagsStoreTheEmbeddingTest(TestCase):
                     "title", "thing_type"
                 )
             ),
-            [("beach", semantic_search.TAG_THING_TYPE)],
+            [("beach", semantic.TAG_THING_TYPE)],
         )
 
     @override_settings(FEATURE_SCENE_CLASSIFICATION=False)
     def test_tagging_off_tags_nothing(self):
-        with patch("api.semantic_search.sidecars.post") as post:
+        with patch("api.search.semantic.sidecars.post") as post:
             generate_photo_tags(self.caption, commit=True)
         post.assert_not_called()
 
@@ -195,7 +189,7 @@ class EmbeddingsAfterTagsTest(TestCase):
         return user, task
 
     def test_the_tags_job_queues_the_embedding_job(self):
-        from api.batch_jobs import batch_calculate_clip_embedding
+        from api.search.embedding_jobs import batch_calculate_clip_embedding
 
         user, task = self._finish_tags_job()
 
@@ -230,8 +224,8 @@ class ConversionTest(TestCase):
         photo.save()
 
     def test_startup_re_embeds_only_libraries_of_earlier_models(self):
-        from api.batch_jobs import batch_calculate_clip_embedding
-        from api.image_similarity import build_image_similarity_index
+        from api.search.embedding_jobs import batch_calculate_clip_embedding
+        from api.search.similarity import build_image_similarity_index
 
         with (
             patch("api.jobs.queue.AsyncTask") as task,
@@ -306,7 +300,7 @@ class ConversionReTagsTest(TestCase):
         self.assertEqual(
             set(
                 AlbumThing.objects.filter(
-                    thing_type=semantic_search.TAG_THING_TYPE, photos=self.untagged
+                    thing_type=semantic.TAG_THING_TYPE, photos=self.untagged
                 ).values_list("title", flat=True)
             ),
             {"cat", "sofa"},

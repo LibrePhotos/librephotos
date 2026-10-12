@@ -27,7 +27,7 @@ MODELS = BACKEND / "api" / "models"
 FORBIDDEN_MODULES = (
     "api.sidecars",
     "api.classification.captioning",
-    "api.face_recognition",
+    "api.faces.recognition",
     "api.thumbnails",
     "api.metadata.photo_writer",
     "api.metadata.writer",

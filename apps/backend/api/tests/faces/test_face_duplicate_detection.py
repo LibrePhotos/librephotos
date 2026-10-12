@@ -3,7 +3,7 @@
 from django.test import TestCase
 
 from api.admin import deduplicate_faces_function
-from api.photo_faces import overlaps_existing_face
+from api.faces.photo_faces import overlaps_existing_face
 from api.tests.utils import (
     create_test_face,
     create_test_person,
@@ -78,7 +78,7 @@ class CalculateIoUTest(TestCase):
 
 
 class OverlapsExistingFaceTest(TestCase):
-    """Tests for overlaps_existing_face in api.photo_faces."""
+    """Tests for overlaps_existing_face in api.faces.photo_faces."""
 
     def test_no_existing_faces(self):
         """When no faces exist on the photo, should return False."""

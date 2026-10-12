@@ -133,7 +133,7 @@ class PersonViewSet(
 
 def _get_active_tag_thing_types() -> list[str]:
     """Return the AlbumThing thing_type values of the tagger's albums."""
-    from api.semantic_search import TAG_THING_TYPE
+    from api.search.semantic import TAG_THING_TYPE
 
     return [TAG_THING_TYPE]
 

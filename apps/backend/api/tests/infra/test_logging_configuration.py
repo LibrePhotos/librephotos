@@ -151,14 +151,14 @@ class LogLevelTest(SimpleTestCase):
 
     def test_debug_level_reaches_the_project_logger(self):
         # The acceptance criterion is the logger.debug() calls in
-        # api/face_extractor.py, api/models/photo_search.py, api/geocode/geocode.py,
+        # api/faces/extractor.py, api/models/photo_search.py, api/geocode/geocode.py,
         # api/stacks/live_photo.py and api/stacks/detection.py - they were
         # unreachable before LOG_LEVEL existed.
-        from api import face_extractor
+        from api.faces import extractor
 
         with temporary_logging(level="DEBUG") as log_file:
-            self.assertEqual(face_extractor.logger.getEffectiveLevel(), logging.DEBUG)
-            face_extractor.logger.debug("region_info debug line")
+            self.assertEqual(extractor.logger.getEffectiveLevel(), logging.DEBUG)
+            extractor.logger.debug("region_info debug line")
             flush_root_handlers()
             with open(log_file, encoding="utf-8") as f:
                 self.assertIn("region_info debug line", f.read())

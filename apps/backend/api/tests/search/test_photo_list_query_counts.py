@@ -63,10 +63,10 @@ class PhotoListQueryCountTest(TestCase):
     def test_semantic_search(self):
         with (
             patch(
-                "api.filters.calculate_query_embeddings",
+                "api.search.filters.calculate_query_embeddings",
                 return_value=([0.1] * 512, 1.0),
             ),
-            patch("api.filters.search_similar_embedding", return_value=[]),
+            patch("api.search.filters.search_similar_embedding", return_value=[]),
         ):
             self._assert_constant(
                 "/api/photos/searchlist/",

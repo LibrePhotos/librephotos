@@ -13,14 +13,16 @@ from uuid import UUID
 from django import db
 from django.db.models import Q, QuerySet
 
-from api import photo_faces, semantic_search, sidecars
+from api import sidecars
 from api.classification.documents import classify_document
 from api.directory_watcher.utils import (
     CANCELLATION_CHECK_INTERVAL,
     is_job_cancelled,
     update_scan_counter,
 )
-from api.face_classify import cluster_all_faces
+from api.faces import photo_faces
+from api.faces.classify import cluster_all_faces
+from api.faces.photo_faces import extract_faces
 from api.geocode.photo_location import add_location_to_album_dates, geolocate_photo
 from api.jobs.queue import enqueue_task
 from api.mime import CV2_DECODABLE_EXTENSIONS, extension
@@ -28,8 +30,8 @@ from api.models import Face, LongRunningJob, Photo, User
 from api.models.album_thing import AlbumThing
 from api.models.photo_caption import PhotoCaption
 from api.models.photo_ocr import PhotoOcr
-from api.photo_faces import extract_faces
-from api.semantic_search import OPENCLIP, TAG_THING_TYPE
+from api.search import semantic
+from api.search.semantic import OPENCLIP, TAG_THING_TYPE
 from api.thumbnails import render
 from api.video import color, transcode_cache
 
@@ -230,7 +232,7 @@ def generate_tag_job(photo_id: UUID | Photo, job_id: str) -> None:
     error = None
     try:
         caption_instance, created = PhotoCaption.objects.get_or_create(photo=photo)
-        semantic_search.generate_photo_tags(caption_instance, commit=True)
+        semantic.generate_photo_tags(caption_instance, commit=True)
     except Exception as err:
         logger.exception("An error occurred: %s", photo.image_hash)
         failed = True

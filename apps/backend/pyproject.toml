@@ -193,7 +193,7 @@ type = "layers"
 layers = [
   "api.views : nextcloud.views",
   "api.serializers",
-  "api.albums : api.classification : api.directory_watcher : api.duplicates : api.geocode : api.jobs : api.metadata : api.stacks : api.thumbnails : api.video",
+  "api.albums : api.classification : api.directory_watcher : api.duplicates : api.faces : api.geocode : api.jobs : api.metadata : api.search : api.stacks : api.thumbnails : api.video",
   "api.models",
 ]
 ignore_imports = [
@@ -201,6 +201,12 @@ ignore_imports = [
   # those defaults by path in api.models.user, so they stay there.
   "api.models.user -> api.metadata.datetime_rules",
   "api.models.user -> api.stacks.burst_rules",
+  # OPENCLIP and TAG_THING_TYPE, the model's name as stored in captions_json,
+  # clip_embeddings_model and thing_type. api.search.semantic defines them and
+  # stays importable without the app registry (scripts/calibrate_openclip.py);
+  # the model side goes with #2336.
+  "api.models.photo_caption -> api.search.semantic",
+  "api.models.photo_search -> api.search.semantic",
   # The photo query builder, still in a view module.
   "api.serializers.album_user -> api.views.photo_filters",
   # Request parsing helpers (ClampedIntegerField and friends) in api/views/params.py.

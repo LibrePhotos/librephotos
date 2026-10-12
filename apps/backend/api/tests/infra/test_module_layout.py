@@ -42,18 +42,6 @@ STAYS_FLAT = {
 # Flat module -> the package it moves to, in the order of the remaining moves.
 # Remove a module's line in the pull request that moves it.
 TO_MOVE = {
-    # Search (with api_util.get_search_term_examples).
-    "semantic_search": "api/search/",
-    "image_similarity": "api/search/",
-    "batch_jobs": "api/search/",
-    "filters": "api/search/",
-    # Faces.
-    "face_recognition": "api/faces/",
-    "face_extractor": "api/faces/",
-    "photo_faces": "api/faces/",
-    "face_classify": "api/faces/",
-    "cluster_manager": "api/faces/",
-    "social_graph": "api/faces/",
     # Serving.
     "http_range": "api/serving/",
     "serving_permissions": "api/serving/",
@@ -83,7 +71,7 @@ TO_MOVE = {
     "all_tasks": "api/photos/",
     # Split by content: log handler to librephotos/logging_bootstrap.py, path
     # checks to api/photos/paths.py, geometry to api/faces/, directory tree to
-    # api/serving/, search term examples to api/search/.
+    # api/serving/.
     "util": "split",
     "api_util": "split",
     # The sidecar platform, last (Schedule.func migration; service/_common.py and

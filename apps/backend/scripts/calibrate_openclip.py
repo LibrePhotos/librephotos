@@ -11,11 +11,11 @@ no torch), against a model directory and a folder of photos::
 Each threshold of a new model is chosen so that it behaves like the model it
 replaces, measured on the same photos:
 
-``api.semantic_search.SEARCH_THRESHOLD``
+``api.search.semantic.SEARCH_THRESHOLD``
     the inner product of a raw query and a raw image embedding that returns
     as many photos per query, on average, as the previous model did at its own
     threshold (``search_hits_per_query`` in the reference);
-``api.semantic_search.SIMILAR_THRESHOLD``
+``api.search.semantic.SIMILAR_THRESHOLD``
     the same for photo-to-photo inner products (``similar_hits_per_photo``);
 ``service.tags.openclip.openclip.DEFAULT_MIN_PROBABILITY``
     the softmax probability (at the model's logit scale) that keeps the tags
@@ -331,7 +331,7 @@ def main(argv=None):
     if args.model_dir:
         os.environ["OPENCLIP_MODEL_DIR"] = args.model_dir
 
-    from api import semantic_search
+    from api.search import semantic
     from service.tags.openclip import openclip
 
     reference = json.loads(Path(args.reference).read_text()) if args.reference else {}
@@ -343,8 +343,8 @@ def main(argv=None):
             images,
             stems,
             texts,
-            semantic_search.SEARCH_THRESHOLD,
-            semantic_search.SIMILAR_THRESHOLD,
+            semantic.SEARCH_THRESHOLD,
+            semantic.SIMILAR_THRESHOLD,
         )
     }
     if "search_hits_per_query" in reference:

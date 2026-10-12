@@ -30,11 +30,11 @@ from django.core.management import call_command
 from django.db import connection
 from django.test import TestCase
 
-from api.batch_jobs import batch_calculate_clip_embedding
 from api.models import Photo
 from api.models.album_thing import AlbumThing
 from api.models.photo_caption import PhotoCaption
-from api.semantic_search import OPENCLIP, TAG_THING_TYPE
+from api.search.embedding_jobs import batch_calculate_clip_embedding
+from api.search.semantic import OPENCLIP, TAG_THING_TYPE
 from api.tests.utils import (
     create_test_album_thing,
     create_test_photo,

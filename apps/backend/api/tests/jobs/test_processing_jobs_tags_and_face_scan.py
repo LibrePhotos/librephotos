@@ -19,7 +19,7 @@ from django.utils import timezone
 from api.directory_watcher import processing_jobs
 from api.directory_watcher.processing_jobs import generate_tags, scan_faces
 from api.models import LongRunningJob, Photo
-from api.semantic_search import OPENCLIP
+from api.search.semantic import OPENCLIP
 from api.tests.utils import create_test_photo, create_test_user
 
 

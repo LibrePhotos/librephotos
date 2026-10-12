@@ -45,7 +45,7 @@ _.reset_for_tests  # function in api/geocode/rate_limit.py
 # Dead: only tests call these. Delete them together with their tests, or
 # point the tests at the function they wrap.
 _.check_filename_pattern  # function in api/stacks/burst_rules.py
-_.get_face_locations  # function in api/face_recognition.py
+_.get_face_locations  # function in api/faces/recognition.py
 _.resolution  # property in api/models/photo_metadata.py
 _.are_duplicates  # function in api/duplicates/perceptual_hash.py
 _.find_similar_hashes  # function in api/duplicates/perceptual_hash.py

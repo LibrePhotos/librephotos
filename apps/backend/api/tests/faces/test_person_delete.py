@@ -11,7 +11,7 @@ amounts to today), and the clustering reset.
 from django.test import TestCase
 from rest_framework.test import APIClient
 
-from api.face_classify import delete_clustered_people, delete_persons_without_faces
+from api.faces.classify import delete_clustered_people, delete_persons_without_faces
 from api.models.cluster import Cluster
 from api.models.deletion_log import DeletionLog
 from api.models.face import Face
