@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from api.models import Face, Person
+from api.views.params import QueryFlagField
 
 
 class PersonFaceListSerializer(serializers.ModelSerializer):
@@ -81,3 +82,66 @@ class FaceListSerializer(serializers.ModelSerializer):
             return obj.person.name
         else:
             return "Unknown - Other"
+
+
+class FaceListQuery(serializers.Serializer[None]):
+    person = serializers.IntegerField(
+        default=0, help_text="Person id; 0 lists the faces of no one"
+    )
+    analysis_method = serializers.CharField(
+        default="clustering",
+        allow_blank=True,
+        help_text="clustering or classification; blank lists confirmed faces",
+    )
+    min_confidence = serializers.FloatField(default=0)
+    inferred = QueryFlagField(
+        false_values={"false"},
+        help_text="false lists the person's confirmed faces only",
+    )
+    order_by = serializers.CharField(
+        default="", allow_blank=True, help_text="date sorts by photo date first"
+    )
+
+
+class FaceIncompleteListQuery(serializers.Serializer[None]):
+    inferred = QueryFlagField(
+        true_values={"true"}, help_text="true counts suggested faces too"
+    )
+    analysis_method = serializers.CharField(
+        default="clustering",
+        allow_blank=True,
+        help_text="clustering or classification, with inferred",
+    )
+    min_confidence = serializers.FloatField(default=0)
+
+
+def _person_name_field() -> serializers.CharField:
+    """A person's name, trimmed: blank would create a nameless person."""
+    message = "person_name must not be empty"
+    return serializers.CharField(
+        error_messages={"required": message, "null": message, "blank": message}
+    )
+
+
+class FaceIdsRequest(serializers.Serializer[None]):
+    face_ids = serializers.ListField(child=serializers.IntegerField())
+
+
+class SetFacePersonLabelRequest(FaceIdsRequest):
+    person_name = _person_name_field()
+
+
+class AddFaceRequest(serializers.Serializer[None]):
+    person_name = _person_name_field()
+    photo = serializers.CharField(
+        error_messages={
+            "required": "photo is required",
+            "null": "photo is required",
+            "blank": "photo is required",
+        },
+        help_text="The photo's id or image_hash",
+    )
+    box = serializers.JSONField(
+        required=False,
+        help_text="top, right, bottom and left as fractions of the displayed image",
+    )

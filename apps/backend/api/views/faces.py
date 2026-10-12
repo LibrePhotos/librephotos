@@ -17,8 +17,7 @@ from django.db.models import (
 )
 from django.utils import timezone
 from django_q.tasks import Chain
-from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import OpenApiParameter, extend_schema
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 from rest_framework.permissions import IsAuthenticated
@@ -35,15 +34,20 @@ from api.models.person import Person, get_or_create_person
 from api.models.photo_search import PhotoSearch
 from api.models.thumbnail import Thumbnail
 from api.photo_faces import overlaps_existing_face, save_detected_face
-from api.request_data import request_dict
 from api.request_user import request_user
 from api.serializers.face import (
+    AddFaceRequest,
+    FaceIdsRequest,
+    FaceIncompleteListQuery,
+    FaceListQuery,
     FaceListSerializer,
     IncompletePersonFaceListSerializer,
     PersonFaceListSerializer,
+    SetFacePersonLabelRequest,
 )
 from api.views.custom_api_view import ListViewSet
 from api.views.pagination import RegularResultsSetPagination
+from api.views.params import parse_body, parse_query
 from api.views.photos import _get_photo_filter_kwargs
 from api.views.scan_triggers import start_job
 
@@ -113,20 +117,12 @@ class FaceListView(ListViewSet):
         # drf-spectacular asks with an anonymous request; photo__owner rejects it.
         if getattr(self, "swagger_fake_view", False):
             return Face.objects.none()
-        personid: str | None = self.request.query_params.get("person", "0")
+        params = parse_query(self.request, FaceListQuery)
+        personid: int | None = params["person"] or None
+        analysis_method: str | None = params["analysis_method"]
+        min_confidence = params["min_confidence"]
 
-        if personid == "0":
-            personid = None
-
-        analysis_method: str | None = self.request.query_params.get(
-            "analysis_method", "clustering"
-        )
-        min_confidence = float(self.request.query_params.get("min_confidence", 0))
-
-        if (
-            self.request.query_params.get("inferred", "").lower() == "false"
-            and personid
-        ):
+        if not params["inferred"] and personid:
             analysis_method = None
         if analysis_method == "classification":
             conditional_filter = Q(person=None)
@@ -156,7 +152,7 @@ class FaceListView(ListViewSet):
         if not analysis_method:
             conditional_filter = Q(person=personid)
             order_by = ["-id"]
-        if self.request.query_params.get("order_by", "").lower() == "date":
+        if params["order_by"].lower() == "date":
             order_by = ["photo__exif_timestamp", *order_by]
         return (
             Face.objects.filter(
@@ -169,13 +165,7 @@ class FaceListView(ListViewSet):
             .order_by(*order_by)
         )
 
-    @extend_schema(
-        parameters=[
-            OpenApiParameter("person", OpenApiTypes.STR),
-            OpenApiParameter("inferred", OpenApiTypes.BOOL),
-            OpenApiParameter("order_by", OpenApiTypes.STR),
-        ],
-    )
+    @extend_schema(parameters=[FaceListQuery])
     def list(self, *args: Any, **kwargs: Any) -> Response:
         return super().list(*args, **kwargs)
 
@@ -190,9 +180,10 @@ class FaceIncompleteListViewSet(ListViewSet):
         if getattr(self, "swagger_fake_view", False):
             return Person.objects.none()
         user = request_user(self.request)
-        inferred = self.request.query_params.get("inferred", "").lower() == "true"
-        analysis_method = self.request.query_params.get("analysis_method", "clustering")
-        min_confidence = float(self.request.query_params.get("min_confidence", 0))
+        params = parse_query(self.request, FaceIncompleteListQuery)
+        inferred = params["inferred"]
+        analysis_method = params["analysis_method"]
+        min_confidence = params["min_confidence"]
 
         queryset = Person.objects.filter(cluster_owner=user)
         # Every count below is scoped to the requester's own photos, because
@@ -251,25 +242,19 @@ class FaceIncompleteListViewSet(ListViewSet):
 
         return queryset
 
-    @extend_schema(
-        parameters=[
-            OpenApiParameter("inferred", OpenApiTypes.BOOL),
-        ],
-    )
+    @extend_schema(parameters=[FaceIncompleteListQuery])
     def list(self, *args: Any, **kwargs: Any) -> Response:
         user = request_user(self.request)
+        params = parse_query(self.request, FaceIncompleteListQuery)
         queryset = self.get_queryset()
 
         serializer = self.get_serializer(queryset, many=True)
         real_persons = serializer.data
 
-        min_confidence = float(self.request.query_params.get("min_confidence", 0))
+        min_confidence = params["min_confidence"]
 
-        if self.request.query_params.get("inferred", "").lower() == "true":
-            if (
-                self.request.query_params.get("analysis_method", "clustering")
-                == "classification"
-            ):
+        if params["inferred"]:
+            if params["analysis_method"] == "classification":
                 unknown_faces_count = Face.objects.filter(
                     Q(deleted=False)
                     & Q(person=None)
@@ -306,9 +291,10 @@ class FaceIncompleteListViewSet(ListViewSet):
 class SetFacePersonLabel(APIView):
     permission_classes = (IsAuthenticated,)
 
+    @extend_schema(request=SetFacePersonLabelRequest)
     def post(self, request: Request, format: str | None = None) -> Response:
         user = request_user(request)
-        data = dict(request_dict(request))
+        data = parse_body(request, SetFacePersonLabelRequest)
         person: Person | None = None
         cluster_person: Person | None = None
         classification_person: Person | None = None
@@ -316,9 +302,8 @@ class SetFacePersonLabel(APIView):
         # field validators, so a blank name would quietly create a nameless person
         # and an album to go with it. Surrounding whitespace is trimmed for the same
         # reason: " Bob " would otherwise become a second person next to "Bob".
-        person_name = (data.get("person_name") or "").strip()
-        if not person_name:
-            raise ValidationError({"person_name": "person_name must not be empty"})
+        # The serializer refuses a blank name and trims the rest.
+        person_name = data["person_name"]
         if person_name != Person.UNKNOWN_PERSON_NAME:
             # A cluster's label is not a person's name. Clustering backs every
             # unnamed cluster with a Person of kind CLUSTER called "Unknown NNN",
@@ -496,23 +481,20 @@ class AddFaceView(APIView):
     # A box smaller than this in big-thumbnail pixels is a stray drag, not a face.
     MIN_SIDE_PIXELS = 12
 
+    @extend_schema(request=AddFaceRequest)
     def post(self, request: Request, format: str | None = None) -> Response:
         user = request_user(request)
-        person_name = (request_dict(request).get("person_name") or "").strip()
-        if not person_name:
-            raise self._error("person_name must not be empty")
+        data = parse_body(request, AddFaceRequest)
+        person_name = data["person_name"]
         if person_name == Person.UNKNOWN_PERSON_NAME:
             raise self._error(
                 "a face drawn by hand has to name someone; "
                 f"'{Person.UNKNOWN_PERSON_NAME}' is what the algorithms use"
             )
 
-        photo_id = request_dict(request).get("photo")
-        if not photo_id:
-            raise self._error("photo is required")
         photo = (
             Photo.objects.owned_by(user)
-            .filter(**_get_photo_filter_kwargs(str(photo_id)))
+            .filter(**_get_photo_filter_kwargs(data["photo"]))
             .select_related(
                 "owner", "thumbnail", "main_file", "metadata", "caption_instance"
             )
@@ -537,7 +519,7 @@ class AddFaceView(APIView):
 
         with big_thumbnail:
             box, error = self._box_in_pixels(
-                request_dict(request).get("box"),
+                data.get("box"),
                 big_thumbnail.width,
                 big_thumbnail.height,
             )
@@ -680,9 +662,10 @@ class AddFaceView(APIView):
 class DeleteFaces(APIView):
     permission_classes = (IsAuthenticated,)
 
+    @extend_schema(request=FaceIdsRequest)
     def post(self, request: Request, format: str | None = None) -> Response:
         user = request_user(request)
-        data = dict(request_dict(request))
+        data = parse_body(request, FaceIdsRequest)
         faces = Face.objects.filter(photo__owner=user).in_bulk(data["face_ids"])
 
         deleted: list[str] = []
