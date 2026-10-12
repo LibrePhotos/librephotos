@@ -9,5 +9,5 @@
 
 .intervalDropdown .intervalOption:hover:where(:not([data-combobox-selected])),
 .intervalDropdown .intervalOption:active:where(:not([data-combobox-selected])) {
-  background-color: rgba(255, 255, 255, 0.08);
+  background-color: var(--app-scrim-white-8);
 }

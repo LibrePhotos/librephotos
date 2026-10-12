@@ -30,6 +30,9 @@ export const FACE_CLUSTER_COLORS = [
 /** Faces that belong to nobody yet. */
 export const FACE_CLUSTER_UNKNOWN_COLOR = "rgba(100, 100, 100, 0.4)";
 
+/** The canvas fill of a face that belongs to nobody yet, at the given opacity. */
+export const faceClusterUnknownFill = (opacity: number) => `rgba(100, 100, 100, ${opacity})`;
+
 /** The face cluster canvas: its grid lines and the ring around a known face, per colour scheme. */
 export const FACE_CLUSTER_CANVAS_COLORS = {
   grid: { dark: "rgba(255, 255, 255, 0.05)", light: "rgba(0, 0, 0, 0.05)" },

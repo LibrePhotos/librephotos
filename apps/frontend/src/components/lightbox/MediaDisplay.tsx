@@ -222,7 +222,7 @@ export function MediaDisplay({
             opacity: isMainContent ? 1 : 0.9,
             willChange: isMainContent ? "transform" : "auto",
             WebkitTapHighlightColor: "transparent",
-            boxShadow: isMainContent ? "0 4px 16px rgba(0,0,0,0.1)" : "none",
+            boxShadow: isMainContent ? "0 4px 16px var(--app-scrim-black-10)" : "none",
           }}
         />
         {isMainContent && showOcrText && ocrBlocks && ocrBlocks.length > 0 && naturalSize && naturalSize.width > 0 && (

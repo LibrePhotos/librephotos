@@ -1,0 +1,7 @@
+/* The faint backdrop that marks an OCR text block as selectable, like Live Text's glow. It sits on
+   the photo, so it is the same in both colour schemes. A rule, not SVG fill/stroke attributes:
+   those do not take CSS variables. */
+.blockBackdrop {
+  fill: var(--app-scrim-white-16);
+  stroke: var(--app-scrim-white-35);
+}

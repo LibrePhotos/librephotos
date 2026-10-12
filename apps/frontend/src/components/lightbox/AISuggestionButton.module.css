@@ -13,7 +13,16 @@
   position: relative;
   cursor: pointer;
   transition: all 0.3s ease;
-  background: conic-gradient(from var(--angle), #8b45ff, #3b82f6, #06b6d4, #10b981, #f59e0b, #ef4444, #8b45ff);
+  background: conic-gradient(
+    from var(--angle),
+    var(--app-ai-violet),
+    var(--app-ai-blue),
+    var(--app-ai-cyan),
+    var(--app-ai-emerald),
+    var(--app-ai-amber),
+    var(--app-ai-red),
+    var(--app-ai-violet)
+  );
   animation: borderRotate 3s linear infinite;
 }
 .aiSuggestionButton::before {
@@ -36,8 +45,8 @@
   transform: translateY(-1px);
   filter: brightness(1.1);
   box-shadow:
-    0 8px 25px rgba(139, 69, 255, 0.4),
-    0 0 20px rgba(139, 69, 255, 0.3);
+    0 8px 25px var(--app-ai-violet-40),
+    0 0 20px var(--app-ai-violet-30);
   animation: borderRotate 1.5s linear infinite;
 }
 
@@ -80,8 +89,15 @@
 /* Fallback for browsers that don't support @property */
 @supports not (background: conic-gradient(from 0deg, red, blue)) {
   .aiSuggestionButton {
-    background: linear-gradient(45deg, #8b45ff, #3b82f6);
+    background: linear-gradient(45deg, var(--app-ai-violet), var(--app-ai-blue));
     border: 2px solid;
-    border-image: linear-gradient(45deg, #8b45ff, #3b82f6, #06b6d4, #10b981) 1;
+    border-image: linear-gradient(
+        45deg,
+        var(--app-ai-violet),
+        var(--app-ai-blue),
+        var(--app-ai-cyan),
+        var(--app-ai-emerald)
+      )
+      1;
   }
 }

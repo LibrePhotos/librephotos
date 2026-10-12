@@ -14,6 +14,7 @@ import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FOOTER_HEIGHT } from "../../uiConstants";
 import { useUpload } from "./UploadContext";
+import classes from "./UploadProgressCard.module.css";
 import type { UploadItem, UploadStatus } from "./useUploadQueue";
 
 const STATUS_COLOR: Record<UploadStatus, string> = {
@@ -40,7 +41,7 @@ function StatusBadge({ status }: { status: UploadStatus }) {
       color={STATUS_COLOR[status]}
       variant={status === "duplicate" ? "outline" : "light"}
       leftSection={icon}
-      style={{ flexShrink: 0 }}
+      className={classes.noShrink}
     >
       {t(`upload.status.${status}`)}
     </Badge>
@@ -53,8 +54,8 @@ function UploadRow({ item, onRetry }: { item: UploadItem; onRetry: (item: Upload
   return (
     <Paper withBorder radius="sm" px="sm" py={6} data-testid="upload-row">
       <Group justify="space-between" wrap="nowrap" gap="sm">
-        <Group gap="xs" wrap="nowrap" style={{ minWidth: 0 }}>
-          <FileIcon size={16} style={{ flexShrink: 0, opacity: 0.6 }} />
+        <Group gap="xs" wrap="nowrap" miw="0">
+          <FileIcon size={16} className={classes.fileIcon} />
           <Text size="sm" truncate title={item.file.name}>
             {item.file.name}
           </Text>
@@ -114,18 +115,11 @@ export function UploadProgressCard() {
       shadow="xl"
       radius="md"
       withBorder
-      style={{ zIndex: 150, overflow: "hidden" }}
+      className={classes.card}
       data-testid="upload-progress-card"
     >
-      <Group
-        justify="space-between"
-        wrap="nowrap"
-        gap="xs"
-        px="md"
-        py="sm"
-        style={{ borderBottom: "1px solid var(--mantine-color-default-border)" }}
-      >
-        <Stack gap={0} style={{ minWidth: 0 }}>
+      <Group justify="space-between" wrap="nowrap" gap="xs" px="md" py="sm" className={classes.header}>
+        <Stack gap={0} miw="0">
           <Text size="sm" fw={600}>
             {isUploading ? t("upload.uploading") : t("upload.complete")}
           </Text>
@@ -135,7 +129,7 @@ export function UploadProgressCard() {
             {summary.errors > 0 && ` · ${t("upload.errors", { count: summary.errors })}`}
           </Text>
         </Stack>
-        <Group gap={4} wrap="nowrap" style={{ flexShrink: 0 }}>
+        <Group gap={4} wrap="nowrap" className={classes.noShrink}>
           <ActionIcon
             variant="subtle"
             color="gray"
@@ -177,7 +171,7 @@ export function UploadProgressCard() {
       )}
 
       {!collapsed && (
-        <Box mah={256} style={{ overflowY: "auto" }}>
+        <Box mah={256} className={classes.rows}>
           <Stack gap="xs" p="sm">
             {items.map(item => (
               <UploadRow key={item.id} item={item} onRetry={it => retry([it])} />

@@ -124,7 +124,7 @@ export function FaceDrawLayer({ onCommit, onCancel }: Props) {
         borderRadius: 8,
         // Dim the photo a little so it is obvious the click does something else
         // than usual right now.
-        backgroundColor: "rgba(0, 0, 0, 0.25)",
+        backgroundColor: "var(--app-scrim-black-25)",
       }}
     >
       {rubberBand && (
@@ -137,7 +137,7 @@ export function FaceDrawLayer({ onCommit, onCancel }: Props) {
             height: `${(rubberBand.bottom - rubberBand.top) * 100}%`,
             border: `2px solid ${theme.colors.blue[4]}`,
             borderRadius: theme.radius.sm,
-            backgroundColor: "rgba(255, 255, 255, 0.12)",
+            backgroundColor: "var(--app-scrim-white-12)",
             pointerEvents: "none",
           })}
         />

@@ -6,6 +6,7 @@ import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import MapGL, { Layer, Source } from "react-map-gl/maplibre";
 import { useFetchLocationClustersQuery, useFetchPlacesAlbumsQuery } from "../../api_client/albums/hooks";
+import { MAP_POINT_COLOR, MAP_POINT_STROKE_COLOR } from "../../theme/mapColors";
 import { useMapStyle } from "../../util/mapStyle";
 import { FeatureBoundary } from "../common/FeatureBoundary";
 import { clusterFeatureCollection } from "../map/locationClusters";
@@ -19,10 +20,10 @@ const pointLayer: CircleLayerSpecification = {
   type: "circle",
   source: "locations",
   paint: {
-    "circle-color": "#11b4da",
+    "circle-color": MAP_POINT_COLOR,
     "circle-radius": 4,
     "circle-stroke-width": 1,
-    "circle-stroke-color": "#fff",
+    "circle-stroke-color": MAP_POINT_STROKE_COLOR,
   },
 };
 

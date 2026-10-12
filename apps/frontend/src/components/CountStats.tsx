@@ -27,6 +27,7 @@ import { useFetchCountStatsQuery } from "../api_client/stats/hooks";
 import { COUNT_STATS_DEFAULTS } from "../api_client/stats/types";
 import { i18nResolvedLanguage } from "../i18n";
 import { formatCompactCount, formatCount } from "../util/formatCount";
+import classes from "./CountStats.module.css";
 
 // Below the `sm` breakpoint large counts are abbreviated (25123 -> "25.1K" in en) and
 // the exact value is shown in a tooltip on hover, tap or keyboard focus. From `sm` up
@@ -177,41 +178,8 @@ export function CountStats() {
 
       {/* Data Visualization link */}
       <Grid.Col span={{ base: 6, sm: 6, md: 3 }}>
-        <style>
-          {`
-            @keyframes shimmer {
-              0% { background-position: -200% center; }
-              100% { background-position: 200% center; }
-            }
-            .dataviz-card {
-              position: relative;
-              overflow: hidden;
-            }
-            .dataviz-card::before {
-              content: '';
-              position: absolute;
-              inset: 0;
-              background: linear-gradient(
-                110deg,
-                transparent 20%,
-                rgba(255, 193, 7, 0.15) 40%,
-                rgba(255, 215, 0, 0.25) 50%,
-                rgba(255, 193, 7, 0.15) 60%,
-                transparent 80%
-              );
-              background-size: 200% 100%;
-              opacity: 0;
-              transition: opacity 0.3s ease;
-              pointer-events: none;
-            }
-            .dataviz-card:hover::before {
-              opacity: 1;
-              animation: shimmer 1.5s infinite;
-            }
-          `}
-        </style>
-        <UnstyledButton component={Link} to="/statistics" style={{ display: "block", width: "100%", height: "100%" }}>
-          <Card withBorder p="xs" h="100%" className="dataviz-card" style={{ cursor: "pointer" }}>
+        <UnstyledButton component={Link} to="/statistics" display="block" w="100%" h="100%">
+          <Card withBorder p="xs" h="100%" className={classes.datavizCard}>
             <Group justify="space-between" gap="xs" wrap="nowrap" h="100%">
               <Group gap="xs" wrap="nowrap">
                 <ChartLine size={40} strokeWidth={1} color="var(--mantine-color-yellow-6)" />

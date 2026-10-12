@@ -20,10 +20,16 @@ import useDimensions from "react-cool-dimensions";
 import { useTranslation } from "react-i18next";
 import { useClusterFacesQuery } from "../../api_client/faces/hooks/useClusterFacesQuery";
 import { serverAddress } from "../../api_client/urls";
-import { FACE_CLUSTER_CANVAS_COLORS, FACE_CLUSTER_COLORS, FACE_CLUSTER_UNKNOWN_COLOR } from "../../theme/chartColors";
+import {
+  FACE_CLUSTER_CANVAS_COLORS,
+  FACE_CLUSTER_COLORS,
+  FACE_CLUSTER_UNKNOWN_COLOR,
+  faceClusterUnknownFill,
+} from "../../theme/chartColors";
 import { EmptyState } from "../common/EmptyState";
 import { PageLoader } from "../common/PageLoader";
 import { Lightbox } from "../lightbox";
+import classes from "./FaceClusterGraph.module.css";
 
 type Props = Readonly<{
   height: number;
@@ -284,7 +290,7 @@ export function FaceClusterGraph({ height }: Props) {
       ctx.beginPath();
       ctx.arc(cx, cy, radius, 0, Math.PI * 2);
       ctx.fillStyle =
-        isFiltered && !isUnknown ? `${point.color}40` : isUnknown ? `rgba(100, 100, 100, ${alpha * 0.3})` : point.color;
+        isFiltered && !isUnknown ? `${point.color}40` : isUnknown ? faceClusterUnknownFill(alpha * 0.3) : point.color;
       ctx.fill();
 
       // Border for known faces
@@ -457,21 +463,7 @@ export function FaceClusterGraph({ height }: Props) {
           </ScrollArea>
 
           {/* Canvas */}
-          <Box
-            ref={containerRef}
-            style={{
-              position: "relative",
-              borderRadius: "var(--mantine-radius-md)",
-              overflow: "hidden",
-              background: isDark
-                ? "linear-gradient(135deg, rgba(30, 30, 40, 0.8) 0%, rgba(20, 20, 30, 0.9) 100%)"
-                : "linear-gradient(135deg, rgba(250, 250, 255, 0.9) 0%, rgba(240, 245, 255, 0.95) 100%)",
-              border: `1px solid ${isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.08)"}`,
-              boxShadow: isDark
-                ? "inset 0 1px 1px rgba(255, 255, 255, 0.05)"
-                : "inset 0 1px 1px rgba(255, 255, 255, 0.8)",
-            }}
-          >
+          <Box ref={containerRef} className={classes.canvasBox}>
             <canvas
               ref={canvasRef}
               onMouseMove={handleMouseMove}
@@ -493,7 +485,7 @@ export function FaceClusterGraph({ height }: Props) {
                   zIndex: 1000,
                   pointerEvents: "none",
                   backdropFilter: "blur(8px)",
-                  background: isDark ? "rgba(30, 30, 40, 0.95)" : "rgba(255, 255, 255, 0.95)",
+                  background: isDark ? "var(--app-chart-tooltip-dark)" : "var(--app-scrim-white-95)",
                   border: `2px solid ${hoveredPoint.color}`,
                 }}
               >

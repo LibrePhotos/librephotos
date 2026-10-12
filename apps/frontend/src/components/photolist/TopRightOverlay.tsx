@@ -14,7 +14,7 @@ export function TopRightOverlay({ item }: { item: PigPhoto }) {
       <StarFilled
         size={ICON_SIZE.overlay}
         color={FAVORITE_COLOR}
-        style={{ filter: "drop-shadow(0 0 1px rgba(0, 0, 0, 0.6))" }}
+        style={{ filter: "drop-shadow(0 0 1px var(--app-scrim-black-60))" }}
       />
     )
   );

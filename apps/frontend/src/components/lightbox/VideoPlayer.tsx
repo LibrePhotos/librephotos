@@ -425,7 +425,7 @@ export const VideoPlayer = memo(function VideoPlayer({
         <Alert
           color="red"
           title={errorTitle()}
-          style={{ maxWidth: 560, backdropFilter: "blur(8px)", background: "rgba(0,0,0,0.75)" }}
+          style={{ maxWidth: 560, backdropFilter: "blur(8px)", background: "var(--app-scrim-black-75)" }}
           // The box is dark in both colour schemes, but the light scheme colours
           // the message black.
           styles={{
@@ -493,7 +493,7 @@ export const VideoPlayer = memo(function VideoPlayer({
                 size="sm"
                 c="white"
                 ta="center"
-                style={{ background: "rgba(0,0,0,0.65)", borderRadius: 8, padding: "4px 12px" }}
+                style={{ background: "var(--app-scrim-black-65)", borderRadius: 8, padding: "4px 12px" }}
               >
                 {t("lightbox.video.converting")}
               </Text>
@@ -507,7 +507,7 @@ export const VideoPlayer = memo(function VideoPlayer({
             size="xl"
             fw={600}
             c="white"
-            style={{ background: "rgba(0,0,0,0.65)", borderRadius: 8, padding: "8px 16px" }}
+            style={{ background: "var(--app-scrim-black-65)", borderRadius: 8, padding: "8px 16px" }}
           >
             {seekHint === "unavailable" ? t("lightbox.video.seekunavailable") : formatSeekDistance(seekHint.seconds)}
           </Text>

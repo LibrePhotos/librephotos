@@ -1,0 +1,23 @@
+/* The floating upload card: above the page content and the footer, its rows clipped to its corners. */
+.card {
+  z-index: 150;
+  overflow: hidden;
+}
+
+.header {
+  border-bottom: 1px solid var(--mantine-color-default-border);
+}
+
+/* Badges, icons and buttons keep their size; the file name gives way and is truncated. */
+.noShrink {
+  flex-shrink: 0;
+}
+
+.fileIcon {
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+
+.rows {
+  overflow-y: auto;
+}

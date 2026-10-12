@@ -59,7 +59,7 @@ const sidebarStyles = {
     zIndex: 250,
     overflowY: "auto" as const,
     overflowX: "hidden" as const,
-    boxShadow: "0 -4px 8px rgba(0,0,0,0.1)",
+    boxShadow: "0 -4px 8px var(--app-scrim-black-10)",
   },
 };
 

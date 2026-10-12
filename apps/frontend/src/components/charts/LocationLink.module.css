@@ -38,18 +38,18 @@
   border-radius: 999px;
   padding: 6px 10px;
   box-shadow:
-    0 4px 24px rgba(0, 0, 0, 0.3),
-    0 1px 2px rgba(0, 0, 0, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    0 4px 24px var(--app-scrim-black-30),
+    0 1px 2px var(--app-scrim-black-20),
+    inset 0 1px 0 var(--app-scrim-white-5);
 }
 
 [data-mantine-color-scheme="light"] .controlsToolbar {
   background: color-mix(in srgb, white 92%, transparent);
   border-color: color-mix(in srgb, var(--mantine-color-gray-3) 80%, transparent);
   box-shadow:
-    0 4px 24px rgba(0, 0, 0, 0.08),
-    0 1px 3px rgba(0, 0, 0, 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    0 4px 24px var(--app-scrim-black-8),
+    0 1px 3px var(--app-scrim-black-6),
+    inset 0 1px 0 var(--app-scrim-white-80);
 }
 
 .toolbarGroup {
@@ -94,18 +94,18 @@
   border-radius: 24px;
   padding: 6px;
   box-shadow:
-    0 4px 24px rgba(0, 0, 0, 0.3),
-    0 1px 2px rgba(0, 0, 0, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    0 4px 24px var(--app-scrim-black-30),
+    0 1px 2px var(--app-scrim-black-20),
+    inset 0 1px 0 var(--app-scrim-white-5);
 }
 
 [data-mantine-color-scheme="light"] .zoomControls {
   background: color-mix(in srgb, white 92%, transparent);
   border-color: color-mix(in srgb, var(--mantine-color-gray-3) 80%, transparent);
   box-shadow:
-    0 4px 24px rgba(0, 0, 0, 0.08),
-    0 1px 3px rgba(0, 0, 0, 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    0 4px 24px var(--app-scrim-black-8),
+    0 1px 3px var(--app-scrim-black-6),
+    inset 0 1px 0 var(--app-scrim-white-80);
 }
 
 .zoomButton {
@@ -223,18 +223,18 @@
 
 .nodeRect {
   transition: all 0.2s ease;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+  filter: drop-shadow(0 2px 4px var(--app-scrim-black-20));
 }
 
 .nodeGroup:hover .nodeRect {
-  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3));
+  filter: drop-shadow(0 4px 12px var(--app-scrim-black-30));
 }
 
 .nodeText {
   pointer-events: none;
   font-weight: 500;
   letter-spacing: 0.2px;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  text-shadow: 0 1px 2px var(--app-scrim-black-30);
 }
 
 .expandIndicator {
@@ -277,9 +277,9 @@
   border-radius: 12px;
   padding: 10px 14px;
   box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.35),
-    0 2px 8px rgba(0, 0, 0, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    0 8px 32px var(--app-scrim-black-35),
+    0 2px 8px var(--app-scrim-black-20),
+    inset 0 1px 0 var(--app-scrim-white-5);
   pointer-events: none;
   max-width: 250px;
   animation: tooltipIn 0.15s ease;
@@ -300,9 +300,9 @@
   background: color-mix(in srgb, white 95%, transparent);
   border-color: color-mix(in srgb, var(--mantine-color-gray-3) 80%, transparent);
   box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.12),
-    0 2px 8px rgba(0, 0, 0, 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    0 8px 32px var(--app-scrim-black-12),
+    0 2px 8px var(--app-scrim-black-6),
+    inset 0 1px 0 var(--app-scrim-white-90);
 }
 
 .tooltipTitle {
