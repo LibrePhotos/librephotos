@@ -10,6 +10,7 @@ built raw (a constraint test) says why with ``# raw-create: <reason>``.
 import atexit
 import datetime
 import json
+import multiprocessing
 import os
 import secrets
 import shutil
@@ -38,10 +39,22 @@ from api.models.thumbnail import Thumbnail
 fake = Faker()
 
 
-# Where the files of test photos are written: one directory per test process,
-# removed when the process exits. Never /tmp itself.
-TEST_MEDIA_ROOT = tempfile.mkdtemp(prefix="librephotos-test-media-")
-atexit.register(shutil.rmtree, TEST_MEDIA_ROOT, ignore_errors=True)
+def _test_media_root() -> str:
+    """One directory per test run, shared by the parallel workers of that run.
+
+    A worker is killed when the run ends, so its exit handlers do not run; the
+    main process owns the directory and removes it on exit. Never /tmp itself.
+    """
+    owner = os.getppid() if multiprocessing.parent_process() else os.getpid()
+    root = os.path.join(tempfile.gettempdir(), f"librephotos-test-media-{owner}")
+    os.makedirs(root, exist_ok=True)
+    if not multiprocessing.parent_process():
+        atexit.register(shutil.rmtree, root, ignore_errors=True)
+    return root
+
+
+# Where the files of test photos are written (see _test_media_root).
+TEST_MEDIA_ROOT = _test_media_root()
 
 ONE_PIXEL_PNG = (
     b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x02\x00\x00\x00\xb1\x1e\x28"
