@@ -1,0 +1,19 @@
+{
+  "src/components/stacks-duplicates/DuplicatesPageContent.tsx": { "lines": 899, "function": 349 },
+  "src/components/photolist/PhotoListView.tsx": { "lines": 816, "function": 709 },
+  "src/components/settings/Library.tsx": { "lines": 669, "function": 589 },
+  "src/components/charts/LocationLink.tsx": { "lines": 638, "function": 480 },
+  "src/components/spotlight/useSpotlightActions.ts": { "lines": 593, "function": 463 },
+  "src/components/lightbox/ContentViewer.tsx": { "lines": 546, "function": 491 },
+  "src/components/photolist/SelectionActions.tsx": { "lines": 543, "function": 478 },
+  "src/components/charts/FaceClusterGraph.tsx": { "lines": 488, "function": 416 },
+  "src/routes/_protected/sharing/index.tsx": { "lines": 462, "function": 428 },
+  "src/components/settings/Settings.tsx": { "lines": 459, "function": 430 },
+  "src/components/lightbox/LightboxControls.tsx": { "lines": 457, "function": 397 },
+  "src/components/scrollscrubber/ScrollScrubber.tsx": { "lines": 427, "function": 408 },
+  "src/components/lightbox/VideoPlayer.tsx": { "lines": 416, "function": 367 },
+  "src/components/settings/Profile.tsx": { "function": 332 },
+  "src/components/react-pig/index.tsx": { "function": 320 },
+  "src/components/settings/SiteSettings.tsx": { "function": 275 },
+  "src/components/modals/ModalUserEdit.tsx": { "function": 251 }
+}

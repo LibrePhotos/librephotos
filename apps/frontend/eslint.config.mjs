@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import eslintComments from "@eslint-community/eslint-plugin-eslint-comments";
 import js from "@eslint/js";
 import pluginQuery from "@tanstack/eslint-plugin-query";
@@ -354,6 +356,46 @@ function banConfigs() {
   return [{ name: "ban/plugin", plugins: { ban: { meta: { name: "ban" }, rules } } }, ...blocks];
 }
 
+// ---------------------------------------------------------------------------------------------------
+// Size (AGENTS.md): an app source file has at most SIZE_LIMITS.lines lines and a function at most
+// SIZE_LIMITS.function, blank lines and comments not counted. A file that was over when the limits came
+// in is listed in eslint-size-baseline.json with its measured size, which becomes its own limit: it
+// can shrink, never grow. eslint.config.test.mjs fails while an entry is above the file's real size,
+// and `UPDATE_SIZE_BASELINE=1 yarn test eslint.config.test.mjs` lowers it (and drops the entry once
+// the file is under the default). Nothing ever adds an entry: extract before you add.
+// ---------------------------------------------------------------------------------------------------
+
+export const SIZE_LIMITS = { lines: 400, function: 250 };
+export const SIZE_FILES = ["src/**/*.{ts,tsx}"];
+export const SIZE_IGNORES = [...TEST_FILES, "src/routeTree.gen.ts"];
+export const SIZE_BASELINE_PATH = new URL("./eslint-size-baseline.json", import.meta.url);
+/** `{ "src/...": { lines?: number, function?: number } }`, largest file first. */
+export const sizeBaseline = JSON.parse(readFileSync(SIZE_BASELINE_PATH, "utf8"));
+
+const sizeRule = max => ["error", { max, skipBlankLines: true, skipComments: true }];
+
+function sizeConfigs() {
+  return [
+    {
+      name: "size/limits",
+      files: SIZE_FILES,
+      ignores: SIZE_IGNORES,
+      rules: {
+        "max-lines": sizeRule(SIZE_LIMITS.lines),
+        "max-lines-per-function": sizeRule(SIZE_LIMITS.function),
+      },
+    },
+    ...Object.entries(sizeBaseline).map(([file, size]) => ({
+      name: `size/baseline/${file}`,
+      files: [file],
+      rules: {
+        ...(size.lines ? { "max-lines": sizeRule(size.lines) } : {}),
+        ...(size.function ? { "max-lines-per-function": sizeRule(size.function) } : {}),
+      },
+    })),
+  ];
+}
+
 export default [
   {
     ignores: ["node_modules/**", "**/dist/**", "**/build/**", "coverage/**", ".tanstack/**"],
@@ -528,6 +570,19 @@ export default [
       "@eslint-community/eslint-comments/no-unlimited-disable": "off",
       "@eslint-community/eslint-comments/disable-enable-pair": "off",
       "@eslint-community/eslint-comments/require-description": "off",
+    },
+  },
+  ...sizeConfigs(),
+  {
+    // A route file renders one component; anything else it needs lives under components/ (AGENTS.md).
+    name: "routes/one-component",
+    files: ["src/routes/**/*.{ts,tsx}"],
+    ignores: TEST_FILES,
+    // The plugin's component detection cannot "detect" the React version under ESLint 10 (it calls the
+    // removed context.getFilename()), so it gets the installed version.
+    settings: { react: { version: createRequire(import.meta.url)("react/package.json").version } },
+    rules: {
+      "react/no-multi-comp": "error",
     },
   },
 ];
