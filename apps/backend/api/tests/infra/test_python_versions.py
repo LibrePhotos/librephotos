@@ -212,7 +212,10 @@ class SupportedRangeTests(unittest.TestCase):
         # A target-version in [tool.ruff] would override requires-python and the
         # two could drift apart.
         tool_ruff = _pyproject().split("[tool.ruff]", 1)[1].split("\n[", 1)[0]
-        self.assertNotRegex(tool_ruff, r"(?m)^target-version\s*=")
+        self.assertIsNone(
+            re.search(r"(?m)^target-version\s*=", tool_ruff),
+            "[tool.ruff] sets target-version; remove it, requires-python decides",
+        )
 
     def test_mypy_python_version_is_supported(self):
         found = re.search(r'(?m)^python_version\s*=\s*"([^"]+)"', _pyproject())
