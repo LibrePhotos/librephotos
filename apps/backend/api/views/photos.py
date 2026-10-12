@@ -36,7 +36,10 @@ from api.models.photo_caption import PhotoCaption
 from api.models.tag import refresh_tag_photo_counts, tag_ids_for_photos
 from api.permissions import IsOwnerOrReadOnly, IsPhotoOrAlbumSharedTo
 from api.request_user import request_user
-from api.serializers.album_user import AlbumUserListSerializer
+from api.serializers.album_user import (
+    AlbumUserListSerializer,
+    with_album_user_list_relations,
+)
 from api.serializers.photos import (
     PhotoCaptionRequest,
     PhotoDetailsSummarySerializer,
@@ -561,7 +564,9 @@ class PhotoViewSet(
 
         if not photo:
             raise NotFound()
-        albums = user_albums.filter(photos=photo).distinct()
+        albums = with_album_user_list_relations(
+            user_albums.filter(photos=photo).distinct()
+        )
         serializer = AlbumUserListSerializer(albums, many=True)
         return Response({"results": serializer.data})
 

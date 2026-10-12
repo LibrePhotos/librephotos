@@ -24,7 +24,7 @@ from api.models import (
     Photo,
     User,
 )
-from api.models.photo import HEAVY_PHOTO_COLUMNS, visible_photo_q
+from api.models.photo import visible_photo_q
 from api.models.photo_stack import PhotoStack
 from api.request_user import request_user
 from api.serializers.album_date import (
@@ -48,6 +48,7 @@ from api.serializers.album_user import (
     AlbumUserListSerializer,
     AlbumUserPublicSerializer,
     AlbumUserSerializer,
+    with_album_user_list_relations,
 )
 from api.serializers.person import PersonSerializer
 from api.serializers.photos import (
@@ -120,36 +121,6 @@ class PersonViewSet(
         )
 
         return qs
-
-
-def with_album_user_list_relations(
-    queryset: QuerySet[AlbumUser],
-) -> QuerySet[AlbumUser]:
-    """Load everything ``AlbumUserListSerializer`` reads in a constant number of queries.
-
-    The list serializer renders the album cover, the owner, the users the album
-    is shared to and its public-share settings. None of those are joined by
-    default, so every album on the page costs four extra round trips and the
-    cover grid only appears once the last of them has come back (issue #618).
-    """
-    return (
-        queryset.select_related("owner", "cover_photo", "share")
-        # The cover renders six photo columns; the embedding and EXIF blobs
-        # of every album's cover were read for nothing.
-        .defer(*(f"cover_photo__{name}" for name in HEAVY_PHOTO_COLUMNS))
-        .prefetch_related(
-            "shared_to",
-            # Fallback cover for albums without an explicit one. ``.first()`` on
-            # the unordered m2m orders by pk, so the prefetch has to do the
-            # same. Only a photo the album detail shows, not a hidden or
-            # trashed one.
-            Prefetch(
-                "photos",
-                queryset=Photo.visible.defer(*HEAVY_PHOTO_COLUMNS).order_by("pk")[:1],
-                to_attr="first_photos",
-            ),
-        )
-    )
 
 
 def _get_active_tag_thing_types() -> list[str]:
@@ -406,12 +377,9 @@ class AlbumUserListViewSet(ListViewSet):
         user = self.request.user
         if not isinstance(user, User):
             return AlbumUser.objects.none()
-        return with_album_user_list_relations(
-            AlbumUser.objects.filter(owner=user)
-            # No DISTINCT: an album holds a photo once and the thumbnail join
-            # is one-to-one, and COUNT(DISTINCT) sorted every album link.
-            .annotate(photo_count=Count("photos", filter=visible_photo_q("photos__")))
-            .filter(Q(photo_count__gt=0) & Q(owner=user))
+        return (
+            with_album_user_list_relations(AlbumUser.objects.filter(owner=user))
+            .filter(photo_count__gt=0)
             .order_by("title")
         )
 

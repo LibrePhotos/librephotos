@@ -101,6 +101,40 @@ class AlbumUserCardPayloadTest(TestCase):
         self.assertIs(card["public"], True)
         self.assertTrue(card["public_slug"])
 
+    def test_every_card_counts_the_photos_the_album_shows(self):
+        # The album detail leaves hidden and trashed photos out, also for the
+        # users it is shared to. Only the owner's album list counted that way;
+        # the shared lists, a photo's albums and the share responses counted
+        # every photo.
+        hidden = create_test_photo(owner=self.owner, hidden=True)
+        trashed = create_test_photo(owner=self.owner, in_trashcan=True)
+        self.album.photos.add(hidden, trashed)
+
+        cards = {
+            "list": self._card("/api/albums/user/list/"),
+            "shared to me": self._card("/api/albums/user/shared/tome/", self.friend),
+            "shared from me": self._card("/api/albums/user/shared/fromme/"),
+            "albums of a photo": self._card(f"/api/photos/{self.photos[1].id}/albums/"),
+        }
+        owner = self._client(self.owner)
+        cards["share response"] = owner.post(
+            "/api/useralbum/share/",
+            {
+                "shared": True,
+                "target_user_id": self.friend.id,
+                "album_id": self.album.id,
+            },
+            format="json",
+        ).json()
+        cards["make public response"] = owner.post(
+            "/api/useralbum/makepublic/",
+            {"album_id": self.album.id, "val_public": True},
+            format="json",
+        ).json()["album"]
+        for name, card in cards.items():
+            with self.subTest(name):
+                self.assertEqual(card["photo_count"], 3)
+
 
 class AlbumAutoCardPayloadTest(TestCase):
     def test_list_count(self):
