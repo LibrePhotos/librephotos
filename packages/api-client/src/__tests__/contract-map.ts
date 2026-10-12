@@ -71,7 +71,8 @@ export const UNMAPPED: Readonly<Record<string, string>> = {
   IsFirstTimeSetupResponse:
     "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
   PublicSharingDefaults: "nested in User.public_sharing_defaults, which the schema leaves untyped (a JSONField)",
-  People:
+  People: "deprecated alias of PhotoPerson, kept for one release while apps/mobile moves",
+  PhotoPerson:
     "nested in Photo.people, which the schema leaves untyped (PhotoSerializer.get_people returns a bare list or dict)",
   PhotoOcrBlock:
     "nested in Photo.ocr, which the schema leaves untyped (PhotoSerializer.get_ocr returns a bare list or dict)",

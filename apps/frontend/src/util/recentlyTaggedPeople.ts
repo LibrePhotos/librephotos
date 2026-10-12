@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { People } from "../api_client/albums/hooks/useFetchPeopleAlbumsQuery";
+import type { PersonList } from "../api_client/albums/hooks/useFetchPeopleAlbumsQuery";
 import { readStored, STORAGE_KEYS, subscribeStored, writeStored } from "./storage";
 
 // How many people the "Recently tagged" shortcut keeps around.
@@ -46,9 +46,11 @@ export function recordRecentlyTaggedPerson(personId: string | number | null | un
 // Resolves the stored ids against the people the server currently knows about.
 // Entries that no longer exist (deleted or merged people) are dropped instead of
 // rendered with a stale name.
-export function resolveRecentlyTaggedPeople(ids: RecentlyTaggedPersonId[], people: People | undefined): People {
+export function resolveRecentlyTaggedPeople(ids: RecentlyTaggedPersonId[], people: PersonList | undefined): PersonList {
   if (!people) {
     return [];
   }
-  return ids.map(id => people.find(person => person.id === id)).filter((person): person is People[number] => !!person);
+  return ids
+    .map(id => people.find(person => person.id === id))
+    .filter((person): person is PersonList[number] => !!person);
 }

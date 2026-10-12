@@ -238,9 +238,9 @@ function CaptionEditor(props: Props) {
         <Stack gap="xs">
           <Group>
             <Tags />
-            {/* The tagging model's own output, not the user's tags -- both
-                used to render as "Tags" in the same sidebar. */}
-            <Title order={4}>{t("lightbox.sidebar.autotags")}</Title>
+            {/* The tagging model's own output (Things, as in the album list),
+                not the user's tags -- both used to render as "Tags" here. */}
+            <Title order={4}>{t("things")}</Title>
           </Group>
           <Group gap="xs">
             {autoTags.map(tag =>

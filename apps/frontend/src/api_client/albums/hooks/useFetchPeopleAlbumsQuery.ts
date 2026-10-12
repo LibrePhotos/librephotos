@@ -25,10 +25,10 @@ export const Person = z.object({
   face_url: z.string(),
 });
 
-export const People = Person.array();
+export const PersonList = Person.array();
 
 export type Person = z.infer<typeof Person>;
-export type People = z.infer<typeof People>;
+export type PersonList = z.infer<typeof PersonList>;
 
 const PeopleResponse = z.object({
   count: z.number(),
