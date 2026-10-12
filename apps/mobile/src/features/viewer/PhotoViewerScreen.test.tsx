@@ -31,8 +31,8 @@ const PHOTO_DETAIL = {
     im2txt: "a person on a beach",
     places365: { attributes: ["sunny"], categories: ["beach"] },
   },
-  big_thumbnail_url: null,
-  small_square_thumbnail_url: null,
+  big_thumbnail_url: "",
+  small_square_thumbnail_url: "",
   geolocation_json: null,
   exif_json: null,
   people: [

@@ -136,7 +136,7 @@ python_version = "3.14"          # = the Python CI installs packages for: their 
 platform = "linux"               # Windows dev boxes report exactly what CI reports
 plugins = ["mypy_django_plugin.main", "mypy_drf_plugin.main"]
 files = ["api", "librephotos", "service", "nextcloud", "chunked_upload", "image_similarity", "scripts/typecheck.py",
-         "scripts/check_dead_code.py", "scripts/ruff_baseline.py"]
+         "scripts/check_dead_code.py", "scripts/ruff_baseline.py", "scripts/openapi_schema.py"]
 exclude = ['/migrations/', '/tests?/', '/tests\.py$']
 check_untyped_defs = true
 disallow_untyped_defs = true     # every function must be annotated

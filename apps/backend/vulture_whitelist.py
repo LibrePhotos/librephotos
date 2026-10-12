@@ -21,6 +21,7 @@ _.NoLocalSignupAccountAdapter  # class in api/adapters.py (ACCOUNT_ADAPTER)
 _.SSOSocialAccountAdapter  # class in api/adapters.py (SOCIALACCOUNT_ADAPTER)
 _.DynamicEmailBackend  # class in api/mail.py (EMAIL_BACKEND)
 _.custom_exception_handler  # function in api/views/exception_handler.py (REST_FRAMEWORK)
+_.require_page_keys  # function in api/openapi.py (SPECTACULAR_SETTINGS POSTPROCESSING_HOOKS)
 
 # App configs: api/__init__.py names ApiConfig, Django finds NextcloudConfig.
 _.ApiConfig  # class in api/apps.py

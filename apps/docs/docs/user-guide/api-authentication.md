@@ -132,6 +132,8 @@ These routes are only registered when the backend runs with `DEBUG=1` (developme
 
 For the same reason, the extra `auth` hint that development builds append to a 401/403 error body is not present on a production install, so a production 401 will not point you at `/api/help`.
 
+Without a development build, read the OpenAPI schema from the repository: [`apps/backend/openapi.json`](https://github.com/LibrePhotos/librephotos/blob/dev/apps/backend/openapi.json) is generated from the code and kept current by CI (on the `dev` branch; not in a release yet). Load it into any OpenAPI viewer, such as the Swagger Editor.
+
 ### Error responses
 
 Every API error (a status of 400 or above) has the same JSON body:

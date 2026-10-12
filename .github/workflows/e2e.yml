@@ -42,6 +42,7 @@ jobs:
         run: docker compose build
 
       - name: Start the e2e stack
+        id: stack
         # --wait returns once the backend and proxy report healthy. The backend
         # entrypoint then queues the scan of deploy/e2e/photos; the suite's setup
         # step waits for the photos.
@@ -64,6 +65,22 @@ jobs:
         env:
           E2E_BASE_URL: http://localhost:8080
         run: yarn test
+
+      # packages/api-client's live contract test: every read endpoint against
+      # the seeded stack, parsed by the zod schemas. It sees values the
+      # committed openapi.json cannot describe ("" vs null), which the PR-time
+      # contract test (openapi.contract.test.ts) misses. After the Playwright
+      # suite, whose setup waits for the scan of deploy/e2e/photos; also when
+      # that suite failed, so both report.
+      - name: Live API contract (packages/api-client)
+        if: ${{ !cancelled() && steps.stack.outcome == 'success' }}
+        env:
+          LIBREPHOTOS_LIVE_URL: http://localhost:8080
+          LIBREPHOTOS_LIVE_USER: admin
+          LIBREPHOTOS_LIVE_PASSWORD: admin
+        run: |
+          npm ci --workspace packages/api-client --ignore-scripts
+          npm exec --workspace packages/api-client -- vitest run src/__tests__/live.contract.test.ts
 
       - name: Collect stack logs
         if: failure()

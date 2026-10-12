@@ -48,6 +48,7 @@ green CI run. To develop against a local backend, copy `.env.development.example
 - A failed request rejects with `ApiError`: branch on its `status` or `serverCode` (the backend's
   `errors[0].code`), never on message text; show only `serverMessage`, never `message`.
 - `packages/api-client` runs on this app's zod and React Query (`resolve.dedupe`, tsconfig `paths`) and on the mobile app's: shared schemas use zod 4 APIs only, and a zod or React Query bump here moves `apps/mobile`, the package and the root `package.json` too (`scripts/check-shared-deps.mjs` fails otherwise). `yarn test` runs the package's suite as the `api-client` vitest project.
+- A response schema in `packages/api-client` is listed in `src/__tests__/contract-map.ts` with its OpenAPI component (or in `UNMAPPED` with the reason), and `openapi.contract.test.ts` compares the two (field names, required, nullability, types) against `apps/backend/openapi.json`. A difference fails unless `contract-baseline.json` lists it with a reason; that file only shrinks. Optional-for-older-servers is allowed and needs no entry.
 - User-visible text uses `t()` with a key in `src/locales/en/translation.json`. Never edit the other
   locales; Weblate fills them in.
 - Colours come from the Mantine theme or CSS variables so dark mode works.

@@ -709,6 +709,7 @@ class PhotoSerializer(serializers.ModelSerializer):
             if file.type in (File.VIDEO, File.IMAGE)
         ]
 
+    @extend_schema_field(PhotoMetadataSummarySerializer(allow_null=True))
     def get_metadata(self, obj: Photo) -> dict | None:
         """
         Return structured metadata from PhotoMetadata if available.
