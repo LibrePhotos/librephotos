@@ -1,7 +1,5 @@
 import { create } from "zustand";
-import { z } from "zod";
-import { decodeJwtExp } from "@librephotos/api-client";
-import { parseJson } from "@/lib/guards";
+import { decodeJwtExp, userIdFromAccessToken } from "@librephotos/api-client";
 import { tokenStorage } from "@/lib/tokenStorage";
 import { useSettingsStore } from "@/stores/settings";
 
@@ -21,26 +19,6 @@ type AuthState = {
   onLoggedOut: () => void;
 };
 
-/** The one claim read from the access token here (SimpleJWT sends a number or a string). */
-const AccessTokenClaims = z.object({ user_id: z.union([z.number(), z.string()]).optional() });
-
-export function userIdFromToken(access: string | null): number | null {
-  if (!access) return null;
-  // exp is validated by decodeJwtExp; user_id is read opportunistically.
-  const parts = access.split(".");
-  if (parts.length < 2 || !parts[1]) return null;
-  if (typeof atob !== "function") return null;
-  try {
-    const json = atob(parts[1].replace(/-/g, "+").replace(/_/g, "/"));
-    const claims = AccessTokenClaims.safeParse(parseJson(json));
-    if (!claims.success) return null;
-    const raw = claims.data.user_id;
-    return typeof raw === "number" ? raw : raw ? Number(raw) : null;
-  } catch {
-    return null;
-  }
-}
-
 export const useAuthStore = create<AuthState>(set => ({
   status: "unknown",
   userId: null,
@@ -56,7 +34,7 @@ export const useAuthStore = create<AuthState>(set => ({
     // Tokens without a server to spend them on are useless, so treat a missing
     // URL as signed out and send the user back to the login screen.
     if (refresh && serverUrl) {
-      set({ status: "authenticated", userId: userIdFromToken(access) });
+      set({ status: "authenticated", userId: userIdFromAccessToken(access) });
     } else {
       set({ status: "unauthenticated", userId: null });
     }
@@ -65,7 +43,7 @@ export const useAuthStore = create<AuthState>(set => ({
     await tokenStorage.setTokens(access, refresh);
     // Touch decodeJwtExp so an unparseable token surfaces immediately in dev.
     decodeJwtExp(access);
-    set({ status: "authenticated", userId: userIdFromToken(access) });
+    set({ status: "authenticated", userId: userIdFromAccessToken(access) });
   },
   onLoggedOut() {
     set({ status: "unauthenticated", userId: null });
