@@ -57,9 +57,7 @@ export function ModalTagEdit(props: Props) {
       await tagPhotos({
         names,
         photos: selectAllMode ? undefined : selectedImages.map(image => image.id),
-        selectAll: selectAllMode
-          ? { select_all: true, query: selectAllQuery ?? {}, excluded_hashes: excludedHashes }
-          : undefined,
+        selectAll: selectAllMode ? { query: selectAllQuery ?? {}, excludedHashes } : undefined,
         photoCount,
       });
     } catch {

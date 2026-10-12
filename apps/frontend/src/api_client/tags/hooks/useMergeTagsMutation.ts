@@ -1,3 +1,4 @@
+import { endpoints } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
 import { apiClient, queryClient } from "../../api";
@@ -8,7 +9,7 @@ import type { MergeTagsParams } from "../types";
 export const useMergeTagsMutation = () =>
   useMutation({
     mutationFn: async ({ id, name, sourceId, sourceName }: MergeTagsParams) => {
-      await apiClient.post(`/tags/${id}/merge/`, { tag: sourceId });
+      await endpoints.mergeTags(apiClient, id, sourceId);
       notification.mergeTags(sourceName, name);
     },
     onSuccess: (_, { id }) => {

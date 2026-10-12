@@ -1,104 +1,31 @@
+import { endpoints } from "@librephotos/api-client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { parseWithNotification } from "../../util/zodUtils";
 import { apiClient } from "../api";
 import { startJob } from "../jobs/startJob";
 import { invalidatePhotoLists } from "../photos/invalidatePhotoLists";
 import { stackKeys } from "./keys";
-import {
-  CreateManualStackResponse,
-  DetectStacksResponse,
-  MergeStacksResponse,
-  PhotoStack,
-  PhotoStackListResponse,
-  PhotoStackStats,
-  RemoveFromStackResponse,
-  SetPrimaryResponse as SetPrimaryResponseSchema,
-  type CreateManualStackRequest,
-  type DetectStacksRequest,
-  type MergeStacksRequest,
-  type RemoveFromStackRequest,
-  type SetPrimaryResponse,
-  type StackDetailResponse,
-  type StackListResponse,
-  type StackStatsResponse,
-} from "./types";
+import type { DetectStacksRequest, StackPhotosRequest } from "./types";
 
-// API functions
-async function fetchStacks(params?: {
-  page?: number;
-  page_size?: number;
-  stack_type?: string;
-  ordering?: string;
-}): Promise<StackListResponse> {
-  const queryParams = new URLSearchParams();
-  if (params?.page) queryParams.append("page", String(params.page));
-  if (params?.page_size) queryParams.append("page_size", String(params.page_size));
-  if (params?.stack_type) queryParams.append("stack_type", params.stack_type);
-  if (params?.ordering) queryParams.append("ordering", params.ordering);
-
-  const queryString = queryParams.toString();
-  const endpoint = `/stacks${queryString ? `?${queryString}` : ""}`;
-  const response = await apiClient.get(endpoint);
-  return parseWithNotification(PhotoStackListResponse, response, "Failed to parse stacks list");
-}
-
-async function fetchStack(id: string): Promise<StackDetailResponse> {
-  const response = await apiClient.get(`/stacks/${id}/`);
-  return parseWithNotification(PhotoStack, response, "Failed to parse stack details");
-}
-
-async function fetchStackStats(): Promise<StackStatsResponse> {
-  const response = await apiClient.get("/stacks/stats/");
-  return parseWithNotification(PhotoStackStats, response, "Failed to parse stack stats");
-}
-
-async function removeFromStack(stackId: string, data: RemoveFromStackRequest): Promise<RemoveFromStackResponse> {
-  const response = await apiClient.post(`/stacks/${stackId}/remove/`, {
-    photo_hashes: data.photo_hashes,
-  });
-  return parseWithNotification(RemoveFromStackResponse, response, "Failed to parse remove from stack response");
-}
-
-async function mergeStacks(data: MergeStacksRequest): Promise<MergeStacksResponse> {
-  const response = await apiClient.post("/stacks/merge/", data);
-  return parseWithNotification(MergeStacksResponse, response, "Failed to parse merge stacks response");
-}
-
-async function createManualStack(data: CreateManualStackRequest): Promise<CreateManualStackResponse> {
-  const response = await apiClient.post("/stacks/manual/", data);
-  return parseWithNotification(CreateManualStackResponse, response, "Failed to parse create manual stack response");
-}
-
-async function deleteStack(id: string): Promise<void> {
-  await apiClient.delete(`/stacks/${id}/`);
-}
-
-async function detectStacks(options?: DetectStacksRequest): Promise<void> {
-  const start = await startJob(() => apiClient.post("/stacks/detect/", options || {}));
-  if (!start.alreadyRunning) {
-    parseWithNotification(DetectStacksResponse, start.data, "Failed to parse detect stacks response");
-  }
-}
-
-async function setCoverPhoto(stackId: string, photoHash: string): Promise<SetPrimaryResponse> {
-  const response = await apiClient.post(`/stacks/${stackId}/primary/`, {
-    photo_hash: photoHash,
-  });
-  return parseWithNotification(SetPrimaryResponseSchema, response, "Failed to set cover photo");
-}
+type StackListParams = { page?: number; page_size?: number; stack_type?: string; ordering?: string };
 
 // Query hooks
-export function useStacksQuery(params?: { page?: number; page_size?: number; stack_type?: string; ordering?: string }) {
+export function useStacksQuery(params?: StackListParams) {
   return useQuery({
     queryKey: stackKeys.list(params || {}),
-    queryFn: () => fetchStacks(params),
+    queryFn: () =>
+      endpoints.fetchStacks(apiClient, {
+        page: params?.page,
+        pageSize: params?.page_size,
+        stackType: params?.stack_type,
+        ordering: params?.ordering,
+      }),
   });
 }
 
 export function useStackQuery(id: string) {
   return useQuery({
     queryKey: stackKeys.detail(id),
-    queryFn: () => fetchStack(id),
+    queryFn: () => endpoints.fetchStack(apiClient, id),
     enabled: !!id,
   });
 }
@@ -106,7 +33,7 @@ export function useStackQuery(id: string) {
 export function useStackStatsQuery() {
   return useQuery({
     queryKey: stackKeys.stats(),
-    queryFn: fetchStackStats,
+    queryFn: () => endpoints.fetchStackStats(apiClient),
   });
 }
 
@@ -114,8 +41,8 @@ export function useRemoveFromStackMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ stackId, data }: { stackId: string; data: RemoveFromStackRequest }) =>
-      removeFromStack(stackId, data),
+    mutationFn: ({ stackId, data }: { stackId: string; data: StackPhotosRequest }) =>
+      endpoints.removePhotosFromStack(apiClient, stackId, data.photo_hashes),
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: stackKeys.detail(variables.stackId) });
       queryClient.invalidateQueries({ queryKey: stackKeys.lists() });
@@ -128,7 +55,7 @@ export function useMergeStacksMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: mergeStacks,
+    mutationFn: (data: StackPhotosRequest) => endpoints.mergeStacks(apiClient, data.photo_hashes),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: stackKeys.lists() });
       queryClient.invalidateQueries({ queryKey: stackKeys.stats() });
@@ -142,7 +69,7 @@ export function useCreateManualStackMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: createManualStack,
+    mutationFn: (data: StackPhotosRequest) => endpoints.createManualStack(apiClient, data.photo_hashes),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: stackKeys.lists() });
       queryClient.invalidateQueries({ queryKey: stackKeys.stats() });
@@ -156,7 +83,7 @@ export function useDeleteStackMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: deleteStack,
+    mutationFn: (id: string) => endpoints.deleteStack(apiClient, id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: stackKeys.lists() });
       queryClient.invalidateQueries({ queryKey: stackKeys.stats() });
@@ -168,7 +95,9 @@ export function useDetectStacksMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (options?: DetectStacksRequest) => detectStacks(options),
+    mutationFn: async (options?: DetectStacksRequest) => {
+      await startJob(() => endpoints.detectStacks(apiClient, options || {}));
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: stackKeys.lists() });
       queryClient.invalidateQueries({ queryKey: stackKeys.stats() });
@@ -180,7 +109,8 @@ export function useSetCoverPhotoMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ stackId, photoHash }: { stackId: string; photoHash: string }) => setCoverPhoto(stackId, photoHash),
+    mutationFn: ({ stackId, photoHash }: { stackId: string; photoHash: string }) =>
+      endpoints.setStackPrimary(apiClient, stackId, photoHash),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: stackKeys.detail(variables.stackId) });
       queryClient.invalidateQueries({ queryKey: stackKeys.lists() });

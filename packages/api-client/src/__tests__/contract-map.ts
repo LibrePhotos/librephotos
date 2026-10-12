@@ -146,6 +146,54 @@ export const UNMAPPED: Readonly<Record<string, string>> = {
   SetFacesLabelResponse: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
   DeleteFacesResponse: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
   JobTriggerResponse: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
+  CancelJobResponse:
+    "the cancel action is documented as answering LongRunningJob, but it answers {status, job} with the job nested (LongRunningJobViewSet.cancel); the job is compared as JobDetail",
+  PhotoDownloadStart: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
+  PhotoDownloadStatus: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
+  StackFileVariant:
+    "api/views/stacks.py builds its answers by hand and declares no response serializer (openapi-baseline.txt, issue #485)",
+  StackPhoto:
+    "api/views/stacks.py builds its answers by hand and declares no response serializer (openapi-baseline.txt, issue #485)",
+  StackThumbnail:
+    "api/views/stacks.py builds its answers by hand and declares no response serializer (openapi-baseline.txt, issue #485)",
+  PhotoStackListItem:
+    "api/views/stacks.py builds its answers by hand and declares no response serializer (openapi-baseline.txt, issue #485)",
+  PhotoStackListResponse:
+    "api/views/stacks.py builds its answers by hand and declares no response serializer (openapi-baseline.txt, issue #485)",
+  PhotoStack:
+    "api/views/stacks.py builds its answers by hand and declares no response serializer (openapi-baseline.txt, issue #485)",
+  PhotoStackStats:
+    "api/views/stacks.py builds its answers by hand and declares no response serializer (openapi-baseline.txt, issue #485)",
+  SetStackPrimaryResponse:
+    "api/views/stacks.py builds its answers by hand and declares no response serializer (openapi-baseline.txt, issue #485)",
+  CreateManualStackResponse:
+    "api/views/stacks.py builds its answers by hand and declares no response serializer (openapi-baseline.txt, issue #485)",
+  RemoveFromStackResponse:
+    "api/views/stacks.py builds its answers by hand and declares no response serializer (openapi-baseline.txt, issue #485)",
+  MergeStacksResponse:
+    "api/views/stacks.py builds its answers by hand and declares no response serializer (openapi-baseline.txt, issue #485)",
+  UnlinkGroupResponse:
+    "api/views/stacks.py and api/views/duplicates.py build their answers by hand and declare no response serializer (openapi-baseline.txt, issue #485)",
+  DetectionQueuedResponse:
+    "api/views/stacks.py and api/views/duplicates.py build their answers by hand and declare no response serializer (openapi-baseline.txt, issue #485)",
+  DuplicatePhoto:
+    "api/views/duplicates.py builds its answers by hand and declares no response serializer (openapi-baseline.txt, issue #485)",
+  DuplicateThumbnail:
+    "api/views/duplicates.py builds its answers by hand and declares no response serializer (openapi-baseline.txt, issue #485)",
+  DuplicateListItem:
+    "api/views/duplicates.py builds its answers by hand and declares no response serializer (openapi-baseline.txt, issue #485)",
+  DuplicateListResponse:
+    "api/views/duplicates.py builds its answers by hand and declares no response serializer (openapi-baseline.txt, issue #485)",
+  DuplicateDetail:
+    "api/views/duplicates.py builds its answers by hand and declares no response serializer (openapi-baseline.txt, issue #485)",
+  DuplicateStats:
+    "api/views/duplicates.py builds its answers by hand and declares no response serializer (openapi-baseline.txt, issue #485)",
+  ResolveDuplicateResponse:
+    "api/views/duplicates.py builds its answers by hand and declares no response serializer (openapi-baseline.txt, issue #485)",
+  DismissDuplicateResponse:
+    "api/views/duplicates.py builds its answers by hand and declares no response serializer (openapi-baseline.txt, issue #485)",
+  RevertDuplicateResponse:
+    "api/views/duplicates.py builds its answers by hand and declares no response serializer (openapi-baseline.txt, issue #485)",
   WorkerAvailabilityResponse:
     "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
   SiteSettings: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",

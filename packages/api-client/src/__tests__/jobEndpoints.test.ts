@@ -1,0 +1,166 @@
+/**
+ * The job endpoints the web and mobile apps share (issue #2347): the list, one job, cancel and
+ * delete, the job triggers, and zip downloads. The answers are what the backend sent in a test
+ * run (api/views/jobs.py, scan_triggers.py, zip_downloads.py).
+ */
+import { describe, expect, it } from "vitest";
+import * as endpoints from "../endpoints";
+import { ResponseParseError } from "../util/parse";
+import { defined } from "./defined";
+import { fakeServer } from "./harness";
+
+const API = "https://demo.example.com/api";
+
+const job = {
+  job_id: "c7cd8ecf-0491-4592-93ee-08f408f7a75d",
+  queued_at: "2026-10-12T18:39:50.389371Z",
+  finished: false,
+  finished_at: null,
+  started_at: null,
+  failed: false,
+  cancelled: false,
+  job_type_str: "Scan Photos",
+  job_type: 1,
+  started_by: { id: 1, username: "admin", first_name: "Ada", last_name: "Admin" },
+  progress_current: 0,
+  progress_target: 0,
+  progress_step: null,
+  result: null,
+  id: 1,
+};
+
+const alreadyRunning = {
+  errors: [{ field: "detail", message: "Scan Photos is already running.", code: "job_already_running", job_id: "j0" }],
+};
+
+describe("job list and detail", () => {
+  it("asks for one page, and for the caller's own jobs only when narrowing", async () => {
+    const page = { count: 1, next: null, previous: null, results: [job], page: 1, page_size: 10, num_pages: 1 };
+    const { client, requests } = fakeServer(page);
+    const jobs = await endpoints.fetchJobs(client, 0, 10);
+    await endpoints.fetchJobs(client, 2, 10, { mine: true });
+    expect(requests.map(request => request.url)).toEqual([
+      `${API}/jobs/?page=0&page_size=10`,
+      `${API}/jobs/?page=2&page_size=10&mine=true`,
+    ]);
+    expect(defined(jobs.results[0]).job_type_str).toBe("Scan Photos");
+  });
+
+  it("reads one job", async () => {
+    const { client, requests } = fakeServer(job);
+    const detail = await endpoints.fetchJob(client, 1);
+    expect(defined(requests[0]).url).toBe(`${API}/jobs/1/`);
+    expect(detail.finished).toBe(false);
+  });
+
+  it("cancels a job and reads it back nested in the answer", async () => {
+    const answer = { status: true, job: { ...job, finished: true, cancelled: true, result: { status: "cancelled" } } };
+    const { client, requests } = fakeServer(answer);
+    const cancelled = await endpoints.cancelJob(client, 1);
+    expect(defined(requests[0])).toMatchObject({ url: `${API}/jobs/1/cancel/`, method: "POST", body: {} });
+    expect(cancelled.job?.cancelled).toBe(true);
+  });
+
+  it("deletes a job (204)", async () => {
+    const { client, requests } = fakeServer(null);
+    await endpoints.deleteJob(client, 1);
+    expect(defined(requests[0])).toMatchObject({ url: `${API}/jobs/1/`, method: "DELETE" });
+  });
+});
+
+describe("job triggers", () => {
+  const started = { status: true, job_id: "j1", job_ids: ["j1"] };
+
+  it.each([
+    ["scanNextcloudPhotos", "/nextcloud/scanphotos/", endpoints.scanNextcloudPhotos],
+    ["generateEventAlbums", "/autoalbumgen/", endpoints.generateEventAlbums],
+    ["regenerateEventAlbumTitles", "/autoalbumtitlegen/", endpoints.regenerateEventAlbumTitles],
+  ] as const)("%s POSTs %s", async (_name, path, trigger) => {
+    const { client, requests } = fakeServer(started);
+    const answer = await trigger(client);
+    expect(defined(requests[0])).toMatchObject({ url: `${API}${path}`, method: "POST", body: {} });
+    expect(answer.job_id).toBe("j1");
+  });
+
+  it("sends whether OCR runs over every photo", async () => {
+    const { client, requests } = fakeServer(started);
+    await endpoints.generateOcr(client, true);
+    await endpoints.generateOcr(client, false);
+    expect(requests.map(request => request.body)).toEqual([{ full_scan: true }, { full_scan: false }]);
+    expect(defined(requests[0]).url).toBe(`${API}/generateocr/`);
+  });
+
+  it("follows the job already running instead of failing on a 409", async () => {
+    for (const trigger of [
+      endpoints.scanNextcloudPhotos,
+      endpoints.generateEventAlbums,
+      endpoints.regenerateEventAlbumTitles,
+      (client: Parameters<typeof endpoints.generateOcr>[0]) => endpoints.generateOcr(client, false),
+      endpoints.detectStacks,
+      endpoints.detectDuplicates,
+    ]) {
+      const { client } = fakeServer(alreadyRunning, 409);
+      await expect(trigger(client)).resolves.toEqual({ status: true, job_id: "j0", already_running: true });
+    }
+  });
+
+  it("starts stack and duplicate detection with their options", async () => {
+    const queued = {
+      status: "queued",
+      message: "Stack detection started",
+      options: { detect_bursts: true },
+      job_id: "j2",
+    };
+    const { client, requests } = fakeServer(queued);
+    expect(await endpoints.detectStacks(client)).toEqual(queued);
+    await endpoints.detectDuplicates(client, { detect_exact_copies: true, visual_threshold: 8 });
+    expect(requests.map(({ url, body }) => ({ url, body }))).toEqual([
+      { url: `${API}/stacks/detect/`, body: {} },
+      { url: `${API}/duplicates/detect`, body: { detect_exact_copies: true, visual_threshold: 8 } },
+    ]);
+  });
+
+  it("rejects a detection answer it cannot read", async () => {
+    const { client } = fakeServer({ status: true });
+    await expect(endpoints.detectStacks(client)).rejects.toBeInstanceOf(ResponseParseError);
+  });
+});
+
+describe("zip downloads", () => {
+  const uuid = "0b4f4c5e-6f1a-4c55-9d3e-8a7b6c5d4e3f";
+
+  it("starts an archive of photos by hash", async () => {
+    const { client, requests } = fakeServer({ job_id: "j3", url: uuid });
+    const start = await endpoints.startPhotoDownload(client, ["a", "b"]);
+    expect(defined(requests[0])).toMatchObject({
+      url: `${API}/photos/download`,
+      method: "POST",
+      body: { image_hashes: ["a", "b"], include_stacked_photos: false },
+    });
+    expect(start).toEqual({ job_id: "j3", url: uuid });
+  });
+
+  it("starts an archive of a selected-all set with the stacked photos", async () => {
+    const { client, requests } = fakeServer({ job_id: "j3", url: uuid });
+    await endpoints.startPhotoDownload(client, [], {
+      selectAll: { query: { favorite: true }, excludedHashes: ["x"] },
+      includeStackedPhotos: true,
+    });
+    expect(defined(requests[0]).body).toEqual({
+      select_all: true,
+      query: { favorite: true },
+      excluded_hashes: ["x"],
+      include_stacked_photos: true,
+    });
+  });
+
+  it("asks for the archive job's status and deletes the archive", async () => {
+    const { client, requests } = fakeServer({ status: "PENDING", progress: null }, 202);
+    expect((await endpoints.fetchPhotoDownloadStatus(client, "j3")).status).toBe("PENDING");
+    await endpoints.deletePhotoDownload(client, uuid);
+    expect(requests.map(({ url, method }) => `${method} ${url}`)).toEqual([
+      `GET ${API}/photos/download?job_id=j3`,
+      `DELETE ${API}/delete/zip/${uuid}`,
+    ]);
+  });
+});

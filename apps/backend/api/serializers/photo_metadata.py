@@ -9,7 +9,6 @@ Capture date, location, rating and caption are shown under their old
 from typing import Any
 
 from django.core.exceptions import ObjectDoesNotExist
-from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
@@ -155,7 +154,9 @@ class PhotoMetadataSerializer(serializers.ModelSerializer):
     def get_has_location(self, obj: PhotoMetadata) -> bool:
         return _has_location(obj.photo)
 
-    @extend_schema_field(OpenApiTypes.STR)
+    # Always null: the location parts were dropped (migration 0155). Typed as a
+    # nullable string so the schema says what clients get.
+    @extend_schema_field(serializers.CharField(allow_null=True))
     def get_no_value(self, obj: PhotoMetadata) -> str | None:
         return None
 

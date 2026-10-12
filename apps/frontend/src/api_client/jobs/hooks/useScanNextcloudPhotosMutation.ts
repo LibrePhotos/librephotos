@@ -1,7 +1,6 @@
+import { endpoints } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
-import { z } from "zod";
 import { notification } from "../../../service/notifications";
-import { parseWithNotification } from "../../../util/zodUtils";
 import { albumKeys } from "../../albums/keys";
 import { apiClient, queryClient } from "../../api";
 import { serverKeys } from "../../server/keys";
@@ -9,19 +8,14 @@ import { statsKeys } from "../../stats/keys";
 import { jobKeys } from "../keys";
 import { startJob } from "../startJob";
 
-const JobResponse = z.object({
-  status: z.boolean(),
-  job_id: z.string(),
-});
 export const useScanNextcloudPhotosMutation = () =>
   useMutation({
     mutationFn: async () => {
       // Already running: startJob says so and the page follows that job.
-      const start = await startJob(() => apiClient.post("/nextcloud/scanphotos/", {}));
+      const start = await startJob(() => endpoints.scanNextcloudPhotos(apiClient));
       if (start.alreadyRunning) {
         return;
       }
-      parseWithNotification(JobResponse, start.data, "Failed to parse scan nextcloud photos response");
       notification.startNextcloudPhotoScan();
     },
     onSuccess: () => {

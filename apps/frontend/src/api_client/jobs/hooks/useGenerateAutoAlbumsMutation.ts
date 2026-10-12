@@ -1,3 +1,4 @@
+import { endpoints } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
 import { albumKeys } from "../../albums/keys";
@@ -7,7 +8,7 @@ import { startJob } from "../startJob";
 export const useGenerateAutoAlbumsMutation = () =>
   useMutation({
     mutationFn: async () => {
-      const start = await startJob(() => apiClient.post("/autoalbumgen/", {}));
+      const start = await startJob(() => endpoints.generateEventAlbums(apiClient));
       if (!start.alreadyRunning) {
         notification.generateEventAlbums();
       }

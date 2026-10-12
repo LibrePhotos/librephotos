@@ -412,9 +412,70 @@ export async function fetchFolderSubfolders(
 }
 
 /** Photo grid (grouped by date) for one tag album. */
-export async function fetchTagAlbum(client: ApiClient, id: number | string): Promise<S.TagAlbum> {
-  const res = await client.get<unknown>(`/tags/${id}/`);
+export async function fetchTagAlbum(
+  client: ApiClient,
+  id: number | string,
+  filter: AlbumMediaFilter = {}
+): Promise<S.TagAlbum> {
+  const res = await client.get<unknown>(`/tags/${id}/${buildQuery(albumMediaQuery(filter))}`);
   return parseResponse(S.TagAlbumResponse, res, "tag album detail").results;
+}
+
+/* ---- tags -------------------------------------------------------------- */
+
+/** The tags on one photo (by photo id or image hash), all pages. */
+export async function fetchPhotoTags(client: ApiClient, photoId: string): Promise<S.TagList> {
+  const results = await fetchAllPages(client, `/tags/${buildQuery({ photo: photoId })}`);
+  return parseResponse(S.TagListResponse, { results }, "photo tags").results;
+}
+
+/** Create a tag. When the user already has one by that name, the server answers that tag. */
+export async function createTag(client: ApiClient, name: string): Promise<S.Tag> {
+  const res = await client.post<unknown>("/tags/", { name });
+  return parseResponse(S.Tag, res, "create tag");
+}
+
+/** Rename a tag. */
+export async function renameTag(client: ApiClient, tagId: number | string, name: string): Promise<S.Tag> {
+  const res = await client.patch<unknown>(`/tags/${tagId}/`, { name });
+  return parseResponse(S.Tag, res, "rename tag");
+}
+
+/** Delete a tag; its photos stay. Answers 204. */
+export async function deleteTag(client: ApiClient, tagId: number | string): Promise<void> {
+  await client.delete(`/tags/${tagId}/`);
+}
+
+/** Merge the tag `sourceTagId` into `tagId`: its photos move over and it is deleted. */
+export async function mergeTags(client: ApiClient, tagId: number | string, sourceTagId: number): Promise<S.Tag> {
+  const res = await client.post<unknown>(`/tags/${tagId}/merge/`, { tag: sourceTagId });
+  return parseResponse(S.Tag, res, "merge tags");
+}
+
+/**
+ * Which photos a tag edit applies to: the ids or hashes (`photos`), or with `selectAll` the query
+ * and its exclusions (an unset query is `{}`, unset exclusions `[]`).
+ */
+function tagPhotosBody(photos: string[], selectAll: SelectAllPhotos | undefined) {
+  if (!selectAll) return { photos };
+  return { select_all: true, query: selectAll.query ?? {}, excluded_hashes: selectAll.excludedHashes ?? [] };
+}
+
+/** Tag photos (by photo id or image hash, or a selected-all set). Answers the tag. */
+export async function addPhotosToTag(
+  client: ApiClient,
+  tagId: number | string,
+  photos: string[],
+  selectAll?: SelectAllPhotos
+): Promise<S.Tag> {
+  const res = await client.post<unknown>(`/tags/${tagId}/add/`, tagPhotosBody(photos, selectAll));
+  return parseResponse(S.Tag, res, "add photos to tag");
+}
+
+/** Take a tag off photos (by photo id or image hash). Answers the tag. */
+export async function removePhotosFromTag(client: ApiClient, tagId: number | string, photos: string[]): Promise<S.Tag> {
+  const res = await client.post<unknown>(`/tags/${tagId}/remove/`, { photos });
+  return parseResponse(S.Tag, res, "remove photos from tag");
 }
 
 /* ---- persons ----------------------------------------------------------- */
@@ -533,9 +594,33 @@ export async function sendTestEmail(client: ApiClient, to?: string): Promise<S.E
 
 /* ---- jobs -------------------------------------------------------------- */
 
-export async function fetchJobs(client: ApiClient, page = 1, pageSize = 20): Promise<S.JobsResponse> {
-  const res = await client.get<unknown>(`/jobs/${buildQuery({ page, page_size: pageSize })}`);
+/** One page of jobs. Staff see everyone's unless `mine` narrows the list to their own. */
+export async function fetchJobs(
+  client: ApiClient,
+  page = 1,
+  pageSize = 20,
+  options: { mine?: boolean } = {}
+): Promise<S.JobsResponse> {
+  const query = buildQuery({ page, page_size: pageSize, mine: options.mine ? "true" : undefined });
+  const res = await client.get<unknown>(`/jobs/${query}`);
   return parseResponse(S.JobsResponse, res, "jobs");
+}
+
+/** One job, with its progress. */
+export async function fetchJob(client: ApiClient, jobId: number): Promise<S.JobDetail> {
+  const res = await client.get<unknown>(`/jobs/${jobId}/`);
+  return parseResponse(S.JobDetail, res, "job");
+}
+
+/** Cancel a queued or running job (ApiError code job_finished when it has finished). */
+export async function cancelJob(client: ApiClient, jobId: number): Promise<S.CancelJobResponse> {
+  const res = await client.post<unknown>(`/jobs/${jobId}/cancel/`, {});
+  return parseResponse(S.CancelJobResponse, res, "cancel job");
+}
+
+/** Delete a job from the list. Answers 204. */
+export async function deleteJob(client: ApiClient, jobId: number): Promise<void> {
+  await client.delete(`/jobs/${jobId}/`);
 }
 
 export async function fetchWorkerAvailability(client: ApiClient): Promise<S.WorkerAvailabilityResponse> {
@@ -548,10 +633,16 @@ export async function fetchWorkerAvailability(client: ApiClient): Promise<S.Work
  * `job_already_running`) this resolves with that job, `already_running: true`,
  * instead of rejecting: the caller follows it rather than reporting an error.
  */
-async function triggerJob(client: ApiClient, endpoint: string, context: string): Promise<S.JobTriggerResponse> {
+async function triggerJob<T>(
+  client: ApiClient,
+  endpoint: string,
+  schema: z.ZodType<T>,
+  context: string,
+  body: object = {}
+): Promise<T | S.JobAlreadyRunning> {
   try {
-    const res = await client.post<unknown>(endpoint, {});
-    return parseResponse(S.JobTriggerResponse, res, context);
+    const res = await client.post<unknown>(endpoint, body);
+    return parseResponse(schema, res, context);
   } catch (error) {
     const jobId = runningJobId(error);
     if (jobId === null) throw error;
@@ -561,17 +652,223 @@ async function triggerJob(client: ApiClient, endpoint: string, context: string):
 
 /** Trigger an incremental library scan. Returns the queued (or already running) job id. */
 export async function scanPhotos(client: ApiClient): Promise<S.JobTriggerResponse> {
-  return triggerJob(client, "/scanphotos/", "scan photos");
+  return triggerJob(client, "/scanphotos/", S.JobTriggerResponse, "scan photos");
 }
 
 /** Trigger a full library rescan. */
 export async function fullScanPhotos(client: ApiClient): Promise<S.JobTriggerResponse> {
-  return triggerJob(client, "/fullscanphotos/", "full scan photos");
+  return triggerJob(client, "/fullscanphotos/", S.JobTriggerResponse, "full scan photos");
 }
 
 /** Start the job that removes the photos whose files are gone. */
 export async function deleteMissingPhotos(client: ApiClient): Promise<S.JobTriggerResponse> {
-  return triggerJob(client, "/deletemissingphotos", "delete missing photos");
+  return triggerJob(client, "/deletemissingphotos", S.JobTriggerResponse, "delete missing photos");
+}
+
+/** Scan the user's Nextcloud folder. */
+export async function scanNextcloudPhotos(client: ApiClient): Promise<S.JobTriggerResponse> {
+  return triggerJob(client, "/nextcloud/scanphotos/", S.JobTriggerResponse, "scan Nextcloud photos");
+}
+
+/** Run text recognition: on the photos without a result yet, or with `fullScan` on every photo. */
+export async function generateOcr(client: ApiClient, fullScan: boolean): Promise<S.JobTriggerResponse> {
+  return triggerJob(client, "/generateocr/", S.JobTriggerResponse, "generate OCR", { full_scan: fullScan });
+}
+
+/** Make event albums from the photos added or changed since the last run, and title them. */
+export async function generateEventAlbums(client: ApiClient): Promise<S.JobTriggerResponse> {
+  return triggerJob(client, "/autoalbumgen/", S.JobTriggerResponse, "generate event albums");
+}
+
+/** Re-title every event album (generateEventAlbums only titles the albums whose photos changed). */
+export async function regenerateEventAlbumTitles(client: ApiClient): Promise<S.JobTriggerResponse> {
+  return triggerJob(client, "/autoalbumtitlegen/", S.JobTriggerResponse, "regenerate event album titles");
+}
+
+/* ---- zip downloads ------------------------------------------------------ */
+
+/**
+ * Start the job that zips photos (by hash, or a selected-all set; with `includeStackedPhotos`
+ * the other photos of their stacks too). Follow it with fetchPhotoDownloadStatus, fetch the
+ * archive by its file name (`url`) from the media route, then deletePhotoDownload.
+ */
+export async function startPhotoDownload(
+  client: ApiClient,
+  imageHashes: string[],
+  options: { selectAll?: SelectAllPhotos; includeStackedPhotos?: boolean } = {}
+): Promise<S.PhotoDownloadStart> {
+  const res = await client.post<unknown>("/photos/download", {
+    ...photoSelection(imageHashes, options.selectAll),
+    include_stacked_photos: options.includeStackedPhotos ?? false,
+  });
+  return parseResponse(S.PhotoDownloadStart, res, "start photo download");
+}
+
+/** Where a zip download's job is: PENDING, SUCCESS or FAILURE. */
+export async function fetchPhotoDownloadStatus(client: ApiClient, jobId: string): Promise<S.PhotoDownloadStatus> {
+  const res = await client.get<unknown>(`/photos/download${buildQuery({ job_id: jobId })}`);
+  return parseResponse(S.PhotoDownloadStatus, res, "photo download status");
+}
+
+/** Delete a zip download's archive once it has been saved. */
+export async function deletePhotoDownload(client: ApiClient, fileName: string): Promise<void> {
+  await client.delete(`/delete/zip/${fileName}`);
+}
+
+/* ---- stacks (bursts, brackets, manual groups) ---------------------------- */
+
+export type StackListParams = {
+  page?: number;
+  pageSize?: number;
+  stackType?: string;
+  ordering?: string;
+};
+
+/** One page of stacks (only those with at least two photos), newest first. */
+export async function fetchStacks(client: ApiClient, params: StackListParams = {}): Promise<S.PhotoStackListResponse> {
+  const query = buildQuery({
+    page: params.page || undefined,
+    page_size: params.pageSize || undefined,
+    stack_type: params.stackType,
+    ordering: params.ordering,
+  });
+  const res = await client.get<unknown>(`/stacks${query}`);
+  return parseResponse(S.PhotoStackListResponse, res, "stacks list");
+}
+
+/** One stack with all its photos. */
+export async function fetchStack(client: ApiClient, stackId: string): Promise<S.PhotoStack> {
+  const res = await client.get<unknown>(`/stacks/${stackId}/`);
+  return parseResponse(S.PhotoStack, res, "stack details");
+}
+
+export async function fetchStackStats(client: ApiClient): Promise<S.PhotoStackStats> {
+  const res = await client.get<unknown>("/stacks/stats/");
+  return parseResponse(S.PhotoStackStats, res, "stack stats");
+}
+
+/** Take photos out of a stack; a stack left with fewer than two photos is deleted. */
+export async function removePhotosFromStack(
+  client: ApiClient,
+  stackId: string,
+  photoHashes: string[]
+): Promise<S.RemoveFromStackResponse> {
+  const res = await client.post<unknown>(`/stacks/${stackId}/remove/`, { photo_hashes: photoHashes });
+  return parseResponse(S.RemoveFromStackResponse, res, "remove from stack");
+}
+
+/** Merge every manual stack that holds one of the photos into one. */
+export async function mergeStacks(client: ApiClient, photoHashes: string[]): Promise<S.MergeStacksResponse> {
+  const res = await client.post<unknown>("/stacks/merge/", { photo_hashes: photoHashes });
+  return parseResponse(S.MergeStacksResponse, res, "merge stacks");
+}
+
+/** Put photos (at least two) in a manual stack: the one a photo is already in, or a new one. */
+export async function createManualStack(
+  client: ApiClient,
+  photoHashes: string[]
+): Promise<S.CreateManualStackResponse> {
+  const res = await client.post<unknown>("/stacks/manual/", { photo_hashes: photoHashes });
+  return parseResponse(S.CreateManualStackResponse, res, "create manual stack");
+}
+
+/** Delete a stack; its photos stay. */
+export async function deleteStack(client: ApiClient, stackId: string): Promise<S.UnlinkGroupResponse> {
+  const res = await client.delete<unknown>(`/stacks/${stackId}/`);
+  return parseResponse(S.UnlinkGroupResponse, res, "delete stack");
+}
+
+/** Make one of a stack's photos its cover. */
+export async function setStackPrimary(
+  client: ApiClient,
+  stackId: string,
+  photoHash: string
+): Promise<S.SetStackPrimaryResponse> {
+  const res = await client.post<unknown>(`/stacks/${stackId}/primary/`, { photo_hash: photoHash });
+  return parseResponse(S.SetStackPrimaryResponse, res, "set stack cover");
+}
+
+/** Start stack detection (bursts, by the user's burst rules). */
+export async function detectStacks(
+  client: ApiClient,
+  options: S.DetectStacksRequest = {}
+): Promise<S.DetectionQueuedResponse | S.JobAlreadyRunning> {
+  return triggerJob(client, "/stacks/detect/", S.DetectionQueuedResponse, "detect stacks", options);
+}
+
+/* ---- duplicates (exact copies, visual duplicates) ----------------------- */
+
+export type DuplicateListParams = {
+  duplicateType?: S.DuplicateType;
+  status?: S.ReviewStatus;
+  page?: number;
+  pageSize?: number;
+};
+
+/** One page of duplicate groups (only those with at least two photos), newest first. */
+export async function fetchDuplicates(
+  client: ApiClient,
+  params: DuplicateListParams = {}
+): Promise<S.DuplicateListResponse> {
+  const query = buildQuery({
+    duplicate_type: params.duplicateType,
+    status: params.status,
+    page: params.page ?? 1,
+    page_size: params.pageSize ?? 20,
+  });
+  const res = await client.get<unknown>(`/duplicates${query}`);
+  return parseResponse(S.DuplicateListResponse, res, "duplicates list");
+}
+
+/** One duplicate group with all its photos and the one the server suggests keeping. */
+export async function fetchDuplicate(client: ApiClient, duplicateId: string): Promise<S.DuplicateDetail> {
+  const res = await client.get<unknown>(`/duplicates/${duplicateId}`);
+  return parseResponse(S.DuplicateDetail, res, "duplicate details");
+}
+
+export async function fetchDuplicateStats(client: ApiClient): Promise<S.DuplicateStats> {
+  const res = await client.get<unknown>("/duplicates/stats");
+  return parseResponse(S.DuplicateStats, res, "duplicate stats");
+}
+
+/** Keep one photo of a group, and with `trashOthers` move the others to the trash. */
+export async function resolveDuplicate(
+  client: ApiClient,
+  duplicateId: string,
+  keepPhotoHash: string,
+  trashOthers: boolean
+): Promise<S.ResolveDuplicateResponse> {
+  const res = await client.post<unknown>(`/duplicates/${duplicateId}/resolve`, {
+    keep_photo_hash: keepPhotoHash,
+    trash_others: trashOthers,
+  });
+  return parseResponse(S.ResolveDuplicateResponse, res, "resolve duplicate");
+}
+
+/** Mark a group as not duplicates. */
+export async function dismissDuplicate(client: ApiClient, duplicateId: string): Promise<S.DismissDuplicateResponse> {
+  const res = await client.post<unknown>(`/duplicates/${duplicateId}/dismiss`, {});
+  return parseResponse(S.DismissDuplicateResponse, res, "dismiss duplicate");
+}
+
+/** Undo a resolved group: its trashed photos come back and it is pending again. */
+export async function revertDuplicate(client: ApiClient, duplicateId: string): Promise<S.RevertDuplicateResponse> {
+  const res = await client.post<unknown>(`/duplicates/${duplicateId}/revert`, {});
+  return parseResponse(S.RevertDuplicateResponse, res, "revert duplicate");
+}
+
+/** Delete a duplicate group; its photos stay. */
+export async function deleteDuplicate(client: ApiClient, duplicateId: string): Promise<S.UnlinkGroupResponse> {
+  const res = await client.delete<unknown>(`/duplicates/${duplicateId}/delete`);
+  return parseResponse(S.UnlinkGroupResponse, res, "delete duplicate");
+}
+
+/** Start duplicate detection (unset options take the server's defaults). */
+export async function detectDuplicates(
+  client: ApiClient,
+  options: S.DetectDuplicatesRequest = {}
+): Promise<S.DetectionQueuedResponse | S.JobAlreadyRunning> {
+  return triggerJob(client, "/duplicates/detect", S.DetectionQueuedResponse, "detect duplicates", options);
 }
 
 /* ---- sharing ----------------------------------------------------------- */
@@ -722,7 +1019,7 @@ export async function deleteFaces(client: ApiClient, faceIds: number[]): Promise
 }
 
 export async function trainFaces(client: ApiClient): Promise<S.JobTriggerResponse> {
-  return triggerJob(client, "/trainfaces", "train faces");
+  return triggerJob(client, "/trainfaces", S.JobTriggerResponse, "train faces");
 }
 
 /* ---- delta sync (mobile app, backend api/views/sync.py) ----------------- */

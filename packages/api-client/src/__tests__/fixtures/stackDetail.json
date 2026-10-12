@@ -1,0 +1,58 @@
+{
+  "id": "45639e7f-2334-4829-9805-b8a605c89e23",
+  "stack_type": "burst",
+  "stack_type_display": "Burst Sequence",
+  "photo_count": 3,
+  "sequence_start": null,
+  "sequence_end": null,
+  "created_at": "2026-10-12T18:39:50.227562Z",
+  "updated_at": "2026-10-12T18:39:50.227562Z",
+  "primary_photo_hash": null,
+  "photos": [
+    {
+      "id": "8f433e7e-c391-46f8-828a-610a16b7f5a8",
+      "image_hash": "a78f2594af6534490cec680b183df48c1",
+      "width": null,
+      "height": null,
+      "size": 0,
+      "camera": null,
+      "exif_timestamp": null,
+      "is_primary": null,
+      "file_path": "/photos/8f433e7ec39146f8828a610a16b7f5a8.png",
+      "file_type": "image",
+      "file_variants": null,
+      "thumbnail_url": "/media/square_thumbnails_small/a78f2594af6534490cec680b183df48c1",
+      "thumbnail_big_url": "/media/thumbnails_big/a78f2594af6534490cec680b183df48c1"
+    },
+    {
+      "id": "e2676048-8489-4f16-b469-3e4234b3799e",
+      "image_hash": "dd26ff0ba4a07883764a0cdd0fff05631",
+      "width": null,
+      "height": null,
+      "size": 0,
+      "camera": null,
+      "exif_timestamp": null,
+      "is_primary": null,
+      "file_path": "/photos/e267604884894f16b4693e4234b3799e.png",
+      "file_type": "image",
+      "file_variants": null,
+      "thumbnail_url": "/media/square_thumbnails_small/dd26ff0ba4a07883764a0cdd0fff05631",
+      "thumbnail_big_url": "/media/thumbnails_big/dd26ff0ba4a07883764a0cdd0fff05631"
+    },
+    {
+      "id": "113e35dd-e235-4dec-b761-bbd47795a5d5",
+      "image_hash": "99a5d51c623beac5e0640097b782d1281",
+      "width": null,
+      "height": null,
+      "size": 0,
+      "camera": null,
+      "exif_timestamp": null,
+      "is_primary": null,
+      "file_path": "/photos/113e35dde2354decb761bbd47795a5d5.png",
+      "file_type": "image",
+      "file_variants": null,
+      "thumbnail_url": "/media/square_thumbnails_small/99a5d51c623beac5e0640097b782d1281",
+      "thumbnail_big_url": "/media/thumbnails_big/99a5d51c623beac5e0640097b782d1281"
+    }
+  ]
+}

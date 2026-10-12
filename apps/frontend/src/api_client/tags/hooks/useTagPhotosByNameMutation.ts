@@ -1,11 +1,10 @@
+import { endpoints } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
-import { parseWithNotification } from "../../../util/zodUtils";
 import { apiClient, queryClient } from "../../api";
 import { photoGridKeys } from "../../photos/keys";
 import { tagKeys } from "../keys";
 import type { TagList, TagPhotosByNameParams } from "../types";
-import { Tag } from "../types";
 
 /** Resolve a typed name to its tag, creating the tag when it is new.
  *
@@ -18,8 +17,7 @@ async function resolveTag(name: string, cached: TagList | undefined) {
   if (known) {
     return { tag: known, created: false };
   }
-  const response = await apiClient.post(`/tags/`, { name });
-  return { tag: parseWithNotification(Tag, response, "Failed to parse tag"), created: true };
+  return { tag: await endpoints.createTag(apiClient, name), created: true };
 }
 
 /**
@@ -34,7 +32,6 @@ export const useTagPhotosByNameMutation = () =>
   useMutation({
     mutationFn: async ({ names, photos, selectAll, photoCount }: TagPhotosByNameParams) => {
       const cached = queryClient.getQueryData<TagList>(tagKeys.list());
-      const payload = selectAll ?? { photos: photos ?? [] };
 
       const applied: string[] = [];
       // Sequential on purpose: two names that are both new and both normalise
@@ -43,7 +40,7 @@ export const useTagPhotosByNameMutation = () =>
       // firing them in parallel only moves the queue.
       for (const name of names) {
         const { tag } = await resolveTag(name, cached);
-        await apiClient.post(`/tags/${tag.id}/add/`, payload);
+        await endpoints.addPhotosToTag(apiClient, tag.id, photos ?? [], selectAll);
         applied.push(tag.name);
       }
 

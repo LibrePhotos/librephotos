@@ -11468,14 +11468,17 @@
           },
           "location_country": {
             "type": "string",
+            "nullable": true,
             "readOnly": true
           },
           "location_state": {
             "type": "string",
+            "nullable": true,
             "readOnly": true
           },
           "location_city": {
             "type": "string",
+            "nullable": true,
             "readOnly": true
           },
           "location_address": {

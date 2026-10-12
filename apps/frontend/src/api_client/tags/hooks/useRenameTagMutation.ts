@@ -1,3 +1,4 @@
+import { endpoints } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
 import { apiClient, queryClient } from "../../api";
@@ -8,7 +9,7 @@ import type { RenameTagParams } from "../types";
 export const useRenameTagMutation = () =>
   useMutation({
     mutationFn: async ({ id, name, newName }: RenameTagParams) => {
-      await apiClient.patch(`/tags/${id}/`, { name: newName });
+      await endpoints.renameTag(apiClient, id, newName);
       notification.renameTag(name, newName);
     },
     onSuccess: (_, { id }) => {

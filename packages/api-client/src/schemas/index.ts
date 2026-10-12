@@ -13,5 +13,7 @@ export * from "./settings";
 export * from "./rules";
 export * from "./upload";
 export * from "./tags";
+export * from "./stacks";
+export * from "./duplicates";
 export * from "./sync";
 export * from "./mutations";
