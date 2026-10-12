@@ -6,7 +6,7 @@ import { useFetchDateAlbumQuery, useFetchDateAlbumsQuery, useFetchUserAlbumQuery
 import { Photoset, PigPhoto } from "../../api_client/photos/types";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
-import type { PigVisibleGroup } from "../../components/react-pig";
+import type { PigVisibleGroup } from "../../components/photolist/PhotoListView";
 import { isUndatedShare } from "../../components/sharing/publicAlbum";
 import { usePublicPageTitle } from "../../components/sharing/usePublicPageTitle";
 import { getPhotosFlatFromGroupedByDate } from "../../util/util";

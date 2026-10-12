@@ -6,34 +6,6 @@ const gridType = "dense";
  */
 export type GroupedGridRows<Group, Item> = Array<[Group] | Item[]>;
 
-export const calculateSharedAlbumGridCells = <Group extends { albums: readonly unknown[] }>(
-  groupedBySharerList: readonly Group[],
-  itemsPerRow: number
-): { cellContents: GroupedGridRows<Group, Group["albums"][number]> } => {
-  const gridContents: GroupedGridRows<Group, Group["albums"][number]> = [];
-  let rowCursor: Group["albums"][number][] = [];
-
-  groupedBySharerList.forEach(group => {
-    gridContents.push([group]);
-    group.albums.forEach((album, idx) => {
-      if (idx === 0) {
-        rowCursor = [];
-      }
-      if (idx > 0 && idx % itemsPerRow === 0) {
-        gridContents.push(rowCursor);
-      }
-      if (idx % itemsPerRow === 0) {
-        rowCursor = [];
-      }
-      rowCursor.push(album);
-      if (idx === group.albums.length - 1) {
-        gridContents.push(rowCursor);
-      }
-    });
-  });
-  return { cellContents: gridContents };
-};
-
 export const calculateGridCellSize = (gridWidth: number) => {
   let numEntrySquaresPerRow: number;
 

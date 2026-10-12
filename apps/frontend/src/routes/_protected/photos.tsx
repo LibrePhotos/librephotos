@@ -6,8 +6,8 @@ import { useFetchDateAlbumQuery, useFetchDateAlbumsQuery } from "../../api_clien
 import { Photoset, PigPhoto } from "../../api_client/photos/types";
 import { NO_PHOTO_GROUP } from "../../components/photolist/photoGroup";
 import { EmptyStateConfig, PhotoListView } from "../../components/photolist/PhotoListView";
+import type { PigVisibleGroup } from "../../components/photolist/PhotoListView";
 import { useHasNoScanDirectory } from "../../components/photolist/useScanEmptyStateAction";
-import type { PigVisibleGroup } from "../../components/react-pig";
 import { getPhotosFlatFromGroupedByDate } from "../../util/util";
 
 export const Route = createFileRoute("/_protected/photos")({

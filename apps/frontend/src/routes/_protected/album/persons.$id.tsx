@@ -12,8 +12,8 @@ import { Photoset, PigPhoto } from "../../../api_client/photos/types";
 import { mediaTypeToBulkQuery, validateMediaSearch } from "../../../components/photolist/mediaTypeFilter";
 import { NO_PHOTO_GROUP } from "../../../components/photolist/photoGroup";
 import { PhotoGroup, PhotoListView } from "../../../components/photolist/PhotoListView";
+import type { PigVisibleGroup } from "../../../components/photolist/PhotoListView";
 import { useMediaTypeFilter } from "../../../components/photolist/useMediaTypeFilter";
-import type { PigVisibleGroup } from "../../../components/react-pig";
 import { getPhotosFlatFromGroupedByDate } from "../../../util/util";
 
 export const Route = createFileRoute("/_protected/album/persons/$id")({

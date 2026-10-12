@@ -1619,6 +1619,7 @@
   "clear": "Clear",
   "results": "Results",
   "no_folders_found": "No folders found",
+  "folder_list_capped": "Showing the first {{shown}} of {{count}}. Filter by name or path to find the others.",
   "showing_first": "showing first",
   "publicphoto": {
     "title": "Shared photo",

@@ -34,6 +34,28 @@ const cookiesImportBan = {
   message: "Read and write cookies through src/api_client/authCookies.ts.",
 };
 
+// Lists and grids (AGENTS.md): photo layouts render through components/photolist/PhotoListView and
+// fixed-size tiles through components/virtual/TileGrid, so every long list is virtualized one way.
+const pigImportBan = {
+  group: ["**/react-pig", "**/react-pig/*"],
+  message:
+    "Photo layouts render through components/photolist/PhotoListView (it re-exports the types); react-pig is its engine.",
+};
+const reactVirtualImportBan = {
+  group: ["@tanstack/react-virtual", "@tanstack/react-virtual/*"],
+  message: "Virtualize through components/virtual: TileGrid for tiles, PhotoListView for photos.",
+};
+// The faces grid is the one exception: its sections, scrubber and lazy pages need VirtualGrid itself.
+const virtualGridImportBan = {
+  group: ["**/virtual/VirtualGrid"],
+  message: "Tile grids use components/virtual/TileGrid, which owns the cell index math and padding.",
+};
+const listImportBans = [pigImportBan, reactVirtualImportBan, virtualGridImportBan];
+const tileIndexBan = {
+  selector: "BinaryExpression[operator='*'][left.name='rowIndex']",
+  message: "Render the tiles through components/virtual/TileGrid; it owns the cell index math.",
+};
+
 const typedMockBan = {
   // vi.fn() is a Mock<(...args: any[]) => any>; give it the signature it stands in for.
   selector:
@@ -247,6 +269,7 @@ export default [
         typedMockBan,
         openStateBan,
         pollIntervalBan,
+        tileIndexBan,
         ...dateSyntaxBans,
         ...pageLoaderBans,
         errorBoundaryBan,
@@ -260,7 +283,7 @@ export default [
         "error",
         {
           paths: [modalsImportBan, cookiesImportBan, lodashImportBan],
-          patterns: [notificationsImportBan, dayjsImportBan],
+          patterns: [notificationsImportBan, dayjsImportBan, ...listImportBans],
         },
       ],
     },
@@ -272,7 +295,10 @@ export default [
     rules: {
       "no-restricted-imports": [
         "error",
-        { paths: [modalsImportBan, lodashImportBan], patterns: [notificationsImportBan, dayjsImportBan] },
+        {
+          paths: [modalsImportBan, lodashImportBan],
+          patterns: [notificationsImportBan, dayjsImportBan, ...listImportBans],
+        },
       ],
     },
   },
@@ -284,7 +310,62 @@ export default [
     rules: {
       "no-restricted-imports": [
         "error",
-        { paths: [modalsImportBan, cookiesImportBan, lodashImportBan], patterns: [dayjsImportBan] },
+        { paths: [modalsImportBan, cookiesImportBan, lodashImportBan], patterns: [dayjsImportBan, ...listImportBans] },
+      ],
+    },
+  },
+  {
+    // PhotoListView is the one module that renders react-pig (its test mocks it, and react-pig's own
+    // tests import its parts); the other import bans still apply there.
+    files: [
+      "src/components/photolist/PhotoListView.tsx",
+      "src/components/photolist/PhotoListView.test.tsx",
+      "src/components/react-pig/**/*.{ts,tsx}",
+    ],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [modalsImportBan, cookiesImportBan, lodashImportBan],
+          patterns: [notificationsImportBan, dayjsImportBan, reactVirtualImportBan, virtualGridImportBan],
+        },
+      ],
+    },
+  },
+  {
+    // The virtualization primitives themselves: TileGrid on VirtualGrid on @tanstack/react-virtual.
+    // Restates the other bans of both rules for these files.
+    files: ["src/components/virtual/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        typedMockBan,
+        openStateBan,
+        pollIntervalBan,
+        ...dateSyntaxBans,
+        ...pageLoaderBans,
+        errorBoundaryBan,
+      ],
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [modalsImportBan, cookiesImportBan, lodashImportBan],
+          patterns: [notificationsImportBan, dayjsImportBan, pigImportBan],
+        },
+      ],
+    },
+  },
+  {
+    // The faces grid keeps VirtualGrid (person sections that collapse, the scrubber, pages loaded by
+    // the rendered range): the documented exception to TileGrid.
+    files: ["src/components/facedashboard/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [modalsImportBan, cookiesImportBan, lodashImportBan],
+          patterns: [notificationsImportBan, dayjsImportBan, pigImportBan, reactVirtualImportBan],
+        },
       ],
     },
   },
@@ -299,6 +380,7 @@ export default [
         typedMockBan,
         openStateBan,
         pollIntervalBan,
+        tileIndexBan,
         routeModalBan,
         ...dateSyntaxBans,
         ...pageLoaderBans,
@@ -317,6 +399,7 @@ export default [
         typedMockBan,
         openStateBan,
         pollIntervalBan,
+        tileIndexBan,
         ...dateSyntaxBans,
         errorBoundaryBan,
       ],
@@ -330,6 +413,7 @@ export default [
         typedMockBan,
         openStateBan,
         pollIntervalBan,
+        tileIndexBan,
         ...dateSyntaxBans,
         ...pageLoaderBans,
       ],
@@ -346,6 +430,7 @@ export default [
         typedMockBan,
         openStateBan,
         pollIntervalBan,
+        tileIndexBan,
         apiClientTimerBan,
         ...dateSyntaxBans,
         ...pageLoaderBans,

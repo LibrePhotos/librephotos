@@ -45,18 +45,16 @@ afterEach(async () => {
   container.remove();
 });
 
-function Harness({ albums }: { albums: readonly unknown[] }) {
-  config = useAlbumListGridConfig(albums);
+function Harness({ reservedHeight }: { reservedHeight?: number }) {
+  config = useAlbumListGridConfig({ reservedHeight });
   return null;
 }
 
-const albums = (count: number) => Array.from({ length: count }, (_, id) => ({ id }));
-
-const render = async (count: number, theme?: MantineThemeOverride) => {
+const render = async (theme?: MantineThemeOverride, reservedHeight?: number) => {
   await act(async () => {
     root.render(
       <MantineProvider theme={theme}>
-        <Harness albums={albums(count)} />
+        <Harness reservedHeight={reservedHeight} />
       </MantineProvider>
     );
   });
@@ -73,71 +71,70 @@ const stubScrollbar = (width: number) => {
 };
 
 describe("useAlbumListGridConfig", () => {
-  it("lays out a whole number of albums per row", async () => {
-    await render(13);
+  it("lays out a whole number of albums per row, a cover and its caption per cell", async () => {
+    await render();
 
-    expect(defined(config).entriesPerRow).toBe(6);
-    expect(defined(config).numberOfRows).toBe(3);
+    expect(defined(config).columnCount).toBe(6);
+    expect(defined(config).cellPadding).toBe(5);
+    expect(defined(config).captionHeight).toBe(60);
   });
 
-  it("drops the rows a shrinking list no longer fills (places filtered by the map)", async () => {
-    await render(13);
-    await render(4);
+  it("leaves the reserved height above the grid, but always room for one row", async () => {
+    await render(undefined, 250);
+    expect(defined(config).height).toBe(900 - 55 - 90 - 250);
 
-    expect(defined(config).numberOfRows).toBe(1);
-  });
-
-  it("has no rows once the list is empty", async () => {
-    await render(13);
-    await render(0);
-
-    expect(defined(config).numberOfRows).toBe(0);
+    // A short window: the map leaves less than a row
+    window.innerHeight = 400;
+    await act(async () => {
+      window.dispatchEvent(new Event("resize"));
+    });
+    expect(defined(config).height).toBe((1400 - 200 - 10) / 6 + 60);
   });
 
   // jsdom scrollbars take no room, like a phone's or macOS's overlay ones
   it("fills the width beside the menu, 5px in from either edge", async () => {
-    await render(13);
+    await render();
 
-    expect(defined(config).entrySquareSize).toBe((1400 - 200 - 10) / 6);
-    expect(defined(config).gridHeight).toBe(900 - 55 - 90);
+    expect(defined(config).columnWidth).toBe((1400 - 200 - 10) / 6);
+    expect(defined(config).height).toBe(900 - 55 - 90);
   });
 
   it("uses the full width and leaves room for the footer below the navbar breakpoint", async () => {
     // Between 700px and Mantine's sm breakpoint the navbar is already hidden
     window.innerWidth = 740;
-    await render(13);
+    await render();
 
-    expect(defined(config).entriesPerRow).toBe(3);
-    expect(defined(config).entrySquareSize).toBe((740 - 10) / 3);
-    expect(defined(config).gridHeight).toBe(900 - 55 - 90 - 50);
+    expect(defined(config).columnCount).toBe(3);
+    expect(defined(config).columnWidth).toBe((740 - 10) / 3);
+    expect(defined(config).height).toBe(900 - 55 - 90 - 50);
   });
 
   it("takes the navbar breakpoint from the theme, as the AppShell does", async () => {
     // 960px, where a 20px browser font size puts 48em: at 800px the AppShell shows no navbar
     window.innerWidth = 800;
-    await render(13, { breakpoints: { sm: "60em" } });
+    await render({ breakpoints: { sm: "60em" } });
 
-    expect(defined(config).entrySquareSize).toBe((800 - 10) / 4);
-    expect(defined(config).gridHeight).toBe(900 - 55 - 90 - 50);
+    expect(defined(config).columnWidth).toBe((800 - 10) / 4);
+    expect(defined(config).height).toBe(900 - 55 - 90 - 50);
   });
 
   it("does not keep a scrollbar's width free on a phone", async () => {
     window.innerWidth = 375;
-    await render(13);
+    await render();
 
-    expect(defined(config).entrySquareSize).toBe((375 - 10) / 2);
+    expect(defined(config).columnWidth).toBe((375 - 10) / 2);
   });
 
   it("keeps a classic scrollbar's width free for the grid's own scrollbar", async () => {
     stubScrollbar(15);
-    await render(13);
+    await render();
 
-    expect(defined(config).entrySquareSize).toBe((1400 - 200 - 10 - 15) / 6);
+    expect(defined(config).columnWidth).toBe((1400 - 200 - 10 - 15) / 6);
   });
 
   it("measures the scrollbar again on resize, since page zoom changes its CSS width", async () => {
     stubScrollbar(15);
-    await render(13);
+    await render();
 
     // Zooming out to 90% in Firefox: more CSS pixels across, and a wider scrollbar in them
     stubScrollbar(17);
@@ -146,6 +143,6 @@ describe("useAlbumListGridConfig", () => {
       window.dispatchEvent(new Event("resize"));
     });
 
-    expect(defined(config).entrySquareSize).toBe((1556 - 200 - 10 - 17) / 6);
+    expect(defined(config).columnWidth).toBe((1556 - 200 - 10 - 17) / 6);
   });
 });

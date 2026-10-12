@@ -98,6 +98,10 @@ const FolderButton = memo(({ subfolder, folderSearch, onClose }: FolderButtonPro
 
 FolderButton.displayName = "FolderButton";
 
+// The most folders the list mounts at once; the filter reaches the others. A folder can hold
+// thousands of subfolders, and every loaded page used to stay mounted.
+export const FOLDER_LIST_CAP = 100;
+
 interface FolderListModalProps {
   opened: boolean;
   onClose: () => void;
@@ -123,6 +127,7 @@ const FolderListModal = memo<FolderListModalProps>(
       if (!query) return allSubfolders;
       return allSubfolders.filter(f => f.name.toLowerCase().includes(query) || f.path.toLowerCase().includes(query));
     }, [allSubfolders, folderSearch]);
+    const shownSubfolders = filteredSubfolders.slice(0, FOLDER_LIST_CAP);
 
     // One observer per open list, disconnected again: an inline ref callback
     // made a new one on every render and never let any of them go. A new one per
@@ -173,7 +178,7 @@ const FolderListModal = memo<FolderListModalProps>(
           </Group>
           <ScrollArea.Autosize mah={600} type="auto">
             <Stack gap="lg" p="md">
-              {filteredSubfolders.map(subfolder => (
+              {shownSubfolders.map(subfolder => (
                 <FolderButton
                   key={subfolder.path}
                   subfolder={subfolder}
@@ -181,7 +186,12 @@ const FolderListModal = memo<FolderListModalProps>(
                   onClose={onClose}
                 />
               ))}
-              {/* Infinite scroll sentinel */}
+              {filteredSubfolders.length > shownSubfolders.length && (
+                <Text size="sm" c="dimmed" ta="center">
+                  {t("folder_list_capped", { shown: shownSubfolders.length, count: filteredSubfolders.length })}
+                </Text>
+              )}
+              {/* Infinite scroll sentinel: the filter searches every page, so they still load */}
               <div ref={setSentinel} />
               {filteredSubfolders.length === 0 && (
                 <Box ta="center" py="xl">

@@ -4,12 +4,10 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { useAllFolderSubfolders } from "../../../api_client/albums/hooks";
-import gridClasses from "../../../components/album/AlbumGridCell.module.css";
 import { EmptyState } from "../../../components/common/EmptyState";
 import { PageHeader } from "../../../components/PageHeader";
-import { VirtualGrid } from "../../../components/virtual/VirtualGrid";
-import type { GridCellProps } from "../../../components/virtual/VirtualGrid";
-import { ALBUM_GRID_GUTTER, useAlbumListGridConfig } from "../../../hooks/useAlbumListGridConfig";
+import { TileGrid } from "../../../components/virtual/TileGrid";
+import { useAlbumListGridConfig } from "../../../hooks/useAlbumListGridConfig";
 import classes from "./folder.module.css";
 
 export const Route = createFileRoute("/_protected/album/folder/")({
@@ -19,32 +17,7 @@ export const Route = createFileRoute("/_protected/album/folder/")({
 function AlbumFolder() {
   const { t } = useTranslation();
   const { subfolders, isLoading, isFetching } = useAllFolderSubfolders();
-  const { entriesPerRow, entrySquareSize, numberOfRows, gridHeight } = useAlbumListGridConfig(subfolders);
-
-  function renderCell({ columnIndex, key, rowIndex, style }: GridCellProps) {
-    const index = rowIndex * entriesPerRow + columnIndex;
-    const subfolder = subfolders[index];
-    if (subfolder === undefined) {
-      return <div key={key} style={style} />;
-    }
-    return (
-      <div key={key} style={style}>
-        <div className={gridClasses.cell}>
-          <Link to="/album/folder/$id" params={{ id: encodeURIComponent(subfolder.path) }}>
-            <div className={classes.folderTile} style={{ width: entrySquareSize - 10, height: entrySquareSize - 10 }}>
-              <Folder size={40} stroke={1.5} />
-            </div>
-          </Link>
-        </div>
-        <Flex gap={0} justify="flex-start" direction="column" px={8}>
-          <Text size="sm" fw={500} lineClamp={1} title={subfolder.path}>
-            {subfolder.name}
-          </Text>
-          <Text size="xs">{t("numberofphotos", { count: subfolder.photo_count, number: subfolder.photo_count })}</Text>
-        </Flex>
-      </div>
-    );
-  }
+  const sizing = useAlbumListGridConfig();
 
   return (
     <div>
@@ -65,14 +38,27 @@ function AlbumFolder() {
           actionLink="/library"
         />
       ) : (
-        <VirtualGrid
-          style={{ outline: "none", paddingLeft: ALBUM_GRID_GUTTER }}
-          cellRenderer={renderCell}
-          columnWidth={entrySquareSize}
-          columnCount={entriesPerRow}
-          height={gridHeight}
-          rowHeight={entrySquareSize + 60}
-          rowCount={numberOfRows}
+        <TileGrid
+          items={subfolders}
+          getKey={subfolder => subfolder.path}
+          sizing={sizing}
+          renderItem={(subfolder, size) => (
+            <Link to="/album/folder/$id" params={{ id: encodeURIComponent(subfolder.path) }}>
+              <div className={classes.folderTile} style={{ width: size, height: size }}>
+                <Folder size={40} stroke={1.5} />
+              </div>
+            </Link>
+          )}
+          renderCaption={subfolder => (
+            <Flex gap={0} justify="flex-start" direction="column" px={8}>
+              <Text size="sm" fw={500} lineClamp={1} title={subfolder.path}>
+                {subfolder.name}
+              </Text>
+              <Text size="xs">
+                {t("numberofphotos", { count: subfolder.photo_count, number: subfolder.photo_count })}
+              </Text>
+            </Flex>
+          )}
         />
       )}
     </div>

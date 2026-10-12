@@ -8,9 +8,8 @@ import gridClasses from "../../../components/album/AlbumGridCell.module.css";
 import { EmptyState } from "../../../components/common/EmptyState";
 import { PageHeader } from "../../../components/PageHeader";
 import { Tile } from "../../../components/Tile";
-import { VirtualGrid } from "../../../components/virtual/VirtualGrid";
-import type { GridCellProps } from "../../../components/virtual/VirtualGrid";
-import { ALBUM_GRID_GUTTER, useAlbumListGridConfig } from "../../../hooks/useAlbumListGridConfig";
+import { TileGrid } from "../../../components/virtual/TileGrid";
+import { useAlbumListGridConfig } from "../../../hooks/useAlbumListGridConfig";
 
 export const Route = createFileRoute("/_protected/album/things/")({
   component: AlbumThing,
@@ -19,44 +18,8 @@ export const Route = createFileRoute("/_protected/album/things/")({
 function AlbumThing() {
   const { t } = useTranslation();
   const { data: albums, isFetching } = useFetchThingsAlbumsQuery();
-  const { entriesPerRow, entrySquareSize, numberOfRows, gridHeight } = useAlbumListGridConfig(albums || []);
+  const sizing = useAlbumListGridConfig();
   const hasAlbums = albums && albums.length > 0;
-
-  function renderCell({ columnIndex, key, rowIndex, style }: GridCellProps) {
-    if (!albums || albums.length === 0) {
-      return null;
-    }
-    const index = rowIndex * entriesPerRow + columnIndex;
-    const album = albums[index];
-    if (album === undefined) {
-      return <div key={key} style={style} />;
-    }
-    return (
-      <div key={key} style={style}>
-        <div className={gridClasses.cell}>
-          {album.cover_photos.slice(0, 1).map(photo => (
-            <Link key={album.id} to="/album/things/$id" params={{ id: album.id.toString() }}>
-              <Tile
-                className={gridClasses.cover}
-                video={photo.video === true}
-                height={entrySquareSize - 10}
-                width={entrySquareSize - 10}
-                image_hash={photo.image_hash}
-              />
-            </Link>
-          ))}
-        </div>
-        <Group justify="space-between">
-          <Flex gap={0} justify="flex-start" direction="column" px={8}>
-            <Text size="sm" fw={500} lineClamp={1} title={album.title}>
-              {album.title}
-            </Text>
-            <Text size="xs">{t("numberofphotos", { count: album.photo_count, number: album.photo_count })}</Text>
-          </Flex>
-        </Group>
-      </div>
-    );
-  }
 
   return (
     <div>
@@ -78,14 +41,33 @@ function AlbumThing() {
           actionLink="/library"
         />
       ) : (
-        <VirtualGrid
-          style={{ outline: "none", paddingLeft: ALBUM_GRID_GUTTER }}
-          cellRenderer={renderCell}
-          columnWidth={entrySquareSize}
-          columnCount={entriesPerRow}
-          height={gridHeight}
-          rowHeight={entrySquareSize + 60}
-          rowCount={numberOfRows}
+        <TileGrid
+          items={albums ?? []}
+          getKey={album => album.id}
+          sizing={sizing}
+          renderItem={(album, size) =>
+            album.cover_photos.slice(0, 1).map(photo => (
+              <Link key={album.id} to="/album/things/$id" params={{ id: album.id.toString() }}>
+                <Tile
+                  className={gridClasses.cover}
+                  video={photo.video === true}
+                  height={size}
+                  width={size}
+                  image_hash={photo.image_hash}
+                />
+              </Link>
+            ))
+          }
+          renderCaption={album => (
+            <Group justify="space-between">
+              <Flex gap={0} justify="flex-start" direction="column" px={8}>
+                <Text size="sm" fw={500} lineClamp={1} title={album.title}>
+                  {album.title}
+                </Text>
+                <Text size="xs">{t("numberofphotos", { count: album.photo_count, number: album.photo_count })}</Text>
+              </Flex>
+            </Group>
+          )}
         />
       )}
     </div>
