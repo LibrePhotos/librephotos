@@ -5,7 +5,8 @@ import React, { useCallback, useEffect, useEffectEvent, useMemo, useRef, useStat
 import type { MouseEvent, ReactNode } from "react";
 import { useIsDesktopLayout } from "../../hooks/useIsDesktopLayout";
 import { parseInstant } from "../../util/dateUtils";
-import "./ScrollScrubber.css";
+import classes from "./ScrollScrubber.module.css";
+import { findScrollScrubberTarget } from "./scrollScrubberTarget";
 import type { ScrollerData, ScrollerPosition } from "./scrollScrubberTypes";
 import { ScrollerType } from "./scrollScrubberTypes";
 
@@ -263,7 +264,7 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
   );
 
   useEffect(() => {
-    targetRef.current = document.getElementsByClassName("scrollscrubbertarget")?.item(0);
+    targetRef.current = findScrollScrubberTarget();
     // Clear scrollerVisibilityTimerRef on dismount
     return () => {
       if (scrollerVisibilityTimerRef.current) {
@@ -359,7 +360,7 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
       .map<ReactNode>(item => (
         <Badge
           key={item.label}
-          className="scrollscrubber-marker"
+          className={classes.marker}
           size="sm"
           style={{
             top: `${item.scrollerYPercent - halfMarkerHeightInPercent}%`,
@@ -387,7 +388,7 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
       .map<ReactNode>(item => (
         <Box
           key={`line-${item.label}`}
-          className="scrollscrubber-marker-dot"
+          className={classes.markerDot}
           style={{
             backgroundColor: colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[0],
             boxShadow: `0 0 0 2px ${colorScheme === "dark" ? theme.colors.dark[2] : theme.colors.gray[6]}`,
@@ -424,7 +425,7 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
           </Badge>
         )}
         <Box
-          className="scrollscrubber-drag-position"
+          className={classes.dragPosition}
           style={{
             backgroundColor: colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[0],
             boxShadow: `0 0 0 4px ${colorScheme === "dark" ? theme.colors.gray[0] : theme.colors.dark[6]}`,
@@ -438,7 +439,7 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
     if (!scrollerIsVisible) return null;
     return (
       <Box
-        className="scrollscrubber-current-position"
+        className={classes.currentPosition}
         style={{
           backgroundColor: colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[0],
           boxShadow: `0 0 0 4px ${theme.colors.green[6]}`,
@@ -457,7 +458,7 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
     <div>
       {children}
       <Box
-        className="scrollscrubber-background-layer"
+        className={classes.backgroundLayer}
         style={{
           opacity: scrollerIsVisible ? 0.9 : 0,
           top: `${offsetTop}px`,
@@ -467,7 +468,7 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
       />
       <Box
         ref={scrubberRef}
-        className="scrollscrubber"
+        className={classes.scrubber}
         style={{
           opacity: scrollerIsVisible ? 1 : 0,
           cursor,

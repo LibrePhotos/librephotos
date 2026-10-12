@@ -1,0 +1,15 @@
+/*
+ * Scrims, borders and shadows drawn on top of photos (the lightbox, tile overlays). A photo is the
+ * same in both colour schemes, so these are too: they are not theme colours, and this is their one
+ * home. Loaded once, as theme setup, from src/index.tsx; src/architecture/styles.test.ts does not
+ * count the colours here (AGENTS.md, Styling).
+ */
+:root {
+  --app-scrim-black-15: rgba(0, 0, 0, 0.15);
+  --app-scrim-black-20: rgba(0, 0, 0, 0.2);
+  --app-scrim-black-30: rgba(0, 0, 0, 0.3);
+  --app-scrim-black-40: rgba(0, 0, 0, 0.4);
+  --app-scrim-black-50: rgba(0, 0, 0, 0.5);
+  --app-scrim-white-30: rgba(255, 255, 255, 0.3);
+  --app-scrim-white-60: rgba(255, 255, 255, 0.6);
+}

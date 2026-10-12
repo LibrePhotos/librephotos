@@ -8,7 +8,10 @@ import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { defined } from "../../util/defined.test-utils";
 import { ScrollScrubber } from "./ScrollScrubber";
+import classes from "./ScrollScrubber.module.css";
+import { SCROLL_SCRUBBER_TARGET } from "./scrollScrubberTarget";
 import type { ScrollerData } from "./scrollScrubberTypes";
 
 // jsdom lays nothing out: give the scrubber a fixed size
@@ -75,13 +78,13 @@ function renderMeasured(targetHeight: number) {
 }
 
 const scrubber = () => {
-  const element = container.querySelector<HTMLElement>(".scrollscrubber");
+  const element = container.querySelector<HTMLElement>(`.${defined(classes.scrubber)}`);
   if (!element) throw new Error("the scrubber is not rendered");
   return element;
 };
 
 const markerTops = () =>
-  [...container.querySelectorAll<HTMLElement>(".scrollscrubber-marker-dot")].map(dot => parseFloat(dot.style.top));
+  [...container.querySelectorAll<HTMLElement>(`.${defined(classes.markerDot)}`)].map(dot => parseFloat(dot.style.top));
 
 function scrollWindowTo(y: number, targetHeight: number) {
   Object.defineProperty(window, "scrollY", { configurable: true, value: y });
@@ -94,7 +97,7 @@ function renderWithTarget(targetHeight: number) {
     root.render(
       <MantineProvider>
         <ScrollScrubber type="labels" scrollPositions={positions} targetHeight={targetHeight} scrollToY={() => {}}>
-          <div className="scrollscrubbertarget" />
+          <div className={SCROLL_SCRUBBER_TARGET} />
         </ScrollScrubber>
       </MantineProvider>
     );
@@ -186,7 +189,7 @@ describe("ScrollScrubber", () => {
     Object.defineProperty(window, "scrollY", { configurable: true, value: 0 });
     renderWithTarget(viewport);
 
-    expect(container.querySelector(".scrollscrubber")).toBeNull();
+    expect(container.querySelector(`.${defined(classes.scrubber)}`)).toBeNull();
     expect(container.innerHTML).not.toContain("NaN");
     expect(consoleErrors.mock.calls.map(args => args.join(" ")).filter(text => text.includes("NaN"))).toEqual([]);
     consoleErrors.mockRestore();

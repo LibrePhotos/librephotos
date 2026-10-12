@@ -37,6 +37,7 @@ import { ModalTagEdit } from "../modals/ModalTagEdit";
 import Pig from "../react-pig";
 import type { GroupedImageItem, PigHandle, PigVisibleGroup } from "../react-pig";
 import { ScrollScrubber } from "../scrollscrubber/ScrollScrubber";
+import { SCROLL_SCRUBBER_TARGET } from "../scrollscrubber/scrollScrubberTarget";
 import { ScrollerType } from "../scrollscrubber/scrollScrubberTypes";
 import type { ScrollerData } from "../scrollscrubber/scrollScrubberTypes";
 import { ModalAlbumShare } from "../sharing/ModalAlbumShare";
@@ -820,7 +821,7 @@ function PhotoListViewComponent({
           <Box p={10} ref={gridRef}>
             <Pig<PigPhoto>
               ref={pigRef}
-              className="scrollscrubbertarget"
+              className={SCROLL_SCRUBBER_TARGET}
               imageData={photos}
               selectable={selectable === undefined || selectable}
               selectedItems={pigSelectedItems}

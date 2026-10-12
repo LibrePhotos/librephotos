@@ -24,7 +24,7 @@ import { useGetSettingsQuery } from "../../api_client/settings/hooks";
 import { fuzzyMatch } from "../../util/util";
 import { AISuggestionButton } from "./AISuggestionButton";
 import classes from "./Description.module.css";
-import "./Hashtag.css";
+import hashtagClasses from "./Hashtag.module.css";
 import suggestion from "./Suggestion";
 
 type Props = Readonly<{
@@ -79,7 +79,7 @@ function CaptionEditor(props: Props) {
       TipTapText,
       Mention.configure({
         HTMLAttributes: {
-          class: "hashtag",
+          class: hashtagClasses.hashtag,
         },
         // renderLabel is deprecated in tiptap v3 and warns on every render.
         renderText({ options, node }) {

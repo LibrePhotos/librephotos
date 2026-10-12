@@ -12,6 +12,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi, type MockIn
 import i18n from "../../i18n";
 import { defined } from "../../util/defined.test-utils";
 import { Description } from "./Description";
+import hashtagClasses from "./Hashtag.module.css";
 
 const saveCaption = vi.fn<(variables: { id: string; caption: string }) => void>();
 const navigate = vi.hoisted(() => vi.fn<(options: { to: string }) => void>());
@@ -113,7 +114,9 @@ describe("Description", () => {
 
     expect(editorElement(container).getAttribute("contenteditable")).toBe("false");
     expect(editorElement(container).textContent).toBe("Sunset at the #beach");
-    expect(container.querySelector('span.hashtag[data-type="mention"]')?.textContent).toBe("#beach");
+    expect(container.querySelector(`span.${defined(hashtagClasses.hashtag)}[data-type="mention"]`)?.textContent).toBe(
+      "#beach"
+    );
     // renderLabel is deprecated in tiptap v3 and warned on every render.
     expect(warn.mock.calls.flat().join(" ")).not.toContain("renderLabel");
   });

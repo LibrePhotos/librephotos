@@ -20,6 +20,7 @@ import { ApiError } from "../api_client/api";
 import { useLoginMutation, useSignUpMutation } from "../api_client/auth";
 import { useGetSettingsQuery } from "../api_client/settings";
 import { notification } from "../service/notifications";
+import { SIGN_UP_GRADIENT } from "../theme/brandGradients";
 import { reportSignupError } from "../util/apiErrors";
 import { makeSignupSchema } from "./-signup.schema";
 import classes from "./auth.module.css";
@@ -141,7 +142,7 @@ function SignupPage(): React.JSX.Element {
 
                   <Button
                     variant="gradient"
-                    gradient={{ from: "#D38312", to: "#A83279" }}
+                    gradient={SIGN_UP_GRADIENT}
                     type="submit"
                     loading={isSignupPending || isLoginPending}
                   >

@@ -14,7 +14,6 @@
   align-items: baseline;
 }
 
-/* Base styles - will be overridden by header size classes */
 /* Both stay on one line: the space above each group is fixed (see
    computeLayoutGroups), so a wrapped date or place ran into the photos on
    phones. The place gives way first and is cut with an ellipsis. */
@@ -37,64 +36,55 @@
   text-overflow: ellipsis;
 }
 
-@media (min-width: 36em) {
-  .date {
-    font-size: 32px;
-  }
-
-  .location {
-    font-size: 16px;
-  }
-}
-
-/* Header Size Classes - High specificity to override base styles */
+/* Header sizes: every date and location carries one of these (GroupHeader's headerSize), and they
+   are the only rules that set its font size. */
 .large.date {
-  font-size: 18px !important;
+  font-size: 18px;
 }
 
 .large.location {
-  font-size: 15px !important;
+  font-size: 15px;
 }
 
 .normal.date {
-  font-size: 16px !important;
+  font-size: 16px;
 }
 
 .normal.location {
-  font-size: 15px !important;
+  font-size: 15px;
 }
 
 .small.date {
-  font-size: 15px !important;
+  font-size: 15px;
 }
 
 .small.location {
-  font-size: 14px !important;
+  font-size: 14px;
 }
 
 @media (min-width: 36em) {
   .large.date {
-    font-size: 32px !important;
+    font-size: 32px;
   }
 
   .large.location {
-    font-size: 16px !important;
+    font-size: 16px;
   }
 
   .normal.date {
-    font-size: 20px !important;
+    font-size: 20px;
   }
 
   .normal.location {
-    font-size: 16px !important;
+    font-size: 16px;
   }
 
   .small.date {
-    font-size: 16px !important;
+    font-size: 16px;
   }
 
   .small.location {
-    font-size: 15px !important;
+    font-size: 15px;
   }
 }
 
@@ -125,19 +115,6 @@
 .rightAligned .location {
   text-align: right;
   flex: 1;
-}
-
-@media (min-width: 36em) {
-  /* These will be overridden by header size classes */
-  .leftAligned .date,
-  .rightAligned .date {
-    font-size: 32px;
-  }
-
-  .leftAligned .location,
-  .rightAligned .location {
-    font-size: 16px;
-  }
 }
 
 @media (min-width: 62em) {

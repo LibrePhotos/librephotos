@@ -1,4 +1,4 @@
-.scrollscrubbertarget {
+.target {
   overflow: auto;
   height: 100%;
   scrollbar-width: none;
@@ -6,14 +6,14 @@
   position: relative;
 }
 
-.scrollscrubbertarget::-webkit-scrollbar {
+.target::-webkit-scrollbar {
   display: none;
 }
 
-.scrollscrubber {
+.scrubber {
   width: 28px;
   right: 0;
-  position: fixed !important;
+  position: fixed;
   user-select: none;
   margin-top: 10px;
   margin-bottom: 10px;
@@ -23,21 +23,21 @@
   background-position: right 12px center;
 }
 
-.scrollscrubber-background-layer {
+.backgroundLayer {
   width: 28px;
   right: 0;
-  position: fixed !important;
+  position: fixed;
   opacity: 0.9;
   z-index: 100;
 }
 
-.scrollscrubber-marker {
+.marker {
   position: absolute;
   right: 30px;
   margin-top: -2px;
 }
 
-.scrollscrubber-marker-dot {
+.markerDot {
   position: absolute;
   right: 12px;
   width: 4px;
@@ -46,7 +46,7 @@
   margin-top: -2px;
 }
 
-.scrollscrubber-current-position {
+.currentPosition {
   width: 6px;
   height: 6px;
   border-radius: 50%;
@@ -55,7 +55,7 @@
   margin-top: -2px;
 }
 
-.scrollscrubber-drag-position {
+.dragPosition {
   width: 6px;
   height: 6px;
   border-radius: 50%;
