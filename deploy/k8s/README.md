@@ -2,7 +2,7 @@
 
 These manifests run the same backend, proxy and frontend containers as the Docker Compose stack in `deploy/compose`:
 the backend with the nginx proxy next to it in one Pod, and the frontend. PostgreSQL is pinned to 16; the Compose stack
-uses pgautoupgrade, which follows the newest major. All of it runs in the `librephotos` namespace. The Ingress sends
+uses pgautoupgrade pinned to 18, which upgrades its data directory in place. All of it runs in the `librephotos` namespace. The Ingress sends
 your hostname to the proxy.
 
 1. Clone this repo, check out the latest release and change to this directory:

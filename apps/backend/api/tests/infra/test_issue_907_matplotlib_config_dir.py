@@ -170,8 +170,6 @@ class MatplotlibCacheDirIssue907Test(SimpleTestCase):
             BACKEND_DIR / "librephotos" / "wsgi.py",
             BACKEND_DIR / "manage.py",
             REPO_ROOT / "deploy" / "docker" / "backend" / "entrypoint.sh",
-            REPO_ROOT / "deploy" / "docker" / "backend-gpu" / "entrypoint.sh",
-            REPO_ROOT / "deploy" / "docker" / "unified" / "entrypoint.sh",
             REPO_ROOT / "deploy" / "docker" / "backend" / "Dockerfile",
             REPO_ROOT / "deploy" / "docker" / "backend" / "base" / "Dockerfile",
             REPO_ROOT / "deploy" / "compose" / "librephotos.env",

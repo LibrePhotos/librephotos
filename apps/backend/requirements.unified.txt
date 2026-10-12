@@ -1,0 +1,3 @@
+# On top of requirements.txt: what the single-container (unified) image needs to
+# serve the frontend build from Django. requirements.standalone.txt includes it.
+whitenoise==6.12.0

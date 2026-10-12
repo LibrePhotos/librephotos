@@ -16,6 +16,9 @@ on:
       - "packages/api-client/**"
       - "deploy/compose/docker-compose.e2e.yml"
       - "deploy/e2e/**"
+      # The stack builds the backend image, which starts through this entrypoint.
+      - "deploy/docker/backend/Dockerfile"
+      - "deploy/docker/backend/entrypoint.sh"
       - ".github/workflows/e2e.yml"
 
 permissions:

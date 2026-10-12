@@ -8,6 +8,8 @@ This page is the reference for the environment variables LibrePhotos reads and w
 
 ### PostgreSQL v18+ Volume Mount Change
 
+The bundled Compose files run `pgautoupgrade/pgautoupgrade:18-alpine`, PostgreSQL 18. Releases up to 1.3.0 used the `latest` tag, which moves to a new PostgreSQL major as soon as one comes out, so any `docker compose pull` could upgrade your database. The major is now pinned, and moving to the next one is a LibrePhotos release with its own upgrade note. Back up the database directory (`${data}/db`, or `${data}/dbcursor` with `docker-compose.unified.yml`) before such an upgrade.
+
 :::warning Breaking Change
 With Postgres v18+, mounting a volume to `/var/lib/postgresql/data` can fail in Docker/Kubernetes due to an upstream change that enforces a new data directory (`/var/lib/postgresql/MAJOR/docker`) and adds a symlink from `/var/lib/postgresql/data` to `/var/lib/postgresql`.
 
@@ -66,8 +68,9 @@ Every machine learning model (face recognition, semantic search, scene tags, cap
 | --- | --- | --- |
 | `ONNX_PROVIDERS` | CUDA if available, then CPU | Comma-separated ONNX Runtime execution providers, most preferred first. `CPUExecutionProvider` keeps the GPU image off the GPU, for example to leave it to another application. Names the installed ONNX Runtime does not offer are skipped. |
 | `ONNX_INTRA_OP_THREADS` | ONNX Runtime's default (one per physical core) | How many threads one model may use at a time. See [Threads per model](#threads-per-model). |
+| `CUDA_VISIBLE_DEVICES` | `0` when the container has `nvidia-smi` | Which GPUs CUDA may use, as a comma-separated list of indices (`1`, `0,1`). The entrypoint prints `nvidia-smi` and sets `0` unless you set it; releases up to 1.3.0 always set `0` in the GPU image. |
 
-Neither is in the bundled `.env` file; pass them to the backend container directly:
+None of them is in the bundled `.env` file; pass them to the backend container directly:
 
 ```yaml
 services:
@@ -154,11 +157,12 @@ Do not cap the container so hard that the first scan cannot finish. Face detecti
 
 #### Requests at the same time
 
-Two settings size the web API, separately from the background workers. `WEB_CONCURRENCY` is the number of uvicorn worker processes that answer requests. The bundled `.env` sets it through `gunniWorkers` (default `2`); the backend image defaults to `1` and the single-container image to `4`. `WEB_THREADS` (default `16`) is how many requests each worker serves at once, each holding a thread while it runs.
+Two settings size the web API, separately from the background workers. `WEB_CONCURRENCY` is the number of uvicorn worker processes that answer requests. The bundled `.env` sets it through `gunniWorkers` (default `2`); the backend image defaults to `1` and the single-container image to `4`. `WEB_THREADS` (default `16`) is how many requests each worker serves at once, each holding a thread while it runs. With more than one worker, each is restarted after `WEB_MAX_REQUESTS` requests.
 
 | Variable | `.env` key | Default | What it does |
 | --- | --- | --- | --- |
-| `WEB_CONCURRENCY` | `gunniWorkers` | `1` (backend image) | Number of uvicorn worker processes. In the backend image, above `1` each worker is recycled after 50 requests, so a recycled one never takes the whole API down. |
+| `WEB_CONCURRENCY` | `gunniWorkers` | `1` (backend image), `4` (single-container image) | Number of uvicorn worker processes. Above `1` each worker is recycled after `WEB_MAX_REQUESTS` requests, so a recycled one never takes the whole API down. |
+| `WEB_MAX_REQUESTS` | _(none)_ | `50` (backend image), `2000` (single-container image) | With more than one worker, the requests a worker answers before it is restarted. The single-container image serves the web app and the photos through Django too, so it restarts them less often. |
 | `WEB_THREADS` | _(none)_ | `16` | Requests one uvicorn worker serves at the same time; further requests wait for a free thread. |
 
 ### Turning features off
@@ -547,10 +551,10 @@ userPass=admin
 adminEmail=admin@example.com
 ```
 
-Whenever `userName` is set, the backend entrypoint runs `createadmin` on **every** container start:
+Whenever both `userName` and `userPass` are set, the entrypoint runs `createadmin` on **every** container start. All images do this the same way, including the single-container image:
 
-- On the first start it creates the superuser. The username is lower-cased, and `adminEmail` is used for the account.
+- On the first start it creates the superuser. The username is lower-cased, and `adminEmail` is used for the account. A blank `adminEmail` creates the account without an address; you can add one in the UI later.
 - On every later start the existing user's password is overwritten with `userPass`. Leaving `userPass` set therefore resets the admin password on each restart — a password you changed in the UI will not survive a `docker compose restart`. This is the same behaviour described under [How to change the admin password, when you can't log in](../user-guide/managing-users.md#how-to-change-the-admin-password-when-you-cant-log-in).
-- `adminEmail` is only applied when the account is first created; on later starts `createadmin` ignores it and logs a warning.
+- `adminEmail` is only applied when the account is first created; on later starts `createadmin` ignores it (and says so in the log when it differs), so the address you set in the UI stays. Releases up to 1.3.0 had the single-container image write `adminEmail` to the account on every start, clearing the address when `adminEmail` was blank.
 
-To stop the password from being reset, clear `userName` — that skips `createadmin` entirely. Clearing only `userPass` while leaving `userName` set instead makes the command abort on each start with "Admin password cannot be empty".
+To stop the password from being reset, clear `userPass` (or `userName`): the entrypoint then skips `createadmin`. Releases up to 1.3.0 still ran it with only `userName` set, and it aborted on each start with "Admin password cannot be empty".

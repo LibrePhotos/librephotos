@@ -16,8 +16,8 @@ and SiteSettingsView, which reads them unconditionally, answered every
 frontend calls that endpoint before login. Overriding instead of copying makes
 that class of drift impossible.
 
-deploy/docker/unified/entrypoint.sh selects this module by exporting
-DJANGO_SETTINGS_MODULE when SERVE_FRONTEND is set.
+deploy/docker/backend/entrypoint.sh, which the unified image starts through,
+selects this module by exporting DJANGO_SETTINGS_MODULE when SERVE_FRONTEND is set.
 """
 
 import logging

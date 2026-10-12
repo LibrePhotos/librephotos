@@ -73,9 +73,11 @@ sudo docker run -d \
   -e POSTGRES_DB=librephotos \
   -e POSTGRES_USER=librephotos_user \
   -e POSTGRES_PASSWORD=your_secure_password \
-  -v /home/yourusername/postgres_data:/var/lib/postgresql/data \
-  postgres:17
+  -v /home/yourusername/postgres_data:/var/lib/postgresql \
+  postgres:18
 ```
+
+PostgreSQL 18 is the major the Compose setup runs. From 18 on, the image keeps its data under `/var/lib/postgresql`, not `/var/lib/postgresql/data`. If you started the database with an older version of this page (`postgres:17`, mounted at `/var/lib/postgresql/data`), recreate that container with its old tag and mount: the official image does not upgrade an existing data directory, and pointing `postgres:18` at it starts an empty database.
 
 ### 2. LibrePhotos Container
 

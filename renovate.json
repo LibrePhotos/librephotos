@@ -119,6 +119,14 @@
       "enabled": false
     },
     {
+      "description": "Both compose files pin pgautoupgrade to a Postgres major (18-alpine). A new major upgrades every compose install's database on its next pull, so it comes as its own pull request, never grouped and never automerged, and ships with release-note instructions (back up first).",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["pgautoupgrade/pgautoupgrade"],
+      "matchUpdateTypes": ["major"],
+      "groupName": "pgautoupgrade major",
+      "automerge": false
+    },
+    {
       "description": "A Postgres major needs pg_upgrade or dump/restore on existing volumes. Never bump it automatically.",
       "matchDatasources": ["docker"],
       "matchPackageNames": ["postgres"],

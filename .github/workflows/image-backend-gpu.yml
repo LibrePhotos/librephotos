@@ -8,7 +8,8 @@ on:
     paths:
       - 'apps/backend/**'
       - 'deploy/docker/backend-gpu/Dockerfile'
-      - 'deploy/docker/backend-gpu/entrypoint.sh'
+      # The GPU image starts through the backend image's entrypoint.
+      - 'deploy/docker/backend/entrypoint.sh'
       - '.github/workflows/image-backend-gpu.yml'
       - '.github/workflows/_build-image.yml'
   # Only what changes the GPU image's install: the image runs Python 3.10, which
@@ -19,6 +20,7 @@ on:
     paths:
       - 'apps/backend/requirements*.txt'
       - 'deploy/docker/backend-gpu/**'
+      - 'deploy/docker/backend/entrypoint.sh'
       - '.github/workflows/image-backend-gpu.yml'
 
 permissions:

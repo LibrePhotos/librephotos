@@ -372,7 +372,7 @@ class EnvironmentVariablesDocumentedTest(SimpleTestCase):
             "FEATURE_VIDEO",
             "WORKER_CONCURRENCY",
             "OCR_MODEL_DIR",  # read through a module constant
-            "SERVE_FRONTEND",  # read only by the unified entrypoint
+            "SERVE_FRONTEND",  # read only by the entrypoint's unified block
             "WEB_CONCURRENCY",  # read only by the entrypoints
         ):
             with self.subTest(name=name):

@@ -42,6 +42,7 @@ jobs:
           cache-dependency-path: |
             apps/backend/requirements.txt
             apps/backend/requirements.standalone.txt
+            apps/backend/requirements.unified.txt
       - name: Install the backend and the build tools
         working-directory: apps/backend
         run: |
@@ -52,7 +53,7 @@ jobs:
       - uses: actions/cache@v6
         with:
           path: ~\AppData\Local\Nuitka\Nuitka\Cache
-          key: nuitka-${{ runner.os }}-${{ hashFiles('apps/backend/requirements.txt', 'apps/backend/requirements.standalone.txt') }}
+          key: nuitka-${{ runner.os }}-${{ hashFiles('apps/backend/requirements.txt', 'apps/backend/requirements.standalone.txt', 'apps/backend/requirements.unified.txt') }}
           restore-keys: nuitka-${{ runner.os }}-
       - name: Build
         working-directory: apps/backend
