@@ -20,11 +20,11 @@
  */
 import * as TaskManager from "expo-task-manager";
 import * as BackgroundTask from "expo-background-task";
+import { userIdFromAccessToken } from "@librephotos/api-client";
 import type { AppDatabase } from "@/db/types";
 import { openDb } from "@/db/client";
 import { runMigrations } from "@/db/migrate";
 import { tokenStorage } from "@/lib/tokenStorage";
-import { userIdFromToken } from "@/stores/auth";
 import { appendSyncLog, type SyncLogEntry } from "@/db/queries/sync-log";
 import { runSync } from "../run";
 
@@ -87,7 +87,7 @@ export async function runBackgroundPass(): Promise<void> {
   if (!refresh) return; // signed out — nothing to do
 
   const access = await tokenStorage.getAccessToken();
-  const userId = userIdFromToken(access);
+  const userId = userIdFromAccessToken(access);
 
   const { db, sqlite } = openDb();
   await runMigrations(db, sqlite);
