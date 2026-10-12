@@ -71,7 +71,7 @@ Unlike the other endpoints, `/api/upload/` and `/api/upload/complete/` are plain
 
 Alias of `POST /api/fullscanphotos/` — both are handled by the same view (`FullScanPhotosView`). Despite the name it is **not** restricted to the upload folder: it queues a **full rescan of the user's entire scan directory**, reprocessing every file rather than only new or modified ones.
 
-Returns `{"status": true, "job_id": "<uuid>"}` on success and `{"status": false}` on failure.
+Returns `{"status": true, "job_id": "<uuid>"}` on success. Without a usable scan directory it answers 400, and when the job cannot be queued 500 (code `job_start_failed`), both in the API's [error format](../../../user-guide/api-authentication.md#error-responses).
 
 `GET` is still accepted but is marked deprecated in the OpenAPI schema (`deprecated=True`, "Use POST method instead"); new clients should use `POST`.
 
