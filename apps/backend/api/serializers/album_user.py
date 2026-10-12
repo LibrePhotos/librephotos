@@ -2,14 +2,21 @@ import logging
 from datetime import datetime
 from typing import Any
 
+from django.db.models import Count, OuterRef, Prefetch, QuerySet, Subquery
+from django.db.models.functions import Coalesce
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from api.models import AlbumUser, Photo
-from api.models.photo import visible_photo_q
+from api.models.photo import HEAVY_PHOTO_COLUMNS, visible_photo_q
 from api.models.user import get_default_public_sharing_settings
 from api.request_user import request_user
-from api.serializers.fields import OwnedPhotoField, shared_serializer
+from api.serializers.fields import (
+    OwnedPhotoField,
+    loaded_count,
+    loaded_list,
+    shared_serializer,
+)
 from api.serializers.photos import (
     GroupedPhotosSerializer,
     with_photo_summary_relations,
@@ -258,6 +265,49 @@ class AlbumUserEditSerializer(serializers.ModelSerializer):
         return instance
 
 
+def with_album_user_list_relations(
+    queryset: QuerySet[AlbumUser],
+) -> QuerySet[AlbumUser]:
+    """Load everything ``AlbumUserListSerializer`` reads in a constant number of queries.
+
+    The list serializer renders the album cover, the owner, the users the album
+    is shared to, its public-share settings and its photo count. None of those
+    are joined by default, so every album on the page cost four extra round
+    trips and the cover grid only appeared once the last of them had come back
+    (issue #618). The serializer raises on an album that did not come through
+    here, so every endpoint rendering an album card passes its albums through.
+    """
+    # The photos the album detail shows, also for the users it is shared to.
+    # A subquery rather than Count("photos"): callers filter on other
+    # relations of the album (shared_to), whose join would multiply it.
+    # Counted from the photo side, which the type checker can follow.
+    visible_photo_count = (
+        Photo.visible.filter(albumuser=OuterRef("pk"))
+        .order_by()
+        .values("albumuser")
+        .annotate(total=Count("pk"))
+        .values("total")
+    )
+    return (
+        queryset.annotate(photo_count=Coalesce(Subquery(visible_photo_count), 0))
+        .select_related("owner", "cover_photo", "share")
+        # The cover renders six photo columns; the embedding and EXIF blobs
+        # of every album's cover were read for nothing.
+        .defer(*(f"cover_photo__{name}" for name in HEAVY_PHOTO_COLUMNS))
+        .prefetch_related(
+            "shared_to",
+            # Fallback cover for albums without an explicit one, by pk as the
+            # unordered relation's ``.first()`` was. Only a photo the album
+            # detail shows, not a hidden or trashed one.
+            Prefetch(
+                "photos",
+                queryset=Photo.visible.defer(*HEAVY_PHOTO_COLUMNS).order_by("pk")[:1],
+                to_attr="first_photos",
+            ),
+        )
+    )
+
+
 class AlbumUserListSerializer(serializers.ModelSerializer):
     cover_photo = serializers.SerializerMethodField()
     photo_count = serializers.SerializerMethodField()
@@ -292,12 +342,8 @@ class AlbumUserListSerializer(serializers.ModelSerializer):
             return shared_serializer(
                 self, PhotoSuperSimpleSerializer
             ).to_representation(obj.cover_photo)
-        # ``first_photos`` is the prefetched fallback cover (see
-        # ``with_album_user_list_relations``); fall back to a query when the
-        # serializer is used on a plain album.
-        first_photos = getattr(obj, "first_photos", None)
-        if first_photos is None:
-            return PhotoSuperSimpleSerializer(obj.photos.first()).data
+        # The prefetched fallback cover (``with_album_user_list_relations``).
+        first_photos = loaded_list(obj, "first_photos", Photo)
         if not first_photos:
             return PhotoSuperSimpleSerializer(None).data
         return shared_serializer(self, PhotoSuperSimpleSerializer).to_representation(
@@ -305,12 +351,7 @@ class AlbumUserListSerializer(serializers.ModelSerializer):
         )
 
     def get_photo_count(self, obj: AlbumUser) -> int:
-        try:
-            # Annotated by the list view's queryset; not a model field.
-            count: int = getattr(obj, "photo_count")
-            return count
-        except Exception:  # for when calling AlbumUserListSerializer(obj).data directly
-            return obj.photos.count()
+        return loaded_count(obj, "photo_count")
 
     def get_public(self, obj: AlbumUser) -> bool:
         return bool(getattr(obj, "share", None) and obj.share.enabled)
@@ -333,6 +374,14 @@ class AlbumUserListSerializer(serializers.ModelSerializer):
             "share_captions": share.share_captions,
             "share_faces": share.share_faces,
         }
+
+
+def album_user_card(album: AlbumUser) -> dict[str, Any]:
+    """The card of one album, for a response about it (shared, made public)."""
+    loaded_album = with_album_user_list_relations(
+        AlbumUser.objects.filter(pk=album.pk)
+    ).get()
+    return AlbumUserListSerializer(loaded_album).data
 
 
 class AlbumUserPublicSerializer(serializers.ModelSerializer):

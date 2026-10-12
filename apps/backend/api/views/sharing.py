@@ -13,13 +13,14 @@ from api.request_user import request_user
 from api.serializers.album_user import (
     AlbumUserListSerializer,
     SetUserAlbumSharedRequest,
+    album_user_card,
+    with_album_user_list_relations,
 )
 from api.serializers.photos import (
     PhotoSummarySerializer,
     SharedFromMePhotoThroughSerializer,
     with_photo_summary_relations,
 )
-from api.views.albums import with_album_user_list_relations
 from api.views.custom_api_view import ListViewSet
 from api.views.pagination import HugeResultsSetPagination
 from api.views.params import parse_body
@@ -153,4 +154,4 @@ class SetUserAlbumShared(APIView):
             )
 
         user_album_to_share.save()
-        return Response(AlbumUserListSerializer(user_album_to_share).data)
+        return Response(album_user_card(user_album_to_share))

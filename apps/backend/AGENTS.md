@@ -66,6 +66,11 @@ test makes `--parallel` runs crash with "cannot pickle 'traceback'"; rerun that 
   (`api/tests/infra/test_api_conventions.py`); a mutating one also needs a case in
   `api/tests/sharing_and_public/test_cross_tenant_writes.py`, or its exact route in `NOT_PHOTO_SCOPED`
   with the reason (a prefix entry never covers the routes below it).
+- A list endpoint costs the same number of queries for 2 rows as for 1000: list serializers never query.
+  They read relations and annotations loaded by a `with_*_relations()` function next to the serializer
+  (`with_photo_summary_relations`, `with_user_relations`) and fail through `loaded_count`/`prefetched` in
+  `api/serializers/fields.py` when one is missing. A new list route needs a fixture in `LIST_ROUTE_FIXTURES`
+  (`api/tests/infra/test_list_query_counts.py`), which compares its query counts at 2 and 8 rows.
 - URLs: a new route is a `path()` (or a router registration), never `re_path()`: kebab-case literal segments, a trailing slash, ids through the converters in `librephotos/converters.py`. Legacy `re_path()` routes keep both slash forms through `/?$`, and `api/tests/infra/test_url_patterns.py` fails on a new one, an unanchored route or a client path that changes view.
 - Delete unused code instead of keeping aliases or wrappers for compatibility, unless an external client
   calls it. Code only tests call counts as dead; `vulture_whitelist.py` is for names called from outside

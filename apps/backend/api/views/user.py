@@ -37,6 +37,7 @@ from api.serializers.user import (
     PublicUserSerializer,
     SignupUserSerializer,
     UserSerializer,
+    with_user_relations,
 )
 from api.throttling import AuthRateThrottle
 from api.util import is_valid_path
@@ -118,7 +119,6 @@ class IsFirstTimeSetupView(APIView):
 # Neither viewset below has a destroy, so they cannot delete anyone.
 
 
-# To-Do: This executes multiple querys per users
 # List and open users, sign up (create), and edit one's own settings (PATCH).
 class UserViewSet(
     mixins.ListModelMixin,
@@ -128,14 +128,13 @@ class UserViewSet(
     viewsets.GenericViewSet,
 ):
     def get_queryset(self) -> QuerySet[User]:
-        queryset = (
+        queryset = with_user_relations(
             User.objects.exclude(is_active=False)
             # Every field the serializers read is loaded with the row: an
             # .only() list fell behind the serializer and each missing field
             # cost one more query per user. The secrets are never read.
             .defer("password", "nextcloud_app_password")
-            .order_by("id")
-        )
+        ).order_by("id")
         if not self.request.user.is_authenticated:
             return queryset.exclude(public_sharing=False)
         return queryset
@@ -168,6 +167,11 @@ class UserViewSet(
         # partial_update is already restricted to self-or-admin by
         # get_permissions (IsAdminOrSelf) and needs the full serializer.
         return UserSerializer
+
+    def perform_create(self, serializer: serializers.BaseSerializer[User]) -> None:
+        user = serializer.save()
+        # The response renders counts the serializers read from annotations.
+        serializer.instance = with_user_relations(User.objects.filter(pk=user.pk)).get()
 
     def get_throttles(self) -> list[BaseThrottle]:
         # Sign-up and first-time setup are open to anonymous callers; an admin
@@ -215,6 +219,6 @@ class DeleteUserViewSet(mixins.DestroyModelMixin, viewsets.GenericViewSet):
 # PATCH only: the admin user editor (scan directory, quotas, roles). Users are
 # listed and opened through /api/user/, which gives staff the full serializer.
 class ManageUserViewSet(PartialUpdateModelMixin[User], viewsets.GenericViewSet):
-    queryset = User.objects.all().order_by("id")
+    queryset = with_user_relations(User.objects.all()).order_by("id")
     serializer_class = ManageUserSerializer
     permission_classes = (IsAdminUser,)

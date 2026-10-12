@@ -19,8 +19,8 @@ from api.models.album_user_share import AlbumUserShare
 from api.request_data import request_dict
 from api.request_user import request_user
 from api.serializers.album_user import (
-    AlbumUserListSerializer,
     AlbumUserPublicSerializer,
+    album_user_card,
 )
 from api.serializers.photos import PublicPhotoDetailSerializer
 
@@ -74,7 +74,7 @@ class SetUserAlbumPublic(APIView):
         except IntegrityError as error:
             raise self._slug_taken() from error
 
-        return Response({"status": True, "album": AlbumUserListSerializer(album).data})
+        return Response({"status": True, "album": album_user_card(album)})
 
     @staticmethod
     def _slug_taken() -> Conflict:

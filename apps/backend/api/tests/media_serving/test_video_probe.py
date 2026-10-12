@@ -23,7 +23,10 @@ from django.test import SimpleTestCase, TestCase, override_settings
 from api import binaries, ffmpeg_budget, thumbnails, transcode_cache, video_color
 from api.directory_watcher import file_handlers, processing_jobs, scan_jobs
 from api.models import LongRunningJob, Photo, Thumbnail
-from api.serializers.photos import PhotoSummarySerializer
+from api.serializers.photos import (
+    PhotoSummarySerializer,
+    with_photo_summary_relations,
+)
 from api.tests.utils import create_test_photo, create_test_user
 from api.views import media
 
@@ -745,7 +748,8 @@ class BackfillIsQueuedOnlyWhenNeededTest(TestCase):
 class HdrFlagTest(TestCase):
     def _is_hdr(self, **fields):
         photo = create_test_photo(owner=create_test_user(), **fields)
-        return PhotoSummarySerializer(Photo.objects.get(pk=photo.pk)).data["is_hdr"]
+        tile = with_photo_summary_relations(Photo.objects.filter(pk=photo.pk)).get()
+        return PhotoSummarySerializer(tile).data["is_hdr"]
 
     def test_hdr_videos_are_flagged(self):
         self.assertIs(self._is_hdr(video=True, video_color_transfer="smpte2084"), True)

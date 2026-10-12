@@ -3,7 +3,8 @@ from typing import Any
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
-from api.models import AlbumAuto, Person
+from api.models import AlbumAuto, Person, Photo
+from api.serializers.fields import loaded_count, loaded_list
 from api.serializers.person import PersonSerializer
 from api.serializers.photos import PhotoHashListSerializer
 from api.serializers.simple import PhotoSimpleSerializer
@@ -67,18 +68,13 @@ class AlbumAutoListSerializer(serializers.ModelSerializer):
         )
 
     def get_photo_count(self, obj: AlbumAuto) -> int:
-        try:
-            # Annotated by the list view's queryset; not a model field.
-            count: int = getattr(obj, "photo_count")
-            return count
-        except Exception:
-            return obj.photos.count()
+        # Annotated by AlbumAutoListViewSet's queryset; not a model field.
+        return loaded_count(obj, "photo_count")
 
     @extend_schema_field(PhotoHashListSerializer)
     def get_photos(self, obj: AlbumAuto) -> dict[str, Any] | str:
-        try:
-            # cover_photo is annotated by AlbumAutoListViewSet, not a model field.
-            cover_photo: list[Any] = getattr(obj, "cover_photo")
-            return PhotoHashListSerializer(cover_photo[0]).data
-        except Exception:
+        # Prefetched by AlbumAutoListViewSet (to_attr), not a model field.
+        cover_photo = loaded_list(obj, "cover_photo", Photo)
+        if not cover_photo:
             return ""
+        return PhotoHashListSerializer(cover_photo[0]).data
