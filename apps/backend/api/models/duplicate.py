@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import Iterable
-from typing import TYPE_CHECKING, Self
+from typing import TYPE_CHECKING
 
 from django.db import models
 from django.db.models import Model
@@ -28,6 +28,9 @@ from django.utils import timezone
 from api.models.user import User, get_deleted_user
 
 if TYPE_CHECKING:
+    # typing.Self is Python 3.11+; the backend-gpu image runs 3.10.
+    from typing import Self
+
     from django.db.models.fields.related_descriptors import ManyRelatedManager
 
     from api.models.photo import Photo

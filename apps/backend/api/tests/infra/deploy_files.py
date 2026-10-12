@@ -11,6 +11,7 @@ from pathlib import Path
 BACKEND_ROOT = Path(__file__).resolve().parents[3]
 REPO_ROOT = BACKEND_ROOT.parent.parent
 DEPLOY_DIR = REPO_ROOT / "deploy"
+WORKFLOWS_DIR = REPO_ROOT / ".github" / "workflows"
 ENV_PAGE = (
     REPO_ROOT / "apps" / "docs" / "docs" / "installation" / "environment-variables.md"
 )

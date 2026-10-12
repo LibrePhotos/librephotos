@@ -280,6 +280,17 @@ class GrowthTests(unittest.TestCase):
             self.grows({"api/new.py": {"BLE001"}}, old_pyproject=old_pyproject)
         )
 
+    def test_a_python_floor_change_allows_growth(self):
+        # ruff derives its target version from requires-python (issue #2372).
+        current = read("pyproject.toml")
+        old_pyproject = current.replace(
+            'requires-python = ">=3.10', 'requires-python = ">=3.9'
+        )
+        self.assertNotEqual(old_pyproject, current)
+        self.assertFalse(
+            self.grows({"api/new.py": {"BLE001"}}, old_pyproject=old_pyproject)
+        )
+
     def test_a_comment_change_does_not_allow_growth(self):
         old_pyproject = read("pyproject.toml").replace(
             "# pep8-naming", "# naming conventions"

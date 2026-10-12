@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import Collection, Iterable
-from typing import TYPE_CHECKING, Any, Self
+from typing import TYPE_CHECKING, Any
 
 from django.contrib.auth.models import AnonymousUser
 from django.db import models
@@ -17,6 +17,9 @@ from api.models.photo_stack import PhotoStack
 from api.models.user import User, get_deleted_user
 
 if TYPE_CHECKING:
+    # typing.Self is Python 3.11+; the backend-gpu image runs 3.10.
+    from typing import Self
+
     from django.db.models.fetch_modes import FetchMode
 
 

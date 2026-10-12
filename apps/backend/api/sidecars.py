@@ -27,7 +27,7 @@ from it.
 
 import os
 from types import TracebackType
-from typing import Any, Self
+from typing import TYPE_CHECKING, Any
 
 import requests
 from requests.adapters import HTTPAdapter
@@ -35,6 +35,10 @@ from urllib3.connectionpool import ConnectionPool
 from urllib3.exceptions import ReadTimeoutError
 from urllib3.response import BaseHTTPResponse
 from urllib3.util.retry import Retry
+
+if TYPE_CHECKING:
+    # typing.Self is Python 3.11+; the backend-gpu image runs 3.10.
+    from typing import Self
 
 SIDECAR_HOST = "http://127.0.0.1"
 
@@ -76,7 +80,7 @@ class _SidecarRetry(Retry):
         error: Exception | None = None,
         _pool: ConnectionPool | None = None,
         _stacktrace: TracebackType | None = None,
-    ) -> Self:
+    ) -> "Self":
         if isinstance(error, ReadTimeoutError):
             # Raised as-is, requests reports it as ReadTimeout, as it would
             # without a retry policy.
