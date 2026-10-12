@@ -14,23 +14,19 @@ environment, so the assertions cover the import-time constants the services
 actually use, without reloading the registered module the other tests hold.
 """
 
-import importlib.util
 import os
 import subprocess
 import sys
 import tempfile
-import uuid
 from unittest.mock import patch
 
 from django.conf import settings
 from django.test import SimpleTestCase, override_settings
 
 from api.services import _service_environment
+from api.tests.stubs import BACKEND_ROOT, load_backend_file, unique_module_name
 
-BACKEND_DIR = os.path.dirname(
-    os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-)
-SERVICE_DIR = os.path.join(BACKEND_DIR, "service")
+BACKEND_DIR = str(BACKEND_ROOT)
 
 DOCKER_MODELS_ROOT = os.path.join(os.sep, "protected_media", "data_models")
 
@@ -42,20 +38,14 @@ def _load_fresh(relative_path, environ):
     environment without it exercises the fallback rather than whatever the
     test runner inherited.
     """
-    path = os.path.join(SERVICE_DIR, *relative_path.split("/"))
-    name = f"sidecar_probe_{uuid.uuid4().hex}"
     with patch.dict(os.environ, environ, clear=False):
         os.environ.pop("BASE_DATA", None)
         os.environ.pop("OPENCLIP_MODEL_DIR", None)
         os.environ.update(environ)
-        spec = importlib.util.spec_from_file_location(name, path)
-        module = importlib.util.module_from_spec(spec)
-        sys.modules[name] = module
-        try:
-            spec.loader.exec_module(module)
-        finally:
-            sys.modules.pop(name, None)
-    return module
+        return load_backend_file(
+            f"service/{relative_path}",
+            name=unique_module_name("sidecar_probe"),
+        )
 
 
 class SidecarModelRootFollowsBaseDataTest(SimpleTestCase):

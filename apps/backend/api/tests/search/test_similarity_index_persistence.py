@@ -9,12 +9,9 @@ without looking at the answers, so a failed page left a partial index behind
 and the job reported success.
 """
 
-import importlib.util
-import logging
+import importlib
 import os
-import sys
 import tempfile
-import types
 from unittest.mock import MagicMock, patch
 
 import numpy as np
@@ -28,34 +25,17 @@ from api.image_similarity import (
     search_similar_embedding,
 )
 from api.models.long_running_job import LongRunningJob
+from api.tests.stubs import load_backend_file, sidecar_utils_stub, stub_modules
 from api.tests.utils import create_test_photos, create_test_user
 
-BACKEND = os.path.dirname(
-    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-)
-
-
-def _stub_utils():
-    stub = types.ModuleType("utils")
-    stub.logger = logging.getLogger("api.tests.search.similarity_index")
-    return stub
+LOGGER_NAME = "api.tests.search.similarity_index"
 
 
 def _import_retrieval_index():
     # retrieval_index imports ``utils`` by bare name; the real one would
     # reconfigure the test process's logging (see test_retrieval_index_build).
-    if "image_similarity.retrieval_index" in sys.modules:
-        return sys.modules["image_similarity.retrieval_index"]
-    previous = sys.modules.get("utils")
-    sys.modules["utils"] = _stub_utils()
-    try:
-        import image_similarity.retrieval_index as module
-    finally:
-        if previous is None:
-            sys.modules.pop("utils", None)
-        else:
-            sys.modules["utils"] = previous
-    return module
+    with stub_modules({"utils": sidecar_utils_stub(LOGGER_NAME)}):
+        return importlib.import_module("image_similarity.retrieval_index")
 
 
 retrieval_index = _import_retrieval_index()
@@ -65,25 +45,15 @@ DIM = retrieval_index.embedding_size
 
 def _load_main(base_data):
     """image_similarity/main.py as ``python image_similarity/main.py`` runs it."""
-    names = ("utils", "retrieval_index")
-    previous = {name: sys.modules.get(name) for name in names}
-    sys.modules["utils"] = _stub_utils()
-    sys.modules["retrieval_index"] = retrieval_index
-    try:
-        with patch.dict(os.environ, {"BASE_DATA": base_data}):
-            spec = importlib.util.spec_from_file_location(
-                "image_similarity_main_under_test",
-                os.path.join(BACKEND, "image_similarity", "main.py"),
-            )
-            module = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(module)
-    finally:
-        for name, module_before in previous.items():
-            if module_before is None:
-                sys.modules.pop(name, None)
-            else:
-                sys.modules[name] = module_before
-    return module
+    with patch.dict(os.environ, {"BASE_DATA": base_data}):
+        return load_backend_file(
+            "image_similarity/main.py",
+            name="image_similarity_main_under_test",
+            stubs={
+                "utils": sidecar_utils_stub(LOGGER_NAME),
+                "retrieval_index": retrieval_index,
+            },
+        )
 
 
 def unit(axis):

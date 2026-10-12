@@ -31,11 +31,13 @@ Quirks pinned here that a refactor must preserve:
     a non-integer user id raises ``TypeError`` on the happy path.
 """
 
-import sys
+import importlib
 from unittest.mock import patch
 
 import numpy as np
 from django.test import TestCase
+
+from api.tests.stubs import sidecar_utils_stub, stub_modules
 
 # ``image_similarity`` is a standalone Flask process: ``retrieval_index`` does a
 # top-level ``from utils import logger``, which normally resolves because the
@@ -44,23 +46,10 @@ from django.test import TestCase
 # run ``configure_standalone`` and rewire the shared logging config under the
 # test process (breaking test_log_rotation), so a stub ``utils`` is installed
 # just for the duration of the import — the tests patch the module logger anyway.
-if "image_similarity.retrieval_index" not in sys.modules:
-    import logging as _logging
-    import types as _types
-
-    _stub_utils = _types.ModuleType("utils")
-    _stub_utils.logger = _logging.getLogger(
-        "api.tests.search.test_retrieval_index_build"
-    )
-    _prev_utils = sys.modules.get("utils")
-    sys.modules["utils"] = _stub_utils
-    try:
-        import image_similarity.retrieval_index  # noqa: F401
-    finally:
-        if _prev_utils is not None:
-            sys.modules["utils"] = _prev_utils
-        else:
-            del sys.modules["utils"]
+with stub_modules(
+    {"utils": sidecar_utils_stub("api.tests.search.test_retrieval_index_build")}
+):
+    importlib.import_module("image_similarity.retrieval_index")
 
 from image_similarity.retrieval_index import (  # noqa: E402
     RetrievalIndex,
