@@ -46,13 +46,13 @@ export type PhotoHash = z.infer<typeof PhotoHash>;
 
 /**
  * The lightweight photo shape returned by list/timeline endpoints ("pig" =
- * photo-in-grid). `url` is a `;`-delimited string whose first segment is the
- * image hash; use `imageHashOf()` to extract it.
+ * photo-in-grid). `image_hash` names its thumbnails and media files.
  */
 export const PigPhoto = z.object({
   id: UuidString,
   image_hash: z.string(),
   dominantColor: z.string().optional(),
+  // Legacy: the backend still sends the image hash here; read `image_hash`.
   url: z.string().optional(),
   location: z.string().optional(),
   date: z.string().optional().nullable(),
@@ -113,11 +113,7 @@ export enum Photoset {
   SCREENSHOTS = "screenshots",
 }
 
-/** Extract the image hash from a PigPhoto (handles the `;`-delimited `url`). */
-export function imageHashOf(photo: Pick<PigPhoto, "image_hash" | "url">): string {
-  if (photo.url) {
-    const first = photo.url.split(";")[0];
-    if (first) return first;
-  }
+/** The image hash of a PigPhoto. Kept for callers that predate `image_hash` on every photo. */
+export function imageHashOf(photo: Pick<PigPhoto, "image_hash">): string {
   return photo.image_hash;
 }

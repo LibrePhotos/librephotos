@@ -14,7 +14,7 @@ type PhotoItem = ReturnType<typeof photoItem>;
 function photoItem(overrides: Partial<Pick<ImageItem, "type" | "date" | "is_hdr">> = {}) {
   return {
     id: "photo-1",
-    url: "hash1",
+    image_hash: "hash1",
     type: "image",
     date: "2024-03-12T14:02:00Z",
     aspectRatio: 1.5,
@@ -34,6 +34,7 @@ function renderTile(
     selectable = true,
     handleClick = vi.fn<(event: React.MouseEvent<HTMLButtonElement>, clicked: PhotoItem) => void>(),
     handleSelection = vi.fn<(selected: PhotoItem) => void>(),
+    activeTileId = null as ImageItem["id"] | null,
   } = {}
 ) {
   container = document.createElement("div");
@@ -46,8 +47,8 @@ function renderTile(
         useLqip
         containerWidth={1200}
         containerOffsetTop={0}
-        getUrl={(url: string) => `/media/${url}`}
-        activeTileUrl={null}
+        getUrl={(imageHash: string, size: number) => `/media/${imageHash}?h=${size}`}
+        activeTileId={activeTileId}
         handleClick={handleClick}
         handleSelection={handleSelection}
         selected={false}
@@ -165,5 +166,37 @@ describe("react-pig Tile accessibility", () => {
 
   it("renders no checkbox when the grid is not selectable", () => {
     expect(renderTile(photoItem(), { selectable: false }).checkbox).toBeNull();
+  });
+});
+
+describe("react-pig Tile media", () => {
+  it("builds every image address from the image hash", () => {
+    const { button } = renderTile(photoItem());
+
+    const sources = Array.from(button.querySelectorAll("img")).map(img => img.getAttribute("src"));
+    expect(sources).toEqual(["/media/hash1?h=20", "/media/hash1?h=400"]);
+  });
+
+  it("expands the tile whose id is active, and loads its full size image", () => {
+    const { button } = renderTile(photoItem(), { activeTileId: "photo-1" });
+
+    expect(Array.from(button.querySelectorAll("img")).map(img => img.getAttribute("src"))).toContain(
+      "/media/hash1?h=1000"
+    );
+  });
+
+  it("leaves a tile alone when another tile is active", () => {
+    const { button } = renderTile(photoItem(), { activeTileId: "photo-2" });
+
+    expect(Array.from(button.querySelectorAll("img")).map(img => img.getAttribute("src"))).not.toContain(
+      "/media/hash1?h=1000"
+    );
+  });
+
+  it("expands a video tile by its id into a second, full size video", () => {
+    const { button } = renderTile(photoItem({ type: "video" }), { activeTileId: "photo-1" });
+
+    const videos = Array.from(button.querySelectorAll("video")).map(video => video.getAttribute("src"));
+    expect(videos).toEqual(["/media/hash1?h=400", "/media/hash1?h=1000"]);
   });
 });

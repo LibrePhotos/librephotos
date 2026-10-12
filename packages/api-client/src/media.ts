@@ -1,7 +1,7 @@
 /**
  * Media URL builders. LibrePhotos serves image bytes from `<server>/media/...`
  * (NOT under `/api`). `serverAddress` is the bare server origin (no trailing
- * slash, no `/api`). The image hash for a grid item is `imageHashOf(pigPhoto)`.
+ * slash, no `/api`). The image hash for a grid item is its `image_hash`.
  *
  * Auth: the web frontend relies on same-origin cookies for `/media/` requests.
  * React Native has no shared cookie jar with <Image>, so mobile passes an
