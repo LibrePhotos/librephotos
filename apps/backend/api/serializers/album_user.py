@@ -11,6 +11,7 @@ from api.models import AlbumUser, Photo
 from api.models.photo import HEAVY_PHOTO_COLUMNS, visible_photo_q
 from api.models.user import get_default_public_sharing_settings
 from api.request_user import request_user
+from api.serializers.album_date import PublicViewQuery
 from api.serializers.fields import (
     OwnedPhotoField,
     loaded_count,
@@ -479,3 +480,55 @@ class SetUserAlbumSharedRequest(serializers.Serializer[None]):
     shared = JsonBooleanField(help_text="true shares, false unshares")
     target_user_id = serializers.IntegerField()
     album_id = serializers.IntegerField()
+
+
+class AlbumUserQuery(PublicViewQuery):
+    """Opening a user album, also through its public link."""
+
+    username = serializers.CharField(
+        default="",
+        allow_blank=True,
+        trim_whitespace=False,
+        help_text="With public: the album must be this user's",
+    )
+
+
+class ShareExpiryField(serializers.DateTimeField):
+    """An ISO date-time; null or an empty string clears the expiry."""
+
+    def validate_empty_values(self, data: object) -> tuple[bool, object]:
+        if data == "":
+            return (True, None)
+        return super().validate_empty_values(data)
+
+
+class AlbumSharingOptionsRequest(serializers.Serializer[None]):
+    """Per-album overrides of the owner's public sharing defaults.
+
+    Each is true, false or null (use the default); an absent one is kept and
+    unknown keys are ignored.
+    """
+
+    share_location = JsonBooleanField(required=False, allow_null=True)
+    share_camera_info = JsonBooleanField(required=False, allow_null=True)
+    share_timestamps = JsonBooleanField(required=False, allow_null=True)
+    share_captions = JsonBooleanField(required=False, allow_null=True)
+    share_faces = JsonBooleanField(required=False, allow_null=True)
+
+
+class SetUserAlbumPublicRequest(serializers.Serializer[None]):
+    album_id = serializers.IntegerField()
+    val_public = JsonBooleanField(help_text="true publishes the link, false revokes it")
+    slug = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+        trim_whitespace=False,
+        help_text="The link's slug (trimmed); blank mints a random one, null keeps it",
+    )
+    expires_at = ShareExpiryField(
+        required=False,
+        allow_null=True,
+        help_text="When the link expires; null or blank clears it, absent keeps it",
+    )
+    sharing_options = AlbumSharingOptionsRequest(required=False, allow_null=True)

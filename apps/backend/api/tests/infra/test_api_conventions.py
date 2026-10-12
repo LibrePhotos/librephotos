@@ -23,7 +23,6 @@ session are throttled (``api/throttling.py``).
 
 import ast
 import datetime
-import json
 import types
 import uuid
 from collections.abc import Iterable
@@ -944,7 +943,6 @@ REQUEST_INPUTS = frozenset({"data", "query_params", "GET", "POST"})
 REQUEST_PARSING_EXEMPTIONS: dict[str, frozenset[str]] = {
     "api/views/upload.py": frozenset({"POST"}),
 }
-REQUEST_PARSING_BASELINE = Path(__file__).with_name("request_parsing_baseline.json")
 
 
 def _is_request(node: ast.expr) -> bool:
@@ -994,13 +992,6 @@ def request_parsing_problems() -> dict[str, list[str]]:
     return found
 
 
-def request_parsing_counts() -> dict[str, int]:
-    """Hand reads per view module, for the modules that still have any."""
-    return {
-        relative: len(found) for relative, found in request_parsing_problems().items()
-    }
-
-
 class RequestParsingGuardTest(SimpleTestCase):
     """Views read their input through a serializer, not field by field (#2326).
 
@@ -1008,41 +999,20 @@ class RequestParsingGuardTest(SimpleTestCase):
     ``request_dict(request)["key"]``) answers a missing or malformed field with
     a 500 and drifts from the OpenAPI schema. Read the input with
     ``parse_query(request, XQuery)`` or ``parse_body(request, XRequest)`` from
-    ``api/views/params.py``, or pass it as ``data=`` to a serializer. The
-    modules not converted yet are counted in ``request_parsing_baseline.json``,
-    which only shrinks: lower a module's number when you convert some of it.
+    ``api/views/params.py``, or pass it as ``data=`` to a serializer.
     """
 
-    def baseline(self) -> dict[str, int]:
-        return json.loads(REQUEST_PARSING_BASELINE.read_text(encoding="utf-8"))
-
-    def test_no_view_module_reads_more_input_by_hand_than_its_baseline(self):
-        baseline = self.baseline()
-        grown = [
+    def test_no_view_module_reads_input_by_hand(self):
+        found = [
             problem
-            for relative, found in request_parsing_problems().items()
-            if len(found) > baseline.get(relative, 0)
-            for problem in found
+            for problems in request_parsing_problems().values()
+            for problem in problems
         ]
         self.assertEqual(
-            grown,
+            found,
             [],
             "Read the request through a serializer (parse_query/parse_body in "
-            "api/views/params.py) instead:\n  " + "\n  ".join(grown),
-        )
-
-    def test_the_baseline_only_shrinks(self):
-        counts = request_parsing_counts()
-        stale = {
-            relative: (allowed, counts.get(relative, 0))
-            for relative, allowed in self.baseline().items()
-            if counts.get(relative, 0) < allowed
-        }
-        self.assertEqual(
-            stale,
-            {},
-            "These modules now read less input by hand (baseline, now): lower "
-            "or remove their entries in request_parsing_baseline.json.",
+            "api/views/params.py) instead:\n  " + "\n  ".join(found),
         )
 
     def test_the_source_check_catches_each_form(self):
@@ -1083,7 +1053,10 @@ class RequestParsingGuardTest(SimpleTestCase):
 
         found = hand_parsed_request_inputs(source, relative)
 
-        self.assertGreater(len(found), self.baseline().get(relative, 0), found)
+        planted_line = len(source.splitlines())
+        self.assertEqual(
+            found, [f"{relative}:{planted_line} reads request.query_params"]
+        )
 
     def test_handing_the_input_to_a_serializer_passes(self):
         source = (

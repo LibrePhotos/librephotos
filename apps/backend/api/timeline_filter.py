@@ -168,9 +168,9 @@ def resolve_timeline_filter(
     user: User | AnonymousUser, params: Mapping[str, object]
 ) -> TimelineFilter:
     """The filter for ``params`` (query params or a select-all ``query``)."""
-    # Read ``public`` exactly as the date-album views do (any non-empty value,
-    # "false" included, makes them a public view), so the default is never
-    # applied to a request they answer as public.
+    # The date-album views pass their validated query (``public`` a bool);
+    # a select-all ``query`` is read the way ``build_photo_queryset`` reads
+    # it. Either way the default is never applied to a public view.
     public_view = bool(params.get("public")) or bool(params.get("username"))
     base = (
         saved_default(user)

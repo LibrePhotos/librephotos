@@ -1,5 +1,8 @@
 """``api/views/params.py``: request input read through serializers (#2326)."""
 
+from urllib.parse import urlencode
+
+from django.http import QueryDict
 from django.test import SimpleTestCase
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -10,6 +13,7 @@ from rest_framework.views import APIView
 from api.views.params import (
     ClampedIntegerField,
     QueryFlagField,
+    TristateFlagField,
     parse_body,
     parse_query,
 )
@@ -154,3 +158,34 @@ class QueryFlagFieldTest(SimpleTestCase):
             QueryFlagField()
         with self.assertRaises(ValueError):
             QueryFlagField(true_values={"true"}, false_values={"false"})
+
+
+class TimelineQuery(serializers.Serializer[None]):
+    favorite = TristateFlagField()
+
+
+class TristateFlagFieldTest(SimpleTestCase):
+    def parse(self, query: dict[str, str]) -> dict[str, bool]:
+        serializer = TimelineQuery(data=QueryDict(urlencode(query)))
+        serializer.is_valid(raise_exception=True)
+        return dict(serializer.validated_data)
+
+    def test_a_false_word_is_false_and_any_other_word_true(self):
+        for value, expected in (
+            ("false", False),
+            (" OFF ", False),
+            ("0", False),
+            ("no", False),
+            ("true", True),
+            ("1", True),
+            ("anything", True),
+        ):
+            with self.subTest(value=value):
+                self.assertEqual(
+                    {"favorite": expected}, self.parse({"favorite": value})
+                )
+
+    def test_an_absent_or_blank_flag_is_left_out(self):
+        for query in ({}, {"favorite": ""}, {"favorite": "  "}):
+            with self.subTest(query=query):
+                self.assertEqual({}, self.parse(query))

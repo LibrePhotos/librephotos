@@ -1165,3 +1165,32 @@ class RotatePhotoRequest(serializers.Serializer[None]):
         help_text="Degrees clockwise, a multiple of 90; negative turns left",
     )
     flip_horizontal = serializers.BooleanField(default=False)
+
+
+SHARE_ACTIONS = ("enable", "rotate", "disable")
+
+
+class SetPhotoShareRequest(serializers.Serializer[None]):
+    """Create, rotate or disable the public link of one photo."""
+
+    photo_id = JsonStringField(help_text="The photo's id or image hash")
+    action = serializers.CharField(
+        default="enable",
+        allow_blank=True,
+        allow_null=True,
+        trim_whitespace=False,
+        help_text="enable (the default), rotate or disable; any case",
+    )
+
+    def validate_photo_id(self, value: str) -> str:
+        if not value:
+            raise serializers.ValidationError(
+                "This field may not be blank.", code="blank"
+            )
+        return value
+
+    def validate_action(self, value: str | None) -> str:
+        action = (value or "enable").lower()
+        if action not in SHARE_ACTIONS:
+            raise serializers.ValidationError("Unknown action")
+        return action

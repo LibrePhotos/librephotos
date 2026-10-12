@@ -115,7 +115,7 @@
 "api/views/stacks.py" = ["G004"]
 "api/views/sync.py" = ["PLW2901"]
 "api/views/upload.py" = ["G004"]
-"api/views/zip_downloads.py" = ["N801", "PLR0912"]
+"api/views/zip_downloads.py" = ["N801"]
 "chunked_upload/constants.py" = ["N801"]
 "chunked_upload/models.py" = ["DJ012"]
 "chunked_upload/views.py" = ["PLR0913"]

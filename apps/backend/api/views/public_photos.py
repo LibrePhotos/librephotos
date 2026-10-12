@@ -3,7 +3,7 @@ import uuid
 from django.http import HttpResponse, HttpResponseBase
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework import status
-from rest_framework.exceptions import NotFound, ValidationError
+from rest_framework.exceptions import NotFound
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -13,12 +13,10 @@ from api import video_playback
 from api.models import Photo
 from api.models.photo_share import PhotoShare
 from api.models.user import User
-from api.request_data import request_dict
 from api.request_user import request_user
-from api.serializers.photos import PublicPhotoDetailSerializer
+from api.serializers.photos import PublicPhotoDetailSerializer, SetPhotoShareRequest
 from api.views.media import MediaServingView
-
-SHARE_ACTIONS = ("enable", "rotate", "disable")
+from api.views.params import parse_body
 
 # What an anonymous holder of a photo link gets to see: the big thumbnail,
 # plus the original file for videos because a <video> needs something it can
@@ -104,16 +102,11 @@ class SetPhotoShare(APIView):
 
     permission_classes = (IsAuthenticated,)
 
+    @extend_schema(request=SetPhotoShareRequest)
     def post(self, request: Request, format: str | None = None) -> Response:
-        data = request_dict(request)
-        photo_id = data.get("photo_id")
-        action = data.get("action") or "enable"
-
-        if not isinstance(photo_id, str) or not photo_id:
-            raise ValidationError("Missing parameters")
-        if not isinstance(action, str) or action.lower() not in SHARE_ACTIONS:
-            raise ValidationError("Unknown action")
-        action = action.lower()
+        data = parse_body(request, SetPhotoShareRequest)
+        photo_id = data["photo_id"]
+        action = data["action"]
 
         # Someone else's photo is reported exactly like a missing one, so the
         # endpoint cannot be used to probe which hashes exist.
