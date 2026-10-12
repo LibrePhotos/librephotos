@@ -33,6 +33,7 @@ REPO_DOCS = [
     "apps/frontend/AGENTS.md",
     "README.md",
     "apps/frontend/README.md",
+    "apps/docs/docs/development/glossary.md",
 ]
 
 TEST_MODULE = re.compile(r"\bapi\.tests(?:\.\w+)+")
