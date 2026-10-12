@@ -204,7 +204,7 @@ class OnCompletionAuthTest(OnCompletionTestBase):
         )
 
     @override_config(ALLOW_UPLOAD=False)
-    @patch("api.views.upload.Chain")
+    @patch("api.jobs.queue.Chain")
     @patch("api.views.upload.create_new_image")
     @patch("api.views.upload.get_object_or_404")
     @patch("api.views.upload.is_valid_media", return_value=True)
@@ -247,7 +247,7 @@ class OnCompletionScanDirectoryTest(OnCompletionTestBase):
         self.assertIn(missing, ctx.exception.data["detail"])
 
 
-@patch("api.views.upload.Chain")
+@patch("api.jobs.queue.Chain")
 @patch("api.views.upload.create_new_image")
 @patch("api.views.upload.get_object_or_404")
 class OnCompletionBodyTest(OnCompletionTestBase):

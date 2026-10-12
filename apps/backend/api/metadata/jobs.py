@@ -12,7 +12,7 @@ import logging
 import uuid
 from typing import TYPE_CHECKING
 
-from django_q.tasks import AsyncTask
+from api.jobs.queue import enqueue_task
 
 if TYPE_CHECKING:
     from api.models import User
@@ -34,7 +34,7 @@ def queue_rating_write(user: User, photo_ids: list[uuid.UUID]) -> None:
     if not photo_ids or use_sidecar is None:
         return
     try:
-        AsyncTask(write_photo_ratings, list(photo_ids), use_sidecar).run()
+        enqueue_task(write_photo_ratings, list(photo_ids), use_sidecar)
     except Exception:
         logger.exception(
             "Could not queue the rating write for %s photos of user %s",

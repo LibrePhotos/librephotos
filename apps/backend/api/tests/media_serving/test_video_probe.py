@@ -722,8 +722,9 @@ class BackfillIsQueuedOnlyWhenNeededTest(TestCase):
 
     def _queued(self, can_probe=True):
         with (
-            mock.patch.object(scan_jobs, "AsyncTask") as task,
-            mock.patch.object(scan_jobs, "Chain"),
+            mock.patch("api.jobs.queue.AsyncTask") as task,
+            mock.patch("api.jobs.queue.Chain"),
+            self.captureOnCommitCallbacks(execute=True),
             mock.patch.object(
                 scan_jobs.video_color, "can_probe", return_value=can_probe
             ),

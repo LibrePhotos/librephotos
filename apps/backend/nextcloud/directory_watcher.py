@@ -118,12 +118,10 @@ def download(nc: owncloud.Client, remote_path: str, local_path: str) -> bool:
             os.remove(temp_path)
 
 
-def scan_photos(user: User, job_id: uuid.UUID) -> dict[str, bool]:
-    lrj = LongRunningJob.get_or_create_job(
-        user=user,
-        job_type=LongRunningJob.JOB_SCAN_PHOTOS,
-        job_id=str(job_id),
-    )
+def scan_photos(user: User, job_id: uuid.UUID | str) -> dict[str, bool]:
+    lrj = LongRunningJob.claim(user, LongRunningJob.JOB_SCAN_PHOTOS, job_id)
+    if lrj is None:
+        return {"status": False}
 
     # Everything the scan does - logging in, listing the remote directory and
     # downloading the photos included - has to happen inside the try, otherwise

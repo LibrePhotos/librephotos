@@ -10,6 +10,7 @@ from unittest.mock import patch
 from django.test import TestCase
 from rest_framework.test import APIClient
 
+from api.models import LongRunningJob
 from api.models.duplicate import Duplicate
 from api.tests.utils import create_test_duplicate, create_test_photo, create_test_user
 
@@ -70,7 +71,7 @@ class DuplicateListQueryTest(TestCase):
                 self.assertEqual(error_fields(response), [field])
 
 
-@patch("api.views.duplicates.async_task")
+@patch("api.jobs.queue.AsyncTask")
 class DetectDuplicatesRequestTest(TestCase):
     def setUp(self):
         self.user = create_test_user()
@@ -78,7 +79,11 @@ class DetectDuplicatesRequestTest(TestCase):
         self.client.force_authenticate(user=self.user)
 
     def detect(self, body: object):
-        return self.client.post("/api/duplicates/detect", body, format="json")
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.post("/api/duplicates/detect", body, format="json")
+        # Finish the job, so the next request is not refused as a duplicate.
+        LongRunningJob.objects.update(finished=True)
+        return response
 
     def test_defaults(self, async_task):
         response = self.detect({})

@@ -2,8 +2,8 @@ from typing import Any
 
 from django.core.management.base import BaseCommand, CommandParser
 from django_q.models import Schedule
-from django_q.tasks import schedule
 
+from api.jobs.queue import ensure_schedule
 from api.services import (
     SERVICES,
     disabled_reason,
@@ -32,11 +32,10 @@ class Command(BaseCommand):
                     self.stdout.write(f"Skipping {svc}: {disabled_reason(svc)}")
                     continue
                 start_service(svc)
-            if not Schedule.objects.filter(func="api.services.check_services").exists():
-                schedule(
-                    "api.services.check_services",
-                    schedule_type=Schedule.MINUTES,
-                    minutes=1,
-                )
+            ensure_schedule(
+                "api.services.check_services",
+                schedule_type=Schedule.MINUTES,
+                minutes=1,
+            )
         else:
             start_service(service)

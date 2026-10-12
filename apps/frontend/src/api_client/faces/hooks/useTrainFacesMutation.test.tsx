@@ -1,7 +1,8 @@
 /**
  * Face training that cannot be queued used to answer 200 with "status": false,
  * and this hook showed "training started" for it. The backend now answers 500
- * (code job_start_failed), so the failure takes the error path (#2325).
+ * (code job_start_failed), so the failure takes the error path (#2325). A start while the
+ * training is already queued or running is a 409 that says so instead (#2333).
  */
 import { QueryClientProvider } from "@tanstack/react-query";
 import React, { act } from "react";
@@ -17,13 +18,18 @@ const stubs = await vi.hoisted(async () => {
     post: vi.fn<(endpoint: string, data?: unknown) => Promise<unknown>>(),
     trainFaces: vi.fn<() => void>(),
     trainFacesFailed: vi.fn<() => void>(),
+    jobAlreadyRunning: vi.fn<() => void>(),
     queryClient: new QueryClient({ defaultOptions: { mutations: { retry: false } } }),
   };
 });
 
 vi.mock("../../api", () => ({ apiClient: { post: stubs.post }, queryClient: stubs.queryClient }));
 vi.mock("../../../service/notifications", () => ({
-  notification: { trainFaces: stubs.trainFaces, trainFacesFailed: stubs.trainFacesFailed },
+  notification: {
+    trainFaces: stubs.trainFaces,
+    trainFacesFailed: stubs.trainFacesFailed,
+    jobAlreadyRunning: stubs.jobAlreadyRunning,
+  },
 }));
 
 const { useTrainFacesMutation } = await import("./useTrainFacesMutation");
@@ -60,6 +66,7 @@ describe("useTrainFacesMutation", () => {
     stubs.post.mockReset();
     stubs.trainFaces.mockClear();
     stubs.trainFacesFailed.mockClear();
+    stubs.jobAlreadyRunning.mockClear();
   });
 
   it("says training started when the job was queued", async () => {
@@ -83,5 +90,26 @@ describe("useTrainFacesMutation", () => {
 
     expect(stubs.trainFacesFailed).toHaveBeenCalledTimes(1);
     expect(stubs.trainFaces).not.toHaveBeenCalled();
+  });
+
+  it("says the training is already running on a job_already_running 409", async () => {
+    stubs.post.mockRejectedValueOnce(
+      new stubs.ApiError(409, "/trainfaces", "API error: 409", {
+        errors: [
+          {
+            field: "detail",
+            message: "Find Similar Faces is already running.",
+            code: "job_already_running",
+            job_id: "running",
+          },
+        ],
+      })
+    );
+
+    await train();
+
+    expect(stubs.jobAlreadyRunning).toHaveBeenCalledTimes(1);
+    expect(stubs.trainFaces).not.toHaveBeenCalled();
+    expect(stubs.trainFacesFailed).not.toHaveBeenCalled();
   });
 });

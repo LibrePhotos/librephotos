@@ -659,20 +659,21 @@ class StackDetectionTestCase(TestCase):
         self.user = create_test_user()
         self.client.force_authenticate(user=self.user)
 
-    @patch("api.views.stacks.async_task")
+    @patch("api.jobs.queue.AsyncTask")
     def test_detect_stacks_queues_background_job(self, mock_async_task):
         """Test detect stacks queues a background job."""
-        response = self.client.post("/api/stacks/detect")
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.post("/api/stacks/detect")
 
         self.assertEqual(response.status_code, status.HTTP_202_ACCEPTED)
         data = response.json()
         self.assertEqual(data["status"], "queued")
         self.assertIn("options", data)
 
-        # Verify async_task was called
         mock_async_task.assert_called_once()
+        self.assertEqual(mock_async_task.call_args.kwargs["job_id"], data["job_id"])
 
-    @patch("api.views.stacks.async_task")
+    @patch("api.jobs.queue.AsyncTask")
     def test_detect_stacks_with_options(self, mock_async_task):
         """Test detect stacks with custom options.
 

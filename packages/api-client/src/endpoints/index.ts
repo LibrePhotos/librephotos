@@ -1,5 +1,6 @@
 import * as S from "../schemas";
 import { Photoset } from "../schemas";
+import { runningJobId } from "../transport/client";
 import type { ApiClient } from "../transport/types";
 import { buildQuery, parseResponse } from "../util/parse";
 
@@ -283,16 +284,30 @@ export async function fetchWorkerAvailability(client: ApiClient): Promise<S.Work
   return parseResponse(S.WorkerAvailabilityResponse, res, "worker availability");
 }
 
-/** Trigger an incremental library scan. Returns the queued job id. */
+/**
+ * Start a job. When one of its kind is already queued or running (409
+ * `job_already_running`) this resolves with that job, `already_running: true`,
+ * instead of rejecting: the caller follows it rather than reporting an error.
+ */
+async function triggerJob(client: ApiClient, endpoint: string, context: string): Promise<S.JobTriggerResponse> {
+  try {
+    const res = await client.post<unknown>(endpoint, {});
+    return parseResponse(S.JobTriggerResponse, res, context);
+  } catch (error) {
+    const jobId = runningJobId(error);
+    if (jobId === null) throw error;
+    return { status: true, job_id: jobId, already_running: true };
+  }
+}
+
+/** Trigger an incremental library scan. Returns the queued (or already running) job id. */
 export async function scanPhotos(client: ApiClient): Promise<S.JobTriggerResponse> {
-  const res = await client.post<unknown>("/scanphotos/", {});
-  return parseResponse(S.JobTriggerResponse, res, "scan photos");
+  return triggerJob(client, "/scanphotos/", "scan photos");
 }
 
 /** Trigger a full library rescan. */
 export async function fullScanPhotos(client: ApiClient): Promise<S.JobTriggerResponse> {
-  const res = await client.post<unknown>("/fullscanphotos/", {});
-  return parseResponse(S.JobTriggerResponse, res, "full scan photos");
+  return triggerJob(client, "/fullscanphotos/", "full scan photos");
 }
 
 /* ---- sharing ----------------------------------------------------------- */
@@ -426,8 +441,7 @@ export async function deleteFaces(client: ApiClient, faceIds: number[]): Promise
 }
 
 export async function trainFaces(client: ApiClient): Promise<S.JobTriggerResponse> {
-  const res = await client.post<unknown>("/trainfaces", {});
-  return parseResponse(S.JobTriggerResponse, res, "train faces");
+  return triggerJob(client, "/trainfaces", "train faces");
 }
 
 /* ---- delta sync (mobile app, backend api/views/sync.py) ----------------- */

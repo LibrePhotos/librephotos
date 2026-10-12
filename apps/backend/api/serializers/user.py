@@ -9,14 +9,15 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import identify_hasher
 from django.contrib.auth.validators import UnicodeUsernameValidator
 from django.db.models import Count, Prefetch, Q, QuerySet
-from django_q.tasks import Chain
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
 from api.batch_jobs import batch_calculate_clip_embedding
-from api.ml_models import do_all_models_exist, download_models
-from api.models import Photo, User
+from api.exceptions import JobAlreadyRunning
+from api.jobs.queue import enqueue_job
+from api.ml_models import missing_models_prerequisites
+from api.models import LongRunningJob, Photo, User
 from api.models.photo import visible_photo_q
 from api.serializers.fields import loaded_count, loaded_list
 from api.serializers.simple import PhotoSuperSimpleSerializer
@@ -570,11 +571,18 @@ class UserSerializer(serializers.ModelSerializer):
     ) -> None:
         if instance.semantic_search_topk != 0 or new_semantic_search_topk <= 0:
             return
-        chain = Chain()
-        if not do_all_models_exist():
-            chain.append(download_models, User.objects.get(id=instance.id))
-        chain.append(batch_calculate_clip_embedding, User.objects.get(id=instance.id))
-        chain.run()
+        user = User.objects.get(id=instance.id)
+        try:
+            enqueue_job(
+                user,
+                LongRunningJob.JOB_CALCULATE_CLIP_EMBEDDINGS,
+                batch_calculate_clip_embedding,
+                user,
+                prerequisites=missing_models_prerequisites(user),
+            )
+        except JobAlreadyRunning:
+            # The embedding job already queued or running covers the photos.
+            logger.info("job: embeddings already queued for user %s", user.id)
 
     def get_photo_count(self, obj: User) -> int:
         return loaded_count(obj, "photo_count")

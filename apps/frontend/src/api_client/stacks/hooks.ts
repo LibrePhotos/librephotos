@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { parseWithNotification } from "../../util/zodUtils";
 import { fetchClient } from "../api";
+import { startJob } from "../jobs/startJob";
 import {
   CreateManualStackResponse,
   DetectStacksResponse,
@@ -80,9 +81,11 @@ async function deleteStack(id: string): Promise<void> {
   await fetchClient.delete(`/stacks/${id}/`);
 }
 
-async function detectStacks(options?: DetectStacksRequest): Promise<DetectStacksResponse> {
-  const response = await fetchClient.post("/stacks/detect/", options || {});
-  return parseWithNotification(DetectStacksResponse, response, "Failed to parse detect stacks response");
+async function detectStacks(options?: DetectStacksRequest): Promise<void> {
+  const start = await startJob(() => fetchClient.post("/stacks/detect/", options || {}));
+  if (!start.alreadyRunning) {
+    parseWithNotification(DetectStacksResponse, start.data, "Failed to parse detect stacks response");
+  }
 }
 
 async function setCoverPhoto(stackId: string, photoHash: string): Promise<SetPrimaryResponse> {

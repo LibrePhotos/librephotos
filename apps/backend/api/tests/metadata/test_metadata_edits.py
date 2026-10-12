@@ -52,7 +52,7 @@ class MetadataApiTestCase(TestCase):
         self.url = f"/api/photos/{self.photo.pk}/metadata/"
 
     def patch_metadata(self, body, url=None):
-        with patch("api.metadata.jobs.AsyncTask"):
+        with patch("api.metadata.jobs.enqueue_task"):
             return self.client.patch(url or self.url, body, format="json")
 
     def search(self, term):
@@ -92,7 +92,7 @@ class RatingTest(MetadataApiTestCase):
         self.user.save_metadata_to_disk = User.SaveMetadata.SIDECAR_FILE
         self.user.save()
 
-        with patch("api.metadata.jobs.AsyncTask") as async_task:
+        with patch("api.metadata.jobs.enqueue_task") as async_task:
             self.client.patch(self.url, {"rating": 3}, format="json")
 
         _, photo_ids, use_sidecar = async_task.call_args.args
@@ -100,7 +100,7 @@ class RatingTest(MetadataApiTestCase):
         self.assertTrue(use_sidecar)
 
     def test_a_favorite_is_in_the_edit_history(self):
-        with patch("api.metadata.jobs.AsyncTask"):
+        with patch("api.metadata.jobs.enqueue_task"):
             self.client.post(
                 "/api/photosedit/favorite/",
                 {"image_hashes": [self.photo.image_hash], "favorite": True},
@@ -391,7 +391,7 @@ class PhotoEditPathsTest(MetadataApiTestCase):
         ).first()
         assert latest is not None
 
-        with patch("api.metadata.jobs.AsyncTask"):
+        with patch("api.metadata.jobs.enqueue_task"):
             response = self.client.post(f"{self.url}revert/{latest.id}/")
 
         self.assertEqual(response.status_code, 200)
@@ -520,7 +520,7 @@ class ServiceTest(TestCase):
         other = create_test_photo(owner=self.user)
         Photo.objects.filter(pk=other.pk).update(rating=3)
 
-        with patch("api.metadata.jobs.AsyncTask"):
+        with patch("api.metadata.jobs.enqueue_task"):
             count = edits.set_rating(
                 Photo.objects.filter(pk__in=[self.photo.pk, other.pk]), 3, self.user
             )

@@ -16,7 +16,12 @@ from unittest import mock
 
 import requests
 from constance.test import override_config
-from django.test import SimpleTestCase, TestCase, override_settings
+from django.test import (
+    SimpleTestCase,
+    TestCase,
+    TransactionTestCase,
+    override_settings,
+)
 from rest_framework.test import APIClient
 
 from api.models import LongRunningJob
@@ -180,8 +185,10 @@ class GuardedClientRedirectTest(SimpleTestCase):
         hook(self._response(200))
 
 
+# A TransactionTestCase: the scan is queued when the request commits its job
+# row, and the last test needs that commit to see the queue fail.
 @override_config(NEXTCLOUD_ENABLED=True)
-class NextcloudViewsRefuseUnsafeAddressTest(TestCase):
+class NextcloudViewsRefuseUnsafeAddressTest(TransactionTestCase):
     def setUp(self):
         dns = patch_nextcloud_dns({"nextcloud.internal": ["127.0.0.1"]})
         dns.start()
@@ -209,18 +216,20 @@ class NextcloudViewsRefuseUnsafeAddressTest(TestCase):
     def test_scanphotos_refuses_unsafe_addresses_without_queueing(self):
         for address in ("", "http://127.0.0.1:8000", "http://nextcloud.internal"):
             self._login(address)
-            with mock.patch("nextcloud.views.AsyncTask") as async_task:
+            with mock.patch("api.jobs.queue.AsyncTask") as async_task:
                 response = self.client.post(SCANPHOTOS_URL)
             self.assertEqual(400, response.status_code, address)
             async_task.assert_not_called()
+            self.assertFalse(LongRunningJob.objects.exists())
 
     def test_scanphotos_reports_a_job_that_could_not_start_as_an_error(self):
         self._login("https://cloud.example.com")
-        with mock.patch("nextcloud.views.AsyncTask") as async_task:
+        with mock.patch("api.jobs.queue.AsyncTask") as async_task:
             async_task.return_value.run.side_effect = RuntimeError("broker down")
             response = self.client.post(SCANPHOTOS_URL)
         self.assertEqual(500, response.status_code)
         self.assertEqual("job_start_failed", response.json()["errors"][0]["code"])
+        self.assertTrue(LongRunningJob.objects.get().failed)
 
 
 class UserSerializerServerAddressTest(TestCase):

@@ -5,7 +5,9 @@ A view signals an error by raising: DRF's own ``ValidationError`` (400),
 or ``NotFound`` (404), or one of the classes here. The exception handler
 (``api/views/exception_handler.py``) is the only place that writes an error
 body, ``{"errors": [{"field", "message", "code"}]}``. Pass ``code=`` when a
-client branches on the error; clients never compare message text.
+client branches on the error; clients never compare message text. An exception
+that sets ``entry_fields`` (a dict of strings) adds those fields to its entry,
+such as ``JobAlreadyRunning``'s ``job_id``.
 """
 
 from rest_framework import status
@@ -70,3 +72,19 @@ class EditSuperseded(Conflict):
         "discard the later change. Retry with ?force=1 to revert anyway."
     )
     default_code = "edit_superseded"
+
+
+class JobAlreadyRunning(Conflict):
+    """A job of this type is already queued or running for this user.
+
+    Its entry carries the running job's ``job_id``, so a client can follow
+    that job instead of reporting an error (``api.jobs.queue.enqueue_job``).
+    """
+
+    default_detail = "This job is already running."
+    default_code = "job_already_running"
+
+    def __init__(self, job_id: str, job_name: str) -> None:
+        super().__init__(f"{job_name} is already running.")
+        self.job_id = job_id
+        self.entry_fields = {"job_id": job_id}

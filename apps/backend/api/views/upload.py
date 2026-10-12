@@ -16,7 +16,6 @@ from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.utils.text import get_valid_filename
 from django.views.decorators.csrf import csrf_exempt
-from django_q.tasks import Chain
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
@@ -27,6 +26,7 @@ from api.authentication import JWTCookieAuthentication
 from api.directory_watcher import create_new_image, handle_new_image, is_valid_media
 from api.directory_watcher.file_handlers import apply_device_timestamp_fallback
 from api.geocode.photo_location import add_location_to_album_dates, geolocate_photo
+from api.jobs.queue import Task, enqueue_task_chain
 from api.models import Photo
 from api.models.file import calculate_hash
 from api.models.photo_caption import PhotoCaption
@@ -246,20 +246,20 @@ class UploadPhotosChunkedComplete(UploaderScopedMixin, ChunkedUploadCompleteView
         device_created_at: datetime.datetime | None = None,
         device_modified_at: datetime.datetime | None = None,
     ) -> None:
-        chain = Chain()
         photo = create_new_image(user, photo_path)
-        chain.append(handle_new_image, user, photo_path, image_hash, photo)
-        chain.append(
-            apply_device_timestamp_fallback,
-            photo,
-            device_created_at,
-            device_modified_at,
+        enqueue_task_chain(
+            [
+                Task(handle_new_image, (user, photo_path, image_hash, photo)),
+                Task(
+                    apply_device_timestamp_fallback,
+                    (photo, device_created_at, device_modified_at),
+                ),
+                Task(generate_captions_wrapper, (photo, True)),
+                Task(geolocate_photo, (photo,)),
+                Task(add_location_to_album_dates, (photo,)),
+                Task(extract_faces, (photo,)),
+            ]
         )
-        chain.append(generate_captions_wrapper, photo, True)
-        chain.append(geolocate_photo, photo)
-        chain.append(add_location_to_album_dates, photo)
-        chain.append(extract_faces, photo)
-        chain.run()
 
     def on_completion(
         self, uploaded_file: UploadedFile, request: HttpRequest

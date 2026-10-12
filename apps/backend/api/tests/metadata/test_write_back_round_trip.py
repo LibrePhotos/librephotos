@@ -53,14 +53,9 @@ IMAGE_FORMATS = (".jpg", ".png", ".tif", ".heic")
 TIMESTAMP = datetime.datetime(2019, 8, 15, 7, 45, 0, tzinfo=datetime.timezone.utc)
 
 
-class RunNow:
-    """Stand-in for django_q's AsyncTask that runs the job right away."""
-
-    def __init__(self, func, *args):
-        self.func, self.args = func, args
-
-    def run(self):
-        self.func(*self.args)
+def run_now(func, *args):
+    """Stand-in for ``enqueue_task`` that runs the job right away."""
+    func(*args)
 
 
 class RatingRoundTripTest(RealExifToolTestCase):
@@ -128,7 +123,7 @@ class RatingRoundTripTest(RealExifToolTestCase):
         client = APIClient()
         client.force_authenticate(user=photo.owner)
 
-        with patch("api.metadata.jobs.AsyncTask", RunNow):
+        with patch("api.metadata.jobs.enqueue_task", run_now):
             response = client.patch(
                 f"/api/photos/{photo.pk}/metadata/", {"rating": 5}, format="json"
             )
@@ -147,7 +142,7 @@ class RatingRoundTripTest(RealExifToolTestCase):
         client = APIClient()
         client.force_authenticate(user=photo.owner)
 
-        with patch("api.metadata.jobs.AsyncTask", RunNow):
+        with patch("api.metadata.jobs.enqueue_task", run_now):
             response = client.patch(
                 f"/api/photos/{photo.pk}/", {"rating": 5}, format="json"
             )

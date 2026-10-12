@@ -36,7 +36,10 @@ class DeleteMissingPhotosAsyncTaskTest(TestCase):
         self.client.force_authenticate(user=self.user)
 
     def test_post_queues_async_task_and_returns_immediately(self):
-        with patch("api.views.scan_triggers.AsyncTask") as async_task_cls:
+        with (
+            patch("api.jobs.queue.AsyncTask") as async_task_cls,
+            self.captureOnCommitCallbacks(execute=True),
+        ):
             response = self.client.post("/api/deletemissingphotos/")
 
         self.assertEqual(response.status_code, 200)
@@ -48,7 +51,7 @@ class DeleteMissingPhotosAsyncTaskTest(TestCase):
         args = async_task_cls.call_args.args
         self.assertIs(args[0], delete_missing_photos)
         self.assertEqual(args[1], self.user)
-        self.assertEqual(str(args[2]), data["job_id"])
+        self.assertEqual(async_task_cls.call_args.kwargs["job_id"], data["job_id"])
         async_task_cls.return_value.run.assert_called_once_with()
 
 

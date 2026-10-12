@@ -3,8 +3,8 @@
 The OCR sidecar (Flask service on :8012) is never contacted for real here:
 the shared sidecar client (``api.sidecars.http.post``) is mocked with a fake
 service response. The parent
-``generate_ocr`` fans work out via ``AsyncTask``; since no qcluster runs under
-the test settings we patch ``AsyncTask`` so ``.run()`` executes the worker
+``generate_ocr`` fans work out via ``enqueue_task``; since no qcluster runs under
+the test settings we patch ``enqueue_task`` so it runs the worker task
 synchronously, exactly as a real worker would.
 """
 
@@ -35,16 +35,9 @@ from api.tests.utils import (
 ACTIVE_MODEL = "ppocrv6_small"
 
 
-class _SyncAsyncTask:
-    """Drop-in for ``AsyncTask`` that runs the target synchronously on ``run()``."""
-
-    def __init__(self, func, *args, **kwargs):
-        self.func = func
-        self.args = args
-        self.kwargs = kwargs
-
-    def run(self):
-        return self.func(*self.args, **self.kwargs)
+def _run_now(func, *args, **kwargs):
+    """Drop-in for ``enqueue_task`` that runs the task right away."""
+    return func(*args, **kwargs)
 
 
 def _ok_response(
@@ -389,7 +382,7 @@ class GenerateOcrJobTest(TestCase):
 
     def _run(self, job_id=None, full_scan=False):
         job_id = job_id or uuid.uuid4()
-        with patch.object(processing_jobs, "AsyncTask", _SyncAsyncTask):
+        with patch.object(processing_jobs, "enqueue_task", _run_now):
             generate_ocr(self.user, job_id, full_scan=full_scan)
         return job_id
 
@@ -557,8 +550,8 @@ class GenerateOcrJobTest(TestCase):
         )
         job.cancel()
 
-        dispatch = MagicMock(side_effect=_SyncAsyncTask)
-        with patch.object(processing_jobs, "AsyncTask", dispatch):
+        dispatch = MagicMock(side_effect=_run_now)
+        with patch.object(processing_jobs, "enqueue_task", dispatch):
             generate_ocr(self.user, job_id)
 
         dispatch.assert_not_called()

@@ -7,13 +7,11 @@ metadata like location information, image tags, and face detection.
 
 import logging
 import traceback
-import uuid
 from collections.abc import Callable
 from uuid import UUID
 
 from django import db
 from django.db.models import Q, QuerySet
-from django_q.tasks import AsyncTask
 
 from api import sidecars, transcode_cache, video_color
 from api.directory_watcher.utils import (
@@ -24,6 +22,7 @@ from api.directory_watcher.utils import (
 from api.document_detection import classify_document
 from api.face_classify import cluster_all_faces
 from api.geocode.photo_location import add_location_to_album_dates, geolocate_photo
+from api.jobs.queue import enqueue_task
 from api.mime import CV2_DECODABLE_EXTENSIONS, extension
 from api.models import Face, LongRunningJob, Photo, User
 from api.models.album_thing import AlbumThing
@@ -52,22 +51,25 @@ def _faces_missing_encoding(user: User) -> QuerySet[Face]:
     return Face.objects.filter(photo__in=Photo.objects.owned_by(user), encoding="")
 
 
-def generate_face_embeddings(user: User, job_id: UUID) -> None:
+def generate_face_embeddings(user: User, job_id: UUID | str | None = None) -> None:
     """
     Generate face embeddings for faces that don't have them yet.
 
     Args:
         user: The user whose faces to process
-        job_id: Job ID for tracking progress
+        job_id: The job queued for this run; None when ``scan_faces`` calls it
+            directly, and a row is written only when there is work
     """
     if not _faces_missing_encoding(user).exists():
+        LongRunningJob.complete_unclaimed(job_id)
         return
 
-    lrj = LongRunningJob.get_or_create_job(
-        user=user,
-        job_type=LongRunningJob.JOB_GENERATE_FACE_EMBEDDINGS,
-        job_id=job_id,
+    lrj = LongRunningJob.claim(
+        user, LongRunningJob.JOB_GENERATE_FACE_EMBEDDINGS, job_id
     )
+    if lrj is None:
+        return
+    job_id = lrj.job_id
 
     try:
         faces = _faces_missing_encoding(user)
@@ -95,8 +97,9 @@ def _limit_to_photos_added_since_last_scan(
     """Narrow ``existing_photos`` to the photos an incremental run should cover."""
     if full_scan:
         return existing_photos
+    # A run cancelled or timed out while queued finished without starting.
     last_scan = (
-        LongRunningJob.objects.filter(finished=True)
+        LongRunningJob.objects.filter(finished=True, started_at__isnull=False)
         .filter(job_type=job_type)
         .filter(started_by=user)
         .order_by("-finished_at")
@@ -141,7 +144,7 @@ def _queue_per_photo_tasks(
     for idx, photo_id in enumerate(photo_ids):
         if _scan_cancelled(idx, job_id, cancelled_message):
             return
-        AsyncTask(task, photo_id, job_id).run()
+        enqueue_task(task, photo_id, job_id)
 
 
 def _photo_for_task(photo_id: UUID | Photo, job_id: UUID | str) -> Photo | None:
@@ -187,11 +190,9 @@ def generate_tags(user: User, job_id: UUID, full_scan: bool = False) -> None:
         job_id: Job ID for tracking progress
         full_scan: If True, process all photos; otherwise only new ones
     """
-    lrj = LongRunningJob.get_or_create_job(
-        user=user,
-        job_type=LongRunningJob.JOB_GENERATE_TAGS,
-        job_id=job_id,
-    )
+    lrj = LongRunningJob.claim(user, LongRunningJob.JOB_GENERATE_TAGS, job_id)
+    if lrj is None:
+        return
 
     try:
         existing_photos = _limit_to_photos_added_since_last_scan(
@@ -273,11 +274,9 @@ def generate_ocr(user: User, job_id: UUID, full_scan: bool = False) -> None:
         full_scan: If True, reprocess every (non-video) photo regardless of
             what OCR data already exists
     """
-    lrj = LongRunningJob.get_or_create_job(
-        user=user,
-        job_type=LongRunningJob.JOB_GENERATE_OCR,
-        job_id=job_id,
-    )
+    lrj = LongRunningJob.claim(user, LongRunningJob.JOB_GENERATE_OCR, job_id)
+    if lrj is None:
+        return
 
     try:
         from constance import config as site_config
@@ -521,11 +520,9 @@ def classify_media(user: User, job_id: UUID) -> None:
     """
     from api.screenshot_detection import classify
 
-    lrj = LongRunningJob.get_or_create_job(
-        user=user,
-        job_type=LongRunningJob.JOB_CLASSIFY_MEDIA,
-        job_id=job_id,
-    )
+    lrj = LongRunningJob.claim(user, LongRunningJob.JOB_CLASSIFY_MEDIA, job_id)
+    if lrj is None:
+        return
 
     # Flush accumulated updates in chunks to keep memory bounded on large
     # libraries while avoiding a write per photo.
@@ -662,11 +659,9 @@ def probe_videos(user: User, job_id: UUID) -> None:
     drive that is not mounted -- is left unprobed and tried again after the
     next scan.
     """
-    lrj = LongRunningJob.get_or_create_job(
-        user=user,
-        job_type=LongRunningJob.JOB_PROBE_VIDEOS,
-        job_id=job_id,
-    )
+    lrj = LongRunningJob.claim(user, LongRunningJob.JOB_PROBE_VIDEOS, job_id)
+    if lrj is None:
+        return
     try:
         videos = videos_to_probe(user).select_related("main_file", "thumbnail")
         if not _begin_photo_scan(lrj, videos):
@@ -707,11 +702,9 @@ def add_geolocation(user: User, job_id: UUID, full_scan: bool = False) -> None:
         job_id: Job ID for tracking progress
         full_scan: If True, process all photos; otherwise only new ones
     """
-    lrj = LongRunningJob.get_or_create_job(
-        user=user,
-        job_type=LongRunningJob.JOB_ADD_GEOLOCATION,
-        job_id=job_id,
-    )
+    lrj = LongRunningJob.claim(user, LongRunningJob.JOB_ADD_GEOLOCATION, job_id)
+    if lrj is None:
+        return
 
     try:
         existing_photos = _limit_to_photos_added_since_last_scan(
@@ -776,11 +769,9 @@ def scan_faces(user: User, job_id: UUID, full_scan: bool = False) -> None:
         job_id: Job ID for tracking progress
         full_scan: If True, process all photos; otherwise only new ones
     """
-    lrj = LongRunningJob.get_or_create_job(
-        user=user,
-        job_type=LongRunningJob.JOB_SCAN_FACES,
-        job_id=job_id,
-    )
+    lrj = LongRunningJob.claim(user, LongRunningJob.JOB_SCAN_FACES, job_id)
+    if lrj is None:
+        return
 
     try:
         existing_photos = _limit_to_photos_added_since_last_scan(
@@ -800,5 +791,5 @@ def scan_faces(user: User, job_id: UUID, full_scan: bool = False) -> None:
         logger.exception("An error occurred: ")
         lrj.fail(error=err)
 
-    generate_face_embeddings(user, uuid.uuid4())
-    cluster_all_faces(user, uuid.uuid4())
+    generate_face_embeddings(user)
+    cluster_all_faces(user)

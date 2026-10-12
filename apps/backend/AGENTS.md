@@ -92,9 +92,13 @@ test makes `--parallel` runs crash with "cannot pickle 'traceback'"; rerun that 
   (`api/views/exception_handler.py`) writes `{"errors": [{"field", "message", "code"}]}`, and
   `ErrorEnvelopeTest` (`api/tests/infra/test_api_conventions.py`) fails on an error `Response` or a
   literal `status=`. Keep an endpoint's status codes: the mobile outbox retries 5xx and drops 4xx.
-- Background work: create the `LongRunningJob` row (`LongRunningJob.create_job`) and queue a plain
-  function with `django_q.tasks.AsyncTask` or `Chain` (example: `api/all_tasks.py`). There is no
-  `@shared_task`.
+- Background work is queued only through `api/jobs/queue.py` (ruff TID251 bans `django_q.tasks`
+  elsewhere): `enqueue_job` (user-started; writes the `LongRunningJob` row before queuing, a duplicate
+  start is a 409 `job_already_running` carrying the running `job_id`), `enqueue_followup` (queued by
+  a job), `enqueue_chain`, and `enqueue_task` for pieces of a running job. A new job: a `JOB_*` type
+  (with its `JOB_TYPES` entry and migration), a task taking `job_id` that starts with
+  `LongRunningJob.claim` and returns when it gets `None` (cancelled while queued), started from a view
+  through `start_job` (`api/views/scan_triggers.py`). Tests: `api/tests/jobs/test_job_queue.py`.
 - Signals: a module with receivers exposes `register()`, listed in `SIGNAL_MODULES` (`api/apps.py`), that
   connects each one with `dispatch_uid="<module>.<name>"` (a factory-built closure also `weak=False`, or it
   is garbage collected outside DEBUG); no `@receiver`. File removal goes through `transaction.on_commit`.

@@ -83,12 +83,7 @@ class ZipListPhotosView_V2(APIView):
         file_uuid = uuid.uuid4()
         filename = zip_file_name(file_uuid, user.id)
 
-        job_id = create_download_job(
-            LongRunningJob.JOB_DOWNLOAD_PHOTOS,
-            user=user,
-            photos=list(photos),
-            filename=filename,
-        )
+        job_id = create_download_job(user=user, photos=list(photos), filename=filename)
         response = {"job_id": job_id, "url": file_uuid}
 
         return Response(data=response)

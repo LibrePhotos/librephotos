@@ -33,8 +33,8 @@ export function AdminScreen() {
 
   const trigger = async (kind: "scan" | "full") => {
     try {
-      await (kind === "scan" ? endpoints.scanPhotos(client) : endpoints.fullScanPhotos(client));
-      pushToast({ level: "info", message: t("admin.queued") });
+      const result = await (kind === "scan" ? endpoints.scanPhotos(client) : endpoints.fullScanPhotos(client));
+      pushToast({ level: "info", message: result.already_running ? t("common.jobAlreadyRunning") : t("admin.queued") });
       void jobs.refetch();
     } catch {
       pushToast({ level: "error", message: t("common.error") });

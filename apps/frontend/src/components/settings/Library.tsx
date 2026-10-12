@@ -49,6 +49,7 @@ import {
   useScanPhotosMutation,
   useWorkerQuery,
 } from "../../api_client/jobs/hooks";
+import { startJob } from "../../api_client/jobs/startJob";
 import { useDeleteMissingPhotosMutation } from "../../api_client/photos/hooks";
 import { useGetSettingsQuery } from "../../api_client/settings/hooks";
 import { useFetchCountStatsQuery } from "../../api_client/stats/hooks";
@@ -219,9 +220,12 @@ export function Library() {
   const regenerateEventTitles = () => {
     // /autoalbumtitlegen/ re-titles every existing event album; /autoalbumgen/ would only
     // title the albums whose photos changed. fetchClient already reports server errors.
-    fetchClient
-      .post("/autoalbumtitlegen/", {})
-      .then(() => notification.regenerateEventAlbums())
+    startJob(() => fetchClient.post("/autoalbumtitlegen/", {}))
+      .then(start => {
+        if (!start.alreadyRunning) {
+          notification.regenerateEventAlbums();
+        }
+      })
       .catch(() => {});
   };
 
@@ -505,9 +509,12 @@ export function Library() {
                 <Button
                   disabled={!workerAvailability}
                   onClick={() => {
-                    fetchClient
-                      .get("/scanfaces")
-                      .then(() => notification.rescanFaces())
+                    startJob(() => fetchClient.get("/scanfaces"))
+                      .then(start => {
+                        if (!start.alreadyRunning) {
+                          notification.rescanFaces();
+                        }
+                      })
                       .catch(() => notification.rescanFacesFailed());
                   }}
                   leftSection={<FaceId />}

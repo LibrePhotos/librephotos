@@ -69,11 +69,18 @@ class SiteSettingsTest(TestCase):
     def test_saving_with_models_missing_queues_the_download(
         self, run, _mock_do_all_models_exist
     ):
-        response = self.client.post(
-            "/api/sitesettings", data={"allow_upload": True}, format="json"
-        )
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.post(
+                "/api/sitesettings", data={"allow_upload": True}, format="json"
+            )
         self.assertEqual(response.status_code, 200)
         run.assert_called_once_with()
+        # The download's row exists from the moment it is queued.
+        self.assertTrue(
+            LongRunningJob.objects.filter(
+                job_type=LongRunningJob.JOB_DOWNLOAD_MODELS, started_at=None
+            ).exists()
+        )
 
 
 class SiteSettingsSchemaViolationTest(TestCase):

@@ -465,7 +465,9 @@ def detect_visual_duplicates(
 
 
 def batch_detect_duplicates(
-    user: User, options: DuplicateDetectionOptions | None = None
+    user: User,
+    options: DuplicateDetectionOptions | None = None,
+    job_id: str | None = None,
 ) -> None:
     """
     Run batch duplicate detection for a user.
@@ -488,12 +490,11 @@ def batch_detect_duplicates(
     clear_pending = options.get("clear_pending", False)
     batch_size = options.get("batch_size", 10000)
 
-    # Create long-running job for progress tracking
-    job = LongRunningJob.create_job(
-        user=user,
-        job_type=LongRunningJob.JOB_DETECT_DUPLICATES,
-        start_now=True,
-    )
+    # The row queued with the task (api.jobs.queue); None when it was
+    # cancelled while it waited.
+    job = LongRunningJob.claim(user, LongRunningJob.JOB_DETECT_DUPLICATES, job_id)
+    if job is None:
+        return
 
     try:
         # Clear pending duplicates if requested

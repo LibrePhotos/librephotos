@@ -5,7 +5,7 @@ Pins the CURRENT behaviour of ``generate_face_embeddings`` and
 does today, including several quirks that are called out in comments.
 
 Everything heavy is mocked: ``Face.generate_encoding`` never touches the face
-service, ``AsyncTask`` is patched so no worker runs, and no network or model
+service, ``enqueue_task`` is patched so no worker runs, and no network or model
 file is used.
 """
 
@@ -216,7 +216,7 @@ class AddGeolocationCharacterizationTest(TestCase):
     def test_queues_one_async_task_per_photo(self):
         photos = [create_test_photo(owner=self.user) for _ in range(3)]
 
-        with patch.object(processing_jobs, "AsyncTask") as async_task:
+        with patch.object(processing_jobs, "enqueue_task") as async_task:
             add_geolocation(self.user, self.job_id)
 
         self.assertEqual(async_task.call_count, 3)
@@ -227,8 +227,8 @@ class AddGeolocationCharacterizationTest(TestCase):
             self.assertEqual(job_id, self.job_id)
             queued.add(photo_id)
         self.assertEqual(queued, {p.pk for p in photos})
-        # Each AsyncTask is dispatched immediately via .run().
-        self.assertEqual(async_task.return_value.run.call_count, 3)
+        # Each task is queued as it is found.
+        self.assertEqual(async_task.call_count, 3)
 
         job = _job(self.job_id)
         self.assertEqual(job.job_type, LongRunningJob.JOB_ADD_GEOLOCATION)
@@ -245,14 +245,14 @@ class AddGeolocationCharacterizationTest(TestCase):
         photo = create_test_photo(owner=self.user)
         photo.thumbnail.delete()
 
-        with patch.object(processing_jobs, "AsyncTask") as async_task:
+        with patch.object(processing_jobs, "enqueue_task") as async_task:
             add_geolocation(self.user, self.job_id)
 
         self.assertEqual(async_task.call_count, 1)
         self.assertEqual(async_task.call_args.args[1], photo.pk)
 
     def test_no_photos_completes_job_with_zero_target(self):
-        with patch.object(processing_jobs, "AsyncTask") as async_task:
+        with patch.object(processing_jobs, "enqueue_task") as async_task:
             add_geolocation(self.user, self.job_id)
 
         async_task.assert_not_called()
@@ -268,7 +268,7 @@ class AddGeolocationCharacterizationTest(TestCase):
         create_test_photo(owner=other)
         mine = create_test_photo(owner=self.user)
 
-        with patch.object(processing_jobs, "AsyncTask") as async_task:
+        with patch.object(processing_jobs, "enqueue_task") as async_task:
             add_geolocation(self.user, self.job_id)
 
         self.assertEqual(async_task.call_count, 1)
@@ -296,7 +296,7 @@ class AddGeolocationCharacterizationTest(TestCase):
         new = create_test_photo(owner=self.user)
         Photo.objects.filter(pk=new.pk).update(added_on=now)
 
-        with patch.object(processing_jobs, "AsyncTask") as async_task:
+        with patch.object(processing_jobs, "enqueue_task") as async_task:
             add_geolocation(self.user, self.job_id, full_scan=False)
 
         self.assertEqual(async_task.call_count, 1)
@@ -311,7 +311,7 @@ class AddGeolocationCharacterizationTest(TestCase):
         Photo.objects.filter(pk=old.pk).update(added_on=now - timedelta(hours=2))
         create_test_photo(owner=self.user)
 
-        with patch.object(processing_jobs, "AsyncTask") as async_task:
+        with patch.object(processing_jobs, "enqueue_task") as async_task:
             add_geolocation(self.user, self.job_id, full_scan=True)
 
         self.assertEqual(async_task.call_count, 2)
@@ -322,7 +322,7 @@ class AddGeolocationCharacterizationTest(TestCase):
         old = create_test_photo(owner=self.user)
         Photo.objects.filter(pk=old.pk).update(added_on=now - timedelta(hours=2))
 
-        with patch.object(processing_jobs, "AsyncTask") as async_task:
+        with patch.object(processing_jobs, "enqueue_task") as async_task:
             add_geolocation(self.user, self.job_id, full_scan=False)
 
         async_task.assert_not_called()
@@ -338,7 +338,7 @@ class AddGeolocationCharacterizationTest(TestCase):
         )  # never completed -> no cutoff
         create_test_photo(owner=self.user)
 
-        with patch.object(processing_jobs, "AsyncTask") as async_task:
+        with patch.object(processing_jobs, "enqueue_task") as async_task:
             add_geolocation(self.user, self.job_id, full_scan=False)
 
         self.assertEqual(async_task.call_count, 1)
@@ -357,7 +357,7 @@ class AddGeolocationCharacterizationTest(TestCase):
         old = create_test_photo(owner=self.user)
         Photo.objects.filter(pk=old.pk).update(added_on=now - timedelta(hours=2))
 
-        with patch.object(processing_jobs, "AsyncTask") as async_task:
+        with patch.object(processing_jobs, "enqueue_task") as async_task:
             add_geolocation(self.user, self.job_id, full_scan=False)
 
         self.assertEqual(async_task.call_count, 1)
@@ -377,7 +377,7 @@ class AddGeolocationCharacterizationTest(TestCase):
         old = create_test_photo(owner=self.user)
         Photo.objects.filter(pk=old.pk).update(added_on=now - timedelta(hours=2))
 
-        with patch.object(processing_jobs, "AsyncTask") as async_task:
+        with patch.object(processing_jobs, "enqueue_task") as async_task:
             add_geolocation(self.user, self.job_id, full_scan=False)
 
         self.assertEqual(async_task.call_count, 1)
@@ -388,7 +388,7 @@ class AddGeolocationCharacterizationTest(TestCase):
         create_test_photo(owner=self.user)
 
         with (
-            patch.object(processing_jobs, "AsyncTask") as async_task,
+            patch.object(processing_jobs, "enqueue_task") as async_task,
             patch.object(processing_jobs, "is_job_cancelled", return_value=True),
         ):
             add_geolocation(self.user, self.job_id)
@@ -405,7 +405,7 @@ class AddGeolocationCharacterizationTest(TestCase):
         create_test_photo(owner=self.user)
 
         with (
-            patch.object(processing_jobs, "AsyncTask"),
+            patch.object(processing_jobs, "enqueue_task"),
             patch.object(
                 processing_jobs, "is_job_cancelled", return_value=False
             ) as cancelled,
@@ -418,7 +418,7 @@ class AddGeolocationCharacterizationTest(TestCase):
         create_test_photo(owner=self.user)
 
         with (
-            patch.object(processing_jobs, "AsyncTask") as async_task,
+            patch.object(processing_jobs, "enqueue_task") as async_task,
             patch.object(
                 processing_jobs.db.connections,
                 "close_all",
@@ -438,7 +438,7 @@ class AddGeolocationCharacterizationTest(TestCase):
         create_test_photo(owner=self.user)
 
         with patch.object(
-            processing_jobs, "AsyncTask", side_effect=RuntimeError("queue down")
+            processing_jobs, "enqueue_task", side_effect=RuntimeError("queue down")
         ):
             add_geolocation(self.user, self.job_id)
 
@@ -455,7 +455,7 @@ class AddGeolocationCharacterizationTest(TestCase):
         )
         create_test_photo(owner=self.user)
 
-        with patch.object(processing_jobs, "AsyncTask"):
+        with patch.object(processing_jobs, "enqueue_task"):
             add_geolocation(self.user, self.job_id)
 
         self.assertEqual(

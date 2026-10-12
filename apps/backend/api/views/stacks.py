@@ -18,7 +18,6 @@ from collections import Counter
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.paginator import Paginator
 from django.db.models import Count
-from django_q.tasks import async_task
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.exceptions import NotFound, ValidationError
@@ -27,7 +26,8 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from api.models import Photo, PhotoMetadata
+from api.jobs.queue import JobStep
+from api.models import LongRunningJob, Photo, PhotoMetadata
 from api.models.photo_stack import PhotoStack
 from api.request_user import request_user
 from api.serializers.stack import (
@@ -38,6 +38,7 @@ from api.serializers.stack import (
     StackPhotosRequest,
 )
 from api.views.params import parse_body, parse_query
+from api.views.scan_triggers import enqueue_for_request
 
 logger = logging.getLogger(__name__)
 
@@ -326,8 +327,19 @@ class DetectStacksView(APIView):
         # Only burst/bracket detection is done here
         options = parse_body(request, DetectStacksRequest)
 
-        # Queue background job
-        async_task(batch_detect_stacks, user, options)
+        # Not exclusive: stack detection still reports on a Scan Photos row
+        # (#2192 gives it a type of its own), and refusing it while a scan
+        # runs would point the client at the scan.
+        [job] = enqueue_for_request(
+            user,
+            [
+                JobStep(
+                    LongRunningJob.JOB_SCAN_PHOTOS, batch_detect_stacks, (user, options)
+                )
+            ],
+            "stack detection",
+            exclusive=False,
+        )
 
         logger.info(
             "Stack detection queued for user %s with options: %s",
@@ -339,6 +351,7 @@ class DetectStacksView(APIView):
                 "status": "queued",
                 "message": "Stack detection started",
                 "options": options,
+                "job_id": job.job_id,
             },
             status=status.HTTP_202_ACCEPTED,
         )

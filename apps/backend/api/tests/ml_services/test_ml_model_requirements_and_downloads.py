@@ -10,7 +10,7 @@ from unittest.mock import patch
 import requests
 from constance import config as site_config
 from constance.test import override_config
-from django.test import TestCase, override_settings
+from django.test import TestCase, TransactionTestCase, override_settings
 
 from api.ml_models import (
     ML_MODELS,
@@ -339,6 +339,20 @@ class DownloadModelsJobTest(TestCase):
         self.assertIn("openclip_vitb32", job.result["error"])
         self.assertEqual(len(ML_MODELS), job.progress_current)
 
+    def test_a_download_cancelled_while_queued_fetches_nothing(self):
+        job = LongRunningJob.create_job(
+            user=self.user, job_type=LongRunningJob.JOB_DOWNLOAD_MODELS
+        )
+        job.cancel()
+
+        with patch("api.ml_models.download_model") as download_model:
+            download_models(self.user, job_id=job.job_id)
+
+        download_model.assert_not_called()
+        job.refresh_from_db()
+        self.assertIsNone(job.started_at)
+        self.assertEqual(LongRunningJob.objects.count(), 1)
+
     def test_job_completes_when_every_model_downloads(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             with override_settings(MEDIA_ROOT=str(Path(temp_dir) / "protected_media")):
@@ -394,6 +408,19 @@ class DownloadModelsJobTest(TestCase):
         self.assertEqual(fetched.count("buffalo_s"), 1)
         job = LongRunningJob.objects.get(job_type=LongRunningJob.JOB_DOWNLOAD_MODELS)
         self.assertFalse(job.failed)
+
+
+class StartModelDownloadFailureTest(TransactionTestCase):
+    """The task is queued when the row commits; a TestCase never commits."""
+
+    @patch("api.jobs.queue.AsyncTask")
+    def test_start_model_download_reports_a_queue_failure(self, async_task):
+        async_task.return_value.run.side_effect = RuntimeError("broker down")
+
+        self.assertFalse(start_model_download(create_test_user()))
+
+        job = LongRunningJob.objects.get(job_type=LongRunningJob.JOB_DOWNLOAD_MODELS)
+        self.assertTrue(job.failed)
 
 
 _SHA256_RE = re.compile(r"^[0-9a-fA-F]{40,}$")
@@ -570,17 +597,31 @@ class MlModelSelectionTest(TestCase):
                 (model_root / "lfm2_vl_450m" / LFM_FILES[-2]).unlink()
                 self.assertFalse(captioning_model_exists())
 
-    @patch("django_q.tasks.AsyncTask")
+    @patch("api.jobs.queue.AsyncTask")
     def test_start_model_download_queues_one_job(self, async_task):
         user = create_test_user()
 
-        self.assertTrue(start_model_download(user))
+        with self.captureOnCommitCallbacks(execute=True):
+            self.assertTrue(start_model_download(user))
 
         async_task.assert_called_once()
         self.assertIs(async_task.call_args.args[1], user)
+        job = LongRunningJob.objects.get(job_type=LongRunningJob.JOB_DOWNLOAD_MODELS)
+        self.assertEqual(async_task.call_args.kwargs["job_id"], job.job_id)
         async_task.return_value.run.assert_called_once_with()
 
-    @patch("django_q.tasks.AsyncTask")
+    @patch("api.jobs.queue.AsyncTask")
+    def test_start_model_download_skips_when_one_is_queued(self, async_task):
+        # A queued download has its row before a worker picks it up, so a
+        # second save of the settings meanwhile queues nothing.
+        user = create_test_user()
+        with self.captureOnCommitCallbacks(execute=True):
+            self.assertTrue(start_model_download(user))
+            self.assertTrue(start_model_download(create_test_user()))
+
+        async_task.assert_called_once()
+
+    @patch("api.jobs.queue.AsyncTask")
     def test_start_model_download_skips_when_one_is_running(self, async_task):
         user = create_test_user()
         LongRunningJob.create_job(
@@ -590,12 +631,6 @@ class MlModelSelectionTest(TestCase):
         self.assertTrue(start_model_download(user))
 
         async_task.assert_not_called()
-
-    @patch("django_q.tasks.AsyncTask")
-    def test_start_model_download_reports_a_queue_failure(self, async_task):
-        async_task.return_value.run.side_effect = RuntimeError("broker down")
-
-        self.assertFalse(start_model_download(create_test_user()))
 
     def test_do_all_models_exist_requires_every_captioner_file(self):
         with tempfile.TemporaryDirectory() as temp_dir:

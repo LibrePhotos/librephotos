@@ -10,10 +10,10 @@ from bulk_update.helper import bulk_update
 from django.conf import settings
 from django.core.paginator import Paginator
 from django.db.models import Q
-from django_q.tasks import AsyncTask
 
 from api.cluster_manager import ClusterManager
 from api.color_palettes import hex_palette
+from api.jobs.queue import enqueue_followup
 from api.lazy_import import LazyModule
 from api.models import Face, LongRunningJob, Person
 from api.models.cluster import UNKNOWN_CLUSTER_ID, Cluster, get_unknown_cluster
@@ -130,22 +130,21 @@ def cluster_faces(user: User, inferred: bool = True) -> dict[str, object]:
     return {"status": True, "data": res}
 
 
-def cluster_all_faces(user: User, job_id: uuid.UUID | str) -> bool:
+def cluster_all_faces(user: User, job_id: uuid.UUID | str | None = None) -> bool:
     """Groups all faces into clusters for ease of labeling. It first deletes all
     existing clusters, then regenerates them all. It will split clusters that have
     more than one kind of labeled face.
     :param user: the current user running the training
-    :param job_id: the background job ID
+    :param job_id: the background job ID; None when ``scan_faces`` calls it
     """
     if not settings.FEATURE_FACE_CLUSTER:
         logger.info("Face clustering is disabled")
+        LongRunningJob.complete_unclaimed(job_id)
         return False
 
-    lrj = LongRunningJob.get_or_create_job(
-        user=user,
-        job_type=LongRunningJob.JOB_CLUSTER_ALL_FACES,
-        job_id=job_id,
-    )
+    lrj = LongRunningJob.claim(user, LongRunningJob.JOB_CLUSTER_ALL_FACES, job_id)
+    if lrj is None:
+        return False
     lrj.update_progress(current=0, target=1)
 
     try:
@@ -157,8 +156,7 @@ def cluster_all_faces(user: User, job_id: uuid.UUID | str) -> bool:
         lrj.update_progress(current=target_count, target=target_count)
         lrj.complete()
 
-        train_job_id = uuid.uuid4()
-        AsyncTask(train_faces, user, train_job_id).run()
+        enqueue_followup(user, LongRunningJob.JOB_TRAIN_FACES, train_faces, user)
         return True
 
     except BaseException as err:
@@ -470,11 +468,9 @@ def train_faces(user: User, job_id: uuid.UUID | str) -> bool:
     :param user: the current user running the training
     :param job_id: the background job ID
     """
-    lrj = LongRunningJob.get_or_create_job(
-        user=user,
-        job_type=LongRunningJob.JOB_TRAIN_FACES,
-        job_id=job_id,
-    )
+    lrj = LongRunningJob.claim(user, LongRunningJob.JOB_TRAIN_FACES, job_id)
+    if lrj is None:
+        return False
     lrj.update_progress(current=1, target=2)
     try:
         data_known, data_unknown = split_faces_by_label(user)

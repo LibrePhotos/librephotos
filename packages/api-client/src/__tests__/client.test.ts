@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { ApiError, createApiClient } from "../transport";
+import { ApiError, createApiClient, runningJobId } from "../transport";
 import type { TokenSupplier } from "../transport";
 import { defined } from "./defined";
 
@@ -190,6 +190,19 @@ describe("createApiClient errors", () => {
       (await rejection(client(jsonResponse({ errors: [{ field: "x", message: "y" }] }, 400)).get("/x/"))).serverCode
     ).toBeNull();
     expect((await rejection(client(new Response(null, { status: 400 })).get("/x/"))).serverCode).toBeNull();
+  });
+
+  it("reads the running job's id from a job_already_running 409", async () => {
+    const body = {
+      errors: [
+        { field: "detail", message: "Scan Photos is already running.", code: "job_already_running", job_id: "j-1" },
+      ],
+    };
+    expect(runningJobId(await rejection(client(jsonResponse(body, 409)).post("/scanphotos/")))).toBe("j-1");
+    // Any other failure, or no error at all, has none.
+    const conflict = { errors: [{ field: "detail", message: "x", code: "conflict", job_id: "j-1" }] };
+    expect(runningJobId(await rejection(client(jsonResponse(conflict, 409)).post("/x/")))).toBeNull();
+    expect(runningJobId(new Error("network"))).toBeNull();
   });
 
   it("falls back to a string detail", async () => {

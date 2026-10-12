@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import uuid
 from datetime import datetime, timedelta
 from typing import Any
@@ -10,15 +11,35 @@ from django.utils import timezone
 from api.models.scopes import OwnedQuerySet
 from api.models.user import User, get_deleted_user
 
+logger = logging.getLogger(__name__)
+
+STUCK_JOB_HOURS = 24
+
 
 class LongRunningJobQuerySet(OwnedQuerySet["LongRunningJob"]):
     """The user who started the job owns it."""
 
     owner_lookup = "started_by"
 
+    def running(self) -> LongRunningJobQuerySet:
+        """Jobs that are queued or running: unfinished and not stuck.
+
+        A row is written when the job is queued (``api.jobs.queue``), so a
+        queued job counts as running. Unfinished rows past the stuck-job
+        threshold are left out, so an orphan (OOM, restart, uncaught
+        exception) does not block anything while it waits for the hourly
+        ``cleanup_stuck_jobs`` (#1919). Duplicate-start refusal and
+        ``/api/rqavailable/`` both read this.
+        """
+        cutoff = timezone.now() - timedelta(hours=STUCK_JOB_HOURS)
+        return self.filter(finished=False).filter(
+            models.Q(started_at__gte=cutoff)
+            | models.Q(started_at__isnull=True, queued_at__gte=cutoff)
+        )
+
 
 class LongRunningJob(models.Model):
-    STUCK_JOB_HOURS = 24
+    STUCK_JOB_HOURS = STUCK_JOB_HOURS
 
     JOB_SCAN_PHOTOS = 1
     JOB_GENERATE_AUTO_ALBUMS = 2
@@ -196,30 +217,59 @@ class LongRunningJob(models.Model):
         return job
 
     @classmethod
-    def get_or_create_job(
-        cls, user: User, job_type: int, job_id: uuid.UUID | str
-    ) -> LongRunningJob:
+    def claim(
+        cls, user: User, job_type: int, job_id: uuid.UUID | str | None
+    ) -> LongRunningJob | None:
+        """Mark the queued job ``job_id`` as started, for the task that runs it.
+
+        The row was written when the job was queued (``api.jobs.queue``). The
+        claim is one conditional update (``started_at = now`` where the row is
+        unfinished and not started yet), so a job cancelled or failed by
+        ``cleanup_stuck_jobs`` while it waited, or a task delivered twice, gets
+        ``None``: the task returns without doing any work.
+
+        ``job_id=None`` (a job chained in front of another, such as the model
+        download before a scan) and an id with no row (a task queued before
+        rows were written at queue time, or a direct call such as
+        ``manage.py scan``) create a started row instead.
         """
-        Get an existing job by job_id or create a new one.
-
-        This is useful for queued jobs where the job_id is known ahead of time.
-        If the job exists, it will be marked as started. If not, a new job is created.
-
-        Args:
-            user: The user who started the job
-            job_type: One of the JOB_* constants
-            job_id: The job ID to look up or use for creation
-
-        Returns:
-            The LongRunningJob instance (existing or newly created)
-        """
-        if cls.objects.filter(job_id=job_id).exists():
-            job = cls.objects.get(job_id=job_id)
-            job.start()
-            return job
+        if job_id is None:
+            return cls.create_job(user=user, job_type=job_type, start_now=True)
+        claimed = cls.objects.filter(
+            job_id=str(job_id), finished=False, started_at__isnull=True
+        ).update(started_at=timezone.now())
+        if claimed:
+            return cls.objects.get(job_id=str(job_id))
+        if cls.objects.filter(job_id=str(job_id)).exists():
+            logger.info(
+                "job %s was cancelled, timed out or already started before "
+                "this task ran; nothing to do",
+                job_id,
+            )
+            return None
+        logger.warning(
+            "job %s has no row, creating it: a task queued before rows were "
+            "written at queue time, or a direct call (manage.py scan)",
+            job_id,
+        )
         return cls.create_job(
             user=user, job_type=job_type, job_id=job_id, start_now=True
         )
+
+    @classmethod
+    def complete_unclaimed(cls, job_id: uuid.UUID | str | None) -> None:
+        """Finish the queued job ``job_id`` whose task found nothing to do.
+
+        Such a task returns before ``claim``; without this the row would stay
+        queued, and keep ``/api/rqavailable/`` busy, until the stuck-job
+        cleanup. A missing row (``None``, a direct call) is left missing.
+        """
+        if job_id is None:
+            return
+        now = timezone.now()
+        cls.objects.filter(
+            job_id=str(job_id), finished=False, started_at__isnull=True
+        ).update(started_at=now, finished=True, finished_at=now)
 
     @classmethod
     def cleanup_stuck_jobs(cls, hours: int | None = None) -> int:

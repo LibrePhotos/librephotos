@@ -19,7 +19,6 @@ from django import db
 from django.conf import settings
 from django.core.paginator import Paginator
 from django.db.models import Q
-from django_q.tasks import AsyncTask, Chain
 
 from api import video_color
 from api.batch_jobs import batch_calculate_clip_embedding
@@ -44,6 +43,7 @@ from api.directory_watcher.utils import (
     walk_directory,
     walk_files,
 )
+from api.jobs.queue import JobStep, enqueue_chain, enqueue_followup, enqueue_task
 from api.metadata.reader import get_sidecar_files_in_priority_order
 from api.mime import VIDEO_EXTENSIONS, extension
 from api.models import LongRunningJob, Photo, Thumbnail, User
@@ -143,9 +143,14 @@ def _select_groups_to_process(
 
 
 def _last_finished_scan(user: User) -> LongRunningJob | None:
-    """Most recent finished photo scan for ``user``, used as the change baseline."""
+    """Most recent finished photo scan for ``user``, used as the change baseline.
+
+    A scan cancelled or timed out while it was queued finished without
+    starting (its row is written at queue time) and saw no files: not a
+    baseline.
+    """
     return (
-        LongRunningJob.objects.filter(finished=True)
+        LongRunningJob.objects.filter(finished=True, started_at__isnull=False)
         .filter(job_type=LongRunningJob.JOB_SCAN_PHOTOS)
         .filter(started_by=user)
         .order_by("-finished_at")
@@ -177,7 +182,7 @@ def photo_scanner(
     ):
         # Queue processing for this file. Metadata is queued here without grouping on purpose,
         # because grouping is managed at the higher-level scan phase to ensure images complete first.
-        AsyncTask(handle_new_image, user, path, job_id).run()
+        enqueue_task(handle_new_image, user, path, job_id)
     else:
         update_scan_counter(job_id)
 
@@ -305,13 +310,7 @@ def _queue_scan_work(
     """
     image_group_id = str(uuid.uuid4())
     for _, paths in _videos_first(groups_to_process):
-        AsyncTask(
-            handle_file_group,
-            user,
-            paths,
-            job_id,
-            group=image_group_id,
-        ).run()
+        enqueue_task(handle_file_group, user, paths, job_id, group=image_group_id)
 
     if metadata_paths:
         logger.info(
@@ -381,33 +380,62 @@ def queue_scan_followups(job_id: UUID | str) -> None:
 def _queue_followup_jobs(user: User, full_scan: bool, scan_missing: bool) -> None:
     """Queue the jobs that run once the scan's own work is done."""
     if scan_missing:
-        AsyncTask(scan_missing_photos, user, uuid.uuid4()).run()
+        enqueue_followup(
+            user, LongRunningJob.JOB_SCAN_MISSING_PHOTOS, scan_missing_photos, user
+        )
 
     # Run repair job to fix any previously ungrouped file variants
     # This handles race conditions from previous scans and incremental adds
-    AsyncTask(repair_ungrouped_file_variants, user, uuid.uuid4()).run()
+    enqueue_followup(
+        user,
+        LongRunningJob.JOB_REPAIR_FILE_VARIANTS,
+        repair_ungrouped_file_variants,
+        user,
+    )
 
     # Only while there is something to do, so a library whose videos have all
     # been probed -- or that has none -- does not get an empty job every scan.
     if video_color.can_probe() and videos_to_probe(user).exists():
-        AsyncTask(probe_videos, user, uuid.uuid4()).run()
+        enqueue_followup(user, LongRunningJob.JOB_PROBE_VIDEOS, probe_videos, user)
 
     if settings.FEATURE_SCENE_CLASSIFICATION:
-        AsyncTask(generate_tags, user, uuid.uuid4(), full_scan).run()
+        enqueue_followup(
+            user,
+            LongRunningJob.JOB_GENERATE_TAGS,
+            generate_tags,
+            user,
+            full_scan=full_scan,
+        )
     if settings.FEATURE_REVERSE_GEOCODING:
-        AsyncTask(add_geolocation, user, uuid.uuid4(), full_scan).run()
+        enqueue_followup(
+            user,
+            LongRunningJob.JOB_ADD_GEOLOCATION,
+            add_geolocation,
+            user,
+            full_scan=full_scan,
+        )
 
-    # The scan faces job will have issues if the embeddings haven't been generated before it runs
-    chain = Chain()
+    # The scan faces job will have issues if the embeddings haven't been generated before it runs.
     # When the tags job stores the search embeddings too, this run leaves the
     # photos it is about to tag to it (its end queues the rest).
-    if semantic_shares_tagger():
-        chain.append(batch_calculate_clip_embedding, user, wait_for_tags=True)
-    else:
-        chain.append(batch_calculate_clip_embedding, user)
+    steps = [
+        JobStep(
+            LongRunningJob.JOB_CALCULATE_CLIP_EMBEDDINGS,
+            batch_calculate_clip_embedding,
+            (user,),
+            {"wait_for_tags": semantic_shares_tagger()},
+        )
+    ]
     if settings.FEATURE_FACE_DETECTION:
-        chain.append(scan_faces, user, uuid.uuid4(), full_scan)
-    chain.run()
+        steps.append(
+            JobStep(
+                LongRunningJob.JOB_SCAN_FACES,
+                scan_faces,
+                (user,),
+                {"full_scan": full_scan},
+            )
+        )
+    enqueue_chain(user, steps, exclusive=False)
 
 
 def scan_photos(
@@ -448,11 +476,9 @@ def scan_photos(
     for directory in thumbnail_dirs:
         os.makedirs(directory, exist_ok=True)
 
-    lrj = LongRunningJob.get_or_create_job(
-        user=user,
-        job_type=LongRunningJob.JOB_SCAN_PHOTOS,
-        job_id=job_id,
-    )
+    lrj = LongRunningJob.claim(user, LongRunningJob.JOB_SCAN_PHOTOS, job_id)
+    if lrj is None:
+        return
 
     try:
         if scan_directory == "":
@@ -528,11 +554,9 @@ def scan_missing_photos(user: User, job_id: UUID) -> None:
         user: The user whose photos to check
         job_id: Job ID for tracking progress
     """
-    lrj = LongRunningJob.get_or_create_job(
-        user=user,
-        job_type=LongRunningJob.JOB_SCAN_MISSING_PHOTOS,
-        job_id=job_id,
-    )
+    lrj = LongRunningJob.claim(user, LongRunningJob.JOB_SCAN_MISSING_PHOTOS, job_id)
+    if lrj is None:
+        return
     try:
         existing_photos = Photo.objects.owned_by(user).order_by("image_hash")
 

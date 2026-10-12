@@ -3,7 +3,9 @@
 It is the only place that writes an API error body. Every raised DRF exception
 answers ``{"errors": [{"field": ..., "message": ..., "code": ...}]}``: ``field``
 names the request field at fault (``non_field_errors`` or ``detail`` when there
-is none), ``message`` is for people, ``code`` is what clients branch on.
+is none), ``message`` is for people, ``code`` is what clients branch on. An
+exception with ``entry_fields`` adds those to its entries (``job_id`` of
+``api.exceptions.JobAlreadyRunning``).
 """
 
 from typing import Any
@@ -54,6 +56,14 @@ def _entry(field: str, value: object) -> dict[str, str]:
     }
 
 
+def _entry_fields(exc: Exception) -> dict[str, str]:
+    """The extra fields ``exc`` puts on its entries, see ``api/exceptions.py``."""
+    fields: object = getattr(exc, "entry_fields", None)
+    if not isinstance(fields, dict):
+        return {}
+    return {str(key): str(value) for key, value in fields.items()}
+
+
 def custom_exception_handler(
     exc: Exception, context: dict[str, Any]
 ) -> Response | None:
@@ -72,6 +82,10 @@ def custom_exception_handler(
             # Handle ValidationError raised with a string (creates a list)
             for item in response.data:
                 errors.append(_entry("non_field_errors", item))
+        extra = _entry_fields(exc)
+        for error in errors:
+            for key, value in extra.items():
+                error.setdefault(key, value)
 
         # Add actionable guidance for unauthenticated/forbidden responses
         if getattr(response, "status_code", None) in (401, 403) and settings.DEBUG:
