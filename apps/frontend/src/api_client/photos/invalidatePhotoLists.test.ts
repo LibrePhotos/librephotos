@@ -27,6 +27,8 @@ describe("invalidatePhotoLists", () => {
         "tagAlbum",
         "searchPhotos",
         "photosWithoutTimestamp",
+        "sharedPhotosByMe",
+        "sharedPhotosWithMe",
       ])
     );
     // Prefix keys only, so every page / filter variant of a grid is refreshed.

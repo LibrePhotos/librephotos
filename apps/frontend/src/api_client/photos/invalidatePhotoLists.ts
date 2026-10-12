@@ -9,11 +9,13 @@ import { SearchPhotosQueryKeys } from "../search/hooks/useSearchPhotosQuery";
 import { TagAlbumQueryKeys } from "../tags/hooks/useFetchTagAlbumQuery";
 import { PhotosWithoutTimestampQueryKeys } from "./hooks/useFetchPhotosWithoutTimestampQuery";
 import { RecentlyAddedPhotosQueryKeys } from "./hooks/useFetchRecentlyAddedPhotosQuery";
+import { SharedPhotosByMeQueryKeys } from "./hooks/useFetchSharedPhotosByMeQuery";
+import { SharedPhotosWithMeQueryKeys } from "./hooks/useFetchSharedPhotosWithMeQuery";
 
 // Every query that feeds a photo grid. A change to a photo's favourite,
 // hidden or trash state (or its date) must refresh all of them: invalidating
-// only the timeline left album, event, place, thing, tag, search and
-// no-timestamp grids showing the old state until a reload.
+// only the timeline left album, event, place, thing, tag, search,
+// no-timestamp and shared grids showing the old state until a reload.
 const PHOTO_LIST_QUERY_KEYS: ReadonlyArray<readonly string[]> = [
   DateAlbumsQueryKeys,
   DateAlbumQueryKeys,
@@ -25,6 +27,8 @@ const PHOTO_LIST_QUERY_KEYS: ReadonlyArray<readonly string[]> = [
   TagAlbumQueryKeys,
   SearchPhotosQueryKeys,
   PhotosWithoutTimestampQueryKeys,
+  SharedPhotosByMeQueryKeys,
+  SharedPhotosWithMeQueryKeys,
 ];
 
 // Only the grids on screen refetch; the others are marked stale and refetch
