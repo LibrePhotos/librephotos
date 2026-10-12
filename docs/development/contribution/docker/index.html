@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.a1e92a76.css">
-<script src="/assets/js/runtime~main.7caf1816.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.8c114f9b.js" defer="defer"></script>
 <script src="/assets/js/main.f4dc5e9c.js" defer="defer"></script>
 </head>
 <body>
@@ -24,13 +24,14 @@
 <ul>
 <li class=""><code>deploy/compose/docker-compose.yml</code> - Base configuration (published images), used in both dev and prod</li>
 <li class=""><code>deploy/compose/docker-compose.dev.yml</code> - Development overrides (builds from local source, hot reload)</li>
+<li class=""><code>deploy/compose/docker-compose.unified.yml</code> - Single-container image with PostgreSQL; reads the same <code>librephotos.env</code> as <code>docker-compose.yml</code>, and <code>api/tests/infra/test_compose_files_in_sync.py</code> keeps the backend environment of the two files equal</li>
 <li class=""><code>deploy/compose/docker-compose.e2e.yml</code> - End-to-end test stack (builds from local source)</li>
 <li class=""><code>deploy/docker/backend/</code> - Backend Dockerfile (app layer) and entrypoint</li>
 <li class=""><code>deploy/docker/backend/base/</code> - Backend base image Dockerfile (system dependencies), published separately</li>
 <li class=""><code>deploy/docker/backend-gpu/</code> and <code>deploy/docker/backend-gpu/base/</code> - CUDA (GPU) equivalents of the backend and its base</li>
 <li class=""><code>deploy/docker/frontend/</code> - Frontend Dockerfiles (production and development)</li>
 <li class=""><code>deploy/docker/proxy/</code> - Nginx reverse proxy configuration</li>
-<li class=""><code>deploy/docker/unified/</code> - Single-container image (<a class="" href="/docs/installation/unified-deployment">Single Container Deployment</a>) with its own standalone Dockerfile and compose file</li>
+<li class=""><code>deploy/docker/unified/</code> - Single-container image (<a class="" href="/docs/installation/unified-deployment">Single Container Deployment</a>) with its own standalone Dockerfile; build it locally from the repo root with <code>docker build -f deploy/docker/unified/Dockerfile .</code></li>
 </ul>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="-code-standards">✨ Code Standards<a href="#-code-standards" class="hash-link" aria-label="Direct link to ✨ Code Standards" title="Direct link to ✨ Code Standards" translate="no">​</a></h2>
 <p>When modifying Docker files, please ensure:</p>
