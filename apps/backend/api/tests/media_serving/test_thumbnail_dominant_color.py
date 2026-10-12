@@ -117,3 +117,47 @@ class DominantColorTest(TestCase):
 
         thumbnail.refresh_from_db()
         self.assertIsNone(thumbnail.dominant_color)
+
+
+class DominantColorFailuresTest(TestCase):
+    """A thumbnail that cannot be sampled leaves the colour unset, logged at
+    INFO, and never fails the scan step."""
+
+    def setUp(self):
+        self.media_root = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.media_root, ignore_errors=True)
+        media = override_settings(MEDIA_ROOT=self.media_root)
+        media.enable()
+        self.addCleanup(media.disable)
+        self.thumbnail = create_test_photo(owner=create_test_user()).thumbnail
+
+    def _sample(self):
+        with self.assertLogs("api.thumbnails", "INFO") as logs:
+            thumbnails.calculate_dominant_color(self.thumbnail)
+        self.assertIn("Cannot calculate dominant color", logs.output[0])
+        self.thumbnail.refresh_from_db()
+        self.assertIsNone(self.thumbnail.dominant_color)
+
+    def test_a_missing_file(self):
+        self._sample()
+
+    def test_a_file_that_is_not_a_picture(self):
+        path = os.path.join(self.media_root, self.thumbnail.square_thumbnail_small.name)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "wb") as handle:
+            handle.write(b"not a picture")
+        self._sample()
+
+    def test_a_truncated_picture(self):
+        path = os.path.join(self.media_root, self.thumbnail.square_thumbnail_small.name)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        Image.new("RGB", (64, 48), RED).save(path, "PNG")
+        with open(path, "rb") as handle:
+            data = handle.read()
+        with open(path, "wb") as handle:
+            handle.write(data[: len(data) // 2])
+        self._sample()
+
+    def test_no_thumbnail_file_name(self):
+        self.thumbnail.square_thumbnail_small.name = ""
+        self._sample()

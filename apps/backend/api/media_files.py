@@ -73,7 +73,8 @@ def is_video(path: str) -> bool:
     try:
         # Sniffed only: a corrupt file with a video extension must not become a video.
         return (sniffed_mime_type(path) or "").find("video") != -1
-    except Exception:
+    except (OSError, TypeError, ValueError):
+        # A file that cannot be read, or a path the sniffer refuses.
         logger.error("Error while checking if file is video: %s", path)
         return False
 
@@ -105,24 +106,28 @@ def is_valid_media(path: str, user: User | None) -> bool:
     if is_video(path=path):
         if not settings.FEATURE_VIDEO:
             logger.info("Video support is disabled, skipping %s", path)
-            return False
+        return bool(settings.FEATURE_VIDEO)
+    if is_metadata(path=path) or is_raw(path=path):
         return True
-    if is_metadata(path=path):
-        return True
-    if is_raw(path=path):
-        return True
+    return _can_decode(path)
+
+
+def _can_decode(path: str) -> bool:
+    """Whether an image loader recognises ``path``; why not, at INFO."""
     try:
         # Imported here: it loads libvips, Pillow's HEIC/JXL plugins and
         # LibRaw, which the API server never needs.
         from api import image_decoding
 
-        if image_decoding.can_decode(path):
-            return True
-        logger.info("Could not handle %s: no loader recognises it", path)
-        return False
-    except Exception as e:
+        decodable = image_decoding.can_decode(path)
+    except (ImportError, OSError) as e:
+        # A loader library that is missing or fails to load (pyvips raises
+        # OSError without libvips), or a file it cannot read.
         logger.info("Could not handle %s, because %s", path, str(e))
         return False
+    if not decodable:
+        logger.info("Could not handle %s: no loader recognises it", path)
+    return decodable
 
 
 def calculate_hash(user: User, path: str) -> str:

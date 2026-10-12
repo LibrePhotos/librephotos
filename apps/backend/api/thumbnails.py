@@ -714,36 +714,44 @@ def calculate_dominant_color(thumbnail: Thumbnail, palette_size: int = 16) -> No
     """
     if thumbnail.dominant_color:
         return
+    # A video's square thumbnails are mp4 clips, which PIL cannot open,
+    # so videos never got a colour; their big thumbnail is a still.
+    source = (
+        thumbnail.thumbnail_big
+        if thumbnail.photo.video
+        else thumbnail.square_thumbnail_small
+    )
     try:
-        # A video's square thumbnails are mp4 clips, which PIL cannot open,
-        # so videos never got a colour; their big thumbnail is a still.
-        source = (
-            thumbnail.thumbnail_big
-            if thumbnail.photo.video
-            else thumbnail.square_thumbnail_small
-        )
-        with Image.open(source.path) as img:
-            # Resize image to speed up processing
-            img.thumbnail((100, 100))
-
-            # Reduce colors (uses k-means internally)
-            paletted = img.convert(
-                "P", palette=Image.Palette.ADAPTIVE, colors=palette_size
-            )
-
-        # Find the color that occurs most often. A "P" image always has a
-        # palette and, with at most palette_size colours, its colour list.
-        palette = paletted.getpalette()
-        colors = paletted.getcolors()
-        assert palette is not None and colors is not None
-        color_counts = sorted(colors, reverse=True)
-        palette_index = color_counts[0][1]
-        # A "P" image counts its colours by palette index.
-        assert isinstance(palette_index, int)
-        dominant_color = palette[palette_index * 3 : palette_index * 3 + 3]
-        # Stored as the text of the RGB list, e.g. "[12, 34, 56]"; the
-        # serializers read it back that way.
-        thumbnail.dominant_color = str(dominant_color)
-        thumbnail.save()
-    except Exception:
+        dominant_color = _most_common_color(source.path, palette_size)
+    except (OSError, ValueError):
+        # No file name (ValueError from .path), no file, not a picture or a
+        # truncated one (OSError, PIL's UnidentifiedImageError included).
+        dominant_color = None
+    if dominant_color is None:
         logger.info("Cannot calculate dominant color %s object", thumbnail)
+        return
+    # Stored as the text of the RGB list, e.g. "[12, 34, 56]"; the
+    # serializers read it back that way.
+    thumbnail.dominant_color = str(dominant_color)
+    thumbnail.save()
+
+
+def _most_common_color(path: str, palette_size: int) -> list[int] | None:
+    """The RGB of the colour that covers most of the picture at ``path``."""
+    with Image.open(path) as img:
+        # Resize image to speed up processing
+        img.thumbnail((100, 100))
+
+        # Reduce colors (uses k-means internally)
+        paletted = img.convert("P", palette=Image.Palette.ADAPTIVE, colors=palette_size)
+
+    # A "P" image has a palette and, with at most palette_size colours, its
+    # colour list, counted by palette index.
+    palette = paletted.getpalette()
+    colors = paletted.getcolors()
+    if palette is None or not colors:
+        return None
+    _, palette_index = max(colors)
+    if not isinstance(palette_index, int):
+        return None
+    return palette[palette_index * 3 : palette_index * 3 + 3]
