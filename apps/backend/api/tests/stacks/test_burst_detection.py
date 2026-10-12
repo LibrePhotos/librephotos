@@ -156,19 +156,11 @@ class BurstDetectionTestCase(TestCase):
         )
         self.user.save()
 
-    def _create_file(self, path, file_type=File.IMAGE):
-        """Helper to create a File object."""
-        return create_test_file(
-            path=path,
-            file_type=file_type,
-            user=self.user,
-        )
-
     def _create_photo_with_timestamp(self, timestamp, **kwargs):
         """Helper to create Photo with specific timestamp."""
         photo = create_test_photo(owner=self.user, **kwargs)
         photo.exif_timestamp = timestamp
-        file = self._create_file(f"/photos/IMG_{photo.pk}.jpg")
+        file = create_test_file(f"/photos/IMG_{photo.pk}.jpg", self.user)
         photo.main_file = file
         photo.save()
         return photo
@@ -439,25 +431,21 @@ class FileVariantTestCase(TestCase):
     def setUp(self):
         self.user = create_test_user()
 
-    def _create_file(self, path, file_type=File.IMAGE):
-        """Helper to create a File object."""
-        return create_test_file(
-            path=path,
-            file_type=file_type,
-            user=self.user,
-        )
-
     def test_photo_with_raw_variant(self):
         """Test a photo can have a RAW file variant."""
         photo = create_test_photo(owner=self.user)
 
         # Add JPEG as main file
-        jpeg_file = self._create_file("/photos/IMG_001.jpg", File.IMAGE)
+        jpeg_file = create_test_file(
+            "/photos/IMG_001.jpg", self.user, file_type=File.IMAGE
+        )
         photo.main_file = jpeg_file
         photo.files.add(jpeg_file)
 
         # Add RAW variant
-        raw_file = self._create_file("/photos/IMG_001.CR2", File.RAW_FILE)
+        raw_file = create_test_file(
+            "/photos/IMG_001.CR2", self.user, file_type=File.RAW_FILE
+        )
         photo.files.add(raw_file)
         photo.save()
 
@@ -471,12 +459,16 @@ class FileVariantTestCase(TestCase):
         photo = create_test_photo(owner=self.user)
 
         # Add HEIC as main file
-        heic_file = self._create_file("/photos/IMG_001.heic", File.IMAGE)
+        heic_file = create_test_file(
+            "/photos/IMG_001.heic", self.user, file_type=File.IMAGE
+        )
         photo.main_file = heic_file
         photo.files.add(heic_file)
 
         # Add video variant
-        video_file = self._create_file("/photos/IMG_001.mov", File.VIDEO)
+        video_file = create_test_file(
+            "/photos/IMG_001.mov", self.user, file_type=File.VIDEO
+        )
         photo.files.add(video_file)
         photo.save()
 
@@ -490,9 +482,15 @@ class FileVariantTestCase(TestCase):
         photo = create_test_photo(owner=self.user)
 
         # Add all variant types
-        jpeg_file = self._create_file("/photos/IMG_001.jpg", File.IMAGE)
-        raw_file = self._create_file("/photos/IMG_001.CR2", File.RAW_FILE)
-        video_file = self._create_file("/photos/IMG_001.mov", File.VIDEO)
+        jpeg_file = create_test_file(
+            "/photos/IMG_001.jpg", self.user, file_type=File.IMAGE
+        )
+        raw_file = create_test_file(
+            "/photos/IMG_001.CR2", self.user, file_type=File.RAW_FILE
+        )
+        video_file = create_test_file(
+            "/photos/IMG_001.mov", self.user, file_type=File.VIDEO
+        )
 
         photo.main_file = jpeg_file
         photo.files.add(jpeg_file, raw_file, video_file)
@@ -509,8 +507,12 @@ class FileVariantTestCase(TestCase):
         photo2 = create_test_photo(owner=self.user)
 
         # Add file variant to photo1
-        jpeg_file = self._create_file("/photos/IMG_001.jpg", File.IMAGE)
-        raw_file = self._create_file("/photos/IMG_001.CR2", File.RAW_FILE)
+        jpeg_file = create_test_file(
+            "/photos/IMG_001.jpg", self.user, file_type=File.IMAGE
+        )
+        raw_file = create_test_file(
+            "/photos/IMG_001.CR2", self.user, file_type=File.RAW_FILE
+        )
         photo1.main_file = jpeg_file
         photo1.files.add(jpeg_file, raw_file)
         photo1.save()
@@ -533,8 +535,12 @@ class FileVariantTestCase(TestCase):
         """Test files with special characters in names."""
         photo = create_test_photo(owner=self.user)
 
-        jpeg_file = self._create_file("/photos/IMG (1) - Copy.jpg", File.IMAGE)
-        raw_file = self._create_file("/photos/IMG (1) - Copy.CR2", File.RAW_FILE)
+        jpeg_file = create_test_file(
+            "/photos/IMG (1) - Copy.jpg", self.user, file_type=File.IMAGE
+        )
+        raw_file = create_test_file(
+            "/photos/IMG (1) - Copy.CR2", self.user, file_type=File.RAW_FILE
+        )
 
         photo.main_file = jpeg_file
         photo.files.add(jpeg_file, raw_file)
@@ -546,8 +552,12 @@ class FileVariantTestCase(TestCase):
         """Test files with unicode characters in names."""
         photo = create_test_photo(owner=self.user)
 
-        jpeg_file = self._create_file("/photos/фото_001.jpg", File.IMAGE)
-        raw_file = self._create_file("/photos/фото_001.CR2", File.RAW_FILE)
+        jpeg_file = create_test_file(
+            "/photos/фото_001.jpg", self.user, file_type=File.IMAGE
+        )
+        raw_file = create_test_file(
+            "/photos/фото_001.CR2", self.user, file_type=File.RAW_FILE
+        )
 
         photo.main_file = jpeg_file
         photo.files.add(jpeg_file, raw_file)

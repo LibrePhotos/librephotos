@@ -8,17 +8,20 @@ reverse remove left the album's ``photo_count`` stale.
 
 from django.test import TestCase
 
-from api.models.album_thing import AlbumThing
-from api.tests.utils import create_test_photo, create_test_user
+from api.tests.utils import (
+    create_test_album_thing,
+    create_test_photo,
+    create_test_user,
+)
 
 
 class AlbumThingPhotoCountReceiverTest(TestCase):
     def setUp(self):
         self.user = create_test_user()
-        self.first = AlbumThing.objects.create(
+        self.first = create_test_album_thing(
             title="first", thing_type="thing", owner=self.user
         )
-        self.second = AlbumThing.objects.create(
+        self.second = create_test_album_thing(
             title="second", thing_type="thing", owner=self.user
         )
         self.photo = create_test_photo(owner=self.user)

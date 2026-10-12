@@ -17,10 +17,15 @@ from api.directory_watcher.file_handlers import (
 )
 from api.metadata.tags import Tags
 from api.metadata.writer import read_orientation, write_metadata
-from api.models import File, Person, Photo, Thumbnail, User
+from api.models import File, Person, Photo, User
 from api.models.file import calculate_hash, content_hash
 from api.perceptual_hash import calculate_hash_from_thumbnail
-from api.tests.utils import create_test_face, create_test_person, create_test_user
+from api.tests.utils import (
+    create_test_face,
+    create_test_person,
+    create_test_thumbnail,
+    create_test_user,
+)
 
 THUMBNAIL_DIRS = ("thumbnails_big", "square_thumbnails", "square_thumbnails_small")
 
@@ -77,7 +82,15 @@ class ReplacedFileTestCase(TestCase):
         return photo
 
     def _derive(self, photo):
-        thumbnail, _ = Thumbnail.objects.get_or_create(photo=photo)
+        # The scan may already have made the row; otherwise it starts empty, as
+        # _process_photo's get_or_create would make it.
+        thumbnail = getattr(photo, "thumbnail", None) or create_test_thumbnail(
+            photo,
+            thumbnail_big="",
+            square_thumbnail="",
+            square_thumbnail_small="",
+            aspect_ratio=None,
+        )
         thumbnail._generate_thumbnail()
         thumbnail._calculate_aspect_ratio()
         photo.perceptual_hash = calculate_hash_from_thumbnail(

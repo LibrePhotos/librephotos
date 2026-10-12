@@ -19,9 +19,9 @@ from datetime import datetime
 import pytz
 from django.test import TestCase
 
-from api.models import AlbumAuto
 from api.serializers.album_auto import AlbumAutoSerializer
 from api.tests.utils import (
+    create_test_album_auto,
     create_test_face,
     create_test_person,
     create_test_photo,
@@ -37,7 +37,7 @@ class AlbumAutoTitleWithUnnamedFacesTest(TestCase):
     def setUp(self):
         self.user = create_test_user()
         self.timestamp = utc(2022, 1, 2, 15, 0)
-        self.album = AlbumAuto.objects.create(
+        self.album = create_test_album_auto(
             timestamp=self.timestamp, created_on=self.timestamp, owner=self.user
         )
         self.photo = create_test_photo(owner=self.user, exif_timestamp=self.timestamp)
@@ -75,7 +75,7 @@ class AlbumAutoPeopleListTest(TestCase):
     def setUp(self):
         self.user = create_test_user()
         timestamp = utc(2022, 1, 2, 15, 0)
-        self.album = AlbumAuto.objects.create(
+        self.album = create_test_album_auto(
             timestamp=timestamp, created_on=timestamp, owner=self.user
         )
         self.photo = create_test_photo(owner=self.user, exif_timestamp=timestamp)

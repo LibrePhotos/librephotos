@@ -13,9 +13,9 @@ from unittest.mock import patch
 import pytz
 from django.test import TestCase
 
-from api.models import AlbumAuto
 from api.models.person import Person
 from api.tests.utils import (
+    create_test_album_auto,
     create_test_face,
     create_test_person,
     create_test_photo,
@@ -32,7 +32,7 @@ class GenerateTitleTestCase(TestCase):
         self.user = create_test_user()
 
     def make_album(self, timestamp):
-        return AlbumAuto.objects.create(
+        return create_test_album_auto(
             timestamp=timestamp, created_on=timestamp, owner=self.user
         )
 

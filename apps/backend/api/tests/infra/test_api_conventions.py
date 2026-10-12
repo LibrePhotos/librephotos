@@ -48,7 +48,10 @@ from api.serializers.job import LongRunningJobSerializer
 from api.serializers.tag import TagSerializer
 from api.tests.infra.routes import ApiRoute, api_routes, router_verbs
 from api.tests.utils import (
+    create_test_album_auto,
     create_test_album_date,
+    create_test_album_place,
+    create_test_album_thing,
     create_test_album_user,
     create_test_job,
     create_test_person,
@@ -314,16 +317,16 @@ class RemovedVerbsTest(TestCase):
         now = timezone.now()
         admin = self.admin
         # The auto album detail only opens an album holding a photo.
-        auto = AlbumAuto.objects.create(
+        auto = create_test_album_auto(
             title="Event", owner=admin, timestamp=now, created_on=now
         )
         auto.photos.add(create_test_photo(owner=admin))
         self.ids = {
             "auto": auto.pk,
-            "thing": AlbumThing.objects.create(
+            "thing": create_test_album_thing(
                 title="cat", thing_type="hashtag_attribute", owner=admin
             ).pk,
-            "place": AlbumPlace.objects.create(
+            "place": create_test_album_place(
                 title="Berlin", geolocation_level=1, owner=admin
             ).pk,
             "date": create_test_album_date(

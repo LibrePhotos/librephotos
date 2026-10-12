@@ -24,6 +24,9 @@ from api.models import (
 from api.services import prune_deletion_log
 from api.tests.utils import (
     api_error,
+    create_test_album_auto,
+    create_test_album_place,
+    create_test_album_thing,
     create_test_album_user,
     create_test_duplicate,
     create_test_person,
@@ -403,21 +406,20 @@ class SyncOtherFeedsTest(TestCase):
         self.client.force_authenticate(user=self.user)
 
     def test_all_feeds_return_versioned_envelope(self):
-        from api.models import AlbumAuto, AlbumPlace, AlbumThing
 
         photos = create_test_photos(number_of_photos=2, owner=self.user)
-        auto = AlbumAuto.objects.create(
+        auto = create_test_album_auto(
             title="Event",
             timestamp=timezone.now(),
             created_on=timezone.now(),
             owner=self.user,
         )
         auto.photos.add(*photos)
-        thing = AlbumThing.objects.create(
+        thing = create_test_album_thing(
             title="beach", thing_type="thing", owner=self.user
         )
         thing.photos.add(*photos)
-        place = AlbumPlace.objects.create(title="Paris", owner=self.user)
+        place = create_test_album_place(title="Paris", owner=self.user)
         place.photos.add(*photos)
 
         for url in (
@@ -436,17 +438,16 @@ class SyncOtherFeedsTest(TestCase):
             self.assertIn("total", data)
 
     def test_auto_album_embeds_photo_ids_and_place_counts(self):
-        from api.models import AlbumAuto, AlbumPlace
 
         photos = create_test_photos(number_of_photos=3, owner=self.user)
-        auto = AlbumAuto.objects.create(
+        auto = create_test_album_auto(
             title="Event",
             timestamp=timezone.now(),
             created_on=timezone.now(),
             owner=self.user,
         )
         auto.photos.add(*photos)
-        place = AlbumPlace.objects.create(title="Paris", owner=self.user)
+        place = create_test_album_place(title="Paris", owner=self.user)
         place.photos.add(*photos)
 
         auto_items, _t, _c = sync_pull(self.client, "/api/sync/albums/auto/")

@@ -89,7 +89,7 @@ class RawCreateScannerTest(SimpleTestCase):
         )
 
     def test_models_without_a_factory_are_not_counted(self):
-        source = "Thumbnail.objects.create(photo=p)\nPhoto.visible.create()\nmodels.objects.create()\n"
+        source = "PhotoCaption.objects.create(photo=p)\nPhoto.visible.create()\nmodels.objects.create()\n"
         self.assertEqual(
             factory_baseline.find_raw_creates(source, "api/tests/test_x.py"), []
         )

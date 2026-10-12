@@ -37,9 +37,11 @@ from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 from rest_framework.test import APIClient
 
-from api.models import AlbumAuto, AlbumPlace, AlbumThing
 from api.models.album_user_share import AlbumUserShare
 from api.tests.utils import (
+    create_test_album_auto,
+    create_test_album_place,
+    create_test_album_thing,
     create_test_album_user,
     create_test_face,
     create_test_person,
@@ -128,7 +130,7 @@ class AlbumThingDetailQueryCountTest(AlbumDetailQueryCountTestMixin, TestCase):
     KIND = "thing"
 
     def _make_album(self, photos):
-        album = AlbumThing.objects.create(
+        album = create_test_album_thing(
             title=f"beach-{len(photos)}",
             owner=self.user,
             thing_type="hashtag_attribute",
@@ -141,9 +143,7 @@ class AlbumPlaceDetailQueryCountTest(AlbumDetailQueryCountTestMixin, TestCase):
     KIND = "place"
 
     def _make_album(self, photos):
-        album = AlbumPlace.objects.create(
-            title=f"Lisbon-{len(photos)}", owner=self.user
-        )
+        album = create_test_album_place(title=f"Lisbon-{len(photos)}", owner=self.user)
         album.photos.add(*photos)
         return album
 
@@ -152,7 +152,7 @@ class AlbumAutoDetailQueryCountTest(AlbumDetailQueryCountTestMixin, TestCase):
     KIND = "auto"
 
     def _make_album(self, photos):
-        album = AlbumAuto.objects.create(
+        album = create_test_album_auto(
             title=f"Sunday Afternoon {len(photos)}",
             owner=self.user,
             timestamp=self.now - timezone.timedelta(days=len(photos)),
@@ -172,7 +172,7 @@ class AlbumAutoWithPeopleDetailQueryCountTest(AlbumDetailQueryCountTestMixin, Te
     KIND = "auto"
 
     def _make_album(self, photos):
-        album = AlbumAuto.objects.create(
+        album = create_test_album_auto(
             title=f"Birthday {len(photos)}",
             owner=self.user,
             timestamp=self.now - timezone.timedelta(days=len(photos)),

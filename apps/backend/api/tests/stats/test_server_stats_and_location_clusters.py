@@ -16,10 +16,13 @@ from django.test import TestCase, override_settings
 from django.utils import timezone
 
 from api import binaries
-from api.models import AlbumAuto, AlbumPlace, AlbumThing, Person, Photo
+from api.models import Person, Photo
 from api.models.user import get_deleted_user
 from api.stats import get_location_clusters, get_server_stats
 from api.tests.utils import (
+    create_test_album_auto,
+    create_test_album_place,
+    create_test_album_thing,
     create_test_album_user,
     create_test_face,
     create_test_person,
@@ -325,13 +328,13 @@ class GetServerStatsPerUserTest(ServerStatsBaseTest):
     def test_places_things_events_groups(self):
         photo = create_test_photo(owner=self.user)
         video = create_test_photo(owner=self.user, video=True)
-        place = AlbumPlace.objects.create(title="Berlin", owner=self.user)
+        place = create_test_album_place(title="Berlin", owner=self.user)
         place.photos.add(photo, video)
-        thing = AlbumThing.objects.create(
+        thing = create_test_album_thing(
             title="dog", thing_type="openclip_vitb32_tag", owner=self.user
         )
         thing.photos.add(photo)
-        event = AlbumAuto.objects.create(
+        event = create_test_album_auto(
             title="Trip",
             owner=self.user,
             timestamp=timezone.now(),

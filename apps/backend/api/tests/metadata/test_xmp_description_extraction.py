@@ -30,8 +30,11 @@ from api.models.album_thing import AlbumThing
 from api.models.photo_caption import PhotoCaption
 from api.models.photo_metadata import EXIF_VALUE_NAMES, PhotoMetadata
 from api.models.photo_search import PhotoSearch
-from api.models.thumbnail import Thumbnail
-from api.tests.utils import create_test_photo, create_test_user
+from api.tests.utils import (
+    create_test_photo,
+    create_test_thumbnail,
+    create_test_user,
+)
 
 FIXTURES_DIR = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "fixtures"
@@ -94,7 +97,7 @@ class XMPDescriptionIntegrationTest(TestCase):
         self.photo.added_on = timezone.now()
         self.photo.save()
 
-        Thumbnail.objects.create(
+        create_test_thumbnail(
             photo=self.photo,
             thumbnail_big=f"thumbnails_big/{image_hash}.webp",
             aspect_ratio=1.0,

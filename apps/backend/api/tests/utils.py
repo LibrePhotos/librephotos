@@ -24,14 +24,19 @@ from django.utils import timezone
 from faker import Faker
 
 from api.models import Cluster, Face, File, Person, Photo, User
+from api.models.album_auto import AlbumAuto
 from api.models.album_date import AlbumDate
+from api.models.album_place import AlbumPlace
+from api.models.album_thing import AlbumThing
 from api.models.album_user import AlbumUser
 from api.models.duplicate import Duplicate
 from api.models.long_running_job import LongRunningJob
 from api.models.photo_stack import PhotoStack
 from api.models.tag import Tag
+from api.models.thumbnail import Thumbnail
 
 fake = Faker()
+
 
 # Where the files of test photos are written: one directory per test process,
 # removed when the process exits. Never /tmp itself.
@@ -215,6 +220,61 @@ def create_test_cluster(owner: User, **kwargs: Any) -> Cluster:
     return Cluster.objects.create(owner=owner, **kwargs)
 
 
+def create_test_album_auto(
+    owner: User, timestamp: datetime.datetime | None = None, **kwargs: Any
+) -> AlbumAuto:
+    """An event album for ``owner``, with its photos added by ``album.photos.add``.
+
+    ``(timestamp, owner)`` is unique, so the default timestamp is a random moment
+    in the last ten years. The title is the model's default unless given.
+    """
+    if timestamp is None:
+        timestamp = timezone.now() - datetime.timedelta(
+            microseconds=secrets.randbelow(10 * 365 * 24 * 3600 * 10**6)
+        )
+    kwargs.setdefault("created_on", timezone.now())
+    return AlbumAuto.objects.create(owner=owner, timestamp=timestamp, **kwargs)
+
+
+def create_test_album_thing(
+    owner: User, title: str | None = None, thing_type: str | None = None, **kwargs: Any
+) -> AlbumThing:
+    """A thing album (a subject such as "dog") for ``owner``.
+
+    Titles are unique per owner and type, so the default title is random.
+    """
+    title = title or f"{fake.word()}-{uuid.uuid4().hex[:8]}"
+    return AlbumThing.objects.create(
+        owner=owner, title=title, thing_type=thing_type, **kwargs
+    )
+
+
+def create_test_album_place(
+    owner: User, title: str | None = None, **kwargs: Any
+) -> AlbumPlace:
+    """A place album for ``owner``. Titles are unique per owner, so the default is random."""
+    title = title or f"{fake.city()} {uuid.uuid4().hex[:8]}"
+    return AlbumPlace.objects.create(owner=owner, title=title, **kwargs)
+
+
+def create_test_thumbnail(photo: Photo, **kwargs: Any) -> Thumbnail:
+    """The thumbnail row of ``photo``, with image paths under its image hash.
+
+    ``create_test_photo`` already makes one, so call this only for a photo built
+    without it. A photo has at most one thumbnail (its primary key is the photo).
+    """
+    image_hash = photo.image_hash
+    fields: dict[str, Any] = {
+        "aspect_ratio": 1,
+        "thumbnail_big": f"thumbnails_big/{image_hash}.webp",
+        "square_thumbnail": f"square_thumbnails/{image_hash}.webp",
+        "square_thumbnail_small": f"square_thumbnails_small/{image_hash}.webp",
+        "dominant_color": None,
+    }
+    fields.update(kwargs)
+    return Thumbnail.objects.create(photo=photo, **fields)
+
+
 def create_test_photo(**kwargs):
     """A photo owned by ``kwargs["owner"]``, with a main file, a thumbnail and the given fields.
 
@@ -225,7 +285,6 @@ def create_test_photo(**kwargs):
     from api.models.photo_caption import PhotoCaption
     from api.models.photo_metadata import PhotoMetadata
     from api.models.photo_search import PhotoSearch
-    from api.models.thumbnail import Thumbnail
 
     # Use proper UUID for primary key (Photo model now uses UUIDField)
     pk = uuid.uuid4()
@@ -306,9 +365,8 @@ def create_test_photo(**kwargs):
         photo.added_on = timezone.now()
     photo.save()
 
-    # Create thumbnail for the photo
-    Thumbnail.objects.create(
-        photo=photo,
+    create_test_thumbnail(
+        photo,
         aspect_ratio=aspect_ratio,
         thumbnail_big=thumbnail_big,
         square_thumbnail=square_thumbnail,
@@ -336,10 +394,12 @@ def create_test_photo(**kwargs):
 
 
 def create_test_photos(number_of_photos=1, **kwargs):
+    """``number_of_photos`` photos built by ``create_test_photo`` with the same keyword arguments."""
     return [create_test_photo(**kwargs) for _ in range(0, number_of_photos)]
 
 
 def create_test_photos_with_faces(number_of_photos=1, **kwargs):
+    """Photos as ``create_test_photos`` builds them, each with one face (``create_test_face``)."""
     photos = create_test_photos(number_of_photos, **kwargs)
     [create_test_face(photo=photo) for photo in photos]
     return photos

@@ -9,8 +9,12 @@ as a 500.
 from django.test import TestCase
 from rest_framework.test import APIClient
 
-from api.models import AlbumPlace, AlbumThing
-from api.tests.utils import create_test_photo, create_test_user
+from api.tests.utils import (
+    create_test_album_place,
+    create_test_album_thing,
+    create_test_photo,
+    create_test_user,
+)
 
 
 class AlbumDetailNotFoundTest(TestCase):
@@ -22,14 +26,14 @@ class AlbumDetailNotFoundTest(TestCase):
         self.photo = create_test_photo(owner=self.user)
 
     def _thing(self, owner, thing_type="hashtag_attribute"):
-        album = AlbumThing.objects.create(
+        album = create_test_album_thing(
             title="beach", owner=owner, thing_type=thing_type
         )
         album.photos.add(create_test_photo(owner=owner))
         return album
 
     def _place(self, owner, **photo_kwargs):
-        album = AlbumPlace.objects.create(title="Lisbon", owner=owner)
+        album = create_test_album_place(title="Lisbon", owner=owner)
         album.photos.add(create_test_photo(owner=owner, **photo_kwargs))
         return album
 

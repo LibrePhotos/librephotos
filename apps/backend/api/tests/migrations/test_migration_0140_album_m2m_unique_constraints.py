@@ -20,10 +20,11 @@ from django.db import connection
 from django.test import TestCase
 from django.utils import timezone
 
-from api.models import AlbumAuto, AlbumPlace, AlbumThing
-
 from ..utils import (
+    create_test_album_auto,
     create_test_album_date,
+    create_test_album_place,
+    create_test_album_thing,
     create_test_album_user,
     create_test_photo,
     create_test_user,
@@ -74,24 +75,20 @@ class AlbumM2MUniqueConstraintTest(TestCase):
         cls.relations = [
             (create_test_album_user(title="Trip", owner=cls.user), "photos"),
             (
-                AlbumThing.objects.create(
-                    title="Dog", thing_type="tag", owner=cls.user
-                ),
+                create_test_album_thing(title="Dog", thing_type="tag", owner=cls.user),
                 "photos",
             ),
             (
-                AlbumThing.objects.create(
-                    title="Cat", thing_type="tag", owner=cls.user
-                ),
+                create_test_album_thing(title="Cat", thing_type="tag", owner=cls.user),
                 "cover_photos",
             ),
-            (AlbumPlace.objects.create(title="Haifa", owner=cls.user), "photos"),
+            (create_test_album_place(title="Haifa", owner=cls.user), "photos"),
             (
                 create_test_album_date(date=datetime.date(2020, 1, 1), owner=cls.user),
                 "photos",
             ),
             (
-                AlbumAuto.objects.create(timestamp=now, created_on=now, owner=cls.user),
+                create_test_album_auto(timestamp=now, created_on=now, owner=cls.user),
                 "photos",
             ),
         ]

@@ -35,20 +35,17 @@ class ScanSurvivesPerFileErrorsTests(TestCase):
     def p(self, name: str) -> str:
         return os.path.join(self.tmpdir, name)
 
-    def _make_job(self, target: int) -> LongRunningJob:
-        return create_test_job(
+    def test_one_failing_file_does_not_stop_the_rest_of_the_batch(self):
+        """An OSError on one file must not prevent the other files importing."""
+        job = create_test_job(
             started_by=self.user,
             job_id=self.job_id,
             queued_at="2021-02-11T13:52:53Z",
             started_at="2021-02-11T13:52:53Z",
             job_type=LongRunningJob.JOB_SCAN_PHOTOS,
             progress_current=0,
-            progress_target=target,
+            progress_target=3,
         )
-
-    def test_one_failing_file_does_not_stop_the_rest_of_the_batch(self):
-        """An OSError on one file must not prevent the other files importing."""
-        job = self._make_job(target=3)
         paths = [_write_image(self.p(f"IMG_{i}.png"), width=10 + i) for i in range(3)]
         failing_path = paths[1]
 
@@ -74,7 +71,15 @@ class ScanSurvivesPerFileErrorsTests(TestCase):
 
     def test_failing_file_is_recorded_in_the_job_result(self):
         """A swallowed per-file OSError must still surface on the job."""
-        job = self._make_job(target=3)
+        job = create_test_job(
+            started_by=self.user,
+            job_id=self.job_id,
+            queued_at="2021-02-11T13:52:53Z",
+            started_at="2021-02-11T13:52:53Z",
+            job_type=LongRunningJob.JOB_SCAN_PHOTOS,
+            progress_current=0,
+            progress_target=3,
+        )
         paths = [_write_image(self.p(f"R_{i}.png"), width=20 + i) for i in range(3)]
         failing_path = paths[1]
 
@@ -98,7 +103,15 @@ class ScanSurvivesPerFileErrorsTests(TestCase):
 
     def test_handle_new_image_records_its_error_too(self):
         """The upload/metadata single-file path has the same contract."""
-        job = self._make_job(target=1)
+        job = create_test_job(
+            started_by=self.user,
+            job_id=self.job_id,
+            queued_at="2021-02-11T13:52:53Z",
+            started_at="2021-02-11T13:52:53Z",
+            job_type=LongRunningJob.JOB_SCAN_PHOTOS,
+            progress_current=0,
+            progress_target=1,
+        )
         path = _write_image(self.p("single.png"), width=31)
 
         with patch(

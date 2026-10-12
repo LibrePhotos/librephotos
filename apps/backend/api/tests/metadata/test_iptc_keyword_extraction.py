@@ -26,8 +26,10 @@ from django.utils import timezone
 from api.models import File, Photo
 from api.models.photo_metadata import PhotoMetadata
 from api.models.photo_search import PhotoSearch
-from api.models.thumbnail import Thumbnail
-from api.tests.utils import create_test_user
+from api.tests.utils import (
+    create_test_thumbnail,
+    create_test_user,
+)
 
 FIXTURES_DIR = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "fixtures"
@@ -93,7 +95,7 @@ class IPTCKeywordIntegrationTest(TestCase):
         self.photo.save()
 
         # Thumbnail is required by some codepaths
-        Thumbnail.objects.create(
+        create_test_thumbnail(
             photo=self.photo,
             thumbnail_big=f"thumbnails_big/{image_hash}.webp",
             aspect_ratio=1.0,
