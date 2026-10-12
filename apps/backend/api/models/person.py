@@ -2,7 +2,14 @@ from django.core.validators import MinLengthValidator
 from django.db import models
 
 from api.models.photo import Photo
+from api.models.scopes import OwnedQuerySet
 from api.models.user import User
+
+
+class PersonQuerySet(OwnedQuerySet["Person"]):
+    """A person belongs to the user whose faces it groups."""
+
+    owner_lookup = "cluster_owner"
 
 
 class Person(models.Model):
@@ -39,6 +46,8 @@ class Person(models.Model):
     )
     # Delta-sync ordering key (mobile v2, doc 04). Bumped on every save.
     last_modified = models.DateTimeField(auto_now=True, db_index=True)
+
+    objects = PersonQuerySet.as_manager()
 
     def __str__(self) -> str:
         return (

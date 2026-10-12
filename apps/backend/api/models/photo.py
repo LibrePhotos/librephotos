@@ -18,6 +18,7 @@ from api.metadata.photo_writer import (
 from api.models.duplicate import Duplicate
 from api.models.file import File
 from api.models.photo_stack import PhotoStack
+from api.models.scopes import SharedOwnedQuerySet
 from api.models.user import User, get_deleted_user
 
 if TYPE_CHECKING:
@@ -27,18 +28,12 @@ if TYPE_CHECKING:
     from django.db.models.fetch_modes import FetchMode
 
 
-class PhotoQuerySet(QuerySet["Photo"]):
-    """The two per-user scopes every view and serializer goes through.
+class PhotoQuerySet(SharedOwnedQuerySet["Photo"]):
+    """The per-user scopes every view and serializer goes through.
 
-    ``owned_by`` is the write scope and ``visible_to`` the read scope. Spell
-    ``owner=request.user`` here, once, rather than at each call site.
+    ``owned_by`` (from ``OwnedQuerySet``) is the write scope and ``visible_to``
+    the read scope. Never spell ``owner=request.user`` at a call site.
     """
-
-    def owned_by(self, user: User | AnonymousUser | None) -> Self:
-        """Photos ``user`` may mutate: their own, and nothing else."""
-        if user is None or not getattr(user, "is_authenticated", False):
-            return self.none()
-        return self.filter(owner=user)
 
     def visible_to(self, user: User | AnonymousUser | None) -> Self:
         """Photos ``user`` may read: their own, shared directly to them, public.
@@ -46,8 +41,8 @@ class PhotoQuerySet(QuerySet["Photo"]):
         Album shares are resolved by the media views, not here.
         """
         q = Q(public=True)
-        if user is not None and getattr(user, "is_authenticated", False):
-            q |= Q(owner=user) | Q(shared_to=user)
+        if isinstance(user, User) and user.is_authenticated:
+            q |= self.owner_q(user) | Q(shared_to=user)
         return self.filter(q)
 
 

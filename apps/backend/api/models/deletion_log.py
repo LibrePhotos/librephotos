@@ -1,6 +1,11 @@
 from django.db import models
 
+from api.models.scopes import OwnedQuerySet
 from api.models.user import User
+
+
+class DeletionLogQuerySet(OwnedQuerySet["DeletionLog"]):
+    """Scoped to its owner through ``owner``."""
 
 
 class DeletionLog(models.Model):
@@ -35,6 +40,8 @@ class DeletionLog(models.Model):
     entity_id = models.CharField(max_length=64)
     owner = models.ForeignKey(User, on_delete=models.CASCADE)
     deleted_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    objects = DeletionLogQuerySet.as_manager()
 
     class Meta:
         indexes = [

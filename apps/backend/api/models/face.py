@@ -14,6 +14,7 @@ from api.lazy_import import LazyModule
 from api.models.cluster import Cluster
 from api.models.person import Person
 from api.models.photo import Photo
+from api.models.scopes import OwnedQuerySet
 
 if TYPE_CHECKING:
     import numpy.typing as npt
@@ -25,6 +26,12 @@ else:
     np = LazyModule("numpy")
 
 logger = logging.getLogger(__name__)
+
+
+class FaceQuerySet(OwnedQuerySet["Face"]):
+    """A face has no owner column: it belongs to its photo's owner."""
+
+    owner_lookup = "photo__owner"
 
 
 class Face(models.Model):
@@ -70,6 +77,8 @@ class Face(models.Model):
     location_left = models.IntegerField()
     location_right = models.IntegerField()
     encoding = models.TextField()
+
+    objects = FaceQuerySet.as_manager()
 
     @property
     def timestamp(self) -> datetime | None:

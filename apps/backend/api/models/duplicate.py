@@ -25,6 +25,7 @@ from django.db import models
 from django.db.models import Model
 from django.utils import timezone
 
+from api.models.scopes import OwnedQuerySet
 from api.models.user import User, get_deleted_user
 
 if TYPE_CHECKING:
@@ -34,6 +35,10 @@ if TYPE_CHECKING:
     from django.db.models.fields.related_descriptors import ManyRelatedManager
 
     from api.models.photo import Photo
+
+
+class DuplicateQuerySet(OwnedQuerySet["Duplicate"]):
+    """Scoped to its owner through ``owner``."""
 
 
 class Duplicate(models.Model):
@@ -109,6 +114,8 @@ class Duplicate(models.Model):
 
     # Optional note from user
     note = models.TextField(blank=True, null=True)
+
+    objects = DuplicateQuerySet.as_manager()
 
     class Meta:
         ordering = ["-created_at"]
