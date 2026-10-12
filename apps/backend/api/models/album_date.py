@@ -3,7 +3,12 @@ import datetime
 from django.db import connection, models, transaction
 
 from api.models.photo import Photo
+from api.models.scopes import SharedOwnedQuerySet
 from api.models.user import User, get_deleted_user
+
+
+class AlbumDateQuerySet(SharedOwnedQuerySet["AlbumDate"]):
+    """Scoped to its owner through ``owner``."""
 
 
 class AlbumDate(models.Model):
@@ -16,7 +21,7 @@ class AlbumDate(models.Model):
         User, on_delete=models.SET(get_deleted_user), default=None
     )
     shared_to = models.ManyToManyField(User, related_name="album_date_shared_to")
-    objects = models.Manager()
+    objects = AlbumDateQuerySet.as_manager()
 
     class Meta:
         unique_together = ("date", "owner")

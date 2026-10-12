@@ -130,9 +130,9 @@ class BaseSyncView(APIView, Generic[ModelT]):
             return []
         return [
             str(eid)
-            for eid in DeletionLog.objects.filter(
-                owner=user, entity=self.entity, deleted_at__gt=cursor_dt
-            ).values_list("entity_id", flat=True)
+            for eid in DeletionLog.objects.owned_by(user)
+            .filter(entity=self.entity, deleted_at__gt=cursor_dt)
+            .values_list("entity_id", flat=True)
         ]
 
     def get(self, request: Request) -> Response:
@@ -196,7 +196,7 @@ class SyncPhotosView(BaseSyncView[Photo]):
     values_fields = PHOTO_VALUES + ("has_motion",)
 
     def scoped_queryset(self, user: User) -> QuerySet[Photo]:
-        return Photo.objects.filter(Q(owner=user) | Q(shared_to=user)).distinct()
+        return Photo.objects.owned_or_shared_to(user)
 
     def annotate(self, qs: QuerySet[Photo]) -> QuerySet[Photo]:
         motion = File.objects.filter(
@@ -216,7 +216,7 @@ class SyncPersonsView(BaseSyncView[Person]):
     values_fields = PERSON_VALUES
 
     def scoped_queryset(self, user: User) -> QuerySet[Person]:
-        return Person.objects.filter(kind=Person.KIND_USER, cluster_owner=user)
+        return Person.objects.owned_by(user).filter(kind=Person.KIND_USER)
 
     def serialize_page(self, rows: list[Row], user: User) -> list[Row]:
         return [serialize_person_row(r) for r in rows]
@@ -230,7 +230,7 @@ class SyncUserAlbumsView(BaseSyncView[AlbumUser]):
     values_fields = USER_ALBUM_VALUES
 
     def scoped_queryset(self, user: User) -> QuerySet[AlbumUser]:
-        return AlbumUser.objects.filter(Q(owner=user) | Q(shared_to=user)).distinct()
+        return AlbumUser.objects.owned_or_shared_to(user)
 
     def serialize_page(self, rows: list[Row], user: User) -> list[Row]:
         ids = [r["id"] for r in rows]
@@ -259,7 +259,7 @@ class SyncAutoAlbumsView(BaseSyncView[AlbumAuto]):
     values_fields = AUTO_ALBUM_VALUES
 
     def scoped_queryset(self, user: User) -> QuerySet[AlbumAuto]:
-        return AlbumAuto.objects.filter(Q(owner=user) | Q(shared_to=user)).distinct()
+        return AlbumAuto.objects.owned_or_shared_to(user)
 
     def serialize_page(self, rows: list[Row], user: User) -> list[Row]:
         ids = [r["id"] for r in rows]
@@ -293,7 +293,7 @@ class SyncThingAlbumsView(BaseSyncView[AlbumThing]):
     values_fields = ("id", "title", "photo_count", "last_modified")
 
     def scoped_queryset(self, user: User) -> QuerySet[AlbumThing]:
-        return AlbumThing.objects.filter(Q(owner=user) | Q(shared_to=user)).distinct()
+        return AlbumThing.objects.owned_or_shared_to(user)
 
     def serialize_page(self, rows: list[Row], user: User) -> list[Row]:
         ids = [r["id"] for r in rows]
@@ -312,7 +312,7 @@ class SyncPlaceAlbumsView(BaseSyncView[AlbumPlace]):
     values_fields = ("id", "title", "geolocation_level", "last_modified")
 
     def scoped_queryset(self, user: User) -> QuerySet[AlbumPlace]:
-        return AlbumPlace.objects.filter(Q(owner=user) | Q(shared_to=user)).distinct()
+        return AlbumPlace.objects.owned_or_shared_to(user)
 
     def serialize_page(self, rows: list[Row], user: User) -> list[Row]:
         # AlbumPlace has no stored photo_count column; count membership for the
@@ -341,7 +341,7 @@ class SyncTagAlbumsView(BaseSyncView[Tag]):
 
     def scoped_queryset(self, user: User) -> QuerySet[Tag]:
         # Tag.name is the title; alias via annotate-free values mapping below.
-        return Tag.objects.filter(owner=user)
+        return Tag.objects.owned_by(user)
 
     def _materialize(self, qs: QuerySet[Tag], limit: int) -> list[Row]:
         fields = ("id", "name", "photo_count", "last_modified")
@@ -365,9 +365,9 @@ class SyncSharingView(BaseSyncView[User]):
         ids: set[int] = set()
         # People I share my photos/albums with.
         ids.update(
-            Photo.shared_to.through.objects.filter(photo__owner=user).values_list(
-                "user_id", flat=True
-            )
+            Photo.shared_to.through.objects.filter(
+                Photo.objects.owner_q(user, through="photo__")
+            ).values_list("user_id", flat=True)
         )
         for through, owner_lookup in (
             (AlbumUser.shared_to.through, "albumuser__owner"),
@@ -406,26 +406,17 @@ class SyncCountsView(APIView):
 
     def get(self, request: Request) -> Response:
         user = request_user(request)
-        owned_or_shared = Q(owner=user) | Q(shared_to=user)
         return Response(
             {
-                "photos": Photo.objects.filter(owned_or_shared).distinct().count(),
-                "persons": Person.objects.filter(
-                    kind=Person.KIND_USER, cluster_owner=user
-                ).count(),
-                "user_albums": AlbumUser.objects.filter(owned_or_shared)
-                .distinct()
+                "photos": Photo.objects.owned_or_shared_to(user).count(),
+                "persons": Person.objects.owned_by(user)
+                .filter(kind=Person.KIND_USER)
                 .count(),
-                "auto_albums": AlbumAuto.objects.filter(owned_or_shared)
-                .distinct()
-                .count(),
-                "thing_albums": AlbumThing.objects.filter(owned_or_shared)
-                .distinct()
-                .count(),
-                "place_albums": AlbumPlace.objects.filter(owned_or_shared)
-                .distinct()
-                .count(),
-                "tags": Tag.objects.filter(owner=user).count(),
+                "user_albums": AlbumUser.objects.owned_or_shared_to(user).count(),
+                "auto_albums": AlbumAuto.objects.owned_or_shared_to(user).count(),
+                "thing_albums": AlbumThing.objects.owned_or_shared_to(user).count(),
+                "place_albums": AlbumPlace.objects.owned_or_shared_to(user).count(),
+                "tags": Tag.objects.owned_by(user).count(),
                 "server_time": timezone.now().isoformat(),
             }
         )

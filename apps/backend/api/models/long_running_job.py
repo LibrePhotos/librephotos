@@ -7,7 +7,14 @@ from typing import Any
 from django.db import models
 from django.utils import timezone
 
+from api.models.scopes import OwnedQuerySet
 from api.models.user import User, get_deleted_user
+
+
+class LongRunningJobQuerySet(OwnedQuerySet["LongRunningJob"]):
+    """The user who started the job owns it."""
+
+    owner_lookup = "started_by"
 
 
 class LongRunningJob(models.Model):
@@ -76,6 +83,8 @@ class LongRunningJob(models.Model):
         max_length=100, null=True, blank=True
     )  # Current step description
     result = models.JSONField(null=True, blank=True)  # Detailed result/progress data
+
+    objects = LongRunningJobQuerySet.as_manager()
 
     class Meta:
         ordering = ["-queued_at"]

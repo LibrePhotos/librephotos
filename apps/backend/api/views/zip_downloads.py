@@ -97,9 +97,11 @@ class ZipListPhotosView_V2(APIView):
     def get(self, request: Request) -> Response:
         job_id = parse_query(request, ZipDownloadStatusQuery)["job_id"]
         # Only the user who started the download may poll it (see api/views/jobs.py).
-        job = LongRunningJob.objects.filter(
-            job_id=job_id, started_by=request_user(request)
-        ).first()
+        job = (
+            LongRunningJob.objects.owned_by(request_user(request))
+            .filter(job_id=job_id)
+            .first()
+        )
         if job is None:
             raise NotFound()
         # A failed or cancelled job is finished too, so it is asked first; it

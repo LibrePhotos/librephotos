@@ -1,7 +1,12 @@
 from django.db import models
 
 from api.models.photo import Photo
+from api.models.scopes import SharedOwnedQuerySet
 from api.models.user import User, get_deleted_user
+
+
+class AlbumPlaceQuerySet(SharedOwnedQuerySet["AlbumPlace"]):
+    """Scoped to its owner through ``owner``."""
 
 
 class AlbumPlace(models.Model):
@@ -16,6 +21,8 @@ class AlbumPlace(models.Model):
     shared_to = models.ManyToManyField(User, related_name="album_place_shared_to")
     # Delta-sync ordering key (mobile v2, doc 04).
     last_modified = models.DateTimeField(auto_now=True, db_index=True)
+
+    objects = AlbumPlaceQuerySet.as_manager()
 
     class Meta:
         unique_together = ("title", "owner")

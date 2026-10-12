@@ -29,12 +29,17 @@ from typing import TYPE_CHECKING
 from django.db import models
 from django.db.models import Model
 
+from api.models.scopes import OwnedQuerySet
 from api.models.user import User, get_deleted_user
 
 if TYPE_CHECKING:
     from django.db.models.fields.related_descriptors import ManyRelatedManager
 
     from api.models.photo import Photo
+
+
+class PhotoStackQuerySet(OwnedQuerySet["PhotoStack"]):
+    """Scoped to its owner through ``owner``."""
 
 
 class PhotoStack(models.Model):
@@ -112,6 +117,8 @@ class PhotoStack(models.Model):
     # For bursts: time span of the sequence
     sequence_start = models.DateTimeField(null=True, blank=True)
     sequence_end = models.DateTimeField(null=True, blank=True)
+
+    objects = PhotoStackQuerySet.as_manager()
 
     class Meta:
         ordering = ["-created_at"]

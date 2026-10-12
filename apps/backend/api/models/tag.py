@@ -7,6 +7,7 @@ from django.db.models.functions import Coalesce
 from django.db.models.signals import m2m_changed
 
 from api.models.photo import Photo
+from api.models.scopes import OwnedQuerySet
 from api.models.user import User, get_deleted_user
 
 NAME_MAX_LENGTH = 512
@@ -16,6 +17,10 @@ NAME_MAX_LENGTH = 512
 # separate code paths compute the count and a drift between them would be
 # invisible until a user noticed the numbers were wrong.
 VISIBLE_PHOTO_FILTER = {"hidden": False, "in_trashcan": False, "removed": False}
+
+
+class TagQuerySet(OwnedQuerySet["Tag"]):
+    """Scoped to its owner through ``owner``."""
 
 
 class Tag(models.Model):
@@ -34,6 +39,8 @@ class Tag(models.Model):
     photo_count = models.IntegerField(default=0)
     # Delta-sync ordering key (mobile v2, doc 04).
     last_modified = models.DateTimeField(auto_now=True, db_index=True)
+
+    objects = TagQuerySet.as_manager()
 
     class Meta:
         constraints = [

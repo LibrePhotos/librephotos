@@ -48,7 +48,7 @@ class LongRunningJobViewSet(
             ),
         ).order_by("-started_at")
         user = request_user(self.request)
-        own_jobs = qs.filter(started_by=user)
+        own_jobs = qs.owned_by(user)
 
         if not (user.is_staff or user.is_superuser):
             # Non-staff are always confined to their own jobs. ?mine is not read

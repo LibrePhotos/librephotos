@@ -38,9 +38,13 @@ test makes `--parallel` runs crash with "cannot pickle 'traceback'"; rerun that 
 - Supported Python is `requires-python` in `pyproject.toml` (ruff targets its floor). Code must run on the
   floor, 3.10, the backend-gpu image; `test-backend.yml` runs the suite on each image's Python, and
   `api/tests/infra/test_python_versions.py` fails when an image, workflow or requirements marker leaves the range.
-- Scope photo queries through the manager: `Photo.objects.owned_by(user)` to write,
-  `Photo.visible.visible_to(user)` to read. An inline `owner=` filter or a `Photo.objects.all()`
-  queryset on a related field is a cross-tenant leak waiting to happen.
+- Scope owned rows through the manager (`api/models/scopes.py`), never an inline `owner=`/`cluster_owner=`/
+  `started_by=`/`photo__owner=` filter: `Model.objects.owned_by(user)` or `get_owned(user, id=...)` to
+  write, `owned_or_shared_to(user)` for owned plus shared rows, `owner_q(user, through=...)` inside one
+  `filter()` or annotation, and `Photo.visible.visible_to(user)` to read photos. A `Photo.objects.all()`
+  queryset on a related field is a cross-tenant leak too. `api/tests/infra/test_owner_scope_calls.py`
+  fails on a new inline filter (`owner_scope_baseline.txt` only shrinks); a new read route gets a case in
+  `api/tests/sharing_and_public/test_cross_tenant_reads.py`, a mutating one in `test_cross_tenant_writes.py`.
 - Every API view sets `permission_classes` or `get_permissions()` itself or in a project base class
   it names; the `IsAuthenticated` default is only a safety net. A role is a permission class
   (`IsAdminUser`, `IsSuperUser` from `api/permissions.py`), never an `is_staff` check that returns a

@@ -8,6 +8,7 @@ from django.db import models
 
 from api.lazy_import import LazyModule
 from api.models.person import Person
+from api.models.scopes import OwnedQuerySet
 from api.models.user import User, get_deleted_user
 
 if TYPE_CHECKING:
@@ -25,6 +26,10 @@ UNKNOWN_CLUSTER_ID = -1
 UNKNOWN_CLUSTER_NAME = "Other Unknown Cluster"
 
 
+class ClusterQuerySet(OwnedQuerySet["Cluster"]):
+    """Scoped to its owner through ``owner``."""
+
+
 class Cluster(models.Model):
     person = models.ForeignKey(
         Person,
@@ -40,6 +45,8 @@ class Cluster(models.Model):
     owner = models.ForeignKey(
         User, on_delete=models.SET(get_deleted_user), default=None, null=True
     )
+
+    objects = ClusterQuerySet.as_manager()
 
     def __str__(self) -> str:
         return str(self.id)

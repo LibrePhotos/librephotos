@@ -34,7 +34,8 @@ class AlbumAutoViewSet(
             return AlbumAuto.objects.none()
 
         return (
-            AlbumAuto.objects.prefetch_related(
+            AlbumAuto.objects.owned_by(user)
+            .prefetch_related(
                 Prefetch("owner"),
                 # PhotoSimpleSerializer renders the square thumbnail of every
                 # photo, which costs a query each without this join (issue #619).
@@ -62,13 +63,13 @@ class AlbumAutoViewSet(
                 ),
             )
             .annotate(photo_count=Count(("photos"), distinct=True))
-            .filter(Q(photo_count__gt=0) & Q(owner=user))
+            .filter(Q(photo_count__gt=0))
             .order_by("-timestamp")
         )
 
     @action(detail=False, methods=["post"])
     def delete_all(self, request: Request) -> Response:
-        AlbumAuto.objects.filter(owner=request_user(request)).all().delete()
+        AlbumAuto.objects.owned_by(request_user(request)).delete()
         return Response("success")
 
 
@@ -88,7 +89,8 @@ class AlbumAutoListViewSet(ListViewSet):
         # Count and cover with the photos the album detail shows.
         cover_photo_query = Photo.visible.all()
         return (
-            AlbumAuto.objects.annotate(
+            AlbumAuto.objects.owned_by(request_user(self.request))
+            .annotate(
                 photo_count=Count(
                     "photos", filter=visible_photo_q("photos__"), distinct=True
                 ),
@@ -96,7 +98,7 @@ class AlbumAutoListViewSet(ListViewSet):
                 # 11h59m before the first photo (api/autoalbum.py).
                 start=Min("photos__exif_timestamp", filter=visible_photo_q("photos__")),
             )
-            .filter(Q(photo_count__gt=0) & Q(owner=request_user(self.request)))
+            .filter(Q(photo_count__gt=0))
             .prefetch_related(
                 Prefetch(
                     "photos", queryset=cover_photo_query[:1], to_attr="cover_photo"

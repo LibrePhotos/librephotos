@@ -102,11 +102,14 @@ class PersonViewSet(
         # visible_to convention (#2031). `cluster_owner` scopes the person, not
         # its faces, so without this a face attached from another user's photo
         # would put that photo's image hash in this user's people list (#2047).
-        first_face = Face.objects.filter(
-            person=OuterRef("pk"), photo__owner=user, deleted=False
-        ).order_by("id")
+        first_face = (
+            Face.objects.owned_by(user)
+            .filter(person=OuterRef("pk"), deleted=False)
+            .order_by("id")
+        )
         qs = (
-            Person.objects.filter(Q(kind=Person.KIND_USER) & Q(cluster_owner=user))
+            Person.objects.owned_by(user)
+            .filter(kind=Person.KIND_USER)
             .select_related("cover_photo", "cover_face")
             .only(
                 "name",
@@ -162,7 +165,7 @@ class AlbumThingViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet):
         if not isinstance(user, User):
             return AlbumThing.objects.none()
         return (
-            AlbumThing.objects.filter(Q(owner=user))
+            AlbumThing.objects.owned_by(user)
             .filter(_thing_has_visible_photo())
             .prefetch_related(
                 Prefetch(
@@ -210,7 +213,7 @@ class AlbumThingListViewSet(ListViewSet):
         # and not refreshed when one is hidden or trashed, so they are
         # filtered here.
         queryset = (
-            AlbumThing.objects.filter(owner=user)
+            AlbumThing.objects.owned_by(user)
             .filter(_thing_has_visible_photo())
             .prefetch_related(
                 Prefetch(
@@ -257,12 +260,13 @@ class AlbumPlaceViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet):
                 "video",
             )
         return (
-            AlbumPlace.objects.annotate(
+            AlbumPlace.objects.owned_by(user)
+            .annotate(
                 photo_count=Count(
                     "photos", filter=visible_photo_q("photos__"), distinct=True
                 )
             )
-            .filter(Q(photo_count__gt=0) & Q(owner=user))
+            .filter(Q(photo_count__gt=0))
             .prefetch_related(Prefetch("photos", queryset=photos))
             .order_by("title")
         )
@@ -295,7 +299,7 @@ class AlbumPlaceListViewSet(ListViewSet):
         cover_photos_query = Photo.visible.only("image_hash", "video")
 
         return (
-            AlbumPlace.objects.filter(owner=user)
+            AlbumPlace.objects.owned_by(user)
             # No DISTINCT: a place holds a photo once and the thumbnail join is
             # one-to-one, and COUNT(DISTINCT) sorted every place link.
             .annotate(photo_count=Count("photos", filter=visible_photo_q("photos__")))
@@ -304,7 +308,7 @@ class AlbumPlaceListViewSet(ListViewSet):
                     "photos", queryset=cover_photos_query[:4], to_attr="cover_photos"
                 )
             )
-            .filter(Q(photo_count__gt=0) & Q(owner=user))
+            .filter(Q(photo_count__gt=0))
             .order_by("title")
         )
 
@@ -349,10 +353,9 @@ class AlbumUserViewSet(
             return AlbumUser.objects.none()
         # A share is read-only: recipients may open the album, but renaming
         # (PATCH) and deleting it stay with the owner.
-        visible = Q(owner=user)
         if self.request.method in SAFE_METHODS:
-            visible |= Q(shared_to__exact=user.id)
-        return AlbumUser.objects.filter(visible).distinct().order_by("-id")
+            return AlbumUser.objects.owned_or_shared_to(user).order_by("-id")
+        return AlbumUser.objects.owned_by(user).order_by("-id")
 
     def _public_read(self) -> bool:
         """A retrieve through the album's public link (``?public``).
@@ -394,7 +397,7 @@ class AlbumUserListViewSet(ListViewSet):
         if not isinstance(user, User):
             return AlbumUser.objects.none()
         return (
-            with_album_user_list_relations(AlbumUser.objects.filter(owner=user))
+            with_album_user_list_relations(AlbumUser.objects.owned_by(user))
             # A Q: the type checker does not see the helper's annotation.
             .filter(Q(photo_count__gt=0))
             .order_by("title")
@@ -429,7 +432,7 @@ class AlbumDateViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet):
 
         filters = [Q(thumbnail__aspect_ratio__isnull=False)]
         if isinstance(user, User) and not params["public"]:
-            filters.append(Q(owner=user))
+            filters.append(Photo.objects.owner_q(user))
         if params["public"]:
             if params["username"]:
                 filters.append(Q(owner__username=params["username"]))
@@ -475,7 +478,7 @@ class AlbumDateViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet):
         # ``public`` is set.
         if last_modified is not None and not params["public"]:
             return [
-                Q(owner=request_user(self.request)),
+                Photo.objects.owner_q(request_user(self.request)),
                 Q(exif_timestamp__gte=last_modified),
             ]
         filters = (
@@ -521,7 +524,7 @@ class AlbumDateViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet):
         else:
             # Only reached with an authenticated user: get_permissions requires
             # it unless ``public`` is set.
-            albums = albums.filter(owner=request_user(self.request))
+            albums = albums.owned_by(request_user(self.request))
         # DRF's get_object_or_404 also turns a non-numeric id into a 404.
         return get_object_or_404(albums.distinct(), pk=self.kwargs["pk"])
 
@@ -629,8 +632,8 @@ class AlbumDateListViewSet(ListViewSet):
 
         user = self.request.user
         if isinstance(user, User) and not params["public"]:
-            filter.append(Q(owner=user))
-            filter.append(Q(photos__owner=user))
+            filter.append(AlbumDate.objects.owner_q(user))
+            filter.append(Photo.objects.owner_q(user, through="photos__"))
 
         if params["public"]:
             username = params["username"]
@@ -661,8 +664,8 @@ class AlbumDateListViewSet(ListViewSet):
             # is set.
             owner = request_user(self.request)
             filter = []
-            filter.append(Q(owner=owner))
-            filter.append(Q(photos__owner=owner))
+            filter.append(AlbumDate.objects.owner_q(owner))
+            filter.append(Photo.objects.owner_q(owner, through="photos__"))
             filter.append(Q(photos__last_modified__gte=last_modified))
 
         # Only these reach a photo's many files or faces, or the search fields,
@@ -714,4 +717,4 @@ class AlbumUserEditViewSet(
         user = self.request.user
         if not isinstance(user, User):
             return AlbumUser.objects.none()
-        return AlbumUser.objects.filter(owner=user).order_by("title")
+        return AlbumUser.objects.owned_by(user).order_by("title")

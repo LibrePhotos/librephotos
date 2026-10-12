@@ -9,6 +9,7 @@ from django.db.models.signals import m2m_changed
 from django.utils import timezone
 
 from api.models.photo import Photo
+from api.models.scopes import SharedOwnedQuerySet
 from api.models.user import User, get_deleted_user
 
 # The photos photo_count counts. Not Photo.visible: tags can land before the
@@ -26,6 +27,10 @@ def update_default_cover_photo(instance: AlbumThing) -> None:
         instance.cover_photos.add(*photos_to_add)
 
 
+class AlbumThingQuerySet(SharedOwnedQuerySet["AlbumThing"]):
+    """Scoped to its owner through ``owner``."""
+
+
 class AlbumThing(models.Model):
     title = models.CharField(max_length=512, db_index=True)
     photos = models.ManyToManyField(Photo)
@@ -41,6 +46,8 @@ class AlbumThing(models.Model):
     photo_count = models.IntegerField(default=0)
     # Delta-sync ordering key (mobile v2, doc 04).
     last_modified = models.DateTimeField(auto_now=True, db_index=True)
+
+    objects = AlbumThingQuerySet.as_manager()
 
     class Meta:
         constraints = [

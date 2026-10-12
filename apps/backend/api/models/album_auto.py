@@ -8,6 +8,7 @@ from django.db import models
 from api import util
 from api.models.person import Person
 from api.models.photo import Photo
+from api.models.scopes import SharedOwnedQuerySet
 from api.models.user import User, get_deleted_user
 
 logger = logging.getLogger(__name__)
@@ -94,6 +95,10 @@ def _describe_span(timestamps: list[datetime], when: str) -> str:
     return when
 
 
+class AlbumAutoQuerySet(SharedOwnedQuerySet["AlbumAuto"]):
+    """Scoped to its owner through ``owner``."""
+
+
 class AlbumAuto(models.Model):
     title = models.CharField(
         blank=False, null=False, max_length=512, default="Untitled Album"
@@ -111,6 +116,8 @@ class AlbumAuto(models.Model):
     shared_to = models.ManyToManyField(User, related_name="album_auto_shared_to")
     # Delta-sync ordering key (mobile v2, doc 04).
     last_modified = models.DateTimeField(auto_now=True, db_index=True)
+
+    objects = AlbumAutoQuerySet.as_manager()
 
     class Meta:
         unique_together = ("timestamp", "owner")

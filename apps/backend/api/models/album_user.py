@@ -1,7 +1,12 @@
 from django.db import models
 
 from api.models.photo import Photo
+from api.models.scopes import SharedOwnedQuerySet
 from api.models.user import User, get_deleted_user
+
+
+class AlbumUserQuerySet(SharedOwnedQuerySet["AlbumUser"]):
+    """Scoped to its owner through ``owner``."""
 
 
 class AlbumUser(models.Model):
@@ -25,6 +30,8 @@ class AlbumUser(models.Model):
     # Delta-sync ordering key (mobile v2, doc 04). Bumped on save and on
     # membership / sharing changes via m2m_changed receivers (api/sync_signals.py).
     last_modified = models.DateTimeField(auto_now=True, db_index=True)
+
+    objects = AlbumUserQuerySet.as_manager()
 
     def __str__(self) -> str:
         return f"{self.title} ({self.owner.username})"
