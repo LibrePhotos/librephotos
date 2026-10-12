@@ -16,16 +16,7 @@ import { fileURLToPath } from "node:url";
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
 
-const UNPARSED_ENDPOINTS: readonly string[] = [
-  "addPhotosToUserAlbum",
-  "removePhotosFromUserAlbum",
-  "renamePerson",
-  "renameUserAlbum",
-  "setPhotosPublic",
-  "setPhotosShared",
-  "setUserAlbumPublic",
-  "setUserAlbumShared",
-];
+const UNPARSED_ENDPOINTS: readonly string[] = ["setPhotosPublic", "setPhotosShared"];
 
 const endpointsFile = fileURLToPath(new URL("../endpoints/index.ts", import.meta.url));
 

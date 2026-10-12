@@ -93,6 +93,18 @@ export const UserAlbum = UserAlbumDetails.extend({
 });
 export type UserAlbum = z.infer<typeof UserAlbum>;
 
+/** GET /public/albums/s/{slug}/: a public album by its link slug, for a visitor without a session. */
+export const FetchPublicAlbumResponse = z.object({
+  results: UserAlbum,
+});
+export type FetchPublicAlbumResponse = z.infer<typeof FetchPublicAlbumResponse>;
+
+/** The same answer, read only for the id of the album that holds the slug. */
+export const PublicAlbumSlugOwner = z.object({
+  results: z.object({ id: IntegerId }),
+});
+export type PublicAlbumSlugOwner = z.infer<typeof PublicAlbumSlugOwner>;
+
 export const FetchUserAlbumsSharedResponse = z.object({
   results: UserAlbumInfo.array(),
 });
@@ -209,6 +221,43 @@ export const FetchPlaceAlbumResponse = z.object({
   results: PlaceAlbum,
 });
 export type FetchPlaceAlbumResponse = z.infer<typeof FetchPlaceAlbumResponse>;
+
+/**
+ * GET /locclust/: one row per geocoded place, `[lat, lon, name]` (api/stats.py
+ * get_location_clusters), for the Places map.
+ */
+export const LocationClusters = z.array(z.array(z.union([z.number(), z.string()])));
+export type LocationClusters = z.infer<typeof LocationClusters>;
+
+/* ---- Folders ------------------------------------------------------------ */
+
+export const FolderSubfolder = z.object({
+  name: z.string(),
+  path: z.string(),
+  photo_count: z.number(),
+  /** The directory's mtime, in seconds. */
+  modified: z.number(),
+});
+export type FolderSubfolder = z.infer<typeof FolderSubfolder>;
+
+/**
+ * GET /folders/subfolders/: one page of a folder's subfolders, the shared page envelope (backend
+ * api/pagination.py) plus the folder's own paths. The server still repeats the page as
+ * `subfolders` and `pagination` for older web bundles; read `results` and `next`.
+ */
+export const FolderSubfoldersResponse = z.object({
+  /** null, with an empty listing, for a user without a scan directory. */
+  current_path: z.string().nullable(),
+  parent_path: z.string().nullable(),
+  results: FolderSubfolder.array(),
+  count: z.number(),
+  next: z.string().nullable(),
+  previous: z.string().nullable(),
+  page: z.number(),
+  page_size: z.number(),
+  num_pages: z.number(),
+});
+export type FolderSubfoldersResponse = z.infer<typeof FolderSubfoldersResponse>;
 
 /* ---- Mutation params (platform-agnostic) ------------------------------ */
 

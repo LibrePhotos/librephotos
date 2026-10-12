@@ -4,6 +4,7 @@ import { createApiClient } from "../transport";
 import type { TokenSupplier } from "../transport";
 import { ResponseParseError } from "../util/parse";
 import { defined } from "./defined";
+import userAlbumCards from "./fixtures/userAlbumCards.json";
 
 const FUTURE_JWT =
   "eyJhbGciOiJIUzI1NiJ9." + Buffer.from(JSON.stringify({ exp: 9999999999, user_id: 1 })).toString("base64url") + ".sig";
@@ -98,7 +99,7 @@ describe("sharing endpoints", () => {
   });
 
   it("sends album share payload with string ids", async () => {
-    const { client, calls } = harness({ status: true });
+    const { client, calls } = harness(userAlbumCards[0]);
     await endpoints.setUserAlbumShared(client, 9, 3, false);
     expect(JSON.parse(String(defined(defined(calls[0]).init).body))).toEqual({
       album_id: "9",

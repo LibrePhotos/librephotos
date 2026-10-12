@@ -4,11 +4,27 @@
  */
 import { describe, expect, it } from "vitest";
 import * as endpoints from "../endpoints";
+import { ResponseParseError } from "../util/parse";
 import { defined } from "./defined";
+import dateAlbumsList from "./fixtures/dateAlbumsList.json";
+import folderSubfolders from "./fixtures/folderSubfolders.json";
 import userAlbumCards from "./fixtures/userAlbumCards.json";
 import { fakeServer } from "./harness";
 
 const page = (results: unknown[]) => ({ count: results.length, next: null, previous: null, results });
+const owner = { id: 1, username: "alice", first_name: "Alice", last_name: "" };
+const card = defined(userAlbumCards[0]);
+
+/** AlbumUserEditSerializer's answer to a create or a PATCH of /albums/user/edit/{id}/. */
+const editedAlbum = {
+  id: 4,
+  title: "Berlin 2024",
+  photos: ["11111111-1111-1111-1111-111111111111"],
+  created_on: "2026-09-01T08:00:00Z",
+  favorited: false,
+  locked: false,
+  cover_photo: null,
+};
 
 /**
  * The cover was a PhotoSuperSimple with a required `geolocation_json: z.unknown()`, which zod 4
@@ -19,10 +35,10 @@ const page = (results: unknown[]) => ({ count: results.length, next: null, previ
  */
 describe("user album cards", () => {
   it("read the user album list as the server sends it", async () => {
-    const { client, requests } = fakeServer(page(userAlbumCards.slice(0, 1)));
+    const { client, requests } = fakeServer(page([card]));
     const albums = await endpoints.fetchUserAlbumsList(client);
     expect(defined(requests[0]).url).toBe("https://demo.example.com/api/albums/user/list/");
-    expect(defined(albums[0]).cover_photo).toEqual(defined(userAlbumCards[0]).cover_photo);
+    expect(defined(albums[0]).cover_photo).toEqual(card.cover_photo);
     expect(defined(albums[0]).locked).toBe(true);
   });
 
@@ -32,5 +48,250 @@ describe("user album cards", () => {
     expect(defined(byMe[1]).cover_photo).toMatchObject({ image_hash: "", rating: null });
     const withMe = await endpoints.fetchSharedAlbumsWithMe(fakeServer(page(userAlbumCards)).client);
     expect(withMe).toHaveLength(2);
+  });
+
+  it("keep reading a cover with only the hash and the video flag, and an album without the lock flag", async () => {
+    const { locked: _locked, ...older } = card;
+    const [album] = await endpoints.fetchUserAlbumsList(
+      fakeServer(page([{ ...older, cover_photo: { image_hash: "h", video: true } }])).client
+    );
+    expect(defined(album).cover_photo).toEqual({ image_hash: "h", video: true });
+    expect(defined(album).locked).toBe(false);
+  });
+});
+
+describe("user album sharing", () => {
+  it("shares an album and reads back its card", async () => {
+    const { client, requests } = fakeServer(card);
+    const album = await endpoints.setUserAlbumShared(client, "4", "2", true);
+    expect(defined(requests[0])).toEqual({
+      url: "https://demo.example.com/api/useralbum/share/",
+      method: "POST",
+      body: { album_id: "4", target_user_id: "2", shared: true },
+    });
+    expect(album.shared_to.map(user => user.username)).toEqual(["bob"]);
+  });
+
+  it("makes an album public with its link settings, and leaves out what is not set", async () => {
+    const { client, requests } = fakeServer({ status: true, album: card });
+    const sharingOptions = { share_location: false, share_faces: true };
+    const answer = await endpoints.setUserAlbumPublic(client, {
+      albumId: "4",
+      isPublic: true,
+      slug: "berlin-2024",
+      expiresAt: null,
+      sharingOptions,
+    });
+    expect(defined(requests[0])).toEqual({
+      url: "https://demo.example.com/api/useralbum/makepublic",
+      method: "POST",
+      body: { album_id: "4", val_public: true, slug: "berlin-2024", expires_at: null, sharing_options: sharingOptions },
+    });
+    expect(answer.album.public_slug).toBe("berlin-2024");
+
+    const off = fakeServer({ status: true, album: { ...card, public: false } });
+    await endpoints.setUserAlbumPublic(off.client, { albumId: 4, isPublic: false });
+    expect(defined(off.requests[0]).body).toEqual({ album_id: "4", val_public: false });
+  });
+});
+
+describe("public albums", () => {
+  const publicAlbum = {
+    id: "4",
+    title: "Berlin 2024",
+    owner,
+    date: "2024-06-15",
+    location: "Berlin",
+    grouped_photos: [],
+    public_slug: "berlin-2024",
+    public_expires_at: null,
+  };
+
+  it("reads a public album by its slug", async () => {
+    const { client, requests } = fakeServer({ results: publicAlbum });
+    const album = await endpoints.fetchPublicAlbum(client, "a b/c");
+    expect(defined(requests[0]).url).toBe("https://demo.example.com/api/public/albums/s/a%20b%2Fc/");
+    expect(album).toMatchObject({ id: 4, title: "Berlin 2024", locked: false });
+  });
+
+  it("reads only the id for a slug check, and throws a ResponseParseError without one", async () => {
+    await expect(endpoints.fetchPublicAlbumSlugOwner(fakeServer({ results: publicAlbum }).client, "s")).resolves.toBe(
+      4
+    );
+    await expect(
+      endpoints.fetchPublicAlbumSlugOwner(fakeServer({ results: { title: "x" } }).client, "s")
+    ).rejects.toBeInstanceOf(ResponseParseError);
+  });
+});
+
+describe("user album edits", () => {
+  it("creates an album from photo ids", async () => {
+    const { client, requests } = fakeServer(editedAlbum);
+    await expect(endpoints.createUserAlbum(client, "Berlin 2024", ["p1"])).resolves.toMatchObject({ id: 4 });
+    expect(defined(requests[0])).toEqual({
+      url: "https://demo.example.com/api/albums/user/edit/",
+      method: "POST",
+      body: { title: "Berlin 2024", photos: ["p1"] },
+    });
+  });
+
+  it("sends a selected-all set as its query and exclusions instead of photo ids", async () => {
+    const { client, requests } = fakeServer(editedAlbum);
+    await endpoints.createUserAlbum(client, "All", ["ignored"], { query: { favorite: true }, excludedHashes: ["h1"] });
+    await endpoints.addPhotosToUserAlbum(client, "4", "All", [], {});
+    expect(defined(requests[0]).body).toEqual({
+      title: "All",
+      photos: [],
+      select_all: true,
+      query: { favorite: true },
+      excluded_hashes: ["h1"],
+    });
+    expect(defined(requests[1])).toEqual({
+      url: "https://demo.example.com/api/albums/user/edit/4/",
+      method: "PATCH",
+      body: { title: "All", photos: [], select_all: true, query: {}, excluded_hashes: [] },
+    });
+  });
+
+  it("adds, removes, sets the cover and locks through the edit view", async () => {
+    const { client, requests } = fakeServer(editedAlbum);
+    await endpoints.addPhotosToUserAlbum(client, 4, "Berlin 2024", ["p1"]);
+    await endpoints.removePhotosFromUserAlbum(client, "4", ["h1"]);
+    await endpoints.setUserAlbumCover(client, "4", "h2");
+    await expect(endpoints.setUserAlbumLocked(client, "4", true)).resolves.toMatchObject({ id: 4 });
+    expect(requests.map(({ method, body }) => ({ method, body }))).toEqual([
+      { method: "PATCH", body: { title: "Berlin 2024", photos: ["p1"] } },
+      { method: "PATCH", body: { removedPhotos: ["h1"] } },
+      { method: "PATCH", body: { cover_photo: "h2" } },
+      { method: "PATCH", body: { locked: true } },
+    ]);
+    expect(new Set(requests.map(request => request.url))).toEqual(
+      new Set(["https://demo.example.com/api/albums/user/edit/4/"])
+    );
+  });
+
+  it("renames through the album view, whose id is still a string", async () => {
+    const { client, requests } = fakeServer({ ...editedAlbum, id: "4", title: "Berlin", owner, grouped_photos: [] });
+    await expect(endpoints.renameUserAlbum(client, "4", "Berlin")).resolves.toMatchObject({ id: 4, title: "Berlin" });
+    expect(defined(requests[0])).toEqual({
+      url: "https://demo.example.com/api/albums/user/4/",
+      method: "PATCH",
+      body: { title: "Berlin" },
+    });
+  });
+
+  it("deletes a user album, an event album and every event album", async () => {
+    const { client, requests } = fakeServer(null);
+    await endpoints.deleteUserAlbum(client, "4");
+    await endpoints.deleteAutoAlbum(client, 7);
+    expect(requests.map(({ url, method }) => `${method} ${url}`)).toEqual([
+      "DELETE https://demo.example.com/api/albums/user/4/",
+      "DELETE https://demo.example.com/api/albums/auto/7/",
+    ]);
+    const all = fakeServer("success");
+    await expect(endpoints.deleteAllAutoAlbums(all.client)).resolves.toBe("success");
+    expect(defined(all.requests[0])).toMatchObject({
+      url: "https://demo.example.com/api/albums/auto/delete_all/",
+      method: "POST",
+    });
+  });
+});
+
+describe("people", () => {
+  const person = {
+    name: "Ann",
+    face_url: "/media/faces/1.jpg",
+    face_count: 3,
+    face_photo_url: "hash1",
+    video: false,
+    id: 5,
+  };
+
+  it("reads every person, with a bigger page when asked", async () => {
+    const { client, requests } = fakeServer(page([person, { ...person, id: 6, face_photo_url: null }]));
+    const people = await endpoints.fetchPeopleAlbums(client, { pageSize: 1000 });
+    expect(defined(requests[0]).url).toBe("https://demo.example.com/api/persons/?page_size=1000");
+    expect(people.map(row => row.id)).toEqual([5, 6]);
+    const plain = fakeServer(page([person]));
+    await endpoints.fetchPeopleAlbums(plain.client);
+    expect(defined(plain.requests[0]).url).toBe("https://demo.example.com/api/persons/");
+  });
+
+  it("renames, sets the cover and deletes a person", async () => {
+    const { client, requests } = fakeServer(person);
+    await expect(endpoints.renamePerson(client, "5", "Ann")).resolves.toMatchObject({ id: 5, name: "Ann" });
+    await endpoints.setPersonCover(client, 5, "h2");
+    expect(requests.map(({ url, method, body }) => ({ url, method, body }))).toEqual([
+      { url: "https://demo.example.com/api/persons/5/", method: "PATCH", body: { newPersonName: "Ann" } },
+      { url: "https://demo.example.com/api/persons/5/", method: "PATCH", body: { cover_photo: "h2" } },
+    ]);
+    const deleted = fakeServer(null);
+    await endpoints.deletePerson(deleted.client, "5");
+    expect(defined(deleted.requests[0])).toMatchObject({
+      url: "https://demo.example.com/api/persons/5/",
+      method: "DELETE",
+    });
+  });
+});
+
+describe("places and folders", () => {
+  it("reads the location clusters", async () => {
+    const clusters = [
+      [52.52, 13.4, "Berlin"],
+      [48.85, 2.35, "Paris"],
+    ];
+    const { client, requests } = fakeServer(clusters);
+    await expect(endpoints.fetchLocationClusters(client)).resolves.toEqual(clusters);
+    expect(defined(requests[0]).url).toBe("https://demo.example.com/api/locclust/");
+  });
+
+  it("reads a page of subfolders, of the scan directory or of a path", async () => {
+    const { client, requests } = fakeServer(folderSubfolders);
+    const listing = await endpoints.fetchFolderSubfolders(client);
+    await endpoints.fetchFolderSubfolders(client, { path: "/data/My Photos", page: 2 });
+    expect(requests.map(request => request.url)).toEqual([
+      "https://demo.example.com/api/folders/subfolders/",
+      "https://demo.example.com/api/folders/subfolders/?path=%2Fdata%2FMy+Photos&page=2",
+    ]);
+    expect(listing.results.map(folder => folder.name)).toEqual(["2023", "2024"]);
+    // The copies kept for older web bundles are not read.
+    expect(listing).not.toHaveProperty("subfolders");
+  });
+
+  it("reads the empty listing of a user without a scan directory", async () => {
+    const empty = { ...folderSubfolders, current_path: null, parent_path: null, results: [], count: 0, num_pages: 1 };
+    await expect(endpoints.fetchFolderSubfolders(fakeServer(empty).client)).resolves.toMatchObject({
+      current_path: null,
+      results: [],
+    });
+  });
+});
+
+describe("date albums with the timeline filter", () => {
+  it("sends the timeline filter and the photoset flags, and leaves out media=all", async () => {
+    const { client, requests } = fakeServer(dateAlbumsList);
+    await endpoints.fetchDateAlbumsList(client, {
+      favorite: true,
+      media: "photos",
+      hide_screenshots: true,
+      hide_documents: false,
+      person: 3,
+      username: "Alice",
+      folder: "",
+    });
+    const dayServer = fakeServer({ results: defined(dateAlbumsList.results[0]) });
+    await endpoints.fetchDateAlbum(dayServer.client, 12, 2, { media: "all", hide_documents: true });
+    const list = new URL(defined(requests[0]).url);
+    const day = new URL(defined(dayServer.requests[0]).url);
+    expect(list.pathname).toBe("/api/albums/date/list/");
+    expect(Object.fromEntries(list.searchParams)).toEqual({
+      favorite: "true",
+      media: "photos",
+      hide_screenshots: "true",
+      person: "3",
+      username: "alice",
+    });
+    expect(day.pathname).toBe("/api/albums/date/12/");
+    expect(Object.fromEntries(day.searchParams)).toEqual({ hide_documents: "true", page: "2" });
   });
 });

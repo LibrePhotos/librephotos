@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { IntegerId } from "./common";
 
 /**
  * Response schemas for the photo/album/person *mutation* endpoints (Phase 4
@@ -29,7 +30,7 @@ export const PhotoEditResponse = z.looseObject({
 });
 export type PhotoEditResponse = z.infer<typeof PhotoEditResponse>;
 
-/** `/photosedit/savecaption/` and person/album renames — plain status. */
+/** `/photosedit/savecaption/` — plain status. */
 export const StatusResponse = z.looseObject({ status: z.boolean().optional() });
 export type StatusResponse = z.infer<typeof StatusResponse>;
 
@@ -42,3 +43,27 @@ export const CreateUserAlbumResponse = z.looseObject({
   title: z.string().optional(),
 });
 export type CreateUserAlbumResponse = z.infer<typeof CreateUserAlbumResponse>;
+
+/**
+ * `PATCH /albums/user/edit/{id}/` (photos added or removed, cover, lock): AlbumUserEditSerializer,
+ * as for create.
+ */
+export const UserAlbumEditResponse = z.looseObject({
+  id: z.number(),
+  title: z.string().optional(),
+});
+export type UserAlbumEditResponse = z.infer<typeof UserAlbumEditResponse>;
+
+/** `PATCH /albums/user/{id}/` rename: AlbumUserSerializer, whose id is still a string (issue #389). */
+export const UserAlbumRenameResponse = z.looseObject({
+  id: IntegerId,
+  title: z.string().optional(),
+});
+export type UserAlbumRenameResponse = z.infer<typeof UserAlbumRenameResponse>;
+
+/** `PATCH /persons/{id}/` rename and cover: PersonSerializer. */
+export const PersonEditResponse = z.looseObject({
+  id: z.number(),
+  name: z.string().optional(),
+});
+export type PersonEditResponse = z.infer<typeof PersonEditResponse>;

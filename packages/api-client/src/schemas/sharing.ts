@@ -27,6 +27,13 @@ export const SharedAlbumsResponse = z.object({
 });
 export type SharedAlbumsResponse = z.infer<typeof SharedAlbumsResponse>;
 
+/** `POST /useralbum/makepublic`: the album's card with its new link settings. */
+export const SetUserAlbumPublicResponse = z.object({
+  status: z.boolean(),
+  album: UserAlbumInfo,
+});
+export type SetUserAlbumPublicResponse = z.infer<typeof SetUserAlbumPublicResponse>;
+
 export type UpdatePhotoSharingParams = {
   image_hashes: string[];
   target_user_id: number;

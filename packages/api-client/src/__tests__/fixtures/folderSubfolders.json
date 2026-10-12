@@ -1,0 +1,26 @@
+{
+  "count": 2,
+  "next": null,
+  "previous": null,
+  "results": [
+    { "name": "2023", "path": "/data/photos/2023", "photo_count": 120, "modified": 1717171717.25 },
+    { "name": "2024", "path": "/data/photos/2024", "photo_count": 48, "modified": 1727272727.5 }
+  ],
+  "page": 1,
+  "page_size": 100,
+  "num_pages": 1,
+  "current_path": "/data/photos",
+  "parent_path": null,
+  "subfolders": [
+    { "name": "2023", "path": "/data/photos/2023", "photo_count": 120, "modified": 1717171717.25 },
+    { "name": "2024", "path": "/data/photos/2024", "photo_count": 48, "modified": 1727272727.5 }
+  ],
+  "pagination": {
+    "page": 1,
+    "page_size": 100,
+    "total_folders": 2,
+    "total_pages": 1,
+    "has_next": false,
+    "has_previous": false
+  }
+}
