@@ -17,6 +17,7 @@ import subprocess
 import tempfile
 import unittest
 from unittest import mock
+from unittest.mock import ANY
 
 from django.test import SimpleTestCase, TestCase, override_settings
 
@@ -353,10 +354,10 @@ class ThumbnailPassesTheStoredValueTest(TestCase):
         with (
             tempfile.TemporaryDirectory() as media_root,
             override_settings(MEDIA_ROOT=media_root),
-            mock.patch("api.models.thumbnail.create_thumbnail_for_video") as poster,
-            mock.patch("api.models.thumbnail.create_animated_thumbnail") as animated,
+            mock.patch("api.thumbnails.create_thumbnail_for_video") as poster,
+            mock.patch("api.thumbnails.create_animated_thumbnail") as animated,
         ):
-            thumbnail._generate_thumbnail()
+            thumbnails.generate_thumbnail(thumbnail)
         self.assertEqual(poster.call_args.kwargs["transfer"], "smpte2084")
         self.assertEqual(animated.call_count, 2)
         for call in animated.call_args_list:
@@ -375,15 +376,14 @@ class ScanProbesBeforeThumbnailingTest(TestCase):
                 "apply_probe",
                 side_effect=lambda p: order.append("probe"),
             ) as probe,
-            mock.patch.object(
-                Thumbnail,
-                "_generate_thumbnail",
-                side_effect=lambda: order.append("thumbnail"),
+            mock.patch(
+                "api.thumbnails.generate_thumbnail",
+                side_effect=lambda thumbnail: order.append("thumbnail"),
                 autospec=False,
             ),
-            mock.patch.object(Thumbnail, "_calculate_aspect_ratio"),
-            mock.patch.object(Thumbnail, "_get_dominant_color"),
-            mock.patch("api.models.photo_metadata.PhotoMetadata.extract_exif_data"),
+            mock.patch("api.thumbnails.calculate_aspect_ratio"),
+            mock.patch("api.thumbnails.calculate_dominant_color"),
+            mock.patch("api.metadata.photo_reader.extract_exif_data"),
             mock.patch.object(file_handlers, "extract_date_time"),
             mock.patch("api.screenshot_detection.classify", return_value=False),
             mock.patch.object(file_handlers.PhotoSearch, "recreate_search_captions"),
@@ -441,14 +441,14 @@ class RescanRepairsWhatWasMadeBeforeTheProbeTest(TestCase):
             mock.patch.object(
                 file_handlers.video_color, "apply_probe", side_effect=apply_probe
             ) as probe,
-            mock.patch.object(Thumbnail, "_generate_thumbnail") as generate,
-            mock.patch.object(
-                Thumbnail, "_regenerate_thumbnails", side_effect=rebuild
+            mock.patch("api.thumbnails.generate_thumbnail") as generate,
+            mock.patch(
+                "api.thumbnails.regenerate_thumbnails", side_effect=rebuild
             ) as regenerate,
             mock.patch.object(file_handlers.transcode_cache, "discard") as discard,
-            mock.patch.object(Thumbnail, "_calculate_aspect_ratio"),
-            mock.patch.object(Thumbnail, "_get_dominant_color"),
-            mock.patch("api.models.photo_metadata.PhotoMetadata.extract_exif_data"),
+            mock.patch("api.thumbnails.calculate_aspect_ratio"),
+            mock.patch("api.thumbnails.calculate_dominant_color"),
+            mock.patch("api.metadata.photo_reader.extract_exif_data"),
             mock.patch.object(file_handlers, "extract_date_time") as dates,
             mock.patch("api.screenshot_detection.classify", return_value=False),
             mock.patch.object(file_handlers.PhotoSearch, "recreate_search_captions"),
@@ -473,7 +473,7 @@ class RescanRepairsWhatWasMadeBeforeTheProbeTest(TestCase):
     def test_an_unprobed_hdr_video_has_its_thumbnails_rebuilt(self):
         photo = create_test_photo(owner=self.user, video=True)
         self._process(photo, HDR_ANSWER)
-        self.regenerate.assert_called_once_with(keep_old_on_failure=True)
+        self.regenerate.assert_called_once_with(ANY, keep_old_on_failure=True)
         self.discard.assert_called_once_with(photo.image_hash)
         self.generate.assert_not_called()
 
@@ -484,7 +484,9 @@ class RescanRepairsWhatWasMadeBeforeTheProbeTest(TestCase):
         self._process(
             photo,
             HDR_ANSWER,
-            rebuild=lambda **kwargs: during.append(self._stored_transfer(photo)),
+            rebuild=lambda thumbnail, **kwargs: during.append(
+                self._stored_transfer(photo)
+            ),
         )
         self.assertEqual(during, [None])
         self.assertEqual(self._stored_transfer(photo), "smpte2084")
@@ -494,7 +496,7 @@ class RescanRepairsWhatWasMadeBeforeTheProbeTest(TestCase):
         self._process(photo, SDR_ANSWER)
         self.regenerate.assert_not_called()
         self.discard.assert_not_called()
-        self.generate.assert_called_once_with()
+        self.generate.assert_called_once_with(ANY)
         self.assertEqual(self._stored_transfer(photo), "bt709")
 
     def test_left_to_a_probe_videos_job_that_is_running(self):
@@ -504,7 +506,7 @@ class RescanRepairsWhatWasMadeBeforeTheProbeTest(TestCase):
         self._process(photo, HDR_ANSWER)
         self.probe.assert_not_called()
         self.regenerate.assert_not_called()
-        self.generate.assert_called_once_with()
+        self.generate.assert_called_once_with(ANY)
         self.assertEqual(list(processing_jobs.videos_to_probe(self.user)), [photo])
 
     def test_a_new_video_is_probed_while_probe_videos_runs(self):
@@ -514,7 +516,7 @@ class RescanRepairsWhatWasMadeBeforeTheProbeTest(TestCase):
         Thumbnail.objects.filter(photo=photo).delete()
         self._process(Photo.objects.get(pk=photo.pk), HDR_ANSWER)
         self.probe.assert_called_once()
-        self.generate.assert_called_once_with()
+        self.generate.assert_called_once_with(ANY)
         self.assertEqual(self._stored_transfer(photo), "smpte2084")
 
     def test_a_video_probed_before_is_not_rebuilt_again(self):
@@ -527,19 +529,19 @@ class RescanRepairsWhatWasMadeBeforeTheProbeTest(TestCase):
         )
         self._process(Photo.objects.get(pk=photo.pk), HDR_ANSWER)
         self.regenerate.assert_not_called()
-        self.generate.assert_called_once_with()
+        self.generate.assert_called_once_with(ANY)
 
     def test_a_new_video_just_gets_its_first_thumbnails(self):
         photo = create_test_photo(owner=self.user, video=True)
         Thumbnail.objects.filter(photo=photo).delete()
         self._process(Photo.objects.get(pk=photo.pk), HDR_ANSWER)
         self.regenerate.assert_not_called()
-        self.generate.assert_called_once_with()
+        self.generate.assert_called_once_with(ANY)
 
     def test_a_rebuild_that_fails_does_not_stop_the_rest_of_the_scan(self):
         photo = create_test_photo(owner=self.user, video=True)
         self._process(photo, HDR_ANSWER, rebuild=thumbnails.VideoThumbnailError("x"))
-        self.regenerate.assert_called_once_with(keep_old_on_failure=True)
+        self.regenerate.assert_called_once_with(ANY, keep_old_on_failure=True)
         self.dates.assert_called_once()
         # It put the old thumbnails back; trying again would only fail again.
         self.assertEqual(self._stored_transfer(photo), "smpte2084")
@@ -563,10 +565,10 @@ class ReplacedVideoIsProbedBeforeItsRebuildTest(TestCase):
             tempfile.TemporaryDirectory() as media_root,
             override_settings(MEDIA_ROOT=media_root),
             mock.patch.object(video_color, "probe", return_value=SDR_ANSWER),
-            mock.patch("api.models.thumbnail.create_thumbnail_for_video") as poster,
-            mock.patch("api.models.thumbnail.create_animated_thumbnail") as animated,
-            mock.patch.object(Thumbnail, "_calculate_aspect_ratio"),
-            mock.patch.object(Thumbnail, "_refresh_perceptual_hash"),
+            mock.patch("api.thumbnails.create_thumbnail_for_video") as poster,
+            mock.patch("api.thumbnails.create_animated_thumbnail") as animated,
+            mock.patch("api.thumbnails.calculate_aspect_ratio"),
+            mock.patch("api.thumbnails.refresh_perceptual_hash"),
         ):
             file_handlers._regenerate_thumbnails(Photo.objects.get(pk=photo.pk))
         poster.assert_called_once()
@@ -580,7 +582,7 @@ class ReplacedVideoIsProbedBeforeItsRebuildTest(TestCase):
         photo = create_test_photo(owner=create_test_user(), video=False)
         with (
             mock.patch.object(video_color, "probe") as probe,
-            mock.patch.object(Thumbnail, "_regenerate_thumbnails"),
+            mock.patch("api.thumbnails.regenerate_thumbnails"),
         ):
             file_handlers._regenerate_thumbnails(photo)
         probe.assert_not_called()
@@ -611,8 +613,8 @@ class ProbeVideosBackfillTest(TestCase):
     def _run(self):
         job_id = "00000000-0000-0000-0000-000000000019"
         with (
-            mock.patch.object(
-                Thumbnail, "_regenerate_thumbnails", autospec=True
+            mock.patch(
+                "api.thumbnails.regenerate_thumbnails", autospec=True
             ) as regenerate,
             mock.patch.object(transcode_cache, "discard") as discard,
         ):

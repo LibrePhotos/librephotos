@@ -13,7 +13,7 @@ from unittest import mock
 from django.test import TestCase, override_settings
 from PIL import Image
 
-from api.models import Thumbnail
+from api import thumbnails
 from api.tests.utils import create_test_photo, create_test_user
 
 RED = (200, 40, 20)
@@ -51,7 +51,7 @@ class DominantColorTest(TestCase):
         with open(self._path(thumbnail.square_thumbnail_small), "wb") as clip:
             clip.write(b"\x00\x00\x00\x18ftypmp42")
 
-        thumbnail._get_dominant_color()
+        thumbnails.calculate_dominant_color(thumbnail)
 
         self.assertEqual(RED, self._rgb(thumbnail))
 
@@ -60,12 +60,12 @@ class DominantColorTest(TestCase):
         self._still(thumbnail.thumbnail_big, BLUE)
         self._still(thumbnail.square_thumbnail_small, RED)
 
-        thumbnail._get_dominant_color()
+        thumbnails.calculate_dominant_color(thumbnail)
 
         self.assertEqual(RED, self._rgb(thumbnail))
 
     def _rebuild_with(self, thumbnail, make=None):
-        """``_regenerate_thumbnails`` with an ffmpeg whose poster is ``make``'s.
+        """``regenerate_thumbnails`` with an ffmpeg whose poster is ``make``'s.
 
         No ``make``: an ffmpeg that fails.
         """
@@ -76,10 +76,10 @@ class DominantColorTest(TestCase):
             make(instance.thumbnail_big)
             instance.save()
 
-        with mock.patch.object(
-            Thumbnail, "_generate_thumbnail", autospec=True, side_effect=generate
+        with mock.patch(
+            "api.thumbnails.generate_thumbnail", autospec=True, side_effect=generate
         ):
-            thumbnail._regenerate_thumbnails(keep_old_on_failure=True)
+            thumbnails.regenerate_thumbnails(thumbnail, keep_old_on_failure=True)
 
     def test_a_rebuilt_video_samples_its_colour_again(self):
         thumbnail = create_test_photo(
@@ -117,3 +117,47 @@ class DominantColorTest(TestCase):
 
         thumbnail.refresh_from_db()
         self.assertIsNone(thumbnail.dominant_color)
+
+
+class DominantColorFailuresTest(TestCase):
+    """A thumbnail that cannot be sampled leaves the colour unset, logged at
+    INFO, and never fails the scan step."""
+
+    def setUp(self):
+        self.media_root = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.media_root, ignore_errors=True)
+        media = override_settings(MEDIA_ROOT=self.media_root)
+        media.enable()
+        self.addCleanup(media.disable)
+        self.thumbnail = create_test_photo(owner=create_test_user()).thumbnail
+
+    def _sample(self):
+        with self.assertLogs("api.thumbnails", "INFO") as logs:
+            thumbnails.calculate_dominant_color(self.thumbnail)
+        self.assertIn("Cannot calculate dominant color", logs.output[0])
+        self.thumbnail.refresh_from_db()
+        self.assertIsNone(self.thumbnail.dominant_color)
+
+    def test_a_missing_file(self):
+        self._sample()
+
+    def test_a_file_that_is_not_a_picture(self):
+        path = os.path.join(self.media_root, self.thumbnail.square_thumbnail_small.name)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "wb") as handle:
+            handle.write(b"not a picture")
+        self._sample()
+
+    def test_a_truncated_picture(self):
+        path = os.path.join(self.media_root, self.thumbnail.square_thumbnail_small.name)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        Image.new("RGB", (64, 48), RED).save(path, "PNG")
+        with open(path, "rb") as handle:
+            data = handle.read()
+        with open(path, "wb") as handle:
+            handle.write(data[: len(data) // 2])
+        self._sample()
+
+    def test_no_thumbnail_file_name(self):
+        self.thumbnail.square_thumbnail_small.name = ""
+        self._sample()

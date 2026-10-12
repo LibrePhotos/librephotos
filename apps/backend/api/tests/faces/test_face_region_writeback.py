@@ -9,6 +9,7 @@ from api.metadata.face_regions import (
     reverse_orientation_transform,
     thumbnail_coords_to_normalized,
 )
+from api.metadata.photo_writer import write_photo_metadata
 from api.metadata.tags import Tags
 from api.models.person import Person
 from api.tests.utils import (
@@ -484,7 +485,7 @@ class TestSaveMetadataIntegration(TestCase):
     def test_save_metadata_with_face_tags(
         self, mock_pil_open, mock_get_metadata, mock_write_metadata
     ):
-        """_save_metadata(metadata_types=["face_tags"]) should write face regions."""
+        """write_photo_metadata(metadata_types=["face_tags"]) should write face regions."""
         photo = create_test_photo(
             owner=self.user, thumbnail_big="thumbnails_big/test.jpg"
         )
@@ -505,7 +506,7 @@ class TestSaveMetadataIntegration(TestCase):
         mock_pil_open.return_value = mock_img
         mock_get_metadata.return_value = (None, 4000, 3000)
 
-        photo._save_metadata(use_sidecar=True, metadata_types=["face_tags"])
+        write_photo_metadata(photo, use_sidecar=True, metadata_types=["face_tags"])
 
         mock_write_metadata.assert_called_once()
         tags = mock_write_metadata.call_args[0][1]
@@ -514,7 +515,7 @@ class TestSaveMetadataIntegration(TestCase):
 
     @patch("api.metadata.photo_writer.write_metadata")
     def test_save_metadata_default_does_not_write_face_tags(self, mock_write_metadata):
-        """_save_metadata() with default args should NOT write face tags."""
+        """write_photo_metadata() with default args should NOT write face tags."""
         photo = create_test_photo(owner=self.user)
         person = create_test_person(
             name="Test Person", kind=Person.KIND_USER, cluster_owner=self.user
@@ -529,7 +530,7 @@ class TestSaveMetadataIntegration(TestCase):
         )
 
         # Default call (no metadata_types) — should only consider ratings
-        photo._save_metadata()
+        write_photo_metadata(photo)
 
         # Rating is 0 by default and there are no modified_fields=None,
         # so it will write the rating tag
@@ -543,7 +544,7 @@ class TestSaveMetadataIntegration(TestCase):
     def test_save_metadata_combined_types(
         self, mock_pil_open, mock_get_metadata, mock_write_metadata
     ):
-        """_save_metadata with both types should write ratings AND face tags together."""
+        """write_photo_metadata with both types should write ratings AND face tags together."""
         photo = create_test_photo(
             owner=self.user, thumbnail_big="thumbnails_big/test.jpg"
         )
@@ -565,7 +566,9 @@ class TestSaveMetadataIntegration(TestCase):
         mock_pil_open.return_value = mock_img
         mock_get_metadata.return_value = (None, 4000, 3000)
 
-        photo._save_metadata(use_sidecar=True, metadata_types=["ratings", "face_tags"])
+        write_photo_metadata(
+            photo, use_sidecar=True, metadata_types=["ratings", "face_tags"]
+        )
 
         mock_write_metadata.assert_called_once()
         tags = mock_write_metadata.call_args[0][1]
@@ -586,7 +589,7 @@ class TestSaveMetadataIntegration(TestCase):
             2019, 8, 15, 7, 45, 0, tzinfo=datetime.timezone.utc
         )
 
-        photo._save_metadata(modified_fields=["timestamp"], use_sidecar=True)
+        write_photo_metadata(photo, modified_fields=["timestamp"], use_sidecar=True)
 
         mock_write_metadata.assert_called_once()
         tags = mock_write_metadata.call_args[0][1]
@@ -606,7 +609,7 @@ class TestSaveMetadataIntegration(TestCase):
         photo = create_test_photo(owner=self.user)
         photo.timestamp = None
 
-        photo._save_metadata(modified_fields=["timestamp"], use_sidecar=True)
+        write_photo_metadata(photo, modified_fields=["timestamp"], use_sidecar=True)
 
         tags = mock_write_metadata.call_args[0][1]
         self.assertEqual("", tags[Tags.DATE_CREATED])

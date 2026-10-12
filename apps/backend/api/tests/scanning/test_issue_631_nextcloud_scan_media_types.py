@@ -25,7 +25,7 @@ entirety* and the user sees exactly the reported symptom: some folders import,
 others simply never appear.
 
 Those file types are not exotic to LibrePhotos - the local directory watcher
-indexes them (``api.models.file.is_video`` / ``is_raw`` accept them, and
+indexes them (``api.media_files.is_video`` / ``is_raw`` accept them, and
 ``File`` even has dedicated ``VIDEO`` / ``RAW_FILE`` types), so a photo that is
 indexed when it sits on a local disk is dropped when the very same photo sits
 in a Nextcloud sub folder.
@@ -37,7 +37,7 @@ can index, in every sub folder of the watch directory.
 from django.test import SimpleTestCase
 from owncloud import FileInfo
 
-from api.models.file import is_raw
+from api.media_files import is_raw
 from nextcloud.directory_watcher import collect_photos, isValidNCMedia
 
 

@@ -15,8 +15,8 @@ import exiftool
 import PIL.Image
 from django.test import SimpleTestCase
 
+from api.metadata.photo_reader import EXIF_TAGS
 from api.metadata.tags import Tags
-from api.models.photo_metadata import EXIF_TAGS
 from service.exif.main import (
     _attribute,
     highest_priority_value,

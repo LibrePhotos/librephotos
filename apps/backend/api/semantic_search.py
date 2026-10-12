@@ -21,9 +21,11 @@ on the photos already converted.
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING
 
 from django.conf import settings
+from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 
 from api import sidecars
@@ -35,11 +37,14 @@ if TYPE_CHECKING:
     from numpy import float64
 
     from api.models.photo import Photo
+    from api.models.photo_caption import PhotoCaption
 
 if TYPE_CHECKING:
     import numpy as np
 else:
     np = LazyModule("numpy")
+
+logger = logging.getLogger(__name__)
 
 # The model's name: Photo.clip_embeddings_model of its embeddings, the
 # captions_json key of its tags and the prefix of its tag albums' thing_type.
@@ -104,3 +109,89 @@ def calculate_query_embeddings(query: str | None) -> tuple[list[float], float]:
     emb = query_embedding["emb"]
     magnitude = query_embedding["magnitude"]
     return emb, magnitude
+
+
+def _needs_tags(caption: PhotoCaption) -> bool:
+    """Whether the photo has a big thumbnail to tag and no OpenCLIP tags yet."""
+    try:
+        thumbnail = caption.photo.thumbnail
+    except ObjectDoesNotExist:
+        return False
+    if not thumbnail.thumbnail_big:
+        return False
+    return caption.captions_json is None or caption.captions_json.get(OPENCLIP) is None
+
+
+def generate_photo_tags(caption: PhotoCaption, commit: bool = True) -> None:
+    """Tag the photo with OpenCLIP.
+
+    The tags go to ``captions_json[OPENCLIP]`` and the photo's tag albums.
+    When tagging feeds semantic search too (``semantic_shares_tagger``),
+    the same image-tower run gives the photo's search embedding. Moved out
+    of ``PhotoCaption`` so the model makes no sidecar calls (#2336).
+    """
+    if not settings.FEATURE_SCENE_CLASSIFICATION:
+        logger.info("Scene classification is disabled")
+        return
+    if not _needs_tags(caption):
+        return
+
+    photo = caption.photo
+    try:
+        import requests
+
+        from api.http_timeouts import TAGS
+
+        image_path = photo.thumbnail.thumbnail_big.path
+        confidence = photo.owner.confidence
+        json_data = {
+            "image_path": image_path,
+            "confidence": confidence,
+            "tagging_model": OPENCLIP,
+        }
+        shares_embedding = semantic_shares_tagger()
+        if shares_embedding:
+            json_data["with_embedding"] = True
+        try:
+            response = sidecars.post(
+                "tags", "/generate-tags", json=json_data, timeout=TAGS
+            )
+        except requests.HTTPError as error:
+            # raise_for_status() always attaches the response it checked.
+            assert error.response is not None
+            logger.warning(
+                "Tag service returned status %s for image %s: %s",
+                error.response.status_code,
+                image_path,
+                sidecars.error_detail(error),
+            )
+            return
+
+        try:
+            response_json = response.json()
+        except (ValueError, RuntimeError):
+            logger.warning(
+                "Tag service returned non-JSON response for image %s", image_path
+            )
+            return
+
+        tags_result = response_json.get("tags")
+
+        if tags_result is None:
+            return
+        embedding = (
+            tags_result.pop("embedding", None)
+            if isinstance(tags_result, dict)
+            else None
+        )
+        if shares_embedding and embedding:
+            caption.store_search_embedding(embedding)
+
+        caption.store_tags((tags_result or {}).get("tags", []), commit=commit)
+        logger.info("generated %s tags for image %s.", OPENCLIP, image_path)
+    except Exception as e:
+        logger.exception(
+            "could not generate tags for image %s",
+            photo.main_file.path if photo.main_file else "no main file",
+        )
+        raise e

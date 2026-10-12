@@ -313,20 +313,3 @@ class DetachMissingFilesTest(TestCase):
         detach_missing_files(Photo.objects.get(pk=self.photo.pk))
 
         self.assertGreater(Photo.objects.get(pk=self.photo.pk).last_modified, before)
-
-    def test_manual_delete_still_delegates_to_remove_photo(self):
-        with patch("api.photo_files.remove_photo", return_value="done") as remove:
-            self.assertEqual(self.photo.manual_delete(), "done")
-
-        remove.assert_called_once_with(self.photo)
-
-    def test_save_metadata_still_delegates_to_write_photo_metadata(self):
-        with patch("api.models.photo.write_photo_metadata") as write:
-            self.photo._save_metadata(["rating"], False, ["ratings"])
-
-        write.assert_called_once_with(
-            self.photo,
-            modified_fields=["rating"],
-            use_sidecar=False,
-            metadata_types=["ratings"],
-        )

@@ -219,7 +219,7 @@ def record(photo: Photo) -> bool:
     fields = apply_probe(photo)
     if fields is None:
         return False
-    photo.save(save_metadata=False, update_fields=fields)
+    photo.save(update_fields=fields)
     return True
 
 

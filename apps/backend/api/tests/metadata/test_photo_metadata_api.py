@@ -558,7 +558,7 @@ class PhotoMetadataRevertAllTestCase(APITestCase):
             return [None] * len(tags)
 
         with (
-            patch("api.models.photo_metadata.get_metadata", side_effect=no_metadata),
+            patch("api.metadata.photo_reader.get_metadata", side_effect=no_metadata),
             patch("api.metadata.edits.get_metadata", side_effect=no_metadata),
             patch("api.metadata.photo_datetime.get_metadata", side_effect=no_metadata),
         ):

@@ -1,6 +1,6 @@
 """Thumbnails must be served whether the URL carries an image_hash or a UUID.
 
-``Thumbnail._generate_thumbnail`` always writes ``<image_hash>.<ext>``, but the
+``api.thumbnails.generate_thumbnail`` always writes ``<image_hash>.<ext>``, but the
 frontend addresses a photo by its primary key in several places
 (``AlbumCoverPickerModal`` builds its tile from ``photo.id``, and the lightbox
 ``ImagePreloader`` / ``StackLightbox`` request ``thumbnails_big`` and

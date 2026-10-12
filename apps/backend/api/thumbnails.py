@@ -5,11 +5,18 @@ import os
 from typing import TYPE_CHECKING
 
 from django.conf import settings
+from PIL import Image
 
 from api import binaries, sidecars, video_color
+from api.file_cleanup import delete_thumbnail_files
 from api.lazy_import import LazyModule
+from api.media_files import is_raw
 from api.mime import EXIF_ORIENTED_EXTENSIONS, extension
-from api.models.file import is_raw
+from api.models.thumbnail import (
+    STATIC_THUMBNAIL_DIRS,
+    Thumbnail,
+    thumbnail_file_paths,
+)
 
 if TYPE_CHECKING:
     import numpy as np
@@ -464,3 +471,287 @@ def does_static_thumbnail_exist(output_path: str, hash: str) -> bool:
 
 def does_video_thumbnail_exist(output_path: str, hash: str) -> bool:
     return os.path.exists(os.path.join(settings.MEDIA_ROOT, output_path, hash + ".mp4"))
+
+
+# ---------------------------------------------------------------------------
+# A photo's thumbnails: rendering them, rebuilding them, and what is read back
+# from them (aspect ratio, placeholder colour, perceptual hash). Moved out of
+# the ``Thumbnail`` model so the model does no I/O (#2336); every function
+# takes the Thumbnail row as its first argument.
+
+# Where a rebuild keeps the thumbnails it replaces until the new ones exist.
+SET_ASIDE_SUFFIX = ".previous"
+
+
+def _put_back(set_aside: list[tuple[str, str]]) -> None:
+    """Return set-aside thumbnails to their places, over anything made since."""
+    for path, previous in set_aside:
+        try:
+            os.replace(previous, path)
+        except OSError:
+            logger.error("could not restore thumbnail %s from %s", path, previous)
+
+
+def _set_aside_thumbnail_files(photo_hash: str) -> list[tuple[str, str]]:
+    """Move ``photo_hash``'s thumbnails out of the way; return (path, moved to).
+
+    Renamed next to themselves, not deleted, so that a rebuild that fails can
+    put them back. A file that cannot be moved puts back the ones already moved
+    and raises, leaving everything as it was.
+
+    One already set aside was left by a rebuild whose worker was killed before
+    it could put it back. It is the last complete thumbnail, where whatever is
+    at ``path`` may be what ffmpeg had half written, so it goes back first.
+    That holds only while one worker rebuilds a video at a time. Nothing locks
+    it: a full rescan leaves the videos a running Probe Videos job has listed
+    to that job, which skips the ones probed since it listed them, but two
+    Probe Videos jobs at once are not kept apart.
+    """
+    set_aside: list[tuple[str, str]] = []
+    for path in thumbnail_file_paths(photo_hash):
+        previous = path + SET_ASIDE_SUFFIX
+        if os.path.exists(previous):
+            try:
+                os.replace(previous, path)
+            except OSError:
+                _put_back(set_aside)
+                raise
+        if not os.path.exists(path):
+            continue
+        try:
+            os.replace(path, previous)
+        except OSError:
+            _put_back(set_aside)
+            raise
+        set_aside.append((path, previous))
+    return set_aside
+
+
+def generate_thumbnail(thumbnail: Thumbnail) -> None:
+    """Render the thumbnails of ``thumbnail.photo`` that are missing.
+
+    A thumbnail that exists is kept. The files are named after the photo's
+    ``image_hash``, which the frontend relies on.
+    """
+    photo = thumbnail.photo
+    try:
+        photo_hash = photo.image_hash
+        local_orientation = getattr(photo, "local_orientation", 1) or 1
+        if not photo.video:
+            missing = [
+                output_path
+                for output_path in STATIC_THUMBNAIL_DIRS
+                if not does_static_thumbnail_exist(output_path, photo_hash)
+            ]
+            if missing:
+                create_static_thumbnails(
+                    input_path=thumbnail.main_file_path(),
+                    hash=photo_hash,
+                    output_paths=missing,
+                    local_orientation=local_orientation,
+                )
+        elif not does_static_thumbnail_exist("thumbnails_big", photo_hash):
+            create_thumbnail_for_video(
+                input_path=thumbnail.main_file_path(),
+                output_path="thumbnails_big",
+                hash=photo_hash,
+                file_type=".webp",
+                transfer=photo.video_color_transfer,
+            )
+
+        if photo.video and not does_video_thumbnail_exist(
+            "square_thumbnails", photo_hash
+        ):
+            create_animated_thumbnail(
+                input_path=thumbnail.main_file_path(),
+                output_height=500,
+                output_path="square_thumbnails",
+                hash=photo_hash,
+                file_type=".mp4",
+                transfer=photo.video_color_transfer,
+            )
+
+        if photo.video and not does_video_thumbnail_exist(
+            "square_thumbnails_small", photo_hash
+        ):
+            create_animated_thumbnail(
+                input_path=thumbnail.main_file_path(),
+                output_height=250,
+                output_path="square_thumbnails_small",
+                hash=photo_hash,
+                file_type=".mp4",
+                transfer=photo.video_color_transfer,
+            )
+        filetype = ".webp"
+        if photo.video:
+            filetype = ".mp4"
+        thumbnail.thumbnail_big.name = os.path.join(
+            "thumbnails_big", photo_hash + ".webp"
+        )
+        thumbnail.square_thumbnail.name = os.path.join(
+            "square_thumbnails", photo_hash + filetype
+        )
+        thumbnail.square_thumbnail_small.name = os.path.join(
+            "square_thumbnails_small", photo_hash + filetype
+        )
+        thumbnail.save()
+    except Exception as e:
+        logger.exception(
+            "could not generate thumbnail for image %s", thumbnail.main_file_path()
+        )
+        raise e
+
+
+def regenerate_thumbnails(
+    thumbnail: Thumbnail, keep_old_on_failure: bool = False
+) -> None:
+    """Delete all existing thumbnail files and regenerate them.
+
+    Picks up ``photo.local_orientation`` automatically via
+    ``generate_thumbnail``. Should be called after updating
+    ``Photo.local_orientation``.
+
+    ``keep_old_on_failure`` is for a rebuild whose old thumbnails still show
+    the right picture, only worse -- a video's washed-out HDR or unplayable
+    10-bit ones. They are set aside rather than deleted, and if ffmpeg then
+    fails they are put back: a washed-out thumbnail beats none at all. A
+    rotation or a rewritten file leaves the old ones showing a picture that
+    is no longer the photo's, so those still start from nothing.
+    """
+    photo_hash = thumbnail.photo.image_hash
+    if not keep_old_on_failure:
+        delete_thumbnail_files(photo_hash)
+        generate_thumbnail(thumbnail)
+    else:
+        set_aside = _set_aside_thumbnail_files(photo_hash)
+        try:
+            generate_thumbnail(thumbnail)
+        except Exception:
+            _put_back(set_aside)
+            raise
+        for _, previous in set_aside:
+            try:
+                os.remove(previous)
+            except OSError:
+                logger.error("could not remove old thumbnail %s", previous)
+        # Only these change the colours of the picture: a rotation keeps
+        # them, and a rewritten file has had its colour cleared already.
+        refresh_dominant_color(thumbnail)
+
+    calculate_aspect_ratio(thumbnail)
+    refresh_perceptual_hash(thumbnail)
+
+
+def refresh_dominant_color(thumbnail: Thumbnail) -> None:
+    """Sample the placeholder colour again from the thumbnails just built.
+
+    ``calculate_dominant_color`` keeps a colour once set, so a washed-out HDR
+    video rebuilt tonemapped would keep the desaturated one. A colour that
+    cannot be sampled again is cleared: the neutral placeholder, not the
+    old rendering's.
+    """
+    thumbnail.dominant_color = None
+    calculate_dominant_color(thumbnail)
+    if thumbnail.dominant_color is None:
+        thumbnail.save(update_fields=["dominant_color"])
+
+
+def refresh_perceptual_hash(thumbnail: Thumbnail) -> None:
+    """Re-read the photo's perceptual hash from the thumbnail just built.
+
+    The scan compares this against the file on disk to tell a rewritten
+    file from a replaced one, so a stale value left behind by a rotation
+    would cost the photo its faces on the next scan.
+    """
+    from api.perceptual_hash import calculate_hash_from_thumbnail
+
+    big = thumbnail.thumbnail_big
+    if not big or not os.path.exists(big.path):
+        return
+    phash = calculate_hash_from_thumbnail(big.path)
+    if not phash:
+        return
+    thumbnail.photo.perceptual_hash = phash
+    thumbnail.photo.save(update_fields=["perceptual_hash"])
+
+
+def calculate_aspect_ratio(thumbnail: Thumbnail) -> None:
+    """Store the big thumbnail's width / height as ``aspect_ratio``."""
+    try:
+        # Relies on big thumbnail for correct aspect ratio. The thumbnail is
+        # a file we generated ourselves, so read its dimensions directly
+        # instead of asking the exif service: a photo without an aspect
+        # ratio is filtered out of every grid view, and that must not hinge
+        # on a sidecar being reachable.
+        if not thumbnail.thumbnail_big:
+            logger.warning(
+                "no big thumbnail for photo %s; skipping aspect ratio",
+                thumbnail.photo_id,
+            )
+            return
+        with Image.open(thumbnail.thumbnail_big.path) as img:
+            width, height = img.size
+        if not height or not width:
+            logger.warning(
+                "missing dimensions for image %s; skipping aspect ratio",
+                thumbnail.thumbnail_big.path,
+            )
+            return
+        thumbnail.aspect_ratio = round(width / height, 2)
+
+        thumbnail.save()
+    except Exception:
+        logger.exception(
+            "could not calculate aspect ratio for image %s",
+            thumbnail.thumbnail_big.path,
+        )
+
+
+def calculate_dominant_color(thumbnail: Thumbnail, palette_size: int = 16) -> None:
+    """Store the thumbnail's most common colour as ``dominant_color``.
+
+    Kept once set: a colour already stored is not sampled again.
+    """
+    if thumbnail.dominant_color:
+        return
+    # A video's square thumbnails are mp4 clips, which PIL cannot open,
+    # so videos never got a colour; their big thumbnail is a still.
+    source = (
+        thumbnail.thumbnail_big
+        if thumbnail.photo.video
+        else thumbnail.square_thumbnail_small
+    )
+    try:
+        dominant_color = _most_common_color(source.path, palette_size)
+    except (OSError, ValueError):
+        # No file name (ValueError from .path), no file, not a picture or a
+        # truncated one (OSError, PIL's UnidentifiedImageError included).
+        dominant_color = None
+    if dominant_color is None:
+        logger.info("Cannot calculate dominant color %s object", thumbnail)
+        return
+    # Stored as the text of the RGB list, e.g. "[12, 34, 56]"; the
+    # serializers read it back that way.
+    thumbnail.dominant_color = str(dominant_color)
+    thumbnail.save()
+
+
+def _most_common_color(path: str, palette_size: int) -> list[int] | None:
+    """The RGB of the colour that covers most of the picture at ``path``."""
+    with Image.open(path) as img:
+        # Resize image to speed up processing
+        img.thumbnail((100, 100))
+
+        # Reduce colors (uses k-means internally)
+        paletted = img.convert("P", palette=Image.Palette.ADAPTIVE, colors=palette_size)
+
+    # A "P" image has a palette and, with at most palette_size colours, its
+    # colour list, counted by palette index.
+    palette = paletted.getpalette()
+    colors = paletted.getcolors()
+    if palette is None or not colors:
+        return None
+    _, palette_index = max(colors)
+    if not isinstance(palette_index, int):
+        return None
+    return palette[palette_index * 3 : palette_index * 3 + 3]

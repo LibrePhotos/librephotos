@@ -5,25 +5,28 @@ sidecar or media file); photos of owners who have it Off are skipped (#2293).
 ``--sidecar`` / ``--media-file`` override the owner's setting and need
 ``--user``.
 
-``Photo._save_metadata`` is always mocked so no exiftool binary, sidecar file
+``write_photo_metadata`` is always mocked so no exiftool binary, sidecar file
 or media file is ever touched.
 """
 
 from io import StringIO
+from unittest import mock
 from unittest.mock import MagicMock, patch
 
 from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.test import TestCase
 
-from api.models import Photo, User
+from api.models import User
 from api.tests.utils import create_test_face, create_test_photo, create_test_user
+
+WRITE = "api.management.commands.save_metadata.write_photo_metadata"
 
 
 def run_command(*args):
     """Run ``save_metadata`` with mocked writes; return (stdout, stderr, mock)."""
     out, err = StringIO(), StringIO()
-    with patch.object(Photo, "_save_metadata") as save_mock:
+    with patch(WRITE) as save_mock:
         call_command("save_metadata", *args, stdout=out, stderr=err)
     return out.getvalue(), err.getvalue(), save_mock
 
@@ -63,9 +66,13 @@ class SaveMetadataCommandTest(TestCase):
         self.assertIn("Done. 3 written, 0 errors out of 3 photos.", out)
         self.assertEqual(err, "")
         self.assertEqual(save_mock.call_count, 3)
-        # the owner syncs to the sidecar, and only ratings are written
+        # each photo once; the owner syncs to the sidecar, and only ratings
+        # are written
+        self.assertEqual(
+            {photo.pk for photo in photos},
+            {call.args[0].pk for call in save_mock.call_args_list},
+        )
         for call in save_mock.call_args_list:
-            self.assertEqual(call.args, ())
             self.assertEqual(
                 call.kwargs, {"use_sidecar": True, "metadata_types": ["ratings"]}
             )
@@ -79,7 +86,7 @@ class SaveMetadataCommandTest(TestCase):
         media_photo = create_test_photo(owner=media_user)
 
         out = StringIO()
-        with patch.object(Photo, "_save_metadata", autospec=True) as save_mock:
+        with patch(WRITE, autospec=True) as save_mock:
             call_command("save_metadata", stdout=out, stderr=StringIO())
 
         targets = {
@@ -253,7 +260,7 @@ class SaveMetadataCommandTest(TestCase):
             if self_photo.image_hash == failing_hash:
                 raise ValueError("boom")
 
-        with patch.object(Photo, "_save_metadata", autospec=True) as save_mock:
+        with patch(WRITE, autospec=True) as save_mock:
             save_mock.side_effect = side_effect
             call_command("save_metadata", stdout=out, stderr=err)
 
@@ -265,7 +272,7 @@ class SaveMetadataCommandTest(TestCase):
         create_test_photo(owner=self.user)
 
         out, err = StringIO(), StringIO()
-        with patch.object(Photo, "_save_metadata", side_effect=OSError("no exiftool")):
+        with patch(WRITE, side_effect=OSError("no exiftool")):
             call_command("save_metadata", stdout=out, stderr=err)
 
         self.assertIn("no exiftool", err.getvalue())
@@ -286,7 +293,10 @@ class SaveMetadataCommandTest(TestCase):
         queryset = fake_queryset(250, fake_photos)
 
         out, err = StringIO(), StringIO()
-        with patch("api.management.commands.save_metadata.Photo") as photo_cls:
+        with (
+            patch("api.management.commands.save_metadata.Photo") as photo_cls,
+            patch(WRITE) as write,
+        ):
             photo_cls.objects.all.return_value = queryset
             call_command("save_metadata", stdout=out, stderr=err)
 
@@ -295,10 +305,13 @@ class SaveMetadataCommandTest(TestCase):
         self.assertIn("Progress: 200/250 (200 written, 0 errors)", value)
         self.assertNotIn("Progress: 250/250", value)
         self.assertIn("Done. 250 written, 0 errors out of 250 photos.", value)
-        for p in fake_photos:
-            p._save_metadata.assert_called_once_with(
-                use_sidecar=True, metadata_types=["ratings"]
-            )
+        self.assertEqual(
+            [
+                mock.call(p, use_sidecar=True, metadata_types=["ratings"])
+                for p in fake_photos
+            ],
+            write.call_args_list,
+        )
 
     def test_total_is_counted_before_iteration(self):
         """``total`` in the summary comes from ``count()``, not the loop."""
@@ -307,7 +320,10 @@ class SaveMetadataCommandTest(TestCase):
         queryset = fake_queryset(7, photos)
 
         out, err = StringIO(), StringIO()
-        with patch("api.management.commands.save_metadata.Photo") as photo_cls:
+        with (
+            patch("api.management.commands.save_metadata.Photo") as photo_cls,
+            patch(WRITE),
+        ):
             photo_cls.objects.all.return_value = queryset
             call_command("save_metadata", stdout=out, stderr=err)
 

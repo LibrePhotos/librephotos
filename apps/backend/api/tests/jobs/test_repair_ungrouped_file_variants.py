@@ -5,7 +5,7 @@ refactored. Every assertion below describes what the code does today, quirks
 included (they are called out in comments).
 
 No ML models, no network, no exiftool: the only real I/O is a handful of tiny
-files written into a per-test temporary directory so ``File.create`` can hash
+files written into a per-test temporary directory so ``get_or_create_file`` can hash
 them.
 """
 
@@ -19,6 +19,7 @@ from django.test import TestCase
 
 from api.directory_watcher import repair_jobs
 from api.directory_watcher.repair_jobs import repair_ungrouped_file_variants
+from api.media_files import get_or_create_file
 from api.models import File, LongRunningJob, Photo
 from api.tests.utils import create_test_job, create_test_photo, create_test_user
 
@@ -48,7 +49,7 @@ class RepairUngroupedFileVariantsTest(TestCase):
         path = os.path.join(self.tmpdir, name)
         with open(path, "wb") as fh:
             fh.write(b"payload-%d-%s" % (self._counter, name.encode()))
-        return File.create(path, user or self.user)
+        return get_or_create_file(path, user or self.user)
 
     def _make_photo(self, main_file, owner=None, extra_files=(), video=False):
         photo = create_test_photo(owner=owner or self.user, video=video)
@@ -88,7 +89,7 @@ class RepairUngroupedFileVariantsTest(TestCase):
         )
         # main_file of the surviving photo is untouched.
         self.assertEqual(jpeg_photo.main_file.hash, jpeg.hash)
-        # The File rows survive the plain Photo.delete() (no manual_delete()).
+        # The File rows survive the plain Photo.delete() (no remove_photo()).
         self.assertTrue(File.objects.filter(hash=raw.hash).exists())
         self.assertTrue(File.objects.filter(hash=sidecar.hash).exists())
 

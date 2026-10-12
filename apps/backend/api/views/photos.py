@@ -22,9 +22,14 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from api import image_captioning, photo_files
 from api.exceptions import ServiceUnavailable
 from api.metadata import edits
-from api.metadata.photo_writer import write_target
+from api.metadata.photo_writer import (
+    rotate_photo,
+    write_photo_metadata,
+    write_target,
+)
 from api.mime import mime_type
 from api.ml_models import captioning_model_exists, start_model_download
 from api.models import AlbumUser, Face, Photo, User
@@ -849,7 +854,7 @@ class GeneratePhotoCaption(APIView):
             )
 
         caption_instance, created = PhotoCaption.objects.get_or_create(photo=photo)
-        res = caption_instance.generate_captions_im2txt()
+        res = image_captioning.generate_photo_caption(caption_instance)
 
         if not res:
             raise APIException(
@@ -902,13 +907,13 @@ class DeletePhotos(APIView):
             if excluded_hashes:
                 photos_qs = photos_qs.exclude(image_hash__in=excluded_hashes)
 
-            # Need to call manual_delete on each photo for proper cleanup
+            # Each photo goes through remove_photo for proper cleanup
             deleted_count = 0
             failed_count = 0
             # build_photo_queryset is already bound to the requester's photos.
             for photo in photos_qs:
                 try:
-                    photo.manual_delete()
+                    photo_files.remove_photo(photo)
                 except Exception:
                     logger.exception(
                         "Could not delete photo %s, skipping it.", photo.image_hash
@@ -948,7 +953,7 @@ class DeletePhotos(APIView):
             failed = False
             for photo in photos:
                 try:
-                    photo.manual_delete()
+                    photo_files.remove_photo(photo)
                 except Exception:
                     logger.exception(
                         "Could not delete photo %s, skipping it.", image_hash
@@ -1086,8 +1091,8 @@ class SaveMetadataView(APIView):
         errors = 0
         for photo in photos.iterator():
             try:
-                photo._save_metadata(
-                    use_sidecar=use_sidecar, metadata_types=metadata_types
+                write_photo_metadata(
+                    photo, use_sidecar=use_sidecar, metadata_types=metadata_types
                 )
                 written += 1
             except Exception:
@@ -1158,7 +1163,7 @@ class RotatePhotoView(APIView):
         photo = _get_rotatable_photo(image_hash, request_user(request))
 
         try:
-            photo.rotate(angle=angle, flip_horizontal=flip_horizontal)
+            rotate_photo(photo, angle=angle, flip_horizontal=flip_horizontal)
         except Exception as error:
             logger.exception("Failed to rotate photo %s", image_hash)
             raise APIException("failed to rotate photo") from error

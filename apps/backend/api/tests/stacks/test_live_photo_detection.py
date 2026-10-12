@@ -425,7 +425,7 @@ class CreateEmbeddedLivePhotoStackTestCase(TestCase):
 
     @override_settings(FEATURE_PROCESS_EMBEDDED_MEDIA=True)
     @patch("api.stacks.live_photo.extract_embedded_motion_video")
-    @patch("api.stacks.live_photo.File.create")
+    @patch("api.stacks.live_photo.get_or_create_file")
     def test_returns_existing_stack_if_present(self, mock_file_create, mock_extract):
         """Should return existing stack if photo already has one."""
         mock_extract.return_value = "/path/to/video.mp4"
@@ -484,7 +484,7 @@ class CreateAppleLivePhotoStackTestCase(TestCase):
             hash_value="c" * 32, path=video_path, file_type=File.VIDEO, user=self.user
         )
 
-        with patch("api.stacks.live_photo.File.create", return_value=video_file):
+        with patch("api.stacks.live_photo.get_or_create_file", return_value=video_file):
             with patch("api.stacks.live_photo.File.objects.filter") as mock_filter:
                 # Simulate video file not existing yet
                 mock_filter.return_value.first.return_value = None
@@ -516,7 +516,7 @@ class CreateAppleLivePhotoStackTestCase(TestCase):
             hash_value="d" * 32, path=video_path, file_type=File.VIDEO, user=self.user
         )
 
-        with patch("api.stacks.live_photo.File.create", return_value=video_file):
+        with patch("api.stacks.live_photo.get_or_create_file", return_value=video_file):
             with patch("api.stacks.live_photo.File.objects.filter") as mock_filter:
                 mock_filter.return_value.first.return_value = None
 

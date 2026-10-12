@@ -1,20 +1,12 @@
 from __future__ import annotations
 
 import uuid
-from collections.abc import Collection, Iterable
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from django.contrib.auth.models import AnonymousUser
-from django.db import models, transaction
+from django.db import models
 from django.db.models import Q, QuerySet
-from django.db.models.base import ModelBase
 
-from api import photo_files
-from api.metadata.photo_writer import (
-    write_orientation_to_disk,
-    write_photo_metadata,
-    write_target,
-)
 from api.models.duplicate import Duplicate
 from api.models.file import File
 from api.models.photo_stack import PhotoStack
@@ -24,8 +16,6 @@ from api.models.user import User, get_deleted_user
 if TYPE_CHECKING:
     # typing.Self is Python 3.11+; the backend-gpu image runs 3.10.
     from typing import Self
-
-    from django.db.models.fetch_modes import FetchMode
 
 
 class PhotoQuerySet(SharedOwnedQuerySet["Photo"]):
@@ -212,159 +202,6 @@ class Photo(models.Model):
                 return None
 
         return self.clip_embeddings
-
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
-        # The row as loaded from the database, which save() diffs against to
-        # find the fields to write to disk. Per instance: from_db() fills it,
-        # and an instance built in memory has nothing to diff against.
-        self._loaded_values: dict[str, object] = {}
-
-    @classmethod
-    def from_db(
-        cls,
-        db: str | None,
-        field_names: Collection[str],
-        values: Collection[object],
-        *,
-        fetch_mode: FetchMode | None = None,
-    ) -> Self:
-        # fetch_mode exists only in the Django the stubs describe; the runtime
-        # Django (5.2) takes no such argument, so it is not forwarded.
-        instance = super().from_db(db, field_names, values)
-        instance._loaded_values = dict(zip(field_names, values))
-        return instance
-
-    def save(
-        self,
-        force_insert: bool | tuple[ModelBase, ...] = False,
-        force_update: bool = False,
-        using: str | None = None,
-        update_fields: Iterable[str] | None = None,
-        save_metadata: bool = False,
-    ) -> None:
-        """Save the row; with ``save_metadata``, write the edit once it commits.
-
-        A write to the user's files is never a side effect: only the paths
-        that apply a user's edit pass ``save_metadata=True`` (#2295). Scans,
-        jobs and repairs save what they read from the file and write nothing.
-        The rating and capture date that differ from the row this instance
-        last loaded or saved are written to the sidecar or the media file, as
-        the owner's "Synchronize metadata to disk" says. The write waits for
-        the commit (#2298): a failed or rolled-back save never touches the
-        file, and a failed write is logged without undoing the saved edit.
-        """
-        modified_fields = [
-            field_name
-            for field_name, value in self._loaded_values.items()
-            if value != getattr(self, field_name)
-        ]
-        if update_fields is not None:
-            update_fields = list(update_fields)
-        super().save(
-            force_insert=force_insert,
-            force_update=force_update,
-            using=using,
-            update_fields=update_fields,
-        )
-        self._remember_saved_values(update_fields)
-        if save_metadata:
-            use_sidecar = write_target(self.owner)
-            if use_sidecar is not None:
-                transaction.on_commit(
-                    lambda: self._save_metadata(modified_fields, use_sidecar),
-                    using=using,
-                    robust=True,
-                )
-
-    def _remember_saved_values(self, update_fields: list[str] | None) -> None:
-        """Make the values just saved the ones the next save() diffs against.
-
-        Without this every later save on the instance wrote the same change
-        to disk again (#2298). Only the fields loaded from the database are
-        tracked: an instance built in memory still has nothing to diff
-        against.
-        """
-        # update_fields may name a foreign key ("owner") or its column ("owner_id").
-        attnames = {field.name: field.attname for field in self._meta.concrete_fields}
-        saved = (
-            None
-            if update_fields is None
-            else {attnames.get(name, name) for name in update_fields}
-        )
-        for field_name in self._loaded_values:
-            if saved is None or field_name in saved:
-                self._loaded_values[field_name] = getattr(self, field_name)
-
-    def _save_metadata(
-        self,
-        modified_fields: list[str] | None = None,
-        use_sidecar: bool = True,
-        metadata_types: list[str] | None = None,
-    ) -> None:
-        """Write metadata tags to the photo's file or sidecar.
-
-        Kept for its many callers; see
-        ``api.metadata.photo_writer.write_photo_metadata``.
-        """
-        write_photo_metadata(
-            self,
-            modified_fields=modified_fields,
-            use_sidecar=use_sidecar,
-            metadata_types=metadata_types,
-        )
-
-    def manual_delete(self) -> None:
-        """Delete the files only this photo uses and mark it removed.
-
-        Kept for its many callers; see ``api.photo_files.remove_photo``.
-        """
-        return photo_files.remove_photo(self)
-
-    def rotate(self, angle: int = 0, flip_horizontal: bool = False) -> None:
-        """Rotate the photo non-destructively.
-
-        Updates ``local_orientation`` and regenerates thumbnails.  The original
-        file is never modified by this method; the change is stored in the DB
-        and reflected in the regenerated thumbnails.
-
-        Optionally writes the combined orientation to the photo's file (or
-        sidecar) if the owner has ``save_metadata_to_disk`` enabled.
-
-        Args:
-            angle: Clockwise rotation in degrees.  Must be a multiple of 90.
-                Use negative values for counter-clockwise rotation (e.g. -90
-                for 90° CCW).
-            flip_horizontal: If True, apply a horizontal flip on top of the
-                rotation.
-
-        Raises:
-            ValueError: If ``angle`` is not a multiple of 90.
-        """
-        angle = int(angle) % 360  # normalise first so -90 → 270, 360 → 0
-
-        if angle % 90 != 0:
-            raise ValueError("angle must be a multiple of 90 degrees")
-
-        if angle == 0 and not flip_horizontal:
-            return
-
-        from api.util import compose_orientation
-
-        new_orientation = compose_orientation(
-            self.local_orientation,
-            delta_angle_cw=angle,
-            flip_h=flip_horizontal,
-        )
-        self.local_orientation = new_orientation
-        # Bypass _save_metadata – orientation is stored in the DB only for
-        # now; writing to disk is handled separately.
-        self.save(save_metadata=False)
-
-        # Regenerate thumbnails so the UI sees the updated orientation.
-        self.thumbnail._regenerate_thumbnails()
-
-        write_orientation_to_disk(self, angle, flip_horizontal)
 
     def __str__(self) -> str:
         main_file_path = (

@@ -18,8 +18,8 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
 
+from api.metadata.photo_reader import EXIF_VALUE_NAMES, extract_exif_data
 from api.models.photo_metadata import (
-    EXIF_VALUE_NAMES,
     MetadataEdit,
     PhotoMetadata,
 )
@@ -181,8 +181,8 @@ class PhotoMetadataModelTestCase(TestCase):
         Built from EXIF_VALUE_NAMES, so adding a tag does not break these.
         """
         mock_values = [named_values.get(name) for name in EXIF_VALUE_NAMES]
-        with patch("api.models.photo_metadata.get_metadata", return_value=mock_values):
-            return PhotoMetadata.extract_exif_data(self.photo, commit=True)
+        with patch("api.metadata.photo_reader.get_metadata", return_value=mock_values):
+            return extract_exif_data(self.photo, commit=True)
 
     def test_extract_exif_data_merges_xmp_and_iptc_keywords(self):
         """Test that extract_exif_data merges XMP:Subject and IPTC:Keywords."""
@@ -237,8 +237,8 @@ class PhotoMetadataModelTestCase(TestCase):
 
     def test_extract_exif_data_tolerates_a_short_result(self):
         """A get_metadata result shorter than the tag list must not KeyError."""
-        with patch("api.models.photo_metadata.get_metadata", return_value=[None] * 18):
-            metadata = PhotoMetadata.extract_exif_data(self.photo, commit=True)
+        with patch("api.metadata.photo_reader.get_metadata", return_value=[None] * 18):
+            metadata = extract_exif_data(self.photo, commit=True)
 
         self.assertIsNotNone(metadata)
         self.assertIsNone(metadata.keywords)
@@ -732,7 +732,7 @@ class PhotoMetadataEdgeCasesTestCase(TestCase):
         # The file carries no metadata; the exif service is not running here.
         with (
             patch(
-                "api.models.photo_metadata.get_metadata",
+                "api.metadata.photo_reader.get_metadata",
                 side_effect=lambda path, tags, **kwargs: [None] * len(tags),
             ),
             patch(

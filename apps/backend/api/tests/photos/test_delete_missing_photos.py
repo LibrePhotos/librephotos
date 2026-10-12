@@ -148,7 +148,7 @@ class DeleteMissingPhotosThumbnailCleanupTest(TransactionTestCase):
         job_id = str(uuid.uuid4())
 
         with patch(
-            "api.models.thumbnail.os.remove",
+            "api.file_cleanup.os.remove",
             side_effect=[PermissionError("denied"), None, None],
         ) as remove:
             delete_missing_photos(user, job_id)

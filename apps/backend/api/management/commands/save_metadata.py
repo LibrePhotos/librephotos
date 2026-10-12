@@ -3,7 +3,7 @@ from typing import Any
 from django.core.management.base import BaseCommand, CommandError, CommandParser
 from django.db.models import QuerySet
 
-from api.metadata.photo_writer import write_target
+from api.metadata.photo_writer import write_photo_metadata, write_target
 from api.models import Photo, User
 
 # The modes in which a user's edits are written to disk (write_target is not
@@ -92,8 +92,8 @@ class Command(BaseCommand):
             if use_sidecar is None:
                 continue  # handle() keeps only the photos of owners who sync
             try:
-                photo._save_metadata(
-                    use_sidecar=use_sidecar, metadata_types=metadata_types
+                write_photo_metadata(
+                    photo, use_sidecar=use_sidecar, metadata_types=metadata_types
                 )
                 written += 1
             except Exception as e:

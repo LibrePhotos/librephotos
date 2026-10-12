@@ -445,7 +445,7 @@ class RevertAllTest(MetadataApiTestCase):
 
         with (
             patch(
-                "api.models.photo_metadata.get_metadata", side_effect=_no_file_metadata
+                "api.metadata.photo_reader.get_metadata", side_effect=_no_file_metadata
             ),
             patch("api.metadata.edits.get_metadata", side_effect=_no_file_metadata),
             patch(
@@ -484,7 +484,7 @@ class RevertAllTest(MetadataApiTestCase):
             return [file_values.get(tag) for tag in tags]
 
         with (
-            patch("api.models.photo_metadata.get_metadata", side_effect=file_metadata),
+            patch("api.metadata.photo_reader.get_metadata", side_effect=file_metadata),
             patch("api.metadata.edits.get_metadata", side_effect=_no_file_metadata),
             patch(
                 "api.metadata.photo_datetime.get_metadata",

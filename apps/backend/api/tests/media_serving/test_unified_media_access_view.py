@@ -16,7 +16,7 @@ from django.test import TestCase, override_settings
 from rest_framework.test import APIRequestFactory
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from api.models import File
+from api.media_files import get_or_create_file
 from api.models.album_user_share import AlbumUserShare
 from api.tests.utils import (
     ONE_PIXEL_PNG,
@@ -129,7 +129,7 @@ class UnifiedEmbeddedMediaTest(TestCase):
         embedded_path = f"/tmp/{self.photo.image_hash}-embedded.mp4"
         with open(embedded_path, "wb+") as handle:
             handle.write(ONE_PIXEL_PNG + b"embedded")
-        self.embedded = File.create(embedded_path, self.owner)
+        self.embedded = get_or_create_file(embedded_path, self.owner)
         self.photo.main_file.embedded_media.add(self.embedded)
 
     def test_owner_gets_the_embedded_file(self):
@@ -717,7 +717,9 @@ class UnifiedCookieAndHeaderAuthTest(TestCase):
         embedded_path = f"/tmp/{self.photo.image_hash}-embedded-auth.mp4"
         with open(embedded_path, "wb+") as handle:
             handle.write(ONE_PIXEL_PNG + b"embedded")
-        self.photo.main_file.embedded_media.add(File.create(embedded_path, self.owner))
+        self.photo.main_file.embedded_media.add(
+            get_or_create_file(embedded_path, self.owner)
+        )
         response = _unified(
             "embedded_media", self.photo.image_hash, jwt=_expired_token_for(self.owner)
         )

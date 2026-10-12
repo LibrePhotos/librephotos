@@ -19,6 +19,7 @@ from django.test import TestCase
 from rest_framework.test import APIClient
 
 from api.models.photo_stack import PhotoStack
+from api.photo_files import remove_photo
 from api.tests.utils import (
     api_error,
     create_test_photo,
@@ -590,7 +591,7 @@ class StackDetailAPITestCase(TestCase):
         # Delete primary photo
         photo1.in_trashcan = True
         photo1.save()
-        photo1.manual_delete()
+        remove_photo(photo1)
 
         # Stack should still exist with 2 photos
         stack.refresh_from_db()

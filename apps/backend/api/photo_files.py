@@ -38,7 +38,7 @@ def detach_missing_files(photo: Photo) -> None:
             file.save()
             detached = True
     if detached:
-        photo.save(save_metadata=False, update_fields=["last_modified"])
+        photo.save(update_fields=["last_modified"])
 
 
 def remove_photo(photo: Photo) -> None:

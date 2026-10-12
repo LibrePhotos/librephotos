@@ -13,7 +13,14 @@ from uuid import UUID
 from django import db
 from django.db.models import Q, QuerySet
 
-from api import sidecars, transcode_cache, video_color
+from api import (
+    photo_faces,
+    semantic_search,
+    sidecars,
+    thumbnails,
+    transcode_cache,
+    video_color,
+)
 from api.directory_watcher.utils import (
     CANCELLATION_CHECK_INTERVAL,
     is_job_cancelled,
@@ -38,7 +45,7 @@ def _encode_face(face: Face, job_id: UUID | str) -> None:
     failed = False
     error = None
     try:
-        face.generate_encoding()
+        photo_faces.generate_face_encoding(face)
     except Exception as err:
         logger.exception("Could not generate an encoding for face %s", face.id)
         failed = True
@@ -228,7 +235,7 @@ def generate_tag_job(photo_id: UUID | Photo, job_id: str) -> None:
     error = None
     try:
         caption_instance, created = PhotoCaption.objects.get_or_create(photo=photo)
-        caption_instance.generate_tag_captions(commit=True)
+        semantic_search.generate_photo_tags(caption_instance, commit=True)
     except Exception as err:
         logger.exception("An error occurred: %s", photo.image_hash)
         failed = True
@@ -632,11 +639,11 @@ def _repair_probed_video(photo: Photo, fields: list[str]) -> None:
             if thumbnail is not None:
                 # If ffmpeg fails, the old thumbnail stays: washed out or not,
                 # it is the video's picture, and none at all would be worse.
-                thumbnail._regenerate_thumbnails(keep_old_on_failure=True)
+                thumbnails.regenerate_thumbnails(thumbnail, keep_old_on_failure=True)
     except Exception:
-        photo.save(save_metadata=False, update_fields=fields)
+        photo.save(update_fields=fields)
         raise
-    photo.save(save_metadata=False, update_fields=fields)
+    photo.save(update_fields=fields)
 
 
 def probe_videos(user: User, job_id: UUID) -> None:
@@ -649,7 +656,7 @@ def probe_videos(user: User, job_id: UUID) -> None:
     every conversion of one probes the file itself, and their thumbnails date
     from before HDR sources were tonemapped and every output was forced to
     8-bit 4:2:0 --
-    ``_generate_thumbnail`` keeps a thumbnail that exists, so a washed-out or
+    ``thumbnails.generate_thumbnail`` keeps a thumbnail that exists, so a washed-out or
     unplayable one stays that way, and so does the cached copy. This fills the
     fields in and, for the videos :func:`video_color.converted_wrongly_before`
     names, drops the cached copy and rebuilds the thumbnails. An 8-bit 4:2:0

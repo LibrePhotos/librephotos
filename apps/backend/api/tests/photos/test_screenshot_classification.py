@@ -170,13 +170,13 @@ class ScanTimeHookTest(TestCase):
 
     def _run_process(self, photo):
         with (
-            patch("api.models.thumbnail.Thumbnail._generate_thumbnail"),
-            patch("api.models.thumbnail.Thumbnail._calculate_aspect_ratio"),
-            patch("api.models.thumbnail.Thumbnail._get_dominant_color"),
+            patch("api.thumbnails.generate_thumbnail"),
+            patch("api.thumbnails.calculate_aspect_ratio"),
+            patch("api.thumbnails.calculate_dominant_color"),
             patch("api.models.photo_search.PhotoSearch.recreate_search_captions"),
             # The PNG carries no camera metadata; the exif service is not running.
             patch(
-                "api.models.photo_metadata.get_metadata",
+                "api.metadata.photo_reader.get_metadata",
                 side_effect=lambda path, tags, **kwargs: [None] * len(tags),
             ),
             patch(

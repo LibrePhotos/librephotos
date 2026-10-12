@@ -3,7 +3,7 @@ Tests for File path uniqueness enforcement.
 
 Tests verify:
 - Database unique constraint on File.path
-- File.create() get_or_create pattern
+- get_or_create_file() get_or_create pattern
 - Migration deduplication logic
 - Concurrent scan handling
 """
@@ -15,6 +15,7 @@ import threading
 from django.db import IntegrityError, transaction
 from django.test import TestCase, TransactionTestCase
 
+from api.media_files import get_or_create_file
 from api.models.file import File
 from api.tests.utils import create_test_file, create_test_photo, create_test_user
 
@@ -81,7 +82,7 @@ class FilePathUniqueConstraintTestCase(TestCase):
 
 
 class FileCreateMethodTestCase(TestCase):
-    """Tests for File.create() get_or_create pattern."""
+    """Tests for get_or_create_file() get_or_create pattern."""
 
     def setUp(self):
         self.user = create_test_user()
@@ -102,14 +103,14 @@ class FileCreateMethodTestCase(TestCase):
         return path
 
     def test_create_returns_existing_file_for_same_path(self):
-        """Test that File.create() returns existing File for same path."""
+        """Test that get_or_create_file() returns existing File for same path."""
         path = self._create_test_file("test.jpg")
 
         # Create first file
-        file1 = File.create(path, self.user)
+        file1 = get_or_create_file(path, self.user)
 
         # Create second file with same path - should return existing
-        file2 = File.create(path, self.user)
+        file2 = get_or_create_file(path, self.user)
 
         # Should be the same file
         self.assertEqual(file1.hash, file2.hash)
@@ -122,36 +123,36 @@ class FileCreateMethodTestCase(TestCase):
         """The scan has already hashed the file; reading it twice was waste."""
         from unittest import mock
 
-        from api.models.file import calculate_hash
+        from api.media_files import calculate_hash
 
         path = self._create_test_file("given.jpg")
         known = calculate_hash(self.user, path)
 
-        with mock.patch("api.models.file.calculate_hash") as hash_again:
-            file = File.create(path, self.user, known)
+        with mock.patch("api.media_files.calculate_hash") as hash_again:
+            file = get_or_create_file(path, self.user, known)
 
         hash_again.assert_not_called()
         self.assertEqual(File.objects.get(path=path).hash, known)
         self.assertEqual(file.type, File.IMAGE)
 
     def test_create_creates_new_file_for_different_path(self):
-        """Test that File.create() creates new File for different path."""
+        """Test that get_or_create_file() creates new File for different path."""
         path1 = self._create_test_file("test1.jpg", b"content1")
         path2 = self._create_test_file("test2.jpg", b"content2")
 
-        file1 = File.create(path1, self.user)
-        file2 = File.create(path2, self.user)
+        file1 = get_or_create_file(path1, self.user)
+        file2 = get_or_create_file(path2, self.user)
 
         self.assertNotEqual(file1.hash, file2.hash)
         self.assertNotEqual(file1.path, file2.path)
         self.assertEqual(File.objects.count(), 2)
 
     def test_create_returns_existing_even_if_content_changed(self):
-        """Test that File.create() returns existing File even if content changed."""
+        """Test that get_or_create_file() returns existing File even if content changed."""
         path = self._create_test_file("test.jpg", b"original content")
 
         # Create first file
-        file1 = File.create(path, self.user)
+        file1 = get_or_create_file(path, self.user)
         original_hash = file1.hash
 
         # Modify file content
@@ -159,27 +160,27 @@ class FileCreateMethodTestCase(TestCase):
             f.write(b"modified content")
 
         # Create again - should return existing File (not recalculate hash)
-        file2 = File.create(path, self.user)
+        file2 = get_or_create_file(path, self.user)
 
         # Should return existing file (hash stays the same)
         self.assertEqual(file1.hash, file2.hash)
         self.assertEqual(file2.hash, original_hash)
 
     def test_create_determines_correct_file_type(self):
-        """Test that File.create() correctly determines file type."""
+        """Test that get_or_create_file() correctly determines file type."""
         # Create image file
         img_path = self._create_test_file("photo.jpg")
-        img_file = File.create(img_path, self.user)
+        img_file = get_or_create_file(img_path, self.user)
         self.assertEqual(img_file.type, File.IMAGE)
 
         # Create RAW file
         raw_path = self._create_test_file("photo.CR2")
-        raw_file = File.create(raw_path, self.user)
+        raw_file = get_or_create_file(raw_path, self.user)
         self.assertEqual(raw_file.type, File.RAW_FILE)
 
         # Create metadata file
         xmp_path = self._create_test_file("photo.xmp")
-        xmp_file = File.create(xmp_path, self.user)
+        xmp_file = get_or_create_file(xmp_path, self.user)
         self.assertEqual(xmp_file.type, File.METADATA_FILE)
 
 
@@ -281,14 +282,14 @@ class ConcurrentScanTestCase(TransactionTestCase):
         return path
 
     def test_concurrent_create_same_path_no_duplicates(self):
-        """Test that concurrent File.create() calls don't create duplicates."""
+        """Test that concurrent get_or_create_file() calls don't create duplicates."""
         path = self._create_test_file("concurrent_test.jpg")
         results = []
         errors = []
 
         def create_file():
             try:
-                file = File.create(path, self.user)
+                file = get_or_create_file(path, self.user)
                 results.append(file.hash)
             except Exception as e:
                 errors.append(str(e))
@@ -325,7 +326,7 @@ class ConcurrentScanTestCase(TransactionTestCase):
         results = []
 
         def create_file(path):
-            file = File.create(path, self.user)
+            file = get_or_create_file(path, self.user)
             results.append(file.hash)
 
         threads = []

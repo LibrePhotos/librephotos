@@ -19,10 +19,12 @@ from api.directory_watcher.scan_jobs import (
 )
 from api.face_classify import cluster_all_faces
 from api.geocode.geocode import reverse_geocode, search_location
+from api.image_captioning import generate_photo_caption
+from api.media_files import is_valid_media
 from api.models import Face, LongRunningJob
-from api.models.file import is_valid_media
 from api.models.photo_caption import PhotoCaption
 from api.photo_faces import extract_faces
+from api.semantic_search import generate_photo_tags
 from api.tests.utils import (
     ONE_PIXEL_PNG,
     create_test_file,
@@ -70,7 +72,7 @@ class VideoFeatureFlagTest(TestCase):
         self.user = create_test_user()
 
     def _is_valid_video(self):
-        with patch("api.models.file.is_video", return_value=True):
+        with patch("api.media_files.is_video", return_value=True):
             return is_valid_media(path="/data/clip.mp4", user=self.user)
 
     def test_video_is_admitted_by_default(self):
@@ -82,7 +84,7 @@ class VideoFeatureFlagTest(TestCase):
 
     @override_settings(FEATURE_VIDEO=False)
     def test_images_are_still_admitted_when_video_is_disabled(self):
-        with patch("api.models.file.is_video", return_value=False):
+        with patch("api.media_files.is_video", return_value=False):
             self.assertTrue(is_valid_media(path="/data/sidecar.xmp", user=self.user))
 
 
@@ -161,13 +163,13 @@ class SceneClassificationFeatureFlagTest(TestCase):
         )
         post_mock.return_value = response
 
-        self.caption.generate_tag_captions()
+        generate_photo_tags(self.caption)
         post_mock.assert_called_once()
 
     @override_settings(FEATURE_SCENE_CLASSIFICATION=False)
     @patch("api.sidecars.http.post")
     def test_tags_skipped_when_disabled(self, post_mock):
-        self.caption.generate_tag_captions()
+        generate_photo_tags(self.caption)
         post_mock.assert_not_called()
 
 
@@ -179,19 +181,19 @@ class ImageCaptioningFeatureFlagTest(TestCase):
         self.photo = create_test_photo(owner=self.user)
         self.caption = PhotoCaption.objects.create(photo=self.photo)
 
-    @patch("api.models.photo_caption.generate_caption", return_value="a cat")
+    @patch("api.image_captioning.generate_caption", return_value="a cat")
     def test_captions_are_generated_by_default(self, generate_caption_mock):
-        self.assertTrue(self.caption.generate_captions_im2txt())
+        self.assertTrue(generate_photo_caption(self.caption))
         generate_caption_mock.assert_called_once()
 
     @override_settings(FEATURE_IMAGE_CAPTIONING=False)
-    @patch("api.models.photo_caption.generate_caption")
+    @patch("api.image_captioning.generate_caption")
     def test_captions_skipped_when_disabled(self, generate_caption_mock):
-        self.assertFalse(self.caption.generate_captions_im2txt())
+        self.assertFalse(generate_photo_caption(self.caption))
         generate_caption_mock.assert_not_called()
 
     @override_settings(FEATURE_IMAGE_CAPTIONING=False)
-    @patch("api.models.photo_caption.PhotoCaption.generate_captions_im2txt")
+    @patch("api.image_captioning.generate_photo_caption")
     def test_generate_caption_endpoint_refuses_when_disabled(
         self, generate_captions_mock
     ):

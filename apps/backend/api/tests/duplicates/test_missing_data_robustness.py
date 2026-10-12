@@ -14,6 +14,7 @@ from rest_framework.test import APIClient, APITestCase
 from api.models.duplicate import Duplicate
 from api.models.photo_metadata import PhotoMetadata
 from api.models.photo_stack import PhotoStack
+from api.photo_files import remove_photo
 from api.tests.utils import (
     create_test_duplicate,
     create_test_photo,
@@ -375,7 +376,7 @@ class PhotoDeletionEdgeCasesTestCase(TestCase):
         stack2.photos.add(photo, *other_photos2)
 
         # Delete the shared photo
-        photo.manual_delete()
+        remove_photo(photo)
 
         # Both stacks should still exist with remaining photos
         stack1.refresh_from_db()
@@ -402,7 +403,7 @@ class PhotoDeletionEdgeCasesTestCase(TestCase):
         dup2.photos.add(photo, *other_photos2)
 
         # Delete the shared photo
-        photo.manual_delete()
+        remove_photo(photo)
 
         # Both groups should be cleaned up (single photo remaining)
         # Depending on implementation, they may be deleted or left with 1 photo
@@ -418,7 +419,7 @@ class PhotoDeletionEdgeCasesTestCase(TestCase):
         stack.photos.add(*photos)
 
         # Delete the primary photo
-        photos[0].manual_delete()
+        remove_photo(photos[0])
 
         stack.refresh_from_db()
 

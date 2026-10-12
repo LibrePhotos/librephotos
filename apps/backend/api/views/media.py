@@ -414,7 +414,7 @@ class MediaServingView(APIView):
         """Return the ``FieldFile`` holding the thumbnail ``path`` asks for.
 
         The request filename cannot be turned into an on-disk name by string
-        manipulation: ``Thumbnail._generate_thumbnail`` always stores files as
+        manipulation: ``api.thumbnails.generate_thumbnail`` always stores files as
         ``<image_hash>.<ext>``, while the frontend also addresses photos by
         their UUID (``AlbumCoverPickerModal``, the lightbox preloader), so a
         UUID request would otherwise be pointed at a file that does not exist.
@@ -690,7 +690,7 @@ class MediaServingView(APIView):
         """Choose which row a shared ``image_hash`` resolves to.
 
         ``Photo.image_hash`` is meant to be unique per user, but two users who
-        scan the same file end up sharing one: ``File.create()`` returns the
+        scan the same file end up sharing one: ``get_or_create_file()`` returns the
         existing row for a path already on disk, so the second user's Photo
         inherits the first scanner's hash. Falling back to an arbitrary row
         then denies an owner access to their own photo, so prefer a row the

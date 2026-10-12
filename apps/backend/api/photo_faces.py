@@ -20,6 +20,7 @@ from django.db.utils import IntegrityError
 
 import api.models
 from api import face_extractor
+from api.face_recognition import get_face_encodings
 from api.lazy_import import LazyModule
 from api.util import FACE_OVERLAP_IOU_THRESHOLD, calculate_iou
 
@@ -196,7 +197,7 @@ def save_detected_face(
         location_right=right,
         location_bottom=bottom,
         location_left=left,
-        # As Face.generate_encoding stores it.
+        # As generate_face_encoding stores it.
         encoding="" if encoding is None else encoding.tobytes().hex(),
         person=person,
         cluster=cluster,
@@ -224,3 +225,31 @@ def _retry_face_extraction(photo: Photo, second_try: bool) -> None:
         logger.error("image %s: rescan face failed", photo.main_file.path)
     else:
         logger.error("image %s: rescan face failed", photo)
+
+
+def generate_face_encoding(face: api.models.face.Face) -> None:
+    """Ask the face service for the encoding of ``face``'s region and save it.
+
+    Moved out of ``Face`` so the model makes no sidecar calls (#2336).
+    """
+    photo = face.photo
+    assert photo is not None
+    encodings = get_face_encodings(
+        photo.thumbnail.thumbnail_big.path,
+        [
+            (
+                face.location_top,
+                face.location_right,
+                face.location_bottom,
+                face.location_left,
+            )
+        ],
+    )
+    if not encodings:
+        raise ValueError(f"Face service returned no encoding for face {face.id}")
+    if encodings[0] is None:
+        # Another face's embedding would file this one under a stranger,
+        # so the face keeps no encoding and stays out of clustering.
+        raise ValueError(f"The face service detected no face in face {face.id}")
+    face.encoding = encodings[0].tobytes().hex()
+    face.save()

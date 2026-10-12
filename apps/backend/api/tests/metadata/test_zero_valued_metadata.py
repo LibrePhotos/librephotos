@@ -13,7 +13,7 @@ from unittest.mock import patch
 from django.test import TestCase
 
 from api.geocode.photo_location import geolocate_photo
-from api.models.photo_metadata import EXIF_VALUE_NAMES, PhotoMetadata
+from api.metadata.photo_reader import EXIF_VALUE_NAMES, extract_exif_data
 from api.tests.utils import create_test_photo, create_test_user
 
 
@@ -65,8 +65,8 @@ class ZeroRatingAndImageNumberTestCase(TestCase):
         mock_values[13] = 0  # RATING (explicit 0 stars)
         mock_values[15] = 0  # IMAGE_NUMBER (first frame of a burst)
 
-        with patch("api.models.photo_metadata.get_metadata", return_value=mock_values):
-            PhotoMetadata.extract_exif_data(self.photo, commit=True)
+        with patch("api.metadata.photo_reader.get_metadata", return_value=mock_values):
+            extract_exif_data(self.photo, commit=True)
 
         self.photo.refresh_from_db()
         self.assertEqual(self.photo.image_sequence_number, 0)

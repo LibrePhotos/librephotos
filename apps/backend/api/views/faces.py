@@ -24,11 +24,12 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from api import photo_faces
 from api.directory_watcher import generate_face_embeddings, scan_faces
 from api.exceptions import Conflict
 from api.face_classify import cluster_all_faces
 from api.jobs.queue import JobStep
-from api.metadata.photo_writer import write_target
+from api.metadata.photo_writer import write_photo_metadata, write_target
 from api.ml_models import missing_models_prerequisites
 from api.models import Face, LongRunningJob, Photo
 from api.models.person import Person, get_or_create_person
@@ -423,7 +424,8 @@ class SetFacePersonLabel(APIView):
         if user.save_face_tags_to_disk and use_sidecar is not None:
             for photo in updated_photos.values():
                 try:
-                    photo._save_metadata(
+                    write_photo_metadata(
+                        photo,
                         use_sidecar=use_sidecar,
                         metadata_types=["face_tags"],
                     )
@@ -574,7 +576,7 @@ class AddFaceView(APIView):
         # a face service that is down or disabled delays recognition rather than
         # losing the user's work.
         try:
-            face.generate_encoding()
+            photo_faces.generate_face_encoding(face)
         except Exception:
             logger.exception(
                 "Could not encode manually added face %s; "
@@ -592,8 +594,8 @@ class AddFaceView(APIView):
         use_sidecar = write_target(user)
         if user.save_face_tags_to_disk and use_sidecar is not None:
             try:
-                photo._save_metadata(
-                    use_sidecar=use_sidecar, metadata_types=["face_tags"]
+                write_photo_metadata(
+                    photo, use_sidecar=use_sidecar, metadata_types=["face_tags"]
                 )
             except Exception:
                 logger.exception(

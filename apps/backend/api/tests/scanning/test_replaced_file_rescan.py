@@ -10,15 +10,18 @@ from django.test import TestCase, override_settings
 from PIL import Image
 
 import api.image_decoding  # noqa: F401  registers the HEIF opener _write_image(format="HEIF") needs
-from api import binaries
+from api import binaries, thumbnails
 from api.directory_watcher.file_handlers import (
     create_file_record,
     group_files_into_photo,
 )
+from api.media_files import calculate_hash
+from api.metadata.edits import set_rating
+from api.metadata.photo_writer import rotate_photo
 from api.metadata.tags import Tags
 from api.metadata.writer import read_orientation, write_metadata
 from api.models import File, Person, Photo, User
-from api.models.file import calculate_hash, content_hash
+from api.models.file import content_hash
 from api.perceptual_hash import calculate_hash_from_thumbnail
 from api.tests.utils import (
     create_test_face,
@@ -91,12 +94,12 @@ class ReplacedFileTestCase(TestCase):
             square_thumbnail_small="",
             aspect_ratio=None,
         )
-        thumbnail._generate_thumbnail()
-        thumbnail._calculate_aspect_ratio()
+        thumbnails.generate_thumbnail(thumbnail)
+        thumbnails.calculate_aspect_ratio(thumbnail)
         photo.perceptual_hash = calculate_hash_from_thumbnail(
             thumbnail.thumbnail_big.path
         )
-        photo.save(save_metadata=False, update_fields=["perceptual_hash"])
+        photo.save(update_fields=["perceptual_hash"])
 
     def _thumbnail_path(self, photo_hash, directory="thumbnails_big"):
         return os.path.join(self.media_root, directory, photo_hash + ".webp")
@@ -291,6 +294,11 @@ def _append_a_byte(path, *args, **kwargs):
         f.write(b"\x00")
 
 
+def _run_now(func, *args):
+    """Stand-in for ``enqueue_task`` that runs the job right away."""
+    func(*args)
+
+
 class MetadataWriteIsNotAReplacementTest(ReplacedFileTestCase):
     """With save_metadata_to_disk=MEDIA_FILE, LibrePhotos rewrites the original
     on every rating or face-tag change. The bytes change but the picture does
@@ -302,20 +310,14 @@ class MetadataWriteIsNotAReplacementTest(ReplacedFileTestCase):
         self.user.save()
 
     def _rate_photo(self, photo, write_metadata_mock):
-        """Rate a photo the way the API does, from a row loaded from the DB.
-
-        Photo.save() only writes the tags it sees as modified, which it works
-        out from the values the instance was loaded with, so a photo that was
-        built in memory would silently write nothing.
-        """
-        loaded = Photo.objects.get(pk=photo.pk)
+        """Rate a photo the way the API does: ``edits.set_rating``, whose
+        write-back job runs right away here instead of on the queue."""
         with (
             patch("api.metadata.photo_writer.write_metadata", write_metadata_mock),
-            self.captureOnCommitCallbacks(execute=True),
+            patch("api.metadata.jobs.enqueue_task", _run_now),
         ):
-            loaded.rating = 4
-            loaded.save(save_metadata=True)
-        return loaded
+            set_rating(Photo.objects.filter(pk=photo.pk), 4, self.user)
+        return Photo.objects.get(pk=photo.pk)
 
     def test_rescan_after_our_own_write_only_rekeys_the_file(self):
         _write_image(self.path, 1)
@@ -388,11 +390,11 @@ class RotationIsNotAReplacementTest(ReplacedFileTestCase):
     def _rotate(self, photo):
         """Rotate a quarter turn clockwise, as the lightbox's button does.
 
-        The frontend sends -90 for it: ``Photo.rotate`` counts its angle
+        The frontend sends -90 for it: ``rotate_photo`` counts its angle
         counter-clockwise as rendered (``_apply_local_orientation``).
         """
         loaded = Photo.objects.get(pk=photo.pk)
-        loaded.rotate(-90)
+        rotate_photo(loaded, -90)
         return loaded
 
     def _big_thumbnail_is_portrait(self, photo):
@@ -404,7 +406,7 @@ class RotationIsNotAReplacementTest(ReplacedFileTestCase):
     def _rebuild(self, photo):
         """Throw the thumbnails away and render them again from the file."""
         photo = Photo.objects.get(pk=photo.pk)
-        photo.thumbnail._regenerate_thumbnails()
+        thumbnails.regenerate_thumbnails(photo.thumbnail)
         return photo
 
     def test_rotating_a_photo_does_not_cost_it_its_faces(self):
@@ -533,7 +535,7 @@ class RotationIsNotAReplacementTest(ReplacedFileTestCase):
         with patch(
             "api.metadata.photo_writer.write_metadata", side_effect=_append_a_byte
         ):
-            loaded.rotate(-90)
+            rotate_photo(loaded, -90)
 
         self.assertEqual(1, read_orientation(self.path))
         self.assertEqual(8, Photo.objects.get(pk=photo.pk).local_orientation)
@@ -552,8 +554,8 @@ class RotationIsNotAReplacementTest(ReplacedFileTestCase):
         create_test_face(photo=photo)
         photo = Photo.objects.get(pk=photo.pk)
         photo.local_orientation = 8
-        photo.save(save_metadata=False, update_fields=["local_orientation"])
-        photo.thumbnail._regenerate_thumbnails()
+        photo.save(update_fields=["local_orientation"])
+        thumbnails.regenerate_thumbnails(photo.thumbnail)
         write_metadata(self.path, {Tags.ORIENTATION: 6}, use_sidecar=False)
 
         rescanned = self._scan()
@@ -564,7 +566,7 @@ class RotationIsNotAReplacementTest(ReplacedFileTestCase):
 
 
 class RemovedPhotoIsNotSweptInTest(ReplacedFileTestCase):
-    """manual_delete leaves a photo with its image_hash and its faces but no
+    """remove_photo leaves a photo with its image_hash and its faces but no
     file. A replacement of a live photo with the same hash must not reach it."""
 
     def test_a_removed_photo_keeps_its_faces(self):
