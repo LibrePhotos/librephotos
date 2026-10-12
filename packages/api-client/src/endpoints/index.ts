@@ -113,7 +113,7 @@ export type DateAlbumFilter = {
   photo?: boolean;
   video?: boolean;
   is_screenshot?: boolean;
-  /** The web timeline's filter (api/timeline_filter.py): "all" is the same as leaving it out. */
+  /** The web timeline's filter (api/albums/timeline_filter.py): "all" is the same as leaving it out. */
   media?: "all" | "photos" | "videos";
   hide_screenshots?: boolean;
   hide_documents?: boolean;
