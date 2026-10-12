@@ -22,12 +22,13 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ViewSet
 
-from api.exceptions import EditSuperseded
+from api.drf.exceptions import EditSuperseded
+from api.drf.pagination import PAGE_PARAMETERS, PaginatedViewMixin
+from api.drf.params import parse_body, parse_query
+from api.drf.request_user import request_user
 from api.metadata import edits
 from api.models import Photo
 from api.models.photo_metadata import MetadataEdit, PhotoMetadata
-from api.pagination import PAGE_PARAMETERS, PaginatedViewMixin
-from api.request_user import request_user
 from api.serializers.photo_metadata import (
     BulkMetadataQuery,
     BulkMetadataUpdateRequest,
@@ -36,7 +37,6 @@ from api.serializers.photo_metadata import (
     PhotoMetadataSerializer,
     PhotoMetadataUpdateSerializer,
 )
-from api.views.params import parse_body, parse_query
 
 
 class PhotoMetadataViewSet(PaginatedViewMixin, ViewSet):

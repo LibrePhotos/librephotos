@@ -15,13 +15,13 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from api.drf.pagination import PAGE_PARAMETERS, PaginatedViewMixin
+from api.drf.params import parse_query
+from api.drf.request_user import request_user
 from api.models.photo import Photo
 from api.models.user import User
-from api.pagination import PAGE_PARAMETERS, PaginatedViewMixin
-from api.request_user import request_user
 from api.serializers.folders import FolderPathQuery
 from api.util import folder_path_q, is_valid_path
-from api.views.params import parse_query
 
 logger = logging.getLogger(__name__)
 
@@ -125,7 +125,7 @@ class FolderNavigationViewSet(PaginatedViewMixin, viewsets.ViewSet):
 
     Query Parameters:
     - path: The directory path to list subfolders for
-    - page, page_size: as every paginated list (api/pagination.py)
+    - page, page_size: as every paginated list (api/drf/pagination.py)
 
     Security:
     - Admins (is_staff=True) can access all folders within DATA_ROOT

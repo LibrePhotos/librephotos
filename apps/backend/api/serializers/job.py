@@ -1,8 +1,8 @@
 from rest_framework import serializers
 
+from api.drf.params import QueryFlagField
 from api.models import LongRunningJob
 from api.serializers.simple import SimpleUserSerializer
-from api.views.params import QueryFlagField
 
 
 class LongRunningJobSerializer(serializers.ModelSerializer):

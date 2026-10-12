@@ -2,11 +2,11 @@
 
 from rest_framework import serializers
 
-from api.views.params import ClampedIntegerField
+from api.drf.params import ClampedIntegerField
 
 
 class DuplicateListQuery(serializers.Serializer[None]):
-    """The filters; ``page``/``page_size`` are the paginator's (api/pagination.py)."""
+    """The filters; ``page``/``page_size`` are the paginator's (api/drf/pagination.py)."""
 
     duplicate_type = serializers.CharField(
         required=False,

@@ -1,9 +1,9 @@
-"""The one pagination style of the list endpoints (``api/pagination.py``, #2327)."""
+"""The one pagination style of the list endpoints (``api/drf/pagination.py``, #2327)."""
 
 from django.test import TestCase
 from rest_framework.test import APIClient
 
-from api.pagination import PhotoGridPagination, WholeListPagination
+from api.drf.pagination import PhotoGridPagination, WholeListPagination
 from api.tests.utils import create_test_job, create_test_tag, create_test_user
 
 

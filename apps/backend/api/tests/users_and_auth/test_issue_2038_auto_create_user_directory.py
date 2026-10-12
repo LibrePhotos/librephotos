@@ -13,7 +13,7 @@ from django.conf import settings
 from django.test import TestCase
 from rest_framework.test import APIClient
 
-from api.adapters import SSOSocialAccountAdapter
+from api.accounts.adapters import SSOSocialAccountAdapter
 from api.models import User
 from api.tests.users_and_auth.test_oidc_sso_login import _make_social_login, _request
 from api.tests.utils import create_password, create_test_user
@@ -110,7 +110,7 @@ class AutoCreateUserDirectoryTestCase(TestCase):
         # is created without a directory, exactly as a self-registered one is.
         site_config.AUTO_CREATE_USER_DIRECTORY = True
         with mock.patch(
-            "api.serializers.user.os.makedirs",
+            "api.accounts.directories.os.makedirs",
             side_effect=OSError("Read-only file system"),
         ):
             response = self._create("autodir_readonly")

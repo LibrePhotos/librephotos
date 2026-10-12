@@ -11,7 +11,7 @@ from typing import Any
 
 from rest_framework import serializers
 
-from api.views.params import ClampedIntegerField
+from api.drf.params import ClampedIntegerField
 
 # Rows per page of a feed. The mobile app asks for MAX_PAGE_SIZE on purpose
 # (apps/mobile/src/sync/remote/delta.ts); a larger page_size is clamped to it.

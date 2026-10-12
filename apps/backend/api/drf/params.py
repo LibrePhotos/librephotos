@@ -24,7 +24,7 @@ from rest_framework.fields import empty
 from rest_framework.request import Request
 
 from api.albums.timeline_filter import parse_tristate
-from api.request_data import request_dict
+from api.drf.request_data import request_dict
 
 
 def parse_query(

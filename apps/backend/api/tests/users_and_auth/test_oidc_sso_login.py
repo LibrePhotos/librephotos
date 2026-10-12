@@ -23,8 +23,8 @@ from django.test import RequestFactory, TestCase, override_settings
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import AccessToken
 
-from api.adapters import SSOSocialAccountAdapter
-from api.public_url import is_internal_base_url, public_base_url
+from api.accounts.adapters import SSOSocialAccountAdapter
+from api.accounts.public_url import is_internal_base_url, public_base_url
 from api.tests.utils import create_test_user
 from api.views.sso import LibrePhotosOIDCAdapter
 

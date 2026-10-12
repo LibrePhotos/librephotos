@@ -15,11 +15,11 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from api.all_tasks import create_download_job, delete_zip_file, zip_file_name
-from api.exceptions import InsufficientStorage
+from api.drf.exceptions import InsufficientStorage
+from api.drf.params import parse_body, parse_query
+from api.drf.request_user import request_user
 from api.models import LongRunningJob, Photo
-from api.request_user import request_user
 from api.serializers.zip_download import ZipDownloadRequest, ZipDownloadStatusQuery
-from api.views.params import parse_body, parse_query
 
 logger = logging.getLogger(__name__)
 

@@ -12,17 +12,17 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from api.exceptions import Conflict
+from api.drf.exceptions import Conflict
+from api.drf.params import parse_body
+from api.drf.request_user import request_user
 from api.models import AlbumUser
 from api.models.album_user_share import AlbumUserShare
-from api.request_user import request_user
 from api.serializers.album_user import (
     AlbumUserPublicSerializer,
     SetUserAlbumPublicRequest,
     album_user_card,
 )
 from api.serializers.photos import PublicPhotoDetailSerializer
-from api.views.params import parse_body
 
 SHARING_OPTION_FIELDS = (
     "share_location",

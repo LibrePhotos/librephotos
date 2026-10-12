@@ -8,12 +8,12 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from api.exceptions import UpstreamError
+from api.drf.exceptions import UpstreamError
+from api.drf.params import parse_body
+from api.drf.request_data import request_dict
+from api.drf.request_user import request_user
 from api.models.email_config import PROVIDER_PRESETS, EmailConfig
-from api.request_data import request_dict
-from api.request_user import request_user
 from api.serializers.email_config import EmailConfigRequest, EmailTestRequest
-from api.views.params import parse_body
 
 logger = logging.getLogger(__name__)
 

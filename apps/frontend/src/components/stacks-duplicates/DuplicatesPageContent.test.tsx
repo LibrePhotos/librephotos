@@ -7,7 +7,7 @@
  *   wrong state and Delete Selected hit groups that were no longer on screen.
  * - The empty state said "All duplicate groups have been reviewed" even when
  *   detection had never found anything.
- * - A page past the end is a 404 (backend api/pagination.py): emptying the last
+ * - A page past the end is a 404 (backend api/drf/pagination.py): emptying the last
  *   page steps back a page.
  */
 import "@mantine/core/styles.css";

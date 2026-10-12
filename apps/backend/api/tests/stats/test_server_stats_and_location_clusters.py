@@ -1,8 +1,8 @@
-"""Characterization tests for api/stats.py (CRAP unit 28).
+"""Characterization tests for api/dataviz/stats.py (CRAP unit 28).
 
 Pins the CURRENT behavior of:
-  * ``api.stats.get_server_stats``    (cyclomatic complexity 34)
-  * ``api.stats.get_location_clusters`` (cyclomatic complexity 14)
+  * ``api.dataviz.stats.get_server_stats``    (cyclomatic complexity 34)
+  * ``api.dataviz.stats.get_location_clusters`` (cyclomatic complexity 14)
 
 These are characterization tests: they assert what the code does today,
 including quirks (see the ``# QUIRK:`` comments), so that a later refactor
@@ -16,9 +16,9 @@ from django.test import TestCase, override_settings
 from django.utils import timezone
 
 from api import binaries
+from api.dataviz.stats import get_location_clusters, get_server_stats
 from api.models import Person, Photo
 from api.models.user import get_deleted_user
-from api.stats import get_location_clusters, get_server_stats
 from api.tests.utils import (
     create_test_album_auto,
     create_test_album_place,
@@ -56,11 +56,13 @@ class ServerStatsBaseTest(TestCase):
         cpu_patch = patch("cpuinfo.get_cpu_info", return_value=dict(CPU_INFO))
         self.mock_cpu = cpu_patch.start()
         self.addCleanup(cpu_patch.stop)
-        available_patch = patch("api.stats.binaries.available", return_value=True)
+        available_patch = patch(
+            "api.dataviz.stats.binaries.available", return_value=True
+        )
         available_patch.start()
         self.addCleanup(available_patch.stop)
         smi_patch = patch(
-            "api.stats.binaries.run_tool",
+            "api.dataviz.stats.binaries.run_tool",
             side_effect=binaries.ToolMissingError("nvidia-smi", "not found"),
         )
         smi_patch.start()
@@ -127,15 +129,15 @@ class GetServerStatsGpuBranchTest(ServerStatsBaseTest):
         completed = subprocess.CompletedProcess(
             args=["nvidia-smi"], returncode=0, stdout="Fake GPU, 8192\n", stderr=""
         )
-        with patch("api.stats.binaries.run_tool", return_value=completed):
+        with patch("api.dataviz.stats.binaries.run_tool", return_value=completed):
             stats = get_server_stats()
         self.assertEqual(stats["gpu_name"], "Fake GPU")
         self.assertEqual(stats["gpu_memory_in_mb"], 8192)
 
     def test_a_host_without_nvidia_smi_does_not_run_it(self):
         with (
-            patch("api.stats.binaries.available", return_value=False),
-            patch("api.stats.binaries.run_tool") as run_tool,
+            patch("api.dataviz.stats.binaries.available", return_value=False),
+            patch("api.dataviz.stats.binaries.run_tool") as run_tool,
         ):
             stats = get_server_stats()
         run_tool.assert_not_called()
@@ -145,7 +147,7 @@ class GetServerStatsGpuBranchTest(ServerStatsBaseTest):
         completed = subprocess.CompletedProcess(
             args=["nvidia-smi"], returncode=9, stdout="", stderr="no devices"
         )
-        with patch("api.stats.binaries.run_tool", return_value=completed):
+        with patch("api.dataviz.stats.binaries.run_tool", return_value=completed):
             stats = get_server_stats()
         self.assertEqual(stats["gpu_name"], "")
         self.assertEqual(stats["gpu_memory_in_mb"], "")
@@ -476,16 +478,18 @@ class GetLocationClustersTest(TestCase):
         create_test_photo(owner=self.user, geolocation_json=None)  # excluded by query
         create_test_photo(owner=self.user, geolocation_json={})
         create_test_photo(owner=self.user, geolocation_json={"features": []})
-        # a list payload: `(geo or {}).get` raises AttributeError, which is swallowed
+        # a list payload has no features
         create_test_photo(owner=self.user, geolocation_json=["not", "a", "dict"])
         self.assertEqual(get_location_clusters(self.user), [])
 
-    def test_features_not_a_list_raises_type_error(self):
-        # QUIRK: a non-iterable "features" value is NOT defended against; the
-        # try/except only guards the .get() call, not the iteration.
+    def test_features_that_are_not_a_list_are_skipped(self):
+        # It used to raise TypeError (a 500 from /api/locclust/): the old
+        # try/except only guarded the .get() call, not the iteration.
         create_test_photo(owner=self.user, geolocation_json={"features": 5})
-        with self.assertRaises(TypeError):
-            get_location_clusters(self.user)
+        create_test_photo(
+            owner=self.user, geolocation_json=_geo(_feature("OK", [1.0, 2.0]))
+        )
+        self.assertEqual(get_location_clusters(self.user), [[2.0, 1.0, "OK"]])
 
     def test_results_are_scoped_to_the_owner(self):
         other = create_test_user()

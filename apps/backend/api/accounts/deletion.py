@@ -176,5 +176,5 @@ def register() -> None:
     pre_delete.connect(
         prepare_user_deletion,
         sender=User,
-        dispatch_uid="api.user_deletion.prepare_user_deletion",
+        dispatch_uid="api.accounts.deletion.prepare_user_deletion",
     )

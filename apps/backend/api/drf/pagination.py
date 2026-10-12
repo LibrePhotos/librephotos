@@ -35,7 +35,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from api.views.params import ClampedIntegerField
+from api.drf.params import ClampedIntegerField
 
 _Model = TypeVar("_Model", bound=Model)
 _Row = TypeVar("_Row")
@@ -52,7 +52,7 @@ def query_page_number(
     """A page number or size from the query string, clamped into [1, highest].
 
     Absent or blank is ``default``; one that is not a number is a 400 naming
-    the parameter, as every query field is (``api/views/params.py``).
+    the parameter, as every query field is (``api/drf/params.py``).
     """
     raw = request.query_params.get(name)
     if raw is None or raw == "":

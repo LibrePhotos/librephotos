@@ -154,6 +154,6 @@ class CheckersCatchPlantedDriftTest(SimpleTestCase):
 
     def test_a_missing_path_and_a_line_past_the_end_are_reported(self):
         self.assertEqual(
-            bad_paths("see api/nope.py and api/request_user.py:9999"),
-            ["api/nope.py", "api/request_user.py:9999"],
+            bad_paths("see api/nope.py and api/drf/request_user.py:9999"),
+            ["api/nope.py", "api/drf/request_user.py:9999"],
         )

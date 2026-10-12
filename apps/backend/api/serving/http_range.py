@@ -44,22 +44,26 @@ def parse_byte_range(header: str | None, size: int) -> tuple[int, int] | str | N
     if not match:
         return None
     first, last = match.group(1), match.group(2)
+    if first:
+        return _span(int(first), int(last) if last else None, size)
+    if last:
+        return _suffix(int(last), size)
+    return None
 
-    if not first:
-        if not last:
-            return None
-        # "bytes=-500": the final 500 bytes, which is how a player finds the
-        # index of an mp4 that was not written for streaming.
-        length = min(int(last), size)
-        if length == 0:
-            return UNSATISFIABLE
-        return size - length, size - 1
 
-    start = int(first)
-    if start >= size:
+def _suffix(length: int, size: int) -> tuple[int, int] | str:
+    """``bytes=-500``: the final 500 bytes, which is how a player finds the
+    index of an mp4 that was not written for streaming."""
+    length = min(length, size)
+    if length == 0:
         return UNSATISFIABLE
-    end = min(int(last), size - 1) if last else size - 1
-    if end < start:
+    return size - length, size - 1
+
+
+def _span(start: int, last: int | None, size: int) -> tuple[int, int] | str:
+    """``bytes=100-199`` or ``bytes=100-`` (to the end), clipped to the file."""
+    end = size - 1 if last is None else min(last, size - 1)
+    if start >= size or end < start:
         return UNSATISFIABLE
     return start, end
 

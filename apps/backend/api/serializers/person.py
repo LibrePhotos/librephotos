@@ -5,8 +5,8 @@ from typing import Any, TypeVar
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 
+from api.drf.request_user import request_user
 from api.models import Face, Person, Photo, User
-from api.request_user import request_user
 
 logger = logging.getLogger(__name__)
 

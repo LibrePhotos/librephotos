@@ -1130,7 +1130,7 @@ class StackListPaginationEdgeCasesTestCase(TestCase):
         response = self.client.get("/api/stacks?page_size=5000")
 
         self.assertEqual(response.status_code, 200)
-        # page_size is capped at 1000 (api/pagination.py)
+        # page_size is capped at 1000 (api/drf/pagination.py)
         self.assertEqual(response.data["page_size"], 1000)
 
     def test_non_numeric_page_size(self):

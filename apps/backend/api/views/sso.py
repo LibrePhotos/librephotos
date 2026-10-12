@@ -29,9 +29,9 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from api.auth_cookies import set_auth_cookies
+from api.accounts.cookies import set_auth_cookies
+from api.accounts.public_url import is_internal_base_url, public_base_url
 from api.models.user import User
-from api.public_url import is_internal_base_url, public_base_url
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +43,7 @@ class LibrePhotosOIDCAdapter(OpenIDConnectOAuth2Adapter):
     behind the standard proxy resolves to ``http://backend/...`` — the browser
     cannot follow that, and the IdP would reject it as an unregistered redirect
     URI. The public origin has to come from configuration instead; see
-    api/public_url.py for why the request cannot tell us.
+    api/accounts/public_url.py for why the request cannot tell us.
 
     The value must also be byte-identical between the authorize request and the
     later token exchange, which a configured constant guarantees and a
@@ -136,7 +136,7 @@ def sso_finish(request: HttpRequest) -> HttpResponseRedirect:
 
     response = HttpResponseRedirect("/")
     # The web boots from the access/refresh cookies (via react-cookie); the
-    # media requests use jwt. Flags: api/auth_cookies.py.
+    # media requests use jwt. Flags: api/accounts/cookies.py.
     set_auth_cookies(response, request, access=access, refresh=refresh)
     return response
 

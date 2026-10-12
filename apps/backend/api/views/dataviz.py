@@ -11,12 +11,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from api.faces.classify import cluster_faces
-from api.faces.social_graph import build_social_graph
-from api.models.user import User
-from api.request_user import request_user
-from api.serializers.server import ServerLogsQuery
-from api.stats import (
+from api.dataviz.stats import (
     get_count_stats,
     get_location_clusters,
     get_location_sunburst,
@@ -25,7 +20,12 @@ from api.stats import (
     get_searchterms_wordcloud,
     get_server_stats,
 )
-from api.views.params import parse_query
+from api.drf.params import parse_query
+from api.drf.request_user import request_user
+from api.faces.classify import cluster_faces
+from api.faces.social_graph import build_social_graph
+from api.models.user import User
+from api.serializers.server import ServerLogsQuery
 from librephotos.logging_bootstrap import LOG_FILENAME
 
 logger = logging.getLogger(__name__)

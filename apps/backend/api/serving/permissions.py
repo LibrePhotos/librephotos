@@ -129,15 +129,16 @@ def webserver_ids() -> tuple[int, int]:
     )
 
 
+#: The (owner, group, other) mode bits of each access the web server needs.
+TRAVERSE = (stat.S_IXUSR, stat.S_IXGRP, stat.S_IXOTH)
+READ = (stat.S_IRUSR, stat.S_IRGRP, stat.S_IROTH)
+
+
 def _permits(
-    st: os.stat_result,
-    uid: int,
-    gid: int,
-    user_bit: int,
-    group_bit: int,
-    other_bit: int,
+    st: os.stat_result, uid: int, gid: int, bits: tuple[int, int, int]
 ) -> bool:
-    """Does ``st`` grant this bit to ``uid``/``gid`` under POSIX rules?
+    """Does ``st`` grant the (owner, group, other) ``bits`` to ``uid``/``gid``
+    under POSIX rules?
 
     Owner is checked first, then group, and neither falls through to the class
     below it: a file *owned* by the web server with mode 0077 is unreadable to
@@ -146,19 +147,12 @@ def _permits(
     the diagnostic pronounce a broken library healthy and send the admin off
     to look somewhere else entirely.
     """
+    user_bit, group_bit, other_bit = bits
     if st.st_uid == uid:
         return bool(st.st_mode & user_bit)
     if st.st_gid == gid:
         return bool(st.st_mode & group_bit)
     return bool(st.st_mode & other_bit)
-
-
-def _can_traverse(st: os.stat_result, uid: int, gid: int) -> bool:
-    return _permits(st, uid, gid, stat.S_IXUSR, stat.S_IXGRP, stat.S_IXOTH)
-
-
-def _can_read(st: os.stat_result, uid: int, gid: int) -> bool:
-    return _permits(st, uid, gid, stat.S_IRUSR, stat.S_IRGRP, stat.S_IROTH)
 
 
 def _ancestors(path: str) -> list[str]:
@@ -293,6 +287,23 @@ def _remedies(
     return remedies
 
 
+def _stopped_at(
+    path: str, kind: str, uid: int, gid: int, bits: tuple[int, int, int]
+) -> tuple[str, Blocking] | None:
+    """The cause and the component when ``path`` stops the web server, else None."""
+    try:
+        st = os.stat(path)
+    except FileNotFoundError:
+        return CAUSE_MISSING, {"path": path, "kind": kind}
+    except OSError:
+        # The backend is root almost everywhere, so a stat it cannot
+        # perform is itself evidence of something beyond mode bits.
+        return CAUSE_NOT_MODE_BITS, {"path": path, "kind": kind}
+    if not _permits(st, uid, gid, bits):
+        return CAUSE_MODE_BITS, _describe_component(path, st, kind)
+    return None
+
+
 def diagnose_media_path(path: str) -> Diagnosis:
     """Report why the web server cannot serve ``path``.
 
@@ -315,54 +326,17 @@ def diagnose_media_path(path: str) -> Diagnosis:
         "remedies": [],
     }
 
-    for directory in _ancestors(path):
-        try:
-            st = os.stat(directory)
-        except FileNotFoundError:
-            result["exists"] = False
-            result["cause"] = CAUSE_MISSING
-            result["blocking"] = {"path": directory, "kind": "directory"}
+    components = [(directory, "directory", TRAVERSE) for directory in _ancestors(path)]
+    components.append((path, "file", READ))
+    for component, kind, bits in components:
+        stopped = _stopped_at(component, kind, uid, gid, bits)
+        if stopped is not None:
+            cause, blocking = stopped
+            result["exists"] = cause != CAUSE_MISSING
+            result["cause"] = cause
+            result["blocking"] = blocking
+            result["remedies"] = _remedies(cause, blocking, result["mount"])
             return result
-        except OSError:
-            # The backend is root almost everywhere, so a stat it cannot
-            # perform is itself evidence of something beyond mode bits.
-            result["cause"] = CAUSE_NOT_MODE_BITS
-            result["blocking"] = {"path": directory, "kind": "directory"}
-            result["remedies"] = _remedies(
-                CAUSE_NOT_MODE_BITS, result["blocking"], result["mount"]
-            )
-            return result
-
-        if not _can_traverse(st, uid, gid):
-            result["cause"] = CAUSE_MODE_BITS
-            result["blocking"] = _describe_component(directory, st, "directory")
-            result["remedies"] = _remedies(
-                CAUSE_MODE_BITS, result["blocking"], result["mount"]
-            )
-            return result
-
-    try:
-        st = os.stat(path)
-    except FileNotFoundError:
-        result["exists"] = False
-        result["cause"] = CAUSE_MISSING
-        result["blocking"] = {"path": path, "kind": "file"}
-        return result
-    except OSError:
-        result["cause"] = CAUSE_NOT_MODE_BITS
-        result["blocking"] = {"path": path, "kind": "file"}
-        result["remedies"] = _remedies(
-            CAUSE_NOT_MODE_BITS, result["blocking"], result["mount"]
-        )
-        return result
-
-    if not _can_read(st, uid, gid):
-        result["cause"] = CAUSE_MODE_BITS
-        result["blocking"] = _describe_component(path, st, "file")
-        result["remedies"] = _remedies(
-            CAUSE_MODE_BITS, result["blocking"], result["mount"]
-        )
-        return result
 
     # Every bit along the way permits it, yet the request that brought us here
     # failed. That is a genuinely useful finding rather than an empty one: it

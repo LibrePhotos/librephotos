@@ -13,11 +13,11 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
+from api.drf.params import JsonStringField, QueryFlagField
 from api.metadata.edits import MAX_RATING
 from api.models import User
 from api.models.photo import Photo
 from api.models.photo_metadata import MetadataEdit, PhotoMetadata
-from api.views.params import JsonStringField, QueryFlagField
 
 
 class MetadataEditSerializer(serializers.ModelSerializer):

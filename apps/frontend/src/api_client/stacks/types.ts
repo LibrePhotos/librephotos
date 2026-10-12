@@ -66,7 +66,7 @@ const PhotoStackListItem = z.object({
 });
 type PhotoStackListItem = z.infer<typeof PhotoStackListItem>;
 
-// Paginated list response: the shared page envelope (backend api/pagination.py)
+// Paginated list response: the shared page envelope (backend api/drf/pagination.py)
 export const PhotoStackListResponse = z.object({
   ...PageFields,
   results: PhotoStackListItem.array(),

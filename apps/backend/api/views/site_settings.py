@@ -10,13 +10,13 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from api.mail import email_is_configured
+from api.accounts.mail import email_is_configured
+from api.drf.params import parse_body
+from api.drf.request_user import request_user
 from api.ml_models import do_all_models_exist, start_model_download
 from api.models import User
-from api.request_user import request_user
 from api.search.semantic import OPENCLIP
 from api.serializers.site_settings import SiteSettingsRequest
-from api.views.params import parse_body
 
 
 def _site_config(*keys: str) -> dict[str, Any]:

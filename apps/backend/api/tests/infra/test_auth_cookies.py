@@ -1,6 +1,6 @@
 """Auth cookies are set in one place, with explicit flags (#2332).
 
-``api/auth_cookies.py`` is the only module that sets or deletes a cookie or
+``api/accounts/cookies.py`` is the only module that sets or deletes a cookie or
 writes ``Access-Control-Allow-Credentials`` (django-cors-headers does that).
 The token endpoints used to set ``jwt`` with Django's defaults (no HttpOnly,
 no SameSite, no Secure) and hand-write the CORS header next to each.
@@ -25,7 +25,7 @@ from api.tests.utils import create_test_photo, create_test_user
 BACKEND = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 SOURCE_DIRS = ("api", "librephotos", "nextcloud")
 SKIPPED_DIRS = ("tests", "migrations", "__pycache__")
-HELPER = "api/auth_cookies.py"
+HELPER = "api/accounts/cookies.py"
 
 COOKIE_METHODS = {"set_cookie", "delete_cookie"}
 CORS_CREDENTIALS_HEADER = "access-control-allow-credentials"
@@ -85,7 +85,7 @@ class CookieWritesGuardTest(SimpleTestCase):
             problems,
             [],
             "Set and clear auth cookies with set_auth_cookies/clear_auth_cookies "
-            "from api/auth_cookies.py; django-cors-headers writes the CORS "
+            "from api/accounts/cookies.py; django-cors-headers writes the CORS "
             "headers.\n  " + "\n  ".join(problems),
         )
 

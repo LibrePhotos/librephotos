@@ -16,15 +16,17 @@ from rest_framework.response import Response
 from rest_framework.throttling import BaseThrottle
 from rest_framework.views import APIView
 
-from api.api_util import path_to_dict
-from api.metadata.datetime_rules import DEFAULT_RULES_JSON, PREDEFINED_RULES_JSON
-from api.models import User
-from api.pagination import WholeListPagination
-from api.permissions import (
+from api.accounts.permissions import (
     IsAdminOrFirstTimeSetupOrRegistrationAllowed,
     IsAdminOrSelf,
     IsSuperUser,
 )
+from api.accounts.throttling import AuthRateThrottle
+from api.api_util import path_to_dict
+from api.drf.pagination import WholeListPagination
+from api.drf.params import parse_query
+from api.metadata.datetime_rules import DEFAULT_RULES_JSON, PREDEFINED_RULES_JSON
+from api.models import User
 from api.serializers.folders import FolderPathQuery
 from api.serializers.user import (
     DeleteUserSerializer,
@@ -40,10 +42,8 @@ from api.stacks.burst_rules import (
 from api.stacks.burst_rules import (
     PREDEFINED_RULES_JSON as BURST_PREDEFINED_RULES_JSON,
 )
-from api.throttling import AuthRateThrottle
 from api.util import is_valid_path
 from api.views.mixins import PartialUpdateModelMixin
-from api.views.params import parse_query
 
 logger = logging.getLogger(__name__)
 
@@ -216,7 +216,7 @@ class DeleteUserViewSet(mixins.DestroyModelMixin, viewsets.GenericViewSet):
         if instance.is_superuser or instance.username == "deleted":
             raise ValidationError("This user cannot be deleted.")
 
-        # api.user_deletion turns off the user's public links and makes room
+        # api.accounts.deletion turns off the user's public links and makes room
         # for their albums and tags in ``deleted``, in the delete's transaction.
         return super().destroy(request, *args, **kwargs)
 

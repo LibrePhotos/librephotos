@@ -42,27 +42,6 @@ STAYS_FLAT = {
 # Flat module -> the package it moves to, in the order of the remaining moves.
 # Remove a module's line in the pull request that moves it.
 TO_MOVE = {
-    # Serving.
-    "http_range": "api/serving/",
-    "serving_permissions": "api/serving/",
-    # Dataviz.
-    "stats": "api/dataviz/",
-    "color_palettes": "api/dataviz/",
-    # Accounts.
-    "authentication": "api/accounts/",
-    "auth_cookies": "api/accounts/",
-    "permissions": "api/accounts/",
-    "throttling": "api/accounts/",
-    "adapters": "api/accounts/",
-    "user_deletion": "api/accounts/",
-    "public_url": "api/accounts/",
-    "mail": "api/accounts/",
-    # DRF plumbing the views and serializers share.
-    "request_data": "api/drf/",
-    "request_user": "api/drf/",
-    "exceptions": "api/drf/",
-    "pagination": "api/drf/",
-    "openapi": "api/drf/",
     # Photos (with services.cleanup_deleted_photos, services.prune_deletion_log
     # and views/photo_filters.build_photo_queryset; Schedule.func migration).
     "photo_files": "api/photos/",
@@ -137,10 +116,10 @@ class ModuleLayoutTest(SimpleTestCase):
         )
 
     def test_a_moved_module_still_listed_fails(self):
-        found = (STAYS_FLAT | set(TO_MOVE)) - {"stats"}
+        found = (STAYS_FLAT | set(TO_MOVE)) - {"sidecars"}
         self.assertEqual(
             [problem.split(" ")[0] for problem in layout_problems(found)],
-            ["api/stats.py"],
+            ["api/sidecars.py"],
         )
 
     def test_conventions_and_moves_do_not_overlap(self):

@@ -33,7 +33,9 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from api.exceptions import Gone
+from api.drf.exceptions import Gone
+from api.drf.params import parse_query
+from api.drf.request_user import request_user
 from api.models import (
     AlbumAuto,
     AlbumPlace,
@@ -46,7 +48,6 @@ from api.models import (
     Tag,
     User,
 )
-from api.request_user import request_user
 from api.serializers.sync import (
     AUTO_ALBUM_VALUES,
     PERSON_VALUES,
@@ -61,7 +62,6 @@ from api.serializers.sync import (
     serialize_shared_user_row,
     serialize_user_album_row,
 )
-from api.views.params import parse_query
 
 ENVELOPE_VERSION = 1
 

@@ -223,7 +223,7 @@ export const FetchPlaceAlbumResponse = z.object({
 export type FetchPlaceAlbumResponse = z.infer<typeof FetchPlaceAlbumResponse>;
 
 /**
- * GET /locclust/: one row per geocoded place, `[lat, lon, name]` (api/stats.py
+ * GET /locclust/: one row per geocoded place, `[lat, lon, name]` (api/dataviz/stats.py
  * get_location_clusters), for the Places map.
  */
 export const LocationClusters = z.array(z.array(z.union([z.number(), z.string()])));
@@ -242,7 +242,7 @@ export type FolderSubfolder = z.infer<typeof FolderSubfolder>;
 
 /**
  * GET /folders/subfolders/: one page of a folder's subfolders, the shared page envelope (backend
- * api/pagination.py) plus the folder's own paths. The server still repeats the page as
+ * api/drf/pagination.py) plus the folder's own paths. The server still repeats the page as
  * `subfolders` and `pagination` for older web bundles; read `results` and `next`.
  */
 export const FolderSubfoldersResponse = z.object({

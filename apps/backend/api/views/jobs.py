@@ -9,12 +9,12 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from api.drf.pagination import DefaultPagination
+from api.drf.params import parse_query
+from api.drf.request_user import request_user
 from api.jobs.queue import remove_queued_tasks
 from api.models import LongRunningJob, User
-from api.pagination import DefaultPagination
-from api.request_user import request_user
 from api.serializers.job import JobListQuery, LongRunningJobSerializer
-from api.views.params import parse_query
 
 logger = logging.getLogger(__name__)
 

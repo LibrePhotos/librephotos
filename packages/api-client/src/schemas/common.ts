@@ -11,7 +11,7 @@ export const UuidString = z
 
 /**
  * The fields every paginated list answers next to its `results` (backend
- * `api/pagination.py`). `page`, `page_size` and `num_pages` are optional:
+ * `api/drf/pagination.py`). `page`, `page_size` and `num_pages` are optional:
  * servers before 1.4 (#2327) do not send them. Read a whole list with
  * `fetchAllPages`, which follows `next`.
  */

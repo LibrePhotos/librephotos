@@ -833,7 +833,7 @@ class StackEdgeCasesTestCase(TestCase):
         self.assertNotEqual(stack.primary_photo.image_hash, self.photo1.image_hash)
 
     def test_stack_list_page_size_max_1000(self):
-        """Test page_size is capped at 1000 (api/pagination.py)."""
+        """Test page_size is capped at 1000 (api/drf/pagination.py)."""
         response = self.client.get("/api/stacks?page_size=5000")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)

@@ -150,7 +150,7 @@ NEXTCLOUD_ALLOW_PRIVATE_ADDRESSES = env_flag(
 )
 
 # The name the proxy reaches the backend by. Requests carrying it (or the
-# compose service name) come from inside the deployment, so api/public_url.py
+# compose service name) come from inside the deployment, so api/accounts/public_url.py
 # does not build public links from them.
 BACKEND_HOST = env_str("BACKEND_HOST", "backend")
 INTERNAL_HOSTS = frozenset({"backend", BACKEND_HOST})
@@ -169,7 +169,7 @@ SIMPLE_JWT = {
 
 # Give the auth cookies the Secure flag even when the request looks like plain
 # HTTP, as it does behind a TLS proxy (SECURE_PROXY_SSL_HEADER is not set). Off
-# by default: browsers drop Secure cookies over plain HTTP. See api/auth_cookies.py.
+# by default: browsers drop Secure cookies over plain HTTP. See api/accounts/cookies.py.
 AUTH_COOKIE_SECURE = env_flag("AUTH_COOKIE_SECURE", default=False)
 
 INSTALLED_APPS = [
@@ -201,7 +201,7 @@ INSTALLED_APPS = [
     # OIDC / SSO via django-allauth. The generic openid_connect provider handles
     # any standards-compliant IdP (Keycloak, Authentik, Authelia, Zitadel, Google,
     # Azure, ...). Provider credentials live in the DB (admin-editable SocialApp),
-    # not the environment. See api/adapters.py for the login/linking policy and
+    # not the environment. See api/accounts/adapters.py for the login/linking policy and
     # api/views/sso.py for the JWT bridge.
     "allauth",
     "allauth.account",
@@ -432,17 +432,17 @@ REST_FRAMEWORK = {
         "rest_framework_simplejwt.authentication.JWTAuthentication",
         "rest_framework.authentication.BasicAuthentication",
     ),
-    # api.openapi.AutoSchema: responses of model serializers list every field
+    # api.drf.openapi.AutoSchema: responses of model serializers list every field
     # as required, which is what DRF writes.
-    "DEFAULT_SCHEMA_CLASS": "api.openapi.AutoSchema",
+    "DEFAULT_SCHEMA_CLASS": "api.drf.openapi.AutoSchema",
     "DEFAULT_FILTER_BACKENDS": ("django_filters.rest_framework.DjangoFilterBackend",),
-    # One pagination style for every list (api/pagination.py, #2327).
-    "DEFAULT_PAGINATION_CLASS": "api.pagination.DefaultPagination",
+    # One pagination style for every list (api/drf/pagination.py, #2327).
+    "DEFAULT_PAGINATION_CLASS": "api.drf.pagination.DefaultPagination",
     "EXCEPTION_HANDLER": "api.views.exception_handler.custom_exception_handler",
     "PAGE_SIZE": 100,
     # How many reverse proxies in front of the backend append the client
     # address to X-Forwarded-For; the throttles count per address
-    # (api/throttling.py). 1 is the bundled proxy; 0 when clients connect
+    # (api/accounts/throttling.py). 1 is the bundled proxy; 0 when clients connect
     # directly, so a client-sent header is ignored; 2 for a proxy in front of
     # the bundled one. DRF's own default, None, trusted the whole header, which
     # let every request pick its own counter.
@@ -465,7 +465,7 @@ SPECTACULAR_SETTINGS = {
     "COMPONENT_SPLIT_REQUEST": True,
     "POSTPROCESSING_HOOKS": [
         "drf_spectacular.hooks.postprocess_schema_enums",
-        "api.openapi.require_page_keys",
+        "api.drf.openapi.require_page_keys",
     ],
 }
 
@@ -598,8 +598,8 @@ DEFAULT_FAVORITE_MIN_RATING = 4
 # `EmailConfig` at send time and delegates to Django's SMTP backend; when email
 # is unconfigured it is a safe no-op (or the console backend under DEBUG, so
 # reset links still appear in dev logs). This keeps the SMTP credential
-# encrypted at rest and editable without a redeploy. See api/mail.py.
-EMAIL_BACKEND = "api.mail.DynamicEmailBackend"
+# encrypted at rest and editable without a redeploy. See api/accounts/mail.py.
+EMAIL_BACKEND = "api.accounts.mail.DynamicEmailBackend"
 # Fallback from-address when the admin has not set one; the stored config value
 # takes precedence (see EmailConfig.effective_from_email).
 DEFAULT_FROM_EMAIL = env_str("DEFAULT_FROM_EMAIL", "LibrePhotos <no-reply@localhost>")
@@ -609,7 +609,7 @@ DEFAULT_FROM_EMAIL = env_str("DEFAULT_FROM_EMAIL", "LibrePhotos <no-reply@localh
 FRONTEND_BASE_URL = env_str("FRONTEND_BASE_URL", "")
 
 # ---------------------------------------------------------------------------
-# django-allauth (OIDC / SSO) — see api/adapters.py and api/views/sso.py
+# django-allauth (OIDC / SSO) — see api/accounts/adapters.py and api/views/sso.py
 # ---------------------------------------------------------------------------
 # LibrePhotos authenticates with JWT, not sessions. allauth runs the OIDC
 # redirect/callback dance server-side (establishing a short-lived Django
@@ -622,8 +622,8 @@ LOGIN_REDIRECT_URL = "/api/auth/sso/finish/"
 # All login/linking/provisioning policy lives in the adapter (stable API across
 # allauth versions, and able to read runtime state such as EmailConfig and the
 # OIDC_* Constance flags). Keep the declarative settings minimal.
-SOCIALACCOUNT_ADAPTER = "api.adapters.SSOSocialAccountAdapter"
-ACCOUNT_ADAPTER = "api.adapters.NoLocalSignupAccountAdapter"
+SOCIALACCOUNT_ADAPTER = "api.accounts.adapters.SSOSocialAccountAdapter"
+ACCOUNT_ADAPTER = "api.accounts.adapters.NoLocalSignupAccountAdapter"
 
 # We never drive password signup/login or verification emails through allauth —
 # LibrePhotos keeps its own login and (separately) its own password reset. Trust

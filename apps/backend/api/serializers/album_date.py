@@ -2,9 +2,9 @@ from django.db.models import Prefetch, QuerySet
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import ISO_8601, serializers
 
+from api.drf.params import TristateFlagField
 from api.models import AlbumDate, Photo
 from api.serializers.photos import PhotoSummarySerializer
-from api.views.params import TristateFlagField
 
 PUBLIC_PHOTOS_ATTR = "public_photos"
 

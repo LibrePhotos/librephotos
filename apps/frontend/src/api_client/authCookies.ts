@@ -16,7 +16,7 @@ const AUTH_COOKIE_PATH = "/";
 
 /**
  * The flags of the `access` and `refresh` cookies, the same as the server
- * gives them (apps/backend/api/auth_cookies.py): at `/`, `SameSite=Lax`, so
+ * gives them (apps/backend/api/accounts/cookies.py): at `/`, `SameSite=Lax`, so
  * they stay off cross-site subrequests and POSTs, and `Secure` on a page
  * served over HTTPS, so they never travel over plain HTTP. Not `Secure` on a
  * plain-HTTP page, where the browser would refuse the cookie.

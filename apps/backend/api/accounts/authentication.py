@@ -5,7 +5,7 @@ put a header on an ``<img>``, a ``<video>`` or a download link. For those the
 token endpoints (``CustomTokenObtainPairView``, ``CustomTokenRefreshView``, the
 SSO bridge) also set the access token as a cookie named ``jwt``, and the views
 that serve such requests read it. Its flags (HttpOnly, SameSite=Lax, Secure)
-are set in api/auth_cookies.py. The mobile client sends the same cookie on
+are set in api/accounts/cookies.py. The mobile client sends the same cookie on
 uploads when it cannot rely on the header.
 
 The cookie is ambient: the browser attaches it to requests another site

@@ -4,9 +4,9 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from api.drf.params import parse_query
 from api.geocode.geocode import search_location
 from api.serializers.geocode import GeocodeSearchQuery
-from api.views.params import parse_query
 
 
 class GeocodeSearchView(APIView):

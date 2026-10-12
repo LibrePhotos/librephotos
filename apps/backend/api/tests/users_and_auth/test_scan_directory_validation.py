@@ -7,8 +7,8 @@ from django.conf import settings
 from django.test import SimpleTestCase, TestCase
 from rest_framework.test import APIClient
 
+from api.accounts.directories import directories_overlap
 from api.models import User
-from api.serializers.user import directories_overlap
 from api.tests.utils import create_password, create_test_user
 
 

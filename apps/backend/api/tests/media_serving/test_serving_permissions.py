@@ -24,7 +24,7 @@ from unittest import mock
 from django.test import SimpleTestCase, TestCase, override_settings
 from rest_framework.test import APIClient
 
-from api.serving_permissions import (
+from api.serving.permissions import (
     CAUSE_MISSING,
     CAUSE_MODE_BITS,
     CAUSE_NOT_MODE_BITS,
@@ -181,7 +181,7 @@ class DiagnoseMediaPathTest(_TreeMixin, SimpleTestCase):
                 return fake_stat
             return real_stat(path, *args, **kwargs)
 
-        with mock.patch("api.serving_permissions.os.stat", stat_with_webserver_owner):
+        with mock.patch("api.serving.permissions.os.stat", stat_with_webserver_owner):
             result = diagnose_media_path(video)
 
         self.assertFalse(result["readable_by_webserver"])
@@ -201,7 +201,7 @@ class DiagnoseMediaPathTest(_TreeMixin, SimpleTestCase):
                 return fake_stat
             return real_stat(path, *args, **kwargs)
 
-        with mock.patch("api.serving_permissions.os.stat", stat_with_webserver_group):
+        with mock.patch("api.serving.permissions.os.stat", stat_with_webserver_group):
             result = diagnose_media_path(video)
 
         self.assertTrue(result["readable_by_webserver"])
@@ -243,7 +243,7 @@ class RemedySelectionTest(_TreeMixin, SimpleTestCase):
 
     def _diagnose_with_mounts(self, video, entries):
         mounts = _mounts_file(self._mounts_dir(), entries)
-        with mock.patch("api.serving_permissions.PROC_MOUNTS", mounts):
+        with mock.patch("api.serving.permissions.PROC_MOUNTS", mounts):
             return diagnose_media_path(video)
 
     def test_local_posix_filesystem_gets_chmod(self):
@@ -350,7 +350,7 @@ class RemedySelectionTest(_TreeMixin, SimpleTestCase):
         os.chmod(video, 0o640)
 
         with mock.patch(
-            "api.serving_permissions.PROC_MOUNTS", "/nonexistent/proc/mounts"
+            "api.serving.permissions.PROC_MOUNTS", "/nonexistent/proc/mounts"
         ):
             result = diagnose_media_path(video)
 
@@ -361,7 +361,7 @@ class RemedySelectionTest(_TreeMixin, SimpleTestCase):
         mounts = _mounts_file(
             self._mounts_dir(), [("/dev/sdb1", "/media/My\\040Photos", "ext4", "rw")]
         )
-        with mock.patch("api.serving_permissions.PROC_MOUNTS", mounts):
+        with mock.patch("api.serving.permissions.PROC_MOUNTS", mounts):
             described = describe_mount("/media/My Photos/holiday/clip.mp4")
 
         self.assertIsNotNone(described)
