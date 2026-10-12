@@ -234,7 +234,10 @@ export async function seedPeople(db: AppDatabase, source: SeedSource, now: numbe
     name: p.name,
     kind: "kind" in p && typeof p.kind === "string" ? p.kind : null,
     faceCount: p.face_count,
-    coverPhotoHash: p.cover_photo ?? null,
+    // PersonSerializer's cover_photo is write-only; responses carry the cover's
+    // hash (the chosen cover, else the first face's photo) in face_photo_url,
+    // and "" for a person without faces.
+    coverPhotoHash: p.face_photo_url || null,
     lastModified: now,
   }));
   upsertPersons(db, rows);
