@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient } from "../../api";
-import { pollWhile } from "../../polling";
 import { WorkerAvailabilityResponse } from "../types";
+import { pollWhile } from "@librephotos/api-client";
 
 export const WorkerQueryKeys = ["worker"] as const;
 

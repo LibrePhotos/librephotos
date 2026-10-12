@@ -1,11 +1,10 @@
-import { endpoints } from "@librephotos/api-client";
+import { endpoints, invalidateAfter } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
 import { recordRecentlyTaggedPerson } from "../../../util/recentlyTaggedPeople";
 import { PeopleAlbumsQueryKeys } from "../../albums/hooks/useFetchPeopleAlbumsQuery";
 import { apiClient, queryClient } from "../../api";
 import { PhotoDetailsQueryKeys } from "../../photos/hooks/useFetchPhotoDetailsQuery";
-import { invalidateAfter } from "../../polling";
 import { CountStatsQueryKeys } from "../../stats/hooks/useFetchCountStatsQuery";
 import { FacesQueryKeys } from "./useFetchFacesQuery";
 import { IncompleteFacesQueryKeys } from "./useFetchIncompleteFacesQuery";

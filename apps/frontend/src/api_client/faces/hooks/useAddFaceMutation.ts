@@ -1,4 +1,4 @@
-import { ResponseParseError } from "@librephotos/api-client";
+import { invalidateAfter, ResponseParseError } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
 import { z, ZodError } from "zod";
 import i18n from "../../../i18n";
@@ -8,7 +8,6 @@ import { parseWithNotification } from "../../../util/zodUtils";
 import { PeopleAlbumsQueryKeys } from "../../albums/hooks/useFetchPeopleAlbumsQuery";
 import { ApiError, fetchClient, queryClient } from "../../api";
 import { PhotoDetailsQueryKeys } from "../../photos/hooks/useFetchPhotoDetailsQuery";
-import { invalidateAfter } from "../../polling";
 import { CountStatsQueryKeys } from "../../stats/hooks/useFetchCountStatsQuery";
 import { FacesQueryKeys } from "./useFetchFacesQuery";
 import { IncompleteFacesQueryKeys } from "./useFetchIncompleteFacesQuery";

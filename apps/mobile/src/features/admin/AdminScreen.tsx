@@ -27,8 +27,9 @@ export function AdminScreen() {
   const isOnline = useOnlineStatus();
   const pushToast = useToastStore((s) => s.push);
 
-  const jobs = useJobsQuery({ pageSize: 20, refetchInterval: isOnline ? 5000 : undefined });
-  const worker = useWorkerAvailabilityQuery({ refetchInterval: isOnline ? 5000 : undefined, enabled: isOnline });
+  // Both follow the shared cadence (POLL_ACTIVE_MS while busy, POLL_IDLE_MS otherwise); offline they stop.
+  const jobs = useJobsQuery({ pageSize: 20, enabled: isOnline });
+  const worker = useWorkerAvailabilityQuery({ enabled: isOnline });
 
   const trigger = async (kind: "scan" | "full") => {
     try {

@@ -1,9 +1,9 @@
 import type { QueryClient, QueryKey } from "@tanstack/react-query";
 
 /*
- * How the web follows background jobs. Every refetchInterval and every imperative poll goes through
- * this module, so the cadence is named in one place. Timers belong here: lint bans setTimeout and
- * setInterval in src/api_client outside this file.
+ * How the apps follow background jobs (web and mobile). Every refetchInterval and every imperative
+ * poll goes through this module, so the cadence is named in one place. Timers belong here: lint bans
+ * setTimeout and setInterval in the api-client sources outside this file.
  */
 
 /** Something is running and the user is watching its progress. */

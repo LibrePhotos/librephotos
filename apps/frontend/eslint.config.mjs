@@ -98,18 +98,19 @@ const dateSyntaxBans = [
     message: "Parse dates through util/dateUtils, not new Date(value).",
   },
 ];
-// A poll cadence is a named interval from api_client/polling.ts. A number inside the property's
+// A poll cadence is a named interval from the shared polling module (@librephotos/api-client). A number
+// inside the property's
 // value counts too, so `q => (busy ? 2000 : false)` is caught as well.
 const pollIntervalBan = {
   selector: "Property[key.name=/^(refetchInterval|pollingInterval)$/] Literal[raw=/^[0-9]/]",
-  message: "Poll with pollWhile(...) or a POLL_*_MS constant from api_client/polling.ts, not a number.",
+  message: "Poll with pollWhile(...) or a POLL_*_MS constant from @librephotos/api-client, not a number.",
 };
 
-// Timers in src/api_client belong to the polling module (pollUntil, invalidateAfter).
+// Timers in src/api_client belong to the shared polling module (pollUntil, invalidateAfter).
 const apiClientTimerBan = {
   selector:
     "CallExpression[callee.name=/^(setTimeout|setInterval)$/], CallExpression[callee.object.name='window'][callee.property.name=/^(setTimeout|setInterval)$/]",
-  message: "Use pollUntil or invalidateAfter from api_client/polling.ts instead of a raw timer.",
+  message: "Use pollUntil or invalidateAfter from @librephotos/api-client instead of a raw timer.",
 };
 
 // Browser storage is read and written through util/storage, which owns the keys, the failure
@@ -420,10 +421,10 @@ export default [
     },
   },
   {
-    // The polling module is the one place that sets timers. Tests may wait on real timers; the
-    // polling tests use fake ones. Restates the options of the rules it matches, like the route block.
+    // The shared polling module (packages/api-client) is the one place that sets timers, so no timer is
+    // left here. Tests may wait on real timers. Restates the options of the rules it matches, like the route block.
     files: ["src/api_client/**/*.{ts,tsx}"],
-    ignores: ["src/api_client/polling.ts", "src/api_client/**/*.test.{ts,tsx}"],
+    ignores: ["src/api_client/**/*.test.{ts,tsx}"],
     rules: {
       "no-restricted-syntax": [
         "error",

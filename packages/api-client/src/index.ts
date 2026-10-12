@@ -18,5 +18,6 @@ export * as endpoints from "./endpoints";
 // Endpoint parameter types that callers need at the top level.
 export type { AlbumMediaFilter, DateAlbumFilter, SyncPullParams, UserAlbumOptions } from "./endpoints";
 export * from "./hooks";
+export * from "./polling";
 export * from "./media";
 export { ResponseParseError } from "./util/parse";

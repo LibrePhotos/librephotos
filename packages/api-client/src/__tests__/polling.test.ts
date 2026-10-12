@@ -1,6 +1,6 @@
 import { QueryClient } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { invalidateAfter, POLL_ACTIVE_MS, POLL_IDLE_MS, PollTimeoutError, pollUntil, pollWhile } from "./polling";
+import { invalidateAfter, POLL_ACTIVE_MS, POLL_IDLE_MS, PollTimeoutError, pollUntil, pollWhile } from "../polling";
 
 beforeEach(() => {
   vi.useFakeTimers();
