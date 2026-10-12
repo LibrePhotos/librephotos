@@ -1,6 +1,8 @@
 import { Button, Group, Modal, Select, Stack, Text } from "@mantine/core";
-import React, { useEffect, useState } from "react";
+import { schemaResolver, useForm } from "@mantine/form";
+import React, { useEffect, useEffectEvent } from "react";
 import { useTranslation } from "react-i18next";
+import { makeTagMergeSchema } from "./TagMergeModal.schema";
 
 type Tag = { id: number; name: string };
 
@@ -15,11 +17,22 @@ type Props = Readonly<{
 
 export function TagMergeModal({ opened, onClose, target, tags, onSubmit }: Props) {
   const { t } = useTranslation();
-  const [mergeSource, setMergeSource] = useState<string | null>(null);
-  // Every opening starts with no tag chosen
+  const form = useForm<{ source: string | null }>({
+    initialValues: { source: null },
+    validate: schemaResolver(makeTagMergeSchema(t), { sync: true }),
+  });
+  // Every opening starts with no tag chosen. `form` is a new object every render, not a trigger.
+  const startOver = useEffectEvent(() => form.reset());
   useEffect(() => {
-    if (opened) setMergeSource(null);
+    if (opened) startOver();
   }, [opened]);
+  const merge = form.onSubmit(({ source: sourceId }) => {
+    const source = tags.find(tag => `${tag.id}` === sourceId);
+    if (source) {
+      onSubmit(source);
+    }
+    onClose();
+  });
 
   return (
     <Modal size="sm" opened={opened} onClose={onClose} title={t("tagalbum.mergetag")}>
@@ -27,26 +40,15 @@ export function TagMergeModal({ opened, onClose, target, tags, onSubmit }: Props
         <Text>{t("tagalbum.mergeexplanation", { name: target?.name ?? "" })}</Text>
         <Select
           searchable
-          value={mergeSource}
-          onChange={setMergeSource}
           placeholder={t("tagalbum.tagplaceholder")}
           data={tags.filter(tag => tag.id !== target?.id).map(tag => ({ value: `${tag.id}`, label: tag.name }))}
+          {...form.getInputProps("source")}
         />
         <Group justify="flex-end">
           <Button variant="default" onClick={onClose}>
             {t("cancel")}
           </Button>
-          <Button
-            color="green"
-            disabled={!mergeSource}
-            onClick={() => {
-              const source = tags.find(tag => `${tag.id}` === mergeSource);
-              if (source) {
-                onSubmit(source);
-              }
-              onClose();
-            }}
-          >
+          <Button color="green" disabled={!form.isValid()} onClick={() => merge()}>
             {t("tagalbum.merge")}
           </Button>
         </Group>
