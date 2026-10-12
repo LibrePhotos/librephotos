@@ -14,7 +14,12 @@ from rest_framework.test import APIClient, APITestCase
 from api.models.duplicate import Duplicate
 from api.models.photo_metadata import PhotoMetadata
 from api.models.photo_stack import PhotoStack
-from api.tests.utils import create_test_photo, create_test_user
+from api.tests.utils import (
+    create_test_duplicate,
+    create_test_photo,
+    create_test_stack,
+    create_test_user,
+)
 
 
 class PhotoNoExifDataTestCase(TestCase):
@@ -62,7 +67,7 @@ class PhotoNoExifDataTestCase(TestCase):
             photo.save()
             photos.append(photo)
 
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -82,7 +87,7 @@ class PhotoNoExifDataTestCase(TestCase):
             PhotoMetadata.objects.filter(photo=photo).delete()
             photos.append(photo)
 
-        dup = Duplicate.objects.create(
+        dup = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.VISUAL_DUPLICATE,
         )
@@ -127,7 +132,7 @@ class MissingFileTestCase(TestCase):
         # Delete metadata records
         PhotoMetadata.objects.filter(photo__in=photos).delete()
 
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -243,7 +248,7 @@ class InvalidDataTestCase(APITestCase):
     def test_resolve_with_invalid_photo_id(self):
         """Test resolve with invalid photo ID."""
         photos = [create_test_photo(owner=self.user) for _ in range(2)]
-        dup = Duplicate.objects.create(
+        dup = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
@@ -259,7 +264,7 @@ class InvalidDataTestCase(APITestCase):
     def test_add_to_stack_with_invalid_photo_ids(self):
         """Test adding invalid photo IDs to stack."""
         photos = [create_test_photo(owner=self.user) for _ in range(2)]
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -276,7 +281,7 @@ class InvalidDataTestCase(APITestCase):
     def test_set_primary_with_invalid_photo_id(self):
         """Test setting primary with invalid photo ID."""
         photos = [create_test_photo(owner=self.user) for _ in range(2)]
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -305,7 +310,7 @@ class SinglePhotoGroupTestCase(TestCase):
     def test_duplicate_with_single_photo_deleted(self):
         """Test duplicate group cleanup when reduced to single photo."""
         photos = [create_test_photo(owner=self.user) for _ in range(2)]
-        dup = Duplicate.objects.create(
+        dup = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
@@ -320,7 +325,7 @@ class SinglePhotoGroupTestCase(TestCase):
     def test_stack_with_single_photo(self):
         """Test stack behavior with single photo."""
         photo = create_test_photo(owner=self.user)
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -332,7 +337,7 @@ class SinglePhotoGroupTestCase(TestCase):
     def test_auto_select_with_single_photo(self):
         """Test auto_select_primary with single photo."""
         photo = create_test_photo(owner=self.user)
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -357,13 +362,13 @@ class PhotoDeletionEdgeCasesTestCase(TestCase):
         other_photos1 = [create_test_photo(owner=self.user) for _ in range(2)]
         other_photos2 = [create_test_photo(owner=self.user) for _ in range(2)]
 
-        stack1 = PhotoStack.objects.create(
+        stack1 = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
         stack1.photos.add(photo, *other_photos1)
 
-        stack2 = PhotoStack.objects.create(
+        stack2 = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -384,13 +389,13 @@ class PhotoDeletionEdgeCasesTestCase(TestCase):
         other_photos1 = [create_test_photo(owner=self.user)]
         other_photos2 = [create_test_photo(owner=self.user)]
 
-        dup1 = Duplicate.objects.create(
+        dup1 = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
         dup1.photos.add(photo, *other_photos1)
 
-        dup2 = Duplicate.objects.create(
+        dup2 = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.VISUAL_DUPLICATE,
         )
@@ -405,7 +410,7 @@ class PhotoDeletionEdgeCasesTestCase(TestCase):
     def test_delete_primary_photo_from_stack(self):
         """Test deleting the primary photo from a stack."""
         photos = [create_test_photo(owner=self.user) for _ in range(3)]
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
             primary_photo=photos[0],
@@ -460,7 +465,7 @@ class MetadataEdgeCasesTestCase(TestCase):
             photo.size = 0
             photo.save()
 
-        dup = Duplicate.objects.create(
+        dup = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )

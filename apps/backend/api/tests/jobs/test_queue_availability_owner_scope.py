@@ -13,7 +13,7 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 
 from api.models import LongRunningJob
-from api.tests.utils import create_test_user
+from api.tests.utils import create_test_job, create_test_user
 
 RQ_AVAILABLE_URL = "/api/rqavailable/"
 
@@ -23,7 +23,7 @@ class QueueAvailabilityOwnerScopeTest(TestCase):
         self.admin = create_test_user(is_admin=True)
         self.bob = create_test_user()
         now = timezone.now()
-        self.job = LongRunningJob.objects.create(
+        self.job = create_test_job(
             started_by=self.admin,
             job_id=str(uuid.uuid4()),
             job_type=LongRunningJob.JOB_DOWNLOAD_MODELS,

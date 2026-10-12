@@ -16,7 +16,12 @@ from api.models import Photo
 from api.models.duplicate import Duplicate
 from api.models.photo_stack import PhotoStack
 from api.stats import calc_megabytes, get_count_stats, median_value
-from api.tests.utils import create_test_photo, create_test_user
+from api.tests.utils import (
+    create_test_duplicate,
+    create_test_photo,
+    create_test_stack,
+    create_test_user,
+)
 
 
 class DuplicateStatsAccuracyTestCase(APITestCase):
@@ -41,7 +46,7 @@ class DuplicateStatsAccuracyTestCase(APITestCase):
         # Create exact copies
         for _ in range(3):
             photos = [create_test_photo(owner=self.user) for _ in range(2)]
-            dup = Duplicate.objects.create(
+            dup = create_test_duplicate(
                 owner=self.user,
                 duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
             )
@@ -50,7 +55,7 @@ class DuplicateStatsAccuracyTestCase(APITestCase):
         # Create visual duplicates
         for _ in range(2):
             photos = [create_test_photo(owner=self.user) for _ in range(2)]
-            dup = Duplicate.objects.create(
+            dup = create_test_duplicate(
                 owner=self.user,
                 duplicate_type=Duplicate.DuplicateType.VISUAL_DUPLICATE,
             )
@@ -66,7 +71,7 @@ class DuplicateStatsAccuracyTestCase(APITestCase):
         # Create pending
         for _ in range(4):
             photos = [create_test_photo(owner=self.user) for _ in range(2)]
-            dup = Duplicate.objects.create(
+            dup = create_test_duplicate(
                 owner=self.user,
                 duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
                 review_status=Duplicate.ReviewStatus.PENDING,
@@ -76,7 +81,7 @@ class DuplicateStatsAccuracyTestCase(APITestCase):
         # Create resolved
         for _ in range(2):
             photos = [create_test_photo(owner=self.user) for _ in range(2)]
-            dup = Duplicate.objects.create(
+            dup = create_test_duplicate(
                 owner=self.user,
                 duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
                 review_status=Duplicate.ReviewStatus.RESOLVED,
@@ -85,7 +90,7 @@ class DuplicateStatsAccuracyTestCase(APITestCase):
 
         # Create dismissed
         photos = [create_test_photo(owner=self.user) for _ in range(2)]
-        dup = Duplicate.objects.create(
+        dup = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
             review_status=Duplicate.ReviewStatus.DISMISSED,
@@ -103,7 +108,7 @@ class DuplicateStatsAccuracyTestCase(APITestCase):
         # Create 3 duplicate groups, each with 2 photos = 6 photos total
         for _ in range(3):
             photos = [create_test_photo(owner=self.user) for _ in range(2)]
-            dup = Duplicate.objects.create(
+            dup = create_test_duplicate(
                 owner=self.user,
                 duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
             )
@@ -117,7 +122,7 @@ class DuplicateStatsAccuracyTestCase(APITestCase):
         """Test that potential savings is calculated from pending duplicates only."""
         # Create pending duplicate with known savings
         photos = [create_test_photo(owner=self.user) for _ in range(2)]
-        pending_dup = Duplicate.objects.create(
+        pending_dup = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
             review_status=Duplicate.ReviewStatus.PENDING,
@@ -127,7 +132,7 @@ class DuplicateStatsAccuracyTestCase(APITestCase):
 
         # Create resolved duplicate - should not count
         photos2 = [create_test_photo(owner=self.user) for _ in range(2)]
-        resolved_dup = Duplicate.objects.create(
+        resolved_dup = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
             review_status=Duplicate.ReviewStatus.RESOLVED,
@@ -146,7 +151,7 @@ class DuplicateStatsAccuracyTestCase(APITestCase):
 
         # Create duplicate for other user
         other_photos = [create_test_photo(owner=other_user) for _ in range(2)]
-        other_dup = Duplicate.objects.create(
+        other_dup = create_test_duplicate(
             owner=other_user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
@@ -154,7 +159,7 @@ class DuplicateStatsAccuracyTestCase(APITestCase):
 
         # Create duplicate for current user
         my_photos = [create_test_photo(owner=self.user) for _ in range(2)]
-        my_dup = Duplicate.objects.create(
+        my_dup = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
@@ -186,7 +191,7 @@ class StackStatsAccuracyTestCase(APITestCase):
         # Create RAW+JPEG pairs
         for _ in range(2):
             photos = [create_test_photo(owner=self.user) for _ in range(2)]
-            stack = PhotoStack.objects.create(
+            stack = create_test_stack(
                 owner=self.user,
                 stack_type=PhotoStack.StackType.RAW_JPEG_PAIR,
             )
@@ -195,7 +200,7 @@ class StackStatsAccuracyTestCase(APITestCase):
         # Create burst sequences
         for _ in range(3):
             photos = [create_test_photo(owner=self.user) for _ in range(3)]
-            stack = PhotoStack.objects.create(
+            stack = create_test_stack(
                 owner=self.user,
                 stack_type=PhotoStack.StackType.BURST_SEQUENCE,
             )
@@ -203,7 +208,7 @@ class StackStatsAccuracyTestCase(APITestCase):
 
         # Create manual stack
         photos = [create_test_photo(owner=self.user) for _ in range(2)]
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -220,7 +225,7 @@ class StackStatsAccuracyTestCase(APITestCase):
         # 2 RAW+JPEG pairs (2 photos each) = 4 photos
         for _ in range(2):
             photos = [create_test_photo(owner=self.user) for _ in range(2)]
-            stack = PhotoStack.objects.create(
+            stack = create_test_stack(
                 owner=self.user,
                 stack_type=PhotoStack.StackType.RAW_JPEG_PAIR,
             )
@@ -228,7 +233,7 @@ class StackStatsAccuracyTestCase(APITestCase):
 
         # 1 burst (3 photos)
         photos = [create_test_photo(owner=self.user) for _ in range(3)]
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.BURST_SEQUENCE,
         )
@@ -244,14 +249,14 @@ class StackStatsAccuracyTestCase(APITestCase):
         photos = [create_test_photo(owner=self.user) for _ in range(3)]
 
         # Add first two photos to one stack
-        stack1 = PhotoStack.objects.create(
+        stack1 = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
         stack1.photos.add(photos[0], photos[1])
 
         # Add last two photos to another stack (photos[1] is in both)
-        stack2 = PhotoStack.objects.create(
+        stack2 = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -268,7 +273,7 @@ class StackStatsAccuracyTestCase(APITestCase):
 
         # Create stack for other user
         other_photos = [create_test_photo(owner=other_user) for _ in range(2)]
-        other_stack = PhotoStack.objects.create(
+        other_stack = create_test_stack(
             owner=other_user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -276,7 +281,7 @@ class StackStatsAccuracyTestCase(APITestCase):
 
         # Create stack for current user
         my_photos = [create_test_photo(owner=self.user) for _ in range(2)]
-        my_stack = PhotoStack.objects.create(
+        my_stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -291,7 +296,7 @@ class StackStatsAccuracyTestCase(APITestCase):
         """Test that old duplicate-type stacks are excluded from stats."""
         # Create a valid stack
         photos = [create_test_photo(owner=self.user) for _ in range(2)]
-        valid_stack = PhotoStack.objects.create(
+        valid_stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -424,7 +429,7 @@ class StatsEdgeCasesTestCase(APITestCase):
     def test_duplicate_with_zero_photos(self):
         """Test stats with duplicate group that has no photos."""
         # Create empty duplicate group
-        _dup = Duplicate.objects.create(
+        _dup = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
@@ -437,7 +442,7 @@ class StatsEdgeCasesTestCase(APITestCase):
     def test_stack_with_single_photo(self):
         """Test stats with stack that has only one photo."""
         photo = create_test_photo(owner=self.user)
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -453,7 +458,7 @@ class StatsEdgeCasesTestCase(APITestCase):
         """Test stats when photo has been deleted from group."""
         photos = [create_test_photo(owner=self.user) for _ in range(3)]
 
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -487,7 +492,7 @@ class StatsEdgeCasesTestCase(APITestCase):
         # Create 50 duplicate groups
         for _ in range(50):
             photos = [create_test_photo(owner=self.user) for _ in range(2)]
-            dup = Duplicate.objects.create(
+            dup = create_test_duplicate(
                 owner=self.user,
                 duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
             )

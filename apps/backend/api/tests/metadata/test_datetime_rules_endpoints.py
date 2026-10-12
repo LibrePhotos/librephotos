@@ -4,13 +4,13 @@ from django.test import TestCase
 from rest_framework.test import APIClient
 
 from api.date_time_extractor import DEFAULT_RULES_PARAMS, OTHER_RULES_PARAMS
-from api.models import User
+from api.tests.utils import create_test_user
 
 
 class PredefinedRulesTest(TestCase):
     def setUp(self):
-        self.admin = User.objects.create_superuser(
-            "test_admin", "test_admin@test.com", "test_password"
+        self.admin = create_test_user(
+            is_admin=True, username="test_admin", email="test_admin@test.com"
         )
         self.client = APIClient()
         self.client.force_authenticate(user=self.admin)

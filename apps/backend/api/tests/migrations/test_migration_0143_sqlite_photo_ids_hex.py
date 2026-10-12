@@ -25,14 +25,20 @@ from django.db import IntegrityError, connection
 from django.db.migrations.loader import MigrationLoader
 from django.test import SimpleTestCase, TestCase
 
-from api.models import AlbumUser, DeletionLog, Face, Photo, Tag
+from api.models import AlbumUser, DeletionLog, Face, Photo
 from api.models.photo_caption import PhotoCaption
 from api.models.photo_metadata import PhotoMetadata
 from api.models.photo_search import PhotoSearch
 from api.models.thumbnail import Thumbnail
 from api.sync_signals import _write_tombstones
 
-from ..utils import create_test_face, create_test_photo, create_test_user
+from ..utils import (
+    create_test_album_user,
+    create_test_face,
+    create_test_photo,
+    create_test_tag,
+    create_test_user,
+)
 
 MIGRATION_NAME = "0143_sqlite_photo_ids_hex"
 migration = importlib.import_module(f"api.migrations.{MIGRATION_NAME}")
@@ -141,9 +147,9 @@ class SqlitePhotoIdsHexTest(TestCase):
             camera="X100V",
         )
         create_test_face(photo=cls.photo)
-        cls.album = AlbumUser.objects.create(title="Trip", owner=cls.user)
+        cls.album = create_test_album_user(title="Trip", owner=cls.user)
         cls.album.photos.add(cls.photo)
-        cls.tag = Tag.objects.create(name="sea", owner=cls.user)
+        cls.tag = create_test_tag(name="sea", owner=cls.user)
         cls.tag.photos.add(cls.photo)
         # Added after the upgrade: Django wrote it, so it is hex already.
         cls.new_photo = create_test_photo(owner=cls.user)
@@ -195,7 +201,7 @@ class SqlitePhotoIdsHexTest(TestCase):
 
     def test_album_links_written_after_the_upgrade_join_again(self):
         legacy = self.legacy_photo()
-        album = AlbumUser.objects.create(title="After the upgrade", owner=self.user)
+        album = create_test_album_user(title="After the upgrade", owner=self.user)
         album.photos.add(legacy)
         # api_albumuser_photos lost its REFERENCES clause in 0099's rebuild,
         # so nothing stops the hex row -- it just never matches the photo.
@@ -214,7 +220,7 @@ class SqlitePhotoIdsHexTest(TestCase):
 
     def test_writes_to_a_real_foreign_key_stop_failing(self):
         legacy = self.legacy_photo()
-        tag = Tag.objects.create(name="after the upgrade", owner=self.user)
+        tag = create_test_tag(name="after the upgrade", owner=self.user)
         tag.photos.add(legacy)
         # api_tag_photos has a real (deferred) foreign key: this is the
         # "FOREIGN KEY constraint failed" an install gets on commit.

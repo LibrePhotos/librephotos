@@ -13,7 +13,7 @@ from django.test import TestCase
 from rest_framework.test import APIClient
 
 from api.models.duplicate import Duplicate
-from api.tests.utils import create_test_photo, create_test_user
+from api.tests.utils import create_test_duplicate, create_test_photo, create_test_user
 
 
 class DuplicateFilterByTypeTestCase(TestCase):
@@ -28,14 +28,14 @@ class DuplicateFilterByTypeTestCase(TestCase):
         self.photos = [create_test_photo(owner=self.user) for _ in range(6)]
 
         # Create exact copy duplicate
-        self.exact_dup = Duplicate.objects.create(
+        self.exact_dup = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
         self.exact_dup.photos.add(self.photos[0], self.photos[1])
 
         # Create visual duplicate
-        self.visual_dup = Duplicate.objects.create(
+        self.visual_dup = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.VISUAL_DUPLICATE,
             similarity_score=0.95,
@@ -43,7 +43,7 @@ class DuplicateFilterByTypeTestCase(TestCase):
         self.visual_dup.photos.add(self.photos[2], self.photos[3])
 
         # Create another exact copy
-        self.exact_dup2 = Duplicate.objects.create(
+        self.exact_dup2 = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
@@ -101,7 +101,7 @@ class DuplicateFilterByStatusTestCase(TestCase):
         self.photos = [create_test_photo(owner=self.user) for _ in range(6)]
 
         # Create pending duplicate
-        self.pending = Duplicate.objects.create(
+        self.pending = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
             review_status=Duplicate.ReviewStatus.PENDING,
@@ -109,7 +109,7 @@ class DuplicateFilterByStatusTestCase(TestCase):
         self.pending.photos.add(self.photos[0], self.photos[1])
 
         # Create resolved duplicate
-        self.resolved = Duplicate.objects.create(
+        self.resolved = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
             review_status=Duplicate.ReviewStatus.RESOLVED,
@@ -117,7 +117,7 @@ class DuplicateFilterByStatusTestCase(TestCase):
         self.resolved.photos.add(self.photos[2], self.photos[3])
 
         # Create dismissed duplicate
-        self.dismissed = Duplicate.objects.create(
+        self.dismissed = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.VISUAL_DUPLICATE,
             review_status=Duplicate.ReviewStatus.DISMISSED,
@@ -273,7 +273,7 @@ class DuplicateDetectionJobTestCase(TestCase):
         photo1 = create_test_photo(owner=self.user)
         photo2 = create_test_photo(owner=self.user)
 
-        dup = Duplicate.objects.create(
+        dup = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
             review_status=Duplicate.ReviewStatus.PENDING,
@@ -351,13 +351,13 @@ class DuplicateListSortingTestCase(TestCase):
         # Create multiple duplicates
         self.photos = [create_test_photo(owner=self.user) for _ in range(4)]
 
-        self.dup1 = Duplicate.objects.create(
+        self.dup1 = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
         self.dup1.photos.add(self.photos[0], self.photos[1])
 
-        self.dup2 = Duplicate.objects.create(
+        self.dup2 = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.VISUAL_DUPLICATE,
             similarity_score=0.95,
@@ -390,13 +390,13 @@ class DuplicateBulkActionsTestCase(TestCase):
         """Test bulk dismissing duplicates."""
         photos = [create_test_photo(owner=self.user) for _ in range(4)]
 
-        dup1 = Duplicate.objects.create(
+        dup1 = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
         dup1.photos.add(photos[0], photos[1])
 
-        dup2 = Duplicate.objects.create(
+        dup2 = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
@@ -420,7 +420,7 @@ class EmptyDuplicateGroupTestCase(TestCase):
 
     def test_duplicate_with_no_photos(self):
         """Test handling duplicate group with no photos."""
-        dup = Duplicate.objects.create(
+        dup = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
@@ -435,7 +435,7 @@ class EmptyDuplicateGroupTestCase(TestCase):
         """Test handling duplicate group with only one photo."""
         photo = create_test_photo(owner=self.user)
 
-        dup = Duplicate.objects.create(
+        dup = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
@@ -450,7 +450,7 @@ class EmptyDuplicateGroupTestCase(TestCase):
         """Test resolving duplicate with only one photo."""
         photo = create_test_photo(owner=self.user)
 
-        dup = Duplicate.objects.create(
+        dup = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )

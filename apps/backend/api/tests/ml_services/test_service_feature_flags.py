@@ -13,7 +13,6 @@ from django.db.utils import OperationalError
 from django.test import SimpleTestCase, TestCase, override_settings
 from rest_framework.test import APIClient
 
-from api.models import User
 from api.services import (
     SERVICE_FEATURE_FLAGS,
     SERVICE_SITE_GATES,
@@ -22,7 +21,7 @@ from api.services import (
     is_service_enabled,
     start_service,
 )
-from api.tests.utils import create_password
+from api.tests.utils import create_test_user
 
 # The site settings that have to say yes before the services they gate are
 # started at all; the flag tests are about the environment, not about these.
@@ -295,8 +294,8 @@ class ServiceAdminApiTest(TestCase):
     """
 
     def setUp(self):
-        self.admin = User.objects.create_superuser(
-            "admin", "admin@test.com", create_password()
+        self.admin = create_test_user(
+            is_admin=True, username="admin", email="admin@test.com"
         )
         self.client = APIClient()
         self.client.force_authenticate(user=self.admin)

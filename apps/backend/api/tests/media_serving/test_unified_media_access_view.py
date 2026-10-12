@@ -16,9 +16,14 @@ from django.test import TestCase, override_settings
 from rest_framework.test import APIRequestFactory
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from api.models import AlbumUser, File
+from api.models import File
 from api.models.album_user_share import AlbumUserShare
-from api.tests.utils import ONE_PIXEL_PNG, create_test_photo, create_test_user
+from api.tests.utils import (
+    ONE_PIXEL_PNG,
+    create_test_album_user,
+    create_test_photo,
+    create_test_user,
+)
 from api.views.media import UnifiedMediaAccessView
 
 factory = APIRequestFactory()
@@ -161,7 +166,7 @@ class UnifiedEmbeddedMediaTest(TestCase):
         self.assertEqual(response.status_code, 200)
 
     def test_member_of_a_shared_album_gets_the_embedded_file(self):
-        album = AlbumUser.objects.create(title="trip", owner=self.owner)
+        album = create_test_album_user(title="trip", owner=self.owner)
         album.photos.add(self.photo)
         album.shared_to.add(self.other)
         response = _unified("embedded_media", self.photo.image_hash, user=self.other)
@@ -199,7 +204,7 @@ class UnifiedPublicAlbumIdTest(TestCase):
     def setUp(self):
         self.owner = create_test_user()
         self.photo = create_test_photo(owner=self.owner)
-        self.album = AlbumUser.objects.create(title="Trip", owner=self.owner)
+        self.album = create_test_album_user(title="Trip", owner=self.owner)
         self.album.photos.add(self.photo)
         self.share = AlbumUserShare.objects.create(album=self.album, enabled=True)
 
@@ -339,7 +344,7 @@ class UnifiedThumbnailAccessTest(TestCase):
         self.assertEqual(response.status_code, 200)
 
     def test_public_album_wins_over_a_missing_token(self):
-        album = AlbumUser.objects.create(title="Open", owner=self.owner)
+        album = create_test_album_user(title="Open", owner=self.owner)
         album.photos.add(self.photo)
         AlbumUserShare.objects.create(album=album, enabled=True)
         response = _unified("thumbnails_big", self.photo.image_hash)
@@ -385,7 +390,7 @@ class UnifiedThumbnailAccessTest(TestCase):
         """
         public_video = create_test_photo(owner=self.owner, video=True, public=True)
         album_video = create_test_photo(owner=self.owner, video=True)
-        album = AlbumUser.objects.create(title="Open", owner=self.owner)
+        album = create_test_album_user(title="Open", owner=self.owner)
         album.photos.add(album_video)
         AlbumUserShare.objects.create(album=album, enabled=True)
 
@@ -478,7 +483,7 @@ class UnifiedOriginalPhotoTest(TestCase):
         self.assertIn("Content-Disposition", response)
 
     def test_album_share_recipient_gets_it_without_content_disposition(self):
-        album = AlbumUser.objects.create(title="Shared", owner=self.owner)
+        album = create_test_album_user(title="Shared", owner=self.owner)
         album.photos.add(self.photo)
         album.shared_to.add(self.friend)
         response = _unified("photos", self.photo.image_hash, user=self.friend)
@@ -486,7 +491,7 @@ class UnifiedOriginalPhotoTest(TestCase):
         self.assertNotIn("Content-Disposition", response)
 
     def test_public_album_serves_anonymously_without_content_disposition(self):
-        album = AlbumUser.objects.create(title="Open", owner=self.owner)
+        album = create_test_album_user(title="Open", owner=self.owner)
         album.photos.add(self.photo)
         AlbumUserShare.objects.create(album=album, enabled=True)
         response = _unified("photos", self.photo.image_hash)
@@ -599,7 +604,7 @@ class UnifiedTranscodeBranchTest(TestCase):
     def test_public_album_video_is_never_transcoded_for_a_visitor(self):
         from unittest import mock
 
-        album = AlbumUser.objects.create(title="Open", owner=self.owner)
+        album = create_test_album_user(title="Open", owner=self.owner)
         album.photos.add(self.video)
         AlbumUserShare.objects.create(album=album, enabled=True)
         with mock.patch("api.transcode_cache.cached_path") as cached_path:
@@ -613,7 +618,7 @@ class UnifiedTranscodeBranchTest(TestCase):
 
         from django.conf import settings
 
-        album = AlbumUser.objects.create(title="Open", owner=self.owner)
+        album = create_test_album_user(title="Open", owner=self.owner)
         album.photos.add(self.video)
         AlbumUserShare.objects.create(album=album, enabled=True)
         cached = os.path.join(settings.MEDIA_ROOT, "transcoded", "clip.mp4")
@@ -690,7 +695,7 @@ class UnifiedCookieAndHeaderAuthTest(TestCase):
                 self.assertEqual(response.status_code, 200)
 
     def test_expired_cookie_still_gets_a_public_album_photo(self):
-        album = AlbumUser.objects.create(title="Open", owner=self.owner)
+        album = create_test_album_user(title="Open", owner=self.owner)
         album.photos.add(self.photo)
         AlbumUserShare.objects.create(album=album, enabled=True)
         response = _unified(

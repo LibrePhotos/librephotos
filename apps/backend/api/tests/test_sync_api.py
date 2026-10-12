@@ -17,14 +17,20 @@ from rest_framework.test import APIClient
 
 from api.autoalbum import delete_missing_photos
 from api.models import (
-    AlbumUser,
     DeletionLog,
     Person,
     Photo,
-    Tag,
 )
 from api.services import prune_deletion_log
-from api.tests.utils import create_test_photo, create_test_photos, create_test_user
+from api.tests.utils import (
+    create_test_album_user,
+    create_test_duplicate,
+    create_test_person,
+    create_test_photo,
+    create_test_photos,
+    create_test_tag,
+    create_test_user,
+)
 
 PHOTOS_URL = "/api/sync/photos/"
 
@@ -159,7 +165,7 @@ class SyncBulkTrashTest(TestCase):
         from api.models.duplicate import Duplicate
 
         kept, other = create_test_photos(number_of_photos=2, owner=self.user)
-        group = Duplicate.objects.create(
+        group = create_test_duplicate(
             owner=self.user, duplicate_type=Duplicate.DuplicateType.EXACT_COPY
         )
         group.photos.add(kept, other)
@@ -206,7 +212,7 @@ class SyncTombstoneTest(TestCase):
         self.assertFalse(Photo.objects.filter(pk__in=[p.pk for p in photos]).exists())
 
     def test_person_delete_emits_tombstone(self):
-        person = Person.objects.create(
+        person = create_test_person(
             name="Alice", kind=Person.KIND_USER, cluster_owner=self.user
         )
         url = "/api/sync/persons/"
@@ -217,7 +223,7 @@ class SyncTombstoneTest(TestCase):
         self.assertIn(pid, tombs2)
 
     def test_tag_delete_emits_tombstone(self):
-        tag = Tag.objects.create(name="beach", owner=self.user)
+        tag = create_test_tag(name="beach", owner=self.user)
         url = "/api/sync/albums/tag/"
         _items, _tomb, cursor = sync_pull(self.client, url)
         tid = str(tag.id)
@@ -310,7 +316,7 @@ class SyncSharingVisibilityTest(TestCase):
         self.assertNotIn(str(photos[0].id), tombs)
 
     def test_album_unshare_emits_tombstone_for_recipient(self):
-        album = AlbumUser.objects.create(title="Trip", owner=self.user_a)
+        album = create_test_album_user(title="Trip", owner=self.user_a)
         url = "/api/sync/albums/user/"
 
         # Share album to B.
@@ -349,7 +355,7 @@ class SyncAlbumMembershipTest(TestCase):
         self.client.force_authenticate(user=self.user)
 
     def test_user_album_embeds_photo_ids_and_bumps_on_membership_change(self):
-        album = AlbumUser.objects.create(title="Album", owner=self.user)
+        album = create_test_album_user(title="Album", owner=self.user)
         photos = create_test_photos(number_of_photos=2, owner=self.user)
         album.photos.add(*photos)
 
@@ -376,9 +382,9 @@ class SyncCountsTest(TestCase):
 
     def test_counts_endpoint(self):
         create_test_photos(number_of_photos=4, owner=self.user)
-        AlbumUser.objects.create(title="A", owner=self.user)
-        Tag.objects.create(name="t", owner=self.user)
-        Person.objects.create(name="P", kind=Person.KIND_USER, cluster_owner=self.user)
+        create_test_album_user(title="A", owner=self.user)
+        create_test_tag(name="t", owner=self.user)
+        create_test_person(name="P", kind=Person.KIND_USER, cluster_owner=self.user)
 
         resp = self.client.get("/api/sync/counts/")
         data = resp.json()

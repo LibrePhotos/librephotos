@@ -12,7 +12,12 @@ from django.test import TestCase
 
 from api.models import Person
 from api.stats import get_searchterms_wordcloud
-from api.tests.utils import create_test_face, create_test_photo, create_test_user
+from api.tests.utils import (
+    create_test_face,
+    create_test_person,
+    create_test_photo,
+    create_test_user,
+)
 
 
 def _caps(tags=None, extra=None, model="openclip_vitb32"):
@@ -175,12 +180,9 @@ class SearchtermsWordcloudPeopleTests(TestCase):
     def setUp(self):
         self.user = create_test_user()
 
-    def _person(self, name):
-        return Person.objects.create(name=name, kind=Person.KIND_USER)
-
     def test_faces_counted_per_person_sorted_desc(self):
-        alice = self._person("Alice")
-        bob = self._person("Bob")
+        alice = create_test_person(name="Alice")
+        bob = create_test_person(name="Bob")
         for _ in range(3):
             create_test_face(photo=create_test_photo(owner=self.user), person=alice)
         create_test_face(photo=create_test_photo(owner=self.user), person=bob)
@@ -197,7 +199,7 @@ class SearchtermsWordcloudPeopleTests(TestCase):
         self.assertEqual(out["people"], [])
 
     def test_multiple_faces_on_same_photo_counted_individually(self):
-        alice = self._person("Alice")
+        alice = create_test_person(name="Alice")
         photo = create_test_photo(owner=self.user)
         create_test_face(photo=photo, person=alice)
         create_test_face(photo=photo, person=alice)
@@ -206,14 +208,14 @@ class SearchtermsWordcloudPeopleTests(TestCase):
 
     def test_people_scoped_to_photo_owner(self):
         other = create_test_user()
-        alice = self._person("Alice")
+        alice = create_test_person(name="Alice")
         create_test_face(photo=create_test_photo(owner=other), person=alice)
         out = get_searchterms_wordcloud(self.user)
         self.assertEqual(out["people"], [])
 
     def test_people_capped_at_100(self):
         for i in range(105):
-            person = self._person(f"P{i:03d}")
+            person = create_test_person(name=f"P{i:03d}")
             create_test_face(photo=create_test_photo(owner=self.user), person=person)
         out = get_searchterms_wordcloud(self.user)
         self.assertEqual(len(out["people"]), 100)
@@ -405,7 +407,7 @@ class SearchtermsWordcloudLocationsTests(TestCase):
 class SearchtermsWordcloudCombinedTests(TestCase):
     def test_all_three_sections_populated_together(self):
         user = create_test_user()
-        person = Person.objects.create(name="Alice", kind=Person.KIND_USER)
+        person = create_test_person(name="Alice", kind=Person.KIND_USER)
         photo = create_test_photo(
             owner=user,
             captions_json=_caps(["beach", "outdoor"]),

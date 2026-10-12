@@ -22,9 +22,10 @@ from django.test import TestCase
 
 from api import face_classify
 from api.face_classify import create_all_clusters, filter_data, train_faces
-from api.models import Cluster, Face, LongRunningJob, Person
+from api.models import Face, LongRunningJob, Person
 from api.models.cluster import UNKNOWN_CLUSTER_ID, get_unknown_cluster
 from api.tests.utils import (
+    create_test_cluster,
     create_test_face,
     create_test_person,
     create_test_photo,
@@ -287,7 +288,7 @@ class CreateAllClustersTest(TestCase):
     def test_return_value_is_the_face_count_not_the_cluster_count(self):
         for i in range(3):
             self.make_face(i)
-        cluster = Cluster.objects.create(owner=self.user, cluster_id=1, name="c")
+        cluster = create_test_cluster(owner=self.user, cluster_id=1, name="c")
 
         cls, _ = fake_hdbscan([0, 0, 0])
         with (
@@ -471,7 +472,7 @@ class TrainFacesTest(TrainFacesTestBase):
         cluster_person = create_test_person(
             name="Unknown 1", kind=Person.KIND_CLUSTER, cluster_owner=self.user
         )
-        Cluster.objects.create(
+        create_test_cluster(
             owner=self.user,
             cluster_id=1,
             name="Cluster 1",
@@ -479,7 +480,7 @@ class TrainFacesTest(TrainFacesTestBase):
             mean_face_encoding=enc_hex(42),
         )
         # A cluster whose person is a normal user person is *not* added.
-        Cluster.objects.create(
+        create_test_cluster(
             owner=self.user,
             cluster_id=2,
             name="Cluster 2",

@@ -6,7 +6,7 @@ from django.test import TestCase
 
 from api.models import Cluster, Face
 
-from ..utils import create_test_face
+from ..utils import create_test_cluster, create_test_face, create_test_user
 
 # The migration module name starts with a digit, so it can't be imported with a
 # normal `import` statement.
@@ -32,7 +32,7 @@ class Clear128DimFaceEncodingsMigrationTest(TestCase):
 
         # A face attached to a cluster: the cluster is deleted but the face
         # survives (Face.cluster is on_delete=SET_NULL).
-        cluster = Cluster.objects.create(mean_face_encoding="")
+        cluster = create_test_cluster(create_test_user(), mean_face_encoding="")
         clustered = create_test_face(encoding=encoding_of_length(128), cluster=cluster)
 
         self.assertEqual(Cluster.objects.count(), 1)
