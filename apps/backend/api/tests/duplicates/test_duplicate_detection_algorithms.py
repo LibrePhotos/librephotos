@@ -30,7 +30,12 @@ from api.duplicate_detection import (
 from api.models.duplicate import Duplicate
 from api.models.file import File
 from api.models.long_running_job import LongRunningJob
-from api.tests.utils import create_test_photo, create_test_user
+from api.tests.utils import (
+    create_test_duplicate,
+    create_test_file,
+    create_test_photo,
+    create_test_user,
+)
 
 
 class BKTreeTestCase(TestCase):
@@ -278,10 +283,11 @@ class DetectExactCopiesTestCase(TestCase):
         photo.image_hash = image_hash
 
         if file_hash:
-            file = File.objects.create(
+            file = create_test_file(
+                user=self.user,
                 hash=file_hash,
                 path=f"/photos/test_{uuid.uuid4()}.jpg",
-                type=File.IMAGE,
+                file_type=File.IMAGE,
             )
             photo.files.add(file)
             photo.main_file = file
@@ -554,7 +560,7 @@ class BatchDetectDuplicatesTestCase(TestCase):
         # Create pending duplicate
         photo1 = create_test_photo(owner=self.user)
         photo2 = create_test_photo(owner=self.user)
-        duplicate = Duplicate.objects.create(
+        duplicate = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
             review_status=Duplicate.ReviewStatus.PENDING,
@@ -614,10 +620,11 @@ class EdgeCasesTestCase(TestCase):
     def test_photo_with_short_file_hash(self):
         """Test files with hash shorter than 32 chars."""
         photo = create_test_photo(owner=self.user)
-        file = File.objects.create(
+        file = create_test_file(
+            user=self.user,
             hash="short",  # Less than 32 chars
             path="/photos/test.jpg",
-            type=File.IMAGE,
+            file_type=File.IMAGE,
         )
         photo.files.add(file)
         photo.save()
@@ -649,10 +656,11 @@ class EdgeCasesTestCase(TestCase):
         photo = create_test_photo(owner=self.user)
 
         # Add metadata file
-        metadata_file = File.objects.create(
+        metadata_file = create_test_file(
+            user=self.user,
             hash="a" * 32 + "suffix",
             path="/photos/test.xmp",
-            type=File.METADATA_FILE,
+            file_type=File.METADATA_FILE,
         )
         photo.files.add(metadata_file)
         photo.save()
@@ -709,19 +717,25 @@ class EdgeCasesTestCase(TestCase):
 
         photo_a = create_test_photo(owner=self.user)
         photo_a.image_hash = "hash_abc"
-        file_a = File.objects.create(hash="x" * 32, path="/a.jpg", type=File.IMAGE)
+        file_a = create_test_file(
+            user=self.user, hash="x" * 32, path="/a.jpg", file_type=File.IMAGE
+        )
         photo_a.files.add(file_a)
         photo_a.save()
 
         photo_b = create_test_photo(owner=self.user)
         photo_b.image_hash = "hash_abc"  # Same as A
-        file_b = File.objects.create(hash="y" * 32, path="/b.jpg", type=File.IMAGE)
+        file_b = create_test_file(
+            user=self.user, hash="y" * 32, path="/b.jpg", file_type=File.IMAGE
+        )
         photo_b.files.add(file_b)
         photo_b.save()
 
         photo_c = create_test_photo(owner=self.user)
         photo_c.image_hash = "hash_abc"  # Same as A and B
-        file_c = File.objects.create(hash="z" * 32, path="/c.jpg", type=File.IMAGE)
+        file_c = create_test_file(
+            user=self.user, hash="z" * 32, path="/c.jpg", file_type=File.IMAGE
+        )
         photo_c.files.add(file_c)
         photo_c.save()
 
@@ -769,7 +783,7 @@ class MultiUserDuplicateIsolationTestCase(TestCase):
         for user in [self.user1, self.user2]:
             photo1 = create_test_photo(owner=user)
             photo2 = create_test_photo(owner=user)
-            dup = Duplicate.objects.create(
+            dup = create_test_duplicate(
                 owner=user,
                 duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
                 review_status=Duplicate.ReviewStatus.PENDING,

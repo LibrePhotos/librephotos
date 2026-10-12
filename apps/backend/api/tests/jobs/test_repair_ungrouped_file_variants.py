@@ -20,7 +20,7 @@ from django.test import TestCase
 from api.directory_watcher import repair_jobs
 from api.directory_watcher.repair_jobs import repair_ungrouped_file_variants
 from api.models import File, LongRunningJob, Photo
-from api.tests.utils import create_test_photo, create_test_user
+from api.tests.utils import create_test_job, create_test_photo, create_test_user
 
 
 def _job(job_id):
@@ -243,7 +243,7 @@ class RepairUngroupedFileVariantsTest(TestCase):
     # ---- job bookkeeping --------------------------------------------
 
     def test_reuses_an_existing_job_row_with_the_same_job_id(self):
-        existing = LongRunningJob.objects.create(
+        existing = create_test_job(
             started_by=self.user,
             job_type=LongRunningJob.JOB_REPAIR_FILE_VARIANTS,
             job_id=str(self.job_id),

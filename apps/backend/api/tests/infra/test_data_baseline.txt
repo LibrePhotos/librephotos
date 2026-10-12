@@ -3,32 +3,3 @@
 # have a factory in api/tests/utils.py (FACTORIES in scripts/factory_baseline.py). Sorted by path.
 # It only shrinks: move a file to its factories, then regenerate. A raw create that must stay raw
 # carries `# raw-create: <reason>` on its line and is not listed here.
-api/tests/duplicates/test_duplicate_and_stack_redetection.py 18
-api/tests/duplicates/test_duplicate_detection_algorithms.py 8
-api/tests/duplicates/test_duplicate_list_filters.py 14
-api/tests/duplicates/test_duplicate_model_and_api.py 3
-api/tests/duplicates/test_missing_data_robustness.py 15
-api/tests/faces/test_cluster_manager_try_add_cluster.py 2
-api/tests/faces/test_delete_labeled_faces.py 1
-api/tests/faces/test_face_clustering_and_training.py 3
-api/tests/faces/test_person_delete.py 1
-api/tests/faces/test_social_graph_building.py 9
-api/tests/jobs/test_queue_availability_owner_scope.py 1
-api/tests/jobs/test_repair_ungrouped_file_variants.py 1
-api/tests/media_serving/test_transcode_when_needed.py 1
-api/tests/media_serving/test_unified_media_access_view.py 9
-api/tests/metadata/test_datetime_rules_endpoints.py 1
-api/tests/metadata/test_tag_photo_count.py 3
-api/tests/migrations/test_migration_0126_clear_legacy_face_encodings.py 1
-api/tests/migrations/test_migration_0140_album_m2m_unique_constraints.py 2
-api/tests/migrations/test_migration_0143_sqlite_photo_ids_hex.py 4
-api/tests/migrations/test_migration_0144_sqlite_restore_foreign_keys.py 5
-api/tests/migrations/test_migration_0149_turn_off_public_links_of_deleted_users.py 1
-api/tests/ml_services/test_service_feature_flags.py 1
-api/tests/ocr/test_ocr_job_and_model.py 2
-api/tests/search/test_photo_list_query_counts.py 2
-api/tests/search/test_semantic_search_model.py 1
-api/tests/stats/test_searchterms_wordcloud.py 2
-api/tests/stats/test_server_stats_and_location_clusters.py 4
-api/tests/stats/test_stats_endpoints_and_helpers.py 24
-api/tests/test_sync_api.py 8

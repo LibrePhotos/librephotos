@@ -21,14 +21,19 @@ from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import AccessToken
 
 from api import transcode_cache, video_playback
-from api.models import AlbumUser, Photo
+from api.models import Photo
 from api.models.album_user_share import AlbumUserShare
 from api.serializers.photos import PhotoSerializer
 from api.tests.media_serving.test_issue_477_video_transcode_on_photos_path import (
     MP4_BYTES,
     FakeVideoTranscoder,
 )
-from api.tests.utils import create_test_file, create_test_photo, create_test_user
+from api.tests.utils import (
+    create_test_album_user,
+    create_test_file,
+    create_test_photo,
+    create_test_user,
+)
 
 MP4 = "mov,mp4,m4a,3gp,3g2,mj2"
 MKV = "matroska,webm"
@@ -142,7 +147,7 @@ class TranscodeOnRequestTest(TestCase):
         return response, transcoder.called
 
     def _public_album(self):
-        album = AlbumUser.objects.create(title="Open", owner=self.owner)
+        album = create_test_album_user(title="Open", owner=self.owner)
         album.photos.add(self.photo)
         AlbumUserShare.objects.create(album=album, enabled=True)
 

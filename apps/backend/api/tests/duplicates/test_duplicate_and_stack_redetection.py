@@ -25,7 +25,13 @@ from api.models.duplicate import Duplicate
 from api.models.file import File
 from api.models.photo_stack import PhotoStack
 from api.stack_detection import detect_burst_sequences
-from api.tests.utils import create_test_photo, create_test_user
+from api.tests.utils import (
+    create_test_duplicate,
+    create_test_file,
+    create_test_photo,
+    create_test_stack,
+    create_test_user,
+)
 
 
 class DuplicateRedetectionTestCase(TestCase):
@@ -304,7 +310,7 @@ class PhotoInMultipleGroupsRedetectionTestCase(TestCase):
         photos = [create_test_photo(owner=self.user) for _ in range(3)]
 
         # Create a manual stack
-        stack = PhotoStack.objects.create(
+        stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -328,7 +334,7 @@ class PhotoInMultipleGroupsRedetectionTestCase(TestCase):
         photos = [create_test_photo(owner=self.user) for _ in range(3)]
 
         # Create a duplicate group
-        dup = Duplicate.objects.create(
+        dup = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
@@ -362,7 +368,7 @@ class ClearExistingGroupsTestCase(TestCase):
         """Test that clear_pending removes pending duplicates."""
         # Create a pending duplicate
         photos = [create_test_photo(owner=self.user) for _ in range(2)]
-        dup = Duplicate.objects.create(
+        dup = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
             review_status=Duplicate.ReviewStatus.PENDING,
@@ -396,14 +402,14 @@ class ClearExistingGroupsTestCase(TestCase):
         photos2 = [create_test_photo(owner=self.user) for _ in range(2)]
 
         # Create pending and resolved duplicates
-        pending_dup = Duplicate.objects.create(
+        pending_dup = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
             review_status=Duplicate.ReviewStatus.PENDING,
         )
         pending_dup.photos.add(*photos1)
 
-        resolved_dup = Duplicate.objects.create(
+        resolved_dup = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
             review_status=Duplicate.ReviewStatus.RESOLVED,
@@ -433,13 +439,13 @@ class MergeOnRedetectionTestCase(TestCase):
         photos = [create_test_photo(owner=self.user) for _ in range(4)]
 
         # Create two overlapping stacks
-        stack1 = PhotoStack.objects.create(
+        stack1 = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
         stack1.photos.add(photos[0], photos[1], photos[2])  # 0, 1, 2
 
-        stack2 = PhotoStack.objects.create(
+        stack2 = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
@@ -460,13 +466,13 @@ class MergeOnRedetectionTestCase(TestCase):
         photos = [create_test_photo(owner=self.user) for _ in range(4)]
 
         # Create two overlapping duplicate groups
-        dup1 = Duplicate.objects.create(
+        dup1 = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
         dup1.photos.add(photos[0], photos[1], photos[2])
 
-        dup2 = Duplicate.objects.create(
+        dup2 = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
@@ -507,20 +513,22 @@ class FileVariantsIdempotencyTestCase(TestCase):
         unique_suffix = str(uuid.uuid4())[:8]
 
         # Create a JPEG file
-        jpeg_file = File.objects.create(
+        jpeg_file = create_test_file(
+            user=self.user,
             hash=f"jpeg_{unique_suffix}" + "a" * 20,
             path=f"/photos/IMG_001_{unique_suffix}.jpg",
-            type=File.IMAGE,
+            file_type=File.IMAGE,
         )
         photo.main_file = jpeg_file
         photo.files.add(jpeg_file)
         photo.save()
 
         # Add a RAW file variant
-        raw_file = File.objects.create(
+        raw_file = create_test_file(
+            user=self.user,
             hash=f"raw_{unique_suffix}" + "b" * 21,
             path=f"/photos/IMG_001_{unique_suffix}.CR2",
-            type=File.RAW_FILE,
+            file_type=File.RAW_FILE,
         )
         photo.files.add(raw_file)
 
@@ -540,27 +548,30 @@ class FileVariantsIdempotencyTestCase(TestCase):
         photo.files.clear()
 
         # Add JPEG
-        jpeg_file = File.objects.create(
+        jpeg_file = create_test_file(
+            user=self.user,
             hash="jpeg" + "a" * 28,
             path="/photos/IMG_001.jpg",
-            type=File.IMAGE,
+            file_type=File.IMAGE,
         )
         photo.main_file = jpeg_file
         photo.files.add(jpeg_file)
 
         # Add RAW
-        raw_file = File.objects.create(
+        raw_file = create_test_file(
+            user=self.user,
             hash="raw" + "b" * 29,
             path="/photos/IMG_001.CR2",
-            type=File.RAW_FILE,
+            file_type=File.RAW_FILE,
         )
         photo.files.add(raw_file)
 
         # Add video for Live Photo
-        video_file = File.objects.create(
+        video_file = create_test_file(
+            user=self.user,
             hash="video" + "c" * 27,
             path="/photos/IMG_001.mov",
-            type=File.VIDEO,
+            file_type=File.VIDEO,
         )
         photo.files.add(video_file)
         photo.save()
@@ -579,10 +590,11 @@ class FileVariantsIdempotencyTestCase(TestCase):
         photo.files.clear()
 
         # Add JPEG
-        jpeg_file = File.objects.create(
+        jpeg_file = create_test_file(
+            user=self.user,
             hash="jpeg" + "a" * 28,
             path="/photos/IMG_001.jpg",
-            type=File.IMAGE,
+            file_type=File.IMAGE,
         )
         photo.main_file = jpeg_file
         photo.files.add(jpeg_file)
@@ -592,10 +604,11 @@ class FileVariantsIdempotencyTestCase(TestCase):
         self.assertFalse(has_raw)
 
         # Add RAW
-        raw_file = File.objects.create(
+        raw_file = create_test_file(
+            user=self.user,
             hash="raw" + "b" * 29,
             path="/photos/IMG_001.CR2",
-            type=File.RAW_FILE,
+            file_type=File.RAW_FILE,
         )
         photo.files.add(raw_file)
 
@@ -611,10 +624,11 @@ class FileVariantsIdempotencyTestCase(TestCase):
         photo.files.clear()
 
         # Add image
-        image_file = File.objects.create(
+        image_file = create_test_file(
+            user=self.user,
             hash="image" + "a" * 27,
             path="/photos/IMG_001.heic",
-            type=File.IMAGE,
+            file_type=File.IMAGE,
         )
         photo.main_file = image_file
         photo.files.add(image_file)
@@ -624,10 +638,11 @@ class FileVariantsIdempotencyTestCase(TestCase):
         self.assertFalse(has_video)
 
         # Add video for Live Photo
-        video_file = File.objects.create(
+        video_file = create_test_file(
+            user=self.user,
             hash="video" + "b" * 27,
             path="/photos/IMG_001.mov",
-            type=File.VIDEO,
+            file_type=File.VIDEO,
         )
         photo.files.add(video_file)
 

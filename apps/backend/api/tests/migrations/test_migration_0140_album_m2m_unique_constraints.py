@@ -20,9 +20,14 @@ from django.db import connection
 from django.test import TestCase
 from django.utils import timezone
 
-from api.models import AlbumAuto, AlbumDate, AlbumPlace, AlbumThing, AlbumUser
+from api.models import AlbumAuto, AlbumPlace, AlbumThing
 
-from ..utils import create_test_photo, create_test_user
+from ..utils import (
+    create_test_album_date,
+    create_test_album_user,
+    create_test_photo,
+    create_test_user,
+)
 
 migration_module = importlib.import_module(
     "api.migrations.0140_album_m2m_unique_constraints"
@@ -67,7 +72,7 @@ class AlbumM2MUniqueConstraintTest(TestCase):
         now = timezone.now()
         # One album per M2M the migration covers, in the migration's order.
         cls.relations = [
-            (AlbumUser.objects.create(title="Trip", owner=cls.user), "photos"),
+            (create_test_album_user(title="Trip", owner=cls.user), "photos"),
             (
                 AlbumThing.objects.create(
                     title="Dog", thing_type="tag", owner=cls.user
@@ -82,9 +87,7 @@ class AlbumM2MUniqueConstraintTest(TestCase):
             ),
             (AlbumPlace.objects.create(title="Haifa", owner=cls.user), "photos"),
             (
-                AlbumDate.objects.create(
-                    date=datetime.date(2020, 1, 1), owner=cls.user
-                ),
+                create_test_album_date(date=datetime.date(2020, 1, 1), owner=cls.user),
                 "photos",
             ),
             (

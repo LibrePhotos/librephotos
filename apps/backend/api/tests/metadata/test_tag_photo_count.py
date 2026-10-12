@@ -13,7 +13,12 @@ from rest_framework.test import APIClient
 
 from api.models import Photo, Tag
 from api.models.tag import refresh_tag_photo_counts, tag_ids_for_photos
-from api.tests.utils import create_test_photo, create_test_photos, create_test_user
+from api.tests.utils import (
+    create_test_photo,
+    create_test_photos,
+    create_test_tag,
+    create_test_user,
+)
 
 
 def _results(response):
@@ -37,7 +42,7 @@ class TagPhotoCountStaysTrueTest(TestCase):
         self.client = APIClient()
         self.client.force_authenticate(user=self.user)
         self.photos = create_test_photos(number_of_photos=2, owner=self.user)
-        self.tag = Tag.objects.create(name="beach", owner=self.user)
+        self.tag = create_test_tag(name="beach", owner=self.user)
         self.tag.photos.add(*self.photos)
         self.tag.refresh_from_db()
         self.assertEqual(self.tag.photo_count, 2)
@@ -147,7 +152,7 @@ class TagPhotoCountStaysTrueTest(TestCase):
     def test_the_refresh_leaves_other_users_tags_alone(self):
         other_user = create_test_user()
         other_photo = create_test_photo(owner=other_user)
-        other_tag = Tag.objects.create(name="beach", owner=other_user)
+        other_tag = create_test_tag(name="beach", owner=other_user)
         other_tag.photos.add(other_photo)
 
         self.client.post(
@@ -161,7 +166,7 @@ class TagPhotoCountStaysTrueTest(TestCase):
 
     def test_the_refresh_is_one_statement_however_many_tags_it_touches(self):
         for name in ("holiday", "sunset", "family"):
-            tag = Tag.objects.create(name=name, owner=self.user)
+            tag = create_test_tag(name=name, owner=self.user)
             tag.photos.add(*self.photos)
         tag_ids = list(Tag.objects.filter(owner=self.user).values_list("pk", flat=True))
 

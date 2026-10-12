@@ -17,6 +17,7 @@ from api.models.deletion_log import DeletionLog
 from api.models.face import Face
 from api.models.person import Person
 from api.tests.utils import (
+    create_test_cluster,
     create_test_face,
     create_test_person,
     create_test_photo,
@@ -32,7 +33,7 @@ class PersonDeleteTest(TestCase):
         self.photo = create_test_photo(owner=self.user)
         self.person = create_test_person(name="Alice", cluster_owner=self.user)
         self.other = create_test_person(name="Bob", cluster_owner=self.user)
-        self.cluster = Cluster.objects.create(
+        self.cluster = create_test_cluster(
             person=self.person, mean_face_encoding="", owner=self.user
         )
         self.face = create_test_face(

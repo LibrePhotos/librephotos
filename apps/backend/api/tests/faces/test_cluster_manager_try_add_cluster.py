@@ -14,7 +14,12 @@ from api.cluster_manager import ClusterManager
 from api.models.cluster import UNKNOWN_CLUSTER_ID, UNKNOWN_CLUSTER_NAME, Cluster
 from api.models.face import Face
 from api.models.person import Person
-from api.tests.utils import create_test_face, create_test_person, create_test_user
+from api.tests.utils import (
+    create_test_cluster,
+    create_test_face,
+    create_test_person,
+    create_test_user,
+)
 
 
 def _encoding_hex(seed):
@@ -68,7 +73,7 @@ class TryAddClusterTestCase(TestCase):
 
     def test_existing_unknown_cluster_with_person_is_reset_and_renamed(self):
         person = create_test_person(cluster_owner=self.user)
-        stale = Cluster.objects.create(
+        stale = create_test_cluster(
             owner=self.user,
             cluster_id=UNKNOWN_CLUSTER_ID,
             person=person,
@@ -236,7 +241,7 @@ class TryAddClusterTestCase(TestCase):
 
     def test_known_faces_reuse_existing_cluster_row_by_name(self):
         alice = create_test_person(name="Alice", cluster_owner=self.user)
-        existing = Cluster.objects.create(
+        existing = create_test_cluster(
             owner=self.user, name="Cluster 11-1", mean_face_encoding=""
         )
 

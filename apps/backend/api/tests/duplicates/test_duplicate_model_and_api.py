@@ -15,7 +15,7 @@ from rest_framework import status
 from rest_framework.test import APIClient
 
 from api.models.duplicate import Duplicate
-from api.tests.utils import create_test_photos, create_test_user
+from api.tests.utils import create_test_duplicate, create_test_photos, create_test_user
 
 
 class DuplicateModelTest(TestCase):
@@ -27,7 +27,7 @@ class DuplicateModelTest(TestCase):
 
     def test_create_duplicate_group(self):
         """Test creating a duplicate group with multiple photos."""
-        duplicate = Duplicate.objects.create(
+        duplicate = Duplicate.objects.create(  # raw-create: model defaults under test
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
@@ -197,7 +197,7 @@ class DuplicateModelTest(TestCase):
         )
         # Create second group with photo[2]
         extra_photo = create_test_photos(number_of_photos=1, owner=self.user)[0]
-        dup2 = Duplicate.objects.create(
+        dup2 = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
@@ -475,7 +475,7 @@ class DuplicateEdgeCasesTest(TestCase):
     def test_duplicate_with_single_photo_excluded_from_list(self):
         """Test duplicates with <2 photos are not returned in list."""
         # Create a duplicate and manually remove all but one photo
-        dup = Duplicate.objects.create(
+        dup = create_test_duplicate(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )

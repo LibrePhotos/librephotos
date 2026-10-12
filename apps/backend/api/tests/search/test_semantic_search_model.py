@@ -18,7 +18,7 @@ from api.image_similarity import search_similar_image
 from api.models import LongRunningJob, Photo
 from api.models.album_thing import AlbumThing
 from api.models.photo_caption import PhotoCaption
-from api.tests.utils import create_test_photo, create_test_user
+from api.tests.utils import create_test_job, create_test_photo, create_test_user
 
 OPENCLIP = semantic_search.OPENCLIP
 EARLIER_MODEL = "an-earlier-model"
@@ -180,7 +180,7 @@ class TagsStoreTheEmbeddingTest(TestCase):
 class EmbeddingsAfterTagsTest(TestCase):
     def _finish_tags_job(self):
         user = create_test_user()
-        job = LongRunningJob.objects.create(
+        job = create_test_job(
             started_by=user,
             job_type=LongRunningJob.JOB_GENERATE_TAGS,
             progress_current=1,

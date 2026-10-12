@@ -24,9 +24,16 @@ from django.db import connection, models
 from django.db.migrations.loader import MigrationLoader
 from django.test import SimpleTestCase, TransactionTestCase
 
-from api.models import AlbumUser, Cluster, Face, Person
+from api.models import AlbumUser, Face, Person
 
-from ..utils import create_test_face, create_test_photo, create_test_user
+from ..utils import (
+    create_test_album_user,
+    create_test_cluster,
+    create_test_face,
+    create_test_person,
+    create_test_photo,
+    create_test_user,
+)
 
 MIGRATION_NAME = "0144_sqlite_restore_foreign_keys"
 migration = importlib.import_module(f"api.migrations.{MIGRATION_NAME}")
@@ -245,9 +252,7 @@ class RestoreForeignKeysTest(TransactionTestCase):
         ]
         for photo in photos:
             create_test_face(photo=photo)
-        album = AlbumUser.objects.create(
-            title="Trip", owner=user, cover_photo=photos[0]
-        )
+        album = create_test_album_user(title="Trip", owner=user, cover_photo=photos[0])
         album.photos.add(*photos)
         photos[0].shared_to.add(create_test_user())
         before = {table: rows(table) for table in REBUILT_BY_0099}
@@ -268,7 +273,7 @@ class RestoreForeignKeysTest(TransactionTestCase):
     def test_ids_of_deleted_rows_are_not_handed_out_again(self):
         user = create_test_user()
         photos = [create_test_photo(owner=user) for _ in range(4)]
-        album = AlbumUser.objects.create(title="Trip", owner=user)
+        album = create_test_album_user(title="Trip", owner=user)
         through = AlbumUser.photos.through
         as_left_by_0099("api_albumuser_photos")
 
@@ -289,7 +294,7 @@ class RestoreForeignKeysTest(TransactionTestCase):
     def test_album_links_that_point_nowhere_are_removed(self):
         user = create_test_user()
         photo = create_test_photo(owner=user)
-        album = AlbumUser.objects.create(title="Trip", owner=user)
+        album = create_test_album_user(title="Trip", owner=user)
         album.photos.add(photo)
         as_left_by_0099("api_albumuser_photos")
         with connection.cursor() as cursor:
@@ -315,13 +320,13 @@ class RestoreForeignKeysTest(TransactionTestCase):
         user = create_test_user()
         photo = create_test_photo(owner=user)
         kept = create_test_face(photo=photo)
-        cluster = Cluster.objects.create(owner=user)
+        cluster = create_test_cluster(owner=user)
         as_left_by_0099("api_face")
         # CASCADE: the photo is gone, so its face goes too -- and the person
         # using it as cover gets NULL, as the collector would have done.
         orphan = create_test_face(photo=photo)
         Face.objects.filter(pk=orphan.pk).update(photo_id=uuid.uuid4())
-        person = Person.objects.create(
+        person = create_test_person(
             name="Ada", kind=Person.KIND_USER, cluster_owner=user, cover_face=orphan
         )
         # DO_NOTHING (reset by Person's post_delete) and SET_NULL: NULL.

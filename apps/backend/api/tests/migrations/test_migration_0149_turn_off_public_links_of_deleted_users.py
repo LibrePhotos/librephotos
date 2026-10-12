@@ -3,10 +3,10 @@ import importlib
 from django.apps import apps as global_apps
 from django.test import TestCase
 
-from api.models import AlbumUser, AlbumUserShare, Photo, PhotoShare
+from api.models import AlbumUserShare, Photo, PhotoShare
 from api.models.user import get_deleted_user
 
-from ..utils import create_test_photo, create_test_user
+from ..utils import create_test_album_user, create_test_photo, create_test_user
 
 # The module name starts with a digit, so a plain import cannot load it.
 migration_0149 = importlib.import_module(
@@ -19,7 +19,7 @@ class TurnOffPublicLinksOfDeletedUsersMigrationTest(TestCase):
 
     def _links(self, owner):
         photo = create_test_photo(owner=owner, public=True)
-        album = AlbumUser.objects.create(owner=owner, title="Trip")
+        album = create_test_album_user(owner=owner, title="Trip")
         album.photos.add(photo)
         album_share = AlbumUserShare.objects.create(album=album, enabled=True)
         photo_share = PhotoShare.objects.create(photo=photo, enabled=True)

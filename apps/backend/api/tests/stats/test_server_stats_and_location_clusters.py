@@ -16,10 +16,11 @@ from django.test import TestCase, override_settings
 from django.utils import timezone
 
 from api import binaries
-from api.models import AlbumAuto, AlbumPlace, AlbumThing, AlbumUser, Person, Photo
+from api.models import AlbumAuto, AlbumPlace, AlbumThing, Person, Photo
 from api.models.user import get_deleted_user
 from api.stats import get_location_clusters, get_server_stats
 from api.tests.utils import (
+    create_test_album_user,
     create_test_face,
     create_test_person,
     create_test_photo,
@@ -269,9 +270,9 @@ class GetServerStatsPerUserTest(ServerStatsBaseTest):
         p1 = create_test_photo(owner=self.user)
         p2 = create_test_photo(owner=self.user, video=True)
         p3 = create_test_photo(owner=self.user)
-        a1 = AlbumUser.objects.create(title="a1", owner=self.user)
+        a1 = create_test_album_user(title="a1", owner=self.user)
         a1.photos.add(p1, p2, p3)
-        a2 = AlbumUser.objects.create(title="a2", owner=self.user)
+        a2 = create_test_album_user(title="a2", owner=self.user)
         a2.photos.add(p2)
 
         album = self._user_stats()["album"]
@@ -289,9 +290,9 @@ class GetServerStatsPerUserTest(ServerStatsBaseTest):
     def test_zero_aggregates_are_reported_as_none(self):
         # QUIRK: the `or None` idiom converts a legitimate 0 min/mean into None.
         photo = create_test_photo(owner=self.user)  # not a video
-        album = AlbumUser.objects.create(title="only-photos", owner=self.user)
+        album = create_test_album_user(title="only-photos", owner=self.user)
         album.photos.add(photo)
-        empty = AlbumUser.objects.create(title="empty", owner=self.user)
+        empty = create_test_album_user(title="empty", owner=self.user)
         self.assertEqual(empty.photos.count(), 0)
 
         stats = self._user_stats()["album"]

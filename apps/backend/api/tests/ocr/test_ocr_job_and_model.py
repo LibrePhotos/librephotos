@@ -27,6 +27,7 @@ from api.models import LongRunningJob, PhotoOcr
 from api.tests.utils import (
     ONE_PIXEL_PNG,
     create_test_file,
+    create_test_job,
     create_test_photo,
     create_test_user,
 )
@@ -74,16 +75,6 @@ def _error_response(status_code=500):
         f"{status_code} Server Error", response=response
     )
     return response
-
-
-def _make_job(user, job_id, target=1):
-    return LongRunningJob.objects.create(
-        started_by=user,
-        job_id=str(job_id),
-        job_type=LongRunningJob.JOB_GENERATE_OCR,
-        queued_at=timezone.now(),
-        progress_target=target,
-    )
 
 
 class PhotoOcrModelTest(TestCase):
@@ -163,7 +154,12 @@ class GenerateOcrWorkerTest(TestCase):
     def test_worker_writes_ocr_row(self, mock_post):
         mock_post.return_value = _ok_response(text="receipt total 12.50")
         job_id = uuid.uuid4()
-        _make_job(self.user, job_id, target=1)
+        create_test_job(
+            started_by=self.user,
+            job_id=str(job_id),
+            job_type=LongRunningJob.JOB_GENERATE_OCR,
+            progress_target=1,
+        )
 
         generate_ocr_job(self.photo, job_id)
 
@@ -186,7 +182,12 @@ class GenerateOcrWorkerTest(TestCase):
         many_blocks = [{"text": "x"} for _ in range(PhotoOcr.MAX_BLOCKS + 50)]
         mock_post.return_value = _ok_response(text=long_text, blocks=many_blocks)
         job_id = uuid.uuid4()
-        _make_job(self.user, job_id, target=1)
+        create_test_job(
+            started_by=self.user,
+            job_id=str(job_id),
+            job_type=LongRunningJob.JOB_GENERATE_OCR,
+            progress_target=1,
+        )
 
         generate_ocr_job(self.photo, job_id)
 
@@ -200,7 +201,12 @@ class GenerateOcrWorkerTest(TestCase):
         # UPDATE branch with an over-long payload -- caps must still apply.
         mock_post.return_value = _ok_response(text="short")
         first_job = uuid.uuid4()
-        _make_job(self.user, first_job, target=1)
+        create_test_job(
+            started_by=self.user,
+            job_id=str(first_job),
+            job_type=LongRunningJob.JOB_GENERATE_OCR,
+            progress_target=1,
+        )
         generate_ocr_job(self.photo, first_job)
         self.assertEqual(len(PhotoOcr.objects.get(photo=self.photo).text), 5)
 
@@ -208,7 +214,12 @@ class GenerateOcrWorkerTest(TestCase):
         many_blocks = [{"text": "x"} for _ in range(PhotoOcr.MAX_BLOCKS + 50)]
         mock_post.return_value = _ok_response(text=long_text, blocks=many_blocks)
         second_job = uuid.uuid4()
-        _make_job(self.user, second_job, target=1)
+        create_test_job(
+            started_by=self.user,
+            job_id=str(second_job),
+            job_type=LongRunningJob.JOB_GENERATE_OCR,
+            progress_target=1,
+        )
         generate_ocr_job(self.photo, second_job)
 
         ocr = PhotoOcr.objects.get(photo=self.photo)
@@ -219,7 +230,12 @@ class GenerateOcrWorkerTest(TestCase):
     def test_worker_counts_failure_on_500(self, mock_post):
         mock_post.return_value = _error_response(500)
         job_id = uuid.uuid4()
-        _make_job(self.user, job_id, target=1)
+        create_test_job(
+            started_by=self.user,
+            job_id=str(job_id),
+            job_type=LongRunningJob.JOB_GENERATE_OCR,
+            progress_target=1,
+        )
 
         generate_ocr_job(self.photo, job_id)
 
@@ -504,7 +520,7 @@ class GenerateOcrJobTest(TestCase):
         # A prior productive OCR run that finished AFTER this photo was added
         # but did not cover it (target > 0 so it counts as a real baseline).
         baseline_start = timezone.now() + timedelta(hours=1)
-        LongRunningJob.objects.create(
+        create_test_job(
             started_by=self.user,
             job_id=str(uuid.uuid4()),
             job_type=LongRunningJob.JOB_GENERATE_OCR,
@@ -533,7 +549,12 @@ class GenerateOcrJobTest(TestCase):
 
         job_id = uuid.uuid4()
         # Pre-create the job already cancelled; get_or_create_job will reuse it.
-        job = _make_job(self.user, job_id, target=0)
+        job = create_test_job(
+            started_by=self.user,
+            job_id=str(job_id),
+            job_type=LongRunningJob.JOB_GENERATE_OCR,
+            progress_target=0,
+        )
         job.cancel()
 
         dispatch = MagicMock(side_effect=_SyncAsyncTask)

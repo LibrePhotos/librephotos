@@ -337,25 +337,31 @@ def create_test_file(
     file_type: int = File.IMAGE,
     missing: bool = False,
     hash_value: str | None = None,
+    **fields: Any,
 ) -> File:
     """A File row, hashed the way the app hashes a file (MD5 plus the owner id).
 
     Without ``content`` and ``on_disk`` only the row is created, at ``path``
     (default ``/photos/<random>.jpg``), with a random content hash (``hash_value``
     sets it, and ``user`` may then be None: the row has no owner); ``file_type``
-    and ``missing`` apply to this form only. With ``content``, or with
+    and ``missing`` apply to this form only, and so do ``fields``, other File
+    columns such as ``type=`` that replace the defaults. With ``content``, or with
     ``on_disk=True`` (which writes distinct bytes), the bytes are written to
     ``path`` (default: a new file in TEST_MEDIA_ROOT) and the row takes their hash;
     these forms need ``user``.
     """
     if content is None and not on_disk:
         owner_part = "" if user is None else str(user.id)
-        return File.objects.create(
-            path=path or f"/photos/{uuid.uuid4().hex}.jpg",
-            hash=hash_value or f"{secrets.token_hex(16)}{owner_part}",
-            type=file_type,
-            missing=missing,
-        )
+        row: dict[str, Any] = {
+            "path": path or f"/photos/{uuid.uuid4().hex}.jpg",
+            "hash": hash_value or f"{secrets.token_hex(16)}{owner_part}",
+            "type": file_type,
+            "missing": missing,
+        }
+        row.update(fields)
+        return File.objects.create(**row)
+    if fields:
+        raise TypeError("File fields other than the defaults need the row-only form")
     if user is None:
         raise ValueError("a File with content or on disk needs its owner")
     if path is None:

@@ -9,9 +9,9 @@ from django.test import TestCase
 from django.utils import timezone
 from rest_framework.test import APIClient
 
-from api.models import AlbumDate
 from api.models.photo_search import PhotoSearch
 from api.tests.utils import (
+    create_test_album_date,
     create_test_face,
     create_test_person,
     create_test_photo,
@@ -27,7 +27,7 @@ class DeleteLabeledFacesTest(TestCase):
         now = timezone.now()
         self.kept = create_test_photo(owner=self.user, exif_timestamp=now)
         self.wrong = create_test_photo(owner=self.user, exif_timestamp=now)
-        self.album = AlbumDate.objects.create(date=now.date(), owner=self.user)
+        self.album = create_test_album_date(date=now.date(), owner=self.user)
         self.album.photos.add(self.kept, self.wrong)
         self.person = create_test_person(cluster_owner=self.user)
         self.kept_face = create_test_face(photo=self.kept, person=self.person)

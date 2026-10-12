@@ -14,7 +14,7 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 
 from api.models.photo_stack import PhotoStack
-from api.tests.utils import create_test_photo, create_test_user
+from api.tests.utils import create_test_photo, create_test_stack, create_test_user
 
 
 class PhotoListQueryCountTest(TestCase):
@@ -35,7 +35,7 @@ class PhotoListQueryCountTest(TestCase):
                 search_captions="beach",
             )
             # A stacked photo, so a missing stacks prefetch shows up.
-            stack = PhotoStack.objects.create(
+            stack = create_test_stack(
                 owner=user, stack_type=PhotoStack.StackType.MANUAL
             )
             photo.stacks.add(stack)
@@ -84,7 +84,7 @@ class PhotoListQueryCountTest(TestCase):
             for _ in range(count):
                 photo = create_test_photo(owner=user)
                 photo.stacks.add(
-                    PhotoStack.objects.create(
+                    create_test_stack(
                         owner=user, stack_type=PhotoStack.StackType.MANUAL
                     )
                 )
