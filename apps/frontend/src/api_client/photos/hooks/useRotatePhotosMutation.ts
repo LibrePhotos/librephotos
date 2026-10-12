@@ -8,18 +8,14 @@ import { fetchClient, queryClient } from "../../api";
 import { PhotoDetailsQueryKeys } from "./useFetchPhotoDetailsQuery";
 import { RecentlyAddedPhotosQueryKeys } from "./useFetchRecentlyAddedPhotosQuery";
 
-const RotatePhotosResponse = z.discriminatedUnion("status", [
-  z.object({
-    status: z.literal(true),
-    image_hash: z.string(),
-    local_orientation: z.number(),
-    last_modified: z.string(),
-  }),
-  z.object({
-    status: z.literal(false),
-    message: z.string().optional(),
-  }),
-]);
+// A refused rotation is a 4xx/5xx (the backend's error envelope), so a 2xx
+// is always a done rotation.
+const RotatePhotosResponse = z.object({
+  status: z.literal(true),
+  image_hash: z.string(),
+  local_orientation: z.number(),
+  last_modified: z.string(),
+});
 
 export type RotatePhotosRequest = {
   image_hash: string;
@@ -32,15 +28,10 @@ export const useRotatePhotosMutation = () =>
     mutationFn: async (request: RotatePhotosRequest) => {
       const response = await fetchClient.post("/photosedit/rotate/", request);
       const data = parseWithNotification(RotatePhotosResponse, response, "Failed to parse rotate photos response");
-
-      if (data.status === true) {
-        notification.rotatePhotos(1, request.angle);
-      }
-
+      notification.rotatePhotos(1, request.angle);
       return data;
     },
-    onSuccess: (data, request) => {
-      if (data.status !== true) return;
+    onSuccess: (_data, request) => {
       // Invalidate relevant queries
       queryClient.invalidateQueries({ queryKey: [...DateAlbumsQueryKeys] });
       queryClient.invalidateQueries({ queryKey: [...DateAlbumQueryKeys] });

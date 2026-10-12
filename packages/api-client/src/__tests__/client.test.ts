@@ -158,6 +158,40 @@ describe("createApiClient errors", () => {
     expect(error.message).toBe("API error: 400 ");
   });
 
+  it("takes serverCode from the first errors[] entry", async () => {
+    const response = jsonResponse(
+      {
+        errors: [
+          { field: "detail", message: "The captioning model is being downloaded.", code: "model_downloading" },
+          { field: "auth", message: "DEBUG help", code: "authentication_help" },
+        ],
+      },
+      503
+    );
+    const error = await rejection(client(response).post("/photosedit/generateim2txt/"));
+    expect(error.status).toBe(503);
+    expect(error.serverCode).toBe("model_downloading");
+    expect(error.serverMessage).toBe("The captioning model is being downloaded.");
+  });
+
+  it("keeps serverCode for a 500, whose message is hidden", async () => {
+    const error = await rejection(
+      client(jsonResponse({ errors: [{ field: "detail", message: "boom", code: "job_start_failed" }] }, 500)).post(
+        "/trainfaces/"
+      )
+    );
+    expect(error.serverMessage).toBeNull();
+    expect(error.serverCode).toBe("job_start_failed");
+  });
+
+  it("leaves serverCode null without an errors[] code", async () => {
+    expect((await rejection(client(jsonResponse({ detail: "No permission." }, 403)).get("/x/"))).serverCode).toBeNull();
+    expect(
+      (await rejection(client(jsonResponse({ errors: [{ field: "x", message: "y" }] }, 400)).get("/x/"))).serverCode
+    ).toBeNull();
+    expect((await rejection(client(new Response(null, { status: 400 })).get("/x/"))).serverCode).toBeNull();
+  });
+
   it("falls back to a string detail", async () => {
     const error = await rejection(client(jsonResponse({ detail: "No permission." }, 403)).get("/x/"));
     expect(error.serverMessage).toBe("No permission.");

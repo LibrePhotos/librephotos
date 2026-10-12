@@ -6,12 +6,15 @@ import type { ApiClient, ApiClientConfig, RequestOptions, ResponseType, TokenSup
  *
  * `message` is an internal English string. Only `serverMessage` may be shown to
  * a user, and it is only set when the backend actually sent a readable error.
+ * `serverCode` is the backend's machine-readable reason (`weak_password`,
+ * `model_downloading`, ...): branch on it or on `status`, never on message text.
  */
 export class ApiError extends Error {
   readonly status: number;
   readonly endpoint: string;
   readonly body: unknown;
   readonly serverMessage: string | null;
+  readonly serverCode: string | null;
 
   constructor(status: number, endpoint: string, message: string, body?: unknown, serverMessage: string | null = null) {
     super(message);
@@ -20,7 +23,15 @@ export class ApiError extends Error {
     this.endpoint = endpoint;
     this.body = body;
     this.serverMessage = serverMessage;
+    this.serverCode = extractServerCode(body);
   }
+}
+
+/** The entries of the backend's error envelope, `{"errors": [...]}`. */
+function errorEntries(body: unknown): unknown[] {
+  if (!body || typeof body !== "object" || !("errors" in body)) return [];
+  const errors: unknown = body.errors;
+  return Array.isArray(errors) ? errors : [];
 }
 
 /**
@@ -31,16 +42,23 @@ export class ApiError extends Error {
  */
 export function extractServerMessage(body: unknown): string | null {
   if (!body || typeof body !== "object") return null;
-  const errors = "errors" in body ? body.errors : undefined;
   const detail = "detail" in body ? body.detail : undefined;
-  if (Array.isArray(errors)) {
-    const entries: unknown[] = errors;
-    for (const error of entries) {
-      const message = typeof error === "object" && error !== null && "message" in error ? error.message : undefined;
-      if (typeof message === "string" && message) return message;
-    }
+  for (const error of errorEntries(body)) {
+    const message = typeof error === "object" && error !== null && "message" in error ? error.message : undefined;
+    if (typeof message === "string" && message) return message;
   }
   return typeof detail === "string" && detail ? detail : null;
+}
+
+/**
+ * The `code` of the first entry of a DRF error body (`{"errors": [{"field",
+ * "message", "code"}]}`, see apps/backend/api/views/exception_handler.py).
+ * Null when the body has none.
+ */
+export function extractServerCode(body: unknown): string | null {
+  const [first] = errorEntries(body);
+  const code = typeof first === "object" && first !== null && "code" in first ? first.code : undefined;
+  return typeof code === "string" && code ? code : null;
 }
 
 /**
