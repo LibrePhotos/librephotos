@@ -38,6 +38,7 @@ import { useCurrentUserSelfDetailsQuery, useUpdateUserScanDirectoryMutation } fr
 import { userKeys } from "../api_client/user/keys";
 import { DirectoryPicker } from "../components/setup/DirectoryPicker";
 import { uploadLocation } from "../components/setup/uploadLocation";
+import { SIGN_IN_GRADIENT, SIGN_UP_GRADIENT } from "../theme/brandGradients";
 import { reportSignupError, reportUserSaveError } from "../util/apiErrors";
 import { ssoErrorMessageKey } from "../util/ssoErrors";
 import { isStringEmpty } from "../util/stringUtils";
@@ -154,12 +155,7 @@ function LoginPage(): React.JSX.Element {
                   autoComplete="current-password"
                   {...form.getInputProps("password")}
                 />
-                <Button
-                  variant="gradient"
-                  gradient={{ from: "#43cea2", to: "#185a9d" }}
-                  type="submit"
-                  loading={isLoading}
-                >
+                <Button variant="gradient" gradient={SIGN_IN_GRADIENT} type="submit" loading={isLoading}>
                   {t("login.login")}
                 </Button>
                 {siteSettings?.email_configured && (
@@ -173,7 +169,7 @@ function LoginPage(): React.JSX.Element {
                     component="a"
                     href="/signup"
                     variant="gradient"
-                    gradient={{ from: "#D38312", to: "#A83279" }}
+                    gradient={SIGN_UP_GRADIENT}
                   >
                     {t("login.signup")}
                   </Button>
@@ -455,7 +451,7 @@ function FirstTimeSetupPage({ onComplete }: FirstTimeSetupProps): React.JSX.Elem
 
                       <Button
                         variant="gradient"
-                        gradient={{ from: "#D38312", to: "#A83279" }}
+                        gradient={SIGN_UP_GRADIENT}
                         type="submit"
                         disabled={isSignupPending || isLoginPending}
                       >
@@ -480,7 +476,7 @@ function FirstTimeSetupPage({ onComplete }: FirstTimeSetupProps): React.JSX.Elem
                   <Group justify="flex-end">
                     <Button
                       variant="gradient"
-                      gradient={{ from: "#D38312", to: "#A83279" }}
+                      gradient={SIGN_UP_GRADIENT}
                       onClick={handleSiteSettingsNext}
                       disabled={isSavingSettings || allowUpload === null || allowRegistration === null}
                     >
@@ -521,7 +517,7 @@ function FirstTimeSetupPage({ onComplete }: FirstTimeSetupProps): React.JSX.Elem
                     </Button>
                     <Button
                       variant="gradient"
-                      gradient={{ from: "#D38312", to: "#A83279" }}
+                      gradient={SIGN_UP_GRADIENT}
                       onClick={handleFinish}
                       disabled={
                         isSavingDirectory ||

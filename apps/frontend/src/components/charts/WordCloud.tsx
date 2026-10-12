@@ -5,6 +5,7 @@ import React, { useMemo, useState } from "react";
 import useDimensions from "react-cool-dimensions";
 import { useTranslation } from "react-i18next";
 import { useFetchWordCloudQuery } from "../../api_client/stats/hooks";
+import { WORD_CLOUD_COLORS } from "../../theme/chartColors";
 import { EmptyState } from "../common/EmptyState";
 import { PageLoader } from "../common/PageLoader";
 
@@ -28,19 +29,6 @@ type Props = Readonly<{
   type: string;
   height: number;
 }>;
-
-const COLORS = [
-  "#6366f1", // indigo
-  "#8b5cf6", // violet
-  "#a855f7", // purple
-  "#d946ef", // fuchsia
-  "#ec4899", // pink
-  "#f43f5e", // rose
-  "#0ea5e9", // sky
-  "#14b8a6", // teal
-  "#10b981", // emerald
-  "#84cc16", // lime
-];
 
 // CJK ideographs, kana, Hangul and full-width forms are about 1em wide.
 const WIDE_CHAR = /[\u1100-\u115f\u2e80-\ua4cf\uac00-\ud7a3\uf900-\ufaff\ufe30-\ufe4f\uff00-\uff60\uffe0-\uffe6]/;
@@ -147,7 +135,7 @@ function layoutWords(words: WordItem[], containerWidth: number, containerHeight:
             y,
             width,
             height,
-            color: COLORS[i % COLORS.length] ?? "#6366f1",
+            color: WORD_CLOUD_COLORS[i % WORD_CLOUD_COLORS.length] ?? WORD_CLOUD_COLORS[0],
           });
           placed = true;
         }

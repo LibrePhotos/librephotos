@@ -18,6 +18,7 @@ import { useTranslation } from "react-i18next";
 import { useRequestPasswordResetMutation } from "../api_client/auth";
 import { passwordResetError } from "../api_client/auth/passwordResetErrors";
 import { notification } from "../service/notifications";
+import { SIGN_IN_GRADIENT } from "../theme/brandGradients";
 import { makePasswordResetRequestSchema } from "./-passwordReset.schema";
 import classes from "./auth.module.css";
 
@@ -86,12 +87,7 @@ function PasswordResetRequestPage(): React.JSX.Element {
                     name="email"
                     {...form.getInputProps("email")}
                   />
-                  <Button
-                    loading={isPending}
-                    variant="gradient"
-                    gradient={{ from: "#43cea2", to: "#185a9d" }}
-                    type="submit"
-                  >
+                  <Button loading={isPending} variant="gradient" gradient={SIGN_IN_GRADIENT} type="submit">
                     {t("passwordreset.sendlink")}
                   </Button>
                   <Anchor href="/login" size="sm" ta="center">

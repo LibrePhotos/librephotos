@@ -2,6 +2,7 @@ import cx from "clsx";
 import React, { useCallback } from "react";
 import type { FacesTab } from "../../api_client/faces/types";
 import { ScrollScrubber } from "../scrollscrubber/ScrollScrubber";
+import { SCROLL_SCRUBBER_TARGET } from "../scrollscrubber/scrollScrubberTarget";
 import { ScrollerType } from "../scrollscrubber/scrollScrubberTypes";
 import type { ScrollerData } from "../scrollscrubber/scrollScrubberTypes";
 import { AutoSizer } from "../virtual/AutoSizer";
@@ -121,7 +122,7 @@ export function VirtualizedGridComponent({
           >
             <VirtualGrid
               ref={gridRef}
-              className={cx(classes.grid, "scrollscrubbertarget")}
+              className={cx(classes.grid, SCROLL_SCRUBBER_TARGET)}
               cellRenderer={cellRenderer}
               columnWidth={entrySquareSize}
               columnCount={numEntrySquaresPerRow}

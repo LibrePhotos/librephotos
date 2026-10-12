@@ -40,6 +40,7 @@ import { pointRadial } from "d3-shape";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchLocationTreeQuery } from "../../api_client/stats/hooks";
+import { LOCATION_LINK_COLOR, LOCATION_NODE_GRADIENTS, LOCATION_NODE_TEXT_COLORS } from "../../theme/chartColors";
 import { EmptyState } from "../common/EmptyState";
 import styles from "./LocationLink.module.css";
 
@@ -189,18 +190,6 @@ export function placeTooltip(
     maxWidth,
   };
 }
-
-// Beautiful gradient colors for nodes
-const NODE_COLORS = {
-  root: { from: "#6366f1", to: "#8b5cf6" }, // Indigo to violet
-  branch: { from: "#0ea5e9", to: "#06b6d4" }, // Sky to cyan
-  leaf: { from: "#10b981", to: "#34d399" }, // Emerald shades
-};
-
-const LINK_COLORS = {
-  dark: "rgba(148, 163, 184, 0.4)", // Slate with transparency
-  light: "rgba(100, 116, 139, 0.35)",
-};
 
 export function LocationLink({ margin = { top: 0, left: 0, right: 0, bottom: 0 }, height: propHeight }: Props) {
   const { height: viewportHeight } = useViewportSize();
@@ -361,9 +350,9 @@ export function LocationLink({ margin = { top: 0, left: 0, right: 0, bottom: 0 }
 
   const getNodeColor = useCallback((node: { depth: number; data: NodeData }) => {
     if (node.data.hex) return { from: node.data.hex, to: node.data.hex };
-    if (node.depth === 0) return NODE_COLORS.root;
-    if (node.data.children?.length) return NODE_COLORS.branch;
-    return NODE_COLORS.leaf;
+    if (node.depth === 0) return LOCATION_NODE_GRADIENTS.root;
+    if (node.data.children?.length) return LOCATION_NODE_GRADIENTS.branch;
+    return LOCATION_NODE_GRADIENTS.leaf;
   }, []);
 
   if (isLoading) {
@@ -543,20 +532,20 @@ export function LocationLink({ margin = { top: 0, left: 0, right: 0, bottom: 0 }
         <defs>
           <LinearGradient
             id="node-gradient-root"
-            from={NODE_COLORS.root.from}
-            to={NODE_COLORS.root.to}
+            from={LOCATION_NODE_GRADIENTS.root.from}
+            to={LOCATION_NODE_GRADIENTS.root.to}
             vertical={false}
           />
           <LinearGradient
             id="node-gradient-branch"
-            from={NODE_COLORS.branch.from}
-            to={NODE_COLORS.branch.to}
+            from={LOCATION_NODE_GRADIENTS.branch.from}
+            to={LOCATION_NODE_GRADIENTS.branch.to}
             vertical={false}
           />
           <LinearGradient
             id="node-gradient-leaf"
-            from={NODE_COLORS.leaf.from}
-            to={NODE_COLORS.leaf.to}
+            from={LOCATION_NODE_GRADIENTS.leaf.from}
+            to={LOCATION_NODE_GRADIENTS.leaf.to}
             vertical={false}
           />
           <filter id="node-shadow" x="-20%" y="-20%" width="140%" height="140%">
@@ -584,7 +573,7 @@ export function LocationLink({ margin = { top: 0, left: 0, right: 0, bottom: 0 }
                       key={key}
                       data={link}
                       percent={STEP_PERCENT}
-                      stroke={LINK_COLORS.dark}
+                      stroke={LOCATION_LINK_COLOR}
                       strokeWidth={2}
                       strokeLinecap="round"
                       fill="none"
@@ -674,7 +663,7 @@ export function LocationLink({ margin = { top: 0, left: 0, right: 0, bottom: 0 }
                           fontFamily="system-ui, -apple-system, sans-serif"
                           textAnchor="middle"
                           dominantBaseline="middle"
-                          fill="rgba(255,255,255,0.75)"
+                          fill={LOCATION_NODE_TEXT_COLORS.count}
                           className={styles.nodeText}
                         >
                           {photoCount(nodeData.value)}
@@ -687,7 +676,7 @@ export function LocationLink({ margin = { top: 0, left: 0, right: 0, bottom: 0 }
                           fontSize={14}
                           textAnchor="middle"
                           dominantBaseline="middle"
-                          fill="rgba(255,255,255,0.8)"
+                          fill={LOCATION_NODE_TEXT_COLORS.indicator}
                           className={styles.expandIndicator}
                         >
                           {isExpanded ? "−" : "+"}

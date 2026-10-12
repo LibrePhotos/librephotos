@@ -20,6 +20,7 @@ import useDimensions from "react-cool-dimensions";
 import { useTranslation } from "react-i18next";
 import { serverAddress } from "../../api_client/apiClient";
 import { useClusterFacesQuery } from "../../api_client/faces/hooks/useClusterFacesQuery";
+import { FACE_CLUSTER_CANVAS_COLORS, FACE_CLUSTER_COLORS, FACE_CLUSTER_UNKNOWN_COLOR } from "../../theme/chartColors";
 import { EmptyState } from "../common/EmptyState";
 import { PageLoader } from "../common/PageLoader";
 import { Lightbox } from "../lightbox";
@@ -48,30 +49,6 @@ function extractPhotoHashFromFaceUrl(faceUrl: string): string | null {
   const match = faceUrl.match(/\/media\/faces\/([a-f0-9]+)_/);
   return match?.[1] ?? null;
 }
-
-// Beautiful color palette for face clusters
-const CLUSTER_COLORS = [
-  "#FF6B6B", // Coral Red
-  "#4ECDC4", // Teal
-  "#45B7D1", // Sky Blue
-  "#96CEB4", // Sage Green
-  "#FFEAA7", // Soft Yellow
-  "#DDA0DD", // Plum
-  "#98D8C8", // Mint
-  "#F7DC6F", // Sunflower
-  "#BB8FCE", // Lavender
-  "#85C1E9", // Light Blue
-  "#F8B500", // Golden
-  "#FF8C94", // Salmon
-  "#A8E6CF", // Seafoam
-  "#FFD93D", // Bright Yellow
-  "#6BCB77", // Green
-  "#4D96FF", // Royal Blue
-  "#FF6B9D", // Pink
-  "#C9B1FF", // Periwinkle
-  "#FFB347", // Orange
-  "#87CEEB", // Sky
-];
 
 // How far from a point, in pixels, the mouse still hovers or clicks it
 const HIT_RADIUS = 20;
@@ -104,9 +81,9 @@ function findPointNear(
 
 function getColorForPerson(personName: string, index: number): string {
   if (personName === "unknown" || !personName) {
-    return "rgba(100, 100, 100, 0.4)";
+    return FACE_CLUSTER_UNKNOWN_COLOR;
   }
-  return CLUSTER_COLORS[index % CLUSTER_COLORS.length] ?? "rgba(100, 100, 100, 0.4)";
+  return FACE_CLUSTER_COLORS[index % FACE_CLUSTER_COLORS.length] ?? FACE_CLUSTER_UNKNOWN_COLOR;
 }
 
 export function FaceClusterGraph({ height }: Props) {
@@ -156,7 +133,7 @@ export function FaceClusterGraph({ height }: Props) {
     let maxY = -Infinity;
 
     facesVis.data.forEach(el => {
-      const color = nameColorMap.get(el.person_name) || "rgba(100, 100, 100, 0.4)";
+      const color = nameColorMap.get(el.person_name) || FACE_CLUSTER_UNKNOWN_COLOR;
       const photoHash = extractPhotoHashFromFaceUrl(el.face_url);
       const point: FacePoint = {
         x: el.value.x,
@@ -245,7 +222,7 @@ export function FaceClusterGraph({ height }: Props) {
     ctx.scale(dpr, dpr);
 
     // Draw grid
-    ctx.strokeStyle = isDark ? "rgba(255, 255, 255, 0.05)" : "rgba(0, 0, 0, 0.05)";
+    ctx.strokeStyle = isDark ? FACE_CLUSTER_CANVAS_COLORS.grid.dark : FACE_CLUSTER_CANVAS_COLORS.grid.light;
     ctx.lineWidth = 1;
 
     const gridSize = 50;
@@ -312,7 +289,9 @@ export function FaceClusterGraph({ height }: Props) {
 
       // Border for known faces
       if (!isUnknown && !isFiltered) {
-        ctx.strokeStyle = isDark ? "rgba(255, 255, 255, 0.3)" : "rgba(0, 0, 0, 0.2)";
+        ctx.strokeStyle = isDark
+          ? FACE_CLUSTER_CANVAS_COLORS.pointBorder.dark
+          : FACE_CLUSTER_CANVAS_COLORS.pointBorder.light;
         ctx.lineWidth = 1;
         ctx.stroke();
       }

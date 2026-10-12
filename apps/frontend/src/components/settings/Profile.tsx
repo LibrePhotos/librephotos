@@ -29,6 +29,7 @@ import {
   useUpdateUserMutation,
 } from "../../api_client/user/hooks";
 import { userKeys } from "../../api_client/user/keys";
+import { SIGN_IN_GRADIENT } from "../../theme/brandGradients";
 import { reportUserSaveError } from "../../util/apiErrors";
 import { PageHeader } from "../PageHeader";
 import { PasswordEntry } from "./PasswordEntry";
@@ -381,7 +382,7 @@ export function Profile() {
               href="https://hosted.weblate.org/engage/librephotos/"
               target="_blank"
               variant="gradient"
-              gradient={{ from: "#43cea2", to: "#185a9d" }}
+              gradient={SIGN_IN_GRADIENT}
             >
               {t("settings.helptranslating")}
             </Button>

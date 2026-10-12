@@ -239,6 +239,15 @@ export const syntaxBans = [
       "Wrap the feature in <FeatureBoundary> (components/common/FeatureBoundary) instead of a new error boundary.",
     allowIn: ["src/components/common/FeatureBoundary.tsx"],
   },
+  {
+    // Hover and focus effects are CSS (:hover, :focus-visible in a CSS module), not an event handler
+    // that writes the element's style: React owns that attribute, and keyboard focus never sees it.
+    id: "style-from-handler",
+    selector:
+      ":matches(AssignmentExpression[left.object.property.name='style'][left.object.object.property.name=/^(currentTarget|target)$/], CallExpression[callee.object.property.name='style'][callee.object.object.property.name=/^(currentTarget|target)$/])",
+    message:
+      "Style hover and focus in a CSS module (:hover, :focus-visible), not by writing event.currentTarget.style (AGENTS.md, Styling).",
+  },
 ];
 
 // Browser storage is read and written through util/storage, which owns the keys, the failure

@@ -2,7 +2,9 @@ import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { defined } from "../../util/defined.test-utils";
 import { ScrollScrubber } from "./ScrollScrubber";
+import classes from "./ScrollScrubber.module.css";
 import { ScrollerType } from "./scrollScrubberTypes";
 
 let root: Root;
@@ -89,27 +91,27 @@ describe("ScrollScrubber", () => {
   it("runs to the bottom of the page on desktop, where the navbar is shown", async () => {
     await renderAt(1024);
 
-    expect(layer(".scrollscrubber").style.bottom).toBe("0px");
-    expect(layer(".scrollscrubber-background-layer").style.bottom).toBe("0px");
+    expect(layer(`.${defined(classes.scrubber)}`).style.bottom).toBe("0px");
+    expect(layer(`.${defined(classes.backgroundLayer)}`).style.bottom).toBe("0px");
   });
 
   it("stops above the phone footer below the sm breakpoint", async () => {
     // 740px is past the old 700px cut-off but still below the theme's sm (48em, 768px)
     await renderAt(740);
 
-    expect(layer(".scrollscrubber").style.bottom).toBe("50px");
-    expect(layer(".scrollscrubber-background-layer").style.bottom).toBe("50px");
+    expect(layer(`.${defined(classes.scrubber)}`).style.bottom).toBe("50px");
+    expect(layer(`.${defined(classes.backgroundLayer)}`).style.bottom).toBe("50px");
   });
 
   it("switches exactly at the theme's sm breakpoint", async () => {
     await renderAt(767);
-    expect(layer(".scrollscrubber").style.bottom).toBe("50px");
+    expect(layer(`.${defined(classes.scrubber)}`).style.bottom).toBe("50px");
 
     await act(async () => {
       root.unmount();
     });
     root = createRoot(container);
     await renderAt(768);
-    expect(layer(".scrollscrubber").style.bottom).toBe("0px");
+    expect(layer(`.${defined(classes.scrubber)}`).style.bottom).toBe("0px");
   });
 });

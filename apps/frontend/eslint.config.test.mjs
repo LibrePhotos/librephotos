@@ -48,6 +48,7 @@ const planted = {
   "globalthis-local-storage": `const plantedGlobalLocal = globalThis.localStorage;`,
   "globalthis-session-storage": `const plantedGlobalSession = globalThis.sessionStorage;`,
   "window-dispatch-event": `window.dispatchEvent(new Event("resize"));`,
+  "style-from-handler": `event.currentTarget.style.opacity = "1";`,
 };
 const isJsx = code => /<[A-Z]/.test(code);
 

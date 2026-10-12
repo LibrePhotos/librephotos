@@ -12,6 +12,7 @@ import useDimensions from "react-cool-dimensions";
 import { useTranslation } from "react-i18next";
 import { useFetchSocialGraphQuery } from "../../api_client/stats/hooks";
 import type { PersonDataPointList } from "../../api_client/stats/hooks";
+import { SOCIAL_GRAPH_COLORS } from "../../theme/chartColors";
 import { EmptyState } from "../common/EmptyState";
 import { PageLoader } from "../common/PageLoader";
 
@@ -73,7 +74,7 @@ function ForceGraph({ data, width, height }: { data: PersonDataPointList; width:
       .selectAll<SVGLineElement, GraphLink>("line")
       .data(links)
       .join("line")
-      .attr("stroke", "#12939A")
+      .attr("stroke", SOCIAL_GRAPH_COLORS.link)
       .attr("stroke-width", 1.5)
       .attr("stroke-opacity", 0.6);
 
@@ -86,7 +87,7 @@ function ForceGraph({ data, width, height }: { data: PersonDataPointList; width:
       .join("circle")
       .attr("r", 12)
       .attr("fill", "lightblue")
-      .attr("stroke", "#fff")
+      .attr("stroke", SOCIAL_GRAPH_COLORS.nodeStroke)
       .attr("stroke-width", 1.5)
       .call(
         drag<SVGCircleElement, GraphNode>()
@@ -111,7 +112,7 @@ function ForceGraph({ data, width, height }: { data: PersonDataPointList; width:
         select(this).attr("stroke", "orange").attr("stroke-width", 3);
       })
       .on("mouseout", function () {
-        select(this).attr("stroke", "#fff").attr("stroke-width", 1.5);
+        select(this).attr("stroke", SOCIAL_GRAPH_COLORS.nodeStroke).attr("stroke-width", 1.5);
       });
 
     const label = g
