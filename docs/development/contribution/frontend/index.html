@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.a1e92a76.css">
-<script src="/assets/js/runtime~main.c159bdfe.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.d2a32642.js" defer="defer"></script>
 <script src="/assets/js/main.c4dc47cd.js" defer="defer"></script>
 </head>
 <body>
@@ -114,8 +114,7 @@ keys from the domain&#x27;s <code>keys.ts</code>. Files under <code>/media/</cod
 URLs from <code>mediaUrl</code> and are fetched with <code>fetchMedia</code>, both in <code>api_client/media/mediaUrl.ts</code>. A
 component never calls <code>apiClient</code> or <code>fetch</code> itself: when it needs a request, add the endpoint and
 its schema (with a fixture test) to <code>packages/api-client</code>, then a hook to the domain&#x27;s folder. Lint
-enforces this; domains that still call <code>apiClient</code> directly or define their own zod schemas are
-listed in <code>eslint-suppressions.json</code> and are moving over one at a time
+enforces this: no file in <code>api_client</code> calls <code>apiClient</code> directly or defines its own zod schema
 (<a href="https://github.com/LibrePhotos/librephotos/issues/2347" target="_blank" rel="noopener noreferrer" class="">#2347</a>).</li>
 <li class=""><a href="https://github.com/LibrePhotos/librephotos/tree/dev/apps/frontend/src/hooks" target="_blank" rel="noopener noreferrer" class="">hooks</a> and
 <a href="https://github.com/LibrePhotos/librephotos/tree/dev/apps/frontend/src/service" target="_blank" rel="noopener noreferrer" class="">service</a> contain
