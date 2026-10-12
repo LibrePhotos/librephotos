@@ -2,7 +2,6 @@
   "api/views/album_folder.py": 3,
   "api/views/albums.py": 28,
   "api/views/dataviz.py": 1,
-  "api/views/duplicates.py": 11,
   "api/views/email_config.py": 2,
   "api/views/faces.py": 16,
   "api/views/geocode.py": 2,

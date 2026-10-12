@@ -16,7 +16,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.core.paginator import Paginator
 from django.db.models import Count, Sum
 from django_q.tasks import async_task
-from drf_spectacular.utils import OpenApiParameter, extend_schema
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.permissions import IsAuthenticated
@@ -26,8 +26,13 @@ from rest_framework.views import APIView
 
 from api.models import Photo, PhotoMetadata
 from api.models.duplicate import Duplicate
-from api.request_data import request_dict
 from api.request_user import request_user
+from api.serializers.duplicate import (
+    DetectDuplicatesRequest,
+    DuplicateListQuery,
+    DuplicateResolveRequest,
+)
+from api.views.params import parse_body, parse_query
 
 logger = logging.getLogger(__name__)
 
@@ -45,36 +50,14 @@ class DuplicateListView(APIView):
 
     permission_classes = [IsAuthenticated]
 
-    @extend_schema(
-        parameters=[
-            OpenApiParameter(
-                "duplicate_type",
-                str,
-                description="Filter by duplicate type: exact_copy, visual_duplicate",
-            ),
-            OpenApiParameter(
-                "status",
-                str,
-                description="Filter by review status: pending, resolved, dismissed",
-            ),
-            OpenApiParameter(
-                "page",
-                int,
-                description="Page number (default: 1)",
-            ),
-            OpenApiParameter(
-                "page_size",
-                int,
-                description="Number of items per page (default: 20, max: 100)",
-            ),
-        ],
-    )
+    @extend_schema(parameters=[DuplicateListQuery])
     def get(self, request: Request) -> Response:
         user = request_user(request)
-        duplicate_type_filter = request.query_params.get("duplicate_type", None)
-        status_filter = request.query_params.get("status", None)
-        page = max(1, int(request.query_params.get("page", 1)))
-        page_size = max(1, min(int(request.query_params.get("page_size", 20)), 100))
+        params = parse_query(request, DuplicateListQuery)
+        duplicate_type_filter = params.get("duplicate_type")
+        status_filter = params.get("status")
+        page = params["page"]
+        page_size = params["page_size"]
 
         duplicates = (
             Duplicate.objects.filter(owner=user)
@@ -231,6 +214,7 @@ class DuplicateResolveView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(request=DuplicateResolveRequest)
     def post(self, request: Request, duplicate_id: str) -> Response:
         user = request_user(request)
         try:
@@ -238,11 +222,9 @@ class DuplicateResolveView(APIView):
         except Duplicate.DoesNotExist:
             raise NotFound("Duplicate group not found")
 
-        keep_photo_hash = request_dict(request).get("keep_photo_hash")
-        trash_others = request_dict(request).get("trash_others", True)
-
-        if not keep_photo_hash:
-            raise ValidationError("keep_photo_hash is required")
+        body = parse_body(request, DuplicateResolveRequest)
+        keep_photo_hash = body["keep_photo_hash"]
+        trash_others = body["trash_others"]
 
         # Verify photo exists in duplicate group
         try:
@@ -338,57 +320,14 @@ class DetectDuplicatesView(APIView):
 
     permission_classes = [IsAuthenticated]
 
-    @extend_schema(
-        parameters=[
-            OpenApiParameter(
-                "detect_exact_copies",
-                bool,
-                description="Detect exact file copies (default: true)",
-            ),
-            OpenApiParameter(
-                "detect_visual_duplicates",
-                bool,
-                description="Detect visually similar photos (default: true)",
-            ),
-            OpenApiParameter(
-                "visual_threshold",
-                int,
-                description="Hamming distance threshold for visual duplicates (default: 10)",
-            ),
-            OpenApiParameter(
-                "clear_pending",
-                bool,
-                description="Clear existing pending duplicates before detection (default: false)",
-            ),
-            OpenApiParameter(
-                "batch_size",
-                int,
-                description="Number of photos to process per batch for visual detection (default: 10000, min: 100, max: 50000)",
-            ),
-        ],
-    )
+    @extend_schema(request=DetectDuplicatesRequest)
     def post(self, request: Request) -> Response:
         from api.duplicate_detection import batch_detect_duplicates
 
         user = request_user(request)
-        # Validate and clamp batch_size to reasonable range
-        batch_size = int(request_dict(request).get("batch_size", 10000))
-        if batch_size < 100:
-            batch_size = 100  # Minimum to avoid too many batches
-        elif batch_size > 50000:
-            batch_size = 50000  # Maximum to prevent memory issues
-
-        options = {
-            "detect_exact_copies": request_dict(request).get(
-                "detect_exact_copies", True
-            ),
-            "detect_visual_duplicates": request_dict(request).get(
-                "detect_visual_duplicates", True
-            ),
-            "visual_threshold": int(request_dict(request).get("visual_threshold", 10)),
-            "clear_pending": request_dict(request).get("clear_pending", False),
-            "batch_size": batch_size,
-        }
+        # batch_size is clamped to 100..50000: fewer would make too many
+        # batches, more would use too much memory.
+        options = parse_body(request, DetectDuplicatesRequest)
 
         # Queue background job
         async_task(batch_detect_duplicates, user, options)
