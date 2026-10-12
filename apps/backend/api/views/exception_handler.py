@@ -31,17 +31,25 @@ def _first_code(value: object) -> str | None:
     return None
 
 
-def _entry(field: str, value: object) -> dict[str, str]:
-    # DRF gives per-field errors as a list of ErrorDetail. str() on the list
-    # yields its repr, which used to leak into the response as
-    # "[ErrorDetail(string='...', code='unique')]".
+def _message(value: object) -> str:
+    """The messages in ``value``, joined; nested ones prefixed with their key.
+
+    DRF gives per-field errors as a list of ErrorDetail, and the item errors of
+    a list field (or the field errors of a nested serializer) as a dict of
+    those. str() on either yields its repr, which used to leak into the
+    response as "[ErrorDetail(string='...', code='unique')]".
+    """
+    if isinstance(value, dict):
+        return " ".join(f"{key}: {_message(item)}" for key, item in value.items())
     if isinstance(value, (list, tuple)):
-        message = " ".join(str(item) for item in value)
-    else:
-        message = str(value)
+        return " ".join(_message(item) for item in value)
+    return str(value)
+
+
+def _entry(field: str, value: object) -> dict[str, str]:
     return {
         "field": field,
-        "message": message,
+        "message": _message(value),
         "code": _first_code(value) or FALLBACK_CODE,
     }
 
