@@ -34,7 +34,7 @@ The baseline only shrinks. The `ruff` job of the `lint-backend` workflow fails w
 
 The baseline is per file and code, not per finding, so a file listed for `BLE001` can gain another blind `except` without failing; please do not rely on that. Do not add `# noqa` comments for baselined codes either. Permanent exceptions, such as `print()` in console scripts, and the banned APIs (ruff `TID251`, each with a message naming the replacement) live in `pyproject.toml`; exceptions go under `[tool.ruff.lint.extend-per-file-ignores]`, because a plain `per-file-ignores` table would replace the baseline instead of adding to it.
 
-Ruff's `target-version` is `py310`, the Python of the backend-gpu image: code must parse and run there, so ruff reports newer syntax and `datetime.UTC` is banned.
+The supported Python versions are `requires-python` in `apps/backend/pyproject.toml`, and ruff targets its floor, 3.10, the Python of the backend-gpu image: code must parse and run there, so ruff reports newer syntax and `datetime.UTC` is banned. The `test-backend` workflow runs the suite on 3.10 and 3.12 (the Pythons of the Docker images) for every pull request, and on 3.14 as well after merge.
 
 ### Type checking
 

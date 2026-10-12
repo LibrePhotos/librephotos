@@ -18,7 +18,7 @@ Without Docker, install with `bash scripts/setup_test_env.sh` inside an activate
 `BASE_LOGS=/tmp/librephotos/logs BASE_DATA=/tmp/librephotos SECRET_KEY=x DJANGO_SETTINGS_MODULE=librephotos.settings.test_sqlite`.
 Never export `PHOTOS` in that shell: a registration test creates and deletes `<PHOTOS>/family`.
 
-Windows, natively: Python 3.11, `py -3.11 -m venv .venv-win` and
+Windows, natively: Python 3.11 (the prebuilt Windows wheels are cp311), `py -3.11 -m venv .venv-win` and
 `pip install -r requirements.txt -r requirements.dev.txt` (the Windows wheels come from the
 `windows-wheels-*` release via markers in `requirements.txt`). `scripts/dev_windows.ps1 -DataDir C:\devdata`
 starts the exif sidecar, qcluster and uvicorn on :8000 with `librephotos.settings.dev_windows`. ML
@@ -35,7 +35,9 @@ test makes `--parallel` runs crash with "cannot pickle 'traceback'"; rerun that 
   `python scripts/ruff_baseline.py --update` after a fix, never to absorb a new finding, and add no `# noqa`
   for a baselined code. Exceptions and banned APIs (TID251) go in `pyproject.toml` under
   `extend-per-file-ignores` (a `per-file-ignores` table there would drop the baseline).
-- Code must run on Python 3.10, the backend-gpu image (ruff `target-version = "py310"`).
+- Supported Python is `requires-python` in `pyproject.toml` (ruff targets its floor). Code must run on the
+  floor, 3.10, the backend-gpu image; `test-backend.yml` runs the suite on each image's Python, and
+  `api/tests/infra/test_python_versions.py` fails when an image, workflow or requirements marker leaves the range.
 - Scope photo queries through the manager: `Photo.objects.owned_by(user)` to write,
   `Photo.visible.visible_to(user)` to read. An inline `owner=` filter or a `Photo.objects.all()`
   queryset on a related field is a cross-tenant leak waiting to happen.

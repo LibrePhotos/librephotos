@@ -21,7 +21,7 @@ Thank you for your interest in contributing to LibrePhotos! This guide will help
 - **Git** - for version control
 - **Docker** and **Docker Compose** - for running the development environment
 - **Node.js 24** (the version in `apps/frontend/.nvmrc`) and **Yarn** - for frontend development (optional, if developing outside Docker)
-- **Python 3.11+** - for backend development (optional, if developing outside Docker)
+- **Python** - for backend development (optional, if developing outside Docker): any version in `requires-python` in `pyproject.toml` (3.10 to 3.14); 3.11 on native Windows, where the prebuilt wheels are cp311
 
 ### Step 1: Clone the Monorepo
 
@@ -194,7 +194,7 @@ PyCharm Professional supports Docker interpreters natively:
 ### Other IDEs
 
 Any IDE with Python and TypeScript support will work. Key requirements:
-- Python 3.11+ interpreter support
+- A Python interpreter in the supported range (`requires-python` in `apps/backend/pyproject.toml`)
 - ESLint/Prettier integration for frontend
 - Docker integration (optional but helpful)
 
@@ -236,8 +236,11 @@ only shrinks:
 Permanent exceptions (tests, console scripts) and the banned APIs (`TID251`) live in
 `pyproject.toml`. Put exceptions under `[tool.ruff.lint.extend-per-file-ignores]`:
 a plain `per-file-ignores` table there would replace the baseline instead of adding
-to it. `target-version` is `py310`, the Python of the backend-gpu image, so ruff
-reports syntax that Python 3.10 cannot parse.
+to it. Ruff takes its target from `requires-python` in `pyproject.toml`, the one
+place that names the supported Python versions. Its floor is 3.10, the Python of
+the backend-gpu image, so ruff reports syntax that Python 3.10 cannot parse, and
+CI runs the test suite on 3.10 and 3.12 (the images' Pythons) for every pull
+request.
 
 **Pre-commit Hooks:**
 

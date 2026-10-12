@@ -23,7 +23,9 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v7
         with:
-          python-version: "3.14"
+          # The floor of requires-python (apps/backend/pyproject.toml), so the
+          # scripts below keep running on the oldest Python the backend supports.
+          python-version: "3.10"
       # Must match required-version in apps/backend/pyproject.toml, otherwise
       # ruff refuses to run.
       - run: pip install ruff==0.15.22
@@ -52,7 +54,9 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v7
         with:
-          python-version: "3.14"
+          # The floor of requires-python: vulture parses the code with this
+          # interpreter, so syntax Python 3.10 rejects fails here too.
+          python-version: "3.10"
       # The vulture pin lives in requirements.dev.txt, so CI and a local
       # `python scripts/check_dead_code.py` report the same findings.
       - run: pip install "$(grep '^vulture==' apps/backend/requirements.dev.txt)"

@@ -228,14 +228,21 @@ def grown_entries(
 
 
 def ruff_config(pyproject_text: str) -> str:
-    """The [tool.ruff*] tables without comments or blank lines, for comparison."""
+    """The ruff config without comments or blank lines, for comparison.
+
+    That is the [tool.ruff*] tables plus `requires-python` from [project]: ruff
+    takes its target version from there, so a new floor changes what pyupgrade
+    reports.
+    """
     kept: list[str] = []
-    in_ruff = False
+    table = ""
     for raw in pyproject_text.splitlines():
         line = re.sub(r"(^|\s)#.*$", "", raw).strip()
         if line.startswith("["):
-            in_ruff = line.startswith(("[tool.ruff]", "[tool.ruff."))
-        if in_ruff and line:
+            table = line
+        in_ruff = table.startswith(("[tool.ruff]", "[tool.ruff."))
+        floor = table == "[project]" and line.startswith("requires-python")
+        if line and (in_ruff or floor):
             kept.append(line)
     return "\n".join(kept)
 
@@ -245,7 +252,7 @@ def config_change_reason(base_ref: str) -> str | None:
     if old.returncode != 0:
         return None
     if ruff_config(old.stdout) != ruff_config(PYPROJECT.read_text(encoding="utf-8")):
-        return "changes the ruff config in pyproject.toml (rules or pin)"
+        return "changes the ruff config in pyproject.toml (rules, pin or Python floor)"
     return None
 
 

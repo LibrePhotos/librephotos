@@ -16,20 +16,31 @@ permissions:
 
 jobs:
   django:
+    name: django (Python ${{ matrix.python }})
     runs-on: ubuntu-latest
     # Measured on ubuntu-latest: ~5.5 min to install, ~2 min for the suite.
     # 30 leaves room for a slow runner without letting a hang burn an hour.
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        # The Python of every image, on every pull request: 3.10 is backend-gpu
+        # (CUDA 12.1.1 / ubuntu22.04), 3.12 the backend and unified images
+        # (ubuntu:noble). requirements.txt resolves differently below 3.11, so
+        # 3.10 is the only job that installs what the GPU image installs.
+        # Pushes to dev add 3.14, the newest Python in requires-python
+        # (apps/backend/pyproject.toml). 3.11 (the Windows build) is not here:
+        # there is no Linux cp311 insightface wheel; standalone-windows.yml and
+        # prebuilt-wheels.yml install on it. api/tests/infra/test_python_versions.py
+        # fails when an image's Python is missing from either list.
+        python: ${{ github.event_name == 'push' && fromJSON('["3.10", "3.12", "3.14"]') || fromJSON('["3.10", "3.12"]') }}
     steps:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
       - uses: actions/setup-python@v7
         with:
-          # The tests import and execute the code, so this must be a version the
-          # dependencies actually support. pyproject sets target-version = "py311"
-          # for ruff and python_version = "3.11" for mypy.
-          python-version: "3.14"
+          python-version: ${{ matrix.python }}
 
       - name: Install dependencies
         id: install
@@ -103,8 +114,11 @@ jobs:
 
       - name: Type check (no new errors vs mypy-baseline.txt)
         # Runs even when tests failed, so type errors and test failures report
-        # together; skipped only when the install itself failed.
-        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        # together; skipped only when the install itself failed. Once per run,
+        # in the 3.12 job: mypy and the stubs need Python 3.11+
+        # (requirements.dev.txt skips them on 3.10), and the result does not
+        # depend on the interpreter, since [tool.mypy] pins python_version.
+        if: ${{ !cancelled() && steps.install.outcome == 'success' && matrix.python == '3.12' }}
         working-directory: apps/backend
         env:
           BASE_LOGS: /tmp/librephotos/logs
