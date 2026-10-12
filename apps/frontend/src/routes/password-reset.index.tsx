@@ -10,16 +10,15 @@ import {
   Title,
   useComputedColorScheme,
 } from "@mantine/core";
-import { useForm } from "@mantine/form";
+import { schemaResolver, useForm } from "@mantine/form";
 import { IconMail as Mail } from "@tabler/icons-react";
 import { createFileRoute } from "@tanstack/react-router";
 import React, { useState } from "react";
-import type { FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { useRequestPasswordResetMutation } from "../api_client/auth";
 import { passwordResetError } from "../api_client/auth/passwordResetErrors";
 import { notification } from "../service/notifications";
-import { email } from "../util/formSchemas";
+import { makePasswordResetRequestSchema } from "./-passwordReset.schema";
 import classes from "./auth.module.css";
 
 export const Route = createFileRoute("/password-reset/")({
@@ -34,19 +33,12 @@ function PasswordResetRequestPage(): React.JSX.Element {
 
   const form = useForm({
     initialValues: { email: "" },
-    validate: {
-      email: value => email(t("passwordreset.erroremail")).safeParse(value).error?.issues[0]?.message ?? null,
-    },
+    validate: schemaResolver(makePasswordResetRequestSchema(t), { sync: true }),
   });
 
-  function onSubmit(event: FormEvent<HTMLFormElement>): void {
-    event.preventDefault();
-    const { hasErrors } = form.validate();
-    if (hasErrors) {
-      return;
-    }
+  function onSubmit({ email }: typeof form.values): void {
     requestReset(
-      { email: form.values.email },
+      { email },
       {
         // The endpoint always returns 200 (it never reveals whether the address
         // is registered), so show the same confirmation regardless.
@@ -84,7 +76,7 @@ function PasswordResetRequestPage(): React.JSX.Element {
                 <Anchor href="/login">{t("passwordreset.backtologin")}</Anchor>
               </>
             ) : (
-              <form onSubmit={onSubmit}>
+              <form onSubmit={form.onSubmit(onSubmit)}>
                 <Stack>
                   <Text size="sm">{t("passwordreset.instructions")}</Text>
                   <TextInput

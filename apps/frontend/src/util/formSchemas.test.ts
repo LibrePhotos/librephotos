@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { z } from "zod";
-import { email, optionalEmail } from "./formSchemas";
+import { z } from "zod";
+import { email, optionalEmail, uniqueName, withMatchingPasswords } from "./formSchemas";
 
 const messages = (result: z.ZodSafeParseResult<unknown>) => result.error?.issues.map(issue => issue.message) ?? [];
 
@@ -84,5 +84,39 @@ describe("optionalEmail", () => {
 
   it("rejects anything else with the form's message", () => {
     expect(messages(schema.safeParse("a@"))).toEqual(["invalid"]);
+  });
+});
+
+describe("uniqueName", () => {
+  const schema = uniqueName(["Alice", " Bob "], "taken");
+
+  it("rejects a taken name, trimmed and in any case", () => {
+    expect(messages(schema.safeParse("alice"))).toEqual(["taken"]);
+    expect(messages(schema.safeParse("  ALICE "))).toEqual(["taken"]);
+    expect(messages(schema.safeParse("bob"))).toEqual(["taken"]);
+  });
+
+  it("accepts a new name", () => {
+    expect(schema.safeParse("Alicia").success).toBe(true);
+  });
+});
+
+describe("withMatchingPasswords", () => {
+  const schema = withMatchingPasswords(
+    z.object({ email: email("invalid"), password: z.string(), passwordConfirm: z.string() }),
+    "must match"
+  );
+
+  it("puts a mismatch on passwordConfirm, next to the other fields' errors", () => {
+    const result = schema.safeParse({ email: "a@", password: "one", passwordConfirm: "two" });
+
+    expect(result.error?.issues.map(issue => [issue.path.join("."), issue.message])).toEqual([
+      ["email", "invalid"],
+      ["passwordConfirm", "must match"],
+    ]);
+  });
+
+  it("accepts the same password twice", () => {
+    expect(schema.safeParse({ email: "a@b.co", password: "one", passwordConfirm: "one" }).success).toBe(true);
   });
 });

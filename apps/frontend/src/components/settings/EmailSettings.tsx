@@ -13,7 +13,8 @@ import {
   TextInput,
   Title,
 } from "@mantine/core";
-import React, { useEffect, useState } from "react";
+import { schemaResolver, useForm } from "@mantine/form";
+import React, { useEffect, useEffectEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ApiError } from "../../api_client/api";
 import type { EmailConfigUpdate } from "../../api_client/settings/hooks/useEmailConfig";
@@ -22,7 +23,9 @@ import {
   useSendTestEmailMutation,
   useUpdateEmailConfigMutation,
 } from "../../api_client/settings/hooks/useEmailConfig";
+import type { EmailConfig } from "../../api_client/settings/types";
 import { notification } from "../../service/notifications";
+import { makeEmailSettingsSchema } from "./EmailSettings.schema";
 
 // "disabled" and "custom" are labelled with translated text at render time.
 const PROVIDERS = [
@@ -51,42 +54,49 @@ export function EmailSettings(): React.JSX.Element {
   const { mutate: save, isPending: isSaving } = useUpdateEmailConfigMutation();
   const { mutate: sendTest, isPending: isTesting } = useSendTestEmailMutation();
 
-  const [provider, setProvider] = useState("disabled");
-  const [fromEmail, setFromEmail] = useState("");
-  const [host, setHost] = useState("");
-  const [port, setPort] = useState(587);
-  const [useTls, setUseTls] = useState(true);
-  const [useSsl, setUseSsl] = useState(false);
-  const [username, setUsername] = useState("");
-  const [secret, setSecret] = useState("");
+  const form = useForm({
+    initialValues: {
+      provider: "disabled",
+      from_email: "",
+      host: "",
+      port: 587,
+      use_tls: true,
+      use_ssl: false,
+      username: "",
+      // A new credential; blank leaves the stored one.
+      secret: "",
+    },
+    validate: schemaResolver(makeEmailSettingsSchema(t), { sync: true }),
+  });
   const [hasSecret, setHasSecret] = useState(false);
   const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
 
+  // Reads the form at load time; `form` is a new object every render and is not a trigger.
+  const loadConfig = useEffectEvent((stored: EmailConfig) => {
+    const values = {
+      provider: stored.provider,
+      from_email: stored.from_email,
+      host: stored.host,
+      port: stored.port,
+      use_tls: stored.use_tls,
+      use_ssl: stored.use_ssl,
+      username: stored.username,
+      secret: "",
+    };
+    form.setValues(values);
+    // The stored configuration is what a change is measured against.
+    form.resetDirty(values);
+    setHasSecret(stored.has_secret);
+  });
   useEffect(() => {
     if (!isLoading && config) {
-      setProvider(config.provider);
-      setFromEmail(config.from_email);
-      setHost(config.host);
-      setPort(config.port);
-      setUseTls(config.use_tls);
-      setUseSsl(config.use_ssl);
-      setUsername(config.username);
-      setHasSecret(config.has_secret);
-      setSecret("");
+      loadConfig(config);
     }
   }, [config, isLoading]);
 
   // Save only does something once a field differs from the stored configuration.
-  const isDirty =
-    !!config &&
-    (provider !== config.provider ||
-      fromEmail !== config.from_email ||
-      host !== config.host ||
-      port !== config.port ||
-      useTls !== config.use_tls ||
-      useSsl !== config.use_ssl ||
-      username !== config.username ||
-      secret !== "");
+  const isDirty = !!config && form.isDirty();
+  const { provider } = form.values;
 
   const providers = PROVIDERS.map(option => {
     if (option.value === "disabled") return { ...option, label: t("emailsettings.provider_disabled") };
@@ -107,17 +117,9 @@ export function EmailSettings(): React.JSX.Element {
     notification.error((error instanceof ApiError && error.serverMessage) || t("emailsettings.savefailed"));
   };
 
-  const onSave = () => {
+  const onSave = ({ secret, ...settings }: typeof form.values) => {
     setTestResult(null);
-    const payload: EmailConfigUpdate = {
-      provider,
-      from_email: fromEmail,
-      host,
-      port,
-      use_tls: useTls,
-      use_ssl: useSsl,
-      username,
-    };
+    const payload: EmailConfigUpdate = settings;
     // Only send the secret when the admin actually typed a new value, so a
     // blank field leaves the stored credential untouched.
     if (secret) {
@@ -125,7 +127,7 @@ export function EmailSettings(): React.JSX.Element {
     }
     save(payload, {
       onSuccess: () => {
-        setSecret("");
+        form.setFieldValue("secret", "");
         setHasSecret(!!secret || hasSecret);
         notification.success(t("emailsettings.saved"));
       },
@@ -139,7 +141,7 @@ export function EmailSettings(): React.JSX.Element {
       {
         onSuccess: () => {
           setHasSecret(false);
-          setSecret("");
+          form.setFieldValue("secret", "");
         },
         onError: reportSaveError,
       }
@@ -161,7 +163,7 @@ export function EmailSettings(): React.JSX.Element {
   };
 
   return (
-    <Card shadow="md">
+    <Card shadow="md" component="form" onSubmit={form.onSubmit(onSave)}>
       <Stack>
         <Title order={4} mb={4}>
           {t("emailsettings.header")}
@@ -178,7 +180,7 @@ export function EmailSettings(): React.JSX.Element {
             <Select
               data={providers}
               value={provider}
-              onChange={value => setProvider(value || "disabled")}
+              onChange={value => form.setFieldValue("provider", value || "disabled")}
               allowDeselect={false}
             />
           </Grid.Col>
@@ -189,11 +191,7 @@ export function EmailSettings(): React.JSX.Element {
                 <Text>{t("emailsettings.from_email")}</Text>
               </Grid.Col>
               <Grid.Col span={CONTROL_SPAN}>
-                <TextInput
-                  placeholder="LibrePhotos <no-reply@example.org>"
-                  value={fromEmail}
-                  onChange={e => setFromEmail(e.currentTarget.value)}
-                />
+                <TextInput placeholder="LibrePhotos <no-reply@example.org>" {...form.getInputProps("from_email")} />
               </Grid.Col>
 
               {NEEDS_HOST.has(provider) && (
@@ -204,8 +202,7 @@ export function EmailSettings(): React.JSX.Element {
                   <Grid.Col span={CONTROL_SPAN}>
                     <TextInput
                       placeholder={provider === "ses" ? "email-smtp.us-east-1.amazonaws.com" : "smtp.example.org"}
-                      value={host}
-                      onChange={e => setHost(e.currentTarget.value)}
+                      {...form.getInputProps("host")}
                     />
                   </Grid.Col>
                 </>
@@ -230,20 +227,22 @@ export function EmailSettings(): React.JSX.Element {
                     <Text>{t("emailsettings.port")}</Text>
                   </Grid.Col>
                   <Grid.Col span={CONTROL_SPAN}>
-                    <TextInput type="number" value={port} onChange={e => setPort(Number(e.currentTarget.value) || 0)} />
+                    <TextInput
+                      type="number"
+                      {...form.getInputProps("port")}
+                      onChange={e => form.setFieldValue("port", Number(e.currentTarget.value) || 0)}
+                    />
                   </Grid.Col>
                   <Grid.Col span={{ base: 12, xs: 6 }}>
                     <Switch
                       label={t("emailsettings.use_tls")}
-                      checked={useTls}
-                      onChange={e => setUseTls(e.currentTarget.checked)}
+                      {...form.getInputProps("use_tls", { type: "checkbox" })}
                     />
                   </Grid.Col>
                   <Grid.Col span={{ base: 12, xs: 6 }}>
                     <Switch
                       label={t("emailsettings.use_ssl")}
-                      checked={useSsl}
-                      onChange={e => setUseSsl(e.currentTarget.checked)}
+                      {...form.getInputProps("use_ssl", { type: "checkbox" })}
                     />
                   </Grid.Col>
                 </>
@@ -258,7 +257,7 @@ export function EmailSettings(): React.JSX.Element {
                 )}
               </Grid.Col>
               <Grid.Col span={CONTROL_SPAN}>
-                <TextInput value={username} onChange={e => setUsername(e.currentTarget.value)} />
+                <TextInput {...form.getInputProps("username")} />
               </Grid.Col>
 
               <Grid.Col span={LABEL_SPAN}>
@@ -267,8 +266,7 @@ export function EmailSettings(): React.JSX.Element {
               <Grid.Col span={CONTROL_SPAN}>
                 <PasswordInput
                   placeholder={hasSecret ? t("emailsettings.secret_set") : ""}
-                  value={secret}
-                  onChange={e => setSecret(e.currentTarget.value)}
+                  {...form.getInputProps("secret")}
                 />
               </Grid.Col>
               {hasSecret && (
@@ -286,7 +284,7 @@ export function EmailSettings(): React.JSX.Element {
           <Button variant="default" onClick={onTest} loading={isTesting} disabled={!config?.is_configured}>
             {t("emailsettings.sendtest")}
           </Button>
-          <Button onClick={onSave} loading={isSaving} disabled={!isDirty}>
+          <Button type="submit" loading={isSaving} disabled={!isDirty}>
             {t("save")}
           </Button>
         </Group>

@@ -1034,7 +1034,8 @@
     "provider_disabled": "Disabled",
     "provider_custom": "Custom SMTP server",
     "saved": "Email settings saved",
-    "savefailed": "The email settings could not be saved."
+    "savefailed": "The email settings could not be saved.",
+    "errorport": "Enter a port number greater than 0."
   },
   "search": {
     "search": "Search",

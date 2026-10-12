@@ -252,3 +252,17 @@ describe("EmailSettings save", () => {
     expect(mocks.success).toHaveBeenCalledWith("emailsettings.saved");
   });
 });
+
+describe("EmailSettings validation", () => {
+  // The server refuses a port below 1 as well; the field now says so before the save.
+  it("refuses a port below 1 at the field", async () => {
+    await type('input[type="number"]', "0");
+
+    await act(async () => {
+      saveButton().click();
+    });
+
+    expect(mocks.save).not.toHaveBeenCalled();
+    expect(container.textContent).toContain("emailsettings.errorport");
+  });
+});

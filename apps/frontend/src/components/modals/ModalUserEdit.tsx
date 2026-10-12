@@ -1,7 +1,6 @@
 import { Box, Button, Group, Modal, ScrollArea, SimpleGrid, Space, Text, TextInput, Title } from "@mantine/core";
-import { useForm } from "@mantine/form";
+import { schemaResolver, useForm } from "@mantine/form";
 import { IconUser, IconMail as Mail } from "@tabler/icons-react";
-import type { FormEvent } from "react";
 import React, { useEffect, useEffectEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSignUpMutation } from "../../api_client/auth";
@@ -11,11 +10,11 @@ import type { ListUser, User } from "../../api_client/user";
 import { useManageUpdateUserMutation } from "../../api_client/user/hooks";
 import { notification } from "../../service/notifications";
 import { reportUserSaveError } from "../../util/apiErrors";
-import { optionalEmail } from "../../util/formSchemas";
 import { PasswordEntry } from "../settings/PasswordEntry";
 import { DirectoryPicker } from "../setup/DirectoryPicker";
 import { uploadLocation } from "../setup/uploadLocation";
 import { modalTitleStyles } from "./modalTitleStyles";
+import { makeUserEditSchema } from "./ModalUserEdit.schema";
 
 type Props = Readonly<{
   isOpen: boolean;
@@ -55,32 +54,6 @@ export function ModalUserEdit(props: Props) {
   const [isUploadPathValid, setIsUploadPathValid] = useState(true);
   const isSaving = createNew ? isSigningUp : isUpdating;
 
-  const validateUsername = (username: string) => {
-    if (!username) {
-      return t("modaluseredit.errorusernamecannotbeblank");
-    }
-    const exist = userList.some(
-      user => user.id !== userToEdit.id && user.username.toLowerCase() === username.toLowerCase()
-    );
-    if (exist) {
-      return t("modaluseredit.errorusernameexists");
-    }
-    return null;
-  };
-
-  const validateEmail = (email: string) =>
-    optionalEmail(t("modaluseredit.errorinvalidemail")).safeParse(email).error?.issues[0]?.message ?? null;
-
-  const validatePath = (scanDirectory: string) => {
-    if (firstTimeSetup && !scanDirectory) {
-      return t("modalscandirectoryedit.mustspecifypath");
-    }
-    if (scanDirectory && !isPathValid) {
-      return t("modalscandirectoryedit.pathdoesnotexist");
-    }
-    return null;
-  };
-
   const form = useForm({
     initialValues: {
       username: "",
@@ -91,12 +64,15 @@ export function ModalUserEdit(props: Props) {
       scan_directory: "",
       upload_directory: "",
     },
-    validate: {
-      email: value => validateEmail(value),
-      username: value => validateUsername(value),
-      scan_directory: value => validatePath(value),
-      upload_directory: value => (value && !isUploadPathValid ? t("modalscandirectoryedit.pathdoesnotexist") : null),
-    },
+    validate: schemaResolver(
+      makeUserEditSchema(t, {
+        otherUsernames: userList.filter(user => user.id !== userToEdit.id).map(user => user.username),
+        firstTimeSetup: !!firstTimeSetup,
+        isPathValid,
+        isUploadPathValid,
+      }),
+      { sync: true }
+    ),
   });
 
   // Reads the form and the typed password at reset time; neither is a trigger (see below).
@@ -217,14 +193,6 @@ export function ModalUserEdit(props: Props) {
     setNewPasswordIsValid(valid);
   };
 
-  function onSubmit(event: FormEvent<HTMLFormElement>): void {
-    event.preventDefault();
-    const result = form.validate();
-    if (!result.hasErrors) {
-      validateAndClose();
-    }
-  }
-
   // Null without a scan directory: the backend refuses uploads then.
   const webUploadLocation = uploadLocation(form.values.scan_directory, form.values.upload_directory);
 
@@ -240,7 +208,7 @@ export function ModalUserEdit(props: Props) {
       }}
       title={createNew ? t("modaluseredit.createheader") : t("modaluseredit.header")}
     >
-      <form onSubmit={onSubmit}>
+      <form onSubmit={form.onSubmit(validateAndClose)}>
         <Box pb="md">
           <SimpleGrid cols={{ base: 1, xs: 2 }} spacing="sm">
             <TextInput
