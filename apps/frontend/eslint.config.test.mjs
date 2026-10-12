@@ -23,6 +23,8 @@ const planted = {
   "react-virtual": `import { useVirtualizer } from "@tanstack/react-virtual";`,
   "virtual-grid": `import { VirtualGrid } from "../virtual/VirtualGrid";`,
   "query-client-singleton": `import { queryClient } from "../../api_client/api";`,
+  "api-client-import": `import { apiClient } from "../../api_client/api";`,
+  "media-url": "const plantedMedia = `${serverAddress}/media/photos/${hash}`;",
   "tile-index": `const plantedIndex = rowIndex * columns + columnIndex;`,
   "query-key-literal": `const plantedQuery = { queryKey: ["photoDetails", hash] };`,
   "untyped-mock": `const plantedMock = vi.fn();`,
@@ -43,10 +45,13 @@ const planted = {
   "local-storage": `const plantedLocal = localStorage.getItem("key");`,
   "session-storage": `const plantedSession = sessionStorage.getItem("key");`,
   "custom-event": `const plantedEvent = new CustomEvent("planted");`,
+  fetch: `const plantedFetch = fetch("/api/photos/");`,
   "window-local-storage": `const plantedWindowLocal = window.localStorage;`,
   "window-session-storage": `const plantedWindowSession = window.sessionStorage;`,
   "globalthis-local-storage": `const plantedGlobalLocal = globalThis.localStorage;`,
   "globalthis-session-storage": `const plantedGlobalSession = globalThis.sessionStorage;`,
+  "window-fetch": `const plantedWindowFetch = window.fetch("/api/photos/");`,
+  "globalthis-fetch": `const plantedGlobalFetch = globalThis.fetch("/api/photos/");`,
   "window-dispatch-event": `window.dispatchEvent(new Event("resize"));`,
   "style-from-handler": `event.currentTarget.style.opacity = "1";`,
 };
@@ -171,9 +176,52 @@ describe("eslint.config.mjs convention bans", () => {
     ["src/api_client/photos/hooks/useSample.ts", "query-client-singleton", true],
     ["src/components/sample.ts", "query-key-literal", true],
     ["src/api_client/photos/keys.ts", "query-key-literal", true],
+    ["src/index.tsx", "api-client-import", false],
+    ["src/api_client/photos/hooks/useSample.ts", "api-client-import", false],
+    ["src/components/settings/Library.tsx", "api-client-import", true],
+    ["src/routes/public/s.$slug.tsx", "api-client-import", true],
+    ["src/hooks/useSample.ts", "api-client-import", true],
+    ["src/api_client/api.ts", "fetch", false],
+    ["src/api_client/media/mediaUrl.ts", "fetch", false],
+    ["src/api_client/media/mediaUrl.ts", "window-fetch", false],
+    ["src/util/dataUrl.ts", "fetch", false],
+    ["src/util/imageClipboard.ts", "fetch", true],
+    ["src/components/lightbox/VideoPlayer.tsx", "window-fetch", true],
+    ["src/api_client/jobs/hooks/useDownloadPhotosMutation.ts", "fetch", true],
+    ["src/components/lightbox/VideoPlayer.test.tsx", "fetch", false],
+    ["src/api_client/media/mediaUrl.ts", "media-url", false],
+    ["src/api_client/media/hooks/useMediaDiagnosticsQuery.ts", "media-url", false],
+    ["src/api_client/jobs/hooks/useDownloadPhotosMutation.ts", "media-url", true],
+    ["src/components/Tile.tsx", "media-url", true],
+    ["src/components/LocationMap.test.tsx", "media-url", false],
+    ["e2e/tests/pages.ts", "media-url", false],
   ])("%s: ban/%s fires = %s", async (file, id, fires) => {
     const fired = await firedBans(planted[id], file);
     expect(fired.has(`ban/${id}`)).toBe(fires);
+  });
+
+  // The client by any relative path, and the other ways to fetch or spell a media path.
+  it.each([
+    ["src/components/Sample.tsx", `import { apiClient } from "../api_client/api";`, "api-client-import"],
+    ["src/routes/_protected/sample.tsx", `import { apiClient } from "../../api_client/api";`, "api-client-import"],
+    [
+      "src/components/settings/sample.ts",
+      `import { ApiError, apiClient } from "../../api_client/api";`,
+      "api-client-import",
+    ],
+    ["src/components/Sample.tsx", `const plantedImg = <img src="/media/thumbnails_big/abc" />;`, "media-url"],
+    ["src/components/sample.ts", `const plantedUrl = serverAddress + "/media/faces/" + name;`, "media-url"],
+  ])("%s: %s fires ban/%s", async (file, code, id) => {
+    expect(await firedBans(code, file)).toContain(`ban/${id}`);
+  });
+
+  it("leaves the error class, server-provided paths and the media module's own path alone", async () => {
+    const code = `import { ApiError } from "../api_client/api";
+import { mediaUrl } from "../api_client/media/mediaUrl";
+export { probeMedia } from "../api_client/media/mediaUrl";
+const plantedAvatar = serverAddress + user.avatar_url;
+const plantedModule = await import("../api_client/media/mediaUrl");`;
+    expect(await firedBans(code, "src/components/Sample.tsx")).toEqual(new Set());
   });
 });
 

@@ -49,7 +49,11 @@ green CI run. To develop against a local backend, copy `.env.development.example
   (an index read is `T | undefined`: guard it, use `?.`, or `defined()` in tests). `allowJs` is off.
 - Dates: parse and format only through `src/util/dateUtils.ts` (luxon). Pick the parser by what the value is: `parsePhotoTimestamp` for an `exif_timestamp` (wall clock tagged UTC), `parseInstant` for a real instant, `fromUnixSeconds` for epoch seconds, the picker helpers for DateTimePicker values. No `.setLocale()`: the UI language is luxon's default, set in `i18n.ts`. dayjs is only Mantine's picker glue. The `ban/date-*` and `ban/dayjs` lint rules enforce it.
 - Server data goes through `src/api_client` (and, where a domain has moved, `packages/api-client`):
-  requests, zod schemas and React Query hooks live there, not in components.
+  requests, zod schemas and React Query hooks live there, not in components. A component, route, `hooks/`
+  or `util/` module never fetches: add a hook or function in `src/api_client/<domain>` (lint bans `fetch`
+  and importing `apiClient` outside the API layer). Media URLs come from `mediaUrl` and media files from
+  `fetchMedia`/`probeMedia` (`src/api_client/media/mediaUrl.ts`, `ban/media-url` on a `/media/` string), so
+  paths, cookies and errors are handled in one place.
 - React Query keys come from the domain's factory in `src/api_client/<domain>/keys.ts`, and every photo grid's
   from `photoGridKeys` (root `["photoGrid"]`): add the key to the factory, invalidate by prefix
   (`photoGridKeys.all` refreshes every grid), never write a key literal (`ban/query-key-literal`); every value
