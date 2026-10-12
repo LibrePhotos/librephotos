@@ -341,15 +341,32 @@ class SetUserAlbumPublicExpiresAtTest(SetUserAlbumPublicTestBase):
             previous, AlbumUserShare.objects.get(album=self.album).expires_at
         )
 
-    def test_null_expires_at_does_not_clear_existing_value(self):
-        previous = timezone.now() + datetime.timedelta(days=3)
+    def test_null_expires_at_clears_the_expiry(self):
+        # The web client clears the expiry field by sending null; that used to
+        # leave the old expiry in place, so a link could never be made
+        # permanent again.
         AlbumUserShare.objects.create(
-            album=self.album, enabled=True, slug="s4", expires_at=previous
+            album=self.album,
+            enabled=True,
+            slug="s4",
+            expires_at=timezone.now() + datetime.timedelta(days=3),
         )
 
         response = self.post(
             {"album_id": self.album.id, "val_public": True, "expires_at": None}
         )
+
+        self.assertEqual(200, response.status_code)
+        self.assertIsNone(AlbumUserShare.objects.get(album=self.album).expires_at)
+        self.assertIsNone(response.json()["album"]["public_expires_at"])
+
+    def test_absent_expires_at_keeps_the_expiry(self):
+        previous = timezone.now() + datetime.timedelta(days=3)
+        AlbumUserShare.objects.create(
+            album=self.album, enabled=True, slug="s4", expires_at=previous
+        )
+
+        response = self.post({"album_id": self.album.id, "val_public": True})
 
         self.assertEqual(200, response.status_code)
         self.assertEqual(

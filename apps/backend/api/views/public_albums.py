@@ -108,10 +108,12 @@ class SetUserAlbumPublic(APIView):
         if slug is not None:
             share.slug = slug or None
 
-        expires_at = data.get("expires_at")  # ISO string or None
-        if expires_at is not None:
+        # An ISO string sets the expiry, null clears it (the web client sends
+        # null for an emptied field), absent keeps it.
+        if "expires_at" in data:
+            expires_at = data["expires_at"]
             try:
-                share.expires_at = parse_datetime(expires_at)
+                share.expires_at = parse_datetime(expires_at) if expires_at else None
             except (TypeError, ValueError):
                 pass  # not an ISO date: keep the current expiry
 
