@@ -234,7 +234,7 @@ class RotatePhotoViewTest(APITestCase):
         self.other_user = create_test_user()
         self.photo = create_test_photo(owner=self.user)
 
-        patcher = patch("api.thumbnails.regenerate_thumbnails")
+        patcher = patch("api.thumbnails.render.regenerate_thumbnails")
         self.regen = patcher.start()
         self.addCleanup(patcher.stop)
 

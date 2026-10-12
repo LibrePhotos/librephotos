@@ -58,7 +58,7 @@ pytz==2026.5
 tzdata==2026.5
 PyExifTool==0.4.9  # pinned: 0.5.x changes break metadata extraction; do not bump (see renovate.json)
 # pyvips-binary bundles libvips, but without HEVC (HEIC), JPEG XL, BMP and JPEG 2000
-# loaders; api/image_decoding.py falls back to Pillow with these two plugins.
+# loaders; api/thumbnails/decoding.py falls back to Pillow with these two plugins.
 pyvips[binary]==3.2.0
 pyvips-binary==8.18.7
 pillow-heif==1.8.1

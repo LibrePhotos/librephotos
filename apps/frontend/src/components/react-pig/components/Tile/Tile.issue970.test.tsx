@@ -6,7 +6,7 @@
  * H.264 clip at `media/square_thumbnails/<hash>` (500p) and
  * `media/square_thumbnails_small/<hash>` (250p) -- see
  * `api/models/thumbnail.py::_generate_thumbnail` /
- * `api/thumbnails.py::create_animated_thumbnail`. Only `thumbnails_big` is a
+ * `api/thumbnails/render.py::create_animated_thumbnail`. Only `thumbnails_big` is a
  * still image for a video.
  *
  * The grid tile rendered an `<img>` (the low quality image placeholder, and the

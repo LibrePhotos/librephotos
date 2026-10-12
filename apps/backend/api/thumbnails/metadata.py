@@ -3,7 +3,7 @@
 Thumbnails used to carry the photo's EXIF and XMP (GPS position, camera serial
 number, keywords) and a video's recorded location, because libvips and ffmpeg
 copy metadata into what they write. New thumbnails are written without it (see
-``api.thumbnails.WEBP``); this cleans the ones already on disk in place. Only
+``api.thumbnails.render.WEBP``); this cleans the ones already on disk in place. Only
 the container changes, never the encoded picture, so pixels and perceptual
 hashes stay the same. The ICC profile is kept.
 

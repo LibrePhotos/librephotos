@@ -1,6 +1,6 @@
 """Tests for document detection: the pure heuristic and its job wiring.
 
-The pure classifier (:mod:`api.document_detection`) is exercised directly with
+The pure classifier (:mod:`api.classification.documents`) is exercised directly with
 plain inputs -- no DB, no network. The wiring in
 :mod:`api.directory_watcher.processing_jobs` (the OCR worker and the
 ``classify_media`` backfill) is covered with real ``Photo`` rows, mocking
@@ -13,18 +13,18 @@ from unittest.mock import MagicMock, patch
 from constance.test import override_config
 from django.test import SimpleTestCase, TestCase
 
-from api.directory_watcher import processing_jobs
-from api.directory_watcher.processing_jobs import (
-    classify_media,
-    generate_ocr_job,
-)
-from api.document_detection import (
+from api.classification.documents import (
     CURRENCY_RE,
     TOTAL_KEYWORD_RE,
     classify_document,
     document_signals,
     has_currency_amount,
     has_total_keyword,
+)
+from api.directory_watcher import processing_jobs
+from api.directory_watcher.processing_jobs import (
+    classify_media,
+    generate_ocr_job,
 )
 from api.models import LongRunningJob, PhotoOcr
 from api.models.photo_caption import PhotoCaption

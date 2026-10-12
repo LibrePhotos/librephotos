@@ -13,7 +13,8 @@ from unittest import mock
 
 from django.test import SimpleTestCase, override_settings
 
-from api import binaries, thumbnails
+from api import binaries
+from api.thumbnails import render
 
 
 def _failed_run(*args, **kwargs):
@@ -34,32 +35,30 @@ class VideoThumbnailFfmpegTest(SimpleTestCase):
         settings = override_settings(MEDIA_ROOT=self.media.name)
         settings.enable()
         self.addCleanup(settings.disable)
-        tonemap = mock.patch.object(
-            thumbnails.video_color, "video_filter", return_value=None
-        )
+        tonemap = mock.patch.object(render.color, "video_filter", return_value=None)
         tonemap.start()
         self.addCleanup(tonemap.stop)
         self.output = os.path.join(self.media.name, "out", "h.webp")
 
     def test_ffmpeg_runs_with_a_timeout_and_its_status_checked(self):
-        with mock.patch.object(thumbnails.binaries, "run_tool") as run:
-            thumbnails.create_thumbnail_for_video("/v.mov", "out", "h", ".webp")
+        with mock.patch.object(render.binaries, "run_tool") as run:
+            render.create_thumbnail_for_video("/v.mov", "out", "h", ".webp")
 
         name, command = run.call_args.args
         self.assertEqual(name, "ffmpeg")
         self.assertEqual(command[-1], self.output)
         self.assertIn("-y", command)
-        self.assertEqual(run.call_args.kwargs["timeout"], thumbnails.FFMPEG_TIMEOUT)
+        self.assertEqual(run.call_args.kwargs["timeout"], render.FFMPEG_TIMEOUT)
         # run_tool checks the exit status unless told not to.
         self.assertNotIn("check", run.call_args.kwargs)
 
     def test_a_failed_run_raises_with_the_end_of_stderr(self):
         with (
-            mock.patch.object(thumbnails.binaries, "run_tool", side_effect=_failed_run),
-            self.assertLogs("api.thumbnails", "ERROR") as logs,
+            mock.patch.object(render.binaries, "run_tool", side_effect=_failed_run),
+            self.assertLogs("api.thumbnails.render", "ERROR") as logs,
         ):
-            with self.assertRaises(thumbnails.VideoThumbnailError) as raised:
-                thumbnails.create_thumbnail_for_video("/v.mov", "out", "h", ".webp")
+            with self.assertRaises(render.VideoThumbnailError) as raised:
+                render.create_thumbnail_for_video("/v.mov", "out", "h", ".webp")
 
         self.assertIn("status 1", str(raised.exception))
         self.assertIn("Invalid data found", str(raised.exception))
@@ -73,19 +72,19 @@ class VideoThumbnailFfmpegTest(SimpleTestCase):
 
         with (
             mock.patch.object(
-                thumbnails.binaries, "run_tool", side_effect=hang_after_writing
+                render.binaries, "run_tool", side_effect=hang_after_writing
             ),
-            self.assertLogs("api.thumbnails", "ERROR"),
+            self.assertLogs("api.thumbnails.render", "ERROR"),
         ):
-            with self.assertRaisesRegex(thumbnails.VideoThumbnailError, "300 s"):
-                thumbnails.create_thumbnail_for_video("/v.mov", "out", "h", ".webp")
+            with self.assertRaisesRegex(render.VideoThumbnailError, "300 s"):
+                render.create_thumbnail_for_video("/v.mov", "out", "h", ".webp")
 
         self.assertFalse(os.path.exists(self.output))
 
     def test_the_animated_thumbnail_fails_the_same_way(self):
         with (
-            mock.patch.object(thumbnails.binaries, "run_tool", side_effect=_failed_run),
-            self.assertLogs("api.thumbnails", "ERROR"),
+            mock.patch.object(render.binaries, "run_tool", side_effect=_failed_run),
+            self.assertLogs("api.thumbnails.render", "ERROR"),
         ):
-            with self.assertRaises(thumbnails.VideoThumbnailError):
-                thumbnails.create_animated_thumbnail("/v.mov", 250, "out", "h", ".mp4")
+            with self.assertRaises(render.VideoThumbnailError):
+                render.create_animated_thumbnail("/v.mov", 250, "out", "h")

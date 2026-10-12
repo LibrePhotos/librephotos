@@ -9,6 +9,7 @@ from django.conf import settings
 from django.test import SimpleTestCase, TestCase, override_settings
 from rest_framework.test import APIClient
 
+from api.classification.captioning import generate_photo_caption
 from api.directory_watcher.file_handlers import group_files_into_photo
 from api.directory_watcher.scan_jobs import (
     add_geolocation,
@@ -19,7 +20,6 @@ from api.directory_watcher.scan_jobs import (
 )
 from api.face_classify import cluster_all_faces
 from api.geocode.geocode import reverse_geocode, search_location
-from api.image_captioning import generate_photo_caption
 from api.media_files import is_valid_media
 from api.models import Face, LongRunningJob
 from api.models.photo_caption import PhotoCaption
@@ -181,19 +181,19 @@ class ImageCaptioningFeatureFlagTest(TestCase):
         self.photo = create_test_photo(owner=self.user)
         self.caption = PhotoCaption.objects.create(photo=self.photo)
 
-    @patch("api.image_captioning.generate_caption", return_value="a cat")
+    @patch("api.classification.captioning.generate_caption", return_value="a cat")
     def test_captions_are_generated_by_default(self, generate_caption_mock):
         self.assertTrue(generate_photo_caption(self.caption))
         generate_caption_mock.assert_called_once()
 
     @override_settings(FEATURE_IMAGE_CAPTIONING=False)
-    @patch("api.image_captioning.generate_caption")
+    @patch("api.classification.captioning.generate_caption")
     def test_captions_skipped_when_disabled(self, generate_caption_mock):
         self.assertFalse(generate_photo_caption(self.caption))
         generate_caption_mock.assert_not_called()
 
     @override_settings(FEATURE_IMAGE_CAPTIONING=False)
-    @patch("api.image_captioning.generate_photo_caption")
+    @patch("api.classification.captioning.generate_photo_caption")
     def test_generate_caption_endpoint_refuses_when_disabled(
         self, generate_captions_mock
     ):

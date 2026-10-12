@@ -9,8 +9,8 @@ import pyvips
 from django.test import TestCase, override_settings
 from PIL import Image
 
-import api.image_decoding  # noqa: F401  registers the HEIF opener _write_image(format="HEIF") needs
-from api import binaries, thumbnails
+import api.thumbnails.decoding  # noqa: F401  registers the HEIF opener _write_image(format="HEIF") needs
+from api import binaries
 from api.directory_watcher.file_handlers import (
     create_file_record,
     group_files_into_photo,
@@ -29,6 +29,7 @@ from api.tests.utils import (
     create_test_thumbnail,
     create_test_user,
 )
+from api.thumbnails import render
 
 THUMBNAIL_DIRS = ("thumbnails_big", "square_thumbnails", "square_thumbnails_small")
 
@@ -94,8 +95,8 @@ class ReplacedFileTestCase(TestCase):
             square_thumbnail_small="",
             aspect_ratio=None,
         )
-        thumbnails.generate_thumbnail(thumbnail)
-        thumbnails.calculate_aspect_ratio(thumbnail)
+        render.generate_thumbnail(thumbnail)
+        render.calculate_aspect_ratio(thumbnail)
         photo.perceptual_hash = calculate_hash_from_thumbnail(
             thumbnail.thumbnail_big.path
         )
@@ -158,7 +159,7 @@ class ReplacedFileRescanTest(ReplacedFileTestCase):
         create_test_face(photo=photo)
 
         _write_image(self.path, 2)
-        with patch("api.transcode_cache.discard") as discard:
+        with patch("api.video.transcode_cache.discard") as discard:
             rescanned = self._scan()
 
         discard.assert_called_once_with(old_hash)
@@ -406,7 +407,7 @@ class RotationIsNotAReplacementTest(ReplacedFileTestCase):
     def _rebuild(self, photo):
         """Throw the thumbnails away and render them again from the file."""
         photo = Photo.objects.get(pk=photo.pk)
-        thumbnails.regenerate_thumbnails(photo.thumbnail)
+        render.regenerate_thumbnails(photo.thumbnail)
         return photo
 
     def test_rotating_a_photo_does_not_cost_it_its_faces(self):
@@ -555,7 +556,7 @@ class RotationIsNotAReplacementTest(ReplacedFileTestCase):
         photo = Photo.objects.get(pk=photo.pk)
         photo.local_orientation = 8
         photo.save(update_fields=["local_orientation"])
-        thumbnails.regenerate_thumbnails(photo.thumbnail)
+        render.regenerate_thumbnails(photo.thumbnail)
         write_metadata(self.path, {Tags.ORIENTATION: 6}, use_sidecar=False)
 
         rescanned = self._scan()
@@ -610,7 +611,7 @@ class UncomparableContentTest(ReplacedFileTestCase):
         _write_image(self.path, 2)
         with (
             patch("api.directory_watcher.file_handlers.is_video", return_value=True),
-            patch("api.transcode_cache.discard") as discard,
+            patch("api.video.transcode_cache.discard") as discard,
         ):
             rescanned = self._scan()
 
@@ -640,13 +641,13 @@ class PictureVerdictAcrossRenderVersionsTest(ReplacedFileTestCase):
         photo = MagicMock(perceptual_hash="stored", local_orientation=1)
         renders = []
 
-        def render(path, local_orientation, legacy=False):
+        def fake_render(path, local_orientation, legacy=False):
             renders.append(legacy)
             return legacy_hash if legacy else current
 
         legacy_hash = legacy
         with patch.object(
-            file_handlers, "_rendered_perceptual_hash", side_effect=render
+            file_handlers, "_rendered_perceptual_hash", side_effect=fake_render
         ):
             return file_handlers._picture_verdict(photo, self.path), renders
 

@@ -19,7 +19,7 @@ from django.test import TestCase
 from django.utils import timezone
 from rest_framework.test import APIClient
 
-from api.autoalbum import generate_event_albums
+from api.albums.auto_albums import generate_event_albums
 from api.batch_jobs import batch_calculate_clip_embedding
 from api.directory_watcher.processing_jobs import (
     _limit_to_photos_added_since_last_scan,
@@ -289,7 +289,7 @@ class ClaimTest(TestCase):
         )
         LongRunningJob.cleanup_stuck_jobs()
 
-        with patch("api.autoalbum._group_photos") as group:
+        with patch("api.albums.auto_albums._group_photos") as group:
             self.assertEqual(generate_event_albums(self.user, job.job_id), 0)
         group.assert_not_called()
 

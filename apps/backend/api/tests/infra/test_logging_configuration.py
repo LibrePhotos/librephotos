@@ -276,7 +276,9 @@ class LoggerLevelsTest(SimpleTestCase):
             level="INFO", logger_levels={"api.services": "ERROR"}
         ) as log_file:
             logging.getLogger("api.services").warning("services warning line")
-            logging.getLogger("api.thumbnails").warning("thumbnails warning line")
+            logging.getLogger("api.thumbnails.render").warning(
+                "thumbnails warning line"
+            )
             flush_root_handlers()
             with open(log_file, encoding="utf-8") as f:
                 contents = f.read()

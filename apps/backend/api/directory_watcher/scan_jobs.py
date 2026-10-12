@@ -20,7 +20,6 @@ from django.conf import settings
 from django.core.paginator import Paginator
 from django.db.models import Q
 
-from api import thumbnails, video_color
 from api.batch_jobs import batch_calculate_clip_embedding
 from api.directory_watcher.file_grouping import (
     get_file_grouping_key,
@@ -50,6 +49,8 @@ from api.mime import VIDEO_EXTENSIONS, extension
 from api.models import LongRunningJob, Photo, Thumbnail, User
 from api.photo_files import detach_missing_files
 from api.semantic_search import semantic_shares_tagger
+from api.thumbnails import render
+from api.video import color
 
 logger = logging.getLogger(__name__)
 
@@ -211,7 +212,7 @@ def backfill_missing_aspect_ratios(user: User) -> int:
         try:
             thumbnail = getattr(photo, "thumbnail", None)
             if thumbnail and isinstance(thumbnail, Thumbnail):
-                thumbnails.calculate_aspect_ratio(thumbnail)
+                render.calculate_aspect_ratio(thumbnail)
         except Exception as e:
             logger.exception(
                 "Could not calculate aspect ratio for photo %s: %s",
@@ -395,7 +396,7 @@ def _queue_followup_jobs(user: User, full_scan: bool, scan_missing: bool) -> Non
 
     # Only while there is something to do, so a library whose videos have all
     # been probed -- or that has none -- does not get an empty job every scan.
-    if video_color.can_probe() and videos_to_probe(user).exists():
+    if color.can_probe() and videos_to_probe(user).exists():
         enqueue_followup(user, LongRunningJob.JOB_PROBE_VIDEOS, probe_videos, user)
 
     if settings.FEATURE_SCENE_CLASSIFICATION:

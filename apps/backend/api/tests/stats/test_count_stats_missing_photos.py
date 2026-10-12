@@ -1,7 +1,7 @@
 """Tests for the ``num_missing_photos`` count in ``api.stats.get_count_stats``.
 
 The filter had the same Q-operator precedence bug that was fixed in
-``api.autoalbum.delete_missing_photos``: ``&`` binds tighter than ``|``, so
+``api.albums.auto_albums.delete_missing_photos``: ``&`` binds tighter than ``|``, so
 ``Q(owner=user) & Q(files=None) | Q(main_file=None)`` parses as
 ``(owner AND files) OR main_file`` and the second clause is not scoped to the
 requesting user. See ``test_delete_missing_photos.py`` for the sibling guard.

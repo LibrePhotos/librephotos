@@ -39,7 +39,7 @@ _.deduplicate_faces  # method in api/admin.py (PhotoAdmin.actions)
 _.megapixels  # property in api/models/photo_metadata.py (serializer ReadOnlyField)
 
 # Test hooks that reset module-level caches between tests.
-_.reset_probe_cache  # function in api/ffmpeg_budget.py
+_.reset_probe_cache  # function in api/video/ffmpeg_budget.py
 _.reset_for_tests  # function in api/geocode/rate_limit.py
 
 # Dead: only tests call these. Delete them together with their tests, or
@@ -49,5 +49,5 @@ _.get_face_locations  # function in api/face_recognition.py
 _.resolution  # property in api/models/photo_metadata.py
 _.are_duplicates  # function in api/duplicates/perceptual_hash.py
 _.find_similar_hashes  # function in api/duplicates/perceptual_hash.py
-_.create_thumbnail  # function in api/thumbnails.py
+_.create_thumbnail  # function in api/thumbnails/render.py
 _.is_safe_server_address  # function in nextcloud/server_address.py

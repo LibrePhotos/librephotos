@@ -25,7 +25,7 @@ def render_raw(source: str, destination: str, height: int) -> None:
     thumbnail = image.thumbnail_image(10000, height=height, size=pyvips.enums.Size.DOWN)
     # Built from bare pixels, so nothing of the photo's own metadata is here, but
     # libvips would still add a stock EXIF block; thumbnails carry none (see
-    # ``api.thumbnails.WEBP``).
+    # ``api.thumbnails.render.WEBP``).
     thumbnail.webpsave(destination, Q=95, keep=pyvips.enums.ForeignKeep.NONE)
 
 

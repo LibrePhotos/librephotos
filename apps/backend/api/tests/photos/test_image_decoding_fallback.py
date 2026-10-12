@@ -7,8 +7,8 @@ import unittest
 import pyvips
 from PIL import Image
 
-from api import image_decoding
 from api.media_files import is_valid_media
+from api.thumbnails import decoding
 
 FIXTURE = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "fixtures", "niaz.jpg"
@@ -26,15 +26,13 @@ class ImageDecodingFallbackTests(unittest.TestCase):
             rgb.save(os.path.join(cls.dir, "photo.jpg"))
 
     def test_libvips_handles_jpeg_directly(self):
-        image = image_decoding.thumbnail(os.path.join(self.dir, "photo.jpg"), 150)
+        image = decoding.thumbnail(os.path.join(self.dir, "photo.jpg"), 150)
         self.assertEqual((image.width, image.height), (200, 150))
 
     def test_pillow_fallback_decodes_heic_jxl_and_bmp(self):
         for ext in ("heic", "jxl", "bmp"):
             with self.subTest(ext=ext):
-                image = image_decoding.thumbnail(
-                    os.path.join(self.dir, f"photo.{ext}"), 150
-                )
+                image = decoding.thumbnail(os.path.join(self.dir, f"photo.{ext}"), 150)
                 self.assertEqual((image.width, image.height), (200, 150))
                 self.assertEqual(image.bands, 3)
 
@@ -45,7 +43,7 @@ class ImageDecodingFallbackTests(unittest.TestCase):
             exif = rotated.getexif()
             exif[0x0112] = 6  # rotate 90 CW on display
             rotated.save(path, exif=exif.tobytes())
-        image = image_decoding.thumbnail(path, 400)
+        image = decoding.thumbnail(path, 400)
         self.assertEqual((image.width, image.height), (300, 400))
 
     def test_unreadable_file_raises(self):
@@ -53,7 +51,7 @@ class ImageDecodingFallbackTests(unittest.TestCase):
         with open(path, "wb") as handle:
             handle.write(b"not an image at all")
         with self.assertRaises(Exception):
-            image_decoding.thumbnail(path, 100)
+            decoding.thumbnail(path, 100)
 
     def test_absurd_dimensions_are_refused_from_the_header(self):
         # A BMP header claiming 30000x30000 (900 MP) with no pixel data: refused at
@@ -66,8 +64,8 @@ class ImageDecodingFallbackTests(unittest.TestCase):
         with open(path, "wb") as handle:
             handle.write(header)
         with self.assertRaises(Image.DecompressionBombError):
-            image_decoding.thumbnail(path, 100)
-        self.assertFalse(image_decoding.can_decode(path))
+            decoding.thumbnail(path, 100)
+        self.assertFalse(decoding.can_decode(path))
 
     def test_is_valid_media_accepts_heic(self):
         self.assertTrue(is_valid_media(os.path.join(self.dir, "photo.heic"), user=None))

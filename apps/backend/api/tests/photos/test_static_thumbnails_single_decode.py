@@ -9,8 +9,8 @@ import pyvips
 from django.test import SimpleTestCase, override_settings
 from PIL import Image
 
-from api import image_decoding
-from api.thumbnails import create_static_thumbnails
+from api.thumbnails import decoding
+from api.thumbnails.render import create_static_thumbnails
 
 ALL_SIZES = ["thumbnails_big", "square_thumbnails", "square_thumbnails_small"]
 
@@ -39,7 +39,7 @@ class CreateStaticThumbnailsTest(SimpleTestCase):
 
     def test_all_sizes_from_one_decode(self):
         with mock.patch(
-            "api.thumbnails.image_decoding.thumbnail", wraps=image_decoding.thumbnail
+            "api.thumbnails.render.decoding.thumbnail", wraps=decoding.thumbnail
         ) as decode:
             create_static_thumbnails(self.source, "h", ALL_SIZES)
 
@@ -109,9 +109,9 @@ class CreateStaticThumbnailsTest(SimpleTestCase):
             return complete_path
 
         with (
-            mock.patch("api.thumbnails.image_decoding.raw_preview", return_value=None),
+            mock.patch("api.thumbnails.render.decoding.raw_preview", return_value=None),
             mock.patch(
-                "api.thumbnails._request_raw_thumbnail", side_effect=service
+                "api.thumbnails.render._request_raw_thumbnail", side_effect=service
             ) as request,
         ):
             create_static_thumbnails(raw, "h", ALL_SIZES)
@@ -125,9 +125,9 @@ class CreateStaticThumbnailsTest(SimpleTestCase):
 
         with (
             mock.patch(
-                "api.thumbnails.image_decoding.raw_preview", return_value=preview
+                "api.thumbnails.render.decoding.raw_preview", return_value=preview
             ) as raw_preview,
-            mock.patch("api.thumbnails._request_raw_thumbnail") as request,
+            mock.patch("api.thumbnails.render._request_raw_thumbnail") as request,
         ):
             create_static_thumbnails(raw, "h", ALL_SIZES)
 

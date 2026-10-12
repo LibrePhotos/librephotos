@@ -12,9 +12,9 @@ from django.contrib.auth.models import AnonymousUser
 from django.db.models import Q, QuerySet
 from rest_framework.request import Request
 
+from api.albums.timeline_filter import timeline_filter_q
 from api.models import Photo
 from api.models.user import User
-from api.timeline_filter import timeline_filter_q
 from api.util import folder_path_q
 
 
@@ -49,7 +49,7 @@ def build_photo_queryset(
             - in_trashcan: bool - Filter by trashed photos
             - media, video, photo, is_screenshot, is_document,
               hide_screenshots, hide_documents, favorite, apply_default -
-              the timeline filter, resolved by api.timeline_filter exactly as
+              the timeline filter, resolved by api.albums.timeline_filter exactly as
               the date-album endpoints resolve it, so select-all on the
               timeline acts on what it shows
             - person: int - Filter by person ID (faces)

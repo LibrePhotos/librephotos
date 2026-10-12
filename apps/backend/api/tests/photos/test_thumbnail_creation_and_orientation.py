@@ -1,4 +1,4 @@
-"""Characterization tests for api/thumbnails.py (CRAP unit 30).
+"""Characterization tests for api/thumbnails/render.py (CRAP unit 30).
 
 Pins the CURRENT behavior of:
   * ``_apply_local_orientation`` -- the EXIF-orientation transform dispatch
@@ -16,7 +16,7 @@ from unittest import mock
 import pyvips
 from django.test import SimpleTestCase, override_settings
 
-from api.thumbnails import WEBP, _apply_local_orientation, create_thumbnail
+from api.thumbnails.render import WEBP, _apply_local_orientation, create_thumbnail
 
 MEDIA_ROOT = os.path.join("/tmp", "lp-crap-u30-media")
 
@@ -108,31 +108,28 @@ class ApplyLocalOrientationTests(SimpleTestCase):
 
 @override_settings(MEDIA_ROOT=MEDIA_ROOT)
 class CreateThumbnailNonRawTests(SimpleTestCase):
-    """Non-raw input: image_decoding.thumbnail + optional local orientation."""
+    """Non-raw input: decoding.thumbnail + optional local orientation."""
 
     def setUp(self):
-        patcher = mock.patch("api.thumbnails.image_decoding.thumbnail")
+        patcher = mock.patch("api.thumbnails.render.decoding.thumbnail")
         self.decode = patcher.start()
         self.addCleanup(patcher.stop)
         self.thumb = self.decode.return_value
 
     def test_happy_path_orientation_1(self):
-        result = create_thumbnail(
-            "/data/photo.jpg", 200, "thumbnails_big", "abc123", ".webp"
-        )
+        result = create_thumbnail("/data/photo.jpg", 200, "thumbnails_big", "abc123")
         expected = os.path.join(MEDIA_ROOT, "thumbnails_big", "abc123.webp")
         self.assertEqual(result, expected)
         self.decode.assert_called_once_with("/data/photo.jpg", 200)
         self.thumb.write_to_file.assert_called_once_with(expected, **WEBP)
 
     def test_orientation_none_skips_transform(self):
-        with mock.patch("api.thumbnails._apply_local_orientation") as apply_mock:
+        with mock.patch("api.thumbnails.render._apply_local_orientation") as apply_mock:
             create_thumbnail(
                 "/data/photo.jpg",
                 200,
                 "thumbnails_small",
                 "h",
-                ".webp",
                 local_orientation=None,
             )
         apply_mock.assert_not_called()
@@ -140,25 +137,23 @@ class CreateThumbnailNonRawTests(SimpleTestCase):
 
     def test_orientation_zero_skips_transform(self):
         # 0 is falsy, so the ``local_orientation and ...`` guard skips it.
-        with mock.patch("api.thumbnails._apply_local_orientation") as apply_mock:
+        with mock.patch("api.thumbnails.render._apply_local_orientation") as apply_mock:
             create_thumbnail(
                 "/data/photo.jpg",
                 200,
                 "thumbnails_small",
                 "h",
-                ".webp",
                 local_orientation=0,
             )
         apply_mock.assert_not_called()
 
     def test_non_trivial_orientation_transforms(self):
-        with mock.patch("api.thumbnails._apply_local_orientation") as apply_mock:
+        with mock.patch("api.thumbnails.render._apply_local_orientation") as apply_mock:
             result = create_thumbnail(
                 "/data/photo.jpg",
                 200,
                 "thumbnails_big",
                 "abc123",
-                ".webp",
                 local_orientation=6,
             )
         expected = os.path.join(MEDIA_ROOT, "thumbnails_big", "abc123.webp")
@@ -171,9 +166,9 @@ class CreateThumbnailNonRawTests(SimpleTestCase):
     def test_exception_is_logged_and_reraised(self):
         boom = RuntimeError("vips exploded")
         self.decode.side_effect = boom
-        with mock.patch("api.thumbnails.logger") as logger:
+        with mock.patch("api.thumbnails.render.logger") as logger:
             with self.assertRaises(RuntimeError) as ctx:
-                create_thumbnail("/data/photo.jpg", 200, "thumbnails_big", "h", ".webp")
+                create_thumbnail("/data/photo.jpg", 200, "thumbnails_big", "h")
         self.assertIs(ctx.exception, boom)
         logger.error.assert_called_once_with(
             "Could not create thumbnail for file %s", "/data/photo.jpg"
@@ -187,7 +182,7 @@ class CreateThumbnailRawTests(SimpleTestCase):
     RAW_PATH = "/data/photo.CR2"
 
     def setUp(self):
-        pyvips_patcher = mock.patch("api.thumbnails.pyvips")
+        pyvips_patcher = mock.patch("api.thumbnails.render.pyvips")
         self.pyvips = pyvips_patcher.start()
         self.addCleanup(pyvips_patcher.stop)
         requests_patcher = mock.patch("api.sidecars.http")
@@ -198,7 +193,7 @@ class CreateThumbnailRawTests(SimpleTestCase):
         }
         # No usable embedded preview: the RAW goes to the service.
         preview_patcher = mock.patch(
-            "api.thumbnails.image_decoding.raw_preview", return_value=None
+            "api.thumbnails.render.decoding.raw_preview", return_value=None
         )
         self.raw_preview = preview_patcher.start()
         self.addCleanup(preview_patcher.stop)
@@ -206,9 +201,7 @@ class CreateThumbnailRawTests(SimpleTestCase):
     def test_big_thumbnail_posts_to_raw_service_and_returns_service_path(self):
         from api.http_timeouts import THUMBNAIL
 
-        result = create_thumbnail(
-            self.RAW_PATH, 800, "thumbnails_big", "deadbeef", ".webp"
-        )
+        result = create_thumbnail(self.RAW_PATH, 800, "thumbnails_big", "deadbeef")
         # NOTE: the RAW/big branch returns the service's response, *not* the
         # locally computed complete_path like every other branch.
         self.assertEqual(result, "/service/result.webp")
@@ -227,13 +220,12 @@ class CreateThumbnailRawTests(SimpleTestCase):
         self.pyvips.Image.new_from_file.assert_not_called()
 
     def test_big_thumbnail_applies_local_orientation_in_place(self):
-        with mock.patch("api.thumbnails._apply_local_orientation") as apply_mock:
+        with mock.patch("api.thumbnails.render._apply_local_orientation") as apply_mock:
             result = create_thumbnail(
                 self.RAW_PATH,
                 800,
                 "thumbnails_big",
                 "deadbeef",
-                ".webp",
                 local_orientation=8,
             )
         complete = os.path.join(MEDIA_ROOT, "thumbnails_big", "deadbeef.webp")
@@ -244,9 +236,7 @@ class CreateThumbnailRawTests(SimpleTestCase):
         apply_mock.return_value.write_to_file.assert_called_once_with(complete, **WEBP)
 
     def test_small_raw_thumbnail_resizes_the_big_thumbnail(self):
-        result = create_thumbnail(
-            self.RAW_PATH, 200, "thumbnails_small", "deadbeef", ".webp"
-        )
+        result = create_thumbnail(self.RAW_PATH, 200, "thumbnails_small", "deadbeef")
         big = os.path.join(MEDIA_ROOT, "thumbnails_big", "deadbeef.webp")
         expected = os.path.join(MEDIA_ROOT, "thumbnails_small", "deadbeef.webp")
         self.assertEqual(result, expected)
@@ -260,13 +250,12 @@ class CreateThumbnailRawTests(SimpleTestCase):
         )
 
     def test_small_raw_thumbnail_ignores_local_orientation(self):
-        with mock.patch("api.thumbnails._apply_local_orientation") as apply_mock:
+        with mock.patch("api.thumbnails.render._apply_local_orientation") as apply_mock:
             create_thumbnail(
                 self.RAW_PATH,
                 200,
                 "thumbnails_small",
                 "deadbeef",
-                ".webp",
                 local_orientation=6,
             )
         # Deliberate: the big thumbnail already carries the rotation.
@@ -274,15 +263,15 @@ class CreateThumbnailRawTests(SimpleTestCase):
 
     def test_output_path_containing_thumbnails_big_substring_takes_raw_branch(self):
         # The branch test is a substring check, not an equality check.
-        create_thumbnail(self.RAW_PATH, 800, "nested/thumbnails_big/x", "h", ".webp")
+        create_thumbnail(self.RAW_PATH, 800, "nested/thumbnails_big/x", "h")
         self.requests.post.assert_called_once()
 
     def test_raw_service_error_is_logged_and_reraised(self):
         boom = ValueError("service down")
         self.requests.post.side_effect = boom
-        with mock.patch("api.thumbnails.logger") as logger:
+        with mock.patch("api.thumbnails.render.logger") as logger:
             with self.assertRaises(ValueError) as ctx:
-                create_thumbnail(self.RAW_PATH, 800, "thumbnails_big", "h", ".webp")
+                create_thumbnail(self.RAW_PATH, 800, "thumbnails_big", "h")
         self.assertIs(ctx.exception, boom)
         logger.error.assert_called_once_with(
             "Could not create thumbnail for file %s", self.RAW_PATH
@@ -290,6 +279,6 @@ class CreateThumbnailRawTests(SimpleTestCase):
 
     def test_missing_thumbnail_key_in_response_raises_keyerror(self):
         self.requests.post.return_value.json.return_value = {}
-        with mock.patch("api.thumbnails.logger"):
+        with mock.patch("api.thumbnails.render.logger"):
             with self.assertRaises(KeyError):
-                create_thumbnail(self.RAW_PATH, 800, "thumbnails_big", "h", ".webp")
+                create_thumbnail(self.RAW_PATH, 800, "thumbnails_big", "h")

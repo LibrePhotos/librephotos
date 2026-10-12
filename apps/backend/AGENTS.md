@@ -109,7 +109,7 @@ test makes `--parallel` runs crash with "cannot pickle 'traceback'"; rerun that 
   literal `status=`. Keep an endpoint's status codes: the mobile outbox retries 5xx and drops 4xx.
 - Models hold data and queries only: fields, managers, properties computed from fields, pure helpers.
   Disk, sidecar, subprocess and network work goes in the domain's service module, taking the instance
-  first (`api/thumbnails.py`, `api/photo_files.py`, `api/metadata/photo_writer.py`), and the caller calls it;
+  first (`api/thumbnails/render.py`, `api/photo_files.py`, `api/metadata/photo_writer.py`), and the caller calls it;
   never add a side effect to `save()`. `api/tests/infra/test_models_do_no_io.py` fails on an I/O import or call in `api/models/`.
 - Background work is queued only through `api/jobs/queue.py` (ruff TID251 bans `django_q.tasks`
   elsewhere): `enqueue_job` (user-started; writes the `LongRunningJob` row before queuing, a duplicate
@@ -174,9 +174,11 @@ test makes `--parallel` runs crash with "cannot pickle 'traceback'"; rerun that 
 ## Layout
 
 - `api/`: `views/`, `serializers/`, `models/`, `management/commands/`, `migrations/`, `tests/` (grouped by
-  area, e.g. `api/tests/metadata/`) and the domain packages: `directory_watcher/` (the scan pipeline),
-  `duplicates/`, `geocode/`, `jobs/` (the queue), `metadata/` (read, write, date rules), `stacks/`
-  (bursts, brackets, Motion Photo video).
+  area, e.g. `api/tests/metadata/`) and the domain packages: `albums/` (event albums, timeline filter),
+  `classification/` (captions, document and screenshot heuristics), `directory_watcher/` (the scan
+  pipeline), `duplicates/`, `geocode/`, `jobs/` (the queue), `metadata/` (read, write, date rules),
+  `stacks/` (bursts, brackets, Motion Photo video), `thumbnails/` (render, decode, strip metadata),
+  `video/` (probe and HDR tonemapping, playback type, transcode cache, ffmpeg budget).
 - No new flat `api/` module: new code goes into a domain package. The flat modules left are listed in
   `api/tests/infra/test_module_layout.py` with the package each moves to; the list only shrinks. A move
   updates every import and `mock.patch("api.<old>...")` string and keeps no re-export shim (a patch on a

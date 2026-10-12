@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 from django.conf import settings
 from PIL import Image
 
-from api import binaries, sidecars, video_color
+from api import binaries, sidecars
 from api.file_cleanup import delete_thumbnail_files
 from api.lazy_import import LazyModule
 from api.media_files import is_raw
@@ -17,6 +17,7 @@ from api.models.thumbnail import (
     Thumbnail,
     thumbnail_file_paths,
 )
+from api.video import color
 
 if TYPE_CHECKING:
     import numpy as np
@@ -29,9 +30,9 @@ if TYPE_CHECKING:
 else:
     pyvips = LazyModule("pyvips")
 if TYPE_CHECKING:
-    from api import image_decoding
+    from api.thumbnails import decoding
 else:
-    image_decoding = LazyModule("api.image_decoding")
+    decoding = LazyModule("api.thumbnails.decoding")
 
 logger = logging.getLogger(__name__)
 
@@ -203,9 +204,7 @@ def _oriented(image: pyvips.Image, local_orientation: int) -> pyvips.Image:
 def _decode_thumbnail(
     input_path: str, output_height: int, local_orientation: int
 ) -> pyvips.Image:
-    return _oriented(
-        image_decoding.thumbnail(input_path, output_height), local_orientation
-    )
+    return _oriented(decoding.thumbnail(input_path, output_height), local_orientation)
 
 
 def _render_thumbnail(
@@ -224,7 +223,7 @@ def _render_raw_thumbnail(
     input_path: str, output_height: int, complete_path: str, local_orientation: int
 ) -> str:
     """A RAW's thumbnail from its embedded preview, or else the RAW service."""
-    preview = image_decoding.raw_preview(input_path, output_height)
+    preview = decoding.raw_preview(input_path, output_height)
     if preview is None:
         return _request_raw_thumbnail(
             input_path, output_height, complete_path, local_orientation
@@ -239,7 +238,7 @@ def _render_big_thumbnail(
     """Write the big thumbnail; return it in memory when it was rendered here."""
     height = STATIC_THUMBNAIL_HEIGHTS["thumbnails_big"]
     if is_raw(input_path):
-        image = image_decoding.raw_preview(input_path, height)
+        image = decoding.raw_preview(input_path, height)
         if image is None:
             _request_raw_thumbnail(input_path, height, complete_path, local_orientation)
             return None
@@ -291,12 +290,12 @@ def create_thumbnail(
     output_height: int,
     output_path: str,
     hash: str,
-    file_type: str,
     local_orientation: int = 1,
 ) -> str:
+    """Render one static (WebP) thumbnail of ``input_path`` into ``output_path``."""
     try:
         raw = is_raw(input_path)
-        complete_path = _media_path(output_path, hash, file_type)
+        complete_path = _media_path(output_path, hash, ".webp")
         if not raw:
             return _render_thumbnail(
                 input_path,
@@ -309,7 +308,7 @@ def create_thumbnail(
             return _render_raw_thumbnail(
                 input_path, output_height, complete_path, local_orientation
             )
-        return _resize_big_thumbnail(output_height, complete_path, hash, file_type)
+        return _resize_big_thumbnail(output_height, complete_path, hash, ".webp")
     except Exception as e:
         logger.error("Could not create thumbnail for file %s", input_path)
         raise e
@@ -398,11 +397,11 @@ def create_animated_thumbnail(
     output_height: int,
     output_path: str,
     hash: str,
-    file_type: str,
     transfer: str | None = None,
 ) -> None:
+    """Write the first five seconds of a video, ``output_height`` high, as an mp4."""
     try:
-        output = os.path.join(settings.MEDIA_ROOT, output_path, hash + file_type)
+        output = os.path.join(settings.MEDIA_ROOT, output_path, hash + ".mp4")
         command = [
             "-y",
             "-i",
@@ -416,10 +415,8 @@ def create_animated_thumbnail(
             "-an",
             *NO_METADATA,
             # Tonemapped when the source is HDR, or the gallery shows the same
-            # washed-out picture the player does. See :mod:`api.video_color`.
-            *video_color.h264_video_args(
-                input_path, f"scale=-2:{output_height}", transfer
-            ),
+            # washed-out picture the player does. See :mod:`api.video.color`.
+            *color.h264_video_args(input_path, f"scale=-2:{output_height}", transfer),
             output,
         ]
 
@@ -452,7 +449,7 @@ def create_thumbnail_for_video(
         ]
         # No resizing here, so there is a filter only when the source is HDR and
         # the grabbed frame would otherwise be washed out.
-        tonemap = video_color.video_filter(input_path, transfer=transfer)
+        tonemap = color.video_filter(input_path, transfer=transfer)
         if tonemap:
             command += ["-filter:v", tonemap]
         command.append(output)
@@ -567,7 +564,6 @@ def generate_thumbnail(thumbnail: Thumbnail) -> None:
                 output_height=500,
                 output_path="square_thumbnails",
                 hash=photo_hash,
-                file_type=".mp4",
                 transfer=photo.video_color_transfer,
             )
 
@@ -579,7 +575,6 @@ def generate_thumbnail(thumbnail: Thumbnail) -> None:
                 output_height=250,
                 output_path="square_thumbnails_small",
                 hash=photo_hash,
-                file_type=".mp4",
                 transfer=photo.video_color_transfer,
             )
         filetype = ".webp"

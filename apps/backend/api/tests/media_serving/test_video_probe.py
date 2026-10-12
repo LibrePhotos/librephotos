@@ -21,7 +21,7 @@ from unittest.mock import ANY
 
 from django.test import SimpleTestCase, TestCase, override_settings
 
-from api import binaries, ffmpeg_budget, thumbnails, transcode_cache, video_color
+from api import binaries
 from api.directory_watcher import file_handlers, processing_jobs, scan_jobs
 from api.models import LongRunningJob, Photo, Thumbnail
 from api.serializers.photos import (
@@ -29,6 +29,8 @@ from api.serializers.photos import (
     with_photo_summary_relations,
 )
 from api.tests.utils import create_test_photo, create_test_user
+from api.thumbnails import render
+from api.video import color, ffmpeg_budget, transcode_cache
 from api.views import media
 
 PQ_PROBE = {
@@ -58,13 +60,13 @@ def _after(command, flag):
 
 class ProbeTest(SimpleTestCase):
     def setUp(self):
-        which = mock.patch.object(video_color.binaries, "available", return_value=True)
+        which = mock.patch.object(color.binaries, "available", return_value=True)
         which.start()
         self.addCleanup(which.stop)
 
     def test_records_codec_pixel_format_transfer_and_container(self):
-        with mock.patch.object(video_color.binaries, "run_tool", _ffprobe(PQ_PROBE)):
-            values = video_color.probe("/v.mov")
+        with mock.patch.object(color.binaries, "run_tool", _ffprobe(PQ_PROBE)):
+            values = color.probe("/v.mov")
         self.assertEqual(
             values,
             {
@@ -77,8 +79,8 @@ class ProbeTest(SimpleTestCase):
 
     def test_one_ffprobe_asks_for_all_of_it(self):
         run = _ffprobe(PQ_PROBE)
-        with mock.patch.object(video_color.binaries, "run_tool", run):
-            video_color.probe("/v.mov")
+        with mock.patch.object(color.binaries, "run_tool", run):
+            color.probe("/v.mov")
         run.assert_called_once()
         name, argv = run.call_args.args
         self.assertEqual(name, "ffprobe")
@@ -91,32 +93,32 @@ class ProbeTest(SimpleTestCase):
     def test_an_untagged_video_is_an_answer_not_a_failure(self):
         """ffprobe leaves the key out; stored as "", so it is never probed again."""
         payload = {"streams": [{"codec_name": "h264", "pix_fmt": "yuv420p"}]}
-        with mock.patch.object(video_color.binaries, "run_tool", _ffprobe(payload)):
-            values = video_color.probe("/v.mp4")
+        with mock.patch.object(color.binaries, "run_tool", _ffprobe(payload)):
+            values = color.probe("/v.mp4")
         self.assertEqual(values["video_color_transfer"], "")
         self.assertEqual(values["video_container"], "")
         self.assertEqual(values["video_codec"], "h264")
 
     def test_unknown_is_stored_as_saying_nothing(self):
         payload = {"streams": [{"codec_name": "h264", "color_transfer": "unknown"}]}
-        with mock.patch.object(video_color.binaries, "run_tool", _ffprobe(payload)):
-            self.assertEqual(video_color.probe("/v.mp4")["video_color_transfer"], "")
+        with mock.patch.object(color.binaries, "run_tool", _ffprobe(payload)):
+            self.assertEqual(color.probe("/v.mp4")["video_color_transfer"], "")
 
     def test_a_file_ffprobe_cannot_read_has_no_answer_yet(self):
         """The drive may just not be mounted: None, so it is tried again."""
         run = _ffprobe("{\n\n}", returncode=1, stderr="Invalid data found")
-        with mock.patch.object(video_color.binaries, "run_tool", run):
-            with mock.patch.object(video_color.os.path, "isfile", return_value=False):
-                self.assertIsNone(video_color.probe("/v.mov"))
+        with mock.patch.object(color.binaries, "run_tool", run):
+            with mock.patch.object(color.os.path, "isfile", return_value=False):
+                self.assertIsNone(color.probe("/v.mov"))
 
     def test_a_file_that_is_there_but_unreadable_is_settled_as_untagged(self):
         """Retrying a broken file only fails again, and requeues the backfill."""
         run = _ffprobe("{\n\n}", returncode=1, stderr="moov atom not found")
-        with mock.patch.object(video_color.binaries, "run_tool", run):
-            with mock.patch.object(video_color.os.path, "isfile", return_value=True):
+        with mock.patch.object(color.binaries, "run_tool", run):
+            with mock.patch.object(color.os.path, "isfile", return_value=True):
                 self.assertEqual(
-                    video_color.probe("/v.mov"),
-                    dict.fromkeys(video_color.PROBED_FIELDS, ""),
+                    color.probe("/v.mov"),
+                    dict.fromkeys(color.PROBED_FIELDS, ""),
                 )
 
     def test_ffprobe_blowing_up_has_no_answer(self):
@@ -124,19 +126,17 @@ class ProbeTest(SimpleTestCase):
             binaries.ToolMissingError("ffprobe", "boom"),
             binaries.ToolFailedError("ffprobe", None, "", timeout=30),
         ):
-            with mock.patch.object(
-                video_color.binaries, "run_tool", side_effect=side_effect
-            ):
-                self.assertIsNone(video_color.probe("/v.mov"), side_effect)
+            with mock.patch.object(color.binaries, "run_tool", side_effect=side_effect):
+                self.assertIsNone(color.probe("/v.mov"), side_effect)
 
     def test_output_that_is_not_json_has_no_answer(self):
-        with mock.patch.object(video_color.binaries, "run_tool", _ffprobe("nope")):
-            self.assertIsNone(video_color.probe("/v.mov"))
+        with mock.patch.object(color.binaries, "run_tool", _ffprobe("nope")):
+            self.assertIsNone(color.probe("/v.mov"))
 
     def test_a_host_without_ffprobe_has_no_answer(self):
-        with mock.patch.object(video_color.binaries, "available", return_value=False):
-            with mock.patch.object(video_color.binaries, "run_tool") as run:
-                self.assertIsNone(video_color.probe("/v.mov"))
+        with mock.patch.object(color.binaries, "available", return_value=False):
+            with mock.patch.object(color.binaries, "run_tool") as run:
+                self.assertIsNone(color.probe("/v.mov"))
         run.assert_not_called()
 
 
@@ -179,7 +179,7 @@ class RealProbeTest(SimpleTestCase):
             "-color_trc",
             "arib-std-b67",
         )
-        values = video_color.probe(path)
+        values = color.probe(path)
         self.assertEqual(values["video_color_transfer"], "arib-std-b67")
         self.assertEqual(values["video_codec"], "h264")
         self.assertEqual(values["video_pixel_format"], "yuv420p10le")
@@ -187,7 +187,7 @@ class RealProbeTest(SimpleTestCase):
 
     def test_an_untagged_clip_probes_as_sdr(self):
         path = self._encode("plain.mp4", "-c:v", "libx264", "-pix_fmt", "yuv420p")
-        values = video_color.probe(path)
+        values = color.probe(path)
         self.assertEqual(values["video_color_transfer"], "")
         self.assertEqual(values["video_pixel_format"], "yuv420p")
 
@@ -203,8 +203,8 @@ class RecordTest(TestCase):
             "video_color_transfer": "arib-std-b67",
             "video_container": "matroska,webm",
         }
-        with mock.patch.object(video_color, "probe", return_value=answer):
-            self.assertTrue(video_color.record(self.photo))
+        with mock.patch.object(color, "probe", return_value=answer):
+            self.assertTrue(color.record(self.photo))
         self.photo.refresh_from_db()
         self.assertEqual(self.photo.video_codec, "hevc")
         self.assertEqual(self.photo.video_pixel_format, "yuv420p10le")
@@ -214,8 +214,8 @@ class RecordTest(TestCase):
     def test_no_answer_leaves_the_old_values(self):
         Photo.objects.filter(pk=self.photo.pk).update(video_color_transfer="bt709")
         self.photo.refresh_from_db()
-        with mock.patch.object(video_color, "probe", return_value=None):
-            self.assertFalse(video_color.record(self.photo))
+        with mock.patch.object(color, "probe", return_value=None):
+            self.assertFalse(color.record(self.photo))
         self.photo.refresh_from_db()
         self.assertEqual(self.photo.video_color_transfer, "bt709")
 
@@ -226,23 +226,23 @@ class StoredTransferTest(SimpleTestCase):
     def setUp(self):
         ffmpeg_budget.reset_probe_cache()
         self.addCleanup(ffmpeg_budget.reset_probe_cache)
-        is_hdr = mock.patch.object(video_color, "is_hdr", return_value=False)
+        is_hdr = mock.patch.object(color, "is_hdr", return_value=False)
         self.is_hdr = is_hdr.start()
         self.addCleanup(is_hdr.stop)
 
     def test_a_stored_hdr_transfer_tonemaps_without_probing(self):
         with _zscale():
-            chain = video_color.video_filter("/v.mov", transfer="smpte2084")
+            chain = color.video_filter("/v.mov", transfer="smpte2084")
         self.assertIn("tonemap=mobius", chain)
         self.is_hdr.assert_not_called()
 
     def test_a_stored_empty_transfer_is_sdr_without_probing(self):
         """ "" is the answer for an untagged video, not a reason to ask again."""
-        self.assertIsNone(video_color.video_filter("/v.mov", transfer=""))
+        self.assertIsNone(color.video_filter("/v.mov", transfer=""))
         self.is_hdr.assert_not_called()
 
     def test_a_video_never_probed_is_asked(self):
-        video_color.video_filter("/v.mov", transfer=None)
+        color.video_filter("/v.mov", transfer=None)
         self.is_hdr.assert_called_once_with("/v.mov")
 
 
@@ -255,19 +255,19 @@ class H264OutputTest(SimpleTestCase):
 
     def test_sdr_is_forced_to_8_bit_420_and_keeps_its_own_tags(self):
         """A 10-bit SDR clip would otherwise encode as High 10."""
-        args = video_color.h264_video_args("/v.mp4", "scale=-2:250", transfer="bt709")
+        args = color.h264_video_args("/v.mp4", "scale=-2:250", transfer="bt709")
         self.assertEqual(_after(args, "-filter:v"), "scale=-2:250")
         self.assertEqual(_after(args, "-pix_fmt"), "yuv420p")
         self.assertNotIn("-color_trc", args)
 
     def test_no_scale_and_sdr_passes_no_empty_filter(self):
-        args = video_color.h264_video_args("/v.mp4", transfer="")
+        args = color.h264_video_args("/v.mp4", transfer="")
         self.assertNotIn("-filter:v", args)
         self.assertEqual(_after(args, "-pix_fmt"), "yuv420p")
 
     def test_tonemapped_output_says_it_is_bt709(self):
         with _zscale():
-            args = video_color.h264_video_args("/v.mov", transfer="smpte2084")
+            args = color.h264_video_args("/v.mov", transfer="smpte2084")
         self.assertIn("tonemap=mobius", _after(args, "-filter:v"))
         self.assertEqual(_after(args, "-color_primaries"), "bt709")
         self.assertEqual(_after(args, "-color_trc"), "bt709")
@@ -276,15 +276,13 @@ class H264OutputTest(SimpleTestCase):
     def test_untonemapped_hdr_is_not_labelled_bt709(self):
         """Without zscale the curve is still PQ; calling it bt709 would be a lie."""
         with _zscale(available=False):
-            args = video_color.h264_video_args("/v.mov", transfer="smpte2084")
+            args = color.h264_video_args("/v.mov", transfer="smpte2084")
         self.assertEqual(_after(args, "-filter:v"), "format=yuv420p")
         self.assertNotIn("-color_trc", args)
 
     def test_every_libx264_site_forces_the_pixel_format(self):
-        with mock.patch.object(thumbnails, "_run_ffmpeg") as run:
-            thumbnails.create_animated_thumbnail(
-                "/v.mov", 250, "out", "h", ".mp4", transfer=""
-            )
+        with mock.patch.object(render, "_run_ffmpeg") as run:
+            render.create_animated_thumbnail("/v.mov", 250, "out", "h", transfer="")
         for command in (
             media.build_live_command("/v.mov", ""),
             transcode_cache.build_command("/v.mov", "/out.mp4", ""),
@@ -298,7 +296,7 @@ class ConversionSitesUseTheStoredValueTest(SimpleTestCase):
     def setUp(self):
         ffmpeg_budget.reset_probe_cache()
         self.addCleanup(ffmpeg_budget.reset_probe_cache)
-        is_hdr = mock.patch.object(video_color, "is_hdr", return_value=False)
+        is_hdr = mock.patch.object(color, "is_hdr", return_value=False)
         self.is_hdr = is_hdr.start()
         self.addCleanup(is_hdr.stop)
 
@@ -315,12 +313,12 @@ class ConversionSitesUseTheStoredValueTest(SimpleTestCase):
         self.is_hdr.assert_not_called()
 
     def test_the_poster_frame_and_the_animated_thumbnail(self):
-        with _zscale(), mock.patch.object(thumbnails, "_run_ffmpeg") as run:
-            thumbnails.create_thumbnail_for_video(
+        with _zscale(), mock.patch.object(render, "_run_ffmpeg") as run:
+            render.create_thumbnail_for_video(
                 "/v.mov", "out", "h", ".webp", transfer="smpte2084"
             )
-            thumbnails.create_animated_thumbnail(
-                "/v.mov", 500, "out", "h", ".mp4", transfer="smpte2084"
+            render.create_animated_thumbnail(
+                "/v.mov", 500, "out", "h", transfer="smpte2084"
             )
         for call in run.call_args_list:
             self.assertIn("tonemap=mobius", _after(call.args[0], "-filter:v"))
@@ -354,10 +352,10 @@ class ThumbnailPassesTheStoredValueTest(TestCase):
         with (
             tempfile.TemporaryDirectory() as media_root,
             override_settings(MEDIA_ROOT=media_root),
-            mock.patch("api.thumbnails.create_thumbnail_for_video") as poster,
-            mock.patch("api.thumbnails.create_animated_thumbnail") as animated,
+            mock.patch("api.thumbnails.render.create_thumbnail_for_video") as poster,
+            mock.patch("api.thumbnails.render.create_animated_thumbnail") as animated,
         ):
-            thumbnails.generate_thumbnail(thumbnail)
+            render.generate_thumbnail(thumbnail)
         self.assertEqual(poster.call_args.kwargs["transfer"], "smpte2084")
         self.assertEqual(animated.call_count, 2)
         for call in animated.call_args_list:
@@ -372,20 +370,20 @@ class ScanProbesBeforeThumbnailingTest(TestCase):
         order = []
         with (
             mock.patch.object(
-                file_handlers.video_color,
+                file_handlers.color,
                 "apply_probe",
                 side_effect=lambda p: order.append("probe"),
             ) as probe,
             mock.patch(
-                "api.thumbnails.generate_thumbnail",
+                "api.thumbnails.render.generate_thumbnail",
                 side_effect=lambda thumbnail: order.append("thumbnail"),
                 autospec=False,
             ),
-            mock.patch("api.thumbnails.calculate_aspect_ratio"),
-            mock.patch("api.thumbnails.calculate_dominant_color"),
+            mock.patch("api.thumbnails.render.calculate_aspect_ratio"),
+            mock.patch("api.thumbnails.render.calculate_dominant_color"),
             mock.patch("api.metadata.photo_reader.extract_exif_data"),
             mock.patch.object(file_handlers, "extract_date_time"),
-            mock.patch("api.screenshot_detection.classify", return_value=False),
+            mock.patch("api.classification.screenshots.classify", return_value=False),
             mock.patch.object(file_handlers.PhotoSearch, "recreate_search_captions"),
         ):
             file_handlers._process_photo(
@@ -439,18 +437,18 @@ class RescanRepairsWhatWasMadeBeforeTheProbeTest(TestCase):
 
         with (
             mock.patch.object(
-                file_handlers.video_color, "apply_probe", side_effect=apply_probe
+                file_handlers.color, "apply_probe", side_effect=apply_probe
             ) as probe,
-            mock.patch("api.thumbnails.generate_thumbnail") as generate,
+            mock.patch("api.thumbnails.render.generate_thumbnail") as generate,
             mock.patch(
-                "api.thumbnails.regenerate_thumbnails", side_effect=rebuild
+                "api.thumbnails.render.regenerate_thumbnails", side_effect=rebuild
             ) as regenerate,
             mock.patch.object(file_handlers.transcode_cache, "discard") as discard,
-            mock.patch("api.thumbnails.calculate_aspect_ratio"),
-            mock.patch("api.thumbnails.calculate_dominant_color"),
+            mock.patch("api.thumbnails.render.calculate_aspect_ratio"),
+            mock.patch("api.thumbnails.render.calculate_dominant_color"),
             mock.patch("api.metadata.photo_reader.extract_exif_data"),
             mock.patch.object(file_handlers, "extract_date_time") as dates,
-            mock.patch("api.screenshot_detection.classify", return_value=False),
+            mock.patch("api.classification.screenshots.classify", return_value=False),
             mock.patch.object(file_handlers.PhotoSearch, "recreate_search_captions"),
         ):
             file_handlers._process_photo(
@@ -540,7 +538,7 @@ class RescanRepairsWhatWasMadeBeforeTheProbeTest(TestCase):
 
     def test_a_rebuild_that_fails_does_not_stop_the_rest_of_the_scan(self):
         photo = create_test_photo(owner=self.user, video=True)
-        self._process(photo, HDR_ANSWER, rebuild=thumbnails.VideoThumbnailError("x"))
+        self._process(photo, HDR_ANSWER, rebuild=render.VideoThumbnailError("x"))
         self.regenerate.assert_called_once_with(ANY, keep_old_on_failure=True)
         self.dates.assert_called_once()
         # It put the old thumbnails back; trying again would only fail again.
@@ -564,11 +562,11 @@ class ReplacedVideoIsProbedBeforeItsRebuildTest(TestCase):
         with (
             tempfile.TemporaryDirectory() as media_root,
             override_settings(MEDIA_ROOT=media_root),
-            mock.patch.object(video_color, "probe", return_value=SDR_ANSWER),
-            mock.patch("api.thumbnails.create_thumbnail_for_video") as poster,
-            mock.patch("api.thumbnails.create_animated_thumbnail") as animated,
-            mock.patch("api.thumbnails.calculate_aspect_ratio"),
-            mock.patch("api.thumbnails.refresh_perceptual_hash"),
+            mock.patch.object(color, "probe", return_value=SDR_ANSWER),
+            mock.patch("api.thumbnails.render.create_thumbnail_for_video") as poster,
+            mock.patch("api.thumbnails.render.create_animated_thumbnail") as animated,
+            mock.patch("api.thumbnails.render.calculate_aspect_ratio"),
+            mock.patch("api.thumbnails.render.refresh_perceptual_hash"),
         ):
             file_handlers._regenerate_thumbnails(Photo.objects.get(pk=photo.pk))
         poster.assert_called_once()
@@ -581,8 +579,8 @@ class ReplacedVideoIsProbedBeforeItsRebuildTest(TestCase):
     def test_a_photo_is_not_probed(self):
         photo = create_test_photo(owner=create_test_user(), video=False)
         with (
-            mock.patch.object(video_color, "probe") as probe,
-            mock.patch("api.thumbnails.regenerate_thumbnails"),
+            mock.patch.object(color, "probe") as probe,
+            mock.patch("api.thumbnails.render.regenerate_thumbnails"),
         ):
             file_handlers._regenerate_thumbnails(photo)
         probe.assert_not_called()
@@ -614,7 +612,7 @@ class ProbeVideosBackfillTest(TestCase):
         job_id = "00000000-0000-0000-0000-000000000019"
         with (
             mock.patch(
-                "api.thumbnails.regenerate_thumbnails", autospec=True
+                "api.thumbnails.render.regenerate_thumbnails", autospec=True
             ) as regenerate,
             mock.patch.object(transcode_cache, "discard") as discard,
         ):
@@ -637,7 +635,7 @@ class ProbeVideosBackfillTest(TestCase):
                 "video_container": "mov,mp4,m4a,3gp,3g2,mj2",
             }
 
-        return mock.patch.object(video_color, "probe", side_effect=probe)
+        return mock.patch.object(color, "probe", side_effect=probe)
 
     def test_fills_the_fields_and_rebuilds_only_hdr_thumbnails(self):
         hdr = self._video()
@@ -702,7 +700,7 @@ class ProbeVideosBackfillTest(TestCase):
             )
             return dict(HDR_ANSWER)
 
-        with mock.patch.object(video_color, "probe", side_effect=probe):
+        with mock.patch.object(color, "probe", side_effect=probe):
             job, regenerate = self._run()
         self.assertEqual(len(probed), 1)
         self.assertEqual(regenerate.call_count, 1)
@@ -711,7 +709,7 @@ class ProbeVideosBackfillTest(TestCase):
         self.assertEqual(job.progress_current, 2)
 
     def test_nothing_to_probe_finishes_at_once(self):
-        with mock.patch.object(video_color, "probe") as probe:
+        with mock.patch.object(color, "probe") as probe:
             job, _ = self._run()
         probe.assert_not_called()
         self.assertTrue(job.finished)
@@ -727,9 +725,7 @@ class BackfillIsQueuedOnlyWhenNeededTest(TestCase):
             mock.patch("api.jobs.queue.AsyncTask") as task,
             mock.patch("api.jobs.queue.Chain"),
             self.captureOnCommitCallbacks(execute=True),
-            mock.patch.object(
-                scan_jobs.video_color, "can_probe", return_value=can_probe
-            ),
+            mock.patch.object(scan_jobs.color, "can_probe", return_value=can_probe),
         ):
             scan_jobs._queue_followup_jobs(self.user, False, False)
         return [call.args[0] for call in task.call_args_list]

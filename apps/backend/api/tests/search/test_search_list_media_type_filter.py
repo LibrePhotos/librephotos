@@ -61,7 +61,7 @@ class SearchMediaTypeFilterTest(TestCase):
         self.assertIn(self.video.image_hash, hashes)
 
     def test_video_and_photo_together_match_nothing(self):
-        # Like the timeline and select-all (api.timeline_filter): asking for
+        # Like the timeline and select-all (api.albums.timeline_filter): asking for
         # only videos and only stills leaves nothing. Video used to win here
         # and in select-all while the timeline answered with nothing.
         response = self.client.get(SEARCH_URL, {"video": "true", "photo": "true"})

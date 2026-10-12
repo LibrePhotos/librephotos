@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 import requests
 from django.test import TestCase
 
-from api.image_captioning import generate_photo_caption
+from api.classification.captioning import generate_photo_caption
 from api.models import PhotoCaption
 from api.semantic_search import generate_photo_tags
 from api.tests.utils import create_test_photo, create_test_user

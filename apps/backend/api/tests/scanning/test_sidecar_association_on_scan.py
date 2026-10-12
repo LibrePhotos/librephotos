@@ -111,7 +111,7 @@ class XMPAssociationTest(TestCase):
             self.assertEqual(len(xmp_paths), N, "Should have N XMP files")
 
             # Mock pyvips to accept our test images
-            with patch("api.image_decoding.thumbnail"):
+            with patch("api.thumbnails.decoding.thumbnail"):
                 # Process images first
                 for img_path in image_paths:
                     photo = create_new_image(user, img_path)
@@ -155,7 +155,7 @@ class XMPAssociationTest(TestCase):
             with open(xmp_path, "wb") as f:
                 f.write(b"<x:xmpmeta>test</x:xmpmeta>")
 
-            with patch("api.image_decoding.thumbnail"):
+            with patch("api.thumbnails.decoding.thumbnail"):
                 # Process XMP first (the scan avoids this by grouping it with its photo)
                 result_xmp = create_new_image(user, xmp_path)
                 self.assertIsNone(result_xmp, "XMP without photo should return None")
@@ -253,10 +253,10 @@ class SidecarsSurviveSlowIngestTest(TestCase):
                         "api.directory_watcher.scan_jobs._queue_followup_jobs"
                     ) as followups,
                     patch("api.directory_watcher.scan_jobs.db.connections.close_all"),
-                    patch("api.image_decoding.thumbnail"),
-                    patch("api.thumbnails.generate_thumbnail"),
-                    patch("api.thumbnails.calculate_aspect_ratio"),
-                    patch("api.thumbnails.calculate_dominant_color"),
+                    patch("api.thumbnails.decoding.thumbnail"),
+                    patch("api.thumbnails.render.generate_thumbnail"),
+                    patch("api.thumbnails.render.calculate_aspect_ratio"),
+                    patch("api.thumbnails.render.calculate_dominant_color"),
                     patch("api.metadata.photo_reader.extract_exif_data"),
                     patch("api.directory_watcher.file_handlers.extract_date_time"),
                 ):

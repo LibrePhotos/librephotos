@@ -38,7 +38,7 @@ class PhotoCaptionsTest(TestCase):
         self._settings.disable()
         self._media.cleanup()
 
-    @patch("api.image_captioning.generate_photo_caption", autospec=True)
+    @patch("api.classification.captioning.generate_photo_caption", autospec=True)
     def test_generate_captions_for_my_photo(self, generate_caption_mock):
         generate_caption_mock.return_value = True
         photo = create_test_photo(owner=self.user1)
@@ -55,7 +55,7 @@ class PhotoCaptionsTest(TestCase):
 
         self.assertTrue(data["status"])
 
-    @patch("api.image_captioning.generate_photo_caption", autospec=True)
+    @patch("api.classification.captioning.generate_photo_caption", autospec=True)
     def test_fail_to_generate_captions_for_my_photo(self, generate_caption_mock):
         generate_caption_mock.return_value = False
         photo = create_test_photo(owner=self.user1)
@@ -72,7 +72,7 @@ class PhotoCaptionsTest(TestCase):
         self.assertEqual("caption_failed", api_error(response)["code"])
 
     @patch("api.views.photos.start_model_download", autospec=True)
-    @patch("api.image_captioning.generate_photo_caption", autospec=True)
+    @patch("api.classification.captioning.generate_photo_caption", autospec=True)
     def test_missing_model_starts_the_download_and_does_not_caption(
         self, generate_caption_mock, start_download_mock
     ):

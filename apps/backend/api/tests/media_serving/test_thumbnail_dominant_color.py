@@ -13,8 +13,8 @@ from unittest import mock
 from django.test import TestCase, override_settings
 from PIL import Image
 
-from api import thumbnails
 from api.tests.utils import create_test_photo, create_test_user
+from api.thumbnails import render
 
 RED = (200, 40, 20)
 BLUE = (20, 40, 200)
@@ -51,7 +51,7 @@ class DominantColorTest(TestCase):
         with open(self._path(thumbnail.square_thumbnail_small), "wb") as clip:
             clip.write(b"\x00\x00\x00\x18ftypmp42")
 
-        thumbnails.calculate_dominant_color(thumbnail)
+        render.calculate_dominant_color(thumbnail)
 
         self.assertEqual(RED, self._rgb(thumbnail))
 
@@ -60,7 +60,7 @@ class DominantColorTest(TestCase):
         self._still(thumbnail.thumbnail_big, BLUE)
         self._still(thumbnail.square_thumbnail_small, RED)
 
-        thumbnails.calculate_dominant_color(thumbnail)
+        render.calculate_dominant_color(thumbnail)
 
         self.assertEqual(RED, self._rgb(thumbnail))
 
@@ -77,9 +77,11 @@ class DominantColorTest(TestCase):
             instance.save()
 
         with mock.patch(
-            "api.thumbnails.generate_thumbnail", autospec=True, side_effect=generate
+            "api.thumbnails.render.generate_thumbnail",
+            autospec=True,
+            side_effect=generate,
         ):
-            thumbnails.regenerate_thumbnails(thumbnail, keep_old_on_failure=True)
+            render.regenerate_thumbnails(thumbnail, keep_old_on_failure=True)
 
     def test_a_rebuilt_video_samples_its_colour_again(self):
         thumbnail = create_test_photo(
@@ -132,8 +134,8 @@ class DominantColorFailuresTest(TestCase):
         self.thumbnail = create_test_photo(owner=create_test_user()).thumbnail
 
     def _sample(self):
-        with self.assertLogs("api.thumbnails", "INFO") as logs:
-            thumbnails.calculate_dominant_color(self.thumbnail)
+        with self.assertLogs("api.thumbnails.render", "INFO") as logs:
+            render.calculate_dominant_color(self.thumbnail)
         self.assertIn("Cannot calculate dominant color", logs.output[0])
         self.thumbnail.refresh_from_db()
         self.assertIsNone(self.thumbnail.dominant_color)

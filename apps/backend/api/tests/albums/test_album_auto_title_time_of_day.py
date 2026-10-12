@@ -21,7 +21,7 @@ from datetime import datetime, timedelta
 import pytz
 from django.test import TestCase
 
-from api.autoalbum import generate_event_albums
+from api.albums.auto_albums import generate_event_albums
 from api.models import AlbumAuto
 from api.tests.utils import (
     create_test_album_auto,

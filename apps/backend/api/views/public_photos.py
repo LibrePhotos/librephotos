@@ -9,12 +9,12 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from api import video_playback
 from api.models import Photo
 from api.models.photo_share import PhotoShare
 from api.models.user import User
 from api.request_user import request_user
 from api.serializers.photos import PublicPhotoDetailSerializer, SetPhotoShareRequest
+from api.video import playback
 from api.views.media import MediaServingView
 from api.views.params import parse_body
 
@@ -193,7 +193,7 @@ class PublicPhotoBySlug(APIView):
         )
         # Lets the page ask canPlayType up front: Chrome without an HEVC
         # decoder plays the sound over a black picture and reports no error.
-        data["video_playback_type"] = video_playback.playback_type(photo)
+        data["video_playback_type"] = playback.playback_type(photo)
         return Response({"results": data, "sharing_settings": sharing_settings})
 
 

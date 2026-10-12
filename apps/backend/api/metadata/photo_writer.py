@@ -132,7 +132,7 @@ def rotate_photo(photo: Photo, angle: int = 0, flip_horizontal: bool = False) ->
     if angle == 0 and not flip_horizontal:
         return
 
-    from api import thumbnails
+    from api.thumbnails import render
     from api.util import compose_orientation
 
     photo.local_orientation = compose_orientation(
@@ -143,7 +143,7 @@ def rotate_photo(photo: Photo, angle: int = 0, flip_horizontal: bool = False) ->
     photo.save()
 
     # Regenerate thumbnails so the UI sees the updated orientation.
-    thumbnails.regenerate_thumbnails(photo.thumbnail)
+    render.regenerate_thumbnails(photo.thumbnail)
 
     write_orientation_to_disk(photo, angle, flip_horizontal)
 
@@ -214,7 +214,7 @@ def _fold_rotation_into_file(photo: Photo) -> bool:
     land is logged and leaves ``local_orientation`` alone.
     """
     from api.metadata.writer import read_orientation
-    from api.thumbnails import exif_orientation_showing, renders_exif_orientation
+    from api.thumbnails.render import exif_orientation_showing, renders_exif_orientation
 
     assert photo.main_file is not None
     path = photo.main_file.path

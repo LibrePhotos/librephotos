@@ -15,7 +15,7 @@ from django.test import TestCase
 from django.utils import timezone
 from rest_framework.test import APIClient
 
-from api.autoalbum import delete_missing_photos
+from api.albums.auto_albums import delete_missing_photos
 from api.models import (
     DeletionLog,
     Person,

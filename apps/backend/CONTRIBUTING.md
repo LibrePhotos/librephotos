@@ -331,7 +331,7 @@ The rule a reviewer actually applies: **`INFO` volume must be O(number of jobs/r
   logger.info(f"job {job_id}: scan finished, {count} photos added")      # no
   ```
 
-- **Always carry the identifier** somebody would need to follow the line: the job id, the `image_hash`, the user id. The `"job %s: ..."` lines in `api/autoalbum.py` are the shape to copy.
+- **Always carry the identifier** somebody would need to follow the line: the job id, the `image_hash`, the user id. The `"job %s: ..."` lines in `api/albums/auto_albums.py` are the shape to copy.
 
 - **No personal data above `DEBUG`.** Usernames, absolute media paths, captions, LLM prompts, addresses and search terms do not belong at `INFO` or above - log the user id and the `image_hash` instead. Plenty of existing code predates this rule; do not add more.
 

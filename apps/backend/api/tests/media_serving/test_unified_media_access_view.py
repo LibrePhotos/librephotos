@@ -573,7 +573,7 @@ class UnifiedTranscodeBranchTest(TestCase):
         cached = os.path.join(settings.MEDIA_ROOT, "transcoded", "clip.mp4")
 
         with mock.patch(
-            "api.transcode_cache.cached_path", return_value=cached
+            "api.video.transcode_cache.cached_path", return_value=cached
         ) as cached_path:
             response = _unified("photos", self.video.image_hash, user=self.owner)
         cached_path.assert_called_once()
@@ -587,10 +587,10 @@ class UnifiedTranscodeBranchTest(TestCase):
         from unittest import mock
 
         with (
-            mock.patch("api.transcode_cache.cached_path", return_value=None),
+            mock.patch("api.video.transcode_cache.cached_path", return_value=None),
             mock.patch("api.views.media.VideoTranscoder") as transcoder,
             mock.patch("api.views.media.gen", return_value=iter([b"abc"])),
-            mock.patch("api.transcode_cache.ensure_cached") as ensure_cached,
+            mock.patch("api.video.transcode_cache.ensure_cached") as ensure_cached,
         ):
             response = _unified("photos", self.video.image_hash, user=self.owner)
             self.assertEqual(response.status_code, 200)
@@ -607,7 +607,7 @@ class UnifiedTranscodeBranchTest(TestCase):
         album = create_test_album_user(title="Open", owner=self.owner)
         album.photos.add(self.video)
         AlbumUserShare.objects.create(album=album, enabled=True)
-        with mock.patch("api.transcode_cache.cached_path") as cached_path:
+        with mock.patch("api.video.transcode_cache.cached_path") as cached_path:
             response = _unified("photos", self.video.image_hash)
         cached_path.assert_not_called()
         self.assertEqual(response.status_code, 200)
@@ -623,7 +623,7 @@ class UnifiedTranscodeBranchTest(TestCase):
         AlbumUserShare.objects.create(album=album, enabled=True)
         cached = os.path.join(settings.MEDIA_ROOT, "transcoded", "clip.mp4")
         with mock.patch(
-            "api.transcode_cache.cached_path", return_value=cached
+            "api.video.transcode_cache.cached_path", return_value=cached
         ) as cached_path:
             response = _unified("photos", self.video.image_hash, user=self.owner)
         cached_path.assert_called_once()
@@ -639,7 +639,7 @@ class UnifiedTranscodeBranchTest(TestCase):
         self.video.save(update_fields=["public"])
         cached = os.path.join(settings.MEDIA_ROOT, "transcoded", "clip.mp4")
         with mock.patch(
-            "api.transcode_cache.cached_path", return_value=cached
+            "api.video.transcode_cache.cached_path", return_value=cached
         ) as cached_path:
             response = _unified("photos", self.video.image_hash, user=self.owner)
         cached_path.assert_called_once()
@@ -653,7 +653,7 @@ class UnifiedTranscodeBranchTest(TestCase):
 
         self.video.public = True
         self.video.save(update_fields=["public"])
-        with mock.patch("api.transcode_cache.cached_path") as cached_path:
+        with mock.patch("api.video.transcode_cache.cached_path") as cached_path:
             response = _unified("photos", self.video.image_hash)
         cached_path.assert_not_called()
         self.assertEqual(response.status_code, 200)

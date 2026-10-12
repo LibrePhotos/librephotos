@@ -1,4 +1,4 @@
-"""``image_decoding.raw_preview``: when the camera's embedded JPEG stands in for a RAW render.
+"""``api.thumbnails.decoding.raw_preview``: when the embedded JPEG stands in for a RAW render.
 
 rawpy is faked; the previews are real JPEGs so pyvips does the actual work.
 """
@@ -12,7 +12,7 @@ import rawpy
 from django.test import SimpleTestCase
 from PIL import Image
 
-from api import image_decoding
+from api.thumbnails import decoding
 
 
 def _jpeg(width, height, exif_orientation=None):
@@ -47,8 +47,8 @@ class _FakeRaw:
 def _preview(raw_size, jpeg, flip=0, height=1080, thumb_format=rawpy.ThumbFormat.JPEG):
     thumb = SimpleNamespace(format=thumb_format, data=jpeg)
     fake = _FakeRaw(*raw_size, flip, thumb)
-    with mock.patch("api.image_decoding.rawpy.imread", return_value=fake):
-        return image_decoding.raw_preview("/photos/x.CR2", height)
+    with mock.patch("api.thumbnails.decoding.rawpy.imread", return_value=fake):
+        return decoding.raw_preview("/photos/x.CR2", height)
 
 
 def _red_corner(image):
@@ -125,11 +125,14 @@ class RawPreviewTest(SimpleTestCase):
 
     def test_no_thumbnail_is_not_an_error(self):
         fake = _FakeRaw(6000, 4000, 0, rawpy.LibRawNoThumbnailError())
-        with mock.patch("api.image_decoding.rawpy.imread", return_value=fake):
-            self.assertIsNone(image_decoding.raw_preview("/photos/x.NEF", 1080))
+        with mock.patch("api.thumbnails.decoding.rawpy.imread", return_value=fake):
+            self.assertIsNone(decoding.raw_preview("/photos/x.NEF", 1080))
+
+    def test_a_preview_libvips_cannot_open_is_not_an_error(self):
+        self.assertIsNone(_preview((6000, 4000), b"not a jpeg"))
 
     def test_unreadable_raw_is_not_an_error(self):
         with mock.patch(
-            "api.image_decoding.rawpy.imread", side_effect=rawpy.LibRawIOError()
+            "api.thumbnails.decoding.rawpy.imread", side_effect=rawpy.LibRawIOError()
         ):
-            self.assertIsNone(image_decoding.raw_preview("/photos/x.NEF", 1080))
+            self.assertIsNone(decoding.raw_preview("/photos/x.NEF", 1080))

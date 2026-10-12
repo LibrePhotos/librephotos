@@ -10,7 +10,7 @@ from unittest.mock import patch
 from constance.test import override_config
 from django.test import TestCase, override_settings
 
-from api.image_captioning import generate_photo_caption
+from api.classification.captioning import generate_photo_caption
 from api.models import PhotoCaption
 from api.tests.utils import create_test_photo, create_test_user
 
@@ -30,7 +30,7 @@ class CaptionModelNoneTest(TestCase):
         self.caption = PhotoCaption.objects.create(photo=self.photo)
 
     @override_config(CAPTIONING_MODEL="none")
-    @patch("api.image_captioning.generate_caption")
+    @patch("api.classification.captioning.generate_caption")
     def test_lowercase_none_captioning_model_disables_captioning(
         self, mock_generate_caption
     ):
@@ -44,7 +44,7 @@ class CaptionModelNoneTest(TestCase):
         self.assertNotIn("im2txt", self.caption.captions_json or {})
 
     @override_config(CAPTIONING_MODEL="None")
-    @patch("api.image_captioning.generate_caption")
+    @patch("api.classification.captioning.generate_caption")
     def test_capitalized_none_captioning_model_disables_captioning(
         self, mock_generate_caption
     ):

@@ -193,7 +193,7 @@ type = "layers"
 layers = [
   "api.views : nextcloud.views",
   "api.serializers",
-  "api.directory_watcher : api.duplicates : api.geocode : api.jobs : api.metadata : api.stacks",
+  "api.albums : api.classification : api.directory_watcher : api.duplicates : api.geocode : api.jobs : api.metadata : api.stacks : api.thumbnails : api.video",
   "api.models",
 ]
 ignore_imports = [

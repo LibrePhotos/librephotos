@@ -151,7 +151,7 @@ class DateAlbumFilterQuery(PublicViewQuery):
     """The filters ``/api/albums/date/list/`` and ``/api/albums/date/<id>/`` take.
 
     A blank parameter counts as absent. The media filters (``media`` down to
-    ``apply_default``) are resolved by ``api.timeline_filter``.
+    ``apply_default``) are resolved by ``api.albums.timeline_filter``.
     """
 
     username = serializers.CharField(

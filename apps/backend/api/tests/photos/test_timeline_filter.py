@@ -16,13 +16,13 @@ from django.test import SimpleTestCase, TestCase
 from django.utils import timezone
 from rest_framework.test import APIClient
 
-from api.models import Photo
-from api.tests.utils import create_test_album_date, create_test_photo, create_test_user
-from api.timeline_filter import (
+from api.albums.timeline_filter import (
     TimelineFilter,
     parse_tristate,
     resolve_timeline_filter,
 )
+from api.models import Photo
+from api.tests.utils import create_test_album_date, create_test_photo, create_test_user
 from api.views.photo_filters import build_photo_queryset
 
 

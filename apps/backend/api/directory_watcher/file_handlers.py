@@ -17,7 +17,6 @@ from django.conf import settings
 from django.db import transaction
 from django.db.models import Q, QuerySet
 
-from api import thumbnails, transcode_cache, video_color
 from api.directory_watcher.file_grouping import (
     FILE_TYPE_PRIORITY,
     find_matching_image_for_video,
@@ -51,7 +50,9 @@ from api.stacks.live_photo import (
     extract_embedded_motion_video,
     has_embedded_motion_video,
 )
-from api.thumbnails import render_big_thumbnail_to
+from api.thumbnails import render
+from api.thumbnails.render import render_big_thumbnail_to
+from api.video import color, transcode_cache
 
 logger = logging.getLogger(__name__)
 
@@ -247,9 +248,9 @@ def _regenerate_thumbnails(photo: Photo) -> None:
             # The stored colour fields describe the bytes that were replaced;
             # the poster frame and the animated thumbnails decide whether to
             # tonemap from them, so the new bytes are asked first.
-            video_color.record(photo)
+            color.record(photo)
         thumbnail, _ = Thumbnail.objects.get_or_create(photo=photo)
-        thumbnails.regenerate_thumbnails(thumbnail)
+        render.regenerate_thumbnails(thumbnail)
     except Exception:
         logger.warning(
             "could not regenerate thumbnails for photo %s (%s)",
@@ -820,7 +821,7 @@ def _rebuild_made_before_probe(
     thumbnail.photo = photo
     transcode_cache.discard(photo.image_hash)
     try:
-        thumbnails.regenerate_thumbnails(thumbnail, keep_old_on_failure=True)
+        render.regenerate_thumbnails(thumbnail, keep_old_on_failure=True)
     except Exception:
         # The old thumbnails are back in place; the rest still runs.
         logger.warning(
@@ -867,8 +868,8 @@ def _process_photo(
             # unprobed for it, or for the one this scan queues.
             fields = None
         else:
-            fields = video_color.apply_probe(photo)
-        if fields and made_before_probe and video_color.converted_wrongly_before(photo):
+            fields = color.apply_probe(photo)
+        if fields and made_before_probe and color.converted_wrongly_before(photo):
             rebuild_fields = fields
         elif fields:
             photo.save(update_fields=fields)
@@ -878,11 +879,11 @@ def _process_photo(
     if rebuild_fields:
         _rebuild_made_before_probe(photo, thumbnail, rebuild_fields, job_id, path)
     else:
-        thumbnails.generate_thumbnail(thumbnail)
+        render.generate_thumbnail(thumbnail)
     elapsed = (datetime.datetime.now() - start).total_seconds()
     logger.debug("job %s: generate thumbnails: %s, elapsed: %s", job_id, path, elapsed)
 
-    thumbnails.calculate_aspect_ratio(thumbnail)
+    render.calculate_aspect_ratio(thumbnail)
     elapsed = (datetime.datetime.now() - start).total_seconds()
     logger.debug(
         "job %s: calculate aspect ratio: %s, elapsed: %s", job_id, path, elapsed
@@ -911,7 +912,7 @@ def _process_photo(
     # The value is persisted by the full ``photo.save()`` inside the
     # ``extract_date_time`` call immediately below.
     if photo.category_source != "user":
-        from api.screenshot_detection import classify
+        from api.classification.screenshots import classify
 
         photo.is_screenshot = classify(photo)
 
@@ -919,7 +920,7 @@ def _process_photo(
     elapsed = (datetime.datetime.now() - start).total_seconds()
     logger.debug("job %s: extract date time: %s, elapsed: %s", job_id, path, elapsed)
 
-    thumbnails.calculate_dominant_color(thumbnail)
+    render.calculate_dominant_color(thumbnail)
     elapsed = (datetime.datetime.now() - start).total_seconds()
     logger.debug("job %s: get dominant color: %s, elapsed: %s", job_id, path, elapsed)
 

@@ -39,7 +39,8 @@ from typing import IO, TYPE_CHECKING
 
 from django.conf import settings
 
-from api import binaries, video_color
+from api import binaries
+from api.video import color
 
 if TYPE_CHECKING:
     # Not imported at run time: api.models reaches this module through
@@ -285,8 +286,8 @@ def build_command(
     ]
 
     # An HDR source converted without tonemapping comes out washed out, because
-    # the browser reads its PQ or HLG curve as bt709. See :mod:`api.video_color`.
-    command += video_color.h264_video_args(source, video_color.PLAYBACK_SCALE, transfer)
+    # the browser reads its PQ or HLG curve as bt709. See :mod:`api.video.color`.
+    command += color.h264_video_args(source, color.PLAYBACK_SCALE, transfer)
 
     return command + ["-movflags", "+faststart", "-f", "mp4", destination]
 
@@ -403,6 +404,39 @@ def _start_background(
     return thread
 
 
+def _claim(photo: Photo, root: str, final: str) -> str | None:
+    """Claim the conversion of ``photo`` into ``final``: its part-file, or None.
+
+    None when the cache cannot be written, too many conversions are running,
+    there is no room, or another worker claimed it first.
+    """
+    try:
+        os.makedirs(root, exist_ok=True)
+    except OSError:
+        logger.warning("cannot create the transcode cache at %s", root)
+        return None
+
+    _drop_stale_parts(root)
+    if _in_flight(root) >= _max_concurrent():
+        return None
+    if not make_room(root, estimated_size(photo)):
+        logger.info("no room to cache a transcode of %s", final)
+        return None
+
+    part = final + PART_SUFFIX
+    try:
+        # O_EXCL is the claim, and it is the only one that holds across the
+        # several worker processes the backend runs: whoever creates the
+        # part-file owns the conversion, and everyone else moves on.
+        os.close(os.open(part, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o644))
+    except FileExistsError:
+        return None
+    except OSError:
+        logger.warning("cannot write to the transcode cache at %s", root)
+        return None
+    return part
+
+
 def ensure_cached(
     photo: Photo,
     start: Callable[[list[str], str, str, str], object] | None = None,
@@ -421,29 +455,8 @@ def ensure_cached(
         return False
 
     root = _root()
-    try:
-        os.makedirs(root, exist_ok=True)
-    except OSError:
-        logger.warning("cannot create the transcode cache at %s", root)
-        return False
-
-    _drop_stale_parts(root)
-    if _in_flight(root) >= _max_concurrent():
-        return False
-    if not make_room(root, estimated_size(photo)):
-        logger.info("no room to cache a transcode of %s", final)
-        return False
-
-    part = final + PART_SUFFIX
-    try:
-        # O_EXCL is the claim, and it is the only one that holds across the
-        # several worker processes the backend runs: whoever creates the
-        # part-file owns the conversion, and everyone else moves on.
-        os.close(os.open(part, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o644))
-    except FileExistsError:
-        return False
-    except OSError:
-        logger.warning("cannot write to the transcode cache at %s", root)
+    part = _claim(photo, root, final)
+    if part is None:
         return False
 
     command = build_command(source, part, photo.video_color_transfer)

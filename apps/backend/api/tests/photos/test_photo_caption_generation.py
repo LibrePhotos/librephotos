@@ -13,7 +13,7 @@ from unittest.mock import PropertyMock, patch
 from constance.test import override_config
 from django.test import TestCase, override_settings
 
-from api.image_captioning import generate_photo_caption
+from api.classification.captioning import generate_photo_caption
 from api.models import Photo, PhotoCaption, PhotoSearch, Thumbnail
 from api.models.user import get_default_llm_settings
 from api.semantic_search import generate_photo_tags
@@ -45,14 +45,14 @@ class Im2txtGuardTest(TestCase):
         self.caption = PhotoCaption.objects.create(photo=self.photo)
 
     @override_settings(FEATURE_IMAGE_CAPTIONING=False)
-    @patch("api.image_captioning.generate_caption")
+    @patch("api.classification.captioning.generate_caption")
     def test_feature_flag_disabled_returns_false(self, mock_generate_caption):
         self.assertFalse(generate_photo_caption(self.caption, commit=False))
         mock_generate_caption.assert_not_called()
         self.assertIsNone(self.caption.captions_json)
 
     @override_config(CAPTIONING_MODEL="lfm2_vl_450m")
-    @patch("api.image_captioning.generate_caption")
+    @patch("api.classification.captioning.generate_caption")
     def test_empty_thumbnail_big_returns_false(self, mock_generate_caption):
         thumb = self.photo.thumbnail
         thumb.thumbnail_big = ""
@@ -64,7 +64,7 @@ class Im2txtGuardTest(TestCase):
         mock_generate_caption.assert_not_called()
 
     @override_config(CAPTIONING_MODEL="lfm2_vl_450m")
-    @patch("api.image_captioning.generate_caption")
+    @patch("api.classification.captioning.generate_caption")
     def test_unreadable_thumbnail_path_returns_false(self, mock_generate_caption):
         with patch(
             "django.db.models.fields.files.FieldFile.path",
@@ -75,7 +75,7 @@ class Im2txtGuardTest(TestCase):
         mock_generate_caption.assert_not_called()
 
     @override_config(CAPTIONING_MODEL="none")
-    @patch("api.image_captioning.generate_caption")
+    @patch("api.classification.captioning.generate_caption")
     def test_captioning_model_none_returns_false_but_initializes_json(
         self, mock_generate_caption
     ):
@@ -96,7 +96,7 @@ class Im2txtGenerationTest(TestCase):
         self.caption = PhotoCaption.objects.create(photo=self.photo)
 
     @override_config(CAPTIONING_MODEL="lfm2_vl_450m")
-    @patch("api.image_captioning.generate_caption")
+    @patch("api.classification.captioning.generate_caption")
     def test_sidecar_happy_path_strips_markers_and_saves(self, mock_generate_caption):
         mock_generate_caption.return_value = "  <start> a photo of a cat <end>  "
 
@@ -116,7 +116,7 @@ class Im2txtGenerationTest(TestCase):
         self.assertEqual(self.caption.captions_json["im2txt"], "a photo of a cat")
 
     @override_config(CAPTIONING_MODEL="lfm2_vl_450m")
-    @patch("api.image_captioning.generate_caption")
+    @patch("api.classification.captioning.generate_caption")
     def test_any_selected_model_uses_the_sidecar(self, mock_generate_caption):
         mock_generate_caption.return_value = "a caption"
 
@@ -124,7 +124,7 @@ class Im2txtGenerationTest(TestCase):
         self.assertEqual(self.caption.captions_json["im2txt"], "a caption")
 
     @override_config(CAPTIONING_MODEL="lfm2_vl_450m")
-    @patch("api.image_captioning.generate_caption")
+    @patch("api.classification.captioning.generate_caption")
     def test_commit_false_does_not_persist_caption(self, mock_generate_caption):
         mock_generate_caption.return_value = "not persisted"
 
@@ -135,7 +135,7 @@ class Im2txtGenerationTest(TestCase):
         self.assertIsNone(fresh.captions_json)
 
     @override_config(CAPTIONING_MODEL="lfm2_vl_450m")
-    @patch("api.image_captioning.generate_caption")
+    @patch("api.classification.captioning.generate_caption")
     def test_existing_caption_keys_are_preserved(self, mock_generate_caption):
         self.caption.captions_json = {"user_caption": "mine", "im2txt": "old"}
         self.caption.save()
@@ -147,7 +147,7 @@ class Im2txtGenerationTest(TestCase):
         self.assertEqual(self.caption.captions_json["im2txt"], "new caption")
 
     @override_config(CAPTIONING_MODEL="lfm2_vl_450m")
-    @patch("api.image_captioning.generate_caption")
+    @patch("api.classification.captioning.generate_caption")
     def test_generate_caption_exception_returns_false(self, mock_generate_caption):
         mock_generate_caption.side_effect = RuntimeError("model exploded")
 
@@ -156,7 +156,7 @@ class Im2txtGenerationTest(TestCase):
         self.assertIsNone(fresh.captions_json)
 
     @override_config(CAPTIONING_MODEL="lfm2_vl_450m")
-    @patch("api.image_captioning.generate_caption")
+    @patch("api.classification.captioning.generate_caption")
     def test_non_string_caption_result_returns_false(self, mock_generate_caption):
         # ``.replace`` on a non-str blows up inside the try -> swallowed.
         mock_generate_caption.return_value = None
@@ -164,7 +164,7 @@ class Im2txtGenerationTest(TestCase):
         self.assertFalse(generate_photo_caption(self.caption, commit=False))
 
     @override_config(CAPTIONING_MODEL="lfm2_vl_450m")
-    @patch("api.image_captioning.generate_caption")
+    @patch("api.classification.captioning.generate_caption")
     def test_recreate_search_captions_is_invoked(self, mock_generate_caption):
         mock_generate_caption.return_value = "a photo of a cat"
 
@@ -199,7 +199,7 @@ class CaptionPromptTest(TestCase):
         create_test_face(photo=self.photo, person=create_test_person(name="Anna"))
 
     @override_config(CAPTIONING_MODEL="lfm2_vl_450m")
-    @patch("api.image_captioning.generate_caption")
+    @patch("api.classification.captioning.generate_caption")
     def test_full_prompt_carries_person_and_place(self, mock_caption):
         """Names and places reach the captioner directly."""
         mock_caption.return_value = "Anna in Berlin"
@@ -214,7 +214,7 @@ class CaptionPromptTest(TestCase):
         self.assertEqual(self.caption.captions_json["im2txt"], "Anna in Berlin")
 
     @override_config(CAPTIONING_MODEL="lfm2_vl_450m")
-    @patch("api.image_captioning.generate_caption")
+    @patch("api.classification.captioning.generate_caption")
     def test_keys_stored_by_older_versions_are_ignored(self, mock_caption):
         """add_keywords and the LLM-era keys stay in old rows; nothing reads them."""
         self.user.llm_settings = _llm_settings(
@@ -237,7 +237,7 @@ class CaptionPromptTest(TestCase):
         self.assertIn("This photo was taken at Berlin.", prompt)
 
     @override_config(CAPTIONING_MODEL="lfm2_vl_450m")
-    @patch("api.image_captioning.generate_caption")
+    @patch("api.classification.captioning.generate_caption")
     def test_person_omitted_when_add_person_false(self, mock_caption):
         self.user.llm_settings = _llm_settings(enabled=True, add_location=True)
         self.user.save()
@@ -249,7 +249,7 @@ class CaptionPromptTest(TestCase):
         self.assertIn("This photo was taken at Berlin.", prompt)
 
     @override_config(CAPTIONING_MODEL="lfm2_vl_450m")
-    @patch("api.image_captioning.generate_caption")
+    @patch("api.classification.captioning.generate_caption")
     def test_place_omitted_when_no_face_and_no_flags(self, mock_caption):
         from api.models import Face
 
@@ -265,7 +265,7 @@ class CaptionPromptTest(TestCase):
         )
 
     @override_config(CAPTIONING_MODEL="lfm2_vl_450m")
-    @patch("api.image_captioning.generate_caption")
+    @patch("api.classification.captioning.generate_caption")
     def test_plain_prompt_when_caption_settings_disabled(self, mock_caption):
         self.user.llm_settings = _llm_settings(enabled=False, add_person=True)
         self.user.save()
@@ -278,7 +278,7 @@ class CaptionPromptTest(TestCase):
         )
 
     @override_config(CAPTIONING_MODEL="lfm2_vl_450m")
-    @patch("api.image_captioning.generate_caption")
+    @patch("api.classification.captioning.generate_caption")
     def test_missing_search_instance_just_drops_the_place(self, mock_caption):
         """A photo that has not been scanned yet has no PhotoSearch row; the
         caption still happens, without a location."""
@@ -293,7 +293,7 @@ class CaptionPromptTest(TestCase):
         self.assertNotIn("This photo was taken at", prompt)
 
     @override_config(CAPTIONING_MODEL="lfm2_vl_450m")
-    @patch("api.image_captioning.generate_caption")
+    @patch("api.classification.captioning.generate_caption")
     def test_face_without_person_is_not_a_name(self, mock_caption):
         """An unrecognised face contributes nothing; a named one elsewhere still does."""
         from api.models import Face
@@ -312,7 +312,7 @@ class CaptionPromptTest(TestCase):
         self.assertIn("named Bo", mock_caption.call_args.kwargs["prompt"])
 
     @override_config(CAPTIONING_MODEL="lfm2_vl_450m")
-    @patch("api.image_captioning.generate_caption")
+    @patch("api.classification.captioning.generate_caption")
     def test_unresolvable_username_returns_false(self, mock_caption):
         from api.models import User
 
@@ -343,7 +343,7 @@ class MissingThumbnailRowTest(TestCase):
     def test_resolve_thumbnail_path_is_none(self):
         self.assertIsNone(self.caption.resolve_thumbnail_path())
 
-    @patch("api.image_captioning.generate_caption")
+    @patch("api.classification.captioning.generate_caption")
     def test_generate_captions_returns_false(self, mock_generate_caption):
         self.assertFalse(generate_photo_caption(self.caption, commit=False))
         mock_generate_caption.assert_not_called()

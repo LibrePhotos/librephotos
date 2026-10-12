@@ -11,7 +11,7 @@ plays the sound over a black picture and reports no error at all.
 The browser can say, through ``canPlayType``, if it is told what the file is in
 the form it expects: a container MIME type and an RFC 6381 codec string. That
 is what :func:`playback_type` builds from what the scan stored (see
-:mod:`api.video_color`), and the frontend asks for a conversion only when the
+:mod:`api.video.color`), and the frontend asks for a conversion only when the
 answer is no.
 
 The codec strings name a profile and a level. The profile follows from the

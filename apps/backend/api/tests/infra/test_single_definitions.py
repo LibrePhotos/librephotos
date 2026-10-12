@@ -46,10 +46,10 @@ MIME_MODULE = "api/mime.py"
 EXTENSION_LITERALS_ALLOWED = {
     "api/models/thumbnail.py": {".webp", ".mp4"},
     "api/photo_faces.py": {".jpg"},
-    "api/screenshot_detection.py": {".png"},
-    "api/thumbnail_metadata.py": {".webp", ".mp4"},
-    "api/thumbnails.py": {".webp", ".mp4"},
-    "api/transcode_cache.py": {".mp4"},
+    "api/classification/screenshots.py": {".png"},
+    "api/thumbnails/metadata.py": {".webp", ".mp4"},
+    "api/thumbnails/render.py": {".webp", ".mp4"},
+    "api/video/transcode_cache.py": {".mp4"},
     "api/views/faces.py": {".jpg"},
     "api/views/media.py": {".webp", ".mp4"},
 }

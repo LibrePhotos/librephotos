@@ -48,7 +48,7 @@ from api.metadata.reader import get_sidecar_files_in_priority_order
 from api.models.photo import Photo
 from api.models.user import User
 from api.tests.utils import create_test_photo
-from api.thumbnails import generate_thumbnail
+from api.thumbnails.render import generate_thumbnail
 
 if TYPE_CHECKING:
     import pyvips

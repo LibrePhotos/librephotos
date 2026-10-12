@@ -42,22 +42,6 @@ STAYS_FLAT = {
 # Flat module -> the package it moves to, in the order of the remaining moves.
 # Remove a module's line in the pull request that moves it.
 TO_MOVE = {
-    # Video.
-    "video_color": "api/video/",
-    "video_playback": "api/video/",
-    "transcode_cache": "api/video/",
-    "ffmpeg_budget": "api/video/",
-    # Classification.
-    "image_captioning": "api/classification/",
-    "document_detection": "api/classification/",
-    "screenshot_detection": "api/classification/",
-    # Albums.
-    "autoalbum": "api/albums/",
-    "timeline_filter": "api/albums/",
-    # Thumbnails.
-    "thumbnails": "api/thumbnails/",
-    "thumbnail_metadata": "api/thumbnails/",
-    "image_decoding": "api/thumbnails/",
     # Search (with api_util.get_search_term_examples).
     "semantic_search": "api/search/",
     "image_similarity": "api/search/",
