@@ -13,6 +13,7 @@ import os
 from unittest.mock import patch
 
 from django.test import SimpleTestCase, TestCase
+from django.utils.dateparse import parse_datetime
 from rest_framework.test import APIClient
 
 from api.metadata import edits
@@ -344,8 +345,9 @@ class PhotoEditPathsTest(MetadataApiTestCase):
             self.photo.refresh_from_db()
             self.assertEqual(self.photo.exif_timestamp, WHEN)
             edit = MetadataEdit.objects.get(photo=self.photo, field_name="date_taken")
-            # DjangoJSONEncoder stores the datetime as an ISO string.
-            self.assertEqual(datetime.datetime.fromisoformat(edit.new_value), WHEN)
+            # DjangoJSONEncoder stores the datetime as an ISO string ending in
+            # "Z", which datetime.fromisoformat only reads from Python 3.11 on.
+            self.assertEqual(parse_datetime(edit.new_value), WHEN)
 
             response = self.client.post(f"{self.url}revert/{edit.id}/")
 
