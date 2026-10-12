@@ -1,0 +1,59 @@
+{
+  "count": 2,
+  "next": null,
+  "previous": null,
+  "results": [
+    {
+      "id": "45639e7f-2334-4829-9805-b8a605c89e23",
+      "stack_type": "burst",
+      "stack_type_display": "Burst Sequence",
+      "photo_count": 3,
+      "sequence_start": null,
+      "sequence_end": null,
+      "created_at": "2026-10-12T18:39:50.227562Z",
+      "primary_photo": null,
+      "preview_photos": [
+        {
+          "image_hash": "a78f2594af6534490cec680b183df48c1",
+          "thumbnail_url": "/media/square_thumbnails_small/a78f2594af6534490cec680b183df48c1"
+        },
+        {
+          "image_hash": "dd26ff0ba4a07883764a0cdd0fff05631",
+          "thumbnail_url": "/media/square_thumbnails_small/dd26ff0ba4a07883764a0cdd0fff05631"
+        },
+        {
+          "image_hash": "99a5d51c623beac5e0640097b782d1281",
+          "thumbnail_url": "/media/square_thumbnails_small/99a5d51c623beac5e0640097b782d1281"
+        }
+      ]
+    },
+    {
+      "id": "3d48577a-a523-49c5-baff-81b74085d553",
+      "stack_type": "manual",
+      "stack_type_display": "Manual Stack",
+      "photo_count": 2,
+      "sequence_start": null,
+      "sequence_end": null,
+      "created_at": "2026-10-12T18:39:50.222841Z",
+      "primary_photo": {
+        "image_hash": "930e90f2c3fa7378c82e4f2446696df41",
+        "thumbnail_url": "/media/square_thumbnails_small/930e90f2c3fa7378c82e4f2446696df41"
+      },
+      "preview_photos": [
+        {
+          "image_hash": "930e90f2c3fa7378c82e4f2446696df41",
+          "thumbnail_url": "/media/square_thumbnails_small/930e90f2c3fa7378c82e4f2446696df41"
+        },
+        {
+          "image_hash": "88dc7c1096d849aca8870b285e6cdc491",
+          "thumbnail_url": "/media/square_thumbnails_small/88dc7c1096d849aca8870b285e6cdc491"
+        }
+      ]
+    }
+  ],
+  "page": 1,
+  "page_size": 20,
+  "num_pages": 1,
+  "has_next": false,
+  "has_previous": false
+}

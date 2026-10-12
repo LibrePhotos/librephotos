@@ -1,18 +1,12 @@
+import { endpoints } from "@librephotos/api-client";
 import { useQuery } from "@tanstack/react-query";
-import { mediaTypeToParams, type MediaType } from "../../../components/photolist/mediaTypeFilter";
-import { parseWithNotification } from "../../../util/zodUtils";
+import { mediaTypeToBulkQuery, type MediaType } from "../../../components/photolist/mediaTypeFilter";
 import { apiClient } from "../../api";
 import { photoGridKeys } from "../../photos/keys";
-import { TagAlbumResponse } from "../types";
 
 export const useFetchTagAlbumQuery = (id: string, mediaType?: MediaType) =>
   useQuery({
     queryKey: photoGridKeys.tagAlbumView(id, mediaType ?? "all"),
-    queryFn: async () => {
-      const query = new URLSearchParams(mediaTypeToParams(mediaType));
-      const suffix = query.toString() ? `?${query.toString()}` : "";
-      const response = await apiClient.get(`/tags/${id}/${suffix}`);
-      return parseWithNotification(TagAlbumResponse, response, "Failed to parse tag album").results;
-    },
+    queryFn: () => endpoints.fetchTagAlbum(apiClient, id, mediaTypeToBulkQuery(mediaType)),
     enabled: !!id,
   });

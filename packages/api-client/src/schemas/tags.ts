@@ -33,3 +33,6 @@ export type CreateTagParams = { name: string };
 export type RenameTagParams = { id: number; name: string; newName: string };
 export type DeleteTagParams = { id: number; name: string };
 export type TagPhotosParams = { id: number; name: string; photos: string[] };
+
+/** The tag list's rows, each with up to four cover photos. */
+export type TagList = TagListResponse["results"];

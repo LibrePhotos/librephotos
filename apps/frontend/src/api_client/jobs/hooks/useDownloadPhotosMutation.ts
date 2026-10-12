@@ -1,39 +1,9 @@
-import { POLL_ARCHIVE_MS, pollUntil } from "@librephotos/api-client";
+import { endpoints, POLL_ARCHIVE_MS, pollUntil } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
 import { apiClient } from "../../api";
 import { fetchMedia, mediaUrl } from "../../media/mediaUrl";
 import type { BulkPhotoQuery } from "../../photos/types";
-
-type StatusResponse = { status: string };
-
-type DownloadResponse = {
-  url: string;
-  job_id: string;
-};
-
-type IndividualDownloadOptions = {
-  select_all?: false;
-  image_hashes: string[];
-  include_stacked_photos?: boolean;
-};
-
-type SelectAllDownloadOptions = {
-  select_all: true;
-  query: BulkPhotoQuery;
-  excluded_hashes?: string[];
-  include_stacked_photos?: boolean;
-};
-
-type DownloadOptions = IndividualDownloadOptions | SelectAllDownloadOptions;
-
-function startDownloadProcess(options: DownloadOptions) {
-  return apiClient.post<DownloadResponse>("/photos/download", options);
-}
-
-function checkDownloadStatus(job_id: string) {
-  return apiClient.get<StatusResponse>(`/photos/download?job_id=${job_id}`);
-}
 
 // Downloads still waiting on their archive job or on the file; cancelPhotoDownloads() aborts them.
 const activeDownloads = new Set<AbortController>();
@@ -92,24 +62,19 @@ export const useDownloadPhotosMutation = () =>
         throw new Error("User ID is required for download");
       }
 
-      const downloadRequest: DownloadOptions = args.select_all
-        ? {
-            select_all: true,
-            query: args.query,
-            excluded_hashes: args.excluded_hashes,
-            include_stacked_photos: includeStackedPhotos,
-          }
-        : {
-            image_hashes: args.image_hashes,
-            include_stacked_photos: includeStackedPhotos,
-          };
+      const selection = args.select_all
+        ? { imageHashes: [], selectAll: { query: args.query, excludedHashes: args.excluded_hashes } }
+        : { imageHashes: args.image_hashes, selectAll: undefined };
 
       const controller = new AbortController();
       activeDownloads.add(controller);
       try {
-        const { job_id: jobId, url: filename } = await startDownloadProcess(downloadRequest);
+        const { job_id: jobId, url: filename } = await endpoints.startPhotoDownload(apiClient, selection.imageHashes, {
+          selectAll: selection.selectAll,
+          includeStackedPhotos,
+        });
 
-        const archive = await pollUntil(() => checkDownloadStatus(jobId), {
+        const archive = await pollUntil(() => endpoints.fetchPhotoDownloadStatus(apiClient, jobId), {
           isDone: ({ status }) => status === "SUCCESS" || status === "FAILURE",
           intervalMs: POLL_ARCHIVE_MS,
           signal: controller.signal,
@@ -119,7 +84,7 @@ export const useDownloadPhotosMutation = () =>
         }
 
         await downloadFile(filename, controller.signal);
-        await apiClient.delete(`/delete/zip/${filename}`);
+        await endpoints.deletePhotoDownload(apiClient, filename);
         notification.downloadCompleted();
         return { success: true };
       } catch (err) {

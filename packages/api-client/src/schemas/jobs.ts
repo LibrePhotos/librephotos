@@ -56,3 +56,38 @@ export const WorkerAvailabilityResponse = z.object({
   id: z.number().optional(),
 });
 export type WorkerAvailabilityResponse = z.infer<typeof WorkerAvailabilityResponse>;
+
+/** `POST /jobs/{id}/cancel/`: the job, now cancelled. */
+export const CancelJobResponse = z.object({
+  status: z.boolean(),
+  job: JobDetail.optional(),
+  message: z.string().optional(),
+});
+export type CancelJobResponse = z.infer<typeof CancelJobResponse>;
+
+/** The job list's query (`GET /jobs/`). */
+export type JobListParams = {
+  page?: number;
+  pageSize?: number;
+  /**
+   * Narrow the list to the caller's own jobs. Only meaningful for staff, who otherwise get the
+   * global list; everyone else is already scoped server-side.
+   */
+  mine?: boolean;
+};
+
+/** What a job trigger answers when a job of its kind is already queued or running (a 409). */
+export type JobAlreadyRunning = { status: true; job_id: string; already_running: true };
+
+/** `POST /photos/download`: the archive job and the archive's file name (a UUID). */
+export const PhotoDownloadStart = z.looseObject({
+  job_id: z.string(),
+  url: z.string(),
+});
+export type PhotoDownloadStart = z.infer<typeof PhotoDownloadStart>;
+
+/** `GET /photos/download?job_id=`: PENDING (a 202), SUCCESS, or FAILURE for a failed or cancelled job. */
+export const PhotoDownloadStatus = z.looseObject({
+  status: z.string(),
+});
+export type PhotoDownloadStatus = z.infer<typeof PhotoDownloadStatus>;

@@ -20,8 +20,6 @@ vi.mock("../api", async importOriginal => ({
   ...(await importOriginal<typeof import("../api")>()),
   apiClient: { post: (...args: Parameters<typeof stubs.post>) => stubs.post(...args) },
 }));
-// The response shape is not under test here.
-vi.mock("../../util/zodUtils", () => ({ parseWithNotification: (_schema: unknown, data: unknown) => data }));
 
 beforeAll(() => {
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
@@ -61,7 +59,7 @@ const isStale = (queryKey: readonly unknown[]) => queryClient.getQueryState(quer
 
 describe("stack mutations", () => {
   it("merging stacks refreshes the photo grids", async () => {
-    stubs.post.mockResolvedValue({});
+    stubs.post.mockResolvedValue({ status: "merged", stack_id: "s1", photo_count: 4, merged_count: 1 });
     seedGrids();
 
     await run(useMergeStacksMutation, { photo_hashes: ["a", "b"] });
@@ -71,7 +69,7 @@ describe("stack mutations", () => {
   });
 
   it("creating a manual stack refreshes the photo grids", async () => {
-    stubs.post.mockResolvedValue({});
+    stubs.post.mockResolvedValue({ status: "created", stack_id: "s1", photo_count: 2 });
     seedGrids();
 
     await run(useCreateManualStackMutation, { photo_hashes: ["a", "b"] });

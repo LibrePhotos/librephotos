@@ -1,16 +1,14 @@
+import { endpoints } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
-import { parseWithNotification } from "../../../util/zodUtils";
 import { apiClient, queryClient } from "../../api";
 import { tagKeys } from "../keys";
 import type { CreateTagParams } from "../types";
-import { Tag } from "../types";
 
 export const useCreateTagMutation = () =>
   useMutation({
     mutationFn: async ({ name }: CreateTagParams) => {
-      const response = await apiClient.post(`/tags/`, { name });
-      const tag = parseWithNotification(Tag, response, "Failed to parse tag");
+      const tag = await endpoints.createTag(apiClient, name);
       notification.createTag(name);
       return tag;
     },

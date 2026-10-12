@@ -1,0 +1,44 @@
+{
+  "id": "ffbc32e3-5f65-4600-aafe-52d39958de7a",
+  "duplicate_type": "visual_duplicate",
+  "duplicate_type_display": "Visual Duplicates",
+  "review_status": "pending",
+  "review_status_display": "Pending Review",
+  "photo_count": 2,
+  "potential_savings": 0,
+  "similarity_score": 0.93,
+  "created_at": "2026-10-12T18:39:50.280429Z",
+  "updated_at": "2026-10-12T18:39:50.280429Z",
+  "kept_photo_hash": null,
+  "suggested_photo_hash": "930e90f2c3fa7378c82e4f2446696df41",
+  "photos": [
+    {
+      "id": "5358bcff-0949-45f1-8328-72a2a499401d",
+      "image_hash": "930e90f2c3fa7378c82e4f2446696df41",
+      "width": null,
+      "height": null,
+      "size": 0,
+      "camera": null,
+      "exif_timestamp": null,
+      "is_kept": null,
+      "file_path": "/photos/5358bcff094945f1832872a2a499401d.png",
+      "file_type": "Image",
+      "thumbnail_url": "/media/square_thumbnails_small/930e90f2c3fa7378c82e4f2446696df41",
+      "thumbnail_big_url": "/media/thumbnails_big/930e90f2c3fa7378c82e4f2446696df41"
+    },
+    {
+      "id": "e613e61b-549a-4faf-9daf-5c3038860028",
+      "image_hash": "88dc7c1096d849aca8870b285e6cdc491",
+      "width": null,
+      "height": null,
+      "size": 0,
+      "camera": null,
+      "exif_timestamp": null,
+      "is_kept": null,
+      "file_path": "/photos/e613e61b549a4faf9daf5c3038860028.png",
+      "file_type": "Image",
+      "thumbnail_url": "/media/square_thumbnails_small/88dc7c1096d849aca8870b285e6cdc491",
+      "thumbnail_big_url": "/media/thumbnails_big/88dc7c1096d849aca8870b285e6cdc491"
+    }
+  ]
+}

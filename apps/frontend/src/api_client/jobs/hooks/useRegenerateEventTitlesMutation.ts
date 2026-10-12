@@ -1,3 +1,4 @@
+import { endpoints } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
 import { apiClient } from "../../api";
@@ -10,7 +11,7 @@ import { startJob } from "../startJob";
  */
 export const useRegenerateEventTitlesMutation = () =>
   useMutation({
-    mutationFn: () => startJob(() => apiClient.post("/autoalbumtitlegen/", {})),
+    mutationFn: () => startJob(() => endpoints.regenerateEventAlbumTitles(apiClient)),
     onSuccess: start => {
       if (!start.alreadyRunning) {
         notification.regenerateEventAlbums();

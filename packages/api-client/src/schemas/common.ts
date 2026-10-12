@@ -35,6 +35,16 @@ export const IntegerId = z
   .union([z.number().int(), z.string().regex(/^\d+$/, "Invalid id").transform(Number)])
   .meta({ "x-id": true });
 
+/**
+ * A flag a hand-built view computes as `<object> and <comparison>` in Python, which is null
+ * (not false) when the object is missing: a stack without a primary photo, a duplicate group
+ * with no kept photo yet, a photo without a main file. Read as false.
+ */
+export const MaybeFlag = z
+  .boolean()
+  .nullable()
+  .transform(value => value === true);
+
 export const SimpleUser = z.object({
   id: z.number(),
   username: z.string(),

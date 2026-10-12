@@ -1,18 +1,9 @@
+import { endpoints } from "@librephotos/api-client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "../api";
 import { startJob } from "../jobs/startJob";
 import { duplicateKeys } from "./keys";
-import type {
-  DetectDuplicatesRequest,
-  DetectDuplicatesResponse,
-  DuplicateDetail,
-  DuplicateListResponse,
-  DuplicateStats,
-  DuplicateType,
-  ResolveDuplicateRequest,
-  ResolveDuplicateResponse,
-  ReviewStatus,
-} from "./types";
+import type { DetectDuplicatesRequest, DuplicateType, ReviewStatus } from "./types";
 
 // Fetch duplicate groups list with pagination
 const useFetchDuplicatesQuery = (
@@ -20,24 +11,17 @@ const useFetchDuplicatesQuery = (
   status?: ReviewStatus,
   page: number = 1,
   pageSize: number = 20
-) => {
-  const params = new URLSearchParams();
-  if (duplicateType) params.append("duplicate_type", duplicateType);
-  if (status) params.append("status", status);
-  params.append("page", String(page));
-  params.append("page_size", String(pageSize));
-
-  return useQuery({
+) =>
+  useQuery({
     queryKey: duplicateKeys.list(duplicateType, status, page, pageSize),
-    queryFn: () => apiClient.get<DuplicateListResponse>(`/duplicates?${params.toString()}`),
+    queryFn: () => endpoints.fetchDuplicates(apiClient, { duplicateType, status, page, pageSize }),
   });
-};
 
 // Fetch single duplicate group details
 const useFetchDuplicateQuery = (duplicateId: string) =>
   useQuery({
     queryKey: duplicateKeys.detail(duplicateId),
-    queryFn: () => apiClient.get<DuplicateDetail>(`/duplicates/${duplicateId}`),
+    queryFn: () => endpoints.fetchDuplicate(apiClient, duplicateId),
     enabled: !!duplicateId,
   });
 
@@ -45,7 +29,7 @@ const useFetchDuplicateQuery = (duplicateId: string) =>
 const useFetchDuplicateStatsQuery = (options?: { staleTime?: number }) =>
   useQuery({
     queryKey: duplicateKeys.stats(),
-    queryFn: () => apiClient.get<DuplicateStats>("/duplicates/stats"),
+    queryFn: () => endpoints.fetchDuplicateStats(apiClient),
     staleTime: options?.staleTime,
   });
 
@@ -54,7 +38,7 @@ export const useDetectDuplicatesMutation = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (options: DetectDuplicatesRequest = {}) =>
-      startJob(() => apiClient.post<DetectDuplicatesResponse>("/duplicates/detect", options)),
+      startJob(() => endpoints.detectDuplicates(apiClient, options)),
     onSuccess: () => {
       // Invalidate stats to show updated detection status
       queryClient.invalidateQueries({ queryKey: duplicateKeys.stats() });
@@ -74,10 +58,7 @@ export const useResolveDuplicateMutation = () => {
       id: string;
       keep_photo_hash: string;
       trash_others: boolean;
-    }) => {
-      const data: ResolveDuplicateRequest = { keep_photo_hash, trash_others };
-      return apiClient.post<ResolveDuplicateResponse>(`/duplicates/${id}/resolve`, data);
-    },
+    }) => endpoints.resolveDuplicate(apiClient, id, keep_photo_hash, trash_others),
     onSuccess: (_, { id }) => {
       // Invalidate the specific duplicate and the list
       queryClient.invalidateQueries({ queryKey: duplicateKeys.detail(id) });
@@ -91,10 +72,7 @@ export const useResolveDuplicateMutation = () => {
 export const useDismissDuplicateMutation = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (duplicateId: number | string) => {
-      const id = String(duplicateId);
-      return apiClient.post<{ status: string }>(`/duplicates/${id}/dismiss`, {});
-    },
+    mutationFn: (duplicateId: number | string) => endpoints.dismissDuplicate(apiClient, String(duplicateId)),
     onSuccess: (_, duplicateId) => {
       const id = String(duplicateId);
       queryClient.invalidateQueries({ queryKey: duplicateKeys.detail(id) });
@@ -108,10 +86,7 @@ export const useDismissDuplicateMutation = () => {
 export const useRevertDuplicateMutation = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (duplicateId: number | string) => {
-      const id = String(duplicateId);
-      return apiClient.post<{ status: string; restored_count: number }>(`/duplicates/${id}/revert`, {});
-    },
+    mutationFn: (duplicateId: number | string) => endpoints.revertDuplicate(apiClient, String(duplicateId)),
     onSuccess: (_, duplicateId) => {
       const id = String(duplicateId);
       queryClient.invalidateQueries({ queryKey: duplicateKeys.detail(id) });
@@ -125,10 +100,7 @@ export const useRevertDuplicateMutation = () => {
 export const useDeleteDuplicateMutation = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (duplicateId: number | string) => {
-      const id = String(duplicateId);
-      return apiClient.delete<{ status: string; unlinked_count: number }>(`/duplicates/${id}/delete`);
-    },
+    mutationFn: (duplicateId: number | string) => endpoints.deleteDuplicate(apiClient, String(duplicateId)),
     onSuccess: (_, duplicateId) => {
       const id = String(duplicateId);
       queryClient.invalidateQueries({ queryKey: duplicateKeys.detail(id) });

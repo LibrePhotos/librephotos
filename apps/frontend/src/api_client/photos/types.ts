@@ -9,7 +9,6 @@ export {
   IncompleteDatePhotosGroup,
   Media,
   Photo,
-  PhotoHash,
   PhotoMetadata,
   PhotoOcrBlock,
   PhotoPerson,
