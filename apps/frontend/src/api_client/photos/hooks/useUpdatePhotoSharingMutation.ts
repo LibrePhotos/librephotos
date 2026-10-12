@@ -1,58 +1,28 @@
+import { endpoints } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
-import { z } from "zod";
 import { notification } from "../../../service/notifications";
-import { parseWithNotification } from "../../../util/zodUtils";
 import { apiClient, queryClient } from "../../api";
 import { photoGridKeys, photoKeys } from "../keys";
-import type { BulkPhotoQuery, SimpleUser } from "../types";
+import { selectionArgs, singlePhotoHash, type PhotoSelection } from "../photoSelection";
+import type { SimpleUser } from "../types";
 
-const SharePhotosResponse = z.object({
-  status: z.boolean(),
-  count: z.number(),
-});
-
-// Request type for individual photo hashes
-type IndividualRequest = {
-  select_all?: false;
-  image_hashes: string[];
-  val_shared: boolean;
-  target_user: SimpleUser;
-};
-
-// Request type for select_all mode
-type SelectAllRequest = {
-  select_all: true;
-  query: BulkPhotoQuery;
-  excluded_hashes?: string[];
-  val_shared: boolean;
-  target_user: SimpleUser;
-};
-
-type SharePhotosRequest = IndividualRequest | SelectAllRequest;
+type SharePhotosRequest = PhotoSelection & { val_shared: boolean; target_user: SimpleUser };
 
 export const useUpdatePhotoSharingMutation = () =>
   useMutation({
     mutationFn: async (request: SharePhotosRequest) => {
-      const payload = request.select_all
-        ? {
-            select_all: true,
-            query: request.query,
-            excluded_hashes: request.excluded_hashes,
-            val_shared: request.val_shared,
-            target_user_id: request.target_user.id,
-          }
-        : {
-            image_hashes: request.image_hashes,
-            val_shared: request.val_shared,
-            target_user_id: request.target_user.id,
-          };
-
-      const response = await apiClient.post("/photosedit/share/", payload);
-      const data = parseWithNotification(SharePhotosResponse, response, "Failed to parse photo sharing response");
+      const [imageHashes, selectAll] = selectionArgs(request);
+      const data = await endpoints.setPhotosShared(
+        apiClient,
+        imageHashes,
+        request.target_user.id,
+        request.val_shared,
+        selectAll
+      );
 
       // Show notification based on mode
       if (request.select_all) {
-        notification.togglePhotoSharing(request.target_user.username, data.count, request.val_shared);
+        notification.togglePhotoSharing(request.target_user.username, data.count ?? 0, request.val_shared);
       } else {
         notification.togglePhotoSharing(request.target_user.username, request.image_hashes.length, request.val_shared);
       }
@@ -64,8 +34,8 @@ export const useUpdatePhotoSharingMutation = () =>
       queryClient.invalidateQueries({ queryKey: photoGridKeys.sharedWithMe() });
 
       // If we have a single photo in individual mode, invalidate its details
-      const [imageHash, ...others] = request.select_all ? [] : request.image_hashes;
-      if (imageHash !== undefined && others.length === 0) {
+      const imageHash = singlePhotoHash(request);
+      if (imageHash !== undefined) {
         queryClient.invalidateQueries({ queryKey: photoKeys.detail(imageHash) });
       }
     },

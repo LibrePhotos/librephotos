@@ -8,7 +8,7 @@ import {
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchPhotoSharesQuery, usePhotoShareMutation } from "../../api_client/photos/hooks";
-import type { PhotoShare } from "../../api_client/photos/hooks";
+import type { PhotoShare } from "../../api_client/photos/types";
 import { shareAddress } from "../../api_client/urls";
 import { ConfirmPopover } from "./ConfirmPopover";
 import { ShareThumbnail } from "./ShareThumbnail";

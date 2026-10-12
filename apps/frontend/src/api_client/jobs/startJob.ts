@@ -7,22 +7,39 @@ import { jobKeys } from "./keys";
 type JobStart<T> = { alreadyRunning: false; data: T } | { alreadyRunning: true; jobId: string };
 
 /**
+ * The running job's id from an answer that already stands for a 409: the package's job trigger
+ * endpoints (endpoints.scanPhotos, deleteMissingPhotos, ...) resolve with `already_running: true`
+ * instead of rejecting.
+ */
+function alreadyRunningJobId(data: unknown): string | null {
+  if (typeof data !== "object" || data === null) return null;
+  if (!("already_running" in data) || data.already_running !== true) return null;
+  const jobId = "job_id" in data ? data.job_id : undefined;
+  return typeof jobId === "string" && jobId ? jobId : null;
+}
+
+/**
  * Send a job trigger. When a job of its kind is already queued or running, the server answers
  * 409 `job_already_running` with that job's id. That is not an error for the user: this resolves
  * with the running job instead of rejecting, says so, and refreshes the worker status and the job
  * list so the page shows that job. Any other failure rejects as before.
  */
 export async function startJob<T>(trigger: () => Promise<T>): Promise<JobStart<T>> {
+  let jobId: string | null;
   try {
-    return { alreadyRunning: false, data: await trigger() };
+    const data = await trigger();
+    jobId = alreadyRunningJobId(data);
+    if (jobId === null) {
+      return { alreadyRunning: false, data };
+    }
   } catch (error) {
-    const jobId = runningJobId(error);
+    jobId = runningJobId(error);
     if (jobId === null) {
       throw error;
     }
-    notification.jobAlreadyRunning();
-    void queryClient.invalidateQueries({ queryKey: jobKeys.worker() });
-    void queryClient.invalidateQueries({ queryKey: jobKeys.all });
-    return { alreadyRunning: true, jobId };
   }
+  notification.jobAlreadyRunning();
+  void queryClient.invalidateQueries({ queryKey: jobKeys.worker() });
+  void queryClient.invalidateQueries({ queryKey: jobKeys.all });
+  return { alreadyRunning: true, jobId };
 }

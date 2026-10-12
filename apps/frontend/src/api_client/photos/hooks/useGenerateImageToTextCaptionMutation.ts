@@ -1,19 +1,13 @@
+import { endpoints } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
-import { z } from "zod";
 import { notification } from "../../../service/notifications";
-import { parseWithNotification } from "../../../util/zodUtils";
 import { apiClient, ApiError, queryClient } from "../../api";
 import { photoGridKeys, photoKeys } from "../keys";
-
-const StatusResponse = z.object({
-  status: z.boolean(),
-});
 
 export const useGenerateImageToTextCaptionMutation = () =>
   useMutation({
     mutationFn: async ({ id }: { id: string }) => {
-      const response = await apiClient.post(`/photosedit/generateim2txt/`, { image_hash: id });
-      parseWithNotification(StatusResponse, response, "Failed to parse generate image to text caption response");
+      await endpoints.generatePhotoCaption(apiClient, id);
     },
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: photoKeys.detail(id) });

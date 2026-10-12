@@ -186,6 +186,102 @@ export async function fetchPhotoDetails(client: ApiClient, imageHash: string): P
   return parseResponse(S.Photo, res, "photo details");
 }
 
+/** The user albums that hold a photo (the lightbox's Albums section). */
+export async function fetchPhotoAlbums(client: ApiClient, imageHash: string): Promise<S.UserAlbumInfo[]> {
+  const res = await client.get<unknown>(`/photos/${imageHash}/albums/`);
+  return parseResponse(S.FetchUserAlbumsListResponse, res, "photo albums").results;
+}
+
+/** A photo's full structured metadata, with its edit history and sidecar files. */
+export async function fetchPhotoMetadata(client: ApiClient, photoId: string): Promise<S.PhotoMetadata> {
+  const res = await client.get<unknown>(`/photos/${photoId}/metadata`);
+  return parseResponse(S.PhotoMetadata, res, "photo metadata");
+}
+
+/** Change a photo's metadata (each change is recorded in its history); answers the new metadata. */
+export async function updatePhotoMetadata(
+  client: ApiClient,
+  photoId: string,
+  updates: S.PhotoMetadataUpdate
+): Promise<S.PhotoMetadata> {
+  const res = await client.patch<unknown>(`/photos/${photoId}/metadata`, updates);
+  return parseResponse(S.PhotoMetadata, res, "updated photo metadata");
+}
+
+/** Change the same metadata fields on up to 100 photos (by UUID or image hash). */
+export async function bulkUpdatePhotoMetadata(
+  client: ApiClient,
+  photoIds: string[],
+  updates: S.PhotoMetadataUpdate
+): Promise<S.BulkMetadataUpdateResponse> {
+  const res = await client.patch<unknown>("/photos/metadata/bulk", { photo_ids: photoIds, updates });
+  return parseResponse(S.BulkMetadataUpdateResponse, res, "bulk metadata update");
+}
+
+/**
+ * Change fields of one photo (date, location, ...) through PhotoEditSerializer: only the keys in
+ * `patch` are sent. See setPhotoTimestamp for the date's format.
+ */
+export async function updatePhoto(
+  client: ApiClient,
+  photoId: string,
+  patch: Partial<S.Photo>
+): Promise<S.PhotoEditResponse> {
+  const res = await client.patch<unknown>(`/photos/edit/${photoId}/`, patch);
+  return parseResponse(S.PhotoEditResponse, res, "photo update");
+}
+
+/** Rotate a photo by `angle` degrees clockwise (a multiple of 90), without touching the file. */
+export async function rotatePhoto(client: ApiClient, imageHash: string, angle: number): Promise<S.RotatePhotoResponse> {
+  const res = await client.post<unknown>("/photosedit/rotate/", { image_hash: imageHash, angle });
+  return parseResponse(S.RotatePhotoResponse, res, "rotate photo");
+}
+
+/**
+ * Ask the captioning model for a caption of one photo. ApiError 503 `model_downloading` while the
+ * model is still being fetched (the server has started the download).
+ */
+export async function generatePhotoCaption(client: ApiClient, imageHash: string): Promise<S.StatusResponse> {
+  const res = await client.post<unknown>("/photosedit/generateim2txt/", { image_hash: imageHash });
+  return parseResponse(S.StatusResponse, res, "generate photo caption");
+}
+
+/** One photo of a public album, as its sharing settings let a visitor see it. */
+export async function fetchPublicAlbumPhoto(
+  client: ApiClient,
+  slug: string,
+  photoId: string
+): Promise<S.PublicPhotoDetailResponse> {
+  const res = await client.get<unknown>(
+    `/public/albums/s/${encodeURIComponent(slug)}/photos/${encodeURIComponent(photoId)}/`
+  );
+  return parseResponse(S.PublicPhotoDetailResponse, res, "public photo detail");
+}
+
+/* ---- photo links (one photo shared by URL, issue #2028) ---------------- */
+
+/** Create (or return the existing), rotate or revoke one photo's public link; answers the link. */
+export async function setPhotoShareLink(
+  client: ApiClient,
+  photoId: string,
+  action: S.PhotoShareAction
+): Promise<S.PhotoShare> {
+  const res = await client.post<unknown>("/photo/share", { photo_id: photoId, action });
+  return parseResponse(S.PhotoShareResponse, res, "photo share").share;
+}
+
+/** The user's active photo links, newest first. */
+export async function fetchPhotoShareLinks(client: ApiClient): Promise<S.PhotoShare[]> {
+  const res = await client.get<unknown>("/photo/share/list");
+  return parseResponse(S.PhotoShareListResponse, res, "photo shares").results;
+}
+
+/** A photo shared by link, for a visitor without a session. ApiError 404 for an unknown or revoked link. */
+export async function fetchSharedPhoto(client: ApiClient, slug: string): Promise<S.SharedPhoto> {
+  const res = await client.get<unknown>(`/public/photo/${encodeURIComponent(slug)}/`);
+  return parseResponse(S.SharedPhotoResponse, res, "shared photo").results;
+}
+
 /** One page of photos that have no EXIF timestamp (paginated). */
 export async function fetchPhotosWithoutTimestamp(
   client: ApiClient,
@@ -473,6 +569,11 @@ export async function fullScanPhotos(client: ApiClient): Promise<S.JobTriggerRes
   return triggerJob(client, "/fullscanphotos/", "full scan photos");
 }
 
+/** Start the job that removes the photos whose files are gone. */
+export async function deleteMissingPhotos(client: ApiClient): Promise<S.JobTriggerResponse> {
+  return triggerJob(client, "/deletemissingphotos", "delete missing photos");
+}
+
 /* ---- sharing ----------------------------------------------------------- */
 
 export async function fetchSharedPhotosByMe(client: ApiClient): Promise<S.SharedPhotosResponse["results"]> {
@@ -495,18 +596,20 @@ export async function fetchSharedAlbumsWithMe(client: ApiClient): Promise<S.Shar
   return parseResponse(S.SharedAlbumsResponse, { results }, "shared albums with me").results;
 }
 
-/** Share (or unshare) photos to another user by hash. */
+/** Share (or unshare) photos to another user, by hash or selected-all; `count` is the photos changed. */
 export async function setPhotosShared(
   client: ApiClient,
   imageHashes: string[],
   targetUserId: number,
-  shared: boolean
-): Promise<unknown> {
-  return client.post("/photosedit/share/", {
-    image_hashes: imageHashes,
-    target_user_id: targetUserId,
+  shared: boolean,
+  selectAll?: SelectAllPhotos
+): Promise<S.BulkPhotoMutationResponse> {
+  const res = await client.post<unknown>("/photosedit/share/", {
+    ...photoSelection(imageHashes, selectAll),
     val_shared: shared,
+    target_user_id: targetUserId,
   });
+  return parseResponse(S.BulkPhotoMutationResponse, res, "share photos");
 }
 
 /** Share (or unshare) a user album to another user; answers the album's card. */
@@ -526,12 +629,18 @@ export async function setUserAlbumShared(
 
 /* ---- public links ------------------------------------------------------ */
 
-/** Make photos public (creates their public-gallery visibility) or private. */
-export async function setPhotosPublic(client: ApiClient, imageHashes: string[], isPublic: boolean): Promise<unknown> {
-  return client.post("/photosedit/makepublic/", {
-    image_hashes: imageHashes,
+/** Make photos (by hash or selected-all) public, so they show in the owner's public gallery, or private. */
+export async function setPhotosPublic(
+  client: ApiClient,
+  imageHashes: string[],
+  isPublic: boolean,
+  selectAll?: SelectAllPhotos
+): Promise<S.BulkPhotoMutationResponse> {
+  const res = await client.post<unknown>("/photosedit/makepublic/", {
+    ...photoSelection(imageHashes, selectAll),
     val_public: isPublic,
   });
+  return parseResponse(S.BulkPhotoMutationResponse, res, "make photos public");
 }
 
 /** Toggle a user album's public link (optionally with slug, expiry and per-album sharing options). */
@@ -694,43 +803,73 @@ export async function syncCounts(client: ApiClient): Promise<S.SyncCounts> {
  * lightly validated (favorite = rating; hide/trash = flag toggles).
  * ----------------------------------------------------------------------- */
 
-/** Toggle favorite on a set of photos (favorite = rating ≥ favorite_min_rating). */
+/** Toggle favorite on a set of photos (favorite = rating ≥ favorite_min_rating). By hash, or selected-all. */
 export async function setPhotosFavorite(
   client: ApiClient,
   imageHashes: string[],
-  favorite: boolean
+  favorite: boolean,
+  selectAll?: SelectAllPhotos
 ): Promise<S.BulkPhotoMutationResponse> {
   const res = await client.post<unknown>("/photosedit/favorite/", {
-    image_hashes: imageHashes,
+    ...photoSelection(imageHashes, selectAll),
     favorite,
   });
   return parseResponse(S.BulkPhotoMutationResponse, res, "set favorite");
 }
 
-/** Toggle hidden on a set of photos. */
+/** Toggle hidden on a set of photos. By hash, or selected-all. */
 export async function setPhotosHidden(
   client: ApiClient,
   imageHashes: string[],
-  hidden: boolean
+  hidden: boolean,
+  selectAll?: SelectAllPhotos
 ): Promise<S.BulkPhotoMutationResponse> {
-  const res = await client.post<unknown>("/photosedit/hide/", {
-    image_hashes: imageHashes,
-    hidden,
-  });
+  const res = await client.post<unknown>("/photosedit/hide/", { ...photoSelection(imageHashes, selectAll), hidden });
   return parseResponse(S.BulkPhotoMutationResponse, res, "set hidden");
 }
 
-/** Move photos to / restore from the trashcan (soft delete). */
+/** Move photos to / restore from the trashcan (soft delete). By hash, or selected-all. */
 export async function setPhotosDeleted(
   client: ApiClient,
   imageHashes: string[],
-  deleted: boolean
+  deleted: boolean,
+  selectAll?: SelectAllPhotos
 ): Promise<S.BulkPhotoMutationResponse> {
   const res = await client.post<unknown>("/photosedit/setdeleted/", {
-    image_hashes: imageHashes,
+    ...photoSelection(imageHashes, selectAll),
     deleted,
   });
   return parseResponse(S.BulkPhotoMutationResponse, res, "set deleted");
+}
+
+/** What a photo is: a photo, a screenshot or a document. */
+export type PhotoCategory = "photo" | "screenshot" | "document";
+
+/**
+ * Set the category of photos (by hash or selected-all), pinned as the user's so rescans keep it.
+ * "auto" hands them back to the detectors (hashes only; the server refuses it for select-all).
+ */
+export async function setPhotosCategory(
+  client: ApiClient,
+  imageHashes: string[],
+  category: PhotoCategory | "auto",
+  selectAll?: SelectAllPhotos
+): Promise<S.BulkPhotoMutationResponse> {
+  const res = await client.post<unknown>("/photosedit/category/", {
+    ...photoSelection(imageHashes, selectAll),
+    category,
+  });
+  return parseResponse(S.BulkPhotoMutationResponse, res, "set photos category");
+}
+
+/** Delete photos for good, with their files: only those in the trash (by hash, or selected-all). */
+export async function deletePhotos(
+  client: ApiClient,
+  imageHashes: string[],
+  selectAll?: SelectAllPhotos
+): Promise<S.DeletePhotosResponse> {
+  const res = await client.delete<unknown>("/photosedit/delete/", photoSelection(imageHashes, selectAll));
+  return parseResponse(S.DeletePhotosResponse, res, "delete photos");
 }
 
 /**
@@ -797,6 +936,15 @@ export type SelectAllPhotos = {
   query?: S.BulkPhotoQuery;
   excludedHashes?: string[];
 };
+
+/**
+ * Which photos a bulk photo mutation applies to: the hashes, or with `selectAll` the query and its
+ * exclusions (`select_all`, `query`, `excluded_hashes`; what is not set is left out).
+ */
+function photoSelection(imageHashes: string[], selectAll: SelectAllPhotos | undefined) {
+  if (!selectAll) return { image_hashes: imageHashes };
+  return { select_all: true, query: selectAll.query, excluded_hashes: selectAll.excludedHashes };
+}
 
 function userAlbumPhotosBody(title: string, photoIds: string[], selectAll: SelectAllPhotos | undefined) {
   if (!selectAll) return { title, photos: photoIds };

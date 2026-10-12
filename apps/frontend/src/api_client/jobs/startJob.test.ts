@@ -45,6 +45,15 @@ describe("startJob", () => {
     expect(stubs.invalidateQueries).toHaveBeenCalledWith({ queryKey: jobKeys.all });
   });
 
+  it("follows the running job when a package trigger endpoint already turned the 409 into an answer", async () => {
+    const start = await startJob(() => Promise.resolve({ status: true, job_id: "running", already_running: true }));
+
+    expect(start).toEqual({ alreadyRunning: true, jobId: "running" });
+    expect(stubs.jobAlreadyRunning).toHaveBeenCalledTimes(1);
+    expect(stubs.invalidateQueries).toHaveBeenCalledWith({ queryKey: jobKeys.worker() });
+    expect(stubs.invalidateQueries).toHaveBeenCalledWith({ queryKey: jobKeys.all });
+  });
+
   it("rejects every other failure as before", async () => {
     const failure = refused("job_start_failed", 500);
     await expect(startJob(() => Promise.reject(failure))).rejects.toBe(failure);

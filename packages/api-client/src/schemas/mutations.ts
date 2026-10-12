@@ -9,7 +9,11 @@ import { IntegerId } from "./common";
  * pull, so we never depend on the exact mutation-response body.
  */
 
-/** `/photosedit/{favorite,rating,hide,setdeleted}/` — bulk flag/rating updates. */
+/**
+ * `/photosedit/{favorite,rating,hide,setdeleted,makepublic,category,share}/` — bulk flag, rating,
+ * category and sharing updates. `count` is the photos changed; for hashes (not select-all) the
+ * flag views also list which hashes changed and which already had the value.
+ */
 export const BulkPhotoMutationResponse = z.looseObject({
   status: z.boolean().optional(),
   count: z.number().optional(),
@@ -21,14 +25,44 @@ export const BulkPhotoMutationResponse = z.looseObject({
 });
 export type BulkPhotoMutationResponse = z.infer<typeof BulkPhotoMutationResponse>;
 
-/** `PATCH /photos/edit/{hash}/` — single-photo field edit (timestamp, GPS). */
+/**
+ * `PATCH /photos/edit/{hash}/` — single-photo field edit (timestamp, GPS). PhotoEditSerializer
+ * always sends the hash; the web refreshes the photo's details by it.
+ */
 export const PhotoEditResponse = z.looseObject({
-  image_hash: z.string().optional(),
+  image_hash: z.string(),
   rating: z.number().optional(),
   hidden: z.boolean().optional(),
   in_trashcan: z.boolean().optional(),
 });
 export type PhotoEditResponse = z.infer<typeof PhotoEditResponse>;
+
+/**
+ * `DELETE /photosedit/delete/` (photos in the trash deleted for good). For hashes: the hashes
+ * deleted (`deleted`, also as `results`) and those that were not; for select-all: `count` and
+ * `failed_count`.
+ */
+export const DeletePhotosResponse = z.looseObject({
+  status: z.boolean(),
+  results: z.string().array().optional(),
+  deleted: z.string().array().optional(),
+  not_deleted: z.string().array().optional(),
+  count: z.number().optional(),
+  failed_count: z.number().optional(),
+});
+export type DeletePhotosResponse = z.infer<typeof DeletePhotosResponse>;
+
+/**
+ * `POST /photosedit/rotate/`: the photo's new orientation. A refused rotation is a 4xx/5xx (the
+ * error envelope), so a 2xx is always a done rotation.
+ */
+export const RotatePhotoResponse = z.object({
+  status: z.literal(true),
+  image_hash: z.string(),
+  local_orientation: z.number(),
+  last_modified: z.string(),
+});
+export type RotatePhotoResponse = z.infer<typeof RotatePhotoResponse>;
 
 /** `/photosedit/savecaption/` — plain status. */
 export const StatusResponse = z.looseObject({ status: z.boolean().optional() });

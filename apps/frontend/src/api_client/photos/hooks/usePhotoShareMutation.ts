@@ -1,25 +1,9 @@
+import { endpoints, type PhotoShareAction } from "@librephotos/api-client";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { z } from "zod";
 import i18n from "../../../i18n";
 import { notification } from "../../../service/notifications";
-import { parseWithNotification } from "../../../util/zodUtils";
 import { apiClient, ApiError, queryClient } from "../../api";
 import { photoKeys } from "../keys";
-
-export const PhotoShare = z.object({
-  enabled: z.boolean(),
-  slug: z.string().nullable(),
-  url: z.string().nullable(),
-  created_at: z.string().optional(),
-  photo_id: z.string().optional(),
-  image_hash: z.string().optional(),
-});
-export type PhotoShare = z.infer<typeof PhotoShare>;
-
-const PhotoShareResponse = z.object({ status: z.boolean(), share: PhotoShare });
-const PhotoShareListResponse = z.object({ results: PhotoShare.array() });
-
-export type PhotoShareAction = "enable" | "rotate" | "disable";
 
 /** Create, rotate or revoke the public link for one photo (issue #2028).
  *
@@ -28,13 +12,8 @@ export type PhotoShareAction = "enable" | "rotate" | "disable";
  */
 export const usePhotoShareMutation = () =>
   useMutation({
-    mutationFn: async (request: { photoId: string; action: PhotoShareAction }) => {
-      const response = await apiClient.post("/photo/share", {
-        photo_id: request.photoId,
-        action: request.action,
-      });
-      return parseWithNotification(PhotoShareResponse, response, "Failed to parse photo share response").share;
-    },
+    mutationFn: (request: { photoId: string; action: PhotoShareAction }) =>
+      endpoints.setPhotoShareLink(apiClient, request.photoId, request.action),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: photoKeys.shares() });
     },
@@ -48,33 +27,8 @@ export const useFetchPhotoSharesQuery = (enabled = true) =>
   useQuery({
     queryKey: photoKeys.shares(),
     enabled,
-    queryFn: async () => {
-      const response = await apiClient.get("/photo/share/list");
-      return parseWithNotification(PhotoShareListResponse, response, "Failed to parse photo shares response").results;
-    },
+    queryFn: () => endpoints.fetchPhotoShareLinks(apiClient),
   });
-
-// What an anonymous visitor gets for /public/p/<slug>. Media come as
-// slug-scoped URLs, so revoking the link cuts them off too.
-export const SharedPhoto = z.object({
-  video: z.boolean(),
-  thumbnail_url: z.string(),
-  video_url: z.string().nullable(),
-  // The canPlayType() string for a probed video (e.g. `video/mp4;
-  // codecs="hvc1..."`); null for stills and unprobed videos. The public page
-  // never transcodes, so it shows the fallback up front when this cannot play.
-  video_playback_type: z.string().nullish(),
-  exif_timestamp: z.string().nullable().optional(),
-  search_location: z.string().optional(),
-  camera: z.string().nullable().optional(),
-  lens: z.string().nullable().optional(),
-  search_captions: z.string().optional(),
-  captions_json: z.record(z.string(), z.unknown()).optional(),
-  people: z.array(z.object({ name: z.string() })).optional(),
-});
-export type SharedPhoto = z.infer<typeof SharedPhoto>;
-
-const SharedPhotoResponse = z.object({ results: SharedPhoto });
 
 /** A photo shared by link, or `null` when the link is unknown or revoked. */
 export const useFetchSharedPhotoQuery = (slug: string) =>
@@ -85,13 +39,11 @@ export const useFetchSharedPhotoQuery = (slug: string) =>
       // Through the client, like the public album page: a visitor has no session
       // (a 401 on a public page logs nobody out), and a 404 is an answer
       // (unknown or revoked link), not an error.
-      let json: unknown;
       try {
-        json = await apiClient.get(`/public/photo/${encodeURIComponent(slug)}/`);
+        return await endpoints.fetchSharedPhoto(apiClient, slug);
       } catch (error) {
         if (error instanceof ApiError && error.status === 404) return null;
         throw error;
       }
-      return parseWithNotification(SharedPhotoResponse, json, "Failed to parse shared photo").results;
     },
   });

@@ -1,48 +1,19 @@
+import { endpoints } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
-import { z } from "zod";
 import { notification } from "../../../service/notifications";
-import { parseWithNotification } from "../../../util/zodUtils";
 import { apiClient, queryClient } from "../../api";
 import { statsKeys } from "../../stats/keys";
 import { invalidatePhotoLists } from "../invalidatePhotoLists";
 import { photoKeys } from "../keys";
-import type { BulkPhotoQuery } from "../types";
+import { selectionArgs, type PhotoSelection } from "../photoSelection";
 
-const DeletePhotosResponse = z.object({
-  status: z.boolean(),
-  // Hashes, not serialized photos: the backend no longer builds a payload per photo.
-  updated_hashes: z.string().array().optional(),
-  not_updated_hashes: z.string().array().optional(),
-  count: z.number().optional(),
-});
-type DeletePhotosResponse = z.infer<typeof DeletePhotosResponse>;
-
-// Request type for individual photo hashes
-type IndividualRequest = {
-  select_all?: false;
-  image_hashes: string[];
-  deleted: boolean;
-};
-
-// Request type for select_all mode
-type SelectAllRequest = {
-  select_all: true;
-  query: BulkPhotoQuery;
-  excluded_hashes?: string[];
-  deleted: boolean;
-};
-
-type DeletePhotosRequest = IndividualRequest | SelectAllRequest;
+type DeletePhotosRequest = PhotoSelection & { deleted: boolean };
 
 export const useMarkPhotosDeletedMutation = () =>
   useMutation({
     mutationFn: async (request: DeletePhotosRequest) => {
-      const response = await apiClient.post("/photosedit/setdeleted/", request);
-      const data = parseWithNotification(
-        DeletePhotosResponse,
-        response,
-        "Failed to parse mark photos deleted response"
-      );
+      const [imageHashes, selectAll] = selectionArgs(request);
+      const data = await endpoints.setPhotosDeleted(apiClient, imageHashes, request.deleted, selectAll);
 
       // Show notification based on mode; a no-op (e.g. already in the trash)
       // gets no "0 photos were moved to trash" toast.

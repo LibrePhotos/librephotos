@@ -4,25 +4,33 @@
  * list, the caption is searched and makes hashtag albums. So an edit must
  * refresh the photo grids and search, not only the metadata panel.
  */
+import type { ApiClient, PhotoMetadataUpdate } from "@librephotos/api-client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { defined } from "../../../util/defined.test-utils";
 import { photoKeys } from "../keys";
-import type { MetadataUpdateFields } from "../metadata";
 import { useBulkUpdateMetadataMutation, useUpdatePhotoMetadataMutation } from "./usePhotoMetadataMutations";
 
 const mocks = vi.hoisted(() => ({
-  updatePhotoMetadata: vi.fn<(photoId: string, updates: MetadataUpdateFields) => Promise<unknown>>(),
-  bulkUpdateMetadata: vi.fn<(photoIds: string[], updates: MetadataUpdateFields) => Promise<unknown>>(),
+  updatePhotoMetadata: vi.fn<(client: ApiClient, photoId: string, updates: PhotoMetadataUpdate) => Promise<unknown>>(),
+  bulkUpdateMetadata:
+    vi.fn<(client: ApiClient, photoIds: string[], updates: PhotoMetadataUpdate) => Promise<unknown>>(),
   invalidatePhotoLists: vi.fn<() => void>(),
 }));
 
-vi.mock("../metadata", () => ({
-  updatePhotoMetadata: mocks.updatePhotoMetadata,
-  bulkUpdateMetadata: mocks.bulkUpdateMetadata,
-}));
+vi.mock("@librephotos/api-client", async importOriginal => {
+  const original = await importOriginal<typeof import("@librephotos/api-client")>();
+  return {
+    ...original,
+    endpoints: {
+      ...original.endpoints,
+      updatePhotoMetadata: mocks.updatePhotoMetadata,
+      bulkUpdatePhotoMetadata: mocks.bulkUpdateMetadata,
+    },
+  };
+});
 vi.mock("../invalidatePhotoLists", () => ({ invalidatePhotoLists: mocks.invalidatePhotoLists }));
 
 beforeAll(() => {
@@ -61,13 +69,13 @@ async function withHook<T>(useHook: () => T, run: (hook: T) => Promise<unknown>)
 }
 
 describe("useUpdatePhotoMetadataMutation", () => {
-  it.each<[string, MetadataUpdateFields]>([
+  it.each<[string, PhotoMetadataUpdate]>([
     ["rating", { rating: 5 }],
     ["caption", { caption: "Grandma's 80th" }],
   ])("refreshes the photo grids, search and details after a %s edit", async (_field, updates) => {
     const keys = await withHook(useUpdatePhotoMetadataMutation, hook => hook.mutateAsync({ photoId: "abc", updates }));
 
-    expect(mocks.updatePhotoMetadata).toHaveBeenCalledWith("abc", updates);
+    expect(mocks.updatePhotoMetadata).toHaveBeenCalledWith(expect.anything(), "abc", updates);
     // Every photo grid, search included (see invalidatePhotoLists).
     expect(mocks.invalidatePhotoLists).toHaveBeenCalledTimes(1);
     expect(keys).toContainEqual(photoKeys.metadata("abc"));

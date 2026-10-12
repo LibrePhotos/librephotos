@@ -22,6 +22,8 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
     components: ["PaginatedPhotoSummaryList"],
   },
   SharedFromMePhoto: { schema: S.SharedFromMePhoto, components: ["SharedFromMePhotoThrough"] },
+  PhotoMetadata: { schema: S.PhotoMetadata, components: ["PhotoMetadata"] },
+  MetadataEdit: { schema: S.MetadataEdit, components: ["MetadataEdit"] },
   // date groups (timeline, albums)
   DatePhotosGroup: { schema: S.DatePhotosGroup, components: ["GroupedPhotos"] },
   IncompleteDatePhotosGroup: {
@@ -160,6 +162,25 @@ export const UNMAPPED: Readonly<Record<string, string>> = {
   BulkPhotoMutationResponse:
     "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
   StatusResponse: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
+  DeletePhotosResponse: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
+  RotatePhotoResponse: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
+  MetadataFile:
+    "nested in PhotoMetadata.sidecar_files, typed as bare dicts in the schema; the model is gone and the server always sends [] (PhotoMetadataSerializer.get_sidecar_files)",
+  BulkMetadataUpdateResponse:
+    "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
+  PublicSharingSettings:
+    "a plain dict (get_effective_sharing_settings) in answers whose views declare no response serializer",
+  PublicPhotoDetail:
+    "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485), and no component describes PublicPhotoDetailSerializer",
+  PublicPhotoDetailResponse:
+    "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
+  PhotoShare: "its views declare no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
+  PhotoShareResponse: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
+  PhotoShareListResponse:
+    "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
+  SharedPhoto:
+    "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485); a PublicPhotoDetailSerializer row with the hash-derived fields swapped for slug URLs",
+  SharedPhotoResponse: "the {results} envelope of SharedPhoto (see there)",
   SyncPhotoItem: "the sync views (api/views/sync.py) declare no response serializer (openapi-baseline.txt, issue #485)",
   SyncPersonItem:
     "the sync views (api/views/sync.py) declare no response serializer (openapi-baseline.txt, issue #485)",

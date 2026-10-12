@@ -2,6 +2,7 @@ export * from "./common";
 export * from "./auth";
 export * from "./user";
 export * from "./photos";
+export * from "./photoMetadata";
 export * from "./albums";
 export * from "./persons";
 export * from "./search";

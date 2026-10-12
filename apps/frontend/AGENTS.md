@@ -106,7 +106,7 @@ green CI run. To develop against a local backend, copy `.env.development.example
 - Lint: `ban/api-client-method` (an `apiClient.<method>` call outside `api.ts` and tests), `ban/api-client-zod`
   and `ban/api-client-zod-utils` (zod or `util/zodUtils` in `src/api_client`). Domains not moved yet sit in
   `eslint-suppressions.json`, which only shrinks. `endpointReturnTypes.test.ts` in the package fails on an
-  endpoint returning `Promise<unknown>`; its allow-list only shrinks.
+  endpoint returning `Promise<unknown>` (no exceptions left).
 
 ## Styling
 
