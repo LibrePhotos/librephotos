@@ -10,6 +10,9 @@ standalone data directory) and which nobody attaches to a bug report.
 Releases up to 1.3.0 kept it in BASE_LOGS, next to ownphotos.log, and people
 zip that folder for bug reports (#2381). An existing BASE_LOGS/secret.key is
 moved on the first start, never regenerated: a new key logs every user out.
+Any start that finds the old file next to the new one holding the same key
+removes it, which finishes a move whose removal failed (on Windows a file
+another process is reading cannot be deleted).
 
 The settings module runs this at import, in every process that loads Django
 settings at once (the uvicorn workers, qcluster and its workers, manage.py),
@@ -28,6 +31,11 @@ from librephotos.logging_bootstrap import defer_warning
 # finished writing. Only possible on a filesystem without hard links, where
 # _publish falls back to O_EXCL; a whole key is a few dozen bytes.
 EMPTY_FILE_WAIT_SECONDS = 2.0
+
+# How long removing the old key file is retried while Windows refuses because
+# another process has it open (WinError 32): the processes starting together
+# all read it, each for a moment.
+REMOVE_RETRY_SECONDS = 2.0
 
 
 class SecretKeyError(RuntimeError):
@@ -114,6 +122,34 @@ def _publish(path: str, key: str) -> tuple[str, bool]:
     return stored, created
 
 
+def _remove_legacy_key(path: str, legacy_path: str) -> bool:
+    """Remove the old key file, which ``path`` now holds a copy of.
+
+    Retried while Windows refuses because another process has the file open;
+    True once it is gone, also when another process removed it first.
+    """
+    deadline = time.monotonic() + REMOVE_RETRY_SECONDS
+    while True:
+        try:
+            os.remove(legacy_path)
+            return True
+        except FileNotFoundError:
+            return True  # another process moved it at the same time
+        except PermissionError as error:
+            if time.monotonic() < deadline:
+                time.sleep(0.05)
+                continue
+            failure: OSError = error
+        except OSError as error:
+            failure = error
+        defer_warning(
+            f"Copied the Django secret key from {legacy_path} to {path} but "
+            f"could not remove the old file: {failure}. Delete it by hand; it "
+            "lets anyone who gets a copy of the log folder forge a login."
+        )
+        return False
+
+
 def _move_legacy_key(path: str, legacy_path: str, legacy_key: str) -> str:
     """Copy the key from ``legacy_path`` to ``path``, then remove the old file."""
     stored, created = _publish(path, legacy_key)
@@ -121,18 +157,9 @@ def _move_legacy_key(path: str, legacy_path: str, legacy_key: str) -> str:
         # Some other process stored a different key in the meantime. Every
         # process checks the old file before generating one, so this needs
         # something outside LibrePhotos writing the file; keep the old copy.
-        _warn_both_present(path, legacy_path, legacy_key, stored)
+        _warn_both_present(path, legacy_path)
         return stored
-    try:
-        os.remove(legacy_path)
-    except FileNotFoundError:
-        pass  # another process moved it at the same time
-    except OSError as error:
-        defer_warning(
-            f"Copied the Django secret key from {legacy_path} to {path} but "
-            f"could not remove the old file: {error}. Delete it by hand; it "
-            "lets anyone who gets a copy of the log folder forge a login."
-        )
+    if not _remove_legacy_key(path, legacy_path):
         return stored
     if created:
         defer_warning(
@@ -142,27 +169,34 @@ def _move_legacy_key(path: str, legacy_path: str, legacy_key: str) -> str:
     return stored
 
 
-def _warn_both_present(path: str, legacy_path: str, legacy_key: str, key: str) -> None:
-    same = "the same key" if legacy_key == key else "a different, unused key"
+def _warn_both_present(path: str, legacy_path: str) -> None:
     defer_warning(
         f"Both {path} and {legacy_path} exist; LibrePhotos uses {path}. The old "
-        f"file in the log folder holds {same} and is left untouched: delete it, "
-        "since anyone who gets a copy of the log folder could use it."
+        "file in the log folder holds a different, unused key and is left "
+        "untouched: delete it, since anyone who gets a copy of the log folder "
+        "could use it."
     )
 
 
 def load_or_create_secret_key(path: str, legacy_path: str | None = None) -> str:
     """The key stored in ``path``, moved there from ``legacy_path`` or generated.
 
-    In that order: an existing ``path`` wins (a non-empty ``legacy_path`` next to
-    it is reported and left alone); otherwise an existing ``legacy_path`` is
-    copied to ``path`` and removed; otherwise a new key is generated.
+    In that order: an existing ``path`` wins (a ``legacy_path`` next to it
+    holding the same key is the rest of an unfinished move and is removed, one
+    holding another key is reported and left alone); otherwise an existing
+    ``legacy_path`` is copied to ``path`` and removed; otherwise a new key is
+    generated.
     """
     key = _read_published_key(path)
     legacy_key = _read_key(legacy_path) if legacy_path else None
     if key:
-        if legacy_path and legacy_key:
-            _warn_both_present(path, legacy_path, legacy_key, key)
+        if legacy_path and legacy_key == key:
+            # Another process starting at the same time copied it, and could
+            # not remove it while this one was reading it (Windows), or an
+            # earlier start was interrupted: finish the move.
+            _remove_legacy_key(path, legacy_path)
+        elif legacy_path and legacy_key:
+            _warn_both_present(path, legacy_path)
         return key
     if legacy_path and legacy_key:
         return _move_legacy_key(path, legacy_path, legacy_key)

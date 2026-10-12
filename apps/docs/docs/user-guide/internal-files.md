@@ -22,7 +22,7 @@ If you delete it, a new key is generated: every user is logged out and the SMTP 
 
 If you set `shhhhKey` in your `.env` file (`SECRET_KEY` for the backend container), that value is used as the secret key instead and this file is never created or read.
 
-LibrePhotos 1.3.0 and older keep the file in `/logs` instead. The first start of a newer release moves it here and logs a warning saying so. If both files exist, the one in `/protected_media` is used, and the old one in `/logs` is left untouched with a warning in the log: delete it once you have checked that you can log in.
+LibrePhotos 1.3.0 and older keep the file in `/logs` instead. The first start of a newer release moves it here and logs a warning saying so. If both files exist, the one in `/protected_media` is used. An old file holding the same key is the rest of an unfinished move and is removed; one holding a different key is left untouched with a warning in the log: delete it once you have checked that you can log in.
 
 ### /avatars
 
