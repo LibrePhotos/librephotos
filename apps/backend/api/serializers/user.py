@@ -8,6 +8,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import identify_hasher
 from django.contrib.auth.validators import UnicodeUsernameValidator
+from django.db.models import Count, Prefetch, Q, QuerySet
 from django_q.tasks import Chain
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
@@ -16,6 +17,8 @@ from rest_framework.exceptions import ValidationError
 from api.batch_jobs import batch_calculate_clip_embedding
 from api.ml_models import do_all_models_exist, download_models
 from api.models import Photo, User
+from api.models.photo import visible_photo_q
+from api.serializers.fields import loaded_count, loaded_list
 from api.serializers.simple import PhotoSuperSimpleSerializer
 from api.timeline_filter import validate_default_timeline_filter
 from api.util import is_valid_path
@@ -320,6 +323,49 @@ def auto_create_user_directory(user: User, claim_existing: bool = False) -> None
     logger.info(f"Assigned data folder {candidate} to user {user.username}")
 
 
+# A user card shows this many of the user's public photos.
+PUBLIC_PHOTO_SAMPLE_COUNT = 10
+PUBLIC_PHOTO_SAMPLES = "public_photo_samples_loaded"
+
+
+def with_user_relations(queryset: QuerySet[User]) -> QuerySet[User]:
+    """Load everything the user serializers read in a constant number of queries.
+
+    ``UserSerializer``, ``PublicUserSerializer`` and ``ManageUserSerializer``
+    render a user's photo count, public photo count and a few public photos.
+    Each was a query per user, three per row of the user list (#2331). The
+    serializers raise on a user that did not come through here.
+    """
+    # Photo.visible: the count the Library page shows (counting hidden,
+    # trashed and missing photos made the admin's user list disagree with
+    # it), and ``public`` is never cleared when a photo is hidden, trashed or
+    # removed later, while those are not served to visitors.
+    visible = visible_photo_q("photo__")
+    samples = Photo.visible.filter(public=True).only(
+        *PhotoSuperSimpleSerializer.Meta.fields, "owner"
+    )
+    return queryset.annotate(
+        photo_count=Count("photo", filter=visible),
+        public_photo_count=Count("photo", filter=visible & Q(photo__public=True)),
+    ).prefetch_related(
+        Prefetch(
+            "photo_set",
+            queryset=samples[:PUBLIC_PHOTO_SAMPLE_COUNT],
+            to_attr=PUBLIC_PHOTO_SAMPLES,
+        )
+    )
+
+
+def public_photo_samples(user: User) -> list[dict[str, Any]]:
+    """The public photos a user card shows, as ``with_user_relations`` loaded them."""
+    # ``.data`` of a many=True serializer is a ReturnList; build it through
+    # ListSerializer so the static type matches the runtime value.
+    return serializers.ListSerializer(
+        child=PhotoSuperSimpleSerializer(),
+        instance=loaded_list(user, PUBLIC_PHOTO_SAMPLES, Photo),
+    ).data
+
+
 class AvatarField(serializers.ImageField):
     """The avatar, which only changes through a file upload.
 
@@ -529,22 +575,14 @@ class UserSerializer(serializers.ModelSerializer):
         chain.run()
 
     def get_photo_count(self, obj: User) -> int:
-        # As in ManageUserSerializer: the count the Library page shows.
-        return Photo.visible.owned_by(obj).count()
+        return loaded_count(obj, "photo_count")
 
     def get_public_photo_count(self, obj: User) -> int:
-        # Photo.visible: ``public`` is never cleared when a photo is hidden,
-        # trashed or removed later, and those are not served to visitors.
-        return Photo.visible.owned_by(obj).filter(public=True).count()
+        return loaded_count(obj, "public_photo_count")
 
     @extend_schema_field(PhotoSuperSimpleSerializer(many=True))
     def get_public_photo_samples(self, obj: User) -> list[dict[str, Any]]:
-        # ``.data`` of a many=True serializer is a ReturnList; build it through
-        # ListSerializer so the static type matches the runtime value.
-        return serializers.ListSerializer(
-            child=PhotoSuperSimpleSerializer(),
-            instance=Photo.visible.owned_by(obj).filter(public=True)[:10],
-        ).data
+        return public_photo_samples(obj)
 
     def get_avatar_url(self, obj: User) -> str | None:
         try:
@@ -577,17 +615,11 @@ class PublicUserSerializer(serializers.ModelSerializer):
         )
 
     def get_public_photo_count(self, obj: User) -> int:
-        # As in UserSerializer: only what a visitor can open.
-        return Photo.visible.owned_by(obj).filter(public=True).count()
+        return loaded_count(obj, "public_photo_count")
 
     @extend_schema_field(PhotoSuperSimpleSerializer(many=True))
     def get_public_photo_samples(self, obj: User) -> list[dict[str, Any]]:
-        # ``.data`` of a many=True serializer is a ReturnList; build it through
-        # ListSerializer so the static type matches the runtime value.
-        return serializers.ListSerializer(
-            child=PhotoSuperSimpleSerializer(),
-            instance=Photo.visible.owned_by(obj).filter(public=True)[:10],
-        ).data
+        return public_photo_samples(obj)
 
     def get_avatar_url(self, obj: User) -> str | None:
         try:
@@ -721,9 +753,7 @@ class ManageUserSerializer(serializers.ModelSerializer):
         }
 
     def get_photo_count(self, obj: User) -> int:
-        # The count the user's Library page shows: counting hidden, trashed and
-        # missing photos too made the admin's user list disagree with it.
-        return Photo.visible.owned_by(obj).count()
+        return loaded_count(obj, "photo_count")
 
     def update(self, instance: User, validated_data: dict[str, Any]) -> User:
         if "password" in validated_data:

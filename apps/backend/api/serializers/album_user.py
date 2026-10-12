@@ -280,12 +280,13 @@ def with_album_user_list_relations(
     # The photos the album detail shows, also for the users it is shared to.
     # A subquery rather than Count("photos"): callers filter on other
     # relations of the album (shared_to), whose join would multiply it.
+    # Counted from the photo side, which the type checker can follow.
     visible_photo_count = (
-        AlbumUser.photos.through.objects.filter(albumuser_id=OuterRef("pk"))
-        .filter(visible_photo_q("photo__"))
-        .values("albumuser_id")
-        .annotate(count=Count("*"))
-        .values("count")
+        Photo.visible.filter(albumuser=OuterRef("pk"))
+        .order_by()
+        .values("albumuser")
+        .annotate(total=Count("pk"))
+        .values("total")
     )
     return (
         queryset.annotate(photo_count=Coalesce(Subquery(visible_photo_count), 0))

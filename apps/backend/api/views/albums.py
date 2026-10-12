@@ -379,7 +379,8 @@ class AlbumUserListViewSet(ListViewSet):
             return AlbumUser.objects.none()
         return (
             with_album_user_list_relations(AlbumUser.objects.filter(owner=user))
-            .filter(photo_count__gt=0)
+            # A Q: the type checker does not see the helper's annotation.
+            .filter(Q(photo_count__gt=0))
             .order_by("title")
         )
 

@@ -20,7 +20,7 @@ from api.models.photo_search import PhotoSearch
 from api.models.photo_stack import PhotoStack
 from api.models.thumbnail import Thumbnail
 from api.request_user import request_user
-from api.serializers.fields import shared_serializer
+from api.serializers.fields import loaded_count, prefetched, shared_serializer
 from api.serializers.photo_metadata import PhotoMetadataSummarySerializer
 from api.serializers.PhotosGroupedByDate import PhotosGroupedByDate
 from api.serializers.simple import SimpleUserSerializer
@@ -151,62 +151,27 @@ class PhotoSummarySerializer(serializers.ModelSerializer):
         return "image"
 
     def get_stacks(self, obj: Photo) -> list | None:
-        """Return stack info if photo is part of any stacks.
+        """The photo's stacks, as ``with_photo_summary_relations`` prefetched them.
 
-        Uses prefetched stacks data when available (from AlbumDateViewSet)
-        to avoid N+1 queries. The prefetch filters by valid stack types and
-        annotates photo_count_annotation so no extra queries are needed.
+        The prefetch keeps the stack types a tile shows and annotates each
+        stack's size; a photo without that prefetch raises instead of querying.
         """
-        # Use the prefetch cache (obj.stacks.all() won't re-query if prefetched)
-        stacks = obj.stacks.all()
-        if not stacks:
-            return None
-
-        from api.models.photo_stack import PhotoStack
-
-        valid_stack_types = set(
-            PhotoStack.VALID_STACK_TYPES
-            + [
-                PhotoStack.StackType.RAW_JPEG_PAIR,
-                PhotoStack.StackType.LIVE_PHOTO,
-            ]
-        )
-
-        result = []
-        for stack in stacks:
-            # If stacks were prefetched with the type filter, all results are valid.
-            # If not prefetched (called from another serializer context), filter in Python.
-            if stack.stack_type not in valid_stack_types:
-                continue
-            is_primary = (
-                stack.primary_photo_id == obj.pk if stack.primary_photo_id else False
-            )
-            # Use annotated count if available, otherwise fall back to DB query
-            photo_count = getattr(stack, "photo_count_annotation", None)
-            if photo_count is None:
-                photo_count = stack.photos.count()
-            result.append(
-                {
-                    "id": str(stack.id),
-                    "type": stack.stack_type,
-                    "photo_count": photo_count,
-                    "is_primary": is_primary,
-                }
-            )
-
+        result = [
+            {
+                "id": str(stack.id),
+                "type": stack.stack_type,
+                "photo_count": loaded_count(stack, "photo_count_annotation"),
+                "is_primary": stack.primary_photo_id == obj.pk,
+            }
+            for stack in prefetched(obj, "stacks", PhotoStack)
+        ]
         return result or None
 
     def get_has_raw_variant(self, obj: Photo) -> bool:
-        """Check if this photo has a RAW file variant.
-
-        Uses prefetched files when available to avoid N+1 queries.
-        Returns True if any of the photo's files is a RAW file type.
-        """
-        # Use prefetch cache if available (iterate in Python), otherwise query DB
-        # File.RAW_FILE = 4
-        if "files" in getattr(obj, "_prefetched_objects_cache", {}):
-            return any(f.type == 4 for f in obj.files.all())
-        return obj.files.filter(type=4).exists()
+        """Whether one of the photo's files (prefetched) is a RAW file."""
+        return any(
+            file.type == File.RAW_FILE for file in prefetched(obj, "files", File)
+        )
 
 
 class GroupedPhotosSerializer(serializers.ModelSerializer):
@@ -249,10 +214,11 @@ def with_photo_summary_relations(queryset: QuerySet[Photo]) -> QuerySet[Photo]:
     # that same join, so a count over it saw only the photo being prefetched
     # and every tile said its stack held one photo.
     stack_size = (
-        PhotoStack.photos.through.objects.filter(photostack_id=OuterRef("pk"))
-        .values("photostack_id")
-        .annotate(size=Count("*"))
-        .values("size")
+        Photo.objects.filter(stacks=OuterRef("pk"))
+        .order_by()
+        .values("stacks")
+        .annotate(total=Count("pk"))
+        .values("total")
     )
     stacks_prefetch = Prefetch(
         "stacks",
@@ -378,7 +344,7 @@ class PhotoDetailsSummarySerializer(serializers.ModelSerializer):
     # The view passes a queryset of photos (many=False), not a single photo.
     @extend_schema_field(PhotoSummarySerializer)
     def get_photo_summary(self, obj: QuerySet[Photo]) -> dict[str, Any]:
-        return PhotoSummarySerializer(obj.get()).data
+        return PhotoSummarySerializer(with_photo_summary_relations(obj).get()).data
 
     def get_processing(self, obj: QuerySet[Photo]) -> bool:
         return obj.get().thumbnail.aspect_ratio is None
