@@ -1,12 +1,12 @@
 r"""The ML sidecars find their models under ``BASE_DATA``, not ``/``.
 
-``api.ml_models`` downloads every model to ``MEDIA_ROOT/data_models``, which
+``api.runtime.ml_models`` downloads every model to ``MEDIA_ROOT/data_models``, which
 is ``BASE_DATA/protected_media/data_models``. The sidecars never load Django,
 so they cannot read ``settings.MEDIA_ROOT``; they used to hard-code the Docker
 layout (``/protected_media/data_models``) instead, which on a native Windows
 run with ``BASE_DATA=C:\...\lpdata`` resolved to ``C:\protected_media`` and
 failed with ONNX ``NO_SUCHFILE`` (face_recognition even downloaded its model
-there). ``api.services._service_environment`` now hands ``BASE_DATA`` to the
+there). ``api.runtime.supervisor._service_environment`` now hands ``BASE_DATA`` to the
 spawned services, and each service derives its model directory from it.
 
 Each service module is executed afresh from its file under a controlled
@@ -23,7 +23,7 @@ from unittest.mock import patch
 from django.conf import settings
 from django.test import SimpleTestCase, override_settings
 
-from api.services import _service_environment
+from api.runtime.supervisor import _service_environment
 from api.tests.stubs import BACKEND_ROOT, load_backend_file, unique_module_name
 
 BACKEND_DIR = str(BACKEND_ROOT)

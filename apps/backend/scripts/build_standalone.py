@@ -28,7 +28,7 @@ ENTRY = BACKEND / "librephotos_standalone.py"
 DIST_NAME = "librephotos"
 
 # The sidecars import their neighbours by bare name (``from openclip.openclip import
-# ...``) because api.services runs them as scripts with their own directory as
+# ...``) because api.runtime.supervisor runs them as scripts with their own directory as
 # sys.path[0]. Putting those directories on the compile-time path makes Nuitka
 # compile the neighbours as the same top-level modules, so the imports resolve
 # identically inside the binary. Only main.py is named through its package.

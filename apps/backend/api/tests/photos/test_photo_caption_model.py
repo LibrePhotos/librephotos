@@ -148,7 +148,7 @@ class PhotoCaptionModelTest(TestCase):
         caption.save()
         self.assertEqual(caption.captions_json["user_caption"], "")
 
-    @patch("api.sidecars.http.post")
+    @patch("api.runtime.sidecars.http.post")
     def test_generate_tag_captions_handles_error_response(self, mock_post):
         """Test that generate_photo_tags handles non-OK HTTP response gracefully"""
         caption = PhotoCaption.objects.create(photo=self.photo)
@@ -168,7 +168,7 @@ class PhotoCaptionModelTest(TestCase):
         # captions_json should remain unchanged
         self.assertIsNone(caption.captions_json)
 
-    @patch("api.sidecars.http.post")
+    @patch("api.runtime.sidecars.http.post")
     def test_generate_tag_captions_handles_non_json_response(self, mock_post):
         """Test that generate_photo_tags handles non-JSON response body gracefully"""
         caption = PhotoCaption.objects.create(photo=self.photo)
@@ -185,7 +185,7 @@ class PhotoCaptionModelTest(TestCase):
         # captions_json should remain unchanged
         self.assertIsNone(caption.captions_json)
 
-    @patch("api.sidecars.http.post")
+    @patch("api.runtime.sidecars.http.post")
     def test_generate_tag_captions_handles_missing_tags_key(self, mock_post):
         """Test that generate_photo_tags handles JSON response without 'tags' key"""
         caption = PhotoCaption.objects.create(photo=self.photo)
@@ -202,7 +202,7 @@ class PhotoCaptionModelTest(TestCase):
         # captions_json should remain unchanged
         self.assertIsNone(caption.captions_json)
 
-    @patch("api.sidecars.http.post")
+    @patch("api.runtime.sidecars.http.post")
     def test_generate_tag_captions_handles_400_response(self, mock_post):
         """Test that generate_photo_tags handles HTTP 400 (bad request) gracefully"""
         caption = PhotoCaption.objects.create(photo=self.photo)

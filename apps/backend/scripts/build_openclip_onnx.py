@@ -2,7 +2,7 @@
 """Export OpenCLIP ViT-B/32 (DataComp-XL) to ONNX for LibrePhotos' tags and search.
 
 Checked in for reproducibility and run **by hand** by a maintainer to (re)build
-the ``openclip_vitb32`` bundle that ``api/ml_models.py`` downloads. It is not
+the ``openclip_vitb32`` bundle that ``api/runtime/ml_models.py`` downloads. It is not
 imported by the running server and adds nothing to ``requirements.txt``: torch
 and open_clip exist only in the throwaway venv this runs in, e.g.::
 
@@ -825,7 +825,7 @@ def main(argv=None):
     (args.output_dir / "checks.json").write_text(json.dumps(checks, indent=1))
     sums = write_checksums(bundle)
 
-    print("\nML_MODELS pins (api/ml_models.py):")
+    print("\nML_MODELS pins (api/runtime/ml_models.py):")
     for name, digest in sums.items():
         print(f'    "{BUNDLE_NAME}/{name}": "{digest}",')
     print("\nUpload:")

@@ -69,7 +69,7 @@ class CalculateAspectRatioTest(TestCase):
         """
         photo = self._photo_with_thumbnail(400, 200)
 
-        with mock.patch("api.sidecars.http.post") as mock_post:
+        with mock.patch("api.runtime.sidecars.http.post") as mock_post:
             render.calculate_aspect_ratio(photo.thumbnail)
 
         mock_post.assert_not_called()

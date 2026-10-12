@@ -6,7 +6,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from api.drf.exceptions import Conflict
-from api.services import (
+from api.runtime.supervisor import (
     SERVICE_FEATURE_FLAGS,
     SERVICES,
     disabled_reason,

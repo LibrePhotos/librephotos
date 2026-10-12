@@ -340,7 +340,7 @@ class HealthAndLogTest(SimpleTestCase):
 
     def test_log_writes_backend_format_to_stdout(self):
         # The sidecar's logger, not print(): the backend's line format on the
-        # stdout api.services leaves the process, and nothing else.
+        # stdout api.runtime.supervisor leaves the process, and nothing else.
         (handler,) = exif_main.log.handlers
         self.assertIs(handler.stream, sys.stdout)
         self.assertFalse(exif_main.log.propagate)

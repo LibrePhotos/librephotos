@@ -97,7 +97,9 @@ class StartJobFailureTest(TransactionTestCase):
             with self.subTest(url=url):
                 with (
                     patch("api.jobs.queue.AsyncTask") as async_task,
-                    patch("api.ml_models.do_all_models_exist", return_value=True),
+                    patch(
+                        "api.runtime.ml_models.do_all_models_exist", return_value=True
+                    ),
                 ):
                     async_task.return_value.run.side_effect = RuntimeError("down")
                     response = self.client.post(url)
@@ -125,7 +127,7 @@ class StartJobFailureTest(TransactionTestCase):
     def test_face_scan_start_failure_is_a_500(self):
         with (
             patch("api.jobs.queue.Chain") as chain,
-            patch("api.ml_models.do_all_models_exist", return_value=False),
+            patch("api.runtime.ml_models.do_all_models_exist", return_value=False),
         ):
             chain.return_value.run.side_effect = RuntimeError("down")
             response = self.client.post("/api/scanfaces/")
@@ -139,7 +141,7 @@ class StartJobFailureTest(TransactionTestCase):
         # "training started" (#2325).
         with (
             patch("api.jobs.queue.Chain") as chain,
-            patch("api.ml_models.do_all_models_exist", return_value=True),
+            patch("api.runtime.ml_models.do_all_models_exist", return_value=True),
         ):
             chain.return_value.run.side_effect = RuntimeError("down")
             response = self.client.post("/api/trainfaces/")
@@ -174,7 +176,7 @@ class OtherJobStartersTest(TestCase):
     def test_face_training_queues_both_jobs_and_returns_both_ids(self):
         with (
             patch("api.jobs.queue.Chain") as chain,
-            patch("api.ml_models.do_all_models_exist", return_value=True),
+            patch("api.runtime.ml_models.do_all_models_exist", return_value=True),
             self.captureOnCommitCallbacks(execute=True),
         ):
             response = self.client.post("/api/trainfaces/")
@@ -227,7 +229,7 @@ class FullScanValidatesScanDirectoryTest(TestCase):
     def test_starts_a_full_scan_of_a_valid_directory(self):
         directory = tempfile.mkdtemp()
         self.addCleanup(shutil.rmtree, directory, True)
-        with patch("api.ml_models.do_all_models_exist", return_value=True):
+        with patch("api.runtime.ml_models.do_all_models_exist", return_value=True):
             response, async_task = self._full_scan(directory)
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.json()["status"])

@@ -25,7 +25,7 @@ MODELS = BACKEND / "api" / "models"
 
 # Modules a model must not import, with everything below them.
 FORBIDDEN_MODULES = (
-    "api.sidecars",
+    "api.runtime.sidecars",
     "api.classification.captioning",
     "api.faces.recognition",
     "api.thumbnails",
@@ -66,7 +66,7 @@ def _dotted(node: ast.expr) -> str | None:
 
 def _imported_modules(node: ast.AST) -> list[str]:
     """Every module an import statement brings in, ``from a import b`` as both
-    ``a`` and ``a.b`` (``b`` may be a module: ``from api import sidecars``)."""
+    ``a`` and ``a.b`` (``b`` may be a module: ``from api.runtime import sidecars``)."""
     if isinstance(node, ast.Import):
         return [alias.name for alias in node.names]
     if isinstance(node, ast.ImportFrom) and node.module and not node.level:
@@ -120,10 +120,10 @@ class CheckerTest(SimpleTestCase):
 
     def test_a_planted_sidecar_import_in_tag_fails(self):
         source = (MODELS / "tag.py").read_text(encoding="utf-8")
-        planted = source + "\nfrom api import sidecars\n"
+        planted = source + "\nfrom api.runtime import sidecars\n"
         self.assertEqual([], io_findings(source))
         self.assertEqual(
-            [f"line {planted.count(chr(10))}: imports api.sidecars"],
+            [f"line {planted.count(chr(10))}: imports api.runtime.sidecars"],
             io_findings(planted),
         )
 

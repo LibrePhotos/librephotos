@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING
 from django.conf import settings
 from PIL import Image
 
-from api import binaries, sidecars
 from api.lazy_import import LazyModule
 from api.mime import EXIF_ORIENTED_EXTENSIONS, extension
 from api.models.thumbnail import (
@@ -17,6 +16,7 @@ from api.models.thumbnail import (
 )
 from api.photos.file_cleanup import delete_thumbnail_files
 from api.photos.media_files import is_raw
+from api.runtime import binaries, sidecars
 from api.video import color
 
 if TYPE_CHECKING:
@@ -166,7 +166,7 @@ def _request_raw_thumbnail(
         "destination": complete_path,
         "height": output_height,
     }
-    from api.http_timeouts import THUMBNAIL
+    from api.runtime.http_timeouts import THUMBNAIL
 
     # An error status raises here, before its body is read as a thumbnail.
     response = sidecars.post("thumbnail", "/", json=json, timeout=THUMBNAIL).json()

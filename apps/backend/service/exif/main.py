@@ -23,7 +23,7 @@ def stop_exiftools() -> None:
     """Stop both ExifTool processes; the next request starts the one it needs.
 
     Each is a Perl interpreter of ~30-40 MB (plus a console host on Windows)
-    that stayed up between scans. The watchdog (api.services) calls this once
+    that stayed up between scans. The watchdog (api.runtime.supervisor) calls this once
     the sidecar has been idle for a while, as it unloads the ML sidecars'
     models; a restart costs one Perl start-up (~0.3 s). The Rust experiment
     measured -57 % idle memory for its ExifTool pool this way.

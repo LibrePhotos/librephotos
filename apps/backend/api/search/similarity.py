@@ -6,10 +6,10 @@ from typing import TYPE_CHECKING, TypedDict
 import requests
 from django.core.paginator import Paginator
 
-from api import sidecars
-from api.http_timeouts import SIMILARITY
 from api.lazy_import import LazyModule
 from api.models import Photo, User
+from api.runtime import sidecars
+from api.runtime.http_timeouts import SIMILARITY
 from api.search.semantic import (
     SEARCH_THRESHOLD,
     SIMILAR_THRESHOLD,

@@ -1,7 +1,7 @@
 """The external tools (ffmpeg, ffprobe, ExifTool, ...): where they are and how they run.
 
 This is the only module that starts a tool (ruff TID251 bans ``subprocess``
-elsewhere; ``api/services.py`` supervises the sidecars on its own).
+elsewhere; ``api/runtime/supervisor.py`` supervises the sidecars on its own).
 
 - :func:`run_tool` runs a tool to completion. The timeout has no default: a
   tool that hangs on one file must fail the call, never park a worker forever.

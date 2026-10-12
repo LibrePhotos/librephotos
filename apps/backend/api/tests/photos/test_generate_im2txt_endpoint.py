@@ -5,7 +5,7 @@ from unittest.mock import patch
 from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
 
-from api.ml_models import ML_MODELS, MlTypes
+from api.runtime.ml_models import ML_MODELS, MlTypes
 from api.tests.utils import api_error, create_test_photo, create_test_user
 
 

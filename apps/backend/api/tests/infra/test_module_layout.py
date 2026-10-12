@@ -1,14 +1,13 @@
 """Backend code lives in a domain package under ``api/``, not in a flat module.
 
-Issue #2335: a new flat ``api/*.py`` module fails here. The flat modules that
-exist are listed below, and the list only shrinks: a module moved into its
-package must leave the list in the same pull request, or the test fails on the
-stale entry. ``STAYS_FLAT`` are the Django and project conventions; every other
-entry names the package it moves to, in the order of the remaining moves.
+Issue #2335: a new flat ``api/*.py`` module fails here. The only flat modules
+are the Django and project conventions in ``STAYS_FLAT``, and the list only
+shrinks: a convention module that goes away must leave the list in the same
+pull request, or the test fails on the stale entry.
 
-A move updates every import and every ``mock.patch("api.<old>...")`` string and
-leaves no re-export shim behind: a test that patches a shim no longer patches
-the code under test.
+A move into a package updates every import and every
+``mock.patch("api.<old>...")`` string and leaves no re-export shim behind: a
+test that patches a shim no longer patches the code under test.
 
 The domain packages are also a layer of the import contracts in
 ``pyproject.toml`` (``[tool.importlinter]``, checked by ``lint-imports``): a
@@ -39,19 +38,6 @@ STAYS_FLAT = {
     "sync_signals",  # where it ends up is #2342
 }
 
-# Flat module -> the package it moves to, in the order of the remaining moves.
-# Remove a module's line in the pull request that moves it.
-TO_MOVE = {
-    # The sidecar platform, last (Schedule.func migration; service/_common.py and
-    # librephotos/standalone.py import it). api/runtime/__init__.py imports
-    # nothing, so api.runtime.sidecars stays Django-free.
-    "sidecars": "api/runtime/",
-    "http_timeouts": "api/runtime/",
-    "services": "api/runtime/",
-    "ml_models": "api/runtime/",
-    "binaries": "api/runtime/",
-}
-
 # Packages under api/ that are not domain packages: the layers above and below
 # them, and Django's own directories.
 NOT_DOMAIN_PACKAGES = {
@@ -72,15 +58,14 @@ def flat_modules(api_dir: Path) -> set[str]:
 
 
 def layout_problems(found: set[str]) -> list[str]:
-    allowed = STAYS_FLAT | set(TO_MOVE)
     problems = [
         f"api/{name}.py is a new flat module: put it in a domain package "
         "(see 'Layout' in apps/backend/AGENTS.md)"
-        for name in sorted(found - allowed)
+        for name in sorted(found - STAYS_FLAT)
     ]
     problems += [
-        f"api/{name}.py is gone: remove it from TO_MOVE in {Path(__file__).name}"
-        for name in sorted(set(TO_MOVE) - found)
+        f"api/{name}.py is gone: remove it from STAYS_FLAT in {Path(__file__).name}"
+        for name in sorted(STAYS_FLAT - found)
     ]
     return problems
 
@@ -98,21 +83,18 @@ class ModuleLayoutTest(SimpleTestCase):
         self.assertEqual(layout_problems(flat_modules(API)), [])
 
     def test_a_planted_flat_module_fails(self):
-        found = STAYS_FLAT | set(TO_MOVE) | {"new_module"}
+        found = STAYS_FLAT | {"new_module"}
         self.assertEqual(
             [problem.split(" ")[0] for problem in layout_problems(found)],
             ["api/new_module.py"],
         )
 
-    def test_a_moved_module_still_listed_fails(self):
-        found = (STAYS_FLAT | set(TO_MOVE)) - {"sidecars"}
+    def test_a_removed_convention_module_still_listed_fails(self):
+        found = STAYS_FLAT - {"lazy_import"}
         self.assertEqual(
             [problem.split(" ")[0] for problem in layout_problems(found)],
-            ["api/sidecars.py"],
+            ["api/lazy_import.py"],
         )
-
-    def test_conventions_and_moves_do_not_overlap(self):
-        self.assertEqual(STAYS_FLAT & set(TO_MOVE), set())
 
 
 @needs_tomllib

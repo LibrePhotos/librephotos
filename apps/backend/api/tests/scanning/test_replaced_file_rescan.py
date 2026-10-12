@@ -10,7 +10,6 @@ from django.test import TestCase, override_settings
 from PIL import Image
 
 import api.thumbnails.decoding  # noqa: F401  registers the HEIF opener _write_image(format="HEIF") needs
-from api import binaries
 from api.directory_watcher.file_handlers import (
     create_file_record,
     group_files_into_photo,
@@ -23,6 +22,7 @@ from api.metadata.writer import read_orientation, write_metadata
 from api.models import File, Person, Photo, User
 from api.models.file import content_hash
 from api.photos.media_files import calculate_hash
+from api.runtime import binaries
 from api.tests.utils import (
     create_test_face,
     create_test_person,

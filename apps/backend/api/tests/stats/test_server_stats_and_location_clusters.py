@@ -15,10 +15,10 @@ from unittest.mock import patch
 from django.test import TestCase, override_settings
 from django.utils import timezone
 
-from api import binaries
 from api.dataviz.stats import get_location_clusters, get_server_stats
 from api.models import Person, Photo
 from api.models.user import get_deleted_user
+from api.runtime import binaries
 from api.tests.utils import (
     create_test_album_auto,
     create_test_album_place,

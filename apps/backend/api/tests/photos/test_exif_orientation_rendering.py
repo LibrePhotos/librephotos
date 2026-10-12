@@ -19,9 +19,9 @@ import pyvips
 from django.test import SimpleTestCase
 from PIL import Image
 
-from api import binaries
 from api.metadata.tags import Tags
 from api.metadata.writer import read_orientation, write_metadata
+from api.runtime import binaries
 from api.thumbnails import decoding
 from api.thumbnails.render import (
     _apply_local_orientation,

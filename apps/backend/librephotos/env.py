@@ -169,7 +169,7 @@ def protected_media_root(base_data: str | None = None) -> str:
 
     Django calls it ``settings.MEDIA_ROOT`` and passes its own ``BASE_DATA``.
     The sidecars never load Django, so they call it without one and read
-    ``BASE_DATA`` from the environment api.services._service_environment hands
+    ``BASE_DATA`` from the environment api.runtime.supervisor._service_environment hands
     them; unset, this is the Docker layout under the filesystem root.
     """
     if base_data is None:
@@ -178,7 +178,7 @@ def protected_media_root(base_data: str | None = None) -> str:
 
 
 def data_models_root(media_root: str | None = None) -> str:
-    """``<protected media>/data_models``, where api.ml_models downloads every model.
+    """``<protected media>/data_models``, where api.runtime.ml_models downloads every model.
 
     The backend passes ``settings.MEDIA_ROOT`` (so a test overriding it moves
     the models too); a sidecar passes nothing and gets the directory under

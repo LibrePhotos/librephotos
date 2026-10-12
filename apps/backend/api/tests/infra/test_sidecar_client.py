@@ -1,4 +1,4 @@
-"""The one HTTP client the backend calls its sidecars with (api.sidecars).
+"""The one HTTP client the backend calls its sidecars with (api.runtime.sidecars).
 
 Exercised against a real HTTP server on loopback, so the retry policy is the
 one urllib3 actually applies, not a reading of its configuration.
@@ -12,7 +12,7 @@ from unittest.mock import patch
 import requests
 from django.test import SimpleTestCase
 
-from api import sidecars
+from api.runtime import sidecars
 
 
 class _Handler(BaseHTTPRequestHandler):
@@ -129,7 +129,7 @@ class SidecarClientTest(SimpleTestCase):
     def test_a_child_process_builds_its_own_session(self):
         first = sidecars.http.session()
         self.assertIs(sidecars.http.session(), first)
-        with patch("api.sidecars.os.getpid", return_value=-1):
+        with patch("api.runtime.sidecars.os.getpid", return_value=-1):
             self.assertIsNot(sidecars.http.session(), first)
 
 

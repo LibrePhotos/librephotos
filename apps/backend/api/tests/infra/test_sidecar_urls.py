@@ -11,8 +11,8 @@ import re
 
 from django.test import SimpleTestCase
 
-from api.services import SERVICES
-from api.sidecars import sidecar_url
+from api.runtime.sidecars import sidecar_url
+from api.runtime.supervisor import SERVICES
 
 BACKEND = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 SOURCE_DIRS = ("api", "librephotos", "service", "image_similarity")
@@ -40,23 +40,23 @@ class SidecarUrlTest(SimpleTestCase):
             sidecar_url(8010, "/get-tags")
 
     def test_the_services_list_is_the_address_book(self):
-        from api import services
+        from api.runtime import supervisor
 
-        self.assertIs(services.SERVICES, SERVICES)
+        self.assertIs(supervisor.SERVICES, SERVICES)
 
     def test_no_sidecar_port_is_written_down_twice(self):
         """Every address comes from SERVICES, never a literal port."""
         literal_port = re.compile(rf"\b(?:{PORTS})\b")
         offenders = []
         for path in _sources():
-            if path.endswith(os.path.join("api", "sidecars.py")):
+            if path.endswith(os.path.join("api", "runtime", "sidecars.py")):
                 continue
             with open(path, encoding="utf-8") as handle:
                 for number, line in enumerate(handle, 1):
                     code = line.split("#", 1)[0]
                     if literal_port.search(code):
                         offenders.append(f"{os.path.relpath(path, BACKEND)}:{number}")
-        self.assertEqual(offenders, [], "use api.sidecars.SERVICES")
+        self.assertEqual(offenders, [], "use api.runtime.sidecars.SERVICES")
 
     def test_no_sidecar_is_called_through_localhost(self):
         offenders = []
@@ -65,4 +65,4 @@ class SidecarUrlTest(SimpleTestCase):
                 for number, line in enumerate(handle, 1):
                     if LOCALHOST_SIDECAR.search(line):
                         offenders.append(f"{os.path.relpath(path, BACKEND)}:{number}")
-        self.assertEqual(offenders, [], "use api.sidecars.sidecar_url")
+        self.assertEqual(offenders, [], "use api.runtime.sidecars.sidecar_url")

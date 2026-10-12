@@ -91,7 +91,7 @@ allow-star-arg-any = true
 "os.getenv".msg = "Read configuration through django.conf.settings; settings and sidecars use librephotos/env.py."
 # External tools run through one module (issue #2338): it resolves the binary
 # (the System32 trap on Windows), demands a timeout and logs failures the same way.
-"subprocess".msg = "Run external tools through api.binaries.run_tool (with a timeout) or start_tool."
+"subprocess".msg = "Run external tools through api.runtime.binaries.run_tool (with a timeout) or start_tool."
 # Background work is queued in one module (issue #2333): it writes the job's
 # LongRunningJob row before the task is queued and refuses a duplicate start.
 "django_q.tasks".msg = "Queue work through api.jobs.queue (enqueue_job, enqueue_followup, enqueue_task, schedule_once)."
@@ -119,9 +119,9 @@ allow-star-arg-any = true
 # The parser itself.
 "librephotos/env.py" = ["TID251"]
 # It builds the environment of the sidecars it starts, and supervises them.
-"api/services.py" = ["TID251"]
+"api/runtime/supervisor.py" = ["TID251"]
 # The one runner of external tools.
-"api/binaries.py" = ["TID251"]
+"api/runtime/binaries.py" = ["TID251"]
 # The one module that queues background work (issue #2333).
 "api/jobs/queue.py" = ["TID251"]
 # They pick DJANGO_SETTINGS_MODULE from DEBUG before any settings exist.
@@ -160,7 +160,7 @@ ignore_missing_imports = true
 [[tool.mypy.overrides]]          # strict modules: this list only grows, and each entry names a checked module (scripts/typecheck.py enforces both)
 # Explicit flags instead of `strict = true`: inside an override, `strict` turns
 # the strict flags on for every module, not just the listed ones.
-module = ["api.dataviz.color_palettes", "api.metadata.tags", "api.http_timeouts",
+module = ["api.dataviz.color_palettes", "api.metadata.tags", "api.runtime.http_timeouts",
           "api.drf.pagination", "api.serializers.site_settings", "librephotos.env",
           "typecheck", "ruff_baseline"]
 disallow_any_generics = true
@@ -193,7 +193,7 @@ type = "layers"
 layers = [
   "api.views : nextcloud.views",
   "api.serializers",
-  "api.accounts : api.albums : api.classification : api.dataviz : api.directory_watcher : api.drf : api.duplicates : api.faces : api.geocode : api.jobs : api.metadata : api.photos : api.search : api.serving : api.stacks : api.thumbnails : api.video",
+  "api.accounts : api.albums : api.classification : api.dataviz : api.directory_watcher : api.drf : api.duplicates : api.faces : api.geocode : api.jobs : api.metadata : api.photos : api.runtime : api.search : api.serving : api.stacks : api.thumbnails : api.video",
   "api.models",
 ]
 ignore_imports = [
@@ -214,7 +214,7 @@ id = "views-no-sidecars"
 name = "Views reach the sidecars only through a domain module"
 type = "forbidden"
 source_modules = ["api.views"]
-forbidden_modules = ["api.sidecars"]
+forbidden_modules = ["api.runtime.sidecars"]
 # Through a domain module is the point; only a direct import breaks it.
 allow_indirect_imports = true
 
@@ -222,6 +222,17 @@ allow_indirect_imports = true
 id = "django-free"
 name = "Sidecars and the sidecar client never import Django"
 type = "forbidden"
-# The sidecars read their ports from api.sidecars, and run without Django.
-source_modules = ["service", "image_similarity", "api.sidecars"]
+# The sidecars read their ports from api.runtime.sidecars, and run without Django.
+source_modules = ["service", "image_similarity", "api.runtime.sidecars"]
 forbidden_modules = ["django"]
+
+[[tool.importlinter.contracts]]
+id = "django-free-package-inits"
+name = "Importing api.runtime.sidecars runs only Django-free package inits"
+type = "forbidden"
+# Python runs api/__init__.py and api/runtime/__init__.py before
+# api.runtime.sidecars, and the contract above does not see them: they import
+# nothing. As modules, not packages: the rest of api.runtime needs Django.
+source_modules = ["api", "api.runtime"]
+forbidden_modules = ["django"]
+as_packages = false

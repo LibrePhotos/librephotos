@@ -185,7 +185,7 @@ class CreateThumbnailRawTests(SimpleTestCase):
         pyvips_patcher = mock.patch("api.thumbnails.render.pyvips")
         self.pyvips = pyvips_patcher.start()
         self.addCleanup(pyvips_patcher.stop)
-        requests_patcher = mock.patch("api.sidecars.http")
+        requests_patcher = mock.patch("api.runtime.sidecars.http")
         self.requests = requests_patcher.start()
         self.addCleanup(requests_patcher.stop)
         self.requests.post.return_value.json.return_value = {
@@ -199,7 +199,7 @@ class CreateThumbnailRawTests(SimpleTestCase):
         self.addCleanup(preview_patcher.stop)
 
     def test_big_thumbnail_posts_to_raw_service_and_returns_service_path(self):
-        from api.http_timeouts import THUMBNAIL
+        from api.runtime.http_timeouts import THUMBNAIL
 
         result = create_thumbnail(self.RAW_PATH, 800, "thumbnails_big", "deadbeef")
         # NOTE: the RAW/big branch returns the service's response, *not* the

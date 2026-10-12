@@ -1,7 +1,7 @@
 """What every sidecar shares: its Flask app, /health, the idle clock and serve().
 
 The sidecars are small Flask apps started as ``python service/<name>/main.py``
-(or ``python image_similarity/main.py``) by api.services, which puts the
+(or ``python image_similarity/main.py``) by api.runtime.supervisor, which puts the
 backend root on their PYTHONPATH, so this module imports as
 ``service._common`` there as in the tests and the standalone build.
 
@@ -15,7 +15,7 @@ backend root on their PYTHONPATH, so this module imports as
       minutes-long inference never looks idle. ``model_loaded`` is None for a
       sidecar that holds no model.
     * ``GET``/``POST /unload-model``, for a sidecar that passes ``unload``:
-      the watchdog (api.services.check_services) calls it once the sidecar has
+      the watchdog (api.runtime.supervisor.check_services) calls it once the sidecar has
       been idle for a while, to give the model's memory back without killing
       the process. It answers 409 while a request is running.
     * A request body that is not a JSON object with the required fields
@@ -23,7 +23,7 @@ backend root on their PYTHONPATH, so this module imports as
       and an unexpected exception with ``{"error": "..."}`` and 500.
 
 ``serve_forever(app, name)``
-    Serves the app with gevent on the port api.sidecars.SERVICES gives the
+    Serves the app with gevent on the port api.runtime.sidecars.SERVICES gives the
     sidecar, on loopback unless SERVICE_HOST says otherwise: the sidecars
     have no authentication, and the backend only ever calls them on
     127.0.0.1. Each main.py wraps it in the ``serve()`` the standalone build
@@ -31,7 +31,7 @@ backend root on their PYTHONPATH, so this module imports as
 
 ``logger(name)``
     The sidecar's stdlib logger: the backend's line format and LOG_LEVEL (or
-    its LOG_LEVELS entry), written to the stdout api.services leaves the
+    its LOG_LEVELS entry), written to the stdout api.runtime.supervisor leaves the
     sidecar (see _service_environment), which is the container log, and
     nowhere else (logging_bootstrap.configure_standalone). Modules that must
     not import Flask take ``logging.getLogger(name)`` instead and log through
@@ -184,7 +184,7 @@ def release_memory() -> None:
 def serve_forever(app: Flask, name: str) -> None:
     from gevent.pywsgi import WSGIServer
 
-    from api.sidecars import SERVICES
+    from api.runtime.sidecars import SERVICES
 
     log = logger(name)
     # What the settings-free startup noticed before a handler existed, such

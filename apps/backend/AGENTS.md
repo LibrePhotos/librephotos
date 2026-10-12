@@ -127,7 +127,7 @@ test makes `--parallel` runs crash with "cannot pickle 'traceback'"; rerun that 
   user id or `image_hash`, never usernames, paths or captions above DEBUG. No `print()` (ruff G004 and
   T20): settings modules use `librephotos.logging_bootstrap.defer(level, message)`, management commands
   `self.stdout.write`, sidecars `service._common.logger(name)`. Details: `CONTRIBUTING.md`.
-- External tools (ffmpeg, ffprobe, ExifTool, git, nvidia-smi) run only through `api.binaries`:
+- External tools (ffmpeg, ffprobe, ExifTool, git, nvidia-smi) run only through `api.runtime.binaries`:
   `run_tool(name, args, timeout=...)` (the timeout has no default; a hung tool fails the call, never
   the worker) or `start_tool` for a long-running stream. Ruff TID251 bans `subprocess` elsewhere
   (exceptions in `pyproject.toml`).
@@ -182,36 +182,38 @@ test makes `--parallel` runs crash with "cannot pickle 'traceback'"; rerun that 
   client, detection, clustering, training, social graph, box overlap), `geocode/`, `jobs/` (the queue,
   starting a job from a request), `metadata/` (read, write, date rules, orientation), `photos/` (file type
   and hash, path containment and folder prefixes, a photo's files, file cleanup receivers, the "Select
-  All" queryset, zip downloads, trash and tombstone retention), `search/` (OpenCLIP embeddings and tags,
+  All" queryset, zip downloads, trash and tombstone retention), `runtime/` (sidecar ports and HTTP client,
+  request timeouts, the sidecar supervisor and watchdog, model downloads, external tools; its `__init__.py`
+  imports nothing, so `api.runtime.sidecars` stays Django-free), `search/` (OpenCLIP embeddings and tags,
   similarity index client, search filter, term examples), `serving/` (byte ranges, why the web server
   cannot read a file, the folder picker's directory tree), `stacks/` (bursts, brackets, Motion Photo
   video), `thumbnails/` (render, decode, strip metadata), `video/` (probe and HDR tonemapping, playback
   type, transcode cache, ffmpeg budget).
-- No new flat `api/` module: new code goes into a domain package. The flat modules left are listed in
-  `api/tests/infra/test_module_layout.py` with the package each moves to; the list only shrinks. A move
+- No new flat `api/` module: new code goes into a domain package. The only flat modules are the Django and
+  project conventions in `STAYS_FLAT` (`api/tests/infra/test_module_layout.py`); the list only shrinks. A move
   updates every import and `mock.patch("api.<old>...")` string and keeps no re-export shim (a patch on a
   shim misses the code under test); a moved scheduled function ships a migration rewriting `Schedule.func`,
   and a dotted path in `librephotos/settings/` is checked by `api/tests/infra/test_settings_dotted_paths.py`.
 - Imports go down only: `api.views`/`nextcloud.views`, then `api.serializers`, the domain packages, then
-  `api.models`; views never import `api.sidecars` directly, and `service/`, `image_similarity/` and
-  `api.sidecars` never import Django. `lint-imports` (CI) checks these contracts, `[tool.importlinter]` in
-  `pyproject.toml`; a new package joins the domain layer, and each contract's `ignore_imports` only
-  shrinks (`scripts/import_contracts_baseline.py`).
+  `api.models`; views never import `api.runtime.sidecars` directly, and `service/`, `image_similarity/`,
+  `api.runtime.sidecars` and the `api` and `api.runtime` package inits never import Django. `lint-imports`
+  (CI) checks these contracts, `[tool.importlinter]` in `pyproject.toml`; a new package joins the domain
+  layer, and each contract's `ignore_imports` only shrinks (`scripts/import_contracts_baseline.py`).
 - `librephotos/`: `urls.py` and the settings modules `production` (Docker), `production_noproxy`,
   `development`, `dev_windows`, `standalone`, `test` and `test_sqlite`.
 - `service/`: the sidecars `thumbnail`, `face_recognition`, `image_captioning`, `exif`, `tags`
   (OpenCLIP: tags, search and similar-photo embeddings) and `ocr`; `image_similarity/` is the
-  seventh (FAISS index). Ports live in `SERVICES` in `api/sidecars.py`; call them through
-  `api.sidecars.post`/`get`. Sidecars never import Django.
+  seventh (FAISS index). Ports live in `SERVICES` in `api/runtime/sidecars.py`; call them through
+  `api.runtime.sidecars.post`/`get`. Sidecars never import Django.
 - `chunked_upload/` is a vendored app; `nextcloud/` the Nextcloud import.
 
 ## Adding an ML model or sidecar
 
-1. Add the model files to `ML_MODELS` in `api/ml_models.py` (downloads and checksums).
+1. Add the model files to `ML_MODELS` in `api/runtime/ml_models.py` (downloads and checksums).
 2. Put the sidecar in `service/<name>/main.py` using `service._common.create_app`, exposing `serve()`
    (the Windows standalone build calls it).
-3. Register its port in `SERVICES` (`api/sidecars.py`) and its feature flag in `SERVICE_FEATURE_FLAGS`
-   (`api/services.py`).
+3. Register its port in `SERVICES` (`api/runtime/sidecars.py`) and its feature flag in `SERVICE_FEATURE_FLAGS`
+   (`api/runtime/supervisor.py`).
 4. Document its `FEATURE_*` and model-directory variables on the environment-variables docs page.
 
 OpenCLIP ViT-B/32 (`service/tags/openclip/`, registry entry `openclip_vitb32`) is the only image-text

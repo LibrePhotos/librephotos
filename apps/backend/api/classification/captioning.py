@@ -8,9 +8,9 @@ from typing import TYPE_CHECKING, Any
 import requests
 from django.conf import settings
 
-from api import sidecars
-from api.http_timeouts import CAPTION
 from api.models.user import User
+from api.runtime import sidecars
+from api.runtime.http_timeouts import CAPTION
 
 if TYPE_CHECKING:
     from api.models.photo_caption import PhotoCaption

@@ -155,7 +155,7 @@ class SceneClassificationFeatureFlagTest(TestCase):
         self.photo = create_test_photo(owner=self.user)
         self.caption = PhotoCaption.objects.create(photo=self.photo)
 
-    @patch("api.sidecars.http.post")
+    @patch("api.runtime.sidecars.http.post")
     def test_tags_are_generated_by_default(self, post_mock):
         response = MagicMock(ok=False, status_code=503)
         response.raise_for_status.side_effect = requests.HTTPError(
@@ -167,7 +167,7 @@ class SceneClassificationFeatureFlagTest(TestCase):
         post_mock.assert_called_once()
 
     @override_settings(FEATURE_SCENE_CLASSIFICATION=False)
-    @patch("api.sidecars.http.post")
+    @patch("api.runtime.sidecars.http.post")
     def test_tags_skipped_when_disabled(self, post_mock):
         generate_photo_tags(self.caption)
         post_mock.assert_not_called()
@@ -235,7 +235,7 @@ class FaceDetectionFeatureFlagTest(TestCase):
         face_extractor_mock.extract.assert_not_called()
         self.assertEqual(0, Face.objects.filter(photo=self.photo).count())
 
-    @patch("api.ml_models.do_all_models_exist", return_value=True)
+    @patch("api.runtime.ml_models.do_all_models_exist", return_value=True)
     @patch("api.jobs.queue.AsyncTask")
     def test_scan_faces_endpoint_starts_a_job_by_default(
         self, task_mock, models_exist_mock
@@ -248,7 +248,7 @@ class FaceDetectionFeatureFlagTest(TestCase):
         task_mock.return_value.run.assert_called_once()
 
     @override_settings(FEATURE_FACE_DETECTION=False)
-    @patch("api.ml_models.do_all_models_exist", return_value=True)
+    @patch("api.runtime.ml_models.do_all_models_exist", return_value=True)
     @patch("api.jobs.queue.AsyncTask")
     def test_scan_faces_endpoint_refuses_when_disabled(
         self, task_mock, models_exist_mock

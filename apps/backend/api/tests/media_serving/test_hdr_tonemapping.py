@@ -20,7 +20,7 @@ from unittest import mock
 
 from django.test import SimpleTestCase
 
-from api import binaries
+from api.runtime import binaries
 from api.video import color, ffmpeg_budget, transcode_cache
 from api.views import media
 

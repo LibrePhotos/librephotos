@@ -1,4 +1,4 @@
-"""Characterization tests for ``api.ml_models.download_model`` / ``_download_file``.
+"""Characterization tests for ``api.runtime.ml_models.download_model`` / ``_download_file``.
 
 These pin the CURRENT observed behaviour of the download pipeline before it is
 refactored. They deliberately assert what the code does today, including the
@@ -19,8 +19,8 @@ import requests
 from constance.test import override_config
 from django.test import TestCase, override_settings
 
-from api.http_timeouts import MODEL_DOWNLOAD
-from api.ml_models import (
+from api.runtime.http_timeouts import MODEL_DOWNLOAD
+from api.runtime.ml_models import (
     ML_MODELS,
     MlTypes,
     ModelChecksumError,
@@ -112,7 +112,7 @@ class DownloadModelSkipBranchesTest(TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             media_root = Path(temp_dir) / "protected_media"
             with override_settings(MEDIA_ROOT=str(media_root)):
-                with patch("api.ml_models._download_file") as download_file:
+                with patch("api.runtime.ml_models._download_file") as download_file:
                     self.assertIsNone(download_model(model))
 
             download_file.assert_not_called()
@@ -130,7 +130,7 @@ class DownloadModelSkipBranchesTest(TestCase):
                 (target_dir / name).write_bytes(b"x")
 
             with override_settings(MEDIA_ROOT=str(media_root)):
-                with patch("api.ml_models._download_file") as download_file:
+                with patch("api.runtime.ml_models._download_file") as download_file:
                     self.assertIsNone(download_model(model))
 
             download_file.assert_not_called()
@@ -146,8 +146,8 @@ class DownloadModelSkipBranchesTest(TestCase):
             (target_dir / "det.onnx").write_bytes(b"x")
 
             with override_settings(MEDIA_ROOT=str(media_root)):
-                with patch("api.ml_models._download_file") as download_file:
-                    with patch("api.ml_models._unpack_archive") as unpack:
+                with patch("api.runtime.ml_models._download_file") as download_file:
+                    with patch("api.runtime.ml_models._unpack_archive") as unpack:
                         download_model(model)
 
             self.assertEqual(1, download_file.call_count)
@@ -177,7 +177,7 @@ class DownloadModelUnpackTest(TestCase):
             media_root = Path(temp_dir) / "protected_media"
             model_folder = media_root / "data_models"
             with override_settings(MEDIA_ROOT=str(media_root)):
-                with patch("api.ml_models.requests.get", _responder(payload)):
+                with patch("api.runtime.ml_models.requests.get", _responder(payload)):
                     download_model(model)
 
             self.assertEqual(
@@ -203,7 +203,7 @@ class DownloadModelUnpackTest(TestCase):
             media_root = Path(temp_dir) / "protected_media"
             model_folder = media_root / "data_models"
             with override_settings(MEDIA_ROOT=str(media_root)):
-                with patch("api.ml_models.requests.get", _responder(payload)):
+                with patch("api.runtime.ml_models.requests.get", _responder(payload)):
                     download_model(model)
 
             extracted = model_folder / "nested" / "custom_zip" / "w600k.onnx"
@@ -233,7 +233,7 @@ class DownloadModelUnpackTest(TestCase):
             media_root = Path(temp_dir) / "protected_media"
             target_dir = media_root / "data_models" / model["target-dir"]
             with override_settings(MEDIA_ROOT=str(media_root)):
-                with patch("api.ml_models.requests.get", _responder(payload)):
+                with patch("api.runtime.ml_models.requests.get", _responder(payload)):
                     download_model(model)
 
             self.assertEqual(
@@ -257,7 +257,7 @@ class DownloadModelUnpackTest(TestCase):
             media_root = Path(temp_dir) / "protected_media"
             target_dir = media_root / "data_models" / "m"
             with override_settings(MEDIA_ROOT=str(media_root)):
-                with patch("api.ml_models.requests.get", _responder(payload)):
+                with patch("api.runtime.ml_models.requests.get", _responder(payload)):
                     download_model(model)
 
             self.assertEqual(
@@ -280,8 +280,10 @@ class DownloadModelUnpackTest(TestCase):
             media_root = Path(temp_dir) / "protected_media"
             model_folder = media_root / "data_models"
             with override_settings(MEDIA_ROOT=str(media_root)):
-                with patch("api.ml_models._unpack_archive") as unpack:
-                    with patch("api.ml_models.requests.get", _responder(payload)):
+                with patch("api.runtime.ml_models._unpack_archive") as unpack:
+                    with patch(
+                        "api.runtime.ml_models.requests.get", _responder(payload)
+                    ):
                         download_model(model)
 
             unpack.assert_not_called()
@@ -306,7 +308,7 @@ class DownloadModelUnpackTest(TestCase):
             media_root = Path(temp_dir) / "protected_media"
             model_folder = media_root / "data_models"
             with override_settings(MEDIA_ROOT=str(media_root)):
-                with patch("api.ml_models.requests.get", _responder(payload)):
+                with patch("api.runtime.ml_models.requests.get", _responder(payload)):
                     download_model(model)
 
             self.assertEqual([], list(model_folder.iterdir()))
@@ -373,7 +375,7 @@ class DownloadModelAdditionalFilesTest(TestCase):
             media_root = Path(temp_dir) / "protected_media"
             model_folder = media_root / "data_models"
             with override_settings(MEDIA_ROOT=str(media_root)):
-                with patch("api.ml_models.requests.get", fake_get):
+                with patch("api.runtime.ml_models.requests.get", fake_get):
                     download_model(model)
 
             self.assertEqual(
@@ -402,7 +404,9 @@ class DownloadModelAdditionalFilesTest(TestCase):
                 Path(target_path).write_bytes(main_payload)
 
             with override_settings(MEDIA_ROOT=str(media_root)):
-                with patch("api.ml_models._download_file", side_effect=fake_download):
+                with patch(
+                    "api.runtime.ml_models._download_file", side_effect=fake_download
+                ):
                     download_model(model)
 
             self.assertEqual(["https://example.invalid/main.bin"], calls)
@@ -422,7 +426,9 @@ class DownloadModelAdditionalFilesTest(TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             media_root = Path(temp_dir) / "protected_media"
             with override_settings(MEDIA_ROOT=str(media_root)):
-                with patch("api.ml_models._download_file", side_effect=fake_download):
+                with patch(
+                    "api.runtime.ml_models._download_file", side_effect=fake_download
+                ):
                     download_model(model)
 
         self.assertEqual(["custom_multi", "custom_multi (multi/extra.bin)"], labels)
@@ -436,8 +442,8 @@ class DownloadModelDoesNotMutateInputTest(TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             media_root = Path(temp_dir) / "protected_media"
             with override_settings(MEDIA_ROOT=str(media_root)):
-                with patch("api.ml_models._download_file"):
-                    with patch("api.ml_models._unpack_archive"):
+                with patch("api.runtime.ml_models._download_file"):
+                    with patch("api.runtime.ml_models._unpack_archive"):
                         download_model(model)
         self.assertEqual(before, model)
 
@@ -451,8 +457,8 @@ class DownloadModelFaceRecognitionExistsTest(TestCase):
             (media_root / "data_models" / model["target-dir"]).mkdir(parents=True)
 
             with override_settings(MEDIA_ROOT=str(media_root)):
-                with patch("api.ml_models._download_file") as download_file:
-                    with patch("api.ml_models._unpack_archive"):
+                with patch("api.runtime.ml_models._download_file") as download_file:
+                    with patch("api.runtime.ml_models._unpack_archive"):
                         download_model(model)
 
             self.assertEqual(1, download_file.call_count)
@@ -468,7 +474,7 @@ class DownloadModelFaceRecognitionExistsTest(TestCase):
             (target_dir / "antelopev2" / "glintr100.onnx").write_bytes(b"rec")
 
             with override_settings(MEDIA_ROOT=str(media_root)):
-                with patch("api.ml_models._download_file") as download_file:
+                with patch("api.runtime.ml_models._download_file") as download_file:
                     download_model(model)
 
             download_file.assert_not_called()
@@ -487,7 +493,7 @@ class DownloadModelFaceRecognitionExistsTest(TestCase):
             (target_dir / "w600k_mbf.onnx").write_bytes(b"rec")
 
             with override_settings(MEDIA_ROOT=str(media_root)):
-                with patch("api.ml_models._download_file") as download_file:
+                with patch("api.runtime.ml_models._download_file") as download_file:
                     download_model(model)
 
             download_file.assert_not_called()
@@ -512,8 +518,8 @@ class DownloadFileProgressTest(TestCase):
         )
         with tempfile.TemporaryDirectory() as temp_dir:
             target = Path(temp_dir) / "model.bin"
-            with patch("api.ml_models.requests.get", return_value=response):
-                with patch("api.ml_models.logger") as logger:
+            with patch("api.runtime.ml_models.requests.get", return_value=response):
+                with patch("api.runtime.ml_models.logger") as logger:
                     _download_file("https://example.invalid/x", target, "m")
 
             messages = [
@@ -537,7 +543,7 @@ class DownloadFileProgressTest(TestCase):
         )
         with tempfile.TemporaryDirectory() as temp_dir:
             target = Path(temp_dir) / "model.bin"
-            with patch("api.ml_models.requests.get", return_value=response):
+            with patch("api.runtime.ml_models.requests.get", return_value=response):
                 _download_file("https://example.invalid/x", target, "m")
             self.assertEqual(payload, target.read_bytes())
 
@@ -546,8 +552,8 @@ class DownloadFileProgressTest(TestCase):
         response = _FakeResponse(chunks=[payload], headers={})
         with tempfile.TemporaryDirectory() as temp_dir:
             target = Path(temp_dir) / "model.bin"
-            with patch("api.ml_models.requests.get", return_value=response):
-                with patch("api.ml_models.logger") as logger:
+            with patch("api.runtime.ml_models.requests.get", return_value=response):
+                with patch("api.runtime.ml_models.logger") as logger:
                     _download_file("https://example.invalid/x", target, "m")
 
             self.assertEqual(payload, target.read_bytes())
@@ -563,7 +569,7 @@ class DownloadFileProgressTest(TestCase):
         response = _FakeResponse(chunks=[b"x" * 100], headers={"content-length": "50"})
         with tempfile.TemporaryDirectory() as temp_dir:
             target = Path(temp_dir) / "model.bin"
-            with patch("api.ml_models.requests.get", return_value=response):
+            with patch("api.runtime.ml_models.requests.get", return_value=response):
                 with self.assertRaises(OSError) as ctx:
                     _download_file("https://example.invalid/x", target, "m")
 
@@ -579,7 +585,7 @@ class DownloadFileProgressTest(TestCase):
         )
         with tempfile.TemporaryDirectory() as temp_dir:
             target = Path(temp_dir) / "model.bin"
-            with patch("api.ml_models.requests.get", return_value=response):
+            with patch("api.runtime.ml_models.requests.get", return_value=response):
                 with self.assertRaises(OSError):
                     _download_file("https://example.invalid/x", target, "m")
 
@@ -589,7 +595,7 @@ class DownloadFileProgressTest(TestCase):
         )
         with tempfile.TemporaryDirectory() as temp_dir:
             target = Path(temp_dir) / "sub" / "model.bin"
-            with patch("api.ml_models.requests.get", return_value=response):
+            with patch("api.runtime.ml_models.requests.get", return_value=response):
                 with self.assertRaises(requests.ConnectionError):
                     _download_file("https://example.invalid/x", target, "m")
 
@@ -606,7 +612,7 @@ class DownloadFileProgressTest(TestCase):
             stale = target.with_name(target.name + ".part")
             stale.write_bytes(b"leftover from a previous crashed run")
 
-            with patch("api.ml_models.requests.get", return_value=response):
+            with patch("api.runtime.ml_models.requests.get", return_value=response):
                 _download_file("https://example.invalid/x", target, "m")
 
             self.assertEqual(payload, target.read_bytes())
@@ -620,7 +626,7 @@ class DownloadFileProgressTest(TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             target = Path(temp_dir) / "model.bin"
             target.write_bytes(b"old contents")
-            with patch("api.ml_models.requests.get", return_value=response):
+            with patch("api.runtime.ml_models.requests.get", return_value=response):
                 _download_file("https://example.invalid/x", target, "m")
             self.assertEqual(payload, target.read_bytes())
 
@@ -632,7 +638,7 @@ class DownloadFileProgressTest(TestCase):
         )
         with tempfile.TemporaryDirectory() as temp_dir:
             target = Path(temp_dir) / "model.bin"
-            with patch("api.ml_models.requests.get", return_value=response):
+            with patch("api.runtime.ml_models.requests.get", return_value=response):
                 _download_file("https://example.invalid/x", target, "m", digest)
             self.assertEqual(payload, target.read_bytes())
 
@@ -645,8 +651,8 @@ class DownloadFileProgressTest(TestCase):
         )
         with tempfile.TemporaryDirectory() as temp_dir:
             target = Path(temp_dir) / "model.bin"
-            with patch("api.ml_models.requests.get", return_value=response):
-                with patch("api.ml_models.logger") as logger:
+            with patch("api.runtime.ml_models.requests.get", return_value=response):
+                with patch("api.runtime.ml_models.logger") as logger:
                     with self.assertRaises(ModelChecksumError) as ctx:
                         _download_file("https://example.invalid/x", target, "m", wrong)
 
@@ -663,8 +669,8 @@ class DownloadFileProgressTest(TestCase):
         )
         with tempfile.TemporaryDirectory() as temp_dir:
             target = Path(temp_dir) / "model.bin"
-            with patch("api.ml_models.requests.get", return_value=response):
-                with patch("api.ml_models.logger") as logger:
+            with patch("api.runtime.ml_models.requests.get", return_value=response):
+                with patch("api.runtime.ml_models.logger") as logger:
                     _download_file("https://example.invalid/x", target, "m")
 
             logger.debug.assert_called_once_with(
@@ -678,7 +684,7 @@ class DownloadFileProgressTest(TestCase):
         response = _FakeResponse(chunks=[partial], headers={"content-length": "2048"})
         with tempfile.TemporaryDirectory() as temp_dir:
             target = Path(temp_dir) / "model.bin"
-            with patch("api.ml_models.requests.get", return_value=response):
+            with patch("api.runtime.ml_models.requests.get", return_value=response):
                 with self.assertRaises(OSError):
                     _download_file(
                         "https://example.invalid/x",
@@ -694,7 +700,7 @@ class DownloadFileProgressTest(TestCase):
         )
         with tempfile.TemporaryDirectory() as temp_dir:
             target = Path(temp_dir) / "a" / "b" / "c" / "model.bin"
-            with patch("api.ml_models.requests.get", return_value=response):
+            with patch("api.runtime.ml_models.requests.get", return_value=response):
                 _download_file("https://example.invalid/x", target, "m")
             self.assertTrue(target.exists())
 
@@ -705,7 +711,7 @@ class DownloadFileProgressTest(TestCase):
         )
         with tempfile.TemporaryDirectory() as temp_dir:
             target = Path(temp_dir) / "model.bin"
-            with patch("api.ml_models.requests.get", return_value=response):
+            with patch("api.runtime.ml_models.requests.get", return_value=response):
                 _download_file("https://example.invalid/x", str(target), "m")
             self.assertEqual(payload, target.read_bytes())
 
@@ -718,7 +724,9 @@ class DownloadFileProgressTest(TestCase):
         )
         with tempfile.TemporaryDirectory() as temp_dir:
             target = Path(temp_dir) / "model.bin"
-            with patch("api.ml_models.requests.get", return_value=response) as get:
+            with patch(
+                "api.runtime.ml_models.requests.get", return_value=response
+            ) as get:
                 _download_file("https://example.invalid/x", target, "m")
 
             get.assert_called_once_with(

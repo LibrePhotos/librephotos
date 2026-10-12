@@ -40,7 +40,6 @@
 "api/serializers/photos.py" = ["BLE001", "N802", "N815"]
 "api/serializers/simple.py" = ["N802", "N815"]
 "api/serializers/user.py" = ["BLE001"]
-"api/services.py" = ["BLE001"]
 "api/stacks/live_photo.py" = ["BLE001"]
 "api/sync_signals.py" = ["BLE001", "PLR0913"]
 "api/tests/duplicates/test_missing_data_robustness.py" = ["BLE001"]

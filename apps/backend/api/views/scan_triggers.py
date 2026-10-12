@@ -14,9 +14,9 @@ from api.directory_watcher import scan_photos
 from api.drf.params import parse_body
 from api.drf.request_user import request_user
 from api.jobs.start import start_job
-from api.ml_models import missing_models_prerequisites
 from api.models import LongRunningJob
 from api.models.user import User
+from api.runtime.ml_models import missing_models_prerequisites
 from api.serializers.job import GenerateOcrRequest
 
 

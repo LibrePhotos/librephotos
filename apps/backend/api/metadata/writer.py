@@ -4,8 +4,8 @@ from collections.abc import Mapping
 
 import exiftool
 
-from api import binaries
 from api.metadata.reader import get_sidecar_files_in_priority_order
+from api.runtime import binaries
 
 logger = logging.getLogger(__name__)
 

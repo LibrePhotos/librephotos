@@ -10,7 +10,7 @@ from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.test import SimpleTestCase
 
-from api.services import SERVICES
+from api.runtime.supervisor import SERVICES
 
 
 @patch("api.management.commands.start_service.start_service")

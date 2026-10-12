@@ -24,7 +24,7 @@ offers, CUDA first:
     OCR and -200 MB for captions for a few % more time).
 
 The sidecars are scripts started as ``python service/<name>/main.py``;
-api.services puts the backend root on their PYTHONPATH so this module imports
+api.runtime.supervisor puts the backend root on their PYTHONPATH so this module imports
 as ``service.onnx_session`` there as in the tests and the standalone build.
 """
 

@@ -8,8 +8,8 @@ from typing import TYPE_CHECKING, Any
 import requests
 from constance import config as site_config
 
-from api import sidecars
 from api.lazy_import import LazyModule
+from api.runtime import sidecars
 
 if TYPE_CHECKING:
     import numpy.typing as npt
@@ -88,12 +88,12 @@ def _post_to_face_service(path: str, payload: dict[str, object]) -> dict[str, An
     """POST to the face service and raise errors with response details.
 
     The sidecar can drop the connection while a scan saturates the box; the
-    shared client (api.sidecars) retries that, so one blip does not fail a
+    shared client (api.runtime.sidecars) retries that, so one blip does not fail a
     face and, accumulated, a whole Scan Faces job. Status (HTTP) and body
     (JSON) errors would fail the same way again, and are raised with the URL,
     the status and the sidecar's reply.
     """
-    from api.http_timeouts import FACE
+    from api.runtime.http_timeouts import FACE
 
     url = sidecars.sidecar_url("face_recognition", path)
     try:

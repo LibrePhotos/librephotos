@@ -1,4 +1,4 @@
-"""api.binaries runs every external tool: a timeout is mandatory and it holds.
+"""api.runtime.binaries runs every external tool: a timeout is mandatory and it holds.
 
 The tool in these tests is the test's own Python interpreter, named by path,
 so they run wherever the suite does.
@@ -12,7 +12,7 @@ from unittest import mock
 
 from django.test import SimpleTestCase
 
-from api import binaries
+from api.runtime import binaries
 from api.tests.utils import write_hanging_tool
 
 PYTHON = sys.executable
@@ -55,7 +55,7 @@ class RunToolTest(SimpleTestCase):
 
     def test_a_missing_tool_raises_tool_missing(self):
         with (
-            self.assertLogs("api.binaries", "WARNING") as logs,
+            self.assertLogs("api.runtime.binaries", "WARNING") as logs,
             self.assertRaises(binaries.ToolMissingError) as raised,
         ):
             binaries.run_tool("librephotos-no-such-tool", [], timeout=30)
@@ -65,7 +65,7 @@ class RunToolTest(SimpleTestCase):
     def test_a_non_zero_exit_raises_with_the_status_and_stderr(self):
         code = "import sys; sys.stderr.write('moov atom not found'); sys.exit(3)"
         with (
-            self.assertLogs("api.binaries", "WARNING") as logs,
+            self.assertLogs("api.runtime.binaries", "WARNING") as logs,
             self.assertRaises(binaries.ToolFailedError) as raised,
         ):
             binaries.run_tool(PYTHON, python(code), timeout=30)
@@ -89,7 +89,7 @@ class RunToolTest(SimpleTestCase):
         limit = binaries.STDERR_TAIL_CHARS
         code = f"import sys; sys.stderr.write('a' * {limit * 3} + 'END'); sys.exit(1)"
         with (
-            self.assertLogs("api.binaries", "WARNING"),
+            self.assertLogs("api.runtime.binaries", "WARNING"),
             self.assertRaises(binaries.ToolFailedError) as raised,
         ):
             binaries.run_tool(PYTHON, python(code), timeout=30)
@@ -106,7 +106,7 @@ class RunToolTimeoutTest(SimpleTestCase):
     def test_a_hung_tool_is_killed_at_the_timeout(self):
         started = time.monotonic()
         with (
-            self.assertLogs("api.binaries", "WARNING") as logs,
+            self.assertLogs("api.runtime.binaries", "WARNING") as logs,
             self.assertRaises(binaries.ToolFailedError) as raised,
         ):
             binaries.run_tool(PYTHON, python("import time; time.sleep(5)"), timeout=0.5)
@@ -118,7 +118,7 @@ class RunToolTimeoutTest(SimpleTestCase):
     def test_what_it_said_before_hanging_is_kept(self):
         code = "import sys, time; sys.stderr.write('frame=  12'); sys.stderr.flush(); time.sleep(5)"
         with (
-            self.assertLogs("api.binaries", "WARNING"),
+            self.assertLogs("api.runtime.binaries", "WARNING"),
             self.assertRaises(binaries.ToolFailedError) as raised,
         ):
             binaries.run_tool(PYTHON, python(code), timeout=1)
@@ -136,7 +136,7 @@ class RunToolTimeoutTest(SimpleTestCase):
             tool = write_hanging_tool(directory)
             started = time.monotonic()
             with (
-                self.assertLogs("api.binaries", "WARNING"),
+                self.assertLogs("api.runtime.binaries", "WARNING"),
                 self.assertRaises(binaries.ToolFailedError),
             ):
                 binaries.run_tool(tool, ["-anything"], timeout=0.5)
@@ -155,7 +155,7 @@ class StartToolTest(SimpleTestCase):
 
     def test_a_missing_tool_raises_tool_missing(self):
         with (
-            self.assertLogs("api.binaries", "WARNING"),
+            self.assertLogs("api.runtime.binaries", "WARNING"),
             self.assertRaises(binaries.ToolMissingError),
         ):
             binaries.start_tool("librephotos-no-such-tool", [])

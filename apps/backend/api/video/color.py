@@ -37,7 +37,7 @@ import logging
 import os
 from typing import TYPE_CHECKING
 
-from api import binaries
+from api.runtime import binaries
 from api.video import ffmpeg_budget
 
 if TYPE_CHECKING:

@@ -1,7 +1,7 @@
 """The sidecars listen on loopback unless SERVICE_HOST says otherwise.
 
 They have no authentication, and the backend only ever calls them on
-127.0.0.1 (api.sidecars), so listening on every interface exposed them - the
+127.0.0.1 (api.runtime.sidecars), so listening on every interface exposed them - the
 thumbnail sidecar writes files, the others read any path they are given - to
 whatever can reach the container. SERVICE_HOST still overrides the default.
 
@@ -15,7 +15,7 @@ from pathlib import Path
 
 from django.test import SimpleTestCase
 
-from api.services import SERVICES
+from api.runtime.supervisor import SERVICES
 
 BACKEND = Path(__file__).resolve().parents[3]
 

@@ -21,9 +21,9 @@ from unittest.mock import ANY
 
 from django.test import SimpleTestCase, TestCase, override_settings
 
-from api import binaries
 from api.directory_watcher import file_handlers, processing_jobs, scan_jobs
 from api.models import LongRunningJob, Photo, Thumbnail
+from api.runtime import binaries
 from api.serializers.photos import (
     PhotoSummarySerializer,
     with_photo_summary_relations,

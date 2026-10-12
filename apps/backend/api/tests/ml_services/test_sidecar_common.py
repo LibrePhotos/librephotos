@@ -12,7 +12,7 @@ from unittest.mock import patch
 
 from django.test import SimpleTestCase
 
-from api.sidecars import SERVICES
+from api.runtime.sidecars import SERVICES
 from service import _common
 
 

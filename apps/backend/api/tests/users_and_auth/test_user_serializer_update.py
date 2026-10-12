@@ -32,8 +32,8 @@ from django.test import TestCase, override_settings
 from rest_framework.exceptions import ValidationError
 from rest_framework.test import APIClient
 
-from api.ml_models import download_models
 from api.models import LongRunningJob, User
+from api.runtime.ml_models import download_models
 from api.search.embedding_jobs import batch_calculate_clip_embedding
 from api.serializers.user import ManageUserSerializer, UserSerializer
 from api.tests.utils import create_test_job, create_test_user
@@ -251,7 +251,7 @@ class UserSerializerUpdateTest(TestCase):
 
     # ---- semantic_search_topk branch ------------------------------------
 
-    @patch("api.ml_models.do_all_models_exist", return_value=True)
+    @patch("api.runtime.ml_models.do_all_models_exist", return_value=True)
     @patch("api.jobs.queue.AsyncTask")
     def test_semantic_search_topk_zero_to_positive_queues_the_embeddings(
         self, task_cls, models_exist
@@ -271,7 +271,7 @@ class UserSerializerUpdateTest(TestCase):
         self.assertEqual(job.job_type, LongRunningJob.JOB_CALCULATE_CLIP_EMBEDDINGS)
         self.assertEqual(User.objects.get(id=self.user.id).semantic_search_topk, 10)
 
-    @patch("api.ml_models.do_all_models_exist", return_value=False)
+    @patch("api.runtime.ml_models.do_all_models_exist", return_value=False)
     @patch("api.jobs.queue.Chain")
     def test_semantic_search_topk_chains_download_when_models_missing(
         self, chain_cls, models_exist
@@ -291,7 +291,7 @@ class UserSerializerUpdateTest(TestCase):
         )
         chain.run.assert_called_once_with()
 
-    @patch("api.ml_models.do_all_models_exist", return_value=True)
+    @patch("api.runtime.ml_models.do_all_models_exist", return_value=True)
     @patch("api.jobs.queue.AsyncTask")
     def test_semantic_search_topk_with_embeddings_queued_queues_no_second(
         self, task_cls, models_exist

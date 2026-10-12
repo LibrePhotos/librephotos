@@ -17,7 +17,7 @@ from django.test import SimpleTestCase
 
 from api.metadata.reader import MetadataReadError, get_metadata
 
-HTTP_POST = "api.sidecars.http.post"
+HTTP_POST = "api.runtime.sidecars.http.post"
 
 
 def _values_response(values):

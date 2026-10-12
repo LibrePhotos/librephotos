@@ -313,7 +313,7 @@ def configure_standalone(logger_name: str, level: str | None = None) -> logging.
     write to stdout only.
 
     Records get the backend's format and LOG_LEVEL (or the logger's LOG_LEVELS
-    entry); stdout is where api.services leaves the sidecars' output, so it ends
+    entry); stdout is where api.runtime.supervisor leaves the sidecars' output, so it ends
     up in the container log. Only the named logger is touched, never the root:
     the sidecar modules are imported by the Django test process as well, whose
     logging the settings configured. A second call returns the same logger

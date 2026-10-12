@@ -6,16 +6,20 @@ from typing import Any
 
 import requests
 from django.conf import settings
+from django.db import DatabaseError
 
-from api import sidecars
-from api.sidecars import SERVICES, sidecar_url
+from api.runtime import sidecars
+from api.runtime.sidecars import SERVICES, sidecar_url
 from librephotos.logging_bootstrap import DEFAULT_LOG_LEVEL
 from librephotos.standalone import named_executable
 
 logger = logging.getLogger(__name__)
 
-# apps/backend: where _service_script's relative paths and the service package live.
-BACKEND_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# apps/backend, three levels above api/runtime/supervisor.py: where
+# _service_script's relative paths and the service package live.
+BACKEND_ROOT = os.path.dirname(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+)
 
 HTTP_OK = 200
 
@@ -50,10 +54,10 @@ def _ocr_model_selected() -> bool:
     try:
         from constance import config as site_config
 
-        from api.ml_models import _is_model_not_selected
+        from api.runtime.ml_models import _is_model_not_selected
 
         return not _is_model_not_selected(site_config.OCR_MODEL)
-    except Exception:
+    except DatabaseError:
         return True
 
 
@@ -130,7 +134,7 @@ def is_healthy(service: str) -> bool:
     """
     _last_health.pop(service, None)
     try:
-        from api.http_timeouts import HEALTH_CHECK
+        from api.runtime.http_timeouts import HEALTH_CHECK
 
         res = requests.get(sidecar_url(service, "/health"), timeout=HEALTH_CHECK)
         if res.status_code != HTTP_OK:
@@ -158,7 +162,8 @@ def is_healthy(service: str) -> bool:
             return True
         logger.warning("Service %s is not running: %s", service, e)
         return False
-    except Exception as e:
+    except ValueError as e:
+        # sidecar_url: a name that is not in SERVICES.
         logger.exception("Error checking health of %s: %s", service, str(e))
         return False
 
@@ -179,7 +184,7 @@ def unload_idle_model(service: str) -> bool:
     if idle < IDLE_UNLOAD_SECONDS:
         return False
 
-    from api.http_timeouts import UNLOAD_MODEL
+    from api.runtime.http_timeouts import UNLOAD_MODEL
 
     try:
         sidecars.get(service, "/unload-model", timeout=UNLOAD_MODEL)
@@ -215,7 +220,7 @@ def _service_environment() -> dict[str, str]:
 
     They never load Django, so they configure their logging from BASE_LOGS and
     LOG_LEVEL (see librephotos.logging_bootstrap) and find their models under
-    BASE_DATA/protected_media/data_models, the same root api.ml_models downloads
+    BASE_DATA/protected_media/data_models, the same root api.runtime.ml_models downloads
     them to. Popen without ``env`` would pass on only the ambient environment,
     which does not carry a location set through a settings override rather
     than an environment variable.
@@ -331,7 +336,7 @@ def stop_service(service: str) -> bool:
             except psutil.NoSuchProcess:
                 pass
         psutil.wait_procs(alive, timeout=STOP_GRACE_SECONDS)
-    except Exception as e:
+    except (psutil.Error, OSError) as e:
         logger.error("An error occurred while stopping service '%s': %s", service, e)
         return False
     finally:

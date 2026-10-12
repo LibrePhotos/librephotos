@@ -39,11 +39,11 @@ from api.faces.photo_faces import (
 from api.jobs.queue import JobStep
 from api.jobs.start import start_job, start_jobs
 from api.metadata.photo_writer import write_photo_metadata, write_target
-from api.ml_models import missing_models_prerequisites
 from api.models import Face, LongRunningJob, Photo
 from api.models.person import Person, get_or_create_person
 from api.models.photo_search import PhotoSearch
 from api.models.thumbnail import Thumbnail
+from api.runtime.ml_models import missing_models_prerequisites
 from api.serializers.face import (
     AddFaceRequest,
     FaceIdsRequest,

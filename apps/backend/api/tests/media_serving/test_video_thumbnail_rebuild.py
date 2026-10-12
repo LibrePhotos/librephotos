@@ -14,10 +14,10 @@ from unittest import mock
 
 from django.test import TestCase, override_settings
 
-from api import binaries
 from api.directory_watcher import file_handlers, processing_jobs
 from api.models import LongRunningJob, Photo, Thumbnail
 from api.models.thumbnail import thumbnail_file_paths
+from api.runtime import binaries
 from api.tests.utils import create_test_photo, create_test_user
 from api.thumbnails import render
 from api.thumbnails.render import SET_ASIDE_SUFFIX
