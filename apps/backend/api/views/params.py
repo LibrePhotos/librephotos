@@ -24,6 +24,7 @@ from rest_framework.fields import empty
 from rest_framework.request import Request
 
 from api.request_data import request_dict
+from api.timeline_filter import parse_tristate
 
 
 def parse_query(
@@ -122,6 +123,29 @@ class QueryFlagField(serializers.Field[bool, str, bool, Any]):
         if self.true_values:
             return text in self.true_values
         return text not in self.false_values
+
+    def to_representation(self, value: bool) -> bool:
+        return value
+
+
+@extend_schema_field(OpenApiTypes.BOOL)
+class TristateFlagField(serializers.Field[bool, str, bool, Any]):
+    """A timeline-filter flag: a false word, any other word, or absent.
+
+    Read by ``api.timeline_filter.parse_tristate``: ``false``, ``0``, ``no``
+    and ``off`` are false, any other non-blank value is true, and a blank or
+    absent flag is left out of the validated data, so the timeline filter
+    falls back to the user's saved default for it. It never fails.
+    """
+
+    def __init__(self, *, help_text: str | None = None) -> None:
+        super().__init__(required=False, help_text=help_text)
+
+    def to_internal_value(self, data: str) -> bool:
+        value = parse_tristate(data)
+        if value is None:
+            raise serializers.SkipField()
+        return value
 
     def to_representation(self, value: bool) -> bool:
         return value

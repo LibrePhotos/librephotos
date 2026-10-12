@@ -1,10 +1,10 @@
 from django.db.models import Prefetch, QuerySet
 from drf_spectacular.utils import extend_schema_field
-from rest_framework import serializers
+from rest_framework import ISO_8601, serializers
 
 from api.models import AlbumDate, Photo
 from api.serializers.photos import PhotoSummarySerializer
-from api.views.params import ClampedIntegerField
+from api.views.params import ClampedIntegerField, TristateFlagField
 
 PUBLIC_PHOTOS_ATTR = "public_photos"
 
@@ -133,11 +133,93 @@ class AlbumDateSerializer(serializers.ModelSerializer):
         return _place(self, obj)
 
 
-class AlbumDatePageQuery(serializers.Serializer[None]):
-    """The page of a day album's photos (the other filters are read apart)."""
+class PublicViewQuery(serializers.Serializer[None]):
+    """Whether a date-album or user-album read is the public view.
+
+    ``public`` opens the read to anonymous callers and scopes it to public
+    photos (or to the album's public link). It used to be read by truthiness,
+    so ``?public=false`` opened the public view too; a false word is false now
+    and any other value than a boolean spelling is a 400.
+    """
+
+    public = serializers.BooleanField(
+        default=False, help_text="The public view: public photos of any user"
+    )
+
+
+class DateAlbumFilterQuery(PublicViewQuery):
+    """The filters ``/api/albums/date/list/`` and ``/api/albums/date/<id>/`` take.
+
+    A blank parameter counts as absent. The media filters (``media`` down to
+    ``apply_default``) are resolved by ``api.timeline_filter``.
+    """
+
+    username = serializers.CharField(
+        default="",
+        allow_blank=True,
+        trim_whitespace=False,
+        help_text="With public: only this user's public photos",
+    )
+    hidden = serializers.BooleanField(
+        default=False, help_text="Hidden photos instead of the visible ones"
+    )
+    in_trashcan = serializers.BooleanField(
+        default=False, help_text="Photos in the trash (not yet removed)"
+    )
+    show_all_stack_photos = serializers.BooleanField(
+        default=False, help_text="Also the photos of a stack that are not its primary"
+    )
+    folder = serializers.CharField(
+        default="",
+        allow_blank=True,
+        trim_whitespace=False,
+        help_text="Only photos with a file under this folder",
+    )
+    person = serializers.IntegerField(
+        required=False, help_text="Only photos showing this person"
+    )
+    last_modified = serializers.DateTimeField(
+        required=False,
+        input_formats=[ISO_8601, "%Y-%m-%d"],
+        help_text="A date or date-time. For the owner it replaces every other "
+        "filter; with public it narrows the public photos.",
+    )
+    media = serializers.CharField(
+        required=False, allow_blank=True, help_text="all, photos or videos"
+    )
+    video = TristateFlagField(help_text="Only videos (false: no videos)")
+    photo = TristateFlagField(help_text="Only photos (false: no photos)")
+    favorite = TristateFlagField(
+        help_text="Only favorites (false turns a saved favorites default off)"
+    )
+    is_screenshot = TristateFlagField(
+        help_text="Only screenshots (false: no screenshots)"
+    )
+    is_document = TristateFlagField(help_text="Only documents (false: no documents)")
+    hide_screenshots = TristateFlagField()
+    hide_documents = TristateFlagField()
+    apply_default = TristateFlagField(
+        help_text="Apply the user's default_timeline_filter; the other filter "
+        "params override it key by key."
+    )
+
+
+class AlbumDateQuery(DateAlbumFilterQuery):
+    """A day album's filters plus the page of its photos."""
 
     size = ClampedIntegerField(
         default=100, lowest=1, help_text="Photos per page (default 100)"
     )
     # Kept as text: Django's Paginator answers a non-number with page 1.
     page = serializers.CharField(default="1", help_text="Page number")
+
+
+class AlbumDateListQuery(DateAlbumFilterQuery):
+    """The day list's filters plus its search term."""
+
+    search = serializers.CharField(
+        default="",
+        allow_blank=True,
+        trim_whitespace=False,
+        help_text="Caption, location or person name",
+    )

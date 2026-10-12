@@ -1,6 +1,7 @@
 import logging
 
 from django.core.mail import send_mail
+from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAdminUser
 from rest_framework.request import Request
@@ -11,18 +12,10 @@ from api.exceptions import UpstreamError
 from api.models.email_config import PROVIDER_PRESETS, EmailConfig
 from api.request_data import request_dict
 from api.request_user import request_user
+from api.serializers.email_config import EmailConfigRequest, EmailTestRequest
+from api.views.params import parse_body
 
 logger = logging.getLogger(__name__)
-
-_WRITABLE_FIELDS = (
-    "provider",
-    "from_email",
-    "host",
-    "port",
-    "use_tls",
-    "use_ssl",
-    "username",
-)
 
 
 def _serialize(config: EmailConfig) -> dict[str, object]:
@@ -50,24 +43,14 @@ class EmailConfigView(APIView):
     def get(self, request: Request, format: str | None = None) -> Response:
         return Response(_serialize(EmailConfig.load()))
 
+    @extend_schema(request=EmailConfigRequest)
     def post(self, request: Request, format: str | None = None) -> Response:
-        config = EmailConfig.load()
-        data = request_dict(request)
-
-        for field in _WRITABLE_FIELDS:
-            if field in data:
-                setattr(config, field, data[field])
-
-        # The secret is write-only: a non-empty value replaces it; an absent or
-        # empty value leaves the stored credential untouched. `clear_secret`
-        # explicitly wipes it.
-        if data.get("clear_secret"):
-            config.secret = ""
-        elif data.get("secret"):
-            config.secret = data["secret"]
-
-        config.save()
-        return Response(_serialize(config))
+        # A partial update; the secret is write-only (see EmailConfigRequest).
+        serializer = EmailConfigRequest(
+            EmailConfig.load(), data=request_dict(request), partial=True
+        )
+        serializer.is_valid(raise_exception=True)
+        return Response(_serialize(serializer.save()))
 
 
 class EmailTestView(APIView):
@@ -75,6 +58,7 @@ class EmailTestView(APIView):
 
     permission_classes = (IsAdminUser,)
 
+    @extend_schema(request=EmailTestRequest)
     def post(self, request: Request, format: str | None = None) -> Response:
         config = EmailConfig.load()
         if not config.is_configured:
@@ -82,8 +66,8 @@ class EmailTestView(APIView):
                 "Email is not configured.", code="email_not_configured"
             )
 
-        data = request_dict(request)
-        recipient = (data.get("to") or request_user(request).email or "").strip()
+        to = parse_body(request, EmailTestRequest)["to"]
+        recipient = (to or request_user(request).email or "").strip()
         if not recipient:
             raise ValidationError(
                 {

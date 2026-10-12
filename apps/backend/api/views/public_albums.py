@@ -5,7 +5,6 @@ from django.core.validators import validate_slug
 from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.utils import timezone
-from django.utils.dateparse import parse_datetime
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -16,13 +15,14 @@ from rest_framework.views import APIView
 from api.exceptions import Conflict
 from api.models import AlbumUser
 from api.models.album_user_share import AlbumUserShare
-from api.request_data import request_dict
 from api.request_user import request_user
 from api.serializers.album_user import (
     AlbumUserPublicSerializer,
+    SetUserAlbumPublicRequest,
     album_user_card,
 )
 from api.serializers.photos import PublicPhotoDetailSerializer
+from api.views.params import parse_body
 
 SHARING_OPTION_FIELDS = (
     "share_location",
@@ -36,13 +36,11 @@ SHARING_OPTION_FIELDS = (
 class SetUserAlbumPublic(APIView):
     permission_classes = (IsAuthenticated,)
 
+    @extend_schema(request=SetUserAlbumPublicRequest)
     def post(self, request: Request, format: str | None = None) -> Response:
-        data = dict(request_dict(request))
-        album_id = data.get("album_id")
-        val_public = data.get("val_public")
-
-        if album_id is None or val_public is None:
-            raise ValidationError("Missing parameters")
+        data = parse_body(request, SetUserAlbumPublicRequest)
+        album_id = data["album_id"]
+        val_public = data["val_public"]
 
         try:
             album = AlbumUser.objects.get(id=album_id)
@@ -54,11 +52,11 @@ class SetUserAlbumPublic(APIView):
 
         slug = data.get("slug")
         if val_public and slug:
-            data["slug"] = slug = str(slug).strip()
+            data["slug"] = slug = slug.strip()
             self._check_slug(album, slug)
 
         share, _ = AlbumUserShare.objects.get_or_create(album=album)
-        share.enabled = bool(val_public)
+        share.enabled = val_public
         self._apply_share_settings(share, data)
         if not share.enabled:
             # Revoking has to actually revoke. Keeping the slug means the next
@@ -108,12 +106,10 @@ class SetUserAlbumPublic(APIView):
         if slug is not None:
             share.slug = slug or None
 
-        expires_at = data.get("expires_at")  # ISO string or None
-        if expires_at is not None:
-            try:
-                share.expires_at = parse_datetime(expires_at)
-            except (TypeError, ValueError):
-                pass  # not an ISO date: keep the current expiry
+        # A date-time sets the expiry, null clears it (the web client sends
+        # null for an emptied field), absent keeps it.
+        if "expires_at" in data:
+            share.expires_at = data["expires_at"]
 
         # Each option can be True, False, or None (use default)
         sharing_options = data.get("sharing_options") or {}

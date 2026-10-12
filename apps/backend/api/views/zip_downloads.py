@@ -6,8 +6,9 @@ import uuid
 
 from django.conf import settings
 from django.db.models import Sum
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
-from rest_framework.exceptions import NotFound, ValidationError
+from rest_framework.exceptions import NotFound
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -16,8 +17,9 @@ from rest_framework.views import APIView
 from api.all_tasks import create_download_job, delete_zip_file, zip_file_name
 from api.exceptions import InsufficientStorage
 from api.models import LongRunningJob, Photo
-from api.request_data import request_dict
 from api.request_user import request_user
+from api.serializers.zip_download import ZipDownloadRequest, ZipDownloadStatusQuery
+from api.views.params import parse_body, parse_query
 
 logger = logging.getLogger(__name__)
 
@@ -37,24 +39,14 @@ def _free_space_for_archives() -> int:
 class ZipListPhotosView_V2(APIView):
     permission_classes = (IsAuthenticated,)
 
+    @extend_schema(request=ZipDownloadRequest)
     def post(self, request: Request) -> Response:
         from api.views.photo_filters import build_photo_queryset
 
         user = request_user(request)
         free_storage = _free_space_for_archives()
-        data = request_dict(request)
-
-        include_stacked = data.get("include_stacked_photos", False)
-        if isinstance(include_stacked, (list, tuple)):
-            include_stacked = include_stacked[0] if include_stacked else False
-        if isinstance(include_stacked, str):
-            include_stacked = include_stacked.strip().lower() in (
-                "1",
-                "true",
-                "yes",
-                "on",
-            )
-        include_stacked = bool(include_stacked)
+        data = parse_body(request, ZipDownloadRequest)
+        include_stacked = data["include_stacked_photos"]
 
         photo_query = Photo.objects.owned_by(user)
 
@@ -63,32 +55,12 @@ class ZipListPhotosView_V2(APIView):
         # an explicit `image_hashes` list, or `select_all=True` plus a `query`
         # describing the photoset the user is looking at, with optional
         # `excluded_hashes` for items they unchecked.
-        if data.get("select_all"):
-            query_params = data.get("query") or {}
-            if isinstance(query_params, (list, tuple)):
-                query_params = query_params[0] if query_params else {}
-            excluded_hashes = data.get("excluded_hashes") or []
-            if isinstance(excluded_hashes, str):
-                excluded_hashes = [excluded_hashes]
-
-            photos = build_photo_queryset(user, query_params)
-            if excluded_hashes:
-                photos = photos.exclude(image_hash__in=excluded_hashes)
+        if data["select_all"]:
+            photos = build_photo_queryset(user, data["query"])
+            if data["excluded_hashes"]:
+                photos = photos.exclude(image_hash__in=data["excluded_hashes"])
         else:
-            image_hashes = data.get("image_hashes")
-            if not image_hashes:
-                raise ValidationError({"image_hashes": "image_hashes required"})
-
-            # DRF may provide list values (QueryDict) or a single string
-            if isinstance(image_hashes, str):
-                image_hashes = [image_hashes]
-            elif isinstance(image_hashes, (list, tuple)):
-                # QueryDict -> dict() would produce list values, request.data keeps list too
-                pass
-            else:
-                image_hashes = list(image_hashes)
-
-            photos = photo_query.filter(image_hash__in=image_hashes)
+            photos = photo_query.filter(image_hash__in=data["image_hashes"])
 
         if not photos.exists():
             raise NotFound("No photos found")
@@ -121,10 +93,9 @@ class ZipListPhotosView_V2(APIView):
 
         return Response(data=response)
 
+    @extend_schema(parameters=[ZipDownloadStatusQuery])
     def get(self, request: Request) -> Response:
-        job_id = request.GET.get("job_id")
-        if not job_id:
-            raise ValidationError({"job_id": "job_id is required"})
+        job_id = parse_query(request, ZipDownloadStatusQuery)["job_id"]
         # Only the user who started the download may poll it (see api/views/jobs.py).
         job = LongRunningJob.objects.filter(
             job_id=job_id, started_by=request_user(request)

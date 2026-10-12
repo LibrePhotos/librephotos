@@ -7,7 +7,7 @@ sidebar_position: 5
 ## Endpoints:
 
 :::note
-The boolean flags below (`favorite`, `public`, `hidden`, `video`, `photo`, `in_trashcan`, `show_all_stack_photos`) are plain truthiness checks on the query string: any non-empty value enables them, so `?hidden=false` still returns hidden images. Omit a flag to get the default behaviour. `in_trashcan` was previously named `deleted`; clients that still send `?deleted=true` are silently ignored and receive the normal timeline rather than the trashcan.
+`public`, `hidden`, `in_trashcan` and `show_all_stack_photos` are booleans: `true`, `1`, `yes` or `on` switch them on, `false`, `0`, `no`, `off` or a blank value leave them off, and any other value is a 400 naming the parameter. The media filters (`favorite`, `video`, `photo`, `is_screenshot`, `is_document`) are read more leniently: a false word turns them off and any other value on. `person` must be a number and `last_modified` a date (`2024-01-31`) or an ISO 8601 date-time, otherwise the answer is a 400. LibrePhotos 1.3.0 and earlier read every flag by truthiness, so `?public=false` still opened the public view (this change is not released yet). Omit a flag to get the default behaviour. `in_trashcan` was previously named `deleted`; clients that still send `?deleted=true` are silently ignored and receive the normal timeline rather than the trashcan.
 :::
 
 ### `GET /api/albums/date/list/`
@@ -17,7 +17,7 @@ Gives you a list of days with the number of elements. This is not paginated and 
 #### Parameters:
 
 - `?favorite=true` - Give me the list for favorite images
-- `?public=true&username=<name>` - Give me the list of this user's public images. On this endpoint the two are coupled: `username` is applied even when absent, so `?public=true` on its own filters on `owner__username IS NULL` and always returns an empty result set.
+- `?public=true` - Give me the list for public images of every user; no sign-in needed. Add `&username=<name>` for one user's public images (`username` only takes effect together with `public`).
 - `?in_trashcan=true` - Give me the list for images currently in the trashcan (images already marked as removed are excluded)
 - `?person=<id>` - Give me the list for this person
 - `?hidden=true` - Return hidden images instead of the default non-hidden ones
@@ -25,7 +25,7 @@ Gives you a list of days with the number of elements. This is not paginated and 
 - `?photo=true` - Photos only (non-videos). `video` and `photo` are independent filters, so sending both at once returns nothing.
 - `?folder=<prefix>` - Only images whose file path starts with this prefix (a prefix match, not folder equality)
 - `?show_all_stack_photos=true` - By default only the primary photo of each stack (plus images in no stack) is counted; pass this to include non-primary stack members. This changes the per-day counts that "How React Pig works" relies on below.
-- `?last_modified=<date>` - Only days containing images last modified on or after this date. This rebuilds the filter set from scratch, so it cannot be combined with any of the parameters above.
+- `?last_modified=<date>` - Only days containing images last modified on or after this date (or date-time). For the signed-in owner this rebuilds the filter set from scratch, so it cannot be combined with any of the parameters above; with `public` it only narrows the public images.
 
 #### Headers:
 
@@ -49,7 +49,7 @@ Returns the actual images, for a given day in chunks of 100 images by default.
 - `?photo=true` - Photos only (non-videos). `video` and `photo` are independent filters, so sending both at once returns nothing.
 - `?folder=<prefix>` - Only images whose file path starts with this prefix (a prefix match, not folder equality)
 - `?show_all_stack_photos=true` - By default only the primary photo of each stack (plus images in no stack) is returned; pass this to include non-primary stack members.
-- `?last_modified=<date>` - Only images with an EXIF timestamp on or after this date. This rebuilds the filter set from scratch, so it cannot be combined with any of the parameters above.
+- `?last_modified=<date>` - Only images with an EXIF timestamp on or after this date (or date-time). For the signed-in owner this rebuilds the filter set from scratch, so it cannot be combined with any of the parameters above; with `public` it only narrows the public images.
 
 #### Headers:
 

@@ -8,6 +8,7 @@ from django.core.mail import send_mail
 from django.http import HttpRequest
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
+from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny
 from rest_framework.request import Request
@@ -17,8 +18,7 @@ from rest_framework.views import APIView
 
 from api.models.user import User as AppUser
 from api.public_url import trusted_public_base_url
-from api.request_data import request_dict
-from api.serializers.user import PasswordResetRequest
+from api.serializers.user import PasswordResetConfirmRequest, PasswordResetRequest
 from api.throttling import AuthRateThrottle
 from api.views.params import parse_body
 
@@ -100,14 +100,13 @@ class PasswordResetConfirmView(APIView):
     permission_classes = (AllowAny,)
     throttle_classes = (AuthRateThrottle,)
 
+    @extend_schema(request=PasswordResetConfirmRequest)
     def post(self, request: Request, format: str | None = None) -> Response:
-        data = request_dict(request)
-        uid = data.get("uid")
-        token = data.get("token")
-        new_password = data.get("new_password")
-
-        if not uid or not token or not new_password:
-            raise ValidationError("Missing parameters", code="missing_parameters")
+        # A missing parameter is the code missing_parameters.
+        data = parse_body(request, PasswordResetConfirmRequest)
+        uid = data["uid"]
+        token = data["token"]
+        new_password = data["new_password"]
 
         # The web client tells these two 400s apart by their codes.
         user = self._user_from_uid(uid)

@@ -828,3 +828,32 @@ class ManageUserSerializer(serializers.ModelSerializer):
 
 class PasswordResetRequest(serializers.Serializer[None]):
     email = serializers.CharField(default="", allow_blank=True, allow_null=True)
+
+
+def _reset_field(help_text: str) -> serializers.CharField:
+    return serializers.CharField(
+        default="",
+        allow_blank=True,
+        allow_null=True,
+        trim_whitespace=False,
+        help_text=help_text,
+    )
+
+
+class PasswordResetConfirmRequest(serializers.Serializer[None]):
+    """The emailed link's ``uid`` and ``token`` plus the new password.
+
+    A missing, blank or null parameter is one error with the code
+    ``missing_parameters``, not a per-field one: the web client branches on it.
+    """
+
+    uid = _reset_field("The user id from the emailed link")
+    token = _reset_field("The token from the emailed link")
+    new_password = _reset_field("The new password, as typed")
+
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        if not (attrs["uid"] and attrs["token"] and attrs["new_password"]):
+            raise serializers.ValidationError(
+                "Missing parameters", code="missing_parameters"
+            )
+        return attrs

@@ -1,8 +1,9 @@
 """Characterization tests for api.views.public_albums.SetUserAlbumPublic.post.
 
-These pin CURRENT behavior of POST /api/useralbum/makepublic/ before refactoring.
-They intentionally assert what the code does today, including quirks that are
-arguably bugs (documented inline).
+These pinned the behavior of POST /api/useralbum/makepublic/ before it was
+refactored. Quirks fixed since then (the body read through a serializer in
+#2326, a null expiry clearing it) are asserted as they behave now and say so
+inline.
 """
 
 import datetime
@@ -41,13 +42,13 @@ class SetUserAlbumPublicValidationTest(SetUserAlbumPublicTestBase):
         response = self.post({"val_public": True})
 
         self.assertEqual(400, response.status_code)
-        self.assertEqual(api_error(response)["message"], "Missing parameters")
+        self.assertEqual(api_error(response)["field"], "album_id")
 
     def test_missing_val_public_returns_400(self):
         response = self.post({"album_id": self.album.id})
 
         self.assertEqual(400, response.status_code)
-        self.assertEqual(api_error(response)["message"], "Missing parameters")
+        self.assertEqual(api_error(response)["field"], "val_public")
 
     def test_empty_payload_returns_400(self):
         response = self.post({})
@@ -224,21 +225,21 @@ class SetUserAlbumPublicEnableTest(SetUserAlbumPublicTestBase):
         self.assertEqual(200, response.status_code)
         self.assertEqual("my-album", AlbumUserShare.objects.get(album=self.album).slug)
 
-    def test_truthy_non_boolean_val_public_enables_sharing(self):
-        # bool("false") is True -- string payloads enable the share.
+    def test_a_string_val_public_is_refused(self):
+        # It used to be read by truthiness: "false" published the album.
         response = self.post({"album_id": self.album.id, "val_public": "false"})
 
-        self.assertEqual(200, response.status_code)
-        self.assertTrue(AlbumUserShare.objects.get(album=self.album).enabled)
+        self.assertEqual(400, response.status_code)
+        self.assertEqual(api_error(response)["field"], "val_public")
+        self.assertFalse(AlbumUserShare.objects.filter(album=self.album).exists())
 
-    def test_falsy_non_boolean_val_public_disables_sharing(self):
-        # 0 is not None so it passes the None check, and disables the share.
+    def test_a_number_val_public_is_refused(self):
         AlbumUserShare.objects.create(album=self.album, enabled=True, slug="s1")
 
         response = self.post({"album_id": self.album.id, "val_public": 0})
 
-        self.assertEqual(200, response.status_code)
-        self.assertFalse(AlbumUserShare.objects.get(album=self.album).enabled)
+        self.assertEqual(400, response.status_code)
+        self.assertTrue(AlbumUserShare.objects.get(album=self.album).enabled)
 
     def test_album_id_as_string_is_accepted(self):
         response = self.post({"album_id": str(self.album.id), "val_public": True})
@@ -299,14 +300,11 @@ class SetUserAlbumPublicExpiresAtTest(SetUserAlbumPublicTestBase):
             share.expires_at,
         )
 
-    def test_unparseable_expires_at_sets_none(self):
-        # parse_datetime returns None for a non-matching string; no exception is
-        # raised, so expires_at is silently set to None.
+    def test_unparseable_expires_at_is_refused(self):
+        # It used to clear the expiry silently.
+        previous = timezone.now() + datetime.timedelta(days=1)
         AlbumUserShare.objects.create(
-            album=self.album,
-            enabled=True,
-            slug="s2",
-            expires_at=timezone.now() + datetime.timedelta(days=1),
+            album=self.album, enabled=True, slug="s2", expires_at=previous
         )
 
         response = self.post(
@@ -317,12 +315,13 @@ class SetUserAlbumPublicExpiresAtTest(SetUserAlbumPublicTestBase):
             }
         )
 
-        self.assertEqual(200, response.status_code)
-        self.assertIsNone(AlbumUserShare.objects.get(album=self.album).expires_at)
+        self.assertEqual(400, response.status_code)
+        self.assertEqual(api_error(response)["field"], "expires_at")
+        self.assertEqual(
+            previous, AlbumUserShare.objects.get(album=self.album).expires_at
+        )
 
-    def test_invalid_calendar_date_is_swallowed_and_leaves_value_unchanged(self):
-        # parse_datetime raises ValueError for a well-formed but invalid date;
-        # the bare `except Exception: pass` keeps the previous value.
+    def test_invalid_calendar_date_is_refused(self):
         previous = timezone.now() + datetime.timedelta(days=5)
         AlbumUserShare.objects.create(
             album=self.album, enabled=True, slug="s3", expires_at=previous
@@ -336,20 +335,37 @@ class SetUserAlbumPublicExpiresAtTest(SetUserAlbumPublicTestBase):
             }
         )
 
-        self.assertEqual(200, response.status_code)
+        self.assertEqual(400, response.status_code)
         self.assertEqual(
             previous, AlbumUserShare.objects.get(album=self.album).expires_at
         )
 
-    def test_null_expires_at_does_not_clear_existing_value(self):
-        previous = timezone.now() + datetime.timedelta(days=3)
+    def test_null_expires_at_clears_the_expiry(self):
+        # The web client clears the expiry field by sending null; that used to
+        # leave the old expiry in place, so a link could never be made
+        # permanent again.
         AlbumUserShare.objects.create(
-            album=self.album, enabled=True, slug="s4", expires_at=previous
+            album=self.album,
+            enabled=True,
+            slug="s4",
+            expires_at=timezone.now() + datetime.timedelta(days=3),
         )
 
         response = self.post(
             {"album_id": self.album.id, "val_public": True, "expires_at": None}
         )
+
+        self.assertEqual(200, response.status_code)
+        self.assertIsNone(AlbumUserShare.objects.get(album=self.album).expires_at)
+        self.assertIsNone(response.json()["album"]["public_expires_at"])
+
+    def test_absent_expires_at_keeps_the_expiry(self):
+        previous = timezone.now() + datetime.timedelta(days=3)
+        AlbumUserShare.objects.create(
+            album=self.album, enabled=True, slug="s4", expires_at=previous
+        )
+
+        response = self.post({"album_id": self.album.id, "val_public": True})
 
         self.assertEqual(200, response.status_code)
         self.assertEqual(

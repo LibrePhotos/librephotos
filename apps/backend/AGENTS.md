@@ -59,7 +59,7 @@ test makes `--parallel` runs crash with "cannot pickle 'traceback'"; rerun that 
   class in `@extend_schema(parameters=[XQuery])` / `request=XRequest`. Clamp page sizes with its
   `ClampedIntegerField`; example: `DuplicateListView` and `DetectDuplicatesView` in `api/views/duplicates.py`.
   `RequestParsingGuardTest` (`api/tests/infra/test_api_conventions.py`) fails on a hand read of
-  `request.data`/`query_params`/`GET`/`POST`; `request_parsing_baseline.json` next to it only shrinks.
+  `request.data`/`query_params`/`GET`/`POST` in any view module (no baseline).
 - A view declares its response (a `serializer_class`, or `@extend_schema(responses=...)` on an
   `APIView`) and a `SerializerMethodField` getter a precise return type (a `TypedDict`, `list[str]`) or
   `@extend_schema_field`; then regenerate the committed `openapi.json` with `python scripts/openapi_schema.py`
