@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.a1e92a76.css">
-<script src="/assets/js/runtime~main.f3cebf9e.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.c159bdfe.js" defer="defer"></script>
 <script src="/assets/js/main.c4dc47cd.js" defer="defer"></script>
 </head>
 <body>
@@ -47,7 +47,7 @@
 <li class="">mypy reports an error that is not in the baseline. Errors are matched by file, code and message, not by line, so moving existing code around is fine;</li>
 <li class="">a baseline entry no longer occurs. Run <code>python scripts/typecheck.py --update</code> and commit the smaller file;</li>
 <li class="">the baseline grew compared with the target branch. The only exception is a pull request that changes <code>requirements*.txt</code> or the mypy config, because a new stub or library release can change the messages; the job then lists the new entries for the reviewer. This is also why Renovate never automerges the <code>backend type checking</code> group;</li>
-<li class="">a strict module (see below) has a baseline entry.</li>
+<li class="">a strict module (see below) has a baseline entry, or a strict-list entry names no module mypy checks (a module renamed or moved without updating the list).</li>
 </ul>
 <p>Rules for new code:</p>
 <ul>
@@ -57,7 +57,7 @@
 <li class=""><code>typing.cast</code> only where the value really is narrower than the stubs say, with a comment saying why.</li>
 <li class="">Never run <code>--update</code> to accept new errors.</li>
 </ul>
-<p>The second <code>[[tool.mypy.overrides]]</code> table lists the strict modules, which additionally forbid explicit <code>Any</code>, untyped calls and bare generics such as <code>dict</code>. The list only grows: when you add a new module or package, add it there in the same pull request.</p>
+<p>The second <code>[[tool.mypy.overrides]]</code> table lists the strict modules, which additionally forbid explicit <code>Any</code>, untyped calls and bare generics such as <code>dict</code>. The list only grows: when you add a new module or package, add it there in the same pull request, and when you move or rename a listed module, rename its entry.</p>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="dead-code">Dead code<a href="#dead-code" class="hash-link" aria-label="Direct link to Dead code" title="Direct link to Dead code" translate="no">​</a></h3>
 <p>The <code>dead-code</code> job of the <code>lint-backend</code> workflow runs <a href="https://github.com/jendrikseipp/vulture" target="_blank" rel="noopener noreferrer" class="">vulture</a> (pinned in <code>apps/backend/requirements.dev.txt</code>) and fails on a function, method, class or property that nothing references. Run the same check from <code>apps/backend/</code>:</p>
 <div class="language-bash codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_QJqH"><pre tabindex="0" class="prism-code language-bash codeBlock_bY9V thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_e6Vv"><div class="token-line" style="color:#393A34"><span class="token plain">python scripts/check_dead_code.py</span><br></div></code></pre></div></div>
