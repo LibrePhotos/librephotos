@@ -96,6 +96,10 @@ test makes `--parallel` runs crash with "cannot pickle 'traceback'"; rerun that 
   (`api/views/exception_handler.py`) writes `{"errors": [{"field", "message", "code"}]}`, and
   `ErrorEnvelopeTest` (`api/tests/infra/test_api_conventions.py`) fails on an error `Response` or a
   literal `status=`. Keep an endpoint's status codes: the mobile outbox retries 5xx and drops 4xx.
+- Models hold data and queries only: fields, managers, properties computed from fields, pure helpers.
+  Disk, sidecar, subprocess and network work goes in the domain's service module, taking the instance
+  first (`api/thumbnails.py`, `api/photo_files.py`, `api/metadata/photo_writer.py`), and the caller calls it;
+  never add a side effect to `save()`. `api/tests/infra/test_models_do_no_io.py` fails on an I/O import or call in `api/models/`.
 - Background work is queued only through `api/jobs/queue.py` (ruff TID251 bans `django_q.tasks`
   elsewhere): `enqueue_job` (user-started; writes the `LongRunningJob` row before queuing, a duplicate
   start is a 409 `job_already_running` carrying the running `job_id`), `enqueue_followup` (queued by
