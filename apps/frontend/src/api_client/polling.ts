@@ -13,7 +13,7 @@ export const POLL_ARCHIVE_MS = 3000;
 /** Nothing is running: only notice that something started (another tab, a scheduled job). */
 export const POLL_IDLE_MS = 15000;
 /** Delay before invalidating after a write, so the writes that follow the response land first. */
-export const INVALIDATE_SETTLE_MS = 100;
+const INVALIDATE_SETTLE_MS = 100;
 
 type PollableQuery<TData> = { state: { data: TData | undefined } };
 

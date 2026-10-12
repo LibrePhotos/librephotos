@@ -42,7 +42,7 @@ export const useUpdateEmailConfigMutation = () =>
   });
 
 /** A sent test email. A failed send is an ApiError (502, code email_send_failed). */
-export const EmailTestResponse = z.object({
+const EmailTestResponse = z.object({
   status: z.literal(true),
   message: z.string(),
 });

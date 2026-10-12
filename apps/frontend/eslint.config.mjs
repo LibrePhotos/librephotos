@@ -258,7 +258,10 @@ export default [
       // dayjs is only Mantine's date-picker glue (its locales are loaded in i18n.ts); dates are luxon.
       "no-restricted-imports": [
         "error",
-        { paths: [modalsImportBan, cookiesImportBan, lodashImportBan], patterns: [notificationsImportBan, dayjsImportBan] },
+        {
+          paths: [modalsImportBan, cookiesImportBan, lodashImportBan],
+          patterns: [notificationsImportBan, dayjsImportBan],
+        },
       ],
     },
   },
@@ -279,7 +282,10 @@ export default [
     // files it matches, so this keeps the other import bans for those files.
     files: ["src/service/notifications/**/*.{ts,tsx}", "src/App.tsx"],
     rules: {
-      "no-restricted-imports": ["error", { paths: [modalsImportBan, cookiesImportBan, lodashImportBan], patterns: [dayjsImportBan] }],
+      "no-restricted-imports": [
+        "error",
+        { paths: [modalsImportBan, cookiesImportBan, lodashImportBan], patterns: [dayjsImportBan] },
+      ],
     },
   },
   {
