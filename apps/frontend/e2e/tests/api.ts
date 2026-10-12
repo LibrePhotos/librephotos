@@ -1,5 +1,6 @@
 import type { APIRequestContext } from "@playwright/test";
 import { expect } from "@playwright/test";
+import { userIdFromAccessToken } from "../../../../packages/api-client/src/transport/jwt";
 
 /** Thin helpers over the REST API, used for seeding only; the specs check the UI. */
 
@@ -19,9 +20,9 @@ export async function obtainToken(request: APIRequestContext, username: string, 
 }
 
 function userIdFromToken(token: string): number {
-  const payload: unknown = JSON.parse(Buffer.from(token.split(".")[1], "base64url").toString("utf8"));
-  const userId = field(payload, "user_id");
-  if (typeof userId !== "number") throw new Error("access token has no user_id");
+  // The server writes user_id as a string ("1"); the shared parser also reads older servers' number.
+  const userId = userIdFromAccessToken(token);
+  if (userId === null) throw new Error("access token has no user_id");
   return userId;
 }
 
