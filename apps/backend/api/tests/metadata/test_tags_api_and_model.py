@@ -16,13 +16,13 @@ from api.models.tag import (
     link_tags_from_keywords,
     sync_tags_from_keywords,
 )
+from api.photos.selection import build_photo_queryset
 from api.tests.utils import (
     create_test_photo,
     create_test_photos,
     create_test_tag,
     create_test_user,
 )
-from api.views.photo_filters import build_photo_queryset
 
 _migration = import_module("api.migrations.0130_tag")
 

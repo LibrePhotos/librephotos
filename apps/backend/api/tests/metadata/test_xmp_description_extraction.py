@@ -25,13 +25,13 @@ from django.test import TestCase
 from django.utils import timezone
 from rest_framework.test import APIClient
 
-from api.media_files import get_or_create_file
 from api.metadata.photo_reader import EXIF_VALUE_NAMES, extract_exif_data
 from api.models import Photo
 from api.models.album_thing import AlbumThing
 from api.models.photo_caption import PhotoCaption
 from api.models.photo_metadata import PhotoMetadata
 from api.models.photo_search import PhotoSearch
+from api.photos.media_files import get_or_create_file
 from api.tests.utils import (
     create_test_photo,
     create_test_thumbnail,

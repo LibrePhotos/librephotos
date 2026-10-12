@@ -16,7 +16,7 @@ from rest_framework.test import APIClient
 
 from api.models.duplicate import Duplicate
 from api.models.photo_metadata import PhotoMetadata
-from api.photo_files import remove_photo
+from api.photos.files import remove_photo
 from api.tests.utils import (
     api_error,
     create_test_duplicate,

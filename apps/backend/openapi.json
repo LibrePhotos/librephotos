@@ -12288,7 +12288,7 @@
       },
       "SetPhotosCategoryRequestRequest": {
         "type": "object",
-        "description": "The photos a bulk action applies to.\n\nEither ``image_hashes``, or ``select_all`` with a filter ``query`` (see\n``api.views.photo_filters.build_photo_queryset``) minus ``excluded_hashes``.",
+        "description": "The photos a bulk action applies to.\n\nEither ``image_hashes``, or ``select_all`` with a filter ``query`` (see\n``api.photos.selection.build_photo_queryset``) minus ``excluded_hashes``.",
         "properties": {
           "select_all": {
             "type": "boolean",
@@ -12329,7 +12329,7 @@
       },
       "SetPhotosDeletedRequestRequest": {
         "type": "object",
-        "description": "The photos a bulk action applies to.\n\nEither ``image_hashes``, or ``select_all`` with a filter ``query`` (see\n``api.views.photo_filters.build_photo_queryset``) minus ``excluded_hashes``.",
+        "description": "The photos a bulk action applies to.\n\nEither ``image_hashes``, or ``select_all`` with a filter ``query`` (see\n``api.photos.selection.build_photo_queryset``) minus ``excluded_hashes``.",
         "properties": {
           "select_all": {
             "type": "boolean",
@@ -12366,7 +12366,7 @@
       },
       "SetPhotosFavoriteRequestRequest": {
         "type": "object",
-        "description": "The photos a bulk action applies to.\n\nEither ``image_hashes``, or ``select_all`` with a filter ``query`` (see\n``api.views.photo_filters.build_photo_queryset``) minus ``excluded_hashes``.",
+        "description": "The photos a bulk action applies to.\n\nEither ``image_hashes``, or ``select_all`` with a filter ``query`` (see\n``api.photos.selection.build_photo_queryset``) minus ``excluded_hashes``.",
         "properties": {
           "select_all": {
             "type": "boolean",
@@ -12402,7 +12402,7 @@
       },
       "SetPhotosHiddenRequestRequest": {
         "type": "object",
-        "description": "The photos a bulk action applies to.\n\nEither ``image_hashes``, or ``select_all`` with a filter ``query`` (see\n``api.views.photo_filters.build_photo_queryset``) minus ``excluded_hashes``.",
+        "description": "The photos a bulk action applies to.\n\nEither ``image_hashes``, or ``select_all`` with a filter ``query`` (see\n``api.photos.selection.build_photo_queryset``) minus ``excluded_hashes``.",
         "properties": {
           "select_all": {
             "type": "boolean",
@@ -12438,7 +12438,7 @@
       },
       "SetPhotosPublicRequestRequest": {
         "type": "object",
-        "description": "The photos a bulk action applies to.\n\nEither ``image_hashes``, or ``select_all`` with a filter ``query`` (see\n``api.views.photo_filters.build_photo_queryset``) minus ``excluded_hashes``.",
+        "description": "The photos a bulk action applies to.\n\nEither ``image_hashes``, or ``select_all`` with a filter ``query`` (see\n``api.photos.selection.build_photo_queryset``) minus ``excluded_hashes``.",
         "properties": {
           "select_all": {
             "type": "boolean",
@@ -12474,7 +12474,7 @@
       },
       "SetPhotosRatingRequestRequest": {
         "type": "object",
-        "description": "The photos a bulk action applies to.\n\nEither ``image_hashes``, or ``select_all`` with a filter ``query`` (see\n``api.views.photo_filters.build_photo_queryset``) minus ``excluded_hashes``.",
+        "description": "The photos a bulk action applies to.\n\nEither ``image_hashes``, or ``select_all`` with a filter ``query`` (see\n``api.photos.selection.build_photo_queryset``) minus ``excluded_hashes``.",
         "properties": {
           "select_all": {
             "type": "boolean",
@@ -12513,7 +12513,7 @@
       },
       "SetPhotosSharedRequestRequest": {
         "type": "object",
-        "description": "The photos a bulk action applies to.\n\nEither ``image_hashes``, or ``select_all`` with a filter ``query`` (see\n``api.views.photo_filters.build_photo_queryset``) minus ``excluded_hashes``.",
+        "description": "The photos a bulk action applies to.\n\nEither ``image_hashes``, or ``select_all`` with a filter ``query`` (see\n``api.photos.selection.build_photo_queryset``) minus ``excluded_hashes``.",
         "properties": {
           "select_all": {
             "type": "boolean",
@@ -13228,7 +13228,7 @@
       },
       "ZipDownloadRequestRequest": {
         "type": "object",
-        "description": "The photos to archive: ``image_hashes``, or ``select_all`` with a ``query``.\n\nLike the other bulk actions (``PhotoSelectionRequest``): the ``query`` is\nthe filter of ``api.views.photo_filters.build_photo_queryset``, minus\n``excluded_hashes``.",
+        "description": "The photos to archive: ``image_hashes``, or ``select_all`` with a ``query``.\n\nLike the other bulk actions (``PhotoSelectionRequest``): the ``query`` is\nthe filter of ``api.photos.selection.build_photo_queryset``, minus\n``excluded_hashes``.",
         "properties": {
           "select_all": {
             "type": "boolean",

@@ -76,7 +76,7 @@ class ZipDownloadRequest(serializers.Serializer[None]):
     """The photos to archive: ``image_hashes``, or ``select_all`` with a ``query``.
 
     Like the other bulk actions (``PhotoSelectionRequest``): the ``query`` is
-    the filter of ``api.views.photo_filters.build_photo_queryset``, minus
+    the filter of ``api.photos.selection.build_photo_queryset``, minus
     ``excluded_hashes``.
     """
 

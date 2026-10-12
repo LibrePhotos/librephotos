@@ -11,7 +11,9 @@ checked-in baseline (mypy-baseline.txt):
   - with --base-ref, the baseline must not have grown compared with that ref,
     unless the change also touches requirements*.txt or the mypy config (a
     stub or library update may legitimately change messages);
-  - a module in the strict override must have no baseline entries;
+  - a module in the strict override must have no baseline entries, and every
+    pattern in it must name a module mypy checks (a renamed module left in the
+    list would silently lose the strict flags);
   - mypy failing without parsable errors (crash, bad config) exits 2.
 
 Errors are keyed as `path: [code] message`, without line numbers, so an edit
@@ -198,11 +200,23 @@ def check_growth(base_ref: str, baseline: list[str]) -> bool:
     return False
 
 
-def strict_modules() -> list[str]:
+def _mypy_table() -> dict[str, object]:
     config = tomllib.loads(PYPROJECT.read_text(encoding="utf-8"))
     tool = config.get("tool", {})
     mypy = tool.get("mypy", {}) if isinstance(tool, dict) else {}
-    overrides = mypy.get("overrides", []) if isinstance(mypy, dict) else []
+    return mypy if isinstance(mypy, dict) else {}
+
+
+def _str_list(value: object) -> list[str]:
+    return (
+        [item for item in value if isinstance(item, str)]
+        if isinstance(value, list)
+        else []
+    )
+
+
+def strict_modules() -> list[str]:
+    overrides = _mypy_table().get("overrides", [])
     modules: list[str] = []
     for override in overrides if isinstance(overrides, list) else []:
         if isinstance(override, dict) and override.get("disallow_any_explicit"):
@@ -216,21 +230,67 @@ def _module_of(path: str) -> str:
     return name.removeprefix("scripts.")
 
 
+def checked_modules() -> set[str]:
+    """The modules mypy checks: the .py files under ``files``, minus ``exclude``."""
+    mypy = _mypy_table()
+    excludes = [re.compile(pattern) for pattern in _str_list(mypy.get("exclude"))]
+    modules: set[str] = set()
+    for entry in _str_list(mypy.get("files")):
+        path = ROOT / entry
+        found = sorted(path.rglob("*.py")) if path.is_dir() else [path]
+        for file in found:
+            relative = file.relative_to(ROOT).as_posix()
+            if file.is_file() and not any(e.search(relative) for e in excludes):
+                modules.add(_module_of(relative))
+    return modules
+
+
+def _matches(pattern: str, module: str) -> bool:
+    if pattern.endswith(".*"):
+        prefix = pattern.removesuffix(".*")
+        return module == prefix or module.startswith(prefix + ".")
+    return module == pattern
+
+
+def unmatched_strict_patterns(patterns: list[str], modules: set[str]) -> list[str]:
+    """Strict-override patterns that name no module mypy checks."""
+    return [p for p in patterns if not any(_matches(p, m) for m in modules)]
+
+
 def strict_violations(baseline: list[str]) -> list[str]:
     patterns = strict_modules()
     out: list[str] = []
     for key in baseline:
         module = _module_of(key.split(": ", 1)[0])
-        for pattern in patterns:
-            if pattern.endswith(".*"):
-                prefix = pattern.removesuffix(".*")
-                hit = module == prefix or module.startswith(prefix + ".")
-            else:
-                hit = module == pattern
-            if hit:
-                out.append(key)
-                break
+        if any(_matches(pattern, module) for pattern in patterns):
+            out.append(key)
     return out
+
+
+def check_strict(baseline: list[str]) -> bool:
+    """False when a strict module has baseline entries or a pattern names no module."""
+    ok = True
+    strict_hits = strict_violations(baseline)
+    if strict_hits:
+        ok = False
+        print(
+            "\nModules in the strict override must have no baseline entries:",
+            file=sys.stderr,
+        )
+        for key in strict_hits:
+            print(f"  {key}", file=sys.stderr)
+
+    unmatched = unmatched_strict_patterns(strict_modules(), checked_modules())
+    if unmatched:
+        ok = False
+        print(
+            "\nThese strict-override patterns in pyproject.toml name no module mypy "
+            "checks (renamed or deleted?); point them at the module's new name:",
+            file=sys.stderr,
+        )
+        for pattern in unmatched:
+            print(f"  {pattern}", file=sys.stderr)
+    return ok
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -294,15 +354,8 @@ def main(argv: list[str] | None = None) -> int:
         for key in fixed:
             print(f"  {key}", file=sys.stderr)
 
-    strict_hits = strict_violations(baseline)
-    if strict_hits:
+    if not check_strict(baseline):
         ok = False
-        print(
-            "\nModules in the strict override must have no baseline entries:",
-            file=sys.stderr,
-        )
-        for key in strict_hits:
-            print(f"  {key}", file=sys.stderr)
 
     if args.base_ref and not check_growth(args.base_ref, baseline):
         ok = False

@@ -14,11 +14,11 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from api.all_tasks import create_download_job, delete_zip_file, zip_file_name
 from api.drf.exceptions import InsufficientStorage
 from api.drf.params import parse_body, parse_query
 from api.drf.request_user import request_user
 from api.models import LongRunningJob, Photo
+from api.photos.zip_downloads import create_download_job, delete_zip_file, zip_file_name
 from api.serializers.zip_download import ZipDownloadRequest, ZipDownloadStatusQuery
 
 logger = logging.getLogger(__name__)
@@ -41,7 +41,7 @@ class ZipListPhotosView_V2(APIView):
 
     @extend_schema(request=ZipDownloadRequest)
     def post(self, request: Request) -> Response:
-        from api.views.photo_filters import build_photo_queryset
+        from api.photos.selection import build_photo_queryset
 
         user = request_user(request)
         free_storage = _free_space_for_archives()

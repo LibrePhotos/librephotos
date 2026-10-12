@@ -19,11 +19,11 @@ import unittest
 import PIL.Image
 from django.test import SimpleTestCase, TestCase
 
-from api.media_files import get_or_create_file
 from api.metadata.photo_writer import write_photo_metadata
 from api.metadata.reader import get_sidecar_files_in_priority_order
 from api.metadata.tags import Tags
 from api.metadata.writer import write_metadata
+from api.photos.media_files import get_or_create_file
 from api.tests.utils import create_test_photo, create_test_user
 
 EXIFTOOL = shutil.which("exiftool")

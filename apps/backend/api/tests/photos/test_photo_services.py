@@ -1,7 +1,7 @@
 """Unit tests for the functions moved out of ``Photo`` whose coverage was only
 indirect: day-album bookkeeping (``api.metadata.photo_datetime``), place-album
 lookup (``api.geocode.photo_location``), face persistence
-(``api.faces.photo_faces``) and file detachment (``api.photo_files``).
+(``api.faces.photo_faces``) and file detachment (``api.photos.files``).
 
 The datetime rules and exiftool are mocked; no network, no ML models.
 """
@@ -22,7 +22,7 @@ from api.metadata.photo_datetime import extract_date_time, find_album_date
 from api.models import Face, Photo
 from api.models.album_date import AlbumDate, get_or_create_album_date
 from api.models.album_place import get_album_place
-from api.photo_files import detach_missing_files
+from api.photos.files import detach_missing_files
 from api.tests.utils import create_test_file, create_test_photo, create_test_user
 
 JUNE_1 = datetime.datetime(2020, 6, 1, 12, 0, tzinfo=datetime.timezone.utc)

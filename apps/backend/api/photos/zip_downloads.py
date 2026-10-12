@@ -1,3 +1,8 @@
+"""The download archive: a job zips a selection of photos, and the archive
+is deleted a day after it was built (``delete_zip_file``, a one-off
+django-q schedule stored by dotted path).
+"""
+
 import logging
 import os
 import time
@@ -7,6 +12,7 @@ from collections.abc import Collection, Sequence
 from datetime import timedelta
 
 from django.conf import settings
+from django.db import DatabaseError
 from django.utils import timezone
 
 from api.jobs.queue import enqueue_job, schedule_once
@@ -73,7 +79,7 @@ def _stacked_variant_files(photo: Photo) -> list[File]:
         for stack in variant_stacks:
             for stack_photo in stack.photos.all():
                 files.extend(_photo_own_files(stack_photo))
-    except Exception:
+    except DatabaseError:
         # If stacks aren't available for some reason, just proceed with variants.
         logger.warning(
             "Could not read the variant stacks of photo %s",
@@ -89,7 +95,7 @@ def _embedded_media_files(files: Sequence[File | None]) -> list[File]:
         try:
             if file_obj and file_obj.embedded_media.exists():
                 embedded.extend(list(file_obj.embedded_media.all()))
-        except Exception:
+        except DatabaseError:
             logger.warning(
                 "Could not list the embedded media of file %s",
                 getattr(file_obj, "hash", None),
@@ -195,7 +201,9 @@ def zip_photos_task(
         os.replace(partial_path, output_path)
 
     except Exception as e:
-        logger.error("Error while converting files to zip: %s", e)
+        # The job's boundary: whatever went wrong, the job must end failed and
+        # its partial archive go, or the client polls a job that never ends.
+        logger.exception("Error while converting files to zip: %s", e)
         _remove_partial_zip(partial_path)
         # Reported as such: the client would otherwise fetch an archive that
         # is not there.
@@ -205,11 +213,13 @@ def zip_photos_task(
     lrj.complete()
     # scheduling a task to delete the zip file after a day
     execution_time = timezone.now() + timedelta(days=1)
-    schedule_once("api.all_tasks.delete_zip_file", filename, at=execution_time)
+    schedule_once(
+        "api.photos.zip_downloads.delete_zip_file", filename, at=execution_time
+    )
     return output_path
 
 
-def delete_zip_file(filename: str) -> Exception | None:
+def delete_zip_file(filename: str) -> OSError | None:
     zip_dir = os.path.realpath(os.path.join(settings.MEDIA_ROOT, "zip"))
     file_path = os.path.realpath(os.path.join(zip_dir, filename))
     if os.path.dirname(file_path) != zip_dir:
@@ -224,6 +234,6 @@ def delete_zip_file(filename: str) -> Exception | None:
             logger.info("file deleted sucessfully at path : %s", file_path)
             return None
 
-    except Exception as e:
+    except OSError as e:
         logger.error("Error while deleting file: %s", e)
         return e

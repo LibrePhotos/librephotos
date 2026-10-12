@@ -8,7 +8,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from api.drf.request_user import request_user
+from api.drf.request_user import request_user, scope_user
 from api.models import Photo
 from api.search.filters import SemanticSearchFilter
 from api.search.term_examples import get_search_term_examples
@@ -20,7 +20,6 @@ from api.serializers.photos import (
 )
 from api.serializers.PhotosGroupedByDate import get_photos_ordered_by_date
 from api.views.custom_api_view import ListViewSet
-from api.views.photo_filters import scope_user
 
 # The date of the undated group in search results. The other grouped lists send
 # null, but the web and mobile search schemas require a string here, and null

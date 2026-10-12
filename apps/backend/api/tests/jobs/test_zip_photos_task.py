@@ -1,4 +1,4 @@
-"""Characterization tests for api.all_tasks.zip_photos_task.
+"""Characterization tests for api.photos.zip_downloads.zip_photos_task.
 
 These pin the CURRENT observable behavior of the download-zip background task
 before it is refactored.  They deliberately assert what the code does today,
@@ -17,10 +17,11 @@ import time
 import zipfile
 from unittest.mock import MagicMock, patch
 
+from django.db import OperationalError
 from django.test import TestCase, override_settings
 
-from api.all_tasks import zip_photos_task
 from api.models.long_running_job import LongRunningJob
+from api.photos.zip_downloads import zip_photos_task
 from api.tests.utils import create_test_user
 
 
@@ -91,11 +92,11 @@ class ZipPhotosTaskTestBase(TestCase):
         self.addCleanup(shutil.rmtree, self.source_dir, ignore_errors=True)
 
         # django-q scheduling must not hit the broker/DB scheduler.
-        schedule_patcher = patch("api.all_tasks.schedule_once")
+        schedule_patcher = patch("api.photos.zip_downloads.schedule_once")
         self.mock_schedule = schedule_patcher.start()
         self.addCleanup(schedule_patcher.stop)
 
-        logger_patcher = patch("api.all_tasks.logger")
+        logger_patcher = patch("api.photos.zip_downloads.logger")
         self.mock_logger = logger_patcher.start()
         self.addCleanup(logger_patcher.stop)
 
@@ -167,7 +168,7 @@ class ZipPhotosTaskHappyPathTest(ZipPhotosTaskTestBase):
 
         self.assertEqual(self.mock_schedule.call_count, 1)
         args, kwargs = self.mock_schedule.call_args
-        self.assertEqual(args[0], "api.all_tasks.delete_zip_file")
+        self.assertEqual(args[0], "api.photos.zip_downloads.delete_zip_file")
         self.assertEqual(args[1], "later.zip")
         self.assertIn("at", kwargs)
 
@@ -318,7 +319,7 @@ class ZipPhotosTaskEmbeddedMediaTest(ZipPhotosTaskTestBase):
         # The ``except: continue`` inside the embedded-media loop only skips
         # collecting variants; the offending file itself is still zipped later.
         boom = FakeFile(
-            self.write_source("boom.jpg"), embedded_raises=RuntimeError("db down")
+            self.write_source("boom.jpg"), embedded_raises=OperationalError("db down")
         )
         ok = FakeFile(self.write_source("ok.jpg"))
 
@@ -352,7 +353,7 @@ class ZipPhotosTaskStacksTest(ZipPhotosTaskTestBase):
     def test_stack_lookup_failure_is_swallowed(self):
         photo = FakePhoto(
             main_file=FakeFile(self.write_source("a.jpg")),
-            stacks=FakeStacks(raises=RuntimeError("no stacks table")),
+            stacks=FakeStacks(raises=OperationalError("no such table")),
         )
 
         result, job = self.run_task([photo])
@@ -365,13 +366,32 @@ class ZipPhotosTaskStacksTest(ZipPhotosTaskTestBase):
         self.assertTrue(job.finished)
         self.assertFalse(job.failed)
 
+    def test_a_stack_lookup_bug_fails_the_job(self):
+        # Only a database error is swallowed; a bug is not hidden behind a
+        # warning and an archive that silently lacks the variants.
+        photo = FakePhoto(
+            main_file=FakeFile(self.write_source("a.jpg")),
+            stacks=FakeStacks(raises=AttributeError("no stack_type")),
+        )
+
+        result, job = self.run_task([photo], filename="bug.zip")
+
+        self.assertIsNone(result)
+        self.assertTrue(job.failed)
+        self.assertFalse(self.mock_logger.warning.called)
+        self.assertFalse(
+            os.path.exists(os.path.join(self.media_root, "zip", "bug.zip.part"))
+        )
+
 
 class ZipPhotosTaskErrorHandlingTest(ZipPhotosTaskTestBase):
     def test_unexpected_error_is_logged_and_fails_the_job(self):
         photo = FakePhoto(main_file=FakeFile(self.write_source("a.jpg")))
         job = self.make_job()
 
-        with patch("api.all_tasks.zipfile.ZipFile", side_effect=OSError("nope")):
+        with patch(
+            "api.photos.zip_downloads.zipfile.ZipFile", side_effect=OSError("nope")
+        ):
             result, job = self.run_task([photo], filename="broken.zip", job=job)
 
         # It used to complete the job, and the client then fetched an archive
@@ -380,10 +400,10 @@ class ZipPhotosTaskErrorHandlingTest(ZipPhotosTaskTestBase):
         self.assertFalse(
             os.path.exists(os.path.join(self.media_root, "zip", "broken.zip"))
         )
-        self.assertTrue(self.mock_logger.error.called)
+        self.assertTrue(self.mock_logger.exception.called)
         self.assertIn(
             "Error while converting files to zip",
-            self.mock_logger.error.call_args[0][0],
+            self.mock_logger.exception.call_args[0][0],
         )
         self.assertTrue(job.failed)
         self.assertIn("nope", job.result["error"])

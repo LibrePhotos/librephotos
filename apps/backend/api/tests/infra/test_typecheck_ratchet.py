@@ -102,13 +102,23 @@ class ExcessTest(SimpleTestCase):
 
 @needs_tomllib
 class MainTest(SimpleTestCase):
-    def _run(self, mypy_stdout, baseline, status=1, argv=()):
+    def _run(
+        self,
+        mypy_stdout,
+        baseline,
+        status=1,
+        argv=(),
+        checked_modules=frozenset({"api.strict", "api.x"}),
+    ):
         with (
             mock.patch.object(
                 typecheck, "run_mypy", return_value=(status, mypy_stdout, "")
             ),
             mock.patch.object(typecheck, "read_baseline", return_value=baseline),
             mock.patch.object(typecheck, "strict_modules", return_value=["api.strict"]),
+            mock.patch.object(
+                typecheck, "checked_modules", return_value=checked_modules
+            ),
         ):
             return typecheck.main(list(argv))
 
@@ -140,6 +150,13 @@ class MainTest(SimpleTestCase):
     def test_strict_module_with_baseline_entry_fails(self):
         out = _line("api/strict.py", 3, "Boom", "misc")
         self.assertEqual(self._run(out, ["api/strict.py: [misc] Boom"]), 1)
+
+    def test_strict_pattern_matching_no_module_fails(self):
+        # A renamed or deleted module left in the strict list: the strict
+        # flags would silently stop applying to its replacement.
+        self.assertEqual(
+            self._run("", [], status=0, checked_modules=frozenset({"api.x"})), 1
+        )
 
     def test_mypy_failure_without_errors_exits_2(self):
         self.assertEqual(self._run("mypy: can't read file 'x'", [], status=2), 2)
@@ -174,6 +191,35 @@ class StrictViolationsTest(SimpleTestCase):
 
     def test_the_strict_list_is_read_from_pyproject(self):
         self.assertIn("typecheck", typecheck.strict_modules())
+
+
+@needs_tomllib
+class UnmatchedStrictPatternsTest(SimpleTestCase):
+    def test_a_pattern_needs_a_module_or_a_package_member(self):
+        modules = {"api.a", "api.pkg", "api.pkg.mod", "api.lone.mod", "typecheck"}
+        self.assertEqual(
+            typecheck.unmatched_strict_patterns(
+                ["api.a", "api.gone", "api.pkg.*", "api.lone.*", "api.no.*"],
+                modules,
+            ),
+            ["api.gone", "api.no.*"],
+        )
+
+    def test_checked_modules_follow_files_and_exclude(self):
+        modules = typecheck.checked_modules()
+        self.assertIn("api.drf.pagination", modules)
+        self.assertIn("api.models", modules)
+        self.assertIn("typecheck", modules)
+        self.assertNotIn("api.tests.infra.test_typecheck_ratchet", modules)
+        self.assertFalse(any(".migrations." in module for module in modules))
+
+    def test_every_strict_pattern_names_a_checked_module(self):
+        self.assertEqual(
+            typecheck.unmatched_strict_patterns(
+                typecheck.strict_modules(), typecheck.checked_modules()
+            ),
+            [],
+        )
 
 
 @needs_tomllib

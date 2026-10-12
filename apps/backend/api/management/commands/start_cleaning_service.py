@@ -14,9 +14,11 @@ class Command(BaseCommand):
 
     def handle(self, *args: Any, **kwargs: Any) -> None:
         ensure_schedule(
-            "api.services.cleanup_deleted_photos", schedule_type=Schedule.DAILY
+            "api.photos.retention.cleanup_deleted_photos", schedule_type=Schedule.DAILY
         )
         # Mobile-v2 tombstone pruning (doc 04 §2): drop DeletionLog rows past
         # the 90-day sync horizon so the table cannot grow without bound.
-        ensure_schedule("api.services.prune_deletion_log", schedule_type=Schedule.DAILY)
+        ensure_schedule(
+            "api.photos.retention.prune_deletion_log", schedule_type=Schedule.DAILY
+        )
         logger.info("Cleanup service started")

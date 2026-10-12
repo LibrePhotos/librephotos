@@ -19,8 +19,8 @@ from django.test import TestCase
 
 from api.directory_watcher import repair_jobs
 from api.directory_watcher.repair_jobs import repair_ungrouped_file_variants
-from api.media_files import get_or_create_file
 from api.models import File, LongRunningJob, Photo
+from api.photos.media_files import get_or_create_file
 from api.tests.utils import create_test_job, create_test_photo, create_test_user
 
 

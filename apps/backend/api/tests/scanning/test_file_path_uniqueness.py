@@ -15,8 +15,8 @@ import threading
 from django.db import IntegrityError, transaction
 from django.test import TestCase, TransactionTestCase
 
-from api.media_files import get_or_create_file
 from api.models.file import File
+from api.photos.media_files import get_or_create_file
 from api.tests.utils import create_test_file, create_test_photo, create_test_user
 
 
@@ -123,12 +123,12 @@ class FileCreateMethodTestCase(TestCase):
         """The scan has already hashed the file; reading it twice was waste."""
         from unittest import mock
 
-        from api.media_files import calculate_hash
+        from api.photos.media_files import calculate_hash
 
         path = self._create_test_file("given.jpg")
         known = calculate_hash(self.user, path)
 
-        with mock.patch("api.media_files.calculate_hash") as hash_again:
+        with mock.patch("api.photos.media_files.calculate_hash") as hash_again:
             file = get_or_create_file(path, self.user, known)
 
         hash_again.assert_not_called()

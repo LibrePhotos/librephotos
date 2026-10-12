@@ -29,10 +29,10 @@ from api.drf.request_user import request_user
 from api.faces.photo_faces import extract_faces
 from api.geocode.photo_location import add_location_to_album_dates, geolocate_photo
 from api.jobs.queue import Task, enqueue_task_chain
-from api.media_files import calculate_hash
 from api.models import Photo
 from api.models.photo_caption import PhotoCaption
 from api.models.user import User
+from api.photos.media_files import calculate_hash
 from api.search import semantic
 from chunked_upload.constants import http_status
 from chunked_upload.exceptions import ChunkedUploadError

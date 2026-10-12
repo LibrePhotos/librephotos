@@ -101,7 +101,7 @@ class XMPAssociationTest(TestCase):
             # This simulates the real problem: XMP files may be discovered before their images!
 
             # Separate into images and metadata (simulating what scan_photos does)
-            from api.media_files import is_metadata
+            from api.photos.media_files import is_metadata
 
             image_paths = [path for ftype, path in all_files if not is_metadata(path)]
             xmp_paths = [path for ftype, path in all_files if is_metadata(path)]

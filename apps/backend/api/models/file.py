@@ -49,7 +49,7 @@ class File(models.Model):
     def create(path: str, hash_value: str, file_type: int) -> File:
         """Insert the File row for ``path``; the caller hashed and typed it.
 
-        ``api.media_files.get_or_create_file`` returns the row a path already
+        ``api.photos.media_files.get_or_create_file`` returns the row a path already
         has and calls this only for a new one. Handles race conditions: if
         concurrent creates happen for the same path, only one will succeed
         and the others return the existing row.
@@ -76,7 +76,7 @@ class File(models.Model):
         """Move this row onto ``new_hash``, carrying its relations across.
 
         ``file_type`` is the type of the content now on disk
-        (``api.media_files.detect_file_type``).
+        (``api.photos.media_files.detect_file_type``).
 
         The hash is the primary key, so the row has to be recreated rather
         than updated. Everything that pointed at the old row - the photos

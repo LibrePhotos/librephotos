@@ -12,6 +12,7 @@ from api.drf.request_user import request_user
 from api.models import AlbumUser, Photo
 from api.models.photo import HEAVY_PHOTO_COLUMNS, visible_photo_q
 from api.models.user import get_default_public_sharing_settings
+from api.photos.selection import build_photo_queryset
 from api.serializers.album_date import PublicViewQuery
 from api.serializers.fields import (
     OwnedPhotoField,
@@ -29,7 +30,6 @@ from api.serializers.PhotosGroupedByDate import (
     get_photos_ordered_by_date,
 )
 from api.serializers.simple import PhotoSuperSimpleSerializer, SimpleUserSerializer
-from api.views.photo_filters import build_photo_queryset
 
 logger = logging.getLogger(__name__)
 

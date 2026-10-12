@@ -5,7 +5,7 @@
   "Photo/Photo shared_to[]: null-in-zod-only": "zod also accepts null; the serializer always sends a value here (\"\" or a number). Harmless for parsing; tightening it needs every reader checked first.",
   "PhotoMetadataSummary/PhotoMetadataSummary rating: null-in-zod-only": "zod also accepts null; the serializer always sends a value here (\"\" or a number). Harmless for parsing; tightening it needs every reader checked first.",
   "PigPhoto/PhotoSummary date: null-in-zod-only": "zod also accepts null; the serializer always sends a value here (\"\" or a number). Harmless for parsing; tightening it needs every reader checked first.",
-  "PigPhoto/PhotoSummary aspectRatio: null-in-schema-only": "The grid lists only photos with an aspect ratio (visible_photo_q in api/models/photo.py, api/views/photo_filters.py), so they never send null; /api/photos/{id}/summary/ can, while `processing` is true. The grid needs a number.",
+  "PigPhoto/PhotoSummary aspectRatio: null-in-schema-only": "The grid lists only photos with an aspect ratio (visible_photo_q in api/models/photo.py, api/photos/selection.py), so they never send null; /api/photos/{id}/summary/ can, while `processing` is true. The grid needs a number.",
   "PigPhoto/PhotoSummary shared_to: missing-in-schema": "Client-side field with a default ([]): the web fills it in, no photo summary sends it.",
   "PigPhoto/PhotoSummary isTemp: missing-in-schema": "Client-side field with a default (false) for upload placeholders; never sent.",
   "DatePhotosGroup/GroupedPhotos location: null-in-zod-only": "zod also accepts null; the serializer always sends a value here (\"\" or a number). Harmless for parsing; tightening it needs every reader checked first.",

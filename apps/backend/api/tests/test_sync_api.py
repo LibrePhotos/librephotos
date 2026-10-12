@@ -21,7 +21,7 @@ from api.models import (
     Person,
     Photo,
 )
-from api.services import prune_deletion_log
+from api.photos.retention import prune_deletion_log
 from api.tests.utils import (
     api_error,
     create_test_album_auto,

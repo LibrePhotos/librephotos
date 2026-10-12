@@ -42,12 +42,6 @@ STAYS_FLAT = {
 # Flat module -> the package it moves to, in the order of the remaining moves.
 # Remove a module's line in the pull request that moves it.
 TO_MOVE = {
-    # Photos (with services.cleanup_deleted_photos, services.prune_deletion_log
-    # and views/photo_filters.build_photo_queryset; Schedule.func migration).
-    "photo_files": "api/photos/",
-    "media_files": "api/photos/",
-    "file_cleanup": "api/photos/",
-    "all_tasks": "api/photos/",
     # Split by content: log handler to librephotos/logging_bootstrap.py, path
     # checks to api/photos/paths.py, geometry to api/faces/, directory tree to
     # api/serving/.

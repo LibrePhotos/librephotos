@@ -2,7 +2,7 @@ from unittest.mock import patch
 
 from django.test import SimpleTestCase
 
-import api.media_files as file_module
+import api.photos.media_files as file_module
 
 
 class TestIsVideo(SimpleTestCase):
@@ -21,7 +21,7 @@ class TestIsValidMedia(SimpleTestCase):
     def test_a_decoder_that_cannot_load(self):
         with (
             patch("api.thumbnails.decoding.can_decode", side_effect=OSError("libvips")),
-            self.assertLogs("api.media_files", "INFO") as logs,
+            self.assertLogs("api.photos.media_files", "INFO") as logs,
         ):
             self.assertFalse(file_module.is_valid_media("/tmp/test.jpg", None))
         self.assertIn("Could not handle", logs.output[0])

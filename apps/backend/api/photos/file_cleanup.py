@@ -106,10 +106,10 @@ def register() -> None:
     post_delete.connect(
         delete_face_crop_file,
         sender=Face,
-        dispatch_uid="api.file_cleanup.delete_face_crop_file",
+        dispatch_uid="api.photos.file_cleanup.delete_face_crop_file",
     )
     post_delete.connect(
         delete_orphaned_thumbnail_files,
         sender=Thumbnail,
-        dispatch_uid="api.file_cleanup.delete_orphaned_thumbnail_files",
+        dispatch_uid="api.photos.file_cleanup.delete_orphaned_thumbnail_files",
     )

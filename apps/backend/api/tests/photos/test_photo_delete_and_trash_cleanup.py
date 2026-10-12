@@ -13,7 +13,7 @@ from django.test import TestCase
 from api.models.duplicate import Duplicate
 from api.models.file import File
 from api.models.photo_stack import PhotoStack
-from api.photo_files import remove_photo
+from api.photos.files import remove_photo
 from api.tests.utils import (
     create_test_duplicate,
     create_test_file,

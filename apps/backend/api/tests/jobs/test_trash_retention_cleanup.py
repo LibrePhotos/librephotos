@@ -1,4 +1,4 @@
-"""Tests for the scheduled trash retention cleanup (api.services.cleanup_deleted_photos)."""
+"""Tests for the scheduled trash retention cleanup (api.photos.retention.cleanup_deleted_photos)."""
 
 from datetime import timedelta
 
@@ -6,7 +6,7 @@ from django.test import TestCase
 from django.utils import timezone
 
 from api.models import Photo
-from api.services import cleanup_deleted_photos
+from api.photos.retention import cleanup_deleted_photos
 from api.tests.utils import create_test_photo, create_test_user
 
 

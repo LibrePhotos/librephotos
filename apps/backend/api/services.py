@@ -2,16 +2,12 @@ import logging
 import os
 import subprocess
 import time
-from datetime import timedelta
 from typing import Any
 
 import requests
 from django.conf import settings
-from django.db.models import Q
-from django.utils import timezone
 
 from api import sidecars
-from api.models import Photo
 from api.sidecars import SERVICES, sidecar_url
 from librephotos.logging_bootstrap import DEFAULT_LOG_LEVEL
 from librephotos.standalone import named_executable
@@ -352,26 +348,3 @@ def stop_service(service: str) -> bool:
     if not processes:
         logger.warning("Service '%s' is not running", service)
     return bool(processes)
-
-
-def cleanup_deleted_photos() -> None:
-    deleted_photos = Photo.objects.filter(
-        Q(removed=True) & Q(last_modified__lte=timezone.now() - timedelta(days=30))
-    )
-    for photo in deleted_photos:
-        photo.delete()
-
-
-def prune_deletion_log() -> int:
-    """Drop tombstones past the mobile-v2 sync horizon (doc 04 §2).
-
-    A client whose cursor predates the oldest surviving tombstone can no longer
-    trust the delta feed to tell it what was deleted, so it must reseed; the
-    sync endpoints answer such a cursor with ``410 cursor_expired``. Keeping
-    tombstones beyond that horizon only grows the table.
-    """
-    from api.models import DeletionLog
-
-    horizon = timezone.now() - timedelta(days=DeletionLog.PRUNE_HORIZON_DAYS)
-    deleted, _ = DeletionLog.objects.filter(deleted_at__lt=horizon).delete()
-    return deleted

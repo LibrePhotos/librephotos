@@ -19,8 +19,8 @@ from django.test import TestCase, override_settings
 
 from api.directory_watcher import file_handlers
 from api.directory_watcher.file_handlers import create_new_image, handle_file_group
-from api.media_files import calculate_hash, get_or_create_file, looks_like_media
 from api.models import File, LongRunningJob, Photo
+from api.photos.media_files import calculate_hash, get_or_create_file, looks_like_media
 from api.tests.utils import create_test_job, create_test_user
 
 MODULE = "api.directory_watcher.file_handlers"
@@ -203,7 +203,7 @@ class CreateNewImageTests(FileHandlerTestBase):
         def fake_is_video(path):
             return str(path).lower().endswith(".mov")
 
-        p1 = patch("api.media_files.is_video", side_effect=fake_is_video)
+        p1 = patch("api.photos.media_files.is_video", side_effect=fake_is_video)
         p2 = patch(f"{MODULE}.is_video", side_effect=fake_is_video)
         p1.start()
         p2.start()

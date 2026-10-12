@@ -12,8 +12,8 @@ from rest_framework.views import APIView
 from api.accounts.permissions import IsNextcloudEnabled
 from api.drf.params import parse_query
 from api.drf.request_user import request_user
+from api.jobs.start import start_job
 from api.models import LongRunningJob
-from api.views.scan_triggers import start_job
 from nextcloud.directory_watcher import scan_photos
 from nextcloud.serializers import ListDirQuery
 from nextcloud.server_address import (

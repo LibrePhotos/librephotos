@@ -42,11 +42,11 @@ from api.directory_watcher.utils import (
     walk_files,
 )
 from api.jobs.queue import JobStep, enqueue_chain, enqueue_followup, enqueue_task
-from api.media_files import is_metadata
 from api.metadata.reader import get_sidecar_files_in_priority_order
 from api.mime import VIDEO_EXTENSIONS, extension
 from api.models import LongRunningJob, Photo, Thumbnail, User
-from api.photo_files import detach_missing_files
+from api.photos.files import detach_missing_files
+from api.photos.media_files import is_metadata
 from api.search.embedding_jobs import batch_calculate_clip_embedding
 from api.search.semantic import semantic_shares_tagger
 from api.thumbnails import render

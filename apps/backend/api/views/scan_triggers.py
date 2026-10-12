@@ -1,11 +1,9 @@
-"""Endpoints that start background jobs, and the ``start_job`` helper they share."""
+"""Endpoints that start background jobs (through ``api.jobs.start``)."""
 
-import logging
 import os
-from collections.abc import Sequence
 
 from drf_spectacular.utils import extend_schema
-from rest_framework.exceptions import APIException, ValidationError
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -13,16 +11,13 @@ from rest_framework.views import APIView
 
 from api.albums.auto_albums import delete_missing_photos
 from api.directory_watcher import scan_photos
-from api.drf.exceptions import JobAlreadyRunning
 from api.drf.params import parse_body
 from api.drf.request_user import request_user
-from api.jobs.queue import JobStep, Task, TaskFunc, enqueue_chain
+from api.jobs.start import start_job
 from api.ml_models import missing_models_prerequisites
 from api.models import LongRunningJob
 from api.models.user import User
 from api.serializers.job import GenerateOcrRequest
-
-logger = logging.getLogger(__name__)
 
 
 def _validate_scan_directory(user: User) -> None:
@@ -36,70 +31,6 @@ def _validate_scan_directory(user: User) -> None:
         raise ValidationError(
             f"Scan failed: Scan directory '{user.scan_directory}' does not exist. Please contact your administrator."
         )
-
-
-def enqueue_for_request(
-    user: User,
-    steps: Sequence[JobStep],
-    description: str,
-    prerequisites: Sequence[Task] = (),
-    exclusive: bool = True,
-) -> list[LongRunningJob]:
-    """Queue ``steps`` (one job, or several in a row) for a request.
-
-    The rows are written before the request answers (``api.jobs.queue``). A
-    second start while one of these jobs is queued or running is a 409 with
-    code ``job_already_running`` whose entry carries the running job's
-    ``job_id``. When queuing fails (the broker is unreachable, say) the rows
-    are marked failed and the client gets a 500 (code ``job_start_failed``)
-    rather than a 200 carrying ``"status": False``.
-    """
-    try:
-        return enqueue_chain(
-            user, steps, prerequisites=prerequisites, exclusive=exclusive
-        )
-    except JobAlreadyRunning:
-        raise
-    except Exception as error:
-        logger.exception("Could not start %s", description)
-        raise APIException(
-            f"Could not start {description}.", code="job_start_failed"
-        ) from error
-
-
-def start_jobs(
-    user: User,
-    steps: Sequence[JobStep],
-    description: str,
-    prerequisites: Sequence[Task] = (),
-) -> Response:
-    """Queue ``steps`` (``enqueue_for_request``) and answer the request.
-
-    The answer's ``job_id`` is the last step's; ``job_ids`` lists every step's.
-    """
-    jobs = enqueue_for_request(user, steps, description, prerequisites)
-    return Response(
-        {
-            "status": True,
-            "job_id": jobs[-1].job_id,
-            "job_ids": [job.job_id for job in jobs],
-        }
-    )
-
-
-def start_job(
-    user: User,
-    job_type: int,
-    func: TaskFunc,
-    *args: object,
-    description: str,
-    prerequisites: Sequence[Task] = (),
-    **kwargs: object,
-) -> Response:
-    """``start_jobs`` for one job, ``func(*args, job_id=..., **kwargs)``."""
-    return start_jobs(
-        user, [JobStep(job_type, func, args, kwargs)], description, prerequisites
-    )
 
 
 def _start_photo_scan(user: User, directory: str, full_scan: bool = False) -> Response:

@@ -16,13 +16,13 @@ from api.directory_watcher.file_handlers import (
     group_files_into_photo,
 )
 from api.duplicates.perceptual_hash import calculate_hash_from_thumbnail
-from api.media_files import calculate_hash
 from api.metadata.edits import set_rating
 from api.metadata.photo_writer import rotate_photo
 from api.metadata.tags import Tags
 from api.metadata.writer import read_orientation, write_metadata
 from api.models import File, Person, Photo, User
 from api.models.file import content_hash
+from api.photos.media_files import calculate_hash
 from api.tests.utils import (
     create_test_face,
     create_test_person,

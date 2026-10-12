@@ -109,7 +109,7 @@ test makes `--parallel` runs crash with "cannot pickle 'traceback'"; rerun that 
   literal `status=`. Keep an endpoint's status codes: the mobile outbox retries 5xx and drops 4xx.
 - Models hold data and queries only: fields, managers, properties computed from fields, pure helpers.
   Disk, sidecar, subprocess and network work goes in the domain's service module, taking the instance
-  first (`api/thumbnails/render.py`, `api/photo_files.py`, `api/metadata/photo_writer.py`), and the caller calls it;
+  first (`api/thumbnails/render.py`, `api/photos/files.py`, `api/metadata/photo_writer.py`), and the caller calls it;
   never add a side effect to `save()`. `api/tests/infra/test_models_do_no_io.py` fails on an I/O import or call in `api/models/`.
 - Background work is queued only through `api/jobs/queue.py` (ruff TID251 bans `django_q.tasks`
   elsewhere): `enqueue_job` (user-started; writes the `LongRunningJob` row before queuing, a duplicate
@@ -117,7 +117,7 @@ test makes `--parallel` runs crash with "cannot pickle 'traceback'"; rerun that 
   a job), `enqueue_chain`, and `enqueue_task` for pieces of a running job. A new job: a `JOB_*` type
   (with its `JOB_TYPES` entry and migration), a task taking `job_id` that starts with
   `LongRunningJob.claim` and returns when it gets `None` (cancelled while queued), started from a view
-  through `start_job` (`api/views/scan_triggers.py`). Tests: `api/tests/jobs/test_job_queue.py`.
+  through `start_job` (`api/jobs/start.py`). Tests: `api/tests/jobs/test_job_queue.py`.
 - Signals: a module with receivers exposes `register()`, listed in `SIGNAL_MODULES` (`api/apps.py`), that
   connects each one with `dispatch_uid="<module>.<name>"` (a factory-built closure also `weak=False`, or it
   is garbage collected outside DEBUG); no `@receiver`. File removal goes through `transaction.on_commit`.
@@ -180,7 +180,9 @@ test makes `--parallel` runs crash with "cannot pickle 'traceback'"; rerun that 
   heuristics), `dataviz/` (stats, chart palettes), `directory_watcher/` (the scan pipeline), `drf/`
   (request parsing, request user, API exceptions, pagination, OpenAPI schema class), `duplicates/`,
   `faces/` (face service client, detection, clustering, training, social graph), `geocode/`, `jobs/`
-  (the queue), `metadata/` (read, write, date rules), `search/` (OpenCLIP embeddings and tags,
+  (the queue, starting a job from a request), `metadata/` (read, write, date rules), `photos/` (file
+  type and hash, a photo's files, file cleanup receivers, the "Select All" queryset, zip downloads,
+  trash and tombstone retention), `search/` (OpenCLIP embeddings and tags,
   similarity index client, search filter, term examples), `serving/` (byte ranges, why the web server
   cannot read a file), `stacks/` (bursts, brackets, Motion Photo video), `thumbnails/` (render, decode,
   strip metadata), `video/` (probe and HDR tonemapping, playback type, transcode cache, ffmpeg budget).

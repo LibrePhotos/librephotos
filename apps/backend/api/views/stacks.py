@@ -33,6 +33,7 @@ from api.drf.pagination import (
 from api.drf.params import parse_body, parse_query
 from api.drf.request_user import request_user
 from api.jobs.queue import JobStep
+from api.jobs.start import enqueue_for_request
 from api.models import LongRunningJob, Photo, PhotoMetadata
 from api.models.photo_stack import PhotoStack
 from api.serializers.stack import (
@@ -42,7 +43,6 @@ from api.serializers.stack import (
     PhotoStackSetPrimaryRequest,
     StackPhotosRequest,
 )
-from api.views.scan_triggers import enqueue_for_request
 
 logger = logging.getLogger(__name__)
 

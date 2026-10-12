@@ -22,8 +22,8 @@ from api.albums.timeline_filter import (
     resolve_timeline_filter,
 )
 from api.models import Photo
+from api.photos.selection import build_photo_queryset
 from api.tests.utils import create_test_album_date, create_test_photo, create_test_user
-from api.views.photo_filters import build_photo_queryset
 
 
 class _FakeUser:
