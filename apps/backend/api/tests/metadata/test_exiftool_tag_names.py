@@ -19,10 +19,11 @@ import unittest
 import PIL.Image
 from django.test import SimpleTestCase, TestCase
 
+from api.media_files import get_or_create_file
+from api.metadata.photo_writer import write_photo_metadata
 from api.metadata.reader import get_sidecar_files_in_priority_order
 from api.metadata.tags import Tags
 from api.metadata.writer import write_metadata
-from api.models.file import File
 from api.tests.utils import create_test_photo, create_test_user
 
 EXIFTOOL = shutil.which("exiftool")
@@ -168,7 +169,7 @@ class ExifToolReadTagNameTest(SimpleTestCase):
 
 @unittest.skipUnless(EXIFTOOL, "exiftool binary not available")
 class TimestampWriteBackRoundTripTest(TestCase):
-    """``Photo._save_metadata`` timestamp write-back, through real exiftool.
+    """``write_photo_metadata`` timestamp write-back, through real exiftool.
 
     This path had never actually executed: ``Tags.DATE_TIME`` was not a real tag,
     so nothing was ever written and the serialized value was never validated.
@@ -182,14 +183,14 @@ class TimestampWriteBackRoundTripTest(TestCase):
     def _photo_on_disk(self, name):
         image = make_jpeg(self.directory, name)
         photo = create_test_photo(owner=self.user)
-        photo.main_file = File.create(image, self.user)
+        photo.main_file = get_or_create_file(image, self.user)
         photo.timestamp = TIMESTAMP
         return photo, image
 
     def test_round_trips_into_the_media_file(self):
         photo, image = self._photo_on_disk("media.jpg")
 
-        photo._save_metadata(modified_fields=["timestamp"], use_sidecar=False)
+        write_photo_metadata(photo, modified_fields=["timestamp"], use_sidecar=False)
 
         self.assertEqual(TIMESTAMP_EXIFTOOL, read_tag(image, Tags.DATE_CREATED))
 
@@ -197,7 +198,7 @@ class TimestampWriteBackRoundTripTest(TestCase):
         photo, image = self._photo_on_disk("sidecar.jpg")
         sidecar = get_sidecar_files_in_priority_order(image)[0]
 
-        photo._save_metadata(modified_fields=["timestamp"], use_sidecar=True)
+        write_photo_metadata(photo, modified_fields=["timestamp"], use_sidecar=True)
 
         self.assertTrue(os.path.exists(sidecar), "no sidecar was created")
         self.assertEqual(TIMESTAMP_EXIFTOOL, read_tag(sidecar, Tags.DATE_CREATED))
@@ -208,7 +209,7 @@ class TimestampWriteBackRoundTripTest(TestCase):
             "-EXIF:DateTimeOriginal=2005:01:02 03:04:05", "-overwrite_original", image
         )
 
-        photo._save_metadata(modified_fields=["timestamp"], use_sidecar=False)
+        write_photo_metadata(photo, modified_fields=["timestamp"], use_sidecar=False)
 
         self.assertEqual(
             "2005:01:02 03:04:05", read_tag(image, Tags.DATE_TIME_ORIGINAL)

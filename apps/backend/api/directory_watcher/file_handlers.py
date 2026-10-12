@@ -17,7 +17,7 @@ from django.conf import settings
 from django.db import transaction
 from django.db.models import Q, QuerySet
 
-from api import transcode_cache, video_color
+from api import thumbnails, transcode_cache, video_color
 from api.directory_watcher.file_grouping import (
     FILE_TYPE_PRIORITY,
     find_matching_image_for_video,
@@ -27,20 +27,22 @@ from api.directory_watcher.file_grouping import (
     select_main_file,
 )
 from api.directory_watcher.utils import update_scan_counter
-from api.metadata.photo_datetime import extract_date_time
-from api.models import File, LongRunningJob, Person, Photo, Thumbnail, User
-from api.models.file import (
+from api.file_cleanup import delete_thumbnail_files
+from api.media_files import (
     calculate_hash,
-    content_hash,
-    hash_owner_part,
+    detect_file_type,
+    get_or_create_file,
     is_metadata,
     is_raw,
     is_valid_media,
     is_video,
     looks_like_media,
 )
+from api.metadata import photo_reader
+from api.metadata.photo_datetime import extract_date_time
+from api.models import File, LongRunningJob, Person, Photo, Thumbnail, User
+from api.models.file import content_hash, hash_owner_part
 from api.models.photo_search import PhotoSearch
-from api.models.thumbnail import delete_thumbnail_files
 from api.perceptual_hash import calculate_hash_from_thumbnail, calculate_perceptual_hash
 from api.stacks.live_photo import (
     extract_embedded_motion_video,
@@ -244,7 +246,7 @@ def _regenerate_thumbnails(photo: Photo) -> None:
             # tonemap from them, so the new bytes are asked first.
             video_color.record(photo)
         thumbnail, _ = Thumbnail.objects.get_or_create(photo=photo)
-        thumbnail._regenerate_thumbnails()
+        thumbnails.regenerate_thumbnails(thumbnail)
     except Exception:
         logger.warning(
             "could not regenerate thumbnails for photo %s (%s)",
@@ -257,7 +259,7 @@ def _regenerate_thumbnails(photo: Photo) -> None:
 def reindex_replaced_file(user: User, path: str, hash_value: str) -> Photo | None:
     """Re-point the rows of ``path`` at its new content after an in-place change.
 
-    ``File.create`` matches on path alone, so a file whose bytes changed under
+    ``get_or_create_file`` matches on path alone, so a file whose bytes changed under
     the same name keeps its old hash forever. Every derived artefact is keyed
     on ``Photo.image_hash`` - thumbnails are only generated when no file named
     after it exists yet - so the library would keep showing the picture that is
@@ -320,7 +322,7 @@ def reindex_replaced_file(user: User, path: str, hash_value: str) -> Photo | Non
     with transaction.atomic():
         if verdict == NEW_PICTURE:
             _discard_embedded_media(existing)
-        new_file = existing.rekey(hash_value)
+        new_file = existing.rekey(hash_value, detect_file_type(existing.path))
 
         # Re-read the rows: ``rekey`` has moved their main_file across, so the
         # instances fetched before it still carry the deleted hash.
@@ -339,7 +341,7 @@ def reindex_replaced_file(user: User, path: str, hash_value: str) -> Photo | Non
             _discard_derived_content(photo, old_hash)
             photo.image_hash = hash_value
             photo.added_on = datetime.datetime.now().replace(tzinfo=pytz.utc)
-            photo.save(save_metadata=False)
+            photo.save()
             rebuild_photo_ids.append(photo.pk)
 
     for photo in Photo.objects.filter(pk__in=rebuild_photo_ids):
@@ -382,7 +384,7 @@ def create_file_record(user: User, path: str) -> File | None:
     reindex_replaced_file(user, path, hash_value)
 
     # Create the File record (File.create handles race conditions via unique path constraint)
-    file = File.create(path, user, hash_value)
+    file = get_or_create_file(path, user, hash_value)
     return file
 
 
@@ -399,7 +401,7 @@ def _attach_embedded_motion_video(user: User, photo: Photo, file: File) -> File 
     if not em_path:
         return None
 
-    em_file = File.create(em_path, user)
+    em_file = get_or_create_file(em_path, user)
     file.embedded_media.add(em_file)
     photo.files.add(em_file)
     return em_file
@@ -538,7 +540,7 @@ def _attach_metadata_sidecar(user: User, path: str) -> None:
         logger.warning("no photo to metadata file found %s", path)
         return
 
-    photo.files.add(File.create(path, user))
+    photo.files.add(get_or_create_file(path, user))
     photo.save()
 
 
@@ -547,7 +549,7 @@ def _attach_file_variant(
 ) -> Photo:
     """Attach a sibling file to an existing Photo as a variant."""
     if not photo.files.filter(path=path).exists():
-        photo.files.add(File.create(path, user))
+        photo.files.add(get_or_create_file(path, user))
         if keep_image:
             photo.video = False
         photo.save()
@@ -626,7 +628,7 @@ def create_new_image(user: User, path: str) -> Photo | None:
     photo.geolocation_json = {}
     photo.video = is_video(path)
     photo.save()
-    file = File.create(path, user)
+    file = get_or_create_file(path, user)
 
     _attach_embedded_motion_video(user, photo, file)
 
@@ -815,7 +817,7 @@ def _rebuild_made_before_probe(
     thumbnail.photo = photo
     transcode_cache.discard(photo.image_hash)
     try:
-        thumbnail._regenerate_thumbnails(keep_old_on_failure=True)
+        thumbnails.regenerate_thumbnails(thumbnail, keep_old_on_failure=True)
     except Exception:
         # The old thumbnails are back in place; the rest still runs.
         logger.warning(
@@ -824,7 +826,7 @@ def _rebuild_made_before_probe(
             path,
             exc_info=True,
         )
-    photo.save(save_metadata=False, update_fields=fields)
+    photo.save(update_fields=fields)
 
 
 def _process_photo(
@@ -866,18 +868,18 @@ def _process_photo(
         if fields and made_before_probe and video_color.converted_wrongly_before(photo):
             rebuild_fields = fields
         elif fields:
-            photo.save(save_metadata=False, update_fields=fields)
+            photo.save(update_fields=fields)
         elapsed = (datetime.datetime.now() - start).total_seconds()
         logger.debug("job %s: probe video: %s, elapsed: %s", job_id, path, elapsed)
 
     if rebuild_fields:
         _rebuild_made_before_probe(photo, thumbnail, rebuild_fields, job_id, path)
     else:
-        thumbnail._generate_thumbnail()
+        thumbnails.generate_thumbnail(thumbnail)
     elapsed = (datetime.datetime.now() - start).total_seconds()
     logger.debug("job %s: generate thumbnails: %s, elapsed: %s", job_id, path, elapsed)
 
-    thumbnail._calculate_aspect_ratio()
+    thumbnails.calculate_aspect_ratio(thumbnail)
     elapsed = (datetime.datetime.now() - start).total_seconds()
     logger.debug(
         "job %s: calculate aspect ratio: %s, elapsed: %s", job_id, path, elapsed
@@ -897,9 +899,7 @@ def _process_photo(
                 elapsed,
             )
 
-    from api.models.photo_metadata import PhotoMetadata
-
-    PhotoMetadata.extract_exif_data(photo, commit=True)
+    photo_reader.extract_exif_data(photo, commit=True)
     elapsed = (datetime.datetime.now() - start).total_seconds()
     logger.debug("job %s: extract exif data: %s, elapsed: %s", job_id, path, elapsed)
 
@@ -916,7 +916,7 @@ def _process_photo(
     elapsed = (datetime.datetime.now() - start).total_seconds()
     logger.debug("job %s: extract date time: %s, elapsed: %s", job_id, path, elapsed)
 
-    thumbnail._get_dominant_color()
+    thumbnails.calculate_dominant_color(thumbnail)
     elapsed = (datetime.datetime.now() - start).total_seconds()
     logger.debug("job %s: get dominant color: %s, elapsed: %s", job_id, path, elapsed)
 

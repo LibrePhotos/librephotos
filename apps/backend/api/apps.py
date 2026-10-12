@@ -16,9 +16,8 @@ SIGNAL_MODULES = (
     # Photo counts and covers of thing albums and tags.
     "api.models.album_thing",
     "api.models.tag",
-    # File clean-up, deferred to on_commit.
-    "api.models.face",
-    "api.models.thumbnail",
+    # File clean-up (face crops, thumbnails), deferred to on_commit.
+    "api.file_cleanup",
     # Delta-sync bookkeeping: last_modified bumps + tombstone writers
     # (mobile v2, doc 04).
     "api.sync_signals",

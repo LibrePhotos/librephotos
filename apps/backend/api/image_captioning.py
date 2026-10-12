@@ -1,9 +1,21 @@
-from typing import Any
+"""Captioning a photo with the image captioning sidecar."""
+
+from __future__ import annotations
+
+import logging
+from typing import TYPE_CHECKING, Any
 
 import requests
+from django.conf import settings
 
 from api import sidecars
 from api.http_timeouts import CAPTION
+from api.models.user import User
+
+if TYPE_CHECKING:
+    from api.models.photo_caption import PhotoCaption
+
+logger = logging.getLogger(__name__)
 
 
 class CaptionError(RuntimeError):
@@ -60,3 +72,47 @@ def _detail(response: requests.Response) -> str:
     return (
         _body(response).get("error") or response.text.strip() or "no caption in reply"
     )
+
+
+def generate_photo_caption(caption: PhotoCaption, commit: bool = True) -> bool:
+    """Generate a caption for the photo with the captioning sidecar.
+
+    The prompt carries the recognised person and the place when the user's
+    caption settings allow it. Stored as ``captions_json["im2txt"]`` (the
+    first model's name). Moved out of ``PhotoCaption`` so the model makes no
+    sidecar calls (#2336).
+    """
+    if not settings.FEATURE_IMAGE_CAPTIONING:
+        logger.info("Image captioning is disabled")
+        return False
+
+    image_path = caption.resolve_thumbnail_path()
+    if image_path is None:
+        return False
+
+    if caption.captions_json is None:
+        caption.captions_json = {}
+    captions = caption.captions_json
+
+    try:
+        from constance import config as site_config
+
+        if str(site_config.CAPTIONING_MODEL).lower() == "none":
+            logger.info("Generating captions is disabled")
+            return False
+
+        llm_settings = User.objects.get(username=caption.photo.owner).llm_settings
+        context = caption.caption_context(llm_settings)
+        prompt = caption.caption_prompt(context)
+        logger.debug("Caption prompt: %s", prompt)
+
+        text = generate_caption(image_path=image_path, prompt=prompt)
+        text = text.replace("<start>", "").replace("<end>", "").strip()
+
+        caption.store_generated_caption(captions, text, commit)
+
+        logger.info("generated caption for image %s: %s", image_path, text)
+        return True
+    except Exception:
+        logger.exception("could not generate caption for image %s", image_path)
+        return False

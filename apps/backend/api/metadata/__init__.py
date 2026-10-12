@@ -7,8 +7,9 @@ Submodules:
 - ``writer``: ``write_metadata()`` and ``read_orientation()``
 - ``face_regions``: face region coordinate conversion and tag building
 - ``photo_datetime``: a photo's capture time and the day album that follows from it
+- ``photo_reader``: reading a photo's file metadata into ``Photo`` and ``PhotoMetadata`` (the scan's metadata step)
 - ``photo_writer``: writing a photo's edits back to its file or XMP sidecar
-- ``jobs``: background rating writes for changes made without ``Photo.save()``
+- ``jobs``: background rating writes for bulk rating edits
 
 Import directly from the submodules, which avoids circular imports::
 

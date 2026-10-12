@@ -25,6 +25,7 @@ from rest_framework.test import APIClient
 from api.directory_watcher.file_handlers import create_new_image, handle_file_group
 from api.directory_watcher.repair_jobs import repair_ungrouped_file_variants
 from api.directory_watcher.scan_jobs import _partition_scan_paths
+from api.media_files import get_or_create_file
 from api.models import File, Photo
 from api.tests.utils import create_test_user
 
@@ -74,8 +75,8 @@ class RawJpegAlwaysGroupedTestCase(TestCase):
         ``raw_first`` gives the RAW's photo the lower pk, the one the database
         tends to return first.
         """
-        jpeg = File.create(self.jpeg_path, self.user)
-        raw = File.create(self.raw_path, self.user)
+        jpeg = get_or_create_file(self.jpeg_path, self.user)
+        raw = get_or_create_file(self.raw_path, self.user)
         for number, file in enumerate([raw, jpeg] if raw_first else [jpeg, raw], 1):
             photo = Photo.objects.create(
                 pk=uuid.UUID(int=number),  # raw-create: the test fixes the pk order

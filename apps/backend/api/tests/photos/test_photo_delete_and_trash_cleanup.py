@@ -13,6 +13,7 @@ from django.test import TestCase
 from api.models.duplicate import Duplicate
 from api.models.file import File
 from api.models.photo_stack import PhotoStack
+from api.photo_files import remove_photo
 from api.tests.utils import (
     create_test_duplicate,
     create_test_file,
@@ -29,7 +30,7 @@ class PhotoDeletionStackCleanupTestCase(TestCase):
         self.user = create_test_user()
 
     def test_manual_delete_clears_stack_membership(self):
-        """Test that manual_delete removes photo from stacks."""
+        """Test that remove_photo removes photo from stacks."""
         photo1 = create_test_photo(owner=self.user)
         photo2 = create_test_photo(owner=self.user)
         photo3 = create_test_photo(owner=self.user)
@@ -45,7 +46,7 @@ class PhotoDeletionStackCleanupTestCase(TestCase):
         # Delete photo1
         photo1.in_trashcan = True
         photo1.save()
-        photo1.manual_delete()
+        remove_photo(photo1)
 
         # photo1 should be removed from stack
         photo1.refresh_from_db()
@@ -70,7 +71,7 @@ class PhotoDeletionStackCleanupTestCase(TestCase):
         # Delete photo1
         photo1.in_trashcan = True
         photo1.save()
-        photo1.manual_delete()
+        remove_photo(photo1)
 
         # Stack should be deleted (only 1 photo remaining)
         self.assertFalse(PhotoStack.objects.filter(id=stack_id).exists())
@@ -94,11 +95,11 @@ class PhotoDeletionStackCleanupTestCase(TestCase):
         # Delete both photos
         photo1.in_trashcan = True
         photo1.save()
-        photo1.manual_delete()
+        remove_photo(photo1)
 
         photo2.in_trashcan = True
         photo2.save()
-        photo2.manual_delete()
+        remove_photo(photo2)
 
         # Stack should be deleted
         self.assertFalse(PhotoStack.objects.filter(id=stack_id).exists())
@@ -111,7 +112,7 @@ class PhotoDeletionDuplicateCleanupTestCase(TestCase):
         self.user = create_test_user()
 
     def test_manual_delete_clears_duplicate_membership(self):
-        """Test that manual_delete removes photo from duplicate groups.
+        """Test that remove_photo removes photo from duplicate groups.
 
         BUG #12: This test will FAIL if duplicates are not cleared!
         """
@@ -130,14 +131,14 @@ class PhotoDeletionDuplicateCleanupTestCase(TestCase):
         # Delete photo1
         photo1.in_trashcan = True
         photo1.save()
-        photo1.manual_delete()
+        remove_photo(photo1)
 
         # photo1 should be removed from duplicate group
         photo1.refresh_from_db()
         self.assertEqual(
             photo1.duplicates.count(),
             0,
-            "Bug #12: manual_delete should clear duplicates",
+            "Bug #12: remove_photo should clear duplicates",
         )
 
         # Duplicate group should still have 2 photos
@@ -162,7 +163,7 @@ class PhotoDeletionDuplicateCleanupTestCase(TestCase):
         # Delete photo1
         photo1.in_trashcan = True
         photo1.save()
-        photo1.manual_delete()
+        remove_photo(photo1)
 
         # Duplicate group should be deleted (only 1 photo remaining)
         self.assertFalse(
@@ -189,11 +190,11 @@ class PhotoDeletionDuplicateCleanupTestCase(TestCase):
         # Delete both photos
         photo1.in_trashcan = True
         photo1.save()
-        photo1.manual_delete()
+        remove_photo(photo1)
 
         photo2.in_trashcan = True
         photo2.save()
-        photo2.manual_delete()
+        remove_photo(photo2)
 
         # Duplicate group should be deleted
         self.assertFalse(
@@ -296,7 +297,7 @@ class PhotoInMultipleGroupsTestCase(TestCase):
         # Delete photo1
         photo1.in_trashcan = True
         photo1.save()
-        photo1.manual_delete()
+        remove_photo(photo1)
 
         photo1.refresh_from_db()
 
@@ -341,7 +342,7 @@ class PhotoInMultipleGroupsTestCase(TestCase):
         # Delete photo1
         photo1.in_trashcan = True
         photo1.save()
-        photo1.manual_delete()
+        remove_photo(photo1)
 
         # Both stacks should be deleted (only 1 photo remaining in each)
         self.assertFalse(PhotoStack.objects.filter(id=stack1_id).exists())
@@ -409,7 +410,7 @@ class EdgeCasesTestCase(TestCase):
 
         photo.in_trashcan = True
         photo.save()
-        photo.manual_delete()
+        remove_photo(photo)
 
         photo.refresh_from_db()
         self.assertTrue(photo.removed)
@@ -424,7 +425,7 @@ class EdgeCasesTestCase(TestCase):
         photo.save()
 
         # Should not crash
-        photo.manual_delete()
+        remove_photo(photo)
 
         photo.refresh_from_db()
         self.assertTrue(photo.removed)
@@ -445,7 +446,7 @@ class EdgeCasesTestCase(TestCase):
         # Delete the primary photo
         photo1.in_trashcan = True
         photo1.save()
-        photo1.manual_delete()
+        remove_photo(photo1)
 
         # Stack should still exist with 2 photos
         stack.refresh_from_db()
@@ -472,7 +473,7 @@ class EdgeCasesTestCase(TestCase):
         # Now delete the kept photo
         photo1.in_trashcan = True
         photo1.save()
-        photo1.manual_delete()
+        remove_photo(photo1)
 
         # Duplicate group should be deleted (only 1 photo remaining)
         self.assertFalse(
@@ -511,7 +512,7 @@ class SharedFileTestCase(TestCase):
         # Delete photo1
         photo1.in_trashcan = True
         photo1.save()
-        photo1.manual_delete()
+        remove_photo(photo1)
 
         # File should still exist (used by photo2)
         self.assertTrue(
@@ -552,7 +553,7 @@ class SharedFileTestCase(TestCase):
             # Delete the photo
             photo.in_trashcan = True
             photo.save()
-            photo.manual_delete()
+            remove_photo(photo)
 
             # File should be deleted from database
             self.assertFalse(
@@ -594,7 +595,7 @@ class SharedFileTestCase(TestCase):
         # Delete photo1
         photo1.in_trashcan = True
         photo1.save()
-        photo1.manual_delete()
+        remove_photo(photo1)
 
         # shared_main should still exist (used by photo2)
         self.assertTrue(File.objects.filter(hash=shared_main.hash).exists())
@@ -624,14 +625,14 @@ class SharedFileTestCase(TestCase):
         # Delete photo1 - file should remain
         photo1.in_trashcan = True
         photo1.save()
-        photo1.manual_delete()
+        remove_photo(photo1)
 
         self.assertTrue(File.objects.filter(hash=shared_file.hash).exists())
 
         # Delete photo2 - file should now be deleted (no photos using it)
         photo2.in_trashcan = True
         photo2.save()
-        photo2.manual_delete()
+        remove_photo(photo2)
 
         # File should be deleted from database (no physical file to check)
         self.assertFalse(

@@ -20,7 +20,7 @@ from django.conf import settings
 from django.core.paginator import Paginator
 from django.db.models import Q
 
-from api import video_color
+from api import thumbnails, video_color
 from api.batch_jobs import batch_calculate_clip_embedding
 from api.directory_watcher.file_grouping import (
     get_file_grouping_key,
@@ -44,10 +44,10 @@ from api.directory_watcher.utils import (
     walk_files,
 )
 from api.jobs.queue import JobStep, enqueue_chain, enqueue_followup, enqueue_task
+from api.media_files import is_metadata
 from api.metadata.reader import get_sidecar_files_in_priority_order
 from api.mime import VIDEO_EXTENSIONS, extension
 from api.models import LongRunningJob, Photo, Thumbnail, User
-from api.models.file import is_metadata
 from api.photo_files import detach_missing_files
 from api.semantic_search import semantic_shares_tagger
 
@@ -211,7 +211,7 @@ def backfill_missing_aspect_ratios(user: User) -> int:
         try:
             thumbnail = getattr(photo, "thumbnail", None)
             if thumbnail and isinstance(thumbnail, Thumbnail):
-                thumbnail._calculate_aspect_ratio()
+                thumbnails.calculate_aspect_ratio(thumbnail)
         except Exception as e:
             logger.exception(
                 "Could not calculate aspect ratio for photo %s: %s",

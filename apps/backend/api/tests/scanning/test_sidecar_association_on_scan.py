@@ -101,7 +101,7 @@ class XMPAssociationTest(TestCase):
             # This simulates the real problem: XMP files may be discovered before their images!
 
             # Separate into images and metadata (simulating what scan_photos does)
-            from api.models.file import is_metadata
+            from api.media_files import is_metadata
 
             image_paths = [path for ftype, path in all_files if not is_metadata(path)]
             xmp_paths = [path for ftype, path in all_files if is_metadata(path)]
@@ -254,10 +254,10 @@ class SidecarsSurviveSlowIngestTest(TestCase):
                     ) as followups,
                     patch("api.directory_watcher.scan_jobs.db.connections.close_all"),
                     patch("api.image_decoding.thumbnail"),
-                    patch("api.models.thumbnail.Thumbnail._generate_thumbnail"),
-                    patch("api.models.thumbnail.Thumbnail._calculate_aspect_ratio"),
-                    patch("api.models.thumbnail.Thumbnail._get_dominant_color"),
-                    patch("api.models.photo_metadata.PhotoMetadata.extract_exif_data"),
+                    patch("api.thumbnails.generate_thumbnail"),
+                    patch("api.thumbnails.calculate_aspect_ratio"),
+                    patch("api.thumbnails.calculate_dominant_color"),
+                    patch("api.metadata.photo_reader.extract_exif_data"),
                     patch("api.directory_watcher.file_handlers.extract_date_time"),
                 ):
                     from api.directory_watcher import scan_photos

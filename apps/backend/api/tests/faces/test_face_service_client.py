@@ -25,7 +25,7 @@ from api.face_recognition import (
     get_face_encodings,
     get_face_locations,
 )
-from api.models.face import Face
+from api.photo_faces import generate_face_encoding
 
 
 class FaceRecognitionClientTest(SimpleTestCase):
@@ -150,14 +150,14 @@ class GetFaceEncodingsTest(SimpleTestCase):
 
 
 class GenerateEncodingTest(SimpleTestCase):
-    """Face.generate_encoding stores nothing for a region with no face in it."""
+    """generate_face_encoding stores nothing for a region with no face in it."""
 
     def test_an_unmatched_region_raises_and_saves_nothing(self):
         face = MagicMock(id=7, encoding="")
 
-        with patch("api.models.face.get_face_encodings", return_value=[None]):
+        with patch("api.photo_faces.get_face_encodings", return_value=[None]):
             with self.assertRaisesRegex(ValueError, "no face"):
-                Face.generate_encoding(face)
+                generate_face_encoding(face)
 
         self.assertEqual(face.encoding, "")
         face.save.assert_not_called()

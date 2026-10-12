@@ -79,9 +79,6 @@ class ScanPercentageProgressTestCase(TestCase):
             return None
 
         thumbnail_mock = MagicMock()
-        thumbnail_mock._generate_thumbnail.return_value = None
-        thumbnail_mock._calculate_aspect_ratio.return_value = None
-        thumbnail_mock._get_dominant_color.return_value = None
         search_instance_mock = MagicMock()
 
         with (

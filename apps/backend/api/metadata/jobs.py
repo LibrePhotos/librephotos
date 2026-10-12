@@ -1,9 +1,9 @@
-"""Background metadata writes for changes made without ``Photo.save()``.
+"""Background rating writes for bulk rating edits.
 
-``Photo.save()`` writes a changed rating to the photo's XMP sidecar or media
-file when its owner has ``save_metadata_to_disk`` on. Bulk edits change the
-rating with a single queryset ``update()``, which skips ``save()``; they queue
-``write_photo_ratings`` instead so the file ends up the same either way.
+A rating edit is written to the photo's XMP sidecar or media file when its
+owner has ``save_metadata_to_disk`` on. Bulk edits change the rating with a
+single queryset ``update()``; they queue ``write_photo_ratings`` so the files
+are written off the request.
 """
 
 from __future__ import annotations
@@ -21,9 +21,9 @@ logger = logging.getLogger(__name__)
 
 
 def queue_rating_write(user: User, photo_ids: list[uuid.UUID]) -> None:
-    """Queue the rating write ``Photo.save()`` would have done for these photos.
+    """Queue the rating write for these photos.
 
-    Follows the owner's ``save_metadata_to_disk`` setting as ``save()`` does:
+    Follows the owner's ``save_metadata_to_disk`` setting (``write_target``):
     nothing when it is off, the XMP sidecar or the media file otherwise. A
     failure to queue is logged and swallowed; the database change it follows
     has already been made and is what the request reports.
@@ -44,12 +44,15 @@ def queue_rating_write(user: User, photo_ids: list[uuid.UUID]) -> None:
 
 
 def write_photo_ratings(photo_ids: list[uuid.UUID], use_sidecar: bool) -> None:
-    """Write each photo's current rating to disk, as ``Photo.save()`` does."""
+    """Write each photo's current rating to its file or sidecar."""
+    from api.metadata.photo_writer import write_photo_metadata
     from api.models import Photo
 
     photos = Photo.objects.filter(id__in=photo_ids).select_related("main_file")
     for photo in photos.iterator():
         try:
-            photo._save_metadata(modified_fields=["rating"], use_sidecar=use_sidecar)
+            write_photo_metadata(
+                photo, modified_fields=["rating"], use_sidecar=use_sidecar
+            )
         except Exception:
             logger.exception("Failed to write the rating of photo %s", photo.image_hash)

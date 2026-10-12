@@ -5,12 +5,12 @@ Each body that used to crash on a missing or mistyped field (``data["key"]``,
 bodies behave as before.
 """
 
-from unittest.mock import patch
+from unittest.mock import ANY, patch
 
 from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
 
-from api.models import Photo, User
+from api.models import User
 from api.tests.utils import create_test_photo, create_test_user
 
 
@@ -147,14 +147,14 @@ class SaveMetadataBodyTest(PhotoBodyTestCase):
         self.user.save_metadata_to_disk = User.SaveMetadata.SIDECAR_FILE
         self.user.save()
 
-    @patch.object(Photo, "_save_metadata")
+    @patch("api.views.photos.write_photo_metadata")
     def test_types_default_to_ratings(self, save_metadata):
         create_test_photo(owner=self.user)
         response = self.client.post(self.URL, {}, format="json")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(save_metadata.call_args.kwargs["metadata_types"], ["ratings"])
 
-    @patch.object(Photo, "_save_metadata")
+    @patch("api.views.photos.write_photo_metadata")
     def test_given_types_are_passed_on(self, save_metadata):
         create_test_photo(owner=self.user)
         response = self.client.post(
@@ -172,7 +172,7 @@ class SaveMetadataBodyTest(PhotoBodyTestCase):
 class RotateBodyTest(PhotoBodyTestCase):
     URL = "/api/photosedit/rotate"
 
-    @patch.object(Photo, "rotate")
+    @patch("api.views.photos.rotate_photo")
     def test_flip_is_a_boolean_not_truthiness(self, rotate):
         photo = create_test_photo(owner=self.user)
         response = self.client.post(
@@ -181,13 +181,13 @@ class RotateBodyTest(PhotoBodyTestCase):
             format="json",
         )
         self.assertEqual(response.status_code, 200, response.content)
-        rotate.assert_called_once_with(angle=90, flip_horizontal=False)
+        rotate.assert_called_once_with(ANY, angle=90, flip_horizontal=False)
 
-    @patch.object(Photo, "rotate")
+    @patch("api.views.photos.rotate_photo")
     def test_defaults(self, rotate):
         photo = create_test_photo(owner=self.user)
         response = self.client.post(
             self.URL, {"image_hash": photo.image_hash}, format="json"
         )
         self.assertEqual(response.status_code, 200, response.content)
-        rotate.assert_called_once_with(angle=0, flip_horizontal=False)
+        rotate.assert_called_once_with(ANY, angle=0, flip_horizontal=False)

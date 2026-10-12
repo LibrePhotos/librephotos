@@ -2,7 +2,7 @@ from unittest.mock import patch
 
 from django.test import SimpleTestCase
 
-import api.models.file as file_module
+import api.media_files as file_module
 
 
 class TestIsVideo(SimpleTestCase):

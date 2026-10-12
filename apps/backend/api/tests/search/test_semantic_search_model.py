@@ -18,6 +18,7 @@ from api.image_similarity import search_similar_image
 from api.models import LongRunningJob, Photo
 from api.models.album_thing import AlbumThing
 from api.models.photo_caption import PhotoCaption
+from api.semantic_search import generate_photo_tags
 from api.tests.utils import create_test_job, create_test_photo, create_test_user
 
 OPENCLIP = semantic_search.OPENCLIP
@@ -142,9 +143,9 @@ class TagsStoreTheEmbeddingTest(TestCase):
         self.caption.save()
 
     def _tag(self, body):
-        with patch("api.models.photo_caption.sidecars.post") as post:
+        with patch("api.semantic_search.sidecars.post") as post:
             post.return_value = _reply(body)
-            self.caption.generate_tag_captions(commit=True)
+            generate_photo_tags(self.caption, commit=True)
         return post
 
     def test_one_run_gives_the_tags_and_the_search_embedding(self):
@@ -171,8 +172,8 @@ class TagsStoreTheEmbeddingTest(TestCase):
 
     @override_settings(FEATURE_SCENE_CLASSIFICATION=False)
     def test_tagging_off_tags_nothing(self):
-        with patch("api.models.photo_caption.sidecars.post") as post:
-            self.caption.generate_tag_captions(commit=True)
+        with patch("api.semantic_search.sidecars.post") as post:
+            generate_photo_tags(self.caption, commit=True)
         post.assert_not_called()
 
 

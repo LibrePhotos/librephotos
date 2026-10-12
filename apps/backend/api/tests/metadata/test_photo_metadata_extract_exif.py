@@ -1,5 +1,5 @@
 """
-Characterization tests for ``PhotoMetadata.extract_exif_data`` (unit 24).
+Characterization tests for ``api.metadata.photo_reader.extract_exif_data`` (unit 24).
 
 These pin the *current* behaviour of the classmethod before refactoring:
 the tag list passed to ``get_metadata``, the positional unpacking of its
@@ -15,6 +15,7 @@ from unittest.mock import patch
 from django.test import TestCase
 from rest_framework.test import APIClient
 
+from api.metadata.photo_reader import extract_exif_data
 from api.metadata.reader import MetadataReadError
 from api.metadata.tags import Tags
 from api.models.photo_metadata import PhotoMetadata
@@ -64,10 +65,10 @@ class ExtractExifDataBaseTestCase(TestCase):
     def extract(self, commit=True, **overrides):
         """Run extract_exif_data with a mocked get_metadata result."""
         with patch(
-            "api.models.photo_metadata.get_metadata",
+            "api.metadata.photo_reader.get_metadata",
             return_value=metadata_tuple(**overrides),
         ) as mocked:
-            result = PhotoMetadata.extract_exif_data(self.photo, commit=commit)
+            result = extract_exif_data(self.photo, commit=commit)
         self.mocked_get_metadata = mocked
         return result
 
@@ -78,8 +79,8 @@ class ExtractExifDataGuardTestCase(ExtractExifDataBaseTestCase):
         self.photo.main_file = None
         self.photo.save()
 
-        with patch("api.models.photo_metadata.get_metadata") as mocked:
-            result = PhotoMetadata.extract_exif_data(self.photo, commit=True)
+        with patch("api.metadata.photo_reader.get_metadata") as mocked:
+            result = extract_exif_data(self.photo, commit=True)
 
         self.assertIsNone(result)
         mocked.assert_not_called()
@@ -89,11 +90,11 @@ class ExtractExifDataGuardTestCase(ExtractExifDataBaseTestCase):
         """The scan counts the raise as a failed file; empty metadata would
         leave the photo without a date for good, since a rescan skips it."""
         with patch(
-            "api.models.photo_metadata.get_metadata",
+            "api.metadata.photo_reader.get_metadata",
             side_effect=MetadataReadError("exif service failed"),
         ):
             with self.assertRaises(MetadataReadError):
-                PhotoMetadata.extract_exif_data(self.photo, commit=True)
+                extract_exif_data(self.photo, commit=True)
 
         self.assertFalse(PhotoMetadata.objects.filter(photo=self.photo).exists())
 

@@ -388,7 +388,7 @@ class ExtractFacesCharacterizationTest(TestCase):
         extract_faces(self.photo)
 
         face = Face.objects.get(photo=self.photo)
-        # Stored as Face.generate_encoding stores it, so nothing is left for
+        # Stored as generate_face_encoding stores it, so nothing is left for
         # generate_face_embeddings to ask the face service for again.
         self.assertEqual(face.encoding, encoding.tobytes().hex())
         np.testing.assert_array_equal(face.get_encoding_array(), encoding)

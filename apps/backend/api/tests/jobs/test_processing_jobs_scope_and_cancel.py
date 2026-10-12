@@ -53,7 +53,9 @@ class FaceEmbeddingScopeTest(TestCase):
             encoded.append(face_self.pk)
 
         job_id = uuid.uuid4()
-        with patch.object(Face, "generate_encoding", autospec=True, side_effect=record):
+        with patch(
+            "api.photo_faces.generate_face_encoding", autospec=True, side_effect=record
+        ):
             generate_face_embeddings(me, job_id)
 
         self.assertEqual(encoded, [mine.pk])
@@ -65,7 +67,7 @@ class FaceEmbeddingScopeTest(TestCase):
         me = create_test_user()
         _pending_face(create_test_user())
 
-        with patch.object(Face, "generate_encoding") as gen:
+        with patch("api.photo_faces.generate_face_encoding") as gen:
             generate_face_embeddings(me, uuid.uuid4())
 
         gen.assert_not_called()
@@ -117,7 +119,7 @@ class CancelledJobWorkerTest(TestCase):
 
     def test_generate_tag_job_skips_work(self):
         job = self._cancelled_job(LongRunningJob.JOB_GENERATE_TAGS)
-        with patch.object(PhotoCaption, "generate_tag_captions") as tag:
+        with patch("api.semantic_search.generate_photo_tags") as tag:
             generate_tag_job(self.photo.pk, job.job_id)
         tag.assert_not_called()
         self.assertFalse(PhotoCaption.objects.filter(photo=self.photo).exists())

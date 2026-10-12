@@ -24,6 +24,7 @@ from django.http import HttpResponseBase
 from django.utils import timezone
 from faker import Faker
 
+from api.media_files import get_or_create_file
 from api.models import Cluster, Face, File, Person, Photo, User
 from api.models.album_auto import AlbumAuto
 from api.models.album_date import AlbumDate
@@ -460,7 +461,7 @@ def create_test_file(
         content = ONE_PIXEL_PNG + secrets.token_bytes(16)
     with open(path, "wb+") as f:
         f.write(content)
-    return File.create(path, user)
+    return get_or_create_file(path, user)
 
 
 def share_test_photos(photo_ids, user):

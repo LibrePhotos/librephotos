@@ -17,8 +17,9 @@ from django.test import TestCase, override_settings
 from api import binaries, thumbnails, transcode_cache, video_color
 from api.directory_watcher import file_handlers, processing_jobs
 from api.models import LongRunningJob, Photo, Thumbnail
-from api.models.thumbnail import SET_ASIDE_SUFFIX, thumbnail_file_paths
+from api.models.thumbnail import thumbnail_file_paths
 from api.tests.utils import create_test_photo, create_test_user
+from api.thumbnails import SET_ASIDE_SUFFIX
 
 HDR_PROBE = {
     "video_codec": "hevc",
@@ -62,8 +63,8 @@ class ThumbnailRebuildTest(TestCase):
             mock.patch.object(video_color, "video_filter", return_value=None),
             # The files are not real pictures; what is read from them is not
             # what is being tested.
-            mock.patch.object(Thumbnail, "_calculate_aspect_ratio"),
-            mock.patch.object(Thumbnail, "_refresh_perceptual_hash"),
+            mock.patch("api.thumbnails.calculate_aspect_ratio"),
+            mock.patch("api.thumbnails.refresh_perceptual_hash"),
         ):
             patcher.start()
             self.addCleanup(patcher.stop)
@@ -103,7 +104,9 @@ class ThumbnailRebuildTest(TestCase):
             _ffmpeg_failing_on([".webp"]),
             self.assertRaises(thumbnails.VideoThumbnailError),
         ):
-            self._thumbnail()._regenerate_thumbnails(keep_old_on_failure=True)
+            thumbnails.regenerate_thumbnails(
+                self._thumbnail(), keep_old_on_failure=True
+            )
         self.assertEqual(
             self._contents(),
             {
@@ -120,13 +123,17 @@ class ThumbnailRebuildTest(TestCase):
             _ffmpeg_failing_on([os.path.join("square_thumbnails_small", "")]),
             self.assertRaises(thumbnails.VideoThumbnailError),
         ):
-            self._thumbnail()._regenerate_thumbnails(keep_old_on_failure=True)
+            thumbnails.regenerate_thumbnails(
+                self._thumbnail(), keep_old_on_failure=True
+            )
         self.assertEqual(set(self._contents().values()), {b"old"})
         self.assertEqual(len(self._contents()), 3)
 
     def test_a_rebuild_that_works_replaces_them_and_leaves_nothing_behind(self):
         with _ffmpeg_failing_on([]):
-            self._thumbnail()._regenerate_thumbnails(keep_old_on_failure=True)
+            thumbnails.regenerate_thumbnails(
+                self._thumbnail(), keep_old_on_failure=True
+            )
         self.assertEqual(set(self._contents().values()), {b"new"})
         self.assertEqual(len(self._contents()), 3)
         self.assertEqual(self._leftovers(), [])
@@ -137,7 +144,7 @@ class ThumbnailRebuildTest(TestCase):
             _ffmpeg_failing_on([".mp4"]),
             self.assertRaises(thumbnails.VideoThumbnailError),
         ):
-            self._thumbnail()._regenerate_thumbnails()
+            thumbnails.regenerate_thumbnails(self._thumbnail())
         self.assertNotIn(b"old", self._contents().values())
         self.assertEqual(self._leftovers(), [])
 
@@ -168,7 +175,9 @@ class ThumbnailRebuildTest(TestCase):
             _ffmpeg_failing_on([".mp4"]),
             self.assertRaises(thumbnails.VideoThumbnailError),
         ):
-            self._thumbnail()._regenerate_thumbnails(keep_old_on_failure=True)
+            thumbnails.regenerate_thumbnails(
+                self._thumbnail(), keep_old_on_failure=True
+            )
         self.assertEqual(set(self._contents().values()), {b"old"})
         self.assertEqual(len(self._contents()), 3)
         self.assertEqual(self._leftovers(), [])
@@ -207,13 +216,13 @@ class ThumbnailRebuildTest(TestCase):
         """A full rescan's processing of the video, the steps after it stubbed."""
         photo = Photo.objects.get(pk=self.photo.pk)
         with (
-            mock.patch("api.models.photo_metadata.PhotoMetadata.extract_exif_data"),
+            mock.patch("api.metadata.photo_reader.extract_exif_data"),
             mock.patch.object(file_handlers, "extract_date_time"),
             mock.patch("api.screenshot_detection.classify", return_value=False),
             mock.patch.object(
                 file_handlers, "calculate_hash_from_thumbnail", return_value=None
             ),
-            mock.patch.object(Thumbnail, "_get_dominant_color"),
+            mock.patch("api.thumbnails.calculate_dominant_color"),
             mock.patch.object(file_handlers.PhotoSearch, "recreate_search_captions"),
         ):
             file_handlers._process_photo(

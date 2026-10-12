@@ -25,10 +25,12 @@ from django.test import TestCase
 from django.utils import timezone
 from rest_framework.test import APIClient
 
-from api.models import File, Photo
+from api.media_files import get_or_create_file
+from api.metadata.photo_reader import EXIF_VALUE_NAMES, extract_exif_data
+from api.models import Photo
 from api.models.album_thing import AlbumThing
 from api.models.photo_caption import PhotoCaption
-from api.models.photo_metadata import EXIF_VALUE_NAMES, PhotoMetadata
+from api.models.photo_metadata import PhotoMetadata
 from api.models.photo_search import PhotoSearch
 from api.tests.utils import (
     create_test_photo,
@@ -92,7 +94,7 @@ class XMPDescriptionIntegrationTest(TestCase):
         pk = uuid.uuid4()
         image_hash = self.tmp_name[:32]
         self.photo = Photo(pk=pk, image_hash=image_hash, owner=self.user)
-        file_obj = File.create(self.tmp_path, self.user)
+        file_obj = get_or_create_file(self.tmp_path, self.user)
         self.photo.main_file = file_obj
         self.photo.added_on = timezone.now()
         self.photo.save()
@@ -113,10 +115,10 @@ class XMPDescriptionIntegrationTest(TestCase):
     def _extract_with_real_exiftool(self):
         """Run extract_exif_data with exiftool instead of the HTTP service."""
         with patch(
-            "api.models.photo_metadata.get_metadata",
+            "api.metadata.photo_reader.get_metadata",
             side_effect=_exiftool_get_metadata,
         ):
-            return PhotoMetadata.extract_exif_data(self.photo, commit=True)
+            return extract_exif_data(self.photo, commit=True)
 
     # -- tests ------------------------------------------------------------
 
@@ -204,7 +206,7 @@ class XMPDescriptionIntegrationTest(TestCase):
 
         with (
             patch(
-                "api.models.photo_metadata.get_metadata",
+                "api.metadata.photo_reader.get_metadata",
                 side_effect=_exiftool_get_metadata,
             ),
             patch(
@@ -249,8 +251,8 @@ class DescriptionToCaptionTest(TestCase):
             "xmp_description_any_language": any_language,
         }
         mock_values = [values.get(name) for name in EXIF_VALUE_NAMES]
-        with patch("api.models.photo_metadata.get_metadata", return_value=mock_values):
-            return PhotoMetadata.extract_exif_data(self.photo, commit=True)
+        with patch("api.metadata.photo_reader.get_metadata", return_value=mock_values):
+            return extract_exif_data(self.photo, commit=True)
 
     def _user_caption(self):
         return PhotoCaption.objects.get(photo=self.photo).captions_json.get(
@@ -354,7 +356,7 @@ class LangAltWithoutDefaultTest(TestCase):
         with open(sidecar, "w", encoding="utf-8") as f:
             f.write(LANG_ALT_ONLY_SIDECAR)
         self.photo = create_test_photo(owner=self.user)
-        self.photo.main_file = File.create(image, self.user)
+        self.photo.main_file = get_or_create_file(image, self.user)
         self.photo.save()
 
     def test_x_default_tag_alone_finds_nothing(self):
@@ -364,10 +366,10 @@ class LangAltWithoutDefaultTest(TestCase):
 
     def test_first_language_entry_is_imported(self):
         with patch(
-            "api.models.photo_metadata.get_metadata",
+            "api.metadata.photo_reader.get_metadata",
             side_effect=_exiftool_get_metadata,
         ):
-            PhotoMetadata.extract_exif_data(self.photo, commit=True)
+            extract_exif_data(self.photo, commit=True)
 
         caption_instance = PhotoCaption.objects.get(photo=self.photo)
         self.assertEqual(

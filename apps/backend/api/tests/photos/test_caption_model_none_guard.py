@@ -10,6 +10,7 @@ from unittest.mock import patch
 from constance.test import override_config
 from django.test import TestCase, override_settings
 
+from api.image_captioning import generate_photo_caption
 from api.models import PhotoCaption
 from api.tests.utils import create_test_photo, create_test_user
 
@@ -29,27 +30,27 @@ class CaptionModelNoneTest(TestCase):
         self.caption = PhotoCaption.objects.create(photo=self.photo)
 
     @override_config(CAPTIONING_MODEL="none")
-    @patch("api.models.photo_caption.generate_caption")
+    @patch("api.image_captioning.generate_caption")
     def test_lowercase_none_captioning_model_disables_captioning(
         self, mock_generate_caption
     ):
         """Selecting "None" in the UI stores "none" and must skip captioning."""
         mock_generate_caption.return_value = "a photo of a cat"
 
-        result = self.caption.generate_captions_im2txt(commit=False)
+        result = generate_photo_caption(self.caption, commit=False)
 
         self.assertFalse(result)
         mock_generate_caption.assert_not_called()
         self.assertNotIn("im2txt", self.caption.captions_json or {})
 
     @override_config(CAPTIONING_MODEL="None")
-    @patch("api.models.photo_caption.generate_caption")
+    @patch("api.image_captioning.generate_caption")
     def test_capitalized_none_captioning_model_disables_captioning(
         self, mock_generate_caption
     ):
         mock_generate_caption.return_value = "a photo of a cat"
 
-        result = self.caption.generate_captions_im2txt(commit=False)
+        result = generate_photo_caption(self.caption, commit=False)
 
         self.assertFalse(result)
         mock_generate_caption.assert_not_called()

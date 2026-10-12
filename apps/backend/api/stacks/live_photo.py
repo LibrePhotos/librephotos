@@ -18,6 +18,7 @@ from typing import TYPE_CHECKING
 
 from django.conf import settings
 
+from api.media_files import get_or_create_file
 from api.mime import LIVE_PHOTO_VIDEO_EXTENSIONS, mime_type
 from api.models.file import File
 from api.models.photo_stack import PhotoStack
@@ -241,7 +242,7 @@ def _create_embedded_live_photo_stack(
         return None
 
     # Create File record for the extracted video
-    video_file = File.create(video_path, user)
+    video_file = get_or_create_file(video_path, user)
 
     # Link as embedded media on the original file
     photo.main_file.embedded_media.add(video_file)
@@ -282,7 +283,7 @@ def _create_apple_live_photo_stack(
 
     if not video_file:
         # Create File record for the video
-        video_file = File.create(video_path, user)
+        video_file = get_or_create_file(video_path, user)
 
     # Find or create the video as a Photo
     video_photo = Photo.objects.filter(main_file=video_file).first()

@@ -47,6 +47,8 @@ from api.geocode.geocode import reverse_geocode
 from api.geocode.photo_location import find_album_places
 from api.metadata.jobs import queue_rating_write
 from api.metadata.photo_datetime import extract_date_time
+from api.metadata.photo_reader import read_file_values
+from api.metadata.photo_writer import write_photo_metadata_on_commit
 from api.metadata.reader import get_metadata
 from api.metadata.tags import Tags
 from api.models.album_place import AlbumPlace, get_album_place
@@ -139,12 +141,16 @@ def set_capture_time(photo: Photo, value: datetime | None, user: User) -> None:
 
     ``Photo.timestamp`` is the user's input; the datetime rules fold it into
     ``exif_timestamp`` (rule 14, "Timestamp set by user") and move the photo
-    to its day album. ``Photo.save()`` writes the new date to the file or
-    sidecar as ``XMP:DateCreated`` when the owner syncs metadata to disk.
+    to its day album. A changed date is written to the file or sidecar as
+    ``XMP:DateCreated``, once, after the commit, when the owner syncs
+    metadata to disk.
     """
     old = photo.exif_timestamp
+    date_changed = photo.timestamp != value
     photo.timestamp = value
-    photo.save(save_metadata=True)
+    photo.save()
+    if date_changed:
+        write_photo_metadata_on_commit(photo, ["timestamp"])
     extract_date_time(photo)
     if photo.exif_timestamp != old:
         _record(user, DATE_TAKEN, [Change(photo.id, old, photo.exif_timestamp)])
@@ -247,8 +253,8 @@ def _add_to_album_places(photo: Photo, geocode_result: Mapping[str, object]) -> 
 def set_rating(photos: QuerySet[Photo], value: int, user: User) -> int:
     """Give ``photos`` the star rating ``value`` (0 to 5); return the rows set.
 
-    One UPDATE for any number of photos. That skips ``Photo.save()`` and with
-    it the write to disk, so the same write is queued as a job instead. The
+    One UPDATE for any number of photos; the write to disk is queued as a
+    job (``queue_rating_write``) so it stays off the request. The
     ids and old ratings are read first: a caller's filter on the old rating
     no longer matches afterwards.
     """
@@ -446,7 +452,7 @@ def revert_all(photo: Photo, user: User) -> PhotoMetadata:
         new_value={"source": PhotoMetadata.Source.EMBEDDED},
     )
 
-    values = PhotoMetadata.read_file_values(photo)
+    values = read_file_values(photo)
     metadata = PhotoMetadata.apply_file_values(photo, values, commit=False)
     assert metadata is not None
 
@@ -456,7 +462,7 @@ def revert_all(photo: Photo, user: User) -> PhotoMetadata:
     )
     photo.timestamp = None
     extract_date_time(photo, commit=False)
-    photo.save(save_metadata=False)
+    photo.save()
     _restore_location_from_file(photo)
 
     previous_keywords = metadata.keywords

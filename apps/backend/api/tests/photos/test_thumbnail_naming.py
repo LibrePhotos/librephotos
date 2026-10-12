@@ -10,6 +10,7 @@ from unittest import mock
 
 from django.test import TestCase
 
+from api import thumbnails
 from api.models import Thumbnail
 from api.tests.utils import create_test_photo, create_test_user
 
@@ -44,10 +45,10 @@ class ThumbnailNamingTest(TestCase):
         self.assertNotIn(str(photo.id), thumbnail.square_thumbnail.name)
         self.assertNotIn(str(photo.id), thumbnail.square_thumbnail_small.name)
 
-    @mock.patch("api.models.thumbnail.create_static_thumbnails")
-    @mock.patch("api.models.thumbnail.does_static_thumbnail_exist")
+    @mock.patch("api.thumbnails.create_static_thumbnails")
+    @mock.patch("api.thumbnails.does_static_thumbnail_exist")
     def test_generate_thumbnail_uses_image_hash(self, mock_exists, mock_create):
-        """Verify that _generate_thumbnail method uses image_hash"""
+        """Verify that generate_thumbnail uses image_hash"""
         # Mock to indicate thumbnails don't exist yet
         mock_exists.return_value = False
 
@@ -55,8 +56,8 @@ class ThumbnailNamingTest(TestCase):
         photo = create_test_photo(owner=self.user)
         thumbnail = photo.thumbnail
 
-        # Call _generate_thumbnail
-        thumbnail._generate_thumbnail()
+        # Call generate_thumbnail
+        thumbnails.generate_thumbnail(thumbnail)
 
         # One call renders every missing size, named after image_hash, not UUID
         mock_create.assert_called_once()

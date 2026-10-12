@@ -43,11 +43,12 @@ import requests
 from django.test import TestCase, override_settings
 
 from api import sidecars
+from api.media_files import get_or_create_file
 from api.metadata.reader import get_sidecar_files_in_priority_order
-from api.models.file import File
 from api.models.photo import Photo
 from api.models.user import User
 from api.tests.utils import create_test_photo
+from api.thumbnails import generate_thumbnail
 
 if TYPE_CHECKING:
     import pyvips
@@ -337,10 +338,10 @@ class RealExifToolTestCase(TestCase):
     ) -> Photo:
         """A Photo of ``owner`` whose main file is ``path``."""
         photo = create_test_photo(owner=owner, **fields)
-        photo.main_file = File.create(path, owner)
-        photo.save(save_metadata=False)
+        photo.main_file = get_or_create_file(path, owner)
+        photo.save()
         if thumbnails:
-            photo.thumbnail._generate_thumbnail()
+            generate_thumbnail(photo.thumbnail)
         # From the database, as a request would load it: Photo.save() diffs
         # against the row it was loaded from.
         return Photo.objects.select_related("main_file", "owner").get(pk=photo.pk)

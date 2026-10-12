@@ -24,6 +24,7 @@ from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from api import transcode_cache
+from api.photo_files import remove_photo
 from api.tests.utils import create_test_file, create_test_photo, create_test_user
 from api.views import media
 
@@ -371,7 +372,7 @@ class DiscardTest(CacheDirectoryTestCase):
         final = _write(transcode_cache.final_path(photo.image_hash))
         part = _write(final + ".part")
 
-        photo.manual_delete()
+        remove_photo(photo)
 
         self.assertFalse(os.path.exists(final))
         self.assertFalse(os.path.exists(part))

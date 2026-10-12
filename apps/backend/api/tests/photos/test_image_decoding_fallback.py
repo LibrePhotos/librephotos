@@ -8,7 +8,7 @@ import pyvips
 from PIL import Image
 
 from api import image_decoding
-from api.models.file import is_valid_media
+from api.media_files import is_valid_media
 
 FIXTURE = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "fixtures", "niaz.jpg"

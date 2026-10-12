@@ -1,13 +1,17 @@
 """Writing a photo's LibrePhotos edits back to its file or XMP sidecar.
 
 Ratings, capture dates, face regions and rotations. Moved out of ``Photo``;
-every function takes the photo as its first argument.
+every function takes the photo as its first argument. ``Photo.save()`` only
+saves: a caller that applies a user's edit calls the writer itself, for the
+fields it changed (#2336).
 """
 
 from __future__ import annotations
 
 import logging
 from typing import TYPE_CHECKING
+
+from django.db import transaction
 
 from api.metadata.tags import Tags
 from api.metadata.writer import TagValue, write_metadata
@@ -35,6 +39,26 @@ def write_target(user: User) -> bool | None:
     return None
 
 
+def write_photo_metadata_on_commit(
+    photo: Photo, modified_fields: list[str], using: str | None = None
+) -> None:
+    """Write ``modified_fields`` of a user's edit once the edit commits.
+
+    Follows the owner's "Synchronize metadata to disk" (``write_target``).
+    The write waits for the commit (#2298): a failed or rolled-back save
+    never touches the file, and a failed write is logged without undoing
+    the saved edit.
+    """
+    use_sidecar = write_target(photo.owner)
+    if use_sidecar is None:
+        return
+    transaction.on_commit(
+        lambda: write_photo_metadata(photo, modified_fields, use_sidecar),
+        using=using,
+        robust=True,
+    )
+
+
 def write_photo_metadata(
     photo: Photo,
     modified_fields: list[str] | None = None,
@@ -44,8 +68,8 @@ def write_photo_metadata(
     """Write metadata tags to the photo's file or sidecar.
 
     Args:
-        modified_fields: List of changed field names (from Photo.save() diff).
-            When None, writes all applicable tags unconditionally.
+        modified_fields: The fields the caller changed ("rating",
+            "timestamp"). When None, writes all applicable tags unconditionally.
         use_sidecar: Write to XMP sidecar file if True, media file if False.
         metadata_types: List of metadata categories to write, e.g.
             ["ratings", "face_tags"]. When None, uses default behavior
@@ -79,6 +103,49 @@ def write_photo_metadata(
     if tags_to_write:
         assert photo.main_file is not None
         write_metadata(photo.main_file.path, tags_to_write, use_sidecar=use_sidecar)
+
+
+def rotate_photo(photo: Photo, angle: int = 0, flip_horizontal: bool = False) -> None:
+    """Rotate the photo non-destructively.
+
+    Updates ``local_orientation`` and regenerates thumbnails. The change is
+    stored in the DB and reflected in the regenerated thumbnails; the
+    orientation reaches the file (or sidecar) only when the owner has
+    ``save_metadata_to_disk`` on (``write_orientation_to_disk``).
+
+    Args:
+        photo: The photo to rotate.
+        angle: Clockwise rotation in degrees. Must be a multiple of 90.
+            Use negative values for counter-clockwise rotation (e.g. -90
+            for 90° CCW).
+        flip_horizontal: If True, apply a horizontal flip on top of the
+            rotation.
+
+    Raises:
+        ValueError: If ``angle`` is not a multiple of 90.
+    """
+    angle = int(angle) % 360  # normalise first so -90 → 270, 360 → 0
+
+    if angle % 90 != 0:
+        raise ValueError("angle must be a multiple of 90 degrees")
+
+    if angle == 0 and not flip_horizontal:
+        return
+
+    from api import thumbnails
+    from api.util import compose_orientation
+
+    photo.local_orientation = compose_orientation(
+        photo.local_orientation,
+        delta_angle_cw=angle,
+        flip_h=flip_horizontal,
+    )
+    photo.save()
+
+    # Regenerate thumbnails so the UI sees the updated orientation.
+    thumbnails.regenerate_thumbnails(photo.thumbnail)
+
+    write_orientation_to_disk(photo, angle, flip_horizontal)
 
 
 def write_orientation_to_disk(photo: Photo, angle: int, flip_horizontal: bool) -> None:
@@ -184,7 +251,7 @@ def _adopt_written_orientation(photo: Photo, combined: int) -> None:
     """
     if photo.local_orientation != 1:
         photo.local_orientation = 1
-        photo.save(save_metadata=False, update_fields=["local_orientation"])
+        photo.save(update_fields=["local_orientation"])
 
     metadata = getattr(photo, "metadata", None)
     if metadata is not None and metadata.orientation != combined:

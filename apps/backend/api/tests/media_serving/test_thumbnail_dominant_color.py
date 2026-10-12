@@ -13,7 +13,7 @@ from unittest import mock
 from django.test import TestCase, override_settings
 from PIL import Image
 
-from api.models import Thumbnail
+from api import thumbnails
 from api.tests.utils import create_test_photo, create_test_user
 
 RED = (200, 40, 20)
@@ -51,7 +51,7 @@ class DominantColorTest(TestCase):
         with open(self._path(thumbnail.square_thumbnail_small), "wb") as clip:
             clip.write(b"\x00\x00\x00\x18ftypmp42")
 
-        thumbnail._get_dominant_color()
+        thumbnails.calculate_dominant_color(thumbnail)
 
         self.assertEqual(RED, self._rgb(thumbnail))
 
@@ -60,12 +60,12 @@ class DominantColorTest(TestCase):
         self._still(thumbnail.thumbnail_big, BLUE)
         self._still(thumbnail.square_thumbnail_small, RED)
 
-        thumbnail._get_dominant_color()
+        thumbnails.calculate_dominant_color(thumbnail)
 
         self.assertEqual(RED, self._rgb(thumbnail))
 
     def _rebuild_with(self, thumbnail, make=None):
-        """``_regenerate_thumbnails`` with an ffmpeg whose poster is ``make``'s.
+        """``regenerate_thumbnails`` with an ffmpeg whose poster is ``make``'s.
 
         No ``make``: an ffmpeg that fails.
         """
@@ -76,10 +76,10 @@ class DominantColorTest(TestCase):
             make(instance.thumbnail_big)
             instance.save()
 
-        with mock.patch.object(
-            Thumbnail, "_generate_thumbnail", autospec=True, side_effect=generate
+        with mock.patch(
+            "api.thumbnails.generate_thumbnail", autospec=True, side_effect=generate
         ):
-            thumbnail._regenerate_thumbnails(keep_old_on_failure=True)
+            thumbnails.regenerate_thumbnails(thumbnail, keep_old_on_failure=True)
 
     def test_a_rebuilt_video_samples_its_colour_again(self):
         thumbnail = create_test_photo(

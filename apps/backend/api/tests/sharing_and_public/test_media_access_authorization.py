@@ -109,7 +109,7 @@ class DuplicateImageHashResolutionTest(TestCase):
     """A hash shared by two Photo rows must resolve in the requester's favour.
 
     Two users who scan the same file end up with two Photo rows carrying an
-    identical `image_hash`, because `File.create()` returns the row that
+    identical `image_hash`, because `get_or_create_file()` returns the row that
     already exists for that path and the second Photo inherits the first
     scanner's hash.
     """

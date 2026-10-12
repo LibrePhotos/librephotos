@@ -23,8 +23,9 @@ import exiftool
 from django.test import TestCase
 from django.utils import timezone
 
-from api.models import File, Photo
-from api.models.photo_metadata import PhotoMetadata
+from api.media_files import get_or_create_file
+from api.metadata.photo_reader import extract_exif_data
+from api.models import Photo
 from api.models.photo_search import PhotoSearch
 from api.tests.utils import (
     create_test_thumbnail,
@@ -89,7 +90,7 @@ class IPTCKeywordIntegrationTest(TestCase):
         pk = uuid.uuid4()
         image_hash = self.tmp_name[:32]
         self.photo = Photo(pk=pk, image_hash=image_hash, owner=self.user)
-        file_obj = File.create(self.tmp_path, self.user)
+        file_obj = get_or_create_file(self.tmp_path, self.user)
         self.photo.main_file = file_obj
         self.photo.added_on = timezone.now()
         self.photo.save()
@@ -110,10 +111,10 @@ class IPTCKeywordIntegrationTest(TestCase):
     def _extract_with_real_exiftool(self):
         """Run extract_exif_data with exiftool instead of the HTTP service."""
         with patch(
-            "api.models.photo_metadata.get_metadata",
+            "api.metadata.photo_reader.get_metadata",
             side_effect=_exiftool_get_metadata,
         ):
-            return PhotoMetadata.extract_exif_data(self.photo, commit=True)
+            return extract_exif_data(self.photo, commit=True)
 
     # -- tests ------------------------------------------------------------
 

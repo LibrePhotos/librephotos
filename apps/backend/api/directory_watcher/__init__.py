@@ -63,7 +63,7 @@ from api.directory_watcher.utils import (
 )
 
 # Re-export from api.models.file for backwards compatibility
-from api.models.file import is_valid_media
+from api.media_files import is_valid_media
 
 __all__ = [
     # Scan jobs

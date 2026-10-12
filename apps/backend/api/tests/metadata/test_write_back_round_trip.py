@@ -26,13 +26,13 @@ from api.directory_watcher.file_handlers import _process_photo
 from api.face_extractor import extract_from_exif
 from api.metadata.jobs import queue_rating_write, write_photo_ratings
 from api.metadata.photo_datetime import extract_date_time
-from api.metadata.photo_writer import write_photo_metadata
+from api.metadata.photo_reader import extract_exif_data
+from api.metadata.photo_writer import rotate_photo, write_photo_metadata
 from api.metadata.reader import get_metadata
 from api.metadata.tags import Tags
 from api.metadata.writer import write_metadata
 from api.models.person import Person
 from api.models.photo import Photo
-from api.models.photo_metadata import PhotoMetadata
 from api.models.user import User
 from api.serializers.photos import PhotoEditSerializer
 from api.tests.metadata.exiftool_harness import (
@@ -59,7 +59,8 @@ def run_now(func, *args):
 
 
 class RatingRoundTripTest(RealExifToolTestCase):
-    """``write_photo_ratings`` (bulk edits) and ``Photo.save()`` (one photo)."""
+    """``write_photo_ratings`` (every rating edit) and ``Photo.save()``, which
+    writes nothing."""
 
     def _rated_photo(self, path, mode, rating=4):
         user = create_test_user(save_metadata_to_disk=mode)
@@ -92,19 +93,23 @@ class RatingRoundTripTest(RealExifToolTestCase):
                 self.exiftool.writes.clear()
                 self._round_trip(self.make_video(f"r-{mode}"), mode)
 
-    def test_photo_save_writes_a_changed_rating(self):
+    def test_photo_save_writes_nothing(self):
+        # #2336: Photo.save() only saves. The file has no rating, the row now
+        # says 5, and write-back is on: the file and its sidecar stay as they
+        # were.
         for mode in MODES:
             with self.subTest(mode=mode):
-                self.exiftool.writes.clear()
                 path = self.make_image(".jpg", f"save-{mode}")
                 photo = self._rated_photo(path, mode, rating=1)
 
                 photo.rating = 5
-                with self.captureOnCommitCallbacks(execute=True):
-                    photo.save(save_metadata=True)
+                with (
+                    self.assertUntouched(path),
+                    self.captureOnCommitCallbacks(execute=True),
+                ):
+                    photo.save()
 
-                self.assertEqual(5, self._read_rating(path))
-                self.assertWritesLanded(expected=1)
+                self.assertIsNone(self._read_rating(path))
 
     def test_nothing_is_written_when_off(self):
         path = self.make_image(".jpg")
@@ -112,8 +117,6 @@ class RatingRoundTripTest(RealExifToolTestCase):
 
         with self.assertUntouched(path), self.captureOnCommitCallbacks(execute=True):
             queue_rating_write(photo.owner, [photo.id])
-            photo.rating = 5
-            photo.save(save_metadata=True)
 
     def test_a_metadata_api_rating_reaches_the_sidecar(self):
         # #2252: the metadata PATCH used to write PhotoMetadata.rating, which
@@ -248,7 +251,18 @@ class DateRoundTripTest(RealExifToolTestCase):
         self.exiftool.writes.clear()
 
         with self.captureOnCommitCallbacks(execute=True):
-            photo.save(save_metadata=True)
+            photo.save()
+
+        self.assertEqual([], self.exiftool.writes)
+
+    def test_the_same_date_again_writes_nothing(self):
+        # set_capture_time writes only a date that changed, as the diff in
+        # Photo.save() did before it moved there (#2336).
+        photo = self._edit_date(self.make_image(".jpg"), SIDECAR)
+        self.exiftool.writes.clear()
+
+        with self.captureOnCommitCallbacks(execute=True):
+            PhotoEditSerializer().update(photo, {"exif_timestamp": TIMESTAMP})
 
         self.assertEqual([], self.exiftool.writes)
 
@@ -417,7 +431,7 @@ class FaceTagRoundTripTest(RealExifToolTestCase):
         client.force_authenticate(user=photo.owner)
         # Clear of FACE_LANDSCAPE, in the bottom right of the thumbnail.
         box = {"top": 0.45, "right": 0.95, "bottom": 0.95, "left": 0.55}
-        with patch("api.models.face.get_face_encodings", return_value=[[0.0] * 512]):
+        with patch("api.photo_faces.get_face_encodings", return_value=[[0.0] * 512]):
             response = client.post(
                 "/api/addface",
                 {"photo": photo.image_hash, "person_name": "Carol", "box": box},
@@ -532,7 +546,7 @@ class ScanReadsOnlyTest(RealExifToolTestCase):
                 photo, path = self._rated_elsewhere(mode)
 
                 with self.assertUntouched(path):
-                    PhotoMetadata.extract_exif_data(photo, commit=True)
+                    extract_exif_data(photo, commit=True)
 
                 self.assertEqual(4, Photo.objects.get(pk=photo.pk).rating)
 
@@ -547,7 +561,7 @@ class ScanReadsOnlyTest(RealExifToolTestCase):
                 self.assertEqual(4, Photo.objects.get(pk=photo.pk).rating)
 
 
-# The web app's clockwise button sends -90 (``Photo.rotate`` counts its angle
+# The web app's clockwise button sends -90 (``rotate_photo`` counts its angle
 # counter-clockwise as rendered).
 CLOCKWISE = -90
 UPRIGHT = ("landscape", "red", "green", "blue", "white")
@@ -556,7 +570,7 @@ TURNED_HALF = ("landscape", "white", "blue", "green", "red")
 
 
 class RotationRoundTripTest(RealExifToolTestCase):
-    """``Photo.rotate``: LibrePhotos' thumbnail against a viewer's render of the result.
+    """``rotate_photo``: LibrePhotos' thumbnail against a viewer's render of the result.
 
     A viewer applies the sidecar's Orientation when there is one, the file's
     own EXIF Orientation otherwise; ``shown_layout`` renders that with libvips'
@@ -593,7 +607,7 @@ class RotationRoundTripTest(RealExifToolTestCase):
                 photo, path = self._rotated_photo(".jpg", MEDIA_FILE, start)
                 self.assertEqual(before, self._thumbnail(photo))
 
-                photo.rotate(CLOCKWISE)
+                rotate_photo(photo, CLOCKWISE)
 
                 self.assertEqual(after, self._thumbnail(photo))
                 self.assertEqual(after, self._viewer_sees(path))
@@ -605,7 +619,7 @@ class RotationRoundTripTest(RealExifToolTestCase):
         with open(path, "rb") as handle:
             original = handle.read()
 
-        photo.rotate(CLOCKWISE)
+        rotate_photo(photo, CLOCKWISE)
 
         expected = TURNED_CLOCKWISE if orientation is None else TURNED_HALF
         self.assertEqual(expected, self._thumbnail(photo))
@@ -637,7 +651,7 @@ class RotationRoundTripTest(RealExifToolTestCase):
         with open(path, "rb") as handle:
             original = handle.read()
 
-        photo.rotate(CLOCKWISE)
+        rotate_photo(photo, CLOCKWISE)
 
         self.assertEqual(TURNED_CLOCKWISE, self._thumbnail(photo))
         with open(path, "rb") as handle:
@@ -650,7 +664,7 @@ class RotationRoundTripTest(RealExifToolTestCase):
                 photo, path = self._rotated_photo(extension, OFF)
 
                 with self.assertUntouched(path):
-                    photo.rotate(CLOCKWISE)
+                    rotate_photo(photo, CLOCKWISE)
 
                 self.assertEqual(TURNED_CLOCKWISE, self._thumbnail(photo))
 
@@ -752,7 +766,7 @@ class WriteTargetGuardTest(RealExifToolTestCase):
         user = create_test_user(save_metadata_to_disk=MEDIA_FILE)
         for extension in (".jpg", ".heic"):
             path = self.make_image(extension, "guard-rotate")
-            self.photo_for(path, user, thumbnails=True).rotate(CLOCKWISE)
+            rotate_photo(self.photo_for(path, user, thumbnails=True), CLOCKWISE)
 
         self.assertWritesLanded()
         emitted = set().union(*(write.tags for write in self.exiftool.writes))

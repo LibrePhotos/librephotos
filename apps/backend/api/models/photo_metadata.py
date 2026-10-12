@@ -21,8 +21,6 @@ from typing import TYPE_CHECKING
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db import models
 
-from api.metadata.reader import get_metadata
-from api.metadata.tags import Tags
 from api.models.tag import link_tags_from_keywords
 from api.models.user import User, get_deleted_user
 
@@ -30,56 +28,6 @@ if TYPE_CHECKING:
     from api.models.photo import Photo
 
 logger = logging.getLogger(__name__)
-
-# The value names below line up positionally with EXIF_TAGS: get_metadata returns
-# one value per requested tag, in the order the tags were asked for.
-EXIF_VALUE_NAMES = (
-    "size",
-    "fstop",
-    "focal_length",
-    "iso",
-    "shutter_speed",
-    "camera",
-    "lens",
-    "width",
-    "height",
-    "focal_length_35mm",
-    "subject_distance",
-    "digital_zoom_ratio",
-    "video_length",
-    "rating",
-    "subsec_time_original",
-    "image_number",
-    "xmp_subject",
-    "iptc_keywords",
-    "xmp_description",
-    "xmp_description_any_language",
-    "matroska_duration",
-)
-
-EXIF_TAGS = [
-    Tags.FILE_SIZE,
-    Tags.FSTOP,
-    Tags.FOCAL_LENGTH,
-    Tags.ISO,
-    Tags.EXPOSURE_TIME,
-    Tags.CAMERA,
-    Tags.LENS,
-    Tags.IMAGE_WIDTH,
-    Tags.IMAGE_HEIGHT,
-    Tags.FOCAL_LENGTH_35MM,
-    Tags.SUBJECT_DISTANCE,
-    Tags.DIGITAL_ZOOM_RATIO,
-    Tags.QUICKTIME_DURATION,
-    Tags.RATING,
-    Tags.SUBSEC_TIME_ORIGINAL,
-    Tags.IMAGE_NUMBER,
-    Tags.SUBJECT,
-    Tags.IPTC_KEYWORDS,
-    Tags.DESCRIPTION,
-    Tags.DESCRIPTION_ANY_LANGUAGE,
-    Tags.MATROSKA_DURATION,
-]
 
 # Key in PhotoCaption.captions_json remembering the description last imported
 # from the file, so a rescan can tell "already imported" (and possibly edited
@@ -307,47 +255,11 @@ class PhotoMetadata(models.Model):
         return self.lens_model or self.lens_make
 
     @classmethod
-    def extract_exif_data(
-        cls, photo: Photo, commit: bool = True
-    ) -> PhotoMetadata | None:
-        """
-        Extract EXIF data from a photo's main file and update PhotoMetadata.
-
-        This method extracts metadata from the photo's main file and:
-        1. Updates Photo fields (size, video_length, rating, exif_timestamp_subsec, image_sequence_number)
-        2. Gets or creates PhotoMetadata and populates it with extracted data
-
-        Args:
-            photo: Photo instance to extract metadata from
-            commit: Whether to save Photo and PhotoMetadata after extraction
-
-        Returns:
-            PhotoMetadata instance
-        """
-        if not photo.main_file:
-            return None
-        return cls.apply_file_values(photo, cls.read_file_values(photo), commit)
-
-    @staticmethod
-    def read_file_values(photo: Photo) -> dict[str, object]:
-        """The values of ``EXIF_TAGS`` in the photo's file or sidecar, by name."""
-        assert photo.main_file is not None
-        # Every name gets a key even if get_metadata comes back short, so the
-        # appliers below can index values[...] without a KeyError.
-        values: dict[str, object] = dict.fromkeys(EXIF_VALUE_NAMES)
-        values.update(
-            zip(
-                EXIF_VALUE_NAMES,
-                get_metadata(photo.main_file.path, tags=EXIF_TAGS, try_sidecar=True),
-            )
-        )
-        return values
-
-    @classmethod
     def apply_file_values(
         cls, photo: Photo, values: Mapping[str, object], commit: bool = True
     ) -> PhotoMetadata:
-        """Update ``photo`` and its PhotoMetadata from ``read_file_values``."""
+        """Update ``photo`` and its PhotoMetadata from the values read from its
+        file (``api.metadata.photo_reader.read_file_values``)."""
         cls._apply_to_photo(photo, values)
         if commit:
             photo.save()

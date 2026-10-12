@@ -21,11 +21,11 @@ Notable current behaviours pinned here:
 * Content-Type comes from ``api.mime.mime_type`` and silently falls back to
   ``application/octet-stream`` on *any* exception.
 * ``RotatePhotoView`` validates ``image_hash``/``angle`` before touching the
-  DB, rejects videos, and turns any exception from ``Photo.rotate`` into a
+  DB, rejects videos, and turns any exception from ``rotate_photo`` into a
   500 "failed to rotate photo". Errors use the API's error envelope.
 * ``RotatePhotoView`` rejects ``angle % 90 != 0`` using Python's modulo, so a
   negative non-multiple such as ``-45`` is rejected too, while ``-90`` is
-  accepted and normalised by ``Photo.rotate`` to orientation 8.
+  accepted and normalised by ``rotate_photo`` to orientation 8.
 """
 
 import os
@@ -234,7 +234,7 @@ class RotatePhotoViewTest(APITestCase):
         self.other_user = create_test_user()
         self.photo = create_test_photo(owner=self.user)
 
-        patcher = patch("api.models.thumbnail.Thumbnail._regenerate_thumbnails")
+        patcher = patch("api.thumbnails.regenerate_thumbnails")
         self.regen = patcher.start()
         self.addCleanup(patcher.stop)
 
@@ -349,7 +349,7 @@ class RotatePhotoViewTest(APITestCase):
     # --- rotation failure -------------------------------------------------
 
     def test_rotate_exception_returns_500(self):
-        with patch.object(Photo, "rotate", side_effect=RuntimeError("boom")):
+        with patch("api.views.photos.rotate_photo", side_effect=RuntimeError("boom")):
             response = self.call({"image_hash": self.photo.image_hash, "angle": 90})
 
         self.assertEqual(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)

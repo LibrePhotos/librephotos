@@ -3,13 +3,14 @@ import os
 from django.test import TestCase
 
 from api.directory_watcher.file_handlers import group_files_into_photo
-from api.models import File, Photo
+from api.media_files import get_or_create_file
+from api.models import Photo
 from api.photo_files import detach_missing_files
 from api.tests.utils import create_test_photo, create_test_user
 
 
 class FileCreateMissingFlagTest(TestCase):
-    """File.create must clear the missing flag when a previously missing
+    """get_or_create_file must clear the missing flag when a previously missing
     file is found on disk again (e.g. a network share or removable drive
     that was unmounted during a scan)."""
 
@@ -22,7 +23,7 @@ class FileCreateMissingFlagTest(TestCase):
         file.missing = True
         file.save()
 
-        result = File.create(file.path, self.user)
+        result = get_or_create_file(file.path, self.user)
 
         self.assertEqual(file.hash, result.hash)
         self.assertFalse(result.missing)
@@ -36,7 +37,7 @@ class FileCreateMissingFlagTest(TestCase):
         file.save()
         os.remove(file.path)
 
-        result = File.create(file.path, self.user)
+        result = get_or_create_file(file.path, self.user)
 
         self.assertEqual(file.hash, result.hash)
         self.assertTrue(result.missing)
@@ -73,7 +74,7 @@ class MissingFileReappearanceTest(TestCase):
             f.write(content)
         photo_count_before = Photo.objects.count()
 
-        refound_file = File.create(path, self.user)
+        refound_file = get_or_create_file(path, self.user)
         result_photo = group_files_into_photo(
             self.user, [refound_file], job_id="test-job"
         )

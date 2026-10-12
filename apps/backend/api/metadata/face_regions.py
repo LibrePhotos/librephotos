@@ -170,8 +170,8 @@ def build_face_region_exiftool_args(
 def get_face_region_tags(photo: Photo) -> dict[str, str | list[str]]:
     """Build face region exiftool tags dict for a photo.
 
-    Returns a dict of tags suitable for merging into _save_metadata()'s tags_to_write,
-    or an empty dict if no faces exist.
+    Returns a dict of tags suitable for merging into write_photo_metadata()'s
+    tags_to_write, or an empty dict if no faces exist.
 
     Args:
         photo: Photo model instance

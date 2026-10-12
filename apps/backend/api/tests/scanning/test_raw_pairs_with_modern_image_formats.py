@@ -30,6 +30,7 @@ from api.directory_watcher.file_grouping import (
 from api.directory_watcher.file_handlers import handle_file_group
 from api.directory_watcher.repair_jobs import repair_ungrouped_file_variants
 from api.directory_watcher.scan_jobs import _partition_scan_paths
+from api.media_files import get_or_create_file
 from api.models import File, Photo, User
 from api.tests.utils import create_test_user
 
@@ -68,7 +69,7 @@ class _LibraryTestCase(TestCase):
 
 class RawPairsWithModernFormatsTest(_LibraryTestCase):
     def test_a_raw_pairs_with_an_upper_case_hif(self) -> None:
-        image = File.create(self.write("DSC_0001.HIF"), self.user)
+        image = get_or_create_file(self.write("DSC_0001.HIF"), self.user)
         photo = self.photo_of([image])
         self.assertEqual(
             find_matching_jpeg_photo(
@@ -80,44 +81,46 @@ class RawPairsWithModernFormatsTest(_LibraryTestCase):
     def test_every_modern_format_in_either_case(self) -> None:
         for name in ("A.avif", "B.AVIF", "C.jxl", "D.JXL", "E.webp", "F.WEBP", "G.hif"):
             with self.subTest(name):
-                photo = self.photo_of([File.create(self.write(name), self.user)])
+                photo = self.photo_of([get_or_create_file(self.write(name), self.user)])
                 stem = os.path.splitext(name)[0]
                 raw_path = os.path.join(self.directory, f"{stem}.CR3")
                 self.assertEqual(find_matching_jpeg_photo(raw_path, self.user), photo)
 
     def test_the_stem_must_match_exactly(self) -> None:
-        self.photo_of([File.create(self.write("img_0001.jpg"), self.user)])
-        self.photo_of([File.create(self.write("IMG_0001.extra.jpg"), self.user)])
+        self.photo_of([get_or_create_file(self.write("img_0001.jpg"), self.user)])
+        self.photo_of([get_or_create_file(self.write("IMG_0001.extra.jpg"), self.user)])
         raw_path = os.path.join(self.directory, "IMG_0001.CR2")
         self.assertIsNone(find_matching_jpeg_photo(raw_path, self.user))
 
     def test_a_sibling_in_another_folder_does_not_pair(self) -> None:
         os.mkdir(os.path.join(self.directory, "sub"))
         self.photo_of(
-            [File.create(self.write(os.path.join("sub", "IMG.jpg")), self.user)]
+            [get_or_create_file(self.write(os.path.join("sub", "IMG.jpg")), self.user)]
         )
         raw_path = os.path.join(self.directory, "IMG.CR2")
         self.assertIsNone(find_matching_jpeg_photo(raw_path, self.user))
 
     def test_a_format_outside_the_pairing_set_does_not_pair(self) -> None:
-        self.photo_of([File.create(self.write("IMG.gif"), self.user)])
+        self.photo_of([get_or_create_file(self.write("IMG.gif"), self.user)])
         raw_path = os.path.join(self.directory, "IMG.CR2")
         self.assertIsNone(find_matching_jpeg_photo(raw_path, self.user))
 
     def test_another_users_photo_does_not_pair(self) -> None:
         other = create_test_user()
-        self.photo_of([File.create(self.write("IMG.webp"), other)], user=other)
+        self.photo_of([get_or_create_file(self.write("IMG.webp"), other)], user=other)
         raw_path = os.path.join(self.directory, "IMG.CR2")
         self.assertIsNone(find_matching_jpeg_photo(raw_path, self.user))
 
     def test_the_first_sibling_by_path_wins(self) -> None:
-        jpeg = self.photo_of([File.create(self.write("IMG.jpg", b"j"), self.user)])
-        self.photo_of([File.create(self.write("IMG.webp", b"w"), self.user)])
+        jpeg = self.photo_of(
+            [get_or_create_file(self.write("IMG.jpg", b"j"), self.user)]
+        )
+        self.photo_of([get_or_create_file(self.write("IMG.webp", b"w"), self.user)])
         raw_path = os.path.join(self.directory, "IMG.CR2")
         self.assertEqual(find_matching_jpeg_photo(raw_path, self.user), jpeg)
 
     def test_a_live_photo_video_pairs_in_either_case(self) -> None:
-        photo = self.photo_of([File.create(self.write("IMG_1.HEIC"), self.user)])
+        photo = self.photo_of([get_or_create_file(self.write("IMG_1.HEIC"), self.user)])
         for name in ("IMG_1.mov", "IMG_1.MOV"):
             with self.subTest(name):
                 video_path = os.path.join(self.directory, name)
@@ -126,7 +129,7 @@ class RawPairsWithModernFormatsTest(_LibraryTestCase):
                 )
 
     def test_only_a_mov_is_a_live_photo_video(self) -> None:
-        self.photo_of([File.create(self.write("IMG_1.HEIC"), self.user)])
+        self.photo_of([get_or_create_file(self.write("IMG_1.HEIC"), self.user)])
         video_path = os.path.join(self.directory, "IMG_1.mp4")
         self.assertIsNone(find_matching_image_for_video(video_path, self.user))
 
@@ -154,9 +157,9 @@ class RescanOfAnExistingLibraryTest(_LibraryTestCase):
         so the repair job never merged them. ``image_first`` decides which of
         the two photos the database returns first.
         """
-        image = File.create(self.image_path, self.user)
-        raw = File.create(self.raw_path, self.user)
-        sidecar = File.create(self.sidecar_path, self.user)
+        image = get_or_create_file(self.image_path, self.user)
+        raw = get_or_create_file(self.raw_path, self.user)
+        sidecar = get_or_create_file(self.sidecar_path, self.user)
         first, second = uuid.UUID(int=1), uuid.UUID(int=2)
         self.photo_of([image], pk=first if image_first else second)
         self.photo_of([raw, sidecar], pk=second if image_first else first)

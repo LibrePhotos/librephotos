@@ -16,6 +16,7 @@ from rest_framework.test import APIClient
 
 from api.models.duplicate import Duplicate
 from api.models.photo_metadata import PhotoMetadata
+from api.photo_files import remove_photo
 from api.tests.utils import (
     api_error,
     create_test_duplicate,
@@ -211,7 +212,7 @@ class DuplicateRevertEdgeCasesTestCase(TestCase):
         # Now permanently delete photo2 (simulating user emptying trash)
         photo2.in_trashcan = True
         photo2.save()
-        photo2.manual_delete()
+        remove_photo(photo2)
 
         # Try to revert
         response = self.client.post(f"/api/duplicates/{duplicate.id}/revert/")
@@ -412,7 +413,7 @@ class DuplicateDetailEdgeCasesTestCase(TestCase):
         # Permanently delete the kept photo
         photo1.in_trashcan = True
         photo1.save()
-        photo1.manual_delete()
+        remove_photo(photo1)
 
         # Check if duplicate still exists (might be deleted due to Bug #12 fix)
         if not Duplicate.objects.filter(id=duplicate.id).exists():
@@ -469,7 +470,7 @@ class DuplicateListEdgeCasesTestCase(TestCase):
         # Delete the kept photo
         photo1.in_trashcan = True
         photo1.save()
-        photo1.manual_delete()
+        remove_photo(photo1)
 
         # Try listing - should not crash
         response = self.client.get("/api/duplicates/")
