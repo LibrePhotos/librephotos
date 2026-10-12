@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import logging
 import math
 import os
@@ -13,7 +14,6 @@ from typing import Any
 import pytz
 
 from api.metadata.tags import Tags
-from api.util import rules_json
 
 logger = logging.getLogger(__name__)
 
@@ -605,6 +605,15 @@ OTHER_RULES_PARAMS: list[dict[str, Any]] = [
         "exif_tag": Tags.GPS_DATE_TIME,
     },
 ]
+
+
+def rules_json(configs: object) -> str:
+    """A rule list as JSON for the API: the date/time and burst rule settings.
+
+    A value the encoder does not know (a rule object) is written as its
+    attributes. ``api.stacks.burst_rules`` uses it for the burst rules.
+    """
+    return json.dumps(configs, default=lambda x: x.__dict__)
 
 
 def set_as_default_rule(rule: dict[str, Any]) -> dict[str, Any]:

@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING
 
 from django.db import transaction
 
+from api.metadata.orientation import compose_orientation
 from api.metadata.tags import Tags
 from api.metadata.writer import TagValue, write_metadata
 from api.models.user import User
@@ -133,7 +134,6 @@ def rotate_photo(photo: Photo, angle: int = 0, flip_horizontal: bool = False) ->
         return
 
     from api.thumbnails import render
-    from api.util import compose_orientation
 
     photo.local_orientation = compose_orientation(
         photo.local_orientation,
@@ -162,8 +162,6 @@ def write_orientation_to_disk(photo: Photo, angle: int, flip_horizontal: bool) -
 
     if not use_sidecar and _fold_rotation_into_file(photo):
         return
-
-    from api.util import compose_orientation
 
     try:
         exif_orientation = photo.metadata.orientation or 1

@@ -69,7 +69,7 @@ PlantedSerializer
 PlantedRequest
 """
 
-_TEST_CALLER = """from api.util import planted_test_only_helper
+_TEST_CALLER = """from api.photos.paths import planted_test_only_helper
 
 planted_test_only_helper()
 """
@@ -112,7 +112,7 @@ class PlantedDeadCodeTest(SimpleTestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             _copy_backend(root)
-            with open(root / "api" / "util.py", "a", encoding="utf-8") as f:
+            with open(root / "api" / "photos" / "paths.py", "a", encoding="utf-8") as f:
                 f.write(_UNUSED_FUNCTIONS + _SERIALIZER)
             # A function only a test calls is dead: tests do not count as uses.
             os.makedirs(root / "api" / "tests")
@@ -135,7 +135,7 @@ class PlantedDeadCodeTest(SimpleTestCase):
         self.assertEqual(self.exit_code, 1, self.report)
 
     def test_unused_function_is_reported(self):
-        self.assertIn("api/util.py:", self.report)
+        self.assertIn("api/photos/paths.py:", self.report)
         self.assertIn("unused function 'planted_unused_helper'", self.report)
 
     def test_unused_model_method_is_reported(self):

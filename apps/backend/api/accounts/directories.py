@@ -13,7 +13,7 @@ from django.conf import settings
 from rest_framework.exceptions import ValidationError
 
 from api.models import User
-from api.util import is_valid_path
+from api.photos.paths import is_valid_path
 
 logger = logging.getLogger(__name__)
 

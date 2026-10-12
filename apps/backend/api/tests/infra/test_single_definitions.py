@@ -235,6 +235,6 @@ class PlantedDuplicatesAreCaughtTest(SimpleTestCase):
     def test_a_second_is_hidden(self) -> None:
         planted = [
             ("api/directory_watcher/utils.py", "def is_hidden(path): ...\n"),
-            ("api/api_util.py", "def is_hidden(filepath): ...\n"),
+            ("api/serving/directory_tree.py", "def is_hidden(filepath): ...\n"),
         ]
         self.assertEqual(repeated_definitions(planted), {"is_hidden": 2})

@@ -7,7 +7,7 @@ from django.core.management.base import BaseCommand, CommandParser
 from api.directory_watcher import scan_photos
 from api.models import User
 from api.models.user import get_deleted_user
-from api.util import is_valid_path
+from api.photos.paths import is_valid_path
 from nextcloud.directory_watcher import scan_photos as scan_photos_nextcloud
 
 

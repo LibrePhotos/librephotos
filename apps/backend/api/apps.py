@@ -2,8 +2,15 @@ import logging
 from importlib import import_module
 
 from django.apps import AppConfig
+from django.db import DatabaseError
 
-from librephotos.logging_bootstrap import take_deferred
+from librephotos.logging_bootstrap import (
+    DEFAULT_LOG_BACKUP_COUNT,
+    DEFAULT_LOG_MAX_BYTES,
+    LoggingNotConfiguredError,
+    require_file_handler,
+    take_deferred,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +34,41 @@ SIGNAL_MODULES = (
 )
 
 
+def reconfigure_logging() -> None:
+    """Apply the constance log rotation settings to the live file handler.
+
+    Called once per process from ``ApiConfig.ready()``, which is as early as
+    ``constance.config`` can be read. It is idempotent: applying the same values
+    again is a no-op. Raises ``LoggingNotConfiguredError`` when the LOGGING
+    configuration installed no file handler.
+
+    When constance cannot be read - the first ``migrate`` runs before its table
+    exists - whatever is already applied is left alone. Resetting to the
+    defaults instead would silently undo an admin's setting on every management
+    command that runs before the database is ready.
+    """
+    handler = require_file_handler()
+
+    try:
+        from constance import config as constance_config
+
+        max_bytes = int(
+            getattr(constance_config, "LOG_MAX_BYTES", DEFAULT_LOG_MAX_BYTES)
+        )
+        backup_count = int(
+            getattr(constance_config, "LOG_BACKUP_COUNT", DEFAULT_LOG_BACKUP_COUNT)
+        )
+    except (DatabaseError, TypeError, ValueError):
+        # Constance is not readable yet (or holds a value that is not a
+        # number); keep what the handler already has.
+        return
+
+    # The handler is a ConcurrentRotatingFileHandler (concurrent_log_handler,
+    # untyped), which keeps its rotation limits as plain attributes.
+    setattr(handler, "maxBytes", max_bytes)
+    setattr(handler, "backupCount", backup_count)
+
+
 class ApiConfig(AppConfig):
     name = "api"
     verbose_name = "LibrePhotos"
@@ -44,7 +86,6 @@ class ApiConfig(AppConfig):
             check_default_db_password,
             check_squashed_migration_history,
         )
-        from api.util import LoggingNotConfiguredError, reconfigure_logging
 
         checks.register(check_default_db_password, checks.Tags.security)
         checks.register(check_squashed_migration_history, checks.Tags.database)

@@ -3,6 +3,7 @@
 from django.test import TestCase
 
 from api.admin import deduplicate_faces_function
+from api.faces.geometry import FACE_OVERLAP_IOU_THRESHOLD, calculate_iou
 from api.faces.photo_faces import overlaps_existing_face
 from api.tests.utils import (
     create_test_face,
@@ -10,7 +11,6 @@ from api.tests.utils import (
     create_test_photo,
     create_test_user,
 )
-from api.util import FACE_OVERLAP_IOU_THRESHOLD, calculate_iou
 
 
 class CalculateIoUTest(TestCase):
@@ -18,12 +18,12 @@ class CalculateIoUTest(TestCase):
 
     def test_identical_boxes(self):
         """Identical boxes should have IoU of 1.0."""
-        iou = calculate_iou(100, 300, 300, 100, 100, 300, 300, 100)
+        iou = calculate_iou((100, 300, 300, 100), (100, 300, 300, 100))
         self.assertAlmostEqual(iou, 1.0)
 
     def test_no_overlap(self):
         """Non-overlapping boxes should have IoU of 0.0."""
-        iou = calculate_iou(0, 100, 100, 0, 200, 300, 300, 200)
+        iou = calculate_iou((0, 100, 100, 0), (200, 300, 300, 200))
         self.assertAlmostEqual(iou, 0.0)
 
     def test_partial_overlap(self):
@@ -33,7 +33,7 @@ class CalculateIoUTest(TestCase):
         # Intersection: (150, 300, 300, 150) -> 150x150 = 22500
         # Union: 40000 + 40000 - 22500 = 57500
         # IoU: 22500 / 57500 ≈ 0.3913
-        iou = calculate_iou(100, 300, 300, 100, 150, 350, 350, 150)
+        iou = calculate_iou((100, 300, 300, 100), (150, 350, 350, 150))
         self.assertAlmostEqual(iou, 22500 / 57500, places=4)
 
     def test_one_box_inside_another(self):
@@ -43,17 +43,17 @@ class CalculateIoUTest(TestCase):
         # Intersection: 100x100 = 10000
         # Union: 40000 + 10000 - 10000 = 40000
         # IoU: 10000 / 40000 = 0.25
-        iou = calculate_iou(0, 200, 200, 0, 50, 150, 150, 50)
+        iou = calculate_iou((0, 200, 200, 0), (50, 150, 150, 50))
         self.assertAlmostEqual(iou, 0.25)
 
     def test_zero_area_box(self):
         """A degenerate box with zero area should return 0."""
-        iou = calculate_iou(100, 100, 100, 100, 100, 200, 200, 100)
+        iou = calculate_iou((100, 100, 100, 100), (100, 200, 200, 100))
         self.assertAlmostEqual(iou, 0.0)
 
     def test_adjacent_boxes(self):
         """Boxes that share an edge but do not overlap should have IoU 0."""
-        iou = calculate_iou(0, 100, 100, 0, 0, 200, 100, 100)
+        iou = calculate_iou((0, 100, 100, 0), (0, 200, 100, 100))
         self.assertAlmostEqual(iou, 0.0)
 
     def test_slightly_shifted_face(self):
@@ -62,7 +62,7 @@ class CalculateIoUTest(TestCase):
         # Shifted:  200x200 at (130, 330, 330, 130)
         # Intersection: (130, 300, 300, 130) -> 170x170 = 28900
         # Union: 40000 + 40000 - 28900 = 51100
-        iou = calculate_iou(100, 300, 300, 100, 130, 330, 330, 130)
+        iou = calculate_iou((100, 300, 300, 100), (130, 330, 330, 130))
         self.assertAlmostEqual(iou, 28900 / 51100, places=4)
         self.assertGreater(iou, FACE_OVERLAP_IOU_THRESHOLD)
 
@@ -72,7 +72,7 @@ class CalculateIoUTest(TestCase):
         # Shifted by 150px: (250, 450, 450, 250)
         # Intersection: (250, 300, 300, 250) -> 50x50 = 2500
         # Union: 40000 + 40000 - 2500 = 77500
-        iou = calculate_iou(100, 300, 300, 100, 250, 450, 450, 250)
+        iou = calculate_iou((100, 300, 300, 100), (250, 450, 450, 250))
         self.assertAlmostEqual(iou, 2500 / 77500, places=4)
         self.assertLess(iou, FACE_OVERLAP_IOU_THRESHOLD)
 

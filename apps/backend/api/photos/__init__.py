@@ -4,6 +4,8 @@
   its ``File`` row
 - ``files``: detaching a photo's missing files, removing a photo with the
   files only it uses
+- ``paths``: whether a path lies inside a root, and the prefixes that select
+  a folder's files
 - ``file_cleanup``: the receivers that delete face crops and thumbnails once
   their rows are gone
 - ``selection``: the user's own photos matching a "Select All" payload

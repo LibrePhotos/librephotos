@@ -425,7 +425,7 @@ class SubfoldersSiblingPrefixTests(SubfoldersTestBase):
         self.assertEqual(counts["test2"], 1)
 
     def test_prefix_helper_uses_the_separator_of_the_stored_path(self):
-        from api.util import folder_path_prefixes
+        from api.photos.paths import folder_path_prefixes
 
         # POSIX paths, as a Linux scan records them.
         self.assertEqual(folder_path_prefixes("/photos/test"), ("/photos/test/",))
@@ -455,7 +455,7 @@ class SubfoldersSiblingPrefixTests(SubfoldersTestBase):
         paths with the separator of the host running the tests.
         """
         from api.models import Photo
-        from api.util import folder_path_q
+        from api.photos.paths import folder_path_q
 
         admin = create_test_user(is_admin=True)
         for path in (

@@ -5,8 +5,8 @@ from django.contrib import admin
 from django.db.models import QuerySet
 from django.http import HttpRequest
 
+from api.faces.geometry import FACE_OVERLAP_IOU_THRESHOLD, calculate_iou
 from api.jobs.queue import enqueue_task
-from api.util import FACE_OVERLAP_IOU_THRESHOLD, calculate_iou
 
 from .models import (
     AlbumAuto,
@@ -56,14 +56,18 @@ def deduplicate_faces_function(photo_ids: list[uuid.UUID]) -> None:
                 if face_b.id in to_delete:
                     continue
                 iou = calculate_iou(
-                    face_a.location_top,
-                    face_a.location_right,
-                    face_a.location_bottom,
-                    face_a.location_left,
-                    face_b.location_top,
-                    face_b.location_right,
-                    face_b.location_bottom,
-                    face_b.location_left,
+                    (
+                        face_a.location_top,
+                        face_a.location_right,
+                        face_a.location_bottom,
+                        face_a.location_left,
+                    ),
+                    (
+                        face_b.location_top,
+                        face_b.location_right,
+                        face_b.location_bottom,
+                        face_b.location_left,
+                    ),
                 )
                 if iou >= FACE_OVERLAP_IOU_THRESHOLD:
                     # Keep the face that has a person label; if both or

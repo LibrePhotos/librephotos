@@ -20,8 +20,8 @@ from api.drf.params import parse_query
 from api.drf.request_user import request_user
 from api.models.photo import Photo
 from api.models.user import User
+from api.photos.paths import folder_path_q, is_valid_path
 from api.serializers.folders import FolderPathQuery
-from api.util import folder_path_q, is_valid_path
 
 logger = logging.getLogger(__name__)
 

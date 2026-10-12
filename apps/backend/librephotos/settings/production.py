@@ -575,7 +575,7 @@ CSRF_TRUSTED_ORIGINS = [
 # the environment rather than from constance: the qcluster workers and the ML
 # services need the same answer and several of them never touch the database.
 # Rotation size and backup count start at the defaults here and are refined from
-# constance once the database is up (see api.util.reconfigure_logging).
+# constance once the database is up (see api.apps.reconfigure_logging).
 LOGGING = build_logging_config(
     logs_root=LOGS_ROOT,
     level=env_str("LOG_LEVEL", None),

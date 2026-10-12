@@ -67,7 +67,6 @@
 "api/tests/stacks/test_stack_detection_edge_cases.py" = ["BLE001"]
 "api/tests/uploads/test_chunked_upload_views.py" = ["PLW0108"]
 "api/tests/utils.py" = ["PLR0913"]
-"api/util.py" = ["BLE001", "PLR0913"]
 "api/views/faces.py" = ["PLR0912"]
 "api/views/health.py" = ["BLE001"]
 "api/views/media.py" = ["BLE001", "PLR0911"]

@@ -7,9 +7,9 @@ that contains folders owned by a different unix user.  The server process can
 read the mount point itself, but at least one folder inside it is not readable
 (``os.scandir`` on it raises ``PermissionError``).
 
-``api.api_util.path_to_dict`` walks the tree with a bare ``os.scandir`` and no
-error handling, so a *single* unreadable sub folder makes the whole
-``/api/dirtree/`` request blow up.  ``RootPathTreeView`` turns that into a
+``api.serving.directory_tree.path_to_dict`` walks the tree with a bare
+``os.scandir`` and no error handling, so a *single* unreadable sub folder makes
+the whole ``/api/dirtree/`` request blow up.  ``RootPathTreeView`` turns that into a
 HTTP 500 and the admin gets an empty folder picker in the user setup screen -
 none of the directories are selectable any more, not even the ones the server
 *can* read.
@@ -26,7 +26,7 @@ import tempfile
 from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
 
-from api.api_util import path_to_dict
+from api.serving.directory_tree import path_to_dict
 from api.tests.utils import create_password, create_test_user
 
 REAL_SCANDIR = os.scandir

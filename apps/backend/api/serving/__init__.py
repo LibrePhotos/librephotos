@@ -4,6 +4,7 @@
   without the bundled nginx)
 - ``permissions``: why the web server could not read an original (the media
   error header and the serving diagnostics endpoint)
+- ``directory_tree``: the server folders the folder picker browses
 
 The views that serve media are in ``api.views.media``.
 """

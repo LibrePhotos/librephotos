@@ -7,6 +7,7 @@
 - ``classify``: clustering a user's faces and training the person classifier
 - ``cluster_manager``: turning a clustering result into ``Cluster`` rows
 - ``social_graph``: who appears with whom
+- ``geometry``: how much two face boxes overlap (duplicate faces)
 
 ``api.metadata.face_regions`` writes face regions back to the file.
 """
