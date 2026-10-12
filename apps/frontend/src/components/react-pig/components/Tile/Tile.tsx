@@ -155,7 +155,7 @@ function TileComponent<T extends ImageItem>({
     >
       <button
         type="button"
-        className={`${styles.pigBtn}${isExpanded ? ` ${styles.pigBtnActive}` : ""} pig-btn`}
+        className={`${styles.pigBtn} pig-btn`}
         onClick={event => handleClick(event, item)}
         aria-label={label}
       >

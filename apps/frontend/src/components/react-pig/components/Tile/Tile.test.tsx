@@ -185,6 +185,12 @@ describe("react-pig Tile media", () => {
     );
   });
 
+  it("gives an expanded tile's button only real class names", () => {
+    const { button } = renderTile(photoItem(), { activeTileId: "photo-1" });
+
+    expect(button.className.split(" ")).not.toContain("undefined");
+  });
+
   it("leaves a tile alone when another tile is active", () => {
     const { button } = renderTile(photoItem(), { activeTileId: "photo-2" });
 
