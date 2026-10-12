@@ -10,7 +10,7 @@ from unittest.mock import patch
 from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
 
-from api.models import Photo
+from api.models import Photo, User
 from api.tests.utils import create_test_photo, create_test_user
 
 
@@ -140,6 +140,12 @@ class DeletePhotosBodyTest(PhotoBodyTestCase):
 
 class SaveMetadataBodyTest(PhotoBodyTestCase):
     URL = "/api/savemetadata"
+
+    def setUp(self):
+        super().setUp()
+        # With "Synchronize metadata to disk" Off the endpoint is a 400 (#2293).
+        self.user.save_metadata_to_disk = User.SaveMetadata.SIDECAR_FILE
+        self.user.save()
 
     @patch.object(Photo, "_save_metadata")
     def test_types_default_to_ratings(self, save_metadata):
