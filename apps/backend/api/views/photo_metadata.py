@@ -26,12 +26,12 @@ from api.exceptions import EditSuperseded
 from api.metadata import edits
 from api.models import Photo
 from api.models.photo_metadata import MetadataEdit, PhotoMetadata
+from api.pagination import PAGE_PARAMETERS, PaginatedViewMixin
 from api.request_user import request_user
 from api.serializers.photo_metadata import (
     BulkMetadataQuery,
     BulkMetadataUpdateRequest,
     MetadataEditSerializer,
-    MetadataHistoryQuery,
     MetadataRevertQuery,
     PhotoMetadataSerializer,
     PhotoMetadataUpdateSerializer,
@@ -39,7 +39,7 @@ from api.serializers.photo_metadata import (
 from api.views.params import parse_body, parse_query
 
 
-class PhotoMetadataViewSet(ViewSet):
+class PhotoMetadataViewSet(PaginatedViewMixin, ViewSet):
     """
     ViewSet for photo metadata operations.
 
@@ -133,7 +133,7 @@ class PhotoMetadataViewSet(ViewSet):
 
     @extend_schema(
         description="Get edit history for a photo's metadata.",
-        parameters=[MetadataHistoryQuery],
+        parameters=PAGE_PARAMETERS,
         responses={200: MetadataEditSerializer(many=True)},
     )
     @action(detail=True, methods=["get"], url_path="history")
@@ -144,22 +144,8 @@ class PhotoMetadataViewSet(ViewSet):
         # MetadataEdit.Meta.
         edits = MetadataEdit.objects.filter(photo=photo).order_by("-created_at", "-id")
 
-        # An out-of-range value is clamped (a negative slice raises).
-        params = parse_query(request, MetadataHistoryQuery)
-        page = params["page"]
-        page_size = params["page_size"]
-        start = (page - 1) * page_size
-        end = start + page_size
-
-        serializer = MetadataEditSerializer(edits[start:end], many=True)
-        return Response(
-            {
-                "results": serializer.data,
-                "count": edits.count(),
-                "page": page,
-                "page_size": page_size,
-            }
-        )
+        serializer = MetadataEditSerializer(self.paginate_queryset(edits), many=True)
+        return self.get_paginated_response(serializer.data)
 
     @extend_schema(
         description=(

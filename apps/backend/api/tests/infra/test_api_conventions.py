@@ -19,13 +19,20 @@ declaration. Role requirements are permission classes (``IsAdminUser``,
 ``api.permissions.IsSuperUser``), never an ``is_staff`` check in the body that
 builds its own 401 or 403. The endpoints that take credentials without a
 session are throttled (``api/throttling.py``).
+
+Every list pages one way (#2327): ``api.pagination.DefaultPagination`` or a
+preset of it, through ``paginate_queryset()``, or ``pagination_class = None``
+with the view and the reason in ``UNPAGINATED_LIST_VIEWS``. No view module
+imports Django's ``Paginator``.
 """
 
 import ast
 import datetime
+import inspect
+import textwrap
 import types
 import uuid
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from pathlib import Path
 
 from django.conf import settings
@@ -35,7 +42,8 @@ from django.urls import re_path
 from django.utils import timezone
 from rest_framework import mixins, routers, viewsets
 from rest_framework.generics import GenericAPIView
-from rest_framework.permissions import BasePermission, IsAdminUser
+from rest_framework.pagination import PageNumberPagination
+from rest_framework.permissions import BasePermission, IsAdminUser, IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.test import APIClient, APIRequestFactory, force_authenticate
@@ -43,6 +51,12 @@ from rest_framework.views import APIView
 
 from api.models import AlbumAuto, AlbumDate, AlbumPlace, AlbumThing, AlbumUser, Tag
 from api.models.long_running_job import LongRunningJob
+from api.pagination import (
+    DEFAULT_PAGE_SIZE,
+    MAX_PAGE_SIZE,
+    DayAlbumPagination,
+    DefaultPagination,
+)
 from api.permissions import IsSuperUser
 from api.serializers.job import LongRunningJobSerializer
 from api.serializers.tag import TagSerializer
@@ -1165,3 +1179,275 @@ class AccessByRoleTest(TestCase):
             for method in sorted(route.methods):
                 with self.subTest(f"{method.upper()} {route.route}"):
                     self.assertEqual(self.call(route, method, staff).status_code, 403)
+
+
+# --- One pagination style (#2327) ---------------------------------------------
+
+# List routes that answer every row at once, and why. Every other list pages
+# with api.pagination.DefaultPagination or one of its presets.
+UNPAGINATED_LIST_VIEWS: dict[str, str] = {
+    "api.views.albums.AlbumDateListViewSet": (
+        "the timeline's index, one row per day without its photos; the "
+        "clients lay the whole timeline out from it"
+    ),
+    "api.views.faces.FaceIncompleteListViewSet": (
+        "one row per person with a face count, plus the unknown-faces row the "
+        "view appends"
+    ),
+    "api.views.photos.RecentlyAddedPhotoListViewSet": (
+        "the photos of the latest upload day, with that day, in one answer"
+    ),
+    "api.views.search.SearchListViewSet": (
+        "search results grouped by date (or the semantic top k), in one answer"
+    ),
+    "api.views.services.ServiceViewSet": "the fixed list of sidecar services",
+}
+
+
+def list_routes(routes: Iterable[ApiRoute]) -> dict[type, ApiRoute]:
+    """Each view class that serves a ``list`` action, with its first route."""
+    views: dict[type, ApiRoute] = {}
+    for route in routes:
+        actions = getattr(route.callback, "actions", None) or {}
+        if "list" in actions.values():
+            views.setdefault(route.view, route)
+    return views
+
+
+def _calls(function: Callable[..., object], name: str) -> bool:
+    """Whether ``function``'s source calls a method called ``name``."""
+    source = textwrap.dedent(inspect.getsource(function))
+    return any(
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr == name
+        for node in ast.walk(ast.parse(source))
+    )
+
+
+def list_pages(view: type) -> bool:
+    """Whether the ``list`` a view runs reaches ``paginate_queryset``.
+
+    Follows ``super().list(...)`` down the MRO to ``ListModelMixin.list``; a
+    ``list`` that does neither builds its own answer.
+    """
+    for klass in view.__mro__:
+        implementation = vars(klass).get("list")
+        if implementation is None:
+            continue
+        if klass is mixins.ListModelMixin or _calls(
+            implementation, "paginate_queryset"
+        ):
+            return True
+        if not _calls(implementation, "list"):
+            return False
+    return False
+
+
+def pagination_problems(
+    routes: Iterable[ApiRoute],
+    unpaginated: dict[str, str] = UNPAGINATED_LIST_VIEWS,
+) -> list[str]:
+    """List views that do not page the one project way, one line each."""
+    problems = []
+    for view, route in list_routes(routes).items():
+        name = qualname(view)
+        pagination = getattr(view, "pagination_class", None)
+        if name in unpaginated:
+            if pagination is not None:
+                problems.append(
+                    f"{route.route} {name}: in UNPAGINATED_LIST_VIEWS but "
+                    f"pages with {pagination.__name__}"
+                )
+            continue
+        if not (
+            isinstance(pagination, type) and issubclass(pagination, DefaultPagination)
+        ):
+            label = getattr(pagination, "__name__", repr(pagination))
+            problems.append(
+                f"{route.route} {name}: pagination_class is {label}, not "
+                "DefaultPagination or a preset of it"
+            )
+        elif not list_pages(view):
+            problems.append(
+                f"{route.route} {name}: overrides list() without "
+                "paginate_queryset(), so its pagination_class does nothing"
+            )
+    return problems
+
+
+def django_paginator_uses(source: str, filename: str) -> list[str]:
+    """Imports of ``django.core.paginator`` in ``source``."""
+    problems = []
+    for node in ast.walk(ast.parse(source, filename)):
+        modules: list[str] = []
+        if isinstance(node, ast.ImportFrom) and node.module:
+            modules = [node.module]
+        elif isinstance(node, ast.Import):
+            modules = [alias.name for alias in node.names]
+        if any(module.startswith("django.core.paginator") for module in modules):
+            problems.append(
+                f"{filename}:{node.lineno} imports django.core.paginator (page "
+                "with self.paginate_queryset(), see api/pagination.py)"
+            )
+    return problems
+
+
+def pagination_subclasses() -> list[type[DefaultPagination]]:
+    """Every subclass of DefaultPagination outside the tests, at any depth.
+
+    The tests' planted classes stay in ``__subclasses__()`` until they are
+    garbage collected, so they are left out by module.
+    """
+    found: list[type[DefaultPagination]] = []
+    pending: list[type[DefaultPagination]] = [DefaultPagination]
+    while pending:
+        for subclass in pending.pop().__subclasses__():
+            pending.append(subclass)
+            if ".tests." not in f"{subclass.__module__}.":
+                found.append(subclass)
+    return found
+
+
+def preset_problems(classes: Iterable[type]) -> list[str]:
+    """Presets outside api/pagination.py or with another envelope."""
+    problems = [
+        f"{qualname(klass)} is not in api/pagination.py"
+        for klass in classes
+        if klass.__module__ != "api.pagination"
+    ]
+    problems += [
+        f"{qualname(klass)} overrides {method}"
+        for klass in classes
+        for method in ("get_paginated_response", "get_paginated_response_schema")
+        if method in vars(klass)
+    ]
+    return problems
+
+
+def _planted_list_urlconf(viewset: type[viewsets.GenericViewSet]) -> types.ModuleType:
+    """The project URLconf with ``viewset``'s list routed at api/planted/."""
+    planted = types.ModuleType("planted_urls")
+    planted.__dict__["urlpatterns"] = [
+        re_path(r"^api/planted/$", viewset.as_view({"get": "list"})),
+        *project_urls.urlpatterns,
+    ]
+    return planted
+
+
+class PaginationConventionTest(SimpleTestCase):
+    def test_every_list_view_pages_with_the_default_pagination(self):
+        problems = pagination_problems(api_routes())
+        self.assertEqual(
+            problems,
+            [],
+            "Page lists with api.pagination.DefaultPagination (or a preset of "
+            "it) through paginate_queryset(), or set pagination_class = None "
+            "and list the view with the reason in UNPAGINATED_LIST_VIEWS:\n  "
+            + "\n  ".join(problems),
+        )
+
+    def test_the_walk_reaches_paginated_and_unpaginated_lists(self):
+        routed = {qualname(view) for view in list_routes(api_routes())}
+        self.assertIn("api.views.albums.PersonViewSet", routed)
+        self.assertIn("api.views.user.UserViewSet", routed)
+        self.assertEqual(set(UNPAGINATED_LIST_VIEWS) - routed, set())
+
+    def test_the_default_is_the_project_pagination(self):
+        self.assertEqual(
+            settings.REST_FRAMEWORK["DEFAULT_PAGINATION_CLASS"],
+            "api.pagination.DefaultPagination",
+        )
+        self.assertEqual(settings.REST_FRAMEWORK["PAGE_SIZE"], DEFAULT_PAGE_SIZE)
+        self.assertEqual(DefaultPagination.max_page_size, MAX_PAGE_SIZE)
+
+    def test_a_planted_hand_made_pagination_class_is_caught(self):
+        class HandMadePagination(PageNumberPagination):
+            page_size = 50
+
+        class PlantedViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
+            permission_classes = (IsAuthenticated,)
+            queryset = Tag.objects.none()
+            serializer_class = TagSerializer
+            pagination_class = HandMadePagination
+
+        with override_settings(ROOT_URLCONF=_planted_list_urlconf(PlantedViewSet)):
+            problems = pagination_problems(api_routes())
+
+        self.assertEqual(len(problems), 1, problems)
+        self.assertIn("api/planted/", problems[0])
+        self.assertIn("pagination_class is HandMadePagination", problems[0])
+
+    def test_a_planted_list_override_that_never_pages_is_caught(self):
+        class PlantedViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
+            permission_classes = (IsAuthenticated,)
+            queryset = Tag.objects.none()
+            serializer_class = TagSerializer
+            pagination_class = DefaultPagination
+
+            def list(self, request: Request) -> Response:
+                serializer = self.get_serializer(self.get_queryset(), many=True)
+                return Response({"results": serializer.data})
+
+        with override_settings(ROOT_URLCONF=_planted_list_urlconf(PlantedViewSet)):
+            problems = pagination_problems(api_routes())
+
+        self.assertEqual(len(problems), 1, problems)
+        self.assertIn("overrides list() without paginate_queryset()", problems[0])
+
+    def test_a_list_override_that_calls_super_still_pages(self):
+        class PlantedViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
+            def list(self, request: Request) -> Response:
+                return super().list(request)
+
+        self.assertTrue(list_pages(PlantedViewSet))
+
+    def test_a_stale_unpaginated_entry_is_caught(self):
+        unpaginated = {
+            **UNPAGINATED_LIST_VIEWS,
+            "api.views.albums.PersonViewSet": "planted",
+        }
+        problems = pagination_problems(api_routes(), unpaginated)
+        self.assertEqual(len(problems), 1, problems)
+        self.assertIn("in UNPAGINATED_LIST_VIEWS but pages", problems[0])
+
+    def test_no_view_module_uses_djangos_paginator(self):
+        problems = []
+        for relative, path in view_source_files():
+            source = path.read_text(encoding="utf-8")
+            problems += django_paginator_uses(source, relative)
+        self.assertEqual(problems, [], "\n".join(problems))
+
+    def test_a_planted_paginator_import_is_caught(self):
+        source = (
+            "from django.core.paginator import Paginator\n"
+            "import django.core.paginator\n"
+            "def page(rows):\n"
+            "    return Paginator(rows, 20).page(1)\n"
+        )
+
+        problems = django_paginator_uses(source, "api/views/planted.py")
+
+        self.assertEqual(len(problems), 2, problems)
+        self.assertIn(
+            "api/views/planted.py:1 imports django.core.paginator", problems[0]
+        )
+        self.assertIn("api/views/planted.py:2", problems[1])
+
+    def test_presets_live_in_one_module_and_keep_the_one_envelope(self):
+        presets = pagination_subclasses()
+        self.assertIn(DayAlbumPagination, presets)
+        self.assertEqual(preset_problems(presets), [])
+
+    def test_a_preset_with_its_own_envelope_is_caught(self):
+        class PlantedPagination(DefaultPagination):
+            def get_paginated_response(self, data: object) -> Response:
+                return Response({"rows": data})
+
+        self.assertEqual(
+            preset_problems([PlantedPagination]),
+            [
+                f"{qualname(PlantedPagination)} is not in api/pagination.py",
+                f"{qualname(PlantedPagination)} overrides get_paginated_response",
+            ],
+        )

@@ -34,6 +34,7 @@ from api.models import Face, LongRunningJob, Photo
 from api.models.person import Person, get_or_create_person
 from api.models.photo_search import PhotoSearch
 from api.models.thumbnail import Thumbnail
+from api.pagination import DefaultPagination
 from api.photo_faces import overlaps_existing_face, save_detected_face
 from api.request_user import request_user
 from api.serializers.face import (
@@ -47,7 +48,6 @@ from api.serializers.face import (
     SetFacePersonLabelRequest,
 )
 from api.views.custom_api_view import ListViewSet
-from api.views.pagination import RegularResultsSetPagination
 from api.views.params import parse_body, parse_query
 from api.views.photos import _get_photo_filter_kwargs
 from api.views.scan_triggers import start_job, start_jobs
@@ -119,7 +119,7 @@ class TrainFaceView(APIView):
 class FaceListView(ListViewSet):
     permission_classes = (IsAuthenticated,)
     serializer_class = PersonFaceListSerializer
-    pagination_class = RegularResultsSetPagination
+    pagination_class = DefaultPagination
 
     def get_queryset(self) -> QuerySet[Face]:
         # drf-spectacular asks with an anonymous request; photo__owner rejects it.

@@ -436,9 +436,10 @@ REST_FRAMEWORK = {
     # as required, which is what DRF writes.
     "DEFAULT_SCHEMA_CLASS": "api.openapi.AutoSchema",
     "DEFAULT_FILTER_BACKENDS": ("django_filters.rest_framework.DjangoFilterBackend",),
-    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",
+    # One pagination style for every list (api/pagination.py, #2327).
+    "DEFAULT_PAGINATION_CLASS": "api.pagination.DefaultPagination",
     "EXCEPTION_HANDLER": "api.views.exception_handler.custom_exception_handler",
-    "PAGE_SIZE": 20000,
+    "PAGE_SIZE": 100,
     # How many reverse proxies in front of the backend append the client
     # address to X-Forwarded-For; the throttles count per address
     # (api/throttling.py). 1 is the bundled proxy; 0 when clients connect

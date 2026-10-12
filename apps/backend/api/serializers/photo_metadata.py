@@ -17,7 +17,7 @@ from api.metadata.edits import MAX_RATING
 from api.models import User
 from api.models.photo import Photo
 from api.models.photo_metadata import MetadataEdit, PhotoMetadata
-from api.views.params import ClampedIntegerField, JsonStringField, QueryFlagField
+from api.views.params import JsonStringField, QueryFlagField
 
 
 class MetadataEditSerializer(serializers.ModelSerializer):
@@ -312,13 +312,6 @@ class PhotoMetadataSummarySerializer(serializers.ModelSerializer):
     def get_has_edits(self, obj: PhotoMetadata) -> bool:
         """Check if this photo has any metadata edits."""
         return MetadataEdit.objects.filter(photo=obj.photo).exists()
-
-
-class MetadataHistoryQuery(serializers.Serializer[None]):
-    page = ClampedIntegerField(default=1, lowest=1, help_text="Page number")
-    page_size = ClampedIntegerField(
-        default=20, lowest=1, highest=100, help_text="Edits per page (max 100)"
-    )
 
 
 class MetadataRevertQuery(serializers.Serializer[None]):

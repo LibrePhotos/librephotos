@@ -1,8 +1,8 @@
 """The duplicate views read their input through serializers (#2326).
 
-Well-formed input behaves as it did when the views parsed it by hand (defaults,
-clamps, the echoed page); malformed input is a 400 naming the field instead of
-a 500 from ``int()``.
+Well-formed input is clamped; malformed input is a 400 naming the field
+instead of a 500 from ``int()``. ``page``/``page_size`` are read by the shared
+paginator since #2327 (``api/pagination.py``), with the same rules.
 """
 
 from unittest.mock import patch
@@ -38,20 +38,26 @@ class DuplicateListQueryTest(TestCase):
 
     def test_defaults(self):
         data = self.client.get("/api/duplicates/").json()
-        self.assertEqual((data["page"], data["page_size"]), (1, 20))
+        self.assertEqual((data["page"], data["page_size"]), (1, 100))
         self.assertEqual(data["count"], 3)
 
     def test_page_and_page_size_are_clamped(self):
-        data = self.client.get("/api/duplicates/?page=0&page_size=1000").json()
-        self.assertEqual((data["page"], data["page_size"]), (1, 100))
+        data = self.client.get("/api/duplicates/?page=0&page_size=5000").json()
+        self.assertEqual((data["page"], data["page_size"]), (1, 1000))
         data = self.client.get("/api/duplicates/?page=-3&page_size=0").json()
         self.assertEqual((data["page"], data["page_size"]), (1, 1))
         self.assertEqual(len(data["results"]), 1)
 
-    def test_a_page_past_the_end_is_echoed_and_shows_the_last_page(self):
-        data = self.client.get("/api/duplicates/?page=7&page_size=2").json()
-        self.assertEqual(data["page"], 7)
+    def test_a_page_past_the_end_is_a_404(self):
+        """As on every paginated list (#2327); the last page says it is last."""
+        response = self.client.get("/api/duplicates/?page=7&page_size=2")
+        self.assertEqual(response.status_code, 404)
+        data = self.client.get("/api/duplicates/?page=2&page_size=2").json()
+        self.assertEqual((data["page"], data["num_pages"]), (2, 2))
         self.assertEqual(len(data["results"]), 1)
+        self.assertIsNone(data["next"])
+        self.assertIn("page_size=2", data["previous"])
+        self.assertEqual((data["has_next"], data["has_previous"]), (False, True))
 
     def test_filters(self):
         data = self.client.get(

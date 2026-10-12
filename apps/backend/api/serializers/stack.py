@@ -2,18 +2,16 @@
 
 from rest_framework import serializers
 
-from api.views.params import ClampedIntegerField, JsonStringField, required_string
+from api.views.params import JsonStringField, required_string
 
 
 class PhotoStackListQuery(serializers.Serializer[None]):
+    """The filter; ``page``/``page_size`` are the paginator's (api/pagination.py)."""
+
     stack_type = serializers.CharField(
         required=False,
         allow_blank=True,
         help_text="Filter by stack type: burst, bracket, manual (others are ignored)",
-    )
-    page = ClampedIntegerField(default=1, lowest=1, help_text="Page number")
-    page_size = ClampedIntegerField(
-        default=20, lowest=1, highest=100, help_text="Items per page (max 100)"
     )
 
 

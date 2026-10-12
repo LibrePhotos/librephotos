@@ -226,7 +226,7 @@
     "/api/albums/date/{id}/": {
       "get": {
         "operationId": "api_albums_date_retrieve",
-        "description": "Returns the actual images, for a given day in chunks of 100 images.",
+        "description": "Returns the actual images, for a given day in chunks of 100 images. ``results`` is the day with one page of its photos in ``items`` and their total in ``numberOfItems``; the page fields of every paginated list sit next to it.",
         "parameters": [
           {
             "in": "query",
@@ -330,11 +330,17 @@
             "in": "query",
             "name": "page",
             "schema": {
-              "type": "string",
-              "minLength": 1,
-              "default": "1"
+              "type": "integer"
             },
-            "description": "Page number"
+            "description": "Page number (default 1)."
+          },
+          {
+            "in": "query",
+            "name": "page_size",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Rows per page (default 100, at most 1000)."
           },
           {
             "in": "query",
@@ -374,10 +380,10 @@
             "in": "query",
             "name": "size",
             "schema": {
-              "type": "integer",
-              "default": 100
+              "type": "integer"
             },
-            "description": "Photos per page (default 100)"
+            "description": "Deprecated alias of page_size.",
+            "deprecated": true
           },
           {
             "in": "query",
@@ -1780,19 +1786,17 @@
             "in": "query",
             "name": "page",
             "schema": {
-              "type": "integer",
-              "default": 1
+              "type": "integer"
             },
-            "description": "Page number"
+            "description": "Page number (default 1)."
           },
           {
             "in": "query",
             "name": "page_size",
             "schema": {
-              "type": "integer",
-              "default": 20
+              "type": "integer"
             },
-            "description": "Items per page (max 100)"
+            "description": "Rows per page (default 100, at most 1000)."
           },
           {
             "in": "query",
@@ -2383,6 +2387,32 @@
       "get": {
         "operationId": "api_folders_subfolders_retrieve",
         "description": "Get subfolders for a given path with pagination.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Page number (default 1)."
+          },
+          {
+            "in": "query",
+            "name": "page_size",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Rows per page (default 100, at most 1000)."
+          },
+          {
+            "in": "query",
+            "name": "path",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Absolute folder path; the default depends on the view"
+          }
+        ],
         "tags": [
           "api"
         ],
@@ -3691,19 +3721,17 @@
             "in": "query",
             "name": "page",
             "schema": {
-              "type": "integer",
-              "default": 1
+              "type": "integer"
             },
-            "description": "Page number"
+            "description": "Page number (default 1)."
           },
           {
             "in": "query",
             "name": "page_size",
             "schema": {
-              "type": "integer",
-              "default": 20
+              "type": "integer"
             },
-            "description": "Edits per page (max 100)"
+            "description": "Rows per page (default 100, at most 1000)."
           },
           {
             "in": "path",
@@ -3731,10 +3759,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/MetadataEdit"
-                  }
+                  "$ref": "#/components/schemas/PaginatedMetadataEditList"
                 }
               }
             },
@@ -4592,27 +4617,7 @@
     "/api/photos/recentlyadded/": {
       "get": {
         "operationId": "api_photos_recentlyadded_list",
-        "description": "A viewset that provides `list` actions.\n\nTo use it, override the class and set the `.queryset` and\n`.serializer_class` attributes.",
-        "parameters": [
-          {
-            "name": "page",
-            "required": false,
-            "in": "query",
-            "description": "A page number within the paginated result set.",
-            "schema": {
-              "type": "integer"
-            }
-          },
-          {
-            "name": "page_size",
-            "required": false,
-            "in": "query",
-            "description": "Number of results to return per page.",
-            "schema": {
-              "type": "integer"
-            }
-          }
-        ],
+        "description": "Every photo added on the day of the latest upload, in one answer.",
         "tags": [
           "api"
         ],
@@ -4629,7 +4634,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PaginatedPhotoSummaryList"
+                  "$ref": "#/components/schemas/RecentlyAddedPhotos"
                 }
               }
             },
@@ -4641,7 +4646,7 @@
     "/api/photos/searchlist/": {
       "get": {
         "operationId": "api_photos_searchlist_list",
-        "description": "Search photos and videos. Pass video=true to return only videos or photo=true to return only photos.",
+        "description": "Search photos and videos. Pass video=true to return only videos or photo=true to return only photos. With semantic search on (the user's semantic_search_topk), results is a flat list of photo summaries instead of date groups.",
         "parameters": [
           {
             "in": "query",
@@ -4655,24 +4660,6 @@
             "name": "is_screenshot",
             "schema": {
               "type": "boolean"
-            }
-          },
-          {
-            "name": "page",
-            "required": false,
-            "in": "query",
-            "description": "A page number within the paginated result set.",
-            "schema": {
-              "type": "integer"
-            }
-          },
-          {
-            "name": "page_size",
-            "required": false,
-            "in": "query",
-            "description": "Number of results to return per page.",
-            "schema": {
-              "type": "integer"
             }
           },
           {
@@ -4713,7 +4700,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PaginatedGroupedPhotosList"
+                  "$ref": "#/components/schemas/SearchResults"
                 }
               }
             },
@@ -6187,19 +6174,17 @@
             "in": "query",
             "name": "page",
             "schema": {
-              "type": "integer",
-              "default": 1
+              "type": "integer"
             },
-            "description": "Page number"
+            "description": "Page number (default 1)."
           },
           {
             "in": "query",
             "name": "page_size",
             "schema": {
-              "type": "integer",
-              "default": 20
+              "type": "integer"
             },
-            "description": "Items per page (max 100)"
+            "description": "Rows per page (default 100, at most 1000)."
           },
           {
             "in": "query",
@@ -7345,19 +7330,19 @@
         "operationId": "api_user_list",
         "parameters": [
           {
-            "name": "limit",
+            "name": "page",
             "required": false,
             "in": "query",
-            "description": "Number of results to return per page.",
+            "description": "A page number within the paginated result set.",
             "schema": {
               "type": "integer"
             }
           },
           {
-            "name": "offset",
+            "name": "page_size",
             "required": false,
             "in": "query",
-            "description": "The initial index from which to return the results.",
+            "description": "Number of results to return per page.",
             "schema": {
               "type": "integer"
             }
@@ -9543,7 +9528,10 @@
           "count",
           "next",
           "previous",
-          "results"
+          "results",
+          "page",
+          "page_size",
+          "num_pages"
         ],
         "properties": {
           "count": {
@@ -9567,6 +9555,18 @@
             "items": {
               "$ref": "#/components/schemas/AlbumAutoList"
             }
+          },
+          "page": {
+            "type": "integer",
+            "example": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "example": 100
+          },
+          "num_pages": {
+            "type": "integer",
+            "example": 2
           }
         }
       },
@@ -9576,7 +9576,10 @@
           "count",
           "next",
           "previous",
-          "results"
+          "results",
+          "page",
+          "page_size",
+          "num_pages"
         ],
         "properties": {
           "count": {
@@ -9600,6 +9603,18 @@
             "items": {
               "$ref": "#/components/schemas/AlbumPlaceList"
             }
+          },
+          "page": {
+            "type": "integer",
+            "example": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "example": 100
+          },
+          "num_pages": {
+            "type": "integer",
+            "example": 2
           }
         }
       },
@@ -9609,7 +9624,10 @@
           "count",
           "next",
           "previous",
-          "results"
+          "results",
+          "page",
+          "page_size",
+          "num_pages"
         ],
         "properties": {
           "count": {
@@ -9633,6 +9651,18 @@
             "items": {
               "$ref": "#/components/schemas/AlbumThingList"
             }
+          },
+          "page": {
+            "type": "integer",
+            "example": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "example": 100
+          },
+          "num_pages": {
+            "type": "integer",
+            "example": 2
           }
         }
       },
@@ -9642,7 +9672,10 @@
           "count",
           "next",
           "previous",
-          "results"
+          "results",
+          "page",
+          "page_size",
+          "num_pages"
         ],
         "properties": {
           "count": {
@@ -9666,39 +9699,18 @@
             "items": {
               "$ref": "#/components/schemas/AlbumUserList"
             }
-          }
-        }
-      },
-      "PaginatedGroupedPhotosList": {
-        "type": "object",
-        "required": [
-          "count",
-          "next",
-          "previous",
-          "results"
-        ],
-        "properties": {
-          "count": {
+          },
+          "page": {
             "type": "integer",
-            "example": 123
+            "example": 1
           },
-          "next": {
-            "type": "string",
-            "nullable": true,
-            "format": "uri",
-            "example": "http://api.example.org/accounts/?page=4"
+          "page_size": {
+            "type": "integer",
+            "example": 100
           },
-          "previous": {
-            "type": "string",
-            "nullable": true,
-            "format": "uri",
-            "example": "http://api.example.org/accounts/?page=2"
-          },
-          "results": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/GroupedPhotos"
-            }
+          "num_pages": {
+            "type": "integer",
+            "example": 2
           }
         }
       },
@@ -9708,7 +9720,10 @@
           "count",
           "next",
           "previous",
-          "results"
+          "results",
+          "page",
+          "page_size",
+          "num_pages"
         ],
         "properties": {
           "count": {
@@ -9732,6 +9747,66 @@
             "items": {
               "$ref": "#/components/schemas/LongRunningJob"
             }
+          },
+          "page": {
+            "type": "integer",
+            "example": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "example": 100
+          },
+          "num_pages": {
+            "type": "integer",
+            "example": 2
+          }
+        }
+      },
+      "PaginatedMetadataEditList": {
+        "type": "object",
+        "required": [
+          "count",
+          "next",
+          "previous",
+          "results",
+          "page",
+          "page_size",
+          "num_pages"
+        ],
+        "properties": {
+          "count": {
+            "type": "integer",
+            "example": 123
+          },
+          "next": {
+            "type": "string",
+            "nullable": true,
+            "format": "uri",
+            "example": "http://api.example.org/accounts/?page=4"
+          },
+          "previous": {
+            "type": "string",
+            "nullable": true,
+            "format": "uri",
+            "example": "http://api.example.org/accounts/?page=2"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MetadataEdit"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "example": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "example": 100
+          },
+          "num_pages": {
+            "type": "integer",
+            "example": 2
           }
         }
       },
@@ -9741,7 +9816,10 @@
           "count",
           "next",
           "previous",
-          "results"
+          "results",
+          "page",
+          "page_size",
+          "num_pages"
         ],
         "properties": {
           "count": {
@@ -9765,6 +9843,18 @@
             "items": {
               "$ref": "#/components/schemas/PersonFaceList"
             }
+          },
+          "page": {
+            "type": "integer",
+            "example": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "example": 100
+          },
+          "num_pages": {
+            "type": "integer",
+            "example": 2
           }
         }
       },
@@ -9774,7 +9864,10 @@
           "count",
           "next",
           "previous",
-          "results"
+          "results",
+          "page",
+          "page_size",
+          "num_pages"
         ],
         "properties": {
           "count": {
@@ -9798,6 +9891,18 @@
             "items": {
               "$ref": "#/components/schemas/Person"
             }
+          },
+          "page": {
+            "type": "integer",
+            "example": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "example": 100
+          },
+          "num_pages": {
+            "type": "integer",
+            "example": 2
           }
         }
       },
@@ -9807,7 +9912,10 @@
           "count",
           "next",
           "previous",
-          "results"
+          "results",
+          "page",
+          "page_size",
+          "num_pages"
         ],
         "properties": {
           "count": {
@@ -9831,6 +9939,18 @@
             "items": {
               "$ref": "#/components/schemas/PhotoEdit"
             }
+          },
+          "page": {
+            "type": "integer",
+            "example": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "example": 100
+          },
+          "num_pages": {
+            "type": "integer",
+            "example": 2
           }
         }
       },
@@ -9840,7 +9960,10 @@
           "count",
           "next",
           "previous",
-          "results"
+          "results",
+          "page",
+          "page_size",
+          "num_pages"
         ],
         "properties": {
           "count": {
@@ -9864,6 +9987,18 @@
             "items": {
               "$ref": "#/components/schemas/Photo"
             }
+          },
+          "page": {
+            "type": "integer",
+            "example": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "example": 100
+          },
+          "num_pages": {
+            "type": "integer",
+            "example": 2
           }
         }
       },
@@ -9873,7 +10008,10 @@
           "count",
           "next",
           "previous",
-          "results"
+          "results",
+          "page",
+          "page_size",
+          "num_pages"
         ],
         "properties": {
           "count": {
@@ -9897,6 +10035,18 @@
             "items": {
               "$ref": "#/components/schemas/PhotoSummary"
             }
+          },
+          "page": {
+            "type": "integer",
+            "example": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "example": 100
+          },
+          "num_pages": {
+            "type": "integer",
+            "example": 2
           }
         }
       },
@@ -9906,7 +10056,10 @@
           "count",
           "next",
           "previous",
-          "results"
+          "results",
+          "page",
+          "page_size",
+          "num_pages"
         ],
         "properties": {
           "count": {
@@ -9917,19 +10070,31 @@
             "type": "string",
             "nullable": true,
             "format": "uri",
-            "example": "http://api.example.org/accounts/?offset=400&limit=100"
+            "example": "http://api.example.org/accounts/?page=4"
           },
           "previous": {
             "type": "string",
             "nullable": true,
             "format": "uri",
-            "example": "http://api.example.org/accounts/?offset=200&limit=100"
+            "example": "http://api.example.org/accounts/?page=2"
           },
           "results": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/PublicUser"
             }
+          },
+          "page": {
+            "type": "integer",
+            "example": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "example": 100
+          },
+          "num_pages": {
+            "type": "integer",
+            "example": 2
           }
         }
       },
@@ -9939,7 +10104,10 @@
           "count",
           "next",
           "previous",
-          "results"
+          "results",
+          "page",
+          "page_size",
+          "num_pages"
         ],
         "properties": {
           "count": {
@@ -9963,6 +10131,18 @@
             "items": {
               "$ref": "#/components/schemas/SharedFromMePhotoThrough"
             }
+          },
+          "page": {
+            "type": "integer",
+            "example": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "example": 100
+          },
+          "num_pages": {
+            "type": "integer",
+            "example": 2
           }
         }
       },
@@ -9972,7 +10152,10 @@
           "count",
           "next",
           "previous",
-          "results"
+          "results",
+          "page",
+          "page_size",
+          "num_pages"
         ],
         "properties": {
           "count": {
@@ -9996,6 +10179,18 @@
             "items": {
               "$ref": "#/components/schemas/TagList"
             }
+          },
+          "page": {
+            "type": "integer",
+            "example": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "example": 100
+          },
+          "num_pages": {
+            "type": "integer",
+            "example": 2
           }
         }
       },
@@ -11947,6 +12142,27 @@
           "username"
         ]
       },
+      "RecentlyAddedPhotos": {
+        "type": "object",
+        "description": "``/api/photos/recentlyadded/``: the latest upload day and its photos.",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PhotoSummary"
+            }
+          }
+        },
+        "required": [
+          "date",
+          "results"
+        ]
+      },
       "RotatePhotoRequestRequest": {
         "type": "object",
         "properties": {
@@ -12003,6 +12219,21 @@
         "required": [
           "caption",
           "image_hash"
+        ]
+      },
+      "SearchResults": {
+        "type": "object",
+        "description": "``/api/photos/searchlist/``: the matches grouped by date.\n\nWith semantic search on, ``results`` is a flat list of photo summaries.",
+        "properties": {
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GroupedPhotos"
+            }
+          }
+        },
+        "required": [
+          "results"
         ]
       },
       "SetFacePersonLabelRequestRequest": {

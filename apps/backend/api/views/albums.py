@@ -2,7 +2,6 @@ import logging
 from functools import cached_property
 from typing import Any
 
-from django.core.paginator import EmptyPage, Page, PageNotAnInteger, Paginator
 from django.db.models import Count, Exists, F, OuterRef, Prefetch, Q, QuerySet, Subquery
 from drf_spectacular.utils import extend_schema, extend_schema_view
 from rest_framework import filters, mixins, serializers, viewsets
@@ -28,11 +27,16 @@ from api.models import (
 )
 from api.models.photo import visible_photo_q
 from api.models.photo_stack import PhotoStack
+from api.pagination import (
+    DAY_ALBUM_PAGE_PARAMETERS,
+    DayAlbumPagination,
+    WholeListPagination,
+)
 from api.request_user import request_user
 from api.serializers.album_date import (
     AlbumDateListQuery,
-    AlbumDateQuery,
     AlbumDateSerializer,
+    DateAlbumFilterQuery,
     IncompleteAlbumDateSerializer,
     PublicViewQuery,
     prefetch_public_photos,
@@ -67,10 +71,6 @@ from api.timeline_filter import timeline_filter_q
 from api.util import folder_path_q
 from api.views.custom_api_view import ListViewSet
 from api.views.mixins import PartialUpdateModelMixin
-from api.views.pagination import (
-    RegularResultsSetPagination,
-    StandardResultsSetPagination,
-)
 from api.views.params import parse_query
 
 logger = logging.getLogger(__name__)
@@ -86,7 +86,7 @@ class PersonViewSet(
 ):
     permission_classes = (IsAuthenticated,)
     serializer_class = PersonSerializer
-    pagination_class = StandardResultsSetPagination
+    pagination_class = WholeListPagination
     filter_backends = (filters.SearchFilter,)
     search_fields = ["name"]
     ordering_fields = ["name"]
@@ -157,7 +157,6 @@ def _thing_has_visible_photo() -> Exists:
 class AlbumThingViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet):
     permission_classes = (IsAuthenticated,)
     serializer_class = AlbumThingSerializer
-    pagination_class = StandardResultsSetPagination
 
     def _album_queryset(self) -> QuerySet[AlbumThing]:
         """The requesting user's non-empty thing albums, ready to serialize."""
@@ -199,7 +198,7 @@ class AlbumThingViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet):
 class AlbumThingListViewSet(ListViewSet):
     permission_classes = (IsAuthenticated,)
     serializer_class = AlbumThingListSerializer
-    pagination_class = StandardResultsSetPagination
+    pagination_class = WholeListPagination
     filter_backends = (filters.SearchFilter,)
     search_fields = ["title"]
 
@@ -232,7 +231,6 @@ class AlbumThingListViewSet(ListViewSet):
 class AlbumPlaceViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet):
     permission_classes = (IsAuthenticated,)
     serializer_class = AlbumPlaceSerializer
-    pagination_class = StandardResultsSetPagination
 
     def _album_queryset(self, with_photo_summary: bool = False) -> QuerySet[AlbumPlace]:
         """The requesting user's non-empty place albums.
@@ -288,7 +286,7 @@ class AlbumPlaceViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet):
 class AlbumPlaceListViewSet(ListViewSet):
     permission_classes = (IsAuthenticated,)
     serializer_class = AlbumPlaceListSerializer
-    pagination_class = StandardResultsSetPagination
+    pagination_class = WholeListPagination
     filter_backends = (filters.SearchFilter,)
     search_fields = ["title"]
 
@@ -324,7 +322,6 @@ class AlbumUserViewSet(
     viewsets.GenericViewSet,
 ):
     serializer_class = AlbumUserSerializer
-    pagination_class = StandardResultsSetPagination
 
     def get_queryset(self) -> QuerySet[AlbumUser]:
         # Support public access when explicitly requested. Public access is
@@ -388,7 +385,7 @@ class AlbumUserViewSet(
 class AlbumUserListViewSet(ListViewSet):
     permission_classes = (IsAuthenticated,)
     serializer_class = AlbumUserListSerializer
-    pagination_class = StandardResultsSetPagination
+    pagination_class = WholeListPagination
     filter_backends = (filters.SearchFilter,)
     search_fields = ["title"]
 
@@ -419,12 +416,12 @@ def public_view_permissions(request: Request) -> list[BasePermission]:
 # a ModelViewSet adds all failed with a 500. The day list is AlbumDateListViewSet.
 class AlbumDateViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet):
     serializer_class = AlbumDateSerializer
-    pagination_class = RegularResultsSetPagination
+    pagination_class = DayAlbumPagination
 
     @cached_property
     def _query(self) -> dict[str, Any]:
         """The query string, validated once per request."""
-        return parse_query(self.request, AlbumDateQuery)
+        return parse_query(self.request, DateAlbumFilterQuery)
 
     def _ownership_filters(self) -> list[Q]:
         params = self._query
@@ -491,21 +488,6 @@ class AlbumDateViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet):
             filters.append(Q(exif_timestamp__gte=last_modified))
         return filters
 
-    def _paginate_photos(self, photo_qs: QuerySet[Photo]) -> tuple[Page[Photo], int]:
-        params = self._query
-        paginator = Paginator(photo_qs, params["size"])
-        # A missing page is page 1: the same page the PageNotAnInteger branch
-        # below falls back to.
-        page = params["page"]
-
-        try:
-            photos = paginator.page(page)
-        except PageNotAnInteger:
-            photos = paginator.page(1)
-        except EmptyPage:
-            photos = paginator.page(paginator.num_pages)
-        return photos, paginator.count
-
     def _album_date(self) -> AlbumDate:
         """The requested day album, if the caller may see it; 404 otherwise.
 
@@ -528,8 +510,8 @@ class AlbumDateViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet):
         # DRF's get_object_or_404 also turns a non-numeric id into a 404.
         return get_object_or_404(albums.distinct(), pk=self.kwargs["pk"])
 
-    def _album_date_page(self) -> tuple[AlbumDate, Page[Photo], int]:
-        """The day album, one page of its photos and their total count.
+    def _album_date_page(self) -> tuple[AlbumDate, list[Photo]]:
+        """The day album and one page of its photos (``DayAlbumPagination``).
 
         Not ``get_queryset``: it returns no queryset, and ``retrieve`` is the
         only action this viewset serves.
@@ -542,18 +524,23 @@ class AlbumDateViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet):
             .order_by("-exif_timestamp", "main_file__path")
         )
 
-        photos, count = self._paginate_photos(photo_qs)
-        return album_date, photos, count
+        photos = self.paginate_queryset(photo_qs)
+        return album_date, photos or []
 
     def get_permissions(self) -> list[BasePermission]:
         return public_view_permissions(self.request)
 
     @extend_schema(
-        parameters=[AlbumDateQuery],
-        description="Returns the actual images, for a given day in chunks of 100 images.",
+        parameters=[DateAlbumFilterQuery, *DAY_ALBUM_PAGE_PARAMETERS],
+        description=(
+            "Returns the actual images, for a given day in chunks of 100 images. "
+            "``results`` is the day with one page of its photos in ``items`` "
+            "and their total in ``numberOfItems``; the page fields of every "
+            "paginated list sit next to it."
+        ),
     )
     def retrieve(self, *args: Any, **kwargs: Any) -> Response:
-        album_date, photos, count = self._album_date_page()
+        album_date, photos = self._album_date_page()
         serializer = AlbumDateSerializer(
             album_date,
             context={
@@ -563,11 +550,12 @@ class AlbumDateViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet):
             },
         )
         serializer_data = serializer.data
-        serializer_data["items"] = PhotoSummarySerializer(
-            photos, many=True
-        ).data  # Assuming you have a PhotoSerializer
-        serializer_data["numberOfItems"] = count
-        return Response({"results": serializer_data})
+        serializer_data["items"] = PhotoSummarySerializer(photos, many=True).data
+        response = self.get_paginated_response(serializer_data)
+        # The day's total, where clients have always read it (the same number
+        # as the page's count).
+        response.data["results"]["numberOfItems"] = response.data["count"]
+        return response
 
 
 # To-Do: Could be the summary command in AlbumDateViewSet
@@ -711,7 +699,6 @@ class AlbumUserEditViewSet(
 ):
     permission_classes = (IsAuthenticated,)
     serializer_class = AlbumUserEditSerializer
-    pagination_class = StandardResultsSetPagination
 
     def get_queryset(self) -> QuerySet[AlbumUser]:
         user = self.request.user

@@ -1070,15 +1070,21 @@ class StackListPaginationEdgeCasesTestCase(TestCase):
             stack.photos.add(*photos)
 
     def test_page_beyond_results(self):
-        """Test requesting a page beyond available results."""
+        """A page past the end is a 404, as on every paginated list (#2327)."""
         response = self.client.get("/api/stacks?page=100")
 
+        self.assertEqual(response.status_code, 404)
+
+    def test_the_last_page_has_no_next(self):
+        response = self.client.get("/api/stacks?page=2&page_size=3")
+
         self.assertEqual(response.status_code, 200)
-        # Django's Paginator.get_page() returns last page for out-of-range pages
-        # So we may get results (last page) rather than empty
-        self.assertGreaterEqual(len(response.data["results"]), 0)
-        # has_next should be False since we're at/past the last page
+        self.assertEqual(len(response.data["results"]), 2)
+        self.assertIsNone(response.data["next"])
+        self.assertEqual(response.data["num_pages"], 2)
+        # The pre-#2327 flags, kept for web bundles up to 1.3.
         self.assertFalse(response.data["has_next"])
+        self.assertTrue(response.data["has_previous"])
 
     def test_page_zero(self):
         """Test requesting page 0 (should default to 1)."""
@@ -1120,11 +1126,11 @@ class StackListPaginationEdgeCasesTestCase(TestCase):
 
     def test_page_size_exceeds_max(self):
         """Test requesting page_size exceeding maximum."""
-        response = self.client.get("/api/stacks?page_size=1000")
+        response = self.client.get("/api/stacks?page_size=5000")
 
         self.assertEqual(response.status_code, 200)
-        # page_size should be capped at 100
-        self.assertLessEqual(response.data["page_size"], 100)
+        # page_size is capped at 1000 (api/pagination.py)
+        self.assertEqual(response.data["page_size"], 1000)
 
     def test_non_numeric_page_size(self):
         """A non-numeric page_size is a 400 naming it (#2326), not a 500."""

@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from api.models import AlbumUser, Photo, User
+from api.pagination import PhotoGridPagination
 from api.request_user import request_user
 from api.serializers.album_user import (
     AlbumUserListSerializer,
@@ -22,7 +23,6 @@ from api.serializers.photos import (
     with_photo_summary_relations,
 )
 from api.views.custom_api_view import ListViewSet
-from api.views.pagination import HugeResultsSetPagination
 from api.views.params import parse_body
 
 logger = logging.getLogger(__name__)
@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 class SharedToMePhotoSuperSimpleListViewSet(ListViewSet):
     permission_classes = (IsAuthenticated,)
     serializer_class = PhotoSummarySerializer
-    pagination_class = HugeResultsSetPagination
+    pagination_class = PhotoGridPagination
 
     def get_queryset(self) -> QuerySet[Photo]:
         # drf-spectacular asks with an anonymous request; request_user rejects it.
@@ -47,7 +47,7 @@ class SharedToMePhotoSuperSimpleListViewSet(ListViewSet):
 class SharedFromMePhotoSuperSimpleListViewSet(ListViewSet):
     permission_classes = (IsAuthenticated,)
     serializer_class = SharedFromMePhotoThroughSerializer
-    pagination_class = HugeResultsSetPagination
+    pagination_class = PhotoGridPagination
 
     def get_queryset(self) -> QuerySet[Model]:
         ThroughModel = Photo.shared_to.through
@@ -79,7 +79,7 @@ class SharedFromMePhotoSuperSimpleListViewSet(ListViewSet):
 class SharedToMeAlbumUserListViewSet(ListViewSet):
     permission_classes = (IsAuthenticated,)
     serializer_class = AlbumUserListSerializer
-    pagination_class = HugeResultsSetPagination
+    pagination_class = PhotoGridPagination
 
     def get_queryset(self) -> QuerySet[AlbumUser]:
         # drf-spectacular asks with an anonymous request; request_user rejects it.
@@ -95,7 +95,7 @@ class SharedToMeAlbumUserListViewSet(ListViewSet):
 class SharedFromMeAlbumUserListViewSet(ListViewSet):
     permission_classes = (IsAuthenticated,)
     serializer_class = AlbumUserListSerializer
-    pagination_class = HugeResultsSetPagination
+    pagination_class = PhotoGridPagination
 
     def get_queryset(self) -> QuerySet[AlbumUser]:
         # drf-spectacular asks with an anonymous request; request_user rejects it.

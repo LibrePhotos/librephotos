@@ -95,9 +95,9 @@ class DetectStacksBodyTest(StackRequestTestCase):
 class StackListQueryTest(StackRequestTestCase):
     def test_defaults_and_clamps(self):
         data = self.client.get("/api/stacks/").json()
-        self.assertEqual((data["page"], data["page_size"]), (1, 20))
-        data = self.client.get("/api/stacks/?page=-1&page_size=500").json()
         self.assertEqual((data["page"], data["page_size"]), (1, 100))
+        data = self.client.get("/api/stacks/?page=-1&page_size=5000").json()
+        self.assertEqual((data["page"], data["page_size"]), (1, 1000))
 
     def test_an_unknown_stack_type_is_ignored(self):
         data = self.client.get("/api/stacks/?stack_type=raw_jpeg").json()

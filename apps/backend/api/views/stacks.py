@@ -16,7 +16,6 @@ import logging
 from collections import Counter
 
 from django.core.exceptions import ObjectDoesNotExist
-from django.core.paginator import Paginator
 from django.db.models import Count
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
@@ -29,6 +28,11 @@ from rest_framework.views import APIView
 from api.jobs.queue import JobStep
 from api.models import LongRunningJob, Photo, PhotoMetadata
 from api.models.photo_stack import PhotoStack
+from api.pagination import (
+    PAGE_PARAMETERS,
+    PaginatedViewMixin,
+    with_legacy_page_flags,
+)
 from api.request_user import request_user
 from api.serializers.stack import (
     CreateManualStackRequest,
@@ -51,18 +55,16 @@ def _metadata_or_none(photo: Photo) -> PhotoMetadata | None:
         return None
 
 
-class PhotoStackListView(APIView):
+class PhotoStackListView(PaginatedViewMixin, APIView):
     """List all photo stacks for the current user with pagination and filters."""
 
     permission_classes = [IsAuthenticated]
 
-    @extend_schema(parameters=[PhotoStackListQuery])
+    @extend_schema(parameters=[PhotoStackListQuery, *PAGE_PARAMETERS])
     def get(self, request: Request) -> Response:
         user = request_user(request)
         params = parse_query(request, PhotoStackListQuery)
         stack_type_filter = params.get("stack_type")
-        page = params["page"]
-        page_size = params["page_size"]
 
         # Use model-defined valid stack types (excludes deprecated RAW_JPEG_PAIR, LIVE_PHOTO)
         valid_stack_types = PhotoStack.VALID_STACK_TYPES
@@ -84,13 +86,9 @@ class PhotoStackListView(APIView):
         # Only return stacks with at least 2 photos
         stacks = stacks.filter(photos_count__gte=2)
 
-        # Paginate results
-        paginator = Paginator(stacks, page_size)
-        page_obj = paginator.get_page(page)
-
         # Serialize manually to include nested photo data
         results: list[dict[str, object]] = []
-        for stack in page_obj.object_list:
+        for stack in self.paginate_queryset(stacks):
             photos = stack.photos.all()[:4]  # Preview first 4 photos
             # photos_count is the Count() annotated in the queryset above; the
             # type checker does not see annotated attributes.
@@ -126,17 +124,7 @@ class PhotoStackListView(APIView):
                 }
             )
 
-        return Response(
-            {
-                "results": results,
-                "count": paginator.count,
-                "num_pages": paginator.num_pages,
-                "page": page,
-                "page_size": page_size,
-                "has_next": page_obj.has_next(),
-                "has_previous": page_obj.has_previous(),
-            }
-        )
+        return with_legacy_page_flags(self.get_paginated_response(results))
 
 
 class PhotoStackDetailView(APIView):

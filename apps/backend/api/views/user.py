@@ -25,6 +25,7 @@ from api.burst_detection_rules import (
 )
 from api.date_time_extractor import DEFAULT_RULES_JSON, PREDEFINED_RULES_JSON
 from api.models import User
+from api.pagination import WholeListPagination
 from api.permissions import (
     IsAdminOrFirstTimeSetupOrRegistrationAllowed,
     IsAdminOrSelf,
@@ -127,6 +128,10 @@ class UserViewSet(
     PartialUpdateModelMixin[User],
     viewsets.GenericViewSet,
 ):
+    # Was the 20000-row limit/offset default; 1000 a page is more accounts
+    # than any server has, so clients that read one page still see them all.
+    pagination_class = WholeListPagination
+
     def get_queryset(self) -> QuerySet[User]:
         queryset = with_user_relations(
             User.objects.exclude(is_active=False)
