@@ -18,13 +18,13 @@ from api.directory_watcher.scan_jobs import (
     scan_faces,
     scan_photos,
 )
-from api.face_classify import cluster_all_faces
+from api.faces.classify import cluster_all_faces
+from api.faces.photo_faces import extract_faces
 from api.geocode.geocode import reverse_geocode, search_location
 from api.media_files import is_valid_media
 from api.models import Face, LongRunningJob
 from api.models.photo_caption import PhotoCaption
-from api.photo_faces import extract_faces
-from api.semantic_search import generate_photo_tags
+from api.search.semantic import generate_photo_tags
 from api.tests.utils import (
     ONE_PIXEL_PNG,
     create_test_file,
@@ -215,8 +215,8 @@ class FaceDetectionFeatureFlagTest(TestCase):
         self.client.force_authenticate(user=self.user)
         self.photo = create_test_photo(owner=self.user)
 
-    @patch("api.photo_faces.PIL.Image.open")
-    @patch("api.photo_faces.face_extractor")
+    @patch("api.faces.photo_faces.PIL.Image.open")
+    @patch("api.faces.photo_faces.extractor")
     def test_faces_are_extracted_by_default(self, face_extractor_mock, image_open_mock):
         face_extractor_mock.extract.return_value = []
 
@@ -224,8 +224,8 @@ class FaceDetectionFeatureFlagTest(TestCase):
         face_extractor_mock.extract.assert_called_once()
 
     @override_settings(FEATURE_FACE_DETECTION=False)
-    @patch("api.photo_faces.PIL.Image.open")
-    @patch("api.photo_faces.face_extractor")
+    @patch("api.faces.photo_faces.PIL.Image.open")
+    @patch("api.faces.photo_faces.extractor")
     def test_faces_are_not_extracted_when_disabled(
         self, face_extractor_mock, image_open_mock
     ):
@@ -267,8 +267,8 @@ class FaceClusterFeatureFlagTest(TestCase):
         self.user = create_test_user()
         self.client.force_authenticate(user=self.user)
 
-    @patch("api.face_classify.enqueue_followup")
-    @patch("api.face_classify.create_all_clusters", return_value=0)
+    @patch("api.faces.classify.enqueue_followup")
+    @patch("api.faces.classify.create_all_clusters", return_value=0)
     def test_cluster_all_faces_runs_by_default(self, create_clusters_mock, queue_mock):
         self.assertTrue(cluster_all_faces(self.user, uuid.uuid4()))
         create_clusters_mock.assert_called_once()
@@ -276,8 +276,8 @@ class FaceClusterFeatureFlagTest(TestCase):
         self.assertEqual(queue_mock.call_args.args[1], LongRunningJob.JOB_TRAIN_FACES)
 
     @override_settings(FEATURE_FACE_CLUSTER=False)
-    @patch("api.face_classify.enqueue_followup")
-    @patch("api.face_classify.create_all_clusters")
+    @patch("api.faces.classify.enqueue_followup")
+    @patch("api.faces.classify.create_all_clusters")
     def test_cluster_all_faces_skipped_when_disabled(
         self, create_clusters_mock, queue_mock
     ):
@@ -287,7 +287,7 @@ class FaceClusterFeatureFlagTest(TestCase):
         self.assertEqual(0, LongRunningJob.objects.count())
 
     @override_settings(FEATURE_FACE_CLUSTER=False)
-    @patch("api.face_classify.create_all_clusters")
+    @patch("api.faces.classify.create_all_clusters")
     def test_a_queued_cluster_job_is_finished_when_disabled(self, create_clusters_mock):
         # Queued before the flag went off: the row must not stay queued.
         job = create_test_job(

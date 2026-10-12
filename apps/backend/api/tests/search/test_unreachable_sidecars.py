@@ -12,7 +12,7 @@ from django.test import SimpleTestCase, TestCase
 from django.utils import timezone
 from rest_framework.test import APIClient
 
-from api.image_similarity import search_similar_embedding, search_similar_image
+from api.search.similarity import search_similar_embedding, search_similar_image
 from api.tests.utils import create_test_photo, create_test_user
 
 FAILURES = (requests.ConnectionError("refused"), requests.ReadTimeout("busy"))
@@ -76,18 +76,20 @@ class SemanticSearchWithoutClipSidecarTest(TestCase):
         for failure in (*FAILURES, requests.HTTPError("no model")):
             with (
                 self.subTest(failure=type(failure).__name__),
-                patch("api.filters.calculate_query_embeddings", side_effect=failure),
+                patch(
+                    "api.search.filters.calculate_query_embeddings", side_effect=failure
+                ),
             ):
                 self.assertEqual(self._hashes(), {self.match.image_hash})
 
     def test_semantic_matches_are_added_when_the_sidecar_answers(self):
         with (
             patch(
-                "api.filters.calculate_query_embeddings",
+                "api.search.filters.calculate_query_embeddings",
                 return_value=([0.1] * 512, 1.0),
             ),
             patch(
-                "api.filters.search_similar_embedding",
+                "api.search.filters.search_similar_embedding",
                 return_value=[self.other.image_hash],
             ),
         ):

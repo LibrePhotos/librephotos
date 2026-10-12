@@ -42,7 +42,7 @@ class BulkMutationSidecarTest(TestCase):
             with self.subTest(url=url):
                 with (
                     patch("api.serializers.photos.search_similar_image") as similar,
-                    patch("api.image_similarity.requests.post") as post,
+                    patch("api.search.similarity.requests.post") as post,
                 ):
                     response = self.client.post(
                         url,

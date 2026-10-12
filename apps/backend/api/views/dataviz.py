@@ -11,11 +11,11 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from api.face_classify import cluster_faces
+from api.faces.classify import cluster_faces
+from api.faces.social_graph import build_social_graph
 from api.models.user import User
 from api.request_user import request_user
 from api.serializers.server import ServerLogsQuery
-from api.social_graph import build_social_graph
 from api.stats import (
     get_count_stats,
     get_location_clusters,

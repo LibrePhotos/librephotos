@@ -4,7 +4,7 @@ These pin the behaviour of the two high-CRAP functions, which used to be
 ``Photo._geolocate`` and ``Photo._extract_faces``. Everything expensive is
 mocked: ``get_metadata`` / ``reverse_geocode`` at the
 ``api.geocode.photo_location`` module level, ``face_extractor`` and
-``PIL.Image.open`` at ``api.photo_faces``. No network, no exiftool, no ML
+``PIL.Image.open`` at ``api.faces.photo_faces``. No network, no exiftool, no ML
 models.
 
 Quirks deliberately pinned (see inline comments):
@@ -22,12 +22,12 @@ import PIL
 from django.db.utils import IntegrityError
 from django.test import TestCase, override_settings
 
+from api.faces.photo_faces import extract_faces
 from api.geocode.photo_location import geolocate_photo
 from api.models import Face, Person, Photo
 from api.models.album_place import AlbumPlace, get_album_place
 from api.models.cluster import UNKNOWN_CLUSTER_ID
 from api.models.photo_search import PhotoSearch
-from api.photo_faces import extract_faces
 from api.tests.utils import (
     create_test_face,
     create_test_person,
@@ -327,8 +327,8 @@ class ExtractFacesCharacterizationTest(TestCase):
     # ---- feature flag / empty results ---------------------------------
 
     @override_settings(FEATURE_FACE_DETECTION=False)
-    @patch("api.photo_faces.PIL.Image.open")
-    @patch("api.photo_faces.face_extractor")
+    @patch("api.faces.photo_faces.PIL.Image.open")
+    @patch("api.faces.photo_faces.extractor")
     def test_disabled_feature_flag_returns_immediately(self, extractor, image_open):
         extract_faces(self.photo)
 
@@ -336,8 +336,8 @@ class ExtractFacesCharacterizationTest(TestCase):
         image_open.assert_not_called()
         self.assertEqual(Face.objects.filter(photo=self.photo).count(), 0)
 
-    @patch("api.photo_faces.PIL.Image.open", return_value=_thumb_image())
-    @patch("api.photo_faces.face_extractor")
+    @patch("api.faces.photo_faces.PIL.Image.open", return_value=_thumb_image())
+    @patch("api.faces.photo_faces.extractor")
     def test_no_faces_found_creates_nothing(self, extractor, _open):
         extractor.extract.return_value = []
 
@@ -352,8 +352,8 @@ class ExtractFacesCharacterizationTest(TestCase):
 
     # ---- creating faces ------------------------------------------------
 
-    @patch("api.photo_faces.PIL.Image.open", return_value=_thumb_image())
-    @patch("api.photo_faces.face_extractor")
+    @patch("api.faces.photo_faces.PIL.Image.open", return_value=_thumb_image())
+    @patch("api.faces.photo_faces.extractor")
     def test_unnamed_face_is_created_without_person(self, extractor, _open):
         extractor.extract.return_value = [(10, 60, 50, 20, None)]
 
@@ -375,8 +375,8 @@ class ExtractFacesCharacterizationTest(TestCase):
         self.assertIn(self.photo.image_hash + "_0.jpg", face.image.name)
         self.assertEqual(Person.objects.filter(cluster_owner=self.user).count(), 0)
 
-    @patch("api.photo_faces.PIL.Image.open", return_value=_thumb_image())
-    @patch("api.photo_faces.face_extractor")
+    @patch("api.faces.photo_faces.PIL.Image.open", return_value=_thumb_image())
+    @patch("api.faces.photo_faces.extractor")
     def test_encoding_from_the_face_service_is_stored_with_the_face(
         self, extractor, _open
     ):
@@ -393,8 +393,8 @@ class ExtractFacesCharacterizationTest(TestCase):
         self.assertEqual(face.encoding, encoding.tobytes().hex())
         np.testing.assert_array_equal(face.get_encoding_array(), encoding)
 
-    @patch("api.photo_faces.PIL.Image.open", return_value=_thumb_image())
-    @patch("api.photo_faces.face_extractor")
+    @patch("api.faces.photo_faces.PIL.Image.open", return_value=_thumb_image())
+    @patch("api.faces.photo_faces.extractor")
     def test_named_face_creates_user_labelled_person(self, extractor, _open):
         extractor.extract.return_value = [(10, 60, 50, 20, "Ada Lovelace")]
 
@@ -407,8 +407,8 @@ class ExtractFacesCharacterizationTest(TestCase):
         face.person.refresh_from_db()
         self.assertEqual(face.person.face_count, 1)
 
-    @patch("api.photo_faces.PIL.Image.open", return_value=_thumb_image())
-    @patch("api.photo_faces.face_extractor")
+    @patch("api.faces.photo_faces.PIL.Image.open", return_value=_thumb_image())
+    @patch("api.faces.photo_faces.extractor")
     def test_multiple_non_overlapping_faces_get_indexed_image_names(
         self, extractor, _open
     ):
@@ -424,8 +424,8 @@ class ExtractFacesCharacterizationTest(TestCase):
         self.assertTrue(any("_0.jpg" in n for n in names))
         self.assertTrue(any("_1.jpg" in n for n in names))
 
-    @patch("api.photo_faces.PIL.Image.open", return_value=_thumb_image("RGBA"))
-    @patch("api.photo_faces.face_extractor")
+    @patch("api.faces.photo_faces.PIL.Image.open", return_value=_thumb_image("RGBA"))
+    @patch("api.faces.photo_faces.extractor")
     def test_rgba_thumbnail_is_converted_before_jpeg_save(self, extractor, _open):
         extractor.extract.return_value = [(10, 60, 50, 20, None)]
 
@@ -435,8 +435,8 @@ class ExtractFacesCharacterizationTest(TestCase):
 
     # ---- overlap handling ----------------------------------------------
 
-    @patch("api.photo_faces.PIL.Image.open", return_value=_thumb_image())
-    @patch("api.photo_faces.face_extractor")
+    @patch("api.faces.photo_faces.PIL.Image.open", return_value=_thumb_image())
+    @patch("api.faces.photo_faces.extractor")
     def test_overlapping_unnamed_face_is_skipped(self, extractor, _open):
         create_test_face(
             photo=self.photo,
@@ -451,8 +451,8 @@ class ExtractFacesCharacterizationTest(TestCase):
 
         self.assertEqual(Face.objects.filter(photo=self.photo).count(), 1)
 
-    @patch("api.photo_faces.PIL.Image.open", return_value=_thumb_image())
-    @patch("api.photo_faces.face_extractor")
+    @patch("api.faces.photo_faces.PIL.Image.open", return_value=_thumb_image())
+    @patch("api.faces.photo_faces.extractor")
     def test_duplicate_locations_in_one_batch_are_deduplicated(self, extractor, _open):
         extractor.extract.return_value = [
             (10, 60, 50, 20, None),
@@ -464,8 +464,8 @@ class ExtractFacesCharacterizationTest(TestCase):
         # The freshly created face is appended to the in-memory overlap list.
         self.assertEqual(Face.objects.filter(photo=self.photo).count(), 1)
 
-    @patch("api.photo_faces.PIL.Image.open", return_value=_thumb_image())
-    @patch("api.photo_faces.face_extractor")
+    @patch("api.faces.photo_faces.PIL.Image.open", return_value=_thumb_image())
+    @patch("api.faces.photo_faces.extractor")
     def test_xmp_name_is_reconciled_onto_existing_unassigned_face(
         self, extractor, _open
     ):
@@ -488,8 +488,8 @@ class ExtractFacesCharacterizationTest(TestCase):
         existing.person.refresh_from_db()
         self.assertEqual(existing.person.face_count, 1)
 
-    @patch("api.photo_faces.PIL.Image.open", return_value=_thumb_image())
-    @patch("api.photo_faces.face_extractor")
+    @patch("api.faces.photo_faces.PIL.Image.open", return_value=_thumb_image())
+    @patch("api.faces.photo_faces.extractor")
     def test_existing_face_with_person_is_not_reassigned(self, extractor, _open):
         keeper = create_test_person(name="Grace Hopper", kind=Person.KIND_USER)
         existing = create_test_face(
@@ -512,8 +512,8 @@ class ExtractFacesCharacterizationTest(TestCase):
 
     # ---- error handling -------------------------------------------------
 
-    @patch("api.photo_faces.PIL.Image.open", return_value=_thumb_image())
-    @patch("api.photo_faces.face_extractor")
+    @patch("api.faces.photo_faces.PIL.Image.open", return_value=_thumb_image())
+    @patch("api.faces.photo_faces.extractor")
     def test_integrity_error_triggers_exactly_one_retry(self, extractor, _open):
         extractor.extract.side_effect = [IntegrityError("dup"), []]
 
@@ -521,8 +521,8 @@ class ExtractFacesCharacterizationTest(TestCase):
 
         self.assertEqual(extractor.extract.call_count, 2)
 
-    @patch("api.photo_faces.PIL.Image.open", return_value=_thumb_image())
-    @patch("api.photo_faces.face_extractor")
+    @patch("api.faces.photo_faces.PIL.Image.open", return_value=_thumb_image())
+    @patch("api.faces.photo_faces.extractor")
     def test_integrity_error_on_retry_is_swallowed(self, extractor, _open):
         extractor.extract.side_effect = IntegrityError("dup")
 
@@ -531,8 +531,8 @@ class ExtractFacesCharacterizationTest(TestCase):
         self.assertEqual(extractor.extract.call_count, 2)
         self.assertEqual(Face.objects.filter(photo=self.photo).count(), 0)
 
-    @patch("api.photo_faces.PIL.Image.open", return_value=_thumb_image())
-    @patch("api.photo_faces.face_extractor")
+    @patch("api.faces.photo_faces.PIL.Image.open", return_value=_thumb_image())
+    @patch("api.faces.photo_faces.extractor")
     def test_non_integrity_exception_is_reraised(self, extractor, _open):
         extractor.extract.side_effect = ValueError("nope")
 
@@ -541,16 +541,19 @@ class ExtractFacesCharacterizationTest(TestCase):
 
         self.assertEqual(extractor.extract.call_count, 1)
 
-    @patch("api.photo_faces.PIL.Image.open", side_effect=FileNotFoundError("no thumb"))
-    @patch("api.photo_faces.face_extractor")
+    @patch(
+        "api.faces.photo_faces.PIL.Image.open",
+        side_effect=FileNotFoundError("no thumb"),
+    )
+    @patch("api.faces.photo_faces.extractor")
     def test_missing_thumbnail_propagates(self, extractor, _open):
         with self.assertRaises(FileNotFoundError):
             extract_faces(self.photo)
 
         extractor.extract.assert_not_called()
 
-    @patch("api.photo_faces.PIL.Image.open", return_value=_thumb_image())
-    @patch("api.photo_faces.face_extractor")
+    @patch("api.faces.photo_faces.PIL.Image.open", return_value=_thumb_image())
+    @patch("api.faces.photo_faces.extractor")
     def test_unknown_cluster_is_created_for_owner(self, extractor, _open):
         extractor.extract.return_value = []
 

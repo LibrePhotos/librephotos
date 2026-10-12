@@ -7,7 +7,7 @@ api/directory_watcher/file_handlers.py: 2
 api/directory_watcher/processing_jobs.py: 2
 api/directory_watcher/scan_jobs.py: 1
 api/duplicates/detection.py: 1
-api/face_classify.py: 12
+api/faces/classify.py: 12
 api/models/album_date.py: 3
 api/models/album_thing.py: 3
 api/models/cluster.py: 1

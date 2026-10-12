@@ -45,7 +45,7 @@ def thumbnail_coords_to_normalized(
 def reverse_orientation_transform(
     x: float, y: float, w: float, h: float, orientation: str | None
 ) -> tuple[float, float, float, float]:
-    """Invert the orientation transforms from face_extractor.py lines 54-80.
+    """Invert ``ORIENTATION_TRANSFORMS`` in ``api.faces.extractor``.
 
     The read path applies a forward transform from XMP coords to display coords.
     This function reverses that so we can go from display coords back to XMP coords.

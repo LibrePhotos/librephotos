@@ -15,9 +15,9 @@ from rest_framework.request import Request
 from rest_framework.views import APIView
 
 from api.albums.timeline_filter import timeline_filter_q
-from api.image_similarity import search_similar_embedding
 from api.request_user import request_user
-from api.semantic_search import calculate_query_embeddings
+from api.search.semantic import calculate_query_embeddings
+from api.search.similarity import search_similar_embedding
 
 # The filter is only used on photo lists, but DRF's BaseFilterBackend is generic
 # in the model, and an override has to accept every queryset the base accepts.
@@ -74,7 +74,7 @@ def build_ocr_search_q(search_term: str, vendor: str) -> Q:
 class SemanticSearchFilter(filters.SearchFilter):
     def _semantic_matches(self, request: Request) -> list[str]:
         """Hashes of the requester's photos closest to the query, by the
-        semantic search model (api.semantic_search), at its threshold."""
+        semantic search model (api.search.semantic), at its threshold."""
         user = request_user(request)
         query = request.query_params.get("search")
         start = datetime.datetime.now()

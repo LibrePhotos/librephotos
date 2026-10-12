@@ -1,7 +1,7 @@
 """Unit tests for the functions moved out of ``Photo`` whose coverage was only
 indirect: day-album bookkeeping (``api.metadata.photo_datetime``), place-album
 lookup (``api.geocode.photo_location``), face persistence
-(``api.photo_faces``) and file detachment (``api.photo_files``).
+(``api.faces.photo_faces``) and file detachment (``api.photo_files``).
 
 The datetime rules and exiftool are mocked; no network, no ML models.
 """
@@ -15,13 +15,13 @@ import numpy as np
 import PIL
 from django.test import TestCase
 
+from api.faces.photo_faces import DetectedFace, save_detected_face
 from api.geocode.photo_location import find_album_places
 from api.metadata.datetime_rules import DEFAULT_RULES_JSON, RuleContext
 from api.metadata.photo_datetime import extract_date_time, find_album_date
 from api.models import Face, Photo
 from api.models.album_date import AlbumDate, get_or_create_album_date
 from api.models.album_place import get_album_place
-from api.photo_faces import save_detected_face
 from api.photo_files import detach_missing_files
 from api.tests.utils import create_test_file, create_test_photo, create_test_user
 
@@ -198,7 +198,7 @@ class SaveDetectedFaceTest(TestCase):
         crop = PIL.Image.new("RGB", (40, 40), (10, 20, 30))
 
         face = save_detected_face(
-            self.photo, crop, "crop_0.jpg", None, None, (10, 60, 50, 20)
+            self.photo, DetectedFace(crop, (10, 60, 50, 20)), "crop_0.jpg", None, None
         )
 
         face = Face.objects.get(pk=face.pk)
@@ -223,12 +223,10 @@ class SaveDetectedFaceTest(TestCase):
 
         face = save_detected_face(
             self.photo,
-            PIL.Image.new("RGB", (8, 8)),
+            DetectedFace(PIL.Image.new("RGB", (8, 8)), (0, 8, 8, 0), encoding),
             "enc.jpg",
             None,
             None,
-            (0, 8, 8, 0),
-            encoding,
         )
 
         self.assertEqual(face.encoding, encoding.tobytes().hex())
@@ -238,11 +236,10 @@ class SaveDetectedFaceTest(TestCase):
             with self.subTest(mode=mode):
                 face = save_detected_face(
                     self.photo,
-                    PIL.Image.new(mode, (8, 8)),
+                    DetectedFace(PIL.Image.new(mode, (8, 8)), (0, 8, 8, 0)),
                     f"{mode}.jpg",
                     None,
                     None,
-                    (0, 8, 8, 0),
                 )
                 with PIL.Image.open(face.image.path) as saved:
                     self.assertEqual(saved.mode, "RGB")

@@ -9,9 +9,9 @@ from typing import TYPE_CHECKING, Protocol
 from django.conf import settings
 
 from api.directory_watcher import handle_new_image
-from api.image_similarity import build_image_similarity_index
 from api.media_files import is_metadata, is_raw
 from api.models import LongRunningJob, User
+from api.search.similarity import build_image_similarity_index
 from nextcloud.server_address import connect
 
 if TYPE_CHECKING:

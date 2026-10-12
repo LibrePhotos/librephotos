@@ -126,7 +126,7 @@ class Photo(models.Model):
     clip_embeddings = models.JSONField(blank=True, null=True)
 
     clip_embeddings_magnitude = models.FloatField(blank=True, null=True)
-    # The model behind clip_embeddings (api.semantic_search.OPENCLIP), or an
+    # The model behind clip_embeddings (api.search.semantic.OPENCLIP), or an
     # earlier model whose embedding still waits to be re-embedded; NULL for
     # embeddings stored before the column, which are all CLIP ViT-B/32.
     clip_embeddings_model = models.CharField(max_length=32, blank=True, null=True)

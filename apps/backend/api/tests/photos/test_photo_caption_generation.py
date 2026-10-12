@@ -16,7 +16,7 @@ from django.test import TestCase, override_settings
 from api.classification.captioning import generate_photo_caption
 from api.models import Photo, PhotoCaption, PhotoSearch, Thumbnail
 from api.models.user import get_default_llm_settings
-from api.semantic_search import generate_photo_tags
+from api.search.semantic import generate_photo_tags
 from api.tests.utils import (
     create_test_face,
     create_test_person,
@@ -348,7 +348,7 @@ class MissingThumbnailRowTest(TestCase):
         self.assertFalse(generate_photo_caption(self.caption, commit=False))
         mock_generate_caption.assert_not_called()
 
-    @patch("api.semantic_search.sidecars.post")
+    @patch("api.search.semantic.sidecars.post")
     def test_generate_tag_captions_skips_the_sidecar(self, mock_post):
         generate_photo_tags(self.caption, commit=False)
         mock_post.assert_not_called()

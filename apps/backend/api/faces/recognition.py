@@ -142,7 +142,7 @@ def detect_faces(
     """Every face in the picture: [(location, encoding)], encoding None if not sent.
 
     The sidecar computes the encodings while detecting; a sidecar from before
-    it sent them leaves them to ``api.photo_faces.generate_face_encoding``.
+    it sent them leaves them to ``api.faces.photo_faces.generate_face_encoding``.
     """
     payload = {
         "source": image_path,

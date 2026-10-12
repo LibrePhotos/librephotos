@@ -1,4 +1,4 @@
-"""Tests for ``api.batch_jobs.batch_calculate_clip_embedding``.
+"""Tests for ``api.search.embedding_jobs.batch_calculate_clip_embedding``.
 
 Everything heavy is mocked: the CLIP sidecar call (``create_clip_embeddings``)
 and the FAISS index rebuild (``build_image_similarity_index``) are patched
@@ -12,10 +12,11 @@ from unittest.mock import patch
 import numpy as np
 from django.test import TestCase, override_settings
 
-from api import batch_jobs
 from api.models.long_running_job import LongRunningJob
 from api.models.photo import Photo
 from api.models.photo_caption import PhotoCaption
+from api.search import embedding_jobs
+from api.search.similarity import SimilarityIndexError
 from api.tests.utils import create_test_photos, create_test_user
 
 
@@ -38,13 +39,13 @@ class BatchCalculateClipEmbeddingTestCase(TestCase):
         """
         with (
             patch.object(
-                batch_jobs,
+                embedding_jobs,
                 "create_clip_embeddings",
                 side_effect=embeddings_side_effect or fake_embeddings,
             ) as m_embed,
-            patch.object(batch_jobs, "build_image_similarity_index") as m_index,
+            patch.object(embedding_jobs, "build_image_similarity_index") as m_index,
             patch.object(
-                batch_jobs.os.path,
+                embedding_jobs.os.path,
                 "exists",
                 **(
                     {"side_effect": path_exists}
@@ -53,7 +54,7 @@ class BatchCalculateClipEmbeddingTestCase(TestCase):
                 ),
             ),
         ):
-            batch_jobs.batch_calculate_clip_embedding(self.user)
+            embedding_jobs.batch_calculate_clip_embedding(self.user)
         return m_embed, m_index
 
     def latest_job(self):
@@ -154,6 +155,31 @@ class BatchCalculateClipEmbeddingTestCase(TestCase):
         # Once before converting (the old model's index goes), once at the end.
         self.assertEqual(m_index.call_count, 2)
 
+    def test_a_failed_rebuild_while_converting_does_not_stop_the_run(self):
+        """The index is rebuilt again at the end; the run goes on meanwhile."""
+        legacy = create_test_photos(number_of_photos=1, owner=self.user)[0]
+        legacy.clip_embeddings = [9.0, 9.0]
+        legacy.save()
+
+        with (
+            patch.object(
+                embedding_jobs, "create_clip_embeddings", side_effect=fake_embeddings
+            ),
+            patch.object(
+                embedding_jobs,
+                "build_image_similarity_index",
+                side_effect=[SimilarityIndexError("page 1 of 1 was refused"), 1],
+            ) as m_index,
+            patch.object(embedding_jobs.os.path, "exists", return_value=True),
+        ):
+            embedding_jobs.batch_calculate_clip_embedding(self.user)
+
+        legacy.refresh_from_db()
+        self.assertEqual(legacy.clip_embeddings_model, "openclip_vitb32")
+        self.assertEqual(m_index.call_count, 2)
+        self.assertTrue(self.latest_job().finished)
+        self.assertFalse(self.latest_job().failed)
+
     @override_settings(FEATURE_SCENE_CLASSIFICATION=True)
     def test_tags_are_asked_for_when_tagging_is_on(self):
         create_test_photos(number_of_photos=1, owner=self.user)
@@ -179,12 +205,12 @@ class BatchCalculateClipEmbeddingTestCase(TestCase):
 
         with (
             patch.object(
-                batch_jobs, "create_clip_embeddings", side_effect=fake_embeddings
+                embedding_jobs, "create_clip_embeddings", side_effect=fake_embeddings
             ),
-            patch.object(batch_jobs, "build_image_similarity_index"),
-            patch.object(batch_jobs.os.path, "exists", return_value=True),
+            patch.object(embedding_jobs, "build_image_similarity_index"),
+            patch.object(embedding_jobs.os.path, "exists", return_value=True),
         ):
-            batch_jobs.batch_calculate_clip_embedding(self.user, wait_for_tags=True)
+            embedding_jobs.batch_calculate_clip_embedding(self.user, wait_for_tags=True)
 
         tagged.refresh_from_db()
         untagged.refresh_from_db()
@@ -247,7 +273,7 @@ class BatchCalculateClipEmbeddingTestCase(TestCase):
         good.refresh_from_db()
         self.assertIsNotNone(good.clip_embeddings)
         m_embed.assert_called_once_with(
-            [good_path], with_tags=batch_jobs.semantic_shares_tagger()
+            [good_path], with_tags=embedding_jobs.semantic_shares_tagger()
         )
         self.assertFalse(
             Photo.objects.filter(
@@ -307,7 +333,7 @@ class BatchCalculateClipEmbeddingTestCase(TestCase):
         """A sidecar failure is logged, not raised; the job completes as success."""
         photos = create_test_photos(number_of_photos=2, owner=self.user)
 
-        with patch.object(batch_jobs.logger, "error") as m_error:
+        with patch.object(embedding_jobs.logger, "exception") as m_error:
             m_embed, m_index = self.run_job(
                 embeddings_side_effect=RuntimeError("clip sidecar down")
             )
@@ -333,17 +359,17 @@ class BatchCalculateClipEmbeddingTestCase(TestCase):
 
         with (
             patch.object(
-                batch_jobs, "create_clip_embeddings", side_effect=fake_embeddings
+                embedding_jobs, "create_clip_embeddings", side_effect=fake_embeddings
             ),
             patch.object(
-                batch_jobs,
+                embedding_jobs,
                 "build_image_similarity_index",
                 side_effect=RuntimeError("index down"),
             ),
-            patch.object(batch_jobs.os.path, "exists", return_value=True),
+            patch.object(embedding_jobs.os.path, "exists", return_value=True),
         ):
             with self.assertRaises(RuntimeError):
-                batch_jobs.batch_calculate_clip_embedding(self.user)
+                embedding_jobs.batch_calculate_clip_embedding(self.user)
 
         job = self.latest_job()
         self.assertTrue(job.failed)

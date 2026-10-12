@@ -30,7 +30,7 @@ def filter_photos_by_media_type(
     """Narrow *photos* per the request's media-type query.
 
     Mirrors the convention used by the search and album-date endpoints
-    (``api/filters.py``): a truthy ``video`` param keeps only videos, a truthy
+    (``api/search/filters.py``): a truthy ``video`` param keeps only videos, a truthy
     ``photo`` param keeps only photos, and ``video`` wins if both are present.
     ``is_screenshot`` and ``is_document`` then keep only that category, ANDed
     like ``AlbumDateViewSet.MEDIA_FLAG_FILTERS``. Returns *photos* unchanged

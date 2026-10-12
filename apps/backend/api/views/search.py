@@ -8,10 +8,10 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from api.api_util import get_search_term_examples
-from api.filters import SemanticSearchFilter
 from api.models import Photo
 from api.request_user import request_user
+from api.search.filters import SemanticSearchFilter
+from api.search.term_examples import get_search_term_examples
 from api.serializers.photos import (
     GroupedPhotosSerializer,
     PhotoSummarySerializer,

@@ -11,7 +11,7 @@ from django.db.models import Q
 from django.utils import timezone
 
 import api.models
-from api.semantic_search import OPENCLIP, TAG_THING_TYPE
+from api.search.semantic import OPENCLIP, TAG_THING_TYPE
 
 if TYPE_CHECKING:
     from django.db.models import QuerySet

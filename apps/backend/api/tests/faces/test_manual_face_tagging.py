@@ -75,7 +75,7 @@ class AddFaceTestBase(TestCase):
 
 
 @patch(
-    "api.photo_faces.get_face_encodings",
+    "api.faces.photo_faces.get_face_encodings",
     return_value=[np.random.rand(512)],
 )
 class AddFaceTest(AddFaceTestBase):
@@ -174,7 +174,7 @@ class AddFaceTest(AddFaceTestBase):
 
 
 @patch(
-    "api.photo_faces.get_face_encodings",
+    "api.faces.photo_faces.get_face_encodings",
     return_value=[np.random.rand(512)],
 )
 class AddFaceValidationTest(AddFaceTestBase):
@@ -242,7 +242,7 @@ class AddFaceValidationTest(AddFaceTestBase):
 
 
 @patch(
-    "api.photo_faces.get_face_encodings",
+    "api.faces.photo_faces.get_face_encodings",
     return_value=[np.random.rand(512)],
 )
 class AddFaceOverlapTest(AddFaceTestBase):
@@ -288,7 +288,7 @@ class AddFaceWithoutTheFaceServiceTest(AddFaceTestBase):
     """The label is the user's work; the encoding is a nicety the ML adds."""
 
     @patch(
-        "api.photo_faces.get_face_encodings",
+        "api.faces.photo_faces.get_face_encodings",
         side_effect=ConnectionError("face service is down"),
     )
     def test_the_face_survives_a_face_service_that_is_down(self, mock_encodings):
@@ -299,7 +299,7 @@ class AddFaceWithoutTheFaceServiceTest(AddFaceTestBase):
         self.assertEqual(face.person.name, "Alice")
         self.assertEqual(face.encoding, "")
 
-    @patch("api.photo_faces.get_face_encodings", return_value=[])
+    @patch("api.faces.photo_faces.get_face_encodings", return_value=[])
     def test_the_face_survives_a_face_service_that_returns_nothing(
         self, mock_encodings
     ):
@@ -308,7 +308,7 @@ class AddFaceWithoutTheFaceServiceTest(AddFaceTestBase):
         self.assertEqual(response.status_code, 201)
         self.assertEqual(Face.objects.get().encoding, "")
 
-    @patch("api.photo_faces.get_face_encodings", return_value=[None])
+    @patch("api.faces.photo_faces.get_face_encodings", return_value=[None])
     def test_the_face_gets_no_encoding_when_no_face_is_detected_there(
         self, mock_encodings
     ):

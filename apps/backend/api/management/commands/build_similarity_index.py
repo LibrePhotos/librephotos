@@ -2,10 +2,10 @@ from typing import Any
 
 from django.core.management.base import BaseCommand
 
-from api.batch_jobs import queue_semantic_search_conversion
-from api.image_similarity import build_image_similarity_index
 from api.jobs.queue import enqueue_task
 from api.models import User
+from api.search.embedding_jobs import queue_semantic_search_conversion
+from api.search.similarity import build_image_similarity_index
 
 
 class Command(BaseCommand):

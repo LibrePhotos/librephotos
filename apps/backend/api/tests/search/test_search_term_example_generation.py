@@ -1,4 +1,4 @@
-"""Tests for ``api.api_util.get_search_term_examples``.
+"""Tests for ``api.search.term_examples.get_search_term_examples``.
 
 ``GetSearchTermExamples`` is the deterministic suite: ``random.random``/
 ``choice``/``choices``/``shuffle`` are stubbed in ``setUp`` so the exact set of
@@ -13,8 +13,8 @@ import random
 from django.test import TestCase
 from rest_framework.test import APIClient
 
-from api.api_util import get_search_term_examples
 from api.models import Photo
+from api.search.term_examples import get_search_term_examples
 from api.tests.fixtures.api_util.captions_json import captions_json
 from api.tests.fixtures.geocode.expectations.mapbox import expectations
 from api.tests.utils import (

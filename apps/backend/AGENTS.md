@@ -176,9 +176,11 @@ test makes `--parallel` runs crash with "cannot pickle 'traceback'"; rerun that 
 - `api/`: `views/`, `serializers/`, `models/`, `management/commands/`, `migrations/`, `tests/` (grouped by
   area, e.g. `api/tests/metadata/`) and the domain packages: `albums/` (event albums, timeline filter),
   `classification/` (captions, document and screenshot heuristics), `directory_watcher/` (the scan
-  pipeline), `duplicates/`, `geocode/`, `jobs/` (the queue), `metadata/` (read, write, date rules),
-  `stacks/` (bursts, brackets, Motion Photo video), `thumbnails/` (render, decode, strip metadata),
-  `video/` (probe and HDR tonemapping, playback type, transcode cache, ffmpeg budget).
+  pipeline), `duplicates/`, `faces/` (face service client, detection, clustering, training, social
+  graph), `geocode/`, `jobs/` (the queue), `metadata/` (read, write, date rules), `search/` (OpenCLIP
+  embeddings and tags, similarity index client, search filter, term examples), `stacks/` (bursts,
+  brackets, Motion Photo video), `thumbnails/` (render, decode, strip metadata), `video/` (probe and
+  HDR tonemapping, playback type, transcode cache, ffmpeg budget).
 - No new flat `api/` module: new code goes into a domain package. The flat modules left are listed in
   `api/tests/infra/test_module_layout.py` with the package each moves to; the list only shrinks. A move
   updates every import and `mock.patch("api.<old>...")` string and keeps no re-export shim (a patch on a

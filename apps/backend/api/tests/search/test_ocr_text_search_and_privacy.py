@@ -2,10 +2,10 @@
 
 Work package B/4. These tests run on SQLite (the CI backend), so they exercise
 the ``ocr__text__icontains`` fallback path of the OCR search integration in
-``api.filters.SemanticSearchFilter``. The Postgres full-text path (SearchVector
+``api.search.filters.SemanticSearchFilter``. The Postgres full-text path (SearchVector
 / SearchQuery + the functional GIN index from migration 0135) cannot be run
 under SQLite; its branch-selection logic is unit-tested directly below by
-feeding a mocked vendor to :func:`api.filters.build_ocr_search_q`, but the real
+feeding a mocked vendor to :func:`api.search.filters.build_ocr_search_q`, but the real
 ``to_tsvector`` matching is only exercised in a production-like Postgres env.
 
 Migration 0135's ``RunPython`` guard is exercised implicitly: the test database
@@ -22,8 +22,8 @@ from rest_framework import serializers
 from rest_framework.test import APIClient
 
 import api.serializers as serializers_pkg
-from api.filters import build_ocr_search_q
 from api.models import PhotoOcr
+from api.search.filters import build_ocr_search_q
 from api.tests.utils import create_test_photo, create_test_user
 
 

@@ -3,8 +3,8 @@ import shutil
 
 from django.test import override_settings
 
+from api.faces.photo_faces import extract_faces
 from api.models import Person
-from api.photo_faces import extract_faces
 from api.tests.metadata.exiftool_harness import RealExifToolTestCase
 from api.tests.utils import create_test_user
 

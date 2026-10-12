@@ -14,7 +14,7 @@ from rest_framework.test import APIClient
 from api.models import PhotoCaption
 from api.models.album_thing import AlbumThing, get_album_thing
 from api.models.photo_search import PhotoSearch
-from api.semantic_search import TAG_THING_TYPE
+from api.search.semantic import TAG_THING_TYPE
 from api.tests.utils import create_test_photo, create_test_user
 
 

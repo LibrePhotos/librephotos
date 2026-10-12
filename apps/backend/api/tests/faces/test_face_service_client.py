@@ -1,4 +1,4 @@
-"""Tests for the ``api.face_recognition`` HTTP client to the face sidecar.
+"""Tests for the ``api.faces.recognition`` HTTP client to the face sidecar.
 
 Covers two concerns of the same transport layer:
 
@@ -19,18 +19,18 @@ from unittest.mock import MagicMock, patch
 import requests
 from django.test import SimpleTestCase
 
-from api.face_recognition import (
+from api.faces.photo_faces import generate_face_encoding
+from api.faces.recognition import (
     _post_to_face_service,
     detect_faces,
     get_face_encodings,
     get_face_locations,
 )
-from api.photo_faces import generate_face_encoding
 
 
 class FaceRecognitionClientTest(SimpleTestCase):
     @patch("api.sidecars.http.post")
-    @patch("api.face_recognition.site_config")
+    @patch("api.faces.recognition.site_config")
     def test_get_face_locations_includes_empty_http_response_details(
         self, mock_site_config, mock_post
     ):
@@ -52,7 +52,7 @@ class FaceRecognitionClientTest(SimpleTestCase):
         self.assertIn("<empty body>", str(context.exception))
 
     @patch("api.sidecars.http.post")
-    @patch("api.face_recognition.site_config")
+    @patch("api.faces.recognition.site_config")
     def test_get_face_locations_includes_http_response_body(
         self, mock_site_config, mock_post
     ):
@@ -73,7 +73,7 @@ class FaceRecognitionClientTest(SimpleTestCase):
         self.assertIn("model failed to load", str(context.exception))
 
     @patch("api.sidecars.http.post")
-    @patch("api.face_recognition.site_config")
+    @patch("api.faces.recognition.site_config")
     def test_get_face_locations_includes_invalid_json_response_body(
         self, mock_site_config, mock_post
     ):
@@ -104,7 +104,7 @@ class DetectFacesTest(SimpleTestCase):
     """One detection returns the faces and their encodings together."""
 
     @patch("api.sidecars.http.post")
-    @patch("api.face_recognition.site_config")
+    @patch("api.faces.recognition.site_config")
     def test_encodings_come_with_the_locations(self, mock_site_config, mock_post):
         mock_site_config.FACE_RECOGNITION_MODEL = "buffalo_sc"
         mock_post.return_value = _ok_response(
@@ -125,7 +125,7 @@ class DetectFacesTest(SimpleTestCase):
         mock_post.assert_called_once()
 
     @patch("api.sidecars.http.post")
-    @patch("api.face_recognition.site_config")
+    @patch("api.faces.recognition.site_config")
     def test_older_sidecar_without_encodings(self, mock_site_config, mock_post):
         mock_site_config.FACE_RECOGNITION_MODEL = "buffalo_sc"
         mock_post.return_value = _ok_response({"face_locations": [[1, 2, 3, 4]]})
@@ -138,7 +138,7 @@ class GetFaceEncodingsTest(SimpleTestCase):
     """A region the sidecar found no face at comes back as None, in its slot."""
 
     @patch("api.sidecars.http.post")
-    @patch("api.face_recognition.site_config")
+    @patch("api.faces.recognition.site_config")
     def test_an_unmatched_region_is_none(self, mock_site_config, mock_post):
         mock_site_config.FACE_RECOGNITION_MODEL = "buffalo_sc"
         mock_post.return_value = _ok_response({"encodings": [None, [1.0, 2.0]]})
@@ -155,7 +155,7 @@ class GenerateEncodingTest(SimpleTestCase):
     def test_an_unmatched_region_raises_and_saves_nothing(self):
         face = MagicMock(id=7, encoding="")
 
-        with patch("api.photo_faces.get_face_encodings", return_value=[None]):
+        with patch("api.faces.photo_faces.get_face_encodings", return_value=[None]):
             with self.assertRaisesRegex(ValueError, "no face"):
                 generate_face_encoding(face)
 

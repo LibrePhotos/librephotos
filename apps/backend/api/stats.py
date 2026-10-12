@@ -26,7 +26,7 @@ from api.models import (
     User,
 )
 from api.models.user import get_deleted_user
-from api.semantic_search import OPENCLIP
+from api.search.semantic import OPENCLIP
 
 if TYPE_CHECKING:
     import numpy as np

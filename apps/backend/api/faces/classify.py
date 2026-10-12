@@ -4,6 +4,7 @@ import datetime
 import logging
 import uuid
 from collections.abc import Sequence
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, TypedDict
 
 from bulk_update.helper import bulk_update
@@ -11,8 +12,8 @@ from django.conf import settings
 from django.core.paginator import Paginator
 from django.db.models import Q
 
-from api.cluster_manager import ClusterManager
 from api.color_palettes import hex_palette
+from api.faces.cluster_manager import ClusterManager
 from api.jobs.queue import enqueue_followup
 from api.lazy_import import LazyModule
 from api.models import Face, LongRunningJob, Person
@@ -43,20 +44,20 @@ class _FaceData(TypedDict):
 
 # hdbscan and scikit-learn (with scipy) take 1.6 s and ~100 MB to import, and
 # this module is imported by the API server, which never clusters. They load
-# on first use; the names stay module attributes so tests can patch them.
-def PCA(*args: Any, **kwargs: Any) -> _PCA:
+# on first use; the factories are module attributes so tests can patch them.
+def make_pca(*args: Any, **kwargs: Any) -> _PCA:
     from sklearn.decomposition import PCA
 
     return PCA(*args, **kwargs)
 
 
-def HDBSCAN(*args: Any, **kwargs: Any) -> _HDBSCAN:
+def make_hdbscan(*args: Any, **kwargs: Any) -> _HDBSCAN:
     from hdbscan import HDBSCAN
 
     return HDBSCAN(*args, **kwargs)
 
 
-def MLPClassifier(*args: Any, **kwargs: Any) -> _MLPClassifier:
+def make_mlp_classifier(*args: Any, **kwargs: Any) -> _MLPClassifier:
     from sklearn.neural_network import MLPClassifier
 
     return MLPClassifier(*args, **kwargs)
@@ -120,7 +121,7 @@ def cluster_faces(user: User, inferred: bool = True) -> dict[str, object]:
     if len(face_encoding) == 0:
         return {"status": True, "data": []}
 
-    pca = PCA(n_components=3)
+    pca = make_pca(n_components=3)
     vis_all = pca.fit_transform(face_encoding)
 
     res = [
@@ -161,7 +162,6 @@ def cluster_all_faces(user: User, job_id: uuid.UUID | str | None = None) -> bool
 
     except BaseException as err:
         logger.exception("An error occurred")
-        print(f"[ERR] {err}")
         lrj.fail(error=err)
         return False
 
@@ -209,7 +209,7 @@ def resolve_min_cluster_size(user: User, target_count: int) -> int:
 
 
 def build_clusterer(user: User, target_count: int) -> _HDBSCAN:
-    return HDBSCAN(
+    return make_hdbscan(
         min_cluster_size=resolve_min_cluster_size(user, target_count),
         min_samples=user.min_samples if user.min_samples > 0 else 1,
         cluster_selection_epsilon=user.cluster_selection_epsilon,
@@ -240,23 +240,23 @@ def create_all_clusters(user: User, lrj: LongRunningJob | None = None) -> int:
     clt.fit(np.array(data["encoding"]))
     logger.info("After finding clusters")
 
-    sortedIndexes = group_indexes_by_label(clt.labels_)
-    maxLen: int = len(str(len(sortedIndexes)))
+    sorted_indexes = group_indexes_by_label(clt.labels_)
+    max_len: int = len(str(len(sorted_indexes)))
     all_clusters: list[Cluster] = []
     commit_time = datetime.datetime.now() + datetime.timedelta(seconds=5)
     count: int = 0
-    clusterCount: int = 0
+    cluster_count: int = 0
 
-    logger.info("Found %s clusters", len(sortedIndexes))
-    for labelID in sorted(
-        sortedIndexes, key=lambda key: np.size(sortedIndexes[key]), reverse=True
+    logger.info("Found %s clusters", len(sorted_indexes))
+    for label_id in sorted(
+        sorted_indexes, key=lambda key: np.size(sorted_indexes[key]), reverse=True
     ):
-        if labelID != UNKNOWN_CLUSTER_ID:
-            clusterCount = clusterCount + 1
-            clusterId = clusterCount
+        if label_id != UNKNOWN_CLUSTER_ID:
+            cluster_count = cluster_count + 1
+            cluster_id = cluster_count
         else:
-            clusterId = labelID
-        face_id_list = [data["id"][i] for i in sortedIndexes[labelID]]
+            cluster_id = label_id
+        face_id_list = [data["id"][i] for i in sorted_indexes[label_id]]
         count = count + len(face_id_list)
         face_array = list(
             Face.objects.filter(
@@ -264,7 +264,7 @@ def create_all_clusters(user: User, lrj: LongRunningJob | None = None) -> int:
             )
         )
         all_clusters.extend(
-            ClusterManager.try_add_cluster(user, clusterId, face_array, maxLen)
+            ClusterManager.try_add_cluster(user, cluster_id, face_array, max_len)
         )
 
         if commit_time < datetime.datetime.now() and lrj is not None:
@@ -273,19 +273,19 @@ def create_all_clusters(user: User, lrj: LongRunningJob | None = None) -> int:
             lrj.save()
             commit_time = datetime.datetime.now() + datetime.timedelta(seconds=5)
 
-    print(f"[INFO] Created {len(all_clusters)} clusters")
+    logger.info("Created %s clusters", len(all_clusters))
     return target_count
 
 
 def delete_persons_without_faces() -> None:
     """Delete all existing Person records that have no associated Face records"""
-    print("[INFO] Deleting all people without faces")
+    logger.info("Deleting all people without faces")
     Person.objects.filter(faces=None, kind=Person.KIND_USER).delete()
 
 
 def delete_clusters(user: User) -> None:
     """Delete all existing Cluster records"""
-    print("[INFO] Deleting all clusters")
+    logger.info("Deleting all clusters")
     Cluster.objects.filter(Q(owner=user)).delete()
     Cluster.objects.filter(Q(owner=None)).delete()
     Cluster.objects.filter(Q(owner=get_deleted_user())).delete()
@@ -293,7 +293,7 @@ def delete_clusters(user: User) -> None:
 
 def delete_clustered_people(user: User) -> None:
     """Delete all existing Person records of type CLUSTER"""
-    print("[INFO] Deleting all clustered people")
+    logger.info("Deleting all clustered people")
     Person.objects.filter(kind=Person.KIND_CLUSTER, cluster_owner=user).delete()
     Person.objects.filter(kind=Person.KIND_UNKNOWN, cluster_owner=user).delete()
     Person.objects.filter(cluster_owner=None).delete()
@@ -327,9 +327,9 @@ def filter_data(
 
 
 def fit_mlp(encodings: npt.NDArray[float64], ids: npt.NDArray[intp]) -> _MLPClassifier:
-    return MLPClassifier(solver="adam", alpha=1e-5, random_state=1, max_iter=1000).fit(
-        encodings, ids
-    )
+    return make_mlp_classifier(
+        solver="adam", alpha=1e-5, random_state=1, max_iter=1000
+    ).fit(encodings, ids)
 
 
 def split_faces_by_label(user: User) -> tuple[_FaceData, _FaceData]:
@@ -362,7 +362,7 @@ def add_cluster_centroids(user: User, data_known: _FaceData) -> None:
     cluster: Cluster
     for cluster in Cluster.objects.filter(owner=user):
         if cluster.person and cluster.person.kind == Person.KIND_CLUSTER:
-            print(cluster.person)
+            logger.debug("Adding the centroid of person %s", cluster.person.id)
             data_known["encoding"].append(cluster.get_mean_encoding_array())
             data_known["id"].append(cluster.person.id)
 
@@ -379,31 +379,41 @@ def most_probable_class(
     return highest_class, highest_probability
 
 
+@dataclass
+class _Classifiers:
+    """What ``train_faces`` predicts the person of an unlabelled face with."""
+
+    # Trained on the labelled faces; None when there are none.
+    person: _MLPClassifier | None
+    # Trained on the labelled faces and the centroids of the clusters.
+    cluster: _MLPClassifier
+    # A face in this cluster gets no cluster person.
+    unknown_cluster: Cluster
+
+
 def assign_face_predictions(
     face: Face,
     cluster_probabilities: Sequence[float] | npt.NDArray[float64],
     classification_probabilities: Sequence[float] | npt.NDArray[float64],
-    cluster_classifier: _MLPClassifier,
-    classifier: _MLPClassifier | None,
-    unknown_cluster: Cluster,
+    classifiers: _Classifiers,
 ) -> None:
     face.cluster_probability = 0.0
     face.classification_probability = 0.0
 
     classification_person = None
     classification_probability = 0.0
-    if classifier:
+    if classifiers.person:
         classification_person, classification_probability = most_probable_class(
-            classifier.classes_, classification_probabilities
+            classifiers.person.classes_, classification_probabilities
         )
 
     # Find the probability in the probability array corresponding to the person
     # that we currently believe the face is, even a simulated "unknown" person
     highest_probability_person, highest_probability = most_probable_class(
-        cluster_classifier.classes_, cluster_probabilities
+        classifiers.cluster.classes_, cluster_probabilities
     )
 
-    if face.cluster != unknown_cluster:
+    if face.cluster != classifiers.unknown_cluster:
         face.cluster_person = Person.objects.get(id=highest_probability_person)
         face.cluster_probability = highest_probability
 
@@ -413,11 +423,9 @@ def assign_face_predictions(
 
 
 def classify_face_page(
-    user: User,
+    classifiers: _Classifiers,
     page_encodings: list[npt.NDArray[float64]],
     page_id: list[int],
-    classifier: _MLPClassifier | None,
-    cluster_classifier: _MLPClassifier,
     lrj: LongRunningJob,
     target_count: int,
 ) -> None:
@@ -425,17 +433,18 @@ def classify_face_page(
         Face.objects.filter(id__in=page_id).all(), key=lambda x: page_id.index(x.id)
     )
     face_encodings_unknown_np = np.array(page_encodings)
-    cluster_probs = cluster_classifier.predict_proba(face_encodings_unknown_np)
-    if classifier:
-        classification_probs = classifier.predict_proba(face_encodings_unknown_np)
+    cluster_probs = classifiers.cluster.predict_proba(face_encodings_unknown_np)
+    if classifiers.person:
+        classification_probs = classifiers.person.predict_proba(
+            face_encodings_unknown_np
+        )
     else:
         classification_probs = [
-            [0.0] * len(cluster_classifier.classes_) for _ in cluster_probs
+            [0.0] * len(classifiers.cluster.classes_) for _ in cluster_probs
         ]
 
     commit_time = datetime.datetime.now() + datetime.timedelta(seconds=5)
     face_stack = []
-    unknown_cluster: Cluster = get_unknown_cluster(user=user)
 
     for idx, (face, cluster_probabilities, classification_probabilities) in enumerate(
         zip(pages_of_faces, cluster_probs, classification_probs)
@@ -444,9 +453,7 @@ def classify_face_page(
             face,
             cluster_probabilities,
             classification_probabilities,
-            cluster_classifier,
-            classifier,
-            unknown_cluster,
+            classifiers,
         )
         face_stack.append(face)
         if commit_time < datetime.datetime.now():
@@ -511,13 +518,16 @@ def train_faces(user: User, job_id: uuid.UUID | str) -> bool:
             return True
         logger.info("Number of Cluster: %s", target_count)
 
+        classifiers = _Classifiers(
+            person=classifier,
+            cluster=cluster_classifier,
+            unknown_cluster=get_unknown_cluster(user=user),
+        )
         for start in range(0, len(data_unknown["encoding"]), 100):
             classify_face_page(
-                user,
+                classifiers,
                 data_unknown["encoding"][start : start + 100],
                 data_unknown["id"][start : start + 100],
-                classifier,
-                cluster_classifier,
                 lrj,
                 target_count,
             )
@@ -528,6 +538,5 @@ def train_faces(user: User, job_id: uuid.UUID | str) -> bool:
 
     except BaseException as err:
         logger.exception("An error occurred")
-        print(f"[ERR] {err}")
         lrj.fail(error=err)
         return False

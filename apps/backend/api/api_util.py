@@ -1,28 +1,16 @@
 import logging
 import os
-import random
-from typing import TypedDict, TypeVar
+from typing import TypedDict
 
 from api.directory_watcher.utils import is_hidden
-from api.models import (
-    Photo,
-    User,
-)
 
 logger = logging.getLogger(__name__)
-
-_T = TypeVar("_T")
 
 
 class PathNode(TypedDict):
     title: str
     absolute_path: str
     children: list["PathNode"]
-
-
-def shuffle(items: list[_T]) -> list[_T]:
-    random.shuffle(items)
-    return items
 
 
 def list_subdirectories(path: str) -> list[str]:
@@ -49,130 +37,3 @@ def path_to_dict(path: str, recurse: int = 2) -> PathNode:
     # sort children by title alphabetically (case insensitive)
     d["children"] = sorted(d["children"], key=lambda k: k["title"].lower())
     return d
-
-
-def get_search_term_examples(user: User) -> list[str]:
-    from api.semantic_search import OPENCLIP
-
-    default_search_terms = [
-        "for people",
-        "for places",
-        "for things",
-        "for time",
-        "for file path or file name",
-    ]
-
-    possible_ids = list(
-        Photo.objects.owned_by(user)
-        .exclude(caption_instance__captions_json={})
-        .exclude(caption_instance__captions_json__isnull=True)[:1000]
-        .values_list("image_hash", flat=True)
-    )
-    if len(possible_ids) > 99:
-        possible_ids = random.choices(possible_ids, k=100)
-    logger.info("%s possible ids", len(possible_ids))
-    try:
-        samples = (
-            Photo.objects.owned_by(user)
-            .exclude(caption_instance__captions_json={})
-            .exclude(caption_instance__captions_json__isnull=True)
-            .filter(image_hash__in=possible_ids)
-            .prefetch_related("faces")
-            .prefetch_related("faces__person")
-            .prefetch_related("caption_instance")
-            .all()
-        )
-    except ValueError:
-        return default_search_terms
-
-    search_data: list[dict[str, list[str]]] = []
-    search_terms: list[str] = default_search_terms
-    logger.info("Getting search terms for user %s", user.id)
-    logger.info("Found %s photos", len(samples))
-    for p in samples:
-        faces = p.faces.all()
-        terms_loc: list[str] = []
-        if (
-            p.geolocation_json
-            and p.geolocation_json != {}
-            and "features" in p.geolocation_json
-        ):
-            terms_loc = [
-                f["text"]
-                for f in p.geolocation_json["features"][-5:]
-                if "text" in f and not f["text"].isdigit()
-            ]
-        terms_time: list[str] = []
-        if p.exif_timestamp:
-            terms_time = [str(p.exif_timestamp.year)]
-        terms_people = []
-        if p.faces.count() > 0:
-            terms_people = [
-                f.person.name.split(" ")[0] if f.person else "" for f in faces
-            ]
-        terms_things: list[str] = []
-        # caption_instance is a reverse one-to-one; the queryset above excludes
-        # photos without captions, so the accessor never raises here.
-        if p.caption_instance.captions_json:
-            tag_result = p.caption_instance.captions_json.get(OPENCLIP)
-            if tag_result is not None:
-                terms_things = tag_result.get("tags", [])
-
-        terms = {
-            "loc": terms_loc,
-            "time": terms_time,
-            "people": terms_people,
-            "things": terms_things,
-        }
-
-        search_data.append(terms)
-        search_terms = []
-        for datum in search_data:
-            term_time = ""
-            term_thing = ""
-            term_loc = ""
-            term_people = ""
-            if datum["loc"]:
-                term_loc = random.choice(datum["loc"])
-                search_terms.append(term_loc)
-            if datum["time"]:
-                term_time = random.choice(datum["time"])
-                search_terms.append(term_time)
-            if datum["things"]:
-                term_thing = random.choice(datum["things"])
-                search_terms.append(term_thing)
-            if datum["people"]:
-                term_people = random.choice(datum["people"])
-                search_terms.append(term_people)
-
-            search_term_loc_people = " ".join(shuffle([term_loc, term_people]))
-            if random.random() > 0.3:
-                search_terms.append(search_term_loc_people)
-
-            search_term_time_people = " ".join(shuffle([term_time, term_people]))
-            if random.random() > 0.3:
-                search_terms.append(search_term_time_people)
-
-            search_term_people_thing = " ".join(shuffle([term_people, term_thing]))
-            if random.random() > 0.9:
-                search_terms.append(search_term_people_thing)
-
-            search_term_all = " ".join(
-                shuffle([term_loc, term_people, term_time, term_thing])
-            )
-            if random.random() > 0.95:
-                search_terms.append(search_term_all)
-
-            search_term_loc_time = " ".join(shuffle([term_loc, term_time]))
-            if random.random() > 0.3:
-                search_terms.append(search_term_loc_time)
-
-            search_term_loc_thing = " ".join(shuffle([term_loc, term_thing]))
-            if random.random() > 0.9:
-                search_terms.append(search_term_loc_thing)
-
-            search_term_time_thing = " ".join(shuffle([term_time, term_thing]))
-            if random.random() > 0.9:
-                search_terms.append(search_term_time_thing)
-
-    return list(filter(lambda x: len(x), set([x.strip() for x in search_terms])))

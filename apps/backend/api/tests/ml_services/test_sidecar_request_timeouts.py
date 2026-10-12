@@ -45,9 +45,9 @@ class FaceRecognitionTimeoutTest(SimpleTestCase):
     def test_get_face_locations_passes_timeout(self, mock_post):
         mock_post.return_value = _ok_response({"face_locations": []})
 
-        from api.face_recognition import get_face_locations
+        from api.faces.recognition import get_face_locations
 
-        with patch("api.face_recognition.site_config") as mock_cfg:
+        with patch("api.faces.recognition.site_config") as mock_cfg:
             mock_cfg.FACE_RECOGNITION_MODEL = "buffalo_sc"
             get_face_locations("/tmp/photo.jpg")
 
@@ -60,7 +60,7 @@ class SemanticSearchTimeoutTest(SimpleTestCase):
     def test_create_clip_embeddings_passes_timeout(self, mock_post):
         mock_post.return_value = _ok_response({"imgs_emb": [], "magnitudes": []})
 
-        from api.semantic_search import create_clip_embeddings
+        from api.search.semantic import create_clip_embeddings
 
         create_clip_embeddings([])
 
@@ -73,7 +73,7 @@ class SemanticSearchTimeoutTest(SimpleTestCase):
     def test_calculate_query_embeddings_passes_timeout(self, mock_post):
         mock_post.return_value = _ok_response({"emb": [], "magnitude": 0})
 
-        from api.semantic_search import calculate_query_embeddings
+        from api.search.semantic import calculate_query_embeddings
 
         calculate_query_embeddings("test")
 
@@ -100,7 +100,7 @@ class ImageSimilarityTimeoutTest(SimpleTestCase):
     def test_search_similar_embedding_passes_timeout(self, mock_post):
         mock_post.return_value = _ok_response({"result": []})
 
-        from api.image_similarity import search_similar_embedding
+        from api.search.similarity import search_similar_embedding
 
         search_similar_embedding(user=1, emb=[0.0] * 512)
 

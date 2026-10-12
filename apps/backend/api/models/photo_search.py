@@ -34,7 +34,7 @@ class PhotoSearch(models.Model):
         Only OpenCLIP's tags are indexed into search_captions: tags an earlier
         tagger left under its own key are not.
         """
-        from api.semantic_search import OPENCLIP
+        from api.search.semantic import OPENCLIP
 
         search_captions = ""
 

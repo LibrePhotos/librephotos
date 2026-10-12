@@ -51,7 +51,7 @@ class GenerateFaceEmbeddingsCharacterizationTest(TestCase):
         photo = create_test_photo(owner=self.user)
         create_test_face(photo=photo)  # has a random encoding already
 
-        with patch("api.photo_faces.generate_face_encoding") as gen:
+        with patch("api.faces.photo_faces.generate_face_encoding") as gen:
             generate_face_embeddings(self.user, self.job_id)
 
         gen.assert_not_called()
@@ -67,7 +67,7 @@ class GenerateFaceEmbeddingsCharacterizationTest(TestCase):
     def test_encodes_every_pending_face_and_finishes_job(self):
         faces = [_face_without_encoding(self.user) for _ in range(3)]
 
-        with patch("api.photo_faces.generate_face_encoding") as gen:
+        with patch("api.faces.photo_faces.generate_face_encoding") as gen:
             generate_face_embeddings(self.user, self.job_id)
 
         self.assertEqual(gen.call_count, 3)
@@ -87,7 +87,7 @@ class GenerateFaceEmbeddingsCharacterizationTest(TestCase):
         _face_without_encoding(other)
         _face_without_encoding(self.user)
 
-        with patch("api.photo_faces.generate_face_encoding") as gen:
+        with patch("api.faces.photo_faces.generate_face_encoding") as gen:
             generate_face_embeddings(self.user, self.job_id)
 
         self.assertEqual(gen.call_count, 1)
@@ -102,7 +102,7 @@ class GenerateFaceEmbeddingsCharacterizationTest(TestCase):
         _face_without_encoding(self.user)
 
         with patch(
-            "api.photo_faces.generate_face_encoding",
+            "api.faces.photo_faces.generate_face_encoding",
             side_effect=[ValueError("no encoding"), None],
         ) as gen:
             generate_face_embeddings(self.user, self.job_id)
@@ -122,7 +122,7 @@ class GenerateFaceEmbeddingsCharacterizationTest(TestCase):
         _face_without_encoding(self.user)
 
         with patch(
-            "api.photo_faces.generate_face_encoding",
+            "api.faces.photo_faces.generate_face_encoding",
             side_effect=RuntimeError("service down"),
         ):
             generate_face_embeddings(self.user, self.job_id)  # must not raise
@@ -138,7 +138,7 @@ class GenerateFaceEmbeddingsCharacterizationTest(TestCase):
         _face_without_encoding(self.user)
 
         with (
-            patch("api.photo_faces.generate_face_encoding") as gen,
+            patch("api.faces.photo_faces.generate_face_encoding") as gen,
             patch.object(processing_jobs, "is_job_cancelled", return_value=True),
         ):
             generate_face_embeddings(self.user, self.job_id)
@@ -157,7 +157,7 @@ class GenerateFaceEmbeddingsCharacterizationTest(TestCase):
         _face_without_encoding(self.user)
 
         with (
-            patch("api.photo_faces.generate_face_encoding"),
+            patch("api.faces.photo_faces.generate_face_encoding"),
             patch.object(
                 processing_jobs, "is_job_cancelled", return_value=False
             ) as cancelled,
@@ -170,7 +170,7 @@ class GenerateFaceEmbeddingsCharacterizationTest(TestCase):
         _face_without_encoding(self.user)
 
         with (
-            patch("api.photo_faces.generate_face_encoding") as gen,
+            patch("api.faces.photo_faces.generate_face_encoding") as gen,
             patch.object(
                 processing_jobs.db.connections,
                 "close_all",
@@ -193,7 +193,7 @@ class GenerateFaceEmbeddingsCharacterizationTest(TestCase):
         )
         _face_without_encoding(self.user)
 
-        with patch("api.photo_faces.generate_face_encoding"):
+        with patch("api.faces.photo_faces.generate_face_encoding"):
             generate_face_embeddings(self.user, self.job_id)
 
         self.assertEqual(
