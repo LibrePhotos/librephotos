@@ -13,7 +13,7 @@ At the top of the Library page, you'll see quick stats about your library:
 - **Photos** — Total number of photos and the number of distinct days they were taken on (undated photos are grouped into a single extra bucket)
 - **People** — Number of recognized people, with a breakdown of inferred, labeled, and unknown faces
 - **Faces** — Total faces detected
-- **Events** — Number of auto-generated event albums
+- **Events** — Number of events (photos grouped by when they were taken)
 
 ## Scanning
 
@@ -26,9 +26,9 @@ In the **Scan Library** row, click **Scan** to scan your configured scan directo
 3. Creates thumbnails
 4. Extracts EXIF metadata
 5. Runs face detection
-6. Generates AI tags with OpenCLIP, which also gives each photo its semantic-search embedding
+6. Detects the things in each photo with OpenCLIP, which also gives each photo its semantic-search embedding
 7. Performs reverse geocoding
-8. Calculates the search embeddings the tagging could not
+8. Calculates the search embeddings the thing detection could not
 
 The scan imports images, videos, RAW files and XMP sidecars. Any other file in your folders, such as an editor sidecar (`.pp3`, `.aae`), a Google Takeout `.json` or `Thumbs.db`, is skipped and does not count as an error. A file that looks like a photo or video but cannot be read, such as an empty `.jpg` or one whose header is damaged, is still listed in the scan job's errors (see [Job System](./job-system.md)).
 
@@ -40,7 +40,7 @@ AI *captions* are not generated during a scan — they are created per photo on 
 
 ### Files replaced in place
 
-If you overwrite a file with a different picture but keep the same name, the next scan picks the change up and re-indexes it: the thumbnails are rebuilt from the new picture and the photo goes back into the queue for face detection, tags and geocoding. It keeps its album membership, its sharing and its link, so anything pointing at it still works.
+If you overwrite a file with a different picture but keep the same name, the next scan picks the change up and re-indexes it: the thumbnails are rebuilt from the new picture and the photo goes back into the queue for face detection, things and geocoding. It keeps its album membership, its sharing and its link, so anything pointing at it still works.
 
 A file whose bytes changed while its picture stayed the same is only re-keyed internally. That covers a rating or a face tag LibrePhotos wrote into the original, and metadata another tool edited in place: nothing is regenerated and nothing you corrected by hand is lost.
 
@@ -52,7 +52,7 @@ The first scan after upgrading may re-key files LibrePhotos had previously writt
 
 ### Scan Progress
 
-Scan progress is shown in the [Job System](./job-system.md). The scan is split into smaller tasks, prioritizing thumbnail creation so photos appear in the UI quickly while heavier processing (faces, tags) happens in the background.
+Scan progress is shown in the [Job System](./job-system.md). The scan is split into smaller tasks, prioritizing thumbnail creation so photos appear in the UI quickly while heavier processing (faces, things) happens in the background.
 
 ## Nextcloud Integration
 
@@ -85,8 +85,8 @@ The Library page provides quick access to common maintenance actions:
 |-----|--------|-------------|
 | **Scan Library** | **Scan** | Scan for new photos in the file system |
 | **Scan Library** (dropdown) | **Rescan** | Re-process all existing photos |
-| **Generate Event Albums** | **Generate** | Create auto albums grouped by time |
-| **Regenerate Event Titles** | **Generate** | Regenerate titles for existing event albums |
+| **Generate Event Albums** | **Generate** | Group photos into events by when they were taken |
+| **Regenerate Event Titles** | **Generate** | Regenerate the titles of existing events |
 | **Train faces** | **Train** | Run face clustering and classification |
 | **Rescan Faces** | **Rescan** | Re-detect faces in all photos |
 | **Nextcloud** | **Scan** | Scan photos from a connected Nextcloud instance |
@@ -104,7 +104,7 @@ LibrePhotos runs several background ML services. Administrators can monitor and 
 | **face_recognition** | Face detection and recognition |
 | **image_captioning** | Image caption generation |
 | **exif** | EXIF metadata extraction |
-| **tags** | Tags and semantic-search embeddings (OpenCLIP); always runs, because search needs it |
+| **tags** | Things and semantic-search embeddings (OpenCLIP); always runs, because search needs it |
 
 For each service, you can:
 

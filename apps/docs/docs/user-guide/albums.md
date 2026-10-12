@@ -16,7 +16,7 @@ Albums you create manually to organize photos however you like. You can add any 
 ### People Albums
 Automatically generated albums based on face recognition. Each recognized person gets their own album.
 
-### Auto Albums (Events)
+### Events
 Albums that group your photos into events based on when they were taken. Grouping is purely chronological: a photo joins the current event if it was taken less than **1 day and 12 hours** after the previous photo already in that event, so a continuous trip stays a single event however long it runs. An event needs at least two photos — a single photo on its own produces no album. Location and recognized people are not used for the grouping itself; they only feed the album's generated title (for example "Weekend in Paris") and its position on the map.
 
 :::note
@@ -26,11 +26,11 @@ Unlike People, Places and Things albums, event albums are **not** created during
 ### Places Albums
 Automatically generated albums based on the GPS location data in your photos.
 
-### Tag Albums
-Albums for **your own tags** — the labels you type yourself, as opposed to the objects the tagging model detects. Every tag gets an album, and the **Tags** section of the Albums page lists them with a photo count. Tags also come in from your files: keywords stored in a photo's XMP `Subject` or IPTC `Keywords` (including `.xmp` sidecars, so tags applied in Lightroom or digiKam are picked up) become tags during a scan. See [Tagging photos](#tagging-photos) below for how to apply them, and [Search](./search.md) for finding photos by tag.
+### Tags
+Albums for **your own tags** — the labels you type yourself, as opposed to the things OpenCLIP detects. Every tag gets an album, and the **Tags** section of the Albums page lists them with a photo count. Tags also come in from your files: keywords stored in a photo's XMP `Subject` or IPTC `Keywords` (including `.xmp` sidecars, so tags applied in Lightroom or digiKam are picked up) become tags during a scan. See [Tagging photos](#tagging-photos) below for how to apply them, and [Search](./search.md) for finding photos by tag.
 
 ### Things Albums
-Automatically generated albums based on detected objects and scenes in your photos. Things Albums are filtered by the currently active **Tagging Model** (configurable in Site Settings), so only tags from the selected model are shown. Switching models does not delete your existing tags, but it also does not create tags for the newly selected model — until tags exist for that model, the Things section will look empty. To generate them, run a full **Rescan** from **Settings → Library** (in the *Scan Library* section, open the dropdown next to **Scan** and choose **Rescan**), which retags your existing photos. Albums created from `#hashtags` you typed into photo captions are always shown, regardless of the active model.
+Automatically generated albums based on detected objects and scenes in your photos. Things Albums are filtered by the currently active **Tagging Model** (configurable in Site Settings), so only things from the selected model are shown. Switching models does not delete your existing things, but it also does not detect things with the newly selected model — until things exist for that model, the Things section will look empty. To generate them, run a full **Rescan** from **Settings → Library** (in the *Scan Library* section, open the dropdown next to **Scan** and choose **Rescan**), which detects the things in your existing photos again. Albums created from `#hashtags` you typed into photo captions are always shown, regardless of the active model.
 
 ---
 

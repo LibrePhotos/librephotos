@@ -233,7 +233,7 @@ sidebar_position: 26
         <p hidden>digiKam</p>        <td>❔</td>
     </tr>
     <tr>
-        <td>Auto albums</td>
+        <td>Events (auto albums)</td>
         <p hidden>LibrePhotos</p>    <td>✔️</td>
         <p hidden>Photoview</p>      <td>❌</td>
         <p hidden>PhotoPrism</p>     <td>✔️</td>
