@@ -1,6 +1,6 @@
 import { Image } from "@mantine/core";
 import React, { useState } from "react";
-import { serverAddress } from "../../api_client/apiClient";
+import { serverAddress } from "../../api_client/urls";
 
 type Props = Readonly<{
   imageHash: string;

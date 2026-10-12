@@ -18,7 +18,7 @@ const stubs = vi.hoisted(() => ({
 
 vi.mock("../api", async importOriginal => ({
   ...(await importOriginal<typeof import("../api")>()),
-  fetchClient: { post: (...args: Parameters<typeof stubs.post>) => stubs.post(...args) },
+  apiClient: { post: (...args: Parameters<typeof stubs.post>) => stubs.post(...args) },
 }));
 // The response shape is not under test here.
 vi.mock("../../util/zodUtils", () => ({ parseWithNotification: (_schema: unknown, data: unknown) => data }));

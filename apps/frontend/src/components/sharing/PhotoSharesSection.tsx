@@ -7,9 +7,9 @@ import {
 } from "@tabler/icons-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { shareAddress } from "../../api_client/apiClient";
 import { useFetchPhotoSharesQuery, usePhotoShareMutation } from "../../api_client/photos/hooks";
 import type { PhotoShare } from "../../api_client/photos/hooks";
+import { shareAddress } from "../../api_client/urls";
 import { ConfirmPopover } from "./ConfirmPopover";
 import { ShareThumbnail } from "./ShareThumbnail";
 

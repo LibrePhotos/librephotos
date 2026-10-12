@@ -1,11 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { parseWithNotification } from "../../util/zodUtils";
-import { fetchClient } from "../api";
+import { apiClient } from "../api";
 import { memoryKeys } from "./keys";
 import { FetchMemoriesResponse } from "./types";
 
 const fetchMemories = (size?: number): Promise<FetchMemoriesResponse> =>
-  fetchClient
+  apiClient
     .get(size ? `/memories?size=${size}` : "/memories")
     .then(response => parseWithNotification(FetchMemoriesResponse, response, "Failed to parse memories"));
 

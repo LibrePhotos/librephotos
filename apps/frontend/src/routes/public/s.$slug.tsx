@@ -5,7 +5,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { UserAlbum } from "../../api_client/albums/types";
-import { ApiError, fetchClient } from "../../api_client/api";
+import { ApiError, apiClient } from "../../api_client/api";
 import { photoGridKeys } from "../../api_client/photos/keys";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 import { isUndatedShare } from "../../components/sharing/publicAlbum";
@@ -31,8 +31,8 @@ function PublicAlbumBySlug() {
     queryFn: async () => {
       let json: unknown;
       try {
-        // Through fetchClient so the request is prefixed with PUBLIC_URL.
-        json = await fetchClient.get(`/public/albums/s/${slug}/`);
+        // Through apiClient so the request is prefixed with PUBLIC_URL.
+        json = await apiClient.get(`/public/albums/s/${slug}/`);
       } catch (error) {
         if (error instanceof ApiError && error.status === 404) return null;
         throw error;

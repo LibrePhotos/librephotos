@@ -39,7 +39,7 @@ const stubs = vi.hoisted(() => ({
   navigate: vi.fn<UseNavigateResult<string>>(),
 }));
 
-vi.mock("../../api_client/apiClient", () => ({ serverAddress: "" }));
+vi.mock("../../api_client/urls", () => ({ serverAddress: "" }));
 vi.mock("../../service/notifications", () => ({ notification: new Proxy({}, { get: () => () => {} }) }));
 vi.mock("../../api_client/faces", () => ({
   useSetFacesPersonLabelMutation: () => ({ mutate: stubs.setFacesPersonLabel }),

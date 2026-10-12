@@ -20,7 +20,7 @@ const API_BASE_URL = PUBLIC_URL + "/api";
  * error; `message` falls back to an internal English string that must never be
  * shown to a user.
  *
- * Every request made through `fetchClient`/`apiClient` rejects with this class
+ * Every request made through `apiClient` rejects with this class
  * (a subclass of the shared client's ApiError, so `instanceof` against either
  * works); this constructor keeps the web's argument order.
  */
@@ -212,9 +212,6 @@ export const apiClient: ApiClient = {
   delete: <T>(endpoint: string, data?: unknown) => call(endpoint, () => sharedClient.delete<T>(endpoint, data)),
   resolveBaseUrl: () => sharedClient.resolveBaseUrl(),
 };
-
-/** The name the existing hooks use; same object as `apiClient`. */
-export const fetchClient = apiClient;
 
 /** A response that did not match its schema (server drift) asks the user to report it. */
 function notifyParseError(error: unknown) {

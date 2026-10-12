@@ -219,6 +219,6 @@ ${code}`,
   });
 
   it("allows other imports from the API module", async () => {
-    expect(await lint(`import { fetchClient } from "../../api";`)).toEqual([]);
+    expect(await lint(`import { apiClient } from "../../api";`)).toEqual([]);
   });
 });

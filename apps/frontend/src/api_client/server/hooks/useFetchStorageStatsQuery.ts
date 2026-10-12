@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import { parseWithNotification } from "../../../util/zodUtils";
-import { fetchClient } from "../../api";
+import { apiClient } from "../../api";
 import { serverKeys } from "../keys";
 
 const StorageStatsResponse = z.object({
@@ -16,7 +16,7 @@ export const useFetchStorageStatsQuery = () =>
   useQuery({
     queryKey: serverKeys.storageStats(),
     queryFn: async () => {
-      const response = await fetchClient.get("/storagestats/");
+      const response = await apiClient.get("/storagestats/");
       return parseWithNotification(StorageStatsResponse, response, "Failed to parse storage stats");
     },
   });

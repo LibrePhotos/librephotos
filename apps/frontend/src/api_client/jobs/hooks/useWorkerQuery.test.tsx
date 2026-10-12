@@ -16,7 +16,7 @@ const stubs = vi.hoisted(() => ({
 }));
 
 vi.mock("../../api", () => ({
-  fetchClient: { get: stubs.get },
+  apiClient: { get: stubs.get },
 }));
 
 const IDLE: WorkerAvailabilityResponse = { status: true, queue_can_accept_job: true, job_detail: null };

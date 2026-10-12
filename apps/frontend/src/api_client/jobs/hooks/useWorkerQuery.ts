@@ -1,7 +1,7 @@
 import { pollWhile } from "@librephotos/api-client";
 import { useQuery } from "@tanstack/react-query";
 import { parseWithNotification } from "../../../util/zodUtils";
-import { fetchClient } from "../../api";
+import { apiClient } from "../../api";
 import { jobKeys } from "../keys";
 import { WorkerAvailabilityResponse } from "../types";
 
@@ -13,7 +13,7 @@ export const useWorkerQuery = (options: UseWorkerQueryOptions = {}) =>
   useQuery({
     queryKey: jobKeys.worker(),
     queryFn: async () => {
-      const response = await fetchClient.get("/rqavailable/");
+      const response = await apiClient.get("/rqavailable/");
       return parseWithNotification(WorkerAvailabilityResponse, response, "Failed to parse worker availability");
     },
     // Every two seconds while a job runs (the progress ring follows it); otherwise only often enough

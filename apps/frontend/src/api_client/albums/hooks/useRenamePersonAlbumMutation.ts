@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
-import { fetchClient, queryClient } from "../../api";
+import { apiClient, queryClient } from "../../api";
 import { faceKeys } from "../../faces/keys";
 import { statsKeys } from "../../stats/keys";
 import { albumKeys } from "../keys";
@@ -14,7 +14,7 @@ type RenamePersonAlbumParams = {
 export const useRenamePersonAlbumMutation = () =>
   useMutation({
     mutationFn: async ({ id, personName, newPersonName }: RenamePersonAlbumParams) => {
-      await fetchClient.patch(`/persons/${id}/`, { newPersonName });
+      await apiClient.patch(`/persons/${id}/`, { newPersonName });
       notification.renamePerson(personName, newPersonName);
     },
     onSuccess: () => {

@@ -1,7 +1,7 @@
 import { pollWhile } from "@librephotos/api-client";
 import { useQuery } from "@tanstack/react-query";
 import { parseWithNotification } from "../../../util/zodUtils";
-import { fetchClient } from "../../api";
+import { apiClient } from "../../api";
 import { jobKeys } from "../keys";
 import type { JobRequest } from "../types";
 import { JobsResponse } from "../types";
@@ -12,9 +12,7 @@ export const useJobsQuery = (params: JobRequest) =>
     queryFn: async () => {
       // Sent only when narrowing, so the admin list's request is unchanged.
       const mine = params.mine ? "&mine=true" : "";
-      const response = await fetchClient.get(
-        `/jobs/?page_size=${params.pageSize ?? 10}&page=${params.page ?? 0}${mine}`
-      );
+      const response = await apiClient.get(`/jobs/?page_size=${params.pageSize ?? 10}&page=${params.page ?? 0}${mine}`);
       return parseWithNotification(JobsResponse, response, "Failed to parse jobs response");
     },
     // Fast only while a job on this page is unfinished; the idle cadence picks up new jobs.

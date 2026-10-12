@@ -2,7 +2,7 @@ import { useMutation } from "@tanstack/react-query";
 import { z } from "zod";
 import { notification } from "../../../service/notifications";
 import { parseWithNotification } from "../../../util/zodUtils";
-import { fetchClient, queryClient } from "../../api";
+import { apiClient, queryClient } from "../../api";
 import { statsKeys } from "../../stats/keys";
 import { invalidatePhotoLists } from "../invalidatePhotoLists";
 import { photoKeys } from "../keys";
@@ -23,7 +23,7 @@ type PhotoUpdateResponse = z.infer<typeof PhotoUpdateResponse>;
 export const useUpdatePhotoMutation = () =>
   useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<Photo> }) => {
-      const response = await fetchClient.patch(`/photos/edit/${id}/`, data);
+      const response = await apiClient.patch(`/photos/edit/${id}/`, data);
       const result = parseWithNotification(PhotoUpdateResponse, response, "Failed to parse photo update response");
       notification.updatePhoto();
       return result;

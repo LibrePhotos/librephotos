@@ -2,8 +2,8 @@ import { ActionIcon, Button, CopyButton, Group, Loader, Modal, Stack, Text, Text
 import { IconCheck as CheckIcon, IconCopy as CopyIcon, IconRefresh as RefreshIcon } from "@tabler/icons-react";
 import React, { useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { shareAddress } from "../../api_client/apiClient";
 import { usePhotoShareMutation } from "../../api_client/photos/hooks";
+import { shareAddress } from "../../api_client/urls";
 import { ConfirmPopover } from "./ConfirmPopover";
 
 type Props = {

@@ -14,7 +14,7 @@ import {
 import { IconShare as Share, IconShareOff as ShareOff } from "@tabler/icons-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { serverAddress } from "../../api_client/apiClient";
+import { serverAddress } from "../../api_client/urls";
 import { useUpdatePhotoSharingMutation } from "../../api_client/photos/hooks";
 import type { BulkPhotoQuery } from "../../api_client/photos/types";
 import { useFetchUserListQuery } from "../../api_client/user/hooks";

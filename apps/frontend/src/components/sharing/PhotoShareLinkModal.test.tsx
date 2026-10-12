@@ -30,7 +30,7 @@ const mutation: ShareMutationFake = {
   isError: false,
 };
 
-vi.mock("../../api_client/apiClient", () => ({ serverAddress: "", shareAddress: "https://photos.example" }));
+vi.mock("../../api_client/urls", () => ({ serverAddress: "", shareAddress: "https://photos.example" }));
 vi.mock("../../api_client/photos/hooks", () => ({ usePhotoShareMutation: () => mutation }));
 
 beforeAll(async () => {

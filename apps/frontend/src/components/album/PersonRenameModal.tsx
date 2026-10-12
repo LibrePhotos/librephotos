@@ -3,7 +3,7 @@ import { schemaResolver, useForm } from "@mantine/form";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import type { Person } from "../../api_client/albums/hooks";
-import { serverAddress } from "../../api_client/apiClient";
+import { serverAddress } from "../../api_client/urls";
 import { makePersonNameSchema } from "./personName.schema";
 
 type FormProps = Readonly<{

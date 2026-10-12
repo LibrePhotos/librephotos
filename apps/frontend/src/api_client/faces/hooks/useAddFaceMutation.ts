@@ -6,7 +6,7 @@ import { notification } from "../../../service/notifications";
 import { recordRecentlyTaggedPerson } from "../../../util/recentlyTaggedPeople";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { albumKeys } from "../../albums/keys";
-import { ApiError, fetchClient, queryClient } from "../../api";
+import { apiClient, ApiError, queryClient } from "../../api";
 import { photoKeys } from "../../photos/keys";
 import { statsKeys } from "../../stats/keys";
 import { faceKeys } from "../keys";
@@ -41,7 +41,7 @@ const AddFaceResponse = z.object({
 type AddFaceRequest = { photo: string; personName: string; box: NormalizedFaceBox };
 
 const addFace = (data: AddFaceRequest) =>
-  fetchClient
+  apiClient
     .post<AddFaceResponse>("/addface", {
       photo: data.photo,
       person_name: data.personName,

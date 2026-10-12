@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
-import { fetchClient, queryClient } from "../../api";
+import { apiClient, queryClient } from "../../api";
 import { photoGridKeys } from "../../photos/keys";
 import { albumKeys } from "../keys";
 import type { RemovePhotoFromUserAlbumParams } from "../types";
@@ -8,7 +8,7 @@ import type { RemovePhotoFromUserAlbumParams } from "../types";
 export const useRemovePhotoFromUserAlbumMutation = () =>
   useMutation({
     mutationFn: async ({ id, title, photos }: RemovePhotoFromUserAlbumParams) => {
-      await fetchClient.patch(`/albums/user/edit/${id}/`, { removedPhotos: photos });
+      await apiClient.patch(`/albums/user/edit/${id}/`, { removedPhotos: photos });
       notification.removePhotosFromAlbum(title, photos.length);
     },
     onSuccess: (_, { id }) => {

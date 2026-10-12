@@ -44,7 +44,7 @@ const stubs = vi.hoisted(() => {
 });
 
 vi.mock("@tanstack/react-router", () => ({ useNavigate: () => stubs.navigate }));
-vi.mock("../../api_client/api", () => ({ fetchClient: { get: vi.fn<(endpoint: string) => Promise<unknown>>() } }));
+vi.mock("../../api_client/api", () => ({ apiClient: { get: vi.fn<(endpoint: string) => Promise<unknown>>() } }));
 vi.mock("../../api_client/auth", () => ({
   useAccessToken: () => ({ data: { access: { user_id: "1", is_admin: stubs.isAdmin } } }),
 }));

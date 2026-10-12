@@ -48,9 +48,9 @@ const noopMutation = { mutate: () => {}, mutateAsync: async () => {}, isPending:
 
 vi.mock("../../api_client/api", () => ({
   ApiError: mocks.ApiError,
-  fetchClient: { get: () => Promise.resolve(), post: mocks.post },
+  apiClient: { get: () => Promise.resolve(), post: mocks.post },
 }));
-vi.mock("../../api_client/apiClient", () => ({ serverAddress: "" }));
+vi.mock("../../api_client/urls", () => ({ serverAddress: "" }));
 vi.mock("../../api_client/auth/hooks", () => ({ useAccessToken: () => ({ data: mocks.auth }) }));
 vi.mock("../../api_client/faces", () => ({ useTrainFacesMutation: () => noopMutation }));
 vi.mock("../../api_client/folders/hooks/useFetchNextcloudDirsQuery", () => ({

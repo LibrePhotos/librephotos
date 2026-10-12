@@ -3,7 +3,7 @@ import { z } from "zod";
 import i18n from "../../../i18n";
 import { notification } from "../../../service/notifications";
 import { parseWithNotification } from "../../../util/zodUtils";
-import { fetchClient, queryClient } from "../../api";
+import { apiClient, queryClient } from "../../api";
 import { statsKeys } from "../../stats/keys";
 import { photoGridKeys, photoKeys } from "../keys";
 import type { BulkPhotoQuery } from "../types";
@@ -52,7 +52,7 @@ export function photoCategory(photo: { is_screenshot?: boolean; is_document?: bo
 export const useSetPhotosCategoryMutation = () =>
   useMutation({
     mutationFn: async ({ notify = true, ...request }: SetPhotosCategoryRequest) => {
-      const response = await fetchClient.post("/photosedit/category/", request);
+      const response = await apiClient.post("/photosedit/category/", request);
       const data = parseWithNotification(
         SetPhotosCategoryResponse,
         response,

@@ -2,7 +2,7 @@ import { Box, Image } from "@mantine/core";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import MapGL, { AttributionControl, Marker, NavigationControl, Popup } from "react-map-gl/maplibre";
 import type { MapRef } from "react-map-gl/maplibre";
-import { serverAddress } from "../api_client/apiClient";
+import { serverAddress } from "../api_client/urls";
 import type { Photo } from "../api_client/photos/types";
 import { useMapStyle } from "../util/mapStyle";
 import { getAveragedCoordinates } from "../util/util";

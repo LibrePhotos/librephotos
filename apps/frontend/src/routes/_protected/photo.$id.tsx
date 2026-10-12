@@ -18,7 +18,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { DateTime } from "luxon";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { serverAddress } from "../../api_client/apiClient";
+import { serverAddress } from "../../api_client/urls";
 import { useSetFacesPersonLabelMutation } from "../../api_client/faces";
 import { useFetchPhotoDetailsQuery } from "../../api_client/photos/hooks";
 import { BreadcrumbPath } from "../../components/common/BreadcrumbPath";

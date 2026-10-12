@@ -36,8 +36,8 @@ import {
 } from "@tabler/icons-react";
 import React, { useEffect, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
-import { fetchClient } from "../../api_client/api";
-import { serverAddress } from "../../api_client/apiClient";
+import { apiClient } from "../../api_client/api";
+import { serverAddress } from "../../api_client/urls";
 import { useAccessToken } from "../../api_client/auth/hooks";
 import { useTrainFacesMutation } from "../../api_client/faces";
 import { useFetchNextcloudDirsQuery } from "../../api_client/folders/hooks/useFetchNextcloudDirsQuery";
@@ -219,8 +219,8 @@ export function Library() {
 
   const regenerateEventTitles = () => {
     // /autoalbumtitlegen/ re-titles every existing event album; /autoalbumgen/ would only
-    // title the albums whose photos changed. fetchClient already reports server errors.
-    startJob(() => fetchClient.post("/autoalbumtitlegen/", {}))
+    // title the albums whose photos changed. apiClient already reports server errors.
+    startJob(() => apiClient.post("/autoalbumtitlegen/", {}))
       .then(start => {
         if (!start.alreadyRunning) {
           notification.regenerateEventAlbums();
@@ -509,7 +509,7 @@ export function Library() {
                 <Button
                   disabled={!workerAvailability}
                   onClick={() => {
-                    startJob(() => fetchClient.get("/scanfaces"))
+                    startJob(() => apiClient.get("/scanfaces"))
                       .then(start => {
                         if (!start.alreadyRunning) {
                           notification.rescanFaces();

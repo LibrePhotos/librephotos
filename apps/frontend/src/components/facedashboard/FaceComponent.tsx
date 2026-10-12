@@ -5,7 +5,7 @@ import { getRouteApi } from "@tanstack/react-router";
 import { reverse } from "lodash-es";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { serverAddress } from "../../api_client/apiClient";
+import { serverAddress } from "../../api_client/urls";
 import classes from "./FaceComponent.module.css";
 import { FaceTooltip } from "./FaceTooltip";
 import type { FaceCell } from "./hooks/useVirtualizedGrid";

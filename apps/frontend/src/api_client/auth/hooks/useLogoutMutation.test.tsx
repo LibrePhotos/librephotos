@@ -16,7 +16,7 @@ const post = vi.fn<(endpoint: string, data?: unknown) => Promise<unknown>>();
 const redirectToLogin = vi.fn<() => void>();
 
 vi.mock("../../api", () => ({
-  fetchClient: { post: (...args: Parameters<typeof post>) => post(...args) },
+  apiClient: { post: (...args: Parameters<typeof post>) => post(...args) },
   redirectToLogin: () => redirectToLogin(),
 }));
 

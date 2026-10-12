@@ -24,7 +24,7 @@ import { defined } from "../../util/defined.test-utils";
 import { ModalTagEdit } from "./ModalTagEdit";
 
 const stubs = vi.hoisted(() => ({
-  // Shaped like fetchClient.post
+  // Shaped like apiClient.post
   post: vi.fn<(endpoint: string, data?: unknown) => Promise<unknown>>(),
   tags: [
     { id: 7, name: "beach", photo_count: 2, cover_photos: [] },
@@ -33,7 +33,7 @@ const stubs = vi.hoisted(() => ({
   taggedPhotos: vi.fn<(names: string[], numberOfPhotos: number) => void>(),
 }));
 
-vi.mock("../../api_client/apiClient", () => ({ serverAddress: "" }));
+vi.mock("../../api_client/urls", () => ({ serverAddress: "" }));
 vi.mock("../../service/notifications", () => ({
   notification: new Proxy(
     {},
@@ -46,7 +46,7 @@ vi.mock("../../api_client/tags/hooks/useFetchTagsQuery", () => ({
   useFetchTagsQuery: () => ({ data: stubs.tags }),
 }));
 vi.mock("../../api_client/api", () => ({
-  fetchClient: { post: stubs.post },
+  apiClient: { post: stubs.post },
   queryClient: {
     invalidateQueries: () => {},
     // The cached list is the shortcut past a create request.

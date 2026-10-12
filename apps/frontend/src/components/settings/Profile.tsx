@@ -20,7 +20,7 @@ import AvatarEditor from "react-avatar-editor";
 import type { DropzoneRef } from "react-dropzone";
 import Dropzone from "react-dropzone";
 import { Trans, useTranslation } from "react-i18next";
-import { serverAddress } from "../../api_client/apiClient";
+import { serverAddress } from "../../api_client/urls";
 import { useAccessToken } from "../../api_client/auth/hooks";
 import type { User as UserDetails } from "../../api_client/user";
 import {

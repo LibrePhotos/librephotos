@@ -19,7 +19,7 @@ const stubs = await vi.hoisted(async () => {
   };
 });
 
-vi.mock("../../api", () => ({ fetchClient: { get: stubs.get }, queryClient: stubs.queryClient }));
+vi.mock("../../api", () => ({ apiClient: { get: stubs.get }, queryClient: stubs.queryClient }));
 
 const { useFetchDateAlbumsQuery } = await import("./useFetchDateAlbumsQuery");
 const { useFetchDateAlbumQuery } = await import("./useFetchDateAlbumQuery");

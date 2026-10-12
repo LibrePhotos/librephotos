@@ -3,8 +3,8 @@ import { z } from "zod";
 import i18n from "../../../i18n";
 import { notification } from "../../../service/notifications";
 import { parseWithNotification } from "../../../util/zodUtils";
-import { fetchClient, queryClient } from "../../api";
-import { serverAddress } from "../../apiClient";
+import { apiClient, queryClient } from "../../api";
+import { serverAddress } from "../../urls";
 import { photoKeys } from "../keys";
 
 export const PhotoShare = z.object({
@@ -30,7 +30,7 @@ export type PhotoShareAction = "enable" | "rotate" | "disable";
 export const usePhotoShareMutation = () =>
   useMutation({
     mutationFn: async (request: { photoId: string; action: PhotoShareAction }) => {
-      const response = await fetchClient.post("/photo/share", {
+      const response = await apiClient.post("/photo/share", {
         photo_id: request.photoId,
         action: request.action,
       });
@@ -50,7 +50,7 @@ export const useFetchPhotoSharesQuery = (enabled = true) =>
     queryKey: photoKeys.shares(),
     enabled,
     queryFn: async () => {
-      const response = await fetchClient.get("/photo/share/list");
+      const response = await apiClient.get("/photo/share/list");
       return parseWithNotification(PhotoShareListResponse, response, "Failed to parse photo shares response").results;
     },
   });

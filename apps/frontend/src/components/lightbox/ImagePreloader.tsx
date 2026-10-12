@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { serverAddress } from "../../api_client/apiClient";
+import { serverAddress } from "../../api_client/urls";
 
 type ImagePreloaderProps = {
   prevSrc: string | null;

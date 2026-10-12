@@ -3,7 +3,7 @@ import { IconCamera as Camera, IconPhoto as Photo } from "@tabler/icons-react";
 import type { TFunction } from "i18next";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { serverAddress } from "../../api_client/apiClient";
+import { serverAddress } from "../../api_client/urls";
 import type { FileVariant, Photo as PhotoType } from "../../api_client/photos/types";
 import { BreadcrumbPath } from "../common/BreadcrumbPath";
 import { FileInfoComponent } from "./FileInfoComponent";

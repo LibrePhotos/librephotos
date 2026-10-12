@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { fetchClient } from "../../api_client/api";
+import { apiClient } from "../../api_client/api";
 import {
   invalidateUploadQueries,
   UploadExistResponse,
@@ -111,7 +111,7 @@ export function useUploadQueue(): UploadQueue {
 
       patchItem(item.id, { status: "hashing", progress: 0, error: undefined });
       const md5 = await calculateMD5(item.file);
-      const response = await fetchClient.get(`/exists/${md5 + user.id}`);
+      const response = await apiClient.get(`/exists/${md5 + user.id}`);
       const { exists } = parseWithNotification(UploadExistResponse, response, "Failed to parse upload exists response");
       if (exists) {
         patchItem(item.id, { status: "duplicate", progress: 100 });

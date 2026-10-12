@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import { parseWithNotification } from "../../../util/zodUtils";
-import { fetchClient } from "../../api";
+import { apiClient } from "../../api";
 import { statsKeys } from "../keys";
 
 const Node = z.object({
@@ -26,7 +26,7 @@ export const useFetchSocialGraphQuery = () =>
   useQuery({
     queryKey: statsKeys.socialGraph(),
     queryFn: async () => {
-      const response = await fetchClient.get("/socialgraph/");
+      const response = await apiClient.get("/socialgraph/");
       return parseWithNotification(PersonDataPointList, response, "Failed to parse social graph");
     },
   });

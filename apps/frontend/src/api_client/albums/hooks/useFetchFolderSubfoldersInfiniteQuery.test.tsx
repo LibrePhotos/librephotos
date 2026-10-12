@@ -19,7 +19,7 @@ const stubs = vi.hoisted(() => {
   return { ApiError, get: vi.fn<(endpoint: string) => Promise<unknown>>() };
 });
 
-vi.mock("../../api", () => ({ ApiError: stubs.ApiError, fetchClient: { get: stubs.get } }));
+vi.mock("../../api", () => ({ ApiError: stubs.ApiError, apiClient: { get: stubs.get } }));
 
 function folderPage(page: number, names: string[], hasNext: boolean) {
   return {

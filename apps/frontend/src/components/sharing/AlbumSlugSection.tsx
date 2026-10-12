@@ -8,8 +8,8 @@ import { useTranslation } from "react-i18next";
 import { useToggleUserAlbumPublicMutation, type PublicSharingOptions } from "../../api_client/albums/hooks";
 import { albumKeys } from "../../api_client/albums/keys";
 import type { UserAlbum } from "../../api_client/albums/types";
-import { ApiError, fetchClient } from "../../api_client/api";
-import { shareAddress } from "../../api_client/apiClient";
+import { apiClient, ApiError } from "../../api_client/api";
+import { shareAddress } from "../../api_client/urls";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import { type PublicSharingDefaults } from "../../api_client/user/types";
 import { fromPickerValue, pickerValueDaysFromNow, toPickerValue } from "../../util/dateUtils";
@@ -26,7 +26,7 @@ function useSlugTaken(slug: string, enabled: boolean, albumId: string | undefine
     enabled,
     queryFn: async () => {
       try {
-        const data = await fetchClient.get(`/public/albums/s/${encodeURIComponent(slug)}/`);
+        const data = await apiClient.get(`/public/albums/s/${encodeURIComponent(slug)}/`);
         const album = typeof data === "object" && data !== null && "results" in data ? data.results : undefined;
         const id = typeof album === "object" && album !== null && "id" in album ? album.id : undefined;
         return typeof id === "string" || typeof id === "number" ? id : "__exists__";

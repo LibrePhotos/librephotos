@@ -3,7 +3,7 @@ import { type MediaType } from "../../../components/photolist/mediaTypeFilter";
 import { timelineFilterToParams, type TimelineFilter } from "../../../components/photolist/timelineFilter";
 import { definedSearchParams } from "../../../util/util";
 import { parseWithNotification } from "../../../util/zodUtils";
-import { fetchClient, queryClient } from "../../api";
+import { apiClient, queryClient } from "../../api";
 import { photoGridKeys } from "../../photos/keys";
 import type { IncompleteDatePhotosGroup, Photoset } from "../../photos/types";
 import { FetchDateAlbumResponse } from "../types";
@@ -36,7 +36,7 @@ export const useFetchDateAlbumQuery = (options: AlbumDateOption, queryOptions?: 
 
       // The trailing slash matters: without it Django answers every day page
       // with a 301 to the slashed URL.
-      const response = await fetchClient.get(
+      const response = await apiClient.get(
         `/albums/date/${options.album_date_id}/?${definedSearchParams(params).toString()}`
       );
 

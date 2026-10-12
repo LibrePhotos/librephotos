@@ -13,7 +13,7 @@ import type { JumpToOptions } from "maplibre-gl";
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { serverAddress } from "../api_client/apiClient";
+import { serverAddress } from "../api_client/urls";
 import { LocationMap } from "./LocationMap";
 
 const stubs = vi.hoisted(() => ({ jumpTo: vi.fn<(options: JumpToOptions) => void>(), mounts: 0 }));

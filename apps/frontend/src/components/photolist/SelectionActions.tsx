@@ -26,7 +26,7 @@ import { useLocation } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { useRemovePhotoFromUserAlbumMutation } from "../../api_client/albums/hooks";
-import { shareAddress } from "../../api_client/apiClient";
+import { shareAddress } from "../../api_client/urls";
 import { useDownloadPhotosMutation } from "../../api_client/jobs";
 import {
   useMarkPhotosDeletedMutation,

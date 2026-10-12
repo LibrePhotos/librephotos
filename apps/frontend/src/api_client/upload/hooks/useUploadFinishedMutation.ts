@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { fetchClient, queryClient } from "../../api";
+import { apiClient, queryClient } from "../../api";
 import { photoGridKeys } from "../../photos/keys";
 import { serverKeys } from "../../server/keys";
 import { statsKeys } from "../../stats/keys";
@@ -24,7 +24,7 @@ export const invalidateUploadQueries = () => {
   queryClient.invalidateQueries({ queryKey: serverKeys.storageStats() });
 };
 
-const uploadFinished = (options: UploadFinishedOptions) => fetchClient.post("/upload/complete/", options.formData);
+const uploadFinished = (options: UploadFinishedOptions) => apiClient.post("/upload/complete/", options.formData);
 
 export const useUploadFinishedMutation = () =>
   useMutation({

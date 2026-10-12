@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
-import { fetchClient, queryClient } from "../../api";
+import { apiClient, queryClient } from "../../api";
 import { faceKeys } from "../../faces/keys";
 import { statsKeys } from "../../stats/keys";
 import { albumKeys } from "../keys";
@@ -8,7 +8,7 @@ import { albumKeys } from "../keys";
 export const useDeletePersonAlbumMutation = () =>
   useMutation({
     mutationFn: async (id: string) => {
-      await fetchClient.delete(`/persons/${id}/`);
+      await apiClient.delete(`/persons/${id}/`);
       notification.deletePerson();
     },
     onSuccess: () => {

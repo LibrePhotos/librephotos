@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { useMemo } from "react";
-import { serverAddress } from "../api_client/apiClient";
+import { serverAddress } from "../api_client/urls";
 import { notification } from "../service/notifications";
 import { canCopyImagesToClipboard, copyImageToClipboard } from "../util/imageClipboard";
 

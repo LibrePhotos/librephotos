@@ -11,7 +11,7 @@
  */
 
 import { parseWithNotification } from "../../util/zodUtils";
-import { fetchClient } from "../api";
+import { apiClient } from "../api";
 import { PhotoMetadata } from "./types";
 
 // Editable metadata fields
@@ -29,7 +29,7 @@ export type MetadataUpdateFields = {
  * @param photoId Photo UUID or image_hash
  */
 export async function fetchPhotoMetadata(photoId: string): Promise<PhotoMetadata> {
-  const response = await fetchClient.get(`/photos/${photoId}/metadata`);
+  const response = await apiClient.get(`/photos/${photoId}/metadata`);
   return parseWithNotification(PhotoMetadata, response, "Failed to parse photo metadata");
 }
 
@@ -39,7 +39,7 @@ export async function fetchPhotoMetadata(photoId: string): Promise<PhotoMetadata
  * @param updates Fields to update
  */
 export async function updatePhotoMetadata(photoId: string, updates: MetadataUpdateFields): Promise<PhotoMetadata> {
-  const response = await fetchClient.patch(`/photos/${photoId}/metadata`, updates);
+  const response = await apiClient.patch(`/photos/${photoId}/metadata`, updates);
   return parseWithNotification(PhotoMetadata, response, "Failed to parse updated photo metadata");
 }
 
@@ -52,7 +52,7 @@ export async function bulkUpdateMetadata(
   photoIds: string[],
   updates: MetadataUpdateFields
 ): Promise<{ updated_count: number; message: string }> {
-  return fetchClient.patch<{ updated_count: number; message: string }>("/photos/metadata/bulk", {
+  return apiClient.patch<{ updated_count: number; message: string }>("/photos/metadata/bulk", {
     photo_ids: photoIds,
     updates,
   });

@@ -20,9 +20,9 @@ const stubs = vi.hoisted(() => ({
 }));
 
 vi.mock("../../api", () => ({
-  fetchClient: { post: stubs.post, get: stubs.get, delete: stubs.delete },
+  apiClient: { post: stubs.post, get: stubs.get, delete: stubs.delete },
 }));
-vi.mock("../../apiClient", () => ({ serverAddress: "" }));
+vi.mock("../../urls", () => ({ serverAddress: "" }));
 vi.mock("../../../service/notifications", () => ({
   notification: {
     downloadStarting: () => {},

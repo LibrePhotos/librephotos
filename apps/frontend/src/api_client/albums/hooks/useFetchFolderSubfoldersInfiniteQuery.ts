@@ -1,6 +1,6 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useEffect, useMemo } from "react";
-import { fetchClient } from "../../api";
+import { apiClient } from "../../api";
 import { albumKeys } from "../keys";
 import { retryFolderRequest, type FolderNavigationResponse, type SubfolderInfo } from "./useFetchFolderAlbumsQuery";
 
@@ -15,7 +15,7 @@ export const useFetchFolderSubfoldersInfiniteQuery = (
       const params = new URLSearchParams();
       if (path) params.set("path", path);
       params.set("page", String(page));
-      return fetchClient.get<FolderNavigationResponse>(`/folders/subfolders/?${params.toString()}`);
+      return apiClient.get<FolderNavigationResponse>(`/folders/subfolders/?${params.toString()}`);
     },
     getNextPageParam: lastPage => (lastPage.next === null ? undefined : lastPage.page + 1),
     initialPageParam: 1,

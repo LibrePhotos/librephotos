@@ -43,8 +43,8 @@ import {
 import { useNavigate } from "@tanstack/react-router";
 import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { fetchClient } from "../../api_client/api";
-import { serverAddress } from "../../api_client/apiClient";
+import { apiClient } from "../../api_client/api";
+import { serverAddress } from "../../api_client/urls";
 import { useAccessToken } from "../../api_client/auth";
 import { useTrainFacesMutation } from "../../api_client/faces";
 import {
@@ -513,7 +513,7 @@ export function useSpotlightActions(query: string = "") {
         leftSection: React.createElement(IconMoodSmile, iconProps),
         onClick: () => {
           if (workerAvailable) {
-            startJob(() => fetchClient.get("/scanfaces"))
+            startJob(() => apiClient.get("/scanfaces"))
               .then(start => {
                 if (!start.alreadyRunning) {
                   notification.rescanFaces();

@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
-import { fetchClient, queryClient } from "../../api";
+import { apiClient, queryClient } from "../../api";
 import { photoGridKeys } from "../../photos/keys";
 import { albumKeys } from "../keys";
 
@@ -13,7 +13,7 @@ type ShareUserAlbumParams = {
 export const useShareUserAlbumMutation = () =>
   useMutation({
     mutationFn: async ({ albumId, userId, share }: ShareUserAlbumParams) => {
-      await fetchClient.post("/useralbum/share/", {
+      await apiClient.post("/useralbum/share/", {
         shared: share,
         album_id: albumId,
         target_user_id: userId,

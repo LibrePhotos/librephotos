@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { groupBy, toPairs } from "lodash-es";
 import { z } from "zod";
 import { parseWithNotification } from "../../../util/zodUtils";
-import { fetchClient } from "../../api";
+import { apiClient } from "../../api";
 import { photoGridKeys } from "../keys";
 import { PigPhoto } from "../types";
 
@@ -15,7 +15,7 @@ export const useFetchSharedPhotosWithMeQuery = () =>
   useQuery({
     queryKey: photoGridKeys.sharedWithMe(),
     queryFn: async () => {
-      const rows = await fetchAllPages(fetchClient, "/photos/shared/tome/");
+      const rows = await fetchAllPages(apiClient, "/photos/shared/tome/");
       const { results } = parseWithNotification(
         SharedPhotosWithMeResponse,
         { results: rows },

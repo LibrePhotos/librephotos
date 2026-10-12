@@ -2,7 +2,7 @@ import { useMutation } from "@tanstack/react-query";
 import { z } from "zod";
 import { notification } from "../../../service/notifications";
 import { parseWithNotification } from "../../../util/zodUtils";
-import { fetchClient, queryClient } from "../../api";
+import { apiClient, queryClient } from "../../api";
 import { invalidatePhotoLists } from "../invalidatePhotoLists";
 import { photoKeys } from "../keys";
 import type { BulkPhotoQuery } from "../types";
@@ -37,7 +37,7 @@ type FavoritePhotosRequest = IndividualRequest | SelectAllRequest;
 export const useSetFavoritePhotosMutation = () =>
   useMutation({
     mutationFn: async (request: FavoritePhotosRequest) => {
-      const response = await fetchClient.post("/photosedit/favorite/", request);
+      const response = await apiClient.post("/photosedit/favorite/", request);
       const data = parseWithNotification(
         UpdatedPhotosResponse,
         response,

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { parseWithNotification } from "../../util/zodUtils";
-import { fetchClient } from "../api";
+import { apiClient } from "../api";
 import { startJob } from "../jobs/startJob";
 import { invalidatePhotoLists } from "../photos/invalidatePhotoLists";
 import { stackKeys } from "./keys";
@@ -38,50 +38,50 @@ async function fetchStacks(params?: {
 
   const queryString = queryParams.toString();
   const endpoint = `/stacks${queryString ? `?${queryString}` : ""}`;
-  const response = await fetchClient.get(endpoint);
+  const response = await apiClient.get(endpoint);
   return parseWithNotification(PhotoStackListResponse, response, "Failed to parse stacks list");
 }
 
 async function fetchStack(id: string): Promise<StackDetailResponse> {
-  const response = await fetchClient.get(`/stacks/${id}/`);
+  const response = await apiClient.get(`/stacks/${id}/`);
   return parseWithNotification(PhotoStack, response, "Failed to parse stack details");
 }
 
 async function fetchStackStats(): Promise<StackStatsResponse> {
-  const response = await fetchClient.get("/stacks/stats/");
+  const response = await apiClient.get("/stacks/stats/");
   return parseWithNotification(PhotoStackStats, response, "Failed to parse stack stats");
 }
 
 async function removeFromStack(stackId: string, data: RemoveFromStackRequest): Promise<RemoveFromStackResponse> {
-  const response = await fetchClient.post(`/stacks/${stackId}/remove/`, {
+  const response = await apiClient.post(`/stacks/${stackId}/remove/`, {
     photo_hashes: data.photo_hashes,
   });
   return parseWithNotification(RemoveFromStackResponse, response, "Failed to parse remove from stack response");
 }
 
 async function mergeStacks(data: MergeStacksRequest): Promise<MergeStacksResponse> {
-  const response = await fetchClient.post("/stacks/merge/", data);
+  const response = await apiClient.post("/stacks/merge/", data);
   return parseWithNotification(MergeStacksResponse, response, "Failed to parse merge stacks response");
 }
 
 async function createManualStack(data: CreateManualStackRequest): Promise<CreateManualStackResponse> {
-  const response = await fetchClient.post("/stacks/manual/", data);
+  const response = await apiClient.post("/stacks/manual/", data);
   return parseWithNotification(CreateManualStackResponse, response, "Failed to parse create manual stack response");
 }
 
 async function deleteStack(id: string): Promise<void> {
-  await fetchClient.delete(`/stacks/${id}/`);
+  await apiClient.delete(`/stacks/${id}/`);
 }
 
 async function detectStacks(options?: DetectStacksRequest): Promise<void> {
-  const start = await startJob(() => fetchClient.post("/stacks/detect/", options || {}));
+  const start = await startJob(() => apiClient.post("/stacks/detect/", options || {}));
   if (!start.alreadyRunning) {
     parseWithNotification(DetectStacksResponse, start.data, "Failed to parse detect stacks response");
   }
 }
 
 async function setCoverPhoto(stackId: string, photoHash: string): Promise<SetPrimaryResponse> {
-  const response = await fetchClient.post(`/stacks/${stackId}/primary/`, {
+  const response = await apiClient.post(`/stacks/${stackId}/primary/`, {
     photo_hash: photoHash,
   });
   return parseWithNotification(SetPrimaryResponseSchema, response, "Failed to set cover photo");

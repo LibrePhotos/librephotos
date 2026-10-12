@@ -25,7 +25,7 @@ const stubs = vi.hoisted(() => ({
   chosen: vi.fn<(personName: string) => void>(),
 }));
 
-vi.mock("../../api_client/apiClient", () => ({ serverAddress: "" }));
+vi.mock("../../api_client/urls", () => ({ serverAddress: "" }));
 vi.mock("../../api_client/albums/hooks", () => ({ useFetchPeopleAlbumsQuery: () => ({ data: stubs.people }) }));
 vi.mock("../../api_client/faces", () => ({
   useSetFacesPersonLabelMutation: () => ({ mutate: stubs.setFacesPersonLabel }),

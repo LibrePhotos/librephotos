@@ -30,7 +30,7 @@ vi.mock("../../authCookies", async importOriginal => ({
 }));
 vi.mock("../../api", async importOriginal => ({
   ...(await importOriginal<typeof import("../../api")>()),
-  fetchClient: { post: (...args: Parameters<typeof stubs.post>) => stubs.post(...args) },
+  apiClient: { post: (...args: Parameters<typeof stubs.post>) => stubs.post(...args) },
 }));
 
 beforeAll(() => {

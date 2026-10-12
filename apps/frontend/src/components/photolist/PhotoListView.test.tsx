@@ -52,7 +52,7 @@ vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => navigate,
   useLocation: () => ({ pathname: "/photos" }),
 }));
-vi.mock("../../api_client/apiClient", () => ({ serverAddress: "", shareAddress: "" }));
+vi.mock("../../api_client/urls", () => ({ serverAddress: "", shareAddress: "" }));
 vi.mock("../../api_client/albums/hooks", () => ({
   useSetPersonAlbumCoverMutation: () => ({ mutate: () => {} }),
   useSetUserAlbumCoverMutation: () => ({ mutate: () => {} }),

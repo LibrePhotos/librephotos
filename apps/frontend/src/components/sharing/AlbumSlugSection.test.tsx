@@ -38,7 +38,7 @@ vi.mock("../../api_client/albums/hooks", () => ({
 // The slug availability check: a 404 means the slug is free
 vi.mock("../../api_client/api", () => ({
   ApiError: stubs.ApiError,
-  fetchClient: {
+  apiClient: {
     get: () => {
       if (stubs.slugOwner === "pending") return new Promise(() => {});
       return stubs.slugOwner === undefined

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { serverAddress } from "../../api_client/apiClient";
+import { serverAddress } from "../../api_client/urls";
 import type { NormalizedFaceBox } from "../../api_client/faces/hooks/useAddFaceMutation";
 import { generatedCaptionOf, userCaptionOf } from "../../api_client/photos/captions";
 import type { Photo, PhotoOcrBlock } from "../../api_client/photos/types";

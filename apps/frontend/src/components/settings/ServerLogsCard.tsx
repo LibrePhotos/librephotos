@@ -16,7 +16,7 @@ import { useDebouncedValue } from "@mantine/hooks";
 import { IconDownload, IconRefresh } from "@tabler/icons-react";
 import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { fetchClient } from "../../api_client/api";
+import { apiClient } from "../../api_client/api";
 import { useFetchServerLogsViewQuery } from "../../api_client/server/hooks";
 
 function downloadLogsBlob(data: unknown) {
@@ -62,9 +62,9 @@ export function ServerLogsCard() {
   const handleDownload = async () => {
     setIsDownloading(true);
     try {
-      downloadLogsBlob(await fetchClient.getBlob("/serverlogs"));
+      downloadLogsBlob(await apiClient.getBlob("/serverlogs"));
     } catch {
-      // fetchClient already notifies on server and auth errors; a missing log file just downloads nothing
+      // apiClient already notifies on server and auth errors; a missing log file just downloads nothing
     } finally {
       setIsDownloading(false);
     }

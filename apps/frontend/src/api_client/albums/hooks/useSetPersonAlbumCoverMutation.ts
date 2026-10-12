@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
-import { fetchClient, queryClient } from "../../api";
+import { apiClient, queryClient } from "../../api";
 import { albumKeys } from "../keys";
 
 type SetPersonAlbumCoverParams = {
@@ -11,7 +11,7 @@ type SetPersonAlbumCoverParams = {
 export const useSetPersonAlbumCoverMutation = () =>
   useMutation({
     mutationFn: async ({ id, cover_photo }: SetPersonAlbumCoverParams) => {
-      await fetchClient.patch(`/persons/${id}/`, { cover_photo });
+      await apiClient.patch(`/persons/${id}/`, { cover_photo });
       notification.setCoverPhoto();
     },
     onSuccess: () => {

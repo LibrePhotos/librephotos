@@ -6,7 +6,7 @@
  * The backend rejects a scan directory that is outside DATA_ROOT or that does
  * not exist (ManageUserSerializer.apply_scan_directory raises a
  * ValidationError, DRF answers 400). The frontend never showed that:
- * `FetchClient.handleError` only reacts to 500 and 401, the mutation hook has
+ * The API client (api.ts) only notifies on a 500 or a 401, the mutation hook has
  * no `onError`, and ModalUserEdit called `closeModal()` unconditionally right
  * after `updateUser(...)`.
  *
@@ -37,7 +37,7 @@ const backendError = new ApiError(
   400,
   "Scan directory must be inside the data root."
 );
-/** A 500 and a 401 already raise their own toast inside FetchClient. */
+/** A 500 and a 401 already raise their own toast inside the API client. */
 const serverError = new ApiError("Internal Server Error", 500);
 const authError = new ApiError("Authentication failed", 401);
 
@@ -151,7 +151,7 @@ describe("issue #492 - saving a rejected scan directory must not fail silently",
     expect(stubs.updateUserError).toHaveBeenCalledWith(undefined);
   });
 
-  it("stays quiet on a 401, which FetchClient already handled", () => {
+  it("stays quiet on a 401, which the API client already handled", () => {
     failWith(authError);
 
     expect(stubs.updateUserError).not.toHaveBeenCalled();

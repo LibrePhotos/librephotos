@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
-import { fetchClient, queryClient } from "../../api";
+import { apiClient, queryClient } from "../../api";
 import { photoGridKeys } from "../../photos/keys";
 import { tagKeys } from "../keys";
 import type { RenameTagParams } from "../types";
@@ -8,7 +8,7 @@ import type { RenameTagParams } from "../types";
 export const useRenameTagMutation = () =>
   useMutation({
     mutationFn: async ({ id, name, newName }: RenameTagParams) => {
-      await fetchClient.patch(`/tags/${id}/`, { name: newName });
+      await apiClient.patch(`/tags/${id}/`, { name: newName });
       notification.renameTag(name, newName);
     },
     onSuccess: (_, { id }) => {

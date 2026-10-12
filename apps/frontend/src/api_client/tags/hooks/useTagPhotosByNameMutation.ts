@@ -1,7 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
 import { parseWithNotification } from "../../../util/zodUtils";
-import { fetchClient, queryClient } from "../../api";
+import { apiClient, queryClient } from "../../api";
 import { photoGridKeys } from "../../photos/keys";
 import { tagKeys } from "../keys";
 import type { TagList, TagPhotosByNameParams } from "../types";
@@ -18,7 +18,7 @@ async function resolveTag(name: string, cached: TagList | undefined) {
   if (known) {
     return { tag: known, created: false };
   }
-  const response = await fetchClient.post(`/tags/`, { name });
+  const response = await apiClient.post(`/tags/`, { name });
   return { tag: parseWithNotification(Tag, response, "Failed to parse tag"), created: true };
 }
 
@@ -43,7 +43,7 @@ export const useTagPhotosByNameMutation = () =>
       // firing them in parallel only moves the queue.
       for (const name of names) {
         const { tag } = await resolveTag(name, cached);
-        await fetchClient.post(`/tags/${tag.id}/add/`, payload);
+        await apiClient.post(`/tags/${tag.id}/add/`, payload);
         applied.push(tag.name);
       }
 

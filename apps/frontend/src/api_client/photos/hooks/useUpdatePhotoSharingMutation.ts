@@ -2,7 +2,7 @@ import { useMutation } from "@tanstack/react-query";
 import { z } from "zod";
 import { notification } from "../../../service/notifications";
 import { parseWithNotification } from "../../../util/zodUtils";
-import { fetchClient, queryClient } from "../../api";
+import { apiClient, queryClient } from "../../api";
 import { photoGridKeys, photoKeys } from "../keys";
 import type { BulkPhotoQuery, SimpleUser } from "../types";
 
@@ -47,7 +47,7 @@ export const useUpdatePhotoSharingMutation = () =>
             target_user_id: request.target_user.id,
           };
 
-      const response = await fetchClient.post("/photosedit/share/", payload);
+      const response = await apiClient.post("/photosedit/share/", payload);
       const data = parseWithNotification(SharePhotosResponse, response, "Failed to parse photo sharing response");
 
       // Show notification based on mode

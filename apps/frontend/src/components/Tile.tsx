@@ -1,7 +1,7 @@
 import { Image } from "@mantine/core";
 import type { CSSProperties } from "react";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { serverAddress } from "../api_client/apiClient";
+import { serverAddress } from "../api_client/urls";
 
 type DefaultProps = {
   style: CSSProperties;

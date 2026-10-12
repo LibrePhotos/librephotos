@@ -12,7 +12,7 @@ import i18n from "../../i18n";
 import { makePhoto } from "./photoFixture.test-utils";
 import { VersionComponent } from "./VersionComponent";
 
-vi.mock("../../api_client/apiClient", () => ({ serverAddress: "" }));
+vi.mock("../../api_client/urls", () => ({ serverAddress: "" }));
 // Its folder links are router links, which need a router this test has not got.
 vi.mock("../common/BreadcrumbPath", () => ({ BreadcrumbPath: () => null }));
 

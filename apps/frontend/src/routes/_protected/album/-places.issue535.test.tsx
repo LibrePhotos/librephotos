@@ -77,7 +77,7 @@ vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => () => {},
   Link: ({ children }: { children?: React.ReactNode }) => <span>{children}</span>,
 }));
-vi.mock("../../../api_client/apiClient", () => ({ serverAddress: "" }));
+vi.mock("../../../api_client/urls", () => ({ serverAddress: "" }));
 vi.mock("../../../api_client/albums/hooks", () => ({
   useFetchPlacesAlbumsQuery: () => ({ data: stubs.albums, isFetching: stubs.fetching, isLoading: false }),
   useFetchLocationClustersQuery: () => ({ data: stubs.locationClusters, isFetching: stubs.fetching, isLoading: false }),

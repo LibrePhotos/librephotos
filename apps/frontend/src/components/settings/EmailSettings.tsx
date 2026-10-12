@@ -109,7 +109,7 @@ export function EmailSettings(): React.JSX.Element {
   const helpUrl = preset?.help_url;
 
   // Same rules as reportUserSaveError (util/apiErrors.ts): a 401 is left to the auth handling, and
-  // only the server's own message is shown, never FetchClient's internal English one.
+  // only the server's own message is shown, never the API client's internal English one.
   const reportSaveError = (error: unknown) => {
     if (error instanceof ApiError && error.status === 401) {
       return;

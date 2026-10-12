@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import { parseWithNotification } from "../../../util/zodUtils";
-import { fetchClient } from "../../api";
+import { apiClient } from "../../api";
 import { faceKeys } from "../keys";
 import type { CompletePersonFace, CompletePersonFaceList } from "../types";
 import { FaceAnalysisMethod, FacesOrderOption, IncompletePersonFace } from "../types";
@@ -23,7 +23,7 @@ const fetchIncompleteFaces = (params: IncompletePersonFaceListRequest) => {
     minConfidence ? `&min_confidence=${minConfidence}` : ""
   }`;
 
-  return fetchClient.get(url).then(response => {
+  return apiClient.get(url).then(response => {
     const payload = parseWithNotification(
       IncompletePersonFaceListResponse,
       response,

@@ -18,7 +18,7 @@ const stubs = vi.hoisted(() => ({
 
 vi.mock("../../api", async importOriginal => ({
   ...(await importOriginal<typeof import("../../api")>()),
-  fetchClient: { post: (...args: Parameters<typeof stubs.post>) => stubs.post(...args) },
+  apiClient: { post: (...args: Parameters<typeof stubs.post>) => stubs.post(...args) },
 }));
 vi.mock("../../../service/notifications", () => ({ notification: { togglePhotosFavorite: () => {} } }));
 

@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { fetchClient, queryClient } from "../../api";
+import { apiClient, queryClient } from "../../api";
 import { photoGridKeys } from "../../photos/keys";
 import { albumKeys } from "../keys";
 
@@ -28,7 +28,7 @@ export const useToggleUserAlbumPublicMutation = () =>
       expires_at,
       sharing_options,
     }: ToggleUserAlbumPublicParams) => {
-      await fetchClient.post("/useralbum/makepublic", {
+      await apiClient.post("/useralbum/makepublic", {
         album_id: albumId,
         val_public: isPublic,
         slug,

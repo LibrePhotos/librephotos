@@ -4,7 +4,7 @@ import { SHOW_EVERYTHING } from "../../../components/photolist/timelineFilter";
 import i18n from "../../../i18n";
 import { notification } from "../../../service/notifications";
 import { parseWithNotification } from "../../../util/zodUtils";
-import { fetchClient, queryClient } from "../../api";
+import { apiClient, queryClient } from "../../api";
 import { userKeys } from "../keys";
 import { User } from "../types";
 
@@ -31,7 +31,7 @@ export function compactTimelineFilter(filter: TimelineFilter): User["default_tim
 export const useSaveDefaultTimelineFilterMutation = () =>
   useMutation({
     mutationFn: async ({ userId, filter }: SaveDefaultTimelineFilterRequest) => {
-      const response = await fetchClient.patch(`/user/${userId}/`, {
+      const response = await apiClient.patch(`/user/${userId}/`, {
         default_timeline_filter: compactTimelineFilter(filter),
       });
       return parseWithNotification(User, response, "Failed to parse update user response");

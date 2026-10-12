@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { parseWithNotification } from "../../../util/zodUtils";
-import { fetchClient } from "../../api";
+import { apiClient } from "../../api";
 import { mediaKeys } from "../keys";
 import { MediaDiagnostics } from "../types";
 
@@ -14,7 +14,7 @@ export const useMediaDiagnosticsQuery = (mediaHash: string | undefined, enabled:
   useQuery({
     queryKey: mediaKeys.diagnostics(mediaHash),
     queryFn: async () => {
-      const response = await fetchClient.get(`/media/diagnostics/${mediaHash}/`);
+      const response = await apiClient.get(`/media/diagnostics/${mediaHash}/`);
       return parseWithNotification(MediaDiagnostics, response, "Failed to parse media diagnostics response");
     },
     enabled: enabled && !!mediaHash,

@@ -2,7 +2,7 @@ import { useMutation } from "@tanstack/react-query";
 import { z } from "zod";
 import { notification } from "../../../service/notifications";
 import { parseWithNotification } from "../../../util/zodUtils";
-import { ApiError, fetchClient, queryClient } from "../../api";
+import { apiClient, ApiError, queryClient } from "../../api";
 import { photoGridKeys, photoKeys } from "../keys";
 
 const StatusResponse = z.object({
@@ -12,7 +12,7 @@ const StatusResponse = z.object({
 export const useGenerateImageToTextCaptionMutation = () =>
   useMutation({
     mutationFn: async ({ id }: { id: string }) => {
-      const response = await fetchClient.post(`/photosedit/generateim2txt/`, { image_hash: id });
+      const response = await apiClient.post(`/photosedit/generateim2txt/`, { image_hash: id });
       parseWithNotification(StatusResponse, response, "Failed to parse generate image to text caption response");
     },
     onSuccess: (_, { id }) => {

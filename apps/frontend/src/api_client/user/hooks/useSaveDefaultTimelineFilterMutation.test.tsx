@@ -24,7 +24,7 @@ const stubs = await vi.hoisted(async () => {
   };
 });
 
-vi.mock("../../api", () => ({ fetchClient: { patch: stubs.patch }, queryClient: stubs.queryClient }));
+vi.mock("../../api", () => ({ apiClient: { patch: stubs.patch }, queryClient: stubs.queryClient }));
 
 vi.mock("../../../service/notifications", () => ({
   notification: { requestFailed: stubs.requestFailed },

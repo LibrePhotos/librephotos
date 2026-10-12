@@ -21,7 +21,7 @@ type SetCategory = ReturnType<typeof useSetPhotosCategoryMutation>["mutate"];
 const stubs = vi.hoisted(() => ({ setCategory: vi.fn<SetCategory>() }));
 const noopMutation = vi.hoisted(() => () => ({ mutate: () => {}, mutateAsync: async () => {} }));
 vi.mock("@tanstack/react-router", () => ({ useLocation: () => ({ pathname: "/" }) }));
-vi.mock("../../api_client/apiClient", () => ({ serverAddress: "", shareAddress: "" }));
+vi.mock("../../api_client/urls", () => ({ serverAddress: "", shareAddress: "" }));
 vi.mock("../../api_client/albums/hooks", () => ({ useRemovePhotoFromUserAlbumMutation: noopMutation }));
 vi.mock("../../api_client/jobs", () => ({ useDownloadPhotosMutation: noopMutation }));
 vi.mock("../../api_client/photos/hooks", () => ({
