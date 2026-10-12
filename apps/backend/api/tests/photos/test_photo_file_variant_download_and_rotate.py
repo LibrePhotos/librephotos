@@ -10,7 +10,7 @@ Notable current behaviours pinned here:
 
 * ``FileVariantDownloadView`` looks the photo up scoped to ``request.user``,
   so another user's photo is indistinguishable from a missing one (404
-  ``{"error": "Photo not found"}``).
+  "Photo not found").
 * The variant is looked up through the ``photo.files`` m2m only -- a
   ``File`` row that happens to be the photo's ``main_file`` but was never
   added to ``photo.files`` yields "File variant not found".
@@ -22,7 +22,7 @@ Notable current behaviours pinned here:
   ``application/octet-stream`` on *any* exception.
 * ``RotatePhotoView`` validates ``image_hash``/``angle`` before touching the
   DB, rejects videos, and turns any exception from ``Photo.rotate`` into a
-  500 with ``{"status": False, "message": "failed to rotate photo"}``.
+  500 "failed to rotate photo". Errors use the API's error envelope.
 * ``RotatePhotoView`` rejects ``angle % 90 != 0`` using Python's modulo, so a
   negative non-multiple such as ``-45`` is rejected too, while ``-90`` is
   accepted and normalised by ``Photo.rotate`` to orientation 8.
@@ -37,7 +37,12 @@ from rest_framework import status
 from rest_framework.test import APIRequestFactory, APITestCase, force_authenticate
 
 from api.models import File, Photo
-from api.tests.utils import create_test_file, create_test_photo, create_test_user
+from api.tests.utils import (
+    api_error,
+    create_test_file,
+    create_test_photo,
+    create_test_user,
+)
 from api.views.photos import FileVariantDownloadView, RotatePhotoView
 
 # ---------------------------------------------------------------------------
@@ -104,7 +109,7 @@ class FileVariantDownloadViewTest(APITestCase):
         response = self.call("deadbeef", variant.hash)
 
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-        self.assertEqual(response.data, {"error": "Photo not found"})
+        self.assertEqual(api_error(response)["message"], "Photo not found")
 
     def test_photo_of_another_user_returns_photo_not_found(self):
         variant = self.make_variant()
@@ -112,7 +117,7 @@ class FileVariantDownloadViewTest(APITestCase):
         response = self.call(self.photo.image_hash, variant.hash, user=self.other_user)
 
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-        self.assertEqual(response.data, {"error": "Photo not found"})
+        self.assertEqual(api_error(response)["message"], "Photo not found")
 
     def test_multiple_objects_returned_falls_back_to_first_match(self):
         variant = self.make_variant()
@@ -140,7 +145,7 @@ class FileVariantDownloadViewTest(APITestCase):
             )
 
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-        self.assertEqual(response.data, {"error": "Photo not found"})
+        self.assertEqual(api_error(response)["message"], "Photo not found")
 
     # --- variant lookup branches ----------------------------------------
 
@@ -150,7 +155,7 @@ class FileVariantDownloadViewTest(APITestCase):
         response = self.call(self.photo.image_hash, "nosuchhash")
 
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-        self.assertEqual(response.data, {"error": "File variant not found"})
+        self.assertEqual(api_error(response)["message"], "File variant not found")
 
     def test_main_file_not_in_files_m2m_is_not_downloadable(self):
         """The lookup goes through ``photo.files`` only, so the photo's own
@@ -158,7 +163,7 @@ class FileVariantDownloadViewTest(APITestCase):
         response = self.call(self.photo.image_hash, self.photo.main_file.hash)
 
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-        self.assertEqual(response.data, {"error": "File variant not found"})
+        self.assertEqual(api_error(response)["message"], "File variant not found")
 
     def test_variant_of_another_photo_returns_file_variant_not_found(self):
         other_photo = create_test_photo(owner=self.user)
@@ -169,7 +174,7 @@ class FileVariantDownloadViewTest(APITestCase):
         response = self.call(self.photo.image_hash, foreign.hash)
 
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-        self.assertEqual(response.data, {"error": "File variant not found"})
+        self.assertEqual(api_error(response)["message"], "File variant not found")
 
     # --- disk branches ---------------------------------------------------
 
@@ -180,7 +185,7 @@ class FileVariantDownloadViewTest(APITestCase):
         response = self.call(self.photo.image_hash, variant.hash)
 
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-        self.assertEqual(response.data, {"error": "File not found on disk"})
+        self.assertEqual(api_error(response)["message"], "File not found on disk")
 
     def test_open_failure_after_exists_check_returns_500(self):
         """``os.path.exists`` and ``open`` are two separate calls, so a file
@@ -192,7 +197,7 @@ class FileVariantDownloadViewTest(APITestCase):
             response = self.call(self.photo.image_hash, variant.hash)
 
         self.assertEqual(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
-        self.assertEqual(response.data, {"error": "Could not read file"})
+        self.assertEqual(api_error(response)["message"], "Could not read file")
 
     def test_permission_error_on_open_returns_500(self):
         variant = self.make_variant(name="locked.raw")
@@ -201,7 +206,7 @@ class FileVariantDownloadViewTest(APITestCase):
             response = self.call(self.photo.image_hash, variant.hash)
 
         self.assertEqual(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
-        self.assertEqual(response.data, {"error": "Could not read file"})
+        self.assertEqual(api_error(response)["message"], "Could not read file")
 
     def test_unauthenticated_request_is_rejected(self):
         variant = self.make_variant()
@@ -244,34 +249,26 @@ class RotatePhotoViewTest(APITestCase):
         response = self.call({"angle": 90})
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(
-            response.data, {"status": False, "message": "image_hash is required"}
-        )
+        self.assertEqual(api_error(response)["message"], "image_hash is required")
         self.regen.assert_not_called()
 
     def test_empty_image_hash_returns_400(self):
         response = self.call({"image_hash": "", "angle": 90})
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(
-            response.data, {"status": False, "message": "image_hash is required"}
-        )
+        self.assertEqual(api_error(response)["message"], "image_hash is required")
 
     def test_non_integer_angle_returns_400(self):
         response = self.call({"image_hash": self.photo.image_hash, "angle": "abc"})
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(
-            response.data, {"status": False, "message": "angle must be an integer"}
-        )
+        self.assertEqual(api_error(response)["message"], "angle must be an integer")
 
     def test_null_angle_returns_400(self):
         response = self.call({"image_hash": self.photo.image_hash, "angle": None})
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(
-            response.data, {"status": False, "message": "angle must be an integer"}
-        )
+        self.assertEqual(api_error(response)["message"], "angle must be an integer")
 
     def test_numeric_string_angle_is_accepted(self):
         response = self.call({"image_hash": self.photo.image_hash, "angle": "90"})
@@ -290,8 +287,7 @@ class RotatePhotoViewTest(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(
-            response.data,
-            {"status": False, "message": "angle must be a multiple of 90 degrees"},
+            api_error(response)["message"], "angle must be a multiple of 90 degrees"
         )
         self.photo.refresh_from_db()
         self.assertEqual(self.photo.local_orientation, 1)
@@ -301,8 +297,7 @@ class RotatePhotoViewTest(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(
-            response.data,
-            {"status": False, "message": "angle must be a multiple of 90 degrees"},
+            api_error(response)["message"], "angle must be a multiple of 90 degrees"
         )
 
     def test_missing_angle_defaults_to_zero_and_is_a_noop_200(self):
@@ -318,7 +313,7 @@ class RotatePhotoViewTest(APITestCase):
         response = self.call({"image_hash": "deadbeef", "angle": 90})
 
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-        self.assertEqual(response.data, {"status": False, "message": "photo not found"})
+        self.assertEqual(api_error(response)["message"], "photo not found")
 
     def test_photo_of_another_user_returns_404(self):
         response = self.call(
@@ -326,7 +321,7 @@ class RotatePhotoViewTest(APITestCase):
         )
 
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-        self.assertEqual(response.data, {"status": False, "message": "photo not found"})
+        self.assertEqual(api_error(response)["message"], "photo not found")
         self.photo.refresh_from_db()
         self.assertEqual(self.photo.local_orientation, 1)
 
@@ -347,8 +342,7 @@ class RotatePhotoViewTest(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(
-            response.data,
-            {"status": False, "message": "rotation is not supported for videos"},
+            api_error(response)["message"], "rotation is not supported for videos"
         )
         self.regen.assert_not_called()
 
@@ -359,9 +353,7 @@ class RotatePhotoViewTest(APITestCase):
             response = self.call({"image_hash": self.photo.image_hash, "angle": 90})
 
         self.assertEqual(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
-        self.assertEqual(
-            response.data, {"status": False, "message": "failed to rotate photo"}
-        )
+        self.assertEqual(api_error(response)["message"], "failed to rotate photo")
         self.photo.refresh_from_db()
         self.assertEqual(self.photo.local_orientation, 1)
 

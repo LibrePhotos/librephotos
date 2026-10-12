@@ -6,6 +6,9 @@ that the stored secret is never returned and that a blank secret leaves the
 stored credential untouched).
 """
 
+import smtplib
+from unittest.mock import patch
+
 from django.contrib.auth import get_user_model
 from django.core import mail
 from django.test import TestCase
@@ -158,7 +161,7 @@ class EmailConfigApiTest(TestCase):
         self.client.force_authenticate(self.admin)
         resp = self.client.post(TEST_URL, {}, format="json")
         self.assertEqual(resp.status_code, 400)
-        self.assertFalse(resp.json()["status"])
+        self.assertEqual(resp.json()["errors"][0]["code"], "email_not_configured")
 
     def test_test_email_sends_when_configured(self):
         c = EmailConfig.load()
@@ -172,6 +175,23 @@ class EmailConfigApiTest(TestCase):
         self.assertTrue(resp.json()["status"])
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(mail.outbox[0].to, ["dest@example.org"])
+
+    def test_a_refused_test_email_is_a_502_with_the_servers_answer(self):
+        # It used to be a 200 with "status": false, which every client had to
+        # remember to check (#2325).
+        c = EmailConfig.load()
+        c.provider = "custom"
+        c.host = "smtp.example.org"
+        c.from_email = "no-reply@example.org"
+        c.save()
+        self.client.force_authenticate(self.admin)
+        refusal = smtplib.SMTPAuthenticationError(535, b"Authentication failed")
+        with patch("api.views.email_config.send_mail", side_effect=refusal):
+            resp = self.client.post(TEST_URL, {"to": "dest@example.org"}, format="json")
+        self.assertEqual(resp.status_code, 502)
+        [error] = resp.json()["errors"]
+        self.assertEqual(error["code"], "email_send_failed")
+        self.assertIn("Authentication failed", error["message"])
 
 
 class SiteSettingsEmailFlagTest(TestCase):

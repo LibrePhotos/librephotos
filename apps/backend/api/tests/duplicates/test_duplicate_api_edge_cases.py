@@ -17,6 +17,7 @@ from rest_framework.test import APIClient
 from api.models.duplicate import Duplicate
 from api.models.photo_metadata import PhotoMetadata
 from api.tests.utils import (
+    api_error,
     create_test_duplicate,
     create_test_photo,
     create_test_user,
@@ -128,7 +129,9 @@ class DuplicateResolveEdgeCasesTestCase(TestCase):
         )
 
         self.assertEqual(response.status_code, 400)
-        self.assertIn("error", response.data)
+        self.assertEqual(
+            api_error(response)["message"], "Photo not found in this duplicate group"
+        )
 
     def test_resolve_empty_request(self):
         """Test resolving with empty request body."""

@@ -6,7 +6,7 @@ from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
 
 from api.ml_models import ML_MODELS, MlTypes
-from api.tests.utils import create_test_photo, create_test_user
+from api.tests.utils import api_error, create_test_photo, create_test_user
 
 
 def _create_captioner_files(model_root: Path):
@@ -72,9 +72,8 @@ class PhotoCaptionsTest(TestCase):
             data=payload,
             headers=headers,
         )
-        data = response.json()
-
-        self.assertFalse(data["status"])
+        self.assertEqual(500, response.status_code)
+        self.assertEqual("caption_failed", api_error(response)["code"])
 
     @patch("api.views.photos.start_model_download", autospec=True)
     @patch(
@@ -97,11 +96,12 @@ class PhotoCaptionsTest(TestCase):
                 data={"image_hash": photo.image_hash},
             )
 
-        self.assertEqual(response.status_code, 200)
-        data = response.json()
-        self.assertFalse(data["status"])
-        self.assertEqual(data["reason"], "model_downloading")
-        self.assertIn("downloaded", data["message"])
+        # A 503 with a code, no longer a 200 with "status": false (#2325).
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response["Retry-After"], "60")
+        error = api_error(response)
+        self.assertEqual(error["code"], "model_downloading")
+        self.assertIn("downloaded", error["message"])
         start_download_mock.assert_called_once_with(self.user1)
         generate_caption_mock.assert_not_called()
 
@@ -116,9 +116,6 @@ class PhotoCaptionsTest(TestCase):
             data=payload,
             headers=headers,
         )
-        data = response.json()
-
         # Returns 404 to avoid leaking existence of other users' photos
         self.assertEqual(404, response.status_code)
-        self.assertFalse(data["status"])
-        self.assertEqual("photo not found", data["message"])
+        self.assertEqual("photo not found", api_error(response)["message"])

@@ -14,7 +14,7 @@ from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 from rest_framework.test import APIClient
 
-from api.tests.utils import create_test_user
+from api.tests.utils import api_error, create_test_user
 
 User = get_user_model()
 
@@ -94,6 +94,8 @@ class PasswordResetConfirmTest(TestCase):
     def test_invalid_token_rejected(self):
         resp = self._confirm(token="not-a-real-token")
         self.assertEqual(resp.status_code, 400)
+        # The web tells a bad link from a weak password by this code.
+        self.assertEqual(api_error(resp)["code"], "invalid_reset_link")
         self.user.refresh_from_db()
         self.assertTrue(self.user.check_password("oldpassword123"))
 
@@ -105,12 +107,17 @@ class PasswordResetConfirmTest(TestCase):
     def test_weak_password_rejected(self):
         resp = self._confirm(new_password="123")
         self.assertEqual(resp.status_code, 400)
+        error = api_error(resp)
+        self.assertEqual(error["code"], "weak_password")
+        self.assertEqual(error["field"], "new_password")
+        self.assertTrue(error["message"])
         self.user.refresh_from_db()
         self.assertTrue(self.user.check_password("oldpassword123"))
 
     def test_missing_parameters_rejected(self):
         resp = self.client.post(CONFIRM_URL, {"uid": self.uid})
         self.assertEqual(resp.status_code, 400)
+        self.assertEqual(api_error(resp)["code"], "missing_parameters")
 
     def test_token_is_single_use(self):
         first = self._confirm()

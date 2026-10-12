@@ -9,6 +9,7 @@ built raw (a constraint test) says why with ``# raw-create: <reason>``.
 
 import atexit
 import datetime
+import json
 import os
 import secrets
 import shutil
@@ -18,6 +19,7 @@ import uuid
 from typing import Any
 
 import numpy as np
+from django.http import HttpResponseBase
 from django.utils import timezone
 from faker import Faker
 
@@ -40,6 +42,21 @@ ONE_PIXEL_PNG = (
     b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x02\x00\x00\x00\xb1\x1e\x28"
     b"\x00\x00\x00\x03PLTE\xff\xff\xff\xff\xff\xff\x00\x00\x00\x00IEND\xaeB`\x82"
 )
+
+
+def api_error(response: HttpResponseBase) -> dict[str, str]:
+    """The first entry of an API error body, ``{"field", "message", "code"}``.
+
+    Every error the API answers has the exception handler's shape
+    (``api/views/exception_handler.py``), ``{"errors": [entry, ...]}``. A DRF
+    ``Response`` from a view called directly is not rendered yet, so its
+    ``data`` is read instead of its content.
+    """
+    data = getattr(response, "data", None)
+    body = data if data is not None else json.loads(response.content)
+    errors = body["errors"]
+    assert errors, response.content
+    return errors[0]
 
 
 def create_password():

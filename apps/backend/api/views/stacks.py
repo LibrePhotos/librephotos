@@ -21,6 +21,7 @@ from django.db.models import Count
 from django_q.tasks import async_task
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import status
+from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -174,9 +175,7 @@ class PhotoStackDetailView(APIView):
                 id=stack_id, owner=user, stack_type__in=all_stack_types
             )
         except PhotoStack.DoesNotExist:
-            return Response(
-                {"error": "Photo stack not found"}, status=status.HTTP_404_NOT_FOUND
-            )
+            raise NotFound("Photo stack not found")
 
         photos = (
             stack.photos.select_related("thumbnail", "main_file", "metadata")
@@ -256,9 +255,7 @@ class PhotoStackDetailView(APIView):
         try:
             stack = PhotoStack.objects.get(id=stack_id, owner=user)
         except PhotoStack.DoesNotExist:
-            return Response(
-                {"error": "Photo stack not found"}, status=status.HTTP_404_NOT_FOUND
-            )
+            raise NotFound("Photo stack not found")
 
         # Unlink photos from this stack (ManyToMany)
         photo_count = stack.photos.count()
@@ -283,9 +280,7 @@ class PhotoStackDeleteView(APIView):
         try:
             stack = PhotoStack.objects.get(id=stack_id, owner=user)
         except PhotoStack.DoesNotExist:
-            return Response(
-                {"error": "Photo stack not found"}, status=status.HTTP_404_NOT_FOUND
-            )
+            raise NotFound("Photo stack not found")
 
         # Unlink photos from this stack (ManyToMany)
         photo_count = stack.photos.count()
@@ -310,23 +305,16 @@ class PhotoStackSetPrimaryView(APIView):
         try:
             stack = PhotoStack.objects.get(id=stack_id, owner=user)
         except PhotoStack.DoesNotExist:
-            return Response(
-                {"error": "Photo stack not found"}, status=status.HTTP_404_NOT_FOUND
-            )
+            raise NotFound("Photo stack not found")
 
         photo_hash = request_dict(request).get("photo_hash")
         if not photo_hash:
-            return Response(
-                {"error": "photo_hash is required"}, status=status.HTTP_400_BAD_REQUEST
-            )
+            raise ValidationError("photo_hash is required")
 
         try:
             photo = stack.photos.get(image_hash=photo_hash)
         except Photo.DoesNotExist:
-            return Response(
-                {"error": "Photo not found in this stack"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            raise ValidationError("Photo not found in this stack")
 
         stack.primary_photo = photo
         stack.save(update_fields=["primary_photo", "updated_at"])
@@ -455,18 +443,13 @@ class CreateManualStackView(APIView):
         unique_hashes = list(dict.fromkeys(photo_hashes))  # Preserves order
 
         if len(unique_hashes) < 2:
-            return Response(
-                {"error": "At least 2 unique photos required to create a stack"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            raise ValidationError("At least 2 unique photos required to create a stack")
 
         # Verify all photos exist and belong to user
         photos = Photo.objects.owned_by(user).filter(image_hash__in=unique_hashes)
 
         if photos.count() != len(unique_hashes):
-            return Response(
-                {"error": "Some photos not found"}, status=status.HTTP_400_BAD_REQUEST
-            )
+            raise ValidationError("Some photos not found")
 
         # Check if any photo is already in a manual stack
         existing_stack: PhotoStack | None = None
@@ -518,16 +501,11 @@ class AddToStackView(APIView):
         try:
             stack = PhotoStack.objects.get(id=stack_id, owner=user)
         except PhotoStack.DoesNotExist:
-            return Response(
-                {"error": "Photo stack not found"}, status=status.HTTP_404_NOT_FOUND
-            )
+            raise NotFound("Photo stack not found")
 
         photo_hashes = request_dict(request).get("photo_hashes", [])
         if not photo_hashes:
-            return Response(
-                {"error": "photo_hashes is required"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            raise ValidationError("photo_hashes is required")
 
         photos = Photo.objects.owned_by(user).filter(image_hash__in=photo_hashes)
 
@@ -557,16 +535,11 @@ class RemoveFromStackView(APIView):
         try:
             stack = PhotoStack.objects.get(id=stack_id, owner=user)
         except PhotoStack.DoesNotExist:
-            return Response(
-                {"error": "Photo stack not found"}, status=status.HTTP_404_NOT_FOUND
-            )
+            raise NotFound("Photo stack not found")
 
         photo_hashes = request_dict(request).get("photo_hashes", [])
         if not photo_hashes:
-            return Response(
-                {"error": "photo_hashes is required"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            raise ValidationError("photo_hashes is required")
 
         photos = Photo.objects.owned_by(user).filter(image_hash__in=photo_hashes)
 
@@ -615,10 +588,7 @@ class MergeStacksView(APIView):
         photo_hashes = request_dict(request).get("photo_hashes", [])
 
         if not photo_hashes:
-            return Response(
-                {"error": "photo_hashes is required"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            raise ValidationError("photo_hashes is required")
 
         # De-duplicate the input to handle repeated hashes
         unique_hashes = list(dict.fromkeys(photo_hashes))  # Preserves order
@@ -627,9 +597,7 @@ class MergeStacksView(APIView):
         photos = Photo.objects.owned_by(user).filter(image_hash__in=unique_hashes)
 
         if photos.count() != len(unique_hashes):
-            return Response(
-                {"error": "Some photos not found"}, status=status.HTTP_400_BAD_REQUEST
-            )
+            raise ValidationError("Some photos not found")
 
         # Find all manual stacks that contain any of the selected photos
         # Convert to list immediately to avoid multiple query evaluations with
@@ -643,10 +611,7 @@ class MergeStacksView(APIView):
         )
 
         if not manual_stacks:
-            return Response(
-                {"error": "No manual stacks found containing selected photos"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            raise ValidationError("No manual stacks found containing selected photos")
 
         if len(manual_stacks) == 1:
             # Only one stack found, nothing to merge

@@ -13,7 +13,7 @@ from unittest.mock import patch
 from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
 
-from api.tests.utils import create_test_user
+from api.tests.utils import api_error, create_test_user
 
 ASYNC_JOB_URLS = (
     "/api/deletemissingphotos/",
@@ -44,10 +44,9 @@ class StartJobTest(TestCase):
                 ):
                     response = self.client.post(url)
                 self.assertEqual(response.status_code, 500)
-                data = response.json()
-                self.assertFalse(data["status"])
-                self.assertTrue(data["message"])
-                self.assertNotIn("job_id", data)
+                self.assertEqual(api_error(response)["code"], "job_start_failed")
+                self.assertTrue(api_error(response)["message"])
+                self.assertNotIn("job_id", response.json())
 
     def test_async_job_start_success_returns_the_job_id(self):
         for url in ASYNC_JOB_URLS:
@@ -73,8 +72,7 @@ class StartJobTest(TestCase):
                     chain.return_value.run.side_effect = RuntimeError("queue down")
                     response = self.client.post(url)
                 self.assertEqual(response.status_code, 500)
-                self.assertFalse(response.json()["status"])
-                self.assertTrue(response.json()["message"])
+                self.assertTrue(api_error(response)["message"])
 
     def test_a_non_exception_base_exception_is_not_swallowed(self):
         with patch("api.views.scan_triggers.AsyncTask", side_effect=KeyboardInterrupt):
@@ -98,8 +96,7 @@ class OtherJobStartersTest(TestCase):
                 ):
                     response = self.client.post(url)
                 self.assertEqual(response.status_code, 500)
-                self.assertFalse(response.json()["status"])
-                self.assertTrue(response.json()["message"])
+                self.assertTrue(api_error(response)["message"])
 
     def test_auto_album_start_returns_the_job_id(self):
         with patch("api.views.album_auto.AsyncTask") as async_task:
@@ -116,8 +113,20 @@ class OtherJobStartersTest(TestCase):
             chain.return_value.run.side_effect = RuntimeError("down")
             response = self.client.post("/api/scanfaces/")
         self.assertEqual(response.status_code, 500)
-        self.assertFalse(response.json()["status"])
-        self.assertTrue(response.json()["message"])
+        self.assertTrue(api_error(response)["message"])
+
+    def test_face_training_start_failure_is_a_500(self):
+        # It answered 200 {"status": false}, which web and mobile showed as
+        # "training started" (#2325).
+        with (
+            patch("api.views.faces.Chain") as chain,
+            patch("api.views.faces.do_all_models_exist", return_value=True),
+        ):
+            chain.return_value.run.side_effect = RuntimeError("down")
+            response = self.client.post("/api/trainfaces/")
+        self.assertEqual(response.status_code, 500)
+        self.assertEqual(api_error(response)["code"], "job_start_failed")
+        self.assertNotIn("job_id", response.json())
 
 
 class FullScanValidatesScanDirectoryTest(TestCase):
@@ -134,14 +143,13 @@ class FullScanValidatesScanDirectoryTest(TestCase):
     def test_rejects_a_missing_scan_directory(self):
         response, chain = self._full_scan("")
         self.assertEqual(response.status_code, 400)
-        self.assertFalse(response.json()["status"])
-        self.assertIn("No scan directory", response.json()["message"])
+        self.assertIn("No scan directory", api_error(response)["message"])
         chain.return_value.run.assert_not_called()
 
     def test_rejects_a_scan_directory_that_does_not_exist(self):
         response, chain = self._full_scan("/definitely/not/a/real/dir")
         self.assertEqual(response.status_code, 400)
-        self.assertIn("does not exist", response.json()["message"])
+        self.assertIn("does not exist", api_error(response)["message"])
         chain.return_value.run.assert_not_called()
 
     def test_starts_a_full_scan_of_a_valid_directory(self):

@@ -12,7 +12,12 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 
 from api.models.album_user_share import AlbumUserShare
-from api.tests.utils import create_test_album_user, create_test_photo, create_test_user
+from api.tests.utils import (
+    api_error,
+    create_test_album_user,
+    create_test_photo,
+    create_test_user,
+)
 
 URL = "/api/useralbum/makepublic/"
 
@@ -36,23 +41,18 @@ class SetUserAlbumPublicValidationTest(SetUserAlbumPublicTestBase):
         response = self.post({"val_public": True})
 
         self.assertEqual(400, response.status_code)
-        self.assertEqual(
-            {"status": False, "message": "Missing parameters"}, response.json()
-        )
+        self.assertEqual(api_error(response)["message"], "Missing parameters")
 
     def test_missing_val_public_returns_400(self):
         response = self.post({"album_id": self.album.id})
 
         self.assertEqual(400, response.status_code)
-        self.assertEqual(
-            {"status": False, "message": "Missing parameters"}, response.json()
-        )
+        self.assertEqual(api_error(response)["message"], "Missing parameters")
 
     def test_empty_payload_returns_400(self):
         response = self.post({})
 
         self.assertEqual(400, response.status_code)
-        self.assertFalse(response.json()["status"])
 
     def test_explicit_null_album_id_returns_400(self):
         response = self.post({"album_id": None, "val_public": True})
@@ -70,7 +70,7 @@ class SetUserAlbumPublicValidationTest(SetUserAlbumPublicTestBase):
         response = self.post({"album_id": 999999, "val_public": True})
 
         self.assertEqual(404, response.status_code)
-        self.assertEqual({"status": False, "message": "No such album"}, response.json())
+        self.assertEqual(api_error(response)["message"], "No such album")
         self.assertEqual(0, AlbumUserShare.objects.count())
 
     def test_non_owner_returns_403_and_creates_no_share(self):
@@ -80,11 +80,7 @@ class SetUserAlbumPublicValidationTest(SetUserAlbumPublicTestBase):
 
         self.assertEqual(403, response.status_code)
         self.assertEqual(
-            {
-                "status": False,
-                "message": "You are not the owner of this album",
-            },
-            response.json(),
+            api_error(response)["message"], "You are not the owner of this album"
         )
         self.assertEqual(0, AlbumUserShare.objects.count())
 
@@ -188,7 +184,7 @@ class SetUserAlbumPublicEnableTest(SetUserAlbumPublicTestBase):
         )
 
         self.assertEqual(409, response.status_code)
-        self.assertFalse(response.json()["status"])
+        self.assertEqual("slug_taken", api_error(response)["code"])
         held.refresh_from_db()
         self.assertEqual("taken", held.slug)
         self.assertFalse(AlbumUserShare.objects.filter(album=self.album).exists())
@@ -219,7 +215,6 @@ class SetUserAlbumPublicEnableTest(SetUserAlbumPublicTestBase):
                     {"album_id": self.album.id, "val_public": True, "slug": slug}
                 )
                 self.assertEqual(400, response.status_code)
-                self.assertFalse(response.json()["status"])
 
     def test_surrounding_spaces_are_trimmed(self):
         response = self.post(

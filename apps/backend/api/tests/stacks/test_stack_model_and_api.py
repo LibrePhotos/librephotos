@@ -18,7 +18,12 @@ from rest_framework.test import APIClient
 
 from api.models import Photo
 from api.models.photo_stack import PhotoStack
-from api.tests.utils import create_test_photo, create_test_stack, create_test_user
+from api.tests.utils import (
+    api_error,
+    create_test_photo,
+    create_test_stack,
+    create_test_user,
+)
 
 
 class PhotoStackModelTestCase(TestCase):
@@ -366,7 +371,9 @@ class PhotoStackAPITestCase(TestCase):
         )
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("error", response.json())
+        self.assertEqual(
+            api_error(response)["message"], "Photo not found in this stack"
+        )
 
     def test_set_primary_missing_photo_hash(self):
         """Test setting primary without photo_hash returns 400."""
@@ -501,7 +508,7 @@ class ManualStackCreationTestCase(TestCase):
         )
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("error", response.json())
+        self.assertEqual(api_error(response)["message"], "Some photos not found")
 
     def test_create_manual_stack_other_user_photo(self):
         """Test creating stack with other user's photo returns error."""

@@ -20,6 +20,7 @@ from rest_framework.test import APIClient
 
 from api.models.photo_stack import PhotoStack
 from api.tests.utils import (
+    api_error,
     create_test_photo,
     create_test_stack,
     create_test_user,
@@ -121,7 +122,7 @@ class ManualStackCreationAPITestCase(TestCase):
         # Since there's only 1 unique photo, it fails with a clear message
         self.assertEqual(response.status_code, 400)
         self.assertEqual(
-            response.data["error"],
+            api_error(response)["message"],
             "At least 2 unique photos required to create a stack",
         )
 
@@ -971,7 +972,7 @@ class EmptyInputTestCase(TestCase):
         )
 
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.data["error"], "photo_hash is required")
+        self.assertEqual(api_error(response)["message"], "photo_hash is required")
 
     def test_set_primary_empty_hash(self):
         """Test setting primary with empty photo_hash."""

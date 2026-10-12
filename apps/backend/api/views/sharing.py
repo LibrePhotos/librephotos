@@ -1,6 +1,7 @@
 import logging
 
 from django.db.models import Count, Model, Prefetch, Q, QuerySet
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -119,7 +120,7 @@ class SetUserAlbumShared(APIView):
             logger.warning(
                 f"Cannot share album to user: target user_id {target_user_id} does not exist"
             )
-            return Response({"status": False, "message": "No such user"}, status=400)
+            raise ValidationError("No such user")
 
         try:
             user_album_to_share = AlbumUser.objects.get(id=user_album_id)
@@ -127,16 +128,13 @@ class SetUserAlbumShared(APIView):
             logger.warning(
                 f"Cannot share album to user: source user_album_id {user_album_id} does not exist"
             )
-            return Response({"status": False, "message": "No such album"}, status=400)
+            raise ValidationError("No such album")
 
         if user_album_to_share.owner != user:
             logger.warning(
                 f"Cannot share album to user: source user_album_id {user_album_id} does not belong to user_id {user.id}"
             )
-            return Response(
-                {"status": False, "message": "You cannot share an album you don't own"},
-                status=400,
-            )
+            raise ValidationError("You cannot share an album you don't own")
 
         if shared:
             user_album_to_share.shared_to.add(target_user)

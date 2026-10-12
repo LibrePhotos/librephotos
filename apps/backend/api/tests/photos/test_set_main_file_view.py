@@ -7,17 +7,18 @@ observable behaviour (status codes, response bodies and the side effect on the
 Behaviours pinned here:
 
 * A missing/empty/falsy ``file_hash`` in the request body short-circuits with
-  400 ``{"error": "file_hash is required"}`` *before* the photo is looked up,
+  400 "file_hash is required" *before* the photo is looked up,
   so a bogus ``image_hash`` still yields 400 rather than 404.
 * The photo lookup is scoped to ``request.user``: another user's photo is
-  indistinguishable from a missing one (404 ``{"error": "Photo not found"}``).
+  indistinguishable from a missing one (404 "Photo not found").
 * ``Photo.MultipleObjectsReturned`` is caught and retried with
   ``.filter(...).first()``.  This branch is unreachable through the ORM in
   practice (``image_hash`` is the primary key) and is only reachable in tests
   by forcing the manager to raise.
 * The variant is looked up through the ``photo.files`` m2m only, so a ``File``
   row that is the photo's ``main_file`` but was never added to ``photo.files``
-  yields 404 ``{"error": "File variant not found in this photo"}``.
+  yields 404 "File variant not found in this photo". Errors use the API's
+  error envelope.
 * On success the response is 200 ``{"status": "updated", "main_file_hash":
   <hash>}`` and ``photo.main_file`` is persisted; ``last_modified``
   (``auto_now=True``) is bumped because it is listed in ``update_fields``.
@@ -34,7 +35,12 @@ from rest_framework import status
 from rest_framework.test import APIRequestFactory, APITestCase, force_authenticate
 
 from api.models import File, Photo
-from api.tests.utils import create_test_file, create_test_photo, create_test_user
+from api.tests.utils import (
+    api_error,
+    create_test_file,
+    create_test_photo,
+    create_test_user,
+)
 from api.views.photos import SetMainFileView
 
 
@@ -73,26 +79,26 @@ class SetMainFileViewTest(APITestCase):
         response = self.call(self.photo.image_hash, {})
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.data, {"error": "file_hash is required"})
+        self.assertEqual(api_error(response)["message"], "file_hash is required")
 
     def test_empty_file_hash_returns_400(self):
         response = self.call(self.photo.image_hash, {"file_hash": ""})
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.data, {"error": "file_hash is required"})
+        self.assertEqual(api_error(response)["message"], "file_hash is required")
 
     def test_null_file_hash_returns_400(self):
         response = self.call(self.photo.image_hash, {"file_hash": None})
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.data, {"error": "file_hash is required"})
+        self.assertEqual(api_error(response)["message"], "file_hash is required")
 
     def test_missing_file_hash_wins_over_unknown_photo(self):
         """Validation happens before the photo lookup: 400, not 404."""
         response = self.call("deadbeef", {})
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.data, {"error": "file_hash is required"})
+        self.assertEqual(api_error(response)["message"], "file_hash is required")
 
     # --- photo lookup branches ------------------------------------------
 
@@ -102,7 +108,7 @@ class SetMainFileViewTest(APITestCase):
         response = self.call("deadbeef", {"file_hash": variant.hash})
 
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-        self.assertEqual(response.data, {"error": "Photo not found"})
+        self.assertEqual(api_error(response)["message"], "Photo not found")
 
     def test_photo_of_another_user_returns_photo_not_found(self):
         variant = self.make_variant()
@@ -112,7 +118,7 @@ class SetMainFileViewTest(APITestCase):
         )
 
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-        self.assertEqual(response.data, {"error": "Photo not found"})
+        self.assertEqual(api_error(response)["message"], "Photo not found")
         self.photo.refresh_from_db()
         self.assertNotEqual(self.photo.main_file_id, variant.pk)
 
@@ -144,7 +150,7 @@ class SetMainFileViewTest(APITestCase):
             )
 
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-        self.assertEqual(response.data, {"error": "Photo not found"})
+        self.assertEqual(api_error(response)["message"], "Photo not found")
 
     # --- variant lookup branches ----------------------------------------
 
@@ -155,7 +161,7 @@ class SetMainFileViewTest(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
         self.assertEqual(
-            response.data, {"error": "File variant not found in this photo"}
+            api_error(response)["message"], "File variant not found in this photo"
         )
 
     def test_variant_not_attached_to_photo_returns_variant_not_found(self):
@@ -165,7 +171,7 @@ class SetMainFileViewTest(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
         self.assertEqual(
-            response.data, {"error": "File variant not found in this photo"}
+            api_error(response)["message"], "File variant not found in this photo"
         )
 
     def test_variant_of_another_photo_returns_variant_not_found(self):
@@ -178,7 +184,7 @@ class SetMainFileViewTest(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
         self.assertEqual(
-            response.data, {"error": "File variant not found in this photo"}
+            api_error(response)["message"], "File variant not found in this photo"
         )
 
     def test_current_main_file_not_in_files_m2m_is_rejected(self):
@@ -192,7 +198,7 @@ class SetMainFileViewTest(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
         self.assertEqual(
-            response.data, {"error": "File variant not found in this photo"}
+            api_error(response)["message"], "File variant not found in this photo"
         )
 
     # --- happy path ------------------------------------------------------

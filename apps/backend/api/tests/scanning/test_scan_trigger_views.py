@@ -19,7 +19,7 @@ from unittest.mock import patch
 from django.test import TestCase
 from rest_framework.test import APIRequestFactory, force_authenticate
 
-from api.tests.utils import create_test_user
+from api.tests.utils import api_error, create_test_user
 from api.views.scan_triggers import ScanPhotosView
 
 MODULE = "api.views.scan_triggers"
@@ -107,7 +107,7 @@ class ScanPhotosViewValidationTest(ScanViewTestBase):
         response = self.call_view(ScanPhotosView, user=user)
 
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.data, {"status": False, "message": NO_DIR_MESSAGE})
+        self.assertEqual(api_error(response)["message"], NO_DIR_MESSAGE)
         # No chain is even constructed on the guard path.
         self.assertEqual(RecordingChain.instances, [])
         self.scan_photos_mock.assert_not_called()
@@ -118,7 +118,7 @@ class ScanPhotosViewValidationTest(ScanViewTestBase):
         response = self.call_view(ScanPhotosView, user=user)
 
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.data["message"], NO_DIR_MESSAGE)
+        self.assertEqual(api_error(response)["message"], NO_DIR_MESSAGE)
         self.assertEqual(RecordingChain.instances, [])
 
     def test_nonexistent_scan_directory_returns_400_with_path_in_message(self):
@@ -127,9 +127,8 @@ class ScanPhotosViewValidationTest(ScanViewTestBase):
         response = self.call_view(ScanPhotosView, user=user)
 
         self.assertEqual(response.status_code, 400)
-        self.assertFalse(response.data["status"])
         self.assertEqual(
-            response.data["message"],
+            api_error(response)["message"],
             f"Scan failed: Scan directory '{missing}' does not exist. "
             "Please contact your administrator.",
         )
@@ -221,8 +220,7 @@ class ScanPhotosViewErrorPathTest(ScanViewTestBase):
         # The job never started, so the request fails: 500, no job_id.
         self.assertEqual(response.status_code, 500)
         self.assertEqual(
-            response.data,
-            {"status": False, "message": "Could not start the photo scan."},
+            api_error(response)["message"], "Could not start the photo scan."
         )
         self.logger_mock.exception.assert_called_once_with(
             "Could not start the photo scan"

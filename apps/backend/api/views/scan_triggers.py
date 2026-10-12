@@ -7,6 +7,7 @@ from collections.abc import Callable
 
 from django_q.tasks import AsyncTask, Chain
 from drf_spectacular.utils import extend_schema
+from rest_framework.exceptions import APIException, ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -22,26 +23,17 @@ from api.request_user import request_user
 logger = logging.getLogger(__name__)
 
 
-def _validate_scan_directory(user: User) -> Response | None:
+def _validate_scan_directory(user: User) -> None:
+    """A 400 unless the user's scan directory is set and exists."""
     if not user.scan_directory or user.scan_directory.strip() == "":
-        return Response(
-            {
-                "status": False,
-                "message": "Scan failed: No scan directory configured. Please contact your administrator to set up a scan directory for your account.",
-            },
-            status=400,
+        raise ValidationError(
+            "Scan failed: No scan directory configured. Please contact your administrator to set up a scan directory for your account."
         )
 
     if not os.path.exists(user.scan_directory):
-        return Response(
-            {
-                "status": False,
-                "message": f"Scan failed: Scan directory '{user.scan_directory}' does not exist. Please contact your administrator.",
-            },
-            status=400,
+        raise ValidationError(
+            f"Scan failed: Scan directory '{user.scan_directory}' does not exist. Please contact your administrator."
         )
-
-    return None
 
 
 def start_job(enqueue: Callable[[uuid.UUID], object], description: str) -> Response:
@@ -49,17 +41,17 @@ def start_job(enqueue: Callable[[uuid.UUID], object], description: str) -> Respo
 
     ``enqueue(job_id)`` hands the work to django-q2. When that fails (the
     broker is unreachable, say) the job never started, and the client is told
-    so with a 500 rather than a 200 carrying ``"status": False``.
+    so with a 500 (code ``job_start_failed``) rather than a 200 carrying
+    ``"status": False``.
     """
     job_id = uuid.uuid4()
     try:
         enqueue(job_id)
-    except Exception:
+    except Exception as error:
         logger.exception(f"Could not start {description}")
-        return Response(
-            {"status": False, "message": f"Could not start {description}."},
-            status=500,
-        )
+        raise APIException(
+            f"Could not start {description}.", code="job_start_failed"
+        ) from error
     return Response({"status": True, "job_id": job_id})
 
 
@@ -89,9 +81,8 @@ class ScanPhotosView(APIView):
 
     def _scan_photos(self, request: Request) -> Response:
         user = request_user(request)
-        return _validate_scan_directory(user) or _start_photo_scan(
-            user, user.scan_directory
-        )
+        _validate_scan_directory(user)
+        return _start_photo_scan(user, user.scan_directory)
 
 
 class FullScanPhotosView(APIView):
@@ -109,9 +100,8 @@ class FullScanPhotosView(APIView):
 
     def _scan_photos(self, request: Request) -> Response:
         user = request_user(request)
-        return _validate_scan_directory(user) or _start_photo_scan(
-            user, user.scan_directory, full_scan=True
-        )
+        _validate_scan_directory(user)
+        return _start_photo_scan(user, user.scan_directory, full_scan=True)
 
 
 class DeleteMissingPhotosView(APIView):

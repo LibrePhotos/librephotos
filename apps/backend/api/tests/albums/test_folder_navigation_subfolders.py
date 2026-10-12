@@ -17,7 +17,12 @@ from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
 
 from api.models import File
-from api.tests.utils import create_test_file, create_test_photo, create_test_user
+from api.tests.utils import (
+    api_error,
+    create_test_file,
+    create_test_photo,
+    create_test_user,
+)
 
 URL = "/api/folders/subfolders/"
 
@@ -73,7 +78,9 @@ class SubfoldersAuthTests(SubfoldersTestBase):
         user = create_test_user()
         resp = self.client_for(user).get(URL, {"path": self.root})
         self.assertEqual(resp.status_code, 403)
-        self.assertEqual(resp.json(), {"error": "User scan directory not configured"})
+        self.assertEqual(
+            api_error(resp)["message"], "User scan directory not configured"
+        )
 
 
 class SubfoldersPathValidationTests(SubfoldersTestBase):
@@ -82,7 +89,7 @@ class SubfoldersPathValidationTests(SubfoldersTestBase):
         missing = os.path.join(self.root, "nope")
         resp = self.client_for(admin).get(URL, {"path": missing})
         self.assertEqual(resp.status_code, 400)
-        self.assertEqual(resp.json(), {"error": "Path does not exist"})
+        self.assertEqual(api_error(resp)["message"], "Path does not exist")
 
     def test_file_path_returns_400(self):
         admin = create_test_user(is_admin=True)
@@ -91,7 +98,7 @@ class SubfoldersPathValidationTests(SubfoldersTestBase):
             fh.write("x")
         resp = self.client_for(admin).get(URL, {"path": file_path})
         self.assertEqual(resp.status_code, 400)
-        self.assertEqual(resp.json(), {"error": "Path is not a directory"})
+        self.assertEqual(api_error(resp)["message"], "Path is not a directory")
 
     def test_admin_outside_data_root_returns_403(self):
         admin = create_test_user(is_admin=True)
@@ -99,7 +106,7 @@ class SubfoldersPathValidationTests(SubfoldersTestBase):
         self.addCleanup(shutil.rmtree, outside, ignore_errors=True)
         resp = self.client_for(admin).get(URL, {"path": outside})
         self.assertEqual(resp.status_code, 403)
-        self.assertEqual(resp.json(), {"error": "Access denied"})
+        self.assertEqual(api_error(resp)["message"], "Access denied")
 
     def test_user_outside_scan_directory_returns_403(self):
         scan_dir = os.path.join(self.root, "scan")
@@ -109,11 +116,8 @@ class SubfoldersPathValidationTests(SubfoldersTestBase):
         resp = self.client_for(user).get(URL, {"path": other})
         self.assertEqual(resp.status_code, 403)
         self.assertEqual(
-            resp.json(),
-            {
-                "error": "Access denied - can only access folders "
-                "within your scan directory"
-            },
+            api_error(resp)["message"],
+            "Access denied - can only access folders within your scan directory",
         )
 
     def test_user_with_nonexistent_scan_directory_returns_403(self):
@@ -121,7 +125,7 @@ class SubfoldersPathValidationTests(SubfoldersTestBase):
         user = create_test_user(scan_directory=os.path.join(self.root, "gone"))
         resp = self.client_for(user).get(URL, {"path": self.root})
         self.assertEqual(resp.status_code, 403)
-        self.assertEqual(resp.json(), {"error": "Scan directory does not exist"})
+        self.assertEqual(api_error(resp)["message"], "Scan directory does not exist")
 
     def test_sibling_sharing_the_scan_directory_prefix_is_refused(self):
         """The guard compares path components, not strings: a sibling whose
@@ -176,7 +180,7 @@ class SubfoldersPathValidationTests(SubfoldersTestBase):
         admin = create_test_user(is_admin=True)
         resp = self.client_for(admin).get(URL, {"path": sibling})
         self.assertEqual(resp.status_code, 403)
-        self.assertEqual(resp.json(), {"error": "Access denied"})
+        self.assertEqual(api_error(resp)["message"], "Access denied")
 
 
 class SubfoldersListingTests(SubfoldersTestBase):
@@ -463,7 +467,7 @@ class SubfoldersErrorHandlingTests(SubfoldersTestBase):
         with _patch_scandir_to_raise():
             resp = self.client_for(admin).get(URL)
         self.assertEqual(resp.status_code, 500)
-        self.assertEqual(resp.json(), {"error": "Error scanning directory"})
+        self.assertEqual(api_error(resp)["message"], "Error scanning directory")
 
 
 def _patch_scandir_to_raise():

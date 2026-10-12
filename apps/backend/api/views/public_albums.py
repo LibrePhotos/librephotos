@@ -1,17 +1,19 @@
 from typing import Any
 
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.validators import validate_slug
 from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
+from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from api.exceptions import Conflict
 from api.models import AlbumUser
 from api.models.album_user_share import AlbumUserShare
 from api.request_data import request_dict
@@ -40,27 +42,20 @@ class SetUserAlbumPublic(APIView):
         val_public = data.get("val_public")
 
         if album_id is None or val_public is None:
-            return Response(
-                {"status": False, "message": "Missing parameters"}, status=400
-            )
+            raise ValidationError("Missing parameters")
 
         try:
             album = AlbumUser.objects.get(id=album_id)
-        except AlbumUser.DoesNotExist:
-            return Response({"status": False, "message": "No such album"}, status=404)
+        except AlbumUser.DoesNotExist as error:
+            raise NotFound("No such album") from error
 
         if album.owner != request_user(request):
-            return Response(
-                {"status": False, "message": "You are not the owner of this album"},
-                status=403,
-            )
+            raise PermissionDenied("You are not the owner of this album")
 
         slug = data.get("slug")
         if val_public and slug:
             data["slug"] = slug = str(slug).strip()
-            refusal = self._slug_refusal(album, slug)
-            if refusal is not None:
-                return refusal
+            self._check_slug(album, slug)
 
         share, _ = AlbumUserShare.objects.get_or_create(album=album)
         share.enabled = bool(val_public)
@@ -76,16 +71,16 @@ class SetUserAlbumPublic(APIView):
             # A savepoint, so a slug taken in a race does not break the request.
             with transaction.atomic():
                 share.save()
-        except IntegrityError:
-            return self._slug_taken()
+        except IntegrityError as error:
+            raise self._slug_taken() from error
 
         return Response({"status": True, "album": AlbumUserListSerializer(album).data})
 
     @staticmethod
-    def _slug_taken() -> Response:
-        return Response({"status": False, "message": "Slug already in use"}, status=409)
+    def _slug_taken() -> Conflict:
+        return Conflict("Slug already in use", code="slug_taken")
 
-    def _slug_refusal(self, album: AlbumUser, slug: str) -> Response | None:
+    def _check_slug(self, album: AlbumUser, slug: str) -> None:
         """A 400 for a slug that is not one, a 409 for one another album holds.
 
         save() does not run the SlugField's validators, and the UI's
@@ -99,13 +94,12 @@ class SetUserAlbumPublic(APIView):
             # The slug field is declared with max_length=64, so never None.
             assert max_length is not None
             valid = len(slug) <= max_length
-        except ValidationError:
+        except DjangoValidationError:
             valid = False
         if not valid:
-            return Response({"status": False, "message": "Invalid slug"}, status=400)
+            raise ValidationError({"slug": "Invalid slug"})
         if AlbumUserShare.objects.filter(slug=slug).exclude(album=album).exists():
-            return self._slug_taken()
-        return None
+            raise self._slug_taken()
 
     def _apply_share_settings(
         self, share: AlbumUserShare, data: dict[str, Any]
@@ -146,7 +140,7 @@ class PublicAlbumBySlug(APIView):
             .first()
         )
         if not album:
-            return Response(status=404)
+            raise NotFound()
 
         # Include effective sharing settings in response
         sharing_settings = album.share.get_effective_sharing_settings()
@@ -186,7 +180,7 @@ class PublicPhotoDetailBySlug(APIView):
             .first()
         )
         if not album:
-            return Response({"error": "Album not found or not public"}, status=404)
+            raise NotFound("Album not found or not public")
 
         # Find the photo - support both UUID and image_hash lookups
         # UUID format is 36 chars with hyphens, image_hash is 32 hex chars
@@ -206,7 +200,7 @@ class PublicPhotoDetailBySlug(APIView):
             ).first()
 
         if not photo:
-            return Response({"error": "Photo not found in album"}, status=404)
+            raise NotFound("Photo not found in album")
 
         # Get effective sharing settings
         sharing_settings = album.share.get_effective_sharing_settings()

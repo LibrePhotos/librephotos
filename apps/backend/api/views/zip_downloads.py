@@ -6,12 +6,15 @@ import uuid
 
 from django.conf import settings
 from django.db.models import Sum
+from rest_framework import status
+from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from api.all_tasks import create_download_job, delete_zip_file, zip_file_name
+from api.exceptions import InsufficientStorage
 from api.models import LongRunningJob, Photo
 from api.request_data import request_dict
 from api.request_user import request_user
@@ -74,7 +77,7 @@ class ZipListPhotosView_V2(APIView):
         else:
             image_hashes = data.get("image_hashes")
             if not image_hashes:
-                return Response(data={"error": "image_hashes required"}, status=400)
+                raise ValidationError({"image_hashes": "image_hashes required"})
 
             # DRF may provide list values (QueryDict) or a single string
             if isinstance(image_hashes, str):
@@ -88,7 +91,7 @@ class ZipListPhotosView_V2(APIView):
             photos = photo_query.filter(image_hash__in=image_hashes)
 
         if not photos.exists():
-            return Response(data={"error": "No photos found"}, status=404)
+            raise NotFound("No photos found")
 
         # Optionally expand to include all photos from the same stacks
         if include_stacked:
@@ -104,7 +107,7 @@ class ZipListPhotosView_V2(APIView):
         # Calculate the total file size using aggregate
         total_file_size = photos.aggregate(Sum("size"))["size__sum"] or 0
         if free_storage < total_file_size:
-            return Response(data={"status": "Insufficient Storage"}, status=507)
+            raise InsufficientStorage()
         file_uuid = uuid.uuid4()
         filename = zip_file_name(file_uuid, user.id)
 
@@ -116,29 +119,30 @@ class ZipListPhotosView_V2(APIView):
         )
         response = {"job_id": job_id, "url": file_uuid}
 
-        return Response(data=response, status=200)
+        return Response(data=response)
 
     def get(self, request: Request) -> Response:
         job_id = request.GET.get("job_id")
         if not job_id:
-            return Response(data={"error": "job_id is required"}, status=400)
+            raise ValidationError({"job_id": "job_id is required"})
         # Only the user who started the download may poll it (see api/views/jobs.py).
         job = LongRunningJob.objects.filter(
             job_id=job_id, started_by=request_user(request)
         ).first()
         if job is None:
-            return Response(status=404)
+            raise NotFound()
         # A failed or cancelled job is finished too, so it is asked first; it
         # used to be reported as SUCCESS. 200 rather than 500: the job failed,
         # not this request, and the web client reads the status from the body
         # while its fetch client shows an error toast for every 500 it polls.
         if job.failed or job.cancelled:
-            return Response(
-                data={"status": "FAILURE", "result": job.result}, status=200
-            )
+            return Response(data={"status": "FAILURE", "result": job.result})
         if job.finished:
-            return Response(data={"status": "SUCCESS"}, status=200)
-        return Response(data={"status": "PENDING", "progress": job.result}, status=202)
+            return Response(data={"status": "SUCCESS"})
+        return Response(
+            data={"status": "PENDING", "progress": job.result},
+            status=status.HTTP_202_ACCEPTED,
+        )
 
 
 class DeleteZipView(APIView):
@@ -149,10 +153,10 @@ class DeleteZipView(APIView):
         # only ever name their own file; fname itself must be the job's UUID.
         filename = zip_file_name(fname, request_user(request).id)
         if filename is None:
-            return Response(status=404)
+            raise NotFound()
         try:
             delete_zip_file(filename)
-            return Response(status=200)
+            return Response()
         except BaseException as e:
             logger.error(str(e))
-            return Response(status=404)
+            raise NotFound() from e

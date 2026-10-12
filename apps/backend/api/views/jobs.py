@@ -3,8 +3,9 @@ from datetime import timedelta
 
 from django.db.models import Prefetch, Q, QuerySet
 from django.utils import timezone
-from rest_framework import mixins, status, viewsets
+from rest_framework import mixins, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -68,10 +69,7 @@ class LongRunningJobViewSet(
         job = self.get_object()
 
         if job.finished:
-            return Response(
-                {"status": False, "message": "Job is already finished"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            raise ValidationError("Job is already finished", code="job_finished")
 
         job.cancel()
 

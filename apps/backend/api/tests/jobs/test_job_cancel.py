@@ -76,7 +76,7 @@ class LongRunningJobCancelAPITest(TestCase):
 
         response = self.client.post(f"/api/jobs/{job.id}/cancel/")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertFalse(response.data["status"])
+        self.assertEqual(response.data["errors"][0]["code"], "job_finished")
 
     def test_cancel_queued_job(self):
         """A job that has not started yet can be cancelled."""

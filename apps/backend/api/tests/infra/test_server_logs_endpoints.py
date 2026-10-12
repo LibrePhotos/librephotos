@@ -70,7 +70,7 @@ class ServerLogsDownloadTest(ServerLogsViewTestBase):
         self.client.force_authenticate(user=self.admin)
         response = self.client.get(DOWNLOAD_URL)
         self.assertEqual(response.status_code, 404)
-        self.assertIn("error", response.json())
+        self.assertEqual(response.json()["errors"][0]["message"], "Log file not found")
 
 
 class ServerLogsViewerTest(ServerLogsViewTestBase):
@@ -117,10 +117,7 @@ class ServerLogsViewerTest(ServerLogsViewTestBase):
         self.client.force_authenticate(user=self.admin)
         response = self.client.get(VIEWER_URL)
         self.assertEqual(response.status_code, 404)
-        body = response.json()
-        self.assertEqual(body["logs"], "")
-        self.assertEqual(body["count"], 0)
-        self.assertIn("error", body)
+        self.assertEqual(response.json()["errors"][0]["message"], "Log file not found")
 
 
 class ServerLogsPathResolutionTest(ServerLogsViewTestBase):
