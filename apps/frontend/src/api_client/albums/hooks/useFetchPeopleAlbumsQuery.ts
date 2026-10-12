@@ -6,7 +6,7 @@ import { fetchClient } from "../../api";
 
 export const PeopleAlbumsQueryKeys = ["peopleAlbums"] as const;
 
-export const PersonResponse = z.object({
+const PersonResponse = z.object({
   name: z.string(),
   face_url: z.string().nullable(),
   face_count: z.number(),
@@ -31,7 +31,7 @@ export const People = Person.array();
 export type Person = z.infer<typeof Person>;
 export type People = z.infer<typeof People>;
 
-export const PeopleResponse = z.object({
+const PeopleResponse = z.object({
   count: z.number(),
   next: z.string().nullable(),
   previous: z.string().nullable(),

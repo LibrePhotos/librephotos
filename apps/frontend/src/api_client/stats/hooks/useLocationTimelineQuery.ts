@@ -3,7 +3,7 @@ import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient } from "../../api";
 import { LocationTimeline } from "../types";
 
-export const LocationTimelineQueryKeys = ["locationTimeline"] as const;
+const LocationTimelineQueryKeys = ["locationTimeline"] as const;
 
 export const useLocationTimelineQuery = () =>
   useQuery({

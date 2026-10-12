@@ -3,7 +3,7 @@ import { IconPlayerPlay as PlayerPlay, IconSparkles as Sparkles } from "@tabler/
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { MAX_MEMORY_ITEMS } from "../../api_client/memories";
-import { ICON_SIZE } from "../../ui-constants";
+import { ICON_SIZE } from "../../uiConstants";
 import { PageHeader } from "../PageHeader";
 
 export type MemoriesView = "tiles" | "gallery";

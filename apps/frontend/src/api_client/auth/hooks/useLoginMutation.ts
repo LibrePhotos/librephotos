@@ -7,19 +7,14 @@ import { ApiError, fetchClient } from "../../api";
 import { setAuthCookie } from "../../authCookies";
 import { IsAuthenticatedQueryKeys } from "./useIsAuthenticatedQuery";
 
-export const LoginPost = z.object({
-  username: z.string(),
-  password: z.string(),
-});
+type LoginPost = { username: string; password: string };
 
-export type LoginPost = z.infer<typeof LoginPost>;
-
-export const LoginResponse = z.object({
+const LoginResponse = z.object({
   refresh: z.string(),
   access: z.string(),
 });
 
-export type LoginResponse = z.infer<typeof LoginResponse>;
+type LoginResponse = z.infer<typeof LoginResponse>;
 
 const login = (credentials: LoginPost) =>
   fetchClient.post("/auth/token/obtain/", credentials).then(response => {

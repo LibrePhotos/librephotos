@@ -599,5 +599,3 @@ export function FaceClusterGraph({ height }: Props) {
     </Stack>
   );
 }
-
-export default FaceClusterGraph;

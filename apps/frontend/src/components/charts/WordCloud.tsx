@@ -267,5 +267,3 @@ export function WordCloud(props: Props) {
     </div>
   );
 }
-
-export default WordCloud;

@@ -42,7 +42,7 @@ export const COUNT_STATS_DEFAULTS: CountStats = {
   num_albumuser: 0,
 };
 
-export const WordCloud = z.object({
+const WordCloud = z.object({
   label: z.string(),
   y: z.number(),
   x: z.number().optional(),
@@ -56,7 +56,7 @@ export const WordCloudResponse = z.object({
 
 export type WordCloudResponse = z.infer<typeof WordCloudResponse>;
 
-export const PhotoMonthCount = z.object({
+const PhotoMonthCount = z.object({
   month: z.string(),
   count: z.number(),
 });

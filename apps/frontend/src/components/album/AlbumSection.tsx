@@ -368,4 +368,4 @@ export function AlbumSection({
   );
 }
 
-export type { AlbumPreview, AlbumSectionProps, AlbumSectionVariant };
+export type { AlbumSectionProps };

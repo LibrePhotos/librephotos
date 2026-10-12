@@ -18,10 +18,10 @@ import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { ApiError } from "../api_client/api";
-import { ModalUserEdit } from "../components/modals/ModalUserEdit";
-import type { DirectoryPicker } from "../components/setup/DirectoryPicker";
-import type { notification } from "../service/notifications";
+import { ApiError } from "../../api_client/api";
+import type { notification } from "../../service/notifications";
+import type { DirectoryPicker } from "../setup/DirectoryPicker";
+import { ModalUserEdit } from "./ModalUserEdit";
 
 /** The callbacks the modal hands the update mutation, as these tests invoke them. */
 type MutateCallbacks = { onError?: (error: unknown) => void; onSuccess?: () => void };
@@ -41,16 +41,16 @@ const backendError = new ApiError(
 const serverError = new ApiError("Internal Server Error", 500);
 const authError = new ApiError("Authentication failed", 401);
 
-vi.mock("../api_client/auth", () => ({ useSignUpMutation: () => ({ mutate: () => {} }) }));
-vi.mock("../api_client/jobs", () => ({ useScanPhotosMutation: () => ({ mutate: () => {} }) }));
-vi.mock("../api_client/settings", () => ({ useGetSettingsQuery: () => ({ data: { allow_upload: true } }) }));
-vi.mock("../api_client/user/hooks", () => ({
+vi.mock("../../api_client/auth", () => ({ useSignUpMutation: () => ({ mutate: () => {} }) }));
+vi.mock("../../api_client/jobs", () => ({ useScanPhotosMutation: () => ({ mutate: () => {} }) }));
+vi.mock("../../api_client/settings", () => ({ useGetSettingsQuery: () => ({ data: { allow_upload: true } }) }));
+vi.mock("../../api_client/user/hooks", () => ({
   useManageUpdateUserMutation: () => ({ mutate: stubs.updateUser }),
 }));
-vi.mock("../service/notifications", () => ({
+vi.mock("../../service/notifications", () => ({
   notification: { updateUserError: stubs.updateUserError },
 }));
-vi.mock("../components/setup/DirectoryPicker", () => ({
+vi.mock("../setup/DirectoryPicker", () => ({
   DirectoryPicker: ({ value, onChange }: Pick<React.ComponentProps<typeof DirectoryPicker>, "value" | "onChange">) => (
     <input
       aria-label="scan_directory"

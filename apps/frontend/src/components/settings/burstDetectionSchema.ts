@@ -1,18 +1,8 @@
 import { z } from "zod";
 
 // Burst rule categories
-export const BurstRuleCategory = z.enum(["hard", "soft"]);
-export type BurstRuleCategory = z.infer<typeof BurstRuleCategory>;
-
-// Burst rule types
-export const BurstRuleType = z.enum([
-  "exif_burst_mode",
-  "exif_sequence_number",
-  "filename_pattern",
-  "timestamp_proximity",
-  "visual_similarity",
-]);
-export type BurstRuleType = z.infer<typeof BurstRuleType>;
+const BurstRuleCategory = z.enum(["hard", "soft"]);
+type BurstRuleCategory = z.infer<typeof BurstRuleCategory>;
 
 // Base properties for all burst rules. Loose: a key the schema does not know (a param added on the
 // backend later) stays on the rule, so it is saved back with it.
@@ -107,24 +97,4 @@ export function isRuleEnabled(rule: SavedBurstDetectionRule): boolean {
 // Helper to check if a rule is a hard criterion
 export function isHardRule(rule: SavedBurstDetectionRule): boolean {
   return rule.category === "hard";
-}
-
-// Helper to check if a rule is a soft criterion
-export function isSoftRule(rule: SavedBurstDetectionRule): boolean {
-  return rule.category === "soft";
-}
-
-// Helper to get enabled rules
-export function getEnabledRules<Rule extends SavedBurstDetectionRule>(rules: Rule[]): Rule[] {
-  return rules.filter(isRuleEnabled);
-}
-
-// Helper to get hard rules
-export function getHardRules<Rule extends SavedBurstDetectionRule>(rules: Rule[]): Rule[] {
-  return rules.filter(isHardRule);
-}
-
-// Helper to get soft rules
-export function getSoftRules<Rule extends SavedBurstDetectionRule>(rules: Rule[]): Rule[] {
-  return rules.filter(isSoftRule);
 }

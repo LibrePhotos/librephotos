@@ -1,7 +1,7 @@
 import { Group, Loader, Stack, Text, Title } from "@mantine/core";
 import type { TablerIcon } from "@tabler/icons-react";
 import type { ReactNode } from "react";
-import { PAGE_HEADER_ICON_SIZE } from "../ui-constants";
+import { PAGE_HEADER_ICON_SIZE } from "../uiConstants";
 
 type Props = Readonly<{
   icon: TablerIcon;

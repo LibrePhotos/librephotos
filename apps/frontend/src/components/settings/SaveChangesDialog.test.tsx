@@ -10,7 +10,7 @@ import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import { FOOTER_HEIGHT } from "../../ui-constants";
+import { FOOTER_HEIGHT } from "../../uiConstants";
 import { SaveChangesDialog } from "./SaveChangesDialog";
 
 vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => key }) }));

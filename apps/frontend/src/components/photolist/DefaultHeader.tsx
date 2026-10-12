@@ -39,7 +39,7 @@ import { useAccessToken } from "../../api_client/auth/hooks";
 import { useDuplicateStatsQuery } from "../../api_client/duplicates";
 import { useFetchUserListQuery, useFetchUserSelfDetailsQuery } from "../../api_client/user/hooks";
 import type { User } from "../../api_client/user/types";
-import { FAVORITE_COLOR, ICON_SIZE } from "../../ui-constants";
+import { FAVORITE_COLOR, ICON_SIZE } from "../../uiConstants";
 import { parseInstant } from "../../util/dateUtils";
 import { ModalUserEdit } from "../modals/ModalUserEdit";
 import { PageHeader } from "../PageHeader";

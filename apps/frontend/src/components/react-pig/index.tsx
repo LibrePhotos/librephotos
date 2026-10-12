@@ -25,7 +25,7 @@ import getScrollSpeed from "./utils/getScrollSpeed";
 import getUrl from "./utils/getUrl";
 import sortByDate from "./utils/sortByDate";
 
-export type { GroupedImageItem, ImageItem, PigEntry, PigTile, PigTileStyle } from "./types";
+export type { GroupedImageItem } from "./types";
 
 /**
  * A group as `updateGroups` reports it to a paginated date list: only its

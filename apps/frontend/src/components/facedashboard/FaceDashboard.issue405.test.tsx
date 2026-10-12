@@ -23,15 +23,15 @@ import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { FaceAnalysisMethod, FacesTab } from "../api_client/faces/types";
-import type { CompletePersonFace, PersonFace } from "../api_client/faces/types";
-import { HeaderComponent } from "../components/facedashboard/HeaderComponent";
-import { useCollapsedPersons } from "../components/facedashboard/hooks/useCollapsedPersons";
-import { isPersonCell, useVirtualizedGrid, type GridCell } from "../components/facedashboard/hooks/useVirtualizedGrid";
-import i18n from "../i18n";
-import { defined } from "../util/defined.test-utils";
-import { calculateFaceGridCells } from "../util/gridUtils";
-import { STORAGE_KEYS } from "../util/storage";
+import { FaceAnalysisMethod, FacesTab } from "../../api_client/faces/types";
+import type { CompletePersonFace, PersonFace } from "../../api_client/faces/types";
+import i18n from "../../i18n";
+import { defined } from "../../util/defined.test-utils";
+import { calculateFaceGridCells } from "../../util/gridUtils";
+import { STORAGE_KEYS } from "../../util/storage";
+import { HeaderComponent } from "./HeaderComponent";
+import { useCollapsedPersons } from "./hooks/useCollapsedPersons";
+import { isPersonCell, useVirtualizedGrid, type GridCell } from "./hooks/useVirtualizedGrid";
 
 const stubs = vi.hoisted(() => ({
   noopMutation: { mutate: () => {}, mutateAsync: async () => {}, isPending: false },
@@ -40,12 +40,12 @@ const stubs = vi.hoisted(() => ({
 vi.mock("@tanstack/react-router", () => ({
   getRouteApi: () => ({ useSearch: () => ({ tab: "labeled" }) }),
 }));
-vi.mock("../api_client/albums/hooks", () => ({
+vi.mock("../../api_client/albums/hooks", () => ({
   useDeletePersonAlbumMutation: () => stubs.noopMutation,
   useFetchPeopleAlbumsQuery: () => ({ data: [] }),
   useRenamePersonAlbumMutation: () => stubs.noopMutation,
 }));
-vi.mock("../api_client/faces/hooks", () => ({
+vi.mock("../../api_client/faces/hooks", () => ({
   useSetFacesPersonLabelMutation: () => stubs.noopMutation,
 }));
 

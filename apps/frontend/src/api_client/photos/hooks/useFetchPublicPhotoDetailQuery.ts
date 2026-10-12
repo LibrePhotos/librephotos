@@ -3,7 +3,7 @@ import { z } from "zod";
 import { fetchClient } from "../../api";
 
 // Response schema for public photo detail
-export const PublicPhotoDetail = z.object({
+const PublicPhotoDetail = z.object({
   image_hash: z.string(),
   video: z.boolean(),
   square_thumbnail_url: z.string(),
@@ -37,7 +37,7 @@ export const PublicPhotoDetail = z.object({
     )
     .optional(),
 });
-export type PublicPhotoDetail = z.infer<typeof PublicPhotoDetail>;
+type PublicPhotoDetail = z.infer<typeof PublicPhotoDetail>;
 
 export const PublicPhotoDetailResponse = z.object({
   results: PublicPhotoDetail,
@@ -51,7 +51,7 @@ export const PublicPhotoDetailResponse = z.object({
 });
 export type PublicPhotoDetailResponse = z.infer<typeof PublicPhotoDetailResponse>;
 
-export const PublicPhotoDetailQueryKeys = ["publicPhotoDetail"] as const;
+const PublicPhotoDetailQueryKeys = ["publicPhotoDetail"] as const;
 
 async function fetchPublicPhotoDetail(slug: string, photoId: string): Promise<PublicPhotoDetailResponse> {
   const response = await fetchClient.get(`/public/albums/s/${slug}/photos/${photoId}/`);

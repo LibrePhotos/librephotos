@@ -8,9 +8,7 @@ import { CountStatsQueryKeys } from "../../stats/hooks/useFetchCountStatsQuery";
 import { FacesQueryKeys } from "./useFetchFacesQuery";
 import { IncompleteFacesQueryKeys } from "./useFetchIncompleteFacesQuery";
 
-export { JobTriggerResponse as TrainFacesResponse } from "@librephotos/api-client";
-
-export const trainFaces = () => endpoints.trainFaces(apiClient);
+const trainFaces = () => endpoints.trainFaces(apiClient);
 
 export const useTrainFacesMutation = () =>
   useMutation({

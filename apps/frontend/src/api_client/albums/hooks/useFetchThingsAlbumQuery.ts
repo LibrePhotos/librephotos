@@ -1,9 +1,7 @@
-import { endpoints, type ThingAlbum } from "@librephotos/api-client";
+import { endpoints } from "@librephotos/api-client";
 import { useQuery } from "@tanstack/react-query";
 import { mediaTypeToBulkQuery, type MediaType } from "../../../components/photolist/mediaTypeFilter";
 import { apiClient } from "../../api";
-
-export type ThingsAlbum = ThingAlbum;
 
 export const ThingsAlbumQueryKeys = ["thingsAlbum"] as const;
 

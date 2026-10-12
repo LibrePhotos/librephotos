@@ -8,7 +8,7 @@ import { SideMenuNarrow } from "../../components/menubars/SideMenuNarrow";
 import { TopMenu } from "../../components/menubars/TopMenu";
 import { SpotlightProvider } from "../../components/spotlight";
 import { UploadProgressCard, UploadProvider } from "../../components/upload";
-import { FOOTER_HEIGHT, LEFT_MENU_WIDTH, TOP_MENU_HEIGHT } from "../../ui-constants";
+import { FOOTER_HEIGHT, LEFT_MENU_WIDTH, TOP_MENU_HEIGHT } from "../../uiConstants";
 
 export const Route = createFileRoute("/_protected")({
   component: AppShellProtected,

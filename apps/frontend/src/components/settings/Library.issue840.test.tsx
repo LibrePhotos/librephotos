@@ -38,13 +38,13 @@ import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, describe, expect, it, vi } from "vitest";
-import { Library } from "../components/settings/Library";
-import i18n from "../i18n";
+import i18n from "../../i18n";
 // Statically imported so the French strings load while the file is collected,
 // which has no time limit. Otherwise i18n's lazy backend fetches the locale
 // module in the middle of the test.
-import translationFr from "../locales/fr/translation.json";
-import { defined } from "../util/defined.test-utils";
+import translationFr from "../../locales/fr/translation.json";
+import { defined } from "../../util/defined.test-utils";
+import { Library } from "./Library";
 
 const stubs = vi.hoisted(() => ({
   noopMutation: { mutate: () => {}, mutateAsync: async () => {}, isPending: false },
@@ -68,14 +68,14 @@ const stubs = vi.hoisted(() => ({
 vi.mock("@tanstack/react-router", () => ({
   Link: ({ children }: { children?: React.ReactNode }) => <a href="/">{children}</a>,
 }));
-vi.mock("../api_client/api", () => ({ fetchClient: { get: () => {}, post: () => {} } }));
-vi.mock("../api_client/apiClient", () => ({ serverAddress: "" }));
-vi.mock("../api_client/auth/hooks", () => ({ useAccessToken: () => ({ data: stubs.auth }) }));
-vi.mock("../api_client/faces", () => ({ useTrainFacesMutation: () => stubs.noopMutation }));
-vi.mock("../api_client/folders/hooks/useFetchNextcloudDirsQuery", () => ({
+vi.mock("../../api_client/api", () => ({ fetchClient: { get: () => {}, post: () => {} } }));
+vi.mock("../../api_client/apiClient", () => ({ serverAddress: "" }));
+vi.mock("../../api_client/auth/hooks", () => ({ useAccessToken: () => ({ data: stubs.auth }) }));
+vi.mock("../../api_client/faces", () => ({ useTrainFacesMutation: () => stubs.noopMutation }));
+vi.mock("../../api_client/folders/hooks/useFetchNextcloudDirsQuery", () => ({
   useFetchNextcloudDirsQuery: () => stubs.nextcloudDirs,
 }));
-vi.mock("../api_client/jobs/hooks", () => ({
+vi.mock("../../api_client/jobs/hooks", () => ({
   useGenerateAutoAlbumsMutation: () => stubs.noopMutation,
   useGenerateOcrMutation: () => stubs.noopMutation,
   useRescanPhotosMutation: () => stubs.noopMutation,
@@ -83,21 +83,21 @@ vi.mock("../api_client/jobs/hooks", () => ({
   useScanPhotosMutation: () => stubs.noopMutation,
   useWorkerQuery: () => ({ data: stubs.worker }),
 }));
-vi.mock("../api_client/photos/hooks", () => ({ useDeleteMissingPhotosMutation: () => stubs.noopMutation }));
-vi.mock("../api_client/settings/hooks", () => ({ useGetSettingsQuery: () => stubs.siteSettings }));
-vi.mock("../api_client/stats/hooks", () => ({ useFetchCountStatsQuery: () => stubs.countStats }));
-vi.mock("../api_client/user/hooks", () => ({
+vi.mock("../../api_client/photos/hooks", () => ({ useDeleteMissingPhotosMutation: () => stubs.noopMutation }));
+vi.mock("../../api_client/settings/hooks", () => ({ useGetSettingsQuery: () => stubs.siteSettings }));
+vi.mock("../../api_client/stats/hooks", () => ({ useFetchCountStatsQuery: () => stubs.countStats }));
+vi.mock("../../api_client/user/hooks", () => ({
   useFetchUserListQuery: () => stubs.userList,
   useUpdateUserMutation: () => stubs.noopMutation,
 }));
-vi.mock("../api_client/user/hooks/useCurrentUserSelfDetailsQuery", () => ({
+vi.mock("../../api_client/user/hooks/useCurrentUserSelfDetailsQuery", () => ({
   useCurrentUserSelfDetailsQuery: () => ({ data: stubs.user }),
 }));
-vi.mock("../service/notifications", () => ({ notification: new Proxy({}, { get: () => () => {} }) }));
-vi.mock("../components/modals/ModalNextcloudScanDirectoryEdit", () => ({
+vi.mock("../../service/notifications", () => ({ notification: new Proxy({}, { get: () => () => {} }) }));
+vi.mock("../modals/ModalNextcloudScanDirectoryEdit", () => ({
   ModalNextcloudScanDirectoryEdit: () => null,
 }));
-vi.mock("../components/modals/ModalUserEdit", () => ({ ModalUserEdit: () => null }));
+vi.mock("../modals/ModalUserEdit", () => ({ ModalUserEdit: () => null }));
 
 beforeAll(() => {
   // jsdom has no matchMedia, MantineProvider needs it

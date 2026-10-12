@@ -68,4 +68,3 @@ export const Face = z.object({
 });
 
 export const FaceList = z.array(Face);
-export const InferredFaces = FaceList;

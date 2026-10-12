@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { DateTimeRule } from "../../components/settings/date-time.zod";
+import { DateTimeRule } from "../../components/settings/dateTimeSchema";
 
 export const SiteSettings = z.object({
   allow_registration: z.boolean(),
@@ -27,7 +27,7 @@ export type SiteSettings = z.infer<typeof SiteSettings>;
 
 // One entry of the backend's PROVIDER_PRESETS (api/models/email_config.py).
 // Amazon SES has no fixed host, and only SendGrid a default user name.
-export const EmailProviderPreset = z.object({
+const EmailProviderPreset = z.object({
   label: z.string(),
   host: z.string().optional(),
   port: z.number(),
@@ -36,7 +36,7 @@ export const EmailProviderPreset = z.object({
   default_username: z.string().optional(),
   help_url: z.string(),
 });
-export type EmailProviderPreset = z.infer<typeof EmailProviderPreset>;
+type EmailProviderPreset = z.infer<typeof EmailProviderPreset>;
 
 export const EmailConfig = z.object({
   provider: z.string(),
@@ -54,7 +54,7 @@ export const EmailConfig = z.object({
 export type EmailConfig = z.infer<typeof EmailConfig>;
 
 // The backend's PREDEFINED_RULES_JSON: date-time rule objects (see
-// components/settings/date-time.zod.ts), sent as a JSON string.
+// components/settings/dateTimeSchema.ts), sent as a JSON string.
 export const PredefinedRules = z.array(DateTimeRule);
 export type PredefinedRules = z.infer<typeof PredefinedRules>;
 

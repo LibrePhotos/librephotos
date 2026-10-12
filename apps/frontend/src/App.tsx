@@ -11,7 +11,7 @@ import { NotFoundPage, RouteErrorPage } from "./components/common/RouteFallbacks
 import { modalTitleStyles } from "./components/modals/modalTitleStyles";
 import { loadDayjsLocale } from "./i18n";
 import { routeTree } from "./routeTree.gen";
-import { TOP_MENU_HEIGHT } from "./ui-constants";
+import { TOP_MENU_HEIGHT } from "./uiConstants";
 
 // Set up a Router instance
 const router = createRouter({

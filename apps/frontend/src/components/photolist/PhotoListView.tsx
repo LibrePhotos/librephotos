@@ -30,7 +30,7 @@ import {
   useUpdateUserMutation,
 } from "../../api_client/user/hooks";
 import type { User } from "../../api_client/user/types";
-import { ICON_SIZE, TOOLBAR_ACTION_SIZE, TOP_MENU_HEIGHT } from "../../ui-constants";
+import { ICON_SIZE, TOOLBAR_ACTION_SIZE, TOP_MENU_HEIGHT } from "../../uiConstants";
 import { formatDateForPhotoGroups } from "../../util/util";
 import { EmptyState } from "../common/EmptyState";
 import { Lightbox } from "../lightbox/Lightbox";
@@ -40,8 +40,8 @@ import { ModalTagEdit } from "../modals/ModalTagEdit";
 import Pig from "../react-pig";
 import type { GroupedImageItem, PigHandle, PigVisibleGroup } from "../react-pig";
 import { ScrollScrubber } from "../scrollscrubber/ScrollScrubber";
-import { ScrollerType } from "../scrollscrubber/ScrollScrubberTypes.zod";
-import type { ScrollerData } from "../scrollscrubber/ScrollScrubberTypes.zod";
+import { ScrollerType } from "../scrollscrubber/scrollScrubberTypes";
+import type { ScrollerData } from "../scrollscrubber/scrollScrubberTypes";
 import { ModalAlbumShare } from "../sharing/ModalAlbumShare";
 import { ModalPhotosShare } from "../sharing/ModalPhotosShare";
 import { DefaultHeader } from "./DefaultHeader";

@@ -33,7 +33,7 @@ import i18n from "../i18n";
 // in a beforeAll it kept hitting the hook timeout. The vi.mock() calls below
 // are hoisted above this import, and running the module hands its page
 // component to the createFileRoute stub.
-import "../routes/login";
+import "./login";
 import { defined } from "../util/defined.test-utils";
 
 const stubs = vi.hoisted(() => ({

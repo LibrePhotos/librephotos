@@ -3,7 +3,7 @@ import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient } from "../../api";
 import { MediaDiagnostics } from "../types";
 
-export const MediaDiagnosticsQueryKeys = ["mediaDiagnostics"] as const;
+const MediaDiagnosticsQueryKeys = ["mediaDiagnostics"] as const;
 
 /** Ask the backend why serving this original just failed. Administrators only.
  *

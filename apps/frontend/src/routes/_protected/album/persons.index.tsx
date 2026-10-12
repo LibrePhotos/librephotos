@@ -25,7 +25,7 @@ import { Tile } from "../../../components/Tile";
 import { VirtualGrid } from "../../../components/virtual/VirtualGrid";
 import type { GridCellProps } from "../../../components/virtual/VirtualGrid";
 import { ALBUM_GRID_GUTTER, useAlbumListGridConfig } from "../../../hooks/useAlbumListGridConfig";
-import { ICON_SIZE } from "../../../ui-constants";
+import { ICON_SIZE } from "../../../uiConstants";
 
 export const Route = createFileRoute("/_protected/album/persons/")({
   component: AlbumPeople,

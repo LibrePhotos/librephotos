@@ -15,8 +15,8 @@ import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import { Tile } from "../components/Tile";
 import { defined } from "../util/defined.test-utils";
+import { Tile } from "./Tile";
 
 beforeAll(() => {
   // jsdom implements none of these, and the component calls all three.

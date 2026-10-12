@@ -4,7 +4,7 @@ import { FaceAnalysisMethod, FacesTab } from "../../../api_client/faces";
 import type { CompletePersonFace, CompletePersonFaceList, PersonFace } from "../../../api_client/faces";
 import { calculateFaceGridCells, calculateFaceGridCellSize } from "../../../util/gridUtils";
 import type { GroupedGridRows } from "../../../util/gridUtils";
-import type { ScrollerData } from "../../scrollscrubber/ScrollScrubberTypes.zod";
+import type { ScrollerData } from "../../scrollscrubber/scrollScrubberTypes";
 import type { SectionRenderedParams, VirtualGridHandle } from "../../virtual/VirtualGrid";
 
 /** A cell of the faces grid: a person's header, or one of their faces. */

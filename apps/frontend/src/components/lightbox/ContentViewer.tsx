@@ -698,5 +698,3 @@ export function ContentViewer({
     </LightboxCommandsContext.Provider>
   );
 }
-
-export default ContentViewer;

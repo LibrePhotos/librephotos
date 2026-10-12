@@ -12,7 +12,7 @@ import {
 } from "@tabler/icons-react";
 import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { FOOTER_HEIGHT } from "../../ui-constants";
+import { FOOTER_HEIGHT } from "../../uiConstants";
 import { useUpload } from "./UploadContext";
 import type { UploadItem, UploadStatus } from "./useUploadQueue";
 

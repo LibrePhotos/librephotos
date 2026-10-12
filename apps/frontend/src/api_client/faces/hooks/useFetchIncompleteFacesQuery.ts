@@ -10,9 +10,9 @@ import {
   IncompletePersonFace,
 } from "../types";
 
-export const IncompletePersonFaceList = z.array(IncompletePersonFace);
-export const IncompletePersonFaceListResponse = IncompletePersonFaceList;
-export type IncompletePersonFaceListResponse = z.infer<typeof IncompletePersonFaceListResponse>;
+const IncompletePersonFaceList = z.array(IncompletePersonFace);
+const IncompletePersonFaceListResponse = IncompletePersonFaceList;
+type IncompletePersonFaceListResponse = z.infer<typeof IncompletePersonFaceListResponse>;
 export const IncompletePersonFaceListRequest = z.object({
   inferred: z.boolean(),
   method: FaceAnalysisMethod.optional(),

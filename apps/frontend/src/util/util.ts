@@ -46,7 +46,7 @@ export function formatDateForPhotoGroups(photoGroups: DatePhotosGroup[]): DatePh
   });
 }
 
-export function getPhotosFlatFromSingleGroup(group: DatePhotosGroup) {
+function getPhotosFlatFromSingleGroup(group: DatePhotosGroup) {
   return group.items;
 }
 

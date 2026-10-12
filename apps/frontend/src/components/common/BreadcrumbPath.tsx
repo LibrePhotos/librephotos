@@ -45,5 +45,3 @@ export function BreadcrumbPath({ fullPath, size = "xs" }: BreadcrumbPathProps) {
     </Group>
   );
 }
-
-export default BreadcrumbPath;

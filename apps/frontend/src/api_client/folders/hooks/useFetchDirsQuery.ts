@@ -3,7 +3,7 @@ import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient } from "../../api";
 import { DirTreeResponse } from "../types";
 
-export const DirsQueryKeys = ["dirtree"] as const;
+const DirsQueryKeys = ["dirtree"] as const;
 
 export const useFetchDirsQuery = (path: string | null | undefined) =>
   useQuery({

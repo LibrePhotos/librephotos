@@ -1,6 +1,5 @@
 import { endpoints } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
-import { z } from "zod";
 import { PeopleAlbumsQueryKeys } from "../../albums/hooks/useFetchPeopleAlbumsQuery";
 import { apiClient, queryClient } from "../../api";
 import { PhotoDetailsQueryKeys } from "../../photos/hooks/useFetchPhotoDetailsQuery";
@@ -9,14 +8,9 @@ import { CountStatsQueryKeys } from "../../stats/hooks/useFetchCountStatsQuery";
 import { FacesQueryKeys } from "./useFetchFacesQuery";
 import { IncompleteFacesQueryKeys } from "./useFetchIncompleteFacesQuery";
 
-export const DeleteFacesQueryKeys = ["deleteFaces"];
+const DeleteFacesQueryKeys = ["deleteFaces"];
 
-export type DeleteFacesRequest = z.infer<typeof DeleteFacesRequest>;
-export const DeleteFacesRequest = z.object({
-  faceIds: z.array(z.number()),
-});
-
-export { DeleteFacesResponse } from "@librephotos/api-client";
+type DeleteFacesRequest = { faceIds: number[] };
 
 const deleteFaces = (data: DeleteFacesRequest) => endpoints.deleteFaces(apiClient, data.faceIds);
 

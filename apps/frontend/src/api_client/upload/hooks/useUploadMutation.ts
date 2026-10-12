@@ -4,7 +4,7 @@ import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient } from "../../api";
 import { UploadOptions } from "../types";
 
-export const UploadResponse = z.object({
+const UploadResponse = z.object({
   upload_id: z.string(),
   offset: z.number(),
 });

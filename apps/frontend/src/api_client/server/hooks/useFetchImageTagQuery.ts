@@ -3,14 +3,14 @@ import { z } from "zod";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient } from "../../api";
 
-export const ImageTagResponse = z.object({
+const ImageTagResponse = z.object({
   image_tag: z.string(),
   git_hash: z.string(),
 });
 
-export type ImageTagResponse = z.infer<typeof ImageTagResponse>;
+type ImageTagResponse = z.infer<typeof ImageTagResponse>;
 
-export const ImageTagQueryKeys = ["imageTag"] as const;
+const ImageTagQueryKeys = ["imageTag"] as const;
 
 export const useFetchImageTagQuery = () =>
   useQuery({

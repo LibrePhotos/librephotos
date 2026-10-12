@@ -23,12 +23,12 @@ import { Settings } from "luxon";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { TimestampItem } from "../components/lightbox/TimestampItem";
-import i18n from "../i18n";
+import i18n from "../../i18n";
+import { TimestampItem } from "./TimestampItem";
 
 // The component only uses this to PATCH edits; irrelevant to rendering, and
 // mocking it keeps react-query's provider out of the picture.
-vi.mock("../api_client/photos/hooks", () => ({
+vi.mock("../../api_client/photos/hooks", () => ({
   useUpdatePhotoMutation: () => ({ mutate: vi.fn<() => void>() }),
 }));
 

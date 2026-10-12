@@ -1,13 +1,13 @@
 import { z } from "zod";
 import { PigPhoto } from "../photos/types";
 
-export const SearchExamples = z.array(z.string());
+const SearchExamples = z.array(z.string());
 export const SearchExamplesResponse = z.object({
   results: SearchExamples,
 });
-export type SearchExamples = z.infer<typeof SearchExamples>;
+type SearchExamples = z.infer<typeof SearchExamples>;
 
-export const PhotosGroupedByDate = z.array(
+const PhotosGroupedByDate = z.array(
   z.object({
     // The undated group's date: null from the album, person, place, thing and
     // tag lists; search, and those lists on servers before 1.3, send the legacy

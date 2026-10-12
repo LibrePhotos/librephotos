@@ -5,7 +5,7 @@ import { fetchClient, queryClient } from "../../api";
 import { EmailConfig } from "../types";
 import { SiteSettingsQueryKeys } from "./useGetSettingsQuery";
 
-export const EmailConfigQueryKeys = ["emailConfig"] as const;
+const EmailConfigQueryKeys = ["emailConfig"] as const;
 
 export const useGetEmailConfigQuery = () =>
   useQuery({
@@ -47,7 +47,7 @@ export const EmailTestResponse = z.object({
   message: z.string(),
 });
 
-export type EmailTestResponse = z.infer<typeof EmailTestResponse>;
+type EmailTestResponse = z.infer<typeof EmailTestResponse>;
 
 export const useSendTestEmailMutation = () =>
   useMutation({

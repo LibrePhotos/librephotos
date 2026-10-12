@@ -15,7 +15,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import i18n from "../../i18n";
 import { ConfigDateTime } from "./ConfigDateTime";
-import type { DateTimeRule } from "./date-time.zod";
+import type { DateTimeRule } from "./dateTimeSchema";
 
 // SortableTbody hands its onMove here, so a test can drop a row without dragging it in jsdom.
 const sortable = vi.hoisted(() => {

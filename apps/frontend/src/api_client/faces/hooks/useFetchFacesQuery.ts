@@ -1,16 +1,15 @@
-import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient } from "../../api";
 import { CompletePersonFace, FaceAnalysisMethod, FacesOrderOption, PersonFace } from "../types";
 
-export const PersonFaceListResponse = z.object({
+const PersonFaceListResponse = z.object({
   count: z.number(),
   next: z.string().nullable(),
   previous: z.string().nullable(),
   results: z.array(PersonFace),
 });
-export type PersonFaceListResponse = z.infer<typeof CompletePersonFace>;
+type PersonFaceListResponse = z.infer<typeof CompletePersonFace>;
 export const PersonFaceListRequest = z.object({
   person: z.number().optional(),
   page: z.number(),
@@ -35,10 +34,3 @@ export const fetchFaces = (params: PersonFaceListRequest) => {
 };
 
 export const FacesQueryKeys = ["faces"] as const;
-
-export const useFetchFacesQuery = (params: PersonFaceListRequest) =>
-  useQuery({
-    queryKey: [...FacesQueryKeys, params],
-    queryFn: () => fetchFaces(params),
-    enabled: !!params,
-  });

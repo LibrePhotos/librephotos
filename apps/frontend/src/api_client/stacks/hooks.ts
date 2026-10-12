@@ -2,25 +2,18 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { parseWithNotification } from "../../util/zodUtils";
 import { fetchClient } from "../api";
 import {
-  AddToStackResponseSchema,
-  CreateManualStackResponseSchema,
-  DetectStacksResponseSchema,
-  MergeStacksResponseSchema,
-  RemoveFromStackResponseSchema,
+  CreateManualStackResponse,
+  DetectStacksResponse,
+  MergeStacksResponse,
+  PhotoStack,
+  PhotoStackListResponse,
+  PhotoStackStats,
+  RemoveFromStackResponse,
   SetPrimaryResponse as SetPrimaryResponseSchema,
-  StackDetailResponseSchema,
-  StackListResponseSchema,
-  StackStatsResponseSchema,
-  type AddToStackRequest,
-  type AddToStackResponse,
   type CreateManualStackRequest,
-  type CreateManualStackResponse,
   type DetectStacksRequest,
-  type DetectStacksResponse,
   type MergeStacksRequest,
-  type MergeStacksResponse,
   type RemoveFromStackRequest,
-  type RemoveFromStackResponse,
   type SetPrimaryResponse,
   type StackDetailResponse,
   type StackListResponse,
@@ -28,7 +21,7 @@ import {
 } from "./types";
 
 // Query keys for cache invalidation
-export const stackKeys = {
+const stackKeys = {
   all: ["stacks"] as const,
   lists: () => [...stackKeys.all, "list"] as const,
   list: (filters: Record<string, unknown>) => [...stackKeys.lists(), filters] as const,
@@ -53,45 +46,34 @@ async function fetchStacks(params?: {
   const queryString = queryParams.toString();
   const endpoint = `/stacks${queryString ? `?${queryString}` : ""}`;
   const response = await fetchClient.get(endpoint);
-  return parseWithNotification(StackListResponseSchema, response, "Failed to parse stacks list");
+  return parseWithNotification(PhotoStackListResponse, response, "Failed to parse stacks list");
 }
 
 async function fetchStack(id: string): Promise<StackDetailResponse> {
   const response = await fetchClient.get(`/stacks/${id}/`);
-  return parseWithNotification(StackDetailResponseSchema, response, "Failed to parse stack details");
+  return parseWithNotification(PhotoStack, response, "Failed to parse stack details");
 }
 
 async function fetchStackStats(): Promise<StackStatsResponse> {
   const response = await fetchClient.get("/stacks/stats/");
-  return parseWithNotification(StackStatsResponseSchema, response, "Failed to parse stack stats");
-}
-
-async function addToStack(stackId: string, data: AddToStackRequest): Promise<AddToStackResponse> {
-  const response = await fetchClient.post(`/stacks/${stackId}/add/`, {
-    photo_hashes: data.photo_hashes,
-  });
-  return parseWithNotification(AddToStackResponseSchema, response, "Failed to parse add to stack response");
+  return parseWithNotification(PhotoStackStats, response, "Failed to parse stack stats");
 }
 
 async function removeFromStack(stackId: string, data: RemoveFromStackRequest): Promise<RemoveFromStackResponse> {
   const response = await fetchClient.post(`/stacks/${stackId}/remove/`, {
     photo_hashes: data.photo_hashes,
   });
-  return parseWithNotification(RemoveFromStackResponseSchema, response, "Failed to parse remove from stack response");
+  return parseWithNotification(RemoveFromStackResponse, response, "Failed to parse remove from stack response");
 }
 
 async function mergeStacks(data: MergeStacksRequest): Promise<MergeStacksResponse> {
   const response = await fetchClient.post("/stacks/merge/", data);
-  return parseWithNotification(MergeStacksResponseSchema, response, "Failed to parse merge stacks response");
+  return parseWithNotification(MergeStacksResponse, response, "Failed to parse merge stacks response");
 }
 
 async function createManualStack(data: CreateManualStackRequest): Promise<CreateManualStackResponse> {
   const response = await fetchClient.post("/stacks/manual/", data);
-  return parseWithNotification(
-    CreateManualStackResponseSchema,
-    response,
-    "Failed to parse create manual stack response"
-  );
+  return parseWithNotification(CreateManualStackResponse, response, "Failed to parse create manual stack response");
 }
 
 async function deleteStack(id: string): Promise<void> {
@@ -100,7 +82,7 @@ async function deleteStack(id: string): Promise<void> {
 
 async function detectStacks(options?: DetectStacksRequest): Promise<DetectStacksResponse> {
   const response = await fetchClient.post("/stacks/detect/", options || {});
-  return parseWithNotification(DetectStacksResponseSchema, response, "Failed to parse detect stacks response");
+  return parseWithNotification(DetectStacksResponse, response, "Failed to parse detect stacks response");
 }
 
 async function setCoverPhoto(stackId: string, photoHash: string): Promise<SetPrimaryResponse> {
@@ -130,20 +112,6 @@ export function useStackStatsQuery() {
   return useQuery({
     queryKey: stackKeys.stats(),
     queryFn: fetchStackStats,
-  });
-}
-
-// Mutation hooks
-export function useAddToStackMutation() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({ stackId, data }: { stackId: string; data: AddToStackRequest }) => addToStack(stackId, data),
-    onSuccess: (data, variables) => {
-      queryClient.invalidateQueries({ queryKey: stackKeys.detail(variables.stackId) });
-      queryClient.invalidateQueries({ queryKey: stackKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: stackKeys.stats() });
-    },
   });
 }
 

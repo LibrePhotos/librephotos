@@ -2,11 +2,6 @@ import { useEffect, useState } from "react";
 import { useWorkerQuery } from "../api_client/jobs/hooks";
 import { JobDetail } from "../api_client/jobs/types";
 
-export enum WorkerState {
-  SET_WORKER_AVAILABILITY = "set-worker-availability",
-  SET_WORKER_RUNNING_JOB = "set-worker-running-job",
-}
-
 export function useWorkerStatus() {
   const { data: worker, isLoading } = useWorkerQuery();
 

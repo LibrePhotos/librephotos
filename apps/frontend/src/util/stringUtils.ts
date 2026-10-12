@@ -1,4 +1,4 @@
-export const ZERO = 0;
+const ZERO = 0;
 export function isStringEmpty(value: string): boolean {
   return value.length !== ZERO;
 }

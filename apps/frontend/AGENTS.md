@@ -12,7 +12,8 @@ Run from `apps/frontend`:
 - `yarn format:check`: Prettier over this app and `packages/api-client` (one config, `prettier.config.cjs`); `yarn format` fixes. Non-English locales are ignored
 - `yarn typecheck`: plain `tsc --noEmit` over `src/` (`tsconfig.json`) and `vite.config.ts` (`tsconfig.node.json`). Zero errors, no baseline; any error fails
 - `yarn typecheck:e2e`: `tsc --noEmit` over the Playwright suite (`e2e/tsconfig.json`); needs `e2e/` dependencies installed
-- `yarn test`: vitest
+- `yarn knip`: unused dependencies, files and exports (`knip.json`), zero findings. Its `ignoreIssues` entry is the one deliberate alias (`api_client/api.ts`)
+- `yarn test`: vitest (includes `src/fileNames.test.ts`, the file-name rule)
 - `yarn build`, `yarn start`
 
 CI (`lint-frontend.yml`, `typecheck-frontend.yml`) runs the same scripts, so a green local run means a
@@ -26,6 +27,8 @@ green CI run. To develop against a local backend, copy `.env.development.example
   with its zod schema. In tests, use `defined()` from `src/util/defined.test-utils.ts` when a value
   must be there.
 - Type mocks: `vi.fn<(arg: T) => R>()` or `vi.fn(implementation)`, never a bare `vi.fn()`.
+- File names have no dashes or underscores (`src/fileNames.test.ts` fails on them). Components are `PascalCase.tsx`, hooks `useX.ts(x)`, other modules `camelCase.ts`; route files follow TanStack's `$param`/`_layout` syntax. Import lodash from `lodash-es` (lint bans `lodash`; the package is not a dependency).
+- Knip (`yarn knip`) runs in CI: an unused dependency, file or export fails it. Delete the code or drop the `export`; do not add a dependency nothing imports.
 - Toasts go through `notification.success|error|warning|hide` from `src/service/notifications`, never
   `@mantine/notifications` (lint bans it; the colours live in `toast.ts`). A message shown from two
   places gets a named helper there.

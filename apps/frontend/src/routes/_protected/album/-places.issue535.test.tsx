@@ -25,14 +25,14 @@ import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import i18n from "../i18n";
+import i18n from "../../../i18n";
 // Imported statically, like every other test's subject: loading the route's
 // module graph then happens while the file is collected, which has no time
 // limit. Under a parallel run on a busy machine it can take many seconds, and
 // in a beforeAll it kept hitting the hook timeout. The vi.mock() calls below
 // are hoisted above this import, and running the module hands its page
 // component to the createFileRoute stub.
-import "../routes/_protected/album/places.index";
+import "./places.index";
 
 /** The route stub: createFileRoute("...")(options) and its chained calls hand back the same function. */
 type RouteStub = (options?: { component?: React.ComponentType }) => RouteStub;
@@ -77,12 +77,12 @@ vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => () => {},
   Link: ({ children }: { children?: React.ReactNode }) => <span>{children}</span>,
 }));
-vi.mock("../api_client/apiClient", () => ({ serverAddress: "" }));
-vi.mock("../api_client/albums/hooks", () => ({
+vi.mock("../../../api_client/apiClient", () => ({ serverAddress: "" }));
+vi.mock("../../../api_client/albums/hooks", () => ({
   useFetchPlacesAlbumsQuery: () => ({ data: stubs.albums, isFetching: stubs.fetching, isLoading: false }),
   useFetchLocationClustersQuery: () => ({ data: stubs.locationClusters, isFetching: stubs.fetching, isLoading: false }),
 }));
-vi.mock("../util/mapStyle", () => ({ useMapStyle: () => stubs.mapStyle }));
+vi.mock("../../../util/mapStyle", () => ({ useMapStyle: () => stubs.mapStyle }));
 
 /**
  * Stands in for react-map-gl's <Map>. It reproduces the two things that matter here:

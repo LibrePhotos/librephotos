@@ -11,8 +11,8 @@
  * Add dialog and "Reset to defaults" still get every other rule.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { BurstDetectionRule, PredefinedBurstRules } from "../../components/settings/burst-detection.zod";
-import { DateTimeRule } from "../../components/settings/date-time.zod";
+import { BurstDetectionRule, PredefinedBurstRules } from "../../components/settings/burstDetectionSchema";
+import { DateTimeRule } from "../../components/settings/dateTimeSchema";
 import { parseListWithNotification } from "../../util/zodUtils";
 import { PredefinedRules } from "./types";
 

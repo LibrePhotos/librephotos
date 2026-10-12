@@ -9,7 +9,7 @@ import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { ScrollScrubber } from "./ScrollScrubber";
-import type { ScrollerData } from "./ScrollScrubberTypes.zod";
+import type { ScrollerData } from "./scrollScrubberTypes";
 
 // jsdom lays nothing out: give the scrubber a fixed size
 vi.mock(import("@mantine/hooks"), async importOriginal => {

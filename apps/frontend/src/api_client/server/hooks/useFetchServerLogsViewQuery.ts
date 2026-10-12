@@ -3,14 +3,14 @@ import { z } from "zod";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient } from "../../api";
 
-export const ServerLogsViewQueryKeys = ["serverLogsView"] as const;
+const ServerLogsViewQueryKeys = ["serverLogsView"] as const;
 
 const ServerLogsViewResponse = z.object({
   logs: z.string(),
   count: z.number(),
 });
 
-export type ServerLogsViewResponse = z.infer<typeof ServerLogsViewResponse>;
+type ServerLogsViewResponse = z.infer<typeof ServerLogsViewResponse>;
 
 export const useFetchServerLogsViewQuery = (lines: number) =>
   useQuery({

@@ -56,7 +56,7 @@ export type LightBoxProps = {
   startSlideshow?: boolean;
 };
 
-export type ImageDimensions = {
+type ImageDimensions = {
   width: number;
   height: number;
 };

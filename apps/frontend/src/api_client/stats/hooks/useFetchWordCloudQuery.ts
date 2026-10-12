@@ -3,7 +3,7 @@ import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient } from "../../api";
 import { WordCloudResponse } from "../types";
 
-export const WordCloudQueryKeys = ["wordCloud"] as const;
+const WordCloudQueryKeys = ["wordCloud"] as const;
 
 export const useFetchWordCloudQuery = () =>
   useQuery({

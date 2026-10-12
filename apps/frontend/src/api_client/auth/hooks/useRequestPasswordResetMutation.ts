@@ -3,18 +3,14 @@ import { z } from "zod";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient } from "../../api";
 
-export const PasswordResetRequest = z.object({
-  email: z.string(),
-});
-
-export type PasswordResetRequest = z.infer<typeof PasswordResetRequest>;
-
-export const PasswordResetResponse = z.object({
+const PasswordResetResponse = z.object({
   status: z.boolean(),
   message: z.string(),
 });
 
-export type PasswordResetResponse = z.infer<typeof PasswordResetResponse>;
+type PasswordResetResponse = z.infer<typeof PasswordResetResponse>;
+
+type PasswordResetRequest = { email: string };
 
 const requestPasswordReset = (data: PasswordResetRequest) =>
   fetchClient

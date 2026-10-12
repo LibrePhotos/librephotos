@@ -26,7 +26,7 @@ function useReleaseOnDetach() {
   }, []);
 }
 
-export type TileProps<T extends ImageItem> = {
+type TileProps<T extends ImageItem> = {
   item: LaidOutTile<T>;
   useLqip: boolean;
   containerWidth: number;

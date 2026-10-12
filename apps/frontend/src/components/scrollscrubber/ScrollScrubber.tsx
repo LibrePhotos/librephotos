@@ -6,7 +6,7 @@ import type { MouseEvent, ReactNode } from "react";
 import { useIsDesktopLayout } from "../../hooks/useIsDesktopLayout";
 import { parseInstant } from "../../util/dateUtils";
 import "./ScrollScrubber.css";
-import { ScrollerData, ScrollerPosition, ScrollerType } from "./ScrollScrubberTypes.zod";
+import { ScrollerData, ScrollerPosition, ScrollerType } from "./scrollScrubberTypes";
 
 // Minimum vertical distance between two markers: a marker chip is 18px tall,
 // so anything closer overlaps its neighbour.
