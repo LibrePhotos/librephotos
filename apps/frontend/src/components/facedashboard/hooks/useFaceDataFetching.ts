@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { queryClient } from "../../../api_client/api";
+import type { CompletePersonFaceList, FaceAnalysisMethod } from "../../../api_client/faces";
 import {
-  CompletePersonFaceList,
-  FaceAnalysisMethod,
   FacesQueryKeys,
   FacesTab,
   fetchFaces,

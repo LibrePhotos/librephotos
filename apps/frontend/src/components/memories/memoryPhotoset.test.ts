@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
-import { Memory, MemoryType } from "../../api_client/memories";
+import type { Memory } from "../../api_client/memories";
+import { MemoryType } from "../../api_client/memories";
 import type { PigPhoto } from "../../api_client/photos/types";
 import { defined } from "../../util/defined.test-utils";
 import { tempPigPhoto } from "../../util/util";

@@ -1,4 +1,5 @@
-import { APIRequestContext, expect } from "@playwright/test";
+import type { APIRequestContext } from "@playwright/test";
+import { expect } from "@playwright/test";
 
 /** Thin helpers over the REST API, used for seeding only; the specs check the UI. */
 

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { PigPhoto } from "../../api_client/photos/types";
+import type { PigPhoto } from "../../api_client/photos/types";
 
 /**
  * Keeps a page in step with the photo its lightbox is showing.

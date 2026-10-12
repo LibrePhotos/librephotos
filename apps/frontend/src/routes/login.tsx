@@ -76,11 +76,11 @@ export const Route = createFileRoute("/login")({
   }),
 });
 
-export interface LocationState {
+export type LocationState = {
   from: {
     pathname: string;
   };
-}
+};
 
 function LoginPage(): React.JSX.Element {
   const colorScheme = useComputedColorScheme("dark");

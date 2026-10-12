@@ -629,6 +629,7 @@ export function DuplicatesPageContent() {
       case "loose":
         return 5;
       case "normal":
+      case undefined:
       default:
         return 3;
     }

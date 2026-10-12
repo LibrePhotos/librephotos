@@ -5,9 +5,9 @@ import { FeatureBoundary, FeatureFallback } from "../common/FeatureBoundary";
 import { ContentViewer } from "./ContentViewer";
 import type { LightboxItem, LightBoxProps } from "./lightbox.types";
 
-interface ExtendedLightBoxProps extends LightBoxProps {
+type ExtendedLightBoxProps = {
   onImageChange?: (imageId: string) => void;
-}
+} & LightBoxProps;
 
 /**
  * The id to step to, or null when there is nothing there to show: a grid

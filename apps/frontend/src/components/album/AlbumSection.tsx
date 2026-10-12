@@ -44,7 +44,7 @@ function getDetfaultMaxItems(variant: AlbumSectionVariant): number {
       return 14;
     case "card":
       return 6;
-    default:
+    case "scroll":
       return 20;
   }
 }
@@ -175,7 +175,7 @@ function LoadingComponent({
       return <LoadingAvararGrid icon={icon} title={title} />;
     case "card":
       return <LoadingCard />;
-    default:
+    case "scroll":
       return <LoadingOther icon={icon} title={title} />;
   }
 }

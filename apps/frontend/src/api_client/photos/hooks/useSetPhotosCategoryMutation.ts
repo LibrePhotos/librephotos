@@ -7,7 +7,7 @@ import { DateAlbumQueryKeys } from "../../albums/hooks/useFetchDateAlbumQuery";
 import { DateAlbumsQueryKeys } from "../../albums/hooks/useFetchDateAlbumsQuery";
 import { fetchClient, queryClient } from "../../api";
 import { CountStatsQueryKeys } from "../../stats/hooks/useFetchCountStatsQuery";
-import { BulkPhotoQuery } from "../types";
+import type { BulkPhotoQuery } from "../types";
 import { PhotoDetailsQueryKeys } from "./useFetchPhotoDetailsQuery";
 
 export type PhotoCategory = "photo" | "screenshot" | "document";

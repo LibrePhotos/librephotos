@@ -18,3 +18,6 @@ coverage/
 # Translations other than English are written by Weblate; never reformat them by hand.
 src/locales/*/
 !src/locales/en/
+
+# Written by eslint --suppress-rule / --prune-suppressions; ESLint owns its format.
+eslint-suppressions.json

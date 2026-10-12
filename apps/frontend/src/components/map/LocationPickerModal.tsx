@@ -15,14 +15,8 @@ import { useDebouncedValue } from "@mantine/hooks";
 import { IconCurrentLocation, IconSearch } from "@tabler/icons-react";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import MapGL, {
-  AttributionControl,
-  MapLayerMouseEvent,
-  MapRef,
-  Marker,
-  MarkerDragEvent,
-  NavigationControl,
-} from "react-map-gl/maplibre";
+import type { MapLayerMouseEvent, MapRef, MarkerDragEvent } from "react-map-gl/maplibre";
+import MapGL, { AttributionControl, Marker, NavigationControl } from "react-map-gl/maplibre";
 import { invalidatePlaces } from "../../api_client/albums/invalidatePlaces";
 import { useGeocodeSearchQuery } from "../../api_client/geocode";
 import { useUpdatePhotoMutation } from "../../api_client/photos/hooks/useUpdatePhotoMutation";

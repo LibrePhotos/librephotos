@@ -1,6 +1,6 @@
 import { IconLayersLinked, IconStack2 as Stack } from "@tabler/icons-react";
 import React from "react";
-import { PigPhoto } from "../../api_client/photos/types";
+import type { PigPhoto } from "../../api_client/photos/types";
 import { ICON_SIZE } from "../../uiConstants";
 import { TileBadge } from "./TileBadge";
 

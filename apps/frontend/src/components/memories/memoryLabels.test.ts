@@ -1,6 +1,7 @@
 import { Settings } from "luxon";
 import { afterEach, describe, expect, test } from "vitest";
-import { Memory, MemoryType } from "../../api_client/memories";
+import type { Memory } from "../../api_client/memories";
+import { MemoryType } from "../../api_client/memories";
 import { memoryDayLabel, memoryMonthLabel } from "./memoryLabels";
 
 /**

@@ -7,13 +7,13 @@ import type { Photo as PhotoType } from "../../api_client/photos/types";
 import { LocationMap } from "../LocationMap";
 import { LocationPickerModal } from "../map/LocationPickerModal";
 
-interface LocationSectionProps {
+type LocationSectionProps = {
   /** The coordinates are null where the viewer may not see them; the map then stays hidden. */
   photoDetail: Pick<PhotoType, "image_hash" | "exif_gps_lat" | "exif_gps_lon"> &
     Partial<Pick<PhotoType, "search_location">>;
   mapHeight?: number;
   isPublic?: boolean;
-}
+};
 
 export function LocationSection({ photoDetail, mapHeight = 250, isPublic = false }: LocationSectionProps) {
   const { t } = useTranslation();

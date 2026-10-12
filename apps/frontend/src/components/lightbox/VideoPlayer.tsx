@@ -296,7 +296,8 @@ export const VideoPlayer = memo(function VideoPlayer({
         return t("lightbox.videoerror.servertitle");
       case "session":
         return t("lightbox.videoerror.sessiontitle");
-      default:
+      case "unknown":
+      case null:
         return t("lightbox.videoerror.unknowntitle");
     }
   };
@@ -320,7 +321,8 @@ export const VideoPlayer = memo(function VideoPlayer({
         return t("lightbox.videoerror.server", { status: errorStatus ?? "" });
       case "session":
         return t("lightbox.videoerror.session");
-      default:
+      case "unknown":
+      case null:
         return t("lightbox.videoerror.unknown");
     }
   };

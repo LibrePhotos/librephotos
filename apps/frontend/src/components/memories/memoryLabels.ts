@@ -1,5 +1,6 @@
 import { DateTime } from "luxon";
-import { Memory, MemoryType } from "../../api_client/memories";
+import type { Memory } from "../../api_client/memories";
+import { MemoryType } from "../../api_client/memories";
 import { parseInstant } from "../../util/dateUtils";
 
 /** What the labels read off a memory. */

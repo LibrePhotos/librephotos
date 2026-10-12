@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useWorkerQuery } from "../api_client/jobs/hooks";
-import { JobDetail } from "../api_client/jobs/types";
+import type { JobDetail } from "../api_client/jobs/types";
 
 export function useWorkerStatus() {
   const { data: worker, isLoading } = useWorkerQuery();

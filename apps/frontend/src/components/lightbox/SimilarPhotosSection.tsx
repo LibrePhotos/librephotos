@@ -6,11 +6,11 @@ import { useTranslation } from "react-i18next";
 import type { Photo as PhotoType } from "../../api_client/photos/types";
 import { Tile } from "../Tile";
 
-interface SimilarPhotosSectionProps {
+type SimilarPhotosSectionProps = {
   photoDetail: Pick<PhotoType, "image_hash" | "similar_photos">;
   maxItems?: number;
   showTitle?: boolean;
-}
+};
 
 export function SimilarPhotosSection({ photoDetail, maxItems = 8, showTitle = true }: SimilarPhotosSectionProps) {
   const { t } = useTranslation();

@@ -1,6 +1,7 @@
 import type React from "react";
 import { useCallback, useState } from "react";
-import { FaceCell, FaceSelection, GridCell, isPersonCell } from "./useVirtualizedGrid";
+import type { FaceCell, FaceSelection, GridCell } from "./useVirtualizedGrid";
+import { isPersonCell } from "./useVirtualizedGrid";
 
 /** A face in a shift-click range that can be selected: paged in, so it has its image. */
 function isSelectableFace(cell: GridCell): cell is FaceCell {

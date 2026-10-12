@@ -2,7 +2,7 @@ import { useMutation } from "@tanstack/react-query";
 import { z } from "zod";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient } from "../../api";
-import { UploadOptions } from "../types";
+import type { UploadOptions } from "../types";
 
 const UploadResponse = z.object({
   upload_id: z.string(),

@@ -102,12 +102,12 @@ FolderButton.displayName = "FolderButton";
 // thousands of subfolders, and every loaded page used to stay mounted.
 export const FOLDER_LIST_CAP = 100;
 
-interface FolderListModalProps {
+type FolderListModalProps = {
   opened: boolean;
   onClose: () => void;
   folderPath?: string;
   isMobile: boolean;
-}
+};
 
 // The list behind the "+N more" button of a folder page. The parent holds its open state.
 const FolderListModal = memo<FolderListModalProps>(

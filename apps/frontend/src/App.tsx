@@ -29,6 +29,7 @@ const router = createRouter({
 
 // Register things for typesafety
 declare module "@tanstack/react-router" {
+  // eslint-disable-next-line @typescript-eslint/consistent-type-definitions -- module augmentation merges into the router's interface
   interface Register {
     router: typeof router;
   }

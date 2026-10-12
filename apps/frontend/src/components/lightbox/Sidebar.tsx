@@ -31,7 +31,7 @@ import { TagsSection } from "./TagsSection";
 import { TimestampItem } from "./TimestampItem";
 import { CameraInfoSection, VersionComponent } from "./VersionComponent";
 
-interface SidebarProps {
+type SidebarProps = {
   isPublic: boolean;
   publicAlbumSlug?: string;
   id: string;
@@ -46,12 +46,12 @@ interface SidebarProps {
   onCancelAddFace?: () => void;
   isDrawingFace?: boolean;
   addFaceBlockedReason?: string;
-}
+};
 
-interface SelectedFace {
+type SelectedFace = {
   face_id: number;
   face_url: string;
-}
+};
 
 const sidebarStyles = {
   container: {

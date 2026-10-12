@@ -3,7 +3,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchRecentlyAddedPhotosQuery } from "../../api_client/photos/hooks/useFetchRecentlyAddedPhotosQuery";
-import { EmptyStateConfig, PhotoListView } from "../../components/photolist/PhotoListView";
+import type { EmptyStateConfig } from "../../components/photolist/PhotoListView";
+import { PhotoListView } from "../../components/photolist/PhotoListView";
 import { useScanEmptyStateAction } from "../../components/photolist/useScanEmptyStateAction";
 
 export const Route = createFileRoute("/_protected/recent")({

@@ -80,7 +80,7 @@ function getStackTypeColor(type: StackType): string {
 }
 
 // Stack list item type
-interface StackListItem {
+type StackListItem = {
   id: string;
   stack_type: StackType;
   stack_type_display: string;
@@ -89,7 +89,7 @@ interface StackListItem {
     image_hash: string;
     thumbnail_url: string | null;
   }>;
-}
+};
 
 function StackCard({ stack, onClick, onDelete }: { stack: StackListItem; onClick: () => void; onDelete: () => void }) {
   const { t } = useTranslation();

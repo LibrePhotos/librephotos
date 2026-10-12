@@ -52,7 +52,7 @@ vi.mock("@mantine/carousel", () => {
   return { Carousel };
 });
 vi.mock("motion/react", () => ({
-  AnimatePresence: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
+  AnimatePresence: ({ children }: { children?: React.ReactNode }) => children,
   motion: { div: ({ children }: { children?: React.ReactNode }) => <div>{children}</div> },
 }));
 vi.mock("./MediaDisplay", () => ({

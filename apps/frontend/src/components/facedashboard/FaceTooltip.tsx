@@ -3,7 +3,7 @@ import { getRouteApi } from "@tanstack/react-router";
 import { t } from "i18next";
 import { DateTime } from "luxon";
 import React from "react";
-import { FacesTab } from "../../api_client/faces";
+import type { FacesTab } from "../../api_client/faces";
 import { parsePhotoTimestamp } from "../../util/dateUtils";
 
 type Props = Readonly<{

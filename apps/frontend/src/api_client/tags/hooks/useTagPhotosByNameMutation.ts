@@ -2,7 +2,8 @@ import { useMutation } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient, queryClient } from "../../api";
-import { Tag, TagList, TagPhotosByNameParams } from "../types";
+import type { TagList, TagPhotosByNameParams } from "../types";
+import { Tag } from "../types";
 import { TagAlbumQueryKeys } from "./useFetchTagAlbumQuery";
 import { TagsQueryKeys } from "./useFetchTagsQuery";
 

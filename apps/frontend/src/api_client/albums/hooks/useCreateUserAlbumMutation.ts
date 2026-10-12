@@ -1,7 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
 import { fetchClient, queryClient } from "../../api";
-import { CreateUserAlbumParams } from "../types";
+import type { CreateUserAlbumParams } from "../types";
 import { UserAlbumsQueryKeys } from "./useFetchUserAlbumsQuery";
 
 export const useCreateUserAlbumMutation = () =>

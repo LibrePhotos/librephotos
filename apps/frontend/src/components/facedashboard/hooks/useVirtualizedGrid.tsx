@@ -1,7 +1,12 @@
 import { flatten, uniqBy } from "lodash-es";
 import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
-import { FaceAnalysisMethod, FacesTab } from "../../../api_client/faces";
-import type { CompletePersonFace, CompletePersonFaceList, PersonFace } from "../../../api_client/faces";
+import { FacesTab } from "../../../api_client/faces";
+import type {
+  CompletePersonFace,
+  CompletePersonFaceList,
+  FaceAnalysisMethod,
+  PersonFace,
+} from "../../../api_client/faces";
 import { calculateFaceGridCells, calculateFaceGridCellSize } from "../../../util/gridUtils";
 import type { GroupedGridRows } from "../../../util/gridUtils";
 import type { ScrollerData } from "../../scrollscrubber/scrollScrubberTypes";

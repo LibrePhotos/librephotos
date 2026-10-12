@@ -1,10 +1,10 @@
 import { z } from "zod";
 
-export interface DirTree {
+export type DirTree = {
   title: string;
   absolute_path: string;
   children: DirTree[];
-}
+};
 
 export type DirTreeResponse = DirTree[];
 

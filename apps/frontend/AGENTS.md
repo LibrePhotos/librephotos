@@ -33,9 +33,21 @@ green CI run. To develop against a local backend, copy `.env.development.example
   `@mantine/notifications` (lint bans it; the colours live in `toast.ts`). A message shown from two
   places gets a named helper there.
 - No `@ts-ignore`, `@ts-expect-error` or `@ts-nocheck`; fix the type.
+- Every promise is awaited, returned or discarded with `void`. In a mutation's `onSuccess`/`onSettled`,
+  return the invalidation (`Promise.all` for several) when the UI should wait for fresh data, `void` it
+  when it should not. Event props get a sync function: `onClick={() => void navigate(...)}`. Old findings
+  sit in `eslint-suppressions.json` (ESLint bulk suppressions): never add to it to get a PR green; after
+  fixing some, run eslint with `--prune-suppressions`, since a stale entry fails the lint.
+- A `switch` over a union names every member (a `default` does not count). `type`, not `interface`
+  (module augmentation excepted); `import type` for type-only imports. No `console.log`, `.debug` or
+  `.info`; `console.warn`/`console.error` stay until there is an error reporter.
+- A new "use X, not Y" convention is one entry in `importBans`, `syntaxBans`, `globalBans` or
+  `propertyBans` in `eslint.config.mjs` (with `allowIn` for the module that owns Y) plus its planted
+  violation in `eslint.config.test.mjs`; never set a `no-restricted-*` rule in a config block. Each entry
+  becomes its own rule `ban/<id>`, so one ban's exemption cannot drop another.
 - `tsconfig.json` is strict with `noImplicitReturns`, `noImplicitOverride` and `noUncheckedIndexedAccess`
   (an index read is `T | undefined`: guard it, use `?.`, or `defined()` in tests). `allowJs` is off.
-- Dates: parse and format only through `src/util/dateUtils.ts` (luxon). Pick the parser by what the value is: `parsePhotoTimestamp` for an `exif_timestamp` (wall clock tagged UTC), `parseInstant` for a real instant, `fromUnixSeconds` for epoch seconds, the picker helpers for DateTimePicker values. No `.setLocale()`: the UI language is luxon's default, set in `i18n.ts`. dayjs is only Mantine's picker glue. `no-restricted-syntax` and `no-restricted-imports` in `eslint.config.mjs` enforce it.
+- Dates: parse and format only through `src/util/dateUtils.ts` (luxon). Pick the parser by what the value is: `parsePhotoTimestamp` for an `exif_timestamp` (wall clock tagged UTC), `parseInstant` for a real instant, `fromUnixSeconds` for epoch seconds, the picker helpers for DateTimePicker values. No `.setLocale()`: the UI language is luxon's default, set in `i18n.ts`. dayjs is only Mantine's picker glue. The `ban/date-*` and `ban/dayjs` lint rules enforce it.
 - Server data goes through `src/api_client` (and, where a domain has moved, `packages/api-client`):
   requests, zod schemas and React Query hooks live there, not in components.
 - Cookies go through `src/api_client/authCookies.ts` (`getAuthCookie`, `setAuthCookie`, `clearAuthCookies`),

@@ -5,12 +5,8 @@ import { getRouteApi, useNavigate } from "@tanstack/react-router";
 import { debounce } from "lodash-es";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  FaceAnalysisMethod,
-  FacesTab,
-  useDeleteFacesMutation,
-  useSetFacesPersonLabelMutation,
-} from "../../api_client/faces";
+import type { FaceAnalysisMethod } from "../../api_client/faces";
+import { FacesTab, useDeleteFacesMutation, useSetFacesPersonLabelMutation } from "../../api_client/faces";
 import { notification } from "../../service/notifications";
 import { TOP_MENU_HEIGHT } from "../../uiConstants";
 import { EmptyState } from "../common/EmptyState";

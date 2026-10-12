@@ -13,16 +13,16 @@ import { calculateChunks, calculateMD5 } from "./chunkedUpload";
 
 export type UploadStatus = "pending" | "hashing" | "uploading" | "done" | "duplicate" | "error";
 
-export interface UploadItem {
+export type UploadItem = {
   id: string;
   file: File;
   status: UploadStatus;
   /** 0..100, bytes of this file sent so far */
   progress: number;
   error?: string;
-}
+};
 
-export interface UploadQueue {
+export type UploadQueue = {
   items: UploadItem[];
   isUploading: boolean;
   /** Append files to the queue and start uploading if idle. */
@@ -31,7 +31,7 @@ export interface UploadQueue {
   retry: (targets: UploadItem[]) => void;
   /** Clear the list. Ignored while an upload is running. */
   reset: () => void;
-}
+};
 
 const sequentially = <T>(list: T[], fn: (item: T) => Promise<void>): Promise<void> =>
   list.reduce((chain, item) => chain.then(() => fn(item)), Promise.resolve());

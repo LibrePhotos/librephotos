@@ -2,7 +2,7 @@ import { ActionIcon, Group, Stack, Text } from "@mantine/core";
 import { IconPlayerPlay as PlayerPlay } from "@tabler/icons-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { Memory } from "../../api_client/memories";
+import type { Memory } from "../../api_client/memories";
 import { Media } from "../../api_client/photos/types";
 import { Tile } from "../Tile";
 import { memoryDayLabel, memoryMonthLabel } from "./memoryLabels";

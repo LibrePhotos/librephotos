@@ -3,8 +3,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchPhotosWithoutTimestampQuery } from "../../api_client/photos/hooks/useFetchPhotosWithoutTimestampQuery";
-import { PigPhoto } from "../../api_client/photos/types";
-import { EmptyStateConfig, PhotoListView } from "../../components/photolist/PhotoListView";
+import type { PigPhoto } from "../../api_client/photos/types";
+import type { EmptyStateConfig } from "../../components/photolist/PhotoListView";
+import { PhotoListView } from "../../components/photolist/PhotoListView";
 import { addTempElementsToFlatList } from "../../util/util";
 
 export const Route = createFileRoute("/_protected/notimestamp")({

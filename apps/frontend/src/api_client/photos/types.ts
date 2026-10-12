@@ -1,4 +1,5 @@
-import { BulkPhotoQuery, MetadataSourceEnum, PigPhoto } from "@librephotos/api-client";
+import type { BulkPhotoQuery, PigPhoto } from "@librephotos/api-client";
+import { MetadataSourceEnum } from "@librephotos/api-client";
 import { z } from "zod";
 
 // The photo and photo-grid schemas are shared with the mobile app and live in

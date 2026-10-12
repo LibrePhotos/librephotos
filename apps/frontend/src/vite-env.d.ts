@@ -2,6 +2,7 @@
 
 // The variables the app reads from import.meta.env. Vite types every other key
 // as `any`; naming these keeps their reads typed.
+// eslint-disable-next-line @typescript-eslint/consistent-type-definitions -- declaration merging extends Vite's interface
 interface ImportMetaEnv {
   /** The path the app is served under, e.g. "/librephotos" (see vite.config.ts). */
   readonly VITE_PUBLIC_URL?: string;
