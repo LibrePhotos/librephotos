@@ -28,12 +28,47 @@ export class ResponseParseError extends Error {
 export function parseResponse<T>(schema: z.ZodType<T>, data: unknown, context = "response"): T {
   const result = schema.safeParse(data);
   if (!result.success) {
-    const issues = result.error.issues
-      .map(issue => `${issue.path.map(String).join(".") || "(root)"}: ${issue.message}`)
-      .join("; ");
-    throw new ResponseParseError(context, issues);
+    throw new ResponseParseError(context, describeIssues(result.error));
   }
   return result.data;
+}
+
+/** `path: message` per zod issue, joined with "; ". */
+function describeIssues(error: z.ZodError): string {
+  return error.issues.map(issue => `${issue.path.map(String).join(".") || "(root)"}: ${issue.message}`).join("; ");
+}
+
+/** A list parsed entry by entry: the entries the schema reads, and why the others were skipped. */
+export type ParsedEntries<T> = {
+  items: T[];
+  /** `entry <index>: <issues>` for each entry the schema rejected. */
+  skipped: string[];
+  /** How many entries the response had. */
+  total: number;
+};
+
+/**
+ * Parse a list response entry by entry: keep the entries the schema reads and say why the others
+ * were skipped, instead of failing the whole list. For lists where one entry this client cannot
+ * read (a rule type a newer backend added, say) must not take the rest down with it; the app
+ * reports `skipped`. A response that is not a list at all still throws a ResponseParseError.
+ */
+export function parseEachResponse<T>(itemSchema: z.ZodType<T>, data: unknown, context = "response"): ParsedEntries<T> {
+  if (!Array.isArray(data)) {
+    throw new ResponseParseError(context, `(root): expected an array, got ${data === null ? "null" : typeof data}`);
+  }
+  const entries: unknown[] = data;
+  const items: T[] = [];
+  const skipped: string[] = [];
+  entries.forEach((entry, index) => {
+    const result = itemSchema.safeParse(entry);
+    if (result.success) {
+      items.push(result.data);
+    } else {
+      skipped.push(`entry ${index}: ${describeIssues(result.error)}`);
+    }
+  });
+  return { items, skipped, total: entries.length };
 }
 
 /** Build a `?a=b&c=d` query string, dropping undefined/null values. */

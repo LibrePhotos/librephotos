@@ -1,12 +1,11 @@
+import { endpoints, type User } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
 import type { TimelineFilter } from "../../../components/photolist/timelineFilter";
 import { SHOW_EVERYTHING } from "../../../components/photolist/timelineFilter";
 import i18n from "../../../i18n";
 import { notification } from "../../../service/notifications";
-import { parseWithNotification } from "../../../util/zodUtils";
 import { apiClient, queryClient } from "../../api";
 import { userKeys } from "../keys";
-import { User } from "../types";
 
 type SaveDefaultTimelineFilterRequest = {
   userId: number;
@@ -30,12 +29,8 @@ export function compactTimelineFilter(filter: TimelineFilter): User["default_tim
 // until its refetch lands, so the timeline would flip back for a moment.
 export const useSaveDefaultTimelineFilterMutation = () =>
   useMutation({
-    mutationFn: async ({ userId, filter }: SaveDefaultTimelineFilterRequest) => {
-      const response = await apiClient.patch(`/user/${userId}/`, {
-        default_timeline_filter: compactTimelineFilter(filter),
-      });
-      return parseWithNotification(User, response, "Failed to parse update user response");
-    },
+    mutationFn: ({ userId, filter }: SaveDefaultTimelineFilterRequest) =>
+      endpoints.updateUserPartial(apiClient, userId, { default_timeline_filter: compactTimelineFilter(filter) }),
     onSuccess: user => {
       // Put the new default in place before anything refetches, so the
       // timeline never resolves its filter against the old one in between.

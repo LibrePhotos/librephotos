@@ -1,7 +1,7 @@
+import { endpoints } from "@librephotos/api-client";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "../../api";
 import { authKeys } from "../keys";
-import type { SsoConfig } from "../types";
 
 /**
  * What the login screen needs to know about single sign-on: whether to offer it,
@@ -11,7 +11,7 @@ import type { SsoConfig } from "../types";
 export const useSsoConfigQuery = () =>
   useQuery({
     queryKey: authKeys.ssoConfig(),
-    queryFn: () => apiClient.get<SsoConfig>("/auth/sso/config/"),
+    queryFn: () => endpoints.fetchSsoConfig(apiClient),
     // Providers change only when an admin reconfigures them, and a failure here
     // must never keep the password form from rendering.
     staleTime: 5 * 60 * 1000,

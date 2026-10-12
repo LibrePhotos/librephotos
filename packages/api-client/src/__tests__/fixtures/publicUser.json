@@ -1,0 +1,10 @@
+{
+  "id": 1,
+  "username": "alice",
+  "first_name": "Alice",
+  "last_name": "Anderson",
+  "avatar_url": null,
+  "public_photo_count": 3,
+  "public_photo_samples": [],
+  "public_sharing": true
+}

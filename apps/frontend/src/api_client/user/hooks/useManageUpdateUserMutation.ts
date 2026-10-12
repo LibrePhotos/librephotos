@@ -1,18 +1,15 @@
+import { endpoints } from "@librephotos/api-client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { parseWithNotification } from "../../../util/zodUtils";
 import { apiClient } from "../../api";
 import { userKeys } from "../keys";
-import { ManageUser, type ManageUserPatch } from "../types";
+import type { ManageUserPatch } from "../types";
 
 // Manage Update User Mutation
 export const useManageUpdateUserMutation = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (data: ManageUserPatch) => {
-      const response = await apiClient.patch(`/manage/user/${data.id}/`, data);
-      return parseWithNotification(ManageUser, response, "Failed to parse manage update user response");
-    },
+    mutationFn: (data: ManageUserPatch) => endpoints.manageUpdateUser(apiClient, data.id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: userKeys.list() });
     },

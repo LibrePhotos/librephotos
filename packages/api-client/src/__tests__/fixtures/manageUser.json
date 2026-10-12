@@ -1,0 +1,19 @@
+{
+  "username": "bob",
+  "scan_directory": "/data/bob",
+  "upload_directory": "",
+  "skip_raw_files": false,
+  "stack_raw_jpeg": true,
+  "confidence": 0.1,
+  "semantic_search_topk": 0,
+  "last_login": null,
+  "date_joined": "2024-03-01T10:00:00Z",
+  "photo_count": 12,
+  "id": 2,
+  "favorite_min_rating": 4,
+  "image_scale": 1,
+  "save_metadata_to_disk": "OFF",
+  "email": "bob@example.com",
+  "first_name": "Bob",
+  "last_name": ""
+}

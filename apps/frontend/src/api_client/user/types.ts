@@ -12,7 +12,7 @@ import type { ManageUser } from "@librephotos/api-client";
 // rows against the full `User` schema spammed non-admins with "Required at
 // results.N.<field>" popups (issue #1888), so there the private/admin-only
 // fields are optional while the public-safe fields stay required.
-export { ListUser, ListUserList, ManageUser, PublicSharingDefaults, User } from "@librephotos/api-client";
+export { ListUser, ListUserList, PublicSharingDefaults, User } from "@librephotos/api-client";
 
 /** A PATCH to /manage/user/<id>/: the id, plus only the fields that change. */
 export type ManageUserPatch = Partial<ManageUser> & Pick<ManageUser, "id">;

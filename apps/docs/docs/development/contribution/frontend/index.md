@@ -118,14 +118,23 @@ Everything below is relative to
   [components](https://github.com/LibrePhotos/librephotos/tree/dev/apps/frontend/src/components),
   grouped by feature.
 - [api_client](https://github.com/LibrePhotos/librephotos/tree/dev/apps/frontend/src/api_client)
-  is the API layer, and every request starts there. `api.ts` sets up `apiClient`, the shared client
-  from `packages/api-client` with the web's policy around it: it attaches the access token, refreshes
-  it on a 401, logs out when that fails, and rejects a failed request with `ApiError`. Around it, one
-  folder per domain (`photos`, `albums`, `faces`, …) exports the TanStack Query hooks the components
-  actually call, named `useFetch…Query` and `use…Mutation`. Files under `/media/` (thumbnails,
-  originals, videos) get their URLs from `mediaUrl` and are fetched with `fetchMedia`, both in
-  `api_client/media/mediaUrl.ts`. A component never calls `apiClient` or `fetch` itself: when it needs
-  a request, add a hook to the domain's folder. Lint enforces this.
+  is the web side of the API layer, and every request starts there. The requests themselves live in
+  [packages/api-client](https://github.com/LibrePhotos/librephotos/tree/dev/packages/api-client),
+  which the mobile app uses too: one endpoint function per call in `src/endpoints`, each parsing the
+  answer with its zod schema from `src/schemas` and returning the parsed type. `api.ts` sets up
+  `apiClient`, the shared client with the web's policy around it: it attaches the access token,
+  refreshes it on a 401, logs out when that fails, rejects a failed request with `ApiError`, and
+  shows a "please report this" notification when an answer does not match its schema. Around it,
+  one folder per domain (`photos`, `albums`, `faces`, …) holds the TanStack Query hooks the
+  components actually call (`useFetch…Query`, `use…Mutation`): each wraps an
+  `endpoints.<name>(apiClient, …)` call and adds the web's cache invalidation and notifications, with
+  keys from the domain's `keys.ts`. Files under `/media/` (thumbnails, originals, videos) get their
+  URLs from `mediaUrl` and are fetched with `fetchMedia`, both in `api_client/media/mediaUrl.ts`. A
+  component never calls `apiClient` or `fetch` itself: when it needs a request, add the endpoint and
+  its schema (with a fixture test) to `packages/api-client`, then a hook to the domain's folder. Lint
+  enforces this; domains that still call `apiClient` directly or define their own zod schemas are
+  listed in `eslint-suppressions.json` and are moving over one at a time
+  ([#2347](https://github.com/LibrePhotos/librephotos/issues/2347)).
 - [hooks](https://github.com/LibrePhotos/librephotos/tree/dev/apps/frontend/src/hooks) and
   [service](https://github.com/LibrePhotos/librephotos/tree/dev/apps/frontend/src/service) contain
   cross-cutting hooks and helpers, such as authentication and notifications.

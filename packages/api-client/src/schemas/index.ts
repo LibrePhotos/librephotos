@@ -9,6 +9,7 @@ export * from "./sharing";
 export * from "./faces";
 export * from "./jobs";
 export * from "./settings";
+export * from "./rules";
 export * from "./upload";
 export * from "./tags";
 export * from "./sync";

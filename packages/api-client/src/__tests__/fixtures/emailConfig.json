@@ -1,0 +1,29 @@
+{
+  "provider": "sendgrid",
+  "from_email": "photos@example.com",
+  "host": "",
+  "port": 587,
+  "use_tls": true,
+  "use_ssl": false,
+  "username": "",
+  "has_secret": true,
+  "is_configured": true,
+  "presets": {
+    "sendgrid": {
+      "label": "SendGrid",
+      "host": "smtp.sendgrid.net",
+      "port": 587,
+      "use_tls": true,
+      "use_ssl": false,
+      "default_username": "apikey",
+      "help_url": "https://app.sendgrid.com/settings/api_keys"
+    },
+    "ses": {
+      "label": "Amazon SES",
+      "port": 587,
+      "use_tls": true,
+      "use_ssl": false,
+      "help_url": "https://docs.aws.amazon.com/ses/latest/dg/smtp-credentials.html"
+    }
+  }
+}

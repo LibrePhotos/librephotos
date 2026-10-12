@@ -1,28 +1,17 @@
+import { endpoints, type LoginPost } from "@librephotos/api-client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { z } from "zod";
 import { notification } from "../../../service/notifications";
-import { parseWithNotification } from "../../../util/zodUtils";
 import { apiClient, ApiError } from "../../api";
 import { setAuthCookie } from "../../authCookies";
 import { authKeys } from "../keys";
 
-type LoginPost = { username: string; password: string };
-
-const LoginResponse = z.object({
-  refresh: z.string(),
-  access: z.string(),
-});
-
-type LoginResponse = z.infer<typeof LoginResponse>;
-
-const login = (credentials: LoginPost) =>
-  apiClient.post("/auth/token/obtain/", credentials).then(response => {
-    const data = parseWithNotification(LoginResponse, response, "Failed to parse login response");
-    setAuthCookie("access", data.access);
-    setAuthCookie("refresh", data.refresh);
-    return data;
-  });
+const login = async (credentials: LoginPost) => {
+  const data = await endpoints.login(apiClient, credentials);
+  setAuthCookie("access", data.access);
+  setAuthCookie("refresh", data.refresh);
+  return data;
+};
 
 type UseLoginOptions = {
   navigateOnSuccess?: boolean;

@@ -13,9 +13,9 @@ import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import type { DateTimeRule } from "../../api_client/settings/types";
 import i18n from "../../i18n";
 import { ConfigDateTime } from "./ConfigDateTime";
-import type { DateTimeRule } from "./dateTimeSchema";
 
 // SortableTbody hands its onMove here, so a test can drop a row without dragging it in jsdom.
 const sortable = vi.hoisted(() => {

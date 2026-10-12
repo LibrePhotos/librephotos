@@ -1,4 +1,5 @@
-import { z, ZodError } from "zod";
+import type { z } from "zod";
+import { ZodError } from "zod";
 import { notification } from "../service/notifications";
 
 /** The issues of a failed parse as one line: each message with the path it is at. */
@@ -39,32 +40,4 @@ export function parseWithNotification<Schema extends z.ZodType>(
 
     throw error;
   }
-}
-
-/**
- * Parse a list entry by entry: keep the entries the schema reads, and report the others in one
- * notification instead of failing the whole list. For lists where one entry this client cannot
- * read (a rule type a newer backend added, say) must not take the rest down with it. A value
- * that is not a list at all still fails, as in {@link parseWithNotification}.
- */
-export function parseListWithNotification<Item extends z.ZodType>(
-  itemSchema: Item,
-  data: unknown,
-  errorTitle: string = "Parse Error"
-): z.output<Item>[] {
-  const entries = parseWithNotification(z.array(z.unknown()), data, errorTitle);
-  const items: z.output<Item>[] = [];
-  const skipped: string[] = [];
-  entries.forEach((entry, index) => {
-    const result = itemSchema.safeParse(entry);
-    if (result.success) {
-      items.push(result.data);
-    } else {
-      skipped.push(`entry ${index}: ${describeIssues(result.error)}`);
-    }
-  });
-  if (skipped.length > 0) {
-    notification.parseError(`${errorTitle}: skipped ${skipped.length} of ${entries.length} (${skipped.join(" | ")})`);
-  }
-  return items;
 }

@@ -20,4 +20,4 @@ export type { AlbumMediaFilter, DateAlbumFilter, SyncPullParams, UserAlbumOption
 export * from "./hooks";
 export * from "./polling";
 export * from "./media";
-export { ResponseParseError } from "./util/parse";
+export { ResponseParseError, type ParsedEntries } from "./util/parse";

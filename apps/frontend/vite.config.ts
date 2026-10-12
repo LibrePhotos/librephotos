@@ -56,7 +56,8 @@ export default defineConfig(({ mode }) => {
       // upwards from packages/, which finds the root npm workspace's copies
       // (React 19, a second @tanstack/react-query whose QueryClient context the
       // app's provider never fills) or nothing at all. Always use this app's.
-      dedupe: ["react", "react-dom", "@tanstack/react-query", "zod"],
+      // typescript: the api-client test that reads the endpoint return types with the checker.
+      dedupe: ["react", "react-dom", "@tanstack/react-query", "zod", "typescript"],
     },
     appType: "spa",
     server: {

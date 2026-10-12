@@ -1,0 +1,85 @@
+/**
+ * The user endpoints the web and mobile apps share (issue #2347): the request each one sends and
+ * the parsed answer, against the backend's answers.
+ */
+import { describe, expect, it } from "vitest";
+import * as endpoints from "../endpoints";
+import { ListUserList, User } from "../schemas";
+import { defined } from "./defined";
+import manageUser from "./fixtures/manageUser.json";
+import publicUser from "./fixtures/publicUser.json";
+import userFixture from "./fixtures/user.json";
+import { fakeServer } from "./harness";
+
+/**
+ * Issue #1888: since the #1861 authorization fix GET /api/user/ sends the full UserSerializer only
+ * to admins (and to a user reading their own record); everyone else gets the public-safe
+ * PublicUserSerializer rows. Validating those against the full User schema flooded non-admins
+ * with "Required at results.N.<field>" popups on the main page.
+ */
+describe("the user list (issue #1888)", () => {
+  it("documents the symptom: the full User schema rejects a public-safe row", () => {
+    const result = User.safeParse(publicUser);
+    expect(result.success).toBe(false);
+    const missing = result.error?.issues.map(issue => issue.path.join(".")) ?? [];
+    expect(missing).toEqual(expect.arrayContaining(["email", "confidence", "date_joined", "photo_count"]));
+  });
+
+  it("reads every page, public-safe rows and full admin rows alike", async () => {
+    const { client, requests } = fakeServer({
+      count: 2,
+      next: null,
+      previous: null,
+      results: [publicUser, { ...userFixture, id: 2, upload_directory: "/data/admin/inbox" }],
+    });
+    const users = await endpoints.fetchUserList(client);
+    expect(defined(requests[0]).url).toBe("https://demo.example.com/api/user/");
+    expect(defined(users[0]).username).toBe("alice");
+    // zod strips unknown keys: without the field the Edit User dialog showed an empty upload folder.
+    expect(defined(users[1]).upload_directory).toBe("/data/admin/inbox");
+    expect(ListUserList.parse([publicUser])).toHaveLength(1);
+  });
+});
+
+describe("your own user", () => {
+  it("patches only the fields sent and parses the full user back", async () => {
+    const { client, requests } = fakeServer({ ...userFixture, image_scale: 2 });
+    const user = await endpoints.updateUserPartial(client, 1, { image_scale: 2 });
+    expect(defined(requests[0])).toEqual({
+      url: "https://demo.example.com/api/user/1/",
+      method: "PATCH",
+      body: { image_scale: 2 },
+    });
+    expect(user.image_scale).toBe(2);
+  });
+
+  it("uploads an avatar as multipart form data", async () => {
+    const { client, requests } = fakeServer(userFixture);
+    const form = new FormData();
+    form.append("avatar", new Blob(["x"]), "me.png");
+    await endpoints.updateUserPartial(client, "1", form);
+    expect(defined(requests[0]).body).toBe(form);
+  });
+});
+
+describe("managing users (admin)", () => {
+  it("patches another user's record and parses the ManageUser answer", async () => {
+    const { client, requests } = fakeServer(manageUser);
+    const user = await endpoints.manageUpdateUser(client, 2, { scan_directory: "/data/bob" });
+    expect(defined(requests[0])).toEqual({
+      url: "https://demo.example.com/api/manage/user/2/",
+      method: "PATCH",
+      body: { scan_directory: "/data/bob" },
+    });
+    expect(user.username).toBe("bob");
+  });
+
+  it("deletes a user (204, no body)", async () => {
+    const { client, requests } = fakeServer(null);
+    await expect(endpoints.deleteUser(client, 2)).resolves.toBeUndefined();
+    expect(defined(requests[0])).toMatchObject({
+      url: "https://demo.example.com/api/delete/user/2/",
+      method: "DELETE",
+    });
+  });
+});
