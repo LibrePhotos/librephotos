@@ -12,7 +12,7 @@ import {
 import { Photoset, PigPhoto } from "../../../api_client/photos/types";
 import { FolderListModal } from "../../../components/album/FolderListModal";
 import { PhotoGroup, PhotoListView } from "../../../components/photolist/PhotoListView";
-import type { PigVisibleGroup } from "../../../components/react-pig";
+import type { PigVisibleGroup } from "../../../components/photolist/PhotoListView";
 import { getPhotosFlatFromGroupedByDate } from "../../../util/util";
 
 export const Route = createFileRoute("/_protected/album/folder/$id")({

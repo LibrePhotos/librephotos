@@ -4,15 +4,13 @@ import { createFileRoute } from "@tanstack/react-router";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchUserAlbumsQuery, useToggleUserAlbumLockedMutation } from "../../../api_client/albums/hooks";
-import gridClasses from "../../../components/album/AlbumGridCell.module.css";
 import { UserAlbumCard } from "../../../components/album/UserAlbumCard";
 import { DeleteUserAlbumModal, RenameUserAlbumModal } from "../../../components/album/UserAlbumModals";
 import { EmptyState } from "../../../components/common/EmptyState";
 import { PageHeader } from "../../../components/PageHeader";
 import { ModalAlbumShare } from "../../../components/sharing/ModalAlbumShare";
-import { VirtualGrid } from "../../../components/virtual/VirtualGrid";
-import type { GridCellProps } from "../../../components/virtual/VirtualGrid";
-import { ALBUM_GRID_GUTTER, useAlbumListGridConfig } from "../../../hooks/useAlbumListGridConfig";
+import { TileGrid } from "../../../components/virtual/TileGrid";
+import { useAlbumListGridConfig } from "../../../hooks/useAlbumListGridConfig";
 
 export const Route = createFileRoute("/_protected/album/user/")({
   component: AlbumUser,
@@ -27,7 +25,7 @@ function AlbumUser() {
   const [isShareDialogOpen, { open: showShareDialog, close: hideShareDialog }] = useDisclosure(false);
   const { t } = useTranslation();
   const { data: albums, isFetching, isLoading } = useFetchUserAlbumsQuery();
-  const { entriesPerRow, entrySquareSize, numberOfRows, gridHeight } = useAlbumListGridConfig(albums ?? []);
+  const sizing = useAlbumListGridConfig();
   const hasAlbums = (albums?.length ?? 0) > 0;
   const toggleUserAlbumLocked = useToggleUserAlbumLockedMutation();
 
@@ -50,32 +48,6 @@ function AlbumUser() {
     const album = albums?.find(a => `${a.id}` === id);
     if (album) setAlbumOwner(album.owner.username);
   };
-
-  function renderCell({ columnIndex, key, rowIndex, style }: GridCellProps) {
-    if (!albums || albums.length === 0) {
-      return null;
-    }
-    const index = rowIndex * entriesPerRow + columnIndex;
-    const album = albums[index];
-    if (!album) {
-      return <div key={key} style={style} />;
-    }
-    return (
-      <div key={key} style={style}>
-        <div className={gridClasses.cell}>
-          <UserAlbumCard
-            album={album}
-            size={entrySquareSize - 10}
-            showActions
-            onRename={openRenameDialog}
-            onShare={openShareDialog}
-            onDelete={openDeleteDialog}
-            onToggleLocked={(id, locked) => toggleUserAlbumLocked.mutate({ id, locked })}
-          />
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div>
@@ -118,14 +90,22 @@ function AlbumUser() {
           secondaryActionLink="/sharing/withme/albums"
         />
       ) : (
-        <VirtualGrid
-          style={{ outline: "none", paddingLeft: ALBUM_GRID_GUTTER }}
-          cellRenderer={renderCell}
-          columnWidth={entrySquareSize}
-          columnCount={entriesPerRow}
-          height={gridHeight}
-          rowHeight={entrySquareSize + 60}
-          rowCount={numberOfRows}
+        <TileGrid
+          items={albums ?? []}
+          getKey={album => album.id}
+          sizing={sizing}
+          // The card draws its own caption, inside the padded cell
+          renderItem={(album, size) => (
+            <UserAlbumCard
+              album={album}
+              size={size}
+              showActions
+              onRename={openRenameDialog}
+              onShare={openShareDialog}
+              onDelete={openDeleteDialog}
+              onToggleLocked={(id, locked) => toggleUserAlbumLocked.mutate({ id, locked })}
+            />
+          )}
         />
       )}
     </div>

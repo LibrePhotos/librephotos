@@ -1,0 +1,6 @@
+/* The padded box around one tile. The padding comes from the grid's sizing (--tile-grid-cell-padding
+   on the scroll container): 5px on the album index grids puts a tile 10px from the edge
+   (ALBUM_GRID_GUTTER in hooks/useAlbumListGridConfig.tsx). */
+.cell {
+  padding: var(--tile-grid-cell-padding);
+}

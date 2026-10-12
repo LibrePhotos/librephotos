@@ -16,6 +16,7 @@ import {
   useMergeTagsMutation,
   useRenameTagMutation,
 } from "../../../api_client/tags/hooks";
+import type { TagList } from "../../../api_client/tags/types";
 import gridClasses from "../../../components/album/AlbumGridCell.module.css";
 import { TagDeleteModal } from "../../../components/album/TagDeleteModal";
 import { TagMergeModal } from "../../../components/album/TagMergeModal";
@@ -23,9 +24,10 @@ import { TagRenameModal } from "../../../components/album/TagRenameModal";
 import { EmptyState } from "../../../components/common/EmptyState";
 import { PageHeader } from "../../../components/PageHeader";
 import { Tile } from "../../../components/Tile";
-import { VirtualGrid } from "../../../components/virtual/VirtualGrid";
-import type { GridCellProps } from "../../../components/virtual/VirtualGrid";
-import { ALBUM_GRID_GUTTER, useAlbumListGridConfig } from "../../../hooks/useAlbumListGridConfig";
+import { TileGrid } from "../../../components/virtual/TileGrid";
+import { useAlbumListGridConfig } from "../../../hooks/useAlbumListGridConfig";
+
+type TagListEntry = TagList[number];
 
 export const Route = createFileRoute("/_protected/album/tags/")({
   component: AlbumTag,
@@ -34,7 +36,7 @@ export const Route = createFileRoute("/_protected/album/tags/")({
 function AlbumTag() {
   const { t } = useTranslation();
   const { data: tags, isFetching } = useFetchTagsQuery();
-  const { entriesPerRow, entrySquareSize, numberOfRows, gridHeight } = useAlbumListGridConfig(tags || []);
+  const sizing = useAlbumListGridConfig();
   const hasTags = tags && tags.length > 0;
 
   const renameTag = useRenameTagMutation();
@@ -61,70 +63,55 @@ function AlbumTag() {
     openDelete();
   }
 
-  function renderCell({ columnIndex, key, rowIndex, style }: GridCellProps) {
-    if (!tags || tags.length === 0) {
-      return null;
-    }
-    const index = rowIndex * entriesPerRow + columnIndex;
-    const tag = tags[index];
-    if (tag === undefined) {
-      return <div key={key} style={style} />;
-    }
+  function renderCover(tag: TagListEntry, size: number) {
     const cover = tag.cover_photos[0];
+    return cover ? (
+      <Link to="/album/tags/$id" params={{ id: String(tag.id) }}>
+        <Tile
+          className={gridClasses.cover}
+          video={cover.video === true}
+          height={size}
+          width={size}
+          image_hash={cover.image_hash}
+        />
+      </Link>
+    ) : (
+      <Link to="/album/tags/$id" params={{ id: String(tag.id) }}>
+        <Flex align="center" justify="center" h={size} w={size} bg="var(--mantine-color-default-hover)">
+          <Tag size={40} stroke={1.5} color="var(--mantine-color-gray-5)" />
+        </Flex>
+      </Link>
+    );
+  }
+
+  function renderCaption(tag: TagListEntry) {
     return (
-      <div key={key} style={style}>
-        <div className={gridClasses.cell}>
-          {cover ? (
-            <Link to="/album/tags/$id" params={{ id: String(tag.id) }}>
-              <Tile
-                className={gridClasses.cover}
-                video={cover.video === true}
-                height={entrySquareSize - 10}
-                width={entrySquareSize - 10}
-                image_hash={cover.image_hash}
-              />
-            </Link>
-          ) : (
-            <Link to="/album/tags/$id" params={{ id: String(tag.id) }}>
-              <Flex
-                align="center"
-                justify="center"
-                h={entrySquareSize - 10}
-                w={entrySquareSize - 10}
-                bg="var(--mantine-color-default-hover)"
-              >
-                <Tag size={40} stroke={1.5} color="var(--mantine-color-gray-5)" />
-              </Flex>
-            </Link>
-          )}
-        </div>
-        <Group justify="space-between" wrap="nowrap">
-          <Flex gap={0} justify="left" direction="column" px={8}>
-            <Text size="sm" fw={500} lineClamp={1} title={tag.name}>
-              {tag.name}
-            </Text>
-            <Text size="xs">{t("numberofphotos", { count: tag.photo_count, number: tag.photo_count })}</Text>
-          </Flex>
-          <Menu position="bottom-end">
-            <Menu.Target>
-              <ActionIcon variant="subtle" c="gray" size="sm" aria-label={t("moreactions")}>
-                <DotsVertical size={16} />
-              </ActionIcon>
-            </Menu.Target>
-            <Menu.Dropdown>
-              <Menu.Item leftSection={<Edit size={14} />} onClick={() => startRename(tag)}>
-                {t("rename")}
-              </Menu.Item>
-              <Menu.Item leftSection={<ArrowMerge size={14} />} onClick={() => startMerge(tag)}>
-                {t("tagalbum.merge")}
-              </Menu.Item>
-              <Menu.Item leftSection={<Trash size={14} />} onClick={() => startDelete(tag)}>
-                {t("delete")}
-              </Menu.Item>
-            </Menu.Dropdown>
-          </Menu>
-        </Group>
-      </div>
+      <Group justify="space-between" wrap="nowrap">
+        <Flex gap={0} justify="left" direction="column" px={8}>
+          <Text size="sm" fw={500} lineClamp={1} title={tag.name}>
+            {tag.name}
+          </Text>
+          <Text size="xs">{t("numberofphotos", { count: tag.photo_count, number: tag.photo_count })}</Text>
+        </Flex>
+        <Menu position="bottom-end">
+          <Menu.Target>
+            <ActionIcon variant="subtle" c="gray" size="sm" aria-label={t("moreactions")}>
+              <DotsVertical size={16} />
+            </ActionIcon>
+          </Menu.Target>
+          <Menu.Dropdown>
+            <Menu.Item leftSection={<Edit size={14} />} onClick={() => startRename(tag)}>
+              {t("rename")}
+            </Menu.Item>
+            <Menu.Item leftSection={<ArrowMerge size={14} />} onClick={() => startMerge(tag)}>
+              {t("tagalbum.merge")}
+            </Menu.Item>
+            <Menu.Item leftSection={<Trash size={14} />} onClick={() => startDelete(tag)}>
+              {t("delete")}
+            </Menu.Item>
+          </Menu.Dropdown>
+        </Menu>
+      </Group>
     );
   }
 
@@ -145,14 +132,12 @@ function AlbumTag() {
           actionLink="/library"
         />
       ) : (
-        <VirtualGrid
-          style={{ outline: "none", paddingLeft: ALBUM_GRID_GUTTER }}
-          cellRenderer={renderCell}
-          columnWidth={entrySquareSize}
-          columnCount={entriesPerRow}
-          height={gridHeight}
-          rowHeight={entrySquareSize + 60}
-          rowCount={numberOfRows}
+        <TileGrid
+          items={tags ?? []}
+          getKey={tag => tag.id}
+          sizing={sizing}
+          renderItem={renderCover}
+          renderCaption={renderCaption}
         />
       )}
 

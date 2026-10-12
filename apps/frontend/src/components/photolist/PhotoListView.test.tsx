@@ -239,6 +239,13 @@ describe("PhotoListView memoisation", () => {
     expect(el.querySelector('[data-testid="header"]')?.textContent).toBe("two");
   });
 
+  it("leaves the sticky header out for a null header, under the page's own header", async () => {
+    const el = await render({ header: null, isPublic: true });
+
+    expect(el.querySelector('[data-testid="title"]')).toBeNull();
+    expect(el.querySelector('[data-testid="pig"]')).not.toBeNull();
+  });
+
   it("keeps Pig's props stable across a re-render that changes nothing Pig uses", async () => {
     await render({ title: "Before", updateGroups: () => {} });
     const first = lastPigProps();

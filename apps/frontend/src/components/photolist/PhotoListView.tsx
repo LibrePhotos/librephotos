@@ -81,6 +81,8 @@ const hasCursor = (group: GroupedImageItem<PigPhoto>): group is PigVisibleGroup<
   typeof group.id === "string";
 
 export type { PhotoGroup } from "./photoGroup";
+// The pages that load their own date groups read the visible ones in the shape Pig reports.
+export type { PigVisibleGroup } from "../react-pig";
 
 export type EmptyStateConfig = {
   icon?: React.ReactNode;
@@ -112,6 +114,8 @@ type Props = Readonly<{
   updateItems?: (visibleItems: PigPhoto[]) => void;
   date?: string;
   dayHeaderPrefix?: string;
+  // Replaces the default header (title, counts, display menu) in the sticky bar above the grid;
+  // null leaves the bar out, for a list under its page's own header (the shared photo pages).
   header?: React.ReactNode;
   additionalSubHeader?: React.ReactNode;
   albumID?: string;
@@ -573,239 +577,241 @@ function PhotoListViewComponent({
 
   return (
     <RemoveScroll enabled={lightboxOpen}>
-      <Box
-        style={{
-          boxSizing: "border-box",
-          cursor: "pointer",
-          padding: 6,
-          position: "sticky",
-          top: TOP_MENU_HEIGHT,
-          width: "100%",
-          zIndex: 10,
-          backgroundColor: colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[0],
-        }}
-      >
-        {header || (
-          // The actions sit beside the title in the normal flow (they used to be
-          // absolutely positioned over it). The 260px basis wraps a wide action
-          // group onto its own row on phones instead of squeezing the title.
-          <Group justify="space-between" align="flex-start" gap="xs" style={{ rowGap: 4 }}>
-            <Box style={{ flex: "1 1 260px", minWidth: 0 }}>
-              <DefaultHeader
-                loading={isLoading}
-                numPhotosetItems={photos.length || 0}
-                numPhotos={getNumPhotos()}
-                icon={icon}
-                title={title}
-                dayHeaderPrefix={dayHeaderPrefix}
-                date={date}
-                additionalSubHeader={additionalSubHeader}
-                hasEmptyState={!!emptyStateConfig && !isFirstTimeSetup}
-                isPublic={isPublic}
-                countsVideos={mediaType === "videos" || location.pathname.startsWith("/videos")}
-              />
-            </Box>
-            {showHeaderToolbar && (
-              <Box ml="auto">
-                <Group gap="xs" wrap="nowrap">
-                  {/* The media-type filter stays visible even when the current
+      {header !== null && (
+        <Box
+          style={{
+            boxSizing: "border-box",
+            cursor: "pointer",
+            padding: 6,
+            position: "sticky",
+            top: TOP_MENU_HEIGHT,
+            width: "100%",
+            zIndex: 10,
+            backgroundColor: colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[0],
+          }}
+        >
+          {header || (
+            // The actions sit beside the title in the normal flow (they used to be
+            // absolutely positioned over it). The 260px basis wraps a wide action
+            // group onto its own row on phones instead of squeezing the title.
+            <Group justify="space-between" align="flex-start" gap="xs" style={{ rowGap: 4 }}>
+              <Box style={{ flex: "1 1 260px", minWidth: 0 }}>
+                <DefaultHeader
+                  loading={isLoading}
+                  numPhotosetItems={photos.length || 0}
+                  numPhotos={getNumPhotos()}
+                  icon={icon}
+                  title={title}
+                  dayHeaderPrefix={dayHeaderPrefix}
+                  date={date}
+                  additionalSubHeader={additionalSubHeader}
+                  hasEmptyState={!!emptyStateConfig && !isFirstTimeSetup}
+                  isPublic={isPublic}
+                  countsVideos={mediaType === "videos" || location.pathname.startsWith("/videos")}
+                />
+              </Box>
+              {showHeaderToolbar && (
+                <Box ml="auto">
+                  <Group gap="xs" wrap="nowrap">
+                    {/* The media-type filter stays visible even when the current
                       filter yields no photos, so the user is never trapped. */}
-                  {!isLoading && mediaType !== undefined && <MediaTypeSelector />}
-                  {headerActions}
-                  {!isLoading && getNumPhotos() > 0 && isAlbumPubliclyShared && isUserAlbum && (
-                    <Tooltip label={t("sidemenu.sharing")} position="bottom">
-                      <ActionIcon
-                        variant="default"
-                        size={TOOLBAR_ACTION_SIZE}
-                        aria-label={t("sidemenu.sharing")}
-                        onClick={() => openAlbumShare()}
+                    {!isLoading && mediaType !== undefined && <MediaTypeSelector />}
+                    {headerActions}
+                    {!isLoading && getNumPhotos() > 0 && isAlbumPubliclyShared && isUserAlbum && (
+                      <Tooltip label={t("sidemenu.sharing")} position="bottom">
+                        <ActionIcon
+                          variant="default"
+                          size={TOOLBAR_ACTION_SIZE}
+                          aria-label={t("sidemenu.sharing")}
+                          onClick={() => openAlbumShare()}
+                        >
+                          <IconLink size={ICON_SIZE.toolbar} />
+                        </ActionIcon>
+                      </Tooltip>
+                    )}
+                    {!isLoading && getNumPhotos() > 0 && (
+                      <Menu
+                        shadow="md"
+                        width={240}
+                        position="bottom-end"
+                        opened={displayMenuOpened}
+                        onChange={isOpen => (isOpen ? openDisplayMenu() : closeDisplayMenu())}
                       >
-                        <IconLink size={ICON_SIZE.toolbar} />
-                      </ActionIcon>
-                    </Tooltip>
-                  )}
-                  {!isLoading && getNumPhotos() > 0 && (
-                    <Menu
-                      shadow="md"
-                      width={240}
-                      position="bottom-end"
-                      opened={displayMenuOpened}
-                      onChange={isOpen => (isOpen ? openDisplayMenu() : closeDisplayMenu())}
-                    >
-                      <Menu.Target>
-                        {/* Hidden while the menu is open: it would sit over the menu's first label. */}
-                        <Tooltip label={t("photodisplay.settings")} position="bottom" disabled={displayMenuOpened}>
-                          <ActionIcon
-                            variant="default"
-                            size={TOOLBAR_ACTION_SIZE}
-                            aria-label={t("photodisplay.settings")}
-                          >
-                            <IconSettings size={ICON_SIZE.toolbar} />
-                          </ActionIcon>
-                        </Tooltip>
-                      </Menu.Target>
-                      <Menu.Dropdown>
-                        <Menu.Label>{t("photodisplay.photoSize")}</Menu.Label>
-                        <Box p="xs">
-                          <Stack gap={6}>
-                            <Slider
-                              mb={20}
-                              value={localImageScale}
-                              onChange={handleThumbnailSizeChange}
-                              min={0.25}
-                              max={3}
-                              step={0.05}
-                              marks={[
-                                { value: 0.5, label: "0.5" },
-                                { value: 1, label: "1" },
-                                { value: 2, label: "2" },
+                        <Menu.Target>
+                          {/* Hidden while the menu is open: it would sit over the menu's first label. */}
+                          <Tooltip label={t("photodisplay.settings")} position="bottom" disabled={displayMenuOpened}>
+                            <ActionIcon
+                              variant="default"
+                              size={TOOLBAR_ACTION_SIZE}
+                              aria-label={t("photodisplay.settings")}
+                            >
+                              <IconSettings size={ICON_SIZE.toolbar} />
+                            </ActionIcon>
+                          </Tooltip>
+                        </Menu.Target>
+                        <Menu.Dropdown>
+                          <Menu.Label>{t("photodisplay.photoSize")}</Menu.Label>
+                          <Box p="xs">
+                            <Stack gap={6}>
+                              <Slider
+                                mb={20}
+                                value={localImageScale}
+                                onChange={handleThumbnailSizeChange}
+                                min={0.25}
+                                max={3}
+                                step={0.05}
+                                marks={[
+                                  { value: 0.5, label: "0.5" },
+                                  { value: 1, label: "1" },
+                                  { value: 2, label: "2" },
+                                ]}
+                              />
+                              <Text size="xs" c="dimmed">
+                                {t("photodisplay.lowerBigger")}
+                              </Text>
+                              <Text size="xs" fw={500}>
+                                {t("photodisplay.current", { value: localImageScale.toFixed(2) })}
+                              </Text>
+                            </Stack>
+                          </Box>
+
+                          <Menu.Divider />
+
+                          <Menu.Label>{t("photodisplay.textAlignment")}</Menu.Label>
+                          <Box p="xs">
+                            <Switch
+                              label={t("photodisplay.leftAlign")}
+                              checked={localTextAlignment === "left"}
+                              onChange={event =>
+                                handleTextAlignmentChange(event.currentTarget.checked ? "left" : "right")
+                              }
+                              size="sm"
+                            />
+                          </Box>
+
+                          <Menu.Divider />
+
+                          <Menu.Label>{t("photodisplay.headerSize")}</Menu.Label>
+                          <Box p="xs">
+                            <SegmentedControl
+                              size="xs"
+                              fullWidth
+                              value={localHeaderSize}
+                              onChange={value => {
+                                // The options below are the three header sizes.
+                                if (isHeaderSize(value)) handleHeaderSizeChange(value);
+                              }}
+                              data={[
+                                { value: "large", label: t("photodisplay.large") },
+                                { value: "normal", label: t("photodisplay.normal") },
+                                { value: "small", label: t("photodisplay.small") },
                               ]}
                             />
-                            <Text size="xs" c="dimmed">
-                              {t("photodisplay.lowerBigger")}
-                            </Text>
-                            <Text size="xs" fw={500}>
-                              {t("photodisplay.current", { value: localImageScale.toFixed(2) })}
-                            </Text>
-                          </Stack>
-                        </Box>
-
-                        <Menu.Divider />
-
-                        <Menu.Label>{t("photodisplay.textAlignment")}</Menu.Label>
-                        <Box p="xs">
-                          <Switch
-                            label={t("photodisplay.leftAlign")}
-                            checked={localTextAlignment === "left"}
-                            onChange={event =>
-                              handleTextAlignmentChange(event.currentTarget.checked ? "left" : "right")
-                            }
-                            size="sm"
-                          />
-                        </Box>
-
-                        <Menu.Divider />
-
-                        <Menu.Label>{t("photodisplay.headerSize")}</Menu.Label>
-                        <Box p="xs">
-                          <SegmentedControl
-                            size="xs"
-                            fullWidth
-                            value={localHeaderSize}
-                            onChange={value => {
-                              // The options below are the three header sizes.
-                              if (isHeaderSize(value)) handleHeaderSizeChange(value);
-                            }}
-                            data={[
-                              { value: "large", label: t("photodisplay.large") },
-                              { value: "normal", label: t("photodisplay.normal") },
-                              { value: "small", label: t("photodisplay.small") },
-                            ]}
-                          />
-                        </Box>
-                      </Menu.Dropdown>
-                    </Menu>
-                  )}
-                </Group>
-              </Box>
-            )}
-          </Group>
-        )}
-        {!isLoading && !isPublic && getNumPhotos() > 0 && (
-          <Box
-            style={{
-              padding: 4,
-              backgroundColor: colorScheme === "dark" ? theme.colors.dark[7] : theme.colors.gray[2],
-              textAlign: "center",
-              cursor: "pointer",
-              borderRadius: 10,
-            }}
-          >
-            <Group
+                          </Box>
+                        </Menu.Dropdown>
+                      </Menu>
+                    )}
+                  </Group>
+                </Box>
+              )}
+            </Group>
+          )}
+          {!isLoading && !isPublic && getNumPhotos() > 0 && (
+            <Box
               style={{
-                paddingLeft: 10,
+                padding: 4,
+                backgroundColor: colorScheme === "dark" ? theme.colors.dark[7] : theme.colors.gray[2],
+                textAlign: "center",
+                cursor: "pointer",
+                borderRadius: 10,
               }}
-              justify="space-between"
             >
-              <SelectionBar
-                selectMode={selectionState.selectMode}
-                selectAllMode={selectionState.selectAllMode}
-                selectedItems={selectionState.selectedItems}
-                idx2hash={idx2hash}
-                updateSelectionState={updateSelectionState}
-                photosetQuery={photosetQuery}
-                totalCount={selectionState.totalCount || numberOfItems || idx2hash.length}
-              />
-              <Group justify="flex-end">
-                {!location.pathname.startsWith("/deleted") && (
-                  <SelectionActions
+              <Group
+                style={{
+                  paddingLeft: 10,
+                }}
+                justify="space-between"
+              >
+                <SelectionBar
+                  selectMode={selectionState.selectMode}
+                  selectAllMode={selectionState.selectAllMode}
+                  selectedItems={selectionState.selectedItems}
+                  idx2hash={idx2hash}
+                  updateSelectionState={updateSelectionState}
+                  photosetQuery={photosetQuery}
+                  totalCount={selectionState.totalCount || numberOfItems || idx2hash.length}
+                />
+                <Group justify="flex-end">
+                  {!location.pathname.startsWith("/deleted") && (
+                    <SelectionActions
+                      selectedItems={selectionState.selectedItems}
+                      selectAllMode={selectionState.selectAllMode}
+                      selectAllQuery={selectionState.selectAllQuery}
+                      totalCount={selectionState.totalCount || numberOfItems || idx2hash.length}
+                      albumID={albumID}
+                      ownerUsername={ownerUsername}
+                      albumLocked={albumLocked}
+                      title={title}
+                      setAlbumCover={(actionType, photoId) => {
+                        const onlySelected = selectionState.selectedItems[0];
+                        // If photoId is provided (from modal), use it directly
+                        if (photoId) {
+                          if (actionType === "person") {
+                            setPersonAlbumCover.mutate({
+                              id: `${albumID}`,
+                              cover_photo: photoId,
+                            });
+                          }
+                          if (actionType === "useralbum") {
+                            setUserAlbumCover.mutate({
+                              id: `${albumID}`,
+                              photo: photoId,
+                            });
+                          }
+                          return;
+                        }
+
+                        // If exactly 1 item selected, use it
+                        if (selectionState.selectedItems.length === 1 && onlySelected) {
+                          if (actionType === "person") {
+                            setPersonAlbumCover.mutate({
+                              id: `${albumID}`,
+                              cover_photo: onlySelected.image_hash,
+                            });
+                          }
+                          if (actionType === "useralbum") {
+                            setUserAlbumCover.mutate({
+                              id: `${albumID}`,
+                              photo: onlySelected.id,
+                            });
+                          }
+                        } else if (selectionState.selectedItems.length === 0) {
+                          // No selection - open modal picker
+                          setCoverPickerAlbumType(actionType);
+                          openCoverPicker();
+                        }
+                        // Multiple selected: action is disabled at menu level
+                      }}
+                      onSharePhotos={() => openSharePhotos()}
+                      onShareAlbum={() => openAlbumShare()}
+                      onAddToAlbum={() => openAddToAlbum()}
+                      onAddTags={() => openTag()}
+                      updateSelectionState={updateSelectionState}
+                    />
+                  )}
+                  <TrashcanActions
                     selectedItems={selectionState.selectedItems}
                     selectAllMode={selectionState.selectAllMode}
                     selectAllQuery={selectionState.selectAllQuery}
                     totalCount={selectionState.totalCount || numberOfItems || idx2hash.length}
-                    albumID={albumID}
-                    ownerUsername={ownerUsername}
-                    albumLocked={albumLocked}
-                    title={title}
-                    setAlbumCover={(actionType, photoId) => {
-                      const onlySelected = selectionState.selectedItems[0];
-                      // If photoId is provided (from modal), use it directly
-                      if (photoId) {
-                        if (actionType === "person") {
-                          setPersonAlbumCover.mutate({
-                            id: `${albumID}`,
-                            cover_photo: photoId,
-                          });
-                        }
-                        if (actionType === "useralbum") {
-                          setUserAlbumCover.mutate({
-                            id: `${albumID}`,
-                            photo: photoId,
-                          });
-                        }
-                        return;
-                      }
-
-                      // If exactly 1 item selected, use it
-                      if (selectionState.selectedItems.length === 1 && onlySelected) {
-                        if (actionType === "person") {
-                          setPersonAlbumCover.mutate({
-                            id: `${albumID}`,
-                            cover_photo: onlySelected.image_hash,
-                          });
-                        }
-                        if (actionType === "useralbum") {
-                          setUserAlbumCover.mutate({
-                            id: `${albumID}`,
-                            photo: onlySelected.id,
-                          });
-                        }
-                      } else if (selectionState.selectedItems.length === 0) {
-                        // No selection - open modal picker
-                        setCoverPickerAlbumType(actionType);
-                        openCoverPicker();
-                      }
-                      // Multiple selected: action is disabled at menu level
-                    }}
-                    onSharePhotos={() => openSharePhotos()}
-                    onShareAlbum={() => openAlbumShare()}
-                    onAddToAlbum={() => openAddToAlbum()}
-                    onAddTags={() => openTag()}
                     updateSelectionState={updateSelectionState}
                   />
-                )}
-                <TrashcanActions
-                  selectedItems={selectionState.selectedItems}
-                  selectAllMode={selectionState.selectAllMode}
-                  selectAllQuery={selectionState.selectAllQuery}
-                  totalCount={selectionState.totalCount || numberOfItems || idx2hash.length}
-                  updateSelectionState={updateSelectionState}
-                />
+                </Group>
               </Group>
-            </Group>
-          </Box>
-        )}
-      </Box>
+            </Box>
+          )}
+        </Box>
+      )}
       {banner}
       {!isLoading && photos && photos.length > 0 ? (
         <ScrollScrubber

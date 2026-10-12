@@ -30,9 +30,8 @@ import { MapDisabledPlaceholder } from "../../../components/map/MapDisabledPlace
 import { ignoreMissingStyleImages } from "../../../components/map/mapImages";
 import { PageHeader } from "../../../components/PageHeader";
 import { Tile } from "../../../components/Tile";
-import { VirtualGrid } from "../../../components/virtual/VirtualGrid";
-import type { GridCellProps } from "../../../components/virtual/VirtualGrid";
-import { ALBUM_GRID_GUTTER, useAlbumListGridConfig } from "../../../hooks/useAlbumListGridConfig";
+import { TileGrid } from "../../../components/virtual/TileGrid";
+import { useAlbumListGridConfig } from "../../../hooks/useAlbumListGridConfig";
 import { useMapStyle } from "../../../util/mapStyle";
 
 export const Route = createFileRoute("/_protected/album/places/")({
@@ -119,8 +118,9 @@ function AlbumPlace({ height = 0 }: Props) {
   } = useFetchLocationClustersQuery();
   const { mapStyle, mapsDisabled } = useMapStyle();
   const shownAlbums = useMemo(() => visibleAlbums ?? sortPlaces(albums ?? []), [visibleAlbums, albums]);
-  // The grid only shows the places inside the map bounds, so size it from those
-  const { entriesPerRow, entrySquareSize, numberOfRows, gridHeight } = useAlbumListGridConfig(shownAlbums);
+  // The hook leaves room for the header only. Less the map, so the page does not scroll
+  // as well as the grid, but always tall enough for one row on a short screen.
+  const sizing = useAlbumListGridConfig({ reservedHeight: MAP_BLOCK_HEIGHT });
 
   // Convert locationClusters to GeoJSON FeatureCollection
   const geojsonData = useMemo(() => clusterFeatureCollection(locationClusters), [locationClusters]);
@@ -212,41 +212,6 @@ function AlbumPlace({ height = 0 }: Props) {
     updateVisibleAlbums(mapRef.current);
   }, [width, height, albums, locationClusters, updateVisibleAlbums]);
 
-  function renderCell({ columnIndex, key, rowIndex, style }: GridCellProps) {
-    if (shownAlbums.length === 0) {
-      return null;
-    }
-    const index = rowIndex * entriesPerRow + columnIndex;
-    const place = shownAlbums[index];
-    if (place === undefined) {
-      return <div key={key} style={style} />;
-    }
-    // Laid out like the other album grids: square cover, then a one-line title
-    return (
-      <div key={key} style={style}>
-        <div className={gridClasses.cell}>
-          {place.cover_photos.slice(0, 1).map(photo => (
-            <Link key={place.id} to="/album/places/$id" params={{ id: String(place.id) }}>
-              <Tile
-                className={gridClasses.cover}
-                video={photo.video === true}
-                height={entrySquareSize - 10}
-                width={entrySquareSize - 10}
-                image_hash={photo.image_hash}
-              />
-            </Link>
-          ))}
-        </div>
-        <Flex gap={0} justify="flex-start" direction="column" px={8}>
-          <Text size="sm" fw={500} lineClamp={1} title={place.title}>
-            {place.title}
-          </Text>
-          <Text size="xs">{t("numberofphotos", { count: place.photo_count, number: place.photo_count })}</Text>
-        </Flex>
-      </div>
-    );
-  }
-
   if (isLoadingAlbums || isLoadingLocationClusters) {
     return <PageLoader label={t("placealbum.maploading")} />;
   }
@@ -310,16 +275,33 @@ function AlbumPlace({ height = 0 }: Props) {
               </FeatureBoundary>
             )}
           </div>
-          <VirtualGrid
-            style={{ outline: "none", paddingLeft: ALBUM_GRID_GUTTER }}
-            cellRenderer={renderCell}
-            columnWidth={entrySquareSize}
-            columnCount={entriesPerRow}
-            // The hook leaves room for the header only. Less the map, so the page does not scroll
-            // as well as the grid, but always tall enough for one row on a short screen.
-            height={Math.max(gridHeight - MAP_BLOCK_HEIGHT, entrySquareSize + 60)}
-            rowHeight={entrySquareSize + 60}
-            rowCount={numberOfRows}
+          {/* Only the places inside the map bounds; laid out like the other album grids:
+              square cover, then a one-line title */}
+          <TileGrid
+            items={shownAlbums}
+            getKey={place => place.id}
+            sizing={sizing}
+            renderItem={(place, size) =>
+              place.cover_photos.slice(0, 1).map(photo => (
+                <Link key={place.id} to="/album/places/$id" params={{ id: String(place.id) }}>
+                  <Tile
+                    className={gridClasses.cover}
+                    video={photo.video === true}
+                    height={size}
+                    width={size}
+                    image_hash={photo.image_hash}
+                  />
+                </Link>
+              ))
+            }
+            renderCaption={place => (
+              <Flex gap={0} justify="flex-start" direction="column" px={8}>
+                <Text size="sm" fw={500} lineClamp={1} title={place.title}>
+                  {place.title}
+                </Text>
+                <Text size="xs">{t("numberofphotos", { count: place.photo_count, number: place.photo_count })}</Text>
+              </Flex>
+            )}
           />
         </>
       )}

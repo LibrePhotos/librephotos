@@ -1,86 +1,57 @@
 import { Anchor, Avatar, Stack, Text } from "@mantine/core";
-import { useDisclosure, useElementSize, useMergedRef, useViewportSize } from "@mantine/hooks";
+import { useDisclosure } from "@mantine/hooks";
 import { IconShare, IconPolaroid as Polaroid } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useFetchSharedAlbumsByMeQuery, type UserAlbumsGroupedByUserId } from "../../api_client/albums/hooks";
+import { useFetchSharedAlbumsByMeQuery } from "../../api_client/albums/hooks";
 import type { UserAlbumInfo } from "../../api_client/albums/types";
 import { useFetchUserListQuery } from "../../api_client/user/hooks";
-import { calculateGridCellSize, calculateSharedAlbumGridCells, type GroupedGridRows } from "../../util/gridUtils";
+import { calculateGridCellSize } from "../../util/gridUtils";
 import gridClasses from "../album/AlbumGridCell.module.css";
 import { PageLoader } from "../common/PageLoader";
 import { Tile } from "../Tile";
-import { VirtualGrid } from "../virtual/VirtualGrid";
-import type { GridCellProps } from "../virtual/VirtualGrid";
+import { TileGrid } from "../virtual/TileGrid";
+import type { TileGroup } from "../virtual/TileGrid";
+import { useMeasuredTileSizing } from "../virtual/useMeasuredTileSizing";
 import { AlbumShareButton } from "./AlbumShareButton";
 import { avatarSrc } from "./avatarSrc";
 import { ModalAlbumShare } from "./ModalAlbumShare";
+import { sharerName } from "./sharerGroups";
 
 const DAY_HEADER_HEIGHT = 70;
 // Below the cover: a one-line title (md, 24.8px) and the photo count (sm, 20.3px).
 const CAPTION_HEIGHT = 52;
 
+const columnsFor = (width: number) => calculateGridCellSize(width).numEntrySquaresPerRow;
+
 export function AlbumsSharedByMe() {
   const { t } = useTranslation();
-  const [albumGridContents, setAlbumGridContents] = React.useState<
-    GroupedGridRows<UserAlbumsGroupedByUserId, UserAlbumInfo>
-  >([]);
-  // Size the columns from the width the grid actually gets, less room for its scrollbar, so they
-  // fit it and follow a resize. The viewport size reads 0 until its first effect.
-  const { ref: sizeRef, width } = useElementSize<HTMLDivElement>();
-  // Mantine types its ref for React 19 (RefObject<T | null>); a callback ref fills the same object.
-  const containerRef = useMergedRef(sizeRef);
-  const height = useViewportSize().height || window.innerHeight;
-  const { entrySquareSize, numEntrySquaresPerRow } = calculateGridCellSize((width || window.innerWidth) - 20);
+  // Sized from the width the grid actually gets, less room for its scrollbar, so the columns fit
+  // it and follow a resize.
+  const { ref: containerRef, sizing } = useMeasuredTileSizing({
+    columnsFor,
+    cellPadding: 1,
+    captionHeight: CAPTION_HEIGHT,
+    reservedHeight: 45 + 60 + 40,
+  });
   const { data: albums, isFetching, isSuccess } = useFetchSharedAlbumsByMeQuery();
   const { data: users } = useFetchUserListQuery();
   // Stop or change a share from here instead of opening each album.
   const [shareAlbumId, setShareAlbumId] = useState("");
   const [isShareDialogOpen, { open: openShareDialog, close: closeShareDialog }] = useDisclosure(false);
 
-  useEffect(() => {
-    if (!isSuccess) {
-      return;
-    }
-    const contents = calculateSharedAlbumGridCells(albums, numEntrySquaresPerRow).cellContents;
-    setAlbumGridContents(contents);
-    // Recomputed on a column count change, or the cells keep the old row layout while the grid
-    // draws the new one.
-  }, [albums, isSuccess, numEntrySquaresPerRow]);
-
-  const rowHeight = useCallback(
-    ({ index }: { index: number }) => {
-      const firstCell = albumGridContents[index]?.[0];
-      // a sharer header row, or a row of album covers with their title and count
-      return firstCell && "user_id" in firstCell ? DAY_HEADER_HEIGHT : entrySquareSize + CAPTION_HEIGHT;
-    },
-    [albumGridContents, entrySquareSize]
-  );
-
-  const cellRenderer = ({ columnIndex, key, rowIndex, style }: GridCellProps) => {
-    const cell = albumGridContents[rowIndex]?.[columnIndex];
-    if (cell) {
-      if ("user_id" in cell) {
-        // sharer info header
-        const owner = users?.filter(e => e.id === cell.user_id)[0];
-        let displayName = `${cell.user_id}`;
-        if (owner && owner.last_name.length + owner.first_name.length > 0) {
-          displayName = `${owner.first_name} ${owner.last_name}`;
-        } else if (owner) {
-          displayName = owner.username;
-        }
-        return (
-          <div
-            key={key}
-            style={{
-              ...style,
-              width,
-              height: DAY_HEADER_HEIGHT,
-              paddingTop: 15,
-              paddingLeft: 5,
-            }}
-          >
+  // One group per user the albums are shared with, under a header with who it is
+  const groups = useMemo((): TileGroup<UserAlbumInfo>[] => {
+    if (!isSuccess) return [];
+    return albums.map(group => {
+      const owner = users?.filter(e => e.id === group.user_id)[0];
+      const displayName = sharerName(owner, `${group.user_id}`);
+      return {
+        key: group.user_id,
+        items: group.albums,
+        header: (
+          <div style={{ height: DAY_HEADER_HEIGHT, paddingTop: 15, paddingLeft: 5 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <Avatar size={36} radius="xl" src={avatarSrc(owner)} />
               <div>
@@ -89,59 +60,15 @@ export function AlbumsSharedByMe() {
                 </Text>
                 <Text size="xs" c="dimmed" style={{ display: "flex", alignItems: "center" }}>
                   <Polaroid size={16} style={{ marginRight: 5 }} />
-                  {t("sharing.youSharedAlbumsWithThem", { count: cell.albums.length })}
+                  {t("sharing.youSharedAlbumsWithThem", { count: group.albums.length })}
                 </Text>
               </div>
             </div>
           </div>
-        );
-      }
-      // album cell
-      return (
-        <div key={key} style={{ ...style, padding: 1 }}>
-          <Anchor
-            renderRoot={rootProps => <Link {...rootProps} to="/album/user/$id" params={{ id: String(cell.id) }} />}
-          >
-            {cell.cover_photo ? (
-              <Tile
-                className={gridClasses.cover}
-                style={{ objectFit: "cover" }}
-                width={entrySquareSize - 2}
-                height={entrySquareSize - 2}
-                image_hash={cell.cover_photo.image_hash}
-                video={cell.cover_photo.video}
-              />
-            ) : (
-              <div
-                className={gridClasses.cover}
-                style={{
-                  width: entrySquareSize - 2,
-                  height: entrySquareSize - 2,
-                  backgroundColor: "light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6))",
-                }}
-              />
-            )}
-          </Anchor>
-          <AlbumShareButton
-            label={t("sidemenu.sharing")}
-            icon={<IconShare size={16} color="white" />}
-            onClick={() => {
-              setShareAlbumId(`${cell.id}`);
-              openShareDialog();
-            }}
-          />
-          <Text fw={700} mt={4} lineClamp={1} title={cell.title}>
-            {cell.title}
-          </Text>
-          <Text size="sm" c="dimmed">
-            {t("numberofphotos", { count: cell.photo_count, number: cell.photo_count })}
-          </Text>
-        </div>
-      );
-    }
-    // empty cell
-    return <div key={key} style={style} />;
-  };
+        ),
+      };
+    });
+  }, [albums, isSuccess, users, t]);
 
   return (
     <div ref={containerRef}>
@@ -149,22 +76,62 @@ export function AlbumsSharedByMe() {
           loader above the grid. */}
       {isFetching && !isSuccess && <PageLoader label={t("sharing.loadingAlbumsSharedByYou")} />}
 
-      {albumGridContents.length === 0 && isSuccess && (
+      {groups.length === 0 && isSuccess && (
         <Stack align="center" mt="xl">
           <Text c="dimmed">{t("sharing.noAlbumsSharedByYou")}</Text>
         </Stack>
       )}
 
-      {albumGridContents.length > 0 && (
+      {groups.length > 0 && (
         <div>
-          <VirtualGrid
-            style={{ outline: "none" }}
-            cellRenderer={cellRenderer}
-            columnWidth={entrySquareSize}
-            columnCount={numEntrySquaresPerRow}
-            height={height - 45 - 60 - 40}
-            rowCount={albumGridContents.length}
-            rowHeight={rowHeight}
+          <TileGrid
+            groups={groups}
+            headerHeight={DAY_HEADER_HEIGHT}
+            getKey={album => album.id}
+            sizing={sizing}
+            renderItem={(album, size) => (
+              <>
+                <Anchor
+                  renderRoot={rootProps => (
+                    <Link {...rootProps} to="/album/user/$id" params={{ id: String(album.id) }} />
+                  )}
+                >
+                  {album.cover_photo ? (
+                    <Tile
+                      className={gridClasses.cover}
+                      style={{ objectFit: "cover" }}
+                      width={size}
+                      height={size}
+                      image_hash={album.cover_photo.image_hash}
+                      video={album.cover_photo.video}
+                    />
+                  ) : (
+                    <div
+                      className={gridClasses.cover}
+                      style={{
+                        width: size,
+                        height: size,
+                        backgroundColor: "light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6))",
+                      }}
+                    />
+                  )}
+                </Anchor>
+                <AlbumShareButton
+                  label={t("sidemenu.sharing")}
+                  icon={<IconShare size={16} color="white" />}
+                  onClick={() => {
+                    setShareAlbumId(`${album.id}`);
+                    openShareDialog();
+                  }}
+                />
+                <Text fw={700} mt={4} lineClamp={1} title={album.title}>
+                  {album.title}
+                </Text>
+                <Text size="sm" c="dimmed">
+                  {t("numberofphotos", { count: album.photo_count, number: album.photo_count })}
+                </Text>
+              </>
+            )}
           />
         </div>
       )}

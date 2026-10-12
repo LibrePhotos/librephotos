@@ -16,15 +16,13 @@ import {
   useRenamePersonAlbumMutation,
 } from "../../../api_client/albums/hooks";
 import type { Person } from "../../../api_client/albums/hooks";
-import gridClasses from "../../../components/album/AlbumGridCell.module.css";
 import { PersonDeleteModal } from "../../../components/album/PersonDeleteModal";
 import { PersonRenameModal } from "../../../components/album/PersonRenameModal";
 import { EmptyState } from "../../../components/common/EmptyState";
 import { PageHeader } from "../../../components/PageHeader";
 import { Tile } from "../../../components/Tile";
-import { VirtualGrid } from "../../../components/virtual/VirtualGrid";
-import type { GridCellProps } from "../../../components/virtual/VirtualGrid";
-import { ALBUM_GRID_GUTTER, useAlbumListGridConfig } from "../../../hooks/useAlbumListGridConfig";
+import { TileGrid } from "../../../components/virtual/TileGrid";
+import { useAlbumListGridConfig } from "../../../hooks/useAlbumListGridConfig";
 import { ICON_SIZE } from "../../../uiConstants";
 
 export const Route = createFileRoute("/_protected/album/persons/")({
@@ -48,7 +46,7 @@ function AlbumPeople() {
   const menuTrigger = useRef<HTMLButtonElement | null>(null);
   const { t } = useTranslation();
   const { data: albums, isFetching } = useFetchPeopleAlbumsQuery();
-  const { entriesPerRow, entrySquareSize, numberOfRows, gridHeight } = useAlbumListGridConfig(albums || []);
+  const sizing = useAlbumListGridConfig();
   const renamePersonMutation = useRenamePersonAlbumMutation();
   const deletePersonMutation = useDeletePersonAlbumMutation();
   const hasAlbums = albums && albums.length > 0;
@@ -73,85 +71,75 @@ function AlbumPeople() {
     menuTrigger.current?.focus();
   }
 
-  function getPersonIcon(album: Person) {
+  function getPersonIcon(album: Person, size: number) {
     if (album.face_count === 0) {
-      return <Image height={entrySquareSize - 10} width={entrySquareSize - 10} src="/unknown_user.jpg" />;
+      return <Image height={size} width={size} src="/unknown_user.jpg" />;
     }
     if (album.name === "unknown") {
       // if (album.text === "unknown") {
       return (
         <Link to="/album/persons/$id" params={{ id: album.id }}>
-          <Image height={entrySquareSize - 10} width={entrySquareSize - 10} src="/unknown_user.jpg" />
+          <Image height={size} width={size} src="/unknown_user.jpg" />
         </Link>
       );
     }
     return (
       <Link to="/album/persons/$id" params={{ id: album.id }}>
-        <Tile
-          video={album.video}
-          height={entrySquareSize - 10}
-          width={entrySquareSize - 10}
-          image_hash={album.face_photo_url}
-        />
+        <Tile video={album.video} height={size} width={size} image_hash={album.face_photo_url} />
       </Link>
     );
   }
 
-  function renderCell({ columnIndex, key, rowIndex, style }: GridCellProps) {
-    if (!albums || albums.length === 0) {
-      return null;
-    }
-    const index = rowIndex * entriesPerRow + columnIndex;
-    const album = albums[index];
-    if (!album) {
-      return <div key={key} style={style} />;
-    }
+  function renderPerson(album: Person, size: number) {
     return (
-      <div key={key} style={style}>
-        <div className={gridClasses.cell}>
-          {getPersonIcon(album)}
-          <div style={{ position: "absolute", top: 10, right: 10 }}>
-            {/* Its items open dialogs: handing focus back to the trigger took it from the
-                dialog's input. Escape still returns it, and the dialogs do when they close. */}
-            <Menu position="bottom-end" returnFocus={false}>
-              <Menu.Target>
-                {/* A solid chip: a bare icon vanished on light faces */}
-                <ActionIcon
-                  variant="default"
-                  radius="xl"
-                  size="sm"
-                  aria-label={t("moreactions")}
-                  onClick={e => {
-                    menuTrigger.current = e.currentTarget;
-                  }}
-                >
-                  <DotsVertical size={16} />
-                </ActionIcon>
-              </Menu.Target>
+      <>
+        {getPersonIcon(album, size)}
+        <div style={{ position: "absolute", top: 10, right: 10 }}>
+          {/* Its items open dialogs: handing focus back to the trigger took it from the
+              dialog's input. Escape still returns it, and the dialogs do when they close. */}
+          <Menu position="bottom-end" returnFocus={false}>
+            <Menu.Target>
+              {/* A solid chip: a bare icon vanished on light faces */}
+              <ActionIcon
+                variant="default"
+                radius="xl"
+                size="sm"
+                aria-label={t("moreactions")}
+                onClick={e => {
+                  menuTrigger.current = e.currentTarget;
+                }}
+              >
+                <DotsVertical size={16} />
+              </ActionIcon>
+            </Menu.Target>
 
-              <Menu.Dropdown>
-                <Menu.Item leftSection={<Edit size={14} />} onClick={() => openRenameDialog(album)}>
-                  {t("rename")}
-                </Menu.Item>
-                <Menu.Item leftSection={<Trash size={14} />} onClick={() => openDeleteDialog(album)}>
-                  {t("delete")}
-                </Menu.Item>
-              </Menu.Dropdown>
-            </Menu>
-          </div>
+            <Menu.Dropdown>
+              <Menu.Item leftSection={<Edit size={14} />} onClick={() => openRenameDialog(album)}>
+                {t("rename")}
+              </Menu.Item>
+              <Menu.Item leftSection={<Trash size={14} />} onClick={() => openDeleteDialog(album)}>
+                {t("delete")}
+              </Menu.Item>
+            </Menu.Dropdown>
+          </Menu>
         </div>
-        <Group justify="space-between">
-          <Flex gap={0} justify="flex-start" direction="column" px={8}>
-            <Text size="sm" fw={500} lineClamp={1} title={album.name}>
-              {album.name}
-            </Text>
-            {/* face_count counts faces, not photos */}
-            <Text size="xs">
-              {t("facesdashboard.numberoffaces", { count: album.face_count, number: album.face_count })}
-            </Text>
-          </Flex>
-        </Group>
-      </div>
+      </>
+    );
+  }
+
+  function renderCaption(album: Person) {
+    return (
+      <Group justify="space-between">
+        <Flex gap={0} justify="flex-start" direction="column" px={8}>
+          <Text size="sm" fw={500} lineClamp={1} title={album.name}>
+            {album.name}
+          </Text>
+          {/* face_count counts faces, not photos */}
+          <Text size="xs">
+            {t("facesdashboard.numberoffaces", { count: album.face_count, number: album.face_count })}
+          </Text>
+        </Flex>
+      </Group>
     );
   }
 
@@ -185,15 +173,12 @@ function AlbumPeople() {
           actionLink="/faces"
         />
       ) : (
-        <VirtualGrid
-          // The gutter the column width leaves room for, as on the other album grids
-          style={{ outline: "none", paddingLeft: ALBUM_GRID_GUTTER }}
-          cellRenderer={renderCell}
-          columnWidth={entrySquareSize}
-          columnCount={entriesPerRow}
-          height={gridHeight}
-          rowHeight={entrySquareSize + 60}
-          rowCount={numberOfRows}
+        <TileGrid
+          items={albums ?? []}
+          getKey={album => album.id}
+          sizing={sizing}
+          renderItem={renderPerson}
+          renderCaption={renderCaption}
         />
       )}
 

@@ -8,6 +8,7 @@ import { Photoset, PigPhoto } from "../../api_client/photos/types";
 import { MemoriesStrip } from "../../components/memories/MemoriesStrip";
 import { NO_PHOTO_GROUP, type PhotoGroup } from "../../components/photolist/photoGroup";
 import { EmptyStateConfig, PhotoListView } from "../../components/photolist/PhotoListView";
+import type { PigVisibleGroup } from "../../components/photolist/PhotoListView";
 import {
   countActiveFilters,
   describeTimelineFilter,
@@ -19,7 +20,6 @@ import {
 import { TimelineFilterPopover } from "../../components/photolist/TimelineFilterPopover";
 import { useHasNoScanDirectory } from "../../components/photolist/useScanEmptyStateAction";
 import { useTimelineFilter } from "../../components/photolist/useTimelineFilter";
-import type { PigVisibleGroup } from "../../components/react-pig";
 import { useWorkerStatus } from "../../hooks/useWorkerStatus";
 import { i18nResolvedLanguage } from "../../i18n";
 import { getPhotosFlatFromGroupedByDate } from "../../util/util";
