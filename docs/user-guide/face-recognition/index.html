@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.a1e92a76.css">
-<script src="/assets/js/runtime~main.8c114f9b.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.88c07535.js" defer="defer"></script>
 <script src="/assets/js/main.f4dc5e9c.js" defer="defer"></script>
 </head>
 <body>
@@ -24,12 +24,13 @@
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="writing-face-tags-to-your-files">Writing face tags to your files<a href="#writing-face-tags-to-your-files" class="hash-link" aria-label="Direct link to Writing face tags to your files" title="Direct link to Writing face tags to your files" translate="no">​</a></h3>
 <p>By default, labelling a face only updates the LibrePhotos database — your image files are not touched.</p>
 <p>If you enable <strong>Settings → Face Options → Write face tags to image files</strong>, then every time you label a face LibrePhotos also writes the face&#x27;s region and the person&#x27;s name into the photo as XMP MWG-RS region tags. This makes your face data portable to other photo managers such as Lightroom, digiKam and XnView.</p>
-<p>Where the tags are written depends on <strong>Settings → Metadata → Synchronize metadata to disk</strong>:</p>
+<p>The switch only takes effect together with <strong>Settings → Metadata → Synchronize metadata to disk</strong>, which decides where the tags go:</p>
 <ul>
-<li class=""><strong>Save to sidecar</strong> — the regions go into the photo&#x27;s <code>.xmp</code> sidecar file; the original image is left unchanged.</li>
-<li class=""><strong>Save to media file</strong> or <strong>Off</strong> (the default) — the regions are written into the original image file itself.</li>
+<li class=""><strong>Save to sidecar</strong>: the regions go into the photo&#x27;s <code>.xmp</code> sidecar file; the original image is left unchanged.</li>
+<li class=""><strong>Save to media file</strong>: the regions are written into the original image file itself.</li>
+<li class=""><strong>Off</strong> (the default): nothing is written, and the switch is greyed out until you pick one of the other two.</li>
 </ul>
-<p>Note the second case: turning on <strong>Write face tags to image files</strong> is enough on its own to start modifying your originals. <strong>Synchronize metadata to disk</strong> only chooses sidecar versus media file; leaving it <strong>Off</strong> does not stop face tags from being written.</p>
+<p><em>Not released yet: up to 1.3.0, face tags were written into the original image file while synchronization was <strong>Off</strong>. If you had the switch on with synchronization <strong>Off</strong>, your originals may already carry face regions and person names; LibrePhotos does not remove them.</em></p>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="change-the-label-of-a-face">Change the label of a face<a href="#change-the-label-of-a-face" class="hash-link" aria-label="Direct link to Change the label of a face" title="Direct link to Change the label of a face" translate="no">​</a></h2>
 <p>To change a face to a new person, click on the green plus button. Search for the person you want it to change to and click on them. Now the face is associated with the new person.</p>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="name-a-face-from-the-photo-itself">Name a face from the photo itself<a href="#name-a-face-from-the-photo-itself" class="hash-link" aria-label="Direct link to Name a face from the photo itself" title="Direct link to Name a face from the photo itself" translate="no">​</a></h2>
