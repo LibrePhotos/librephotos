@@ -15,6 +15,9 @@ omit =
     */chunked_upload/*
 
 [report]
+# Measured on Windows, serial suite, rebased on dev cc80ac887: 91.159%, rounded
+# down. Raise it when the total clears it by a whole point.
+fail_under = 91
 skip_covered = True
 skip_empty = True
 # show_missing = True
