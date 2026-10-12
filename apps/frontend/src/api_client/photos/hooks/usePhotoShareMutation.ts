@@ -3,8 +3,7 @@ import { z } from "zod";
 import i18n from "../../../i18n";
 import { notification } from "../../../service/notifications";
 import { parseWithNotification } from "../../../util/zodUtils";
-import { apiClient, queryClient } from "../../api";
-import { serverAddress } from "../../urls";
+import { apiClient, ApiError, queryClient } from "../../api";
 import { photoKeys } from "../keys";
 
 export const PhotoShare = z.object({
@@ -83,11 +82,16 @@ export const useFetchSharedPhotoQuery = (slug: string) =>
     queryKey: photoKeys.sharedBySlug(slug),
     retry: false,
     queryFn: async () => {
-      // Plain fetch, like the public album page: a visitor has no session,
-      // and a 404 here is an answer (revoked), not an error.
-      const resp = await fetch(`${serverAddress}/api/public/photo/${encodeURIComponent(slug)}/`);
-      if (resp.status === 404) return null;
-      if (!resp.ok) throw new Error("Failed to load shared photo");
-      return parseWithNotification(SharedPhotoResponse, await resp.json(), "Failed to parse shared photo").results;
+      // Through the client, like the public album page: a visitor has no session
+      // (a 401 on a public page logs nobody out), and a 404 is an answer
+      // (unknown or revoked link), not an error.
+      let json: unknown;
+      try {
+        json = await apiClient.get(`/public/photo/${encodeURIComponent(slug)}/`);
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 404) return null;
+        throw error;
+      }
+      return parseWithNotification(SharedPhotoResponse, json, "Failed to parse shared photo").results;
     },
   });

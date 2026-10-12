@@ -68,16 +68,19 @@ const stubs = vi.hoisted(() => ({
 vi.mock("@tanstack/react-router", () => ({
   Link: ({ children }: { children?: React.ReactNode }) => <a href="/">{children}</a>,
 }));
-vi.mock("../../api_client/api", () => ({ apiClient: { get: () => {}, post: () => {} } }));
 vi.mock("../../api_client/urls", () => ({ serverAddress: "" }));
 vi.mock("../../api_client/auth/hooks", () => ({ useAccessToken: () => ({ data: stubs.auth }) }));
-vi.mock("../../api_client/faces", () => ({ useTrainFacesMutation: () => stubs.noopMutation }));
+vi.mock("../../api_client/faces", () => ({
+  useRescanFacesMutation: () => stubs.noopMutation,
+  useTrainFacesMutation: () => stubs.noopMutation,
+}));
 vi.mock("../../api_client/folders/hooks/useFetchNextcloudDirsQuery", () => ({
   useFetchNextcloudDirsQuery: () => stubs.nextcloudDirs,
 }));
 vi.mock("../../api_client/jobs/hooks", () => ({
   useGenerateAutoAlbumsMutation: () => stubs.noopMutation,
   useGenerateOcrMutation: () => stubs.noopMutation,
+  useRegenerateEventTitlesMutation: () => stubs.noopMutation,
   useRescanPhotosMutation: () => stubs.noopMutation,
   useScanNextcloudPhotosMutation: () => stubs.noopMutation,
   useScanPhotosMutation: () => stubs.noopMutation,

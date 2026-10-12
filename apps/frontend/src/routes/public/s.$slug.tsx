@@ -1,17 +1,13 @@
 import { Button, Center, Group, Stack, Text } from "@mantine/core";
 import { IconGlobe as Globe, IconAlertCircle } from "@tabler/icons-react";
-import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { UserAlbum } from "../../api_client/albums/types";
-import { ApiError, apiClient } from "../../api_client/api";
-import { photoGridKeys } from "../../api_client/photos/keys";
+import { usePublicAlbumQuery } from "../../api_client/albums/hooks";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 import { isUndatedShare } from "../../components/sharing/publicAlbum";
 import { usePublicPageTitle } from "../../components/sharing/usePublicPageTitle";
 import { getPhotosFlatFromGroupedByDate } from "../../util/util";
-import { parseWithNotification } from "../../util/zodUtils";
 
 export const Route = createFileRoute("/public/s/$slug")({
   component: PublicAlbumBySlug,
@@ -21,26 +17,7 @@ function PublicAlbumBySlug() {
   const { t } = useTranslation();
   const { slug } = Route.useParams();
 
-  const {
-    data: album,
-    isLoading,
-    isError,
-  } = useQuery({
-    queryKey: photoGridKeys.publicAlbum(slug),
-    retry: false,
-    queryFn: async () => {
-      let json: unknown;
-      try {
-        // Through apiClient so the request is prefixed with PUBLIC_URL.
-        json = await apiClient.get(`/public/albums/s/${slug}/`);
-      } catch (error) {
-        if (error instanceof ApiError && error.status === 404) return null;
-        throw error;
-      }
-      const results = typeof json === "object" && json !== null && "results" in json ? json.results : undefined;
-      return parseWithNotification(UserAlbum, results, "Failed to parse public album");
-    },
-  });
+  const { data: album, isLoading, isError } = usePublicAlbumQuery(slug);
 
   const flat = useMemo(() => (album ? getPhotosFlatFromGroupedByDate(album.grouped_photos) : []), [album]);
   usePublicPageTitle(album?.title);

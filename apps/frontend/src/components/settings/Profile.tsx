@@ -20,8 +20,8 @@ import AvatarEditor from "react-avatar-editor";
 import type { DropzoneRef } from "react-dropzone";
 import Dropzone from "react-dropzone";
 import { Trans, useTranslation } from "react-i18next";
-import { serverAddress } from "../../api_client/urls";
 import { useAccessToken } from "../../api_client/auth/hooks";
+import { serverAddress } from "../../api_client/urls";
 import type { User as UserDetails } from "../../api_client/user";
 import {
   useFetchUserSelfDetailsQuery,
@@ -31,6 +31,7 @@ import {
 import { userKeys } from "../../api_client/user/keys";
 import { SIGN_IN_GRADIENT } from "../../theme/brandGradients";
 import { reportUserSaveError } from "../../util/apiErrors";
+import { dataUrlToFile } from "../../util/dataUrl";
 import { PageHeader } from "../PageHeader";
 import { PasswordEntry } from "./PasswordEntry";
 import { makeProfileSchema, type ProfileValues } from "./Profile.schema";
@@ -65,13 +66,6 @@ export function Profile() {
   const editorRef = useRef<AvatarEditorRef>(null);
   const queryClient = useQueryClient();
   const dropzoneRef = useRef<DropzoneRef>(null);
-
-  const urlToFile = async (url: string, filename: string, mimeType?: string) => {
-    const type = mimeType || (url.match(/^data:([^;]+);/) || "")[1];
-    const res = await fetch(url);
-    const buf = await res.arrayBuffer();
-    return new File([buf], filename, { type });
-  };
 
   // What the form starts from and what an edit is measured against: the stored profile, or what
   // was just saved.
@@ -172,7 +166,7 @@ export function Profile() {
                     const editor = editorRef.current;
                     if (!editor) return;
                     const formData = new FormData();
-                    const file = await urlToFile(
+                    const file = await dataUrlToFile(
                       editor.getImageScaledToCanvas().toDataURL(),
                       `${form.values.first_name}avatar.png`
                     );

@@ -19,3 +19,6 @@ export const useFetchServerLogsViewQuery = (lines: number) =>
       return parseWithNotification(ServerLogsViewResponse, response, "Failed to parse server logs");
     },
   });
+
+/** The whole server log file, for the Download button. */
+export const fetchServerLogFile = () => apiClient.getBlob("/serverlogs");

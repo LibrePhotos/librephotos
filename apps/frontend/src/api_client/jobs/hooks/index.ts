@@ -5,6 +5,7 @@ export * from "./useGenerateAutoAlbumsMutation";
 export * from "./useGenerateOcrMutation";
 export * from "./useJobQuery";
 export * from "./useJobsQuery";
+export * from "./useRegenerateEventTitlesMutation";
 export * from "./useRescanPhotosMutation";
 export * from "./useScanNextcloudPhotosMutation";
 export * from "./useScanPhotosMutation";

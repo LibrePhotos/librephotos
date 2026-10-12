@@ -34,11 +34,10 @@ const mocks = vi.hoisted(() => {
   const user: Partial<User> = {};
   return {
     ApiError,
-    post: vi.fn<(url: string, body: unknown) => Promise<unknown>>(),
     mutate: vi.fn<(user: Partial<User>, options?: SaveOptions) => void>(),
     generateAutoAlbums: vi.fn<() => void>(),
     updateUserError: vi.fn<(message: string) => void>(),
-    regenerateEventAlbums: vi.fn<() => void>(),
+    regenerateEventTitles: vi.fn<() => void>(),
     user,
     auth: { access: { is_admin: true } },
   };
@@ -46,19 +45,20 @@ const mocks = vi.hoisted(() => {
 
 const noopMutation = { mutate: () => {}, mutateAsync: async () => {}, isPending: false };
 
-vi.mock("../../api_client/api", () => ({
-  ApiError: mocks.ApiError,
-  apiClient: { get: () => Promise.resolve(), post: mocks.post },
-}));
+vi.mock("../../api_client/api", () => ({ ApiError: mocks.ApiError }));
 vi.mock("../../api_client/urls", () => ({ serverAddress: "" }));
 vi.mock("../../api_client/auth/hooks", () => ({ useAccessToken: () => ({ data: mocks.auth }) }));
-vi.mock("../../api_client/faces", () => ({ useTrainFacesMutation: () => noopMutation }));
+vi.mock("../../api_client/faces", () => ({
+  useRescanFacesMutation: () => noopMutation,
+  useTrainFacesMutation: () => noopMutation,
+}));
 vi.mock("../../api_client/folders/hooks/useFetchNextcloudDirsQuery", () => ({
   useFetchNextcloudDirsQuery: () => ({ isFetching: false, isSuccess: false, isError: false, data: [] }),
 }));
 vi.mock("../../api_client/jobs/hooks", () => ({
   useGenerateAutoAlbumsMutation: () => ({ ...noopMutation, mutate: mocks.generateAutoAlbums }),
   useGenerateOcrMutation: () => noopMutation,
+  useRegenerateEventTitlesMutation: () => ({ ...noopMutation, mutate: mocks.regenerateEventTitles }),
   useRescanPhotosMutation: () => noopMutation,
   useScanNextcloudPhotosMutation: () => noopMutation,
   useScanPhotosMutation: () => noopMutation,
@@ -82,7 +82,6 @@ vi.mock("../../service/notifications", () => ({
     {
       get: (_target, key) => {
         if (key === "updateUserError") return mocks.updateUserError;
-        if (key === "regenerateEventAlbums") return mocks.regenerateEventAlbums;
         return () => {};
       },
     }
@@ -126,11 +125,10 @@ let container: HTMLDivElement;
 let root: ReturnType<typeof createRoot>;
 
 beforeEach(async () => {
-  mocks.post.mockReset().mockResolvedValue({});
   mocks.mutate.mockReset();
   mocks.generateAutoAlbums.mockReset();
   mocks.updateUserError.mockReset();
-  mocks.regenerateEventAlbums.mockReset();
+  mocks.regenerateEventTitles.mockReset();
   mocks.user = {
     id: 1,
     username: "admin",
@@ -233,9 +231,8 @@ describe("Library actions", () => {
   it("regenerates the titles of the existing event albums", async () => {
     await click(buttonByText("Regenerate"));
 
-    expect(mocks.post).toHaveBeenCalledWith("/autoalbumtitlegen/", {});
+    expect(mocks.regenerateEventTitles).toHaveBeenCalledTimes(1);
     expect(mocks.generateAutoAlbums).not.toHaveBeenCalled();
-    await vi.waitFor(() => expect(mocks.regenerateEventAlbums).toHaveBeenCalledTimes(1));
   });
 
   it("opens the scan help from the button itself", async () => {
