@@ -5,7 +5,7 @@ export const IsFirstTimeSetupQueryKeys = ["isFirstTimeSetup"] as const;
 
 export const useIsFirstTimeSetupQuery = () =>
   useQuery({
-    queryKey: [IsFirstTimeSetupQueryKeys],
+    queryKey: IsFirstTimeSetupQueryKeys,
     queryFn: () =>
       fetchClient.get<{ isFirstTimeSetup: boolean }>("/firsttimesetup/").then(response => response.isFirstTimeSetup),
   });

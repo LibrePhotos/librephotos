@@ -11,7 +11,7 @@ const SsoConfigQueryKeys = ["ssoConfig"] as const;
  */
 export const useSsoConfigQuery = () =>
   useQuery({
-    queryKey: [SsoConfigQueryKeys],
+    queryKey: SsoConfigQueryKeys,
     queryFn: () => fetchClient.get<SsoConfig>("/auth/sso/config/"),
     // Providers change only when an admin reconfigures them, and a failure here
     // must never keep the password form from rendering.
