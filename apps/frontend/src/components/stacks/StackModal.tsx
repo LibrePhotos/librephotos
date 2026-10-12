@@ -26,6 +26,7 @@ import { useSetCoverPhotoMutation, useStackQuery } from "../../api_client/stacks
 import type { PhotoStack } from "../../api_client/stacks/types";
 import { serverAddress } from "../../api_client/urls";
 import { parsePhotoTimestamp } from "../../util/dateUtils";
+import { formatFileSize } from "../../util/fileSize";
 import { PLACEHOLDER_IMAGE } from "../../util/placeholderImage";
 import { PageLoader } from "../common/PageLoader";
 import { StackLightbox } from "./StackLightbox";
@@ -56,14 +57,6 @@ type StackPhoto = {
   exif_timestamp: string | null;
   file_variants?: FileVariant[] | null;
 };
-
-function formatFileSize(bytes: number): string {
-  if (bytes === 0) return "0 B";
-  const k = 1024;
-  const sizes = ["B", "KB", "MB", "GB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return `${parseFloat((bytes / k ** i).toFixed(2))} ${sizes[i]}`;
-}
 
 function formatResolution(width: number | null, height: number | null): string | null {
   if (!width || !height) return null;
