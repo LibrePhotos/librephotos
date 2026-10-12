@@ -12,8 +12,8 @@ import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import type { BurstDetectionRule } from "../../api_client/settings/types";
 import i18n from "../../i18n";
-import type { BurstDetectionRule } from "./burstDetectionSchema";
 import { ConfigBurstDetection } from "./ConfigBurstDetection";
 
 // SortableTbody hands its onMove here, so a test can drop a row without dragging it in jsdom.

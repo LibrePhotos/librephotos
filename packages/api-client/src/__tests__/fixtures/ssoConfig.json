@@ -1,0 +1,5 @@
+{
+  "enabled": true,
+  "label": "Sign in with Authentik",
+  "providers": [{ "id": "authentik", "name": "Authentik", "login_url": "/api/accounts/oidc/authentik/login/" }]
+}

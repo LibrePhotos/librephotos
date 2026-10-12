@@ -1,9 +1,10 @@
+import { z } from "zod";
 import * as S from "../schemas";
 import { Photoset } from "../schemas";
 import { runningJobId } from "../transport/client";
 import { fetchAllPages } from "../transport/pages";
 import type { ApiClient } from "../transport/types";
-import { buildQuery, parseResponse } from "../util/parse";
+import { buildQuery, parseEachResponse, parseResponse, type ParsedEntries } from "../util/parse";
 
 /* ---------------------------------------------------------------------- *
  * Thin, platform-agnostic endpoint wrappers. Each takes an ApiClient and
@@ -20,8 +21,46 @@ export async function login(client: ApiClient, credentials: S.LoginPost): Promis
   return parseResponse(S.LoginResponse, res, "login response");
 }
 
-export function logout(client: ApiClient, refresh: string): Promise<unknown> {
-  return client.post("/auth/token/blacklist/", { refresh });
+/**
+ * Blacklist the refresh token. Without one (`undefined`, left out of the body) the server answers
+ * 401; it clears the auth cookies either way.
+ */
+export async function logout(client: ApiClient, refresh: string | undefined): Promise<S.LogoutResponse> {
+  const res = await client.post<unknown>("/auth/token/blacklist/", { refresh });
+  return parseResponse(S.LogoutResponse, res, "logout response");
+}
+
+/** Create a user. On a fresh instance (see fetchIsFirstTimeSetup) the first one becomes the admin. */
+export async function signUp(client: ApiClient, data: S.SignupRequest): Promise<S.SignupUser> {
+  const res = await client.post<unknown>("/user/", data);
+  return parseResponse(S.SignupUser, res, "signup response");
+}
+
+/** Whether the instance has no admin yet, so the login page offers sign-up instead. Anonymous. */
+export async function fetchIsFirstTimeSetup(client: ApiClient): Promise<S.IsFirstTimeSetupResponse> {
+  const res = await client.get<unknown>("/firsttimesetup/");
+  return parseResponse(S.IsFirstTimeSetupResponse, res, "first-time setup");
+}
+
+/** The login screen's single sign-on setup. Anonymous: it is read before anyone is logged in. */
+export async function fetchSsoConfig(client: ApiClient): Promise<S.SsoConfig> {
+  const res = await client.get<unknown>("/auth/sso/config/");
+  return parseResponse(S.SsoConfig, res, "SSO config");
+}
+
+/** Email a password-reset link. The answer is the same whether or not the address has an account. */
+export async function requestPasswordReset(client: ApiClient, email: string): Promise<S.PasswordResetResponse> {
+  const res = await client.post<unknown>("/auth/password/reset/", { email });
+  return parseResponse(S.PasswordResetResponse, res, "password reset response");
+}
+
+/** Set a new password from an emailed reset link (ApiError code weak_password, invalid_reset_link, ...). */
+export async function confirmPasswordReset(
+  client: ApiClient,
+  data: S.PasswordResetConfirmRequest
+): Promise<S.PasswordResetResponse> {
+  const res = await client.post<unknown>("/auth/password/reset/confirm/", data);
+  return parseResponse(S.PasswordResetResponse, res, "password reset confirm response");
 }
 
 /* ---- user -------------------------------------------------------------- */
@@ -34,6 +73,34 @@ export async function fetchUserSelfDetails(client: ApiClient, userId: string | n
 export async function fetchUserList(client: ApiClient): Promise<S.ListUserList> {
   const rows = await fetchAllPages(client, "/user/");
   return parseResponse(S.ListUserList, rows, "user list");
+}
+
+/**
+ * Change your own user: only the fields in `patch` (a FormData for the avatar upload). Echoing the
+ * whole profile back also sends read-only values such as the avatar URL.
+ */
+export async function updateUserPartial(
+  client: ApiClient,
+  userId: string | number,
+  patch: Record<string, unknown> | FormData
+): Promise<S.User> {
+  const res = await client.patch<unknown>(`/user/${userId}/`, patch);
+  return parseResponse(S.User, res, "update user");
+}
+
+/** Admin: change another user (scan directory, name, password, ...). Sends `patch` as it is. */
+export async function manageUpdateUser(
+  client: ApiClient,
+  userId: number,
+  patch: Partial<S.ManageUser>
+): Promise<S.ManageUser> {
+  const res = await client.patch<unknown>(`/manage/user/${userId}/`, patch);
+  return parseResponse(S.ManageUser, res, "manage user");
+}
+
+/** Admin: delete a user and their library. The server refuses to delete a superuser. Answers 204. */
+export async function deleteUser(client: ApiClient, userId: number): Promise<void> {
+  await client.delete(`/delete/user/${userId}/`);
 }
 
 /* ---- date albums (timeline) ------------------------------------------- */
@@ -257,13 +324,59 @@ export async function fetchSiteSettings(client: ApiClient): Promise<S.SiteSettin
   return parseResponse(S.SiteSettings, res, "site settings");
 }
 
-export async function updateUserPartial(
+/** Admin: change site settings (only the keys sent); answers the settings as GET does. */
+export async function updateSiteSettings(
   client: ApiClient,
-  userId: string | number,
-  patch: Record<string, unknown>
-): Promise<S.User> {
-  const res = await client.patch<unknown>(`/user/${userId}/`, patch);
-  return parseResponse(S.User, res, "update user");
+  settings: Partial<S.SiteSettings>
+): Promise<S.SiteSettings> {
+  const res = await client.post<unknown>("/sitesettings", settings);
+  return parseResponse(S.SiteSettings, res, "update site settings");
+}
+
+/** A few views answer a JSON document as a JSON string (json.dumps, then Response): decode it. */
+function decodeJsonString(res: unknown, context: string): unknown {
+  return JSON.parse(parseResponse(z.string(), res, context));
+}
+
+/** Every time zone name. The view sends the list as a JSON string; a body that is no JSON throws a SyntaxError. */
+export async function fetchTimezones(client: ApiClient): Promise<S.Timezones> {
+  const res = await client.get<unknown>("/timezones/");
+  return parseResponse(S.Timezones, decodeJsonString(res, "timezones"), "timezones");
+}
+
+/**
+ * The predefined date-time rules, parsed rule by rule: a rule type a newer backend added is
+ * skipped (and listed in `skipped`), and the rest still work.
+ */
+export async function fetchPredefinedRules(client: ApiClient): Promise<ParsedEntries<S.DateTimeRule>> {
+  const res = await client.get<unknown>("/predefinedrules/");
+  const context = "predefined date-time rules";
+  return parseEachResponse(S.DateTimeRule, decodeJsonString(res, context), context);
+}
+
+/** The predefined burst detection rules, parsed rule by rule (see fetchPredefinedRules). */
+export async function fetchPredefinedBurstRules(client: ApiClient): Promise<ParsedEntries<S.BurstDetectionRule>> {
+  const res = await client.get<unknown>("/predefinedburstrules/");
+  const context = "predefined burst rules";
+  return parseEachResponse(S.BurstDetectionRule, decodeJsonString(res, context), context);
+}
+
+/** Admin: the instance email setup. */
+export async function fetchEmailConfig(client: ApiClient): Promise<S.EmailConfig> {
+  const res = await client.get<unknown>("/email-config/");
+  return parseResponse(S.EmailConfig, res, "email configuration");
+}
+
+/** Admin: change the email setup (only the fields sent); answers the new setup. */
+export async function updateEmailConfig(client: ApiClient, config: S.EmailConfigUpdate): Promise<S.EmailConfig> {
+  const res = await client.post<unknown>("/email-config/", config);
+  return parseResponse(S.EmailConfig, res, "email configuration response");
+}
+
+/** Admin: send a test email, to `to` or else to the admin's own address. */
+export async function sendTestEmail(client: ApiClient, to?: string): Promise<S.EmailTestResponse> {
+  const res = await client.post<unknown>("/email-config/test/", to ? { to } : {});
+  return parseResponse(S.EmailTestResponse, res, "test-email response");
 }
 
 /* ---- jobs -------------------------------------------------------------- */

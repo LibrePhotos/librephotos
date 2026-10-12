@@ -1,8 +1,7 @@
+import { endpoints } from "@librephotos/api-client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { parseWithNotification } from "../../../util/zodUtils";
 import { apiClient } from "../../api";
 import { userKeys } from "../keys";
-import { ManageUser } from "../types";
 
 export type UpdateScanDirectoryRequest = {
   id: number;
@@ -13,12 +12,8 @@ export const useUpdateUserScanDirectoryMutation = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, scan_directory }: UpdateScanDirectoryRequest) => {
-      const response = await apiClient.patch(`/manage/user/${id}/`, {
-        scan_directory,
-      });
-      return parseWithNotification(ManageUser, response, "Failed to parse update user scan directory response");
-    },
+    mutationFn: ({ id, scan_directory }: UpdateScanDirectoryRequest) =>
+      endpoints.manageUpdateUser(apiClient, id, { scan_directory }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: userKeys.list() });
       queryClient.invalidateQueries({ queryKey: userKeys.selfDetails() });

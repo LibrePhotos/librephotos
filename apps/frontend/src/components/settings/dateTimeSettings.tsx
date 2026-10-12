@@ -1,6 +1,6 @@
 import type { ParseKeys, TFunction } from "i18next";
 import React from "react";
-import type { DateTimeRule } from "./dateTimeSchema";
+import type { DateTimeRule } from "../../api_client/settings/types";
 
 const RULE_TYPE_NAME_KEYS: Partial<Record<string, ParseKeys>> = {
   exif: "rules.rule_type_names.exif",

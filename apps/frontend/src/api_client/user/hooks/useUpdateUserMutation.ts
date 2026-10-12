@@ -1,10 +1,9 @@
+import { endpoints, type User } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
-import { parseWithNotification } from "../../../util/zodUtils";
 import { apiClient, queryClient } from "../../api";
 import { folderKeys } from "../../folders/keys";
 import { userKeys } from "../keys";
-import { User } from "../types";
 
 type UpdateUserOptions = {
   /** Skip the success toast, e.g. for the photo grid's debounced display preferences. */
@@ -17,10 +16,7 @@ export const useUpdateUserMutation = ({ silent = false }: UpdateUserOptions = {}
   useMutation({
     // PATCH: send only the fields to change. Echoing the whole profile back
     // also sends read-only values such as the avatar URL (#2153).
-    mutationFn: async (user: Partial<User> & Pick<User, "id">) => {
-      const response = await apiClient.patch(`/user/${user.id}/`, user);
-      return parseWithNotification(User, response, "Failed to parse update user response");
-    },
+    mutationFn: (user: Partial<User> & Pick<User, "id">) => endpoints.updateUserPartial(apiClient, user.id, user),
     onSuccess: data => {
       if (!silent) {
         notification.updateUser(data.username);

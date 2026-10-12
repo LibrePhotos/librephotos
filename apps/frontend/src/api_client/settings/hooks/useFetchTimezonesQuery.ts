@@ -1,19 +1,20 @@
+import { endpoints, ResponseParseError } from "@librephotos/api-client";
 import { useQuery } from "@tanstack/react-query";
-import { parseWithNotification } from "../../../util/zodUtils";
 import { apiClient } from "../../api";
+import { notifyParseError } from "../../parseErrors";
 import { settingsKeys } from "../keys";
-import { Timezones } from "../types";
 
 export const useFetchTimezonesQuery = () =>
   useQuery({
     queryKey: settingsKeys.timezones(),
-    queryFn: async () => {
-      const response = await apiClient.get<string>("/timezones/");
-      try {
-        const timezones: unknown = JSON.parse(response);
-        return parseWithNotification(Timezones, timezones, "Failed to parse timezones");
-      } catch (_e) {
-        return [];
-      }
-    },
+    // An answer that is no list of names (reported) or no JSON at all leaves the picker empty
+    // instead of failing; a failed request still fails the query.
+    queryFn: () =>
+      endpoints.fetchTimezones(apiClient).catch((error: unknown) => {
+        if (error instanceof ResponseParseError || error instanceof SyntaxError) {
+          notifyParseError(error);
+          return [];
+        }
+        throw error;
+      }),
   });

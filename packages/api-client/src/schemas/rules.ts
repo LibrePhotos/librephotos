@@ -1,8 +1,76 @@
 import { z } from "zod";
 
-// Burst rule categories
+/* ---- date-time rules --------------------------------------------------- *
+ * A date-time rule with the params the backend's TimeExtractionRule reads
+ * (api/metadata/datetime_rules.py). The predefined rules come from
+ * /predefinedrules/, and a user's datetime_rules is the JSON list of the rules
+ * picked from them.
+ * ----------------------------------------------------------------------- */
+
+/** "utc", "gps_timezonefinder", "server_local", "user_default" or "name:<timezone>". */
+const TimezoneDescription = z.string();
+
+// Loose: a key the schema does not know (a param added on the backend later) stays on the rule, so
+// it is saved back with it.
+const BaseDateTimeProps = z
+  .object({
+    id: z.number(),
+    name: z.string(),
+    // The predefined rules always have it; a rule saved before the flag was added (2022-12) does not.
+    is_default: z.boolean().optional(),
+    // The rule only applies to a file whose full path, filename or ExifTool tag
+    // ("<tag name>//<regexp>") matches.
+    condition_path: z.string().optional(),
+    condition_filename: z.string().optional(),
+    condition_exif: z.string().optional(),
+    // With transform_tz set, the time read in source_tz is reported in report_tz.
+    transform_tz: z.number().optional(),
+    source_tz: TimezoneDescription.optional(),
+    report_tz: TimezoneDescription.optional(),
+  })
+  .loose();
+
+const ExifDateTimeProps = BaseDateTimeProps.extend({
+  rule_type: z.literal("exif"),
+  // An ExifTool tag name, such as "EXIF:DateTimeOriginal" or "XMP:DateCreated".
+  exif_tag: z.string(),
+});
+
+const PathDateTimeProps = BaseDateTimeProps.extend({
+  rule_type: z.literal("path"),
+  path_part: z.enum(["filename", "full_path"]).optional(),
+  predefined_regexp: z.string().optional(),
+  custom_regexp: z.string().optional(),
+});
+
+const FilesystemDateTimeProps = BaseDateTimeProps.extend({
+  rule_type: z.literal("filesystem"),
+  file_property: z.enum(["ctime", "mtime"]),
+});
+
+const UserDefinedDateTimeProps = BaseDateTimeProps.extend({
+  rule_type: z.literal("user_defined"),
+});
+
+export const DateTimeRule = z.discriminatedUnion("rule_type", [
+  ExifDateTimeProps,
+  PathDateTimeProps,
+  FilesystemDateTimeProps,
+  UserDefinedDateTimeProps,
+]);
+export type DateTimeRule = z.infer<typeof DateTimeRule>;
+
+/** GET /api/predefinedrules/ (PREDEFINED_RULES_JSON, sent as a JSON string). */
+export const PredefinedRules = z.array(DateTimeRule);
+export type PredefinedRules = z.infer<typeof PredefinedRules>;
+
+/* ---- burst detection rules --------------------------------------------- *
+ * api/stacks/burst_rules.py. The predefined rules come from
+ * /predefinedburstrules/, and a user's burst_detection_rules is the JSON list
+ * of the rules picked from them.
+ * ----------------------------------------------------------------------- */
+
 const BurstRuleCategory = z.enum(["hard", "soft"]);
-type BurstRuleCategory = z.infer<typeof BurstRuleCategory>;
 
 // Base properties for all burst rules. Loose: a key the schema does not know (a param added on the
 // backend later) stays on the rule, so it is saved back with it.
@@ -53,7 +121,6 @@ const VisualSimilarityRuleProps = BaseBurstRuleProps.extend({
   similarity_threshold: z.number().optional(),
 });
 
-// Union of all burst rule types
 export const BurstDetectionRule = z.union([
   ExifBurstModeRuleProps,
   ExifSequenceNumberRuleProps,
@@ -61,10 +128,9 @@ export const BurstDetectionRule = z.union([
   TimestampProximityRuleProps,
   VisualSimilarityRuleProps,
 ]);
-
 export type BurstDetectionRule = z.infer<typeof BurstDetectionRule>;
 
-// Predefined burst rules (all available rules)
+/** GET /api/predefinedburstrules/ (PREDEFINED_RULES_JSON in api/stacks/burst_rules.py, sent as a JSON string). */
 export const PredefinedBurstRules = z.array(BurstDetectionRule);
 export type PredefinedBurstRules = z.infer<typeof PredefinedBurstRules>;
 
@@ -86,15 +152,4 @@ export const SavedBurstDetectionRule = z.union([
   TimestampProximityRuleProps.extend(SavedRuleDefaults),
   VisualSimilarityRuleProps.extend(SavedRuleDefaults),
 ]);
-
 export type SavedBurstDetectionRule = z.infer<typeof SavedBurstDetectionRule>;
-
-// Whether the list shows a rule as enabled: only with enabled set to true
-export function isRuleEnabled(rule: SavedBurstDetectionRule): boolean {
-  return rule.enabled === true;
-}
-
-// Helper to check if a rule is a hard criterion
-export function isHardRule(rule: SavedBurstDetectionRule): boolean {
-  return rule.category === "hard";
-}

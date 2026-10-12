@@ -22,15 +22,39 @@ vi.mock("../../api", () => ({
   queryClient: { invalidateQueries: mocks.invalidateQueries },
 }));
 vi.mock("../../../service/notifications", () => ({ notification: { updateUser: mocks.updateUser } }));
-// The response shape is not under test here.
-vi.mock("../../../util/zodUtils", () => ({ parseWithNotification: (_schema: unknown, data: unknown) => data }));
+
+// What PATCH /api/user/<id>/ answers: the whole user, parsed by the shared endpoint.
+const savedUser = {
+  id: 1,
+  username: "admin",
+  email: "",
+  confidence: 0.1,
+  transcode_videos: false,
+  semantic_search_topk: 0,
+  first_name: "",
+  public_photo_samples: [],
+  last_name: "",
+  public_photo_count: 0,
+  date_joined: "2026-01-01T00:00:00Z",
+  photo_count: 0,
+  favorite_min_rating: 4,
+  image_scale: 2,
+  save_metadata_to_disk: "OFF",
+  datetime_rules: "[]",
+  default_timezone: "UTC",
+  public_sharing: false,
+  min_cluster_size: 0,
+  min_samples: 1,
+  cluster_selection_epsilon: 0.05,
+  llm_settings: null,
+};
 
 beforeAll(() => {
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 });
 
 beforeEach(() => {
-  mocks.patch.mockReset().mockResolvedValue({ id: 1, username: "admin" });
+  mocks.patch.mockReset().mockResolvedValue(savedUser);
   mocks.invalidateQueries.mockClear();
   mocks.updateUser.mockClear();
 });

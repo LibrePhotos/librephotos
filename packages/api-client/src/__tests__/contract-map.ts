@@ -54,6 +54,7 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
   PublicPhotoSample: { schema: S.PublicPhotoSample, components: ["PhotoSuperSimple"] },
   ManageUser: { schema: S.ManageUser, components: ["ManageUser"] },
   RefreshResponse: { schema: S.RefreshResponse, components: ["TokenRefresh"] },
+  SignupUser: { schema: S.SignupUser, components: ["SignupUser"] },
   // mutations
   PhotoEditResponse: { schema: S.PhotoEditResponse, components: ["PhotoEdit"] },
   CreateUserAlbumResponse: { schema: S.CreateUserAlbumResponse, components: ["AlbumUserEdit"] },
@@ -68,6 +69,9 @@ export const UNMAPPED: Readonly<Record<string, string>> = {
   RefreshPost: "a request body",
   TokenClaims: "the JWT payload, not a response body",
   AuthError: "the error envelope from api/views/exception_handler.py, not a component",
+  LogoutResponse: "simplejwt's TokenBlacklistView declares no response serializer (it answers {})",
+  PasswordResetResponse: "its views declare no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
+  SsoConfig: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
   IsFirstTimeSetupResponse:
     "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
   PublicSharingDefaults: "nested in User.public_sharing_defaults, which the schema leaves untyped (a JSONField)",
@@ -132,6 +136,8 @@ export const UNMAPPED: Readonly<Record<string, string>> = {
   WorkerAvailabilityResponse:
     "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
   SiteSettings: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
+  EmailConfig: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
+  EmailTestResponse: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
   ListUser:
     "one shape for two serializers: UserViewSet lists User rows for admins and PublicUser rows for everyone else",
   UploadOptions: "a request body",

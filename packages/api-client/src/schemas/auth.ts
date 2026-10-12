@@ -49,8 +49,54 @@ export const AuthError = z.object({
 });
 export type AuthError = z.infer<typeof AuthError>;
 
-/** GET /api/user/ availability probe used to detect first-time setup. */
+/** GET /api/firsttimesetup/: true while the instance has no admin (the login page offers sign-up). */
 export const IsFirstTimeSetupResponse = z.object({
   isFirstTimeSetup: z.boolean(),
 });
 export type IsFirstTimeSetupResponse = z.infer<typeof IsFirstTimeSetupResponse>;
+
+/**
+ * POST /api/auth/token/blacklist/ response: simplejwt's TokenBlacklistView answers `{}`. The
+ * server clears the auth cookies whatever it answers (LogoutView in librephotos/urls.py).
+ */
+export const LogoutResponse = z.looseObject({});
+export type LogoutResponse = z.infer<typeof LogoutResponse>;
+
+/** POST /api/user/ body: sign up (the first user becomes the admin, see IsFirstTimeSetupResponse). */
+export type SignupRequest = {
+  username: string;
+  password: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+};
+
+/** POST /api/user/ response (SignupUserSerializer). */
+export const SignupUser = z.object({
+  username: z.string(),
+  email: z.string(),
+  first_name: z.string(),
+  last_name: z.string(),
+});
+export type SignupUser = z.infer<typeof SignupUser>;
+
+/** POST /api/auth/password/reset/ and .../reset/confirm/ success: `status` is always true. */
+export const PasswordResetResponse = z.object({
+  status: z.boolean(),
+  message: z.string(),
+});
+export type PasswordResetResponse = z.infer<typeof PasswordResetResponse>;
+
+/** POST /api/auth/password/reset/confirm/ body: the emailed link's uid and token plus the new password. */
+export type PasswordResetConfirmRequest = { uid: string; token: string; new_password: string };
+
+/**
+ * GET /api/auth/sso/config/ (api/views/sso.py): whether the login screen offers single sign-on,
+ * the button's label, and one login URL per configured OIDC provider.
+ */
+export const SsoConfig = z.object({
+  enabled: z.boolean(),
+  label: z.string(),
+  providers: z.array(z.object({ id: z.string(), name: z.string(), login_url: z.string() })),
+});
+export type SsoConfig = z.infer<typeof SsoConfig>;

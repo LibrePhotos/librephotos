@@ -1,6 +1,5 @@
 import {
   createApiClient,
-  ResponseParseError,
   ApiError as SharedApiError,
   type ApiClient,
   type RequestOptions as SharedRequestOptions,
@@ -10,6 +9,7 @@ import { MutationCache, QueryCache, QueryClient } from "@tanstack/react-query";
 import { notification } from "../service/notifications";
 import { ApiError } from "./apiError";
 import { clearAuthCookies, getAuthCookie, setAuthCookie } from "./authCookies";
+import { notifyParseError } from "./parseErrors";
 
 const PUBLIC_URL = import.meta.env.VITE_PUBLIC_URL || import.meta.env.PUBLIC_URL || "";
 const API_BASE_URL = PUBLIC_URL + "/api";
@@ -199,13 +199,6 @@ export const apiClient: ApiClient = {
   delete: <T>(endpoint: string, data?: unknown) => call(endpoint, () => sharedClient.delete<T>(endpoint, data)),
   resolveBaseUrl: () => sharedClient.resolveBaseUrl(),
 };
-
-/** A response that did not match its schema (server drift) asks the user to report it. */
-function notifyParseError(error: unknown) {
-  if (error instanceof ResponseParseError) {
-    notification.parseError(`${error.context}: ${error.issues}`);
-  }
-}
 
 // Create QueryClient
 export const queryClient = new QueryClient({
