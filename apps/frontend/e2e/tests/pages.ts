@@ -33,7 +33,7 @@ export class TimelinePage {
   readonly tiles: Locator;
 
   constructor(readonly page: Page) {
-    this.heading = page.getByRole("main").getByRole("heading", { name: "Photos", level: 2 });
+    this.heading = page.getByRole("main").getByRole("heading", { name: "Photos", level: 1 });
     this.tiles = page.locator("main button.pig-btn");
   }
 
