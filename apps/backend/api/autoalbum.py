@@ -69,13 +69,13 @@ def regenerate_event_titles(user: User, job_id: uuid.UUID | str) -> int:
         aus = AlbumAuto.objects.filter(owner=user).prefetch_related("photos")
         target_count = len(aus)
         for idx, au in enumerate(aus):
-            logger.info(f"job {job_id}: {idx}")
+            logger.debug("job %s: %s", job_id, idx)
             au._generate_title()
             au.save()
             lrj.update_progress(current=idx + 1, target=target_count)
 
         lrj.complete()
-        logger.info(f"job {job_id}: updated lrj entry to db")
+        logger.info("job %s: updated lrj entry to db", job_id)
 
     except Exception as e:
         logger.exception("An error occurred")
@@ -102,7 +102,7 @@ def generate_event_albums(user: User, job_id: uuid.UUID | str) -> int:
         groups = _group_photos(photos, dt=timedelta(days=1, hours=12))
         target_count = len(groups)
         logger.info(
-            f"job {job_id}: made {target_count} groups out of {len(photos)} images"
+            "job %s: made %s groups out of %s images", job_id, target_count, len(photos)
         )
 
         album_locations: list[object] = []
@@ -156,15 +156,17 @@ def generate_event_albums(user: User, job_id: uuid.UUID | str) -> int:
                 changed = False
                 if albums:
                     album = albums[0]
-                    logger.info(f"job {job_id}: update auto album {album.id}")
+                    logger.info("job %s: update auto album %s", job_id, album.id)
                     # Newly imported photos can bridge the gap between two
                     # events, which turns them into a single group. Fold the
                     # albums of the former events into the oldest one instead of
                     # leaving duplicates behind.
                     for duplicate in albums[1:]:
                         logger.info(
-                            f"job {job_id}: merging auto album {duplicate.id} "
-                            f"into {album.id}"
+                            "job %s: merging auto album %s into %s",
+                            job_id,
+                            duplicate.id,
+                            album.id,
                         )
                         with transaction.atomic():
                             album.photos.add(*duplicate.photos.all())
@@ -182,7 +184,7 @@ def generate_event_albums(user: User, job_id: uuid.UUID | str) -> int:
                         timestamp=key,
                     )
                     album.save()
-                    logger.info(f"job {job_id}: generate auto album {album.id}")
+                    logger.info("job %s: generate auto album %s", job_id, album.id)
                     changed = True
 
                 # Read the membership once instead of once per photo, otherwise

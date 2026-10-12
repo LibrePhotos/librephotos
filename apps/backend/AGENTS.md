@@ -97,7 +97,9 @@ test makes `--parallel` runs crash with "cannot pickle 'traceback'"; rerun that 
   Queryset `update()`/`delete()` and `bulk_create` send no signals, so callers run the
   `refresh_*_photo_counts` helpers themselves. `api/tests/infra/test_signal_receivers.py` enforces this.
 - Logging: `logger = logging.getLogger(__name__)`, lazy `%` arguments, never f-strings; carry the job id,
-  user id or `image_hash`, never usernames, paths or captions above DEBUG. Details: `CONTRIBUTING.md`.
+  user id or `image_hash`, never usernames, paths or captions above DEBUG. No `print()` (ruff G004 and
+  T20): settings modules use `librephotos.logging_bootstrap.defer(level, message)`, management commands
+  `self.stdout.write`, sidecars `service._common.logger(name)`. Details: `CONTRIBUTING.md`.
 - External tools (ffmpeg, ffprobe, ExifTool, git, nvidia-smi) run only through `api.binaries`:
   `run_tool(name, args, timeout=...)` (the timeout has no default; a hung tool fails the call, never
   the worker) or `start_tool` for a long-running stream. Ruff TID251 bans `subprocess` elsewhere
@@ -136,7 +138,7 @@ test makes `--parallel` runs crash with "cannot pickle 'traceback'"; rerun that 
   so a `test*.py` anywhere else never runs. `api/tests/infra/test_test_suite_layout.py` fails on one and on any
   `pytest` import; the runner is Django's.
 - Stub a module name or load a sidecar file only through `api/tests/stubs.py` (`stub_modules`,
-  `load_backend_file`, `sidecar_utils_stub`). They put back exactly what they changed; a direct `sys.modules`
+  `load_backend_file`). They put back exactly what they changed; a direct `sys.modules`
   write in a test module fails the layout test (`patch.dict(sys.modules)` also drops modules imported inside it).
 - Coverage: `manage.py test` records it unless `NO_COVERAGE` is set. CI's `coverage report` step fails below
   `fail_under` in `.coveragerc`. Raise the floor when the total clears it by a whole point; never lower it

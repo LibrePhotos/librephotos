@@ -57,7 +57,7 @@ def calculate_perceptual_hash(image_path: str, hash_size: int = 8) -> str | None
             phash = imagehash.phash(source, hash_size=hash_size)
             return str(phash)
     except Exception as e:
-        logger.error(f"Failed to calculate perceptual hash for {image_path}: {e}")
+        logger.error("Failed to calculate perceptual hash for %s: %s", image_path, e)
         return None
 
 
@@ -105,7 +105,7 @@ def hamming_distance(hash1: str | None, hash2: str | None) -> int:
             h1 - h2
         )  # imagehash overloads subtraction to return Hamming distance
     except Exception as e:
-        logger.error(f"Failed to calculate Hamming distance: {e}")
+        logger.error("Failed to calculate Hamming distance: %s", e)
         return 64  # Maximum distance (completely different)
 
 

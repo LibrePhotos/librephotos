@@ -1,4 +1,5 @@
 import datetime
+import logging
 import os
 
 from librephotos.env import (
@@ -12,6 +13,7 @@ from librephotos.env import (
 )
 from librephotos.logging_bootstrap import (
     build_logging_config,
+    defer,
     ensure_logs_root,
     resolve_to_console,
 )
@@ -86,7 +88,10 @@ MPLCONFIGDIR = env_str("MPLCONFIGDIR") or os.path.join(MEDIA_ROOT, "matplotlib")
 try:
     os.makedirs(MPLCONFIGDIR, exist_ok=True)
 except OSError as e:
-    print(f"could not create matplotlib cache directory {MPLCONFIGDIR}: {e}")
+    defer(
+        logging.WARNING,
+        f"could not create matplotlib cache directory {MPLCONFIGDIR}: {e}",
+    )
 export("MPLCONFIGDIR", MPLCONFIGDIR)
 
 WSGI_APPLICATION = "librephotos.wsgi.application"
@@ -103,12 +108,12 @@ SECRET_KEY_FILENAME = os.path.join(MEDIA_ROOT, "secret.key")
 LEGACY_SECRET_KEY_FILENAME = os.path.join(BASE_LOGS, "secret.key")
 SECRET_KEY = env_str("SECRET_KEY")
 if SECRET_KEY:
-    print("use SECRET_KEY from env")
+    defer(logging.DEBUG, "use SECRET_KEY from env")
 else:
     SECRET_KEY = load_or_create_secret_key(
         SECRET_KEY_FILENAME, legacy_path=LEGACY_SECRET_KEY_FILENAME
     )
-    print("use SECRET_KEY from file")
+    defer(logging.DEBUG, "use SECRET_KEY from file")
 
 
 # WebP quality (1-100) of the 500 and 250 px square thumbnails the photo grids

@@ -194,7 +194,7 @@ def is_video(path: str) -> bool:
         # Sniffed only: a corrupt file with a video extension must not become a video.
         return (sniffed_mime_type(path) or "").find("video") != -1
     except Exception:
-        logger.error(f"Error while checking if file is video: {path}")
+        logger.error("Error while checking if file is video: %s", path)
         return False
 
 
@@ -224,7 +224,7 @@ def looks_like_media(path: str) -> bool:
 def is_valid_media(path: str, user: User | None) -> bool:
     if is_video(path=path):
         if not settings.FEATURE_VIDEO:
-            logger.info(f"Video support is disabled, skipping {path}")
+            logger.info("Video support is disabled, skipping %s", path)
             return False
         return True
     if is_metadata(path=path):
@@ -238,10 +238,10 @@ def is_valid_media(path: str, user: User | None) -> bool:
 
         if image_decoding.can_decode(path):
             return True
-        logger.info(f"Could not handle {path}: no loader recognises it")
+        logger.info("Could not handle %s: no loader recognises it", path)
         return False
     except Exception as e:
-        logger.info(f"Could not handle {path}, because {str(e)}")
+        logger.info("Could not handle %s, because %s", path, str(e))
         return False
 
 
@@ -253,5 +253,5 @@ def calculate_hash(user: User, path: str) -> str:
                 hash_md5.update(chunk)
         return hash_md5.hexdigest() + str(user.id)
     except Exception as e:
-        logger.error(f"Could not calculate hash for file {path}")
+        logger.error("Could not calculate hash for file %s", path)
         raise e

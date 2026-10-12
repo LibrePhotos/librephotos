@@ -203,5 +203,5 @@ class FolderNavigationViewSet(viewsets.ViewSet):
             )
 
         except Exception as e:
-            logger.error(f"Error scanning directory {base_path}: {e}")
+            logger.error("Error scanning directory %s: %s", base_path, e)
             raise APIException("Error scanning directory") from e

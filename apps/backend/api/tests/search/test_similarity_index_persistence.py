@@ -25,20 +25,10 @@ from api.image_similarity import (
     search_similar_embedding,
 )
 from api.models.long_running_job import LongRunningJob
-from api.tests.stubs import load_backend_file, sidecar_utils_stub, stub_modules
+from api.tests.stubs import load_backend_file
 from api.tests.utils import create_test_photos, create_test_user
 
-LOGGER_NAME = "api.tests.search.similarity_index"
-
-
-def _import_retrieval_index():
-    # retrieval_index imports ``utils`` by bare name; the real one would
-    # reconfigure the test process's logging (see test_retrieval_index_build).
-    with stub_modules({"utils": sidecar_utils_stub(LOGGER_NAME)}):
-        return importlib.import_module("image_similarity.retrieval_index")
-
-
-retrieval_index = _import_retrieval_index()
+retrieval_index = importlib.import_module("image_similarity.retrieval_index")
 RetrievalIndex = retrieval_index.RetrievalIndex
 DIM = retrieval_index.embedding_size
 
@@ -49,10 +39,7 @@ def _load_main(base_data):
         return load_backend_file(
             "image_similarity/main.py",
             name="image_similarity_main_under_test",
-            stubs={
-                "utils": sidecar_utils_stub(LOGGER_NAME),
-                "retrieval_index": retrieval_index,
-            },
+            stubs={"retrieval_index": retrieval_index},
         )
 
 

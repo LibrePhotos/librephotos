@@ -47,7 +47,7 @@ def isValidNCMedia(file_obj: _RemoteFile) -> bool:
         if is_raw(file_obj.path) or is_metadata(file_obj.path):
             return True
         logger.info(
-            f"Skipping {file_obj.path}, because '{filetype}' is not a media type"
+            "Skipping %s, because '%s' is not a media type", file_obj.path, filetype
         )
         return False
     except Exception:
@@ -165,7 +165,7 @@ def scan_photos(user: User, job_id: uuid.UUID) -> dict[str, bool]:
             handle_new_image(user, image_path, job_id)
             lrj.update_progress(current=idx + 1, target=to_add_count)
 
-        logger.info(f"Added {len(paths)} photos")
+        logger.info("Added %s photos", len(paths))
         build_image_similarity_index(user)
 
         lrj.complete()

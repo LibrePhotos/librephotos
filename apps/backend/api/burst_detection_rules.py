@@ -144,7 +144,7 @@ class BurstDetectionRule:
 
         parts = condition.split("//", maxsplit=1)
         if len(parts) != 2:
-            logger.warning(f"Invalid condition_exif format: {condition}")
+            logger.warning("Invalid condition_exif format: %s", condition)
             return False
 
         tag_name, pattern = parts

@@ -199,7 +199,8 @@ def backfill_missing_aspect_ratios(user: User) -> int:
         return 0
 
     logger.info(
-        f"Found {photos_with_missing_aspect_ratio.count()} photos with missing aspect ratios"
+        "Found %s photos with missing aspect ratios",
+        photos_with_missing_aspect_ratio.count(),
     )
     for photo in photos_with_missing_aspect_ratio:
         try:
@@ -208,16 +209,19 @@ def backfill_missing_aspect_ratios(user: User) -> int:
                 thumbnail._calculate_aspect_ratio()
         except Exception as e:
             logger.exception(
-                f"Could not calculate aspect ratio for photo {photo.image_hash}: {str(e)}"
+                "Could not calculate aspect ratio for photo %s: %s",
+                photo.image_hash,
+                str(e),
             )
 
     # ``.all()`` re-queries: iterating above cached the pre-repair rows.
     still_missing = photos_with_missing_aspect_ratio.all().count()
     if still_missing:
         logger.warning(
-            f"{still_missing} photos still have no aspect ratio after the repair "
+            "%s photos still have no aspect ratio after the repair "
             "pass; they will not appear in the timeline or album views until it "
-            "can be calculated"
+            "can be calculated",
+            still_missing,
         )
     return still_missing
 
@@ -311,7 +315,8 @@ def _queue_scan_work(
 
     if metadata_paths:
         logger.info(
-            f"Processing {len(metadata_paths)} metadata files for photos outside this scan"
+            "Processing %s metadata files for photos outside this scan",
+            len(metadata_paths),
         )
     for path in metadata_paths:
         photo_scanner(user, last_scan, full_scan, path, job_id)
@@ -368,7 +373,7 @@ def queue_scan_followups(job_id: UUID | str) -> None:
     added_photo_count = (
         Photo.objects.owned_by(user).count() - options["photo_count_before"]
     )
-    logger.info(f"Added {added_photo_count} photos")
+    logger.info("Added %s photos", added_photo_count)
 
     _queue_followup_jobs(user, options["full_scan"], options["scan_missing_photos"])
 
@@ -484,7 +489,10 @@ def scan_photos(
         db.connections.close_all()
 
         logger.info(
-            f"Grouped {files_found} files into {len(file_groups)} groups, {len(groups_to_process)} need processing"
+            "Grouped %s files into %s groups, %s need processing",
+            files_found,
+            len(file_groups),
+            len(groups_to_process),
         )
 
         # === PHASE 2: Process each file group ===
@@ -494,7 +502,7 @@ def scan_photos(
             user, groups_to_process, metadata_paths, full_scan, last_scan, job_id
         )
 
-        logger.info(f"Scanned {files_found} files in : {scan_directory}")
+        logger.info("Scanned %s files in : %s", files_found, scan_directory)
 
         # If no files were queued for processing (empty directory or all files
         # already processed) no worker will ever finish the job, so finish it

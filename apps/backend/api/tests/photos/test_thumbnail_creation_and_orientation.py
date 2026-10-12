@@ -176,7 +176,7 @@ class CreateThumbnailNonRawTests(SimpleTestCase):
                 create_thumbnail("/data/photo.jpg", 200, "thumbnails_big", "h", ".webp")
         self.assertIs(ctx.exception, boom)
         logger.error.assert_called_once_with(
-            "Could not create thumbnail for file /data/photo.jpg"
+            "Could not create thumbnail for file %s", "/data/photo.jpg"
         )
 
 
@@ -285,7 +285,7 @@ class CreateThumbnailRawTests(SimpleTestCase):
                 create_thumbnail(self.RAW_PATH, 800, "thumbnails_big", "h", ".webp")
         self.assertIs(ctx.exception, boom)
         logger.error.assert_called_once_with(
-            f"Could not create thumbnail for file {self.RAW_PATH}"
+            "Could not create thumbnail for file %s", self.RAW_PATH
         )
 
     def test_missing_thumbnail_key_in_response_raises_keyerror(self):

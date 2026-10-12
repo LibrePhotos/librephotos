@@ -16,11 +16,16 @@ performs that check against the width read from the ONNX model at load time.
 """
 
 import json
+import logging
 import os
 
 import numpy as np
 
 from librephotos.env import data_models_root, env_str
+
+# The ocr sidecar's logger, which service/ocr/main.py points at stdout through
+# service._common.logger; the model code stays free of the Flask app module.
+logger = logging.getLogger("ocr")
 
 # Production install location.  Bundles ship to ``<models>/ocr/ppocrv6_<tier>``
 # under librephotos.env.data_models_root().  Tests point ``OCR_MODEL_DIR`` at
@@ -140,7 +145,9 @@ class OCRConfig:
         if n_extra == (2 if self.use_space_char else 1):
             return
         implied = "a space class" if n_extra == 2 else "no space class"
-        print(
-            f"ocr: note: rec output width implies {implied} but "
-            f"config use_space_char={self.use_space_char}; trusting the model."
+        logger.info(
+            "ocr: note: rec output width implies %s but "
+            "config use_space_char=%s; trusting the model.",
+            implied,
+            self.use_space_char,
         )

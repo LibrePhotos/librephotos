@@ -7,6 +7,7 @@ user out.
 """
 
 import contextlib
+import logging
 import os
 import subprocess
 import sys
@@ -19,9 +20,15 @@ from unittest import mock
 from django.test import SimpleTestCase
 
 from librephotos import secret_key
-from librephotos.logging_bootstrap import take_deferred_warnings
+from librephotos.logging_bootstrap import take_deferred
 
 BACKEND_ROOT = Path(__file__).resolve().parents[3]
+
+
+def deferred_warnings() -> list[str]:
+    """Take what was deferred until logging works; the warnings' messages."""
+    return [message for level, message in take_deferred() if level >= logging.WARNING]
+
 
 OLD_KEY = "old-key-from-the-logs-folder"
 
@@ -34,8 +41,8 @@ class LoadOrCreateSecretKeyTest(SimpleTestCase):
         self.key_file = root / "protected_media" / "secret.key"
         self.legacy_file = root / "logs" / "secret.key"
         self.legacy_file.parent.mkdir()
-        take_deferred_warnings()
-        self.addCleanup(take_deferred_warnings)
+        deferred_warnings()
+        self.addCleanup(take_deferred)
 
     def load(self) -> str:
         return secret_key.load_or_create_secret_key(
@@ -54,16 +61,16 @@ class LoadOrCreateSecretKeyTest(SimpleTestCase):
         self.assertEqual(self.leftover_files(), ["secret.key"])
         if os.name == "posix":
             self.assertEqual(self.key_file.stat().st_mode & 0o777, 0o600)
-        warnings = take_deferred_warnings()
+        warnings = deferred_warnings()
         self.assertEqual(len(warnings), 1)
         self.assertIn("Generated a new Django secret key", warnings[0])
 
     def test_existing_key_is_reused(self) -> None:
         first = self.load()
-        take_deferred_warnings()
+        deferred_warnings()
 
         self.assertEqual(self.load(), first)
-        self.assertEqual(take_deferred_warnings(), [])
+        self.assertEqual(deferred_warnings(), [])
 
     def test_old_key_is_moved_not_regenerated(self) -> None:
         self.legacy_file.write_text(OLD_KEY + "\n")
@@ -72,7 +79,7 @@ class LoadOrCreateSecretKeyTest(SimpleTestCase):
 
         self.assertEqual(self.key_file.read_text(), OLD_KEY)
         self.assertFalse(self.legacy_file.exists())
-        warnings = take_deferred_warnings()
+        warnings = deferred_warnings()
         self.assertEqual(len(warnings), 1)
         self.assertIn("Moved the Django secret key", warnings[0])
         self.assertIn(str(self.legacy_file), warnings[0])
@@ -85,7 +92,7 @@ class LoadOrCreateSecretKeyTest(SimpleTestCase):
         self.assertEqual(self.load(), "new-key")
 
         self.assertEqual(self.legacy_file.read_text(), OLD_KEY)
-        warnings = take_deferred_warnings()
+        warnings = deferred_warnings()
         self.assertEqual(len(warnings), 1)
         self.assertIn("Both", warnings[0])
         self.assertIn("a different, unused key", warnings[0])
@@ -108,7 +115,7 @@ class LoadOrCreateSecretKeyTest(SimpleTestCase):
 
         self.assertEqual(self.key_file.read_text(), OLD_KEY)
         self.assertEqual(self.legacy_file.read_text(), OLD_KEY)
-        warnings = take_deferred_warnings()
+        warnings = deferred_warnings()
         self.assertEqual(len(warnings), 1)
         self.assertIn("could not remove the old file", warnings[0])
 
@@ -142,7 +149,7 @@ class LoadOrCreateSecretKeyTest(SimpleTestCase):
                 self.assertEqual(len(set(keys)), 1)
                 self.assertEqual(self.key_file.read_text(), keys[0])
                 self.assertEqual(self.leftover_files(), ["secret.key"])
-                generated = [w for w in take_deferred_warnings() if "Generated" in w]
+                generated = [w for w in deferred_warnings() if "Generated" in w]
                 self.assertEqual(len(generated), 1)
 
     def _load_in_threads(self, link_works: bool) -> list[str]:

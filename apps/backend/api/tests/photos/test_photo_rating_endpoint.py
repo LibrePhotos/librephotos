@@ -95,8 +95,9 @@ class SetPhotosRatingTest(TestCase):
         theirs.refresh_from_db()
         self.assertEqual(theirs.rating, 0)
         warning.assert_called_once_with(
-            f"Could not set photo {theirs.image_hash} to rating. "
-            "It does not exist or is not owned by user."
+            "Could not set photo %s to %s. It does not exist or is not owned by user.",
+            theirs.image_hash,
+            "rating",
         )
 
     def test_a_shared_photo_cannot_be_rated_by_the_recipient(self):

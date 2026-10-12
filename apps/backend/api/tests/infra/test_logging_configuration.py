@@ -1,8 +1,11 @@
+import ast
 import logging
 import logging.config
 import os
 import re
 import shutil
+import subprocess
+import sys
 import tempfile
 from contextlib import contextmanager
 from unittest.mock import patch
@@ -22,12 +25,18 @@ from librephotos.logging_bootstrap import (
     DEFAULT_LOGS_ROOT,
     LOG_FILE_HANDLER_NAME,
     LOG_FILENAME,
+    LOG_FORMAT,
     build_logging_config,
     ensure_logs_root,
     resolve_level,
     resolve_logger_levels,
-    take_deferred_warnings,
+    take_deferred,
 )
+
+
+def deferred_warnings() -> list[str]:
+    """Take what was deferred until logging works; the warnings' messages."""
+    return [message for level, message in take_deferred() if level >= logging.WARNING]
 
 
 @contextmanager
@@ -135,10 +144,10 @@ class LogLevelTest(SimpleTestCase):
     def setUp(self):
         # resolve_level parks its complaints in a module-level list; start from a
         # known state so the assertions below cannot pick up someone else's.
-        take_deferred_warnings()
+        deferred_warnings()
 
     def tearDown(self):
-        take_deferred_warnings()
+        deferred_warnings()
 
     def test_debug_level_reaches_the_project_logger(self):
         # The acceptance criterion is the logger.debug() calls in
@@ -184,7 +193,7 @@ class LogLevelTest(SimpleTestCase):
         # the settings module is importing, before any handler exists - a typo in
         # LOG_LEVEL would be an unexplained crash loop.
         self.assertEqual(resolve_level("LOUD"), "INFO")
-        warnings = take_deferred_warnings()
+        warnings = deferred_warnings()
         self.assertEqual(len(warnings), 1)
         self.assertIn("LOG_LEVEL", warnings[0])
         self.assertIn("LOUD", warnings[0])
@@ -198,33 +207,33 @@ class LogLevelTest(SimpleTestCase):
 
     def test_empty_level_is_info(self):
         self.assertEqual(resolve_level(""), "INFO")
-        self.assertEqual(take_deferred_warnings(), [])
+        self.assertEqual(deferred_warnings(), [])
 
 
 class LoggerLevelsTest(SimpleTestCase):
     """LOG_LEVELS turns one module up or down without touching the rest."""
 
     def setUp(self):
-        take_deferred_warnings()
+        deferred_warnings()
 
     def tearDown(self):
-        take_deferred_warnings()
+        deferred_warnings()
 
     def test_parses_comma_separated_pairs(self):
         self.assertEqual(
             resolve_logger_levels(" api.directory_watcher=debug , nextcloud=WARNING,"),
             {"api.directory_watcher": "DEBUG", "nextcloud": "WARNING"},
         )
-        self.assertEqual(take_deferred_warnings(), [])
+        self.assertEqual(deferred_warnings(), [])
 
     def test_empty_is_no_overrides(self):
         self.assertEqual(resolve_logger_levels(""), {})
-        self.assertEqual(take_deferred_warnings(), [])
+        self.assertEqual(deferred_warnings(), [])
 
     def test_malformed_entries_are_skipped_and_reported(self):
         levels = resolve_logger_levels("api=LOUD,nextcloud,=DEBUG,api.util=ERROR")
         self.assertEqual(levels, {"api.util": "ERROR"})
-        warnings = take_deferred_warnings()
+        warnings = deferred_warnings()
         self.assertEqual(len(warnings), 3, warnings)
         self.assertTrue(all("LOG_LEVELS" in w for w in warnings), warnings)
 
@@ -353,6 +362,141 @@ class ModuleLoggerReachabilityTest(SimpleTestCase):
                         if shared.search(f.read()):
                             offenders.append(os.path.relpath(path, backend_root))
         self.assertEqual(offenders, [])
+
+
+BACKEND_ROOT = os.path.dirname(
+    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+)
+
+
+def _python_files(*packages):
+    for package in packages:
+        for dirpath, dirnames, filenames in os.walk(
+            os.path.join(BACKEND_ROOT, package)
+        ):
+            dirnames[:] = [d for d in dirnames if d not in ("tests", "migrations")]
+            for filename in filenames:
+                if filename.endswith(".py"):
+                    path = os.path.join(dirpath, filename)
+                    yield os.path.relpath(path, BACKEND_ROOT).replace(os.sep, "/")
+
+
+def _calls(relative_path, name):
+    """Line numbers of the calls to ``name`` (a bare name or an attribute)."""
+    with open(os.path.join(BACKEND_ROOT, relative_path), encoding="utf-8") as f:
+        tree = ast.parse(f.read())
+    return [
+        node.lineno
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Call)
+        and (
+            (isinstance(node.func, ast.Name) and node.func.id == name)
+            or (isinstance(node.func, ast.Attribute) and node.func.attr == name)
+        )
+    ]
+
+
+class SidecarLoggingTest(SimpleTestCase):
+    """Every sidecar writes through service._common.logger (issue #2340).
+
+    They used to log three ways: a print helper in service._common, bare
+    print() calls in the model code, and image_similarity's own logging setup
+    with a file of its own.
+    """
+
+    SIDECAR_PACKAGES = ("service", "image_similarity")
+
+    def offenders(self, name, allowed=()):
+        return [
+            f"{path}:{line}"
+            for path in _python_files(*self.SIDECAR_PACKAGES)
+            if path not in allowed
+            for line in _calls(path, name)
+        ]
+
+    def test_no_sidecar_prints(self):
+        self.assertEqual(self.offenders("print"), [])
+
+    def test_only_the_shared_helper_sets_up_sidecar_logging(self):
+        for name in ("configure_standalone", "dictConfig", "basicConfig"):
+            with self.subTest(call=name):
+                self.assertEqual(
+                    self.offenders(name, allowed=("service/_common.py",)), []
+                )
+        backend = [
+            f"{path}:{line}"
+            for path in _python_files("api", "nextcloud", "librephotos")
+            for line in _calls(path, "configure_standalone")
+        ]
+        self.assertEqual(backend, [])
+
+    def test_sidecar_logger_writes_backend_lines_to_stdout_only(self):
+        from service import _common
+
+        name = "librephotos-test-sidecar-logger"
+        log = logging.getLogger(name)
+        self.addCleanup(setattr, log, "handlers", [])
+        self.addCleanup(setattr, log, "propagate", True)
+
+        with patch.dict(os.environ, {"LOG_LEVEL": "WARNING", "LOG_LEVELS": ""}):
+            self.assertIs(_common.logger(name), log)
+            # A second call (create_app after the module-level logger) adds
+            # no second handler.
+            self.assertIs(_common.logger(name), log)
+
+        (handler,) = log.handlers
+        self.assertIs(handler.stream, sys.stdout)
+        self.assertEqual(handler.formatter._fmt, LOG_FORMAT)
+        self.assertEqual(log.level, logging.WARNING)
+        self.assertFalse(log.propagate)
+
+    def test_log_levels_entry_beats_log_level(self):
+        from service import _common
+
+        name = "librephotos-test-sidecar-levels"
+        log = logging.getLogger(name)
+        self.addCleanup(setattr, log, "handlers", [])
+        self.addCleanup(setattr, log, "propagate", True)
+
+        with patch.dict(
+            os.environ, {"LOG_LEVEL": "WARNING", "LOG_LEVELS": f"{name}=DEBUG"}
+        ):
+            _common.logger(name)
+        self.assertEqual(log.level, logging.DEBUG)
+
+
+class SettingsImportPrintsNothingTest(SimpleTestCase):
+    """The settings modules used to print on import, so every management
+    command, worker and web process repeated those lines on stdout before
+    logging existed (issue #2340)."""
+
+    def test_importing_the_unified_settings_writes_nothing_to_stdout(self):
+        with tempfile.TemporaryDirectory() as scratch:
+            env = {
+                **{
+                    k: v
+                    for k, v in os.environ.items()
+                    if k not in ("DJANGO_SETTINGS_MODULE", "PHOTOS")
+                },
+                "SECRET_KEY": "x",
+                "BASE_DATA": scratch,
+                "BASE_LOGS": os.path.join(scratch, "logs"),
+            }
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "-c",
+                    "import librephotos.settings.production_noproxy",
+                ],
+                cwd=BACKEND_ROOT,
+                env=env,
+                capture_output=True,
+                check=False,
+                text=True,
+                timeout=300,
+            )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout, "")
 
 
 class EnsureLogsRootTest(SimpleTestCase):

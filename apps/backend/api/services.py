@@ -120,7 +120,7 @@ def check_services() -> None:
 
         if not is_healthy(service):
             stop_service(service)
-            logger.info(f"Restarting {service}")
+            logger.info("Restarting %s", service)
             start_service(service)
         else:
             unload_idle_model(service)
@@ -155,13 +155,15 @@ def is_healthy(service: str) -> bool:
         # there is left alone, only one that has gone is restarted.
         if _service_process_running(service):
             logger.info(
-                f"Service {service} did not answer its health check but is running: {e}"
+                "Service %s did not answer its health check but is running: %s",
+                service,
+                e,
             )
             return True
-        logger.warning(f"Service {service} is not running: {e}")
+        logger.warning("Service %s is not running: %s", service, e)
         return False
     except Exception as e:
-        logger.exception(f"Error checking health of {service}: {str(e)}")
+        logger.exception("Error checking health of %s: %s", service, str(e))
         return False
 
 
@@ -186,9 +188,9 @@ def unload_idle_model(service: str) -> bool:
     try:
         sidecars.get(service, "/unload-model", timeout=UNLOAD_MODEL)
     except requests.RequestException as e:
-        logger.warning(f"Service {service} could not unload its model: {e}")
+        logger.warning("Service %s could not unload its model: %s", service, e)
         return False
-    logger.info(f"Service {service} idle for {idle:.0f} s: unloaded its model")
+    logger.info("Service %s idle for %.0f s: unloaded its model", service, idle)
     return True
 
 
@@ -198,7 +200,9 @@ def _reap_exited() -> None:
         returncode = process.poll()
         if returncode is not None:
             del _processes[service]
-            logger.info(f"Service '{service}' (PID {process.pid}) exited: {returncode}")
+            logger.info(
+                "Service '%s' (PID %s) exited: %s", service, process.pid, returncode
+            )
 
 
 def _service_process_running(service: str) -> bool:
@@ -288,7 +292,7 @@ def start_service(service: str) -> bool:
         _service_command(service), env=_service_environment()
     )
 
-    logger.info(f"Service '{service}' started successfully")
+    logger.info("Service '%s' started successfully", service)
     return True
 
 
@@ -315,14 +319,16 @@ def stop_service(service: str) -> bool:
             except psutil.NoSuchProcess:
                 pass
             except psutil.Error as e:
-                logger.error(f"Failed to stop service '{service}': {e}")
+                logger.error("Failed to stop service '%s': %s", service, e)
 
         # Waiting on a child also reaps it.
         _, alive = psutil.wait_procs(processes, timeout=STOP_GRACE_SECONDS)
         for process in alive:
             logger.warning(
-                f"Service '{service}' with PID {process.info['pid']} ignored "
-                f"SIGTERM for {STOP_GRACE_SECONDS} s; killing it"
+                "Service '%s' with PID %s ignored SIGTERM for %s s; killing it",
+                service,
+                process.info["pid"],
+                STOP_GRACE_SECONDS,
             )
             try:
                 process.kill()
@@ -330,7 +336,7 @@ def stop_service(service: str) -> bool:
                 pass
         psutil.wait_procs(alive, timeout=STOP_GRACE_SECONDS)
     except Exception as e:
-        logger.error(f"An error occurred while stopping service '{service}': {e}")
+        logger.error("An error occurred while stopping service '%s': %s", service, e)
         return False
     finally:
         handle = _processes.pop(service, None)
@@ -339,7 +345,9 @@ def stop_service(service: str) -> bool:
 
     for process in processes:
         logger.info(
-            f"Service '{service}' with PID {process.info['pid']} stopped successfully"
+            "Service '%s' with PID %s stopped successfully",
+            service,
+            process.info["pid"],
         )
     if not processes:
         logger.warning("Service '%s' is not running", service)

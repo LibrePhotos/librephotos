@@ -67,13 +67,13 @@ class Command(BaseCommand):
     def nextcloud_scan(self) -> None:
         for user in User.objects.all():
             if not user.nextcloud_scan_directory:
-                print(
+                self.stdout.write(
                     f"Skipping nextcloud scan for user {user.username}. No scan directory configured."
                 )
                 continue
-            print(f"Starting nextcloud scan for user {user.username}.")
+            self.stdout.write(f"Starting nextcloud scan for user {user.username}.")
             try:
                 scan_photos_nextcloud(user, uuid.uuid4())
             except Exception:
-                print(f"Nextcloud scan for user {user.username} failed:")
-                print(traceback.format_exc())
+                self.stderr.write(f"Nextcloud scan for user {user.username} failed:")
+                self.stderr.write(traceback.format_exc())

@@ -6,6 +6,8 @@ exercised in ``test_exif_service_batching_real.py``.
 """
 
 import json
+import logging
+import sys
 from unittest.mock import patch
 
 from django.test import SimpleTestCase
@@ -285,7 +287,7 @@ class GetTagsTest(SimpleTestCase):
         fake = FakeExifTool(running=True, raise_on={("B", "/a.jpg")})
         with (
             patch.object(exif_main, "static_et", fake),
-            patch.object(exif_main, "log") as log,
+            self.assertLogs("exif", "ERROR") as logs,
         ):
             resp = self.post(
                 {
@@ -296,8 +298,8 @@ class GetTagsTest(SimpleTestCase):
             )
         self.assertEqual(resp.status_code, 500)
         self.assertEqual(resp.get_json(), {"error": "boom"})
-        self.assertIn("/a.jpg", log.call_args.args[0])
-        self.assertIn("boom", log.call_args.args[0])
+        self.assertIn("/a.jpg", logs.output[-1])
+        self.assertIn("boom", logs.output[-1])
 
     def test_a_file_without_the_tags_is_still_an_empty_answer(self):
         fake = FakeExifTool(running=True)
@@ -336,7 +338,15 @@ class HealthAndLogTest(SimpleTestCase):
         self.assertEqual(resp.get_json()["status"], "OK")
         self.assertEqual(resp.get_json()["service"], "exif")
 
-    def test_log_prefixes_message(self):
-        with patch("builtins.print") as p:
-            exif_main.log("hello")
-        p.assert_called_once_with("exif: hello", flush=True)
+    def test_log_writes_backend_format_to_stdout(self):
+        # The sidecar's logger, not print(): the backend's line format on the
+        # stdout api.services leaves the process, and nothing else.
+        (handler,) = exif_main.log.handlers
+        self.assertIs(handler.stream, sys.stdout)
+        self.assertFalse(exif_main.log.propagate)
+        record = logging.LogRecord(
+            "exif", logging.INFO, "main.py", 1, "hello %s", ("there",), None, "f"
+        )
+        self.assertRegex(
+            handler.format(record), r" : main\.py : f : 1 : INFO : hello there$"
+        )

@@ -50,14 +50,14 @@ def ocr() -> ResponseReturnValue:
             max_side = int(max_side)
         det_only = bool(det_only)
     except (TypeError, ValueError) as e:
-        log(str(e))
+        log.warning("%s", e)
         return "", 400
 
     # Validate the input path BEFORE touching the engine: a missing/unreadable
     # file is bad input (400), and checking here means we never pay the model
     # load just to reject it.
     if not isinstance(image_path, str) or not os.path.isfile(image_path):
-        log(f"image not found: {image_path}")
+        log.warning("image not found: %s", image_path)
         return {"error": "Image not found"}, 400
 
     try:
@@ -72,10 +72,10 @@ def ocr() -> ResponseReturnValue:
     except OCRDecodeError as e:
         # Bad/undecodable input image -> client error, mirroring how the other
         # services treat unusable input.
-        log(f"could not decode image {image_path}: {e}")
+        log.warning("could not decode image %s: %s", image_path, e)
         return {"error": "Failed to decode image"}, 400
     except Exception as e:
-        log(f"Error processing image {image_path}: {e}")
+        log.error("Error processing image %s: %s", image_path, e)
         return {"error": "Failed to process image"}, 500
 
 

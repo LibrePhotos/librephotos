@@ -3,7 +3,7 @@ from importlib import import_module
 
 from django.apps import AppConfig
 
-from librephotos.logging_bootstrap import take_deferred_warnings
+from librephotos.logging_bootstrap import take_deferred
 
 logger = logging.getLogger(__name__)
 
@@ -36,8 +36,8 @@ class ApiConfig(AppConfig):
         # This is the first point in the boot where logging is fully configured,
         # so anything the settings module noticed while building that
         # configuration gets reported here rather than lost.
-        for message in take_deferred_warnings():
-            logger.warning(message)
+        for level, message in take_deferred():
+            logger.log(level, message)
 
         from django.core import checks
 

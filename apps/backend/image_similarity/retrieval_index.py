@@ -1,11 +1,14 @@
 import datetime
+import logging
 import os
 import tempfile
 
 import faiss
 import numpy as np
 import numpy.typing as npt
-from utils import logger
+
+# image_similarity/main.py points this logger at stdout (service._common.logger).
+logger = logging.getLogger("image_similarity")
 
 embedding_size = 512
 
@@ -15,18 +18,20 @@ def _reshaped_embeddings(
 ) -> npt.NDArray[np.float32] | None:
     """Return the array shaped as (n_vectors, embedding_size), or None if invalid."""
     if embeddings_array.size == 0:
-        logger.warning(f"Empty embeddings array for user {user_id}")
+        logger.warning("Empty embeddings array for user %s", user_id)
         return None
 
     dimensions = len(embeddings_array.shape)
     if dimensions == 1:
         return embeddings_array.reshape(1, -1)
     if dimensions != 2:
-        logger.error(f"Unexpected embedding shape: {embeddings_array.shape}")
+        logger.error("Unexpected embedding shape: %s", embeddings_array.shape)
         return None
     if embeddings_array.shape[1] != embedding_size:
         logger.error(
-            f"Expected embedding size {embedding_size}, got {embeddings_array.shape[1]}"
+            "Expected embedding size %s, got %s",
+            embedding_size,
+            embeddings_array.shape[1],
         )
         return None
     return embeddings_array
@@ -96,17 +101,21 @@ class RetrievalIndex:
                 index = faiss.deserialize_index(stored["index"])
                 image_hashes = stored["image_hashes"].tolist()
         except Exception as e:
-            logger.error(f"could not read the similarity index {path}: {e}")
+            logger.error("could not read the similarity index %s: %s", path, e)
             return False
         if index.ntotal != len(image_hashes):
             logger.error(
-                f"similarity index {path} holds {index.ntotal} vectors for "
-                f"{len(image_hashes)} photos; ignoring it"
+                "similarity index %s holds %s vectors for %s photos; ignoring it",
+                path,
+                index.ntotal,
+                len(image_hashes),
             )
             return False
         self.indices[user_id] = index
         self.image_hashes[user_id] = image_hashes
-        logger.info(f"loaded the similarity index of user {user_id} ({index.ntotal})")
+        logger.info(
+            "loaded the similarity index of user %s (%s)", user_id, index.ntotal
+        )
         return True
 
     def _live(self, user_id: int) -> faiss.Index | None:
@@ -135,7 +144,7 @@ class RetrievalIndex:
         self._staging.pop(user_id, None)
 
     def begin_rebuild(self, user_id: int) -> None:
-        logger.info(f"rebuilding the similarity index of user {user_id}")
+        logger.info("rebuilding the similarity index of user %s", user_id)
         self._staging[user_id] = (faiss.IndexFlatIP(embedding_size), [])
 
     def add_to_rebuild(
@@ -167,7 +176,7 @@ class RetrievalIndex:
         self.indices[user_id] = index
         self.image_hashes[user_id] = image_hashes
         self._warned_missing.discard(user_id)
-        logger.info(f"similarity index of user {user_id} now holds {index.ntotal}")
+        logger.info("similarity index of user %s now holds %s", user_id, index.ntotal)
         return index.ntotal
 
     # ---------------------------------------------------------- incremental
@@ -175,13 +184,15 @@ class RetrievalIndex:
         self, user_id: int, image_hashes: list[str], image_embeddings: list[list[float]]
     ) -> None:
         logger.info(
-            f"building index for user {user_id} - got {len(image_hashes)} photos to process"
+            "building index for user %s - got %s photos to process",
+            user_id,
+            len(image_hashes),
         )
         start = datetime.datetime.now()
 
         # Check if we have any embeddings to process
         if not image_embeddings or len(image_embeddings) == 0:
-            logger.warning(f"No embeddings provided for user {user_id}")
+            logger.warning("No embeddings provided for user %s", user_id)
             return
 
         # Initialize or get existing index and hashes
@@ -220,7 +231,7 @@ class RetrievalIndex:
             self.image_hashes[user_id].extend(image_hashes)
         except Exception as e:
             logger.error(
-                f"Error adding embeddings to index for user {user_id}: {str(e)}"
+                "Error adding embeddings to index for user %s: %s", user_id, str(e)
             )
             return False
         return True
@@ -243,8 +254,9 @@ class RetrievalIndex:
             if user_id not in self._warned_missing:
                 self._warned_missing.add(user_id)
                 logger.warning(
-                    f"no similarity index for user {user_id}; it is built at the "
-                    "end of the Calculate CLIP embeddings job"
+                    "no similarity index for user %s; it is built at the "
+                    "end of the Calculate CLIP embeddings job",
+                    user_id,
                 )
             return []
 

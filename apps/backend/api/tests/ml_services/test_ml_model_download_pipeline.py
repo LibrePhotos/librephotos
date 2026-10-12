@@ -516,7 +516,9 @@ class DownloadFileProgressTest(TestCase):
                 with patch("api.ml_models.logger") as logger:
                     _download_file("https://example.invalid/x", target, "m")
 
-            messages = [call.args[0] for call in logger.info.call_args_list]
+            messages = [
+                call.args[0] % call.args[1:] for call in logger.info.call_args_list
+            ]
             self.assertEqual(
                 [
                     "Downloading m: 1024/4096 (25%)",
@@ -549,7 +551,9 @@ class DownloadFileProgressTest(TestCase):
                     _download_file("https://example.invalid/x", target, "m")
 
             self.assertEqual(payload, target.read_bytes())
-            messages = [call.args[0] for call in logger.info.call_args_list]
+            messages = [
+                call.args[0] % call.args[1:] for call in logger.info.call_args_list
+            ]
             self.assertEqual(
                 [f"Downloaded m: {len(payload)} bytes (size unknown during transfer)"],
                 messages,
@@ -664,7 +668,7 @@ class DownloadFileProgressTest(TestCase):
                     _download_file("https://example.invalid/x", target, "m")
 
             logger.debug.assert_called_once_with(
-                "No sha256 pin for m; skipping verification"
+                "No sha256 pin for %s; skipping verification", "m"
             )
 
     def test_size_check_runs_before_checksum_verification(self):

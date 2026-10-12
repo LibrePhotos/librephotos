@@ -1,4 +1,3 @@
-import sys
 from typing import Any
 
 from django.core.exceptions import ValidationError
@@ -61,9 +60,8 @@ class Command(BaseCommand):
                 options["admin_password"],
             )
         elif options["update"]:
-            print(
-                "Warning: ignoring provided email " + options["admin_email"],
-                file=sys.stderr,
+            self.stderr.write(
+                "Warning: ignoring provided email " + options["admin_email"]
             )
             admin_user = User.objects.get(username=options["admin_username"].lower())
             admin_user.set_password(options["admin_password"])

@@ -253,8 +253,10 @@ class BulkPhotoMutationView(APIView):
 
         count = self.apply(user, photos, value)
         logger.info(
-            f"{count} photos were {self.past_tense[bool(value)]} via select_all "
-            f"for user {user.id}."
+            "%s photos were %s via select_all for user %s.",
+            count,
+            self.past_tense[bool(value)],
+            user.id,
         )
         return Response({"status": True, "count": count})
 
@@ -279,12 +281,16 @@ class BulkPhotoMutationView(APIView):
 
         for missing_hash in set(requested) - found:
             logger.warning(
-                f"Could not set photo {missing_hash} to {self.flag_name}. "
-                "It does not exist or is not owned by user."
+                "Could not set photo %s to %s. "
+                "It does not exist or is not owned by user.",
+                missing_hash,
+                self.flag_name,
             )
         logger.info(
-            f"{len(updated_hashes)} photos were {self.past_tense[bool(value)]}. "
-            f"{len(not_updated_hashes)} photos already were."
+            "%s photos were %s. %s photos already were.",
+            len(updated_hashes),
+            self.past_tense[bool(value)],
+            len(not_updated_hashes),
         )
         return Response(
             {
@@ -781,7 +787,7 @@ class SetPhotosShared(APIView):
                     owner_id=target_user_id,
                 ).delete()
             logger.info(
-                f"Shared {user.id}'s {len(res)} images to user {target_user_id}"
+                "Shared %s's %s images to user %s", user.id, len(res), target_user_id
             )
             res_count = len(res)
         else:
@@ -804,7 +810,7 @@ class SetPhotosShared(APIView):
                     ]
                 )
             logger.info(
-                f"Unshared {user.id}'s {res_count} images to user {target_user_id}"
+                "Unshared %s's %s images to user %s", user.id, res_count, target_user_id
             )
 
         return Response({"status": True, "count": res_count})
@@ -905,14 +911,16 @@ class DeletePhotos(APIView):
                     photo.manual_delete()
                 except Exception:
                     logger.exception(
-                        f"Could not delete photo {photo.image_hash}, skipping it."
+                        "Could not delete photo %s, skipping it.", photo.image_hash
                     )
                     failed_count += 1
                 else:
                     deleted_count += 1
 
             logger.info(
-                f"{deleted_count} photos were permanently deleted via select_all for user {user.id}."
+                "%s photos were permanently deleted via select_all for user %s.",
+                deleted_count,
+                user.id,
             )
 
             return Response(
@@ -943,7 +951,7 @@ class DeletePhotos(APIView):
                     photo.manual_delete()
                 except Exception:
                     logger.exception(
-                        f"Could not delete photo {image_hash}, skipping it."
+                        "Could not delete photo %s, skipping it.", image_hash
                     )
                     failed = True
             (not_deleted if failed else deleted).append(image_hash)
@@ -999,7 +1007,7 @@ class FileVariantDownloadView(APIView):
                 filename=os.path.basename(file_variant.path),
             )
         except (FileNotFoundError, PermissionError) as e:
-            logger.error(f"Error serving file {file_variant.path}: {e}")
+            logger.error("Error serving file %s: %s", file_variant.path, e)
             raise APIException("Could not read file") from e
 
         response["Content-Type"] = _detect_content_type(file_variant.path)
@@ -1034,7 +1042,7 @@ class SetMainFileView(APIView):
         photo.main_file = file_variant
         photo.save(update_fields=["main_file", "last_modified"])
 
-        logger.info(f"Set main file for photo {image_hash} to {file_hash}")
+        logger.info("Set main file for photo %s to %s", image_hash, file_hash)
 
         return Response(
             {
@@ -1085,7 +1093,7 @@ class SaveMetadataView(APIView):
             except Exception:
                 errors += 1
                 logger.exception(
-                    f"Failed to save metadata for photo {photo.image_hash}"
+                    "Failed to save metadata for photo %s", photo.image_hash
                 )
 
         return Response({"status": True, "written": written, "errors": errors})
@@ -1152,7 +1160,7 @@ class RotatePhotoView(APIView):
         try:
             photo.rotate(angle=angle, flip_horizontal=flip_horizontal)
         except Exception as error:
-            logger.exception(f"Failed to rotate photo {image_hash}")
+            logger.exception("Failed to rotate photo %s", image_hash)
             raise APIException("failed to rotate photo") from error
 
         # Refresh from DB to get updated last_modified

@@ -96,7 +96,7 @@ class PhotoSearch(models.Model):
 
         self.search_captions = search_captions.strip()
 
-        logger.debug(f"Recreated search captions for image {self.photo.image_hash}.")
+        logger.debug("Recreated search captions for image %s.", self.photo.image_hash)
 
     def update_search_location(self, geolocation_json: dict[str, Any] | None) -> None:
         """Update search location from geolocation data"""
@@ -113,5 +113,7 @@ class PhotoSearch(models.Model):
             self.search_location = ""
 
         logger.debug(
-            f"Updated search location for image {self.photo.image_hash}: {self.search_location}"
+            "Updated search location for image %s: %s",
+            self.photo.image_hash,
+            self.search_location,
         )

@@ -26,7 +26,7 @@ OFF_VALUES = frozenset({"false", "0", "no", "off"})
 logger = logging.getLogger(__name__)
 
 # Complaints noticed before logging is configured (the settings modules run
-# before any handler exists). logging_bootstrap.take_deferred_warnings drains
+# before any handler exists). logging_bootstrap.take_deferred drains
 # them together with its own, once there is somewhere to log them.
 _deferred_warnings: list[str] = []
 

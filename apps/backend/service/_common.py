@@ -30,12 +30,16 @@ backend root on their PYTHONPATH, so this module imports as
     calls (librephotos.standalone.run_service).
 
 ``logger(name)``
-    ``log(message)`` printing ``"<name>: <message>"``. The sidecars write to
-    the stdout api.services leaves them (see _service_environment); their
-    output is the container log.
+    The sidecar's stdlib logger: the backend's line format and LOG_LEVEL (or
+    its LOG_LEVELS entry), written to the stdout api.services leaves the
+    sidecar (see _service_environment), which is the container log, and
+    nowhere else (logging_bootstrap.configure_standalone). Modules that must
+    not import Flask take ``logging.getLogger(name)`` instead and log through
+    the same handler. A sidecar never calls print().
 """
 
 import gc
+import logging
 import sys
 import time
 from collections.abc import Callable
@@ -46,6 +50,7 @@ from flask.typing import ResponseReturnValue
 from werkzeug.exceptions import HTTPException
 
 from librephotos.env import env_str
+from librephotos.logging_bootstrap import configure_standalone, take_deferred
 
 DEFAULT_HOST = "127.0.0.1"
 
@@ -60,11 +65,8 @@ class _State:
         self.in_flight: int = 0
 
 
-def logger(name: str) -> Callable[[str], None]:
-    def log(message: str) -> None:
-        print(f"{name}: {message}", flush=True)
-
-    return log
+def logger(name: str) -> logging.Logger:
+    return configure_standalone(name)
 
 
 def create_app(
@@ -100,7 +102,7 @@ def create_app(
 
     @app.errorhandler(MalformedRequest)
     def malformed_request(error: MalformedRequest) -> ResponseReturnValue:
-        log(f"malformed request: {error}")
+        log.warning("%s: malformed request: %s", name, error)
         return "", 400
 
     @app.errorhandler(Exception)
@@ -109,7 +111,7 @@ def create_app(
             return error
         # JSON with the reason rather than Flask's HTML page: the backend
         # logs the "error" field of a failed reply.
-        log(f"error handling {request.path}: {error!r}")
+        log.error("%s: error handling %s: %r", name, request.path, error)
         return {"error": f"{type(error).__name__}: {error}"}, 500
 
     @app.get("/health", strict_slashes=False)
@@ -131,7 +133,7 @@ def create_app(
                 return {"status": "busy"}, 409
             unload()
             release_memory()
-            log("model unloaded")
+            log.info("%s: model unloaded", name)
             return {"status": "OK"}, 200
 
     return app
@@ -184,6 +186,11 @@ def serve_forever(app: Flask, name: str) -> None:
 
     from api.sidecars import SERVICES
 
-    logger(name)("service starting")
+    log = logger(name)
+    # What the settings-free startup noticed before a handler existed, such
+    # as an environment value librephotos.env could not read.
+    for level, message in take_deferred():
+        log.log(level, message)
+    log.info("%s: service starting", name)
     host = env_str("SERVICE_HOST", DEFAULT_HOST)
     WSGIServer((host, SERVICES[name]), app).serve_forever()

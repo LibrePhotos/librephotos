@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import html
 import json
+import logging
 import os
 from collections.abc import Sequence
 from typing import Any
@@ -41,6 +42,11 @@ from tokenizers import Tokenizer
 
 from librephotos.env import data_models_root, env_str
 from service.onnx_session import inference_session
+
+# The tags sidecar's logger, which service/tags/main.py points at stdout through
+# service._common.logger. Not that helper itself: scripts/build_openclip_onnx.py
+# imports this module in a venv without Flask.
+logger = logging.getLogger("tags")
 
 MODEL_NAME = "openclip_vitb32"
 
@@ -282,7 +288,7 @@ class OpenCLIP:
 
     def _build_tag_embeddings(self, tags: list[str]) -> None:
         """Embed every prompted tag with the text tower and cache the result."""
-        print(f"{MODEL_NAME}: building tag embeddings (first run only)...")
+        logger.info("%s: building tag embeddings (first run only)...", MODEL_NAME)
         # A session of its own unless queries already loaded the text tower:
         # it is dropped again once the tags are embedded.
         session = self.text_session or inference_session(TEXTUAL_PATH)
@@ -298,7 +304,7 @@ class OpenCLIP:
         self.tag_embeddings = np.concatenate(embeddings, axis=0)
         os.makedirs(os.path.dirname(EMBEDDINGS_CACHE), exist_ok=True)
         np.save(EMBEDDINGS_CACHE, self.tag_embeddings)
-        print(f"{MODEL_NAME}: cached {len(tags)} tag embeddings")
+        logger.info("%s: cached %s tag embeddings", MODEL_NAME, len(tags))
 
     def _load_or_build_tag_embeddings(self, tags: list[str]) -> None:
         if not os.path.exists(EMBEDDINGS_CACHE):
@@ -308,7 +314,7 @@ class OpenCLIP:
         cache = np.load(EMBEDDINGS_CACHE)
         reason = _stale_cache_reason(cache, len(tags))
         if reason is not None:
-            print(f"{MODEL_NAME}: {reason}, rebuilding...")
+            logger.info("%s: %s, rebuilding...", MODEL_NAME, reason)
             os.remove(EMBEDDINGS_CACHE)
             self._build_tag_embeddings(tags)
             return
@@ -364,7 +370,9 @@ class OpenCLIP:
                     pending.append((index, prepare_image(image, preprocess)))
             except (OSError, ValueError) as error:
                 # PIL.UnidentifiedImageError is an OSError; so is a missing file.
-                print(f"{MODEL_NAME}: skipping unreadable image {path}: {error}")
+                logger.warning(
+                    "%s: skipping unreadable image %s: %s", MODEL_NAME, path, error
+                )
 
         for start in range(0, len(pending), IMAGE_BATCH_SIZE):
             batch = pending[start : start + IMAGE_BATCH_SIZE]

@@ -178,14 +178,14 @@ class EnvFlagTest(SimpleTestCase):
 
     def test_unrecognised_value_before_logging_is_deferred(self):
         """The settings modules run before any handler exists; report later."""
-        logging_bootstrap.take_deferred_warnings()
+        logging_bootstrap.take_deferred()
         root = logging.getLogger()
         with (
             patch.object(root, "handlers", []),
             _environ("X_FLAG", "t"),
         ):
             self.assertFalse(env.env_flag("X_FLAG", default=False))
-        warnings = logging_bootstrap.take_deferred_warnings()
+        warnings = [m for _, m in logging_bootstrap.take_deferred()]
         self.assertEqual(1, len(warnings), warnings)
         self.assertIn("X_FLAG='t'", warnings[0])
         self.assertEqual([], env.take_warnings())

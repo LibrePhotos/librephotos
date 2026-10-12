@@ -301,7 +301,9 @@ def detect_exact_copies(
             progress_callback(i, total, duplicates_created)
 
     logger.info(
-        f"Exact copy detection for {user.username}: found {duplicates_created} duplicate groups"
+        "Exact copy detection for %s: found %s duplicate groups",
+        user.username,
+        duplicates_created,
     )
     return duplicates_created
 
@@ -405,7 +407,7 @@ def detect_visual_duplicates(
     if total < 2:
         return 0
 
-    logger.info(f"Processing {total} photos (user: {user.username})")
+    logger.info("Processing %s photos (user: %s)", total, user.username)
 
     # Every photo's (id, hash); ~30 bytes each, so 300k photos stay in the
     # tens of MB. One query: slicing the unordered queryset in batches gave
@@ -430,7 +432,7 @@ def detect_visual_duplicates(
     pairs_found = len(pairs)
     if progress_callback:
         progress_callback(total, total, pairs_found)
-    logger.info(f"Found {pairs_found} similar pairs among {len(hashes)} photos")
+    logger.info("Found %s similar pairs among %s photos", pairs_found, len(hashes))
 
     # Create duplicate groups from Union-Find groups
     groups = uf.get_groups()
@@ -454,7 +456,10 @@ def detect_visual_duplicates(
             duplicates_created += 1
 
     logger.info(
-        f"Visual duplicate detection for {user.username}: found {duplicates_created} groups from {pairs_found} pairs"
+        "Visual duplicate detection for %s: found %s groups from %s pairs",
+        user.username,
+        duplicates_created,
+        pairs_found,
     )
     return duplicates_created
 
@@ -496,7 +501,7 @@ def batch_detect_duplicates(
             cleared = Duplicate.objects.filter(
                 owner=user, review_status=Duplicate.ReviewStatus.PENDING
             ).delete()[0]
-            logger.info(f"Cleared {cleared} pending duplicates for {user.username}")
+            logger.info("Cleared %s pending duplicates for %s", cleared, user.username)
 
         total_found = 0
 
@@ -537,10 +542,12 @@ def batch_detect_duplicates(
         job.complete(result={"status": "completed", "duplicates_found": total_found})
 
         logger.info(
-            f"Duplicate detection completed for {user.username}: {total_found} groups found"
+            "Duplicate detection completed for %s: %s groups found",
+            user.username,
+            total_found,
         )
 
     except Exception as e:
-        logger.error(f"Duplicate detection failed for {user.username}: {e}")
+        logger.error("Duplicate detection failed for %s: %s", user.username, e)
         job.fail(error=e)
         raise

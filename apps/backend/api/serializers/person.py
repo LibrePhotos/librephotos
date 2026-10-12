@@ -110,7 +110,7 @@ class PersonSerializer(serializers.ModelSerializer):
             new_person.cluster_owner = owner
             new_person.kind = Person.KIND_USER
             new_person.save()
-            logger.info(f"created person {new_person.id}")
+            logger.info("created person %s", new_person.id)
             return new_person
 
     def update(self, instance: Person, validated_data: dict[str, Any]) -> Person:

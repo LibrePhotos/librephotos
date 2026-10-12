@@ -70,7 +70,7 @@ def get_search_term_examples(user: User) -> list[str]:
     )
     if len(possible_ids) > 99:
         possible_ids = random.choices(possible_ids, k=100)
-    logger.info(f"{len(possible_ids)} possible ids")
+    logger.info("%s possible ids", len(possible_ids))
     try:
         samples = (
             Photo.objects.owned_by(user)

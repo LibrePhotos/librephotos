@@ -304,7 +304,7 @@ def create_thumbnail(
             )
         return _resize_big_thumbnail(output_height, complete_path, hash, file_type)
     except Exception as e:
-        logger.error(f"Could not create thumbnail for file {input_path}")
+        logger.error("Could not create thumbnail for file %s", input_path)
         raise e
 
 
@@ -348,7 +348,7 @@ def create_static_thumbnails(
                 _media_path(output_path, hash, ".webp"), **_square_webp()
             )
     except Exception as e:
-        logger.error(f"Could not create thumbnail for file {input_path}")
+        logger.error("Could not create thumbnail for file %s", input_path)
         raise e
 
 
@@ -418,7 +418,9 @@ def create_animated_thumbnail(
 
         _run_ffmpeg(command, output)
     except Exception as e:
-        logger.error(f"Could not create animated thumbnail for file {input_path}: {e}")
+        logger.error(
+            "Could not create animated thumbnail for file %s: %s", input_path, e
+        )
         raise e
 
 
@@ -450,7 +452,7 @@ def create_thumbnail_for_video(
 
         _run_ffmpeg(command, output)
     except Exception as e:
-        logger.error(f"Could not create thumbnail for video file {input_path}: {e}")
+        logger.error("Could not create thumbnail for video file %s: %s", input_path, e)
         raise e
 
 

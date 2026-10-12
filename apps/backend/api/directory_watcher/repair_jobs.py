@@ -41,7 +41,7 @@ def _merge_raw_into_jpeg_photo(raw_photo: Photo, user: User, job_id: UUID) -> bo
     jpeg_photo.save()
     raw_photo.delete()
     logger.info(
-        f"job {job_id}: Merged RAW photo into JPEG photo {jpeg_photo.image_hash}"
+        "job %s: Merged RAW photo into JPEG photo %s", job_id, jpeg_photo.image_hash
     )
     return True
 
@@ -86,11 +86,14 @@ def repair_ungrouped_file_variants(user: User, job_id: UUID) -> None:
                 merged_count += 1
 
         logger.info(
-            f"job {job_id}: Repaired {merged_count} ungrouped file variants, "
-            f"fixed {fixed_main_file_count} main_file priorities"
+            "job %s: Repaired %s ungrouped file variants, "
+            "fixed %s main_file priorities",
+            job_id,
+            merged_count,
+            fixed_main_file_count,
         )
         lrj.complete()
 
     except Exception as e:
-        logger.exception(f"job {job_id}: Error repairing file variants: {e}")
+        logger.exception("job %s: Error repairing file variants: %s", job_id, e)
         lrj.fail(error=e)

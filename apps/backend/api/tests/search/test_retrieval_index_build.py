@@ -31,30 +31,12 @@ Quirks pinned here that a refactor must preserve:
     a non-integer user id raises ``TypeError`` on the happy path.
 """
 
-import importlib
 from unittest.mock import patch
 
 import numpy as np
 from django.test import TestCase
 
-from api.tests.stubs import sidecar_utils_stub, stub_modules
-
-# ``image_similarity`` is a standalone Flask process: ``retrieval_index`` does a
-# top-level ``from utils import logger``, which normally resolves because the
-# ``image_similarity`` directory is ``sys.path[0]`` of
-# ``python image_similarity/main.py``. Importing the real ``utils`` here would
-# run ``configure_standalone`` and rewire the shared logging config under the
-# test process (breaking test_log_rotation), so a stub ``utils`` is installed
-# just for the duration of the import — the tests patch the module logger anyway.
-with stub_modules(
-    {"utils": sidecar_utils_stub("api.tests.search.test_retrieval_index_build")}
-):
-    importlib.import_module("image_similarity.retrieval_index")
-
-from image_similarity.retrieval_index import (  # noqa: E402
-    RetrievalIndex,
-    embedding_size,
-)
+from image_similarity.retrieval_index import RetrievalIndex, embedding_size
 
 
 def vec(value=0.0, size=embedding_size):
@@ -101,7 +83,8 @@ class BuildIndexForUserGuardTests(TestCase):
         self.assertEqual(self.index.indices[7].ntotal, 0)
         self.assertEqual(self.index.image_hashes[7], [])
         self.logger.error.assert_called_once()
-        self.assertIn("Expected embedding size 512", self.logger.error.call_args[0][0])
+        args = self.logger.error.call_args.args
+        self.assertIn("Expected embedding size 512", args[0] % args[1:])
 
     def test_three_dimensional_input_is_rejected(self):
         self.assertIsNone(self.index.build_index_for_user(7, ["h1"], [[vec(1.0)]]))
@@ -203,9 +186,8 @@ class BuildIndexForUserHappyPathTests(TestCase):
     def test_logs_start_and_finish(self):
         self.index.build_index_for_user(1, ["h1"], [vec(1.0)])
         self.assertEqual(self.logger.info.call_count, 2)
-        self.assertIn(
-            "building index for user 1", self.logger.info.call_args_list[0][0][0]
-        )
+        args = self.logger.info.call_args_list[0].args
+        self.assertIn("building index for user 1", args[0] % args[1:])
         self.assertIn(
             "finished building index for user", self.logger.info.call_args_list[1][0][0]
         )

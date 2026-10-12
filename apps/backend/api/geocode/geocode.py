@@ -64,7 +64,7 @@ def reverse_geocode(lat: float, lon: float) -> dict:
     try:
         return Geocode(provider).reverse(lat, lon)
     except Exception as e:
-        logger.warning(f"Error while reverse geocoding: {e}")
+        logger.warning("Error while reverse geocoding: %s", e)
         return {}
 
 
@@ -75,5 +75,5 @@ def search_location(query: str, limit: int = 5) -> list[dict]:
     try:
         return Geocode(provider).search(query, limit)
     except Exception as e:
-        logger.warning(f"Error while searching location: {e}")
+        logger.warning("Error while searching location: %s", e)
         return []

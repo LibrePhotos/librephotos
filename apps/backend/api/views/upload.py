@@ -220,7 +220,7 @@ class UploadPhotosChunkedComplete(UploaderScopedMixin, ChunkedUploadCompleteView
     ) -> str:
         """Destination for the upload, or "" when it is a known duplicate."""
         if Photo.objects.filter(image_hash=image_hash).exists():
-            logger.info(f"Photo {filename} duplicated with hash {image_hash} ")
+            logger.info("Photo %s duplicated with hash %s ", filename, image_hash)
             return ""
 
         upload_dir = os.path.join(user.upload_root(), device)
@@ -230,7 +230,7 @@ class UploadPhotosChunkedComplete(UploaderScopedMixin, ChunkedUploadCompleteView
 
         if calculate_hash(user, photo_path) == image_hash:
             # File already exist, do not copy it in the upload folder
-            logger.info(f"Photo {filename} duplicated with hash {image_hash} ")
+            logger.info("Photo %s duplicated with hash %s ", filename, image_hash)
             return ""
 
         file_name, file_name_extension = os.path.splitext(os.path.basename(filename))

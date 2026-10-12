@@ -46,15 +46,15 @@ def create_thumbnail() -> ResponseReturnValue:
     # Anything that reaches the port could otherwise overwrite any file the
     # service can write to.
     if not _inside_media_root(destination):
-        log(f"refused destination outside {MEDIA_ROOT}: {destination}")
+        log.warning("refused destination outside %s: %s", MEDIA_ROOT, destination)
         return {"error": "destination is outside the media root"}, 400
-    log(f"creating for source={source} height={height}")
+    log.info("creating for source=%s height=%s", source, height)
     try:
         render_raw(source, destination, height)
     except Exception as e:
-        log(f"error creating a thumbnail of {source}: {e!r}")
+        log.error("error creating a thumbnail of %s: %r", source, e)
         return {"error": f"{type(e).__name__}: {e}"}, 500
-    log(f"created at location={destination}")
+    log.info("created at location=%s", destination)
     # 201: unlike the other sidecars' answers, this one made a file.
     return {"thumbnail": destination}, 201
 

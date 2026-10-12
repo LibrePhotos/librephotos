@@ -84,8 +84,8 @@ def extract_from_exif(
     )
     if not region_info:
         return None
-    logger.debug(f"Extracted region_info for {image_path}")
-    logger.debug(f"region_info: {region_info}")
+    logger.debug("Extracted region_info for %s", image_path)
+    logger.debug("region_info: %s", region_info)
     face_locations: list[FaceLocation] = []
     for region in region_info["RegionList"]:
         if region.get("Type") != "Face":
@@ -104,7 +104,8 @@ def extract_from_exif(
         )
         if box is None:
             logger.info(
-                f"Broken face area exif data! No numerical positional data. region_info: {region_info}"
+                "Broken face area exif data! No numerical positional data. region_info: %s",
+                region_info,
             )
             continue
 
@@ -120,7 +121,7 @@ def extract_from_face_service(
     try:
         faces = detect_faces(big_thumbnail_path)
     except Exception:
-        logger.exception(f"Can't extract face information on photo: {image_path}")
+        logger.exception("Can't extract face information on photo: %s", image_path)
         faces = []
 
     return [(*location, None, encoding) for location, encoding in faces]

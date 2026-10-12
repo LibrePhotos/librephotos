@@ -6,9 +6,8 @@ network and no ML runtime is involved: ``OCRConfig`` only parses ``config.json``
 and ``charset.txt``, so a synthetic bundle directory on disk is enough.
 """
 
-import contextlib
-import io
 import json
+import logging
 import os
 import shutil
 import tempfile
@@ -55,11 +54,20 @@ class BuildDecodeCharsetTests(SimpleTestCase):
         return OCRConfig(tmp)
 
     def _build(self, cfg, width):
-        """Call build_decode_charset, returning (decode_table, stdout_text)."""
-        buf = io.StringIO()
-        with contextlib.redirect_stdout(buf):
+        """Call build_decode_charset, returning (decode_table, logged_text)."""
+        logger = logging.getLogger("ocr")
+        lines = []
+        handler = logging.Handler()
+        handler.emit = lambda record: lines.append(record.getMessage())
+        previous_level = logger.level
+        logger.addHandler(handler)
+        logger.setLevel(logging.INFO)
+        try:
             decode = cfg.build_decode_charset(width)
-        return decode, buf.getvalue()
+        finally:
+            logger.removeHandler(handler)
+            logger.setLevel(previous_level)
+        return decode, "\n".join(lines)
 
     # --- happy paths ---------------------------------------------------
 
@@ -67,7 +75,7 @@ class BuildDecodeCharsetTests(SimpleTestCase):
         cfg = self._make_config(use_space_char=False)
         decode, out = self._build(cfg, len(cfg.charset) + 1)
         self.assertEqual(decode, ["<blank>", "a", "b", "c"])
-        # Config agrees with the model geometry -> no advisory note printed.
+        # Config agrees with the model geometry -> no advisory note logged.
         self.assertEqual(out, "")
 
     def test_space_class_width_with_use_space_char(self):
@@ -91,7 +99,7 @@ class BuildDecodeCharsetTests(SimpleTestCase):
 
     # --- advisory-note branches (model geometry wins over the flag) ----
 
-    def test_model_has_space_class_but_flag_false_prints_note(self):
+    def test_model_has_space_class_but_flag_false_logs_note(self):
         cfg = self._make_config(use_space_char=False)
         decode, out = self._build(cfg, len(cfg.charset) + 2)
         # The trailing space class is added anyway - the model is authoritative.
@@ -100,7 +108,7 @@ class BuildDecodeCharsetTests(SimpleTestCase):
         self.assertIn("use_space_char=False", out)
         self.assertIn("trusting the model", out)
 
-    def test_model_has_no_space_class_but_flag_true_prints_note(self):
+    def test_model_has_no_space_class_but_flag_true_logs_note(self):
         cfg = self._make_config(use_space_char=True)
         decode, out = self._build(cfg, len(cfg.charset) + 1)
         self.assertEqual(decode, ["<blank>", "a", "b", "c"])

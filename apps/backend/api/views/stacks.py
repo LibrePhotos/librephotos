@@ -247,7 +247,7 @@ class PhotoStackDetailView(APIView):
         stack_id_str = str(stack.id)
         stack.delete()
 
-        logger.info(f"Deleted stack {stack_id_str}: unlinked {photo_count} photos")
+        logger.info("Deleted stack %s: unlinked %s photos", stack_id_str, photo_count)
         return Response({"status": "deleted", "unlinked_count": photo_count})
 
 
@@ -272,7 +272,7 @@ class PhotoStackDeleteView(APIView):
         stack_id_str = str(stack.id)
         stack.delete()
 
-        logger.info(f"Deleted stack {stack_id_str}: unlinked {photo_count} photos")
+        logger.info("Deleted stack %s: unlinked %s photos", stack_id_str, photo_count)
         return Response({"status": "deleted", "unlinked_count": photo_count})
 
 
@@ -299,7 +299,7 @@ class PhotoStackSetPrimaryView(APIView):
         stack.primary_photo = photo
         stack.save(update_fields=["primary_photo", "updated_at"])
 
-        logger.info(f"Set primary photo for stack {stack.id} to {photo_hash}")
+        logger.info("Set primary photo for stack %s to %s", stack.id, photo_hash)
         return Response({"status": "updated", "primary_photo_hash": photo_hash})
 
 
@@ -327,7 +327,9 @@ class DetectStacksView(APIView):
         async_task(batch_detect_stacks, user, options)
 
         logger.info(
-            f"Stack detection queued for user {user.username} with options: {options}"
+            "Stack detection queued for user %s with options: %s",
+            user.username,
+            options,
         )
         return Response(
             {
@@ -450,7 +452,7 @@ class CreateManualStackView(APIView):
         stack.auto_select_primary()
 
         logger.info(
-            f"Created/updated MANUAL stack {stack.id} with {photos.count()} photos"
+            "Created/updated MANUAL stack %s with %s photos", stack.id, photos.count()
         )
         return Response(
             {
@@ -485,7 +487,7 @@ class AddToStackView(APIView):
                 photo.stacks.add(stack)
                 added_count += 1
 
-        logger.info(f"Added {added_count} photos to stack {stack.id}")
+        logger.info("Added %s photos to stack %s", added_count, stack.id)
         return Response(
             {
                 "status": "updated",
@@ -523,7 +525,9 @@ class RemoveFromStackView(APIView):
         if remaining_count < 2:
             stack.delete()
             logger.info(
-                f"Deleted stack {stack_id} after removing photos (only {remaining_count} left)"
+                "Deleted stack %s after removing photos (only %s left)",
+                stack_id,
+                remaining_count,
             )
             return Response(
                 {
@@ -537,7 +541,7 @@ class RemoveFromStackView(APIView):
         if stack.primary_photo and stack.primary_photo.image_hash in photo_hashes:
             stack.auto_select_primary()
 
-        logger.info(f"Removed {removed_count} photos from stack {stack.id}")
+        logger.info("Removed %s photos from stack %s", removed_count, stack.id)
         return Response(
             {
                 "status": "updated",
@@ -604,7 +608,7 @@ class MergeStacksView(APIView):
             target_stack.auto_select_primary()
 
         logger.info(
-            f"Merged {len(stacks_to_merge)} manual stacks into {target_stack.id}"
+            "Merged %s manual stacks into %s", len(stacks_to_merge), target_stack.id
         )
         return Response(
             {
