@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { Media, PigPhoto, SimpleUser, StackTypeEnum, UuidString } from "./common";
+import { Media, PageFields, PigPhoto, SimpleUser, StackTypeEnum, UuidString } from "./common";
 
 /** One face entry in `Photo.people`: a face on this photo, with the name of its person. */
 export const PhotoPerson = z.object({
@@ -165,10 +165,8 @@ export type RecentlyAddedPhotosResponse = z.infer<typeof RecentlyAddedPhotosResp
 
 /** GET /api/photos/notimestamp/: DRF page-number pagination, 100 per page. */
 export const PhotosWithoutTimestampResponse = z.object({
+  ...PageFields,
   results: PigPhoto.array(),
-  count: z.number(),
-  next: z.string().nullable(),
-  previous: z.string().nullable(),
 });
 export type PhotosWithoutTimestampResponse = z.infer<typeof PhotosWithoutTimestampResponse>;
 

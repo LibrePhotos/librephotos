@@ -7,8 +7,11 @@
  *   wrong state and Delete Selected hit groups that were no longer on screen.
  * - The empty state said "All duplicate groups have been reviewed" even when
  *   detection had never found anything.
+ * - A page past the end is a 404 (backend api/pagination.py): emptying the last
+ *   page steps back a page.
  */
 import "@mantine/core/styles.css";
+import { ApiError } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
@@ -20,10 +23,11 @@ type PageState = {
   pages: Record<number, { id: string }[]>;
   numPages: number;
   stats: Record<string, number> | undefined;
+  requested: number[];
 };
 
 const stubs = vi.hoisted(() => {
-  const state: PageState = { pages: {}, numPages: 1, stats: undefined };
+  const state: PageState = { pages: {}, numPages: 1, stats: undefined, requested: [] };
   return { deleteDuplicate: vi.fn<(id: string) => void>(), ...state };
 });
 
@@ -57,10 +61,20 @@ vi.mock("../../api_client/duplicates", () => {
     useDuplicateQuery: () => ({ data: undefined, isLoading: false }),
     useDuplicateStatsQuery: () => ({ data: stubs.stats }),
     useDuplicatesQuery: ({ page }: { page: number }) => {
-      const results = (stubs.pages[page] ?? []).map(({ id }) => duplicate(id));
+      stubs.requested.push(page);
+      const rows = stubs.pages[page];
+      if (rows === undefined) {
+        return {
+          data: undefined,
+          isLoading: false,
+          error: new ApiError(404, "/duplicates", "Not Found", undefined, "Invalid page."),
+        };
+      }
+      const results = rows.map(({ id }) => duplicate(id));
       return {
         data: { results, count: results.length * stubs.numPages, num_pages: stubs.numPages, page },
         isLoading: false,
+        error: null,
       };
     },
   };
@@ -95,6 +109,7 @@ beforeEach(() => {
   stubs.deleteDuplicate.mockReset();
   stubs.pages = { 1: [{ id: "a" }, { id: "b" }], 2: [{ id: "c" }, { id: "d" }] };
   stubs.numPages = 2;
+  stubs.requested = [];
   stubs.stats = { total_duplicates: 4, pending_duplicates: 4, resolved_duplicates: 0, dismissed_duplicates: 0 };
   container = document.createElement("div");
   document.body.appendChild(container);
@@ -218,5 +233,20 @@ describe("the empty state", () => {
     await render();
 
     expect(container.textContent).toContain(i18n.t("duplicates.nopending"));
+  });
+});
+
+describe("a page that is gone", () => {
+  it("steps back to the page before it", async () => {
+    await render();
+    await click(button("2"));
+    expect(stubs.requested.at(-1)).toBe(2);
+
+    // The last groups of page 2 were resolved: the server answers it with a 404.
+    delete stubs.pages[2];
+    stubs.numPages = 1;
+    await render();
+
+    expect(stubs.requested.at(-1)).toBe(1);
   });
 });

@@ -1,3 +1,4 @@
+import { PageFields } from "@librephotos/api-client";
 import { z } from "zod";
 
 // Types for duplicate detection and cleanup feature
@@ -57,15 +58,10 @@ type DuplicateListItem = z.infer<typeof DuplicateListItem>;
 // Alias for compatibility
 export type Duplicate = DuplicateListItem;
 
-// Duplicate list response
+// Duplicate list response: the shared page envelope (backend api/pagination.py)
 export const DuplicateListResponse = z.object({
+  ...PageFields,
   results: DuplicateListItem.array(),
-  count: z.number(),
-  num_pages: z.number(),
-  page: z.number(),
-  page_size: z.number(),
-  has_next: z.boolean(),
-  has_previous: z.boolean(),
 });
 export type DuplicateListResponse = z.infer<typeof DuplicateListResponse>;
 

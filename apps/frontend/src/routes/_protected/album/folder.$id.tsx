@@ -71,7 +71,7 @@ function FolderDetail() {
 
   // Get subfolders for navigation
   const { data: folderData } = useFetchFolderSubfoldersQuery(folderPath);
-  const subfolders = folderData?.subfolders || [];
+  const subfolders = folderData?.results || [];
 
   useEffect(() => {
     if (photosGroupedByDate) {

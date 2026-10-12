@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { User } from "../types";
-import { UserListResponse } from "./useFetchUserListQuery";
+import { UserListRows } from "./useFetchUserListQuery";
 
 /**
  * Regression coverage for https://github.com/LibrePhotos/librephotos/issues/1888
@@ -55,8 +55,6 @@ const fullUser = {
   llm_settings: null,
 };
 
-const envelope = (results: unknown[]) => ({ count: results.length, next: null, previous: null, results });
-
 describe("issue #1888 — non-admin user list popup", () => {
   test("documents the symptom: the full User schema rejects a public-safe row", () => {
     // This is what produced "Required at results.0.email; ...confidence; ..."
@@ -86,25 +84,25 @@ describe("issue #1888 — non-admin user list popup", () => {
     }
   });
 
-  test("the user-list response accepts the public-safe payload non-admins receive", () => {
+  test("the user-list rows accept the public-safe payload non-admins receive", () => {
     // Before the fix this threw a ZodError (the popup). After the fix it parses.
-    expect(() => UserListResponse.parse(envelope([publicSafeUser]))).not.toThrow();
-    const parsed = UserListResponse.parse(envelope([publicSafeUser]));
-    expect(parsed.results).toHaveLength(1);
-    expect(parsed.results[0]?.username).toBe("alice");
+    expect(() => UserListRows.parse([publicSafeUser])).not.toThrow();
+    const parsed = UserListRows.parse([publicSafeUser]);
+    expect(parsed).toHaveLength(1);
+    expect(parsed[0]?.username).toBe("alice");
   });
 
-  test("the user-list response still accepts the full admin payload", () => {
-    expect(() => UserListResponse.parse(envelope([fullUser]))).not.toThrow();
-    const parsed = UserListResponse.parse(envelope([fullUser]));
-    expect(parsed.results[0]?.email).toBe("alice@example.com");
+  test("the user-list rows still accept the full admin payload", () => {
+    expect(() => UserListRows.parse([fullUser])).not.toThrow();
+    const parsed = UserListRows.parse([fullUser]);
+    expect(parsed[0]?.email).toBe("alice@example.com");
   });
 
   // zod strips unknown keys: without the field in the schema the Edit User
   // dialog showed an empty upload folder for a user who had one.
   test("keeps an admin row's upload folder", () => {
-    const parsed = UserListResponse.parse(envelope([{ ...fullUser, upload_directory: "/data/alice/inbox" }]));
-    expect(parsed.results[0]?.upload_directory).toBe("/data/alice/inbox");
+    const parsed = UserListRows.parse([{ ...fullUser, upload_directory: "/data/alice/inbox" }]);
+    expect(parsed[0]?.upload_directory).toBe("/data/alice/inbox");
     expect(User.parse({ ...fullUser, upload_directory: null }).upload_directory).toBeNull();
   });
 });

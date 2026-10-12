@@ -120,7 +120,7 @@ const FolderListModal = memo<FolderListModalProps>(
 
     const { data, fetchNextPage, hasNextPage, isFetchingNextPage } = useFetchFolderSubfoldersInfiniteQuery(folderPath);
 
-    const allSubfolders = useMemo(() => data?.pages?.flatMap(p => p.subfolders) || [], [data]);
+    const allSubfolders = useMemo(() => data?.pages?.flatMap(p => p.results) || [], [data]);
 
     const filteredSubfolders = useMemo(() => {
       const query = folderSearch.trim().toLowerCase();

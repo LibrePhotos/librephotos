@@ -9,6 +9,21 @@ export const UuidString = z
   .string()
   .regex(/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/, "Invalid uuid");
 
+/**
+ * The fields every paginated list answers next to its `results` (backend
+ * `api/pagination.py`). `page`, `page_size` and `num_pages` are optional:
+ * servers before 1.4 (#2327) do not send them. Read a whole list with
+ * `fetchAllPages`, which follows `next`.
+ */
+export const PageFields = {
+  count: z.number(),
+  next: z.string().nullable(),
+  previous: z.string().nullable(),
+  page: z.number().optional(),
+  page_size: z.number().optional(),
+  num_pages: z.number().optional(),
+};
+
 export const SimpleUser = z.object({
   id: z.number(),
   username: z.string(),

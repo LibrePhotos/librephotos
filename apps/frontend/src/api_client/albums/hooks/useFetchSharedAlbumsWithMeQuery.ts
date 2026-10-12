@@ -1,3 +1,4 @@
+import { fetchAllPages } from "@librephotos/api-client";
 import { useQuery } from "@tanstack/react-query";
 import { groupBy, toPairs } from "lodash-es";
 import { parseWithNotification } from "../../../util/zodUtils";
@@ -10,10 +11,10 @@ export const useFetchSharedAlbumsWithMeQuery = () =>
   useQuery({
     queryKey: albumKeys.sharedWithMe(),
     queryFn: async () => {
-      const response = await fetchClient.get("/albums/user/shared/tome/");
+      const results = await fetchAllPages(fetchClient, "/albums/user/shared/tome/");
       const result = parseWithNotification(
         UserAlbumListResponse,
-        response,
+        { results },
         "Failed to parse shared albums with me"
       ).results;
       const grouped: UserAlbumsGroupedByUserId[] = toPairs(groupBy(result, "owner.id")).map(el => ({

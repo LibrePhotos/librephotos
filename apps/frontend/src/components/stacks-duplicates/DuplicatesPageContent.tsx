@@ -63,6 +63,7 @@ import { PLACEHOLDER_IMAGE } from "../../util/placeholderImage";
 import { EmptyState } from "../common/EmptyState";
 import { PageLoader } from "../common/PageLoader";
 import { Lightbox } from "../lightbox";
+import { useStepBackFromMissingPage } from "./useStepBackFromMissingPage";
 
 // Select options cannot be "", so "all statuses" gets a sentinel value
 const ALL_STATUSES = "all";
@@ -666,12 +667,17 @@ export function DuplicatesPageContent() {
   }, []);
 
   const { data: stats } = useDuplicateStatsQuery();
-  const { data: duplicatesResponse, isLoading: duplicatesLoading } = useDuplicatesQuery({
+  const {
+    data: duplicatesResponse,
+    isLoading: duplicatesLoading,
+    error: duplicatesError,
+  } = useDuplicatesQuery({
     duplicate_type: typeFilter,
     review_status: statusFilter,
     page,
     page_size: pageSize,
   });
+  useStepBackFromMissingPage(page, setPage, duplicatesError);
   const { mutate: detectDuplicates, isPending: isDetecting } = useDetectDuplicatesMutation();
   const { mutate: deleteDuplicate } = useDeleteDuplicateMutation();
 

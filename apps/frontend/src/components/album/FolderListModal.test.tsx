@@ -23,7 +23,7 @@ vi.mock("@tanstack/react-router", () => ({
 }));
 vi.mock("../../api_client/albums/hooks", () => {
   const result = {
-    data: { pages: [{ subfolders }] },
+    data: { pages: [{ results: subfolders }] },
     fetchNextPage: () => {},
     hasNextPage: false,
     isFetchingNextPage: false,

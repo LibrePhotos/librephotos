@@ -85,7 +85,7 @@ export const UNMAPPED: Readonly<Record<string, string>> = {
   PhotoStackDetail:
     "nested in Photo.stacks, which the schema leaves untyped (PhotoSerializer.get_stacks returns a bare list or dict)",
   RecentlyAddedPhotosResponse:
-    "a {results} envelope around rows compared on their own (PigPhoto); the view's wrapper is not a component, plus `date`",
+    "a {date, results} envelope (component RecentlyAddedPhotos) around rows compared on their own (PigPhoto); comparing it would repeat PigPhoto's baselined differences",
   BulkPhotoQuery: "a request body",
   FetchDateAlbumsListResponse:
     "a {results} envelope around rows compared on their own (IncompleteDatePhotosGroup); the view's wrapper is not a component",
@@ -116,7 +116,7 @@ export const UNMAPPED: Readonly<Record<string, string>> = {
   SearchExamplesResponse:
     "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
   SearchPhotos:
-    "a {results} envelope around rows compared on their own (DatePhotosGroup); the view's wrapper is not a component",
+    "a {results} envelope (component SearchResults) around rows compared on their own (DatePhotosGroup); comparing it would repeat DatePhotosGroup's baselined differences",
   SemanticSearchPhotos:
     "a {results} envelope around rows compared on their own (PigPhoto); the view's wrapper is not a component",
   SearchPhotosResult: "built by endpoints.searchPhotos from a response, not a response itself",

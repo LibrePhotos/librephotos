@@ -62,6 +62,10 @@ green CI run. To develop against a local backend, copy `.env.development.example
   `@librephotos/api-client` (`packages/api-client/src/polling.ts`), with a `POLL_*_MS` name for the
   interval. Lint bans a number in `refetchInterval`/`pollingInterval` and a raw `setTimeout`/`setInterval`
   in `src/api_client` and `packages/api-client` (the polling module is the one place that sets timers).
+- A list the UI shows whole is read with `fetchAllPages(client, endpoint)` from `@librephotos/api-client`
+  (`packages/api-client/src/transport/pages.ts`), which follows the server's `next` links; parse its rows with
+  the list's zod schema. Reading one page of a paginated list drops every row past it (backend
+  `api/pagination.py`). Page envelopes spread `PageFields` from the package's `schemas/common.ts`.
 - A failed request rejects with `ApiError`: branch on its `status` or `serverCode` (the backend's
   `errors[0].code`), never on message text; show only `serverMessage`, never `message`.
 - `packages/api-client` runs on this app's zod and React Query (`resolve.dedupe`, tsconfig `paths`) and on the mobile app's: shared schemas use zod 4 APIs only, and a zod or React Query bump here moves `apps/mobile`, the package and the root `package.json` too (`scripts/check-shared-deps.mjs` fails otherwise). `yarn test` runs the package's suite as the `api-client` vitest project.

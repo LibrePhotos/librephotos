@@ -1,3 +1,4 @@
+import { fetchAllPages } from "@librephotos/api-client";
 import { useQuery } from "@tanstack/react-query";
 import { orderBy } from "lodash-es";
 import { z } from "zod";
@@ -30,29 +31,23 @@ export const PersonList = Person.array();
 export type Person = z.infer<typeof Person>;
 export type PersonList = z.infer<typeof PersonList>;
 
-const PeopleResponse = z.object({
-  count: z.number(),
-  next: z.string().nullable(),
-  previous: z.string().nullable(),
-  results: PersonResponse.array(),
-});
+const PeopleResponse = PersonResponse.array();
 
 export const useFetchPeopleAlbumsQuery = (skip: boolean = false) =>
   useQuery({
     queryKey: albumKeys.peopleAlbums(),
     queryFn: async () => {
-      const response = await fetchClient.get("/persons/?page_size=1000");
+      // 1000 is the server's largest page: the fewest requests for a big library.
+      const rows = await fetchAllPages(fetchClient, "/persons/?page_size=1000");
 
-      const people = parseWithNotification(PeopleResponse, response, "Failed to parse people albums").results.map(
-        item => ({
-          id: item.id.toString(),
-          name: item.name ?? "",
-          video: !!item.video,
-          face_count: item.face_count,
-          face_photo_url: item.face_photo_url ?? "",
-          face_url: item.face_url ?? "",
-        })
-      );
+      const people = parseWithNotification(PeopleResponse, rows, "Failed to parse people albums").map(item => ({
+        id: item.id.toString(),
+        name: item.name ?? "",
+        video: !!item.video,
+        face_count: item.face_count,
+        face_photo_url: item.face_photo_url ?? "",
+        face_url: item.face_url ?? "",
+      }));
 
       return orderBy(people, ["name", "face_count"], ["asc", "desc"]);
     },

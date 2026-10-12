@@ -1,4 +1,4 @@
-import { StackTypeEnum } from "@librephotos/api-client";
+import { PageFields, StackTypeEnum } from "@librephotos/api-client";
 import { z } from "zod";
 
 // Types for organizational PhotoStack system
@@ -66,15 +66,10 @@ const PhotoStackListItem = z.object({
 });
 type PhotoStackListItem = z.infer<typeof PhotoStackListItem>;
 
-// Paginated list response
+// Paginated list response: the shared page envelope (backend api/pagination.py)
 export const PhotoStackListResponse = z.object({
+  ...PageFields,
   results: PhotoStackListItem.array(),
-  count: z.number(),
-  num_pages: z.number(),
-  page: z.number(),
-  page_size: z.number(),
-  has_next: z.boolean(),
-  has_previous: z.boolean(),
 });
 type PhotoStackListResponse = z.infer<typeof PhotoStackListResponse>;
 
