@@ -7,19 +7,17 @@ import { z } from "zod";
  */
 
 /** One face row (GET /api/faces/). `person` is null for unknown/other faces. */
-export const PersonFace = z
-  .object({
-    id: z.number(),
-    image: z.string().nullable().optional(),
-    face_url: z.string().nullable().optional(),
-    photo: z.string().nullable().optional(),
-    photo_image_hash: z.string().nullable().optional(),
-    person_label_probability: z.number().nullable().optional(),
-    person: z.number().nullable().optional(),
-    person_name: z.string().nullable().optional(),
-    timestamp: z.string().nullable().optional(),
-  })
-  .passthrough();
+export const PersonFace = z.looseObject({
+  id: z.number(),
+  image: z.string().nullable().optional(),
+  face_url: z.string().nullable().optional(),
+  photo: z.string().nullable().optional(),
+  photo_image_hash: z.string().nullable().optional(),
+  person_label_probability: z.number().nullable().optional(),
+  person: z.number().nullable().optional(),
+  person_name: z.string().nullable().optional(),
+  timestamp: z.string().nullable().optional(),
+});
 export type PersonFace = z.infer<typeof PersonFace>;
 
 /** DRF-paginated face list. */
@@ -32,48 +30,40 @@ export const PersonFaceListResponse = z.object({
 export type PersonFaceListResponse = z.infer<typeof PersonFaceListResponse>;
 
 /** One cluster / person-with-incomplete-labels bucket (GET /api/faces/incomplete/, bare array). */
-export const IncompletePersonFace = z
-  .object({
-    id: z.number(),
-    name: z.string().nullable(),
-    kind: z.string().nullable().optional(),
-    face_count: z.number(),
-  })
-  .passthrough();
+export const IncompletePersonFace = z.looseObject({
+  id: z.number(),
+  name: z.string().nullable(),
+  kind: z.string().nullable().optional(),
+  face_count: z.number(),
+});
 export type IncompletePersonFace = z.infer<typeof IncompletePersonFace>;
 
 export const IncompleteFacesResponse = IncompletePersonFace.array();
 export type IncompleteFacesResponse = z.infer<typeof IncompleteFacesResponse>;
 
 /** POST /api/labelfaces response. */
-export const SetFacesLabelResponse = z
-  .object({
-    status: z.boolean(),
-    results: PersonFace.array().default([]),
-    updated: PersonFace.array().default([]),
-    not_updated: PersonFace.array().default([]),
-  })
-  .passthrough();
+export const SetFacesLabelResponse = z.looseObject({
+  status: z.boolean(),
+  results: PersonFace.array().default([]),
+  updated: PersonFace.array().default([]),
+  not_updated: PersonFace.array().default([]),
+});
 export type SetFacesLabelResponse = z.infer<typeof SetFacesLabelResponse>;
 
 /** POST /api/deletefaces response (arrays hold face image URLs). */
-export const DeleteFacesResponse = z
-  .object({
-    status: z.boolean(),
-    results: z.string().array().default([]),
-    deleted: z.string().array().default([]),
-    not_deleted: z.string().array().default([]),
-  })
-  .passthrough();
+export const DeleteFacesResponse = z.looseObject({
+  status: z.boolean(),
+  results: z.string().array().default([]),
+  deleted: z.string().array().default([]),
+  not_deleted: z.string().array().default([]),
+});
 export type DeleteFacesResponse = z.infer<typeof DeleteFacesResponse>;
 
 /** POST /api/trainfaces, GET /api/scanfaces. */
-export const JobTriggerResponse = z
-  .object({
-    status: z.boolean(),
-    job_id: z.string().nullable().optional(),
-  })
-  .passthrough();
+export const JobTriggerResponse = z.looseObject({
+  status: z.boolean(),
+  job_id: z.string().nullable().optional(),
+});
 export type JobTriggerResponse = z.infer<typeof JobTriggerResponse>;
 
 /** The unknown/other sentinel name — labeling faces with it rejects them. */

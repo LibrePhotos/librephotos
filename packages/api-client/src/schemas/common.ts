@@ -1,10 +1,9 @@
 import { z } from "zod";
 
 /**
- * A dashed, 36-character UUID of any version. `z.string().uuid()` accepts
- * that on zod 3 but only RFC 9562 version/variant bits on zod 4, and this
- * package runs under both: zod 3 in the mobile app, zod 4 in the web app,
- * which compiles it from source against its own copy.
+ * A dashed, 36-character UUID of any version. zod 4's `z.uuid()` accepts only
+ * RFC 9562 version/variant bits, which is stricter than what the backend has
+ * always sent (zod 3's `.uuid()` took any dashed hex UUID).
  */
 export const UuidString = z
   .string()
@@ -58,7 +57,7 @@ export const PigPhoto = z.object({
   date: z.string().optional().nullable(),
   birthTime: z.string().optional(),
   aspectRatio: z.number(),
-  type: z.nativeEnum(Media).default(Media.IMAGE),
+  type: z.enum(Media).default(Media.IMAGE),
   video_length: z.string().optional(),
   // An HDR (PQ or HLG) video, for the badge on its tile. Absent from backends
   // that predate it, where no video is flagged.

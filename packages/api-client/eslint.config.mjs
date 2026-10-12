@@ -34,6 +34,9 @@ export default tseslint.config(
       "@typescript-eslint/no-unsafe-return": "error",
       "@typescript-eslint/no-unsafe-type-assertion": "error",
       "@typescript-eslint/no-non-null-assertion": "error",
+      // The web and mobile apps both run these schemas under zod 4: no zod 3 leftovers that zod 4
+      // deprecates (.passthrough() -> z.looseObject, z.nativeEnum -> z.enum, .strict(), .merge()...).
+      "@typescript-eslint/no-deprecated": "error",
       "no-restricted-syntax": [
         "error",
         {

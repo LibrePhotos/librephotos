@@ -216,7 +216,7 @@ const EmptyPayload = z.object({});
  * the wrong type is dropped rather than failing the payload: a bad payload must
  * not wedge the queue, and each handler already defaults a missing field.
  */
-const JOB_PAYLOAD_SCHEMAS: { [K in JobKind]: z.ZodType<Partial<JobPayloads[K]>, z.ZodTypeDef, unknown> } = {
+const JOB_PAYLOAD_SCHEMAS: { [K in JobKind]: z.ZodType<Partial<JobPayloads[K]>, unknown> } = {
   outbox_replay: EmptyPayload,
   reseed_check: EmptyPayload,
   remote_delta: z.object({
