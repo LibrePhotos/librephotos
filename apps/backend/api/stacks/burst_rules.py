@@ -2,7 +2,7 @@
 Burst detection rules module for grouping photos taken in rapid succession.
 
 This module provides a rules-based system for detecting burst sequences,
-following the same pattern as date_time_extractor.py. Rules are stored
+following the same pattern as api/metadata/datetime_rules.py. Rules are stored
 as JSON in each user's profile and applied sequentially.
 
 Rules are divided into two categories:
@@ -321,7 +321,7 @@ def check_filename_pattern(
     basename = os.path.splitext(filename)[0]
     directory = os.path.dirname(photo.main_file.path)
 
-    if pattern_type == "any" or pattern_type == "all":
+    if pattern_type in {"any", "all"}:
         # Check all predefined patterns
         for pattern_name, (pattern, _) in BURST_FILENAME_PATTERNS.items():
             if re.search(pattern, basename, re.IGNORECASE):
@@ -435,7 +435,7 @@ def group_photos_by_visual_similarity(
     Returns:
         List of lists, each inner list is a group of visually similar Photo objects
     """
-    from api.perceptual_hash import hamming_distance
+    from api.duplicates.perceptual_hash import hamming_distance
 
     if not photos:
         return []

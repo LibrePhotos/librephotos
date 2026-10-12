@@ -152,7 +152,7 @@ class LogLevelTest(SimpleTestCase):
     def test_debug_level_reaches_the_project_logger(self):
         # The acceptance criterion is the logger.debug() calls in
         # api/face_extractor.py, api/models/photo_search.py, api/geocode/geocode.py,
-        # api/stacks/live_photo.py and api/stack_detection.py - they were
+        # api/stacks/live_photo.py and api/stacks/detection.py - they were
         # unreachable before LOG_LEVEL existed.
         from api import face_extractor
 

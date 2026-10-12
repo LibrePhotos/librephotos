@@ -10,7 +10,7 @@ import json
 from typing import TYPE_CHECKING, Any
 
 import api.models
-from api import date_time_extractor
+from api.metadata import datetime_rules
 from api.metadata.reader import get_metadata
 
 if TYPE_CHECKING:
@@ -59,14 +59,16 @@ def extract_date_time(photo: Photo, commit: bool = True) -> None:
     datetime_config = photo.owner.datetime_rules
     if isinstance(datetime_config, str):
         datetime_config = json.loads(datetime_config)
-    extracted_local_time = date_time_extractor.extract_local_date_time(
+    extracted_local_time = datetime_rules.extract_local_date_time(
         main_file_path,
-        date_time_extractor.as_rules(datetime_config),
+        datetime_rules.as_rules(datetime_config),
         exif_getter,
-        photo.exif_gps_lat,
-        photo.exif_gps_lon,
-        photo.owner.default_timezone,
-        photo.timestamp,
+        datetime_rules.RuleContext(
+            gps_lat=photo.exif_gps_lat,
+            gps_lon=photo.exif_gps_lon,
+            user_default_tz=photo.owner.default_timezone,
+            user_defined_timestamp=photo.timestamp,
+        ),
     )
 
     old_album_date = find_album_date(photo)

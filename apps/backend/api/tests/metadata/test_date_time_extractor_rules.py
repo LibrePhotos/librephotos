@@ -3,8 +3,9 @@ import datetime
 import pytz
 from django.test import TestCase
 
-from api.date_time_extractor import (
+from api.metadata.datetime_rules import (
     DEFAULT_RULES_PARAMS,
+    RuleContext,
     TimeExtractionRule,
     _extract_no_tz_datetime_from_str,
     as_rules,
@@ -72,10 +73,12 @@ class NumericTagValueTest(TestCase):
             path="/photos/IMG_0001.jpg",
             rules=rules,
             exif_getter=exif_getter,
-            gps_lat=None,
-            gps_lon=None,
-            user_default_tz="UTC",
-            user_defined_timestamp=None,
+            context=RuleContext(
+                gps_lat=None,
+                gps_lon=None,
+                user_default_tz="UTC",
+                user_defined_timestamp=None,
+            ),
         )
         self.assertIsNone(result)
 
@@ -99,10 +102,12 @@ class DefaultRulesOrderTest(TestCase):
             path="/photos/IMG_0001.jpg",
             rules=as_rules(DEFAULT_RULES_PARAMS),
             exif_getter=exif_getter,
-            gps_lat=None,
-            gps_lon=None,
-            user_default_tz="UTC",
-            user_defined_timestamp=None,
+            context=RuleContext(
+                gps_lat=None,
+                gps_lon=None,
+                user_default_tz="UTC",
+                user_defined_timestamp=None,
+            ),
         )
 
     def test_date_created_wins_over_the_exif_date_tags(self):
@@ -144,10 +149,12 @@ class DefaultRulesOrderTest(TestCase):
             path="/photos/IMG_0001.jpg",
             rules=as_rules(DEFAULT_RULES_PARAMS),
             exif_getter=exif_getter,
-            gps_lat=None,
-            gps_lon=None,
-            user_default_tz="UTC",
-            user_defined_timestamp=user_timestamp,
+            context=RuleContext(
+                gps_lat=None,
+                gps_lon=None,
+                user_default_tz="UTC",
+                user_defined_timestamp=user_timestamp,
+            ),
         )
         self.assertEqual(user_timestamp, result)
 
@@ -182,14 +189,16 @@ class BrokenCustomRegexpRuleTest(TestCase):
             path="/photos/2020/01/02/03/04/05/06/07/IMG_abc.jpg",
             rules=rules,
             exif_getter=exif_getter,
-            gps_lat=None,
-            gps_lon=None,
-            user_default_tz="UTC",
-            user_defined_timestamp=None,
+            context=RuleContext(
+                gps_lat=None,
+                gps_lon=None,
+                user_default_tz="UTC",
+                user_defined_timestamp=None,
+            ),
         )
 
     def _assert_falls_through(self, custom_regexp):
-        with self.assertLogs("api.date_time_extractor", "WARNING"):
+        with self.assertLogs("api.metadata.datetime_rules", "WARNING"):
             result = self._extract_with(custom_regexp)
         self.assertEqual(
             datetime.datetime(2005, 1, 2, 3, 4, 5, tzinfo=pytz.utc), result

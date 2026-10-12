@@ -3,7 +3,7 @@ import json
 from django.test import TestCase
 from rest_framework.test import APIClient
 
-from api.date_time_extractor import DEFAULT_RULES_PARAMS, OTHER_RULES_PARAMS
+from api.metadata.datetime_rules import DEFAULT_RULES_PARAMS, OTHER_RULES_PARAMS
 from api.tests.utils import create_test_user
 
 

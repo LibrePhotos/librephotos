@@ -1,5 +1,5 @@
 """
-Comprehensive tests for api/perceptual_hash.py
+Comprehensive tests for api/duplicates/perceptual_hash.py
 
 Tests the perceptual hashing algorithm used for visual duplicate detection:
 - calculate_perceptual_hash: Calculates pHash from image files
@@ -18,7 +18,7 @@ import imagehash
 from django.test import TestCase
 from PIL import Image
 
-from api.perceptual_hash import (
+from api.duplicates.perceptual_hash import (
     DEFAULT_HAMMING_THRESHOLD,
     are_duplicates,
     calculate_hash_from_thumbnail,
@@ -117,12 +117,12 @@ class AreDuplicatesTestCase(TestCase):
 
     def test_distance_at_threshold_is_duplicate(self):
         """Hashes with distance exactly at threshold are duplicates."""
-        with patch("api.perceptual_hash.hamming_distance", return_value=10):
+        with patch("api.duplicates.perceptual_hash.hamming_distance", return_value=10):
             self.assertTrue(are_duplicates("a" * 16, "b" * 16, threshold=10))
 
     def test_distance_over_threshold_not_duplicate(self):
         """Hashes with distance over threshold are not duplicates."""
-        with patch("api.perceptual_hash.hamming_distance", return_value=11):
+        with patch("api.duplicates.perceptual_hash.hamming_distance", return_value=11):
             self.assertFalse(are_duplicates("a" * 16, "b" * 16, threshold=10))
 
     def test_empty_hash1_not_duplicate(self):
@@ -151,13 +151,13 @@ class AreDuplicatesTestCase(TestCase):
 
     def test_custom_threshold_strict(self):
         """Strict threshold (lower) should reject more."""
-        with patch("api.perceptual_hash.hamming_distance", return_value=5):
+        with patch("api.duplicates.perceptual_hash.hamming_distance", return_value=5):
             self.assertTrue(are_duplicates("a" * 16, "b" * 16, threshold=5))
             self.assertFalse(are_duplicates("a" * 16, "b" * 16, threshold=4))
 
     def test_custom_threshold_loose(self):
         """Loose threshold (higher) should accept more."""
-        with patch("api.perceptual_hash.hamming_distance", return_value=15):
+        with patch("api.duplicates.perceptual_hash.hamming_distance", return_value=15):
             self.assertTrue(are_duplicates("a" * 16, "b" * 16, threshold=15))
             self.assertTrue(are_duplicates("a" * 16, "b" * 16, threshold=20))
 
@@ -234,7 +234,7 @@ class FindSimilarHashesTestCase(TestCase):
         """Results should be sorted by distance (closest first)."""
         target = "0" * 16
         # Create hashes with known distances
-        with patch("api.perceptual_hash.hamming_distance") as mock_dist:
+        with patch("api.duplicates.perceptual_hash.hamming_distance") as mock_dist:
             mock_dist.side_effect = [8, 3, 5]  # Distances for 3 hashes
             hash_list = [("img1", "h1"), ("img2", "h2"), ("img3", "h3")]
             result = find_similar_hashes(target, hash_list, threshold=10)
@@ -246,7 +246,7 @@ class FindSimilarHashesTestCase(TestCase):
     def test_custom_threshold(self):
         """Should respect custom threshold."""
         target = "0" * 16
-        with patch("api.perceptual_hash.hamming_distance") as mock_dist:
+        with patch("api.duplicates.perceptual_hash.hamming_distance") as mock_dist:
             mock_dist.return_value = 5
             hash_list = [("img1", "h1")]
             # Threshold 4 - should exclude distance 5
@@ -259,7 +259,7 @@ class FindSimilarHashesTestCase(TestCase):
     def test_returns_correct_tuple_format(self):
         """Results should be (image_id, distance) tuples."""
         target = "0" * 16
-        with patch("api.perceptual_hash.hamming_distance", return_value=2):
+        with patch("api.duplicates.perceptual_hash.hamming_distance", return_value=2):
             hash_list = [("my_image_id", "some_hash")]
             result = find_similar_hashes(target, hash_list)
             self.assertEqual(len(result), 1)
@@ -270,7 +270,7 @@ class FindSimilarHashesTestCase(TestCase):
     def test_multiple_similar_all_returned(self):
         """All similar hashes should be returned."""
         target = "0" * 16
-        with patch("api.perceptual_hash.hamming_distance", return_value=5):
+        with patch("api.duplicates.perceptual_hash.hamming_distance", return_value=5):
             hash_list = [("img1", "h1"), ("img2", "h2"), ("img3", "h3")]
             result = find_similar_hashes(target, hash_list, threshold=10)
             self.assertEqual(len(result), 3)
@@ -462,7 +462,7 @@ class CalculateHashFromThumbnailTestCase(TestCase):
 
     def test_delegates_to_calculate_perceptual_hash(self):
         """Should delegate to calculate_perceptual_hash."""
-        with patch("api.perceptual_hash.calculate_perceptual_hash") as mock:
+        with patch("api.duplicates.perceptual_hash.calculate_perceptual_hash") as mock:
             mock.return_value = "abc123"
             result = calculate_hash_from_thumbnail("/some/path")
             mock.assert_called_once_with("/some/path")

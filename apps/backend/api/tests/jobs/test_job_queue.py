@@ -24,10 +24,10 @@ from api.batch_jobs import batch_calculate_clip_embedding
 from api.directory_watcher.processing_jobs import (
     _limit_to_photos_added_since_last_scan,
 )
-from api.duplicate_detection import batch_detect_duplicates
+from api.duplicates.detection import batch_detect_duplicates
 from api.jobs.queue import JobStep, enqueue_chain, enqueue_job
 from api.models import LongRunningJob, Photo
-from api.stack_detection import batch_detect_stacks
+from api.stacks.detection import batch_detect_stacks
 from api.tests.utils import (
     api_error,
     create_test_job,

@@ -15,6 +15,7 @@ from api.directory_watcher.file_handlers import (
     create_file_record,
     group_files_into_photo,
 )
+from api.duplicates.perceptual_hash import calculate_hash_from_thumbnail
 from api.media_files import calculate_hash
 from api.metadata.edits import set_rating
 from api.metadata.photo_writer import rotate_photo
@@ -22,7 +23,6 @@ from api.metadata.tags import Tags
 from api.metadata.writer import read_orientation, write_metadata
 from api.models import File, Person, Photo, User
 from api.models.file import content_hash
-from api.perceptual_hash import calculate_hash_from_thumbnail
 from api.tests.utils import (
     create_test_face,
     create_test_person,
@@ -676,7 +676,7 @@ class PictureVerdictAcrossRenderVersionsTest(ReplacedFileTestCase):
 
     def test_legacy_render_of_a_png_is_libwebps_default_effort(self):
         from api.directory_watcher.file_handlers import _rendered_perceptual_hash
-        from api.perceptual_hash import calculate_perceptual_hash
+        from api.duplicates.perceptual_hash import calculate_perceptual_hash
 
         _write_image(self.path, 7, size=(1600, 1200))
         legacy_file = os.path.join(self.tmpdir, "legacy.webp")

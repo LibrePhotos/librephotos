@@ -663,7 +663,7 @@ def refresh_perceptual_hash(thumbnail: Thumbnail) -> None:
     file from a replaced one, so a stale value left behind by a rotation
     would cost the photo its faces on the next scan.
     """
-    from api.perceptual_hash import calculate_hash_from_thumbnail
+    from api.duplicates.perceptual_hash import calculate_hash_from_thumbnail
 
     big = thumbnail.thumbnail_big
     if not big or not os.path.exists(big.path):

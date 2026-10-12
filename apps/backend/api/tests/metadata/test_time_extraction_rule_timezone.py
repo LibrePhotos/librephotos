@@ -1,7 +1,7 @@
 """Characterization tests for TimeExtractionRule._get_tz.
 
 These pin the CURRENT behavior of the timezone-description resolver in
-api/date_time_extractor.py before it is refactored. They are deliberately
+api/metadata/datetime_rules.py before it is refactored. They are deliberately
 exhaustive about the branch structure (gps / user_default / server_local /
 utc / name: / unknown) and about the exception types that escape, because
 callers (_transform_tz) rely on the (success, tz) tuple protocol and on
@@ -16,7 +16,7 @@ from unittest.mock import MagicMock, patch
 import pytz
 from django.test import TestCase
 
-from api.date_time_extractor import RuleTypes, TimeExtractionRule, _check_gps_ok
+from api.metadata.datetime_rules import RuleTypes, TimeExtractionRule, _check_gps_ok
 
 
 def make_rule(**extra):

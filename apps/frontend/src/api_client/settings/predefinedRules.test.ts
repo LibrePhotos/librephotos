@@ -4,7 +4,7 @@
  * page, and a key it does not know would be stripped from the rules users save
  * (the rule schemas are loose, so it is kept).
  * These are the backend's answers, from PREDEFINED_RULES_JSON in
- * api/date_time_extractor.py and api/burst_detection_rules.py.
+ * api/metadata/datetime_rules.py and api/stacks/burst_rules.py.
  *
  * The hooks parse the list rule by rule, so a rule a newer backend added (a rule
  * type or option this frontend does not know) is skipped and reported, and the

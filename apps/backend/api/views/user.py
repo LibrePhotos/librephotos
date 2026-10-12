@@ -17,13 +17,7 @@ from rest_framework.throttling import BaseThrottle
 from rest_framework.views import APIView
 
 from api.api_util import path_to_dict
-from api.burst_detection_rules import (
-    DEFAULT_RULES_JSON as BURST_DEFAULT_RULES_JSON,
-)
-from api.burst_detection_rules import (
-    PREDEFINED_RULES_JSON as BURST_PREDEFINED_RULES_JSON,
-)
-from api.date_time_extractor import DEFAULT_RULES_JSON, PREDEFINED_RULES_JSON
+from api.metadata.datetime_rules import DEFAULT_RULES_JSON, PREDEFINED_RULES_JSON
 from api.models import User
 from api.pagination import WholeListPagination
 from api.permissions import (
@@ -39,6 +33,12 @@ from api.serializers.user import (
     SignupUserSerializer,
     UserSerializer,
     with_user_relations,
+)
+from api.stacks.burst_rules import (
+    DEFAULT_RULES_JSON as BURST_DEFAULT_RULES_JSON,
+)
+from api.stacks.burst_rules import (
+    PREDEFINED_RULES_JSON as BURST_PREDEFINED_RULES_JSON,
 )
 from api.throttling import AuthRateThrottle
 from api.util import is_valid_path

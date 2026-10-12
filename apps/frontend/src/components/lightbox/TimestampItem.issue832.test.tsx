@@ -2,7 +2,7 @@
  * Repro for https://github.com/LibrePhotos/librephotos/issues/832
  * "Default timezone not being applied"
  *
- * Backend contract (api/date_time_extractor.py, TimeExtractionRule docstring):
+ * Backend contract (api/metadata/datetime_rules.py, TimeExtractionRule docstring):
  *
  *   "The goal is to help extract local time, but for historical reason it is
  *    expected the returned datetime will have timezone to be set to pytz.utc

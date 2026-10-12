@@ -6,6 +6,7 @@ import os
 import pathlib
 import re
 from collections.abc import Callable, Sequence
+from dataclasses import dataclass
 from datetime import datetime, tzinfo
 from typing import Any
 
@@ -15,6 +16,17 @@ from api.metadata.tags import Tags
 from api.util import rules_json
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class RuleContext:
+    """What a rule may use besides the file: the photo's GPS position, the
+    owner's default timezone and a capture time the user set by hand."""
+
+    gps_lat: float | None
+    gps_lon: float | None
+    user_default_tz: str
+    user_defined_timestamp: datetime | None
 
 
 def _regexp_group_range(a: int, b: int) -> str:
@@ -334,14 +346,10 @@ class TimeExtractionRule:
         )
 
     def apply(
-        self,
-        path: str,
-        exif_tags: dict[str, object],
-        gps_lat: float | None,
-        gps_lon: float | None,
-        user_default_tz: str,
-        user_defined_timestamp: datetime | None,
+        self, path: str, exif_tags: dict[str, object], context: RuleContext
     ) -> datetime | None:
+        gps_lat, gps_lon = context.gps_lat, context.gps_lon
+        user_default_tz = context.user_default_tz
         if not self._check_conditions(path, exif_tags, gps_lat, gps_lon):
             return None
         if self.rule_type == RuleTypes.EXIF:
@@ -351,7 +359,7 @@ class TimeExtractionRule:
         elif self.rule_type == RuleTypes.FILESYSTEM:
             return self._apply_filesystem(path, gps_lat, gps_lon, user_default_tz)
         elif self.rule_type == RuleTypes.USER_DEFINED:
-            return user_defined_timestamp
+            return context.user_defined_timestamp
         else:
             raise ValueError(f"Unknown rule type {self.rule_type}")
 
@@ -627,10 +635,7 @@ def extract_local_date_time(
     path: str,
     rules: list[TimeExtractionRule],
     exif_getter: Callable[[list[str]], Sequence[object]],
-    gps_lat: float | None,
-    gps_lon: float | None,
-    user_default_tz: str,
-    user_defined_timestamp: datetime | None,
+    context: RuleContext,
 ) -> datetime | None:
     required_tags: set[str] = set()
     for rule in rules:
@@ -639,9 +644,7 @@ def extract_local_date_time(
     exif_values = exif_getter(tag_names)
     exif_tags = {k: v for k, v in zip(tag_names, exif_values)}
     for rule in rules:
-        res = rule.apply(
-            path, exif_tags, gps_lat, gps_lon, user_default_tz, user_defined_timestamp
-        )
+        res = rule.apply(path, exif_tags, context)
         if res:
             return res
     return None

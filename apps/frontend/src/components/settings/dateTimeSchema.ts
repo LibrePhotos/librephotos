@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 // A date-time rule with the params the backend's TimeExtractionRule reads
-// (api/date_time_extractor.py). The predefined rules come from /predefinedrules/,
+// (api/metadata/datetime_rules.py). The predefined rules come from /predefinedrules/,
 // and a user's datetime_rules is the JSON list of the rules picked from them.
 
 /** "utc", "gps_timezonefinder", "server_local", "user_default" or "name:<timezone>". */

@@ -11,7 +11,7 @@ They now use the Photo.files ManyToMany field for file variants
 (PhotoPrism-like model). This is handled during scan, not detection.
 
 NOTE: Duplicate detection (exact copies and visual duplicates) is now
-handled separately by api/duplicate_detection.py. This module focuses
+handled separately by api/duplicates/detection.py. This module focuses
 on organizational grouping, not storage cleanup.
 
 Burst detection uses a rules-based system with two categories:
@@ -28,7 +28,11 @@ from typing import TypedDict
 
 from django.db.models import Q
 
-from api.burst_detection_rules import (
+from api.models import Photo
+from api.models.long_running_job import LongRunningJob
+from api.models.photo_stack import PhotoStack
+from api.models.user import User
+from api.stacks.burst_rules import (
     BurstDetectionRule,
     BurstRuleTypes,
     as_rules,
@@ -38,10 +42,6 @@ from api.burst_detection_rules import (
     group_photos_by_timestamp,
     group_photos_by_visual_similarity,
 )
-from api.models import Photo
-from api.models.long_running_job import LongRunningJob
-from api.models.photo_stack import PhotoStack
-from api.models.user import User
 
 logger = logging.getLogger(__name__)
 
@@ -158,7 +158,7 @@ def _detect_bursts_hard_criteria(
     These are deterministic rules that identify burst photos based on
     camera metadata or filename conventions.
     """
-    from api.metadata.reader import get_metadata
+    from api.metadata.reader import MetadataReadError, get_metadata
 
     # Get all photos that could be in bursts
     photos = (
@@ -188,7 +188,7 @@ def _detect_bursts_hard_criteria(
         try:
             exif_values = get_metadata(photo.main_file.path, required_tags)
             exif_tags = dict(zip(required_tags, exif_values))
-        except Exception as e:
+        except MetadataReadError as e:
             logger.debug("Could not read EXIF for %s: %s", photo.main_file.path, e)
             exif_tags = {}
 
