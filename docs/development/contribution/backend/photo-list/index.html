@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.a1e92a76.css">
-<script src="/assets/js/runtime~main.c90ec516.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.fbd2c03c.js" defer="defer"></script>
 <script src="/assets/js/main.c4dc47cd.js" defer="defer"></script>
 </head>
 <body>
@@ -41,11 +41,12 @@
 <li class=""><code>Authorization</code> - <code>Bearer &lt;token&gt;</code></li>
 </ul>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="get-apialbumsdateid"><code>GET /api/albums/date/&lt;id&gt;</code><a href="#get-apialbumsdateid" class="hash-link" aria-label="Direct link to get-apialbumsdateid" title="Direct link to get-apialbumsdateid" translate="no">​</a></h3>
-<p>Returns the actual images, for a given day in chunks of 100 images by default.</p>
+<p>Returns the actual images, for a given day in chunks of 100 images by default. <code>results</code> is the day with one page of its images in <code>items</code> and the day&#x27;s total in <code>numberOfItems</code>; the page fields of every paginated list (<code>count</code>, <code>next</code>, <code>previous</code>, <code>page</code>, <code>page_size</code>, <code>num_pages</code>) sit next to it.</p>
 <h4 class="anchor anchorTargetStickyNavbar_Vzrq" id="parameters-1">Parameters:<a href="#parameters-1" class="hash-link" aria-label="Direct link to Parameters:" title="Direct link to Parameters:" translate="no">​</a></h4>
 <ul>
-<li class=""><code>?page=1</code> - Give me the first page of the album</li>
-<li class=""><code>?size=&lt;n&gt;</code> - Change the chunk size (default 100). This endpoint paginates manually, so the parameter is <code>size</code>, not the <code>page_size</code> used by the paginated endpoints. A value below 1 counts as 1 and there is no upper bound; a value that is not a number is a 400.</li>
+<li class=""><code>?page=1</code> - Give me the first page of the album. A page past the end answers the last page, and one that is not a number the first, because clients work the page numbers out from the day&#x27;s count, which may be out of date.</li>
+<li class=""><code>?page_size=&lt;n&gt;</code> - Change the chunk size (default 100, at most 1000), as on every <a class="" href="/docs/development/contribution/backend/#pagination">paginated list</a>. A value below 1 counts as 1; a value that is not a number is a 400.</li>
+<li class=""><code>?size=&lt;n&gt;</code> - Deprecated alias of <code>page_size</code>, read only when <code>page_size</code> is absent; it now has the same upper bound. It will be removed after the next release.</li>
 <li class=""><code>?favorite=true</code> - Give me the list for favorite images</li>
 <li class=""><code>?public=true</code> - Give me the list for public images. Here <code>username</code> is optional: <code>?public=true</code> on its own returns the day&#x27;s public images regardless of owner.</li>
 <li class=""><code>?username=&lt;name&gt;</code> - Restrict the public images to this owner (only takes effect together with <code>?public=true</code>)</li>
