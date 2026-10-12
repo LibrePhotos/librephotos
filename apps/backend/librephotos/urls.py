@@ -4,16 +4,17 @@ The `urlpatterns` list routes URLs to views. For more information please see:
     https://docs.djangoproject.com/en/1.11/topics/http/urls/
 
 Examples:
-Function views
     1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  re_path(r'^$', views.home, name='home')
-Class-based views
-    1. Add an import:  from other_app.views import Home
-    2. Add a URL to urlpatterns:  re_path(r'^$', Home.as_view(), name='home')
+    2. Add a URL to urlpatterns:  path('api/thing/', views.Thing.as_view(), name='thing')
+    3. An id:  path('api/photos/<photo_key:photo_id>/thing/', ...)
 Including another URLconf
-    1. Import the include() function: from django.conf.urls import url, include
-    2. Add a URL to urlpatterns:  re_path(r'^blog/', include('blog.urls'))
+    1. Import the include() function: from django.urls import include
+    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 
+New routes are path() or a router registration, never re_path(): kebab-case
+literal segments, a trailing slash, ids through the converters in
+librephotos/converters.py. The legacy re_path() routes accept both slash forms
+through /?$; api/tests/infra/test_url_patterns.py enforces the rule.
 """
 
 import os
@@ -78,6 +79,11 @@ from api.views import (
     upload,
     user,
     zip_downloads,
+)
+from librephotos.converters import (
+    IMAGE_HASH_REGEX,
+    PHOTO_KEY_REGEX,
+    UUID_LIKE_REGEX,
 )
 from nextcloud import views as nextcloud_views
 
@@ -274,6 +280,7 @@ urlpatterns = [
     # First: thumbnails are most of all requests, and Django tries patterns in
     # order; behind the ~200 router patterns each one paid ~0.5 ms to resolve.
     # Every router prefix starts with api/, so nothing else can match here.
+    # Exempt from the naming rule: it is not under api/, and its tail is a file path.
     re_path(
         r"^media/(?P<path>.*)/(?P<fname>.*)",
         media.UnifiedMediaAccessView.as_view(),
@@ -288,41 +295,46 @@ urlpatterns = [
     re_path(r"^api/healthz/ready/?$", health.HealthzReadyView.as_view()),
     re_path(r"^api/healthz/?$", health.HealthzView.as_view()),
     re_path(r"^api/django-admin/", admin.site.urls),
-    re_path(r"^api/sitesettings", site_settings.SiteSettingsView.as_view()),
+    re_path(r"^api/sitesettings/?$", site_settings.SiteSettingsView.as_view()),
     re_path(r"^api/email-config/test/?$", email_config.EmailTestView.as_view()),
     re_path(r"^api/email-config/?$", email_config.EmailConfigView.as_view()),
-    re_path(r"^api/firsttimesetup", user.IsFirstTimeSetupView.as_view()),
-    re_path(r"^api/dirtree", user.RootPathTreeView.as_view()),
-    re_path(r"^api/labelfaces", faces.SetFacePersonLabel.as_view()),
-    re_path(r"^api/addface", faces.AddFaceView.as_view()),
-    re_path(r"^api/deletefaces", faces.DeleteFaces.as_view()),
-    re_path(r"^api/savemetadata", photos.SaveMetadataView.as_view()),
-    re_path(r"^api/photosedit/delete", photos.DeletePhotos.as_view()),
-    re_path(r"^api/photosedit/setdeleted", photos.SetPhotosDeleted.as_view()),
-    re_path(r"^api/photosedit/favorite", photos.SetPhotosFavorite.as_view()),
-    re_path(r"^api/photosedit/rating", photos.SetPhotosRating.as_view()),
-    re_path(r"^api/photosedit/hide", photos.SetPhotosHidden.as_view()),
-    re_path(r"^api/photosedit/makepublic", photos.SetPhotosPublic.as_view()),
-    re_path(r"^api/photosedit/category", photos.SetPhotosCategory.as_view()),
-    re_path(r"^api/photosedit/share", photos.SetPhotosShared.as_view()),
-    re_path(r"^api/photosedit/generateim2txt", photos.GeneratePhotoCaption.as_view()),
-    re_path(r"^api/photosedit/savecaption", photos.SavePhotoCaption.as_view()),
-    re_path(r"^api/photosedit/rotate", photos.RotatePhotoView.as_view()),
-    re_path(r"^api/useralbum/share", sharing.SetUserAlbumShared.as_view()),
-    re_path(r"^api/trainfaces", faces.TrainFaceView.as_view()),
-    re_path(r"^api/clusterfaces", dataviz.ClusterFaceView.as_view()),
-    re_path(r"^api/socialgraph", dataviz.SocialGraphView.as_view()),
-    re_path(r"^api/scanphotos", scan_triggers.ScanPhotosView.as_view()),
-    re_path(r"^api/scanuploadedphotos", scan_triggers.FullScanPhotosView.as_view()),
-    re_path(r"^api/fullscanphotos", scan_triggers.FullScanPhotosView.as_view()),
-    re_path(r"^api/scanfaces", faces.ScanFacesView.as_view()),
+    re_path(r"^api/firsttimesetup/?$", user.IsFirstTimeSetupView.as_view()),
+    re_path(r"^api/dirtree/?$", user.RootPathTreeView.as_view()),
+    re_path(r"^api/labelfaces/?$", faces.SetFacePersonLabel.as_view()),
+    re_path(r"^api/addface/?$", faces.AddFaceView.as_view()),
+    re_path(r"^api/deletefaces/?$", faces.DeleteFaces.as_view()),
+    re_path(r"^api/savemetadata/?$", photos.SaveMetadataView.as_view()),
+    re_path(r"^api/photosedit/delete/?$", photos.DeletePhotos.as_view()),
+    re_path(r"^api/photosedit/setdeleted/?$", photos.SetPhotosDeleted.as_view()),
+    re_path(r"^api/photosedit/favorite/?$", photos.SetPhotosFavorite.as_view()),
+    re_path(r"^api/photosedit/rating/?$", photos.SetPhotosRating.as_view()),
+    re_path(r"^api/photosedit/hide/?$", photos.SetPhotosHidden.as_view()),
+    re_path(r"^api/photosedit/makepublic/?$", photos.SetPhotosPublic.as_view()),
+    re_path(r"^api/photosedit/category/?$", photos.SetPhotosCategory.as_view()),
+    re_path(r"^api/photosedit/share/?$", photos.SetPhotosShared.as_view()),
     re_path(
-        r"^api/deletemissingphotos", scan_triggers.DeleteMissingPhotosView.as_view()
+        r"^api/photosedit/generateim2txt/?$", photos.GeneratePhotoCaption.as_view()
     ),
-    re_path(r"^api/classifymedia", scan_triggers.ClassifyMediaView.as_view()),
-    re_path(r"^api/generateocr", scan_triggers.GenerateOcrView.as_view()),
-    re_path(r"^api/autoalbumgen", album_auto.AutoAlbumGenerateView.as_view()),
-    re_path(r"^api/autoalbumtitlegen", album_auto.RegenerateAutoAlbumTitles.as_view()),
+    re_path(r"^api/photosedit/savecaption/?$", photos.SavePhotoCaption.as_view()),
+    re_path(r"^api/photosedit/rotate/?$", photos.RotatePhotoView.as_view()),
+    re_path(r"^api/useralbum/share/?$", sharing.SetUserAlbumShared.as_view()),
+    re_path(r"^api/trainfaces/?$", faces.TrainFaceView.as_view()),
+    re_path(r"^api/clusterfaces/?$", dataviz.ClusterFaceView.as_view()),
+    re_path(r"^api/socialgraph/?$", dataviz.SocialGraphView.as_view()),
+    re_path(r"^api/scanphotos/?$", scan_triggers.ScanPhotosView.as_view()),
+    # Two URLs, one view, on purpose: #2220 keeps this alias because it is documented.
+    re_path(r"^api/scanuploadedphotos/?$", scan_triggers.FullScanPhotosView.as_view()),
+    re_path(r"^api/fullscanphotos/?$", scan_triggers.FullScanPhotosView.as_view()),
+    re_path(r"^api/scanfaces/?$", faces.ScanFacesView.as_view()),
+    re_path(
+        r"^api/deletemissingphotos/?$", scan_triggers.DeleteMissingPhotosView.as_view()
+    ),
+    re_path(r"^api/classifymedia/?$", scan_triggers.ClassifyMediaView.as_view()),
+    re_path(r"^api/generateocr/?$", scan_triggers.GenerateOcrView.as_view()),
+    re_path(r"^api/autoalbumgen/?$", album_auto.AutoAlbumGenerateView.as_view()),
+    re_path(
+        r"^api/autoalbumtitlegen/?$", album_auto.RegenerateAutoAlbumTitles.as_view()
+    ),
     # Photo Stacks - Organizational grouping (bursts, brackets, manual)
     # NOTE: RAW+JPEG pairs and Live Photos now use Photo.files (file variants model)
     re_path(r"^api/stacks/detect/?$", stacks.DetectStacksView.as_view()),
@@ -330,102 +342,102 @@ urlpatterns = [
     re_path(r"^api/stacks/manual/?$", stacks.CreateManualStackView.as_view()),
     re_path(r"^api/stacks/merge/?$", stacks.MergeStacksView.as_view()),
     re_path(
-        r"^api/stacks/(?P<stack_id>[0-9a-f-]+)/add/?$",
+        rf"^api/stacks/(?P<stack_id>{UUID_LIKE_REGEX})/add/?$",
         stacks.AddToStackView.as_view(),
     ),
     re_path(
-        r"^api/stacks/(?P<stack_id>[0-9a-f-]+)/remove/?$",
+        rf"^api/stacks/(?P<stack_id>{UUID_LIKE_REGEX})/remove/?$",
         stacks.RemoveFromStackView.as_view(),
     ),
     re_path(
-        r"^api/stacks/(?P<stack_id>[0-9a-f-]+)/delete/?$",
+        rf"^api/stacks/(?P<stack_id>{UUID_LIKE_REGEX})/delete/?$",
         stacks.PhotoStackDeleteView.as_view(),
     ),
     re_path(
-        r"^api/stacks/(?P<stack_id>[0-9a-f-]+)/primary/?$",
+        rf"^api/stacks/(?P<stack_id>{UUID_LIKE_REGEX})/primary/?$",
         stacks.PhotoStackSetPrimaryView.as_view(),
     ),
     re_path(
-        r"^api/stacks/(?P<stack_id>[0-9a-f-]+)/?$",
+        rf"^api/stacks/(?P<stack_id>{UUID_LIKE_REGEX})/?$",
         stacks.PhotoStackDetailView.as_view(),
     ),
     re_path(r"^api/stacks/?$", stacks.PhotoStackListView.as_view()),
     # Duplicates - Storage cleanup (exact copies, visual duplicates)
-    re_path(r"^api/duplicates/detect", duplicates.DetectDuplicatesView.as_view()),
-    re_path(r"^api/duplicates/stats", duplicates.DuplicateStatsView.as_view()),
+    re_path(r"^api/duplicates/detect/?$", duplicates.DetectDuplicatesView.as_view()),
+    re_path(r"^api/duplicates/stats/?$", duplicates.DuplicateStatsView.as_view()),
     re_path(
-        r"^api/duplicates/(?P<duplicate_id>[0-9a-f-]+)/resolve",
+        rf"^api/duplicates/(?P<duplicate_id>{UUID_LIKE_REGEX})/resolve/?$",
         duplicates.DuplicateResolveView.as_view(),
     ),
     re_path(
-        r"^api/duplicates/(?P<duplicate_id>[0-9a-f-]+)/dismiss",
+        rf"^api/duplicates/(?P<duplicate_id>{UUID_LIKE_REGEX})/dismiss/?$",
         duplicates.DuplicateDismissView.as_view(),
     ),
     re_path(
-        r"^api/duplicates/(?P<duplicate_id>[0-9a-f-]+)/revert",
+        rf"^api/duplicates/(?P<duplicate_id>{UUID_LIKE_REGEX})/revert/?$",
         duplicates.DuplicateRevertView.as_view(),
     ),
     re_path(
-        r"^api/duplicates/(?P<duplicate_id>[0-9a-f-]+)/delete",
+        rf"^api/duplicates/(?P<duplicate_id>{UUID_LIKE_REGEX})/delete/?$",
         duplicates.DuplicateDeleteView.as_view(),
     ),
     re_path(
-        r"^api/duplicates/(?P<duplicate_id>[0-9a-f-]+)",
+        rf"^api/duplicates/(?P<duplicate_id>{UUID_LIKE_REGEX})/?$",
         duplicates.DuplicateDetailView.as_view(),
     ),
-    re_path(r"^api/duplicates", duplicates.DuplicateListView.as_view()),
+    re_path(r"^api/duplicates/?$", duplicates.DuplicateListView.as_view()),
     # Photo Metadata - Structured metadata with edit history
     re_path(
-        r"^api/photos/(?P<photo_id>[0-9a-f-]+|[a-f0-9]{64})/metadata/history",
+        rf"^api/photos/(?P<photo_id>{PHOTO_KEY_REGEX})/metadata/history/?$",
         photo_metadata.PhotoMetadataViewSet.as_view({"get": "history"}),
     ),
     re_path(
-        r"^api/photos/(?P<photo_id>[0-9a-f-]+|[a-f0-9]{64})/metadata/revert-all",
+        rf"^api/photos/(?P<photo_id>{PHOTO_KEY_REGEX})/metadata/revert-all/?$",
         photo_metadata.PhotoMetadataViewSet.as_view({"post": "revert_all"}),
     ),
     re_path(
-        r"^api/photos/(?P<photo_id>[0-9a-f-]+|[a-f0-9]{64})/metadata/revert/(?P<edit_id>[0-9a-f-]+)",
+        rf"^api/photos/(?P<photo_id>{PHOTO_KEY_REGEX})/metadata/revert/(?P<edit_id>{UUID_LIKE_REGEX})/?$",
         photo_metadata.PhotoMetadataViewSet.as_view({"post": "revert"}),
     ),
     re_path(
-        r"^api/photos/(?P<photo_id>[0-9a-f-]+|[a-f0-9]{64})/metadata",
+        rf"^api/photos/(?P<photo_id>{PHOTO_KEY_REGEX})/metadata/?$",
         photo_metadata.PhotoMetadataViewSet.as_view(
             {"get": "retrieve", "patch": "partial_update"}
         ),
     ),
-    re_path(r"^api/photos/metadata/bulk", photo_metadata.BulkMetadataView.as_view()),
+    re_path(r"^api/photos/metadata/bulk/?$", photo_metadata.BulkMetadataView.as_view()),
     # File Variants - Download specific file variants (RAW, JPEG, video, etc.)
     re_path(
-        r"^api/photos/(?P<image_hash>[a-f0-9]+)/file/(?P<file_hash>[a-f0-9]+)$",
+        rf"^api/photos/(?P<image_hash>{IMAGE_HASH_REGEX})/file/(?P<file_hash>{IMAGE_HASH_REGEX})/?$",
         photos.FileVariantDownloadView.as_view(),
         name="file_variant_download",
     ),
     # Set main file for a photo (switch between variants)
     re_path(
-        r"^api/photos/(?P<image_hash>[a-f0-9]+)/main-file$",
+        rf"^api/photos/(?P<image_hash>{IMAGE_HASH_REGEX})/main-file/?$",
         photos.SetMainFileView.as_view(),
         name="set_main_file",
     ),
     re_path(r"^api/memories/?$", memories.MemoriesView.as_view()),
-    re_path(r"^api/searchtermexamples", search.SearchTermExamples.as_view()),
-    re_path(r"^api/locationsunburst", dataviz.LocationSunburst.as_view()),
-    re_path(r"^api/locationtimeline", dataviz.LocationTimeline.as_view()),
-    re_path(r"^api/defaultrules", user.DefaultRulesView.as_view()),
-    re_path(r"^api/predefinedrules", user.PredefinedRulesView.as_view()),
-    re_path(r"^api/defaultburstrules", user.DefaultBurstRulesView.as_view()),
-    re_path(r"^api/predefinedburstrules", user.PredefinedBurstRulesView.as_view()),
-    re_path(r"^api/stats", dataviz.StatsView.as_view()),
-    re_path(r"^api/storagestats", server_info.StorageStatsView.as_view()),
-    re_path(r"^api/imagetag", server_info.ImageTagView.as_view()),
-    re_path(r"^api/serverstats", dataviz.ServerStatsView.as_view()),
-    re_path(r"^api/serverlogs/view$", dataviz.ServerLogsViewerView.as_view()),
-    re_path(r"^api/serverlogs$", dataviz.ServerLogsView.as_view()),
-    re_path(r"^api/locclust", dataviz.LocationClustersView.as_view()),
-    re_path(r"^api/photomonthcounts", dataviz.PhotoMonthCountsView.as_view()),
-    re_path(r"^api/wordcloud", dataviz.SearchTermWordCloudView.as_view()),
-    re_path(r"^api/auth/token/obtain/$", CustomTokenObtainPairView.as_view()),
-    re_path(r"^api/auth/token/refresh/$", CustomTokenRefreshView.as_view()),
-    re_path(r"^api/auth/token/blacklist/", LogoutView.as_view()),
+    re_path(r"^api/searchtermexamples/?$", search.SearchTermExamples.as_view()),
+    re_path(r"^api/locationsunburst/?$", dataviz.LocationSunburst.as_view()),
+    re_path(r"^api/locationtimeline/?$", dataviz.LocationTimeline.as_view()),
+    re_path(r"^api/defaultrules/?$", user.DefaultRulesView.as_view()),
+    re_path(r"^api/predefinedrules/?$", user.PredefinedRulesView.as_view()),
+    re_path(r"^api/defaultburstrules/?$", user.DefaultBurstRulesView.as_view()),
+    re_path(r"^api/predefinedburstrules/?$", user.PredefinedBurstRulesView.as_view()),
+    re_path(r"^api/stats/?$", dataviz.StatsView.as_view()),
+    re_path(r"^api/storagestats/?$", server_info.StorageStatsView.as_view()),
+    re_path(r"^api/imagetag/?$", server_info.ImageTagView.as_view()),
+    re_path(r"^api/serverstats/?$", dataviz.ServerStatsView.as_view()),
+    re_path(r"^api/serverlogs/view/?$", dataviz.ServerLogsViewerView.as_view()),
+    re_path(r"^api/serverlogs/?$", dataviz.ServerLogsView.as_view()),
+    re_path(r"^api/locclust/?$", dataviz.LocationClustersView.as_view()),
+    re_path(r"^api/photomonthcounts/?$", dataviz.PhotoMonthCountsView.as_view()),
+    re_path(r"^api/wordcloud/?$", dataviz.SearchTermWordCloudView.as_view()),
+    re_path(r"^api/auth/token/obtain/?$", CustomTokenObtainPairView.as_view()),
+    re_path(r"^api/auth/token/refresh/?$", CustomTokenRefreshView.as_view()),
+    re_path(r"^api/auth/token/blacklist/?$", LogoutView.as_view()),
     # OIDC / SSO. allauth drives the redirect/callback under /api/accounts/...;
     # sso_finish is the JWT bridge it lands on; sso/config feeds the login screen.
     re_path(r"^api/auth/sso/finish/?$", sso.sso_finish),
@@ -436,24 +448,24 @@ urlpatterns = [
     # the first pattern that matches the path, while reverse() still finds
     # allauth's identically-shaped named patterns below, so both agree.
     re_path(
-        r"^api/accounts/oidc/(?P<provider_id>[^/]+)/login/$",
+        r"^api/accounts/oidc/(?P<provider_id>[^/]+)/login/?$",
         sso.oidc_login,
     ),
     re_path(
-        r"^api/accounts/oidc/(?P<provider_id>[^/]+)/login/callback/$",
+        r"^api/accounts/oidc/(?P<provider_id>[^/]+)/login/callback/?$",
         sso.oidc_callback,
     ),
     re_path(r"^api/accounts/", include("allauth.urls")),
     re_path(
-        r"^api/auth/password/reset/$",
+        r"^api/auth/password/reset/?$",
         password_reset.PasswordResetView.as_view(),
     ),
     re_path(
-        r"^api/auth/password/reset/confirm/$",
+        r"^api/auth/password/reset/confirm/?$",
         password_reset.PasswordResetConfirmView.as_view(),
     ),
     re_path(
-        r"^api/media/diagnostics/(?P<fname>[^/]+)/$",
+        r"^api/media/diagnostics/(?P<fname>[^/]+)/?$",
         serving_diagnostics.MediaPermissionDiagnosticsView.as_view(),
         name="media-diagnostics",
     ),
@@ -462,38 +474,41 @@ urlpatterns = [
         zip_downloads.DeleteZipView.as_view(),
         name="delete-zip",
     ),
-    re_path(r"^api/rqavailable/$", jobs.QueueAvailabilityView.as_view()),
-    re_path(r"^api/nextcloud/listdir", nextcloud_views.ListDir.as_view()),
-    re_path(r"^api/nextcloud/scanphotos", nextcloud_views.ScanPhotosView.as_view()),
-    re_path(r"^api/photos/download$", zip_downloads.ZipListPhotosView_V2.as_view()),
+    re_path(r"^api/rqavailable/?$", jobs.QueueAvailabilityView.as_view()),
+    re_path(r"^api/nextcloud/listdir/?$", nextcloud_views.ListDir.as_view()),
+    re_path(r"^api/nextcloud/scanphotos/?$", nextcloud_views.ScanPhotosView.as_view()),
+    re_path(r"^api/photos/download/?$", zip_downloads.ZipListPhotosView_V2.as_view()),
     # Public album by slug
     re_path(
-        r"^api/public/albums/s/(?P<slug>[^/]+)/$",
+        r"^api/public/albums/s/(?P<slug>[^/]+)/?$",
         public_albums.PublicAlbumBySlug.as_view(),
     ),
     # Public photo detail in album
     re_path(
-        r"^api/public/albums/s/(?P<slug>[^/]+)/photos/(?P<photo_id>[^/]+)/$",
+        r"^api/public/albums/s/(?P<slug>[^/]+)/photos/(?P<photo_id>[^/]+)/?$",
         public_albums.PublicPhotoDetailBySlug.as_view(),
     ),
     # Toggle album public flag
-    re_path(r"^api/useralbum/makepublic", public_albums.SetUserAlbumPublic.as_view()),
+    re_path(
+        r"^api/useralbum/makepublic/?$", public_albums.SetUserAlbumPublic.as_view()
+    ),
     # Public photo by share slug, and its slug-scoped media
     re_path(
-        r"^api/public/photo/(?P<slug>[^/]+)/$",
+        r"^api/public/photo/(?P<slug>[^/]+)/?$",
         public_photos.PublicPhotoBySlug.as_view(),
     ),
     re_path(
-        r"^api/public/photo/(?P<slug>[^/]+)/media/(?P<kind>[^/]+)/$",
+        r"^api/public/photo/(?P<slug>[^/]+)/media/(?P<kind>[^/]+)/?$",
         public_photos.PublicPhotoMediaBySlug.as_view(),
     ),
     # Create, rotate or revoke a photo share
     re_path(r"^api/photo/share/list/?$", public_photos.PhotoShareList.as_view()),
     re_path(r"^api/photo/share/?$", public_photos.SetPhotoShare.as_view()),
-    re_path(r"^api/timezones", timezone.TimeZoneView.as_view()),
-    re_path(r"^api/geocode/search", geocode.GeocodeSearchView.as_view()),
-    re_path(r"api/upload/complete/", upload.UploadPhotosChunkedComplete.as_view()),
-    re_path(r"api/upload/", upload.UploadPhotosChunked.as_view()),
+    re_path(r"^api/timezones/?$", timezone.TimeZoneView.as_view()),
+    re_path(r"^api/geocode/search/?$", geocode.GeocodeSearchView.as_view()),
+    # Chunked upload. The mobile sync uploader calls these two paths exactly.
+    re_path(r"^api/upload/complete/?$", upload.UploadPhotosChunkedComplete.as_view()),
+    re_path(r"^api/upload/?$", upload.UploadPhotosChunked.as_view()),
     # Mobile-v2 delta-sync feeds (doc 04)
     re_path(r"^api/sync/photos/?$", sync.SyncPhotosView.as_view()),
     re_path(r"^api/sync/persons/?$", sync.SyncPersonsView.as_view()),

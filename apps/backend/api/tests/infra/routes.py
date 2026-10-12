@@ -39,7 +39,8 @@ class ApiRoute:
     """One URL pattern: its normalised route, view class and HTTP methods.
 
     ``callback`` is the view function the resolver calls and ``kwargs`` the
-    names of the keyword arguments the URL hands it.
+    names of the keyword arguments the URL hands it. ``pattern`` is the
+    URLPattern itself, whose own regex or route string a test can read.
     """
 
     route: str
@@ -47,6 +48,7 @@ class ApiRoute:
     methods: frozenset[str]
     callback: Callable[..., object] | None = field(default=None, compare=False)
     kwargs: tuple[str, ...] = ()
+    pattern: URLPattern | None = field(default=None, compare=False, repr=False)
 
     @property
     def module(self) -> str:
@@ -60,6 +62,7 @@ class FunctionRoute:
     route: str
     callback: Callable[..., object]
     kwargs: tuple[str, ...] = ()
+    pattern: URLPattern | None = field(default=None, compare=False, repr=False)
 
     @property
     def module(self) -> str:
@@ -109,10 +112,15 @@ def _walk(
         callback = pattern.callback
         view = getattr(callback, "cls", None) or getattr(callback, "view_class", None)
         if view is None:
-            yield FunctionRoute(normalised, callback, kwargs)
+            yield FunctionRoute(normalised, callback, kwargs, pattern)
         else:
             yield ApiRoute(
-                normalised, view, _view_methods(callback, view), callback, kwargs
+                normalised,
+                view,
+                _view_methods(callback, view),
+                callback,
+                kwargs,
+                pattern,
             )
 
 
