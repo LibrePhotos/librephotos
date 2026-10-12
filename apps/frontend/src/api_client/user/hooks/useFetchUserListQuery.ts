@@ -2,10 +2,9 @@ import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient } from "../../api";
+import { userKeys } from "../keys";
 import type { ListUserList } from "../types";
 import { ListUser } from "../types";
-
-export const UserListQueryKeys = ["userList"] as const;
 
 export const UserListResponse = z.object({
   count: z.number(),
@@ -18,7 +17,7 @@ export const UserListResponse = z.object({
 // User List Query
 export const useFetchUserListQuery = (skip: boolean = false) =>
   useQuery<ListUserList>({
-    queryKey: UserListQueryKeys,
+    queryKey: userKeys.list(),
     queryFn: async () => {
       const response = await fetchClient.get("/user/");
       return parseWithNotification(UserListResponse, response, "Failed to parse user list").results;

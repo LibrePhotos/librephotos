@@ -8,12 +8,10 @@ import {
 import { addTempElementsToGroups, definedSearchParams } from "../../../util/util";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient, queryClient } from "../../api";
+import { photoGridKeys, type DateAlbumsListKey } from "../../photos/keys";
 import type { IncompleteDatePhotosGroup, PigPhoto } from "../../photos/types";
 import { Photoset } from "../../photos/types";
 import { FetchDateAlbumsListResponse } from "../types";
-import { DateAlbumQueryKeys } from "./useFetchDateAlbumQuery";
-
-export const DateAlbumsQueryKeys = ["dateAlbums"] as const;
 
 export const DATE_ALBUM_PAGE_SIZE = 100;
 
@@ -51,15 +49,6 @@ export function hydrateGroupsFromCachedPages<T>(groups: HydratableGroup<T>[], pa
   });
 }
 
-type DateAlbumsListKey = [
-  photosetType: Photoset,
-  person_id: number | undefined,
-  username: string | undefined,
-  folder: string | undefined,
-  mediaType: MediaType | "all",
-  timelineFilter: string,
-];
-
 // Collects the still-valid, already-loaded pages of every date album that
 // belongs to the list identified by `listKey` (see useFetchDateAlbumQuery for
 // the per-day query key layout).
@@ -67,10 +56,11 @@ function getCachedDateAlbumPages(listKey: DateAlbumsListKey): CachedDateAlbumPag
   const [photosetType, personId, username, folder, mediaType, timelineFilter] = listKey;
   return queryClient
     .getQueryCache()
-    .findAll({ queryKey: [...DateAlbumQueryKeys, photosetType] })
+    .findAll({ queryKey: photoGridKeys.dateAlbumDays(photosetType) })
     .flatMap(query => {
-      // The day query's key: ["dateAlbum", photoset, day id, page, person, user, folder, media type, filter]
-      const [, , albumDateId, page, qPersonId, qUsername, qFolder, qMediaType, qTimelineFilter] = query.queryKey;
+      // The day query's key (photoGridKeys.dateAlbumDay):
+      // ["photoGrid", "dateAlbum", photoset, day id, page, person, user, folder, media type, filter]
+      const [, , , albumDateId, page, qPersonId, qUsername, qFolder, qMediaType, qTimelineFilter] = query.queryKey;
       // useFetchDateAlbumQuery is the only query under this key, and it caches the day's group.
       const data = queryClient.getQueryData<IncompleteDatePhotosGroup>(query.queryKey);
       if (
@@ -147,9 +137,8 @@ export function dateAlbumsListKey(options: AlbumDateListOptions): DateAlbumsList
 
 // Fetch date albums
 export const useFetchDateAlbumsQuery = (options: AlbumDateListOptions, queryOptions?: { skip?: boolean }) => {
-  const listKey = dateAlbumsListKey(options);
   return useQuery({
-    queryKey: [...DateAlbumsQueryKeys, ...listKey],
+    queryKey: photoGridKeys.dateAlbumList(dateAlbumsListKey(options)),
     queryFn: async () => {
       const params = {
         ...buildDateAlbumFilterParams(options.photosetType, options.mediaType),
@@ -165,7 +154,7 @@ export const useFetchDateAlbumsQuery = (options: AlbumDateListOptions, queryOpti
       const { results } = parsed;
 
       addTempElementsToGroups(results);
-      hydrateGroupsFromCachedPages(results, getCachedDateAlbumPages(listKey));
+      hydrateGroupsFromCachedPages(results, getCachedDateAlbumPages(dateAlbumsListKey(options)));
       return results;
     },
     enabled: !queryOptions?.skip,

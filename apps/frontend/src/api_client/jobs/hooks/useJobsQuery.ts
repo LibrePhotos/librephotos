@@ -2,14 +2,13 @@ import { pollWhile } from "@librephotos/api-client";
 import { useQuery } from "@tanstack/react-query";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient } from "../../api";
+import { jobKeys } from "../keys";
 import type { JobRequest } from "../types";
 import { JobsResponse } from "../types";
 
-export const JobsQueryKeys = ["jobs"] as const;
-
 export const useJobsQuery = (params: JobRequest) =>
   useQuery({
-    queryKey: [...JobsQueryKeys, params],
+    queryKey: jobKeys.list(params),
     queryFn: async () => {
       // Sent only when narrowing, so the admin list's request is unchanged.
       const mine = params.mine ? "&mine=true" : "";

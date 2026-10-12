@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient } from "../../api";
+import { faceKeys } from "../keys";
 import type { CompletePersonFace, CompletePersonFaceList } from "../types";
 import { FaceAnalysisMethod, FacesOrderOption, IncompletePersonFace } from "../types";
 
@@ -15,8 +16,6 @@ export const IncompletePersonFaceListRequest = z.object({
   minConfidence: z.number().optional(),
 });
 export type IncompletePersonFaceListRequest = z.infer<typeof IncompletePersonFaceListRequest>;
-
-export const IncompleteFacesQueryKeys = ["incompleteFaces"] as const;
 
 const fetchIncompleteFaces = (params: IncompletePersonFaceListRequest) => {
   const { inferred = false, method = "clustering", orderBy = "confidence", minConfidence } = params;
@@ -51,6 +50,6 @@ const fetchIncompleteFaces = (params: IncompletePersonFaceListRequest) => {
 
 export const useFetchIncompleteFacesQuery = (request: IncompletePersonFaceListRequest) =>
   useQuery({
-    queryKey: [...IncompleteFacesQueryKeys, request],
+    queryKey: faceKeys.incompleteList(request),
     queryFn: () => fetchIncompleteFaces(request),
   });

@@ -1,7 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { fetchClient, queryClient } from "../../api";
-import { UserAlbumQueryKeys } from "./useFetchUserAlbumQuery";
-import { UserAlbumsQueryKeys } from "./useFetchUserAlbumsQuery";
+import { photoGridKeys } from "../../photos/keys";
+import { albumKeys } from "../keys";
 
 export type PublicSharingOptions = {
   share_location?: boolean | null;
@@ -37,7 +37,7 @@ export const useToggleUserAlbumPublicMutation = () =>
       });
     },
     onSuccess: (_, { albumId }) => {
-      queryClient.invalidateQueries({ queryKey: [...UserAlbumsQueryKeys] });
-      queryClient.invalidateQueries({ queryKey: [...UserAlbumQueryKeys, albumId] });
+      queryClient.invalidateQueries({ queryKey: albumKeys.userAlbums() });
+      queryClient.invalidateQueries({ queryKey: photoGridKeys.userAlbum(albumId) });
     },
   });

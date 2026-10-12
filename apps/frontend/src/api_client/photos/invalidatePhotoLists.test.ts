@@ -1,39 +1,39 @@
 /**
  * Favouriting, hiding or trashing photos only refreshed the timeline queries,
- * so album, event, place, thing, tag, search and no-timestamp grids kept the
- * old stars and kept showing trashed photos until a reload.
+ * so album, event, place, thing, tag, search, no-timestamp and shared grids
+ * kept the old stars and kept showing trashed photos until a reload. Every
+ * grid now sits under photoGridKeys.all.
  */
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { QueryClient } from "@tanstack/react-query";
+import { describe, expect, it } from "vitest";
 import { invalidatePhotoLists } from "./invalidatePhotoLists";
-
-const stubs = vi.hoisted(() => ({
-  invalidateQueries: vi.fn<(filters: { queryKey: readonly unknown[] }) => void>(),
-}));
-
-vi.mock("../api", () => ({ queryClient: { invalidateQueries: stubs.invalidateQueries } }));
-
-afterEach(() => stubs.invalidateQueries.mockReset());
+import { photoGridKeys, photoKeys } from "./keys";
+import { Photoset } from "./types";
 
 describe("invalidatePhotoLists", () => {
-  it("refreshes every query that feeds a photo grid", () => {
-    invalidatePhotoLists();
+  it("marks every photo grid stale, and nothing else", () => {
+    const client = new QueryClient();
+    const grids = [
+      photoGridKeys.dateAlbumList([Photoset.FAVORITES, 3, "alice", "/photos", "videos", "media=photos"]),
+      photoGridKeys.dateAlbumDay([Photoset.NONE, undefined, undefined, undefined, "all", ""], "2024-01-01", 2),
+      photoGridKeys.recentlyAdded(),
+      photoGridKeys.userAlbumView("7", true, "alice", "photos"),
+      photoGridKeys.publicAlbum("summer"),
+      photoGridKeys.autoAlbum("8"),
+      photoGridKeys.placeAlbum("9", "all"),
+      photoGridKeys.thingsAlbum("10", "all"),
+      photoGridKeys.tagAlbumView("11", "all"),
+      photoGridKeys.search("beach", "all", "semantic"),
+      photoGridKeys.withoutTimestamp(1),
+      photoGridKeys.sharedByMe(),
+      photoGridKeys.sharedWithMe(),
+    ];
+    const details = photoKeys.detail("abc");
+    [...grids, details].forEach(queryKey => client.setQueryData(queryKey, []));
 
-    const prefixes = stubs.invalidateQueries.mock.calls.map(([filters]) => filters.queryKey[0]);
-    expect(prefixes).toEqual(
-      expect.arrayContaining([
-        "dateAlbums",
-        "dateAlbum",
-        "recentlyAddedPhotos",
-        "userAlbum",
-        "autoAlbum",
-        "placeAlbum",
-        "thingsAlbum",
-        "tagAlbum",
-        "searchPhotos",
-        "photosWithoutTimestamp",
-      ])
-    );
-    // Prefix keys only, so every page / filter variant of a grid is refreshed.
-    stubs.invalidateQueries.mock.calls.forEach(([filters]) => expect(filters.queryKey).toHaveLength(1));
+    invalidatePhotoLists(client);
+
+    grids.forEach(queryKey => expect(client.getQueryState(queryKey)?.isInvalidated, String(queryKey)).toBe(true));
+    expect(client.getQueryState(details)?.isInvalidated).toBe(false);
   });
 });

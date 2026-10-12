@@ -26,7 +26,6 @@ vi.mock("../../api_client/settings", () => ({
   useFetchTimezonesQuery: () => ({ data: ["UTC"] }),
 }));
 vi.mock("../../api_client/user/hooks", () => ({
-  UserSelfDetailsQueryKeys: ["user-self-details"],
   useFetchUserSelfDetailsQuery: () => ({ data: mocks.user }),
   useUpdateUserMutation: () => ({ mutate: mocks.mutate, isPending: false }),
 }));

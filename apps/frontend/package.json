@@ -100,6 +100,7 @@
     "@eslint-community/eslint-plugin-eslint-comments": "^4.8.1",
     "@eslint/js": "^10.0.0",
     "@ianvs/prettier-plugin-sort-imports": "^4.7.1",
+    "@tanstack/eslint-plugin-query": "5.104.1",
     "@tanstack/router-plugin": "^1.167.12",
     "@types/crypto-js": "4.2.2",
     "@types/d3-drag": "3.0.7",

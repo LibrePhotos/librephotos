@@ -1,12 +1,11 @@
 import { endpoints } from "@librephotos/api-client";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "../../api";
-
-export const RecentlyAddedPhotosQueryKeys = ["recentlyAddedPhotos"] as const;
+import { photoGridKeys } from "../keys";
 
 // Fetch recently added photos
 export const useFetchRecentlyAddedPhotosQuery = () =>
   useQuery({
-    queryKey: [...RecentlyAddedPhotosQueryKeys],
+    queryKey: photoGridKeys.recentlyAdded(),
     queryFn: () => endpoints.fetchRecentlyAddedPhotos(apiClient),
   });

@@ -1,11 +1,8 @@
 import { useMutation } from "@tanstack/react-query";
-import { DateAlbumQueryKeys } from "../../albums/hooks/useFetchDateAlbumQuery";
-import { DateAlbumsQueryKeys } from "../../albums/hooks/useFetchDateAlbumsQuery";
 import { fetchClient, queryClient } from "../../api";
-import { RecentlyAddedPhotosQueryKeys } from "../../photos/hooks/useFetchRecentlyAddedPhotosQuery";
-import { StorageStatsQueryKeys } from "../../server/hooks/useFetchStorageStatsQuery";
-import { CountStatsQueryKeys } from "../../stats/hooks/useFetchCountStatsQuery";
-import { PhotoMonthCountQueryKeys } from "../../stats/hooks/useFetchPhotoMonthCountQuery";
+import { photoGridKeys } from "../../photos/keys";
+import { serverKeys } from "../../server/keys";
+import { statsKeys } from "../../stats/keys";
 
 type UploadFinishedOptions = {
   formData: FormData;
@@ -15,16 +12,16 @@ type UploadFinishedOptions = {
 };
 
 export const invalidateUploadQueries = () => {
-  queryClient.invalidateQueries({ queryKey: [...RecentlyAddedPhotosQueryKeys] });
+  queryClient.invalidateQueries({ queryKey: photoGridKeys.recentlyAdded() });
   // Both the day list and the per-day photo pages: refetching only the list
   // replaced every day with temp placeholders that nothing re-requested (the
   // grid had already asked for those pages), so the timeline turned into
   // empty date headers after an upload.
-  queryClient.invalidateQueries({ queryKey: [...DateAlbumsQueryKeys] });
-  queryClient.invalidateQueries({ queryKey: [...DateAlbumQueryKeys] });
-  queryClient.invalidateQueries({ queryKey: [...CountStatsQueryKeys] });
-  queryClient.invalidateQueries({ queryKey: [...PhotoMonthCountQueryKeys] });
-  queryClient.invalidateQueries({ queryKey: [...StorageStatsQueryKeys] });
+  queryClient.invalidateQueries({ queryKey: photoGridKeys.kind("dateAlbums") });
+  queryClient.invalidateQueries({ queryKey: photoGridKeys.kind("dateAlbum") });
+  queryClient.invalidateQueries({ queryKey: statsKeys.counts() });
+  queryClient.invalidateQueries({ queryKey: statsKeys.photoMonthCounts() });
+  queryClient.invalidateQueries({ queryKey: serverKeys.storageStats() });
 };
 
 const uploadFinished = (options: UploadFinishedOptions) => fetchClient.post("/upload/complete/", options.formData);

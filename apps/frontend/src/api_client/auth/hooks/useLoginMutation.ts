@@ -5,7 +5,7 @@ import { notification } from "../../../service/notifications";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { ApiError, fetchClient } from "../../api";
 import { setAuthCookie } from "../../authCookies";
-import { IsAuthenticatedQueryKeys } from "./useIsAuthenticatedQuery";
+import { authKeys } from "../keys";
 
 type LoginPost = { username: string; password: string };
 
@@ -72,7 +72,7 @@ export const useLoginMutation = (options?: UseLoginOptions) => {
       // The cookies are set now. A "logged out" answer cached earlier in this
       // tab (sign-up, for one, never observes the query) would otherwise bounce
       // the protected shell back to /login until its refetch lands.
-      queryClient.setQueryData(IsAuthenticatedQueryKeys, true);
+      queryClient.setQueryData(authKeys.isAuthenticated(), true);
       queryClient.invalidateQueries();
       if (navigateOnSuccess && options?.redirectTo && isSameOriginPath(options.redirectTo)) {
         // As an href, so the query string of the page left behind survives

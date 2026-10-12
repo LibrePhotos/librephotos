@@ -2,12 +2,11 @@ import { endpoints } from "@librephotos/api-client";
 import { useQuery } from "@tanstack/react-query";
 import { mediaTypeToBulkQuery, type MediaType } from "../../../components/photolist/mediaTypeFilter";
 import { apiClient } from "../../api";
-
-export const PlaceAlbumQueryKeys = ["placeAlbum"] as const;
+import { photoGridKeys } from "../../photos/keys";
 
 export const useFetchPlaceAlbumQuery = (albumId: string, mediaType?: MediaType) =>
   useQuery({
-    queryKey: [...PlaceAlbumQueryKeys, albumId, mediaType ?? "all"],
+    queryKey: photoGridKeys.placeAlbum(albumId, mediaType ?? "all"),
     queryFn: () => endpoints.fetchPlaceAlbum(apiClient, albumId, mediaTypeToBulkQuery(mediaType)),
     enabled: !!albumId,
   });

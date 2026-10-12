@@ -2,14 +2,12 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient, queryClient } from "../../api";
+import { settingsKeys } from "../keys";
 import { EmailConfig } from "../types";
-import { SiteSettingsQueryKeys } from "./useGetSettingsQuery";
-
-const EmailConfigQueryKeys = ["emailConfig"] as const;
 
 export const useGetEmailConfigQuery = () =>
   useQuery({
-    queryKey: [...EmailConfigQueryKeys],
+    queryKey: settingsKeys.emailConfig(),
     queryFn: async () => {
       const response = await fetchClient.get("/email-config/");
       return parseWithNotification(EmailConfig, response, "Failed to parse email configuration");
@@ -35,9 +33,9 @@ export const useUpdateEmailConfigMutation = () =>
       return parseWithNotification(EmailConfig, response, "Failed to parse email configuration response");
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [...EmailConfigQueryKeys] });
+      queryClient.invalidateQueries({ queryKey: settingsKeys.emailConfig() });
       // The forgot-password link visibility depends on email_configured.
-      queryClient.invalidateQueries({ queryKey: [...SiteSettingsQueryKeys] });
+      queryClient.invalidateQueries({ queryKey: settingsKeys.site() });
     },
   });
 

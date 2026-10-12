@@ -1,8 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { fetchClient } from "../../api";
+import { authKeys } from "../keys";
 import type { SsoConfig } from "../types";
-
-const SsoConfigQueryKeys = ["ssoConfig"] as const;
 
 /**
  * What the login screen needs to know about single sign-on: whether to offer it,
@@ -11,7 +10,7 @@ const SsoConfigQueryKeys = ["ssoConfig"] as const;
  */
 export const useSsoConfigQuery = () =>
   useQuery({
-    queryKey: [SsoConfigQueryKeys],
+    queryKey: authKeys.ssoConfig(),
     queryFn: () => fetchClient.get<SsoConfig>("/auth/sso/config/"),
     // Providers change only when an admin reconfigures them, and a failure here
     // must never keep the password form from rendering.

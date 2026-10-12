@@ -46,7 +46,6 @@ vi.mock("../api_client/settings/hooks/useUpdateSettingsMutation", () => ({
 }));
 vi.mock("../api_client/user/hooks", () => ({
   useCurrentUserSelfDetailsQuery: () => ({ data: undefined }),
-  UserListQueryKeys: ["users"],
   useUpdateUserScanDirectoryMutation: () => stubs.noopMutation,
 }));
 vi.mock("../components/setup/DirectoryPicker", () => ({ DirectoryPicker: () => null }));

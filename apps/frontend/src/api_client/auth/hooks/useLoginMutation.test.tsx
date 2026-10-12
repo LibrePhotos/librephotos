@@ -7,6 +7,7 @@ import React, { act, useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../../api";
+import { authKeys } from "../keys";
 import { isBackendUnreachable, useLoginMutation } from "./useLoginMutation";
 
 const stubs = vi.hoisted(() => ({
@@ -96,13 +97,13 @@ describe("useLoginMutation", () => {
   it("marks the session signed in before going home", async () => {
     stubs.post.mockResolvedValue({ access: "access-token", refresh: "refresh-token" });
     const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
-    client.setQueryData(["isAuthenticated"], false);
+    client.setQueryData(authKeys.isAuthenticated(), false);
 
     await logIn(client);
 
     expect(stubs.setAuthCookie).toHaveBeenCalledWith("access", "access-token");
     expect(stubs.setAuthCookie).toHaveBeenCalledWith("refresh", "refresh-token");
-    expect(client.getQueryData(["isAuthenticated"])).toBe(true);
+    expect(client.getQueryData(authKeys.isAuthenticated())).toBe(true);
     expect(stubs.navigate).toHaveBeenCalledWith({ to: "/" });
     expect(stubs.backendUnreachable).not.toHaveBeenCalled();
   });

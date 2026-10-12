@@ -3,8 +3,7 @@ import { z } from "zod";
 import { notification } from "../../../service/notifications";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient, queryClient } from "../../api";
-import { SearchPhotosQueryKeys } from "../../search/hooks/useSearchPhotosQuery";
-import { PhotoDetailsQueryKeys } from "./useFetchPhotoDetailsQuery";
+import { photoGridKeys, photoKeys } from "../keys";
 
 const StatusResponse = z.object({
   status: z.boolean(),
@@ -19,7 +18,7 @@ export const useSavePhotoCaptionMutation = () =>
       notification.savePhotoCaptions();
     },
     onSuccess: (_, { id }) => {
-      queryClient.invalidateQueries({ queryKey: [...PhotoDetailsQueryKeys, id] });
-      queryClient.invalidateQueries({ queryKey: [...SearchPhotosQueryKeys] });
+      queryClient.invalidateQueries({ queryKey: photoKeys.detail(id) });
+      queryClient.invalidateQueries({ queryKey: photoGridKeys.kind("search") });
     },
   });

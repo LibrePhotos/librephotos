@@ -3,7 +3,7 @@ import { serviceLabel } from "../../../components/settings/serviceLabel";
 import i18n from "../../../i18n";
 import { notification } from "../../../service/notifications";
 import { fetchClient, queryClient } from "../../api";
-import { ServiceHealthQueryKeys } from "./useServicesQuery";
+import { serviceKeys } from "../keys";
 
 type ServiceAction = {
   serviceName: string;
@@ -18,7 +18,7 @@ export const useServiceActionMutation = () =>
     },
     onSuccess: data => {
       notification.serviceActionSuccess(data.message);
-      queryClient.invalidateQueries({ queryKey: [...ServiceHealthQueryKeys] });
+      queryClient.invalidateQueries({ queryKey: serviceKeys.healths() });
     },
     onError: (_error, variables) => {
       notification.requestFailed(

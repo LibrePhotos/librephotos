@@ -2,9 +2,8 @@ import { pollWhile } from "@librephotos/api-client";
 import { useQuery } from "@tanstack/react-query";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient } from "../../api";
+import { jobKeys } from "../keys";
 import { WorkerAvailabilityResponse } from "../types";
-
-export const WorkerQueryKeys = ["worker"] as const;
 
 type UseWorkerQueryOptions = {
   enabled?: boolean;
@@ -12,7 +11,7 @@ type UseWorkerQueryOptions = {
 
 export const useWorkerQuery = (options: UseWorkerQueryOptions = {}) =>
   useQuery({
-    queryKey: [...WorkerQueryKeys],
+    queryKey: jobKeys.worker(),
     queryFn: async () => {
       const response = await fetchClient.get("/rqavailable/");
       return parseWithNotification(WorkerAvailabilityResponse, response, "Failed to parse worker availability");

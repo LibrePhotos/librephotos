@@ -3,11 +3,10 @@ import { z } from "zod";
 import { notification } from "../../../service/notifications";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient, queryClient } from "../../api";
-import { CountStatsQueryKeys } from "../../stats/hooks/useFetchCountStatsQuery";
-import { PhotoMonthCountQueryKeys } from "../../stats/hooks/useFetchPhotoMonthCountQuery";
+import { statsKeys } from "../../stats/keys";
 import { invalidatePhotoLists } from "../invalidatePhotoLists";
+import { photoKeys } from "../keys";
 import type { BulkPhotoQuery } from "../types";
-import { PhotoDetailsQueryKeys } from "./useFetchPhotoDetailsQuery";
 
 const DeletePhotosResponse = z.object({
   status: z.boolean(),
@@ -55,10 +54,10 @@ export const useMarkPhotosDeletedMutation = () =>
       return data;
     },
     onSuccess: () => {
-      invalidatePhotoLists();
+      invalidatePhotoLists(queryClient);
       // Cached details hold in_trashcan, which drives the lightbox's Delete/Restore toggle.
-      queryClient.invalidateQueries({ queryKey: [...PhotoDetailsQueryKeys] });
-      queryClient.invalidateQueries({ queryKey: [...CountStatsQueryKeys] });
-      queryClient.invalidateQueries({ queryKey: [...PhotoMonthCountQueryKeys] });
+      queryClient.invalidateQueries({ queryKey: photoKeys.details() });
+      queryClient.invalidateQueries({ queryKey: statsKeys.counts() });
+      queryClient.invalidateQueries({ queryKey: statsKeys.photoMonthCounts() });
     },
   });

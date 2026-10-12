@@ -7,30 +7,58 @@
   "src/api_client/albums/hooks/useAddPhotoToUserAlbumMutation.ts": {
     "@typescript-eslint/no-floating-promises": {
       "count": 2
+    },
+    "ban/query-client-singleton": {
+      "count": 1
     }
   },
   "src/api_client/albums/hooks/useCreateUserAlbumMutation.ts": {
     "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    },
+    "ban/query-client-singleton": {
       "count": 1
     }
   },
   "src/api_client/albums/hooks/useDeleteAllAutoAlbumsMutation.ts": {
     "@typescript-eslint/no-floating-promises": {
       "count": 2
+    },
+    "ban/query-client-singleton": {
+      "count": 1
     }
   },
   "src/api_client/albums/hooks/useDeleteAutoAlbumMutation.ts": {
     "@typescript-eslint/no-floating-promises": {
       "count": 2
+    },
+    "ban/query-client-singleton": {
+      "count": 1
     }
   },
   "src/api_client/albums/hooks/useDeletePersonAlbumMutation.ts": {
     "@typescript-eslint/no-floating-promises": {
       "count": 4
+    },
+    "ban/query-client-singleton": {
+      "count": 1
     }
   },
   "src/api_client/albums/hooks/useDeleteUserAlbumMutation.ts": {
     "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    },
+    "ban/query-client-singleton": {
+      "count": 1
+    }
+  },
+  "src/api_client/albums/hooks/useFetchDateAlbumQuery.ts": {
+    "ban/query-client-singleton": {
+      "count": 1
+    }
+  },
+  "src/api_client/albums/hooks/useFetchDateAlbumsQuery.ts": {
+    "ban/query-client-singleton": {
       "count": 1
     }
   },
@@ -42,45 +70,72 @@
   "src/api_client/albums/hooks/useRemovePhotoFromUserAlbumMutation.ts": {
     "@typescript-eslint/no-floating-promises": {
       "count": 2
+    },
+    "ban/query-client-singleton": {
+      "count": 1
     }
   },
   "src/api_client/albums/hooks/useRenamePersonAlbumMutation.ts": {
     "@typescript-eslint/no-floating-promises": {
       "count": 4
+    },
+    "ban/query-client-singleton": {
+      "count": 1
     }
   },
   "src/api_client/albums/hooks/useRenameUserAlbumMutation.ts": {
     "@typescript-eslint/no-floating-promises": {
       "count": 2
+    },
+    "ban/query-client-singleton": {
+      "count": 1
     }
   },
   "src/api_client/albums/hooks/useSetPersonAlbumCoverMutation.ts": {
     "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    },
+    "ban/query-client-singleton": {
       "count": 1
     }
   },
   "src/api_client/albums/hooks/useSetUserAlbumCoverMutation.ts": {
     "@typescript-eslint/no-floating-promises": {
       "count": 1
+    },
+    "ban/query-client-singleton": {
+      "count": 1
     }
   },
   "src/api_client/albums/hooks/useShareUserAlbumMutation.ts": {
     "@typescript-eslint/no-floating-promises": {
       "count": 4
+    },
+    "ban/query-client-singleton": {
+      "count": 1
     }
   },
   "src/api_client/albums/hooks/useToggleUserAlbumLockedMutation.ts": {
     "@typescript-eslint/no-floating-promises": {
       "count": 2
+    },
+    "ban/query-client-singleton": {
+      "count": 1
     }
   },
   "src/api_client/albums/hooks/useToggleUserAlbumPublicMutation.ts": {
     "@typescript-eslint/no-floating-promises": {
       "count": 2
+    },
+    "ban/query-client-singleton": {
+      "count": 1
     }
   },
   "src/api_client/albums/invalidatePlaces.ts": {
     "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    },
+    "ban/query-client-singleton": {
       "count": 1
     }
   },
@@ -97,6 +152,9 @@
   "src/api_client/auth/hooks/useSignUpMutation.ts": {
     "@typescript-eslint/no-floating-promises": {
       "count": 2
+    },
+    "ban/query-client-singleton": {
+      "count": 1
     }
   },
   "src/api_client/duplicates/hooks.ts": {
@@ -104,54 +162,109 @@
       "count": 13
     }
   },
+  "src/api_client/faces/hooks/useAddFaceMutation.ts": {
+    "ban/query-client-singleton": {
+      "count": 1
+    }
+  },
+  "src/api_client/faces/hooks/useDeleteFacesMutation.ts": {
+    "ban/query-client-singleton": {
+      "count": 1
+    }
+  },
+  "src/api_client/faces/hooks/useSetFacesPersonLabelMutation.ts": {
+    "ban/query-client-singleton": {
+      "count": 1
+    }
+  },
+  "src/api_client/faces/hooks/useTrainFacesMutation.ts": {
+    "ban/query-client-singleton": {
+      "count": 1
+    }
+  },
   "src/api_client/jobs/hooks/useCancelJobMutation.ts": {
     "@typescript-eslint/no-floating-promises": {
       "count": 2
+    },
+    "ban/query-client-singleton": {
+      "count": 1
     }
   },
   "src/api_client/jobs/hooks/useDeleteJobMutation.ts": {
     "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    },
+    "ban/query-client-singleton": {
       "count": 1
     }
   },
   "src/api_client/jobs/hooks/useGenerateAutoAlbumsMutation.ts": {
     "@typescript-eslint/no-floating-promises": {
       "count": 1
+    },
+    "ban/query-client-singleton": {
+      "count": 1
     }
   },
   "src/api_client/jobs/hooks/useGenerateOcrMutation.ts": {
     "@typescript-eslint/no-floating-promises": {
       "count": 3
+    },
+    "ban/query-client-singleton": {
+      "count": 1
     }
   },
   "src/api_client/jobs/hooks/useRescanPhotosMutation.ts": {
     "@typescript-eslint/no-floating-promises": {
       "count": 7
+    },
+    "ban/query-client-singleton": {
+      "count": 1
     }
   },
   "src/api_client/jobs/hooks/useScanNextcloudPhotosMutation.ts": {
     "@typescript-eslint/no-floating-promises": {
       "count": 7
+    },
+    "ban/query-client-singleton": {
+      "count": 1
     }
   },
   "src/api_client/jobs/hooks/useScanPhotosMutation.ts": {
     "@typescript-eslint/no-floating-promises": {
       "count": 7
+    },
+    "ban/query-client-singleton": {
+      "count": 1
+    }
+  },
+  "src/api_client/jobs/startJob.ts": {
+    "ban/query-client-singleton": {
+      "count": 1
     }
   },
   "src/api_client/photos/hooks/useDeleteMissingPhotosMutation.ts": {
     "@typescript-eslint/no-floating-promises": {
       "count": 6
+    },
+    "ban/query-client-singleton": {
+      "count": 1
     }
   },
   "src/api_client/photos/hooks/useGenerateImageToTextCaptionMutation.ts": {
     "@typescript-eslint/no-floating-promises": {
       "count": 2
+    },
+    "ban/query-client-singleton": {
+      "count": 1
     }
   },
   "src/api_client/photos/hooks/useMarkPhotosDeletedMutation.ts": {
     "@typescript-eslint/no-floating-promises": {
       "count": 3
+    },
+    "ban/query-client-singleton": {
+      "count": 1
     }
   },
   "src/api_client/photos/hooks/usePhotoMetadataMutations.ts": {
@@ -162,111 +275,166 @@
   "src/api_client/photos/hooks/usePhotoShareMutation.ts": {
     "@typescript-eslint/no-floating-promises": {
       "count": 1
+    },
+    "ban/query-client-singleton": {
+      "count": 1
     }
   },
   "src/api_client/photos/hooks/usePurgeDeletedPhotosMutation.ts": {
     "@typescript-eslint/no-floating-promises": {
       "count": 7
+    },
+    "ban/query-client-singleton": {
+      "count": 1
     }
   },
   "src/api_client/photos/hooks/useRotatePhotosMutation.ts": {
     "@typescript-eslint/no-floating-promises": {
       "count": 4
+    },
+    "ban/query-client-singleton": {
+      "count": 1
     }
   },
   "src/api_client/photos/hooks/useSavePhotoCaptionMutation.ts": {
     "@typescript-eslint/no-floating-promises": {
       "count": 2
+    },
+    "ban/query-client-singleton": {
+      "count": 1
     }
   },
   "src/api_client/photos/hooks/useSetFavoritePhotosMutation.ts": {
     "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    },
+    "ban/query-client-singleton": {
       "count": 1
     }
   },
   "src/api_client/photos/hooks/useSetPhotosCategoryMutation.ts": {
     "@typescript-eslint/no-floating-promises": {
       "count": 4
+    },
+    "ban/query-client-singleton": {
+      "count": 1
     }
   },
   "src/api_client/photos/hooks/useSetPhotosHiddenMutation.ts": {
     "@typescript-eslint/no-floating-promises": {
       "count": 4
+    },
+    "ban/query-client-singleton": {
+      "count": 1
     }
   },
   "src/api_client/photos/hooks/useSetPhotosPublicMutation.ts": {
     "@typescript-eslint/no-floating-promises": {
       "count": 4
+    },
+    "ban/query-client-singleton": {
+      "count": 1
     }
   },
   "src/api_client/photos/hooks/useUpdatePhotoMutation.ts": {
     "@typescript-eslint/no-floating-promises": {
       "count": 2
+    },
+    "ban/query-client-singleton": {
+      "count": 1
     }
   },
   "src/api_client/photos/hooks/useUpdatePhotoSharingMutation.ts": {
     "@typescript-eslint/no-floating-promises": {
       "count": 3
-    }
-  },
-  "src/api_client/photos/invalidatePhotoLists.ts": {
-    "@typescript-eslint/no-floating-promises": {
+    },
+    "ban/query-client-singleton": {
       "count": 1
     }
   },
   "src/api_client/services/hooks/useServiceActionMutation.ts": {
     "@typescript-eslint/no-floating-promises": {
       "count": 1
+    },
+    "ban/query-client-singleton": {
+      "count": 1
     }
   },
   "src/api_client/settings/hooks/useEmailConfig.ts": {
     "@typescript-eslint/no-floating-promises": {
       "count": 2
+    },
+    "ban/query-client-singleton": {
+      "count": 1
     }
   },
   "src/api_client/settings/hooks/useUpdateSettingsMutation.ts": {
     "@typescript-eslint/no-floating-promises": {
       "count": 1
+    },
+    "ban/query-client-singleton": {
+      "count": 1
     }
   },
   "src/api_client/stacks/hooks.ts": {
     "@typescript-eslint/no-floating-promises": {
-      "count": 15
+      "count": 13
     }
   },
   "src/api_client/tags/hooks/useCreateTagMutation.ts": {
     "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    },
+    "ban/query-client-singleton": {
       "count": 1
     }
   },
   "src/api_client/tags/hooks/useDeleteTagMutation.ts": {
     "@typescript-eslint/no-floating-promises": {
       "count": 1
+    },
+    "ban/query-client-singleton": {
+      "count": 1
     }
   },
   "src/api_client/tags/hooks/useMergeTagsMutation.ts": {
     "@typescript-eslint/no-floating-promises": {
       "count": 2
+    },
+    "ban/query-client-singleton": {
+      "count": 1
     }
   },
   "src/api_client/tags/hooks/useRenameTagMutation.ts": {
     "@typescript-eslint/no-floating-promises": {
       "count": 2
+    },
+    "ban/query-client-singleton": {
+      "count": 1
     }
   },
   "src/api_client/tags/hooks/useTagPhotosByNameMutation.ts": {
     "@typescript-eslint/no-floating-promises": {
       "count": 2
+    },
+    "ban/query-client-singleton": {
+      "count": 1
     }
   },
   "src/api_client/tags/hooks/useTagPhotosMutations.ts": {
     "@typescript-eslint/no-floating-promises": {
       "count": 4
+    },
+    "ban/query-client-singleton": {
+      "count": 1
     }
   },
   "src/api_client/upload/hooks/useUploadFinishedMutation.ts": {
     "@typescript-eslint/no-floating-promises": {
       "count": 6
+    },
+    "ban/query-client-singleton": {
+      "count": 1
     }
   },
   "src/api_client/user/hooks/useDeleteUserMutation.ts": {
@@ -282,16 +450,25 @@
   "src/api_client/user/hooks/useSaveDefaultTimelineFilterMutation.ts": {
     "@typescript-eslint/no-floating-promises": {
       "count": 1
+    },
+    "ban/query-client-singleton": {
+      "count": 1
     }
   },
   "src/api_client/user/hooks/useUpdateAvatarMutation.ts": {
     "@typescript-eslint/no-floating-promises": {
       "count": 2
+    },
+    "ban/query-client-singleton": {
+      "count": 1
     }
   },
   "src/api_client/user/hooks/useUpdateUserMutation.ts": {
     "@typescript-eslint/no-floating-promises": {
       "count": 3
+    },
+    "ban/query-client-singleton": {
+      "count": 1
     }
   },
   "src/api_client/user/hooks/useUpdateUserScanDirectoryMutation.ts": {
@@ -341,6 +518,9 @@
   },
   "src/components/facedashboard/hooks/useFaceDataFetching.ts": {
     "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    },
+    "ban/query-client-singleton": {
       "count": 1
     }
   },
@@ -463,6 +643,9 @@
   },
   "src/components/settings/ServiceList.tsx": {
     "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    },
+    "ban/query-client-singleton": {
       "count": 1
     }
   },

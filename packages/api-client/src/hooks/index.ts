@@ -201,13 +201,18 @@ export function usePeopleAlbumsQuery() {
 
 /* ---- search ------------------------------------------------------------ */
 
-export function useSearchPhotosQuery(searchTerm: string, semantic = false) {
-  const client = useApiClient();
-  return useQuery({
-    queryKey: queryKeys.searchPhotos(searchTerm),
+/** A photo search. A semantic search answers with a flat list, a plain one with date groups. */
+export function searchPhotosQueryOptions(client: ApiClient, searchTerm: string, semantic = false) {
+  return queryOptions({
+    queryKey: queryKeys.searchPhotos(searchTerm, semantic),
     queryFn: () => endpoints.searchPhotos(client, searchTerm, semantic),
     enabled: searchTerm.length > 0,
   });
+}
+
+export function useSearchPhotosQuery(searchTerm: string, semantic = false) {
+  const client = useApiClient();
+  return useQuery(searchPhotosQueryOptions(client, searchTerm, semantic));
 }
 
 /* ---- settings / jobs --------------------------------------------------- */
@@ -228,9 +233,11 @@ export function jobsQueryOptions(
   client: ApiClient,
   options: { page?: number; pageSize?: number; enabled?: boolean } = {}
 ) {
+  const page = options.page ?? 1;
+  const pageSize = options.pageSize ?? 20;
   return queryOptions({
-    queryKey: queryKeys.jobs(),
-    queryFn: () => endpoints.fetchJobs(client, options.page ?? 1, options.pageSize ?? 20),
+    queryKey: queryKeys.jobList(page, pageSize),
+    queryFn: () => endpoints.fetchJobs(client, page, pageSize),
     refetchInterval: jobListRefetchInterval,
     enabled: options.enabled ?? true,
   });
@@ -304,9 +311,11 @@ export function useSharedAlbumsWithMeQuery(enabled = true) {
 
 export function useFacesQuery(params: { person?: number; inferred?: boolean; page?: number } = {}, enabled = true) {
   const client = useApiClient();
+  // Only the values in the key go to the request (fetchFaces has the same defaults).
+  const { person = 0, inferred = false, page = 1 } = params;
   return useQuery({
-    queryKey: queryKeys.faces(params.person ?? 0, params.inferred ?? false, params.page ?? 1),
-    queryFn: () => endpoints.fetchFaces(client, params),
+    queryKey: queryKeys.faces(person, inferred, page),
+    queryFn: () => endpoints.fetchFaces(client, { person, inferred, page }),
     enabled,
   });
 }

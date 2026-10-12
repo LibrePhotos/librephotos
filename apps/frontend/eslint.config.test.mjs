@@ -22,7 +22,9 @@ const planted = {
   "react-pig": `import { Pig } from "../react-pig";`,
   "react-virtual": `import { useVirtualizer } from "@tanstack/react-virtual";`,
   "virtual-grid": `import { VirtualGrid } from "../virtual/VirtualGrid";`,
+  "query-client-singleton": `import { queryClient } from "../../api_client/api";`,
   "tile-index": `const plantedIndex = rowIndex * columns + columnIndex;`,
+  "query-key-literal": `const plantedQuery = { queryKey: ["photoDetails", hash] };`,
   "untyped-mock": `const plantedMock = vi.fn();`,
   "open-state": `const [modalOpen, setModalOpen] = useState(false);`,
   "route-modal": `const plantedDialog = <Modal opened onClose={close} />;`,
@@ -163,8 +165,59 @@ describe("eslint.config.mjs convention bans", () => {
     ["src/components/album/AlbumGrid.tsx", "tile-index", true],
     ["src/routes/signup.tsx", "form-validate-object", true],
     ["src/components/modals/ModalUserEdit.test.tsx", "form-validate-object", true],
+    ["src/api_client/api.ts", "query-client-singleton", false],
+    ["src/index.tsx", "query-client-singleton", false],
+    ["src/api_client/photos/hooks/useSample.ts", "query-client-singleton", true],
+    ["src/components/sample.ts", "query-key-literal", true],
+    ["src/api_client/photos/keys.ts", "query-key-literal", true],
   ])("%s: ban/%s fires = %s", async (file, id, fires) => {
     const fired = await firedBans(planted[id], file);
     expect(fired.has(`ban/${id}`)).toBe(fires);
+  });
+});
+
+// The React Query rules (exhaustive-deps from @tanstack/eslint-plugin-query, and the key-literal and
+// singleton bans) on the shapes this app uses: keys from a factory call, the singleton by any path.
+describe("eslint.config.mjs React Query rules", () => {
+  const queryLint = new ESLint({
+    cwd,
+    overrideConfig: { languageOptions: { parserOptions: { project: null } } },
+    ruleFilter: ({ ruleId }) => ruleId.startsWith("@tanstack/query/") || ruleId.startsWith("ban/query-"),
+  });
+  const lint = async code => {
+    const [result] = await queryLint.lintText(
+      `import { useQuery } from "@tanstack/react-query";
+import { photoKeys } from "../keys";
+${code}`,
+      { filePath: path.join(cwd, "src/api_client/photos/hooks/useSample.ts") }
+    );
+    return result.messages.map(message => message.ruleId);
+  };
+
+  it("reports a queryFn value missing from a factory-built key", async () => {
+    const code = `export const useSample = (hash: string, size: number) =>
+  useQuery({ queryKey: photoKeys.detail(hash), queryFn: () => fetchPhoto(hash, size) });`;
+    expect(await lint(code)).toContain("@tanstack/query/exhaustive-deps");
+  });
+
+  it("accepts a factory-built key that holds every value the queryFn reads", async () => {
+    const code = `export const useSample = (hash: string) =>
+  useQuery({ queryKey: photoKeys.detail(hash), queryFn: () => fetchPhoto(hash) });`;
+    expect(await lint(code)).toEqual([]);
+  });
+
+  it("reports a literal key, in a query and in a cache read", async () => {
+    expect(await lint(`useQuery({ queryKey: ["photoDetails", hash], queryFn: () => fetchPhoto(hash) });`)).toContain(
+      "ban/query-key-literal"
+    );
+    expect(await lint(`client.getQueryData(["photoDetails", hash]);`)).toContain("ban/query-key-literal");
+  });
+
+  it.each(["../../api", "../api", "../../../api_client/api"])("reports the singleton imported from %s", async from => {
+    expect(await lint(`import { queryClient } from "${from}";`)).toContain("ban/query-client-singleton");
+  });
+
+  it("allows other imports from the API module", async () => {
+    expect(await lint(`import { fetchClient } from "../../api";`)).toEqual([]);
   });
 });

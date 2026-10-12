@@ -1,13 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient } from "../../api";
+import { settingsKeys } from "../keys";
 import { Timezones } from "../types";
-
-const TimezonesQueryKeys = ["timezones"] as const;
 
 export const useFetchTimezonesQuery = () =>
   useQuery({
-    queryKey: [...TimezonesQueryKeys],
+    queryKey: settingsKeys.timezones(),
     queryFn: async () => {
       const response = await fetchClient.get<string>("/timezones/");
       try {

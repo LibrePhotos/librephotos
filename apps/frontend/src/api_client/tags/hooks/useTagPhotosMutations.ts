@@ -1,9 +1,9 @@
 import { useMutation } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
 import { fetchClient, queryClient } from "../../api";
+import { photoGridKeys } from "../../photos/keys";
+import { tagKeys } from "../keys";
 import type { TagPhotosParams } from "../types";
-import { TagAlbumQueryKeys } from "./useFetchTagAlbumQuery";
-import { TagsQueryKeys } from "./useFetchTagsQuery";
 
 export const useAddPhotosToTagMutation = () =>
   useMutation({
@@ -12,8 +12,8 @@ export const useAddPhotosToTagMutation = () =>
       notification.addPhotosToTag(name, photos.length);
     },
     onSuccess: (_, { id }) => {
-      queryClient.invalidateQueries({ queryKey: [...TagsQueryKeys] });
-      queryClient.invalidateQueries({ queryKey: [...TagAlbumQueryKeys, `${id}`] });
+      queryClient.invalidateQueries({ queryKey: tagKeys.all });
+      queryClient.invalidateQueries({ queryKey: photoGridKeys.tagAlbum(String(id)) });
     },
   });
 
@@ -24,7 +24,7 @@ export const useRemovePhotosFromTagMutation = () =>
       notification.removePhotosFromTag(name, photos.length);
     },
     onSuccess: (_, { id }) => {
-      queryClient.invalidateQueries({ queryKey: [...TagsQueryKeys] });
-      queryClient.invalidateQueries({ queryKey: [...TagAlbumQueryKeys, `${id}`] });
+      queryClient.invalidateQueries({ queryKey: tagKeys.all });
+      queryClient.invalidateQueries({ queryKey: photoGridKeys.tagAlbum(String(id)) });
     },
   });

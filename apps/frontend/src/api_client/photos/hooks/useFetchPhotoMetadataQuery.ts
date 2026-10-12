@@ -4,6 +4,7 @@
 
 import type { UseQueryOptions } from "@tanstack/react-query";
 import { skipToken, useQuery } from "@tanstack/react-query";
+import { photoKeys } from "../keys";
 import { fetchPhotoMetadata } from "../metadata";
 import type { PhotoMetadata } from "../types";
 
@@ -19,7 +20,7 @@ export function useFetchPhotoMetadataQuery(
   return useQuery({
     // Goes through the api_client function so the response is validated against
     // the PhotoMetadata schema instead of being blind-cast.
-    queryKey: ["photoMetadata", photoId],
+    queryKey: photoKeys.metadata(photoId),
     queryFn: photoId ? () => fetchPhotoMetadata(photoId) : skipToken,
     enabled: !!photoId,
     staleTime: 30 * 1000, // 30 seconds - metadata changes rarely

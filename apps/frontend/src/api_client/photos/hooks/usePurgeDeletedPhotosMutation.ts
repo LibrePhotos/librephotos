@@ -2,15 +2,12 @@ import { useMutation } from "@tanstack/react-query";
 import { z } from "zod";
 import { notification } from "../../../service/notifications";
 import { parseWithNotification } from "../../../util/zodUtils";
-import { DateAlbumQueryKeys } from "../../albums/hooks/useFetchDateAlbumQuery";
-import { DateAlbumsQueryKeys } from "../../albums/hooks/useFetchDateAlbumsQuery";
 import { fetchClient, queryClient } from "../../api";
-import { DuplicatesQueryKeys } from "../../duplicates/hooks";
-import { StorageStatsQueryKeys } from "../../server/hooks/useFetchStorageStatsQuery";
-import { CountStatsQueryKeys } from "../../stats/hooks/useFetchCountStatsQuery";
-import { PhotoMonthCountQueryKeys } from "../../stats/hooks/useFetchPhotoMonthCountQuery";
+import { duplicateKeys } from "../../duplicates/keys";
+import { serverKeys } from "../../server/keys";
+import { statsKeys } from "../../stats/keys";
+import { photoGridKeys } from "../keys";
 import type { BulkPhotoQuery } from "../types";
-import { RecentlyAddedPhotosQueryKeys } from "./useFetchRecentlyAddedPhotosQuery";
 
 // Request type for individual photo hashes
 type IndividualRequest = {
@@ -52,12 +49,12 @@ export const usePurgeDeletedPhotosMutation = () =>
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [...DateAlbumsQueryKeys] });
-      queryClient.invalidateQueries({ queryKey: [...DateAlbumQueryKeys] });
-      queryClient.invalidateQueries({ queryKey: [...RecentlyAddedPhotosQueryKeys] });
-      queryClient.invalidateQueries({ queryKey: [...CountStatsQueryKeys] });
-      queryClient.invalidateQueries({ queryKey: [...PhotoMonthCountQueryKeys] });
-      queryClient.invalidateQueries({ queryKey: [...StorageStatsQueryKeys] });
-      queryClient.invalidateQueries({ queryKey: DuplicatesQueryKeys.all });
+      queryClient.invalidateQueries({ queryKey: photoGridKeys.kind("dateAlbums") });
+      queryClient.invalidateQueries({ queryKey: photoGridKeys.kind("dateAlbum") });
+      queryClient.invalidateQueries({ queryKey: photoGridKeys.recentlyAdded() });
+      queryClient.invalidateQueries({ queryKey: statsKeys.counts() });
+      queryClient.invalidateQueries({ queryKey: statsKeys.photoMonthCounts() });
+      queryClient.invalidateQueries({ queryKey: serverKeys.storageStats() });
+      queryClient.invalidateQueries({ queryKey: duplicateKeys.all });
     },
   });

@@ -2,13 +2,14 @@ import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { queryClient } from "../../../api_client/api";
-import { FacesQueryKeys, FacesTab, IncompleteFacesQueryKeys } from "../../../api_client/faces";
+import { FacesTab } from "../../../api_client/faces";
 import type {
   CompletePersonFaceList,
   IncompletePersonFaceListRequest,
   PersonFaceList,
   PersonFaceListRequest,
 } from "../../../api_client/faces";
+import { faceKeys } from "../../../api_client/faces/keys";
 import { defined } from "../../../util/defined.test-utils";
 import { useFaceDataFetching } from "./useFaceDataFetching";
 
@@ -30,8 +31,13 @@ vi.mock("../../../api_client/faces", async importOriginal => {
 });
 
 const PERSON_ID = 42;
-const INFERRED_PARAMS = { inferred: true, method: "clustering", orderBy: "confidence", minConfidence: 0 };
-const INFERRED_KEY = [...IncompleteFacesQueryKeys, INFERRED_PARAMS];
+const INFERRED_PARAMS: IncompletePersonFaceListRequest = {
+  inferred: true,
+  method: "clustering",
+  orderBy: "confidence",
+  minConfidence: 0,
+};
+const INFERRED_KEY = faceKeys.incompleteList(INFERRED_PARAMS);
 
 type Group = { page: number; person: number; inferred: boolean; method: "clustering" };
 
@@ -154,7 +160,7 @@ describe("useFaceDataFetching", () => {
     // What a tagging mutation does: invalidate the face pages, then refetch the
     // incomplete list, which comes back as placeholders again.
     await act(async () => {
-      void queryClient.invalidateQueries({ queryKey: FacesQueryKeys });
+      void queryClient.invalidateQueries({ queryKey: faceKeys.personFaces() });
       seedPerson(150);
       isFetchingLists = true;
     });

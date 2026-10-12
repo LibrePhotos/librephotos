@@ -4,11 +4,8 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { queryClient } from "../../api_client/api";
 import { useServiceActionMutation } from "../../api_client/services/hooks/useServiceActionMutation";
-import {
-  ServiceHealthQueryKeys,
-  useServicesHealthQuery,
-  useServicesListQuery,
-} from "../../api_client/services/hooks/useServicesQuery";
+import { useServicesHealthQuery, useServicesListQuery } from "../../api_client/services/hooks/useServicesQuery";
+import { serviceKeys } from "../../api_client/services/keys";
 import { serviceLabel } from "./serviceLabel";
 
 // English names; t("services.label_<name>") translates them, and a service the frontend does not
@@ -27,7 +24,7 @@ export function ServiceList() {
   const isLoading = isLoadingList || isLoadingHealth;
 
   const handleRefresh = () => {
-    queryClient.invalidateQueries({ queryKey: [...ServiceHealthQueryKeys] });
+    queryClient.invalidateQueries({ queryKey: serviceKeys.healths() });
   };
 
   return (

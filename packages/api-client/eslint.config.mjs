@@ -1,4 +1,5 @@
 import js from "@eslint/js";
+import pluginQuery from "@tanstack/eslint-plugin-query";
 import reactHooks from "eslint-plugin-react-hooks";
 import tseslint from "typescript-eslint";
 
@@ -16,6 +17,14 @@ const pollIntervalBan = {
   message: "Poll with pollWhile(...) or a POLL_*_MS constant from src/polling.ts, not a number.",
 };
 
+// A query key comes from the queryKeys factory (src/hooks/queryKeys.ts), so one prefix invalidates a
+// family and a key typo cannot drop an invalidation. Same rule as apps/frontend's ban/query-key-literal.
+const queryKeyLiteralBan = {
+  selector:
+    "Property[key.name='queryKey'] > ArrayExpression.value, CallExpression[callee.property.name=/^(getQueryData|setQueryData|getQueryState|fetchQuery|prefetchQuery|ensureQueryData)$/] > ArrayExpression.arguments:first-child",
+  message: "Build the key with the queryKeys factory (src/hooks/queryKeys.ts); add the key there.",
+};
+
 const timerBan = {
   selector:
     "CallExpression[callee.name=/^(setTimeout|setInterval)$/], CallExpression[callee.object.name='window'][callee.property.name=/^(setTimeout|setInterval)$/]",
@@ -27,7 +36,7 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
-    plugins: { "react-hooks": reactHooks },
+    plugins: { "react-hooks": reactHooks, "@tanstack/query": pluginQuery },
     languageOptions: {
       // Type-aware, for the no-unsafe-* rules below.
       parserOptions: { projectService: true, tsconfigRootDir: import.meta.dirname },
@@ -36,6 +45,10 @@ export default tseslint.config(
       // src/hooks is React Query hooks; same hook rules as apps/frontend.
       "react-hooks/rules-of-hooks": "error",
       "react-hooks/exhaustive-deps": "error",
+      // Every value a queryFn reads is part of its key (a queryKeys call's arguments count). The API
+      // client from useApiClient() is the same for every query, so it stays out of the keys.
+      "@tanstack/query/exhaustive-deps": ["error", { allowlist: { variables: ["client"] } }],
+      "@tanstack/query/no-unstable-deps": "error",
       "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],
       // Fix the type error instead of silencing it.
       "@typescript-eslint/ban-ts-comment": [
@@ -61,13 +74,13 @@ export default tseslint.config(
     },
   },
   {
-    // The polling module (src/polling.ts) is the one place the package sets timers. Tests may wait on
-    // real timers. An override replaces the options of a rule for its files, so the other bans are
-    // restated here.
+    // The polling module (src/polling.ts) is the one place the package sets timers, and it takes the
+    // keys it invalidates from its callers. Tests may wait on real timers and poll made-up keys. An
+    // override replaces the options of a rule for its files, so the other bans are restated here.
     files: ["src/**/*.ts"],
     ignores: ["src/polling.ts", "src/**/*.test.ts"],
     rules: {
-      "no-restricted-syntax": ["error", typedMockBan, pollIntervalBan, timerBan],
+      "no-restricted-syntax": ["error", typedMockBan, pollIntervalBan, queryKeyLiteralBan, timerBan],
     },
   }
 );

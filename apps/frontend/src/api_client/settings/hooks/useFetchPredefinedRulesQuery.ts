@@ -2,12 +2,11 @@ import { useQuery } from "@tanstack/react-query";
 import { DateTimeRule } from "../../../components/settings/dateTimeSchema";
 import { parseListWithNotification } from "../../../util/zodUtils";
 import { fetchClient } from "../../api";
-
-const PredefinedRulesQueryKeys = ["predefinedRules"] as const;
+import { settingsKeys } from "../keys";
 
 export const useFetchPredefinedRulesQuery = () =>
   useQuery({
-    queryKey: [...PredefinedRulesQueryKeys],
+    queryKey: settingsKeys.predefinedRules(),
     queryFn: async () => {
       const response = await fetchClient.get<string>("/predefinedrules/");
       const rules: unknown = JSON.parse(response);

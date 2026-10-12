@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import React, { useCallback, useEffect, useEffectEvent, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useToggleUserAlbumPublicMutation, type PublicSharingOptions } from "../../api_client/albums/hooks";
+import { albumKeys } from "../../api_client/albums/keys";
 import type { UserAlbum } from "../../api_client/albums/types";
 import { ApiError, fetchClient } from "../../api_client/api";
 import { shareAddress } from "../../api_client/apiClient";
@@ -29,7 +30,7 @@ function SlugSetting({ value, onChange, isPublic, albumId, onMetaChange }: SlugP
 
   const enabled = isPublic && value.trim().length > 0 && valid;
   const { data: existingId, isFetching } = useQuery({
-    queryKey: ["slugAvailable", value],
+    queryKey: albumKeys.slugOwner(value),
     enabled,
     queryFn: async () => {
       try {

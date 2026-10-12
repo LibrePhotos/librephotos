@@ -5,12 +5,11 @@ import i18n from "../../../i18n";
 import { notification } from "../../../service/notifications";
 import { recordRecentlyTaggedPerson } from "../../../util/recentlyTaggedPeople";
 import { parseWithNotification } from "../../../util/zodUtils";
-import { PeopleAlbumsQueryKeys } from "../../albums/hooks/useFetchPeopleAlbumsQuery";
+import { albumKeys } from "../../albums/keys";
 import { ApiError, fetchClient, queryClient } from "../../api";
-import { PhotoDetailsQueryKeys } from "../../photos/hooks/useFetchPhotoDetailsQuery";
-import { CountStatsQueryKeys } from "../../stats/hooks/useFetchCountStatsQuery";
-import { FacesQueryKeys } from "./useFetchFacesQuery";
-import { IncompleteFacesQueryKeys } from "./useFetchIncompleteFacesQuery";
+import { photoKeys } from "../../photos/keys";
+import { statsKeys } from "../../stats/keys";
+import { faceKeys } from "../keys";
 
 /** A box the user drew, each side a fraction of the displayed image. */
 export type NormalizedFaceBox = z.infer<typeof NormalizedFaceBox>;
@@ -81,11 +80,11 @@ export const useAddFaceMutation = () =>
       // Same delay the other face mutations use, for the writes that follow the
       // response (face count, cover photo, search captions).
       invalidateAfter(queryClient, [
-        IncompleteFacesQueryKeys,
-        FacesQueryKeys,
-        PeopleAlbumsQueryKeys,
-        CountStatsQueryKeys,
-        PhotoDetailsQueryKeys,
+        faceKeys.incomplete(),
+        faceKeys.personFaces(),
+        albumKeys.peopleAlbums(),
+        statsKeys.counts(),
+        photoKeys.details(),
       ]);
     },
   });

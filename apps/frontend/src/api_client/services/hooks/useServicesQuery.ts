@@ -2,14 +2,12 @@ import { POLL_IDLE_MS } from "@librephotos/api-client";
 import { useQuery } from "@tanstack/react-query";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient } from "../../api";
+import { serviceKeys } from "../keys";
 import { ServiceHealthResponse, ServicesListResponse } from "../types";
-
-const ServicesQueryKeys = ["services"] as const;
-export const ServiceHealthQueryKeys = ["serviceHealth"] as const;
 
 export const useServicesListQuery = () =>
   useQuery({
-    queryKey: [...ServicesQueryKeys],
+    queryKey: serviceKeys.list(),
     queryFn: async () => {
       const response = await fetchClient.get("/services/");
       return parseWithNotification(ServicesListResponse, response, "Failed to parse services list");
@@ -18,7 +16,7 @@ export const useServicesListQuery = () =>
 
 export const useServicesHealthQuery = (serviceNames: string[], options?: { enabled?: boolean }) =>
   useQuery({
-    queryKey: [...ServiceHealthQueryKeys, serviceNames],
+    queryKey: serviceKeys.health(serviceNames),
     queryFn: async () => {
       const results: Record<string, ServiceHealthResponse> = {};
       const healthChecks = serviceNames.map(async name => {

@@ -2,8 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient } from "../../api";
-
-export const ServerStatsQueryKeys = ["serverStats"] as const;
+import { serverKeys } from "../keys";
 
 const CpuInfoSchema = z.object({
   python_version: z.string(),
@@ -112,7 +111,7 @@ type ServerStatsResponse = z.infer<typeof ServerStatsResponse>;
 
 export const useFetchServerStatsQuery = () =>
   useQuery({
-    queryKey: [...ServerStatsQueryKeys],
+    queryKey: serverKeys.stats(),
     queryFn: async () => {
       const response = await fetchClient.get("/serverstats/");
       return parseWithNotification(ServerStatsResponse, response, "Failed to parse server stats");

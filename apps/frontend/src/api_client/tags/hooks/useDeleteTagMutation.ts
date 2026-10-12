@@ -1,8 +1,8 @@
 import { useMutation } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
 import { fetchClient, queryClient } from "../../api";
+import { tagKeys } from "../keys";
 import type { DeleteTagParams } from "../types";
-import { TagsQueryKeys } from "./useFetchTagsQuery";
 
 export const useDeleteTagMutation = () =>
   useMutation({
@@ -11,6 +11,6 @@ export const useDeleteTagMutation = () =>
       notification.deleteTag(name);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [...TagsQueryKeys] });
+      queryClient.invalidateQueries({ queryKey: tagKeys.all });
     },
   });

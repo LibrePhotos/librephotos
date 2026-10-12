@@ -2,12 +2,9 @@ import { useMutation } from "@tanstack/react-query";
 import { z } from "zod";
 import { notification } from "../../../service/notifications";
 import { parseWithNotification } from "../../../util/zodUtils";
-import { DateAlbumQueryKeys } from "../../albums/hooks/useFetchDateAlbumQuery";
-import { DateAlbumsQueryKeys } from "../../albums/hooks/useFetchDateAlbumsQuery";
 import { fetchClient, queryClient } from "../../api";
+import { photoGridKeys, photoKeys } from "../keys";
 import type { BulkPhotoQuery } from "../types";
-import { PhotoDetailsQueryKeys } from "./useFetchPhotoDetailsQuery";
-import { RecentlyAddedPhotosQueryKeys } from "./useFetchRecentlyAddedPhotosQuery";
 
 const UpdatePhotosResponse = z.object({
   status: z.boolean(),
@@ -53,13 +50,14 @@ export const useSetPhotosPublicMutation = () =>
     },
     onSuccess: (data, request) => {
       // Invalidate relevant queries
-      queryClient.invalidateQueries({ queryKey: [...DateAlbumsQueryKeys] });
-      queryClient.invalidateQueries({ queryKey: [...DateAlbumQueryKeys] });
-      queryClient.invalidateQueries({ queryKey: [...RecentlyAddedPhotosQueryKeys] });
+      queryClient.invalidateQueries({ queryKey: photoGridKeys.kind("dateAlbums") });
+      queryClient.invalidateQueries({ queryKey: photoGridKeys.kind("dateAlbum") });
+      queryClient.invalidateQueries({ queryKey: photoGridKeys.recentlyAdded() });
 
       // If we have a single photo in individual mode, invalidate its details
-      if (!request.select_all && request.image_hashes.length === 1) {
-        queryClient.invalidateQueries({ queryKey: [...PhotoDetailsQueryKeys, request.image_hashes[0]] });
+      const [imageHash, ...others] = request.select_all ? [] : request.image_hashes;
+      if (imageHash !== undefined && others.length === 0) {
+        queryClient.invalidateQueries({ queryKey: photoKeys.detail(imageHash) });
       }
     },
   });

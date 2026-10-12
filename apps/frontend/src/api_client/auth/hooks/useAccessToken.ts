@@ -2,12 +2,11 @@ import { useQuery } from "@tanstack/react-query";
 import { jwtDecode } from "jwt-decode";
 import type { Token } from "..";
 import { getAuthCookie } from "../../authCookies";
-
-const AuthQueryKeys = ["auth"] as const;
+import { authKeys } from "../keys";
 
 export const useAccessToken = () =>
   useQuery({
-    queryKey: AuthQueryKeys,
+    queryKey: authKeys.accessToken(),
     queryFn: () => {
       const accessToken = getAuthCookie("access");
 

@@ -3,8 +3,7 @@ import { orderBy } from "lodash-es";
 import { z } from "zod";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient } from "../../api";
-
-export const PeopleAlbumsQueryKeys = ["peopleAlbums"] as const;
+import { albumKeys } from "../keys";
 
 const PersonResponse = z.object({
   name: z.string(),
@@ -40,7 +39,7 @@ const PeopleResponse = z.object({
 
 export const useFetchPeopleAlbumsQuery = (skip: boolean = false) =>
   useQuery({
-    queryKey: [...PeopleAlbumsQueryKeys],
+    queryKey: albumKeys.peopleAlbums(),
     queryFn: async () => {
       const response = await fetchClient.get("/persons/?page_size=1000");
 

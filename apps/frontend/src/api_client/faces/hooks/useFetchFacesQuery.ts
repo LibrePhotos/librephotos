@@ -33,5 +33,3 @@ export const fetchFaces = (params: PersonFaceListRequest) => {
     return parsedResponse.results;
   });
 };
-
-export const FacesQueryKeys = ["faces"] as const;

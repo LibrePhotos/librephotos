@@ -9,6 +9,7 @@ import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { defined } from "../../../util/defined.test-utils";
+import { photoKeys } from "../keys";
 import type { MetadataUpdateFields } from "../metadata";
 import { useBulkUpdateMetadataMutation, useUpdatePhotoMetadataMutation } from "./usePhotoMetadataMutations";
 
@@ -69,8 +70,8 @@ describe("useUpdatePhotoMetadataMutation", () => {
     expect(mocks.updatePhotoMetadata).toHaveBeenCalledWith("abc", updates);
     // Every photo grid, search included (see invalidatePhotoLists).
     expect(mocks.invalidatePhotoLists).toHaveBeenCalledTimes(1);
-    expect(keys).toContainEqual(["photoMetadata", "abc"]);
-    expect(keys).toContainEqual(["photoDetails"]);
+    expect(keys).toContainEqual(photoKeys.metadata("abc"));
+    expect(keys).toContainEqual(photoKeys.details());
   });
 });
 
@@ -81,8 +82,8 @@ describe("useBulkUpdateMetadataMutation", () => {
     );
 
     expect(mocks.invalidatePhotoLists).toHaveBeenCalledTimes(1);
-    expect(keys).toContainEqual(["photoMetadata", "a"]);
-    expect(keys).toContainEqual(["photoMetadata", "b"]);
-    expect(keys).toContainEqual(["photoDetails"]);
+    expect(keys).toContainEqual(photoKeys.metadata("a"));
+    expect(keys).toContainEqual(photoKeys.metadata("b"));
+    expect(keys).toContainEqual(photoKeys.details());
   });
 });

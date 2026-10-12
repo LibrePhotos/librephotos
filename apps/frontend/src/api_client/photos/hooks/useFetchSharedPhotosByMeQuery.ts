@@ -3,9 +3,8 @@ import { groupBy, toPairs } from "lodash-es";
 import { z } from "zod";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient } from "../../api";
+import { photoGridKeys } from "../keys";
 import { PigPhoto, SimpleUser } from "../types";
-
-export const SharedPhotosByMeQueryKeys = ["sharedPhotosByMe"] as const;
 
 const SharedPhotosByMeResponse = z.object({
   results: z
@@ -19,7 +18,7 @@ const SharedPhotosByMeResponse = z.object({
 
 export const useFetchSharedPhotosByMeQuery = () =>
   useQuery({
-    queryKey: [...SharedPhotosByMeQueryKeys],
+    queryKey: photoGridKeys.sharedByMe(),
     queryFn: async () => {
       const response = await fetchClient.get("/photos/shared/fromme/");
       const { results } = parseWithNotification(

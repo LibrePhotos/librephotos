@@ -1,8 +1,8 @@
 import { useMutation } from "@tanstack/react-query";
 import { fetchClient, queryClient } from "../../api";
+import { photoGridKeys } from "../../photos/keys";
+import { albumKeys } from "../keys";
 import type { ToggleUserAlbumLockedParams } from "../types";
-import { UserAlbumQueryKeys } from "./useFetchUserAlbumQuery";
-import { UserAlbumsQueryKeys } from "./useFetchUserAlbumsQuery";
 
 export const useToggleUserAlbumLockedMutation = () =>
   useMutation({
@@ -10,7 +10,7 @@ export const useToggleUserAlbumLockedMutation = () =>
       await fetchClient.patch(`/albums/user/edit/${id}/`, { locked });
     },
     onSuccess: (_, { id }) => {
-      queryClient.invalidateQueries({ queryKey: [...UserAlbumsQueryKeys] });
-      queryClient.invalidateQueries({ queryKey: [...UserAlbumQueryKeys, id] });
+      queryClient.invalidateQueries({ queryKey: albumKeys.userAlbums() });
+      queryClient.invalidateQueries({ queryKey: photoGridKeys.userAlbum(id) });
     },
   });

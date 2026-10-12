@@ -8,6 +8,7 @@ import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { defined } from "../../../util/defined.test-utils";
+import { photoGridKeys } from "../../photos/keys";
 import { Photoset } from "../../photos/types";
 
 const stubs = await vi.hoisted(async () => {
@@ -56,9 +57,10 @@ describe("date-album queries with a timeline filter", () => {
     expect(Object.fromEntries(url.searchParams)).toEqual({ media: "photos", hide_screenshots: "true" });
     const keys = stubs.queryClient
       .getQueryCache()
-      .findAll({ queryKey: ["dateAlbums"] })
+      .findAll({ queryKey: photoGridKeys.kind("dateAlbums") })
       .map(query => query.queryKey);
     expect(keys).toContainEqual([
+      "photoGrid",
       "dateAlbums",
       Photoset.NONE,
       undefined,

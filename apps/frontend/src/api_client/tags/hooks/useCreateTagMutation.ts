@@ -2,9 +2,9 @@ import { useMutation } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient, queryClient } from "../../api";
+import { tagKeys } from "../keys";
 import type { CreateTagParams } from "../types";
 import { Tag } from "../types";
-import { TagsQueryKeys } from "./useFetchTagsQuery";
 
 export const useCreateTagMutation = () =>
   useMutation({
@@ -15,6 +15,6 @@ export const useCreateTagMutation = () =>
       return tag;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [...TagsQueryKeys] });
+      queryClient.invalidateQueries({ queryKey: tagKeys.all });
     },
   });

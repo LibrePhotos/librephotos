@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchClient } from "../../api";
-import { UserListQueryKeys } from "./useFetchUserListQuery";
+import { userKeys } from "../keys";
 
 // Delete User Mutation
 export const useDeleteUserMutation = () => {
@@ -11,7 +11,7 @@ export const useDeleteUserMutation = () => {
       await fetchClient.delete(`/delete/user/${userId}/`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: UserListQueryKeys });
+      queryClient.invalidateQueries({ queryKey: userKeys.list() });
     },
   });
 };

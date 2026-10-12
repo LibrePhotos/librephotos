@@ -9,6 +9,7 @@ import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { defined } from "../../../util/defined.test-utils";
+import { photoKeys } from "../keys";
 import { useMarkPhotosDeletedMutation } from "./useMarkPhotosDeletedMutation";
 
 const mocks = vi.hoisted(() => ({
@@ -69,7 +70,7 @@ describe("useMarkPhotosDeletedMutation", () => {
 
     expect(mocks.togglePhotoDelete).toHaveBeenCalledWith(true, 2);
     const keys = mocks.invalidateQueries.mock.calls.map(([filters]) => filters.queryKey);
-    expect(keys).toContainEqual(["photoDetails"]);
+    expect(keys).toContainEqual(photoKeys.details());
   });
 
   it("stays quiet when nothing changed", async () => {

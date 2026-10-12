@@ -1,8 +1,8 @@
 import { useMutation } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
 import { fetchClient, queryClient } from "../../api";
-import { AutoAlbumQueryKeys } from "./useFetchAutoAlbumQuery";
-import { AutoAlbumsQueryKeys } from "./useFetchAutoAlbumsQuery";
+import { photoGridKeys } from "../../photos/keys";
+import { albumKeys } from "../keys";
 
 type DeleteAutoAlbumParams = {
   id: string;
@@ -16,7 +16,7 @@ export const useDeleteAutoAlbumMutation = () =>
       notification.deleteAlbum(albumTitle);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [...AutoAlbumsQueryKeys] });
-      queryClient.invalidateQueries({ queryKey: [...AutoAlbumQueryKeys] });
+      queryClient.invalidateQueries({ queryKey: albumKeys.autoAlbums() });
+      queryClient.invalidateQueries({ queryKey: photoGridKeys.kind("autoAlbum") });
     },
   });

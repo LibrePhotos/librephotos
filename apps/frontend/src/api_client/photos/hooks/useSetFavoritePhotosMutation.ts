@@ -4,8 +4,8 @@ import { notification } from "../../../service/notifications";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient, queryClient } from "../../api";
 import { invalidatePhotoLists } from "../invalidatePhotoLists";
+import { photoKeys } from "../keys";
 import type { BulkPhotoQuery } from "../types";
-import { PhotoDetailsQueryKeys } from "./useFetchPhotoDetailsQuery";
 
 const UpdatedPhotosResponse = z.object({
   status: z.boolean(),
@@ -55,11 +55,12 @@ export const useSetFavoritePhotosMutation = () =>
     },
     onSuccess: (data, request) => {
       // Every grid draws the star from the list data
-      invalidatePhotoLists();
+      invalidatePhotoLists(queryClient);
 
       // If we have a single photo in individual mode, invalidate its details
-      if (!request.select_all && request.image_hashes.length === 1) {
-        queryClient.invalidateQueries({ queryKey: [...PhotoDetailsQueryKeys, request.image_hashes[0]] });
+      const [imageHash, ...others] = request.select_all ? [] : request.image_hashes;
+      if (imageHash !== undefined && others.length === 0) {
+        queryClient.invalidateQueries({ queryKey: photoKeys.detail(imageHash) });
       }
     },
   });

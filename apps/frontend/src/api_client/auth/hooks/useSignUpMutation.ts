@@ -2,8 +2,8 @@ import { useMutation } from "@tanstack/react-query";
 import { z } from "zod";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient, queryClient } from "../../api";
-import { UserListQueryKeys } from "../../user/hooks/useFetchUserListQuery";
-import { IsFirstTimeSetupQueryKeys } from "./useIsFirstTimeSetupQuery";
+import { userKeys } from "../../user/keys";
+import { authKeys } from "../keys";
 
 const UserSignupResponse = z.object({
   username: z.string(),
@@ -24,7 +24,7 @@ export const useSignUpMutation = () =>
   useMutation({
     mutationFn: signUp,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: IsFirstTimeSetupQueryKeys });
-      queryClient.invalidateQueries({ queryKey: UserListQueryKeys });
+      queryClient.invalidateQueries({ queryKey: authKeys.firstTimeSetup() });
+      queryClient.invalidateQueries({ queryKey: userKeys.list() });
     },
   });
