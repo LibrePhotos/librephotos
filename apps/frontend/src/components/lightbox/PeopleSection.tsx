@@ -49,7 +49,7 @@ export function PeopleSection({
         <Group justify="space-between">
           <Group>
             <IconUsers />
-            <Title order={4}>{t("lightbox.sidebar.people", "People")}</Title>
+            <Title order={4}>{t("lightbox.sidebar.people")}</Title>
           </Group>
           {canAddFace && !isDrawingFace && (
             <Tooltip label={addFaceBlockedReason ?? t("lightbox.addface.tooltip")}>

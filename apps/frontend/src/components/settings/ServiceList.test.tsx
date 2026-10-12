@@ -10,8 +10,8 @@ import { createRoot } from "react-dom/client";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { ServiceList } from "./ServiceList";
 
-// Like i18next without a bundle: the default value if one is given, else the key.
-const t = vi.fn((key: string, defaultValue?: unknown) => (typeof defaultValue === "string" ? defaultValue : key));
+// Like i18next without a bundle: the key.
+const t = vi.fn((key: string) => key);
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({ t }),
@@ -99,7 +99,7 @@ describe("ServiceList", () => {
   it("marks a switched-off service disabled rather than unhealthy", async () => {
     const { container, unmount } = await render();
 
-    const row = serviceRow(container, "Face Recognition");
+    const row = serviceRow(container, "services.label_face_recognition");
     expect(row.textContent).toContain("services.disabled");
     expect(row.textContent).not.toContain("services.unhealthy");
 
@@ -127,7 +127,7 @@ describe("ServiceList", () => {
   it("still reports a genuinely dead service as unhealthy and offers to start it", async () => {
     const { container, unmount } = await render();
 
-    const row = serviceRow(container, "Thumbnail");
+    const row = serviceRow(container, "services.label_thumbnail");
     expect(row.textContent).toContain("services.unhealthy");
     expect(startButtons(row)).toHaveLength(1);
 

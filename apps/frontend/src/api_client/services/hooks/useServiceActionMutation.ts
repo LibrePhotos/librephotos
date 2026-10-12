@@ -1,4 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
+import { serviceLabel } from "../../../components/settings/serviceLabel";
 import i18n from "../../../i18n";
 import { notification } from "../../../service/notifications";
 import { fetchClient, queryClient } from "../../api";
@@ -23,7 +24,7 @@ export const useServiceActionMutation = () =>
       notification.requestFailed(
         i18n.t("services.actionfailed"),
         i18n.t(variables.action === "start" ? "services.startfailed" : "services.stopfailed", {
-          name: i18n.t(`services.label_${variables.serviceName}`, variables.serviceName),
+          name: serviceLabel(variables.serviceName, i18n.t),
         })
       );
     },

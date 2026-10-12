@@ -3,6 +3,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { useCancelJobMutation } from "../../api_client/jobs/hooks";
 import type { JobDetail } from "../../api_client/jobs/types";
+import { jobTypeLabel } from "../job/jobTypeLabel";
 
 // Share of the job done, 0-100, or null when there is nothing to measure yet.
 export function jobPercent(job: JobDetail | null): number | null {
@@ -30,9 +31,9 @@ export function WorkerJobMenuSection({ job }: Props) {
         {job ? (
           <>
             <Text size="sm" fw={500}>
-              {t("topmenu.running")} {t(job.job_type_str)}
+              {t("topmenu.running")} {jobTypeLabel(job, t)}
             </Text>
-            <Progress value={percent ?? 0} size="sm" aria-label={t(job.job_type_str)} />
+            <Progress value={percent ?? 0} size="sm" aria-label={jobTypeLabel(job, t)} />
             {job.progress_target > 0 && (
               <Text size="xs" c="dimmed">
                 {job.progress_current} / {job.progress_target}

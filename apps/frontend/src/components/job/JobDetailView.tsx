@@ -20,6 +20,7 @@ import { PageHeader } from "../PageHeader";
 import { formatJobDuration } from "./JobDuration";
 import { JobProgress } from "./JobProgress";
 import { JOB_OUTCOME_COLOR, jobOutcome } from "./jobStatus";
+import { jobTypeLabel } from "./jobTypeLabel";
 
 type IJobDetailView = Readonly<{
   jobId: number;
@@ -113,7 +114,7 @@ export function JobDetailView({ jobId, backTo }: IJobDetailView) {
       <Stack>
         {backButton}
         {/* Same header as the job list it was opened from */}
-        <PageHeader icon={StatusIcon} iconColor={color} title={t(job.job_type_str)} />
+        <PageHeader icon={StatusIcon} iconColor={color} title={jobTypeLabel(job, t)} />
 
         <Card shadow="md">
           <Title order={4} mb={16}>

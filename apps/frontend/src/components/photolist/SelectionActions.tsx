@@ -481,7 +481,7 @@ export function SelectionActions(props: Readonly<Props>) {
           {/* Stack Actions */}
           <Menu.Divider />
 
-          <Menu.Label>{t("selectionactions.stackactions", "Stack Actions")}</Menu.Label>
+          <Menu.Label>{t("selectionactions.stackactions")}</Menu.Label>
 
           <Menu.Item
             leftSection={<IconStack2 size={ICON_SIZE.menu} />}
@@ -499,7 +499,7 @@ export function SelectionActions(props: Readonly<Props>) {
               }
             }}
           >
-            {t("selectionactions.createstack", "Create Stack")}
+            {t("selectionactions.createstack")}
           </Menu.Item>
 
           <Menu.Item
@@ -518,7 +518,7 @@ export function SelectionActions(props: Readonly<Props>) {
               }
             }}
           >
-            {t("selectionactions.mergestacks", "Merge Stacks")}
+            {t("selectionactions.mergestacks")}
           </Menu.Item>
 
           <Menu.Item
@@ -549,7 +549,7 @@ export function SelectionActions(props: Readonly<Props>) {
               }
             }}
           >
-            {t("selectionactions.breakapartstacks", "Break Apart Stacks")}
+            {t("selectionactions.breakapartstacks")}
           </Menu.Item>
 
           {/* Album Actions - only show on album pages */}

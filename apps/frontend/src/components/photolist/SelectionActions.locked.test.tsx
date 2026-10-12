@@ -1,4 +1,5 @@
 import { MantineProvider } from "@mantine/core";
+import type { ParseKeys } from "i18next";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, describe, expect, it, vi } from "vitest";
@@ -88,7 +89,7 @@ describe("locked album selection actions", () => {
       await act(async () => {
         await new Promise(resolve => setTimeout(resolve, 250));
       });
-      const menuItem = (key: string) =>
+      const menuItem = (key: ParseKeys) =>
         Array.from(document.body.querySelectorAll('[role="menuitem"]'))
           .filter(item => item instanceof HTMLButtonElement)
           .find(item => item.textContent?.trim() === i18n.t(key));
@@ -98,7 +99,7 @@ describe("locked album selection actions", () => {
       expect(deleted).toBeDefined();
       expect(defined(remove).disabled).toBe(locked);
       expect(defined(deleted).disabled).toBe(false);
-      for (const key of ["selectionactions.download", "selectionactions.favorite", "selectionactions.hide"]) {
+      for (const key of ["selectionactions.download", "selectionactions.favorite", "selectionactions.hide"] as const) {
         const item = menuItem(key);
         expect(item?.disabled).toBe(false);
       }

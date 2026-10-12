@@ -76,10 +76,10 @@ function SingleStackCard({ stack, photoId, t, isCompact = false, onPhotoSelect }
           <Group gap="xs">
             <Badge size="sm" color={color} variant="light" leftSection={icon}>
               {/* Translated, not the server's English type_display (kept as the fallback) */}
-              {t(`stacks.typelabel.${stack.type}`, stack.type_display)}
+              {t(`stacks.typelabel.${stack.type}`)}
             </Badge>
             <Text size="sm" c="dimmed">
-              {t("lightbox.sidebar.stackPhotos", "{{count}} photos", { count: stack.photo_count })}
+              {t("lightbox.sidebar.stackPhotos", { count: stack.photo_count })}
             </Text>
           </Group>
         </Group>
@@ -100,12 +100,12 @@ function SingleStackCard({ stack, photoId, t, isCompact = false, onPhotoSelect }
                         <Text size="xs">{formatBytes(stackPhoto.size)}</Text>
                         {stackPhoto.is_primary && (
                           <Text size="xs" fw={700}>
-                            {t("lightbox.sidebar.primary", "Primary")}
+                            {t("lightbox.sidebar.primary")}
                           </Text>
                         )}
                         {onPhotoSelect && stackPhoto.id !== photoId && (
                           <Text size="xs" c="blue">
-                            {t("lightbox.sidebar.clickToView", "Click to view")}
+                            {t("lightbox.sidebar.clickToView")}
                           </Text>
                         )}
                       </Stack>
@@ -163,14 +163,14 @@ export function StackSection({ photoDetail, onPhotoSelect }: StackSectionProps) 
           <Group justify="space-between">
             <Group>
               <IconStack2 />
-              <Title order={4}>{t("lightbox.sidebar.stack", "Stack")}</Title>
+              <Title order={4}>{t("lightbox.sidebar.stack")}</Title>
             </Group>
-            <Tooltip label={t("lightbox.sidebar.openStack", "View full stack")}>
+            <Tooltip label={t("lightbox.sidebar.openStack")}>
               <ActionIcon
                 variant="subtle"
                 color="gray"
                 size="sm"
-                aria-label={t("lightbox.sidebar.openStack", "View full stack")}
+                aria-label={t("lightbox.sidebar.openStack")}
                 onClick={() => setSelectedStackId(firstStack.id)}
               >
                 <IconExternalLink size={16} />
@@ -194,7 +194,7 @@ export function StackSection({ photoDetail, onPhotoSelect }: StackSectionProps) 
         <Group>
           <IconStack2 />
           <Group gap="xs">
-            <Title order={4}>{t("lightbox.sidebar.stacks", "Stacks")}</Title>
+            <Title order={4}>{t("lightbox.sidebar.stacks")}</Title>
             <Badge size="sm" variant="light" color="gray">
               {stacks.length}
             </Badge>
@@ -202,7 +202,7 @@ export function StackSection({ photoDetail, onPhotoSelect }: StackSectionProps) 
         </Group>
 
         <Text size="xs" c="dimmed">
-          {t("lightbox.sidebar.multipleStacksInfo", "This photo belongs to multiple groupings")}
+          {t("lightbox.sidebar.multipleStacksInfo")}
         </Text>
 
         <Accordion variant="separated" radius="sm" defaultValue={firstStack.type}>
@@ -216,18 +216,18 @@ export function StackSection({ photoDetail, onPhotoSelect }: StackSectionProps) 
                   <Group gap="xs" justify="space-between" style={{ width: "100%" }}>
                     <Group gap="xs">
                       <Text size="sm" fw={500}>
-                        {t(`stacks.typelabel.${stack.type}`, stack.type_display)}
+                        {t(`stacks.typelabel.${stack.type}`)}
                       </Text>
                       <Badge size="xs" color={color} variant="light">
                         {stack.photo_count}
                       </Badge>
                     </Group>
-                    <Tooltip label={t("lightbox.sidebar.openStack", "View full stack")}>
+                    <Tooltip label={t("lightbox.sidebar.openStack")}>
                       <ActionIcon
                         variant="subtle"
                         color="gray"
                         size="xs"
-                        aria-label={t("lightbox.sidebar.openStack", "View full stack")}
+                        aria-label={t("lightbox.sidebar.openStack")}
                         onClick={e => {
                           e.stopPropagation();
                           setSelectedStackId(stack.id);
@@ -254,12 +254,12 @@ export function StackSection({ photoDetail, onPhotoSelect }: StackSectionProps) 
                                 <Text size="xs">{formatBytes(stackPhoto.size)}</Text>
                                 {stackPhoto.is_primary && (
                                   <Text size="xs" fw={700}>
-                                    {t("lightbox.sidebar.primary", "Primary")}
+                                    {t("lightbox.sidebar.primary")}
                                   </Text>
                                 )}
                                 {onPhotoSelect && stackPhoto.id !== photoDetail.id && (
                                   <Text size="xs" c="blue">
-                                    {t("lightbox.sidebar.clickToView", "Click to view")}
+                                    {t("lightbox.sidebar.clickToView")}
                                   </Text>
                                 )}
                               </Stack>

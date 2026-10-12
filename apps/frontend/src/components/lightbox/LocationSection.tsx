@@ -28,15 +28,15 @@ export function LocationSection({ photoDetail, mapHeight = 250, isPublic = false
             title={photoDetail.search_location ?? undefined}
             style={{ flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
           >
-            {photoDetail.search_location || t("lightbox.sidebar.no_location", "No location yet")}
+            {photoDetail.search_location || t("lightbox.sidebar.no_location")}
           </Text>
           {!isPublic && (
-            <Tooltip label={t("lightbox.sidebar.update_location", "Update location")}>
+            <Tooltip label={t("lightbox.sidebar.update_location")}>
               <ActionIcon
                 variant="subtle"
                 color="gray"
                 size="sm"
-                aria-label={t("lightbox.sidebar.update_location", "Update location")}
+                aria-label={t("lightbox.sidebar.update_location")}
                 onClick={open}
               >
                 <IconPencil size={16} />
@@ -53,7 +53,7 @@ export function LocationSection({ photoDetail, mapHeight = 250, isPublic = false
         )}
       </Stack>
       {!isPublic && (
-        <Modal opened={opened} onClose={close} title={t("lightbox.sidebar.pick_location", "Pick location")} centered>
+        <Modal opened={opened} onClose={close} title={t("lightbox.sidebar.pick_location")} centered>
           <LocationPickerModal
             imageHash={photoDetail.image_hash}
             onClose={close}

@@ -1,8 +1,10 @@
+import type { ParseKeys } from "i18next";
+
 /**
  * Reasons the backend bounces a failed SSO attempt back to the login screen with
  * `?sso_error=<reason>`.
  */
-const SSO_ERROR_MESSAGE_KEYS: Record<string, string> = {
+const SSO_ERROR_MESSAGE_KEYS: Record<string, ParseKeys> = {
   signup_disabled: "login.sso.errorsignupdisabled",
   email_not_verified: "login.sso.erroremailnotverified",
   not_authenticated: "login.sso.errornotauthenticated",
@@ -15,7 +17,7 @@ const SSO_ERROR_MESSAGE_KEYS: Record<string, string> = {
  * An unrecognised reason still gets a message: a backend newer than the frontend
  * must not be able to leave the user looking at a silently failed login.
  */
-export function ssoErrorMessageKey(reason: string | null | undefined): string | null {
+export function ssoErrorMessageKey(reason: string | null | undefined): ParseKeys | null {
   if (!reason) {
     return null;
   }

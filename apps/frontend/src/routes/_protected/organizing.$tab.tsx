@@ -49,9 +49,9 @@ function StacksDuplicatesPage() {
 
   const getSubtitle = () => {
     if (tab === "duplicates") {
-      return t("duplicates.subtitle", "Find and remove duplicate photos to save storage space");
+      return t("duplicates.subtitle");
     }
-    return t("stacks.subtitle", "Group burst sequences, exposure brackets and related photos");
+    return t("stacks.subtitle");
   };
 
   const handleTabChange = (value: string | null) => {
@@ -65,7 +65,7 @@ function StacksDuplicatesPage() {
 
   return (
     <>
-      <PageHeader icon={IconLayersSubtract} title={t("sidemenu.organizing", "Organizing")} subtitle={getSubtitle()} />
+      <PageHeader icon={IconLayersSubtract} title={t("sidemenu.organizing")} subtitle={getSubtitle()} />
       <Stack gap="lg" px={10} pb={10}>
         {/* Tab Navigation */}
         {/* Kept on one row on phones: a wrapped tab leaves the active underline under the first row only */}
@@ -92,7 +92,7 @@ function StacksDuplicatesPage() {
                 ) : null
               }
             >
-              {t("duplicates.title", "Duplicates")}
+              {t("duplicates.title")}
             </Tabs.Tab>
             <Tabs.Tab
               value="stacks"
@@ -105,7 +105,7 @@ function StacksDuplicatesPage() {
                 ) : null
               }
             >
-              {t("stacks.title", "Stacks")}
+              {t("stacks.title")}
             </Tabs.Tab>
           </Tabs.List>
 

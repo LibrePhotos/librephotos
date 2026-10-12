@@ -27,7 +27,7 @@ export function SimilarPhotosSection({ photoDetail, maxItems = 8, showTitle = tr
       {showTitle && (
         <Group>
           <Photo />
-          <Title order={4}>{t("lightbox.sidebar.similarphotos", "Similar Photos")}</Title>
+          <Title order={4}>{t("lightbox.sidebar.similarphotos")}</Title>
         </Group>
       )}
       <Flex gap="xs" wrap="wrap" mt="xs">

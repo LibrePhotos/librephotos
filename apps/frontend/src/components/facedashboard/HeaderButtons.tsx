@@ -135,7 +135,7 @@ export function HeaderButtons({
                   step={5}
                   decimalScale={0}
                   leftSection={<IconWand size={16} />}
-                  suffix={t("facesdashboard.confidentsuffix", "% confident")}
+                  suffix={t("facesdashboard.confidentsuffix")}
                 />
               </Stack>
             </>

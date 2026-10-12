@@ -245,12 +245,12 @@ export function Library() {
         <Card shadow="md">
           <Stack>
             <Title order={4}>
-              <Trans i18nKey="settings.photos">Photos</Trans>
+              <Trans i18nKey="settings.photos" />
               {countStats.num_missing_photos > 0 && (
                 <HoverCard width={280} shadow="md">
                   <HoverCard.Target>
                     <Badge onClick={open} color="red" ml={10}>
-                      {countStats.num_missing_photos} <Trans i18nKey="settings.missingphotos">Missing photos</Trans>
+                      {countStats.num_missing_photos} <Trans i18nKey="settings.missingphotos" />
                     </Badge>
                   </HoverCard.Target>
                   <HoverCard.Dropdown>
@@ -315,74 +315,57 @@ export function Library() {
                       <List>
                         <List.Item>
                           <Text fz="sm" c="dimmed">
-                            <Trans i18nKey="settings.scannextclouddescription.item1">
-                              Make a list of all files in subdirectories. For each media file:
-                            </Trans>
+                            <Trans i18nKey="settings.scannextclouddescription.item1" />
                           </Text>
                         </List.Item>
                         <List.Item>
                           <Text fz="sm" c="dimmed">
-                            <Trans i18nKey="settings.scannextclouddescription.item2">
-                              If the filepath exists, check if the file has been modified. If it was modified, rescan
-                              the image. If not, we skip.
-                            </Trans>
+                            <Trans i18nKey="settings.scannextclouddescription.item2" />
                           </Text>
                         </List.Item>
                         <List.Item>
                           <Text fz="sm" c="dimmed">
-                            <Trans i18nKey="settings.scannextclouddescription.item3">
-                              Calculate a unique ID of the image file (md5)
-                            </Trans>
+                            <Trans i18nKey="settings.scannextclouddescription.item3" />
                           </Text>
                         </List.Item>
                         <List.Item>
                           <Text fz="sm" c="dimmed">
-                            <Trans i18nKey="settings.scannextclouddescription.item4">
-                              If this media file is already in the database, we add the path to the existing media file.
-                            </Trans>
+                            <Trans i18nKey="settings.scannextclouddescription.item4" />
                           </Text>
                         </List.Item>
                         <List.Item>
                           <Text fz="sm" c="dimmed">
-                            <Trans i18nKey="settings.scannextclouddescription.item5">
-                              Generate a number of thumbnails
-                            </Trans>
+                            <Trans i18nKey="settings.scannextclouddescription.item5" />
                           </Text>
                         </List.Item>
                         <List.Item>
                           <Text fz="sm" c="dimmed">
-                            <Trans i18nKey="settings.scannextclouddescription.item6">Generate image captions</Trans>
+                            <Trans i18nKey="settings.scannextclouddescription.item6" />
                           </Text>
                         </List.Item>
                         <List.Item>
                           <Text fz="sm" c="dimmed">
-                            <Trans i18nKey="settings.scannextclouddescription.item7">Extract Exif information</Trans>
+                            <Trans i18nKey="settings.scannextclouddescription.item7" />
                           </Text>
                         </List.Item>
                         <List.Item>
                           <Text fz="sm" c="dimmed">
-                            <Trans i18nKey="settings.scannextclouddescription.item8">
-                              Reverse geolocate to get location names from GPS coordinates
-                            </Trans>
+                            <Trans i18nKey="settings.scannextclouddescription.item8" />
                           </Text>
                         </List.Item>
                         <List.Item>
                           <Text fz="sm" c="dimmed">
-                            <Trans i18nKey="settings.scannextclouddescription.item9">Extract faces.</Trans>
+                            <Trans i18nKey="settings.scannextclouddescription.item9" />
                           </Text>
                         </List.Item>
                         <List.Item>
                           <Text fz="sm" c="dimmed">
-                            <Trans i18nKey="settings.scannextclouddescription.item10">
-                              Add photo to thing and place albums.
-                            </Trans>
+                            <Trans i18nKey="settings.scannextclouddescription.item10" />
                           </Text>
                         </List.Item>
                         <List.Item>
                           <Text fz="sm" c="dimmed">
-                            <Trans i18nKey="settings.scannextclouddescription.item11">
-                              Check if photos are missing or have been moved.
-                            </Trans>
+                            <Trans i18nKey="settings.scannextclouddescription.item11" />
                           </Text>
                         </List.Item>
                       </List>
@@ -505,7 +488,7 @@ export function Library() {
                   variant="outline"
                   fullWidth
                 >
-                  <Trans i18nKey="settings.facesbutton">Train Faces</Trans>
+                  <Trans i18nKey="settings.facesbutton" />
                 </Button>
               </Grid.Col>
             </Grid>
@@ -531,7 +514,7 @@ export function Library() {
                   variant="outline"
                   fullWidth
                 >
-                  <Trans i18nKey="settings.rescanfaces">Rescan</Trans>
+                  <Trans i18nKey="settings.rescanfaces" />
                 </Button>
               </Grid.Col>
             </Grid>
@@ -698,7 +681,7 @@ export function Library() {
                         leftSection={<BrandNextcloud />}
                         fullWidth
                       >
-                        <Trans i18nKey="settings.scannextcloudphotos">Scan photos (Nextcloud)</Trans>
+                        <Trans i18nKey="settings.scannextcloudphotos" />
                       </Button>
                     </Grid.Col>
                   </Grid>

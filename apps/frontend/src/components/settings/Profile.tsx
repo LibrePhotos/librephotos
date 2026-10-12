@@ -127,7 +127,7 @@ export function Profile() {
             </div>
             <div>
               <Title order={4} mb={10}>
-                <Trans i18nKey="settings.uploadheader">Upload new avatar</Trans>
+                <Trans i18nKey="settings.uploadheader" />
               </Title>
               <Group>
                 <Button
@@ -137,7 +137,7 @@ export function Profile() {
                     dropzoneRef.current?.open();
                   }}
                 >
-                  <Trans i18nKey="settings.image">Choose image</Trans>
+                  <Trans i18nKey="settings.image" />
                 </Button>
                 <Button
                   size="sm"
@@ -155,11 +155,11 @@ export function Profile() {
                     updateAvatar.mutate({ id: editedUserDetails.id.toString(), data: formData });
                   }}
                 >
-                  <Trans i18nKey="settings.upload">Upload</Trans>
+                  <Trans i18nKey="settings.upload" />
                 </Button>
               </Group>
               <p>
-                <Trans i18nKey="settings.filesize">The maximum file size allowed is 200KB.</Trans>
+                <Trans i18nKey="settings.filesize" />
               </p>
             </div>
           </Group>

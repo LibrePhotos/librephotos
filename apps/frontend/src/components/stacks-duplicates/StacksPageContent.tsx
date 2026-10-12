@@ -160,7 +160,7 @@ function StackCard({ stack, onClick, onDelete }: { stack: StackListItem; onClick
               onDelete();
             }}
           >
-            {t("stacks.unstack", "Unstack Photos")}
+            {t("stacks.unstack")}
           </Menu.Item>
         </Menu.Dropdown>
       </Menu>
@@ -225,7 +225,7 @@ export function StacksPageContent() {
   // Legacy RAW + JPEG / Live Photo stacks still show up in the stats, but the list
   // endpoint never returns them, so they get no filter entry and are not counted.
   const allStackTypes: Array<{ value: StackType | ""; label: string; count: number }> = [
-    { value: "", label: t("stacks.types.all", "All Types"), count: stats ? countListedStacks(stats) : 0 },
+    { value: "", label: t("stacks.types.all"), count: stats ? countListedStacks(stats) : 0 },
     ...validStackTypes.map(type => ({
       value: type,
       label: t(`stacks.types.${type}`),
@@ -243,7 +243,7 @@ export function StacksPageContent() {
           <Menu shadow="md" width={200}>
             <Menu.Target>
               <Button variant="light" size="sm" rightSection={<IconChevronDown size={14} />}>
-                {typeFilter ? t(`stacks.types.${typeFilter}`) : t("stacks.types.all", "All Types")}
+                {typeFilter ? t(`stacks.types.${typeFilter}`) : t("stacks.types.all")}
               </Button>
             </Menu.Target>
             <Menu.Dropdown>
@@ -274,23 +274,23 @@ export function StacksPageContent() {
             <Menu shadow="md" width={300}>
               <Menu.Target>
                 <Button variant="outline" size="sm" fullWidth={isPhone} rightSection={<IconChevronDown size={14} />}>
-                  {t("stacks.detectOptions", "Detection Options")}
+                  {t("stacks.detectOptions")}
                 </Button>
               </Menu.Target>
               <Menu.Dropdown>
-                <Menu.Label>{t("stacks.whatToDetect", "What to Detect")}</Menu.Label>
+                <Menu.Label>{t("stacks.whatToDetect")}</Menu.Label>
                 <Box px="xs" py={4}>
                   <Stack gap="xs">
                     <Checkbox
                       size="sm"
                       checked={detectOptions.detect_bursts}
                       onChange={e => setDetectOptions(o => ({ ...o, detect_bursts: e.currentTarget.checked }))}
-                      label={t("stacks.options.detectbursts", "Burst sequences")}
+                      label={t("stacks.options.detectbursts")}
                     />
                     {detectOptions.detect_bursts && (
                       <Box pl="md">
                         <Text size="xs" c="dimmed">
-                          {t("stacks.burstRulesHint", "Configure detection rules in Settings")}
+                          {t("stacks.burstRulesHint")}
                         </Text>
                       </Box>
                     )}
@@ -307,7 +307,7 @@ export function StacksPageContent() {
               // Bursts are the only thing to detect: with it unchecked the job would do nothing
               disabled={!detectOptions.detect_bursts}
             >
-              {t("stacks.detect", "Detect Stacks")}
+              {t("stacks.detect")}
             </Button>
           </ButtonGroup>
         </Group>
@@ -332,7 +332,7 @@ export function StacksPageContent() {
             <Group justify="center" mt="md" gap="md">
               {totalCount > 0 && (
                 <Text size="sm" c="dimmed">
-                  {t("stacks.showing", "Showing {{count}} stacks", { count: totalCount })}
+                  {t("stacks.showing", { count: totalCount })}
                 </Text>
               )}
               <Pagination value={page} onChange={setPage} total={totalPages} withEdges />
@@ -342,7 +342,7 @@ export function StacksPageContent() {
       ) : (
         <EmptyState
           icon={<IconLayersSubtract size={40} />}
-          title={t("stacks.nostacks", "No photo stacks found")}
+          title={t("stacks.nostacks")}
           description={t("stacks.empty")}
         />
       )}

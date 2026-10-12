@@ -1,12 +1,13 @@
 import { ActionIcon, Tooltip } from "@mantine/core";
 import { IconLayoutGrid, IconPhoto, IconScreenshot, IconVideo } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
+import type { ParseKeys } from "i18next";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { type MediaType } from "./mediaTypeFilter";
 import { useMediaTypeFilter } from "./useMediaTypeFilter";
 
-const OPTIONS: ReadonlyArray<{ value: MediaType; icon: typeof IconPhoto; labelKey: string }> = [
+const OPTIONS: ReadonlyArray<{ value: MediaType; icon: typeof IconPhoto; labelKey: ParseKeys }> = [
   { value: "all", icon: IconLayoutGrid, labelKey: "mediafilter.all" },
   { value: "photos", icon: IconPhoto, labelKey: "mediafilter.photos" },
   { value: "videos", icon: IconVideo, labelKey: "mediafilter.videos" },

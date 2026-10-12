@@ -116,11 +116,13 @@ describe("i18n lazy locale loading", () => {
   it("falls back to English for keys a locale has not translated", async () => {
     window.localStorage.setItem("i18nextLng", "en");
     const i18n = await loadI18n();
-    i18n.addResource("en", "translation", "only.in.english", "English only");
-
     await i18n.changeLanguage("fr");
+    // A French file that has translated one key of the section and not the other.
+    i18n.removeResourceBundle("fr", "translation");
+    i18n.addResourceBundle("fr", "translation", { sidemenu: { photos: "Photos (fr)" } });
 
-    expect(i18n.t("only.in.english")).toBe("English only");
+    expect(i18n.t("sidemenu.photos")).toBe("Photos (fr)");
+    expect(i18n.t("sidemenu.videos")).toBe(translationEn.sidemenu.videos);
   });
 });
 

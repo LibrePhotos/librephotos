@@ -4,6 +4,7 @@
  * or it looks as if the face was saved. 401/500 and parse errors toast elsewhere.
  */
 import { ResponseParseError } from "@librephotos/api-client";
+import type { ParseKeys } from "i18next";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ZodError } from "zod";
 import i18n from "../../../i18n";
@@ -18,7 +19,7 @@ describe("reportAddFaceError", () => {
     requestFailed.mockClear();
   });
 
-  it.each<[number, string]>([
+  it.each<[number, ParseKeys]>([
     [409, "toasts.addfaceoverlap"],
     [404, "toasts.addfacenotowner"],
     [400, "toasts.addfacefailed"],

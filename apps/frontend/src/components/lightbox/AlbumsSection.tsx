@@ -22,7 +22,7 @@ export function AlbumsSection({ imageHash, showTitle = true }: AlbumsSectionProp
       {showTitle && (
         <Group>
           <Bookmark />
-          <Title order={4}>{t("lightbox.sidebar.albums", "Albums")}</Title>
+          <Title order={4}>{t("lightbox.sidebar.albums")}</Title>
         </Group>
       )}
       <Stack gap="xs" mt="xs">

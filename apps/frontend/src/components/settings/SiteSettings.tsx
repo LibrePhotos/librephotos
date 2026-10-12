@@ -319,12 +319,9 @@ export function SiteSettings() {
             </Grid.Col>
             <Grid.Col span={LABEL_SPAN}>
               <Stack gap={0}>
-                <Text>{t("sitesettings.ocr_model_header", "Text Recognition (OCR) Model")}</Text>
+                <Text>{t("sitesettings.ocr_model_header")}</Text>
                 <Text fz="sm" c="dimmed">
-                  {t(
-                    "sitesettings.ocr_model_description",
-                    'Extracts readable text from your photos into the database so that it becomes searchable. This includes text on documents, receipts and IDs. Choose "None" to keep OCR off.'
-                  )}
+                  {t("sitesettings.ocr_model_description")}
                 </Text>
               </Stack>
             </Grid.Col>
@@ -350,12 +347,9 @@ export function SiteSettings() {
             </Grid.Col>
             <Grid.Col span={LABEL_SPAN}>
               <Stack gap={0}>
-                <Text>{t("sitesettings.face_recognition_model_header", "Face Recognition Model")}</Text>
+                <Text>{t("sitesettings.face_recognition_model_header")}</Text>
                 <Text fz="sm" c="dimmed">
-                  {t(
-                    "sitesettings.face_recognition_model_description",
-                    "Select the InsightFace model pack used for face recognition. Larger models are more accurate but require more resources."
-                  )}
+                  {t("sitesettings.face_recognition_model_description")}
                 </Text>
               </Stack>
             </Grid.Col>

@@ -54,15 +54,15 @@ function KeywordsEditor({ photoDetail }: KeywordsSectionProps) {
       <Group justify="space-between">
         <Group>
           <IconHash />
-          <Title order={4}>{t("lightbox.sidebar.keywords", "Keywords")}</Title>
+          <Title order={4}>{t("lightbox.sidebar.keywords")}</Title>
         </Group>
         {!editing ? (
-          <Tooltip label={t("lightbox.sidebar.editKeywords", "Edit keywords")}>
+          <Tooltip label={t("lightbox.sidebar.editKeywords")}>
             <ActionIcon
               variant="subtle"
               color="gray"
               size="sm"
-              aria-label={t("lightbox.sidebar.editKeywords", "Edit keywords")}
+              aria-label={t("lightbox.sidebar.editKeywords")}
               onClick={handleEditOpen}
             >
               <IconPencil size={16} />
@@ -70,24 +70,24 @@ function KeywordsEditor({ photoDetail }: KeywordsSectionProps) {
           </Tooltip>
         ) : (
           <Group gap="xs">
-            <Tooltip label={t("lightbox.sidebar.cancel", "Cancel")}>
+            <Tooltip label={t("lightbox.sidebar.cancel")}>
               <ActionIcon
                 variant="subtle"
                 color="gray"
                 size="sm"
-                aria-label={t("lightbox.sidebar.cancel", "Cancel")}
+                aria-label={t("lightbox.sidebar.cancel")}
                 onClick={handleCancel}
                 disabled={isSaving}
               >
                 <IconX size={16} />
               </ActionIcon>
             </Tooltip>
-            <Tooltip label={t("lightbox.sidebar.save", "Save")}>
+            <Tooltip label={t("lightbox.sidebar.save")}>
               <ActionIcon
                 variant="subtle"
                 color="blue"
                 size="sm"
-                aria-label={t("lightbox.sidebar.save", "Save")}
+                aria-label={t("lightbox.sidebar.save")}
                 onClick={handleSave}
                 loading={isSaving}
               >
@@ -102,7 +102,7 @@ function KeywordsEditor({ photoDetail }: KeywordsSectionProps) {
         <TagsInput
           value={draftKeywords}
           onChange={setDraftKeywords}
-          placeholder={t("lightbox.sidebar.addKeyword", "Add keyword…")}
+          placeholder={t("lightbox.sidebar.addKeyword")}
           splitChars={[",", " "]}
           clearable
         />
@@ -127,7 +127,7 @@ function KeywordsEditor({ photoDetail }: KeywordsSectionProps) {
         </Group>
       ) : (
         <Text size="sm" c="dimmed">
-          {t("lightbox.sidebar.noKeywords", "No keywords")}
+          {t("lightbox.sidebar.noKeywords")}
         </Text>
       )}
     </Stack>
