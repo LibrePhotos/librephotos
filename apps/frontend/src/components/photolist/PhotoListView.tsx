@@ -364,13 +364,13 @@ function PhotoListViewComponent({
     [throttledUpdateGroups, throttledUpdateItems]
   );
 
-  // Pig passes a tile's `url`: the image hash, then `;`-separated extras.
-  const getUrl = useCallback((url: string, pxHeight: number) => {
+  // Pig passes a tile's `image_hash`.
+  const getUrl = useCallback((imageHash: string, pxHeight: number) => {
     if (pxHeight < 250) {
-      return `${serverAddress}/media/square_thumbnails_small/${url.split(";")[0]}`;
+      return `${serverAddress}/media/square_thumbnails_small/${imageHash}`;
     }
     // Always use the highest quality thumbnails for better image quality
-    return `${serverAddress}/media/square_thumbnails/${url.split(";")[0]}`;
+    return `${serverAddress}/media/square_thumbnails/${imageHash}`;
   }, []);
 
   // Merge into the ref, not the render-time `selectionState`: callers such as

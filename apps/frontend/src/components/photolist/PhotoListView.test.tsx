@@ -103,12 +103,11 @@ vi.mock("./SelectionBar", () => ({
 }));
 vi.mock("./TrashcanActions", () => ({ TrashcanActions: () => null }));
 
-// A grid photo; `url` is what Pig builds the thumbnail address from.
+// A grid photo; `image_hash` is what Pig builds the thumbnail address from.
 function photo(id: string, extra: Partial<PigPhoto> = {}): PigPhoto {
   return {
     id,
     image_hash: id,
-    url: id,
     aspectRatio: 1,
     type: Media.IMAGE,
     is_hdr: false,
@@ -255,6 +254,16 @@ describe("PhotoListView memoisation", () => {
     expect(last.handleClick).toBe(first.handleClick);
     expect(last.handleSelection).toBe(first.handleSelection);
     expect(last.selectedItems).toBe(first.selectedItems);
+  });
+});
+
+describe("PhotoListView thumbnail addresses", () => {
+  it("builds them from the image hash Pig passes, small below 250px", async () => {
+    await render({});
+    const getUrl = defined(lastPigProps().getUrl);
+
+    expect(getUrl("abc123", 100)).toMatch(/\/media\/square_thumbnails_small\/abc123$/);
+    expect(getUrl("abc123", 400)).toMatch(/\/media\/square_thumbnails\/abc123$/);
   });
 });
 

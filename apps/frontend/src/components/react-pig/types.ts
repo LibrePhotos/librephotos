@@ -22,7 +22,8 @@ export type TileLayout = {
  */
 export type ImageItem = {
   id: string | number;
-  url?: string;
+  /** What `getUrl` builds the tile's image or video address from; placeholders have none. */
+  image_hash?: string;
   /** Width over height; the layout builds its rows from it. */
   aspectRatio: number;
   style?: PigTileStyle;

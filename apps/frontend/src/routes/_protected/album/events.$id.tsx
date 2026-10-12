@@ -61,7 +61,6 @@ function AlbumAutoGalleryView() {
       rating: photo.rating,
       public: photo.public,
       geolocation_json: photo.geolocation_json,
-      url: photo.image_hash, // Just pass the image_hash, getUrl will construct the full URL
       // The Media values the tile overlays check, so videos get their play badge
       type: photo.video ? Media.VIDEO : Media.IMAGE,
       // Square only for backends that do not send the ratio yet

@@ -10,6 +10,7 @@ import {
   Photo,
   Photoset,
   PhotosWithoutTimestampResponse,
+  PigPhoto,
   SearchPhotos,
   User,
   UserAlbum,
@@ -112,9 +113,15 @@ describe("schema parsing against fixtures", () => {
 });
 
 describe("helpers", () => {
-  it("extracts the image hash from a ;-delimited url", () => {
-    expect(imageHashOf({ image_hash: "fallback", url: "realhash;variant" })).toBe("realhash");
-    expect(imageHashOf({ image_hash: "fallback", url: undefined })).toBe("fallback");
+  it("reads the image hash from image_hash, never from the legacy url (#493)", () => {
+    expect(imageHashOf({ image_hash: "realhash" })).toBe("realhash");
+    const parsed = PigPhoto.parse({
+      id: "11111111-2222-3333-4444-555555555555",
+      image_hash: "realhash",
+      url: "other;x",
+      aspectRatio: 1,
+    });
+    expect(imageHashOf(parsed)).toBe("realhash");
   });
 
   it("maps photosets onto backend boolean filters", () => {

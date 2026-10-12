@@ -32,11 +32,11 @@ import { defined } from "../util/defined.test-utils";
 const SERVER = "http://localhost:3000";
 
 // The same mapping PhotoListView hands to react-pig.
-function getUrl(url: string, pxHeight: number) {
+function getUrl(imageHash: string, pxHeight: number) {
   if (pxHeight < 250) {
-    return `${SERVER}/media/square_thumbnails_small/${url.split(";")[0]}`;
+    return `${SERVER}/media/square_thumbnails_small/${imageHash}`;
   }
-  return `${SERVER}/media/square_thumbnails/${url.split(";")[0]}`;
+  return `${SERVER}/media/square_thumbnails/${imageHash}`;
 }
 
 const settings = {
@@ -49,8 +49,8 @@ const settings = {
 function videoItem(index: number) {
   const hash = `videohash${index}`;
   return {
-    id: hash,
-    url: hash,
+    id: `video-${index}`,
+    image_hash: hash,
     type: "video",
     aspectRatio: 1.5,
     dominantColor: "#123456",
@@ -64,7 +64,7 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 let container: HTMLDivElement | null = null;
 let root: ReturnType<typeof createRoot> | null = null;
 
-function tileElements(count: number, scrollSpeed: ScrollSpeed, activeTileUrl: string | null = null) {
+function tileElements(count: number, scrollSpeed: ScrollSpeed, activeTileId: string | null = null) {
   return Array.from({ length: count }, (_, i) => videoItem(i)).map(item => (
     <Tile
       key={item.id}
@@ -73,7 +73,7 @@ function tileElements(count: number, scrollSpeed: ScrollSpeed, activeTileUrl: st
       containerWidth={1200}
       containerOffsetTop={0}
       getUrl={getUrl}
-      activeTileUrl={activeTileUrl}
+      activeTileId={activeTileId}
       handleClick={() => {}}
       handleSelection={() => {}}
       selected={false}
@@ -85,19 +85,19 @@ function tileElements(count: number, scrollSpeed: ScrollSpeed, activeTileUrl: st
   ));
 }
 
-function renderTiles(count: number, scrollSpeed: ScrollSpeed = "slow", activeTileUrl: string | null = null) {
+function renderTiles(count: number, scrollSpeed: ScrollSpeed = "slow", activeTileId: string | null = null) {
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
   act(() => {
-    defined(root).render(<>{tileElements(count, scrollSpeed, activeTileUrl)}</>);
+    defined(root).render(<>{tileElements(count, scrollSpeed, activeTileId)}</>);
   });
   return container;
 }
 
-function rerenderTiles(count: number, scrollSpeed: ScrollSpeed, activeTileUrl: string | null = null) {
+function rerenderTiles(count: number, scrollSpeed: ScrollSpeed, activeTileId: string | null = null) {
   act(() => {
-    defined(root).render(<>{tileElements(count, scrollSpeed, activeTileUrl)}</>);
+    defined(root).render(<>{tileElements(count, scrollSpeed, activeTileId)}</>);
   });
 }
 
@@ -161,8 +161,8 @@ describe("issue 970: listing a huge amount of videos", () => {
   });
 
   it("releases the media element when the expanded tile is dismissed", () => {
-    const expandedUrl = videoItem(0).url;
-    const video = defined(renderTiles(1, "fast", expandedUrl).querySelector("video"));
+    const expandedId = videoItem(0).id;
+    const video = defined(renderTiles(1, "fast", expandedId).querySelector("video"));
 
     rerenderTiles(1, "fast");
 

@@ -32,8 +32,9 @@ export type TileProps<T extends ImageItem> = {
   containerWidth: number;
   /** Null until Pig has measured its container. */
   containerOffsetTop: number | null;
-  getUrl: (url: string, size: number) => string;
-  activeTileUrl: string | null;
+  getUrl: (imageHash: string, size: number) => string;
+  /** The id of the tile expanded in place, if any. */
+  activeTileId: ImageItem["id"] | null;
   handleClick: (event: React.MouseEvent<HTMLButtonElement>, item: T) => void;
   handleSelection: (item: T) => void;
   selected: boolean;
@@ -54,7 +55,7 @@ function TileComponent<T extends ImageItem>({
   containerWidth,
   containerOffsetTop,
   getUrl,
-  activeTileUrl,
+  activeTileId,
   handleClick,
   handleSelection,
   selected,
@@ -68,14 +69,12 @@ function TileComponent<T extends ImageItem>({
 }: TileProps<T>) {
   const { t } = useTranslation();
   const isTemp = !!item.isTemp;
-  // A placeholder has no address yet; a loaded tile always has one.
-  const url = item.url ?? "";
+  // A placeholder has no image yet; a loaded tile always has one.
+  const imageHash = item.image_hash ?? "";
   const isSelectable = selectable;
   const isSelected = selected;
-  const isExpanded = activeTileUrl === item.url;
-  const isVideo =
-    !isTemp &&
-    (url.includes(".mp4") || url.includes(".mov") || (item.type !== undefined && item.type.includes("video")));
+  const isExpanded = activeTileId !== null && activeTileId === item.id;
+  const isVideo = !isTemp && item.type !== undefined && item.type.includes("video");
   const [isFullSizeLoaded, setFullSizeLoaded] = useState(!!isVideo);
   const [videoFailed, setVideoFailed] = useState(false);
   const gridVideoRef = useReleaseOnDetach();
@@ -156,7 +155,7 @@ function TileComponent<T extends ImageItem>({
     >
       <button
         type="button"
-        className={`${styles.pigBtn}${isExpanded ? ` ${styles.pigBtnActive}` : ""} pig-btn`}
+        className={`${styles.pigBtn} pig-btn`}
         onClick={event => handleClick(event, item)}
         aria-label={label}
       >
@@ -166,7 +165,7 @@ function TileComponent<T extends ImageItem>({
             className={`${styles.pigImg} ${styles.pigThumbnail}${
               isFullSizeLoaded ? ` ${styles.pigThumbnailLoaded}` : ""
             }`}
-            src={getUrl(url, settings.thumbnailSize)}
+            src={getUrl(imageHash, settings.thumbnailSize)}
             loading="lazy"
             width={item.style.width}
             height={item.style.height}
@@ -178,7 +177,7 @@ function TileComponent<T extends ImageItem>({
           // grid image
           <img
             className={`${styles.pigImg} ${styles.pigFull}${isFullSizeLoaded ? ` ${styles.pigFullLoaded}` : ""}`}
-            src={getUrl(url, getImageHeight(containerWidth))}
+            src={getUrl(imageHash, getImageHeight(containerWidth))}
             alt=""
             onLoad={() => {
               setFullSizeLoaded(true);
@@ -190,7 +189,7 @@ function TileComponent<T extends ImageItem>({
                 thumbnails.forEach(thumbnail => {
                   if (
                     (thumbnail instanceof HTMLImageElement || thumbnail instanceof HTMLMediaElement) &&
-                    thumbnail.src.includes(url.split(";")[0] ?? url) &&
+                    thumbnail.src.includes(imageHash) &&
                     loadedClass !== undefined
                   ) {
                     thumbnail.classList.add(loadedClass);
@@ -207,7 +206,7 @@ function TileComponent<T extends ImageItem>({
             className={`${styles.pigImg} ${styles.pigThumbnail}${
               isFullSizeLoaded ? ` ${styles.pigThumbnailLoaded}` : ""
             }`}
-            src={getUrl(url, getImageHeight(containerWidth))}
+            src={getUrl(imageHash, getImageHeight(containerWidth))}
             preload="metadata"
             onCanPlay={() => setFullSizeLoaded(true)}
             onMouseOver={event => event.currentTarget.play()}
@@ -223,7 +222,7 @@ function TileComponent<T extends ImageItem>({
 
         {isExpanded && !isVideo && !isTemp && (
           // full size expanded image
-          <img className={styles.pigImg} src={getUrl(url, settings.expandedSize)} alt="" />
+          <img className={styles.pigImg} src={getUrl(imageHash, settings.expandedSize)} alt="" />
         )}
 
         {isExpanded && isVideo && !isTemp && !videoFailed && (
@@ -231,7 +230,7 @@ function TileComponent<T extends ImageItem>({
           <video
             ref={expandedVideoRef}
             className={styles.pigImg}
-            src={getUrl(url, settings.expandedSize)}
+            src={getUrl(imageHash, settings.expandedSize)}
             preload="metadata"
             onMouseOver={event => event.currentTarget.play()}
             onFocus={event => event.currentTarget.play()}
