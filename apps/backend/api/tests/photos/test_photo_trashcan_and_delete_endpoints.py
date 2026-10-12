@@ -80,7 +80,9 @@ class DeletePhotosTest(TestCase):
         self.assertEqual(0, len(data["updated_hashes"]))
         self.assertEqual(0, len(data["not_updated_hashes"]))
         logger.assert_called_with(
-            "Could not set photo nonexistent_photo to deleted. It does not exist or is not owned by user."
+            "Could not set photo %s to %s. It does not exist or is not owned by user.",
+            "nonexistent_photo",
+            "deleted",
         )
 
     def test_delete_tagged_photos_for_removal(self):

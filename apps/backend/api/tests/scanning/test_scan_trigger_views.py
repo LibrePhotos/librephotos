@@ -223,7 +223,7 @@ class ScanPhotosViewErrorPathTest(ScanViewTestBase):
             api_error(response)["message"], "Could not start the photo scan."
         )
         self.logger_mock.exception.assert_called_once_with(
-            "Could not start the photo scan"
+            "Could not start %s", "the photo scan"
         )
 
     def test_non_exception_baseexception_is_not_swallowed(self):

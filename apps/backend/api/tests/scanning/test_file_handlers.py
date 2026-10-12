@@ -411,7 +411,8 @@ class HandleFileGroupTests(FileHandlerTestBase):
 
         self.assertEqual(0, Photo.objects.count())
         self.mock_process.assert_not_called()
-        self.assertIn("No valid files in group", logger.warning.call_args[0][0])
+        args = logger.warning.call_args.args
+        self.assertIn("No valid files in group", args[0] % args[1:])
         job = LongRunningJob.objects.get(job_id=self.job_id)
         self.assertEqual(1, (job.result or {}).get("error_count"))
         self.assertIn("broken.jpg", job.result["errors"][0])
@@ -506,7 +507,7 @@ class HandleFileGroupTests(FileHandlerTestBase):
 
         self.assertEqual(0, Photo.objects.count())
         self.mock_process.assert_not_called()
-        warnings = [c[0][0] for c in logger.warning.call_args_list]
+        warnings = [c.args[0] % c.args[1:] for c in logger.warning.call_args_list]
         self.assertTrue(any("Could not create photo for files" in w for w in warnings))
         job = LongRunningJob.objects.get(job_id=self.job_id)
         self.assertEqual(1, (job.result or {}).get("error_count"))
@@ -574,8 +575,9 @@ class HandleFileGroupTests(FileHandlerTestBase):
             handle_file_group(self.user, [path], self.job_id)  # must not raise
 
         logger.exception.assert_called_once()
-        self.assertIn("could not process file group", logger.exception.call_args[0][0])
-        self.assertIn("boom", logger.exception.call_args[0][0])
+        args = logger.exception.call_args.args
+        self.assertIn("could not process file group", args[0] % args[1:])
+        self.assertIn("boom", args[0] % args[1:])
 
     def test_scan_counter_is_incremented_on_success(self):
         job = create_test_job(

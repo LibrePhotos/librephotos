@@ -79,5 +79,7 @@ class FavoritePhotosTest(TestCase):
         self.assertEqual(0, len(data["updated_hashes"]))
         self.assertEqual(0, len(data["not_updated_hashes"]))
         logger.assert_called_with(
-            "Could not set photo nonexistent_photo to favorite. It does not exist or is not owned by user."
+            "Could not set photo %s to %s. It does not exist or is not owned by user.",
+            "nonexistent_photo",
+            "favorite",
         )
