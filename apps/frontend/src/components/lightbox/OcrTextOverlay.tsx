@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef } from "react";
 import type { PhotoOcrBlock } from "../../api_client/photos/types";
+import classes from "./OcrTextOverlay.module.css";
 
 // The viewBox is a fixed 1000 user units wide; its height follows the image
 // aspect ratio so x and y use the same scale and glyphs are not distorted.
@@ -96,8 +97,7 @@ export function OcrTextOverlay({ blocks, aspectRatio }: OcrTextOverlayProps) {
             width={block.width}
             height={block.height}
             rx={Math.min(block.height * 0.2, 8)}
-            fill="rgba(255, 255, 255, 0.16)"
-            stroke="rgba(255, 255, 255, 0.35)"
+            className={classes.blockBackdrop}
             strokeWidth={0.5}
             pointerEvents="none"
           />

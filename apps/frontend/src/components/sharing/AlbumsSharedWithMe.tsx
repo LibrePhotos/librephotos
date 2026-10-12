@@ -1,6 +1,7 @@
-import { Anchor, Avatar, Stack, Text } from "@mantine/core";
+import { Anchor, Avatar, Box, Stack, Text } from "@mantine/core";
 import { IconPolaroid as Polaroid } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
+import cx from "clsx";
 import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchSharedAlbumsWithMeQuery } from "../../api_client/albums/hooks";
@@ -13,6 +14,7 @@ import { Tile } from "../Tile";
 import { TileGrid } from "../virtual/TileGrid";
 import type { TileGroup } from "../virtual/TileGrid";
 import { useMeasuredTileSizing } from "../virtual/useMeasuredTileSizing";
+import classes from "./AlbumsShared.module.css";
 import { avatarSrc } from "./avatarSrc";
 import { sharerName } from "./sharerGroups";
 
@@ -45,20 +47,20 @@ export function AlbumsSharedWithMe() {
         key: group.user_id,
         items: group.albums,
         header: (
-          <div style={{ height: DAY_HEADER_HEIGHT, paddingTop: 15, paddingLeft: 5 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <Box h={`${DAY_HEADER_HEIGHT}px`} className={classes.ownerHeader}>
+            <div className={classes.ownerRow}>
               <Avatar size={36} radius="xl" src={avatarSrc(owner)} />
               <div>
                 <Text size="md" fw="bold">
                   {displayName}
                 </Text>
-                <Text size="xs" c="dimmed" style={{ display: "flex", alignItems: "center" }}>
-                  <Polaroid size={16} style={{ marginRight: 5 }} />
+                <Text size="xs" c="dimmed" className={classes.ownerLine}>
+                  <Polaroid size={16} className={classes.polaroid} />
                   {t("sharing.sharedAlbumsWithYou", { count: group.albums.length })}
                 </Text>
               </div>
             </div>
-          </div>
+          </Box>
         ),
       };
     });
@@ -90,22 +92,14 @@ export function AlbumsSharedWithMe() {
                 >
                   {album.cover_photo ? (
                     <Tile
-                      className={gridClasses.cover}
-                      style={{ objectFit: "cover" }}
+                      className={cx(gridClasses.cover, classes.coverTile)}
                       width={size}
                       height={size}
                       image_hash={album.cover_photo.image_hash}
                       video={album.cover_photo.video}
                     />
                   ) : (
-                    <div
-                      className={gridClasses.cover}
-                      style={{
-                        width: size,
-                        height: size,
-                        backgroundColor: "light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6))",
-                      }}
-                    />
+                    <div className={cx(gridClasses.cover, classes.emptyCover)} style={{ width: size, height: size }} />
                   )}
                 </Anchor>
                 <Text fw={700} mt={4} lineClamp={1} title={album.title}>

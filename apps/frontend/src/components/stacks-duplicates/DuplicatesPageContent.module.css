@@ -1,0 +1,72 @@
+/* A photo in the review dialog. The 1px border pins Paper's rem-based width; a picked photo gets a
+   2px blue one. Nested under the attribute so it outranks Paper's border whatever order the
+   stylesheets load in. */
+.photoCard {
+  display: flex;
+  flex-direction: column;
+}
+
+.photoCard[data-with-border] {
+  border-width: 1px;
+}
+
+.photoCard[data-with-border][data-selected] {
+  border-color: var(--mantine-color-blue-5);
+  border-width: 2px;
+}
+
+.photoSection {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.preview {
+  position: relative;
+  width: 100%;
+  height: 200px;
+  overflow: hidden;
+  background-color: var(--mantine-color-dark-6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* The dialog title: the group's icon next to its type. */
+.title {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--mantine-spacing-xs);
+}
+
+/* A duplicate group in the list. */
+.groupCard {
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.groupCard[data-with-border] {
+  border-width: 1px;
+}
+
+.groupCard[data-with-border][data-selected] {
+  border-color: var(--mantine-color-blue-5);
+  border-width: 2px;
+}
+
+.groupCard .selectCheckbox {
+  z-index: 10;
+  background-color: color-mix(in srgb, var(--mantine-color-body) 90%, transparent);
+  border-radius: 4px;
+  padding: 2px;
+}
+
+/* The menu button sits on the preview photos. The background beats ActionIcon's hover colour too. */
+.groupCard .menuButton,
+.groupCard .menuButton:hover {
+  background: var(--app-scrim-black-50);
+}
+
+.groupCard .menuButton {
+  border-radius: 4px;
+}

@@ -143,7 +143,7 @@ function StackCard({ stack, onClick, onDelete }: { stack: StackListItem; onClick
               position: "absolute",
               top: 4,
               right: 4,
-              background: "rgba(0,0,0,0.5)",
+              background: "var(--app-scrim-black-50)",
               borderRadius: "4px",
             }}
             aria-label={t("moreactions")}

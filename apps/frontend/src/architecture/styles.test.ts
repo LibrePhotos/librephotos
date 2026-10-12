@@ -17,18 +17,23 @@ type Metric = (typeof METRICS)[number];
 type Counts = Partial<Record<Metric, number>>;
 type CountsByFile = Record<string, Counts>;
 
-// The named homes for colours that are deliberate but not theme colours: chart palettes, the brand
-// gradients, and the scrims and shadows drawn on photos (CSS variables, loaded from src/index.tsx).
-const COLOUR_HOMES = new Set(["src/theme/chartColors.ts", "src/theme/brandGradients.ts", "src/theme/scrims.css"]);
+// The named homes for colours that are deliberate but not theme colours: chart palettes, map layers,
+// the brand gradients, and the app's CSS variables (scrims, shadows; loaded from src/index.tsx).
+const COLOUR_HOMES = new Set([
+  "src/theme/chartColors.ts",
+  "src/theme/mapColors.ts",
+  "src/theme/brandGradients.ts",
+  "src/theme/colors.css",
+]);
 
 const HEX = /(?<![\w&.#])#(?:[0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{3,4})(?![\w-])/g;
 const COLOUR_FUNCTION = /\b(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch)\(/g;
 const IMPORTANT = /!\s*important\b/g;
 const INLINE_STYLE = /\bstyle=\{\{/g;
 // A side-effect or default import of a relative stylesheet. CSS modules do not count, and neither
-// does theme setup: package stylesheets (Mantine, maplibre) and the scrim variables.
+// does theme setup: package stylesheets (Mantine, maplibre) and the app's colour variables.
 const RELATIVE_CSS_IMPORT = /\bimport\s+(?:\w+\s+from\s+)?["']\.{1,2}\/[^"']*\.css["']/g;
-const NOT_GLOBAL = /(?:\.module\.css|\/theme\/scrims\.css)["']$/;
+const NOT_GLOBAL = /(?:\.module\.css|\/theme\/colors\.css)["']$/;
 
 /** Source without comments: CSS block comments; TS comment lines and trailing `// ...`. */
 function stripComments(path: string, source: string): string {
@@ -174,7 +179,7 @@ describe("the style counts", () => {
     expect(
       planted("src/components/Foo.tsx", `import classes from "./Foo.module.css";\nimport "@mantine/core/styles.css";`)
     ).toEqual([]);
-    expect(planted("src/index.tsx", `import "./theme/scrims.css";`)).toEqual([]);
+    expect(planted("src/index.tsx", `import "./theme/colors.css";`)).toEqual([]);
   });
 
   it("flag an inline style object", () => {
@@ -195,7 +200,7 @@ describe("the style counts", () => {
       planted("src/components/Foo.module.css", "/* #fff */\n.a {\n  color: var(--mantine-color-white);\n}\n")
     ).toEqual([]);
     expect(planted("src/theme/chartColors.ts", `export const PALETTE = ["#ff0000"];`)).toEqual([]);
-    expect(planted("src/theme/scrims.css", ":root {\n  --app-scrim-black-20: rgba(0, 0, 0, 0.2);\n}\n")).toEqual([]);
+    expect(planted("src/theme/colors.css", ":root {\n  --app-scrim-black-20: rgba(0, 0, 0, 0.2);\n}\n")).toEqual([]);
   });
 
   it("report a count that went down as stale, and lowering never raises or adds a file", () => {

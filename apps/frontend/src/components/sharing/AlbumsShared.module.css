@@ -1,0 +1,29 @@
+/* The shared-albums pages (AlbumsSharedByMe, AlbumsSharedWithMe): a header per person, then their
+   album covers. */
+.ownerHeader {
+  padding-top: 15px;
+  padding-left: 5px;
+}
+
+.ownerRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ownerLine {
+  display: flex;
+  align-items: center;
+}
+
+.polaroid {
+  margin-right: 5px;
+}
+
+.coverTile {
+  object-fit: cover;
+}
+
+.emptyCover {
+  background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6));
+}

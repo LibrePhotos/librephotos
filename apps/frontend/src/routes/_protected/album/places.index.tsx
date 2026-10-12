@@ -26,6 +26,12 @@ import { PageHeader } from "../../../components/PageHeader";
 import { Tile } from "../../../components/Tile";
 import { TileGrid } from "../../../components/virtual/TileGrid";
 import { useAlbumListGridConfig } from "../../../hooks/useAlbumListGridConfig";
+import {
+  MAP_CLUSTER_COLORS,
+  MAP_CLUSTER_TEXT_COLOR,
+  MAP_POINT_COLOR,
+  MAP_POINT_STROKE_COLOR,
+} from "../../../theme/mapColors";
 import { useMapStyle } from "../../../util/mapStyle";
 
 export const Route = createFileRoute("/_protected/album/places/")({
@@ -57,7 +63,15 @@ const clusterLayer: CircleLayerSpecification = {
   source: "locations",
   filter: ["has", "point_count"],
   paint: {
-    "circle-color": ["step", ["get", "point_count"], "#51bbd6", 10, "#f1f075", 50, "#f28cb1"],
+    "circle-color": [
+      "step",
+      ["get", "point_count"],
+      MAP_CLUSTER_COLORS.small,
+      10,
+      MAP_CLUSTER_COLORS.medium,
+      50,
+      MAP_CLUSTER_COLORS.large,
+    ],
     "circle-radius": ["step", ["get", "point_count"], 15, 10, 20, 50, 25],
   },
 };
@@ -73,7 +87,7 @@ const clusterCountLayer: SymbolLayerSpecification = {
     "text-size": 12,
   },
   paint: {
-    "text-color": "#000",
+    "text-color": MAP_CLUSTER_TEXT_COLOR,
   },
 };
 
@@ -83,10 +97,10 @@ const unclusteredPointLayer: CircleLayerSpecification = {
   source: "locations",
   filter: ["!", ["has", "point_count"]],
   paint: {
-    "circle-color": "#11b4da",
+    "circle-color": MAP_POINT_COLOR,
     "circle-radius": 8,
     "circle-stroke-width": 2,
-    "circle-stroke-color": "#fff",
+    "circle-stroke-color": MAP_POINT_STROKE_COLOR,
   },
 };
 

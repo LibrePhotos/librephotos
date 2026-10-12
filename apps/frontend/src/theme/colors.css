@@ -1,0 +1,63 @@
+/*
+ * The app's own colour variables, for colours that are deliberate but not theme colours. Loaded
+ * once, as theme setup, from src/index.tsx; src/architecture/styles.test.ts does not count the
+ * colours here (AGENTS.md, Styling). Chart palettes, map layers and the gradient buttons need JS
+ * values and live in chartColors.ts, mapColors.ts and brandGradients.ts next to this file.
+ */
+:root {
+  /* Neutral black and white shades for scrims, borders and shadows: on photos (the lightbox, tile
+     overlays), where they are the same in both colour schemes, and in shadows a component picks
+     per scheme. The number is the opacity in percent. */
+  --app-scrim-black-4: rgba(0, 0, 0, 0.04);
+  --app-scrim-black-6: rgba(0, 0, 0, 0.06);
+  --app-scrim-black-8: rgba(0, 0, 0, 0.08);
+  --app-scrim-black-10: rgba(0, 0, 0, 0.1);
+  --app-scrim-black-12: rgba(0, 0, 0, 0.12);
+  --app-scrim-black-15: rgba(0, 0, 0, 0.15);
+  --app-scrim-black-20: rgba(0, 0, 0, 0.2);
+  --app-scrim-black-25: rgba(0, 0, 0, 0.25);
+  --app-scrim-black-30: rgba(0, 0, 0, 0.3);
+  --app-scrim-black-35: rgba(0, 0, 0, 0.35);
+  --app-scrim-black-40: rgba(0, 0, 0, 0.4);
+  --app-scrim-black-50: rgba(0, 0, 0, 0.5);
+  --app-scrim-black-60: rgba(0, 0, 0, 0.6);
+  --app-scrim-black-65: rgba(0, 0, 0, 0.65);
+  --app-scrim-black-70: rgba(0, 0, 0, 0.7);
+  --app-scrim-black-75: rgba(0, 0, 0, 0.75);
+  --app-scrim-black-90: rgba(0, 0, 0, 0.9);
+  --app-scrim-white-5: rgba(255, 255, 255, 0.05);
+  --app-scrim-white-8: rgba(255, 255, 255, 0.08);
+  --app-scrim-white-10: rgba(255, 255, 255, 0.1);
+  --app-scrim-white-12: rgba(255, 255, 255, 0.12);
+  --app-scrim-white-16: rgba(255, 255, 255, 0.16);
+  --app-scrim-white-20: rgba(255, 255, 255, 0.2);
+  --app-scrim-white-30: rgba(255, 255, 255, 0.3);
+  --app-scrim-white-35: rgba(255, 255, 255, 0.35);
+  --app-scrim-white-60: rgba(255, 255, 255, 0.6);
+  --app-scrim-white-80: rgba(255, 255, 255, 0.8);
+  --app-scrim-white-90: rgba(255, 255, 255, 0.9);
+  --app-scrim-white-95: rgba(255, 255, 255, 0.95);
+  /* The grey fill of a text badge on a grid tile (RAW, HDR). */
+  --app-scrim-grey-85: rgba(128, 128, 128, 0.85);
+
+  /* The face cluster graph's canvas surface and its dark tooltip. */
+  --app-chart-surface-light-from: rgba(250, 250, 255, 0.9);
+  --app-chart-surface-light-to: rgba(240, 245, 255, 0.95);
+  --app-chart-surface-dark-from: rgba(30, 30, 40, 0.8);
+  --app-chart-surface-dark-to: rgba(20, 20, 30, 0.9);
+  --app-chart-tooltip-dark: rgba(30, 30, 40, 0.95);
+
+  /* The AI suggestion button's rotating rainbow border, and its glow on hover. */
+  --app-ai-violet: #8b45ff;
+  --app-ai-blue: #3b82f6;
+  --app-ai-cyan: #06b6d4;
+  --app-ai-emerald: #10b981;
+  --app-ai-amber: #f59e0b;
+  --app-ai-red: #ef4444;
+  --app-ai-violet-30: rgba(139, 69, 255, 0.3);
+  --app-ai-violet-40: rgba(139, 69, 255, 0.4);
+
+  /* The gold shimmer that runs over the statistics card on hover. */
+  --app-shimmer-amber-15: rgba(255, 193, 7, 0.15);
+  --app-shimmer-gold-25: rgba(255, 215, 0, 0.25);
+}

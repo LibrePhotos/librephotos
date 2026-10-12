@@ -1,5 +1,5 @@
 /* The previous, current and next thumbnails at the bottom of the lightbox. They sit on the photo, so
-   the scrim, borders and shadows are the same in both colour schemes (src/theme/scrims.css). */
+   the scrim, borders and shadows are the same in both colour schemes (src/theme/colors.css). */
 .strip {
   height: 80px;
   overflow: visible;

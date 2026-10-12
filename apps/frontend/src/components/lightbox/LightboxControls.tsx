@@ -215,7 +215,7 @@ export function LightboxControls({
                   position: "absolute",
                   inset: 0,
                 }}
-                rootColor="rgba(255,255,255,0.2)"
+                rootColor="var(--app-scrim-white-20)"
               />
             )}
             <ActionIcon
@@ -247,15 +247,15 @@ export function LightboxControls({
                 minHeight: 26,
                 height: 26,
                 backgroundColor: "transparent",
-                border: "1px solid rgba(255,255,255,0.2)",
+                border: "1px solid var(--app-scrim-white-20)",
                 color: "white",
                 fontSize: 12,
                 paddingLeft: 8,
                 paddingRight: 24,
               },
               dropdown: {
-                backgroundColor: "rgba(0,0,0,0.9)",
-                border: "1px solid rgba(255,255,255,0.2)",
+                backgroundColor: "var(--app-scrim-black-90)",
+                border: "1px solid var(--app-scrim-white-20)",
               },
             }}
             // Hover cannot be styled inline, so the options live in a module.
@@ -267,7 +267,7 @@ export function LightboxControls({
       </Group>
 
       {/* Group 2: View controls - Live text, Zoom & Fullscreen */}
-      {showViewGroup && <Divider orientation="vertical" color="rgba(255,255,255,0.2)" />}
+      {showViewGroup && <Divider orientation="vertical" color="var(--app-scrim-white-20)" />}
       {showViewGroup && (
         <Group gap={4} align="center">
           {hasOcrText && (
@@ -333,7 +333,7 @@ export function LightboxControls({
       {/* Group 3: Metadata controls - Hide, Favorite, Public, Delete (only for authenticated users) */}
       {!isPublic && showMetaGroup && (
         <>
-          <Divider orientation="vertical" color="rgba(255,255,255,0.2)" />
+          <Divider orientation="vertical" color="var(--app-scrim-white-20)" />
           <Group gap={4} align="center">
             {isPhotoDetailsLoading && (
               <ActionIcon loading variant="transparent" size={28}>
@@ -470,7 +470,7 @@ export function LightboxControls({
       {/* Group 4: Panel controls - Info toggle & Close (sidebar toggle right next to X).
           Its divider is not part of group 3, which a public page and a photo
           without details do not have. */}
-      <Divider orientation="vertical" color="rgba(255,255,255,0.2)" />
+      <Divider orientation="vertical" color="var(--app-scrim-white-20)" />
       <Group gap={4} align="center">
         <Tooltip label={infoLabel} position="bottom" withArrow>
           <ActionIcon

@@ -8,8 +8,8 @@ import "@mantine/charts/styles.css";
 import "@mantine/dates/styles.css";
 import "@mantine/tiptap/styles.css";
 import "maplibre-gl/dist/maplibre-gl.css";
-// The app's own CSS variables for colours on top of photos.
-import "./theme/scrims.css";
+// The app's own colour variables (scrims, shadows and a few deliberate accents).
+import "./theme/colors.css";
 import { ApiClientProvider } from "@librephotos/api-client";
 import { QueryClientProvider } from "@tanstack/react-query";
 import React from "react";

@@ -1,0 +1,15 @@
+/* The face cluster canvas: a faint surface that follows the colour scheme. */
+.canvasBox {
+  position: relative;
+  border-radius: var(--mantine-radius-md);
+  overflow: hidden;
+  background: linear-gradient(135deg, var(--app-chart-surface-light-from) 0%, var(--app-chart-surface-light-to) 100%);
+  border: 1px solid var(--app-scrim-black-8);
+  box-shadow: inset 0 1px 1px var(--app-scrim-white-80);
+}
+
+[data-mantine-color-scheme="dark"] .canvasBox {
+  background: linear-gradient(135deg, var(--app-chart-surface-dark-from) 0%, var(--app-chart-surface-dark-to) 100%);
+  border-color: var(--app-scrim-white-10);
+  box-shadow: inset 0 1px 1px var(--app-scrim-white-5);
+}

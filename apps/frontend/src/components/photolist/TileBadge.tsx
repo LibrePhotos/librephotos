@@ -7,7 +7,7 @@ export function TileBadge({ style, ...props }: Readonly<React.HTMLAttributes<HTM
     <span
       {...props}
       style={{
-        backgroundColor: "rgba(128, 128, 128, 0.85)",
+        backgroundColor: "var(--app-scrim-grey-85)",
         color: "white",
         fontSize: 10,
         fontWeight: 600,

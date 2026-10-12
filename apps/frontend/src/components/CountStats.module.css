@@ -1,0 +1,38 @@
+/* The statistics link card: a gold shimmer runs over it on hover. */
+@keyframes shimmer {
+  0% {
+    background-position: -200% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
+}
+
+.datavizCard {
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.datavizCard::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    110deg,
+    transparent 20%,
+    var(--app-shimmer-amber-15) 40%,
+    var(--app-shimmer-gold-25) 50%,
+    var(--app-shimmer-amber-15) 60%,
+    transparent 80%
+  );
+  background-size: 200% 100%;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.datavizCard:hover::before {
+  opacity: 1;
+  animation: shimmer 1.5s infinite;
+}

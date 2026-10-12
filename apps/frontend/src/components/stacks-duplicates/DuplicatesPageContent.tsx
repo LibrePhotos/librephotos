@@ -63,6 +63,7 @@ import { PLACEHOLDER_IMAGE } from "../../util/placeholderImage";
 import { EmptyState } from "../common/EmptyState";
 import { PageLoader } from "../common/PageLoader";
 import { Lightbox } from "../lightbox";
+import classes from "./DuplicatesPageContent.module.css";
 import { useStepBackFromMissingPage } from "./useStepBackFromMissingPage";
 
 // Select options cannot be "", so "all statuses" gets a sentinel value
@@ -129,39 +130,22 @@ function DuplicatePhotoCard({
       padding="sm"
       radius="md"
       withBorder
-      style={{
-        borderColor: isSelected ? "var(--mantine-color-blue-5)" : undefined,
-        borderWidth: isSelected ? 2 : 1,
-        display: "flex",
-        flexDirection: "column",
-      }}
+      className={classes.photoCard}
+      data-selected={isSelected || undefined}
     >
-      <Card.Section style={{ position: "relative", flexShrink: 0 }}>
-        <Box
-          style={{
-            position: "relative",
-            width: "100%",
-            height: 200,
-            overflow: "hidden",
-            backgroundColor: "var(--mantine-color-dark-6)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
+      <Card.Section className={classes.photoSection}>
+        <Box className={classes.preview}>
           <Image
             src={thumbnailUrl}
             alt={t("duplicates.photoalt")}
             fallbackSrc={PLACEHOLDER_IMAGE}
             fit="contain"
             h={200}
-            style={{
-              maxWidth: "100%",
-              maxHeight: "100%",
-            }}
+            maw="100%"
+            mah="100%"
           />
           {photo.is_kept && (
-            <Badge size="xs" color="green" style={{ position: "absolute", top: 4, left: 4 }}>
+            <Badge size="xs" color="green" pos="absolute" top="4px" left="4px">
               {t("duplicates.original")}
             </Badge>
           )}
@@ -170,7 +154,10 @@ function DuplicatePhotoCard({
           variant="filled"
           color="dark"
           size="sm"
-          style={{ position: "absolute", top: 8, right: 8, opacity: 0.8 }}
+          pos="absolute"
+          top="8px"
+          right="8px"
+          opacity={0.8}
           aria-label={t("viewfull")}
           onClick={e => {
             e.stopPropagation();
@@ -181,7 +168,7 @@ function DuplicatePhotoCard({
         </ActionIcon>
       </Card.Section>
 
-      <Stack gap="xs" mt="sm" style={{ flex: 1 }}>
+      <Stack gap="xs" mt="sm" flex={1}>
         <Group justify="space-between">
           <Text size="sm" fw={500}>
             {formatResolution(photo.width, photo.height) ?? t("settings.unknown")}
@@ -352,10 +339,7 @@ function DuplicateModal({
         title={
           // A span, not a Group (a div): Mantine's title is an <h2>, which takes phrasing
           // content only. The 18px icon matches the theme's title text.
-          <Box
-            component="span"
-            style={{ display: "inline-flex", alignItems: "center", gap: "var(--mantine-spacing-xs)" }}
-          >
+          <Box component="span" className={classes.title}>
             {duplicate && getDuplicateTypeIcon(duplicate.duplicate_type, 18)}
             {/* Plain text, styled by the app's Modal theme */}
             {duplicate ? t(`duplicates.types.${duplicate.duplicate_type}`) : t("duplicates.review")}
@@ -370,7 +354,7 @@ function DuplicateModal({
         {isLoading ? (
           <PageLoader label={t("duplicates.loading")} />
         ) : duplicate ? (
-          <Stack style={{ flex: 1, minHeight: 0 }}>
+          <Stack flex={1} mih="0">
             <Text size="sm" c="dimmed">
               {getDuplicateDescription()}
               {/* !! so a score of 0 does not render a stray "0" */}
@@ -405,7 +389,7 @@ function DuplicateModal({
               </Text>
             )}
 
-            <ScrollArea style={{ flex: 1 }} offsetScrollbars>
+            <ScrollArea flex={1} offsetScrollbars>
               <SimpleGrid cols={{ base: 1, sm: 2, md: duplicate.photos.length > 2 ? 3 : 2 }} spacing="md" p="xs">
                 {duplicate.photos.map(photo => (
                   <DuplicatePhotoCard
@@ -495,18 +479,7 @@ function DuplicateCard({
   const typeColor = getDuplicateTypeColor(duplicate.duplicate_type);
 
   return (
-    <Card
-      padding={0}
-      radius="md"
-      withBorder
-      style={{
-        cursor: "pointer",
-        position: "relative",
-        overflow: "hidden",
-        borderColor: isSelected ? "var(--mantine-color-blue-5)" : undefined,
-        borderWidth: isSelected ? 2 : 1,
-      }}
-    >
+    <Card padding={0} radius="md" withBorder className={classes.groupCard} data-selected={isSelected || undefined}>
       {/* Selection checkbox */}
       {onToggleSelect && (
         <Checkbox
@@ -515,15 +488,10 @@ function DuplicateCard({
             e.stopPropagation();
             onToggleSelect();
           }}
-          style={{
-            position: "absolute",
-            top: 8,
-            left: 8,
-            zIndex: 10,
-            backgroundColor: "color-mix(in srgb, var(--mantine-color-body) 90%, transparent)",
-            borderRadius: "4px",
-            padding: "2px",
-          }}
+          className={classes.selectCheckbox}
+          pos="absolute"
+          top="8px"
+          left="8px"
         />
       )}
       {/* Image Preview */}
@@ -537,9 +505,7 @@ function DuplicateCard({
             // Decorative: the surrounding button is named by its aria-label
             alt=""
             fallbackSrc={PLACEHOLDER_IMAGE}
-            style={{
-              opacity: isResolved || isDismissed ? 0.6 : 1,
-            }}
+            opacity={isResolved || isDismissed ? 0.6 : 1}
           />
         ))}
       </Group>
@@ -568,13 +534,10 @@ function DuplicateCard({
             variant="subtle"
             color="gray"
             size="sm"
-            style={{
-              position: "absolute",
-              top: 4,
-              right: 4,
-              background: "rgba(0,0,0,0.5)",
-              borderRadius: "4px",
-            }}
+            className={classes.menuButton}
+            pos="absolute"
+            top="4px"
+            right="4px"
             aria-label={t("moreactions")}
             onClick={e => e.stopPropagation()}
           >
