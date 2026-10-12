@@ -10,6 +10,7 @@ repository checkout and skip inside the backend image, which ships
 ``apps/backend`` only.
 """
 
+import ast
 import json
 import re
 import unittest
@@ -195,6 +196,85 @@ def _compare(version: Version, operator: str, named: list[Version]) -> bool:
     }[operator]
 
 
+# Standard-library names added after 3.10, with the version that added them.
+# Importing one at run time breaks the backend-gpu image (Python 3.10) at
+# import; ruff's target version catches syntax, not missing names. Inside
+# `if TYPE_CHECKING:` they are fine (with `from __future__ import annotations`
+# or a quoted annotation).
+NEWER_STDLIB: dict[str, dict[str, Version]] = {
+    "typing": {
+        name: (3, 11)
+        for name in (
+            "Self LiteralString Never assert_never assert_type reveal_type "
+            "Required NotRequired TypeVarTuple Unpack dataclass_transform "
+            "get_overloads clear_overloads"
+        ).split()
+    }
+    | {name: (3, 12) for name in ("override", "TypeAliasType")}
+    | {name: (3, 13) for name in ("TypeIs", "ReadOnly", "NoDefault")},
+    "enum": {"StrEnum": (3, 11)},
+    "datetime": {"UTC": (3, 11)},
+    "asyncio": {"TaskGroup": (3, 11), "timeout": (3, 11)},
+}
+NEWER_STDLIB_MODULES: dict[str, Version] = {
+    "tomllib": (3, 11),
+    "wsgiref.types": (3, 11),
+}
+# Files that only ever run on a newer Python, with the reason.
+NEWER_STDLIB_EXEMPT = {
+    # mypy and its stubs need 3.11+; requirements.dev.txt skips them on 3.10.
+    "scripts/typecheck.py",
+}
+
+
+def _is_type_checking(test: ast.expr) -> bool:
+    return (isinstance(test, ast.Name) and test.id == "TYPE_CHECKING") or (
+        isinstance(test, ast.Attribute) and test.attr == "TYPE_CHECKING"
+    )
+
+
+def newer_stdlib_imports(source: str, floor: Version) -> list[str]:
+    """Run-time imports of standard-library names the floor Python lacks."""
+    found: list[str] = []
+
+    def visit(node: ast.AST) -> None:
+        if isinstance(node, ast.If) and _is_type_checking(node.test):
+            for child in node.orelse:
+                visit(child)
+            return
+        if isinstance(node, ast.ImportFrom) and node.module and not node.level:
+            added = NEWER_STDLIB.get(node.module, {})
+            module_added = NEWER_STDLIB_MODULES.get(node.module)
+            for alias in node.names:
+                version = added.get(alias.name) or module_added
+                if version and version > floor:
+                    found.append(
+                        f"line {node.lineno}: from {node.module} import "
+                        f"{alias.name} ({_format(version)}+)"
+                    )
+        elif isinstance(node, ast.Import):
+            for alias in node.names:
+                version = NEWER_STDLIB_MODULES.get(alias.name)
+                if version and version > floor:
+                    found.append(
+                        f"line {node.lineno}: import {alias.name} ({_format(version)}+)"
+                    )
+        for child in ast.iter_child_nodes(node):
+            visit(child)
+
+    visit(ast.parse(source))
+    return found
+
+
+def _backend_sources() -> list[Path]:
+    skip = {".venv", ".venv-win", "migrations", "node_modules"}
+    return sorted(
+        path
+        for path in BACKEND_ROOT.rglob("*.py")
+        if not skip.intersection(path.relative_to(BACKEND_ROOT).parts)
+    )
+
+
 def _pyproject() -> str:
     return PYPROJECT.read_text(encoding="utf-8")
 
@@ -230,6 +310,19 @@ class SupportedRangeTests(unittest.TestCase):
             with self.subTest(path.name):
                 problems = marker_problems(path.read_text(encoding="utf-8"), supported)
                 self.assertEqual(problems, [])
+
+    def test_no_run_time_import_of_a_name_the_floor_lacks(self):
+        floor, _ = supported_range(_pyproject())
+        problems = []
+        for path in _backend_sources():
+            relative = path.relative_to(BACKEND_ROOT).as_posix()
+            if relative in NEWER_STDLIB_EXEMPT:
+                continue
+            source = path.read_text(encoding="utf-8")
+            problems += [
+                f"{relative}:{found}" for found in newer_stdlib_imports(source, floor)
+            ]
+        self.assertEqual(problems, [])
 
 
 @unittest.skipUnless(_repository_present(), "deploy/ and .github/ are not checked out")
@@ -306,6 +399,25 @@ class PlantedViolationTests(unittest.TestCase):
             [problem.split(":")[0] for problem in problems],
             ["line 2", "line 3", "line 4"],
         )
+
+    def test_newer_stdlib_imports_are_found_outside_type_checking(self):
+        source = "\n".join(
+            [
+                "from typing import TYPE_CHECKING, Any, Self",
+                "import tomllib",
+                "if TYPE_CHECKING:",
+                "    from typing import Never",
+                "else:",
+                "    from enum import StrEnum",
+                "def f():",
+                "    from typing import override",
+            ]
+        )
+        self.assertEqual(
+            [line.split(":")[0] for line in newer_stdlib_imports(source, (3, 10))],
+            ["line 1", "line 2", "line 6", "line 8"],
+        )
+        self.assertEqual(newer_stdlib_imports(source, (3, 13)), [])
 
     def test_range_parsing(self):
         self.assertEqual(
