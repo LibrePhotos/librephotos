@@ -295,7 +295,7 @@ function FirstTimeSetupPage({ onComplete }: FirstTimeSetupProps): React.JSX.Elem
       { email, first_name: firstName, last_name: lastName, username, password },
       {
         onSuccess: () => {
-          queryClient.invalidateQueries({ queryKey: userKeys.list() });
+          void queryClient.invalidateQueries({ queryKey: userKeys.list() });
           login(
             { username, password },
             {
@@ -353,7 +353,7 @@ function FirstTimeSetupPage({ onComplete }: FirstTimeSetupProps): React.JSX.Elem
               scanPhotos.mutate();
             }
             onComplete?.();
-            navigate({ to: "/" });
+            void navigate({ to: "/" });
           },
           // Without this the wizard just does nothing when the backend rejects
           // the directory, leaving the admin stuck. See issue #492.
@@ -363,7 +363,7 @@ function FirstTimeSetupPage({ onComplete }: FirstTimeSetupProps): React.JSX.Elem
       return;
     }
     onComplete?.();
-    navigate({ to: "/" });
+    void navigate({ to: "/" });
   };
 
   return (
@@ -512,7 +512,7 @@ function FirstTimeSetupPage({ onComplete }: FirstTimeSetupProps): React.JSX.Elem
                     }
                   />
                   <Group justify="space-between">
-                    <Button variant="default" onClick={() => navigate({ to: "/" })}>
+                    <Button variant="default" onClick={() => void navigate({ to: "/" })}>
                       {t("skip")}
                     </Button>
                     <Button
