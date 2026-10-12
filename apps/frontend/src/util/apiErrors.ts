@@ -4,7 +4,7 @@ import { notification } from "../service/notifications";
 /**
  * Report a failed user save.
  *
- * Only `serverMessage` is safe to show: a 500 or a 401 makes FetchClient raise
+ * Only `serverMessage` is safe to show: a 500 or a 401 makes the API client raise
  * its own toast and throw an internal English string, so those fall back to the
  * translated generic message and a 401 stays silent entirely.
  */

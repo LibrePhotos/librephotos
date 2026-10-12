@@ -2,14 +2,16 @@ import { ActionIcon, Button, Checkbox, Group, Paper, Stack, Text, TextInput, Tit
 import { DateTimePicker } from "@mantine/dates";
 import { schemaResolver, useForm } from "@mantine/form";
 import { IconCopy as CopyIcon, IconLink as LinkIcon } from "@tabler/icons-react";
-import { useQuery } from "@tanstack/react-query";
 import React, { useCallback, useEffect, useEffectEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useToggleUserAlbumPublicMutation, type PublicSharingOptions } from "../../api_client/albums/hooks";
-import { albumKeys } from "../../api_client/albums/keys";
+import {
+  useSlugAvailabilityQuery,
+  useToggleUserAlbumPublicMutation,
+  type PublicSharingOptions,
+} from "../../api_client/albums/hooks";
 import type { UserAlbum } from "../../api_client/albums/types";
-import { ApiError, fetchClient } from "../../api_client/api";
-import { shareAddress } from "../../api_client/apiClient";
+import { ApiError } from "../../api_client/api";
+import { shareAddress } from "../../api_client/urls";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import { type PublicSharingDefaults } from "../../api_client/user/types";
 import { fromPickerValue, pickerValueDaysFromNow, toPickerValue } from "../../util/dateUtils";
@@ -21,24 +23,7 @@ import { makeAlbumLinkSchema } from "./AlbumSlugSection.schema";
  * link is public and the slug has the right shape).
  */
 function useSlugTaken(slug: string, enabled: boolean, albumId: string | undefined) {
-  const { data: existingId, isFetching } = useQuery({
-    queryKey: albumKeys.slugOwner(slug),
-    enabled,
-    queryFn: async () => {
-      try {
-        const data = await fetchClient.get(`/public/albums/s/${encodeURIComponent(slug)}/`);
-        const album = typeof data === "object" && data !== null && "results" in data ? data.results : undefined;
-        const id = typeof album === "object" && album !== null && "id" in album ? album.id : undefined;
-        return typeof id === "string" || typeof id === "number" ? id : "__exists__";
-      } catch (error) {
-        // 404 means the slug is free; other HTTP errors don't block saving either.
-        if (error instanceof ApiError) return null;
-        throw error;
-      }
-    },
-    staleTime: 30_000,
-    retry: false,
-  });
+  const { data: existingId, isFetching } = useSlugAvailabilityQuery(slug, enabled);
 
   // No answer yet (undefined) is not "taken": saving waits for the check through `checking`.
   const taken =

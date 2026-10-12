@@ -1,7 +1,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import { parseWithNotification } from "../../../util/zodUtils";
-import { fetchClient, queryClient } from "../../api";
+import { apiClient, queryClient } from "../../api";
 import { settingsKeys } from "../keys";
 import { EmailConfig } from "../types";
 
@@ -9,7 +9,7 @@ export const useGetEmailConfigQuery = () =>
   useQuery({
     queryKey: settingsKeys.emailConfig(),
     queryFn: async () => {
-      const response = await fetchClient.get("/email-config/");
+      const response = await apiClient.get("/email-config/");
       return parseWithNotification(EmailConfig, response, "Failed to parse email configuration");
     },
   });
@@ -29,7 +29,7 @@ export type EmailConfigUpdate = Partial<{
 export const useUpdateEmailConfigMutation = () =>
   useMutation({
     mutationFn: async (config: EmailConfigUpdate) => {
-      const response = await fetchClient.post("/email-config/", config);
+      const response = await apiClient.post("/email-config/", config);
       return parseWithNotification(EmailConfig, response, "Failed to parse email configuration response");
     },
     onSuccess: () => {
@@ -50,7 +50,7 @@ type EmailTestResponse = z.infer<typeof EmailTestResponse>;
 export const useSendTestEmailMutation = () =>
   useMutation({
     mutationFn: async (to?: string) => {
-      const response = await fetchClient.post("/email-config/test/", to ? { to } : {});
+      const response = await apiClient.post("/email-config/test/", to ? { to } : {});
       return parseWithNotification(EmailTestResponse, response, "Failed to parse test-email response");
     },
   });

@@ -32,13 +32,16 @@ const stubs = vi.hoisted(() => {
 
 vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
 vi.mock("../../util/util", () => ({ copyToClipboard: () => {} }));
-vi.mock("../../api_client/albums/hooks", () => ({
+vi.mock("../../api_client/albums/hooks", async () => ({
   useToggleUserAlbumPublicMutation: () => ({ mutate: stubs.mutate }),
+  // The real check, on the client stubbed below.
+  useSlugAvailabilityQuery: (await import("../../api_client/albums/hooks/useSlugAvailabilityQuery"))
+    .useSlugAvailabilityQuery,
 }));
 // The slug availability check: a 404 means the slug is free
 vi.mock("../../api_client/api", () => ({
   ApiError: stubs.ApiError,
-  fetchClient: {
+  apiClient: {
     get: () => {
       if (stubs.slugOwner === "pending") return new Promise(() => {});
       return stubs.slugOwner === undefined

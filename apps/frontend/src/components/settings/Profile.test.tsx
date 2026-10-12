@@ -21,7 +21,7 @@ const stubs = vi.hoisted(() => ({
   updateUser: vi.fn<(user: Partial<User>, callbacks: SaveCallbacks) => void>(),
 }));
 
-vi.mock("../../api_client/apiClient", () => ({ serverAddress: "" }));
+vi.mock("../../api_client/urls", () => ({ serverAddress: "" }));
 vi.mock("../../api_client/auth/hooks", () => ({
   useAccessToken: () => ({ data: { access: { user_id: 1, is_admin: false } } }),
 }));

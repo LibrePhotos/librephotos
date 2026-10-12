@@ -18,8 +18,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { DateTime } from "luxon";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { serverAddress } from "../../api_client/apiClient";
 import { useSetFacesPersonLabelMutation } from "../../api_client/faces";
+import { mediaUrl } from "../../api_client/media/mediaUrl";
 import { useFetchPhotoDetailsQuery } from "../../api_client/photos/hooks";
 import { BreadcrumbPath } from "../../components/common/BreadcrumbPath";
 import { PageLoader } from "../../components/common/PageLoader";
@@ -112,7 +112,7 @@ function SinglePhotoView() {
             <PageHeader
               icon={IconPhoto}
               title={
-                <Anchor href={`${serverAddress}/media/photos/${photoDetail.image_hash}`} target="_blank">
+                <Anchor href={mediaUrl.photo(photoDetail.image_hash)} target="_blank">
                   {fileName}
                 </Anchor>
               }

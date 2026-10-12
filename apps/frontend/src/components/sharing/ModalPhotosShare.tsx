@@ -14,7 +14,7 @@ import {
 import { IconShare as Share, IconShareOff as ShareOff } from "@tabler/icons-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { serverAddress } from "../../api_client/apiClient";
+import { mediaUrl } from "../../api_client/media/mediaUrl";
 import { useUpdatePhotoSharingMutation } from "../../api_client/photos/hooks";
 import type { BulkPhotoQuery } from "../../api_client/photos/types";
 import { useFetchUserListQuery } from "../../api_client/user/hooks";
@@ -45,7 +45,7 @@ export function ModalPhotosShare(props: Props) {
   // Only show preview images in non-selectAll mode
   const selectedImageSrcs = selectAllMode
     ? []
-    : selectedImageHashes.map((image_hash: string) => `${serverAddress}/media/square_thumbnails/${image_hash}`);
+    : selectedImageHashes.map((image_hash: string) => mediaUrl.squareThumbnail(image_hash));
 
   const handleShare = (targetUser: (typeof users)[0], share: boolean) => {
     if (selectAllMode) {

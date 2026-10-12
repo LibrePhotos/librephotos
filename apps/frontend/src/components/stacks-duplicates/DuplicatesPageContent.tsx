@@ -43,7 +43,6 @@ import {
 import { DateTime } from "luxon";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { serverAddress } from "../../api_client/apiClient";
 import { useAccessToken } from "../../api_client/auth";
 import {
   useDeleteDuplicateMutation,
@@ -56,6 +55,7 @@ import {
   useRevertDuplicateMutation,
 } from "../../api_client/duplicates";
 import { DuplicateType, ReviewStatus, type Duplicate, type DuplicatePhoto } from "../../api_client/duplicates/types";
+import { serverAddress } from "../../api_client/urls";
 import { useFetchUserSelfDetailsQuery } from "../../api_client/user/hooks";
 import { buttonRoleProps } from "../../util/a11y";
 import { parsePhotoTimestamp } from "../../util/dateUtils";

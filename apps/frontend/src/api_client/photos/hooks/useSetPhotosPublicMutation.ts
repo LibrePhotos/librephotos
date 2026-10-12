@@ -2,7 +2,7 @@ import { useMutation } from "@tanstack/react-query";
 import { z } from "zod";
 import { notification } from "../../../service/notifications";
 import { parseWithNotification } from "../../../util/zodUtils";
-import { fetchClient, queryClient } from "../../api";
+import { apiClient, queryClient } from "../../api";
 import { photoGridKeys, photoKeys } from "../keys";
 import type { BulkPhotoQuery } from "../types";
 
@@ -36,7 +36,7 @@ type SetPhotosPublicRequest = IndividualRequest | SelectAllRequest;
 export const useSetPhotosPublicMutation = () =>
   useMutation({
     mutationFn: async (request: SetPhotosPublicRequest) => {
-      const response = await fetchClient.post("/photosedit/makepublic/", request);
+      const response = await apiClient.post("/photosedit/makepublic/", request);
       const data = parseWithNotification(UpdatePhotosResponse, response, "Failed to parse set photos public response");
 
       // Show notification based on mode

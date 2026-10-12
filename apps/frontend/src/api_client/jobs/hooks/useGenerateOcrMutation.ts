@@ -2,7 +2,7 @@ import { useMutation } from "@tanstack/react-query";
 import { z } from "zod";
 import { notification } from "../../../service/notifications";
 import { parseWithNotification } from "../../../util/zodUtils";
-import { fetchClient, queryClient } from "../../api";
+import { apiClient, queryClient } from "../../api";
 import { statsKeys } from "../../stats/keys";
 import { jobKeys } from "../keys";
 import { startJob } from "../startJob";
@@ -18,7 +18,7 @@ const JobResponse = z.object({
 export const useGenerateOcrMutation = () =>
   useMutation({
     mutationFn: async (fullScan: boolean) => {
-      const start = await startJob(() => fetchClient.post("/generateocr/", { full_scan: fullScan }));
+      const start = await startJob(() => apiClient.post("/generateocr/", { full_scan: fullScan }));
       if (start.alreadyRunning) {
         return;
       }

@@ -1,6 +1,6 @@
 import { Image } from "@mantine/core";
 import React, { useState } from "react";
-import { serverAddress } from "../../api_client/apiClient";
+import { mediaUrl } from "../../api_client/media/mediaUrl";
 
 type Props = Readonly<{
   imageHash: string;
@@ -27,7 +27,8 @@ export function ShareThumbnail({
   radius = kind === "square_thumbnails" ? COVER_RADIUS : 4,
 }: Props) {
   const [isVideo, setIsVideo] = useState(false);
-  const src = `${serverAddress}/media/${kind}/${imageHash}`;
+  const src =
+    kind === "square_thumbnails" ? mediaUrl.squareThumbnail(imageHash) : mediaUrl.squareThumbnailSmall(imageHash);
 
   if (isVideo) {
     return (

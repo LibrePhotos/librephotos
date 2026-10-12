@@ -12,7 +12,7 @@ import i18n from "../../i18n";
 import { defined } from "../../util/defined.test-utils";
 import { PersonRenameModal } from "./PersonRenameModal";
 
-vi.mock("../../api_client/apiClient", () => ({ serverAddress: "" }));
+vi.mock("../../api_client/urls", () => ({ serverAddress: "" }));
 
 const person = { id: "7", name: "Sofia", video: false, face_count: 3, face_photo_url: "/f", face_url: "/f" };
 const onClose = vi.fn<() => void>();

@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import { parseWithNotification } from "../../../util/zodUtils";
-import { fetchClient } from "../../api";
+import { apiClient } from "../../api";
 import { serverKeys } from "../keys";
 
 const ImageTagResponse = z.object({
@@ -15,7 +15,7 @@ export const useFetchImageTagQuery = () =>
   useQuery({
     queryKey: serverKeys.imageTag(),
     queryFn: async () => {
-      const response = await fetchClient.get("/imagetag/");
+      const response = await apiClient.get("/imagetag/");
       return parseWithNotification(ImageTagResponse, response, "Failed to parse image tag");
     },
   });

@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { parseWithNotification } from "../../../util/zodUtils";
-import { fetchClient } from "../../api";
+import { apiClient } from "../../api";
 import { userKeys } from "../keys";
 import { ManageUser, type ManageUserPatch } from "../types";
 
@@ -10,7 +10,7 @@ export const useManageUpdateUserMutation = () => {
 
   return useMutation({
     mutationFn: async (data: ManageUserPatch) => {
-      const response = await fetchClient.patch(`/manage/user/${data.id}/`, data);
+      const response = await apiClient.patch(`/manage/user/${data.id}/`, data);
       return parseWithNotification(ManageUser, response, "Failed to parse manage update user response");
     },
     onSuccess: () => {

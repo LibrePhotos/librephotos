@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
-import { fetchClient, queryClient } from "../../api";
+import { apiClient, queryClient } from "../../api";
 import { photoGridKeys } from "../../photos/keys";
 import { tagKeys } from "../keys";
 import type { TagPhotosParams } from "../types";
@@ -8,7 +8,7 @@ import type { TagPhotosParams } from "../types";
 export const useAddPhotosToTagMutation = () =>
   useMutation({
     mutationFn: async ({ id, name, photos }: TagPhotosParams) => {
-      await fetchClient.post(`/tags/${id}/add/`, { photos });
+      await apiClient.post(`/tags/${id}/add/`, { photos });
       notification.addPhotosToTag(name, photos.length);
     },
     onSuccess: (_, { id }) => {
@@ -20,7 +20,7 @@ export const useAddPhotosToTagMutation = () =>
 export const useRemovePhotosFromTagMutation = () =>
   useMutation({
     mutationFn: async ({ id, name, photos }: TagPhotosParams) => {
-      await fetchClient.post(`/tags/${id}/remove/`, { photos });
+      await apiClient.post(`/tags/${id}/remove/`, { photos });
       notification.removePhotosFromTag(name, photos.length);
     },
     onSuccess: (_, { id }) => {

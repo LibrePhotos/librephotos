@@ -2,7 +2,7 @@ import { useMutation } from "@tanstack/react-query";
 import { z } from "zod";
 import { notification } from "../../../service/notifications";
 import { parseWithNotification } from "../../../util/zodUtils";
-import { fetchClient, queryClient } from "../../api";
+import { apiClient, queryClient } from "../../api";
 import { duplicateKeys } from "../../duplicates/keys";
 import { serverKeys } from "../../server/keys";
 import { statsKeys } from "../../stats/keys";
@@ -36,7 +36,7 @@ type PurgePhotosResponse = z.infer<typeof PurgePhotosResponse>;
 export const usePurgeDeletedPhotosMutation = () =>
   useMutation({
     mutationFn: async (request: PurgePhotosRequest) => {
-      const response = await fetchClient.delete("/photosedit/delete/", request);
+      const response = await apiClient.delete("/photosedit/delete/", request);
       const data = parseWithNotification(PurgePhotosResponse, response, "Failed to parse purge photos response");
 
       // Show notification based on mode

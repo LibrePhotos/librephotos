@@ -18,7 +18,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("../../api", () => ({
-  fetchClient: { patch: mocks.patch },
+  apiClient: { patch: mocks.patch },
   queryClient: { invalidateQueries: mocks.invalidateQueries },
 }));
 vi.mock("../../../service/notifications", () => ({ notification: { updateUser: mocks.updateUser } }));

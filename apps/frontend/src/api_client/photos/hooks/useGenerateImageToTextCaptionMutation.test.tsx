@@ -23,7 +23,7 @@ const stubs = await vi.hoisted(async () => {
 
 vi.mock("../../api", () => ({
   ApiError: stubs.ApiError,
-  fetchClient: { post: stubs.post },
+  apiClient: { post: stubs.post },
   queryClient: stubs.queryClient,
 }));
 vi.mock("../../../service/notifications", () => ({

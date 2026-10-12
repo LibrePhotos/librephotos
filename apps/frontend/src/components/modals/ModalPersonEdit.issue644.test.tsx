@@ -52,7 +52,7 @@ const stubs = vi.hoisted(() => ({
   post: vi.fn<ApiClient["post"]>(),
 }));
 
-vi.mock("../../api_client/apiClient", () => ({ serverAddress: "" }));
+vi.mock("../../api_client/urls", () => ({ serverAddress: "" }));
 vi.mock("../../service/notifications", () => ({ notification: new Proxy({}, { get: () => () => {} }) }));
 vi.mock("../../api_client/albums/hooks", () => ({ useFetchPeopleAlbumsQuery: () => ({ data: stubs.people }) }));
 // The barrel the modal imports from - the mutation test below pulls the real
@@ -61,9 +61,7 @@ vi.mock("../../api_client/faces", () => ({
   useSetFacesPersonLabelMutation: () => ({ mutate: stubs.setFacesPersonLabel }),
 }));
 vi.mock("../../api_client/api", () => ({
-  // One object under two names in the real module.
   apiClient: { post: stubs.post },
-  fetchClient: { post: stubs.post },
   queryClient: { invalidateQueries: () => {} },
 }));
 

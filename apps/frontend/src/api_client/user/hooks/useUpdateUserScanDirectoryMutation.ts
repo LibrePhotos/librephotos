@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { parseWithNotification } from "../../../util/zodUtils";
-import { fetchClient } from "../../api";
+import { apiClient } from "../../api";
 import { userKeys } from "../keys";
 import { ManageUser } from "../types";
 
@@ -14,7 +14,7 @@ export const useUpdateUserScanDirectoryMutation = () => {
 
   return useMutation({
     mutationFn: async ({ id, scan_directory }: UpdateScanDirectoryRequest) => {
-      const response = await fetchClient.patch(`/manage/user/${id}/`, {
+      const response = await apiClient.patch(`/manage/user/${id}/`, {
         scan_directory,
       });
       return parseWithNotification(ManageUser, response, "Failed to parse update user scan directory response");

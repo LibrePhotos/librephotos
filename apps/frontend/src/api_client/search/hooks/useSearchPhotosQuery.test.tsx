@@ -19,7 +19,7 @@ const stubs = vi.hoisted(() => ({
   parseError: vi.fn<(message: string) => void>(),
 }));
 
-vi.mock("../../api", () => ({ fetchClient: { get: stubs.get } }));
+vi.mock("../../api", () => ({ apiClient: { get: stubs.get } }));
 vi.mock("../../user/hooks/useCurrentUserSelfDetailsQuery", () => ({
   useCurrentUserSelfDetailsQuery: () => ({ data: stubs.user, isError: stubs.userFailed }),
 }));

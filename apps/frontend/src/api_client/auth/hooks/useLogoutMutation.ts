@@ -1,8 +1,8 @@
 import { useMutation } from "@tanstack/react-query";
-import { fetchClient, redirectToLogin } from "../../api";
+import { apiClient, redirectToLogin } from "../../api";
 import { clearAuthCookies, getAuthCookie } from "../../authCookies";
 
-const logout = () => fetchClient.post("/auth/token/blacklist/", { refresh: getAuthCookie("refresh") });
+const logout = () => apiClient.post("/auth/token/blacklist/", { refresh: getAuthCookie("refresh") });
 
 export const useLogoutMutation = () =>
   useMutation({

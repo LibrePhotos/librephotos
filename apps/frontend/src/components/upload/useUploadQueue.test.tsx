@@ -13,7 +13,7 @@ const stubs = vi.hoisted(() => ({
 }));
 
 vi.mock("../../api_client/api", () => ({
-  fetchClient: { get: stubs.exists },
+  apiClient: { get: stubs.exists },
   queryClient: { invalidateQueries: () => {} },
 }));
 vi.mock("../../api_client/user/hooks/useCurrentUserSelfDetailsQuery", () => ({

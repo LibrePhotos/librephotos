@@ -1,8 +1,8 @@
 import { POLL_ARCHIVE_MS, pollUntil } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
-import { fetchClient } from "../../api";
-import { serverAddress } from "../../apiClient";
+import { apiClient } from "../../api";
+import { fetchMedia, mediaUrl } from "../../media/mediaUrl";
 import type { BulkPhotoQuery } from "../../photos/types";
 
 type StatusResponse = { status: string };
@@ -28,11 +28,11 @@ type SelectAllDownloadOptions = {
 type DownloadOptions = IndividualDownloadOptions | SelectAllDownloadOptions;
 
 function startDownloadProcess(options: DownloadOptions) {
-  return fetchClient.post<DownloadResponse>("/photos/download", options);
+  return apiClient.post<DownloadResponse>("/photos/download", options);
 }
 
 function checkDownloadStatus(job_id: string) {
-  return fetchClient.get<StatusResponse>(`/photos/download?job_id=${job_id}`);
+  return apiClient.get<StatusResponse>(`/photos/download?job_id=${job_id}`);
 }
 
 // Downloads still waiting on their archive job or on the file; cancelPhotoDownloads() aborts them.
@@ -50,13 +50,7 @@ async function downloadFile(fileUuid: string, signal: AbortSignal) {
   // requester's user id and ".zip" itself. It works behind the proxy (X-Accel)
   // and without it; the old nginx-only /api/downloads/ route 404ed on the
   // unified image, the Windows build and native dev.
-  const response = await fetch(`${serverAddress}/media/zip/${fileUuid}`, {
-    credentials: "include",
-    signal,
-  });
-  if (!response.ok) {
-    throw new Error(`Failed to download file: ${response.status} ${response.statusText}`);
-  }
+  const response = await fetchMedia(mediaUrl.zip(fileUuid), { signal });
   const blob = await response.blob();
   const downloadUrl = window.URL.createObjectURL(blob);
   const link = document.createElement("a");
@@ -125,7 +119,7 @@ export const useDownloadPhotosMutation = () =>
         }
 
         await downloadFile(filename, controller.signal);
-        await fetchClient.delete(`/delete/zip/${filename}`);
+        await apiClient.delete(`/delete/zip/${filename}`);
         notification.downloadCompleted();
         return { success: true };
       } catch (err) {

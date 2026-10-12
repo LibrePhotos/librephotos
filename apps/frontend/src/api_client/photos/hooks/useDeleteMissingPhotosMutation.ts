@@ -2,7 +2,7 @@ import { useMutation } from "@tanstack/react-query";
 import { z } from "zod";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { albumKeys } from "../../albums/keys";
-import { fetchClient, queryClient } from "../../api";
+import { apiClient, queryClient } from "../../api";
 import { startJob } from "../../jobs/startJob";
 import { statsKeys } from "../../stats/keys";
 import { photoGridKeys } from "../keys";
@@ -14,7 +14,7 @@ const DeleteMissingPhotosResponse = z.object({
 export const useDeleteMissingPhotosMutation = () =>
   useMutation({
     mutationFn: async () => {
-      const start = await startJob(() => fetchClient.post("/deletemissingphotos", {}));
+      const start = await startJob(() => apiClient.post("/deletemissingphotos", {}));
       if (!start.alreadyRunning) {
         parseWithNotification(
           DeleteMissingPhotosResponse,

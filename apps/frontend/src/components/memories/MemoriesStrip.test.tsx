@@ -15,7 +15,7 @@ const stubs = vi.hoisted(() => ({
   slideshowItems: undefined as PigPhoto[] | undefined,
 }));
 
-vi.mock("../../api_client/apiClient", () => ({ serverAddress: "" }));
+vi.mock("../../api_client/urls", () => ({ serverAddress: "" }));
 vi.mock("../../api_client/memories", async importOriginal => ({
   ...(await importOriginal<typeof import("../../api_client/memories")>()),
   useFetchMemoriesQuery: () => ({ data: stubs.memories }),

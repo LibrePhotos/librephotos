@@ -2,7 +2,7 @@ import { useMutation } from "@tanstack/react-query";
 import { z } from "zod";
 import { notification } from "../../../service/notifications";
 import { parseWithNotification } from "../../../util/zodUtils";
-import { fetchClient, queryClient } from "../../api";
+import { apiClient, queryClient } from "../../api";
 import { faceKeys } from "../../faces/keys";
 import { statsKeys } from "../../stats/keys";
 import { invalidatePhotoLists } from "../invalidatePhotoLists";
@@ -38,7 +38,7 @@ type SetPhotosHiddenRequest = IndividualRequest | SelectAllRequest;
 export const useSetPhotosHiddenMutation = () =>
   useMutation({
     mutationFn: async (request: SetPhotosHiddenRequest) => {
-      const response = await fetchClient.post("/photosedit/hide/", request);
+      const response = await apiClient.post("/photosedit/hide/", request);
       const data = parseWithNotification(UpdatePhotosResponse, response, "Failed to parse set photos hidden response");
 
       // Show notification based on mode

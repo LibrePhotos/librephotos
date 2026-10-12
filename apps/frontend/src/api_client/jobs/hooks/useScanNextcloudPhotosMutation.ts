@@ -3,7 +3,7 @@ import { z } from "zod";
 import { notification } from "../../../service/notifications";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { albumKeys } from "../../albums/keys";
-import { fetchClient, queryClient } from "../../api";
+import { apiClient, queryClient } from "../../api";
 import { serverKeys } from "../../server/keys";
 import { statsKeys } from "../../stats/keys";
 import { jobKeys } from "../keys";
@@ -17,7 +17,7 @@ export const useScanNextcloudPhotosMutation = () =>
   useMutation({
     mutationFn: async () => {
       // Already running: startJob says so and the page follows that job.
-      const start = await startJob(() => fetchClient.post("/nextcloud/scanphotos/", {}));
+      const start = await startJob(() => apiClient.post("/nextcloud/scanphotos/", {}));
       if (start.alreadyRunning) {
         return;
       }

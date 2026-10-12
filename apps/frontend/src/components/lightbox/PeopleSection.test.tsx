@@ -15,7 +15,7 @@ import i18n from "../../i18n";
 import { defined } from "../../util/defined.test-utils";
 import { PeopleSection } from "./PeopleSection";
 
-vi.mock("../../api_client/apiClient", () => ({ serverAddress: "" }));
+vi.mock("../../api_client/urls", () => ({ serverAddress: "" }));
 vi.mock("../../service/notifications", () => ({ notification: new Proxy({}, { get: () => () => {} }) }));
 vi.mock("../../api_client/faces", () => ({
   useSetFacesPersonLabelMutation: () => ({ mutate: vi.fn<(...args: unknown[]) => void>() }),

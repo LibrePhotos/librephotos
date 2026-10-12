@@ -18,7 +18,7 @@ const stubs = await vi.hoisted(async () => {
   };
 });
 
-vi.mock("../../api", () => ({ fetchClient: { post: stubs.post }, queryClient: stubs.queryClient }));
+vi.mock("../../api", () => ({ apiClient: { post: stubs.post }, queryClient: stubs.queryClient }));
 vi.mock("../../../service/notifications", () => ({
   notification: { requestFailed: stubs.requestFailed, setPhotosCategory: stubs.setPhotosCategory },
 }));

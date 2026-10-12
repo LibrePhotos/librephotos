@@ -5,6 +5,7 @@ import React, { memo, useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAccessToken } from "../../api_client/auth/hooks";
 import { useMediaDiagnosticsQuery } from "../../api_client/media";
+import { probeMedia } from "../../api_client/media/mediaUrl";
 import { copyToClipboard } from "../../util/util";
 import { useLightboxCommands } from "./lightboxCommands";
 
@@ -246,9 +247,9 @@ export const VideoPlayer = memo(function VideoPlayer({
       try {
         // HEAD, not GET: the status is all we need, and a GET would re-download
         // the whole file in the one case where it did arrive intact.
-        const response = await fetch(src, { method: "HEAD", credentials: "include" });
-        status = response.status;
-        kind = classifyVideoFailure(response.status, response.headers.get("X-Media-Error"));
+        const answer = await probeMedia(src);
+        status = answer.status;
+        kind = classifyVideoFailure(answer.status, answer.mediaError);
       } catch {
         // The probe itself could not complete; fall back to the old wording
         // rather than inventing a cause.

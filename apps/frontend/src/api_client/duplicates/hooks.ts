@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { fetchClient } from "../api";
+import { apiClient } from "../api";
 import { startJob } from "../jobs/startJob";
 import { duplicateKeys } from "./keys";
 import type {
@@ -29,7 +29,7 @@ const useFetchDuplicatesQuery = (
 
   return useQuery({
     queryKey: duplicateKeys.list(duplicateType, status, page, pageSize),
-    queryFn: () => fetchClient.get<DuplicateListResponse>(`/duplicates?${params.toString()}`),
+    queryFn: () => apiClient.get<DuplicateListResponse>(`/duplicates?${params.toString()}`),
   });
 };
 
@@ -37,7 +37,7 @@ const useFetchDuplicatesQuery = (
 const useFetchDuplicateQuery = (duplicateId: string) =>
   useQuery({
     queryKey: duplicateKeys.detail(duplicateId),
-    queryFn: () => fetchClient.get<DuplicateDetail>(`/duplicates/${duplicateId}`),
+    queryFn: () => apiClient.get<DuplicateDetail>(`/duplicates/${duplicateId}`),
     enabled: !!duplicateId,
   });
 
@@ -45,7 +45,7 @@ const useFetchDuplicateQuery = (duplicateId: string) =>
 const useFetchDuplicateStatsQuery = (options?: { staleTime?: number }) =>
   useQuery({
     queryKey: duplicateKeys.stats(),
-    queryFn: () => fetchClient.get<DuplicateStats>("/duplicates/stats"),
+    queryFn: () => apiClient.get<DuplicateStats>("/duplicates/stats"),
     staleTime: options?.staleTime,
   });
 
@@ -54,7 +54,7 @@ export const useDetectDuplicatesMutation = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (options: DetectDuplicatesRequest = {}) =>
-      startJob(() => fetchClient.post<DetectDuplicatesResponse>("/duplicates/detect", options)),
+      startJob(() => apiClient.post<DetectDuplicatesResponse>("/duplicates/detect", options)),
     onSuccess: () => {
       // Invalidate stats to show updated detection status
       queryClient.invalidateQueries({ queryKey: duplicateKeys.stats() });
@@ -76,7 +76,7 @@ export const useResolveDuplicateMutation = () => {
       trash_others: boolean;
     }) => {
       const data: ResolveDuplicateRequest = { keep_photo_hash, trash_others };
-      return fetchClient.post<ResolveDuplicateResponse>(`/duplicates/${id}/resolve`, data);
+      return apiClient.post<ResolveDuplicateResponse>(`/duplicates/${id}/resolve`, data);
     },
     onSuccess: (_, { id }) => {
       // Invalidate the specific duplicate and the list
@@ -93,7 +93,7 @@ export const useDismissDuplicateMutation = () => {
   return useMutation({
     mutationFn: (duplicateId: number | string) => {
       const id = String(duplicateId);
-      return fetchClient.post<{ status: string }>(`/duplicates/${id}/dismiss`, {});
+      return apiClient.post<{ status: string }>(`/duplicates/${id}/dismiss`, {});
     },
     onSuccess: (_, duplicateId) => {
       const id = String(duplicateId);
@@ -110,7 +110,7 @@ export const useRevertDuplicateMutation = () => {
   return useMutation({
     mutationFn: (duplicateId: number | string) => {
       const id = String(duplicateId);
-      return fetchClient.post<{ status: string; restored_count: number }>(`/duplicates/${id}/revert`, {});
+      return apiClient.post<{ status: string; restored_count: number }>(`/duplicates/${id}/revert`, {});
     },
     onSuccess: (_, duplicateId) => {
       const id = String(duplicateId);
@@ -127,7 +127,7 @@ export const useDeleteDuplicateMutation = () => {
   return useMutation({
     mutationFn: (duplicateId: number | string) => {
       const id = String(duplicateId);
-      return fetchClient.delete<{ status: string; unlinked_count: number }>(`/duplicates/${id}/delete`);
+      return apiClient.delete<{ status: string; unlinked_count: number }>(`/duplicates/${id}/delete`);
     },
     onSuccess: (_, duplicateId) => {
       const id = String(duplicateId);

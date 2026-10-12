@@ -2,7 +2,7 @@ import { useMutation } from "@tanstack/react-query";
 import { z } from "zod";
 import { notification } from "../../../service/notifications";
 import { parseWithNotification } from "../../../util/zodUtils";
-import { fetchClient, queryClient } from "../../api";
+import { apiClient, queryClient } from "../../api";
 import { photoGridKeys, photoKeys } from "../keys";
 
 // A refused rotation is a 4xx/5xx (the backend's error envelope), so a 2xx
@@ -23,7 +23,7 @@ export type RotatePhotosRequest = {
 export const useRotatePhotosMutation = () =>
   useMutation({
     mutationFn: async (request: RotatePhotosRequest) => {
-      const response = await fetchClient.post("/photosedit/rotate/", request);
+      const response = await apiClient.post("/photosedit/rotate/", request);
       const data = parseWithNotification(RotatePhotosResponse, response, "Failed to parse rotate photos response");
       notification.rotatePhotos(1, request.angle);
       return data;

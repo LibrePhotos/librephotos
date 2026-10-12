@@ -15,7 +15,7 @@ import i18n from "../../i18n";
 import { tempPigPhoto } from "../../util/util";
 import { MemoryCard } from "./MemoryCard";
 
-vi.mock("../../api_client/apiClient", () => ({ serverAddress: "" }));
+vi.mock("../../api_client/urls", () => ({ serverAddress: "" }));
 
 let root: Root | undefined;
 let container: HTMLDivElement;

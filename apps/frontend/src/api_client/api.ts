@@ -8,27 +8,14 @@ import {
 } from "@librephotos/api-client";
 import { MutationCache, QueryCache, QueryClient } from "@tanstack/react-query";
 import { notification } from "../service/notifications";
+import { ApiError } from "./apiError";
 import { clearAuthCookies, getAuthCookie, setAuthCookie } from "./authCookies";
 
 const PUBLIC_URL = import.meta.env.VITE_PUBLIC_URL || import.meta.env.PUBLIC_URL || "";
 const API_BASE_URL = PUBLIC_URL + "/api";
 
-/**
- * A failed response, carrying its status so callers can react to it. See issue #492.
- *
- * `serverMessage` is only set when the backend actually sent a human readable
- * error; `message` falls back to an internal English string that must never be
- * shown to a user.
- *
- * Every request made through `fetchClient`/`apiClient` rejects with this class
- * (a subclass of the shared client's ApiError, so `instanceof` against either
- * works); this constructor keeps the web's argument order.
- */
-export class ApiError extends SharedApiError {
-  constructor(message: string, status: number, serverMessage: string | null = null, endpoint = "", body?: unknown) {
-    super(status, endpoint, message, body, serverMessage);
-  }
-}
+// The error every request rejects with (its own module, so media/mediaUrl can throw it without this one).
+export { ApiError } from "./apiError";
 
 export type { ResponseType } from "@librephotos/api-client";
 
@@ -212,9 +199,6 @@ export const apiClient: ApiClient = {
   delete: <T>(endpoint: string, data?: unknown) => call(endpoint, () => sharedClient.delete<T>(endpoint, data)),
   resolveBaseUrl: () => sharedClient.resolveBaseUrl(),
 };
-
-/** The name the existing hooks use; same object as `apiClient`. */
-export const fetchClient = apiClient;
 
 /** A response that did not match its schema (server drift) asks the user to report it. */
 function notifyParseError(error: unknown) {

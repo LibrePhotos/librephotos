@@ -1,4 +1,4 @@
-import { serverAddress } from "../../api_client/apiClient";
+import { serverAddress } from "../../api_client/urls";
 
 /**
  * A user's avatar, or the placeholder. The backend sends avatar_url relative to

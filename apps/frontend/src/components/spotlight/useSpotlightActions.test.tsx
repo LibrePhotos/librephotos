@@ -44,12 +44,12 @@ const stubs = vi.hoisted(() => {
 });
 
 vi.mock("@tanstack/react-router", () => ({ useNavigate: () => stubs.navigate }));
-vi.mock("../../api_client/api", () => ({ fetchClient: { get: vi.fn<(endpoint: string) => Promise<unknown>>() } }));
 vi.mock("../../api_client/auth", () => ({
   useAccessToken: () => ({ data: { access: { user_id: "1", is_admin: stubs.isAdmin } } }),
 }));
 vi.mock("../../api_client/faces", () => ({
   useTrainFacesMutation: () => ({ mutate: vi.fn<(...args: unknown[]) => void>() }),
+  useRescanFacesMutation: () => ({ mutate: vi.fn<(...args: unknown[]) => void>() }),
 }));
 vi.mock("../../api_client/jobs/hooks", () => ({
   useWorkerQuery: () => ({ data: { queue_can_accept_job: true } }),

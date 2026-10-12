@@ -6,7 +6,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { avatarSrc } from "./avatarSrc";
 
-vi.mock("../../api_client/apiClient", () => ({ serverAddress: "/librephotos" }));
+vi.mock("../../api_client/urls", () => ({ serverAddress: "/librephotos" }));
 
 describe("avatarSrc", () => {
   it("prefixes the server address", () => {

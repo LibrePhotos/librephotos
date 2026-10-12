@@ -1,7 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { z } from "zod";
 import { parseWithNotification } from "../../../util/zodUtils";
-import { fetchClient } from "../../api";
+import { apiClient } from "../../api";
 import type { UploadOptions } from "../types";
 
 const UploadResponse = z.object({
@@ -13,7 +13,7 @@ const upload = (options: UploadOptions) => {
   const headers = new Headers({
     "Content-Range": `bytes ${options.offset}-${options.offset + options.chunk_size - 1}/${options.chunk_size}`,
   });
-  return fetchClient
+  return apiClient
     .request("/upload/", {
       method: "POST",
       body: options.form_data,

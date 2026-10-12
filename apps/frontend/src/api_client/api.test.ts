@@ -1,11 +1,11 @@
 /**
- * FetchClient turns a failed response into an ApiError. Only `serverMessage`
+ * apiClient turns a failed response into an ApiError. Only `serverMessage`
  * is safe to show a user, so it must stay null whenever the backend did not
  * actually send a readable message. See issue #492.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { defined } from "../util/defined.test-utils";
-import { ApiError, fetchClient } from "./api";
+import { apiClient, ApiError } from "./api";
 
 vi.mock("../service/notifications", () => ({
   notification: new Proxy({}, { get: () => () => {} }),
@@ -33,7 +33,7 @@ async function expectApiError(promise: Promise<unknown>) {
   throw new Error("expected the request to reject");
 }
 
-describe("FetchClient error handling", () => {
+describe("apiClient error handling", () => {
   beforeEach(() => {
     // jsdom defaults to about:blank, and handleError reads window.location.pathname
     window.history.pushState({}, "", "/settings");
@@ -54,7 +54,7 @@ describe("FetchClient error handling", () => {
       })
     );
 
-    const error = await expectApiError(fetchClient.get("/manage/user/1/"));
+    const error = await expectApiError(apiClient.get("/manage/user/1/"));
 
     expect(error.status).toBe(400);
     expect(error.serverMessage).toBe("Scan directory does not exist");
@@ -64,7 +64,7 @@ describe("FetchClient error handling", () => {
   it("falls back to the detail field", async () => {
     stubResponse(403, JSON.stringify({ detail: "You do not have permission." }));
 
-    const error = await expectApiError(fetchClient.get("/manage/user/1/"));
+    const error = await expectApiError(apiClient.get("/manage/user/1/"));
 
     expect(error.status).toBe(403);
     expect(error.serverMessage).toBe("You do not have permission.");
@@ -73,7 +73,7 @@ describe("FetchClient error handling", () => {
   it("leaves serverMessage null for an empty body", async () => {
     stubResponse(400, null);
 
-    const error = await expectApiError(fetchClient.get("/manage/user/1/"));
+    const error = await expectApiError(apiClient.get("/manage/user/1/"));
 
     expect(error.status).toBe(400);
     expect(error.serverMessage).toBeNull();
@@ -83,7 +83,7 @@ describe("FetchClient error handling", () => {
   it("leaves serverMessage null for a non-JSON body", async () => {
     stubResponse(502, "<html>Bad Gateway</html>", "text/html");
 
-    const error = await expectApiError(fetchClient.get("/manage/user/1/"));
+    const error = await expectApiError(apiClient.get("/manage/user/1/"));
 
     expect(error.status).toBe(502);
     expect(error.serverMessage).toBeNull();
@@ -92,7 +92,7 @@ describe("FetchClient error handling", () => {
   it("reports a 500 without a server message, so callers do not show its internal string", async () => {
     stubResponse(500, JSON.stringify({ errors: [{ field: "detail", message: "boom" }] }));
 
-    const error = await expectApiError(fetchClient.get("/manage/user/1/"));
+    const error = await expectApiError(apiClient.get("/manage/user/1/"));
 
     expect(error.status).toBe(500);
     expect(error.serverMessage).toBeNull();
@@ -150,12 +150,12 @@ const later = <T>(value: T) =>
   });
 
 async function freshClient() {
-  // FetchClient keeps module-level state (in-flight refresh, logout guard).
+  // The API client keeps module-level state (in-flight refresh, logout guard).
   vi.resetModules();
   return import("./api");
 }
 
-describe("FetchClient token refresh", () => {
+describe("apiClient token refresh", () => {
   beforeEach(() => {
     window.history.pushState({}, "", "/settings");
     clearCookies();
@@ -167,7 +167,7 @@ describe("FetchClient token refresh", () => {
   });
 
   it("shares one refresh between concurrent requests with an expired token", async () => {
-    const { fetchClient: client } = await freshClient();
+    const { apiClient: client } = await freshClient();
     setCookie("access", fakeJwt(-60));
     setCookie("refresh", "refresh-token");
     const newAccess = fakeJwt(300);
@@ -184,7 +184,7 @@ describe("FetchClient token refresh", () => {
   });
 
   it("shares one refresh between concurrent requests that get a 401", async () => {
-    const { fetchClient: client } = await freshClient();
+    const { apiClient: client } = await freshClient();
     setCookie("access", fakeJwt(300));
     setCookie("refresh", "refresh-token");
     const newAccess = fakeJwt(600);
@@ -212,7 +212,7 @@ describe("FetchClient token refresh", () => {
   });
 
   it("refreshes again once the previous refresh has settled", async () => {
-    const { fetchClient: client } = await freshClient();
+    const { apiClient: client } = await freshClient();
     setCookie("access", fakeJwt(-60));
     setCookie("refresh", "refresh-token");
     // The refreshed token is itself already expired, so the next wave refreshes again.
@@ -225,7 +225,7 @@ describe("FetchClient token refresh", () => {
   });
 
   it("logs out only once when concurrent requests fail authentication", async () => {
-    const { fetchClient: client, ApiError: FreshApiError } = await freshClient();
+    const { apiClient: client, ApiError: FreshApiError } = await freshClient();
     setCookie("access", fakeJwt(300));
     setCookie("refresh", "refresh-token");
     const calls = stubFetch([
@@ -248,7 +248,7 @@ describe("FetchClient token refresh", () => {
 
   it("logs out on the server even when no refresh token is left", async () => {
     // The server clears the HttpOnly jwt cookie, which this script cannot.
-    const { fetchClient: client } = await freshClient();
+    const { apiClient: client } = await freshClient();
     setCookie("access", fakeJwt(300));
     const calls = stubFetch([
       [endsWith("/auth/token/blacklist/"), () => json({ errors: [] }, 400)],
@@ -264,7 +264,7 @@ describe("FetchClient token refresh", () => {
   });
 
   it("ends no session when a sign-in without one is rejected", async () => {
-    const { fetchClient: client } = await freshClient();
+    const { apiClient: client } = await freshClient();
     window.history.pushState({}, "", "/login");
     const calls = stubFetch([[endsWith("/auth/token/obtain/"), () => json({ detail: "No active account" }, 401)]]);
 
@@ -276,7 +276,7 @@ describe("FetchClient token refresh", () => {
   });
 
   it("does not try to refresh when a login attempt is rejected", async () => {
-    const { fetchClient: client } = await freshClient();
+    const { apiClient: client } = await freshClient();
     window.history.pushState({}, "", "/login");
     setCookie("refresh", "stale-refresh-token");
     const calls = stubFetch([
@@ -292,7 +292,7 @@ describe("FetchClient token refresh", () => {
   });
 });
 
-describe("FetchClient request bodies", () => {
+describe("apiClient request bodies", () => {
   beforeEach(() => {
     window.history.pushState({}, "", "/settings");
     clearCookies();
@@ -307,7 +307,7 @@ describe("FetchClient request bodies", () => {
     const form = new FormData();
     form.append("file", new Blob(["x"]), "x.jpg");
 
-    await fetchClient.post("/upload/", form);
+    await apiClient.post("/upload/", form);
 
     expect(defined(calls[0], "the request").init.body).toBe(form);
     expect(new Headers(defined(calls[0], "the request").init.headers).has("Content-Type")).toBe(false);
@@ -316,7 +316,7 @@ describe("FetchClient request bodies", () => {
   it("sends a JSON Content-Type for a string body that mentions FormData", async () => {
     const calls = stubFetch();
 
-    await fetchClient.request("/photos/edit/", { method: "POST", body: JSON.stringify({ caption: "FormData" }) });
+    await apiClient.request("/photos/edit/", { method: "POST", body: JSON.stringify({ caption: "FormData" }) });
 
     expect(new Headers(defined(calls[0], "the request").init.headers).get("Content-Type")).toBe("application/json");
   });
@@ -324,14 +324,14 @@ describe("FetchClient request bodies", () => {
   it("serializes plain objects as JSON", async () => {
     const calls = stubFetch();
 
-    await fetchClient.post("/photos/edit/", { caption: "hi" });
+    await apiClient.post("/photos/edit/", { caption: "hi" });
 
     expect(defined(calls[0], "the request").init.body).toBe(JSON.stringify({ caption: "hi" }));
     expect(new Headers(defined(calls[0], "the request").init.headers).get("Content-Type")).toBe("application/json");
   });
 });
 
-describe("FetchClient response types", () => {
+describe("apiClient response types", () => {
   beforeEach(() => {
     window.history.pushState({}, "", "/settings");
     clearCookies();
@@ -363,7 +363,7 @@ describe("FetchClient response types", () => {
       ],
     ]);
 
-    const blob = await fetchClient.getBlob("/serverlogs");
+    const blob = await apiClient.getBlob("/serverlogs");
 
     // Not toBeInstanceOf(Blob): undici's Blob and jsdom's are different classes.
     expect(typeof blob).toBe("object");
@@ -374,7 +374,7 @@ describe("FetchClient response types", () => {
   it("does not forward responseType to fetch", async () => {
     const calls = stubFetch();
 
-    await fetchClient.getBlob("/serverlogs");
+    await apiClient.getBlob("/serverlogs");
 
     expect(defined(calls[0], "the request").url).toBe("/api/serverlogs");
     expect(defined(calls[0], "the request").init).not.toHaveProperty("responseType");

@@ -23,7 +23,7 @@ vi.mock("./VideoPlayer", () => ({
   },
 }));
 
-vi.mock("../../api_client/apiClient", () => ({ serverAddress: "" }));
+vi.mock("../../api_client/urls", () => ({ serverAddress: "" }));
 
 const HEVC = 'video/mp4; codecs="hvc1.2.4.L120.90"';
 

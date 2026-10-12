@@ -7,7 +7,7 @@ import {
 } from "../../../components/photolist/timelineFilter";
 import { addTempElementsToGroups, definedSearchParams } from "../../../util/util";
 import { parseWithNotification } from "../../../util/zodUtils";
-import { fetchClient, queryClient } from "../../api";
+import { apiClient, queryClient } from "../../api";
 import { photoGridKeys, type DateAlbumsListKey } from "../../photos/keys";
 import type { IncompleteDatePhotosGroup, PigPhoto } from "../../photos/types";
 import { Photoset } from "../../photos/types";
@@ -148,7 +148,7 @@ export const useFetchDateAlbumsQuery = (options: AlbumDateListOptions, queryOpti
         folder: options.folder,
       };
 
-      const response = await fetchClient.get(`/albums/date/list/?${definedSearchParams(params).toString()}`);
+      const response = await apiClient.get(`/albums/date/list/?${definedSearchParams(params).toString()}`);
 
       const parsed = parseWithNotification(FetchDateAlbumsListResponse, response, "Failed to load photo groups");
       const { results } = parsed;

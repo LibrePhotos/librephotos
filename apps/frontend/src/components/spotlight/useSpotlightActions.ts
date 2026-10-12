@@ -43,17 +43,16 @@ import {
 import { useNavigate } from "@tanstack/react-router";
 import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { fetchClient } from "../../api_client/api";
-import { serverAddress } from "../../api_client/apiClient";
 import { useAccessToken } from "../../api_client/auth";
-import { useTrainFacesMutation } from "../../api_client/faces";
+import { useRescanFacesMutation, useTrainFacesMutation } from "../../api_client/faces";
 import {
   useGenerateAutoAlbumsMutation,
   useRescanPhotosMutation,
   useScanPhotosMutation,
   useWorkerQuery,
 } from "../../api_client/jobs/hooks";
-import { startJob } from "../../api_client/jobs/startJob";
+import { mediaUrl } from "../../api_client/media/mediaUrl";
+import { serverAddress } from "../../api_client/urls";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import { useAuth } from "../../hooks/useAuth";
 import { notification } from "../../service/notifications";
@@ -78,7 +77,7 @@ type SpotlightActionGroup = { group: string; actions: SpotlightAction[] };
 
 function getThumbnailUrl(imageHash: string | undefined): string | undefined {
   if (!imageHash) return undefined;
-  return `${serverAddress}/media/square_thumbnails_small/${imageHash}`;
+  return mediaUrl.squareThumbnailSmall(imageHash);
 }
 
 function getFaceUrl(faceUrl: string | undefined): string | undefined {
@@ -170,6 +169,7 @@ export function useSpotlightActions(query: string = "") {
   const rescanPhotos = useRescanPhotosMutation();
   const { mutate: generateAutoAlbums } = useGenerateAutoAlbumsMutation();
   const trainFaces = useTrainFacesMutation();
+  const { mutate: rescanFaces } = useRescanFacesMutation();
   // Deleting missing photos drops their records for good, so it asks first, as on the Library page
   const [deleteMissingConfirmOpen, { open: openDeleteMissingConfirm, close: closeDeleteMissingConfirm }] =
     useDisclosure(false);
@@ -513,13 +513,7 @@ export function useSpotlightActions(query: string = "") {
         leftSection: React.createElement(IconMoodSmile, iconProps),
         onClick: () => {
           if (workerAvailable) {
-            startJob(() => fetchClient.get("/scanfaces"))
-              .then(start => {
-                if (!start.alreadyRunning) {
-                  notification.rescanFaces();
-                }
-              })
-              .catch(() => notification.rescanFacesFailed());
+            rescanFaces();
           }
         },
         disabled: !workerAvailable,
@@ -558,6 +552,7 @@ export function useSpotlightActions(query: string = "") {
     scanPhotos,
     rescanPhotos,
     trainFaces,
+    rescanFaces,
     generateAutoAlbums,
     userSelfDetails,
     isUserSelfDetailsPending,

@@ -37,7 +37,6 @@ import {
 } from "@tabler/icons-react";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { serverAddress } from "../../api_client/apiClient";
 import {
   useDeleteStackMutation,
   useDetectStacksMutation,
@@ -45,6 +44,7 @@ import {
   useStackStatsQuery,
 } from "../../api_client/stacks";
 import { countListedStacks, StackType } from "../../api_client/stacks/types";
+import { serverAddress } from "../../api_client/urls";
 import { buttonRoleProps } from "../../util/a11y";
 import { PLACEHOLDER_IMAGE } from "../../util/placeholderImage";
 import { EmptyState } from "../common/EmptyState";

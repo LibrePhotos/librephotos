@@ -4,9 +4,9 @@ import { IconEdit, IconTrash, IconUserCheck, IconUserOff, IconUserQuestion } fro
 import { useNavigate } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { serverAddress } from "../../api_client/apiClient";
 import { useDeleteFacesMutation, useSetFacesPersonLabelMutation } from "../../api_client/faces";
 import type { PhotoPerson } from "../../api_client/photos/types";
+import { serverAddress } from "../../api_client/urls";
 import { notification } from "../../service/notifications";
 import { calculateProbabiltyColor } from "../facedashboard/FaceComponent";
 import { FaceTooltip } from "../facedashboard/FaceTooltip";

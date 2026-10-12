@@ -36,7 +36,7 @@ vi.mock("@tanstack/react-router", () => ({
   },
   Link: ({ children }: { children?: React.ReactNode }) => <a href="/">{children}</a>,
 }));
-vi.mock("../../api_client/apiClient", () => ({ serverAddress: "" }));
+vi.mock("../../api_client/urls", () => ({ serverAddress: "" }));
 vi.mock("../../api_client/photos/hooks", () => ({
   useFetchSharedPhotoQuery: () => ({ data: stubs.photo, isLoading: false, isError: false }),
 }));

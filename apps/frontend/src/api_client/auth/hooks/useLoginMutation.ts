@@ -3,7 +3,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { z } from "zod";
 import { notification } from "../../../service/notifications";
 import { parseWithNotification } from "../../../util/zodUtils";
-import { ApiError, fetchClient } from "../../api";
+import { apiClient, ApiError } from "../../api";
 import { setAuthCookie } from "../../authCookies";
 import { authKeys } from "../keys";
 
@@ -17,7 +17,7 @@ const LoginResponse = z.object({
 type LoginResponse = z.infer<typeof LoginResponse>;
 
 const login = (credentials: LoginPost) =>
-  fetchClient.post("/auth/token/obtain/", credentials).then(response => {
+  apiClient.post("/auth/token/obtain/", credentials).then(response => {
     const data = parseWithNotification(LoginResponse, response, "Failed to parse login response");
     setAuthCookie("access", data.access);
     setAuthCookie("refresh", data.refresh);

@@ -28,3 +28,5 @@ export * from "./useDeleteAllAutoAlbumsMutation";
 export * from "./useFetchAutoAlbumsQuery";
 export * from "./useFetchFolderAlbumsQuery";
 export * from "./useFetchFolderSubfoldersInfiniteQuery";
+export * from "./usePublicAlbumQuery";
+export * from "./useSlugAvailabilityQuery";

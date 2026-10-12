@@ -1,14 +1,12 @@
 import { useRef, useState } from "react";
-import { fetchClient } from "../../api_client/api";
 import {
   invalidateUploadQueries,
-  UploadExistResponse,
+  uploadExists,
   useUploadFinishedMutation,
   useUploadMutation,
 } from "../../api_client/upload";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import i18n from "../../i18n";
-import { parseWithNotification } from "../../util/zodUtils";
 import { calculateChunks, calculateMD5 } from "./chunkedUpload";
 
 export type UploadStatus = "pending" | "hashing" | "uploading" | "done" | "duplicate" | "error";
@@ -111,9 +109,7 @@ export function useUploadQueue(): UploadQueue {
 
       patchItem(item.id, { status: "hashing", progress: 0, error: undefined });
       const md5 = await calculateMD5(item.file);
-      const response = await fetchClient.get(`/exists/${md5 + user.id}`);
-      const { exists } = parseWithNotification(UploadExistResponse, response, "Failed to parse upload exists response");
-      if (exists) {
+      if (await uploadExists(md5, user.id)) {
         patchItem(item.id, { status: "duplicate", progress: 100 });
         return false;
       }

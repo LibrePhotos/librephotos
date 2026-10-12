@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { parseWithNotification } from "../../../util/zodUtils";
-import { fetchClient } from "../../api";
+import { apiClient } from "../../api";
 import type { CompletePersonFace } from "../types";
 import { FaceAnalysisMethod, FacesOrderOption, PersonFace } from "../types";
 
@@ -28,7 +28,7 @@ export const fetchFaces = (params: PersonFaceListRequest) => {
     method ? `&analysis_method=${method}` : ""
   }${minConfidence ? `&min_confidence=${minConfidence}` : ""}`;
 
-  return fetchClient.get(url).then(response => {
+  return apiClient.get(url).then(response => {
     const parsedResponse = parseWithNotification(PersonFaceListResponse, response, "Failed to parse faces response");
     return parsedResponse.results;
   });

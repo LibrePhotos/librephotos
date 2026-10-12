@@ -36,24 +36,23 @@ import {
 } from "@tabler/icons-react";
 import React, { useEffect, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
-import { fetchClient } from "../../api_client/api";
-import { serverAddress } from "../../api_client/apiClient";
 import { useAccessToken } from "../../api_client/auth/hooks";
-import { useTrainFacesMutation } from "../../api_client/faces";
+import { useRescanFacesMutation, useTrainFacesMutation } from "../../api_client/faces";
 import { useFetchNextcloudDirsQuery } from "../../api_client/folders/hooks/useFetchNextcloudDirsQuery";
 import {
   useGenerateAutoAlbumsMutation,
   useGenerateOcrMutation,
+  useRegenerateEventTitlesMutation,
   useRescanPhotosMutation,
   useScanNextcloudPhotosMutation,
   useScanPhotosMutation,
   useWorkerQuery,
 } from "../../api_client/jobs/hooks";
-import { startJob } from "../../api_client/jobs/startJob";
 import { useDeleteMissingPhotosMutation } from "../../api_client/photos/hooks";
 import { useGetSettingsQuery } from "../../api_client/settings/hooks";
 import { useFetchCountStatsQuery } from "../../api_client/stats/hooks";
 import { COUNT_STATS_DEFAULTS } from "../../api_client/stats/types";
+import { serverAddress } from "../../api_client/urls";
 import { useFetchUserListQuery, useUpdateUserMutation } from "../../api_client/user/hooks";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import type { User } from "../../api_client/user/types";
@@ -121,6 +120,8 @@ export function Library() {
   const scanNextcloudPhotos = useScanNextcloudPhotosMutation();
   const deleteMissingPhotos = useDeleteMissingPhotosMutation();
   const trainFaces = useTrainFacesMutation();
+  const rescanFaces = useRescanFacesMutation();
+  const regenerateEventTitles = useRegenerateEventTitlesMutation();
   const generateOcr = useGenerateOcrMutation();
 
   const onGenerateEventAlbumsButtonClick = () => {
@@ -215,18 +216,6 @@ export function Library() {
         onError: reportUserSaveError,
       });
     }
-  };
-
-  const regenerateEventTitles = () => {
-    // /autoalbumtitlegen/ re-titles every existing event album; /autoalbumgen/ would only
-    // title the albums whose photos changed. fetchClient already reports server errors.
-    startJob(() => fetchClient.post("/autoalbumtitlegen/", {}))
-      .then(start => {
-        if (!start.alreadyRunning) {
-          notification.regenerateEventAlbums();
-        }
-      })
-      .catch(() => {});
   };
 
   const handleCancel = () => {
@@ -456,7 +445,7 @@ export function Library() {
               </Grid.Col>
               <Grid.Col span={{ base: 12, sm: "content" }} miw={ACTION_MIN_WIDTH}>
                 <Button
-                  onClick={regenerateEventTitles}
+                  onClick={() => regenerateEventTitles.mutate()}
                   disabled={!workerAvailability}
                   leftSection={<RefreshDot />}
                   variant="outline"
@@ -508,15 +497,7 @@ export function Library() {
               <Grid.Col span={{ base: 12, sm: "content" }} miw={ACTION_MIN_WIDTH}>
                 <Button
                   disabled={!workerAvailability}
-                  onClick={() => {
-                    startJob(() => fetchClient.get("/scanfaces"))
-                      .then(start => {
-                        if (!start.alreadyRunning) {
-                          notification.rescanFaces();
-                        }
-                      })
-                      .catch(() => notification.rescanFacesFailed());
-                  }}
+                  onClick={() => rescanFaces.mutate()}
                   leftSection={<FaceId />}
                   variant="outline"
                   fullWidth

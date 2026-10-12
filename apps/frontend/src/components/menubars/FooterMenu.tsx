@@ -12,8 +12,8 @@ import {
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import React from "react";
 import { Trans, useTranslation } from "react-i18next";
-import { serverAddress } from "../../api_client/apiClient";
 import { useLogoutMutation } from "../../api_client/auth";
+import { serverAddress } from "../../api_client/urls";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import { useAuth } from "../../hooks/useAuth";
 import { getNavigationItems, isNavItemActive } from "./navigation";

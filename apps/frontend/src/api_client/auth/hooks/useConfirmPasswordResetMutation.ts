@@ -1,7 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { z } from "zod";
 import { parseWithNotification } from "../../../util/zodUtils";
-import { fetchClient } from "../../api";
+import { apiClient } from "../../api";
 
 const PasswordResetConfirmResponse = z.object({
   status: z.boolean(),
@@ -13,7 +13,7 @@ type PasswordResetConfirmResponse = z.infer<typeof PasswordResetConfirmResponse>
 type PasswordResetConfirmRequest = { uid: string; token: string; new_password: string };
 
 const confirmPasswordReset = (data: PasswordResetConfirmRequest) =>
-  fetchClient
+  apiClient
     .post<PasswordResetConfirmResponse>("/auth/password/reset/confirm/", data)
     .then(response =>
       parseWithNotification(PasswordResetConfirmResponse, response, "Failed to parse password reset response")

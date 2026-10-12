@@ -12,6 +12,8 @@ import globals from "globals";
 const TS_FILES = ["**/*.{ts,tsx}"];
 // Test code: test files, their shared fixtures and the issue repros.
 const TEST_FILES = ["**/*.test.{ts,tsx}", "**/*.test-utils.{ts,tsx}", "src/__repro__/**"];
+// The app itself; the Playwright suite (e2e/) drives it from outside.
+const APP_FILES = ["src/**/*.{ts,tsx}"];
 
 // ---------------------------------------------------------------------------------------------------
 // Convention bans. Add a ban as one entry in the list for its rule, never as a rule in a config block:
@@ -102,6 +104,16 @@ export const importBans = [
     message: "Get the client from useQueryClient() (@tanstack/react-query), not the queryClient singleton.",
     allowIn: ["src/api_client/api.ts", "src/index.tsx", "**/*.test.{ts,tsx}", "**/*.test-utils.{ts,tsx}"],
   },
+  {
+    // Requests start in src/api_client (AGENTS.md): a component, route, hooks/ or util/ module calls a
+    // hook or function from there, never the client. index.tsx hands the client to ApiClientProvider.
+    id: "api-client-import",
+    regex: String.raw`^(\.\.?/)+(api_client/)?api$`,
+    importNames: ["apiClient"],
+    message:
+      "Call a hook or function from src/api_client/<domain> (add one there), not apiClient: requests start in the API layer.",
+    allowIn: ["src/api_client/**/*.{ts,tsx}", "src/index.tsx"],
+  },
 ];
 
 // no-restricted-syntax: `selector` (an AST selector).
@@ -171,6 +183,17 @@ export const syntaxBans = [
       "Property[key.name='queryKey'] > ArrayExpression.value, CallExpression[callee.property.name=/^(getQueryData|setQueryData|getQueryState|fetchQuery|prefetchQuery|ensureQueryData)$/] > ArrayExpression.arguments:first-child",
     message:
       "Build the key with its domain's factory (src/api_client/<domain>/keys.ts, photoGridKeys for photo grids); add the key there.",
+  },
+  {
+    // Files under /media/ (thumbnails, originals, videos, faces, archives) get their URL from
+    // mediaUrl / shareMediaUrl in src/api_client/media/mediaUrl.ts, the shared builders with the
+    // server address bound, so a path or prefix changes in one place. Tests assert on the strings.
+    id: "media-url",
+    files: APP_FILES,
+    // A module path (api_client/media/...) is not a URL.
+    selector: String.raw`TemplateElement[value.raw=/\/media\//], Literal[value=/\/media\//]:not(:matches(ImportDeclaration, ExportAllDeclaration, ExportNamedDeclaration, ImportExpression) > Literal)`,
+    message: "Build media URLs with mediaUrl.* (src/api_client/media/mediaUrl.ts), not a hand-written /media/ path.",
+    allowIn: ["src/api_client/media/**/*.{ts,tsx}", ...TEST_FILES],
   },
   {
     id: "tile-index",
@@ -262,12 +285,24 @@ const storage = {
 const eventMessage =
   "Pass props or use the lightbox commands (components/lightbox/lightboxCommands) instead of custom window events.";
 
+// Requests go through src/api_client: API calls through its client (401 policy, error handling,
+// ApiError), media files through fetchMedia / probeMedia in api_client/media/mediaUrl.ts. Exempt: the
+// token blacklist in api.ts (raw on purpose, so a failure cannot re-enter the 401 handler), the media
+// module, util/dataUrl.ts (reads a data: URL, never the network) and tests, which stub fetch.
+const rawFetch = {
+  files: APP_FILES,
+  message:
+    "Request through src/api_client: a hook or function there for /api (on apiClient), fetchMedia/probeMedia (api_client/media/mediaUrl) for /media files.",
+  allowIn: ["src/api_client/api.ts", "src/api_client/media/mediaUrl.ts", "src/util/dataUrl.ts", ...TEST_FILES],
+};
+
 // no-restricted-globals: `name`.
 export const globalBans = [
   { id: "local-storage", name: "localStorage", ...storage },
   { id: "session-storage", name: "sessionStorage", ...storage },
   // A custom event is the in-app channel this is about, so it stays banned in tests too.
   { id: "custom-event", name: "CustomEvent", message: eventMessage },
+  { id: "fetch", name: "fetch", ...rawFetch },
 ];
 
 // no-restricted-properties: `object` and/or `property`.
@@ -275,6 +310,7 @@ export const propertyBans = [
   ...["window", "globalThis"].flatMap(object => [
     { id: `${object.toLowerCase()}-local-storage`, object, property: "localStorage", ...storage },
     { id: `${object.toLowerCase()}-session-storage`, object, property: "sessionStorage", ...storage },
+    { id: `${object.toLowerCase()}-fetch`, object, property: "fetch", ...rawFetch },
   ]),
   {
     // Tests may dispatch a native event on window (a resize).

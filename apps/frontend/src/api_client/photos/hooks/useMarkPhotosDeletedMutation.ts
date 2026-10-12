@@ -2,7 +2,7 @@ import { useMutation } from "@tanstack/react-query";
 import { z } from "zod";
 import { notification } from "../../../service/notifications";
 import { parseWithNotification } from "../../../util/zodUtils";
-import { fetchClient, queryClient } from "../../api";
+import { apiClient, queryClient } from "../../api";
 import { statsKeys } from "../../stats/keys";
 import { invalidatePhotoLists } from "../invalidatePhotoLists";
 import { photoKeys } from "../keys";
@@ -37,7 +37,7 @@ type DeletePhotosRequest = IndividualRequest | SelectAllRequest;
 export const useMarkPhotosDeletedMutation = () =>
   useMutation({
     mutationFn: async (request: DeletePhotosRequest) => {
-      const response = await fetchClient.post("/photosedit/setdeleted/", request);
+      const response = await apiClient.post("/photosedit/setdeleted/", request);
       const data = parseWithNotification(
         DeletePhotosResponse,
         response,

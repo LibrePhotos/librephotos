@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { orderBy } from "lodash-es";
 import { z } from "zod";
 import { parseWithNotification } from "../../../util/zodUtils";
-import { fetchClient } from "../../api";
+import { apiClient } from "../../api";
 import { albumKeys } from "../keys";
 
 const PersonResponse = z.object({
@@ -38,7 +38,7 @@ export const useFetchPeopleAlbumsQuery = (skip: boolean = false) =>
     queryKey: albumKeys.peopleAlbums(),
     queryFn: async () => {
       // 1000 is the server's largest page: the fewest requests for a big library.
-      const rows = await fetchAllPages(fetchClient, "/persons/?page_size=1000");
+      const rows = await fetchAllPages(apiClient, "/persons/?page_size=1000");
 
       const people = parseWithNotification(PeopleResponse, rows, "Failed to parse people albums").map(item => ({
         id: item.id.toString(),

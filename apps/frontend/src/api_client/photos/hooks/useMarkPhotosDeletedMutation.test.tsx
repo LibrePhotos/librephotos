@@ -19,7 +19,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("../../api", () => ({
-  fetchClient: { post: mocks.post },
+  apiClient: { post: mocks.post },
   queryClient: { invalidateQueries: mocks.invalidateQueries },
 }));
 vi.mock("../invalidatePhotoLists", () => ({ invalidatePhotoLists: vi.fn<() => void>() }));

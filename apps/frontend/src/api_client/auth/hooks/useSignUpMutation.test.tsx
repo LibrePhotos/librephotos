@@ -19,7 +19,7 @@ const stubs = vi.hoisted(() => ({
 
 vi.mock("../../api", async importOriginal => ({
   ...(await importOriginal<typeof import("../../api")>()),
-  fetchClient: {
+  apiClient: {
     get: (...args: Parameters<typeof stubs.get>) => stubs.get(...args),
     post: (...args: Parameters<typeof stubs.post>) => stubs.post(...args),
   },
