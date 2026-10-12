@@ -90,7 +90,6 @@
 "api/tests/ocr/test_ocr_job_and_model.py" = ["PLR0913"]
 "api/tests/photos/test_thumbnail_metadata.py" = ["PLW1510"]
 "api/tests/scanning/test_file_path_uniqueness.py" = ["BLE001"]
-"api/tests/scanning/test_is_video_magic_failure.py" = ["PLR0915"]
 "api/tests/scanning/test_issue_124_symlinked_scan_directory.py" = ["PLW1510"]
 "api/tests/scanning/test_issue_169_dangling_symlink_skipped.py" = ["PLW1510"]
 "api/tests/scanning/test_scan_photos_orchestration.py" = ["PLR0913"]

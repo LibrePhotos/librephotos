@@ -7,44 +7,22 @@ backend can log why the caption failed, and a failed captioner is dropped so
 the next request loads a fresh one.
 """
 
-import importlib.util
-import os
-import sys
 from unittest.mock import MagicMock, patch
 
 from django.test import SimpleTestCase
 
+from api.tests.stubs import load_backend_file
 from service.image_captioning import lfm2_vl
-
-MAIN_PATH = os.path.join(
-    os.path.dirname(
-        os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    ),
-    "service",
-    "image_captioning",
-    "main.py",
-)
 
 
 def _load_sidecar_main():
-    # main.py runs with service/image_captioning as its working directory and
-    # imports the captioner as the bare ``lfm2_vl``; alias the real module
-    # under that name only while main.py is being loaded.
-    previous = sys.modules.get("lfm2_vl")
-    sys.modules["lfm2_vl"] = lfm2_vl
-    try:
-        spec = importlib.util.spec_from_file_location(
-            "service_image_captioning_main_test", MAIN_PATH
-        )
-        module = importlib.util.module_from_spec(spec)
-        sys.modules[spec.name] = module
-        spec.loader.exec_module(module)
-        return module
-    finally:
-        if previous is None:
-            sys.modules.pop("lfm2_vl", None)
-        else:
-            sys.modules["lfm2_vl"] = previous
+    # main.py imports the captioner as the bare ``lfm2_vl``; alias the real
+    # module under that name only while main.py is being loaded.
+    return load_backend_file(
+        "service/image_captioning/main.py",
+        name="service_image_captioning_main_test",
+        stubs={"lfm2_vl": lfm2_vl},
+    )
 
 
 sidecar = _load_sidecar_main()

@@ -29,29 +29,19 @@ Embeddings
   * ``/query-embeddings`` returns the raw text embedding and its norm.
 """
 
-import importlib.util
-import os
-import sys
 import types
 from unittest.mock import MagicMock, patch
 
 import numpy as np
 from django.test import SimpleTestCase
 
-MAIN_PATH = os.path.join(
-    os.path.dirname(
-        os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    ),
-    "service",
-    "tags",
-    "main.py",
-)
+from api.tests.stubs import load_backend_file
 
 MODEL_NAME = "openclip_vitb32"
-_STUB_NAMES = ("openclip", "openclip.openclip")
 
 
-def _install_stub_package():
+def _openclip_package_stub() -> dict[str, types.ModuleType]:
+    """The ``openclip`` package main.py imports at top level, with a fake OpenCLIP."""
     pkg = types.ModuleType("openclip")
     pkg.__path__ = []
     sub = types.ModuleType("openclip.openclip")
@@ -60,30 +50,18 @@ def _install_stub_package():
     sub.DEFAULT_MIN_PROBABILITY = 0.0075
     sub.DEFAULT_MAX_TAGS = 10
     pkg.openclip = sub
-    sys.modules["openclip"] = pkg
-    sys.modules["openclip.openclip"] = sub
+    return {"openclip": pkg, "openclip.openclip": sub}
 
 
 def _load_tags_main():
-    # The stub exists only so main.py's top-level import resolves; leaving it
-    # in sys.modules would shadow the real package for later test modules, so
-    # restore the previous entries once the module is loaded.
-    saved = {name: sys.modules.get(name) for name in _STUB_NAMES}
-    _install_stub_package()
-    try:
-        spec = importlib.util.spec_from_file_location(
-            "service_tags_main_test", MAIN_PATH
-        )
-        module = importlib.util.module_from_spec(spec)
-        sys.modules[spec.name] = module
-        spec.loader.exec_module(module)
-        return module
-    finally:
-        for name, old in saved.items():
-            if old is None:
-                sys.modules.pop(name, None)
-            else:
-                sys.modules[name] = old
+    # The stub only has to make main.py's top-level import resolve. stub_modules
+    # puts back the previous sys.modules entries afterwards, so later test
+    # modules still see the real package.
+    return load_backend_file(
+        "service/tags/main.py",
+        name="service_tags_main_test",
+        stubs=_openclip_package_stub(),
+    )
 
 
 tags_main = _load_tags_main()
