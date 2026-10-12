@@ -2,11 +2,22 @@
 // Plants one violation per convention ban (eslint.config.mjs) and lints it, through the real config,
 // at a file of every scope the bans name: each ban must fire where it applies and stay quiet in its
 // `allowIn` files, whatever the other bans and blocks do.
+import { globSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { ESLint } from "eslint";
 import { describe, expect, it } from "vitest";
-import config, { globalBans, importBans, propertyBans, syntaxBans } from "./eslint.config.mjs";
+import config, {
+  globalBans,
+  importBans,
+  propertyBans,
+  SIZE_BASELINE_PATH,
+  SIZE_FILES,
+  SIZE_IGNORES,
+  SIZE_LIMITS,
+  sizeBaseline,
+  syntaxBans,
+} from "./eslint.config.mjs";
 
 const cwd = path.dirname(fileURLToPath(import.meta.url));
 const TS_FILES = ["**/*.{ts,tsx}"];
@@ -268,5 +279,138 @@ ${code}`,
 
   it("allows other imports from the API module", async () => {
     expect(await lint(`import { apiClient } from "../../api";`)).toEqual([]);
+  });
+});
+
+// File and function size (eslint.config.mjs, "Size"): the limits fire on a planted file, a route file
+// holds one component, and eslint-size-baseline.json holds every file over a limit at exactly its
+// measured size, so it can shrink and never grow.
+describe("eslint.config.mjs size limits", () => {
+  const SIZE_RULES = { lines: "max-lines", function: "max-lines-per-function" };
+  const sizeLint = new ESLint({
+    cwd,
+    overrideConfig: { languageOptions: { parserOptions: { project: null } } },
+    ruleFilter: ({ ruleId }) => [...Object.values(SIZE_RULES), "react/no-multi-comp"].includes(ruleId),
+  });
+  const lint = async (code, file) => {
+    const [result] = await sizeLint.lintText(code, { filePath: path.join(cwd, file) });
+    expect(result.messages.filter(message => message.fatal)).toEqual([]);
+    return result.messages.map(message => message.ruleId);
+  };
+  const statements = (count, prefix = "") =>
+    Array.from({ length: count }, (_, i) => `${prefix}const planted${i} = ${i};`).join("\n");
+  // `count` lines in all: the signature, the body and the closing brace.
+  const component = (name, count) => `export function ${name}() {\n${statements(count - 3, "  ")}\n  return null;\n}\n`;
+
+  it("fails a file over the line limit, not one at it", async () => {
+    expect(await lint(statements(SIZE_LIMITS.lines + 1, "export "), "src/components/sample.ts")).toEqual(["max-lines"]);
+    expect(await lint(statements(SIZE_LIMITS.lines, "export "), "src/components/sample.ts")).toEqual([]);
+  });
+
+  it("fails a function over the function limit, not one at it", async () => {
+    expect(await lint(component("Planted", SIZE_LIMITS.function + 1), "src/components/Planted.tsx")).toEqual([
+      "max-lines-per-function",
+    ]);
+    expect(await lint(component("Planted", SIZE_LIMITS.function), "src/components/Planted.tsx")).toEqual([]);
+  });
+
+  it("does not count blank lines and comments", async () => {
+    const padded = `${statements(SIZE_LIMITS.lines, "export ")}\n\n// a comment\n/* and\n   another */\n`;
+    expect(await lint(padded, "src/components/sample.ts")).toEqual([]);
+  });
+
+  it("leaves test code and the generated route tree alone", async () => {
+    const big = statements(SIZE_LIMITS.lines + 1, "export ");
+    for (const file of ["src/components/Sample.test.tsx", "src/util/sample.test-utils.ts", "src/routeTree.gen.ts"]) {
+      expect(await lint(big, file)).toEqual([]);
+    }
+  });
+
+  it("fails a second component in a route file, not in components/", async () => {
+    const twoComponents = `${component("First", 4)}${component("Second", 4)}`;
+    expect(await lint(twoComponents, "src/routes/_protected/sample.tsx")).toContain("react/no-multi-comp");
+    expect(await lint(twoComponents, "src/components/Sample.tsx")).toEqual([]);
+  });
+
+  it("fails a file in the baseline that grows", async () => {
+    const file = "src/components/photolist/PhotoListView.tsx";
+    expect(sizeBaseline[file]?.lines).toBeGreaterThan(SIZE_LIMITS.lines);
+    const source = readFileSync(path.join(cwd, file), "utf8");
+    expect(await lint(source, file)).toEqual([]);
+    expect(await lint(`${source}\n${statements(10, "export ")}\n`, file)).toEqual(["max-lines"]);
+  });
+
+  /** Every app source file over a limit, with its size per rule (the largest function for the function rule). */
+  async function measure() {
+    const files = globSync("src/**/*.{ts,tsx}", { cwd })
+      .map(file => file.split(path.sep).join("/"))
+      .filter(file => matches(file, SIZE_FILES) && !matches(file, SIZE_IGNORES));
+    // The default limits everywhere, overriding the baseline, so every file over one reports its size.
+    const measuring = new ESLint({
+      cwd,
+      overrideConfig: [
+        { languageOptions: { parserOptions: { project: null } } },
+        {
+          files: SIZE_FILES,
+          rules: Object.fromEntries(
+            Object.entries(SIZE_RULES).map(([key, rule]) => [
+              rule,
+              ["error", { max: SIZE_LIMITS[key], skipBlankLines: true, skipComments: true }],
+            ])
+          ),
+        },
+      ],
+      ruleFilter: ({ ruleId }) => Object.values(SIZE_RULES).includes(ruleId),
+    });
+    const sizes = {};
+    for (const result of await measuring.lintFiles(files)) {
+      const file = path.relative(cwd, result.filePath).split(path.sep).join("/");
+      for (const message of result.messages) {
+        const key = Object.keys(SIZE_RULES).find(name => SIZE_RULES[name] === message.ruleId);
+        const count = Number(/too many lines \((\d+)\)/.exec(message.message)?.[1]);
+        expect(key && count, `${file}: ${message.message}`).toBeTruthy();
+        sizes[file] = { ...sizes[file], [key]: Math.max(sizes[file]?.[key] ?? 0, count) };
+      }
+    }
+    return sizes;
+  }
+
+  /** Largest file first, one line per file: a shape Prettier leaves as it is. */
+  function serialise(baseline) {
+    const lines = Object.entries(baseline)
+      .sort(
+        ([fileA, a], [fileB, b]) =>
+          (b.lines ?? 0) - (a.lines ?? 0) || (b.function ?? 0) - (a.function ?? 0) || fileA.localeCompare(fileB)
+      )
+      .map(([file, size]) => {
+        const counts = Object.keys(SIZE_RULES).flatMap(key => (size[key] ? [`"${key}": ${size[key]}`] : []));
+        return `  ${JSON.stringify(file)}: { ${counts.join(", ")} }`;
+      });
+    return `{\n${lines.join(",\n")}\n}\n`;
+  }
+
+  it("the baseline holds exactly the measured size of every file over a limit", { timeout: 120_000 }, async () => {
+    const sizes = await measure();
+    const over = [];
+    const stale = [];
+    const lowered = {};
+    for (const file of [...new Set([...Object.keys(sizes), ...Object.keys(sizeBaseline)])].sort()) {
+      for (const key of Object.keys(SIZE_RULES)) {
+        const now = sizes[file]?.[key] ?? 0;
+        const allowed = sizeBaseline[file]?.[key] ?? 0;
+        if (now > allowed) over.push(`${file}: ${key} ${now} (allowed ${allowed || SIZE_LIMITS[key]})`);
+        if (now < allowed) stale.push(`${file}: ${key} ${now || `under ${SIZE_LIMITS[key]}`} (baseline ${allowed})`);
+        if (Math.min(now, allowed) > 0) lowered[file] = { ...lowered[file], [key]: Math.min(now, allowed) };
+      }
+    }
+    expect(over, "Split the file or function (AGENTS.md, Size); the baseline never grows").toEqual([]);
+    if (process.env.UPDATE_SIZE_BASELINE) {
+      writeFileSync(SIZE_BASELINE_PATH, serialise(lowered));
+      return;
+    }
+    expect(stale, "Lower the baseline: UPDATE_SIZE_BASELINE=1 yarn test eslint.config.test.mjs").toEqual([]);
+    expect(readFileSync(SIZE_BASELINE_PATH, "utf8"), "Largest file first, one line per file").toBe(
+      serialise(sizeBaseline)
+    );
   });
 });

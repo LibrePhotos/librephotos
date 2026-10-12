@@ -27,6 +27,7 @@ green CI run. To develop against a local backend, copy `.env.development.example
   with its zod schema. In tests, use `defined()` from `src/util/defined.test-utils.ts` when a value
   must be there.
 - Type mocks: `vi.fn<(arg: T) => R>()` or `vi.fn(implementation)`, never a bare `vi.fn()`.
+- Size: a file in `src` has at most 400 lines and a function at most 250, blank lines and comments not counted (`max-lines`, `max-lines-per-function`; tests exempt), and a route file renders one component (`react/no-multi-comp`): everything else lives under `components/`. A file over a limit is in `eslint-size-baseline.json` at its measured size, so it can shrink but not grow: extract before you add to it, and never add an entry. After shrinking one, run `UPDATE_SIZE_BASELINE=1 yarn test eslint.config.test.mjs` and commit the JSON (the test fails while it is stale).
 - File names have no dashes or underscores (`src/fileNames.test.ts` fails on them). Components are `PascalCase.tsx`, hooks `useX.ts(x)`, other modules `camelCase.ts`; route files follow TanStack's `$param`/`_layout` syntax. Import lodash from `lodash-es` (lint bans `lodash`; the package is not a dependency).
 - Knip (`yarn knip`) runs in CI: an unused dependency, file or export fails it. Delete the code or drop the `export`; do not add a dependency nothing imports.
 - Toasts go through `notification.success|error|warning|hide` from `src/service/notifications`, never
