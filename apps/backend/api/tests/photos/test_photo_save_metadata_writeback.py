@@ -1,7 +1,8 @@
 """``Photo.save()``: the diff it takes against the loaded row and the owner's
 ``save_metadata_to_disk`` setting that decides whether that diff is written to
-disk. Only a save with ``save_metadata=True`` (a user's edit) writes; the
-default writes nothing (#2295). ``Photo._save_metadata`` is mocked, so no
+disk once the save commits (#2298). Only a save with ``save_metadata=True``
+(a user's edit) writes; the default writes nothing (#2295).
+``Photo._save_metadata`` is mocked, so no
 exiftool is needed.
 """
 
@@ -25,7 +26,10 @@ class SaveMetadataSettingTest(TestCase):
         loaded = Photo.objects.select_related("owner").get(pk=self.photo.pk)
         loaded.rating = 4
         save_kwargs.setdefault("save_metadata", True)
-        with patch.object(Photo, "_save_metadata") as write:
+        with (
+            patch.object(Photo, "_save_metadata") as write,
+            self.captureOnCommitCallbacks(execute=True),
+        ):
             loaded.save(**save_kwargs)
         return write
 
@@ -51,7 +55,10 @@ class SaveMetadataSettingTest(TestCase):
         )
         loaded = Photo.objects.select_related("owner").get(pk=self.photo.pk)
         loaded.rating = 4
-        with patch.object(Photo, "_save_metadata") as write:
+        with (
+            patch.object(Photo, "_save_metadata") as write,
+            self.captureOnCommitCallbacks(execute=True),
+        ):
             loaded.save()
 
         write.assert_not_called()
@@ -116,14 +123,20 @@ class LoadedValuesChangeTrackingTest(TestCase):
     def test_only_changed_fields_are_written(self):
         loaded = Photo.objects.get(pk=self.photo.pk)
         loaded.rating = 5
-        with patch.object(Photo, "_save_metadata") as write:
+        with (
+            patch.object(Photo, "_save_metadata") as write,
+            self.captureOnCommitCallbacks(execute=True),
+        ):
             loaded.save(save_metadata=True)
 
         write.assert_called_once_with(["rating"], True)
 
     def test_unchanged_loaded_instance_writes_an_empty_diff(self):
         loaded = Photo.objects.get(pk=self.photo.pk)
-        with patch.object(Photo, "_save_metadata") as write:
+        with (
+            patch.object(Photo, "_save_metadata") as write,
+            self.captureOnCommitCallbacks(execute=True),
+        ):
             loaded.save(save_metadata=True)
 
         write.assert_called_once_with([], True)
@@ -135,7 +148,10 @@ class LoadedValuesChangeTrackingTest(TestCase):
             added_on=self.photo.added_on,
             rating=5,
         )
-        with patch.object(Photo, "_save_metadata") as write:
+        with (
+            patch.object(Photo, "_save_metadata") as write,
+            self.captureOnCommitCallbacks(execute=True),
+        ):
             fresh.save(save_metadata=True)
 
         write.assert_called_once_with([], True)
@@ -148,3 +164,68 @@ class LoadedValuesChangeTrackingTest(TestCase):
         built._loaded_values["rating"] = 3
 
         self.assertEqual(Photo(owner=self.user)._loaded_values, {})
+
+
+class SavedValuesTrackingTest(TestCase):
+    """After a save the next save diffs against what was saved (#2298)."""
+
+    def setUp(self):
+        self.user = create_test_user(
+            save_metadata_to_disk=User.SaveMetadata.SIDECAR_FILE
+        )
+        self.photo = create_test_photo(owner=self.user, rating=1)
+
+    def _saves(self, loaded, *save_kwargs):
+        with (
+            patch.object(Photo, "_save_metadata") as write,
+            self.captureOnCommitCallbacks(execute=True),
+        ):
+            for kwargs in save_kwargs:
+                loaded.save(save_metadata=True, **kwargs)
+        return [call.args for call in write.call_args_list]
+
+    def test_a_second_save_diffs_against_the_first(self):
+        loaded = Photo.objects.get(pk=self.photo.pk)
+        loaded.rating = 5
+
+        self.assertEqual([(["rating"], True), ([], True)], self._saves(loaded, {}, {}))
+
+    def test_update_fields_moves_only_the_saved_fields(self):
+        loaded = Photo.objects.get(pk=self.photo.pk)
+        loaded.rating = 5
+        loaded.hidden = True
+
+        writes = self._saves(loaded, {"update_fields": ["hidden"]}, {})
+
+        # The rating was not saved by the first call, so the second still has it.
+        self.assertEqual(
+            [(sorted(["hidden", "rating"]), True), (["rating"], True)],
+            [(sorted(fields), sidecar) for fields, sidecar in writes],
+        )
+
+    def test_a_failed_write_keeps_the_saved_edit(self):
+        loaded = Photo.objects.get(pk=self.photo.pk)
+        loaded.rating = 5
+
+        with (
+            patch.object(Photo, "_save_metadata", side_effect=OSError("disk full")),
+            self.assertLogs("django", "ERROR"),
+            self.captureOnCommitCallbacks(execute=True),
+        ):
+            loaded.save(save_metadata=True)
+
+        self.assertEqual(5, Photo.objects.get(pk=self.photo.pk).rating)
+
+    def test_nothing_is_written_before_the_commit(self):
+        loaded = Photo.objects.get(pk=self.photo.pk)
+        loaded.rating = 5
+
+        with (
+            patch.object(Photo, "_save_metadata") as write,
+            self.captureOnCommitCallbacks() as callbacks,
+        ):
+            loaded.save(save_metadata=True)
+            write.assert_not_called()
+
+        # The callbacks are collected when the block ends: the commit.
+        self.assertEqual(1, len(callbacks))

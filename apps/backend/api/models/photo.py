@@ -5,7 +5,7 @@ from collections.abc import Collection, Iterable
 from typing import TYPE_CHECKING, Any
 
 from django.contrib.auth.models import AnonymousUser
-from django.db import models
+from django.db import models, transaction
 from django.db.models import Q, QuerySet
 from django.db.models.base import ModelBase
 
@@ -248,29 +248,58 @@ class Photo(models.Model):
         update_fields: Iterable[str] | None = None,
         save_metadata: bool = False,
     ) -> None:
-        """Save the row; with ``save_metadata``, also write the edit to disk.
+        """Save the row; with ``save_metadata``, write the edit once it commits.
 
         A write to the user's files is never a side effect: only the paths
         that apply a user's edit pass ``save_metadata=True`` (#2295). Scans,
         jobs and repairs save what they read from the file and write nothing.
-        The changed rating and capture date are then written to the sidecar
-        or the media file, as the owner's "Synchronize metadata to disk" says.
+        The rating and capture date that differ from the row this instance
+        last loaded or saved are written to the sidecar or the media file, as
+        the owner's "Synchronize metadata to disk" says. The write waits for
+        the commit (#2298): a failed or rolled-back save never touches the
+        file, and a failed write is logged without undoing the saved edit.
         """
         modified_fields = [
             field_name
             for field_name, value in self._loaded_values.items()
             if value != getattr(self, field_name)
         ]
-        if save_metadata:
-            use_sidecar = write_target(self.owner)
-            if use_sidecar is not None:
-                self._save_metadata(modified_fields, use_sidecar)
+        if update_fields is not None:
+            update_fields = list(update_fields)
         super().save(
             force_insert=force_insert,
             force_update=force_update,
             using=using,
             update_fields=update_fields,
         )
+        self._remember_saved_values(update_fields)
+        if save_metadata:
+            use_sidecar = write_target(self.owner)
+            if use_sidecar is not None:
+                transaction.on_commit(
+                    lambda: self._save_metadata(modified_fields, use_sidecar),
+                    using=using,
+                    robust=True,
+                )
+
+    def _remember_saved_values(self, update_fields: list[str] | None) -> None:
+        """Make the values just saved the ones the next save() diffs against.
+
+        Without this every later save on the instance wrote the same change
+        to disk again (#2298). Only the fields loaded from the database are
+        tracked: an instance built in memory still has nothing to diff
+        against.
+        """
+        # update_fields may name a foreign key ("owner") or its column ("owner_id").
+        attnames = {field.name: field.attname for field in self._meta.concrete_fields}
+        saved = (
+            None
+            if update_fields is None
+            else {attnames.get(name, name) for name in update_fields}
+        )
+        for field_name in self._loaded_values:
+            if saved is None or field_name in saved:
+                self._loaded_values[field_name] = getattr(self, field_name)
 
     def _save_metadata(
         self,

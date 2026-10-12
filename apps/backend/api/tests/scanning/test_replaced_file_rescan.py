@@ -309,7 +309,10 @@ class MetadataWriteIsNotAReplacementTest(ReplacedFileTestCase):
         built in memory would silently write nothing.
         """
         loaded = Photo.objects.get(pk=photo.pk)
-        with patch("api.metadata.photo_writer.write_metadata", write_metadata_mock):
+        with (
+            patch("api.metadata.photo_writer.write_metadata", write_metadata_mock),
+            self.captureOnCommitCallbacks(execute=True),
+        ):
             loaded.rating = 4
             loaded.save(save_metadata=True)
         return loaded

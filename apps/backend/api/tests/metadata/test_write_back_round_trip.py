@@ -19,6 +19,7 @@ import unittest
 from contextlib import contextmanager
 from unittest.mock import patch
 
+from django.db import transaction
 from rest_framework.test import APIClient
 
 from api.directory_watcher.file_handlers import _process_photo
@@ -104,7 +105,8 @@ class RatingRoundTripTest(RealExifToolTestCase):
                 photo = self._rated_photo(path, mode, rating=1)
 
                 photo.rating = 5
-                photo.save(save_metadata=True)
+                with self.captureOnCommitCallbacks(execute=True):
+                    photo.save(save_metadata=True)
 
                 self.assertEqual(5, self._read_rating(path))
                 self.assertWritesLanded(expected=1)
@@ -113,7 +115,7 @@ class RatingRoundTripTest(RealExifToolTestCase):
         path = self.make_image(".jpg")
         photo = self._rated_photo(path, OFF, rating=1)
 
-        with self.assertUntouched(path):
+        with self.assertUntouched(path), self.captureOnCommitCallbacks(execute=True):
             queue_rating_write(photo.owner, [photo.id])
             photo.rating = 5
             photo.save(save_metadata=True)
@@ -177,7 +179,9 @@ class DateRoundTripTest(RealExifToolTestCase):
     def _edit_date(self, path, mode):
         user = create_test_user(save_metadata_to_disk=mode)
         photo = self.photo_for(path, user)
-        PhotoEditSerializer().update(photo, {"exif_timestamp": TIMESTAMP})
+        # The write waits for the commit (#2298).
+        with self.captureOnCommitCallbacks(execute=True):
+            PhotoEditSerializer().update(photo, {"exif_timestamp": TIMESTAMP})
         return photo
 
     def _date_the_scan_reads(self, photo):
@@ -220,13 +224,65 @@ class DateRoundTripTest(RealExifToolTestCase):
             self.read_tags(path, Tags.DATE_TIME_ORIGINAL)[Tags.DATE_TIME_ORIGINAL],
         )
 
-    # #2298: Photo.save() diffs against the row as first loaded, so the
+    # #2298: Photo.save() diffed against the row as first loaded, so the
     # serializer's save and extract_date_time's save both wrote the date.
-    # Since #2295 only the edit's own save writes.
     def test_one_edit_is_one_write(self):
         self._edit_date(self.make_image(".jpg"), SIDECAR)
 
         self.assertWritesLanded(expected=1)
+
+    def test_one_api_edit_is_one_write(self):
+        path = self.make_image(".jpg")
+        photo = self.photo_for(path, create_test_user(save_metadata_to_disk=SIDECAR))
+        client = APIClient()
+        client.force_authenticate(user=photo.owner)
+
+        with self.captureOnCommitCallbacks(execute=True):
+            response = client.patch(
+                f"/api/photos/edit/{photo.image_hash}/",
+                {"exif_timestamp": TIMESTAMP.isoformat()},
+                format="json",
+            )
+
+        self.assertEqual(200, response.status_code, response.content)
+        self.assertWritesLanded(expected=1)
+        self.assertEqual(TIMESTAMP, self._date_the_scan_reads(photo))
+
+    def test_a_later_save_without_changes_writes_nothing(self):
+        photo = self._edit_date(self.make_image(".jpg"), SIDECAR)
+        self.exiftool.writes.clear()
+
+        with self.captureOnCommitCallbacks(execute=True):
+            photo.save(save_metadata=True)
+
+        self.assertEqual([], self.exiftool.writes)
+
+    def test_the_date_is_written_after_the_commit(self):
+        path = self.make_image(".jpg")
+        user = create_test_user(save_metadata_to_disk=SIDECAR)
+        photo = self.photo_for(path, user)
+
+        with self.captureOnCommitCallbacks() as callbacks:
+            with self.assertUntouched(path):
+                PhotoEditSerializer().update(photo, {"exif_timestamp": TIMESTAMP})
+
+        self.assertTrue(callbacks)
+        for callback in callbacks:
+            callback()
+        self.assertWritesLanded(expected=1)
+        self.assertEqual(TIMESTAMP, self._date_the_scan_reads(photo))
+
+    def test_a_rolled_back_edit_leaves_the_file_alone(self):
+        path = self.make_image(".jpg")
+        user = create_test_user(save_metadata_to_disk=MEDIA_FILE)
+        photo = self.photo_for(path, user)
+
+        with self.assertUntouched(path), self.captureOnCommitCallbacks(execute=True):
+            with self.assertRaises(RuntimeError), transaction.atomic():
+                PhotoEditSerializer().update(photo, {"exif_timestamp": TIMESTAMP})
+                raise RuntimeError("the request fails after the save")
+
+        self.assertIsNone(Photo.objects.get(pk=photo.pk).timestamp)
 
     def test_nothing_is_written_when_off(self):
         path = self.make_image(".jpg")
@@ -680,7 +736,8 @@ class WriteTargetGuardTest(RealExifToolTestCase):
                 path = self.make_image(".jpg", f"guard-{mode}")
                 photo = self.photo_for(path, user, thumbnails=True, rating=3)
                 write_photo_ratings([photo.id], use_sidecar=mode == SIDECAR)
-                PhotoEditSerializer().update(photo, {"exif_timestamp": TIMESTAMP})
+                with self.captureOnCommitCallbacks(execute=True):
+                    PhotoEditSerializer().update(photo, {"exif_timestamp": TIMESTAMP})
                 person = create_test_person(
                     name="Alice", kind=Person.KIND_USER, cluster_owner=user
                 )
