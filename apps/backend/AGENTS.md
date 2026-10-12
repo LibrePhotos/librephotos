@@ -60,6 +60,13 @@ test makes `--parallel` runs crash with "cannot pickle 'traceback'"; rerun that 
   `ClampedIntegerField`; example: `DuplicateListView` and `DetectDuplicatesView` in `api/views/duplicates.py`.
   `RequestParsingGuardTest` (`api/tests/infra/test_api_conventions.py`) fails on a hand read of
   `request.data`/`query_params`/`GET`/`POST`; `request_parsing_baseline.json` next to it only shrinks.
+- A view declares its response (a `serializer_class`, or `@extend_schema(responses=...)` on an
+  `APIView`) and a `SerializerMethodField` getter a precise return type (a `TypedDict`, `list[str]`) or
+  `@extend_schema_field`; then regenerate the committed `openapi.json` with `python scripts/openapi_schema.py`
+  and update the zod schema and its `contract-map.ts` entry in `packages/api-client`, which compares the
+  two. CI (`test-backend.yml`) fails on a stale `openapi.json` and on a new drf-spectacular report
+  (`openapi-baseline.txt` only shrinks); `api/tests/infra/test_serializer_method_annotations.py` fails on
+  a shapeless getter.
 - A viewset is `viewsets.GenericViewSet` plus only the mixins of the actions a client calls (PATCH
   alone: `PartialUpdateModelMixin` from `api/views/mixins.py`), never `ModelViewSet` or an
   `http_method_names` blocklist. Pin a new route's verbs in `ROUTER_VERBS`

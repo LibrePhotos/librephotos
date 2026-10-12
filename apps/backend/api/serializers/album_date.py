@@ -3,6 +3,7 @@ from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from api.models import AlbumDate, Photo
+from api.serializers.photos import PhotoSummarySerializer
 from api.views.params import ClampedIntegerField
 
 PUBLIC_PHOTOS_ATTR = "public_photos"
@@ -112,9 +113,10 @@ class AlbumDateSerializer(serializers.ModelSerializer):
         else:
             return None
 
-    # The schema keeps the types these returned before they were removed: the
+    # AlbumDateViewSet.retrieve fills both in after serializing (a page of
+    # photo summaries and their count), so the schema names those types: the
     # annotations alone are None, which drf-spectacular cannot map.
-    @extend_schema_field(dict)
+    @extend_schema_field(PhotoSummarySerializer(many=True))
     def get_items(self, obj: AlbumDate) -> None:
         # This method is removed as we're directly including paginated photos in the response.
         pass

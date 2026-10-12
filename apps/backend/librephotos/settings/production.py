@@ -187,6 +187,12 @@ INSTALLED_APPS = [
     "constance",
     "constance.backends.database",
     "django_q",
+    # The OpenAPI schema: apps/backend/openapi.yaml is generated from it
+    # (`manage.py spectacular`, checked in test-backend.yml) and the api-client
+    # contract test compares the zod schemas with it. Its routes are mounted
+    # only under DEBUG (librephotos/urls.py); the app has no models or
+    # middleware, so a deployment only pays for the import.
+    "drf_spectacular",
     # OIDC / SSO via django-allauth. The generic openid_connect provider handles
     # any standards-compliant IdP (Keycloak, Authentik, Authelia, Zitadel, Google,
     # Azure, ...). Provider credentials live in the DB (admin-editable SocialApp),
@@ -421,7 +427,9 @@ REST_FRAMEWORK = {
         "rest_framework_simplejwt.authentication.JWTAuthentication",
         "rest_framework.authentication.BasicAuthentication",
     ),
-    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    # api.openapi.AutoSchema: responses of model serializers list every field
+    # as required, which is what DRF writes.
+    "DEFAULT_SCHEMA_CLASS": "api.openapi.AutoSchema",
     "DEFAULT_FILTER_BACKENDS": ("django_filters.rest_framework.DjangoFilterBackend",),
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",
     "EXCEPTION_HANDLER": "api.views.exception_handler.custom_exception_handler",
@@ -434,6 +442,25 @@ REST_FRAMEWORK = {
     # let every request pick its own counter.
     "NUM_PROXIES": max(0, env_int("NUM_PROXIES", 1)),
     "DEFAULT_THROTTLE_RATES": DEFAULT_THROTTLE_RATES,
+}
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "LibrePhotos API",
+    "DESCRIPTION": (
+        "The REST API of the LibrePhotos backend, used by the web app and the "
+        "mobile app. Generated from the DRF serializers and views; "
+        "packages/api-client checks its zod schemas against it."
+    ),
+    # The document's version, not the release: a release number here would
+    # rewrite openapi.yaml on every release without the API changing.
+    "VERSION": "1.0.0",
+    # Separate request and response components (PhotoRequest vs Photo), so a
+    # read-only field is required in the response instead of optional in both.
+    "COMPONENT_SPLIT_REQUEST": True,
+    "POSTPROCESSING_HOOKS": [
+        "drf_spectacular.hooks.postprocess_schema_enums",
+        "api.openapi.require_page_keys",
+    ],
 }
 
 MIDDLEWARE = [
