@@ -113,6 +113,10 @@ export type DateAlbumFilter = {
   photo?: boolean;
   video?: boolean;
   is_screenshot?: boolean;
+  /** The web timeline's filter (api/albums/timeline_filter.py): "all" is the same as leaving it out. */
+  media?: "all" | "photos" | "videos";
+  hide_screenshots?: boolean;
+  hide_documents?: boolean;
   person?: number;
   username?: string;
   folder?: string;
@@ -131,11 +135,9 @@ export function photosetToFilter(photoset: Photoset): DateAlbumFilter {
   };
 }
 
-export async function fetchDateAlbumsList(
-  client: ApiClient,
-  filter: DateAlbumFilter = {}
-): Promise<S.IncompleteDatePhotosGroup[]> {
-  const query = buildQuery({
+/** The date-album query params: each flag is "true" or left out, and buildQuery drops a blank value. */
+function dateAlbumParams(filter: DateAlbumFilter) {
+  return {
     favorite: filter.favorite ? "true" : undefined,
     public: filter.public ? "true" : undefined,
     hidden: filter.hidden ? "true" : undefined,
@@ -143,11 +145,20 @@ export async function fetchDateAlbumsList(
     photo: filter.photo ? "true" : undefined,
     video: filter.video ? "true" : undefined,
     is_screenshot: filter.is_screenshot ? "true" : undefined,
+    media: filter.media === "all" ? undefined : filter.media,
+    hide_screenshots: filter.hide_screenshots ? "true" : undefined,
+    hide_documents: filter.hide_documents ? "true" : undefined,
     person: filter.person,
     username: filter.username?.toLowerCase(),
     folder: filter.folder,
-  });
-  const res = await client.get<unknown>(`/albums/date/list/${query}`);
+  };
+}
+
+export async function fetchDateAlbumsList(
+  client: ApiClient,
+  filter: DateAlbumFilter = {}
+): Promise<S.IncompleteDatePhotosGroup[]> {
+  const res = await client.get<unknown>(`/albums/date/list/${buildQuery(dateAlbumParams(filter))}`);
   return parseResponse(S.FetchDateAlbumsListResponse, res, "date albums list").results;
 }
 
@@ -157,19 +168,7 @@ export async function fetchDateAlbum(
   page: number,
   filter: DateAlbumFilter = {}
 ): Promise<S.IncompleteDatePhotosGroup> {
-  const query = buildQuery({
-    favorite: filter.favorite ? "true" : undefined,
-    public: filter.public ? "true" : undefined,
-    hidden: filter.hidden ? "true" : undefined,
-    in_trashcan: filter.in_trashcan ? "true" : undefined,
-    photo: filter.photo ? "true" : undefined,
-    video: filter.video ? "true" : undefined,
-    is_screenshot: filter.is_screenshot ? "true" : undefined,
-    person: filter.person,
-    username: filter.username?.toLowerCase(),
-    folder: filter.folder,
-    page,
-  });
+  const query = buildQuery({ ...dateAlbumParams(filter), page });
   // Trailing slash: the router 301-redirects without it, one extra round trip per day page.
   const res = await client.get<unknown>(`/albums/date/${albumDateId}/${query}`);
   return parseResponse(S.FetchDateAlbumResponse, res, "date album").results;
@@ -244,6 +243,18 @@ export async function fetchUserAlbum(
   return parseResponse(S.UserAlbum, res, "user album detail");
 }
 
+/** A public album by its link slug, for a visitor without a session. A 404 is an unknown or expired link. */
+export async function fetchPublicAlbum(client: ApiClient, slug: string): Promise<S.UserAlbum> {
+  const res = await client.get<unknown>(`/public/albums/s/${encodeURIComponent(slug)}/`);
+  return parseResponse(S.FetchPublicAlbumResponse, res, "public album").results;
+}
+
+/** The id of the public album that holds a link slug (the same request, read only for the id). */
+export async function fetchPublicAlbumSlugOwner(client: ApiClient, slug: string): Promise<number> {
+  const res = await client.get<unknown>(`/public/albums/s/${encodeURIComponent(slug)}/`);
+  return parseResponse(S.PublicAlbumSlugOwner, res, "public album slug owner").results.id;
+}
+
 /** Full auto-album detail incl. its photos (drives membership mirroring). */
 export async function fetchAutoAlbum(client: ApiClient, id: number | string): Promise<S.AutoAlbum> {
   const res = await client.get<unknown>(`/albums/auto/${id}/`);
@@ -285,6 +296,25 @@ export async function fetchPlaceAlbum(
   return parseResponse(S.FetchPlaceAlbumResponse, res, "place album detail").results;
 }
 
+/** Every geocoded place as `[lat, lon, name]`, for the Places map. */
+export async function fetchLocationClusters(client: ApiClient): Promise<S.LocationClusters> {
+  const res = await client.get<unknown>("/locclust/");
+  return parseResponse(S.LocationClusters, res, "location clusters");
+}
+
+/**
+ * One page (100 directory entries) of a folder's subfolders; without `path`, of the user's scan
+ * directory. ApiError 403 for a folder outside it.
+ */
+export async function fetchFolderSubfolders(
+  client: ApiClient,
+  options: { path?: string; page?: number } = {}
+): Promise<S.FolderSubfoldersResponse> {
+  const query = buildQuery({ path: options.path, page: options.page });
+  const res = await client.get<unknown>(`/folders/subfolders/${query}`);
+  return parseResponse(S.FolderSubfoldersResponse, res, "folder subfolders");
+}
+
 /** Photo grid (grouped by date) for one tag album. */
 export async function fetchTagAlbum(client: ApiClient, id: number | string): Promise<S.TagAlbum> {
   const res = await client.get<unknown>(`/tags/${id}/`);
@@ -293,9 +323,35 @@ export async function fetchTagAlbum(client: ApiClient, id: number | string): Pro
 
 /* ---- persons ----------------------------------------------------------- */
 
-export async function fetchPeopleAlbums(client: ApiClient): Promise<S.PersonList> {
-  const results = await fetchAllPages(client, "/persons/");
+/** Every person, all pages; `pageSize` asks for bigger pages (the server allows up to 1000). */
+export async function fetchPeopleAlbums(client: ApiClient, options: { pageSize?: number } = {}): Promise<S.PersonList> {
+  const results = await fetchAllPages(client, `/persons/${buildQuery({ page_size: options.pageSize })}`);
   return parseResponse(S.FetchPeopleAlbumsResponse, { results }, "people albums").results;
+}
+
+/** Rename a person. */
+export async function renamePerson(
+  client: ApiClient,
+  personId: number | string,
+  newPersonName: string
+): Promise<S.PersonEditResponse> {
+  const res = await client.patch<unknown>(`/persons/${personId}/`, { newPersonName });
+  return parseResponse(S.PersonEditResponse, res, "rename person");
+}
+
+/** Set a person's cover photo. */
+export async function setPersonCover(
+  client: ApiClient,
+  personId: number | string,
+  coverPhoto: string
+): Promise<S.PersonEditResponse> {
+  const res = await client.patch<unknown>(`/persons/${personId}/`, { cover_photo: coverPhoto });
+  return parseResponse(S.PersonEditResponse, res, "set person cover");
+}
+
+/** Delete a person. Answers 204. */
+export async function deletePerson(client: ApiClient, personId: number | string): Promise<void> {
+  await client.delete(`/persons/${personId}/`);
 }
 
 /* ---- search ------------------------------------------------------------ */
@@ -453,18 +509,19 @@ export async function setPhotosShared(
   });
 }
 
-/** Share (or unshare) a user album to another user. */
+/** Share (or unshare) a user album to another user; answers the album's card. */
 export async function setUserAlbumShared(
   client: ApiClient,
   albumId: number | string,
   targetUserId: number | string,
   shared: boolean
-): Promise<unknown> {
-  return client.post("/useralbum/share/", {
+): Promise<S.UserAlbumInfo> {
+  const res = await client.post<unknown>("/useralbum/share/", {
     album_id: String(albumId),
     target_user_id: String(targetUserId),
     shared,
   });
+  return parseResponse(S.UserAlbumInfo, res, "share user album");
 }
 
 /* ---- public links ------------------------------------------------------ */
@@ -477,17 +534,25 @@ export async function setPhotosPublic(client: ApiClient, imageHashes: string[], 
   });
 }
 
-/** Toggle a user album's public link (optionally with slug/expiry). */
+/** Toggle a user album's public link (optionally with slug, expiry and per-album sharing options). */
 export async function setUserAlbumPublic(
   client: ApiClient,
-  args: { albumId: number | string; isPublic: boolean; slug?: string; expiresAt?: string | null }
-): Promise<unknown> {
-  return client.post("/useralbum/makepublic", {
+  args: {
+    albumId: number | string;
+    isPublic: boolean;
+    slug?: string;
+    expiresAt?: string | null;
+    sharingOptions?: S.PublicSharingOptions;
+  }
+): Promise<S.SetUserAlbumPublicResponse> {
+  const res = await client.post<unknown>("/useralbum/makepublic", {
     album_id: String(args.albumId),
     val_public: args.isPublic,
     slug: args.slug,
     expires_at: args.expiresAt,
+    sharing_options: args.sharingOptions,
   });
+  return parseResponse(S.SetUserAlbumPublicResponse, res, "make user album public");
 }
 
 /* ---- faces ------------------------------------------------------------- */
@@ -724,41 +789,102 @@ export async function savePhotoCaption(
   return parseResponse(S.StatusResponse, res, "save caption");
 }
 
-/** Create a user album with an initial photo set (photo ids = UUID pks). */
+/**
+ * Server-side "select all": instead of listing every photo, the query that describes the photo set
+ * (as the bulk photo mutations take it) and the photos left out of it.
+ */
+export type SelectAllPhotos = {
+  query?: S.BulkPhotoQuery;
+  excludedHashes?: string[];
+};
+
+function userAlbumPhotosBody(title: string, photoIds: string[], selectAll: SelectAllPhotos | undefined) {
+  if (!selectAll) return { title, photos: photoIds };
+  return {
+    title,
+    photos: [],
+    select_all: true,
+    query: selectAll.query ?? {},
+    excluded_hashes: selectAll.excludedHashes ?? [],
+  };
+}
+
+/** Create a user album with an initial photo set (photo ids = UUID pks), or a selected-all one. */
 export async function createUserAlbum(
   client: ApiClient,
   title: string,
-  photoIds: string[]
+  photoIds: string[],
+  selectAll?: SelectAllPhotos
 ): Promise<S.CreateUserAlbumResponse> {
-  const res = await client.post<unknown>("/albums/user/edit/", { title, photos: photoIds });
+  const res = await client.post<unknown>("/albums/user/edit/", userAlbumPhotosBody(title, photoIds, selectAll));
   return parseResponse(S.CreateUserAlbumResponse, res, "create user album");
 }
 
-/** Add photos (by UUID pk) to an existing user album. */
+/** Add photos (by UUID pk, or a selected-all set) to an existing user album. */
 export async function addPhotosToUserAlbum(
   client: ApiClient,
-  albumId: number,
+  albumId: number | string,
   title: string,
-  photoIds: string[]
-): Promise<unknown> {
-  return client.patch(`/albums/user/edit/${albumId}/`, { title, photos: photoIds });
+  photoIds: string[],
+  selectAll?: SelectAllPhotos
+): Promise<S.UserAlbumEditResponse> {
+  const body = userAlbumPhotosBody(title, photoIds, selectAll);
+  const res = await client.patch<unknown>(`/albums/user/edit/${albumId}/`, body);
+  return parseResponse(S.UserAlbumEditResponse, res, "add photos to user album");
 }
 
 /** Remove photos (by image hash) from a user album. */
 export async function removePhotosFromUserAlbum(
   client: ApiClient,
-  albumId: number,
+  albumId: number | string,
   imageHashes: string[]
-): Promise<unknown> {
-  return client.patch(`/albums/user/edit/${albumId}/`, { removedPhotos: imageHashes });
+): Promise<S.UserAlbumEditResponse> {
+  const res = await client.patch<unknown>(`/albums/user/edit/${albumId}/`, { removedPhotos: imageHashes });
+  return parseResponse(S.UserAlbumEditResponse, res, "remove photos from user album");
+}
+
+/** Set a user album's cover photo. */
+export async function setUserAlbumCover(
+  client: ApiClient,
+  albumId: number | string,
+  coverPhoto: string
+): Promise<S.UserAlbumEditResponse> {
+  const res = await client.patch<unknown>(`/albums/user/edit/${albumId}/`, { cover_photo: coverPhoto });
+  return parseResponse(S.UserAlbumEditResponse, res, "set user album cover");
+}
+
+/** Lock a user album against changes to its photos, or unlock it. */
+export async function setUserAlbumLocked(
+  client: ApiClient,
+  albumId: number | string,
+  locked: boolean
+): Promise<S.UserAlbumEditResponse> {
+  const res = await client.patch<unknown>(`/albums/user/edit/${albumId}/`, { locked });
+  return parseResponse(S.UserAlbumEditResponse, res, "lock user album");
 }
 
 /** Rename a user album. */
-export async function renameUserAlbum(client: ApiClient, albumId: number, title: string): Promise<unknown> {
-  return client.patch(`/albums/user/${albumId}/`, { title });
+export async function renameUserAlbum(
+  client: ApiClient,
+  albumId: number | string,
+  title: string
+): Promise<S.UserAlbumRenameResponse> {
+  const res = await client.patch<unknown>(`/albums/user/${albumId}/`, { title });
+  return parseResponse(S.UserAlbumRenameResponse, res, "rename user album");
 }
 
-/** Rename a person. */
-export async function renamePerson(client: ApiClient, personId: number, newPersonName: string): Promise<unknown> {
-  return client.patch(`/persons/${personId}/`, { newPersonName });
+/** Delete a user album; its photos stay. Answers 204. */
+export async function deleteUserAlbum(client: ApiClient, albumId: number | string): Promise<void> {
+  await client.delete(`/albums/user/${albumId}/`);
+}
+
+/** Delete one event album. Answers 204. */
+export async function deleteAutoAlbum(client: ApiClient, albumId: number | string): Promise<void> {
+  await client.delete(`/albums/auto/${albumId}/`);
+}
+
+/** Delete every event album of the user. The server answers the string "success". */
+export async function deleteAllAutoAlbums(client: ApiClient): Promise<string> {
+  const res = await client.post<unknown>("/albums/auto/delete_all/");
+  return parseResponse(z.string(), res, "delete all event albums");
 }

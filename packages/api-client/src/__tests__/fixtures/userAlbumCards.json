@@ -1,0 +1,52 @@
+[
+  {
+    "id": 4,
+    "cover_photo": {
+      "image_hash": "4f1c2a0b9d8e7f6a5b4c3d2e1f0a9b8c1",
+      "rating": 3,
+      "hidden": false,
+      "exif_timestamp": "2024-06-15T10:21:00Z",
+      "public": false,
+      "video": false
+    },
+    "created_on": "2026-09-01T08:00:00Z",
+    "favorited": false,
+    "locked": true,
+    "title": "Berlin 2024",
+    "shared_to": [{ "id": 2, "username": "bob", "first_name": "Bob", "last_name": "" }],
+    "owner": { "id": 1, "username": "alice", "first_name": "Alice", "last_name": "" },
+    "photo_count": 12,
+    "public": true,
+    "public_slug": "berlin-2024",
+    "public_expires_at": null,
+    "public_sharing_options": {
+      "share_location": false,
+      "share_camera_info": null,
+      "share_timestamps": null,
+      "share_captions": null,
+      "share_faces": true
+    }
+  },
+  {
+    "id": 9,
+    "cover_photo": {
+      "image_hash": "",
+      "rating": null,
+      "hidden": false,
+      "exif_timestamp": null,
+      "public": false,
+      "video": false
+    },
+    "created_on": "2026-10-01T08:00:00Z",
+    "favorited": false,
+    "locked": false,
+    "title": "Still empty",
+    "shared_to": [{ "id": 2, "username": "bob", "first_name": "Bob", "last_name": "" }],
+    "owner": { "id": 1, "username": "alice", "first_name": "Alice", "last_name": "" },
+    "photo_count": 0,
+    "public": false,
+    "public_slug": "",
+    "public_expires_at": null,
+    "public_sharing_options": null
+  }
+]

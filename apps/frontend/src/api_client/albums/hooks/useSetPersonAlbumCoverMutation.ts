@@ -1,3 +1,4 @@
+import { endpoints } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
 import { apiClient, queryClient } from "../../api";
@@ -11,7 +12,7 @@ type SetPersonAlbumCoverParams = {
 export const useSetPersonAlbumCoverMutation = () =>
   useMutation({
     mutationFn: async ({ id, cover_photo }: SetPersonAlbumCoverParams) => {
-      await apiClient.patch(`/persons/${id}/`, { cover_photo });
+      await endpoints.setPersonCover(apiClient, id, cover_photo);
       notification.setCoverPhoto();
     },
     onSuccess: () => {

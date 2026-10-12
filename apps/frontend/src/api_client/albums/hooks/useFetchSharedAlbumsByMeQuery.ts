@@ -1,11 +1,9 @@
-import { fetchAllPages } from "@librephotos/api-client";
+import { endpoints } from "@librephotos/api-client";
 import { useQuery } from "@tanstack/react-query";
 import { groupBy, toPairs } from "lodash-es";
-import { parseWithNotification } from "../../../util/zodUtils";
 import { apiClient } from "../../api";
 import { albumKeys } from "../keys";
 import type { UserAlbumList } from "../types";
-import { UserAlbumListResponse } from "../types";
 
 /** One row of the shared-albums queries: a sharer (or recipient) and their albums. */
 export type UserAlbumsGroupedByUserId = {
@@ -17,12 +15,7 @@ export const useFetchSharedAlbumsByMeQuery = () =>
   useQuery({
     queryKey: albumKeys.sharedByMe(),
     queryFn: async () => {
-      const results = await fetchAllPages(apiClient, "/albums/user/shared/fromme/");
-      const parsed = parseWithNotification(
-        UserAlbumListResponse,
-        { results },
-        "Failed to parse shared albums by me"
-      ).results;
+      const parsed = await endpoints.fetchSharedAlbumsByMe(apiClient);
       // Group albums by recipient (shared_to users)
       // Flatten: each album-recipient pair becomes an entry
       const albumsByRecipient: { recipientId: number; album: (typeof parsed)[0] }[] = [];

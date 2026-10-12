@@ -1,15 +1,10 @@
+import { endpoints, type PublicSharingOptions } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
 import { apiClient, queryClient } from "../../api";
 import { photoGridKeys } from "../../photos/keys";
 import { albumKeys } from "../keys";
 
-export type PublicSharingOptions = {
-  share_location?: boolean | null;
-  share_camera_info?: boolean | null;
-  share_timestamps?: boolean | null;
-  share_captions?: boolean | null;
-  share_faces?: boolean | null;
-};
+export type { PublicSharingOptions } from "@librephotos/api-client";
 
 type ToggleUserAlbumPublicParams = {
   albumId: string;
@@ -28,12 +23,12 @@ export const useToggleUserAlbumPublicMutation = () =>
       expires_at,
       sharing_options,
     }: ToggleUserAlbumPublicParams) => {
-      await apiClient.post("/useralbum/makepublic", {
-        album_id: albumId,
-        val_public: isPublic,
+      await endpoints.setUserAlbumPublic(apiClient, {
+        albumId,
+        isPublic,
         slug,
-        expires_at,
-        sharing_options,
+        expiresAt: expires_at,
+        sharingOptions: sharing_options,
       });
     },
     onSuccess: (_, { albumId }) => {

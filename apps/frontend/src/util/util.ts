@@ -87,15 +87,6 @@ export function addTempElementsToFlatList(photosCount: number) {
   return newPhotosFlat;
 }
 
-/** Query-string params from the entries of `params` that are set; values are stringified. */
-export function definedSearchParams(params: Record<string, string | number | undefined>): URLSearchParams {
-  const entries: [string, string][] = [];
-  for (const [key, value] of Object.entries(params)) {
-    if (value !== undefined) entries.push([key, String(value)]);
-  }
-  return new URLSearchParams(entries);
-}
-
 export function fuzzyMatch(query: string, value: string): boolean {
   // Whitespace is dropped first: checking the raw query let "  " through to a
   // reduce() over no characters, which threw and crashed the search box.

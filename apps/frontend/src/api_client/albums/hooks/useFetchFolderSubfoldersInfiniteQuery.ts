@@ -1,21 +1,19 @@
+import { endpoints, type FolderSubfolder, type FolderSubfoldersResponse } from "@librephotos/api-client";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useEffect, useMemo } from "react";
 import { apiClient } from "../../api";
 import { albumKeys } from "../keys";
-import { retryFolderRequest, type FolderNavigationResponse, type SubfolderInfo } from "./useFetchFolderAlbumsQuery";
+import { retryFolderRequest } from "./useFetchFolderAlbumsQuery";
 
 export const useFetchFolderSubfoldersInfiniteQuery = (
   path?: string,
   { refetchOnWindowFocus = true }: { refetchOnWindowFocus?: boolean } = {}
 ) =>
-  useInfiniteQuery<FolderNavigationResponse>({
+  useInfiniteQuery<FolderSubfoldersResponse>({
     queryKey: albumKeys.folderPages(path),
-    queryFn: async ({ pageParam }): Promise<FolderNavigationResponse> => {
+    queryFn: ({ pageParam }) => {
       const page = typeof pageParam === "number" && pageParam > 0 ? pageParam : 1;
-      const params = new URLSearchParams();
-      if (path) params.set("path", path);
-      params.set("page", String(page));
-      return apiClient.get<FolderNavigationResponse>(`/folders/subfolders/?${params.toString()}`);
+      return endpoints.fetchFolderSubfolders(apiClient, { path, page });
     },
     getNextPageParam: lastPage => (lastPage.next === null ? undefined : lastPage.page + 1),
     initialPageParam: 1,
@@ -32,7 +30,7 @@ export const useFetchFolderSubfoldersInfiniteQuery = (
  * without photos are dropped after paging) while more follow.
  */
 export function useAllFolderSubfolders(path?: string): {
-  subfolders: SubfolderInfo[];
+  subfolders: FolderSubfolder[];
   isLoading: boolean;
   isFetching: boolean;
 } {

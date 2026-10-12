@@ -1,3 +1,4 @@
+import { endpoints } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
 import { apiClient, queryClient } from "../../api";
@@ -8,7 +9,7 @@ import type { RenameUserAlbumParams } from "../types";
 export const useRenameUserAlbumMutation = () =>
   useMutation({
     mutationFn: async ({ id, title, newTitle }: RenameUserAlbumParams) => {
-      await apiClient.patch(`/albums/user/${id}/`, { title: newTitle });
+      await endpoints.renameUserAlbum(apiClient, id, newTitle);
       notification.renameAlbum(title, newTitle);
     },
     onSuccess: (_, { id }) => {

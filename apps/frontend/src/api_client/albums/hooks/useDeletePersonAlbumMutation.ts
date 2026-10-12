@@ -1,3 +1,4 @@
+import { endpoints } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
 import { apiClient, queryClient } from "../../api";
@@ -8,7 +9,7 @@ import { albumKeys } from "../keys";
 export const useDeletePersonAlbumMutation = () =>
   useMutation({
     mutationFn: async (id: string) => {
-      await apiClient.delete(`/persons/${id}/`);
+      await endpoints.deletePerson(apiClient, id);
       notification.deletePerson();
     },
     onSuccess: () => {

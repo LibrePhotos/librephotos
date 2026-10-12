@@ -1,48 +1,31 @@
-import { fetchAllPages } from "@librephotos/api-client";
+import { endpoints } from "@librephotos/api-client";
 import { useQuery } from "@tanstack/react-query";
 import { orderBy } from "lodash-es";
-import { z } from "zod";
-import { parseWithNotification } from "../../../util/zodUtils";
 import { apiClient } from "../../api";
 import { albumKeys } from "../keys";
 
-const PersonResponse = z.object({
-  name: z.string(),
-  face_url: z.string().nullable(),
-  face_count: z.number(),
-  face_photo_url: z.string(),
-  video: z.boolean().optional(),
-  id: z.number(),
-  newPersonName: z.string().optional(),
-  cover_photo: z.string().optional(),
-});
+/** A person as the people pages show them: the id as a string, no nulls. */
+export type Person = {
+  id: string;
+  name: string;
+  video: boolean;
+  face_count: number;
+  face_photo_url: string;
+  face_url: string;
+};
 
-export const Person = z.object({
-  id: z.string(),
-  name: z.string(),
-  video: z.boolean(),
-  face_count: z.number(),
-  face_photo_url: z.string(),
-  face_url: z.string(),
-});
-
-export const PersonList = Person.array();
-
-export type Person = z.infer<typeof Person>;
-export type PersonList = z.infer<typeof PersonList>;
-
-const PeopleResponse = PersonResponse.array();
+export type PersonList = Person[];
 
 export const useFetchPeopleAlbumsQuery = (skip: boolean = false) =>
   useQuery({
     queryKey: albumKeys.peopleAlbums(),
     queryFn: async () => {
       // 1000 is the server's largest page: the fewest requests for a big library.
-      const rows = await fetchAllPages(apiClient, "/persons/?page_size=1000");
+      const rows = await endpoints.fetchPeopleAlbums(apiClient, { pageSize: 1000 });
 
-      const people = parseWithNotification(PeopleResponse, rows, "Failed to parse people albums").map(item => ({
+      const people: PersonList = rows.map(item => ({
         id: item.id.toString(),
-        name: item.name ?? "",
+        name: item.name,
         video: !!item.video,
         face_count: item.face_count,
         face_photo_url: item.face_photo_url ?? "",

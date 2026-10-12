@@ -1,7 +1,7 @@
+import { endpoints, ResponseParseError } from "@librephotos/api-client";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient, ApiError } from "../../api";
 import { albumKeys } from "../keys";
-import { SlugOwnerResponse } from "../types";
 
 /**
  * Which album holds a public share slug: its id (a number, also when an older
@@ -15,10 +15,9 @@ export const useSlugAvailabilityQuery = (slug: string, enabled: boolean) =>
     enabled,
     queryFn: async () => {
       try {
-        const data = await apiClient.get(`/public/albums/s/${encodeURIComponent(slug)}/`);
-        const owner = SlugOwnerResponse.safeParse(data);
-        return owner.success ? owner.data.results.id : "__exists__";
+        return await endpoints.fetchPublicAlbumSlugOwner(apiClient, slug);
       } catch (error) {
+        if (error instanceof ResponseParseError) return "__exists__";
         if (error instanceof ApiError) return null;
         throw error;
       }

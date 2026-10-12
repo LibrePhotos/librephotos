@@ -20,12 +20,25 @@ export const PhotoSuperSimple = z.object({
   image_hash: z.string(),
   exif_timestamp: z.string().nullable(),
   rating: z.number(),
-  geolocation_json: z.unknown(),
+  // PhotoSuperSimpleSerializer does not send it. Optional: zod 4 requires a z.unknown() key.
+  geolocation_json: z.unknown().optional(),
   hidden: z.boolean(),
   public: z.boolean(),
   video: z.boolean(),
 });
 export type PhotoSuperSimple = z.infer<typeof PhotoSuperSimple>;
+
+/**
+ * A user album card's cover (AlbumUserListSerializer.get_cover_photo), a PhotoSuperSimple. An album
+ * without a visible photo gets PhotoSuperSimpleSerializer(None).data instead: image_hash "" and
+ * rating null. Only the hash and the video flag are required, what a card shows.
+ */
+const UserAlbumCover = PhotoHash.extend({
+  exif_timestamp: z.string().nullable().optional(),
+  rating: z.number().nullable().optional(),
+  hidden: z.boolean().optional(),
+  public: z.boolean().optional(),
+});
 
 /** Per-album overrides of the owner's public sharing defaults; null = use the default. */
 export const PublicSharingOptions = z.object({
@@ -40,7 +53,7 @@ export type PublicSharingOptions = z.infer<typeof PublicSharingOptions>;
 export const UserAlbumInfo = z.object({
   id: z.number(),
   title: z.string(),
-  cover_photo: PhotoSuperSimple.nullable(),
+  cover_photo: UserAlbumCover.nullable(),
   photo_count: z.number(),
   owner: SimpleUser,
   shared_to: SimpleUser.array(),
@@ -79,6 +92,18 @@ export const UserAlbum = UserAlbumDetails.extend({
   public_sharing_options: PublicSharingOptions.nullable().optional(),
 });
 export type UserAlbum = z.infer<typeof UserAlbum>;
+
+/** GET /public/albums/s/{slug}/: a public album by its link slug, for a visitor without a session. */
+export const FetchPublicAlbumResponse = z.object({
+  results: UserAlbum,
+});
+export type FetchPublicAlbumResponse = z.infer<typeof FetchPublicAlbumResponse>;
+
+/** The same answer, read only for the id of the album that holds the slug. */
+export const PublicAlbumSlugOwner = z.object({
+  results: z.object({ id: IntegerId }),
+});
+export type PublicAlbumSlugOwner = z.infer<typeof PublicAlbumSlugOwner>;
 
 export const FetchUserAlbumsSharedResponse = z.object({
   results: UserAlbumInfo.array(),
@@ -196,6 +221,43 @@ export const FetchPlaceAlbumResponse = z.object({
   results: PlaceAlbum,
 });
 export type FetchPlaceAlbumResponse = z.infer<typeof FetchPlaceAlbumResponse>;
+
+/**
+ * GET /locclust/: one row per geocoded place, `[lat, lon, name]` (api/stats.py
+ * get_location_clusters), for the Places map.
+ */
+export const LocationClusters = z.array(z.array(z.union([z.number(), z.string()])));
+export type LocationClusters = z.infer<typeof LocationClusters>;
+
+/* ---- Folders ------------------------------------------------------------ */
+
+export const FolderSubfolder = z.object({
+  name: z.string(),
+  path: z.string(),
+  photo_count: z.number(),
+  /** The directory's mtime, in seconds. */
+  modified: z.number(),
+});
+export type FolderSubfolder = z.infer<typeof FolderSubfolder>;
+
+/**
+ * GET /folders/subfolders/: one page of a folder's subfolders, the shared page envelope (backend
+ * api/pagination.py) plus the folder's own paths. The server still repeats the page as
+ * `subfolders` and `pagination` for older web bundles; read `results` and `next`.
+ */
+export const FolderSubfoldersResponse = z.object({
+  /** null, with an empty listing, for a user without a scan directory. */
+  current_path: z.string().nullable(),
+  parent_path: z.string().nullable(),
+  results: FolderSubfolder.array(),
+  count: z.number(),
+  next: z.string().nullable(),
+  previous: z.string().nullable(),
+  page: z.number(),
+  page_size: z.number(),
+  num_pages: z.number(),
+});
+export type FolderSubfoldersResponse = z.infer<typeof FolderSubfoldersResponse>;
 
 /* ---- Mutation params (platform-agnostic) ------------------------------ */
 

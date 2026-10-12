@@ -8,18 +8,12 @@
     "@typescript-eslint/no-floating-promises": {
       "count": 2
     },
-    "ban/api-client-method": {
-      "count": 1
-    },
     "ban/query-client-singleton": {
       "count": 1
     }
   },
   "src/api_client/albums/hooks/useCreateUserAlbumMutation.ts": {
     "@typescript-eslint/no-floating-promises": {
-      "count": 1
-    },
-    "ban/api-client-method": {
       "count": 1
     },
     "ban/query-client-singleton": {
@@ -30,9 +24,6 @@
     "@typescript-eslint/no-floating-promises": {
       "count": 2
     },
-    "ban/api-client-method": {
-      "count": 1
-    },
     "ban/query-client-singleton": {
       "count": 1
     }
@@ -40,9 +31,6 @@
   "src/api_client/albums/hooks/useDeleteAutoAlbumMutation.ts": {
     "@typescript-eslint/no-floating-promises": {
       "count": 2
-    },
-    "ban/api-client-method": {
-      "count": 1
     },
     "ban/query-client-singleton": {
       "count": 1
@@ -52,9 +40,6 @@
     "@typescript-eslint/no-floating-promises": {
       "count": 4
     },
-    "ban/api-client-method": {
-      "count": 1
-    },
     "ban/query-client-singleton": {
       "count": 1
     }
@@ -63,96 +48,28 @@
     "@typescript-eslint/no-floating-promises": {
       "count": 1
     },
-    "ban/api-client-method": {
-      "count": 1
-    },
     "ban/query-client-singleton": {
       "count": 1
     }
   },
   "src/api_client/albums/hooks/useFetchDateAlbumQuery.ts": {
-    "ban/api-client-method": {
-      "count": 1
-    },
-    "ban/api-client-zod-utils": {
-      "count": 1
-    },
     "ban/query-client-singleton": {
       "count": 1
     }
   },
   "src/api_client/albums/hooks/useFetchDateAlbumsQuery.ts": {
-    "ban/api-client-method": {
-      "count": 1
-    },
-    "ban/api-client-zod-utils": {
-      "count": 1
-    },
     "ban/query-client-singleton": {
-      "count": 1
-    }
-  },
-  "src/api_client/albums/hooks/useFetchFolderAlbumsQuery.ts": {
-    "ban/api-client-method": {
       "count": 1
     }
   },
   "src/api_client/albums/hooks/useFetchFolderSubfoldersInfiniteQuery.ts": {
     "@typescript-eslint/no-floating-promises": {
       "count": 1
-    },
-    "ban/api-client-method": {
-      "count": 1
-    }
-  },
-  "src/api_client/albums/hooks/useFetchLocationClustersQuery.ts": {
-    "ban/api-client-method": {
-      "count": 1
-    },
-    "ban/api-client-zod": {
-      "count": 1
-    },
-    "ban/api-client-zod-utils": {
-      "count": 1
-    }
-  },
-  "src/api_client/albums/hooks/useFetchPeopleAlbumsQuery.ts": {
-    "ban/api-client-zod": {
-      "count": 1
-    },
-    "ban/api-client-zod-utils": {
-      "count": 1
-    }
-  },
-  "src/api_client/albums/hooks/useFetchSharedAlbumsByMeQuery.ts": {
-    "ban/api-client-zod-utils": {
-      "count": 1
-    }
-  },
-  "src/api_client/albums/hooks/useFetchSharedAlbumsWithMeQuery.ts": {
-    "ban/api-client-zod-utils": {
-      "count": 1
-    }
-  },
-  "src/api_client/albums/hooks/useFetchUserAlbumsQuery.ts": {
-    "ban/api-client-zod-utils": {
-      "count": 1
-    }
-  },
-  "src/api_client/albums/hooks/usePublicAlbumQuery.ts": {
-    "ban/api-client-method": {
-      "count": 1
-    },
-    "ban/api-client-zod-utils": {
-      "count": 1
     }
   },
   "src/api_client/albums/hooks/useRemovePhotoFromUserAlbumMutation.ts": {
     "@typescript-eslint/no-floating-promises": {
       "count": 2
-    },
-    "ban/api-client-method": {
-      "count": 1
     },
     "ban/query-client-singleton": {
       "count": 1
@@ -162,9 +79,6 @@
     "@typescript-eslint/no-floating-promises": {
       "count": 4
     },
-    "ban/api-client-method": {
-      "count": 1
-    },
     "ban/query-client-singleton": {
       "count": 1
     }
@@ -173,18 +87,12 @@
     "@typescript-eslint/no-floating-promises": {
       "count": 2
     },
-    "ban/api-client-method": {
-      "count": 1
-    },
     "ban/query-client-singleton": {
       "count": 1
     }
   },
   "src/api_client/albums/hooks/useSetPersonAlbumCoverMutation.ts": {
     "@typescript-eslint/no-floating-promises": {
-      "count": 1
-    },
-    "ban/api-client-method": {
       "count": 1
     },
     "ban/query-client-singleton": {
@@ -195,9 +103,6 @@
     "@typescript-eslint/no-floating-promises": {
       "count": 1
     },
-    "ban/api-client-method": {
-      "count": 1
-    },
     "ban/query-client-singleton": {
       "count": 1
     }
@@ -206,24 +111,13 @@
     "@typescript-eslint/no-floating-promises": {
       "count": 4
     },
-    "ban/api-client-method": {
-      "count": 1
-    },
     "ban/query-client-singleton": {
-      "count": 1
-    }
-  },
-  "src/api_client/albums/hooks/useSlugAvailabilityQuery.ts": {
-    "ban/api-client-method": {
       "count": 1
     }
   },
   "src/api_client/albums/hooks/useToggleUserAlbumLockedMutation.ts": {
     "@typescript-eslint/no-floating-promises": {
       "count": 2
-    },
-    "ban/api-client-method": {
-      "count": 1
     },
     "ban/query-client-singleton": {
       "count": 1
@@ -232,9 +126,6 @@
   "src/api_client/albums/hooks/useToggleUserAlbumPublicMutation.ts": {
     "@typescript-eslint/no-floating-promises": {
       "count": 2
-    },
-    "ban/api-client-method": {
-      "count": 1
     },
     "ban/query-client-singleton": {
       "count": 1
@@ -245,11 +136,6 @@
       "count": 1
     },
     "ban/query-client-singleton": {
-      "count": 1
-    }
-  },
-  "src/api_client/albums/types.ts": {
-    "ban/api-client-zod": {
       "count": 1
     }
   },

@@ -1,17 +1,16 @@
+import { endpoints, type DateAlbumFilter } from "@librephotos/api-client";
 import { useQuery } from "@tanstack/react-query";
 import { type MediaType } from "../../../components/photolist/mediaTypeFilter";
 import {
   timelineFilterKey,
-  timelineFilterToParams,
+  timelineFilterToBulkQuery,
   type TimelineFilter,
 } from "../../../components/photolist/timelineFilter";
-import { addTempElementsToGroups, definedSearchParams } from "../../../util/util";
-import { parseWithNotification } from "../../../util/zodUtils";
+import { addTempElementsToGroups } from "../../../util/util";
 import { apiClient, queryClient } from "../../api";
 import { photoGridKeys, type DateAlbumsListKey } from "../../photos/keys";
 import type { IncompleteDatePhotosGroup, PigPhoto } from "../../photos/types";
 import { Photoset } from "../../photos/types";
-import { FetchDateAlbumsListResponse } from "../types";
 
 export const DATE_ALBUM_PAGE_SIZE = 100;
 
@@ -80,32 +79,20 @@ function getCachedDateAlbumPages(listKey: DateAlbumsListKey): CachedDateAlbumPag
     });
 }
 
-// The backend's boolean date-album filter params: each is either the string
-// "true" or omitted (undefined).
-export type DateAlbumFilterParams = {
-  favorite?: "true";
-  public?: "true";
-  hidden?: "true";
-  in_trashcan?: "true";
-  photo?: "true";
-  video?: "true";
-  is_screenshot?: "true";
-};
-
 // Maps the active Photoset plus an optional, independent media-type filter onto
-// the backend's boolean query params. photosetType picks the surface (favorites,
-// videos, screenshots, ...); mediaType is the per-view All/Photos/Videos/
-// Screenshots toggle that layers on top (e.g. a person album filtered to
-// screenshots), so photo/video/is_screenshot react to either source.
-export function buildDateAlbumFilterParams(photosetType: Photoset, mediaType?: MediaType): DateAlbumFilterParams {
+// the backend's boolean filters (sent as "true", or left out). photosetType picks
+// the surface (favorites, videos, screenshots, ...); mediaType is the per-view
+// All/Photos/Videos/Screenshots toggle that layers on top (e.g. a person album
+// filtered to screenshots), so photo/video/is_screenshot react to either source.
+export function buildDateAlbumFilter(photosetType: Photoset, mediaType?: MediaType): DateAlbumFilter {
   return {
-    favorite: Photoset.FAVORITES === photosetType ? "true" : undefined,
-    public: Photoset.PUBLIC === photosetType ? "true" : undefined,
-    hidden: Photoset.HIDDEN === photosetType ? "true" : undefined,
-    in_trashcan: Photoset.IN_TRASHCAN === photosetType ? "true" : undefined,
-    photo: Photoset.PHOTOS === photosetType || mediaType === "photos" ? "true" : undefined,
-    video: Photoset.VIDEOS === photosetType || mediaType === "videos" ? "true" : undefined,
-    is_screenshot: Photoset.SCREENSHOTS === photosetType || mediaType === "screenshots" ? "true" : undefined,
+    favorite: Photoset.FAVORITES === photosetType || undefined,
+    public: Photoset.PUBLIC === photosetType || undefined,
+    hidden: Photoset.HIDDEN === photosetType || undefined,
+    in_trashcan: Photoset.IN_TRASHCAN === photosetType || undefined,
+    photo: Photoset.PHOTOS === photosetType || mediaType === "photos" || undefined,
+    video: Photoset.VIDEOS === photosetType || mediaType === "videos" || undefined,
+    is_screenshot: Photoset.SCREENSHOTS === photosetType || mediaType === "screenshots" || undefined,
   };
 }
 
@@ -122,6 +109,18 @@ type AlbumDateListOptions = {
   // default (see components/photolist/timelineFilter.ts). Only "/" sets it.
   timelineFilter?: TimelineFilter;
 };
+
+// Everything the list and its day pages filter by. The timeline filter only
+// adds what it turns on, so it never clears the photoset's `favorite`.
+export function dateAlbumRequestFilter(options: AlbumDateListOptions): DateAlbumFilter {
+  return {
+    ...buildDateAlbumFilter(options.photosetType, options.mediaType),
+    ...(options.timelineFilter ? timelineFilterToBulkQuery(options.timelineFilter) : {}),
+    person: options.person_id,
+    username: options.username,
+    folder: options.folder,
+  };
+}
 
 // The list's query key; useFetchDateAlbumQuery merges its pages into it.
 export function dateAlbumsListKey(options: AlbumDateListOptions): DateAlbumsListKey {
@@ -140,18 +139,7 @@ export const useFetchDateAlbumsQuery = (options: AlbumDateListOptions, queryOpti
   return useQuery({
     queryKey: photoGridKeys.dateAlbumList(dateAlbumsListKey(options)),
     queryFn: async () => {
-      const params = {
-        ...buildDateAlbumFilterParams(options.photosetType, options.mediaType),
-        ...timelineFilterToParams(options.timelineFilter),
-        person: options.person_id,
-        username: options.username?.toLowerCase(),
-        folder: options.folder,
-      };
-
-      const response = await apiClient.get(`/albums/date/list/?${definedSearchParams(params).toString()}`);
-
-      const parsed = parseWithNotification(FetchDateAlbumsListResponse, response, "Failed to load photo groups");
-      const { results } = parsed;
+      const results = await endpoints.fetchDateAlbumsList(apiClient, dateAlbumRequestFilter(options));
 
       addTempElementsToGroups(results);
       hydrateGroupsFromCachedPages(results, getCachedDateAlbumPages(dateAlbumsListKey(options)));

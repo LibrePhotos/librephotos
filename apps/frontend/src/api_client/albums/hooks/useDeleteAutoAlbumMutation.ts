@@ -1,3 +1,4 @@
+import { endpoints } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
 import { apiClient, queryClient } from "../../api";
@@ -12,7 +13,7 @@ type DeleteAutoAlbumParams = {
 export const useDeleteAutoAlbumMutation = () =>
   useMutation({
     mutationFn: async ({ id, albumTitle }: DeleteAutoAlbumParams) => {
-      await apiClient.delete(`/albums/auto/${id}/`);
+      await endpoints.deleteAutoAlbum(apiClient, id);
       notification.deleteAlbum(albumTitle);
     },
     onSuccess: () => {

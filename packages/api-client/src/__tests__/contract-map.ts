@@ -58,6 +58,9 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
   // mutations
   PhotoEditResponse: { schema: S.PhotoEditResponse, components: ["PhotoEdit"] },
   CreateUserAlbumResponse: { schema: S.CreateUserAlbumResponse, components: ["AlbumUserEdit"] },
+  UserAlbumEditResponse: { schema: S.UserAlbumEditResponse, components: ["AlbumUserEdit"] },
+  UserAlbumRenameResponse: { schema: S.UserAlbumRenameResponse, components: ["AlbumUser"] },
+  PersonEditResponse: { schema: S.PersonEditResponse, components: ["Person"] },
 };
 
 /** Exported zod objects that are not compared, and why. */
@@ -117,6 +120,14 @@ export const UNMAPPED: Readonly<Record<string, string>> = {
   FetchPeopleAlbumsResponse:
     "a {results} envelope around rows compared on their own (Person); the view's wrapper is not a component",
   PersonAlbum: "no endpoint in this package returns it, and no component describes a person album",
+  FetchPublicAlbumResponse:
+    "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485); the album is compared as UserAlbum",
+  PublicAlbumSlugOwner: "the same answer as FetchPublicAlbumResponse, read only for its id",
+  SetUserAlbumPublicResponse:
+    "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485); the album is compared as UserAlbumInfo",
+  FolderSubfolder: "nested in FolderSubfoldersResponse (see there)",
+  FolderSubfoldersResponse:
+    "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
   SearchExamplesResponse:
     "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
   SearchPhotos:

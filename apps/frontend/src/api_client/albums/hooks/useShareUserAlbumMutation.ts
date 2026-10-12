@@ -1,3 +1,4 @@
+import { endpoints } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
 import { apiClient, queryClient } from "../../api";
@@ -13,11 +14,7 @@ type ShareUserAlbumParams = {
 export const useShareUserAlbumMutation = () =>
   useMutation({
     mutationFn: async ({ albumId, userId, share }: ShareUserAlbumParams) => {
-      await apiClient.post("/useralbum/share/", {
-        shared: share,
-        album_id: albumId,
-        target_user_id: userId,
-      });
+      await endpoints.setUserAlbumShared(apiClient, albumId, userId, share);
       notification.toggleAlbumSharing(share);
     },
     onSuccess: (_, { albumId }) => {
