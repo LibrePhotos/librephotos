@@ -17,8 +17,11 @@ from rest_framework.test import APIClient
 from api.directory_watcher import processing_jobs
 from api.directory_watcher.processing_jobs import classify_media
 from api.models import PhotoOcr
-from api.models.album_thing import AlbumThing
-from api.tests.utils import create_test_photo, create_test_user
+from api.tests.utils import (
+    create_test_album_thing,
+    create_test_photo,
+    create_test_user,
+)
 
 URL = "/api/photosedit/category/"
 
@@ -75,7 +78,7 @@ class SetPhotosCategoryTest(TestCase):
         PhotoOcr.objects.create(
             photo=photo, text="STORE\nTOTAL 12,50 EUR", text_area_fraction=0.30
         )
-        tag = AlbumThing.objects.create(
+        tag = create_test_album_thing(
             title="receipt", thing_type="openclip_vitb32_tag", owner=self.user
         )
         tag.photos.add(photo)

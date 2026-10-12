@@ -35,7 +35,11 @@ from api.models import Photo
 from api.models.album_thing import AlbumThing
 from api.models.photo_caption import PhotoCaption
 from api.semantic_search import OPENCLIP, TAG_THING_TYPE
-from api.tests.utils import create_test_photo, create_test_user
+from api.tests.utils import (
+    create_test_album_thing,
+    create_test_photo,
+    create_test_user,
+)
 
 migration = import_module("api.migrations.0152_openclip_only")
 RETIRED_TAGGER, OTHER_RETIRED_TAGGER = migration.RETIRED_TAG_KEYS
@@ -122,7 +126,7 @@ class RetiredTagsTest(TestCase):
         photo = create_test_photo(owner=self.user)
         kept = {TAG_THING_TYPE, "hashtag_attribute", "places365_attribute"}
         for thing_type in kept | set(migration.RETIRED_THING_TYPES):
-            AlbumThing.objects.create(
+            create_test_album_thing(
                 title=f"t-{thing_type}", owner=self.user, thing_type=thing_type
             ).photos.add(photo)
 

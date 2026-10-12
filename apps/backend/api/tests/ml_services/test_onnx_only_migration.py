@@ -14,7 +14,10 @@ from django.apps import apps
 from django.test import TestCase
 
 from api.models.album_thing import AlbumThing
-from api.tests.utils import create_test_user
+from api.tests.utils import (
+    create_test_album_thing,
+    create_test_user,
+)
 
 migration = import_module("api.migrations.0138_onnx_only_ml_models")
 
@@ -92,7 +95,7 @@ class OnnxOnlyMigrationTest(TestCase):
             "another_tagger_tag",
             "hashtag_attribute",
         ):
-            AlbumThing.objects.create(
+            create_test_album_thing(
                 title=f"t-{thing_type}", owner=self.user, thing_type=thing_type
             )
 

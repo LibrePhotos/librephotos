@@ -44,6 +44,10 @@ FACTORIES = {
     "Duplicate": "create_test_duplicate",
     "LongRunningJob": "create_test_job",
     "Cluster": "create_test_cluster",
+    "AlbumAuto": "create_test_album_auto",
+    "AlbumThing": "create_test_album_thing",
+    "AlbumPlace": "create_test_album_place",
+    "Thumbnail": "create_test_thumbnail",
 }
 HEADER = (
     "# do not edit by hand: regenerate with `python scripts/factory_baseline.py --update`.",

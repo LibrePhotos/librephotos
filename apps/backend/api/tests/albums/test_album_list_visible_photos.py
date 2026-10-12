@@ -10,9 +10,15 @@ from django.test import TestCase
 from django.utils import timezone
 from rest_framework.test import APIClient
 
-from api.models import AlbumAuto, AlbumPlace, AlbumThing, Photo
+from api.models import AlbumThing, Photo
 from api.models.album_thing import refresh_album_thing_photo_counts
-from api.tests.utils import create_test_photo, create_test_user
+from api.tests.utils import (
+    create_test_album_auto,
+    create_test_album_place,
+    create_test_album_thing,
+    create_test_photo,
+    create_test_user,
+)
 
 
 class AlbumListVisiblePhotosTest(TestCase):
@@ -41,7 +47,7 @@ class AlbumListVisiblePhotosTest(TestCase):
         self.assertEqual(response.status_code, 200)
 
     def _thing(self, *photos):
-        album = AlbumThing.objects.create(
+        album = create_test_album_thing(
             title="beach", owner=self.user, thing_type="hashtag_attribute"
         )
         album.photos.add(*photos)
@@ -60,7 +66,7 @@ class AlbumListVisiblePhotosTest(TestCase):
         return {photo["image_hash"] for photo in card[key]}
 
     def test_a_trashed_photo_leaves_the_place_card_and_grid(self):
-        album = AlbumPlace.objects.create(title="Lisbon", owner=self.user)
+        album = create_test_album_place(title="Lisbon", owner=self.user)
         album.photos.add(self.kept, self.gone)
         self._trash()
 
@@ -75,7 +81,7 @@ class AlbumListVisiblePhotosTest(TestCase):
         self.assertEqual(hashes, {self.kept.image_hash})
 
     def test_a_trashed_photo_leaves_the_event_card(self):
-        album = AlbumAuto.objects.create(
+        album = create_test_album_auto(
             title="Sunday",
             owner=self.user,
             timestamp=timezone.now(),
@@ -89,7 +95,7 @@ class AlbumListVisiblePhotosTest(TestCase):
         self.assertEqual(card["photos"]["image_hash"], self.kept.image_hash)
 
     def test_a_photo_hidden_later_leaves_the_thing_card(self):
-        album = AlbumThing.objects.create(
+        album = create_test_album_thing(
             title="beach", owner=self.user, thing_type="hashtag_attribute"
         )
         album.photos.add(self.kept, self.gone)
@@ -140,7 +146,7 @@ class AlbumListVisiblePhotosTest(TestCase):
 
     def test_the_recount_costs_the_same_for_one_album_or_many(self):
         albums = [
-            AlbumThing.objects.create(
+            create_test_album_thing(
                 title=f"thing-{i}", owner=self.user, thing_type="hashtag_attribute"
             )
             for i in range(5)

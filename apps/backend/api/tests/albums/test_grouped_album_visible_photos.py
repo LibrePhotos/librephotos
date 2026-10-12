@@ -11,8 +11,8 @@ from django.test import TestCase
 from django.utils import timezone
 from rest_framework.test import APIClient
 
-from api.models import AlbumThing
 from api.tests.utils import (
+    create_test_album_thing,
     create_test_photo,
     create_test_user,
     share_test_photos,
@@ -47,7 +47,7 @@ class GroupedAlbumVisiblePhotosTest(TestCase):
         self.photos = [self.kept, self.no_ratio, self.trashed, self.removed]
 
     def test_thing_album_returns_only_visible_photos(self):
-        album = AlbumThing.objects.create(
+        album = create_test_album_thing(
             title="beach", owner=self.user, thing_type="hashtag_attribute"
         )
         album.photos.add(*self.photos)

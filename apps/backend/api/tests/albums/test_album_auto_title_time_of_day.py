@@ -23,7 +23,11 @@ from django.test import TestCase
 
 from api.autoalbum import generate_event_albums
 from api.models import AlbumAuto
-from api.tests.utils import create_test_photo, create_test_user
+from api.tests.utils import (
+    create_test_album_auto,
+    create_test_photo,
+    create_test_user,
+)
 
 GROUPING_KEY_OFFSET = timedelta(hours=11, minutes=59)
 
@@ -75,7 +79,7 @@ class AutoAlbumTitleTimeOfDayTest(TestCase):
         """An album whose key predates its photos (a later anchor move, or a
         legacy album) still describes the earliest photo it holds."""
         photo_time = utc(2026, 9, 12, 11, 20)  # Saturday
-        album = AlbumAuto.objects.create(
+        album = create_test_album_auto(
             owner=self.user,
             timestamp=utc(2026, 9, 10, 0, 0),  # Thursday
             created_on=photo_time,
@@ -104,7 +108,7 @@ class AutoAlbumTitleTimeOfDayTest(TestCase):
         self.assertEqual(album.title, "Saturday Morning")
 
     def test_empty_album_still_titles_from_its_timestamp(self):
-        album = AlbumAuto.objects.create(
+        album = create_test_album_auto(
             owner=self.user,
             timestamp=utc(2026, 9, 13, 19, 15),
             created_on=utc(2026, 9, 13, 19, 15),

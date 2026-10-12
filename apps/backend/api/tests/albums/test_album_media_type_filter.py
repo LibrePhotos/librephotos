@@ -14,10 +14,11 @@ from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 from rest_framework.test import APIClient
 
-from api.models import AlbumPlace, AlbumThing
 from api.models.album_user_share import AlbumUserShare
 from api.serializers.PhotosGroupedByDate import filter_photos_by_media_type
 from api.tests.utils import (
+    create_test_album_place,
+    create_test_album_thing,
     create_test_album_user,
     create_test_photo,
     create_test_tag,
@@ -180,12 +181,12 @@ class AlbumMediaTypeFilterEndpointTest(TestCase):
         )
 
     def test_place_album(self):
-        album = AlbumPlace.objects.create(title="Lisbon", owner=self.user)
+        album = create_test_album_place(title="Lisbon", owner=self.user)
         album.photos.add(*self.media)
         self._assert_filtering(f"/api/albums/place/{album.id}/")
 
     def test_thing_album(self):
-        album = AlbumThing.objects.create(
+        album = create_test_album_thing(
             title="beach", owner=self.user, thing_type="hashtag_attribute"
         )
         album.photos.add(*self.media)
@@ -210,7 +211,7 @@ class AlbumMediaTypeFilterEndpointTest(TestCase):
     def test_the_screenshot_filter_reads_no_deferred_field(self):
         # is_screenshot must be in the prefetch's .only(), or reading it costs
         # one query per photo.
-        album = AlbumThing.objects.create(
+        album = create_test_album_thing(
             title="beach", owner=self.user, thing_type="hashtag_attribute"
         )
         album.photos.add(*self.media)

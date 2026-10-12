@@ -17,6 +17,7 @@ from api.models.photo_stack import PhotoStack
 from api.tests.utils import (
     create_test_duplicate,
     create_test_photo,
+    create_test_photos,
     create_test_stack,
     create_test_user,
 )
@@ -28,17 +29,9 @@ class PhotoInBothStackAndDuplicateTestCase(TestCase):
     def setUp(self):
         """Create test user and photos."""
         self.user = create_test_user(username="integrationtest")
-        self.photos = self._create_photos(4)
-
-    def _create_photos(self, count):
-        """Helper to create multiple photos."""
-        photos = []
-        for i in range(count):
-            photo = create_test_photo(
-                owner=self.user, added_on=timezone.now(), in_trashcan=False
-            )
-            photos.append(photo)
-        return photos
+        self.photos = create_test_photos(
+            4, owner=self.user, added_on=timezone.now(), in_trashcan=False
+        )
 
     def test_photo_can_be_in_stack_and_duplicate_simultaneously(self):
         """Photo should be able to belong to both a stack and duplicate group."""
@@ -183,14 +176,10 @@ class PhotoDeletionCascadeTestCase(TestCase):
         """Create test user and photos."""
         self.user = create_test_user(username="deletiontest")
 
-    def _create_photo(self, suffix):
-        """Create a single photo."""
-        return create_test_photo(owner=self.user, added_on=timezone.now())
-
     def test_deleting_photo_removes_from_stack(self):
         """Deleting photo should remove it from associated stacks."""
-        photo1 = self._create_photo("1")
-        photo2 = self._create_photo("2")
+        photo1 = create_test_photo(owner=self.user, added_on=timezone.now())
+        photo2 = create_test_photo(owner=self.user, added_on=timezone.now())
 
         stack = create_test_stack(
             owner=self.user,
@@ -210,8 +199,8 @@ class PhotoDeletionCascadeTestCase(TestCase):
 
     def test_deleting_photo_removes_from_duplicate(self):
         """Deleting photo should remove it from associated duplicate groups."""
-        photo1 = self._create_photo("3")
-        photo2 = self._create_photo("4")
+        photo1 = create_test_photo(owner=self.user, added_on=timezone.now())
+        photo2 = create_test_photo(owner=self.user, added_on=timezone.now())
 
         duplicate = create_test_duplicate(
             owner=self.user,
@@ -230,8 +219,8 @@ class PhotoDeletionCascadeTestCase(TestCase):
 
     def test_deleting_stack_primary_sets_to_null(self):
         """Deleting stack's primary photo should set primary_photo to NULL."""
-        photo1 = self._create_photo("5")
-        photo2 = self._create_photo("6")
+        photo1 = create_test_photo(owner=self.user, added_on=timezone.now())
+        photo2 = create_test_photo(owner=self.user, added_on=timezone.now())
 
         stack = create_test_stack(
             owner=self.user,
@@ -250,8 +239,8 @@ class PhotoDeletionCascadeTestCase(TestCase):
 
     def test_deleting_kept_photo_sets_to_null(self):
         """Deleting duplicate's kept_photo should set kept_photo to NULL."""
-        photo1 = self._create_photo("7")
-        photo2 = self._create_photo("8")
+        photo1 = create_test_photo(owner=self.user, added_on=timezone.now())
+        photo2 = create_test_photo(owner=self.user, added_on=timezone.now())
 
         duplicate = create_test_duplicate(
             owner=self.user,
@@ -276,14 +265,10 @@ class MultiUserIsolationTestCase(TestCase):
         self.user1 = create_test_user(username="user1")
         self.user2 = create_test_user(username="user2")
 
-    def _create_photo_for_user(self, user, suffix):
-        """Create a photo for a specific user."""
-        return create_test_photo(owner=user, added_on=timezone.now())
-
     def test_users_cannot_share_stacks(self):
         """Users should not be able to add photos to another user's stack."""
-        photo1 = self._create_photo_for_user(self.user1, "1")
-        photo2 = self._create_photo_for_user(self.user2, "2")
+        photo1 = create_test_photo(owner=self.user1, added_on=timezone.now())
+        photo2 = create_test_photo(owner=self.user2, added_on=timezone.now())
 
         stack = create_test_stack(
             owner=self.user1,
@@ -302,7 +287,7 @@ class MultiUserIsolationTestCase(TestCase):
 
     def test_duplicate_detection_scoped_to_user(self):
         """Duplicate groups should be scoped to owner."""
-        photo1 = self._create_photo_for_user(self.user1, "3")
+        photo1 = create_test_photo(owner=self.user1, added_on=timezone.now())
 
         dup1 = create_test_duplicate(
             owner=self.user1,
@@ -311,7 +296,7 @@ class MultiUserIsolationTestCase(TestCase):
         photo1.duplicates.add(dup1)
 
         # User2's duplicates should be separate
-        photo2 = self._create_photo_for_user(self.user2, "4")
+        photo2 = create_test_photo(owner=self.user2, added_on=timezone.now())
         dup2 = create_test_duplicate(
             owner=self.user2,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
@@ -379,13 +364,9 @@ class PhotoInMultipleStacksTestCase(TestCase):
         """Create test user and photos."""
         self.user = create_test_user(username="multistacktest")
 
-    def _create_photo(self, suffix):
-        """Create a single photo."""
-        return create_test_photo(owner=self.user, added_on=timezone.now())
-
     def test_photo_can_be_in_multiple_stacks(self):
         """Photo should be able to belong to multiple stacks."""
-        photo = self._create_photo("1")
+        photo = create_test_photo(owner=self.user, added_on=timezone.now())
 
         stack1 = create_test_stack(
             owner=self.user,
@@ -403,7 +384,7 @@ class PhotoInMultipleStacksTestCase(TestCase):
 
     def test_photo_can_be_primary_in_multiple_stacks(self):
         """Photo can be primary photo for multiple stacks."""
-        photo = self._create_photo("2")
+        photo = create_test_photo(owner=self.user, added_on=timezone.now())
 
         stack1 = create_test_stack(
             owner=self.user,
@@ -424,7 +405,7 @@ class PhotoInMultipleStacksTestCase(TestCase):
 
     def test_removing_photo_from_one_stack_preserves_others(self):
         """Removing from one stack should not affect other stacks."""
-        photo = self._create_photo("3")
+        photo = create_test_photo(owner=self.user, added_on=timezone.now())
 
         stack1 = create_test_stack(
             owner=self.user,
@@ -499,10 +480,6 @@ class EdgeCasesTestCase(TestCase):
         """Create test user."""
         self.user = create_test_user(username="edgecasetest")
 
-    def _create_photo(self, suffix):
-        """Create a single photo."""
-        return create_test_photo(owner=self.user, added_on=timezone.now())
-
     def test_empty_stack_and_duplicate(self):
         """Empty stack and duplicate should exist without photos."""
         stack = create_test_stack(
@@ -519,7 +496,7 @@ class EdgeCasesTestCase(TestCase):
 
     def test_single_photo_in_both(self):
         """Single photo can be only member of both stack and duplicate."""
-        photo = self._create_photo("1")
+        photo = create_test_photo(owner=self.user, added_on=timezone.now())
 
         stack = create_test_stack(
             owner=self.user,
@@ -538,8 +515,8 @@ class EdgeCasesTestCase(TestCase):
 
     def test_trashing_all_photos_in_stack(self):
         """Trashing all photos in stack should not delete the stack."""
-        photo1 = self._create_photo("2")
-        photo2 = self._create_photo("3")
+        photo1 = create_test_photo(owner=self.user, added_on=timezone.now())
+        photo2 = create_test_photo(owner=self.user, added_on=timezone.now())
 
         stack = create_test_stack(
             owner=self.user,
@@ -560,7 +537,7 @@ class EdgeCasesTestCase(TestCase):
 
     def test_photo_in_multiple_duplicate_groups(self):
         """Photo can be in multiple duplicate groups."""
-        photo = self._create_photo("4")
+        photo = create_test_photo(owner=self.user, added_on=timezone.now())
 
         dup1 = create_test_duplicate(
             owner=self.user,
@@ -578,9 +555,9 @@ class EdgeCasesTestCase(TestCase):
 
     def test_resolving_duplicate_does_not_affect_other_duplicates(self):
         """Resolving one duplicate should not affect photo's other duplicates."""
-        photo1 = self._create_photo("5")
-        photo2 = self._create_photo("6")
-        photo3 = self._create_photo("7")
+        photo1 = create_test_photo(owner=self.user, added_on=timezone.now())
+        photo2 = create_test_photo(owner=self.user, added_on=timezone.now())
+        photo3 = create_test_photo(owner=self.user, added_on=timezone.now())
 
         # photo1 is in two duplicate groups
         dup1 = create_test_duplicate(
@@ -607,8 +584,8 @@ class EdgeCasesTestCase(TestCase):
 
     def test_cascade_effects_are_contained(self):
         """Operations on one group should not cascade unexpectedly."""
-        photo1 = self._create_photo("8")
-        photo2 = self._create_photo("9")
+        photo1 = create_test_photo(owner=self.user, added_on=timezone.now())
+        photo2 = create_test_photo(owner=self.user, added_on=timezone.now())
 
         # Create complex relationship
         stack = create_test_stack(

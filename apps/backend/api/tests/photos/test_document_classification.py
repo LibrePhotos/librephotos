@@ -27,10 +27,14 @@ from api.document_detection import (
     has_total_keyword,
 )
 from api.models import LongRunningJob, PhotoOcr
-from api.models.album_thing import AlbumThing
 from api.models.photo_caption import PhotoCaption
 from api.models.photo_search import PhotoSearch
-from api.tests.utils import create_test_job, create_test_photo, create_test_user
+from api.tests.utils import (
+    create_test_album_thing,
+    create_test_job,
+    create_test_photo,
+    create_test_user,
+)
 
 ACTIVE_MODEL = "ppocrv6_small"
 
@@ -197,7 +201,7 @@ class OcrDerivesDocumentTest(TestCase):
 
     def _add_tags(self, photo, *labels):
         for label in labels:
-            at = AlbumThing.objects.create(
+            at = create_test_album_thing(
                 title=label, thing_type="openclip_vitb32_tag", owner=self.user
             )
             at.photos.add(photo)
@@ -245,7 +249,7 @@ class OcrDerivesDocumentTest(TestCase):
     @patch("api.sidecars.http.post")
     def test_labels_of_a_retired_tagger_do_not_count(self, mock_post):
         photo = create_test_photo(owner=self.user)
-        AlbumThing.objects.create(
+        create_test_album_thing(
             title="receipt", thing_type="a_retired_tagger_tag", owner=self.user
         ).photos.add(photo)
         mock_post.return_value = _ok_response(text="hello", area=0.01)
@@ -327,7 +331,7 @@ class ClassifyMediaDocumentBackfillTest(TestCase):
 
     def _add_tags(self, photo, *labels):
         for label in labels:
-            at = AlbumThing.objects.create(
+            at = create_test_album_thing(
                 title=label, thing_type="openclip_vitb32_tag", owner=self.user
             )
             at.photos.add(photo)

@@ -40,7 +40,7 @@ from rest_framework.response import Response
 from rest_framework.test import APIClient
 from rest_framework.views import APIView
 
-from api.models import AlbumAuto, AlbumPlace, AlbumThing, Photo
+from api.models import Photo
 from api.models.photo_share import PhotoShare
 from api.tests.infra.routes import (
     MUTATING_METHODS,
@@ -53,7 +53,10 @@ from api.tests.infra.routes import (
     normalise,
 )
 from api.tests.utils import (
+    create_test_album_auto,
     create_test_album_date,
+    create_test_album_place,
+    create_test_album_thing,
     create_test_album_user,
     create_test_duplicate,
     create_test_face,
@@ -251,15 +254,15 @@ class CrossTenantWriteTest(TestCase):
 
         self.v_album = create_test_album_user(title="Victim Trip", owner=self.victim)
         self.v_album.photos.add(self.v_pub, self.v_priv)
-        self.v_auto = AlbumAuto.objects.create(
+        self.v_auto = create_test_album_auto(
             title="Victim Event", owner=self.victim, timestamp=now, created_on=now
         )
         self.v_auto.photos.add(self.v_pub, self.v_priv)
-        self.v_thing = AlbumThing.objects.create(
+        self.v_thing = create_test_album_thing(
             title="cat", thing_type="openclip_vitb32_tag", owner=self.victim
         )
         self.v_thing.photos.add(self.v_pub, self.v_priv)
-        self.v_place = AlbumPlace.objects.create(
+        self.v_place = create_test_album_place(
             title="Berlin", geolocation_level=1, owner=self.victim
         )
         self.v_place.photos.add(self.v_pub, self.v_priv)

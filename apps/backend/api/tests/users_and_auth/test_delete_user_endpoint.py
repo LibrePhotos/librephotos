@@ -24,7 +24,10 @@ from api.models import (
     User,
 )
 from api.tests.utils import (
+    create_test_album_auto,
     create_test_album_date,
+    create_test_album_place,
+    create_test_album_thing,
     create_test_album_user,
     create_test_photo,
     create_test_tag,
@@ -153,13 +156,13 @@ class DeleteUsersWithOverlappingAlbumsTest(TestCase):
     def _library(self, owner):
         photo = create_test_photo(owner=owner, exif_timestamp=self.when)
         rows = [
-            AlbumAuto.objects.create(
+            create_test_album_auto(
                 owner=owner, timestamp=self.when, created_on=self.when
             ),
             create_test_album_date(owner=owner, date=self.when.date()),
             create_test_album_date(owner=owner, date=None),
-            AlbumPlace.objects.create(owner=owner, title="Lisbon"),
-            AlbumThing.objects.create(
+            create_test_album_place(owner=owner, title="Lisbon"),
+            create_test_album_thing(
                 owner=owner, title="beach", thing_type="places365_attribute"
             ),
             create_test_album_user(owner=owner, title="Holiday"),

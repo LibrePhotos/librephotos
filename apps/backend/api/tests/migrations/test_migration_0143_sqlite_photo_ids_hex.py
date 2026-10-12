@@ -37,6 +37,7 @@ from ..utils import (
     create_test_face,
     create_test_photo,
     create_test_tag,
+    create_test_thumbnail,
     create_test_user,
 )
 
@@ -274,7 +275,7 @@ class SqlitePhotoIdsHexTest(TestCase):
         # found nothing and created a second one; re-adding the photo to its
         # album did the same to the link. Neither collides with the dashed
         # row until the migration rewrites it.
-        Thumbnail.objects.create(
+        create_test_thumbnail(
             photo=legacy,
             aspect_ratio=2.0,
             thumbnail_big="thumbnails_big/new.webp",

@@ -224,17 +224,9 @@ class HardCriteriaBurstDetectionEdgeCasesTestCase(TestCase):
         )
         self.user.save()
 
-    def _create_file(self, path, file_type=File.IMAGE):
-        """Helper to create a File object."""
-        return create_test_file(
-            path=path,
-            file_type=file_type,
-            user=self.user,
-        )
-
     def _create_photo_with_file(self, path, **kwargs):
         """Helper to create Photo with associated File."""
-        file = self._create_file(path, File.IMAGE)
+        file = create_test_file(path, self.user, file_type=File.IMAGE)
         photo = create_test_photo(owner=self.user, **kwargs)
         photo.main_file = file
         photo.save()
@@ -285,21 +277,13 @@ class SoftCriteriaBurstDetectionEdgeCasesTestCase(TestCase):
     def setUp(self):
         self.user = create_test_user()
 
-    def _create_file(self, path, file_type=File.IMAGE):
-        """Helper to create a File object."""
-        return create_test_file(
-            path=path,
-            file_type=file_type,
-            user=self.user,
-        )
-
     def _create_photo_with_timestamp(self, timestamp, perceptual_hash=None, **kwargs):
         """Helper to create Photo with specific timestamp and optional hash."""
         photo = create_test_photo(owner=self.user, **kwargs)
         photo.exif_timestamp = timestamp
         if perceptual_hash:
             photo.perceptual_hash = perceptual_hash
-        file = self._create_file(f"/photos/IMG_{photo.pk}.jpg")
+        file = create_test_file(f"/photos/IMG_{photo.pk}.jpg", self.user)
         photo.main_file = file
         photo.save()
         return photo
@@ -449,26 +433,24 @@ class FileVariantEdgeCasesTestCase(TestCase):
     def setUp(self):
         self.user = create_test_user()
 
-    def _create_file(self, path, file_type=File.IMAGE):
-        """Helper to create a File object."""
-        return create_test_file(
-            path=path,
-            file_type=file_type,
-            user=self.user,
-        )
-
     def test_multiple_raw_files_same_photo(self):
         """Test when multiple RAW files are attached to same photo."""
         photo = create_test_photo(owner=self.user)
 
         # Add JPEG as main file
-        jpeg_file = self._create_file("/photos/IMG_001.jpg", File.IMAGE)
+        jpeg_file = create_test_file(
+            "/photos/IMG_001.jpg", self.user, file_type=File.IMAGE
+        )
         photo.main_file = jpeg_file
         photo.files.add(jpeg_file)
 
         # Add multiple RAW files (e.g., camera shot both CR2 and NEF)
-        raw_cr2 = self._create_file("/photos/IMG_001.CR2", File.RAW_FILE)
-        raw_nef = self._create_file("/photos/IMG_001.NEF", File.RAW_FILE)
+        raw_cr2 = create_test_file(
+            "/photos/IMG_001.CR2", self.user, file_type=File.RAW_FILE
+        )
+        raw_nef = create_test_file(
+            "/photos/IMG_001.NEF", self.user, file_type=File.RAW_FILE
+        )
         photo.files.add(raw_cr2, raw_nef)
         photo.save()
 
@@ -481,16 +463,22 @@ class FileVariantEdgeCasesTestCase(TestCase):
         photo = create_test_photo(owner=self.user)
 
         # Add HEIC as main file
-        heic_file = self._create_file("/photos/IMG_001.heic", File.IMAGE)
+        heic_file = create_test_file(
+            "/photos/IMG_001.heic", self.user, file_type=File.IMAGE
+        )
         photo.main_file = heic_file
         photo.files.add(heic_file)
 
         # Add RAW
-        raw_file = self._create_file("/photos/IMG_001.DNG", File.RAW_FILE)
+        raw_file = create_test_file(
+            "/photos/IMG_001.DNG", self.user, file_type=File.RAW_FILE
+        )
         photo.files.add(raw_file)
 
         # Add video for Live Photo
-        video_file = self._create_file("/photos/IMG_001.mov", File.VIDEO)
+        video_file = create_test_file(
+            "/photos/IMG_001.mov", self.user, file_type=File.VIDEO
+        )
         photo.files.add(video_file)
         photo.save()
 
@@ -505,11 +493,15 @@ class FileVariantEdgeCasesTestCase(TestCase):
         photo = create_test_photo(owner=self.user)
 
         # File with dots in name
-        jpeg_file = self._create_file("/photos/IMG.2024.01.01.001.jpg", File.IMAGE)
+        jpeg_file = create_test_file(
+            "/photos/IMG.2024.01.01.001.jpg", self.user, file_type=File.IMAGE
+        )
         photo.main_file = jpeg_file
         photo.files.add(jpeg_file)
 
-        raw_file = self._create_file("/photos/IMG.2024.01.01.001.CR2", File.RAW_FILE)
+        raw_file = create_test_file(
+            "/photos/IMG.2024.01.01.001.CR2", self.user, file_type=File.RAW_FILE
+        )
         photo.files.add(raw_file)
         photo.save()
 
@@ -520,11 +512,15 @@ class FileVariantEdgeCasesTestCase(TestCase):
         photo = create_test_photo(owner=self.user)
 
         long_name = "IMG_" + "a" * 200
-        jpeg_file = self._create_file(f"/photos/{long_name}.jpg", File.IMAGE)
+        jpeg_file = create_test_file(
+            f"/photos/{long_name}.jpg", self.user, file_type=File.IMAGE
+        )
         photo.main_file = jpeg_file
         photo.files.add(jpeg_file)
 
-        raw_file = self._create_file(f"/photos/{long_name}.CR2", File.RAW_FILE)
+        raw_file = create_test_file(
+            f"/photos/{long_name}.CR2", self.user, file_type=File.RAW_FILE
+        )
         photo.files.add(raw_file)
         photo.save()
 
@@ -534,11 +530,15 @@ class FileVariantEdgeCasesTestCase(TestCase):
         """Test files with whitespace in path."""
         photo = create_test_photo(owner=self.user)
 
-        jpeg_file = self._create_file("/photos/My Photos/IMG 001.jpg", File.IMAGE)
+        jpeg_file = create_test_file(
+            "/photos/My Photos/IMG 001.jpg", self.user, file_type=File.IMAGE
+        )
         photo.main_file = jpeg_file
         photo.files.add(jpeg_file)
 
-        raw_file = self._create_file("/photos/My Photos/IMG 001.CR2", File.RAW_FILE)
+        raw_file = create_test_file(
+            "/photos/My Photos/IMG 001.CR2", self.user, file_type=File.RAW_FILE
+        )
         photo.files.add(raw_file)
         photo.save()
 
@@ -549,11 +549,15 @@ class FileVariantEdgeCasesTestCase(TestCase):
         photo = create_test_photo(owner=self.user)
 
         deep_path = "/photos" + "/subdir" * 50
-        jpeg_file = self._create_file(f"{deep_path}/IMG_001.jpg", File.IMAGE)
+        jpeg_file = create_test_file(
+            f"{deep_path}/IMG_001.jpg", self.user, file_type=File.IMAGE
+        )
         photo.main_file = jpeg_file
         photo.files.add(jpeg_file)
 
-        raw_file = self._create_file(f"{deep_path}/IMG_001.CR2", File.RAW_FILE)
+        raw_file = create_test_file(
+            f"{deep_path}/IMG_001.CR2", self.user, file_type=File.RAW_FILE
+        )
         photo.files.add(raw_file)
         photo.save()
 
@@ -814,17 +818,9 @@ class FilenamePatternEdgeCasesTestCase(TestCase):
         )
         self.user.save()
 
-    def _create_file(self, path, file_type=File.IMAGE):
-        """Helper to create a File object."""
-        return create_test_file(
-            path=path,
-            file_type=file_type,
-            user=self.user,
-        )
-
     def _create_photo_with_file(self, path, **kwargs):
         """Helper to create Photo with associated File."""
-        file = self._create_file(path, File.IMAGE)
+        file = create_test_file(path, self.user, file_type=File.IMAGE)
         photo = create_test_photo(owner=self.user, **kwargs)
         photo.main_file = file
         photo.save()

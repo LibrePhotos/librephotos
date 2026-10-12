@@ -22,18 +22,15 @@ REQUEST_URL = "/api/auth/password/reset/"
 CONFIRM_URL = "/api/auth/password/reset/confirm/"
 
 
-def _make_user(email="alice@example.com", password="oldpassword123"):
-    user = create_test_user(username=email, email=email)
-    user.set_password(password)
-    user.save()
-    return user
-
-
 class PasswordResetRequestTest(TestCase):
     def setUp(self):
         cache.clear()
         self.client = APIClient()
-        self.user = _make_user()
+        self.user = create_test_user(
+            username="alice@example.com",
+            email="alice@example.com",
+            password="oldpassword123",
+        )
 
     def test_known_email_sends_one_reset_email(self):
         resp = self.client.post(REQUEST_URL, {"email": self.user.email})
@@ -72,7 +69,11 @@ class PasswordResetConfirmTest(TestCase):
     def setUp(self):
         cache.clear()
         self.client = APIClient()
-        self.user = _make_user()
+        self.user = create_test_user(
+            username="alice@example.com",
+            email="alice@example.com",
+            password="oldpassword123",
+        )
         self.uid = urlsafe_base64_encode(force_bytes(self.user.pk))
         self.token = default_token_generator.make_token(self.user)
 

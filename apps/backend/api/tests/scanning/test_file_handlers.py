@@ -338,15 +338,6 @@ class HandleFileGroupTests(FileHandlerTestBase):
         self.mock_process = patcher.start()
         self.addCleanup(patcher.stop)
 
-    def _make_job(self, target=2):
-        return create_test_job(
-            started_by=self.user,
-            job_id=self.job_id,
-            job_type=LongRunningJob.JOB_SCAN_PHOTOS,
-            progress_current=0,
-            progress_target=target,
-        )
-
     def test_groups_jpeg_and_raw_into_single_photo_and_processes_main_file(self):
         jpeg_path = _write_image(self.p("G_1.jpg"), width=20)
         raw_path = _write_bytes(self.p("G_1.CR2"), b"raw-bytes-g1")
@@ -375,7 +366,13 @@ class HandleFileGroupTests(FileHandlerTestBase):
         self.mock_process.assert_called_once()
 
     def _assert_ignored(self, path):
-        job = self._make_job(target=1)
+        job = create_test_job(
+            started_by=self.user,
+            job_id=self.job_id,
+            job_type=LongRunningJob.JOB_SCAN_PHOTOS,
+            progress_current=0,
+            progress_target=1,
+        )
 
         with patch(f"{MODULE}.logger") as logger:
             handle_file_group(self.user, [path], self.job_id)
@@ -401,7 +398,13 @@ class HandleFileGroupTests(FileHandlerTestBase):
 
     def test_corrupt_jpeg_group_is_still_an_error(self):
         bad_path = _write_bytes(self.p("broken.jpg"), b"not really a jpeg")
-        self._make_job()
+        create_test_job(
+            started_by=self.user,
+            job_id=self.job_id,
+            job_type=LongRunningJob.JOB_SCAN_PHOTOS,
+            progress_current=0,
+            progress_target=2,
+        )
 
         with patch(f"{MODULE}.logger") as logger:
             handle_file_group(self.user, [bad_path], self.job_id)
@@ -415,7 +418,13 @@ class HandleFileGroupTests(FileHandlerTestBase):
 
     def test_extensionless_file_with_jpeg_magic_is_still_media(self):
         bad_path = _write_bytes(self.p("IMG_0001"), CORRUPT_JPEG)
-        self._make_job()
+        create_test_job(
+            started_by=self.user,
+            job_id=self.job_id,
+            job_type=LongRunningJob.JOB_SCAN_PHOTOS,
+            progress_current=0,
+            progress_target=2,
+        )
 
         handle_file_group(self.user, [bad_path], self.job_id)
 
@@ -426,7 +435,13 @@ class HandleFileGroupTests(FileHandlerTestBase):
         """A non-media file in the group does not hide the photo's error."""
         notes_path = _write_bytes(self.p("IMG_2.txt"), b"notes")
         bad_path = _write_bytes(self.p("IMG_2.jpg"), b"truncated")
-        self._make_job()
+        create_test_job(
+            started_by=self.user,
+            job_id=self.job_id,
+            job_type=LongRunningJob.JOB_SCAN_PHOTOS,
+            progress_current=0,
+            progress_target=2,
+        )
 
         handle_file_group(self.user, [notes_path, bad_path], self.job_id)
 
@@ -440,7 +455,13 @@ class HandleFileGroupTests(FileHandlerTestBase):
             _write_bytes(self.p(f"IMG_{n}.CR2.pp3"), PP3_SIDECAR) for n in range(12)
         ]
         image_path = _write_image(self.p("IMG_99.png"), width=30)
-        job = self._make_job(target=len(sidecars) + 1)
+        job = create_test_job(
+            started_by=self.user,
+            job_id=self.job_id,
+            job_type=LongRunningJob.JOB_SCAN_PHOTOS,
+            progress_current=0,
+            progress_target=len(sidecars) + 1,
+        )
 
         for path in sidecars:
             handle_file_group(self.user, [path], self.job_id)
@@ -455,7 +476,13 @@ class HandleFileGroupTests(FileHandlerTestBase):
 
     def test_many_corrupt_jpeg_groups_still_fail_the_job(self):
         broken = [_write_bytes(self.p(f"BAD_{n}.jpg"), b"truncated") for n in range(12)]
-        job = self._make_job(target=len(broken))
+        job = create_test_job(
+            started_by=self.user,
+            job_id=self.job_id,
+            job_type=LongRunningJob.JOB_SCAN_PHOTOS,
+            progress_current=0,
+            progress_target=len(broken),
+        )
 
         for path in broken:
             handle_file_group(self.user, [path], self.job_id)
@@ -466,7 +493,13 @@ class HandleFileGroupTests(FileHandlerTestBase):
 
     def test_metadata_only_group_creates_no_photo(self):
         xmp_path = _write_bytes(self.p("only.xmp"), b"<x:xmpmeta/>")
-        self._make_job()
+        create_test_job(
+            started_by=self.user,
+            job_id=self.job_id,
+            job_type=LongRunningJob.JOB_SCAN_PHOTOS,
+            progress_current=0,
+            progress_target=2,
+        )
 
         with patch(f"{MODULE}.logger") as logger:
             handle_file_group(self.user, [xmp_path], self.job_id)
@@ -483,7 +516,13 @@ class HandleFileGroupTests(FileHandlerTestBase):
     def test_group_sidecar_is_attached_to_the_new_photo(self):
         image_path = _write_image(self.p("S_1.png"), width=23)
         xmp_path = _write_bytes(self.p("S_1.xmp"), b"<x:xmpmeta>s1</x:xmpmeta>")
-        self._make_job(target=1)
+        create_test_job(
+            started_by=self.user,
+            job_id=self.job_id,
+            job_type=LongRunningJob.JOB_SCAN_PHOTOS,
+            progress_current=0,
+            progress_target=1,
+        )
 
         handle_file_group(self.user, [image_path, xmp_path], self.job_id)
 
@@ -499,7 +538,13 @@ class HandleFileGroupTests(FileHandlerTestBase):
         second = _write_image(self.p("S_3.png"), width=25)
         _write_bytes(self.p("S_2.xmp"), b"<x:xmpmeta/>")
         _write_bytes(self.p("S_3.xmp"), b"<x:xmpmeta/>")
-        self._make_job(target=2)
+        create_test_job(
+            started_by=self.user,
+            job_id=self.job_id,
+            job_type=LongRunningJob.JOB_SCAN_PHOTOS,
+            progress_current=0,
+            progress_target=2,
+        )
 
         handle_file_group(self.user, [first, self.p("S_2.xmp")], self.job_id)
         handle_file_group(self.user, [second, self.p("S_3.xmp")], self.job_id)
@@ -533,7 +578,13 @@ class HandleFileGroupTests(FileHandlerTestBase):
         self.assertIn("boom", logger.exception.call_args[0][0])
 
     def test_scan_counter_is_incremented_on_success(self):
-        job = self._make_job(target=2)
+        job = create_test_job(
+            started_by=self.user,
+            job_id=self.job_id,
+            job_type=LongRunningJob.JOB_SCAN_PHOTOS,
+            progress_current=0,
+            progress_target=2,
+        )
         path = _write_image(self.p("G_5.png"), width=24)
 
         handle_file_group(self.user, [path], self.job_id)
@@ -543,7 +594,13 @@ class HandleFileGroupTests(FileHandlerTestBase):
         self.assertFalse(job.finished)
 
     def test_scan_counter_is_incremented_even_when_processing_raises(self):
-        job = self._make_job(target=2)
+        job = create_test_job(
+            started_by=self.user,
+            job_id=self.job_id,
+            job_type=LongRunningJob.JOB_SCAN_PHOTOS,
+            progress_current=0,
+            progress_target=2,
+        )
         path = _write_image(self.p("G_6.png"), width=25)
         self.mock_process.side_effect = RuntimeError("boom")
 
@@ -557,7 +614,13 @@ class HandleFileGroupTests(FileHandlerTestBase):
         self.assertEqual(1, (job.result or {}).get("error_count"))
 
     def test_scan_counter_is_incremented_when_group_has_no_valid_files(self):
-        job = self._make_job(target=2)
+        job = create_test_job(
+            started_by=self.user,
+            job_id=self.job_id,
+            job_type=LongRunningJob.JOB_SCAN_PHOTOS,
+            progress_current=0,
+            progress_target=2,
+        )
         bad_path = _write_bytes(self.p("garbage2.txt"), b"nope")
 
         handle_file_group(self.user, [bad_path], self.job_id)
@@ -566,7 +629,13 @@ class HandleFileGroupTests(FileHandlerTestBase):
         self.assertEqual(1, job.progress_current)
 
     def test_empty_path_list_is_a_no_op_but_still_counts(self):
-        job = self._make_job(target=1)
+        job = create_test_job(
+            started_by=self.user,
+            job_id=self.job_id,
+            job_type=LongRunningJob.JOB_SCAN_PHOTOS,
+            progress_current=0,
+            progress_target=1,
+        )
 
         handle_file_group(self.user, [], self.job_id)
 

@@ -9,13 +9,17 @@ under-populated. The fix excludes existing covers from the candidate slice.
 
 from django.test import TestCase
 
-from api.models.album_thing import AlbumThing, update_default_cover_photo
-from api.tests.utils import create_test_photo, create_test_user
+from api.models.album_thing import update_default_cover_photo
+from api.tests.utils import (
+    create_test_album_thing,
+    create_test_photo,
+    create_test_user,
+)
 
 
 class UpdateDefaultCoverPhotoTest(TestCase):
     def _make_thing(self, owner, photos):
-        thing = AlbumThing.objects.create(title="x", thing_type="thing", owner=owner)
+        thing = create_test_album_thing(title="x", thing_type="thing", owner=owner)
         thing.photos.add(*photos)
         return thing
 

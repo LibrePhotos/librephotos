@@ -9,11 +9,12 @@ from rest_framework.test import APIClient
 
 from api import autoalbum
 from api.autoalbum import delete_missing_photos
-from api.models import AlbumPlace, File, LongRunningJob, Photo, Thumbnail
-from api.models.album_thing import AlbumThing
+from api.models import File, LongRunningJob, Photo, Thumbnail
 from api.models.tag import Tag
 from api.tests.utils import (
     create_test_album_date,
+    create_test_album_place,
+    create_test_album_thing,
     create_test_file,
     create_test_photo,
     create_test_tag,
@@ -242,7 +243,7 @@ class DeleteMissingPhotosAlbumThingTest(TestCase):
     """
 
     def _make_album_thing(self, owner, photos):
-        thing = AlbumThing.objects.create(title="x", thing_type="thing", owner=owner)
+        thing = create_test_album_thing(title="x", thing_type="thing", owner=owner)
         thing.photos.add(*photos)
         return thing
 
@@ -352,7 +353,7 @@ class DeleteMissingPhotosCascadeTest(TestCase):
         kept.files.add(kept.main_file)
         missing = [create_test_photo(owner=user) for _ in range(3)]
 
-        album_place = AlbumPlace.objects.create(title="Somewhere", owner=user)
+        album_place = create_test_album_place(title="Somewhere", owner=user)
         album_place.photos.add(kept, *missing)
 
         delete_missing_photos(user, str(uuid.uuid4()))
@@ -378,7 +379,7 @@ class DeleteMissingPhotosBatchingTest(TestCase):
         # demonstrates the multi-batch path without making the test slow.
         with patch.object(autoalbum, "_DELETE_MISSING_BATCH_SIZE", 3):
             missing = [create_test_photo(owner=user) for _ in range(7)]
-            thing = AlbumThing.objects.create(
+            thing = create_test_album_thing(
                 title="multi-batch", thing_type="thing", owner=user
             )
             thing.photos.add(*missing)

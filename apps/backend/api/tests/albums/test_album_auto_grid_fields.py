@@ -14,8 +14,11 @@ from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from rest_framework.test import APIClient
 
-from api.models import AlbumAuto
-from api.tests.utils import create_test_photo, create_test_user
+from api.tests.utils import (
+    create_test_album_auto,
+    create_test_photo,
+    create_test_user,
+)
 
 
 class AlbumAutoGridFieldsTest(TestCase):
@@ -26,7 +29,7 @@ class AlbumAutoGridFieldsTest(TestCase):
         self.first = timezone.now().replace(microsecond=0) - timedelta(days=3)
 
     def _event(self, *photos):
-        album = AlbumAuto.objects.create(
+        album = create_test_album_auto(
             title="Sunday",
             owner=self.user,
             timestamp=self.first - timedelta(hours=11, minutes=59),
