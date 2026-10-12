@@ -6,12 +6,16 @@ check ``repository_present()`` and skip when it is False.
 """
 
 import re
+from collections.abc import Mapping
 from pathlib import Path
+
+import yaml
 
 BACKEND_ROOT = Path(__file__).resolve().parents[3]
 REPO_ROOT = BACKEND_ROOT.parent.parent
 DEPLOY_DIR = REPO_ROOT / "deploy"
 WORKFLOWS_DIR = REPO_ROOT / ".github" / "workflows"
+COMPOSE_DIR = DEPLOY_DIR / "compose"
 ENV_PAGE = (
     REPO_ROOT / "apps" / "docs" / "docs" / "installation" / "environment-variables.md"
 )
@@ -50,3 +54,51 @@ def shell_read_names(text: str) -> set[str]:
         line for line in text.splitlines() if not line.lstrip().startswith("#")
     )
     return set(_SHELL_READ.findall(code))
+
+
+def load_compose(text: str) -> dict[str, object]:
+    """A compose file as a mapping (PyYAML ships with drf-spectacular)."""
+    data = yaml.safe_load(text)
+    if not isinstance(data, dict):
+        raise ValueError("a compose file is a YAML mapping")
+    return data
+
+
+def compose_service(compose: Mapping[str, object], name: str) -> dict[str, object]:
+    """One service of a parsed compose file."""
+    services = compose.get("services")
+    if not isinstance(services, dict) or not isinstance(services.get(name), dict):
+        raise KeyError(f"no service {name!r} in the compose file")
+    return services[name]
+
+
+def service_environment(service: Mapping[str, object]) -> dict[str, str]:
+    """A service's ``environment``, list form (``- NAME=value``) or mapping form."""
+    environment = service.get("environment") or {}
+    if isinstance(environment, dict):
+        return {str(k): "" if v is None else str(v) for k, v in environment.items()}
+    if not isinstance(environment, list):
+        raise ValueError("environment is a list or a mapping")
+    pairs = (str(item).partition("=") for item in environment)
+    return {name: value for name, _, value in pairs}
+
+
+def volume_target(spec: str) -> str:
+    """The container path of a short-form volume (``source:target[:mode]``).
+
+    Colons inside ``${...}`` interpolations (``${baseLogs:-/logs}``) do not
+    separate fields.
+    """
+    fields, depth, current = [], 0, ""
+    for char in spec:
+        if char == "{":
+            depth += 1
+        elif char == "}":
+            depth -= 1
+        if char == ":" and depth == 0:
+            fields.append(current)
+            current = ""
+        else:
+            current += char
+    fields.append(current)
+    return fields[1] if len(fields) > 1 else fields[0]
