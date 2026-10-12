@@ -1,0 +1,69 @@
+{
+  "id": "ca38a897-9716-427a-b20d-6fafd5517edc",
+  "exif_gps_lat": 48.1,
+  "exif_gps_lon": 11.5,
+  "exif_timestamp": null,
+  "captions_json": {
+    "im2txt": ""
+  },
+  "search_captions": "",
+  "search_location": "",
+  "big_thumbnail_url": "/media/thumbnails_big/0d3062ced97cec59b78bc6f273d155ec1.webp",
+  "square_thumbnail_url": "/media/square_thumbnails/0d3062ced97cec59b78bc6f273d155ec1.webp",
+  "small_square_thumbnail_url": "/media/square_thumbnails_small/0d3062ced97cec59b78bc6f273d155ec1.webp",
+  "geolocation_json": null,
+  "exif_json": null,
+  "people": [
+    {
+      "name": "Ann",
+      "type": "user",
+      "probability": 1,
+      "location": {
+        "top": 298,
+        "bottom": 899,
+        "left": 298,
+        "right": 576
+      },
+      "face_url": "/media/test.jpg",
+      "face_id": 1
+    }
+  ],
+  "image_hash": "0d3062ced97cec59b78bc6f273d155ec1",
+  "image_path": [],
+  "rating": 0,
+  "hidden": false,
+  "public": false,
+  "removed": false,
+  "in_trashcan": false,
+  "shared_to": [2],
+  "similar_photos": [],
+  "video": false,
+  "is_screenshot": false,
+  "is_document": false,
+  "category_source": "auto",
+  "owner": {
+    "id": 1,
+    "username": "alice",
+    "first_name": "Alice",
+    "last_name": ""
+  },
+  "size": 0,
+  "height": 0,
+  "width": 0,
+  "focal_length": null,
+  "fstop": null,
+  "iso": null,
+  "shutter_speed": null,
+  "lens": null,
+  "camera": null,
+  "focalLength35Equivalent": null,
+  "digitalZoomRatio": null,
+  "subjectDistance": null,
+  "embedded_media": [],
+  "video_playback_type": null,
+  "file_variants": null,
+  "stacks": null,
+  "metadata": null,
+  "ocr": null,
+  "local_orientation": 1
+}

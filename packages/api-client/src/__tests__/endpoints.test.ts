@@ -202,7 +202,12 @@ describe("admin/jobs endpoints", () => {
         },
       ],
     };
-    for (const trigger of [endpoints.scanPhotos, endpoints.fullScanPhotos, endpoints.trainFaces]) {
+    for (const trigger of [
+      endpoints.scanPhotos,
+      endpoints.fullScanPhotos,
+      endpoints.trainFaces,
+      endpoints.deleteMissingPhotos,
+    ]) {
       const { client } = harness(running, 409);
       await expect(trigger(client)).resolves.toEqual({ status: true, job_id: "running-1", already_running: true });
     }

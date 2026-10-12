@@ -5,18 +5,15 @@
  * drift fails loudly in one place. Issue #2347.
  *
  * Reads the exported functions of ../endpoints with the TypeScript checker and
- * fails on one whose awaited return type is `unknown` or `any`.
- * UNPARSED_ENDPOINTS lists the ones that still do, from before the rule; it
- * only shrinks: a listed function that returns a parsed type now fails too, so
- * the entry goes in the same PR.
+ * fails on one whose awaited return type is `unknown` or `any`. The last ones
+ * from before the rule (photo share and make public) were fixed in #2347 wave 3,
+ * so there is no allow-list any more.
  */
 import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
-
-const UNPARSED_ENDPOINTS: readonly string[] = ["setPhotosPublic", "setPhotosShared"];
 
 const endpointsFile = fileURLToPath(new URL("../endpoints/index.ts", import.meta.url));
 
@@ -70,13 +67,7 @@ describe("endpoint return types", () => {
     expect(returnTypes.get("login")).toEqual({ text: "Promise<{ refresh: string; access: string; }>", untyped: false });
   });
 
-  it("has no endpoint returning unknown or any that is not in UNPARSED_ENDPOINTS", () => {
-    const fresh = untyped.filter(name => !UNPARSED_ENDPOINTS.includes(name));
-    expect(fresh, "parse the response with a schema (parseResponse) and return its type").toEqual([]);
-  });
-
-  it("has no UNPARSED_ENDPOINTS entry that returns a parsed type now (the list only shrinks)", () => {
-    const stale = UNPARSED_ENDPOINTS.filter(name => !untyped.includes(name));
-    expect(stale, "delete these entries").toEqual([]);
+  it("has no endpoint returning unknown or any", () => {
+    expect(untyped, "parse the response with a schema (parseResponse) and return its type").toEqual([]);
   });
 });
