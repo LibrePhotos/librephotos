@@ -1,4 +1,4 @@
-// eslint-disable-next-line no-restricted-imports -- this test checks the dayjs locale loader that Mantine's pickers use
+// eslint-disable-next-line ban/dayjs -- this test checks the dayjs locale loader that Mantine's pickers use
 import dayjs from "dayjs";
 import { Settings } from "luxon";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";

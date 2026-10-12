@@ -1,4 +1,3 @@
-/* eslint-disable no-restricted-syntax -- this module is the one place that parses dates; the bans send everyone else here */
 import { DateTime } from "luxon";
 
 /**
@@ -122,5 +121,3 @@ export function fromPickerValue(value: string): string | null {
 export function pickerValueDaysFromNow(days: number): string {
   return DateTime.now().plus({ days }).toFormat(PICKER_FORMAT);
 }
-
-/* eslint-enable no-restricted-syntax */

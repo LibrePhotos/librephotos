@@ -86,7 +86,7 @@ describe("parsePickerDate", () => {
 
   test("returns null for unusable input", () => {
     expect(parsePickerDate("not a date")).toBeNull();
-    // eslint-disable-next-line no-restricted-syntax -- an invalid Date is the input under test
+    // eslint-disable-next-line ban/date-constructor -- an invalid Date is the input under test
     expect(parsePickerDate(new Date(Number.NaN))).toBeNull();
   });
 });
@@ -104,7 +104,7 @@ describe("pickerDateToPhotoTimestamp", () => {
   });
 
   test("returns null for an invalid Date", () => {
-    // eslint-disable-next-line no-restricted-syntax -- an invalid Date is the input under test
+    // eslint-disable-next-line ban/date-constructor -- an invalid Date is the input under test
     expect(pickerDateToPhotoTimestamp(new Date(Number.NaN))).toBeNull();
   });
 });
