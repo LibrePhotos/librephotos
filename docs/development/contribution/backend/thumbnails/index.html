@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.a1e92a76.css">
-<script src="/assets/js/runtime~main.a08d8fbd.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.6421058d.js" defer="defer"></script>
 <script src="/assets/js/main.c4dc47cd.js" defer="defer"></script>
 </head>
 <body>
@@ -24,8 +24,8 @@
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="libvips-images">libvips (images)<a href="#libvips-images" class="hash-link" aria-label="Direct link to libvips (images)" title="Direct link to libvips (images)" translate="no">​</a></h3>
 <p>By leveraging libvips&#x27; lightning-fast image processing capabilities and memory-efficient design, the conversion process becomes remarkably fast, ensuring optimal performance even with numerous images.
 Moreover, the utilization of pyvips as a Python interface facilitates seamless integration with the project</p>
-<p>libvips comes bundled with <code>pyvips-binary</code>; what that build cannot decode (HEIC, JPEG XL, BMP, JPEG 2000) is decoded by Pillow with <code>pillow-heif</code> and <code>pillow-jxl-plugin</code> and handed back to pyvips (<code>api/image_decoding.py</code>).</p>
-<p>The original is decoded once, at the big thumbnail&#x27;s size; the two smaller thumbnails are resized from that image (<code>create_static_thumbnails</code> in <code>api/thumbnails.py</code>). Thumbnails are WebP at quality 95 and encoder effort 2, which encodes twice as fast as libwebp&#x27;s default effort 4 at the same file size.</p>
+<p>libvips comes bundled with <code>pyvips-binary</code>; what that build cannot decode (HEIC, JPEG XL, BMP, JPEG 2000) is decoded by Pillow with <code>pillow-heif</code> and <code>pillow-jxl-plugin</code> and handed back to pyvips (<code>api/thumbnails/decoding.py</code>).</p>
+<p>The original is decoded once, at the big thumbnail&#x27;s size; the two smaller thumbnails are resized from that image (<code>create_static_thumbnails</code> in <code>api/thumbnails/render.py</code>). Thumbnails are WebP at quality 95 and encoder effort 2, which encodes twice as fast as libwebp&#x27;s default effort 4 at the same file size.</p>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="libraw-via-rawpy-raw-images">LibRaw via rawpy (RAW images)<a href="#libraw-via-rawpy-raw-images" class="hash-link" aria-label="Direct link to LibRaw via rawpy (RAW images)" title="Direct link to LibRaw via rawpy (RAW images)" translate="no">​</a></h3>
 <p>Almost every camera stores a JPEG preview it rendered itself inside the RAW file. When that preview shows the whole picture (the same aspect ratio as the sensor image) and is at least as tall as the big thumbnail, the thumbnail is made from it, in the worker (<code>image_decoding.raw_preview</code>). This takes a fraction of a full render, and the thumbnail looks like the camera&#x27;s own JPEG.</p>
 <p>Otherwise the RAW is rendered with LibRaw through <a href="https://github.com/letmaik/rawpy" target="_blank" rel="noopener noreferrer" class="">rawpy</a>, which ships LibRaw in its wheel, and the result is resized and saved as WebP by pyvips. This runs on a separate microservice so that a decoder crash on an exotic file stays away from the API workers.</p>
