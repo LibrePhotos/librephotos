@@ -5,8 +5,9 @@
  */
 import { describe, expect, it } from "vitest";
 import * as endpoints from "../endpoints";
-import { ServerStats } from "../schemas";
+import { ServerStats, type LocationSunburst } from "../schemas";
 import { defined } from "./defined";
+import locationSunburst from "./fixtures/locationSunburst.json";
 import serverStats from "./fixtures/serverStats.json";
 import { fakeServer } from "./harness";
 
@@ -59,6 +60,16 @@ describe("statistics", () => {
     const { client, requests } = fakeServer(answer);
     await call(client);
     expect(defined(requests[0])).toMatchObject({ url: `${API}${path}`, method: "GET" });
+  });
+
+  it("keeps each place's photo count in the location tree (the chart shows it on the leaves)", async () => {
+    const { client } = fakeServer(locationSunburst);
+    const tree = await endpoints.fetchLocationSunburst(client);
+    const leaves = (node: LocationSunburst): LocationSunburst[] =>
+      node.children?.length ? node.children.flatMap(leaves) : [node];
+    const counts = leaves(tree).map(leaf => leaf.value);
+    expect(counts.length).toBeGreaterThan(0);
+    expect(counts.every(count => typeof count === "number" && count > 0)).toBe(true);
   });
 
   it("reads the counts and drops the ones it does not show", async () => {

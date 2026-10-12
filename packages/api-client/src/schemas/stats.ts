@@ -21,10 +21,14 @@ export const CountStats = z.object({
 });
 export type CountStats = z.infer<typeof CountStats>;
 
-/** One node of the location tree (`GET /locationsunburst/`, the sunburst chart): a place and the places in it. */
+/**
+ * One node of the location tree (`GET /locationsunburst/`, the sunburst chart): a place and the
+ * places in it. A leaf has no children but its photo count (`value`, api/dataviz/stats.py).
+ */
 export type LocationSunburst = {
   name: string;
   hex?: string;
+  value?: number;
   children?: LocationSunburst[];
 };
 
@@ -32,6 +36,7 @@ export const LocationSunburst: z.ZodType<LocationSunburst> = z.lazy(() =>
   z.object({
     name: z.string(),
     hex: z.string().optional(),
+    value: z.number().optional(),
     children: z.array(LocationSunburst).optional(),
   })
 );
