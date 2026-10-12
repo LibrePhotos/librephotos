@@ -1556,6 +1556,8 @@
     "scan_directory_required": "Scan directory not configured - contact administrator",
     "jobcancelled": "Job has been cancelled",
     "jobcancelledtitle": "Job Cancelled",
+    "jobalreadyrunning": "This job is already queued or running. Its progress is shown in the job list.",
+    "jobalreadyrunningtitle": "Already running",
     "taggedphotos": "Added {{tags}} to {{count}} photo(s)",
     "taggedphotostitle": "Photos tagged",
     "setcategorytitle": "Set category",

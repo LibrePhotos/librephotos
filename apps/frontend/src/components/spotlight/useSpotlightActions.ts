@@ -53,6 +53,7 @@ import {
   useScanPhotosMutation,
   useWorkerQuery,
 } from "../../api_client/jobs/hooks";
+import { startJob } from "../../api_client/jobs/startJob";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import { useAuth } from "../../hooks/useAuth";
 import { notification } from "../../service/notifications";
@@ -512,9 +513,12 @@ export function useSpotlightActions(query: string = "") {
         leftSection: React.createElement(IconMoodSmile, iconProps),
         onClick: () => {
           if (workerAvailable) {
-            fetchClient
-              .get("/scanfaces")
-              .then(() => notification.rescanFaces())
+            startJob(() => fetchClient.get("/scanfaces"))
+              .then(start => {
+                if (!start.alreadyRunning) {
+                  notification.rescanFaces();
+                }
+              })
               .catch(() => notification.rescanFacesFailed());
           }
         },

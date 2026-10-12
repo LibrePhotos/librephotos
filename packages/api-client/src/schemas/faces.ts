@@ -59,10 +59,15 @@ export const DeleteFacesResponse = z.looseObject({
 });
 export type DeleteFacesResponse = z.infer<typeof DeleteFacesResponse>;
 
-/** POST /api/trainfaces, GET /api/scanfaces. */
+/**
+ * POST /api/trainfaces, /api/scanphotos, /api/fullscanphotos, GET /api/scanfaces.
+ * `already_running` is set by the endpoint functions, not the server: the job
+ * was already queued or running (a 409) and `job_id` is that job's.
+ */
 export const JobTriggerResponse = z.looseObject({
   status: z.boolean(),
   job_id: z.string().nullable().optional(),
+  already_running: z.boolean().optional(),
 });
 export type JobTriggerResponse = z.infer<typeof JobTriggerResponse>;
 

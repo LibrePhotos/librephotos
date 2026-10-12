@@ -116,8 +116,8 @@ export function SettingsScreen() {
 
   const scan = async () => {
     try {
-      await endpoints.scanPhotos(client);
-      pushToast({ level: "info", message: t("settings.scanQueued") });
+      const result = await endpoints.scanPhotos(client);
+      pushToast({ level: "info", message: result.already_running ? t("common.jobAlreadyRunning") : t("settings.scanQueued") });
     } catch {
       pushToast({ level: "error", message: t("settings.saveError") });
     }

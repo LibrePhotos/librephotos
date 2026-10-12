@@ -12,8 +12,13 @@ const trainFaces = () => endpoints.trainFaces(apiClient);
 export const useTrainFacesMutation = () =>
   useMutation({
     mutationFn: () => trainFaces(),
-    onSuccess: () => {
-      notification.trainFaces();
+    onSuccess: data => {
+      // Already running: endpoints.trainFaces resolves with that job instead of a 409.
+      if (data.already_running) {
+        notification.jobAlreadyRunning();
+      } else {
+        notification.trainFaces();
+      }
       // Faces clustering/training may change counts and labels
       invalidateAfter(queryClient, [
         IncompleteFacesQueryKeys,

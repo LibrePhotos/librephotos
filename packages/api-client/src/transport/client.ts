@@ -62,6 +62,19 @@ export function extractServerCode(body: unknown): string | null {
 }
 
 /**
+ * The id of the job that made a job trigger fail because it is already queued
+ * or running (a 409 with code `job_already_running`, whose entry carries the
+ * job's `job_id`), so the caller can follow that job instead of reporting an
+ * error. Null for any other failure.
+ */
+export function runningJobId(error: unknown): string | null {
+  if (!(error instanceof ApiError) || error.serverCode !== "job_already_running") return null;
+  const [first] = errorEntries(error.body);
+  const jobId = typeof first === "object" && first !== null && "job_id" in first ? first.job_id : undefined;
+  return typeof jobId === "string" && jobId ? jobId : null;
+}
+
+/**
  * A successful response's body, read the way `responseType` asks: "auto" picks
  * by Content-Type (JSON, a file as a Blob, else text).
  */

@@ -9,6 +9,11 @@ function jobCancelled() {
   toast.warning(i18n.t("toasts.jobcancelled"), { title: i18n.t("toasts.jobcancelledtitle") });
 }
 
+/** A job trigger found a job of its kind already queued or running (HTTP 409), and follows that one. */
+function jobAlreadyRunning() {
+  toast.warning(i18n.t("toasts.jobalreadyrunning"), { title: i18n.t("toasts.jobalreadyrunningtitle") });
+}
+
 function requestFailed(title: string, message: string) {
   toast.error(message, { title });
 }
@@ -24,6 +29,7 @@ function parseError(detail: string, title?: string) {
 }
 
 export const worker = {
+  jobAlreadyRunning,
   jobCancelled,
   jobFinished,
   parseError,

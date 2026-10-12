@@ -51,4 +51,32 @@ describe("AdminScreen", () => {
     fireEvent.press(getByTestId("admin-scan"));
     await waitFor(() => expect(scanned).toBe(true));
   });
+
+  it("says a scan is already running instead of reporting an error", async () => {
+    // A second start while one is queued or running is a 409 carrying that job's id.
+    const running = makeMockClient(async (url) => {
+      if (url.includes("/jobs/")) return jsonResponse({ count: 1, next: null, previous: null, results: [JOB] });
+      if (url.includes("/rqavailable/")) return jsonResponse({ status: true, queue_can_accept_job: false });
+      if (url.includes("/scanphotos/")) {
+        return jsonResponse(
+          {
+            errors: [
+              {
+                field: "detail",
+                message: "Scan Photos is already running.",
+                code: "job_already_running",
+                job_id: "abc",
+              },
+            ],
+          },
+          409,
+        );
+      }
+      return jsonResponse({}, 404);
+    });
+    const { getByTestId } = renderWithProviders(<AdminScreen />, running);
+    fireEvent.press(getByTestId("admin-scan"));
+    await waitFor(() => expect(useToastStore.getState().toasts.at(-1)?.message).toBe("Already running"));
+    expect(useToastStore.getState().toasts.at(-1)?.level).toBe("info");
+  });
 });

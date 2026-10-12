@@ -15,6 +15,7 @@ export const en = {
     close: "Close",
     cancel: "Cancel",
     save: "Save",
+    jobAlreadyRunning: "Already running",
   },
   login: {
     title: "Sign in",

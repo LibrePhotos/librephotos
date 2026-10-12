@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchClient } from "../api";
+import { startJob } from "../jobs/startJob";
 import type {
   DetectDuplicatesRequest,
   DetectDuplicatesResponse,
@@ -61,7 +62,7 @@ export const useDetectDuplicatesMutation = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (options: DetectDuplicatesRequest = {}) =>
-      fetchClient.post<DetectDuplicatesResponse>("/duplicates/detect", options),
+      startJob(() => fetchClient.post<DetectDuplicatesResponse>("/duplicates/detect", options)),
     onSuccess: () => {
       // Invalidate stats to show updated detection status
       queryClient.invalidateQueries({ queryKey: DuplicatesQueryKeys.stats() });

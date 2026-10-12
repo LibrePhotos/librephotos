@@ -8,6 +8,7 @@ import { ServerStatsQueryKeys } from "../../server/hooks/useFetchServerStatsQuer
 import { StorageStatsQueryKeys } from "../../server/hooks/useFetchStorageStatsQuery";
 import { CountStatsQueryKeys } from "../../stats/hooks/useFetchCountStatsQuery";
 import { PhotoMonthCountQueryKeys } from "../../stats/hooks/useFetchPhotoMonthCountQuery";
+import { startJob } from "../startJob";
 import { JobsQueryKeys } from "./useJobsQuery";
 import { WorkerQueryKeys } from "./useWorkerQuery";
 
@@ -15,15 +16,16 @@ const JobResponse = z.object({
   status: z.boolean(),
   job_id: z.string(),
 });
-type JobResponse = z.infer<typeof JobResponse>;
-
 export const useScanPhotosMutation = () =>
   useMutation({
     mutationFn: async () => {
-      const response = await fetchClient.post("/scanphotos/", {});
-      const data = parseWithNotification(JobResponse, response, "Failed to parse scan photos response");
+      // Already running: startJob says so and the page follows that job.
+      const start = await startJob(() => fetchClient.post("/scanphotos/", {}));
+      if (start.alreadyRunning) {
+        return;
+      }
+      parseWithNotification(JobResponse, start.data, "Failed to parse scan photos response");
       notification.startPhotoScan();
-      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [...AutoAlbumsQueryKeys] });

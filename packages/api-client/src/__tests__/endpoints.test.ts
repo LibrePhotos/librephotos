@@ -22,11 +22,11 @@ function tokens(): TokenSupplier {
 }
 
 /** Capture the (url, init) of the last data request and return a canned body. */
-function harness(body: unknown) {
+function harness(body: unknown, status = 200) {
   const calls: { url: string; init?: RequestInit }[] = [];
   const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
     calls.push({ url: String(input), init });
-    return Promise.resolve(jsonResponse(body));
+    return Promise.resolve(jsonResponse(body, status));
   });
   const client = createApiClient({ baseUrl: "https://demo.example.com", tokens: tokens(), fetch: fetchMock });
   return { client, calls };
@@ -188,6 +188,28 @@ describe("admin/jobs endpoints", () => {
     const res = await endpoints.scanPhotos(client);
     expect(defined(calls[0]).url).toBe("https://demo.example.com/api/scanphotos/");
     expect(res.job_id).toBe("job-1");
+  });
+
+  it("follows the job already running instead of failing on a 409", async () => {
+    const running = {
+      errors: [
+        {
+          field: "detail",
+          message: "Scan Photos is already running.",
+          code: "job_already_running",
+          job_id: "running-1",
+        },
+      ],
+    };
+    for (const trigger of [endpoints.scanPhotos, endpoints.fullScanPhotos, endpoints.trainFaces]) {
+      const { client } = harness(running, 409);
+      await expect(trigger(client)).resolves.toEqual({ status: true, job_id: "running-1", already_running: true });
+    }
+  });
+
+  it("still rejects a job that could not be started", async () => {
+    const { client } = harness({ errors: [{ field: "detail", message: "x", code: "job_start_failed" }] }, 500);
+    await expect(endpoints.scanPhotos(client)).rejects.toMatchObject({ status: 500, serverCode: "job_start_failed" });
   });
 
   it("reads worker availability", async () => {

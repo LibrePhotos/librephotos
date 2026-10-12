@@ -75,8 +75,8 @@ export function FaceTaggingScreen() {
   const train = async () => {
     setBusy(true);
     try {
-      await endpoints.trainFaces(client);
-      pushToast({ level: "info", message: t("faces.trainQueued") });
+      const result = await endpoints.trainFaces(client);
+      pushToast({ level: "info", message: result.already_running ? t("common.jobAlreadyRunning") : t("faces.trainQueued") });
     } catch {
       pushToast({ level: "error", message: t("common.error") });
     } finally {

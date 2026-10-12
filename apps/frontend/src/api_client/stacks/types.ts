@@ -158,6 +158,7 @@ export const DetectStacksResponse = z.object({
   status: z.literal("queued"),
   message: z.string(),
   options: z.record(z.string(), z.unknown()),
+  job_id: z.string().optional(),
 });
 export type DetectStacksResponse = z.infer<typeof DetectStacksResponse>;
 

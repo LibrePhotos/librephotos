@@ -127,6 +127,7 @@ export const DetectDuplicatesResponse = z.object({
   status: z.literal("queued"),
   message: z.string(),
   options: z.record(z.string(), z.unknown()),
+  job_id: z.string().optional(),
 });
 export type DetectDuplicatesResponse = z.infer<typeof DetectDuplicatesResponse>;
 
