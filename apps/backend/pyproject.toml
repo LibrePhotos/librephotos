@@ -193,7 +193,7 @@ type = "layers"
 layers = [
   "api.views : nextcloud.views",
   "api.serializers",
-  "api.accounts : api.albums : api.classification : api.dataviz : api.directory_watcher : api.drf : api.duplicates : api.faces : api.geocode : api.jobs : api.metadata : api.search : api.serving : api.stacks : api.thumbnails : api.video",
+  "api.accounts : api.albums : api.classification : api.dataviz : api.directory_watcher : api.drf : api.duplicates : api.faces : api.geocode : api.jobs : api.metadata : api.photos : api.search : api.serving : api.stacks : api.thumbnails : api.video",
   "api.models",
 ]
 ignore_imports = [
@@ -207,8 +207,6 @@ ignore_imports = [
   # the model side goes with #2336.
   "api.models.photo_caption -> api.search.semantic",
   "api.models.photo_search -> api.search.semantic",
-  # The photo query builder, still in a view module.
-  "api.serializers.album_user -> api.views.photo_filters",
 ]
 
 [[tool.importlinter.contracts]]

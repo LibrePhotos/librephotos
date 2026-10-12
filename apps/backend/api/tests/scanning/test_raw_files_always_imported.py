@@ -9,8 +9,8 @@ from unittest.mock import patch
 
 from django.test import TestCase
 
-from api.media_files import is_valid_media
 from api.models import Photo
+from api.photos.media_files import is_valid_media
 from api.tests.utils import create_test_user
 
 
@@ -35,7 +35,7 @@ class StackRawJpegTestCase(TestCase):
         Test: RAW files are always considered valid (no longer skipped)
         """
         # Verify that is_valid_media returns True for RAW files regardless of stack_raw_jpeg
-        with patch("api.media_files.is_raw") as mock_is_raw:
+        with patch("api.photos.media_files.is_raw") as mock_is_raw:
             mock_is_raw.return_value = True
             # With stack_raw_jpeg=True
             self.user.stack_raw_jpeg = True

@@ -23,7 +23,7 @@ from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from api.photo_files import remove_photo
+from api.photos.files import remove_photo
 from api.tests.utils import create_test_file, create_test_photo, create_test_user
 from api.video import transcode_cache
 from api.views import media

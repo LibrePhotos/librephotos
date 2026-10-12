@@ -1088,7 +1088,7 @@ class PhotoSelectionRequest(serializers.Serializer[None]):
     """The photos a bulk action applies to.
 
     Either ``image_hashes``, or ``select_all`` with a filter ``query`` (see
-    ``api.views.photo_filters.build_photo_queryset``) minus ``excluded_hashes``.
+    ``api.photos.selection.build_photo_queryset``) minus ``excluded_hashes``.
     """
 
     select_all = JsonBooleanField(

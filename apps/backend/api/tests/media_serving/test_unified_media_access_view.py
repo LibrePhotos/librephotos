@@ -16,8 +16,8 @@ from django.test import TestCase, override_settings
 from rest_framework.test import APIRequestFactory
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from api.media_files import get_or_create_file
 from api.models.album_user_share import AlbumUserShare
+from api.photos.media_files import get_or_create_file
 from api.tests.utils import (
     ONE_PIXEL_PNG,
     create_test_album_user,

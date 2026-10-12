@@ -7,7 +7,7 @@ import unittest
 import pyvips
 from PIL import Image
 
-from api.media_files import is_valid_media
+from api.photos.media_files import is_valid_media
 from api.thumbnails import decoding
 
 FIXTURE = os.path.join(

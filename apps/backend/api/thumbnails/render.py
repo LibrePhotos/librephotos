@@ -8,15 +8,15 @@ from django.conf import settings
 from PIL import Image
 
 from api import binaries, sidecars
-from api.file_cleanup import delete_thumbnail_files
 from api.lazy_import import LazyModule
-from api.media_files import is_raw
 from api.mime import EXIF_ORIENTED_EXTENSIONS, extension
 from api.models.thumbnail import (
     STATIC_THUMBNAIL_DIRS,
     Thumbnail,
     thumbnail_file_paths,
 )
+from api.photos.file_cleanup import delete_thumbnail_files
+from api.photos.media_files import is_raw
 from api.video import color
 
 if TYPE_CHECKING:

@@ -23,10 +23,10 @@ import exiftool
 from django.test import TestCase
 from django.utils import timezone
 
-from api.media_files import get_or_create_file
 from api.metadata.photo_reader import extract_exif_data
 from api.models import Photo
 from api.models.photo_search import PhotoSearch
+from api.photos.media_files import get_or_create_file
 from api.tests.utils import (
     create_test_thumbnail,
     create_test_user,

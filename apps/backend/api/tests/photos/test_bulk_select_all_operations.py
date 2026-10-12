@@ -11,12 +11,12 @@ from django.test import TestCase
 from rest_framework.test import APIClient
 
 from api.models import Photo
+from api.photos.selection import build_photo_queryset
 from api.tests.utils import (
     create_test_album_user,
     create_test_photos,
     create_test_user,
 )
-from api.views.photo_filters import build_photo_queryset
 
 logger = logging.getLogger(__name__)
 

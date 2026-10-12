@@ -22,7 +22,6 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from api import photo_files
 from api.accounts.permissions import IsOwnerOrReadOnly, IsPhotoOrAlbumSharedTo
 from api.classification import captioning
 from api.drf.exceptions import ServiceUnavailable
@@ -32,7 +31,7 @@ from api.drf.pagination import (
     WholeListPagination,
 )
 from api.drf.params import parse_body
-from api.drf.request_user import request_user
+from api.drf.request_user import request_user, scope_user
 from api.metadata import edits
 from api.metadata.photo_writer import (
     rotate_photo,
@@ -49,6 +48,7 @@ from api.models.album_thing import (
 from api.models.person import Person
 from api.models.photo_caption import PhotoCaption
 from api.models.tag import refresh_tag_photo_counts, tag_ids_for_photos
+from api.photos.files import remove_photo
 from api.serializers.album_user import (
     AlbumUserListSerializer,
     with_album_user_list_relations,
@@ -75,7 +75,6 @@ from api.serializers.photos import (
     with_photo_summary_relations,
 )
 from api.views.custom_api_view import ListViewSet
-from api.views.photo_filters import scope_user
 
 logger = logging.getLogger(__name__)
 
@@ -252,7 +251,7 @@ class BulkPhotoMutationView(APIView):
     def _post_select_all(
         self, user: User, data: dict[str, Any], value: object
     ) -> Response:
-        from api.views.photo_filters import build_photo_queryset
+        from api.photos.selection import build_photo_queryset
 
         photos = build_photo_queryset(user, data["query"])
         excluded_hashes = data["excluded_hashes"]
@@ -712,7 +711,7 @@ class SetPhotosShared(APIView):
 
     @extend_schema(request=SetPhotosSharedRequest)
     def post(self, request: Request, format: str | None = None) -> Response:
-        from api.views.photo_filters import build_photo_queryset
+        from api.photos.selection import build_photo_queryset
 
         user = request_user(request)
         data = parse_body(request, SetPhotosSharedRequest)
@@ -895,7 +894,7 @@ class DeletePhotos(APIView):
 
     @extend_schema(request=PhotoSelectionRequest)
     def delete(self, request: Request) -> Response:
-        from api.views.photo_filters import build_photo_queryset
+        from api.photos.selection import build_photo_queryset
 
         user = request_user(request)
         data = parse_body(request, PhotoSelectionRequest)
@@ -918,7 +917,7 @@ class DeletePhotos(APIView):
             # build_photo_queryset is already bound to the requester's photos.
             for photo in photos_qs:
                 try:
-                    photo_files.remove_photo(photo)
+                    remove_photo(photo)
                 except Exception:
                     logger.exception(
                         "Could not delete photo %s, skipping it.", photo.image_hash
@@ -958,7 +957,7 @@ class DeletePhotos(APIView):
             failed = False
             for photo in photos:
                 try:
-                    photo_files.remove_photo(photo)
+                    remove_photo(photo)
                 except Exception:
                     logger.exception(
                         "Could not delete photo %s, skipping it.", image_hash

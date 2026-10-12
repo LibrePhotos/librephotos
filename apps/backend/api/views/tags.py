@@ -17,6 +17,7 @@ from api.drf.params import parse_body, parse_query
 from api.drf.request_user import request_user
 from api.models import Photo, Tag
 from api.models.user import User
+from api.photos.selection import build_photo_queryset
 from api.serializers.tag import (
     GroupedTagPhotosSerializer,
     TagCreateRequest,
@@ -28,7 +29,6 @@ from api.serializers.tag import (
 )
 from api.views.albums import _with_photo_summary_relations
 from api.views.mixins import PartialUpdateModelMixin
-from api.views.photo_filters import build_photo_queryset
 from api.views.photos import _get_photo_filter_kwargs
 
 # A select-all tag edit can cover a whole library, so the links are written in

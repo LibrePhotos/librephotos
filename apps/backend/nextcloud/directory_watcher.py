@@ -9,8 +9,8 @@ from typing import TYPE_CHECKING, Protocol
 from django.conf import settings
 
 from api.directory_watcher import handle_new_image
-from api.media_files import is_metadata, is_raw
 from api.models import LongRunningJob, User
+from api.photos.media_files import is_metadata, is_raw
 from api.search.similarity import build_image_similarity_index
 from nextcloud.server_address import connect
 
@@ -36,7 +36,7 @@ def isValidNCMedia(file_obj: _RemoteFile) -> bool:
     on the ``{DAV:}getcontenttype`` and - for the formats nextcloud has no mime
     type for, most notably camera raw - on the file name. What is accepted here
     mirrors what the local directory watcher indexes
-    (``api.media_files.is_valid_media``): images, videos, raw files and xmp
+    (``api.photos.media_files.is_valid_media``): images, videos, raw files and xmp
     sidecars. Anything narrower silently drops whole nextcloud folders.
     """
     try:

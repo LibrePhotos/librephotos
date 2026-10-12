@@ -44,7 +44,7 @@ from api.video import color
 
 if TYPE_CHECKING:
     # Not imported at run time: api.models reaches this module through
-    # api.photo_files, so the import would be circular.
+    # api.photos.files, so the import would be circular.
     from api.models.photo import Photo
 
 logger = logging.getLogger(__name__)

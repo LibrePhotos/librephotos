@@ -24,7 +24,6 @@ from django.http import HttpResponseBase
 from django.utils import timezone
 from faker import Faker
 
-from api.media_files import get_or_create_file
 from api.models import Cluster, Face, File, Person, Photo, User
 from api.models.album_auto import AlbumAuto
 from api.models.album_date import AlbumDate
@@ -36,6 +35,7 @@ from api.models.long_running_job import LongRunningJob
 from api.models.photo_stack import PhotoStack
 from api.models.tag import Tag
 from api.models.thumbnail import Thumbnail
+from api.photos.media_files import get_or_create_file
 
 fake = Faker()
 

@@ -20,9 +20,9 @@ from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import AccessToken
 
-from api.all_tasks import delete_zip_file
 from api.models import Photo
 from api.models.long_running_job import LongRunningJob
+from api.photos.zip_downloads import delete_zip_file
 from api.serializers.photos import PhotoSerializer
 from api.tests.utils import create_test_job, create_test_photo, create_test_user
 

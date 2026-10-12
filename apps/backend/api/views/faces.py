@@ -37,6 +37,7 @@ from api.faces.photo_faces import (
     save_detected_face,
 )
 from api.jobs.queue import JobStep
+from api.jobs.start import start_job, start_jobs
 from api.metadata.photo_writer import write_photo_metadata, write_target
 from api.ml_models import missing_models_prerequisites
 from api.models import Face, LongRunningJob, Photo
@@ -55,7 +56,6 @@ from api.serializers.face import (
 )
 from api.views.custom_api_view import ListViewSet
 from api.views.photos import _get_photo_filter_kwargs
-from api.views.scan_triggers import start_job, start_jobs
 
 logger = logging.getLogger(__name__)
 

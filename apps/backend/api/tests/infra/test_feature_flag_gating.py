@@ -21,9 +21,9 @@ from api.directory_watcher.scan_jobs import (
 from api.faces.classify import cluster_all_faces
 from api.faces.photo_faces import extract_faces
 from api.geocode.geocode import reverse_geocode, search_location
-from api.media_files import is_valid_media
 from api.models import Face, LongRunningJob
 from api.models.photo_caption import PhotoCaption
+from api.photos.media_files import is_valid_media
 from api.search.semantic import generate_photo_tags
 from api.tests.utils import (
     ONE_PIXEL_PNG,
@@ -72,7 +72,7 @@ class VideoFeatureFlagTest(TestCase):
         self.user = create_test_user()
 
     def _is_valid_video(self):
-        with patch("api.media_files.is_video", return_value=True):
+        with patch("api.photos.media_files.is_video", return_value=True):
             return is_valid_media(path="/data/clip.mp4", user=self.user)
 
     def test_video_is_admitted_by_default(self):
@@ -84,7 +84,7 @@ class VideoFeatureFlagTest(TestCase):
 
     @override_settings(FEATURE_VIDEO=False)
     def test_images_are_still_admitted_when_video_is_disabled(self):
-        with patch("api.media_files.is_video", return_value=False):
+        with patch("api.photos.media_files.is_video", return_value=False):
             self.assertTrue(is_valid_media(path="/data/sidecar.xmp", user=self.user))
 
 

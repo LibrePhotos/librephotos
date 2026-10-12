@@ -1,8 +1,8 @@
-"""
-Photo filtering utilities for bulk operations.
+"""The photos a server-side "Select All" acts on, built from its filter payload.
 
-This module provides reusable functions to build photo querysets from filter parameters,
-enabling server-side "Select All" operations without sending individual photo IDs.
+Bulk endpoints (trash, favorite, hide, share, tag, album, download) take the
+filter instead of every photo id; ``build_photo_queryset`` turns it into the
+user's own photos.
 """
 
 from collections.abc import Mapping
@@ -10,24 +10,11 @@ from typing import Any
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Q, QuerySet
-from rest_framework.request import Request
 
 from api.albums.timeline_filter import timeline_filter_q
 from api.models import Photo
 from api.models.user import User
 from api.util import folder_path_q
-
-
-def scope_user(request: Request) -> User | None:
-    """The requester as ``Photo.objects.owned_by`` and ``visible_to`` take it.
-
-    ``request.user`` is typed ``AbstractBaseUser | AnonymousUser``, which the
-    photo scopes do not accept. Both treat ``None`` exactly as an anonymous
-    user, so a view that serves anonymous readers (or whose schema is built
-    with an anonymous mock request) passes this instead of raising.
-    """
-    user = request.user
-    return user if isinstance(user, User) else None
 
 
 def build_photo_queryset(

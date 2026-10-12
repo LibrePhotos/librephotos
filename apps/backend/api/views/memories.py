@@ -33,10 +33,10 @@ from rest_framework.views import APIView
 from api.drf.params import parse_query
 from api.drf.request_user import request_user
 from api.models import AlbumDate, Photo, User
+from api.photos.selection import build_photo_queryset
 from api.serializers.memories import MemoriesQuery
 from api.serializers.photos import PhotoSummarySerializer
 from api.views.albums import _with_photo_summary_relations
-from api.views.photo_filters import build_photo_queryset
 
 # ``type`` values in the response. Only date-based memories exist so far; the
 # field is there so that place- or person-based ones can be added without the

@@ -4,7 +4,7 @@ A model module defines fields, managers and querysets, properties computed
 from fields and pure helpers. Anything that touches the filesystem, a
 subprocess, a sidecar or the network goes in a service module of the owning
 domain that takes the model instance as its first argument
-(``api.thumbnails.render.generate_thumbnail``, ``api.photo_files.remove_photo``,
+(``api.thumbnails.render.generate_thumbnail``, ``api.photos.files.remove_photo``,
 ``api.metadata.photo_writer.write_photo_metadata``). A side effect hidden in
 a model method or in ``save()`` is how a rescan came to rewrite ratings
 (#2295) and a date edit was written twice (#2298); see #2336.
@@ -32,7 +32,7 @@ FORBIDDEN_MODULES = (
     "api.metadata.photo_writer",
     "api.metadata.writer",
     "api.metadata.reader",
-    "api.photo_files",
+    "api.photos",
     "subprocess",
     "requests",
     "exiftool",

@@ -30,8 +30,13 @@ from api.duplicates.perceptual_hash import (
     calculate_hash_from_thumbnail,
     calculate_perceptual_hash,
 )
-from api.file_cleanup import delete_thumbnail_files
-from api.media_files import (
+from api.metadata import photo_reader
+from api.metadata.photo_datetime import extract_date_time
+from api.models import File, LongRunningJob, Person, Photo, Thumbnail, User
+from api.models.file import content_hash, hash_owner_part
+from api.models.photo_search import PhotoSearch
+from api.photos.file_cleanup import delete_thumbnail_files
+from api.photos.media_files import (
     calculate_hash,
     detect_file_type,
     get_or_create_file,
@@ -41,11 +46,6 @@ from api.media_files import (
     is_video,
     looks_like_media,
 )
-from api.metadata import photo_reader
-from api.metadata.photo_datetime import extract_date_time
-from api.models import File, LongRunningJob, Person, Photo, Thumbnail, User
-from api.models.file import content_hash, hash_owner_part
-from api.models.photo_search import PhotoSearch
 from api.stacks.live_photo import (
     extract_embedded_motion_video,
     has_embedded_motion_video,

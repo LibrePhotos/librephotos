@@ -3,9 +3,9 @@ import os
 from django.test import TestCase
 
 from api.directory_watcher.file_handlers import group_files_into_photo
-from api.media_files import get_or_create_file
 from api.models import Photo
-from api.photo_files import detach_missing_files
+from api.photos.files import detach_missing_files
+from api.photos.media_files import get_or_create_file
 from api.tests.utils import create_test_photo, create_test_user
 
 

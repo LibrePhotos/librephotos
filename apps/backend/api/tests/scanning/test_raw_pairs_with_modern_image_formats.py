@@ -30,8 +30,8 @@ from api.directory_watcher.file_grouping import (
 from api.directory_watcher.file_handlers import handle_file_group
 from api.directory_watcher.repair_jobs import repair_ungrouped_file_variants
 from api.directory_watcher.scan_jobs import _partition_scan_paths
-from api.media_files import get_or_create_file
 from api.models import File, Photo, User
+from api.photos.media_files import get_or_create_file
 from api.tests.utils import create_test_user
 
 MODULE = "api.directory_watcher.file_handlers"
