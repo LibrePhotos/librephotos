@@ -50,8 +50,5 @@
   "ManageUser/ManageUser first_name: null-in-zod-only": "zod also accepts null; the serializer always sends a value here (\"\" or a number). Harmless for parsing; tightening it needs every reader checked first.",
   "ManageUser/ManageUser last_name: null-in-zod-only": "zod also accepts null; the serializer always sends a value here (\"\" or a number). Harmless for parsing; tightening it needs every reader checked first.",
   "ManageUser/ManageUser password: missing-in-schema": "write-only: a client sends it in the PATCH body (the zod schema doubles as the form type); no response carries it.",
-  "PhotoMetadata/PhotoMetadata location_country: null-in-zod-only": "PhotoMetadataSerializer.get_no_value always returns None (the location parts are no longer stored); its extend_schema_field(OpenApiTypes.STR) leaves out the null.",
-  "PhotoMetadata/PhotoMetadata location_state: null-in-zod-only": "PhotoMetadataSerializer.get_no_value always returns None (the location parts are no longer stored); its extend_schema_field(OpenApiTypes.STR) leaves out the null.",
-  "PhotoMetadata/PhotoMetadata location_city: null-in-zod-only": "PhotoMetadataSerializer.get_no_value always returns None (the location parts are no longer stored); its extend_schema_field(OpenApiTypes.STR) leaves out the null.",
   "PhotoMetadata/PhotoMetadata rating: null-in-zod-only": "Read from Photo.rating now, which has no null (#2252); servers before that sent PhotoMetadata.rating, which was nullable. Kept for older servers."
 }
