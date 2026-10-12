@@ -6,13 +6,12 @@ import { useFetchDateAlbumQuery, useFetchDateAlbumsQuery, useFetchUserAlbumQuery
 import type { PigPhoto } from "../../api_client/photos/types";
 import { Photoset } from "../../api_client/photos/types";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
+import type { PhotoGroup } from "../../components/photolist/photoGroup";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 import type { PigVisibleGroup } from "../../components/photolist/PhotoListView";
 import { isUndatedShare } from "../../components/sharing/publicAlbum";
 import { usePublicPageTitle } from "../../components/sharing/usePublicPageTitle";
 import { getPhotosFlatFromGroupedByDate } from "../../util/util";
-
-type PhotoGroup = { id: string; page: number };
 
 export const Route = createFileRoute("/public/$users")({
   component: UserPublicPage,
@@ -38,7 +37,7 @@ function UserPublicPage() {
   }, [photosGroupedByDate]);
 
   // No day group asked for yet: the query below stays disabled until one is.
-  const [group, setGroup] = useState<PhotoGroup>({ id: "", page: 0 });
+  const [group, setGroup] = useState<PhotoGroup>({ id: 0, page: 0 });
   useFetchDateAlbumQuery(
     { album_date_id: group.id, page: group.page, photosetType: Photoset.PUBLIC, username: users },
     { skip: !group.id }

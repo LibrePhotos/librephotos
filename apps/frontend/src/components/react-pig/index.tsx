@@ -31,7 +31,7 @@ export type { GroupedImageItem } from "./types";
  * A group as `updateGroups` reports it to a paginated date list: only its
  * tiles on screen, plus the group's cursor id, which names the page to load.
  */
-export type PigVisibleGroup<T extends ImageItem = ImageItem> = GroupedImageItem<T> & { id: string };
+export type PigVisibleGroup<T extends ImageItem = ImageItem> = GroupedImageItem<T> & { id: number };
 
 export type PigProps<T extends ImageItem> = {
   imageData: T[] | GroupedImageItem<T>[];

@@ -119,7 +119,7 @@ function photo(id: string, extra: Partial<PigPhoto> = {}): PigPhoto {
 }
 
 // A day of the paginated date list, as Pig reports it on screen.
-function visibleGroup(id: string | undefined, groupItems: PigPhoto[] = []): GroupedImageItem<PigPhoto> {
+function visibleGroup(id: number | string | undefined, groupItems: PigPhoto[] = []): GroupedImageItem<PigPhoto> {
   return { id, date: "2024-01-01", location: null, items: groupItems };
 }
 
@@ -282,21 +282,22 @@ describe("PhotoListView throttled callbacks", () => {
     await render({ updateGroups: first });
     await render({ updateGroups: latest });
 
-    const visible = [visibleGroup("group")];
+    const visible = [visibleGroup(1)];
     defined(lastPigProps().updateGroups)(visible);
 
     expect(latest).toHaveBeenCalledWith(visible);
     expect(first).not.toHaveBeenCalled();
   });
 
-  it("passes on only the groups with a cursor id, the page loader's key", async () => {
+  it("passes on only the groups with a date album id, the page loader's key", async () => {
     vi.useFakeTimers();
     const updateGroups = vi.fn<UpdateGroups>();
     await render({ updateGroups });
 
-    defined(lastPigProps().updateGroups)([visibleGroup(undefined), visibleGroup("day-2")]);
+    // A string id is a client-side key (the sharing page's per-user groups): nothing to load.
+    defined(lastPigProps().updateGroups)([visibleGroup(undefined), visibleGroup("user-3"), visibleGroup(2)]);
 
-    expect(updateGroups).toHaveBeenCalledWith([visibleGroup("day-2")]);
+    expect(updateGroups).toHaveBeenCalledWith([visibleGroup(2)]);
   });
 
   it("calls the latest updateItems", async () => {
@@ -319,12 +320,12 @@ describe("PhotoListView throttled callbacks", () => {
     await render({ updateGroups });
 
     const throttled = defined(lastPigProps().updateGroups);
-    for (let i = 0; i < 10; i += 1) throttled([visibleGroup(`day-${i}`)]);
+    for (let i = 0; i < 10; i += 1) throttled([visibleGroup(i)]);
     vi.advanceTimersByTime(600);
 
     // leading call + one trailing call with the last arguments
     expect(updateGroups).toHaveBeenCalledTimes(2);
-    expect(updateGroups).toHaveBeenLastCalledWith([visibleGroup("day-9")]);
+    expect(updateGroups).toHaveBeenLastCalledWith([visibleGroup(9)]);
   });
 
   it("drops a pending trailing call on unmount", async () => {
@@ -333,8 +334,8 @@ describe("PhotoListView throttled callbacks", () => {
     await render({ updateGroups });
 
     const throttled = defined(lastPigProps().updateGroups);
-    throttled([visibleGroup("day-1")]);
-    throttled([visibleGroup("day-2")]);
+    throttled([visibleGroup(1)]);
+    throttled([visibleGroup(2)]);
     await act(async () => root?.unmount());
     root = null;
     vi.advanceTimersByTime(600);

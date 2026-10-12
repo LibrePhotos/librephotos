@@ -15,7 +15,7 @@ describe("invalidatePhotoLists", () => {
     const client = new QueryClient();
     const grids = [
       photoGridKeys.dateAlbumList([Photoset.FAVORITES, 3, "alice", "/photos", "videos", "media=photos"]),
-      photoGridKeys.dateAlbumDay([Photoset.NONE, undefined, undefined, undefined, "all", ""], "2024-01-01", 2),
+      photoGridKeys.dateAlbumDay([Photoset.NONE, undefined, undefined, undefined, "all", ""], 12, 2),
       photoGridKeys.recentlyAdded(),
       photoGridKeys.userAlbumView("7", true, "alice", "photos"),
       photoGridKeys.publicAlbum("summer"),

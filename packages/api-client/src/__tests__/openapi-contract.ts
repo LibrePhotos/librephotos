@@ -15,6 +15,10 @@
  * - `null-in-zod-only`: zod accepts a null the server never sends (a client's
  *   null check that never fires, e.g. "" sent for "no thumbnail").
  * - `type`: the JSON types differ (string vs number, one type vs a union).
+ * - `string-id`: the server sends a key as a string where it should send a
+ *   number: an `id` that is a string but not a UUID, or any field the zod
+ *   schema reads with `IntegerId` (issue #389). Send the number; `IntegerId`
+ *   keeps the clients reading older servers that still send the string.
  *
  * zod marking a field optional that the server always sends is not reported:
  * that is how the clients stay compatible with older servers. A side without a
@@ -24,6 +28,7 @@ import { z } from "zod";
 
 export interface SchemaNode {
   type?: string | string[];
+  format?: string;
   nullable?: boolean;
   enum?: unknown[];
   const?: unknown;
@@ -37,11 +42,14 @@ export interface SchemaNode {
   oneOf?: SchemaNode[];
   $ref?: string;
   "x-zod"?: string;
+  /** Set by `IntegerId`'s metadata: an integer key that older servers sent as a string. */
+  "x-id"?: boolean;
 }
 
 export const SchemaNode: z.ZodType<SchemaNode> = z.lazy(() =>
   z.object({
     type: z.union([z.string(), z.string().array()]).optional(),
+    format: z.string().optional(),
     nullable: z.boolean().optional(),
     enum: z.unknown().array().optional(),
     const: z.unknown().optional(),
@@ -55,6 +63,7 @@ export const SchemaNode: z.ZodType<SchemaNode> = z.lazy(() =>
     oneOf: SchemaNode.array().optional(),
     $ref: z.string().optional(),
     "x-zod": z.string().optional(),
+    "x-id": z.boolean().optional(),
   })
 );
 
@@ -78,10 +87,20 @@ interface Shape {
   ref?: string;
   /** The exported zod schema this node was made from. */
   zodName?: string;
+  /** The string format, e.g. "uuid". */
+  format?: string;
+  /** Read with `IntegerId`: a number, also accepted as a string of digits. */
+  integerId?: boolean;
 }
 
 export type DifferenceKind =
-  "missing-in-zod" | "missing-in-schema" | "required-in-zod" | "null-in-schema-only" | "null-in-zod-only" | "type";
+  | "missing-in-zod"
+  | "missing-in-schema"
+  | "required-in-zod"
+  | "null-in-schema-only"
+  | "null-in-zod-only"
+  | "type"
+  | "string-id";
 
 export interface Difference {
   /** `<zod export>/<component> <path>: <kind>`, the key of contract-baseline.json. */
@@ -132,6 +151,8 @@ function merge(shapes: Shape[]): Shape {
     merged.items ??= shape.items;
     merged.ref ??= shape.ref;
     merged.zodName ??= shape.zodName;
+    merged.format ??= shape.format;
+    merged.integerId ||= shape.integerId === true;
   }
   return merged;
 }
@@ -153,6 +174,11 @@ export function toShape(node: SchemaNode, components: Record<string, SchemaNode>
     return { ...shape, ref: name, nullable: shape.nullable || node.nullable === true };
   }
 
+  // IntegerId's union (a number, or a string of digits) stands for the number it gives.
+  if (node["x-id"] === true) {
+    return { ...emptyShape(), types: new Set(["number"]), nullable: node.nullable === true, integerId: true };
+  }
+
   const branches = [...(node.allOf ?? []), ...(node.anyOf ?? []), ...(node.oneOf ?? [])];
   if (branches.length > 0) {
     const union = merge(branches.map(branch => toShape(branch, components, seen)));
@@ -162,6 +188,7 @@ export function toShape(node: SchemaNode, components: Record<string, SchemaNode>
   const shape = emptyShape();
   shape.nullable = node.nullable === true;
   if (node["x-zod"] !== undefined) shape.zodName = node["x-zod"];
+  if (node.format !== undefined) shape.format = node.format;
 
   const declared = node.type === undefined ? [] : Array.isArray(node.type) ? node.type : [node.type];
   const values = node.enum ?? (node.const !== undefined ? [node.const] : []);
@@ -206,6 +233,16 @@ export function zodToNode(schema: z.ZodType, names: ReadonlyMap<object, string>)
   return SchemaNode.parse(json);
 }
 
+/**
+ * A key the server sends as a string that should be a number: any field zod reads
+ * with `IntegerId`, and an `id` that is neither a number nor a UUID.
+ */
+function isStringId(path: string, zod: Shape, server: Shape): boolean {
+  const name = path.split(".").pop()?.replace(/\[\]$/, "");
+  const stringOnly = server.types.size === 1 && server.types.has("string");
+  return stringOnly && server.format !== "uuid" && (zod.integerId === true || name === "id");
+}
+
 function describe(shape: Shape): string {
   const types: string[] = [...shape.types].sort();
   if (shape.nullable) types.push("null");
@@ -233,7 +270,11 @@ export function compareShapes(
   if (zod.types.size === 0 || server.types.size === 0) return differences;
 
   const sameTypes = zod.types.size === server.types.size && [...zod.types].every(type => server.types.has(type));
-  if (!sameTypes) add("type", `zod ${describe(zod)}, schema ${describe(server)}`);
+  if (isStringId(path, zod, server)) {
+    add("string-id", "the server sends this integer key as a string: send the number (zod reads it with IntegerId)");
+  } else if (!sameTypes) {
+    add("type", `zod ${describe(zod)}, schema ${describe(server)}`);
+  }
   if (server.nullable && !zod.nullable) add("null-in-schema-only", `schema ${describe(server)}, zod ${describe(zod)}`);
   if (zod.nullable && !server.nullable) add("null-in-zod-only", `zod ${describe(zod)}, schema ${describe(server)}`);
 

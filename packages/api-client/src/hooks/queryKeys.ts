@@ -5,7 +5,7 @@ export const queryKeys = {
   userSelfDetails: (userId: string | number) => ["userSelfDetails", userId] as const,
   userList: () => ["userList"] as const,
   dateAlbums: (photoset: Photoset) => ["dateAlbums", photoset] as const,
-  dateAlbum: (photoset: Photoset, albumDateId: string, page: number) =>
+  dateAlbum: (photoset: Photoset, albumDateId: number, page: number) =>
     ["dateAlbum", photoset, albumDateId, page] as const,
   recentlyAddedPhotos: () => ["recentlyAddedPhotos"] as const,
   photoDetails: (imageHash: string) => ["photoDetails", imageHash] as const,

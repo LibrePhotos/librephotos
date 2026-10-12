@@ -6,6 +6,7 @@ import {
   FetchDateAlbumsListResponse,
   FetchThingAlbumsListResponse,
   imageHashOf,
+  IntegerId,
   LoginResponse,
   Media,
   Photo,
@@ -23,12 +24,27 @@ import dateAlbumsList from "./fixtures/dateAlbumsList.json";
 import loginResponse from "./fixtures/loginResponse.json";
 import userFixture from "./fixtures/user.json";
 
+describe("IntegerId", () => {
+  it("reads an integer key sent as a number or as a string, and gives a number", () => {
+    expect(IntegerId.parse(12)).toBe(12);
+    expect(IntegerId.parse("12")).toBe(12);
+  });
+
+  it("rejects anything that is not an integer key", () => {
+    for (const value of ["", "12a", "2024-06-15", "1.5", 1.5, null, undefined, true]) {
+      expect(IntegerId.safeParse(value).success, String(value)).toBe(false);
+    }
+  });
+});
+
 describe("schema parsing against fixtures", () => {
   it("parses a date-albums (timeline) list", () => {
     const parsed = FetchDateAlbumsListResponse.parse(dateAlbumsList);
     expect(parsed.results).toHaveLength(2);
     const first = defined(parsed.results[0]);
-    expect(first.id).toBe("2024-06-15");
+    // Servers up to 1.3 send the date album id as a string, later ones as a number.
+    expect(first.id).toBe(12);
+    expect(defined(parsed.results[1]).id).toBe(13);
     expect(defined(first.items[0]).type).toBe(Media.IMAGE);
     // defaults applied by zod
     expect(defined(first.items[0]).isTemp).toBe(false);
@@ -262,6 +278,7 @@ describe("fields shared with the web frontend", () => {
       public_sharing_options: { share_location: false, share_faces: null },
     });
     expect(album.public_sharing_options).toEqual({ share_location: false, share_faces: null });
+    expect(album.id).toBe(7);
   });
 });
 

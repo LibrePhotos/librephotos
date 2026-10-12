@@ -57,7 +57,7 @@ import { getSyncState, upsertSyncState, type SyncEntity } from "@/db/queries/syn
 /** The data the seeder pulls, abstracted for injection/testing. */
 export interface SeedSource {
   dateAlbumsList(filter: DateAlbumFilter): Promise<IncompleteDatePhotosGroup[]>;
-  dateAlbum(id: string, page: number, filter: DateAlbumFilter): Promise<IncompleteDatePhotosGroup>;
+  dateAlbum(id: number, page: number, filter: DateAlbumFilter): Promise<IncompleteDatePhotosGroup>;
   photosWithoutTimestamp(page: number): Promise<{ results: PigPhoto[]; next?: string | null }>;
   people(): Promise<PersonList>;
   userAlbumsList(): Promise<UserAlbumInfo[]>;

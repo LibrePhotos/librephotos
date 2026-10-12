@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { DatePhotosGroup } from "./common";
+import { DatePhotosGroup, IntegerId } from "./common";
 
 export const Person = z.object({
   name: z.string(),
@@ -22,7 +22,7 @@ export const FetchPeopleAlbumsResponse = z.object({
 export type FetchPeopleAlbumsResponse = z.infer<typeof FetchPeopleAlbumsResponse>;
 
 export const PersonAlbum = z.object({
-  id: z.string(),
+  id: IntegerId,
   name: z.string(),
   grouped_photos: DatePhotosGroup.array(),
 });

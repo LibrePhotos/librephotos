@@ -75,7 +75,7 @@ describe("date-album queries with a timeline filter", () => {
     stubs.get.mockReset();
     stubs.get.mockResolvedValue({ results: { id: "1", date: null, location: null, items: [], numberOfItems: 0 } });
     function Day() {
-      useFetchDateAlbumQuery({ photosetType: Photoset.NONE, album_date_id: "1", page: 2, timelineFilter: filter });
+      useFetchDateAlbumQuery({ photosetType: Photoset.NONE, album_date_id: 1, page: 2, timelineFilter: filter });
       return null;
     }
     await render(<Day />);

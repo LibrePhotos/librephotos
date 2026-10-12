@@ -87,7 +87,7 @@ export function useDateAlbumsQuery(photoset: Photoset = Photoset.TIMESTAMP) {
 
 export function useDateAlbumQuery(
   photoset: Photoset,
-  albumDateId: string,
+  albumDateId: number,
   page: number,
   options?: { enabled?: boolean }
 ) {

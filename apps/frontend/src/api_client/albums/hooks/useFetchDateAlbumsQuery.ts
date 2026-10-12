@@ -19,7 +19,7 @@ export const DATE_ALBUM_PAGE_SIZE = 100;
 // `/albums/date/<id>/?page=<n>` for the same photoset / person / user /
 // folder / media-type / timeline filter as the list being loaded.
 export type CachedDateAlbumPage<T = PigPhoto> = {
-  albumDateId: string;
+  albumDateId: number;
   page: number;
   items: T[];
 };
@@ -65,7 +65,7 @@ function getCachedDateAlbumPages(listKey: DateAlbumsListKey): CachedDateAlbumPag
       const data = queryClient.getQueryData<IncompleteDatePhotosGroup>(query.queryKey);
       if (
         query.state.isInvalidated ||
-        typeof albumDateId !== "string" ||
+        typeof albumDateId !== "number" ||
         typeof page !== "number" ||
         !data?.items ||
         qPersonId !== personId ||

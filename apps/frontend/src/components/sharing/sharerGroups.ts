@@ -1,4 +1,4 @@
-import type { IncompleteDatePhotosGroup, PigPhoto } from "../../api_client/photos/types";
+import type { DatePhotosGroup, PigPhoto } from "../../api_client/photos/types";
 
 type NamedUser = Readonly<{ id: number; username: string; first_name: string; last_name: string }>;
 
@@ -11,6 +11,9 @@ export function sharerName(owner: NamedUser | undefined, fallback: string): stri
 }
 
 type SharerPhotos = Readonly<{ userId: number; photos: PigPhoto[] }>;
+
+/** A user's group: complete, so its string id is only a key (a date album's id is a number). */
+type SharerGroup = DatePhotosGroup & { id: string; numberOfItems: number; incomplete: false };
 
 /**
  * The shared photos as one photo list with a group per user, so the page has one scroll container
@@ -25,7 +28,7 @@ export function sharerPhotoGroups(
     fallbackName,
     countLabel,
   }: Readonly<{ fallbackName: (userId: number) => string; countLabel: (count: number) => string }>
-): IncompleteDatePhotosGroup[] {
+): SharerGroup[] {
   return groups.map(group => ({
     id: `user-${group.userId}`,
     location: sharerName(

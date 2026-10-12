@@ -244,9 +244,9 @@ describe("the main timeline filter", () => {
       root.render(<Timeline />);
     });
     await act(async () => {
-      defined(listProps().updateGroups)([{ id: "day-1", date: null, items: [placeholder] }]);
+      defined(listProps().updateGroups)([{ id: 1, date: null, items: [placeholder] }]);
     });
-    expect(defined(stubs.dayCalls.at(-1)).options.album_date_id).toBe("day-1");
+    expect(defined(stubs.dayCalls.at(-1)).options.album_date_id).toBe(1);
     expect(defined(stubs.dayCalls.at(-1)).queryOptions?.skip).toBe(false);
 
     stubs.search = { media: "videos" };

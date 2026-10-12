@@ -24,6 +24,17 @@ export const PageFields = {
   num_pages: z.number().optional(),
 };
 
+/**
+ * An integer primary key. Some endpoints sent theirs as a string ("12"), others
+ * as a number (issue #389); this reads both and always gives a number, so ids
+ * from different responses compare and key alike. Use it for every id a server
+ * has ever sent as a string: a client must keep reading an older server.
+ * The contract test (openapi-contract.ts) recognises it by its `x-id` mark.
+ */
+export const IntegerId = z
+  .union([z.number().int(), z.string().regex(/^\d+$/, "Invalid id").transform(Number)])
+  .meta({ "x-id": true });
+
 export const SimpleUser = z.object({
   id: z.number(),
   username: z.string(),
@@ -104,7 +115,7 @@ export type DatePhotosGroup = z.infer<typeof DatePhotosGroup>;
 
 /** A date group as returned by the paginated date-album list (with cursor id + lazy items). */
 export const IncompleteDatePhotosGroup = DatePhotosGroup.extend({
-  id: z.string(),
+  id: IntegerId,
   incomplete: z.boolean(),
   numberOfItems: z.number(),
 });

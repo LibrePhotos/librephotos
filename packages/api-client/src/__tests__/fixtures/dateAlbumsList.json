@@ -1,7 +1,7 @@
 {
   "results": [
     {
-      "id": "2024-06-15",
+      "id": "12",
       "date": "2024-06-15",
       "location": "Berlin, Germany",
       "incomplete": true,
@@ -26,7 +26,7 @@
       ]
     },
     {
-      "id": "no-timestamp",
+      "id": 13,
       "date": null,
       "location": null,
       "incomplete": true,
