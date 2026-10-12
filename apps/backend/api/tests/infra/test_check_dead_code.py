@@ -57,7 +57,16 @@ class PlantedSerializer(serializers.Serializer):
         return value
 
 
+# A generic base (the typed request serializers) is a serializer too.
+class PlantedRequest(serializers.Serializer[None]):
+    planted_value = serializers.CharField()
+
+    def validate_planted_value(self, value: str) -> str:
+        return value
+
+
 PlantedSerializer
+PlantedRequest
 """
 
 _TEST_CALLER = """from api.util import planted_test_only_helper

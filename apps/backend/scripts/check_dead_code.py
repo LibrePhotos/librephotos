@@ -139,6 +139,8 @@ def _expr_name(node: ast.expr) -> str:
         return node.attr
     if isinstance(node, ast.Call):
         return _expr_name(node.func)
+    if isinstance(node, ast.Subscript):  # a generic base: Serializer[None]
+        return _expr_name(node.value)
     return ""
 
 
