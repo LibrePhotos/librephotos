@@ -116,6 +116,23 @@ export const importBans = [
       "Call a hook or function from src/api_client/<domain> (add one there), not apiClient: requests start in the API layer.",
     allowIn: ["src/api_client/**/*.{ts,tsx}", "src/index.tsx"],
   },
+  // The API layer (AGENTS.md, issue #2347): packages/api-client owns every request, its zod schema
+  // and its parse; src/api_client keeps thin hooks around endpoints.*. Old offenders sit in
+  // eslint-suppressions.json and leave it domain by domain.
+  {
+    id: "api-client-zod",
+    files: ["src/api_client/**/*.{ts,tsx}"],
+    group: ["zod", "zod/*"],
+    message:
+      "Response schemas live in packages/api-client/src/schemas; src/api_client/<domain>/types.ts only re-exports them.",
+  },
+  {
+    id: "api-client-zod-utils",
+    files: ["src/api_client/**/*.{ts,tsx}"],
+    group: ["**/util/zodUtils"],
+    message:
+      "Parse in the package endpoint (parseResponse); the web hook calls endpoints.* from @librephotos/api-client.",
+  },
 ];
 
 // no-restricted-syntax: `selector` (an AST selector).
@@ -321,6 +338,17 @@ export const propertyBans = [
     property: "dispatchEvent",
     message: eventMessage,
     allowIn: ["**/*.test.{ts,tsx}"],
+  },
+  {
+    // Every request is an endpoint function in packages/api-client (parsed, typed, shared with
+    // mobile); a web hook calls endpoints.<name>(apiClient, ...), never a method of the client.
+    // Exempt: api.ts, which builds the client, and tests, which stub its methods.
+    id: "api-client-method",
+    files: APP_FILES,
+    object: "apiClient",
+    message:
+      "Call endpoints.<name>(apiClient, ...) from @librephotos/api-client; add the endpoint and its schema there (AGENTS.md, API layer).",
+    allowIn: ["src/api_client/api.ts", ...TEST_FILES],
   },
 ];
 
