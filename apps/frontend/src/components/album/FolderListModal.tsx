@@ -148,7 +148,7 @@ const FolderListModal = memo<FolderListModalProps>(
       <Modal
         opened={opened}
         onClose={onClose}
-        title={`${t("all_subfolders", { defaultValue: "All subfolders" })}`}
+        title={`${t("all_subfolders")}`}
         size={isMobile ? "90%" : "lg"}
         centered
         scrollAreaComponent={ScrollArea.Autosize}
@@ -160,7 +160,7 @@ const FolderListModal = memo<FolderListModalProps>(
             onChange={event => {
               setFolderSearch(event.currentTarget.value);
             }}
-            placeholder={t("filter_folders", { defaultValue: "Filter by name or path..." })}
+            placeholder={t("filter_folders")}
             leftSection={<IconSearch size={16} />}
             size="md"
             radius="md"
@@ -168,11 +168,11 @@ const FolderListModal = memo<FolderListModalProps>(
 
           <Group justify="space-between" align="center">
             <Text size="sm" c="dimmed" fw={500}>
-              {t("results", { defaultValue: "Results" })}: {filteredSubfolders.length}
+              {t("results")}: {filteredSubfolders.length}
             </Text>
             {hasNextPage && (
               <Badge variant="light" color="blue" size="sm">
-                {t("more_available", { defaultValue: "More available" })}
+                {t("more_available")}
               </Badge>
             )}
           </Group>
@@ -200,10 +200,10 @@ const FolderListModal = memo<FolderListModalProps>(
                       <Folder size={24} />
                     </Avatar>
                     <Text size="sm" c="dimmed" fw={500}>
-                      {t("no_folders_found", { defaultValue: "No folders found" })}
+                      {t("no_folders_found")}
                     </Text>
                     <Text size="xs" c="dimmed">
-                      {t("try_different_search", { defaultValue: "Try adjusting your search terms" })}
+                      {t("try_different_search")}
                     </Text>
                   </Stack>
                 </Box>

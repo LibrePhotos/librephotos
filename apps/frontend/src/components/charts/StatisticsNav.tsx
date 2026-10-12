@@ -8,6 +8,7 @@ import {
   IconVectorTriangle,
 } from "@tabler/icons-react";
 import { useLocation, useNavigate } from "@tanstack/react-router";
+import type { ParseKeys } from "i18next";
 import { useTranslation } from "react-i18next";
 import { FeatureBoundary } from "../common/FeatureBoundary";
 import { PageHeader } from "../PageHeader";
@@ -16,7 +17,7 @@ type StatisticsNavProps = {
   children: React.ReactNode;
 };
 
-const views = [
+const views: ReadonlyArray<{ path: string; labelKey: ParseKeys; icon: typeof IconChartBar }> = [
   { path: "/statistics/placetree", labelKey: "sidemenu.placetree", icon: IconVectorTriangle },
   { path: "/statistics/timeline", labelKey: "sidemenu.timeline", icon: IconChartBar },
   { path: "/statistics/wordclouds", labelKey: "sidemenu.wordclouds", icon: IconCloud },
@@ -35,8 +36,8 @@ export function StatisticsNav({ children }: StatisticsNavProps) {
       <PageHeader
         icon={IconChartLine}
         iconColor="var(--mantine-color-yellow-6)"
-        title={t("statistics.title", "Statistics")}
-        subtitle={t("countstats.explorecharts", "Explore charts")}
+        title={t("statistics.title")}
+        subtitle={t("countstats.explorecharts")}
       />
 
       <div style={{ padding: 10 }}>

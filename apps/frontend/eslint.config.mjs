@@ -180,6 +180,28 @@ export const syntaxBans = [
     message: "First loads render <PageLoader /> (components/common/PageLoader).",
     allowIn: ["src/components/common/PageLoader.tsx", "src/components/lightbox/VideoPlayer.tsx"],
   })),
+  // Translations (AGENTS.md): the English text lives only in src/locales/en/translation.json, which
+  // Weblate translates; a copy in the code drifts from it and never reaches translators. Keys are
+  // type-checked against that file (src/@types/i18next.d.ts).
+  {
+    id: "t-default",
+    selector:
+      "CallExpression:matches([callee.name='t'], [callee.property.name='t']) > :not(ObjectExpression):nth-child(2)",
+    message: "No English default in t(): add the string to src/locales/en/translation.json and call t(key).",
+  },
+  {
+    id: "t-default-value",
+    selector:
+      "CallExpression:matches([callee.name='t'], [callee.property.name='t']) > ObjectExpression > Property[key.name='defaultValue']",
+    message: "No defaultValue in t(): add the string to src/locales/en/translation.json and call t(key).",
+  },
+  {
+    id: "trans-children",
+    selector:
+      "JSXElement[openingElement.name.name='Trans'] > :matches(JSXText[value=/\\S/], JSXExpressionContainer, JSXElement)",
+    message:
+      'No children in <Trans>: the text lives in src/locales/en/translation.json. Use <Trans i18nKey="..." components={...} />, or t(key).',
+  },
   {
     // Render errors in a feature are caught by the one FeatureBoundary (components/common/FeatureBoundary).
     id: "error-boundary",

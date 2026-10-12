@@ -61,8 +61,15 @@ green CI run. To develop against a local backend, copy `.env.development.example
   `errors[0].code`), never on message text; show only `serverMessage`, never `message`.
 - `packages/api-client` runs on this app's zod and React Query (`resolve.dedupe`, tsconfig `paths`) and on the mobile app's: shared schemas use zod 4 APIs only, and a zod or React Query bump here moves `apps/mobile`, the package and the root `package.json` too (`scripts/check-shared-deps.mjs` fails otherwise). `yarn test` runs the package's suite as the `api-client` vitest project.
 - A response schema in `packages/api-client` is listed in `src/__tests__/contract-map.ts` with its OpenAPI component (or in `UNMAPPED` with the reason), and `openapi.contract.test.ts` compares the two (field names, required, nullability, types) against `apps/backend/openapi.json`. A difference fails unless `contract-baseline.json` lists it with a reason; that file only shrinks. Optional-for-older-servers is allowed and needs no entry.
-- User-visible text uses `t()` with a key in `src/locales/en/translation.json`. Never edit the other
-  locales; Weblate fills them in.
+- User-visible text uses `t()` with a key in `src/locales/en/translation.json`: add the English string
+  there first. Never edit the other locales; Weblate fills them in.
+- Translation keys are type-checked against the English file (`src/@types/i18next.d.ts`), so `t()` takes
+  a key literal, never a `string`. A key picked at runtime comes from a typed map
+  (`Partial<Record<Value, ParseKeys>>`, e.g. `components/job/jobTypeLabel.ts`, with a fallback for a value
+  the map lacks) or a template literal over a union type. No English defaults (`t(key, "Text")`,
+  `defaultValue`) and no children in `<Trans>` (`ban/t-default*`, `ban/trans-children`).
+  `src/i18n.keys.test.ts` fails on an English key no source file uses; `src/locales/unusedKeysBaseline.txt`
+  only shrinks.
 - Colours come from the Mantine theme or CSS variables so dark mode works.
 - Every page header is `components/PageHeader` (the page's one `h1`); `PageHeader.test.tsx` fails on any other `order={1}` or `<h1` in source.
 - Dialogs are components: a `*Modal.tsx` with `opened` and `onClose` props (under `components/modals` when shared, next to its feature otherwise), opened by its parent with `useDisclosure` from `@mantine/hooks`. Lint bans `<Modal` in `src/routes`, `useState` for open state and `@mantine/modals`, so there is one way to open a dialog.

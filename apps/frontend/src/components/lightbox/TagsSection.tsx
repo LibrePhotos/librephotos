@@ -98,24 +98,24 @@ function TagsEditor({ photoDetail }: TagsSectionProps) {
           </Tooltip>
         ) : (
           <Group gap="xs">
-            <Tooltip label={t("lightbox.sidebar.cancel", "Cancel")}>
+            <Tooltip label={t("lightbox.sidebar.cancel")}>
               <ActionIcon
                 variant="subtle"
                 color="gray"
                 size="sm"
-                aria-label={t("lightbox.sidebar.cancel", "Cancel")}
+                aria-label={t("lightbox.sidebar.cancel")}
                 onClick={handleCancel}
                 disabled={isSaving}
               >
                 <IconX size={16} />
               </ActionIcon>
             </Tooltip>
-            <Tooltip label={t("lightbox.sidebar.save", "Save")}>
+            <Tooltip label={t("lightbox.sidebar.save")}>
               <ActionIcon
                 variant="subtle"
                 color="blue"
                 size="sm"
-                aria-label={t("lightbox.sidebar.save", "Save")}
+                aria-label={t("lightbox.sidebar.save")}
                 onClick={handleSave}
                 loading={isSaving}
               >

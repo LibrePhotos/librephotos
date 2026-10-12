@@ -92,7 +92,7 @@ export function Settings() {
       <Stack>
         <Card shadow="md">
           <Title order={4} mb={16}>
-            <Trans i18nKey="settings.scanoptions">Scan Options</Trans>
+            <Trans i18nKey="settings.scanoptions" />
           </Title>
           <Flex align="flex-start" direction="column" gap="md">
             <Radio.Group
@@ -129,7 +129,7 @@ export function Settings() {
         </Card>
         <Card shadow="md">
           <Title order={4} mb={16}>
-            <Trans i18nKey="settings.metadata">Metadata</Trans>
+            <Trans i18nKey="settings.metadata" />
           </Title>
           <Flex align="flex-start" direction="column" gap="md">
             <Radio.Group
@@ -267,7 +267,7 @@ export function Settings() {
         </Card>
         <Card shadow="md">
           <Title order={4} mb={16}>
-            <Trans i18nKey="settings.experimentaloptions">Experimental options</Trans>
+            <Trans i18nKey="settings.experimentaloptions" />
           </Title>
           <Switch
             label={t("settings.transcodevideo")}
@@ -284,7 +284,7 @@ export function Settings() {
         <Card shadow="md">
           <Stack>
             <Title order={4}>
-              <Trans i18nKey="settings.captioncontext">Caption Context</Trans>
+              <Trans i18nKey="settings.captioncontext" />
             </Title>
             <Switch
               label={t("settings.captioncontextenable")}
@@ -331,7 +331,7 @@ export function Settings() {
         <Card shadow="md">
           <Stack>
             <Title order={4}>
-              <Trans i18nKey="settings.publicsharingdefaults">Public Sharing Defaults</Trans>
+              <Trans i18nKey="settings.publicsharingdefaults" />
             </Title>
             <Text size="sm" c="dimmed">
               {t("settings.publicsharingdefaultsdesc")}
@@ -405,7 +405,7 @@ export function Settings() {
         </Card>
         <Card shadow="md">
           <Title order={4} mb={16}>
-            <Trans i18nKey="settings.interface">Interface</Trans>
+            <Trans i18nKey="settings.interface" />
           </Title>
           <Flex align="flex-start" direction="column" gap="md">
             <Select
@@ -428,7 +428,7 @@ export function Settings() {
         </Card>
         <Card shadow="md">
           <Title order={4} mb={16}>
-            <Trans i18nKey="settings.duplicatedetection">Duplicate Detection</Trans>
+            <Trans i18nKey="settings.duplicatedetection" />
           </Title>
           <Flex align="flex-start" direction="column" gap="md">
             <Radio.Group

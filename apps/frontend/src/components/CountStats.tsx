@@ -128,7 +128,7 @@ export function CountStats() {
             <Stack gap="xs">
               <Group justify="space-between">
                 <Text size="sm">
-                  <Trans i18nKey="settings.inferred">Inferred</Trans>
+                  <Trans i18nKey="settings.inferred" />
                 </Text>
                 <Group gap="xs">
                   <FaceId size={16} />
@@ -137,7 +137,7 @@ export function CountStats() {
               </Group>
               <Group justify="space-between">
                 <Text size="sm">
-                  <Trans i18nKey="settings.labeled">Labeled</Trans>
+                  <Trans i18nKey="settings.labeled" />
                 </Text>
                 <Group gap="xs">
                   <Tag size={16} />
@@ -146,7 +146,7 @@ export function CountStats() {
               </Group>
               <Group justify="space-between">
                 <Text size="sm">
-                  <Trans i18nKey="settings.unknown">Unknown</Trans>
+                  <Trans i18nKey="settings.unknown" />
                 </Text>
                 <Group gap="xs">
                   <QuestionMark size={16} />
@@ -220,7 +220,7 @@ export function CountStats() {
                     {t("sidemenu.statistics")}
                   </Text>
                   <Text c="dimmed" size="xs">
-                    {t("countstats.explorecharts", "Explore charts")}
+                    {t("countstats.explorecharts")}
                   </Text>
                 </div>
               </Group>

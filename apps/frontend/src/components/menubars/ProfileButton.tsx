@@ -54,7 +54,7 @@ export function ProfileButton(): React.ReactNode {
         {workerBusy && <WorkerJobMenuSection job={workerRunningJob} />}
 
         <Menu.Label>
-          <Trans i18nKey="topmenu.loggedin">Logged in as</Trans> {user ? user.username : ""}
+          <Trans i18nKey="topmenu.loggedin" /> {user ? user.username : ""}
         </Menu.Label>
 
         <Menu.Item leftSection={<Book size={14} />} onClick={() => navigate({ to: "/library" })}>

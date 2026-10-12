@@ -93,9 +93,7 @@ export function LocationPickerModal({ imageHash, onClose, initialLat, initialLon
 
   const handleUseMyLocation = useCallback(() => {
     if (!navigator.geolocation) {
-      setGeolocationError(
-        t("locationpicker.geolocation_not_supported", "Geolocation is not supported by your browser")
-      );
+      setGeolocationError(t("locationpicker.geolocation_not_supported"));
       return;
     }
 
@@ -114,16 +112,16 @@ export function LocationPickerModal({ imageHash, onClose, initialLat, initialLon
         setIsGeolocating(false);
         switch (error.code) {
           case error.PERMISSION_DENIED:
-            setGeolocationError(t("locationpicker.permission_denied", "Location permission denied"));
+            setGeolocationError(t("locationpicker.permission_denied"));
             break;
           case error.POSITION_UNAVAILABLE:
-            setGeolocationError(t("locationpicker.position_unavailable", "Location unavailable"));
+            setGeolocationError(t("locationpicker.position_unavailable"));
             break;
           case error.TIMEOUT:
-            setGeolocationError(t("locationpicker.timeout", "Location request timed out"));
+            setGeolocationError(t("locationpicker.timeout"));
             break;
           default:
-            setGeolocationError(t("locationpicker.unknown_error", "An unknown error occurred"));
+            setGeolocationError(t("locationpicker.unknown_error"));
         }
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
@@ -168,7 +166,7 @@ export function LocationPickerModal({ imageHash, onClose, initialLat, initialLon
         >
           <Combobox.Target>
             <TextInput
-              placeholder={t("locationpicker.search_placeholder", "Search for a location...")}
+              placeholder={t("locationpicker.search_placeholder")}
               value={searchValue}
               onChange={e => {
                 setSearchValue(e.currentTarget.value);
@@ -192,22 +190,20 @@ export function LocationPickerModal({ imageHash, onClose, initialLat, initialLon
                 searchOptions
               ) : (
                 <Combobox.Empty>
-                  {debouncedSearch.length > 2
-                    ? t("locationpicker.no_results", "No locations found")
-                    : t("locationpicker.type_to_search", "Type at least 3 characters to search")}
+                  {debouncedSearch.length > 2 ? t("locationpicker.no_results") : t("locationpicker.type_to_search")}
                 </Combobox.Empty>
               )}
             </Combobox.Options>
           </Combobox.Dropdown>
         </Combobox>
 
-        <Tooltip label={t("locationpicker.use_my_location", "Use my current location")}>
+        <Tooltip label={t("locationpicker.use_my_location")}>
           <ActionIcon
             variant="light"
             size="lg"
             onClick={handleUseMyLocation}
             loading={isGeolocating}
-            aria-label={t("locationpicker.use_my_location", "Use my current location")}
+            aria-label={t("locationpicker.use_my_location")}
           >
             <IconCurrentLocation size={18} />
           </ActionIcon>
@@ -221,12 +217,7 @@ export function LocationPickerModal({ imageHash, onClose, initialLat, initialLon
       )}
 
       <Text size="sm" c="dimmed">
-        {mapsDisabled
-          ? t(
-              "locationpicker.instructions_no_map",
-              "Search above or use your current location to set the location. The map is turned off in site settings."
-            )
-          : t("locationpicker.instructions", "Click on the map to set the location, or search above.")}
+        {mapsDisabled ? t("locationpicker.instructions_no_map") : t("locationpicker.instructions")}
       </Text>
 
       {mapStyle !== null && (
@@ -262,7 +253,7 @@ export function LocationPickerModal({ imageHash, onClose, initialLat, initialLon
 
       {position && (
         <Text size="xs" c="dimmed">
-          {t("locationpicker.coordinates", "Coordinates")}: {position[0].toFixed(6)}, {position[1].toFixed(6)}
+          {t("locationpicker.coordinates")}: {position[0].toFixed(6)}, {position[1].toFixed(6)}
         </Text>
       )}
 

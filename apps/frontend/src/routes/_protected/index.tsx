@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import { useFetchDateAlbumQuery, useFetchDateAlbumsQuery } from "../../api_client/albums/hooks";
 import type { PigPhoto } from "../../api_client/photos/types";
 import { Photoset } from "../../api_client/photos/types";
+import { jobTypeLabel } from "../../components/job/jobTypeLabel";
 import { MemoriesStrip } from "../../components/memories/MemoriesStrip";
 import { NO_PHOTO_GROUP, type PhotoGroup } from "../../components/photolist/photoGroup";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
@@ -97,8 +98,7 @@ function TimestampPhotos() {
     if (isScanRunning && workerRunningJob) {
       return {
         icon: <Photo size={40} />,
-        // The English job name is also the translation key, as in the job list.
-        title: `${t("emptystate.scanning.title")} — ${t(workerRunningJob.job_type_str)}`,
+        title: `${t("emptystate.scanning.title")} — ${jobTypeLabel(workerRunningJob, t)}`,
         description: t("emptystate.scanning.refresh"),
         actionLabel: t("emptystate.scanning.refreshButton"),
         onAction: () => refetch(),

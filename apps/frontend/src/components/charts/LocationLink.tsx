@@ -376,7 +376,7 @@ export function LocationLink({ margin = { top: 0, left: 0, right: 0, bottom: 0 }
         <div className={styles.loadingOverlay}>
           <Loader size="lg" color="blue" />
           <Text c="dimmed" size="sm">
-            {t("placetree.loading", "Loading place tree...")}
+            {t("placetree.loading")}
           </Text>
         </div>
       </div>
@@ -393,11 +393,8 @@ export function LocationLink({ margin = { top: 0, left: 0, right: 0, bottom: 0 }
         <div className={styles.emptyContainer}>
           <EmptyState
             icon={<IconVectorTriangle size={40} />}
-            title={t("emptystate.placetree.title", "No location data yet")}
-            description={t(
-              "emptystate.placetree.description",
-              "Upload photos with location information to see your places visualized as a tree."
-            )}
+            title={t("emptystate.placetree.title")}
+            description={t("emptystate.placetree.description")}
             actionLabel={t("emptystate.goToLibrary")}
             actionLink="/library"
           />
@@ -414,7 +411,7 @@ export function LocationLink({ margin = { top: 0, left: 0, right: 0, bottom: 0 }
       <div className={styles.controlsToolbar}>
         {/* Layout Section */}
         <div className={styles.toolbarGroup}>
-          <Tooltip label={t("placetree.cartesian", "Tree Layout")} position="bottom" withArrow>
+          <Tooltip label={t("placetree.cartesian")} position="bottom" withArrow>
             <ActionIcon
               variant={layout === "cartesian" ? "filled" : "subtle"}
               color={layout === "cartesian" ? "blue" : "gray"}
@@ -425,7 +422,7 @@ export function LocationLink({ margin = { top: 0, left: 0, right: 0, bottom: 0 }
               <IconTree size={18} />
             </ActionIcon>
           </Tooltip>
-          <Tooltip label={t("placetree.polar", "Radial Layout")} position="bottom" withArrow>
+          <Tooltip label={t("placetree.polar")} position="bottom" withArrow>
             <ActionIcon
               variant={layout === "polar" ? "filled" : "subtle"}
               color={layout === "polar" ? "blue" : "gray"}
@@ -442,7 +439,7 @@ export function LocationLink({ margin = { top: 0, left: 0, right: 0, bottom: 0 }
           <>
             <div className={styles.toolbarDivider} />
             <div className={styles.toolbarGroup}>
-              <Tooltip label={t("placetree.horizontal", "Horizontal")} position="bottom" withArrow>
+              <Tooltip label={t("placetree.horizontal")} position="bottom" withArrow>
                 <ActionIcon
                   variant={orientation === "horizontal" ? "filled" : "subtle"}
                   color={orientation === "horizontal" ? "cyan" : "gray"}
@@ -453,7 +450,7 @@ export function LocationLink({ margin = { top: 0, left: 0, right: 0, bottom: 0 }
                   <IconArrowsHorizontal size={18} />
                 </ActionIcon>
               </Tooltip>
-              <Tooltip label={t("placetree.vertical", "Vertical")} position="bottom" withArrow>
+              <Tooltip label={t("placetree.vertical")} position="bottom" withArrow>
                 <ActionIcon
                   variant={orientation === "vertical" ? "filled" : "subtle"}
                   color={orientation === "vertical" ? "cyan" : "gray"}
@@ -472,7 +469,7 @@ export function LocationLink({ margin = { top: 0, left: 0, right: 0, bottom: 0 }
 
         {/* Link Style Section */}
         <div className={styles.toolbarGroup}>
-          <Tooltip label={t("placetree.curve", "Curved Lines")} position="bottom" withArrow>
+          <Tooltip label={t("placetree.curve")} position="bottom" withArrow>
             <ActionIcon
               variant={linkType === "curve" ? "filled" : "subtle"}
               color={linkType === "curve" ? "violet" : "gray"}
@@ -483,7 +480,7 @@ export function LocationLink({ margin = { top: 0, left: 0, right: 0, bottom: 0 }
               <IconRouteAltLeft size={18} />
             </ActionIcon>
           </Tooltip>
-          <Tooltip label={t("placetree.step", "Step Lines")} position="bottom" withArrow>
+          <Tooltip label={t("placetree.step")} position="bottom" withArrow>
             <ActionIcon
               variant={linkType === "step" ? "filled" : "subtle"}
               color={linkType === "step" ? "violet" : "gray"}
@@ -494,7 +491,7 @@ export function LocationLink({ margin = { top: 0, left: 0, right: 0, bottom: 0 }
               <IconStairs size={18} />
             </ActionIcon>
           </Tooltip>
-          <Tooltip label={t("placetree.line", "Straight Lines")} position="bottom" withArrow>
+          <Tooltip label={t("placetree.line")} position="bottom" withArrow>
             <ActionIcon
               variant={linkType === "line" ? "filled" : "subtle"}
               color={linkType === "line" ? "violet" : "gray"}
@@ -510,19 +507,19 @@ export function LocationLink({ margin = { top: 0, left: 0, right: 0, bottom: 0 }
 
       {/* Zoom Controls */}
       <div className={styles.zoomControls}>
-        <Tooltip label={t("placetree.zoomIn", "Zoom in (+)")} position="left">
+        <Tooltip label={t("placetree.zoomIn")} position="left">
           <button className={styles.zoomButton} onClick={handleZoomIn} type="button" aria-label="Zoom in">
             <IconPlus size={18} />
           </button>
         </Tooltip>
         <div className={styles.zoomLevel}>{Math.round(zoom * 100)}%</div>
-        <Tooltip label={t("placetree.zoomOut", "Zoom out (-)")} position="left">
+        <Tooltip label={t("placetree.zoomOut")} position="left">
           <button className={styles.zoomButton} onClick={handleZoomOut} type="button" aria-label="Zoom out">
             <IconMinus size={18} />
           </button>
         </Tooltip>
         <div className={styles.zoomDivider} />
-        <Tooltip label={t("placetree.reset", "Reset view (0)")} position="left">
+        <Tooltip label={t("placetree.reset")} position="left">
           <button className={styles.zoomButton} onClick={handleReset} type="button" aria-label="Reset view">
             <IconFocus size={18} />
           </button>
@@ -530,9 +527,7 @@ export function LocationLink({ margin = { top: 0, left: 0, right: 0, bottom: 0 }
       </div>
 
       {/* Hint */}
-      {showHint && (
-        <div className={styles.hint}>{t("placetree.hint", "Click nodes to expand • Drag to pan • Scroll to zoom")}</div>
-      )}
+      {showHint && <div className={styles.hint}>{t("placetree.hint")}</div>}
 
       {/* SVG Canvas */}
       <svg
@@ -543,7 +538,7 @@ export function LocationLink({ margin = { top: 0, left: 0, right: 0, bottom: 0 }
         onMouseMove={handlePan}
         onWheel={handleWheel}
         tabIndex={0}
-        aria-label={t("placetree.ariaLabel", "Interactive place tree visualization")}
+        aria-label={t("placetree.ariaLabel")}
       >
         <defs>
           <LinearGradient
@@ -720,9 +715,7 @@ export function LocationLink({ margin = { top: 0, left: 0, right: 0, bottom: 0 }
         >
           <div className={styles.tooltipTitle}>{tooltip.name}</div>
           {tooltip.value && <div className={styles.tooltipCount}>{photoCount(tooltip.value)}</div>}
-          {tooltip.hasChildren && (
-            <div className={styles.tooltipHint}>{t("placetree.clickToExpand", "Click to expand/collapse")}</div>
-          )}
+          {tooltip.hasChildren && <div className={styles.tooltipHint}>{t("placetree.clickToExpand")}</div>}
         </div>
       )}
     </div>

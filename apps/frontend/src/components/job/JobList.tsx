@@ -11,6 +11,7 @@ import { DeleteJobButton } from "./DeleteJobButton";
 import { JobDuration } from "./JobDuration";
 import { JobIndicator } from "./JobIndicator";
 import { JobProgress } from "./JobProgress";
+import { jobTypeLabel } from "./jobTypeLabel";
 
 type IJobList = Readonly<{
   /**
@@ -92,7 +93,7 @@ export function JobList({ variant = "admin" }: IJobList) {
                 <Table.Td>
                   <JobIndicator job={job} />
                 </Table.Td>
-                <Table.Td>{t(job.job_type_str)}</Table.Td>
+                <Table.Td>{jobTypeLabel(job, t)}</Table.Td>
                 <Table.Td>
                   <JobProgress
                     target={job.progress_target}

@@ -146,9 +146,7 @@ function FolderDetail() {
                 },
               }}
             >
-              {isSmallMobile
-                ? t("back", { defaultValue: "Back" })
-                : t("back_to_parent", { defaultValue: "Back to Parent" })}
+              {isSmallMobile ? t("back") : t("back_to_parent")}
             </Button>
           ) : (
             <Button
@@ -164,9 +162,7 @@ function FolderDetail() {
                 },
               }}
             >
-              {isSmallMobile
-                ? t("folders", { defaultValue: "Folders" })
-                : t("back_to_folders", { defaultValue: "Back to Folders" })}
+              {isSmallMobile ? t("folders") : t("back_to_folders")}
             </Button>
           )}
 
@@ -210,9 +206,9 @@ function FolderDetail() {
                   fontSize: isMobile ? "12px" : "13px",
                 },
               }}
-              title={t("show_all_subfolders", { defaultValue: "Show all subfolders" })}
+              title={t("show_all_subfolders")}
             >
-              +{subfolders.length - maxFolders} {t("more", { defaultValue: "more" })}
+              +{subfolders.length - maxFolders} {t("more")}
             </Button>
           )}
           <FolderListModal
@@ -228,7 +224,7 @@ function FolderDetail() {
 
   return (
     <PhotoListView
-      title={folderName(folderPath) || t("folder", { defaultValue: "Folder" })}
+      title={folderName(folderPath) || t("folder")}
       additionalSubHeader={getSubheader()}
       loading={isLoading}
       icon={Folder}

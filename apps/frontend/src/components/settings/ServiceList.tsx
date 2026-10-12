@@ -9,19 +9,10 @@ import {
   useServicesHealthQuery,
   useServicesListQuery,
 } from "../../api_client/services/hooks/useServicesQuery";
+import { serviceLabel } from "./serviceLabel";
 
 // English names; t("services.label_<name>") translates them, and a service the frontend does not
 // know yet shows its raw name.
-const SERVICE_LABELS: Record<string, string> = {
-  image_similarity: "Image Similarity",
-  thumbnail: "Thumbnail",
-  face_recognition: "Face Recognition",
-  image_captioning: "Image Captioning",
-  exif: "EXIF",
-  tags: "Tags and Search",
-  ocr: "OCR",
-};
-
 export function ServiceList() {
   const { t } = useTranslation();
   const { data: servicesList, isLoading: isLoadingList } = useServicesListQuery();
@@ -81,7 +72,7 @@ export function ServiceList() {
 
                 return (
                   <Table.Tr key={name}>
-                    <Table.Td>{t(`services.label_${name}`, SERVICE_LABELS[name] ?? name)}</Table.Td>
+                    <Table.Td>{serviceLabel(name, t)}</Table.Td>
                     <Table.Td visibleFrom="sm">{port}</Table.Td>
                     <Table.Td>
                       {healthMap === undefined && <Loader size="xs" />}

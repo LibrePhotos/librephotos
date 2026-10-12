@@ -28,7 +28,7 @@ export function MapDisabledPlaceholder({ height = 200 }: Props) {
       <Stack align="center" gap={4}>
         <IconMapOff size={28} color="var(--mantine-color-gray-5)" />
         <Text size="sm" c="dimmed" ta="center">
-          {t("map.display_disabled", "Map display is turned off in site settings.")}
+          {t("map.display_disabled")}
         </Text>
       </Stack>
     </Center>

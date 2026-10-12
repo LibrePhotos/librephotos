@@ -1,5 +1,6 @@
 import { ActionIcon, Alert, Button, Center, Code, Group, Loader, Stack, Text, Tooltip } from "@mantine/core";
 import { IconCopy as CopyIcon } from "@tabler/icons-react";
+import type { ParseKeys } from "i18next";
 import React, { memo, useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAccessToken } from "../../api_client/auth/hooks";
@@ -85,13 +86,13 @@ export function factToText({ label, code, suffix }: DiagnosticFact): string {
   return [label, code, suffix ? `- ${suffix}` : undefined].filter(Boolean).join(" ");
 }
 
-const REMEDY_KEYS: Record<string, string> = {
-  chmod: "remedychmod",
-  mount_options: "remedymountoptions",
-  mount_deeper: "remedymountdeeper",
-  read_only: "remedyreadonly",
-  network_fs: "remedynetworkfs",
-  labels: "remedylabels",
+const REMEDY_KEYS: Partial<Record<string, ParseKeys>> = {
+  chmod: "lightbox.videoerror.remedychmod",
+  mount_options: "lightbox.videoerror.remedymountoptions",
+  mount_deeper: "lightbox.videoerror.remedymountdeeper",
+  read_only: "lightbox.videoerror.remedyreadonly",
+  network_fs: "lightbox.videoerror.remedynetworkfs",
+  labels: "lightbox.videoerror.remedylabels",
 };
 
 /**
@@ -355,8 +356,8 @@ export const VideoPlayer = memo(function VideoPlayer({
     }
     remedies
       .map(remedy => REMEDY_KEYS[remedy])
-      .filter(Boolean)
-      .forEach(key => facts.push({ label: t(`lightbox.videoerror.${key}`) }));
+      .filter(key => key !== undefined)
+      .forEach(key => facts.push({ label: t(key) }));
     return facts;
   };
 

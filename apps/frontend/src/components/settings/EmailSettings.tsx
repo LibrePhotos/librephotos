@@ -155,9 +155,7 @@ export function EmailSettings(): React.JSX.Element {
       onError: error =>
         setTestResult({
           ok: false,
-          message:
-            (error instanceof ApiError && error.serverMessage) ||
-            t("emailsettings.testfailed", "Test email failed to send."),
+          message: (error instanceof ApiError && error.serverMessage) || t("emailsettings.testfailed"),
         }),
     });
   };
@@ -166,18 +164,15 @@ export function EmailSettings(): React.JSX.Element {
     <Card shadow="md">
       <Stack>
         <Title order={4} mb={4}>
-          {t("emailsettings.header", "Email (SMTP)")}
+          {t("emailsettings.header")}
         </Title>
         <Text fz="sm" c="dimmed">
-          {t(
-            "emailsettings.description",
-            "Configure outgoing email so the server can send account and notification emails. The credential is encrypted before it is stored."
-          )}
+          {t("emailsettings.description")}
         </Text>
 
         <Grid justify="flex-end" align="center">
           <Grid.Col span={LABEL_SPAN}>
-            <Text>{t("emailsettings.provider", "Provider")}</Text>
+            <Text>{t("emailsettings.provider")}</Text>
           </Grid.Col>
           <Grid.Col span={CONTROL_SPAN}>
             <Select
@@ -191,7 +186,7 @@ export function EmailSettings(): React.JSX.Element {
           {provider !== "disabled" && (
             <>
               <Grid.Col span={LABEL_SPAN}>
-                <Text>{t("emailsettings.from_email", "From address")}</Text>
+                <Text>{t("emailsettings.from_email")}</Text>
               </Grid.Col>
               <Grid.Col span={CONTROL_SPAN}>
                 <TextInput
@@ -204,7 +199,7 @@ export function EmailSettings(): React.JSX.Element {
               {NEEDS_HOST.has(provider) && (
                 <>
                   <Grid.Col span={LABEL_SPAN}>
-                    <Text>{t("emailsettings.host", "SMTP host")}</Text>
+                    <Text>{t("emailsettings.host")}</Text>
                   </Grid.Col>
                   <Grid.Col span={CONTROL_SPAN}>
                     <TextInput
@@ -219,10 +214,10 @@ export function EmailSettings(): React.JSX.Element {
               {!NEEDS_HOST.has(provider) && presetHost && (
                 <Grid.Col span={12}>
                   <Text fz="sm" c="dimmed">
-                    {t("emailsettings.presethost", "Sends via {{host}} over TLS.", { host: presetHost })}{" "}
+                    {t("emailsettings.presethost", { host: presetHost })}{" "}
                     {helpUrl && (
                       <a href={helpUrl} target="_blank" rel="noreferrer">
-                        {t("emailsettings.getkey", "Where do I get the key?")}
+                        {t("emailsettings.getkey")}
                       </a>
                     )}
                   </Text>
@@ -232,21 +227,21 @@ export function EmailSettings(): React.JSX.Element {
               {IS_CUSTOM(provider) && (
                 <>
                   <Grid.Col span={LABEL_SPAN}>
-                    <Text>{t("emailsettings.port", "Port")}</Text>
+                    <Text>{t("emailsettings.port")}</Text>
                   </Grid.Col>
                   <Grid.Col span={CONTROL_SPAN}>
                     <TextInput type="number" value={port} onChange={e => setPort(Number(e.currentTarget.value) || 0)} />
                   </Grid.Col>
                   <Grid.Col span={{ base: 12, xs: 6 }}>
                     <Switch
-                      label={t("emailsettings.use_tls", "Use STARTTLS")}
+                      label={t("emailsettings.use_tls")}
                       checked={useTls}
                       onChange={e => setUseTls(e.currentTarget.checked)}
                     />
                   </Grid.Col>
                   <Grid.Col span={{ base: 12, xs: 6 }}>
                     <Switch
-                      label={t("emailsettings.use_ssl", "Use implicit SSL")}
+                      label={t("emailsettings.use_ssl")}
                       checked={useSsl}
                       onChange={e => setUseSsl(e.currentTarget.checked)}
                     />
@@ -255,10 +250,10 @@ export function EmailSettings(): React.JSX.Element {
               )}
 
               <Grid.Col span={LABEL_SPAN}>
-                <Text>{t("emailsettings.username", "Username")}</Text>
+                <Text>{t("emailsettings.username")}</Text>
                 {provider === "sendgrid" && (
                   <Text fz="xs" c="dimmed">
-                    {t("emailsettings.sendgrid_username", 'Leave blank; SendGrid uses the literal username "apikey".')}
+                    {t("emailsettings.sendgrid_username")}
                   </Text>
                 )}
               </Grid.Col>
@@ -267,11 +262,11 @@ export function EmailSettings(): React.JSX.Element {
               </Grid.Col>
 
               <Grid.Col span={LABEL_SPAN}>
-                <Text>{t("emailsettings.secret", "Password / API key")}</Text>
+                <Text>{t("emailsettings.secret")}</Text>
               </Grid.Col>
               <Grid.Col span={CONTROL_SPAN}>
                 <PasswordInput
-                  placeholder={hasSecret ? t("emailsettings.secret_set", "•••••• (unchanged)") : ""}
+                  placeholder={hasSecret ? t("emailsettings.secret_set") : ""}
                   value={secret}
                   onChange={e => setSecret(e.currentTarget.value)}
                 />
@@ -279,7 +274,7 @@ export function EmailSettings(): React.JSX.Element {
               {hasSecret && (
                 <Grid.Col span={12}>
                   <Anchor component="button" type="button" fz="xs" c="dimmed" onClick={onClearSecret}>
-                    {t("emailsettings.clear_secret", "Remove the stored credential")}
+                    {t("emailsettings.clear_secret")}
                   </Anchor>
                 </Grid.Col>
               )}
@@ -289,10 +284,10 @@ export function EmailSettings(): React.JSX.Element {
 
         <Group justify="flex-end">
           <Button variant="default" onClick={onTest} loading={isTesting} disabled={!config?.is_configured}>
-            {t("emailsettings.sendtest", "Send test email")}
+            {t("emailsettings.sendtest")}
           </Button>
           <Button onClick={onSave} loading={isSaving} disabled={!isDirty}>
-            {t("save", "Save")}
+            {t("save")}
           </Button>
         </Group>
 

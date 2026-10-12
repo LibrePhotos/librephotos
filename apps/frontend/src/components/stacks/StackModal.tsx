@@ -87,11 +87,11 @@ function getFileTypeLabel(fileType: string, t: TFunction): string | undefined {
     case "raw":
       return "RAW";
     case "video":
-      return t("stacks.filetype.video", "Video");
+      return t("stacks.filetype.video");
     case "metadata":
-      return t("stacks.filetype.metadata", "Metadata");
+      return t("stacks.filetype.metadata");
     case "unknown":
-      return t("stacks.filetype.file", "File");
+      return t("stacks.filetype.file");
     default:
       return undefined;
   }
@@ -105,7 +105,7 @@ function getFileTypeDisplay(fileType: string | null, filePath: string | null, t:
     return extension;
   }
   // Fall back to mapped label, then to file_type itself
-  return (fileType && getFileTypeLabel(fileType, t)) || fileType || t("stacks.filetype.file", "File");
+  return (fileType && getFileTypeLabel(fileType, t)) || fileType || t("stacks.filetype.file");
 }
 
 // Get badge color based on file type
@@ -181,7 +181,7 @@ function StackPhotoCard({
         >
           <Image
             src={thumbnailUrl}
-            alt={t("stacks.photoalt", "Stack photo")}
+            alt={t("stacks.photoalt")}
             fallbackSrc={PLACEHOLDER_IMAGE}
             fit="contain"
             h={200}
@@ -192,7 +192,7 @@ function StackPhotoCard({
           />
           {isCover && (
             <Badge size="xs" color="blue" style={{ position: "absolute", top: 4, left: 4 }}>
-              {t("stacks.cover", "Cover")}
+              {t("stacks.cover")}
             </Badge>
           )}
         </Box>
@@ -214,7 +214,7 @@ function StackPhotoCard({
       <Stack gap="xs" mt="sm" style={{ flex: 1 }}>
         <Group justify="space-between">
           <Text size="sm" fw={500}>
-            {formatResolution(photo.width, photo.height) ?? t("settings.unknown", "Unknown")}
+            {formatResolution(photo.width, photo.height) ?? t("settings.unknown")}
           </Text>
           <Badge color={photo.size > 1024 * 1024 ? "blue" : "gray"} variant="light">
             {formatFileSize(photo.size)}
@@ -276,7 +276,7 @@ function StackPhotoCard({
             size="sm"
             mt="auto"
           >
-            {t("stacks.setprimary", "Set as Cover")}
+            {t("stacks.setprimary")}
           </Button>
         )}
       </Stack>
@@ -330,7 +330,7 @@ export function StackModal({ stackId, opened, onClose }: StackModalProps) {
             {stack && getStackTypeIcon(stack.stack_type, 18)}
             {/* Translated label rather than the server's English stack_type_display. Plain
                 text, styled by the app's Modal theme. */}
-            {stack ? t(`stacks.typelabel.${stack.stack_type}`) : t("stacks.view", "View Stack")}
+            {stack ? t(`stacks.typelabel.${stack.stack_type}`) : t("stacks.view")}
           </Box>
         }
         size="90%"
@@ -338,7 +338,7 @@ export function StackModal({ stackId, opened, onClose }: StackModalProps) {
         scrollAreaComponent={ScrollArea.Autosize}
       >
         {isLoading ? (
-          <PageLoader label={t("stacks.loading", "Loading stack...")} />
+          <PageLoader label={t("stacks.loading")} />
         ) : stack ? (
           <Stack gap="md">
             <Text size="sm" c="dimmed">
@@ -346,10 +346,7 @@ export function StackModal({ stackId, opened, onClose }: StackModalProps) {
             </Text>
 
             <Text size="sm" c="dimmed">
-              {t(
-                "stacks.coverInfo",
-                "The cover photo represents this stack in the gallery. Click 'Set as Cover' to change it."
-              )}
+              {t("stacks.coverInfo")}
             </Text>
 
             <ScrollArea.Autosize mah={600} type="auto">
@@ -368,12 +365,12 @@ export function StackModal({ stackId, opened, onClose }: StackModalProps) {
 
             <Group justify="flex-end">
               <Button variant="outline" onClick={onClose}>
-                {t("close", "Close")}
+                {t("close")}
               </Button>
             </Group>
           </Stack>
         ) : (
-          <Text c="red">{t("stacks.error", "Failed to load stack")}</Text>
+          <Text c="red">{t("stacks.error")}</Text>
         )}
       </Modal>
     </>

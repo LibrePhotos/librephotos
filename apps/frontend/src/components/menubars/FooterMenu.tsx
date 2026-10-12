@@ -121,7 +121,7 @@ export function FooterMenu(): React.JSX.Element {
 
         <Menu.Dropdown>
           <Menu.Label>
-            <Trans i18nKey="topmenu.loggedin">Logged in as</Trans> {user ? user.username : ""}
+            <Trans i18nKey="topmenu.loggedin" /> {user ? user.username : ""}
           </Menu.Label>
 
           <Menu.Item

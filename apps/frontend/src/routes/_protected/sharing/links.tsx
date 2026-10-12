@@ -73,8 +73,8 @@ function PublicLinksPage() {
       <PageHeader
         icon={IconLink}
         iconColor="var(--mantine-color-violet-6)"
-        title={t("sharing.publicLinks", "Public Links")}
-        subtitle={t("sharing.publicLinksDescription", "Albums and photos you've made public via shareable link")}
+        title={t("sharing.publicLinks")}
+        subtitle={t("sharing.publicLinksDescription")}
       />
 
       <Tabs
@@ -83,19 +83,19 @@ function PublicLinksPage() {
       >
         <Tabs.List>
           <Tabs.Tab value="albums">
-            {t("sidemenu.albums", "Albums")} ({publicAlbums.length})
+            {t("sidemenu.albums")} ({publicAlbums.length})
           </Tabs.Tab>
           <Tabs.Tab value="photos">
-            {t("photos.photos", "Photos")} ({totalPhotos + photoShares.length})
+            {t("photos.photos")} ({totalPhotos + photoShares.length})
           </Tabs.Tab>
         </Tabs.List>
 
         <Tabs.Panel value="albums" keepMounted={false}>
           {isLoadingAlbums ? (
-            <PageLoader label={t("loading", "Loading...")} />
+            <PageLoader label={t("loading")} />
           ) : publicAlbums.length === 0 ? (
             <Stack align="center" mt="xl">
-              <Text c="dimmed">{t("sharing.noPublicAlbums", "No albums have been made public via link")}</Text>
+              <Text c="dimmed">{t("sharing.noPublicAlbums")}</Text>
             </Stack>
           ) : (
             <PublicAlbumsGrid albums={publicAlbums} onShare={openShareDialog} />
@@ -106,16 +106,16 @@ function PublicLinksPage() {
           <Stack gap="md" pt="md">
             <PhotoSharesSection />
             {isLoadingPhotos || isLoadingShares ? (
-              <PageLoader label={t("loading", "Loading...")} />
+              <PageLoader label={t("loading")} />
             ) : totalPhotos === 0 ? (
               photoShares.length === 0 && (
                 <Stack align="center" mt="xl">
-                  <Text c="dimmed">{t("sharing.noPublicPhotos", "No photos have been made public")}</Text>
+                  <Text c="dimmed">{t("sharing.noPublicPhotos")}</Text>
                 </Stack>
               )
             ) : (
               <PhotoListView
-                title={t("sharing.publicPhotos", "Public Photos")}
+                title={t("sharing.publicPhotos")}
                 loading={isLoadingPhotos}
                 icon={IconLink}
                 photoset={publicPhotosGrouped ?? []}

@@ -150,7 +150,7 @@ function DuplicatePhotoCard({
         >
           <Image
             src={thumbnailUrl}
-            alt={t("duplicates.photoalt", "Duplicate photo")}
+            alt={t("duplicates.photoalt")}
             fallbackSrc={PLACEHOLDER_IMAGE}
             fit="contain"
             h={200}
@@ -161,7 +161,7 @@ function DuplicatePhotoCard({
           />
           {photo.is_kept && (
             <Badge size="xs" color="green" style={{ position: "absolute", top: 4, left: 4 }}>
-              {t("duplicates.original", "Original")}
+              {t("duplicates.original")}
             </Badge>
           )}
         </Box>
@@ -183,7 +183,7 @@ function DuplicatePhotoCard({
       <Stack gap="xs" mt="sm" style={{ flex: 1 }}>
         <Group justify="space-between">
           <Text size="sm" fw={500}>
-            {formatResolution(photo.width, photo.height) ?? t("settings.unknown", "Unknown")}
+            {formatResolution(photo.width, photo.height) ?? t("settings.unknown")}
           </Text>
           <Badge color={photo.size > 1024 * 1024 ? "blue" : "gray"} variant="light">
             {formatFileSize(photo.size)}
@@ -226,7 +226,7 @@ function DuplicatePhotoCard({
             size="sm"
             mt="auto"
           >
-            {isSelected ? t("duplicates.selected", "Keep This") : t("duplicates.select", "Select")}
+            {isSelected ? t("duplicates.selected") : t("duplicates.select")}
           </Button>
         )}
       </Stack>
@@ -326,12 +326,9 @@ function DuplicateModal({
     if (!duplicate) return "";
     switch (duplicate.duplicate_type) {
       case "exact_copy":
-        return t("duplicates.desc.exact_copy", "These are exact copies of the same file (identical content).");
+        return t("duplicates.desc.exact_copy");
       case "visual_duplicate":
-        return t(
-          "duplicates.desc.visual_duplicate",
-          "These photos look visually similar but may have different resolutions or quality."
-        );
+        return t("duplicates.desc.visual_duplicate");
       default:
         return "";
     }
@@ -360,7 +357,7 @@ function DuplicateModal({
           >
             {duplicate && getDuplicateTypeIcon(duplicate.duplicate_type, 18)}
             {/* Plain text, styled by the app's Modal theme */}
-            {duplicate ? t(`duplicates.types.${duplicate.duplicate_type}`) : t("duplicates.review", "Review Duplicate")}
+            {duplicate ? t(`duplicates.types.${duplicate.duplicate_type}`) : t("duplicates.review")}
           </Box>
         }
         size="90%"
@@ -370,7 +367,7 @@ function DuplicateModal({
         }}
       >
         {isLoading ? (
-          <PageLoader label={t("duplicates.loading", "Loading duplicate...")} />
+          <PageLoader label={t("duplicates.loading")} />
         ) : duplicate ? (
           <Stack style={{ flex: 1, minHeight: 0 }}>
             <Text size="sm" c="dimmed">
@@ -378,7 +375,7 @@ function DuplicateModal({
               {/* !! so a score of 0 does not render a stray "0" */}
               {!!duplicate.similarity_score && (
                 <Text span size="sm" c="blue" ml="xs">
-                  {t("duplicates.similarpercent", "({{percent}}% similar)", {
+                  {t("duplicates.similarpercent", {
                     percent: Math.round(duplicate.similarity_score * 100),
                   })}
                 </Text>
@@ -387,15 +384,15 @@ function DuplicateModal({
 
             {!isReviewed && (
               <Text size="sm" c="dimmed">
-                {t("duplicates.selectbest", "Select the photo you want to keep. Others will be moved to trash.")}
+                {t("duplicates.selectbest")}
               </Text>
             )}
 
             {isResolved && (
               <Text size="sm" c="dimmed">
-                {t("duplicates.resolvedInfo", "This duplicate was resolved. Some photos were moved to trash.")}{" "}
+                {t("duplicates.resolvedInfo")}{" "}
                 <Text span size="sm" c="blue">
-                  {t("duplicates.revertInfo", "You can revert to restore trashed photos.")}
+                  {t("duplicates.revertInfo")}
                 </Text>
               </Text>
             )}
@@ -403,7 +400,7 @@ function DuplicateModal({
             {/* Dismissing unlinks the photos and the backend only reverts resolved groups, so no revert here */}
             {isDismissed && (
               <Text size="sm" c="dimmed">
-                {t("duplicates.dismissedInfo", "This was marked as not a duplicate.")}
+                {t("duplicates.dismissedInfo")}
               </Text>
             )}
 
@@ -427,7 +424,7 @@ function DuplicateModal({
             {isReviewed ? (
               <Group justify="flex-end">
                 <Button variant="outline" onClick={onClose}>
-                  {t("close", "Close")}
+                  {t("close")}
                 </Button>
                 {isResolved && (
                   <Button
@@ -436,7 +433,7 @@ function DuplicateModal({
                     onClick={handleRevert}
                     loading={isReverting}
                   >
-                    {t("duplicates.revert", "Revert & Restore Photos")}
+                    {t("duplicates.revert")}
                   </Button>
                 )}
               </Group>
@@ -449,12 +446,12 @@ function DuplicateModal({
                   onClick={handleDismiss}
                   loading={isDismissing}
                 >
-                  {t("duplicates.notduplicates", "Not Duplicates")}
+                  {t("duplicates.notduplicates")}
                 </Button>
 
                 <Group>
                   <Button variant="outline" onClick={onClose}>
-                    {t("cancel", "Cancel")}
+                    {t("cancel")}
                   </Button>
                   <Button
                     color="blue"
@@ -463,14 +460,14 @@ function DuplicateModal({
                     loading={isResolving}
                     disabled={!selectedPhoto}
                   >
-                    {t("duplicates.keepandtrash", "Keep Selected & Trash Others")}
+                    {t("duplicates.keepandtrash")}
                   </Button>
                 </Group>
               </Group>
             )}
           </Stack>
         ) : (
-          <Text c="red">{t("duplicates.error", "Failed to load duplicate")}</Text>
+          <Text c="red">{t("duplicates.error")}</Text>
         )}
       </Modal>
     </>
@@ -555,7 +552,7 @@ function DuplicateCard({
           {t(`duplicates.${duplicate.review_status}`)}
         </Badge>
         {duplicate.potential_savings > 1024 * 1024 && (
-          <Tooltip label={t("duplicates.potentialSavings", "Potential space savings")}>
+          <Tooltip label={t("duplicates.potentialSavings")}>
             <Badge size="sm" variant="outline" color="red">
               {formatFileSize(duplicate.potential_savings)}
             </Badge>
@@ -592,7 +589,7 @@ function DuplicateCard({
               onDelete();
             }}
           >
-            {t("duplicates.deleteGroup", "Delete Group")}
+            {t("duplicates.deleteGroup")}
           </Menu.Item>
         </Menu.Dropdown>
       </Menu>
@@ -715,15 +712,15 @@ export function DuplicatesPageContent() {
   };
 
   const duplicateTypes: Array<{ value: DuplicateType | ""; label: string }> = [
-    { value: "", label: t("duplicates.allTypes", "All Types") },
+    { value: "", label: t("duplicates.allTypes") },
     ...DuplicateType.options.map(type => ({ value: type, label: t(`duplicates.types.${type}`) })),
   ];
 
   const statusOptions = [
-    { value: "pending", label: `${t("duplicates.pending", "Pending")} (${stats?.pending_duplicates ?? 0})` },
-    { value: "resolved", label: `${t("duplicates.resolved", "Resolved")} (${stats?.resolved_duplicates ?? 0})` },
-    { value: "dismissed", label: `${t("duplicates.dismissed", "Dismissed")} (${stats?.dismissed_duplicates ?? 0})` },
-    { value: ALL_STATUSES, label: t("duplicates.all", "All") },
+    { value: "pending", label: `${t("duplicates.pending")} (${stats?.pending_duplicates ?? 0})` },
+    { value: "resolved", label: `${t("duplicates.resolved")} (${stats?.resolved_duplicates ?? 0})` },
+    { value: "dismissed", label: `${t("duplicates.dismissed")} (${stats?.dismissed_duplicates ?? 0})` },
+    { value: ALL_STATUSES, label: t("duplicates.all") },
   ];
   // "All" is no status, so it parses to undefined
   const onStatusChange = (value: string | null) => setStatusFilter(ReviewStatus.safeParse(value).data);
@@ -733,7 +730,7 @@ export function DuplicatesPageContent() {
   const getEmptyDescription = () => {
     if (!stats?.total_duplicates) return t("duplicates.empty");
     if (statusFilter === "pending" && !typeFilter) return t("duplicates.nopending");
-    return t("duplicates.nomatch", "No duplicate groups match the current filters.");
+    return t("duplicates.nomatch");
   };
 
   return (
@@ -743,14 +740,14 @@ export function DuplicatesPageContent() {
         <Paper p="md" withBorder bg="var(--mantine-color-blue-light)">
           <Group justify="space-between">
             <Text size="sm" fw={500}>
-              {t("duplicates.selectedCount", "{{count}} selected", { count: selectedDuplicateIds.size })}
+              {t("duplicates.selectedCount", { count: selectedDuplicateIds.size })}
             </Text>
             <Group>
               <Button variant="light" color="red" size="sm" onClick={() => askToDelete([...selectedDuplicateIds])}>
-                {t("duplicates.deleteSelected", "Delete Selected")}
+                {t("duplicates.deleteSelected")}
               </Button>
               <Button variant="light" size="sm" onClick={() => setSelectedDuplicateIds(new Set())}>
-                {t("duplicates.clearSelection", "Clear Selection")}
+                {t("duplicates.clearSelection")}
               </Button>
             </Group>
           </Group>
@@ -772,7 +769,7 @@ export function DuplicatesPageContent() {
                   setSelectedDuplicateIds(new Set());
                 }
               }}
-              label={t("duplicates.selectAll", "Select All")}
+              label={t("duplicates.selectAll")}
             />
           )}
           {/* Status filter: the segmented control cannot wrap, so phones get a select */}
@@ -787,7 +784,7 @@ export function DuplicatesPageContent() {
             hiddenFrom="sm"
             size="sm"
             w={200}
-            aria-label={t("duplicates.statusfilter", "Review status")}
+            aria-label={t("duplicates.statusfilter")}
             value={statusFilter ?? ALL_STATUSES}
             onChange={onStatusChange}
             data={statusOptions}
@@ -797,7 +794,7 @@ export function DuplicatesPageContent() {
           <Menu shadow="md" width={200}>
             <Menu.Target>
               <Button variant="light" size="sm" rightSection={<IconChevronDown size={14} />}>
-                {typeFilter ? t(`duplicates.types.${typeFilter}`) : t("duplicates.allTypes", "All Types")}
+                {typeFilter ? t(`duplicates.types.${typeFilter}`) : t("duplicates.allTypes")}
               </Button>
             </Menu.Target>
             <Menu.Dropdown>
@@ -821,18 +818,18 @@ export function DuplicatesPageContent() {
             <Menu shadow="md" width={300}>
               <Menu.Target>
                 <Button variant="outline" size="sm" fullWidth={isPhone} rightSection={<IconChevronDown size={14} />}>
-                  {t("duplicates.detectOptions", "Detection Options")}
+                  {t("duplicates.detectOptions")}
                 </Button>
               </Menu.Target>
               <Menu.Dropdown>
-                <Menu.Label>{t("duplicates.whatToDetect", "What to Detect")}</Menu.Label>
+                <Menu.Label>{t("duplicates.whatToDetect")}</Menu.Label>
                 <Box px="xs" py={4}>
                   <Stack gap="xs">
                     <Checkbox
                       size="sm"
                       checked={detectOptions.detect_exact_copies}
                       onChange={e => setDetectOptions(o => ({ ...o, detect_exact_copies: e.currentTarget.checked }))}
-                      label={t("duplicates.detectExactCopies", "Exact file copies (identical content)")}
+                      label={t("duplicates.detectExactCopies")}
                     />
                     <Checkbox
                       size="sm"
@@ -840,12 +837,12 @@ export function DuplicatesPageContent() {
                       onChange={e =>
                         setDetectOptions(o => ({ ...o, detect_visual_duplicates: e.currentTarget.checked }))
                       }
-                      label={t("duplicates.detectVisualDuplicates", "Visual duplicates (similar images)")}
+                      label={t("duplicates.detectVisualDuplicates")}
                     />
                     {detectOptions.detect_visual_duplicates && (
                       <Box pl="md">
                         <Text size="xs" c="dimmed" mb={4}>
-                          {t("duplicates.visualSensitivity", "Visual sensitivity")}
+                          {t("duplicates.visualSensitivity")}
                         </Text>
                         <SegmentedControl
                           size="xs"
@@ -863,9 +860,9 @@ export function DuplicatesPageContent() {
                             }))
                           }
                           data={[
-                            { value: "strict", label: t("settings.sensitivity.strict", "Strict") },
-                            { value: "normal", label: t("settings.sensitivity.normal", "Normal") },
-                            { value: "loose", label: t("settings.sensitivity.loose", "Loose") },
+                            { value: "strict", label: t("settings.sensitivity.strict") },
+                            { value: "normal", label: t("settings.sensitivity.normal") },
+                            { value: "loose", label: t("settings.sensitivity.loose") },
                           ]}
                         />
                       </Box>
@@ -873,7 +870,7 @@ export function DuplicatesPageContent() {
                   </Stack>
                 </Box>
                 <Menu.Divider />
-                <Menu.Label>{t("duplicates.optionslabel", "Options")}</Menu.Label>
+                <Menu.Label>{t("duplicates.optionslabel")}</Menu.Label>
                 <Box px="xs" py={4}>
                   <Checkbox
                     size="sm"
@@ -881,9 +878,9 @@ export function DuplicatesPageContent() {
                     onChange={e => setDetectOptions(o => ({ ...o, clear_pending: e.currentTarget.checked }))}
                     label={
                       <Stack gap={0}>
-                        <Text size="sm">{t("duplicates.clearPending", "Clear pending duplicates")}</Text>
+                        <Text size="sm">{t("duplicates.clearPending")}</Text>
                         <Text size="xs" c="dimmed">
-                          {t("duplicates.clearPendingDesc", "Remove pending duplicates before detection")}
+                          {t("duplicates.clearPendingDesc")}
                         </Text>
                       </Stack>
                     }
@@ -933,7 +930,7 @@ export function DuplicatesPageContent() {
             <Group justify="center" mt="md" gap="md">
               {totalCount > 0 && (
                 <Text size="sm" c="dimmed">
-                  {t("duplicates.showing", "Showing {{count}} duplicate groups", { count: totalCount })}
+                  {t("duplicates.showing", { count: totalCount })}
                 </Text>
               )}
               <Pagination value={page} onChange={changePage} total={totalPages} withEdges />
@@ -943,7 +940,7 @@ export function DuplicatesPageContent() {
       ) : (
         <EmptyState
           icon={<IconCopy size={40} />}
-          title={t("duplicates.noduplicates", "No duplicate groups found")}
+          title={t("duplicates.noduplicates")}
           description={getEmptyDescription()}
         />
       )}

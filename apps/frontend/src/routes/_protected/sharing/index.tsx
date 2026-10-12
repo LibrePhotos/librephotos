@@ -103,11 +103,7 @@ function SharingExplore() {
 
   return (
     <Box p="md">
-      <PageHeader
-        icon={IconUsers}
-        title={t("sidemenu.sharing")}
-        subtitle={t("sharing.subtitle", "Photos and albums shared with others")}
-      />
+      <PageHeader icon={IconUsers} title={t("sidemenu.sharing")} subtitle={t("sharing.subtitle")} />
 
       <Stack gap="md">
         {/* Public Users Section */}
@@ -148,7 +144,7 @@ function SharingExplore() {
             </div>
           ) : publicUsersList.length === 0 ? (
             <div className={classes.emptyState}>
-              <Text c="dimmed">{t("sharing.noPublicUsers", "No users with public photos")}</Text>
+              <Text c="dimmed">{t("sharing.noPublicUsers")}</Text>
             </div>
           ) : (
             <div className={classes.avatarGrid}>
@@ -218,7 +214,7 @@ function SharingExplore() {
             </div>
           ) : totalPhotosWithMe === 0 && totalAlbumsWithMe === 0 ? (
             <div className={classes.emptyState}>
-              <Text c="dimmed">{t("sharing.nothingSharedWithYou", "No one has shared anything with you yet")}</Text>
+              <Text c="dimmed">{t("sharing.nothingSharedWithYou")}</Text>
             </div>
           ) : (
             <div className={classes.scrollContainer}>
@@ -313,7 +309,7 @@ function SharingExplore() {
             </div>
           ) : totalPhotosByMe === 0 && totalAlbumsByMe === 0 ? (
             <div className={classes.emptyState}>
-              <Text c="dimmed">{t("sharing.nothingSharedByYou", "You haven't shared anything yet")}</Text>
+              <Text c="dimmed">{t("sharing.nothingSharedByYou")}</Text>
             </div>
           ) : (
             <div className={classes.scrollContainer}>
@@ -378,7 +374,7 @@ function SharingExplore() {
             >
               <IconLink size={24} stroke={1.5} color="var(--mantine-color-violet-6)" />
               <div>
-                <Title order={4}>{t("sharing.publicLinks", "Public Links")}</Title>
+                <Title order={4}>{t("sharing.publicLinks")}</Title>
                 <Group gap={6}>
                   <Text size="sm" c="dimmed">
                     {itemSummary(totalPublicPhotos, publicLinkAlbums.length)}
@@ -407,7 +403,7 @@ function SharingExplore() {
             </div>
           ) : totalPublicPhotos === 0 && publicLinkAlbums.length === 0 ? (
             <div className={classes.emptyState}>
-              <Text c="dimmed">{t("sharing.noPublicLinks", "You haven't made anything public via link yet")}</Text>
+              <Text c="dimmed">{t("sharing.noPublicLinks")}</Text>
             </div>
           ) : (
             <div className={classes.scrollContainer}>

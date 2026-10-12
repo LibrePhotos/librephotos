@@ -1,10 +1,18 @@
-import type { TFunction } from "i18next";
+import type { ParseKeys, TFunction } from "i18next";
 import React from "react";
 import type { DateTimeRule } from "./dateTimeSchema";
 
+const RULE_TYPE_NAME_KEYS: Partial<Record<string, ParseKeys>> = {
+  exif: "rules.rule_type_names.exif",
+  path: "rules.rule_type_names.path",
+  filesystem: "rules.rule_type_names.filesystem",
+  user_defined: "rules.rule_type_names.user_defined",
+};
+
 /** "exif", "path", ... as words; an unknown type shows as it is. */
 export function describeRuleType(ruleType: string, t: TFunction<"translation", undefined>) {
-  return t(`rules.rule_type_names.${ruleType}`, ruleType);
+  const key = RULE_TYPE_NAME_KEYS[ruleType];
+  return key ? t(key) : ruleType;
 }
 
 type RuleValue = string | number | boolean | null | undefined;
@@ -26,15 +34,31 @@ function ruleValue(value: unknown): RuleValue {
   return JSON.stringify(value);
 }
 
+const TIMEZONE_NAME_KEYS: Partial<Record<string, ParseKeys>> = {
+  gps_timezonefinder: "rules.tz_names.gps_timezonefinder",
+  user_default: "rules.tz_names.user_default",
+  server_local: "rules.tz_names.server_local",
+};
+
 /** A timezone description as the backend's _get_tz reads it: "utc", "name:<tz>" or a keyword. */
 function describeTimezone(value: RuleValue, t: TFunction<"translation", undefined>): RuleValue {
   if (typeof value !== "string") return value;
   if (value.startsWith("name:")) return value.slice("name:".length);
   if (value.toLowerCase() === "utc") return "UTC";
-  return t(`rules.tz_names.${value}`, value);
+  const key = TIMEZONE_NAME_KEYS[value];
+  return key ? t(key) : value;
 }
 
 const TIMEZONE_PROPS = ["source_tz", "report_tz"];
+
+// The rule params with a sentence of their own ("Use Exif tag: {{rule}}"); any other shows as "name: value".
+const RULE_PARAM_KEYS: Partial<Record<string, ParseKeys>> = {
+  exif_tag: "rules.exif_tag",
+  file_property: "rules.file_property",
+  source_tz: "rules.source_tz",
+  report_tz: "rules.report_tz",
+  predefined_regexp: "rules.predefined_regexp",
+};
 
 export function getRuleExtraInfo(rule: DateTimeRule, t: TFunction<"translation", undefined>) {
   const ignoredProps = ["name", "id", "rule_type", "transform_tz", "is_default"];
@@ -46,17 +70,20 @@ export function getRuleExtraInfo(rule: DateTimeRule, t: TFunction<"translation",
           key,
           TIMEZONE_PROPS.includes(key) ? describeTimezone(ruleValue(value), t) : ruleValue(value),
         ])
-        .map(prop => (
-          <div key={prop[0]}>
-            {t(`rules.${prop[0]}`, { rule: prop[1] }) !== `rules.${prop[0]}` ? (
-              <>{t(`rules.${prop[0]}`, { rule: prop[1] })}</>
-            ) : (
-              <>
-                {prop[0]}: {prop[1]}
-              </>
-            )}
-          </div>
-        ))}
+        .map(([name, value]) => {
+          const key = RULE_PARAM_KEYS[name];
+          return (
+            <div key={name}>
+              {key ? (
+                t(key, { rule: value })
+              ) : (
+                <>
+                  {name}: {value}
+                </>
+              )}
+            </div>
+          );
+        })}
     </>
   );
 }
