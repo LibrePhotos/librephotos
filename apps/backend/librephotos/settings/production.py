@@ -162,6 +162,11 @@ SIMPLE_JWT = {
     "REFRESH_TOKEN_LIFETIME": datetime.timedelta(days=env_int("REFRESH_TOKEN_DAYS", 7)),
 }
 
+# Give the auth cookies the Secure flag even when the request looks like plain
+# HTTP, as it does behind a TLS proxy (SECURE_PROXY_SSL_HEADER is not set). Off
+# by default: browsers drop Secure cookies over plain HTTP. See api/auth_cookies.py.
+AUTH_COOKIE_SECURE = env_flag("AUTH_COOKIE_SECURE", default=False)
+
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",

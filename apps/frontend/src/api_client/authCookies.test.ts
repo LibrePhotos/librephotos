@@ -10,7 +10,7 @@
  */
 import { Cookies } from "react-cookie";
 import { afterEach, describe, expect, it } from "vitest";
-import { clearAuthCookies, setAuthCookie } from "./authCookies";
+import { authCookieOptions, clearAuthCookies, setAuthCookie } from "./authCookies";
 
 function visit(path: string) {
   window.history.pushState({}, "", path);
@@ -31,6 +31,21 @@ afterEach(() => {
     }
   }
   visit("/");
+});
+
+describe("auth cookie options", () => {
+  it("keeps the tokens at the root, off cross-site requests", () => {
+    expect(authCookieOptions("http:")).toEqual({ path: "/", sameSite: "lax", secure: false });
+  });
+
+  it("marks them Secure on a page served over HTTPS", () => {
+    expect(authCookieOptions("https:")).toEqual({ path: "/", sameSite: "lax", secure: true });
+  });
+
+  it("follows the page's own scheme by default", () => {
+    // jsdom serves the tests from http://localhost, a plain-HTTP LAN install's case.
+    expect(authCookieOptions().secure).toBe(false);
+  });
 });
 
 describe("auth cookies", () => {

@@ -12,8 +12,25 @@ import { Cookies } from "react-cookie";
  * sent it, and the app was signed straight back in -- until a logout happened
  * to be made from the right page.
  */
-export const AUTH_COOKIE_OPTIONS = { path: "/" } as const;
+const AUTH_COOKIE_PATH = "/";
 
+/**
+ * The flags of the `access` and `refresh` cookies, the same as the server
+ * gives them (apps/backend/api/auth_cookies.py): at `/`, `SameSite=Lax`, so
+ * they stay off cross-site subrequests and POSTs, and `Secure` on a page
+ * served over HTTPS, so they never travel over plain HTTP. Not `Secure` on a
+ * plain-HTTP page, where the browser would refuse the cookie.
+ *
+ * They cannot be `HttpOnly`: the web reads them to send them as bearer tokens.
+ */
+export function authCookieOptions(protocol: string = window.location.protocol) {
+  return { path: AUTH_COOKIE_PATH, sameSite: "lax", secure: protocol === "https:" } as const;
+}
+
+/**
+ * The server sets `jwt` HttpOnly now and clears it on logout; removing it here
+ * still clears a script-readable copy an older version set.
+ */
 const AUTH_COOKIES = ["access", "refresh", "jwt"] as const;
 
 /**
@@ -29,7 +46,7 @@ const AUTH_COOKIES = ["access", "refresh", "jwt"] as const;
  * subpath install at `/librephotos`, say -- is one of these.
  */
 function visibleCookieFolders() {
-  const folders = ["/"];
+  const folders: string[] = [AUTH_COOKIE_PATH];
   let folder = "";
   // Drop the leading "" and the page's own name: what is left are the folders.
   for (const segment of window.location.pathname.split("/").slice(1, -1)) {
@@ -56,7 +73,7 @@ export function setAuthCookie(name: "access" | "refresh", value: string) {
   for (const folder of visibleCookieFolders().slice(1)) {
     cookies.remove(name, { path: folder });
   }
-  cookies.set(name, value, AUTH_COOKIE_OPTIONS);
+  cookies.set(name, value, authCookieOptions());
 }
 
 export function clearAuthCookies() {

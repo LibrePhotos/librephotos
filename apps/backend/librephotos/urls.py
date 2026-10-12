@@ -42,6 +42,7 @@ from rest_framework_simplejwt.views import (
     TokenRefreshView,
 )
 
+from api.auth_cookies import clear_auth_cookies, set_auth_cookies
 from api.models import User
 from api.throttling import SignInRateThrottle, TokenRefreshRateThrottle
 from api.views import (
@@ -112,8 +113,7 @@ class CustomTokenObtainPairView(TokenObtainPairView):
 
     def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         response = super().post(request, *args, **kwargs)
-        response.set_cookie("jwt", response.data["access"])
-        response["Access-Control-Allow-Credentials"] = "true"
+        set_auth_cookies(response, request, access=response.data["access"])
         return response
 
 
@@ -127,8 +127,31 @@ class CustomTokenRefreshView(TokenRefreshView):
 
     def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         response = super().post(request, *args, **kwargs)
-        response.set_cookie("jwt", response.data["access"])
-        response["Access-Control-Allow-Credentials"] = "true"
+        set_auth_cookies(response, request, access=response.data["access"])
+        return response
+
+
+class LogoutView(TokenBlacklistView):
+    """Blacklist the refresh token in the body and clear the auth cookies.
+
+    The cookies are cleared whatever the blacklist answers: a refresh token
+    that is already blacklisted (a second click on Log out), expired or missing
+    still means the user asked to sign out, and the web cannot delete the
+    HttpOnly ``jwt`` cookie itself. The access token in it is not revoked;
+    simplejwt cannot blacklist access tokens, so a copy of it stays valid until
+    it expires (``ACCESS_TOKEN_LIFETIME``).
+    """
+
+    def get_permissions(self) -> list[BasePermission]:
+        # Anyone: the refresh token in the body is the credential.
+        return [AllowAny()]
+
+    def finalize_response(
+        self, request: Request, response: Response, *args: Any, **kwargs: Any
+    ) -> Response:
+        # Runs for the error responses of handle_exception too.
+        response = super().finalize_response(request, response, *args, **kwargs)
+        clear_auth_cookies(response, request)
         return response
 
 
@@ -402,7 +425,7 @@ urlpatterns = [
     re_path(r"^api/wordcloud", dataviz.SearchTermWordCloudView.as_view()),
     re_path(r"^api/auth/token/obtain/$", CustomTokenObtainPairView.as_view()),
     re_path(r"^api/auth/token/refresh/$", CustomTokenRefreshView.as_view()),
-    re_path(r"^api/auth/token/blacklist/", TokenBlacklistView.as_view()),
+    re_path(r"^api/auth/token/blacklist/", LogoutView.as_view()),
     # OIDC / SSO. allauth drives the redirect/callback under /api/accounts/...;
     # sso_finish is the JWT bridge it lands on; sso/config feeds the login screen.
     re_path(r"^api/auth/sso/finish/?$", sso.sso_finish),

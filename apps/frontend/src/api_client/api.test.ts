@@ -246,6 +246,35 @@ describe("FetchClient token refresh", () => {
     expect(calls.filter(call => call.url.endsWith("/auth/token/blacklist/"))).toHaveLength(1);
   });
 
+  it("logs out on the server even when no refresh token is left", async () => {
+    // The server clears the HttpOnly jwt cookie, which this script cannot.
+    const { fetchClient: client } = await freshClient();
+    setCookie("access", fakeJwt(300));
+    const calls = stubFetch([
+      [endsWith("/auth/token/blacklist/"), () => json({ errors: [] }, 400)],
+      [url => url.includes("/photos/"), () => json({ detail: "expired" }, 401)],
+    ]);
+
+    await expect(client.get("/photos/1/")).rejects.toMatchObject({ status: 401 });
+
+    const logouts = calls.filter(call => call.url.endsWith("/auth/token/blacklist/"));
+    expect(logouts).toHaveLength(1);
+    expect(defined(logouts[0], "the logout").init.credentials).toBe("include");
+    expect(defined(logouts[0], "the logout").init.body).toBe("{}");
+  });
+
+  it("ends no session when a sign-in without one is rejected", async () => {
+    const { fetchClient: client } = await freshClient();
+    window.history.pushState({}, "", "/login");
+    const calls = stubFetch([[endsWith("/auth/token/obtain/"), () => json({ detail: "No active account" }, 401)]]);
+
+    await expect(client.post("/auth/token/obtain/", { username: "u", password: "p" })).rejects.toMatchObject({
+      status: 401,
+    });
+
+    expect(calls.filter(call => call.url.endsWith("/auth/token/blacklist/"))).toHaveLength(0);
+  });
+
   it("does not try to refresh when a login attempt is rejected", async () => {
     const { fetchClient: client } = await freshClient();
     window.history.pushState({}, "", "/login");

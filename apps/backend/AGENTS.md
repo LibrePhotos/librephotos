@@ -44,6 +44,10 @@ test makes `--parallel` runs crash with "cannot pickle 'traceback'"; rerun that 
   (`IsAdminUser`, `IsSuperUser` from `api/permissions.py`), never an `is_staff` check that returns a
   response. An anonymous endpoint that takes credentials gets a throttle from `api/throttling.py`.
   `api/tests/infra/test_api_conventions.py` enforces all three.
+- Auth cookies (`jwt`, `access`, `refresh`) are set and cleared only through `set_auth_cookies`/
+  `clear_auth_cookies` in `api/auth_cookies.py`, so they keep one set of flags (HttpOnly `jwt`,
+  SameSite=Lax, Secure on HTTPS or `AUTH_COOKIE_SECURE`); CORS headers are django-cors-headers' job.
+  `api/tests/infra/test_auth_cookies.py` fails on `set_cookie`/`delete_cookie` anywhere else.
 - In views, get the user with `api.request_user.request_user(request)` (401 if anonymous) and a JSON
   body with `api.request_data.request_dict(request)` (400 if it is not an object). Where anonymous
   access is allowed, narrow with `isinstance(request.user, User)`. A `get_queryset` that needs a

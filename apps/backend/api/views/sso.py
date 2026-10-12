@@ -29,6 +29,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from api.auth_cookies import set_auth_cookies
 from api.models.user import User
 from api.public_url import is_internal_base_url, public_base_url
 
@@ -121,19 +122,6 @@ def _mint_jwt_for(user: User) -> tuple[str, str]:
     return str(refresh.access_token), str(refresh)
 
 
-def _set_auth_cookies(
-    response: HttpResponseBase, access: str, refresh: str
-) -> HttpResponseBase:
-    # Mirror CustomTokenObtainPairView: the SPA reads these cookies (via
-    # react-cookie) to boot already authenticated. Not HttpOnly, matching the
-    # existing password-login behaviour so the client can read them.
-    response.set_cookie("access", access)
-    response.set_cookie("refresh", refresh)
-    response.set_cookie("jwt", access)
-    response["Access-Control-Allow-Credentials"] = "true"
-    return response
-
-
 def sso_finish(request: HttpRequest) -> HttpResponseRedirect:
     """allauth's post-login landing: mint the JWT and hand off to the SPA."""
     user = request.user
@@ -147,7 +135,9 @@ def sso_finish(request: HttpRequest) -> HttpResponseRedirect:
     django_logout(request)
 
     response = HttpResponseRedirect("/")
-    _set_auth_cookies(response, access, refresh)
+    # The web boots from the access/refresh cookies (via react-cookie); the
+    # media requests use jwt. Flags: api/auth_cookies.py.
+    set_auth_cookies(response, request, access=access, refresh=refresh)
     return response
 
 

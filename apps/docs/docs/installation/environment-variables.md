@@ -404,6 +404,21 @@ Each entry must match the address in the browser exactly, scheme and port includ
 Releases before 1.2.0 treated the whole value as a single origin, so a comma-separated list only worked with the [unified image](unified-deployment.md).
 :::
 
+### Secure auth cookies
+
+Not released yet: up to 1.3.0, the auth cookies were never `Secure`.
+
+| Variable | Default | What it does |
+| --- | --- | --- |
+| `AUTH_COOKIE_SECURE` | `0` | Gives the sign-in cookies (`jwt`, and `access`/`refresh` after an SSO login) the `Secure` flag, so the browser sends them over HTTPS only. |
+
+The backend already marks the cookies `Secure` when a request reaches it over HTTPS. Behind the bundled proxy it never does: the proxy talks plain HTTP to the backend and forwards its own scheme, which is `http` when your reverse proxy in front of it terminates TLS, and the backend does not trust a forwarded scheme anyway (Django's `SECURE_PROXY_SSL_HEADER` is not set). So:
+
+- **Reached only over HTTPS** (a domain behind Traefik, Caddy, nginx or a tunnel): set `AUTH_COOKIE_SECURE=1` on the backend container.
+- **Reached over plain HTTP**, also only sometimes (`http://192.168.1.10` on the LAN): leave it off. Browsers refuse a `Secure` cookie over plain HTTP; signing in still works, but photos and videos stop loading.
+
+The other flags are fixed: see [Cookie flags](../user-guide/api-authentication.md#cookie-flags).
+
 ### Database password
 
 `DB_PASS` (`dbPass` in `.env`) is the password of the PostgreSQL user in `DB_USER`. The bundled Compose file, the unified image instructions and the Kubernetes manifests all pass it. If it is missing, the backend still falls back to the old built-in default password so existing installs keep starting, but it now logs a `librephotos.W001` warning on every start (in the `migrate` output). Set `DB_PASS` explicitly to silence it; the fallback may be removed in a future release.

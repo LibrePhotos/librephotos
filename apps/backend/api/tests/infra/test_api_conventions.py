@@ -471,10 +471,6 @@ PROJECT_PACKAGES = ("api", "nextcloud", "librephotos")
 
 # Routed DRF views from other packages. They keep their own access rules.
 THIRD_PARTY_VIEWS: dict[str, str] = {
-    "rest_framework_simplejwt.views.TokenBlacklistView": (
-        "revokes the refresh token in its body; open upstream "
-        "(permission_classes = ()), the token is the credential"
-    ),
     "drf_spectacular.views.SpectacularAPIView": "the OpenAPI schema",
     "drf_spectacular.views.SpectacularRedocView": "schema UI",
     "drf_spectacular.views.SpectacularSwaggerView": "schema UI",
@@ -513,6 +509,10 @@ ANONYMOUS_VIEWS: dict[str, str] = {
     ),
     "librephotos.urls.CustomTokenObtainPairView": "sign-in",
     "librephotos.urls.CustomTokenRefreshView": "the refresh token is the credential",
+    "librephotos.urls.LogoutView": (
+        "the refresh token is the credential; not throttled, like the "
+        "upstream view it replaced, since a refresh token cannot be guessed"
+    ),
     **THIRD_PARTY_VIEWS,
 }
 

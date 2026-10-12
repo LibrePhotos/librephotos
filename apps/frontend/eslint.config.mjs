@@ -23,6 +23,11 @@ const notificationsImportBan = {
   message:
     "Toasts go through service/notifications (notification.success, error, warning or hide), not @mantine/notifications.",
 };
+// Cookies have one home, so the auth cookies keep one set of flags (path, SameSite, Secure).
+const cookiesImportBan = {
+  name: "react-cookie",
+  message: "Read and write cookies through src/api_client/authCookies.ts.",
+};
 
 const typedMockBan = {
   // vi.fn() is a Mock<(...args: any[]) => any>; give it the signature it stands in for.
@@ -205,6 +210,17 @@ export default [
       // dayjs is only Mantine's date-picker glue (its locales are loaded in i18n.ts); dates are luxon.
       "no-restricted-imports": [
         "error",
+        { paths: [modalsImportBan, cookiesImportBan], patterns: [notificationsImportBan, dayjsImportBan] },
+      ],
+    },
+  },
+  {
+    // The auth cookie module and its test are the only places that import react-cookie. A later
+    // block replaces a rule's options for the files it matches, so this keeps the other import bans.
+    files: ["src/api_client/authCookies.ts", "src/api_client/authCookies.test.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
         { paths: [modalsImportBan], patterns: [notificationsImportBan, dayjsImportBan] },
       ],
     },
@@ -215,7 +231,7 @@ export default [
     // files it matches, so this keeps the other import bans for those files.
     files: ["src/service/notifications/**/*.{ts,tsx}", "src/App.tsx"],
     rules: {
-      "no-restricted-imports": ["error", { paths: [modalsImportBan], patterns: [dayjsImportBan] }],
+      "no-restricted-imports": ["error", { paths: [modalsImportBan, cookiesImportBan], patterns: [dayjsImportBan] }],
     },
   },
   {
