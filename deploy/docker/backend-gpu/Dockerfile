@@ -62,5 +62,6 @@ EXPOSE 8001
 ARG GIT_HASH
 ENV GIT_HASH=${GIT_HASH}
 
-COPY deploy/docker/backend-gpu/entrypoint.sh /entrypoint.sh
+# The backend entrypoint; its nvidia-smi block is what makes it the GPU one.
+COPY deploy/docker/backend/entrypoint.sh /entrypoint.sh
 CMD ["/entrypoint.sh"]

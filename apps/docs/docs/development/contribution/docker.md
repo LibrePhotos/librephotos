@@ -13,7 +13,7 @@ The `deploy/` directory in the monorepo contains the Docker configuration for ru
 - `deploy/compose/docker-compose.dev.yml` - Development overrides (builds from local source, hot reload)
 - `deploy/compose/docker-compose.unified.yml` - Single-container image with PostgreSQL; reads the same `librephotos.env` as `docker-compose.yml`, and `api/tests/infra/test_compose_files_in_sync.py` keeps the backend environment of the two files equal
 - `deploy/compose/docker-compose.e2e.yml` - End-to-end test stack (builds from local source)
-- `deploy/docker/backend/` - Backend Dockerfile (app layer) and entrypoint
+- `deploy/docker/backend/` - Backend Dockerfile (app layer) and `entrypoint.sh`, the one entrypoint of the backend, GPU and unified images. Image differences are guarded blocks in it (`nvidia-smi` for GPU, `SERVE_FRONTEND` for unified) or `ENV` defaults in a Dockerfile; `api/tests/infra/test_deploy_images.py` fails on a second copy
 - `deploy/docker/backend/base/` - Backend base image Dockerfile (system dependencies), published separately
 - `deploy/docker/backend-gpu/` and `deploy/docker/backend-gpu/base/` - CUDA (GPU) equivalents of the backend and its base
 - `deploy/docker/frontend/` - Frontend Dockerfiles (production and development)

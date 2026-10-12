@@ -26,6 +26,8 @@ from django.test import SimpleTestCase
 BACKEND_ROOT = Path(settings.BASE_DIR).parent
 REPO_ROOT = BACKEND_ROOT.parent.parent
 UNIFIED_DIR = REPO_ROOT / "deploy" / "docker" / "unified"
+# The unified image starts through the backend image's entrypoint (#2375).
+ENTRYPOINT = REPO_ROOT / "deploy" / "docker" / "backend" / "entrypoint.sh"
 
 PROBE = """
 import json
@@ -147,7 +149,7 @@ class NoProxyDeploymentTest(SimpleTestCase):
         self.assertFalse((UNIFIED_DIR / "production_noproxy.py").exists())
 
     def test_the_entrypoint_selects_the_module_instead_of_overwriting_production(self):
-        entrypoint = (UNIFIED_DIR / "entrypoint.sh").read_text()
+        entrypoint = ENTRYPOINT.read_text(encoding="utf-8")
         self.assertIn("librephotos.settings.production_noproxy", entrypoint)
         overwrites_settings = [
             line

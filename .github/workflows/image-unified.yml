@@ -10,6 +10,8 @@ on:
       - 'apps/frontend/**'
       - 'packages/api-client/**'
       - 'deploy/docker/unified/**'
+      # The unified image starts through the backend image's entrypoint.
+      - 'deploy/docker/backend/entrypoint.sh'
       - '.github/workflows/image-unified.yml'
       - '.github/workflows/_build-image.yml'
 

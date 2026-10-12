@@ -18,53 +18,83 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser: CommandParser) -> None:
         parser.add_argument("admin_username", help="Username to create")
-        parser.add_argument("admin_email", help="Email address of the new user")
+        parser.add_argument(
+            "admin_email",
+            help="Email address of the new user (may be blank; ignored on --update)",
+        )
         parser.add_argument(
             "-u",
             "--update",
             help=(
-                "Update an existing superuser's password (ignoring the"
-                "provided email) instead of reporting an error"
+                "Update an existing user's password from ADMIN_PASSWORD (ignoring"
+                " the provided email; left unchanged when ADMIN_PASSWORD is unset)"
+                " instead of reporting an error"
             ),
             action="store_true",
         )
         # Done this way because command lines are visible to the whole system by
         #  default on Linux, so a password in the arguments would leak
         parser.epilog = (
-            "The password is read from the ADMIN_PASSWORD"
-            "environment variable or interactively if"
-            "ADMIN_PASSWORD is not set"
+            "The password is read from the ADMIN_PASSWORD environment variable."
+            " When it is unset, a new account gets a random password and"
+            " --update leaves an existing account's password unchanged."
         )
 
     def handle(self, *args: Any, **options: Any) -> None:
-        try:
-            validate_email(options["admin_email"])
-        except ValidationError as err:
-            raise CommandError(err.message)
-
+        username: str = options["admin_username"]
+        email: str = options["admin_email"]
         # Read here rather than in settings: a one-off bootstrap secret has no
         # business sitting in django.conf.settings for the life of the process.
+        # None (unset) and "" (blank) mean different things below.
         password = env_str("ADMIN_PASSWORD", None)
-        if password is not None:
-            options["admin_password"] = password
-        else:
-            options["admin_password"] = get_random_string(GENERATED_PASSWORD_LENGTH)
-
-        if not options["admin_password"]:
+        if password == "":
             raise CommandError("Admin password cannot be empty")
 
-        if not User.objects.filter(username=options["admin_username"].lower()).exists():
-            User.objects.create_superuser(
-                options["admin_username"].lower(),
-                options["admin_email"],
-                options["admin_password"],
-            )
-        elif options["update"]:
-            self.stderr.write(
-                "Warning: ignoring provided email " + options["admin_email"]
-            )
-            admin_user = User.objects.get(username=options["admin_username"].lower())
-            admin_user.set_password(options["admin_password"])
-            admin_user.save()
-        else:
+        existing = _existing_admin(username)
+        if existing is None:
+            _create_admin(username, email, password)
+        elif not options["update"]:
             raise CommandError("Specified user already exists")
+        else:
+            self._update_admin(existing, email, password)
+
+    def _update_admin(self, user: User, email: str, password: str | None) -> None:
+        """Reset the password, never the email: that is the account owner's to change."""
+        if email and email != user.email:
+            self.stderr.write(f"Warning: ignoring provided email {email}")
+        if password is None:
+            self.stderr.write(
+                "ADMIN_PASSWORD is not set, so the admin password is left unchanged"
+            )
+            return
+        user.set_password(password)
+        user.save(update_fields=["password"])
+
+
+def _existing_admin(username: str) -> User | None:
+    """The account ``username`` names: the lower-case one, else a case-insensitive match.
+
+    Accounts are created lower-case, but the unified image used to create the
+    admin with the name as typed; matching it keeps a restart from creating a
+    second superuser next to it.
+    """
+    exact = User.objects.filter(username=username.lower()).first()
+    if exact is not None:
+        return exact
+    return User.objects.filter(username__iexact=username).order_by("id").first()
+
+
+def _create_admin(username: str, email: str, password: str | None) -> None:
+    """Create the superuser. A blank email leaves the account without one."""
+    if email:
+        try:
+            validate_email(email)
+        except ValidationError as err:
+            raise CommandError(err.message)
+    User.objects.create_superuser(
+        username.lower(),
+        email,
+        password
+        if password is not None
+        else get_random_string(GENERATED_PASSWORD_LENGTH),
+    )

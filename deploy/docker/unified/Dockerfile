@@ -2,22 +2,28 @@
 # that was promoted for that release instead of whatever :dev points at.
 ARG BASE_TAG=dev
 
-# Multi-stage build: First build the frontend
-FROM node:24-slim as frontend-builder
+# First stage: build the frontend. The same stage as in
+# deploy/docker/frontend/Dockerfile; keep the two identical
+# (apps/backend/api/tests/infra/test_deploy_images.py).
+FROM node:24-slim as builder
 
 RUN npm config set fetch-retry-maxtimeout 60000
 
 # Mirror the repo layout: the frontend compiles the shared API client from
 # ../../packages/api-client (vite.config.ts / tsconfig.json aliases).
-WORKDIR /frontend/apps/frontend
+WORKDIR /usr/src/app/apps/frontend
 ENV CLI_WIDTH 80
 
+# Copy manifests first for better layer caching
 COPY apps/frontend/package.json apps/frontend/yarn.lock ./
 RUN yarn install --frozen-lockfile --network-timeout 1000000
 
-COPY packages/api-client/ /frontend/packages/api-client/
+# Copy the rest of the source
+COPY packages/api-client/ /usr/src/app/packages/api-client/
 COPY apps/frontend/ ./
-RUN yarn run build
+
+ARG GIT_HASH=unknown
+RUN yarn run build && echo "${GIT_HASH}" > dist/git_hash.txt
 
 # Second stage: Build the backend with frontend included
 FROM reallibrephotos/librephotos-base:${BASE_TAG}
@@ -33,8 +39,8 @@ WORKDIR /code
 COPY apps/backend/requirements*.txt /code/
 RUN pip install --break-system-packages --no-cache-dir -r requirements.txt
 
-# Install additional packages for frontend serving
-RUN pip install --break-system-packages whitenoise
+# WhiteNoise serves the frontend build; pinned in requirements.unified.txt
+RUN pip install --break-system-packages --no-cache-dir -r requirements.unified.txt
 
 RUN if [ "$DEBUG" = 1 ] ; then \
   pip install --break-system-packages -r requirements.dev.txt; \
@@ -47,7 +53,7 @@ RUN if [ "$MLVALIDATION" = 1 ] ; then \
 COPY apps/backend/ /code/
 
 # Copy frontend build to Django static directory
-COPY --from=frontend-builder /frontend/apps/frontend/dist /code/frontend_build/
+COPY --from=builder /usr/src/app/apps/frontend/dist /code/frontend_build/
 RUN mkdir -p /code/static
 
 # The commit this image was built from, reported by /api/imagetag/ (the image
@@ -56,9 +62,13 @@ RUN mkdir -p /code/static
 ARG GIT_HASH
 ENV GIT_HASH=${GIT_HASH}
 
-# The no-proxy settings module ships with the backend source above, as
-# librephotos/settings/production_noproxy.py.
-COPY deploy/docker/unified/entrypoint.sh /entrypoint.sh
+# The backend entrypoint. Its SERVE_FRONTEND block selects the no-proxy settings
+# (librephotos/settings/production_noproxy.py, shipped with the source above).
+# This image serves the web app and every thumbnail through Django, so it runs
+# more uvicorn workers and recycles them less often than the backend image.
+ENV WEB_CONCURRENCY=4
+ENV WEB_MAX_REQUESTS=2000
+COPY deploy/docker/backend/entrypoint.sh /entrypoint.sh
 
 EXPOSE 8001
 

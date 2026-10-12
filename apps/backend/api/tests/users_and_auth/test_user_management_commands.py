@@ -5,6 +5,9 @@ CURRENT observable behavior of ``api/management/commands/createuser.py`` ->
 ``Command.handle`` before any refactor. They assert what the code does today,
 not what it arguably should do.
 
+``CreateAdminTest`` covers ``createadmin``, which every Docker image's entrypoint
+runs on each start when ``ADMIN_USERNAME`` is set (issue #2375).
+
 ``CreateUserCommandsTest`` covers random password generation for both commands.
 Both used to call ``User.objects.make_random_password()``, which Django
 deprecated in 4.2 and removed in 5.1, so the generating branch raised
@@ -22,6 +25,7 @@ from django.test import TestCase
 
 from api.management.commands import createuser as createuser_module
 from api.models import User
+from api.tests.utils import create_test_user
 
 GUESSES = ["", "password", "admin", "changeme"]
 
@@ -293,3 +297,105 @@ class CreateUserCommandsTest(TestCase):
             call_command("createuser", "genuser2", "genuser2@test.com")
 
         self.assertNotEqual(captured[0], captured[1])
+
+
+class CreateAdminTest(TestCase):
+    """``createadmin`` as the entrypoints call it: ``createadmin -u "$ADMIN_USERNAME" "$ADMIN_EMAIL"``.
+
+    The email is only used when the account is created; ``--update`` changes the
+    password and nothing else, whatever ``ADMIN_EMAIL`` holds.
+    """
+
+    def run_createadmin(self, *args: str) -> str:
+        stderr = io.StringIO()
+        call_command("createadmin", *args, stderr=stderr)
+        return stderr.getvalue()
+
+    def test_update_with_a_blank_email_resets_the_password(self):
+        """The compose files pass ADMIN_EMAIL=${adminEmail:-}, blank unless set."""
+        admin = create_test_user(is_admin=True, username="admin", email="me@x.org")
+        with admin_password_env("new-secret-pw"):
+            self.run_createadmin("-u", "admin", "")
+        admin.refresh_from_db()
+        self.assertTrue(admin.check_password("new-secret-pw"))
+        self.assertEqual("me@x.org", admin.email)
+
+    def test_update_never_changes_the_email(self):
+        admin = create_test_user(is_admin=True, username="admin", email="me@x.org")
+        with admin_password_env("new-secret-pw"):
+            self.run_createadmin("-u", "admin", "other@x.org")
+        admin.refresh_from_db()
+        self.assertEqual("me@x.org", admin.email)
+
+    def test_update_with_an_invalid_email_still_resets_the_password(self):
+        admin = create_test_user(is_admin=True, username="admin", email="me@x.org")
+        with admin_password_env("new-secret-pw"):
+            self.run_createadmin("-u", "admin", "not-an-email")
+        admin.refresh_from_db()
+        self.assertTrue(admin.check_password("new-secret-pw"))
+        self.assertEqual("me@x.org", admin.email)
+
+    def test_update_without_admin_password_leaves_the_password_alone(self):
+        """A random password nobody knows would lock the admin out on every start."""
+        admin = create_test_user(is_admin=True, username="admin", password="old-pw")
+        with no_admin_password_env():
+            self.run_createadmin("-u", "admin", "")
+        admin.refresh_from_db()
+        self.assertTrue(admin.check_password("old-pw"))
+
+    def test_update_with_a_blank_password_is_refused(self):
+        admin = create_test_user(is_admin=True, username="admin", password="old-pw")
+        with admin_password_env(""), self.assertRaises(CommandError):
+            self.run_createadmin("-u", "admin", "")
+        admin.refresh_from_db()
+        self.assertTrue(admin.check_password("old-pw"))
+
+    def test_update_finds_an_account_whose_name_is_not_lower_case(self):
+        """The unified image used to create the admin with the name as typed."""
+        admin = create_test_user(is_admin=True, username="Admin", password="old-pw")
+        with admin_password_env("new-secret-pw"):
+            self.run_createadmin("-u", "Admin", "")
+        admin.refresh_from_db()
+        self.assertTrue(admin.check_password("new-secret-pw"))
+        self.assertEqual(1, User.objects.filter(username__iexact="admin").count())
+
+    def test_update_prefers_the_lower_case_account(self):
+        lower = create_test_user(is_admin=True, username="admin", password="old-pw")
+        mixed = create_test_user(is_admin=True, username="Admin", password="old-pw")
+        with admin_password_env("new-secret-pw"):
+            self.run_createadmin("-u", "ADMIN", "")
+        lower.refresh_from_db()
+        mixed.refresh_from_db()
+        self.assertTrue(lower.check_password("new-secret-pw"))
+        self.assertTrue(mixed.check_password("old-pw"))
+
+    def test_existing_account_without_update_is_an_error(self):
+        create_test_user(is_admin=True, username="admin")
+        with admin_password_env("pw"), self.assertRaises(CommandError) as ctx:
+            self.run_createadmin("admin", "")
+        self.assertEqual("Specified user already exists", str(ctx.exception))
+
+    def test_create_uses_the_email_and_a_lower_case_name(self):
+        with admin_password_env("secret-pw"):
+            self.run_createadmin("-u", "NewAdmin", "new@x.org")
+        admin = User.objects.get(username="newadmin")
+        self.assertTrue(admin.is_superuser)
+        self.assertEqual("new@x.org", admin.email)
+        self.assertTrue(admin.check_password("secret-pw"))
+
+    def test_create_with_a_blank_email_creates_an_account_without_one(self):
+        with admin_password_env("secret-pw"):
+            self.run_createadmin("-u", "admin", "")
+        admin = User.objects.get(username="admin")
+        self.assertTrue(admin.is_superuser)
+        self.assertEqual("", admin.email)
+
+    def test_create_with_an_invalid_email_is_refused(self):
+        with admin_password_env("secret-pw"), self.assertRaises(CommandError):
+            self.run_createadmin("-u", "admin", "not-an-email")
+        self.assertFalse(User.objects.filter(username="admin").exists())
+
+    def test_create_with_a_blank_password_is_refused(self):
+        with admin_password_env(""), self.assertRaises(CommandError):
+            self.run_createadmin("-u", "admin", "a@x.org")
+        self.assertFalse(User.objects.filter(username="admin").exists())

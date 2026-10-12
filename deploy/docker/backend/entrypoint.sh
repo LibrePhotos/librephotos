@@ -1,4 +1,10 @@
 #!/bin/bash
+# The one entrypoint of the backend, GPU and unified images (all three
+# Dockerfiles copy this file). What differs between them is a guarded block
+# below (nvidia-smi for GPU, SERVE_FRONTEND for unified) or an ENV default in
+# the image's Dockerfile, never a second copy of the script:
+# apps/backend/api/tests/infra/test_deploy_images.py fails on one.
+#
 # pipefail, not -e: a pipeline's status is its first failing command rather than
 # tee's, so the migrate check below sees a failed migration. Everything else
 # keeps running past a failure as before (build_similarity_index, createadmin).
@@ -13,6 +19,13 @@ if [[ "$(uname -m)" == "aarch64"* ]]; then
 fi
 export OPENBLAS_NUM_THREADS=1
 export OPENBLAS_MAIN_FREE=1
+
+# GPU image: show the GPU the container got and default to the first one.
+# A CUDA_VISIBLE_DEVICES set on the container wins.
+if command -v nvidia-smi >/dev/null 2>&1; then
+    nvidia-smi
+    export CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES:-0}"
+fi
 
 # Matplotlib comes along with insightface, which the face recognition service
 # imports. Left to itself it keeps its font cache under $HOME, and when the home
@@ -40,6 +53,16 @@ if ! mkdir -p "$logs_dir"; then
     exit 1
 fi
 
+# Unified image: serve the web app from Django (WhiteNoise) on port 8001, with
+# no proxy in front. The no-proxy settings import librephotos.settings.production
+# and override only what serving the frontend changes. manage.py, asgi.py and
+# wsgi.py use os.environ.setdefault, so exporting here wins for every python
+# invocation below, for uvicorn, and for the ML services those spawn.
+if echo "$SERVE_FRONTEND" | grep -qiE '^(true|1|yes|on)$'; then
+    echo "Serving the frontend from Django on port 8001 (no proxy)"
+    export DJANGO_SETTINGS_MODULE="${DJANGO_SETTINGS_MODULE:-librephotos.settings.production_noproxy}"
+fi
+
 python manage.py showmigrations | tee "$logs_dir/show_migrate.log"
 # Serving on a schema the code does not match fails in ways that are hard to
 # trace back, so a failed migration stops the container before it serves.
@@ -52,10 +75,15 @@ python manage.py collectstatic --no-input
 python manage.py start_service all
 python manage.py start_cleaning_service
 python manage.py start_job_cleanup_service
-python manage.py clear_cache 
-python manage.py build_similarity_index 2>&1 | tee "$logs_dir/command_build_similarity_index.log"
+python manage.py clear_cache
+python manage.py build_similarity_index 2>&1 | tee "$logs_dir/command_build_similarity_index.log" \
+    || echo "build_similarity_index failed, continuing. See $logs_dir/command_build_similarity_index.log" >&2
 
-if [[ -n "$ADMIN_USERNAME" ]]; then
+# The admin account is only ever touched through createadmin: it creates the
+# account on the first start (ADMIN_EMAIL is used then, and may be blank) and
+# afterwards only resets the password to ADMIN_PASSWORD. Without a password
+# there is nothing to set, so the step is skipped.
+if [[ -n "$ADMIN_USERNAME" && -n "$ADMIN_PASSWORD" ]]; then
     python manage.py createadmin -u "$ADMIN_USERNAME" "$ADMIN_EMAIL" 2>&1 | tee "$logs_dir/command_createadmin.log"
 fi
 
@@ -63,8 +91,10 @@ echo "Running backend server..."
 
 python manage.py qcluster 2>&1 | tee "$logs_dir/qcluster.log" &
 
-# WEB_CONCURRENCY uvicorn processes; recycle them every 50 requests when there is
-# more than one, so a recycled worker never takes the whole API down. Not under
+# WEB_CONCURRENCY uvicorn processes; recycle each one after WEB_MAX_REQUESTS
+# requests when there is more than one, so a recycled worker never takes the
+# whole API down. The unified image sets both higher in its Dockerfile (4 and
+# 2000): it serves the web app and every thumbnail through Django too. Not under
 # --reload: uvicorn then runs a single child that its reloader would not restart.
 args=(librephotos.asgi:application --host 0.0.0.0 --port 8001 --log-level info --workers "${WEB_CONCURRENCY:-1}")
 if [[ "$DEBUG" = 1 ]]; then
@@ -72,6 +102,6 @@ if [[ "$DEBUG" = 1 ]]; then
     args+=(--reload)
 else
     echo "production backend starting"
-    if [[ "${WEB_CONCURRENCY:-1}" -gt 1 ]]; then args+=(--limit-max-requests 50); fi
+    if [[ "${WEB_CONCURRENCY:-1}" -gt 1 ]]; then args+=(--limit-max-requests "${WEB_MAX_REQUESTS:-50}"); fi
 fi
 uvicorn "${args[@]}" 2>&1 | tee "$logs_dir/uvicorn_django.log"
