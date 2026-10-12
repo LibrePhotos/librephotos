@@ -128,6 +128,14 @@ describe("AlbumEditModal", () => {
     expect(createButton().disabled).toBe(false);
   });
 
+  it("says a title is taken, trimmed and in any case", () => {
+    type(" trip ");
+
+    expect(document.body.textContent).toContain("Album trip already exists.");
+    type("New");
+    expect(document.body.textContent).not.toContain("already exists");
+  });
+
   it("sends the trimmed title", () => {
     type(" New ");
     act(() => createButton().click());
