@@ -27,18 +27,18 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { useSetFacesPersonLabelMutation } from "../api_client/faces/hooks/useSetFacesPersonLabelMutation";
-import { ModalPersonEdit } from "../components/modals/ModalPersonEdit";
-import i18n from "../i18n";
-import { defined } from "../util/defined.test-utils";
+import { useSetFacesPersonLabelMutation } from "../../api_client/faces/hooks/useSetFacesPersonLabelMutation";
+import i18n from "../../i18n";
+import { defined } from "../../util/defined.test-utils";
 import {
   getRecentlyTaggedPeopleIds,
   RECENTLY_TAGGED_PEOPLE_LIMIT,
   recordRecentlyTaggedPerson,
   resolveRecentlyTaggedPeople,
   withMostRecentlyTagged,
-} from "../util/recentlyTaggedPeople";
-import { STORAGE_KEYS } from "../util/storage";
+} from "../../util/recentlyTaggedPeople";
+import { STORAGE_KEYS } from "../../util/storage";
+import { ModalPersonEdit } from "./ModalPersonEdit";
 
 const stubs = vi.hoisted(() => ({
   // Alphabetical, the way the query hands them over. Ids are strings here and
@@ -52,15 +52,15 @@ const stubs = vi.hoisted(() => ({
   post: vi.fn<ApiClient["post"]>(),
 }));
 
-vi.mock("../api_client/apiClient", () => ({ serverAddress: "" }));
-vi.mock("../service/notifications", () => ({ notification: new Proxy({}, { get: () => () => {} }) }));
-vi.mock("../api_client/albums/hooks", () => ({ useFetchPeopleAlbumsQuery: () => ({ data: stubs.people }) }));
+vi.mock("../../api_client/apiClient", () => ({ serverAddress: "" }));
+vi.mock("../../service/notifications", () => ({ notification: new Proxy({}, { get: () => () => {} }) }));
+vi.mock("../../api_client/albums/hooks", () => ({ useFetchPeopleAlbumsQuery: () => ({ data: stubs.people }) }));
 // The barrel the modal imports from - the mutation test below pulls the real
 // hook straight out of its own module instead.
-vi.mock("../api_client/faces", () => ({
+vi.mock("../../api_client/faces", () => ({
   useSetFacesPersonLabelMutation: () => ({ mutate: stubs.setFacesPersonLabel }),
 }));
-vi.mock("../api_client/api", () => ({
+vi.mock("../../api_client/api", () => ({
   // One object under two names in the real module.
   apiClient: { post: stubs.post },
   fetchClient: { post: stubs.post },

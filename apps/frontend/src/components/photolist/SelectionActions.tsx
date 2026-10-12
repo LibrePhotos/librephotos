@@ -43,7 +43,7 @@ import {
   useRemoveFromStackMutation,
 } from "../../api_client/stacks";
 import { useAuth } from "../../hooks/useAuth";
-import { ICON_SIZE, TOOLBAR_ACTION_SIZE } from "../../ui-constants";
+import { ICON_SIZE, TOOLBAR_ACTION_SIZE } from "../../uiConstants";
 import { copyToClipboard } from "../../util/util";
 import { ModalDownloadOptions } from "../modals/ModalDownloadOptions";
 

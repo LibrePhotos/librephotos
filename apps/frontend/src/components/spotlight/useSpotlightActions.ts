@@ -56,7 +56,7 @@ import {
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import { useAuth } from "../../hooks/useAuth";
 import { notification } from "../../service/notifications";
-import { SearchOptionType, useSearch, type SearchOption } from "../../service/use-search";
+import { SearchOptionType, useSearch, type SearchOption } from "../../service/useSearch";
 
 const ICON_SIZE = 20;
 // Module-level so the useMemo action lists below do not depend on a per-render object.
@@ -73,7 +73,7 @@ export type SpotlightAction = Omit<SpotlightActionData, "onClick"> & {
 };
 
 /** A group of actions, as Mantine's SpotlightActionGroupData holds them. */
-export type SpotlightActionGroup = { group: string; actions: SpotlightAction[] };
+type SpotlightActionGroup = { group: string; actions: SpotlightAction[] };
 
 function getThumbnailUrl(imageHash: string | undefined): string | undefined {
   if (!imageHash) return undefined;

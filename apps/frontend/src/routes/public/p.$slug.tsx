@@ -8,7 +8,7 @@ import { serverAddress } from "../../api_client/apiClient";
 import { useFetchSharedPhotoQuery } from "../../api_client/photos/hooks";
 import { PageLoader } from "../../components/common/PageLoader";
 import { usePublicPageTitle } from "../../components/sharing/usePublicPageTitle";
-import { TOP_MENU_HEIGHT } from "../../ui-constants";
+import { TOP_MENU_HEIGHT } from "../../uiConstants";
 import { parsePhotoTimestamp } from "../../util/dateUtils";
 import { needsConversion } from "../../util/videoPlayback";
 

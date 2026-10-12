@@ -13,6 +13,11 @@ const modalsImportBan = {
   name: "@mantine/modals",
   message: "Dialogs are components opened with useDisclosure, not imperative modals.open*().",
 };
+// lodash itself is not a dependency (its CommonJS build drags in the whole library); lodash-es is.
+const lodashImportBan = {
+  name: "lodash",
+  message: 'Import from "lodash-es" (lodash itself is not a dependency).',
+};
 const dayjsImportBan = {
   group: ["dayjs", "dayjs/*"],
   message: "dayjs is only for Mantine's date pickers. Use util/dateUtils (luxon) for dates.",
@@ -253,7 +258,10 @@ export default [
       // dayjs is only Mantine's date-picker glue (its locales are loaded in i18n.ts); dates are luxon.
       "no-restricted-imports": [
         "error",
-        { paths: [modalsImportBan, cookiesImportBan], patterns: [notificationsImportBan, dayjsImportBan] },
+        {
+          paths: [modalsImportBan, cookiesImportBan, lodashImportBan],
+          patterns: [notificationsImportBan, dayjsImportBan],
+        },
       ],
     },
   },
@@ -264,7 +272,7 @@ export default [
     rules: {
       "no-restricted-imports": [
         "error",
-        { paths: [modalsImportBan], patterns: [notificationsImportBan, dayjsImportBan] },
+        { paths: [modalsImportBan, lodashImportBan], patterns: [notificationsImportBan, dayjsImportBan] },
       ],
     },
   },
@@ -274,7 +282,10 @@ export default [
     // files it matches, so this keeps the other import bans for those files.
     files: ["src/service/notifications/**/*.{ts,tsx}", "src/App.tsx"],
     rules: {
-      "no-restricted-imports": ["error", { paths: [modalsImportBan, cookiesImportBan], patterns: [dayjsImportBan] }],
+      "no-restricted-imports": [
+        "error",
+        { paths: [modalsImportBan, cookiesImportBan, lodashImportBan], patterns: [dayjsImportBan] },
+      ],
     },
   },
   {

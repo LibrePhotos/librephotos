@@ -8,7 +8,7 @@ const PhotoAlbumsResponse = z.object({
   results: UserAlbumInfo.array(),
 });
 
-export const PhotoAlbumsQueryKeys = ["photoAlbums"] as const;
+const PhotoAlbumsQueryKeys = ["photoAlbums"] as const;
 
 export const useFetchPhotoAlbumsQuery = (hash: string) =>
   useQuery({

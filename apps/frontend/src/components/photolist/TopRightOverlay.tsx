@@ -2,7 +2,7 @@ import { IconStarFilled as StarFilled } from "@tabler/icons-react";
 import React from "react";
 import { PigPhoto } from "../../api_client/photos/types";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
-import { FAVORITE_COLOR, ICON_SIZE } from "../../ui-constants";
+import { FAVORITE_COLOR, ICON_SIZE } from "../../uiConstants";
 
 export function TopRightOverlay({ item }: { item: PigPhoto }) {
   const { data: userDetails } = useCurrentUserSelfDetailsQuery();
@@ -21,4 +21,3 @@ export function TopRightOverlay({ item }: { item: PigPhoto }) {
 }
 
 // Keep backward compatibility alias
-export { TopRightOverlay as FavoritedOverlay };

@@ -25,7 +25,7 @@ import { fuzzyMatch } from "../../util/util";
 import { modalTitleStyles } from "./modalTitleStyles";
 
 /** A face the dialog labels: its id, and its crop for the preview row. */
-export type FaceToLabel = Readonly<{ face_id: number; face_url: string }>;
+type FaceToLabel = Readonly<{ face_id: number; face_url: string }>;
 
 type Props = Readonly<{
   isOpen: boolean;

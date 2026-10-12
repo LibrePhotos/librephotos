@@ -4,7 +4,7 @@ import { IconCheck as Check, IconChecks as Checks } from "@tabler/icons-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import type { BulkPhotoQuery, PigPhoto, SelectionState } from "../../api_client/photos/types";
-import { ICON_SIZE, TOOLBAR_ACTION_SIZE, TOOLBAR_CONTROL_HEIGHT } from "../../ui-constants";
+import { ICON_SIZE, TOOLBAR_ACTION_SIZE, TOOLBAR_CONTROL_HEIGHT } from "../../uiConstants";
 
 type Props = {
   selectMode: boolean;

@@ -6,7 +6,7 @@ import { createContext, useContext } from "react";
  * hands it down by context, so a command reaches the lightbox that asked and no other listener on
  * the page.
  */
-export type LightboxCommandArgs = {
+type LightboxCommandArgs = {
   favorite: [];
   hide: [];
   public: [];
@@ -15,7 +15,7 @@ export type LightboxCommandArgs = {
   seek: [seconds: number];
 };
 
-export type LightboxCommand = keyof LightboxCommandArgs;
+type LightboxCommand = keyof LightboxCommandArgs;
 
 type LightboxCommandHandler<C extends LightboxCommand> = (...args: LightboxCommandArgs[C]) => void;
 

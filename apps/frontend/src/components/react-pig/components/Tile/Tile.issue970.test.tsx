@@ -25,9 +25,9 @@
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import Tile from "../components/react-pig/components/Tile/Tile";
-import type { ScrollSpeed } from "../components/react-pig/types";
-import { defined } from "../util/defined.test-utils";
+import { defined } from "../../../../util/defined.test-utils";
+import type { ScrollSpeed } from "../../types";
+import Tile from "./Tile";
 
 const SERVER = "http://localhost:3000";
 

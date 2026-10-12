@@ -23,7 +23,7 @@ import {
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { i18nResolvedLanguage } from "../../i18n";
-import { FAVORITE_COLOR } from "../../ui-constants";
+import { FAVORITE_COLOR } from "../../uiConstants";
 import {
   countActiveFilters,
   describeTimelineFilter,

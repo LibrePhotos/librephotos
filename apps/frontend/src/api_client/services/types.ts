@@ -17,9 +17,3 @@ export const ServiceHealthResponse = z.object({
   feature_flag: z.string().nullable().optional(),
 });
 export type ServiceHealthResponse = z.infer<typeof ServiceHealthResponse>;
-
-// POST /api/services/{service_name}/start/ and /stop/
-export const ServiceActionResponse = z.object({
-  message: z.string(),
-});
-export type ServiceActionResponse = z.infer<typeof ServiceActionResponse>;

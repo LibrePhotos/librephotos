@@ -1,7 +1,7 @@
 import CryptoJS from "crypto-js";
 
 // < 1MB chunks, because of the nginx default client_max_body_size
-export const CHUNK_SIZE = 1000000;
+const CHUNK_SIZE = 1000000;
 
 export function calculateMD5(file: File): Promise<string> {
   // An empty file has nothing to read; onload would see "" and never settle.

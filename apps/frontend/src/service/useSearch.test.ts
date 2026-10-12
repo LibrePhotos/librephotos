@@ -6,7 +6,7 @@
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import { isSearchExample, SearchOptionType, useSearch } from "./use-search";
+import { isSearchExample, SearchOptionType, useSearch } from "./useSearch";
 
 const examplesQuery = vi.hoisted(() => ({
   data: ["for things", "for people", "beach"],

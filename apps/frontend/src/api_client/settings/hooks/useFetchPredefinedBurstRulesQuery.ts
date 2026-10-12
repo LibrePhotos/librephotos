@@ -1,9 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
-import { BurstDetectionRule } from "../../../components/settings/burst-detection.zod";
+import { BurstDetectionRule } from "../../../components/settings/burstDetectionSchema";
 import { parseListWithNotification } from "../../../util/zodUtils";
 import { fetchClient } from "../../api";
 
-export const PredefinedBurstRulesQueryKeys = ["predefinedBurstRules"] as const;
+const PredefinedBurstRulesQueryKeys = ["predefinedBurstRules"] as const;
 
 export const useFetchPredefinedBurstRulesQuery = () =>
   useQuery({

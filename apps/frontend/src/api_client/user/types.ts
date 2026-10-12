@@ -1,4 +1,4 @@
-import type { ManageUser, User } from "@librephotos/api-client";
+import type { ManageUser } from "@librephotos/api-client";
 
 // The user schemas are shared with the mobile app and live in
 // packages/api-client; this module re-exports them under their old names.
@@ -12,21 +12,7 @@ import type { ManageUser, User } from "@librephotos/api-client";
 // rows against the full `User` schema spammed non-admins with "Required at
 // results.N.<field>" popups (issue #1888), so there the private/admin-only
 // fields are optional while the public-safe fields stay required.
-export {
-  ListUser,
-  ListUserList,
-  ManageUser,
-  PublicPhotoSample,
-  PublicSharingDefaults,
-  SimpleUser,
-  User,
-  UserList,
-} from "@librephotos/api-client";
+export { ListUser, ListUserList, ManageUser, PublicSharingDefaults, User } from "@librephotos/api-client";
 
 /** A PATCH to /manage/user/<id>/: the id, plus only the fields that change. */
 export type ManageUserPatch = Partial<ManageUser> & Pick<ManageUser, "id">;
-
-export type UserState = {
-  userSelfDetails: User;
-  error: Error | string | null | undefined;
-};

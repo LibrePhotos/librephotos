@@ -1,0 +1,9 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": ["src/routes/**/*.{ts,tsx}"],
+  "project": ["src/**/*.{ts,tsx}", "*.{ts,mjs,cjs}"],
+  "ignore": ["e2e/**"],
+  "ignoreIssues": {
+    "src/api_client/api.ts": ["duplicates"]
+  }
+}

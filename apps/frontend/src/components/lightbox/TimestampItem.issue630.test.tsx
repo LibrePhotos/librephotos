@@ -5,8 +5,8 @@ import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import "@mantine/core/styles.css";
-import { TimestampItem } from "../components/lightbox/TimestampItem";
-import { defined } from "../util/defined.test-utils";
+import { defined } from "../../util/defined.test-utils";
+import { TimestampItem } from "./TimestampItem";
 
 /**
  * Repro for https://github.com/LibrePhotos/librephotos/issues/630
@@ -30,7 +30,7 @@ process.env.TZ = "Europe/Berlin";
 
 const updatePhoto = vi.fn<(request: { id: string; data: { exif_timestamp?: unknown } }) => void>();
 
-vi.mock("../api_client/photos/hooks", () => ({
+vi.mock("../../api_client/photos/hooks", () => ({
   useUpdatePhotoMutation: () => ({ mutate: updatePhoto }),
 }));
 

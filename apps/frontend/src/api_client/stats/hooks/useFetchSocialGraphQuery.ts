@@ -3,15 +3,15 @@ import { z } from "zod";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient } from "../../api";
 
-export const SocialGraphQueryKeys = ["socialGraph"] as const;
+const SocialGraphQueryKeys = ["socialGraph"] as const;
 
-export const Node = z.object({
+const Node = z.object({
   id: z.string(),
   x: z.number(),
   y: z.number(),
 });
 
-export const Link = z.object({
+const Link = z.object({
   source: z.string(),
   target: z.string(),
 });

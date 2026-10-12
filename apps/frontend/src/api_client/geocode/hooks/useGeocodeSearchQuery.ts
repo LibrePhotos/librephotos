@@ -3,7 +3,7 @@ import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient } from "../../api";
 import { GeocodeSearchResponseSchema, type GeocodeSearchResponse } from "../types";
 
-export const GeocodeSearchQueryKeys = ["geocodeSearch"] as const;
+const GeocodeSearchQueryKeys = ["geocodeSearch"] as const;
 
 export const useGeocodeSearchQuery = (query: string, enabled: boolean = true) =>
   useQuery({

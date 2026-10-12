@@ -5,13 +5,13 @@ import { fetchClient } from "../../api";
 
 export const StorageStatsQueryKeys = ["storageStats"] as const;
 
-export const StorageStatsResponse = z.object({
+const StorageStatsResponse = z.object({
   total_storage: z.number(),
   used_storage: z.number(),
   free_storage: z.number(),
 });
 
-export type StorageStatsResponse = z.infer<typeof StorageStatsResponse>;
+type StorageStatsResponse = z.infer<typeof StorageStatsResponse>;
 
 export const useFetchStorageStatsQuery = () =>
   useQuery({

@@ -3,7 +3,7 @@ import { IconStar } from "@tabler/icons-react";
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { PAGE_HEADER_ICON_SIZE } from "../ui-constants";
+import { PAGE_HEADER_ICON_SIZE } from "../uiConstants";
 import { PageHeader } from "./PageHeader";
 
 let root: Root;

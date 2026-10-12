@@ -12,8 +12,8 @@ import { IconCirclePlus as CirclePlus, IconSearch as Search } from "@tabler/icon
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { fuzzyMatch } from "../../util/util";
-import { getRuleExtraInfo } from "../settings/date-time-settings";
-import type { DateTimeRule } from "../settings/date-time.zod";
+import type { DateTimeRule } from "../settings/dateTimeSchema";
+import { getRuleExtraInfo } from "../settings/dateTimeSettings";
 import { modalTitleStyles } from "./modalTitleStyles";
 
 type Props = Readonly<{

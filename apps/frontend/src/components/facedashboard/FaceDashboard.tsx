@@ -12,7 +12,7 @@ import {
   useSetFacesPersonLabelMutation,
 } from "../../api_client/faces";
 import { notification } from "../../service/notifications";
-import { TOP_MENU_HEIGHT } from "../../ui-constants";
+import { TOP_MENU_HEIGHT } from "../../uiConstants";
 import { EmptyState } from "../common/EmptyState";
 import { Lightbox } from "../lightbox";
 import { ModalPersonEdit } from "../modals/ModalPersonEdit";

@@ -4,7 +4,7 @@ import type { TFunction } from "i18next";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { fuzzyMatch } from "../../util/util";
-import type { BurstDetectionRule } from "../settings/burst-detection.zod";
+import type { BurstDetectionRule } from "../settings/burstDetectionSchema";
 import { modalTitleStyles } from "./modalTitleStyles";
 
 type Props = Readonly<{

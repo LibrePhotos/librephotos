@@ -5,7 +5,7 @@ import { fetchClient, queryClient } from "../../api";
 import { EmailConfig } from "../types";
 import { SiteSettingsQueryKeys } from "./useGetSettingsQuery";
 
-export const EmailConfigQueryKeys = ["emailConfig"] as const;
+const EmailConfigQueryKeys = ["emailConfig"] as const;
 
 export const useGetEmailConfigQuery = () =>
   useQuery({
@@ -42,12 +42,12 @@ export const useUpdateEmailConfigMutation = () =>
   });
 
 /** A sent test email. A failed send is an ApiError (502, code email_send_failed). */
-export const EmailTestResponse = z.object({
+const EmailTestResponse = z.object({
   status: z.literal(true),
   message: z.string(),
 });
 
-export type EmailTestResponse = z.infer<typeof EmailTestResponse>;
+type EmailTestResponse = z.infer<typeof EmailTestResponse>;
 
 export const useSendTestEmailMutation = () =>
   useMutation({

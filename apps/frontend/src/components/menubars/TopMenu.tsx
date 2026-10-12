@@ -1,6 +1,6 @@
 import { Box, Flex, Group } from "@mantine/core";
 import React from "react";
-import { LEFT_MENU_WIDTH } from "../../ui-constants";
+import { LEFT_MENU_WIDTH } from "../../uiConstants";
 import { ChunkedUploadButton } from "../ChunkedUploadButton";
 import { SpotlightTrigger } from "../spotlight";
 import { ColorModeSwitch } from "./ColorModeSwitch";

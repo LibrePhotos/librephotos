@@ -1,7 +1,7 @@
 import { Button, Dialog, Group, Text, useMatches } from "@mantine/core";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { FOOTER_HEIGHT } from "../../ui-constants";
+import { FOOTER_HEIGHT } from "../../uiConstants";
 
 type SaveChangesDialogProps = Readonly<{
   opened: boolean;

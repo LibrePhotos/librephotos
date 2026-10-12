@@ -3,7 +3,7 @@ import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient } from "../../api";
 import { SearchExamplesResponse } from "../types";
 
-export const SearchExamplesQueryKeys = ["searchExamples"] as const;
+const SearchExamplesQueryKeys = ["searchExamples"] as const;
 
 export const useSearchExamplesQuery = (skip: boolean = false) =>
   useQuery({

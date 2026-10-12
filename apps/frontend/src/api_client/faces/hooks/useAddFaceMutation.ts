@@ -22,15 +22,8 @@ export const NormalizedFaceBox = z.object({
   left: z.number(),
 });
 
-export type AddFaceRequest = z.infer<typeof AddFaceRequest>;
-export const AddFaceRequest = z.object({
-  photo: z.string(),
-  personName: z.string(),
-  box: NormalizedFaceBox,
-});
-
-export type AddFaceResponse = z.infer<typeof AddFaceResponse>;
-export const AddFaceResponse = z.object({
+type AddFaceResponse = z.infer<typeof AddFaceResponse>;
+const AddFaceResponse = z.object({
   status: z.boolean(),
   face: z.object({
     face_id: z.number(),
@@ -46,6 +39,8 @@ export const AddFaceResponse = z.object({
     }),
   }),
 });
+
+type AddFaceRequest = { photo: string; personName: string; box: NormalizedFaceBox };
 
 const addFace = (data: AddFaceRequest) =>
   fetchClient

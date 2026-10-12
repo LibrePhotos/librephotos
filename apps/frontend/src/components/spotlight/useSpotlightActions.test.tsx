@@ -19,8 +19,8 @@ import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import i18n from "../../i18n";
-import { SearchOptionType } from "../../service/use-search";
-import type { SearchOption } from "../../service/use-search";
+import { SearchOptionType } from "../../service/useSearch";
+import type { SearchOption } from "../../service/useSearch";
 import { useSpotlightActions } from "./useSpotlightActions";
 import type { SpotlightAction } from "./useSpotlightActions";
 
@@ -67,8 +67,8 @@ vi.mock("../../hooks/useAuth", () => ({ useAuth: () => ({ isAuthenticated: true 
 vi.mock("../../service/notifications", () => ({
   notification: { scanDirectoryRequired: stubs.scanDirectoryRequired, warning: stubs.warning },
 }));
-vi.mock("../../service/use-search", async importOriginal => ({
-  ...(await importOriginal<typeof import("../../service/use-search")>()),
+vi.mock("../../service/useSearch", async importOriginal => ({
+  ...(await importOriginal<typeof import("../../service/useSearch")>()),
   useSearch: () => ({
     options: stubs.searchOptions,
     filterOptions: vi.fn<(...args: unknown[]) => void>(),

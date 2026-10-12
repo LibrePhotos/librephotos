@@ -22,7 +22,7 @@ export const DuplicatesQueryKeys = {
 };
 
 // Fetch duplicate groups list with pagination
-export const useFetchDuplicatesQuery = (
+const useFetchDuplicatesQuery = (
   duplicateType?: DuplicateType,
   status?: ReviewStatus,
   page: number = 1,
@@ -41,7 +41,7 @@ export const useFetchDuplicatesQuery = (
 };
 
 // Fetch single duplicate group details
-export const useFetchDuplicateQuery = (duplicateId: string) =>
+const useFetchDuplicateQuery = (duplicateId: string) =>
   useQuery({
     queryKey: DuplicatesQueryKeys.detail(duplicateId),
     queryFn: () => fetchClient.get<DuplicateDetail>(`/duplicates/${duplicateId}`),
@@ -49,7 +49,7 @@ export const useFetchDuplicateQuery = (duplicateId: string) =>
   });
 
 // Fetch duplicate stats
-export const useFetchDuplicateStatsQuery = (options?: { staleTime?: number }) =>
+const useFetchDuplicateStatsQuery = (options?: { staleTime?: number }) =>
   useQuery({
     queryKey: DuplicatesQueryKeys.stats(),
     queryFn: () => fetchClient.get<DuplicateStats>("/duplicates/stats"),

@@ -27,7 +27,7 @@ const TagAlbum = z.object({
   grouped_photos: DatePhotosGroup.array(),
 });
 
-export type TagAlbum = z.infer<typeof TagAlbum>;
+type TagAlbum = z.infer<typeof TagAlbum>;
 
 export const TagAlbumResponse = z.object({
   results: TagAlbum,
@@ -62,7 +62,7 @@ export type MergeTagsParams = {
 };
 
 /** A select-all payload: the query behind the photoset, minus what was unchecked. */
-export type TagSelectAllFields = {
+type TagSelectAllFields = {
   select_all: true;
   query: Record<string, unknown>;
   excluded_hashes: string[];

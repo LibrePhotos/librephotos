@@ -6,7 +6,7 @@ import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { PigPhoto } from "../../api_client/photos/types";
-import { FAVORITE_COLOR, ICON_SIZE } from "../../ui-constants";
+import { FAVORITE_COLOR, ICON_SIZE } from "../../uiConstants";
 import { TopRightOverlay } from "./TopRightOverlay";
 
 const stubs = vi.hoisted(() => ({ favoriteMinRating: 4 as number | undefined }));

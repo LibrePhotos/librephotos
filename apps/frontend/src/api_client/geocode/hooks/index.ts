@@ -1,1 +1,1 @@
-export { useGeocodeSearchQuery, GeocodeSearchQueryKeys } from "./useGeocodeSearchQuery";
+export { useGeocodeSearchQuery } from "./useGeocodeSearchQuery";

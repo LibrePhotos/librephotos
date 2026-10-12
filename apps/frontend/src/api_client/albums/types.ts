@@ -1,37 +1,9 @@
-import {
-  PhotoHash,
-  UserAlbumInfo as SharedUserAlbumInfo,
-  type BulkPhotoQuery,
-  type UserAlbum,
-} from "@librephotos/api-client";
+import { PhotoHash, UserAlbumInfo as SharedUserAlbumInfo, type BulkPhotoQuery } from "@librephotos/api-client";
 import { z } from "zod";
 
 // The album schemas are shared with the mobile app and live in
 // packages/api-client; this module re-exports them under their old names.
-export {
-  AlbumInfo,
-  AutoAlbum,
-  AutoAlbumInfo,
-  FetchAutoAlbumsListResponse,
-  FetchDateAlbumResponse,
-  FetchDateAlbumsListResponse,
-  FetchPlaceAlbumResponse,
-  FetchPlaceAlbumsListResponse,
-  FetchThingAlbumResponse,
-  FetchThingAlbumsListResponse,
-  FetchUserAlbumsListResponse,
-  FetchUserAlbumsSharedResponse,
-  Person,
-  PersonList,
-  PhotoSimple,
-  PhotoSuperSimple,
-  PlaceAlbum,
-  PlaceAlbumInfo,
-  PublicSharingOptions,
-  ThingAlbum,
-  ThingAlbumInfo,
-  UserAlbum,
-} from "@librephotos/api-client";
+export { AutoAlbumInfo, FetchDateAlbumResponse, FetchDateAlbumsListResponse, UserAlbum } from "@librephotos/api-client";
 
 // Frontend album lists return a lightweight cover photo. Keep the shared album
 // fields while using that same shape throughout the UI. `locked` is optional
@@ -99,37 +71,3 @@ export type SetUserAlbumCoverParams = {
   id: string;
   photo: string;
 };
-
-export const PersonInfo = z.object({
-  id: z.string(),
-  name: z.string(),
-});
-export type PersonInfo = z.infer<typeof PersonInfo>;
-
-export const Node = z.object({
-  id: z.string(),
-  x: z.number(),
-  y: z.number(),
-});
-
-export const Link = z.object({
-  source: z.string(),
-  target: z.string(),
-});
-
-export const PersonDataPointList = z.object({
-  nodes: Node.array(),
-  links: Link.array(),
-});
-
-export type UserAlbumDetails = Pick<UserAlbum, "id" | "title" | "owner" | "shared_to" | "locked" | "date" | "location">;
-
-export const UserAlbumEdit = z.object({
-  id: z.number(),
-  title: z.string().nullable(),
-  photos: z.string().array(),
-  created_on: z.string(),
-  favorited: z.boolean(),
-  locked: z.boolean().optional().default(false),
-  removedPhotos: z.string().array().optional(),
-});

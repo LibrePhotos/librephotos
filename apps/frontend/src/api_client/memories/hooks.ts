@@ -3,7 +3,7 @@ import { parseWithNotification } from "../../util/zodUtils";
 import { fetchClient } from "../api";
 import { FetchMemoriesResponse } from "./types";
 
-export const MemoriesQueryKeys = {
+const MemoriesQueryKeys = {
   list: (size?: number) => ["memories", { size }] as const,
 };
 

@@ -5,23 +5,15 @@ import { fetchClient, queryClient } from "../../api";
 import { UserListQueryKeys } from "../../user/hooks/useFetchUserListQuery";
 import { IsFirstTimeSetupQueryKeys } from "./useIsFirstTimeSetupQuery";
 
-export const UserSignupRequest = z.object({
-  username: z.string(),
-  password: z.string(),
-  email: z.string(),
-  first_name: z.string(),
-  last_name: z.string(),
-});
-
-export const UserSignupResponse = z.object({
+const UserSignupResponse = z.object({
   username: z.string(),
   email: z.string(),
   first_name: z.string(),
   last_name: z.string(),
 });
+type UserSignupResponse = z.infer<typeof UserSignupResponse>;
 
-export type UserSignupRequest = z.infer<typeof UserSignupRequest>;
-export type UserSignupResponse = z.infer<typeof UserSignupResponse>;
+type UserSignupRequest = { username: string; password: string; email: string; first_name: string; last_name: string };
 
 const signUp = (data: UserSignupRequest) =>
   fetchClient

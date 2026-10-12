@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { fetchClient } from "../../api";
 import type { SsoConfig } from "../types";
 
-export const SsoConfigQueryKeys = ["ssoConfig"] as const;
+const SsoConfigQueryKeys = ["ssoConfig"] as const;
 
 /**
  * What the login screen needs to know about single sign-on: whether to offer it,

@@ -1,6 +1,6 @@
 import { useViewportSize } from "@mantine/hooks";
 import { useEffect, useState } from "react";
-import { FOOTER_HEIGHT, LEFT_MENU_WIDTH, TOP_MENU_HEIGHT } from "../ui-constants";
+import { FOOTER_HEIGHT, LEFT_MENU_WIDTH, TOP_MENU_HEIGHT } from "../uiConstants";
 import { useIsDesktopLayout } from "./useIsDesktopLayout";
 
 interface AlbumGridConfig {

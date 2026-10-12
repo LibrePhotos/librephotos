@@ -4,7 +4,7 @@ import { fetchClient } from "../../api";
 import { POLL_IDLE_MS } from "../../polling";
 import { ServiceHealthResponse, ServicesListResponse } from "../types";
 
-export const ServicesQueryKeys = ["services"] as const;
+const ServicesQueryKeys = ["services"] as const;
 export const ServiceHealthQueryKeys = ["serviceHealth"] as const;
 
 export const useServicesListQuery = () =>

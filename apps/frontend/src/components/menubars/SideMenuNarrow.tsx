@@ -24,7 +24,7 @@ import { useDuplicateStatsQuery } from "../../api_client/duplicates";
 import { useFetchImageTagQuery, useFetchStorageStatsQuery } from "../../api_client/server";
 import { useAuth } from "../../hooks/useAuth";
 import { useIsDesktopLayout } from "../../hooks/useIsDesktopLayout";
-import { DOCUMENTATION_LINK, SUPPORT_LINK } from "../../ui-constants";
+import { DOCUMENTATION_LINK, SUPPORT_LINK } from "../../uiConstants";
 import { getNavigationItems, isNavItemActive } from "./navigation";
 import classes from "./SideMenuNarrow.module.css";
 

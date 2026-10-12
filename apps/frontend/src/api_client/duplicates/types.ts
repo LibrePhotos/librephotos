@@ -26,21 +26,21 @@ export const DuplicatePhoto = z.object({
 export type DuplicatePhoto = z.infer<typeof DuplicatePhoto>;
 
 // Preview photo for list view
-export const DuplicatePreviewPhoto = z.object({
+const DuplicatePreviewPhoto = z.object({
   image_hash: z.string(),
   thumbnail_url: z.string().nullable(),
 });
-export type DuplicatePreviewPhoto = z.infer<typeof DuplicatePreviewPhoto>;
+type DuplicatePreviewPhoto = z.infer<typeof DuplicatePreviewPhoto>;
 
 // Kept photo info
-export const DuplicateKeptPhoto = z.object({
+const DuplicateKeptPhoto = z.object({
   image_hash: z.string(),
   thumbnail_url: z.string().nullable(),
 });
-export type DuplicateKeptPhoto = z.infer<typeof DuplicateKeptPhoto>;
+type DuplicateKeptPhoto = z.infer<typeof DuplicateKeptPhoto>;
 
 // Duplicate list item (paginated list)
-export const DuplicateListItem = z.object({
+const DuplicateListItem = z.object({
   id: z.string(),
   duplicate_type: DuplicateType,
   duplicate_type_display: z.string(),
@@ -53,7 +53,7 @@ export const DuplicateListItem = z.object({
   kept_photo: DuplicateKeptPhoto.nullable(),
   preview_photos: DuplicatePreviewPhoto.array(),
 });
-export type DuplicateListItem = z.infer<typeof DuplicateListItem>;
+type DuplicateListItem = z.infer<typeof DuplicateListItem>;
 // Alias for compatibility
 export type Duplicate = DuplicateListItem;
 

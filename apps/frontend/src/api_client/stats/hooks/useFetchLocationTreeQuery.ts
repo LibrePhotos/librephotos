@@ -3,7 +3,7 @@ import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient } from "../../api";
 import { LocationSunburst } from "../types";
 
-export const LocationTreeQueryKeys = ["locationTree"] as const;
+const LocationTreeQueryKeys = ["locationTree"] as const;
 
 export const useFetchLocationTreeQuery = () =>
   useQuery({

@@ -1,6 +1,5 @@
 import { endpoints } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
-import { z } from "zod";
 import { notification } from "../../../service/notifications";
 import { recordRecentlyTaggedPerson } from "../../../util/recentlyTaggedPeople";
 import { PeopleAlbumsQueryKeys } from "../../albums/hooks/useFetchPeopleAlbumsQuery";
@@ -11,13 +10,7 @@ import { CountStatsQueryKeys } from "../../stats/hooks/useFetchCountStatsQuery";
 import { FacesQueryKeys } from "./useFetchFacesQuery";
 import { IncompleteFacesQueryKeys } from "./useFetchIncompleteFacesQuery";
 
-export type SetFacesLabelRequest = z.infer<typeof SetFacesLabelRequest>;
-export const SetFacesLabelRequest = z.object({
-  faceIds: z.array(z.number()),
-  personName: z.string(),
-});
-
-export { SetFacesLabelResponse } from "@librephotos/api-client";
+type SetFacesLabelRequest = { faceIds: number[]; personName: string };
 
 const setFacesPersonLabel = (data: SetFacesLabelRequest) =>
   endpoints.labelFaces(apiClient, data.faceIds, data.personName).then(payload => {

@@ -1,6 +1,6 @@
 import type { TFunction } from "i18next";
 import React from "react";
-import type { DateTimeRule } from "./date-time.zod";
+import type { DateTimeRule } from "./dateTimeSchema";
 
 /** "exif", "path", ... as words; an unknown type shows as it is. */
 export function describeRuleType(ruleType: string, t: TFunction<"translation", undefined>) {

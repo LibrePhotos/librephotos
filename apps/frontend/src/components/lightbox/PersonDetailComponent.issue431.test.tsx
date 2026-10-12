@@ -24,10 +24,10 @@ import type { UseNavigateResult } from "@tanstack/react-router";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import type { useDeleteFacesMutation, useSetFacesPersonLabelMutation } from "../api_client/faces";
-import { PersonDetail } from "../components/lightbox/PersonDetailComponent";
-import i18n from "../i18n";
-import { defined } from "../util/defined.test-utils";
+import type { useDeleteFacesMutation, useSetFacesPersonLabelMutation } from "../../api_client/faces";
+import i18n from "../../i18n";
+import { defined } from "../../util/defined.test-utils";
+import { PersonDetail } from "./PersonDetailComponent";
 
 type SetFacesPersonLabel = ReturnType<typeof useSetFacesPersonLabelMutation>["mutate"];
 type DeleteFaces = ReturnType<typeof useDeleteFacesMutation>["mutate"];
@@ -39,9 +39,9 @@ const stubs = vi.hoisted(() => ({
   navigate: vi.fn<UseNavigateResult<string>>(),
 }));
 
-vi.mock("../api_client/apiClient", () => ({ serverAddress: "" }));
-vi.mock("../service/notifications", () => ({ notification: new Proxy({}, { get: () => () => {} }) }));
-vi.mock("../api_client/faces", () => ({
+vi.mock("../../api_client/apiClient", () => ({ serverAddress: "" }));
+vi.mock("../../service/notifications", () => ({ notification: new Proxy({}, { get: () => () => {} }) }));
+vi.mock("../../api_client/faces", () => ({
   useSetFacesPersonLabelMutation: () => ({ mutate: stubs.setFacesPersonLabel }),
   useDeleteFacesMutation: () => ({ mutate: stubs.deleteFaces }),
   FacesTab: { enum: { inferred: "inferred", unknown: "unknown", labeled: "labeled" } },

@@ -1,10 +1,8 @@
-import { endpoints, type ThingAlbumInfo } from "@librephotos/api-client";
+import { endpoints } from "@librephotos/api-client";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "../../api";
 
-export const ThingsAlbumsQueryKeys = ["thingsAlbums"] as const;
-
-export type ThingsAlbumList = ThingAlbumInfo[];
+const ThingsAlbumsQueryKeys = ["thingsAlbums"] as const;
 
 export const useFetchThingsAlbumsQuery = (skip: boolean = false) =>
   useQuery({

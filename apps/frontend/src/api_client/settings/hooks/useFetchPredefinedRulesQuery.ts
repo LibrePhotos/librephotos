@@ -1,9 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
-import { DateTimeRule } from "../../../components/settings/date-time.zod";
+import { DateTimeRule } from "../../../components/settings/dateTimeSchema";
 import { parseListWithNotification } from "../../../util/zodUtils";
 import { fetchClient } from "../../api";
 
-export const PredefinedRulesQueryKeys = ["predefinedRules"] as const;
+const PredefinedRulesQueryKeys = ["predefinedRules"] as const;
 
 export const useFetchPredefinedRulesQuery = () =>
   useQuery({

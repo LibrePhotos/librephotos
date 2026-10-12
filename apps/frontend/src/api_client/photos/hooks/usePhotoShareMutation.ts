@@ -19,7 +19,7 @@ export type PhotoShare = z.infer<typeof PhotoShare>;
 const PhotoShareResponse = z.object({ status: z.boolean(), share: PhotoShare });
 const PhotoShareListResponse = z.object({ results: PhotoShare.array() });
 
-export const PhotoSharesQueryKeys = ["photoShares"];
+const PhotoSharesQueryKeys = ["photoShares"];
 
 export type PhotoShareAction = "enable" | "rotate" | "disable";
 

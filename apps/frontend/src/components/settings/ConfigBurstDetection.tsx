@@ -18,7 +18,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchPredefinedBurstRulesQuery } from "../../api_client/settings/hooks/useFetchPredefinedBurstRulesQuery";
 import { ModalConfigBurstDetection } from "../modals/ModalConfigBurstDetection";
-import { isHardRule, isRuleEnabled, SavedBurstDetectionRule, type BurstDetectionRule } from "./burst-detection.zod";
+import { isHardRule, isRuleEnabled, SavedBurstDetectionRule, type BurstDetectionRule } from "./burstDetectionSchema";
 import { readSavedList, savedIds, withRuleOrder } from "./savedRuleList";
 import { SortableTbody, SortableTr } from "./SortableTableRows";
 import { UnreadableSavedEntries } from "./UnreadableSavedEntries";

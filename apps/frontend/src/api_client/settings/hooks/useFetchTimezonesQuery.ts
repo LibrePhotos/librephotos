@@ -3,7 +3,7 @@ import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient } from "../../api";
 import { Timezones } from "../types";
 
-export const TimezonesQueryKeys = ["timezones"] as const;
+const TimezonesQueryKeys = ["timezones"] as const;
 
 export const useFetchTimezonesQuery = () =>
   useQuery({

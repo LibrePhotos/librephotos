@@ -42,7 +42,7 @@ import {
   useSetPhotosHiddenMutation,
 } from "../../api_client/photos/hooks";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
-import { FAVORITE_COLOR, ICON_SIZE } from "../../ui-constants";
+import { FAVORITE_COLOR, ICON_SIZE } from "../../uiConstants";
 import { PhotoShareLinkModal } from "../sharing/PhotoShareLinkModal";
 import { copyKeyLabel } from "./lightbox.hotkeys";
 import type { LightboxControlsProps } from "./lightbox.types";

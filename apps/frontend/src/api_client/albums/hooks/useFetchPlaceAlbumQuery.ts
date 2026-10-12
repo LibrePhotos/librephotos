@@ -3,8 +3,6 @@ import { useQuery } from "@tanstack/react-query";
 import { mediaTypeToBulkQuery, type MediaType } from "../../../components/photolist/mediaTypeFilter";
 import { apiClient } from "../../api";
 
-export type { PlaceAlbum } from "@librephotos/api-client";
-
 export const PlaceAlbumQueryKeys = ["placeAlbum"] as const;
 
 export const useFetchPlaceAlbumQuery = (albumId: string, mediaType?: MediaType) =>

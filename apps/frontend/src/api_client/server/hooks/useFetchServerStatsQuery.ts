@@ -95,7 +95,7 @@ const UserStatsSchema = z.object({
   number_of_public: z.number(),
 });
 
-export const ServerStatsResponse = z.object({
+const ServerStatsResponse = z.object({
   cpu_info: CpuInfoSchema,
   image_tag: z.string(),
   available_ram_in_mb: z.number(),
@@ -108,7 +108,7 @@ export const ServerStatsResponse = z.object({
   users: z.array(UserStatsSchema),
 });
 
-export type ServerStatsResponse = z.infer<typeof ServerStatsResponse>;
+type ServerStatsResponse = z.infer<typeof ServerStatsResponse>;
 
 export const useFetchServerStatsQuery = () =>
   useQuery({

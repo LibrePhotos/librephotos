@@ -10,17 +10,17 @@ export const StackType = z.enum(["burst", "bracket", "manual"]);
 export type StackType = z.infer<typeof StackType>;
 
 // File variant within a stack photo
-export const StackFileVariant = z.object({
+const StackFileVariant = z.object({
   hash: z.string(),
   path: z.string(),
   type: z.string(),
   is_main: z.boolean(),
   filename: z.string().nullable(),
 });
-export type StackFileVariant = z.infer<typeof StackFileVariant>;
+type StackFileVariant = z.infer<typeof StackFileVariant>;
 
 // Photo within a stack
-export const StackPhoto = z.object({
+const StackPhoto = z.object({
   id: z.string(),
   image_hash: z.string(),
   thumbnail_url: z.string().nullable(),
@@ -36,24 +36,24 @@ export const StackPhoto = z.object({
   // File variants (RAW, JPEG, etc.) for this photo
   file_variants: StackFileVariant.array().nullable().optional(),
 });
-export type StackPhoto = z.infer<typeof StackPhoto>;
+type StackPhoto = z.infer<typeof StackPhoto>;
 
 // Preview photo for list view
-export const StackPreviewPhoto = z.object({
+const StackPreviewPhoto = z.object({
   image_hash: z.string(),
   thumbnail_url: z.string().nullable(),
 });
-export type StackPreviewPhoto = z.infer<typeof StackPreviewPhoto>;
+type StackPreviewPhoto = z.infer<typeof StackPreviewPhoto>;
 
 // Primary photo info
-export const StackPrimaryPhoto = z.object({
+const StackPrimaryPhoto = z.object({
   image_hash: z.string(),
   thumbnail_url: z.string().nullable(),
 });
-export type StackPrimaryPhoto = z.infer<typeof StackPrimaryPhoto>;
+type StackPrimaryPhoto = z.infer<typeof StackPrimaryPhoto>;
 
 // Stack list item (paginated list)
-export const PhotoStackListItem = z.object({
+const PhotoStackListItem = z.object({
   id: z.string(),
   stack_type: StackType,
   stack_type_display: z.string(),
@@ -64,7 +64,7 @@ export const PhotoStackListItem = z.object({
   primary_photo: StackPrimaryPhoto.nullable(),
   preview_photos: StackPreviewPhoto.array(),
 });
-export type PhotoStackListItem = z.infer<typeof PhotoStackListItem>;
+type PhotoStackListItem = z.infer<typeof PhotoStackListItem>;
 
 // Paginated list response
 export const PhotoStackListResponse = z.object({
@@ -76,7 +76,7 @@ export const PhotoStackListResponse = z.object({
   has_next: z.boolean(),
   has_previous: z.boolean(),
 });
-export type PhotoStackListResponse = z.infer<typeof PhotoStackListResponse>;
+type PhotoStackListResponse = z.infer<typeof PhotoStackListResponse>;
 
 // Full stack detail. A photo's lightbox can still open a legacy RAW + JPEG or
 // Live Photo stack (left by migration 0112), so this takes every stored type.
@@ -103,21 +103,10 @@ export const PhotoStackStats = z.object({
 });
 export type PhotoStackStats = z.infer<typeof PhotoStackStats>;
 
-// Request types
-export const SetPrimaryRequest = z.object({
-  photo_hash: z.string(),
-});
-export type SetPrimaryRequest = z.infer<typeof SetPrimaryRequest>;
-
 export const CreateManualStackRequest = z.object({
   photo_hashes: z.string().array(),
 });
 export type CreateManualStackRequest = z.infer<typeof CreateManualStackRequest>;
-
-export const AddToStackRequest = z.object({
-  photo_hashes: z.string().array(),
-});
-export type AddToStackRequest = z.infer<typeof AddToStackRequest>;
 
 export const RemoveFromStackRequest = z.object({
   photo_hashes: z.string().array(),
@@ -135,13 +124,6 @@ export const DetectStacksRequest = z.object({
 });
 export type DetectStacksRequest = z.infer<typeof DetectStacksRequest>;
 
-// Response types
-export const DeleteStackResponse = z.object({
-  status: z.literal("deleted"),
-  unlinked_count: z.number(),
-});
-export type DeleteStackResponse = z.infer<typeof DeleteStackResponse>;
-
 export const SetPrimaryResponse = z.object({
   status: z.literal("updated"),
   primary_photo_hash: z.string(),
@@ -154,13 +136,6 @@ export const CreateManualStackResponse = z.object({
   photo_count: z.number(),
 });
 export type CreateManualStackResponse = z.infer<typeof CreateManualStackResponse>;
-
-export const AddToStackResponse = z.object({
-  status: z.literal("updated"),
-  added_count: z.number(),
-  total_count: z.number(),
-});
-export type AddToStackResponse = z.infer<typeof AddToStackResponse>;
 
 export const RemoveFromStackResponse = z.object({
   status: z.union([z.literal("updated"), z.literal("deleted")]),
@@ -197,32 +172,8 @@ export type DetectStacksResponse = z.infer<typeof DetectStacksResponse>;
 export const countListedStacks = (stats: PhotoStackStats): number =>
   StackType.options.reduce((sum, type) => sum + (stats.by_type[type] ?? 0), 0);
 
-export const stackTypeIcons: Record<StackType, string> = {
-  burst: "bolt",
-  bracket: "sun",
-  manual: "stack",
-};
-
-// Schema exports with "Schema" suffix for compatibility with hooks.ts
-export const StackListResponseSchema = PhotoStackListResponse;
 export type StackListResponse = PhotoStackListResponse;
 
-export const StackDetailResponseSchema = PhotoStack;
 export type StackDetailResponse = PhotoStack;
 
-export const StackStatsResponseSchema = PhotoStackStats;
 export type StackStatsResponse = PhotoStackStats;
-
-export const AddToStackRequestSchema = AddToStackRequest;
-export const AddToStackResponseSchema = AddToStackResponse;
-
-export const RemoveFromStackRequestSchema = RemoveFromStackRequest;
-export const RemoveFromStackResponseSchema = RemoveFromStackResponse;
-
-export const MergeStacksRequestSchema = MergeStacksRequest;
-export const MergeStacksResponseSchema = MergeStacksResponse;
-
-export const CreateManualStackRequestSchema = CreateManualStackRequest;
-export const CreateManualStackResponseSchema = CreateManualStackResponse;
-
-export const DetectStacksResponseSchema = DetectStacksResponse;

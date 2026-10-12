@@ -7,20 +7,9 @@ import { z } from "zod";
  * already allow the read, so whatever refused the request is something chmod
  * cannot reach -- SELinux labelling, a remapped runtime, or a rebuilt proxy.
  */
-export const MediaDiagnosticsCause = z.enum(["missing", "mode_bits", "not_mode_bits", "unknown"]);
+const MediaDiagnosticsCause = z.enum(["missing", "mode_bits", "not_mode_bits", "unknown"]);
 
-export type MediaDiagnosticsCause = z.infer<typeof MediaDiagnosticsCause>;
-
-export const MediaDiagnosticsRemedy = z.enum([
-  "chmod",
-  "mount_options",
-  "mount_deeper",
-  "read_only",
-  "network_fs",
-  "labels",
-]);
-
-export type MediaDiagnosticsRemedy = z.infer<typeof MediaDiagnosticsRemedy>;
+type MediaDiagnosticsCause = z.infer<typeof MediaDiagnosticsCause>;
 
 export const MediaDiagnostics = z.object({
   path: z.string().nullable(),

@@ -1,7 +1,7 @@
 import type React from "react";
 
 /** A tile's position and size, as computeLayout / computeLayoutGroups set it. */
-export type PigTileStyle = {
+type PigTileStyle = {
   width?: number;
   height?: number;
   translateX?: number;
@@ -9,7 +9,7 @@ export type PigTileStyle = {
 };
 
 /** The position and size the layout gives every tile it places. */
-export type TileLayout = {
+type TileLayout = {
   width: number;
   height: number;
   translateX: number;

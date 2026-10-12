@@ -1,4 +1,4 @@
-import { BulkPhotoQuery, MetadataSourceEnum, PigPhoto, SimpleUser } from "@librephotos/api-client";
+import { BulkPhotoQuery, MetadataSourceEnum, PigPhoto } from "@librephotos/api-client";
 import { z } from "zod";
 
 // The photo and photo-grid schemas are shared with the mobile app and live in
@@ -7,34 +7,23 @@ export {
   BulkPhotoQuery,
   DatePhotosGroup,
   FileVariant,
-  FileVariantTypeEnum,
   IncompleteDatePhotosGroup,
   Media,
-  MetadataSourceEnum,
   People,
   Photo,
   PhotoHash,
-  PhotoMetadataSummary,
   PhotoOcrBlock,
   PhotoOcrData,
   Photoset,
   PhotoStackDetail,
-  PhotoStackSummary,
   PigPhoto,
   SimpleUser,
-  StackPhotoDetail,
   StackTypeEnum,
 } from "@librephotos/api-client";
 
-export const SharedFromMePhoto = z.object({
-  user_id: z.number(),
-  user: SimpleUser,
-  photo: PigPhoto,
-});
-
 // Metadata edit history entry — mirrors MetadataEditSerializer.
 // `id` is a UUID string: MetadataEdit uses a UUIDField primary key.
-export const MetadataEdit = z.object({
+const MetadataEdit = z.object({
   id: z.guid(),
   field_name: z.string(),
   // JSONFields: whatever the edited field held (a string, number, list...).
@@ -46,17 +35,17 @@ export const MetadataEdit = z.object({
   synced_at: z.string().nullable(),
   created_at: z.string(),
 });
-export type MetadataEdit = z.infer<typeof MetadataEdit>;
+type MetadataEdit = z.infer<typeof MetadataEdit>;
 
-export const MetadataFileTypeEnum = z.enum(["xmp", "json", "exif", "other"]);
-export type MetadataFileTypeEnum = z.infer<typeof MetadataFileTypeEnum>;
+const MetadataFileTypeEnum = z.enum(["xmp", "json", "exif", "other"]);
+type MetadataFileTypeEnum = z.infer<typeof MetadataFileTypeEnum>;
 
-export const MetadataFileSourceEnum = z.enum(["original", "software", "librephotos", "user"]);
-export type MetadataFileSourceEnum = z.infer<typeof MetadataFileSourceEnum>;
+const MetadataFileSourceEnum = z.enum(["original", "software", "librephotos", "user"]);
+type MetadataFileSourceEnum = z.infer<typeof MetadataFileSourceEnum>;
 
 // XMP sidecar file info — mirrors MetadataFileSerializer.
 // `id` is a UUID string: MetadataFile uses a UUIDField primary key.
-export const MetadataFile = z.object({
+const MetadataFile = z.object({
   id: z.guid(),
   file_type: MetadataFileTypeEnum,
   source: MetadataFileSourceEnum,
@@ -65,7 +54,7 @@ export const MetadataFile = z.object({
   created_at: z.string(),
   updated_at: z.string(),
 });
-export type MetadataFile = z.infer<typeof MetadataFile>;
+type MetadataFile = z.infer<typeof MetadataFile>;
 
 // Full metadata response from /api/photos/{id}/metadata/
 //
