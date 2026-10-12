@@ -28,6 +28,14 @@ from api.tests.utils import api_error, create_test_user
 EVERY_MODEL_SELECTED = override_config(OCR_MODEL="ppocrv6_small")
 
 
+def _no_constance_table(config: object, key: str) -> object:
+    raise OperationalError("no such table: constance_config")
+
+
+# A database that is not up yet: the site settings cannot be read.
+UNREADABLE_CONFIG = patch("constance.base.Config.__getattr__", new=_no_constance_table)
+
+
 def spawned_services(popen_mock):
     """The service names behind the scripts a Popen mock was asked to run."""
     names = set()
@@ -157,6 +165,7 @@ class StartAllCommandTest(TestCase):
         )
 
 
+@UNREADABLE_CONFIG
 @patch("api.runtime.supervisor.is_healthy", return_value=False)
 @patch("api.runtime.supervisor.stop_service")
 @patch("api.runtime.supervisor.start_service")
@@ -171,7 +180,7 @@ class CheckServicesTest(SimpleTestCase):
     ):
         check_services()
 
-        # No database here: the OCR model cannot be read, and an unreadable
+        # The OCR model cannot be read (UNREADABLE_CONFIG), and an unreadable
         # configuration takes no service away.
         self.assertEqual(set(SERVICES), self._restarted(start_mock))
 
@@ -276,6 +285,14 @@ class OcrSiteGateTest(TestCase):
             side_effect=OperationalError("no such table: constance_config"),
         ):
             self.assertTrue(is_service_enabled("ocr"))
+
+    def test_a_bug_reading_the_configuration_is_not_swallowed(self, popen_mock):
+        """Only a database error fails open; anything else is a bug to see."""
+        with (
+            patch("constance.base.Config.__getattr__", side_effect=RuntimeError("bug")),
+            self.assertRaises(RuntimeError),
+        ):
+            is_service_enabled("ocr")
 
     def test_the_refusal_names_the_site_setting_rather_than_a_flag(self, popen_mock):
         with self.assertLogs("api.runtime.supervisor", level="INFO") as logs:

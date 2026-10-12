@@ -195,3 +195,34 @@ class StopServiceTest(SimpleTestCase):
             patch("psutil.wait_procs", return_value=([], [])),
         ):
             self.assertFalse(supervisor.stop_service("exif"))
+
+    def test_a_process_table_it_cannot_read_is_reported_not_raised(self):
+        handle = MagicMock()
+        supervisor._processes["exif"] = handle
+
+        with (
+            patch("psutil.process_iter", side_effect=psutil.AccessDenied()),
+            self.assertLogs("api.runtime.supervisor", level="ERROR"),
+        ):
+            self.assertFalse(supervisor.stop_service("exif"))
+
+        handle.poll.assert_called()
+        self.assertNotIn("exif", supervisor._processes)
+
+    def test_a_bug_is_not_swallowed(self):
+        with (
+            patch("psutil.process_iter", side_effect=RuntimeError("bug")),
+            self.assertRaises(RuntimeError),
+        ):
+            supervisor.stop_service("exif")
+
+
+class HealthCheckErrorsTest(SimpleTestCase):
+    def test_an_unknown_sidecar_is_unhealthy(self):
+        with self.assertLogs("api.runtime.supervisor", level="ERROR"):
+            self.assertFalse(supervisor.is_healthy("no_such_sidecar"))
+
+    @patch("api.runtime.supervisor.requests.get", side_effect=RuntimeError("bug"))
+    def test_a_bug_is_not_swallowed(self, _get):
+        with self.assertRaises(RuntimeError):
+            supervisor.is_healthy("tags")
