@@ -14,6 +14,8 @@ pyfakefs==6.2.0
 ruff==0.15.22
 # Dead-code check (scripts/check_dead_code.py); lint-backend.yml installs this pin.
 vulture==2.16
+# Import contracts ([tool.importlinter] in pyproject.toml); lint-backend.yml installs this pin.
+import-linter==2.15
 # Type checking (scripts/typecheck.py). django-stubs and djangorestframework-stubs
 # require Python >= 3.11, and the backend-gpu image (DEBUG=1) runs 3.10. mypy stays
 # below 2.4 because djangorestframework-stubs 3.18.1 declares mypy<2.4.

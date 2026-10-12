@@ -46,6 +46,33 @@ jobs:
           fi
           python scripts/ruff_baseline.py --check $BASE
 
+  import-contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          # The floor of requires-python, like the jobs above.
+          python-version: "3.10"
+      # The pin lives in requirements.dev.txt, so CI and a local `lint-imports`
+      # report the same. It reads the code statically: no backend dependencies.
+      - run: pip install "$(grep '^import-linter==' apps/backend/requirements.dev.txt)"
+      # The contracts are [tool.importlinter] in apps/backend/pyproject.toml.
+      - name: lint-imports
+        working-directory: apps/backend
+        run: lint-imports --no-cache
+      # lint-imports fails on an ignore_imports entry that matches no import;
+      # this fails, against the PR's base branch, on an entry added to accept a
+      # new violation.
+      - name: Import contracts baseline (only shrinks)
+        if: github.base_ref != ''
+        working-directory: apps/backend
+        run: |
+          git fetch --no-tags --depth=1 origin "$GITHUB_BASE_REF"
+          python scripts/import_contracts_baseline.py --base-ref "origin/$GITHUB_BASE_REF"
+
   dead-code:
     runs-on: ubuntu-latest
     steps:
