@@ -228,9 +228,11 @@ export function jobsQueryOptions(
   client: ApiClient,
   options: { page?: number; pageSize?: number; enabled?: boolean } = {}
 ) {
+  const page = options.page ?? 1;
+  const pageSize = options.pageSize ?? 20;
   return queryOptions({
-    queryKey: queryKeys.jobs(),
-    queryFn: () => endpoints.fetchJobs(client, options.page ?? 1, options.pageSize ?? 20),
+    queryKey: queryKeys.jobList(page, pageSize),
+    queryFn: () => endpoints.fetchJobs(client, page, pageSize),
     refetchInterval: jobListRefetchInterval,
     enabled: options.enabled ?? true,
   });

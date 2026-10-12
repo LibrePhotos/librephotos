@@ -22,6 +22,7 @@ export const queryKeys = {
   searchPhotos: (term: string) => ["searchPhotos", term] as const,
   siteSettings: () => ["siteSettings"] as const,
   jobs: () => ["jobs"] as const,
+  jobList: (page: number, pageSize: number) => [...queryKeys.jobs(), "list", page, pageSize] as const,
   workerAvailability: () => ["workerAvailability"] as const,
   sharedPhotosByMe: () => ["sharedPhotosByMe"] as const,
   sharedPhotosWithMe: () => ["sharedPhotosWithMe"] as const,

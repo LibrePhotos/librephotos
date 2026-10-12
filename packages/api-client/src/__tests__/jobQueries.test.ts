@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   jobListRefetchInterval,
   jobsQueryOptions,
+  queryKeys,
   workerAvailabilityQueryOptions,
   workerRefetchInterval,
 } from "../hooks";
@@ -90,5 +91,15 @@ describe("job list query", () => {
 
   it("is disabled, so it sends no request, when asked to be", () => {
     expect(jobsQueryOptions(client, { enabled: false }).enabled).toBe(false);
+  });
+
+  // The page and page size were sent with the request but left out of the key, so two pages would
+  // have shared one cache entry.
+  it("keys each page and page size apart, under the jobs prefix", () => {
+    const first = jobsQueryOptions(client, { page: 1, pageSize: 20 }).queryKey;
+    expect(first).toEqual(jobsQueryOptions(client).queryKey);
+    expect(jobsQueryOptions(client, { page: 2, pageSize: 20 }).queryKey).not.toEqual(first);
+    expect(jobsQueryOptions(client, { page: 1, pageSize: 50 }).queryKey).not.toEqual(first);
+    expect(first.slice(0, queryKeys.jobs().length)).toEqual(queryKeys.jobs());
   });
 });
