@@ -10,7 +10,6 @@ import {
   Group,
   HoverCard,
   List,
-  Loader,
   Menu,
   Modal,
   Space,
@@ -59,6 +58,7 @@ import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useC
 import { User } from "../../api_client/user/types";
 import { notification } from "../../service/notifications";
 import { reportUserSaveError } from "../../util/apiErrors";
+import { PageLoader } from "../common/PageLoader";
 import { CountStats } from "../CountStats";
 import { ModalNextcloudScanDirectoryEdit } from "../modals/ModalNextcloudScanDirectoryEdit";
 import { ModalUserEdit } from "../modals/ModalUserEdit";
@@ -233,7 +233,7 @@ export function Library() {
   };
 
   if (!userSelfDetails) {
-    return <Loader />;
+    return <PageLoader />;
   }
 
   return (

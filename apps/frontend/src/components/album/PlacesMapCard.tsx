@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import MapGL, { Layer, Source } from "react-map-gl/maplibre";
 import { useFetchLocationClustersQuery, useFetchPlacesAlbumsQuery } from "../../api_client/albums/hooks";
 import { useMapStyle } from "../../util/mapStyle";
+import { FeatureBoundary } from "../common/FeatureBoundary";
 import { clusterFeatureCollection } from "../map/locationClusters";
 import { MapDisabledPlaceholder } from "../map/MapDisabledPlaceholder";
 import { ignoreMissingStyleImages } from "../map/mapImages";
@@ -56,22 +57,24 @@ export function PlacesMapCard() {
         {mapStyle === null ? (
           <MapDisabledPlaceholder height="100%" />
         ) : (
-          <MapGL
-            ref={ignoreMissingStyleImages}
-            initialViewState={{
-              longitude: 0,
-              latitude: 30,
-              zoom: 0.8,
-            }}
-            style={{ width: "100%", height: "100%" }}
-            mapStyle={mapStyle}
-            interactive={false}
-            attributionControl={false}
-          >
-            <Source id="locations" type="geojson" data={geojsonData}>
-              <Layer {...pointLayer} />
-            </Source>
-          </MapGL>
+          <FeatureBoundary name="map">
+            <MapGL
+              ref={ignoreMissingStyleImages}
+              initialViewState={{
+                longitude: 0,
+                latitude: 30,
+                zoom: 0.8,
+              }}
+              style={{ width: "100%", height: "100%" }}
+              mapStyle={mapStyle}
+              interactive={false}
+              attributionControl={false}
+            >
+              <Source id="locations" type="geojson" data={geojsonData}>
+                <Layer {...pointLayer} />
+              </Source>
+            </MapGL>
+          </FeatureBoundary>
         )}
       </div>
       <div className={classes.body}>

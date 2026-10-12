@@ -9,6 +9,7 @@ import {
 } from "@tabler/icons-react";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
+import { FeatureBoundary } from "../common/FeatureBoundary";
 import { PageHeader } from "../PageHeader";
 
 type StatisticsNavProps = {
@@ -58,7 +59,10 @@ export function StatisticsNav({ children }: StatisticsNavProps) {
           </Tabs.List>
         </Tabs>
 
-        {children}
+        {/* A chart that fails keeps the tabs; switching tabs tries again. */}
+        <FeatureBoundary name="statistics" resetKeys={[currentPath]}>
+          {children}
+        </FeatureBoundary>
       </div>
     </>
   );

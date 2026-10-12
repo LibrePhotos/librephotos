@@ -1,18 +1,4 @@
-import {
-  Badge,
-  Box,
-  Button,
-  Card,
-  Center,
-  Code,
-  Container,
-  Loader,
-  Space,
-  Stack,
-  Table,
-  Text,
-  Title,
-} from "@mantine/core";
+import { Badge, Box, Button, Card, Code, Container, Space, Stack, Table, Text, Title } from "@mantine/core";
 import {
   IconAlertTriangle,
   IconArrowLeft,
@@ -29,6 +15,7 @@ import { useTranslation } from "react-i18next";
 import { useJobQuery } from "../../api_client/jobs/hooks";
 import { parseInstant } from "../../util/dateUtils";
 import { EmptyState } from "../common/EmptyState";
+import { PageLoader } from "../common/PageLoader";
 import { PageHeader } from "../PageHeader";
 import { formatJobDuration } from "./JobDuration";
 import { JobProgress } from "./JobProgress";
@@ -76,12 +63,7 @@ export function JobDetailView({ jobId, backTo }: IJobDetailView) {
   if (isLoading) {
     return (
       <Container>
-        <Center py="xl">
-          <Stack align="center" gap="md">
-            <Loader />
-            <Text>{t("joblist.loadingdetails")}</Text>
-          </Stack>
-        </Center>
+        <PageLoader label={t("joblist.loadingdetails")} />
       </Container>
     );
   }

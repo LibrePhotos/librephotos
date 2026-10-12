@@ -17,7 +17,6 @@ import {
   Checkbox,
   Group,
   Image,
-  Loader,
   Menu,
   Pagination,
   SimpleGrid,
@@ -49,6 +48,7 @@ import { countListedStacks, StackType } from "../../api_client/stacks/types";
 import { buttonRoleProps } from "../../util/a11y";
 import { PLACEHOLDER_IMAGE } from "../../util/placeholderImage";
 import { EmptyState } from "../common/EmptyState";
+import { PageLoader } from "../common/PageLoader";
 import { StackModal } from "../stacks/StackModal";
 
 const validStackTypes: readonly StackType[] = StackType.options;
@@ -315,9 +315,7 @@ export function StacksPageContent() {
 
       {/* Stacks Grid */}
       {stacksLoading ? (
-        <Stack align="center" p="xl">
-          <Loader size="lg" />
-        </Stack>
+        <PageLoader />
       ) : stacks && stacks.length > 0 ? (
         <>
           <SimpleGrid cols={{ base: 2, sm: 3, md: 4, lg: 5 }} spacing="md">

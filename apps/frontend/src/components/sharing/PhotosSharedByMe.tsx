@@ -4,6 +4,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchPhotoSharesQuery, useFetchSharedPhotosByMeQuery } from "../../api_client/photos/hooks";
 import { useFetchUserListQuery } from "../../api_client/user/hooks";
+import { PageLoader } from "../common/PageLoader";
 import { PhotoListView } from "../photolist/PhotoListView";
 import { avatarSrc } from "./avatarSrc";
 
@@ -23,7 +24,7 @@ function GroupHeader({ group, isSharedToMe }: Readonly<GroupHeaderProps>) {
 
   function getUserName() {
     if (!users) {
-      return <Loader size={16} />;
+      return <Loader size="xs" />;
     }
     let displayName = `${group.userId}`;
     if (owner && owner.last_name.length + owner.first_name.length > 0) {
@@ -68,12 +69,7 @@ export function PhotosSharedByMe() {
   const { data: shares = [], isLoading: isLoadingShares } = useFetchPhotoSharesQuery();
 
   if (isLoading) {
-    return (
-      <Stack align="center" mt="xl">
-        <Loader />
-        <Text>{t("sharing.loadingPhotosSharedByYou")}</Text>
-      </Stack>
-    );
+    return <PageLoader label={t("sharing.loadingPhotosSharedByYou")} />;
   }
 
   if (photos.length === 0) {

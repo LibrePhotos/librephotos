@@ -1910,5 +1910,9 @@
     "errortitle": "Something went wrong",
     "errordescription": "This page could not be shown. Reloading usually fixes it.",
     "reload": "Reload"
+  },
+  "featureboundary": {
+    "title": "This part of the page failed to load",
+    "retry": "Retry"
   }
 }

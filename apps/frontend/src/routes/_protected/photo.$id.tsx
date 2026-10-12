@@ -7,7 +7,6 @@ import {
   Divider,
   Grid,
   Group,
-  Loader,
   Paper,
   Stack,
   Text,
@@ -23,6 +22,7 @@ import { serverAddress } from "../../api_client/apiClient";
 import { useSetFacesPersonLabelMutation } from "../../api_client/faces";
 import { useFetchPhotoDetailsQuery } from "../../api_client/photos/hooks";
 import { BreadcrumbPath } from "../../components/common/BreadcrumbPath";
+import { PageLoader } from "../../components/common/PageLoader";
 import type { FaceLocationType } from "../../components/lightbox";
 import { MediaDisplay } from "../../components/lightbox";
 import { AlbumsSection } from "../../components/lightbox/AlbumsSection";
@@ -86,12 +86,7 @@ function SinglePhotoView() {
   if (!photoDetail) {
     return (
       <Container fluid>
-        <Center py="xl">
-          <Stack align="center" gap="md">
-            <Loader size={isMobile ? "md" : "lg"} />
-            <Text size={isMobile ? "sm" : "md"}>{t("photopage.loading")}</Text>
-          </Stack>
-        </Center>
+        <PageLoader label={t("photopage.loading")} />
       </Container>
     );
   }

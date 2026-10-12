@@ -1,4 +1,4 @@
-import { Group, Loader, Text, useComputedColorScheme } from "@mantine/core";
+import { useComputedColorScheme } from "@mantine/core";
 import { IconShare } from "@tabler/icons-react";
 import { drag } from "d3-drag";
 import type { D3DragEvent, SubjectPosition } from "d3-drag";
@@ -13,6 +13,7 @@ import { useTranslation } from "react-i18next";
 import { useFetchSocialGraphQuery } from "../../api_client/stats/hooks";
 import type { PersonDataPointList } from "../../api_client/stats/hooks";
 import { EmptyState } from "../common/EmptyState";
+import { PageLoader } from "../common/PageLoader";
 
 type Props = Readonly<{
   height: number;
@@ -156,12 +157,7 @@ export function SocialGraph({ height }: Props) {
   if (isSuccess && data.nodes.length > 0) {
     graph = <ForceGraph data={data} width={width} height={height} />;
   } else if (isFetching) {
-    graph = (
-      <Group>
-        <Loader />
-        <Text>{t("fetchingsocialgraph")}</Text>
-      </Group>
-    );
+    graph = <PageLoader label={t("fetchingsocialgraph")} />;
   } else {
     graph = (
       <EmptyState

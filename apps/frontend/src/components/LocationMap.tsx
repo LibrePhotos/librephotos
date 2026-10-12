@@ -6,6 +6,7 @@ import { serverAddress } from "../api_client/apiClient";
 import type { Photo } from "../api_client/photos/types";
 import { useMapStyle } from "../util/mapStyle";
 import { getAveragedCoordinates } from "../util/util";
+import { FeatureBoundary } from "./common/FeatureBoundary";
 import { MapDisabledPlaceholder } from "./map/MapDisabledPlaceholder";
 import { ignoreMissingStyleImages } from "./map/mapImages";
 
@@ -70,33 +71,35 @@ export function LocationMap({ photos }: Props) {
   if (photosWithGPS.length > 0 && mapStyle !== null) {
     return (
       <Box style={{ zIndex: 2, height, padding: 0 }}>
-        <MapGL
-          ref={setMapRef}
-          initialViewState={{
-            longitude: avgLon,
-            latitude: avgLat,
-            zoom: PHOTO_ZOOM,
-          }}
-          style={{ width: "100%", height }}
-          mapStyle={mapStyle}
-          attributionControl={false}
-        >
-          <NavigationControl position="top-right" />
-          <AttributionControl compact={true} />
-          {markers}
-          {popupInfo && (
-            <Popup
-              longitude={popupInfo.exif_gps_lon}
-              latitude={popupInfo.exif_gps_lat}
-              anchor="top"
-              onClose={() => setPopupInfo(null)}
-            >
-              <div>
-                <Image src={`${serverAddress}/media/square_thumbnails/${popupInfo.image_hash}`} />
-              </div>
-            </Popup>
-          )}
-        </MapGL>
+        <FeatureBoundary name="map">
+          <MapGL
+            ref={setMapRef}
+            initialViewState={{
+              longitude: avgLon,
+              latitude: avgLat,
+              zoom: PHOTO_ZOOM,
+            }}
+            style={{ width: "100%", height }}
+            mapStyle={mapStyle}
+            attributionControl={false}
+          >
+            <NavigationControl position="top-right" />
+            <AttributionControl compact={true} />
+            {markers}
+            {popupInfo && (
+              <Popup
+                longitude={popupInfo.exif_gps_lon}
+                latitude={popupInfo.exif_gps_lat}
+                anchor="top"
+                onClose={() => setPopupInfo(null)}
+              >
+                <div>
+                  <Image src={`${serverAddress}/media/square_thumbnails/${popupInfo.image_hash}`} />
+                </div>
+              </Popup>
+            )}
+          </MapGL>
+        </FeatureBoundary>
       </Box>
     );
   }

@@ -1,4 +1,4 @@
-import { Center, Flex, Loader, Text } from "@mantine/core";
+import { Flex, Text } from "@mantine/core";
 import { useViewportSize } from "@mantine/hooks";
 import { IconMap2 as Map2 } from "@tabler/icons-react";
 import { createFileRoute, Link } from "@tanstack/react-router";
@@ -23,6 +23,8 @@ import type { PlaceAlbumList } from "../../../api_client/albums/hooks";
 import { useFetchLocationClustersQuery, useFetchPlacesAlbumsQuery } from "../../../api_client/albums/hooks";
 import gridClasses from "../../../components/album/AlbumGridCell.module.css";
 import { EmptyState } from "../../../components/common/EmptyState";
+import { FeatureBoundary } from "../../../components/common/FeatureBoundary";
+import { PageLoader } from "../../../components/common/PageLoader";
 import { clusterFeatureCollection, clusterPoints } from "../../../components/map/locationClusters";
 import { MapDisabledPlaceholder } from "../../../components/map/MapDisabledPlaceholder";
 import { ignoreMissingStyleImages } from "../../../components/map/mapImages";
@@ -246,15 +248,7 @@ function AlbumPlace({ height = 0 }: Props) {
   }
 
   if (isLoadingAlbums || isLoadingLocationClusters) {
-    // A Loader with children renders only them, so the spinner sits beside the text
-    return (
-      <Center py="xl" style={{ minHeight: height }}>
-        <Loader size="sm" />
-        <Text size="sm" c="dimmed" ml="xs">
-          {t("placealbum.maploading")}
-        </Text>
-      </Center>
-    );
+    return <PageLoader label={t("placealbum.maploading")} />;
   }
 
   const hasPlaces = albums && albums.length > 0;
@@ -286,32 +280,34 @@ function AlbumPlace({ height = 0 }: Props) {
             {mapStyle === null ? (
               <MapDisabledPlaceholder height={MAP_HEIGHT} />
             ) : (
-              <MapGL
-                ref={setMapRef}
-                initialViewState={initialViewState}
-                style={{ width: "100%", height: MAP_HEIGHT }}
-                mapStyle={mapStyle}
-                onMoveEnd={onMoveEnd}
-                onLoad={onMapLoad}
-                onClick={onClick}
-                interactiveLayerIds={["clusters"]}
-                attributionControl={false}
-              >
-                <NavigationControl position="top-right" />
-                <AttributionControl compact={true} />
-                <Source
-                  id="locations"
-                  type="geojson"
-                  data={geojsonData}
-                  cluster={true}
-                  clusterMaxZoom={14}
-                  clusterRadius={50}
+              <FeatureBoundary name="map">
+                <MapGL
+                  ref={setMapRef}
+                  initialViewState={initialViewState}
+                  style={{ width: "100%", height: MAP_HEIGHT }}
+                  mapStyle={mapStyle}
+                  onMoveEnd={onMoveEnd}
+                  onLoad={onMapLoad}
+                  onClick={onClick}
+                  interactiveLayerIds={["clusters"]}
+                  attributionControl={false}
                 >
-                  <Layer {...clusterLayer} />
-                  <Layer {...clusterCountLayer} />
-                  <Layer {...unclusteredPointLayer} />
-                </Source>
-              </MapGL>
+                  <NavigationControl position="top-right" />
+                  <AttributionControl compact={true} />
+                  <Source
+                    id="locations"
+                    type="geojson"
+                    data={geojsonData}
+                    cluster={true}
+                    clusterMaxZoom={14}
+                    clusterRadius={50}
+                  >
+                    <Layer {...clusterLayer} />
+                    <Layer {...clusterCountLayer} />
+                    <Layer {...unclusteredPointLayer} />
+                  </Source>
+                </MapGL>
+              </FeatureBoundary>
             )}
           </div>
           <VirtualGrid

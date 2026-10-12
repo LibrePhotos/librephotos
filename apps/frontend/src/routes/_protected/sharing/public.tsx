@@ -1,10 +1,11 @@
-import { Avatar, Loader, NavLink, Stack, Text } from "@mantine/core";
+import { Avatar, NavLink, Stack, Text } from "@mantine/core";
 import { IconWorld } from "@tabler/icons-react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import type { ListUserList } from "../../../api_client/user";
 import { useFetchUserListQuery } from "../../../api_client/user/hooks";
+import { PageLoader } from "../../../components/common/PageLoader";
 import { PageHeader } from "../../../components/PageHeader";
 import { avatarSrc } from "../../../components/sharing/avatarSrc";
 
@@ -29,11 +30,7 @@ function PublicUserList() {
         title={t("sidemenu.publicphotos")}
         subtitle={isLoading ? undefined : t("sharing.userCount", { count: list.length })}
       />
-      {isLoading && (
-        <Stack align="center" mt="xl">
-          <Loader />
-        </Stack>
-      )}
+      {isLoading && <PageLoader />}
       {!isLoading && list.length === 0 && (
         <Stack align="center" mt="xl">
           <Text c="dimmed">{t("sharing.noPublicUsers")}</Text>

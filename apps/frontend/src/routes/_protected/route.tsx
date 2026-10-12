@@ -1,7 +1,8 @@
-import { AppShell, Loader, useComputedColorScheme, useMantineTheme } from "@mantine/core";
+import { AppShell, useComputedColorScheme, useMantineTheme } from "@mantine/core";
 import { createFileRoute, Navigate, Outlet } from "@tanstack/react-router";
 import React from "react";
 import { useIsAuthenticatedQuery } from "../../api_client/auth";
+import { PageLoader } from "../../components/common/PageLoader";
 import { FooterMenu } from "../../components/menubars/FooterMenu";
 import { SideMenuNarrow } from "../../components/menubars/SideMenuNarrow";
 import { TopMenu } from "../../components/menubars/TopMenu";
@@ -21,7 +22,7 @@ function AppShellProtected() {
   const { pathname, search } = window.location;
 
   if (isLoading) {
-    return <Loader />;
+    return <PageLoader />;
   }
 
   if (!isAuthenticated && !isLoading) {

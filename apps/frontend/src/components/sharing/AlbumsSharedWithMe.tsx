@@ -1,4 +1,4 @@
-import { Anchor, Avatar, Loader, Stack, Text } from "@mantine/core";
+import { Anchor, Avatar, Stack, Text } from "@mantine/core";
 import { useElementSize, useMergedRef, useViewportSize } from "@mantine/hooks";
 import { IconPolaroid as Polaroid } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
@@ -8,6 +8,7 @@ import { useFetchSharedAlbumsWithMeQuery, type UserAlbumsGroupedByUserId } from 
 import type { UserAlbumInfo } from "../../api_client/albums/types";
 import { useFetchUserListQuery } from "../../api_client/user/hooks";
 import { calculateGridCellSize, calculateSharedAlbumGridCells, type GroupedGridRows } from "../../util/gridUtils";
+import { PageLoader } from "../common/PageLoader";
 import { Tile } from "../Tile";
 import { VirtualGrid } from "../virtual/VirtualGrid";
 import type { GridCellProps } from "../virtual/VirtualGrid";
@@ -128,12 +129,7 @@ export function AlbumsSharedWithMe() {
 
   return (
     <div ref={containerRef}>
-      {isFetching && !isSuccess && (
-        <Stack align="center" mt="xl">
-          <Loader />
-          {t("sharing.loadingAlbumsSharedWithYou")}
-        </Stack>
-      )}
+      {isFetching && !isSuccess && <PageLoader label={t("sharing.loadingAlbumsSharedWithYou")} />}
 
       {albumGridContents.length === 0 && isSuccess && (
         <Stack align="center" mt="xl">

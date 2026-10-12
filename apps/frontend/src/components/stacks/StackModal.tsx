@@ -9,7 +9,6 @@ import {
   Card,
   Group,
   Image,
-  Loader,
   Modal,
   ScrollArea,
   SimpleGrid,
@@ -28,6 +27,7 @@ import { useSetCoverPhotoMutation, useStackQuery } from "../../api_client/stacks
 import type { PhotoStack } from "../../api_client/stacks/types";
 import { parsePhotoTimestamp } from "../../util/dateUtils";
 import { PLACEHOLDER_IMAGE } from "../../util/placeholderImage";
+import { PageLoader } from "../common/PageLoader";
 import { StackLightbox } from "./StackLightbox";
 
 // File variant type
@@ -337,10 +337,7 @@ export function StackModal({ stackId, opened, onClose }: StackModalProps) {
         scrollAreaComponent={ScrollArea.Autosize}
       >
         {isLoading ? (
-          <Stack align="center" p="xl">
-            <Loader size="lg" />
-            <Text>{t("stacks.loading", "Loading stack...")}</Text>
-          </Stack>
+          <PageLoader label={t("stacks.loading", "Loading stack...")} />
         ) : stack ? (
           <Stack gap="md">
             <Text size="sm" c="dimmed">

@@ -15,7 +15,6 @@ import {
   Divider,
   Group,
   Image,
-  Loader,
   Menu,
   Modal,
   Pagination,
@@ -62,6 +61,7 @@ import { buttonRoleProps } from "../../util/a11y";
 import { parsePhotoTimestamp } from "../../util/dateUtils";
 import { PLACEHOLDER_IMAGE } from "../../util/placeholderImage";
 import { EmptyState } from "../common/EmptyState";
+import { PageLoader } from "../common/PageLoader";
 import { Lightbox } from "../lightbox";
 
 // Select options cannot be "", so "all statuses" gets a sentinel value
@@ -370,10 +370,7 @@ function DuplicateModal({
         }}
       >
         {isLoading ? (
-          <Stack align="center" p="xl">
-            <Loader size="lg" />
-            <Text>{t("duplicates.loading", "Loading duplicate...")}</Text>
-          </Stack>
+          <PageLoader label={t("duplicates.loading", "Loading duplicate...")} />
         ) : duplicate ? (
           <Stack style={{ flex: 1, minHeight: 0 }}>
             <Text size="sm" c="dimmed">
@@ -908,9 +905,7 @@ export function DuplicatesPageContent() {
 
       {/* Duplicates Grid */}
       {duplicatesLoading ? (
-        <Stack align="center" p="xl">
-          <Loader size="lg" />
-        </Stack>
+        <PageLoader />
       ) : duplicates && duplicates.length > 0 ? (
         <>
           <SimpleGrid cols={{ base: 2, sm: 3, md: 4, lg: 5 }} spacing="md">

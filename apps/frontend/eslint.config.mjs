@@ -105,6 +105,28 @@ const eventMessage =
 const eventGlobalBans = [{ name: "CustomEvent", message: eventMessage }];
 const windowEventBan = { object: "window", property: "dispatchEvent", message: eventMessage };
 
+// The first load of a page or section is <PageLoader />, not a hand-rolled Center/Stack + Loader or a
+// bare returned Loader (which sits in the top-left corner). An inline <Loader size="xs" /> next to a
+// title during a refetch stays.
+const notInlineLoader = ":not(:has(JSXAttribute[name.name='size'][value.value='xs']))";
+const pageLoaderMessage = "First loads render <PageLoader /> (components/common/PageLoader).";
+const pageLoaderBans = [
+  {
+    selector: `ReturnStatement > JSXElement[openingElement.name.name='Loader']${notInlineLoader}`,
+    message: pageLoaderMessage,
+  },
+  {
+    selector: `JSXElement[openingElement.name.name=/^(Center|Stack)$/] > JSXElement[openingElement.name.name='Loader']${notInlineLoader}`,
+    message: pageLoaderMessage,
+  },
+];
+
+// Render errors in a feature are caught by the one FeatureBoundary (components/common/FeatureBoundary).
+const errorBoundaryBan = {
+  selector: "MethodDefinition[key.name='componentDidCatch']",
+  message: "Wrap the feature in <FeatureBoundary> (components/common/FeatureBoundary) instead of a new error boundary.",
+};
+
 export default [
   {
     ignores: ["node_modules/**", "**/dist/**", "**/build/**", "coverage/**", ".tanstack/**"],
@@ -215,7 +237,15 @@ export default [
       "@typescript-eslint/no-unsafe-function-type": "error",
       "@typescript-eslint/no-empty-object-type": "error",
       "@typescript-eslint/no-wrapper-object-types": "error",
-      "no-restricted-syntax": ["error", typedMockBan, openStateBan, pollIntervalBan, ...dateSyntaxBans],
+      "no-restricted-syntax": [
+        "error",
+        typedMockBan,
+        openStateBan,
+        pollIntervalBan,
+        ...dateSyntaxBans,
+        ...pageLoaderBans,
+        errorBoundaryBan,
+      ],
       "no-restricted-globals": ["error", ...storageGlobalBans, ...eventGlobalBans],
       "no-restricted-properties": ["error", ...storagePropertyBans, windowEventBan],
       // Dialogs are declarative components; the imperative @mantine/modals API is not used.
@@ -253,7 +283,45 @@ export default [
     // replaces the options of a rule, so it lists the other restrictions again.
     files: ["src/routes/**/*.{ts,tsx}"],
     rules: {
-      "no-restricted-syntax": ["error", typedMockBan, openStateBan, pollIntervalBan, routeModalBan, ...dateSyntaxBans],
+      "no-restricted-syntax": [
+        "error",
+        typedMockBan,
+        openStateBan,
+        pollIntervalBan,
+        routeModalBan,
+        ...dateSyntaxBans,
+        ...pageLoaderBans,
+        errorBoundaryBan,
+      ],
+    },
+  },
+  {
+    // The two components the loading and error bans point to, and the video player's buffering
+    // overlay over its poster (not a page load). An override replaces the rule's options for these
+    // files, so it lists the other restrictions again.
+    files: ["src/components/common/PageLoader.tsx", "src/components/lightbox/VideoPlayer.tsx"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        typedMockBan,
+        openStateBan,
+        pollIntervalBan,
+        ...dateSyntaxBans,
+        errorBoundaryBan,
+      ],
+    },
+  },
+  {
+    files: ["src/components/common/FeatureBoundary.tsx"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        typedMockBan,
+        openStateBan,
+        pollIntervalBan,
+        ...dateSyntaxBans,
+        ...pageLoaderBans,
+      ],
     },
   },
   {
@@ -269,6 +337,8 @@ export default [
         pollIntervalBan,
         apiClientTimerBan,
         ...dateSyntaxBans,
+        ...pageLoaderBans,
+        errorBoundaryBan,
       ],
     },
   },

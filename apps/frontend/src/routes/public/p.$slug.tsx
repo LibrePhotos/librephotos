@@ -1,4 +1,4 @@
-import { Button, Center, Group, Image, Loader, Stack, Text } from "@mantine/core";
+import { Button, Center, Group, Image, Stack, Text } from "@mantine/core";
 import { IconAlertCircle, IconDownload } from "@tabler/icons-react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { DateTime } from "luxon";
@@ -6,6 +6,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { serverAddress } from "../../api_client/apiClient";
 import { useFetchSharedPhotoQuery } from "../../api_client/photos/hooks";
+import { PageLoader } from "../../components/common/PageLoader";
 import { usePublicPageTitle } from "../../components/sharing/usePublicPageTitle";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
 import { parsePhotoTimestamp } from "../../util/dateUtils";
@@ -37,11 +38,7 @@ function PublicPhotoBySlug() {
   usePublicPageTitle(photo ? captionOf(photo.captions_json) || t("publicphoto.title") : undefined);
 
   if (isLoading) {
-    return (
-      <Center style={{ minHeight: "60vh" }}>
-        <Loader />
-      </Center>
-    );
+    return <PageLoader />;
   }
 
   if (!photo || isError) {
