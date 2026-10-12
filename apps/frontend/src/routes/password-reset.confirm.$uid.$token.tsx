@@ -1,13 +1,13 @@
 import { Anchor, Button, Card, Group, Image, PasswordInput, Stack, Title, useComputedColorScheme } from "@mantine/core";
-import { useForm } from "@mantine/form";
+import { schemaResolver, useForm } from "@mantine/form";
 import { IconLock as Lock } from "@tabler/icons-react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import React from "react";
-import type { FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { useConfirmPasswordResetMutation } from "../api_client/auth";
 import { passwordResetError } from "../api_client/auth/passwordResetErrors";
 import { notification } from "../service/notifications";
+import { makeNewPasswordSchema } from "./-passwordReset.schema";
 import classes from "./auth.module.css";
 
 export const Route = createFileRoute("/password-reset/confirm/$uid/$token")({
@@ -23,19 +23,12 @@ function PasswordResetConfirmPage(): React.JSX.Element {
 
   const form = useForm({
     initialValues: { password: "", passwordConfirm: "" },
-    validate: {
-      passwordConfirm: (value, values) => (value !== values.password ? t("passwordreset.errormustmatch") : null),
-    },
+    validate: schemaResolver(makeNewPasswordSchema(t), { sync: true }),
   });
 
-  function onSubmit(event: FormEvent<HTMLFormElement>): void {
-    event.preventDefault();
-    const { hasErrors } = form.validate();
-    if (hasErrors) {
-      return;
-    }
+  function onSubmit({ password }: typeof form.values): void {
     confirmReset(
-      { uid, token, new_password: form.values.password },
+      { uid, token, new_password: password },
       {
         onSuccess: () => {
           notification.success(t("passwordreset.success"));
@@ -72,7 +65,7 @@ function PasswordResetConfirmPage(): React.JSX.Element {
         <Card>
           <Stack>
             <Title order={3}>{t("passwordreset.choosetitle")}</Title>
-            <form onSubmit={onSubmit}>
+            <form onSubmit={form.onSubmit(onSubmit)}>
               <Stack>
                 <PasswordInput
                   required

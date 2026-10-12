@@ -138,4 +138,62 @@ describe("PasswordEntry", () => {
     expect(onValidate).toHaveBeenCalledTimes(1);
     expect(onValidate).toHaveBeenLastCalledWith("s3cret", true);
   });
+
+  it("reports no password, and a valid form, while the fields stay locked", async () => {
+    const { onValidate } = await render();
+
+    expect(onValidate).toHaveBeenLastCalledWith("", true);
+  });
+
+  it("says the passwords must match, and asks for the retype on submit", async () => {
+    const { container, inputs, draw, onValidate } = await render({ createNew: true });
+    const setValue = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+    const type = async (input: HTMLInputElement | undefined, value: string) => {
+      await act(async () => {
+        setValue?.call(defined(input), value);
+        defined(input).dispatchEvent(new Event("input", { bubbles: true }));
+      });
+    };
+
+    await type(inputs()[0], "s3cret");
+    expect(onValidate).toHaveBeenLastCalledWith("", false);
+    expect(container.textContent).not.toContain("settings.password.errormustretype");
+
+    await draw({ createNew: true, closing: true });
+    expect(container.textContent).toContain("settings.password.errormustretype");
+
+    await type(inputs()[1], "s3crex");
+    expect(container.textContent).toContain("settings.password.errormustmatch");
+    expect(onValidate).toHaveBeenLastCalledWith("", false);
+  });
+
+  // #2197: locking the fields again looked like "never mind" but kept the typed password, and the
+  // next save of the profile or the user changed it anyway.
+  it("drops the typed password when the fields are locked again", async () => {
+    const { container, inputs, lock, onValidate } = await render();
+    const setValue = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+    await act(async () => {
+      lock().click();
+    });
+    for (const input of inputs()) {
+      await act(async () => {
+        setValue?.call(input, "s3cret");
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+      });
+    }
+    expect(onValidate).toHaveBeenLastCalledWith("s3cret", true);
+
+    await act(async () => {
+      lock().click();
+    });
+
+    expect(onValidate).toHaveBeenLastCalledWith("", true);
+    expect(inputs().map(input => input.value)).toEqual(["", ""]);
+    expect(container.textContent).not.toContain("settings.password.error");
+
+    await act(async () => {
+      lock().click();
+    });
+    expect(inputs().map(input => input.value)).toEqual(["", ""]);
+  });
 });

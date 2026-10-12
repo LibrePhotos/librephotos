@@ -17,7 +17,7 @@ import {
   Title,
   useComputedColorScheme,
 } from "@mantine/core";
-import { useForm } from "@mantine/form";
+import { schemaResolver, useForm } from "@mantine/form";
 import { IconLock as Lock, IconMail as Mail, IconUser as User } from "@tabler/icons-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Navigate, useNavigate } from "@tanstack/react-router";
@@ -44,7 +44,7 @@ import { uploadLocation } from "../components/setup/uploadLocation";
 import { reportSignupError, reportUserSaveError } from "../util/apiErrors";
 import { ssoErrorMessageKey } from "../util/ssoErrors";
 import { isStringEmpty } from "../util/stringUtils";
-import { EMAIL_REGEX } from "../util/util";
+import { makeSignupSchema } from "./-signup.schema";
 import classes from "./auth.module.css";
 
 /**
@@ -277,16 +277,12 @@ function FirstTimeSetupPage({ onComplete }: FirstTimeSetupProps): React.JSX.Elem
     initialValues: {
       username: "",
       password: "",
-      firstName: "",
-      lastName: "",
+      first_name: "",
+      last_name: "",
       passwordConfirm: "",
       email: "",
     },
-
-    validate: {
-      passwordConfirm: (value, values) => (value !== values.password ? t("settings.password.errormustmatch") : null),
-      email: value => (!EMAIL_REGEX.test(value) ? t("modaluseredit.errorinvalidemail") : null),
-    },
+    validate: schemaResolver(makeSignupSchema(t), { sync: true }),
   });
 
   const colorScheme = useComputedColorScheme();
@@ -299,32 +295,28 @@ function FirstTimeSetupPage({ onComplete }: FirstTimeSetupProps): React.JSX.Elem
     }
   }, [siteSettings]);
 
-  function onSubmit(event: FormEvent<HTMLFormElement>): void {
-    event.preventDefault();
-    const result = form.validate();
-    if (!result.hasErrors) {
-      const { email, firstName, lastName, password } = form.values;
-      const username = form.values.username.toLowerCase();
-      signup(
-        { email, first_name: firstName, last_name: lastName, username, password },
-        {
-          onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: UserListQueryKeys });
-            login(
-              { username, password },
-              {
-                onSuccess: () => {
-                  setActiveStep(1);
-                },
-              }
-            );
-          },
-          // A rejected sign-up (username taken, password refused) used to do
-          // nothing at all: the button re-enabled and the form said nothing.
-          onError: reportSignupError,
-        }
-      );
-    }
+  function onSignUp(values: typeof form.values): void {
+    const { email, first_name: firstName, last_name: lastName, password } = values;
+    const username = values.username.toLowerCase();
+    signup(
+      { email, first_name: firstName, last_name: lastName, username, password },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: UserListQueryKeys });
+          login(
+            { username, password },
+            {
+              onSuccess: () => {
+                setActiveStep(1);
+              },
+            }
+          );
+        },
+        // A rejected sign-up (username taken, password refused) used to do
+        // nothing at all: the button re-enabled and the form said nothing.
+        onError: reportSignupError,
+      }
+    );
   }
 
   const canSaveDirectory = useMemo(() => {
@@ -409,7 +401,7 @@ function FirstTimeSetupPage({ onComplete }: FirstTimeSetupProps): React.JSX.Elem
                   only led to a second sign-up that failed with "user exists". */}
               <Stepper.Step label={t("login.firsttimesetup")} description={t("login.signup")} allowStepSelect={false}>
                 <Stack mt="md">
-                  <form onSubmit={onSubmit}>
+                  <form onSubmit={form.onSubmit(onSignUp)}>
                     <Stack>
                       <TextInput
                         required
@@ -434,7 +426,7 @@ function FirstTimeSetupPage({ onComplete }: FirstTimeSetupProps): React.JSX.Elem
                           placeholder={t("settings.firstnameplaceholder")}
                           name="firstname"
                           autoComplete="given-name"
-                          {...form.getInputProps("firstName")}
+                          {...form.getInputProps("first_name")}
                         />
                         <TextInput
                           required
@@ -442,7 +434,7 @@ function FirstTimeSetupPage({ onComplete }: FirstTimeSetupProps): React.JSX.Elem
                           placeholder={t("settings.lastnameplaceholder")}
                           name="lastname"
                           autoComplete="family-name"
-                          {...form.getInputProps("lastName")}
+                          {...form.getInputProps("last_name")}
                         />
                       </Group>
                       <Group grow>

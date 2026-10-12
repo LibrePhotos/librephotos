@@ -37,6 +37,7 @@ const planted = {
   "t-default": `const plantedDefault = t("sidemenu.photos", "Photos");`,
   "t-default-value": `const plantedDefaultValue = t("sidemenu.photos", { defaultValue: "Photos" });`,
   "trans-children": `const plantedTrans = <Trans i18nKey="sidemenu.photos">Photos</Trans>;`,
+  "form-validate-object": `const plantedForm = useForm({ validate: { email: value => (value ? null : "required") } });`,
   "local-storage": `const plantedLocal = localStorage.getItem("key");`,
   "session-storage": `const plantedSession = sessionStorage.getItem("key");`,
   "custom-event": `const plantedEvent = new CustomEvent("planted");`,
@@ -160,6 +161,8 @@ describe("eslint.config.mjs convention bans", () => {
     ["src/components/facedashboard/FaceGrid.tsx", "virtual-grid", false],
     ["src/components/facedashboard/FaceGrid.tsx", "react-virtual", true],
     ["src/components/album/AlbumGrid.tsx", "tile-index", true],
+    ["src/routes/signup.tsx", "form-validate-object", true],
+    ["src/components/modals/ModalUserEdit.test.tsx", "form-validate-object", true],
   ])("%s: ban/%s fires = %s", async (file, id, fires) => {
     const fired = await firedBans(planted[id], file);
     expect(fired.has(`ban/${id}`)).toBe(fires);

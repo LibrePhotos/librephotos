@@ -11,7 +11,7 @@ import {
   Title,
   useComputedColorScheme,
 } from "@mantine/core";
-import { useForm } from "@mantine/form";
+import { schemaResolver, useForm } from "@mantine/form";
 import { IconLock as Lock, IconMail as Mail, IconUser as User } from "@tabler/icons-react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import React from "react";
@@ -21,7 +21,7 @@ import { useLoginMutation, useSignUpMutation } from "../api_client/auth";
 import { useGetSettingsQuery } from "../api_client/settings";
 import { notification } from "../service/notifications";
 import { reportSignupError } from "../util/apiErrors";
-import { EMAIL_REGEX } from "../util/util";
+import { makeSignupSchema } from "./-signup.schema";
 import classes from "./auth.module.css";
 
 export const Route = createFileRoute("/signup")({
@@ -35,13 +35,6 @@ function SignupPage(): React.JSX.Element {
   // The login page only hides its Sign Up button; the URL still leads here.
   const registrationClosed = siteSettings?.allow_registration === false;
 
-  const validateUsername = (username: string) => {
-    let error = "";
-    if (!username) {
-      error = t("modaluseredit.errorusernamecannotbeblank");
-    }
-    return error || null;
-  };
   const form = useForm({
     initialValues: {
       username: "",
@@ -51,12 +44,7 @@ function SignupPage(): React.JSX.Element {
       passwordConfirm: "",
       email: "",
     },
-
-    validate: {
-      passwordConfirm: (value, values) => (value !== values.password ? t("settings.password.errormustmatch") : null),
-      email: value => (!EMAIL_REGEX.test(value) ? t("modaluseredit.errorinvalidemail") : null),
-      username: value => validateUsername(value),
-    },
+    validate: schemaResolver(makeSignupSchema(t), { sync: true }),
   });
   const { mutate: signup, isPending: isSignupPending } = useSignUpMutation();
   // Sign the new user straight in, as first-time setup does: the account
@@ -81,10 +69,6 @@ function SignupPage(): React.JSX.Element {
             ) : (
               <form
                 onSubmit={form.onSubmit(values => {
-                  const result = form.validate();
-                  if (result.hasErrors) {
-                    return;
-                  }
                   const { email, first_name: firstName, last_name: lastName, password } = values;
                   const username = values.username.toLowerCase();
                   signup(

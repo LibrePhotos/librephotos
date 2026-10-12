@@ -98,15 +98,17 @@ async function renderPage() {
   });
 }
 
-async function fillAndSubmit() {
-  const values: Record<string, string> = {
-    username: "Alice",
-    email: "alice@example.com",
-    firstname: "Alice",
-    lastname: "Liddell",
-    password: "wonderland",
-    passwordConfirm: "wonderland",
-  };
+const ALICE: Record<string, string> = {
+  username: "Alice",
+  email: "alice@example.com",
+  firstname: "Alice",
+  lastname: "Liddell",
+  password: "wonderland",
+  passwordConfirm: "wonderland",
+};
+
+/** Type `values` into the named inputs and submit the form. */
+async function fillAndSubmitWith(values: Record<string, string>) {
   const form = defined(container.querySelector("form"));
   await act(async () => {
     Object.entries(values).forEach(([name, value]) => {
@@ -118,6 +120,10 @@ async function fillAndSubmit() {
   await act(async () => {
     form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
   });
+}
+
+async function fillAndSubmit() {
+  await fillAndSubmitWith(ALICE);
   const options = stubs.signup.mock.calls[0]?.[1];
   if (!options) {
     throw new Error("submitting the form did not sign up");
@@ -178,5 +184,23 @@ describe("the sign-up page", () => {
 
     expect(defined(container.querySelector<HTMLInputElement>('input[name="password"]')).required).toBe(true);
     expect(defined(container.querySelector<HTMLInputElement>('input[name="passwordConfirm"]')).required).toBe(true);
+  });
+
+  it("refuses a blank username, an invalid address and passwords that differ", async () => {
+    await renderPage();
+    await fillAndSubmitWith({ ...ALICE, username: "", email: "alice@", passwordConfirm: "wonderlant" });
+
+    expect(stubs.signup).not.toHaveBeenCalled();
+    expect(container.textContent).toContain(i18n.t("modaluseredit.errorusernamecannotbeblank"));
+    expect(container.textContent).toContain(i18n.t("modaluseredit.errorinvalidemail"));
+    expect(container.textContent).toContain(i18n.t("settings.password.errormustmatch"));
+  });
+
+  // #695: the hand-written pattern refused these (upper-case TLD, one-letter label, two hyphens).
+  it.each(["John@Example.COM", "a@b.co", "x@my-long-domain.example.org"])("accepts %s", async email => {
+    await renderPage();
+    await fillAndSubmitWith({ ...ALICE, email });
+
+    expect(stubs.signup).toHaveBeenCalledWith(expect.objectContaining({ email }), expect.anything());
   });
 });

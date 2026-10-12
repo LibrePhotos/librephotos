@@ -74,8 +74,11 @@ export function PasswordEntry(props: Props): React.JSX.Element {
             color="blue"
             variant={editPasswordMode ? "outline" : "filled"}
             onClick={() => {
+              // Locking again abandons the change: the typed password must not be saved later.
               if (editPasswordMode) {
                 setTouched(false);
+                setNewPassword("");
+                setNewPasswordConfirm("");
               }
               setEditPasswordMode(!editPasswordMode);
             }}

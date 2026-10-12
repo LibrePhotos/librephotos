@@ -6,8 +6,6 @@ import { Media, type DatePhotosGroup, type IncompleteDatePhotosGroup, type PigPh
 import i18n from "../i18n";
 import { parsePhotoTimestamp } from "./dateUtils";
 
-export const EMAIL_REGEX = /^\w+([-.]?\w+){0,2}(\+?\w+([-.]?\w+){0,2})?@(\w+-?\w+\.){1,9}[a-z]{2,}$/;
-
 export const copyToClipboard = (str: string) => {
   if (navigator.clipboard) {
     navigator.clipboard.writeText(str);

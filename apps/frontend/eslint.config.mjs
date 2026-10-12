@@ -203,6 +203,14 @@ export const syntaxBans = [
       'No children in <Trans>: the text lives in src/locales/en/translation.json. Use <Trans i18nKey="..." components={...} />, or t(key).',
   },
   {
+    // A form validates with one zod schema (make<Form>Schema(t), shared pieces in util/formSchemas),
+    // so its messages and rules are not rewritten as rule functions in every dialog. See AGENTS.md "Forms".
+    id: "form-validate-object",
+    selector:
+      "CallExpression[callee.name='useForm'] > ObjectExpression > Property[key.name='validate'] > ObjectExpression",
+    message: "Validate with schemaResolver(make<Form>Schema(t), { sync: true }) and a zod schema, not rule functions.",
+  },
+  {
     // Render errors in a feature are caught by the one FeatureBoundary (components/common/FeatureBoundary).
     id: "error-boundary",
     selector: "MethodDefinition[key.name='componentDidCatch']",
