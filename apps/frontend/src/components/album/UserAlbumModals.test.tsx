@@ -117,6 +117,23 @@ describe("the rename dialog", () => {
     expect(onClose).toHaveBeenCalled();
   });
 
+  it("renames on Enter, but not to a taken title", async () => {
+    await renderRename(true, ["Holiday", "Trip"]);
+    const form = defined(container.querySelector("form"));
+    const pressEnter = () =>
+      act(async () => {
+        form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+      });
+
+    await type("TRIP");
+    await pressEnter();
+    expect(stubs.rename).not.toHaveBeenCalled();
+
+    await type("Beach");
+    await pressEnter();
+    expect(stubs.rename).toHaveBeenCalledWith({ id: "1", title: "Holiday", newTitle: "Beach" });
+  });
+
   it("opens empty again after a rename, even though that title now exists", async () => {
     await renderRename(true, ["Holiday"]);
     await type("Beach");

@@ -1,8 +1,9 @@
 import { ActionIcon, Button, Checkbox, Group, Paper, Stack, Text, TextInput, Title, Tooltip } from "@mantine/core";
 import { DateTimePicker } from "@mantine/dates";
+import { schemaResolver, useForm } from "@mantine/form";
 import { IconCopy as CopyIcon, IconLink as LinkIcon } from "@tabler/icons-react";
 import { useQuery } from "@tanstack/react-query";
-import React, { useCallback, useEffect, useEffectEvent, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useEffectEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useToggleUserAlbumPublicMutation, type PublicSharingOptions } from "../../api_client/albums/hooks";
 import { albumKeys } from "../../api_client/albums/keys";
@@ -13,28 +14,19 @@ import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useC
 import { type PublicSharingDefaults } from "../../api_client/user/types";
 import { fromPickerValue, pickerValueDaysFromNow, toPickerValue } from "../../util/dateUtils";
 import { copyToClipboard } from "../../util/util";
+import { makeAlbumLinkSchema } from "./AlbumSlugSection.schema";
 
-type SlugMeta = { valid: boolean; available: boolean; checking: boolean };
-type SlugProps = Readonly<{
-  value: string;
-  onChange: (v: string) => void;
-  isPublic: boolean;
-  albumId?: string; // album id as string for comparison with API
-  onMetaChange: (m: SlugMeta) => void;
-}>;
-
-function SlugSetting({ value, onChange, isPublic, albumId, onMetaChange }: SlugProps) {
-  const { t } = useTranslation();
-  const slugRegex = useMemo(() => /^[a-z0-9-]{3,64}$/i, []);
-  const valid = slugRegex.test(value.trim());
-
-  const enabled = isPublic && value.trim().length > 0 && valid;
+/**
+ * Whether another album already holds `slug`, asked of the public endpoint while `enabled` (the
+ * link is public and the slug has the right shape).
+ */
+function useSlugTaken(slug: string, enabled: boolean, albumId: string | undefined) {
   const { data: existingId, isFetching } = useQuery({
-    queryKey: albumKeys.slugOwner(value),
+    queryKey: albumKeys.slugOwner(slug),
     enabled,
     queryFn: async () => {
       try {
-        const data = await fetchClient.get(`/public/albums/s/${encodeURIComponent(value)}/`);
+        const data = await fetchClient.get(`/public/albums/s/${encodeURIComponent(slug)}/`);
         const album = typeof data === "object" && data !== null && "results" in data ? data.results : undefined;
         const id = typeof album === "object" && album !== null && "id" in album ? album.id : undefined;
         return typeof id === "string" || typeof id === "number" ? id : "__exists__";
@@ -48,28 +40,10 @@ function SlugSetting({ value, onChange, isPublic, albumId, onMetaChange }: SlugP
     retry: false,
   });
 
-  const available = !enabled || existingId === null || String(existingId) === String(albumId ?? "");
-
-  useEffect(() => {
-    onMetaChange({ valid, available, checking: isFetching });
-  }, [valid, available, isFetching, onMetaChange]);
-
-  function getErrorMessage(): string | undefined {
-    if (!valid) return t("sharing.customUrlError");
-    if (!available) return t("sharing.urlTaken");
-    return undefined;
-  }
-
-  return (
-    <TextInput
-      label={t("sharing.customUrl")}
-      placeholder={t("sharing.customUrlPlaceholder")}
-      value={value}
-      onChange={e => onChange(e.currentTarget.value)}
-      error={getErrorMessage()}
-      rightSection={isFetching ? <span style={{ fontSize: 12 }}>…</span> : undefined}
-    />
-  );
+  // No answer yet (undefined) is not "taken": saving waits for the check through `checking`.
+  const taken =
+    enabled && existingId !== undefined && existingId !== null && String(existingId) !== String(albumId ?? "");
+  return { taken, checking: isFetching };
 }
 
 type ExpiresProps = Readonly<{
@@ -181,81 +155,86 @@ type Props = Readonly<{
   refetch: () => void;
 }>;
 
+type LinkValues = { slug: string; expires_at: string; sharing_options: PublicSharingOptions };
+
+const serverValues = (album: UserAlbum | undefined): LinkValues => ({
+  slug: album?.public_slug || "",
+  expires_at: album?.public_expires_at || "",
+  sharing_options: album?.public_sharing_options ?? {},
+});
+
 export function AlbumSlugSection({ albumID, album, isPublic, showSettings, refetch }: Props) {
   const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
-  const [customSlug, setCustomSlug] = useState("");
-  const [expiresAt, setExpiresAt] = useState<string>("");
-  const [slugDirty, setSlugDirty] = useState(false);
-  const [expiresDirty, setExpiresDirty] = useState(false);
-  const [sharingOptionsDirty, setSharingOptionsDirty] = useState(false);
-  const [sharingOptions, setSharingOptions] = useState<PublicSharingOptions>({});
-  const [slugValid, setSlugValid] = useState(true);
-  const [slugAvailable, setSlugAvailable] = useState(true);
-  const [isCheckingSlug, setIsCheckingSlug] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
   const toggleAlbumPublic = useToggleUserAlbumPublicMutation();
   const { data: currentUser } = useCurrentUserSelfDetailsQuery();
 
+  const form = useForm<LinkValues>({
+    initialValues: serverValues(album),
+    validate: schemaResolver(makeAlbumLinkSchema(t), { sync: true }),
+    validateInputOnChange: ["slug"],
+  });
+  const slug = form.values.slug.trim();
+  const { taken, checking } = useSlugTaken(slug, isPublic && form.isValid("slug"), album?.id);
+
+  // The availability check answers after the slug changed, so it reports through the field's error.
+  const takenMessage = t("sharing.urlTaken");
+  const reportTaken = useEffectEvent((isTaken: boolean) => {
+    if (isTaken) {
+      form.setFieldError("slug", takenMessage);
+    } else if (form.errors.slug === takenMessage) {
+      form.clearFieldError("slug");
+    }
+  });
+  // The slug is a trigger too: typing re-validates the field, which drops a "taken" that still holds.
+  useEffect(() => {
+    reportTaken(taken);
+  }, [taken, slug]);
+
   // derived values
   // shareAddress carries the subpath the app may be served under.
   const slugLink = album?.public_slug ? `${shareAddress}/public/s/${album.public_slug}` : "";
-  const effectiveSlug = slugDirty ? customSlug : album?.public_slug || "";
-  const effectiveExpires = expiresDirty ? expiresAt : album?.public_expires_at || "";
 
-  // Initialize from the album, but never over a field the user is editing: the dirty flags
-  // are guards here, not triggers.
+  // Follow the server's copy, but never over a setting the owner is editing: the dirty fields are
+  // guards here, not triggers.
   const syncFromServer = useEffectEvent(() => {
-    if (!album) return;
-    if (!slugDirty) setCustomSlug(album.public_slug || "");
-    if (!expiresDirty) setExpiresAt(album.public_expires_at || "");
-    if (!sharingOptionsDirty && album.public_sharing_options) {
-      setSharingOptions(album.public_sharing_options);
-    }
+    const server = serverValues(album);
+    const editing = {
+      slug: form.isDirty("slug"),
+      expires_at: form.isDirty("expires_at"),
+      sharing_options: form.isDirty("sharing_options"),
+    };
+    form.setInitialValues(server);
+    if (!editing.slug) form.setFieldValue("slug", server.slug);
+    if (!editing.expires_at) form.setFieldValue("expires_at", server.expires_at);
+    if (!editing.sharing_options) form.setFieldValue("sharing_options", server.sharing_options);
   });
   // Sync whenever the server copy of these fields changes.
   useEffect(() => {
     syncFromServer();
   }, [album?.public_slug, album?.public_expires_at, album?.public_sharing_options]);
 
-  // validation handled in SlugSetting; availability via query in that component updates parent through setters
+  const hasChanges =
+    slug !== form.getInitialValues().slug.trim() || form.isDirty("expires_at") || form.isDirty("sharing_options");
+  const canSave = isPublic && hasChanges && form.isValid() && !taken && !checking;
 
-  const hasChanges = useMemo(() => {
-    const slugChanged = slugDirty && effectiveSlug.trim() !== (album?.public_slug || "");
-    const expChanged = expiresDirty && (effectiveExpires || "") !== (album?.public_expires_at || "");
-    return slugChanged || expChanged || sharingOptionsDirty;
-  }, [
-    slugDirty,
-    effectiveSlug,
-    expiresDirty,
-    effectiveExpires,
-    sharingOptionsDirty,
-    album?.public_slug,
-    album?.public_expires_at,
-  ]);
-
-  const canSave = useMemo(
-    () => isPublic && hasChanges && slugValid && slugAvailable && !isCheckingSlug,
-    [isPublic, hasChanges, slugValid, slugAvailable, isCheckingSlug]
-  );
-
-  const onSave = useCallback(() => {
+  const onSave = form.onSubmit(values => {
     setErrorMsg("");
     toggleAlbumPublic.mutate(
       {
         albumId: albumID,
         public: true,
-        slug: slugDirty ? effectiveSlug.trim() : undefined,
-        expires_at: expiresDirty ? effectiveExpires || null : undefined,
-        sharing_options: sharingOptionsDirty ? sharingOptions : undefined,
+        slug: form.isDirty("slug") ? values.slug.trim() : undefined,
+        expires_at: form.isDirty("expires_at") ? values.expires_at || null : undefined,
+        sharing_options: form.isDirty("sharing_options") ? values.sharing_options : undefined,
       },
       {
         onSuccess: () => {
           refetch();
-          setSlugDirty(false);
-          setExpiresDirty(false);
-          setSharingOptionsDirty(false);
+          // What was saved is what a change is measured against, before the refetch lands too.
+          form.resetDirty();
         },
         // The server checks the slug again on save: an expired share still
         // holds its slug although the availability check calls it free.
@@ -270,18 +249,7 @@ export function AlbumSlugSection({ albumID, album, isPublic, showSettings, refet
         },
       }
     );
-  }, [
-    albumID,
-    effectiveSlug,
-    effectiveExpires,
-    slugDirty,
-    expiresDirty,
-    sharingOptionsDirty,
-    sharingOptions,
-    toggleAlbumPublic,
-    refetch,
-    t,
-  ]);
+  });
 
   const openLink = useCallback(() => {
     if (slugLink) window.open(slugLink, "_blank", "noopener,noreferrer");
@@ -332,37 +300,21 @@ export function AlbumSlugSection({ albumID, album, isPublic, showSettings, refet
 
       {showSettings && (
         <Stack mt="xs" gap="xs">
-          <SlugSetting
-            value={slugDirty ? customSlug : effectiveSlug}
-            onChange={v => {
-              setCustomSlug(v.toLowerCase());
-              setSlugDirty(true);
-            }}
-            isPublic={isPublic}
-            albumId={album?.id}
-            onMetaChange={meta => {
-              setSlugValid(meta.valid);
-              setSlugAvailable(meta.available);
-              setIsCheckingSlug(meta.checking);
-            }}
+          <TextInput
+            label={t("sharing.customUrl")}
+            placeholder={t("sharing.customUrlPlaceholder")}
+            {...form.getInputProps("slug")}
+            onChange={event => form.setFieldValue("slug", event.currentTarget.value.toLowerCase())}
+            rightSection={checking ? <span style={{ fontSize: 12 }}>…</span> : undefined}
           />
-          <ExpiresSetting
-            value={expiresDirty ? expiresAt : effectiveExpires}
-            onChange={v => {
-              setExpiresAt(v);
-              setExpiresDirty(true);
-            }}
-          />
+          <ExpiresSetting value={form.values.expires_at} onChange={value => form.setFieldValue("expires_at", value)} />
           <SharingOptionsSettings
-            value={sharingOptions}
-            onChange={v => {
-              setSharingOptions(v);
-              setSharingOptionsDirty(true);
-            }}
+            value={form.values.sharing_options}
+            onChange={value => form.setFieldValue("sharing_options", value)}
             userDefaults={currentUser?.public_sharing_defaults}
           />
           <Group>
-            <Button variant="default" disabled={!canSave} onClick={onSave}>
+            <Button variant="default" disabled={!canSave} onClick={() => onSave()}>
               {t("sharing.saveLinkSettings")}
             </Button>
           </Group>

@@ -1,63 +1,39 @@
 import { ActionIcon, Group, PasswordInput, Stack, Text } from "@mantine/core";
+import type { UseFormReturnType } from "@mantine/form";
 import { IconLock as Lock, IconLockOpen as LockOpen } from "@tabler/icons-react";
-import React, { useEffect, useEffectEvent, useState } from "react";
+import React from "react";
 import { useTranslation } from "react-i18next";
+import type { NewPasswordFields } from "../../util/formSchemas";
 
 type Props = Readonly<{
+  /**
+   * The form these fields belong to (the admin's user dialog, the Profile page). Its schema adds
+   * their rules with `withNewPassword` and `passwordMessages` (PasswordEntry.schema.ts).
+   */
+  form: UseFormReturnType<NewPasswordFields>;
+  /** "Create user": a password is set, so there is no lock. */
   createNew?: boolean;
-  /** The password to save ("" for none) and whether the fields allow saving. */
-  onValidate: (password: string, isValid: boolean) => void;
-  closing?: boolean;
 }>;
 
-export function PasswordEntry(props: Props): React.JSX.Element {
-  const { closing = false, createNew = false, onValidate } = props;
-
-  const [editPasswordMode, setEditPasswordMode] = useState(false);
+/** The new-password fields of a parent form, behind a lock unless a new user is created. */
+export function PasswordEntry({ form, createNew = false }: Props): React.JSX.Element {
   const { t } = useTranslation();
-  const [newPassword, setNewPassword] = useState("");
-  const [newPasswordConfirm, setNewPasswordConfirm] = useState("");
-  const [newPasswordError, setNewPasswordError] = useState("");
-  const [confirmPasswordError, setConfirmPasswordError] = useState("");
-  // "Cannot be blank" waits until the user has left a field or submits, instead of showing in
-  // red the moment the fields unlock or the Create User dialog opens.
-  const [touched, setTouched] = useState(false);
+  const { changePassword } = form.values;
+  const unlocked = createNew || changePassword;
+  const passwordProps = form.getInputProps("password");
+  const confirmProps = form.getInputProps("passwordConfirm");
 
-  const validateAndUpdatePassword = (password: string, passwordConfirm: string, isClosing = false) => {
-    setConfirmPasswordError("");
-    setNewPasswordError("");
-    let validPassword = "";
-    let isValid = false;
-
-    if (password || passwordConfirm) {
-      if (password === passwordConfirm) {
-        validPassword = password;
-        isValid = true;
-      } else if (passwordConfirm !== "") {
-        setConfirmPasswordError(t("settings.password.errormustmatch"));
-      } else if (isClosing) {
-        setConfirmPasswordError(t("settings.password.errormustretype"));
-      }
-    } else if (editPasswordMode || createNew) {
-      if (isClosing || touched) {
-        setNewPasswordError(t("settings.password.errorcannotbeblank"));
-      }
+  // Keeps what is shown true while typing: a "cannot be blank" on screen goes once either field
+  // has text, and "must match" follows both fields. "Cannot be blank" first shows when a field is
+  // left (or the form is submitted), not the moment the fields unlock or the dialog opens.
+  const recheck = () => {
+    if (form.errors.password !== undefined) form.validateField("password");
+    if (form.getValues().passwordConfirm === "") {
+      form.clearFieldError("passwordConfirm");
     } else {
-      isValid = true;
+      form.validateField("passwordConfirm");
     }
-
-    onValidate(validPassword, isValid);
   };
-
-  // Reads the current password values, which are not triggers: keystrokes validate in the
-  // inputs' onChange handlers.
-  const revalidate = useEffectEvent((isClosing: boolean) => {
-    validateAndUpdatePassword(newPassword, newPasswordConfirm, isClosing);
-  });
-  // Re-validate when the mode changes.
-  useEffect(() => {
-    revalidate(closing);
-  }, [createNew, closing, editPasswordMode, touched]);
 
   return (
     <Stack style={{ display: "flex", alignContent: "stretch" }} gap="xs">
@@ -70,20 +46,17 @@ export function PasswordEntry(props: Props): React.JSX.Element {
           <ActionIcon
             title={t("settings.password.tooltipeditbutton")}
             aria-label={t("settings.password.tooltipeditbutton")}
-            aria-pressed={editPasswordMode}
+            aria-pressed={changePassword}
             color="blue"
-            variant={editPasswordMode ? "outline" : "filled"}
+            variant={changePassword ? "outline" : "filled"}
             onClick={() => {
-              // Locking again abandons the change: the typed password must not be saved later.
-              if (editPasswordMode) {
-                setTouched(false);
-                setNewPassword("");
-                setNewPasswordConfirm("");
-              }
-              setEditPasswordMode(!editPasswordMode);
+              // Locking again abandons the change: the typed password must not be saved later (#2197).
+              form.setFieldValue("password", "");
+              form.setFieldValue("passwordConfirm", "");
+              form.setFieldValue("changePassword", !changePassword);
             }}
           >
-            {editPasswordMode ? <LockOpen size={16} /> : <Lock size={16} />}
+            {changePassword ? <LockOpen size={16} /> : <Lock size={16} />}
           </ActionIcon>
         </Group>
       )}
@@ -92,29 +65,27 @@ export function PasswordEntry(props: Props): React.JSX.Element {
         leftSection={<Lock />}
         placeholder={t("login.passwordplaceholder")}
         name="password"
-        disabled={!editPasswordMode && !createNew}
-        required={editPasswordMode}
-        value={newPassword}
-        error={newPasswordError}
-        onBlur={() => setTouched(true)}
+        disabled={!unlocked}
+        required={changePassword}
+        {...passwordProps}
         onChange={event => {
-          setNewPassword(event.currentTarget.value);
-          validateAndUpdatePassword(event.currentTarget.value, newPasswordConfirm);
+          form.setFieldValue("password", event.currentTarget.value);
+          recheck();
         }}
+        onBlur={() => form.validateField("password")}
       />
       <PasswordInput
         leftSection={<Lock />}
         placeholder={t("login.confirmpasswordplaceholder")}
         name="passwordConfirm"
-        disabled={!editPasswordMode && !createNew}
-        required={editPasswordMode}
-        value={newPasswordConfirm}
-        error={confirmPasswordError}
-        onBlur={() => setTouched(true)}
+        disabled={!unlocked}
+        required={changePassword}
+        {...confirmProps}
         onChange={event => {
-          setNewPasswordConfirm(event.currentTarget.value);
-          validateAndUpdatePassword(newPassword, event.currentTarget.value);
+          form.setFieldValue("passwordConfirm", event.currentTarget.value);
+          recheck();
         }}
+        onBlur={() => form.validateField("password")}
       />
     </Stack>
   );

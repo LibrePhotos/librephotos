@@ -1,9 +1,11 @@
 import { Button, Group, Modal, Paper, Stack, Text, TextInput, Tree, type TreeNodeData } from "@mantine/core";
-import React, { useEffect, useState } from "react";
+import { schemaResolver, useForm } from "@mantine/form";
+import React, { useEffect, useEffectEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchNextcloudDirsQuery } from "../../api_client/folders/hooks/useFetchNextcloudDirsQuery";
 import type { DirTree, DirTreeResponse } from "../../api_client/folders/types";
 import { Leaf } from "./Leaf";
+import { makeNextcloudScanDirectorySchema } from "./ModalNextcloudScanDirectoryEdit.schema";
 import { modalTitleStyles } from "./modalTitleStyles";
 
 type Props = Readonly<{
@@ -17,7 +19,11 @@ type Props = Readonly<{
 export function ModalNextcloudScanDirectoryEdit(props: Props) {
   const { t } = useTranslation();
   const { path, isOpen, onChange, onClose } = props;
-  const [newScanDirectory, setNewScanDirectory] = useState(path ?? "");
+  const form = useForm({
+    initialValues: { directory: path ?? "" },
+    validate: schemaResolver(makeNextcloudScanDirectorySchema(t), { sync: true }),
+    transformValues: ({ directory }) => ({ directory: directory.trim() }),
+  });
   const [treeData, setTreeData] = useState<DirTreeResponse>([]);
   const { data: nextcloudDirs } = useFetchNextcloudDirsQuery();
 
@@ -27,10 +33,12 @@ export function ModalNextcloudScanDirectoryEdit(props: Props) {
     }
   }, [nextcloudDirs]);
 
-  // Start from the saved folder each time the dialog opens.
+  // Start from the saved folder each time the dialog opens. `form` is a new object every render,
+  // not a trigger.
+  const startFrom = useEffectEvent((saved: string) => form.setValues({ directory: saved }));
   useEffect(() => {
     if (isOpen) {
-      setNewScanDirectory(path ?? "");
+      startFrom(path ?? "");
     }
   }, [isOpen, path]);
 
@@ -43,7 +51,12 @@ export function ModalNextcloudScanDirectoryEdit(props: Props) {
     }));
 
   const treeItems = convertToMantineTreeData(treeData);
-  const trimmed = newScanDirectory.trim();
+  // Nothing to update while the folder is still the saved one.
+  const unchanged = form.getTransformedValues().directory === (path ?? "");
+  const update = form.onSubmit(({ directory }) => {
+    onChange(directory);
+    onClose();
+  });
 
   return (
     <Modal
@@ -58,8 +71,7 @@ export function ModalNextcloudScanDirectoryEdit(props: Props) {
         <TextInput
           label={t("modalnextcloud.currentdirectory")}
           placeholder={t("modalnextcloud.notset")}
-          value={newScanDirectory}
-          onChange={event => setNewScanDirectory(event.currentTarget.value)}
+          {...form.getInputProps("directory")}
         />
         <div>
           <Text size="sm" c="dimmed" mb={4}>
@@ -72,7 +84,9 @@ export function ModalNextcloudScanDirectoryEdit(props: Props) {
               data={treeItems}
               selectOnClick
               clearSelectionOnOutsideClick
-              renderNode={payload => <Leaf {...payload} nodeClicked={node => setNewScanDirectory(node.value)} />}
+              renderNode={payload => (
+                <Leaf {...payload} nodeClicked={node => form.setFieldValue("directory", node.value)} />
+              )}
             />
           </Paper>
         </div>
@@ -80,13 +94,7 @@ export function ModalNextcloudScanDirectoryEdit(props: Props) {
           <Button variant="default" onClick={onClose}>
             {t("modalnextcloud.cancel")}
           </Button>
-          <Button
-            disabled={!trimmed || trimmed === (path ?? "")}
-            onClick={() => {
-              onChange(trimmed);
-              onClose();
-            }}
-          >
+          <Button disabled={unchanged || !form.isValid()} onClick={() => update()}>
             {t("modalnextcloud.update")}
           </Button>
         </Group>

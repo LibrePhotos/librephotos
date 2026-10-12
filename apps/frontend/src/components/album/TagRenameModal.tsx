@@ -1,6 +1,8 @@
 import { Button, Group, Modal, Stack, TextInput } from "@mantine/core";
-import React, { useEffect, useState } from "react";
+import { schemaResolver, useForm } from "@mantine/form";
+import React, { useEffect, useEffectEvent } from "react";
 import { useTranslation } from "react-i18next";
+import { makeTagRenameSchema } from "./TagRenameModal.schema";
 
 type Props = Readonly<{
   opened: boolean;
@@ -14,35 +16,31 @@ type Props = Readonly<{
 
 export function TagRenameModal({ opened, onClose, tagName, existingNames, onSubmit }: Props) {
   const { t } = useTranslation();
-  const [newName, setNewName] = useState("");
-  // Every opening starts with an empty name
+  const form = useForm({
+    initialValues: { name: "" },
+    validate: schemaResolver(makeTagRenameSchema(t, existingNames), { sync: true }),
+    validateInputOnChange: ["name"],
+    transformValues: ({ name }) => ({ name: name.trim() }),
+  });
+  // Every opening starts with an empty name. `form` is a new object every render, not a trigger.
+  const startOver = useEffectEvent(() => form.reset());
   useEffect(() => {
-    if (opened) setNewName("");
+    if (opened) startOver();
   }, [opened]);
-  const nameTaken = existingNames.some(name => name.toLowerCase().trim() === newName.toLowerCase().trim());
+  const rename = form.onSubmit(({ name }) => {
+    onSubmit(name);
+    onClose();
+  });
 
   return (
     <Modal size="sm" opened={opened} onClose={onClose} title={t("tagalbum.renametag")}>
       <Stack>
-        <TextInput
-          label={tagName}
-          error={nameTaken ? t("tagalbum.tagalreadyexists", { name: newName.trim() }) : ""}
-          value={newName}
-          onChange={event => setNewName(event.currentTarget.value)}
-          placeholder={t("tagalbum.tagplaceholder")}
-        />
+        <TextInput label={tagName} placeholder={t("tagalbum.tagplaceholder")} {...form.getInputProps("name")} />
         <Group justify="flex-end">
           <Button variant="default" onClick={onClose}>
             {t("cancel")}
           </Button>
-          <Button
-            color="green"
-            disabled={!newName.trim() || nameTaken}
-            onClick={() => {
-              onSubmit(newName.trim());
-              onClose();
-            }}
-          >
+          <Button color="green" disabled={!form.isValid()} onClick={() => rename()}>
             {t("rename")}
           </Button>
         </Group>

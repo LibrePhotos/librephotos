@@ -11,11 +11,10 @@ import {
   TextInput,
   Title,
 } from "@mantine/core";
-import { useDisclosure } from "@mantine/hooks";
+import { schemaResolver, useForm } from "@mantine/form";
 import { IconPhoto as Photo, IconUpload as Upload, IconUser as User } from "@tabler/icons-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { isEqual } from "lodash-es";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useEffectEvent, useRef, useState } from "react";
 import type { AvatarEditorRef } from "react-avatar-editor";
 import AvatarEditor from "react-avatar-editor";
 import type { DropzoneRef } from "react-dropzone";
@@ -23,6 +22,7 @@ import Dropzone from "react-dropzone";
 import { Trans, useTranslation } from "react-i18next";
 import { serverAddress } from "../../api_client/apiClient";
 import { useAccessToken } from "../../api_client/auth/hooks";
+import type { User as UserDetails } from "../../api_client/user";
 import {
   useFetchUserSelfDetailsQuery,
   useUpdateAvatarMutation,
@@ -33,15 +33,33 @@ import { SIGN_IN_GRADIENT } from "../../theme/brandGradients";
 import { reportUserSaveError } from "../../util/apiErrors";
 import { PageHeader } from "../PageHeader";
 import { PasswordEntry } from "./PasswordEntry";
+import { makeProfileSchema, type ProfileValues } from "./Profile.schema";
 import { SaveChangesDialog } from "./SaveChangesDialog";
 
+/** The profile's form values: the stored details, and the password fields locked and empty. */
+const valuesOf = (user: Pick<UserDetails, "first_name" | "last_name" | "email" | "public_sharing">): ProfileValues => ({
+  first_name: user.first_name,
+  last_name: user.last_name,
+  email: user.email,
+  public_sharing: user.public_sharing,
+  password: "",
+  passwordConfirm: "",
+  changePassword: false,
+});
+
+// The fields an edit is made of: unlocking the password fields alone is not one.
+const EDITABLE_FIELDS = ["first_name", "last_name", "email", "public_sharing", "password", "passwordConfirm"] as const;
+
 export function Profile() {
-  const [isOpenUpdateDialog, { open: openUpdateDialog, close: closeUpdateDialog }] = useDisclosure(false);
   const [avatarImgSrc, setAvatarImgSrc] = useState("/unknown_user.jpg");
   const { data: auth } = useAccessToken();
   const { data: userSelfDetails } = useFetchUserSelfDetailsQuery(auth?.access?.user_id ?? "");
-  const [editedUserDetails, setEditedUserDetails] = useState(userSelfDetails);
   const { t, i18n } = useTranslation();
+  const form = useForm<ProfileValues>({
+    // A cached profile shows at once; the effect below follows it when it loads or changes.
+    initialValues: valuesOf(userSelfDetails ?? { first_name: "", last_name: "", email: "", public_sharing: false }),
+    validate: schemaResolver(makeProfileSchema(t), { sync: true }),
+  });
   const updateAvatar = useUpdateAvatarMutation();
   const updateUser = useUpdateUserMutation();
   const editorRef = useRef<AvatarEditorRef>(null);
@@ -55,27 +73,16 @@ export function Profile() {
     return new File([buf], filename, { type });
   };
 
-  const onPasswordValidate = (pass: string, valid: boolean) => {
-    if (!editedUserDetails) return;
-
-    const newUserDetails = { ...editedUserDetails };
-    if (pass && valid) {
-      newUserDetails.password = pass;
-    } else {
-      delete newUserDetails.password;
-    }
-
-    setEditedUserDetails(newUserDetails);
+  // What the form starts from and what an edit is measured against: the stored profile, or what
+  // was just saved.
+  const startFrom = (values: ProfileValues) => {
+    form.setValues(values);
+    form.resetDirty(values);
   };
-
-  // open update dialog, when user was edited
-  useEffect(() => {
-    if (!isEqual(userSelfDetails, editedUserDetails)) {
-      openUpdateDialog();
-    } else {
-      closeUpdateDialog();
-    }
-  }, [userSelfDetails, editedUserDetails, openUpdateDialog, closeUpdateDialog]);
+  // `form` is a new object every render, not a trigger.
+  const loadStored = useEffectEvent((user: UserDetails) => startFrom(valuesOf(user)));
+  // The "Save changes?" dialog shows while the profile holds an edit.
+  const isEdited = EDITABLE_FIELDS.some(field => form.isDirty(field));
 
   useEffect(() => {
     if (auth?.access?.user_id) {
@@ -85,7 +92,7 @@ export function Profile() {
 
   useEffect(() => {
     if (userSelfDetails) {
-      setEditedUserDetails(userSelfDetails);
+      loadStored(userSelfDetails);
     }
   }, [userSelfDetails]);
 
@@ -95,9 +102,26 @@ export function Profile() {
     }
   }, [avatarImgSrc, userSelfDetails]);
 
-  if (!userSelfDetails || !editedUserDetails) {
+  if (!userSelfDetails) {
     return null;
   }
+
+  const save = form.onSubmit(values => {
+    const { password, passwordConfirm: _retyped, changePassword, ...edits } = values;
+    const newUserData: Partial<UserDetails> & Pick<UserDetails, "id"> = { ...userSelfDetails, ...edits };
+    delete newUserData.scan_directory;
+    delete newUserData.avatar;
+    // Locked fields hold no password (locking empties them); the schema checked unlocked ones.
+    if (changePassword && password) {
+      newUserData.password = password;
+    }
+    // Keep the dialog open when the server rejects the save (an invalid email address,
+    // for example), so the edits can be fixed.
+    updateUser.mutate(newUserData, {
+      onSuccess: () => startFrom({ ...values, password: "", passwordConfirm: "", changePassword: false }),
+      onError: reportUserSaveError,
+    });
+  });
 
   return (
     <Container>
@@ -150,10 +174,10 @@ export function Profile() {
                     const formData = new FormData();
                     const file = await urlToFile(
                       editor.getImageScaledToCanvas().toDataURL(),
-                      `${editedUserDetails.first_name}avatar.png`
+                      `${form.values.first_name}avatar.png`
                     );
-                    formData.append("avatar", file, `${editedUserDetails.first_name}avatar.png`);
-                    updateAvatar.mutate({ id: editedUserDetails.id.toString(), data: formData });
+                    formData.append("avatar", file, `${form.values.first_name}avatar.png`);
+                    updateAvatar.mutate({ id: userSelfDetails.id.toString(), data: formData });
                   }}
                 >
                   <Trans i18nKey="settings.upload" />
@@ -167,35 +191,26 @@ export function Profile() {
           <Title order={5}>{t("settings.account")}</Title>
           <SimpleGrid cols={{ base: 1, sm: 3 }}>
             <TextInput
-              onChange={event => {
-                setEditedUserDetails({ ...editedUserDetails, first_name: event.currentTarget.value });
-              }}
               label={t("settings.firstname")}
               placeholder={t("settings.firstnameplaceholder")}
-              value={editedUserDetails.first_name}
+              {...form.getInputProps("first_name")}
             />
             <TextInput
-              onChange={event => {
-                setEditedUserDetails({ ...editedUserDetails, last_name: event.currentTarget.value });
-              }}
               label={t("settings.lastname")}
               placeholder={t("settings.lastnameplaceholder")}
-              value={editedUserDetails.last_name}
+              {...form.getInputProps("last_name")}
             />
             <TextInput
               label={t("settings.email")}
               placeholder={t("settings.emailplaceholder")}
-              value={editedUserDetails.email}
-              onChange={event => {
-                setEditedUserDetails({ ...editedUserDetails, email: event.currentTarget.value });
-              }}
+              {...form.getInputProps("email")}
             />
           </SimpleGrid>
         </Card>
 
         <Card shadow="md">
           <Title order={4}>{t("settings.security")}</Title>
-          <PasswordEntry onValidate={onPasswordValidate} createNew={false} />
+          <PasswordEntry form={form} />
         </Card>
 
         <Card shadow="md">
@@ -205,10 +220,8 @@ export function Profile() {
 
           <Radio.Group
             label={t("settings.public_sharing")}
-            value={editedUserDetails.public_sharing ? "1" : "0"}
-            onChange={value => {
-              setEditedUserDetails({ ...editedUserDetails, public_sharing: !!parseInt(value, 10) });
-            }}
+            value={form.values.public_sharing ? "1" : "0"}
+            onChange={value => form.setFieldValue("public_sharing", value === "1")}
             mb={10}
           >
             <Group mt="xs">
@@ -226,7 +239,7 @@ export function Profile() {
                 // Filled, so it does not pass for one of the editable fields around it.
                 variant="filled"
                 readOnly
-                value={editedUserDetails.scan_directory ?? ""}
+                value={userSelfDetails.scan_directory ?? ""}
               />
             ) : null}
           </Stack>
@@ -390,23 +403,11 @@ export function Profile() {
         </Card>
         <Space h="xl" />
         <SaveChangesDialog
-          opened={isOpenUpdateDialog}
+          opened={isEdited}
           saving={updateUser.isPending}
-          onSave={() => {
-            const newUserData = { ...editedUserDetails };
-            delete newUserData.scan_directory;
-            delete newUserData.avatar;
-            // Keep the dialog open when the server rejects the save (an invalid email address,
-            // for example), so the edits can be fixed.
-            updateUser.mutate(newUserData, {
-              onSuccess: () => closeUpdateDialog(),
-              onError: reportUserSaveError,
-            });
-          }}
-          onCancel={() => {
-            setEditedUserDetails(userSelfDetails);
-            closeUpdateDialog();
-          }}
+          onSave={() => save()}
+          // Back to the stored profile, the password fields locked and empty (#2197).
+          onCancel={() => form.reset()}
         />
       </Stack>
     </Container>

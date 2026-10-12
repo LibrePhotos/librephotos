@@ -27,13 +27,16 @@ type PickerProps = Pick<
   "value" | "onChange" | "onValidityChange" | "name" | "hint"
 >;
 
+type SignUpParams = { username: string; password: string; email: string; first_name: string; last_name: string };
+
 const stubs = vi.hoisted(() => ({
+  signUp: vi.fn<(params: SignUpParams, callbacks: unknown) => void>(),
   updateUser: vi.fn<(user: Partial<User>, callbacks: unknown) => void>(),
   updateUserError: vi.fn<(message?: string) => void>(),
   siteSettings: { data: { allow_upload: true } } as { data?: { allow_upload: boolean } },
 }));
 
-vi.mock("../../api_client/auth", () => ({ useSignUpMutation: () => ({ mutate: () => {} }) }));
+vi.mock("../../api_client/auth", () => ({ useSignUpMutation: () => ({ mutate: stubs.signUp }) }));
 vi.mock("../../api_client/jobs", () => ({ useScanPhotosMutation: () => ({ mutate: () => {} }) }));
 vi.mock("../../api_client/settings", () => ({ useGetSettingsQuery: () => stubs.siteSettings }));
 vi.mock("../../api_client/user/hooks", () => ({
@@ -125,6 +128,7 @@ const sentUser = () => defined(stubs.updateUser.mock.calls[0])[0];
 const setInputValue = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
 
 beforeEach(() => {
+  stubs.signUp.mockReset();
   stubs.updateUser.mockReset();
   stubs.updateUserError.mockReset();
   stubs.siteSettings = { data: { allow_upload: true } };
@@ -332,5 +336,119 @@ describe("ModalUserEdit validation", () => {
     submit();
 
     expect(sentUser()).toMatchObject({ email });
+  });
+});
+
+describe("ModalUserEdit password", () => {
+  const type = (element: HTMLInputElement, value: string) =>
+    act(() => {
+      setInputValue?.call(element, value);
+      element.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+  const lock = () =>
+    found(
+      document.querySelector<HTMLButtonElement>(
+        `button[aria-label="${i18n.t("settings.password.tooltipeditbutton")}"]`
+      ),
+      "the lock button"
+    );
+  const typePasswords = (password: string, passwordConfirm: string) => {
+    type(input("password"), password);
+    type(input("passwordConfirm"), passwordConfirm);
+  };
+
+  it("keeps the password locked and unsent until the admin unlocks it", () => {
+    renderModal(bob);
+    expect(input("password").disabled).toBe(true);
+
+    submit();
+
+    expect(sentUser()).not.toHaveProperty("password");
+  });
+
+  it("sends a new password typed twice", () => {
+    renderModal(bob);
+    act(() => lock().click());
+    typePasswords("s3cret!!", "s3cret!!");
+
+    submit();
+
+    expect(sentUser()).toMatchObject({ id: 2, password: "s3cret!!" });
+  });
+
+  // #2197
+  it("does not send a password once the fields are locked again", () => {
+    renderModal(bob);
+    act(() => lock().click());
+    typePasswords("s3cret!!", "s3cret!!");
+    act(() => lock().click());
+
+    submit();
+
+    expect(sentUser()).not.toHaveProperty("password");
+  });
+
+  it("refuses passwords that differ", () => {
+    renderModal(bob);
+    act(() => lock().click());
+    typePasswords("s3cret!!", "s3cret??");
+
+    submit();
+
+    expect(stubs.updateUser).not.toHaveBeenCalled();
+    expect(document.body.textContent).toContain(i18n.t("settings.password.errormustmatch"));
+  });
+
+  // The unlocked inputs are `required`, so a click on Save stops at the browser's own check; the
+  // form still refuses a submit that gets past it.
+  it("refuses an unlocked but blank password", () => {
+    renderModal(bob);
+    act(() => lock().click());
+
+    const form = found(document.querySelector("form"), "the form");
+    act(() => {
+      form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+    });
+
+    expect(stubs.updateUser).not.toHaveBeenCalled();
+    expect(document.body.textContent).toContain(i18n.t("settings.password.errorcannotbeblank"));
+  });
+
+  it("refuses to create a user without a password", () => {
+    renderModal({}, true);
+    type(input("username"), "Mara");
+
+    submit();
+
+    expect(stubs.signUp).not.toHaveBeenCalled();
+    expect(document.body.textContent).toContain(i18n.t("settings.password.errorcannotbeblank"));
+  });
+
+  it("creates a user only with a password typed twice", () => {
+    renderModal({}, true);
+    type(input("username"), "Mara");
+    type(input("password"), "s3cret!!");
+
+    submit();
+    expect(document.body.textContent).toContain(i18n.t("settings.password.errormustretype"));
+    expect(stubs.signUp).not.toHaveBeenCalled();
+
+    // Every submit says what is missing, not only the first one
+    type(input("password"), "s3cret!?");
+    submit();
+    expect(document.body.textContent).toContain(i18n.t("settings.password.errormustretype"));
+
+    type(input("password"), "s3cret!!");
+    type(input("passwordConfirm"), "s3cret!!");
+    submit();
+
+    expect(stubs.signUp).toHaveBeenCalledTimes(1);
+    expect(defined(stubs.signUp.mock.calls[0])[0]).toEqual({
+      username: "mara",
+      password: "s3cret!!",
+      email: "",
+      first_name: "",
+      last_name: "",
+    });
   });
 });

@@ -1,7 +1,9 @@
 import { Button, Group, Modal, Stack, Text, TextInput } from "@mantine/core";
-import React, { useState } from "react";
+import { schemaResolver, useForm } from "@mantine/form";
+import React from "react";
 import { useTranslation } from "react-i18next";
 import { useDeleteUserAlbumMutation, useRenameUserAlbumMutation } from "../../api_client/albums/hooks";
+import { makeAlbumRenameSchema } from "./UserAlbumModals.schema";
 
 type AlbumModalProps = Readonly<{
   opened: boolean;
@@ -16,40 +18,37 @@ type RenameProps = AlbumModalProps &
     existingTitles: string[];
   }>;
 
-const normalizeTitle = (title: string) => title.toLowerCase().trim();
-
 function RenameForm({ onClose, albumId, albumTitle, existingTitles }: Omit<RenameProps, "opened">) {
   const { t } = useTranslation();
   const renameUserAlbum = useRenameUserAlbumMutation();
   // Lives inside the modal body, which Mantine unmounts on close, so every
   // opening starts empty instead of carrying over the previous rename.
-  const [newTitle, setNewTitle] = useState("");
-  const trimmed = newTitle.trim();
-  const taken = trimmed !== "" && existingTitles.some(title => normalizeTitle(title) === normalizeTitle(trimmed));
+  const form = useForm({
+    initialValues: { title: "" },
+    validate: schemaResolver(makeAlbumRenameSchema(t, existingTitles), { sync: true }),
+    validateInputOnChange: ["title"],
+    transformValues: ({ title }) => ({ title: title.trim() }),
+  });
 
   return (
     <form
-      onSubmit={event => {
-        event.preventDefault();
-        if (!trimmed || taken) return;
-        renameUserAlbum.mutate({ id: albumId, title: albumTitle, newTitle: trimmed });
+      onSubmit={form.onSubmit(({ title }) => {
+        renameUserAlbum.mutate({ id: albumId, title: albumTitle, newTitle: title });
         onClose();
-      }}
+      })}
     >
       <Stack>
         <TextInput
           data-autofocus
           label={albumTitle}
-          value={newTitle}
-          error={taken ? t("useralbum.albumalreadyexists", { name: trimmed }) : undefined}
-          onChange={event => setNewTitle(event.currentTarget.value)}
           placeholder={t("useralbum.albumplaceholder")}
+          {...form.getInputProps("title")}
         />
         <Group justify="flex-end">
           <Button variant="default" onClick={onClose}>
             {t("cancel")}
           </Button>
-          <Button type="submit" color="green" disabled={!trimmed || taken}>
+          <Button type="submit" color="green" disabled={!form.isValid()}>
             {t("rename")}
           </Button>
         </Group>
