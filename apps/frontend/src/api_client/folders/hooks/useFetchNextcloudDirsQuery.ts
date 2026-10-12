@@ -1,15 +1,11 @@
+import { endpoints } from "@librephotos/api-client";
 import { useQuery } from "@tanstack/react-query";
-import { parseWithNotification } from "../../../util/zodUtils";
 import { apiClient } from "../../api";
 import { folderKeys } from "../keys";
-import { DirTreeResponse } from "../types";
 
 export const useFetchNextcloudDirsQuery = (skip: boolean = false) =>
   useQuery({
     queryKey: folderKeys.nextcloudDirs(),
-    queryFn: async () => {
-      const response = await apiClient.get("/nextcloud/listdir/?fpath=/");
-      return parseWithNotification(DirTreeResponse, response, "Failed to parse nextcloud directories");
-    },
+    queryFn: () => endpoints.fetchNextcloudDirs(apiClient),
     enabled: !skip,
   });

@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
-import { FaceAnalysisMethod, FacesOrderOption, FacesRouteOrder, FacesTab } from "../../api_client/faces";
+import { FaceAnalysisMethod, FacesOrderOption } from "../../api_client/faces";
 import { FaceDashboard } from "../../components/facedashboard/FaceDashboard";
+import { FacesRouteOrder, FacesTab } from "../../components/facedashboard/facesTab";
 
 // Default values for URL parameters
 const DEFAULT_VALUES = {

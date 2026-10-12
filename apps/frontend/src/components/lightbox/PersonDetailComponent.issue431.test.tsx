@@ -44,7 +44,6 @@ vi.mock("../../service/notifications", () => ({ notification: new Proxy({}, { ge
 vi.mock("../../api_client/faces", () => ({
   useSetFacesPersonLabelMutation: () => ({ mutate: stubs.setFacesPersonLabel }),
   useDeleteFacesMutation: () => ({ mutate: stubs.deleteFaces }),
-  FacesTab: { enum: { inferred: "inferred", unknown: "unknown", labeled: "labeled" } },
 }));
 vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => stubs.navigate,

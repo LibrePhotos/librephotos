@@ -1,57 +1,21 @@
-import { invalidateAfter, ResponseParseError } from "@librephotos/api-client";
+import { endpoints, invalidateAfter, ResponseParseError, type NormalizedFaceBox } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
-import { z, ZodError } from "zod";
 import i18n from "../../../i18n";
 import { notification } from "../../../service/notifications";
 import { recordRecentlyTaggedPerson } from "../../../util/recentlyTaggedPeople";
-import { parseWithNotification } from "../../../util/zodUtils";
 import { albumKeys } from "../../albums/keys";
 import { apiClient, ApiError, queryClient } from "../../api";
 import { photoKeys } from "../../photos/keys";
 import { statsKeys } from "../../stats/keys";
 import { faceKeys } from "../keys";
 
-/** A box the user drew, each side a fraction of the displayed image. */
-export type NormalizedFaceBox = z.infer<typeof NormalizedFaceBox>;
-export const NormalizedFaceBox = z.object({
-  top: z.number(),
-  right: z.number(),
-  bottom: z.number(),
-  left: z.number(),
-});
-
-type AddFaceResponse = z.infer<typeof AddFaceResponse>;
-const AddFaceResponse = z.object({
-  status: z.boolean(),
-  face: z.object({
-    face_id: z.number(),
-    face_url: z.string(),
-    person: z.number(),
-    person_name: z.string(),
-    // Pixels in big-thumbnail space, the way every other face reports its box.
-    location: z.object({
-      top: z.number(),
-      right: z.number(),
-      bottom: z.number(),
-      left: z.number(),
-    }),
-  }),
-});
-
 type AddFaceRequest = { photo: string; personName: string; box: NormalizedFaceBox };
 
 const addFace = (data: AddFaceRequest) =>
-  apiClient
-    .post<AddFaceResponse>("/addface", {
-      photo: data.photo,
-      person_name: data.personName,
-      box: data.box,
-    })
-    .then(response => {
-      const payload = parseWithNotification(AddFaceResponse, response, "Failed to parse add face response");
-      notification.addFacesToPerson(payload.face.person_name, 1);
-      return payload;
-    });
+  endpoints.addFace(apiClient, data.photo, data.personName, data.box).then(payload => {
+    notification.addFacesToPerson(payload.face.person_name, 1);
+    return payload;
+  });
 
 /**
  * The server refuses a box with a 4xx and a plain `{status, message}` body
@@ -59,7 +23,7 @@ const addFace = (data: AddFaceRequest) =>
  * A 401 or 500 has its own toast already, and so does a response that fails to parse.
  */
 export function reportAddFaceError(error: unknown) {
-  if (error instanceof ResponseParseError || error instanceof ZodError) return;
+  if (error instanceof ResponseParseError) return;
   if (error instanceof ApiError && (error.status === 401 || error.status === 500)) return;
   const status = error instanceof ApiError ? error.status : undefined;
   let message = i18n.t("toasts.addfacefailed");

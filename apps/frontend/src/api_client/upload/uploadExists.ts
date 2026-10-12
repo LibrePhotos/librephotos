@@ -1,13 +1,16 @@
-import { z } from "zod";
-import { parseWithNotification } from "../../util/zodUtils";
+import { endpoints } from "@librephotos/api-client";
 import { apiClient } from "../api";
+import { notifyParseError } from "../parseErrors";
 
-const UploadExistResponse = z.object({
-  exists: z.boolean(),
-});
-
-/** Whether this user already has a file with this MD5 (the server keys uploads by MD5 plus user id). */
+/**
+ * Whether this user already has a file with this MD5 (the server keys uploads by MD5 plus user id).
+ * Called outside React Query, so an answer that does not parse is reported here.
+ */
 export async function uploadExists(md5: string, userId: number): Promise<boolean> {
-  const response = await apiClient.get(`/exists/${md5}${userId}`);
-  return parseWithNotification(UploadExistResponse, response, "Failed to parse upload exists response").exists;
+  try {
+    return await endpoints.uploadExists(apiClient, md5, userId);
+  } catch (error) {
+    notifyParseError(error);
+    throw error;
+  }
 }

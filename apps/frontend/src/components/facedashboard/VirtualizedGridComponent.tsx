@@ -1,6 +1,5 @@
 import cx from "clsx";
 import React, { useCallback } from "react";
-import type { FacesTab } from "../../api_client/faces/types";
 import { ScrollScrubber } from "../scrollscrubber/ScrollScrubber";
 import { SCROLL_SCRUBBER_TARGET } from "../scrollscrubber/scrollScrubberTarget";
 import { ScrollerType } from "../scrollscrubber/scrollScrubberTypes";
@@ -9,6 +8,7 @@ import { AutoSizer } from "../virtual/AutoSizer";
 import { VirtualGrid } from "../virtual/VirtualGrid";
 import type { GridCellProps, SectionRenderedParams, VirtualGridHandle } from "../virtual/VirtualGrid";
 import { FaceComponent } from "./FaceComponent";
+import type { FacesTab } from "./facesTab";
 import { HeaderComponent } from "./HeaderComponent";
 import type { FaceCell, FaceSelection, GridCell, GridRows } from "./hooks/useVirtualizedGrid";
 import { isLoadedFace, isPersonCell } from "./hooks/useVirtualizedGrid";

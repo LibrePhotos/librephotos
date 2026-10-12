@@ -61,7 +61,6 @@ export type WorkerAvailabilityResponse = z.infer<typeof WorkerAvailabilityRespon
 export const CancelJobResponse = z.object({
   status: z.boolean(),
   job: JobDetail.optional(),
-  message: z.string().optional(),
 });
 export type CancelJobResponse = z.infer<typeof CancelJobResponse>;
 

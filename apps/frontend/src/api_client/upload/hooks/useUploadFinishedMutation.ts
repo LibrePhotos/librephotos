@@ -1,3 +1,4 @@
+import { endpoints } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
 import { apiClient, queryClient } from "../../api";
 import { photoGridKeys } from "../../photos/keys";
@@ -24,7 +25,7 @@ export const invalidateUploadQueries = () => {
   queryClient.invalidateQueries({ queryKey: serverKeys.storageStats() });
 };
 
-const uploadFinished = (options: UploadFinishedOptions) => apiClient.post("/upload/complete/", options.formData);
+const uploadFinished = (options: UploadFinishedOptions) => endpoints.completeUpload(apiClient, options.formData);
 
 export const useUploadFinishedMutation = () =>
   useMutation({

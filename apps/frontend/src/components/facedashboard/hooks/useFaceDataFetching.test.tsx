@@ -2,7 +2,6 @@ import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { queryClient } from "../../../api_client/api";
-import { FacesTab } from "../../../api_client/faces";
 import type {
   CompletePersonFaceList,
   IncompletePersonFaceListRequest,
@@ -11,6 +10,7 @@ import type {
 } from "../../../api_client/faces";
 import { faceKeys } from "../../../api_client/faces/keys";
 import { defined } from "../../../util/defined.test-utils";
+import { FacesTab } from "../facesTab";
 import { useFaceDataFetching } from "./useFaceDataFetching";
 
 // The part of useFetchIncompleteFacesQuery's result the hook reads

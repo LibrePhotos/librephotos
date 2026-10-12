@@ -1,6 +1,8 @@
 import { z } from "zod";
 
-/** Why the web server could not serve an original file.
+/**
+ * Why the web server could not serve an original file (`GET /media/diagnostics/{hash}/`, admin,
+ * api/views/serving_diagnostics.py).
  *
  * `mode_bits` means the diagnosis is conclusive and the offending path is named.
  * `not_mode_bits` is the more interesting answer: the permissions along the path
@@ -8,8 +10,6 @@ import { z } from "zod";
  * cannot reach -- SELinux labelling, a remapped runtime, or a rebuilt proxy.
  */
 const MediaDiagnosticsCause = z.enum(["missing", "mode_bits", "not_mode_bits", "unknown"]);
-
-type MediaDiagnosticsCause = z.infer<typeof MediaDiagnosticsCause>;
 
 export const MediaDiagnostics = z.object({
   path: z.string().nullable(),
@@ -36,9 +36,7 @@ export const MediaDiagnostics = z.object({
       network: z.boolean(),
     })
     .nullish(),
-  // Unrecognised remedies are dropped rather than failing the whole parse: a
-  // newer backend must not be able to blank out the diagnosis entirely.
+  // Remedy keys; the web shows the ones it knows, so a newer backend's do not fail the parse.
   remedies: z.array(z.string()),
 });
-
 export type MediaDiagnostics = z.infer<typeof MediaDiagnostics>;

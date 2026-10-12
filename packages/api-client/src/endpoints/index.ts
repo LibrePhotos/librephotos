@@ -513,12 +513,19 @@ export async function deletePerson(client: ApiClient, personId: number | string)
 
 /* ---- search ------------------------------------------------------------ */
 
+/**
+ * Search the library. The server picks the answer's shape from the user's semantic_search_topk:
+ * `semantic` says which one to read (a flat list, or date groups). `filter` narrows it to photos,
+ * videos or screenshots.
+ */
 export async function searchPhotos(
   client: ApiClient,
   searchTerm: string,
-  semantic = false
+  semantic = false,
+  filter: AlbumMediaFilter = {}
 ): Promise<S.SearchPhotosResult> {
-  const res = await client.get<unknown>(`/photos/searchlist/${buildQuery({ search: searchTerm })}`);
+  const query = buildQuery({ search: searchTerm, ...albumMediaQuery(filter) });
+  const res = await client.get<unknown>(`/photos/searchlist/${query}`);
   if (semantic) {
     const parsed = parseResponse(S.SemanticSearchPhotos, res, "semantic search photos");
     return { photosFlat: parsed.results, photosGroupedByDate: [] };
@@ -528,6 +535,12 @@ export async function searchPhotos(
     photosFlat: parsed.results.flatMap(group => group.items),
     photosGroupedByDate: parsed.results,
   };
+}
+
+/** A few example searches built from the user's library (captions, people, places). */
+export async function fetchSearchExamples(client: ApiClient): Promise<S.SearchExamples> {
+  const res = await client.get<unknown>("/searchtermexamples/");
+  return parseResponse(S.SearchExamplesResponse, res, "search examples").results;
 }
 
 /* ---- settings ---------------------------------------------------------- */
@@ -969,8 +982,8 @@ export type FaceListParams = {
   /** 0-based page index (frontend convention). */
   page?: number;
   inferred?: boolean;
-  orderBy?: "confidence" | "date";
-  analysisMethod?: "clustering" | "classification";
+  orderBy?: S.FaceOrderBy;
+  analysisMethod?: S.FaceAnalysisMethod;
   minConfidence?: number;
 };
 
@@ -987,14 +1000,24 @@ export async function fetchFaces(client: ApiClient, params: FaceListParams = {})
   return parseResponse(S.PersonFaceListResponse, res, "faces");
 }
 
+/**
+ * Every person with a face count, plus an "Unknown - Other" entry (id 0) for the faces of no one.
+ * With `inferred`, the counts take in the suggested faces too (above `minConfidence`).
+ */
 export async function fetchIncompleteFaces(
   client: ApiClient,
-  params: { inferred?: boolean; orderBy?: "confidence" | "date"; analysisMethod?: "clustering" | "classification" } = {}
+  params: {
+    inferred?: boolean;
+    orderBy?: S.FaceOrderBy;
+    analysisMethod?: S.FaceAnalysisMethod;
+    minConfidence?: number;
+  } = {}
 ): Promise<S.IncompleteFacesResponse> {
   const query = buildQuery({
     inferred: params.inferred ?? false,
     order_by: params.orderBy ?? "confidence",
     analysis_method: params.inferred ? (params.analysisMethod ?? "clustering") : undefined,
+    min_confidence: params.minConfidence,
   });
   const res = await client.get<unknown>(`/faces/incomplete/${query}`);
   return parseResponse(S.IncompleteFacesResponse, res, "incomplete faces");
@@ -1020,6 +1043,192 @@ export async function deleteFaces(client: ApiClient, faceIds: number[]): Promise
 
 export async function trainFaces(client: ApiClient): Promise<S.JobTriggerResponse> {
   return triggerJob(client, "/trainfaces", S.JobTriggerResponse, "train faces");
+}
+
+/** Detect faces again in every photo (ApiError 403 when face detection is turned off). */
+export async function scanFaces(client: ApiClient): Promise<S.JobTriggerResponse> {
+  return triggerJob(client, "/scanfaces", S.JobTriggerResponse, "scan faces");
+}
+
+/**
+ * Add a face from a box drawn on a photo (by id or image hash) and name its person, who is created
+ * when new. ApiError 409 for a box over an existing face, 404 for a photo that is not the user's,
+ * 400 for a box the server cannot use.
+ */
+export async function addFace(
+  client: ApiClient,
+  photo: string,
+  personName: string,
+  box: S.NormalizedFaceBox
+): Promise<S.AddFaceResponse> {
+  const res = await client.post<unknown>("/addface", { photo, person_name: personName, box });
+  return parseResponse(S.AddFaceResponse, res, "add face");
+}
+
+/** Every face with an encoding, projected onto three axes for the face cluster chart. */
+export async function fetchClusterFaces(client: ApiClient): Promise<S.ClusterFacesResponse> {
+  const res = await client.get<unknown>("/clusterfaces");
+  return parseResponse(S.ClusterFacesResponse, res, "cluster faces");
+}
+
+/* ---- statistics --------------------------------------------------------- */
+
+export async function fetchCountStats(client: ApiClient): Promise<S.CountStats> {
+  const res = await client.get<unknown>("/stats/");
+  return parseResponse(S.CountStats, res, "count stats");
+}
+
+export async function fetchLocationSunburst(client: ApiClient): Promise<S.LocationSunburst> {
+  const res = await client.get<unknown>("/locationsunburst/");
+  return parseResponse(S.LocationSunburst, res, "location tree");
+}
+
+export async function fetchPhotoMonthCounts(client: ApiClient): Promise<S.PhotoMonthCountResponse> {
+  const res = await client.get<unknown>("/photomonthcounts/");
+  return parseResponse(S.PhotoMonthCountResponse, res, "photo month counts");
+}
+
+export async function fetchSocialGraph(client: ApiClient): Promise<S.SocialGraph> {
+  const res = await client.get<unknown>("/socialgraph/");
+  return parseResponse(S.SocialGraph, res, "social graph");
+}
+
+export async function fetchWordCloud(client: ApiClient): Promise<S.WordCloudResponse> {
+  const res = await client.get<unknown>("/wordcloud/");
+  return parseResponse(S.WordCloudResponse, res, "word cloud");
+}
+
+export async function fetchLocationTimeline(client: ApiClient): Promise<S.LocationTimeline> {
+  const res = await client.get<unknown>("/locationtimeline/");
+  return parseResponse(S.LocationTimeline, res, "location timeline");
+}
+
+/* ---- server ------------------------------------------------------------- */
+
+/** The build the server runs (image tag and git hash). */
+export async function fetchImageTag(client: ApiClient): Promise<S.ImageTag> {
+  const res = await client.get<unknown>("/imagetag/");
+  return parseResponse(S.ImageTag, res, "image tag");
+}
+
+/** Disk space where the server keeps its data (bytes). */
+export async function fetchStorageStats(client: ApiClient): Promise<S.StorageStats> {
+  const res = await client.get<unknown>("/storagestats/");
+  return parseResponse(S.StorageStats, res, "storage stats");
+}
+
+/** Admin: the machine and every user's library. */
+export async function fetchServerStats(client: ApiClient): Promise<S.ServerStats> {
+  const res = await client.get<unknown>("/serverstats/");
+  return parseResponse(S.ServerStats, res, "server stats");
+}
+
+/** Admin: the last `lines` lines of the server log. ApiError 404 when there is no log file. */
+export async function fetchServerLogs(client: ApiClient, lines: number): Promise<S.ServerLogs> {
+  const res = await client.get<unknown>(`/serverlogs/view${buildQuery({ lines })}`);
+  return parseResponse(S.ServerLogs, res, "server logs");
+}
+
+/** Admin: the whole server log file, to save. */
+export async function fetchServerLogFile(client: ApiClient): Promise<Blob> {
+  return client.getBlob("/serverlogs");
+}
+
+/* ---- services (sidecars) ------------------------------------------------ */
+
+/** Admin: every sidecar service by name. */
+export async function fetchServices(client: ApiClient): Promise<S.ServicesList> {
+  const res = await client.get<unknown>("/services/");
+  return parseResponse(S.ServicesList, res, "services list");
+}
+
+/** Admin: whether one service is turned on and answering. */
+export async function fetchServiceHealth(client: ApiClient, serviceName: string): Promise<S.ServiceHealth> {
+  const res = await client.get<unknown>(`/services/${serviceName}/`);
+  return parseResponse(S.ServiceHealth, res, `health of ${serviceName}`);
+}
+
+/** Admin: start or stop a service (ApiError 409 `service_disabled` for one its feature flag turns off). */
+export async function runServiceAction(
+  client: ApiClient,
+  serviceName: string,
+  action: "start" | "stop"
+): Promise<S.ServiceActionResponse> {
+  const res = await client.post<unknown>(`/services/${serviceName}/${action}/`);
+  return parseResponse(S.ServiceActionResponse, res, `${action} ${serviceName}`);
+}
+
+/* ---- upload (chunked) --------------------------------------------------- */
+
+/**
+ * Send one chunk of a file: `form_data` holds the chunk (`file`), `offset`, `md5` and, after the
+ * first chunk, the `upload_id` the server answered. Answers the upload and the bytes it holds.
+ */
+export async function uploadChunk(client: ApiClient, options: S.UploadOptions): Promise<S.UploadResponse> {
+  const end = options.offset + options.chunk_size - 1;
+  const res = await client.request<unknown>("/upload/", {
+    method: "POST",
+    body: options.form_data,
+    headers: new Headers({ "Content-Range": `bytes ${options.offset}-${end}/${options.chunk_size}` }),
+  });
+  return parseResponse(S.UploadResponse, res, "upload chunk");
+}
+
+/** Finish a chunked upload (`upload_id`, `md5`, `filename` in the form): the server imports the file. */
+export async function completeUpload(client: ApiClient, formData: FormData): Promise<S.UploadCompleteResponse> {
+  const res = await client.post<unknown>("/upload/complete/", formData);
+  return parseResponse(S.UploadCompleteResponse, res, "upload complete");
+}
+
+/** Whether the user already has a file with this MD5 (the server keys uploads by MD5 plus user id). */
+export async function uploadExists(client: ApiClient, md5: string, userId: number): Promise<boolean> {
+  const res = await client.get<unknown>(`/exists/${md5}${userId}`);
+  return parseResponse(S.UploadExistsResponse, res, "upload exists").exists;
+}
+
+/* ---- folders ------------------------------------------------------------ */
+
+/**
+ * Admin: the folders below `path` on the server (the data root when it is blank), for picking a
+ * scan directory. ApiError 403 for a path outside the data root.
+ */
+export async function fetchDirTree(client: ApiClient, path: string): Promise<S.DirTreeResponse> {
+  // Always sent, blank included; encoded so "&", "#" or "+" in a folder name do not cut it short.
+  const res = await client.get<unknown>(`/dirtree/?path=${encodeURIComponent(path)}`);
+  return parseResponse(S.DirTreeResponse, res, "directory tree");
+}
+
+/** The folders at the top of the user's Nextcloud. */
+export async function fetchNextcloudDirs(client: ApiClient): Promise<S.DirTreeResponse> {
+  const res = await client.get<unknown>("/nextcloud/listdir/?fpath=/");
+  return parseResponse(S.DirTreeResponse, res, "Nextcloud directories");
+}
+
+/* ---- geocode ------------------------------------------------------------ */
+
+/** Places matching a name, for the location picker (the server asks its geocoder). */
+export async function searchGeocode(client: ApiClient, query: string): Promise<S.GeocodeSearchResponse> {
+  const res = await client.get<unknown>(`/geocode/search?q=${encodeURIComponent(query)}`);
+  return parseResponse(S.GeocodeSearchResponse, res, "geocode search");
+}
+
+/* ---- media -------------------------------------------------------------- */
+
+/** Admin: why the web server refused to serve this photo's original. */
+export async function fetchMediaDiagnostics(client: ApiClient, mediaHash: string): Promise<S.MediaDiagnostics> {
+  const res = await client.get<unknown>(`/media/diagnostics/${mediaHash}/`);
+  return parseResponse(S.MediaDiagnostics, res, "media diagnostics");
+}
+
+/* ---- memories ----------------------------------------------------------- */
+
+/**
+ * Today's memories: photos from this date in earlier years. Each memory carries a page of its
+ * photos; `size` asks for bigger pages (up to MAX_MEMORY_ITEMS).
+ */
+export async function fetchMemories(client: ApiClient, size?: number): Promise<S.FetchMemoriesResponse> {
+  const res = await client.get<unknown>(size ? `/memories${buildQuery({ size })}` : "/memories");
+  return parseResponse(S.FetchMemoriesResponse, res, "memories");
 }
 
 /* ---- delta sync (mobile app, backend api/views/sync.py) ----------------- */

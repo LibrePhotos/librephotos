@@ -1,13 +1,7 @@
+import { endpoints } from "@librephotos/api-client";
 import { useQuery } from "@tanstack/react-query";
-import { parseWithNotification } from "../../util/zodUtils";
 import { apiClient } from "../api";
 import { memoryKeys } from "./keys";
-import { FetchMemoriesResponse } from "./types";
-
-const fetchMemories = (size?: number): Promise<FetchMemoriesResponse> =>
-  apiClient
-    .get(size ? `/memories?size=${size}` : "/memories")
-    .then(response => parseWithNotification(FetchMemoriesResponse, response, "Failed to parse memories"));
 
 /**
  * The page loads with the default page of items per memory, which is all the
@@ -18,6 +12,6 @@ const fetchMemories = (size?: number): Promise<FetchMemoriesResponse> =>
 export const useFetchMemoriesQuery = (options?: { size?: number; enabled?: boolean }) =>
   useQuery({
     queryKey: memoryKeys.list(options?.size),
-    queryFn: () => fetchMemories(options?.size),
+    queryFn: () => endpoints.fetchMemories(apiClient, options?.size),
     enabled: options?.enabled ?? true,
   });

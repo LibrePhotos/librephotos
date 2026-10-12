@@ -1,8 +1,8 @@
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { FacesTab } from "../../../api_client/faces";
 import { useContentBoxSize } from "../../virtual/useContentBoxSize";
+import { FacesTab } from "../facesTab";
 import classes from "../VirtualizedGridComponent.module.css";
 import { useVirtualizedGrid } from "./useVirtualizedGrid";
 

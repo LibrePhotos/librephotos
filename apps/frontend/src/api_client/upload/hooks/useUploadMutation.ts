@@ -1,26 +1,8 @@
+import { endpoints, type UploadOptions } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
-import { z } from "zod";
-import { parseWithNotification } from "../../../util/zodUtils";
 import { apiClient } from "../../api";
-import type { UploadOptions } from "../types";
 
-const UploadResponse = z.object({
-  upload_id: z.string(),
-  offset: z.number(),
-});
-
-const upload = (options: UploadOptions) => {
-  const headers = new Headers({
-    "Content-Range": `bytes ${options.offset}-${options.offset + options.chunk_size - 1}/${options.chunk_size}`,
-  });
-  return apiClient
-    .request("/upload/", {
-      method: "POST",
-      body: options.form_data,
-      headers,
-    })
-    .then(response => parseWithNotification(UploadResponse, response, "Failed to parse upload response"));
-};
+const upload = (options: UploadOptions) => endpoints.uploadChunk(apiClient, options);
 
 export const useUploadMutation = () =>
   useMutation({

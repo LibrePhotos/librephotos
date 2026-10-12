@@ -1,0 +1,73 @@
+{
+  "name": "Places I've visited",
+  "children": [
+    {
+      "name": "Australia",
+      "children": [
+        {
+          "name": "New South Wales",
+          "children": [
+            {
+              "name": "Sydney",
+              "value": 1,
+              "hex": "#7156db"
+            }
+          ],
+          "hex": "#7156db"
+        }
+      ],
+      "hex": "#56db8b"
+    },
+    {
+      "name": "Canada",
+      "children": [
+        {
+          "name": "Ontario",
+          "children": [
+            {
+              "name": "Peterborough County",
+              "value": 1,
+              "hex": "#568bdb"
+            }
+          ],
+          "hex": "#7156db"
+        }
+      ],
+      "hex": "#c0db56"
+    },
+    {
+      "name": "Germany",
+      "children": [
+        {
+          "name": "Berlin",
+          "children": [
+            {
+              "name": "Kreuzberg",
+              "value": 8,
+              "hex": "#db5656"
+            }
+          ],
+          "hex": "#56db8b"
+        }
+      ],
+      "hex": "#7156db"
+    },
+    {
+      "name": "India",
+      "children": [
+        {
+          "name": "Ladakh",
+          "children": [
+            {
+              "name": "Leh",
+              "value": 1,
+              "hex": "#db56a6"
+            }
+          ],
+          "hex": "#c056db"
+        }
+      ],
+      "hex": "#c0db56"
+    }
+  ]
+}

@@ -1,35 +1,26 @@
-import { z } from "zod";
-import { parseWithNotification } from "../../../util/zodUtils";
+import { endpoints } from "@librephotos/api-client";
 import { apiClient } from "../../api";
-import type { CompletePersonFace } from "../types";
-import { FaceAnalysisMethod, FacesOrderOption, PersonFace } from "../types";
+import type { FaceAnalysisMethod, FacesOrderOption, PersonFaceList } from "../types";
 
-const PersonFaceListResponse = z.object({
-  count: z.number(),
-  next: z.string().nullable(),
-  previous: z.string().nullable(),
-  results: z.array(PersonFace),
-});
-type PersonFaceListResponse = z.infer<typeof CompletePersonFace>;
-export const PersonFaceListRequest = z.object({
-  person: z.number().optional(),
-  page: z.number(),
-  inferred: z.boolean(),
-  orderBy: FacesOrderOption,
-  method: FaceAnalysisMethod.optional(),
-  minConfidence: z.number().optional(),
-});
+export type PersonFaceListRequest = {
+  person?: number;
+  page: number;
+  inferred: boolean;
+  orderBy: FacesOrderOption;
+  method?: FaceAnalysisMethod;
+  minConfidence?: number;
+};
 
-export type PersonFaceListRequest = z.infer<typeof PersonFaceListRequest>;
-
-export const fetchFaces = (params: PersonFaceListRequest) => {
-  const { person, page = 0, inferred = false, orderBy = "confidence", method, minConfidence } = params;
-  const url = `/faces/?person=${person}&page=${page}&inferred=${inferred}&order_by=${orderBy}${
-    method ? `&analysis_method=${method}` : ""
-  }${minConfidence ? `&min_confidence=${minConfidence}` : ""}`;
-
-  return apiClient.get(url).then(response => {
-    const parsedResponse = parseWithNotification(PersonFaceListResponse, response, "Failed to parse faces response");
-    return parsedResponse.results;
+/** One page of a person's faces (person 0: the faces of no one). */
+export const fetchFaces = async (params: PersonFaceListRequest): Promise<PersonFaceList> => {
+  const page = await endpoints.fetchFaces(apiClient, {
+    person: params.person,
+    page: params.page,
+    inferred: params.inferred,
+    orderBy: params.orderBy,
+    analysisMethod: params.method,
+    // 0 is the server's default: left out, as it always was.
+    minConfidence: params.minConfidence || undefined,
   });
+  return page.results;
 };

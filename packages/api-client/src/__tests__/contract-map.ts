@@ -50,6 +50,7 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
   Job: { schema: S.Job, components: ["LongRunningJob"] },
   JobDetail: { schema: S.JobDetail, components: ["LongRunningJob"] },
   JobsResponse: { schema: S.JobsResponse, components: ["PaginatedLongRunningJobList"] },
+  CancelJobResponse: { schema: S.CancelJobResponse, components: ["CancelJobResponse"] },
   // users and auth
   SimpleUser: { schema: S.SimpleUser, components: ["SimpleUser"] },
   User: { schema: S.User, components: ["User"] },
@@ -146,8 +147,6 @@ export const UNMAPPED: Readonly<Record<string, string>> = {
   SetFacesLabelResponse: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
   DeleteFacesResponse: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
   JobTriggerResponse: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
-  CancelJobResponse:
-    "the cancel action is documented as answering LongRunningJob, but it answers {status, job} with the job nested (LongRunningJobViewSet.cancel); the job is compared as JobDetail",
   PhotoDownloadStart: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
   PhotoDownloadStatus: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
   StackFileVariant:
@@ -229,6 +228,28 @@ export const UNMAPPED: Readonly<Record<string, string>> = {
   SharedPhoto:
     "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485); a PublicPhotoDetailSerializer row with the hash-derived fields swapped for slug URLs",
   SharedPhotoResponse: "the {results} envelope of SharedPhoto (see there)",
+  CountStats: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
+  WordCloudResponse: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
+  SocialGraph: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
+  ClusterFacesResponse: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
+  AddFaceResponse: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
+  ImageTag: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
+  StorageStats: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
+  ServerLogs: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
+  ServerStats: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
+  ServicesList:
+    "ServiceViewSet (api/views/services.py) declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
+  ServiceHealth:
+    "ServiceViewSet (api/views/services.py) declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
+  ServiceActionResponse:
+    "ServiceViewSet (api/views/services.py) declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
+  UploadCompleteResponse:
+    "the chunked upload views (chunked_upload/views.py) are plain Django views the schema does not describe",
+  UploadExistsResponse: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
+  GeocodeResult: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
+  MediaDiagnostics: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
+  Memory: "nested in FetchMemoriesResponse (see there)",
+  FetchMemoriesResponse: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
   SyncPhotoItem: "the sync views (api/views/sync.py) declare no response serializer (openapi-baseline.txt, issue #485)",
   SyncPersonItem:
     "the sync views (api/views/sync.py) declare no response serializer (openapi-baseline.txt, issue #485)",

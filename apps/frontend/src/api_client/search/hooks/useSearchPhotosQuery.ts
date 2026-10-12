@@ -1,11 +1,9 @@
+import { endpoints } from "@librephotos/api-client";
 import { useQuery } from "@tanstack/react-query";
-import { mediaTypeToParams, type MediaType } from "../../../components/photolist/mediaTypeFilter";
-import { parseWithNotification } from "../../../util/zodUtils";
+import { mediaTypeToBulkQuery, type MediaType } from "../../../components/photolist/mediaTypeFilter";
 import { apiClient } from "../../api";
 import { photoGridKeys } from "../../photos/keys";
 import { useCurrentUserSelfDetailsQuery } from "../../user/hooks/useCurrentUserSelfDetailsQuery";
-import type { SearchPhotosResult } from "../types";
-import { SearchPhotos, SemanticSearchPhotos } from "../types";
 
 export const useSearchPhotosQuery = (searchTerm: string, mediaType?: MediaType) => {
   const { data: currentUser, isError: userFailed } = useCurrentUserSelfDetailsQuery();
@@ -19,26 +17,7 @@ export const useSearchPhotosQuery = (searchTerm: string, mediaType?: MediaType) 
 
   return useQuery({
     queryKey: photoGridKeys.search(searchTerm, mediaType ?? "all", semantic ? "semantic" : "grouped"),
-    queryFn: async () => {
-      const params = new URLSearchParams({ search: searchTerm, ...mediaTypeToParams(mediaType) });
-      const response = await apiClient.get(`/photos/searchlist/?${params.toString()}`);
-
-      // If semantic_search_topk is set, return a flat list
-      if (semantic) {
-        const parsed = parseWithNotification(SemanticSearchPhotos, response, "Failed to parse semantic search photos");
-        return {
-          photosFlat: parsed.results,
-          photosGroupedByDate: [],
-        } satisfies SearchPhotosResult;
-      }
-
-      const parsed = parseWithNotification(SearchPhotos, response, "Failed to parse search photos");
-
-      return {
-        photosFlat: parsed.results.flatMap(group => group.items),
-        photosGroupedByDate: parsed.results,
-      } satisfies SearchPhotosResult;
-    },
+    queryFn: () => endpoints.searchPhotos(apiClient, searchTerm, semantic, mediaTypeToBulkQuery(mediaType)),
     enabled: searchTerm.length > 0 && (currentUser !== undefined || userFailed),
   });
 };

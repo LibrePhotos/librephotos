@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { queryClient } from "../../../api_client/api";
 import type { CompletePersonFaceList, FaceAnalysisMethod } from "../../../api_client/faces";
-import { FacesTab, fetchFaces, useFetchIncompleteFacesQuery, type FacesRouteOrder } from "../../../api_client/faces";
+import { fetchFaces, useFetchIncompleteFacesQuery } from "../../../api_client/faces";
 import { faceKeys } from "../../../api_client/faces/keys";
+import { FacesTab, type FacesRouteOrder } from "../facesTab";
 
 /** Page size of the backend's face list endpoint (RegularResultsSetPagination). */
 const PAGE_SIZE = 100;
@@ -74,9 +75,12 @@ export function useFaceDataFetching(
       activeTab === FacesTab.enum.labeled ? "labeled" : activeTab === FacesTab.enum.inferred ? "inferred" : "unknown";
     // face.photo is the UUID (Photo's primary key after migration 0099)
     // face.photo_image_hash is the actual image hash needed for media URLs
-    return lists[tabName]
-      .flatMap(person => person.faces)
-      .map(face => ({ id: face.photo, image_hash: face.photo_image_hash || face.photo }));
+    return (
+      lists[tabName]
+        .flatMap(person => person.faces)
+        // Placeholders keep their place with "" (the server never sends a face without its photo).
+        .map(face => ({ id: face.photo ?? "", image_hash: face.photo_image_hash || (face.photo ?? "") }))
+    );
   }, [lists, activeTab]);
 
   // Fetch detailed face data when groups change

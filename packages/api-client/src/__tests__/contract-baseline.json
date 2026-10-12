@@ -35,8 +35,6 @@
   "PersonFace/PersonFaceList person_label_probability: null-in-zod-only": "zod also accepts null; the serializer always sends a value here (\"\" or a number). Harmless for parsing; tightening it needs every reader checked first.",
   "PersonFace/PersonFaceList person: missing-in-schema": "Optional; PersonFaceListSerializer does not send it. A loose object, so nothing breaks.",
   "PersonFace/PersonFaceList person_name: missing-in-schema": "Optional; PersonFaceListSerializer does not send it. A loose object, so nothing breaks.",
-  "IncompletePersonFace/IncompletePersonFaceList name: null-in-zod-only": "zod also accepts null; the serializer always sends a value here (\"\" or a number). Harmless for parsing; tightening it needs every reader checked first.",
-  "IncompletePersonFace/IncompletePersonFaceList kind: null-in-zod-only": "zod also accepts null; the serializer always sends a value here (\"\" or a number). Harmless for parsing; tightening it needs every reader checked first.",
   "Job/LongRunningJob error: missing-in-schema": "Optional and documented in the schema as not sent by current servers (the job's result carries errors).",
   "User/User upload_directory: null-in-zod-only": "zod also accepts null; the serializer always sends a value here (\"\" or a number). Harmless for parsing; tightening it needs every reader checked first.",
   "User/User nextcloud_server_address: null-in-zod-only": "zod also accepts null; the serializer always sends a value here (\"\" or a number). Harmless for parsing; tightening it needs every reader checked first.",

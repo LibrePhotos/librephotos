@@ -6,7 +6,6 @@
 import { ResponseParseError } from "@librephotos/api-client";
 import type { ParseKeys } from "i18next";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { ZodError } from "zod";
 import i18n from "../../../i18n";
 import { notification } from "../../../service/notifications";
 import { ApiError } from "../../api";
@@ -36,7 +35,6 @@ describe("reportAddFaceError", () => {
   it("stays quiet where another toast already fired", () => {
     reportAddFaceError(new ApiError("x", 500));
     reportAddFaceError(new ApiError("x", 401));
-    reportAddFaceError(new ZodError([]));
     reportAddFaceError(new ResponseParseError("add face", "bad"));
     expect(requestFailed).not.toHaveBeenCalled();
   });

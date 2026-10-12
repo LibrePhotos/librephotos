@@ -2,8 +2,8 @@ import { Group, Loader, Tabs } from "@mantine/core";
 import { getRouteApi, useNavigate } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { FacesTab } from "../../api_client/faces/types";
 import { FacesCountersHoverCard } from "./FacesCountersHoverCard";
+import { FacesTab } from "./facesTab";
 
 type Props = Readonly<{
   fetchingLabeledFacesList: boolean;

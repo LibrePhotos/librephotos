@@ -25,9 +25,6 @@ vi.mock("../../api_client/upload", async importOriginal => ({
   useUploadFinishedMutation: () => ({ mutateAsync: stubs.uploadFinished }),
   invalidateUploadQueries: stubs.invalidate,
 }));
-vi.mock("../../util/zodUtils", () => ({
-  parseWithNotification: (schema: { parse: (v: unknown) => unknown }, value: unknown) => schema.parse(value),
-}));
 vi.mock("./chunkedUpload", async importOriginal => ({
   ...(await importOriginal<typeof import("./chunkedUpload")>()),
   calculateMD5: stubs.md5,
