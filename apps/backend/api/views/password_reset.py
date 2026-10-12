@@ -18,7 +18,9 @@ from rest_framework.views import APIView
 from api.models.user import User as AppUser
 from api.public_url import trusted_public_base_url
 from api.request_data import request_dict
+from api.serializers.user import PasswordResetRequest
 from api.throttling import AuthRateThrottle
+from api.views.params import parse_body
 
 logger = logging.getLogger(__name__)
 
@@ -37,8 +39,7 @@ class PasswordResetView(APIView):
     throttle_scope = "password_reset"
 
     def post(self, request: Request, format: str | None = None) -> Response:
-        data = request_dict(request)
-        email = (data.get("email") or "").strip()
+        email = parse_body(request, PasswordResetRequest)["email"]
         if email:
             user = User.objects.filter(email__iexact=email).first()
             if user is not None and user.email:

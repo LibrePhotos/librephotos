@@ -43,3 +43,30 @@ class AlbumDatePhotoOrderingTest(TestCase):
                 for filename in ("a.png", "b.png", "c.png", "d.png")
             ],
         )
+
+
+class AlbumDatePageQueryTest(AlbumDatePhotoOrderingTest):
+    """?size and ?page on a day album (#2326): ?size=x was int() and a 500."""
+
+    def get(self, query: dict[str, str]):
+        return self.client.get(f"/api/albums/date/{self.album.id}/", query)
+
+    def items(self, query: dict[str, str]) -> int:
+        response = self.get(query)
+        self.assertEqual(response.status_code, 200)
+        return len(response.json()["results"]["items"])
+
+    def test_size_defaults_to_one_hundred_and_is_at_least_one(self):
+        self.assertEqual(self.items({}), 4)
+        self.assertEqual(self.items({"size": ""}), 4)
+        self.assertEqual(self.items({"size": "0"}), 1)
+        self.assertEqual(self.items({"size": "-3"}), 1)
+
+    def test_a_non_numeric_page_is_still_the_first(self):
+        self.assertEqual(self.items({"size": "3", "page": "x"}), 3)
+        self.assertEqual(self.items({"size": "3", "page": "9"}), 1)
+
+    def test_a_non_numeric_size_is_a_400(self):
+        response = self.get({"size": "x"})
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()["errors"][0]["field"], "size")

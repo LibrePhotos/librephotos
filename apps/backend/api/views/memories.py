@@ -24,7 +24,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from django.db.models import Count, Min, Q, QuerySet
 from django.utils import timezone
-from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
+from drf_spectacular.utils import extend_schema
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -32,20 +32,11 @@ from rest_framework.views import APIView
 
 from api.models import AlbumDate, Photo, User
 from api.request_user import request_user
+from api.serializers.memories import MemoriesQuery
 from api.serializers.photos import PhotoSummarySerializer
 from api.views.albums import _with_photo_summary_relations
+from api.views.params import parse_query
 from api.views.photo_filters import build_photo_queryset
-
-# Days either side of the anniversary that still count as the same memory. Three
-# days keeps a weekend trip together without pulling in an unrelated week.
-DEFAULT_WINDOW_DAYS = 3
-MAX_WINDOW_DAYS = 30
-
-# Items returned per memory. The whole page is a single request, so this bounds
-# the work: a memory reports its true size in ``numberOfItems`` and returns at
-# most this many photos to show and to play as a slideshow.
-DEFAULT_ITEMS_PER_MEMORY = 30
-MAX_ITEMS_PER_MEMORY = 200
 
 # ``type`` values in the response. Only date-based memories exist so far; the
 # field is there so that place- or person-based ones can be added without the
@@ -63,34 +54,6 @@ class _PlannedMemory(TypedDict):
     days: list[datetime.date]
     count: int
     photo_ids: list[uuid.UUID]
-
-
-def parse_date(value: str | None) -> datetime.date | None:
-    """Return ``value`` (an ISO ``YYYY-MM-DD`` string) as a date, else None."""
-    if value is None:
-        return None
-    try:
-        return datetime.date.fromisoformat(value)
-    except (TypeError, ValueError):
-        return None
-
-
-def parse_flag(value: str | None, default: bool) -> bool:
-    """Read a query-parameter flag that has a meaningful default of its own."""
-    if value is None:
-        return default
-    return value.strip().lower() not in ("false", "0", "f", "no", "off")
-
-
-def clamp_int(value: str | None, default: int, minimum: int, maximum: int) -> int:
-    """Return ``value`` as an int inside [minimum, maximum], else ``default``."""
-    if value is None:
-        return default
-    try:
-        number = int(value)
-    except (TypeError, ValueError):
-        return default
-    return max(minimum, min(maximum, number))
 
 
 def today_for_user(user: User) -> datetime.date:
@@ -206,38 +169,7 @@ class MemoriesView(APIView):
     permission_classes = [IsAuthenticated]
 
     @extend_schema(
-        parameters=[
-            OpenApiParameter(
-                "date",
-                OpenApiTypes.DATE,
-                description="Anniversary to look up, defaults to the user's today.",
-            ),
-            OpenApiParameter(
-                "window",
-                OpenApiTypes.INT,
-                description=(
-                    f"Days either side of the anniversary to include "
-                    f"(default {DEFAULT_WINDOW_DAYS}, max {MAX_WINDOW_DAYS})."
-                ),
-            ),
-            OpenApiParameter(
-                "fallback",
-                OpenApiTypes.BOOL,
-                description=(
-                    "Whether to widen an empty result to whole months "
-                    "(default true). Pass false for a strict anniversary lookup."
-                ),
-            ),
-            OpenApiParameter(
-                "size",
-                OpenApiTypes.INT,
-                description=(
-                    f"Photos returned per memory (default "
-                    f"{DEFAULT_ITEMS_PER_MEMORY}, max {MAX_ITEMS_PER_MEMORY}). "
-                    "``numberOfItems`` always reports the full count."
-                ),
-            ),
-        ],
+        parameters=[MemoriesQuery],
         description=(
             "Memories for a given day: one entry per earlier year that has "
             "photos around the same date, nearest year first. Titles are left "
@@ -247,17 +179,11 @@ class MemoriesView(APIView):
     )
     def get(self, request: Request, format: str | None = None) -> Response:
         user = request_user(request)
-        reference = parse_date(request.query_params.get("date")) or today_for_user(user)
-        window_days = clamp_int(
-            request.query_params.get("window"), DEFAULT_WINDOW_DAYS, 0, MAX_WINDOW_DAYS
-        )
-        fallback = parse_flag(request.query_params.get("fallback"), True)
-        size = clamp_int(
-            request.query_params.get("size"),
-            DEFAULT_ITEMS_PER_MEMORY,
-            1,
-            MAX_ITEMS_PER_MEMORY,
-        )
+        params = parse_query(request, MemoriesQuery)
+        reference = params.get("date") or today_for_user(user)
+        window_days = params["window"]
+        fallback = params["fallback"]
+        size = params["size"]
 
         first_date = AlbumDate.objects.filter(owner=user, date__isnull=False).aggregate(
             Min("date")

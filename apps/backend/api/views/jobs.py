@@ -13,8 +13,9 @@ from rest_framework.views import APIView
 
 from api.models import LongRunningJob, User
 from api.request_user import request_user
-from api.serializers.job import LongRunningJobSerializer
+from api.serializers.job import JobListQuery, LongRunningJobSerializer
 from api.views.pagination import TinyResultsSetPagination
+from api.views.params import parse_query
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +60,7 @@ class LongRunningJobViewSet(
         # Staff see everything by default. The per-user jobs view (#1909) is the
         # same list narrowed to the caller, which staff opt into explicitly so
         # that "My Jobs" means the same thing for every role.
-        if self.request.query_params.get("mine", "").lower() == "true":
+        if parse_query(self.request, JobListQuery)["mine"]:
             return own_jobs
         return qs
 

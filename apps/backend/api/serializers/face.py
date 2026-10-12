@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
 from api.models import Face, Person
-from api.views.params import QueryFlagField
+from api.views.params import QueryFlagField, required_string
 
 
 class PersonFaceListSerializer(serializers.ModelSerializer):
@@ -115,31 +115,19 @@ class FaceIncompleteListQuery(serializers.Serializer[None]):
     min_confidence = serializers.FloatField(default=0)
 
 
-def _person_name_field() -> serializers.CharField:
-    """A person's name, trimmed: blank would create a nameless person."""
-    message = "person_name must not be empty"
-    return serializers.CharField(
-        error_messages={"required": message, "null": message, "blank": message}
-    )
-
-
 class FaceIdsRequest(serializers.Serializer[None]):
     face_ids = serializers.ListField(child=serializers.IntegerField())
 
 
 class SetFacePersonLabelRequest(FaceIdsRequest):
-    person_name = _person_name_field()
+    # Trimmed and never blank: get_or_create() would make a nameless person.
+    person_name = required_string("person_name must not be empty")
 
 
 class AddFaceRequest(serializers.Serializer[None]):
-    person_name = _person_name_field()
-    photo = serializers.CharField(
-        error_messages={
-            "required": "photo is required",
-            "null": "photo is required",
-            "blank": "photo is required",
-        },
-        help_text="The photo's id or image_hash",
+    person_name = required_string("person_name must not be empty")
+    photo = required_string(
+        "photo is required", help_text="The photo's id or image_hash"
     )
     box = serializers.JSONField(
         required=False,

@@ -17,8 +17,9 @@ from api.autoalbum import delete_missing_photos
 from api.directory_watcher import scan_photos
 from api.ml_models import do_all_models_exist, download_models
 from api.models.user import User
-from api.request_data import request_dict
 from api.request_user import request_user
+from api.serializers.job import GenerateOcrRequest
+from api.views.params import parse_body
 
 logger = logging.getLogger(__name__)
 
@@ -143,11 +144,12 @@ class ClassifyMediaView(APIView):
 class GenerateOcrView(APIView):
     permission_classes = (IsAuthenticated,)
 
+    @extend_schema(request=GenerateOcrRequest)
     def post(self, request: Request, format: str | None = None) -> Response:
         from api.directory_watcher.processing_jobs import generate_ocr
 
         user = request_user(request)
-        full_scan = bool(request_dict(request).get("full_scan", False))
+        full_scan = parse_body(request, GenerateOcrRequest)["full_scan"]
         return start_job(
             lambda job_id: AsyncTask(generate_ocr, user, job_id, full_scan).run(),
             "text recognition",

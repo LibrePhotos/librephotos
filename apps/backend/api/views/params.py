@@ -53,6 +53,19 @@ def parse_body(
     return dict(serializer.validated_data)
 
 
+def required_string(
+    message: str, help_text: str | None = None
+) -> serializers.CharField:
+    """A non-blank string (trimmed) whose absence, null or blank answers ``message``.
+
+    For the fields whose views answered "<field> is required" by hand.
+    """
+    return serializers.CharField(
+        error_messages={"required": message, "null": message, "blank": message},
+        help_text=help_text,
+    )
+
+
 class ClampedIntegerField(serializers.IntegerField):
     """An integer that is clamped into ``[lowest, highest]`` instead of refused.
 

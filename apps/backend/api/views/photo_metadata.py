@@ -12,7 +12,7 @@ import uuid
 
 from django.db.models import Q
 from django.http import Http404
-from drf_spectacular.utils import OpenApiParameter, extend_schema
+from drf_spectacular.utils import extend_schema
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.generics import get_object_or_404
@@ -26,13 +26,17 @@ from api.exceptions import EditSuperseded
 from api.metadata import edits
 from api.models import Photo
 from api.models.photo_metadata import MetadataEdit, PhotoMetadata
-from api.request_data import request_dict
 from api.request_user import request_user
 from api.serializers.photo_metadata import (
+    BulkMetadataQuery,
+    BulkMetadataUpdateRequest,
     MetadataEditSerializer,
+    MetadataHistoryQuery,
+    MetadataRevertQuery,
     PhotoMetadataSerializer,
     PhotoMetadataUpdateSerializer,
 )
+from api.views.params import parse_body, parse_query
 
 
 class PhotoMetadataViewSet(ViewSet):
@@ -129,6 +133,7 @@ class PhotoMetadataViewSet(ViewSet):
 
     @extend_schema(
         description="Get edit history for a photo's metadata.",
+        parameters=[MetadataHistoryQuery],
         responses={200: MetadataEditSerializer(many=True)},
     )
     @action(detail=True, methods=["get"], url_path="history")
@@ -139,16 +144,10 @@ class PhotoMetadataViewSet(ViewSet):
         # MetadataEdit.Meta.
         edits = MetadataEdit.objects.filter(photo=photo).order_by("-created_at", "-id")
 
-        # Pagination; a malformed or out-of-range value falls back, as in
-        # PhotoStackListView, instead of a 500 (a negative slice raises).
-        try:
-            page = max(1, int(request.query_params.get("page", 1)))
-        except (TypeError, ValueError):
-            page = 1
-        try:
-            page_size = max(1, min(int(request.query_params.get("page_size", 20)), 100))
-        except (TypeError, ValueError):
-            page_size = 20
+        # An out-of-range value is clamped (a negative slice raises).
+        params = parse_query(request, MetadataHistoryQuery)
+        page = params["page"]
+        page_size = params["page_size"]
         start = (page - 1) * page_size
         end = start + page_size
 
@@ -168,13 +167,7 @@ class PhotoMetadataViewSet(ViewSet):
             "editable field (e.g. the revert-all marker); 409 if the field was "
             "changed again afterwards, unless ?force=1."
         ),
-        parameters=[
-            OpenApiParameter(
-                "force",
-                str,
-                description="1 to revert even if the field was changed again later",
-            ),
-        ],
+        parameters=[MetadataRevertQuery],
         responses={200: PhotoMetadataSerializer},
     )
     @action(detail=True, methods=["post"], url_path=r"revert/(?P<edit_id>[^/.]+)")
@@ -196,7 +189,7 @@ class PhotoMetadataViewSet(ViewSet):
         # Reverting an older edit overwrites every later change of the same
         # field, including a revert-all that restored the file's value: refuse
         # unless the caller says so.
-        force = request.query_params.get("force", "").lower() in {"1", "true"}
+        force = parse_query(request, MetadataRevertQuery)["force"]
         superseded = (
             MetadataEdit.objects.filter(photo=photo, created_at__gt=edit.created_at)
             .filter(Q(field_name=field_name) | Q(field_name=edits.REVERT_ALL))
@@ -241,17 +234,11 @@ class BulkMetadataView(APIView):
 
     @extend_schema(
         description="Get metadata summary for multiple photos.",
-        parameters=[
-            OpenApiParameter(
-                "photo_ids",
-                str,
-                description="Comma-separated photo IDs or image hashes",
-            ),
-        ],
+        parameters=[BulkMetadataQuery],
     )
     def get(self, request: Request) -> Response:
         """Get metadata summary for multiple photos."""
-        photo_ids = request.query_params.get("photo_ids", "").split(",")
+        photo_ids = parse_query(request, BulkMetadataQuery)["photo_ids"].split(",")
         photo_ids = [pid.strip() for pid in photo_ids if pid.strip()]
 
         if not photo_ids:
@@ -306,23 +293,13 @@ class BulkMetadataView(APIView):
             "Update metadata for up to 100 photos: the fields of the single "
             "PATCH, validated the same way."
         ),
+        request=BulkMetadataUpdateRequest,
     )
     def patch(self, request: Request) -> Response:
         """Bulk update metadata for multiple photos."""
-        data = request_dict(request)
-        photo_ids = data.get("photo_ids", [])
-        updates = data.get("updates", {})
-
-        if not isinstance(photo_ids, list) or not all(
-            isinstance(pid, str) for pid in photo_ids
-        ):
-            raise ValidationError({"photo_ids": "Expected a list of photo ids."})
-        if not photo_ids:
-            raise ValidationError({"photo_ids": "No photo_ids provided."})
-        if len(photo_ids) > 100:
-            raise ValidationError({"photo_ids": "Maximum 100 photos per request."})
-        if not isinstance(updates, dict) or not updates:
-            raise ValidationError({"updates": "No updates provided."})
+        data = parse_body(request, BulkMetadataUpdateRequest)
+        photo_ids = data["photo_ids"]
+        updates = data["updates"]
 
         allowed_fields = set(PhotoMetadataUpdateSerializer().fields)
         invalid_fields = sorted(

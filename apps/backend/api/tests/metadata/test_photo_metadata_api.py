@@ -111,19 +111,26 @@ class PhotoMetadataLookupRobustnessTestCase(APITestCase):
         own = PhotoMetadata.objects.get(photo=self.photo)
         self.assertEqual(str(response.data["id"]), str(own.id))
 
-    def test_a_bad_history_page_falls_back_to_the_first(self):
+    def test_an_out_of_range_history_page_is_clamped(self):
         url = f"/api/photos/{self.photo.pk}/metadata/history/"
-        for params in ({"page": "abc"}, {"page": "0"}, {"page": "-3"}):
+        for params in ({"page": "0"}, {"page": "-3"}):
             with self.subTest(params=params):
                 response = self.client.get(url, params)
                 self.assertEqual(response.status_code, 200)
                 self.assertEqual(response.data["page"], 1)
+        response = self.client.get(url, {"page_size": "500"})
+        self.assertEqual(response.data["page_size"], 100)
 
-    def test_a_bad_history_page_size_falls_back(self):
+    def test_a_non_numeric_history_page_is_a_400(self):
         url = f"/api/photos/{self.photo.pk}/metadata/history/"
-        response = self.client.get(url, {"page_size": "lots"})
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data["page_size"], 20)
+        for params, field in (
+            ({"page": "abc"}, "page"),
+            ({"page_size": "lots"}, "page_size"),
+        ):
+            with self.subTest(params=params):
+                response = self.client.get(url, params)
+                self.assertEqual(response.status_code, 400)
+                self.assertEqual(response.json()["errors"][0]["field"], field)
 
     def test_a_non_numeric_edit_id_is_not_found(self):
         response = self.client.post(f"/api/photos/{self.photo.pk}/metadata/revert/abc/")

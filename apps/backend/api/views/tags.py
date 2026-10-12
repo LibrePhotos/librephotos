@@ -3,7 +3,7 @@ from collections.abc import Callable, Iterable
 from typing import Any
 
 from django.db.models import Prefetch, Q, QuerySet
-from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
+from drf_spectacular.utils import extend_schema
 from rest_framework import filters, mixins, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound, ValidationError
@@ -14,16 +14,20 @@ from rest_framework.serializers import BaseSerializer
 
 from api.models import Photo, Tag
 from api.models.user import User
-from api.request_data import request_dict
 from api.request_user import request_user
 from api.serializers.tag import (
     GroupedTagPhotosSerializer,
+    TagCreateRequest,
+    TagListQuery,
     TagListSerializer,
+    TagMergeRequest,
+    TagPhotosRequest,
     TagSerializer,
 )
 from api.views.albums import _with_photo_summary_relations
 from api.views.mixins import PartialUpdateModelMixin
 from api.views.pagination import StandardResultsSetPagination
+from api.views.params import parse_body, parse_query
 from api.views.photo_filters import build_photo_queryset
 from api.views.photos import _get_photo_filter_kwargs
 
@@ -64,7 +68,7 @@ class TagViewSet(
             # "Tags of this photo" on the list only: on a tag album's detail
             # ?photo=true is the Photos media filter, and reading it as an
             # image hash 404'd the album.
-            photo = self.request.query_params.get("photo")
+            photo = parse_query(self.request, TagListQuery).get("photo")
             if photo:
                 queryset = queryset.filter(
                     **{
@@ -111,8 +115,7 @@ class TagViewSet(
         responses={200: TagSerializer, 201: TagSerializer},
     )
     def create(self, request: Request, *args: Any, **kwargs: Any) -> Response:
-        data = request_dict(request)
-        name = str(data.get("name") or "").strip()
+        name = parse_body(request, TagCreateRequest)["name"]
         existing = Tag.objects.filter(name=name, owner=request_user(request)).first()
         if existing is not None:
             return Response(TagSerializer(existing).data)
@@ -133,12 +136,12 @@ class TagViewSet(
         answering 200 for an empty queryset had the UI report a save that never
         happened.
         """
-        data = request_dict(request)
-        if data.get("select_all"):
-            return self._select_all_photos(request)
+        data = parse_body(request, TagPhotosRequest)
+        if data["select_all"]:
+            return self._select_all_photos(request, data)
 
         identifiers = data.get("photos")
-        if not isinstance(identifiers, list) or not identifiers:
+        if not identifiers:
             return None
 
         ids = set()
@@ -162,15 +165,13 @@ class TagViewSet(
 
         return photos
 
-    def _select_all_photos(self, request: Request) -> QuerySet[Photo]:
+    def _select_all_photos(
+        self, request: Request, data: dict[str, Any]
+    ) -> QuerySet[Photo]:
         """The photos behind a ``select_all`` payload, as a lazy queryset."""
-        data = request_dict(request)
-        query = data.get("query")
-        excluded_hashes = data.get("excluded_hashes") or []
+        excluded_hashes = data["excluded_hashes"] or []
 
-        photos = build_photo_queryset(
-            request_user(request), query if isinstance(query, dict) else {}
-        )
+        photos = build_photo_queryset(request_user(request), data["query"])
         if excluded_hashes:
             photos = photos.exclude(image_hash__in=excluded_hashes)
         return photos
@@ -203,7 +204,7 @@ class TagViewSet(
             relation_method(*batch)
 
     @extend_schema(
-        parameters=[OpenApiParameter("photo", OpenApiTypes.STR)],
+        parameters=[TagListQuery],
         description=(
             "List the requesting user's tags. Pass photo=<id or image hash> to "
             "only get the tags attached to that photo."
@@ -224,6 +225,7 @@ class TagViewSet(
             "ids/image hashes, or `select_all: true` with the `query` "
             "describing the photoset on screen and optional `excluded_hashes`."
         ),
+        request=TagPhotosRequest,
         responses={200: TagSerializer},
     )
     @action(detail=True, methods=["post"], url_path="add")
@@ -241,6 +243,7 @@ class TagViewSet(
             "Detach photos from this tag. Takes the same explicit `photos` "
             "list or `select_all` payload as the add action."
         ),
+        request=TagPhotosRequest,
         responses={200: TagSerializer},
     )
     @action(detail=True, methods=["post"], url_path="remove")
@@ -258,22 +261,14 @@ class TagViewSet(
             "Merge another tag into this one: its photos move over and the "
             "merged tag is deleted."
         ),
+        request=TagMergeRequest,
         responses={200: TagSerializer},
     )
     @action(detail=True, methods=["post"], url_path="merge")
     def merge(self, request: Request, pk: str | None = None) -> Response:
         tag = self.get_object()
-        data = request_dict(request)
-        source_id = data.get("tag")
-        if source_id is None:
-            raise ValidationError("No tag provided")
-
-        try:
-            source = Tag.objects.filter(
-                pk=source_id, owner=request_user(request)
-            ).first()
-        except (TypeError, ValueError):
-            source = None
+        source_id = parse_body(request, TagMergeRequest)["tag"]
+        source = Tag.objects.filter(pk=source_id, owner=request_user(request)).first()
         if source is None:
             raise NotFound()
         if source.pk == tag.pk:

@@ -14,6 +14,7 @@ from rest_framework.views import APIView
 from api.face_classify import cluster_faces
 from api.models.user import User
 from api.request_user import request_user
+from api.serializers.server import ServerLogsQuery
 from api.social_graph import build_social_graph
 from api.stats import (
     get_count_stats,
@@ -24,6 +25,7 @@ from api.stats import (
     get_searchterms_wordcloud,
     get_server_stats,
 )
+from api.views.params import parse_query
 from librephotos.logging_bootstrap import LOG_FILENAME
 
 logger = logging.getLogger(__name__)
@@ -79,12 +81,9 @@ class ServerLogsView(APIView):
 class ServerLogsViewerView(APIView):
     permission_classes = (IsAdminUser,)
 
+    @extend_schema(parameters=[ServerLogsQuery])
     def get(self, request: Request, format: str | None = None) -> Response:
-        try:
-            num_lines = int(request.query_params.get("lines", 100))
-        except (ValueError, TypeError):
-            num_lines = 100
-        num_lines = max(1, min(num_lines, 1000))
+        num_lines = parse_query(request, ServerLogsQuery)["lines"]
 
         log_file = os.path.join(settings.LOGS_ROOT, LOG_FILENAME)
 

@@ -3,6 +3,7 @@ from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from api.models import AlbumDate, Photo
+from api.views.params import ClampedIntegerField
 
 PUBLIC_PHOTOS_ATTR = "public_photos"
 
@@ -128,3 +129,13 @@ class AlbumDateSerializer(serializers.ModelSerializer):
 
     def get_location(self, obj: AlbumDate) -> str:
         return _place(self, obj)
+
+
+class AlbumDatePageQuery(serializers.Serializer[None]):
+    """The page of a day album's photos (the other filters are read apart)."""
+
+    size = ClampedIntegerField(
+        default=100, lowest=1, help_text="Photos per page (default 100)"
+    )
+    # Kept as text: Django's Paginator answers a non-number with page 1.
+    page = serializers.CharField(default="1", help_text="Page number")

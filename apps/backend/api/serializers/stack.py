@@ -2,7 +2,7 @@
 
 from rest_framework import serializers
 
-from api.views.params import ClampedIntegerField, JsonStringField
+from api.views.params import ClampedIntegerField, JsonStringField, required_string
 
 
 class PhotoStackListQuery(serializers.Serializer[None]):
@@ -18,12 +18,8 @@ class PhotoStackListQuery(serializers.Serializer[None]):
 
 
 class PhotoStackSetPrimaryRequest(serializers.Serializer[None]):
-    photo_hash = serializers.CharField(
-        error_messages={
-            "required": "photo_hash is required",
-            "null": "photo_hash is required",
-            "blank": "photo_hash is required",
-        },
+    photo_hash = required_string(
+        "photo_hash is required",
         help_text="image_hash of the new cover photo; it must be in the stack",
     )
 

@@ -18,10 +18,8 @@ from api.tests.utils import create_test_photo, create_test_user
 from api.views.memories import (
     album_date_place,
     anniversary,
-    clamp_int,
     day_windows,
     month_windows,
-    parse_date,
     pick_cover,
     today_for_user,
 )
@@ -42,22 +40,6 @@ def add_photo_on(user, day, **kwargs):
 
 class MemoryHelperTest(SimpleTestCase):
     """The pure helpers, which carry the date arithmetic."""
-
-    def test_parse_date_reads_iso_dates(self):
-        self.assertEqual(parse_date("2019-08-24"), datetime.date(2019, 8, 24))
-
-    def test_parse_date_rejects_anything_else(self):
-        for value in (None, "", "24-08-2019", "yesterday", "2019-13-01"):
-            self.assertIsNone(parse_date(value), value)
-
-    def test_clamp_int_keeps_values_in_range(self):
-        self.assertEqual(clamp_int("7", 3, 0, 30), 7)
-        self.assertEqual(clamp_int("99", 3, 0, 30), 30)
-        self.assertEqual(clamp_int("-5", 3, 0, 30), 0)
-
-    def test_clamp_int_falls_back_on_nonsense(self):
-        for value in (None, "", "three"):
-            self.assertEqual(clamp_int(value, 3, 0, 30), 3)
 
     def test_anniversary_of_a_leap_day_in_a_common_year(self):
         self.assertEqual(anniversary(2019, 2, 29), datetime.date(2019, 2, 28))
@@ -179,6 +161,29 @@ class MemoriesViewTest(TestCase):
     def test_requires_authentication(self):
         client = APIClient()
         self.assertEqual(client.get("/api/memories").status_code, 401)
+
+    def test_the_window_is_clamped(self):
+        self.assertEqual(self.memories(window="99")["window_days"], 30)
+        self.assertEqual(self.memories(window="-5")["window_days"], 0)
+        self.assertEqual(self.memories()["window_days"], 3)
+
+    def test_a_blank_date_means_today(self):
+        with patch(
+            "api.views.memories.today_for_user", return_value=datetime.date(2020, 1, 2)
+        ):
+            self.assertEqual(self.memories(date="")["date"], "2020-01-02")
+
+    def test_malformed_parameters_are_a_400_naming_them(self):
+        for params, field in (
+            ({"date": "24-08-2019"}, "date"),
+            ({"date": "2019-13-01"}, "date"),
+            ({"window": "three"}, "window"),
+            ({"size": "lots"}, "size"),
+        ):
+            with self.subTest(params=params):
+                response = self.client.get("/api/memories", params)
+                self.assertEqual(response.status_code, 400)
+                self.assertEqual(response.json()["errors"][0]["field"], field)
 
     def test_empty_library_has_no_memories(self):
         body = self.memories()

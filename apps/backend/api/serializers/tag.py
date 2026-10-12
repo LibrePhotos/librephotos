@@ -12,6 +12,7 @@ from api.serializers.PhotosGroupedByDate import (
     filter_photos_by_media_type,
     get_photos_ordered_by_date,
 )
+from api.views.params import JsonStringField
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -61,3 +62,37 @@ class GroupedTagPhotosSerializer(serializers.ModelSerializer):
         return serializers.ListSerializer(
             child=GroupedPhotosSerializer(), instance=grouped_photos
         ).data
+
+
+class TagListQuery(serializers.Serializer[None]):
+    photo = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        help_text="Only the tags of this photo (id or image hash)",
+    )
+
+
+class TagCreateRequest(serializers.Serializer[None]):
+    """What create reads before ``TagSerializer`` validates the body itself:
+    the name, to answer with the existing tag of that name."""
+
+    name = serializers.CharField(required=False, allow_blank=True, default="")
+
+
+class TagPhotosRequest(serializers.Serializer[None]):
+    """Photos to attach or detach: ``photos`` (ids or image hashes), or
+    ``select_all`` with the ``query`` on screen minus ``excluded_hashes``."""
+
+    select_all = serializers.BooleanField(default=False)
+    photos = serializers.ListField(child=serializers.CharField(), required=False)
+    query = serializers.DictField(default=dict)
+    excluded_hashes = serializers.ListField(
+        child=JsonStringField(), default=list, allow_null=True
+    )
+
+
+class TagMergeRequest(serializers.Serializer[None]):
+    tag = serializers.IntegerField(
+        error_messages={"required": "No tag provided", "null": "No tag provided"},
+        help_text="The tag to merge into this one; it is deleted",
+    )

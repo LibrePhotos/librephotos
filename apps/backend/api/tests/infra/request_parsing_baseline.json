@@ -1,21 +1,8 @@
 {
-  "api/views/album_folder.py": 3,
-  "api/views/albums.py": 28,
-  "api/views/dataviz.py": 1,
+  "api/views/albums.py": 26,
   "api/views/email_config.py": 2,
-  "api/views/geocode.py": 2,
-  "api/views/jobs.py": 1,
-  "api/views/media.py": 1,
-  "api/views/memories.py": 4,
-  "api/views/password_reset.py": 2,
-  "api/views/photo_metadata.py": 5,
+  "api/views/password_reset.py": 1,
   "api/views/public_albums.py": 1,
   "api/views/public_photos.py": 1,
-  "api/views/scan_triggers.py": 1,
-  "api/views/sharing.py": 1,
-  "api/views/sync.py": 2,
-  "api/views/tags.py": 5,
-  "api/views/user.py": 1,
-  "api/views/zip_downloads.py": 2,
-  "nextcloud/views.py": 2
+  "api/views/zip_downloads.py": 2
 }

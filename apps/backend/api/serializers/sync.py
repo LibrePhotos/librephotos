@@ -9,6 +9,29 @@ mirror the client's ``remote_*`` tables (doc 02 §1).
 from datetime import datetime
 from typing import Any
 
+from rest_framework import serializers
+
+from api.views.params import ClampedIntegerField
+
+# Rows per page of a feed. The mobile app asks for MAX_PAGE_SIZE on purpose
+# (apps/mobile/src/sync/remote/delta.ts); a larger page_size is clamped to it.
+DEFAULT_PAGE_SIZE = 500
+MAX_PAGE_SIZE = 1000
+
+
+class SyncQuery(serializers.Serializer[None]):
+    cursor = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        help_text="next_cursor of the previous page; none for a seed pull",
+    )
+    page_size = ClampedIntegerField(
+        default=DEFAULT_PAGE_SIZE,
+        lowest=1,
+        highest=MAX_PAGE_SIZE,
+        help_text=f"Rows per page (at most {MAX_PAGE_SIZE})",
+    )
+
 
 def to_ms(dt: datetime | None) -> int | None:
     """UTC datetime -> integer milliseconds since epoch, or None."""

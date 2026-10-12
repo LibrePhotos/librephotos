@@ -23,7 +23,12 @@ from api.serializers.fields import shared_serializer
 from api.serializers.photo_metadata import PhotoMetadataSummarySerializer
 from api.serializers.PhotosGroupedByDate import PhotosGroupedByDate
 from api.serializers.simple import SimpleUserSerializer
-from api.views.params import JsonBooleanField, JsonIntegerField, JsonStringField
+from api.views.params import (
+    JsonBooleanField,
+    JsonIntegerField,
+    JsonStringField,
+    required_string,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -1141,14 +1146,8 @@ class SavePhotoCaptionRequest(PhotoCaptionRequest):
     caption = JsonStringField()
 
 
-def _required_message(field: str) -> dict[str, str]:
-    """One message for a missing, null or blank ``field``, as the view had."""
-    message = f"{field} is required"
-    return {"required": message, "null": message, "blank": message}
-
-
 class SetMainFileRequest(serializers.Serializer[None]):
-    file_hash = serializers.CharField(error_messages=_required_message("file_hash"))
+    file_hash = required_string("file_hash is required")
 
 
 class SaveMetadataRequest(serializers.Serializer[None]):
@@ -1182,7 +1181,7 @@ class RotationAngleField(serializers.Field[int, str | int | float, int, Any]):
 
 
 class RotatePhotoRequest(serializers.Serializer[None]):
-    image_hash = serializers.CharField(error_messages=_required_message("image_hash"))
+    image_hash = required_string("image_hash is required")
     angle = RotationAngleField(
         default=0,
         error_messages={"null": "angle must be an integer"},
