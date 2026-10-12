@@ -35,6 +35,13 @@ class LongRunningJobSerializer(serializers.ModelSerializer):
         return dict(LongRunningJob.JOB_TYPES)[obj.job_type]
 
 
+class CancelJobResponseSerializer(serializers.Serializer[None]):
+    """The answer of POST /api/jobs/{id}/cancel/: the cancelled job, nested."""
+
+    status = serializers.BooleanField()
+    job = LongRunningJobSerializer()
+
+
 class JobListQuery(serializers.Serializer[None]):
     mine = QueryFlagField(
         true_values={"true"},

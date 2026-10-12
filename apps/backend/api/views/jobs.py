@@ -1,6 +1,7 @@
 import logging
 
 from django.db.models import F, Prefetch, QuerySet
+from drf_spectacular.utils import extend_schema
 from rest_framework import mixins, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
@@ -14,7 +15,11 @@ from api.drf.params import parse_query
 from api.drf.request_user import request_user
 from api.jobs.queue import remove_queued_tasks
 from api.models import LongRunningJob, User
-from api.serializers.job import JobListQuery, LongRunningJobSerializer
+from api.serializers.job import (
+    CancelJobResponseSerializer,
+    JobListQuery,
+    LongRunningJobSerializer,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -63,6 +68,7 @@ class LongRunningJobViewSet(
             return own_jobs
         return qs
 
+    @extend_schema(request=None, responses=CancelJobResponseSerializer)
     @action(detail=True, methods=["post"])
     def cancel(self, request: Request, pk: str | None = None) -> Response:
         """Cancel a running or queued job."""

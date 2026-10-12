@@ -50,6 +50,7 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
   Job: { schema: S.Job, components: ["LongRunningJob"] },
   JobDetail: { schema: S.JobDetail, components: ["LongRunningJob"] },
   JobsResponse: { schema: S.JobsResponse, components: ["PaginatedLongRunningJobList"] },
+  CancelJobResponse: { schema: S.CancelJobResponse, components: ["CancelJobResponse"] },
   // users and auth
   SimpleUser: { schema: S.SimpleUser, components: ["SimpleUser"] },
   User: { schema: S.User, components: ["User"] },
@@ -146,8 +147,6 @@ export const UNMAPPED: Readonly<Record<string, string>> = {
   SetFacesLabelResponse: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
   DeleteFacesResponse: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
   JobTriggerResponse: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
-  CancelJobResponse:
-    "the cancel action is documented as answering LongRunningJob, but it answers {status, job} with the job nested (LongRunningJobViewSet.cancel); the job is compared as JobDetail",
   PhotoDownloadStart: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
   PhotoDownloadStatus: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
   StackFileVariant:

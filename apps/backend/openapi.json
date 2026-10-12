@@ -2814,7 +2814,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/LongRunningJob"
+                  "$ref": "#/components/schemas/CancelJobResponse"
                 }
               }
             },
@@ -8301,6 +8301,22 @@
           "public_slug",
           "shared_to",
           "title"
+        ]
+      },
+      "CancelJobResponse": {
+        "type": "object",
+        "description": "The answer of POST /api/jobs/{id}/cancel/: the cancelled job, nested.",
+        "properties": {
+          "status": {
+            "type": "boolean"
+          },
+          "job": {
+            "$ref": "#/components/schemas/LongRunningJob"
+          }
+        },
+        "required": [
+          "job",
+          "status"
         ]
       },
       "CategoryEnum": {
