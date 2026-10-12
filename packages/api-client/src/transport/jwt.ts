@@ -1,21 +1,39 @@
 /**
- * Tiny dependency-free JWT payload decoder. We only ever read the `exp` claim,
- * so pulling in `jwt-decode` (and a base64 polyfill on RN) is overkill.
+ * Tiny dependency-free JWT payload decoder. We only read the `exp` and
+ * `user_id` claims, so pulling in `jwt-decode` (and a base64 polyfill on RN)
+ * is overkill.
  *
  * This does NOT verify the signature — never trust these values for authz; the
- * server is authoritative. It exists purely to pre-emptively refresh a token
- * that is about to expire, avoiding a guaranteed-to-fail request.
+ * server is authoritative. `exp` exists purely to pre-emptively refresh a token
+ * that is about to expire, avoiding a guaranteed-to-fail request; `user_id`
+ * tells a client which `/user/<id>/` is its own.
  */
 export function decodeJwtExp(token: string): number | null {
-  const parts = token.split(".");
-  if (parts.length < 2) return null;
-  const payload = parts[1];
+  const claims = decodeJwtClaims(token);
+  return claims && typeof claims.exp === "number" ? claims.exp : null;
+}
+
+/**
+ * The signed-in user's id from an access token's `user_id` claim, or null.
+ *
+ * djangorestframework-simplejwt writes the claim as a string ("1") since 5.5.0
+ * and wrote a number before, and a client may talk to a server on either side
+ * of that, so both are read. Anything but a positive integer is null.
+ */
+export function userIdFromAccessToken(token: string | null): number | null {
+  if (!token) return null;
+  const raw = decodeJwtClaims(token)?.user_id;
+  const id = typeof raw === "string" && /^\d+$/.test(raw) ? Number(raw) : raw;
+  return typeof id === "number" && Number.isSafeInteger(id) && id > 0 ? id : null;
+}
+
+/** The payload of `token` when it is a JSON object, else null. */
+function decodeJwtClaims(token: string): { exp?: unknown; user_id?: unknown } | null {
+  const payload = token.split(".")[1];
   if (!payload) return null;
   try {
-    const json = base64UrlDecode(payload);
-    const parsed: unknown = JSON.parse(json);
-    if (typeof parsed !== "object" || parsed === null || !("exp" in parsed)) return null;
-    return typeof parsed.exp === "number" ? parsed.exp : null;
+    const parsed: unknown = JSON.parse(base64UrlDecode(payload));
+    return typeof parsed === "object" && parsed !== null && !Array.isArray(parsed) ? parsed : null;
   } catch {
     return null;
   }
