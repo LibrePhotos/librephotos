@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.a1e92a76.css">
-<script src="/assets/js/runtime~main.c1a55f33.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.078d3374.js" defer="defer"></script>
 <script src="/assets/js/main.f4dc5e9c.js" defer="defer"></script>
 </head>
 <body>
@@ -26,7 +26,7 @@
 <li class=""><code>deploy/compose/docker-compose.dev.yml</code> - Development overrides (builds from local source, hot reload)</li>
 <li class=""><code>deploy/compose/docker-compose.unified.yml</code> - Single-container image with PostgreSQL; reads the same <code>librephotos.env</code> as <code>docker-compose.yml</code>, and <code>api/tests/infra/test_compose_files_in_sync.py</code> keeps the backend environment of the two files equal</li>
 <li class=""><code>deploy/compose/docker-compose.e2e.yml</code> - End-to-end test stack (builds from local source)</li>
-<li class=""><code>deploy/docker/backend/</code> - Backend Dockerfile (app layer) and entrypoint</li>
+<li class=""><code>deploy/docker/backend/</code> - Backend Dockerfile (app layer) and <code>entrypoint.sh</code>, the one entrypoint of the backend, GPU and unified images. Image differences are guarded blocks in it (<code>nvidia-smi</code> for GPU, <code>SERVE_FRONTEND</code> for unified) or <code>ENV</code> defaults in a Dockerfile; <code>api/tests/infra/test_deploy_images.py</code> fails on a second copy</li>
 <li class=""><code>deploy/docker/backend/base/</code> - Backend base image Dockerfile (system dependencies), published separately</li>
 <li class=""><code>deploy/docker/backend-gpu/</code> and <code>deploy/docker/backend-gpu/base/</code> - CUDA (GPU) equivalents of the backend and its base</li>
 <li class=""><code>deploy/docker/frontend/</code> - Frontend Dockerfiles (production and development)</li>
