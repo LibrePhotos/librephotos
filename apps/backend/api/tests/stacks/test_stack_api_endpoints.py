@@ -1097,12 +1097,11 @@ class StackListPaginationEdgeCasesTestCase(TestCase):
         self.assertGreater(len(response.data["results"]), 0)
 
     def test_non_numeric_page(self):
-        """Test requesting non-numeric page."""
+        """A non-numeric page is a 400 naming it (#2326), not a 500."""
         response = self.client.get("/api/stacks?page=abc")
 
-        # After Bug #16 fix: Non-numeric page defaults to 1
-        self.assertEqual(response.status_code, 200)
-        self.assertGreater(len(response.data["results"]), 0)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(api_error(response)["field"], "page")
 
     def test_page_size_zero(self):
         """Test requesting page_size of 0."""
@@ -1128,9 +1127,8 @@ class StackListPaginationEdgeCasesTestCase(TestCase):
         self.assertLessEqual(response.data["page_size"], 100)
 
     def test_non_numeric_page_size(self):
-        """Test requesting non-numeric page_size."""
+        """A non-numeric page_size is a 400 naming it (#2326), not a 500."""
         response = self.client.get("/api/stacks?page_size=abc")
 
-        # After Bug #16 fix: Non-numeric page_size defaults to 20
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data["page_size"], 20)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(api_error(response)["field"], "page_size")

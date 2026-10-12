@@ -19,7 +19,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.core.paginator import Paginator
 from django.db.models import Count
 from django_q.tasks import async_task
-from drf_spectacular.utils import OpenApiParameter, extend_schema
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.permissions import IsAuthenticated
@@ -29,8 +29,15 @@ from rest_framework.views import APIView
 
 from api.models import Photo, PhotoMetadata
 from api.models.photo_stack import PhotoStack
-from api.request_data import request_dict
 from api.request_user import request_user
+from api.serializers.stack import (
+    CreateManualStackRequest,
+    DetectStacksRequest,
+    PhotoStackListQuery,
+    PhotoStackSetPrimaryRequest,
+    StackPhotosRequest,
+)
+from api.views.params import parse_body, parse_query
 
 logger = logging.getLogger(__name__)
 
@@ -48,39 +55,13 @@ class PhotoStackListView(APIView):
 
     permission_classes = [IsAuthenticated]
 
-    @extend_schema(
-        parameters=[
-            OpenApiParameter(
-                "stack_type",
-                str,
-                description="Filter by stack type: burst, bracket, manual",
-            ),
-            OpenApiParameter(
-                "page",
-                int,
-                description="Page number (default: 1)",
-            ),
-            OpenApiParameter(
-                "page_size",
-                int,
-                description="Number of items per page (default: 20, max: 100)",
-            ),
-        ],
-    )
+    @extend_schema(parameters=[PhotoStackListQuery])
     def get(self, request: Request) -> Response:
         user = request_user(request)
-        stack_type_filter = request.query_params.get("stack_type", None)
-
-        # Safely parse pagination parameters with defaults for invalid input
-        try:
-            page = max(1, int(request.query_params.get("page", 1)))
-        except (ValueError, TypeError):
-            page = 1
-
-        try:
-            page_size = max(1, min(int(request.query_params.get("page_size", 20)), 100))
-        except (ValueError, TypeError):
-            page_size = 20
+        params = parse_query(request, PhotoStackListQuery)
+        stack_type_filter = params.get("stack_type")
+        page = params["page"]
+        page_size = params["page_size"]
 
         # Use model-defined valid stack types (excludes deprecated RAW_JPEG_PAIR, LIVE_PHOTO)
         valid_stack_types = PhotoStack.VALID_STACK_TYPES
@@ -300,6 +281,7 @@ class PhotoStackSetPrimaryView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(request=PhotoStackSetPrimaryRequest)
     def post(self, request: Request, stack_id: str) -> Response:
         user = request_user(request)
         try:
@@ -307,9 +289,7 @@ class PhotoStackSetPrimaryView(APIView):
         except PhotoStack.DoesNotExist:
             raise NotFound("Photo stack not found")
 
-        photo_hash = request_dict(request).get("photo_hash")
-        if not photo_hash:
-            raise ValidationError("photo_hash is required")
+        photo_hash = parse_body(request, PhotoStackSetPrimaryRequest)["photo_hash"]
 
         try:
             photo = stack.photos.get(image_hash=photo_hash)
@@ -334,24 +314,14 @@ class DetectStacksView(APIView):
 
     permission_classes = [IsAuthenticated]
 
-    @extend_schema(
-        parameters=[
-            OpenApiParameter(
-                "detect_bursts",
-                bool,
-                description="Detect burst sequences using user's configured rules (default: true)",
-            ),
-        ],
-    )
+    @extend_schema(request=DetectStacksRequest)
     def post(self, request: Request) -> Response:
         from api.stack_detection import batch_detect_stacks
 
         user = request_user(request)
         # RAW+JPEG and Live Photos are now file variants, not stacks
         # Only burst/bracket detection is done here
-        options = {
-            "detect_bursts": request_dict(request).get("detect_bursts", True),
-        }
+        options = parse_body(request, DetectStacksRequest)
 
         # Queue background job
         async_task(batch_detect_stacks, user, options)
@@ -435,9 +405,10 @@ class CreateManualStackView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(request=CreateManualStackRequest)
     def post(self, request: Request) -> Response:
         user = request_user(request)
-        photo_hashes = request_dict(request).get("photo_hashes", [])
+        photo_hashes = parse_body(request, CreateManualStackRequest)["photo_hashes"]
 
         # De-duplicate the input to handle repeated hashes
         unique_hashes = list(dict.fromkeys(photo_hashes))  # Preserves order
@@ -496,6 +467,7 @@ class AddToStackView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(request=StackPhotosRequest)
     def post(self, request: Request, stack_id: str) -> Response:
         user = request_user(request)
         try:
@@ -503,9 +475,7 @@ class AddToStackView(APIView):
         except PhotoStack.DoesNotExist:
             raise NotFound("Photo stack not found")
 
-        photo_hashes = request_dict(request).get("photo_hashes", [])
-        if not photo_hashes:
-            raise ValidationError("photo_hashes is required")
+        photo_hashes = parse_body(request, StackPhotosRequest)["photo_hashes"]
 
         photos = Photo.objects.owned_by(user).filter(image_hash__in=photo_hashes)
 
@@ -530,6 +500,7 @@ class RemoveFromStackView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(request=StackPhotosRequest)
     def post(self, request: Request, stack_id: str) -> Response:
         user = request_user(request)
         try:
@@ -537,9 +508,7 @@ class RemoveFromStackView(APIView):
         except PhotoStack.DoesNotExist:
             raise NotFound("Photo stack not found")
 
-        photo_hashes = request_dict(request).get("photo_hashes", [])
-        if not photo_hashes:
-            raise ValidationError("photo_hashes is required")
+        photo_hashes = parse_body(request, StackPhotosRequest)["photo_hashes"]
 
         photos = Photo.objects.owned_by(user).filter(image_hash__in=photo_hashes)
 
@@ -583,12 +552,10 @@ class MergeStacksView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(request=StackPhotosRequest)
     def post(self, request: Request) -> Response:
         user = request_user(request)
-        photo_hashes = request_dict(request).get("photo_hashes", [])
-
-        if not photo_hashes:
-            raise ValidationError("photo_hashes is required")
+        photo_hashes = parse_body(request, StackPhotosRequest)["photo_hashes"]
 
         # De-duplicate the input to handle repeated hashes
         unique_hashes = list(dict.fromkeys(photo_hashes))  # Preserves order

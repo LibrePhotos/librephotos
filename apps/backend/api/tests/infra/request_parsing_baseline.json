@@ -14,7 +14,6 @@
   "api/views/public_photos.py": 1,
   "api/views/scan_triggers.py": 1,
   "api/views/sharing.py": 1,
-  "api/views/stacks.py": 9,
   "api/views/sync.py": 2,
   "api/views/tags.py": 5,
   "api/views/user.py": 1,
