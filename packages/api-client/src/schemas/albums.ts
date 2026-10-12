@@ -20,12 +20,25 @@ export const PhotoSuperSimple = z.object({
   image_hash: z.string(),
   exif_timestamp: z.string().nullable(),
   rating: z.number(),
-  geolocation_json: z.unknown(),
+  // PhotoSuperSimpleSerializer does not send it. Optional: zod 4 requires a z.unknown() key.
+  geolocation_json: z.unknown().optional(),
   hidden: z.boolean(),
   public: z.boolean(),
   video: z.boolean(),
 });
 export type PhotoSuperSimple = z.infer<typeof PhotoSuperSimple>;
+
+/**
+ * A user album card's cover (AlbumUserListSerializer.get_cover_photo), a PhotoSuperSimple. An album
+ * without a visible photo gets PhotoSuperSimpleSerializer(None).data instead: image_hash "" and
+ * rating null. Only the hash and the video flag are required, what a card shows.
+ */
+const UserAlbumCover = PhotoHash.extend({
+  exif_timestamp: z.string().nullable().optional(),
+  rating: z.number().nullable().optional(),
+  hidden: z.boolean().optional(),
+  public: z.boolean().optional(),
+});
 
 /** Per-album overrides of the owner's public sharing defaults; null = use the default. */
 export const PublicSharingOptions = z.object({
@@ -40,7 +53,7 @@ export type PublicSharingOptions = z.infer<typeof PublicSharingOptions>;
 export const UserAlbumInfo = z.object({
   id: z.number(),
   title: z.string(),
-  cover_photo: PhotoSuperSimple.nullable(),
+  cover_photo: UserAlbumCover.nullable(),
   photo_count: z.number(),
   owner: SimpleUser,
   shared_to: SimpleUser.array(),
