@@ -7,6 +7,7 @@ import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { FacesTab } from "../../../api_client/faces/types";
+import { STORAGE_KEYS } from "../../../util/storage";
 import { useCollapsedPersons } from "./useCollapsedPersons";
 import { useTabScrollPositions } from "./useTabScrollPositions";
 
@@ -56,7 +57,10 @@ describe("useTabScrollPositions", () => {
   });
 
   it("keeps the stored numeric positions and drops the rest", async () => {
-    localStorage.setItem("faceTabScrollPositions", JSON.stringify({ labeled: 120, inferred: "far", other: 5 }));
+    localStorage.setItem(
+      STORAGE_KEYS.facesTabScrollPositions,
+      JSON.stringify({ labeled: 120, inferred: "far", other: 5 })
+    );
     const view = await renderHook(useTabScrollPositions);
 
     expect(view.current.tabPositions.labeled).toBe(120);
@@ -68,7 +72,7 @@ describe("useTabScrollPositions", () => {
   });
 
   it.each(["null", "5", "[1, 2]", '"labeled"'])("reads %s as no stored positions", async stored => {
-    localStorage.setItem("faceTabScrollPositions", stored);
+    localStorage.setItem(STORAGE_KEYS.facesTabScrollPositions, stored);
     const view = await renderHook(useTabScrollPositions);
 
     expect(view.current.tabPositions).toEqual({});
@@ -78,7 +82,7 @@ describe("useTabScrollPositions", () => {
 
   it("falls back to the top of every tab when the stored value is not JSON", async () => {
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
-    localStorage.setItem("faceTabScrollPositions", "{not json");
+    localStorage.setItem(STORAGE_KEYS.facesTabScrollPositions, "{not json");
     const view = await renderHook(useTabScrollPositions);
 
     expect(view.current.tabPositions).toEqual({ labeled: 0, inferred: 0, unknown: 0 });
@@ -88,7 +92,7 @@ describe("useTabScrollPositions", () => {
   });
 
   it("writes a new position back", async () => {
-    localStorage.setItem("faceTabScrollPositions", JSON.stringify({ labeled: 120 }));
+    localStorage.setItem(STORAGE_KEYS.facesTabScrollPositions, JSON.stringify({ labeled: 120 }));
     const view = await renderHook(useTabScrollPositions);
 
     await act(async () => {
@@ -96,7 +100,10 @@ describe("useTabScrollPositions", () => {
     });
 
     expect(view.current.tabPositions).toEqual({ labeled: 120, inferred: 40 });
-    expect(JSON.parse(localStorage.getItem("faceTabScrollPositions") ?? "{}")).toEqual({ labeled: 120, inferred: 40 });
+    expect(JSON.parse(localStorage.getItem(STORAGE_KEYS.facesTabScrollPositions) ?? "{}")).toEqual({
+      labeled: 120,
+      inferred: 40,
+    });
 
     await view.cleanup();
   });
@@ -104,7 +111,10 @@ describe("useTabScrollPositions", () => {
 
 describe("useCollapsedPersons", () => {
   it("keeps the numeric ids of each tab and drops the rest", async () => {
-    localStorage.setItem("faceCollapsedPersons", JSON.stringify({ labeled: [1, "2", 3, null], inferred: "x" }));
+    localStorage.setItem(
+      STORAGE_KEYS.facesCollapsedPersons,
+      JSON.stringify({ labeled: [1, "2", 3, null], inferred: "x" })
+    );
     const view = await renderHook(useCollapsedPersons);
 
     expect(view.current.collapsedPersons).toEqual({
@@ -117,7 +127,7 @@ describe("useCollapsedPersons", () => {
   });
 
   it.each(["null", "5", "[7]"])("reads %s as nothing folded", async stored => {
-    localStorage.setItem("faceCollapsedPersons", stored);
+    localStorage.setItem(STORAGE_KEYS.facesCollapsedPersons, stored);
     const view = await renderHook(useCollapsedPersons);
 
     expect(view.current.collapsedPersons).toEqual({ labeled: new Set(), inferred: new Set(), unknown: new Set() });
@@ -127,7 +137,7 @@ describe("useCollapsedPersons", () => {
 
   it("reads a value that is not JSON as nothing folded", async () => {
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
-    localStorage.setItem("faceCollapsedPersons", "{not json");
+    localStorage.setItem(STORAGE_KEYS.facesCollapsedPersons, "{not json");
     const view = await renderHook(useCollapsedPersons);
 
     expect(view.current.collapsedPersons).toEqual({ labeled: new Set(), inferred: new Set(), unknown: new Set() });

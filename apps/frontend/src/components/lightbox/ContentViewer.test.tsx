@@ -13,6 +13,7 @@ import type { Photo } from "../../api_client/photos/types";
 import { defined } from "../../util/defined.test-utils";
 import { ContentViewer, escapeTargetsLightbox } from "./ContentViewer";
 import type { LightboxControlsProps } from "./lightbox.types";
+import { useLightboxCommands, type LightboxCommands } from "./lightboxCommands";
 import type { MediaDisplayProps } from "./MediaDisplay";
 
 /** What the stubbed details query answers: a test sets only the fields it is about. */
@@ -22,8 +23,10 @@ const stubs = vi.hoisted(() => {
   const carousel: CarouselProps[] = [];
   const media: MediaDisplayProps[] = [];
   const controls: LightboxControlsProps[] = [];
+  /** The commands of each render of the toolbar stub: the lightbox's own, as a toolbar would subscribe. */
+  const commands: LightboxCommands[] = [];
   const details: DetailsStub = { data: undefined, isLoading: false };
-  return { carousel, media, controls, details };
+  return { carousel, media, controls, commands, details };
 });
 
 /** The last props the stubbed toolbar got. */
@@ -63,6 +66,7 @@ vi.mock("./MediaDisplay", () => ({
 vi.mock("./LightboxControls", () => ({
   LightboxControls: (props: LightboxControlsProps) => {
     stubs.controls.push(props);
+    stubs.commands.push(useLightboxCommands());
     // Something to tab to, at either end of the toolbar.
     return (
       <>
@@ -76,7 +80,6 @@ vi.mock("./Sidebar", () => ({ Sidebar: () => null }));
 vi.mock("./ThumbnailNavigation", () => ({ ThumbnailNavigation: () => null }));
 vi.mock("./ImagePreloader", () => ({ ImagePreloader: () => null }));
 vi.mock("./VideoPlayer", () => ({
-  requestLightboxSeek: () => {},
   SEEK_STEP_SECONDS: 10,
   SEEK_LONG_STEP_SECONDS: 60,
 }));
@@ -114,6 +117,7 @@ afterEach(async () => {
   stubs.carousel.length = 0;
   stubs.media.length = 0;
   stubs.controls.length = 0;
+  stubs.commands.length = 0;
   stubs.details = { data: undefined, isLoading: false };
 });
 
@@ -314,6 +318,62 @@ describe("ContentViewer main slide", () => {
     await renderViewer({ type: "video", isPublic: true });
 
     expect(defined(stubs.media.at(-1)).type).toBe("video");
+  });
+});
+
+describe("ContentViewer shortcuts", () => {
+  /** The lightbox's commands, as the toolbar and the player subscribe to them. */
+  function commandsOf(): LightboxCommands {
+    const commands = stubs.commands.at(-1);
+    if (!commands) throw new Error("LightboxControls was not rendered");
+    return commands;
+  }
+
+  it.each([
+    ["f", "favorite"],
+    ["h", "hide"],
+    ["p", "public"],
+    ["d", "delete"],
+  ] as const)("sends %s to the toolbar as %s, without a window event", async (key, command) => {
+    stubs.details = {
+      data: { id: "pb", image_hash: "hb", rating: 0, hidden: false, in_trashcan: false },
+      isLoading: false,
+    };
+    await renderViewer();
+    const handler = vi.fn<() => void>();
+    const windowEvents = vi.spyOn(window, "dispatchEvent");
+    commandsOf().on(command, handler);
+
+    await press(key);
+
+    expect(handler).toHaveBeenCalledTimes(1);
+    expect(windowEvents).not.toHaveBeenCalled();
+    windowEvents.mockRestore();
+  });
+
+  it("sends none of the actions when the photo has no details yet", async () => {
+    await renderViewer();
+    const handler = vi.fn<() => void>();
+    commandsOf().on("favorite", handler);
+
+    await press("f");
+
+    expect(handler).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["ArrowLeft", { shiftKey: true }, -10],
+    ["ArrowRight", { shiftKey: true }, 10],
+    ["ArrowLeft", { ctrlKey: true }, -60],
+    ["ArrowRight", { ctrlKey: true }, 60],
+  ])("seeks the player with %s %o by %i seconds", async (key, modifiers, seconds) => {
+    await renderViewer();
+    const handler = vi.fn<(seconds: number) => void>();
+    commandsOf().on("seek", handler);
+
+    await press(key, document.body, modifiers);
+
+    expect(handler).toHaveBeenCalledWith(seconds);
   });
 });
 

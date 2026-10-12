@@ -1,17 +1,9 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
 import { z } from "zod";
 import { FacesTab } from "../../../api_client/faces/types";
+import { STORAGE_KEYS, useStoredState } from "../../../util/storage";
 
-const STORAGE_KEY = "faceCollapsedPersons";
-
-function save(collapsed: Record<FacesTab, number[]>) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(collapsed));
-  } catch (e) {
-    console.error("Error saving collapsed persons to localStorage:", e);
-  }
-  return collapsed;
-}
+const NOTHING_FOLDED: Record<FacesTab, number[]> = { labeled: [], inferred: [], unknown: [] };
 
 // The stored value ends up in `new Set(...)`, so a tab that is not an id array has to be
 // dropped here rather than throwing out of a render. Ids that are not numbers are left out.
@@ -23,20 +15,13 @@ const StoredCollapsed = z
   .object({ labeled: StoredIds, inferred: StoredIds, unknown: StoredIds })
   .catch(() => ({ labeled: [], inferred: [], unknown: [] }));
 
-function load(): Record<FacesTab, number[]> {
-  let parsed: unknown = null;
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    parsed = saved ? JSON.parse(saved) : null;
-  } catch (e) {
-    console.error("Error loading collapsed persons from localStorage:", e);
-  }
-  return StoredCollapsed.parse(parsed);
-}
-
 // Custom hook to manage which person groups are folded, per tab, in localStorage
 export function useCollapsedPersons() {
-  const [collapsedIds, setCollapsedIds] = useState<Record<FacesTab, number[]>>(load);
+  const [collapsedIds, updateCollapsed] = useStoredState(
+    STORAGE_KEYS.facesCollapsedPersons,
+    StoredCollapsed,
+    NOTHING_FOLDED
+  );
 
   // Sets are what the grid calculation wants, and their identity only changes on a toggle
   const collapsedPersons = useMemo(
@@ -48,16 +33,22 @@ export function useCollapsedPersons() {
     [collapsedIds]
   );
 
-  const toggleCollapsed = useCallback((tab: FacesTab, personId: number) => {
-    setCollapsedIds(prev => {
-      const ids = prev[tab].includes(personId) ? prev[tab].filter(id => id !== personId) : [...prev[tab], personId];
-      return save({ ...prev, [tab]: ids });
-    });
-  }, []);
+  const toggleCollapsed = useCallback(
+    (tab: FacesTab, personId: number) => {
+      updateCollapsed(prev => ({
+        ...prev,
+        [tab]: prev[tab].includes(personId) ? prev[tab].filter(id => id !== personId) : [...prev[tab], personId],
+      }));
+    },
+    [updateCollapsed]
+  );
 
-  const setCollapsedForTab = useCallback((tab: FacesTab, personIds: number[]) => {
-    setCollapsedIds(prev => save({ ...prev, [tab]: personIds }));
-  }, []);
+  const setCollapsedForTab = useCallback(
+    (tab: FacesTab, personIds: number[]) => {
+      updateCollapsed(prev => ({ ...prev, [tab]: personIds }));
+    },
+    [updateCollapsed]
+  );
 
   return { collapsedPersons, toggleCollapsed, setCollapsedForTab };
 }

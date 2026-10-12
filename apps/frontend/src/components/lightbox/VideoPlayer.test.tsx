@@ -18,14 +18,15 @@ import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { defined } from "../../util/defined.test-utils";
-import {
-  classifyVideoFailure,
-  factToText,
-  formatSeekDistance,
-  LIGHTBOX_SEEK_EVENT,
-  requestLightboxSeek,
-  VideoPlayer,
-} from "./VideoPlayer";
+import { createLightboxCommands, LightboxCommandsContext } from "./lightboxCommands";
+import { classifyVideoFailure, factToText, formatSeekDistance, VideoPlayer } from "./VideoPlayer";
+
+/** The lightbox the player is in; its seek commands are what the shortcuts send. */
+const lightbox = createLightboxCommands();
+
+function seek(seconds: number) {
+  lightbox.emit("seek", seconds);
+}
 
 /** The decoded access token the player reads is_admin from; null once signed out. */
 type AccessTokenStub = { access: { user_id: string; name: string; is_admin: boolean } | null };
@@ -94,16 +95,18 @@ async function renderPlayer(
   await act(async () => {
     root.render(
       <MantineProvider>
-        <VideoPlayer
-          url={props.url ?? "/media/photos/abc.mp4"}
-          fallbackUrl={props.fallbackUrl}
-          convertible={props.convertible}
-          height={props.height ?? "80vh"}
-          maxHeight={props.maxHeight}
-          controls
-          playing={false}
-          mediaHash="abc"
-        />
+        <LightboxCommandsContext.Provider value={lightbox}>
+          <VideoPlayer
+            url={props.url ?? "/media/photos/abc.mp4"}
+            fallbackUrl={props.fallbackUrl}
+            convertible={props.convertible}
+            height={props.height ?? "80vh"}
+            maxHeight={props.maxHeight}
+            controls
+            playing={false}
+            mediaHash="abc"
+          />
+        </LightboxCommandsContext.Provider>
       </MantineProvider>
     );
   });
@@ -167,14 +170,14 @@ describe("VideoPlayer seeking", () => {
     const at = stubPlayhead(defined(container.querySelector("video")), [[0, 120]], 30);
 
     await act(async () => {
-      requestLightboxSeek(10);
+      seek(10);
     });
 
     expect(at()).toBe(40);
     expect(container.textContent).toContain("+10s");
 
     await act(async () => {
-      requestLightboxSeek(-10);
+      seek(-10);
     });
 
     expect(at()).toBe(30);
@@ -187,7 +190,7 @@ describe("VideoPlayer seeking", () => {
     const at = stubPlayhead(defined(container.querySelector("video")), [[0, 600]], 120);
 
     await act(async () => {
-      requestLightboxSeek(60);
+      seek(60);
     });
 
     expect(at()).toBe(180);
@@ -200,17 +203,17 @@ describe("VideoPlayer seeking", () => {
     const at = stubPlayhead(defined(container.querySelector("video")), [[0, 12]], 4);
 
     await act(async () => {
-      requestLightboxSeek(-10);
+      seek(-10);
     });
     expect(at()).toBe(0);
 
     await act(async () => {
-      requestLightboxSeek(10);
+      seek(10);
     });
     expect(at()).toBe(10);
 
     await act(async () => {
-      requestLightboxSeek(10);
+      seek(10);
     });
     expect(at()).toBe(12);
     await unmount();
@@ -224,7 +227,7 @@ describe("VideoPlayer seeking", () => {
     const at = stubPlayhead(defined(container.querySelector("video")), [], 5);
 
     await act(async () => {
-      requestLightboxSeek(10);
+      seek(10);
     });
 
     expect(at()).toBe(5);
@@ -237,8 +240,7 @@ describe("VideoPlayer seeking", () => {
     const at = stubPlayhead(defined(container.querySelector("video")), [[0, 120]], 30);
 
     await act(async () => {
-      window.dispatchEvent(new CustomEvent(LIGHTBOX_SEEK_EVENT, { detail: { seconds: 0 } }));
-      window.dispatchEvent(new CustomEvent(LIGHTBOX_SEEK_EVENT));
+      seek(0);
     });
 
     expect(at()).toBe(30);
@@ -253,7 +255,7 @@ describe("VideoPlayer seeking", () => {
     await unmount();
 
     await act(async () => {
-      requestLightboxSeek(10);
+      seek(10);
     });
 
     expect(at()).toBe(30);

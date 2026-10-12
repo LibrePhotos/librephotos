@@ -11,8 +11,12 @@ import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { Photo } from "../../api_client/photos/types";
 import { defined } from "../../util/defined.test-utils";
 import type { LightboxControlsProps } from "./lightbox.types";
+import { createLightboxCommands, LightboxCommandsContext } from "./lightboxCommands";
 import { LightboxControls } from "./LightboxControls";
 import { makePhoto } from "./photoFixture.test-utils";
+
+/** The lightbox the toolbar is in; the shortcuts reach it as commands. */
+const lightbox = createLightboxCommands();
 
 const stubs = vi.hoisted(() => ({
   markDeleted:
@@ -75,33 +79,35 @@ async function renderControls(props: Partial<LightboxControlsProps> & { photo?: 
   await act(async () => {
     root.render(
       <MantineProvider env="test">
-        <LightboxControls
-          photoDetail={makePhoto({ ...photo, ...photoOverride })}
-          isPhotoDetailsLoading={false}
-          lightboxSidebarShow={false}
-          setLightBoxSidebarShow={() => {}}
-          isPublic={false}
-          enableZoom
-          type="photo"
-          isZoomed={false}
-          toggleZoom={() => {}}
-          onCloseRequest={() => {}}
-          onRotate={() => {}}
-          playing={false}
-          setPlaying={() => {}}
-          isFullscreen={false}
-          toggleFullscreen={() => {}}
-          isSlideshowActive={false}
-          toggleSlideshow={() => {}}
-          slideshowInterval={5}
-          setSlideshowInterval={() => {}}
-          slideshowProgress={0}
-          hasOcrText={false}
-          showOcrText={false}
-          toggleOcrText={() => {}}
-          onCopyToClipboard={() => {}}
-          {...rest}
-        />
+        <LightboxCommandsContext.Provider value={lightbox}>
+          <LightboxControls
+            photoDetail={makePhoto({ ...photo, ...photoOverride })}
+            isPhotoDetailsLoading={false}
+            lightboxSidebarShow={false}
+            setLightBoxSidebarShow={() => {}}
+            isPublic={false}
+            enableZoom
+            type="photo"
+            isZoomed={false}
+            toggleZoom={() => {}}
+            onCloseRequest={() => {}}
+            onRotate={() => {}}
+            playing={false}
+            setPlaying={() => {}}
+            isFullscreen={false}
+            toggleFullscreen={() => {}}
+            isSlideshowActive={false}
+            toggleSlideshow={() => {}}
+            slideshowInterval={5}
+            setSlideshowInterval={() => {}}
+            slideshowProgress={0}
+            hasOcrText={false}
+            showOcrText={false}
+            toggleOcrText={() => {}}
+            onCopyToClipboard={() => {}}
+            {...rest}
+          />
+        </LightboxCommandsContext.Provider>
       </MantineProvider>
     );
   });
@@ -152,7 +158,7 @@ describe("LightboxControls", () => {
       defined(container.querySelector<HTMLButtonElement>('[aria-label="lightbox.toolbar.restorePhoto"]')).click();
     });
     await act(async () => {
-      window.dispatchEvent(new CustomEvent("lightbox-delete-shortcut"));
+      lightbox.emit("delete");
     });
 
     expect(stubs.markDeleted).toHaveBeenCalledTimes(2);

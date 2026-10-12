@@ -46,6 +46,7 @@ import { FAVORITE_COLOR, ICON_SIZE } from "../../ui-constants";
 import { PhotoShareLinkModal } from "../sharing/PhotoShareLinkModal";
 import { copyKeyLabel } from "./lightbox.hotkeys";
 import type { LightboxControlsProps } from "./lightbox.types";
+import { useLightboxCommands } from "./lightboxCommands";
 import classes from "./LightboxControls.module.css";
 
 // Interval options for slideshow
@@ -147,25 +148,17 @@ export function LightboxControls({
     }
   }, [photoDetail, isPublic, inTrash, markPhotosDeleted, onAfterTrashToggle]);
 
-  // Add event listeners for keyboard shortcuts
+  // The keyboard shortcuts of the lightbox that owns this toolbar
+  const commands = useLightboxCommands();
   useEffect(() => {
-    const handleFavoriteEvent = () => handleFavoriteShortcut();
-    const handleHideEvent = () => handleHideShortcut();
-    const handlePublicEvent = () => handlePublicShortcut();
-    const handleDeleteEvent = () => handleToggleTrash();
-
-    window.addEventListener("lightbox-favorite-shortcut", handleFavoriteEvent);
-    window.addEventListener("lightbox-hide-shortcut", handleHideEvent);
-    window.addEventListener("lightbox-public-shortcut", handlePublicEvent);
-    window.addEventListener("lightbox-delete-shortcut", handleDeleteEvent);
-
-    return () => {
-      window.removeEventListener("lightbox-favorite-shortcut", handleFavoriteEvent);
-      window.removeEventListener("lightbox-hide-shortcut", handleHideEvent);
-      window.removeEventListener("lightbox-public-shortcut", handlePublicEvent);
-      window.removeEventListener("lightbox-delete-shortcut", handleDeleteEvent);
-    };
-  }, [handleFavoriteShortcut, handleHideShortcut, handlePublicShortcut, handleToggleTrash]);
+    const unsubscribers = [
+      commands.on("favorite", handleFavoriteShortcut),
+      commands.on("hide", handleHideShortcut),
+      commands.on("public", handlePublicShortcut),
+      commands.on("delete", handleToggleTrash),
+    ];
+    return () => unsubscribers.forEach(off => off());
+  }, [commands, handleFavoriteShortcut, handleHideShortcut, handlePublicShortcut, handleToggleTrash]);
 
   const slideshowLabel = isSlideshowActive ? t("lightbox.controls.stopslideshow") : t("lightbox.controls.slideshow");
   const liveTextLabel = showOcrText ? t("lightbox.controls.livetextoff") : t("lightbox.controls.livetext");

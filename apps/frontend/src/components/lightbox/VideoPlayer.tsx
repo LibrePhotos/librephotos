@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { useAccessToken } from "../../api_client/auth/hooks";
 import { useMediaDiagnosticsQuery } from "../../api_client/media";
 import { copyToClipboard } from "../../util/util";
+import { useLightboxCommands } from "./lightboxCommands";
 
 type VideoPlayerProps = {
   url: string;
@@ -49,29 +50,6 @@ export function formatSeekDistance(seconds: number): string {
   const sign = seconds > 0 ? "+" : "-";
   const size = Math.abs(seconds);
   return size >= 60 && size % 60 === 0 ? `${sign}${size / 60}m` : `${sign}${size}s`;
-}
-
-/**
- * Seek requests arrive as a window event because the two halves of the gesture
- * live apart: the lightbox owns the keyboard -- its hotkeys are bound on
- * `document`, so they fire no matter what has focus -- while the `<video>`
- * element only ever exists in here. Threading a ref down through `MediaDisplay`
- * into a memoised player would couple three components to one keypress, and
- * the lightbox already talks to its controls this way. Only the main slide
- * renders a player, so exactly one listener is ever mounted.
- */
-export const LIGHTBOX_SEEK_EVENT = "lightbox-seek";
-
-export function requestLightboxSeek(seconds: number) {
-  window.dispatchEvent(new CustomEvent(LIGHTBOX_SEEK_EVENT, { detail: { seconds } }));
-}
-
-/** The seconds a seek event asks for, as requestLightboxSeek sends them. */
-function seekSecondsOf(event: Event): number | undefined {
-  if (!(event instanceof CustomEvent)) return undefined;
-  const detail: unknown = event.detail;
-  if (typeof detail !== "object" || detail === null || !("seconds" in detail)) return undefined;
-  return typeof detail.seconds === "number" ? detail.seconds : undefined;
 }
 
 export type VideoErrorKind = "permission" | "missing" | "format" | "server" | "session" | "unknown";
@@ -142,6 +120,7 @@ export const VideoPlayer = memo(function VideoPlayer({
   convertible = true,
 }: VideoPlayerProps) {
   const { t } = useTranslation();
+  const commands = useLightboxCommands();
   const { data: auth } = useAccessToken();
   const isAdmin = !!auth?.access?.is_admin;
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -204,9 +183,11 @@ export const VideoPlayer = memo(function VideoPlayer({
       seekHintTimerRef.current = setTimeout(() => setSeekHint(null), 900);
     };
 
-    const handleSeek = (event: Event) => {
+    // The lightbox owns the keyboard, and the `<video>` element only exists here, so the seek
+    // arrives as a lightbox command. Only the main slide renders a player, so exactly one
+    // subscriber is ever mounted.
+    const handleSeek = (seconds: number) => {
       const video = videoRef.current;
-      const seconds = seekSecondsOf(event);
       if (!video || !seconds) return;
       // `seekable` is the honest bound, not `duration`. A video the backend is
       // transcoding on the fly is served as a chunked stream with no length and
@@ -225,9 +206,8 @@ export const VideoPlayer = memo(function VideoPlayer({
       showHint({ seconds });
     };
 
-    window.addEventListener(LIGHTBOX_SEEK_EVENT, handleSeek);
-    return () => window.removeEventListener(LIGHTBOX_SEEK_EVENT, handleSeek);
-  }, []);
+    return commands.on("seek", handleSeek);
+  }, [commands]);
 
   useEffect(
     () => () => {
