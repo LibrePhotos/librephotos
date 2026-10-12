@@ -22,21 +22,21 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from api.jobs.queue import JobStep
-from api.models import LongRunningJob, Photo, PhotoMetadata
-from api.models.duplicate import Duplicate
-from api.pagination import (
+from api.drf.pagination import (
     PAGE_PARAMETERS,
     PaginatedViewMixin,
     with_legacy_page_flags,
 )
-from api.request_user import request_user
+from api.drf.params import parse_body, parse_query
+from api.drf.request_user import request_user
+from api.jobs.queue import JobStep
+from api.models import LongRunningJob, Photo, PhotoMetadata
+from api.models.duplicate import Duplicate
 from api.serializers.duplicate import (
     DetectDuplicatesRequest,
     DuplicateListQuery,
     DuplicateResolveRequest,
 )
-from api.views.params import parse_body, parse_query
 from api.views.scan_triggers import enqueue_for_request
 
 logger = logging.getLogger(__name__)

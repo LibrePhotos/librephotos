@@ -12,7 +12,7 @@ from django.conf import settings
 from django.core.paginator import Paginator
 from django.db.models import Q
 
-from api.color_palettes import hex_palette
+from api.dataviz.color_palettes import hex_palette
 from api.faces.cluster_manager import ClusterManager
 from api.jobs.queue import enqueue_followup
 from api.lazy_import import LazyModule

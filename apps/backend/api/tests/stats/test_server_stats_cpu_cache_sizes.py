@@ -9,7 +9,7 @@ from unittest.mock import patch
 
 from django.test import TestCase
 
-from api.stats import _coerce_cache_size, get_server_stats
+from api.dataviz.stats import _coerce_cache_size, get_server_stats
 
 
 class CoerceCacheSizeTest(TestCase):

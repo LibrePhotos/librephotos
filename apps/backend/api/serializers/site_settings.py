@@ -4,7 +4,7 @@ from collections.abc import Mapping
 
 from rest_framework import serializers
 
-from api.views.params import JsonBooleanField, JsonStringField
+from api.drf.params import JsonBooleanField, JsonStringField
 
 
 class SiteSettingsRequest(serializers.Serializer[None]):

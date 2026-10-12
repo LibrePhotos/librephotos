@@ -12,10 +12,10 @@ Ensures that:
 from django.test import TestCase
 from rest_framework.test import APIClient, APITestCase
 
+from api.dataviz.stats import calc_megabytes, get_count_stats, median_value
 from api.models import Photo
 from api.models.duplicate import Duplicate
 from api.models.photo_stack import PhotoStack
-from api.stats import calc_megabytes, get_count_stats, median_value
 from api.tests.utils import (
     create_test_duplicate,
     create_test_photo,

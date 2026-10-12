@@ -5,7 +5,7 @@ answers ``{"errors": [{"field": ..., "message": ..., "code": ...}]}``: ``field``
 names the request field at fault (``non_field_errors`` or ``detail`` when there
 is none), ``message`` is for people, ``code`` is what clients branch on. An
 exception with ``entry_fields`` adds those to its entries (``job_id`` of
-``api.exceptions.JobAlreadyRunning``).
+``api.drf.exceptions.JobAlreadyRunning``).
 """
 
 from typing import Any
@@ -57,7 +57,7 @@ def _entry(field: str, value: object) -> dict[str, str]:
 
 
 def _entry_fields(exc: Exception) -> dict[str, str]:
-    """The extra fields ``exc`` puts on its entries, see ``api/exceptions.py``."""
+    """The extra fields ``exc`` puts on its entries, see ``api/drf/exceptions.py``."""
     fields: object = getattr(exc, "entry_fields", None)
     if not isinstance(fields, dict):
         return {}

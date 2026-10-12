@@ -191,7 +191,7 @@ class SubfoldersListingTests(SubfoldersTestBase):
         self.assertEqual(
             resp.json(),
             {
-                # The shared page envelope (api/pagination.py, #2327) ...
+                # The shared page envelope (api/drf/pagination.py, #2327) ...
                 "count": 0,
                 "next": None,
                 "previous": None,

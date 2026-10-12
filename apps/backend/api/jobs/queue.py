@@ -35,7 +35,7 @@ from django.db import transaction
 from django_q.models import OrmQ, Schedule
 from django_q.tasks import AsyncTask, Chain, schedule
 
-from api.exceptions import JobAlreadyRunning
+from api.drf.exceptions import JobAlreadyRunning
 from api.models.long_running_job import LongRunningJob
 from api.models.user import User
 

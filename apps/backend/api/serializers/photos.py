@@ -9,6 +9,13 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field, extend_schema_serializer
 from rest_framework import serializers
 
+from api.drf.params import (
+    JsonBooleanField,
+    JsonIntegerField,
+    JsonStringField,
+    required_string,
+)
+from api.drf.request_user import request_user
 from api.metadata import edits
 from api.models import AlbumDate, File, Photo, User
 from api.models.photo_caption import PhotoCaption
@@ -17,19 +24,12 @@ from api.models.photo_ocr import PhotoOcr
 from api.models.photo_search import PhotoSearch
 from api.models.photo_stack import PhotoStack
 from api.models.thumbnail import Thumbnail
-from api.request_user import request_user
 from api.search.similarity import search_similar_image
 from api.serializers.fields import loaded_count, prefetched, shared_serializer
 from api.serializers.photo_metadata import PhotoMetadataSummarySerializer
 from api.serializers.PhotosGroupedByDate import PhotosGroupedByDate
 from api.serializers.simple import SimpleUserSerializer
 from api.video import color, playback
-from api.views.params import (
-    JsonBooleanField,
-    JsonIntegerField,
-    JsonStringField,
-    required_string,
-)
 
 logger = logging.getLogger(__name__)
 

@@ -26,16 +26,16 @@ from rest_framework.request import Request
 from rest_framework.views import APIView
 
 from api import binaries
+from api.accounts.authentication import JWTCookieAuthentication
 from api.all_tasks import zip_file_name
-from api.authentication import JWTCookieAuthentication
-from api.http_range import file_size, ranged_response
+from api.drf.params import parse_query
 from api.mime import mime_type
 from api.models import AlbumUser, Photo
 from api.models.photo import HEAVY_PHOTO_COLUMNS
 from api.models.user import User
 from api.serializers.media import MediaQuery
+from api.serving.http_range import file_size, ranged_response
 from api.video import color, ffmpeg_budget, transcode_cache
-from api.views.params import parse_query
 
 logger = logging.getLogger(__name__)
 

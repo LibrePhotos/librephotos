@@ -8,10 +8,10 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from api.albums.auto_albums import generate_event_albums, regenerate_event_titles
+from api.drf.pagination import WholeListPagination
+from api.drf.request_user import request_user
 from api.models import AlbumAuto, LongRunningJob, Person, Photo, User
 from api.models.photo import visible_photo_q
-from api.pagination import WholeListPagination
-from api.request_user import request_user
 from api.serializers.album_auto import AlbumAutoListSerializer, AlbumAutoSerializer
 from api.views.custom_api_view import ListViewSet
 from api.views.scan_triggers import start_job

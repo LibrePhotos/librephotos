@@ -3,7 +3,7 @@
 ``request.data`` is a list (or a string, a number, ...) when the JSON body is
 not an object. The views below called ``.get`` on it, or ``dict()`` on it, or
 asserted it was a dict, so a body of ``[]`` crashed them. They now read the
-body through ``api.request_data.request_dict``, which raises ``ParseError``;
+body through ``api.drf.request_data.request_dict``, which raises ``ParseError``;
 the project's exception handler turns that into the usual error envelope.
 """
 
@@ -13,8 +13,8 @@ from rest_framework.exceptions import ParseError
 from rest_framework.test import APIClient, APIRequestFactory
 from rest_framework.views import APIView
 
+from api.drf.request_data import request_dict
 from api.models import Tag
-from api.request_data import request_dict
 from api.tests.utils import create_test_tag, create_test_user
 
 EXPECTED = {

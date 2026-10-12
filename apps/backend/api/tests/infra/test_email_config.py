@@ -11,10 +11,12 @@ from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.core import mail
+from django.core.signing import BadSignature
+from django.db import ProgrammingError
 from django.test import TestCase
 from rest_framework.test import APIClient
 
-from api.mail import DynamicEmailBackend, email_is_configured
+from api.accounts.mail import DynamicEmailBackend, email_is_configured
 from api.models.email_config import EmailConfig
 from api.tests.utils import create_test_user
 
@@ -44,6 +46,26 @@ class EmailConfigModelTest(TestCase):
         c.save()
         self.assertFalse(c.is_configured)
         self.assertFalse(email_is_configured())
+
+    def test_not_configured_before_the_table_exists(self):
+        with patch.object(
+            EmailConfig, "load", side_effect=ProgrammingError("no such table")
+        ):
+            self.assertFalse(email_is_configured())
+
+    def test_not_configured_when_the_secret_does_not_decrypt(self):
+        with (
+            patch.object(EmailConfig, "load", side_effect=BadSignature("changed key")),
+            self.assertLogs("api.accounts.mail", "WARNING"),
+        ):
+            self.assertFalse(email_is_configured())
+
+    def test_any_other_error_is_not_swallowed(self):
+        with (
+            patch.object(EmailConfig, "load", side_effect=RuntimeError("bug")),
+            self.assertRaises(RuntimeError),
+        ):
+            email_is_configured()
 
     def test_custom_requires_host_and_from(self):
         c = EmailConfig.load()

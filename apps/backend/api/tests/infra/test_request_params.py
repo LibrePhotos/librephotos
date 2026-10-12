@@ -1,4 +1,4 @@
-"""``api/views/params.py``: request input read through serializers (#2326)."""
+"""``api/drf/params.py``: request input read through serializers (#2326)."""
 
 from urllib.parse import urlencode
 
@@ -10,7 +10,7 @@ from rest_framework.response import Response
 from rest_framework.test import APIRequestFactory
 from rest_framework.views import APIView
 
-from api.views.params import (
+from api.drf.params import (
     ClampedIntegerField,
     QueryFlagField,
     TristateFlagField,

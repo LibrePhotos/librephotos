@@ -2,11 +2,11 @@
 
 from rest_framework import serializers
 
-from api.views.params import JsonStringField, required_string
+from api.drf.params import JsonStringField, required_string
 
 
 class PhotoStackListQuery(serializers.Serializer[None]):
-    """The filter; ``page``/``page_size`` are the paginator's (api/pagination.py)."""
+    """The filter; ``page``/``page_size`` are the paginator's (api/drf/pagination.py)."""
 
     stack_type = serializers.CharField(
         required=False,

@@ -11,7 +11,7 @@ from django.db.models import Avg, Count, Max, Min, Model, Q, QuerySet, Sum
 from django.db.models.functions import TruncMonth
 
 from api import binaries
-from api.color_palettes import hex_palette
+from api.dataviz.color_palettes import hex_palette
 from api.lazy_import import LazyModule
 from api.models import (
     AlbumAuto,
@@ -411,13 +411,17 @@ def _tag_labels(captions_json: dict[str, Any] | None) -> list[str]:
     return [str(value) for value in values if value]
 
 
+def _geo_features(geolocation_json: object) -> list[Any]:
+    """The ``features`` list of a reverse-geocoding result; [] when there is none."""
+    if not isinstance(geolocation_json, dict):
+        return []
+    features = geolocation_json.get("features")
+    return features if isinstance(features, list) else []
+
+
 def _location_texts(geolocation_json: dict[str, Any] | None) -> set[str]:
-    try:
-        features = (geolocation_json or {}).get("features", [])
-    except Exception:
-        features = []
     texts: set[str] = set()
-    for feature in features:
+    for feature in _geo_features(geolocation_json):
         if not isinstance(feature, dict):
             continue
         value = feature.get("text")
@@ -499,11 +503,8 @@ def get_location_sunburst(user: User) -> SunburstNode:
         .iterator(chunk_size=2000)
     )
     for geo in photo_geo_iter:
-        try:
-            features = (geo or {}).get("features", [])
-        except Exception:
-            features = []
-        if not isinstance(features, list) or len(features) < 3:
+        features = _geo_features(geo)
+        if len(features) < 3:
             continue
         f1 = features[-1] if isinstance(features[-1], dict) else {}
         f2 = features[-2] if isinstance(features[-2], dict) else {}
@@ -561,7 +562,7 @@ def _location_cluster_row(feature: object) -> list[Any] | None:
         return None
     try:
         return [float(center[1]), float(center[0]), location_text]
-    except Exception:
+    except (TypeError, ValueError):
         return None
 
 
@@ -577,11 +578,7 @@ def get_location_clusters(user: User) -> list[list[Any]]:
         .iterator(chunk_size=2000)
     )
     for geo in photo_geo_iter:
-        try:
-            features = (geo or {}).get("features", [])
-        except Exception:
-            features = []
-        for feature in features:
+        for feature in _geo_features(geo):
             row = _location_cluster_row(feature)
             if row is not None:
                 # Keep first occurrence per distinct location name

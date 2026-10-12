@@ -2,7 +2,7 @@
 
 from rest_framework import serializers
 
-from api.views.params import QueryFlagField
+from api.drf.params import QueryFlagField
 
 
 class MediaQuery(serializers.Serializer[None]):

@@ -3,6 +3,7 @@ from typing import Any
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
+from api.drf.params import JsonStringField
 from api.models import Tag
 from api.serializers.photos import (
     GroupedPhotosSerializer,
@@ -12,7 +13,6 @@ from api.serializers.PhotosGroupedByDate import (
     filter_photos_by_media_type,
     get_photos_ordered_by_date,
 )
-from api.views.params import JsonStringField
 
 
 class TagSerializer(serializers.ModelSerializer):

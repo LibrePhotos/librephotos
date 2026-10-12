@@ -276,7 +276,7 @@ The deletion runs as a background django-q2 task (`AsyncTask(...).run()`), so th
 
 Missing photo count is included in the user statistics API response.
 
-**Calculation**: `get_count_stats(user)` in `apps/backend/api/stats.py`
+**Calculation**: `get_count_stats(user)` in `apps/backend/api/dataviz/stats.py`
 
 ```python
 num_missing_photos = Photo.objects.filter(
@@ -482,7 +482,7 @@ The English strings `settings.missingphotos`, `settings.missingphotosbutton`, an
   - `apps/backend/api/views/photos.py` — photo operations
 
 - **Statistics**:
-  - `apps/backend/api/stats.py` — count calculations including missing photos
+  - `apps/backend/api/dataviz/stats.py` — count calculations including missing photos
 
 - **Serializers**:
   - `apps/backend/api/serializers/photos.py` — photo serialization (`get_image_path`)

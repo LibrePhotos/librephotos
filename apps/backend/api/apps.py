@@ -23,7 +23,7 @@ SIGNAL_MODULES = (
     "api.sync_signals",
     # Before a user is deleted, however that happens: turn off their public
     # links and make room for their albums and tags in ``deleted``.
-    "api.user_deletion",
+    "api.accounts.deletion",
 )
 
 

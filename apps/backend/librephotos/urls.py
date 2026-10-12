@@ -43,9 +43,9 @@ from rest_framework_simplejwt.views import (
     TokenRefreshView,
 )
 
-from api.auth_cookies import clear_auth_cookies, set_auth_cookies
+from api.accounts.cookies import clear_auth_cookies, set_auth_cookies
+from api.accounts.throttling import SignInRateThrottle, TokenRefreshRateThrottle
 from api.models import User
-from api.throttling import SignInRateThrottle, TokenRefreshRateThrottle
 from api.views import (
     album_auto,
     album_folder,

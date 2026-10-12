@@ -4,8 +4,8 @@ import os
 from django.test import TestCase
 from rest_framework.test import APIClient
 
+from api.dataviz.stats import get_location_timeline, get_photo_month_counts
 from api.models import Photo
-from api.stats import get_location_timeline, get_photo_month_counts
 from api.tests.utils import create_test_photo, create_test_user
 
 

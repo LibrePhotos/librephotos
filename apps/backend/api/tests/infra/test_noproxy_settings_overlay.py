@@ -102,7 +102,9 @@ class NoProxySettingsTest(SimpleTestCase):
         self.assertEqual(
             loaded["noproxy_rest_framework"], loaded["prod_rest_framework"]
         )
-        self.assertEqual(loaded["email_backend"], "api.mail.DynamicEmailBackend")
+        self.assertEqual(
+            loaded["email_backend"], "api.accounts.mail.DynamicEmailBackend"
+        )
 
     def test_trusts_no_forwarded_header_unless_told_of_a_proxy(self):
         # production sits behind the bundled proxy; this image is reached

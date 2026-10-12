@@ -14,7 +14,7 @@ from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from api.http_range import UNSATISFIABLE, parse_byte_range, ranged_response
+from api.serving.http_range import UNSATISFIABLE, parse_byte_range, ranged_response
 from api.tests.utils import create_test_file, create_test_photo, create_test_user
 
 CONTENT = bytes(range(256)) * 8  # 2048 bytes, every one of them distinguishable

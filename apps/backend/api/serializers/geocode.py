@@ -2,7 +2,7 @@
 
 from rest_framework import serializers
 
-from api.views.params import ClampedIntegerField
+from api.drf.params import ClampedIntegerField
 
 # Results a provider is asked for at most; the providers cap lower themselves.
 MAX_GEOCODE_RESULTS = 50

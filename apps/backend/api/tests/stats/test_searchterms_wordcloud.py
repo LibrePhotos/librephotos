@@ -1,4 +1,4 @@
-"""Characterization tests for api.stats.get_searchterms_wordcloud.
+"""Characterization tests for api.dataviz.stats.get_searchterms_wordcloud.
 
 These pin the CURRENT behavior of the wordcloud builder before refactoring:
 counting rules, ordering/tie-breaking, filtering rules, malformed-input
@@ -10,8 +10,8 @@ import math
 
 from django.test import TestCase
 
+from api.dataviz.stats import get_searchterms_wordcloud
 from api.models import Person
-from api.stats import get_searchterms_wordcloud
 from api.tests.utils import (
     create_test_face,
     create_test_person,

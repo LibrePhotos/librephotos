@@ -48,19 +48,19 @@ test makes `--parallel` runs crash with "cannot pickle 'traceback'"; rerun that 
   `api/tests/sharing_and_public/test_cross_tenant_reads.py`, a mutating one in `test_cross_tenant_writes.py`.
 - Every API view sets `permission_classes` or `get_permissions()` itself or in a project base class
   it names; the `IsAuthenticated` default is only a safety net. A role is a permission class
-  (`IsAdminUser`, `IsSuperUser` from `api/permissions.py`), never an `is_staff` check that returns a
-  response. An anonymous endpoint that takes credentials gets a throttle from `api/throttling.py`.
+  (`IsAdminUser`, `IsSuperUser` from `api/accounts/permissions.py`), never an `is_staff` check that returns a
+  response. An anonymous endpoint that takes credentials gets a throttle from `api/accounts/throttling.py`.
   `api/tests/infra/test_api_conventions.py` enforces all three.
 - Auth cookies (`jwt`, `access`, `refresh`) are set and cleared only through `set_auth_cookies`/
-  `clear_auth_cookies` in `api/auth_cookies.py`, so they keep one set of flags (HttpOnly `jwt`,
+  `clear_auth_cookies` in `api/accounts/cookies.py`, so they keep one set of flags (HttpOnly `jwt`,
   SameSite=Lax, Secure on HTTPS or `AUTH_COOKIE_SECURE`); CORS headers are django-cors-headers' job.
   `api/tests/infra/test_auth_cookies.py` fails on `set_cookie`/`delete_cookie` anywhere else.
-- In views, get the user with `api.request_user.request_user(request)` (401 if anonymous). Where anonymous
+- In views, get the user with `api.drf.request_user.request_user(request)` (401 if anonymous). Where anonymous
   access is allowed, narrow with `isinstance(request.user, User)`. A `get_queryset` that needs a
   user returns `Model.objects.none()` when `getattr(self, "swagger_fake_view", False)`.
 - A view reads its input only through a serializer: a `*Query`/`*Request` `serializers.Serializer` in
   `api/serializers/`, read with `parse_query(request, XQuery)` or `parse_body(request, XRequest)` from
-  `api/views/params.py` (a missing or malformed field is a 400 naming it, never a 500), and the same
+  `api/drf/params.py` (a missing or malformed field is a 400 naming it, never a 500), and the same
   class in `@extend_schema(parameters=[XQuery])` / `request=XRequest`. Clamp numbers with its
   `ClampedIntegerField`; example: `DuplicateListView` and `DetectDuplicatesView` in `api/views/duplicates.py`.
   `RequestParsingGuardTest` (`api/tests/infra/test_api_conventions.py`) fails on a hand read of
@@ -85,9 +85,9 @@ test makes `--parallel` runs crash with "cannot pickle 'traceback'"; rerun that 
   (`api/tests/infra/test_api_conventions.py`); a mutating one also needs a case in
   `api/tests/sharing_and_public/test_cross_tenant_writes.py`, or its exact route in `NOT_PHOTO_SCOPED`
   with the reason (a prefix entry never covers the routes below it).
-- Lists page one way: `api.pagination.DefaultPagination` (`page`/`page_size`, 100 a page, at most 1000,
+- Lists page one way: `api.drf.pagination.DefaultPagination` (`page`/`page_size`, 100 a page, at most 1000,
   envelope `{count, next, previous, results, page, page_size, num_pages}`) or a preset of it from
-  `api/pagination.py` (page size only), through `self.paginate_queryset()` (`PaginatedViewMixin` on an
+  `api/drf/pagination.py` (page size only), through `self.paginate_queryset()` (`PaginatedViewMixin` on an
   `APIView`); never Django's `Paginator` or a hand-sliced page. A list that answers every row says
   `pagination_class = None` and goes into `UNPAGINATED_LIST_VIEWS` with the reason; `PaginationConventionTest`
   (`api/tests/infra/test_api_conventions.py`) enforces it. Clients that need a whole list follow `next`
@@ -102,7 +102,7 @@ test makes `--parallel` runs crash with "cannot pickle 'traceback'"; rerun that 
   calls it. Code only tests call counts as dead; `vulture_whitelist.py` is for names called from outside
   Python (settings dotted paths, django_q schedules) and only shrinks.
 - Errors: raise a DRF exception (`ValidationError`, `NotFound`, `PermissionDenied`) or one from
-  `api/exceptions.py` (`Conflict`, `Gone`, `UpstreamError`, `ServiceUnavailable`, ...), with `code=` when
+  `api/drf/exceptions.py` (`Conflict`, `Gone`, `UpstreamError`, `ServiceUnavailable`, ...), with `code=` when
   a client branches on it; never build an error body or a 2xx carrying `"status": False`. The handler
   (`api/views/exception_handler.py`) writes `{"errors": [{"field", "message", "code"}]}`, and
   `ErrorEnvelopeTest` (`api/tests/infra/test_api_conventions.py`) fails on an error `Response` or a
@@ -174,17 +174,21 @@ test makes `--parallel` runs crash with "cannot pickle 'traceback'"; rerun that 
 ## Layout
 
 - `api/`: `views/`, `serializers/`, `models/`, `management/commands/`, `migrations/`, `tests/` (grouped by
-  area, e.g. `api/tests/metadata/`) and the domain packages: `albums/` (event albums, timeline filter),
-  `classification/` (captions, document and screenshot heuristics), `directory_watcher/` (the scan
-  pipeline), `duplicates/`, `faces/` (face service client, detection, clustering, training, social
-  graph), `geocode/`, `jobs/` (the queue), `metadata/` (read, write, date rules), `search/` (OpenCLIP
-  embeddings and tags, similarity index client, search filter, term examples), `stacks/` (bursts,
-  brackets, Motion Photo video), `thumbnails/` (render, decode, strip metadata), `video/` (probe and
-  HDR tonemapping, playback type, transcode cache, ffmpeg budget).
+  area, e.g. `api/tests/metadata/`) and the domain packages: `accounts/` (JWT cookie auth, auth
+  cookies, permission classes, throttles, allauth adapters, user deletion, public URL, mail backend),
+  `albums/` (event albums, timeline filter), `classification/` (captions, document and screenshot
+  heuristics), `dataviz/` (stats, chart palettes), `directory_watcher/` (the scan pipeline), `drf/`
+  (request parsing, request user, API exceptions, pagination, OpenAPI schema class), `duplicates/`,
+  `faces/` (face service client, detection, clustering, training, social graph), `geocode/`, `jobs/`
+  (the queue), `metadata/` (read, write, date rules), `search/` (OpenCLIP embeddings and tags,
+  similarity index client, search filter, term examples), `serving/` (byte ranges, why the web server
+  cannot read a file), `stacks/` (bursts, brackets, Motion Photo video), `thumbnails/` (render, decode,
+  strip metadata), `video/` (probe and HDR tonemapping, playback type, transcode cache, ffmpeg budget).
 - No new flat `api/` module: new code goes into a domain package. The flat modules left are listed in
   `api/tests/infra/test_module_layout.py` with the package each moves to; the list only shrinks. A move
   updates every import and `mock.patch("api.<old>...")` string and keeps no re-export shim (a patch on a
-  shim misses the code under test); a moved scheduled function ships a migration rewriting `Schedule.func`.
+  shim misses the code under test); a moved scheduled function ships a migration rewriting `Schedule.func`,
+  and a dotted path in `librephotos/settings/` is checked by `api/tests/infra/test_settings_dotted_paths.py`.
 - Imports go down only: `api.views`/`nextcloud.views`, then `api.serializers`, the domain packages, then
   `api.models`; views never import `api.sidecars` directly, and `service/`, `image_similarity/` and
   `api.sidecars` never import Django. `lint-imports` (CI) checks these contracts, `[tool.importlinter]` in

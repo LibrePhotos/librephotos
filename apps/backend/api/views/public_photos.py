@@ -9,14 +9,14 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from api.drf.params import parse_body
+from api.drf.request_user import request_user
 from api.models import Photo
 from api.models.photo_share import PhotoShare
 from api.models.user import User
-from api.request_user import request_user
 from api.serializers.photos import PublicPhotoDetailSerializer, SetPhotoShareRequest
 from api.video import playback
 from api.views.media import MediaServingView
-from api.views.params import parse_body
 
 # What an anonymous holder of a photo link gets to see: the big thumbnail,
 # plus the original file for videos because a <video> needs something it can

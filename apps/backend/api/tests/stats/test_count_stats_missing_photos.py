@@ -1,4 +1,4 @@
-"""Tests for the ``num_missing_photos`` count in ``api.stats.get_count_stats``.
+"""Tests for the ``num_missing_photos`` count in ``api.dataviz.stats.get_count_stats``.
 
 The filter had the same Q-operator precedence bug that was fixed in
 ``api.albums.auto_albums.delete_missing_photos``: ``&`` binds tighter than ``|``, so
@@ -9,7 +9,7 @@ requesting user. See ``test_delete_missing_photos.py`` for the sibling guard.
 
 from django.test import TestCase
 
-from api.stats import get_count_stats
+from api.dataviz.stats import get_count_stats
 from api.tests.utils import create_test_photo, create_test_user
 
 

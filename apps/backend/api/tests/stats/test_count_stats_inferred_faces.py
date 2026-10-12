@@ -1,4 +1,4 @@
-"""Tests for the ``num_inferred_faces`` count in ``api.stats.get_count_stats``.
+"""Tests for the ``num_inferred_faces`` count in ``api.dataviz.stats.get_count_stats``.
 
 The filter read ``Q(person=True)``. Django resolves a boolean given to a
 ForeignKey lookup as a primary key, so ``person=True`` becomes ``person_id=1``:
@@ -15,8 +15,8 @@ next to Labeled and Unknown.
 
 from django.test import TestCase
 
+from api.dataviz.stats import get_count_stats
 from api.models import Person
-from api.stats import get_count_stats
 from api.tests.utils import (
     create_test_face,
     create_test_person,

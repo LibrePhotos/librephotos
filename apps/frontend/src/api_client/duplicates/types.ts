@@ -58,7 +58,7 @@ type DuplicateListItem = z.infer<typeof DuplicateListItem>;
 // Alias for compatibility
 export type Duplicate = DuplicateListItem;
 
-// Duplicate list response: the shared page envelope (backend api/pagination.py)
+// Duplicate list response: the shared page envelope (backend api/drf/pagination.py)
 export const DuplicateListResponse = z.object({
   ...PageFields,
   results: DuplicateListItem.array(),

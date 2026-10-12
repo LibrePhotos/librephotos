@@ -16,11 +16,11 @@ Every DRF view under ``api/`` says who may call it (#2329): its class, or a
 project base class it names, sets ``permission_classes`` or overrides
 ``get_permissions()``; the ``IsAuthenticated`` default is a safety net, not a
 declaration. Role requirements are permission classes (``IsAdminUser``,
-``api.permissions.IsSuperUser``), never an ``is_staff`` check in the body that
+``api.accounts.permissions.IsSuperUser``), never an ``is_staff`` check in the body that
 builds its own 401 or 403. The endpoints that take credentials without a
-session are throttled (``api/throttling.py``).
+session are throttled (``api/accounts/throttling.py``).
 
-Every list pages one way (#2327): ``api.pagination.DefaultPagination`` or a
+Every list pages one way (#2327): ``api.drf.pagination.DefaultPagination`` or a
 preset of it, through ``paginate_queryset()``, or ``pagination_class = None``
 with the view and the reason in ``UNPAGINATED_LIST_VIEWS``. No view module
 imports Django's ``Paginator``.
@@ -49,15 +49,15 @@ from rest_framework.response import Response
 from rest_framework.test import APIClient, APIRequestFactory, force_authenticate
 from rest_framework.views import APIView
 
-from api.models import AlbumAuto, AlbumDate, AlbumPlace, AlbumThing, AlbumUser, Tag
-from api.models.long_running_job import LongRunningJob
-from api.pagination import (
+from api.accounts.permissions import IsSuperUser
+from api.drf.pagination import (
     DEFAULT_PAGE_SIZE,
     MAX_PAGE_SIZE,
     DayAlbumPagination,
     DefaultPagination,
 )
-from api.permissions import IsSuperUser
+from api.models import AlbumAuto, AlbumDate, AlbumPlace, AlbumThing, AlbumUser, Tag
+from api.models.long_running_job import LongRunningJob
 from api.serializers.job import LongRunningJobSerializer
 from api.serializers.tag import TagSerializer
 from api.tests.infra.routes import ApiRoute, api_routes, router_verbs
@@ -893,7 +893,7 @@ class ErrorEnvelopeTest(SimpleTestCase):
             problems,
             [],
             "Raise a DRF exception (ValidationError, NotFound, PermissionDenied, "
-            "or one from api/exceptions.py) instead, with code= where a client "
+            "or one from api/drf/exceptions.py) instead, with code= where a client "
             "branches on it:\n  " + "\n  ".join(problems),
         )
 
@@ -950,7 +950,7 @@ class ErrorEnvelopeTest(SimpleTestCase):
 
 
 # What a view may not read by hand: it passes them as ``data=`` to a serializer,
-# or reads them through ``parse_query``/``parse_body`` (api/views/params.py).
+# or reads them through ``parse_query``/``parse_body`` (api/drf/params.py).
 REQUEST_INPUTS = frozenset({"data", "query_params", "GET", "POST"})
 # The chunked upload views extend django-chunked-upload's ChunkedUploadView,
 # whose protocol is multipart form fields read from request.POST.
@@ -1013,7 +1013,7 @@ class RequestParsingGuardTest(SimpleTestCase):
     ``request_dict(request)["key"]``) answers a missing or malformed field with
     a 500 and drifts from the OpenAPI schema. Read the input with
     ``parse_query(request, XQuery)`` or ``parse_body(request, XRequest)`` from
-    ``api/views/params.py``, or pass it as ``data=`` to a serializer.
+    ``api/drf/params.py``, or pass it as ``data=`` to a serializer.
     """
 
     def test_no_view_module_reads_input_by_hand(self):
@@ -1026,7 +1026,7 @@ class RequestParsingGuardTest(SimpleTestCase):
             found,
             [],
             "Read the request through a serializer (parse_query/parse_body in "
-            "api/views/params.py) instead:\n  " + "\n  ".join(found),
+            "api/drf/params.py) instead:\n  " + "\n  ".join(found),
         )
 
     def test_the_source_check_catches_each_form(self):
@@ -1184,7 +1184,7 @@ class AccessByRoleTest(TestCase):
 # --- One pagination style (#2327) ---------------------------------------------
 
 # List routes that answer every row at once, and why. Every other list pages
-# with api.pagination.DefaultPagination or one of its presets.
+# with api.drf.pagination.DefaultPagination or one of its presets.
 UNPAGINATED_LIST_VIEWS: dict[str, str] = {
     "api.views.albums.AlbumDateListViewSet": (
         "the timeline's index, one row per day without its photos; the "
@@ -1288,7 +1288,7 @@ def django_paginator_uses(source: str, filename: str) -> list[str]:
         if any(module.startswith("django.core.paginator") for module in modules):
             problems.append(
                 f"{filename}:{node.lineno} imports django.core.paginator (page "
-                "with self.paginate_queryset(), see api/pagination.py)"
+                "with self.paginate_queryset(), see api/drf/pagination.py)"
             )
     return problems
 
@@ -1310,11 +1310,11 @@ def pagination_subclasses() -> list[type[DefaultPagination]]:
 
 
 def preset_problems(classes: Iterable[type]) -> list[str]:
-    """Presets outside api/pagination.py or with another envelope."""
+    """Presets outside api/drf/pagination.py or with another envelope."""
     problems = [
-        f"{qualname(klass)} is not in api/pagination.py"
+        f"{qualname(klass)} is not in api/drf/pagination.py"
         for klass in classes
-        if klass.__module__ != "api.pagination"
+        if klass.__module__ != "api.drf.pagination"
     ]
     problems += [
         f"{qualname(klass)} overrides {method}"
@@ -1341,7 +1341,7 @@ class PaginationConventionTest(SimpleTestCase):
         self.assertEqual(
             problems,
             [],
-            "Page lists with api.pagination.DefaultPagination (or a preset of "
+            "Page lists with api.drf.pagination.DefaultPagination (or a preset of "
             "it) through paginate_queryset(), or set pagination_class = None "
             "and list the view with the reason in UNPAGINATED_LIST_VIEWS:\n  "
             + "\n  ".join(problems),
@@ -1356,7 +1356,7 @@ class PaginationConventionTest(SimpleTestCase):
     def test_the_default_is_the_project_pagination(self):
         self.assertEqual(
             settings.REST_FRAMEWORK["DEFAULT_PAGINATION_CLASS"],
-            "api.pagination.DefaultPagination",
+            "api.drf.pagination.DefaultPagination",
         )
         self.assertEqual(settings.REST_FRAMEWORK["PAGE_SIZE"], DEFAULT_PAGE_SIZE)
         self.assertEqual(DefaultPagination.max_page_size, MAX_PAGE_SIZE)
@@ -1447,7 +1447,7 @@ class PaginationConventionTest(SimpleTestCase):
         self.assertEqual(
             preset_problems([PlantedPagination]),
             [
-                f"{qualname(PlantedPagination)} is not in api/pagination.py",
+                f"{qualname(PlantedPagination)} is not in api/drf/pagination.py",
                 f"{qualname(PlantedPagination)} overrides get_paginated_response",
             ],
         )

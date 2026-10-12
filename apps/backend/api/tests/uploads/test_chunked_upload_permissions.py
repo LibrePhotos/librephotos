@@ -291,7 +291,9 @@ class AuthenticateUploadRequestTest(TestCase):
 
     def test_only_authentication_failures_are_converted_to_403(self):
         # Any other exception from token validation propagates untouched.
-        validate = "api.authentication.JWTCookieAuthentication.get_validated_token"
+        validate = (
+            "api.accounts.authentication.JWTCookieAuthentication.get_validated_token"
+        )
         with patch(validate, side_effect=ValueError("boom")):
             with self.assertRaises(ValueError):
                 authenticate_upload_request(make_request(jwt="whatever"))

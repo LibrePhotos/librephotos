@@ -15,7 +15,7 @@ from rest_framework.request import Request
 from rest_framework.views import APIView
 
 from api.albums.timeline_filter import timeline_filter_q
-from api.request_user import request_user
+from api.drf.request_user import request_user
 from api.search.semantic import calculate_query_embeddings
 from api.search.similarity import search_similar_embedding
 

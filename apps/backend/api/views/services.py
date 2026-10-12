@@ -5,7 +5,7 @@ from rest_framework.permissions import IsAdminUser
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from api.exceptions import Conflict
+from api.drf.exceptions import Conflict
 from api.services import (
     SERVICE_FEATURE_FLAGS,
     SERVICES,

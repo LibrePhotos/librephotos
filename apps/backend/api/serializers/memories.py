@@ -2,7 +2,7 @@
 
 from rest_framework import serializers
 
-from api.views.params import ClampedIntegerField, QueryFlagField
+from api.drf.params import ClampedIntegerField, QueryFlagField
 
 # Days either side of the anniversary that still count as the same memory. Three
 # days keeps a weekend trip together without pulling in an unrelated week.

@@ -19,9 +19,9 @@ from django.test import TestCase
 from django.utils import timezone
 from rest_framework.test import APIClient
 
+from api.dataviz.stats import get_count_stats
 from api.directory_watcher.processing_jobs import classify_media
 from api.models.photo_search import PhotoSearch
-from api.stats import get_count_stats
 from api.tests.utils import (
     create_test_album_date,
     create_test_photo,

@@ -8,9 +8,10 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from api.drf.pagination import PhotoGridPagination
+from api.drf.params import parse_body
+from api.drf.request_user import request_user
 from api.models import AlbumUser, Photo, User
-from api.pagination import PhotoGridPagination
-from api.request_user import request_user
 from api.serializers.album_user import (
     AlbumUserListSerializer,
     SetUserAlbumSharedRequest,
@@ -23,7 +24,6 @@ from api.serializers.photos import (
     with_photo_summary_relations,
 )
 from api.views.custom_api_view import ListViewSet
-from api.views.params import parse_body
 
 logger = logging.getLogger(__name__)
 

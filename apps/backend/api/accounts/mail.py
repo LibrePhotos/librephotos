@@ -18,17 +18,29 @@ from django.core.mail import EmailMessage
 from django.core.mail.backends.base import BaseEmailBackend
 from django.core.mail.backends.console import EmailBackend as ConsoleBackend
 from django.core.mail.backends.smtp import EmailBackend as SMTPBackend
+from django.core.signing import BadSignature
+from django.db import DatabaseError
 
 logger = logging.getLogger(__name__)
 
 
 def email_is_configured() -> bool:
-    """Whether this instance can send mail. Safe to call before migrations."""
-    try:
-        from api.models.email_config import EmailConfig
+    """Whether this instance can send mail. Safe to call before migrations.
 
+    False when the table is not there yet (``DatabaseError``) or the stored
+    secret no longer decrypts, which is what a changed ``SECRET_KEY`` does.
+    """
+    from api.models.email_config import EmailConfig
+
+    try:
         return EmailConfig.load().is_configured
-    except Exception:
+    except DatabaseError:
+        return False
+    except BadSignature:
+        logger.warning(
+            "The stored email secret does not decrypt (was SECRET_KEY changed?); "
+            "outgoing email is off until it is saved again."
+        )
         return False
 
 

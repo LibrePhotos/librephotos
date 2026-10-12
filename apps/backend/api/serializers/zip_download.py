@@ -12,7 +12,7 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
-from api.views.params import JsonStringField
+from api.drf.params import JsonStringField
 
 _TRUE_WORDS = frozenset({"1", "true", "yes", "on"})
 

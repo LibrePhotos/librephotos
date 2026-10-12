@@ -3,7 +3,7 @@ import { ResponseParseError } from "../util/parse";
 import type { ApiClient } from "./types";
 
 /**
- * One answer of a list endpoint: a page (backend `api/pagination.py`), or a
+ * One answer of a list endpoint: a page (backend `api/drf/pagination.py`), or a
  * bare array from a list the server does not paginate. Rows stay `unknown`
  * here; callers parse them with the list's own schema.
  */
@@ -18,7 +18,7 @@ const ListAnswer = z.union([
 
 /**
  * Every row of a paginated list: GET `endpoint`, then each page its `next`
- * names, until `next` is null (backend `api/pagination.py`).
+ * names, until `next` is null (backend `api/drf/pagination.py`).
  *
  * Only the query string of `next` is used, appended to `endpoint`'s path: the
  * server builds `next` as an absolute URL from the request it saw, whose host

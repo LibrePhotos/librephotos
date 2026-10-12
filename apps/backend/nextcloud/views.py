@@ -9,10 +9,10 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from api.accounts.permissions import IsNextcloudEnabled
+from api.drf.params import parse_query
+from api.drf.request_user import request_user
 from api.models import LongRunningJob
-from api.permissions import IsNextcloudEnabled
-from api.request_user import request_user
-from api.views.params import parse_query
 from api.views.scan_triggers import start_job
 from nextcloud.directory_watcher import scan_photos
 from nextcloud.serializers import ListDirQuery

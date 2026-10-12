@@ -30,12 +30,12 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from api.drf.params import parse_query
+from api.drf.request_user import request_user
 from api.models import AlbumDate, Photo, User
-from api.request_user import request_user
 from api.serializers.memories import MemoriesQuery
 from api.serializers.photos import PhotoSummarySerializer
 from api.views.albums import _with_photo_summary_relations
-from api.views.params import parse_query
 from api.views.photo_filters import build_photo_queryset
 
 # ``type`` values in the response. Only date-based memories exist so far; the

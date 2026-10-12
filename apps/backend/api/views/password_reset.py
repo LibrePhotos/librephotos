@@ -16,11 +16,11 @@ from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
+from api.accounts.public_url import trusted_public_base_url
+from api.accounts.throttling import AuthRateThrottle
+from api.drf.params import parse_body
 from api.models.user import User as AppUser
-from api.public_url import trusted_public_base_url
 from api.serializers.user import PasswordResetConfirmRequest, PasswordResetRequest
-from api.throttling import AuthRateThrottle
-from api.views.params import parse_body
 
 logger = logging.getLogger(__name__)
 

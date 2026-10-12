@@ -2,7 +2,7 @@
 
 Well-formed input is clamped; malformed input is a 400 naming the field
 instead of a 500 from ``int()``. ``page``/``page_size`` are read by the shared
-paginator since #2327 (``api/pagination.py``), with the same rules.
+paginator since #2327 (``api/drf/pagination.py``), with the same rules.
 """
 
 from unittest.mock import patch

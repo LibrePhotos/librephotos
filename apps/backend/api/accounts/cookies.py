@@ -5,7 +5,7 @@ Three cookies carry JWTs:
 ``jwt``
     The access token, for the requests a browser cannot put a header on
     (``<img>``, ``<video>``, download links). Only the server reads it, through
-    ``JWTCookieAuthentication`` (api/authentication.py), so it is ``HttpOnly``:
+    ``JWTCookieAuthentication`` (api/accounts/authentication.py), so it is ``HttpOnly``:
     a script injected into the page cannot read it. Set by the password login,
     the refresh and the SSO bridge; cleared by the logout view, because the web
     cannot delete an ``HttpOnly`` cookie itself.
@@ -41,7 +41,7 @@ from django.conf import settings
 from django.http import HttpRequest, HttpResponseBase
 from rest_framework.request import Request
 
-from api.authentication import JWT_COOKIE_NAME
+from api.accounts.authentication import JWT_COOKIE_NAME
 
 ACCESS_COOKIE_NAME = "access"
 REFRESH_COOKIE_NAME = "refresh"

@@ -13,14 +13,14 @@ from rest_framework.views import APIView
 
 from api.albums.auto_albums import delete_missing_photos
 from api.directory_watcher import scan_photos
-from api.exceptions import JobAlreadyRunning
+from api.drf.exceptions import JobAlreadyRunning
+from api.drf.params import parse_body
+from api.drf.request_user import request_user
 from api.jobs.queue import JobStep, Task, TaskFunc, enqueue_chain
 from api.ml_models import missing_models_prerequisites
 from api.models import LongRunningJob
 from api.models.user import User
-from api.request_user import request_user
 from api.serializers.job import GenerateOcrRequest
-from api.views.params import parse_body
 
 logger = logging.getLogger(__name__)
 

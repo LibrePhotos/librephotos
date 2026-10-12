@@ -1,6 +1,6 @@
 import unittest
 
-from api.color_palettes import DEEP_PALETTE, PAIRED_PALETTE, hex_palette
+from api.dataviz.color_palettes import DEEP_PALETTE, PAIRED_PALETTE, hex_palette
 
 
 class HexPaletteTests(unittest.TestCase):

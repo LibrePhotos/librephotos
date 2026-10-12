@@ -9,7 +9,7 @@ export type ClusterFeatureProperties = Readonly<{ name: string; id: number }>;
 
 /**
  * The places in a location cluster list. The backend sends one
- * `[lng, lat, name]` row per place (api/stats.py, _location_cluster_row), but
+ * `[lng, lat, name]` row per place (api/dataviz/stats.py, _location_cluster_row), but
  * the schema allows any mix of numbers and strings, so rows of another shape
  * are left out.
  */

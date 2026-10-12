@@ -22,9 +22,10 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework_simplejwt.exceptions import AuthenticationFailed, InvalidToken
 
-from api.authentication import JWTCookieAuthentication
+from api.accounts.authentication import JWTCookieAuthentication
 from api.directory_watcher import create_new_image, handle_new_image, is_valid_media
 from api.directory_watcher.file_handlers import apply_device_timestamp_fallback
+from api.drf.request_user import request_user
 from api.faces.photo_faces import extract_faces
 from api.geocode.photo_location import add_location_to_album_dates, geolocate_photo
 from api.jobs.queue import Task, enqueue_task_chain
@@ -32,7 +33,6 @@ from api.media_files import calculate_hash
 from api.models import Photo
 from api.models.photo_caption import PhotoCaption
 from api.models.user import User
-from api.request_user import request_user
 from api.search import semantic
 from chunked_upload.constants import http_status
 from chunked_upload.exceptions import ChunkedUploadError

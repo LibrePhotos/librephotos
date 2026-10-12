@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from api.models import Photo
-from api.serving_permissions import diagnose_media_path
+from api.serving.permissions import diagnose_media_path
 from api.views.photos import _get_photo_filter_kwargs
 
 

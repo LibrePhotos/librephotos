@@ -289,14 +289,14 @@ class LoggerLevelsTest(SimpleTestCase):
 class ModuleLoggerReachabilityTest(SimpleTestCase):
     """The getLogger(__name__) modules have to reach the file handler.
 
-    api.mail, api.apps, api.views.email_config and api.views.password_reset all
+    api.accounts.mail, api.apps, api.views.email_config and api.views.password_reset all
     used to fall through to logging.lastResort on stderr, so SMTP and
     password-reset failures never appeared in the file users are asked to attach
     to a bug report.
     """
 
     MODULE_LOGGERS = (
-        "api.mail",
+        "api.accounts.mail",
         "api.apps",
         "api.views.email_config",
         "api.views.password_reset",
@@ -325,12 +325,13 @@ class ModuleLoggerReachabilityTest(SimpleTestCase):
     def test_the_modules_really_use_those_logger_names(self):
         # The assertions above are only worth anything if these are the loggers
         # the modules actually log through.
-        from api import apps, mail, services
+        from api import apps, services
+        from api.accounts import mail
         from api.directory_watcher import scan_jobs
         from api.views import email_config, password_reset
         from nextcloud import views as nextcloud_views
 
-        self.assertEqual(mail.logger.name, "api.mail")
+        self.assertEqual(mail.logger.name, "api.accounts.mail")
         self.assertEqual(apps.logger.name, "api.apps")
         self.assertEqual(email_config.logger.name, "api.views.email_config")
         self.assertEqual(password_reset.logger.name, "api.views.password_reset")

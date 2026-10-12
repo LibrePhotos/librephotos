@@ -2,7 +2,7 @@ import { ApiError } from "@librephotos/api-client";
 import { useEffect } from "react";
 
 /**
- * A page past the end answers 404 (backend `api/pagination.py`). That is where
+ * A page past the end answers 404 (backend `api/drf/pagination.py`). That is where
  * a numbered list lands after the last groups of its last page are resolved or
  * deleted, so step back one page instead of showing an empty one.
  */

@@ -21,7 +21,7 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.exceptions import AuthenticationFailed, InvalidToken
 from rest_framework_simplejwt.tokens import AccessToken, RefreshToken
 
-from api.authentication import JWT_COOKIE_NAME, JWTCookieAuthentication
+from api.accounts.authentication import JWT_COOKIE_NAME, JWTCookieAuthentication
 from api.tests.utils import create_test_user
 
 factory = APIRequestFactory()

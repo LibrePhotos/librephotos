@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
+from api.drf.params import QueryFlagField, required_string
 from api.models import Face, Person
-from api.views.params import QueryFlagField, required_string
 
 
 class PersonFaceListSerializer(serializers.ModelSerializer):

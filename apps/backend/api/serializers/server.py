@@ -2,7 +2,7 @@
 
 from rest_framework import serializers
 
-from api.views.params import ClampedIntegerField
+from api.drf.params import ClampedIntegerField
 
 
 class ServerLogsQuery(serializers.Serializer[None]):
