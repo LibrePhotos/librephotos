@@ -86,6 +86,19 @@ function scrollWindowTo(y: number, targetHeight: number) {
   render(targetHeight);
 }
 
+// Like render, but the child is the scroll target the scrubber reads its position from
+function renderWithTarget(targetHeight: number) {
+  act(() => {
+    root.render(
+      <MantineProvider>
+        <ScrollScrubber type="labels" scrollPositions={positions} targetHeight={targetHeight} scrollToY={() => {}}>
+          <div className="scrollscrubbertarget" />
+        </ScrollScrubber>
+      </MantineProvider>
+    );
+  });
+}
+
 describe("ScrollScrubber", () => {
   it("lays the markers out again when the target grows", () => {
     const viewport = window.innerHeight;
@@ -140,5 +153,40 @@ describe("ScrollScrubber", () => {
     act(() => vi.advanceTimersByTime(1000));
 
     expect(scrubber().style.opacity).toBe("0");
+  });
+
+  it("shows nothing and no NaN when the target fits on screen", () => {
+    // The scroll target fits on screen, so its scrollable range is 0. Scroll down first, then
+    // back to the top: the position marker is recomputed on that scroll, and the scale divides by 0.
+    const consoleErrors = vi.spyOn(console, "error").mockImplementation(() => {});
+    const viewport = window.innerHeight;
+    Object.defineProperty(window, "scrollY", { configurable: true, value: 1 });
+    renderWithTarget(viewport);
+    act(() => vi.advanceTimersByTime(1500));
+    Object.defineProperty(window, "scrollY", { configurable: true, value: 0 });
+    renderWithTarget(viewport);
+
+    expect(container.querySelector(".scrollscrubber")).toBeNull();
+    expect(container.innerHTML).not.toContain("NaN");
+    expect(consoleErrors.mock.calls.map(args => args.join(" ")).filter(text => text.includes("NaN"))).toEqual([]);
+    consoleErrors.mockRestore();
+  });
+
+  it("keeps the position marker a number when the target grows past the screen", () => {
+    // Same fit-on-screen scroll as above, then the grid grows and the scrubber appears: the
+    // marker, computed while nothing scrolled, must not carry a NaN into the render.
+    const consoleErrors = vi.spyOn(console, "error").mockImplementation(() => {});
+    const viewport = window.innerHeight;
+    Object.defineProperty(window, "scrollY", { configurable: true, value: 1 });
+    renderWithTarget(viewport);
+    act(() => vi.advanceTimersByTime(1500));
+    Object.defineProperty(window, "scrollY", { configurable: true, value: 0 });
+    renderWithTarget(viewport);
+    renderWithTarget(viewport + 2000);
+    act(() => scrubber().dispatchEvent(new MouseEvent("mouseover", { bubbles: true })));
+
+    expect(container.innerHTML).not.toContain("NaN");
+    expect(consoleErrors.mock.calls.map(args => args.join(" ")).filter(text => text.includes("NaN"))).toEqual([]);
+    consoleErrors.mockRestore();
   });
 });
