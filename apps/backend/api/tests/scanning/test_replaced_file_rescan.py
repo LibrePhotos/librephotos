@@ -294,14 +294,9 @@ def _append_a_byte(path, *args, **kwargs):
         f.write(b"\x00")
 
 
-class _RunNow:
-    """Stand-in for django_q's AsyncTask that runs the job right away."""
-
-    def __init__(self, func, *args):
-        self.func, self.args = func, args
-
-    def run(self):
-        self.func(*self.args)
+def _run_now(func, *args):
+    """Stand-in for ``enqueue_task`` that runs the job right away."""
+    func(*args)
 
 
 class MetadataWriteIsNotAReplacementTest(ReplacedFileTestCase):
@@ -319,7 +314,7 @@ class MetadataWriteIsNotAReplacementTest(ReplacedFileTestCase):
         write-back job runs right away here instead of on the queue."""
         with (
             patch("api.metadata.photo_writer.write_metadata", write_metadata_mock),
-            patch("api.metadata.jobs.AsyncTask", _RunNow),
+            patch("api.metadata.jobs.enqueue_task", _run_now),
         ):
             set_rating(Photo.objects.filter(pk=photo.pk), 4, self.user)
         return Photo.objects.get(pk=photo.pk)
