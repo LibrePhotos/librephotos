@@ -95,7 +95,6 @@ INCLUDE_PACKAGE_DATA = [
 NOFOLLOW = [
     "api.tests",
     "nextcloud.tests",
-    "service.thumbnail.test",
     "pytest",
     "_pytest",
     "IPython",

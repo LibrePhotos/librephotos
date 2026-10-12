@@ -1,11 +1,11 @@
 import os
+import shutil
+import tempfile
 
 from django.conf import settings
 from django.test import override_settings
 from rest_framework.test import APIClient, APITestCase
 
-from api.models import User
-from api.models.file import File
 from api.stacks.live_photo import (
     GOOGLE_PIXEL_MP4_SIGNATURES,
     JPEG_EOI_MARKER,
@@ -13,14 +13,7 @@ from api.stacks.live_photo import (
     extract_embedded_motion_video,
     has_embedded_motion_video,
 )
-from api.tests.utils import create_test_photo, create_test_user
-
-
-def create_test_file(path: str, user: User, content: bytes):
-    with open(path, "wb+") as f:
-        f.write(content)
-    return File.create(path, user)
-
+from api.tests.utils import create_test_file, create_test_photo, create_test_user
 
 JPEG_MAGIC_NUMBER = b"\xff\xd8\xff"
 JPEG = JPEG_MAGIC_NUMBER + b"\xde\xad\xfa\xce" + JPEG_EOI_MARKER
@@ -30,11 +23,16 @@ MP4 = MP4_PREFIX + b"ftypmp42" + MP4_DATA
 RANDOM_BYTES = b"\x13\x37\xc0\xde"
 
 
-@override_settings(MEDIA_ROOT="/tmp")
 class EmbeddedMediaTest(APITestCase):
     def setUp(self):
-        self.test_image_path = "/tmp/test_file.jpeg"
-        self.test_video_path = "/tmp/test_file.mp4"
+        # A per-test media root: /tmp is C:\tmp on Windows and may not exist.
+        media_root = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, media_root, ignore_errors=True)
+        settings_override = override_settings(MEDIA_ROOT=media_root)
+        settings_override.enable()
+        self.addCleanup(settings_override.disable)
+        self.test_image_path = os.path.join(media_root, "test_file.jpeg")
+        self.test_video_path = os.path.join(media_root, "test_file.mp4")
         self.user = create_test_user()
         self.client = APIClient()
 
@@ -66,7 +64,9 @@ class EmbeddedMediaTest(APITestCase):
             content = JPEG + MP4_PREFIX + signature + MP4_DATA
             file = create_test_file(self.test_image_path, self.user, content)
             path = extract_embedded_motion_video(file.path, file.hash)
-            expected = f"{settings.MEDIA_ROOT}/embedded_media/{file.hash}_motion.mp4"
+            expected = os.path.join(
+                settings.MEDIA_ROOT, "embedded_media", f"{file.hash}_motion.mp4"
+            )
             self.assertEqual(path, expected)
             with open(path, "rb") as f:
                 contents = f.read()
@@ -76,7 +76,9 @@ class EmbeddedMediaTest(APITestCase):
         content = JPEG + SAMSUNG_MOTION_MARKER + MP4
         file = create_test_file(self.test_image_path, self.user, content)
         path = extract_embedded_motion_video(file.path, file.hash)
-        expected = f"{settings.MEDIA_ROOT}/embedded_media/{file.hash}_motion.mp4"
+        expected = os.path.join(
+            settings.MEDIA_ROOT, "embedded_media", f"{file.hash}_motion.mp4"
+        )
         self.assertEqual(expected, path)
         with open(path, "rb") as f:
             contents = f.read()
@@ -105,8 +107,10 @@ class EmbeddedMediaTest(APITestCase):
         photo = create_test_photo(owner=self.user, public=False)
         photo.main_file.embedded_media.add(embedded_media)
 
+        # An anonymous caller gets the sign-in refusal, the same answer as for a
+        # hash that matches nothing (GHSA-hq2w-x39h-8wmp).
         response = self.client.get(f"/media/embedded_media/{photo.pk}")
-        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.status_code, 403)
 
     def test_fetch_embedded_media_when_photo_does_not_have_embedded_media(self):
         self.client.force_authenticate(user=self.user)
@@ -125,7 +129,9 @@ class EmbeddedMediaTest(APITestCase):
         """
         self.client.force_authenticate(user=self.user)
         # Use a path with _motion.mp4 suffix to mimic the new extraction naming
-        motion_video_path = "/tmp/embedded_media/testhash_motion.mp4"
+        motion_video_path = os.path.join(
+            settings.MEDIA_ROOT, "embedded_media", "testhash_motion.mp4"
+        )
         os.makedirs(os.path.dirname(motion_video_path), exist_ok=True)
         embedded_media = create_test_file(motion_video_path, self.user, MP4)
         photo = create_test_photo(owner=self.user)
