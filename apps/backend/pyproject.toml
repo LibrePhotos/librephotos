@@ -156,7 +156,7 @@ ignore_missing_imports = true
 # Explicit flags instead of `strict = true`: inside an override, `strict` turns
 # the strict flags on for every module, not just the listed ones.
 module = ["api.color_palettes", "api.metadata.tags", "api.http_timeouts",
-          "api.views.pagination", "api.schemas.site_settings", "librephotos.env",
+          "api.views.pagination", "api.serializers.site_settings", "librephotos.env",
           "typecheck", "ruff_baseline"]
 disallow_any_generics = true
 disallow_untyped_calls = true

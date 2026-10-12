@@ -113,7 +113,6 @@
 "api/views/scan_triggers.py" = ["G004"]
 "api/views/server_info.py" = ["BLE001"]
 "api/views/sharing.py" = ["G004", "N806"]
-"api/views/site_settings.py" = ["PLR0912"]
 "api/views/stacks.py" = ["G004"]
 "api/views/sync.py" = ["PLW2901"]
 "api/views/upload.py" = ["G004"]

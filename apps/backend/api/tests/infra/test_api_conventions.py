@@ -23,6 +23,7 @@ session are throttled (``api/throttling.py``).
 
 import ast
 import datetime
+import json
 import types
 import uuid
 from collections.abc import Iterable
@@ -932,6 +933,185 @@ class ErrorEnvelopeTest(SimpleTestCase):
                 source, "api/views/media.py", frozenset({"HttpResponseForbidden"})
             ),
             [],
+        )
+
+
+# What a view may not read by hand: it passes them as ``data=`` to a serializer,
+# or reads them through ``parse_query``/``parse_body`` (api/views/params.py).
+REQUEST_INPUTS = frozenset({"data", "query_params", "GET", "POST"})
+# The chunked upload views extend django-chunked-upload's ChunkedUploadView,
+# whose protocol is multipart form fields read from request.POST.
+REQUEST_PARSING_EXEMPTIONS: dict[str, frozenset[str]] = {
+    "api/views/upload.py": frozenset({"POST"}),
+}
+REQUEST_PARSING_BASELINE = Path(__file__).with_name("request_parsing_baseline.json")
+
+
+def _is_request(node: ast.expr) -> bool:
+    """``request`` or ``<anything>.request``."""
+    if isinstance(node, ast.Name):
+        return node.id == "request"
+    return isinstance(node, ast.Attribute) and node.attr == "request"
+
+
+def hand_parsed_request_inputs(
+    source: str, filename: str, exempt: frozenset[str] = frozenset()
+) -> list[str]:
+    """Places in ``source`` that read the request's input without a serializer."""
+    tree = ast.parse(source, filename)
+    handed_over = {
+        id(node.value)
+        for node in ast.walk(tree)
+        if isinstance(node, ast.keyword) and node.arg == "data"
+    }
+    problems = []
+    for node in ast.walk(tree):
+        if id(node) in handed_over:
+            continue
+        if (
+            isinstance(node, ast.Attribute)
+            and node.attr in REQUEST_INPUTS
+            and node.attr not in exempt
+            and _is_request(node.value)
+        ):
+            problems.append(f"{filename}:{node.lineno} reads request.{node.attr}")
+        elif isinstance(node, ast.Call) and _called_name(node) == "request_dict":
+            problems.append(f"{filename}:{node.lineno} calls request_dict")
+    return sorted(problems, key=lambda p: (int(p.split(":")[1].split()[0]), p))
+
+
+def request_parsing_problems() -> dict[str, list[str]]:
+    """The hand reads of each view module that still has any."""
+    found = {}
+    for relative, source_path in view_source_files():
+        problems = hand_parsed_request_inputs(
+            source_path.read_text(encoding="utf-8"),
+            relative,
+            REQUEST_PARSING_EXEMPTIONS.get(relative, frozenset()),
+        )
+        if problems:
+            found[relative] = problems
+    return found
+
+
+def request_parsing_counts() -> dict[str, int]:
+    """Hand reads per view module, for the modules that still have any."""
+    return {
+        relative: len(found) for relative, found in request_parsing_problems().items()
+    }
+
+
+class RequestParsingGuardTest(SimpleTestCase):
+    """Views read their input through a serializer, not field by field (#2326).
+
+    A hand read (``request.data.get``, ``int(request.query_params.get(...))``,
+    ``request_dict(request)["key"]``) answers a missing or malformed field with
+    a 500 and drifts from the OpenAPI schema. Read the input with
+    ``parse_query(request, XQuery)`` or ``parse_body(request, XRequest)`` from
+    ``api/views/params.py``, or pass it as ``data=`` to a serializer. The
+    modules not converted yet are counted in ``request_parsing_baseline.json``,
+    which only shrinks: lower a module's number when you convert some of it.
+    """
+
+    def baseline(self) -> dict[str, int]:
+        return json.loads(REQUEST_PARSING_BASELINE.read_text(encoding="utf-8"))
+
+    def test_no_view_module_reads_more_input_by_hand_than_its_baseline(self):
+        baseline = self.baseline()
+        grown = [
+            problem
+            for relative, found in request_parsing_problems().items()
+            if len(found) > baseline.get(relative, 0)
+            for problem in found
+        ]
+        self.assertEqual(
+            grown,
+            [],
+            "Read the request through a serializer (parse_query/parse_body in "
+            "api/views/params.py) instead:\n  " + "\n  ".join(grown),
+        )
+
+    def test_the_baseline_only_shrinks(self):
+        counts = request_parsing_counts()
+        stale = {
+            relative: (allowed, counts.get(relative, 0))
+            for relative, allowed in self.baseline().items()
+            if counts.get(relative, 0) < allowed
+        }
+        self.assertEqual(
+            stale,
+            {},
+            "These modules now read less input by hand (baseline, now): lower "
+            "or remove their entries in request_parsing_baseline.json.",
+        )
+
+    def test_the_source_check_catches_each_form(self):
+        source = (
+            "def a(request):\n"
+            '    return int(request.query_params.get("x"))\n'
+            "def b(self):\n"
+            '    return self.request.data["y"]\n'
+            "def c(request):\n"
+            '    return request_dict(request).get("z")\n'
+            "def d(request):\n"
+            '    return request.GET.get("a"), request.POST.get("b")\n'
+            "def e(request):\n"
+            '    return "path" in request.query_params\n'
+        )
+
+        self.assertEqual(
+            hand_parsed_request_inputs(source, "planted.py"),
+            [
+                "planted.py:2 reads request.query_params",
+                "planted.py:4 reads request.data",
+                "planted.py:6 calls request_dict",
+                "planted.py:8 reads request.GET",
+                "planted.py:8 reads request.POST",
+                "planted.py:10 reads request.query_params",
+            ],
+        )
+
+    def test_a_planted_query_read_in_a_view_module_fails_the_guard(self):
+        relative, source_path = next(
+            (relative, path)
+            for relative, path in view_source_files()
+            if relative == "api/views/geocode.py"
+        )
+        source = source_path.read_text(encoding="utf-8") + (
+            '\n\ndef planted(request):\n    return int(request.query_params.get("x"))\n'
+        )
+
+        found = hand_parsed_request_inputs(source, relative)
+
+        self.assertGreater(len(found), self.baseline().get(relative, 0), found)
+
+    def test_handing_the_input_to_a_serializer_passes(self):
+        source = (
+            "def a(request):\n"
+            "    serializer = XRequest(data=request.data)\n"
+            "    return parse_query(request, XQuery)\n"
+            "def b(self, request):\n"
+            "    serializer = self.get_serializer(data=request_dict(request))\n"
+            "    return parse_body(request, XRequest)\n"
+            "def c(request, data):\n"
+            '    return data.get("not_the_request")\n'
+        )
+
+        self.assertEqual(hand_parsed_request_inputs(source, "planted.py"), [])
+
+    def test_the_upload_exemption_covers_only_form_fields(self):
+        source = (
+            "def a(request):\n"
+            '    return request.POST.get("upload_id"), request.data.get("x")\n'
+        )
+
+        self.assertEqual(
+            hand_parsed_request_inputs(
+                source,
+                "api/views/upload.py",
+                REQUEST_PARSING_EXEMPTIONS["api/views/upload.py"],
+            ),
+            ["api/views/upload.py:2 reads request.data"],
         )
 
 
