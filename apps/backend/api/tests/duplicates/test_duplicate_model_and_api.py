@@ -562,16 +562,14 @@ class DuplicateEdgeCasesTest(TestCase):
         self.assertTrue(data["has_previous"])
 
     def test_invalid_uuid_format(self):
-        """Test invalid UUID format.
+        """A non-UUID id under /api/duplicates/ is not a route.
 
-        Note: The URL regex pattern [0-9a-f-]+ matches any hex-like string,
-        so 'not-a-valid-uuid' partially matches. The view then returns an
-        empty result rather than 404/400. This is acceptable behavior.
+        The id class is [0-9a-f-]+ and the route is anchored, so 'not-a-valid-uuid'
+        (it has 'n', 'o', 't', ...) matches no detail route. Before the URL anchoring
+        (#2330) the unanchored list prefix answered it with the list endpoint.
         """
         response = self.client.get("/api/duplicates/not-a-valid-uuid")
-        # The regex matches the string (contains a-f and -), but no duplicate exists
-        # so it returns the list endpoint with empty results
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
     def test_concurrent_resolve_same_duplicate(self):
         """Test handling multiple resolution attempts.
