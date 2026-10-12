@@ -65,7 +65,7 @@ class AlbumDateListPublicFilterTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
             self._ids(response),
-            {str(self.public_album_a.id), str(self.public_album_b.id)},
+            {self.public_album_a.id, self.public_album_b.id},
         )
 
     def test_public_with_username_returns_only_that_owners_albums(self):
@@ -75,7 +75,7 @@ class AlbumDateListPublicFilterTest(TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(self._ids(response), {str(self.public_album_a.id)})
+        self.assertEqual(self._ids(response), {self.public_album_a.id})
 
 
 class OnlyPhotosOrOnlyVideosTest(TestCase):

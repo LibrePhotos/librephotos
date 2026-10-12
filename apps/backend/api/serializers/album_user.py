@@ -54,7 +54,6 @@ def _album_photos(
 
 
 class AlbumUserSerializer(serializers.ModelSerializer):
-    id = serializers.SerializerMethodField()
     owner = SimpleUserSerializer(many=False, read_only=True)
     shared_to = SimpleUserSerializer(many=True, read_only=True)
     date = serializers.SerializerMethodField()
@@ -81,10 +80,6 @@ class AlbumUserSerializer(serializers.ModelSerializer):
             "public_expires_at",
             "public_sharing_options",
         )
-
-    # To-Do: Legacy definition, should be a number instead
-    def get_id(self, obj: AlbumUser) -> str:
-        return str(obj.id)
 
     @extend_schema_field(GroupedPhotosSerializer(many=True))
     def get_grouped_photos(self, obj: AlbumUser) -> list[dict[str, Any]]:
@@ -391,7 +386,6 @@ class AlbumUserPublicSerializer(serializers.ModelSerializer):
     Ensures photos are grouped from a filtered subset (not hidden, not in trashcan).
     """
 
-    id = serializers.SerializerMethodField()
     owner = SimpleUserSerializer(many=False, read_only=True)
     date = serializers.SerializerMethodField()
     location = serializers.SerializerMethodField()
@@ -411,9 +405,6 @@ class AlbumUserPublicSerializer(serializers.ModelSerializer):
             "public_slug",
             "public_expires_at",
         )
-
-    def get_id(self, obj: AlbumUser) -> str:
-        return str(obj.id)
 
     def _filtered_photos(self, obj: AlbumUser) -> list[Photo]:
         # Public albums should not expose hidden or trash photos

@@ -236,13 +236,13 @@ class TimelineEndpointsTest(TestCase):
 
     def test_without_apply_default_nothing_changes(self):
         days = self._list({})
-        self.assertEqual(days, {str(self.mixed.id): 4, str(self.shots_only.id): 1})
+        self.assertEqual(days, {self.mixed.id: 4, self.shots_only.id: 1})
 
     def test_apply_default_hides_screenshot_only_day_and_keeps_mixed_day(self):
         days = self._list({"apply_default": "1"})
         # The mixed day is kept with its two remaining items; the day holding
         # nothing but a screenshot drops out.
-        self.assertEqual(days, {str(self.mixed.id): 2})
+        self.assertEqual(days, {self.mixed.id: 2})
 
     def test_list_and_day_agree(self):
         for params in (
@@ -258,7 +258,7 @@ class TimelineEndpointsTest(TestCase):
                 days = self._list(params)
                 hashes, count = self._day(self.mixed, params)
                 self.assertEqual(len(hashes), count)
-                self.assertEqual(days.get(str(self.mixed.id), 0), count)
+                self.assertEqual(days.get(self.mixed.id, 0), count)
 
     def test_day_page_applies_default(self):
         hashes, _ = self._day(self.mixed, {"apply_default": "1"})
@@ -275,7 +275,7 @@ class TimelineEndpointsTest(TestCase):
         hashes, _ = self._day(self.mixed, {"favorite": "true"})
         self.assertEqual(hashes, {self.plain.image_hash})
         days = self._list({"favorite": "true"})
-        self.assertEqual(days, {str(self.mixed.id): 1})
+        self.assertEqual(days, {self.mixed.id: 1})
 
 
 class PublicTimelineIgnoresViewerDefaultTest(TestCase):
@@ -295,7 +295,7 @@ class PublicTimelineIgnoresViewerDefaultTest(TestCase):
         params = {"public": "true", "username": alice.username, "apply_default": "1"}
 
         listed = client.get("/api/albums/date/list/", params).json()["results"]
-        self.assertEqual([row["id"] for row in listed], [str(day.id)])
+        self.assertEqual([row["id"] for row in listed], [day.id])
         items = client.get(f"/api/albums/date/{day.id}/", params).json()["results"]
         self.assertEqual(
             [item["image_hash"] for item in items["items"]], [shot.image_hash]

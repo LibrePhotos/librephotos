@@ -32,7 +32,7 @@ class AlbumDateRetrieveOnlyTest(TestCase):
         response = self.client.get(self.url)
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()["results"]["id"], str(self.album.id))
+        self.assertEqual(response.json()["results"]["id"], self.album.id)
 
     def test_writes_on_a_day_album_are_not_allowed(self):
         for method in ("put", "patch", "delete"):
