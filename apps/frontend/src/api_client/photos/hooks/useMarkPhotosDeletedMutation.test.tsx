@@ -26,8 +26,6 @@ vi.mock("../invalidatePhotoLists", () => ({ invalidatePhotoLists: vi.fn<() => vo
 vi.mock("../../../service/notifications", () => ({
   notification: { togglePhotoDelete: mocks.togglePhotoDelete },
 }));
-// The response shape is not under test here.
-vi.mock("../../../util/zodUtils", () => ({ parseWithNotification: (_schema: unknown, data: unknown) => data }));
 
 beforeAll(() => {
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;

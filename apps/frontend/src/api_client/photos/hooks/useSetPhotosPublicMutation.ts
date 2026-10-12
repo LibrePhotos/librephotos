@@ -1,43 +1,18 @@
+import { endpoints } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
-import { z } from "zod";
 import { notification } from "../../../service/notifications";
-import { parseWithNotification } from "../../../util/zodUtils";
 import { apiClient, queryClient } from "../../api";
 import { photoGridKeys, photoKeys } from "../keys";
-import type { BulkPhotoQuery } from "../types";
+import { selectionArgs, singlePhotoHash, type PhotoSelection } from "../photoSelection";
 
-const UpdatePhotosResponse = z.object({
-  status: z.boolean(),
-  // Hashes, not serialized photos: the backend no longer builds a payload per photo.
-  updated_hashes: z.string().array().optional(),
-  not_updated_hashes: z.string().array().optional(),
-  count: z.number().optional(),
-});
-type UpdatePhotosResponse = z.infer<typeof UpdatePhotosResponse>;
-
-// Request type for individual photo hashes
-type IndividualRequest = {
-  select_all?: false;
-  image_hashes: string[];
-  val_public: boolean;
-};
-
-// Request type for select_all mode
-type SelectAllRequest = {
-  select_all: true;
-  query: BulkPhotoQuery;
-  excluded_hashes?: string[];
-  val_public: boolean;
-};
-
-type SetPhotosPublicRequest = IndividualRequest | SelectAllRequest;
+type SetPhotosPublicRequest = PhotoSelection & { val_public: boolean };
 
 // Set photos public
 export const useSetPhotosPublicMutation = () =>
   useMutation({
     mutationFn: async (request: SetPhotosPublicRequest) => {
-      const response = await apiClient.post("/photosedit/makepublic/", request);
-      const data = parseWithNotification(UpdatePhotosResponse, response, "Failed to parse set photos public response");
+      const [imageHashes, selectAll] = selectionArgs(request);
+      const data = await endpoints.setPhotosPublic(apiClient, imageHashes, request.val_public, selectAll);
 
       // Show notification based on mode
       if (request.select_all) {
@@ -55,8 +30,8 @@ export const useSetPhotosPublicMutation = () =>
       queryClient.invalidateQueries({ queryKey: photoGridKeys.recentlyAdded() });
 
       // If we have a single photo in individual mode, invalidate its details
-      const [imageHash, ...others] = request.select_all ? [] : request.image_hashes;
-      if (imageHash !== undefined && others.length === 0) {
+      const imageHash = singlePhotoHash(request);
+      if (imageHash !== undefined) {
         queryClient.invalidateQueries({ queryKey: photoKeys.detail(imageHash) });
       }
     },

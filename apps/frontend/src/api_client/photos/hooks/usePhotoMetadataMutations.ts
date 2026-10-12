@@ -2,11 +2,12 @@
  * React Query mutation hooks for photo metadata operations
  */
 
+import { endpoints, type PhotoMetadataUpdate } from "@librephotos/api-client";
 import { useMutation, useQueryClient, type QueryClient } from "@tanstack/react-query";
+import { apiClient } from "../../api";
 import { tagKeys } from "../../tags/keys";
 import { invalidatePhotoLists } from "../invalidatePhotoLists";
 import { photoKeys } from "../keys";
-import { bulkUpdateMetadata, updatePhotoMetadata, type MetadataUpdateFields } from "../metadata";
 
 /**
  * Refresh everything a metadata edit can change.
@@ -28,16 +29,13 @@ function invalidateAfterMetadataEdit(queryClient: QueryClient, photoIds: string[
 
 /**
  * Update metadata for a photo (changes are tracked in history)
- *
- * These mutations delegate to the api_client functions so their responses are
- * validated against the PhotoMetadata schema instead of being blind-cast.
  */
 export function useUpdatePhotoMetadataMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ photoId, updates }: { photoId: string; updates: MetadataUpdateFields }) =>
-      updatePhotoMetadata(photoId, updates),
+    mutationFn: ({ photoId, updates }: { photoId: string; updates: PhotoMetadataUpdate }) =>
+      endpoints.updatePhotoMetadata(apiClient, photoId, updates),
     onSuccess: (data, { photoId }) => {
       invalidateAfterMetadataEdit(queryClient, [photoId]);
     },
@@ -51,8 +49,8 @@ export function useBulkUpdateMetadataMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ photoIds, updates }: { photoIds: string[]; updates: MetadataUpdateFields }) =>
-      bulkUpdateMetadata(photoIds, updates),
+    mutationFn: ({ photoIds, updates }: { photoIds: string[]; updates: PhotoMetadataUpdate }) =>
+      endpoints.bulkUpdatePhotoMetadata(apiClient, photoIds, updates),
     onSuccess: (data, { photoIds }) => {
       invalidateAfterMetadataEdit(queryClient, photoIds);
     },

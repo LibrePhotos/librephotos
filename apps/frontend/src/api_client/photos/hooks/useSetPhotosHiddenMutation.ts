@@ -1,45 +1,21 @@
+import { endpoints } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
-import { z } from "zod";
 import { notification } from "../../../service/notifications";
-import { parseWithNotification } from "../../../util/zodUtils";
 import { apiClient, queryClient } from "../../api";
 import { faceKeys } from "../../faces/keys";
 import { statsKeys } from "../../stats/keys";
 import { invalidatePhotoLists } from "../invalidatePhotoLists";
 import { photoKeys } from "../keys";
-import type { BulkPhotoQuery } from "../types";
+import { selectionArgs, singlePhotoHash, type PhotoSelection } from "../photoSelection";
 
-const UpdatePhotosResponse = z.object({
-  status: z.boolean(),
-  // Hashes, not serialized photos: the backend no longer builds a payload per photo.
-  updated_hashes: z.string().array().optional(),
-  not_updated_hashes: z.string().array().optional(),
-  count: z.number().optional(),
-});
-
-// Request type for individual photo hashes
-type IndividualRequest = {
-  select_all?: false;
-  image_hashes: string[];
-  hidden: boolean;
-};
-
-// Request type for select_all mode
-type SelectAllRequest = {
-  select_all: true;
-  query: BulkPhotoQuery;
-  excluded_hashes?: string[];
-  hidden: boolean;
-};
-
-type SetPhotosHiddenRequest = IndividualRequest | SelectAllRequest;
+type SetPhotosHiddenRequest = PhotoSelection & { hidden: boolean };
 
 // Set photos hidden
 export const useSetPhotosHiddenMutation = () =>
   useMutation({
     mutationFn: async (request: SetPhotosHiddenRequest) => {
-      const response = await apiClient.post("/photosedit/hide/", request);
-      const data = parseWithNotification(UpdatePhotosResponse, response, "Failed to parse set photos hidden response");
+      const [imageHashes, selectAll] = selectionArgs(request);
+      const data = await endpoints.setPhotosHidden(apiClient, imageHashes, request.hidden, selectAll);
 
       // Show notification based on mode
       if (request.select_all) {
@@ -58,8 +34,8 @@ export const useSetPhotosHiddenMutation = () =>
       queryClient.invalidateQueries({ queryKey: statsKeys.photoMonthCounts() });
 
       // If we have a single photo in individual mode, invalidate its details
-      const [imageHash, ...others] = request.select_all ? [] : request.image_hashes;
-      if (imageHash !== undefined && others.length === 0) {
+      const imageHash = singlePhotoHash(request);
+      if (imageHash !== undefined) {
         queryClient.invalidateQueries({ queryKey: photoKeys.detail(imageHash) });
       }
     },

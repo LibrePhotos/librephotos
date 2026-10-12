@@ -1,27 +1,15 @@
+import { endpoints } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
-import { z } from "zod";
-import { parseWithNotification } from "../../../util/zodUtils";
 import { albumKeys } from "../../albums/keys";
 import { apiClient, queryClient } from "../../api";
 import { startJob } from "../../jobs/startJob";
 import { statsKeys } from "../../stats/keys";
 import { photoGridKeys } from "../keys";
 
-const DeleteMissingPhotosResponse = z.object({
-  status: z.boolean(),
-  job_id: z.string().optional(),
-});
 export const useDeleteMissingPhotosMutation = () =>
   useMutation({
     mutationFn: async () => {
-      const start = await startJob(() => apiClient.post("/deletemissingphotos", {}));
-      if (!start.alreadyRunning) {
-        parseWithNotification(
-          DeleteMissingPhotosResponse,
-          start.data,
-          "Failed to parse delete missing photos response"
-        );
-      }
+      await startJob(() => endpoints.deleteMissingPhotos(apiClient));
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: albumKeys.autoAlbums() });

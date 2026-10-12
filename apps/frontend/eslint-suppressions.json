@@ -456,71 +456,13 @@
     "@typescript-eslint/no-floating-promises": {
       "count": 6
     },
-    "ban/api-client-method": {
-      "count": 1
-    },
-    "ban/api-client-zod": {
-      "count": 1
-    },
-    "ban/api-client-zod-utils": {
-      "count": 1
-    },
     "ban/query-client-singleton": {
-      "count": 1
-    }
-  },
-  "src/api_client/photos/hooks/useFetchPhotoAlbumsQuery.ts": {
-    "ban/api-client-method": {
-      "count": 1
-    },
-    "ban/api-client-zod": {
-      "count": 1
-    },
-    "ban/api-client-zod-utils": {
-      "count": 1
-    }
-  },
-  "src/api_client/photos/hooks/useFetchPhotoDetailsQuery.ts": {
-    "ban/api-client-method": {
-      "count": 1
-    }
-  },
-  "src/api_client/photos/hooks/useFetchPublicPhotoDetailQuery.ts": {
-    "ban/api-client-method": {
-      "count": 1
-    },
-    "ban/api-client-zod": {
-      "count": 1
-    }
-  },
-  "src/api_client/photos/hooks/useFetchSharedPhotosByMeQuery.ts": {
-    "ban/api-client-zod": {
-      "count": 1
-    },
-    "ban/api-client-zod-utils": {
-      "count": 1
-    }
-  },
-  "src/api_client/photos/hooks/useFetchSharedPhotosWithMeQuery.ts": {
-    "ban/api-client-zod": {
-      "count": 1
-    },
-    "ban/api-client-zod-utils": {
       "count": 1
     }
   },
   "src/api_client/photos/hooks/useGenerateImageToTextCaptionMutation.ts": {
     "@typescript-eslint/no-floating-promises": {
       "count": 2
-    },
-    "ban/api-client-method": {
-      "count": 1
-    },
-    "ban/api-client-zod": {
-      "count": 1
-    },
-    "ban/api-client-zod-utils": {
-      "count": 1
     },
     "ban/query-client-singleton": {
       "count": 1
@@ -529,15 +471,6 @@
   "src/api_client/photos/hooks/useMarkPhotosDeletedMutation.ts": {
     "@typescript-eslint/no-floating-promises": {
       "count": 3
-    },
-    "ban/api-client-method": {
-      "count": 1
-    },
-    "ban/api-client-zod": {
-      "count": 1
-    },
-    "ban/api-client-zod-utils": {
-      "count": 1
     },
     "ban/query-client-singleton": {
       "count": 1
@@ -552,15 +485,6 @@
     "@typescript-eslint/no-floating-promises": {
       "count": 1
     },
-    "ban/api-client-method": {
-      "count": 3
-    },
-    "ban/api-client-zod": {
-      "count": 1
-    },
-    "ban/api-client-zod-utils": {
-      "count": 1
-    },
     "ban/query-client-singleton": {
       "count": 1
     }
@@ -568,15 +492,6 @@
   "src/api_client/photos/hooks/usePurgeDeletedPhotosMutation.ts": {
     "@typescript-eslint/no-floating-promises": {
       "count": 7
-    },
-    "ban/api-client-method": {
-      "count": 1
-    },
-    "ban/api-client-zod": {
-      "count": 1
-    },
-    "ban/api-client-zod-utils": {
-      "count": 1
     },
     "ban/query-client-singleton": {
       "count": 1
@@ -586,15 +501,6 @@
     "@typescript-eslint/no-floating-promises": {
       "count": 4
     },
-    "ban/api-client-method": {
-      "count": 1
-    },
-    "ban/api-client-zod": {
-      "count": 1
-    },
-    "ban/api-client-zod-utils": {
-      "count": 1
-    },
     "ban/query-client-singleton": {
       "count": 1
     }
@@ -603,30 +509,12 @@
     "@typescript-eslint/no-floating-promises": {
       "count": 2
     },
-    "ban/api-client-method": {
-      "count": 1
-    },
-    "ban/api-client-zod": {
-      "count": 1
-    },
-    "ban/api-client-zod-utils": {
-      "count": 1
-    },
     "ban/query-client-singleton": {
       "count": 1
     }
   },
   "src/api_client/photos/hooks/useSetFavoritePhotosMutation.ts": {
     "@typescript-eslint/no-floating-promises": {
-      "count": 1
-    },
-    "ban/api-client-method": {
-      "count": 1
-    },
-    "ban/api-client-zod": {
-      "count": 1
-    },
-    "ban/api-client-zod-utils": {
       "count": 1
     },
     "ban/query-client-singleton": {
@@ -637,15 +525,6 @@
     "@typescript-eslint/no-floating-promises": {
       "count": 4
     },
-    "ban/api-client-method": {
-      "count": 1
-    },
-    "ban/api-client-zod": {
-      "count": 1
-    },
-    "ban/api-client-zod-utils": {
-      "count": 1
-    },
     "ban/query-client-singleton": {
       "count": 1
     }
@@ -653,15 +532,6 @@
   "src/api_client/photos/hooks/useSetPhotosHiddenMutation.ts": {
     "@typescript-eslint/no-floating-promises": {
       "count": 4
-    },
-    "ban/api-client-method": {
-      "count": 1
-    },
-    "ban/api-client-zod": {
-      "count": 1
-    },
-    "ban/api-client-zod-utils": {
-      "count": 1
     },
     "ban/query-client-singleton": {
       "count": 1
@@ -671,15 +541,6 @@
     "@typescript-eslint/no-floating-promises": {
       "count": 4
     },
-    "ban/api-client-method": {
-      "count": 1
-    },
-    "ban/api-client-zod": {
-      "count": 1
-    },
-    "ban/api-client-zod-utils": {
-      "count": 1
-    },
     "ban/query-client-singleton": {
       "count": 1
     }
@@ -687,15 +548,6 @@
   "src/api_client/photos/hooks/useUpdatePhotoMutation.ts": {
     "@typescript-eslint/no-floating-promises": {
       "count": 2
-    },
-    "ban/api-client-method": {
-      "count": 1
-    },
-    "ban/api-client-zod": {
-      "count": 1
-    },
-    "ban/api-client-zod-utils": {
-      "count": 1
     },
     "ban/query-client-singleton": {
       "count": 1
@@ -705,34 +557,7 @@
     "@typescript-eslint/no-floating-promises": {
       "count": 3
     },
-    "ban/api-client-method": {
-      "count": 1
-    },
-    "ban/api-client-zod": {
-      "count": 1
-    },
-    "ban/api-client-zod-utils": {
-      "count": 1
-    },
     "ban/query-client-singleton": {
-      "count": 1
-    }
-  },
-  "src/api_client/photos/metadata.ts": {
-    "ban/api-client-method": {
-      "count": 3
-    },
-    "ban/api-client-zod-utils": {
-      "count": 1
-    }
-  },
-  "src/api_client/photos/types.test.ts": {
-    "ban/api-client-zod": {
-      "count": 1
-    }
-  },
-  "src/api_client/photos/types.ts": {
-    "ban/api-client-zod": {
       "count": 1
     }
   },

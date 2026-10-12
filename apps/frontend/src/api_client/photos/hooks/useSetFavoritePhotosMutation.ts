@@ -1,48 +1,19 @@
+import { endpoints } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
-import { z } from "zod";
 import { notification } from "../../../service/notifications";
-import { parseWithNotification } from "../../../util/zodUtils";
 import { apiClient, queryClient } from "../../api";
 import { invalidatePhotoLists } from "../invalidatePhotoLists";
 import { photoKeys } from "../keys";
-import type { BulkPhotoQuery } from "../types";
+import { selectionArgs, singlePhotoHash, type PhotoSelection } from "../photoSelection";
 
-const UpdatedPhotosResponse = z.object({
-  status: z.boolean(),
-  // Hashes, not serialized photos: the backend no longer builds a payload per photo.
-  updated_hashes: z.string().array().optional(),
-  not_updated_hashes: z.string().array().optional(),
-  count: z.number().optional(),
-});
-type UpdatedPhotosResponse = z.infer<typeof UpdatedPhotosResponse>;
-
-// Request type for individual photo hashes
-type IndividualRequest = {
-  select_all?: false;
-  image_hashes: string[];
-  favorite: boolean;
-};
-
-// Request type for select_all mode
-type SelectAllRequest = {
-  select_all: true;
-  query: BulkPhotoQuery;
-  excluded_hashes?: string[];
-  favorite: boolean;
-};
-
-type FavoritePhotosRequest = IndividualRequest | SelectAllRequest;
+type FavoritePhotosRequest = PhotoSelection & { favorite: boolean };
 
 // Set favorite photos
 export const useSetFavoritePhotosMutation = () =>
   useMutation({
     mutationFn: async (request: FavoritePhotosRequest) => {
-      const response = await apiClient.post("/photosedit/favorite/", request);
-      const data = parseWithNotification(
-        UpdatedPhotosResponse,
-        response,
-        "Failed to parse set favorite photos response"
-      );
+      const [imageHashes, selectAll] = selectionArgs(request);
+      const data = await endpoints.setPhotosFavorite(apiClient, imageHashes, request.favorite, selectAll);
 
       // Show notification based on mode
       if (request.select_all) {
@@ -58,8 +29,8 @@ export const useSetFavoritePhotosMutation = () =>
       invalidatePhotoLists(queryClient);
 
       // If we have a single photo in individual mode, invalidate its details
-      const [imageHash, ...others] = request.select_all ? [] : request.image_hashes;
-      if (imageHash !== undefined && others.length === 0) {
+      const imageHash = singlePhotoHash(request);
+      if (imageHash !== undefined) {
         queryClient.invalidateQueries({ queryKey: photoKeys.detail(imageHash) });
       }
     },

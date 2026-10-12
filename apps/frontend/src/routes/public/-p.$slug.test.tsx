@@ -14,7 +14,7 @@ import { Settings } from "luxon";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import type { SharedPhoto } from "../../api_client/photos/hooks/usePhotoShareMutation";
+import type { SharedPhoto } from "../../api_client/photos/types";
 import { defined } from "../../util/defined.test-utils";
 
 const stubs = vi.hoisted(() => {
