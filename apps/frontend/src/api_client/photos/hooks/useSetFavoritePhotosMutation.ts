@@ -55,7 +55,7 @@ export const useSetFavoritePhotosMutation = () =>
     },
     onSuccess: (data, request) => {
       // Every grid draws the star from the list data
-      invalidatePhotoLists();
+      invalidatePhotoLists(queryClient);
 
       // If we have a single photo in individual mode, invalidate its details
       if (!request.select_all && request.image_hashes.length === 1) {

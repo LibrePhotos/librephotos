@@ -23,7 +23,7 @@ function invalidateAfterMetadataEdit(queryClient: QueryClient, photoIds: string[
   });
   queryClient.invalidateQueries({ queryKey: [...PhotoDetailsQueryKeys] });
   queryClient.invalidateQueries({ queryKey: [...TagsQueryKeys] });
-  invalidatePhotoLists();
+  invalidatePhotoLists(queryClient);
 }
 
 /**

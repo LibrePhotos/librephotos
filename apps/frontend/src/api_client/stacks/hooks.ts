@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { parseWithNotification } from "../../util/zodUtils";
 import { fetchClient } from "../api";
 import { startJob } from "../jobs/startJob";
+import { invalidatePhotoLists } from "../photos/invalidatePhotoLists";
 import {
   CreateManualStackResponse,
   DetectStacksResponse,
@@ -140,8 +141,8 @@ export function useMergeStacksMutation() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: stackKeys.lists() });
       queryClient.invalidateQueries({ queryKey: stackKeys.stats() });
-      // Also invalidate photo queries since stacks affect photo display
-      queryClient.invalidateQueries({ queryKey: ["photos"] });
+      // Stack badges and covers are drawn from the grid data.
+      invalidatePhotoLists(queryClient);
     },
   });
 }
@@ -154,8 +155,8 @@ export function useCreateManualStackMutation() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: stackKeys.lists() });
       queryClient.invalidateQueries({ queryKey: stackKeys.stats() });
-      // Also invalidate photo queries since stacks affect photo display
-      queryClient.invalidateQueries({ queryKey: ["photos"] });
+      // Stack badges and covers are drawn from the grid data.
+      invalidatePhotoLists(queryClient);
     },
   });
 }

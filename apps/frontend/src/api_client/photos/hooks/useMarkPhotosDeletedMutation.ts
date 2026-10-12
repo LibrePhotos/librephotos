@@ -55,7 +55,7 @@ export const useMarkPhotosDeletedMutation = () =>
       return data;
     },
     onSuccess: () => {
-      invalidatePhotoLists();
+      invalidatePhotoLists(queryClient);
       // Cached details hold in_trashcan, which drives the lightbox's Delete/Restore toggle.
       queryClient.invalidateQueries({ queryKey: [...PhotoDetailsQueryKeys] });
       queryClient.invalidateQueries({ queryKey: [...CountStatsQueryKeys] });

@@ -231,7 +231,7 @@
   },
   "src/api_client/stacks/hooks.ts": {
     "@typescript-eslint/no-floating-promises": {
-      "count": 15
+      "count": 13
     }
   },
   "src/api_client/tags/hooks/useCreateTagMutation.ts": {

@@ -53,7 +53,7 @@ export const useSetPhotosHiddenMutation = () =>
     },
     onSuccess: (data, request) => {
       // Invalidate relevant queries to ensure consistent state
-      invalidatePhotoLists();
+      invalidatePhotoLists(queryClient);
       queryClient.invalidateQueries({ queryKey: [...IncompleteFacesQueryKeys] });
       queryClient.invalidateQueries({ queryKey: [...CountStatsQueryKeys] });
       queryClient.invalidateQueries({ queryKey: [...PhotoMonthCountQueryKeys] });

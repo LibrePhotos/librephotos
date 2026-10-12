@@ -1,10 +1,10 @@
+import type { QueryClient } from "@tanstack/react-query";
 import { AutoAlbumQueryKeys } from "../albums/hooks/useFetchAutoAlbumQuery";
 import { DateAlbumQueryKeys } from "../albums/hooks/useFetchDateAlbumQuery";
 import { DateAlbumsQueryKeys } from "../albums/hooks/useFetchDateAlbumsQuery";
 import { PlaceAlbumQueryKeys } from "../albums/hooks/useFetchPlaceAlbumQuery";
 import { ThingsAlbumQueryKeys } from "../albums/hooks/useFetchThingsAlbumQuery";
 import { UserAlbumQueryKeys } from "../albums/hooks/useFetchUserAlbumQuery";
-import { queryClient } from "../api";
 import { SearchPhotosQueryKeys } from "../search/hooks/useSearchPhotosQuery";
 import { TagAlbumQueryKeys } from "../tags/hooks/useFetchTagAlbumQuery";
 import { PhotosWithoutTimestampQueryKeys } from "./hooks/useFetchPhotosWithoutTimestampQuery";
@@ -29,7 +29,7 @@ const PHOTO_LIST_QUERY_KEYS: ReadonlyArray<readonly string[]> = [
 
 // Only the grids on screen refetch; the others are marked stale and refetch
 // when the user opens them.
-export function invalidatePhotoLists() {
+export function invalidatePhotoLists(queryClient: QueryClient) {
   PHOTO_LIST_QUERY_KEYS.forEach(queryKey => {
     queryClient.invalidateQueries({ queryKey: [...queryKey] });
   });

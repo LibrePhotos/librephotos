@@ -33,7 +33,7 @@ export const useUpdatePhotoMutation = () =>
       // A new date moves the photo to another day on the timeline, and out of
       // the no-timestamp list.
       if ("exif_timestamp" in patch) {
-        invalidatePhotoLists();
+        invalidatePhotoLists(queryClient);
         queryClient.invalidateQueries({ queryKey: [...PhotoMonthCountQueryKeys] });
       }
     },
