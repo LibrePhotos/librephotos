@@ -4,7 +4,7 @@
 import { sql } from "drizzle-orm";
 import { Media, type IncompleteDatePhotosGroup, type PigPhoto } from "@librephotos/api-client";
 import { createTestDb, type TestDb } from "@/db/test-db";
-import { seedAll, seedPhotos, type SeedSource } from "../remote/seed";
+import { seedAll, seedPeople, seedPhotos, type SeedSource } from "../remote/seed";
 import { getSyncState } from "@/db/queries/sync-state";
 import { filterPhotos } from "@/db/queries/filters";
 
@@ -49,7 +49,11 @@ function makeSource(overrides: Partial<SeedSource> = {}): SeedSource {
       return bucket(id, items, items.length, false);
     },
     photosWithoutTimestamp: async () => ({ results: [], next: null }),
-    people: async () => [{ id: 1, name: "Ann", face_url: null, face_count: 3, face_photo_url: null, cover_photo: "h1" }],
+    // GET /api/persons/ as PersonSerializer sends it: the cover's hash is in
+    // face_photo_url ("" for a person without faces); cover_photo is write-only.
+    people: async () => [
+      { id: 1, name: "Ann", face_url: "/media/faces/ann.jpg", face_count: 3, face_photo_url: "h1", video: false },
+    ],
     userAlbumsList: async () => [],
     userAlbum: noAlbum,
     autoAlbumsList: async () => [],
@@ -138,5 +142,21 @@ describe("seeder", () => {
     expect(res.people).toBe(1);
     expect(getSyncState(t.db, "person")?.status).toBe("done");
     expect(getSyncState(t.db, "thing_album")?.status).toBe("done");
+  });
+
+  it("seeds a person's cover from face_photo_url, the field the server sends", async () => {
+    const source = makeSource({
+      people: async () => [
+        { id: 1, name: "Ann", face_url: "/media/faces/ann.jpg", face_count: 3, face_photo_url: "h1", video: false },
+        { id: 2, name: "Bob", face_url: "", face_count: 0, face_photo_url: "", video: false },
+      ],
+    });
+    expect(await seedPeople(t.db, source, OPTS.now)).toBe(2);
+    const rows = t.db.all(sql`SELECT id, cover_photo_hash FROM person ORDER BY id`);
+    expect(rows).toEqual([
+      { id: 1, cover_photo_hash: "h1" },
+      // No faces, no cover: "" is stored as null, like the delta sync's null.
+      { id: 2, cover_photo_hash: null },
+    ]);
   });
 });

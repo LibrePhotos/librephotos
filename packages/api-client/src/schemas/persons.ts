@@ -9,7 +9,6 @@ export const Person = z.object({
   video: z.boolean().optional(),
   id: z.number(),
   newPersonName: z.string().optional(),
-  cover_photo: z.string().optional(),
 });
 export type Person = z.infer<typeof Person>;
 
