@@ -1,14 +1,18 @@
-import { QueryClient } from "@tanstack/react-query";
 import { describe, expect, it, vi } from "vitest";
-import { jobsQueryOptions, workerAvailabilityQueryOptions } from "../hooks";
-import type { JobsResponse, WorkerAvailabilityResponse } from "../schemas";
+import {
+  jobListRefetchInterval,
+  jobsQueryOptions,
+  workerAvailabilityQueryOptions,
+  workerRefetchInterval,
+} from "../hooks";
 import { POLL_ACTIVE_MS, POLL_IDLE_MS } from "../polling";
+import type { JobsResponse, WorkerAvailabilityResponse } from "../schemas";
 import { createApiClient } from "../transport";
 import type { TokenSupplier } from "../transport";
 
 // The node project has no window, so TanStack Query starts no refetch timers here. These tests check the
-// refetchInterval the hooks hand to React Query for each state of the cached data; the timing itself
-// (pollWhile, the observer's interval) is covered by polling.test.ts and the web's hook tests (jsdom).
+// refetchInterval functions the hooks hand to React Query, for each state of the cached data; the timing
+// itself (pollWhile, the observer's interval) is covered by polling.test.ts and the web's hook tests (jsdom).
 
 const FUTURE_JWT =
   "eyJhbGciOiJIUzI1NiJ9." + Buffer.from(JSON.stringify({ exp: 9999999999, user_id: 1 })).toString("base64url") + ".sig";
@@ -26,25 +30,8 @@ const client = createApiClient({
   fetch: vi.fn(() => Promise.reject(new Error("no request is expected here"))),
 });
 
-/** The interval React Query polls at for a jobs query holding `data` (none before the first answer). */
-function jobsInterval(data?: JobsResponse): number | false {
-  const options = jobsQueryOptions(client, { pageSize: 20 });
-  const queryClient = new QueryClient();
-  const query = queryClient.getQueryCache().build(queryClient, options);
-  if (data !== undefined) query.setData(data);
-  const { refetchInterval } = options;
-  return typeof refetchInterval === "function" ? (refetchInterval(query) ?? false) : (refetchInterval ?? false);
-}
-
-/** The interval React Query polls at for a worker query holding `data` (none before the first answer). */
-function workerInterval(data?: WorkerAvailabilityResponse): number | false {
-  const options = workerAvailabilityQueryOptions(client);
-  const queryClient = new QueryClient();
-  const query = queryClient.getQueryCache().build(queryClient, options);
-  if (data !== undefined) query.setData(data);
-  const { refetchInterval } = options;
-  return typeof refetchInterval === "function" ? (refetchInterval(query) ?? false) : (refetchInterval ?? false);
-}
+/** The query state the cadence reads: none before the first answer, then the data. */
+const state = <TData>(data: TData | undefined) => ({ state: { data } });
 
 const job = (finished: boolean) => ({
   job_id: "abc",
@@ -63,15 +50,18 @@ const job = (finished: boolean) => ({
 });
 
 describe("worker availability query", () => {
-  const worker = (queue_can_accept_job: boolean): WorkerAvailabilityResponse => ({ status: true, queue_can_accept_job });
+  const worker = (queue_can_accept_job: boolean): WorkerAvailabilityResponse => ({
+    status: true,
+    queue_can_accept_job,
+  });
 
   it("polls at the active cadence while the worker is busy and at the idle cadence while it is free", () => {
-    expect(workerInterval(worker(false))).toBe(POLL_ACTIVE_MS);
-    expect(workerInterval(worker(true))).toBe(POLL_IDLE_MS);
+    expect(workerRefetchInterval(state(worker(false)))).toBe(POLL_ACTIVE_MS);
+    expect(workerRefetchInterval(state(worker(true)))).toBe(POLL_IDLE_MS);
   });
 
   it("does not poll at the active cadence before the first answer", () => {
-    expect(workerInterval(undefined)).toBe(POLL_IDLE_MS);
+    expect(workerRefetchInterval(state(undefined))).toBe(POLL_IDLE_MS);
   });
 
   it("is disabled, so it sends no request, when asked to be", () => {
@@ -89,13 +79,13 @@ describe("job list query", () => {
   });
 
   it("polls at the active cadence only while a job on the page is unfinished", () => {
-    expect(jobsInterval(page(true, false))).toBe(POLL_ACTIVE_MS);
-    expect(jobsInterval(page(true, true))).toBe(POLL_IDLE_MS);
-    expect(jobsInterval(page())).toBe(POLL_IDLE_MS);
+    expect(jobListRefetchInterval(state(page(true, false)))).toBe(POLL_ACTIVE_MS);
+    expect(jobListRefetchInterval(state(page(true, true)))).toBe(POLL_IDLE_MS);
+    expect(jobListRefetchInterval(state(page()))).toBe(POLL_IDLE_MS);
   });
 
   it("does not poll at the active cadence before the first answer", () => {
-    expect(jobsInterval(undefined)).toBe(POLL_IDLE_MS);
+    expect(jobListRefetchInterval(state(undefined))).toBe(POLL_IDLE_MS);
   });
 
   it("is disabled, so it sends no request, when asked to be", () => {

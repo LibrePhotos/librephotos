@@ -1,9 +1,9 @@
+import { pollWhile } from "@librephotos/api-client";
 import { useQuery } from "@tanstack/react-query";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient } from "../../api";
 import { JobDetail } from "../types";
 import { JobsQueryKeys } from "./useJobsQuery";
-import { pollWhile } from "@librephotos/api-client";
 
 export const useJobQuery = (id: number) =>
   useQuery({

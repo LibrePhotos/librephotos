@@ -217,9 +217,12 @@ export function useSiteSettingsQuery() {
   return useQuery({ queryKey: queryKeys.siteSettings(), queryFn: () => endpoints.fetchSiteSettings(client) });
 }
 
+/** The job list's cadence: active only while a job on the page is unfinished; idle otherwise, so a job that starts elsewhere is still picked up. */
+export const jobListRefetchInterval = pollWhile<JobsResponse>(page => page.results.some(job => !job.finished));
+
 /**
- * The job list. It polls at the active cadence only while a job on the page is unfinished; the idle
- * cadence picks up a job that starts elsewhere. Pass `enabled: false` to stop it (offline).
+ * The job list. It polls at the active cadence only while a job on the page is unfinished. Pass
+ * `enabled: false` to stop it (offline).
  */
 export function jobsQueryOptions(
   client: ApiClient,
@@ -228,7 +231,7 @@ export function jobsQueryOptions(
   return queryOptions({
     queryKey: queryKeys.jobs(),
     queryFn: () => endpoints.fetchJobs(client, options.page ?? 1, options.pageSize ?? 20),
-    refetchInterval: pollWhile<JobsResponse>(page => page.results.some(job => !job.finished)),
+    refetchInterval: jobListRefetchInterval,
     enabled: options.enabled ?? true,
   });
 }
@@ -238,15 +241,18 @@ export function useJobsQuery(options?: { page?: number; pageSize?: number; enabl
   return useQuery(jobsQueryOptions(client, options));
 }
 
+/** The worker's cadence: active while the worker is busy, idle otherwise. */
+export const workerRefetchInterval = pollWhile<WorkerAvailabilityResponse>(worker => !worker.queue_can_accept_job);
+
 /**
- * The worker's availability. It polls at the active cadence while the worker is busy, and at the
- * idle cadence otherwise. Pass `enabled: false` to stop it (offline).
+ * The worker's availability. It polls on `workerRefetchInterval`. Pass `enabled: false` to stop it
+ * (offline).
  */
 export function workerAvailabilityQueryOptions(client: ApiClient, options: { enabled?: boolean } = {}) {
   return queryOptions({
     queryKey: queryKeys.workerAvailability(),
     queryFn: () => endpoints.fetchWorkerAvailability(client),
-    refetchInterval: pollWhile<WorkerAvailabilityResponse>(worker => !worker.queue_can_accept_job),
+    refetchInterval: workerRefetchInterval,
     enabled: options.enabled ?? true,
   });
 }

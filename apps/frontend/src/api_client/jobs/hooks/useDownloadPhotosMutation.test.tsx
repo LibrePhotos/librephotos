@@ -4,12 +4,12 @@
  * pending until the archive is saved, a failed status check or job stops the
  * poll with one failure toast, and cancelPhotoDownloads() stops it without one.
  */
+import { POLL_ARCHIVE_MS } from "@librephotos/api-client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi, type MockInstance } from "vitest";
 import { cancelPhotoDownloads, useDownloadPhotosMutation } from "./useDownloadPhotosMutation";
-import { POLL_ARCHIVE_MS } from "@librephotos/api-client";
 
 const stubs = vi.hoisted(() => ({
   post: vi.fn<(endpoint: string, data?: unknown) => Promise<unknown>>(),
