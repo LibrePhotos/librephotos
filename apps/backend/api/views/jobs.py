@@ -11,9 +11,9 @@ from rest_framework.views import APIView
 
 from api.jobs.queue import remove_queued_tasks
 from api.models import LongRunningJob, User
+from api.pagination import DefaultPagination
 from api.request_user import request_user
 from api.serializers.job import JobListQuery, LongRunningJobSerializer
-from api.views.pagination import TinyResultsSetPagination
 from api.views.params import parse_query
 
 logger = logging.getLogger(__name__)
@@ -33,7 +33,7 @@ class LongRunningJobViewSet(
     # in get_queryset() below.
     queryset = LongRunningJob.objects.all()
     serializer_class = LongRunningJobSerializer
-    pagination_class = TinyResultsSetPagination
+    pagination_class = DefaultPagination
 
     def get_queryset(self) -> QuerySet[LongRunningJob]:
         # Scope jobs to the requesting user so one user cannot list, retrieve,

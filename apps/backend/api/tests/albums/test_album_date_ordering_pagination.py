@@ -70,3 +70,20 @@ class AlbumDatePageQueryTest(AlbumDatePhotoOrderingTest):
         response = self.get({"size": "x"})
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json()["errors"][0]["field"], "size")
+
+    def test_page_size_wins_over_the_deprecated_size(self):
+        self.assertEqual(self.items({"page_size": "2", "size": "3"}), 2)
+
+    def test_size_has_the_page_size_bound(self):
+        self.assertEqual(self.get({"size": "50000"}).json()["page_size"], 1000)
+
+    def test_the_page_fields_sit_next_to_the_day(self):
+        data = self.get({"page_size": "3", "page": "2"}).json()
+        self.assertEqual(
+            (data["count"], data["page"], data["page_size"], data["num_pages"]),
+            (4, 2, 3, 2),
+        )
+        self.assertIsNone(data["next"])
+        self.assertIn("page_size=3", data["previous"])
+        self.assertEqual(data["results"]["numberOfItems"], 4)
+        self.assertEqual(len(data["results"]["items"]), 1)

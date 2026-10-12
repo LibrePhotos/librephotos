@@ -40,6 +40,11 @@ from api.models.album_thing import (
 from api.models.person import Person
 from api.models.photo_caption import PhotoCaption
 from api.models.tag import refresh_tag_photo_counts, tag_ids_for_photos
+from api.pagination import (
+    DefaultPagination,
+    PhotoGridPagination,
+    WholeListPagination,
+)
 from api.permissions import IsOwnerOrReadOnly, IsPhotoOrAlbumSharedTo
 from api.request_user import request_user
 from api.serializers.album_user import (
@@ -53,6 +58,7 @@ from api.serializers.photos import (
     PhotoSelectionRequest,
     PhotoSerializer,
     PhotoSummarySerializer,
+    RecentlyAddedPhotosSerializer,
     RotatePhotoRequest,
     SaveMetadataRequest,
     SavePhotoCaptionRequest,
@@ -67,11 +73,6 @@ from api.serializers.photos import (
     with_photo_summary_relations,
 )
 from api.views.custom_api_view import ListViewSet
-from api.views.pagination import (
-    HugeResultsSetPagination,
-    RegularResultsSetPagination,
-    StandardResultsSetPagination,
-)
 from api.views.params import parse_body
 from api.views.photo_filters import scope_user
 
@@ -117,9 +118,11 @@ def _detect_content_type(path: str) -> str:
 
 
 class RecentlyAddedPhotoListViewSet(ListViewSet):
+    """Every photo added on the day of the latest upload, in one answer."""
+
     permission_classes = (IsAuthenticated,)
     serializer_class = PhotoSummarySerializer
-    pagination_class = HugeResultsSetPagination
+    pagination_class = None
 
     def get_queryset(self) -> QuerySet[Photo]:
         latest_photo = self._get_latest_photo()
@@ -134,6 +137,7 @@ class RecentlyAddedPhotoListViewSet(ListViewSet):
             )
         ).order_by("-added_on")
 
+    @extend_schema(responses=RecentlyAddedPhotosSerializer)
     def list(self, *args: Any, **kwargs: Any) -> Response:
         queryset = self.get_queryset()
         latest_photo = self._get_latest_photo()
@@ -155,7 +159,7 @@ class RecentlyAddedPhotoListViewSet(ListViewSet):
 class NoTimestampPhotoViewSet(ListViewSet):
     permission_classes = (IsAuthenticated,)
     serializer_class = PhotoSummarySerializer
-    pagination_class = RegularResultsSetPagination
+    pagination_class = DefaultPagination
     filter_backends = (filters.SearchFilter,)
     search_fields = [
         "search_instance__search_captions",
@@ -492,7 +496,7 @@ class PhotoViewSet(
     viewsets.GenericViewSet,
 ):
     serializer_class = PhotoSerializer
-    pagination_class = HugeResultsSetPagination
+    pagination_class = PhotoGridPagination
     filter_backends = (filters.SearchFilter,)
     search_fields = [
         "search_instance__search_captions",
@@ -665,7 +669,7 @@ class PhotoEditViewSet(
 ):
     permission_classes = (IsAuthenticated,)
     serializer_class = PhotoEditSerializer
-    pagination_class = StandardResultsSetPagination
+    pagination_class = WholeListPagination
 
     def get_queryset(self) -> QuerySet[Photo]:
         # Hidden and trashed photos keep an editable date and location.

@@ -33,12 +33,13 @@ Gives you a list of days with the number of elements. This is not paginated and 
 
 ### `GET /api/albums/date/<id>`
 
-Returns the actual images, for a given day in chunks of 100 images by default.
+Returns the actual images, for a given day in chunks of 100 images by default. `results` is the day with one page of its images in `items` and the day's total in `numberOfItems`; the page fields of every paginated list (`count`, `next`, `previous`, `page`, `page_size`, `num_pages`) sit next to it.
 
 #### Parameters:
 
-- `?page=1` - Give me the first page of the album
-- `?size=<n>` - Change the chunk size (default 100). This endpoint paginates manually, so the parameter is `size`, not the `page_size` used by the paginated endpoints. A value below 1 counts as 1 and there is no upper bound; a value that is not a number is a 400.
+- `?page=1` - Give me the first page of the album. A page past the end answers the last page, and one that is not a number the first, because clients work the page numbers out from the day's count, which may be out of date.
+- `?page_size=<n>` - Change the chunk size (default 100, at most 1000), as on every [paginated list](index.md#pagination). A value below 1 counts as 1; a value that is not a number is a 400.
+- `?size=<n>` - Deprecated alias of `page_size`, read only when `page_size` is absent; it now has the same upper bound. It will be removed after the next release.
 - `?favorite=true` - Give me the list for favorite images
 - `?public=true` - Give me the list for public images. Here `username` is optional: `?public=true` on its own returns the day's public images regardless of owner.
 - `?username=<name>` - Restrict the public images to this owner (only takes effect together with `?public=true`)

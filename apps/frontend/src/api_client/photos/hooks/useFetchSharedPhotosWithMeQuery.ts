@@ -1,3 +1,4 @@
+import { fetchAllPages } from "@librephotos/api-client";
 import { useQuery } from "@tanstack/react-query";
 import { groupBy, toPairs } from "lodash-es";
 import { z } from "zod";
@@ -14,10 +15,10 @@ export const useFetchSharedPhotosWithMeQuery = () =>
   useQuery({
     queryKey: photoGridKeys.sharedWithMe(),
     queryFn: async () => {
-      const response = await fetchClient.get("/photos/shared/tome/");
+      const rows = await fetchAllPages(fetchClient, "/photos/shared/tome/");
       const { results } = parseWithNotification(
         SharedPhotosWithMeResponse,
-        response,
+        { results: rows },
         "Failed to parse shared photos with me"
       );
       return toPairs(groupBy(results, "owner.id")).map(el => ({ userId: parseInt(el[0], 10), photos: el[1] }));

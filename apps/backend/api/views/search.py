@@ -15,11 +15,11 @@ from api.request_user import request_user
 from api.serializers.photos import (
     GroupedPhotosSerializer,
     PhotoSummarySerializer,
+    SearchResultsSerializer,
     with_photo_summary_relations,
 )
 from api.serializers.PhotosGroupedByDate import get_photos_ordered_by_date
 from api.views.custom_api_view import ListViewSet
-from api.views.pagination import HugeResultsSetPagination
 from api.views.photo_filters import scope_user
 
 # The date of the undated group in search results. The other grouped lists send
@@ -30,9 +30,11 @@ LEGACY_UNDATED_DATE = "No timestamp"
 
 
 class SearchListViewSet(ListViewSet):
+    """Every match in one answer: grouped by date, or the semantic top k."""
+
     permission_classes = (IsAuthenticated,)
     serializer_class = GroupedPhotosSerializer
-    pagination_class = HugeResultsSetPagination
+    pagination_class = None
     filter_backends = (SemanticSearchFilter,)
 
     search_fields = [
@@ -57,8 +59,11 @@ class SearchListViewSet(ListViewSet):
         ],
         description=(
             "Search photos and videos. Pass video=true to return only videos "
-            "or photo=true to return only photos."
+            "or photo=true to return only photos. With semantic search on "
+            "(the user's semantic_search_topk), results is a flat list of "
+            "photo summaries instead of date groups."
         ),
+        responses=SearchResultsSerializer,
     )
     def list(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         # The helper loads the stacks, files and local_orientation the summary

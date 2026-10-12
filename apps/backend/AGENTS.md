@@ -60,7 +60,7 @@ test makes `--parallel` runs crash with "cannot pickle 'traceback'"; rerun that 
 - A view reads its input only through a serializer: a `*Query`/`*Request` `serializers.Serializer` in
   `api/serializers/`, read with `parse_query(request, XQuery)` or `parse_body(request, XRequest)` from
   `api/views/params.py` (a missing or malformed field is a 400 naming it, never a 500), and the same
-  class in `@extend_schema(parameters=[XQuery])` / `request=XRequest`. Clamp page sizes with its
+  class in `@extend_schema(parameters=[XQuery])` / `request=XRequest`. Clamp numbers with its
   `ClampedIntegerField`; example: `DuplicateListView` and `DetectDuplicatesView` in `api/views/duplicates.py`.
   `RequestParsingGuardTest` (`api/tests/infra/test_api_conventions.py`) fails on a hand read of
   `request.data`/`query_params`/`GET`/`POST` in any view module (no baseline).
@@ -81,6 +81,13 @@ test makes `--parallel` runs crash with "cannot pickle 'traceback'"; rerun that 
   (`api/tests/infra/test_api_conventions.py`); a mutating one also needs a case in
   `api/tests/sharing_and_public/test_cross_tenant_writes.py`, or its exact route in `NOT_PHOTO_SCOPED`
   with the reason (a prefix entry never covers the routes below it).
+- Lists page one way: `api.pagination.DefaultPagination` (`page`/`page_size`, 100 a page, at most 1000,
+  envelope `{count, next, previous, results, page, page_size, num_pages}`) or a preset of it from
+  `api/pagination.py` (page size only), through `self.paginate_queryset()` (`PaginatedViewMixin` on an
+  `APIView`); never Django's `Paginator` or a hand-sliced page. A list that answers every row says
+  `pagination_class = None` and goes into `UNPAGINATED_LIST_VIEWS` with the reason; `PaginationConventionTest`
+  (`api/tests/infra/test_api_conventions.py`) enforces it. Clients that need a whole list follow `next`
+  (`fetchAllPages` in `packages/api-client`), so never lower a list's page size without checking its readers.
 - A list endpoint costs the same number of queries for 2 rows as for 1000: list serializers never query.
   They read relations and annotations loaded by a `with_*_relations()` function next to the serializer
   (`with_photo_summary_relations`, `with_user_relations`) and fail through `loaded_count`/`prefetched` in

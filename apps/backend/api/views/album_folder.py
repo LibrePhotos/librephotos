@@ -3,6 +3,7 @@ import os
 
 from django.conf import settings
 from django.db.models import Count
+from drf_spectacular.utils import extend_schema
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import (
@@ -16,14 +17,13 @@ from rest_framework.response import Response
 
 from api.models.photo import Photo
 from api.models.user import User
+from api.pagination import PAGE_PARAMETERS, PaginatedViewMixin
 from api.request_user import request_user
-from api.serializers.folders import SubfoldersQuery
+from api.serializers.folders import FolderPathQuery
 from api.util import folder_path_q, is_valid_path
 from api.views.params import parse_query
 
 logger = logging.getLogger(__name__)
-
-PAGE_SIZE = 100
 
 
 def _user_scan_directory(user: User) -> str | None:
@@ -115,40 +115,17 @@ def _folder_listing(
     ]
 
 
-def _folder_response(
-    base_path: str | None,
-    parent_path: str | None,
-    subfolders: list[dict[str, str | int | float]],
-    page: int,
-    total_folders: int,
-) -> Response:
-    total_pages = (total_folders + PAGE_SIZE - 1) // PAGE_SIZE
-    return Response(
-        {
-            "current_path": base_path,
-            "parent_path": parent_path,
-            "subfolders": subfolders,
-            "pagination": {
-                "page": page,
-                "page_size": PAGE_SIZE,
-                "total_folders": total_folders,
-                "total_pages": total_pages,
-                "has_next": page < total_pages,
-                "has_previous": page > 1,
-            },
-        }
-    )
-
-
-class FolderNavigationViewSet(viewsets.ViewSet):
+class FolderNavigationViewSet(PaginatedViewMixin, viewsets.ViewSet):
     """
     ViewSet for folder navigation functionality.
-    Returns paginated subfolders for a given path (max 100 per page).
+    Returns paginated subfolders for a given path (100 directory entries per
+    page; folders without photos are dropped after paging, so a page can hold
+    fewer, or none, while ``next`` says more follow).
     Only queries photo counts for folders in the current page for optimal performance.
 
     Query Parameters:
     - path: The directory path to list subfolders for
-    - page: Page number for pagination (default: 1)
+    - page, page_size: as every paginated list (api/pagination.py)
 
     Security:
     - Admins (is_staff=True) can access all folders within DATA_ROOT
@@ -158,11 +135,11 @@ class FolderNavigationViewSet(viewsets.ViewSet):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(parameters=[FolderPathQuery, *PAGE_PARAMETERS])
     @action(detail=False, methods=["get"])
     def subfolders(self, request: Request) -> Response:
         """Get subfolders for a given path with pagination."""
-        params = parse_query(request, SubfoldersQuery)
-        page = params["page"]
+        params = parse_query(request, FolderPathQuery)
         user = request_user(request)
         is_admin = user.is_staff
 
@@ -170,7 +147,8 @@ class FolderNavigationViewSet(viewsets.ViewSet):
         # albums: an empty listing, not a denial. An explicit path is still
         # refused below.
         if not is_admin and not _user_scan_directory(user) and "path" not in params:
-            return _folder_response(None, None, [], page, 0)
+            self.paginate_queryset([])
+            return self._folder_response(None, None, [])
 
         # The default is worked out even when a path is given: a user without a
         # scan directory is refused here for an explicit path too.
@@ -185,23 +163,42 @@ class FolderNavigationViewSet(viewsets.ViewSet):
 
         try:
             folder_entries = _scan_folder_entries(base_path)
-            parent_path = _parent_path(request, base_path, is_admin)
-
-            start_idx = (page - 1) * PAGE_SIZE
-            paginated_entries = folder_entries[start_idx : start_idx + PAGE_SIZE]
-            if not paginated_entries:
-                return _folder_response(
-                    base_path, parent_path, [], page, len(folder_entries)
-                )
-
-            return _folder_response(
-                base_path,
-                parent_path,
-                _folder_listing(user, paginated_entries),
-                page,
-                len(folder_entries),
-            )
-
         except Exception as e:
             logger.error("Error scanning directory %s: %s", base_path, e)
             raise APIException("Error scanning directory") from e
+
+        parent_path = _parent_path(request, base_path, is_admin)
+        page_entries = self.paginate_queryset(folder_entries)
+        subfolders = _folder_listing(user, page_entries) if page_entries else []
+        return self._folder_response(base_path, parent_path, subfolders)
+
+    def _folder_response(
+        self,
+        base_path: str | None,
+        parent_path: str | None,
+        subfolders: list[dict[str, str | int | float]],
+    ) -> Response:
+        """The page ``paginate_queryset`` cut, with the folder's own fields.
+
+        ``subfolders`` and ``pagination`` repeat ``results`` and the page
+        fields in the shape this endpoint had before #2327, for web bundles up
+        to 1.3; remove them after the next release.
+        """
+        response = self.get_paginated_response(subfolders)
+        page = self.paginator.current_page()
+        response.data.update(
+            {
+                "current_path": base_path,
+                "parent_path": parent_path,
+                "subfolders": subfolders,
+                "pagination": {
+                    "page": page.number,
+                    "page_size": page.paginator.per_page,
+                    "total_folders": page.paginator.count,
+                    "total_pages": page.paginator.num_pages,
+                    "has_next": page.has_next(),
+                    "has_previous": page.has_previous(),
+                },
+            }
+        )
+        return response

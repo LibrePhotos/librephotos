@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { PageFields } from "./common";
 
 /**
  * Face-tagging schemas (backend api/views/faces.py). Faces are NOT mirrored to
@@ -22,9 +23,7 @@ export type PersonFace = z.infer<typeof PersonFace>;
 
 /** DRF-paginated face list. */
 export const PersonFaceListResponse = z.object({
-  count: z.number(),
-  next: z.string().nullable(),
-  previous: z.string().nullable(),
+  ...PageFields,
   results: PersonFace.array(),
 });
 export type PersonFaceListResponse = z.infer<typeof PersonFaceListResponse>;

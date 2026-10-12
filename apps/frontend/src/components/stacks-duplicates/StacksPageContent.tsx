@@ -50,6 +50,7 @@ import { PLACEHOLDER_IMAGE } from "../../util/placeholderImage";
 import { EmptyState } from "../common/EmptyState";
 import { PageLoader } from "../common/PageLoader";
 import { StackModal } from "../stacks/StackModal";
+import { useStepBackFromMissingPage } from "./useStepBackFromMissingPage";
 
 const validStackTypes: readonly StackType[] = StackType.options;
 
@@ -195,11 +196,16 @@ export function StacksPageContent() {
   }, []);
 
   const { data: stats } = useStackStatsQuery();
-  const { data: stacksResponse, isLoading: stacksLoading } = useStacksQuery({
+  const {
+    data: stacksResponse,
+    isLoading: stacksLoading,
+    error: stacksError,
+  } = useStacksQuery({
     stack_type: typeFilter,
     page,
     page_size: pageSize,
   });
+  useStepBackFromMissingPage(page, setPage, stacksError);
   const { mutate: detectStacks, isPending: isDetecting } = useDetectStacksMutation();
   const { mutate: deleteStack } = useDeleteStackMutation();
 

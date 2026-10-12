@@ -17,13 +17,7 @@ export const useFetchFolderSubfoldersInfiniteQuery = (
       params.set("page", String(page));
       return fetchClient.get<FolderNavigationResponse>(`/folders/subfolders/?${params.toString()}`);
     },
-    getNextPageParam: lastPage => {
-      const { pagination } = lastPage;
-      if (pagination && pagination.has_next) {
-        return (pagination.page || 1) + 1;
-      }
-      return undefined;
-    },
+    getNextPageParam: lastPage => (lastPage.next === null ? undefined : lastPage.page + 1),
     initialPageParam: 1,
     retry: retryFolderRequest,
     retryDelay: 1000,
@@ -56,7 +50,7 @@ export function useAllFolderSubfolders(path?: string): {
     }
   }, [hasNextPage, isFetchingNextPage, isError, fetchNextPage, pageCount]);
 
-  const subfolders = useMemo(() => data?.pages.flatMap(page => page.subfolders) ?? [], [data]);
+  const subfolders = useMemo(() => data?.pages.flatMap(page => page.results) ?? [], [data]);
   const morePagesComing = Boolean(hasNextPage && !isError);
   return {
     subfolders,

@@ -9,19 +9,23 @@ export type SubfolderInfo = {
   modified: number;
 };
 
+/**
+ * One page of a folder's subfolders: the shared page envelope (backend
+ * `api/pagination.py`) plus the folder's own paths. The server still repeats
+ * the page as `subfolders` and `pagination` for older web bundles; read
+ * `results` and `next`.
+ */
 export type FolderNavigationResponse = {
   // null, with an empty listing, for a user without a scan directory
   current_path: string | null;
   parent_path: string | null;
-  subfolders: SubfolderInfo[];
-  pagination?: {
-    page: number;
-    page_size: number;
-    total_folders: number;
-    total_pages: number;
-    has_next: boolean;
-    has_previous: boolean;
-  };
+  results: SubfolderInfo[];
+  count: number;
+  next: string | null;
+  previous: string | null;
+  page: number;
+  page_size: number;
+  num_pages: number;
 };
 
 /**

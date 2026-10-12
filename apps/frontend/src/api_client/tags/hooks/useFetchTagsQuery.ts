@@ -1,3 +1,4 @@
+import { fetchAllPages } from "@librephotos/api-client";
 import { useQuery } from "@tanstack/react-query";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient } from "../../api";
@@ -8,8 +9,8 @@ export const useFetchTagsQuery = () =>
   useQuery({
     queryKey: tagKeys.list(),
     queryFn: async () => {
-      const response = await fetchClient.get("/tags/");
-      return parseWithNotification(TagListResponse, response, "Failed to parse tags").results;
+      const results = await fetchAllPages(fetchClient, "/tags/");
+      return parseWithNotification(TagListResponse, { results }, "Failed to parse tags").results;
     },
   });
 
@@ -18,8 +19,8 @@ export const useFetchPhotoTagsQuery = (photoId: string) =>
   useQuery({
     queryKey: tagKeys.photo(photoId),
     queryFn: async () => {
-      const response = await fetchClient.get(`/tags/?photo=${encodeURIComponent(photoId)}`);
-      return parseWithNotification(TagListResponse, response, "Failed to parse photo tags").results;
+      const results = await fetchAllPages(fetchClient, `/tags/?photo=${encodeURIComponent(photoId)}`);
+      return parseWithNotification(TagListResponse, { results }, "Failed to parse photo tags").results;
     },
     enabled: !!photoId,
   });

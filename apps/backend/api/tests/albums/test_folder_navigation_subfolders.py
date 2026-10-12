@@ -191,14 +191,23 @@ class SubfoldersListingTests(SubfoldersTestBase):
         self.assertEqual(
             resp.json(),
             {
+                # The shared page envelope (api/pagination.py, #2327) ...
+                "count": 0,
+                "next": None,
+                "previous": None,
+                "results": [],
+                "page": 1,
+                "page_size": 100,
+                "num_pages": 1,
                 "current_path": self.root,
                 "parent_path": None,  # base_path == DATA_ROOT
+                # ... and the shape before it, for web bundles up to 1.3.
                 "subfolders": [],
                 "pagination": {
                     "page": 1,
                     "page_size": 100,
                     "total_folders": 0,
-                    "total_pages": 0,
+                    "total_pages": 1,
                     "has_next": False,
                     "has_previous": False,
                 },
@@ -209,11 +218,11 @@ class SubfoldersListingTests(SubfoldersTestBase):
         admin = create_test_user(is_admin=True)
         _mkdirs(self.root, "sub")
         sub = os.path.join(self.root, "sub")
-        resp = self.client_for(admin).get(URL, {"path": sub, "page": 3})
+        resp = self.client_for(admin).get(URL, {"path": sub})
         body = resp.json()
         self.assertEqual(body["parent_path"], self.root)
-        self.assertEqual(body["pagination"]["page"], 3)
-        self.assertTrue(body["pagination"]["has_previous"])
+        self.assertEqual(body["pagination"]["page"], 1)
+        self.assertFalse(body["pagination"]["has_previous"])
         self.assertFalse(body["pagination"]["has_next"])
 
     def test_only_folders_with_photos_are_listed_and_sorted(self):
@@ -338,7 +347,7 @@ class SubfoldersPaginationTests(SubfoldersTestBase):
             body = self.client_for(admin).get(URL, {"page": value}).json()
             self.assertEqual(body["pagination"]["page"], 1)
 
-    def test_page_size_is_fixed_at_100_and_slices_entries(self):
+    def test_page_size_defaults_to_100_and_slices_entries(self):
         admin = create_test_user(is_admin=True)
         names = self._make_folders(101)
         for name in names:
@@ -352,22 +361,31 @@ class SubfoldersPaginationTests(SubfoldersTestBase):
         self.assertTrue(page1["pagination"]["has_next"])
         self.assertFalse(page1["pagination"]["has_previous"])
 
+        self.assertEqual(page1["results"], page1["subfolders"])
+        self.assertIn("page=2", page1["next"])
+
         page2 = self.client_for(admin).get(URL, {"page": 2}).json()
         self.assertEqual([f["name"] for f in page2["subfolders"]], ["f100"])
         self.assertFalse(page2["pagination"]["has_next"])
         self.assertTrue(page2["pagination"]["has_previous"])
+        self.assertIsNone(page2["next"])
 
-    def test_page_beyond_last_returns_empty_page_with_totals(self):
+    def test_page_size_is_read_like_every_list(self):
+        admin = create_test_user(is_admin=True)
+        for name in self._make_folders(3):
+            self.add_photo_in(admin, os.path.join(self.root, name))
+
+        body = self.client_for(admin).get(URL, {"page_size": 2, "page": 2}).json()
+
+        self.assertEqual([f["name"] for f in body["results"]], ["f002"])
+        self.assertEqual((body["count"], body["num_pages"]), (3, 2))
+
+    def test_page_beyond_last_is_a_404(self):
+        """As on every paginated list; a client following ``next`` never asks."""
         admin = create_test_user(is_admin=True)
         self._make_folders(2)
-        body = self.client_for(admin).get(URL, {"page": 9}).json()
-        self.assertEqual(body["subfolders"], [])
-        self.assertEqual(body["pagination"]["page"], 9)
-        self.assertEqual(body["pagination"]["total_folders"], 2)
-        self.assertEqual(body["pagination"]["total_pages"], 1)
-        self.assertFalse(body["pagination"]["has_next"])
-        self.assertTrue(body["pagination"]["has_previous"])
-        self.assertEqual(body["parent_path"], None)
+        response = self.client_for(admin).get(URL, {"page": 9})
+        self.assertEqual(response.status_code, 404)
 
 
 class SubfoldersSiblingPrefixTests(SubfoldersTestBase):

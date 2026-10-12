@@ -72,6 +72,21 @@ python scripts/check_dead_code.py
 
 Tests are not scanned, so code that only a test calls counts as dead. Framework entry points such as `@action` methods, signal receivers, serializer `get_<field>` and `validate_<field>` methods and management commands are recognised by the script. A name that only a string refers to, such as a dotted path in the settings or a django_q schedule, goes into `apps/backend/vulture_whitelist.py` with a comment naming the caller. That file only shrinks: when the check flags something, delete it rather than whitelisting it.
 
+### Pagination
+
+Every list endpoint pages the same way (from the release after 1.3; not released yet): `api.pagination.DefaultPagination` in `apps/backend/api/pagination.py`, which is DRF's `DEFAULT_PAGINATION_CLASS`. It reads `?page=` and `?page_size=` (100 rows by default, at most 1000; both are clamped, a value that is not a number is a 400, and a page past the end is a 404) and always answers
+
+```json
+{ "count": 2345, "next": "…?page=3", "previous": "…?page=1", "results": [], "page": 2, "page_size": 100, "num_pages": 24 }
+```
+
+- A `ListModelMixin` view gets it without declaring anything. A view that needs another page size names one of the presets in the same module, which change the page size and nothing else. The albums, people, tags and user lists answer 1000 a page and the shared-photo lists 2500, the sizes they always had, because the web and mobile apps up to 1.3 read only their first page.
+- A view that is not a `GenericAPIView` pages through `PaginatedViewMixin` (`self.paginate_queryset()`, `self.get_paginated_response()`); no view imports Django's `Paginator` or slices a queryset into pages.
+- A list that answers every row at once sets `pagination_class = None` and is listed with the reason in `UNPAGINATED_LIST_VIEWS`. The one other style is the keyset cursor of the mobile sync feeds (`api/views/sync.py`).
+- `PaginationConventionTest` in `api/tests/infra/test_api_conventions.py` walks every routed list view and fails on anything else.
+
+A client that shows a whole list follows `next` until it is null: `fetchAllPages(client, endpoint)` in `packages/api-client` does that for the web and mobile apps. Reading only the first page silently drops every row past it.
+
 ## 🐛 Debugging
 
 Usually nothing goes as planned, and you need to debug your shiny new feature. In the next paragraph, I will explain to you the two tools we have for debugging:

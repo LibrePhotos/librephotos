@@ -6,6 +6,8 @@ from api.views.params import ClampedIntegerField
 
 
 class DuplicateListQuery(serializers.Serializer[None]):
+    """The filters; ``page``/``page_size`` are the paginator's (api/pagination.py)."""
+
     duplicate_type = serializers.CharField(
         required=False,
         allow_blank=True,
@@ -15,10 +17,6 @@ class DuplicateListQuery(serializers.Serializer[None]):
         required=False,
         allow_blank=True,
         help_text="Filter by review status: pending, resolved, dismissed",
-    )
-    page = ClampedIntegerField(default=1, lowest=1, help_text="Page number")
-    page_size = ClampedIntegerField(
-        default=20, lowest=1, highest=100, help_text="Items per page (max 100)"
     )
 
 

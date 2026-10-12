@@ -4,7 +4,7 @@ from rest_framework import ISO_8601, serializers
 
 from api.models import AlbumDate, Photo
 from api.serializers.photos import PhotoSummarySerializer
-from api.views.params import ClampedIntegerField, TristateFlagField
+from api.views.params import TristateFlagField
 
 PUBLIC_PHOTOS_ATTR = "public_photos"
 
@@ -202,16 +202,6 @@ class DateAlbumFilterQuery(PublicViewQuery):
         help_text="Apply the user's default_timeline_filter; the other filter "
         "params override it key by key."
     )
-
-
-class AlbumDateQuery(DateAlbumFilterQuery):
-    """A day album's filters plus the page of its photos."""
-
-    size = ClampedIntegerField(
-        default=100, lowest=1, help_text="Photos per page (default 100)"
-    )
-    # Kept as text: Django's Paginator answers a non-number with page 1.
-    page = serializers.CharField(default="1", help_text="Page number")
 
 
 class AlbumDateListQuery(DateAlbumFilterQuery):

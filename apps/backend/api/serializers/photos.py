@@ -6,7 +6,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Count, Model, OuterRef, Prefetch, QuerySet, Subquery
 from django.db.models.functions import Coalesce
 from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import extend_schema_field
+from drf_spectacular.utils import extend_schema_field, extend_schema_serializer
 from rest_framework import serializers
 
 from api import video_color, video_playback
@@ -193,6 +193,26 @@ class GroupedPhotosSerializer(serializers.ModelSerializer):
     def get_items(self, obj: PhotosGroupedByDate) -> list[dict[str, Any]]:
         summary = shared_serializer(self, PhotoSummarySerializer)
         return [summary.to_representation(photo) for photo in obj.photos]
+
+
+# The two unpaginated photo lists answer one object around their rows; these
+# describe it for the schema (many=False: the list action would wrap it).
+@extend_schema_serializer(many=False)
+class RecentlyAddedPhotosSerializer(serializers.Serializer[None]):
+    """``/api/photos/recentlyadded/``: the latest upload day and its photos."""
+
+    date = serializers.DateTimeField(allow_null=True)
+    results = PhotoSummarySerializer(many=True)
+
+
+@extend_schema_serializer(many=False)
+class SearchResultsSerializer(serializers.Serializer[None]):
+    """``/api/photos/searchlist/``: the matches grouped by date.
+
+    With semantic search on, ``results`` is a flat list of photo summaries.
+    """
+
+    results = GroupedPhotosSerializer(many=True)
 
 
 def with_photo_summary_relations(queryset: QuerySet[Photo]) -> QuerySet[Photo]:

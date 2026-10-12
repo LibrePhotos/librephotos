@@ -118,8 +118,10 @@ class PhotoMetadataLookupRobustnessTestCase(APITestCase):
                 response = self.client.get(url, params)
                 self.assertEqual(response.status_code, 200)
                 self.assertEqual(response.data["page"], 1)
-        response = self.client.get(url, {"page_size": "500"})
-        self.assertEqual(response.data["page_size"], 100)
+        response = self.client.get(url, {"page_size": "5000"})
+        self.assertEqual(response.data["page_size"], 1000)
+        # Past the end is a 404, as on every paginated list (#2327).
+        self.assertEqual(self.client.get(url, {"page": "9"}).status_code, 404)
 
     def test_a_non_numeric_history_page_is_a_400(self):
         url = f"/api/photos/{self.photo.pk}/metadata/history/"

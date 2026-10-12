@@ -1,23 +1,17 @@
 import * as S from "../schemas";
 import { Photoset } from "../schemas";
 import { runningJobId } from "../transport/client";
+import { fetchAllPages } from "../transport/pages";
 import type { ApiClient } from "../transport/types";
 import { buildQuery, parseResponse } from "../util/parse";
 
 /* ---------------------------------------------------------------------- *
  * Thin, platform-agnostic endpoint wrappers. Each takes an ApiClient and
  * returns parsed, typed data. No React here — hooks build on top of these.
+ *
+ * A list a screen shows whole is read with fetchAllPages, which follows the
+ * server's `next` links; reading one page dropped every row past it.
  * ---------------------------------------------------------------------- */
-
-/**
- * The rows of a DRF list answer: the bare array, or the page's `results` ([] when it has
- * none). Null passes through, so the parse rejects it.
- */
-function listRows(res: unknown): unknown {
-  if (Array.isArray(res) || res === null || res === undefined) return res;
-  const results = typeof res === "object" && "results" in res ? res.results : undefined;
-  return results ?? [];
-}
 
 /* ---- auth -------------------------------------------------------------- */
 
@@ -38,8 +32,8 @@ export async function fetchUserSelfDetails(client: ApiClient, userId: string | n
 }
 
 export async function fetchUserList(client: ApiClient): Promise<S.ListUserList> {
-  const res = await client.get<unknown>("/user/");
-  return parseResponse(S.ListUserList, listRows(res), "user list");
+  const rows = await fetchAllPages(client, "/user/");
+  return parseResponse(S.ListUserList, rows, "user list");
 }
 
 /* ---- date albums (timeline) ------------------------------------------- */
@@ -159,13 +153,13 @@ export type UserAlbumOptions = AlbumMediaFilter & {
 };
 
 export async function fetchUserAlbumsList(client: ApiClient): Promise<S.FetchUserAlbumsListResponse["results"]> {
-  const res = await client.get<unknown>("/albums/user/list/");
-  return parseResponse(S.FetchUserAlbumsListResponse, res, "user albums").results;
+  const results = await fetchAllPages(client, "/albums/user/list/");
+  return parseResponse(S.FetchUserAlbumsListResponse, { results }, "user albums").results;
 }
 
 export async function fetchAutoAlbumsList(client: ApiClient): Promise<S.FetchAutoAlbumsListResponse["results"]> {
-  const res = await client.get<unknown>("/albums/auto/list/");
-  return parseResponse(S.FetchAutoAlbumsListResponse, res, "auto albums").results;
+  const results = await fetchAllPages(client, "/albums/auto/list/");
+  return parseResponse(S.FetchAutoAlbumsListResponse, { results }, "auto albums").results;
 }
 
 /** Full user-album detail incl. grouped photos (drives membership mirroring). */
@@ -190,18 +184,18 @@ export async function fetchAutoAlbum(client: ApiClient, id: number | string): Pr
 }
 
 export async function fetchThingAlbumsList(client: ApiClient): Promise<S.FetchThingAlbumsListResponse["results"]> {
-  const res = await client.get<unknown>("/albums/thing/list/");
-  return parseResponse(S.FetchThingAlbumsListResponse, res, "thing albums").results;
+  const results = await fetchAllPages(client, "/albums/thing/list/");
+  return parseResponse(S.FetchThingAlbumsListResponse, { results }, "thing albums").results;
 }
 
 export async function fetchPlaceAlbumsList(client: ApiClient): Promise<S.FetchPlaceAlbumsListResponse["results"]> {
-  const res = await client.get<unknown>("/albums/place/list/");
-  return parseResponse(S.FetchPlaceAlbumsListResponse, res, "place albums").results;
+  const results = await fetchAllPages(client, "/albums/place/list/");
+  return parseResponse(S.FetchPlaceAlbumsListResponse, { results }, "place albums").results;
 }
 
 export async function fetchTagAlbumsList(client: ApiClient): Promise<S.TagListResponse["results"]> {
-  const res = await client.get<unknown>("/tags/");
-  return parseResponse(S.TagListResponse, res, "tag albums").results;
+  const results = await fetchAllPages(client, "/tags/");
+  return parseResponse(S.TagListResponse, { results }, "tag albums").results;
 }
 
 /** Photo grid (grouped by date) for one thing album. */
@@ -233,8 +227,8 @@ export async function fetchTagAlbum(client: ApiClient, id: number | string): Pro
 /* ---- persons ----------------------------------------------------------- */
 
 export async function fetchPeopleAlbums(client: ApiClient): Promise<S.PersonList> {
-  const res = await client.get<unknown>("/persons/");
-  return parseResponse(S.FetchPeopleAlbumsResponse, res, "people albums").results;
+  const results = await fetchAllPages(client, "/persons/");
+  return parseResponse(S.FetchPeopleAlbumsResponse, { results }, "people albums").results;
 }
 
 /* ---- search ------------------------------------------------------------ */
@@ -313,23 +307,23 @@ export async function fullScanPhotos(client: ApiClient): Promise<S.JobTriggerRes
 /* ---- sharing ----------------------------------------------------------- */
 
 export async function fetchSharedPhotosByMe(client: ApiClient): Promise<S.SharedPhotosResponse["results"]> {
-  const res = await client.get<unknown>("/photos/shared/fromme/");
-  return parseResponse(S.SharedPhotosResponse, res, "shared photos by me").results;
+  const results = await fetchAllPages(client, "/photos/shared/fromme/");
+  return parseResponse(S.SharedPhotosResponse, { results }, "shared photos by me").results;
 }
 
 export async function fetchSharedPhotosWithMe(client: ApiClient): Promise<S.SharedToMePhotosResponse["results"]> {
-  const res = await client.get<unknown>("/photos/shared/tome/");
-  return parseResponse(S.SharedToMePhotosResponse, res, "shared photos with me").results;
+  const results = await fetchAllPages(client, "/photos/shared/tome/");
+  return parseResponse(S.SharedToMePhotosResponse, { results }, "shared photos with me").results;
 }
 
 export async function fetchSharedAlbumsByMe(client: ApiClient): Promise<S.SharedAlbumsResponse["results"]> {
-  const res = await client.get<unknown>("/albums/user/shared/fromme/");
-  return parseResponse(S.SharedAlbumsResponse, { results: listRows(res) }, "shared albums by me").results;
+  const results = await fetchAllPages(client, "/albums/user/shared/fromme/");
+  return parseResponse(S.SharedAlbumsResponse, { results }, "shared albums by me").results;
 }
 
 export async function fetchSharedAlbumsWithMe(client: ApiClient): Promise<S.SharedAlbumsResponse["results"]> {
-  const res = await client.get<unknown>("/albums/user/shared/tome/");
-  return parseResponse(S.SharedAlbumsResponse, { results: listRows(res) }, "shared albums with me").results;
+  const results = await fetchAllPages(client, "/albums/user/shared/tome/");
+  return parseResponse(S.SharedAlbumsResponse, { results }, "shared albums with me").results;
 }
 
 /** Share (or unshare) photos to another user by hash. */

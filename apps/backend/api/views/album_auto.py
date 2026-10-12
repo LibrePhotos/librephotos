@@ -10,10 +10,10 @@ from rest_framework.views import APIView
 from api.autoalbum import generate_event_albums, regenerate_event_titles
 from api.models import AlbumAuto, LongRunningJob, Person, Photo, User
 from api.models.photo import visible_photo_q
+from api.pagination import WholeListPagination
 from api.request_user import request_user
 from api.serializers.album_auto import AlbumAutoListSerializer, AlbumAutoSerializer
 from api.views.custom_api_view import ListViewSet
-from api.views.pagination import StandardResultsSetPagination
 from api.views.scan_triggers import start_job
 
 
@@ -25,7 +25,6 @@ class AlbumAutoViewSet(
 ):
     permission_classes = (IsAuthenticated,)
     serializer_class = AlbumAutoSerializer
-    pagination_class = StandardResultsSetPagination
 
     def get_queryset(self) -> QuerySet[AlbumAuto]:
         user = self.request.user
@@ -76,7 +75,7 @@ class AlbumAutoViewSet(
 class AlbumAutoListViewSet(ListViewSet):
     permission_classes = (IsAuthenticated,)
     serializer_class = AlbumAutoListSerializer
-    pagination_class = StandardResultsSetPagination
+    pagination_class = WholeListPagination
     filter_backends = (filters.SearchFilter,)
     search_fields = [
         "photos__search_instance__search_captions",

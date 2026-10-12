@@ -489,14 +489,11 @@ class DuplicateListEdgeCasesTestCase(TestCase):
             )
             dup.photos.add(photo1, photo2)
 
-        # Page beyond results - Django's get_page() returns last page for out-of-range
-        # So page 100 will still return results (the last page)
+        # A page past the end is a 404, as on every paginated list (#2327)
         response = self.client.get("/api/duplicates/?page=100")
-        self.assertEqual(response.status_code, 200)
-        # Django returns last valid page, not empty
-        self.assertGreaterEqual(len(response.data["results"]), 0)
+        self.assertEqual(response.status_code, 404)
 
-        # Page 0 should become page 1 (our code uses max(1, page))
+        # Page 0 is clamped to page 1
         response = self.client.get("/api/duplicates/?page=0")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data["results"]), 5)

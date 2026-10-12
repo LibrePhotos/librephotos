@@ -25,8 +25,13 @@ function folderPage(page: number, names: string[], hasNext: boolean) {
   return {
     current_path: "/data",
     parent_path: null,
-    subfolders: names.map(name => ({ name, path: `/data/${name}`, photo_count: 1, modified: 0 })),
-    pagination: { page, page_size: 100, total_folders: 0, total_pages: 3, has_next: hasNext, has_previous: page > 1 },
+    results: names.map(name => ({ name, path: `/data/${name}`, photo_count: 1, modified: 0 })),
+    count: 250,
+    next: hasNext ? `http://backend/api/folders/subfolders/?page=${page + 1}` : null,
+    previous: page > 1 ? "http://backend/api/folders/subfolders/" : null,
+    page,
+    page_size: 100,
+    num_pages: 3,
   };
 }
 

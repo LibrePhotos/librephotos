@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { SimpleUser } from "./common";
+import { PageFields, SimpleUser } from "./common";
 
 export const Job = z.object({
   job_id: z.string(),
@@ -24,9 +24,7 @@ export const Job = z.object({
 export type Job = z.infer<typeof Job>;
 
 export const JobsResponse = z.object({
-  count: z.number(),
-  next: z.string().nullable(),
-  previous: z.string().nullable(),
+  ...PageFields,
   results: z.array(Job),
 });
 export type JobsResponse = z.infer<typeof JobsResponse>;

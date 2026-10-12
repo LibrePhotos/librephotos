@@ -2,8 +2,8 @@
 
 These tests pin the *current* behaviour of the album-date detail queryset
 builder before it is refactored. ``_album_date_page`` (formerly ``get_queryset``) does not
-return a queryset at all, but the tuple ``(album_date, page, total_count)``
-where ``page`` is a ``django.core.paginator.Page``.
+return a queryset at all, but the tuple ``(album_date, photos)`` where ``photos``
+is one page cut by ``DayAlbumPagination``; the total comes from that page.
 
 The viewset is driven directly (rather than through the HTTP layer) so that
 every query-parameter branch can be exercised in isolation, including the
@@ -43,10 +43,9 @@ class AlbumDateGetQuerysetTestBase(TestCase):
         return view
 
     def run_queryset(self, user, album, **params):
-        album_date, page, count = self.make_view(
-            user, album.id, **params
-        )._album_date_page()
-        return album_date, list(page), count
+        view = self.make_view(user, album.id, **params)
+        album_date, photos = view._album_date_page()
+        return album_date, list(photos), view.paginator.page.paginator.count
 
     def ids(self, photos):
         return {str(photo.pk) for photo in photos}
