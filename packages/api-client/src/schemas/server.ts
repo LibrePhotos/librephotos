@@ -27,7 +27,11 @@ export const ServerLogs = z.object({
 });
 export type ServerLogs = z.infer<typeof ServerLogs>;
 
-/** py-cpuinfo's get_cpu_info() (api/dataviz/stats.py _get_cpu_info), with numeric cache sizes. */
+/**
+ * py-cpuinfo's get_cpu_info() (api/dataviz/stats.py _get_cpu_info), with numeric cache sizes. Only
+ * the first seven keys are always there: py-cpuinfo drops every other one it cannot read, or reads
+ * as empty or 0 (an ARM board without lscpu has no vendor, brand or flags; model 0 has no `model`).
+ */
 const CpuInfo = z.object({
   python_version: z.string(),
   cpuinfo_version: z.array(z.number()),
@@ -36,16 +40,16 @@ const CpuInfo = z.object({
   bits: z.number(),
   count: z.number(),
   arch_string_raw: z.string(),
-  vendor_id_raw: z.string(),
-  brand_raw: z.string(),
+  vendor_id_raw: z.string().optional(),
+  brand_raw: z.string().optional(),
   hz_advertised_friendly: z.string().optional(),
   hz_actual_friendly: z.string().optional(),
   hz_advertised: z.array(z.number()).optional(),
   hz_actual: z.array(z.number()).optional(),
   stepping: z.number().optional(),
-  model: z.number(),
+  model: z.number().optional(),
   family: z.number().optional(),
-  flags: z.array(z.string()),
+  flags: z.array(z.string()).optional(),
   l3_cache_size: z.number().optional(),
   l2_cache_size: z.union([z.string(), z.number()]).optional(),
   l1_data_cache_size: z.number().optional(),

@@ -103,6 +103,22 @@ describe("server", () => {
     expect(defined(stats.users[1]).album.min).toBeNull();
   });
 
+  // py-cpuinfo always reports these seven keys and drops every other one it cannot read, or reads
+  // as empty or 0: an ARM board without lscpu has no vendor, brand or flags, and a CPU whose model
+  // number is 0 has no `model`.
+  it("reads CPU info with only the keys py-cpuinfo always reports", () => {
+    const cpuInfo = {
+      python_version: "3.11.9.final.0 (64 bit)",
+      cpuinfo_version: [9, 0, 0],
+      cpuinfo_version_string: "9.0.0",
+      arch: "ARM_8",
+      bits: 64,
+      count: 4,
+      arch_string_raw: "aarch64",
+    };
+    expect(ServerStats.safeParse({ ...serverStats, cpu_info: cpuInfo }).success).toBe(true);
+  });
+
   it("takes a GPU's memory as a number", () => {
     const parsed = ServerStats.parse({
       ...serverStats,
