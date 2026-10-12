@@ -204,7 +204,11 @@ class DetectDuplicatesSchemaTest(TestCase):
         from drf_spectacular.generators import SchemaGenerator
 
         schema = SchemaGenerator().get_schema(request=None, public=True)
-        operation = schema["paths"]["/api/duplicates/detect"]["post"]
+        # The route keeps both slash forms (``/?$``); the schema lists one.
+        [path] = [
+            p for p in schema["paths"] if p.rstrip("/") == "/api/duplicates/detect"
+        ]
+        operation = schema["paths"][path]["post"]
         self.assertEqual(
             [p["name"] for p in operation.get("parameters", []) if p["in"] == "query"],
             [],
