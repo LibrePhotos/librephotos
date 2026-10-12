@@ -151,12 +151,12 @@ describe("JobList", () => {
     // Without this the page would show an admin every user's jobs — under a "My
     // Jobs" heading, with the owner column hidden.
     const mine = await render(<JobList variant="mine" />);
-    expect(useJobsQuery).toHaveBeenCalledWith(expect.objectContaining({ mine: true }), expect.anything());
+    expect(useJobsQuery).toHaveBeenCalledWith(expect.objectContaining({ mine: true }));
     await mine.unmount();
 
     useJobsQuery.mockClear();
     const admin = await render(<JobList />);
-    expect(useJobsQuery).toHaveBeenCalledWith(expect.objectContaining({ mine: false }), expect.anything());
+    expect(useJobsQuery).toHaveBeenCalledWith(expect.objectContaining({ mine: false }));
     await admin.unmount();
   });
 

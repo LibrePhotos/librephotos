@@ -6,6 +6,7 @@ import { recordRecentlyTaggedPerson } from "../../../util/recentlyTaggedPeople";
 import { PeopleAlbumsQueryKeys } from "../../albums/hooks/useFetchPeopleAlbumsQuery";
 import { apiClient, queryClient } from "../../api";
 import { PhotoDetailsQueryKeys } from "../../photos/hooks/useFetchPhotoDetailsQuery";
+import { invalidateAfter } from "../../polling";
 import { CountStatsQueryKeys } from "../../stats/hooks/useFetchCountStatsQuery";
 import { FacesQueryKeys } from "./useFetchFacesQuery";
 import { IncompleteFacesQueryKeys } from "./useFetchIncompleteFacesQuery";
@@ -33,20 +34,15 @@ export const useSetFacesPersonLabelMutation = () =>
       // to "Unknown - Other", which is not a pick worth remembering.
       recordRecentlyTaggedPerson(data.results[0]?.person);
 
-      // Add a small delay to ensure backend processing is complete
-      setTimeout(() => {
-        // Invalidate all face-related queries
-        queryClient.invalidateQueries({ queryKey: IncompleteFacesQueryKeys });
-        queryClient.invalidateQueries({ queryKey: FacesQueryKeys });
-
-        // Invalidate people albums (face counts and labels change)
-        queryClient.invalidateQueries({ queryKey: PeopleAlbumsQueryKeys });
-
-        // Invalidate statistics (num_faces, num_people, etc. change)
-        queryClient.invalidateQueries({ queryKey: CountStatsQueryKeys });
-
-        // Invalidate photo details (people array changes)
-        queryClient.invalidateQueries({ queryKey: PhotoDetailsQueryKeys });
-      }, 100);
+      // Face-related queries, people albums (face counts and labels change), statistics (num_faces,
+      // num_people, etc. change) and photo details (people array changes), after a short delay
+      // so backend processing is complete.
+      invalidateAfter(queryClient, [
+        IncompleteFacesQueryKeys,
+        FacesQueryKeys,
+        PeopleAlbumsQueryKeys,
+        CountStatsQueryKeys,
+        PhotoDetailsQueryKeys,
+      ]);
     },
   });

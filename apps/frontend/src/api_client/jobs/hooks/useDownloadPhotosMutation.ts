@@ -3,6 +3,7 @@ import { notification } from "../../../service/notifications";
 import { fetchClient } from "../../api";
 import { serverAddress } from "../../apiClient";
 import type { BulkPhotoQuery } from "../../photos/types";
+import { POLL_ARCHIVE_MS, pollUntil } from "../../polling";
 
 type StatusResponse = { status: string };
 
@@ -34,16 +35,24 @@ function checkDownloadStatus(job_id: string) {
   return fetchClient.get<StatusResponse>(`/photos/download?job_id=${job_id}`);
 }
 
-// How often the archive job is polled.
-export const DOWNLOAD_POLL_INTERVAL_MS = 3000;
+// Downloads still waiting on their archive job or on the file; cancelPhotoDownloads() aborts them.
+const activeDownloads = new Set<AbortController>();
 
-async function downloadFile(fileUuid: string) {
+/** Stops following every photo download that is still running. The archive job itself is not cancelled. */
+export function cancelPhotoDownloads() {
+  for (const controller of activeDownloads) {
+    controller.abort();
+  }
+}
+
+async function downloadFile(fileUuid: string, signal: AbortSignal) {
   // Served by the backend (UnifiedMediaAccessView), which appends the
   // requester's user id and ".zip" itself. It works behind the proxy (X-Accel)
   // and without it; the old nginx-only /api/downloads/ route 404ed on the
   // unified image, the Windows build and native dev.
   const response = await fetch(`${serverAddress}/media/zip/${fileUuid}`, {
     credentials: "include",
+    signal,
   });
   if (!response.ok) {
     throw new Error(`Failed to download file: ${response.status} ${response.statusText}`);
@@ -76,7 +85,8 @@ type SelectAllMutationArgs = {
 
 type DownloadMutationArgs = IndividualMutationArgs | SelectAllMutationArgs;
 
-// Download photos
+// Download photos. The mutation is pending until the archive is saved, so isPending covers the
+// whole download. A cancelled download rejects without a failure toast.
 export const useDownloadPhotosMutation = () =>
   useMutation({
     mutationFn: async (args: DownloadMutationArgs) => {
@@ -84,7 +94,6 @@ export const useDownloadPhotosMutation = () =>
       notification.downloadStarting();
 
       if (!userId) {
-        console.error("[Download] Failed: User ID is missing");
         notification.downloadFailed();
         throw new Error("User ID is required for download");
       }
@@ -100,47 +109,32 @@ export const useDownloadPhotosMutation = () =>
             image_hashes: args.image_hashes,
             include_stacked_photos: includeStackedPhotos,
           };
-      const { job_id: jobId, url: filename } = await startDownloadProcess(downloadRequest);
 
-      // One check at a time, the next scheduled only after the previous one
-      // settled. With setInterval a thrown check (network error, 404) left the
-      // timer running forever and toasted on every tick.
-      const poll = async () => {
-        const response = await checkDownloadStatus(jobId).catch(err => {
-          console.error("[Download] Status check failed", err);
-          return null;
+      const controller = new AbortController();
+      activeDownloads.add(controller);
+      try {
+        const { job_id: jobId, url: filename } = await startDownloadProcess(downloadRequest);
+
+        const archive = await pollUntil(() => checkDownloadStatus(jobId), {
+          isDone: ({ status }) => status === "SUCCESS" || status === "FAILURE",
+          intervalMs: POLL_ARCHIVE_MS,
+          signal: controller.signal,
         });
-        if (!response) {
+        if (archive.status === "FAILURE") {
+          throw new Error(`Archive job ${jobId} failed`);
+        }
+
+        await downloadFile(filename, controller.signal);
+        await fetchClient.delete(`/delete/zip/${filename}`);
+        notification.downloadCompleted();
+        return { success: true };
+      } catch (err) {
+        if (!controller.signal.aborted) {
           notification.downloadFailed();
-          return;
         }
-        const { status } = response;
-        switch (status) {
-          case "SUCCESS": {
-            try {
-              await downloadFile(filename);
-              await fetchClient.delete(`/delete/zip/${filename}`);
-              notification.downloadCompleted();
-            } catch (err) {
-              console.error("[Download] Error during file download or cleanup", err);
-              notification.downloadFailed();
-            }
-            break;
-          }
-
-          case "FAILURE":
-            console.error("[Download] Job failed", { jobId });
-            notification.downloadFailed();
-            break;
-
-          default:
-            // Still building the archive
-            setTimeout(poll, DOWNLOAD_POLL_INTERVAL_MS);
-            break;
-        }
-      };
-      setTimeout(poll, DOWNLOAD_POLL_INTERVAL_MS);
-
-      return { success: true };
+        throw err;
+      } finally {
+        activeDownloads.delete(controller);
+      }
     },
   });

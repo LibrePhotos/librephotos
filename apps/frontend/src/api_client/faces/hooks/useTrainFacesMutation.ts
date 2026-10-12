@@ -3,6 +3,7 @@ import { useMutation } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
 import { PeopleAlbumsQueryKeys } from "../../albums/hooks/useFetchPeopleAlbumsQuery";
 import { apiClient, queryClient } from "../../api";
+import { invalidateAfter } from "../../polling";
 import { CountStatsQueryKeys } from "../../stats/hooks/useFetchCountStatsQuery";
 import { FacesQueryKeys } from "./useFetchFacesQuery";
 import { IncompleteFacesQueryKeys } from "./useFetchIncompleteFacesQuery";
@@ -17,12 +18,12 @@ export const useTrainFacesMutation = () =>
     onSuccess: () => {
       notification.trainFaces();
       // Faces clustering/training may change counts and labels
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: IncompleteFacesQueryKeys });
-        queryClient.invalidateQueries({ queryKey: FacesQueryKeys });
-        queryClient.invalidateQueries({ queryKey: PeopleAlbumsQueryKeys });
-        queryClient.invalidateQueries({ queryKey: CountStatsQueryKeys });
-      }, 100);
+      invalidateAfter(queryClient, [
+        IncompleteFacesQueryKeys,
+        FacesQueryKeys,
+        PeopleAlbumsQueryKeys,
+        CountStatsQueryKeys,
+      ]);
     },
     onError: () => {
       notification.trainFacesFailed();

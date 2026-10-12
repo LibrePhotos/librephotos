@@ -1,11 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient } from "../../api";
+import { pollWhile } from "../../polling";
 import { JobRequest, JobsResponse } from "../types";
 
 export const JobsQueryKeys = ["jobs"] as const;
 
-export const useJobsQuery = (params: JobRequest, options?: { pollingInterval?: number }) =>
+export const useJobsQuery = (params: JobRequest) =>
   useQuery({
     queryKey: [...JobsQueryKeys, params],
     queryFn: async () => {
@@ -16,5 +17,6 @@ export const useJobsQuery = (params: JobRequest, options?: { pollingInterval?: n
       );
       return parseWithNotification(JobsResponse, response, "Failed to parse jobs response");
     },
-    refetchInterval: options?.pollingInterval,
+    // Fast only while a job on this page is unfinished; the idle cadence picks up new jobs.
+    refetchInterval: pollWhile<JobsResponse>(page => page.results.some(job => !job.finished)),
   });

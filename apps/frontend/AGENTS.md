@@ -38,6 +38,9 @@ green CI run. To develop against a local backend, copy `.env.development.example
 - Cookies go through `src/api_client/authCookies.ts` (`getAuthCookie`, `setAuthCookie`, `clearAuthCookies`),
   which gives them their flags (path `/`, SameSite=Lax, Secure on HTTPS); lint bans `react-cookie` elsewhere.
   The `jwt` cookie is HttpOnly and the server clears it on logout (`/api/auth/token/blacklist/`).
+- Follow a job or wait on a condition with `pollWhile`, `pollUntil` or `invalidateAfter` from
+  `src/api_client/polling.ts`, with a `POLL_*_MS` name for the interval. Lint bans a number in
+  `refetchInterval`/`pollingInterval` and a raw `setTimeout`/`setInterval` in `src/api_client`.
 - User-visible text uses `t()` with a key in `src/locales/en/translation.json`. Never edit the other
   locales; Weblate fills them in.
 - Colours come from the Mantine theme or CSS variables so dark mode works.

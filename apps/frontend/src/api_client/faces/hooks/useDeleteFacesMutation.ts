@@ -4,6 +4,7 @@ import { z } from "zod";
 import { PeopleAlbumsQueryKeys } from "../../albums/hooks/useFetchPeopleAlbumsQuery";
 import { apiClient, queryClient } from "../../api";
 import { PhotoDetailsQueryKeys } from "../../photos/hooks/useFetchPhotoDetailsQuery";
+import { invalidateAfter } from "../../polling";
 import { CountStatsQueryKeys } from "../../stats/hooks/useFetchCountStatsQuery";
 import { FacesQueryKeys } from "./useFetchFacesQuery";
 import { IncompleteFacesQueryKeys } from "./useFetchIncompleteFacesQuery";
@@ -24,21 +25,16 @@ export const useDeleteFacesMutation = () =>
     mutationKey: [...DeleteFacesQueryKeys],
     mutationFn: deleteFaces,
     onSuccess: () => {
-      // Add a small delay to ensure backend processing is complete
-      setTimeout(() => {
-        // Invalidate all face-related queries
-        queryClient.invalidateQueries({ queryKey: IncompleteFacesQueryKeys });
-        queryClient.invalidateQueries({ queryKey: FacesQueryKeys });
-
-        // Invalidate people albums (face counts change)
-        queryClient.invalidateQueries({ queryKey: PeopleAlbumsQueryKeys });
-
-        // Invalidate statistics (num_faces, num_people, etc. change)
-        queryClient.invalidateQueries({ queryKey: CountStatsQueryKeys });
-
-        // Invalidate photo details (people array changes)
-        queryClient.invalidateQueries({ queryKey: PhotoDetailsQueryKeys });
-      }, 100);
+      // Face-related queries, people albums (face counts change), statistics (num_faces,
+      // num_people, etc. change) and photo details (people array changes), after a short delay
+      // so backend processing is complete.
+      invalidateAfter(queryClient, [
+        IncompleteFacesQueryKeys,
+        FacesQueryKeys,
+        PeopleAlbumsQueryKeys,
+        CountStatsQueryKeys,
+        PhotoDetailsQueryKeys,
+      ]);
     },
     onError: error => {
       console.error("Delete faces mutation error:", error);
