@@ -48,21 +48,11 @@ export const photoGridKeys = {
   /** Every loaded day page of one photoset's lists. */
   dateAlbumDays: (photoset: Photoset) => [...gridKind("dateAlbum"), photoset] as const,
   /**
-   * One page of one day. The layout after the photoset is read back by
+   * One page of one day of the list `listKey`. The layout after the photoset is read back by
    * useFetchDateAlbumsQuery (getCachedDateAlbumPages): day id, page, then the list's filters.
    */
-  dateAlbumDay: (
-    photoset: Photoset,
-    albumDateId: string,
-    page: number,
-    filters: [
-      person_id: number | undefined,
-      username: string | undefined,
-      folder: string | undefined,
-      mediaType: MediaType | "all",
-      timelineFilter: string,
-    ]
-  ) => [...photoGridKeys.dateAlbumDays(photoset), albumDateId, page, ...filters] as const,
+  dateAlbumDay: ([photoset, ...filters]: DateAlbumsListKey, albumDateId: string, page: number) =>
+    [...photoGridKeys.dateAlbumDays(photoset), albumDateId, page, ...filters] as const,
   recentlyAdded: () => gridKind("recentlyAdded"),
   /** Every view of one user album. */
   userAlbum: (id: string) => [...gridKind("userAlbum"), id] as const,

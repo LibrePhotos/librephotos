@@ -5,10 +5,11 @@
  */
 import { ApiError } from "@librephotos/api-client";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { jobKeys } from "./keys";
 import { startJob } from "./startJob";
 
 const stubs = vi.hoisted(() => ({
-  invalidateQueries: vi.fn<(filters: { queryKey: readonly string[] }) => Promise<void>>(),
+  invalidateQueries: vi.fn<(filters: { queryKey: readonly unknown[] }) => Promise<void>>(),
   jobAlreadyRunning: vi.fn<() => void>(),
 }));
 
@@ -40,8 +41,8 @@ describe("startJob", () => {
 
     expect(start).toEqual({ alreadyRunning: true, jobId: "running" });
     expect(stubs.jobAlreadyRunning).toHaveBeenCalledTimes(1);
-    expect(stubs.invalidateQueries).toHaveBeenCalledWith({ queryKey: ["worker"] });
-    expect(stubs.invalidateQueries).toHaveBeenCalledWith({ queryKey: ["jobs"] });
+    expect(stubs.invalidateQueries).toHaveBeenCalledWith({ queryKey: jobKeys.worker() });
+    expect(stubs.invalidateQueries).toHaveBeenCalledWith({ queryKey: jobKeys.all });
   });
 
   it("rejects every other failure as before", async () => {

@@ -311,9 +311,11 @@ export function useSharedAlbumsWithMeQuery(enabled = true) {
 
 export function useFacesQuery(params: { person?: number; inferred?: boolean; page?: number } = {}, enabled = true) {
   const client = useApiClient();
+  // Only the values in the key go to the request (fetchFaces has the same defaults).
+  const { person = 0, inferred = false, page = 1 } = params;
   return useQuery({
-    queryKey: queryKeys.faces(params.person ?? 0, params.inferred ?? false, params.page ?? 1),
-    queryFn: () => endpoints.fetchFaces(client, params),
+    queryKey: queryKeys.faces(person, inferred, page),
+    queryFn: () => endpoints.fetchFaces(client, { person, inferred, page }),
     enabled,
   });
 }

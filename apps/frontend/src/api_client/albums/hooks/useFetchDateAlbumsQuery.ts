@@ -137,9 +137,8 @@ export function dateAlbumsListKey(options: AlbumDateListOptions): DateAlbumsList
 
 // Fetch date albums
 export const useFetchDateAlbumsQuery = (options: AlbumDateListOptions, queryOptions?: { skip?: boolean }) => {
-  const listKey = dateAlbumsListKey(options);
   return useQuery({
-    queryKey: photoGridKeys.dateAlbumList(listKey),
+    queryKey: photoGridKeys.dateAlbumList(dateAlbumsListKey(options)),
     queryFn: async () => {
       const params = {
         ...buildDateAlbumFilterParams(options.photosetType, options.mediaType),
@@ -155,7 +154,7 @@ export const useFetchDateAlbumsQuery = (options: AlbumDateListOptions, queryOpti
       const { results } = parsed;
 
       addTempElementsToGroups(results);
-      hydrateGroupsFromCachedPages(results, getCachedDateAlbumPages(listKey));
+      hydrateGroupsFromCachedPages(results, getCachedDateAlbumPages(dateAlbumsListKey(options)));
       return results;
     },
     enabled: !queryOptions?.skip,

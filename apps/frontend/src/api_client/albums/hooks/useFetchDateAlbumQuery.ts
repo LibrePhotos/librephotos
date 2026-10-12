@@ -1,10 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { type MediaType } from "../../../components/photolist/mediaTypeFilter";
-import {
-  timelineFilterKey,
-  timelineFilterToParams,
-  type TimelineFilter,
-} from "../../../components/photolist/timelineFilter";
+import { timelineFilterToParams, type TimelineFilter } from "../../../components/photolist/timelineFilter";
 import { definedSearchParams } from "../../../util/util";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient, queryClient } from "../../api";
@@ -27,13 +23,7 @@ type AlbumDateOption = {
 // Fetch a single date album
 export const useFetchDateAlbumQuery = (options: AlbumDateOption, queryOptions?: { skip?: boolean }) =>
   useQuery({
-    queryKey: photoGridKeys.dateAlbumDay(options.photosetType, options.album_date_id, options.page, [
-      options.person_id,
-      options.username,
-      options.folder,
-      options.mediaType ?? "all",
-      timelineFilterKey(options.timelineFilter),
-    ]),
+    queryKey: photoGridKeys.dateAlbumDay(dateAlbumsListKey(options), options.album_date_id, options.page),
     queryFn: async () => {
       const params = {
         ...buildDateAlbumFilterParams(options.photosetType, options.mediaType),

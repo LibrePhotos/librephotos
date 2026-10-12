@@ -1,5 +1,6 @@
 import eslintComments from "@eslint-community/eslint-plugin-eslint-comments";
 import js from "@eslint/js";
+import pluginQuery from "@tanstack/eslint-plugin-query";
 import tseslint from "@typescript-eslint/eslint-plugin";
 import tsparser from "@typescript-eslint/parser";
 import prettier from "eslint-plugin-prettier";
@@ -25,8 +26,8 @@ const TEST_FILES = ["**/*.test.{ts,tsx}", "**/*.test-utils.{ts,tsx}", "src/__rep
 // every entry. Nothing else in this file may set no-restricted-imports, -syntax, -globals or -properties.
 // ---------------------------------------------------------------------------------------------------
 
-// @typescript-eslint/no-restricted-imports: `name` (with optional `importNames`) or `group`, and
-// `allowTypeImports`.
+// @typescript-eslint/no-restricted-imports: `name` (with optional `importNames`), `group` or `regex`,
+// and `allowTypeImports`.
 export const importBans = [
   {
     id: "mantine-modals",
@@ -91,6 +92,16 @@ export const importBans = [
     message: "Tile grids use components/virtual/TileGrid, which owns the cell index math and padding.",
     allowIn: ["src/components/virtual/**/*.{ts,tsx}", "src/components/facedashboard/**/*.{ts,tsx}"],
   },
+  {
+    // Hooks and components get the client from useQueryClient(), so a test renders them with a fresh
+    // client instead of mocking the API module. The singleton is created in api_client/api.ts and
+    // provided in index.tsx. Old importers sit in eslint-suppressions.json.
+    id: "query-client-singleton",
+    regex: String.raw`^(\.\.?/)+(api_client/)?api$`,
+    importNames: ["queryClient"],
+    message: "Get the client from useQueryClient() (@tanstack/react-query), not the queryClient singleton.",
+    allowIn: ["src/api_client/api.ts", "src/index.tsx", "**/*.test.{ts,tsx}", "**/*.test-utils.{ts,tsx}"],
+  },
 ];
 
 // no-restricted-syntax: `selector` (an AST selector).
@@ -150,6 +161,16 @@ export const syntaxBans = [
     id: "poll-interval",
     selector: "Property[key.name=/^(refetchInterval|pollingInterval)$/] Literal[raw=/^[0-9]/]",
     message: "Poll with pollWhile(...) or a POLL_*_MS constant from @librephotos/api-client, not a number.",
+  },
+  {
+    // A query key comes from its domain's factory (src/api_client/<domain>/keys.ts, photoGridKeys for
+    // every photo grid), so one prefix invalidates a family and a key typo cannot drop an
+    // invalidation. No array literal as a queryKey, or as the key of a cache read or write.
+    id: "query-key-literal",
+    selector:
+      "Property[key.name='queryKey'] > ArrayExpression.value, CallExpression[callee.property.name=/^(getQueryData|setQueryData|getQueryState|fetchQuery|prefetchQuery|ensureQueryData)$/] > ArrayExpression.arguments:first-child",
+    message:
+      "Build the key with its domain's factory (src/api_client/<domain>/keys.ts, photoGridKeys for photo grids); add the key there.",
   },
   {
     id: "tile-index",
@@ -260,7 +281,7 @@ const banRules = [
   {
     bans: importBans,
     rule: tseslint.rules["no-restricted-imports"],
-    options: item => ("group" in item ? { patterns: [item] } : { paths: [item] }),
+    options: item => ("group" in item || "regex" in item ? { patterns: [item] } : { paths: [item] }),
   },
   { bans: syntaxBans, rule: builtinRules.get("no-restricted-syntax"), options: item => item },
   { bans: globalBans, rule: builtinRules.get("no-restricted-globals"), options: item => item },
@@ -423,6 +444,16 @@ export default [
     ignores: TEST_FILES,
     rules: {
       "@typescript-eslint/require-await": "error",
+    },
+  },
+  {
+    // React Query: every value a queryFn reads is part of its key (a factory call's arguments count),
+    // and a whole query result never goes into a hook's deps.
+    files: TS_FILES,
+    plugins: { "@tanstack/query": pluginQuery },
+    rules: {
+      "@tanstack/query/exhaustive-deps": "error",
+      "@tanstack/query/no-unstable-deps": "error",
     },
   },
   ...banConfigs(),
