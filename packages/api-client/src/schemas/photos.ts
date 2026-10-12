@@ -102,8 +102,11 @@ export const Photo = z.object({
   // Never null from current servers ({"im2txt": ""} when there are no captions):
   // user_caption, im2txt, places365 and one { tags } object per tagging model.
   captions_json: z.record(z.string(), z.unknown()).nullish(),
-  big_thumbnail_url: z.string().nullable(),
-  small_square_thumbnail_url: z.string().nullable(),
+  // "" when the thumbnail has not been made yet, never null.
+  big_thumbnail_url: z.string(),
+  // Optional: backends before 1.3 do not send it.
+  square_thumbnail_url: z.string().optional(),
+  small_square_thumbnail_url: z.string(),
   // The reverse geocoder's answer (features, places, ...), stored as it came.
   geolocation_json: z.unknown(),
   exif_json: z.unknown(),
@@ -142,6 +145,9 @@ export const Photo = z.object({
   // What a video is, as HTMLMediaElement.canPlayType() takes it; null until
   // the scan has probed the video, and for anything that is not one.
   video_playback_type: z.string().nullable().optional(),
+  // The user's rotation (an EXIF orientation value, 1 = none). Optional:
+  // backends before 1.3 do not send it.
+  local_orientation: z.number().optional(),
 });
 export type Photo = z.infer<typeof Photo>;
 

@@ -67,7 +67,7 @@ function AlbumAutoGalleryView() {
       aspectRatio: photo.aspectRatio ?? 1,
       // Empty lets the tile show the page behind it, as other grids do without a colour
       dominantColor: photo.dominantColor ?? "",
-      video_length: photo.video_length == null ? undefined : String(photo.video_length),
+      video_length: photo.video_length,
       is_hdr: photo.is_hdr ?? false,
       // The grid fields an event photo has no source for
       shared_to: [],

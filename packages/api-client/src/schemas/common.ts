@@ -72,6 +72,9 @@ export const PigPhoto = z.object({
   in_trashcan: z.boolean().optional(),
   stacks: PhotoStackSummary.array().nullable().optional(),
   has_raw_variant: z.boolean().optional().default(false),
+  // The user's rotation (an EXIF orientation value, 1 = none). Optional:
+  // backends before 1.3 do not send it.
+  local_orientation: z.number().optional(),
 });
 export type PigPhoto = z.infer<typeof PigPhoto>;
 

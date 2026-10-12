@@ -27,6 +27,16 @@ export const PhotoSuperSimple = z.object({
 });
 export type PhotoSuperSimple = z.infer<typeof PhotoSuperSimple>;
 
+/** Per-album overrides of the owner's public sharing defaults; null = use the default. */
+export const PublicSharingOptions = z.object({
+  share_location: z.boolean().nullable().optional(),
+  share_camera_info: z.boolean().nullable().optional(),
+  share_timestamps: z.boolean().nullable().optional(),
+  share_captions: z.boolean().nullable().optional(),
+  share_faces: z.boolean().nullable().optional(),
+});
+export type PublicSharingOptions = z.infer<typeof PublicSharingOptions>;
+
 export const UserAlbumInfo = z.object({
   id: z.number(),
   title: z.string(),
@@ -38,6 +48,10 @@ export const UserAlbumInfo = z.object({
   favorited: z.boolean(),
   locked: z.boolean().optional().default(false),
   public: z.boolean().optional(),
+  // Optional: backends before 1.3 do not send them.
+  public_slug: z.string().optional(),
+  public_expires_at: z.string().nullable().optional(),
+  public_sharing_options: PublicSharingOptions.nullable().optional(),
 });
 export type UserAlbumInfo = z.infer<typeof UserAlbumInfo>;
 
@@ -56,16 +70,6 @@ const UserAlbumDetails = z.object({
   date: z.string(),
   location: z.string().nullable(),
 });
-
-/** Per-album overrides of the owner's public sharing defaults; null = use the default. */
-export const PublicSharingOptions = z.object({
-  share_location: z.boolean().nullable().optional(),
-  share_camera_info: z.boolean().nullable().optional(),
-  share_timestamps: z.boolean().nullable().optional(),
-  share_captions: z.boolean().nullable().optional(),
-  share_faces: z.boolean().nullable().optional(),
-});
-export type PublicSharingOptions = z.infer<typeof PublicSharingOptions>;
 
 export const UserAlbum = UserAlbumDetails.extend({
   grouped_photos: DatePhotosGroup.array(),
@@ -118,7 +122,8 @@ export const PhotoSimple = z.object({
   // Optional: backends before 1.3 do not send them.
   aspectRatio: z.number().nullish(),
   dominantColor: z.string().nullish(),
-  video_length: z.union([z.string(), z.number()]).nullish(),
+  // Seconds as a string, "" for a photo (as in PigPhoto).
+  video_length: z.string().optional(),
   is_hdr: z.boolean().optional(),
 });
 export type PhotoSimple = z.infer<typeof PhotoSimple>;

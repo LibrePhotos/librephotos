@@ -14,6 +14,8 @@ on:
     branches: [dev]
     paths:
       - 'packages/api-client/**'
+      # The contract test compares the zod schemas with this file.
+      - 'apps/backend/openapi.json'
       - 'package.json'
       # Read by the shared dependency check below (lint-frontend.yml runs it on
       # web changes).
@@ -25,6 +27,8 @@ on:
   pull_request:
     paths:
       - 'packages/api-client/**'
+      # The contract test compares the zod schemas with this file.
+      - 'apps/backend/openapi.json'
       - 'package.json'
       # Read by the shared dependency check below (lint-frontend.yml runs it on
       # web changes).
