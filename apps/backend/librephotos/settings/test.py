@@ -6,10 +6,10 @@ from .production import *  # noqa
 
 DEBUG = True
 
-# The suite has to stay quiet, but it cannot lose the file handler: api.util
-# resolves the live rotating handler out of this configuration by name, and a
-# NullHandler root would leave it with nothing to find and the rotation tests
-# with nothing to assert about. So keep the real handler, point it at a
+# The suite has to stay quiet, but it cannot lose the file handler:
+# logging_bootstrap.get_file_handler resolves the live rotating handler out of
+# this configuration by name, and a NullHandler root would leave it with nothing
+# to find and the rotation tests with nothing to assert about. So keep the real handler, point it at a
 # throwaway directory instead of the deployment's log directory, and silence it
 # with the level rather than by removing it.
 #

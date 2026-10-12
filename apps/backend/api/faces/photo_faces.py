@@ -21,9 +21,9 @@ from django.db.utils import IntegrityError
 
 import api.models
 from api.faces import extractor
+from api.faces.geometry import FACE_OVERLAP_IOU_THRESHOLD, calculate_iou
 from api.faces.recognition import get_face_encodings
 from api.lazy_import import LazyModule
-from api.util import FACE_OVERLAP_IOU_THRESHOLD, calculate_iou
 
 if TYPE_CHECKING:
     import numpy.typing as npt
@@ -51,11 +51,10 @@ def overlaps_existing_face(
 
     *existing_face_locations* is an iterable of (top, right, bottom, left) tuples.
     """
-    for ex_top, ex_right, ex_bottom, ex_left in existing_face_locations:
-        iou = calculate_iou(
-            top, right, bottom, left, ex_top, ex_right, ex_bottom, ex_left
-        )
-        if iou >= FACE_OVERLAP_IOU_THRESHOLD:
+    for existing in existing_face_locations:
+        if calculate_iou((top, right, bottom, left), existing) >= (
+            FACE_OVERLAP_IOU_THRESHOLD
+        ):
             return True
     return False
 

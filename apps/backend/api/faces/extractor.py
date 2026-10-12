@@ -9,7 +9,6 @@ from api.faces.recognition import detect_faces
 from api.lazy_import import LazyModule
 from api.metadata.reader import get_metadata
 from api.metadata.tags import Tags
-from api.util import is_number
 
 if TYPE_CHECKING:
     from typing import TypeAlias, Unpack
@@ -42,6 +41,18 @@ ORIENTATION_TRANSFORMS = {
 }
 
 
+def _is_number(value: float | str | None) -> bool:
+    """Whether ``float(value)`` works: a number or a numeric string, not None."""
+    if value is None:
+        return False
+    try:
+        float(value)
+    except (TypeError, ValueError):
+        # TypeError: a value of another type read from the file (a list).
+        return False
+    return True
+
+
 def has_normalized_area(
     area: dict[str, Any] | None, applied_to_dimensions: dict[str, Any] | None
 ) -> bool:
@@ -53,9 +64,9 @@ def has_normalized_area(
 def to_face_box(
     area: dict[str, Any], orientation: str | None, image_width: int, image_height: int
 ) -> tuple[int, int, int, int] | None:
-    # Values may be missing (None); the is_number check below rules that out.
+    # Values may be missing (None); the _is_number check below rules that out.
     values: list[Any] = [area.get(key) for key in ("X", "Y", "W", "H")]
-    if not all(is_number(value) for value in values):
+    if not all(_is_number(value) for value in values):
         return None
 
     x, y, w, h = (float(value) for value in values)

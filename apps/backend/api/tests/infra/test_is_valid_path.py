@@ -1,5 +1,5 @@
-"""Unit tests for api.util.is_valid_path, the containment guard used by the
-folder browser, the dir-tree view and the scan-directory validator.
+"""Unit tests for api.photos.paths.is_valid_path, the containment guard used
+by the folder browser, the dir-tree view and the scan-directory validator.
 
 The POSIX and Windows cases run through ``_is_within`` with ``posixpath`` and
 ``ntpath`` directly, so both sets pin their semantics on whichever OS runs
@@ -13,7 +13,7 @@ import posixpath
 
 from django.test import SimpleTestCase
 
-from api.util import _is_within, is_valid_path
+from api.photos.paths import _is_within, is_valid_path
 
 
 class PosixContainmentTests(SimpleTestCase):

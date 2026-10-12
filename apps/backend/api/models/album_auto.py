@@ -5,7 +5,6 @@ from datetime import datetime
 
 from django.db import models
 
-from api import util
 from api.models.person import Person
 from api.models.photo import Photo
 from api.models.scopes import SharedOwnedQuerySet
@@ -20,6 +19,16 @@ TIME_OF_DAY = (
     (25, "Evening"),
 )
 WEEKEND = [5, 6]
+# ISO weekday (Monday is 1) -> its name in an album title.
+WEEKDAYS = {
+    1: "Monday",
+    2: "Tuesday",
+    3: "Wednesday",
+    4: "Thursday",
+    5: "Friday",
+    6: "Saturday",
+    7: "Sunday",
+}
 
 
 def _time_of_day(hour: int) -> str:
@@ -136,7 +145,7 @@ class AlbumAuto(models.Model):
             weekday = ""
             time = ""
             if anchor is not None:
-                weekday = util.weekdays[anchor.isoweekday()]
+                weekday = WEEKDAYS[anchor.isoweekday()]
                 time = _time_of_day(anchor.hour)
 
             when = " ".join(part for part in [weekday, time] if part)

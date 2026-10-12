@@ -35,6 +35,7 @@ from api.models import (
 )
 from api.models.photo import visible_photo_q
 from api.models.photo_stack import PhotoStack
+from api.photos.paths import folder_path_q
 from api.serializers.album_date import (
     AlbumDateListQuery,
     AlbumDateSerializer,
@@ -69,7 +70,6 @@ from api.serializers.photos import (
     # Kept under its old name for the views that import it from here.
     with_photo_summary_relations as _with_photo_summary_relations,
 )
-from api.util import folder_path_q
 from api.views.custom_api_view import ListViewSet
 from api.views.mixins import PartialUpdateModelMixin
 

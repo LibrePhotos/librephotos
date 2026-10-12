@@ -23,9 +23,9 @@ from librephotos import env
 # is a one-line change instead of a grep across settings, services and docs.
 LOG_FILENAME = "ownphotos.log"
 
-# The name dictConfig gives the rotating file handler. api.util resolves the
-# live handler object by this name in order to apply the constance rotation
-# settings to it, so the two must agree.
+# The name dictConfig gives the rotating file handler. get_file_handler resolves
+# the live handler object by this name, so api.apps can apply the constance
+# rotation settings to it.
 LOG_FILE_HANDLER_NAME = "librephotos_file"
 CONSOLE_HANDLER_NAME = "console"
 FORMATTER_NAME = "librephotos"
@@ -219,7 +219,7 @@ def build_logging_config(
     libraries end up in the same file as our own records instead of vanishing.
     ``max_bytes``/``backup_count`` are the boot-time defaults; the constance
     settings are applied on top of the live handler once the database is
-    reachable (see api.util.reconfigure_logging).
+    reachable (see api.apps.reconfigure_logging).
 
     ``logger_levels`` (default: parsed from ``LOG_LEVELS``) sets individual
     loggers above or below ``level``. The handlers filter at the most verbose
@@ -275,6 +275,37 @@ def build_logging_config(
         "loggers": loggers,
         "root": {"handlers": root_handlers, "level": level},
     }
+
+
+class LoggingNotConfiguredError(RuntimeError):
+    """Raised when the rotating file handler is missing from the root logger."""
+
+
+def get_file_handler() -> logging.Handler | None:
+    """Return the live rotating file handler installed by the LOGGING config.
+
+    The handler is owned by the dictConfig in settings.LOGGING - this only looks
+    it up, by the name dictConfig gave it - so there is exactly one file handler
+    per process. Resolve it on every use: dictConfig hands out a new handler
+    object each time it runs.
+    """
+    for handler in logging.getLogger().handlers:
+        if getattr(handler, "name", None) == LOG_FILE_HANDLER_NAME:
+            return handler
+    return None
+
+
+def require_file_handler() -> logging.Handler:
+    """``get_file_handler()``, raising ``LoggingNotConfiguredError`` when it is
+    missing."""
+    handler = get_file_handler()
+    if handler is None:
+        raise LoggingNotConfiguredError(
+            f"no {LOG_FILE_HANDLER_NAME!r} handler on the root logger; the "
+            "LOGGING configuration did not install one, so the log rotation "
+            "settings have nothing to apply to"
+        )
+    return handler
 
 
 def configure_standalone(logger_name: str, level: str | None = None) -> logging.Logger:

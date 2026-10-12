@@ -42,11 +42,6 @@ STAYS_FLAT = {
 # Flat module -> the package it moves to, in the order of the remaining moves.
 # Remove a module's line in the pull request that moves it.
 TO_MOVE = {
-    # Split by content: log handler to librephotos/logging_bootstrap.py, path
-    # checks to api/photos/paths.py, geometry to api/faces/, directory tree to
-    # api/serving/.
-    "util": "split",
-    "api_util": "split",
     # The sidecar platform, last (Schedule.func migration; service/_common.py and
     # librephotos/standalone.py import it). api/runtime/__init__.py imports
     # nothing, so api.runtime.sidecars stays Django-free.

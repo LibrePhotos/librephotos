@@ -22,11 +22,11 @@ from api.accounts.permissions import (
     IsSuperUser,
 )
 from api.accounts.throttling import AuthRateThrottle
-from api.api_util import path_to_dict
 from api.drf.pagination import WholeListPagination
 from api.drf.params import parse_query
 from api.metadata.datetime_rules import DEFAULT_RULES_JSON, PREDEFINED_RULES_JSON
 from api.models import User
+from api.photos.paths import is_valid_path
 from api.serializers.folders import FolderPathQuery
 from api.serializers.user import (
     DeleteUserSerializer,
@@ -36,13 +36,13 @@ from api.serializers.user import (
     UserSerializer,
     with_user_relations,
 )
+from api.serving.directory_tree import path_to_dict
 from api.stacks.burst_rules import (
     DEFAULT_RULES_JSON as BURST_DEFAULT_RULES_JSON,
 )
 from api.stacks.burst_rules import (
     PREDEFINED_RULES_JSON as BURST_PREDEFINED_RULES_JSON,
 )
-from api.util import is_valid_path
 from api.views.mixins import PartialUpdateModelMixin
 
 logger = logging.getLogger(__name__)

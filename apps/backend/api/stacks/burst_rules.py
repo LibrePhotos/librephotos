@@ -23,8 +23,8 @@ from collections.abc import Sequence
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any
 
+from api.metadata.datetime_rules import rules_json
 from api.metadata.tags import Tags
-from api.util import rules_json
 
 if TYPE_CHECKING:
     from api.models.photo import Photo

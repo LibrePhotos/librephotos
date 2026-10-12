@@ -1,3 +1,5 @@
+"""The directory tree the folder picker browses (``/api/dirtree/``)."""
+
 import logging
 import os
 from typing import TypedDict

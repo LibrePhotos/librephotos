@@ -14,7 +14,7 @@ from django.db.models import Q, QuerySet
 from api.albums.timeline_filter import timeline_filter_q
 from api.models import Photo
 from api.models.user import User
-from api.util import folder_path_q
+from api.photos.paths import folder_path_q
 
 
 def build_photo_queryset(

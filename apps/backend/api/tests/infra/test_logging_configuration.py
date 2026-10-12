@@ -12,22 +12,21 @@ from unittest.mock import patch
 
 from concurrent_log_handler import ConcurrentRotatingFileHandler
 from django.conf import settings
+from django.db import OperationalError
 from django.test import SimpleTestCase
 
-from api import util
-from api.util import (
+from api.apps import reconfigure_logging
+from librephotos.logging_bootstrap import (
     DEFAULT_LOG_BACKUP_COUNT,
     DEFAULT_LOG_MAX_BYTES,
-    FILE_HANDLER,
-    reconfigure_logging,
-)
-from librephotos.logging_bootstrap import (
     DEFAULT_LOGS_ROOT,
     LOG_FILE_HANDLER_NAME,
     LOG_FILENAME,
     LOG_FORMAT,
+    LoggingNotConfiguredError,
     build_logging_config,
     ensure_logs_root,
+    get_file_handler,
     resolve_level,
     resolve_logger_levels,
     take_deferred,
@@ -45,9 +44,9 @@ def temporary_logging(**kwargs):
 
     Yields the path of the log file it writes to. ``dictConfig`` replaces the
     handler objects wholesale rather than mutating them, so the configuration
-    from settings has to be re-applied and ``api.util.FILE_HANDLER`` re-resolved
-    afterwards - otherwise every later test in the run would be holding a closed
-    handler pointing into a deleted directory.
+    from settings has to be re-applied afterwards - otherwise every later test
+    in the run would be holding a closed handler pointing into a deleted
+    directory.
     """
     logs_root = tempfile.mkdtemp(prefix="librephotos-logtest-")
     kwargs.setdefault("to_console", False)
@@ -57,7 +56,6 @@ def temporary_logging(**kwargs):
         yield os.path.join(logs_root, LOG_FILENAME)
     finally:
         logging.config.dictConfig(settings.LOGGING)
-        util.FILE_HANDLER = util.get_file_handler()
         shutil.rmtree(logs_root, ignore_errors=True)
 
 
@@ -92,24 +90,25 @@ class LogRotationDefaultsTest(SimpleTestCase):
         self.assertEqual(DEFAULT_LOG_BACKUP_COUNT, 10)
 
     def test_handler_uses_defaults(self):
-        # The module-level handler should start with the defaults
-        self.assertEqual(FILE_HANDLER.maxBytes, DEFAULT_LOG_MAX_BYTES)
-        self.assertEqual(FILE_HANDLER.backupCount, DEFAULT_LOG_BACKUP_COUNT)
+        # The live handler should start with the defaults
+        handler = get_file_handler()
+        self.assertEqual(handler.maxBytes, DEFAULT_LOG_MAX_BYTES)
+        self.assertEqual(handler.backupCount, DEFAULT_LOG_BACKUP_COUNT)
 
     def test_handler_is_concurrent(self):
-        self.assertIsInstance(FILE_HANDLER, ConcurrentRotatingFileHandler)
+        self.assertIsInstance(get_file_handler(), ConcurrentRotatingFileHandler)
 
 
 class LogFileLocationTest(SimpleTestCase):
     """Pin down *which file* the logger writes to.
 
-    Nothing used to assert this, so api/util.py could have pointed the handler
-    anywhere and the whole suite would still have passed - including at the
-    directory ServerLogsView does not serve from.
+    Nothing used to assert this, so the logging setup could have pointed the
+    handler anywhere and the whole suite would still have passed - including at
+    the directory ServerLogsView does not serve from.
     """
 
     def setUp(self):
-        self.handler = util.get_file_handler()
+        self.handler = get_file_handler()
         self.assertIsNotNone(
             self.handler, f"no {LOG_FILE_HANDLER_NAME!r} handler on the root logger"
         )
@@ -200,7 +199,7 @@ class LogLevelTest(SimpleTestCase):
 
         with temporary_logging(level="LOUD") as log_file:
             self.assertEqual(logging.getLogger().level, logging.INFO)
-            util.logger.info("still logging after a bad LOG_LEVEL")
+            logging.getLogger("api").info("still logging after a bad LOG_LEVEL")
             flush_root_handlers()
             with open(log_file, encoding="utf-8") as f:
                 self.assertIn("still logging after a bad LOG_LEVEL", f.read())
@@ -231,8 +230,8 @@ class LoggerLevelsTest(SimpleTestCase):
         self.assertEqual(deferred_warnings(), [])
 
     def test_malformed_entries_are_skipped_and_reported(self):
-        levels = resolve_logger_levels("api=LOUD,nextcloud,=DEBUG,api.util=ERROR")
-        self.assertEqual(levels, {"api.util": "ERROR"})
+        levels = resolve_logger_levels("api=LOUD,nextcloud,=DEBUG,api.apps=ERROR")
+        self.assertEqual(levels, {"api.apps": "ERROR"})
         warnings = deferred_warnings()
         self.assertEqual(len(warnings), 3, warnings)
         self.assertTrue(all("LOG_LEVELS" in w for w in warnings), warnings)
@@ -347,8 +346,7 @@ class ModuleLoggerReachabilityTest(SimpleTestCase):
             os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
         )
         shared = re.compile(
-            r"from api\.util import[^\n]*\blogger\b"
-            r"|\butil\.logger\b"
+            r"from api\.[\w.]+ import[^\n]*\blogger\b"
             r"""|getLogger\(["']ownphotos["']\)"""
         )
         offenders = []
@@ -553,7 +551,7 @@ class ReconfigureLoggingTest(SimpleTestCase):
         # Resolved live rather than taken from the import above: dictConfig hands
         # out a new handler object every time it runs, so a name bound at import
         # time can go stale during a full test run.
-        self.handler = util.get_file_handler()
+        self.handler = get_file_handler()
         self.assertIsNotNone(self.handler)
 
     def tearDown(self):
@@ -590,7 +588,7 @@ class ReconfigureLoggingTest(SimpleTestCase):
 
             @property
             def LOG_MAX_BYTES(self):
-                raise Exception("DB unavailable")
+                raise OperationalError("DB unavailable")
 
         mock_constance = type("m", (), {"config": _BrokenConfig()})()
 
@@ -599,6 +597,27 @@ class ReconfigureLoggingTest(SimpleTestCase):
 
         self.assertEqual(self.handler.maxBytes, DEFAULT_LOG_MAX_BYTES)
         self.assertEqual(self.handler.backupCount, DEFAULT_LOG_BACKUP_COUNT)
+
+    def test_an_unexpected_error_is_not_swallowed(self):
+        # Only an unreadable database is expected; anything else (a bug) reaches
+        # ApiConfig.ready(), which logs it with its traceback.
+        class _BuggyConfig:
+            @property
+            def LOG_MAX_BYTES(self):
+                raise RuntimeError("bug")
+
+        mock_constance = type("m", (), {"config": _BuggyConfig()})()
+
+        with patch.dict("sys.modules", {"constance": mock_constance}):
+            with self.assertRaises(RuntimeError):
+                reconfigure_logging()
+
+        self.assertEqual(self.handler.maxBytes, DEFAULT_LOG_MAX_BYTES)
+
+    def test_a_missing_file_handler_raises(self):
+        with patch.object(logging.getLogger(), "handlers", []):
+            with self.assertRaises(LoggingNotConfiguredError):
+                reconfigure_logging()
 
 
 class ConstanceConfigTest(SimpleTestCase):
