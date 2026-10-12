@@ -195,7 +195,7 @@ def get_face_region_tags(photo: Photo) -> dict[str, str | list[str]]:
         thumb_image.close()
     except Exception:
         logger.error(
-            f"Cannot open thumbnail for photo {photo.image_hash}, skipping face tags"
+            "Cannot open thumbnail for photo %s, skipping face tags", photo.image_hash
         )
         return {}
 

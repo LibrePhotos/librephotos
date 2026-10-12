@@ -131,14 +131,19 @@ def _extract_no_tz_datetime_from_str(
         delta = parsed_datetime - datetime.now()
         if delta.days > 30:
             logger.error(
-                f"Error while parsing datetime from '{x}': Parsed datetime is {delta.days} in the future."
+                "Error while parsing datetime from '%s': Parsed datetime is %s in the future.",
+                x,
+                delta.days,
             )
             return None
 
         return parsed_datetime
     except ValueError:
         logger.error(
-            f"Error while trying to create datetime using '{x}': datetime arguments {datetime_args}. Regexp used: '{regexp}'"
+            "Error while trying to create datetime using '%s': datetime arguments %s. Regexp used: '%s'",
+            x,
+            datetime_args,
+            regexp,
         )
         return None
 

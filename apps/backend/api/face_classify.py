@@ -249,7 +249,7 @@ def create_all_clusters(user: User, lrj: LongRunningJob | None = None) -> int:
     count: int = 0
     clusterCount: int = 0
 
-    logger.info(f"Found {len(sortedIndexes)} clusters")
+    logger.info("Found %s clusters", len(sortedIndexes))
     for labelID in sorted(
         sortedIndexes, key=lambda key: np.size(sortedIndexes[key]), reverse=True
     ):
@@ -318,7 +318,11 @@ def filter_data(
             valid_ids.append(id_)
         else:
             logger.error(
-                f"Discarding entry {i}: ID={id_}, encoding shape={len(encoding)} (expected {expected_shape})"
+                "Discarding entry %s: ID=%s, encoding shape=%s (expected %s)",
+                i,
+                id_,
+                len(encoding),
+                expected_shape,
             )
 
     return np.array(valid_encodings), np.array(valid_ids)
@@ -509,7 +513,7 @@ def train_faces(user: User, job_id: uuid.UUID | str) -> bool:
             lrj.update_progress(current=2, target=2)
             lrj.complete()
             return True
-        logger.info(f"Number of Cluster: {target_count}")
+        logger.info("Number of Cluster: %s", target_count)
 
         for start in range(0, len(data_unknown["encoding"]), 100):
             classify_face_page(

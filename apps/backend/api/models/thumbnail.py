@@ -78,7 +78,7 @@ def delete_thumbnail_files(photo_hash: str) -> None:
             try:
                 os.remove(path)
             except OSError:
-                logger.error(f"could not remove thumbnail {path}")
+                logger.error("could not remove thumbnail %s", path)
 
 
 def _put_back(set_aside: list[tuple[str, str]]) -> None:
@@ -87,7 +87,7 @@ def _put_back(set_aside: list[tuple[str, str]]) -> None:
         try:
             os.replace(previous, path)
         except OSError:
-            logger.error(f"could not restore thumbnail {path} from {previous}")
+            logger.error("could not restore thumbnail %s from %s", path, previous)
 
 
 def _set_aside_thumbnail_files(photo_hash: str) -> list[tuple[str, str]]:
@@ -217,7 +217,7 @@ class Thumbnail(models.Model):
             self.save()
         except Exception as e:
             logger.exception(
-                f"could not generate thumbnail for image {self._main_file_path()}"
+                "could not generate thumbnail for image %s", self._main_file_path()
             )
             raise e
 
@@ -249,7 +249,7 @@ class Thumbnail(models.Model):
                 try:
                     os.remove(previous)
                 except OSError:
-                    logger.error(f"could not remove old thumbnail {previous}")
+                    logger.error("could not remove old thumbnail %s", previous)
             # Only these change the colours of the picture: a rotation keeps
             # them, and a rewritten file has had its colour cleared already.
             self._refresh_dominant_color()
@@ -296,15 +296,16 @@ class Thumbnail(models.Model):
             # on a sidecar being reachable.
             if not self.thumbnail_big:
                 logger.warning(
-                    f"no big thumbnail for photo {self.photo_id}; skipping aspect ratio"
+                    "no big thumbnail for photo %s; skipping aspect ratio",
+                    self.photo_id,
                 )
                 return
             with Image.open(self.thumbnail_big.path) as img:
                 width, height = img.size
             if not height or not width:
                 logger.warning(
-                    f"missing dimensions for image {self.thumbnail_big.path}; "
-                    "skipping aspect ratio"
+                    "missing dimensions for image %s; skipping aspect ratio",
+                    self.thumbnail_big.path,
                 )
                 return
             self.aspect_ratio = round(width / height, 2)
@@ -312,7 +313,7 @@ class Thumbnail(models.Model):
             self.save()
         except Exception:
             logger.exception(
-                f"could not calculate aspect ratio for image {self.thumbnail_big.path}"
+                "could not calculate aspect ratio for image %s", self.thumbnail_big.path
             )
 
     def _get_dominant_color(self, palette_size: int = 16) -> None:
@@ -349,7 +350,7 @@ class Thumbnail(models.Model):
             self.dominant_color = str(dominant_color)
             self.save()
         except Exception:
-            logger.info(f"Cannot calculate dominant color {self} object")
+            logger.info("Cannot calculate dominant color %s object", self)
 
 
 def _delete_orphaned_thumbnail_files(file_names: list[str]) -> None:

@@ -129,8 +129,8 @@ def _walk_directory(
     identity = _directory_identity(directory)
     if identity in ancestors:
         logger.warning(
-            f"skipping {directory}: symlink loop back to a directory already "
-            "being scanned"
+            "skipping %s: symlink loop back to a directory already being scanned",
+            directory,
         )
         return
     ancestors.add(identity)
@@ -145,7 +145,8 @@ def _walk_directory(
                 callback.append(fpath)
             else:
                 logger.warning(
-                    f"skipping {fpath}: neither a file nor a directory (broken symlink?)"
+                    "skipping %s: neither a file nor a directory (broken symlink?)",
+                    fpath,
                 )
     finally:
         ancestors.discard(identity)
@@ -212,8 +213,9 @@ def update_job_result(
         if written:
             return job
     logger.error(
-        f"job {job_id}: gave up updating its result after "
-        f"{RESULT_UPDATE_ATTEMPTS} conflicting writes"
+        "job %s: gave up updating its result after %s conflicting writes",
+        job_id,
+        RESULT_UPDATE_ATTEMPTS,
     )
     return None
 
@@ -286,7 +288,7 @@ def _on_job_finished(job_id: UUID | str) -> None:
     try:
         queue_scan_followups(job_id)
     except Exception:
-        logger.exception(f"job {job_id}: could not queue the scan follow-ups")
+        logger.exception("job %s: could not queue the scan follow-ups", job_id)
 
 
 def _queue_embeddings_after_tags(job_id: UUID | str, user_id: int | None) -> None:
@@ -311,7 +313,7 @@ def _queue_embeddings_after_tags(job_id: UUID | str, user_id: int | None) -> Non
     try:
         AsyncTask(batch_calculate_clip_embedding, user).run()
     except Exception:
-        logger.exception(f"job {job_id}: could not queue the search embeddings")
+        logger.exception("job %s: could not queue the search embeddings", job_id)
 
 
 def update_scan_counter(

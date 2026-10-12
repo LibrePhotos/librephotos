@@ -209,7 +209,7 @@ class AlbumUserEditSerializer(serializers.ModelSerializer):
         if "locked" in validated_data:
             instance.locked = validated_data["locked"]
         instance.save()
-        logger.info(f"Created user album {instance.id} with {len(photo_pks)} photos")
+        logger.info("Created user album %s with %s photos", instance.id, len(photo_pks))
         return instance
 
     def update(self, instance: AlbumUser, validated_data: dict[str, Any]) -> AlbumUser:
@@ -235,7 +235,7 @@ class AlbumUserEditSerializer(serializers.ModelSerializer):
         if "title" in validated_data.keys():
             title = validated_data["title"]
             instance.title = title
-            logger.info(f"Renamed user album to {title}")
+            logger.info("Renamed user album to %s", title)
 
         if "removedPhotos" in validated_data.keys():
             image_hashes = validated_data["removedPhotos"]
@@ -246,12 +246,12 @@ class AlbumUserEditSerializer(serializers.ModelSerializer):
                     cnt += 1
                     instance.photos.remove(obj)
 
-            logger.info(f"Removed {cnt} photos from user album {instance.id}")
+            logger.info("Removed %s photos from user album %s", cnt, instance.id)
 
         if "cover_photo" in validated_data.keys():
             cover_photo = validated_data["cover_photo"]
             instance.cover_photo = cover_photo
-            logger.info(f"Changed cover photo to {cover_photo}")
+            logger.info("Changed cover photo to %s", cover_photo)
 
         if "photos" in validated_data.keys() or validated_data.get("select_all"):
             photo_pks = self._resolve_new_photo_pks(validated_data)
@@ -260,7 +260,7 @@ class AlbumUserEditSerializer(serializers.ModelSerializer):
             if new_pks:
                 instance.photos.add(*new_pks)
 
-            logger.info(f"Added {len(new_pks)} photos to user album {instance.id}")
+            logger.info("Added %s photos to user album %s", len(new_pks), instance.id)
 
         instance.save()
         return instance

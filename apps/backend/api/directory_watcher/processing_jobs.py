@@ -41,7 +41,7 @@ def _encode_face(face: Face, job_id: UUID | str) -> None:
     try:
         face.generate_encoding()
     except Exception as err:
-        logger.exception(f"Could not generate an encoding for face {face.id}")
+        logger.exception("Could not generate an encoding for face %s", face.id)
         failed = True
         error = f"Face {face.id}: {str(err)}\n{traceback.format_exc()}"
     update_scan_counter(job_id, failed, error)
@@ -159,7 +159,7 @@ def _photo_for_task(photo_id: UUID | Photo, job_id: UUID | str) -> Photo | None:
         photo_id = photo_id.pk
     photo = Photo.objects.filter(pk=photo_id).first()
     if photo is None:
-        logger.info(f"Photo {photo_id} is gone, nothing to do for job {job_id}")
+        logger.info("Photo %s is gone, nothing to do for job %s", photo_id, job_id)
         update_scan_counter(job_id)
     return photo
 
@@ -449,7 +449,7 @@ def _run_ocr_for_photo(photo: Photo) -> None:
 
     image_path = ocr_image_source(photo)
     if not image_path:
-        logger.warning(f"No OCR image source for photo {photo.image_hash}")
+        logger.warning("No OCR image source for photo %s", photo.image_hash)
         return
 
     try:
@@ -495,8 +495,10 @@ def _run_ocr_for_photo(photo: Photo) -> None:
     # Note: OCR text is not folded into PhotoSearch.recreate_search_captions yet
     # -- indexing OCR text for search is a separate work package.
     logger.info(
-        f"generated OCR ({ocr_model}) for image {image_path} "
-        f"({len(data.get('text', '') or '')} chars)."
+        "generated OCR (%s) for image %s (%s chars).",
+        ocr_model,
+        image_path,
+        len(data.get("text", "") or ""),
     )
 
 

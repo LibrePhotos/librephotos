@@ -114,7 +114,7 @@ def _zippable_path(file_obj: File | None, files_added: dict[str, str]) -> str | 
     if not file_obj or not file_obj.path:
         return None
     if not os.path.exists(file_obj.path):
-        logger.warning(f"File not found, skipping: {file_obj.path}")
+        logger.warning("File not found, skipping: %s", file_obj.path)
         return None
     if file_obj.path in files_added:
         return None
@@ -144,7 +144,7 @@ def _remove_partial_zip(path: str) -> None:
     except FileNotFoundError:
         pass
     except OSError as e:
-        logger.error(f"Could not remove partial zip {path}: {e}")
+        logger.error("Could not remove partial zip %s: %s", path, e)
 
 
 def _remove_abandoned_partial_zips(output_directory: str) -> None:
@@ -196,7 +196,7 @@ def zip_photos_task(
         os.replace(partial_path, output_path)
 
     except Exception as e:
-        logger.error(f"Error while converting files to zip: {e}")
+        logger.error("Error while converting files to zip: %s", e)
         _remove_partial_zip(partial_path)
         # Reported as such: the client would otherwise fetch an archive that
         # is not there.
@@ -214,17 +214,17 @@ def delete_zip_file(filename: str) -> Exception | None:
     zip_dir = os.path.realpath(os.path.join(settings.MEDIA_ROOT, "zip"))
     file_path = os.path.realpath(os.path.join(zip_dir, filename))
     if os.path.dirname(file_path) != zip_dir:
-        logger.error(f"Refusing to delete zip outside {zip_dir}: {filename!r}")
+        logger.error("Refusing to delete zip outside %s: %r", zip_dir, filename)
         return None
     try:
         if not os.path.exists(file_path):
-            logger.error(f"Error while deleting file not found at : {file_path}")
+            logger.error("Error while deleting file not found at : %s", file_path)
             return None
         else:
             os.remove(file_path)
-            logger.info(f"file deleted sucessfully at path : {file_path}")
+            logger.info("file deleted sucessfully at path : %s", file_path)
             return None
 
     except Exception as e:
-        logger.error(f"Error while deleting file: {e}")
+        logger.error("Error while deleting file: %s", e)
         return e

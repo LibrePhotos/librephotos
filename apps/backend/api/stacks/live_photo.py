@@ -79,7 +79,7 @@ def has_embedded_motion_video(path: str) -> bool:
                     or _locate_samsung_embedded_video(mm) != -1
                 )
     except Exception as e:
-        logger.warning(f"Error checking for embedded video in {path}: {e}")
+        logger.warning("Error checking for embedded video in %s: %s", path, e)
         return False
 
 
@@ -116,11 +116,11 @@ def extract_embedded_motion_video(path: str, output_hash: str) -> str | None:
                     data = mm.read(mm.size() - position)
                     video.write(data)
 
-                logger.info(f"Extracted motion video to {output_path}")
+                logger.info("Extracted motion video to %s", output_path)
                 return str(output_path)
 
     except Exception as e:
-        logger.error(f"Error extracting embedded video from {path}: {e}")
+        logger.error("Error extracting embedded video from %s: %s", path, e)
         return None
 
 
@@ -264,7 +264,7 @@ def _create_embedded_live_photo_stack(
     photo.stacks.add(stack)
 
     logger.info(
-        f"Created Live Photo stack {stack.id} for embedded motion in {image_path}"
+        "Created Live Photo stack %s for embedded motion in %s", stack.id, image_path
     )
     return stack
 
@@ -315,7 +315,9 @@ def _create_apple_live_photo_stack(
     ):
         video_photo.stacks.add(stack)
 
-    logger.info(f"Created Apple Live Photo stack {stack.id} for {photo.main_file.path}")
+    logger.info(
+        "Created Apple Live Photo stack %s for %s", stack.id, photo.main_file.path
+    )
     return stack
 
 
@@ -342,7 +344,9 @@ def process_live_photos_batch(user: "User", photos: list["Photo"]) -> dict:
                     # New stack (might just have the photo, video linked separately)
                     stacks_created += 1
         except Exception as e:
-            logger.error(f"Error processing Live Photo detection for {photo.id}: {e}")
+            logger.error(
+                "Error processing Live Photo detection for %s: %s", photo.id, e
+            )
 
     return {
         "detected": detected,

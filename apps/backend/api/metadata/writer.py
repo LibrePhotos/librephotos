@@ -42,7 +42,7 @@ def write_metadata(
         file_path = media_file
 
     try:
-        logger.info(f"Writing {tags} to {file_path}")
+        logger.info("Writing %s to %s", tags, file_path)
         params: list[bytes] = []
         for tag, value in tags.items():
             values: list[str | int] = (
@@ -72,7 +72,7 @@ def read_orientation(media_file: str) -> int | None:
         with exiftool.ExifTool(binaries.exiftool()) as et:
             value = et.get_tag("EXIF:Orientation", media_file)
     except Exception:
-        logger.exception(f"could not read the orientation of {media_file}")
+        logger.exception("could not read the orientation of %s", media_file)
         return None
     if value is None:
         return 1

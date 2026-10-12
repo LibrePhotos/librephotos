@@ -49,7 +49,7 @@ def start_job(enqueue: Callable[[uuid.UUID], object], description: str) -> Respo
     try:
         enqueue(job_id)
     except Exception as error:
-        logger.exception(f"Could not start {description}")
+        logger.exception("Could not start %s", description)
         raise APIException(
             f"Could not start {description}.", code="job_start_failed"
         ) from error

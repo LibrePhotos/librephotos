@@ -275,9 +275,11 @@ def auto_create_user_directory(user: User, claim_existing: bool = False) -> None
 
     def refuse(reason: str) -> None:
         logger.warning(
-            f"Not creating a data folder for user {user.username}: {reason}. "
-            f"The account was created without a scan directory; assign one "
-            f"in the Admin Area."
+            "Not creating a data folder for user %s: %s. "
+            "The account was created without a scan directory; assign one "
+            "in the Admin Area.",
+            user.username,
+            reason,
         )
 
     data_root = os.path.abspath(settings.DATA_ROOT)
@@ -320,7 +322,7 @@ def auto_create_user_directory(user: User, claim_existing: bool = False) -> None
 
     user.scan_directory = candidate
     user.save(update_fields=["scan_directory"])
-    logger.info(f"Assigned data folder {candidate} to user {user.username}")
+    logger.info("Assigned data folder %s to user %s", candidate, user.username)
 
 
 # A user card shows this many of the user's public photos.
@@ -540,7 +542,7 @@ class UserSerializer(serializers.ModelSerializer):
                 user = User.objects.create_user(**validated_data)
         else:
             user = User.objects.create_user(**validated_data)
-        logger.info(f"Created user {user.id}")
+        logger.info("Created user %s", user.id)
         # Only an admin gets here (anonymous sign-up uses SignupUserSerializer),
         # so an existing folder of that name is theirs to hand out.
         auto_create_user_directory(user, claim_existing=True)
@@ -783,7 +785,7 @@ class ManageUserSerializer(serializers.ModelSerializer):
             return
 
         instance.scan_directory = abs_new_scan_directory
-        logger.info(f"Updated scan directory for user {instance.scan_directory}")
+        logger.info("Updated scan directory for user %s", instance.scan_directory)
 
     def apply_upload_directory(self, instance: User, new_upload_directory: str) -> None:
         """Set where web uploads go; an empty value restores the default.
@@ -813,8 +815,9 @@ class ManageUserSerializer(serializers.ModelSerializer):
         assert abs_upload_directory is not None
         instance.upload_directory = abs_upload_directory
         logger.info(
-            f"Updated upload directory for user {instance.username} "
-            f"to {abs_upload_directory}"
+            "Updated upload directory for user %s to %s",
+            instance.username,
+            abs_upload_directory,
         )
 
     def apply_username(self, instance: User, username: str) -> None:

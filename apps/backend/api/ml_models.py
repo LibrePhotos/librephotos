@@ -338,7 +338,7 @@ def _models_folder() -> Path:
 def download_model(model: MlModel) -> None:
     model = model.copy()
     if not _is_model_selected(model):
-        logger.info(f"Skipping unselected model {model['name']}")
+        logger.info("Skipping unselected model %s", model["name"])
         return
 
     model_folder = _models_folder()
@@ -349,10 +349,10 @@ def download_model(model: MlModel) -> None:
         _flatten_wrapper_dir(model_folder / model["target-dir"])
 
     if _model_target_exists(model_folder, model):
-        logger.info(f"Model {model['name']} already downloaded")
+        logger.info("Model %s already downloaded", model["name"])
         return
 
-    logger.info(f"Downloading model {model['name']}")
+    logger.info("Downloading model %s", model["name"])
     target_path = _get_download_target(model_folder, model)
 
     _download_file(model["url"], target_path, model["name"], model.get("sha256"))
@@ -389,7 +389,11 @@ def _log_download_progress(
     percentage = math.floor((current_progress / total_size) * 100)
     if percentage != previous_percentage:
         logger.info(
-            f"Downloading {model_name}: {current_progress}/{total_size} ({percentage}%)"
+            "Downloading %s: %s/%s (%s%%)",
+            model_name,
+            current_progress,
+            total_size,
+            percentage,
         )
     return percentage
 
@@ -427,7 +431,7 @@ def _verify_checksum(
     url: str,
 ) -> None:
     if hasher is None:
-        logger.debug(f"No sha256 pin for {model_name}; skipping verification")
+        logger.debug("No sha256 pin for %s; skipping verification", model_name)
         return
     # A hasher only exists when a digest is pinned (see _download_file).
     assert expected_sha256 is not None
@@ -504,7 +508,9 @@ def _download_file(
 
         if total_size == 0:
             logger.info(
-                f"Downloaded {model_name}: {current_progress} bytes (size unknown during transfer)"
+                "Downloaded %s: %s bytes (size unknown during transfer)",
+                model_name,
+                current_progress,
             )
 
         os.replace(partial_path, target_path)
@@ -536,7 +542,7 @@ def download_models(user: User) -> None:
                 # download_models is chained ahead of scans and setup steps, so
                 # a single unavailable model must not take the rest of the
                 # chain - or the job status - down with it.
-                logger.exception(f"Failed to download model {model['name']}")
+                logger.exception("Failed to download model %s", model["name"])
                 failures.append(f"{model['name']}: {error}")
         lrj.update_progress(current=idx + 1)
 
@@ -549,7 +555,7 @@ def download_models(user: User) -> None:
         try:
             download_model(model)
         except Exception as error:
-            logger.exception(f"Failed to download model {model['name']}")
+            logger.exception("Failed to download model %s", model["name"])
             failures.append(f"{model['name']}: {error}")
 
     if failures:

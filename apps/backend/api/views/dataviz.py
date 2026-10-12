@@ -58,7 +58,7 @@ class SocialGraphView(APIView):
             res = build_social_graph(user)
             return Response(res)
         except Exception as error:
-            logger.exception(f"Error in SocialGraphView for user {user.id}")
+            logger.exception("Error in SocialGraphView for user %s", user.id)
             raise APIException("Failed to build social graph") from error
 
 

@@ -67,8 +67,9 @@ def search_similar_embedding(
     # ConnectionError or a timeout, which used to fail the whole search.
     except requests.RequestException as error:
         logger.error(
-            f"error retrieving similar embeddings for user {user_id}: "
-            f"{sidecars.error_detail(error)}"
+            "error retrieving similar embeddings for user %s: %s",
+            user_id,
+            sidecars.error_detail(error),
         )
         return []
     return res.json()["result"]
@@ -109,8 +110,10 @@ def search_similar_image(
     # As above: an unreachable sidecar must not fail the photo detail request.
     except requests.RequestException as error:
         logger.error(
-            f"error retrieving similar photos to {photo.image_hash} belonging to "
-            f"user {user_id}: {sidecars.error_detail(error)}"
+            "error retrieving similar photos to %s belonging to user %s: %s",
+            photo.image_hash,
+            user_id,
+            sidecars.error_detail(error),
         )
         return []
     return res.json()
@@ -133,7 +136,7 @@ def build_image_similarity_index(user: User) -> int:
     a failed rebuild leaves it in place. Raises SimilarityIndexError when the
     sidecar refuses or misses a page.
     """
-    logger.info(f"building similarity index for user {user.username}")
+    logger.info("building similarity index for user %s", user.username)
     start = datetime.now()
     photos = (
         Photo.objects.owned_by(user)

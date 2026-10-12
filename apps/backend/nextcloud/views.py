@@ -56,10 +56,10 @@ class ListDir(APIView):
         except UnsafeServerAddress as e:
             raise ValidationError(str(e)) from e
         except nextcloud.ResponseError as e:
-            logger.warning(f"Nextcloud responded with an error: {e}")
+            logger.warning("Nextcloud responded with an error: %s", e)
             raise ValidationError(str(e)) from e
         except requests.exceptions.RequestException as e:
-            logger.warning(f"Could not reach the nextcloud server: {e}")
+            logger.warning("Could not reach the nextcloud server: %s", e)
             raise ValidationError(
                 "Could not reach the nextcloud server. Check the server address."
             ) from e

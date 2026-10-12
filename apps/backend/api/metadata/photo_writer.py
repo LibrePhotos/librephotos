@@ -163,8 +163,11 @@ def _fold_rotation_into_file(photo: Photo) -> bool:
     written = read_orientation(path)
     if written != combined:
         logger.warning(
-            f"orientation {combined} was not written to {path} "
-            f"(the file says {written}); keeping the rotation in the database"
+            "orientation %s was not written to %s "
+            "(the file says %s); keeping the rotation in the database",
+            combined,
+            path,
+            written,
         )
         return True
 

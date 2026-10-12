@@ -69,7 +69,7 @@ def store_clip_embeddings(objs: list[Photo], with_tags: bool = False) -> None:
             # The sidecar could not read this thumbnail; leave the photo for
             # a later run rather than storing somebody else's embedding.
             logger.warning(
-                f"No CLIP embedding for {obj.image_hash}: unreadable thumbnail"
+                "No CLIP embedding for %s: unreadable thumbnail", obj.image_hash
             )
             continue
         obj.clip_embeddings = img_emb.tolist()
@@ -89,7 +89,7 @@ def store_clip_embeddings(objs: list[Photo], with_tags: bool = False) -> None:
             try:
                 _store_tags_if_missing(obj, photo_tags)
             except Exception:
-                logger.exception(f"Could not store the tags of {obj.image_hash}")
+                logger.exception("Could not store the tags of %s", obj.image_hash)
 
 
 def _rebuild_index_while_converting(user: User) -> None:
@@ -97,7 +97,7 @@ def _rebuild_index_while_converting(user: User) -> None:
         build_image_similarity_index(user)
     except Exception as e:
         # The run goes on; the index is rebuilt again at its end.
-        logger.error(f"Error rebuilding the similarity index mid-run: {e}")
+        logger.error("Error rebuilding the similarity index mid-run: %s", e)
 
 
 def batch_calculate_clip_embedding(user: User, wait_for_tags: bool = False) -> None:
@@ -130,7 +130,7 @@ def batch_calculate_clip_embedding(user: User, wait_for_tags: bool = False) -> N
     # answers from OpenCLIP throughout.
     converting = missing.filter(clip_embeddings__isnull=False).exists()
     if converting:
-        logger.info(f"re-embedding photos of {user.username} with {OPENCLIP}")
+        logger.info("re-embedding photos of %s with %s", user.username, OPENCLIP)
         _rebuild_index_while_converting(user)
     since_rebuild = 0
 
@@ -154,7 +154,7 @@ def batch_calculate_clip_embedding(user: User, wait_for_tags: bool = False) -> N
             if valid_objs:
                 store_clip_embeddings(valid_objs, with_tags=with_tags)
         except Exception as e:
-            logger.error(f"Error calculating clip embeddings: {e}")
+            logger.error("Error calculating clip embeddings: %s", e)
 
         lrj.update_progress(current=done_count, target=count)
         since_rebuild += len(objs)
@@ -167,7 +167,7 @@ def batch_calculate_clip_embedding(user: User, wait_for_tags: bool = False) -> N
     except Exception as e:
         # The embeddings are stored; only the index is stale. Say so rather
         # than report a job that left similar-photo search behind as done.
-        logger.error(f"Error building the similarity index: {e}")
+        logger.error("Error building the similarity index: %s", e)
         lrj.fail(e)
         raise
     lrj.complete()

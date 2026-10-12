@@ -124,7 +124,8 @@ class SetUserAlbumShared(APIView):
             target_user = User.objects.get(id=target_user_id)
         except User.DoesNotExist:
             logger.warning(
-                f"Cannot share album to user: target user_id {target_user_id} does not exist"
+                "Cannot share album to user: target user_id %s does not exist",
+                target_user_id,
             )
             raise ValidationError("No such user")
 
@@ -132,25 +133,34 @@ class SetUserAlbumShared(APIView):
             user_album_to_share = AlbumUser.objects.get(id=user_album_id)
         except AlbumUser.DoesNotExist:
             logger.warning(
-                f"Cannot share album to user: source user_album_id {user_album_id} does not exist"
+                "Cannot share album to user: source user_album_id %s does not exist",
+                user_album_id,
             )
             raise ValidationError("No such album")
 
         if user_album_to_share.owner != user:
             logger.warning(
-                f"Cannot share album to user: source user_album_id {user_album_id} does not belong to user_id {user.id}"
+                "Cannot share album to user: source user_album_id %s does not belong to user_id %s",
+                user_album_id,
+                user.id,
             )
             raise ValidationError("You cannot share an album you don't own")
 
         if shared:
             user_album_to_share.shared_to.add(target_user)
             logger.info(
-                f"Shared user {user.id}'s album {user_album_id} to user {target_user_id}"
+                "Shared user %s's album %s to user %s",
+                user.id,
+                user_album_id,
+                target_user_id,
             )
         else:
             user_album_to_share.shared_to.remove(target_user)
             logger.info(
-                f"Unshared user {user.id}'s album {user_album_id} to user {target_user_id}"
+                "Unshared user %s's album %s to user %s",
+                user.id,
+                user_album_id,
+                target_user_id,
             )
 
         user_album_to_share.save()

@@ -236,7 +236,10 @@ class DuplicateResolveView(APIView):
         duplicate.resolve(keep_photo, trash_others)
 
         logger.info(
-            f"Resolved duplicate {duplicate.id}: kept {keep_photo_hash}, trashed {duplicate.trashed_count}"
+            "Resolved duplicate %s: kept %s, trashed %s",
+            duplicate.id,
+            keep_photo_hash,
+            duplicate.trashed_count,
         )
         return Response(
             {
@@ -261,7 +264,7 @@ class DuplicateDismissView(APIView):
 
         duplicate.dismiss()
 
-        logger.info(f"Dismissed duplicate {duplicate.id}")
+        logger.info("Dismissed duplicate %s", duplicate.id)
         return Response({"status": "dismissed"})
 
 
@@ -283,7 +286,7 @@ class DuplicateRevertView(APIView):
         restored_count = duplicate.revert()
 
         logger.info(
-            f"Reverted duplicate {duplicate.id}: restored {restored_count} photos"
+            "Reverted duplicate %s: restored %s photos", duplicate.id, restored_count
         )
         return Response({"status": "reverted", "restored_count": restored_count})
 
@@ -310,7 +313,9 @@ class DuplicateDeleteView(APIView):
         duplicate.delete()
 
         logger.info(
-            f"Deleted duplicate group {duplicate_id_str}: unlinked {photo_count} photos"
+            "Deleted duplicate group %s: unlinked %s photos",
+            duplicate_id_str,
+            photo_count,
         )
         return Response({"status": "deleted", "unlinked_count": photo_count})
 
@@ -333,7 +338,9 @@ class DetectDuplicatesView(APIView):
         async_task(batch_detect_duplicates, user, options)
 
         logger.info(
-            f"Duplicate detection queued for user {user.username} with options: {options}"
+            "Duplicate detection queued for user %s with options: %s",
+            user.username,
+            options,
         )
         return Response(
             {

@@ -463,8 +463,8 @@ class PhotoMetadata(models.Model):
             caption_instance.apply_user_caption(description, commit=True)
         except Exception:
             logger.exception(
-                f"could not import the description of photo {photo.image_hash} "
-                "as its caption"
+                "could not import the description of photo %s as its caption",
+                photo.image_hash,
             )
 
 

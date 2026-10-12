@@ -37,8 +37,9 @@ def queue_rating_write(user: User, photo_ids: list[uuid.UUID]) -> None:
         AsyncTask(write_photo_ratings, list(photo_ids), use_sidecar).run()
     except Exception:
         logger.exception(
-            f"Could not queue the rating write for {len(photo_ids)} photos "
-            f"of user {user.id}"
+            "Could not queue the rating write for %s photos of user %s",
+            len(photo_ids),
+            user.id,
         )
 
 
@@ -51,4 +52,4 @@ def write_photo_ratings(photo_ids: list[uuid.UUID], use_sidecar: bool) -> None:
         try:
             photo._save_metadata(modified_fields=["rating"], use_sidecar=use_sidecar)
         except Exception:
-            logger.exception(f"Failed to write the rating of photo {photo.image_hash}")
+            logger.exception("Failed to write the rating of photo %s", photo.image_hash)

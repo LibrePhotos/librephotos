@@ -78,7 +78,7 @@ def clear_stacks_of_type(user: User, stack_type: str) -> int:
     stacks_to_delete.delete()
 
     if count > 0:
-        logger.info(f"Cleared {count} {stack_type} stacks for {user.username}")
+        logger.info("Cleared %s %s stacks for %s", count, stack_type, user.username)
 
     return count
 
@@ -121,7 +121,7 @@ def detect_burst_sequences(
     enabled_rules = get_enabled_rules(rules)
 
     if not enabled_rules:
-        logger.info(f"No burst detection rules enabled for {user.username}")
+        logger.info("No burst detection rules enabled for %s", user.username)
         return 0
 
     hard_rules = get_hard_rules(rules)
@@ -142,7 +142,7 @@ def detect_burst_sequences(
         )
 
     logger.info(
-        f"Burst detection for {user.username}: found {stacks_created} sequences"
+        "Burst detection for %s: found %s sequences", user.username, stacks_created
     )
     return stacks_created
 
@@ -189,7 +189,7 @@ def _detect_bursts_hard_criteria(
             exif_values = get_metadata(photo.main_file.path, required_tags)
             exif_tags = dict(zip(required_tags, exif_values))
         except Exception as e:
-            logger.debug(f"Could not read EXIF for {photo.main_file.path}: {e}")
+            logger.debug("Could not read EXIF for %s: %s", photo.main_file.path, e)
             exif_tags = {}
 
         # Try each hard rule until one matches
@@ -212,11 +212,15 @@ def _detect_bursts_hard_criteria(
             if stack:
                 stacks_created += 1
                 logger.debug(
-                    f"Created hard-criteria burst stack: {group_key} with {len(photos_in_group)} photos"
+                    "Created hard-criteria burst stack: %s with %s photos",
+                    group_key,
+                    len(photos_in_group),
                 )
 
     logger.info(
-        f"Hard criteria burst detection: found {stacks_created} stacks from {len(burst_groups)} groups"
+        "Hard criteria burst detection: found %s stacks from %s groups",
+        stacks_created,
+        len(burst_groups),
     )
     return stacks_created
 
@@ -297,7 +301,7 @@ def _detect_bursts_soft_criteria(
                     if stack:
                         stacks_created += 1
 
-    logger.info(f"Soft criteria burst detection: found {stacks_created} stacks")
+    logger.info("Soft criteria burst detection: found %s stacks", stacks_created)
     return stacks_created
 
 
@@ -331,7 +335,7 @@ def _create_burst_stack(user: User, photos: list[Photo]) -> PhotoStack | None:
     )
 
     logger.info(
-        f"Created/merged BURST_SEQUENCE stack with {len(photos_to_stack)} photos"
+        "Created/merged BURST_SEQUENCE stack with %s photos", len(photos_to_stack)
     )
     return stack
 
@@ -386,10 +390,12 @@ def batch_detect_stacks(
         job.complete(result={"status": "completed", "stacks_found": total_found})
 
         logger.info(
-            f"Stack detection completed for {user.username}: {total_found} stacks found"
+            "Stack detection completed for %s: %s stacks found",
+            user.username,
+            total_found,
         )
 
     except Exception as e:
-        logger.error(f"Stack detection failed for {user.username}: {e}")
+        logger.error("Stack detection failed for %s: %s", user.username, e)
         job.fail(error=e)
         raise

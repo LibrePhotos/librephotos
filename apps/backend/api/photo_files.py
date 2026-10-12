@@ -63,12 +63,14 @@ def remove_photo(photo: Photo) -> None:
 
         if other_photos_using_file:
             # File is shared - just unlink from this photo, don't delete
-            logger.info(f"File {file.path} is shared with other photos, unlinking only")
+            logger.info(
+                "File %s is shared with other photos, unlinking only", file.path
+            )
             photo.files.remove(file)
         else:
             # File is only used by this photo - safe to delete
             if os.path.isfile(file.path):
-                logger.info(f"Removing photo {file.path}")
+                logger.info("Removing photo %s", file.path)
                 os.remove(file.path)
             file.delete()
 
@@ -95,7 +97,9 @@ def remove_photo(photo: Photo) -> None:
         if remaining_photos <= 1:
             # If 0 or 1 photos left, delete the stack (no longer a valid grouping)
             logger.info(
-                f"Deleting photo stack {photo_stack.id} - only {remaining_photos} photos remaining"
+                "Deleting photo stack %s - only %s photos remaining",
+                photo_stack.id,
+                remaining_photos,
             )
             # Unlink remaining photos from stack first
             for remaining_photo in photo_stack.photos.all():
@@ -108,7 +112,9 @@ def remove_photo(photo: Photo) -> None:
         if remaining_photos <= 1:
             # If 0 or 1 photos left, delete the duplicate group (no longer valid)
             logger.info(
-                f"Deleting duplicate group {duplicate.id} - only {remaining_photos} photos remaining"
+                "Deleting duplicate group %s - only %s photos remaining",
+                duplicate.id,
+                remaining_photos,
             )
             # Unlink remaining photos from duplicate first
             for remaining_photo in duplicate.photos.all():

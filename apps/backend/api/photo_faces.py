@@ -76,7 +76,7 @@ def extract_faces(photo: Photo, second_try: bool = False) -> None:
     except IntegrityError:
         _retry_face_extraction(photo, second_try)
     except Exception as e:
-        logger.error(f"image {photo}: scan face failed")
+        logger.error("image %s: scan face failed", photo)
         raise e
 
 
@@ -133,7 +133,7 @@ def _detect_and_save_faces(
             person._calculate_face_count()
             person._set_default_cover_photo()
         existing_face_locations.append((top, right, bottom, left))
-    logger.info(f"image {photo.image_hash}: {len(face_locations)} face(s) saved")
+    logger.info("image %s: %s face(s) saved", photo.image_hash, len(face_locations))
 
 
 def _get_or_create_named_person(
@@ -172,8 +172,9 @@ def _reconcile_xmp_face_name(
             person._calculate_face_count()
             person._set_default_cover_photo()
             logger.warning(
-                f"XMP face reconciliation: assigned {person_name} "
-                f"to existing face {existing_face.id}"
+                "XMP face reconciliation: assigned %s to existing face %s",
+                person_name,
+                existing_face.id,
             )
         break
 
@@ -215,11 +216,11 @@ def _retry_face_extraction(photo: Photo, second_try: bool) -> None:
     if photo.files.exists():
         # print out the location of the image only if we have a path
         assert photo.main_file is not None
-        logger.info(f"image {photo.main_file.path}: rescan face failed")
+        logger.info("image %s: rescan face failed", photo.main_file.path)
     if not second_try:
         extract_faces(photo, True)
     elif photo.files.exists():
         assert photo.main_file is not None
-        logger.error(f"image {photo.main_file.path}: rescan face failed")
+        logger.error("image %s: rescan face failed", photo.main_file.path)
     else:
-        logger.error(f"image {photo}: rescan face failed")
+        logger.error("image %s: rescan face failed", photo)

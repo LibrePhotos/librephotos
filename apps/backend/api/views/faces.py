@@ -413,7 +413,7 @@ class SetFacePersonLabel(APIView):
                     )
                 except Exception:
                     logger.exception(
-                        f"Failed to write face tags for photo {photo.image_hash}"
+                        "Failed to write face tags for photo %s", photo.image_hash
                     )
 
         return Response(
@@ -516,7 +516,7 @@ class AddFaceView(APIView):
         try:
             big_thumbnail = PIL.Image.open(thumbnail_path)
         except OSError:
-            logger.exception(f"Cannot open thumbnail for photo {photo.image_hash}")
+            logger.exception("Cannot open thumbnail for photo %s", photo.image_hash)
             raise self._error("this photo's thumbnail cannot be read")
 
         with big_thumbnail:
@@ -561,8 +561,9 @@ class AddFaceView(APIView):
             face.generate_encoding()
         except Exception:
             logger.exception(
-                f"Could not encode manually added face {face.id}; "
-                "it will be encoded by the next face training run"
+                "Could not encode manually added face %s; "
+                "it will be encoded by the next face training run",
+                face.id,
             )
 
         person._calculate_face_count()
@@ -580,7 +581,7 @@ class AddFaceView(APIView):
                 )
             except Exception:
                 logger.exception(
-                    f"Failed to write face tags for photo {photo.image_hash}"
+                    "Failed to write face tags for photo %s", photo.image_hash
                 )
 
         return Response(

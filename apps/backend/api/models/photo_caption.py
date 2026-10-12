@@ -52,18 +52,18 @@ class PhotoCaption(models.Model):
         try:
             thumbnail = self.photo.thumbnail
         except ObjectDoesNotExist:
-            logger.warning(f"No thumbnail available for photo {self.photo.image_hash}")
+            logger.warning("No thumbnail available for photo %s", self.photo.image_hash)
             return None
 
         if not thumbnail.thumbnail_big:
-            logger.warning(f"No thumbnail available for photo {self.photo.image_hash}")
+            logger.warning("No thumbnail available for photo %s", self.photo.image_hash)
             return None
 
         try:
             return thumbnail.thumbnail_big.path
         except Exception:
             logger.warning(
-                f"Cannot access thumbnail path for photo {self.photo.image_hash}"
+                "Cannot access thumbnail path for photo %s", self.photo.image_hash
             )
             return None
 
@@ -158,17 +158,17 @@ class PhotoCaption(models.Model):
             llm_settings = User.objects.get(username=self.photo.owner).llm_settings
             context = self._caption_context(llm_settings)
             prompt = self._caption_prompt(context)
-            logger.info(f"Caption prompt: {prompt}")
+            logger.info("Caption prompt: %s", prompt)
 
             caption = generate_caption(image_path=image_path, prompt=prompt)
             caption = caption.replace("<start>", "").replace("<end>", "").strip()
 
             self._store_generated_caption(captions, caption, commit)
 
-            logger.info(f"generated caption for image {image_path}: {caption}")
+            logger.info("generated caption for image %s: %s", image_path, caption)
             return True
         except Exception:
-            logger.exception(f"could not generate caption for image {image_path}")
+            logger.exception("could not generate caption for image %s", image_path)
             return False
 
     def apply_user_caption(self, caption: str, commit: bool = True) -> str:
@@ -287,8 +287,10 @@ class PhotoCaption(models.Model):
                 # raise_for_status() always attaches the response it checked.
                 assert error.response is not None
                 logger.warning(
-                    f"Tag service returned status {error.response.status_code} "
-                    f"for image {image_path}: {sidecars.error_detail(error)}"
+                    "Tag service returned status %s for image %s: %s",
+                    error.response.status_code,
+                    image_path,
+                    sidecars.error_detail(error),
                 )
                 return
 
@@ -296,7 +298,7 @@ class PhotoCaption(models.Model):
                 response_json = response.json()
             except (ValueError, RuntimeError):
                 logger.warning(
-                    f"Tag service returned non-JSON response for image {image_path}"
+                    "Tag service returned non-JSON response for image %s", image_path
                 )
                 return
 
@@ -313,11 +315,11 @@ class PhotoCaption(models.Model):
                 self._store_search_embedding(embedding)
 
             self.store_tags((tags_result or {}).get("tags", []), commit=commit)
-            logger.info(f"generated {OPENCLIP} tags for image {image_path}.")
+            logger.info("generated %s tags for image %s.", OPENCLIP, image_path)
         except Exception as e:
             logger.exception(
-                f"could not generate tags for image "
-                f"{self.photo.main_file.path if self.photo.main_file else 'no main file'}"
+                "could not generate tags for image %s",
+                self.photo.main_file.path if self.photo.main_file else "no main file",
             )
             raise e
 

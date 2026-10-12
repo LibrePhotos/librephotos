@@ -97,7 +97,7 @@ def search_index() -> ResponseReturnValue:
     try:
         result = index.search_similar(user_id, image_embedding, n, threshold)
     except Exception as e:
-        logger.error(f"search for user {user_id} failed: {e}")
+        logger.error("search for user %s failed: %s", user_id, e)
         return {"status": False, "result": [], "error": str(e)}, 500
     return {"status": True, "result": result}
 
